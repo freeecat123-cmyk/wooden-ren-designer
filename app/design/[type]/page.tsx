@@ -54,26 +54,34 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
-      <Link href="/" className="text-sm text-zinc-500 hover:underline">
-        ← 回家具列表
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 hover:underline">
+        <span>←</span> 回家具列表
       </Link>
 
-      <header className="mt-3 mb-8 flex items-baseline justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900">{entry.nameZh}</h1>
-          <p className="mt-1 text-sm text-zinc-600">{entry.description}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-zinc-500">
-            {length} × {width} × {height} mm · {MATERIALS[material].nameZh}
-          </p>
+      <header className="mt-4 mb-8">
+        <div className="flex items-baseline justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
+            <p className="mt-1 text-sm text-zinc-600 max-w-2xl">{entry.description}</p>
+          </div>
           <Link
             href={`/design/${type}/print?length=${length}&width=${width}&height=${height}&material=${material}`}
             target="_blank"
-            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
+            className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-700 transition"
           >
             🖨️ 列印 / PDF
           </Link>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <span className="px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-700 font-mono">
+            {length} × {width} × {height} mm
+          </span>
+          <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 ring-1 ring-amber-200">
+            {MATERIALS[material].nameZh}
+          </span>
+          <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">
+            {design.parts.length} 件零件
+          </span>
         </div>
       </header>
 
@@ -83,12 +91,18 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       />
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">透視圖（3D）</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          透視圖（3D）
+        </h2>
         <PerspectiveView design={design} />
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">工程三視圖</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          工程三視圖
+        </h2>
         <ThreeViewLayout design={design} />
         <p className="mt-3 text-xs text-zinc-500">
           ⚠️ 標示為組裝後可見尺寸（肩到肩）。實際切料尺寸含榫頭，請看下方材料單。
@@ -96,7 +110,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">材料單</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          材料單
+        </h2>
         <div className="rounded-lg border border-zinc-200 overflow-hidden">
           <MaterialList design={design} />
         </div>
@@ -106,17 +123,26 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">榫卯細節圖</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          榫卯細節圖
+        </h2>
         <JoinerySection design={design} />
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">工具清單</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          工具清單
+        </h2>
         <ToolList design={design} />
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">製作工序</h2>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-amber-500 rounded-full" />
+          製作工序
+        </h2>
         <BuildSteps design={design} />
       </section>
     </main>
