@@ -155,19 +155,53 @@ ${header}
 </svg>`;
 }
 
+const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, string | number | boolean> }>> = {
+  "stool": [
+    { suffix: "-lower-stretcher", options: { withLowerStretcher: true, legSize: 50 } },
+  ],
+  "chest-of-drawers": [
+    { suffix: "-3x3-legs", options: { drawerRows: 3, drawerCols: 3, legHeight: 100 } },
+    { suffix: "-2col", options: { drawerRows: 4, drawerCols: 2 } },
+  ],
+  "dining-table": [
+    { suffix: "-tapered", options: { legShape: "tapered", topOverhang: 60, withLowerStretchers: false } },
+  ],
+  "dining-chair": [
+    { suffix: "-4slats", options: { backSlats: 4 } },
+  ],
+  "wardrobe": [
+    { suffix: "-3doors", options: { doorCount: 3, bottomDrawerCount: 3 } },
+  ],
+  "shoe-cabinet": [
+    { suffix: "-no-legs", options: { legHeight: 0, doorCount: 0 } },
+  ],
+};
+
 let count = 0;
 for (const entry of FURNITURE_CATALOG) {
   if (!entry.template) continue;
-  const design = entry.template({
+  const baseline = entry.template({
     length: entry.defaults.length,
     width: entry.defaults.width,
     height: entry.defaults.height,
     material: "taiwan-cypress",
   });
-  const svg = buildPreviewSvg(design);
-  const out = join(OUT_DIR, `${entry.category}.svg`);
-  writeFileSync(out, svg, "utf8");
-  console.log(`✓ ${entry.category}.svg (${design.parts.length} parts)`);
+  writeFileSync(join(OUT_DIR, `${entry.category}.svg`), buildPreviewSvg(baseline), "utf8");
+  console.log(`✓ ${entry.category}.svg (${baseline.parts.length} parts)`);
   count++;
+
+  for (const variant of VARIANTS[entry.category] ?? []) {
+    const v = entry.template({
+      length: entry.defaults.length,
+      width: entry.defaults.width,
+      height: entry.defaults.height,
+      material: "taiwan-cypress",
+      options: variant.options,
+    });
+    const file = `${entry.category}${variant.suffix}.svg`;
+    writeFileSync(join(OUT_DIR, file), buildPreviewSvg(v), "utf8");
+    console.log(`  ↳ ${file} (${v.parts.length} parts)`);
+    count++;
+  }
 }
 console.log(`\nGenerated ${count} previews in ${OUT_DIR}`);

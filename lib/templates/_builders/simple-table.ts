@@ -232,6 +232,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         thickness: stretcherThickness,
       },
       origin: { x: 0, y: apronY - 30, z: 0 },
+      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
       tenons: [
         {
           position: "start",
