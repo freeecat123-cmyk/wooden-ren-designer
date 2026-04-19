@@ -45,9 +45,9 @@ function viewBlock(
   const vbW = w + PADDING * 2;
   const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
 
-  const drawAreaTop = view === "top" ? 0 : -h;
+  const drawAreaTop = view === "top" ? -h / 2 : -h;
   const contentDx = PADDING + w / 2;
-  const contentDy = view === "top" ? PADDING + TITLE_BAR_H : PADDING + TITLE_BAR_H + h;
+  const contentDy = view === "top" ? PADDING + TITLE_BAR_H + h / 2 : PADDING + TITLE_BAR_H + h;
 
   const frameX = -w / 2 - PADDING + 8;
   const frameY = drawAreaTop - PADDING - TITLE_BAR_H + 8;

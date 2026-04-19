@@ -46,10 +46,10 @@ function OrthoView({
   const vbW = w + PADDING * 2;
   const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
   const vbX = -PADDING - w / 2;
-  const vbY = view === "top" ? -PADDING - TITLE_BAR_H : -h - PADDING - TITLE_BAR_H;
-
-  // y baseline of parts (top of drawing area in SVG coordinates)
-  const drawAreaTop = view === "top" ? 0 : -h;
+  // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
+  // front/side views use natural flipY so parts span y=-h..0.
+  const drawAreaTop = view === "top" ? -h / 2 : -h;
+  const vbY = drawAreaTop - PADDING - TITLE_BAR_H;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
@@ -275,7 +275,7 @@ export function ThreeViewLayout({ design }: { design: FurnitureDesign }) {
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
         <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE VIEW" />
       </div>
-      <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm md:col-span-2">
+      <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
         <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP VIEW" />
       </div>
     </div>

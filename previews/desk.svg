@@ -82,18 +82,18 @@
   <text x="334.0" y="-375.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">750</text>
 </g>
   </g></g>
-  <g transform="translate(0, 1052)"><g transform="translate(690.0, 122.0)">
-    <rect x="-682.0" y="-114.0" width="1364.0" height="846.0" fill="none" stroke="#222" stroke-width="1"/>
+  <g transform="translate(0, 1052)"><g transform="translate(690.0, 422.0)">
+    <rect x="-682.0" y="-414.0" width="1364.0" height="846.0" fill="none" stroke="#222" stroke-width="1"/>
     
-<line x1="-682.0" y1="-82.0" x2="682.0" y2="-82.0" stroke="#222" stroke-width="0.6"/>
-<text x="-672.0" y="-92.0" font-size="13" font-weight="700" fill="#111" font-family="sans-serif">俯視圖</text>
-<text x="-600.0" y="-92.0" font-size="10" fill="#666" font-family="sans-serif">TOP VIEW</text>
+<line x1="-682.0" y1="-382.0" x2="682.0" y2="-382.0" stroke="#222" stroke-width="0.6"/>
+<text x="-672.0" y="-392.0" font-size="13" font-weight="700" fill="#111" font-family="sans-serif">俯視圖</text>
+<text x="-600.0" y="-392.0" font-size="10" fill="#666" font-family="sans-serif">TOP VIEW</text>
     
 <g stroke="#888" stroke-width="0.5" stroke-dasharray="8 2 2 2" opacity="0.7">
-  <line x1="0" y1="-10.0" x2="0" y2="610.0"/>
-  <line x1="-610.0" y1="300.0" x2="610.0" y2="300.0"/>
+  <line x1="0" y1="-310.0" x2="0" y2="310.0"/>
+  <line x1="-610.0" y1="0.0" x2="610.0" y2="0.0"/>
 </g>
-    <rect x="-600.0" y="0.0" width="1200.0" height="600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
+    <rect x="-600.0" y="-300.0" width="1200.0" height="600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
     <rect x="-600.0" y="-300.0" width="1200.0" height="600.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
 <rect x="-600.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
 <rect x="545.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
@@ -106,10 +106,10 @@
 <rect x="-265.0" y="-25.0" width="530.0" height="50.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
-  <line x1="-600.0" y1="612.0" x2="-600.0" y2="636.0" stroke-width="0.4" stroke="#666"/>
-  <line x1="600.0" y1="612.0" x2="600.0" y2="636.0" stroke-width="0.4" stroke="#666"/>
-  <line x1="-600.0" y1="628.0" x2="600.0" y2="628.0" marker-start="url(#arr-top)" marker-end="url(#arr-top)"/>
-  <text x="0" y="623.0" text-anchor="middle" font-size="11" stroke="none">1200</text>
+  <line x1="-600.0" y1="312.0" x2="-600.0" y2="336.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="600.0" y1="312.0" x2="600.0" y2="336.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="-600.0" y1="328.0" x2="600.0" y2="328.0" marker-start="url(#arr-top)" marker-end="url(#arr-top)"/>
+  <text x="0" y="323.0" text-anchor="middle" font-size="11" stroke="none">1200</text>
 </g>
     
   </g></g>
