@@ -226,9 +226,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: backHeight - 80, width: slatWidth, thickness: slatThickness },
         origin: {
           x: xCenter,
-          y: seatHeight + (backHeight - 80) / 2,
+          y: seatHeight,
           z: width / 2 - legSize / 2,
         },
+        rotation: { x: 0, y: 0, z: Math.PI / 2 },
         tenons: [
           { position: "top", type: "blind-tenon", length: 15, width: slatWidth - 8, thickness: slatThickness - 4 },
           { position: "bottom", type: "blind-tenon", length: 15, width: slatWidth - 8, thickness: slatThickness - 4 },
