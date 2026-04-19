@@ -59,9 +59,14 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
 
         {design.parts.map((part) => {
           const color = MATERIALS[part.material].color;
-          // Three.js: y is up, our domain: y is up. x = length, z = depth.
+          // origin is bottom-center; center Y must use the rotated Y extent, not
+          // raw visible.thickness (fails for aprons stood up by an X rotation).
+          const rx = part.rotation?.x ?? 0;
+          const yExt = Math.abs(Math.sin(rx)) > 0.5
+            ? part.visible.width
+            : part.visible.thickness;
           const px = part.origin.x * SCALE;
-          const py = (part.origin.y + part.visible.thickness / 2) * SCALE;
+          const py = (part.origin.y + yExt / 2) * SCALE;
           const pz = part.origin.z * SCALE;
           return (
             <Part
