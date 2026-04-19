@@ -5,20 +5,24 @@ import { JOINERY_LABEL } from "@/lib/joinery/details";
 
 interface ViewProps {
   design: FurnitureDesign;
-  /** mm per SVG user-unit; used to fit the drawing into the viewBox */
-  scale?: number;
 }
 
 const PADDING = 60;
 const DIM_OFFSET = 35;
 
 function worldExtents(part: Part) {
-  // Y-rotation of ~90° swaps a plank's length (local X) and width (local Z).
-  const rotY = part.rotation?.y ?? 0;
-  const quarterTurn = Math.abs(Math.sin(rotY)) > 0.5;
-  return quarterTurn
-    ? { xExt: part.visible.width, yExt: part.visible.thickness, zExt: part.visible.length }
-    : { xExt: part.visible.length, yExt: part.visible.thickness, zExt: part.visible.width };
+  // Matches three.js extrinsic XYZ Euler: X rotation swaps local Y↔Z extents,
+  // Y rotation swaps local X↔Z extents. Only ~90° quarter-turns are supported.
+  let xExt = part.visible.length;
+  let yExt = part.visible.thickness;
+  let zExt = part.visible.width;
+  if (Math.abs(Math.sin(part.rotation?.x ?? 0)) > 0.5) {
+    [yExt, zExt] = [zExt, yExt];
+  }
+  if (Math.abs(Math.sin(part.rotation?.y ?? 0)) > 0.5) {
+    [xExt, zExt] = [zExt, xExt];
+  }
+  return { xExt, yExt, zExt };
 }
 
 function projectPart(part: Part, view: "front" | "side" | "top") {
@@ -43,7 +47,6 @@ function OrthoView({
   design,
   view,
   title,
-  scale = 1,
 }: ViewProps & { view: "front" | "side" | "top"; title: string }) {
   const { overall } = design;
   const w = view === "side" ? overall.width : overall.length;
@@ -60,9 +63,8 @@ function OrthoView({
   return (
     <svg
       viewBox={`${-PADDING - w / 2} ${vbY} ${vbW} ${vbH}`}
-      width={vbW * scale}
-      height={vbH * scale}
-      className="bg-white border border-zinc-300"
+      preserveAspectRatio="xMidYMid meet"
+      className="bg-white border border-zinc-300 w-full h-auto max-h-[70vh]"
     >
       <text
         x={-w / 2}

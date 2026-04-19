@@ -151,8 +151,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     },
     origin: { x: s.origin.x, y: apronY, z: s.origin.z },
     rotation: s.axis === "z"
-      ? { x: 0, y: Math.PI / 2, z: 0 }
-      : { x: 0, y: 0, z: 0 },
+      ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
+      : { x: Math.PI / 2, y: 0, z: 0 },
     tenons: [
       {
         position: "start",

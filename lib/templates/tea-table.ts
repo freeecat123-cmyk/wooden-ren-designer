@@ -289,8 +289,8 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     },
     origin: { x: s.origin.x, y: o.y, z: s.origin.z },
     rotation: s.axis === "z"
-      ? { x: 0, y: Math.PI / 2, z: 0 }
-      : { x: 0, y: 0, z: 0 },
+      ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
+      : { x: Math.PI / 2, y: 0, z: 0 },
     tenons: [
       {
         position: "start",
