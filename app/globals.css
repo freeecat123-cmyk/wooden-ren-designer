@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/*
+ * 強制 light mode — 木工圖紙工具一律白底黑字才看得清楚。
+ * 不偵測系統 dark mode（避免暗底文字消失問題）。
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #fafaf7;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
@@ -12,17 +17,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), "Noto Sans TC", "PingFang TC",
+    "Microsoft JhengHei", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ---------- Print / PDF rules ---------- */

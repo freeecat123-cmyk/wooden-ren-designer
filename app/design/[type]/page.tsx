@@ -183,7 +183,7 @@ function ParameterForm({
         <select
           name="material"
           defaultValue={defaults.material}
-          className="border border-zinc-300 rounded px-2 py-1.5 bg-white"
+          className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
         >
           {Object.values(MATERIALS).map((m) => (
             <option key={m.id} value={m.id}>
@@ -223,7 +223,9 @@ function NumberInput({
         min={50}
         max={3000}
         step={10}
-        className="border border-zinc-300 rounded px-2 py-1.5 bg-white"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
     </label>
   );
