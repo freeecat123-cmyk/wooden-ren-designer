@@ -43,16 +43,21 @@ function OrthoView({
   const vbW = w + PADDING * 2;
   const vbH = h + PADDING * 2 + DIM_OFFSET;
 
+  // Front/side views flip Y so +height points up (parts rendered at y = -r.y - r.h
+  // land in the range [-h, 0]). ViewBox Y origin must start at -h-PADDING to include
+  // them; top view uses natural SVG Y so it starts at -PADDING.
+  const vbY = view === "top" ? -PADDING : -h - PADDING;
+
   return (
     <svg
-      viewBox={`${-PADDING - w / 2} ${-PADDING} ${vbW} ${vbH}`}
+      viewBox={`${-PADDING - w / 2} ${vbY} ${vbW} ${vbH}`}
       width={vbW * scale}
       height={vbH * scale}
       className="bg-white border border-zinc-300"
     >
       <text
         x={-w / 2}
-        y={-PADDING / 2}
+        y={vbY + PADDING / 2}
         fontSize={12}
         fill="#333"
         fontWeight="bold"
@@ -78,13 +83,22 @@ function OrthoView({
         );
       })}
 
-      {/* outer dimension (assembled, solid black) */}
+      {/* outer dimension (assembled, solid black) — below the drawing */}
       <DimensionLine
         x1={-w / 2}
         x2={w / 2}
-        y={view === "top" ? overall.width / 2 + 20 : -h - 20}
+        y={view === "top" ? overall.width / 2 + 20 : 20}
         label={`${w} mm`}
       />
+      {/* vertical dimension for front/side views */}
+      {view !== "top" && (
+        <VerticalDimensionLine
+          x={w / 2 + 20}
+          y1={-h}
+          y2={0}
+          label={`${h} mm`}
+        />
+      )}
     </svg>
   );
 }
@@ -110,6 +124,37 @@ function DimensionLine({
         x={(x1 + x2) / 2}
         y={y - 6}
         textAnchor="middle"
+        fontSize={10}
+        stroke="none"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function VerticalDimensionLine({
+  x,
+  y1,
+  y2,
+  label,
+}: {
+  x: number;
+  y1: number;
+  y2: number;
+  label: string;
+}) {
+  const tick = 5;
+  return (
+    <g stroke="#111" fill="#111" strokeWidth={0.5}>
+      <line x1={x} y1={y1} x2={x} y2={y2} />
+      <line x1={x - tick} y1={y1} x2={x + tick} y2={y1} />
+      <line x1={x - tick} y1={y2} x2={x + tick} y2={y2} />
+      <text
+        x={x + 8}
+        y={(y1 + y2) / 2}
+        textAnchor="start"
+        dominantBaseline="middle"
         fontSize={10}
         stroke="none"
       >
