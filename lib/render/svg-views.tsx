@@ -2,7 +2,12 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
-import { worldExtents } from "@/lib/render/geometry";
+import {
+  isPartHidden,
+  projectPart,
+  sortPartsByDepth,
+  type OrthoView,
+} from "@/lib/render/geometry";
 
 interface ViewProps {
   design: FurnitureDesign;
@@ -11,18 +16,6 @@ interface ViewProps {
 const PADDING = 90;
 const DIM_OFFSET = 50;
 const TITLE_BAR_H = 32;
-
-function projectPart(part: Part, view: "front" | "side" | "top") {
-  const { x, y, z } = part.origin;
-  const { xExt, yExt, zExt } = worldExtents(part);
-  if (view === "front") {
-    return { x: x - xExt / 2, y, w: xExt, h: yExt };
-  }
-  if (view === "side") {
-    return { x: z - zExt / 2, y, w: zExt, h: yExt };
-  }
-  return { x: x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
-}
 
 function partFill(part: Part) {
   return MATERIALS[part.material].color;
@@ -35,7 +28,7 @@ function OrthoView({
   title,
   titleEn,
 }: ViewProps & {
-  view: "front" | "side" | "top";
+  view: OrthoView;
   title: string;
   titleEn: string;
 }) {
@@ -131,9 +124,10 @@ function OrthoView({
         />
       </g>
 
-      {/* parts */}
-      {design.parts.map((part) => {
+      {/* parts — line-art style: visible solid, hidden dashed */}
+      {sortPartsByDepth(design.parts, view).map((part) => {
         const r = projectPart(part, view);
+        const hidden = isPartHidden(part, design.parts, view);
         return (
           <rect
             key={part.id}
@@ -141,10 +135,10 @@ function OrthoView({
             y={view === "top" ? r.y : -r.y - r.h}
             width={r.w}
             height={r.h}
-            fill={partFill(part)}
-            stroke="#222"
-            strokeWidth={0.7}
-            opacity={0.9}
+            fill="none"
+            stroke={hidden ? "#888" : "#111"}
+            strokeWidth={hidden ? 0.5 : 0.9}
+            strokeDasharray={hidden ? "4 3" : undefined}
           />
         );
       })}
@@ -171,16 +165,14 @@ function OrthoView({
         label={`${w}`}
       />
 
-      {/* vertical dimension right (front/side) */}
-      {view !== "top" && (
-        <VerticalDimensionLine
-          arrowId={`arr-${view}`}
-          x={w / 2 + 28}
-          y1={-h}
-          y2={0}
-          label={`${h}`}
-        />
-      )}
+      {/* vertical dimension on right side (all views) */}
+      <VerticalDimensionLine
+        arrowId={`arr-${view}`}
+        x={w / 2 + 28}
+        y1={view === "top" ? -h / 2 : -h}
+        y2={view === "top" ? h / 2 : 0}
+        label={`${h}`}
+      />
     </svg>
   );
 }

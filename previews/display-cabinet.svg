@@ -20,22 +20,22 @@
   <line x1="-410.0" y1="-800.0" x2="410.0" y2="-800.0"/>
 </g>
     <rect x="-400.0" y="-1600.0" width="800.0" height="1600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-400.0" y="-1600.0" width="800.0" height="20.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-400.0" y="-20.0" width="800.0" height="20.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-400.0" y="-1580.0" width="20.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="380.0" y="-1580.0" width="20.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-428.0" width="760.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-818.0" width="760.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-1208.0" width="760.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-1580.0" width="760.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-318.0" y="-1576.0" width="256.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-318.0" y="-80.0" width="256.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-378.0" y="-1576.0" width="60.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-62.0" y="-1576.0" width="60.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="62.0" y="-1576.0" width="256.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="62.0" y="-80.0" width="256.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="2.0" y="-1576.0" width="60.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="318.0" y="-1576.0" width="60.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    <rect x="-380.0" y="-1580.0" width="760.0" height="1560.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-400.0" y="-1580.0" width="20.0" height="1560.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="380.0" y="-1580.0" width="20.0" height="1560.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-380.0" y="-428.0" width="760.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-380.0" y="-818.0" width="760.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-380.0" y="-1208.0" width="760.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-400.0" y="-1600.0" width="800.0" height="20.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-400.0" y="-20.0" width="800.0" height="20.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-318.0" y="-1576.0" width="256.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-318.0" y="-80.0" width="256.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-378.0" y="-1576.0" width="60.0" height="1556.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-62.0" y="-1576.0" width="60.0" height="1556.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="62.0" y="-1576.0" width="256.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="62.0" y="-80.0" width="256.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="2.0" y="-1576.0" width="60.0" height="1556.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="318.0" y="-1576.0" width="60.0" height="1556.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-400.0" y1="12.0" x2="-400.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
@@ -46,8 +46,8 @@
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="412.0" y1="-1600.0" x2="436.0" y2="-1600.0" stroke-width="0.4" stroke="#666"/>
-  <line x1="412.0" y1="0" x2="436.0" y2="0" stroke-width="0.4" stroke="#666"/>
-  <line x1="428.0" y1="-1600.0" x2="428.0" y2="0" marker-start="url(#arr-front)" marker-end="url(#arr-front)"/>
+  <line x1="412.0" y1="0.0" x2="436.0" y2="0.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="428.0" y1="-1600.0" x2="428.0" y2="0.0" marker-start="url(#arr-front)" marker-end="url(#arr-front)"/>
   <text x="434.0" y="-800.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">1600</text>
 </g>
   </g>
@@ -63,22 +63,22 @@
   <line x1="-210.0" y1="-800.0" x2="210.0" y2="-800.0"/>
 </g>
     <rect x="-200.0" y="-1600.0" width="400.0" height="1600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-200.0" y="-1600.0" width="400.0" height="20.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-200.0" y="-20.0" width="400.0" height="20.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-196.0" y="-1580.0" width="392.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-196.0" y="-1580.0" width="392.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-196.0" y="-428.0" width="392.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-196.0" y="-818.0" width="392.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-196.0" y="-1208.0" width="392.0" height="18.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="192.0" y="-1580.0" width="8.0" height="1560.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-80.0" width="22.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-80.0" width="22.0" height="60.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    <rect x="-196.0" y="-1580.0" width="392.0" height="1560.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-80.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-80.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-1576.0" width="22.0" height="1556.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-196.0" y="-428.0" width="392.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-196.0" y="-818.0" width="392.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-196.0" y="-1208.0" width="392.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="192.0" y="-1580.0" width="8.0" height="1560.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-200.0" y="-1600.0" width="400.0" height="20.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-200.0" y="-20.0" width="400.0" height="20.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-196.0" y="-1580.0" width="392.0" height="1560.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-200.0" y1="12.0" x2="-200.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
@@ -89,8 +89,8 @@
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="212.0" y1="-1600.0" x2="236.0" y2="-1600.0" stroke-width="0.4" stroke="#666"/>
-  <line x1="212.0" y1="0" x2="236.0" y2="0" stroke-width="0.4" stroke="#666"/>
-  <line x1="228.0" y1="-1600.0" x2="228.0" y2="0" marker-start="url(#arr-side)" marker-end="url(#arr-side)"/>
+  <line x1="212.0" y1="0.0" x2="236.0" y2="0.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="228.0" y1="-1600.0" x2="228.0" y2="0.0" marker-start="url(#arr-side)" marker-end="url(#arr-side)"/>
   <text x="234.0" y="-800.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">1600</text>
 </g>
   </g></g>
@@ -106,22 +106,22 @@
   <line x1="-410.0" y1="0.0" x2="410.0" y2="0.0"/>
 </g>
     <rect x="-400.0" y="-200.0" width="800.0" height="400.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-400.0" y="-200.0" width="800.0" height="400.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-400.0" y="-200.0" width="800.0" height="400.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-400.0" y="-196.0" width="20.0" height="392.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="380.0" y="-196.0" width="20.0" height="392.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-380.0" y="192.0" width="760.0" height="8.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-318.0" y="-223.0" width="256.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-318.0" y="-223.0" width="256.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-378.0" y="-223.0" width="60.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="-62.0" y="-223.0" width="60.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="62.0" y="-223.0" width="256.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="62.0" y="-223.0" width="256.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="2.0" y="-223.0" width="60.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
-<rect x="318.0" y="-223.0" width="60.0" height="22.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    <rect x="-400.0" y="-200.0" width="800.0" height="400.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-318.0" y="-223.0" width="256.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="62.0" y="-223.0" width="256.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-380.0" y="-196.0" width="760.0" height="392.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-318.0" y="-223.0" width="256.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-378.0" y="-223.0" width="60.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-62.0" y="-223.0" width="60.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="62.0" y="-223.0" width="256.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="2.0" y="-223.0" width="60.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="318.0" y="-223.0" width="60.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-400.0" y="-196.0" width="20.0" height="392.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="380.0" y="-196.0" width="20.0" height="392.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-380.0" y="192.0" width="760.0" height="8.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-400.0" y="-200.0" width="800.0" height="400.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-400.0" y1="212.0" x2="-400.0" y2="236.0" stroke-width="0.4" stroke="#666"/>
@@ -130,6 +130,12 @@
   <text x="0" y="223.0" text-anchor="middle" font-size="11" stroke="none">800</text>
 </g>
     
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="412.0" y1="-200.0" x2="436.0" y2="-200.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="412.0" y1="200.0" x2="436.0" y2="200.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="428.0" y1="-200.0" x2="428.0" y2="200.0" marker-start="url(#arr-top)" marker-end="url(#arr-top)"/>
+  <text x="434.0" y="0.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">400</text>
+</g>
   </g></g>
 </g>
 </svg>

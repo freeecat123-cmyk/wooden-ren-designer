@@ -11,8 +11,13 @@ import { fileURLToPath } from "node:url";
 
 import { FURNITURE_CATALOG } from "../lib/templates";
 import { MATERIALS } from "../lib/materials";
-import type { FurnitureDesign, Part } from "../lib/types";
-import { worldExtents } from "../lib/render/geometry";
+import type { FurnitureDesign } from "../lib/types";
+import {
+  isPartHidden,
+  projectPart,
+  sortPartsByDepth,
+  type OrthoView,
+} from "../lib/render/geometry";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "previews");
@@ -23,17 +28,9 @@ const DIM_OFFSET = 50;
 const TITLE_BAR_H = 32;
 const VIEW_GAP = 40;
 
-function projectPart(part: Part, view: "front" | "side" | "top") {
-  const { x, y, z } = part.origin;
-  const { xExt, yExt, zExt } = worldExtents(part);
-  if (view === "front") return { x: x - xExt / 2, y, w: xExt, h: yExt };
-  if (view === "side") return { x: z - zExt / 2, y, w: zExt, h: yExt };
-  return { x: x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
-}
-
 function viewBlock(
   design: FurnitureDesign,
-  view: "front" | "side" | "top",
+  view: OrthoView,
   title: string,
   titleEn: string,
   arrowId: string,
@@ -54,11 +51,15 @@ function viewBlock(
   const frameW = vbW - 16;
   const frameH = vbH - 16;
 
-  const rects = design.parts
+  const rects = sortPartsByDepth(design.parts, view)
     .map((p) => {
       const r = projectPart(p, view);
       const flipY = view === "top" ? r.y : -r.y - r.h;
-      return `<rect x="${r.x.toFixed(1)}" y="${flipY.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" fill="${MATERIALS[p.material].color}" stroke="#222" stroke-width="0.7" opacity="0.9"/>`;
+      const hidden = isPartHidden(p, design.parts, view);
+      const stroke = hidden ? "#888" : "#111";
+      const strokeW = hidden ? 0.5 : 0.9;
+      const dash = hidden ? ` stroke-dasharray="4 3"` : "";
+      return `<rect x="${r.x.toFixed(1)}" y="${flipY.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" fill="none" stroke="${stroke}" stroke-width="${strokeW}"${dash}/>`;
     })
     .join("\n");
 
@@ -87,12 +88,14 @@ function viewBlock(
   <text x="0" y="${(dimY - 5).toFixed(1)}" text-anchor="middle" font-size="11" stroke="none">${w}</text>
 </g>`;
 
-  const verticalDim = view === "top" ? "" : `
+  const vDimTop = view === "top" ? -h / 2 : -h;
+  const vDimBot = view === "top" ? h / 2 : 0;
+  const verticalDim = `
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
-  <line x1="${(w / 2 + 12).toFixed(1)}" y1="${(-h).toFixed(1)}" x2="${(w / 2 + 36).toFixed(1)}" y2="${(-h).toFixed(1)}" stroke-width="0.4" stroke="#666"/>
-  <line x1="${(w / 2 + 12).toFixed(1)}" y1="0" x2="${(w / 2 + 36).toFixed(1)}" y2="0" stroke-width="0.4" stroke="#666"/>
-  <line x1="${(w / 2 + 28).toFixed(1)}" y1="${(-h).toFixed(1)}" x2="${(w / 2 + 28).toFixed(1)}" y2="0" marker-start="url(#${arrowId})" marker-end="url(#${arrowId})"/>
-  <text x="${(w / 2 + 34).toFixed(1)}" y="${(-h / 2).toFixed(1)}" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">${h}</text>
+  <line x1="${(w / 2 + 12).toFixed(1)}" y1="${vDimTop.toFixed(1)}" x2="${(w / 2 + 36).toFixed(1)}" y2="${vDimTop.toFixed(1)}" stroke-width="0.4" stroke="#666"/>
+  <line x1="${(w / 2 + 12).toFixed(1)}" y1="${vDimBot.toFixed(1)}" x2="${(w / 2 + 36).toFixed(1)}" y2="${vDimBot.toFixed(1)}" stroke-width="0.4" stroke="#666"/>
+  <line x1="${(w / 2 + 28).toFixed(1)}" y1="${vDimTop.toFixed(1)}" x2="${(w / 2 + 28).toFixed(1)}" y2="${vDimBot.toFixed(1)}" marker-start="url(#${arrowId})" marker-end="url(#${arrowId})"/>
+  <text x="${(w / 2 + 34).toFixed(1)}" y="${((vDimTop + vDimBot) / 2).toFixed(1)}" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">${h}</text>
 </g>`;
 
   const body = `<g transform="translate(${contentDx.toFixed(1)}, ${contentDy.toFixed(1)})">
