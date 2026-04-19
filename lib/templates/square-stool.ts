@@ -107,6 +107,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       width: apronWidth,
       thickness: apronThickness,
     },
+    rotation: p.axis === "z"
+      ? { x: 0, y: Math.PI / 2, z: 0 }
+      : { x: 0, y: 0, z: 0 },
     tenons: [
       {
         position: "start" as const,

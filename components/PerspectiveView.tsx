@@ -8,14 +8,16 @@ import { MATERIALS } from "@/lib/materials";
 function Part({
   position,
   size,
+  rotation,
   color,
 }: {
   position: [number, number, number];
   size: [number, number, number];
+  rotation: [number, number, number];
   color: string;
 }) {
   return (
-    <mesh position={position} castShadow receiveShadow>
+    <mesh position={position} rotation={rotation} castShadow receiveShadow>
       <boxGeometry args={size} />
       <meshStandardMaterial color={color} roughness={0.7} />
     </mesh>
@@ -69,6 +71,11 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
                 part.visible.length * SCALE,
                 part.visible.thickness * SCALE,
                 part.visible.width * SCALE,
+              ]}
+              rotation={[
+                part.rotation?.x ?? 0,
+                part.rotation?.y ?? 0,
+                part.rotation?.z ?? 0,
               ]}
               color={color}
             />

@@ -251,24 +251,28 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       key: "front",
       nameZh: "前",
       visibleLength: o.span.x,
+      axis: "x" as const,
       origin: { x: 0, z: -(o.overallWidth / 2 - o.legSize / 2) },
     },
     {
       key: "back",
       nameZh: "後",
       visibleLength: o.span.x,
+      axis: "x" as const,
       origin: { x: 0, z: o.overallWidth / 2 - o.legSize / 2 },
     },
     {
       key: "left",
       nameZh: "左",
       visibleLength: o.span.z,
+      axis: "z" as const,
       origin: { x: -(o.overallLength / 2 - o.legSize / 2), z: 0 },
     },
     {
       key: "right",
       nameZh: "右",
       visibleLength: o.span.z,
+      axis: "z" as const,
       origin: { x: o.overallLength / 2 - o.legSize / 2, z: 0 },
     },
   ];
@@ -284,6 +288,9 @@ function makeApronRing(o: ApronRingOpts): Part[] {
       thickness: o.apronThickness,
     },
     origin: { x: s.origin.x, y: o.y, z: s.origin.z },
+    rotation: s.axis === "z"
+      ? { x: 0, y: Math.PI / 2, z: 0 }
+      : { x: 0, y: 0, z: 0 },
     tenons: [
       {
         position: "start",

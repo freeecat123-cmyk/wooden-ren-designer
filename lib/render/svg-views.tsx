@@ -12,17 +12,26 @@ interface ViewProps {
 const PADDING = 60;
 const DIM_OFFSET = 35;
 
+function worldExtents(part: Part) {
+  // Y-rotation of ~90° swaps a plank's length (local X) and width (local Z).
+  const rotY = part.rotation?.y ?? 0;
+  const quarterTurn = Math.abs(Math.sin(rotY)) > 0.5;
+  return quarterTurn
+    ? { xExt: part.visible.width, yExt: part.visible.thickness, zExt: part.visible.length }
+    : { xExt: part.visible.length, yExt: part.visible.thickness, zExt: part.visible.width };
+}
+
 function projectPart(part: Part, view: "front" | "side" | "top") {
   const { x, y, z } = part.origin;
-  const { length, width, thickness } = part.visible;
+  const { xExt, yExt, zExt } = worldExtents(part);
   if (view === "front") {
-    return { x: x - length / 2, y, w: length, h: thickness };
+    return { x: x - xExt / 2, y, w: xExt, h: yExt };
   }
   if (view === "side") {
-    return { x: z - width / 2, y, w: width, h: thickness };
+    return { x: z - zExt / 2, y, w: zExt, h: yExt };
   }
   // top
-  return { x: x - length / 2, y: z - width / 2, w: length, h: width };
+  return { x: x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
 }
 
 function partFill(part: Part) {

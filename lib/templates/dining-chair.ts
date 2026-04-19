@@ -114,24 +114,28 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       key: "front",
       nameZh: "前牙板",
       visibleLength: apronInnerSpan.x,
+      axis: "x" as const,
       origin: { x: 0, z: -(width / 2 - legSize / 2) },
     },
     {
       key: "back",
       nameZh: "後牙板",
       visibleLength: apronInnerSpan.x,
+      axis: "x" as const,
       origin: { x: 0, z: width / 2 - legSize / 2 },
     },
     {
       key: "left",
       nameZh: "左牙板",
       visibleLength: apronInnerSpan.z,
+      axis: "z" as const,
       origin: { x: -(length / 2 - legSize / 2), z: 0 },
     },
     {
       key: "right",
       nameZh: "右牙板",
       visibleLength: apronInnerSpan.z,
+      axis: "z" as const,
       origin: { x: length / 2 - legSize / 2, z: 0 },
     },
   ];
@@ -146,6 +150,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       thickness: apronThickness,
     },
     origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+    rotation: s.axis === "z"
+      ? { x: 0, y: Math.PI / 2, z: 0 }
+      : { x: 0, y: 0, z: 0 },
     tenons: [
       {
         position: "start",
