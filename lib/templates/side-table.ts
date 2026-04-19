@@ -1,16 +1,33 @@
-import type { FurnitureTemplate } from "@/lib/types";
+import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
-export const sideTable: FurnitureTemplate = (input) =>
-  simpleTable({
+export const sideTableOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 25, max: 55, step: 1 },
+  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1 },
+  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 40, max: 100, step: 5 },
+  { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "桌面超出桌腳外側的距離" },
+  { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+];
+
+export const sideTable: FurnitureTemplate = (input) => {
+  const legSize = getOption<number>(input, sideTableOptions[0]);
+  const topThickness = getOption<number>(input, sideTableOptions[1]);
+  const apronWidth = getOption<number>(input, sideTableOptions[2]);
+  const topOverhang = getOption<number>(input, sideTableOptions[3]);
+  const withLowerStretchers = getOption<boolean>(input, sideTableOptions[4]);
+  return simpleTable({
     category: "side-table",
     nameZh: "邊桌 / 床頭櫃",
     length: input.length,
     width: input.width,
     height: input.height,
     material: input.material,
-    legSize: 35,
-    apronWidth: 60,
-    notes:
-      "床側收納用矮桌；可後續加單層抽屜（v2）。預設高 600mm 接近床墊面。",
+    legSize,
+    topThickness,
+    apronWidth,
+    topOverhang,
+    withLowerStretchers,
+    notes: "床側收納用矮桌，可加下橫撐增穩定。",
   });
+};

@@ -1,19 +1,39 @@
-import type { FurnitureTemplate } from "@/lib/types";
+import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
-export const diningTable: FurnitureTemplate = (input) =>
-  simpleTable({
+export const diningTableOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 50, max: 100, step: 2 },
+  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 22, max: 50, step: 2 },
+  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 70, max: 140, step: 5 },
+  { type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 28, min: 20, max: 40, step: 2 },
+  { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 150, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
+  { type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: true, help: "長桌必備，防扭" },
+  { type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
+];
+
+export const diningTable: FurnitureTemplate = (input) => {
+  const legSize = getOption<number>(input, diningTableOptions[0]);
+  const topThickness = getOption<number>(input, diningTableOptions[1]);
+  const apronWidth = getOption<number>(input, diningTableOptions[2]);
+  const apronThickness = getOption<number>(input, diningTableOptions[3]);
+  const topOverhang = getOption<number>(input, diningTableOptions[4]);
+  const withCenterStretcher = getOption<boolean>(input, diningTableOptions[5]);
+  const withLowerStretchers = getOption<boolean>(input, diningTableOptions[6]);
+  return simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
     length: input.length,
     width: input.width,
     height: input.height,
     material: input.material,
-    legSize: 70,
-    apronWidth: 100,
-    apronThickness: 28,
-    withCenterStretcher: true,
-    topThickness: 30,
-    notes:
-      "餐桌結構強度需求高：桌腳 70mm、牙板 100×28mm、桌面 30mm 厚。標配中央橫撐。",
+    legSize,
+    topThickness,
+    apronWidth,
+    apronThickness,
+    topOverhang,
+    withCenterStretcher,
+    withLowerStretchers,
+    notes: `餐桌結構：桌腳 ${legSize}mm、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
+};

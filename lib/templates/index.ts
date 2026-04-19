@@ -1,19 +1,21 @@
 import type {
   FurnitureCategory,
   FurnitureTemplate,
+  OptionSpec,
 } from "@/lib/types";
-import { squareStool } from "./square-stool";
-import { teaTable } from "./tea-table";
-import { bench } from "./bench";
-import { sideTable } from "./side-table";
-import { lowTable } from "./low-table";
-import { diningTable } from "./dining-table";
-import { desk } from "./desk";
-import { openBookshelf } from "./open-bookshelf";
-import { chestOfDrawers } from "./chest-of-drawers";
-import { shoeCabinet } from "./shoe-cabinet";
-import { displayCabinet } from "./display-cabinet";
-import { diningChair } from "./dining-chair";
+import { squareStool, squareStoolOptions } from "./square-stool";
+import { teaTable, teaTableOptions } from "./tea-table";
+import { bench, benchOptions } from "./bench";
+import { sideTable, sideTableOptions } from "./side-table";
+import { lowTable, lowTableOptions } from "./low-table";
+import { diningTable, diningTableOptions } from "./dining-table";
+import { desk, deskOptions } from "./desk";
+import { openBookshelf, openBookshelfOptions } from "./open-bookshelf";
+import { chestOfDrawers, chestOfDrawersOptions } from "./chest-of-drawers";
+import { shoeCabinet, shoeCabinetOptions } from "./shoe-cabinet";
+import { displayCabinet, displayCabinetOptions } from "./display-cabinet";
+import { diningChair, diningChairOptions } from "./dining-chair";
+import { wardrobe, wardrobeOptions } from "./wardrobe";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -22,6 +24,7 @@ export interface FurnitureCatalogEntry {
   difficulty: "beginner" | "intermediate" | "advanced";
   template?: FurnitureTemplate;
   defaults: { length: number; width: number; height: number };
+  optionSchema?: OptionSpec[];
 }
 
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
@@ -32,6 +35,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: squareStool,
     defaults: { length: 350, width: 350, height: 450 },
+    optionSchema: squareStoolOptions,
   },
   {
     category: "bench",
@@ -40,6 +44,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: bench,
     defaults: { length: 1200, width: 350, height: 450 },
+    optionSchema: benchOptions,
   },
   {
     category: "tea-table",
@@ -48,6 +53,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: teaTable,
     defaults: { length: 600, width: 600, height: 400 },
+    optionSchema: teaTableOptions,
   },
   {
     category: "side-table",
@@ -56,6 +62,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: sideTable,
     defaults: { length: 450, width: 400, height: 600 },
+    optionSchema: sideTableOptions,
   },
   {
     category: "low-table",
@@ -64,6 +71,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: lowTable,
     defaults: { length: 1000, width: 600, height: 350 },
+    optionSchema: lowTableOptions,
   },
   {
     category: "open-bookshelf",
@@ -72,6 +80,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: openBookshelf,
     defaults: { length: 800, width: 300, height: 1800 },
+    optionSchema: openBookshelfOptions,
   },
   {
     category: "chest-of-drawers",
@@ -80,6 +89,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: chestOfDrawers,
     defaults: { length: 800, width: 450, height: 900 },
+    optionSchema: chestOfDrawersOptions,
   },
   {
     category: "shoe-cabinet",
@@ -88,6 +98,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: shoeCabinet,
     defaults: { length: 900, width: 350, height: 1000 },
+    optionSchema: shoeCabinetOptions,
   },
   {
     category: "display-cabinet",
@@ -96,6 +107,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: displayCabinet,
     defaults: { length: 800, width: 400, height: 1600 },
+    optionSchema: displayCabinetOptions,
   },
   {
     category: "dining-table",
@@ -104,6 +116,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: diningTable,
     defaults: { length: 1500, width: 800, height: 750 },
+    optionSchema: diningTableOptions,
   },
   {
     category: "desk",
@@ -112,6 +125,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: desk,
     defaults: { length: 1200, width: 600, height: 750 },
+    optionSchema: deskOptions,
   },
   {
     category: "dining-chair",
@@ -120,6 +134,16 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: diningChair,
     defaults: { length: 450, width: 450, height: 850 },
+    optionSchema: diningChairOptions,
+  },
+  {
+    category: "wardrobe",
+    nameZh: "衣櫃",
+    description: "含吊衣桿/層板/抽屜的直立式衣櫃",
+    difficulty: "advanced",
+    template: wardrobe,
+    defaults: { length: 1200, width: 600, height: 2000 },
+    optionSchema: wardrobeOptions,
   },
 ];
 

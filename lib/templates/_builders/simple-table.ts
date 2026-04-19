@@ -18,8 +18,16 @@ export interface SimpleTableOpts {
   topThickness?: number;
   apronWidth?: number;
   apronThickness?: number;
+  /** Distance from top-underside down to the apron top edge. */
+  apronOffset?: number;
   /** Add a single mid-span stretcher (tie beam) between front and back aprons. */
   withCenterStretcher?: boolean;
+  /** Add 4 lower stretchers connecting legs at ~1/4 height (traditional style). */
+  withLowerStretchers?: boolean;
+  /** Overhang of top beyond leg outer face, mm. Default 0 (flush). */
+  topOverhang?: number;
+  /** Leg shape: box (default) or tapered toward bottom. */
+  legShape?: "box" | "tapered";
   notes?: string;
 }
 
@@ -43,13 +51,18 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     opts.legSize ?? Math.max(35, Math.min(70, Math.round(height / 12)));
   const apronWidth = opts.apronWidth ?? 70;
   const apronThickness = opts.apronThickness ?? 22;
+  const apronOffset = opts.apronOffset ?? 20;
+  const topOverhang = opts.topOverhang ?? 0;
+  const withLowerStretchers = opts.withLowerStretchers ?? false;
   const apronTenonLen = Math.round(legSize * 0.65);
   const legTopTenonLen = topThickness;
 
   const legHeight = height - topThickness;
-  const apronY = legHeight - apronWidth - 20;
+  const apronY = legHeight - apronWidth - apronOffset;
 
   const cornerPts = corners(length, width, legSize);
+  const topLen = length + 2 * topOverhang;
+  const topWid = width + 2 * topOverhang;
 
   // Top
   const topPanel: Part = {
@@ -57,7 +70,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     nameZh: "桌面板",
     material,
     grainDirection: "length",
-    visible: { length, width, thickness: topThickness },
+    visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     tenons: [],
     mortises: cornerPts.map((c) => ({
@@ -170,6 +183,36 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   }));
 
   const parts: Part[] = [topPanel, ...legs, ...aprons];
+
+  // Optional 4 lower stretchers (連腳橫撐), at ~1/4 leg height
+  if (withLowerStretchers) {
+    const stretcherY = Math.round(legHeight * 0.22);
+    const stretcherWidth = 40;
+    const stretcherThickness = 20;
+    const tenonLen = Math.round(legSize * 0.6);
+    const lowerSides = [
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+    ];
+    for (const s of lowerSides) {
+      parts.push({
+        id: s.key,
+        nameZh: s.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: s.visibleLength, width: stretcherWidth, thickness: stretcherThickness },
+        origin: { x: s.origin.x, y: stretcherY, z: s.origin.z },
+        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [
+          { position: "start", type: "blind-tenon", length: tenonLen, width: stretcherWidth - 8, thickness: stretcherThickness - 5 },
+          { position: "end", type: "blind-tenon", length: tenonLen, width: stretcherWidth - 8, thickness: stretcherThickness - 5 },
+        ],
+        mortises: [],
+      });
+    }
+  }
 
   // Optional center stretcher (for long tables)
   if (withCenterStretcher) {

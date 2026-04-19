@@ -1,9 +1,20 @@
 import type {
   FurnitureDesign,
   FurnitureTemplate,
+  OptionSpec,
   Part,
 } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
+
+export const diningChairOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 25, max: 50, step: 1 },
+  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1 },
+  { type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 380, max: 500, step: 10, help: "地面到座板上緣，一般 440–460" },
+  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 40, max: 90, step: 5 },
+  { type: "number", key: "backSlats", label: "椅背板條數", defaultValue: 2, min: 0, max: 6, step: 1, help: "設 0 則只有頂橫木，無直條" },
+  { type: "number", key: "slatWidth", label: "板條寬 (mm)", defaultValue: 60, min: 30, max: 100, step: 5 },
+];
 
 /**
  * 餐椅（dining-chair）
@@ -22,16 +33,17 @@ import { corners } from "./_helpers";
 export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
 
-  const seatThickness = 25;
-  const legSize = 35;
-  const apronWidth = 60;
+  const legSize = getOption<number>(input, diningChairOptions[0]);
+  const seatThickness = getOption<number>(input, diningChairOptions[1]);
+  const seatHeight = getOption<number>(input, diningChairOptions[2]);
+  const apronWidth = getOption<number>(input, diningChairOptions[3]);
+  const slatCount = getOption<number>(input, diningChairOptions[4]);
+  const slatWidth = getOption<number>(input, diningChairOptions[5]);
   const apronThickness = 20;
-  const seatHeight = 450; // 椅面高，固定
-  const backHeight = height - seatHeight; // 椅背高度
+  const backHeight = height - seatHeight;
   const apronTenonLen = Math.round(legSize * 0.6);
   const seatTopTenonLen = seatThickness;
   const slatThickness = 18;
-  const slatWidth = 60;
 
   const cornerPts = corners(length, width, legSize);
 
@@ -199,36 +211,32 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
-  // 2 椅背板條
-  const slats: Part[] = [-1, 1].map((side) => ({
-    id: side < 0 ? "back-slat-left" : "back-slat-right",
-    nameZh: side < 0 ? "左椅背板條" : "右椅背板條",
-    material,
-    grainDirection: "length",
-    visible: { length: backHeight - 80, width: slatWidth, thickness: slatThickness },
-    origin: {
-      x: (side * (length - legSize - slatWidth - 40)) / 4,
-      y: seatHeight + (backHeight - 80) / 2,
-      z: width / 2 - legSize / 2,
-    },
-    tenons: [
-      {
-        position: "top",
-        type: "blind-tenon",
-        length: 15,
-        width: slatWidth - 8,
-        thickness: slatThickness - 4,
-      },
-      {
-        position: "bottom",
-        type: "blind-tenon",
-        length: 15,
-        width: slatWidth - 8,
-        thickness: slatThickness - 4,
-      },
-    ],
-    mortises: [],
-  }));
+  // N 椅背板條（均勻分布）
+  const slats: Part[] = [];
+  if (slatCount > 0) {
+    const availableWidth = length - legSize - 40;
+    const slotPitch = availableWidth / (slatCount + 1);
+    for (let i = 0; i < slatCount; i++) {
+      const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      slats.push({
+        id: `back-slat-${i + 1}`,
+        nameZh: `椅背板條 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: backHeight - 80, width: slatWidth, thickness: slatThickness },
+        origin: {
+          x: xCenter,
+          y: seatHeight + (backHeight - 80) / 2,
+          z: width / 2 - legSize / 2,
+        },
+        tenons: [
+          { position: "top", type: "blind-tenon", length: 15, width: slatWidth - 8, thickness: slatThickness - 4 },
+          { position: "bottom", type: "blind-tenon", length: 15, width: slatWidth - 8, thickness: slatThickness - 4 },
+        ],
+        mortises: [],
+      });
+    }
+  }
 
   return {
     id: `dining-chair-${length}x${width}x${height}`,

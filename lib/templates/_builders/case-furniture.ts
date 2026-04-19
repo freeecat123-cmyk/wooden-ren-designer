@@ -16,6 +16,10 @@ export interface CaseFurnitureOpts {
   shelfCount: number;
   /** If > 0, render N drawer-front panels instead of (or in addition to) shelves. */
   drawerCount?: number;
+  /** Horizontal drawer columns (default 1). Each row has drawerCols × drawerRows drawers. */
+  drawerCols?: number;
+  /** Limit total height of drawer stack (mm). Default = full innerH. Drawers placed at bottom. */
+  drawerAreaHeight?: number;
   /** If > 0, add N door panels in front. */
   doorCount?: number;
   /** Door type for notes; "glass" implies optional glass + frame. */
@@ -23,6 +27,13 @@ export interface CaseFurnitureOpts {
   panelThickness?: number;
   shelfThickness?: number;
   backThickness?: number;
+  /** Raise the case on 4 corner legs (e.g. sofa legs). When set, legHeight adds under the bottom panel. */
+  legHeight?: number;
+  legSize?: number;
+  /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
+  customShelfFractions?: number[];
+  /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
+  hangingArea?: { yStart: number; yEnd: number };
   notes?: string;
 }
 
@@ -53,13 +64,46 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const panelT = opts.panelThickness ?? 18;
   const shelfT = opts.shelfThickness ?? 18;
   const backT = opts.backThickness ?? 6;
+  const drawerCols = Math.max(1, opts.drawerCols ?? 1);
+  const legHeight = opts.legHeight ?? 0;
+  const legSize = opts.legSize ?? 35;
+  const caseBottomY = legHeight; // bottom panel of cabinet sits at this Y
 
+  const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
-  const innerH = height - 2 * panelT;
+  const innerH = caseHeight - 2 * panelT;
   const innerD = width - backT;
   const tenonLen = Math.round(panelT * 0.6);
 
   const parts: Part[] = [];
+
+  // Shelf positions as fractions of innerH (0..1 exclusive, intermediate only)
+  const shelfFractions: number[] =
+    opts.customShelfFractions !== undefined
+      ? opts.customShelfFractions.filter((f) => f > 0 && f < 1)
+      : Array.from({ length: shelfCount }, (_, i) => (i + 1) / (shelfCount + 1));
+
+  // Optional 4 corner legs (raise the case)
+  if (legHeight > 0) {
+    const legOffsetX = length / 2 - legSize / 2;
+    const legOffsetZ = width / 2 - legSize / 2;
+    for (const sx of [-1, 1] as const) {
+      for (const sz of [-1, 1] as const) {
+        parts.push({
+          id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
+          nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+          material,
+          grainDirection: "length",
+          visible: { length: legSize, width: legSize, thickness: legHeight },
+          origin: { x: sx * legOffsetX, y: 0, z: sz * legOffsetZ },
+          tenons: [
+            { position: "top", type: "blind-tenon", length: Math.min(tenonLen, legHeight), width: legSize - 10, thickness: legSize - 10 },
+          ],
+          mortises: [],
+        });
+      }
+    }
+  }
 
   // 頂板
   parts.push({
@@ -68,7 +112,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     material,
     grainDirection: "length",
     visible: { length, width, thickness: panelT },
-    origin: { x: 0, y: height - panelT, z: 0 },
+    origin: { x: 0, y: caseBottomY + caseHeight - panelT, z: 0 },
     tenons: [],
     mortises: [
       // 兩端各一個榫眼接側板
@@ -96,7 +140,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     material,
     grainDirection: "length",
     visible: { length, width, thickness: panelT },
-    origin: { x: 0, y: 0, z: 0 },
+    origin: { x: 0, y: caseBottomY, z: 0 },
     tenons: [],
     mortises: [
       {
@@ -124,7 +168,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       material,
       grainDirection: "length",
       visible: { length: innerH, width: innerD, thickness: panelT },
-      origin: { x: side * (length / 2 - panelT / 2), y: panelT, z: 0 },
+      origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: 0 },
       rotation: { x: 0, y: 0, z: Math.PI / 2 },
       tenons: [
         {
@@ -143,24 +187,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
-      mortises: shelfCount > 0
-        ? Array.from({ length: shelfCount }, (_, i) => {
-            const y = ((i + 1) * innerH) / (shelfCount + 1);
-            return {
-              origin: { x: 0, y, z: 0 },
-              depth: tenonLen,
-              length: innerD - 10,
-              width: shelfT - 4,
-              through: false,
-            };
-          })
-        : [],
+      mortises: shelfFractions.map((f) => ({
+        origin: { x: 0, y: f * innerH, z: 0 },
+        depth: tenonLen,
+        length: innerD - 10,
+        width: shelfT - 4,
+        through: false,
+      })),
     });
   }
 
   // 中間層板/抽屜分隔板
-  for (let i = 0; i < shelfCount; i++) {
-    const y = panelT + ((i + 1) * innerH) / (shelfCount + 1);
+  for (let i = 0; i < shelfFractions.length; i++) {
+    const y = caseBottomY + panelT + shelfFractions[i] * innerH;
     parts.push({
       id: `shelf-${i + 1}`,
       nameZh: drawerCount > 0 ? `抽屜分隔板 ${i + 1}` : `層板 ${i + 1}`,
@@ -195,7 +234,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     material,
     grainDirection: "length",
     visible: { length: innerW, width: backT, thickness: innerH },
-    origin: { x: 0, y: panelT, z: width / 2 - backT / 2 },
+    origin: { x: 0, y: caseBottomY + panelT, z: width / 2 - backT / 2 },
     tenons: [
       {
         position: "start",
@@ -217,20 +256,24 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // ===== 抽屜內箱（每屜 5 件：面板 / 後板 / 左右側板 / 底板）=====
   if (drawerCount > 0) {
-    const drawerSlotH = innerH / drawerCount;
+    const drawerAreaH = opts.drawerAreaHeight ?? innerH;
+    const drawerSlotH = drawerAreaH / drawerCount;
     const drawerFrontT = 18;
     const drawerSideT = 14;
     const drawerBackT = 12;
     const drawerBottomT = 6;
     const drawerGap = 4; // 抽屜與隔板的間隙
-    const drawerInnerW = innerW - 4 - 2 * drawerSideT;
+    const colPitch = innerW / drawerCols;
+    const drawerInnerW = colPitch - 4 - 2 * drawerSideT;
     const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
     const drawerH = drawerSlotH - drawerGap * 2;
     const dovetailLen = drawerSideT;
 
-    for (let i = 0; i < drawerCount; i++) {
-      const yBase = panelT + i * drawerSlotH + drawerGap;
-      const xCenter = 0;
+    for (let row = 0; row < drawerCount; row++) {
+     for (let col = 0; col < drawerCols; col++) {
+      const i = row * drawerCols + col;
+      const yBase = caseBottomY + panelT + row * drawerSlotH + drawerGap;
+      const xCenter = -innerW / 2 + colPitch * col + colPitch / 2;
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
@@ -241,7 +284,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: {
-          length: innerW - 4,
+          length: colPitch - 4,
           width: drawerH,
           thickness: drawerFrontT,
         },
@@ -393,6 +436,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         ],
         mortises: [],
       });
+     }
     }
   }
 
@@ -427,7 +471,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: panelT + doorOuterH - railW,
+          y: caseBottomY + panelT + doorOuterH - railW,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -472,7 +516,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: panelT,
+          y: caseBottomY + panelT,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -517,7 +561,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter + (side * (doorOuterW / 2 - stileW / 2)),
-            y: panelT,
+            y: caseBottomY + panelT,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -575,7 +619,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: panelT + railW - grooveDepth,
+            y: caseBottomY + panelT + railW - grooveDepth,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -614,6 +658,26 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       }
       // 玻璃門：玻璃由溝槽夾住，不視為木質零件，不入材料單
     }
+  }
+
+  // 吊衣桿（若指定 hangingArea）
+  if (opts.hangingArea) {
+    const { yStart, yEnd } = opts.hangingArea;
+    const rodY = caseBottomY + panelT + (yStart + yEnd) / 2 * innerH;
+    const rodD = 28;
+    parts.push({
+      id: "hanging-rod",
+      nameZh: "吊衣桿",
+      material,
+      grainDirection: "length",
+      visible: { length: innerW, width: rodD, thickness: rodD },
+      origin: { x: 0, y: rodY, z: 0 },
+      tenons: [
+        { position: "start", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
+        { position: "end", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
+      ],
+      mortises: [],
+    });
   }
 
   return {

@@ -1,9 +1,21 @@
-import type { FurnitureTemplate } from "@/lib/types";
+import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 
+export const shoeCabinetOptions: OptionSpec[] = [
+  { type: "number", key: "shelfCount", label: "層板數（不含頂底）", defaultValue: 4, min: 2, max: 8, step: 1 },
+  { type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 4, step: 1 },
+  { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 15, max: 25, step: 1 },
+  { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 200, step: 10, help: "鞋櫃底部通常抬高防潮" },
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 25, max: 55, step: 5 },
+];
+
 export const shoeCabinet: FurnitureTemplate = (input) => {
-  // 每層約 200mm 高
-  const shelfCount = Math.max(2, Math.round((input.height - 36) / 200) - 1);
+  const shelfCount = getOption<number>(input, shoeCabinetOptions[0]);
+  const doorCount = getOption<number>(input, shoeCabinetOptions[1]);
+  const panelThickness = getOption<number>(input, shoeCabinetOptions[2]);
+  const legHeight = getOption<number>(input, shoeCabinetOptions[3]);
+  const legSize = getOption<number>(input, shoeCabinetOptions[4]);
   return caseFurniture({
     category: "shoe-cabinet",
     nameZh: "鞋櫃",
@@ -12,11 +24,13 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     height: input.height,
     material: input.material,
     shelfCount,
-    doorCount: 2,
+    doorCount,
     doorType: "wood",
-    panelThickness: 18,
-    shelfThickness: 18,
+    panelThickness,
+    shelfThickness: panelThickness,
     backThickness: 6,
-    notes: `${shelfCount} 層內部層板 + 2 扇門板；層板可用層板釘做可調式；門板需配隱藏鉸鏈。`,
+    legHeight,
+    legSize,
+    notes: `${shelfCount} 層層板 + ${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm 底座腳` : ""}。層板可用層板釘做可調式。`,
   });
 };

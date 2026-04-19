@@ -1,17 +1,36 @@
-import type { FurnitureTemplate } from "@/lib/types";
+import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
-export const lowTable: FurnitureTemplate = (input) =>
-  simpleTable({
+export const lowTableOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 45, min: 35, max: 70, step: 1 },
+  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 20, max: 45, step: 1 },
+  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 50, max: 120, step: 5 },
+  { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 20, min: 0, max: 100, step: 5 },
+  { type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
+  { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+];
+
+export const lowTable: FurnitureTemplate = (input) => {
+  const legSize = getOption<number>(input, lowTableOptions[0]);
+  const topThickness = getOption<number>(input, lowTableOptions[1]);
+  const apronWidth = getOption<number>(input, lowTableOptions[2]);
+  const topOverhang = getOption<number>(input, lowTableOptions[3]);
+  const withCenterStretcher = getOption<boolean>(input, lowTableOptions[4]);
+  const withLowerStretchers = getOption<boolean>(input, lowTableOptions[5]);
+  return simpleTable({
     category: "low-table",
     nameZh: "矮桌",
     length: input.length,
     width: input.width,
     height: input.height,
     material: input.material,
-    legSize: 45,
-    apronWidth: 70,
-    withCenterStretcher: input.length > 900,
-    notes:
-      "和室矮桌、地板桌；高度約 350mm 適合席地而坐。長度 >900mm 自動加中央橫撐。",
+    legSize,
+    topThickness,
+    apronWidth,
+    topOverhang,
+    withCenterStretcher: withCenterStretcher || input.length > 900,
+    withLowerStretchers,
+    notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });
+};

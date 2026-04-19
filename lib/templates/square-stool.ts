@@ -1,9 +1,20 @@
 import type {
   FurnitureDesign,
   FurnitureTemplate,
+  OptionSpec,
   Part,
 } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
+
+export const squareStoolOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 25, max: 60, step: 1, unit: "mm" },
+  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm" },
+  { type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 40, max: 100, step: 5, unit: "mm" },
+  { type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 15, max: 30, step: 1, unit: "mm" },
+  { type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
+  { type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在腳下方 1/4 高再加一圈橫撐，結構更穩" },
+];
 
 /**
  * 方凳（square stool）
@@ -30,11 +41,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     material,
   } = input;
 
-  // 標準參數（之後可由 input 客製化）
-  const seatThickness = 25;
-  const legSize = 35;
-  const apronWidth = 60;
-  const apronThickness = 20;
+  const legSize = getOption<number>(input, squareStoolOptions[0]);
+  const seatThickness = getOption<number>(input, squareStoolOptions[1]);
+  const apronWidth = getOption<number>(input, squareStoolOptions[2]);
+  const apronThickness = getOption<number>(input, squareStoolOptions[3]);
+  const apronDropFromTop = getOption<number>(input, squareStoolOptions[4]);
+  const withLowerStretcher = getOption<boolean>(input, squareStoolOptions[5]);
+
   const legTenonLength = seatThickness; // 通榫穿過座板
   const apronTenonLength = Math.round(legSize * 0.6); // 半榫，深度 = 凳腳厚的 60%
 
@@ -83,6 +96,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronWidth,
       apronThickness,
       legHeight,
+      apronDropFromTop,
     }),
   }));
 
@@ -127,18 +141,49 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       },
     ],
     mortises: [],
-    origin: { ...p.origin, y: legHeight - apronWidth - 30 },
+    origin: { ...p.origin, y: legHeight - apronWidth - apronDropFromTop },
   }));
+
+  const parts: Part[] = [seatPanel, ...legs, ...aprons];
+
+  if (withLowerStretcher) {
+    const lowerY = Math.round(legHeight * 0.22);
+    const lowerW = 40;
+    const lowerT = 20;
+    const lowerTenon = Math.round(legSize * 0.55);
+    const sides = [
+      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
+      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
+      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
+      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+    ];
+    for (const s of sides) {
+      parts.push({
+        id: s.id,
+        nameZh: s.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
+        origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
+        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [
+          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+        ],
+        mortises: [],
+      });
+    }
+  }
 
   return {
     id: `square-stool-${length}x${width}x${height}`,
     category: "stool",
     nameZh: "方凳",
     overall: { length, width, thickness: height },
-    parts: [seatPanel, ...legs, ...aprons],
+    parts,
     defaultJoinery: "through-tenon",
     primaryMaterial: material,
-    notes: "座板與凳腳用通榫，凳腳與橫撐用半榫。",
+    notes: "座板與凳腳用通榫，凳腳與橫撐用半榫。" + (withLowerStretcher ? " 加下橫撐 H 形結構。" : ""),
   };
 };
 
@@ -153,11 +198,11 @@ function legMortisesForApron(
     apronWidth: number;
     apronThickness: number;
     legHeight: number;
+    apronDropFromTop: number;
   },
 ) {
-  const { apronTenonLength, apronWidth, apronThickness, legHeight } = opts;
-  // 距離凳腳底部 1/3 高度處挖榫眼
-  const yOffset = legHeight - apronWidth - 30;
+  const { apronTenonLength, apronWidth, apronThickness, legHeight, apronDropFromTop } = opts;
+  const yOffset = legHeight - apronWidth - apronDropFromTop;
   return [
     // 內側 X 方向榫眼（前後橫撐插入）
     {

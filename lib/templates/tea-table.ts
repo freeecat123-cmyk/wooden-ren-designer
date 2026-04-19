@@ -1,9 +1,19 @@
 import type {
   FurnitureDesign,
   FurnitureTemplate,
+  OptionSpec,
   Part,
 } from "@/lib/types";
+import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
+
+export const teaTableOptions: OptionSpec[] = [
+  { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 30, max: 60, step: 2 },
+  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 20, max: 40, step: 1 },
+  { type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 50, max: 100, step: 5 },
+  { type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 30, max: 200, step: 10 },
+  { type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
+];
 
 /**
  * 茶几（tea-table）
@@ -23,10 +33,11 @@ import { corners } from "./_helpers";
 export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
 
-  // 標準參數
-  const topThickness = 25;
-  const legSize = 40;
-  const upperApronWidth = 70;
+  const legSize = getOption<number>(input, teaTableOptions[0]);
+  const topThickness = getOption<number>(input, teaTableOptions[1]);
+  const upperApronWidth = getOption<number>(input, teaTableOptions[2]);
+  const stretcherFloorOffset = getOption<number>(input, teaTableOptions[3]);
+  const hasLowerShelf = getOption<boolean>(input, teaTableOptions[4]);
   const upperApronThickness = 22;
   const lowerStretcherWidth = 50;
   const lowerStretcherThickness = 22;
@@ -38,7 +49,6 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherTenonLen = apronTenonLen;
 
   const legHeight = height - topThickness;
-  const stretcherFloorOffset = 80;
   const upperApronY = legHeight - upperApronWidth - 20;
 
   const cornerPts = corners(length, width, legSize);
@@ -214,13 +224,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     category: "tea-table",
     nameZh: "茶几",
     overall: { length, width, thickness: height },
-    parts: [
-      topPanel,
-      ...legs,
-      ...upperAprons,
-      ...lowerStretchers,
-      lowerShelf,
-    ],
+    parts: hasLowerShelf
+      ? [topPanel, ...legs, ...upperAprons, ...lowerStretchers, lowerShelf]
+      : [topPanel, ...legs, ...upperAprons, ...lowerStretchers],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:

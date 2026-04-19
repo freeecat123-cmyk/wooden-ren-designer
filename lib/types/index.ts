@@ -19,7 +19,8 @@ export type FurnitureCategory =
   | "display-cabinet"
   | "dining-table"
   | "desk"
-  | "dining-chair";
+  | "dining-chair"
+  | "wardrobe";
 
 export type JoineryType =
   | "through-tenon"
@@ -107,6 +108,57 @@ export interface FurnitureTemplateInput {
   height: Millimeters;
   material: MaterialId;
   joinery?: JoineryType;
+  options?: Record<string, string | number | boolean>;
 }
 
 export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesign;
+
+/**
+ * Per-template customization options (rendered in the design page form).
+ * Templates declare their schema via FurnitureCatalogEntry.options and read
+ * values from FurnitureTemplateInput.options at build time.
+ */
+export type OptionSpec =
+  | {
+      type: "number";
+      key: string;
+      label: string;
+      defaultValue: number;
+      min?: number;
+      max?: number;
+      step?: number;
+      unit?: string;
+      help?: string;
+    }
+  | {
+      type: "select";
+      key: string;
+      label: string;
+      defaultValue: string;
+      choices: Array<{ value: string; label: string }>;
+      help?: string;
+    }
+  | {
+      type: "checkbox";
+      key: string;
+      label: string;
+      defaultValue: boolean;
+      help?: string;
+    };
+
+export function getOption<T extends string | number | boolean>(
+  input: FurnitureTemplateInput,
+  spec: OptionSpec,
+): T {
+  const raw = input.options?.[spec.key];
+  if (raw === undefined) return spec.defaultValue as T;
+  if (spec.type === "number") {
+    const n = typeof raw === "number" ? raw : Number(raw);
+    return (Number.isFinite(n) ? n : spec.defaultValue) as T;
+  }
+  if (spec.type === "checkbox") {
+    if (typeof raw === "boolean") return raw as T;
+    return (raw === "true" || raw === "on" || raw === "1") as T;
+  }
+  return (typeof raw === "string" ? raw : spec.defaultValue) as T;
+}
