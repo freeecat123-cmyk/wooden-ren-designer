@@ -1,0 +1,305 @@
+import type {
+  FurnitureDesign,
+  FurnitureTemplate,
+  Part,
+} from "@/lib/types";
+import { corners } from "./_helpers";
+
+/**
+ * 茶几（tea-table）
+ *
+ * 結構：
+ *  - 1 × 桌面板（top panel）
+ *  - 4 × 桌腳（legs）
+ *  - 4 × 上橫撐（upper aprons），桌面下方一圈
+ *  - 4 × 下橫撐（lower stretchers），距地約 80mm
+ *  - 1 × 下棚板（lower shelf），四邊出舌嵌入下橫撐凹槽
+ *
+ * 接合：
+ *  - 桌腳 ↔ 桌面：通榫（through tenon）
+ *  - 上橫撐 / 下橫撐 ↔ 桌腳：半榫（blind tenon）
+ *  - 下棚板 ↔ 下橫撐：四邊出舌+槽（tongue and groove）
+ */
+export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
+  const { length, width, height, material } = input;
+
+  // 標準參數
+  const topThickness = 25;
+  const legSize = 40;
+  const upperApronWidth = 70;
+  const upperApronThickness = 22;
+  const lowerStretcherWidth = 50;
+  const lowerStretcherThickness = 22;
+  const shelfThickness = 18;
+  const shelfTongueLen = 8;
+
+  const legTopTenonLen = topThickness;
+  const apronTenonLen = Math.round(legSize * 0.65);
+  const stretcherTenonLen = apronTenonLen;
+
+  const legHeight = height - topThickness;
+  const stretcherFloorOffset = 80;
+  const upperApronY = legHeight - upperApronWidth - 20;
+
+  const cornerPts = corners(length, width, legSize);
+
+  // ----- 桌面板 -----
+  const topPanel: Part = {
+    id: "top",
+    nameZh: "桌面板",
+    material,
+    grainDirection: "length",
+    visible: { length, width, thickness: topThickness },
+    origin: { x: 0, y: legHeight, z: 0 },
+    tenons: [],
+    mortises: cornerPts.map((c) => ({
+      origin: { x: c.x, y: 0, z: c.z },
+      depth: topThickness,
+      length: legSize,
+      width: legSize,
+      through: true,
+    })),
+  };
+
+  // ----- 4 桌腳 -----
+  const legs: Part[] = cornerPts.map((c, i) => ({
+    id: `leg-${i + 1}`,
+    nameZh: `桌腳 ${i + 1}`,
+    material,
+    grainDirection: "length",
+    visible: { length: legSize, width: legSize, thickness: legHeight },
+    origin: { x: c.x, y: 0, z: c.z },
+    tenons: [
+      {
+        position: "top",
+        type: "through-tenon",
+        length: legTopTenonLen,
+        width: legSize,
+        thickness: legSize,
+      },
+    ],
+    mortises: [
+      // 上橫撐 X 向
+      {
+        origin: { x: 0, y: upperApronY, z: c.z > 0 ? -1 : 1 },
+        depth: apronTenonLen,
+        length: upperApronWidth - 10,
+        width: upperApronThickness - 5,
+        through: false,
+      },
+      // 上橫撐 Z 向
+      {
+        origin: { x: c.x > 0 ? -1 : 1, y: upperApronY, z: 0 },
+        depth: apronTenonLen,
+        length: upperApronWidth - 10,
+        width: upperApronThickness - 5,
+        through: false,
+      },
+      // 下橫撐 X 向
+      {
+        origin: { x: 0, y: stretcherFloorOffset, z: c.z > 0 ? -1 : 1 },
+        depth: stretcherTenonLen,
+        length: lowerStretcherWidth - 8,
+        width: lowerStretcherThickness - 5,
+        through: false,
+      },
+      // 下橫撐 Z 向
+      {
+        origin: { x: c.x > 0 ? -1 : 1, y: stretcherFloorOffset, z: 0 },
+        depth: stretcherTenonLen,
+        length: lowerStretcherWidth - 8,
+        width: lowerStretcherThickness - 5,
+        through: false,
+      },
+    ],
+  }));
+
+  // ----- 上橫撐 / 下橫撐 共用建構 -----
+  const apronInnerSpan = {
+    x: length - legSize,
+    z: width - legSize,
+  };
+
+  const upperAprons: Part[] = makeApronRing({
+    idPrefix: "upper-apron",
+    nameZhPrefix: "上橫撐",
+    span: apronInnerSpan,
+    legSize,
+    overallLength: length,
+    overallWidth: width,
+    material,
+    apronWidth: upperApronWidth,
+    apronThickness: upperApronThickness,
+    tenonLength: apronTenonLen,
+    y: upperApronY,
+    extraMortises: () => [],
+  });
+
+  const lowerStretchers: Part[] = makeApronRing({
+    idPrefix: "lower-stretcher",
+    nameZhPrefix: "下橫撐",
+    span: apronInnerSpan,
+    legSize,
+    overallLength: length,
+    overallWidth: width,
+    material,
+    apronWidth: lowerStretcherWidth,
+    apronThickness: lowerStretcherThickness,
+    tenonLength: stretcherTenonLen,
+    y: stretcherFloorOffset,
+    // 內側面開長槽，棚板舌頭嵌入
+    extraMortises: (visibleLength) => [
+      {
+        origin: { x: 0, y: 0, z: 0 },
+        depth: shelfTongueLen,
+        length: visibleLength - 20,
+        width: shelfThickness + 1,
+        through: false,
+      },
+    ],
+  });
+
+  // ----- 下棚板 -----
+  const shelfLength = length - 2 * legSize - 4;
+  const shelfWidth = width - 2 * legSize - 4;
+  const shelfY =
+    stretcherFloorOffset + lowerStretcherWidth / 2 - shelfThickness / 2;
+
+  const lowerShelf: Part = {
+    id: "shelf",
+    nameZh: "下棚板",
+    material,
+    grainDirection: "length",
+    visible: {
+      length: shelfLength,
+      width: shelfWidth,
+      thickness: shelfThickness,
+    },
+    origin: { x: 0, y: shelfY, z: 0 },
+    tenons: [
+      {
+        position: "start",
+        type: "tongue-and-groove",
+        length: shelfTongueLen,
+        width: shelfWidth,
+        thickness: shelfThickness,
+      },
+      {
+        position: "end",
+        type: "tongue-and-groove",
+        length: shelfTongueLen,
+        width: shelfWidth,
+        thickness: shelfThickness,
+      },
+      {
+        position: "left",
+        type: "tongue-and-groove",
+        length: shelfTongueLen,
+        width: shelfLength,
+        thickness: shelfThickness,
+      },
+      {
+        position: "right",
+        type: "tongue-and-groove",
+        length: shelfTongueLen,
+        width: shelfLength,
+        thickness: shelfThickness,
+      },
+    ],
+    mortises: [],
+  };
+
+  return {
+    id: `tea-table-${length}x${width}x${height}`,
+    category: "tea-table",
+    nameZh: "茶几",
+    overall: { length, width, thickness: height },
+    parts: [
+      topPanel,
+      ...legs,
+      ...upperAprons,
+      ...lowerStretchers,
+      lowerShelf,
+    ],
+    defaultJoinery: "blind-tenon",
+    primaryMaterial: material,
+    notes:
+      "桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。",
+  };
+};
+
+// ----- helpers -----
+
+interface ApronRingOpts {
+  idPrefix: string;
+  nameZhPrefix: string;
+  span: { x: number; z: number };
+  legSize: number;
+  overallLength: number;
+  overallWidth: number;
+  material: Part["material"];
+  apronWidth: number;
+  apronThickness: number;
+  tenonLength: number;
+  y: number;
+  extraMortises: (visibleLength: number) => Part["mortises"];
+}
+
+function makeApronRing(o: ApronRingOpts): Part[] {
+  const sides = [
+    {
+      key: "front",
+      nameZh: "前",
+      visibleLength: o.span.x,
+      origin: { x: 0, z: -(o.overallWidth / 2 - o.legSize / 2) },
+    },
+    {
+      key: "back",
+      nameZh: "後",
+      visibleLength: o.span.x,
+      origin: { x: 0, z: o.overallWidth / 2 - o.legSize / 2 },
+    },
+    {
+      key: "left",
+      nameZh: "左",
+      visibleLength: o.span.z,
+      origin: { x: -(o.overallLength / 2 - o.legSize / 2), z: 0 },
+    },
+    {
+      key: "right",
+      nameZh: "右",
+      visibleLength: o.span.z,
+      origin: { x: o.overallLength / 2 - o.legSize / 2, z: 0 },
+    },
+  ];
+
+  return sides.map((s) => ({
+    id: `${o.idPrefix}-${s.key}`,
+    nameZh: `${s.nameZh}${o.nameZhPrefix}`,
+    material: o.material,
+    grainDirection: "length",
+    visible: {
+      length: s.visibleLength,
+      width: o.apronWidth,
+      thickness: o.apronThickness,
+    },
+    origin: { x: s.origin.x, y: o.y, z: s.origin.z },
+    tenons: [
+      {
+        position: "start",
+        type: "blind-tenon",
+        length: o.tenonLength,
+        width: o.apronWidth - 10,
+        thickness: o.apronThickness - 5,
+      },
+      {
+        position: "end",
+        type: "blind-tenon",
+        length: o.tenonLength,
+        width: o.apronWidth - 10,
+        thickness: o.apronThickness - 5,
+      },
+    ],
+    mortises: o.extraMortises(s.visibleLength),
+  }));
+}

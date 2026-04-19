@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ---------- Print / PDF rules ---------- */
+@page {
+  size: A4 portrait;
+  margin: 14mm 12mm 18mm 12mm;
+}
+
+@media print {
+  /* Force light theme regardless of OS preference */
+  :root {
+    --background: #ffffff;
+    --foreground: #111111;
+  }
+  body {
+    background: #ffffff !important;
+    color: #111 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Each top-level <section data-print-page> starts a new page */
+  [data-print-page] {
+    break-before: page;
+    page-break-before: always;
+  }
+  [data-print-page]:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+  }
+  /* Watermark — repeated on every printed page via fixed positioning */
+  .print-watermark {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+  }
+  .print-watermark span {
+    font-size: 72px;
+    color: rgba(0, 0, 0, 0.05);
+    transform: rotate(-30deg);
+    white-space: nowrap;
+    letter-spacing: 0.2em;
+  }
+  /* Avoid breaking inside cards / table rows */
+  .print-keep {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
