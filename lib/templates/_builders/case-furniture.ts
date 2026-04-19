@@ -116,7 +116,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     ],
   });
 
-  // 側板 (左右)
+  // 側板 (左右) — local length points up (innerH), so rotate Z by 90° to stand it
   for (const side of [-1, 1]) {
     parts.push({
       id: side < 0 ? "side-left" : "side-right",
@@ -125,6 +125,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       grainDirection: "length",
       visible: { length: innerH, width: innerD, thickness: panelT },
       origin: { x: side * (length / 2 - panelT / 2), y: panelT, z: 0 },
+      rotation: { x: 0, y: 0, z: Math.PI / 2 },
       tenons: [
         {
           position: "top",
@@ -233,7 +234,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
-      // 面板：左右兩端燕尾榫接側板
+      // 面板：左右兩端燕尾榫接側板 — X 旋轉站立
       parts.push({
         id: `drawer${i + 1}-front`,
         nameZh: `抽屜${i + 1} 面板`,
@@ -244,7 +245,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           width: drawerH,
           thickness: drawerFrontT,
         },
-        origin: { x: xCenter, y: yBase + drawerH / 2, z: zFront },
+        origin: { x: xCenter, y: yBase, z: zFront },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
@@ -264,7 +266,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         mortises: [],
       });
 
-      // 後板：兩端半搭接（half-lap）入側板
+      // 後板：兩端半搭接（half-lap）入側板 — X 旋轉站立
       parts.push({
         id: `drawer${i + 1}-back`,
         nameZh: `抽屜${i + 1} 後板`,
@@ -275,7 +277,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           width: drawerH - drawerBottomT - 4,
           thickness: drawerBackT,
         },
-        origin: { x: xCenter, y: yBase + drawerH / 2 + 2, z: zBack },
+        origin: { x: xCenter, y: yBase + drawerBottomT + 2, z: zBack },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
@@ -295,7 +298,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         mortises: [],
       });
 
-      // 左右側板
+      // 左右側板 — 長度沿 Z，需 {x: π/2, y: π/2} 旋轉
       for (const side of [-1, 1] as const) {
         parts.push({
           id: `drawer${i + 1}-side-${side < 0 ? "left" : "right"}`,
@@ -309,9 +312,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter + side * (drawerInnerW / 2 + drawerSideT / 2 + 2),
-            y: yBase + drawerH / 2,
+            y: yBase,
             z: (zFront + zBack) / 2,
           },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
           tenons: [],
           // 兩端各有燕尾榫眼接面板，背端有半搭接眼接後板
           mortises: [
@@ -410,7 +414,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const innerOpenW = doorOuterW - 2 * stileW;
       const innerOpenH = doorOuterH - 2 * railW;
 
-      // 上橫檔
+      // 上橫檔 — 橫放但垂直站立（X 軸旋轉）
       parts.push({
         id: `door${i + 1}-rail-top`,
         nameZh: `門${i + 1} 上橫檔`,
@@ -423,9 +427,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: panelT + doorOuterH - railW / 2,
+          y: panelT + doorOuterH - railW,
           z: zFront,
         },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
@@ -467,9 +472,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: panelT + railW / 2,
+          y: panelT,
           z: zFront,
         },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
@@ -497,7 +503,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         ],
       });
 
-      // 左右豎梃
+      // 左右豎梃 — 長度方向是垂直（width=doorOuterH），需要 X 軸旋轉站立
       for (const side of [-1, 1] as const) {
         parts.push({
           id: `door${i + 1}-stile-${side < 0 ? "left" : "right"}`,
@@ -511,9 +517,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter + (side * (doorOuterW / 2 - stileW / 2)),
-            y: panelT + doorOuterH / 2,
+            y: panelT,
             z: zFront,
           },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           // 上下端各一個榫眼接橫檔；內側長槽接鑲板
           mortises: [
@@ -568,9 +575,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: panelT + doorOuterH / 2,
+            y: panelT + railW - grooveDepth,
             z: zFront,
           },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [
             {
               position: "start",

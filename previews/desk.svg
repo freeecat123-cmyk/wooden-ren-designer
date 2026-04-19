@@ -10,10 +10,10 @@
 <rect x="545.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="-600.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="545.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="113.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="113.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-845.0" y="113.0" width="545.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="300.0" y="113.0" width="545.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-572.5" y="48.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-572.5" y="48.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-585.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="560.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="-265.0" y="143.0" width="530.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
     <text x="0" y="800.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">正視圖（1200 × 750 mm）</text>
   </g>
@@ -24,10 +24,10 @@
 <rect x="-300.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="245.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="245.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-317.5" y="113.0" width="90.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="227.5" y="113.0" width="90.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-45.0" y="113.0" width="90.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-45.0" y="113.0" width="90.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-285.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="260.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-272.5" y="48.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-272.5" y="48.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="-25.0" y="143.0" width="50.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
     <text x="0" y="800.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">側視圖（600 × 750 mm）</text>
   </g>
@@ -38,10 +38,10 @@
 <rect x="545.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="-600.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="545.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="-317.5" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="227.5" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-845.0" y="-45.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="300.0" y="-45.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-572.5" y="-285.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-572.5" y="260.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="-585.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
+<rect x="560.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
 <rect x="-265.0" y="-25.0" width="530.0" height="50.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
     <text x="0" y="650.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">俯視圖（1200 × 600 mm）</text>
   </g>

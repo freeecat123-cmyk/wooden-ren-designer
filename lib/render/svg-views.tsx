@@ -2,6 +2,7 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
+import { worldExtents } from "@/lib/render/geometry";
 
 interface ViewProps {
   design: FurnitureDesign;
@@ -9,21 +10,6 @@ interface ViewProps {
 
 const PADDING = 60;
 const DIM_OFFSET = 35;
-
-function worldExtents(part: Part) {
-  // Matches three.js extrinsic XYZ Euler: X rotation swaps local Y↔Z extents,
-  // Y rotation swaps local X↔Z extents. Only ~90° quarter-turns are supported.
-  let xExt = part.visible.length;
-  let yExt = part.visible.thickness;
-  let zExt = part.visible.width;
-  if (Math.abs(Math.sin(part.rotation?.x ?? 0)) > 0.5) {
-    [yExt, zExt] = [zExt, yExt];
-  }
-  if (Math.abs(Math.sin(part.rotation?.y ?? 0)) > 0.5) {
-    [xExt, zExt] = [zExt, xExt];
-  }
-  return { xExt, yExt, zExt };
-}
 
 function projectPart(part: Part, view: "front" | "side" | "top") {
   const { x, y, z } = part.origin;

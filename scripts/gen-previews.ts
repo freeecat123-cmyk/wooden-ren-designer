@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { FURNITURE_CATALOG } from "../lib/templates";
 import { MATERIALS } from "../lib/materials";
 import type { FurnitureDesign, Part } from "../lib/types";
+import { worldExtents } from "../lib/render/geometry";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "..", "previews");
@@ -23,10 +24,10 @@ const TITLE_H = 40;
 
 function projectPart(part: Part, view: "front" | "side" | "top") {
   const { x, y, z } = part.origin;
-  const { length, width, thickness } = part.visible;
-  if (view === "front") return { x: x - length / 2, y, w: length, h: thickness };
-  if (view === "side") return { x: z - width / 2, y, w: width, h: thickness };
-  return { x: x - length / 2, y: z - width / 2, w: length, h: width };
+  const { xExt, yExt, zExt } = worldExtents(part);
+  if (view === "front") return { x: x - xExt / 2, y, w: xExt, h: yExt };
+  if (view === "side") return { x: z - zExt / 2, y, w: zExt, h: yExt };
+  return { x: x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
 }
 
 function viewSvg(

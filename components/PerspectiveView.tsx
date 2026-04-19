@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
+import { worldExtents } from "@/lib/render/geometry";
 
 function Part({
   position,
@@ -59,12 +60,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
 
         {design.parts.map((part) => {
           const color = MATERIALS[part.material].color;
-          // origin is bottom-center; center Y must use the rotated Y extent, not
-          // raw visible.thickness (fails for aprons stood up by an X rotation).
-          const rx = part.rotation?.x ?? 0;
-          const yExt = Math.abs(Math.sin(rx)) > 0.5
-            ? part.visible.width
-            : part.visible.thickness;
+          // origin is bottom-center; center Y uses the world-frame Y extent.
+          const { yExt } = worldExtents(part);
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;
           const pz = part.origin.z * SCALE;
