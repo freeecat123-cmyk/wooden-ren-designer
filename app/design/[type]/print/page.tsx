@@ -25,12 +25,7 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 
 interface PageProps {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{
-    length?: string;
-    width?: string;
-    height?: string;
-    material?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const DIFFICULTY_LABEL = {
@@ -46,12 +41,33 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
 
-  const length = parseInt(sp.length ?? "") || entry.defaults.length;
-  const width = parseInt(sp.width ?? "") || entry.defaults.width;
-  const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "taiwan-cypress";
+  const spStr = (k: string): string | undefined => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
+  const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
+  const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
+  const material = (spStr("material") as MaterialId) ?? "taiwan-cypress";
 
-  const design = entry.template({ length, width, height, material });
+  const options: Record<string, string | number | boolean> = {};
+  for (const spec of entry.optionSchema ?? []) {
+    const raw = spStr(spec.key);
+    if (raw === undefined || raw === "") {
+      options[spec.key] = spec.defaultValue;
+      continue;
+    }
+    if (spec.type === "number") {
+      const n = Number(raw);
+      options[spec.key] = Number.isFinite(n) ? n : spec.defaultValue;
+    } else if (spec.type === "checkbox") {
+      options[spec.key] = raw === "true" || raw === "on" || raw === "1";
+    } else {
+      options[spec.key] = raw;
+    }
+  }
+
+  const design = entry.template({ length, width, height, material, options });
   const usages = extractJoineryUsages(design);
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);

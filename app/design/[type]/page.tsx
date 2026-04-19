@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
-import type { FurnitureCategory, FurnitureDesign, MaterialId } from "@/lib/types";
+import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
 import { PerspectiveView } from "@/components/PerspectiveView";
 import { MATERIALS } from "@/lib/materials";
@@ -16,12 +16,7 @@ import { BuildSteps } from "@/components/BuildSteps";
 
 interface PageProps {
   params: Promise<{ type: string }>;
-  searchParams: Promise<{
-    length?: string;
-    width?: string;
-    height?: string;
-    material?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export default async function DesignPage({ params, searchParams }: PageProps) {
@@ -45,12 +40,44 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     );
   }
 
-  const length = parseInt(sp.length ?? "") || entry.defaults.length;
-  const width = parseInt(sp.width ?? "") || entry.defaults.width;
-  const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "taiwan-cypress";
+  const spStr = (k: string): string | undefined => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
+  const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
+  const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
+  const material = (spStr("material") as MaterialId) ?? "taiwan-cypress";
 
-  const design = entry.template({ length, width, height, material });
+  const options: Record<string, string | number | boolean> = {};
+  const optionSchema = entry.optionSchema ?? [];
+  for (const spec of optionSchema) {
+    const raw = spStr(spec.key);
+    if (raw === undefined || raw === "") {
+      options[spec.key] = spec.defaultValue;
+      continue;
+    }
+    if (spec.type === "number") {
+      const n = Number(raw);
+      options[spec.key] = Number.isFinite(n) ? n : spec.defaultValue;
+    } else if (spec.type === "checkbox") {
+      options[spec.key] = raw === "true" || raw === "on" || raw === "1";
+    } else {
+      options[spec.key] = raw;
+    }
+  }
+
+  const design = entry.template({ length, width, height, material, options });
+
+  const printQuery = new URLSearchParams({
+    length: String(length),
+    width: String(width),
+    height: String(height),
+    material,
+  });
+  for (const spec of optionSchema) {
+    printQuery.set(spec.key, String(options[spec.key]));
+  }
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
@@ -65,7 +92,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <p className="mt-1 text-sm text-zinc-600 max-w-2xl">{entry.description}</p>
           </div>
           <Link
-            href={`/design/${type}/print?length=${length}&width=${width}&height=${height}&material=${material}`}
+            href={`/design/${type}/print?${printQuery.toString()}`}
             target="_blank"
             className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-700 transition"
           >
@@ -88,6 +115,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       <ParameterForm
         type={type}
         defaults={{ length, width, height, material }}
+        optionSchema={optionSchema}
+        optionValues={options}
       />
 
       <section className="mt-10">
@@ -191,42 +220,137 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
 function ParameterForm({
   type,
   defaults,
+  optionSchema,
+  optionValues,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
+  optionSchema: OptionSpec[];
+  optionValues: Record<string, string | number | boolean>;
 }) {
   return (
     <form
       method="get"
       action={`/design/${type}`}
-      className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-zinc-50 rounded-lg"
+      className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      <NumberInput name="length" label="長 (mm)" defaultValue={defaults.length} />
-      <NumberInput name="width" label="寬 (mm)" defaultValue={defaults.width} />
-      <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} />
+      <div className="mb-4 pb-3 border-b border-zinc-200">
+        <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+          整體尺寸
+        </h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <NumberInput name="length" label="長 (mm)" defaultValue={defaults.length} />
+        <NumberInput name="width" label="寬 (mm)" defaultValue={defaults.width} />
+        <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} />
+        <label className="flex flex-col text-xs">
+          <span className="text-zinc-600 mb-1">木材</span>
+          <select
+            name="material"
+            defaultValue={defaults.material}
+            className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+          >
+            {Object.values(MATERIALS).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nameZh}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {optionSchema.length > 0 && (
+        <>
+          <div className="mb-3 pb-2 border-b border-zinc-200">
+            <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+              細部設定
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+            {optionSchema.map((spec) => (
+              <OptionField
+                key={spec.key}
+                spec={spec}
+                value={optionValues[spec.key]}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      <button
+        type="submit"
+        className="px-5 py-2 bg-zinc-900 text-white rounded hover:bg-zinc-700 text-sm font-medium"
+      >
+        重新生成
+      </button>
+    </form>
+  );
+}
+
+function OptionField({
+  spec,
+  value,
+}: {
+  spec: OptionSpec;
+  value: string | number | boolean;
+}) {
+  if (spec.type === "number") {
+    return (
       <label className="flex flex-col text-xs">
-        <span className="text-zinc-600 mb-1">木材</span>
+        <span className="text-zinc-700 mb-1">
+          {spec.label}
+          {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
+        </span>
+        <input
+          type="number"
+          name={spec.key}
+          defaultValue={String(value)}
+          min={spec.min}
+          max={spec.max}
+          step={spec.step ?? 1}
+          className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+        />
+        {spec.help && <span className="mt-1 text-[10px] text-zinc-500">{spec.help}</span>}
+      </label>
+    );
+  }
+  if (spec.type === "select") {
+    return (
+      <label className="flex flex-col text-xs">
+        <span className="text-zinc-700 mb-1">{spec.label}</span>
         <select
-          name="material"
-          defaultValue={defaults.material}
+          name={spec.key}
+          defaultValue={String(value)}
           className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
         >
-          {Object.values(MATERIALS).map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nameZh}
+          {spec.choices.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
             </option>
           ))}
         </select>
+        {spec.help && <span className="mt-1 text-[10px] text-zinc-500">{spec.help}</span>}
       </label>
-      <div className="col-span-2 md:col-span-4">
-        <button
-          type="submit"
-          className="px-4 py-2 bg-zinc-900 text-white rounded hover:bg-zinc-700 text-sm"
-        >
-          重新生成
-        </button>
+    );
+  }
+  // checkbox
+  return (
+    <label className="flex items-start gap-2 text-xs bg-white border border-zinc-300 rounded px-3 py-2">
+      <input
+        type="checkbox"
+        name={spec.key}
+        value="true"
+        defaultChecked={Boolean(value)}
+        className="mt-0.5"
+      />
+      <div className="flex flex-col">
+        <span className="text-zinc-800 font-medium">{spec.label}</span>
+        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500">{spec.help}</span>}
       </div>
-    </form>
+    </label>
   );
 }
 
