@@ -1,48 +1,117 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -50 2220 1910" width="2220" height="1910">
-<rect x="-20" y="-50" width="2220" height="1910" fill="#fafaf7"/>
-<text x="1090" y="-10" text-anchor="middle" font-size="24" font-weight="700" fill="#111" font-family="sans-serif">書桌</text>
-<text x="1090" y="12" text-anchor="middle" font-size="13" fill="#666" font-family="sans-serif">1200 × 600 × 750 mm · 台灣檜木 · 10 件</text>
-<g transform="translate(680, 100)">
-    <rect x="-600.0" y="0" width="1200.0" height="750.0" fill="none" stroke="#888" stroke-dasharray="4 3" stroke-width="0.8"/>
-    <rect x="-600.0" y="0.0" width="1200.0" height="28.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-600.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="545.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-600.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="545.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="48.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="48.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-585.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="560.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-265.0" y="143.0" width="530.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-    <text x="0" y="800.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">正視圖（1200 × 750 mm）</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -10 2240 2054" width="2240">
+<defs><marker id="arr-front" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/></marker>
+<marker id="arr-side" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/></marker>
+<marker id="arr-top" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#111"/></marker></defs>
+<rect x="-20" y="-10" width="2240" height="2054" fill="#fafaf7"/>
+
+<text x="1100" y="24" text-anchor="middle" font-size="22" font-weight="700" fill="#111" font-family="sans-serif">書桌</text>
+<text x="1100" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">1200 × 600 × 750 mm · 台灣檜木 · 10 件零件</text>
+<g transform="translate(0, 70)">
+  <g transform="translate(690.0, 872.0)">
+    <rect x="-682.0" y="-864.0" width="1364.0" height="996.0" fill="none" stroke="#222" stroke-width="1"/>
+    
+<line x1="-682.0" y1="-832.0" x2="682.0" y2="-832.0" stroke="#222" stroke-width="0.6"/>
+<text x="-672.0" y="-842.0" font-size="13" font-weight="700" fill="#111" font-family="sans-serif">正視圖</text>
+<text x="-600.0" y="-842.0" font-size="10" fill="#666" font-family="sans-serif">FRONT VIEW</text>
+    
+<g stroke="#888" stroke-width="0.5" stroke-dasharray="8 2 2 2" opacity="0.7">
+  <line x1="0" y1="-760.0" x2="0" y2="10.0"/>
+  <line x1="-610.0" y1="-375.0" x2="610.0" y2="-375.0"/>
+</g>
+    <rect x="-600.0" y="-750.0" width="1200.0" height="750.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
+    <rect x="-600.0" y="-750.0" width="1200.0" height="28.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-600.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="545.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-600.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="545.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-572.5" y="-702.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-572.5" y="-702.0" width="1145.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-585.0" y="-702.0" width="25.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="560.0" y="-702.0" width="25.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-265.0" y="-607.0" width="530.0" height="25.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="-600.0" y1="12.0" x2="-600.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="600.0" y1="12.0" x2="600.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="-600.0" y1="28.0" x2="600.0" y2="28.0" marker-start="url(#arr-front)" marker-end="url(#arr-front)"/>
+  <text x="0" y="23.0" text-anchor="middle" font-size="11" stroke="none">1200</text>
+</g>
+    
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="612.0" y1="-750.0" x2="636.0" y2="-750.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="612.0" y1="0" x2="636.0" y2="0" stroke-width="0.4" stroke="#666"/>
+  <line x1="628.0" y1="-750.0" x2="628.0" y2="0" marker-start="url(#arr-front)" marker-end="url(#arr-front)"/>
+  <text x="634.0" y="-375.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">750</text>
+</g>
   </g>
-<g transform="translate(1800, 100)">
-    <rect x="-300.0" y="0" width="600.0" height="750.0" fill="none" stroke="#888" stroke-dasharray="4 3" stroke-width="0.8"/>
-    <rect x="-300.0" y="0.0" width="600.0" height="28.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-300.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-300.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="245.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="245.0" y="28.0" width="55.0" height="722.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-285.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="260.0" y="48.0" width="25.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-272.5" y="48.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-272.5" y="48.0" width="545.0" height="90.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-25.0" y="143.0" width="50.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-    <text x="0" y="800.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">側視圖（600 × 750 mm）</text>
-  </g>
-<g transform="translate(680, 1100)">
-    <rect x="-600.0" y="0" width="1200.0" height="600.0" fill="none" stroke="#888" stroke-dasharray="4 3" stroke-width="0.8"/>
-    <rect x="-600.0" y="-300.0" width="1200.0" height="600.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-600.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="545.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-600.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="545.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="-285.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-572.5" y="260.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-585.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="560.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-<rect x="-265.0" y="-25.0" width="530.0" height="50.0" fill="#d8b878" stroke="#3a2a1a" stroke-width="1.2" opacity="0.92"/>
-    <text x="0" y="650.0" text-anchor="middle" font-size="18" fill="#444" font-family="sans-serif">俯視圖（1200 × 600 mm）</text>
-  </g>
+  <g transform="translate(1420, 0)"><g transform="translate(390.0, 872.0)">
+    <rect x="-382.0" y="-864.0" width="764.0" height="996.0" fill="none" stroke="#222" stroke-width="1"/>
+    
+<line x1="-382.0" y1="-832.0" x2="382.0" y2="-832.0" stroke="#222" stroke-width="0.6"/>
+<text x="-372.0" y="-842.0" font-size="13" font-weight="700" fill="#111" font-family="sans-serif">側視圖</text>
+<text x="-300.0" y="-842.0" font-size="10" fill="#666" font-family="sans-serif">SIDE VIEW</text>
+    
+<g stroke="#888" stroke-width="0.5" stroke-dasharray="8 2 2 2" opacity="0.7">
+  <line x1="0" y1="-760.0" x2="0" y2="10.0"/>
+  <line x1="-310.0" y1="-375.0" x2="310.0" y2="-375.0"/>
+</g>
+    <rect x="-300.0" y="-750.0" width="600.0" height="750.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
+    <rect x="-300.0" y="-750.0" width="600.0" height="28.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-300.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-300.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="245.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="245.0" y="-722.0" width="55.0" height="722.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-285.0" y="-702.0" width="25.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="260.0" y="-702.0" width="25.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-272.5" y="-702.0" width="545.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-272.5" y="-702.0" width="545.0" height="90.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-25.0" y="-607.0" width="50.0" height="25.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="-300.0" y1="12.0" x2="-300.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="300.0" y1="12.0" x2="300.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="-300.0" y1="28.0" x2="300.0" y2="28.0" marker-start="url(#arr-side)" marker-end="url(#arr-side)"/>
+  <text x="0" y="23.0" text-anchor="middle" font-size="11" stroke="none">600</text>
+</g>
+    
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="312.0" y1="-750.0" x2="336.0" y2="-750.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="312.0" y1="0" x2="336.0" y2="0" stroke-width="0.4" stroke="#666"/>
+  <line x1="328.0" y1="-750.0" x2="328.0" y2="0" marker-start="url(#arr-side)" marker-end="url(#arr-side)"/>
+  <text x="334.0" y="-375.0" text-anchor="start" dominant-baseline="middle" font-size="11" stroke="none">750</text>
+</g>
+  </g></g>
+  <g transform="translate(0, 1052)"><g transform="translate(690.0, 122.0)">
+    <rect x="-682.0" y="-114.0" width="1364.0" height="846.0" fill="none" stroke="#222" stroke-width="1"/>
+    
+<line x1="-682.0" y1="-82.0" x2="682.0" y2="-82.0" stroke="#222" stroke-width="0.6"/>
+<text x="-672.0" y="-92.0" font-size="13" font-weight="700" fill="#111" font-family="sans-serif">俯視圖</text>
+<text x="-600.0" y="-92.0" font-size="10" fill="#666" font-family="sans-serif">TOP VIEW</text>
+    
+<g stroke="#888" stroke-width="0.5" stroke-dasharray="8 2 2 2" opacity="0.7">
+  <line x1="0" y1="-10.0" x2="0" y2="610.0"/>
+  <line x1="-610.0" y1="300.0" x2="610.0" y2="300.0"/>
+</g>
+    <rect x="-600.0" y="0.0" width="1200.0" height="600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
+    <rect x="-600.0" y="-300.0" width="1200.0" height="600.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-600.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="545.0" y="-300.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-600.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="545.0" y="245.0" width="55.0" height="55.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-572.5" y="-285.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-572.5" y="260.0" width="1145.0" height="25.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-585.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="560.0" y="-272.5" width="25.0" height="545.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+<rect x="-265.0" y="-25.0" width="530.0" height="50.0" fill="#d8b878" stroke="#222" stroke-width="0.7" opacity="0.9"/>
+    
+<g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
+  <line x1="-600.0" y1="612.0" x2="-600.0" y2="636.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="600.0" y1="612.0" x2="600.0" y2="636.0" stroke-width="0.4" stroke="#666"/>
+  <line x1="-600.0" y1="628.0" x2="600.0" y2="628.0" marker-start="url(#arr-top)" marker-end="url(#arr-top)"/>
+  <text x="0" y="623.0" text-anchor="middle" font-size="11" stroke="none">1200</text>
+</g>
+    
+  </g></g>
+</g>
 </svg>
