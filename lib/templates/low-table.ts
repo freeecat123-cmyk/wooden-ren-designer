@@ -3,6 +3,10 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const lowTableOptions: OptionSpec[] = [
+  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳" },
+    { value: "tapered", label: "錐形腳" },
+  ] },
   { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 45, min: 35, max: 70, step: 1 },
   { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 20, max: 45, step: 1 },
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 50, max: 120, step: 5 },
@@ -12,12 +16,13 @@ export const lowTableOptions: OptionSpec[] = [
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
-  const legSize = getOption<number>(input, lowTableOptions[0]);
-  const topThickness = getOption<number>(input, lowTableOptions[1]);
-  const apronWidth = getOption<number>(input, lowTableOptions[2]);
-  const topOverhang = getOption<number>(input, lowTableOptions[3]);
-  const withCenterStretcher = getOption<boolean>(input, lowTableOptions[4]);
-  const withLowerStretchers = getOption<boolean>(input, lowTableOptions[5]);
+  const legShape = getOption<string>(input, lowTableOptions[0]);
+  const legSize = getOption<number>(input, lowTableOptions[1]);
+  const topThickness = getOption<number>(input, lowTableOptions[2]);
+  const apronWidth = getOption<number>(input, lowTableOptions[3]);
+  const topOverhang = getOption<number>(input, lowTableOptions[4]);
+  const withCenterStretcher = getOption<boolean>(input, lowTableOptions[5]);
+  const withLowerStretchers = getOption<boolean>(input, lowTableOptions[6]);
   return simpleTable({
     category: "low-table",
     nameZh: "矮桌",
@@ -31,6 +36,7 @@ export const lowTable: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher: withCenterStretcher || input.length > 900,
     withLowerStretchers,
+    legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });
 };

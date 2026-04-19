@@ -3,6 +3,10 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const deskOptions: OptionSpec[] = [
+  { type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳（方料）" },
+    { value: "tapered", label: "錐形腳" },
+  ] },
   { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 40, max: 80, step: 2 },
   { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 22, max: 45, step: 2 },
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 60, max: 130, step: 5 },
@@ -13,13 +17,14 @@ export const deskOptions: OptionSpec[] = [
 ];
 
 export const desk: FurnitureTemplate = (input) => {
-  const legSize = getOption<number>(input, deskOptions[0]);
-  const topThickness = getOption<number>(input, deskOptions[1]);
-  const apronWidth = getOption<number>(input, deskOptions[2]);
-  const apronThickness = getOption<number>(input, deskOptions[3]);
-  const topOverhang = getOption<number>(input, deskOptions[4]);
-  const withCenterStretcher = getOption<boolean>(input, deskOptions[5]);
-  const withLowerStretchers = getOption<boolean>(input, deskOptions[6]);
+  const legShape = getOption<string>(input, deskOptions[0]);
+  const legSize = getOption<number>(input, deskOptions[1]);
+  const topThickness = getOption<number>(input, deskOptions[2]);
+  const apronWidth = getOption<number>(input, deskOptions[3]);
+  const apronThickness = getOption<number>(input, deskOptions[4]);
+  const topOverhang = getOption<number>(input, deskOptions[5]);
+  const withCenterStretcher = getOption<boolean>(input, deskOptions[6]);
+  const withLowerStretchers = getOption<boolean>(input, deskOptions[7]);
   return simpleTable({
     category: "desk",
     nameZh: "書桌",
@@ -34,6 +39,7 @@ export const desk: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher,
     withLowerStretchers,
-    notes: `書桌：桌腳 ${legSize}mm、牙板 ${apronWidth}×${apronThickness}mm。`,
+    legShape: legShape === "tapered" ? "tapered" : "box",
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm。`,
   });
 };

@@ -3,6 +3,10 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const sideTableOptions: OptionSpec[] = [
+  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳" },
+    { value: "tapered", label: "錐形腳" },
+  ] },
   { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 25, max: 55, step: 1 },
   { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1 },
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 40, max: 100, step: 5 },
@@ -11,11 +15,12 @@ export const sideTableOptions: OptionSpec[] = [
 ];
 
 export const sideTable: FurnitureTemplate = (input) => {
-  const legSize = getOption<number>(input, sideTableOptions[0]);
-  const topThickness = getOption<number>(input, sideTableOptions[1]);
-  const apronWidth = getOption<number>(input, sideTableOptions[2]);
-  const topOverhang = getOption<number>(input, sideTableOptions[3]);
-  const withLowerStretchers = getOption<boolean>(input, sideTableOptions[4]);
+  const legShape = getOption<string>(input, sideTableOptions[0]);
+  const legSize = getOption<number>(input, sideTableOptions[1]);
+  const topThickness = getOption<number>(input, sideTableOptions[2]);
+  const apronWidth = getOption<number>(input, sideTableOptions[3]);
+  const topOverhang = getOption<number>(input, sideTableOptions[4]);
+  const withLowerStretchers = getOption<boolean>(input, sideTableOptions[5]);
   return simpleTable({
     category: "side-table",
     nameZh: "邊桌 / 床頭櫃",
@@ -28,6 +33,7 @@ export const sideTable: FurnitureTemplate = (input) => {
     apronWidth,
     topOverhang,
     withLowerStretchers,
+    legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "床側收納用矮桌，可加下橫撐增穩定。",
   });
 };

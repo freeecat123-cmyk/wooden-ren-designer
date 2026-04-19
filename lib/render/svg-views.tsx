@@ -5,6 +5,7 @@ import { JOINERY_LABEL } from "@/lib/joinery/details";
 import {
   isPartHidden,
   projectPart,
+  projectPartPolygon,
   sortPartsByDepth,
   type OrthoView,
 } from "@/lib/render/geometry";
@@ -126,8 +127,25 @@ function OrthoView({
 
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(design.parts, view).map((part) => {
-        const r = projectPart(part, view);
         const hidden = isPartHidden(part, design.parts, view);
+        const stroke = hidden ? "#888" : "#111";
+        const sw = hidden ? 0.5 : 0.9;
+        const dash = hidden ? "4 3" : undefined;
+        const poly = projectPartPolygon(part, view);
+        if (part.shape && part.shape.kind === "tapered" && view !== "top") {
+          const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+          return (
+            <polygon
+              key={part.id}
+              points={points}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+              strokeDasharray={dash}
+            />
+          );
+        }
+        const r = projectPart(part, view);
         return (
           <rect
             key={part.id}
@@ -136,9 +154,9 @@ function OrthoView({
             width={r.w}
             height={r.h}
             fill="none"
-            stroke={hidden ? "#888" : "#111"}
-            strokeWidth={hidden ? 0.5 : 0.9}
-            strokeDasharray={hidden ? "4 3" : undefined}
+            stroke={stroke}
+            strokeWidth={sw}
+            strokeDasharray={dash}
           />
         );
       })}

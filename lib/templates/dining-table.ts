@@ -3,6 +3,10 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const diningTableOptions: OptionSpec[] = [
+  { type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳（方料）" },
+    { value: "tapered", label: "錐形腳（下方收窄）" },
+  ] },
   { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 50, max: 100, step: 2 },
   { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 22, max: 50, step: 2 },
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 70, max: 140, step: 5 },
@@ -13,13 +17,14 @@ export const diningTableOptions: OptionSpec[] = [
 ];
 
 export const diningTable: FurnitureTemplate = (input) => {
-  const legSize = getOption<number>(input, diningTableOptions[0]);
-  const topThickness = getOption<number>(input, diningTableOptions[1]);
-  const apronWidth = getOption<number>(input, diningTableOptions[2]);
-  const apronThickness = getOption<number>(input, diningTableOptions[3]);
-  const topOverhang = getOption<number>(input, diningTableOptions[4]);
-  const withCenterStretcher = getOption<boolean>(input, diningTableOptions[5]);
-  const withLowerStretchers = getOption<boolean>(input, diningTableOptions[6]);
+  const legShape = getOption<string>(input, diningTableOptions[0]);
+  const legSize = getOption<number>(input, diningTableOptions[1]);
+  const topThickness = getOption<number>(input, diningTableOptions[2]);
+  const apronWidth = getOption<number>(input, diningTableOptions[3]);
+  const apronThickness = getOption<number>(input, diningTableOptions[4]);
+  const topOverhang = getOption<number>(input, diningTableOptions[5]);
+  const withCenterStretcher = getOption<boolean>(input, diningTableOptions[6]);
+  const withLowerStretchers = getOption<boolean>(input, diningTableOptions[7]);
   return simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -34,6 +39,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher,
     withLowerStretchers,
-    notes: `餐桌結構：桌腳 ${legSize}mm、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
+    legShape: legShape === "tapered" ? "tapered" : "box",
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShape === "tapered" ? "錐形" : "方料"}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
 };

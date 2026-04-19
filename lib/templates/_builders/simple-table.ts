@@ -83,6 +83,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   };
 
   // Legs
+  const legShape = opts.legShape ?? "box";
   const legs: Part[] = cornerPts.map((c, i) => ({
     id: `leg-${i + 1}`,
     nameZh: `桌腳 ${i + 1}`,
@@ -90,6 +91,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
+    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : undefined,
     tenons: [
       {
         position: "top",

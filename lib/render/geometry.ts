@@ -52,6 +52,40 @@ export function partDepth(part: Part, view: OrthoView) {
   return { near: y + yExt, far: y };
 }
 
+/**
+ * 2D silhouette polygon for a part. Returns 4 points (top-left, top-right,
+ * bottom-right, bottom-left) in *world* coords. For "tapered" parts, top
+ * face uses visible width but bottom face is scaled. Y axis is world-up
+ * (no flip) — caller flips for SVG.
+ */
+export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: number; y: number }> {
+  const r = projectPart(part, view);
+  // Default box polygon (rectangle).
+  const box = [
+    { x: r.x, y: r.y + r.h },
+    { x: r.x + r.w, y: r.y + r.h },
+    { x: r.x + r.w, y: r.y },
+    { x: r.x, y: r.y },
+  ];
+  if (!part.shape || part.shape.kind !== "tapered") return box;
+  // Taper only applies when the part stands vertically (length maps to world Y).
+  // Detect that via rotation.z ~= PI/2 (legs use this for vertical posts) OR
+  // via thickness-axis = Y (no rotation with a tall part). Our legs follow
+  // the convention: visible.thickness = legHeight, rotation undefined → world Y
+  // is local "thickness" axis. Only taper in front/side view (not top view).
+  if (view === "top") return box;
+  const scale = part.shape.bottomScale;
+  const cx = (r.x + r.x + r.w) / 2;
+  const halfTop = r.w / 2;
+  const halfBot = halfTop * scale;
+  return [
+    { x: cx - halfTop, y: r.y + r.h },
+    { x: cx + halfTop, y: r.y + r.h },
+    { x: cx + halfBot, y: r.y },
+    { x: cx - halfBot, y: r.y },
+  ];
+}
+
 const CONTAIN_EPS = 0.5;
 const DEPTH_EPS = 0.5;
 

@@ -86,6 +86,17 @@ export interface Part {
 
   tenons: Tenon[];
   mortises: Mortise[];
+
+  /**
+   * Visual shape hint used by renderers. Default "box". "tapered" narrows
+   * toward the bottom (top face = visible dims, bottom face scaled by
+   * `shape.bottomScale`). Geometry/material calculations still use the
+   * upper/visible dimensions — this is purely a rendering override for
+   * illustrating leg styles.
+   */
+  shape?:
+    | { kind: "box" }
+    | { kind: "tapered"; bottomScale: number };
 }
 
 export interface FurnitureDesign {

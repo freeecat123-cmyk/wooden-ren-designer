@@ -15,6 +15,7 @@ import type { FurnitureDesign } from "../lib/types";
 import {
   isPartHidden,
   projectPart,
+  projectPartPolygon,
   sortPartsByDepth,
   type OrthoView,
 } from "../lib/render/geometry";
@@ -53,12 +54,17 @@ function viewBlock(
 
   const rects = sortPartsByDepth(design.parts, view)
     .map((p) => {
-      const r = projectPart(p, view);
-      const flipY = view === "top" ? r.y : -r.y - r.h;
       const hidden = isPartHidden(p, design.parts, view);
       const stroke = hidden ? "#888" : "#111";
       const strokeW = hidden ? 0.5 : 0.9;
       const dash = hidden ? ` stroke-dasharray="4 3"` : "";
+      if (p.shape && p.shape.kind === "tapered" && view !== "top") {
+        const poly = projectPartPolygon(p, view);
+        const pts = poly.map((pt) => `${pt.x.toFixed(1)},${(-pt.y).toFixed(1)}`).join(" ");
+        return `<polygon points="${pts}" fill="none" stroke="${stroke}" stroke-width="${strokeW}"${dash}/>`;
+      }
+      const r = projectPart(p, view);
+      const flipY = view === "top" ? r.y : -r.y - r.h;
       return `<rect x="${r.x.toFixed(1)}" y="${flipY.toFixed(1)}" width="${r.w.toFixed(1)}" height="${r.h.toFixed(1)}" fill="none" stroke="${stroke}" stroke-width="${strokeW}"${dash}/>`;
     })
     .join("\n");
