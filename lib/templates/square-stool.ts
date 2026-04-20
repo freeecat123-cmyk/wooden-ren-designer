@@ -8,11 +8,11 @@ import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const squareStoolOptions: OptionSpec[] = [
-  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 25, max: 60, step: 1, unit: "mm" },
-  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 18, max: 40, step: 1, unit: "mm" },
-  { type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 40, max: 100, step: 5, unit: "mm" },
-  { type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 15, max: 30, step: 1, unit: "mm" },
-  { type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
+  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
+  { type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
+  { type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
+  { type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
   { type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在腳下方 1/4 高再加一圈橫撐，結構更穩" },
 ];
 

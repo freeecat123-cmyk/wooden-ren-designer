@@ -370,9 +370,9 @@ function NumberInput({
         type="number"
         name={name}
         defaultValue={defaultValue}
-        min={50}
-        max={3000}
-        step={10}
+        min={20}
+        max={4000}
+        step={5}
         inputMode="numeric"
         pattern="[0-9]*"
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"

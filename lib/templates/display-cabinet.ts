@@ -3,14 +3,14 @@ import { getOption } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 
 export const displayCabinetOptions: OptionSpec[] = [
-  { type: "number", key: "shelfCount", label: "層板數（不含頂底）", defaultValue: 3, min: 1, max: 6, step: 1 },
-  { type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 1, max: 4, step: 1 },
+  { type: "number", key: "shelfCount", label: "層板數（不含頂底）", defaultValue: 3, min: 0, max: 20, step: 1 },
+  { type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
   { type: "select", key: "doorType", label: "門材質", defaultValue: "glass", choices: [
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
     { value: "wood", label: "木鑲板門" },
   ] },
-  { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 15, max: 28, step: 1 },
-  { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 200, step: 10 },
+  { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
+  { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
