@@ -549,20 +549,19 @@ function BlindTenonDetail(p: JoineryDetailParams) {
  * ============================================================ */
 function HalfLapDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
-  const tt = p.tenonThickness;
   const mt = p.motherThickness;
-  const s = fitScale(Math.max(tl * 4, mt * 4), 200);
+  const s = fitScale(Math.max(tl * 4, mt * 4), 160);
   const PX = (mm: number) => mm * s;
-  const pieceLen = Math.max(PX(tl) * 2.5, 140);
+  const pieceLen = Math.max(PX(tl) * 3, 160);
   const halfThick = PX(mt) / 2;
 
   const expWidth = pieceLen + 40;
   const expHeight = PX(mt) * 2 + 60;
   const asmWidth = pieceLen + 40;
-  const w = expWidth * 2 + PADDING * 3;
-  const h = expHeight + PADDING;
+  const w = expWidth + asmWidth + PADDING * 3;
+  const h = expHeight + PADDING + 20;
 
-  const bAx = PADDING;
+  const bAx = PADDING + 30;
   const bAy = PADDING + 20;
 
   return (
@@ -600,11 +599,11 @@ function HalfLapDetail(p: JoineryDetailParams) {
           side="top"
         />
         <DimLine
-          x1={bAx - 10}
+          x1={bAx - 14}
           y1={bAy}
-          x2={bAx - 10}
+          x2={bAx - 14}
           y2={bAy + PX(mt)}
-          label={`${mt}`}
+          label={`板厚 ${mt}`}
           side="left"
         />
       </g>
@@ -627,7 +626,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
         </text>
       </g>
 
-      {/* Assembled */}
+      {/* Assembled — pieces fully overlap with interlocked half-laps */}
       <text
         x={expWidth + PADDING * 2}
         y={18}
@@ -638,31 +637,69 @@ function HalfLapDetail(p: JoineryDetailParams) {
         組合剖面
       </text>
       <g transform={`translate(${expWidth + PADDING * 2},0)`}>
-        {/* Both pieces overlapping */}
+        {/* Piece A outline (top half present on left, absent at right) */}
         <rect
           x={PADDING}
           y={bAy}
+          width={pieceLen - PX(tl)}
+          height={halfThick}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Piece A bottom half full length */}
+        <rect
+          x={PADDING}
+          y={bAy + halfThick}
           width={pieceLen}
           height={halfThick}
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
+        {/* Piece B top half overlapping at lap zone */}
         <rect
           x={PADDING + pieceLen - PX(tl)}
-          y={bAy + halfThick}
-          width={pieceLen}
+          y={bAy}
+          width={PX(tl)}
           height={halfThick}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
+        {/* Piece B full thickness to the right of overlap */}
+        <rect
+          x={PADDING + pieceLen}
+          y={bAy}
+          width={PX(tl) * 2}
+          height={PX(mt)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Piece B bottom half, overlap region — extends into B's body */}
+        <rect
+          x={PADDING + pieceLen - PX(tl)}
+          y={bAy + halfThick}
+          width={PX(tl)}
+          height={halfThick}
+          fill="none"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
         <DimLine
           x1={PADDING + pieceLen - PX(tl)}
-          y1={bAy + PX(mt) + 6}
+          y1={bAy + PX(mt) + 8}
           x2={PADDING + pieceLen}
-          y2={bAy + PX(mt) + 6}
+          y2={bAy + PX(mt) + 8}
           label={`重疊 ${tl}`}
           side="bottom"
         />
+        <text
+          x={PADDING + pieceLen / 2}
+          y={bAy + PX(mt) + 42}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          兩件各削一半，咬合後總厚 = 板厚
+        </text>
       </g>
     </svg>
   );
@@ -832,6 +869,237 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
   );
 }
 
+/* ============================================================
+ * 鳩尾榫 — dovetail (drawer corners)
+ *   Trapezoidal pins + tails — the signature drawer corner joint.
+ * ============================================================ */
+function DovetailDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const ct = p.childThickness ?? tt;
+  const mt = p.motherThickness;
+
+  // Dovetails have multiple "tails" — draw 3 tails across the width.
+  const N = 3;
+  const s = fitScale(Math.max(tl * 4, tt * 4, ct * 4), 140);
+  const PX = (mm: number) => mm * s;
+
+  const pinW = PX(tt) / (2 * N + 1); // pin thickness (socket on mother)
+  const tailW = pinW * 2; // tail width on child
+  const pieceDepth = PX(tt); // height of each piece (depth along the joint face)
+  const pieceLen = Math.max(PX(tl) * 4, 160);
+  const angle = 0.18; // dovetail angle (roughly 10°)
+
+  const expW = pieceLen * 2 + 80;
+  const asmW = pieceLen * 1.5 + 40;
+  const w = expW + asmW + PADDING * 3;
+  const h = pieceDepth + 80;
+
+  const mAx = PADDING;
+  const mAy = PADDING + 10;
+
+  // Build mother (pin board) path: straight back edge, trapezoidal pins on front
+  const makePinsPath = () => {
+    const verts: Array<[number, number]> = [];
+    const baseY = mAy;
+    const tipY = mAy + pieceDepth;
+    verts.push([mAx, mAy]);
+    verts.push([mAx + pieceLen - PX(tl), mAy]); // top edge until joint start
+    // pin-and-socket front edge
+    let x = mAx + pieceLen - PX(tl);
+    let onBaseLine = true;
+    for (let i = 0; i < N * 2 + 1; i++) {
+      if (i === 0) {
+        // socket at edge — go down with inward slope
+        verts.push([x, baseY]);
+        verts.push([x + PX(tl) * angle, tipY]);
+        x += pinW;
+        verts.push([x - PX(tl) * angle, tipY]);
+        onBaseLine = false;
+      } else if (i % 2 === 1) {
+        // pin top
+        verts.push([x, tipY]);
+        verts.push([x, baseY]);
+        x += pinW;
+        verts.push([x, baseY]);
+        onBaseLine = true;
+      } else {
+        // socket (going back up)
+        verts.push([x + PX(tl) * angle, tipY]);
+        x += pinW;
+        verts.push([x - PX(tl) * angle, tipY]);
+        onBaseLine = false;
+      }
+    }
+    if (!onBaseLine) {
+      // close back up
+      verts.push([x, tipY]);
+    }
+    verts.push([mAx + pieceLen, tipY]);
+    verts.push([mAx + pieceLen, mAy + pieceDepth + 30]); // extend body down
+    verts.push([mAx, mAy + pieceDepth + 30]);
+    return "M" + verts.map((v) => v.join(" ")).join(" L") + " Z";
+  };
+
+  // Simpler approach — draw the joint schematically using two rects + interlocked zigzag
+  const bAx = PADDING;
+  const bAy = PADDING + 10;
+  const cBodyX = bAx + pieceLen + 80;
+  const cBodyY = bAy;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h + 40}`}
+      width="100%"
+      style={{ maxWidth: "680px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-dt" color="#7a5a2c" />
+      </defs>
+
+      <text x={PADDING} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖
+      </text>
+
+      {/* mother (pin board): drawn with pins sticking UP */}
+      <g>
+        <rect
+          x={bAx}
+          y={bAy + PX(tl)}
+          width={pieceLen}
+          height={pieceDepth}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* pins (trapezoidal) on top edge */}
+        {Array.from({ length: N }).map((_, i) => {
+          const pinCenterX = bAx + (pieceLen / (N + 1)) * (i + 1);
+          const halfBot = pinW * 1.3;
+          const halfTop = halfBot * 0.55;
+          return (
+            <path
+              key={i}
+              d={`M${pinCenterX - halfBot} ${bAy + PX(tl)} L${pinCenterX - halfTop} ${bAy} L${pinCenterX + halfTop} ${bAy} L${pinCenterX + halfBot} ${bAy + PX(tl)} Z`}
+              fill={COLOR_MORTISE}
+              stroke={COLOR_OUTLINE}
+            />
+          );
+        })}
+        <text
+          x={bAx + pieceLen / 2}
+          y={bAy + PX(tl) + pieceDepth + 14}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          母件（pin 面板）
+        </text>
+        <DimLine
+          x1={bAx - 10}
+          y1={bAy}
+          x2={bAx - 10}
+          y2={bAy + PX(tl)}
+          label={`榫長 ${tl}`}
+          side="left"
+        />
+      </g>
+
+      {/* child (tail board): drawn with dovetail slots between tails */}
+      <g>
+        <rect
+          x={cBodyX}
+          y={cBodyY + PX(tl)}
+          width={pieceLen}
+          height={pieceDepth}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* tails with sockets between them (draw tails sticking up) */}
+        {Array.from({ length: N + 1 }).map((_, i) => {
+          const tailCenterX = cBodyX + (pieceLen / (N + 2)) * (i + 1);
+          const halfBot = pinW * 0.9;
+          const halfTop = halfBot * 1.6;
+          return (
+            <path
+              key={i}
+              d={`M${tailCenterX - halfBot} ${cBodyY + PX(tl)} L${tailCenterX - halfTop} ${cBodyY} L${tailCenterX + halfTop} ${cBodyY} L${tailCenterX + halfBot} ${cBodyY + PX(tl)} Z`}
+              fill={COLOR_TENON}
+              stroke={COLOR_OUTLINE}
+            />
+          );
+        })}
+        <text
+          x={cBodyX + pieceLen / 2}
+          y={cBodyY + PX(tl) + pieceDepth + 14}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          公件（tail 面板）
+        </text>
+      </g>
+
+      {/* Assembled corner view */}
+      <text
+        x={expW + PADDING}
+        y={18}
+        fontSize={11}
+        fontWeight="bold"
+        fill={COLOR_OUTLINE}
+      >
+        組合（L 型轉角）
+      </text>
+      <g transform={`translate(${expW + PADDING},${PADDING + 10})`}>
+        {/* horizontal piece (top of drawer — tail board) */}
+        <rect
+          x={0}
+          y={0}
+          width={pieceLen}
+          height={pieceDepth}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* vertical piece (side — pin board) */}
+        <rect
+          x={pieceLen}
+          y={0}
+          width={pieceDepth}
+          height={pieceLen * 0.8}
+          fill="url(#hatch-dt)"
+          stroke={COLOR_OUTLINE}
+        />
+        {/* interlocking zigzag at corner */}
+        <g stroke={COLOR_OUTLINE} fill="none" strokeWidth={0.8}>
+          {Array.from({ length: N }).map((_, i) => {
+            const y = pieceDepth / (N + 1) * (i + 1);
+            return (
+              <line
+                key={i}
+                x1={pieceLen - pinW * 0.5}
+                y1={y}
+                x2={pieceLen + pieceDepth}
+                y2={y}
+                strokeDasharray="2 2"
+              />
+            );
+          })}
+        </g>
+        <text
+          x={pieceLen / 2}
+          y={pieceDepth + 14}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          梯形榫頭咬合，難拆抗拉
+        </text>
+      </g>
+    </svg>
+  );
+}
+
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
 > = {
@@ -840,6 +1108,7 @@ const RENDERERS: Partial<
   "shouldered-tenon": BlindTenonDetail,
   "half-lap": HalfLapDetail,
   "tongue-and-groove": TongueAndGrooveDetail,
+  dovetail: DovetailDetail,
 };
 
 export function JoineryDetail({
