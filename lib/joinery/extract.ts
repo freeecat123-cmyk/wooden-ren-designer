@@ -32,7 +32,18 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
             (Math.abs(tenon.width - mortise.length) < 2 ||
               Math.abs(tenon.width - mortise.width) < 2)
           ) {
-            motherThicknessByType.set(tenon.type, part.visible.thickness);
+            // Mother thickness for the detail drawing is the part's smallest
+            // visible dim (the cross-section the tenon penetrates). For a leg
+            // that's legSize, for a top/seat it's panel thickness — NOT the
+            // part's full length.
+            motherThicknessByType.set(
+              tenon.type,
+              Math.min(
+                part.visible.length,
+                part.visible.width,
+                part.visible.thickness,
+              ),
+            );
           }
         }
       }
