@@ -30,6 +30,8 @@ export interface SimpleTableOpts {
   legShape?: "box" | "tapered";
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
+  /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
+  lowerStretcherHeight?: number;
   notes?: string;
 }
 
@@ -194,9 +196,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
 
   const parts: Part[] = [topPanel, ...legs, ...aprons];
 
-  // Optional 4 lower stretchers (連腳橫撐), at ~1/4 leg height
+  // Optional 4 lower stretchers (連腳橫撐), default ≈ 22% of leg height
   if (withLowerStretchers) {
-    const stretcherY = Math.round(legHeight * 0.22);
+    const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * 0.22);
     const stretcherWidth = 40;
     const stretcherThickness = 20;
     const tenonLen = Math.round(legSize * 0.6);

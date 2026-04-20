@@ -14,6 +14,8 @@ export const lowTableOptions: OptionSpec[] = [
   { type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
   { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 200, step: 5 },
+  { type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
@@ -25,6 +27,8 @@ export const lowTable: FurnitureTemplate = (input) => {
   const withCenterStretcher = getOption<boolean>(input, lowTableOptions[5]);
   const withLowerStretchers = getOption<boolean>(input, lowTableOptions[6]);
   const legInset = getOption<number>(input, lowTableOptions[7]);
+  const apronOffset = getOption<number>(input, lowTableOptions[8]);
+  const lowerStretcherHeight = getOption<number>(input, lowTableOptions[9]);
   return simpleTable({
     category: "low-table",
     nameZh: "矮桌",
@@ -39,6 +43,8 @@ export const lowTable: FurnitureTemplate = (input) => {
     withCenterStretcher: withCenterStretcher || input.length > 900,
     withLowerStretchers,
     legInset,
+    apronOffset,
+    lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });

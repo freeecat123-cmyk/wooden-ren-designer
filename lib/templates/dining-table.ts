@@ -15,6 +15,8 @@ export const diningTableOptions: OptionSpec[] = [
   { type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: true, help: "長桌必備，防扭" },
   { type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
   { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
+  { type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
+  { type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）" },
 ];
 
 export const diningTable: FurnitureTemplate = (input) => {
@@ -27,6 +29,8 @@ export const diningTable: FurnitureTemplate = (input) => {
   const withCenterStretcher = getOption<boolean>(input, diningTableOptions[6]);
   const withLowerStretchers = getOption<boolean>(input, diningTableOptions[7]);
   const legInset = getOption<number>(input, diningTableOptions[8]);
+  const apronOffset = getOption<number>(input, diningTableOptions[9]);
+  const lowerStretcherHeight = getOption<number>(input, diningTableOptions[10]);
   return simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -42,6 +46,8 @@ export const diningTable: FurnitureTemplate = (input) => {
     withCenterStretcher,
     withLowerStretchers,
     legInset,
+    apronOffset,
+    lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShape === "tapered" ? "錐形" : "方料"}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });

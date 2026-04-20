@@ -10,8 +10,9 @@ import { corners } from "./_helpers";
 export const barStoolOptions: OptionSpec[] = [
   { type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
-  { type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 200, min: 100, max: 500, step: 10, help: "腳踏橫撐離地高度" },
+  { type: "number", key: "footrestHeight", label: "腳踏/下橫撐高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度" },
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
+  { type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
   { type: "checkbox", key: "withBack", label: "加椅背", defaultValue: false, help: "吧檯椅常見無背，可勾選加短椅背" },
 ];
 
@@ -25,7 +26,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, barStoolOptions[1]);
   const footrestHeight = getOption<number>(input, barStoolOptions[2]);
   const apronWidth = getOption<number>(input, barStoolOptions[3]);
-  const withBack = getOption<boolean>(input, barStoolOptions[4]);
+  const apronOffset = getOption<number>(input, barStoolOptions[4]);
+  const withBack = getOption<boolean>(input, barStoolOptions[5]);
 
   const apronThickness = 18;
   const footRestWidth = 30;
@@ -59,14 +61,14 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [
         // 座板下牙板
         {
-          origin: { x: 0, y: seatY - apronWidth - 5, z: c.z > 0 ? -1 : 1 },
+          origin: { x: 0, y: seatY - apronWidth - apronOffset, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
           length: apronWidth - 8,
           width: apronThickness - 5,
           through: false,
         },
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - 5, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - apronOffset, z: 0 },
           depth: apronTenonLen,
           length: apronWidth - 8,
           width: apronThickness - 5,
@@ -112,7 +114,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const innerSpanX = length - legSize;
   const innerSpanZ = width - legSize;
-  const ringY = seatY - apronWidth - 5;
+  const ringY = seatY - apronWidth - apronOffset;
   const apronSides = [
     { key: "front", nameZh: "前牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
     { key: "back", nameZh: "後牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
