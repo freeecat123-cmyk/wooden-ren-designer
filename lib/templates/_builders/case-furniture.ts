@@ -30,6 +30,8 @@ export interface CaseFurnitureOpts {
   /** Raise the case on 4 corner legs (e.g. sofa legs). When set, legHeight adds under the bottom panel. */
   legHeight?: number;
   legSize?: number;
+  /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot). */
+  legShape?: "box" | "tapered" | "bracket" | "plinth";
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
   customShelfFractions?: number[];
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
@@ -84,23 +86,83 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       : Array.from({ length: shelfCount }, (_, i) => (i + 1) / (shelfCount + 1));
 
   // Optional 4 corner legs (raise the case)
+  const legShape = opts.legShape ?? "box";
   if (legHeight > 0) {
-    const legOffsetX = length / 2 - legSize / 2;
-    const legOffsetZ = width / 2 - legSize / 2;
-    for (const sx of [-1, 1] as const) {
-      for (const sz of [-1, 1] as const) {
+    if (legShape === "plinth") {
+      // 平台式底座：四邊連板底座
+      const plinthT = 18;
+      const insetX = 10;
+      const insetZ = 10;
+      const frontBack = [-1, 1] as const;
+      // 前後長板
+      for (const sz of frontBack) {
         parts.push({
-          id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
-          nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+          id: `plinth-${sz < 0 ? "front" : "back"}`,
+          nameZh: `${sz < 0 ? "前" : "後"}底座板`,
           material,
           grainDirection: "length",
-          visible: { length: legSize, width: legSize, thickness: legHeight },
-          origin: { x: sx * legOffsetX, y: 0, z: sz * legOffsetZ },
-          tenons: [
-            { position: "top", type: "blind-tenon", length: Math.min(tenonLen, legHeight), width: legSize - 10, thickness: legSize - 10 },
-          ],
+          visible: { length: length - 2 * insetX, width: legHeight, thickness: plinthT },
+          origin: { x: 0, y: 0, z: sz * (width / 2 - plinthT / 2 - insetZ) },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
           mortises: [],
         });
+      }
+      for (const sx of frontBack) {
+        parts.push({
+          id: `plinth-${sx < 0 ? "left" : "right"}`,
+          nameZh: `${sx < 0 ? "左" : "右"}底座板`,
+          material,
+          grainDirection: "length",
+          visible: { length: width - 2 * insetZ - 2 * plinthT, width: legHeight, thickness: plinthT },
+          origin: { x: sx * (length / 2 - plinthT / 2 - insetX), y: 0, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else {
+      const legOffsetX = length / 2 - legSize / 2;
+      const legOffsetZ = width / 2 - legSize / 2;
+      const shape: Part["shape"] =
+        legShape === "tapered"
+          ? { kind: "tapered", bottomScale: 0.55 }
+          : undefined;
+      for (const sx of [-1, 1] as const) {
+        for (const sz of [-1, 1] as const) {
+          parts.push({
+            id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
+            nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+            material,
+            grainDirection: "length",
+            visible: { length: legSize, width: legSize, thickness: legHeight },
+            origin: { x: sx * legOffsetX, y: 0, z: sz * legOffsetZ },
+            shape,
+            tenons: [
+              { position: "top", type: "blind-tenon", length: Math.min(tenonLen, legHeight), width: legSize - 10, thickness: legSize - 10 },
+            ],
+            mortises: [],
+          });
+          if (legShape === "bracket") {
+            // 托腳牙板：從腳內側斜向支撐底板
+            const bracketLen = Math.min(legHeight * 1.4, 80);
+            parts.push({
+              id: `bracket-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
+              nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}托腳牙`,
+              material,
+              grainDirection: "length",
+              visible: { length: bracketLen, width: legHeight * 0.7, thickness: 14 },
+              origin: {
+                x: sx * (legOffsetX - legSize / 2 - bracketLen / 2 + 2),
+                y: legHeight * 0.3,
+                z: sz * legOffsetZ,
+              },
+              rotation: { x: Math.PI / 2, y: 0, z: 0 },
+              tenons: [],
+              mortises: [],
+            });
+          }
+        }
       }
     }
   }

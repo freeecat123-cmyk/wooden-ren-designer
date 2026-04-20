@@ -8,6 +8,10 @@ import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const teaTableOptions: OptionSpec[] = [
+  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳（方料）" },
+    { value: "tapered", label: "錐形腳" },
+  ] },
   { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
   { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
@@ -33,11 +37,12 @@ export const teaTableOptions: OptionSpec[] = [
 export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
 
-  const legSize = getOption<number>(input, teaTableOptions[0]);
-  const topThickness = getOption<number>(input, teaTableOptions[1]);
-  const upperApronWidth = getOption<number>(input, teaTableOptions[2]);
-  const stretcherFloorOffset = getOption<number>(input, teaTableOptions[3]);
-  const hasLowerShelf = getOption<boolean>(input, teaTableOptions[4]);
+  const legShape = getOption<string>(input, teaTableOptions[0]);
+  const legSize = getOption<number>(input, teaTableOptions[1]);
+  const topThickness = getOption<number>(input, teaTableOptions[2]);
+  const upperApronWidth = getOption<number>(input, teaTableOptions[3]);
+  const stretcherFloorOffset = getOption<number>(input, teaTableOptions[4]);
+  const hasLowerShelf = getOption<boolean>(input, teaTableOptions[5]);
   const upperApronThickness = 22;
   const lowerStretcherWidth = 50;
   const lowerStretcherThickness = 22;
@@ -79,6 +84,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
+    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : undefined,
     tenons: [
       {
         position: "top",

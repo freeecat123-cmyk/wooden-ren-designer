@@ -10,6 +10,13 @@ export const wardrobeOptions: OptionSpec[] = [
   { type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
   { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
+  { type: "number", key: "bottomDrawerCols", label: "下抽屜列數（左右）", defaultValue: 1, min: 1, max: 4, step: 1, help: "底部抽屜區切成幾列" },
+  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
+    { value: "box", label: "直腳" },
+    { value: "tapered", label: "錐形腳" },
+    { value: "bracket", label: "帶托腳牙" },
+    { value: "plinth", label: "平台底座（衣櫃常見）" },
+  ] },
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
@@ -20,6 +27,8 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const doorCount = getOption<number>(input, wardrobeOptions[4]);
   const panelThickness = getOption<number>(input, wardrobeOptions[5]);
   const legHeight = getOption<number>(input, wardrobeOptions[6]);
+  const bottomDrawerCols = getOption<number>(input, wardrobeOptions[7]);
+  const legShape = getOption<string>(input, wardrobeOptions[8]);
 
   const caseHeight = input.height - legHeight;
   const innerH = caseHeight - 2 * panelThickness;
@@ -56,7 +65,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     shelfCount: 0, // use customShelfFractions instead
     customShelfFractions: fractions,
     drawerCount: bottomDrawerCount,
-    drawerCols: 1,
+    drawerCols: bottomDrawerCols,
     drawerAreaHeight: bottomDrawerHeight,
     doorCount,
     doorType: "wood",
@@ -65,6 +74,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     backThickness: 6,
     legHeight,
     legSize: 45,
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
     hangingArea: { yStart: drawerFrac, yEnd: topDividerFrac },
     notes: `衣櫃：吊衣空間 ${hangingHeight}mm；下方 ${bottomDrawerCount} 抽屜；上方 ${shelfCount} 層板；${doorCount} 扇門。需配吊衣桿、門鉸鏈、抽屜滑軌。`,
   });

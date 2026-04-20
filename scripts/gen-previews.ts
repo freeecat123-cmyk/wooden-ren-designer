@@ -162,6 +162,9 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   "chest-of-drawers": [
     { suffix: "-3x3-legs", options: { drawerRows: 3, drawerCols: 3, legHeight: 100 } },
     { suffix: "-2col", options: { drawerRows: 4, drawerCols: 2 } },
+    { suffix: "-tapered-legs", options: { legHeight: 120, legShape: "tapered" } },
+    { suffix: "-bracket", options: { legHeight: 140, legShape: "bracket" } },
+    { suffix: "-plinth", options: { legHeight: 100, legShape: "plinth" } },
   ],
   "dining-table": [
     { suffix: "-tapered", options: { legShape: "tapered", topOverhang: 60, withLowerStretchers: false } },
@@ -171,9 +174,35 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   ],
   "wardrobe": [
     { suffix: "-3doors", options: { doorCount: 3, bottomDrawerCount: 3 } },
+    { suffix: "-3drawer-cols", options: { bottomDrawerCount: 2, bottomDrawerCols: 3 } },
   ],
   "shoe-cabinet": [
     { suffix: "-no-legs", options: { legHeight: 0, doorCount: 0 } },
+    { suffix: "-tapered", options: { legShape: "tapered" } },
+  ],
+  "media-console": [
+    { suffix: "-3cols", options: { drawerCols: 3, doorCount: 3 } },
+    { suffix: "-2x2drawers", options: { drawerRows: 2, drawerCols: 2, drawerHeight: 300, doorCount: 0 } },
+    { suffix: "-tapered", options: { legShape: "tapered", legHeight: 150 } },
+  ],
+  "nightstand": [
+    { suffix: "-2drawers", options: { drawerCount: 2, drawerCols: 1, shelfCount: 0 } },
+  ],
+  "bench": [
+    { suffix: "-undershelf", options: { withUnderShelf: true } },
+  ],
+  "desk": [
+    { suffix: "-drawer-right", options: { drawerCount: 2, drawerSide: "right", withCenterStretcher: false } },
+    { suffix: "-drawer-left", options: { drawerCount: 3, drawerSide: "left", withCenterStretcher: false } },
+  ],
+  "tea-table": [
+    { suffix: "-tapered", options: { legShape: "tapered" } },
+  ],
+  "display-cabinet": [
+    { suffix: "-tapered", options: { legHeight: 100, legShape: "tapered" } },
+  ],
+  "open-bookshelf": [
+    { suffix: "-legs", options: { legHeight: 100, legShape: "tapered" } },
   ],
 };
 

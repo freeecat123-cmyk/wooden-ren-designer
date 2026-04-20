@@ -7,6 +7,13 @@ export const openBookshelfOptions: OptionSpec[] = [
   { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   { type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1, help: "設 0 則無背板" },
   { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
+  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
+  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳" },
+    { value: "tapered", label: "錐形腳" },
+    { value: "bracket", label: "帶托腳牙" },
+    { value: "plinth", label: "平台底座" },
+  ] },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -14,6 +21,8 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const panelThickness = getOption<number>(input, openBookshelfOptions[1]);
   const backThickness = getOption<number>(input, openBookshelfOptions[2]);
   const legHeight = getOption<number>(input, openBookshelfOptions[3]);
+  const legSize = getOption<number>(input, openBookshelfOptions[4]);
+  const legShape = getOption<string>(input, openBookshelfOptions[5]);
   return caseFurniture({
     category: "open-bookshelf",
     nameZh: "開放書櫃",
@@ -26,6 +35,8 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     shelfThickness: panelThickness,
     backThickness,
     legHeight,
-    notes: `${shelfCount + 2} 層開放式書櫃（含頂底板）。`,
+    legSize,
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    notes: `${shelfCount + 2} 層開放式書櫃（含頂底板）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳` : ""}。`,
   });
 };
