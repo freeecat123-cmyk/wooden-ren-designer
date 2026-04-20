@@ -714,15 +714,28 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
   const mt = p.motherThickness;
   const ct = p.childThickness ?? tt;
 
-  const s = fitScale(Math.max(mt + tl + 40, ct + 20), 140);
+  const s = fitScale(Math.max(mt * 2 + tl, ct * 2 + tl), 120);
   const PX = (mm: number) => mm * s;
 
-  const pieceLen = Math.max(PX(mt) * 2.5, 120);
-  const expWidth = pieceLen + PX(tl) + 60;
-  const expHeight = PX(mt) + PX(ct) + 60;
-  const asmWidth = pieceLen + PX(ct) + 40;
-  const w = expWidth + asmWidth + PADDING * 3;
-  const h = expHeight + PADDING;
+  const pieceLen = Math.max(PX(mt) * 2.5, 110);
+  const gap = 30;
+  const leftPad = 40;
+  // Exploded: mother on the LEFT (groove cut on its RIGHT edge),
+  //           child  on the RIGHT (tongue sticking out from its LEFT edge)
+  const expContentW = pieceLen * 2 + gap;
+  const expContentH = Math.max(PX(mt), PX(ct)) + 50;
+  // Assembled: horizontal — tongue fully inside groove, two boards meet
+  const asmContentW = pieceLen * 2 - PX(tl) + gap;
+  const w = expContentW + asmContentW + PADDING * 4 + 20 + leftPad;
+  const h = expContentH + PADDING + 20;
+
+  const mAx = PADDING + leftPad;
+  const mAy = PADDING + 10;
+  const cAx = mAx + pieceLen + gap;
+  // Center child vertically on mother (same centerline)
+  const cAy = mAy + (PX(mt) - PX(ct)) / 2;
+
+  const asmX = mAx + expContentW + PADDING * 2;
 
   return (
     <svg
@@ -738,28 +751,29 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
       <text x={PADDING} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
         分解圖
       </text>
-      {/* mother (grooved rail) */}
+
+      {/* mother (grooved rail) — groove on RIGHT edge, opens right */}
       <g>
         <rect
-          x={PADDING}
-          y={PADDING + 10}
+          x={mAx}
+          y={mAy}
           width={pieceLen}
           height={PX(mt)}
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* groove at the end */}
+        {/* groove cut — centered thickness-wise */}
         <rect
-          x={PADDING + pieceLen - PX(tl)}
-          y={PADDING + 10 + PX(mt) / 2 - PX(tt) / 2}
+          x={mAx + pieceLen - PX(tl)}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2}
           width={PX(tl)}
           height={PX(tt)}
           fill="white"
           stroke={COLOR_OUTLINE}
         />
         <text
-          x={PADDING + pieceLen / 2}
-          y={PADDING + 10 + PX(mt) + 14}
+          x={mAx + pieceLen / 2}
+          y={mAy + PX(mt) + 14}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
@@ -767,35 +781,44 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           母件（凹槽）
         </text>
         <DimLine
-          x1={PADDING + pieceLen - PX(tl)}
-          y1={PADDING + 10 + PX(mt) / 2 - PX(tt) / 2 - 3}
-          x2={PADDING + pieceLen}
-          y2={PADDING + 10 + PX(mt) / 2 - PX(tt) / 2 - 3}
+          x1={mAx + pieceLen - PX(tl)}
+          y1={mAy + PX(mt) / 2 - PX(tt) / 2 - 3}
+          x2={mAx + pieceLen}
+          y2={mAy + PX(mt) / 2 - PX(tt) / 2 - 3}
           label={`槽深 ${tl}`}
           side="top"
         />
+        <DimLine
+          x1={mAx - 10}
+          y1={mAy}
+          x2={mAx - 10}
+          y2={mAy + PX(mt)}
+          label={`母厚 ${mt}`}
+          side="left"
+        />
       </g>
-      {/* child (panel with tongue) — drawn below */}
-      <g transform={`translate(0,${PX(mt) + 40})`}>
+
+      {/* child (panel with tongue) — tongue on LEFT edge, points left toward mother */}
+      <g>
         <rect
-          x={PADDING + PX(tl)}
-          y={PADDING + 10}
+          x={cAx + PX(tl)}
+          y={cAy}
           width={pieceLen - PX(tl)}
           height={PX(ct)}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
         <rect
-          x={PADDING}
-          y={PADDING + 10 + PX(ct) / 2 - PX(tt) / 2}
+          x={cAx}
+          y={cAy + PX(ct) / 2 - PX(tt) / 2}
           width={PX(tl)}
           height={PX(tt)}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
         <text
-          x={PADDING + pieceLen / 2}
-          y={PADDING + 10 + PX(ct) + 14}
+          x={cAx + pieceLen / 2}
+          y={cAy + PX(ct) + 14}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
@@ -803,53 +826,59 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           公件（出舌）
         </text>
         <DimLine
-          x1={PADDING}
-          y1={PADDING + 10 + PX(ct) / 2 + PX(tt) / 2 + 4}
-          x2={PADDING + PX(tl)}
-          y2={PADDING + 10 + PX(ct) / 2 + PX(tt) / 2 + 4}
+          x1={cAx}
+          y1={cAy + PX(ct) / 2 + PX(tt) / 2 + 4}
+          x2={cAx + PX(tl)}
+          y2={cAy + PX(ct) / 2 + PX(tt) / 2 + 4}
           label={`舌長 ${tl}`}
           side="bottom"
         />
+        <DimLine
+          x1={cAx + pieceLen + 10}
+          y1={cAy}
+          x2={cAx + pieceLen + 10}
+          y2={cAy + PX(ct)}
+          label={`板厚 ${ct}`}
+          side="right"
+        />
       </g>
 
-      {/* Assembled */}
-      <text
-        x={expWidth + PADDING * 2}
-        y={18}
-        fontSize={11}
-        fontWeight="bold"
-        fill={COLOR_OUTLINE}
-      >
+      {/* =========== ASSEMBLED =========== */}
+      <text x={asmX} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
         組合剖面
       </text>
-      <g transform={`translate(${expWidth + PADDING * 2},0)`}>
+
+      <g>
+        {/* mother (hatched) — left side, groove still cut but child fills it */}
         <rect
-          x={PADDING + PX(tl)}
-          y={PADDING + 10}
-          width={pieceLen - PX(tl)}
+          x={asmX}
+          y={mAy}
+          width={pieceLen}
           height={PX(mt)}
           fill="url(#hatch-tg)"
           stroke={COLOR_OUTLINE}
         />
+        {/* child body on the right, overlapping mother by tl */}
         <rect
-          x={PADDING}
-          y={PADDING + 10 + PX(mt) / 2 - PX(tt) / 2}
-          width={PX(tl) + PX(ct)}
-          height={PX(tt)}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        <rect
-          x={PADDING - PX(ct)}
-          y={PADDING + 10 + PX(mt) / 2 - PX(ct) / 2}
-          width={PX(ct)}
+          x={asmX + pieceLen - PX(tl)}
+          y={cAy}
+          width={pieceLen}
           height={PX(ct)}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
+        {/* where the tongue sits inside the groove, re-draw tongue as filled to make it clear */}
+        <rect
+          x={asmX + pieceLen - PX(tl)}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2}
+          width={PX(tl)}
+          height={PX(tt)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
         <text
-          x={PADDING + pieceLen / 2}
-          y={PADDING + 10 + PX(mt) + 14}
+          x={asmX + pieceLen}
+          y={mAy + PX(mt) + 20}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
