@@ -47,7 +47,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           position: [
             (design.overall.length * SCALE) * 1.7,
             (design.overall.thickness * SCALE) * 1.1,
-            (design.overall.width * SCALE) * 1.9,
+            -(design.overall.width * SCALE) * 1.9,
           ],
           fov: 32,
         }}
