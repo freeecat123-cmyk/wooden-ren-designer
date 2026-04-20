@@ -416,7 +416,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         />
         <text
           x={mAx + motherExt / 2}
-          y={mAy + PX(mt) + 14}
+          y={mAy + PX(mt) + 20}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
@@ -891,12 +891,13 @@ function DovetailDetail(p: JoineryDetailParams) {
   const pieceLen = Math.max(PX(tl) * 4, 160);
   const angle = 0.18; // dovetail angle (roughly 10°)
 
+  const leftPad = 40;
   const expW = pieceLen * 2 + 80;
   const asmW = pieceLen * 1.5 + 40;
-  const w = expW + asmW + PADDING * 3;
+  const w = expW + asmW + PADDING * 3 + leftPad;
   const h = pieceDepth + 80;
 
-  const mAx = PADDING;
+  const mAx = PADDING + leftPad;
   const mAy = PADDING + 10;
 
   // Build mother (pin board) path: straight back edge, trapezoidal pins on front
@@ -943,7 +944,7 @@ function DovetailDetail(p: JoineryDetailParams) {
   };
 
   // Simpler approach — draw the joint schematically using two rects + interlocked zigzag
-  const bAx = PADDING;
+  const bAx = PADDING + leftPad;
   const bAy = PADDING + 10;
   const cBodyX = bAx + pieceLen + 80;
   const cBodyY = bAy;
