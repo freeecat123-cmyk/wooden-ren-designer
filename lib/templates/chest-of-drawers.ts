@@ -33,7 +33,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     width: input.width,
     height: input.height,
     material: input.material,
-    shelfCount: drawerRows - 1,
+    shelfCount: 0, // builder auto-creates dividers between drawer rows
     drawerCount: drawerRows,
     drawerCols,
     panelThickness,

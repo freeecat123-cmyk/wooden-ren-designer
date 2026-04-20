@@ -6,7 +6,7 @@
 <rect x="-20" y="-10" width="1270" height="1684" fill="#fafaf7"/>
 
 <text x="615" y="24" text-anchor="middle" font-size="22" font-weight="700" fill="#111" font-family="sans-serif">床頭櫃</text>
-<text x="615" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">450 × 380 × 600 mm · 台灣檜木 · 15 件零件</text>
+<text x="615" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">450 × 380 × 600 mm · 台灣檜木 · 16 件零件</text>
 <g transform="translate(0, 70)">
   <g transform="translate(315.0, 722.0)">
     <rect x="-307.0" y="-714.0" width="614.0" height="846.0" fill="none" stroke="#222" stroke-width="1"/>
@@ -29,7 +29,8 @@
 <rect x="193.0" y="-314.0" width="14.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-225.0" y="-582.0" width="18.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="207.0" y="-582.0" width="18.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-207.0" y="-378.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-207.0" y="-468.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-207.0" y="-318.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-205.0" y="-314.0" width="410.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <polygon points="-225.0,-120.0 -190.0,-120.0 -197.9,0.0 -217.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <polygon points="190.0,-120.0 225.0,-120.0 217.1,0.0 197.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
@@ -69,8 +70,9 @@
 <rect x="-174.5" y="-153.0" width="342.0" height="6.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-189.0" y="-314.0" width="18.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="167.0" y="-312.0" width="12.0" height="162.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-187.0" y="-378.0" width="374.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-187.0" y="-468.0" width="374.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="184.0" y="-582.0" width="6.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-187.0" y="-318.0" width="374.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-185.5" y="-314.0" width="364.0" height="172.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <polygon points="-190.0,-120.0 -155.0,-120.0 -162.9,0.0 -182.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <polygon points="155.0,-120.0 190.0,-120.0 182.1,0.0 162.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
@@ -114,6 +116,7 @@
 <rect x="-205.0" y="-189.0" width="410.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-207.0" y="-185.5" width="14.0" height="364.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="193.0" y="-185.5" width="14.0" height="364.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-207.0" y="-187.0" width="414.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-207.0" y="-187.0" width="414.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-225.0" y="-187.0" width="18.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="207.0" y="-187.0" width="18.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>

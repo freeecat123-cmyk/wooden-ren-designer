@@ -87,11 +87,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   const parts: Part[] = [];
 
-  // Shelf positions as fractions of innerH (0..1 exclusive, intermediate only)
+  // Drawer area occupies the bottom portion of innerH (fraction 0..drawerTopFrac).
+  // User-supplied shelves go in the remainder (above the drawer area), unless
+  // customShelfFractions overrides positions explicitly.
+  const drawerAreaH = drawerCount > 0 ? (opts.drawerAreaHeight ?? innerH) : 0;
+  const drawerTopFrac = Math.min(1, drawerAreaH / innerH);
   const shelfFractions: number[] =
     opts.customShelfFractions !== undefined
       ? opts.customShelfFractions.filter((f) => f > 0 && f < 1)
-      : Array.from({ length: shelfCount }, (_, i) => (i + 1) / (shelfCount + 1));
+      : shelfCount > 0
+      ? Array.from({ length: shelfCount }, (_, i) => {
+          const remaining = 1 - drawerTopFrac;
+          return drawerTopFrac + (remaining * (i + 1)) / (shelfCount + 1);
+        })
+      : [];
 
   // Optional 4 corner legs (raise the case)
   const legShape = legShapeRaw;
@@ -342,8 +351,28 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // ===== 抽屜內箱（每屜 5 件：面板 / 後板 / 左右側板 / 底板）=====
   if (drawerCount > 0) {
-    const drawerAreaH = opts.drawerAreaHeight ?? innerH;
     const drawerSlotH = drawerAreaH / drawerCount;
+
+    // 抽屜間水平分隔板（drawerCount-1 片；抽屜區頂緣若未到頂再加一片封頂）
+    const needTopCover = drawerAreaH < innerH - 1;
+    const dividerRows = needTopCover ? drawerCount : drawerCount - 1;
+    for (let d = 0; d < dividerRows; d++) {
+      const dividerY = caseBottomY + panelT + (d + 1) * drawerSlotH;
+      parts.push({
+        id: `drawer-divider-${d + 1}`,
+        nameZh: d === drawerCount - 1 ? "抽屜區頂板" : `抽屜分隔板 ${d + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: innerW, width: innerD, thickness: shelfT },
+        origin: { x: 0, y: dividerY - shelfT, z: 0 },
+        tenons: [
+          { position: "start", type: "blind-tenon", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
+          { position: "end", type: "blind-tenon", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
+        ],
+        mortises: [],
+      });
+    }
+
     const drawerFrontT = 18;
     const drawerSideT = 14;
     const drawerBackT = 12;

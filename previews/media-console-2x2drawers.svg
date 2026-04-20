@@ -6,7 +6,7 @@
 <rect x="-20" y="-10" width="2340" height="1604" fill="#fafaf7"/>
 
 <text x="1150" y="24" text-anchor="middle" font-size="22" font-weight="700" fill="#111" font-family="sans-serif">電視櫃</text>
-<text x="1150" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">1500 × 400 × 500 mm · 台灣檜木 · 30 件零件</text>
+<text x="1150" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">1500 × 400 × 500 mm · 台灣檜木 · 32 件零件</text>
 <g transform="translate(0, 70)">
   <g transform="translate(840.0, 622.0)">
     <rect x="-832.0" y="-614.0" width="1664.0" height="746.0" fill="none" stroke="#222" stroke-width="1"/>
@@ -41,7 +41,9 @@
 <rect x="718.0" y="-434.0" width="14.0" height="142.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-750.0" y="-482.0" width="18.0" height="344.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="732.0" y="-482.0" width="18.0" height="344.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-732.0" y="-328.0" width="1464.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-732.0" y="-478.0" width="1464.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-732.0" y="-288.0" width="1464.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-732.0" y="-438.0" width="1464.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-730.0" y="-284.0" width="728.0" height="142.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="2.0" y="-284.0" width="728.0" height="142.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-730.0" y="-434.0" width="728.0" height="142.0" fill="none" stroke="#111" stroke-width="0.9"/>
@@ -98,8 +100,10 @@
 <rect x="177.0" y="-282.0" width="12.0" height="132.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-199.0" y="-434.0" width="18.0" height="142.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="177.0" y="-432.0" width="12.0" height="132.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-197.0" y="-328.0" width="394.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-197.0" y="-478.0" width="394.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="194.0" y="-482.0" width="6.0" height="344.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-197.0" y="-288.0" width="394.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-197.0" y="-438.0" width="394.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-195.5" y="-284.0" width="384.0" height="142.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-195.5" y="-434.0" width="384.0" height="142.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-200.0" y="-120.0" width="40.0" height="120.0" fill="none" stroke="#111" stroke-width="0.9"/>
@@ -149,9 +153,9 @@
 <rect x="2.0" y="-199.0" width="728.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="0.0" y="-195.5" width="14.0" height="384.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="718.0" y="-195.5" width="14.0" height="384.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-732.0" y="-197.0" width="1464.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-718.0" y="-184.5" width="704.0" height="362.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="14.0" y="-184.5" width="704.0" height="362.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-732.0" y="-197.0" width="1464.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-730.0" y="177.0" width="728.0" height="12.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="2.0" y="177.0" width="728.0" height="12.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-730.0" y="-199.0" width="728.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
@@ -160,6 +164,8 @@
 <rect x="2.0" y="-199.0" width="728.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="0.0" y="-195.5" width="14.0" height="384.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="718.0" y="-195.5" width="14.0" height="384.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-732.0" y="-197.0" width="1464.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-732.0" y="-197.0" width="1464.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-750.0" y="-197.0" width="18.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="732.0" y="-197.0" width="18.0" height="394.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-732.0" y="194.0" width="1464.0" height="6.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
