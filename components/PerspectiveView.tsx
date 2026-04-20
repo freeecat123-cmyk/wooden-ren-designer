@@ -46,7 +46,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
         camera={{
           position: [
             (design.overall.length * SCALE) * 1.7,
-            (design.overall.thickness * SCALE) * 1.4,
+            (design.overall.thickness * SCALE) * 1.1,
             (design.overall.width * SCALE) * 1.9,
           ],
           fov: 32,
@@ -119,6 +119,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           enablePan
           enableZoom
           enableRotate
+          target={[0, (design.overall.thickness * SCALE) / 2, 0]}
           minDistance={maxDim * 1.2}
           maxDistance={maxDim * 6}
           maxPolarAngle={Math.PI / 2 - 0.05}
