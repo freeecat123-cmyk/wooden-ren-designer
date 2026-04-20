@@ -12,11 +12,30 @@ import type { FurnitureDesign, Part } from "@/lib/types";
  * dimension because the cut calculator adds tenon length on top.
  */
 export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
-  const parts: Part[] = design.parts.map((p) => ({
-    ...p,
-    tenons: [],
-    mortises: [],
-  }));
+  // Traditional templates position aprons so their visible body spans leg-
+  // center to leg-center — the tenon fills the gap to the leg inner face.
+  // For a pocket-hole butt join we want the apron to end at the leg inner
+  // face, so shrink its visible.length by one legSize (half on each end).
+  // Detect legSize from any "leg-*" part's cross-section.
+  const legPart = design.parts.find(
+    (p) => /^leg-/.test(p.id) && p.visible.length === p.visible.width,
+  );
+  const legSize = legPart ? legPart.visible.length : 0;
+
+  const parts: Part[] = design.parts.map((p) => {
+    const hasEndTenons =
+      p.tenons.some((t) => t.position === "start" || t.position === "end");
+    const visible =
+      hasEndTenons && legSize > 0 && p.visible.length > legSize
+        ? { ...p.visible, length: p.visible.length - legSize }
+        : p.visible;
+    return {
+      ...p,
+      visible,
+      tenons: [],
+      mortises: [],
+    };
+  });
 
   return {
     ...design,
