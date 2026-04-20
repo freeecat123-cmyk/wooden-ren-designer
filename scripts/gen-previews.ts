@@ -168,6 +168,7 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   ],
   "dining-table": [
     { suffix: "-tapered", options: { legShape: "tapered", topOverhang: 60, withLowerStretchers: false } },
+    { suffix: "-inset", options: { legInset: 120, topOverhang: 40 } },
   ],
   "dining-chair": [
     { suffix: "-4slats", options: { backSlats: 4 } },
@@ -187,6 +188,7 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   ],
   "nightstand": [
     { suffix: "-2drawers", options: { drawerCount: 2, drawerCols: 1, shelfCount: 0 } },
+    { suffix: "-inset-legs", options: { legInset: 40, legShape: "tapered" } },
   ],
   "bench": [
     { suffix: "-undershelf", options: { withUnderShelf: true } },

@@ -14,6 +14,7 @@ export const diningTableOptions: OptionSpec[] = [
   { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
   { type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: true, help: "長桌必備，防扭" },
   { type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
+  { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
 ];
 
 export const diningTable: FurnitureTemplate = (input) => {
@@ -25,6 +26,7 @@ export const diningTable: FurnitureTemplate = (input) => {
   const topOverhang = getOption<number>(input, diningTableOptions[5]);
   const withCenterStretcher = getOption<boolean>(input, diningTableOptions[6]);
   const withLowerStretchers = getOption<boolean>(input, diningTableOptions[7]);
+  const legInset = getOption<number>(input, diningTableOptions[8]);
   return simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -39,6 +41,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher,
     withLowerStretchers,
+    legInset,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShape === "tapered" ? "錐形" : "方料"}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });

@@ -15,6 +15,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
@@ -24,6 +25,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, shoeCabinetOptions[3]);
   const legSize = getOption<number>(input, shoeCabinetOptions[4]);
   const legShape = getOption<string>(input, shoeCabinetOptions[5]);
+  const legInset = getOption<number>(input, shoeCabinetOptions[6]);
   return caseFurniture({
     category: "shoe-cabinet",
     nameZh: "鞋櫃",
@@ -40,6 +42,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `${shelfCount} 層層板 + ${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）` : ""}。層板可用層板釘做可調式。`,
+    legInset,
+    notes: `${shelfCount} 層層板 + ${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。層板可用層板釘做可調式。`,
   });
 };

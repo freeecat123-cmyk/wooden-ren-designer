@@ -13,6 +13,7 @@ export const lowTableOptions: OptionSpec[] = [
   { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
   { type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
   { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+  { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
@@ -23,6 +24,7 @@ export const lowTable: FurnitureTemplate = (input) => {
   const topOverhang = getOption<number>(input, lowTableOptions[4]);
   const withCenterStretcher = getOption<boolean>(input, lowTableOptions[5]);
   const withLowerStretchers = getOption<boolean>(input, lowTableOptions[6]);
+  const legInset = getOption<number>(input, lowTableOptions[7]);
   return simpleTable({
     category: "low-table",
     nameZh: "矮桌",
@@ -36,6 +38,7 @@ export const lowTable: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher: withCenterStretcher || input.length > 900,
     withLowerStretchers,
+    legInset,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });

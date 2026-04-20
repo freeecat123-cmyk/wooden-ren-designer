@@ -15,6 +15,7 @@ export const nightstandOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5 },
 ];
 
 /**
@@ -30,6 +31,7 @@ export const nightstand: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, nightstandOptions[5]);
   const legSize = getOption<number>(input, nightstandOptions[6]);
   const legShape = getOption<string>(input, nightstandOptions[7]);
+  const legInset = getOption<number>(input, nightstandOptions[8]);
 
   return caseFurniture({
     category: "nightstand",
@@ -49,6 +51,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `床頭櫃：${drawerCount} 排 × ${drawerCols} 列抽屜（共 ${drawerHeight}mm 高）+ 下方 ${shelfCount} 層開放區；腳高 ${legHeight}mm（${legShape}）。`,
+    legInset,
+    notes: `床頭櫃：${drawerCount} 排 × ${drawerCols} 列抽屜（共 ${drawerHeight}mm 高）+ 下方 ${shelfCount} 層開放區；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
   });
 };

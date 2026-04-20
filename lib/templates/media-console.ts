@@ -22,6 +22,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "wood", label: "木板門" },
     { value: "glass", label: "玻璃門" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 /**
@@ -39,6 +40,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, mediaConsoleOptions[7]);
   const legShape = getOption<string>(input, mediaConsoleOptions[8]);
   const doorType = getOption<string>(input, mediaConsoleOptions[9]);
+  const legInset = getOption<number>(input, mediaConsoleOptions[10]);
 
   return caseFurniture({
     category: "media-console",
@@ -59,6 +61,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `電視櫃：${doorCount} 扇${doorType === "glass" ? "玻璃" : "木"}門、${drawerRows} 排 × ${drawerCols} 列（共 ${drawerRows * drawerCols}）抽屜、內部 ${shelfCount} 層板。底座腳 ${legHeight}mm（${legShape}）。建議預留線孔走線。`,
+    legInset,
+    notes: `電視櫃：${doorCount} 扇${doorType === "glass" ? "玻璃" : "木"}門、${drawerRows} 排 × ${drawerCols} 列（共 ${drawerRows * drawerCols}）抽屜、內部 ${shelfCount} 層板。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
   });
 };

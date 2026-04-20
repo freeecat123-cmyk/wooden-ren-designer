@@ -28,6 +28,8 @@ export interface SimpleTableOpts {
   topOverhang?: number;
   /** Leg shape: box (default) or tapered toward bottom. */
   legShape?: "box" | "tapered";
+  /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
+  legInset?: number;
   notes?: string;
 }
 
@@ -59,8 +61,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
 
   const legHeight = height - topThickness;
   const apronY = legHeight - apronWidth - apronOffset;
+  const legInset = opts.legInset ?? 0;
 
-  const cornerPts = corners(length, width, legSize);
+  const cornerPts = corners(length, width, legSize, legInset);
   const topLen = length + 2 * topOverhang;
   const topWid = width + 2 * topOverhang;
 
@@ -119,36 +122,41 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ],
   }));
 
-  // Aprons (4 sides)
-  const apronInnerSpan = { x: length - legSize, z: width - legSize };
+  // Aprons (4 sides) — follow the legs when inset
+  const apronInnerSpan = {
+    x: length - legSize - 2 * legInset,
+    z: width - legSize - 2 * legInset,
+  };
+  const apronEdgeZ = width / 2 - legSize / 2 - legInset;
+  const apronEdgeX = length / 2 - legSize / 2 - legInset;
   const apronSides = [
     {
       key: "front",
       nameZh: "前牙板",
       visibleLength: apronInnerSpan.x,
       axis: "x" as const,
-      origin: { x: 0, z: -(width / 2 - legSize / 2) },
+      origin: { x: 0, z: -apronEdgeZ },
     },
     {
       key: "back",
       nameZh: "後牙板",
       visibleLength: apronInnerSpan.x,
       axis: "x" as const,
-      origin: { x: 0, z: width / 2 - legSize / 2 },
+      origin: { x: 0, z: apronEdgeZ },
     },
     {
       key: "left",
       nameZh: "左牙板",
       visibleLength: apronInnerSpan.z,
       axis: "z" as const,
-      origin: { x: -(length / 2 - legSize / 2), z: 0 },
+      origin: { x: -apronEdgeX, z: 0 },
     },
     {
       key: "right",
       nameZh: "右牙板",
       visibleLength: apronInnerSpan.z,
       axis: "z" as const,
-      origin: { x: length / 2 - legSize / 2, z: 0 },
+      origin: { x: apronEdgeX, z: 0 },
     },
   ];
   const aprons: Part[] = apronSides.map((s) => ({
@@ -193,10 +201,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherThickness = 20;
     const tenonLen = Math.round(legSize * 0.6);
     const lowerSides = [
-      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
-      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
-      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
-      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -apronEdgeZ } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: apronEdgeZ } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -apronEdgeX, z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: apronEdgeX, z: 0 } },
     ];
     for (const s of lowerSides) {
       parts.push({

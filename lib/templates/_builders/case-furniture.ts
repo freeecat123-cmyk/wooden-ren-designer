@@ -33,6 +33,8 @@ export interface CaseFurnitureOpts {
   /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot),
    *  plinth (continuous base frame), panel-side (side panels extend to floor). */
   legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side";
+  /** Inset legs (or plinth) inward from case outer edge (mm, each side). */
+  legInset?: number;
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
   customShelfFractions?: number[];
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
@@ -104,6 +106,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // Optional 4 corner legs (raise the case)
   const legShape = legShapeRaw;
+  const legInset = opts.legInset ?? 0;
   if (legHeight > 0) {
     if (legShape === "panel-side") {
       // 側板延伸落地：左右加兩片延伸板，中間空心
@@ -124,8 +127,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     } else if (legShape === "plinth") {
       // 平台式底座：四邊連板底座
       const plinthT = 18;
-      const insetX = 10;
-      const insetZ = 10;
+      const insetX = 10 + legInset;
+      const insetZ = 10 + legInset;
       const frontBack = [-1, 1] as const;
       // 前後長板
       for (const sz of frontBack) {
@@ -155,8 +158,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         });
       }
     } else {
-      const legOffsetX = length / 2 - legSize / 2;
-      const legOffsetZ = width / 2 - legSize / 2;
+      const legOffsetX = length / 2 - legSize / 2 - legInset;
+      const legOffsetZ = width / 2 - legSize / 2 - legInset;
       const shape: Part["shape"] =
         legShape === "tapered"
           ? { kind: "tapered", bottomScale: 0.55 }

@@ -19,6 +19,7 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
@@ -29,6 +30,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, displayCabinetOptions[4]);
   const legSize = getOption<number>(input, displayCabinetOptions[5]);
   const legShape = getOption<string>(input, displayCabinetOptions[6]);
+  const legInset = getOption<number>(input, displayCabinetOptions[7]);
   return caseFurniture({
     category: "display-cabinet",
     nameZh: "玻璃展示櫃",
@@ -45,6 +47,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `${shelfCount} 層展示空間 + ${doorCount} 扇${doorType === "wood" ? "木" : "玻璃"}門。${doorType === "glass" ? "玻璃需另裁；建議 5mm 強化玻璃。" : ""}`,
+    legInset,
+    notes: `${shelfCount} 層展示空間 + ${doorCount} 扇${doorType === "wood" ? "木" : "玻璃"}門${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${doorType === "glass" ? "玻璃需另裁；建議 5mm 強化玻璃。" : ""}`,
   });
 };

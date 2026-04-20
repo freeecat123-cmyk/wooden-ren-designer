@@ -20,6 +20,7 @@ export const deskOptions: OptionSpec[] = [
     { value: "right", label: "右側" },
     { value: "center", label: "中央（窄型）" },
   ] },
+  { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
 ];
 
 export const desk: FurnitureTemplate = (input) => {
@@ -33,6 +34,7 @@ export const desk: FurnitureTemplate = (input) => {
   const withLowerStretchers = getOption<boolean>(input, deskOptions[7]);
   const drawerCount = getOption<number>(input, deskOptions[8]);
   const drawerSide = getOption<string>(input, deskOptions[9]);
+  const legInset = getOption<number>(input, deskOptions[10]);
 
   const design = simpleTable({
     category: "desk",
@@ -48,6 +50,7 @@ export const desk: FurnitureTemplate = (input) => {
     topOverhang,
     withCenterStretcher: withCenterStretcher && drawerCount === 0,
     withLowerStretchers,
+    legInset,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。`,
   });

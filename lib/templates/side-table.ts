@@ -12,6 +12,7 @@ export const sideTableOptions: OptionSpec[] = [
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側的距離" },
   { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+  { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const sideTable: FurnitureTemplate = (input) => {
@@ -21,6 +22,7 @@ export const sideTable: FurnitureTemplate = (input) => {
   const apronWidth = getOption<number>(input, sideTableOptions[3]);
   const topOverhang = getOption<number>(input, sideTableOptions[4]);
   const withLowerStretchers = getOption<boolean>(input, sideTableOptions[5]);
+  const legInset = getOption<number>(input, sideTableOptions[6]);
   return simpleTable({
     category: "side-table",
     nameZh: "邊桌 / 床頭櫃",
@@ -33,6 +35,7 @@ export const sideTable: FurnitureTemplate = (input) => {
     apronWidth,
     topOverhang,
     withLowerStretchers,
+    legInset,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "床側收納用矮桌，可加下橫撐增穩定。",
   });

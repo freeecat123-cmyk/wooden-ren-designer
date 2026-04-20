@@ -14,6 +14,7 @@ export const benchOptions: OptionSpec[] = [
   { type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
+  { type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const bench: FurnitureTemplate = (input) => {
@@ -25,6 +26,7 @@ export const bench: FurnitureTemplate = (input) => {
   const withCenterStretcher = getOption<boolean>(input, benchOptions[5]);
   const withLowerStretchers = getOption<boolean>(input, benchOptions[6]);
   const withUnderShelf = getOption<boolean>(input, benchOptions[7]);
+  const legInset = getOption<number>(input, benchOptions[8]);
 
   const design = simpleTable({
     category: "bench",
@@ -39,6 +41,7 @@ export const bench: FurnitureTemplate = (input) => {
     apronOffset,
     withCenterStretcher: withCenterStretcher || input.length > 1200,
     withLowerStretchers: withLowerStretchers || withUnderShelf,
+    legInset,
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。",
   });

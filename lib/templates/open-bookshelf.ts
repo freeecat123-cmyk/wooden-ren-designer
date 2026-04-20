@@ -15,6 +15,7 @@ export const openBookshelfOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地（書櫃常見）" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -24,6 +25,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, openBookshelfOptions[3]);
   const legSize = getOption<number>(input, openBookshelfOptions[4]);
   const legShape = getOption<string>(input, openBookshelfOptions[5]);
+  const legInset = getOption<number>(input, openBookshelfOptions[6]);
   return caseFurniture({
     category: "open-bookshelf",
     nameZh: "開放書櫃",
@@ -38,6 +40,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `${shelfCount + 2} 層開放式書櫃（含頂底板）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳` : ""}。`,
+    legInset,
+    notes: `${shelfCount + 2} 層開放式書櫃（含頂底板）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
   });
 };

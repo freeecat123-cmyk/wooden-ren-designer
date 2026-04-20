@@ -16,6 +16,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
@@ -26,6 +27,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, chestOfDrawersOptions[4]);
   const legSize = getOption<number>(input, chestOfDrawersOptions[5]);
   const legShape = getOption<string>(input, chestOfDrawersOptions[6]);
+  const legInset = getOption<number>(input, chestOfDrawersOptions[7]);
   return caseFurniture({
     category: "chest-of-drawers",
     nameZh: "斗櫃",
@@ -42,6 +44,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
-    notes: `${drawerRows} 排 × ${drawerCols} 列 共 ${drawerRows * drawerCols} 個抽屜${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape}腳` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
+    legInset,
+    notes: `${drawerRows} 排 × ${drawerCols} 列 共 ${drawerRows * drawerCols} 個抽屜${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape}腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
   });
 };

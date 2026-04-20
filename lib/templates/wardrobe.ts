@@ -18,6 +18,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
   ] },
+  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
@@ -30,6 +31,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, wardrobeOptions[6]);
   const bottomDrawerCols = getOption<number>(input, wardrobeOptions[7]);
   const legShape = getOption<string>(input, wardrobeOptions[8]);
+  const legInset = getOption<number>(input, wardrobeOptions[9]);
 
   const caseHeight = input.height - legHeight;
   const innerH = caseHeight - 2 * panelThickness;
@@ -76,6 +78,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     legHeight,
     legSize: 45,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
+    legInset,
     hangingArea: { yStart: drawerFrac, yEnd: topDividerFrac },
     notes: `衣櫃：吊衣空間 ${hangingHeight}mm；下方 ${bottomDrawerCount} 抽屜；上方 ${shelfCount} 層板；${doorCount} 扇門。需配吊衣桿、門鉸鏈、抽屜滑軌。`,
   });
