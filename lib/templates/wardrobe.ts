@@ -16,6 +16,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（衣櫃常見）" },
+    { value: "panel-side", label: "側板延伸落地" },
   ] },
 ];
 
@@ -74,7 +75,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     backThickness: 6,
     legHeight,
     legSize: 45,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     hangingArea: { yStart: drawerFrac, yEnd: topDividerFrac },
     notes: `衣櫃：吊衣空間 ${hangingHeight}mm；下方 ${bottomDrawerCount} 抽屜；上方 ${shelfCount} 層板；${doorCount} 扇門。需配吊衣桿、門鉸鏈、抽屜滑軌。`,
   });

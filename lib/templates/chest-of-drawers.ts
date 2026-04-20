@@ -14,6 +14,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳（下方收窄）" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（連板）" },
+    { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] },
 ];
 
@@ -40,7 +41,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     backThickness,
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     notes: `${drawerRows} 排 × ${drawerCols} 列 共 ${drawerRows * drawerCols} 個抽屜${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape}腳` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
   });
 };

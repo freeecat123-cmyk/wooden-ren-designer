@@ -204,6 +204,7 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   ],
   "open-bookshelf": [
     { suffix: "-legs", options: { legHeight: 100, legShape: "tapered" } },
+    { suffix: "-panel-side", options: { legHeight: 120, legShape: "panel-side" } },
   ],
 };
 

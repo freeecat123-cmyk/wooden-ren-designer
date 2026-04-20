@@ -68,14 +68,16 @@ function buildTaperedGeometry(
     hx, hy, hz,
     -hx, hy, hz,
   ];
+  // Three.js uses right-handed coords with CCW winding = front face. Each
+  // quad (a,b,c,d) is listed so the normal points outward.
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
   const idx = [
-    ...f(0, 3, 2, 1), // bottom (CCW viewed from -y = facing outward)
-    ...f(4, 5, 6, 7), // top
-    ...f(0, 1, 5, 4), // front (-z)
-    ...f(1, 2, 6, 5), // right (+x)
-    ...f(2, 3, 7, 6), // back (+z)
-    ...f(3, 0, 4, 7), // left (-x)
+    ...f(0, 1, 2, 3), // bottom (-y outward)
+    ...f(4, 7, 6, 5), // top (+y outward)
+    ...f(0, 4, 5, 1), // front (-z outward)
+    ...f(1, 5, 6, 2), // right (+x outward)
+    ...f(2, 6, 7, 3), // back (+z outward)
+    ...f(3, 7, 4, 0), // left (-x outward)
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));

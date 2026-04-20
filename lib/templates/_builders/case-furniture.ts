@@ -30,8 +30,9 @@ export interface CaseFurnitureOpts {
   /** Raise the case on 4 corner legs (e.g. sofa legs). When set, legHeight adds under the bottom panel. */
   legHeight?: number;
   legSize?: number;
-  /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot). */
-  legShape?: "box" | "tapered" | "bracket" | "plinth";
+  /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot),
+   *  plinth (continuous base frame), panel-side (side panels extend to floor). */
+  legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side";
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
   customShelfFractions?: number[];
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
@@ -95,7 +96,23 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // Optional 4 corner legs (raise the case)
   const legShape = legShapeRaw;
   if (legHeight > 0) {
-    if (legShape === "plinth") {
+    if (legShape === "panel-side") {
+      // 側板延伸落地：左右加兩片延伸板，中間空心
+      const insetZ = 10;
+      for (const sx of [-1, 1] as const) {
+        parts.push({
+          id: `side-extension-${sx < 0 ? "left" : "right"}`,
+          nameZh: `${sx < 0 ? "左" : "右"}側板延伸腳`,
+          material,
+          grainDirection: "length",
+          visible: { length: width - 2 * insetZ, width: legHeight, thickness: panelT },
+          origin: { x: sx * (length / 2 - panelT / 2), y: 0, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (legShape === "plinth") {
       // 平台式底座：四邊連板底座
       const plinthT = 18;
       const insetX = 10;

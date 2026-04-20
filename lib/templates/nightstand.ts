@@ -48,7 +48,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     backThickness: 6,
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     notes: `床頭櫃：${drawerCount} 排 × ${drawerCols} 列抽屜（共 ${drawerHeight}mm 高）+ 下方 ${shelfCount} 層開放區；腳高 ${legHeight}mm（${legShape}）。`,
   });
 };

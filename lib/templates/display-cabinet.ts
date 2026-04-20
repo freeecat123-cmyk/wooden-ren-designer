@@ -17,6 +17,7 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
+    { value: "panel-side", label: "側板延伸落地" },
   ] },
 ];
 
@@ -43,7 +44,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     backThickness: 8,
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     notes: `${shelfCount} 層展示空間 + ${doorCount} 扇${doorType === "wood" ? "木" : "玻璃"}門。${doorType === "glass" ? "玻璃需另裁；建議 5mm 強化玻璃。" : ""}`,
   });
 };

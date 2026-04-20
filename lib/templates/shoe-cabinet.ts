@@ -13,6 +13,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
+    { value: "panel-side", label: "側板延伸落地" },
   ] },
 ];
 
@@ -38,7 +39,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     backThickness: 6,
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     notes: `${shelfCount} 層層板 + ${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）` : ""}。層板可用層板釘做可調式。`,
   });
 };

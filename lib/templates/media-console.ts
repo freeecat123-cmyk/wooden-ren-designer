@@ -16,6 +16,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
+    { value: "panel-side", label: "側板延伸落地" },
   ] },
   { type: "select", key: "doorType", label: "門板類型", defaultValue: "wood", choices: [
     { value: "wood", label: "木板門" },
@@ -57,7 +58,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     backThickness: 6,
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     notes: `電視櫃：${doorCount} 扇${doorType === "glass" ? "玻璃" : "木"}門、${drawerRows} 排 × ${drawerCols} 列（共 ${drawerRows * drawerCols}）抽屜、內部 ${shelfCount} 層板。底座腳 ${legHeight}mm（${legShape}）。建議預留線孔走線。`,
   });
 };
