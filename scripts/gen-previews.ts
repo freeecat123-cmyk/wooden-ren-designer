@@ -200,6 +200,7 @@ const VARIANTS: Record<string, Array<{ suffix: string; options: Record<string, s
   ],
   "display-cabinet": [
     { suffix: "-tapered", options: { legHeight: 100, legShape: "tapered" } },
+    { suffix: "-plinth-auto", options: { legShape: "plinth" } },
   ],
   "open-bookshelf": [
     { suffix: "-legs", options: { legHeight: 100, legShape: "tapered" } },

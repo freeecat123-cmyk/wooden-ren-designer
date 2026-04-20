@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { Euler } from "three";
+import { BufferGeometry, Euler, Float32BufferAttribute } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -12,15 +13,26 @@ function Part({
   size,
   rotation,
   color,
+  bottomScale,
 }: {
   position: [number, number, number];
   size: [number, number, number];
   rotation: Euler;
   color: string;
+  bottomScale?: number;
 }) {
+  const geometry = useMemo(() => {
+    if (bottomScale === undefined || bottomScale === 1) return null;
+    return buildTaperedGeometry(size, bottomScale);
+  }, [size, bottomScale]);
+
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
-      <boxGeometry args={size} />
+      {geometry ? (
+        <primitive attach="geometry" object={geometry} />
+      ) : (
+        <boxGeometry args={size} />
+      )}
       <meshStandardMaterial
         color={color}
         roughness={0.55}
@@ -28,6 +40,48 @@ function Part({
       />
     </mesh>
   );
+}
+
+/**
+ * Truncated pyramid: top face is full size (length × width), bottom face is
+ * scaled by `scale`. Height axis is Y (local thickness in our part convention
+ * maps to Y in three.js box). 8 vertices, 12 triangles.
+ */
+function buildTaperedGeometry(
+  size: [number, number, number],
+  scale: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const bx = hx * scale;
+  const bz = hz * scale;
+  // 8 verts: 0..3 bottom (y=-hy), 4..7 top (y=+hy), order: -x-z, +x-z, +x+z, -x+z
+  const v: number[] = [
+    -bx, -hy, -bz,
+    bx, -hy, -bz,
+    bx, -hy, bz,
+    -bx, -hy, bz,
+    -hx, hy, -hz,
+    hx, hy, -hz,
+    hx, hy, hz,
+    -hx, hy, hz,
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // bottom (CCW viewed from -y = facing outward)
+    ...f(4, 5, 6, 7), // top
+    ...f(0, 1, 5, 4), // front (-z)
+    ...f(1, 2, 6, 5), // right (+x)
+    ...f(2, 3, 7, 6), // back (+z)
+    ...f(3, 0, 4, 7), // left (-x)
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
 }
 
 export function PerspectiveView({ design }: { design: FurnitureDesign }) {
@@ -94,6 +148,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;
           const pz = part.origin.z * SCALE;
+          const bottomScale =
+            part.shape?.kind === "tapered" ? part.shape.bottomScale : undefined;
           return (
             <Part
               key={part.id}
@@ -110,6 +166,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
                 "ZYX",
               )}
               color={color}
+              bottomScale={bottomScale}
             />
           );
         })}

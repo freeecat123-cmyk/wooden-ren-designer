@@ -67,7 +67,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const shelfT = opts.shelfThickness ?? 18;
   const backT = opts.backThickness ?? 6;
   const drawerCols = Math.max(1, opts.drawerCols ?? 1);
-  const legHeight = opts.legHeight ?? 0;
+  const rawLegHeight = opts.legHeight ?? 0;
+  const legShapeRaw = opts.legShape ?? "box";
+  const legHeight =
+    rawLegHeight === 0 && legShapeRaw !== "box"
+      ? legShapeRaw === "plinth"
+        ? 80
+        : 100
+      : rawLegHeight;
   const legSize = opts.legSize ?? 35;
   const caseBottomY = legHeight; // bottom panel of cabinet sits at this Y
 
@@ -86,7 +93,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       : Array.from({ length: shelfCount }, (_, i) => (i + 1) / (shelfCount + 1));
 
   // Optional 4 corner legs (raise the case)
-  const legShape = opts.legShape ?? "box";
+  const legShape = legShapeRaw;
   if (legHeight > 0) {
     if (legShape === "plinth") {
       // 平台式底座：四邊連板底座
