@@ -126,13 +126,16 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
   if (
     design.category === "chest-of-drawers" ||
     design.category === "shoe-cabinet" ||
-    design.category === "display-cabinet"
+    design.category === "display-cabinet" ||
+    design.category === "media-console" ||
+    design.category === "nightstand" ||
+    design.category === "wardrobe"
   ) {
     add("drawer-slide", "optional", "若設計含抽屜可加裝滑軌");
     add("concealed-hinge", "optional", "櫃門可選用隱藏鉸鏈");
   }
 
-  if (design.category === "dining-chair") {
+  if (design.category === "dining-chair" || design.category === "bar-stool") {
     add("round-saw", "recommended", "椅腿圓榫成形");
   }
 

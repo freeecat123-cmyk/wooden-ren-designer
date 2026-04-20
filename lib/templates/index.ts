@@ -16,6 +16,9 @@ import { shoeCabinet, shoeCabinetOptions } from "./shoe-cabinet";
 import { displayCabinet, displayCabinetOptions } from "./display-cabinet";
 import { diningChair, diningChairOptions } from "./dining-chair";
 import { wardrobe, wardrobeOptions } from "./wardrobe";
+import { barStool, barStoolOptions } from "./bar-stool";
+import { mediaConsole, mediaConsoleOptions } from "./media-console";
+import { nightstand, nightstandOptions } from "./nightstand";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -144,6 +147,33 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     template: wardrobe,
     defaults: { length: 1200, width: 600, height: 2000 },
     optionSchema: wardrobeOptions,
+  },
+  {
+    category: "bar-stool",
+    nameZh: "吧檯椅",
+    description: "高腳椅含腳踏橫撐，可選加短椅背",
+    difficulty: "intermediate",
+    template: barStool,
+    defaults: { length: 350, width: 350, height: 750 },
+    optionSchema: barStoolOptions,
+  },
+  {
+    category: "media-console",
+    nameZh: "電視櫃",
+    description: "長型矮櫃，含門板、抽屜、層板",
+    difficulty: "intermediate",
+    template: mediaConsole,
+    defaults: { length: 1500, width: 400, height: 500 },
+    optionSchema: mediaConsoleOptions,
+  },
+  {
+    category: "nightstand",
+    nameZh: "床頭櫃",
+    description: "1 抽屜 + 開放層的床邊小櫃",
+    difficulty: "beginner",
+    template: nightstand,
+    defaults: { length: 450, width: 380, height: 600 },
+    optionSchema: nightstandOptions,
   },
 ];
 

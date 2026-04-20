@@ -14,6 +14,9 @@ export const diningChairOptions: OptionSpec[] = [
   { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { type: "number", key: "backSlats", label: "椅背板條數", defaultValue: 2, min: 0, max: 10, step: 1, help: "設 0 則只有頂橫木，無直條" },
   { type: "number", key: "slatWidth", label: "板條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5 },
+  { type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
+  { type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在椅腳下方約 1/4 處加一圈橫撐，餐椅結構更穩" },
+  { type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
 ];
 
 /**
@@ -39,6 +42,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronWidth = getOption<number>(input, diningChairOptions[3]);
   const slatCount = getOption<number>(input, diningChairOptions[4]);
   const slatWidth = getOption<number>(input, diningChairOptions[5]);
+  const apronOffset = getOption<number>(input, diningChairOptions[6]);
+  const withLowerStretcher = getOption<boolean>(input, diningChairOptions[7]);
+  const topRailHeightOpt = getOption<number>(input, diningChairOptions[8]);
   const apronThickness = 20;
   const backHeight = height - seatHeight;
   const apronTenonLen = Math.round(legSize * 0.6);
@@ -74,7 +80,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         {
           origin: {
             x: 0,
-            y: seatHeight - seatThickness - apronWidth - 5,
+            y: seatHeight - seatThickness - apronWidth - apronOffset,
             z: c.z > 0 ? -1 : 1,
           },
           depth: apronTenonLen,
@@ -86,7 +92,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         {
           origin: {
             x: c.x > 0 ? -1 : 1,
-            y: seatHeight - seatThickness - apronWidth - 5,
+            y: seatHeight - seatThickness - apronWidth - apronOffset,
             z: 0,
           },
           depth: apronTenonLen,
@@ -120,7 +126,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 4 座面下牙板
   const apronInnerSpan = { x: length - legSize, z: width - legSize };
-  const apronY = seatHeight - seatThickness - apronWidth - 5;
+  void backHeight;
+  const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
   const apronSides = [
     {
       key: "front",
@@ -185,7 +192,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   }));
 
   // 椅背頂橫木（連接後 2 椅腳）
-  const topRailHeight = 50;
+  const topRailHeight = topRailHeightOpt;
   const topRailThickness = 22;
   const topRailY = height - topRailHeight;
   const backTopRail: Part = {
@@ -213,6 +220,37 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     ],
     mortises: [],
   };
+
+  // 下橫撐（H形，增加結構強度）
+  const lowerStretchers: Part[] = [];
+  if (withLowerStretcher) {
+    const lowerY = Math.round(seatHeight * 0.25);
+    const lowerW = 35;
+    const lowerT = 18;
+    const lowerTenon = Math.round(legSize * 0.55);
+    const sides = [
+      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
+      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
+      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
+      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+    ];
+    for (const s of sides) {
+      lowerStretchers.push({
+        id: s.id,
+        nameZh: s.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
+        origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
+        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [
+          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+        ],
+        mortises: [],
+      });
+    }
+  }
 
   // N 椅背板條（均勻分布）
   const slats: Part[] = [];
@@ -247,7 +285,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     category: "dining-chair",
     nameZh: "餐椅",
     overall: { length, width, thickness: height },
-    parts: [seatPanel, ...legs, ...aprons, backTopRail, ...slats],
+    parts: [seatPanel, ...legs, ...aprons, ...lowerStretchers, backTopRail, ...slats],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:

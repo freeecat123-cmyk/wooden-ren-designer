@@ -20,7 +20,10 @@ export type FurnitureCategory =
   | "dining-table"
   | "desk"
   | "dining-chair"
-  | "wardrobe";
+  | "wardrobe"
+  | "bar-stool"
+  | "media-console"
+  | "nightstand";
 
 export type JoineryType =
   | "through-tenon"
