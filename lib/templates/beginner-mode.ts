@@ -12,13 +12,30 @@ import type { FurnitureDesign, Part } from "@/lib/types";
  * dimension because the cut calculator adds tenon length on top.
  */
 export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
-  // Templates now use apron visible.length = leg-inner-face to leg-inner-face,
-  // so no geometric shrinking needed — just strip tenons/mortises.
-  const parts: Part[] = design.parts.map((p) => ({
-    ...p,
-    tenons: [],
-    mortises: [],
-  }));
+  // Normal mode keeps apron visible.length spanning leg center to leg center
+  // (so the tenon portion is visually represented in the three-view). For a
+  // butt-joined beginner build, shrink aprons by one legSize (half each end)
+  // so they stop at the leg inner face.
+  const legPart = design.parts.find(
+    (p) => /^leg-/.test(p.id) && p.visible.length === p.visible.width,
+  );
+  const legSize = legPart ? legPart.visible.length : 0;
+
+  const parts: Part[] = design.parts.map((p) => {
+    const hasEndTenons = p.tenons.some(
+      (t) => t.position === "start" || t.position === "end",
+    );
+    const visible =
+      hasEndTenons && legSize > 0 && p.visible.length > legSize
+        ? { ...p.visible, length: p.visible.length - legSize }
+        : p.visible;
+    return {
+      ...p,
+      visible,
+      tenons: [],
+      mortises: [],
+    };
+  });
 
   return {
     ...design,

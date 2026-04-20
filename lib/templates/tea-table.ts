@@ -135,10 +135,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   }));
 
-  // ----- 上橫撐 / 下橫撐 共用建構 —— body 到腳內側面 -----
+  // ----- 上橫撐 / 下橫撐 共用建構 —— body 到腳中心 -----
   const apronInnerSpan = {
-    x: length - 2 * legSize,
-    z: width - 2 * legSize,
+    x: length - legSize,
+    z: width - legSize,
   };
 
   const upperAprons: Part[] = makeApronRing({

@@ -117,8 +117,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       })),
   };
 
-  const innerSpanX = length - 2 * legSize;
-  const innerSpanZ = width - 2 * legSize;
+  const innerSpanX = length - legSize;
+  const innerSpanZ = width - legSize;
   const ringY = seatY - apronWidth - apronOffset;
   const apronSides = [
     { key: "front", nameZh: "前牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },

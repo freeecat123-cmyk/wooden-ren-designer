@@ -104,10 +104,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }),
   }));
 
-  // 4 條橫撐（凳腳之間）—— visible body 從腳內側面到腳內側面
+  // 4 條橫撐（凳腳之間）—— body 延伸到腳中心以視覺呈現榫頭位置
   const apronInnerSpan = {
-    x: length - 2 * legSize,
-    z: width - 2 * legSize,
+    x: length - legSize,
+    z: width - legSize,
   };
   const aprons: Part[] = [
     // 前後兩條（沿 X 方向）

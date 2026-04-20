@@ -127,11 +127,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ],
   }));
 
-  // Aprons (4 sides) — visible body spans leg inner face to leg inner face
-  // (榫頭從 body 兩端再往內插進腳的榫眼，不計入 visible.length)
+  // Aprons (4 sides) — visible body spans leg center to leg center so the
+  // tenon portion inside the leg is visually represented in the three-view.
+  // Beginner-mode post-processing shortens this to the inner-face butt span.
   const apronInnerSpan = {
-    x: length - 2 * legSize - 2 * legInset,
-    z: width - 2 * legSize - 2 * legInset,
+    x: length - legSize - 2 * legInset,
+    z: width - legSize - 2 * legInset,
   };
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;

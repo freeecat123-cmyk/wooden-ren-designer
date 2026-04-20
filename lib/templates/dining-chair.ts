@@ -127,8 +127,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       })),
   };
 
-  // 4 座面下牙板 —— visible body 從腳內側面到腳內側面
-  const apronInnerSpan = { x: length - 2 * legSize, z: width - 2 * legSize };
+  // 4 座面下牙板 —— body 延伸到腳中心
+  const apronInnerSpan = { x: length - legSize, z: width - legSize };
   void backHeight;
   const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
   const apronSides = [
