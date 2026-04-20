@@ -271,14 +271,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       tenons: [
         {
           position: "top",
-          type: "blind-tenon",
+          type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
           thickness: panelT - 4,
         },
         {
           position: "bottom",
-          type: "blind-tenon",
+          type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
           thickness: panelT - 4,
@@ -308,14 +308,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       tenons: [
         {
           position: "start",
-          type: "blind-tenon",
+          type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 10,
           thickness: shelfT - 4,
         },
         {
           position: "end",
-          type: "blind-tenon",
+          type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 10,
           thickness: shelfT - 4,
@@ -369,8 +369,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         visible: { length: innerW, width: innerD, thickness: shelfT },
         origin: { x: 0, y: dividerY - shelfT, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
-          { position: "end", type: "blind-tenon", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
         ],
         mortises: [],
       });

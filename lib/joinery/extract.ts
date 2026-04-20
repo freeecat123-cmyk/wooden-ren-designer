@@ -54,12 +54,33 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
     }
   }
 
+  // Collect panel-like parts' smallest cross-section for fallback.
+  // "Panel-like" = longest / shortest > 3 (so it looks like a panel, not a stick).
+  const panelThicknesses: number[] = [];
+  for (const part of design.parts) {
+    const dims = [part.visible.length, part.visible.width, part.visible.thickness];
+    const shortest = Math.min(...dims);
+    const longest = Math.max(...dims);
+    if (longest / shortest > 3) panelThicknesses.push(shortest);
+  }
+  panelThicknesses.sort((a, b) => a - b);
+
+  // Pick the smallest panel thickness that's strictly LARGER than tenon.length,
+  // so the tenon can physically fit inside. If none qualify, fall back to the
+  // largest panel thickness available.
+  function fallbackMother(tenonLength: number): number {
+    for (const t of panelThicknesses) {
+      if (t > tenonLength + 1) return t;
+    }
+    return panelThicknesses[panelThicknesses.length - 1] ?? tenonLength * 2;
+  }
+
   const seen = new Map<string, JoineryUsage>();
   for (const part of design.parts) {
     for (const tenon of part.tenons) {
       const key = `${tenon.type}-${tenon.length}-${tenon.width}-${tenon.thickness}`;
       const motherThickness =
-        motherThicknessByType.get(tenon.type) ?? tenon.length;
+        motherThicknessByType.get(tenon.type) ?? fallbackMother(tenon.length);
       // The tenon-carrier part's cross-section: min = "thickness", next = "width"
       const dims = [part.visible.length, part.visible.width, part.visible.thickness].sort(
         (a, b) => a - b,
