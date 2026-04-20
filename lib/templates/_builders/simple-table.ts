@@ -58,7 +58,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronOffset = opts.apronOffset ?? 20;
   const topOverhang = opts.topOverhang ?? 0;
   const withLowerStretchers = opts.withLowerStretchers ?? false;
-  const apronTenonLen = Math.round(legSize * 0.65);
+  // 正規榫卯比例：榫長 = 柱腳寬的 2/3；榫厚 = 母件厚的 1/3；榫肩 = 牙板上下各 1/4
+  const apronTenonLen = Math.round((legSize * 2) / 3);
+  const apronTenonThick = Math.max(6, Math.round(apronThickness / 3));
+  const apronTenonWidth = Math.max(15, apronWidth - Math.round(apronWidth / 4));
   const legTopTenonLen = topThickness;
 
   const legHeight = height - topThickness;
@@ -110,24 +113,25 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       {
         origin: { x: 0, y: apronY, z: c.z > 0 ? -1 : 1 },
         depth: apronTenonLen,
-        length: apronWidth - 10,
-        width: apronThickness - 5,
+        length: apronTenonWidth,
+        width: apronTenonThick,
         through: false,
       },
       {
         origin: { x: c.x > 0 ? -1 : 1, y: apronY, z: 0 },
         depth: apronTenonLen,
-        length: apronWidth - 10,
-        width: apronThickness - 5,
+        length: apronTenonWidth,
+        width: apronTenonThick,
         through: false,
       },
     ],
   }));
 
-  // Aprons (4 sides) — follow the legs when inset
+  // Aprons (4 sides) — visible body spans leg inner face to leg inner face
+  // (榫頭從 body 兩端再往內插進腳的榫眼，不計入 visible.length)
   const apronInnerSpan = {
-    x: length - legSize - 2 * legInset,
-    z: width - legSize - 2 * legInset,
+    x: length - 2 * legSize - 2 * legInset,
+    z: width - 2 * legSize - 2 * legInset,
   };
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
@@ -180,15 +184,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         position: "start",
         type: "blind-tenon",
         length: apronTenonLen,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonWidth,
+        thickness: apronTenonThick,
       },
       {
         position: "end",
         type: "blind-tenon",
         length: apronTenonLen,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonWidth,
+        thickness: apronTenonThick,
       },
     ],
     mortises: [],
@@ -201,7 +205,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * 0.22);
     const stretcherWidth = 40;
     const stretcherThickness = 20;
-    const tenonLen = Math.round(legSize * 0.6);
+    const tenonLen = Math.round((legSize * 2) / 3);
+    const tenonThick = Math.max(6, Math.round(stretcherThickness / 3));
+    const tenonW = Math.max(12, stretcherWidth - Math.round(stretcherWidth / 4));
     const lowerSides = [
       { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -apronEdgeZ } },
       { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: apronEdgeZ } },
@@ -218,8 +224,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         origin: { x: s.origin.x, y: stretcherY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: tenonLen, width: stretcherWidth - 8, thickness: stretcherThickness - 5 },
-          { position: "end", type: "blind-tenon", length: tenonLen, width: stretcherWidth - 8, thickness: stretcherThickness - 5 },
+          { position: "start", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
+          { position: "end", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
         ],
         mortises: [],
       });
@@ -231,6 +237,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherWidth = 50;
     const stretcherThickness = 25;
     const stretcherTenonLen = apronTenonLen;
+    const cTenonThick = Math.max(6, Math.round(stretcherThickness / 3));
+    const cTenonW = Math.max(15, stretcherWidth - Math.round(stretcherWidth / 4));
     parts.push({
       id: "center-stretcher",
       nameZh: "中央橫撐",
@@ -248,15 +256,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           position: "start",
           type: "blind-tenon",
           length: stretcherTenonLen,
-          width: stretcherWidth - 8,
-          thickness: stretcherThickness - 5,
+          width: cTenonW,
+          thickness: cTenonThick,
         },
         {
           position: "end",
           type: "blind-tenon",
           length: stretcherTenonLen,
-          width: stretcherWidth - 8,
-          thickness: stretcherThickness - 5,
+          width: cTenonW,
+          thickness: cTenonThick,
         },
       ],
       mortises: [],

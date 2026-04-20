@@ -49,9 +49,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const shelfThickness = 18;
   const shelfTongueLen = 8;
 
+  // 正規榫卯比例：榫長 = 柱腳 2/3；榫厚 = 母件 1/3；榫肩 = 上下各 1/4
   const legTopTenonLen = topThickness;
-  const apronTenonLen = Math.round(legSize * 0.65);
+  const apronTenonLen = Math.round((legSize * 2) / 3);
   const stretcherTenonLen = apronTenonLen;
+  const apronTenonThick = Math.max(6, Math.round(upperApronThickness / 3));
+  const apronTenonW = Math.max(15, upperApronWidth - Math.round(upperApronWidth / 4));
+  const strTenonThick = Math.max(6, Math.round(lowerStretcherThickness / 3));
+  const strTenonW = Math.max(15, lowerStretcherWidth - Math.round(lowerStretcherWidth / 4));
 
   const legHeight = height - topThickness;
   const upperApronY = legHeight - upperApronWidth - 20;
@@ -99,41 +104,41 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       {
         origin: { x: 0, y: upperApronY, z: c.z > 0 ? -1 : 1 },
         depth: apronTenonLen,
-        length: upperApronWidth - 10,
-        width: upperApronThickness - 5,
+        length: apronTenonW,
+        width: apronTenonThick,
         through: false,
       },
       // 上橫撐 Z 向
       {
         origin: { x: c.x > 0 ? -1 : 1, y: upperApronY, z: 0 },
         depth: apronTenonLen,
-        length: upperApronWidth - 10,
-        width: upperApronThickness - 5,
+        length: apronTenonW,
+        width: apronTenonThick,
         through: false,
       },
       // 下橫撐 X 向
       {
         origin: { x: 0, y: stretcherFloorOffset, z: c.z > 0 ? -1 : 1 },
         depth: stretcherTenonLen,
-        length: lowerStretcherWidth - 8,
-        width: lowerStretcherThickness - 5,
+        length: strTenonW,
+        width: strTenonThick,
         through: false,
       },
       // 下橫撐 Z 向
       {
         origin: { x: c.x > 0 ? -1 : 1, y: stretcherFloorOffset, z: 0 },
         depth: stretcherTenonLen,
-        length: lowerStretcherWidth - 8,
-        width: lowerStretcherThickness - 5,
+        length: strTenonW,
+        width: strTenonThick,
         through: false,
       },
     ],
   }));
 
-  // ----- 上橫撐 / 下橫撐 共用建構 -----
+  // ----- 上橫撐 / 下橫撐 共用建構 —— body 到腳內側面 -----
   const apronInnerSpan = {
-    x: length - legSize,
-    z: width - legSize,
+    x: length - 2 * legSize,
+    z: width - 2 * legSize,
   };
 
   const upperAprons: Part[] = makeApronRing({
@@ -289,6 +294,8 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     },
   ];
 
+  const tThick = Math.max(6, Math.round(o.apronThickness / 3));
+  const tW = Math.max(15, o.apronWidth - Math.round(o.apronWidth / 4));
   return sides.map((s) => ({
     id: `${o.idPrefix}-${s.key}`,
     nameZh: `${s.nameZh}${o.nameZhPrefix}`,
@@ -308,15 +315,15 @@ function makeApronRing(o: ApronRingOpts): Part[] {
         position: "start",
         type: "blind-tenon",
         length: o.tenonLength,
-        width: o.apronWidth - 10,
-        thickness: o.apronThickness - 5,
+        width: tW,
+        thickness: tThick,
       },
       {
         position: "end",
         type: "blind-tenon",
         length: o.tenonLength,
-        width: o.apronWidth - 10,
-        thickness: o.apronThickness - 5,
+        width: tW,
+        thickness: tThick,
       },
     ],
     mortises: o.extraMortises(s.visibleLength),

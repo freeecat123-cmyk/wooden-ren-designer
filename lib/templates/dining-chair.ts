@@ -47,7 +47,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const topRailHeightOpt = getOption<number>(input, diningChairOptions[8]);
   const apronThickness = 20;
   const backHeight = height - seatHeight;
-  const apronTenonLen = Math.round(legSize * 0.6);
+  // 正規比例：榫長 = 柱腳 2/3；榫厚 = 母件 1/3；榫肩 = 上下各 1/4
+  const apronTenonLen = Math.round((legSize * 2) / 3);
+  const apronTenonThick = Math.max(6, Math.round(apronThickness / 3));
+  const apronTenonW = Math.max(15, apronWidth - Math.round(apronWidth / 4));
   const seatTopTenonLen = seatThickness;
   const slatThickness = 18;
 
@@ -84,8 +87,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             z: c.z > 0 ? -1 : 1,
           },
           depth: apronTenonLen,
-          length: apronWidth - 10,
-          width: apronThickness - 5,
+          length: apronTenonW,
+          width: apronTenonThick,
           through: false,
         },
         // 座面下牙板 Z 向
@@ -96,8 +99,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             z: 0,
           },
           depth: apronTenonLen,
-          length: apronWidth - 10,
-          width: apronThickness - 5,
+          length: apronTenonW,
+          width: apronTenonThick,
           through: false,
         },
       ],
@@ -124,8 +127,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       })),
   };
 
-  // 4 座面下牙板
-  const apronInnerSpan = { x: length - legSize, z: width - legSize };
+  // 4 座面下牙板 —— visible body 從腳內側面到腳內側面
+  const apronInnerSpan = { x: length - 2 * legSize, z: width - 2 * legSize };
   void backHeight;
   const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
   const apronSides = [
@@ -177,15 +180,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         position: "start",
         type: "blind-tenon",
         length: apronTenonLen,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonW,
+        thickness: apronTenonThick,
       },
       {
         position: "end",
         type: "blind-tenon",
         length: apronTenonLen,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonW,
+        thickness: apronTenonThick,
       },
     ],
     mortises: [],
@@ -227,7 +230,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const lowerY = Math.round(seatHeight * 0.25);
     const lowerW = 35;
     const lowerT = 18;
-    const lowerTenon = Math.round(legSize * 0.55);
+    const lowerTenon = Math.round((legSize * 2) / 3);
+    const lowerTenonThick = Math.max(6, Math.round(lowerT / 3));
+    const lowerTenonW = Math.max(12, lowerW - Math.round(lowerW / 4));
     const sides = [
       { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
       { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
@@ -244,8 +249,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
-          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
+          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
         ],
         mortises: [],
       });

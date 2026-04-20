@@ -49,7 +49,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const withLowerStretcher = getOption<boolean>(input, squareStoolOptions[5]);
 
   const legTenonLength = seatThickness; // 通榫穿過座板
-  const apronTenonLength = Math.round(legSize * 0.6); // 半榫，深度 = 凳腳厚的 60%
+  // 正規比例：榫長 = 柱腳 2/3；榫厚 = 母件 1/3；榫肩 = 上下各 1/4
+  const apronTenonLength = Math.round((legSize * 2) / 3);
+  const apronTenonThick = Math.max(6, Math.round(apronThickness / 3));
+  const apronTenonW = Math.max(15, apronWidth - Math.round(apronWidth / 4));
 
   const legHeight = height - seatThickness;
 
@@ -93,17 +96,18 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）
     mortises: legMortisesForApron(c, length, width, {
       apronTenonLength,
+      apronTenonWidth: apronTenonW,
+      apronTenonThick,
       apronWidth,
-      apronThickness,
       legHeight,
       apronDropFromTop,
     }),
   }));
 
-  // 4 條橫撐（凳腳之間）
+  // 4 條橫撐（凳腳之間）—— visible body 從腳內側面到腳內側面
   const apronInnerSpan = {
-    x: length - legSize, // 兩腳中心距離 = length - legSize
-    z: width - legSize,
+    x: length - 2 * legSize,
+    z: width - 2 * legSize,
   };
   const aprons: Part[] = [
     // 前後兩條（沿 X 方向）
@@ -129,15 +133,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         position: "start" as const,
         type: "blind-tenon" as const,
         length: apronTenonLength,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonW,
+        thickness: apronTenonThick,
       },
       {
         position: "end" as const,
         type: "blind-tenon" as const,
         length: apronTenonLength,
-        width: apronWidth - 10,
-        thickness: apronThickness - 5,
+        width: apronTenonW,
+        thickness: apronTenonThick,
       },
     ],
     mortises: [],
@@ -150,7 +154,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lowerY = Math.round(legHeight * 0.22);
     const lowerW = 40;
     const lowerT = 20;
-    const lowerTenon = Math.round(legSize * 0.55);
+    const lowerTenon = Math.round((legSize * 2) / 3);
+    const lowerTenonThick = Math.max(6, Math.round(lowerT / 3));
+    const lowerTenonW = Math.max(12, lowerW - Math.round(lowerW / 4));
     const sides = [
       { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
       { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
@@ -167,8 +173,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
-          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerW - 8, thickness: lowerT - 5 },
+          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
+          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
         ],
         mortises: [],
       });
@@ -195,29 +201,30 @@ function legMortisesForApron(
   width: number,
   opts: {
     apronTenonLength: number;
+    apronTenonWidth: number;
+    apronTenonThick: number;
     apronWidth: number;
-    apronThickness: number;
     legHeight: number;
     apronDropFromTop: number;
   },
 ) {
-  const { apronTenonLength, apronWidth, apronThickness, legHeight, apronDropFromTop } = opts;
+  const { apronTenonLength, apronTenonWidth, apronTenonThick, apronWidth, legHeight, apronDropFromTop } = opts;
   const yOffset = legHeight - apronWidth - apronDropFromTop;
   return [
     // 內側 X 方向榫眼（前後橫撐插入）
     {
       origin: { x: 0, y: yOffset, z: corner.z > 0 ? -1 : 1 },
       depth: apronTenonLength,
-      length: apronWidth - 10,
-      width: apronThickness - 5,
+      length: apronTenonWidth,
+      width: apronTenonThick,
       through: false,
     },
     // 內側 Z 方向榫眼（左右橫撐插入）
     {
       origin: { x: corner.x > 0 ? -1 : 1, y: yOffset, z: 0 },
       depth: apronTenonLength,
-      length: apronWidth - 10,
-      width: apronThickness - 5,
+      length: apronTenonWidth,
+      width: apronTenonThick,
       through: false,
     },
   ];

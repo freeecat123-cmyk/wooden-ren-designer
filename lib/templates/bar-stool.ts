@@ -32,7 +32,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronThickness = 18;
   const footRestWidth = 30;
   const footRestThickness = 22;
-  const apronTenonLen = Math.round(legSize * 0.6);
+  // 正規榫卯比例
+  const apronTenonLen = Math.round((legSize * 2) / 3);
+  const apronTenonThick = Math.max(5, Math.round(apronThickness / 3));
+  const apronTenonW = Math.max(12, apronWidth - Math.round(apronWidth / 4));
+  const frTenonThick = Math.max(5, Math.round(footRestThickness / 3));
+  const frTenonW = Math.max(12, footRestWidth - Math.round(footRestWidth / 4));
   const seatTopTenonLen = seatThickness;
 
   const seatY = height - seatThickness;
@@ -63,30 +68,30 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         {
           origin: { x: 0, y: seatY - apronWidth - apronOffset, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
-          length: apronWidth - 8,
-          width: apronThickness - 5,
+          length: apronTenonW,
+          width: apronTenonThick,
           through: false,
         },
         {
           origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - apronOffset, z: 0 },
           depth: apronTenonLen,
-          length: apronWidth - 8,
-          width: apronThickness - 5,
+          length: apronTenonW,
+          width: apronTenonThick,
           through: false,
         },
         // 腳踏橫撐
         {
           origin: { x: 0, y: footrestHeight, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
-          length: footRestWidth - 6,
-          width: footRestThickness - 5,
+          length: frTenonW,
+          width: frTenonThick,
           through: false,
         },
         {
           origin: { x: c.x > 0 ? -1 : 1, y: footrestHeight, z: 0 },
           depth: apronTenonLen,
-          length: footRestWidth - 6,
-          width: footRestThickness - 5,
+          length: frTenonW,
+          width: frTenonThick,
           through: false,
         },
       ],
@@ -112,8 +117,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       })),
   };
 
-  const innerSpanX = length - legSize;
-  const innerSpanZ = width - legSize;
+  const innerSpanX = length - 2 * legSize;
+  const innerSpanZ = width - 2 * legSize;
   const ringY = seatY - apronWidth - apronOffset;
   const apronSides = [
     { key: "front", nameZh: "前牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
@@ -130,8 +135,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: s.origin.x, y: ringY, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
     tenons: [
-      { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronWidth - 8, thickness: apronThickness - 5 },
-      { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronWidth - 8, thickness: apronThickness - 5 },
+      { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+      { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
     ],
     mortises: [],
   }));
@@ -145,8 +150,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: s.origin.x, y: footrestHeight, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
     tenons: [
-      { position: "start", type: "blind-tenon", length: apronTenonLen, width: footRestWidth - 6, thickness: footRestThickness - 5 },
-      { position: "end", type: "blind-tenon", length: apronTenonLen, width: footRestWidth - 6, thickness: footRestThickness - 5 },
+      { position: "start", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
+      { position: "end", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
     ],
     mortises: [],
   }));
