@@ -2,6 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
+import { Euler } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -14,7 +15,7 @@ function Part({
 }: {
   position: [number, number, number];
   size: [number, number, number];
-  rotation: [number, number, number];
+  rotation: Euler;
   color: string;
 }) {
   return (
@@ -102,11 +103,12 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
                 part.visible.thickness * SCALE,
                 part.visible.width * SCALE,
               ]}
-              rotation={[
+              rotation={new Euler(
                 part.rotation?.x ?? 0,
                 part.rotation?.y ?? 0,
                 part.rotation?.z ?? 0,
-              ]}
+                "ZYX",
+              )}
               color={color}
             />
           );
