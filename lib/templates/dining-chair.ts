@@ -185,13 +185,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   }));
 
   // 椅背頂橫木（連接後 2 椅腳）
+  const topRailHeight = 50;
+  const topRailThickness = 22;
+  const topRailY = height - topRailHeight;
   const backTopRail: Part = {
     id: "back-top-rail",
     nameZh: "椅背頂橫木",
     material,
     grainDirection: "length",
-    visible: { length: length - legSize, width: 50, thickness: 22 },
-    origin: { x: 0, y: height - 60, z: width / 2 - legSize / 2 },
+    visible: { length: length - legSize, width: topRailThickness, thickness: topRailHeight },
+    origin: { x: 0, y: topRailY, z: width / 2 - legSize / 2 },
     tenons: [
       {
         position: "start",
@@ -223,7 +226,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `椅背板條 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: backHeight - 80, width: slatWidth, thickness: slatThickness },
+        visible: { length: topRailY - seatHeight, width: slatWidth, thickness: slatThickness },
         origin: {
           x: xCenter,
           y: seatHeight,
