@@ -230,6 +230,8 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
               tenonWidth: u.tenon.width,
               tenonThickness: u.tenon.thickness,
               motherThickness: u.estimatedMotherThickness,
+              childThickness: u.childThickness,
+              childWidth: u.childWidth,
             }}
           />
         </div>

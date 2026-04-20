@@ -199,6 +199,8 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                     tenonWidth: u.tenon.width,
                     tenonThickness: u.tenon.thickness,
                     motherThickness: u.estimatedMotherThickness,
+                    childThickness: u.childThickness,
+                    childWidth: u.childWidth,
                   }}
                 />
               </div>

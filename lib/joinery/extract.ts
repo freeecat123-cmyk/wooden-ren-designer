@@ -8,6 +8,10 @@ export interface JoineryUsage {
   partNameZh: string;
   /** 推測的母件厚度（取設計裡所有同類型零件的中位數厚度） */
   estimatedMotherThickness: number;
+  /** 公件（扛榫頭的那支）自身的斷面厚度（取零件最小邊） */
+  childThickness: number;
+  /** 公件（扛榫頭的那支）自身的斷面寬度（取零件中間邊） */
+  childWidth: number;
   /** 重複次數（同樣參數的榫卯出現幾次） */
   count: number;
 }
@@ -56,6 +60,12 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
       const key = `${tenon.type}-${tenon.length}-${tenon.width}-${tenon.thickness}`;
       const motherThickness =
         motherThicknessByType.get(tenon.type) ?? tenon.length;
+      // The tenon-carrier part's cross-section: min = "thickness", next = "width"
+      const dims = [part.visible.length, part.visible.width, part.visible.thickness].sort(
+        (a, b) => a - b,
+      );
+      const childThickness = dims[0];
+      const childWidth = dims[1];
       const existing = seen.get(key);
       if (existing) {
         existing.count += 1;
@@ -66,6 +76,8 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
           partId: part.id,
           partNameZh: part.nameZh,
           estimatedMotherThickness: motherThickness,
+          childThickness,
+          childWidth,
           count: 1,
         });
       }
