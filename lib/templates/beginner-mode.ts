@@ -5,30 +5,18 @@ import type { FurnitureDesign, Part } from "@/lib/types";
  * pocket-hole / screw+glue assembly. Geometry (part positions, sizes,
  * rotations) stays identical — only the joinery metadata is swapped.
  *
- * Visible dimensions of legs etc. already include tenon protrusions in
- * our templates. When tenons are stripped, real cut lengths should equal
- * the visible length (no tenon extension), so we shorten legs by the
- * removed tenon length to keep assembled height accurate.
+ * Our templates already size legs so that `visible.thickness` equals
+ * the assembled leg height (the tenon is extra cut length beyond the
+ * visible body — it lives inside the top/seat panel's mortise). So we
+ * just drop tenons/mortises; cut lengths naturally shrink to the visible
+ * dimension because the cut calculator adds tenon length on top.
  */
 export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
-  const parts: Part[] = design.parts.map((p) => {
-    let visible = p.visible;
-    const legTenon = p.tenons.find(
-      (t) => t.position === "top" && t.type === "through-tenon",
-    );
-    if (legTenon && /^leg/.test(p.id)) {
-      visible = {
-        ...visible,
-        thickness: Math.max(10, visible.thickness - legTenon.length),
-      };
-    }
-    return {
-      ...p,
-      visible,
-      tenons: [],
-      mortises: [],
-    };
-  });
+  const parts: Part[] = design.parts.map((p) => ({
+    ...p,
+    tenons: [],
+    mortises: [],
+  }));
 
   return {
     ...design,
