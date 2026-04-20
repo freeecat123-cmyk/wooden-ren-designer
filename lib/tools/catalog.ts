@@ -200,6 +200,12 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     category: "power",
     shopUrl: `${SHOP_BASE}/dowel-jig`,
   },
+  "pocket-hole-jig": {
+    id: "pocket-hole-jig",
+    nameZh: "口袋孔夾具 (Kreg K4/K5)",
+    category: "power",
+    shopUrl: `${SHOP_BASE}/pocket-hole-jig`,
+  },
   "groove-blade": {
     id: "groove-blade",
     nameZh: "開槽鋸片 (斜切片榫用)",

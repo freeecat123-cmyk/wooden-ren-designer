@@ -34,7 +34,9 @@ export type JoineryType =
   | "finger-joint"
   | "tongue-and-groove"
   | "dowel"
-  | "mitered-spline";
+  | "mitered-spline"
+  | "pocket-hole"
+  | "screw";
 
 export type TenonPosition =
   | "start"

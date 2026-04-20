@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
 import { PerspectiveView } from "@/components/PerspectiveView";
@@ -67,7 +68,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const design = entry.template({ length, width, height, material, options });
+  const beginnerMode =
+    spStr("beginnerMode") === "true" || spStr("beginnerMode") === "1";
+  const rawDesign = entry.template({ length, width, height, material, options });
+  const design = beginnerMode ? toBeginnerMode(rawDesign) : rawDesign;
 
   const printQuery = new URLSearchParams({
     length: String(length),
@@ -78,6 +82,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   for (const spec of optionSchema) {
     printQuery.set(spec.key, String(options[spec.key]));
   }
+  if (beginnerMode) printQuery.set("beginnerMode", "true");
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
@@ -117,6 +122,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         defaults={{ length, width, height, material }}
         optionSchema={optionSchema}
         optionValues={options}
+        beginnerMode={beginnerMode}
       />
 
       <section className="mt-10">
@@ -154,9 +160,24 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       <section className="mt-10">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          榫卯細節圖
+          {beginnerMode ? "組裝接合說明（初心者版）" : "榫卯細節圖"}
         </h2>
-        <JoinerySection design={design} />
+        {beginnerMode ? (
+          <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
+            <p className="font-semibold mb-2">✅ 已拆除所有榫卯，改用以下方式組裝：</p>
+            <ul className="space-y-1.5 list-disc list-inside ml-1">
+              <li><b>口袋孔螺絲（Kreg K4/K5）</b>—— 板材垂直接合用（如頂板↔側板、層板↔側板）。斜孔在隱藏面，外觀看不到螺絲頭。</li>
+              <li><b>木工螺絲 + 白膠</b>—— 框架類接合用（椅腳↔牙板、橫撐↔椅腳）。先鑽先導孔避免劈裂。</li>
+              <li><b>木釘補強</b>—— 受力大的連接點（椅腳、結構接點）可另插 8mm 木釘雙保險。</li>
+              <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲只是夾緊工具。</li>
+            </ul>
+            <p className="mt-3 text-xs text-emerald-700">
+              建議工具：Kreg 口袋孔夾具、電鑽、3.2mm 鑽頭、Kreg 螺絲 32mm/45mm、木工白膠、F 夾具×4、砂紙 120/180/240。
+            </p>
+          </div>
+        ) : (
+          <JoinerySection design={design} />
+        )}
       </section>
 
       <section className="mt-10">
@@ -222,11 +243,13 @@ function ParameterForm({
   defaults,
   optionSchema,
   optionValues,
+  beginnerMode,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
+  beginnerMode: boolean;
 }) {
   return (
     <form
@@ -234,6 +257,21 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
+      <label className="mb-5 flex items-start gap-3 p-3 rounded-lg bg-emerald-50 ring-1 ring-emerald-200 cursor-pointer">
+        <input
+          type="checkbox"
+          name="beginnerMode"
+          value="true"
+          defaultChecked={beginnerMode}
+          className="mt-0.5 h-4 w-4 accent-emerald-600"
+        />
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-emerald-900">初心者模式（免榫接）</div>
+          <div className="text-xs text-emerald-700 mt-0.5">
+            拆除所有榫卯，改用 Kreg 口袋孔螺絲 + 木工白膠組裝。新手快速完工用。
+          </div>
+        </div>
+      </label>
       <div className="mb-4 pb-3 border-b border-zinc-200">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />

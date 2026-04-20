@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import type {
   FurnitureCategory,
   FurnitureDesign,
@@ -67,7 +68,10 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const design = entry.template({ length, width, height, material, options });
+  const beginnerMode =
+    spStr("beginnerMode") === "true" || spStr("beginnerMode") === "1";
+  const rawDesign = entry.template({ length, width, height, material, options });
+  const design = beginnerMode ? toBeginnerMode(rawDesign) : rawDesign;
   const usages = extractJoineryUsages(design);
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);

@@ -70,6 +70,15 @@ const JOINERY_TOOLS: Record<
     { id: "miter-saw", priority: "required", reason: "精準 45° 切角" },
     { id: "groove-blade", priority: "recommended", reason: "切片榫溝" },
   ],
+  "pocket-hole": [
+    { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔（Kreg K4/K5）" },
+    { id: "drill", priority: "required", reason: "鑽孔" },
+    { id: "drill-bits", priority: "required", reason: "口袋孔專用階梯鑽頭" },
+  ],
+  screw: [
+    { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
+    { id: "drill-bits", priority: "required", reason: "搭配電鑽" },
+  ],
 };
 
 export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {

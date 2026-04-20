@@ -49,6 +49,8 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "tongue-and-groove": ["trim-router", "groove-plane"],
   dowel: ["dowel-jig", "drill", "drill-bits"],
   "mitered-spline": ["miter-saw", "groove-blade"],
+  "pocket-hole": ["pocket-hole-jig", "drill", "drill-bits"],
+  screw: ["drill", "drill-bits"],
 };
 
 export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {

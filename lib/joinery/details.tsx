@@ -426,6 +426,8 @@ export const JOINERY_LABEL: Record<JoineryType, string> = {
   "tongue-and-groove": "企口榫",
   dowel: "圓棒榫",
   "mitered-spline": "斜接餅乾榫",
+  "pocket-hole": "口袋孔螺絲（Kreg）",
+  screw: "螺絲 + 白膠",
 };
 
 export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
@@ -438,4 +440,6 @@ export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "tongue-and-groove": "一面凸舌、一面凹槽，板材拼寬常用。",
   dowel: "另插入圓棒做接合，工法簡單但強度較低。",
   "mitered-spline": "45° 斜接後插入餅乾片或薄木條補強。",
+  "pocket-hole": "用 Kreg 夾具鑽斜孔，再用專用螺絲從隱藏處鎖入。初心者最快速的接合方式。",
+  screw: "木工白膠 + 木螺絲直鎖。螺絲頭可埋頭並用木塞蓋住，最簡單。",
 };
