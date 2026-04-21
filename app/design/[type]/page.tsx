@@ -199,6 +199,20 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   );
 }
 
+function JoineryRulesCallout() {
+  return (
+    <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-4 text-xs text-amber-900 leading-relaxed mb-5">
+      <p className="font-semibold mb-1.5">榫卯比例速查（本設計已依此規則推算）</p>
+      <ul className="space-y-0.5 list-disc list-inside">
+        <li><b>榫頭厚</b> = 公件（牙板/橫撐）厚度的 <b>1/3</b>（例 20mm 牙板 → 榫 7mm 厚）</li>
+        <li><b>盲榫長</b> = 柱腳寬的 <b>2/3</b>；<b>通榫長</b> = 母件厚度（穿透）</li>
+        <li><b>榫寬</b> = 牙板寬的 <b>3/4</b>（上下各留 1/8 做榫肩）</li>
+        <li><b>帶肩榫肩長</b> = 主榫長的 <b>1/3</b>；肩榫位置在主榫上方，防旋轉</li>
+      </ul>
+    </div>
+  );
+}
+
 function JoinerySection({ design }: { design: FurnitureDesign }) {
   const usages = extractJoineryUsages(design);
   if (usages.length === 0) {
@@ -206,6 +220,7 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
   }
   return (
     <div className="space-y-6">
+      <JoineryRulesCallout />
       {usages.map((u, i) => (
         <div
           key={i}
