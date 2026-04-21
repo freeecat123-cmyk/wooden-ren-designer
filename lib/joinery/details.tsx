@@ -1045,30 +1045,44 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
   const PX = (mm: number) => mm * s;
 
   const leftPad = 50;
-  const expMotherW = PX(mt) * 2 + 20;
+  // Mother is the leg's SIDE FACE, drawn tall (vertical = leg's up/down axis).
+  // Width = leg cross-section + margin, Height = haunch + main mortise + some
+  // leg below the mortise for context.
+  const motherFaceW = PX(mt) + 40;
+  const motherFaceH = PX(topGap) + PX(tw) + 40; // haunch + main mortise + leg below
   const cBodyLenForCalc = Math.max(120, PX(ct) * 4);
   const xsSectionW = PX(ct) * 1.6 + 70 + 40; // gap + section + right label
   const expChildW = cBodyLenForCalc + PX(tl) + xsSectionW;
-  const expWidth = Math.max(expMotherW, expChildW) + 60;
+  const expWidth = Math.max(motherFaceW + 80, expChildW) + 60;
 
   const asmWidth = PX(mt) * 2 + PX(tl) + 60;
 
   // Vertical budget: top pad + mother + gap + child + bottom text + pad
-  const gapBetween = 60;
+  const gapBetween = 50;
   const bottomTextReserve = 24;
-  // Mother top offset: leave room above for 榫眼長 dim line + 分解圖 title
   const motherTopOffset = 32;
   const h =
-    PADDING + motherTopOffset + PX(mt) + gapBetween + PX(cw) + bottomTextReserve + PADDING;
+    PADDING + motherTopOffset + motherFaceH + gapBetween + PX(cw) + bottomTextReserve + PADDING;
   const w = expWidth + asmWidth + PADDING * 3 + leftPad;
 
   const mAx = PADDING + leftPad;
   const mAy = PADDING + motherTopOffset;
 
+  // Main mortise: centered horizontally on leg face; vertically from topGap to topGap+tw
+  const mortiseX = mAx + (motherFaceW - PX(tt)) / 2;
+  const mortiseY = mAy + PX(topGap);
+  const mortiseW = PX(tt);
+  const mortiseH = PX(tw);
+  // Haunch slot: centered horizontally (narrower than main mortise), at leg TOP
+  const haunchMotherW = PX(tt) * 0.7;
+  const haunchMotherX = mAx + (motherFaceW - haunchMotherW) / 2;
+  const haunchMotherY = mAy;
+  const haunchMotherH = PX(topGap);
+
   // Child (apron) drawn FACE-ON below the mother:
   // wide face visible, cw vertical × some horizontal length
   const cAx = PADDING + leftPad;
-  const cAy = mAy + PX(mt) + gapBetween;
+  const cAy = mAy + motherFaceH + gapBetween;
   const cBodyLen = Math.max(120, PX(ct) * 4); // abstract body length
   // Apron top & bottom edges (on the face we're looking at)
   const cTop = cAy;
@@ -1099,63 +1113,95 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         分解圖（牙板/橫撐端面視角）
       </text>
 
-      {/* Mother (leg), side face: horizontal strip showing leg profile with
-          main mortise + haunch slot above (TOP = apron's top). The layout
-          matches the child drawing below so you can trace tenon → mortise. */}
+      {/* Mother = leg side face (vertical orientation: TOP of rect = top of
+          leg, where the table top sits). Haunch slot is at the TOP edge,
+          main mortise below. Main mortise is narrow horizontally (= tenon
+          thickness) × tall vertically (= tenon width), matching how the
+          mortise actually looks on the leg face. */}
       <g>
+        {/* leg face */}
         <rect
           x={mAx}
           y={mAy}
-          width={expMotherW}
-          height={PX(mt)}
+          width={motherFaceW}
+          height={motherFaceH}
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* Main mortise — centered on leg face */}
+        {/* Main mortise */}
         <rect
-          x={mAx + expMotherW / 2 - PX(tw) / 2}
-          y={mAy + PX(mt) / 2 - PX(tt) / 2}
-          width={PX(tw)}
-          height={PX(tt)}
+          x={mortiseX}
+          y={mortiseY}
+          width={mortiseW}
+          height={mortiseH}
           fill="white"
           stroke={COLOR_OUTLINE}
           strokeDasharray="3 2"
         />
-        {/* Haunch slot — above main mortise (shallower, narrower) */}
+        {/* Haunch slot at the TOP of the leg face */}
         <rect
-          x={mAx + expMotherW / 2 - PX(tw) / 4}
-          y={mAy + PX(mt) / 2 - PX(tt) / 2 - PX(tt) * 0.85 - 2}
-          width={PX(tw) / 2}
-          height={PX(tt) * 0.85}
+          x={haunchMotherX}
+          y={haunchMotherY}
+          width={haunchMotherW}
+          height={haunchMotherH}
           fill="white"
           stroke={COLOR_OUTLINE}
           strokeDasharray="3 2"
         />
         <text
-          x={mAx + expMotherW / 2}
-          y={mAy + PX(mt) + 18}
+          x={mAx + motherFaceW / 2}
+          y={mAy + motherFaceH + 16}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
         >
-          母件（凹，主榫眼 + 上方肩眼）
+          母件（柱腳側面）
         </text>
+        {/* leg cross-section width (horizontal) */}
         <DimLine
-          x1={mAx + expMotherW + 20}
-          y1={mAy}
-          x2={mAx + expMotherW + 20}
-          y2={mAy + PX(mt)}
-          label={`母厚 ${mt}`}
+          x1={mAx}
+          y1={mAy + motherFaceH + 28}
+          x2={mAx + motherFaceW}
+          y2={mAy + motherFaceH + 28}
+          label={`柱寬 ${mt}`}
+          side="bottom"
+        />
+        {/* mortise vertical span — matches tenon.width */}
+        <DimLine
+          x1={mortiseX + mortiseW + 8}
+          y1={mortiseY}
+          x2={mortiseX + mortiseW + 8}
+          y2={mortiseY + mortiseH}
+          label={`榫眼長 ${tw}`}
           side="right"
         />
+        {/* mortise horizontal span — matches tenon.thickness */}
         <DimLine
-          x1={mAx + expMotherW / 2 - PX(tw) / 2}
-          y1={mAy - 4}
-          x2={mAx + expMotherW / 2 + PX(tw) / 2}
-          y2={mAy - 4}
-          label={`榫眼長 ${tw}`}
+          x1={mortiseX}
+          y1={mortiseY - 4}
+          x2={mortiseX + mortiseW}
+          y2={mortiseY - 4}
+          label={`榫眼厚 ${tt}`}
           side="top"
         />
+        {/* haunch slot height */}
+        <DimLine
+          x1={haunchMotherX - 8}
+          y1={haunchMotherY}
+          x2={haunchMotherX - 8}
+          y2={haunchMotherY + haunchMotherH}
+          label={`肩 ${Math.round(topGap)}`}
+          side="left"
+        />
+        {/* Annotation: "TOP of leg" */}
+        <text
+          x={mAx + motherFaceW + 4}
+          y={mAy + 4}
+          fontSize={8}
+          fill="#999"
+        >
+          ↑ 腿頂（接桌面）
+        </text>
       </g>
 
       {/* Child (apron) — wide-face view with tenon + haunch on the right end */}
