@@ -21,27 +21,42 @@ export interface JoineryUsage {
  * Configurations are deduplicated by (type + length + width + thickness).
  */
 export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
-  // Estimate mother thickness per joinery type by looking at parts with mortises
-  // of the matching size. Fallback: average part thickness.
-  const motherThicknessByType: Map<JoineryType, number> = new Map();
+  // Estimate mother thickness for each UNIQUE joinery config (type + dims).
+  // Different t&g joints in the same design can have different mother
+  // thicknesses (case side = 18 vs drawer side = 14), so we can't just
+  // key by type.
+  const tenonKey = (t: { type: JoineryType; length: number; width: number; thickness: number }) =>
+    `${t.type}-${t.length}-${t.width}-${t.thickness}`;
+  const motherThicknessByKey: Map<string, number> = new Map();
 
   for (const part of design.parts) {
     for (const mortise of part.mortises) {
-      // Find a tenon in another part that fits this mortise
       for (const other of design.parts) {
         if (other.id === part.id) continue;
         for (const tenon of other.tenons) {
-          if (
-            Math.abs(tenon.length - mortise.depth) < 2 &&
-            (Math.abs(tenon.width - mortise.length) < 2 ||
-              Math.abs(tenon.width - mortise.width) < 2)
-          ) {
-            // Mother thickness for the detail drawing is the part's smallest
-            // visible dim (the cross-section the tenon penetrates). For a leg
-            // that's legSize, for a top/seat it's panel thickness — NOT the
-            // part's full length.
-            motherThicknessByType.set(
-              tenon.type,
+          const lengthMatch = Math.abs(tenon.length - mortise.depth) < 3;
+          // Wide edge (tenon.width ↔ mortise.length OR mortise.width) — allow
+          // 10% slack because drawer-bottom grooves have wider mortises than
+          // their tongues.
+          const wideTol = Math.max(5, tenon.width * 0.1);
+          const wideMatch =
+            Math.abs(tenon.width - mortise.length) < wideTol ||
+            Math.abs(tenon.width - mortise.width) < wideTol;
+          // Thin edge (tenon.thickness ↔ mortise.width OR mortise.length)
+          const thinMatch =
+            Math.abs(tenon.thickness - mortise.width) < 3 ||
+            Math.abs(tenon.thickness - mortise.length) < 3;
+          // Require all three to match (length + both cross-section dims) so
+          // a spurious mortise elsewhere in the design doesn't get picked —
+          // e.g., a case back panel must not resolve against a drawer-side
+          // groove just because their tenon-length and thickness happen to
+          // be close.
+          if (lengthMatch && wideMatch && thinMatch) {
+            // Mother thickness for the detail drawing is the grooved/drilled
+            // part's smallest visible dim — the cross-section the tenon
+            // actually penetrates (not the part's full length).
+            motherThicknessByKey.set(
+              tenonKey(tenon),
               Math.min(
                 part.visible.length,
                 part.visible.width,
@@ -65,22 +80,24 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
   }
   panelThicknesses.sort((a, b) => a - b);
 
-  // Pick the smallest panel thickness that's strictly LARGER than tenon.length,
-  // so the tenon can physically fit inside. If none qualify, fall back to the
-  // largest panel thickness available.
+  // Fallback when no explicit mortise matches this tenon. Prefer the LARGEST
+  // panel that can physically accommodate the tenon (depth > tenonLength):
+  // typical case is a back panel or similar whose groove is implied on the
+  // case's main panels (18mm stock), not the smaller drawer-side stock (14mm).
   function fallbackMother(tenonLength: number): number {
-    for (const t of panelThicknesses) {
-      if (t > tenonLength + 1) return t;
+    const candidates = panelThicknesses.filter((t) => t > tenonLength + 1);
+    if (candidates.length === 0) {
+      return panelThicknesses[panelThicknesses.length - 1] ?? tenonLength * 2;
     }
-    return panelThicknesses[panelThicknesses.length - 1] ?? tenonLength * 2;
+    return candidates[candidates.length - 1]; // largest (panelThicknesses is ascending)
   }
 
   const seen = new Map<string, JoineryUsage>();
   for (const part of design.parts) {
     for (const tenon of part.tenons) {
-      const key = `${tenon.type}-${tenon.length}-${tenon.width}-${tenon.thickness}`;
+      const key = tenonKey(tenon);
       const motherThickness =
-        motherThicknessByType.get(tenon.type) ?? fallbackMother(tenon.length);
+        motherThicknessByKey.get(key) ?? fallbackMother(tenon.length);
       // The tenon-carrier part's cross-section: min = "thickness", next = "width"
       const dims = [part.visible.length, part.visible.width, part.visible.thickness].sort(
         (a, b) => a - b,
