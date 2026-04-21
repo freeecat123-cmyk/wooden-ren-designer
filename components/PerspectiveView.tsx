@@ -101,11 +101,11 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
         shadows
         camera={{
           position: [
-            (design.overall.length * SCALE) * 1.7,
-            (design.overall.thickness * SCALE) * 1.1,
-            -(design.overall.width * SCALE) * 1.9,
+            (design.overall.length * SCALE) * 1.9,
+            (design.overall.thickness * SCALE) * 1.15,
+            -(design.overall.width * SCALE) * 2.1,
           ],
-          fov: 32,
+          fov: 38,
         }}
       >
         <ambientLight intensity={0.45} />
