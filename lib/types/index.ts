@@ -137,6 +137,13 @@ export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesi
 /** Logical group for rendering — options with the same group cluster together. */
 export type OptionGroup = "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc";
 
+/** Only show this option when the referenced option has a matching value. */
+export interface OptionDependency {
+  key: string;
+  /** If omitted, "truthy value" is enough (e.g. checkbox = true / select = any non-empty). */
+  equals?: string | number | boolean;
+}
+
 export type OptionSpec =
   | {
       type: "number";
@@ -149,6 +156,7 @@ export type OptionSpec =
       unit?: string;
       help?: string;
       group?: OptionGroup;
+      dependsOn?: OptionDependency;
     }
   | {
       type: "select";
@@ -158,6 +166,7 @@ export type OptionSpec =
       choices: Array<{ value: string; label: string }>;
       help?: string;
       group?: OptionGroup;
+      dependsOn?: OptionDependency;
     }
   | {
       type: "checkbox";
@@ -166,6 +175,7 @@ export type OptionSpec =
       defaultValue: boolean;
       help?: string;
       group?: OptionGroup;
+      dependsOn?: OptionDependency;
     };
 
 /** Look up an option spec by its key (so templates don't break when order changes). */

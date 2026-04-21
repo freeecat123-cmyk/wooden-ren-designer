@@ -362,6 +362,21 @@ const GROUP_ORDER = [
   "misc",
 ];
 
+function isVisible(
+  spec: OptionSpec,
+  values: Record<string, string | number | boolean>,
+): boolean {
+  const dep = spec.dependsOn;
+  if (!dep) return true;
+  const actual = values[dep.key];
+  if (dep.equals === undefined) {
+    // Any truthy value satisfies
+    return Boolean(actual);
+  }
+  // Coerce so "true" string equals true boolean, etc.
+  return String(actual) === String(dep.equals);
+}
+
 function GroupedOptionFields({
   optionSchema,
   optionValues,
@@ -369,8 +384,9 @@ function GroupedOptionFields({
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
 }) {
+  const visibleSchema = optionSchema.filter((s) => isVisible(s, optionValues));
   const grouped = new Map<string, OptionSpec[]>();
-  for (const spec of optionSchema) {
+  for (const spec of visibleSchema) {
     const g = spec.group ?? "misc";
     if (!grouped.has(g)) grouped.set(g, []);
     grouped.get(g)!.push(spec);

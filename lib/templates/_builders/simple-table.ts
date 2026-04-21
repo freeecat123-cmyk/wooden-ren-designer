@@ -38,6 +38,10 @@ export interface SimpleTableOpts {
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
   lowerStretcherHeight?: number;
+  /** Lower stretcher width (vertical dim, mm). Default 40. */
+  lowerStretcherWidth?: number;
+  /** Lower stretcher thickness (horizontal, mm). Default 20. */
+  lowerStretcherThickness?: number;
   notes?: string;
 }
 
@@ -225,8 +229,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // Optional 4 lower stretchers (連腳橫撐), default ≈ 22% of leg height
   if (withLowerStretchers) {
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * 0.22);
-    const stretcherWidth = 40;
-    const stretcherThickness = 20;
+    const stretcherWidth = opts.lowerStretcherWidth ?? 40;
+    const stretcherThickness = opts.lowerStretcherThickness ?? 20;
     const tenonLen = Math.round((legSize * 2) / 3);
     const tenonThick = Math.max(
       6,

@@ -19,11 +19,13 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
   // 中央/下橫撐 (stretchers)
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: true, help: "長桌必備，防扭" },
-  { group: "stretcher", type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
-  { group: "stretcher", type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1 },
-  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 自動置中於牙板" },
+  { group: "stretcher", type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },
+  { group: "stretcher", type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withCenterStretcher" } },
+  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 自動置中於牙板", dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）" },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers" } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers" } },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretchers" } },
 ];
 
 export const diningTable: FurnitureTemplate = (input) => {
@@ -41,6 +43,8 @@ export const diningTable: FurnitureTemplate = (input) => {
   const centerStretcherThickness = getOption<number>(input, opt(o, "centerStretcherThickness"));
   const centerStretcherDrop = getOption<number>(input, opt(o, "centerStretcherDrop"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
+  const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
+  const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   return simpleTable({
     category: "dining-table",
@@ -59,6 +63,8 @@ export const diningTable: FurnitureTemplate = (input) => {
     centerStretcherThickness,
     centerStretcherDrop: centerStretcherDrop > 0 ? centerStretcherDrop : undefined,
     withLowerStretchers,
+    lowerStretcherWidth,
+    lowerStretcherThickness,
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
