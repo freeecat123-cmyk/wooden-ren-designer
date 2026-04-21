@@ -60,8 +60,8 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 ## OptionSpec 必須帶 `group`
 每個 OptionSpec 物件加 `group: "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc"`，UI 會用這個分色塊、同部件放一起。沒帶就落到「其他」。加新家具時**一開始就分群**，別整包丟進去。
 
-## 條件顯示 `dependsOn`
-子選項只在父 checkbox / select 打開時顯示：加 `dependsOn: { key: "parentKey", equals?: value }`。省略 `equals` 代表「truthy 就行」。範例：`centerStretcherWidth` 有 `dependsOn: { key: "withCenterStretcher" }`，勾掉主 checkbox 整組小選項就消失。
+## 條件顯示 `dependsOn`（目前失效）
+schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVisible` 現在永遠回傳 `true`，所有子選項常駐顯示。原因：使用者反映勾父 checkbox 後子選項沒跳出來，直接改成不 gate。加新選項可以不用填 `dependsOn`，填了也不會生效。
 
 ## 常見任務
 
