@@ -46,6 +46,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   );
   const frTenonW = Math.max(12, footRestWidth - 2 * MIN_SHOULDER);
   const seatTopTenonLen = seatThickness;
+  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
 
   const seatY = height - seatThickness;
   const backHeight = withBack ? 200 : 0;
@@ -66,8 +67,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           position: "top",
           type: "through-tenon",
           length: seatTopTenonLen,
-          width: legSize,
-          thickness: legSize,
+          width: legTopTenonSize,
+          thickness: legTopTenonSize,
         },
       ],
       mortises: [
@@ -118,8 +119,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       .map((c) => ({
         origin: { x: c.x, y: 0, z: c.z },
         depth: seatThickness,
-        length: legSize,
-        width: legSize,
+        length: legTopTenonSize,
+        width: legTopTenonSize,
         through: true,
       })),
   };

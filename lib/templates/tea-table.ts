@@ -65,6 +65,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     Math.min(lowerStretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
   );
   const strTenonW = Math.max(15, lowerStretcherWidth - 2 * MIN_SHOULDER);
+  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
 
   const legHeight = height - topThickness;
   const upperApronY = legHeight - upperApronWidth - 20;
@@ -83,8 +84,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },
       depth: topThickness,
-      length: legSize,
-      width: legSize,
+      length: legTopTenonSize,
+      width: legTopTenonSize,
       through: true,
     })),
   };
@@ -103,8 +104,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         position: "top",
         type: "through-tenon",
         length: legTopTenonLen,
-        width: legSize,
-        thickness: legSize,
+        width: legTopTenonSize,
+        thickness: legTopTenonSize,
       },
     ],
     mortises: [

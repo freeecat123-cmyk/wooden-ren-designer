@@ -49,6 +49,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const backHeight = height - seatHeight;
   // 正規比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
   const MIN_SHOULDER = 6;
+  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
   const apronTenonLen = Math.round((legSize * 2) / 3);
   const apronTenonThick = Math.max(
     6,
@@ -78,8 +79,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               position: "top",
               type: "through-tenon",
               length: seatTopTenonLen,
-              width: legSize,
-              thickness: legSize,
+              width: legTopTenonSize,
+              thickness: legTopTenonSize,
             },
           ],
       mortises: [
@@ -125,8 +126,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       .map((c) => ({
         origin: { x: c.x, y: 0, z: c.z },
         depth: seatThickness,
-        length: legSize,
-        width: legSize,
+        length: legTopTenonSize,
+        width: legTopTenonSize,
         through: true,
       })),
   };

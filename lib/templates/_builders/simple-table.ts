@@ -74,6 +74,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   );
   const apronTenonWidth = Math.max(15, apronWidth - 2 * MIN_SHOULDER);
   const legTopTenonLen = topThickness;
+  // Through tenon at leg top should be SMALLER than the leg so the shoulder
+  // rests on the underside of the panel (locks the leg in place). Standard
+  // proportion: tenon = 2/3 of leg cross-section, leaving shoulders on all 4 sides.
+  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
 
   const legHeight = height - topThickness;
   const apronY = legHeight - apronWidth - apronOffset;
@@ -95,8 +99,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },
       depth: topThickness,
-      length: legSize,
-      width: legSize,
+      length: legTopTenonSize,
+      width: legTopTenonSize,
       through: true,
     })),
   };
@@ -116,8 +120,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         position: "top",
         type: "through-tenon",
         length: legTopTenonLen,
-        width: legSize,
-        thickness: legSize,
+        width: legTopTenonSize,
+        thickness: legTopTenonSize,
       },
     ],
     mortises: [

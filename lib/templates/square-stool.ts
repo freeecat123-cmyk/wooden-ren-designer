@@ -49,6 +49,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const withLowerStretcher = getOption<boolean>(input, squareStoolOptions[5]);
 
   const legTenonLength = seatThickness; // 通榫穿過座板
+  // 通榫也要有肩：tenon 斷面 = 柱腳的 2/3，四面留肩
+  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
   // 正規比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
   const MIN_SHOULDER = 6;
   const apronTenonLength = Math.round((legSize * 2) / 3);
@@ -69,12 +71,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: 0, y: legHeight, z: 0 },
     tenons: [],
     mortises: [
-      // 4 個通孔：座板四角放凳腳通榫
+      // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）
       ...corners(length, width, legSize).map((c) => ({
         origin: { x: c.x, y: 0, z: c.z },
         depth: seatThickness,
-        length: legSize,
-        width: legSize,
+        length: legTopTenonSize,
+        width: legTopTenonSize,
         through: true,
       })),
     ],
@@ -93,8 +95,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         position: "top",
         type: "through-tenon",
         length: legTenonLength,
-        width: legSize,
-        thickness: legSize,
+        width: legTopTenonSize,
+        thickness: legTopTenonSize,
       },
     ],
     // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）

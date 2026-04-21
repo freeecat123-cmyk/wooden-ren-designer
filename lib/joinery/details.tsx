@@ -130,7 +130,9 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
 
   // --- EXPLODED panel dimensions ---
   const expWidth = Math.max(PX(tw) + 80, PX(cw) + 80);
-  const expHeight = PX(mt) + childBodyLen + PX(tl) + 60;
+  // reserve 40 extra px for 柱寬 dim label below the leg body when shoulders exist
+  const extraBottomForShoulders = cw !== tw ? 40 : 0;
+  const expHeight = PX(mt) + childBodyLen + PX(tl) + 60 + extraBottomForShoulders;
 
   // --- ASSEMBLED panel dimensions ---
   const asmWidth = motherDrawWidth + 40;
@@ -277,14 +279,25 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           side="top"
         />
         {cw !== tw && (
-          <DimLine
-            x1={cBodyX}
-            y1={cBodyY + PX(tl) + childBodyLen + 20}
-            x2={cBodyX + PX(cw)}
-            y2={cBodyY + PX(tl) + childBodyLen + 20}
-            label={`柱寬 ${cw}`}
-            side="bottom"
-          />
+          <>
+            <DimLine
+              x1={cBodyX}
+              y1={cBodyY + PX(tl) + childBodyLen + 20}
+              x2={cBodyX + PX(cw)}
+              y2={cBodyY + PX(tl) + childBodyLen + 20}
+              label={`柱寬 ${cw}`}
+              side="bottom"
+            />
+            {/* shoulder label on the left side */}
+            <DimLine
+              x1={cBodyX}
+              y1={cBodyY + PX(tl) + 4}
+              x2={cBodyX + PX(cw) / 2 - PX(tw) / 2}
+              y2={cBodyY + PX(tl) + 4}
+              label={`肩 ${Math.round((cw - tw) / 2)}`}
+              side="bottom"
+            />
+          </>
         )}
       </g>
 
@@ -347,7 +360,7 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          榫頭貫穿母件，與頂面齊平，端面可見
+          榫頭貫穿母件、端面可見；柱肩頂在母件底面，鎖住不上滑
         </text>
         {/* dim the tenon length = mother thickness */}
         <DimLine
