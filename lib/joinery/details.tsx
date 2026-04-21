@@ -927,7 +927,9 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
 
   const leftPad = 50;
   const expMotherW = PX(mt) * 2 + 20;
-  const expChildW = PX(tl) + PX(haunchLen) + Math.max(120, PX(ct) * 4);
+  const cBodyLenForCalc = Math.max(120, PX(ct) * 4);
+  const xsSectionW = PX(ct) * 1.6 + 70 + 40; // gap + section + right label
+  const expChildW = cBodyLenForCalc + PX(tl) + xsSectionW;
   const expWidth = Math.max(expMotherW, expChildW) + 60;
 
   const asmWidth = PX(mt) * 2 + PX(tl) + 60;
@@ -935,12 +937,14 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
   // Vertical budget: top pad + mother + gap + child + bottom text + pad
   const gapBetween = 60;
   const bottomTextReserve = 24;
+  // Mother top offset: leave room above for 榫眼長 dim line + 分解圖 title
+  const motherTopOffset = 32;
   const h =
-    PADDING + 10 + PX(mt) + gapBetween + PX(cw) + bottomTextReserve + PADDING;
+    PADDING + motherTopOffset + PX(mt) + gapBetween + PX(cw) + bottomTextReserve + PADDING;
   const w = expWidth + asmWidth + PADDING * 3 + leftPad;
 
   const mAx = PADDING + leftPad;
-  const mAy = PADDING + 10;
+  const mAy = PADDING + motherTopOffset;
 
   // Child (apron) drawn FACE-ON below the mother:
   // wide face visible, cw vertical × some horizontal length
@@ -976,7 +980,9 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         分解圖（牙板/橫撐端面視角）
       </text>
 
-      {/* Mother (leg), side face with TWO holes: main mortise + haunch slot */}
+      {/* Mother (leg), side face: horizontal strip showing leg profile with
+          main mortise + haunch slot above (TOP = apron's top). The layout
+          matches the child drawing below so you can trace tenon → mortise. */}
       <g>
         <rect
           x={mAx}
@@ -986,22 +992,22 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* Main mortise (shown on leg face) — full tenon width */}
+        {/* Main mortise — centered on leg face */}
         <rect
           x={mAx + expMotherW / 2 - PX(tw) / 2}
-          y={mAy + PX(mt) / 2 - PX(tt) / 2 + PX(bottomGap) / 4}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2}
           width={PX(tw)}
           height={PX(tt)}
           fill="white"
           stroke={COLOR_OUTLINE}
           strokeDasharray="3 2"
         />
-        {/* Haunch slot above main mortise — narrower + shallower */}
+        {/* Haunch slot — above main mortise (shallower, narrower) */}
         <rect
           x={mAx + expMotherW / 2 - PX(tw) / 4}
-          y={mAy + PX(mt) / 2 - PX(tt) / 2 + PX(bottomGap) / 4 - PX(tt) - 2}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2 - PX(tt) * 0.85 - 2}
           width={PX(tw) / 2}
-          height={PX(tt) * 0.8}
+          height={PX(tt) * 0.85}
           fill="white"
           stroke={COLOR_OUTLINE}
           strokeDasharray="3 2"
@@ -1022,6 +1028,14 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           y2={mAy + PX(mt)}
           label={`母厚 ${mt}`}
           side="right"
+        />
+        <DimLine
+          x1={mAx + expMotherW / 2 - PX(tw) / 2}
+          y1={mAy - 4}
+          x2={mAx + expMotherW / 2 + PX(tw) / 2}
+          y2={mAy - 4}
+          label={`榫眼長 ${tw}`}
+          side="top"
         />
       </g>
 
@@ -1073,7 +1087,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          公件（凸，牙板/橫撐）
+          公件（凸，牙板端面視角）
         </text>
 
         {/* Labels */}
@@ -1122,6 +1136,66 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           side="left"
         />
       </g>
+
+      {/* Small END-FACE cross-section of apron to show thickness dims
+          (positioned to the right of the face-on child view) */}
+      {(() => {
+        const xsX = cAx + cBodyLen + PX(tl) + 70;
+        const xsY = cAy + PX(cw) / 2 - PX(ct) * 2; // roughly centered vertically
+        const xsCw = PX(ct) * 1.6; // apron cross-section width (= board thickness, horizontal)
+        const xsCh = PX(cw);       // apron cross-section height (= board width, vertical)
+        // Main tenon window inside cross-section — centered horizontally
+        const tenonXsW = PX(tt);
+        const tenonXsH = PX(tw);
+        return (
+          <g>
+            {/* Dashed outline of apron end face */}
+            <rect
+              x={xsX}
+              y={xsY}
+              width={xsCw}
+              height={xsCh}
+              fill="none"
+              stroke={COLOR_OUTLINE}
+              strokeDasharray="4 2"
+            />
+            {/* Main tenon cross-section (solid) — aligned with main tenon band */}
+            <rect
+              x={xsX + (xsCw - tenonXsW) / 2}
+              y={xsY + PX(bottomGap)}
+              width={tenonXsW}
+              height={tenonXsH}
+              fill={COLOR_TENON}
+              stroke={COLOR_OUTLINE}
+            />
+            <text
+              x={xsX + xsCw / 2}
+              y={xsY + xsCh + 14}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              端面剖面
+            </text>
+            <DimLine
+              x1={xsX}
+              y1={xsY + xsCh + 26}
+              x2={xsX + xsCw}
+              y2={xsY + xsCh + 26}
+              label={`板厚 ${ct}`}
+              side="bottom"
+            />
+            <DimLine
+              x1={xsX + (xsCw - tenonXsW) / 2}
+              y1={xsY - 4}
+              x2={xsX + (xsCw + tenonXsW) / 2}
+              y2={xsY - 4}
+              label={`榫厚 ${tt}`}
+              side="top"
+            />
+          </g>
+        );
+      })()}
 
       {/* ========= ASSEMBLED (top-down cross-section) ========= */}
       <text x={asmOriginX} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
