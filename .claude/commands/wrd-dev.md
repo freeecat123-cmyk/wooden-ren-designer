@@ -57,9 +57,12 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 - `project_wooden_ren_joinery_standards.md` — 1/3 厚、2/3 長等正規比例
 - `project_wooden_ren_joinery_rendering.md` — details.tsx 每種 renderer 的現況
 
+## OptionSpec 必須帶 `group`
+每個 OptionSpec 物件加 `group: "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc"`，UI 會用這個分色塊、同部件放一起。沒帶就落到「其他」。加新家具時**一開始就分群**，別整包丟進去。
+
 ## 常見任務
 
-- **加新家具**：寫 `lib/templates/<name>.ts` → 在 `index.ts` 註冊 category + options + template → 在 `lib/types/index.ts` 加進 `FurnitureCategory` union
+- **加新家具**：寫 `lib/templates/<name>.ts` → 在 `index.ts` 註冊 category + options + template → 在 `lib/types/index.ts` 加進 `FurnitureCategory` union；options 每一條記得帶 `group`
 - **加新榫卯類型**：`lib/types/index.ts` 加進 `JoineryType` union → 在 `details.tsx` 寫 renderer function → 加進 `RENDERERS` map → `JOINERY_LABEL` / `JOINERY_DESCRIPTION` 補中文說明
 - **改三視圖**：`lib/render/svg-views.tsx`
 - **改 3D**：`components/PerspectiveView.tsx`
