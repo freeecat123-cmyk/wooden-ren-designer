@@ -364,18 +364,11 @@ const GROUP_ORDER = [
 ];
 
 function isVisible(
-  spec: OptionSpec,
-  values: Record<string, string | number | boolean>,
+  _spec: OptionSpec,
+  _values: Record<string, string | number | boolean>,
 ): boolean {
-  const dep = spec.dependsOn;
-  if (!dep) return true;
-  const actual = values[dep.key];
-  if (dep.equals === undefined) {
-    // Any truthy value satisfies
-    return Boolean(actual);
-  }
-  // Coerce so "true" string equals true boolean, etc.
-  return String(actual) === String(dep.equals);
+  // 常駐顯示所有子選項，不用勾父 checkbox 才出來
+  return true;
 }
 
 function GroupedOptionFields({
