@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
 import { PerspectiveView } from "@/components/PerspectiveView";
@@ -469,21 +470,14 @@ function OptionField({
       </label>
     );
   }
-  // checkbox
+  // checkbox — auto-submit so conditional sub-options appear immediately on toggle
   return (
-    <label className="flex items-start gap-2 text-xs bg-white border border-zinc-300 rounded px-3 py-2">
-      <input
-        type="checkbox"
-        name={spec.key}
-        value="true"
-        defaultChecked={Boolean(value)}
-        className="mt-0.5"
-      />
-      <div className="flex flex-col">
-        <span className="text-zinc-800 font-medium">{spec.label}</span>
-        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500">{spec.help}</span>}
-      </div>
-    </label>
+    <AutoSubmitCheckbox
+      name={spec.key}
+      defaultChecked={Boolean(value)}
+      label={spec.label}
+      help={spec.help}
+    />
   );
 }
 
