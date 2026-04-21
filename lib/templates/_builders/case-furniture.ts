@@ -69,6 +69,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const panelT = opts.panelThickness ?? 18;
   const shelfT = opts.shelfThickness ?? 18;
   const backT = opts.backThickness ?? 6;
+  // 企口榫舌頭厚度 = 板厚 / 3（正規比例，18mm 板 → 6mm 舌）
+  const panelTongueT = Math.max(4, Math.round(panelT / 3));
+  const shelfTongueT = Math.max(4, Math.round(shelfT / 3));
   const drawerCols = Math.max(1, opts.drawerCols ?? 1);
   const rawLegHeight = opts.legHeight ?? 0;
   const legShapeRaw = opts.legShape ?? "box";
@@ -218,14 +221,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: { x: -length / 2 + panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
         length: width - backT,
-        width: panelT - 4,
+        width: panelTongueT,
         through: false,
       },
       {
         origin: { x: length / 2 - panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
         length: width - backT,
-        width: panelT - 4,
+        width: panelTongueT,
         through: false,
       },
     ],
@@ -245,14 +248,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: { x: -length / 2 + panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
         length: width - backT,
-        width: panelT - 4,
+        width: panelTongueT,
         through: false,
       },
       {
         origin: { x: length / 2 - panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
         length: width - backT,
-        width: panelT - 4,
+        width: panelTongueT,
         through: false,
       },
     ],
@@ -274,14 +277,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
-          thickness: panelT - 4,
+          thickness: panelTongueT,
         },
         {
           position: "bottom",
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
-          thickness: panelT - 4,
+          thickness: panelTongueT,
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
@@ -289,7 +292,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: { x: 0, y: f * innerH, z: 0 },
         depth: tenonLen,
         length: innerD - 10,
-        width: shelfT - 4,
+        width: shelfTongueT,
         through: false,
       })),
     });
@@ -311,14 +314,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 10,
-          thickness: shelfT - 4,
+          thickness: shelfTongueT,
         },
         {
           position: "end",
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 10,
-          thickness: shelfT - 4,
+          thickness: shelfTongueT,
         },
       ],
       mortises: [],
@@ -369,8 +372,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         visible: { length: innerW, width: innerD, thickness: shelfT },
         origin: { x: 0, y: dividerY - shelfT, z: 0 },
         tenons: [
-          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
-          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfT - 4 },
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
         ],
         mortises: [],
       });
