@@ -28,6 +28,7 @@
 - **桌腳↔牙板、結構大橫木↔柱腳一律用 shouldered-tenon**；一般橫撐、footrest、背板條用 blind-tenon；櫃體面板邊緣用 tongue-and-groove
 - **榫厚比例真正規則（FWW/Popular Woodworking）**：榫厚 = **被開榫眼的母件（柱腳）厚度的 1/3**，不是公件。實作寫 `min(apronThick - 2*6, legSize/3)`，因為公件較薄時會受限。**不要再改回 apronThickness/3**（是之前的錯誤）
 - **肩寬固定 6mm**，不是比例：`tenon.width = apronWidth - 2 * 6`
+- **通榫也要有肩**：`legTopTenonSize = round(legSize * 2/3)`，四面都留肩。之前用 `width: legSize, thickness: legSize` 是整隻腳當榫頭，結構上錯誤（無肩 → 腿會上滑）
 - `JoineryRulesCallout`（頁面 `JoinerySection` 頂端的琥珀色 box）列規則，有改動就同步更新
 
 ## 工作模式：自我迭代（使用者授權後）
