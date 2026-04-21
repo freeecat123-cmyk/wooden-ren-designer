@@ -4,7 +4,7 @@ import type {
   OptionSpec,
   Part,
 } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const squareStoolOptions: OptionSpec[] = [
@@ -14,6 +14,9 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在腳下方 1/4 高再加一圈橫撐，結構更穩" },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, unit: "mm" },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）" },
 ];
 
 /**
@@ -41,12 +44,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     material,
   } = input;
 
-  const legSize = getOption<number>(input, squareStoolOptions[0]);
-  const seatThickness = getOption<number>(input, squareStoolOptions[1]);
-  const apronWidth = getOption<number>(input, squareStoolOptions[2]);
-  const apronThickness = getOption<number>(input, squareStoolOptions[3]);
-  const apronDropFromTop = getOption<number>(input, squareStoolOptions[4]);
-  const withLowerStretcher = getOption<boolean>(input, squareStoolOptions[5]);
+  const o = squareStoolOptions;
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
+  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
+  const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
+  const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
+  const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
   const legTenonLength = seatThickness; // 通榫穿過座板
   // 通榫也要有肩：tenon 斷面 = 柱腳的 2/3，四面留肩
@@ -157,9 +164,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const parts: Part[] = [seatPanel, ...legs, ...aprons];
 
   if (withLowerStretcher) {
-    const lowerY = Math.round(legHeight * 0.22);
-    const lowerW = 40;
-    const lowerT = 20;
+    const lowerY = lowerStretcherHeightOpt > 0
+      ? lowerStretcherHeightOpt
+      : Math.round(legHeight * 0.22);
+    const lowerW = lowerStretcherWidth;
+    const lowerT = lowerStretcherThickness;
     const lowerTenon = Math.round((legSize * 2) / 3);
     const lowerTenonThick = Math.max(
       6,
