@@ -13,6 +13,9 @@ export const diningTableOptions: OptionSpec[] = [
   { type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 28, min: 10, max: 50, step: 2 },
   { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
   { type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: true, help: "長桌必備，防扭" },
+  { type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, help: "中央橫撐的垂直高度" },
+  { type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, help: "中央橫撐的厚度（沿桌長方向）" },
+  { type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "距牙板頂緣往下的偏移；0 = 自動置中於牙板" },
   { type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
   { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   { type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
@@ -27,10 +30,13 @@ export const diningTable: FurnitureTemplate = (input) => {
   const apronThickness = getOption<number>(input, diningTableOptions[4]);
   const topOverhang = getOption<number>(input, diningTableOptions[5]);
   const withCenterStretcher = getOption<boolean>(input, diningTableOptions[6]);
-  const withLowerStretchers = getOption<boolean>(input, diningTableOptions[7]);
-  const legInset = getOption<number>(input, diningTableOptions[8]);
-  const apronOffset = getOption<number>(input, diningTableOptions[9]);
-  const lowerStretcherHeight = getOption<number>(input, diningTableOptions[10]);
+  const centerStretcherWidth = getOption<number>(input, diningTableOptions[7]);
+  const centerStretcherThickness = getOption<number>(input, diningTableOptions[8]);
+  const centerStretcherDrop = getOption<number>(input, diningTableOptions[9]);
+  const withLowerStretchers = getOption<boolean>(input, diningTableOptions[10]);
+  const legInset = getOption<number>(input, diningTableOptions[11]);
+  const apronOffset = getOption<number>(input, diningTableOptions[12]);
+  const lowerStretcherHeight = getOption<number>(input, diningTableOptions[13]);
   return simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -44,6 +50,9 @@ export const diningTable: FurnitureTemplate = (input) => {
     apronThickness,
     topOverhang,
     withCenterStretcher,
+    centerStretcherWidth,
+    centerStretcherThickness,
+    centerStretcherDrop: centerStretcherDrop > 0 ? centerStretcherDrop : undefined,
     withLowerStretchers,
     legInset,
     apronOffset,

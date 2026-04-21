@@ -22,6 +22,12 @@ export interface SimpleTableOpts {
   apronOffset?: number;
   /** Add a single mid-span stretcher (tie beam) between front and back aprons. */
   withCenterStretcher?: boolean;
+  /** Center stretcher width (vertical dimension, mm). Default 50. */
+  centerStretcherWidth?: number;
+  /** Center stretcher thickness (horizontal dimension along table length, mm). Default 25. */
+  centerStretcherThickness?: number;
+  /** Y offset of center stretcher below apron top edge (mm). Default apronWidth/2 (centered in apron). */
+  centerStretcherDrop?: number;
   /** Add 4 lower stretchers connecting legs at ~1/4 height (traditional style). */
   withLowerStretchers?: boolean;
   /** Overhang of top beyond leg outer face, mm. Default 0 (flush). */
@@ -253,26 +259,38 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
 
   // Optional center stretcher (for long tables)
   if (withCenterStretcher) {
-    const stretcherWidth = 50;
-    const stretcherThickness = 25;
-    const stretcherTenonLen = apronTenonLen;
-    // Center stretcher's mother = apron (not leg), so base tenon thickness on apron
+    const stretcherWidth = opts.centerStretcherWidth ?? 50;
+    const stretcherThickness = opts.centerStretcherThickness ?? 25;
+    // Tenon length must fit INSIDE the apron (apron is the mother here), not
+    // poke through to the outside. Leave 4mm wood behind the mortise.
+    const stretcherTenonLen = Math.max(6, Math.min(apronTenonLen, apronThickness - 4));
+    // Body length: from front-apron INNER face to back-apron INNER face.
+    // (Tenon protrudes INTO each apron by stretcherTenonLen beyond this body.)
+    const bodyLen = Math.max(
+      50,
+      width - legSize - 2 * legInset - apronThickness,
+    );
+    // Center stretcher's mother = apron, so base tenon thickness on apron thickness
     const cTenonThick = Math.max(
       6,
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(apronThickness / 3)),
     );
     const cTenonW = Math.max(15, stretcherWidth - 2 * MIN_SHOULDER);
+    // Vertical position: by default center the stretcher vertically inside the apron.
+    // apronY is the apron's BOTTOM y. Apron spans [apronY, apronY + apronWidth].
+    const drop =
+      opts.centerStretcherDrop ?? Math.max(0, (apronWidth - stretcherWidth) / 2);
     parts.push({
       id: "center-stretcher",
       nameZh: "中央橫撐",
       material,
       grainDirection: "length",
       visible: {
-        length: width - 2 * apronThickness - 20,
+        length: bodyLen,
         width: stretcherWidth,
         thickness: stretcherThickness,
       },
-      origin: { x: 0, y: apronY - 30, z: 0 },
+      origin: { x: 0, y: apronY + drop, z: 0 },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
       tenons: [
         {
