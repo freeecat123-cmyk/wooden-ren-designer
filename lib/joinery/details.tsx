@@ -1046,10 +1046,13 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
 
   const leftPad = 50;
   // Mother is the leg's SIDE FACE, drawn tall (vertical = leg's up/down axis).
-  // Width = leg cross-section + margin, Height = haunch + main mortise + some
-  // leg below the mortise for context.
+  // Layout top→bottom: [top wood margin] → [haunch slot] → [main mortise] → [bottom wood]
+  // Haunch slot is SAME WIDTH as main mortise (= tenon thickness) — they're cut
+  // contiguously, the haunch is just a shallower extension above the main mortise.
   const motherFaceW = PX(mt) + 40;
-  const motherFaceH = PX(topGap) + PX(tw) + 40; // haunch + main mortise + leg below
+  const topWoodMargin = 22; // wood BETWEEN leg top face and haunch slot
+  const bottomWoodMargin = 30;
+  const motherFaceH = topWoodMargin + PX(topGap) + PX(tw) + bottomWoodMargin;
   const cBodyLenForCalc = Math.max(120, PX(ct) * 4);
   const xsSectionW = PX(ct) * 1.6 + 70 + 40; // gap + section + right label
   const expChildW = cBodyLenForCalc + PX(tl) + xsSectionW;
@@ -1068,16 +1071,16 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
   const mAx = PADDING + leftPad;
   const mAy = PADDING + motherTopOffset;
 
-  // Main mortise: centered horizontally on leg face; vertically from topGap to topGap+tw
+  // Haunch slot: same width as main mortise (PX(tt)), positioned below the top wood margin
+  const haunchMotherW = PX(tt);
+  const haunchMotherX = mAx + (motherFaceW - haunchMotherW) / 2;
+  const haunchMotherY = mAy + topWoodMargin;
+  const haunchMotherH = PX(topGap);
+  // Main mortise: directly below haunch slot, same x, wider vertically
   const mortiseX = mAx + (motherFaceW - PX(tt)) / 2;
-  const mortiseY = mAy + PX(topGap);
+  const mortiseY = haunchMotherY + haunchMotherH;
   const mortiseW = PX(tt);
   const mortiseH = PX(tw);
-  // Haunch slot: centered horizontally (narrower than main mortise), at leg TOP
-  const haunchMotherW = PX(tt) * 0.7;
-  const haunchMotherX = mAx + (motherFaceW - haunchMotherW) / 2;
-  const haunchMotherY = mAy;
-  const haunchMotherH = PX(topGap);
 
   // Child (apron) drawn FACE-ON below the mother:
   // wide face visible, cw vertical × some horizontal length
@@ -1193,10 +1196,10 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           label={`肩 ${Math.round(topGap)}`}
           side="left"
         />
-        {/* Annotation: "TOP of leg" */}
+        {/* Annotation: "TOP of leg" — pointing at the top edge above wood margin */}
         <text
           x={mAx + motherFaceW + 4}
-          y={mAy + 4}
+          y={mAy + 10}
           fontSize={8}
           fill="#999"
         >
@@ -1302,8 +1305,10 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         />
       </g>
 
-      {/* Small END-FACE cross-section of apron to show thickness dims
-          (positioned to the right of the face-on child view) */}
+      {/* End-face cross-section of the apron — shows thickness dims AND the
+          haunch (which is narrower horizontally and sits above the main tenon).
+          Looking at the apron from the end: you see the apron's thickness ×
+          apron's width, and the tenon+haunch as solid fill inside. */}
       {(() => {
         const xsX = cAx + cBodyLen + PX(tl) + 70;
         const xsY = cAy + PX(cw) / 2 - PX(ct) * 2; // roughly centered vertically
@@ -1312,6 +1317,8 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
         // Main tenon window inside cross-section — centered horizontally
         const tenonXsW = PX(tt);
         const tenonXsH = PX(tw);
+        // Haunch cross-section — same horizontal width as main tenon, height = topGap
+        const haunchXsH = PX(topGap);
         return (
           <g>
             {/* Dashed outline of apron end face */}
@@ -1324,7 +1331,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
               stroke={COLOR_OUTLINE}
               strokeDasharray="4 2"
             />
-            {/* Main tenon cross-section (solid) — aligned with main tenon band */}
+            {/* Main tenon cross-section (solid) — in the middle vertical band */}
             <rect
               x={xsX + (xsCw - tenonXsW) / 2}
               y={xsY + PX(bottomGap)}
@@ -1333,6 +1340,17 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
               fill={COLOR_TENON}
               stroke={COLOR_OUTLINE}
             />
+            {/* Haunch cross-section — at the TOP of the end face, same width as main tenon */}
+            {haunchXsH > 0 && (
+              <rect
+                x={xsX + (xsCw - tenonXsW) / 2}
+                y={xsY}
+                width={tenonXsW}
+                height={haunchXsH}
+                fill={COLOR_TENON}
+                stroke={COLOR_OUTLINE}
+              />
+            )}
             <text
               x={xsX + xsCw / 2}
               y={xsY + xsCh + 14}
