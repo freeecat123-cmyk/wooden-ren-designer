@@ -1286,85 +1286,100 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
  * ============================================================ */
 function DovetailDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
-  const tw = p.tenonWidth;
-  const tt = p.tenonThickness;
+  const tw = p.tenonWidth;   // along the joint face — unused for now, could label
+  void tw;
+  const tt = p.tenonThickness; // board thickness
   const ct = p.childThickness ?? tt;
   const mt = p.motherThickness;
+  void mt;
 
-  // Dovetails have multiple "tails" — draw 3 tails across the width.
-  const N = 3;
-  const s = fitScale(Math.max(tl * 4, tt * 4, ct * 4), 140);
+  // Number of tails to illustrate (odd-count pattern: tails > pins by 1)
+  const N_TAILS = 3;
+  const N_PINS = N_TAILS + 1;
+
+  // Board aspect: dovetail length tl = depth of pin-and-tail zone (~board thickness)
+  // Make the illustration big enough regardless of scale
+  const s = fitScale(Math.max(tl * 6, 80), 180);
   const PX = (mm: number) => mm * s;
 
-  const pinW = PX(tt) / (2 * N + 1); // pin thickness (socket on mother)
-  const tailW = pinW * 2; // tail width on child
-  const pieceDepth = PX(tt); // height of each piece (depth along the joint face)
-  const pieceLen = Math.max(PX(tl) * 4, 160);
-  const angle = 0.18; // dovetail angle (roughly 10°)
+  const pieceDepth = PX(tl);            // depth of the pin/tail interlock zone
+  const pieceLen = Math.max(180, PX(ct) * 6); // along the joint face
+  const bodyExt = pieceDepth * 0.8;     // how much body we show behind the joint
+
+  // Dovetail angle (1:6 for softwood, ~9.5°)
+  const dtAngleHOffset = pieceDepth * 0.25; // horizontal offset at the tip
+
+  // Pin/tail column widths: distribute along pieceLen
+  const tailW = pieceLen / (N_TAILS + 0.6 * N_PINS); // tails wider than pins
+  const pinW = tailW * 0.6;
 
   const leftPad = 40;
-  const expW = pieceLen * 2 + 80;
-  const asmW = pieceLen * 1.5 + 40;
+  const gap = 50;
+  const expW = pieceLen * 2 + gap;
+  const asmW = pieceLen * 0.9 + pieceDepth + 30;
   const w = expW + asmW + PADDING * 3 + leftPad;
-  const h = pieceDepth + 80;
+  const h = pieceDepth + bodyExt + 70;
 
+  // Mother (pin board) — pins stick UP out of the body
   const mAx = PADDING + leftPad;
-  const mAy = PADDING + 10;
+  const mAy = PADDING + 20;
+  const mBodyTop = mAy + pieceDepth;          // where pins' base meets the body
+  const mBodyBot = mBodyTop + bodyExt;
 
-  // Build mother (pin board) path: straight back edge, trapezoidal pins on front
-  const makePinsPath = () => {
-    const verts: Array<[number, number]> = [];
-    const baseY = mAy;
-    const tipY = mAy + pieceDepth;
-    verts.push([mAx, mAy]);
-    verts.push([mAx + pieceLen - PX(tl), mAy]); // top edge until joint start
-    // pin-and-socket front edge
-    let x = mAx + pieceLen - PX(tl);
-    let onBaseLine = true;
-    for (let i = 0; i < N * 2 + 1; i++) {
-      if (i === 0) {
-        // socket at edge — go down with inward slope
-        verts.push([x, baseY]);
-        verts.push([x + PX(tl) * angle, tipY]);
-        x += pinW;
-        verts.push([x - PX(tl) * angle, tipY]);
-        onBaseLine = false;
-      } else if (i % 2 === 1) {
-        // pin top
-        verts.push([x, tipY]);
-        verts.push([x, baseY]);
-        x += pinW;
-        verts.push([x, baseY]);
-        onBaseLine = true;
-      } else {
-        // socket (going back up)
-        verts.push([x + PX(tl) * angle, tipY]);
-        x += pinW;
-        verts.push([x - PX(tl) * angle, tipY]);
-        onBaseLine = false;
-      }
-    }
-    if (!onBaseLine) {
-      // close back up
-      verts.push([x, tipY]);
-    }
-    verts.push([mAx + pieceLen, tipY]);
-    verts.push([mAx + pieceLen, mAy + pieceDepth + 30]); // extend body down
-    verts.push([mAx, mAy + pieceDepth + 30]);
-    return "M" + verts.map((v) => v.join(" ")).join(" L") + " Z";
+  // Child (tail board) — tails stick UP out of the body
+  const cAx = mAx + pieceLen + gap;
+  const cAy = mAy;
+
+  // Assembled L-corner: horizontal tail board + vertical pin board
+  const asmX = mAx + expW + PADDING;
+  const asmY = mAy;
+
+  // Pin path: trapezoidal, NARROWER at top (socket tapers inward)
+  // Actually pins are WIDER at the joint-surface (bottom in our drawing) because the
+  // tails are wider at their outer face. Let me verify: in a real dovetail,
+  // tails have wedge shape that's WIDER on the outside face, NARROWER at the glue line.
+  // Pins, conversely, are NARROWER on the outside face, WIDER at the glue line.
+  // In our exploded view pins stick UP (away from body), so:
+  //   pin top (outside face of pin board) = narrow
+  //   pin bottom (glue line / body top) = wide
+  const pinPath = (cx: number) => {
+    const halfBot = pinW / 2; // wide at body
+    const halfTop = halfBot - dtAngleHOffset * 0.5;
+    return `M${cx - halfBot} ${mBodyTop} L${cx - halfTop} ${mAy} L${cx + halfTop} ${mAy} L${cx + halfBot} ${mBodyTop} Z`;
   };
 
-  // Simpler approach — draw the joint schematically using two rects + interlocked zigzag
-  const bAx = PADDING + leftPad;
-  const bAy = PADDING + 10;
-  const cBodyX = bAx + pieceLen + 80;
-  const cBodyY = bAy;
+  // Tail path: WIDER at top (outside), NARROWER at bottom (glue line)
+  const tailPath = (cx: number) => {
+    const halfBot = tailW / 2 - dtAngleHOffset * 0.5;
+    const halfTop = tailW / 2;
+    return `M${cx - halfBot} ${mBodyTop} L${cx - halfTop} ${mAy} L${cx + halfTop} ${mAy} L${cx + halfBot} ${mBodyTop} Z`;
+  };
+
+  // Compute pin positions (N_PINS pins)
+  const totalPinsAndTails = N_PINS * pinW + N_TAILS * tailW;
+  const margin = (pieceLen - totalPinsAndTails) / 2;
+  const pinCenters: number[] = [];
+  {
+    let x = mAx + margin + pinW / 2;
+    for (let i = 0; i < N_PINS; i++) {
+      pinCenters.push(x);
+      x += pinW + tailW;
+    }
+  }
+  const tailCenters: number[] = [];
+  {
+    let x = mAx + margin + pinW + tailW / 2;
+    for (let i = 0; i < N_TAILS; i++) {
+      tailCenters.push(x);
+      x += tailW + pinW;
+    }
+  }
 
   return (
     <svg
-      viewBox={`0 0 ${w} ${h + 40}`}
+      viewBox={`0 0 ${w} ${h}`}
       width="100%"
-      style={{ maxWidth: "680px" }}
+      style={{ maxWidth: "720px" }}
       className="bg-white"
     >
       <defs>
@@ -1372,90 +1387,77 @@ function DovetailDetail(p: JoineryDetailParams) {
       </defs>
 
       <text x={PADDING} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
-        分解圖
+        分解圖（兩片板端面對端面）
       </text>
 
-      {/* mother (pin board): drawn with pins sticking UP */}
+      {/* MOTHER (pin board) */}
       <g>
+        {/* body */}
         <rect
-          x={bAx}
-          y={bAy + PX(tl)}
+          x={mAx}
+          y={mBodyTop}
           width={pieceLen}
-          height={pieceDepth}
+          height={bodyExt}
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* pins (trapezoidal) on top edge */}
-        {Array.from({ length: N }).map((_, i) => {
-          const pinCenterX = bAx + (pieceLen / (N + 1)) * (i + 1);
-          const halfBot = pinW * 1.3;
-          const halfTop = halfBot * 0.55;
-          return (
-            <path
-              key={i}
-              d={`M${pinCenterX - halfBot} ${bAy + PX(tl)} L${pinCenterX - halfTop} ${bAy} L${pinCenterX + halfTop} ${bAy} L${pinCenterX + halfBot} ${bAy + PX(tl)} Z`}
-              fill={COLOR_MORTISE}
-              stroke={COLOR_OUTLINE}
-            />
-          );
-        })}
+        {/* pins on top edge */}
+        {pinCenters.map((cx, i) => (
+          <path key={i} d={pinPath(cx)} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        ))}
         <text
-          x={bAx + pieceLen / 2}
-          y={bAy + PX(tl) + pieceDepth + 14}
+          x={mAx + pieceLen / 2}
+          y={mBodyBot + 14}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
         >
-          母件（pin 面板）
+          母件（銷 pin 板，{N_PINS} 個銷）
         </text>
         <DimLine
-          x1={bAx - 10}
-          y1={bAy}
-          x2={bAx - 10}
-          y2={bAy + PX(tl)}
-          label={`榫長 ${tl}`}
+          x1={mAx - 10}
+          y1={mAy}
+          x2={mAx - 10}
+          y2={mBodyTop}
+          label={`榫深 ${tl}`}
           side="left"
         />
       </g>
 
-      {/* child (tail board): drawn with dovetail slots between tails */}
+      {/* CHILD (tail board) */}
       <g>
+        {/* body */}
         <rect
-          x={cBodyX}
-          y={cBodyY + PX(tl)}
+          x={cAx}
+          y={mBodyTop}
           width={pieceLen}
-          height={pieceDepth}
+          height={bodyExt}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
-        {/* tails with sockets between them (draw tails sticking up) */}
-        {Array.from({ length: N + 1 }).map((_, i) => {
-          const tailCenterX = cBodyX + (pieceLen / (N + 2)) * (i + 1);
-          const halfBot = pinW * 0.9;
-          const halfTop = halfBot * 1.6;
-          return (
-            <path
-              key={i}
-              d={`M${tailCenterX - halfBot} ${cBodyY + PX(tl)} L${tailCenterX - halfTop} ${cBodyY} L${tailCenterX + halfTop} ${cBodyY} L${tailCenterX + halfBot} ${cBodyY + PX(tl)} Z`}
-              fill={COLOR_TENON}
-              stroke={COLOR_OUTLINE}
-            />
-          );
-        })}
+        {/* tails on top edge */}
+        {tailCenters.map((cx, i) => (
+          <path
+            key={i}
+            d={tailPath(cx + (cAx - mAx))}
+            fill={COLOR_TENON}
+            stroke={COLOR_OUTLINE}
+          />
+        ))}
         <text
-          x={cBodyX + pieceLen / 2}
-          y={cBodyY + PX(tl) + pieceDepth + 14}
+          x={cAx + pieceLen / 2}
+          y={mBodyBot + 14}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
         >
-          公件（tail 面板）
+          公件（尾 tail 板，{N_TAILS} 個尾）
         </text>
       </g>
 
-      {/* Assembled corner view */}
+      {/* ASSEMBLED L-corner */}
       <text
-        x={expW + PADDING}
+        x={asmX}
         y={18}
         fontSize={11}
         fontWeight="bold"
@@ -1463,49 +1465,48 @@ function DovetailDetail(p: JoineryDetailParams) {
       >
         組合（L 型轉角）
       </text>
-      <g transform={`translate(${expW + PADDING},${PADDING + 10})`}>
-        {/* horizontal piece (top of drawer — tail board) */}
+      <g>
+        {/* horizontal tail board (top of corner) */}
         <rect
-          x={0}
-          y={0}
-          width={pieceLen}
+          x={asmX}
+          y={asmY}
+          width={pieceLen * 0.9}
           height={pieceDepth}
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
-        {/* vertical piece (side — pin board) */}
+        {/* vertical pin board (side of corner) */}
         <rect
-          x={pieceLen}
-          y={0}
+          x={asmX + pieceLen * 0.9}
+          y={asmY}
           width={pieceDepth}
-          height={pieceLen * 0.8}
+          height={pieceLen * 0.7}
           fill="url(#hatch-dt)"
           stroke={COLOR_OUTLINE}
         />
-        {/* interlocking zigzag at corner */}
-        <g stroke={COLOR_OUTLINE} fill="none" strokeWidth={0.8}>
-          {Array.from({ length: N }).map((_, i) => {
-            const y = pieceDepth / (N + 1) * (i + 1);
+        {/* interlock zigzag at corner (dashed — interior sockets hidden) */}
+        <g stroke={COLOR_OUTLINE} fill="none" strokeWidth={0.8} strokeDasharray="2 2">
+          {Array.from({ length: N_PINS + N_TAILS }).map((_, i) => {
+            const y = asmY + (pieceDepth / (N_PINS + N_TAILS + 1)) * (i + 1);
             return (
               <line
                 key={i}
-                x1={pieceLen - pinW * 0.5}
+                x1={asmX + pieceLen * 0.9 - pinW * 0.3}
                 y1={y}
-                x2={pieceLen + pieceDepth}
+                x2={asmX + pieceLen * 0.9 + pieceDepth}
                 y2={y}
-                strokeDasharray="2 2"
               />
             );
           })}
         </g>
         <text
-          x={pieceLen / 2}
-          y={pieceDepth + 14}
+          x={asmX + pieceLen * 0.45}
+          y={asmY + pieceDepth + 16}
           fontSize={9}
           textAnchor="middle"
           fill="#666"
         >
-          梯形榫頭咬合，難拆抗拉
+          梯形咬合，抽屜前後板常用
         </text>
       </g>
     </svg>
