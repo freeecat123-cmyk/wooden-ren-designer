@@ -60,6 +60,9 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 ## OptionSpec 必須帶 `group`
 每個 OptionSpec 物件加 `group: "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc"`，UI 會用這個分色塊、同部件放一起。沒帶就落到「其他」。加新家具時**一開始就分群**，別整包丟進去。
 
+## 條件顯示 `dependsOn`
+子選項只在父 checkbox / select 打開時顯示：加 `dependsOn: { key: "parentKey", equals?: value }`。省略 `equals` 代表「truthy 就行」。範例：`centerStretcherWidth` 有 `dependsOn: { key: "withCenterStretcher" }`，勾掉主 checkbox 整組小選項就消失。
+
 ## 常見任務
 
 - **加新家具**：寫 `lib/templates/<name>.ts` → 在 `index.ts` 註冊 category + options + template → 在 `lib/types/index.ts` 加進 `FurnitureCategory` union；options 每一條記得帶 `group`
