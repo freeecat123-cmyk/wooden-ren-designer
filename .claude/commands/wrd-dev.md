@@ -24,7 +24,9 @@
 - **mother fallback**（`extract.ts`）：找不到匹配 mortise 時取 panel-like 零件中「大於 tenon.length」的最小厚度。**不要改回 `tenon.length` fallback**（會讓母厚 == 榫長 變巧合）
 - **viewBox 左邊至少留 40px**，不然 `母厚` / `板厚` / `榫長` 標籤會裁成 `4` / `0`
 - **full-panel edge 接合**（366mm 寬「榫頭」那種）用 `tongue-and-groove`，不是 `blind-tenon`——巨型盲榫渲染會壞掉
-- 已實作的 renderer：through-tenon / blind-tenon / shouldered-tenon（沿用 blind） / half-lap / tongue-and-groove / dovetail。其他（finger-joint / dowel / mitered-spline）是 placeholder
+- 已實作的 renderer：through-tenon（含端面紋視覺提示）/ blind-tenon / **shouldered-tenon（帶肩榫，有主榫 + 上方肩榫 + 端面剖面）** / half-lap / tongue-and-groove / dovetail（梯形 pins/tails）。其他（finger-joint / dowel / mitered-spline）是 placeholder
+- **桌腳↔牙板、結構大橫木↔柱腳一律用 shouldered-tenon**；一般橫撐、footrest、背板條用 blind-tenon；櫃體面板邊緣用 tongue-and-groove
+- `JoineryRulesCallout`（頁面 `JoinerySection` 頂端的琥珀色 box）列出 1/3 厚、2/3 長、3/4 寬、帶肩榫肩長 1/3 的規則
 
 ## 工作模式：自我迭代（使用者授權後）
 
