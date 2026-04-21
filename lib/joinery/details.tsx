@@ -475,9 +475,10 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
   // ---- EXPLODED: mother = leg SIDE FACE (vertical orientation).
   // Face horizontal = leg width (mt), vertical = a chunk of leg length that
-  // shows the mortise with wood above AND below. We guarantee at least
-  // max(20px, PX(tw/3)) of wood margin on top and bottom.
-  const faceMarginY = Math.max(22, PX(tw) * 0.35);
+  // shows the mortise with wood above AND below. Give generous margins so
+  // the wood surrounding the mortise is VISUALLY substantial — earlier
+  // versions looked like the mother was split by the white hole.
+  const faceMarginY = Math.max(30, PX(tw) * 0.6);
   const motherFaceW = PX(mt);
   const motherFaceH = PX(tw) + 2 * faceMarginY;
 
@@ -537,10 +538,11 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         分解圖
       </text>
 
-      {/* Mother: leg side face. Mortise is a narrow vertical slot with clear
-          wood above AND below — matching how the actual mortise looks on the
-          leg face (tall because the apron is tall, narrow because the apron
-          is thin). */}
+      {/* Mother: leg side face. Mortise = recess OPEN on this face, so use
+          a solid outline (visible from this angle) and a dark shadow fill
+          to convey "cavity into the wood", not white/air. Wood margins are
+          now generous (>= tw * 0.6) so the mortise reads as "a hole in a
+          piece of wood" rather than "piece of wood split into two". */}
       <g>
         <rect
           x={mAx}
@@ -550,15 +552,25 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* blind mortise — dashed to mark the cavity is hidden behind the face */}
+        {/* blind mortise recess — solid outline + dark shadow */}
         <rect
           x={mortiseX}
           y={mortiseY}
           width={mortiseW}
           height={mortiseH}
-          fill="white"
+          fill="#3d2a14"
           stroke={COLOR_OUTLINE}
-          strokeDasharray="3 2"
+        />
+        {/* inner shadow hint — small inset rect suggests depth into the wood */}
+        <rect
+          x={mortiseX + 1.5}
+          y={mortiseY + 1.5}
+          width={mortiseW - 3}
+          height={mortiseH - 3}
+          fill="none"
+          stroke="#2a1808"
+          strokeWidth={0.5}
+          strokeDasharray="2 1.5"
         />
         <text
           x={mAx + motherFaceW / 2}
@@ -596,22 +608,24 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           label={`榫眼厚 ${tt}`}
           side="top"
         />
-        <text
-          x={mAx + motherFaceW + 6}
-          y={mAy + faceMarginY / 2}
-          fontSize={8}
-          fill="#999"
-        >
-          ↑ 孔上方有木頭
-        </text>
-        <text
-          x={mAx + motherFaceW + 6}
-          y={mortiseY + mortiseH + faceMarginY / 2}
-          fontSize={8}
-          fill="#999"
-        >
-          ↓ 孔下方有木頭
-        </text>
+        {/* wood margin above the mortise */}
+        <DimLine
+          x1={mAx - 10}
+          y1={mAy}
+          x2={mAx - 10}
+          y2={mortiseY}
+          label={`${Math.round(faceMarginY / s)}`}
+          side="left"
+        />
+        {/* wood margin below the mortise */}
+        <DimLine
+          x1={mAx - 10}
+          y1={mortiseY + mortiseH}
+          x2={mAx - 10}
+          y2={mAy + motherFaceH}
+          label={`${Math.round(faceMarginY / s)}`}
+          side="left"
+        />
       </g>
 
       {/* Child: apron body with tenon stub on the right end */}
@@ -683,60 +697,127 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         組合剖面（上視切面）
       </text>
 
-      <g>
-        {/* Leg — true square cross-section (mt × mt) */}
-        <rect
-          x={asmLegX}
-          y={asmLegY}
-          width={asmLegSide}
-          height={asmLegSide}
-          fill="url(#hatch-blind)"
-          stroke={COLOR_OUTLINE}
-        />
-        {/* Mortise cavity cut from the right face, going left by tl */}
-        <rect
-          x={asmLegX + asmLegSide - PX(tl)}
-          y={asmLegY + (asmLegSide - PX(tt)) / 2}
-          width={PX(tl)}
-          height={PX(tt)}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        {/* Apron body extending right (thickness ct visible from above) */}
-        <rect
-          x={asmLegX + asmLegSide}
-          y={asmLegY + (asmLegSide - PX(ct)) / 2}
-          width={asmApronLen}
-          height={PX(ct)}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        <text
-          x={asmLegX + asmLegSide / 2 + asmApronLen / 2}
-          y={asmLegY + asmLegSide + 20}
-          fontSize={9}
-          textAnchor="middle"
-          fill="#666"
-        >
-          榫頭藏於柱腳內部，未穿透
-        </text>
-        <DimLine
-          x1={asmLegX}
-          y1={asmLegY - 6}
-          x2={asmLegX + asmLegSide}
-          y2={asmLegY - 6}
-          label={`柱 ${mt}`}
-          side="top"
-        />
-        <DimLine
-          x1={asmLegX + asmLegSide - PX(tl)}
-          y1={asmLegY + asmLegSide + 32}
-          x2={asmLegX + asmLegSide}
-          y2={asmLegY + asmLegSide + 32}
-          label={`深 ${tl}`}
-          side="bottom"
-        />
-      </g>
+      {/* Draw the leg as a single path that EXCLUDES the mortise zone — so
+          the hatching clearly shows "mother wood around the cavity". Then
+          overlay the tenon (child wood, solid tan) filling the cavity. This
+          reads as three distinct zones:
+            1. hatched: 母件木料
+            2. light tan inside leg: 榫頭（公件）填入榫眼
+            3. light tan right of leg: 牙板 body
+      */}
+      {(() => {
+        const legX = asmLegX;
+        const legY = asmLegY;
+        const legSide = asmLegSide;
+        const mortiseL = PX(tl);
+        const mortiseT = PX(tt);
+        // Mortise opens from the right face, centered vertically in the leg
+        const mortiseTop = legY + (legSide - mortiseT) / 2;
+        const mortiseBottom = mortiseTop + mortiseT;
+        const mortiseLeft = legX + legSide - mortiseL;
+        // Path traces around the leg perimeter, then dips INTO the right face
+        // to carve out the mortise.
+        const legPath =
+          `M${legX} ${legY} ` +
+          `L${legX + legSide} ${legY} ` +
+          `L${legX + legSide} ${mortiseTop} ` +
+          `L${mortiseLeft} ${mortiseTop} ` +
+          `L${mortiseLeft} ${mortiseBottom} ` +
+          `L${legX + legSide} ${mortiseBottom} ` +
+          `L${legX + legSide} ${legY + legSide} ` +
+          `L${legX} ${legY + legSide} Z`;
+        return (
+          <g>
+            {/* Mother — hatched, with mortise cavity carved out */}
+            <path d={legPath} fill="url(#hatch-blind)" stroke={COLOR_OUTLINE} />
+            {/* Mortise cavity outline (inside the leg) — faint dashed to show
+                where the wood was removed before tenon was inserted */}
+            <rect
+              x={mortiseLeft}
+              y={mortiseTop}
+              width={mortiseL}
+              height={mortiseT}
+              fill="none"
+              stroke="#555"
+              strokeWidth={0.5}
+              strokeDasharray="2 1.5"
+            />
+            {/* Tenon filling the cavity (child wood, solid tan) */}
+            <rect
+              x={mortiseLeft}
+              y={mortiseTop}
+              width={mortiseL}
+              height={mortiseT}
+              fill={COLOR_TENON}
+              stroke={COLOR_OUTLINE}
+              strokeWidth={0.8}
+            />
+            {/* Apron body sticking out the right face */}
+            <rect
+              x={legX + legSide}
+              y={legY + (legSide - PX(ct)) / 2}
+              width={asmApronLen}
+              height={PX(ct)}
+              fill={COLOR_TENON}
+              stroke={COLOR_OUTLINE}
+            />
+            {/* Shoulder line where apron body meets leg face */}
+            <line
+              x1={legX + legSide}
+              y1={legY + (legSide - PX(ct)) / 2}
+              x2={legX + legSide}
+              y2={legY + (legSide + PX(ct)) / 2}
+              stroke={COLOR_OUTLINE}
+              strokeWidth={0.8}
+            />
+            {/* Labels */}
+            <text
+              x={legX + legSide / 2}
+              y={legY + legSide / 2 + 4}
+              fontSize={8}
+              textAnchor="middle"
+              fill="#5a3f1e"
+              fontWeight="bold"
+            >
+              母件
+            </text>
+            <text
+              x={mortiseLeft + mortiseL / 2}
+              y={mortiseTop - 4}
+              fontSize={8}
+              textAnchor="middle"
+              fill="#8a6a3a"
+            >
+              榫頭
+            </text>
+            <text
+              x={legX + legSide / 2 + asmApronLen / 2}
+              y={legY + legSide + 20}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              榫頭藏於柱腳內部，未穿透
+            </text>
+            <DimLine
+              x1={legX}
+              y1={legY - 6}
+              x2={legX + legSide}
+              y2={legY - 6}
+              label={`柱 ${mt}`}
+              side="top"
+            />
+            <DimLine
+              x1={mortiseLeft}
+              y1={legY + legSide + 34}
+              x2={legX + legSide}
+              y2={legY + legSide + 34}
+              label={`榫眼深 ${tl}`}
+              side="bottom"
+            />
+          </g>
+        );
+      })()}
     </svg>
   );
 }
