@@ -3,18 +3,18 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const sideTableOptions: OptionSpec[] = [
-  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
   ] },
-  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
-  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
-  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
-  { type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側的距離" },
-  { type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
-  { type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 200, step: 5 },
-  { type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10 },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
+  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側的距離" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 200, step: 5 },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10 },
 ];
 
 export const sideTable: FurnitureTemplate = (input) => {

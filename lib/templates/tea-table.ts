@@ -8,15 +8,15 @@ import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const teaTableOptions: OptionSpec[] = [
-  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
   ] },
-  { type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
-  { type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
-  { type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
-  { type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
-  { type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
+  { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
+  { group: "top", type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
+  { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
 ];
 
 /**

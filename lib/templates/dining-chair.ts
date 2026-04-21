@@ -8,15 +8,15 @@ import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const diningChairOptions: OptionSpec[] = [
-  { type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
-  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
-  { type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 150, max: 900, step: 10, help: "地面到座板上緣，一般 440–460" },
-  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
-  { type: "number", key: "backSlats", label: "椅背板條數", defaultValue: 2, min: 0, max: 10, step: 1, help: "設 0 則只有頂橫木，無直條" },
-  { type: "number", key: "slatWidth", label: "板條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5 },
-  { type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
-  { type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在椅腳下方約 1/4 處加一圈橫撐，餐椅結構更穩" },
-  { type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
+  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
+  { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
+  { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 150, max: 900, step: 10, help: "地面到座板上緣，一般 440–460" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
+  { group: "back", type: "number", key: "backSlats", label: "椅背板條數", defaultValue: 2, min: 0, max: 10, step: 1, help: "設 0 則只有頂橫木，無直條" },
+  { group: "back", type: "number", key: "slatWidth", label: "板條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在椅腳下方約 1/4 處加一圈橫撐，餐椅結構更穩" },
+  { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
 ];
 
 /**

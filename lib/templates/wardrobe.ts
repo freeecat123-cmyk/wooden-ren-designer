@@ -3,22 +3,22 @@ import { getOption } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 
 export const wardrobeOptions: OptionSpec[] = [
-  { type: "number", key: "hangingHeight", label: "吊衣空間高 (mm)", defaultValue: 1100, min: 400, max: 2200, step: 50, help: "長外套建議 1100+，短衫 900 即可" },
-  { type: "number", key: "shelfCount", label: "上方層板數", defaultValue: 1, min: 0, max: 20, step: 1, help: "吊衣空間上方的收納層板" },
-  { type: "number", key: "bottomDrawerCount", label: "下方抽屜數", defaultValue: 2, min: 0, max: 8, step: 1 },
-  { type: "number", key: "bottomDrawerHeight", label: "抽屜區總高 (mm)", defaultValue: 400, min: 0, max: 1500, step: 50, help: "多個抽屜平分此高度；設 0 則無抽屜" },
-  { type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
-  { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
-  { type: "number", key: "bottomDrawerCols", label: "下抽屜列數（左右）", defaultValue: 1, min: 1, max: 4, step: 1, help: "底部抽屜區切成幾列" },
-  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
+  { group: "misc", type: "number", key: "hangingHeight", label: "吊衣空間高 (mm)", defaultValue: 1100, min: 400, max: 2200, step: 50, help: "長外套建議 1100+，短衫 900 即可" },
+  { group: "top", type: "number", key: "shelfCount", label: "上方層板數", defaultValue: 1, min: 0, max: 20, step: 1, help: "吊衣空間上方的收納層板" },
+  { group: "drawer", type: "number", key: "bottomDrawerCount", label: "下方抽屜數", defaultValue: 2, min: 0, max: 8, step: 1 },
+  { group: "drawer", type: "number", key: "bottomDrawerHeight", label: "抽屜區總高 (mm)", defaultValue: 400, min: 0, max: 1500, step: 50, help: "多個抽屜平分此高度；設 0 則無抽屜" },
+  { group: "door", type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
+  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
+  { group: "drawer", type: "number", key: "bottomDrawerCols", label: "下抽屜列數（左右）", defaultValue: 1, min: 1, max: 4, step: 1, help: "底部抽屜區切成幾列" },
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
   ] },
-  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {

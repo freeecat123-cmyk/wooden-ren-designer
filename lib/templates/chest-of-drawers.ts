@@ -3,20 +3,20 @@ import { getOption } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
-  { type: "number", key: "drawerRows", label: "抽屜排數（上下）", defaultValue: 4, min: 0, max: 12, step: 1 },
-  { type: "number", key: "drawerCols", label: "抽屜列數（左右）", defaultValue: 1, min: 1, max: 6, step: 1, help: "每排可切成 2/3 個小抽屜" },
-  { type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  { type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1 },
-  { type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳" },
-  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
-  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+  { group: "drawer", type: "number", key: "drawerRows", label: "抽屜排數（上下）", defaultValue: 4, min: 0, max: 12, step: 1 },
+  { group: "drawer", type: "number", key: "drawerCols", label: "抽屜列數（左右）", defaultValue: 1, min: 1, max: 6, step: 1, help: "每排可切成 2/3 個小抽屜" },
+  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "back", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1 },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] },
-  { type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {

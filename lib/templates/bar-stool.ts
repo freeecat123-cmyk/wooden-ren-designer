@@ -8,12 +8,12 @@ import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const barStoolOptions: OptionSpec[] = [
-  { type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
-  { type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
-  { type: "number", key: "footrestHeight", label: "腳踏/下橫撐高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度" },
-  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
-  { type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
-  { type: "checkbox", key: "withBack", label: "加椅背", defaultValue: false, help: "吧檯椅常見無背，可勾選加短椅背" },
+  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
+  { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
+  { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏/下橫撐高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
+  { group: "back", type: "checkbox", key: "withBack", label: "加椅背", defaultValue: false, help: "吧檯椅常見無背，可勾選加短椅背" },
 ];
 
 /**

@@ -134,6 +134,9 @@ export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesi
  * Templates declare their schema via FurnitureCatalogEntry.options and read
  * values from FurnitureTemplateInput.options at build time.
  */
+/** Logical group for rendering — options with the same group cluster together. */
+export type OptionGroup = "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc";
+
 export type OptionSpec =
   | {
       type: "number";
@@ -145,6 +148,7 @@ export type OptionSpec =
       step?: number;
       unit?: string;
       help?: string;
+      group?: OptionGroup;
     }
   | {
       type: "select";
@@ -153,6 +157,7 @@ export type OptionSpec =
       defaultValue: string;
       choices: Array<{ value: string; label: string }>;
       help?: string;
+      group?: OptionGroup;
     }
   | {
       type: "checkbox";
@@ -160,7 +165,15 @@ export type OptionSpec =
       label: string;
       defaultValue: boolean;
       help?: string;
+      group?: OptionGroup;
     };
+
+/** Look up an option spec by its key (so templates don't break when order changes). */
+export function opt(schema: OptionSpec[], key: string): OptionSpec {
+  const found = schema.find((s) => s.key === key);
+  if (!found) throw new Error(`option spec not found: ${key}`);
+  return found;
+}
 
 export function getOption<T extends string | number | boolean>(
   input: FurnitureTemplateInput,

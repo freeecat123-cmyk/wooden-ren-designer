@@ -323,15 +323,10 @@ function ParameterForm({
               細部設定
             </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
-            {optionSchema.map((spec) => (
-              <OptionField
-                key={spec.key}
-                spec={spec}
-                value={optionValues[spec.key]}
-              />
-            ))}
-          </div>
+          <GroupedOptionFields
+            optionSchema={optionSchema}
+            optionValues={optionValues}
+          />
         </>
       )}
 
@@ -342,6 +337,73 @@ function ParameterForm({
         重新生成
       </button>
     </form>
+  );
+}
+
+const GROUP_META: Record<string, { label: string; tone: string }> = {
+  leg:       { label: "桌腳 / 椅腳",   tone: "bg-rose-100    ring-rose-200    text-rose-900"    },
+  top:       { label: "桌面 / 座板",   tone: "bg-sky-100     ring-sky-200     text-sky-900"     },
+  apron:     { label: "牙板",         tone: "bg-amber-100   ring-amber-200   text-amber-900"   },
+  stretcher: { label: "橫撐 / 連腳料",  tone: "bg-emerald-100 ring-emerald-200 text-emerald-900" },
+  drawer:    { label: "抽屜",         tone: "bg-violet-100  ring-violet-200  text-violet-900"  },
+  door:      { label: "門",           tone: "bg-fuchsia-100 ring-fuchsia-200 text-fuchsia-900" },
+  back:      { label: "椅背 / 背板",   tone: "bg-teal-100    ring-teal-200    text-teal-900"    },
+  misc:      { label: "其他",         tone: "bg-zinc-100    ring-zinc-200    text-zinc-800"    },
+};
+
+const GROUP_ORDER = [
+  "top",
+  "leg",
+  "apron",
+  "stretcher",
+  "back",
+  "drawer",
+  "door",
+  "misc",
+];
+
+function GroupedOptionFields({
+  optionSchema,
+  optionValues,
+}: {
+  optionSchema: OptionSpec[];
+  optionValues: Record<string, string | number | boolean>;
+}) {
+  const grouped = new Map<string, OptionSpec[]>();
+  for (const spec of optionSchema) {
+    const g = spec.group ?? "misc";
+    if (!grouped.has(g)) grouped.set(g, []);
+    grouped.get(g)!.push(spec);
+  }
+  const keysInOrder = GROUP_ORDER.filter((k) => grouped.has(k)).concat(
+    Array.from(grouped.keys()).filter((k) => !GROUP_ORDER.includes(k)),
+  );
+  return (
+    <div className="space-y-3 mb-5">
+      {keysInOrder.map((g) => {
+        const meta = GROUP_META[g] ?? GROUP_META.misc;
+        const specs = grouped.get(g)!;
+        return (
+          <div
+            key={g}
+            className={`rounded-lg ring-1 p-3 ${meta.tone}`}
+          >
+            <div className="text-xs font-semibold mb-2 opacity-80">
+              {meta.label}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {specs.map((spec) => (
+                <OptionField
+                  key={spec.key}
+                  spec={spec}
+                  value={optionValues[spec.key]}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

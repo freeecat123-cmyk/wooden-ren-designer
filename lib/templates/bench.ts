@@ -3,19 +3,19 @@ import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 
 export const benchOptions: OptionSpec[] = [
-  { type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
   ] },
-  { type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 1 },
-  { type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
-  { type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 80, min: 30, max: 200, step: 5 },
-  { type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 20, min: 0, max: 400, step: 5 },
-  { type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
-  { type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
-  { type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
-  { type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動" },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 1 },
+  { group: "top", type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 80, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 20, min: 0, max: 400, step: 5 },
+  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
+  { group: "top", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
+  { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動" },
 ];
 
 export const bench: FurnitureTemplate = (input) => {
