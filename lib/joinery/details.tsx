@@ -129,10 +129,14 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
   const childBodyLen = PX(ct) * 3; // how far below mortise we show
 
   // --- EXPLODED panel dimensions ---
-  const expWidth = Math.max(PX(tw) + 80, PX(cw) + 80);
+  // Mother face-on view needs: panel face (tw*3) + gap + thickness strip (mt*1.5) + label
+  const expMotherW = PX(tw) * 3 + 30 + PX(mt) * 1.5 + 50;
+  const expWidth = Math.max(expMotherW, PX(cw) + 80);
   // reserve 40 extra px for 柱寬 dim label below the leg body when shoulders exist
   const extraBottomForShoulders = cw !== tw ? 40 : 0;
-  const expHeight = PX(mt) + childBodyLen + PX(tl) + 60 + extraBottomForShoulders;
+  // mother face view is taller than thin edge-strip (panelFaceH = tt*3); reserve it
+  const motherFaceH = Math.max(PX(tt) * 3, PX(mt));
+  const expHeight = motherFaceH + childBodyLen + PX(tl) + 100 + extraBottomForShoulders;
 
   // --- ASSEMBLED panel dimensions ---
   const asmWidth = motherDrawWidth + 40;
@@ -142,12 +146,15 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
   const h = Math.max(expHeight, asmHeight) + PADDING;
 
   // ---- exploded piece positions ----
-  // Mother (top half)
-  const mAx = PADDING + expWidth / 2 - PX(tw) / 2;
-  const mAy = PADDING + 20;
+  // Mother face-on view centered horizontally in the exploded pane; mAx is
+  // the LEFT edge of the hole (not of the panel face, which extends wider).
+  const panelFaceW = PX(tw) * 3;
+  const motherBlockX = PADDING + (expWidth - (panelFaceW + 30 + PX(mt) * 1.5 + 20)) / 2;
+  const mAx = motherBlockX + (panelFaceW - PX(tw)) / 2;
+  const mAy = PADDING + 30 + (motherFaceH - PX(mt)) / 2; // mAy is where the mortise vertically starts inside the face
   // Child (bottom half): body + tenon stub going up
   const cBodyX = PADDING + expWidth / 2 - PX(cw) / 2;
-  const cBodyY = mAy + PX(mt) + 60;
+  const cBodyY = PADDING + 30 + motherFaceH + 50;
 
   // ---- assembled positions ----
   const asmOriginX = PADDING * 2 + expWidth;
@@ -185,53 +192,117 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
         分解圖
       </text>
 
-      {/* mother: a panel (top edge view) — horizontal strip, thickness mt */}
-      <g>
-        {/* panel body */}
-        <rect
-          x={mAx - 40}
-          y={mAy}
-          width={PX(tw) + 80}
-          height={PX(mt)}
-          fill={COLOR_MORTISE}
-          stroke={COLOR_OUTLINE}
-        />
-        {/* through hole (dashed — hole passes vertically) */}
-        <rect
-          x={mAx}
-          y={mAy}
-          width={PX(tw)}
-          height={PX(mt)}
-          fill="white"
-          stroke={COLOR_OUTLINE}
-          strokeDasharray="3 2"
-        />
-        <text
-          x={mAx + PX(tw) / 2}
-          y={mAy + PX(mt) + 14}
-          fontSize={9}
-          textAnchor="middle"
-          fill="#666"
-        >
-          母件（凹，貫通孔）
-        </text>
-        <DimLine
-          x1={mAx}
-          y1={mAy}
-          x2={mAx + PX(tw)}
-          y2={mAy}
-          label={`榫孔 ${tw}`}
-          side="top"
-        />
-        <DimLine
-          x1={mAx + PX(tw) + 40}
-          y1={mAy}
-          x2={mAx + PX(tw) + 40}
-          y2={mAy + PX(mt)}
-          label={`厚 ${mt}`}
-          side="right"
-        />
-      </g>
+      {/* Mother: face-on view — panel seen from above, with a rectangular hole
+          surrounded by wood on all four sides. A small cross-section strip on
+          the right shows the panel thickness. This replaces the old edge-view
+          which was read as "panel broken in half". */}
+      {(() => {
+        const panelFaceW = PX(tw) * 3; // abstracted panel extent on the face
+        const panelFaceH = PX(tt) * 3; // abstracted panel depth
+        const pFaceX = mAx - (panelFaceW - PX(tw)) / 2;
+        const pFaceY = mAy - (panelFaceH - PX(mt)) / 2;
+        // Hole centered in the face
+        const holeX = pFaceX + (panelFaceW - PX(tw)) / 2;
+        const holeY = pFaceY + (panelFaceH - PX(tt)) / 2;
+        // Side cross-section strip to the right
+        const xsX = pFaceX + panelFaceW + 30;
+        const xsY = pFaceY;
+        const xsW = PX(mt) * 1.5;
+        const xsH = panelFaceH;
+        // Hole in the cross-section (vertical slot through full thickness)
+        const xsHoleY = xsY + (xsH - PX(tt)) / 2;
+        return (
+          <g>
+            {/* panel face (top view) */}
+            <rect
+              x={pFaceX}
+              y={pFaceY}
+              width={panelFaceW}
+              height={panelFaceH}
+              fill={COLOR_MORTISE}
+              stroke={COLOR_OUTLINE}
+            />
+            {/* hole on the face — solid outline since we're looking AT the opening */}
+            <rect
+              x={holeX}
+              y={holeY}
+              width={PX(tw)}
+              height={PX(tt)}
+              fill="white"
+              stroke={COLOR_OUTLINE}
+            />
+            <text
+              x={pFaceX + panelFaceW / 2}
+              y={pFaceY + panelFaceH + 14}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              母件（俯視）
+            </text>
+            <DimLine
+              x1={holeX}
+              y1={holeY - 4}
+              x2={holeX + PX(tw)}
+              y2={holeY - 4}
+              label={`榫孔長 ${tw}`}
+              side="top"
+            />
+            <DimLine
+              x1={holeX + PX(tw) + 4}
+              y1={holeY}
+              x2={holeX + PX(tw) + 4}
+              y2={holeY + PX(tt)}
+              label={`榫孔寬 ${tt}`}
+              side="right"
+            />
+
+            {/* side cross-section strip: thickness visible, slot dashed */}
+            <rect
+              x={xsX}
+              y={xsY}
+              width={xsW}
+              height={xsH}
+              fill="none"
+              stroke={COLOR_OUTLINE}
+              strokeDasharray="4 3"
+            />
+            <rect
+              x={xsX}
+              y={xsHoleY}
+              width={xsW}
+              height={PX(tt)}
+              fill={COLOR_MORTISE}
+              stroke={COLOR_OUTLINE}
+            />
+            <rect
+              x={xsX + (xsW - PX(mt)) / 2}
+              y={xsHoleY}
+              width={PX(mt)}
+              height={PX(tt)}
+              fill="white"
+              stroke={COLOR_OUTLINE}
+            />
+            <text
+              x={xsX + xsW / 2}
+              y={xsY + xsH + 14}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              側剖面
+            </text>
+            <DimLine
+              x1={xsX + (xsW - PX(mt)) / 2}
+              y1={xsHoleY + PX(tt) + 6}
+              x2={xsX + (xsW + PX(mt)) / 2}
+              y2={xsHoleY + PX(tt) + 6}
+              label={`板厚 ${mt}`}
+              side="bottom"
+            />
+          </g>
+        );
+      })()}
 
       {/* child: leg/stick with tenon on top */}
       <g>
