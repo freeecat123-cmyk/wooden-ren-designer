@@ -26,7 +26,9 @@
 - **full-panel edge 接合**（366mm 寬「榫頭」那種）用 `tongue-and-groove`，不是 `blind-tenon`——巨型盲榫渲染會壞掉
 - 已實作的 renderer：through-tenon（含端面紋視覺提示）/ blind-tenon / **shouldered-tenon（帶肩榫，有主榫 + 上方肩榫 + 端面剖面）** / half-lap / tongue-and-groove / dovetail（梯形 pins/tails）。其他（finger-joint / dowel / mitered-spline）是 placeholder
 - **桌腳↔牙板、結構大橫木↔柱腳一律用 shouldered-tenon**；一般橫撐、footrest、背板條用 blind-tenon；櫃體面板邊緣用 tongue-and-groove
-- `JoineryRulesCallout`（頁面 `JoinerySection` 頂端的琥珀色 box）列出 1/3 厚、2/3 長、3/4 寬、帶肩榫肩長 1/3 的規則
+- **榫厚比例真正規則（FWW/Popular Woodworking）**：榫厚 = **被開榫眼的母件（柱腳）厚度的 1/3**，不是公件。實作寫 `min(apronThick - 2*6, legSize/3)`，因為公件較薄時會受限。**不要再改回 apronThickness/3**（是之前的錯誤）
+- **肩寬固定 6mm**，不是比例：`tenon.width = apronWidth - 2 * 6`
+- `JoineryRulesCallout`（頁面 `JoinerySection` 頂端的琥珀色 box）列規則，有改動就同步更新
 
 ## 工作模式：自我迭代（使用者授權後）
 
