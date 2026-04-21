@@ -49,10 +49,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const withLowerStretcher = getOption<boolean>(input, squareStoolOptions[5]);
 
   const legTenonLength = seatThickness; // 通榫穿過座板
-  // 正規比例：榫長 = 柱腳 2/3；榫厚 = 母件 1/3；榫肩 = 上下各 1/4
+  // 正規比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
+  const MIN_SHOULDER = 6;
   const apronTenonLength = Math.round((legSize * 2) / 3);
-  const apronTenonThick = Math.max(6, Math.round(apronThickness / 3));
-  const apronTenonW = Math.max(15, apronWidth - Math.round(apronWidth / 4));
+  const apronTenonThick = Math.max(
+    6,
+    Math.min(apronThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const apronTenonW = Math.max(15, apronWidth - 2 * MIN_SHOULDER);
 
   const legHeight = height - seatThickness;
 
@@ -155,8 +159,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lowerW = 40;
     const lowerT = 20;
     const lowerTenon = Math.round((legSize * 2) / 3);
-    const lowerTenonThick = Math.max(6, Math.round(lowerT / 3));
-    const lowerTenonW = Math.max(12, lowerW - Math.round(lowerW / 4));
+    const lowerTenonThick = Math.max(
+      6,
+      Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+    );
+    const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
     const sides = [
       { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
       { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },

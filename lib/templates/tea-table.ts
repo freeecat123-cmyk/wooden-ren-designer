@@ -51,12 +51,20 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 正規榫卯比例：榫長 = 柱腳 2/3；榫厚 = 母件 1/3；榫肩 = 上下各 1/4
   const legTopTenonLen = topThickness;
+  // 正規比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
+  const MIN_SHOULDER = 6;
   const apronTenonLen = Math.round((legSize * 2) / 3);
   const stretcherTenonLen = apronTenonLen;
-  const apronTenonThick = Math.max(6, Math.round(upperApronThickness / 3));
-  const apronTenonW = Math.max(15, upperApronWidth - Math.round(upperApronWidth / 4));
-  const strTenonThick = Math.max(6, Math.round(lowerStretcherThickness / 3));
-  const strTenonW = Math.max(15, lowerStretcherWidth - Math.round(lowerStretcherWidth / 4));
+  const apronTenonThick = Math.max(
+    6,
+    Math.min(upperApronThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const apronTenonW = Math.max(15, upperApronWidth - 2 * MIN_SHOULDER);
+  const strTenonThick = Math.max(
+    6,
+    Math.min(lowerStretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const strTenonW = Math.max(15, lowerStretcherWidth - 2 * MIN_SHOULDER);
 
   const legHeight = height - topThickness;
   const upperApronY = legHeight - upperApronWidth - 20;
@@ -152,6 +160,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     apronWidth: upperApronWidth,
     apronThickness: upperApronThickness,
     tenonLength: apronTenonLen,
+    tenonThickness: apronTenonThick,
+    tenonWidth: apronTenonW,
     tenonType: "shouldered-tenon",
     y: upperApronY,
     extraMortises: () => [],
@@ -168,6 +178,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     apronWidth: lowerStretcherWidth,
     apronThickness: lowerStretcherThickness,
     tenonLength: stretcherTenonLen,
+    tenonThickness: strTenonThick,
+    tenonWidth: strTenonW,
     y: stretcherFloorOffset,
     // 內側面開長槽，棚板舌頭嵌入
     extraMortises: (visibleLength) => [
@@ -259,6 +271,8 @@ interface ApronRingOpts {
   apronWidth: number;
   apronThickness: number;
   tenonLength: number;
+  tenonThickness: number;
+  tenonWidth: number;
   tenonType?: "blind-tenon" | "shouldered-tenon";
   y: number;
   extraMortises: (visibleLength: number) => Part["mortises"];
@@ -296,8 +310,8 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     },
   ];
 
-  const tThick = Math.max(6, Math.round(o.apronThickness / 3));
-  const tW = Math.max(15, o.apronWidth - Math.round(o.apronWidth / 4));
+  const tThick = o.tenonThickness;
+  const tW = o.tenonWidth;
   return sides.map((s) => ({
     id: `${o.idPrefix}-${s.key}`,
     nameZh: `${s.nameZh}${o.nameZhPrefix}`,

@@ -32,12 +32,19 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronThickness = 18;
   const footRestWidth = 30;
   const footRestThickness = 22;
-  // 正規榫卯比例
+  // 正規榫卯比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
+  const MIN_SHOULDER = 6;
   const apronTenonLen = Math.round((legSize * 2) / 3);
-  const apronTenonThick = Math.max(5, Math.round(apronThickness / 3));
-  const apronTenonW = Math.max(12, apronWidth - Math.round(apronWidth / 4));
-  const frTenonThick = Math.max(5, Math.round(footRestThickness / 3));
-  const frTenonW = Math.max(12, footRestWidth - Math.round(footRestWidth / 4));
+  const apronTenonThick = Math.max(
+    5,
+    Math.min(apronThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const apronTenonW = Math.max(12, apronWidth - 2 * MIN_SHOULDER);
+  const frTenonThick = Math.max(
+    5,
+    Math.min(footRestThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const frTenonW = Math.max(12, footRestWidth - 2 * MIN_SHOULDER);
   const seatTopTenonLen = seatThickness;
 
   const seatY = height - seatThickness;

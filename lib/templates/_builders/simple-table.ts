@@ -58,10 +58,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronOffset = opts.apronOffset ?? 20;
   const topOverhang = opts.topOverhang ?? 0;
   const withLowerStretchers = opts.withLowerStretchers ?? false;
-  // 正規榫卯比例：榫長 = 柱腳寬的 2/3；榫厚 = 母件厚的 1/3；榫肩 = 牙板上下各 1/4
+  // 正規榫卯比例（Fine Woodworking / Popular Woodworking 共識）：
+  // - 榫厚 = 被開榫眼的母件（柱腳）厚度的 1/3
+  //   但不能超過公件（牙板）厚度減兩側最小肩 6mm
+  // - 榫長 = 母件厚度的 2/3（盲榫）
+  // - 榫寬 = 牙板寬減上下各 6mm（固定肩，非比例）
+  const MIN_SHOULDER = 6;
   const apronTenonLen = Math.round((legSize * 2) / 3);
-  const apronTenonThick = Math.max(6, Math.round(apronThickness / 3));
-  const apronTenonWidth = Math.max(15, apronWidth - Math.round(apronWidth / 4));
+  const apronTenonThick = Math.max(
+    6,
+    Math.min(
+      apronThickness - 2 * MIN_SHOULDER,
+      Math.round(legSize / 3),
+    ),
+  );
+  const apronTenonWidth = Math.max(15, apronWidth - 2 * MIN_SHOULDER);
   const legTopTenonLen = topThickness;
 
   const legHeight = height - topThickness;
@@ -207,8 +218,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherWidth = 40;
     const stretcherThickness = 20;
     const tenonLen = Math.round((legSize * 2) / 3);
-    const tenonThick = Math.max(6, Math.round(stretcherThickness / 3));
-    const tenonW = Math.max(12, stretcherWidth - Math.round(stretcherWidth / 4));
+    const tenonThick = Math.max(
+      6,
+      Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+    );
+    const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
     const lowerSides = [
       { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -apronEdgeZ } },
       { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: apronEdgeZ } },
@@ -238,8 +252,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherWidth = 50;
     const stretcherThickness = 25;
     const stretcherTenonLen = apronTenonLen;
-    const cTenonThick = Math.max(6, Math.round(stretcherThickness / 3));
-    const cTenonW = Math.max(15, stretcherWidth - Math.round(stretcherWidth / 4));
+    // Center stretcher's mother = apron (not leg), so base tenon thickness on apron
+    const cTenonThick = Math.max(
+      6,
+      Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(apronThickness / 3)),
+    );
+    const cTenonW = Math.max(15, stretcherWidth - 2 * MIN_SHOULDER);
     parts.push({
       id: "center-stretcher",
       nameZh: "中央橫撐",
