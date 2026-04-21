@@ -183,14 +183,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     tenons: [
       {
         position: "start",
-        type: "blind-tenon",
+        type: "shouldered-tenon",
         length: apronTenonLen,
         width: apronTenonWidth,
         thickness: apronTenonThick,
       },
       {
         position: "end",
-        type: "blind-tenon",
+        type: "shouldered-tenon",
         length: apronTenonLen,
         width: apronTenonWidth,
         thickness: apronTenonThick,

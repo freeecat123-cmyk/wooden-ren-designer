@@ -152,6 +152,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     apronWidth: upperApronWidth,
     apronThickness: upperApronThickness,
     tenonLength: apronTenonLen,
+    tenonType: "shouldered-tenon",
     y: upperApronY,
     extraMortises: () => [],
   });
@@ -258,6 +259,7 @@ interface ApronRingOpts {
   apronWidth: number;
   apronThickness: number;
   tenonLength: number;
+  tenonType?: "blind-tenon" | "shouldered-tenon";
   y: number;
   extraMortises: (visibleLength: number) => Part["mortises"];
 }
@@ -313,14 +315,14 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     tenons: [
       {
         position: "start",
-        type: "blind-tenon",
+        type: o.tenonType ?? "blind-tenon",
         length: o.tenonLength,
         width: tW,
         thickness: tThick,
       },
       {
         position: "end",
-        type: "blind-tenon",
+        type: o.tenonType ?? "blind-tenon",
         length: o.tenonLength,
         width: tW,
         thickness: tThick,

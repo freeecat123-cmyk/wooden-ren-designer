@@ -178,14 +178,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [
       {
         position: "start",
-        type: "blind-tenon",
+        type: "shouldered-tenon",
         length: apronTenonLen,
         width: apronTenonW,
         thickness: apronTenonThick,
       },
       {
         position: "end",
-        type: "blind-tenon",
+        type: "shouldered-tenon",
         length: apronTenonLen,
         width: apronTenonW,
         thickness: apronTenonThick,

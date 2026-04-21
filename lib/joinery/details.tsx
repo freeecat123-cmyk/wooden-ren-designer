@@ -890,6 +890,286 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
   );
 }
 
+/* ============================================================
+ * 帶肩榫 (haunched / shouldered tenon) — apron-to-leg standard
+ *
+ *   Main tenon occupies the middle of the apron width, with a short
+ *   "haunch" stub above it (prevents twist + fills the gap up to the
+ *   top edge of the apron). Bottom has a shoulder (no tenon).
+ *
+ *   Dimensions used:
+ *     tenon.length    = main tenon protrusion length
+ *     tenon.width     = main tenon height (vertical on apron face)
+ *     tenon.thickness = tenon thickness (horizontal, into the leg)
+ *     childWidth  (cw) = FULL apron width — haunch + main tenon + bottom shoulder
+ *     childThickness (ct) = apron body thickness
+ *     haunchLen       = tenon.length / 3
+ *     haunchHeight    = (cw - tw) / 2  (the gap between main tenon top and apron top)
+ *     bottomShoulder  = (cw - tw) / 2  (symmetric)
+ * ============================================================ */
+function ShoulderedTenonDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+
+  // Haunch geometry (default, from 1/3 rule)
+  const haunchLen = Math.max(4, Math.round(tl / 3));
+  // Distribute remaining apron width: shoulder top + main tenon centered + shoulder bottom
+  // Haunch replaces the top shoulder (fills it in).
+  const topGap = Math.max(0, (cw - tw) / 2);
+  const bottomGap = Math.max(0, (cw - tw) / 2);
+
+  const s = fitScale(Math.max(mt * 2 + 40, cw + 40, tw + 40, tl * 4), 200);
+  const PX = (mm: number) => mm * s;
+
+  const leftPad = 50;
+  const expMotherW = PX(mt) * 2 + 20;
+  const expChildW = PX(tl) + PX(haunchLen) + Math.max(120, PX(ct) * 4);
+  const expWidth = Math.max(expMotherW, expChildW) + 60;
+
+  const asmWidth = PX(mt) * 2 + PX(tl) + 60;
+
+  // Vertical budget: top pad + mother + gap + child + bottom text + pad
+  const gapBetween = 60;
+  const bottomTextReserve = 24;
+  const h =
+    PADDING + 10 + PX(mt) + gapBetween + PX(cw) + bottomTextReserve + PADDING;
+  const w = expWidth + asmWidth + PADDING * 3 + leftPad;
+
+  const mAx = PADDING + leftPad;
+  const mAy = PADDING + 10;
+
+  // Child (apron) drawn FACE-ON below the mother:
+  // wide face visible, cw vertical × some horizontal length
+  const cAx = PADDING + leftPad;
+  const cAy = mAy + PX(mt) + gapBetween;
+  const cBodyLen = Math.max(120, PX(ct) * 4); // abstract body length
+  // Apron top & bottom edges (on the face we're looking at)
+  const cTop = cAy;
+  const cBottom = cAy + PX(cw);
+  // Main tenon vertical position (centered in the apron width, above bottom shoulder)
+  const tenonTop = cAy + PX(bottomGap); // tenon starts this far above the bottom
+  const tenonBottom = tenonTop + PX(tw);
+  // Haunch vertical range = from apron top DOWN to the main tenon's top
+  const haunchTop = cTop;
+  const haunchBottom = tenonTop;
+
+  // Assembled positions
+  const asmOriginX = PADDING * 2 + expWidth + leftPad;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      style={{ maxWidth: "720px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-shouldered" color="#7a5a2c" />
+      </defs>
+
+      {/* ========= EXPLODED ========= */}
+      <text x={PADDING} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（牙板/橫撐端面視角）
+      </text>
+
+      {/* Mother (leg), side face with TWO holes: main mortise + haunch slot */}
+      <g>
+        <rect
+          x={mAx}
+          y={mAy}
+          width={expMotherW}
+          height={PX(mt)}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Main mortise (shown on leg face) — full tenon width */}
+        <rect
+          x={mAx + expMotherW / 2 - PX(tw) / 2}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2 + PX(bottomGap) / 4}
+          width={PX(tw)}
+          height={PX(tt)}
+          fill="white"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
+        {/* Haunch slot above main mortise — narrower + shallower */}
+        <rect
+          x={mAx + expMotherW / 2 - PX(tw) / 4}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2 + PX(bottomGap) / 4 - PX(tt) - 2}
+          width={PX(tw) / 2}
+          height={PX(tt) * 0.8}
+          fill="white"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
+        <text
+          x={mAx + expMotherW / 2}
+          y={mAy + PX(mt) + 18}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          母件（凹，主榫眼 + 上方肩眼）
+        </text>
+        <DimLine
+          x1={mAx + expMotherW + 20}
+          y1={mAy}
+          x2={mAx + expMotherW + 20}
+          y2={mAy + PX(mt)}
+          label={`母厚 ${mt}`}
+          side="right"
+        />
+      </g>
+
+      {/* Child (apron) — wide-face view with tenon + haunch on the right end */}
+      <g>
+        {/* Apron body */}
+        <rect
+          x={cAx}
+          y={cTop}
+          width={cBodyLen}
+          height={PX(cw)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Bottom shoulder — visible as absence of wood below main tenon */}
+        {/* Main tenon (middle, full length) */}
+        <rect
+          x={cAx + cBodyLen}
+          y={tenonTop}
+          width={PX(tl)}
+          height={PX(tw)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Haunch (top, short stub) */}
+        <rect
+          x={cAx + cBodyLen}
+          y={haunchTop}
+          width={PX(haunchLen)}
+          height={PX(topGap)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+
+        {/* Shoulder lines (vertical divider at body-tenon transition) */}
+        <line
+          x1={cAx + cBodyLen}
+          y1={cTop}
+          x2={cAx + cBodyLen}
+          y2={cBottom}
+          stroke={COLOR_OUTLINE}
+          strokeWidth={0.8}
+        />
+
+        <text
+          x={cAx + cBodyLen / 2}
+          y={cBottom + 14}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          公件（凸，牙板/橫撐）
+        </text>
+
+        {/* Labels */}
+        <DimLine
+          x1={cAx + cBodyLen}
+          y1={tenonBottom + 4}
+          x2={cAx + cBodyLen + PX(tl)}
+          y2={tenonBottom + 4}
+          label={`主榫長 ${tl}`}
+          side="bottom"
+        />
+        <DimLine
+          x1={cAx + cBodyLen + PX(tl) + 10}
+          y1={tenonTop}
+          x2={cAx + cBodyLen + PX(tl) + 10}
+          y2={tenonBottom}
+          label={`榫寬 ${tw}`}
+          side="right"
+        />
+        {haunchLen > 0 && topGap > 0 && (
+          <DimLine
+            x1={cAx + cBodyLen + PX(haunchLen) + 30}
+            y1={haunchTop}
+            x2={cAx + cBodyLen + PX(haunchLen) + 30}
+            y2={haunchBottom}
+            label={`肩寬 ${Math.round(topGap)}`}
+            side="right"
+          />
+        )}
+        {haunchLen > 0 && (
+          <DimLine
+            x1={cAx + cBodyLen}
+            y1={haunchTop - 6}
+            x2={cAx + cBodyLen + PX(haunchLen)}
+            y2={haunchTop - 6}
+            label={`肩長 ${haunchLen}`}
+            side="top"
+          />
+        )}
+        <DimLine
+          x1={cAx - 14}
+          y1={cTop}
+          x2={cAx - 14}
+          y2={cBottom}
+          label={`板寬 ${cw}`}
+          side="left"
+        />
+      </g>
+
+      {/* ========= ASSEMBLED (top-down cross-section) ========= */}
+      <text x={asmOriginX} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合剖面（上視切面）
+      </text>
+
+      <g>
+        {/* Leg cross-section (hatched square) */}
+        <rect
+          x={asmOriginX + 20}
+          y={mAy}
+          width={PX(mt) * 2}
+          height={PX(mt)}
+          fill="url(#hatch-shouldered)"
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Main tenon inside leg */}
+        <rect
+          x={asmOriginX + 20 + PX(mt) * 2 - PX(tl)}
+          y={mAy + PX(mt) / 2 - PX(tt) / 2}
+          width={PX(tl)}
+          height={PX(tt)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Apron body extending right */}
+        <rect
+          x={asmOriginX + 20 + PX(mt) * 2}
+          y={mAy + PX(mt) / 2 - PX(ct) / 2}
+          width={PX(ct) * 4}
+          height={PX(ct)}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text
+          x={asmOriginX + 20 + PX(mt)}
+          y={mAy + PX(mt) + 16}
+          fontSize={9}
+          textAnchor="middle"
+          fill="#666"
+        >
+          主榫藏於柱腳，上方肩榫防旋轉
+        </text>
+      </g>
+    </svg>
+  );
+}
+
 function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
   return (
     <div className="p-4 text-sm text-zinc-600 bg-zinc-50 rounded">
@@ -1135,7 +1415,7 @@ const RENDERERS: Partial<
 > = {
   "through-tenon": ThroughTenonDetail,
   "blind-tenon": BlindTenonDetail,
-  "shouldered-tenon": BlindTenonDetail,
+  "shouldered-tenon": ShoulderedTenonDetail,
   "half-lap": HalfLapDetail,
   "tongue-and-groove": TongueAndGrooveDetail,
   dovetail: DovetailDetail,
@@ -1156,7 +1436,7 @@ export function JoineryDetail({
 export const JOINERY_LABEL: Record<JoineryType, string> = {
   "through-tenon": "通榫",
   "blind-tenon": "半榫 / 盲榫",
-  "shouldered-tenon": "搭肩榫",
+  "shouldered-tenon": "帶肩榫（haunched）",
   "half-lap": "半搭榫",
   dovetail: "鳩尾榫",
   "finger-joint": "指接榫",
@@ -1170,7 +1450,7 @@ export const JOINERY_LABEL: Record<JoineryType, string> = {
 export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "through-tenon": "榫頭穿過母件、可從另一面看到。強度最高，適合椅腳、桌腳重要結構。",
   "blind-tenon": "榫頭藏在母件內、外觀看不到。美觀，適合桌腳橫撐、櫃體等。",
-  "shouldered-tenon": "榫頭多面有肩，提高抗扭強度。",
+  "shouldered-tenon": "主榫加上方的「肩榫」（haunch），主榫扛拉力、肩榫防旋轉。桌腳↔牙板正規做法。",
   "half-lap": "兩件各削一半厚度後相疊，搭肩固定。簡單常用於框架交叉。",
   dovetail: "梯形榫頭咬合，抗拉力極強。經典用於抽屜、箱體轉角。",
   "finger-joint": "對稱方齒交錯接合。常用於箱體、托盤轉角。",

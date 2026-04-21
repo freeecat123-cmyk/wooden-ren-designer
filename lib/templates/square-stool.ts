@@ -131,14 +131,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [
       {
         position: "start" as const,
-        type: "blind-tenon" as const,
+        type: "shouldered-tenon" as const,
         length: apronTenonLength,
         width: apronTenonW,
         thickness: apronTenonThick,
       },
       {
         position: "end" as const,
-        type: "blind-tenon" as const,
+        type: "shouldered-tenon" as const,
         length: apronTenonLength,
         width: apronTenonW,
         thickness: apronTenonThick,

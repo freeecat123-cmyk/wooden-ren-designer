@@ -135,8 +135,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: s.origin.x, y: ringY, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
     tenons: [
-      { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
-      { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+      { position: "start", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+      { position: "end", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
     ],
     mortises: [],
   }));
