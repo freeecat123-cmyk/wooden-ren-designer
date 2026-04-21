@@ -129,8 +129,8 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
   const childBodyLen = PX(ct) * 3; // how far below mortise we show
 
   // --- EXPLODED panel dimensions ---
-  // Mother face-on view needs: panel face (tw*3) + gap + thickness strip (mt*1.5) + label
-  const expMotherW = PX(tw) * 3 + 30 + PX(mt) * 1.5 + 50;
+  // Mother face-on view needs: panel face (tw*3) + gap + side cross-section (tw+60) + dim label
+  const expMotherW = PX(tw) * 3 + 40 + PX(tw) + 60 + 50;
   const expWidth = Math.max(expMotherW, PX(cw) + 80);
   // reserve 40 extra px for 柱寬 dim label below the leg body when shoulders exist
   const extraBottomForShoulders = cw !== tw ? 40 : 0;
@@ -204,13 +204,17 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
         // Hole centered in the face
         const holeX = pFaceX + (panelFaceW - PX(tw)) / 2;
         const holeY = pFaceY + (panelFaceH - PX(tt)) / 2;
-        // Side cross-section strip to the right
-        const xsX = pFaceX + panelFaceW + 30;
-        const xsY = pFaceY;
-        const xsW = PX(mt) * 1.5;
-        const xsH = panelFaceH;
-        // Hole in the cross-section (vertical slot through full thickness)
-        const xsHoleY = xsY + (xsH - PX(tt)) / 2;
+        // Side cross-section (cut along a plane through the leg, looking sideways):
+        //   horizontal axis = a portion of the panel's length (shows wood either side of hole)
+        //   vertical axis   = panel thickness (mt), going top-face → bottom-face
+        //   the through-hole appears as a vertical slot PX(tw) wide × PX(mt) tall
+        const xsX = pFaceX + panelFaceW + 40;
+        const xsW = PX(tw) + 60;                    // hole + wood margins left/right
+        const xsH = PX(mt);                          // panel thickness (vertical)
+        // vertically center the cross-section within the face view's height so the
+        // two views align neatly
+        const xsY = pFaceY + (panelFaceH - xsH) / 2;
+        const xsHoleX = xsX + (xsW - PX(tw)) / 2;   // hole horizontally centered
         return (
           <g>
             {/* panel face (top view) */}
@@ -257,29 +261,22 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
               side="right"
             />
 
-            {/* side cross-section strip: thickness visible, slot dashed */}
+            {/* Side cross-section: panel thickness visible as a horizontal band;
+                through-hole appears as a vertical slot punched top-to-bottom */}
             <rect
               x={xsX}
               y={xsY}
               width={xsW}
               height={xsH}
-              fill="none"
-              stroke={COLOR_OUTLINE}
-              strokeDasharray="4 3"
-            />
-            <rect
-              x={xsX}
-              y={xsHoleY}
-              width={xsW}
-              height={PX(tt)}
               fill={COLOR_MORTISE}
               stroke={COLOR_OUTLINE}
             />
+            {/* hole = vertical slot from top face to bottom face */}
             <rect
-              x={xsX + (xsW - PX(mt)) / 2}
-              y={xsHoleY}
-              width={PX(mt)}
-              height={PX(tt)}
+              x={xsHoleX}
+              y={xsY}
+              width={PX(tw)}
+              height={xsH}
               fill="white"
               stroke={COLOR_OUTLINE}
             />
@@ -290,15 +287,25 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
               textAnchor="middle"
               fill="#666"
             >
-              側剖面
+              側剖面（切過榫孔）
             </text>
+            {/* thickness = vertical (穿透方向) */}
             <DimLine
-              x1={xsX + (xsW - PX(mt)) / 2}
-              y1={xsHoleY + PX(tt) + 6}
-              x2={xsX + (xsW + PX(mt)) / 2}
-              y2={xsHoleY + PX(tt) + 6}
+              x1={xsX + xsW + 8}
+              y1={xsY}
+              x2={xsX + xsW + 8}
+              y2={xsY + xsH}
               label={`板厚 ${mt}`}
-              side="bottom"
+              side="right"
+            />
+            {/* hole width = horizontal */}
+            <DimLine
+              x1={xsHoleX}
+              y1={xsY - 4}
+              x2={xsHoleX + PX(tw)}
+              y2={xsY - 4}
+              label={`${tw}`}
+              side="top"
             />
           </g>
         );
