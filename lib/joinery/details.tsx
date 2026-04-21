@@ -166,6 +166,16 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
     >
       <defs>
         <Hatching id="hatch-through" color="#7a5a2c" />
+        {/* End-grain pattern: dotted to indicate exposed cross-cut wood */}
+        <pattern
+          id="end-grain-through"
+          patternUnits="userSpaceOnUse"
+          width={4}
+          height={4}
+        >
+          <rect width={4} height={4} fill={COLOR_TENON} />
+          <circle cx={2} cy={2} r={0.6} fill="#7a5a2c" />
+        </pattern>
       </defs>
 
       {/* =========== EXPLODED =========== */}
@@ -311,6 +321,24 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
+        {/* End-grain pattern on top face of tenon — visible from above */}
+        <rect
+          x={asmChildX}
+          y={asmChildTop - 5}
+          width={PX(tt)}
+          height={5}
+          fill="url(#end-grain-through)"
+          stroke={COLOR_OUTLINE}
+          strokeWidth={0.5}
+        />
+        <text
+          x={asmChildX + PX(tt) + 4}
+          y={asmChildTop - 1}
+          fontSize={8}
+          fill="#666"
+        >
+          端面（木紋橫切）
+        </text>
         {/* label line: tenon flush with top */}
         <text
           x={asmMotherX + asmMotherW / 2}
@@ -319,7 +347,7 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          榫頭貫穿母件，與頂面齊平
+          榫頭貫穿母件，與頂面齊平，端面可見
         </text>
         {/* dim the tenon length = mother thickness */}
         <DimLine
