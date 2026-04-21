@@ -100,11 +100,10 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
       <Canvas
         shadows
         camera={{
-          position: [
-            (design.overall.length * SCALE) * 1.9,
-            (design.overall.thickness * SCALE) * 1.15,
-            -(design.overall.width * SCALE) * 2.1,
-          ],
+          // Distance driven by the piece's LARGEST dimension so tall furniture
+          // (wardrobe, open-bookshelf) doesn't get clipped top/bottom even
+          // when its length/width is small.
+          position: [maxDim * 1.8, maxDim * 1.3, -maxDim * 2.0],
           fov: 38,
         }}
       >
