@@ -291,8 +291,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         },
         rotation: { x: 0, y: 0, z: Math.PI / 2 },
         tenons: [
-          { position: "top", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
-          { position: "bottom", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+          // start/end = length axis (slat's tall dim); "top"/"bottom" would
+          // add to thickness because that's the local Y-axis convention.
+          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+          { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
         ],
         mortises: [],
       });

@@ -272,15 +272,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: 0 },
       rotation: { x: 0, y: 0, z: Math.PI / 2 },
       tenons: [
+        // start/end = local length axis (innerH); after Z-rotation this is
+        // the vertical axis (top/bottom of the cabinet). Using "top"/"bottom"
+        // here would add the tongue to `thickness` instead of `length`,
+        // making the cut sheet list a 40mm-thick panel for 18mm side stock.
         {
-          position: "top",
+          position: "start",
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
           thickness: panelTongueT,
         },
         {
-          position: "bottom",
+          position: "end",
           type: "tongue-and-groove",
           length: tenonLen,
           width: innerD - 8,
