@@ -480,8 +480,11 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   const leftPad = 50;
 
   // ---- EXPLODED: mother = piece side face (vertical orientation).
-  const faceMarginY = Math.max(30, PX(tw) * 0.6);
-  const motherFaceW = Math.max(PX(mt), 60); // ensure mother face has visible substance
+  // Generous margins so the face reads as "a chunk of wood with a hole",
+  // not a thin strip. Width also enforced min 90px so small mothers still
+  // look like a piece of wood.
+  const faceMarginY = Math.max(45, PX(tw) * 0.7);
+  const motherFaceW = Math.max(PX(mt), 90);
   const motherFaceH = PX(tw) + 2 * faceMarginY;
 
   const childBodyLen = Math.max(120, PX(cw) * 1.8);
@@ -578,7 +581,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          母件（柱腳側面，盲孔）
+          母件（側面觀，盲孔）
         </text>
         {/* leg width (horizontal) */}
         <DimLine
@@ -586,7 +589,7 @@ function BlindTenonDetail(p: JoineryDetailParams) {
           y1={mAy + motherFaceH + 28}
           x2={mAx + motherFaceW}
           y2={mAy + motherFaceH + 28}
-          label={`柱寬 ${mt}`}
+          label={`母件寬 ${mt}`}
           side="bottom"
         />
         {/* mortise height = tenon width (along leg's up-down axis) */}
@@ -769,25 +772,40 @@ function BlindTenonDetail(p: JoineryDetailParams) {
               stroke={COLOR_OUTLINE}
               strokeWidth={0.8}
             />
-            {/* Labels */}
+            {/* Labels outside with leader lines — easier to read than
+                overlapping hatch/color. */}
+            {(() => {
+              // 母件 label at top-left corner with leader
+              const motherLabelX = legX - 30;
+              const motherLabelY = legY + 18;
+              return (
+                <g fontSize={9} fill="#5a3f1e" stroke="none">
+                  <text x={motherLabelX} y={motherLabelY} textAnchor="end" fontWeight="bold">母件</text>
+                  <line x1={motherLabelX + 2} y1={motherLabelY - 3} x2={legX + 6} y2={legY + 10} stroke="#5a3f1e" strokeWidth={0.5} />
+                </g>
+              );
+            })()}
+            {(() => {
+              // 榫頭 label below apron body
+              const tenonLabelX = legX + legSide + 30;
+              const tenonLabelY = legY + legSide + 4;
+              return (
+                <g fontSize={9} fill="#8a6a3a" stroke="none">
+                  <text x={tenonLabelX} y={tenonLabelY} textAnchor="start" fontWeight="bold">榫頭（公件）</text>
+                  <line x1={tenonLabelX + 2} y1={tenonLabelY - 3} x2={mortiseLeft + mortiseL / 2} y2={legY + legSide / 2} stroke="#8a6a3a" strokeWidth={0.5} />
+                </g>
+              );
+            })()}
+            {/* 牙板 body label */}
             <text
-              x={legX + legSide / 2}
-              y={legY + legSide / 2 + 4}
-              fontSize={8}
+              x={legX + legSide + asmApronLen / 2 + 30}
+              y={legY + (legSide - AX(ct)) / 2 - 6}
+              fontSize={9}
               textAnchor="middle"
-              fill="#5a3f1e"
-              fontWeight="bold"
+              fill="#666"
+              stroke="none"
             >
-              母件
-            </text>
-            <text
-              x={mortiseLeft + mortiseL / 2}
-              y={mortiseTop - 4}
-              fontSize={8}
-              textAnchor="middle"
-              fill="#8a6a3a"
-            >
-              榫頭
+              牙板 body
             </text>
             <text
               x={legX + legSide / 2 + asmApronLen / 2}
