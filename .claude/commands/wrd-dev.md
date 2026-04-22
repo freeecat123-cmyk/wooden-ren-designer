@@ -60,6 +60,14 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 ## OptionSpec 必須帶 `group`
 每個 OptionSpec 物件加 `group: "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc"`，UI 會用這個分色塊、同部件放一起。沒帶就落到「其他」。加新家具時**一開始就分群**，別整包丟進去。
 
+## 榫頭 position 與切料維度對應（踩過雷）
+`cut-dimensions.ts` 用 `position` 決定 tenon overage 加到哪個維度：
+- `start` / `end` → `length`
+- `left` / `right` → `width`
+- `top` / `bottom` → `thickness`（**local Y 軸**，不是 "world 上下"！）
+
+所以 legs 這種 thickness = legHeight 的零件用 `top` 沒問題（thickness 就是長軸），但 **面板類**（案體側板、椅背板條）visible.length 才是長軸，要用 `start` / `end`。之前 case-furniture 側板用 `top`，結果 18mm 側板切料列 40mm，踩過這雷。
+
 ## 條件顯示 `dependsOn`（目前失效）
 schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVisible` 現在永遠回傳 `true`，所有子選項常駐顯示。原因：使用者反映勾父 checkbox 後子選項沒跳出來，直接改成不 gate。加新選項可以不用填 `dependsOn`，填了也不會生效。
 
