@@ -24,27 +24,27 @@ export interface LaborDefaults {
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
   vatRate: number;
-  /** 主材單價 (NT$/板才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
-  primaryMaterialPricePerBdft: number;
-  /** 夾板單價 (NT$/板才)；null 表示不分開計價，背板/抽屜底板併入主材 */
-  plywoodPricePerBdft: number | null;
-  /** 中纖板單價 (NT$/板才)；null 表示不分開計價，抽屜側背板併入主材 */
-  mdfPricePerBdft: number | null;
+  /** 主材才價 (NT$/才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
+  primaryMaterialPricePerTsai: number;
+  /** 夾板才價 (NT$/才)；null 表示不分開計價，背板/抽屜底板併入主材 */
+  plywoodPricePerTsai: number | null;
+  /** 中纖板才價 (NT$/才)；null 表示不分開計價，抽屜側背板併入主材 */
+  mdfPricePerTsai: number | null;
 }
 
 /**
- * 非主材相關的預設值。`primaryMaterialPricePerBdft` 必須由頁面依選定木材
- * 從 MATERIAL_PRICE_PER_BDFT 預填後傳入，所以這裡沒有它。
+ * 非主材相關的預設值。`primaryMaterialPricePerTsai` 必須由頁面依選定木材
+ * 從 MATERIAL_PRICE_PER_TSAI 預填後傳入，所以這裡沒有它。
  */
-export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> = {
+export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerTsai"> = {
   hourlyRate: 500,
   equipmentRate: 50,
   consumables: 200,
   finishingCost: 1500,
   marginRate: 0.3,
   vatRate: 0.05,
-  plywoodPricePerBdft: 170,
-  mdfPricePerBdft: 130,
+  plywoodPricePerTsai: 20,
+  mdfPricePerTsai: 15,
 };
 
 /** 合理範圍（表單 min/max） */
@@ -55,7 +55,7 @@ export const LABOR_BOUNDS = {
   finishingCost: { min: 0, max: 20000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
-  primaryMaterialPricePerBdft: { min: 100, max: 25000, step: 50 },
-  plywoodPricePerBdft: { min: 30, max: 1000, step: 10 },
-  mdfPricePerBdft: { min: 30, max: 1000, step: 10 },
+  primaryMaterialPricePerTsai: { min: 20, max: 3000, step: 10 },
+  plywoodPricePerTsai: { min: 5, max: 150, step: 5 },
+  mdfPricePerTsai: { min: 5, max: 150, step: 5 },
 } as const;

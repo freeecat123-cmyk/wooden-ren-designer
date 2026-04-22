@@ -3,7 +3,7 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import {
-  MM3_PER_BDFT,
+  MM3_PER_TSAI,
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
@@ -298,14 +298,14 @@ export function ThreeViewLayout({ design }: { design: FurnitureDesign }) {
 }
 
 export function MaterialList({ design }: { design: FurnitureDesign }) {
-  let totalBdft = 0;
-  const bdftByMaterial = new Map<string, number>();
+  let totalTsai = 0;
+  const tsaiByMaterial = new Map<string, number>();
 
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
     const volMm3 = cut.length * cut.width * cut.thickness;
-    const bdft = volMm3 / MM3_PER_BDFT;
-    totalBdft += bdft;
+    const tsai = volMm3 / MM3_PER_TSAI;
+    totalTsai += tsai;
 
     const billable = effectiveBillableMaterial(part);
     const materialLabel =
@@ -317,7 +317,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
       billable === "plywood" || billable === "mdf"
         ? SHEET_GOOD_LABEL[billable]
         : MATERIALS[part.material].nameZh;
-    bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
+    tsaiByMaterial.set(groupKey, (tsaiByMaterial.get(groupKey) ?? 0) + tsai);
 
     const tenonNotes = part.tenons.length
       ? part.tenons
@@ -328,7 +328,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           .join("、")
       : "—";
 
-    return { part, cut, bdft, materialLabel, tenonNotes };
+    return { part, cut, tsai, materialLabel, tenonNotes };
   });
 
   return (
@@ -339,12 +339,12 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           <th className="text-left p-2">材質</th>
           <th className="text-right p-2">可見長 × 寬 × 厚 (mm)</th>
           <th className="text-right p-2">切料尺寸 (mm)</th>
-          <th className="text-right p-2">材積（板才）</th>
+          <th className="text-right p-2">材積（才）</th>
           <th className="text-left p-2">榫頭備註</th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ part, cut, bdft, materialLabel, tenonNotes }) => (
+        {rows.map(({ part, cut, tsai, materialLabel, tenonNotes }) => (
           <tr key={part.id} className="border-b border-zinc-200">
             <td className="p-2">{part.nameZh}</td>
             <td className="p-2">{materialLabel}</td>
@@ -355,7 +355,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
               {cut.length} × {cut.width} × {cut.thickness}
             </td>
             <td className="p-2 text-right font-mono">
-              {bdft.toFixed(2)}
+              {tsai.toFixed(2)}
             </td>
             <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
           </tr>
@@ -366,13 +366,13 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           <td className="p-2 font-semibold" colSpan={4}>
             合計
             <span className="ml-3 text-xs text-zinc-500 font-normal">
-              {[...bdftByMaterial.entries()]
-                .map(([k, v]) => `${k} ${v.toFixed(2)} 板才`)
+              {[...tsaiByMaterial.entries()]
+                .map(([k, v]) => `${k} ${v.toFixed(2)} 才`)
                 .join("　・　")}
             </span>
           </td>
           <td className="p-2 text-right font-mono font-semibold">
-            {totalBdft.toFixed(2)}
+            {totalTsai.toFixed(2)}
           </td>
           <td className="p-2 text-xs text-zinc-500">未含 10% 切料損耗</td>
         </tr>
