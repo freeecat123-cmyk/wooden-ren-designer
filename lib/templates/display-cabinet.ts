@@ -18,9 +18,8 @@ export const displayCabinetOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topHeight", label: "上層高度 (mm)", defaultValue: 400, min: 80, max: 1500, step: 10 },
   { group: "top", type: "number", key: "topCount", label: "上層數量（抽屜排 / 門扇 / 層板片）", defaultValue: 2, min: 1, max: 8, step: 1 },
   { group: "top", type: "number", key: "topCols", label: "上層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
-  // 中層
-  { group: "top", type: "select", key: "midType", label: "中層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES },
-  { group: "top", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 600, min: 80, max: 1500, step: 10 },
+  // 中層（高度自動填滿剩餘 = 內高 − 上層 − 下層）
+  { group: "top", type: "select", key: "midType", label: "中層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES, help: "高度自動填滿剩餘空間" },
   { group: "top", type: "number", key: "midCount", label: "中層數量", defaultValue: 2, min: 1, max: 8, step: 1 },
   { group: "top", type: "number", key: "midCols", label: "中層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
   // 下層
@@ -69,7 +68,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const topCount = getOption<number>(input, opt(o, "topCount"));
   const topCols = getOption<number>(input, opt(o, "topCols"));
   const midType = getOption<string>(input, opt(o, "midType")) as ZoneType;
-  const midHeight = getOption<number>(input, opt(o, "midHeight"));
   const midCount = getOption<number>(input, opt(o, "midCount"));
   const midCols = getOption<number>(input, opt(o, "midCols"));
   const bottomType = getOption<string>(input, opt(o, "bottomType")) as ZoneType;
@@ -82,11 +80,29 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
+  // 計算可用內高（櫃子內部去掉頂底板 + 分隔板 + 腳）：
+  // innerH = height - legHeight - 2 × panelT。再扣除 2 個 zone boundary 分隔
+  // 板（中→上 + 中→下，各 shelfT），剩下的才是 3 個 zone 的淨高總和。
+  const innerH = input.height - legHeight - 2 * panelThickness;
+  const boundaryAllowance = 2 * (panelThickness - 2); // shelfT 用 panelT-2
+  const available = innerH - boundaryAllowance;
+
+  // 中層高度 = 剩餘空間。若上+下已超過 available，等比壓縮上+下，留最小 80mm 給中層。
+  const MIN_MID = 80;
+  let topH = topHeight;
+  let botH = bottomHeight;
+  if (topH + botH > available - MIN_MID) {
+    const scale = Math.max(0, available - MIN_MID) / (topH + botH);
+    topH = Math.round(topH * scale);
+    botH = Math.round(botH * scale);
+  }
+  const midH = Math.max(MIN_MID, available - topH - botH);
+
   // zones are stacked BOTTOM-up in caseFurniture's internal ordering
   const zones: CabinetZone[] = [];
-  const b = toCabinetZone(bottomType, bottomHeight, bottomCount, bottomCols);
-  const m = toCabinetZone(midType, midHeight, midCount, midCols);
-  const t = toCabinetZone(topType, topHeight, topCount, topCols);
+  const b = toCabinetZone(bottomType, botH, bottomCount, bottomCols);
+  const m = toCabinetZone(midType, midH, midCount, midCols);
+  const t = toCabinetZone(topType, topH, topCount, topCols);
   if (b) zones.push(b);
   if (m) zones.push(m);
   if (t) zones.push(t);
@@ -116,6 +132,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
-    notes: `三層組合：${describe("上層", topType, topHeight, topCount, topCols)}；${describe("中層", midType, midHeight, midCount, midCols)}；${describe("下層", bottomType, bottomHeight, bottomCount, bottomCols)}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
+    notes: `三層組合：${describe("上層", topType, topH, topCount, topCols)}；${describe("中層", midType, midH, midCount, midCols)}（自動填滿）；${describe("下層", bottomType, botH, bottomCount, bottomCols)}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
   });
 };
