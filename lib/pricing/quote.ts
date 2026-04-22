@@ -2,10 +2,10 @@ import type { BillableMaterial, FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import {
+  MATERIAL_PRICE_PER_TSAI,
   MM3_PER_TSAI,
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
-  priceForMaterial,
 } from "./catalog";
 import { MATERIALS } from "@/lib/materials";
 import type { LaborDefaults } from "./labor";
@@ -64,11 +64,6 @@ export function calculateQuote(
     volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
   }
 
-  const sheetOverrides = {
-    plywood: opts.plywoodPricePerTsai,
-    mdf: opts.mdfPricePerTsai,
-  };
-
   const materialLines: QuoteLineItem[] = [];
   let materialCost = 0;
   let totalVolumeMm3 = 0;
@@ -84,7 +79,20 @@ export function calculateQuote(
   for (const [mat, volMm3] of sortedEntries) {
     const withWaste = volMm3 * (1 + WASTE_RATE);
     const tsai = withWaste / MM3_PER_TSAI;
-    const unitPrice = priceForMaterial(mat, sheetOverrides);
+
+    // 才價優先順序：使用者輸入 > catalog 預設
+    let unitPrice: number;
+    if (mat === "plywood") {
+      unitPrice = opts.plywoodPricePerTsai;
+    } else if (mat === "mdf") {
+      unitPrice = opts.mdfPricePerTsai;
+    } else if (mat === design.primaryMaterial) {
+      unitPrice = opts.primaryMaterialPricePerTsai;
+    } else {
+      // 極少情況：零件標了另一種實木（目前沒有 template 會這樣）
+      unitPrice = MATERIAL_PRICE_PER_TSAI[mat] ?? 300;
+    }
+
     const amount = tsai * unitPrice;
     const suffix =
       mat === design.primaryMaterial

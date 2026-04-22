@@ -22,13 +22,19 @@ export interface LaborDefaults {
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
   vatRate: number;
-  /** 夾板才價覆寫 (NT$/才)，背板/抽屜底板計價用 */
+  /** 主材才價 (NT$/才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
+  primaryMaterialPricePerTsai: number;
+  /** 夾板才價 (NT$/才)，背板/抽屜底板計價用 */
   plywoodPricePerTsai: number;
-  /** 中纖板才價覆寫 (NT$/才)，抽屜側背板計價用 */
+  /** 中纖板才價 (NT$/才)，抽屜側背板計價用 */
   mdfPricePerTsai: number;
 }
 
-export const LABOR_DEFAULTS: LaborDefaults = {
+/**
+ * 非主材相關的預設值。`primaryMaterialPricePerTsai` 必須由頁面依選定木材
+ * 從 MATERIAL_PRICE_PER_TSAI 預填後傳入，所以這裡沒有它。
+ */
+export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerTsai"> = {
   hourlyRate: 500,
   equipmentRate: 50,
   consumables: 200,
@@ -45,6 +51,7 @@ export const LABOR_BOUNDS = {
   consumables: { min: 0, max: 2000, step: 50 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
+  primaryMaterialPricePerTsai: { min: 20, max: 3000, step: 10 },
   plywoodPricePerTsai: { min: 5, max: 150, step: 5 },
   mdfPricePerTsai: { min: 5, max: 150, step: 5 },
 } as const;

@@ -8,7 +8,7 @@ import {
   calculateQuote,
   generateQuoteNumber,
 } from "@/lib/pricing/quote";
-import { formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -22,6 +22,7 @@ interface PageProps {
     consumables?: string;
     marginRate?: string;
     vatRate?: string;
+    primaryMaterialPricePerTsai?: string;
     plywoodPricePerTsai?: string;
     mdfPricePerTsai?: string;
   }>;
@@ -44,12 +45,18 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
   const material = (sp.material as MaterialId) ?? "taiwan-cypress";
 
+  const catalogPrimaryPrice = MATERIAL_PRICE_PER_TSAI[material] ?? 300;
+
   const laborOpts = {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
+    primaryMaterialPricePerTsai: parseNum(
+      sp.primaryMaterialPricePerTsai,
+      catalogPrimaryPrice,
+    ),
     plywoodPricePerTsai: parseNum(
       sp.plywoodPricePerTsai,
       LABOR_DEFAULTS.plywoodPricePerTsai,
@@ -65,7 +72,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -98,6 +105,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         type={type}
         designQuery={designQuery}
         defaults={laborOpts}
+        primaryMaterialName={MATERIALS[material].nameZh}
       />
 
       <section className="mt-8 rounded-xl border border-zinc-200 bg-white overflow-hidden">
@@ -190,10 +198,21 @@ function LaborForm({
   type,
   designQuery,
   defaults,
+  primaryMaterialName,
 }: {
   type: string;
   designQuery: string;
-  defaults: typeof LABOR_DEFAULTS;
+  defaults: {
+    hourlyRate: number;
+    equipmentRate: number;
+    consumables: number;
+    marginRate: number;
+    vatRate: number;
+    primaryMaterialPricePerTsai: number;
+    plywoodPricePerTsai: number;
+    mdfPricePerTsai: number;
+  };
+  primaryMaterialName: string;
 }) {
   // Preserve design query string via hidden inputs
   const designParams = Object.fromEntries(
@@ -209,66 +228,86 @@ function LaborForm({
       {Object.entries(designParams).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <NumField
-          name="hourlyRate"
-          label="師傅時薪 (NT$/hr)"
-          value={defaults.hourlyRate}
-          min={LABOR_BOUNDS.hourlyRate.min}
-          max={LABOR_BOUNDS.hourlyRate.max}
-          step={LABOR_BOUNDS.hourlyRate.step}
-        />
-        <NumField
-          name="equipmentRate"
-          label="設備折舊 (NT$/hr)"
-          value={defaults.equipmentRate}
-          min={LABOR_BOUNDS.equipmentRate.min}
-          max={LABOR_BOUNDS.equipmentRate.max}
-          step={LABOR_BOUNDS.equipmentRate.step}
-        />
-        <NumField
-          name="consumables"
-          label="耗材 (NT$)"
-          value={defaults.consumables}
-          min={LABOR_BOUNDS.consumables.min}
-          max={LABOR_BOUNDS.consumables.max}
-          step={LABOR_BOUNDS.consumables.step}
-        />
-        <NumField
-          name="marginRate"
-          label="毛利率"
-          value={defaults.marginRate}
-          min={LABOR_BOUNDS.marginRate.min}
-          max={LABOR_BOUNDS.marginRate.max}
-          step={LABOR_BOUNDS.marginRate.step}
-          decimal
-        />
-        <NumField
-          name="vatRate"
-          label="營業稅率"
-          value={defaults.vatRate}
-          min={LABOR_BOUNDS.vatRate.min}
-          max={LABOR_BOUNDS.vatRate.max}
-          step={LABOR_BOUNDS.vatRate.step}
-          decimal
-        />
-        <NumField
-          name="plywoodPricePerTsai"
-          label="夾板 (NT$/才)"
-          value={defaults.plywoodPricePerTsai}
-          min={LABOR_BOUNDS.plywoodPricePerTsai.min}
-          max={LABOR_BOUNDS.plywoodPricePerTsai.max}
-          step={LABOR_BOUNDS.plywoodPricePerTsai.step}
-        />
-        <NumField
-          name="mdfPricePerTsai"
-          label="中纖板 (NT$/才)"
-          value={defaults.mdfPricePerTsai}
-          min={LABOR_BOUNDS.mdfPricePerTsai.min}
-          max={LABOR_BOUNDS.mdfPricePerTsai.max}
-          step={LABOR_BOUNDS.mdfPricePerTsai.step}
-        />
-      </div>
+      <fieldset className="mb-3">
+        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+          材料才價（NT$/才）
+        </legend>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <NumField
+            name="primaryMaterialPricePerTsai"
+            label={`${primaryMaterialName}（主材）`}
+            value={defaults.primaryMaterialPricePerTsai}
+            min={LABOR_BOUNDS.primaryMaterialPricePerTsai.min}
+            max={LABOR_BOUNDS.primaryMaterialPricePerTsai.max}
+            step={LABOR_BOUNDS.primaryMaterialPricePerTsai.step}
+          />
+          <NumField
+            name="plywoodPricePerTsai"
+            label="夾板（背板/抽屜底）"
+            value={defaults.plywoodPricePerTsai}
+            min={LABOR_BOUNDS.plywoodPricePerTsai.min}
+            max={LABOR_BOUNDS.plywoodPricePerTsai.max}
+            step={LABOR_BOUNDS.plywoodPricePerTsai.step}
+          />
+          <NumField
+            name="mdfPricePerTsai"
+            label="中纖板（抽屜側背）"
+            value={defaults.mdfPricePerTsai}
+            min={LABOR_BOUNDS.mdfPricePerTsai.min}
+            max={LABOR_BOUNDS.mdfPricePerTsai.max}
+            step={LABOR_BOUNDS.mdfPricePerTsai.step}
+          />
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+          工資 / 其他
+        </legend>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <NumField
+            name="hourlyRate"
+            label="師傅時薪 (NT$/hr)"
+            value={defaults.hourlyRate}
+            min={LABOR_BOUNDS.hourlyRate.min}
+            max={LABOR_BOUNDS.hourlyRate.max}
+            step={LABOR_BOUNDS.hourlyRate.step}
+          />
+          <NumField
+            name="equipmentRate"
+            label="設備折舊 (NT$/hr)"
+            value={defaults.equipmentRate}
+            min={LABOR_BOUNDS.equipmentRate.min}
+            max={LABOR_BOUNDS.equipmentRate.max}
+            step={LABOR_BOUNDS.equipmentRate.step}
+          />
+          <NumField
+            name="consumables"
+            label="耗材 (NT$)"
+            value={defaults.consumables}
+            min={LABOR_BOUNDS.consumables.min}
+            max={LABOR_BOUNDS.consumables.max}
+            step={LABOR_BOUNDS.consumables.step}
+          />
+          <NumField
+            name="marginRate"
+            label="毛利率"
+            value={defaults.marginRate}
+            min={LABOR_BOUNDS.marginRate.min}
+            max={LABOR_BOUNDS.marginRate.max}
+            step={LABOR_BOUNDS.marginRate.step}
+            decimal
+          />
+          <NumField
+            name="vatRate"
+            label="營業稅率"
+            value={defaults.vatRate}
+            min={LABOR_BOUNDS.vatRate.min}
+            max={LABOR_BOUNDS.vatRate.max}
+            step={LABOR_BOUNDS.vatRate.step}
+            decimal
+          />
+        </div>
+      </fieldset>
       <button
         type="submit"
         className="mt-3 px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"

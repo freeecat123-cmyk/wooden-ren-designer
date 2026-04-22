@@ -7,7 +7,7 @@ import {
   calculateQuote,
   generateQuoteNumber,
 } from "@/lib/pricing/quote";
-import { formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
 import { PrintButton } from "@/components/print/PrintButton";
 
 interface PageProps {
@@ -35,12 +35,18 @@ export default async function QuotePrintPage({
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
   const material = (sp.material as MaterialId) ?? "taiwan-cypress";
 
+  const catalogPrimaryPrice = MATERIAL_PRICE_PER_TSAI[material] ?? 300;
+
   const laborOpts = {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
+    primaryMaterialPricePerTsai: parseNum(
+      sp.primaryMaterialPricePerTsai,
+      catalogPrimaryPrice,
+    ),
     plywoodPricePerTsai: parseNum(
       sp.plywoodPricePerTsai,
       LABOR_DEFAULTS.plywoodPricePerTsai,
