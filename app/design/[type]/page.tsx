@@ -99,6 +99,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </div>
           <Link
             href={`/design/${type}/quote?${printQuery.toString()}`}
+            target="_blank"
             className="px-3 py-1.5 bg-emerald-700 text-white rounded text-xs hover:bg-emerald-800"
           >
             💰 產生報價

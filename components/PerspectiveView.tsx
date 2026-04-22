@@ -180,7 +180,9 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           target={[0, (design.overall.thickness * SCALE) / 2, 0]}
           minDistance={maxDim * 1.2}
           maxDistance={maxDim * 6}
-          maxPolarAngle={Math.PI / 2 - 0.05}
+          // 允許從底下往上看（到近乎正下方），只留極小的安全邊避免 gimbal-lock
+          maxPolarAngle={Math.PI - 0.02}
+          minPolarAngle={0.02}
         />
       </Canvas>
     </div>
