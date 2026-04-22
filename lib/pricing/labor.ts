@@ -16,8 +16,10 @@ export interface LaborDefaults {
   hourlyRate: number;
   /** 設備折舊分攤 NT$/hr（含電費、機具折舊） */
   equipmentRate: number;
-  /** 每專案耗材（膠/砂紙/護木油/鑽頭磨耗等）NT$ */
+  /** 每專案耗材（膠/砂紙/鑽頭磨耗等）NT$ */
   consumables: number;
+  /** 塗裝費（護木油/蠟/漆 + 工時補加）NT$ */
+  finishingCost: number;
   /** 毛利率（0–1） */
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
@@ -38,6 +40,7 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerTsai"> 
   hourlyRate: 500,
   equipmentRate: 50,
   consumables: 200,
+  finishingCost: 1500,
   marginRate: 0.3,
   vatRate: 0.05,
   plywoodPricePerTsai: 20,
@@ -49,6 +52,7 @@ export const LABOR_BOUNDS = {
   hourlyRate: { min: 200, max: 2000, step: 50 },
   equipmentRate: { min: 0, max: 300, step: 10 },
   consumables: { min: 0, max: 2000, step: 50 },
+  finishingCost: { min: 0, max: 20000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
   primaryMaterialPricePerTsai: { min: 20, max: 3000, step: 10 },

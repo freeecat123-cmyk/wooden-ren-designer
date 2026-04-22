@@ -9,6 +9,7 @@ import {
   generateQuoteNumber,
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
+import { BrandingForm } from "@/components/branding/BrandingForm";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -20,6 +21,7 @@ interface PageProps {
     hourlyRate?: string;
     equipmentRate?: string;
     consumables?: string;
+    finishingCost?: string;
     marginRate?: string;
     vatRate?: string;
     primaryMaterialPricePerTsai?: string;
@@ -51,6 +53,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
+    finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     primaryMaterialPricePerTsai: parseNum(
@@ -72,7 +75,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -107,6 +110,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         defaults={laborOpts}
         primaryMaterialName={MATERIALS[material].nameZh}
       />
+
+      <BrandingForm />
 
       <section className="mt-8 rounded-xl border border-zinc-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
@@ -206,6 +211,7 @@ function LaborForm({
     hourlyRate: number;
     equipmentRate: number;
     consumables: number;
+    finishingCost: number;
     marginRate: number;
     vatRate: number;
     primaryMaterialPricePerTsai: number;
@@ -263,7 +269,7 @@ function LaborForm({
         <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
           工資 / 其他
         </legend>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <NumField
             name="hourlyRate"
             label="師傅時薪 (NT$/hr)"
@@ -287,6 +293,14 @@ function LaborForm({
             min={LABOR_BOUNDS.consumables.min}
             max={LABOR_BOUNDS.consumables.max}
             step={LABOR_BOUNDS.consumables.step}
+          />
+          <NumField
+            name="finishingCost"
+            label="塗裝費 (NT$)"
+            value={defaults.finishingCost}
+            min={LABOR_BOUNDS.finishingCost.min}
+            max={LABOR_BOUNDS.finishingCost.max}
+            step={LABOR_BOUNDS.finishingCost.step}
           />
           <NumField
             name="marginRate"

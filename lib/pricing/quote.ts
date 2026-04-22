@@ -30,6 +30,8 @@ export interface QuoteBreakdown {
   equipmentCost: number;
   /** 耗材 */
   consumables: number;
+  /** 塗裝費 */
+  finishingCost: number;
   /** 成本小計（未加毛利、未含稅） */
   costSubtotal: number;
   /** 毛利金額 */
@@ -118,11 +120,13 @@ export function calculateQuote(
   // 3. 設備折舊（按工時分攤）
   const equipmentCost = laborHours * opts.equipmentRate;
 
-  // 4. 耗材
+  // 4. 耗材 + 塗裝
   const consumables = opts.consumables;
+  const finishingCost = opts.finishingCost;
 
   // 5. 小計
-  const costSubtotal = materialCost + laborCost + equipmentCost + consumables;
+  const costSubtotal =
+    materialCost + laborCost + equipmentCost + consumables + finishingCost;
   const margin = costSubtotal * opts.marginRate;
   const subtotalExclVat = costSubtotal + margin;
   const vat = subtotalExclVat * opts.vatRate;
@@ -142,8 +146,13 @@ export function calculateQuote(
     },
     {
       label: "耗材",
-      detail: "膠、砂紙、護木油、鑽頭磨耗等",
+      detail: "膠、砂紙、鑽頭磨耗等",
       amount: consumables,
+    },
+    {
+      label: "塗裝費",
+      detail: "護木油 / 蠟 / 漆料 + 上漆工時",
+      amount: finishingCost,
     },
   ];
 
@@ -155,6 +164,7 @@ export function calculateQuote(
     laborCost,
     equipmentCost,
     consumables,
+    finishingCost,
     costSubtotal,
     margin,
     subtotalExclVat,

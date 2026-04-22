@@ -9,6 +9,12 @@ import {
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
 import { PrintButton } from "@/components/print/PrintButton";
+import { BrandedHeader } from "@/components/branding/BrandedHeader";
+import {
+  BrandedFooter,
+  BrandedSignature,
+  BrandedSupplier,
+} from "@/components/branding/BrandedSupplier";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -41,6 +47,7 @@ export default async function QuotePrintPage({
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
+    finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     primaryMaterialPricePerTsai: parseNum(
@@ -85,23 +92,7 @@ export default async function QuotePrintPage({
       >
         {/* Header — branding + quote meta */}
         <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-4">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="木頭仁"
-              width={56}
-              height={56}
-              className="object-contain"
-            />
-            <div>
-              <p className="text-[10px] tracking-[0.2em] text-zinc-500">
-                WOODEN REN · 木頭仁木匠學院
-              </p>
-              <p className="text-lg font-bold">客製家具報價單</p>
-              <p className="text-[10px] text-zinc-500">QUOTATION</p>
-            </div>
-          </div>
+          <BrandedHeader />
           <div className="text-right text-[11px]">
             <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
               <dt className="text-zinc-500">報價單號</dt>
@@ -116,17 +107,7 @@ export default async function QuotePrintPage({
 
         {/* Supplier / Customer info */}
         <section className="grid grid-cols-2 gap-4 mt-4">
-          <InfoBlock
-            title="供應商 FROM"
-            rows={[
-              ["公司", "Wooden Ren Education Co., Ltd."],
-              ["中文", "木頭仁木匠學院"],
-              ["地址", "基隆市暖暖區東勢街 6-34 號 4 樓"],
-              ["電話", "＿＿＿＿＿＿＿＿"],
-              ["統編", "＿＿＿＿＿＿＿＿"],
-              ["聯絡人", "木頭仁"],
-            ]}
-          />
+          <BrandedSupplier />
           <InfoBlock
             title="客戶 TO"
             rows={[
@@ -300,16 +281,11 @@ export default async function QuotePrintPage({
             <div className="h-20 border-b border-zinc-400 flex items-end justify-end pr-4">
               <span className="text-[10px] text-zinc-400">（本公司用印）</span>
             </div>
-            <div className="mt-1 flex justify-between text-zinc-600">
-              <span>木頭仁木匠學院</span>
-              <span>日期：{todayStr}</span>
-            </div>
+            <BrandedSignature todayStr={todayStr} />
           </div>
         </section>
 
-        <footer className="mt-6 pt-3 border-t border-zinc-200 text-center text-[9px] text-zinc-500">
-          © 2026 Wooden Ren Education Co., Ltd. · woodenren.com · 本報價單由木頭仁家具設計生成器自動產出
-        </footer>
+        <BrandedFooter />
       </section>
     </main>
   );
