@@ -8,7 +8,7 @@ import {
   calculateQuote,
   generateQuoteNumber,
 } from "@/lib/pricing/quote";
-import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { BrandingForm } from "@/components/branding/BrandingForm";
 
 interface PageProps {
@@ -24,9 +24,9 @@ interface PageProps {
     finishingCost?: string;
     marginRate?: string;
     vatRate?: string;
-    primaryMaterialPricePerTsai?: string;
-    plywoodPricePerTsai?: string;
-    mdfPricePerTsai?: string;
+    primaryMaterialPricePerBdft?: string;
+    plywoodPricePerBdft?: string;
+    mdfPricePerBdft?: string;
   }>;
 }
 
@@ -36,7 +36,7 @@ function parseNum(s: string | undefined, fallback: number): number {
 }
 
 /**
- * 可空才價解析：
+ * 可空單價解析：
  *   undefined（沒傳 param）    → fallback（預填初始值）
  *   空字串（使用者清空欄位）    → null（併入主材）
  *   0 或負數                   → null（使用者打 0 等同不另計）
@@ -66,7 +66,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
   const material = (sp.material as MaterialId) ?? "taiwan-cypress";
 
-  const catalogPrimaryPrice = MATERIAL_PRICE_PER_TSAI[material] ?? 300;
+  const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 2000;
 
   const laborOpts = {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
@@ -75,17 +75,17 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
-    primaryMaterialPricePerTsai: parseNum(
-      sp.primaryMaterialPricePerTsai,
+    primaryMaterialPricePerBdft: parseNum(
+      sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
     ),
-    plywoodPricePerTsai: parseOptNum(
-      sp.plywoodPricePerTsai,
-      LABOR_DEFAULTS.plywoodPricePerTsai,
+    plywoodPricePerBdft: parseOptNum(
+      sp.plywoodPricePerBdft,
+      LABOR_DEFAULTS.plywoodPricePerBdft,
     ),
-    mdfPricePerTsai: parseOptNum(
-      sp.mdfPricePerTsai,
-      LABOR_DEFAULTS.mdfPricePerTsai,
+    mdfPricePerBdft: parseOptNum(
+      sp.mdfPricePerBdft,
+      LABOR_DEFAULTS.mdfPricePerBdft,
     ),
   };
 
@@ -94,7 +94,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai ?? ""}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -204,7 +204,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 leading-relaxed">
         <p className="font-semibold mb-1">報價說明</p>
         <ul className="list-disc pl-5 space-y-0.5">
-          <li>材料以「才」計（1 才 = 30.3mm × 30.3mm × 303mm），已含 10% 切料損耗</li>
+          <li>材料以「板才」計（1 板才 = 1&quot; × 12&quot; × 12&quot; ≈ 2,360 cm³ ≈ 8.5 台才），已含 10% 切料損耗</li>
           <li>工時從製作工序自動加總，依難度與零件數估算</li>
           <li>本工具估算值僅供參考，實際報價請師傅依現場條件微調</li>
           <li>不含跨區運費、現場安裝、五金（滑軌/鉸鏈）另計</li>
@@ -233,9 +233,9 @@ function LaborForm({
     finishingCost: number;
     marginRate: number;
     vatRate: number;
-    primaryMaterialPricePerTsai: number;
-    plywoodPricePerTsai: number | null;
-    mdfPricePerTsai: number | null;
+    primaryMaterialPricePerBdft: number;
+    plywoodPricePerBdft: number | null;
+    mdfPricePerBdft: number | null;
   };
   primaryMaterialName: string;
 }) {
@@ -255,34 +255,34 @@ function LaborForm({
       ))}
       <fieldset className="mb-3">
         <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
-          材料才價（NT$/才）
+          材料單價（NT$/板才）
         </legend>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <NumField
-            name="primaryMaterialPricePerTsai"
+            name="primaryMaterialPricePerBdft"
             label={`${primaryMaterialName}（主材）`}
-            value={defaults.primaryMaterialPricePerTsai}
-            min={LABOR_BOUNDS.primaryMaterialPricePerTsai.min}
-            max={LABOR_BOUNDS.primaryMaterialPricePerTsai.max}
-            step={LABOR_BOUNDS.primaryMaterialPricePerTsai.step}
+            value={defaults.primaryMaterialPricePerBdft}
+            min={LABOR_BOUNDS.primaryMaterialPricePerBdft.min}
+            max={LABOR_BOUNDS.primaryMaterialPricePerBdft.max}
+            step={LABOR_BOUNDS.primaryMaterialPricePerBdft.step}
           />
           <NumField
-            name="plywoodPricePerTsai"
+            name="plywoodPricePerBdft"
             label="夾板（背板/抽屜底）"
-            value={defaults.plywoodPricePerTsai}
-            min={LABOR_BOUNDS.plywoodPricePerTsai.min}
-            max={LABOR_BOUNDS.plywoodPricePerTsai.max}
-            step={LABOR_BOUNDS.plywoodPricePerTsai.step}
+            value={defaults.plywoodPricePerBdft}
+            min={LABOR_BOUNDS.plywoodPricePerBdft.min}
+            max={LABOR_BOUNDS.plywoodPricePerBdft.max}
+            step={LABOR_BOUNDS.plywoodPricePerBdft.step}
             optional
             hint="留空則併入主材"
           />
           <NumField
-            name="mdfPricePerTsai"
+            name="mdfPricePerBdft"
             label="中纖板（抽屜側背）"
-            value={defaults.mdfPricePerTsai}
-            min={LABOR_BOUNDS.mdfPricePerTsai.min}
-            max={LABOR_BOUNDS.mdfPricePerTsai.max}
-            step={LABOR_BOUNDS.mdfPricePerTsai.step}
+            value={defaults.mdfPricePerBdft}
+            min={LABOR_BOUNDS.mdfPricePerBdft.min}
+            max={LABOR_BOUNDS.mdfPricePerBdft.max}
+            step={LABOR_BOUNDS.mdfPricePerBdft.step}
             optional
             hint="留空則併入主材"
           />

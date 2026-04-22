@@ -7,7 +7,7 @@ import {
   calculateQuote,
   generateQuoteNumber,
 } from "@/lib/pricing/quote";
-import { MATERIAL_PRICE_PER_TSAI, formatTWD } from "@/lib/pricing/catalog";
+import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { PrintButton } from "@/components/print/PrintButton";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import {
@@ -53,7 +53,7 @@ export default async function QuotePrintPage({
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
   const material = (sp.material as MaterialId) ?? "taiwan-cypress";
 
-  const catalogPrimaryPrice = MATERIAL_PRICE_PER_TSAI[material] ?? 300;
+  const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 2000;
 
   const laborOpts = {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),
@@ -62,17 +62,17 @@ export default async function QuotePrintPage({
     finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
-    primaryMaterialPricePerTsai: parseNum(
-      sp.primaryMaterialPricePerTsai,
+    primaryMaterialPricePerBdft: parseNum(
+      sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
     ),
-    plywoodPricePerTsai: parseOptNum(
-      sp.plywoodPricePerTsai,
-      LABOR_DEFAULTS.plywoodPricePerTsai,
+    plywoodPricePerBdft: parseOptNum(
+      sp.plywoodPricePerBdft,
+      LABOR_DEFAULTS.plywoodPricePerBdft,
     ),
-    mdfPricePerTsai: parseOptNum(
-      sp.mdfPricePerTsai,
-      LABOR_DEFAULTS.mdfPricePerTsai,
+    mdfPricePerBdft: parseOptNum(
+      sp.mdfPricePerBdft,
+      LABOR_DEFAULTS.mdfPricePerBdft,
     ),
   };
 
