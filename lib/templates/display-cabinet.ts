@@ -8,7 +8,7 @@ const ZONE_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },
   { value: "drawer", label: "抽屜" },
   { value: "door", label: "門板" },
-  { value: "shelves", label: "層板（開放）" },
+  { value: "shelves", label: "開放層板（輸入=層數）" },
 ];
 
 export const displayCabinetOptions: OptionSpec[] = [
@@ -16,7 +16,7 @@ export const displayCabinetOptions: OptionSpec[] = [
   // 上層
   { group: "top", type: "select", key: "topType", label: "上層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES },
   { group: "top", type: "number", key: "topHeight", label: "上層高度 (mm)", defaultValue: 400, min: 80, max: 1500, step: 10 },
-  { group: "top", type: "number", key: "topCount", label: "上層數量（抽屜排 / 門扇 / 層板片）", defaultValue: 2, min: 1, max: 8, step: 1 },
+  { group: "top", type: "number", key: "topCount", label: "上層數量（抽屜排 / 門扇 / 層板 = 層數）", defaultValue: 2, min: 1, max: 8, step: 1 },
   { group: "top", type: "number", key: "topCols", label: "上層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
   // 中層（高度自動填滿剩餘 = 內高 − 上層 − 下層）
   { group: "top", type: "select", key: "midType", label: "中層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES, help: "高度自動填滿剩餘空間" },
@@ -110,7 +110,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     if (ty === "none") return `${name} 空區 ${h}mm`;
     if (ty === "drawer") return `${name} ${n}×${c} 抽屜 ${h}mm`;
     if (ty === "door") return `${name} ${n} 扇${doorType === "wood" ? "木" : "玻璃"}門 ${h}mm`;
-    if (ty === "shelves") return `${name} ${n} 片層板 ${h}mm`;
+    if (ty === "shelves") return `${name} ${n} 層開放 ${h}mm（${Math.max(0, n - 1)} 片內部層板）`;
     return "";
   };
 

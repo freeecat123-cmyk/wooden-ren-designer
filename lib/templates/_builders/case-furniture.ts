@@ -855,16 +855,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     }
   };
 
-  // Optional extra shelves zone — adds N horizontal panels within a zone
+  // Optional shelves zone — `count` is the number of STORAGE LAYERS (spaces),
+  // not shelf panels. Top + bottom boundary dividers (or case panels) already
+  // bracket the zone, so we only need `count - 1` internal shelves to split
+  // the zone into `count` layers.
   const renderShelvesZone = (cfg: {
     yStart: number;
     height: number;
     count: number;
     idPrefix: string;
   }) => {
-    if (cfg.count <= 0) return;
-    for (let i = 0; i < cfg.count; i++) {
-      const y = cfg.yStart + ((i + 1) * cfg.height) / (cfg.count + 1);
+    const internalShelves = Math.max(0, cfg.count - 1);
+    if (internalShelves === 0) return;
+    for (let i = 0; i < internalShelves; i++) {
+      const y = cfg.yStart + ((i + 1) * cfg.height) / cfg.count;
       parts.push({
         id: `${cfg.idPrefix}-shelf-${i + 1}`,
         nameZh: `層板 ${i + 1}`,
