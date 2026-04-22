@@ -28,9 +28,11 @@ export type OrthoView = "front" | "side" | "top";
 export function projectPart(part: Part, view: OrthoView) {
   const { x, y, z } = part.origin;
   const { xExt, yExt, zExt } = worldExtents(part);
-  if (view === "front") return { x: x - xExt / 2, y, w: xExt, h: yExt };
+  // Mirror X for front + top so they match the 3D camera convention
+  // (world +X appears on the screen LEFT). Side view is independent (uses Z).
+  if (view === "front") return { x: -x - xExt / 2, y, w: xExt, h: yExt };
   if (view === "side") return { x: z - zExt / 2, y, w: zExt, h: yExt };
-  return { x: x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
+  return { x: -x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
 }
 
 /**
@@ -91,8 +93,10 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     // bottom footprints (we draw the top, bottom handled by second polygon in
     // the renderer — keep it simple here: top silhouette only in top view).
     if (view === "top") return box;
+    // Front view flips the X axis (see projectPart), so negate dxMm offset
+    // so the parallelogram leans the right way on screen.
     const offset =
-      view === "front" ? part.shape.dxMm : part.shape.dzMm;
+      view === "front" ? -part.shape.dxMm : part.shape.dzMm;
     return [
       { x: r.x, y: r.y + r.h },
       { x: r.x + r.w, y: r.y + r.h },

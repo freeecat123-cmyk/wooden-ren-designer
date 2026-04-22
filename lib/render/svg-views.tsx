@@ -153,7 +153,7 @@ function OrthoView({
             extras.push(
               <rect
                 key={`${part.id}-foot`}
-                x={r.x + part.shape.dxMm}
+                x={r.x + -part.shape.dxMm}
                 y={r.y + part.shape.dzMm}
                 width={r.w}
                 height={r.h}
