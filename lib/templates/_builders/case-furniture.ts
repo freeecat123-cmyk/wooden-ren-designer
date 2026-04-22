@@ -54,7 +54,27 @@ export interface CaseFurnitureOpts {
    * zone at the TOP.
    */
   zones?: CabinetZone[];
+  /**
+   * Horizontal columns (side-by-side). If provided, the cabinet is split
+   * with full-height vertical partitions and each column's content is
+   * rendered in its own X range. Width ratios default to equal split.
+   * Columns OVERRIDE zones (zones apply only when columns is absent).
+   */
+  columns?: CabinetColumn[];
   notes?: string;
+}
+
+export interface CabinetColumn {
+  /** Optional explicit width fraction (0..1). Default = equal split. */
+  widthFrac?: number;
+  /** Content type for this column. Uses the full innerH. */
+  type: "drawer" | "door" | "shelves" | "open";
+  /** drawer rows / door count / shelf layer count */
+  count?: number;
+  /** drawer horizontal subdivisions inside this column */
+  cols?: number;
+  /** Optional label prefix (e.g. "左櫃") */
+  labelPrefix?: string;
 }
 
 export type CabinetZoneType = "drawer" | "door" | "shelves" | "open" | "hanging";
@@ -393,15 +413,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // Drawer zone renderer — can be called multiple times for multi-zone cabinets.
   const renderDrawerZone = (cfg: {
-    yStart: number;      // mm from floor to bottom of drawer zone
-    height: number;      // mm zone height
-    rows: number;        // drawer rows
-    cols: number;        // drawer columns
-    idPrefix: string;    // e.g. "top-drawer" or "drawer"
-    labelPrefix: string; // e.g. "上層抽屜" or "抽屜"
-    dividerFrom: "above" | "below" | "none"; // where boundary divider goes
+    yStart: number;
+    height: number;
+    rows: number;
+    cols: number;
+    idPrefix: string;
+    labelPrefix: string;
+    dividerFrom: "above" | "below" | "none";
+    /** Optional X center and width when rendering inside a column. */
+    xCenter?: number;
+    colInnerW?: number;
   }) => {
     const { yStart, height: zoneH, rows, cols, idPrefix, labelPrefix, dividerFrom } = cfg;
+    const zoneCx = cfg.xCenter ?? 0;
+    const zoneW = cfg.colInnerW ?? innerW;
     const drawerSlotH = zoneH / rows;
     const drawerZoneBottomY = yStart;
     const drawerZoneTopY = yStart + zoneH;
@@ -412,8 +437,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: `${labelPrefix}分隔板 ${d + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: innerW, width: innerD, thickness: shelfT },
-        origin: { x: 0, y: dividerY - shelfT, z: 0 },
+        visible: { length: zoneW, width: innerD, thickness: shelfT },
+        origin: { x: zoneCx, y: dividerY - shelfT, z: 0 },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -429,8 +454,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: dividerFrom === "below" ? `${labelPrefix}區底板` : `${labelPrefix}區頂板`,
         material,
         grainDirection: "length",
-        visible: { length: innerW, width: innerD, thickness: shelfT },
-        origin: { x: 0, y: boundaryY - shelfT, z: 0 },
+        visible: { length: zoneW, width: innerD, thickness: shelfT },
+        origin: { x: zoneCx, y: boundaryY - shelfT, z: 0 },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -444,7 +469,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerBackT = 12;
     const drawerBottomT = 6;
     const drawerGap = 4;
-    const colPitch = innerW / cols;
+    const colPitch = zoneW / cols;
     const drawerInnerW = colPitch - 4 - 2 * drawerSideT;
     const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
     const drawerH = drawerSlotH - drawerGap * 2;
@@ -454,7 +479,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
      for (let col = 0; col < cols; col++) {
       const i = row * cols + col;
       const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
-      const xCenter = -innerW / 2 + colPitch * col + colPitch / 2;
+      const xCenter = zoneCx - zoneW / 2 + colPitch * col + colPitch / 2;
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
@@ -632,10 +657,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     doorType: "wood" | "glass";
     idPrefix: string;
     labelPrefix: string;
+    xCenter?: number;
+    colInnerW?: number;
   }) => {
     const { idPrefix, labelPrefix } = cfg;
     const doorType = cfg.doorType;
-    const doorW = innerW / cfg.count;
+    const zoneCx = cfg.xCenter ?? 0;
+    const zoneW = cfg.colInnerW ?? innerW;
+    const doorW = zoneW / cfg.count;
     const stileW = 60; // 豎梃寬度
     const railW = 60; // 橫檔寬度
     const frameT = 22; // 框料厚度
@@ -646,7 +675,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const doorZoneBottomY = cfg.yStart;
 
     for (let i = 0; i < cfg.count; i++) {
-      const xCenter = -innerW / 2 + i * doorW + doorW / 2;
+      const xCenter = zoneCx - zoneW / 2 + i * doorW + doorW / 2;
       const zFront = -width / 2 - frameT / 2 - 1;
       const doorOuterW = doorW - 4;
       const doorOuterH = doorZoneH - 4;
@@ -864,9 +893,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     height: number;
     count: number;
     idPrefix: string;
+    xCenter?: number;
+    colInnerW?: number;
   }) => {
     const internalShelves = Math.max(0, cfg.count - 1);
     if (internalShelves === 0) return;
+    const zoneCx = cfg.xCenter ?? 0;
+    const zoneW = cfg.colInnerW ?? innerW;
     for (let i = 0; i < internalShelves; i++) {
       const y = cfg.yStart + ((i + 1) * cfg.height) / cfg.count;
       parts.push({
@@ -874,8 +907,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: `層板 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: innerW, width: innerD, thickness: shelfT },
-        origin: { x: 0, y: y - shelfT, z: 0 },
+        visible: { length: zoneW, width: innerD, thickness: shelfT },
+        origin: { x: zoneCx, y: y - shelfT, z: 0 },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -885,9 +918,74 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     }
   };
 
-  // === Dispatch: either use opts.zones[] (new multi-zone mode) OR the
-  // legacy drawerCount/doorCount/shelfFractions singletons. ===
-  if (opts.zones && opts.zones.length > 0) {
+  // === Dispatch: columns (horizontal split) > zones (vertical) > legacy. ===
+  if (opts.columns && opts.columns.length > 0) {
+    const cols = opts.columns;
+    // Resolve widths: missing widthFrac values split the remainder equally.
+    const totalSpec = cols.reduce((a, c) => a + (c.widthFrac ?? 0), 0);
+    const unset = cols.filter((c) => c.widthFrac === undefined).length;
+    const widths = cols.map((c) => {
+      if (c.widthFrac !== undefined) return c.widthFrac;
+      return unset > 0 ? (1 - totalSpec) / unset : 1 / cols.length;
+    });
+    // Partition wall thickness (use panel thickness)
+    const partitionW = panelT;
+    const totalPartitions = (cols.length - 1) * partitionW;
+    const usableW = innerW - totalPartitions;
+
+    // Render each column + vertical partition between columns
+    let cursorX = -innerW / 2;
+    for (let i = 0; i < cols.length; i++) {
+      const col = cols[i];
+      const colW = usableW * widths[i];
+      const colCx = cursorX + colW / 2;
+      const colYStart = caseBottomY + panelT;
+      const colH = innerH;
+      const idPrefix = `col${i + 1}`;
+      const labelPrefix = col.labelPrefix ?? (cols.length === 2 ? (i === 0 ? "左" : "右") : i === 0 ? "左" : i === 1 ? "中" : "右");
+
+      if (col.type === "drawer") {
+        renderDrawerZone({
+          yStart: colYStart, height: colH,
+          rows: col.count ?? 1, cols: col.cols ?? 1,
+          idPrefix: `${idPrefix}-drawer`, labelPrefix: `${labelPrefix}抽屜`,
+          dividerFrom: "none",
+          xCenter: colCx, colInnerW: colW,
+        });
+      } else if (col.type === "door") {
+        renderDoorZone({
+          yStart: colYStart, height: colH,
+          count: col.count ?? 1, doorType: doorType ?? "wood",
+          idPrefix: `${idPrefix}-door`, labelPrefix: `${labelPrefix}門`,
+          xCenter: colCx, colInnerW: colW,
+        });
+      } else if (col.type === "shelves") {
+        renderShelvesZone({
+          yStart: colYStart, height: colH,
+          count: col.count ?? 1, idPrefix,
+          xCenter: colCx, colInnerW: colW,
+        });
+      }
+      // "open" → nothing
+
+      cursorX += colW;
+
+      // Add a full-height vertical partition after this column (except last)
+      if (i < cols.length - 1) {
+        parts.push({
+          id: `col-partition-${i + 1}`,
+          nameZh: `直立分隔板 ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: partitionW, width: innerD, thickness: innerH },
+          origin: { x: cursorX + partitionW / 2, y: caseBottomY + panelT, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+        cursorX += partitionW;
+      }
+    }
+  } else if (opts.zones && opts.zones.length > 0) {
     const zones = opts.zones;
     // Stack zones from bottom up, adding a boundary divider between each
     let cursorY = caseBottomY + panelT;

@@ -1,25 +1,41 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { caseFurniture, type CabinetZone } from "./_builders/case-furniture";
+import { caseFurniture, type CabinetZone, type CabinetColumn } from "./_builders/case-furniture";
+
+const COL_TYPE_CHOICES = [
+  { value: "none", label: "不設（空區）" },
+  { value: "drawer", label: "抽屜" },
+  { value: "door", label: "門板" },
+  { value: "shelves", label: "開放層板（輸入=層數）" },
+];
 
 export const mediaConsoleOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  // 層數模式：1 層 or 2 層
-  { group: "top", type: "select", key: "layerMode", label: "層數", defaultValue: "double", choices: [
-    { value: "single", label: "1 層（整個內部都一種）" },
-    { value: "double", label: "2 層（上層板 + 下抽屜）" },
+  // 佈局模式
+  { group: "top", type: "select", key: "layoutMode", label: "佈局模式", defaultValue: "v-2layer", choices: [
+    { value: "v-1layer", label: "縱向 1 層（整個一種）" },
+    { value: "v-2layer", label: "縱向 2 層（上層板 + 下抽屜）" },
+    { value: "h-2col", label: "橫向 2 欄（左右各一種）" },
+    { value: "h-3col", label: "橫向 3 欄（左中右各一種）" },
   ] },
-  // 上層（1 層模式 = 整個；2 層模式 = 上面那層）
-  { group: "top", type: "select", key: "upperType", label: "上層類型", defaultValue: "shelves", choices: [
+  // 縱向模式的類型
+  { group: "top", type: "select", key: "upperType", label: "縱向 1 層類型 / 2 層的上層類型", defaultValue: "shelves", choices: [
     { value: "shelves", label: "開放層板（輸入=層數）" },
-    { value: "door", label: "門板（可鎖藏線 / 影音器材）" },
+    { value: "door", label: "門板" },
   ] },
   { group: "top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1 },
-  // 下層抽屜（只在 2 層模式用到）
+  // 縱向 2 層的抽屜
   { group: "drawer", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1 },
   { group: "drawer", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
   { group: "drawer", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
-  // 門的材質（上層選門時才用到）
+  // 橫向 2/3 欄模式：每欄的類型 + 數量
+  { group: "top", type: "select", key: "leftType", label: "左欄類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
+  { group: "top", type: "number", key: "leftCount", label: "左欄數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
+  { group: "top", type: "select", key: "centerType", label: "中欄類型（3 欄用）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
+  { group: "top", type: "number", key: "centerCount", label: "中欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
+  { group: "top", type: "select", key: "rightType", label: "右欄類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES },
+  { group: "top", type: "number", key: "rightCount", label: "右欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
+  // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木板門" },
     { value: "glass", label: "玻璃門" },
@@ -37,19 +53,34 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
+type ColType = "none" | "drawer" | "door" | "shelves";
+
+const toColumn = (t: ColType, count: number): CabinetColumn | null => {
+  if (t === "none") return { type: "open", count: 0 };
+  if (t === "drawer") return { type: "drawer", count, cols: 1 };
+  if (t === "door") return { type: "door", count };
+  if (t === "shelves") return { type: "shelves", count };
+  return null;
+};
+
 /**
- * 電視櫃 / 長型矮櫃（media console）
- * 長 1200–2000，高 450–600，深 400。1 層或 2 層配置。
+ * 電視櫃（media console）— 縱向 1/2 層或橫向 2/3 欄分區。
  */
 export const mediaConsole: FurnitureTemplate = (input) => {
   const o = mediaConsoleOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const layerMode = getOption<string>(input, opt(o, "layerMode"));
+  const layoutMode = getOption<string>(input, opt(o, "layoutMode"));
   const upperType = getOption<string>(input, opt(o, "upperType"));
   const upperCount = getOption<number>(input, opt(o, "upperCount"));
   const drawerRows = getOption<number>(input, opt(o, "drawerRows"));
   const drawerCols = getOption<number>(input, opt(o, "drawerCols"));
   const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
+  const leftType = getOption<string>(input, opt(o, "leftType")) as ColType;
+  const leftCount = getOption<number>(input, opt(o, "leftCount"));
+  const centerType = getOption<string>(input, opt(o, "centerType")) as ColType;
+  const centerCount = getOption<number>(input, opt(o, "centerCount"));
+  const rightType = getOption<string>(input, opt(o, "rightType")) as ColType;
+  const rightCount = getOption<number>(input, opt(o, "rightCount"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -58,28 +89,53 @@ export const mediaConsole: FurnitureTemplate = (input) => {
 
   const innerH = input.height - legHeight - 2 * panelThickness;
 
-  const zones: CabinetZone[] = [];
+  let zones: CabinetZone[] | undefined;
+  let columns: CabinetColumn[] | undefined;
   let noteParts: string[] = [];
-  if (layerMode === "single") {
+
+  if (layoutMode === "v-1layer") {
     if (upperType === "door") {
-      zones.push({ type: "door", heightMm: innerH, count: upperCount });
+      zones = [{ type: "door", heightMm: innerH, count: upperCount }];
       noteParts.push(`1 層 ${upperCount} 扇${doorType === "glass" ? "玻璃" : "木"}門`);
     } else {
-      zones.push({ type: "shelves", heightMm: innerH, count: upperCount });
-      noteParts.push(`1 層 ${upperCount} 層開放層板（${Math.max(0, upperCount - 1)} 片內部層板）`);
+      zones = [{ type: "shelves", heightMm: innerH, count: upperCount }];
+      noteParts.push(`1 層 ${upperCount} 層開放`);
     }
-  } else {
-    // 2 層：下抽屜在前（bottom-up 順序），上層在後
+  } else if (layoutMode === "v-2layer") {
     const upperH = Math.max(80, innerH - drawerHeight);
-    zones.push({ type: "drawer", heightMm: drawerHeight, count: drawerRows, cols: drawerCols });
-    if (upperType === "door") {
-      zones.push({ type: "door", heightMm: upperH, count: upperCount });
-      noteParts.push(`上層 ${upperCount} 扇${doorType === "glass" ? "玻璃" : "木"}門 ${upperH}mm`);
-    } else {
-      zones.push({ type: "shelves", heightMm: upperH, count: upperCount });
-      noteParts.push(`上層 ${upperCount} 層開放 ${upperH}mm`);
-    }
+    zones = [
+      { type: "drawer", heightMm: drawerHeight, count: drawerRows, cols: drawerCols },
+      upperType === "door"
+        ? { type: "door", heightMm: upperH, count: upperCount }
+        : { type: "shelves", heightMm: upperH, count: upperCount },
+    ];
+    noteParts.push(`上層 ${upperType === "door" ? `${upperCount} 扇門` : `${upperCount} 層開放`} ${upperH}mm`);
     noteParts.push(`下層 ${drawerRows}×${drawerCols} 抽屜 ${drawerHeight}mm`);
+  } else if (layoutMode === "h-2col") {
+    const l = toColumn(leftType, leftCount);
+    const r = toColumn(rightType, rightCount);
+    columns = [l, r].filter((c): c is CabinetColumn => c !== null).map((c, i) => ({ ...c, labelPrefix: i === 0 ? "左" : "右" }));
+    const describe = (name: string, t: ColType, n: number) => {
+      if (t === "none") return `${name}空區`;
+      if (t === "drawer") return `${name} ${n} 抽屜`;
+      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : "木"}門`;
+      return `${name} ${n} 層開放`;
+    };
+    noteParts.push(`橫向 2 欄：${describe("左", leftType, leftCount)}｜${describe("右", rightType, rightCount)}`);
+  } else if (layoutMode === "h-3col") {
+    const l = toColumn(leftType, leftCount);
+    const c = toColumn(centerType, centerCount);
+    const r = toColumn(rightType, rightCount);
+    columns = [l, c, r]
+      .filter((x): x is CabinetColumn => x !== null)
+      .map((x, i) => ({ ...x, labelPrefix: i === 0 ? "左" : i === 1 ? "中" : "右" }));
+    const describe = (name: string, t: ColType, n: number) => {
+      if (t === "none") return `${name}空區`;
+      if (t === "drawer") return `${name} ${n} 抽屜`;
+      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : "木"}門`;
+      return `${name} ${n} 層開放`;
+    };
+    noteParts.push(`橫向 3 欄：${describe("左", leftType, leftCount)}｜${describe("中", centerType, centerCount)}｜${describe("右", rightType, rightCount)}`);
   }
 
   return caseFurniture({
@@ -91,6 +147,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     material: input.material,
     shelfCount: 0,
     zones,
+    columns,
     doorType: doorType === "glass" ? "glass" : "wood",
     panelThickness,
     shelfThickness: panelThickness,
