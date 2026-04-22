@@ -104,7 +104,7 @@ export interface Part {
 
   /**
    * 計價材質覆寫——零件實際使用板材（背板夾板、抽屜底板等）時用。
-   * 渲染仍用 `material`（主木色），只影響才價計算。
+   * 渲染仍用 `material`（主木色），只影響單價計算。
    */
   materialOverride?: SheetGood;
 

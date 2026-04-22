@@ -2,8 +2,8 @@ import type { BillableMaterial, FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import {
-  MATERIAL_PRICE_PER_TSAI,
-  MM3_PER_TSAI,
+  MATERIAL_PRICE_PER_BDFT,
+  MM3_PER_BDFT,
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
 } from "./catalog";
@@ -17,8 +17,8 @@ export interface QuoteLineItem {
 }
 
 export interface QuoteBreakdown {
-  /** 材料用量（總材積）*/
-  totalTsai: number;
+  /** 材料用量（所有材料合計板才數，含切料損耗）*/
+  totalBdft: number;
   totalVolumeMm3: number;
   /** 材料成本（含 10% 切料損耗）*/
   materialCost: number;
@@ -58,15 +58,15 @@ export function calculateQuote(
   opts: LaborDefaults,
 ): QuoteBreakdown {
   // 1. 按計價材料分組加總材積
-  // 使用者若把夾板/中纖板才價清空（null），該類零件併回主材一起計
+  // 使用者若把夾板/中纖板單價清空（null），該類零件併回主材一起計
   const volumeByMaterial = new Map<BillableMaterial, number>();
   for (const part of design.parts) {
     const cut = calculateCutDimensions(part);
     const vol = cut.length * cut.width * cut.thickness;
     let mat = effectiveBillableMaterial(part);
-    if (mat === "plywood" && opts.plywoodPricePerTsai == null) {
+    if (mat === "plywood" && opts.plywoodPricePerBdft == null) {
       mat = design.primaryMaterial;
-    } else if (mat === "mdf" && opts.mdfPricePerTsai == null) {
+    } else if (mat === "mdf" && opts.mdfPricePerBdft == null) {
       mat = design.primaryMaterial;
     }
     volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
@@ -75,7 +75,7 @@ export function calculateQuote(
   const materialLines: QuoteLineItem[] = [];
   let materialCost = 0;
   let totalVolumeMm3 = 0;
-  let totalTsai = 0;
+  let totalBdft = 0;
 
   // 排序：主材在前、板材在後
   const sortedEntries = [...volumeByMaterial.entries()].sort((a, b) => {
@@ -86,23 +86,23 @@ export function calculateQuote(
 
   for (const [mat, volMm3] of sortedEntries) {
     const withWaste = volMm3 * (1 + WASTE_RATE);
-    const tsai = withWaste / MM3_PER_TSAI;
+    const bdft = withWaste / MM3_PER_BDFT;
 
-    // 才價優先順序：使用者輸入 > catalog 預設
+    // 單價優先順序：使用者輸入 > catalog 預設
     // （null 的情況在前面 volumeByMaterial 建立階段已併回主材，這裡不會再看到）
     let unitPrice: number;
     if (mat === "plywood") {
-      unitPrice = opts.plywoodPricePerTsai ?? 0;
+      unitPrice = opts.plywoodPricePerBdft ?? 0;
     } else if (mat === "mdf") {
-      unitPrice = opts.mdfPricePerTsai ?? 0;
+      unitPrice = opts.mdfPricePerBdft ?? 0;
     } else if (mat === design.primaryMaterial) {
-      unitPrice = opts.primaryMaterialPricePerTsai;
+      unitPrice = opts.primaryMaterialPricePerBdft;
     } else {
       // 極少情況：零件標了另一種實木（目前沒有 template 會這樣）
-      unitPrice = MATERIAL_PRICE_PER_TSAI[mat] ?? 300;
+      unitPrice = MATERIAL_PRICE_PER_BDFT[mat] ?? 2000;
     }
 
-    const amount = tsai * unitPrice;
+    const amount = bdft * unitPrice;
     const suffix =
       mat === design.primaryMaterial
         ? "（主材）"
@@ -111,12 +111,12 @@ export function calculateQuote(
         : "";
     materialLines.push({
       label: `材料｜${materialLabel(mat)}${suffix}`,
-      detail: `${tsai.toFixed(2)} 才（含 ${Math.round(WASTE_RATE * 100)}% 切料損耗）× NT$${unitPrice}/才`,
+      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(WASTE_RATE * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
       amount,
     });
     materialCost += amount;
     totalVolumeMm3 += withWaste;
-    totalTsai += tsai;
+    totalBdft += bdft;
   }
 
   // 2. 工時成本（build steps 加總）
@@ -164,7 +164,7 @@ export function calculateQuote(
   ];
 
   return {
-    totalTsai,
+    totalBdft,
     totalVolumeMm3,
     materialCost,
     laborHours,
