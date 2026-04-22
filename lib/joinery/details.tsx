@@ -468,37 +468,36 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   const ct = p.childThickness ?? tt;
   const cw = p.childWidth ?? tw;
 
+  // Exploded view scale: fits mother face + child body
   const s = fitScale(Math.max(mt * 2, tw + 40, cw + 40, tl * 4), 180);
   const PX = (mm: number) => mm * s;
 
+  // Assembled view has its OWN scale so the cross-section stays visually
+  // substantial even when the mother is small (e.g., 18mm slat mortise).
+  const sAsm = fitScale(Math.max(mt, tl + cw, cw) * 1.1, 180);
+  const AX = (mm: number) => mm * sAsm;
+
   const leftPad = 50;
 
-  // ---- EXPLODED: mother = leg SIDE FACE (vertical orientation).
-  // Face horizontal = leg width (mt), vertical = a chunk of leg length that
-  // shows the mortise with wood above AND below. Give generous margins so
-  // the wood surrounding the mortise is VISUALLY substantial — earlier
-  // versions looked like the mother was split by the white hole.
+  // ---- EXPLODED: mother = piece side face (vertical orientation).
   const faceMarginY = Math.max(30, PX(tw) * 0.6);
-  const motherFaceW = PX(mt);
+  const motherFaceW = Math.max(PX(mt), 60); // ensure mother face has visible substance
   const motherFaceH = PX(tw) + 2 * faceMarginY;
 
-  // Child is drawn below the mother
   const childBodyLen = Math.max(120, PX(cw) * 1.8);
   const gapBetween = 40;
 
   const expWidth = Math.max(motherFaceW + 100, childBodyLen + PX(tl) + 80);
   const expHeight = motherFaceH + gapBetween + PX(ct) + 60;
 
-  // ---- ASSEMBLED: top-down cross-section through the apron midheight.
-  // Leg shown as an mt×mt square (its real cross-section). Mortise is a
-  // cavity cut from the right face going inward by tl.
-  const asmLegSide = PX(mt);
-  const asmApronLen = Math.max(80, PX(cw) * 1.2);
-  const asmWidth = asmLegSide + asmApronLen + 70;
-  const asmHeight = asmLegSide + 60;
+  // ---- ASSEMBLED: top-down cross-section. Mother = mt × mt square.
+  const asmLegSide = Math.max(AX(mt), 70); // min 70px so a small mother is still visible
+  const asmApronLen = Math.max(120, AX(cw) * 1.0);
+  const asmWidth = asmLegSide + asmApronLen + 90;
+  const asmHeight = asmLegSide + 80;
 
   const w = expWidth + asmWidth + PADDING * 3 + leftPad;
-  const h = Math.max(expHeight, asmHeight) + PADDING + 40;
+  const h = Math.max(expHeight, asmHeight) + PADDING + 60;
 
   // Mother position
   const mAx = PADDING + leftPad;
@@ -709,8 +708,8 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         const legX = asmLegX;
         const legY = asmLegY;
         const legSide = asmLegSide;
-        const mortiseL = PX(tl);
-        const mortiseT = PX(tt);
+        const mortiseL = AX(tl);
+        const mortiseT = AX(tt);
         // Mortise opens from the right face, centered vertically in the leg
         const mortiseTop = legY + (legSide - mortiseT) / 2;
         const mortiseBottom = mortiseTop + mortiseT;
@@ -755,18 +754,18 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             {/* Apron body sticking out the right face */}
             <rect
               x={legX + legSide}
-              y={legY + (legSide - PX(ct)) / 2}
+              y={legY + (legSide - AX(ct)) / 2}
               width={asmApronLen}
-              height={PX(ct)}
+              height={AX(ct)}
               fill={COLOR_TENON}
               stroke={COLOR_OUTLINE}
             />
             {/* Shoulder line where apron body meets leg face */}
             <line
               x1={legX + legSide}
-              y1={legY + (legSide - PX(ct)) / 2}
+              y1={legY + (legSide - AX(ct)) / 2}
               x2={legX + legSide}
-              y2={legY + (legSide + PX(ct)) / 2}
+              y2={legY + (legSide + AX(ct)) / 2}
               stroke={COLOR_OUTLINE}
               strokeWidth={0.8}
             />
@@ -797,14 +796,14 @@ function BlindTenonDetail(p: JoineryDetailParams) {
               textAnchor="middle"
               fill="#666"
             >
-              榫頭藏於柱腳內部，未穿透
+              榫頭藏於母件內部，未穿透
             </text>
             <DimLine
               x1={legX}
               y1={legY - 6}
               x2={legX + legSide}
               y2={legY - 6}
-              label={`柱 ${mt}`}
+              label={`母件厚 ${mt}`}
               side="top"
             />
             <DimLine
@@ -814,6 +813,14 @@ function BlindTenonDetail(p: JoineryDetailParams) {
               y2={legY + legSide + 34}
               label={`榫眼深 ${tl}`}
               side="bottom"
+            />
+            <DimLine
+              x1={legX + legSide + asmApronLen + 10}
+              y1={legY + (legSide - AX(ct)) / 2}
+              x2={legX + legSide + asmApronLen + 10}
+              y2={legY + (legSide + AX(ct)) / 2}
+              label={`板厚 ${ct}`}
+              side="right"
             />
           </g>
         );

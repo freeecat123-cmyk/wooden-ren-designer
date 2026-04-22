@@ -109,7 +109,27 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
       if (existing) {
         existing.count += 1;
       } else {
-        const motherPartNames = Array.from(motherNamesByKey.get(key) ?? []);
+        // Prefer explicit matches; if none, guess by picking parts whose
+        // smallest dim roughly equals the fallback mother thickness —
+        // these are the most plausible mating pieces even when the
+        // template author didn't declare reciprocal mortises.
+        const explicit = motherNamesByKey.get(key);
+        let motherPartNames: string[];
+        if (explicit && explicit.size > 0) {
+          motherPartNames = Array.from(explicit);
+        } else {
+          const targetThick = motherThickness;
+          const candidates = design.parts
+            .filter((q) => q.id !== part.id)
+            .filter((q) => {
+              const qDims = [q.visible.length, q.visible.width, q.visible.thickness];
+              const qMin = Math.min(...qDims);
+              return Math.abs(qMin - targetThick) < 3;
+            })
+            .map((q) => q.nameZh.replace(/\d+/g, "").replace(/\s+/g, " ").trim());
+          const uniq = Array.from(new Set(candidates));
+          motherPartNames = uniq.length > 0 ? uniq : [];
+        }
         seen.set(key, {
           type: tenon.type,
           tenon,

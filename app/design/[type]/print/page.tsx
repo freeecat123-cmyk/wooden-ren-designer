@@ -182,7 +182,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                   <h3 className="font-semibold">
                     {JOINERY_LABEL[u.type]}{" "}
                     <span className="text-xs font-normal text-zinc-500">
-                      · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join("、") : "母件"} · 共 {u.count} 處
+                      · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "接頭母件"} · 共 {u.count} 處
                     </span>
                   </h3>
                   <p className="text-xs text-zinc-500">
