@@ -404,8 +404,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     });
   }
 
-  // 中間層板/抽屜分隔板
-  for (let i = 0; i < shelfFractions.length; i++) {
+  // 中間層板/抽屜分隔板。Skip when zones mode is active — renderDrawerZone
+  // / renderShelvesZone / zone-boundary code already creates these panels,
+  // and shelfFractions here is kept solely to populate SIDE PANEL mortises
+  // so extract.ts can pair the divider tongues to 左側板/右側板.
+  const suppressLegacyShelfRender = !!(opts.zones && opts.zones.length > 0);
+  for (let i = 0; i < shelfFractions.length && !suppressLegacyShelfRender; i++) {
     const y = caseBottomY + panelT + shelfFractions[i] * innerH;
     parts.push({
       id: `shelf-${i + 1}`,
