@@ -26,10 +26,10 @@ export interface LaborDefaults {
   vatRate: number;
   /** 主材才價 (NT$/才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
   primaryMaterialPricePerTsai: number;
-  /** 夾板才價 (NT$/才)，背板/抽屜底板計價用 */
-  plywoodPricePerTsai: number;
-  /** 中纖板才價 (NT$/才)，抽屜側背板計價用 */
-  mdfPricePerTsai: number;
+  /** 夾板才價 (NT$/才)；null 表示不分開計價，背板/抽屜底板併入主材 */
+  plywoodPricePerTsai: number | null;
+  /** 中纖板才價 (NT$/才)；null 表示不分開計價，抽屜側背板併入主材 */
+  mdfPricePerTsai: number | null;
 }
 
 /**

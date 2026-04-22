@@ -58,11 +58,17 @@ export function calculateQuote(
   opts: LaborDefaults,
 ): QuoteBreakdown {
   // 1. 按計價材料分組加總材積
+  // 使用者若把夾板/中纖板才價清空（null），該類零件併回主材一起計
   const volumeByMaterial = new Map<BillableMaterial, number>();
   for (const part of design.parts) {
     const cut = calculateCutDimensions(part);
     const vol = cut.length * cut.width * cut.thickness;
-    const mat = effectiveBillableMaterial(part);
+    let mat = effectiveBillableMaterial(part);
+    if (mat === "plywood" && opts.plywoodPricePerTsai == null) {
+      mat = design.primaryMaterial;
+    } else if (mat === "mdf" && opts.mdfPricePerTsai == null) {
+      mat = design.primaryMaterial;
+    }
     volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
   }
 
@@ -83,11 +89,12 @@ export function calculateQuote(
     const tsai = withWaste / MM3_PER_TSAI;
 
     // 才價優先順序：使用者輸入 > catalog 預設
+    // （null 的情況在前面 volumeByMaterial 建立階段已併回主材，這裡不會再看到）
     let unitPrice: number;
     if (mat === "plywood") {
-      unitPrice = opts.plywoodPricePerTsai;
+      unitPrice = opts.plywoodPricePerTsai ?? 0;
     } else if (mat === "mdf") {
-      unitPrice = opts.mdfPricePerTsai;
+      unitPrice = opts.mdfPricePerTsai ?? 0;
     } else if (mat === design.primaryMaterial) {
       unitPrice = opts.primaryMaterialPricePerTsai;
     } else {

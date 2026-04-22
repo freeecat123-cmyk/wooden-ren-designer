@@ -35,6 +35,22 @@ function parseNum(s: string | undefined, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * 可空才價解析：
+ *   undefined（沒傳 param）    → fallback（預填初始值）
+ *   空字串（使用者清空欄位）    → null（併入主材）
+ *   有值                       → 數字
+ */
+function parseOptNum(
+  s: string | undefined,
+  fallback: number | null,
+): number | null {
+  if (s === undefined) return fallback;
+  if (s.trim() === "") return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export default async function QuotePage({ params, searchParams }: PageProps) {
   const { type } = await params;
   const sp = await searchParams;
@@ -60,11 +76,11 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       sp.primaryMaterialPricePerTsai,
       catalogPrimaryPrice,
     ),
-    plywoodPricePerTsai: parseNum(
+    plywoodPricePerTsai: parseOptNum(
       sp.plywoodPricePerTsai,
       LABOR_DEFAULTS.plywoodPricePerTsai,
     ),
-    mdfPricePerTsai: parseNum(
+    mdfPricePerTsai: parseOptNum(
       sp.mdfPricePerTsai,
       LABOR_DEFAULTS.mdfPricePerTsai,
     ),
@@ -75,7 +91,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerTsai=${laborOpts.primaryMaterialPricePerTsai}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai ?? ""}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai ?? ""}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -215,8 +231,8 @@ function LaborForm({
     marginRate: number;
     vatRate: number;
     primaryMaterialPricePerTsai: number;
-    plywoodPricePerTsai: number;
-    mdfPricePerTsai: number;
+    plywoodPricePerTsai: number | null;
+    mdfPricePerTsai: number | null;
   };
   primaryMaterialName: string;
 }) {
@@ -254,6 +270,8 @@ function LaborForm({
             min={LABOR_BOUNDS.plywoodPricePerTsai.min}
             max={LABOR_BOUNDS.plywoodPricePerTsai.max}
             step={LABOR_BOUNDS.plywoodPricePerTsai.step}
+            optional
+            hint="留空則併入主材"
           />
           <NumField
             name="mdfPricePerTsai"
@@ -262,6 +280,8 @@ function LaborForm({
             min={LABOR_BOUNDS.mdfPricePerTsai.min}
             max={LABOR_BOUNDS.mdfPricePerTsai.max}
             step={LABOR_BOUNDS.mdfPricePerTsai.step}
+            optional
+            hint="留空則併入主材"
           />
         </div>
       </fieldset>
@@ -340,28 +360,38 @@ function NumField({
   max,
   step,
   decimal,
+  optional,
+  hint,
 }: {
   name: string;
   label: string;
-  value: number;
+  value: number | null;
   min: number;
   max: number;
   step: number;
   decimal?: boolean;
+  optional?: boolean;
+  hint?: string;
 }) {
+  const display =
+    value == null ? "" : decimal ? value.toFixed(2) : String(value);
   return (
     <label className="flex flex-col text-xs">
       <span className="text-zinc-600 mb-1">{label}</span>
       <input
         type="number"
         name={name}
-        defaultValue={decimal ? value.toFixed(2) : value}
+        defaultValue={display}
         min={min}
         max={max}
         step={step}
         inputMode="decimal"
+        placeholder={optional ? "（不填）" : undefined}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
+      {hint && (
+        <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
+      )}
     </label>
   );
 }

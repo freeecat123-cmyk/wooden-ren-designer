@@ -26,6 +26,16 @@ function parseNum(s: string | undefined, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function parseOptNum(
+  s: string | undefined,
+  fallback: number | null,
+): number | null {
+  if (s === undefined) return fallback;
+  if (s.trim() === "") return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export default async function QuotePrintPage({
   params,
   searchParams,
@@ -54,11 +64,11 @@ export default async function QuotePrintPage({
       sp.primaryMaterialPricePerTsai,
       catalogPrimaryPrice,
     ),
-    plywoodPricePerTsai: parseNum(
+    plywoodPricePerTsai: parseOptNum(
       sp.plywoodPricePerTsai,
       LABOR_DEFAULTS.plywoodPricePerTsai,
     ),
-    mdfPricePerTsai: parseNum(
+    mdfPricePerTsai: parseOptNum(
       sp.mdfPricePerTsai,
       LABOR_DEFAULTS.mdfPricePerTsai,
     ),
