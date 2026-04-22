@@ -98,6 +98,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <p className="mt-1 text-sm text-zinc-600 max-w-2xl">{entry.description}</p>
           </div>
           <Link
+            href={`/design/${type}/quote?${printQuery.toString()}`}
+            className="px-3 py-1.5 bg-emerald-700 text-white rounded text-xs hover:bg-emerald-800"
+          >
+            💰 產生報價
+          </Link>
+          <Link
             href={`/design/${type}/print?${printQuery.toString()}`}
             target="_blank"
             className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-700 transition"

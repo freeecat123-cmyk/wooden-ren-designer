@@ -76,7 +76,11 @@ export type MaterialId =
   | "teak"
   | "white-oak"
   | "walnut"
-  | "douglas-fir";
+  | "douglas-fir"
+  | "maple"
+  | "ash"
+  | "beech"
+  | "pine";
 
 export interface Part {
   id: string;
