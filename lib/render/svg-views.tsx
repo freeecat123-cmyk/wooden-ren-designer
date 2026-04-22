@@ -136,18 +136,45 @@ function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
-        const poly = projectPartPolygon(part, view);
-        if (part.shape && part.shape.kind === "tapered" && view !== "top") {
+        // Use polygon when the shape is non-box AND it would differ from a rect
+        // in this view.
+        const useShape =
+          part.shape &&
+          part.shape.kind !== "box" &&
+          !(view === "top" && part.shape.kind !== "splayed");
+        if (useShape) {
+          const poly = projectPartPolygon(part, view);
           const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+          const extras: React.ReactNode[] = [];
+          // Splayed top view: also draw the shifted bottom footprint so you
+          // can see how far the foot lands from directly below the head.
+          if (part.shape?.kind === "splayed" && view === "top") {
+            const r = projectPart(part, view);
+            extras.push(
+              <rect
+                key={`${part.id}-foot`}
+                x={r.x + part.shape.dxMm}
+                y={r.y + part.shape.dzMm}
+                width={r.w}
+                height={r.h}
+                fill="none"
+                stroke="#888"
+                strokeWidth={0.4}
+                strokeDasharray="3 3"
+              />,
+            );
+          }
           return (
-            <polygon
-              key={part.id}
-              points={points}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={sw}
-              strokeDasharray={dash}
-            />
+            <g key={part.id}>
+              <polygon
+                points={points}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={sw}
+                strokeDasharray={dash}
+              />
+              {extras}
+            </g>
           );
         }
         const r = projectPart(part, view);
@@ -185,7 +212,7 @@ function OrthoView({
         x1={-w / 2}
         x2={w / 2}
         y={drawAreaTop + h + 28}
-        label={`${w}`}
+        label={`${w} mm`}
       />
 
       {/* vertical dimension on right side (all views) */}
@@ -194,8 +221,30 @@ function OrthoView({
         x={w / 2 + 28}
         y1={view === "top" ? -h / 2 : -h}
         y2={view === "top" ? h / 2 : 0}
-        label={`${h}`}
+        label={`${h} mm`}
       />
+
+      {/* Orientation marker: the TOP view shows the furniture from above, so
+          label which edge is the FRONT face (−Z in world) and which is BACK.
+          Helps readers orient since top-view alone is ambiguous. */}
+      {view === "top" && (
+        <g fontFamily="sans-serif" fill="#666" fontSize={11}>
+          <text
+            x={0}
+            y={drawAreaTop - 6}
+            textAnchor="middle"
+          >
+            後 BACK
+          </text>
+          <text
+            x={0}
+            y={drawAreaTop + h + 50}
+            textAnchor="middle"
+          >
+            前 FRONT
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
@@ -232,7 +281,8 @@ function DimensionLine({
         x={(x1 + x2) / 2}
         y={y - 5}
         textAnchor="middle"
-        fontSize={11}
+        fontSize={13}
+        fontWeight="600"
         stroke="none"
       >
         {label}
@@ -272,7 +322,8 @@ function VerticalDimensionLine({
         y={(y1 + y2) / 2}
         textAnchor="start"
         dominantBaseline="middle"
-        fontSize={11}
+        fontSize={13}
+        fontWeight="600"
         stroke="none"
       >
         {label}

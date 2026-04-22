@@ -60,30 +60,64 @@ export function partDepth(part: Part, view: OrthoView) {
  */
 export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: number; y: number }> {
   const r = projectPart(part, view);
-  // Default box polygon (rectangle).
+  // Default box polygon (rectangle, tracing CCW in world-Y-up coords).
   const box = [
-    { x: r.x, y: r.y + r.h },
-    { x: r.x + r.w, y: r.y + r.h },
-    { x: r.x + r.w, y: r.y },
-    { x: r.x, y: r.y },
+    { x: r.x, y: r.y + r.h },       // top-left
+    { x: r.x + r.w, y: r.y + r.h }, // top-right
+    { x: r.x + r.w, y: r.y },       // bottom-right
+    { x: r.x, y: r.y },             // bottom-left
   ];
-  if (!part.shape || part.shape.kind !== "tapered") return box;
-  // Taper only applies when the part stands vertically (length maps to world Y).
-  // Detect that via rotation.z ~= PI/2 (legs use this for vertical posts) OR
-  // via thickness-axis = Y (no rotation with a tall part). Our legs follow
-  // the convention: visible.thickness = legHeight, rotation undefined → world Y
-  // is local "thickness" axis. Only taper in front/side view (not top view).
-  if (view === "top") return box;
-  const scale = part.shape.bottomScale;
-  const cx = (r.x + r.x + r.w) / 2;
-  const halfTop = r.w / 2;
-  const halfBot = halfTop * scale;
-  return [
-    { x: cx - halfTop, y: r.y + r.h },
-    { x: cx + halfTop, y: r.y + r.h },
-    { x: cx + halfBot, y: r.y },
-    { x: cx - halfBot, y: r.y },
-  ];
+  if (!part.shape || part.shape.kind === "box") return box;
+
+  // Taper only applies when the part stands vertically (length/thickness →
+  // world Y). Always skipped in top view.
+  if (part.shape.kind === "tapered") {
+    if (view === "top") return box;
+    const scale = part.shape.bottomScale;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfTop = r.w / 2;
+    const halfBot = halfTop * scale;
+    return [
+      { x: cx - halfTop, y: r.y + r.h },
+      { x: cx + halfTop, y: r.y + r.h },
+      { x: cx + halfBot, y: r.y },
+      { x: cx - halfBot, y: r.y },
+    ];
+  }
+
+  if (part.shape.kind === "splayed") {
+    // Splayed: bottom face shifted by (dxMm, dzMm) in world. Silhouette is a
+    // parallelogram in front/side view; top view shows both top and shifted
+    // bottom footprints (we draw the top, bottom handled by second polygon in
+    // the renderer — keep it simple here: top silhouette only in top view).
+    if (view === "top") return box;
+    const offset =
+      view === "front" ? part.shape.dxMm : part.shape.dzMm;
+    return [
+      { x: r.x, y: r.y + r.h },
+      { x: r.x + r.w, y: r.y + r.h },
+      { x: r.x + r.w + offset, y: r.y },
+      { x: r.x + offset, y: r.y },
+    ];
+  }
+
+  if (part.shape.kind === "hoof") {
+    if (view === "top") return box;
+    const flareY = r.y + part.shape.hoofMm;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfN = r.w / 2;
+    const halfF = halfN * part.shape.hoofScale;
+    return [
+      { x: cx - halfN, y: r.y + r.h },
+      { x: cx + halfN, y: r.y + r.h },
+      { x: cx + halfN, y: flareY },
+      { x: cx + halfF, y: r.y },
+      { x: cx - halfF, y: r.y },
+      { x: cx - halfN, y: flareY },
+    ];
+  }
+
+  return box;
 }
 
 const CONTAIN_EPS = 0.5;
