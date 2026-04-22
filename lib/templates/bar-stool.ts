@@ -4,16 +4,31 @@ import type {
   OptionSpec,
   Part,
 } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { corners } from "./_helpers";
 
 export const barStoolOptions: OptionSpec[] = [
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "方直腳" },
+    { value: "tapered", label: "錐形腳（下方收窄）" },
+    { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
+    { value: "inverted", label: "倒錐腳（下方更粗）" },
+    { value: "splayed", label: "斜腳（整支外傾）" },
+    { value: "hoof", label: "馬蹄腳（底部外撇）" },
+  ] },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏/下橫撐高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
-  { group: "back", type: "checkbox", key: "withBack", label: "加椅背", defaultValue: false, help: "吧檯椅常見無背，可勾選加短椅背" },
+  { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "none", choices: [
+    { value: "none", label: "無椅背" },
+    { value: "rail", label: "短橫木（一根橫木）" },
+    { value: "slats", label: "直條式（N 根垂直板條）" },
+  ] },
+  { group: "back", type: "number", key: "backHeight", label: "椅背高 (mm)", defaultValue: 200, min: 80, max: 500, step: 10, help: "從座板上緣到椅背頂" },
+  { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 1, max: 8, step: 1 },
+  { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5 },
 ];
 
 /**
@@ -22,12 +37,18 @@ export const barStoolOptions: OptionSpec[] = [
  */
 export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
-  const legSize = getOption<number>(input, barStoolOptions[0]);
-  const seatThickness = getOption<number>(input, barStoolOptions[1]);
-  const footrestHeight = getOption<number>(input, barStoolOptions[2]);
-  const apronWidth = getOption<number>(input, barStoolOptions[3]);
-  const apronOffset = getOption<number>(input, barStoolOptions[4]);
-  const withBack = getOption<boolean>(input, barStoolOptions[5]);
+  const o = barStoolOptions;
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
+  const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
+  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const backStyle = getOption<string>(input, opt(o, "backStyle"));
+  const backHeightOpt = getOption<number>(input, opt(o, "backHeight"));
+  const backSlatCount = getOption<number>(input, opt(o, "backSlats"));
+  const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
+  const withBack = backStyle !== "none";
 
   const apronThickness = 18;
   const footRestWidth = 30;
@@ -49,8 +70,26 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
 
   const seatY = height - seatThickness;
-  const backHeight = withBack ? 200 : 0;
+  const backHeight = withBack ? backHeightOpt : 0;
   const cornerPts = corners(length, width, legSize);
+
+  // Leg shape mapping (same set as dining-table / dining-chair)
+  const splayMm = 25;
+  const hoofMm = 30;
+  const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
+    if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
+    if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
+    if (legShape === "inverted") return { kind: "tapered", bottomScale: 1.25 };
+    if (legShape === "splayed") {
+      return {
+        kind: "splayed",
+        dxMm: Math.sign(c.x) * splayMm,
+        dzMm: Math.sign(c.z) * splayMm,
+      };
+    }
+    if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
+    return undefined;
+  };
 
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0 && withBack;
@@ -62,6 +101,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: legSize, width: legSize, thickness: legTotalH },
       origin: { x: c.x, y: 0, z: c.z },
+      shape: legShapeFor(c),
       tenons: isBack ? [] : [
         {
           position: "top",
@@ -167,19 +207,44 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const parts: Part[] = [seatPanel, ...legs, ...aprons, ...footRests];
 
   if (withBack) {
+    const topRailH = Math.min(50, Math.round(backHeight / 3));
+    // 頂橫木一定有——鎖住後腳頂部
     parts.push({
       id: "back-rail",
-      nameZh: "椅背橫木",
+      nameZh: "椅背頂橫木",
       material,
       grainDirection: "length",
-      visible: { length: length - legSize, width: 22, thickness: 50 },
-      origin: { x: 0, y: seatY + backHeight - 50, z: width / 2 - legSize / 2 },
+      visible: { length: length - legSize, width: 22, thickness: topRailH },
+      origin: { x: 0, y: seatY + backHeight - topRailH, z: width / 2 - legSize / 2 },
       tenons: [
-        { position: "start", type: "blind-tenon", length: apronTenonLen, width: 40, thickness: 17 },
-        { position: "end", type: "blind-tenon", length: apronTenonLen, width: 40, thickness: 17 },
+        { position: "start", type: "blind-tenon", length: apronTenonLen, width: Math.max(12, topRailH - 10), thickness: 17 },
+        { position: "end", type: "blind-tenon", length: apronTenonLen, width: Math.max(12, topRailH - 10), thickness: 17 },
       ],
       mortises: [],
     });
+    if (backStyle === "slats" && backSlatCount > 0) {
+      const slatThickness = 16;
+      const availableW = length - legSize - 40;
+      const pitch = availableW / (backSlatCount + 1);
+      const slatLen = backHeight - topRailH;
+      for (let i = 0; i < backSlatCount; i++) {
+        const xCenter = -availableW / 2 + pitch * (i + 1);
+        parts.push({
+          id: `back-slat-${i + 1}`,
+          nameZh: `椅背板條 ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: slatLen, width: backSlatWidth, thickness: slatThickness },
+          origin: { x: xCenter, y: seatY, z: width / 2 - legSize / 2 },
+          rotation: { x: 0, y: 0, z: Math.PI / 2 },
+          tenons: [
+            { position: "start", type: "blind-tenon", length: 12, width: Math.max(10, backSlatWidth - 10), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+            { position: "end", type: "blind-tenon", length: 12, width: Math.max(10, backSlatWidth - 10), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+          ],
+          mortises: [],
+        });
+      }
+    }
   }
 
   return {
