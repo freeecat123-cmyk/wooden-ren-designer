@@ -3,6 +3,11 @@ import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import {
+  MM3_PER_TSAI,
+  SHEET_GOOD_LABEL,
+  effectiveBillableMaterial,
+} from "@/lib/pricing/catalog";
+import {
   isPartHidden,
   projectPart,
   projectPartPolygon,
@@ -293,6 +298,39 @@ export function ThreeViewLayout({ design }: { design: FurnitureDesign }) {
 }
 
 export function MaterialList({ design }: { design: FurnitureDesign }) {
+  let totalTsai = 0;
+  const tsaiByMaterial = new Map<string, number>();
+
+  const rows = design.parts.map((part) => {
+    const cut = calculateCutDimensions(part);
+    const volMm3 = cut.length * cut.width * cut.thickness;
+    const tsai = volMm3 / MM3_PER_TSAI;
+    totalTsai += tsai;
+
+    const billable = effectiveBillableMaterial(part);
+    const materialLabel =
+      billable === "plywood" || billable === "mdf"
+        ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
+        : MATERIALS[part.material].nameZh;
+
+    const groupKey =
+      billable === "plywood" || billable === "mdf"
+        ? SHEET_GOOD_LABEL[billable]
+        : MATERIALS[part.material].nameZh;
+    tsaiByMaterial.set(groupKey, (tsaiByMaterial.get(groupKey) ?? 0) + tsai);
+
+    const tenonNotes = part.tenons.length
+      ? part.tenons
+          .map(
+            (t) =>
+              `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+          )
+          .join("、")
+      : "—";
+
+    return { part, cut, tsai, materialLabel, tenonNotes };
+  });
+
   return (
     <table className="w-full text-sm">
       <thead className="bg-zinc-100">
@@ -301,35 +339,44 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           <th className="text-left p-2">材質</th>
           <th className="text-right p-2">可見長 × 寬 × 厚 (mm)</th>
           <th className="text-right p-2">切料尺寸 (mm)</th>
+          <th className="text-right p-2">材積（才）</th>
           <th className="text-left p-2">榫頭備註</th>
         </tr>
       </thead>
       <tbody>
-        {design.parts.map((part) => {
-          const cut = calculateCutDimensions(part);
-          const tenonNotes = part.tenons.length
-            ? part.tenons
-                .map(
-                  (t) =>
-                    `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
-                )
-                .join("、")
-            : "—";
-          return (
-            <tr key={part.id} className="border-b border-zinc-200">
-              <td className="p-2">{part.nameZh}</td>
-              <td className="p-2">{MATERIALS[part.material].nameZh}</td>
-              <td className="p-2 text-right">
-                {part.visible.length} × {part.visible.width} × {part.visible.thickness}
-              </td>
-              <td className="p-2 text-right font-semibold">
-                {cut.length} × {cut.width} × {cut.thickness}
-              </td>
-              <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
-            </tr>
-          );
-        })}
+        {rows.map(({ part, cut, tsai, materialLabel, tenonNotes }) => (
+          <tr key={part.id} className="border-b border-zinc-200">
+            <td className="p-2">{part.nameZh}</td>
+            <td className="p-2">{materialLabel}</td>
+            <td className="p-2 text-right">
+              {part.visible.length} × {part.visible.width} × {part.visible.thickness}
+            </td>
+            <td className="p-2 text-right font-semibold">
+              {cut.length} × {cut.width} × {cut.thickness}
+            </td>
+            <td className="p-2 text-right font-mono">
+              {tsai.toFixed(2)}
+            </td>
+            <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
+          </tr>
+        ))}
       </tbody>
+      <tfoot className="bg-zinc-50 border-t-2 border-zinc-300">
+        <tr>
+          <td className="p-2 font-semibold" colSpan={4}>
+            合計
+            <span className="ml-3 text-xs text-zinc-500 font-normal">
+              {[...tsaiByMaterial.entries()]
+                .map(([k, v]) => `${k} ${v.toFixed(2)} 才`)
+                .join("　・　")}
+            </span>
+          </td>
+          <td className="p-2 text-right font-mono font-semibold">
+            {totalTsai.toFixed(2)}
+          </td>
+          <td className="p-2 text-xs text-zinc-500">未含 10% 切料損耗</td>
+        </tr>
+      </tfoot>
     </table>
   );
 }
