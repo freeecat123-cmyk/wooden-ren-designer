@@ -80,12 +80,11 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
-  // 計算可用內高（櫃子內部去掉頂底板 + 分隔板 + 腳）：
-  // innerH = height - legHeight - 2 × panelT。再扣除 2 個 zone boundary 分隔
-  // 板（中→上 + 中→下，各 shelfT），剩下的才是 3 個 zone 的淨高總和。
+  // 計算可用內高。caseFurniture 把 zone boundary 分隔板畫在「下方 zone」的
+  // 最上端 shelfT 之內（不另佔空間），所以 3 個 zone 的高度總和 = innerH，
+  // 不是 innerH - 2 × shelfT。之前扣了 boundary 導致最上方多出 ~36mm 空隙。
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const boundaryAllowance = 2 * (panelThickness - 2); // shelfT 用 panelT-2
-  const available = innerH - boundaryAllowance;
+  const available = innerH;
 
   // 中層高度 = 剩餘空間。若上+下已超過 available，等比壓縮上+下，留最小 80mm 給中層。
   const MIN_MID = 80;
