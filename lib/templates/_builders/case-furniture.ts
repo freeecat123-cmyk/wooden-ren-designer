@@ -158,6 +158,36 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         })
       : [];
 
+  // Auto-populate shelfFractions from zones so sides get mortises that
+  // match internal dividers / shelves. The mirror-pair skip in extract.ts
+  // prevents the false positive where a side's own tongue would match its
+  // mirror sibling's added mortise.
+  if (opts.zones && opts.zones.length > 0) {
+    let cursor = 0;
+    for (let i = 0; i < opts.zones.length; i++) {
+      const z = opts.zones[i];
+      const zBottom = cursor;
+      const zTop = cursor + z.heightMm;
+      if (z.type === "drawer") {
+        const rows = z.count ?? 1;
+        for (let d = 0; d < rows - 1; d++) {
+          const y = zBottom + ((d + 1) * z.heightMm) / rows;
+          shelfFractions.push(y / innerH);
+        }
+      } else if (z.type === "shelves") {
+        const layers = z.count ?? 1;
+        for (let d = 0; d < layers - 1; d++) {
+          const y = zBottom + ((d + 1) * z.heightMm) / layers;
+          shelfFractions.push(y / innerH);
+        }
+      }
+      if (i < opts.zones.length - 1) {
+        shelfFractions.push(zTop / innerH);
+      }
+      cursor = zTop;
+    }
+  }
+
   // Optional 4 corner legs (raise the case)
   const legShape = legShapeRaw;
   const legInset = opts.legInset ?? 0;

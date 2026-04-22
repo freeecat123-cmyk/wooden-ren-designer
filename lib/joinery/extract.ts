@@ -36,16 +36,36 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
     for (const mortise of part.mortises) {
       for (const other of design.parts) {
         if (other.id === part.id) continue;
+        // Skip mirror-pair matches: two parts with identical visible dims
+        // are almost certainly mirrored (左側板/右側板). Their tenons/
+        // mortises have the same numbers and would spuriously match each
+        // other if we only used dimensional matching.
+        const mirror =
+          Math.abs(part.visible.length - other.visible.length) < 1 &&
+          Math.abs(part.visible.width - other.visible.width) < 1 &&
+          Math.abs(part.visible.thickness - other.visible.thickness) < 1;
+        if (mirror) continue;
         for (const tenon of other.tenons) {
           const lengthMatch = Math.abs(tenon.length - mortise.depth) < 3;
-          const wideTol = Math.max(5, tenon.width * 0.1);
-          const wideMatch =
-            Math.abs(tenon.width - mortise.length) < wideTol ||
-            Math.abs(tenon.width - mortise.width) < wideTol;
-          const thinMatch =
-            Math.abs(tenon.thickness - mortise.width) < 3 ||
-            Math.abs(tenon.thickness - mortise.length) < 3;
-          if (lengthMatch && wideMatch && thinMatch) {
+          // Cross-section must match in a CONSISTENT orientation (wide edge
+          // of the tenon maps to ONE specific edge of the mortise). Allowing
+          // either axis to match the wide dim independently accepts false
+          // positives — e.g., an internal divider passing extracted against
+          // the top/bottom panel's side-panel groove purely because the
+          // thin dim happened to be 6mm either way.
+          // Fixed 9mm tolerance: excludes the 10mm false-positive gap
+          // between a divider tongue (innerD-10) and the top/bottom
+          // panel's side-mortise (innerD). Still accepts legitimate
+          // 8mm slacks (side panel tongue + drawer-bottom tongue).
+          const wideTol = 9;
+          const thinTol = 3;
+          const optionA =
+            Math.abs(tenon.width - mortise.length) < wideTol &&
+            Math.abs(tenon.thickness - mortise.width) < thinTol;
+          const optionB =
+            Math.abs(tenon.width - mortise.width) < wideTol &&
+            Math.abs(tenon.thickness - mortise.length) < thinTol;
+          if (lengthMatch && (optionA || optionB)) {
             const k = tenonKey(tenon);
             motherThicknessByKey.set(
               k,
