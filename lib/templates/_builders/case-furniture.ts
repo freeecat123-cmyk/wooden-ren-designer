@@ -391,23 +391,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     mortises: [],
   });
 
-  // ===== 抽屜內箱（每屜 5 件：面板 / 後板 / 左右側板 / 底板）=====
-  if (drawerCount > 0) {
-    const drawerSlotH = drawerAreaH / drawerCount;
-    // Drawer zone Y range. Default: bottom of innerH. When drawerAtTop, shift
-    // up so drawers occupy the top portion of innerH.
-    const drawerZoneBottomY = drawerAtTop
-      ? caseBottomY + panelT + innerH - drawerAreaH
-      : caseBottomY + panelT;
-    const drawerZoneTopY = drawerZoneBottomY + drawerAreaH;
-
-    // 抽屜間水平分隔板（drawerCount-1 片）+ 抽屜區邊界隔板（若未填滿 innerH）
-    const needBoundaryDivider = drawerAreaH < innerH - 1;
-    for (let d = 0; d < drawerCount - 1; d++) {
+  // Drawer zone renderer — can be called multiple times for multi-zone cabinets.
+  const renderDrawerZone = (cfg: {
+    yStart: number;      // mm from floor to bottom of drawer zone
+    height: number;      // mm zone height
+    rows: number;        // drawer rows
+    cols: number;        // drawer columns
+    idPrefix: string;    // e.g. "top-drawer" or "drawer"
+    labelPrefix: string; // e.g. "上層抽屜" or "抽屜"
+    dividerFrom: "above" | "below" | "none"; // where boundary divider goes
+  }) => {
+    const { yStart, height: zoneH, rows, cols, idPrefix, labelPrefix, dividerFrom } = cfg;
+    const drawerSlotH = zoneH / rows;
+    const drawerZoneBottomY = yStart;
+    const drawerZoneTopY = yStart + zoneH;
+    for (let d = 0; d < rows - 1; d++) {
       const dividerY = drawerZoneBottomY + (d + 1) * drawerSlotH;
       parts.push({
-        id: `drawer-divider-${d + 1}`,
-        nameZh: `抽屜分隔板 ${d + 1}`,
+        id: `${idPrefix}-divider-${d + 1}`,
+        nameZh: `${labelPrefix}分隔板 ${d + 1}`,
         material,
         grainDirection: "length",
         visible: { length: innerW, width: innerD, thickness: shelfT },
@@ -419,12 +421,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         mortises: [],
       });
     }
-    // 抽屜區邊界分隔板（將抽屜區與其它空間隔開）
-    if (needBoundaryDivider) {
-      const boundaryY = drawerAtTop ? drawerZoneBottomY : drawerZoneTopY;
+    // 抽屜區邊界分隔板
+    if (dividerFrom !== "none") {
+      const boundaryY = dividerFrom === "below" ? drawerZoneBottomY : drawerZoneTopY;
       parts.push({
-        id: "drawer-zone-boundary",
-        nameZh: drawerAtTop ? "抽屜區底板" : "抽屜區頂板",
+        id: `${idPrefix}-zone-boundary`,
+        nameZh: dividerFrom === "below" ? `${labelPrefix}區底板` : `${labelPrefix}區頂板`,
         material,
         grainDirection: "length",
         visible: { length: innerW, width: innerD, thickness: shelfT },
@@ -441,16 +443,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerSideT = 14;
     const drawerBackT = 12;
     const drawerBottomT = 6;
-    const drawerGap = 4; // 抽屜與隔板的間隙
-    const colPitch = innerW / drawerCols;
+    const drawerGap = 4;
+    const colPitch = innerW / cols;
     const drawerInnerW = colPitch - 4 - 2 * drawerSideT;
     const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
     const drawerH = drawerSlotH - drawerGap * 2;
     const dovetailLen = drawerSideT;
 
-    for (let row = 0; row < drawerCount; row++) {
-     for (let col = 0; col < drawerCols; col++) {
-      const i = row * drawerCols + col;
+    for (let row = 0; row < rows; row++) {
+     for (let col = 0; col < cols; col++) {
+      const i = row * cols + col;
       const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
       const xCenter = -innerW / 2 + colPitch * col + colPitch / 2;
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
@@ -458,8 +460,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 面板：左右兩端燕尾榫接側板 — X 旋轉站立
       parts.push({
-        id: `drawer${i + 1}-front`,
-        nameZh: `抽屜${i + 1} 面板`,
+        id: `${idPrefix}-${i + 1}-front`,
+        nameZh: `${labelPrefix}${i + 1} 面板`,
         material,
         grainDirection: "length",
         visible: {
@@ -490,8 +492,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
       parts.push({
-        id: `drawer${i + 1}-back`,
-        nameZh: `抽屜${i + 1} 後板`,
+        id: `${idPrefix}-${i + 1}-back`,
+        nameZh: `${labelPrefix}${i + 1} 後板`,
         material,
         materialOverride: "mdf",
         grainDirection: "length",
@@ -524,8 +526,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 左右側板（中纖板／雜木）— 長度沿 Z，需 {x: π/2, y: π/2} 旋轉
       for (const side of [-1, 1] as const) {
         parts.push({
-          id: `drawer${i + 1}-side-${side < 0 ? "left" : "right"}`,
-          nameZh: `抽屜${i + 1} ${side < 0 ? "左" : "右"}側板`,
+          id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
+          nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
           material,
           materialOverride: "mdf",
           grainDirection: "length",
@@ -571,8 +573,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 底板（6mm 夾板）：四邊舌頭嵌入溝槽
       parts.push({
-        id: `drawer${i + 1}-bottom`,
-        nameZh: `抽屜${i + 1} 底板`,
+        id: `${idPrefix}-${i + 1}-bottom`,
+        nameZh: `${labelPrefix}${i + 1} 底板`,
         material,
         materialOverride: "plywood",
         grainDirection: "length",
@@ -620,23 +622,30 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       });
      }
     }
-  }
+  };
 
-  // ===== 門框（每門 4 件框 + 鑲板/玻璃）=====
-  if (doorCount > 0) {
-    const doorW = innerW / doorCount;
+  // Door zone renderer — can be called multiple times for multi-zone cabinets.
+  const renderDoorZone = (cfg: {
+    yStart: number;
+    height: number;
+    count: number;
+    doorType: "wood" | "glass";
+    idPrefix: string;
+    labelPrefix: string;
+  }) => {
+    const { idPrefix, labelPrefix } = cfg;
+    const doorType = cfg.doorType;
+    const doorW = innerW / cfg.count;
     const stileW = 60; // 豎梃寬度
     const railW = 60; // 橫檔寬度
     const frameT = 22; // 框料厚度
     const panelT_door = 12; // 木鑲板厚度（玻璃時不計）
     const cornerTenonLen = Math.round(stileW * 0.6);
     const grooveDepth = 8;
-    // Door zone vertical range — default full innerH, but can be confined
-    // via doorYOffset (mm from inner-bottom) + doorAreaHeight (mm).
-    const doorZoneH = opts.doorAreaHeight ?? innerH;
-    const doorZoneBottomY = caseBottomY + panelT + doorYOffset;
+    const doorZoneH = cfg.height;
+    const doorZoneBottomY = cfg.yStart;
 
-    for (let i = 0; i < doorCount; i++) {
+    for (let i = 0; i < cfg.count; i++) {
       const xCenter = -innerW / 2 + i * doorW + doorW / 2;
       const zFront = -width / 2 - frameT / 2 - 1;
       const doorOuterW = doorW - 4;
@@ -646,8 +655,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 上橫檔 — 橫放但垂直站立（X 軸旋轉）
       parts.push({
-        id: `door${i + 1}-rail-top`,
-        nameZh: `門${i + 1} 上橫檔`,
+        id: `${idPrefix}-${i + 1}-rail-top`,
+        nameZh: `${labelPrefix}${i + 1} 上橫檔`,
         material,
         grainDirection: "length",
         visible: {
@@ -691,8 +700,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 下橫檔
       parts.push({
-        id: `door${i + 1}-rail-bottom`,
-        nameZh: `門${i + 1} 下橫檔`,
+        id: `${idPrefix}-${i + 1}-rail-bottom`,
+        nameZh: `${labelPrefix}${i + 1} 下橫檔`,
         material,
         grainDirection: "length",
         visible: {
@@ -736,8 +745,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 左右豎梃 — 長度方向是垂直（width=doorOuterH），需要 X 軸旋轉站立
       for (const side of [-1, 1] as const) {
         parts.push({
-          id: `door${i + 1}-stile-${side < 0 ? "left" : "right"}`,
-          nameZh: `門${i + 1} ${side < 0 ? "左" : "右"}豎梃`,
+          id: `${idPrefix}-${i + 1}-stile-${side < 0 ? "left" : "right"}`,
+          nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}豎梃`,
           material,
           grainDirection: "length",
           visible: {
@@ -794,8 +803,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 鑲板（木門）或玻璃片（玻璃門 — 標記為 part 但材質虛擬）
       if (doorType === "wood") {
         parts.push({
-          id: `door${i + 1}-panel`,
-          nameZh: `門${i + 1} 木鑲板`,
+          id: `${idPrefix}-${i + 1}-panel`,
+          nameZh: `${labelPrefix}${i + 1} 木鑲板`,
           material,
           grainDirection: "length",
           visible: {
@@ -843,6 +852,125 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         });
       }
       // 玻璃門：玻璃由溝槽夾住，不視為木質零件，不入材料單
+    }
+  };
+
+  // Optional extra shelves zone — adds N horizontal panels within a zone
+  const renderShelvesZone = (cfg: {
+    yStart: number;
+    height: number;
+    count: number;
+    idPrefix: string;
+  }) => {
+    if (cfg.count <= 0) return;
+    for (let i = 0; i < cfg.count; i++) {
+      const y = cfg.yStart + ((i + 1) * cfg.height) / (cfg.count + 1);
+      parts.push({
+        id: `${cfg.idPrefix}-shelf-${i + 1}`,
+        nameZh: `層板 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: innerW, width: innerD, thickness: shelfT },
+        origin: { x: 0, y: y - shelfT, z: 0 },
+        tenons: [
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+        ],
+        mortises: [],
+      });
+    }
+  };
+
+  // === Dispatch: either use opts.zones[] (new multi-zone mode) OR the
+  // legacy drawerCount/doorCount/shelfFractions singletons. ===
+  if (opts.zones && opts.zones.length > 0) {
+    const zones = opts.zones;
+    // Stack zones from bottom up, adding a boundary divider between each
+    let cursorY = caseBottomY + panelT;
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      const yStart = cursorY;
+      const yEnd = cursorY + z.heightMm;
+      const isFirst = i === 0;
+      const isLast = i === zones.length - 1;
+      const labelPrefix =
+        zones.length === 3
+          ? i === 0 ? "下層" : i === 1 ? "中層" : "上層"
+          : `區${i + 1}`;
+      const idPrefix = `z${i + 1}`;
+      if (z.type === "drawer") {
+        renderDrawerZone({
+          yStart,
+          height: z.heightMm,
+          rows: z.count ?? 1,
+          cols: z.cols ?? 1,
+          idPrefix: `${idPrefix}-drawer`,
+          labelPrefix: `${labelPrefix}抽屜`,
+          // Only add bottom-boundary divider for non-first zones (first uses
+          // case bottom panel as boundary); top-boundary for non-last.
+          dividerFrom: isLast ? (isFirst ? "none" : "below") : isFirst ? "above" : "above",
+        });
+      } else if (z.type === "door") {
+        renderDoorZone({
+          yStart,
+          height: z.heightMm,
+          count: z.count ?? 2,
+          doorType: (z as { doorTypeOverride?: "wood" | "glass" }).doorTypeOverride ?? doorType ?? "wood",
+          idPrefix: `${idPrefix}-door`,
+          labelPrefix: `${labelPrefix}門`,
+        });
+      } else if (z.type === "shelves") {
+        renderShelvesZone({
+          yStart,
+          height: z.heightMm,
+          count: z.count ?? 1,
+          idPrefix,
+        });
+      }
+      // zone boundary divider (except above the topmost zone — that uses case top panel)
+      if (!isLast) {
+        parts.push({
+          id: `${idPrefix}-boundary`,
+          nameZh: `${labelPrefix}區頂板`,
+          material,
+          grainDirection: "length",
+          visible: { length: innerW, width: innerD, thickness: shelfT },
+          origin: { x: 0, y: yEnd - shelfT, z: 0 },
+          tenons: [
+            { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+            { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          ],
+          mortises: [],
+        });
+      }
+      cursorY = yEnd;
+    }
+  } else {
+    // Legacy single-zone behavior
+    if (drawerCount > 0) {
+      const drawerZoneBottomY = drawerAtTop
+        ? caseBottomY + panelT + innerH - drawerAreaH
+        : caseBottomY + panelT;
+      const needBoundary = drawerAreaH < innerH - 1;
+      renderDrawerZone({
+        yStart: drawerZoneBottomY,
+        height: drawerAreaH,
+        rows: drawerCount,
+        cols: drawerCols,
+        idPrefix: "drawer",
+        labelPrefix: "抽屜",
+        dividerFrom: needBoundary ? (drawerAtTop ? "below" : "above") : "none",
+      });
+    }
+    if (doorCount > 0) {
+      renderDoorZone({
+        yStart: caseBottomY + panelT + doorYOffset,
+        height: opts.doorAreaHeight ?? innerH,
+        count: doorCount,
+        doorType,
+        idPrefix: "door",
+        labelPrefix: "門",
+      });
     }
   }
 

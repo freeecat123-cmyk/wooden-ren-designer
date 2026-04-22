@@ -1,29 +1,38 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
+import type { CabinetZone } from "./_builders/case-furniture";
+
+// 每層可選 4 種類型：不設 / 抽屜 / 門板 / 層板
+const ZONE_TYPE_CHOICES = [
+  { value: "none", label: "不設（空區）" },
+  { value: "drawer", label: "抽屜" },
+  { value: "door", label: "門板" },
+  { value: "shelves", label: "層板（開放）" },
+];
 
 export const displayCabinetOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "shelfCount", label: "中層層板數", defaultValue: 3, min: 0, max: 20, step: 1 },
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
-  // 上層：抽屜 / 門 / 層板 / 無
-  { group: "drawer", type: "select", key: "topZoneType", label: "上層類型", defaultValue: "none", choices: [
-    { value: "none", label: "不設上層區（沿用中層層板）" },
-    { value: "drawer", label: "上層抽屜" },
-  ] },
-  { group: "drawer", type: "number", key: "topDrawerRows", label: "上層抽屜排數", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "drawer", type: "number", key: "topDrawerCols", label: "上層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
-  { group: "drawer", type: "number", key: "topZoneHeight", label: "上層區高度 (mm)", defaultValue: 300, min: 100, max: 800, step: 10 },
-  // 下層：門 / 無
-  { group: "door", type: "select", key: "bottomZoneType", label: "下層類型", defaultValue: "door", choices: [
-    { value: "none", label: "不設下層門（沿用中層層板）" },
-    { value: "door", label: "下層門板" },
-  ] },
-  { group: "door", type: "number", key: "doorCount", label: "下層門板數", defaultValue: 2, min: 1, max: 6, step: 1 },
+  // 上層
+  { group: "top", type: "select", key: "topType", label: "上層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES },
+  { group: "top", type: "number", key: "topHeight", label: "上層高度 (mm)", defaultValue: 400, min: 80, max: 1500, step: 10 },
+  { group: "top", type: "number", key: "topCount", label: "上層數量（抽屜排 / 門扇 / 層板片）", defaultValue: 2, min: 1, max: 8, step: 1 },
+  { group: "top", type: "number", key: "topCols", label: "上層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
+  // 中層
+  { group: "top", type: "select", key: "midType", label: "中層類型", defaultValue: "shelves", choices: ZONE_TYPE_CHOICES },
+  { group: "top", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 600, min: 80, max: 1500, step: 10 },
+  { group: "top", type: "number", key: "midCount", label: "中層數量", defaultValue: 2, min: 1, max: 8, step: 1 },
+  { group: "top", type: "number", key: "midCols", label: "中層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
+  // 下層
+  { group: "top", type: "select", key: "bottomType", label: "下層類型", defaultValue: "door", choices: ZONE_TYPE_CHOICES },
+  { group: "top", type: "number", key: "bottomHeight", label: "下層高度 (mm)", defaultValue: 500, min: 80, max: 1500, step: 10 },
+  { group: "top", type: "number", key: "bottomCount", label: "下層數量", defaultValue: 2, min: 1, max: 8, step: 1 },
+  { group: "top", type: "number", key: "bottomCols", label: "下層抽屜列數", defaultValue: 1, min: 1, max: 4, step: 1 },
+  // 門
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "glass", choices: [
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
     { value: "wood", label: "木鑲板門" },
   ] },
-  { group: "door", type: "number", key: "bottomZoneHeight", label: "下層區高度 (mm)", defaultValue: 500, min: 100, max: 1500, step: 10 },
   // 腳
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
@@ -37,25 +46,58 @@ export const displayCabinetOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
 ];
 
+type ZoneType = "none" | "drawer" | "door" | "shelves";
+
+const toCabinetZone = (
+  t: ZoneType,
+  heightMm: number,
+  count: number,
+  cols: number,
+): CabinetZone | null => {
+  if (t === "none") return { type: "shelves", heightMm, count: 0 }; // empty open
+  if (t === "drawer") return { type: "drawer", heightMm, count, cols };
+  if (t === "door") return { type: "door", heightMm, count };
+  if (t === "shelves") return { type: "shelves", heightMm, count };
+  return null;
+};
+
 export const displayCabinet: FurnitureTemplate = (input) => {
   const o = displayCabinetOptions;
-  const shelfCount = getOption<number>(input, opt(o, "shelfCount"));
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const topZoneType = getOption<string>(input, opt(o, "topZoneType"));
-  const topDrawerRows = getOption<number>(input, opt(o, "topDrawerRows"));
-  const topDrawerCols = getOption<number>(input, opt(o, "topDrawerCols"));
-  const topZoneHeight = getOption<number>(input, opt(o, "topZoneHeight"));
-  const bottomZoneType = getOption<string>(input, opt(o, "bottomZoneType"));
-  const doorCount = getOption<number>(input, opt(o, "doorCount"));
+  const topType = getOption<string>(input, opt(o, "topType")) as ZoneType;
+  const topHeight = getOption<number>(input, opt(o, "topHeight"));
+  const topCount = getOption<number>(input, opt(o, "topCount"));
+  const topCols = getOption<number>(input, opt(o, "topCols"));
+  const midType = getOption<string>(input, opt(o, "midType")) as ZoneType;
+  const midHeight = getOption<number>(input, opt(o, "midHeight"));
+  const midCount = getOption<number>(input, opt(o, "midCount"));
+  const midCols = getOption<number>(input, opt(o, "midCols"));
+  const bottomType = getOption<string>(input, opt(o, "bottomType")) as ZoneType;
+  const bottomHeight = getOption<number>(input, opt(o, "bottomHeight"));
+  const bottomCount = getOption<number>(input, opt(o, "bottomCount"));
+  const bottomCols = getOption<number>(input, opt(o, "bottomCols"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
-  const bottomZoneHeight = getOption<number>(input, opt(o, "bottomZoneHeight"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
-  const hasTopDrawers = topZoneType === "drawer";
-  const hasBottomDoors = bottomZoneType === "door";
+  // zones are stacked BOTTOM-up in caseFurniture's internal ordering
+  const zones: CabinetZone[] = [];
+  const b = toCabinetZone(bottomType, bottomHeight, bottomCount, bottomCols);
+  const m = toCabinetZone(midType, midHeight, midCount, midCols);
+  const t = toCabinetZone(topType, topHeight, topCount, topCols);
+  if (b) zones.push(b);
+  if (m) zones.push(m);
+  if (t) zones.push(t);
+
+  const describe = (name: string, ty: ZoneType, h: number, n: number, c: number) => {
+    if (ty === "none") return `${name} 空區 ${h}mm`;
+    if (ty === "drawer") return `${name} ${n}×${c} 抽屜 ${h}mm`;
+    if (ty === "door") return `${name} ${n} 扇${doorType === "wood" ? "木" : "玻璃"}門 ${h}mm`;
+    if (ty === "shelves") return `${name} ${n} 片層板 ${h}mm`;
+    return "";
+  };
 
   return caseFurniture({
     category: "display-cabinet",
@@ -64,14 +106,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     width: input.width,
     height: input.height,
     material: input.material,
-    shelfCount,
-    doorCount: hasBottomDoors ? doorCount : 0,
+    shelfCount: 0,
     doorType: doorType === "wood" ? "wood" : "glass",
-    doorAreaHeight: hasBottomDoors ? bottomZoneHeight : undefined,
-    drawerCount: hasTopDrawers ? topDrawerRows : 0,
-    drawerCols: topDrawerCols,
-    drawerAreaHeight: hasTopDrawers ? topZoneHeight : undefined,
-    drawerAtTop: true,
+    zones,
     panelThickness,
     shelfThickness: panelThickness - 2,
     backThickness: 8,
@@ -79,6 +116,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
-    notes: `${hasTopDrawers ? `上層 ${topDrawerRows}×${topDrawerCols} 抽屜（${topZoneHeight}mm）；` : ""}中層 ${shelfCount} 層${hasBottomDoors ? `；下層 ${doorCount} 扇${doorType === "wood" ? "木" : "玻璃"}門（${bottomZoneHeight}mm）` : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
+    notes: `三層組合：${describe("上層", topType, topHeight, topCount, topCols)}；${describe("中層", midType, midHeight, midCount, midCols)}；${describe("下層", bottomType, bottomHeight, bottomCount, bottomCols)}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
   });
 };
