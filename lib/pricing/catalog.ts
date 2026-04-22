@@ -1,4 +1,4 @@
-import type { MaterialId } from "@/lib/types";
+import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
 
 /**
  * 木材單價表 (NT$ / 才)
@@ -25,6 +25,42 @@ export const MATERIAL_PRICE_PER_TSAI: Record<MaterialId, number> = {
   teak: 300, // 估算（使用者未提供）
   "douglas-fir": 90, // 估算（花旗松比松木略貴）
 };
+
+/**
+ * 板材單價表 (NT$ / 才)
+ *
+ * 夾板、中纖板用於背板、抽屜底板、抽屜側背板等非結構零件——
+ * 實際師傅不會全實木，才價落差 4–8 倍。以零售裁切價估：
+ *   5–6mm 夾板    ~NT$20/才
+ *   9mm 中纖板    ~NT$15/才
+ */
+export const SHEET_GOOD_PRICE_PER_TSAI: Record<SheetGood, number> = {
+  plywood: 20,
+  mdf: 15,
+};
+
+export const SHEET_GOOD_LABEL: Record<SheetGood, string> = {
+  plywood: "夾板",
+  mdf: "中纖板",
+};
+
+/** 零件實際計價材料：有 override 就用 override，否則用主材 */
+export function effectiveBillableMaterial<
+  P extends { material: MaterialId; materialOverride?: SheetGood },
+>(part: P): BillableMaterial {
+  return part.materialOverride ?? part.material;
+}
+
+/** 取得某計價材料的才價，允許表單覆寫板材價 */
+export function priceForMaterial(
+  m: BillableMaterial,
+  sheetOverrides?: Partial<Record<SheetGood, number>>,
+): number {
+  if (m === "plywood" || m === "mdf") {
+    return sheetOverrides?.[m] ?? SHEET_GOOD_PRICE_PER_TSAI[m];
+  }
+  return MATERIAL_PRICE_PER_TSAI[m] ?? 300;
+}
 
 export function mm3ToTsai(volumeMm3: number): number {
   return volumeMm3 / MM3_PER_TSAI;

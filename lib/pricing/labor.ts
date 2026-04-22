@@ -22,6 +22,10 @@ export interface LaborDefaults {
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
   vatRate: number;
+  /** 夾板才價覆寫 (NT$/才)，背板/抽屜底板計價用 */
+  plywoodPricePerTsai: number;
+  /** 中纖板才價覆寫 (NT$/才)，抽屜側背板計價用 */
+  mdfPricePerTsai: number;
 }
 
 export const LABOR_DEFAULTS: LaborDefaults = {
@@ -30,6 +34,8 @@ export const LABOR_DEFAULTS: LaborDefaults = {
   consumables: 200,
   marginRate: 0.3,
   vatRate: 0.05,
+  plywoodPricePerTsai: 20,
+  mdfPricePerTsai: 15,
 };
 
 /** 合理範圍（表單 min/max） */
@@ -39,4 +45,6 @@ export const LABOR_BOUNDS = {
   consumables: { min: 0, max: 2000, step: 50 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
+  plywoodPricePerTsai: { min: 5, max: 150, step: 5 },
+  mdfPricePerTsai: { min: 5, max: 150, step: 5 },
 } as const;

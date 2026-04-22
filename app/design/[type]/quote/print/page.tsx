@@ -41,6 +41,14 @@ export default async function QuotePrintPage({
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
+    plywoodPricePerTsai: parseNum(
+      sp.plywoodPricePerTsai,
+      LABOR_DEFAULTS.plywoodPricePerTsai,
+    ),
+    mdfPricePerTsai: parseNum(
+      sp.mdfPricePerTsai,
+      LABOR_DEFAULTS.mdfPricePerTsai,
+    ),
   };
 
   const design = entry.template({ length, width, height, material });

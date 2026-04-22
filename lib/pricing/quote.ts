@@ -1,10 +1,13 @@
-import type { FurnitureDesign } from "@/lib/types";
+import type { BillableMaterial, FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
 import {
-  MATERIAL_PRICE_PER_TSAI,
   MM3_PER_TSAI,
+  SHEET_GOOD_LABEL,
+  effectiveBillableMaterial,
+  priceForMaterial,
 } from "./catalog";
+import { MATERIALS } from "@/lib/materials";
 import type { LaborDefaults } from "./labor";
 
 export interface QuoteLineItem {
@@ -43,20 +46,61 @@ export interface QuoteBreakdown {
 
 const WASTE_RATE = 0.1; // 10% 切料損耗
 
+function materialLabel(m: BillableMaterial): string {
+  if (m === "plywood" || m === "mdf") return SHEET_GOOD_LABEL[m];
+  return MATERIALS[m]?.nameZh ?? m;
+}
+
 export function calculateQuote(
   design: FurnitureDesign,
   opts: LaborDefaults,
 ): QuoteBreakdown {
-  // 1. 材料成本：總材積（含切料損耗）× 才價
-  let totalVolumeMm3 = 0;
+  // 1. 按計價材料分組加總材積
+  const volumeByMaterial = new Map<BillableMaterial, number>();
   for (const part of design.parts) {
     const cut = calculateCutDimensions(part);
-    totalVolumeMm3 += cut.length * cut.width * cut.thickness;
+    const vol = cut.length * cut.width * cut.thickness;
+    const mat = effectiveBillableMaterial(part);
+    volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
   }
-  const totalWithWasteMm3 = totalVolumeMm3 * (1 + WASTE_RATE);
-  const totalTsai = totalWithWasteMm3 / MM3_PER_TSAI;
-  const unitPrice = MATERIAL_PRICE_PER_TSAI[design.primaryMaterial] ?? 300;
-  const materialCost = totalTsai * unitPrice;
+
+  const sheetOverrides = {
+    plywood: opts.plywoodPricePerTsai,
+    mdf: opts.mdfPricePerTsai,
+  };
+
+  const materialLines: QuoteLineItem[] = [];
+  let materialCost = 0;
+  let totalVolumeMm3 = 0;
+  let totalTsai = 0;
+
+  // 排序：主材在前、板材在後
+  const sortedEntries = [...volumeByMaterial.entries()].sort((a, b) => {
+    const aSheet = a[0] === "plywood" || a[0] === "mdf" ? 1 : 0;
+    const bSheet = b[0] === "plywood" || b[0] === "mdf" ? 1 : 0;
+    return aSheet - bSheet;
+  });
+
+  for (const [mat, volMm3] of sortedEntries) {
+    const withWaste = volMm3 * (1 + WASTE_RATE);
+    const tsai = withWaste / MM3_PER_TSAI;
+    const unitPrice = priceForMaterial(mat, sheetOverrides);
+    const amount = tsai * unitPrice;
+    const suffix =
+      mat === design.primaryMaterial
+        ? "（主材）"
+        : mat === "plywood" || mat === "mdf"
+        ? "（板材）"
+        : "";
+    materialLines.push({
+      label: `材料｜${materialLabel(mat)}${suffix}`,
+      detail: `${tsai.toFixed(2)} 才（含 ${Math.round(WASTE_RATE * 100)}% 切料損耗）× NT$${unitPrice}/才`,
+      amount,
+    });
+    materialCost += amount;
+    totalVolumeMm3 += withWaste;
+    totalTsai += tsai;
+  }
 
   // 2. 工時成本（build steps 加總）
   const steps = deriveBuildSteps(design);
@@ -77,11 +121,7 @@ export function calculateQuote(
   const total = subtotalExclVat + vat;
 
   const lines: QuoteLineItem[] = [
-    {
-      label: "材料成本",
-      detail: `${totalTsai.toFixed(2)} 才（含 ${Math.round(WASTE_RATE * 100)}% 切料損耗）× NT$${unitPrice}/才`,
-      amount: materialCost,
-    },
+    ...materialLines,
     {
       label: "加工工資",
       detail: `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
@@ -101,7 +141,7 @@ export function calculateQuote(
 
   return {
     totalTsai,
-    totalVolumeMm3: totalWithWasteMm3,
+    totalVolumeMm3,
     materialCost,
     laborHours,
     laborCost,

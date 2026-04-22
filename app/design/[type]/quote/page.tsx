@@ -22,6 +22,8 @@ interface PageProps {
     consumables?: string;
     marginRate?: string;
     vatRate?: string;
+    plywoodPricePerTsai?: string;
+    mdfPricePerTsai?: string;
   }>;
 }
 
@@ -48,6 +50,14 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
+    plywoodPricePerTsai: parseNum(
+      sp.plywoodPricePerTsai,
+      LABOR_DEFAULTS.plywoodPricePerTsai,
+    ),
+    mdfPricePerTsai: parseNum(
+      sp.mdfPricePerTsai,
+      LABOR_DEFAULTS.mdfPricePerTsai,
+    ),
   };
 
   const design = entry.template({ length, width, height, material });
@@ -55,7 +65,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&plywoodPricePerTsai=${laborOpts.plywoodPricePerTsai}&mdfPricePerTsai=${laborOpts.mdfPricePerTsai}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -241,6 +251,22 @@ function LaborForm({
           max={LABOR_BOUNDS.vatRate.max}
           step={LABOR_BOUNDS.vatRate.step}
           decimal
+        />
+        <NumField
+          name="plywoodPricePerTsai"
+          label="夾板 (NT$/才)"
+          value={defaults.plywoodPricePerTsai}
+          min={LABOR_BOUNDS.plywoodPricePerTsai.min}
+          max={LABOR_BOUNDS.plywoodPricePerTsai.max}
+          step={LABOR_BOUNDS.plywoodPricePerTsai.step}
+        />
+        <NumField
+          name="mdfPricePerTsai"
+          label="中纖板 (NT$/才)"
+          value={defaults.mdfPricePerTsai}
+          min={LABOR_BOUNDS.mdfPricePerTsai.min}
+          max={LABOR_BOUNDS.mdfPricePerTsai.max}
+          step={LABOR_BOUNDS.mdfPricePerTsai.step}
         />
       </div>
       <button

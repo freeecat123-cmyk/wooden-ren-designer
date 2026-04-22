@@ -332,11 +332,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     });
   }
 
-  // 背板（薄板）
+  // 背板（6mm 夾板——不吃主材）
   parts.push({
     id: "back",
     nameZh: "背板",
     material,
+    materialOverride: "plywood",
     grainDirection: "length",
     visible: { length: innerW, width: backT, thickness: innerH },
     origin: { x: 0, y: caseBottomY + panelT, z: width / 2 - backT / 2 },
@@ -434,11 +435,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         mortises: [],
       });
 
-      // 後板：兩端半搭接（half-lap）入側板 — X 旋轉站立
+      // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
       parts.push({
         id: `drawer${i + 1}-back`,
         nameZh: `抽屜${i + 1} 後板`,
         material,
+        materialOverride: "mdf",
         grainDirection: "length",
         visible: {
           length: drawerInnerW + 2 * drawerSideT,
@@ -466,12 +468,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         mortises: [],
       });
 
-      // 左右側板 — 長度沿 Z，需 {x: π/2, y: π/2} 旋轉
+      // 左右側板（中纖板／雜木）— 長度沿 Z，需 {x: π/2, y: π/2} 旋轉
       for (const side of [-1, 1] as const) {
         parts.push({
           id: `drawer${i + 1}-side-${side < 0 ? "left" : "right"}`,
           nameZh: `抽屜${i + 1} ${side < 0 ? "左" : "右"}側板`,
           material,
+          materialOverride: "mdf",
           grainDirection: "length",
           visible: {
             length: drawerInnerD + drawerFrontT + drawerBackT - 4,
@@ -513,11 +516,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         });
       }
 
-      // 底板：四邊舌頭嵌入溝槽
+      // 底板（6mm 夾板）：四邊舌頭嵌入溝槽
       parts.push({
         id: `drawer${i + 1}-bottom`,
         nameZh: `抽屜${i + 1} 底板`,
         material,
+        materialOverride: "plywood",
         grainDirection: "length",
         visible: {
           length: drawerInnerW + 4,
