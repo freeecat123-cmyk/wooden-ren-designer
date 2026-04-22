@@ -39,6 +39,7 @@ function parseNum(s: string | undefined, fallback: number): number {
  * 可空才價解析：
  *   undefined（沒傳 param）    → fallback（預填初始值）
  *   空字串（使用者清空欄位）    → null（併入主材）
+ *   0 或負數                   → null（使用者打 0 等同不另計）
  *   有值                       → 數字
  */
 function parseOptNum(
@@ -48,7 +49,9 @@ function parseOptNum(
   if (s === undefined) return fallback;
   if (s.trim() === "") return null;
   const n = parseFloat(s);
-  return Number.isFinite(n) ? n : fallback;
+  if (!Number.isFinite(n)) return fallback;
+  if (n <= 0) return null;
+  return n;
 }
 
 export default async function QuotePage({ params, searchParams }: PageProps) {
@@ -382,11 +385,12 @@ function NumField({
         type="number"
         name={name}
         defaultValue={display}
-        min={min}
+        // optional 欄位不設 min——允許 0 / 清空，觸發「併入主材」邏輯
+        min={optional ? 0 : min}
         max={max}
         step={step}
         inputMode="decimal"
-        placeholder={optional ? "（不填）" : undefined}
+        placeholder={optional ? "（不填 / 0＝併入主材）" : undefined}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
       {hint && (

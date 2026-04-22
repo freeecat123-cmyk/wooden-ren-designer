@@ -33,7 +33,9 @@ function parseOptNum(
   if (s === undefined) return fallback;
   if (s.trim() === "") return null;
   const n = parseFloat(s);
-  return Number.isFinite(n) ? n : fallback;
+  if (!Number.isFinite(n)) return fallback;
+  if (n <= 0) return null;
+  return n;
 }
 
 export default async function QuotePrintPage({
