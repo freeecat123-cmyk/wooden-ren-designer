@@ -1,12 +1,17 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
+import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
-  { group: "drawer", type: "number", key: "drawerRows", label: "抽屜排數（上下）", defaultValue: 4, min: 0, max: 12, step: 1 },
-  { group: "drawer", type: "number", key: "drawerCols", label: "抽屜列數（左右）", defaultValue: 1, min: 1, max: 6, step: 1, help: "每排可切成 2/3 個小抽屜" },
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   { group: "back", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1 },
+  ...makeZoneOptions({
+    // 傳統斗櫃：三層都是抽屜（經典 6 抽）
+    topType: "drawer", topHeight: 300, topCount: 2, topCols: 1,
+    midType: "drawer", midCount: 2, midCols: 1,
+    bottomType: "drawer", bottomHeight: 300, bottomCount: 2, bottomCols: 1,
+  }),
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -20,14 +25,17 @@ export const chestOfDrawersOptions: OptionSpec[] = [
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
-  const drawerRows = getOption<number>(input, chestOfDrawersOptions[0]);
-  const drawerCols = getOption<number>(input, chestOfDrawersOptions[1]);
-  const panelThickness = getOption<number>(input, chestOfDrawersOptions[2]);
-  const backThickness = getOption<number>(input, chestOfDrawersOptions[3]);
-  const legHeight = getOption<number>(input, chestOfDrawersOptions[4]);
-  const legSize = getOption<number>(input, chestOfDrawersOptions[5]);
-  const legShape = getOption<string>(input, chestOfDrawersOptions[6]);
-  const legInset = getOption<number>(input, chestOfDrawersOptions[7]);
+  const o = chestOfDrawersOptions;
+  const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
+  const backThickness = getOption<number>(input, opt(o, "backThickness"));
+  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+
+  const innerH = input.height - legHeight - 2 * panelThickness;
+  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+
   return caseFurniture({
     category: "chest-of-drawers",
     nameZh: "斗櫃",
@@ -35,9 +43,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     width: input.width,
     height: input.height,
     material: input.material,
-    shelfCount: 0, // builder auto-creates dividers between drawer rows
-    drawerCount: drawerRows,
-    drawerCols,
+    shelfCount: 0,
+    zones,
     panelThickness,
     shelfThickness: panelThickness,
     backThickness,
@@ -45,6 +52,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
-    notes: `${drawerRows} 排 × ${drawerCols} 列 共 ${drawerRows * drawerCols} 個抽屜${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape}腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
+    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
   });
 };

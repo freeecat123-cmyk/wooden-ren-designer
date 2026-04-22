@@ -1,11 +1,16 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
+import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
 
 export const openBookshelfOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "shelfCount", label: "層板數（不含頂底）", defaultValue: 4, min: 0, max: 20, step: 1 },
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   { group: "back", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1, help: "設 0 則無背板" },
+  ...makeZoneOptions({
+    topType: "shelves", topHeight: 400, topCount: 2,
+    midType: "shelves", midCount: 3,
+    bottomType: "shelves", bottomHeight: 400, bottomCount: 2,
+  }),
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -19,13 +24,17 @@ export const openBookshelfOptions: OptionSpec[] = [
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
-  const shelfCount = getOption<number>(input, openBookshelfOptions[0]);
-  const panelThickness = getOption<number>(input, openBookshelfOptions[1]);
-  const backThickness = getOption<number>(input, openBookshelfOptions[2]);
-  const legHeight = getOption<number>(input, openBookshelfOptions[3]);
-  const legSize = getOption<number>(input, openBookshelfOptions[4]);
-  const legShape = getOption<string>(input, openBookshelfOptions[5]);
-  const legInset = getOption<number>(input, openBookshelfOptions[6]);
+  const o = openBookshelfOptions;
+  const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
+  const backThickness = getOption<number>(input, opt(o, "backThickness"));
+  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+
+  const innerH = input.height - legHeight - 2 * panelThickness;
+  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+
   return caseFurniture({
     category: "open-bookshelf",
     nameZh: "開放書櫃",
@@ -33,7 +42,8 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     width: input.width,
     height: input.height,
     material: input.material,
-    shelfCount,
+    shelfCount: 0,
+    zones,
     panelThickness,
     shelfThickness: panelThickness,
     backThickness,
@@ -41,6 +51,6 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
-    notes: `${shelfCount + 2} 層開放式書櫃（含頂底板）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
   });
 };

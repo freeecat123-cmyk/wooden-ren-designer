@@ -57,13 +57,13 @@ export interface CaseFurnitureOpts {
   notes?: string;
 }
 
-export type CabinetZoneType = "drawer" | "door" | "shelves" | "open";
+export type CabinetZoneType = "drawer" | "door" | "shelves" | "open" | "hanging";
 
 export interface CabinetZone {
   type: CabinetZoneType;
   /** Clear-height of this zone in mm (panel-to-panel). */
   heightMm: number;
-  /** drawer: drawer rows in this zone; shelves: extra shelf count. */
+  /** drawer: drawer rows; shelves: storage layer count (shelves = layers - 1). */
   count?: number;
   /** drawer / shelves can subdivide horizontally. */
   cols?: number;
@@ -929,6 +929,23 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           height: z.heightMm,
           count: z.count ?? 1,
           idPrefix,
+        });
+      } else if (z.type === "hanging") {
+        // 吊衣桿：區中央加一根橫桿，其餘空間留給衣服懸掛
+        const rodD = 28;
+        const rodY = yStart + Math.min(60, z.heightMm - 60); // 頂端下方 60mm
+        parts.push({
+          id: `${idPrefix}-rod`,
+          nameZh: `${labelPrefix}吊衣桿`,
+          material,
+          grainDirection: "length",
+          visible: { length: innerW, width: rodD, thickness: rodD },
+          origin: { x: 0, y: rodY, z: 0 },
+          tenons: [
+            { position: "start", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
+            { position: "end", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
+          ],
+          mortises: [],
         });
       }
       // zone boundary divider (except above the topmost zone — that uses case top panel)
