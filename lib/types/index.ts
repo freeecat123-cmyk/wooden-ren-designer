@@ -117,7 +117,16 @@ export interface Part {
    */
   shape?:
     | { kind: "box" }
-    | { kind: "tapered"; bottomScale: number };
+    /** Tapered: scale the bottom face relative to top. bottomScale > 1 = 倒錐
+     *  (wider at bottom), bottomScale < 1 = 方錐漸縮 (narrower at bottom). */
+    | { kind: "tapered"; bottomScale: number }
+    /** Splayed: whole leg tilts so the bottom is offset in (dxMm, dzMm) from
+     *  the top in the part's LOCAL frame. Positive values → bottom shifts
+     *  toward +x/+z of the leg. */
+    | { kind: "splayed"; dxMm: number; dzMm: number }
+    /** Hoof: straight for most of the length, then flares outward over the
+     *  bottom `hoofMm` by a factor of `hoofScale`. hoofScale > 1 widens. */
+    | { kind: "hoof"; hoofMm: number; hoofScale: number };
 }
 
 export interface FurnitureDesign {

@@ -5,8 +5,12 @@ import { simpleTable } from "./_builders/simple-table";
 export const diningTableOptions: OptionSpec[] = [
   // 桌腳 (leg)
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
-    { value: "box", label: "直腳（方料）" },
+    { value: "box", label: "方直腳" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
+    { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
+    { value: "inverted", label: "倒錐腳（下方更粗）" },
+    { value: "splayed", label: "斜腳（整支外傾）" },
+    { value: "hoof", label: "馬蹄腳（底部外撇）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
@@ -68,7 +72,7 @@ export const diningTable: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape === "tapered" ? "tapered" : "box",
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShape === "tapered" ? "錐形" : "方料"}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
+    legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShape}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
 };

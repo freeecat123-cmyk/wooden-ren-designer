@@ -32,8 +32,14 @@ export interface SimpleTableOpts {
   withLowerStretchers?: boolean;
   /** Overhang of top beyond leg outer face, mm. Default 0 (flush). */
   topOverhang?: number;
-  /** Leg shape: box (default) or tapered toward bottom. */
-  legShape?: "box" | "tapered";
+  /** Leg shape:
+   *   box         = 方直腳（預設）
+   *   tapered     = 錐形腳（下方收窄）
+   *   strong-taper = 方錐漸縮（大幅下收）
+   *   inverted    = 倒錐腳（下方反而更粗）
+   *   splayed     = 斜腳（整支向外傾）
+   *   hoof        = 馬蹄腳（底部外撇） */
+  legShape?: "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof";
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -117,6 +123,24 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
 
   // Legs
   const legShape = opts.legShape ?? "box";
+  // Each corner leg splays outward toward ITS corner, so dx/dz signs come
+  // from the leg's position (c.x, c.z).
+  const splayMm = 40; // bottom offset for splayed style — tune if needed
+  const hoofMm = Math.max(30, Math.round(legHeight * 0.08)); // flare height
+  const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
+    if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.55 };
+    if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
+    if (legShape === "inverted") return { kind: "tapered", bottomScale: 1.3 };
+    if (legShape === "splayed") {
+      return {
+        kind: "splayed",
+        dxMm: Math.sign(c.x) * splayMm,
+        dzMm: Math.sign(c.z) * splayMm,
+      };
+    }
+    if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
+    return undefined;
+  };
   const legs: Part[] = cornerPts.map((c, i) => ({
     id: `leg-${i + 1}`,
     nameZh: `桌腳 ${i + 1}`,
@@ -124,7 +148,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : undefined,
+    shape: legShapeFor(c),
     tenons: [
       {
         position: "top",

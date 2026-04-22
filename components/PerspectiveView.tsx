@@ -8,23 +8,39 @@ import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 
+type ShapeSpec =
+  | { kind: "box" }
+  | { kind: "tapered"; bottomScale: number }
+  | { kind: "splayed"; dx: number; dz: number }
+  | { kind: "hoof"; hoofHeight: number; hoofScale: number };
+
 function Part({
   position,
   size,
   rotation,
   color,
-  bottomScale,
+  shape,
 }: {
   position: [number, number, number];
   size: [number, number, number];
   rotation: Euler;
   color: string;
-  bottomScale?: number;
+  shape?: ShapeSpec;
 }) {
   const geometry = useMemo(() => {
-    if (bottomScale === undefined || bottomScale === 1) return null;
-    return buildTaperedGeometry(size, bottomScale);
-  }, [size, bottomScale]);
+    if (!shape || shape.kind === "box") return null;
+    if (shape.kind === "tapered") {
+      if (shape.bottomScale === 1) return null;
+      return buildTaperedGeometry(size, shape.bottomScale);
+    }
+    if (shape.kind === "splayed") {
+      return buildSplayedGeometry(size, shape.dx, shape.dz);
+    }
+    if (shape.kind === "hoof") {
+      return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale);
+    }
+    return null;
+  }, [size, shape]);
 
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
@@ -78,6 +94,105 @@ function buildTaperedGeometry(
     ...f(1, 5, 6, 2), // right (+x outward)
     ...f(2, 6, 7, 3), // back (+z outward)
     ...f(3, 7, 4, 0), // left (-x outward)
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Splayed box: same length/width/height as a box, but the 4 bottom vertices
+ * are shifted by (dx, dz) relative to the 4 top vertices, so the whole leg
+ * leans in the (dx, dz) direction. dx/dz are in three.js units (already
+ * scaled).
+ */
+function buildSplayedGeometry(
+  size: [number, number, number],
+  dx: number,
+  dz: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const v: number[] = [
+    // bottom (y = -hy), shifted by (dx, dz)
+    -hx + dx, -hy, -hz + dz,
+    hx + dx, -hy, -hz + dz,
+    hx + dx, -hy, hz + dz,
+    -hx + dx, -hy, hz + dz,
+    // top (y = +hy)
+    -hx, hy, -hz,
+    hx, hy, -hz,
+    hx, hy, hz,
+    -hx, hy, hz,
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 1, 2, 3),
+    ...f(4, 7, 6, 5),
+    ...f(0, 4, 5, 1),
+    ...f(1, 5, 6, 2),
+    ...f(2, 6, 7, 3),
+    ...f(3, 7, 4, 0),
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Hoof leg: straight full-width box from top down to (hoofHeight above the
+ * bottom), then flares outward linearly to (hoofScale × full-width) at the
+ * very bottom. 12 vertices, 3 horizontal rings.
+ */
+function buildHoofGeometry(
+  size: [number, number, number],
+  hoofHeight: number,
+  hoofScale: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const flareY = -hy + Math.min(hoofHeight, ly); // start of flare (above bottom)
+  const bx = hx * hoofScale;
+  const bz = hz * hoofScale;
+  const v: number[] = [
+    // 0..3 bottom (widest)
+    -bx, -hy, -bz,
+    bx, -hy, -bz,
+    bx, -hy, bz,
+    -bx, -hy, bz,
+    // 4..7 flare start (= full width)
+    -hx, flareY, -hz,
+    hx, flareY, -hz,
+    hx, flareY, hz,
+    -hx, flareY, hz,
+    // 8..11 top (= full width)
+    -hx, hy, -hz,
+    hx, hy, -hz,
+    hx, hy, hz,
+    -hx, hy, hz,
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 1, 2, 3), // bottom
+    ...f(8, 11, 10, 9), // top
+    // flare section (bottom ring 0..3 → flare ring 4..7)
+    ...f(0, 4, 5, 1),
+    ...f(1, 5, 6, 2),
+    ...f(2, 6, 7, 3),
+    ...f(3, 7, 4, 0),
+    // straight section (flare ring 4..7 → top ring 8..11)
+    ...f(4, 8, 9, 5),
+    ...f(5, 9, 10, 6),
+    ...f(6, 10, 11, 7),
+    ...f(7, 11, 8, 4),
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -149,8 +264,22 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;
           const pz = part.origin.z * SCALE;
-          const bottomScale =
-            part.shape?.kind === "tapered" ? part.shape.bottomScale : undefined;
+          let shape: ShapeSpec | undefined;
+          if (part.shape?.kind === "tapered") {
+            shape = { kind: "tapered", bottomScale: part.shape.bottomScale };
+          } else if (part.shape?.kind === "splayed") {
+            shape = {
+              kind: "splayed",
+              dx: part.shape.dxMm * SCALE,
+              dz: part.shape.dzMm * SCALE,
+            };
+          } else if (part.shape?.kind === "hoof") {
+            shape = {
+              kind: "hoof",
+              hoofHeight: part.shape.hoofMm * SCALE,
+              hoofScale: part.shape.hoofScale,
+            };
+          }
           return (
             <Part
               key={part.id}
@@ -167,7 +296,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
                 "ZYX",
               )}
               color={color}
-              bottomScale={bottomScale}
+              shape={shape}
             />
           );
         })}
