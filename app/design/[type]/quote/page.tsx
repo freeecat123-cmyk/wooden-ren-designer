@@ -66,7 +66,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
   const material = (sp.material as MaterialId) ?? "taiwan-cypress";
 
-  const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 2000;
+  const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 
   const laborOpts = {
     hourlyRate: parseNum(sp.hourlyRate, LABOR_DEFAULTS.hourlyRate),

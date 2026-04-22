@@ -7,39 +7,31 @@ import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
  *                    = 25.4 × 25.4 × 25.4 × 144 mm³
  *                    ≈ 2,359,737 mm³
  *
- * 1 板才 ≈ 8.5 台才（1 台才 ≈ 278 cm³），因此台才價 × 8.5 ≈ 板才價。
- * 預設值以使用者（木頭仁）的台才進貨價換算：
- *   檜木 1000/才 → ~8500/板才
- *   胡桃木 250/才 → ~2100/板才
- *   白橡 200/才 → ~1700/板才
- *   楓木/梣木 150/才 → ~1300/板才
- *   山毛櫸 120/才 → ~1000/板才
- *   松木 80/才 → ~680/板才
+ * 預設值沿用使用者（木頭仁）原本熟悉的數字，不自動換算倍率；
+ * 實際進貨價以使用者在表單輸入為準。
  */
 export const MM3_PER_BDFT = 25.4 * 25.4 * 25.4 * 144; // ≈ 2,359,737
 
 export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
-  "taiwan-cypress": 8500,
-  walnut: 2100,
-  "white-oak": 1700,
-  maple: 1300,
-  ash: 1300,
-  beech: 1000,
-  pine: 680,
-  teak: 2500, // 估算（使用者未提供）
-  "douglas-fir": 760, // 估算（花旗松比松木略貴）
+  "taiwan-cypress": 1000,
+  walnut: 250,
+  "white-oak": 200,
+  maple: 150,
+  ash: 150,
+  beech: 120,
+  pine: 80,
+  teak: 300, // 估算（使用者未提供）
+  "douglas-fir": 90, // 估算（花旗松比松木略貴）
 };
 
 /**
  * 板材單價表 (NT$ / 板才)
  *
  * 夾板、中纖板用於背板、抽屜底板、抽屜側背板等非結構零件。
- *   5–6mm 夾板     ~NT$170/板才（= 台才 20）
- *   9mm 中纖板     ~NT$130/板才（= 台才 15）
  */
 export const SHEET_GOOD_PRICE_PER_BDFT: Record<SheetGood, number> = {
-  plywood: 170,
-  mdf: 130,
+  plywood: 20,
+  mdf: 15,
 };
 
 export const SHEET_GOOD_LABEL: Record<SheetGood, string> = {
@@ -62,7 +54,7 @@ export function priceForMaterial(
   if (m === "plywood" || m === "mdf") {
     return sheetOverrides?.[m] ?? SHEET_GOOD_PRICE_PER_BDFT[m];
   }
-  return MATERIAL_PRICE_PER_BDFT[m] ?? 2000;
+  return MATERIAL_PRICE_PER_BDFT[m] ?? 300;
 }
 
 export function mm3ToBdft(volumeMm3: number): number {

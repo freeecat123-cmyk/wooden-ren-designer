@@ -43,8 +43,8 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   finishingCost: 1500,
   marginRate: 0.3,
   vatRate: 0.05,
-  plywoodPricePerBdft: 170,
-  mdfPricePerBdft: 130,
+  plywoodPricePerBdft: 20,
+  mdfPricePerBdft: 15,
 };
 
 /** 合理範圍（表單 min/max） */
@@ -55,7 +55,7 @@ export const LABOR_BOUNDS = {
   finishingCost: { min: 0, max: 20000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
-  primaryMaterialPricePerBdft: { min: 100, max: 25000, step: 50 },
-  plywoodPricePerBdft: { min: 30, max: 1000, step: 10 },
-  mdfPricePerBdft: { min: 30, max: 1000, step: 10 },
+  primaryMaterialPricePerBdft: { min: 20, max: 3000, step: 10 },
+  plywoodPricePerBdft: { min: 5, max: 150, step: 5 },
+  mdfPricePerBdft: { min: 5, max: 150, step: 5 },
 } as const;
