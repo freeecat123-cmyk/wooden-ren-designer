@@ -43,8 +43,10 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   finishingCost: 1500,
   marginRate: 0.3,
   vatRate: 0.05,
-  plywoodPricePerBdft: 20,
-  mdfPricePerBdft: 15,
+  // 預設為 null：背板、抽屜底板、抽屜側背板全部併入主材以主材單價計（木頭仁
+  // 實務上材積報價不分材料種類）。想分開計的使用者可在報價表單自行填入。
+  plywoodPricePerBdft: null,
+  mdfPricePerBdft: null,
 };
 
 /** 合理範圍（表單 min/max） */
