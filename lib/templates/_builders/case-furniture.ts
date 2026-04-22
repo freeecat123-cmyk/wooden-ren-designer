@@ -285,7 +285,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     ],
   });
 
-  // 底板
+  // 底板。若有底座腳（legHeight > 0 且非 plinth/panel-side）則加 4 個角落
+  // 榫眼接腳頂盲榫。這讓 extract.ts 能把「前左腳 → 底板」配對起來。
+  const legTenonLen = Math.min(tenonLen, Math.max(5, (opts.legHeight ?? 0)));
+  const legMortiseSize = legSize - 10;
+  const hasCornerLegs =
+    legHeight > 0 && legShapeRaw !== "plinth" && legShapeRaw !== "panel-side";
   parts.push({
     id: "bottom",
     nameZh: "底板",
@@ -309,6 +314,22 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         width: panelTongueT,
         through: false,
       },
+      // 4 角腳榫眼
+      ...(hasCornerLegs
+        ? ([-1, 1] as const).flatMap((sx) =>
+            ([-1, 1] as const).map((sz) => ({
+              origin: {
+                x: sx * (length / 2 - legSize / 2 - (opts.legInset ?? 0)),
+                y: 0,
+                z: sz * (width / 2 - legSize / 2 - (opts.legInset ?? 0)),
+              },
+              depth: legTenonLen,
+              length: legMortiseSize,
+              width: legMortiseSize,
+              through: false,
+            })),
+          )
+        : []),
     ],
   });
 

@@ -472,17 +472,17 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   const s = fitScale(Math.max(mt * 2, tw + 40, cw + 40, tl * 4), 180);
   const PX = (mm: number) => mm * s;
 
-  // Assembled view has its OWN scale so the cross-section stays visually
-  // substantial even when the mother is small (e.g., 18mm slat mortise).
-  const sAsm = fitScale(Math.max(mt, tl + cw, cw) * 1.1, 180);
+  // Assembled view uses its OWN scale — and a MIN so the mother square
+  // is always at least ~160px (big enough to see the mortise/tenon
+  // engagement clearly, even for thin mothers like an 18mm slat backer).
+  // Scale is clamped UPWARD when the base scale would leave mt too small.
+  const baseAsmScale = fitScale(Math.max(mt, tl + cw, cw) * 1.1, 180);
+  const sAsm = Math.max(baseAsmScale, 160 / mt);
   const AX = (mm: number) => mm * sAsm;
 
   const leftPad = 50;
 
   // ---- EXPLODED: mother = piece side face (vertical orientation).
-  // Generous margins so the face reads as "a chunk of wood with a hole",
-  // not a thin strip. Width also enforced min 90px so small mothers still
-  // look like a piece of wood.
   const faceMarginY = Math.max(45, PX(tw) * 0.7);
   const motherFaceW = Math.max(PX(mt), 90);
   const motherFaceH = PX(tw) + 2 * faceMarginY;
@@ -494,10 +494,10 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   const expHeight = motherFaceH + gapBetween + PX(ct) + 60;
 
   // ---- ASSEMBLED: top-down cross-section. Mother = mt × mt square.
-  const asmLegSide = Math.max(AX(mt), 70); // min 70px so a small mother is still visible
-  const asmApronLen = Math.max(120, AX(cw) * 1.0);
-  const asmWidth = asmLegSide + asmApronLen + 90;
-  const asmHeight = asmLegSide + 80;
+  const asmLegSide = AX(mt);
+  const asmApronLen = Math.max(150, AX(cw) * 1.2);
+  const asmWidth = asmLegSide + asmApronLen + 120;
+  const asmHeight = asmLegSide + 100;
 
   const w = expWidth + asmWidth + PADDING * 3 + leftPad;
   const h = Math.max(expHeight, asmHeight) + PADDING + 60;

@@ -109,27 +109,15 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
       if (existing) {
         existing.count += 1;
       } else {
-        // Prefer explicit matches; if none, guess by picking parts whose
-        // smallest dim roughly equals the fallback mother thickness —
-        // these are the most plausible mating pieces even when the
-        // template author didn't declare reciprocal mortises.
+        // Prefer explicit matches. If none, leave motherPartNames empty —
+        // the UI will show the generic '母件' label. Earlier versions
+        // heuristically listed every part with a similar thickness,
+        // which produced noisy strings like
+        // '頂板 / 底板 / 左側板 / 右側板 / 層板' for a simple leg tenon.
         const explicit = motherNamesByKey.get(key);
-        let motherPartNames: string[];
-        if (explicit && explicit.size > 0) {
-          motherPartNames = Array.from(explicit);
-        } else {
-          const targetThick = motherThickness;
-          const candidates = design.parts
-            .filter((q) => q.id !== part.id)
-            .filter((q) => {
-              const qDims = [q.visible.length, q.visible.width, q.visible.thickness];
-              const qMin = Math.min(...qDims);
-              return Math.abs(qMin - targetThick) < 3;
-            })
-            .map((q) => q.nameZh.replace(/\d+/g, "").replace(/\s+/g, " ").trim());
-          const uniq = Array.from(new Set(candidates));
-          motherPartNames = uniq.length > 0 ? uniq : [];
-        }
+        const motherPartNames = explicit && explicit.size > 0
+          ? Array.from(explicit)
+          : [];
         seen.set(key, {
           type: tenon.type,
           tenon,
