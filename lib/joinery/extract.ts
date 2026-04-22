@@ -14,6 +14,8 @@ export interface JoineryUsage {
   childWidth: number;
   /** 重複次數（同樣參數的榫卯出現幾次） */
   count: number;
+  /** 匹配到的母件名稱（去重） */
+  motherPartNames: string[];
 }
 
 /**
@@ -28,6 +30,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
   const tenonKey = (t: { type: JoineryType; length: number; width: number; thickness: number }) =>
     `${t.type}-${t.length}-${t.width}-${t.thickness}`;
   const motherThicknessByKey: Map<string, number> = new Map();
+  const motherNamesByKey: Map<string, Set<string>> = new Map();
 
   for (const part of design.parts) {
     for (const mortise of part.mortises) {
@@ -35,34 +38,32 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
         if (other.id === part.id) continue;
         for (const tenon of other.tenons) {
           const lengthMatch = Math.abs(tenon.length - mortise.depth) < 3;
-          // Wide edge (tenon.width ↔ mortise.length OR mortise.width) — allow
-          // 10% slack because drawer-bottom grooves have wider mortises than
-          // their tongues.
           const wideTol = Math.max(5, tenon.width * 0.1);
           const wideMatch =
             Math.abs(tenon.width - mortise.length) < wideTol ||
             Math.abs(tenon.width - mortise.width) < wideTol;
-          // Thin edge (tenon.thickness ↔ mortise.width OR mortise.length)
           const thinMatch =
             Math.abs(tenon.thickness - mortise.width) < 3 ||
             Math.abs(tenon.thickness - mortise.length) < 3;
-          // Require all three to match (length + both cross-section dims) so
-          // a spurious mortise elsewhere in the design doesn't get picked —
-          // e.g., a case back panel must not resolve against a drawer-side
-          // groove just because their tenon-length and thickness happen to
-          // be close.
           if (lengthMatch && wideMatch && thinMatch) {
-            // Mother thickness for the detail drawing is the grooved/drilled
-            // part's smallest visible dim — the cross-section the tenon
-            // actually penetrates (not the part's full length).
+            const k = tenonKey(tenon);
             motherThicknessByKey.set(
-              tenonKey(tenon),
+              k,
               Math.min(
                 part.visible.length,
                 part.visible.width,
                 part.visible.thickness,
               ),
             );
+            // Strip instance numbers anywhere (椅腳 1 → 椅腳, 抽屜1 左側板 →
+            // 抽屜 左側板) and collapse double spaces. With 4 identical legs
+            // or 4 drawers this keeps the display compact.
+            const displayName = part.nameZh
+              .replace(/\d+/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            if (!motherNamesByKey.has(k)) motherNamesByKey.set(k, new Set());
+            motherNamesByKey.get(k)!.add(displayName);
           }
         }
       }
@@ -108,6 +109,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
       if (existing) {
         existing.count += 1;
       } else {
+        const motherPartNames = Array.from(motherNamesByKey.get(key) ?? []);
         seen.set(key, {
           type: tenon.type,
           tenon,
@@ -117,6 +119,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
           childThickness,
           childWidth,
           count: 1,
+          motherPartNames,
         });
       }
     }

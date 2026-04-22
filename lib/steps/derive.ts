@@ -173,7 +173,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     phase: "glue",
     title: "上膠夾合",
     description:
-      `PVA 木工膠塗在榫頭與榫眼內壁（薄薄一層即可），` +
+      `太棒膠二號（PVA）塗在榫頭與榫眼內壁（薄薄一層即可），` +
       `按試組順序組裝，依序夾緊。靜置 24 小時完全固化。` +
       `組裝順序建議：先做小組件（如腳架）→ 再合大件。`,
     toolIds: [

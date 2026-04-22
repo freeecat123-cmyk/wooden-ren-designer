@@ -280,10 +280,16 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(apronThickness / 3)),
     );
     const cTenonW = Math.max(15, stretcherWidth - 2 * MIN_SHOULDER);
-    // Vertical position: by default center the stretcher vertically inside the apron.
-    // apronY is the apron's BOTTOM y. Apron spans [apronY, apronY + apronWidth].
-    const drop =
-      opts.centerStretcherDrop ?? Math.max(0, (apronWidth - stretcherWidth) / 2);
+    // centerStretcherDrop (label = "距牙板頂") 的語意：stretcher 頂面距牙板頂
+    // 的距離。bigger drop → stretcher lower → farther from tabletop. 預設
+    // 把 stretcher 壓到牙板底緣附近（居中 + 額外往下），避免緊貼桌面。
+    const dropFromApronTop =
+      opts.centerStretcherDrop ??
+      Math.max(15, Math.round((apronWidth - stretcherWidth) / 2) + 10);
+    const originY = Math.max(
+      apronY,
+      apronY + apronWidth - dropFromApronTop - stretcherWidth,
+    );
     parts.push({
       id: "center-stretcher",
       nameZh: "中央橫撐",
@@ -294,7 +300,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         width: stretcherWidth,
         thickness: stretcherThickness,
       },
-      origin: { x: 0, y: apronY + drop, z: 0 },
+      origin: { x: 0, y: originY, z: 0 },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
       tenons: [
         {

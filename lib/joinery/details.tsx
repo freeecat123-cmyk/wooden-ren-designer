@@ -1596,96 +1596,99 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
 
 /* ============================================================
  * 鳩尾榫 — dovetail (drawer corners)
- *   Trapezoidal pins + tails — the signature drawer corner joint.
+ *
+ *   Drawer-corner convention:
+ *     - 抽屜面板 (drawer front, in template: child, has tenons)
+ *         = PIN BOARD: pins (narrow-outside, wide-inside trapezoids) on its end
+ *     - 抽屜側板 (drawer side, in template: mother, has mortises)
+ *         = TAIL BOARD: tails (wide-outside, narrow-inside trapezoids) on its end
+ *
+ *   Earlier the mother was rendered as the pin board — traditionally it
+ *   should be the tail board, so the roles have been swapped here.
  * ============================================================ */
 function DovetailDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
-  const tw = p.tenonWidth;   // along the joint face — unused for now, could label
+  const tw = p.tenonWidth;
   void tw;
-  const tt = p.tenonThickness; // board thickness
+  const tt = p.tenonThickness;
   const ct = p.childThickness ?? tt;
   const mt = p.motherThickness;
   void mt;
 
-  // Number of tails to illustrate (odd-count pattern: tails > pins by 1)
+  // Typical drawer: 3 tails and 4 pins (pins = tails + 1 so the corners of
+  // the joint are always pins, not tails — pins catch the outside pull force).
   const N_TAILS = 3;
   const N_PINS = N_TAILS + 1;
 
-  // Board aspect: dovetail length tl = depth of pin-and-tail zone (~board thickness)
-  // Make the illustration big enough regardless of scale
+  // Exaggerated visual taper — real angle is 1:6 to 1:8 (~7–10°) but at
+  // this render scale that reads as nearly rectangular. Push to ~1:3 so
+  // the trapezoid is unambiguous. The dim label still states standard 1:8.
   const s = fitScale(Math.max(tl * 6, 80), 180);
   const PX = (mm: number) => mm * s;
 
-  const pieceDepth = PX(tl);            // depth of the pin/tail interlock zone
-  const pieceLen = Math.max(180, PX(ct) * 6); // along the joint face
-  const bodyExt = pieceDepth * 0.8;     // how much body we show behind the joint
+  const pieceDepth = PX(tl);
+  const pieceLen = Math.max(200, PX(ct) * 6);
+  const bodyExt = pieceDepth * 1.0;
 
-  // Dovetail angle (1:6 for softwood, ~9.5°)
-  const dtAngleHOffset = pieceDepth * 0.25; // horizontal offset at the tip
+  const dtAngleHOffset = pieceDepth * 0.35;
 
-  // Pin/tail column widths: distribute along pieceLen
-  const tailW = pieceLen / (N_TAILS + 0.6 * N_PINS); // tails wider than pins
-  const pinW = tailW * 0.6;
+  const tailW = pieceLen / (N_TAILS + 0.55 * N_PINS);
+  const pinW = tailW * 0.55;
 
   const leftPad = 40;
   const gap = 50;
   const expW = pieceLen * 2 + gap;
   const asmW = pieceLen * 0.9 + pieceDepth + 30;
   const w = expW + asmW + PADDING * 3 + leftPad;
-  const h = pieceDepth + bodyExt + 70;
+  const h = pieceDepth + bodyExt + 80;
 
-  // Mother (pin board) — pins stick UP out of the body
+  // Mother = TAIL board (left)
   const mAx = PADDING + leftPad;
   const mAy = PADDING + 20;
-  const mBodyTop = mAy + pieceDepth;          // where pins' base meets the body
+  const mBodyTop = mAy + pieceDepth;
   const mBodyBot = mBodyTop + bodyExt;
 
-  // Child (tail board) — tails stick UP out of the body
+  // Child = PIN board (right)
   const cAx = mAx + pieceLen + gap;
   const cAy = mAy;
 
-  // Assembled L-corner: horizontal tail board + vertical pin board
   const asmX = mAx + expW + PADDING;
   const asmY = mAy;
 
-  // Pin path: trapezoidal, NARROWER at top (socket tapers inward)
-  // Actually pins are WIDER at the joint-surface (bottom in our drawing) because the
-  // tails are wider at their outer face. Let me verify: in a real dovetail,
-  // tails have wedge shape that's WIDER on the outside face, NARROWER at the glue line.
-  // Pins, conversely, are NARROWER on the outside face, WIDER at the glue line.
-  // In our exploded view pins stick UP (away from body), so:
-  //   pin top (outside face of pin board) = narrow
-  //   pin bottom (glue line / body top) = wide
-  const pinPath = (cx: number) => {
-    const halfBot = pinW / 2; // wide at body
-    const halfTop = halfBot - dtAngleHOffset * 0.5;
-    return `M${cx - halfBot} ${mBodyTop} L${cx - halfTop} ${mAy} L${cx + halfTop} ${mAy} L${cx + halfBot} ${mBodyTop} Z`;
-  };
-
-  // Tail path: WIDER at top (outside), NARROWER at bottom (glue line)
-  const tailPath = (cx: number) => {
-    const halfBot = tailW / 2 - dtAngleHOffset * 0.5;
+  // Tail shape: solid wood sticking out of end. Wider at outside (top in our
+  // drawing, away from body) than at body side. Shape: △
+  const tailPath = (cx: number, yBottom: number, yTop: number) => {
+    const halfBot = tailW / 2 - dtAngleHOffset;
     const halfTop = tailW / 2;
-    return `M${cx - halfBot} ${mBodyTop} L${cx - halfTop} ${mAy} L${cx + halfTop} ${mAy} L${cx + halfBot} ${mBodyTop} Z`;
+    return `M${cx - halfBot} ${yBottom} L${cx - halfTop} ${yTop} L${cx + halfTop} ${yTop} L${cx + halfBot} ${yBottom} Z`;
   };
 
-  // Compute pin positions (N_PINS pins)
-  const totalPinsAndTails = N_PINS * pinW + N_TAILS * tailW;
-  const margin = (pieceLen - totalPinsAndTails) / 2;
-  const pinCenters: number[] = [];
-  {
-    let x = mAx + margin + pinW / 2;
-    for (let i = 0; i < N_PINS; i++) {
-      pinCenters.push(x);
-      x += pinW + tailW;
-    }
-  }
+  // Pin shape: solid wood sticking out of end. Wider at body side (bottom),
+  // narrower at outside (top). Shape: ▽
+  const pinPath = (cx: number, yBottom: number, yTop: number) => {
+    const halfBot = pinW / 2;
+    const halfTop = halfBot - dtAngleHOffset;
+    return `M${cx - halfBot} ${yBottom} L${cx - halfTop} ${yTop} L${cx + halfTop} ${yTop} L${cx + halfBot} ${yBottom} Z`;
+  };
+
+  // Tail centers (N_TAILS) are placed on the mother board
+  const totalMotherFeatures = N_TAILS * tailW + (N_TAILS + 1) * pinW;
+  const mMargin = (pieceLen - totalMotherFeatures) / 2;
   const tailCenters: number[] = [];
   {
-    let x = mAx + margin + pinW + tailW / 2;
+    let x = mAx + mMargin + pinW + tailW / 2; // leading pin-socket, then tail
     for (let i = 0; i < N_TAILS; i++) {
       tailCenters.push(x);
       x += tailW + pinW;
+    }
+  }
+  // Pin centers (N_PINS) on the child board
+  const pinCenters: number[] = [];
+  {
+    let x = cAx + mMargin + pinW / 2;
+    for (let i = 0; i < N_PINS; i++) {
+      pinCenters.push(x);
+      x += pinW + tailW;
     }
   }
 
@@ -1704,9 +1707,8 @@ function DovetailDetail(p: JoineryDetailParams) {
         分解圖（兩片板端面對端面）
       </text>
 
-      {/* MOTHER (pin board) */}
+      {/* MOTHER (tail board — drawer side) */}
       <g>
-        {/* body */}
         <rect
           x={mAx}
           y={mBodyTop}
@@ -1715,9 +1717,14 @@ function DovetailDetail(p: JoineryDetailParams) {
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* pins on top edge */}
-        {pinCenters.map((cx, i) => (
-          <path key={i} d={pinPath(cx)} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* tails sticking up from the end — wide at top (outside), narrow at bottom */}
+        {tailCenters.map((cx, i) => (
+          <path
+            key={i}
+            d={tailPath(cx, mBodyTop, mAy)}
+            fill={COLOR_MORTISE}
+            stroke={COLOR_OUTLINE}
+          />
         ))}
         <text
           x={mAx + pieceLen / 2}
@@ -1726,7 +1733,7 @@ function DovetailDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          母件（銷 pin 板，{N_PINS} 個銷）
+          母件（尾板，{N_TAILS} 個尾；抽屜側板）
         </text>
         <DimLine
           x1={mAx - 10}
@@ -1736,11 +1743,13 @@ function DovetailDetail(p: JoineryDetailParams) {
           label={`榫深 ${tl}`}
           side="left"
         />
+        <text x={mAx} y={mAy - 6} fontSize={8} fill="#999">
+          ← 尾面（寬）
+        </text>
       </g>
 
-      {/* CHILD (tail board) */}
+      {/* CHILD (pin board — drawer front) */}
       <g>
-        {/* body */}
         <rect
           x={cAx}
           y={mBodyTop}
@@ -1749,11 +1758,11 @@ function DovetailDetail(p: JoineryDetailParams) {
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
-        {/* tails on top edge */}
-        {tailCenters.map((cx, i) => (
+        {/* pins sticking up from the end — narrow at top (outside), wide at bottom */}
+        {pinCenters.map((cx, i) => (
           <path
             key={i}
-            d={tailPath(cx + (cAx - mAx))}
+            d={pinPath(cx, mBodyTop, mAy)}
             fill={COLOR_TENON}
             stroke={COLOR_OUTLINE}
           />
@@ -1765,7 +1774,10 @@ function DovetailDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          公件（尾 tail 板，{N_TAILS} 個尾）
+          公件（銷板，{N_PINS} 個銷；抽屜面板）
+        </text>
+        <text x={cAx} y={mAy - 6} fontSize={8} fill="#999">
+          ← 銷面（窄）
         </text>
       </g>
 

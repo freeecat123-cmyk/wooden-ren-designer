@@ -158,7 +158,7 @@ export const TOOL_CATALOG: Record<string, Tool> = {
   },
   "pva-glue": {
     id: "pva-glue",
-    nameZh: "PVA 木工膠 (Titebond II)",
+    nameZh: "太棒膠二號（PVA 木工膠）",
     category: "glue",
     shopUrl: `${SHOP_BASE}/pva-glue`,
   },
