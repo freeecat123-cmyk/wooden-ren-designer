@@ -28,13 +28,15 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1 },
   { group: "drawer", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
   { group: "drawer", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
-  // 橫向 2/3 欄模式：每欄的類型 + 數量
+  // 橫向 2/3 欄模式：每欄的類型 + 數量 + 寬度
   { group: "top", type: "select", key: "leftType", label: "左欄類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
   { group: "top", type: "number", key: "leftCount", label: "左欄數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
-  { group: "top", type: "select", key: "centerType", label: "中欄類型（3 欄用）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
+  { group: "top", type: "number", key: "leftWidthMm", label: "左欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
+  { group: "top", type: "select", key: "centerType", label: "中欄類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
   { group: "top", type: "number", key: "centerCount", label: "中欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
   { group: "top", type: "select", key: "rightType", label: "右欄類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES },
   { group: "top", type: "number", key: "rightCount", label: "右欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
+  { group: "top", type: "number", key: "rightWidthMm", label: "右欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
   // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木板門" },
@@ -77,10 +79,12 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
   const leftType = getOption<string>(input, opt(o, "leftType")) as ColType;
   const leftCount = getOption<number>(input, opt(o, "leftCount"));
+  const leftWidthMm = getOption<number>(input, opt(o, "leftWidthMm"));
   const centerType = getOption<string>(input, opt(o, "centerType")) as ColType;
   const centerCount = getOption<number>(input, opt(o, "centerCount"));
   const rightType = getOption<string>(input, opt(o, "rightType")) as ColType;
   const rightCount = getOption<number>(input, opt(o, "rightCount"));
+  const rightWidthMm = getOption<number>(input, opt(o, "rightWidthMm"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
@@ -112,8 +116,14 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     noteParts.push(`上層 ${upperType === "door" ? `${upperCount} 扇門` : `${upperCount} 層開放`} ${upperH}mm`);
     noteParts.push(`下層 ${drawerRows}×${drawerCols} 抽屜 ${drawerHeight}mm`);
   } else if (layoutMode === "h-2col") {
+    // 2 欄：左欄寬度使用者設定，右欄自動填滿剩餘
+    const innerW = input.length - 2 * panelThickness;
+    const usableW = innerW - panelThickness; // 減去 1 道分隔板
+    const leftFrac = Math.min(0.8, Math.max(0.2, leftWidthMm / usableW));
     const l = toColumn(leftType, leftCount);
     const r = toColumn(rightType, rightCount);
+    if (l) l.widthFrac = leftFrac;
+    // right column omits widthFrac → auto-fills remainder
     columns = [l, r].filter((c): c is CabinetColumn => c !== null).map((c, i) => ({ ...c, labelPrefix: i === 0 ? "左" : "右" }));
     const describe = (name: string, t: ColType, n: number) => {
       if (t === "none") return `${name}空區`;
@@ -123,10 +133,18 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     };
     noteParts.push(`橫向 2 欄：${describe("左", leftType, leftCount)}｜${describe("右", rightType, rightCount)}`);
   } else if (layoutMode === "h-3col") {
+    // 3 欄：左、右欄寬度使用者設定，中欄自動填滿剩餘
+    const innerW = input.length - 2 * panelThickness;
+    const usableW = innerW - 2 * panelThickness; // 減去 2 道分隔板
+    const leftFrac = Math.min(0.45, Math.max(0.1, leftWidthMm / usableW));
+    const rightFrac = Math.min(0.45, Math.max(0.1, rightWidthMm / usableW));
     const l = toColumn(leftType, leftCount);
-    const c = toColumn(centerType, centerCount);
+    const cCol = toColumn(centerType, centerCount);
     const r = toColumn(rightType, rightCount);
-    columns = [l, c, r]
+    if (l) l.widthFrac = leftFrac;
+    if (r) r.widthFrac = rightFrac;
+    // center column omits widthFrac → auto-fills remainder
+    columns = [l, cCol, r]
       .filter((x): x is CabinetColumn => x !== null)
       .map((x, i) => ({ ...x, labelPrefix: i === 0 ? "左" : i === 1 ? "中" : "右" }));
     const describe = (name: string, t: ColType, n: number) => {
