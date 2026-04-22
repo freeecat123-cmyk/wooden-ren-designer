@@ -18,10 +18,18 @@ export interface CaseFurnitureOpts {
   drawerCount?: number;
   /** Horizontal drawer columns (default 1). Each row has drawerCols × drawerRows drawers. */
   drawerCols?: number;
-  /** Limit total height of drawer stack (mm). Default = full innerH. Drawers placed at bottom. */
+  /** Limit total height of drawer stack (mm). Default = full innerH. */
   drawerAreaHeight?: number;
+  /** Place the drawer stack at the TOP of innerH instead of the bottom. */
+  drawerAtTop?: boolean;
   /** If > 0, add N door panels in front. */
   doorCount?: number;
+  /** Vertical offset (mm) from the inner-bottom to the DOOR bottom edge.
+   *  Use together with doorAreaHeight to confine doors to a partial zone
+   *  (e.g. bottom 500mm only, leaving drawers/open space above). */
+  doorYOffset?: number;
+  /** Height (mm) of the door zone. Default = innerH (full front). */
+  doorAreaHeight?: number;
   /** Door type for notes; "glass" implies optional glass + frame. */
   doorType?: "wood" | "glass";
   panelThickness?: number;
@@ -39,7 +47,28 @@ export interface CaseFurnitureOpts {
   customShelfFractions?: number[];
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
   hangingArea?: { yStart: number; yEnd: number };
+  /**
+   * Mixed-layout zones stacked from BOTTOM up. If provided, overrides
+   * drawerCount / doorCount / shelfCount and renders each zone in order.
+   * Remaining space (innerH - sum(zone.heightMm)) becomes an extra open
+   * zone at the TOP.
+   */
+  zones?: CabinetZone[];
   notes?: string;
+}
+
+export type CabinetZoneType = "drawer" | "door" | "shelves" | "open";
+
+export interface CabinetZone {
+  type: CabinetZoneType;
+  /** Clear-height of this zone in mm (panel-to-panel). */
+  heightMm: number;
+  /** drawer: drawer rows in this zone; shelves: extra shelf count. */
+  count?: number;
+  /** drawer / shelves can subdivide horizontally. */
+  cols?: number;
+  /** door: open direction label (top = flip-up 掀門, side = swing 開門). */
+  doorOpen?: "top" | "side";
 }
 
 /**
@@ -62,8 +91,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     nameZh,
     shelfCount,
     drawerCount = 0,
+    drawerAtTop = false,
     doorCount = 0,
     doorType = "wood",
+    doorYOffset = 0,
   } = opts;
 
   const panelT = opts.panelThickness ?? 18;
@@ -363,19 +394,41 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // ===== 抽屜內箱（每屜 5 件：面板 / 後板 / 左右側板 / 底板）=====
   if (drawerCount > 0) {
     const drawerSlotH = drawerAreaH / drawerCount;
+    // Drawer zone Y range. Default: bottom of innerH. When drawerAtTop, shift
+    // up so drawers occupy the top portion of innerH.
+    const drawerZoneBottomY = drawerAtTop
+      ? caseBottomY + panelT + innerH - drawerAreaH
+      : caseBottomY + panelT;
+    const drawerZoneTopY = drawerZoneBottomY + drawerAreaH;
 
-    // 抽屜間水平分隔板（drawerCount-1 片；抽屜區頂緣若未到頂再加一片封頂）
-    const needTopCover = drawerAreaH < innerH - 1;
-    const dividerRows = needTopCover ? drawerCount : drawerCount - 1;
-    for (let d = 0; d < dividerRows; d++) {
-      const dividerY = caseBottomY + panelT + (d + 1) * drawerSlotH;
+    // 抽屜間水平分隔板（drawerCount-1 片）+ 抽屜區邊界隔板（若未填滿 innerH）
+    const needBoundaryDivider = drawerAreaH < innerH - 1;
+    for (let d = 0; d < drawerCount - 1; d++) {
+      const dividerY = drawerZoneBottomY + (d + 1) * drawerSlotH;
       parts.push({
         id: `drawer-divider-${d + 1}`,
-        nameZh: d === drawerCount - 1 ? "抽屜區頂板" : `抽屜分隔板 ${d + 1}`,
+        nameZh: `抽屜分隔板 ${d + 1}`,
         material,
         grainDirection: "length",
         visible: { length: innerW, width: innerD, thickness: shelfT },
         origin: { x: 0, y: dividerY - shelfT, z: 0 },
+        tenons: [
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+        ],
+        mortises: [],
+      });
+    }
+    // 抽屜區邊界分隔板（將抽屜區與其它空間隔開）
+    if (needBoundaryDivider) {
+      const boundaryY = drawerAtTop ? drawerZoneBottomY : drawerZoneTopY;
+      parts.push({
+        id: "drawer-zone-boundary",
+        nameZh: drawerAtTop ? "抽屜區底板" : "抽屜區頂板",
+        material,
+        grainDirection: "length",
+        visible: { length: innerW, width: innerD, thickness: shelfT },
+        origin: { x: 0, y: boundaryY - shelfT, z: 0 },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -398,7 +451,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     for (let row = 0; row < drawerCount; row++) {
      for (let col = 0; col < drawerCols; col++) {
       const i = row * drawerCols + col;
-      const yBase = caseBottomY + panelT + row * drawerSlotH + drawerGap;
+      const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
       const xCenter = -innerW / 2 + colPitch * col + colPitch / 2;
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
@@ -578,12 +631,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const panelT_door = 12; // 木鑲板厚度（玻璃時不計）
     const cornerTenonLen = Math.round(stileW * 0.6);
     const grooveDepth = 8;
+    // Door zone vertical range — default full innerH, but can be confined
+    // via doorYOffset (mm from inner-bottom) + doorAreaHeight (mm).
+    const doorZoneH = opts.doorAreaHeight ?? innerH;
+    const doorZoneBottomY = caseBottomY + panelT + doorYOffset;
 
     for (let i = 0; i < doorCount; i++) {
       const xCenter = -innerW / 2 + i * doorW + doorW / 2;
       const zFront = -width / 2 - frameT / 2 - 1;
       const doorOuterW = doorW - 4;
-      const doorOuterH = innerH - 4;
+      const doorOuterH = doorZoneH - 4;
       const innerOpenW = doorOuterW - 2 * stileW;
       const innerOpenH = doorOuterH - 2 * railW;
 
@@ -600,7 +657,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: caseBottomY + panelT + doorOuterH - railW,
+          y: doorZoneBottomY + doorOuterH - railW,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -645,7 +702,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: caseBottomY + panelT,
+          y: doorZoneBottomY,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -690,7 +747,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter + (side * (doorOuterW / 2 - stileW / 2)),
-            y: caseBottomY + panelT,
+            y: doorZoneBottomY,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -748,7 +805,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: caseBottomY + panelT + railW - grooveDepth,
+            y: doorZoneBottomY + railW - grooveDepth,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
