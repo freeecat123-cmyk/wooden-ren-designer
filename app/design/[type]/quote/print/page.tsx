@@ -15,6 +15,10 @@ import {
   BrandedSignature,
   BrandedSupplier,
 } from "@/components/branding/BrandedSupplier";
+import {
+  BrandedNotes,
+  BrandedTermsBlocks,
+} from "@/components/branding/BrandedTerms";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -51,7 +55,7 @@ export default async function QuotePrintPage({
   const length = parseInt(sp.length ?? "") || entry.defaults.length;
   const width = parseInt(sp.width ?? "") || entry.defaults.width;
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "taiwan-cypress";
+  const material = (sp.material as MaterialId) ?? "maple";
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 
@@ -60,6 +64,9 @@ export default async function QuotePrintPage({
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
+    shippingCost: parseNum(sp.shippingCost, LABOR_DEFAULTS.shippingCost),
+    installationCost: parseNum(sp.installationCost, LABOR_DEFAULTS.installationCost),
+    hardwareCost: parseNum(sp.hardwareCost, LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     primaryMaterialPricePerBdft: parseNum(
@@ -248,37 +255,9 @@ export default async function QuotePrintPage({
           </table>
         </section>
 
-        {/* Terms & conditions */}
-        <section className="mt-6 grid grid-cols-2 gap-4 text-[10px]">
-          <InfoBlock
-            title="付款條件 PAYMENT TERMS"
-            rows={[
-              ["訂金", "簽約付款 50%"],
-              ["尾款", "交貨前付款 50%"],
-              ["匯款銀行", "＿＿＿＿＿＿＿＿"],
-              ["帳戶", "＿＿＿＿＿＿＿＿"],
-            ]}
-          />
-          <InfoBlock
-            title="交貨與售後 DELIVERY & WARRANTY"
-            rows={[
-              ["交貨期", "簽約後 ____ 天內"],
-              ["交貨方式", "工坊自取／另議運費"],
-              ["保固", "一年（非人為損害）"],
-              ["售後服務", "終身榫卯維修"],
-            ]}
-          />
-        </section>
-
-        <section className="mt-4 p-3 border border-zinc-300 rounded text-[10px] leading-relaxed">
-          <p className="font-semibold mb-1">備註 NOTES</p>
-          <ul className="list-disc pl-4 space-y-0.5 text-zinc-700">
-            <li>本報價含材料、加工、組裝、表面塗裝。不含跨區運輸與現場安裝。</li>
-            <li>木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。</li>
-            <li>客製樣式確認後如欲修改設計，需重新報價。</li>
-            <li>如需開立發票（營業稅 5%），請於下訂時告知。</li>
-          </ul>
-        </section>
+        {/* Terms & conditions — 取自 branding localStorage，可在 quote 頁編輯 */}
+        <BrandedTermsBlocks />
+        <BrandedNotes />
 
         {/* Signatures */}
         <section className="mt-auto pt-8 grid grid-cols-2 gap-6 text-[11px]">

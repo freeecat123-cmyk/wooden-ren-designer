@@ -20,6 +20,12 @@ export interface LaborDefaults {
   consumables: number;
   /** 塗裝費（護木油/蠟/漆 + 工時補加）NT$ */
   finishingCost: number;
+  /** 運費 NT$ */
+  shippingCost: number;
+  /** 安裝費 NT$ */
+  installationCost: number;
+  /** 其他五金（鉸鏈/滑軌/把手）NT$ */
+  hardwareCost: number;
   /** 毛利率（0–1） */
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
@@ -41,6 +47,9 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   equipmentRate: 50,
   consumables: 200,
   finishingCost: 1500,
+  shippingCost: 0,
+  installationCost: 0,
+  hardwareCost: 0,
   marginRate: 0.3,
   vatRate: 0.05,
   // 預設為 null：背板、抽屜底板、抽屜側背板全部併入主材以主材單價計（木頭仁
@@ -55,6 +64,9 @@ export const LABOR_BOUNDS = {
   equipmentRate: { min: 0, max: 300, step: 10 },
   consumables: { min: 0, max: 2000, step: 50 },
   finishingCost: { min: 0, max: 20000, step: 100 },
+  shippingCost: { min: 0, max: 30000, step: 100 },
+  installationCost: { min: 0, max: 30000, step: 100 },
+  hardwareCost: { min: 0, max: 50000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
   primaryMaterialPricePerBdft: { min: 20, max: 3000, step: 10 },

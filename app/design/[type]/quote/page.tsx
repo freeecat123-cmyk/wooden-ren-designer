@@ -22,6 +22,9 @@ interface PageProps {
     equipmentRate?: string;
     consumables?: string;
     finishingCost?: string;
+    shippingCost?: string;
+    installationCost?: string;
+    hardwareCost?: string;
     marginRate?: string;
     vatRate?: string;
     primaryMaterialPricePerBdft?: string;
@@ -64,7 +67,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const length = parseInt(sp.length ?? "") || entry.defaults.length;
   const width = parseInt(sp.width ?? "") || entry.defaults.width;
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "taiwan-cypress";
+  const material = (sp.material as MaterialId) ?? "maple";
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 
@@ -73,6 +76,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     equipmentRate: parseNum(sp.equipmentRate, LABOR_DEFAULTS.equipmentRate),
     consumables: parseNum(sp.consumables, LABOR_DEFAULTS.consumables),
     finishingCost: parseNum(sp.finishingCost, LABOR_DEFAULTS.finishingCost),
+    shippingCost: parseNum(sp.shippingCost, LABOR_DEFAULTS.shippingCost),
+    installationCost: parseNum(sp.installationCost, LABOR_DEFAULTS.installationCost),
+    hardwareCost: parseNum(sp.hardwareCost, LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     primaryMaterialPricePerBdft: parseNum(
@@ -94,7 +100,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quoteNo = generateQuoteNumber(design.id);
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const fullQuery = `${designQuery}&${laborQuery}`;
 
   return (
@@ -231,6 +237,9 @@ function LaborForm({
     equipmentRate: number;
     consumables: number;
     finishingCost: number;
+    shippingCost: number;
+    installationCost: number;
+    hardwareCost: number;
     marginRate: number;
     vatRate: number;
     primaryMaterialPricePerBdft: number;
@@ -324,6 +333,30 @@ function LaborForm({
             min={LABOR_BOUNDS.finishingCost.min}
             max={LABOR_BOUNDS.finishingCost.max}
             step={LABOR_BOUNDS.finishingCost.step}
+          />
+          <NumField
+            name="hardwareCost"
+            label="五金 (NT$)"
+            value={defaults.hardwareCost}
+            min={LABOR_BOUNDS.hardwareCost.min}
+            max={LABOR_BOUNDS.hardwareCost.max}
+            step={LABOR_BOUNDS.hardwareCost.step}
+          />
+          <NumField
+            name="shippingCost"
+            label="運費 (NT$)"
+            value={defaults.shippingCost}
+            min={LABOR_BOUNDS.shippingCost.min}
+            max={LABOR_BOUNDS.shippingCost.max}
+            step={LABOR_BOUNDS.shippingCost.step}
+          />
+          <NumField
+            name="installationCost"
+            label="安裝費 (NT$)"
+            value={defaults.installationCost}
+            min={LABOR_BOUNDS.installationCost.min}
+            max={LABOR_BOUNDS.installationCost.max}
+            step={LABOR_BOUNDS.installationCost.step}
           />
           <NumField
             name="marginRate"

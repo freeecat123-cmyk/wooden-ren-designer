@@ -32,6 +32,12 @@ export interface QuoteBreakdown {
   consumables: number;
   /** 塗裝費 */
   finishingCost: number;
+  /** 運費 */
+  shippingCost: number;
+  /** 安裝費 */
+  installationCost: number;
+  /** 其他五金 */
+  hardwareCost: number;
   /** 成本小計（未加毛利、未含稅） */
   costSubtotal: number;
   /** 毛利金額 */
@@ -127,13 +133,23 @@ export function calculateQuote(
   // 3. 設備折舊（按工時分攤）
   const equipmentCost = laborHours * opts.equipmentRate;
 
-  // 4. 耗材 + 塗裝
+  // 4. 耗材 / 塗裝 / 運費 / 安裝 / 五金
   const consumables = opts.consumables;
   const finishingCost = opts.finishingCost;
+  const shippingCost = opts.shippingCost;
+  const installationCost = opts.installationCost;
+  const hardwareCost = opts.hardwareCost;
 
   // 5. 小計
   const costSubtotal =
-    materialCost + laborCost + equipmentCost + consumables + finishingCost;
+    materialCost +
+    laborCost +
+    equipmentCost +
+    consumables +
+    finishingCost +
+    shippingCost +
+    installationCost +
+    hardwareCost;
   const margin = costSubtotal * opts.marginRate;
   const subtotalExclVat = costSubtotal + margin;
   const vat = subtotalExclVat * opts.vatRate;
@@ -161,6 +177,33 @@ export function calculateQuote(
       detail: "護木油 / 蠟 / 漆料 + 上漆工時",
       amount: finishingCost,
     },
+    ...(hardwareCost > 0
+      ? [
+          {
+            label: "五金",
+            detail: "鉸鏈 / 滑軌 / 把手 / 腳輪等",
+            amount: hardwareCost,
+          },
+        ]
+      : []),
+    ...(shippingCost > 0
+      ? [
+          {
+            label: "運費",
+            detail: "跨區運輸 / 物流 / 搬運",
+            amount: shippingCost,
+          },
+        ]
+      : []),
+    ...(installationCost > 0
+      ? [
+          {
+            label: "安裝費",
+            detail: "現場組裝 / 上牆 / 水平調整",
+            amount: installationCost,
+          },
+        ]
+      : []),
   ];
 
   return {
@@ -172,6 +215,9 @@ export function calculateQuote(
     equipmentCost,
     consumables,
     finishingCost,
+    shippingCost,
+    installationCost,
+    hardwareCost,
     costSubtotal,
     margin,
     subtotalExclVat,

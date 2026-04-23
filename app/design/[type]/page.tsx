@@ -49,7 +49,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
   const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
   const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
-  const material = (spStr("material") as MaterialId) ?? "taiwan-cypress";
+  const material = (spStr("material") as MaterialId) ?? "maple";
 
   const options: Record<string, string | number | boolean> = {};
   const optionSchema = entry.optionSchema ?? [];

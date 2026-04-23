@@ -166,6 +166,44 @@ export function BrandingForm() {
             />
           </div>
 
+          <div className="pt-3 mt-3 border-t border-zinc-100">
+            <p className="text-xs text-zinc-500 font-medium mb-2">
+              報價單條款（可自行編輯，會套用在 A4 報價單）
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <TextAreaField
+                label="付款條件"
+                value={data.paymentTerms}
+                onChange={handleField("paymentTerms")}
+                rows={4}
+                colSpan2
+              />
+              <TextField
+                label="交貨期"
+                value={data.deliveryTerms}
+                onChange={handleField("deliveryTerms")}
+                colSpan2
+              />
+              <TextField
+                label="保固"
+                value={data.warranty}
+                onChange={handleField("warranty")}
+              />
+              <TextField
+                label="售後服務"
+                value={data.afterSales}
+                onChange={handleField("afterSales")}
+              />
+              <TextAreaField
+                label="備註（一行一條）"
+                value={data.notes}
+                onChange={handleField("notes")}
+                rows={5}
+                colSpan2
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 pt-2 border-t border-zinc-100">
             <button
               type="button"
@@ -210,6 +248,39 @@ function TextField({
         onChange={onChange}
         placeholder={placeholder}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
+      />
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows,
+  colSpan2,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  rows?: number;
+  colSpan2?: boolean;
+}) {
+  return (
+    <label
+      className={`flex flex-col text-xs ${
+        colSpan2 ? "md:col-span-2" : ""
+      }`}
+    >
+      <span className="text-zinc-600 mb-1">{label}</span>
+      <textarea
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows ?? 3}
+        className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-sans leading-relaxed resize-y"
       />
     </label>
   );

@@ -13,6 +13,17 @@ export interface BrandingData {
   email: string;
   /** base64 data URL；空字串表示使用預設 /logo.png */
   logoDataUrl: string;
+  // ── 報價單條款（使用者自訂，存 localStorage）──
+  /** 付款條件（多行文字） */
+  paymentTerms: string;
+  /** 交貨期（一行） */
+  deliveryTerms: string;
+  /** 保固 */
+  warranty: string;
+  /** 售後服務 */
+  afterSales: string;
+  /** 備註（多行，每行一條，以 \n 分隔） */
+  notes: string;
 }
 
 export const DEFAULT_BRANDING: BrandingData = {
@@ -25,6 +36,17 @@ export const DEFAULT_BRANDING: BrandingData = {
   contact: "木頭仁",
   email: "",
   logoDataUrl: "",
+  paymentTerms:
+    "訂金：簽約付款 50%\n尾款：交貨前付款 50%\n匯款銀行：＿＿＿＿\n帳戶：＿＿＿＿",
+  deliveryTerms: "簽約後 ____ 天內，工坊自取／另議運費",
+  warranty: "一年（非人為損害）",
+  afterSales: "終身榫卯維修",
+  notes: [
+    "本報價含材料、加工、組裝、表面塗裝。",
+    "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
+    "客製樣式確認後如欲修改設計，需重新報價。",
+    "如需開立發票（營業稅 5%），請於下訂時告知。",
+  ].join("\n"),
 };
 
 const STORAGE_KEY = "wooden-ren-designer:branding:v1";
