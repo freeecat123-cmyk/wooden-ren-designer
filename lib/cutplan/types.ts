@@ -70,6 +70,8 @@ export interface LinearGroup {
   bins: LinearBin[];
   /** 總利用率（用掉長度 / 原料總長） */
   utilization: number;
+  /** 因為庫存不足排不下的件 */
+  unplaced: CutPiece[];
 }
 
 /** 板材 group：同板材 × 同厚度 */
@@ -82,13 +84,24 @@ export interface SheetGroup {
   bins: SheetBin[];
   /** 總利用率（零件面積 / 原料總面積） */
   utilization: number;
+  /** 因為庫存不足排不下的件 */
+  unplaced: CutPiece[];
 }
 
 export interface NestConfig {
   /** 可用的實木原料長度（mm），演算法會 FFD 優先用大支 */
   lumberLengths: number[];
+  /**
+   * 各長度的庫存上限。鍵 = 長度 mm，值 = 可用支數。
+   * 沒列 / 值 <= 0 視為「不限」。
+   */
+  lumberCounts: Record<number, number>;
   /** 板材尺寸（mm），只支援一種規格 */
   sheetSize: { length: number; width: number };
+  /**
+   * 板材庫存上限。null / 0 = 不限。
+   */
+  sheetCount: number | null;
   /** 鋸路（mm） */
   kerf: number;
   /**

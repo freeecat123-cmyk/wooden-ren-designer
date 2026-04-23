@@ -7,10 +7,12 @@ import type { CutPiece, NestConfig, NestPlan } from "./types";
 export * from "./types";
 export { buildCutPieces };
 
-/** 預設原料：台灣常見實木 4/6/8 尺 + 夾板 4×8 尺；鋸路 3mm；最小可用餘料 50mm；板材允許旋轉 */
+/** 預設原料：台灣常見實木 4/6/8 尺 + 夾板 4×8 尺；鋸路 3mm；最小可用餘料 50mm；板材允許旋轉；庫存不限 */
 export const DEFAULT_NEST_CONFIG: NestConfig = {
   lumberLengths: [1212, 1818, 2424],
+  lumberCounts: {},
   sheetSize: { length: 2440, width: 1220 },
+  sheetCount: null,
   kerf: 3,
   minWasteMm: 50,
   allowSheetRotate: true,
@@ -47,6 +49,7 @@ export function computePlanFromPieces(
         Number(thicknessStr),
         pieces,
         config.lumberLengths,
+        config.lumberCounts,
         config.kerf,
         config.minWasteMm,
       );
@@ -57,12 +60,15 @@ export function computePlanFromPieces(
         b.width * b.thickness - a.width * a.thickness,
     );
 
+  // 板材庫存跨 group 共用：同 4×8 尺板不分材質/厚度算同一堆
+  let sheetBudget: number | null =
+    config.sheetCount !== null && config.sheetCount > 0 ? config.sheetCount : null;
   const sheetGroupsArr = Array.from(sheetGroups.entries())
     .map(([key, pieces]) => {
       const [billableStr, thicknessStr] = key.split("|");
       const billable = billableStr as "plywood" | "mdf";
       const repMaterialZh = materialZh(pieces[0]?.material ?? "");
-      return packSheet(
+      const g = packSheet(
         billable,
         repMaterialZh,
         Number(thicknessStr),
@@ -71,7 +77,10 @@ export function computePlanFromPieces(
         config.sheetSize.width,
         config.kerf,
         config.minWasteMm,
+        sheetBudget,
       );
+      if (sheetBudget !== null) sheetBudget = Math.max(0, sheetBudget - g.bins.length);
+      return g;
     })
     .sort((a, b) => a.billable.localeCompare(b.billable) || a.thickness - b.thickness);
 

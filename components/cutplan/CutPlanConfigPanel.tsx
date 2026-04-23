@@ -33,18 +33,44 @@ export function CutPlanConfigPanel({
       <h2 className="text-sm font-semibold text-zinc-700 mb-3">排料設定</h2>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <p className="text-xs text-zinc-600 mb-2">實木原料長度</p>
+          <p className="text-xs text-zinc-600 mb-2">
+            實木原料長度
+            <span className="text-zinc-400">（數量空白 = 不限）</span>
+          </p>
           <div className="space-y-1">
-            {STOCK_PRESETS.map((p) => (
-              <label key={p.value} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={value.lumberLengths.includes(p.value)}
-                  onChange={() => toggleStock(p.value)}
-                />
-                {p.label}
-              </label>
-            ))}
+            {STOCK_PRESETS.map((p) => {
+              const checked = value.lumberLengths.includes(p.value);
+              const countVal = value.lumberCounts[p.value] ?? "";
+              return (
+                <label key={p.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleStock(p.value)}
+                  />
+                  <span className="w-28">{p.label}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="不限"
+                    disabled={!checked}
+                    value={countVal}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      const nextCounts = { ...value.lumberCounts };
+                      if (e.target.value === "" || !Number.isFinite(n) || n <= 0) {
+                        delete nextCounts[p.value];
+                      } else {
+                        nextCounts[p.value] = n;
+                      }
+                      patch({ lumberCounts: nextCounts });
+                    }}
+                    className="w-16 px-2 py-0.5 border border-zinc-200 rounded text-sm disabled:bg-zinc-100 disabled:text-zinc-400"
+                  />
+                  <span className="text-xs text-zinc-400">支</span>
+                </label>
+              );
+            })}
           </div>
         </div>
         <div>
@@ -83,6 +109,24 @@ export function CutPlanConfigPanel({
               />
             </label>
             <p className="text-[11px] text-zinc-400">4×8 尺標準 2440×1220</p>
+            <label className="flex items-center gap-2 text-sm mt-1">
+              <span className="w-8 text-zinc-500">張</span>
+              <input
+                type="number"
+                min={0}
+                placeholder="不限"
+                value={value.sheetCount ?? ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  patch({
+                    sheetCount:
+                      e.target.value === "" || !Number.isFinite(n) || n <= 0 ? null : n,
+                  });
+                }}
+                className="w-20 px-2 py-1 border rounded text-sm"
+              />
+            </label>
+            <p className="text-[11px] text-zinc-400">空白 = 不限；跨材質共用</p>
           </div>
         </div>
         <div>

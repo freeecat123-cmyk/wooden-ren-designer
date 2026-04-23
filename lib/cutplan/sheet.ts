@@ -22,7 +22,10 @@ export function packSheet(
   sheetWidth: number,
   kerf: number,
   minWasteMm: number,
+  sheetCount: number | null,
 ): SheetGroup {
+  const hasLimit = sheetCount !== null && sheetCount > 0;
+  let sheetsRemaining = hasLimit ? sheetCount : Infinity;
   /** 每件零件的「主向」跟「旋向」兩組 (w, h)。w = 沿板長，h = 沿板寬。 */
   const prepped = pieces.map((piece) => {
     const a = Math.max(piece.length, piece.width);
@@ -36,6 +39,7 @@ export function packSheet(
   prepped.sort((x, y) => y.primary.h - x.primary.h || y.primary.w - x.primary.w);
 
   const bins: SheetBin[] = [];
+  const unplaced: CutPiece[] = [];
 
   /** 嘗試把一件在某 shelf 塞入：回 { x, w, h, rotated } 或 null */
   function tryFitInShelf(
@@ -83,28 +87,13 @@ export function packSheet(
     return null;
   }
 
-  const placed = new Set<number>();
-
   // Pass 1: FFDH 主流程
   for (let i = 0; i < prepped.length; i++) {
     const item = prepped[i];
     const pAtt = item.primary;
     if (pAtt.w > sheetLength || pAtt.h > sheetWidth) {
-      // 超大件——給專屬 bin
-      bins.push({
-        stockLength: pAtt.w,
-        stockWidth: pAtt.h,
-        shelves: [
-          {
-            y: 0,
-            height: pAtt.h,
-            pieces: [{ piece: item.piece, x: 0, y: 0, w: pAtt.w, h: pAtt.h, rotated: false }],
-            usedWidth: pAtt.w,
-          },
-        ],
-        usedHeight: pAtt.h,
-      });
-      placed.add(i);
+      // 超大件：無論有沒有限量，都算排不下（超板大小）
+      unplaced.push(item.piece);
       continue;
     }
 
@@ -154,7 +143,12 @@ export function packSheet(
     }
 
     if (!placedOk) {
-      // 新板
+      // 要開新板：若有庫存上限且已用完，排不下
+      if (sheetsRemaining <= 0) {
+        unplaced.push(item.piece);
+        continue;
+      }
+      sheetsRemaining -= 1;
       bins.push({
         stockLength: sheetLength,
         stockWidth: sheetWidth,
@@ -169,7 +163,6 @@ export function packSheet(
         usedHeight: pAtt.h,
       });
     }
-    placed.add(i);
   }
 
   // 計算面積利用率（含 minWaste 調整）
@@ -218,5 +211,6 @@ export function packSheet(
     pieces,
     bins,
     utilization,
+    unplaced,
   };
 }

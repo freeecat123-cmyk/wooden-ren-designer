@@ -32,10 +32,12 @@ export function CutPlanSection({
         <header className="flex items-baseline justify-between mb-3">
           <h3 className="text-lg font-semibold">{title}</h3>
           <div className="text-sm text-zinc-600">
-            {g.bins.length} 支原料．{g.pieces.length} 件．利用率{" "}
+            {g.bins.length} 支原料．{g.pieces.length - g.unplaced.length}/
+            {g.pieces.length} 件．利用率{" "}
             <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
           </div>
         </header>
+        {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
         <div className="space-y-3">
           {g.bins.map((bin, i) => (
             <LumberBinSvg
@@ -58,10 +60,12 @@ export function CutPlanSection({
       <header className="flex items-baseline justify-between mb-3">
         <h3 className="text-lg font-semibold">{title}</h3>
         <div className="text-sm text-zinc-600">
-          {g.bins.length} 張板．{g.pieces.length} 件．利用率{" "}
+          {g.bins.length} 張板．{g.pieces.length - g.unplaced.length}/
+          {g.pieces.length} 件．利用率{" "}
           <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
         </div>
       </header>
+      {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {g.bins.map((bin, i) => (
           <SheetBinSvg
@@ -73,5 +77,26 @@ export function CutPlanSection({
         ))}
       </div>
     </section>
+  );
+}
+
+function UnplacedNotice({
+  unplaced,
+}: {
+  unplaced: LinearGroup["unplaced"] | SheetGroup["unplaced"];
+}) {
+  return (
+    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+      <p className="font-semibold mb-1">
+        ⚠️ {unplaced.length} 件排不下——庫存/尺寸不足
+      </p>
+      <ul className="text-xs ml-4 list-disc">
+        {unplaced.map((p, i) => (
+          <li key={i}>
+            {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
