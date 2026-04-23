@@ -13,6 +13,8 @@ import { BrandingForm } from "@/components/branding/BrandingForm";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CsvExportButton } from "@/components/CsvExportButton";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { QuoteHistory } from "@/components/QuoteHistory";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -42,6 +44,7 @@ interface PageProps {
     customerAddress?: string;
     customerTaxId?: string;
     customerEmail?: string;
+    viewMode?: string;
   }>;
 }
 
@@ -122,6 +125,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     taxId: sp.customerTaxId ?? "",
     email: sp.customerEmail ?? "",
   };
+  const viewMode: "customer" | "internal" =
+    sp.viewMode === "internal" ? "internal" : "customer";
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
   const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
@@ -133,7 +138,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     customerTaxId: customer.taxId,
     customerEmail: customer.email,
   }).toString();
-  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}`;
+  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}`;
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
@@ -144,7 +149,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         ← 回{entry.nameZh}設計
       </Link>
 
-      <header className="mt-3 mb-8 flex items-baseline justify-between flex-wrap gap-2">
+      <header className="mt-3 mb-6 flex items-baseline justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-zinc-900">客製家具報價</h1>
           <p className="mt-1 text-sm text-zinc-600">
@@ -152,14 +157,27 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             {MATERIALS[material].nameZh}
           </p>
         </div>
-        <Link
-          href={`/design/${type}/quote/print?${fullQuery}`}
-          target="_blank"
-          className="px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
-        >
-          🧾 列印報價單 / 存成 PDF
-        </Link>
+        <div className="flex items-center gap-3">
+          <ViewModeToggle current={viewMode} />
+          <Link
+            href={`/design/${type}/quote/print?${fullQuery}`}
+            target="_blank"
+            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
+          >
+            🧾 列印報價單 / 存成 PDF
+          </Link>
+        </div>
       </header>
+
+      <QuoteHistory
+        current={{
+          customerName: customer.name,
+          furnitureName: entry.nameZh,
+          query: fullQuery,
+          total: quote.total,
+          quoteNo,
+        }}
+      />
 
       <LaborForm
         type={type}
