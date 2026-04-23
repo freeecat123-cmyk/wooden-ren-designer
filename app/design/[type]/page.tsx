@@ -5,7 +5,7 @@ import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
-import { PerspectiveView } from "@/components/PerspectiveView";
+import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { MATERIALS } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import {
@@ -142,7 +142,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <span className="w-1 h-5 bg-amber-500 rounded-full" />
           透視圖（3D）
         </h2>
-        <PerspectiveView design={design} />
+        <LazyPerspectiveView design={design} />
       </section>
 
       <section className="mt-10">
