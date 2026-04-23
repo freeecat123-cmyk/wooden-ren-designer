@@ -101,6 +101,22 @@ export interface SheetGroup {
   unplaced: CutPiece[];
 }
 
+/**
+ * 常見厚度預設（mm）。實木用英制轉 mm，板材用國際慣用值。
+ * PiecesEditor / LumberInventoryEditor 的厚度欄會提供這些作 datalist 建議，
+ * 使用者仍可自由輸入其他值（例如設計器產出的 18、25、35）。
+ */
+export const SOLID_WOOD_THICKNESSES: number[] = [
+  25, // 1"
+  32, // 1 1/4"
+  38, // 1 1/2"
+  51, // 2"
+  76, // 3"
+  102, // 4"
+];
+
+export const SHEET_THICKNESSES: number[] = [1.2, 3, 6, 9, 12, 15, 18, 21];
+
 /** 一筆實木原料的規格：單支 length × width × count 支 */
 export interface LumberStock {
   material: MaterialId;

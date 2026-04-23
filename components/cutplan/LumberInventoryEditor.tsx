@@ -1,27 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
 import type { LumberStock } from "@/lib/cutplan";
+import { SOLID_WOOD_THICKNESSES } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
-
-/** 取得所有 specs 裡用到的 (material, thickness) 組合（排除板材） */
-function useMTGroups(specs: PieceSpec[]) {
-  return useMemo(() => {
-    const map = new Map<string, { material: MaterialId; thickness: number; maxPieceW: number }>();
-    for (const s of specs) {
-      if (s.billable === "plywood" || s.billable === "mdf") continue;
-      const k = `${s.material}|${s.thickness}`;
-      const existing = map.get(k);
-      const maxPieceW = Math.max(s.width, s.length);
-      if (!existing || maxPieceW > existing.maxPieceW) {
-        map.set(k, { material: s.material, thickness: s.thickness, maxPieceW });
-      }
-    }
-    return Array.from(map.entries()).map(([k, v]) => ({ key: k, ...v }));
-  }, [specs]);
-}
 
 export function LumberInventoryEditor({
   specs,
@@ -32,138 +15,194 @@ export function LumberInventoryEditor({
   inventory: LumberStock[];
   onChange: (next: LumberStock[]) => void;
 }) {
-  const mtGroups = useMTGroups(specs);
+  // 檢查哪些 (material, thickness) 在零件裡有用到但沒列 inventory——提示使用者
+  const usedMT = new Set<string>();
+  for (const s of specs) {
+    if (s.billable === "plywood" || s.billable === "mdf") continue;
+    usedMT.add(`${s.material}|${s.thickness}`);
+  }
+  const coveredMT = new Set<string>();
+  for (const s of inventory) {
+    coveredMT.add(`${s.material}|${s.thickness}`);
+  }
 
-  const addStock = (material: MaterialId, thickness: number) => {
+  const addRow = () => {
+    const first = specs.find((s) => s.billable !== "plywood" && s.billable !== "mdf");
+    onChange([
+      ...inventory,
+      {
+        material: (first?.material ?? "maple") as MaterialId,
+        thickness: first?.thickness ?? 25,
+        length: 1818,
+        width: 200,
+        count: 1,
+      },
+    ]);
+  };
+
+  const patchRow = (idx: number, partial: Partial<LumberStock>) => {
+    onChange(inventory.map((s, i) => (i === idx ? { ...s, ...partial } : s)));
+  };
+
+  const removeRow = (idx: number) => {
+    onChange(inventory.filter((_, i) => i !== idx));
+  };
+
+  const quickAdd = (material: MaterialId, thickness: number) => {
     onChange([
       ...inventory,
       { material, thickness, length: 1818, width: 200, count: 1 },
     ]);
   };
 
-  const patchStock = (idx: number, partial: Partial<LumberStock>) => {
-    onChange(inventory.map((s, i) => (i === idx ? { ...s, ...partial } : s)));
-  };
-
-  const removeStock = (idx: number) => {
-    onChange(inventory.filter((_, i) => i !== idx));
-  };
-
   return (
     <section className="border border-zinc-200 rounded-lg overflow-hidden">
-      <header className="p-3 bg-zinc-50 border-b border-zinc-200">
-        <h2 className="text-sm font-semibold text-zinc-700">
-          實木庫存（多寬度 · 2D 排料）
-        </h2>
-        <p className="text-[11px] text-zinc-500 mt-1">
-          同材質 × 同厚度列一筆 = 開啟 2D 排料；空著就用預設的 4/6/8 尺單寬模式。
-          超寬部分算 rip 切下來的邊料。
-        </p>
+      <datalist id="lumber-thicknesses">
+        {SOLID_WOOD_THICKNESSES.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
+      <header className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-700">
+            實木庫存（多寬度 · 2D 排料）
+          </h2>
+          <p className="text-[11px] text-zinc-500 mt-1">
+            列一筆 = 該材質 × 厚度切到 2D；常見厚度{" "}
+            <span className="font-mono">
+              {SOLID_WOOD_THICKNESSES.join(" / ")}mm
+            </span>{" "}
+            = 1&quot; / 1¼&quot; / 1½&quot; / 2&quot; / 3&quot; / 4&quot;
+          </p>
+        </div>
+        <button
+          onClick={addRow}
+          className="px-3 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
+        >
+          ＋ 加一筆板才
+        </button>
       </header>
 
-      <div className="p-3 space-y-4">
-        {mtGroups.length === 0 && (
-          <p className="text-xs text-zinc-500">（零件清單內沒有實木件）</p>
-        )}
-        {mtGroups.map((mt) => {
-          const rows = inventory
-            .map((s, idx) => ({ stock: s, idx }))
-            .filter(
-              (r) =>
-                r.stock.material === mt.material &&
-                r.stock.thickness === mt.thickness,
-            );
-          const hasRows = rows.length > 0;
-          return (
-            <div key={mt.key} className="border border-zinc-200 rounded">
-              <div className="px-3 py-2 bg-zinc-50 flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {MATERIALS[mt.material]?.nameZh ?? mt.material} × {mt.thickness} mm
-                  <span className="ml-2 text-xs text-zinc-500">
-                    {hasRows ? "2D 模式" : "（沒列 → 走單寬模式）"}
-                  </span>
-                </span>
-                <button
-                  onClick={() => addStock(mt.material, mt.thickness)}
-                  className="px-2 py-0.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                >
-                  ＋ 加一筆板才
-                </button>
-              </div>
-              {hasRows && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-xs text-zinc-500">
-                      <tr>
-                        <th className="text-right px-2 py-1 w-24">長 (mm)</th>
-                        <th className="text-right px-2 py-1 w-24">寬 (mm)</th>
-                        <th className="text-right px-2 py-1 w-20">支數</th>
-                        <th className="px-2 py-1 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.idx} className="border-t border-zinc-100">
-                          <td className="px-2 py-1">
-                            <input
-                              type="number"
-                              value={r.stock.length}
-                              onChange={(e) =>
-                                patchStock(r.idx, {
-                                  length: Number(e.target.value) || 0,
-                                })
-                              }
-                              className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              type="number"
-                              value={r.stock.width}
-                              onChange={(e) =>
-                                patchStock(r.idx, {
-                                  width: Number(e.target.value) || 0,
-                                })
-                              }
-                              className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              type="number"
-                              min={0}
-                              placeholder="不限"
-                              value={r.stock.count ?? ""}
-                              onChange={(e) => {
-                                const n = Number(e.target.value);
-                                patchStock(r.idx, {
-                                  count:
-                                    e.target.value === "" || !Number.isFinite(n) || n <= 0
-                                      ? null
-                                      : n,
-                                });
-                              }}
-                              className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
-                            />
-                          </td>
-                          <td className="px-2 py-1 text-right">
-                            <button
-                              onClick={() => removeStock(r.idx)}
-                              className="text-xs text-red-600 hover:text-red-800"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        </tr>
+      <div className="overflow-x-auto">
+        {inventory.length === 0 ? (
+          <p className="p-4 text-xs text-zinc-500">
+            沒有列任何實木庫存——目前所有實木零件走單寬模式。
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-xs text-zinc-500">
+              <tr>
+                <th className="text-left px-3 py-2 w-32">材質</th>
+                <th className="text-right px-2 py-2 w-24">厚 (mm)</th>
+                <th className="text-right px-2 py-2 w-24">長 (mm)</th>
+                <th className="text-right px-2 py-2 w-24">寬 (mm)</th>
+                <th className="text-right px-2 py-2 w-20">支數</th>
+                <th className="px-2 py-2 w-12"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventory.map((s, idx) => (
+                <tr key={idx} className="border-t border-zinc-100">
+                  <td className="px-3 py-1">
+                    <select
+                      value={s.material}
+                      onChange={(e) =>
+                        patchRow(idx, { material: e.target.value as MaterialId })
+                      }
+                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm"
+                    >
+                      {Object.values(MATERIALS).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nameZh}
+                        </option>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      list="lumber-thicknesses"
+                      value={s.thickness}
+                      onChange={(e) =>
+                        patchRow(idx, { thickness: Number(e.target.value) || 0 })
+                      }
+                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      value={s.length}
+                      onChange={(e) =>
+                        patchRow(idx, { length: Number(e.target.value) || 0 })
+                      }
+                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      value={s.width}
+                      onChange={(e) =>
+                        patchRow(idx, { width: Number(e.target.value) || 0 })
+                      }
+                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="不限"
+                      value={s.count ?? ""}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        patchRow(idx, {
+                          count:
+                            e.target.value === "" || !Number.isFinite(n) || n <= 0
+                              ? null
+                              : n,
+                        });
+                      }}
+                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </td>
+                  <td className="px-2 py-1 text-right">
+                    <button
+                      onClick={() => removeRow(idx)}
+                      className="text-xs text-red-600 hover:text-red-800"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* 快捷：為每個「零件用到但沒列庫存」的 (material, thickness) 丟一筆 */}
+      {Array.from(usedMT)
+        .filter((k) => !coveredMT.has(k))
+        .slice(0, 6)
+        .map((k) => {
+          const [material, thicknessStr] = k.split("|");
+          const t = Number(thicknessStr);
+          return (
+            <div key={k} className="px-3 py-1.5 border-t border-zinc-100 flex items-center gap-2 text-xs">
+              <span className="text-zinc-500">
+                提示：{MATERIALS[material as MaterialId]?.nameZh ?? material} × {t}mm 還沒列庫存
+              </span>
+              <button
+                onClick={() => quickAdd(material as MaterialId, t)}
+                className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded hover:bg-emerald-200"
+              >
+                快速加一筆
+              </button>
             </div>
           );
         })}
-      </div>
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
+import { SOLID_WOOD_THICKNESSES, SHEET_THICKNESSES } from "@/lib/cutplan";
 
 const MATERIAL_OPTIONS = Object.values(MATERIALS).map((m) => ({
   id: m.id,
@@ -72,6 +73,16 @@ export function PiecesEditor({
 
   return (
     <section className="border border-zinc-200 rounded-lg overflow-hidden">
+      <datalist id="solid-thicknesses">
+        {SOLID_WOOD_THICKNESSES.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
+      <datalist id="sheet-thicknesses">
+        {SHEET_THICKNESSES.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
       <header className="flex items-center justify-between p-3 bg-zinc-50 border-b border-zinc-200">
         <div className="flex items-baseline gap-3">
           <h2 className="text-sm font-semibold text-zinc-700">零件清單</h2>
@@ -171,6 +182,11 @@ export function PiecesEditor({
                     <td className="px-2 py-1">
                       <input
                         type="number"
+                        list={
+                          billableVal === "plywood" || billableVal === "mdf"
+                            ? "sheet-thicknesses"
+                            : "solid-thicknesses"
+                        }
                         value={s.thickness}
                         onChange={(e) =>
                           patchSpec(s.id, { thickness: Number(e.target.value) || 0 })
