@@ -73,15 +73,18 @@ export function makeZoneOptions(defaults: ZoneDefaults, allowHanging = false): O
     { group: "zone-top", type: "number", key: "topHeight", label: "高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 },
     { group: "zone-top", type: "number", key: "topCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
     { group: "zone-top", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-top", type: "number", key: "topDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
     // 中層（自動填滿）
     { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
     { group: "zone-mid", type: "number", key: "midCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
     { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-mid", type: "number", key: "midDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
     // 下層
     { group: "zone-bot", type: "select", key: "bottomType", label: "類型", defaultValue: defaults.bottomType, choices },
     { group: "zone-bot", type: "number", key: "bottomHeight", label: "高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 },
     { group: "zone-bot", type: "number", key: "bottomCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
     { group: "zone-bot", type: "number", key: "bottomCols", label: "抽屜列數（左右分）", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-bot", type: "number", key: "bottomDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
   ];
 }
 
@@ -108,10 +111,11 @@ const toCabinetZone = (
   heightMm: number,
   count: number,
   cols: number,
+  doorInnerShelves = 0,
 ): CabinetZone | null => {
   if (t === "none") return { type: "shelves", heightMm, count: 0 };
   if (t === "drawer") return { type: "drawer", heightMm, count, cols };
-  if (t === "door") return { type: "door", heightMm, count };
+  if (t === "door") return { type: "door", heightMm, count, doorInnerShelves };
   if (t === "shelves") return { type: "shelves", heightMm, count };
   if (t === "hanging") return { type: "hanging", heightMm, count: 1 };
   return null;
@@ -131,13 +135,16 @@ export function resolveZones(
   const topH0 = getOption<number>(input, opt(options, "topHeight"));
   const topCount = getOption<number>(input, opt(options, "topCount"));
   const topCols = getOption<number>(input, opt(options, "topCols"));
+  const topDoorShelves = getOption<number>(input, opt(options, "topDoorShelves"));
   const midType = getOption<string>(input, opt(options, "midType")) as ZoneType;
   const midCount = getOption<number>(input, opt(options, "midCount"));
   const midCols = getOption<number>(input, opt(options, "midCols"));
+  const midDoorShelves = getOption<number>(input, opt(options, "midDoorShelves"));
   const bottomType = getOption<string>(input, opt(options, "bottomType")) as ZoneType;
   const botH0 = getOption<number>(input, opt(options, "bottomHeight"));
   const bottomCount = getOption<number>(input, opt(options, "bottomCount"));
   const bottomCols = getOption<number>(input, opt(options, "bottomCols"));
+  const bottomDoorShelves = getOption<number>(input, opt(options, "bottomDoorShelves"));
 
   const MIN_MID = 80;
   let topH = topH0;
@@ -151,22 +158,32 @@ export function resolveZones(
   const midH = Math.max(MIN_MID, available - topH - botH);
 
   const zones: CabinetZone[] = [];
-  const b = toCabinetZone(bottomType, botH, bottomCount, bottomCols);
-  const m = toCabinetZone(midType, midH, midCount, midCols);
-  const t = toCabinetZone(topType, topH, topCount, topCols);
+  const b = toCabinetZone(bottomType, botH, bottomCount, bottomCols, bottomDoorShelves);
+  const m = toCabinetZone(midType, midH, midCount, midCols, midDoorShelves);
+  const t = toCabinetZone(topType, topH, topCount, topCols, topDoorShelves);
   if (b) zones.push(b);
   if (m) zones.push(m);
   if (t) zones.push(t);
 
-  const describe = (name: string, ty: ZoneType, h: number, n: number, c: number) => {
+  const describe = (
+    name: string,
+    ty: ZoneType,
+    h: number,
+    n: number,
+    c: number,
+    ds = 0,
+  ) => {
     if (ty === "none") return `${name} 空區 ${h}mm`;
     if (ty === "drawer") return `${name} ${n}×${c} 抽屜 ${h}mm`;
-    if (ty === "door") return `${name} ${n} 扇${doorLabel}門 ${h}mm`;
+    if (ty === "door") {
+      const innerNote = ds > 0 ? `（內藏 ${ds} 片層板）` : "";
+      return `${name} ${n} 扇${doorLabel}門 ${h}mm${innerNote}`;
+    }
     if (ty === "shelves") return `${name} ${n} 層開放 ${h}mm（${Math.max(0, n - 1)} 片內部層板）`;
     if (ty === "hanging") return `${name} 吊衣空間 ${h}mm（含 1 根吊衣桿）`;
     return "";
   };
-  const notesLine = `三層組合：${describe("上層", topType, topH, topCount, topCols)}；${describe("中層", midType, midH, midCount, midCols)}（自動填滿）；${describe("下層", bottomType, botH, bottomCount, bottomCols)}`;
+  const notesLine = `三層組合：${describe("上層", topType, topH, topCount, topCols, topDoorShelves)}；${describe("中層", midType, midH, midCount, midCols, midDoorShelves)}（自動填滿）；${describe("下層", bottomType, botH, bottomCount, bottomCols, bottomDoorShelves)}`;
 
   return {
     zones,

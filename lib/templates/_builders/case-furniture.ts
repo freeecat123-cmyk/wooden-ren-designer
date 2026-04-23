@@ -94,6 +94,11 @@ export interface CabinetZone {
   cols?: number;
   /** door: open direction label (top = flip-up 掀門, side = swing 開門). */
   doorOpen?: "top" | "side";
+  /**
+   * door 類型專用：門內藏的層板片數（0 = 全空）。
+   * 門後方加 N 片層板將空間分成 N+1 層收納。
+   */
+  doorInnerShelves?: number;
 }
 
 /**
@@ -1181,6 +1186,17 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           idPrefix: `${idPrefix}-door`,
           labelPrefix: `${labelPrefix}門`,
         });
+        // 門板後方可加內層板（使用者勾選門內層板數時）
+        const innerShelves = z.doorInnerShelves ?? 0;
+        if (innerShelves > 0) {
+          renderShelvesZone({
+            yStart,
+            height: z.heightMm,
+            // renderShelvesZone 的 count 是「儲物層數」=（片數 + 1）
+            count: innerShelves + 1,
+            idPrefix: `${idPrefix}-door-inner`,
+          });
+        }
       } else if (z.type === "shelves") {
         renderShelvesZone({
           yStart,
