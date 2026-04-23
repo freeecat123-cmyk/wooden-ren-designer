@@ -157,10 +157,19 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          材料單
-        </h2>
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <span className="w-1 h-5 bg-amber-500 rounded-full" />
+            材料單
+          </h2>
+          <Link
+            href={`/design/${type}/cut-plan?${printQuery.toString()}`}
+            target="_blank"
+            className="px-3 py-1.5 bg-amber-600 text-white rounded text-xs hover:bg-amber-700"
+          >
+            🪚 裁切計算器
+          </Link>
+        </div>
         <div className="rounded-lg border border-zinc-200 overflow-hidden">
           <MaterialList design={design} />
         </div>
