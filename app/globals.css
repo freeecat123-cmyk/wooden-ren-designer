@@ -92,6 +92,12 @@ body {
     padding-top: 6mm !important;
     padding-bottom: 6mm !important;
   }
+  /* 報價單手動換頁點：頁 1 = LOGO + 客戶 + 三視圖 + 品項 + 總計；
+     頁 2 = 付款條件 + 保固售後 + 備註 + 簽章 + footer */
+  .quote-page-break {
+    break-before: page;
+    page-break-before: always;
+  }
 }
 /* 螢幕上也限制高度，避免報價頁縮圖吃掉版面 */
 .compact-three-views svg {

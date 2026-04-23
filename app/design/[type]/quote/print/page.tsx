@@ -334,12 +334,15 @@ export default async function QuotePrintPage({
           </table>
         </section>
 
+        {/* ── 從付款條件之後換到第 2 頁，避免擠在報價細節下方 ── */}
+        <div className="quote-page-break" />
+
         {/* Terms & conditions — 取自 branding localStorage，可在 quote 頁編輯 */}
         <BrandedTermsBlocks />
         <BrandedNotes />
 
         {/* Signatures */}
-        <section className="mt-4 pt-4 grid grid-cols-2 gap-6 text-[11px]">
+        <section className="mt-8 pt-4 grid grid-cols-2 gap-6 text-[11px]">
           <div>
             <div className="h-14 border-b border-zinc-400" />
             <div className="mt-1 flex justify-between text-zinc-600">
