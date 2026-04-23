@@ -368,6 +368,82 @@ export function CompactThreeViews({ design }: { design: FurnitureDesign }) {
   );
 }
 
+/**
+ * 零件分類——用 id 前綴判斷屬於哪個結構分組，方便材料單視覺切分。
+ * 順序即為顯示順序。
+ */
+type PartCategory =
+  | "case"       // 櫃體結構：頂底板、側板、背板
+  | "divider"    // 層板 / 分隔板 / 中柱
+  | "drawer"     // 抽屜組件
+  | "door"       // 門組件
+  | "apron"      // 牙板 / 橫撐（桌椅）
+  | "seat"       // 座板 / 椅背板（椅）
+  | "leg"        // 椅腳 / 桌腳 / 底座
+  | "misc";
+
+const CATEGORY_ORDER: PartCategory[] = [
+  "case", "divider", "drawer", "door", "apron", "seat", "leg", "misc",
+];
+
+const CATEGORY_LABEL: Record<PartCategory, string> = {
+  case: "🗄️ 櫃體結構",
+  divider: "═ 層板 / 分隔板",
+  drawer: "🧺 抽屜",
+  door: "🚪 門",
+  apron: "━ 牙板 / 橫撐",
+  seat: "🪑 座板 / 椅背",
+  leg: "🦵 腳 / 底座",
+  misc: "⚙ 其他",
+};
+
+function categorizePart(id: string): PartCategory {
+  // 抽屜組件：z*-drawer-N-face / front / back / side / bottom
+  if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
+    return "drawer";
+  if (/drawer-col-partition/.test(id)) return "divider";
+  // 門組件
+  if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
+  // 櫃體主結構
+  if (id === "top" || id === "bottom" || id === "back") return "case";
+  if (/^side-(left|right)$/.test(id)) return "case";
+  // 分隔板 / 層板 / zone boundary / col partition
+  if (
+    /^shelf-/.test(id) ||
+    /-shelf-/.test(id) ||
+    /-divider-/.test(id) ||
+    /-boundary/.test(id) ||
+    /^col-partition/.test(id) ||
+    /col-partition-/.test(id)
+  )
+    return "divider";
+  // 牙板 / 橫撐
+  if (
+    /^apron/.test(id) ||
+    /^stretcher/.test(id) ||
+    /^ls-/.test(id) ||
+    id === "center-stretcher" ||
+    id === "back-rail" ||
+    id === "back-top-rail"
+  )
+    return "apron";
+  // 座板 / 椅背
+  if (id === "seat" || /^seat-/.test(id)) return "seat";
+  if (/^back-slat/.test(id) || /^back-splat/.test(id) || /^splat/.test(id))
+    return "seat";
+  if (/^slat/.test(id) || /^rung/.test(id)) return "seat";
+  // 腳類 / 托腳牙 / 底座
+  if (
+    /^leg-/.test(id) ||
+    /^bracket-/.test(id) ||
+    /^plinth/.test(id) ||
+    /^side-extension/.test(id)
+  )
+    return "leg";
+  // 其他（吊衣桿、特殊件）
+  return "misc";
+}
+
 export function MaterialList({ design }: { design: FurnitureDesign }) {
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
@@ -375,34 +451,44 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
   const rows = design.parts
     .filter((part) => part.visual !== "glass")
     .map((part) => {
-    const cut = calculateCutDimensions(part);
-    const volMm3 = cut.length * cut.width * cut.thickness;
-    const bdft = volMm3 / MM3_PER_BDFT;
-    totalBdft += bdft;
+      const cut = calculateCutDimensions(part);
+      const volMm3 = cut.length * cut.width * cut.thickness;
+      const bdft = volMm3 / MM3_PER_BDFT;
+      totalBdft += bdft;
 
-    const billable = effectiveBillableMaterial(part);
-    const materialLabel =
-      billable === "plywood" || billable === "mdf"
-        ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-        : MATERIALS[part.material].nameZh;
+      const billable = effectiveBillableMaterial(part);
+      const materialLabel =
+        billable === "plywood" || billable === "mdf"
+          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
+          : MATERIALS[part.material].nameZh;
 
-    const groupKey =
-      billable === "plywood" || billable === "mdf"
-        ? SHEET_GOOD_LABEL[billable]
-        : MATERIALS[part.material].nameZh;
-    bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
+      const groupKey =
+        billable === "plywood" || billable === "mdf"
+          ? SHEET_GOOD_LABEL[billable]
+          : MATERIALS[part.material].nameZh;
+      bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
 
-    const tenonNotes = part.tenons.length
-      ? part.tenons
-          .map(
-            (t) =>
-              `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
-          )
-          .join("、")
-      : "—";
+      const tenonNotes = part.tenons.length
+        ? part.tenons
+            .map(
+              (t) =>
+                `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+            )
+            .join("、")
+        : "—";
 
-    return { part, cut, bdft, materialLabel, tenonNotes };
-  });
+      const category = categorizePart(part.id);
+
+      return { part, cut, bdft, materialLabel, tenonNotes, category };
+    });
+
+  // 依分類排序 + 每類內的原有順序（stable sort）
+  const byCategory = new Map<PartCategory, typeof rows>();
+  for (const r of rows) {
+    if (!byCategory.has(r.category)) byCategory.set(r.category, []);
+    byCategory.get(r.category)!.push(r);
+  }
+  const sortedCategories = CATEGORY_ORDER.filter((c) => byCategory.has(c));
 
   return (
     <table className="w-full text-sm">
@@ -416,25 +502,49 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           <th className="text-left p-2">榫頭備註</th>
         </tr>
       </thead>
-      <tbody>
-        {rows.map(({ part, cut, bdft, materialLabel, tenonNotes }) => (
-          <tr key={part.id} className="border-b border-zinc-200">
-            <td className="p-2">{part.nameZh}</td>
-            <td className="p-2">{materialLabel}</td>
-            <td className="p-2 text-right">
-              {part.visible.length} × {part.visible.width} × {part.visible.thickness}
-            </td>
-            <td className="p-2 text-right font-semibold">
-              {cut.length} × {cut.width} × {cut.thickness}
-            </td>
-            <td className="p-2 text-right font-mono">
-              {bdft.toFixed(2)}
-            </td>
-            <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
-          </tr>
-        ))}
-      </tbody>
-      <tfoot className="bg-zinc-50 border-t-2 border-zinc-300">
+      {sortedCategories.map((cat) => {
+        const catRows = byCategory.get(cat)!;
+        const catBdft = catRows.reduce((s, r) => s + r.bdft, 0);
+        return (
+          <tbody key={cat} className="border-t-2 border-zinc-200">
+            <tr className="bg-zinc-50/80">
+              <td
+                colSpan={4}
+                className="px-2 py-1.5 text-xs font-semibold text-zinc-700"
+              >
+                {CATEGORY_LABEL[cat]}
+                <span className="ml-2 font-normal text-zinc-400">
+                  · {catRows.length} 件
+                </span>
+              </td>
+              <td className="px-2 py-1.5 text-right text-xs font-mono text-zinc-600">
+                {catBdft.toFixed(2)}
+              </td>
+              <td />
+            </tr>
+            {catRows.map(
+              ({ part, cut, bdft, materialLabel, tenonNotes }) => (
+                <tr key={part.id} className="border-b border-zinc-100">
+                  <td className="p-2">{part.nameZh}</td>
+                  <td className="p-2">{materialLabel}</td>
+                  <td className="p-2 text-right">
+                    {part.visible.length} × {part.visible.width} ×{" "}
+                    {part.visible.thickness}
+                  </td>
+                  <td className="p-2 text-right font-semibold">
+                    {cut.length} × {cut.width} × {cut.thickness}
+                  </td>
+                  <td className="p-2 text-right font-mono">
+                    {bdft.toFixed(2)}
+                  </td>
+                  <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        );
+      })}
+      <tfoot className="bg-zinc-100 border-t-2 border-zinc-400">
         <tr>
           <td className="p-2 font-semibold" colSpan={4}>
             合計
