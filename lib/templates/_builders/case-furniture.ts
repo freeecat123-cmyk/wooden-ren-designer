@@ -595,19 +595,24 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const zFront = -width / 2 + faceT + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
-      // 【滑軌模式獨有】外觀面板：寬度填滿整個 slot（蓋掉左右 12.5mm 滑軌空隙）
+      // 【滑軌模式獨有】外觀面板：slot 寬 / 高各只留 2mm reveal（總共 -2mm）
+      // 遠大於箱體尺寸，蓋掉左右 12.5mm 滑軌空隙 + 上下滑軌行程
       if (hasSlide) {
+        const faceW = drawerSlotW - 2;
+        const faceHeight = drawerSlotH - 2;
+        // 垂直置中在 slot 內（slot 底起算 1mm）
+        const faceYBase = drawerZoneBottomY + row * drawerSlotH + 1;
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
           material,
           grainDirection: "length",
           visible: {
-            length: drawerSlotW - 4,
-            width: drawerH,
+            length: faceW,
+            width: faceHeight,
             thickness: faceT,
           },
-          origin: { x: xCenter, y: yBase, z: zFace },
+          origin: { x: xCenter, y: faceYBase, z: zFace },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           mortises: [],
