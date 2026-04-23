@@ -13,7 +13,11 @@ export const drawerSlideOption: OptionSpec = {
   key: "useDrawerSlide",
   label: "使用三段式滑軌（左右各減 1.25cm）",
   defaultValue: false,
-  help: "勾選後抽屜總寬自動縮 25mm 留給滑軌五金；不勾選視為傳統木製側拉 / 無滑軌",
+  help:
+    "勾選後：抽屜總寬縮 25mm 留給滑軌五金；" +
+    "另加一片「面板」蓋掉左右空隙（外觀不會有洞）；" +
+    "箱體（5 件）向後縮 18mm（面板厚）藏在面板後；" +
+    "箱體距背板留 10mm 防撞。不勾選視為傳統木製側拉 / 無滑軌。",
 };
 
 export const DRAWER_SLIDE_GAP_MM = 12.5;
