@@ -44,11 +44,11 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "blind-tenon": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
   "shouldered-tenon": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
   "half-lap": ["japanese-saw", "chisel-set-3-6-12"],
-  dovetail: ["dovetail-saw", "dovetail-marker", "chisel-fine"],
+  dovetail: ["dovetail-saw", "dovetail-marker", "chisel-set-3-6-12"],
   "finger-joint": ["chisel-set-3-6-12", "router-table"],
-  "tongue-and-groove": ["trim-router", "groove-plane"],
+  "tongue-and-groove": ["groove-plane", "groove-blade"],
   dowel: ["dowel-jig", "drill", "drill-bits"],
-  "mitered-spline": ["miter-saw", "groove-blade"],
+  "mitered-spline": ["japanese-saw", "groove-blade"],
   "pocket-hole": ["pocket-hole-jig", "drill", "drill-bits"],
   screw: ["drill", "drill-bits"],
 };
@@ -86,10 +86,8 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       `已包含榫頭凸出量，請勿再額外加長。鋸切後逐件編號對應材料單。`,
     toolIds: [
       "tape-measure-5m",
-      "pencil",
       "try-square",
       "japanese-saw",
-      ...(isHardwood ? ["tungsten-blade"] : []),
     ],
     partIds: design.parts.map((p) => p.id),
     estimatedMinutes: 20 * totalParts,
@@ -111,7 +109,6 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       toolIds: [
         "marking-gauge",
         "try-square",
-        "pencil",
         ...(joineryUsages.some((u) => u.type === "dovetail")
           ? ["dovetail-marker"]
           : []),

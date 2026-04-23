@@ -43,8 +43,8 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     defaultJoinery: "pocket-hole",
     notes:
       (design.notes ? design.notes + "\n\n" : "") +
-      "【組裝版】螺絲結構設計，不含榫卯。接合以 Kreg 口袋孔螺絲（板材接合）+ 木螺絲（框架結構）+ 木工白膠為主。" +
-      "建議工具：Kreg K4/K5 夾具、3.2mm 鑽頭、電動起子、木工白膠、F 型夾具、砂紙。" +
+      "【組裝版】不含榫卯，用螺絲 / 木釘 / DOMINO / 斜孔系統擇一或混用 + 木工白膠組裝。" +
+      "建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 型夾具、砂紙。" +
       "施作速度約為榫接版的 3–5 倍，結構強度約榫接版的 60–70%，日常家具使用足夠、重載或傳承級作品仍建議榫接。",
   };
 }

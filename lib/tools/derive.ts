@@ -16,7 +16,6 @@ const PRIORITY_RANK: Record<ToolPriority, number> = {
 
 const ALWAYS_REQUIRED: Array<{ id: string; reason: string }> = [
   { id: "tape-measure-5m", reason: "全程量測下料與組裝" },
-  { id: "pencil", reason: "劃線標記" },
   { id: "try-square", reason: "確認直角與肩線" },
   { id: "marking-gauge", reason: "劃榫頭/榫眼基準線" },
   { id: "f-clamp-x4", reason: "膠合時固定零件" },
@@ -51,15 +50,15 @@ const JOINERY_TOOLS: Record<
   dovetail: [
     { id: "dovetail-saw", priority: "required", reason: "切鳩尾的細齒鋸" },
     { id: "dovetail-marker", priority: "required", reason: "1:6 / 1:8 角度劃線" },
-    { id: "chisel-fine", priority: "required", reason: "清除鳩尾廢料" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "清除鳩尾廢料" },
   ],
   "finger-joint": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "整修指接" },
     { id: "router-table", priority: "recommended", reason: "用銑床批量切指" },
   ],
   "tongue-and-groove": [
-    { id: "groove-plane", priority: "recommended", reason: "手工開槽（可用修邊機替代）" },
-    { id: "trim-router", priority: "recommended", reason: "效率最佳的開槽方式" },
+    { id: "groove-plane", priority: "recommended", reason: "手工開槽" },
+    { id: "groove-blade", priority: "recommended", reason: "搭配修邊機 + 開槽直刀，效率最佳" },
   ],
   dowel: [
     { id: "dowel-jig", priority: "required", reason: "確保木釘對齊" },
@@ -67,13 +66,13 @@ const JOINERY_TOOLS: Record<
     { id: "drill-bits", priority: "required", reason: "搭配電鑽使用" },
   ],
   "mitered-spline": [
-    { id: "miter-saw", priority: "required", reason: "精準 45° 切角" },
-    { id: "groove-blade", priority: "recommended", reason: "切片榫溝" },
+    { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
+    { id: "groove-blade", priority: "recommended", reason: "切片榫溝（修邊機 + 開槽直刀）" },
   ],
   "pocket-hole": [
-    { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔（Kreg K4/K5）" },
+    { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔" },
     { id: "drill", priority: "required", reason: "鑽孔" },
-    { id: "drill-bits", priority: "required", reason: "口袋孔專用階梯鑽頭" },
+    { id: "drill-bits", priority: "required", reason: "斜孔專用階梯鑽頭" },
   ],
   screw: [
     { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
@@ -114,13 +113,9 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
   }
 
   const hardness = MATERIALS[design.primaryMaterial].hardness;
-  if (hardness >= 2500 && hardness < 5000) {
-    add("tungsten-blade", "recommended", "中硬度木材建議鎢鋼鋸片延長壽命");
-  }
   if (hardness >= 5000) {
     add("chisel-hardwood", "required", "白橡等硬木需高硬度鑿刀，普通鑿刀易崩刃");
     add("sandpaper-coarse-60", "required", "硬木刨後需 60 番去除刨痕");
-    add("tungsten-blade", "required", "硬木必須使用鎢鋼鋸片");
   }
 
   const longSpan =
@@ -140,12 +135,7 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
     design.category === "nightstand" ||
     design.category === "wardrobe"
   ) {
-    add("drawer-slide", "optional", "若設計含抽屜可加裝滑軌");
     add("concealed-hinge", "optional", "櫃門可選用隱藏鉸鏈");
-  }
-
-  if (design.category === "dining-chair" || design.category === "bar-stool") {
-    add("round-saw", "recommended", "椅腿圓榫成形");
   }
 
   return Array.from(map.values()).sort((a, b) => {

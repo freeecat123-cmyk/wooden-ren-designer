@@ -178,15 +178,16 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <JoinerySection design={design} />
         ) : (
           <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
-            <p className="font-semibold mb-2">📐 螺絲 / 口袋孔組裝方式</p>
+            <p className="font-semibold mb-2">📐 無榫卯組裝方式（擇一或混用）</p>
             <ul className="space-y-1.5 list-disc list-inside ml-1">
-              <li><b>口袋孔螺絲（Kreg K4/K5）</b>—— 板材垂直接合用（如頂板↔側板、層板↔側板）。斜孔在隱藏面，外觀看不到螺絲頭。</li>
-              <li><b>木工螺絲 + 白膠</b>—— 框架類接合用（椅腳↔牙板、橫撐↔椅腳）。先鑽先導孔避免劈裂。</li>
-              <li><b>木釘補強</b>—— 受力大的連接點（椅腳、結構接點）可另插 8mm 木釘雙保險。</li>
-              <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲只是夾緊工具。</li>
+              <li><b>斜孔螺絲</b>—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。</li>
+              <li><b>木釘拼接</b>—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。</li>
+              <li><b>DOMINO 圓榫</b>—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。</li>
+              <li><b>木工螺絲 + 白膠</b>—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。</li>
+              <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。</li>
             </ul>
             <p className="mt-3 text-xs text-emerald-700">
-              建議工具：Kreg 口袋孔夾具、電鑽、3.2mm 鑽頭、Kreg 螺絲 32mm/45mm、木工白膠、F 夾具×4、砂紙 120/180/240。
+              建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。
             </p>
             <p className="mt-2 text-xs text-emerald-600">
               如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選上方「榫接模式」。
@@ -301,7 +302,7 @@ function ParameterForm({
         <div className="flex-1">
           <div className="text-sm font-semibold text-amber-900">🪵 榫接模式（傳統榫卯）</div>
           <div className="text-xs text-amber-700 mt-0.5">
-            開啟後使用傳統榫卯接合（含榫頭榫眼細節圖 + 精緻工序）。不勾選則為螺絲 + 白膠組裝版——施作更快，結構強度約榫接版 60–70%，日常家具夠用。
+            開啟後使用傳統榫卯接合（含榫頭榫眼細節圖 + 精緻工序）。不勾選則為**組裝版**（螺絲、木釘、DOMINO、斜孔系統，無榫卯）——施作更快，結構強度約榫接版 60–70%，日常家具夠用。
           </div>
         </div>
       </label>
