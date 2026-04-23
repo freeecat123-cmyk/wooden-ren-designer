@@ -38,17 +38,25 @@ export interface QuoteBreakdown {
   installationCost: number;
   /** 其他五金 */
   hardwareCost: number;
-  /** 成本小計（未加毛利、未含稅） */
+  /** 成本小計（未加毛利、未含稅、單件） */
   costSubtotal: number;
-  /** 毛利金額 */
+  /** 毛利金額（單件） */
   margin: number;
-  /** 報價（未稅） */
+  /** 單件報價（未稅、未打折） */
+  unitPriceExclVat: number;
+  /** 數量 */
+  quantity: number;
+  /** 依數量加總的報價（未稅、未打折） */
+  subtotalBeforeDiscount: number;
+  /** 折扣金額（正值代表減去多少） */
+  discountAmount: number;
+  /** 打折後的未稅報價 */
   subtotalExclVat: number;
   /** 營業稅 */
   vat: number;
   /** 含稅總計 */
   total: number;
-  /** 行項目（用於表格顯示） */
+  /** 行項目（用於表格顯示，單件） */
   lines: QuoteLineItem[];
 }
 
@@ -140,7 +148,7 @@ export function calculateQuote(
   const installationCost = opts.installationCost;
   const hardwareCost = opts.hardwareCost;
 
-  // 5. 小計
+  // 5. 單件小計
   const costSubtotal =
     materialCost +
     laborCost +
@@ -151,7 +159,14 @@ export function calculateQuote(
     installationCost +
     hardwareCost;
   const margin = costSubtotal * opts.marginRate;
-  const subtotalExclVat = costSubtotal + margin;
+  const unitPriceExclVat = costSubtotal + margin;
+
+  // 6. 數量 × 折扣 → 稅
+  const quantity = Math.max(1, Math.round(opts.quantity ?? 1));
+  const subtotalBeforeDiscount = unitPriceExclVat * quantity;
+  const discountRate = Math.max(0, Math.min(1, opts.discountRate ?? 0));
+  const discountAmount = subtotalBeforeDiscount * discountRate;
+  const subtotalExclVat = subtotalBeforeDiscount - discountAmount;
   const vat = subtotalExclVat * opts.vatRate;
   const total = subtotalExclVat + vat;
 
@@ -220,6 +235,10 @@ export function calculateQuote(
     hardwareCost,
     costSubtotal,
     margin,
+    unitPriceExclVat,
+    quantity,
+    subtotalBeforeDiscount,
+    discountAmount,
     subtotalExclVat,
     vat,
     total,

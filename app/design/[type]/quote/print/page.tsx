@@ -81,6 +81,9 @@ export default async function QuotePrintPage({
       sp.mdfPricePerBdft,
       LABOR_DEFAULTS.mdfPricePerBdft,
     ),
+    quantity: parseNum(sp.quantity, LABOR_DEFAULTS.quantity),
+    discountRate: parseNum(sp.discountRate, LABOR_DEFAULTS.discountRate),
+    expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
   };
 
   const design = entry.template({ length, width, height, material });
@@ -89,8 +92,16 @@ export default async function QuotePrintPage({
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const expiry = new Date(today);
-  expiry.setDate(expiry.getDate() + 14);
+  expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
   const expiryStr = expiry.toISOString().slice(0, 10);
+
+  const customerName = sp.customerName ?? "";
+  const customerContact = sp.customerContact ?? "";
+  const customerPhone = sp.customerPhone ?? "";
+  const customerAddress = sp.customerAddress ?? "";
+  const customerTaxId = sp.customerTaxId ?? "";
+  const customerEmail = sp.customerEmail ?? "";
+  const DASH = "＿＿＿＿＿＿＿＿＿＿";
 
   return (
     <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative">
@@ -130,12 +141,12 @@ export default async function QuotePrintPage({
           <InfoBlock
             title="客戶 TO"
             rows={[
-              ["公司／姓名", "＿＿＿＿＿＿＿＿＿＿"],
-              ["聯絡人", "＿＿＿＿＿＿＿＿＿＿"],
-              ["電話", "＿＿＿＿＿＿＿＿＿＿"],
-              ["送貨地址", "＿＿＿＿＿＿＿＿＿＿"],
-              ["統編", "＿＿＿＿＿＿＿＿＿＿"],
-              ["email", "＿＿＿＿＿＿＿＿＿＿"],
+              ["公司／姓名", customerName || DASH],
+              ["聯絡人", customerContact || DASH],
+              ["電話", customerPhone || DASH],
+              ["送貨地址", customerAddress || DASH],
+              ["統編", customerTaxId || DASH],
+              ["email", customerEmail || DASH],
             ]}
           />
         </section>
@@ -176,11 +187,20 @@ export default async function QuotePrintPage({
                   </div>
                   <div>估工：{quote.laborHours.toFixed(1)} 小時</div>
                 </td>
-                <td className="text-center p-2 border-r border-zinc-300 align-top">
-                  1
+                <td className="text-center p-2 border-r border-zinc-300 align-top font-semibold">
+                  {quote.quantity}
                 </td>
                 <td className="text-right p-2 font-mono align-top">
-                  {formatTWD(quote.subtotalExclVat)}
+                  {quote.quantity > 1 ? (
+                    <>
+                      <div>{formatTWD(quote.unitPriceExclVat)} / 件</div>
+                      <div className="font-semibold">
+                        = {formatTWD(quote.subtotalBeforeDiscount)}
+                      </div>
+                    </>
+                  ) : (
+                    formatTWD(quote.unitPriceExclVat)
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -214,7 +234,7 @@ export default async function QuotePrintPage({
           <table className="w-full">
             <tbody>
               <tr className="border-t border-zinc-300">
-                <td className="py-1 text-zinc-600">成本小計</td>
+                <td className="py-1 text-zinc-600">單件成本</td>
                 <td className="py-1 text-right font-mono">
                   {formatTWD(quote.costSubtotal)}
                 </td>
@@ -227,6 +247,26 @@ export default async function QuotePrintPage({
                   + {formatTWD(quote.margin)}
                 </td>
               </tr>
+              {quote.quantity > 1 && (
+                <tr>
+                  <td className="py-1 text-zinc-600">
+                    × {quote.quantity} 件
+                  </td>
+                  <td className="py-1 text-right font-mono">
+                    {formatTWD(quote.subtotalBeforeDiscount)}
+                  </td>
+                </tr>
+              )}
+              {quote.discountAmount > 0 && (
+                <tr>
+                  <td className="py-1 text-red-700">
+                    折扣（{(laborOpts.discountRate * 100).toFixed(0)}% off）
+                  </td>
+                  <td className="py-1 text-right font-mono text-red-700">
+                    − {formatTWD(quote.discountAmount)}
+                  </td>
+                </tr>
+              )}
               <tr className="border-t border-zinc-400 font-semibold">
                 <td className="py-2">報價（未稅）</td>
                 <td className="py-2 text-right font-mono">

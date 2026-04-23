@@ -10,6 +10,9 @@ import {
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { BrandingForm } from "@/components/branding/BrandingForm";
+import { CustomerForm } from "@/components/customer/CustomerForm";
+import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
+import { CsvExportButton } from "@/components/CsvExportButton";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -27,9 +30,18 @@ interface PageProps {
     hardwareCost?: string;
     marginRate?: string;
     vatRate?: string;
+    quantity?: string;
+    discountRate?: string;
+    expiryDays?: string;
     primaryMaterialPricePerBdft?: string;
     plywoodPricePerBdft?: string;
     mdfPricePerBdft?: string;
+    customerName?: string;
+    customerContact?: string;
+    customerPhone?: string;
+    customerAddress?: string;
+    customerTaxId?: string;
+    customerEmail?: string;
   }>;
 }
 
@@ -81,6 +93,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     hardwareCost: parseNum(sp.hardwareCost, LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
+    quantity: parseNum(sp.quantity, LABOR_DEFAULTS.quantity),
+    discountRate: parseNum(sp.discountRate, LABOR_DEFAULTS.discountRate),
+    expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
@@ -99,9 +114,26 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const quote = calculateQuote(design, laborOpts);
   const quoteNo = generateQuoteNumber(design.id);
 
+  const customer: CustomerInfo = {
+    name: sp.customerName ?? "",
+    contact: sp.customerContact ?? "",
+    phone: sp.customerPhone ?? "",
+    address: sp.customerAddress ?? "",
+    taxId: sp.customerTaxId ?? "",
+    email: sp.customerEmail ?? "",
+  };
+
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
-  const fullQuery = `${designQuery}&${laborQuery}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const customerQuery = new URLSearchParams({
+    customerName: customer.name,
+    customerContact: customer.contact,
+    customerPhone: customer.phone,
+    customerAddress: customer.address,
+    customerTaxId: customer.taxId,
+    customerEmail: customer.email,
+  }).toString();
+  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}`;
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
@@ -134,9 +166,12 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         designQuery={designQuery}
         defaults={laborOpts}
         primaryMaterialName={MATERIALS[material].nameZh}
+        initialCustomer={customer}
       />
 
       <BrandingForm />
+
+      <CsvExportButton design={design} />
 
       <section className="mt-8 rounded-xl border border-zinc-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
@@ -161,7 +196,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <tfoot className="bg-zinc-50">
             <tr className="border-t-2 border-zinc-300">
               <td className="p-3 font-medium" colSpan={2}>
-                成本小計
+                單件成本小計
               </td>
               <td className="p-3 text-right font-mono">
                 {formatTWD(quote.costSubtotal)}
@@ -177,12 +212,42 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             </tr>
             <tr className="border-t border-zinc-300">
               <td className="p-3 font-semibold" colSpan={2}>
-                報價（未稅）
+                單件未稅報價
               </td>
-              <td className="p-3 text-right font-mono font-semibold text-lg">
-                {formatTWD(quote.subtotalExclVat)}
+              <td className="p-3 text-right font-mono font-semibold">
+                {formatTWD(quote.unitPriceExclVat)}
               </td>
             </tr>
+            {quote.quantity > 1 && (
+              <tr>
+                <td className="p-3 text-zinc-600" colSpan={2}>
+                  數量 × {quote.quantity}
+                </td>
+                <td className="p-3 text-right font-mono">
+                  {formatTWD(quote.subtotalBeforeDiscount)}
+                </td>
+              </tr>
+            )}
+            {quote.discountAmount > 0 && (
+              <tr>
+                <td className="p-3 text-red-600" colSpan={2}>
+                  折扣（{(laborOpts.discountRate * 100).toFixed(0)}% off）
+                </td>
+                <td className="p-3 text-right font-mono text-red-600">
+                  − {formatTWD(quote.discountAmount)}
+                </td>
+              </tr>
+            )}
+            {(quote.quantity > 1 || quote.discountAmount > 0) && (
+              <tr className="border-t border-zinc-300">
+                <td className="p-3 font-semibold" colSpan={2}>
+                  報價（未稅）
+                </td>
+                <td className="p-3 text-right font-mono font-semibold text-lg">
+                  {formatTWD(quote.subtotalExclVat)}
+                </td>
+              </tr>
+            )}
             {laborOpts.vatRate > 0 && (
               <>
                 <tr>
@@ -229,6 +294,7 @@ function LaborForm({
   designQuery,
   defaults,
   primaryMaterialName,
+  initialCustomer,
 }: {
   type: string;
   designQuery: string;
@@ -242,11 +308,15 @@ function LaborForm({
     hardwareCost: number;
     marginRate: number;
     vatRate: number;
+    quantity: number;
+    discountRate: number;
+    expiryDays: number;
     primaryMaterialPricePerBdft: number;
     plywoodPricePerBdft: number | null;
     mdfPricePerBdft: number | null;
   };
   primaryMaterialName: string;
+  initialCustomer: CustomerInfo;
 }) {
   // Preserve design query string via hidden inputs
   const designParams = Object.fromEntries(
@@ -262,6 +332,42 @@ function LaborForm({
       {Object.entries(designParams).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
+      <div className="mb-4 pb-4 border-b border-zinc-100">
+        <CustomerForm initial={initialCustomer} />
+      </div>
+      <fieldset className="mb-3">
+        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+          數量 / 折扣 / 有效期
+        </legend>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <NumField
+            name="quantity"
+            label="數量"
+            value={defaults.quantity}
+            min={LABOR_BOUNDS.quantity.min}
+            max={LABOR_BOUNDS.quantity.max}
+            step={LABOR_BOUNDS.quantity.step}
+          />
+          <NumField
+            name="discountRate"
+            label="折扣率（0–50%）"
+            value={defaults.discountRate}
+            min={LABOR_BOUNDS.discountRate.min}
+            max={LABOR_BOUNDS.discountRate.max}
+            step={LABOR_BOUNDS.discountRate.step}
+            decimal
+            hint="0.05 = 95 折；0 表示無折扣"
+          />
+          <NumField
+            name="expiryDays"
+            label="有效期（天）"
+            value={defaults.expiryDays}
+            min={LABOR_BOUNDS.expiryDays.min}
+            max={LABOR_BOUNDS.expiryDays.max}
+            step={LABOR_BOUNDS.expiryDays.step}
+          />
+        </div>
+      </fieldset>
       <fieldset className="mb-3">
         <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
           材料單價（NT$/板才）

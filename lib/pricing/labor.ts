@@ -30,6 +30,12 @@ export interface LaborDefaults {
   marginRate: number;
   /** 營業稅率（0–1），開發票加計 */
   vatRate: number;
+  /** 數量（相同家具做幾張），預設 1 */
+  quantity: number;
+  /** 折扣率（0–1），0 = 無折扣，0.05 = 95 折 */
+  discountRate: number;
+  /** 報價有效期天數，預設 14 */
+  expiryDays: number;
   /** 主材單價 (NT$/板才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
   primaryMaterialPricePerBdft: number;
   /** 夾板單價 (NT$/板才)；null 表示不分開計價，背板/抽屜底板併入主材 */
@@ -52,6 +58,9 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   hardwareCost: 0,
   marginRate: 0.3,
   vatRate: 0.05,
+  quantity: 1,
+  discountRate: 0,
+  expiryDays: 14,
   // 預設為 null：背板、抽屜底板、抽屜側背板全部併入主材以主材單價計（木頭仁
   // 實務上材積報價不分材料種類）。想分開計的使用者可在報價表單自行填入。
   plywoodPricePerBdft: null,
@@ -69,6 +78,9 @@ export const LABOR_BOUNDS = {
   hardwareCost: { min: 0, max: 50000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
+  quantity: { min: 1, max: 100, step: 1 },
+  discountRate: { min: 0, max: 0.5, step: 0.01 },
+  expiryDays: { min: 1, max: 180, step: 1 },
   primaryMaterialPricePerBdft: { min: 20, max: 3000, step: 10 },
   plywoodPricePerBdft: { min: 5, max: 150, step: 5 },
   mdfPricePerBdft: { min: 5, max: 150, step: 5 },
