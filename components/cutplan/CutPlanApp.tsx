@@ -8,6 +8,7 @@ import { MATERIALS } from "@/lib/materials";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
 import { CutPlanSection } from "./CutPlanSection";
+import { LumberInventoryEditor } from "./LumberInventoryEditor";
 
 export function CutPlanApp({
   initialSpecs,
@@ -23,7 +24,9 @@ export function CutPlanApp({
 
   const plan = useMemo(() => planFromSpecs(specs, config), [specs, config]);
 
-  const totalLumberBins = plan.linearGroups.reduce((s, g) => s + g.bins.length, 0);
+  const totalLumberBins =
+    plan.linearGroups.reduce((s, g) => s + g.bins.length, 0) +
+    plan.lumberInvGroups.reduce((s, g) => s + g.bins.length, 0);
   const totalSheetBins = plan.sheetGroups.reduce((s, g) => s + g.bins.length, 0);
 
   const handlePrint = () => {
@@ -44,6 +47,14 @@ export function CutPlanApp({
 
       <div className="no-print">
         <PiecesEditor specs={specs} onChange={setSpecs} />
+      </div>
+
+      <div className="no-print">
+        <LumberInventoryEditor
+          specs={specs}
+          inventory={config.lumberInventory}
+          onChange={(inv) => setConfig({ ...config, lumberInventory: inv })}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-3 no-print">
@@ -86,6 +97,11 @@ export function CutPlanApp({
           {plan.linearGroups.map((g, i) => (
             <div key={`lumber-${g.material}-${g.width}-${g.thickness}-${i}`} className="print:break-inside-avoid">
               <CutPlanSection kind="lumber" group={g} kerf={config.kerf} />
+            </div>
+          ))}
+          {plan.lumberInvGroups.map((g, i) => (
+            <div key={`linv-${g.material}-${g.thickness}-${i}`} className="print:break-inside-avoid">
+              <CutPlanSection kind="lumberInv" group={g} kerf={config.kerf} />
             </div>
           ))}
           {plan.sheetGroups.map((g, i) => (

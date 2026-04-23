@@ -1,9 +1,8 @@
-import type { LinearGroup, SheetGroup } from "@/lib/cutplan";
+import type { LinearGroup, LumberInvGroup, SheetGroup } from "@/lib/cutplan";
 import { MATERIALS } from "@/lib/materials";
 import { LumberBinSvg } from "./LumberBinSvg";
 import { SheetBinSvg } from "./SheetBinSvg";
 
-/** 給每個零件一個穩定色（同 partId 同色，跨 bin 辨識同一件） */
 const PART_COLORS = [
   "#fde68a", "#fca5a5", "#a5f3fc", "#bef264", "#c4b5fd",
   "#f9a8d4", "#fdba74", "#86efac", "#93c5fd", "#f0abfc",
@@ -20,8 +19,8 @@ export function CutPlanSection({
   group,
   kerf,
 }: {
-  kind: "lumber" | "sheet";
-  group: LinearGroup | SheetGroup;
+  kind: "lumber" | "lumberInv" | "sheet";
+  group: LinearGroup | LumberInvGroup | SheetGroup;
   kerf: number;
 }) {
   if (kind === "lumber") {
@@ -47,6 +46,29 @@ export function CutPlanSection({
               kerf={kerf}
               colorFor={colorFor}
             />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (kind === "lumberInv") {
+    const g = group as LumberInvGroup;
+    const title = `${MATERIALS[g.material]?.nameZh ?? g.material}．${g.thickness} mm 實木（多寬度 2D）`;
+    return (
+      <section>
+        <header className="flex items-baseline justify-between mb-3">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <div className="text-sm text-zinc-600">
+            {g.bins.length} 塊板才．{g.pieces.length - g.unplaced.length}/
+            {g.pieces.length} 件．利用率{" "}
+            <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
+          </div>
+        </header>
+        {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {g.bins.map((bin, i) => (
+            <SheetBinSvg key={i} bin={bin} index={i + 1} colorFor={colorFor} />
           ))}
         </div>
       </section>

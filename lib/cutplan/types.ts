@@ -74,6 +74,19 @@ export interface LinearGroup {
   unplaced: CutPiece[];
 }
 
+/**
+ * 實木 2D 排料 group（多寬度模式）：同材質 × 同厚度，寬度由 inventory 決定。
+ * Bin 重用 SheetBin 結構（長 L × 寬 W + shelves），每個 bin 代表一塊實體板才。
+ */
+export interface LumberInvGroup {
+  material: MaterialId;
+  thickness: number;
+  pieces: CutPiece[];
+  bins: SheetBin[];
+  utilization: number;
+  unplaced: CutPiece[];
+}
+
 /** 板材 group：同板材 × 同厚度 */
 export interface SheetGroup {
   billable: "plywood" | "mdf";
@@ -88,14 +101,33 @@ export interface SheetGroup {
   unplaced: CutPiece[];
 }
 
+/** 一筆實木原料的規格：單支 length × width × count 支 */
+export interface LumberStock {
+  material: MaterialId;
+  thickness: number;
+  length: number;
+  width: number;
+  /** 庫存支數；0 或 null = 不限 */
+  count: number | null;
+}
+
 export interface NestConfig {
-  /** 可用的實木原料長度（mm），演算法會 FFD 優先用大支 */
-  lumberLengths: number[];
   /**
-   * 各長度的庫存上限。鍵 = 長度 mm，值 = 可用支數。
-   * 沒列 / 值 <= 0 視為「不限」。
+   * 舊模式：可用實木長度（mm），橫截面嚴格以零件為準（窄零件不用寬原料）。
+   * 只有當某 (material, thickness) 在 lumberInventory 內沒有資料時才用這條。
    */
+  lumberLengths: number[];
+  /** 舊模式：各長度庫存上限（null / 0 = 不限） */
   lumberCounts: Record<number, number>;
+  /**
+   * 新模式：實木庫存（2D 排料）。每筆是一組同規格的實體板才。
+   * 演算法在同 (material, thickness) 內以 2D shelf 排入。寬度可以大於零件——
+   * 超寬部分算 rip 鋸下的邊料（顯示為剩料）。
+   *
+   * 一個 (material, thickness) 只要列在此清單（哪怕一筆），就用新 2D 排法；
+   * 否則回退到舊 lumberLengths 1D 模式。
+   */
+  lumberInventory: LumberStock[];
   /** 板材尺寸（mm），只支援一種規格 */
   sheetSize: { length: number; width: number };
   /**
@@ -116,7 +148,10 @@ export interface NestConfig {
 }
 
 export interface NestPlan {
+  /** 1D 實木 groups（窄寬度精準對齊，不分多寬度） */
   linearGroups: LinearGroup[];
+  /** 2D 實木 groups（使用 lumberInventory 時走這條） */
+  lumberInvGroups: LumberInvGroup[];
   sheetGroups: SheetGroup[];
   config: NestConfig;
 }
