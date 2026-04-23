@@ -68,10 +68,14 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const beginnerMode =
-    spStr("beginnerMode") === "true" || spStr("beginnerMode") === "1";
+  // 預設為「組裝版」（無榫卯）。傳統榫接要明確加 joineryMode=true。
+  // 舊 URL 若帶 beginnerMode=false 視為開啟榫接模式（相容）。
+  const joineryMode =
+    spStr("joineryMode") === "true" ||
+    spStr("joineryMode") === "1" ||
+    spStr("beginnerMode") === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
-  const design = beginnerMode ? toBeginnerMode(rawDesign) : rawDesign;
+  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const usages = extractJoineryUsages(design);
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);

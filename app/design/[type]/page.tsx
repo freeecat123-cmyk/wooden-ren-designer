@@ -69,10 +69,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const beginnerMode =
-    spStr("beginnerMode") === "true" || spStr("beginnerMode") === "1";
+  // 預設為「組裝版」（無榫卯，螺絲＋白膠組裝）。想要傳統榫接設計要明確加 joineryMode=true
+  // 保留舊 URL 相容：beginnerMode=false 視為開啟榫接模式
+  const joineryMode =
+    spStr("joineryMode") === "true" ||
+    spStr("joineryMode") === "1" ||
+    spStr("beginnerMode") === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
-  const design = beginnerMode ? toBeginnerMode(rawDesign) : rawDesign;
+  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
 
   const printQuery = new URLSearchParams({
     length: String(length),
@@ -83,7 +87,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   for (const spec of optionSchema) {
     printQuery.set(spec.key, String(options[spec.key]));
   }
-  if (beginnerMode) printQuery.set("beginnerMode", "true");
+  if (joineryMode) printQuery.set("joineryMode", "true");
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
@@ -130,7 +134,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         defaults={{ length, width, height, material }}
         optionSchema={optionSchema}
         optionValues={options}
-        beginnerMode={beginnerMode}
+        joineryMode={joineryMode}
       />
 
       <section className="mt-10">
@@ -168,11 +172,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       <section className="mt-10">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          {beginnerMode ? "組裝接合說明（初心者版）" : "榫卯細節圖"}
+          {joineryMode ? "榫卯細節圖" : "組裝接合說明"}
         </h2>
-        {beginnerMode ? (
+        {joineryMode ? (
+          <JoinerySection design={design} />
+        ) : (
           <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
-            <p className="font-semibold mb-2">✅ 已拆除所有榫卯，改用以下方式組裝：</p>
+            <p className="font-semibold mb-2">📐 螺絲 / 口袋孔組裝方式</p>
             <ul className="space-y-1.5 list-disc list-inside ml-1">
               <li><b>口袋孔螺絲（Kreg K4/K5）</b>—— 板材垂直接合用（如頂板↔側板、層板↔側板）。斜孔在隱藏面，外觀看不到螺絲頭。</li>
               <li><b>木工螺絲 + 白膠</b>—— 框架類接合用（椅腳↔牙板、橫撐↔椅腳）。先鑽先導孔避免劈裂。</li>
@@ -182,9 +188,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <p className="mt-3 text-xs text-emerald-700">
               建議工具：Kreg 口袋孔夾具、電鑽、3.2mm 鑽頭、Kreg 螺絲 32mm/45mm、木工白膠、F 夾具×4、砂紙 120/180/240。
             </p>
+            <p className="mt-2 text-xs text-emerald-600">
+              如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選上方「榫接模式」。
+            </p>
           </div>
-        ) : (
-          <JoinerySection design={design} />
         )}
       </section>
 
@@ -269,13 +276,13 @@ function ParameterForm({
   defaults,
   optionSchema,
   optionValues,
-  beginnerMode,
+  joineryMode,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
-  beginnerMode: boolean;
+  joineryMode: boolean;
 }) {
   return (
     <form
@@ -283,18 +290,18 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      <label className="mb-5 flex items-start gap-3 p-3 rounded-lg bg-emerald-50 ring-1 ring-emerald-200 cursor-pointer">
+      <label className="mb-5 flex items-start gap-3 p-3 rounded-lg bg-amber-50 ring-1 ring-amber-200 cursor-pointer">
         <input
           type="checkbox"
-          name="beginnerMode"
+          name="joineryMode"
           value="true"
-          defaultChecked={beginnerMode}
-          className="mt-0.5 h-4 w-4 accent-emerald-600"
+          defaultChecked={joineryMode}
+          className="mt-0.5 h-4 w-4 accent-amber-600"
         />
         <div className="flex-1">
-          <div className="text-sm font-semibold text-emerald-900">初心者模式（免榫接）</div>
-          <div className="text-xs text-emerald-700 mt-0.5">
-            拆除所有榫卯，改用 Kreg 口袋孔螺絲 + 木工白膠組裝。新手快速完工用。
+          <div className="text-sm font-semibold text-amber-900">🪵 榫接模式（傳統榫卯）</div>
+          <div className="text-xs text-amber-700 mt-0.5">
+            開啟後使用傳統榫卯接合（含榫頭榫眼細節圖 + 精緻工序）。不勾選則為螺絲 + 白膠組裝版——施作更快，結構強度約榫接版 60–70%，日常家具夠用。
           </div>
         </div>
       </label>
