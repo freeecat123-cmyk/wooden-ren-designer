@@ -1,6 +1,5 @@
-import type { LinearGroup, LumberInvGroup, SheetGroup } from "@/lib/cutplan";
+import type { StockGroup } from "@/lib/cutplan";
 import { MATERIALS } from "@/lib/materials";
-import { LumberBinSvg } from "./LumberBinSvg";
 import { SheetBinSvg } from "./SheetBinSvg";
 
 const PART_COLORS = [
@@ -14,100 +13,46 @@ function colorFor(partId: string): string {
   return PART_COLORS[h % PART_COLORS.length];
 }
 
+function kindLabel(kind: StockGroup["kind"]): string {
+  if (kind === "plywood") return "夾板";
+  if (kind === "mdf") return "中纖板";
+  return "實木";
+}
+
 export function CutPlanSection({
-  kind,
   group,
-  kerf,
 }: {
-  kind: "lumber" | "lumberInv" | "sheet";
-  group: LinearGroup | LumberInvGroup | SheetGroup;
-  kerf: number;
+  group: StockGroup;
 }) {
-  if (kind === "lumber") {
-    const g = group as LinearGroup;
-    const title = `${MATERIALS[g.material]?.nameZh ?? g.material}．${g.width} × ${g.thickness} mm 橫截面`;
-    return (
-      <section>
-        <header className="flex items-baseline justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-baseline gap-2">
-            {title}
-            <span className="text-[10px] font-normal px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded">
-              1D 單寬
-            </span>
-          </h3>
-          <div className="text-sm text-zinc-600">
-            {g.bins.length} 支原料．{g.pieces.length - g.unplaced.length}/
-            {g.pieces.length} 件．利用率{" "}
-            <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
-          </div>
-        </header>
-        {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
-        <div className="space-y-3">
-          {g.bins.map((bin, i) => (
-            <LumberBinSvg
-              key={i}
-              bin={bin}
-              index={i + 1}
-              kerf={kerf}
-              colorFor={colorFor}
-            />
-          ))}
-        </div>
-      </section>
-    );
-  }
+  const matLabel =
+    group.kind === "solid"
+      ? MATERIALS[group.material!]?.nameZh ?? group.material
+      : kindLabel(group.kind);
+  const title = `${matLabel}．${group.thickness} mm`;
 
-  if (kind === "lumberInv") {
-    const g = group as LumberInvGroup;
-    const title = `${MATERIALS[g.material]?.nameZh ?? g.material}．${g.thickness} mm 實木`;
-    return (
-      <section>
-        <header className="flex items-baseline justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-baseline gap-2">
-            {title}
-            <span className="text-[10px] font-normal px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded">
-              2D 多寬度
-            </span>
-          </h3>
-          <div className="text-sm text-zinc-600">
-            {g.bins.length} 塊板才．{g.pieces.length - g.unplaced.length}/
-            {g.pieces.length} 件．利用率{" "}
-            <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
-          </div>
-        </header>
-        {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {g.bins.map((bin, i) => (
-            <SheetBinSvg key={i} bin={bin} index={i + 1} colorFor={colorFor} />
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  const g = group as SheetGroup;
-  const title = `${g.billable === "plywood" ? "夾板" : "中纖板"}．${g.thickness} mm（${g.representativeMaterialZh} 計）`;
   return (
     <section>
       <header className="flex items-baseline justify-between mb-3">
-        <h3 className="text-lg font-semibold">{title}</h3>
+        <h3 className="text-lg font-semibold flex items-baseline gap-2">
+          {title}
+          <span className="text-[10px] font-normal px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded">
+            {kindLabel(group.kind)}
+          </span>
+        </h3>
         <div className="text-sm text-zinc-600">
-          {g.bins.length} 張板．{g.pieces.length - g.unplaced.length}/
-          {g.pieces.length} 件．利用率{" "}
-          <span className="font-semibold">{(g.utilization * 100).toFixed(1)}%</span>
+          {group.bins.length} 塊原料．{group.pieces.length - group.unplaced.length}/
+          {group.pieces.length} 件．利用率{" "}
+          <span className="font-semibold">{(group.utilization * 100).toFixed(1)}%</span>
         </div>
       </header>
-      {g.unplaced.length > 0 && <UnplacedNotice unplaced={g.unplaced} />}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {g.bins.map((bin, i) => (
-          <SheetBinSvg
-            key={i}
-            bin={bin}
-            index={i + 1}
-            colorFor={colorFor}
-          />
-        ))}
-      </div>
+      {group.unplaced.length > 0 && <UnplacedNotice unplaced={group.unplaced} />}
+      {group.bins.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {group.bins.map((bin, i) => (
+            <SheetBinSvg key={i} bin={bin} index={i + 1} colorFor={colorFor} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -115,12 +60,12 @@ export function CutPlanSection({
 function UnplacedNotice({
   unplaced,
 }: {
-  unplaced: LinearGroup["unplaced"] | SheetGroup["unplaced"];
+  unplaced: StockGroup["unplaced"];
 }) {
   return (
     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
       <p className="font-semibold mb-1">
-        ⚠️ {unplaced.length} 件排不下——庫存/尺寸不足
+        ⚠️ {unplaced.length} 件排不下——庫存不足或原料尺寸不夠大
       </p>
       <ul className="text-xs ml-4 list-disc">
         {unplaced.map((p, i) => (

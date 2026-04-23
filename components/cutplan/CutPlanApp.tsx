@@ -8,7 +8,7 @@ import { MATERIALS } from "@/lib/materials";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
 import { CutPlanSection } from "./CutPlanSection";
-import { LumberInventoryEditor } from "./LumberInventoryEditor";
+import { StockEditor } from "./StockEditor";
 
 export function CutPlanApp({
   initialSpecs,
@@ -24,20 +24,18 @@ export function CutPlanApp({
 
   const plan = useMemo(() => planFromSpecs(specs, config), [specs, config]);
 
-  const totalLumberBins =
-    plan.linearGroups.reduce((s, g) => s + g.bins.length, 0) +
-    plan.lumberInvGroups.reduce((s, g) => s + g.bins.length, 0);
-  const totalSheetBins = plan.sheetGroups.reduce((s, g) => s + g.bins.length, 0);
+  const totalBins = plan.groups.reduce((s, g) => s + g.bins.length, 0);
+  const totalUnplaced = plan.groups.reduce((s, g) => s + g.unplaced.length, 0);
+  const totalPieces = specs.reduce((s, sp) => s + sp.quantity, 0);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
+  const handlePrint = () => window.print();
   const handleReset = () => {
     if (confirm("重設為家具設計的原始零件清單？目前的編輯會全部丟失。")) {
       setSpecs(initialSpecs);
     }
   };
+
+  const hasStock = config.inventory.length > 0;
 
   return (
     <div className="space-y-6">
@@ -50,17 +48,20 @@ export function CutPlanApp({
       </div>
 
       <div className="no-print">
-        <LumberInventoryEditor
+        <StockEditor
           specs={specs}
-          inventory={config.lumberInventory}
-          onChange={(inv) => setConfig({ ...config, lumberInventory: inv })}
+          inventory={config.inventory}
+          onChange={(inv) => setConfig({ ...config, inventory: inv })}
         />
       </div>
 
       <div className="flex items-center justify-between gap-3 no-print">
         <div className="text-sm text-zinc-600">
-          {entryNameZh}．共 {specs.reduce((s, sp) => s + sp.quantity, 0)} 件．
-          實木 {totalLumberBins} 支原料、板材 {totalSheetBins} 張
+          {entryNameZh}．共 {totalPieces} 件
+          {hasStock ? `．排出 ${totalBins} 塊原料` : "．尚未列庫存"}
+          {totalUnplaced > 0 && (
+            <span className="ml-2 text-red-700">（{totalUnplaced} 件排不下）</span>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -71,48 +72,48 @@ export function CutPlanApp({
           </button>
           <button
             onClick={handlePrint}
-            className="px-3 py-1.5 text-sm bg-zinc-900 hover:bg-zinc-700 text-white rounded"
+            disabled={!hasStock}
+            className="px-3 py-1.5 text-sm bg-zinc-900 hover:bg-zinc-700 text-white rounded disabled:bg-zinc-400 disabled:cursor-not-allowed"
           >
             🖨️ 列印 / PDF
           </button>
         </div>
       </div>
 
-      {/* 列印時才顯示的抬頭 */}
       <header className="hidden print:block">
         <h1 className="text-2xl font-bold">{entryNameZh}．裁切排料圖</h1>
         <p className="text-sm text-zinc-600 mt-1">
-          實木 {totalLumberBins} 支原料、板材 {totalSheetBins} 張．鋸路{" "}
-          {config.kerf}mm．最小餘料 {config.minWasteMm}mm
+          共 {totalBins} 塊原料．鋸路 {config.kerf}mm．最小餘料{" "}
+          {config.minWasteMm}mm
         </p>
         <hr className="my-3" />
       </header>
 
-      {plan.linearGroups.length === 0 && plan.sheetGroups.length === 0 ? (
+      {!hasStock ? (
+        <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+          <p className="font-semibold mb-1">🪵 還沒列原料庫存</p>
+          <p>
+            在上面「原料庫存」區按「＋ 加一筆」加入你實際有的板才（實木 / 夾板 /
+            中纖板皆可），才會開始排料。
+          </p>
+        </div>
+      ) : plan.groups.every((g) => g.bins.length === 0 && g.unplaced.length === 0) ? (
         <div className="p-6 bg-amber-50 text-amber-800 rounded-lg">
           沒有可排料的零件——請新增零件或重設回設計。
         </div>
       ) : (
         <div className="space-y-8">
-          {plan.linearGroups.map((g, i) => (
-            <div key={`lumber-${g.material}-${g.width}-${g.thickness}-${i}`} className="print:break-inside-avoid">
-              <CutPlanSection kind="lumber" group={g} kerf={config.kerf} />
-            </div>
-          ))}
-          {plan.lumberInvGroups.map((g, i) => (
-            <div key={`linv-${g.material}-${g.thickness}-${i}`} className="print:break-inside-avoid">
-              <CutPlanSection kind="lumberInv" group={g} kerf={config.kerf} />
-            </div>
-          ))}
-          {plan.sheetGroups.map((g, i) => (
-            <div key={`sheet-${g.billable}-${g.thickness}-${i}`} className="print:break-inside-avoid">
-              <CutPlanSection kind="sheet" group={g} kerf={config.kerf} />
+          {plan.groups.map((g, i) => (
+            <div
+              key={`grp-${g.kind}-${g.material ?? "_"}-${g.thickness}-${i}`}
+              className="print:break-inside-avoid"
+            >
+              <CutPlanSection group={g} />
             </div>
           ))}
         </div>
       )}
 
-      {/* 列印時列出每個 spec 的摘要 */}
       <section className="hidden print:block mt-6">
         <h3 className="text-sm font-semibold mb-2">零件清單</h3>
         <table className="w-full text-xs border-collapse">

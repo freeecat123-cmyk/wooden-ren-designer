@@ -14,85 +14,30 @@ export function CutPlanConfigPanel({
 
   return (
     <section className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-      <h2 className="text-sm font-semibold text-zinc-700 mb-3">排料設定</h2>
+      <h2 className="text-sm font-semibold text-zinc-700 mb-3">排料設定（全域）</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <p className="text-xs text-zinc-600 mb-2">板材尺寸（mm）</p>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <span className="w-8 text-zinc-500">長</span>
-              <input
-                type="number"
-                value={value.sheetSize.length}
-                onChange={(e) =>
-                  patch({
-                    sheetSize: {
-                      ...value.sheetSize,
-                      length: Number(e.target.value) || 0,
-                    },
-                  })
-                }
-                className="w-24 px-2 py-1 border rounded text-sm"
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <span className="w-8 text-zinc-500">寬</span>
-              <input
-                type="number"
-                value={value.sheetSize.width}
-                onChange={(e) =>
-                  patch({
-                    sheetSize: {
-                      ...value.sheetSize,
-                      width: Number(e.target.value) || 0,
-                    },
-                  })
-                }
-                className="w-24 px-2 py-1 border rounded text-sm"
-              />
-            </label>
-            <p className="text-[11px] text-zinc-400">4×8 尺標準 2440×1220</p>
-            <label className="flex items-center gap-2 text-sm mt-1">
-              <span className="w-8 text-zinc-500">張</span>
-              <input
-                type="number"
-                min={0}
-                placeholder="不限"
-                value={value.sheetCount ?? ""}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  patch({
-                    sheetCount:
-                      e.target.value === "" || !Number.isFinite(n) || n <= 0 ? null : n,
-                  });
-                }}
-                className="w-20 px-2 py-1 border rounded text-sm"
-              />
-            </label>
-            <p className="text-[11px] text-zinc-400">空白 = 不限；跨材質共用</p>
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-zinc-600 mb-2">鋸路 kerf（mm）</p>
+          <p className="text-xs text-zinc-600 mb-1">鋸路 kerf（mm）</p>
           <input
             type="number"
             value={value.kerf}
             onChange={(e) => patch({ kerf: Number(e.target.value) || 0 })}
-            className="w-20 px-2 py-1 border rounded text-sm"
+            className="w-24 px-2 py-1 border rounded text-sm"
           />
           <p className="text-[11px] text-zinc-400 mt-1">圓鋸 3、帶鋸 1–2</p>
-
-          <p className="text-xs text-zinc-600 mt-3 mb-1">最小可用餘料（mm）</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-600 mb-1">最小可用餘料（mm）</p>
           <input
             type="number"
             value={value.minWasteMm}
             onChange={(e) => patch({ minWasteMm: Number(e.target.value) || 0 })}
-            className="w-20 px-2 py-1 border rounded text-sm"
+            className="w-24 px-2 py-1 border rounded text-sm"
           />
           <p className="text-[11px] text-zinc-400 mt-1">低於此長度的零頭不計入利用率</p>
         </div>
         <div>
-          <p className="text-xs text-zinc-600 mb-2">板材旋轉</p>
+          <p className="text-xs text-zinc-600 mb-1">板材旋轉</p>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

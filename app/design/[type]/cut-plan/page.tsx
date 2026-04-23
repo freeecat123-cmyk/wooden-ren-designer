@@ -7,7 +7,6 @@ import { MATERIALS } from "@/lib/materials";
 import {
   DEFAULT_NEST_CONFIG,
   buildCutPieces,
-  type LumberStock,
 } from "@/lib/cutplan";
 import { collapseIntoSpecs } from "@/lib/cutplan/piece-spec";
 import { CutPlanApp } from "@/components/cutplan/CutPlanApp";
@@ -57,14 +56,12 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
 
-  // 把設計零件轉成 CutPiece → 再合成 PieceSpec（按相同規格群聚）
   const { lumberGroups, sheetGroups } = buildCutPieces(design);
   const allPieces = [
     ...Array.from(lumberGroups.values()).flat(),
     ...Array.from(sheetGroups.values()).flat().map((p) => ({ ...p, allowRotate: true })),
   ];
   const initialSpecs = collapseIntoSpecs(allPieces);
-  const initialInventory: LumberStock[] = [];
 
   const designQuery = new URLSearchParams({
     length: String(length),
@@ -89,13 +86,13 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
       <header className="mt-4 mb-6 no-print">
         <h1 className="text-3xl font-bold">裁切計算器</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          {entry.nameZh}．預設從設計匯入，可自行編輯增刪零件或調整原料
+          {entry.nameZh}．預設從設計匯入零件；加入原料庫存後才會排料
         </p>
       </header>
 
       <CutPlanApp
         initialSpecs={initialSpecs}
-        initialConfig={{ ...DEFAULT_NEST_CONFIG, lumberInventory: initialInventory }}
+        initialConfig={DEFAULT_NEST_CONFIG}
         entryNameZh={`${entry.nameZh} ${length}×${width}×${height}mm ${MATERIALS[material].nameZh}`}
       />
     </main>

@@ -22,20 +22,7 @@ export interface CutPiece {
   allowRotate?: boolean;
 }
 
-/** 實木線性排料的一根原料 */
-export interface LinearBin {
-  /** 本根原料的長度（可能比最大 stockLength 小，若排完剩下太多） */
-  stockLength: number;
-  /** 這組零件的橫截面（寬 × 厚）——同一 group 內統一 */
-  width: number;
-  thickness: number;
-  /** 放入的零件 + 起始位置（從 0 開始，含 kerf 累加） */
-  pieces: Array<{ piece: CutPiece; startMm: number }>;
-  /** 已使用長度（含每刀之間的 kerf） */
-  usedLength: number;
-}
-
-/** 板材 2D 排料的一張原料 */
+/** 一張原料板 (2D)：不分實木/板材，一律用這個結構 */
 export interface SheetBin {
   stockLength: number;
   stockWidth: number;
@@ -61,50 +48,24 @@ export interface SheetBin {
   usedHeight: number;
 }
 
-/** 實木 group：同材質 × 同寬 × 同厚 */
-export interface LinearGroup {
-  material: MaterialId;
-  width: number;
-  thickness: number;
-  pieces: CutPiece[];
-  bins: LinearBin[];
-  /** 總利用率（用掉長度 / 原料總長） */
-  utilization: number;
-  /** 因為庫存不足排不下的件 */
-  unplaced: CutPiece[];
-}
-
 /**
- * 實木 2D 排料 group（多寬度模式）：同材質 × 同厚度，寬度由 inventory 決定。
- * Bin 重用 SheetBin 結構（長 L × 寬 W + shelves），每個 bin 代表一塊實體板才。
+ * 統一排料 group：實木 + 板材共用。每個 bin 代表一塊實體原料。
  */
-export interface LumberInvGroup {
-  material: MaterialId;
+export interface StockGroup {
+  kind: "solid" | "plywood" | "mdf";
+  /** solid 才有 */
+  material?: MaterialId;
   thickness: number;
   pieces: CutPiece[];
   bins: SheetBin[];
   utilization: number;
-  unplaced: CutPiece[];
-}
-
-/** 板材 group：同板材 × 同厚度 */
-export interface SheetGroup {
-  billable: "plywood" | "mdf";
-  /** 板上的「主材名稱」（給使用者辨識——實際三夾/MDF 不區分纖維方向） */
-  representativeMaterialZh: string;
-  thickness: number;
-  pieces: CutPiece[];
-  bins: SheetBin[];
-  /** 總利用率（零件面積 / 原料總面積） */
-  utilization: number;
-  /** 因為庫存不足排不下的件 */
   unplaced: CutPiece[];
 }
 
 /**
  * 常見厚度預設（mm）。實木用英制轉 mm，板材用國際慣用值。
- * PiecesEditor / LumberInventoryEditor 的厚度欄會提供這些作 datalist 建議，
- * 使用者仍可自由輸入其他值（例如設計器產出的 18、25、35）。
+ * PiecesEditor / StockEditor 的厚度欄會用這些作下拉選項，
+ * 使用者仍可選「其他」自由輸入。
  */
 export const SOLID_WOOD_THICKNESSES: number[] = [
   25, // 1"
@@ -117,39 +78,29 @@ export const SOLID_WOOD_THICKNESSES: number[] = [
 
 export const SHEET_THICKNESSES: number[] = [1.2, 3, 6, 9, 12, 15, 18, 21];
 
-/** 一筆實木原料的規格：單支 length × width × count 支 */
-export interface LumberStock {
-  material: MaterialId;
+/**
+ * 統一庫存項目：實木 + 板材共用一張表。
+ * kind="solid" 用 material；kind="plywood"/"mdf" 不用 material。
+ */
+export interface StockItem {
+  kind: "solid" | "plywood" | "mdf";
+  /** 僅 kind==="solid" 有意義；板材類別不關心木種 */
+  material?: MaterialId;
   thickness: number;
   length: number;
   width: number;
-  /** 庫存支數；0 或 null = 不限 */
+  /** 庫存支數；null = 不限 */
   count: number | null;
 }
 
+/**
+ * @deprecated 用 StockItem 代替。保留 export 是因為舊的 URL / 儲存資料可能還在用。
+ */
+export type LumberStock = StockItem;
+
 export interface NestConfig {
-  /**
-   * 舊模式：可用實木長度（mm），橫截面嚴格以零件為準（窄零件不用寬原料）。
-   * 只有當某 (material, thickness) 在 lumberInventory 內沒有資料時才用這條。
-   */
-  lumberLengths: number[];
-  /** 舊模式：各長度庫存上限（null / 0 = 不限） */
-  lumberCounts: Record<number, number>;
-  /**
-   * 新模式：實木庫存（2D 排料）。每筆是一組同規格的實體板才。
-   * 演算法在同 (material, thickness) 內以 2D shelf 排入。寬度可以大於零件——
-   * 超寬部分算 rip 鋸下的邊料（顯示為剩料）。
-   *
-   * 一個 (material, thickness) 只要列在此清單（哪怕一筆），就用新 2D 排法；
-   * 否則回退到舊 lumberLengths 1D 模式。
-   */
-  lumberInventory: LumberStock[];
-  /** 板材尺寸（mm），只支援一種規格 */
-  sheetSize: { length: number; width: number };
-  /**
-   * 板材庫存上限。null / 0 = 不限。
-   */
-  sheetCount: number | null;
+  /** 統一庫存（實木 + 板材）。空陣列 = 沒列任何板，零件全部 unplaced。 */
+  inventory: StockItem[];
   /** 鋸路（mm） */
   kerf: number;
   /**
@@ -164,10 +115,7 @@ export interface NestConfig {
 }
 
 export interface NestPlan {
-  /** 1D 實木 groups（窄寬度精準對齊，不分多寬度） */
-  linearGroups: LinearGroup[];
-  /** 2D 實木 groups（使用 lumberInventory 時走這條） */
-  lumberInvGroups: LumberInvGroup[];
-  sheetGroups: SheetGroup[];
+  groups: StockGroup[];
   config: NestConfig;
 }
+
