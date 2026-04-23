@@ -119,14 +119,24 @@ export function LumberInventoryEditor({
       <header className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-zinc-700">
-            實木庫存（多寬度 · 2D 排料）
+            實木庫存（2D 多寬度模式）
           </h2>
           <p className="text-[11px] text-zinc-500 mt-1">
-            列一筆 = 該材質 × 厚度切到 2D；常見厚度{" "}
-            <span className="font-mono">
-              {SOLID_WOOD_THICKNESSES.join(" / ")}mm
-            </span>{" "}
-            = 1&quot; / 1¼&quot; / 1½&quot; / 2&quot; / 3&quot; / 4&quot;
+            {inventory.length === 0 ? (
+              <>
+                <span className="text-amber-700 font-semibold">目前走預設單寬模式</span>
+                ——演算法自動用 4/6/8 尺無限量、橫截面依零件實際寬度。
+                想指定手邊實物板才（例：6尺 × 200mm × 3 支）按右邊「加一筆板才」切到 2D。
+              </>
+            ) : (
+              <>
+                列一筆 = 該材質 × 厚度切到 2D；常見厚度{" "}
+                <span className="font-mono">
+                  {SOLID_WOOD_THICKNESSES.join(" / ")}mm
+                </span>{" "}
+                = 1&quot; / 1¼&quot; / 1½&quot; / 2&quot; / 3&quot; / 4&quot;
+              </>
+            )}
           </p>
         </div>
         <button
@@ -138,11 +148,7 @@ export function LumberInventoryEditor({
       </header>
 
       <div className="overflow-x-auto">
-        {inventory.length === 0 ? (
-          <p className="p-4 text-xs text-zinc-500">
-            沒有列任何實木庫存——目前所有實木零件走單寬模式。
-          </p>
-        ) : (
+        {inventory.length === 0 ? null : (
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>

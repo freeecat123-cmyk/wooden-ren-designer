@@ -29,7 +29,12 @@ export function CutPlanSection({
     return (
       <section>
         <header className="flex items-baseline justify-between mb-3">
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <h3 className="text-lg font-semibold flex items-baseline gap-2">
+            {title}
+            <span className="text-[10px] font-normal px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded">
+              1D 單寬
+            </span>
+          </h3>
           <div className="text-sm text-zinc-600">
             {g.bins.length} 支原料．{g.pieces.length - g.unplaced.length}/
             {g.pieces.length} 件．利用率{" "}
@@ -54,11 +59,16 @@ export function CutPlanSection({
 
   if (kind === "lumberInv") {
     const g = group as LumberInvGroup;
-    const title = `${MATERIALS[g.material]?.nameZh ?? g.material}．${g.thickness} mm 實木（多寬度 2D）`;
+    const title = `${MATERIALS[g.material]?.nameZh ?? g.material}．${g.thickness} mm 實木`;
     return (
       <section>
         <header className="flex items-baseline justify-between mb-3">
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <h3 className="text-lg font-semibold flex items-baseline gap-2">
+            {title}
+            <span className="text-[10px] font-normal px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded">
+              2D 多寬度
+            </span>
+          </h3>
           <div className="text-sm text-zinc-600">
             {g.bins.length} 塊板才．{g.pieces.length - g.unplaced.length}/
             {g.pieces.length} 件．利用率{" "}

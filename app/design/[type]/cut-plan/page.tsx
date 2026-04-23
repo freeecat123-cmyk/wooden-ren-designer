@@ -7,6 +7,7 @@ import { MATERIALS } from "@/lib/materials";
 import {
   DEFAULT_NEST_CONFIG,
   buildCutPieces,
+  type LumberStock,
 } from "@/lib/cutplan";
 import { collapseIntoSpecs } from "@/lib/cutplan/piece-spec";
 import { CutPlanApp } from "@/components/cutplan/CutPlanApp";
@@ -63,6 +64,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
     ...Array.from(sheetGroups.values()).flat().map((p) => ({ ...p, allowRotate: true })),
   ];
   const initialSpecs = collapseIntoSpecs(allPieces);
+  const initialInventory: LumberStock[] = [];
 
   const designQuery = new URLSearchParams({
     length: String(length),
@@ -93,7 +95,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
 
       <CutPlanApp
         initialSpecs={initialSpecs}
-        initialConfig={DEFAULT_NEST_CONFIG}
+        initialConfig={{ ...DEFAULT_NEST_CONFIG, lumberInventory: initialInventory }}
         entryNameZh={`${entry.nameZh} ${length}×${width}×${height}mm ${MATERIALS[material].nameZh}`}
       />
     </main>
