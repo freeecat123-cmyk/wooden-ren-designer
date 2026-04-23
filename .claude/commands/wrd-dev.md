@@ -92,6 +92,9 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 ## 條件顯示 `dependsOn`（目前失效）
 schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVisible` 現在永遠回傳 `true`，所有子選項常駐顯示。原因：使用者反映勾父 checkbox 後子選項沒跳出來，直接改成不 gate。加新選項可以不用填 `dependsOn`，填了也不會生效。
 
+## `reactStrictMode: false`（踩過雷）
+`next.config.ts` 關著 strict mode，**不要打開**。r3f Canvas 在 dev 雙掛載時第一個 WebGL context 被清掉後，Chromium 來不及給第二個 context，透視圖整個空白（console 會看到 `THREE.WebGLRenderer: Context Lost`）。prod build 不雙掛載，所以關它對生產 0 影響。
+
 ## 常見任務
 
 - **加新家具**：寫 `lib/templates/<name>.ts` → 在 `index.ts` 註冊 category + options + template → 在 `lib/types/index.ts` 加進 `FurnitureCategory` union；options 每一條記得帶 `group`
