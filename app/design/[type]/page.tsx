@@ -357,15 +357,18 @@ function ParameterForm({
   );
 }
 
-const GROUP_META: Record<string, { label: string; tone: string }> = {
-  leg:       { label: "桌腳 / 椅腳",   tone: "bg-rose-100    ring-rose-200    text-rose-900"    },
-  top:       { label: "桌面 / 座板",   tone: "bg-sky-100     ring-sky-200     text-sky-900"     },
-  apron:     { label: "牙板",         tone: "bg-amber-100   ring-amber-200   text-amber-900"   },
-  stretcher: { label: "橫撐 / 連腳料",  tone: "bg-emerald-100 ring-emerald-200 text-emerald-900" },
-  drawer:    { label: "抽屜",         tone: "bg-violet-100  ring-violet-200  text-violet-900"  },
-  door:      { label: "門",           tone: "bg-fuchsia-100 ring-fuchsia-200 text-fuchsia-900" },
-  back:      { label: "椅背 / 背板",   tone: "bg-teal-100    ring-teal-200    text-teal-900"    },
-  misc:      { label: "其他",         tone: "bg-zinc-100    ring-zinc-200    text-zinc-800"    },
+const GROUP_META: Record<
+  string,
+  { label: string; icon: string; bar: string }
+> = {
+  top:       { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
+  leg:       { label: "桌腳 / 椅腳",   icon: "🦵", bar: "bg-rose-400"    },
+  apron:     { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
+  stretcher: { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
+  back:      { label: "椅背 / 背板",   icon: "◧", bar: "bg-teal-400"    },
+  drawer:    { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
+  door:      { label: "門",           icon: "▯", bar: "bg-fuchsia-400" },
+  misc:      { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
 };
 
 const GROUP_ORDER = [
@@ -405,19 +408,29 @@ function GroupedOptionFields({
     Array.from(grouped.keys()).filter((k) => !GROUP_ORDER.includes(k)),
   );
   return (
-    <div className="space-y-3 mb-5">
+    <div className="mb-5 rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
       {keysInOrder.map((g) => {
         const meta = GROUP_META[g] ?? GROUP_META.misc;
         const specs = grouped.get(g)!;
         return (
-          <div
+          <details
             key={g}
-            className={`rounded-lg ring-1 p-3 ${meta.tone}`}
+            open
+            className="group"
           >
-            <div className="text-xs font-semibold mb-2 opacity-80">
-              {meta.label}
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none hover:bg-zinc-50 select-none">
+              <span className={`w-1 h-4 rounded-full ${meta.bar}`} />
+              <span className="text-sm font-semibold text-zinc-800">
+                {meta.label}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                {specs.length} 項
+              </span>
+              <span className="ml-auto text-xs text-zinc-400 group-open:rotate-180 transition-transform">
+                ▾
+              </span>
+            </summary>
+            <div className="px-3 pb-3 pt-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2.5">
               {specs.map((spec) => (
                 <OptionField
                   key={spec.key}
@@ -426,7 +439,7 @@ function GroupedOptionFields({
                 />
               ))}
             </div>
-          </div>
+          </details>
         );
       })}
     </div>

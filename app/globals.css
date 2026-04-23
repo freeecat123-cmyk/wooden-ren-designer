@@ -103,3 +103,11 @@ body {
 .compact-three-views svg {
   max-height: 120px;
 }
+
+/* details summary 移除 webkit 預設三角形 */
+summary::-webkit-details-marker {
+  display: none;
+}
+summary {
+  list-style: none;
+}
