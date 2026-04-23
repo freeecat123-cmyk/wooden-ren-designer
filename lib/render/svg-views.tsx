@@ -348,6 +348,26 @@ export function ThreeViewLayout({ design }: { design: FurnitureDesign }) {
   );
 }
 
+/**
+ * Compact three-view strip — 3 views side-by-side 固定小尺寸，給 A4 報價單用。
+ * 每個 view 最大高度 ~28mm，3 個總寬度 ~70mm，可放進文件抬頭不佔太多版面。
+ */
+export function CompactThreeViews({ design }: { design: FurnitureDesign }) {
+  return (
+    <div className="flex gap-2 compact-three-views">
+      <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
+        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT" />
+      </div>
+      <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
+        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE" />
+      </div>
+      <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
+        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP" />
+      </div>
+    </div>
+  );
+}
+
 export function MaterialList({ design }: { design: FurnitureDesign }) {
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();

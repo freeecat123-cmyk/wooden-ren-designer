@@ -80,4 +80,20 @@ body {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  /* Compact three-view strip: 列印時每張圖最高約 28mm（給報價單抬頭用）*/
+  .compact-three-views svg {
+    max-height: 28mm !important;
+  }
+  /* 報價單 quote/print：整頁盡量塞成一張 A4，不強制換頁 */
+  .quote-print-compact [data-print-page] {
+    break-before: auto !important;
+    page-break-before: auto !important;
+    min-height: auto !important;
+    padding-top: 6mm !important;
+    padding-bottom: 6mm !important;
+  }
+}
+/* 螢幕上也限制高度，避免報價頁縮圖吃掉版面 */
+.compact-three-views svg {
+  max-height: 120px;
 }

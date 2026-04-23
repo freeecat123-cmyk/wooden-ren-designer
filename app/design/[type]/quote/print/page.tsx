@@ -19,7 +19,7 @@ import {
   BrandedNotes,
   BrandedTermsBlocks,
 } from "@/components/branding/BrandedTerms";
-import { ThreeViewLayout } from "@/lib/render/svg-views";
+import { CompactThreeViews } from "@/lib/render/svg-views";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -113,7 +113,7 @@ export default async function QuotePrintPage({
   );
 
   return (
-    <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative">
+    <main className="max-w-[210mm] mx-auto bg-white text-zinc-900 relative quote-print-compact">
       <div className="no-print sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200 px-6 py-3 flex items-center justify-between">
         <p className="text-sm text-zinc-600">
           A4 報價單預覽 — 按下按鈕後在系統對話框選擇「另存為 PDF」
@@ -127,10 +127,10 @@ export default async function QuotePrintPage({
 
       <section
         data-print-page
-        className="px-10 py-10 min-h-[260mm] flex flex-col text-[12px] leading-relaxed"
+        className="px-10 py-6 flex flex-col text-[12px] leading-relaxed"
       >
         {/* Header — branding + quote meta */}
-        <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-4">
+        <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-3">
           <BrandedHeader />
           <div className="text-right text-[11px]">
             <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
@@ -160,21 +160,22 @@ export default async function QuotePrintPage({
           />
         </section>
 
-        {/* Product thumbnail — 三視圖縮圖讓客戶看到實體 */}
-        <section className="mt-5 grid grid-cols-[auto_1fr] gap-4 items-start">
-          <div className="w-[180px] print-keep">
-            <ThreeViewLayout design={design} />
+        {/* Product thumbnail — 三視圖縮圖讓客戶看到實體（側併排、小尺寸） */}
+        <section className="mt-4 print-keep">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <h3 className="text-[11px] font-semibold text-zinc-700">設計圖</h3>
+            <span className="text-[9px] text-zinc-400">
+              設計編號：{design.id}
+            </span>
           </div>
-          <div className="pt-2 text-[10px] text-zinc-500 leading-relaxed">
-            <p className="font-semibold text-zinc-700 mb-1">設計圖</p>
-            <p>三視圖顯示家具尺寸與比例。</p>
-            <p>實際成品木紋、色差依天然木材狀態而定。</p>
-            <p className="mt-2">設計編號：{design.id}</p>
-          </div>
+          <CompactThreeViews design={design} />
+          <p className="mt-1 text-[9px] text-zinc-400">
+            三視圖顯示家具尺寸與比例，實際成品木紋、色差依天然木材狀態而定。
+          </p>
         </section>
 
         {/* Product line item */}
-        <section className="mt-4">
+        <section className="mt-3">
           <table className="w-full text-[11px] border border-zinc-400">
             <thead className="bg-zinc-100">
               <tr className="border-b border-zinc-400">
@@ -254,7 +255,7 @@ export default async function QuotePrintPage({
         )}
 
         {/* Totals */}
-        <section className="mt-4 ml-auto w-80 text-[11px]">
+        <section className="mt-2 ml-auto w-80 text-[11px]">
           <table className="w-full">
             <tbody>
               {viewMode === "internal" && (
@@ -338,16 +339,16 @@ export default async function QuotePrintPage({
         <BrandedNotes />
 
         {/* Signatures */}
-        <section className="mt-auto pt-8 grid grid-cols-2 gap-6 text-[11px]">
+        <section className="mt-4 pt-4 grid grid-cols-2 gap-6 text-[11px]">
           <div>
-            <div className="h-20 border-b border-zinc-400" />
+            <div className="h-14 border-b border-zinc-400" />
             <div className="mt-1 flex justify-between text-zinc-600">
               <span>客戶簽章</span>
               <span>日期：＿＿＿＿ / ＿＿ / ＿＿</span>
             </div>
           </div>
           <div>
-            <div className="h-20 border-b border-zinc-400 flex items-end justify-end pr-4">
+            <div className="h-14 border-b border-zinc-400 flex items-end justify-end pr-4">
               <span className="text-[10px] text-zinc-400">（本公司用印）</span>
             </div>
             <BrandedSignature todayStr={todayStr} />

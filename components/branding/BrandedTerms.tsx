@@ -15,7 +15,7 @@ export function BrandedTermsBlocks() {
   const paymentLines = splitLines(data.paymentTerms);
 
   return (
-    <section className="mt-6 grid grid-cols-2 gap-4 text-[10px]">
+    <section className="mt-3 grid grid-cols-2 gap-3 text-[10px]">
       <div className="border border-zinc-300 rounded">
         <div className="bg-zinc-100 px-3 py-1.5 text-[10px] font-semibold tracking-wider border-b border-zinc-300">
           付款條件 PAYMENT TERMS
@@ -53,7 +53,7 @@ export function BrandedNotes() {
   if (notes.length === 0) return null;
 
   return (
-    <section className="mt-4 p-3 border border-zinc-300 rounded text-[10px] leading-relaxed">
+    <section className="mt-2 p-2 border border-zinc-300 rounded text-[10px] leading-relaxed">
       <p className="font-semibold mb-1">備註 NOTES</p>
       <ul className="list-disc pl-4 space-y-0.5 text-zinc-700">
         {notes.map((n, i) => (
