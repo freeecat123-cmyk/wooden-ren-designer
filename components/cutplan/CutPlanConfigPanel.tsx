@@ -2,13 +2,6 @@
 
 import type { NestConfig } from "@/lib/cutplan";
 
-const STOCK_PRESETS = [
-  { value: 1212, label: "4 尺 (1212)" },
-  { value: 1818, label: "6 尺 (1818)" },
-  { value: 2424, label: "8 尺 (2424)" },
-  { value: 3030, label: "10 尺 (3030)" },
-];
-
 export function CutPlanConfigPanel({
   value,
   onChange,
@@ -19,60 +12,10 @@ export function CutPlanConfigPanel({
   const patch = (partial: Partial<NestConfig>) =>
     onChange({ ...value, ...partial });
 
-  const toggleStock = (v: number) => {
-    const has = value.lumberLengths.includes(v);
-    const next = has
-      ? value.lumberLengths.filter((x) => x !== v)
-      : [...value.lumberLengths, v].sort((a, b) => a - b);
-    if (next.length === 0) return; // 至少保留一種
-    patch({ lumberLengths: next });
-  };
-
   return (
     <section className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
       <h2 className="text-sm font-semibold text-zinc-700 mb-3">排料設定</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <p className="text-xs text-zinc-600 mb-2">
-            實木原料長度
-            <span className="text-zinc-400">（數量空白 = 不限）</span>
-          </p>
-          <div className="space-y-1">
-            {STOCK_PRESETS.map((p) => {
-              const checked = value.lumberLengths.includes(p.value);
-              const countVal = value.lumberCounts[p.value] ?? "";
-              return (
-                <label key={p.value} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleStock(p.value)}
-                  />
-                  <span className="w-28">{p.label}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="不限"
-                    disabled={!checked}
-                    value={countVal}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      const nextCounts = { ...value.lumberCounts };
-                      if (e.target.value === "" || !Number.isFinite(n) || n <= 0) {
-                        delete nextCounts[p.value];
-                      } else {
-                        nextCounts[p.value] = n;
-                      }
-                      patch({ lumberCounts: nextCounts });
-                    }}
-                    className="w-16 px-2 py-0.5 border border-zinc-200 rounded text-sm disabled:bg-zinc-100 disabled:text-zinc-400"
-                  />
-                  <span className="text-xs text-zinc-400">支</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <p className="text-xs text-zinc-600 mb-2">板材尺寸（mm）</p>
           <div className="space-y-2">

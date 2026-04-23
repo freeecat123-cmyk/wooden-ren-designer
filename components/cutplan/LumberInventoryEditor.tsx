@@ -1,10 +1,69 @@
 "use client";
 
+import { useState } from "react";
 import type { LumberStock } from "@/lib/cutplan";
 import { SOLID_WOOD_THICKNESSES } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
+
+function LumberThicknessSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const OTHER = "__other__";
+  const presets = SOLID_WOOD_THICKNESSES;
+  const inPreset = presets.includes(value);
+  const [custom, setCustom] = useState(!inPreset && value > 0);
+
+  if (custom) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+        />
+        <button
+          onClick={() => setCustom(false)}
+          className="text-xs text-zinc-400 hover:text-zinc-700"
+          title="切回下拉"
+        >
+          ⇆
+        </button>
+      </div>
+    );
+  }
+
+  const options = Array.from(new Set([...presets, value]))
+    .filter((n) => n > 0)
+    .sort((a, b) => a - b);
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => {
+        if (e.target.value === OTHER) {
+          setCustom(true);
+          return;
+        }
+        onChange(Number(e.target.value));
+      }}
+      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+    >
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+      <option value={OTHER}>其他…</option>
+    </select>
+  );
+}
 
 export function LumberInventoryEditor({
   specs,
@@ -57,11 +116,6 @@ export function LumberInventoryEditor({
 
   return (
     <section className="border border-zinc-200 rounded-lg overflow-hidden">
-      <datalist id="lumber-thicknesses">
-        {SOLID_WOOD_THICKNESSES.map((t) => (
-          <option key={t} value={t} />
-        ))}
-      </datalist>
       <header className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-zinc-700">
@@ -119,14 +173,9 @@ export function LumberInventoryEditor({
                     </select>
                   </td>
                   <td className="px-2 py-1">
-                    <input
-                      type="number"
-                      list="lumber-thicknesses"
+                    <LumberThicknessSelect
                       value={s.thickness}
-                      onChange={(e) =>
-                        patchRow(idx, { thickness: Number(e.target.value) || 0 })
-                      }
-                      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                      onChange={(t) => patchRow(idx, { thickness: t })}
                     />
                   </td>
                   <td className="px-2 py-1">

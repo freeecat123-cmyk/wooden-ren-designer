@@ -20,6 +20,70 @@ function genId() {
   return `spec-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/**
+ * 厚度下拉：依材質類別給預設選項 + 保留當前值（即使不在預設內也顯示）。
+ * 要完全自訂的使用者可打開「其他」切到 number input。
+ */
+function ThicknessSelect({
+  value,
+  isSheet,
+  onChange,
+}: {
+  value: number;
+  isSheet: boolean;
+  onChange: (v: number) => void;
+}) {
+  const presets = isSheet ? SHEET_THICKNESSES : SOLID_WOOD_THICKNESSES;
+  const OTHER = "__other__";
+  const inPreset = presets.includes(value);
+  const [custom, setCustom] = useState(!inPreset && value > 0);
+
+  if (custom) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+        />
+        <button
+          title="切回下拉"
+          onClick={() => setCustom(false)}
+          className="text-xs text-zinc-400 hover:text-zinc-700"
+        >
+          ⇆
+        </button>
+      </div>
+    );
+  }
+
+  const options = Array.from(new Set([...presets, value]))
+    .filter((n) => n > 0)
+    .sort((a, b) => a - b);
+
+  return (
+    <select
+      value={inPreset ? value : value}
+      onChange={(e) => {
+        if (e.target.value === OTHER) {
+          setCustom(true);
+          return;
+        }
+        onChange(Number(e.target.value));
+      }}
+      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+    >
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+      <option value={OTHER}>其他…</option>
+    </select>
+  );
+}
+
 export function PiecesEditor({
   specs,
   onChange,
@@ -73,16 +137,6 @@ export function PiecesEditor({
 
   return (
     <section className="border border-zinc-200 rounded-lg overflow-hidden">
-      <datalist id="solid-thicknesses">
-        {SOLID_WOOD_THICKNESSES.map((t) => (
-          <option key={t} value={t} />
-        ))}
-      </datalist>
-      <datalist id="sheet-thicknesses">
-        {SHEET_THICKNESSES.map((t) => (
-          <option key={t} value={t} />
-        ))}
-      </datalist>
       <header className="flex items-center justify-between p-3 bg-zinc-50 border-b border-zinc-200">
         <div className="flex items-baseline gap-3">
           <h2 className="text-sm font-semibold text-zinc-700">零件清單</h2>
@@ -115,7 +169,7 @@ export function PiecesEditor({
                 <th className="text-left px-3 py-2 w-36">材質</th>
                 <th className="text-right px-2 py-2 w-20">長</th>
                 <th className="text-right px-2 py-2 w-20">寬</th>
-                <th className="text-right px-2 py-2 w-20">厚</th>
+                <th className="text-right px-2 py-2 w-24">厚</th>
                 <th className="text-right px-2 py-2 w-16">數量</th>
                 <th className="text-center px-2 py-2 w-16">旋轉</th>
                 <th className="px-2 py-2 w-24"></th>
@@ -180,18 +234,10 @@ export function PiecesEditor({
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <input
-                        type="number"
-                        list={
-                          billableVal === "plywood" || billableVal === "mdf"
-                            ? "sheet-thicknesses"
-                            : "solid-thicknesses"
-                        }
+                      <ThicknessSelect
                         value={s.thickness}
-                        onChange={(e) =>
-                          patchSpec(s.id, { thickness: Number(e.target.value) || 0 })
-                        }
-                        className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                        isSheet={billableVal === "plywood" || billableVal === "mdf"}
+                        onChange={(t) => patchSpec(s.id, { thickness: t })}
                       />
                     </td>
                     <td className="px-2 py-1">
