@@ -21,14 +21,30 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
   );
   const legSize = legPart ? legPart.visible.length : 0;
 
+  // 只有真正「接腳」的零件（牙板、橫撐、背橫木）才需要縮短；
+  // 櫃體的側板、層板、zone 分隔板、抽屜箱、門框 等都是面板對面板接合，
+  // 長度已經是正確的內部尺寸，不能再縮——否則會比櫃體內高少 legSize，
+  // 在 3D 看起來到處有縫、分解。
+  const isApronLike = (id: string): boolean =>
+    /^apron/.test(id) ||
+    /^stretcher/.test(id) ||
+    /^ls-/.test(id) ||
+    id === "center-stretcher" ||
+    id === "back-rail" ||
+    id === "back-top-rail";
+
   const parts: Part[] = design.parts.map((p) => {
     const hasEndTenons = p.tenons.some(
       (t) => t.position === "start" || t.position === "end",
     );
-    const visible =
-      hasEndTenons && legSize > 0 && p.visible.length > legSize
-        ? { ...p.visible, length: p.visible.length - legSize }
-        : p.visible;
+    const shouldShrink =
+      hasEndTenons &&
+      isApronLike(p.id) &&
+      legSize > 0 &&
+      p.visible.length > legSize;
+    const visible = shouldShrink
+      ? { ...p.visible, length: p.visible.length - legSize }
+      : p.visible;
     return {
       ...p,
       visible,
