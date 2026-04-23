@@ -140,6 +140,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const innerH = caseHeight - 2 * panelT;
   const innerD = width - backT;
   const tenonLen = Math.round(panelT * 0.6);
+  /**
+   * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
+   * 它們深度 = innerD = width − backT，若放在 z=0 會 4mm 短於櫃體前緣
+   * （頂板是全寬 width），造成「左右 / 前端有縫」的分解感。
+   * 向前偏移 backT/2 → 前緣貼齊櫃前面 z=−width/2，後緣貼齊背板前面。
+   */
+  const caseInnerZ = -backT / 2;
 
   const parts: Part[] = [];
 
@@ -371,7 +378,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       material,
       grainDirection: "length",
       visible: { length: innerH, width: innerD, thickness: panelT },
-      origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: 0 },
+      origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: caseInnerZ },
       rotation: { x: 0, y: 0, z: Math.PI / 2 },
       tenons: [
         // start/end = local length axis (innerH); after Z-rotation this is
@@ -417,7 +424,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       material,
       grainDirection: "length",
       visible: { length: innerW, width: innerD, thickness: shelfT },
-      origin: { x: 0, y, z: 0 },
+      origin: { x: 0, y, z: caseInnerZ },
       tenons: [
         {
           position: "start",
@@ -493,7 +500,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: { length: zoneW, width: innerD, thickness: shelfT },
-        origin: { x: zoneCx, y: dividerY - shelfT, z: 0 },
+        origin: { x: zoneCx, y: dividerY - shelfT, z: caseInnerZ },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -510,7 +517,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: { length: zoneW, width: innerD, thickness: shelfT },
-        origin: { x: zoneCx, y: boundaryY - shelfT, z: 0 },
+        origin: { x: zoneCx, y: boundaryY - shelfT, z: caseInnerZ },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -985,7 +992,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: { length: zoneW, width: innerD, thickness: shelfT },
-        origin: { x: zoneCx, y: y - shelfT, z: 0 },
+        origin: { x: zoneCx, y: y - shelfT, z: caseInnerZ },
         tenons: [
           { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
@@ -1055,7 +1062,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           material,
           grainDirection: "length",
           visible: { length: partitionW, width: innerD, thickness: innerH },
-          origin: { x: cursorX + partitionW / 2, y: caseBottomY + panelT, z: 0 },
+          origin: { x: cursorX + partitionW / 2, y: caseBottomY + panelT, z: caseInnerZ },
           tenons: [],
           mortises: [],
         });
@@ -1114,7 +1121,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           material,
           grainDirection: "length",
           visible: { length: innerW, width: rodD, thickness: rodD },
-          origin: { x: 0, y: rodY, z: 0 },
+          origin: { x: 0, y: rodY, z: caseInnerZ },
           tenons: [
             { position: "start", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
             { position: "end", type: "blind-tenon", length: 8, width: rodD, thickness: rodD },
@@ -1130,7 +1137,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           material,
           grainDirection: "length",
           visible: { length: innerW, width: innerD, thickness: shelfT },
-          origin: { x: 0, y: yEnd - shelfT, z: 0 },
+          origin: { x: 0, y: yEnd - shelfT, z: caseInnerZ },
           tenons: [
             { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
             { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
