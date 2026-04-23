@@ -448,6 +448,17 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
 
+  /**
+   * 顯示用尺寸：將長/寬/厚依數值降冪排序輸出（最長→次長→最薄）。
+   * 因為背板等零件 visible 欄位命名取自幾何軸而非木工語意，
+   * length=innerW / width=backT / thickness=innerH 看起來會是 760×8×1460，
+   * 直覺上應該是 1460×760×8（長寬厚）。統一排序讓使用者認材快速。
+   */
+  const sortDimsDesc = (l: number, w: number, t: number): [number, number, number] => {
+    const arr = [l, w, t].sort((a, b) => b - a);
+    return [arr[0], arr[1], arr[2]];
+  };
+
   const rows = design.parts
     .filter((part) => part.visual !== "glass")
     .map((part) => {
@@ -523,23 +534,34 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
               <td />
             </tr>
             {catRows.map(
-              ({ part, cut, bdft, materialLabel, tenonNotes }) => (
-                <tr key={part.id} className="border-b border-zinc-100">
-                  <td className="p-2">{part.nameZh}</td>
-                  <td className="p-2">{materialLabel}</td>
-                  <td className="p-2 text-right">
-                    {part.visible.length} × {part.visible.width} ×{" "}
-                    {part.visible.thickness}
-                  </td>
-                  <td className="p-2 text-right font-semibold">
-                    {cut.length} × {cut.width} × {cut.thickness}
-                  </td>
-                  <td className="p-2 text-right font-mono">
-                    {bdft.toFixed(2)}
-                  </td>
-                  <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
-                </tr>
-              ),
+              ({ part, cut, bdft, materialLabel, tenonNotes }) => {
+                const [vl, vw, vt] = sortDimsDesc(
+                  part.visible.length,
+                  part.visible.width,
+                  part.visible.thickness,
+                );
+                const [cl, cw, ct] = sortDimsDesc(
+                  cut.length,
+                  cut.width,
+                  cut.thickness,
+                );
+                return (
+                  <tr key={part.id} className="border-b border-zinc-100">
+                    <td className="p-2">{part.nameZh}</td>
+                    <td className="p-2">{materialLabel}</td>
+                    <td className="p-2 text-right">
+                      {vl} × {vw} × {vt}
+                    </td>
+                    <td className="p-2 text-right font-semibold">
+                      {cl} × {cw} × {ct}
+                    </td>
+                    <td className="p-2 text-right font-mono">
+                      {bdft.toFixed(2)}
+                    </td>
+                    <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
+                  </tr>
+                );
+              },
             )}
           </tbody>
         );

@@ -30,6 +30,11 @@ export function CsvExportButton({ design }: Props) {
       "榫頭備註",
     ]);
 
+    // 尺寸依數值降冪排序輸出為 長/寬/厚，避免背板那類 visible 欄位
+    // 命名順序跟木工語意不一致造成混淆（如 760×8×1460 應顯示為 1460×760×8）
+    const sortDimsDesc = (a: number, b: number, c: number) =>
+      [a, b, c].sort((x, y) => y - x);
+
     for (const part of design.parts) {
       if (part.visual === "glass") continue;
       const cut = calculateCutDimensions(part);
@@ -49,15 +54,22 @@ export function CsvExportButton({ design }: Props) {
             .join("；")
         : "";
 
+      const [vl, vw, vt] = sortDimsDesc(
+        part.visible.length,
+        part.visible.width,
+        part.visible.thickness,
+      );
+      const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
+
       rows.push([
         part.nameZh,
         materialLabel,
-        String(part.visible.length),
-        String(part.visible.width),
-        String(part.visible.thickness),
-        String(cut.length),
-        String(cut.width),
-        String(cut.thickness),
+        String(vl),
+        String(vw),
+        String(vt),
+        String(cl),
+        String(cw),
+        String(ct),
         bdft.toFixed(3),
         tenonNotes,
       ]);
