@@ -214,6 +214,11 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
     <div className="w-full h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
       <Canvas
         shadows
+        // frameloop="demand" → 只在互動時渲染，沒動的時候 0 fps。
+        // 避免 3D 畫面持續 60fps 搶 main thread，解決滾動卡頓。
+        frameloop="demand"
+        // dpr 上限 1.5 防止 Retina 螢幕 4× 像素做 shadow map。
+        dpr={[1, 1.5]}
         camera={{
           // Distance driven by the piece's LARGEST dimension so tall furniture
           // (wardrobe, open-bookshelf) doesn't get clipped top/bottom even
@@ -227,7 +232,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           position={[maxDim * 1.5, maxDim * 2, maxDim * 1.2]}
           intensity={1.0}
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[1024, 1024]}
           shadow-camera-left={-maxDim * 2}
           shadow-camera-right={maxDim * 2}
           shadow-camera-top={maxDim * 2}
