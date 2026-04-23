@@ -552,7 +552,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
     // 箱體可用深度：櫃內深 − 面板 − 前留 1mm − 背板空隙
     const drawerInnerD = innerD - faceT - drawerFrontT - drawerBackT - backClearance;
+    // 面板高（補滿外觀的那一片；等於傳統模式 5 件的面板高）
     const drawerH = drawerSlotH - drawerGap * 2;
+    // 滑軌模式下箱體（前板/後板/左右側板）比面板再縮 2mm（上下各 1mm），
+    // 加上 drawerGap=4 合計 上下各 5mm 給滑軌機構伸縮用，避免摩擦托不動
+    const boxH = hasSlide ? drawerSlotH - 10 : drawerH;
+    const boxYOffset = hasSlide ? 1 : 0;
     const dovetailLen = drawerSideT;
 
     // 先放直立分隔板（中柱）——每列交界處一片，全 zone 高
@@ -610,6 +615,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       }
 
       // 面板（無滑軌）／箱體前板（滑軌模式）：左右燕尾榫接側板 — X 旋轉站立
+      // 箱體前板在滑軌模式下比面板再縮 2mm，位置也上移 1mm（上下各 1mm 滑軌空隙）
       parts.push({
         id: `${idPrefix}-${i + 1}-front`,
         nameZh: hasSlide
@@ -619,24 +625,24 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: {
           length: drawerOuterW - 4,
-          width: drawerH,
+          width: boxH,
           thickness: drawerFrontT,
         },
-        origin: { x: xCenter, y: yBase, z: zFront },
+        origin: { x: xCenter, y: yBase + boxYOffset, z: zFront },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
             type: "dovetail",
             length: dovetailLen,
-            width: drawerH - 6,
+            width: boxH - 6,
             thickness: drawerFrontT - 2,
           },
           {
             position: "end",
             type: "dovetail",
             length: dovetailLen,
-            width: drawerH - 6,
+            width: boxH - 6,
             thickness: drawerFrontT - 2,
           },
         ],
@@ -652,24 +658,24 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: {
           length: drawerInnerW + 2 * drawerSideT,
-          width: drawerH - drawerBottomT - 4,
+          width: boxH - drawerBottomT - 4,
           thickness: drawerBackT,
         },
-        origin: { x: xCenter, y: yBase + drawerBottomT + 2, z: zBack },
+        origin: { x: xCenter, y: yBase + boxYOffset + drawerBottomT + 2, z: zBack },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
             position: "start",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: drawerH - 8,
+            width: boxH - 8,
             thickness: drawerBackT,
           },
           {
             position: "end",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: drawerH - 8,
+            width: boxH - 8,
             thickness: drawerBackT,
           },
         ],
@@ -686,12 +692,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           grainDirection: "length",
           visible: {
             length: drawerInnerD + drawerFrontT + drawerBackT - 4,
-            width: drawerH,
+            width: boxH,
             thickness: drawerSideT,
           },
           origin: {
             x: xCenter + side * (drawerInnerW / 2 + drawerSideT / 2 + 2),
-            y: yBase,
+            y: yBase + boxYOffset,
             z: (zFront + zBack) / 2,
           },
           rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
@@ -701,20 +707,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             {
               origin: { x: 0, y: 0, z: -drawerInnerD / 2 - 1 },
               depth: dovetailLen,
-              length: drawerH - 6,
+              length: boxH - 6,
               width: drawerFrontT - 2,
               through: false,
             },
             {
               origin: { x: 0, y: 0, z: drawerInnerD / 2 + 1 },
               depth: drawerSideT * 0.5,
-              length: drawerH - 8,
+              length: boxH - 8,
               width: drawerBackT,
               through: false,
             },
             // 底板溝槽
             {
-              origin: { x: 0, y: -(drawerH / 2) + drawerBottomT, z: 0 },
+              origin: { x: 0, y: -(boxH / 2) + drawerBottomT, z: 0 },
               depth: 4,
               length: drawerInnerD - 4,
               width: drawerBottomT + 1,
@@ -738,7 +744,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: yBase + drawerBottomT / 2 + 2,
+          y: yBase + boxYOffset + drawerBottomT / 2 + 2,
           z: (zFront + zBack) / 2,
         },
         tenons: [
