@@ -1070,7 +1070,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const z = zones[i];
       const yStart = cursorY;
       const yEnd = cursorY + z.heightMm;
-      const isFirst = i === 0;
       const isLast = i === zones.length - 1;
       const labelPrefix =
         zones.length === 3
@@ -1085,9 +1084,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           cols: z.cols ?? 1,
           idPrefix: `${idPrefix}-drawer`,
           labelPrefix: `${labelPrefix}抽屜`,
-          // Only add bottom-boundary divider for non-first zones (first uses
-          // case bottom panel as boundary); top-boundary for non-last.
-          dividerFrom: isLast ? (isFirst ? "none" : "below") : isFirst ? "above" : "above",
+          // 在 zones 模式下，區與區之間的邊界板由外層 loop 統一加，
+          // 這裡不要重複（否則兩片同 Y 疊在一起 → 看起來厚 + 分解感）
+          dividerFrom: "none",
         });
       } else if (z.type === "door") {
         renderDoorZone({
