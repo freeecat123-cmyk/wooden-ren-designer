@@ -45,6 +45,11 @@ export interface CaseFurnitureOpts {
   legInset?: number;
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
   customShelfFractions?: number[];
+  /**
+   * 抽屜滑軌預留空隙（mm，每側）。使用三段式滑軌五金時需要 12.5mm 間隙；
+   * 不使用（傳統木製側拉）填 0 即可。套用在所有抽屜 zone。
+   */
+  drawerSlideGap?: number;
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
   hangingArea?: { yStart: number; yEnd: number };
   /**
@@ -535,7 +540,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const partitionT = cols > 1 ? panelT : 0;
     const totalPartitionW = (cols - 1) * partitionT;
     const drawerSlotW = (zoneW - totalPartitionW) / cols;
-    const drawerInnerW = drawerSlotW - 4 - 2 * drawerSideT;
+    // 三段式滑軌要左右各留 gap；傳統木製側拉 = 0。
+    const slideGap = opts.drawerSlideGap ?? 0;
+    // 抽屜箱外寬（面板與整個箱體），扣掉滑軌 gap
+    const drawerOuterW = drawerSlotW - 2 * slideGap;
+    const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
     const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
     const drawerH = drawerSlotH - drawerGap * 2;
     const dovetailLen = drawerSideT;
@@ -580,7 +589,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: {
-          length: drawerSlotW - 4,
+          length: drawerOuterW - 4,
           width: drawerH,
           thickness: drawerFrontT,
         },

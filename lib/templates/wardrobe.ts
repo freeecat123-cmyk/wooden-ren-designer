@@ -1,7 +1,12 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
+import {
+  drawerSlideOption,
+  makeZoneOptions,
+  resolveDrawerSlideGap,
+  resolveZones,
+} from "./_builders/zone-helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -21,6 +26,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerSlideOption,
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
@@ -52,6 +58,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     legSize: 45,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、門鉸鏈、抽屜滑軌。`,
   });
 };

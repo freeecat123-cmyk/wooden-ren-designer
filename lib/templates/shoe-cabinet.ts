@@ -1,7 +1,12 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
+import {
+  drawerSlideOption,
+  makeZoneOptions,
+  resolveDrawerSlideGap,
+  resolveZones,
+} from "./_builders/zone-helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -21,6 +26,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerSlideOption,
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
@@ -51,6 +57,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。層板可用層板釘做可調式。`,
   });
 };

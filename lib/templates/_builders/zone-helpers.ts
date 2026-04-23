@@ -2,6 +2,30 @@ import type { OptionSpec, FurnitureTemplateInput } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import type { CabinetZone } from "./case-furniture";
 
+/**
+ * 共用選項：抽屜滑軌五金。
+ * 三段式滑軌（ball bearing）安裝在櫃體側板 / 中柱與抽屜側板之間，
+ * 業界標準左右各需 12.5mm 空隙。使用者勾選後所有抽屜總寬自動縮 25mm。
+ */
+export const drawerSlideOption: OptionSpec = {
+  group: "drawer",
+  type: "checkbox",
+  key: "useDrawerSlide",
+  label: "使用三段式滑軌（左右各減 1.25cm）",
+  defaultValue: false,
+  help: "勾選後抽屜總寬自動縮 25mm 留給滑軌五金；不勾選視為傳統木製側拉 / 無滑軌",
+};
+
+export const DRAWER_SLIDE_GAP_MM = 12.5;
+
+export function resolveDrawerSlideGap(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): number {
+  const on = getOption<boolean>(input, opt(options, "useDrawerSlide"));
+  return on ? DRAWER_SLIDE_GAP_MM : 0;
+}
+
 /** 每個 zone 可選的類型 */
 export const ZONE_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },

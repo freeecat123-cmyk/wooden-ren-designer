@@ -1,6 +1,10 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
+import {
+  drawerSlideOption,
+  resolveDrawerSlideGap,
+} from "./_builders/zone-helpers";
 
 export const nightstandOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "drawerCount", label: "抽屜排數", defaultValue: 1, min: 0, max: 4, step: 1 },
@@ -16,6 +20,7 @@ export const nightstandOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5 },
+  drawerSlideOption,
 ];
 
 /**
@@ -52,6 +57,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, nightstandOptions),
     notes: `床頭櫃：${drawerCount} 排 × ${drawerCols} 列抽屜（共 ${drawerHeight}mm 高）+ 下方 ${shelfCount} 層開放區；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
   });
 };

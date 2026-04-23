@@ -1,7 +1,12 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
+import {
+  drawerSlideOption,
+  makeZoneOptions,
+  resolveDrawerSlideGap,
+  resolveZones,
+} from "./_builders/zone-helpers";
 
 export const displayCabinetOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
@@ -24,6 +29,7 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerSlideOption,
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
@@ -55,6 +61,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
   });
 };

@@ -1,7 +1,12 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
+import {
+  drawerSlideOption,
+  makeZoneOptions,
+  resolveDrawerSlideGap,
+  resolveZones,
+} from "./_builders/zone-helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -22,6 +27,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerSlideOption,
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
@@ -52,6 +58,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
   });
 };

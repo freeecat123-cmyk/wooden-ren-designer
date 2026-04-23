@@ -1,6 +1,10 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture, type CabinetZone, type CabinetColumn } from "./_builders/case-furniture";
+import {
+  drawerSlideOption,
+  resolveDrawerSlideGap,
+} from "./_builders/zone-helpers";
 
 const COL_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },
@@ -53,6 +57,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerSlideOption,
 ];
 
 type ColType = "none" | "drawer" | "door" | "shelves";
@@ -179,6 +184,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     notes: `電視櫃：${noteParts.join("；")}。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
   });
 };
