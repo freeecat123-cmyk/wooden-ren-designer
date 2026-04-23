@@ -531,17 +531,45 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerBackT = 12;
     const drawerBottomT = 6;
     const drawerGap = 4;
-    const colPitch = zoneW / cols;
-    const drawerInnerW = colPitch - 4 - 2 * drawerSideT;
+    // 2 排以上抽屜需在中間插直立分隔板（中柱），供抽屜滑軌固定
+    const partitionT = cols > 1 ? panelT : 0;
+    const totalPartitionW = (cols - 1) * partitionT;
+    const drawerSlotW = (zoneW - totalPartitionW) / cols;
+    const drawerInnerW = drawerSlotW - 4 - 2 * drawerSideT;
     const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
     const drawerH = drawerSlotH - drawerGap * 2;
     const dovetailLen = drawerSideT;
+
+    // 先放直立分隔板（中柱）——每列交界處一片，全 zone 高
+    if (cols > 1) {
+      for (let j = 0; j < cols - 1; j++) {
+        const partX =
+          zoneCx -
+          zoneW / 2 +
+          (j + 1) * drawerSlotW +
+          (j + 0.5) * partitionT;
+        parts.push({
+          id: `${idPrefix}-col-partition-${j + 1}`,
+          nameZh: `${labelPrefix}直立分隔板 ${j + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: partitionT, width: innerD, thickness: zoneH },
+          origin: { x: partX, y: drawerZoneBottomY, z: caseInnerZ },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
 
     for (let row = 0; row < rows; row++) {
      for (let col = 0; col < cols; col++) {
       const i = row * cols + col;
       const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
-      const xCenter = zoneCx - zoneW / 2 + colPitch * col + colPitch / 2;
+      const xCenter =
+        zoneCx -
+        zoneW / 2 +
+        drawerSlotW / 2 +
+        col * (drawerSlotW + partitionT);
       const zFront = -width / 2 + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
@@ -552,7 +580,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: {
-          length: colPitch - 4,
+          length: drawerSlotW - 4,
           width: drawerH,
           thickness: drawerFrontT,
         },
