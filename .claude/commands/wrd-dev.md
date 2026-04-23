@@ -68,6 +68,27 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 
 所以 legs 這種 thickness = legHeight 的零件用 `top` 沒問題（thickness 就是長軸），但 **面板類**（案體側板、椅背板條）visible.length 才是長軸，要用 `start` / `end`。之前 case-furniture 側板用 `top`，結果 18mm 側板切料列 40mm，踩過這雷。
 
+## 案體櫃 3-zone / 多欄分層
+`case-furniture` builder 新增兩個互斥 layout 機制：
+- `zones: CabinetZone[]` — 縱向分層（下→上）。每 zone 可為 drawer/door/shelves/open/hanging。`zone-helpers.ts` 的 `makeZoneOptions` + `resolveZones` 幫忙組 OptionSpec。中層高度自動填滿（其他櫃類 display-cabinet / wardrobe / chest-of-drawers / shoe-cabinet / open-bookshelf 都用這模式）。
+- `columns: CabinetColumn[]` — 橫向分欄（左→右）。當 columns 存在時 zones 失效。媒體櫃用來做 h-2col / h-3col。
+
+**zones 模式下 shelfFractions 會 auto-populate**：zone boundaries + 抽屜 zone 內部分隔板 + 層板 zone 內部層板 的 Y 比例都加進去，讓側板產生對應母榫眼，extract.ts 才能把 `下層抽屜分隔板 ↔ 左側板` 這類關係解析出來。**不會重複畫**，因為 legacy shelf 渲染有 `suppressLegacyShelfRender` guard。
+
+## extract.ts 匹配規則
+母子榫匹配需符合：
+- `length` tolerance < 3mm
+- `wideTol` 固定 9mm、`thinTol` 固定 3mm
+- `optionA` 或 `optionB` 單一方向一致（不是任意軸 OR 任意軸）
+- 跳過「鏡像對」（兩部件 visible dims 完全相同，通常是左右側板那種）
+
+踩過的雷：
+- 寬容許值太寬 → 分隔板誤配到頂/底板（10mm diff 也通過）。現在 9mm 擋掉。
+- 允許任意軸匹配 → 兩個 mirror pair 側板互抓。現在必須同向。
+
+## 2D 三視圖 X 軸翻轉
+`projectPart` 的 front + top 視圖有 `-x - xExt/2`，把世界 +X 映射到 SVG 左側，跟預設 3D 相機方向一致。side view 不翻（用 Z 軸）。加新 shape 時記得 splayed 的 `dxMm` 也要負號。
+
 ## 條件顯示 `dependsOn`（目前失效）
 schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVisible` 現在永遠回傳 `true`，所有子選項常駐顯示。原因：使用者反映勾父 checkbox 後子選項沒跳出來，直接改成不 gate。加新選項可以不用填 `dependsOn`，填了也不會生效。
 
