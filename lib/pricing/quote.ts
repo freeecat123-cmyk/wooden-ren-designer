@@ -73,8 +73,10 @@ export function calculateQuote(
 ): QuoteBreakdown {
   // 1. 按計價材料分組加總材積
   // 使用者若把夾板/中纖板單價清空（null），該類零件併回主材一起計
+  // 視覺裝飾（玻璃）不計入木料成本
   const volumeByMaterial = new Map<BillableMaterial, number>();
   for (const part of design.parts) {
+    if (part.visual === "glass") continue;
     const cut = calculateCutDimensions(part);
     const vol = cut.length * cut.width * cut.thickness;
     let mat = effectiveBillableMaterial(part);

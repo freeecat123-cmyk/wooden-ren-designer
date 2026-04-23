@@ -20,12 +20,14 @@ function Part({
   rotation,
   color,
   shape,
+  isGlass,
 }: {
   position: [number, number, number];
   size: [number, number, number];
   rotation: Euler;
   color: string;
   shape?: ShapeSpec;
+  isGlass?: boolean;
 }) {
   const geometry = useMemo(() => {
     if (!shape || shape.kind === "box") return null;
@@ -41,6 +43,24 @@ function Part({
     }
     return null;
   }, [size, shape]);
+
+  if (isGlass) {
+    return (
+      <mesh position={position} rotation={rotation}>
+        <boxGeometry args={size} />
+        <meshPhysicalMaterial
+          color="#b8d9e8"
+          roughness={0.05}
+          transmission={0.9}
+          thickness={0.05}
+          ior={1.45}
+          transparent
+          opacity={0.25}
+          metalness={0}
+        />
+      </mesh>
+    );
+  }
 
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
@@ -302,6 +322,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               )}
               color={color}
               shape={shape}
+              isGlass={part.visual === "glass"}
             />
           );
         })}

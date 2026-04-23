@@ -372,7 +372,9 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
 
-  const rows = design.parts.map((part) => {
+  const rows = design.parts
+    .filter((part) => part.visual !== "glass")
+    .map((part) => {
     const cut = calculateCutDimensions(part);
     const volMm3 = cut.length * cut.width * cut.thickness;
     const bdft = volMm3 / MM3_PER_BDFT;

@@ -109,6 +109,12 @@ export interface Part {
   materialOverride?: SheetGood;
 
   /**
+   * 視覺渲染提示——影響 3D / 材料單 / 報價：
+   * - "glass"：半透明玻璃，不計才、不進材料單、不進 CSV
+   */
+  visual?: "glass";
+
+  /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows
    * toward the bottom (top face = visible dims, bottom face scaled by
    * `shape.bottomScale`). Geometry/material calculations still use the

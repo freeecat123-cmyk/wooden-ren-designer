@@ -935,7 +935,29 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           mortises: [],
         });
       }
-      // 玻璃門：玻璃由溝槽夾住，不視為木質零件，不入材料單
+      // 玻璃門：加一片透明玻璃給 3D 顯示（不入材料單、不計才）
+      if (doorType === "glass") {
+        parts.push({
+          id: `${idPrefix}-${i + 1}-glass`,
+          nameZh: `${labelPrefix}${i + 1} 玻璃片`,
+          material,
+          grainDirection: "length",
+          visible: {
+            length: innerOpenW + 2 * grooveDepth - 2,
+            width: innerOpenH + 2 * grooveDepth - 2,
+            thickness: 5, // 5mm 強化玻璃
+          },
+          origin: {
+            x: xCenter,
+            y: doorZoneBottomY + railW - grooveDepth,
+            z: zFront,
+          },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+          visual: "glass",
+        });
+      }
     }
   };
 
