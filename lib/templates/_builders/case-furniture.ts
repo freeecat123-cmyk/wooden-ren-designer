@@ -542,10 +542,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerSlotW = (zoneW - totalPartitionW) / cols;
     // 三段式滑軌要左右各留 gap；傳統木製側拉 = 0。
     const slideGap = opts.drawerSlideGap ?? 0;
-    // 抽屜箱外寬（面板與整個箱體），扣掉滑軌 gap
+    const hasSlide = slideGap > 0;
+    // 使用滑軌時：抽屜加一片「面板」補滿外觀、5 件箱體向後縮進去一片面板厚
+    const faceT = hasSlide ? 18 : 0;
+    // 使用滑軌時箱體與背板保留 10mm 空隙防撞；木製側拉維持原本 6mm
+    const backClearance = hasSlide ? 10 : 6;
+    // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，面板直接 = 箱體前板
     const drawerOuterW = drawerSlotW - 2 * slideGap;
     const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
-    const drawerInnerD = innerD - drawerFrontT - drawerBackT - 6;
+    // 箱體可用深度：櫃內深 − 面板 − 前留 1mm − 背板空隙
+    const drawerInnerD = innerD - faceT - drawerFrontT - drawerBackT - backClearance;
     const drawerH = drawerSlotH - drawerGap * 2;
     const dovetailLen = drawerSideT;
 
@@ -579,13 +585,36 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         zoneW / 2 +
         drawerSlotW / 2 +
         col * (drawerSlotW + partitionT);
-      const zFront = -width / 2 + drawerFrontT / 2 + 1;
+      // 面板 z（僅滑軌模式）在最前面；箱體前板 z 再往後退一片面板厚度
+      const zFace = -width / 2 + faceT / 2 + 1;
+      const zFront = -width / 2 + faceT + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
-      // 面板：左右兩端燕尾榫接側板 — X 旋轉站立
+      // 【滑軌模式獨有】外觀面板：寬度填滿整個 slot（蓋掉左右 12.5mm 滑軌空隙）
+      if (hasSlide) {
+        parts.push({
+          id: `${idPrefix}-${i + 1}-face`,
+          nameZh: `${labelPrefix}${i + 1} 面板`,
+          material,
+          grainDirection: "length",
+          visible: {
+            length: drawerSlotW - 4,
+            width: drawerH,
+            thickness: faceT,
+          },
+          origin: { x: xCenter, y: yBase, z: zFace },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+
+      // 面板（無滑軌）／箱體前板（滑軌模式）：左右燕尾榫接側板 — X 旋轉站立
       parts.push({
         id: `${idPrefix}-${i + 1}-front`,
-        nameZh: `${labelPrefix}${i + 1} 面板`,
+        nameZh: hasSlide
+          ? `${labelPrefix}${i + 1} 箱體前板`
+          : `${labelPrefix}${i + 1} 面板`,
         material,
         grainDirection: "length",
         visible: {
