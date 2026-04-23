@@ -15,6 +15,11 @@ export interface CutPiece {
   material: MaterialId;
   /** 計價 / 排料用材：實木用 material、板材用 plywood / mdf */
   billable: BillableMaterial;
+  /**
+   * 允許 2D 排料時將零件旋轉 90°。
+   * 預設 false（保守，考量纖維方向）；板材類通常可以設 true。
+   */
+  allowRotate?: boolean;
 }
 
 /** 實木線性排料的一根原料 */
@@ -46,6 +51,8 @@ export interface SheetBin {
       y: number;
       w: number;
       h: number;
+      /** 是否已旋轉 90°（w/h 跟 piece.length/width 對調） */
+      rotated: boolean;
     }>;
     /** 已使用寬度（含 kerf） */
     usedWidth: number;
@@ -84,6 +91,15 @@ export interface NestConfig {
   sheetSize: { length: number; width: number };
   /** 鋸路（mm） */
   kerf: number;
+  /**
+   * 最小可用餘料（mm）。低於此長度的剩料當作「不可用」，不計入利用率分母。
+   * 例：設 50mm，一支原料尾端剩 30mm 就不算浪費（反正也用不到）。
+   */
+  minWasteMm: number;
+  /**
+   * 是否允許板材零件 90° 旋轉（全域）。單件層級可被 CutPiece.allowRotate 覆寫。
+   */
+  allowSheetRotate: boolean;
 }
 
 export interface NestPlan {

@@ -71,6 +71,7 @@ export function SheetBinSvg({
                       fontWeight={600}
                     >
                       {p.piece.partNameZh}
+                      {p.rotated ? " ↻" : ""}
                     </text>
                     <text
                       x={x + w / 2}

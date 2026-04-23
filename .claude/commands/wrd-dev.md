@@ -95,6 +95,14 @@ schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVi
 ## `reactStrictMode: false`（踩過雷）
 `next.config.ts` 關著 strict mode，**不要打開**。r3f Canvas 在 dev 雙掛載時第一個 WebGL context 被清掉後，Chromium 來不及給第二個 context，透視圖整個空白（console 會看到 `THREE.WebGLRenderer: Context Lost`）。prod build 不雙掛載，所以關它對生產 0 影響。
 
+## 裁切計算器 `lib/cutplan/`（踩過雷）
+URL：`/design/<類別>/cut-plan`。1D 實木 FFD + 2D 板材 shelf 法。
+
+- **三邊排序**：`group.ts` 把 `cut.length/width/thickness` 降冪成 `長/中/短` 才當作 `(length, width, thickness)`。因為 visible dims 是幾何軸不是木工語意——立柱的長邊在 thickness、面板的長邊在 length，直接用會把 4 支 35×35×425 的腳誤分到「35×425mm 橫截面」。
+- **grouping key**：實木 = `material|width|thickness`；板材 = `billable|thickness`
+- **stockLength auto-shrink**：FFD 先用最大允許長度開 bin，全排完後每支 bin 縮到「>= usedLength 的最小允許長度」——符合實際店面「切到剛好」的作法
+- **sheet shelf 法不旋轉零件**：長邊一律沿板長（x 軸），為了纖維方向可控。要支援旋轉再加 toggle。
+
 ## 常見任務
 
 - **加新家具**：寫 `lib/templates/<name>.ts` → 在 `index.ts` 註冊 category + options + template → 在 `lib/types/index.ts` 加進 `FurnitureCategory` union；options 每一條記得帶 `group`
