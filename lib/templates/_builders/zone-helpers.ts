@@ -40,19 +40,19 @@ export function makeZoneOptions(defaults: ZoneDefaults, allowHanging = false): O
   const choices = allowHanging ? ZONE_TYPE_CHOICES_WITH_HANGING : ZONE_TYPE_CHOICES;
   return [
     // 上層
-    { group: "top", type: "select", key: "topType", label: "上層類型", defaultValue: defaults.topType, choices },
-    { group: "top", type: "number", key: "topHeight", label: "上層高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 },
-    { group: "top", type: "number", key: "topCount", label: "上層數量（抽屜排 / 門扇 / 層板=層數）", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
-    { group: "top", type: "number", key: "topCols", label: "上層抽屜列數", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-top", type: "select", key: "topType", label: "類型", defaultValue: defaults.topType, choices },
+    { group: "zone-top", type: "number", key: "topHeight", label: "高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 },
+    { group: "zone-top", type: "number", key: "topCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
+    { group: "zone-top", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1 },
     // 中層（自動填滿）
-    { group: "top", type: "select", key: "midType", label: "中層類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
-    { group: "top", type: "number", key: "midCount", label: "中層數量", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
-    { group: "top", type: "number", key: "midCols", label: "中層抽屜列數", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
+    { group: "zone-mid", type: "number", key: "midCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
+    { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1 },
     // 下層
-    { group: "top", type: "select", key: "bottomType", label: "下層類型", defaultValue: defaults.bottomType, choices },
-    { group: "top", type: "number", key: "bottomHeight", label: "下層高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 },
-    { group: "top", type: "number", key: "bottomCount", label: "下層數量", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
-    { group: "top", type: "number", key: "bottomCols", label: "下層抽屜列數", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1 },
+    { group: "zone-bot", type: "select", key: "bottomType", label: "類型", defaultValue: defaults.bottomType, choices },
+    { group: "zone-bot", type: "number", key: "bottomHeight", label: "高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 },
+    { group: "zone-bot", type: "number", key: "bottomCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
+    { group: "zone-bot", type: "number", key: "bottomCols", label: "抽屜列數（左右分）", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1 },
   ];
 }
 

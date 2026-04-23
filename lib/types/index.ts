@@ -160,7 +160,23 @@ export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesi
  * values from FurnitureTemplateInput.options at build time.
  */
 /** Logical group for rendering — options with the same group cluster together. */
-export type OptionGroup = "leg" | "top" | "apron" | "stretcher" | "drawer" | "door" | "back" | "misc";
+export type OptionGroup =
+  | "leg"
+  | "top"
+  | "apron"
+  | "stretcher"
+  | "drawer"
+  | "door"
+  | "back"
+  | "misc"
+  // 三層櫃體：上中下
+  | "zone-top"
+  | "zone-mid"
+  | "zone-bot"
+  // 三欄櫃體：左中右
+  | "col-left"
+  | "col-mid"
+  | "col-right";
 
 /** Only show this option when the referenced option has a matching value. */
 export interface OptionDependency {

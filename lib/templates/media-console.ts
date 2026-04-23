@@ -29,14 +29,14 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
   { group: "drawer", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
   // 橫向 2/3 欄模式：每欄的類型 + 數量 + 寬度
-  { group: "top", type: "select", key: "leftType", label: "左欄類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
-  { group: "top", type: "number", key: "leftCount", label: "左欄數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
-  { group: "top", type: "number", key: "leftWidthMm", label: "左欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
-  { group: "top", type: "select", key: "centerType", label: "中欄類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
-  { group: "top", type: "number", key: "centerCount", label: "中欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "top", type: "select", key: "rightType", label: "右欄類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES },
-  { group: "top", type: "number", key: "rightCount", label: "右欄數量", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "top", type: "number", key: "rightWidthMm", label: "右欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
+  { group: "col-left", type: "select", key: "leftType", label: "類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
+  { group: "col-left", type: "number", key: "leftCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
+  { group: "col-left", type: "number", key: "leftWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
+  { group: "col-mid", type: "select", key: "centerType", label: "類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
+  { group: "col-mid", type: "number", key: "centerCount", label: "數量", defaultValue: 2, min: 1, max: 6, step: 1 },
+  { group: "col-right", type: "select", key: "rightType", label: "類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES },
+  { group: "col-right", type: "number", key: "rightCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 2, min: 1, max: 6, step: 1 },
+  { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
   // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木板門" },

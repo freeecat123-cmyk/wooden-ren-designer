@@ -361,18 +361,32 @@ const GROUP_META: Record<
   string,
   { label: string; icon: string; bar: string }
 > = {
-  top:       { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
-  leg:       { label: "桌腳 / 椅腳",   icon: "🦵", bar: "bg-rose-400"    },
-  apron:     { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
-  stretcher: { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
-  back:      { label: "椅背 / 背板",   icon: "◧", bar: "bg-teal-400"    },
-  drawer:    { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
-  door:      { label: "門",           icon: "▯", bar: "bg-fuchsia-400" },
-  misc:      { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
+  top:        { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
+  // 三層櫃：上中下（從上到下排序）
+  "zone-top": { label: "上層",         icon: "▲", bar: "bg-sky-500"     },
+  "zone-mid": { label: "中層",         icon: "■", bar: "bg-sky-400"     },
+  "zone-bot": { label: "下層",         icon: "▼", bar: "bg-sky-300"     },
+  // 三欄櫃：左中右（由左到右排序）
+  "col-left":  { label: "左欄",        icon: "◀", bar: "bg-violet-500"  },
+  "col-mid":   { label: "中欄",        icon: "●", bar: "bg-violet-400"  },
+  "col-right": { label: "右欄",        icon: "▶", bar: "bg-violet-300"  },
+  leg:        { label: "桌腳 / 椅腳",   icon: "🦵", bar: "bg-rose-400"    },
+  apron:      { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
+  stretcher:  { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
+  back:       { label: "椅背 / 背板",   icon: "◧", bar: "bg-teal-400"    },
+  drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
+  door:       { label: "門",           icon: "▯", bar: "bg-fuchsia-400" },
+  misc:       { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
 };
 
 const GROUP_ORDER = [
   "top",
+  "zone-top",
+  "zone-mid",
+  "zone-bot",
+  "col-left",
+  "col-mid",
+  "col-right",
   "leg",
   "apron",
   "stretcher",
