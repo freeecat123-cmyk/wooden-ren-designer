@@ -94,16 +94,6 @@ export function PiecesEditor({
   onChange: (next: PieceSpec[]) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [dragFrom, setDragFrom] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
-
-  const moveSpec = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0 || from >= specs.length || to >= specs.length) return;
-    const next = specs.slice();
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    onChange(next);
-  };
 
   const patchSpec = (id: string, partial: Partial<PieceSpec>) => {
     onChange(specs.map((s) => (s.id === id ? { ...s, ...partial } : s)));
@@ -241,7 +231,6 @@ export function PiecesEditor({
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
-                <th className="px-1 py-2 w-6"></th>
                 <th className="text-center px-2 py-2 w-10">#</th>
                 <th className="text-left px-3 py-2 w-40">名稱</th>
                 <th className="text-left px-3 py-2 w-36">材質</th>
@@ -261,41 +250,7 @@ export function PiecesEditor({
                     : s.material;
                 const code = indexToCode(idx);
                 return (
-                  <tr
-                    key={s.id}
-                    className={`border-t border-zinc-100 ${
-                      dragOver === idx && dragFrom !== idx
-                        ? "bg-emerald-50 border-t-2 border-emerald-400"
-                        : ""
-                    } ${dragFrom === idx ? "opacity-40" : ""}`}
-                    onDragOver={(e) => {
-                      if (dragFrom === null) return;
-                      e.preventDefault();
-                      setDragOver(idx);
-                    }}
-                    onDragLeave={() => setDragOver((v) => (v === idx ? null : v))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (dragFrom !== null) moveSpec(dragFrom, idx);
-                      setDragFrom(null);
-                      setDragOver(null);
-                    }}
-                  >
-                    <td
-                      className="px-1 py-1 text-center cursor-grab active:cursor-grabbing text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 select-none text-base leading-none"
-                      draggable
-                      onDragStart={(e) => {
-                        setDragFrom(idx);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragEnd={() => {
-                        setDragFrom(null);
-                        setDragOver(null);
-                      }}
-                      title="拖拉調整順序（順序決定編號 A/B/C...）"
-                    >
-                      ☰
-                    </td>
+                  <tr key={s.id} className="border-t border-zinc-100">
                     <td className="px-2 py-1 text-center">
                       <span
                         className="inline-flex items-center justify-center w-7 h-7 rounded border border-zinc-400 text-zinc-900 text-xs font-bold font-mono"
