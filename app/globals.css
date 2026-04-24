@@ -104,24 +104,36 @@ body {
     break-before: page;
     page-break-before: always;
   }
-  /* 裁切計算器：窄邊距 + 消除所有可能撐出空白第二頁的元素 */
+  /* 裁切計算器列印：徹底消空白第二頁 */
   .cutplan-print {
     page: cutplan;
-  }
-  .cutplan-print,
-  .cutplan-print * {
-    break-after: auto !important;
-    page-break-after: auto !important;
-  }
-  .cutplan-print main,
-  .cutplan-print > div {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
     min-height: 0 !important;
     height: auto !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .cutplan-print *,
+  .cutplan-print *::before,
+  .cutplan-print *::after {
+    break-after: auto !important;
+    page-break-after: auto !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+  .cutplan-print > *:last-child,
+  .cutplan-print > * > *:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
 }
 @page cutplan {
   size: A4 portrait;
-  margin: 8mm 8mm 10mm 8mm;
+  margin: 8mm;
 }
 /* 螢幕上也限制高度，避免報價頁縮圖吃掉版面 */
 .compact-three-views svg {
