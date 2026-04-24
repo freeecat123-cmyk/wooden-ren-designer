@@ -17,6 +17,7 @@ import { CsvExportButton } from "@/components/CsvExportButton";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
 import { LineShareButton } from "@/components/LineShareButton";
+import { EmailShareButton } from "@/components/EmailShareButton";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -39,6 +40,9 @@ interface PageProps {
     expiryDays?: string;
     depositRate?: string;
     bufferDays?: string;
+    termIncludeShipping?: string;
+    termIncludeInstallation?: string;
+    overrideUnitPrice?: string;
     primaryMaterialPricePerBdft?: string;
     plywoodPricePerBdft?: string;
     mdfPricePerBdft?: string;
@@ -105,6 +109,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
     depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
+    overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
@@ -133,9 +138,11 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   };
   const viewMode: "customer" | "internal" =
     sp.viewMode === "internal" ? "internal" : "customer";
+  const termIncludeShipping = sp.termIncludeShipping === "1";
+  const termIncludeInstallation = sp.termIncludeInstallation === "1";
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,
     customerContact: customer.contact,
@@ -144,7 +151,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     customerTaxId: customer.taxId,
     customerEmail: customer.email,
   }).toString();
-  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}`;
+  const termQuery = `termIncludeShipping=${termIncludeShipping ? "1" : "0"}&termIncludeInstallation=${termIncludeInstallation ? "1" : "0"}`;
+  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}&${termQuery}`;
 
   const today = new Date();
   const expiry = new Date(today);
@@ -187,6 +195,21 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             quoteNo={quoteNo}
             printPath={`/design/${type}/quote/print?${fullQuery}`}
           />
+          <EmailShareButton
+            toEmail={customer.email}
+            customerName={customer.name}
+            furnitureName={entry.nameZh}
+            dimensions={`${length} × ${width} × ${height} mm`}
+            materialName={MATERIALS[material].nameZh}
+            total={quote.total}
+            depositAmount={quote.depositAmount}
+            balanceAmount={quote.balanceAmount}
+            depositRate={laborOpts.depositRate}
+            deliveryDate={deliveryIso}
+            expiryDate={expiryIso}
+            quoteNo={quoteNo}
+            printPath={`/design/${type}/quote/print?${fullQuery}`}
+          />
           <Link
             href={`/design/${type}/quote/print?${fullQuery}`}
             target="_blank"
@@ -213,6 +236,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         defaults={laborOpts}
         primaryMaterialName={MATERIALS[material].nameZh}
         initialCustomer={customer}
+        terms={{ termIncludeShipping, termIncludeInstallation }}
       />
 
       <BrandingForm />
@@ -250,10 +274,24 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             </tr>
             <tr>
               <td className="p-3 text-zinc-600" colSpan={2}>
-                毛利（{Math.round(laborOpts.marginRate * 100)}%）
+                {laborOpts.overrideUnitPrice > 0 ? (
+                  <span>
+                    毛利
+                    <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
+                      議價後實際 {((quote.margin / quote.costSubtotal) * 100).toFixed(1)}%
+                    </span>
+                  </span>
+                ) : (
+                  `毛利（${Math.round(laborOpts.marginRate * 100)}%）`
+                )}
               </td>
-              <td className="p-3 text-right font-mono text-emerald-700">
-                + {formatTWD(quote.margin)}
+              <td
+                className={`p-3 text-right font-mono ${
+                  quote.margin < 0 ? "text-red-600" : "text-emerald-700"
+                }`}
+              >
+                {quote.margin < 0 ? "" : "+ "}
+                {formatTWD(quote.margin)}
               </td>
             </tr>
             <tr className="border-t border-zinc-300">
@@ -371,6 +409,7 @@ function LaborForm({
   defaults,
   primaryMaterialName,
   initialCustomer,
+  terms,
 }: {
   type: string;
   designQuery: string;
@@ -389,12 +428,14 @@ function LaborForm({
     expiryDays: number;
     depositRate: number;
     bufferDays: number;
+    overrideUnitPrice: number;
     primaryMaterialPricePerBdft: number;
     plywoodPricePerBdft: number | null;
     mdfPricePerBdft: number | null;
   };
   primaryMaterialName: string;
   initialCustomer: CustomerInfo;
+  terms: { termIncludeShipping: boolean; termIncludeInstallation: boolean };
 }) {
   // Preserve design query string via hidden inputs
   const designParams = Object.fromEntries(
@@ -413,6 +454,22 @@ function LaborForm({
       <div className="mb-4 pb-4 border-b border-zinc-100">
         <CustomerForm initial={initialCustomer} />
       </div>
+      <fieldset className="mb-3 p-2 rounded bg-amber-50 border border-amber-200">
+        <legend className="text-xs text-amber-800 mb-1 font-medium px-1">
+          💰 議價覆寫（留 0 = 沿用成本加成）
+        </legend>
+        <div className="grid grid-cols-1">
+          <NumField
+            name="overrideUnitPrice"
+            label="單件最終價 NT$（未稅）"
+            value={defaults.overrideUnitPrice}
+            min={LABOR_BOUNDS.overrideUnitPrice.min}
+            max={LABOR_BOUNDS.overrideUnitPrice.max}
+            step={LABOR_BOUNDS.overrideUnitPrice.step}
+            hint="例：客戶砍到 NT$25,000，填 25000 → 成本明細保留、毛利自動反算"
+          />
+        </div>
+      </fieldset>
       <fieldset className="mb-3">
         <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
           數量 / 折扣 / 有效期 / 訂金 / 交期
@@ -579,6 +636,33 @@ function LaborForm({
             step={LABOR_BOUNDS.vatRate.step}
             decimal
           />
+        </div>
+      </fieldset>
+      <fieldset className="mt-3">
+        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+          附加條款（勾選自動加進 PDF 備註）
+        </legend>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              name="termIncludeShipping"
+              value="1"
+              defaultChecked={terms.termIncludeShipping}
+              className="w-4 h-4"
+            />
+            <span>🚚 報價含運費</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              name="termIncludeInstallation"
+              value="1"
+              defaultChecked={terms.termIncludeInstallation}
+              className="w-4 h-4"
+            />
+            <span>🔧 含現場安裝</span>
+          </label>
         </div>
       </fieldset>
       <button

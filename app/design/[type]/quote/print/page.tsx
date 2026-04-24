@@ -21,6 +21,7 @@ import {
   BrandedTermsBlocks,
 } from "@/components/branding/BrandedTerms";
 import { CompactThreeViews } from "@/lib/render/svg-views";
+import { QrCode } from "@/components/print/QrCode";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -88,6 +89,7 @@ export default async function QuotePrintPage({
     expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
     depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
+    overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
   };
 
   const design = entry.template({ length, width, height, material });
@@ -113,6 +115,18 @@ export default async function QuotePrintPage({
   const viewMode: "customer" | "internal" =
     sp.viewMode === "internal" ? "internal" : "customer";
 
+  const termNotes: string[] = [];
+  if (sp.termIncludeShipping === "1") {
+    termNotes.push("本報價含運費。");
+  } else {
+    termNotes.push("運費另計，依實際送貨地點報價。");
+  }
+  if (sp.termIncludeInstallation === "1") {
+    termNotes.push("本報價含現場安裝（工坊北北基區域內）。");
+  } else {
+    termNotes.push("不含現場安裝；如需到府組裝請另議。");
+  }
+
   const pdfFilename = `${customerName || "報價單"}_${entry.nameZh}_${todayStr}`.replace(
     /[\\/:*?"<>|]/g,
     "_",
@@ -136,24 +150,27 @@ export default async function QuotePrintPage({
         className="px-10 py-6 flex flex-col text-[12px] leading-relaxed"
       >
         {/* Header — branding + quote meta */}
-        <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-3">
+        <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-3 gap-4">
           <BrandedHeader />
-          <div className="text-right text-[11px]">
-            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-              <dt className="text-zinc-500">報價單號</dt>
-              <dd className="font-mono font-semibold text-right">{quoteNo}</dd>
-              <dt className="text-zinc-500">開立日期</dt>
-              <dd className="font-mono text-right">{todayStr}</dd>
-              <dt className="text-zinc-500">有效期限</dt>
-              <dd className="font-mono text-right">{expiryStr}</dd>
-              <dt className="text-zinc-500">預計交期</dt>
-              <dd className="font-mono text-right">
-                {deliveryStr}
-                <span className="text-zinc-400 text-[10px]">
-                  {" "}（約 {quote.estimatedWorkdays} 工作天）
-                </span>
-              </dd>
+          <div className="flex items-start gap-3">
+            <div className="text-right text-[11px]">
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                <dt className="text-zinc-500">報價單號</dt>
+                <dd className="font-mono font-semibold text-right">{quoteNo}</dd>
+                <dt className="text-zinc-500">開立日期</dt>
+                <dd className="font-mono text-right">{todayStr}</dd>
+                <dt className="text-zinc-500">有效期限</dt>
+                <dd className="font-mono text-right">{expiryStr}</dd>
+                <dt className="text-zinc-500">預計交期</dt>
+                <dd className="font-mono text-right">
+                  {deliveryStr}
+                  <span className="text-zinc-400 text-[10px]">
+                    {" "}（約 {quote.estimatedWorkdays} 工作天）
+                  </span>
+                </dd>
+              </div>
             </div>
+            <QrCode size={72} />
           </div>
         </header>
 
@@ -377,7 +394,7 @@ export default async function QuotePrintPage({
           balanceAmount={quote.balanceAmount}
           deliveryWorkdays={quote.estimatedWorkdays}
         />
-        <BrandedNotes />
+        <BrandedNotes prependNotes={termNotes} />
 
         {/* Signatures */}
         <section className="mt-8 pt-4 grid grid-cols-2 gap-6 text-[11px]">

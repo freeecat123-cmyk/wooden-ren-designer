@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
+type QuoteStatus = "pending" | "won" | "lost";
+
 interface QuoteHistoryEntry {
   /** ISO timestamp */
   savedAt: string;
@@ -19,7 +21,27 @@ interface QuoteHistoryEntry {
   total: number;
   /** 報價單號 */
   quoteNo: string;
+  /** 成交狀態；舊資料沒這欄位預設 pending */
+  status?: QuoteStatus;
 }
+
+const STATUS_META: Record<QuoteStatus, { label: string; badge: string; dot: string }> = {
+  pending: {
+    label: "待確認",
+    badge: "bg-amber-100 text-amber-800 border-amber-200",
+    dot: "bg-amber-400",
+  },
+  won: {
+    label: "✅ 已成交",
+    badge: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    dot: "bg-emerald-500",
+  },
+  lost: {
+    label: "✕ 已拒絕",
+    badge: "bg-zinc-100 text-zinc-500 border-zinc-200",
+    dot: "bg-zinc-300",
+  },
+};
 
 const KEY = "wooden-ren-designer:quoteHistory:v1";
 const MAX = 20;
@@ -122,29 +144,62 @@ export function QuoteHistory({ current }: Props) {
     setEntries([]);
   };
 
+  const cycleStatus = (idx: number) => {
+    const next = [...entries];
+    const cur = next[idx].status ?? "pending";
+    const order: QuoteStatus[] = ["pending", "won", "lost"];
+    const nextStatus = order[(order.indexOf(cur) + 1) % order.length];
+    next[idx] = { ...next[idx], status: nextStatus };
+    save(next);
+    setEntries(next);
+  };
+
+  // 轉單率統計
+  const wonCount = entries.filter((e) => e.status === "won").length;
+  const lostCount = entries.filter((e) => e.status === "lost").length;
+  const decided = wonCount + lostCount;
+  const winRate = decided > 0 ? Math.round((wonCount / decided) * 100) : null;
+
   if (!hydrated) return null;
   if (entries.length === 0) return null;
 
   return (
     <details className="mb-4 rounded-lg border border-zinc-200 bg-white">
       <summary className="cursor-pointer list-none px-4 py-2.5 text-sm flex items-center justify-between hover:bg-zinc-50">
-        <span className="font-medium text-zinc-800">
+        <span className="font-medium text-zinc-800 flex items-center gap-2">
           📁 最近報價（{entries.length}）
+          {winRate !== null && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+              轉單率 {winRate}% · 成交 {wonCount} / 拒絕 {lostCount}
+            </span>
+          )}
         </span>
         <span className="text-xs text-zinc-400">點擊展開</span>
       </summary>
       <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
         {entries.map((e, i) => {
           const expired = isExpired(e.savedAt, e.query);
+          const status = (e.status ?? "pending") as QuoteStatus;
+          const meta = STATUS_META[status];
           return (
-            <li key={i}>
+            <li
+              key={i}
+              className={`flex items-baseline gap-2 px-4 py-2.5 text-xs transition-colors ${
+                expired ? "hover:bg-zinc-50" : "hover:bg-emerald-50"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => cycleStatus(i)}
+                className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium rounded border ${meta.badge} hover:opacity-80`}
+                title="點擊切換狀態：待確認 → 已成交 → 已拒絕"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                {meta.label}
+              </button>
               <Link
                 href={`${e.pathname}?${e.query}`}
-                className={`flex items-baseline gap-3 px-4 py-2.5 text-xs transition-colors ${
-                  expired
-                    ? "text-zinc-400 hover:bg-zinc-50"
-                    : "hover:bg-emerald-50"
-                }`}
+                className="flex-1 flex items-baseline gap-3 min-w-0"
               >
                 <span
                   className={`font-mono whitespace-nowrap ${expired ? "text-zinc-300" : "text-zinc-400"}`}
@@ -152,20 +207,30 @@ export function QuoteHistory({ current }: Props) {
                   {formatDate(e.savedAt)}
                 </span>
                 <span
-                  className={`font-medium flex-shrink-0 ${expired ? "text-zinc-400 line-through" : "text-zinc-800"}`}
+                  className={`font-medium flex-shrink-0 ${
+                    expired || status === "lost"
+                      ? "text-zinc-400 line-through"
+                      : "text-zinc-800"
+                  }`}
                 >
                   {e.customerName}
                 </span>
                 <span className={expired ? "text-zinc-300" : "text-zinc-500"}>
                   · {e.furnitureName}
                 </span>
-                {expired && (
+                {expired && status === "pending" && (
                   <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-zinc-200 text-zinc-500">
                     已過期
                   </span>
                 )}
                 <span
-                  className={`ml-auto font-mono font-semibold ${expired ? "text-zinc-400" : "text-zinc-900"}`}
+                  className={`ml-auto font-mono font-semibold ${
+                    expired || status === "lost"
+                      ? "text-zinc-400"
+                      : status === "won"
+                      ? "text-emerald-700"
+                      : "text-zinc-900"
+                  }`}
                 >
                   {formatTWD(e.total)}
                 </span>

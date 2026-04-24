@@ -168,8 +168,12 @@ export function calculateQuote(
     shippingCost +
     installationCost +
     hardwareCost;
-  const margin = costSubtotal * opts.marginRate;
-  const unitPriceExclVat = costSubtotal + margin;
+  // 若有手動覆寫 → 最終價直接是 override，margin 反推（可能負值=賠本）
+  // 否則按 marginRate 加成
+  const override = opts.overrideUnitPrice ?? 0;
+  const hasOverride = override > 0;
+  const unitPriceExclVat = hasOverride ? override : costSubtotal * (1 + opts.marginRate);
+  const margin = unitPriceExclVat - costSubtotal;
 
   // 6. 數量 × 折扣 → 稅
   const quantity = Math.max(1, Math.round(opts.quantity ?? 1));

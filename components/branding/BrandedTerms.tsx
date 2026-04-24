@@ -95,10 +95,16 @@ export function BrandedTermsBlocks({
   );
 }
 
+interface NotesProps {
+  /** 會放在使用者自訂備註之前的自動條款（由 quote 頁 checkbox 控制） */
+  prependNotes?: string[];
+}
+
 /** 備註區塊 */
-export function BrandedNotes() {
+export function BrandedNotes({ prependNotes = [] }: NotesProps = {}) {
   const { data } = useBranding();
-  const notes = splitLines(data.notes);
+  const userNotes = splitLines(data.notes);
+  const notes = [...prependNotes, ...userNotes];
 
   if (notes.length === 0) return null;
 
