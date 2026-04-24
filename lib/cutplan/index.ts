@@ -12,6 +12,7 @@ export const DEFAULT_NEST_CONFIG: NestConfig = {
   kerf: 3,
   minWasteMm: 50,
   allowSheetRotate: true,
+  strategy: "ffd",
 };
 
 export function computeNestPlan(
@@ -80,6 +81,7 @@ export function computePlanFromPieces(
         config.kerf,
         config.minWasteMm,
         config.allowSheetRotate,
+        config.strategy ?? "ffd",
       ),
     )
     .sort((a, b) => {

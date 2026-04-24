@@ -77,6 +77,30 @@ export function SheetBinSvg({
                     {p.rotated ? "↻" : ""}
                   </text>
                 )}
+                {/* 切料順序：左上角小圓圈數字 */}
+                {p.order && w >= 12 && h >= 8 && (
+                  <>
+                    <circle
+                      cx={x + 5}
+                      cy={y + 5}
+                      r={4}
+                      fill="#18181b"
+                      stroke="#fff"
+                      strokeWidth={0.5}
+                    />
+                    <text
+                      x={x + 5}
+                      y={y + 5}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={5}
+                      fill="#fff"
+                      fontWeight={700}
+                    >
+                      {p.order}
+                    </text>
+                  </>
+                )}
               </g>
             );
           }),
@@ -156,6 +180,73 @@ export function SheetBinSvg({
           {bin.stockLength} mm
         </text>
       </svg>
+      <CutListTable bin={bin} />
     </div>
+  );
+}
+
+function CutListTable({ bin }: { bin: SheetBin }) {
+  // 收集所有零件 + 順序 + 位置
+  const rows: Array<{
+    order: number;
+    code?: string;
+    name: string;
+    L: number;
+    W: number;
+    x: number;
+    y: number;
+    rotated: boolean;
+  }> = [];
+  for (const shelf of bin.shelves) {
+    for (const p of shelf.pieces) {
+      rows.push({
+        order: p.order ?? 0,
+        code: p.piece.code,
+        name: p.piece.partNameZh,
+        L: Math.round(p.w),
+        W: Math.round(p.h),
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        rotated: p.rotated,
+      });
+    }
+  }
+  rows.sort((a, b) => a.order - b.order);
+  if (rows.length === 0) return null;
+  return (
+    <details className="mt-2 text-[11px] text-zinc-700" open>
+      <summary className="cursor-pointer font-semibold text-zinc-600 hover:text-zinc-900 select-none">
+        切料清單（{rows.length} 刀）
+      </summary>
+      <table className="w-full mt-1 border-collapse">
+        <thead>
+          <tr className="bg-zinc-50 text-zinc-500">
+            <th className="text-center px-1 py-0.5 w-8">#</th>
+            <th className="text-left px-1 py-0.5 w-10">編號</th>
+            <th className="text-left px-1 py-0.5">零件</th>
+            <th className="text-right px-1 py-0.5 w-24">長×寬 mm</th>
+            <th className="text-right px-1 py-0.5 w-20">起點 x,y</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.order} className="border-t border-zinc-100">
+              <td className="text-center px-1 py-0.5 font-mono font-bold">{r.order}</td>
+              <td className="px-1 py-0.5 font-mono">
+                {r.code}
+                {r.rotated && "↻"}
+              </td>
+              <td className="px-1 py-0.5">{r.name}</td>
+              <td className="text-right px-1 py-0.5 font-mono">
+                {r.L} × {r.W}
+              </td>
+              <td className="text-right px-1 py-0.5 font-mono text-zinc-500">
+                {r.x}, {r.y}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
   );
 }

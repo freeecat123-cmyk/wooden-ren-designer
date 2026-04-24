@@ -40,6 +40,7 @@ export function packGroup(
   kerf: number,
   minWasteMm: number,
   allowRotateForSolid: boolean,
+  strategy: "ffd" | "bfd" = "ffd",
 ): StockGroup {
   void thickness;
   const pool = sharedPool.filter((s) => {
@@ -127,46 +128,68 @@ export function packGroup(
 
   for (const item of prepped) {
     let placed = false;
+    // 跨所有已開 bin + shelf 找最佳 fit
+    let best: {
+      bin: SheetBin;
+      shelf: SheetBin["shelves"][number];
+      fit: { x: number; w: number; h: number; rotated: boolean };
+      slack: number;
+    } | null = null;
     for (const bin of bins) {
       for (const shelf of bin.shelves) {
         const fit = tryFit(item, shelf, bin.stockLength);
-        if (fit) {
-          shelf.pieces.push({
-            piece: item.piece,
-            x: fit.x,
-            y: shelf.y,
-            w: fit.w,
-            h: fit.h,
-            rotated: fit.rotated,
+        if (!fit) continue;
+        // FFD：第一個找到就用
+        if (strategy === "ffd") {
+          best = { bin, shelf, fit, slack: 0 };
+          break;
+        }
+        // BFD：水平剩餘空間 + 高度差（零件越貼近 shelf 高度越好）
+        const slack =
+          bin.stockLength - (shelf.usedWidth + (shelf.pieces.length > 0 ? kerf : 0) + fit.w) +
+          (shelf.height - fit.h);
+        if (!best || slack < best.slack) best = { bin, shelf, fit, slack };
+      }
+      if (best && strategy === "ffd") break;
+    }
+    if (best) {
+      best.shelf.pieces.push({
+        piece: item.piece,
+        x: best.fit.x,
+        y: best.shelf.y,
+        w: best.fit.w,
+        h: best.fit.h,
+        rotated: best.fit.rotated,
+      });
+      best.shelf.usedWidth = best.fit.x + best.fit.w;
+      placed = true;
+    }
+    // 在已開 bin 上新開 shelf
+    if (!placed) {
+      for (const bin of bins) {
+        const shelfAtt = tryOpenShelf(item, bin);
+        if (shelfAtt) {
+          const addKerf = bin.shelves.length > 0 ? kerf : 0;
+          const y = bin.usedHeight + addKerf;
+          bin.shelves.push({
+            y,
+            height: shelfAtt.h,
+            pieces: [
+              {
+                piece: item.piece,
+                x: 0,
+                y,
+                w: shelfAtt.w,
+                h: shelfAtt.h,
+                rotated: shelfAtt.rotated,
+              },
+            ],
+            usedWidth: shelfAtt.w,
           });
-          shelf.usedWidth = fit.x + fit.w;
+          bin.usedHeight = y + shelfAtt.h;
           placed = true;
           break;
         }
-      }
-      if (placed) break;
-      const shelfAtt = tryOpenShelf(item, bin);
-      if (shelfAtt) {
-        const addKerf = bin.shelves.length > 0 ? kerf : 0;
-        const y = bin.usedHeight + addKerf;
-        bin.shelves.push({
-          y,
-          height: shelfAtt.h,
-          pieces: [
-            {
-              piece: item.piece,
-              x: 0,
-              y,
-              w: shelfAtt.w,
-              h: shelfAtt.h,
-              rotated: shelfAtt.rotated,
-            },
-          ],
-          usedWidth: shelfAtt.w,
-        });
-        bin.usedHeight = y + shelfAtt.h;
-        placed = true;
-        break;
       }
     }
 
@@ -200,6 +223,15 @@ export function packGroup(
         ],
         usedHeight: h,
       });
+    }
+  }
+
+  // 切料順序：每塊板由上到下 shelf、由左到右零件 → 1, 2, 3...
+  for (const bin of bins) {
+    let n = 1;
+    for (const shelf of bin.shelves) {
+      shelf.pieces.sort((a, b) => a.x - b.x);
+      for (const p of shelf.pieces) p.order = n++;
     }
   }
 

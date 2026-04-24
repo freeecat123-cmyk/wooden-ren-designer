@@ -15,7 +15,7 @@ export function CutPlanConfigPanel({
   return (
     <section className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
       <h2 className="text-sm font-semibold text-zinc-700 mb-3">排料設定（全域）</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <p className="text-xs text-zinc-600 mb-1">鋸路 kerf（mm）</p>
           <input
@@ -48,6 +48,22 @@ export function CutPlanConfigPanel({
           </label>
           <p className="text-[11px] text-zinc-400 mt-1">
             板材無纖維方向，開可提高利用率。
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-600 mb-1">排料策略</p>
+          <select
+            value={value.strategy ?? "ffd"}
+            onChange={(e) =>
+              patch({ strategy: e.target.value as "ffd" | "bfd" })
+            }
+            className="w-full px-2 py-1 border rounded text-sm"
+          >
+            <option value="ffd">FFD 第一適合（穩）</option>
+            <option value="bfd">BFD 最佳適合（省料）</option>
+          </select>
+          <p className="text-[11px] text-zinc-400 mt-1">
+            BFD 挑最貼合的縫插零件，通常多 1–5% 利用率。
           </p>
         </div>
       </div>

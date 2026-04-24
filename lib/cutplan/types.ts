@@ -42,6 +42,8 @@ export interface SheetBin {
       h: number;
       /** 是否已旋轉 90°（w/h 跟 piece.length/width 對調） */
       rotated: boolean;
+      /** 切料順序（1-based，同一 bin 內由低到高） */
+      order?: number;
     }>;
     /** 已使用寬度（含 kerf） */
     usedWidth: number;
@@ -114,6 +116,12 @@ export interface NestConfig {
    * 是否允許板材零件 90° 旋轉（全域）。單件層級可被 CutPiece.allowRotate 覆寫。
    */
   allowSheetRotate: boolean;
+  /**
+   * 排料策略：
+   * - "ffd" First-Fit Decreasing：第一個塞得下的 shelf 就放（預設，快且穩定）
+   * - "bfd" Best-Fit Decreasing：挑剩餘空間最少但塞得下的 shelf（通常利用率更高）
+   */
+  strategy?: "ffd" | "bfd";
 }
 
 export interface NestPlan {

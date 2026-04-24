@@ -59,7 +59,18 @@ export function CutPlanApp({
   const totalUnplaced = plan.groups.reduce((s, g) => s + g.unplaced.length, 0);
   const totalPieces = specs.reduce((s, sp) => s + sp.quantity, 0);
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const original = typeof document !== "undefined" ? document.title : "";
+    const date = new Date().toISOString().slice(0, 10);
+    if (typeof document !== "undefined") {
+      document.title = `${entryNameZh}_裁切排料圖_${date}`;
+    }
+    window.print();
+    // 延遲還原，讓列印對話框抓到新 title 再還原
+    setTimeout(() => {
+      if (typeof document !== "undefined") document.title = original;
+    }, 500);
+  };
   const handleReset = () => {
     if (confirm("重設為家具設計的原始零件清單？目前的編輯會全部丟失。")) {
       setSpecs(initialSpecs);
@@ -136,7 +147,7 @@ export function CutPlanApp({
         <div className="space-y-8 print:space-y-3">
           {plan.groups.map((g, i) => (
             <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
-              <CutPlanSection group={g} />
+              <CutPlanSection group={g} inventory={config.inventory} />
             </div>
           ))}
         </div>
