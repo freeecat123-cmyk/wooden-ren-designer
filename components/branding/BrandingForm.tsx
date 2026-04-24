@@ -177,12 +177,14 @@ export function BrandingForm() {
                 onChange={handleField("paymentTerms")}
                 rows={4}
                 colSpan2
+                hint="開頭「訂金」「尾款」行會被上方訂金比例自動覆寫；其他行（匯款銀行/帳戶等）原樣保留"
               />
               <TextField
                 label="交貨期"
                 value={data.deliveryTerms}
                 onChange={handleField("deliveryTerms")}
                 colSpan2
+                hint="文字中的 ＿＿ 空白會自動填入預估工作天"
               />
               <TextField
                 label="保固"
@@ -228,12 +230,14 @@ function TextField({
   onChange,
   placeholder,
   colSpan2,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   colSpan2?: boolean;
+  hint?: string;
 }) {
   return (
     <label
@@ -249,6 +253,9 @@ function TextField({
         placeholder={placeholder}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
       />
+      {hint && (
+        <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
+      )}
     </label>
   );
 }
@@ -260,6 +267,7 @@ function TextAreaField({
   placeholder,
   rows,
   colSpan2,
+  hint,
 }: {
   label: string;
   value: string;
@@ -267,6 +275,7 @@ function TextAreaField({
   placeholder?: string;
   rows?: number;
   colSpan2?: boolean;
+  hint?: string;
 }) {
   return (
     <label
@@ -282,6 +291,9 @@ function TextAreaField({
         rows={rows ?? 3}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-sans leading-relaxed resize-y"
       />
+      {hint && (
+        <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
+      )}
     </label>
   );
 }

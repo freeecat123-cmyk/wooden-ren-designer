@@ -371,7 +371,12 @@ export default async function QuotePrintPage({
         <div className="quote-page-break" />
 
         {/* Terms & conditions — 取自 branding localStorage，可在 quote 頁編輯 */}
-        <BrandedTermsBlocks />
+        <BrandedTermsBlocks
+          depositRate={laborOpts.depositRate}
+          depositAmount={quote.depositAmount}
+          balanceAmount={quote.balanceAmount}
+          deliveryWorkdays={quote.estimatedWorkdays}
+        />
         <BrandedNotes />
 
         {/* Signatures */}
