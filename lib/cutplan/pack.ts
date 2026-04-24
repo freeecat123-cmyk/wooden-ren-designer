@@ -50,7 +50,14 @@ export function packGroup(
   });
 
   // 零件定向：長邊沿板長、短邊沿板寬
-  const prepped = pieces.map((piece) => {
+  type Item = {
+    piece: CutPiece;
+    w: number;
+    h: number;
+    canRotate: boolean;
+    placed?: boolean;
+  };
+  const prepped: Item[] = pieces.map((piece) => {
     const maxSide = Math.max(piece.length, piece.width);
     const minSide = Math.min(piece.length, piece.width);
     // 旋轉規則：solid 預設不轉（除非 allowRotateForSolid），板材看 piece.allowRotate
@@ -62,6 +69,57 @@ export function packGroup(
 
   const bins: SheetBin[] = [];
   const unplaced: CutPiece[] = [];
+
+  // —— 批次優先：同規格（w,h）≥ 3 件的零件先獨占一塊板，避免散落到多塊板上 ——
+  // 判準：該批次在某塊可用庫存上能於「單一 shelf」裝下 ≥ 3 件
+  const dimGroups = new Map<string, Item[]>();
+  for (const it of prepped) {
+    const key = `${it.w}x${it.h}`;
+    if (!dimGroups.has(key)) dimGroups.set(key, []);
+    dimGroups.get(key)!.push(it);
+  }
+  for (const [, items] of dimGroups) {
+    if (items.length < 3) continue;
+    const { w, h } = items[0];
+    // 找能一次吃下最多件的最小庫存
+    let best: { stock: PoolItem; fitCount: number } | null = null;
+    for (const s of pool) {
+      if (s.remaining <= 0) continue;
+      if (s.length < w || s.width < h) continue;
+      const fitCount = Math.min(
+        items.length,
+        Math.floor((s.length + kerf) / (w + kerf)),
+      );
+      if (fitCount < 3) continue;
+      if (!best || fitCount > best.fitCount) best = { stock: s, fitCount };
+    }
+    if (!best) continue;
+    // 開專屬板，一字排開
+    best.stock.remaining -= 1;
+    const bin: SheetBin = {
+      stockLength: best.stock.length,
+      stockWidth: best.stock.width,
+      shelves: [{ y: 0, height: h, pieces: [], usedWidth: 0 }],
+      usedHeight: h,
+    };
+    const shelf = bin.shelves[0];
+    let x = 0;
+    for (let i = 0; i < best.fitCount; i++) {
+      const it = items[i];
+      shelf.pieces.push({
+        piece: it.piece,
+        x,
+        y: 0,
+        w: it.w,
+        h: it.h,
+        rotated: false,
+      });
+      shelf.usedWidth = x + it.w;
+      x += it.w + kerf;
+      it.placed = true;
+    }
+    bins.push(bin);
+  }
 
   function tryFit(
     item: (typeof prepped)[number],
@@ -127,6 +185,7 @@ export function packGroup(
   }
 
   for (const item of prepped) {
+    if (item.placed) continue;
     let placed = false;
     // 跨所有已開 bin + shelf 找最佳 fit
     let best: {
