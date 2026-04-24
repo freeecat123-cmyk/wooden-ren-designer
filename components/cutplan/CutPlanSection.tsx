@@ -28,14 +28,14 @@ export function CutPlanSection({
 
   return (
     <section>
-      <header className="flex items-baseline justify-between mb-3">
-        <h3 className="text-lg font-semibold flex items-baseline gap-2">
+      <header className="flex items-baseline justify-between mb-3 print:mb-1">
+        <h3 className="text-lg font-semibold flex items-baseline gap-2 print:text-sm">
           {title}
           <span className="text-[10px] font-normal px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded">
             {kindLabel(group.kind)}
           </span>
         </h3>
-        <div className="text-sm text-zinc-600">
+        <div className="text-sm text-zinc-600 print:text-xs">
           {group.bins.length} 塊原料．{group.pieces.length - group.unplaced.length}/
           {group.pieces.length} 件．利用率{" "}
           <span className="font-semibold">{(group.utilization * 100).toFixed(1)}%</span>
@@ -43,14 +43,15 @@ export function CutPlanSection({
       </header>
       {group.unplaced.length > 0 && <UnplacedNotice unplaced={group.unplaced} />}
       {group.bins.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-2">
           {group.bins.map((bin, i) => (
-            <SheetBinSvg
-              key={i}
-              bin={bin}
-              index={i + 1}
-              colorFor={(piece) => colorForCode(piece.code ?? piece.partId)}
-            />
+            <div key={i} className="print:break-inside-avoid">
+              <SheetBinSvg
+                bin={bin}
+                index={i + 1}
+                colorFor={(piece) => colorForCode(piece.code ?? piece.partId)}
+              />
+            </div>
           ))}
         </div>
       )}

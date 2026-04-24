@@ -39,7 +39,7 @@ export function CutPlanApp({
   const hasStock = config.inventory.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-2">
       <div className="no-print">
         <CutPlanConfigPanel value={config} onChange={setConfig} />
       </div>
@@ -81,13 +81,13 @@ export function CutPlanApp({
         </div>
       </div>
 
-      <header className="hidden print:block">
-        <h1 className="text-2xl font-bold">{entryNameZh}．裁切排料圖</h1>
-        <p className="text-sm text-zinc-600 mt-1">
+      <header className="hidden print:block print:mb-2">
+        <h1 className="text-lg font-bold">{entryNameZh}．裁切排料圖</h1>
+        <p className="text-xs text-zinc-600">
           共 {totalBins} 塊原料．鋸路 {config.kerf}mm．最小餘料{" "}
           {config.minWasteMm}mm
         </p>
-        <hr className="my-3" />
+        <hr className="my-1" />
       </header>
 
       {!hasStock ? (
@@ -103,12 +103,9 @@ export function CutPlanApp({
           沒有可排料的零件——請新增零件或重設回設計。
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 print:space-y-3">
           {plan.groups.map((g, i) => (
-            <div
-              key={`grp-${g.kind}-${g.material ?? "_"}-${g.thickness}-${i}`}
-              className="print:break-inside-avoid"
-            >
+            <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
               <CutPlanSection group={g} />
             </div>
           ))}
