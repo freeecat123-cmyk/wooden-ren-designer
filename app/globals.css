@@ -104,9 +104,19 @@ body {
     break-before: page;
     page-break-before: always;
   }
-  /* 裁切計算器：窄邊距，讓切料圖 + 清單盡量塞一頁 */
+  /* 裁切計算器：窄邊距 + 消除所有可能撐出空白第二頁的元素 */
   .cutplan-print {
     page: cutplan;
+  }
+  .cutplan-print,
+  .cutplan-print * {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+  .cutplan-print main,
+  .cutplan-print > div {
+    min-height: 0 !important;
+    height: auto !important;
   }
 }
 @page cutplan {

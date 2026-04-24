@@ -195,6 +195,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
     name: string;
     L: number;
     W: number;
+    T: number;
     x: number;
     y: number;
     rotated: boolean;
@@ -207,6 +208,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
         name: p.piece.partNameZh,
         L: Math.round(p.w),
         W: Math.round(p.h),
+        T: Math.round(p.piece.thickness),
         x: Math.round(p.x),
         y: Math.round(p.y),
         rotated: p.rotated,
@@ -226,7 +228,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
             <th className="text-center px-1 py-0.5 w-8">#</th>
             <th className="text-left px-1 py-0.5 w-10">編號</th>
             <th className="text-left px-1 py-0.5">零件</th>
-            <th className="text-right px-1 py-0.5 w-24">長×寬 mm</th>
+            <th className="text-right px-1 py-0.5 w-28">長×寬×厚 mm</th>
             <th className="text-right px-1 py-0.5 w-20">起點 x,y</th>
           </tr>
         </thead>
@@ -240,7 +242,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
               </td>
               <td className="px-1 py-0.5">{r.name}</td>
               <td className="text-right px-1 py-0.5 font-mono">
-                {r.L} × {r.W}
+                {r.L} × {r.W} × {r.T}
               </td>
               <td className="text-right px-1 py-0.5 font-mono text-zinc-500">
                 {r.x}, {r.y}
