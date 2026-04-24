@@ -174,12 +174,22 @@ export function BrandingForm() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (typeof window !== "undefined") {
-                      update({ publicBaseUrl: window.location.origin });
+                    if (typeof window === "undefined") return;
+                    const origin = window.location.origin;
+                    if (
+                      /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+                        origin,
+                      )
+                    ) {
+                      alert(
+                        `❌ 你現在是 ${origin}，這是本機網址，客戶根本連不上你的電腦。\n\n請先到「線上版」（例如 https://你的網站.vercel.app）按一次這顆按鈕，之後在 localhost 編輯時就會用線上版 URL 了。\n\n如果你還沒有線上版網址，請手動輸入到下方欄位。`,
+                      );
+                      return;
                     }
+                    update({ publicBaseUrl: origin });
                   }}
                   className="text-[10px] text-sky-700 hover:text-sky-900 hover:underline"
-                  title="把現在這個瀏覽器分頁的網址當作公開網址（建議在線上版開一次按一下，之後 localhost 編輯時自動用線上 URL）"
+                  title="把現在這個瀏覽器分頁的網址當作公開網址（必須在線上版按，localhost 會被擋下）"
                 >
                   📋 抓當前網址
                 </button>

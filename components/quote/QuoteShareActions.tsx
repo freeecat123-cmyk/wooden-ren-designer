@@ -167,18 +167,30 @@ export function QuoteShareActions({
  * 優先用 Branding 設定的 publicBaseUrl，否則用 window.location.origin。
  * 如果偵測到 localhost / 私有 IP 且沒設 publicBaseUrl → 警告並回 null。
  */
+function isLocalOrigin(url: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+    url,
+  );
+}
+
 function resolvePublicOrigin(): string | null {
   const branding = loadBranding();
   const explicit = branding.publicBaseUrl.trim().replace(/\/$/, "");
-  if (explicit) return explicit;
+
+  // publicBaseUrl 本身是 localhost → 等於沒設，繼續往下檢查
+  if (explicit && !isLocalOrigin(explicit)) return explicit;
+
+  if (explicit && isLocalOrigin(explicit)) {
+    alert(
+      `❌ 你的「對外公開網址」設定是 ${explicit}，這是本機網址，客戶連不上。\n\n請到「報價單抬頭設定」修改成你的線上網址（例如 https://你的網站.vercel.app）。`,
+    );
+    return null;
+  }
 
   const origin = window.location.origin;
-  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
-    origin,
-  );
-  if (isLocal) {
+  if (isLocalOrigin(origin)) {
     alert(
-      "⚠️ 你正在 localhost 編輯，分享出去的連結客戶無法打開。\n\n請先到下方「報價單抬頭設定」展開，填入「對外公開網址」（例如 https://你的網站.vercel.app），再寄出。",
+      "⚠️ 你正在 localhost 編輯，分享出去的連結客戶無法打開。\n\n請先到「報價單抬頭設定」展開，填入「對外公開網址」（例如 https://你的網站.vercel.app）。",
     );
     return null;
   }
