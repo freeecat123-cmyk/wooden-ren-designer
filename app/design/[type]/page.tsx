@@ -12,8 +12,6 @@ import {
   JoineryDetail,
   JOINERY_LABEL,
   JOINERY_DESCRIPTION,
-  JOINERY_TIER,
-  JOINERY_TIER_LABEL,
 } from "@/lib/joinery/details";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
@@ -228,38 +226,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
 function JoineryRulesCallout() {
   return (
-    <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-4 text-xs text-amber-900 leading-relaxed mb-5 space-y-3">
-      <div>
-        <p className="font-semibold mb-1.5 flex items-center gap-2">
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-200 text-amber-900 border border-amber-300">基礎</span>
-          榫卯比例規則（西式 + 簡單中式，FWW / Popular Woodworking 共識）
-        </p>
-        <ul className="space-y-0.5 list-disc list-inside">
-          <li><b>榫頭厚</b> = <b>被開榫眼的母件（柱腳）厚度的 1/3</b>（例 1.5" 柱腳 → 1/2" 榫頭）；若公件較薄則受限於 <b>公件厚 − 兩側肩 6mm</b></li>
-          <li><b>盲榫長</b> = 柱腳寬的 <b>2/3</b>；<b>通榫長</b> = 母件厚度（穿透）</li>
-          <li><b>榫寬</b> = 牙板寬 <b>−上下肩各 6mm</b>（固定量，非比例）；牙板寬 &gt; 125mm 時建議拆雙榫</li>
-          <li><b>帶肩榫肩長</b> = 主榫長的 <b>1/3</b>；肩榫永遠在主榫<b>上方</b>（補滿桌面通榫孔留下的缺口 + 防旋轉）</li>
-          <li><b>企口榫舌厚</b> = 板厚的 <b>1/3</b>（18mm 板 → 6mm 舌）；兩側肩各 6mm。凹槽深度 ≈ 舌長，典型 8–12mm</li>
-        </ul>
-      </div>
-      <div className="pt-3 border-t border-amber-300">
-        <p className="font-semibold mb-1.5 flex items-center gap-2">
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-rose-200 text-rose-900 border border-rose-300">明式進階</span>
-          王世襄《明式家具研究》整理的榫卯做法（高難度，純手工放樣）
-        </p>
-        <ul className="space-y-0.5 list-disc list-inside">
-          <li><b>格肩榫</b>：M&T 的內肩切 <b>45° miter</b>，外觀只見一條 45° 線（不是直角縫）。桌椅牙板↔腳的明式標準</li>
-          <li><b>抱肩榫</b>：束腰桌專用。腳柱頂端開三角形榫眼 + 45° 內斜，束腰夾在中間，牙板上端 45° 斜肩 + 主榫——三件互鎖無膠不脫</li>
-          <li><b>粽角榫</b>：頂面板 + 側板 + 腳柱頂三件 45° 在角點相會，外觀像「粽子角」三線一點</li>
-          <li><b>夾頭榫</b>：案桌腳柱穿過面框、再從兩側夾住牙板（牙板呈鳩尾收緊）。受力越大夾越緊</li>
-          <li><b>攢邊打槽裝板</b>：四邊框內側開槽、心板四邊削薄成舌嵌入，<b>留 1–2mm 漲縮餘量</b>，不上膠。桌面/椅面/門板必備</li>
-          <li><b>走馬銷</b>：鳩尾鍵從側面滑入，可重複拆裝。抽屜可拆面板、椅座加固</li>
-          <li><b>霸王棖</b>：桌腳對角斜伸到桌面下緣、末端勾頭卡入榫眼，自鎖。大桌標配</li>
-        </ul>
-        <p className="mt-1.5 text-[11px] text-amber-700">
-          ⚠️ 明式進階榫卯難度 ★★★★ 以上，需要精密放樣與細齒鋸。建議從格肩 / 攢邊打槽起手，再進到抱肩 / 粽角。
-        </p>
-      </div>
+    <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-4 text-xs text-amber-900 leading-relaxed mb-5">
+      <p className="font-semibold mb-1.5">榫卯比例規則（本設計依此推算，Fine Woodworking / Popular Woodworking 共識）</p>
+      <ul className="space-y-0.5 list-disc list-inside">
+        <li><b>榫頭厚</b> = <b>被開榫眼的母件（柱腳）厚度的 1/3</b>（例 1.5" 柱腳 → 1/2" 榫頭）；若公件較薄則受限於 <b>公件厚 − 兩側肩 6mm</b></li>
+        <li><b>盲榫長</b> = 柱腳寬的 <b>2/3</b>；<b>通榫長</b> = 母件厚度（穿透）</li>
+        <li><b>榫寬</b> = 牙板寬 <b>−上下肩各 6mm</b>（固定量，非比例）；牙板寬 &gt; 125mm 時建議拆雙榫</li>
+        <li><b>帶肩榫肩長</b> = 主榫長的 <b>1/3</b>；肩榫永遠在主榫<b>上方</b>（補滿桌面通榫孔留下的缺口 + 防旋轉）</li>
+        <li><b>企口榫舌厚</b> = 板厚的 <b>1/3</b>（18mm 板 → 6mm 舌）；兩側肩各 6mm。凹槽深度 ≈ 舌長，典型 8–12mm</li>
+      </ul>
     </div>
   );
 }
@@ -278,16 +253,7 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
           className="rounded-lg border border-zinc-200 bg-white p-4"
         >
           <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
-            <h3 className="font-semibold flex items-baseline flex-wrap gap-2">
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded border font-normal ${
-                  JOINERY_TIER[u.type] === "ming"
-                    ? "bg-rose-100 text-rose-800 border-rose-300"
-                    : "bg-amber-100 text-amber-800 border-amber-300"
-                }`}
-              >
-                {JOINERY_TIER_LABEL[JOINERY_TIER[u.type]]}
-              </span>
+            <h3 className="font-semibold">
               {JOINERY_LABEL[u.type]}{" "}
               <span className="text-xs font-normal text-zinc-500">
                 · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "母件"} · 共 {u.count} 處

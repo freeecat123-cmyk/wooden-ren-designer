@@ -51,13 +51,6 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "mitered-spline": ["japanese-saw", "groove-blade"],
   "pocket-hole": ["pocket-hole-jig", "drill", "drill-bits"],
   screw: ["drill", "drill-bits"],
-  // 明式進階：基本上都需要榫頭工具 + 高精度劃線
-  "clamping-shoulder": ["japanese-saw", "chisel-set-3-6-12", "mallet", "marking-gauge"],
-  "three-way-mitered": ["japanese-saw", "chisel-set-3-6-12", "mallet", "marking-gauge"],
-  "clamping-tenon-frame": ["japanese-saw", "chisel-set-3-6-12", "mallet", "dovetail-saw"],
-  "frame-and-panel": ["groove-plane", "groove-blade", "japanese-saw"],
-  "sliding-dovetail": ["dovetail-saw", "router-table", "chisel-set-3-6-12"],
-  "king-strut": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
 };
 
 export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
