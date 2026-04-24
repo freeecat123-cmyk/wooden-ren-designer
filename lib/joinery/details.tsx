@@ -1730,8 +1730,14 @@ function DovetailDetail(p: JoineryDetailParams) {
 
   const dtAngleHOffset = pieceDepth * 0.35;
 
-  const tailW = pieceLen / (N_TAILS + 0.55 * N_PINS);
+  // 半銷慣例（half-pin convention）：兩端各留半個銷做邊緣補強，中間 N_TAILS-1 個全銷。
+  // 版面（頂部寬度）：[半銷] [尾] [銷] [尾] [銷] [尾] [半銷]
+  //              = 2*(pinW/2) + N_TAILS*tailW + (N_TAILS-1)*pinW
+  //              = N_TAILS*tailW + N_TAILS*pinW = N_TAILS*(tailW + pinW)
+  // 配 pinW = 0.55*tailW，總寬 = 3*1.55*tailW = 4.65*tailW = pieceLen
+  const tailW = pieceLen / (N_TAILS * 1.55);
   const pinW = tailW * 0.55;
+  const halfPinW_top = pinW / 2;
 
   const leftPad = 40;
   const gap = 50;
@@ -1749,46 +1755,10 @@ function DovetailDetail(p: JoineryDetailParams) {
   // Child = PIN board (right)
   const cAx = mAx + pieceLen + gap;
   const cAy = mAy;
+  void cAy;
 
   const asmX = mAx + expW + PADDING;
   const asmY = mAy;
-
-  // Tail shape: solid wood sticking out of end. Wider at outside (top in our
-  // drawing, away from body) than at body side. Shape: △
-  const tailPath = (cx: number, yBottom: number, yTop: number) => {
-    const halfBot = tailW / 2 - dtAngleHOffset;
-    const halfTop = tailW / 2;
-    return `M${cx - halfBot} ${yBottom} L${cx - halfTop} ${yTop} L${cx + halfTop} ${yTop} L${cx + halfBot} ${yBottom} Z`;
-  };
-
-  // Pin shape: solid wood sticking out of end. Wider at body side (bottom),
-  // narrower at outside (top). Shape: ▽
-  const pinPath = (cx: number, yBottom: number, yTop: number) => {
-    const halfBot = pinW / 2;
-    const halfTop = halfBot - dtAngleHOffset;
-    return `M${cx - halfBot} ${yBottom} L${cx - halfTop} ${yTop} L${cx + halfTop} ${yTop} L${cx + halfBot} ${yBottom} Z`;
-  };
-
-  // Tail centers (N_TAILS) are placed on the mother board
-  const totalMotherFeatures = N_TAILS * tailW + (N_TAILS + 1) * pinW;
-  const mMargin = (pieceLen - totalMotherFeatures) / 2;
-  const tailCenters: number[] = [];
-  {
-    let x = mAx + mMargin + pinW + tailW / 2; // leading pin-socket, then tail
-    for (let i = 0; i < N_TAILS; i++) {
-      tailCenters.push(x);
-      x += tailW + pinW;
-    }
-  }
-  // Pin centers (N_PINS) on the child board
-  const pinCenters: number[] = [];
-  {
-    let x = cAx + mMargin + pinW / 2;
-    for (let i = 0; i < N_PINS; i++) {
-      pinCenters.push(x);
-      x += pinW + tailW;
-    }
-  }
 
   return (
     <svg
@@ -1806,39 +1776,39 @@ function DovetailDetail(p: JoineryDetailParams) {
       </text>
 
       {/* MOTHER (tail board — drawer side)
-          一整片板從端面切出鋸齒狀。沿著上邊緣（端面）走 sawtooth profile：
-          [margin 平段] → 進入 socket（先「斜下」往中央收緊到 socket 底） → 「斜上」出 socket
-          → 跨過 tail 頂 → 進入下個 socket ... → 平段結束
-          重點：tail 的「斜邊」在 SOCKET 的兩側（不是 tail 的兩側），
-          因為 socket 是 pin 形狀（外窄內寬），tail 的形狀就是 socket 的反向。 */}
+          半銷慣例：兩端各是「半銷凹」（邊緣木料被半銷對方公件填入，所以 tail board
+          兩端是缺口）。走法：左半銷凹 → N_TAILS 個尾 + (N_TAILS-1) 個全銷凹 → 右半銷凹。
+          邊緣的半銷凹只有「內側的斜邊」，外側（板邊）是垂直的（沒有斜邊超出板外）。 */}
       {(() => {
+        const offset = dtAngleHOffset;
         const points: Array<[number, number]> = [];
-        // 起點：bottom-left of body
+        // 起點：bottom-left
         points.push([mAx, mBodyBot]);
-        // 上行到 top-left（板子最頂端 = 尾的 tip 高度）
-        points.push([mAx, mAy]);
-        // 走過 sawtooth：left margin（socket 左半邊）→ 進入 socket → ...
-        // pinW 是 socket 寬（在 mAy 那層的水平距離）
-        // 由於 socket 是「外窄內寬」（pin shape），所以 socket 在 mAy 的寬度 = pinW，
-        // 在 mBodyTop 的寬度 = pinW + 2 * dtAngleHOffset
-        // ↑ 也就是 socket 越往板內越寬（鳩尾凹的特徵：捏不出去）
-        let x = mAx + mMargin; // 第一個 socket 的 left 邊在 mAy 那層
-        for (let i = 0; i < N_TAILS + 1; i++) {
-          // 從 (x, mAy) 斜下到 socket 底（mBodyTop），底邊更寬 dtAngleHOffset
-          points.push([x, mAy]); // socket 在端面上的左邊（窄）
-          points.push([x - dtAngleHOffset, mBodyTop]); // socket 底邊的左角（寬）
-          points.push([x + pinW + dtAngleHOffset, mBodyTop]); // socket 底邊的右角（寬）
-          points.push([x + pinW, mAy]); // socket 在端面上的右邊（窄）
-          if (i < N_TAILS) {
-            // 跨過 tail 頂（tail 是 socket 之間的剩餘木料，tail 頂在 mAy 那層）
-            x += pinW + tailW;
-            // 不需要額外 push，下個 iteration 的 [x, mAy] 自動接續
+        // 沿左板邊向上，僅到 body 高度（板邊上面 mBodyTop→mAy 是被左半銷凹挖掉的）
+        points.push([mAx, mBodyTop]);
+        // 沿左半銷凹底邊往右，到半銷凹的「斜邊底點」
+        points.push([mAx + halfPinW_top + offset, mBodyTop]);
+        // 斜上到第一個尾的 top-left（板頂端那層）
+        let tailLeftAtTip = mAx + halfPinW_top;
+        points.push([tailLeftAtTip, mAy]);
+        // 走 N_TAILS 個尾 + 中間 (N_TAILS - 1) 個全銷凹
+        for (let i = 0; i < N_TAILS; i++) {
+          const tailRightAtTip = tailLeftAtTip + tailW;
+          points.push([tailRightAtTip, mAy]); // 尾右頂
+          if (i < N_TAILS - 1) {
+            // 全銷凹：左斜下、底右行、右斜上
+            points.push([tailRightAtTip - offset, mBodyTop]);
+            const nextTailLeft = tailRightAtTip + pinW;
+            points.push([nextTailLeft + offset, mBodyTop]);
+            points.push([nextTailLeft, mAy]);
+            tailLeftAtTip = nextTailLeft;
           }
         }
-        // 收尾：從最後一個 socket 的右邊回到 top-right
-        points.push([mAx + pieceLen, mAy]);
+        // 最後一個尾後面是右半銷凹：從尾右斜下到 mBodyTop，然後平行到板右邊
+        const lastTailRightAtTip = tailLeftAtTip + tailW;
+        points.push([lastTailRightAtTip - offset, mBodyTop]);
+        points.push([mAx + pieceLen, mBodyTop]);
         points.push([mAx + pieceLen, mBodyBot]);
-        points.push([mAx, mBodyBot]); // close
         return (
           <g>
             <polygon
@@ -1853,7 +1823,7 @@ function DovetailDetail(p: JoineryDetailParams) {
               textAnchor="middle"
               fill="#666"
             >
-              母件（尾板，{N_TAILS} 個尾 + 兩端半銷位）
+              母件（尾板，{N_TAILS} 個尾 + 兩端半銷凹）
             </text>
             <DimLine
               x1={mAx - 10}
@@ -1897,10 +1867,12 @@ function DovetailDetail(p: JoineryDetailParams) {
               fill={COLOR_TENON}
               stroke={COLOR_OUTLINE}
             />
-            {/* 切出 N_TAILS 個尾凹（▽ 形狀，等距排列） */}
+            {/* 切出 N_TAILS 個尾凹（▽ 形狀）。半銷慣例：第一個 socket 從
+                左半銷之後開始（peX + halfPinW_top），兩端留有半銷的木料，
+                不會產生「三角碎料」問題。 */}
             {Array.from({ length: N_TAILS }).map((_, i) => {
-              // socket 起點 x（在端面的左邊緣）
-              const sx = peX + mMargin + i * (tailW + pinW);
+              // socket 頂部左邊 x（半銷之後、每 tailW+pinW 一個循環）
+              const sx = peX + halfPinW_top + i * (tailW + pinW);
               const points = [
                 [sx, peY], // top-left（外面，寬）
                 [sx + tailW, peY], // top-right
