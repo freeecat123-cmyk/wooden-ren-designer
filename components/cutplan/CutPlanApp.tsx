@@ -1,15 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { NestConfig } from "@/lib/cutplan";
+import { useEffect, useMemo, useState } from "react";
+import type { NestConfig, StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { planFromSpecs, indexToCode } from "@/lib/cutplan/piece-spec";
 import { colorForCode } from "@/lib/cutplan/colors";
 import { MATERIALS } from "@/lib/materials";
+import {
+  MATERIAL_PRICE_PER_BDFT,
+  SHEET_GOOD_PRICE_PER_BDFT,
+  MM3_PER_BDFT,
+  formatTWD,
+} from "@/lib/pricing/catalog";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
 import { CutPlanSection } from "./CutPlanSection";
 import { StockEditor } from "./StockEditor";
+
+const STOCK_STORAGE_KEY = "wooden-ren-designer:cutplan:stock:v1";
 
 export function CutPlanApp({
   initialSpecs,
@@ -23,7 +31,58 @@ export function CutPlanApp({
   const [specs, setSpecs] = useState<PieceSpec[]>(initialSpecs);
   const [config, setConfig] = useState<NestConfig>(initialConfig);
 
+  // 從 localStorage 還原上次輸入的庫存；client-only 避免 hydration 不一致
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STOCK_STORAGE_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as StockItem[];
+      if (Array.isArray(stored) && stored.length > 0) {
+        setConfig((c) => ({ ...c, inventory: stored }));
+      }
+    } catch {
+      /* ignore broken storage */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 每次 inventory 變動都同步到 localStorage（含「清空」→ 刪除 key）
+  useEffect(() => {
+    try {
+      if (config.inventory.length === 0) {
+        localStorage.removeItem(STOCK_STORAGE_KEY);
+      } else {
+        localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(config.inventory));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [config.inventory]);
+
   const plan = useMemo(() => planFromSpecs(specs, config), [specs, config]);
+
+  // 材料成本估算：每張 bin 材積 × 單價（bin 厚度 = 該 bin 上最厚零件）
+  const materialCost = useMemo(() => {
+    let total = 0;
+    for (const g of plan.groups) {
+      const unitPrice =
+        g.kind === "solid"
+          ? MATERIAL_PRICE_PER_BDFT[g.material!] ?? 0
+          : SHEET_GOOD_PRICE_PER_BDFT[g.kind];
+      for (const bin of g.bins) {
+        let maxT = 0;
+        for (const shelf of bin.shelves) {
+          for (const p of shelf.pieces) {
+            if (p.piece.thickness > maxT) maxT = p.piece.thickness;
+          }
+        }
+        if (maxT === 0) continue;
+        const bdft = (bin.stockLength * bin.stockWidth * maxT) / MM3_PER_BDFT;
+        total += bdft * unitPrice;
+      }
+    }
+    return total;
+  }, [plan]);
 
   const totalBins = plan.groups.reduce((s, g) => s + g.bins.length, 0);
   const totalUnplaced = plan.groups.reduce((s, g) => s + g.unplaced.length, 0);
@@ -60,6 +119,11 @@ export function CutPlanApp({
         <div className="text-sm text-zinc-600">
           {entryNameZh}．共 {totalPieces} 件
           {hasStock ? `．排出 ${totalBins} 塊原料` : "．尚未列庫存"}
+          {hasStock && materialCost > 0 && (
+            <span className="ml-2 text-emerald-700">
+              ．材料成本 ~ {formatTWD(materialCost)}
+            </span>
+          )}
           {totalUnplaced > 0 && (
             <span className="ml-2 text-red-700">（{totalUnplaced} 件排不下）</span>
           )}

@@ -1,3 +1,4 @@
+import type React from "react";
 import type { CutPiece, SheetBin } from "@/lib/cutplan";
 
 export function SheetBinSvg({
@@ -77,6 +78,70 @@ export function SheetBinSvg({
                   </text>
                 )}
               </g>
+            );
+          }),
+        )}
+        {/* 鋸路（kerf）：零件之間的切割線，深色細線 */}
+        {bin.shelves.flatMap((shelf, si) => {
+          const lines: React.ReactElement[] = [];
+          // shelf 內垂直鋸（相鄰零件之間）
+          for (let i = 0; i < shelf.pieces.length - 1; i++) {
+            const cur = shelf.pieces[i];
+            const next = shelf.pieces[i + 1];
+            const gapMid =
+              cur.x + cur.w + (next.x - cur.x - cur.w) / 2;
+            const cutX = PAD + gapMid * scale;
+            lines.push(
+              <line
+                key={`vk-${si}-${i}`}
+                x1={cutX}
+                y1={PAD + shelf.y * scale}
+                x2={cutX}
+                y2={PAD + (shelf.y + shelf.height) * scale}
+                stroke="#18181b"
+                strokeWidth={0.8}
+                strokeDasharray="2 1"
+              />,
+            );
+          }
+          return lines;
+        })}
+        {/* shelf 之間水平鋸 */}
+        {bin.shelves.slice(0, -1).map((shelf, si) => {
+          const next = bin.shelves[si + 1];
+          const gapMid = shelf.y + shelf.height + (next.y - shelf.y - shelf.height) / 2;
+          const cutY = PAD + gapMid * scale;
+          return (
+            <line
+              key={`hk-${si}`}
+              x1={PAD}
+              y1={cutY}
+              x2={PAD + bin.stockLength * scale}
+              y2={cutY}
+              stroke="#18181b"
+              strokeWidth={0.8}
+              strokeDasharray="2 1"
+            />
+          );
+        })}
+        {/* 零件左緣 x 座標標註（從板左起算 mm），供現場對尺 */}
+        {bin.shelves.flatMap((shelf, si) =>
+          shelf.pieces.map((p, pi) => {
+            // 只在零件左緣 >0（不是板邊）時標
+            if (p.x <= 0) return null;
+            const tx = PAD + p.x * scale;
+            const ty = PAD + shelf.y * scale - 2;
+            return (
+              <text
+                key={`x-${si}-${pi}`}
+                x={tx}
+                y={ty}
+                fontSize={5}
+                fill="#71717a"
+                textAnchor="middle"
+              >
+                {Math.round(p.x)}
+              </text>
             );
           }),
         )}

@@ -109,17 +109,32 @@ export function StockEditor({
               <>
                 依「類別＋材質＋長寬」記錄實際庫存，
                 <span className="font-semibold">不綁厚度</span>
-                ；同一筆可同時供應不同厚度的零件（現場刨到所需厚度）。
+                ；同一筆可同時供應不同厚度的零件。
+                <span className="ml-2 text-emerald-700">
+                  ✓ 已自動存到本機，下次進頁面自動帶入
+                </span>
               </>
             )}
           </p>
         </div>
-        <button
-          onClick={addRow}
-          className="px-3 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
-        >
-          ＋ 加一筆
-        </button>
+        <div className="flex gap-2">
+          {inventory.length > 0 && (
+            <button
+              onClick={() => {
+                if (confirm("清空所有庫存？存檔也會一起清掉。")) onChange([]);
+              }}
+              className="px-3 py-1 text-xs bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200"
+            >
+              清空
+            </button>
+          )}
+          <button
+            onClick={addRow}
+            className="px-3 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
+          >
+            ＋ 加一筆
+          </button>
+        </div>
       </header>
 
       {inventory.length > 0 && (
