@@ -75,7 +75,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   if (joineryMode) designQuery.set("joineryMode", "true");
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 print:px-0 print:py-4">
+    <main className="max-w-6xl mx-auto px-6 py-10 print:px-0 print:py-4 cutplan-print">
       <Link
         href={`/design/${type}?${designQuery.toString()}`}
         className="text-sm text-zinc-500 hover:underline no-print"

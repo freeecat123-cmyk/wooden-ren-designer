@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { NestConfig, StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
-import { planFromSpecs, indexToCode } from "@/lib/cutplan/piece-spec";
-import { colorForCode } from "@/lib/cutplan/colors";
-import { MATERIALS } from "@/lib/materials";
+import { planFromSpecs } from "@/lib/cutplan/piece-spec";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
 import { CutPlanSection } from "./CutPlanSection";
@@ -153,50 +151,6 @@ export function CutPlanApp({
         </div>
       )}
 
-      <section className="hidden print:block mt-6 print:break-before-page">
-        <h3 className="text-sm font-semibold mb-2">零件清單</h3>
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-300">
-              <th className="text-center p-1 w-8">#</th>
-              <th className="text-left p-1">零件</th>
-              <th className="text-left p-1">材質</th>
-              <th className="text-right p-1">長 × 寬 × 厚 (mm)</th>
-              <th className="text-right p-1">數量</th>
-            </tr>
-          </thead>
-          <tbody>
-            {specs.map((s, idx) => {
-              const code = indexToCode(idx);
-              return (
-              <tr key={s.id} className="border-b border-zinc-100">
-                <td className="p-1 text-center font-mono font-bold">
-                  <span
-                    className="inline-block w-5 h-5 rounded border border-zinc-400 leading-5"
-                    style={{ backgroundColor: colorForCode(code) }}
-                  >
-                    {code}
-                  </span>
-                </td>
-                <td className="p-1">{s.name}</td>
-                <td className="p-1">
-                  {MATERIALS[s.material]?.nameZh ?? s.material}
-                  {s.billable === "plywood"
-                    ? " / 夾板"
-                    : s.billable === "mdf"
-                    ? " / 中纖板"
-                    : ""}
-                </td>
-                <td className="text-right p-1 font-mono">
-                  {s.length} × {s.width} × {s.thickness}
-                </td>
-                <td className="text-right p-1">{s.quantity}</td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
     </div>
   );
 }

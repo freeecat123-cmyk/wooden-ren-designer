@@ -98,6 +98,14 @@ body {
     break-before: page;
     page-break-before: always;
   }
+  /* 裁切計算器：窄邊距，讓切料圖 + 清單盡量塞一頁 */
+  .cutplan-print {
+    page: cutplan;
+  }
+}
+@page cutplan {
+  size: A4 portrait;
+  margin: 8mm 8mm 10mm 8mm;
 }
 /* 螢幕上也限制高度，避免報價頁縮圖吃掉版面 */
 .compact-three-views svg {
