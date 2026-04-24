@@ -80,18 +80,28 @@ export function packGroup(
   }
   for (const [, items] of dimGroups) {
     if (items.length < 3) continue;
-    const { w, h } = items[0];
-    // 找能一次吃下最多件的最小庫存
-    let best: { stock: PoolItem; fitCount: number } | null = null;
+    const first = items[0];
+    // 兩個方向都試（若允許旋轉），取能塞最多件的那個
+    const orientations = first.canRotate
+      ? [
+          { w: first.w, h: first.h, rotated: false },
+          { w: first.h, h: first.w, rotated: true },
+        ]
+      : [{ w: first.w, h: first.h, rotated: false }];
+    let best:
+      | { stock: PoolItem; fitCount: number; w: number; h: number; rotated: boolean }
+      | null = null;
     for (const s of pool) {
       if (s.remaining <= 0) continue;
-      if (s.length < w || s.width < h) continue;
-      const fitCount = Math.min(
-        items.length,
-        Math.floor((s.length + kerf) / (w + kerf)),
-      );
-      if (fitCount < 3) continue;
-      if (!best || fitCount > best.fitCount) best = { stock: s, fitCount };
+      for (const o of orientations) {
+        if (s.length < o.w || s.width < o.h) continue;
+        const fitCount = Math.min(
+          items.length,
+          Math.floor((s.length + kerf) / (o.w + kerf)),
+        );
+        if (fitCount < 3) continue;
+        if (!best || fitCount > best.fitCount) best = { stock: s, fitCount, ...o };
+      }
     }
     if (!best) continue;
     // 開專屬板，一字排開
@@ -99,8 +109,8 @@ export function packGroup(
     const bin: SheetBin = {
       stockLength: best.stock.length,
       stockWidth: best.stock.width,
-      shelves: [{ y: 0, height: h, pieces: [], usedWidth: 0 }],
-      usedHeight: h,
+      shelves: [{ y: 0, height: best.h, pieces: [], usedWidth: 0 }],
+      usedHeight: best.h,
     };
     const shelf = bin.shelves[0];
     let x = 0;
@@ -110,15 +120,24 @@ export function packGroup(
         piece: it.piece,
         x,
         y: 0,
-        w: it.w,
-        h: it.h,
-        rotated: false,
+        w: best.w,
+        h: best.h,
+        rotated: best.rotated,
       });
-      shelf.usedWidth = x + it.w;
-      x += it.w + kerf;
+      shelf.usedWidth = x + best.w;
+      x += best.w + kerf;
       it.placed = true;
     }
     bins.push(bin);
+  }
+
+  function attemptsOf(item: (typeof prepped)[number]) {
+    return item.canRotate
+      ? [
+          { w: item.w, h: item.h, rotated: false },
+          { w: item.h, h: item.w, rotated: true },
+        ]
+      : [{ w: item.w, h: item.h, rotated: false }];
   }
 
   function tryFit(
@@ -126,59 +145,58 @@ export function packGroup(
     shelf: SheetBin["shelves"][number],
     boardLen: number,
   ): { x: number; w: number; h: number; rotated: boolean } | null {
-    const attempts = item.canRotate
-      ? [
-          { w: item.w, h: item.h, rotated: false },
-          { w: item.h, h: item.w, rotated: true },
-        ]
-      : [{ w: item.w, h: item.h, rotated: false }];
-    for (const att of attempts) {
+    // 試兩個方向，取剩料最少的那個（讓 allowRotate 真的有作用）
+    let best: { x: number; w: number; h: number; rotated: boolean; score: number } | null = null;
+    for (const att of attemptsOf(item)) {
       const addKerf = shelf.pieces.length > 0 ? kerf : 0;
       if (shelf.usedWidth + addKerf + att.w <= boardLen && att.h <= shelf.height) {
-        return { x: shelf.usedWidth + addKerf, ...att };
+        const score =
+          boardLen - shelf.usedWidth - addKerf - att.w + (shelf.height - att.h);
+        if (!best || score < best.score)
+          best = { x: shelf.usedWidth + addKerf, ...att, score };
       }
     }
-    return null;
+    if (!best) return null;
+    return { x: best.x, w: best.w, h: best.h, rotated: best.rotated };
   }
 
   function tryOpenShelf(
     item: (typeof prepped)[number],
     bin: SheetBin,
   ): { w: number; h: number; rotated: boolean } | null {
-    const attempts = item.canRotate
-      ? [
-          { w: item.w, h: item.h, rotated: false },
-          { w: item.h, h: item.w, rotated: true },
-        ]
-      : [{ w: item.w, h: item.h, rotated: false }];
-    for (const att of attempts) {
+    let best: { w: number; h: number; rotated: boolean; score: number } | null = null;
+    for (const att of attemptsOf(item)) {
       const addKerf = bin.shelves.length > 0 ? kerf : 0;
       if (
         bin.usedHeight + addKerf + att.h <= bin.stockWidth &&
         att.w <= bin.stockLength
       ) {
-        return att;
+        // 新 shelf 高度 = 零件高，愈矮愈好（保留底下空間）
+        const score = att.h;
+        if (!best || score < best.score) best = { ...att, score };
       }
     }
-    return null;
+    if (!best) return null;
+    return { w: best.w, h: best.h, rotated: best.rotated };
   }
 
   function takeBoard(
     item: (typeof prepped)[number],
   ): { length: number; width: number; rotated: boolean } | null {
-    const attempts = item.canRotate
-      ? [
-          { w: item.w, h: item.h, rotated: false },
-          { w: item.h, h: item.w, rotated: true },
-        ]
-      : [{ w: item.w, h: item.h, rotated: false }];
     for (const s of pool) {
       if (s.remaining <= 0) continue;
-      for (const att of attempts) {
+      // 兩個方向都試，選剩料少的
+      let best: { rotated: boolean; score: number } | null = null;
+      for (const att of attemptsOf(item)) {
         if (s.length >= att.w && s.width >= att.h) {
-          s.remaining -= 1;
-          return { length: s.length, width: s.width, rotated: att.rotated };
+          const score = s.length - att.w + (s.width - att.h);
+          if (!best || score < best.score)
+            best = { rotated: att.rotated, score };
         }
+      }
+      if (best) {
+        s.remaining -= 1;
+        return { length: s.length, width: s.width, rotated: best.rotated };
       }
     }
     return null;
