@@ -330,11 +330,22 @@ export function PiecesEditor({
                       />
                     </td>
                     <td className="px-2 py-1 text-center">
-                      <input
-                        type="checkbox"
-                        checked={s.allowRotate}
-                        onChange={(e) => patchSpec(s.id, { allowRotate: e.target.checked })}
-                      />
+                      {billableVal === "plywood" || billableVal === "mdf" ? (
+                        <input
+                          type="checkbox"
+                          checked={s.allowRotate}
+                          onChange={(e) =>
+                            patchSpec(s.id, { allowRotate: e.target.checked })
+                          }
+                        />
+                      ) : (
+                        <span
+                          className="text-xs text-zinc-300"
+                          title="實木不能旋轉——纖維方向鎖死"
+                        >
+                          —
+                        </span>
+                      )}
                     </td>
                     <td className="px-2 py-1 text-right whitespace-nowrap">
                       <button

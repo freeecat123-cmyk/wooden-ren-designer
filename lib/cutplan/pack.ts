@@ -60,9 +60,9 @@ export function packGroup(
   const prepped: Item[] = pieces.map((piece) => {
     const maxSide = Math.max(piece.length, piece.width);
     const minSide = Math.min(piece.length, piece.width);
-    // 旋轉規則：solid 預設不轉（除非 allowRotateForSolid），板材看 piece.allowRotate
-    const canRotate =
-      kind === "solid" ? allowRotateForSolid : piece.allowRotate === true;
+    // 旋轉規則：實木絕不轉（纖維方向鎖死），板材看 piece.allowRotate
+    void allowRotateForSolid;
+    const canRotate = kind === "solid" ? false : piece.allowRotate === true;
     return { piece, w: maxSide, h: minSide, canRotate };
   });
   prepped.sort((a, b) => b.h - a.h || b.w - a.w);

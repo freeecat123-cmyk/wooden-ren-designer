@@ -40,8 +40,9 @@ export function packGroupGuillotine(
   const prepped: Item[] = pieces.map((piece) => {
     const maxSide = Math.max(piece.length, piece.width);
     const minSide = Math.min(piece.length, piece.width);
-    const canRotate =
-      kind === "solid" ? allowRotateForSolid : piece.allowRotate === true;
+    // 實木絕不旋轉——纖維方向鎖死；板材看單件 allowRotate 旗標
+    void allowRotateForSolid;
+    const canRotate = kind === "solid" ? false : piece.allowRotate === true;
     return { piece, w: maxSide, h: minSide, canRotate };
   });
   // 面積降序——先放大的讓後續切割切出有用的空間
