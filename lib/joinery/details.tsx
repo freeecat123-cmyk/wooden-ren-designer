@@ -1805,79 +1805,122 @@ function DovetailDetail(p: JoineryDetailParams) {
         分解圖（兩片板端面對端面）
       </text>
 
-      {/* MOTHER (tail board — drawer side) */}
-      <g>
-        <rect
-          x={mAx}
-          y={mBodyTop}
-          width={pieceLen}
-          height={bodyExt}
-          fill={COLOR_MORTISE}
-          stroke={COLOR_OUTLINE}
-        />
-        {/* tails sticking up from the end — wide at top (outside), narrow at bottom */}
-        {tailCenters.map((cx, i) => (
-          <path
-            key={i}
-            d={tailPath(cx, mBodyTop, mAy)}
-            fill={COLOR_MORTISE}
-            stroke={COLOR_OUTLINE}
-          />
-        ))}
-        <text
-          x={mAx + pieceLen / 2}
-          y={mBodyBot + 14}
-          fontSize={9}
-          textAnchor="middle"
-          fill="#666"
-        >
-          母件（尾板，{N_TAILS} 個尾；抽屜側板）
-        </text>
-        <DimLine
-          x1={mAx - 10}
-          y1={mAy}
-          x2={mAx - 10}
-          y2={mBodyTop}
-          label={`榫深 ${tl}`}
-          side="left"
-        />
-        <text x={mAx} y={mAy - 6} fontSize={8} fill="#999">
-          ← 尾面（寬）
-        </text>
-      </g>
+      {/* MOTHER (tail board — drawer side)
+          一整片板從端面切出鋸齒狀。沿著上邊緣（端面）走 sawtooth profile：
+          [margin 平段] → 進入 socket（先「斜下」往中央收緊到 socket 底） → 「斜上」出 socket
+          → 跨過 tail 頂 → 進入下個 socket ... → 平段結束
+          重點：tail 的「斜邊」在 SOCKET 的兩側（不是 tail 的兩側），
+          因為 socket 是 pin 形狀（外窄內寬），tail 的形狀就是 socket 的反向。 */}
+      {(() => {
+        const points: Array<[number, number]> = [];
+        // 起點：bottom-left of body
+        points.push([mAx, mBodyBot]);
+        // 上行到 top-left（板子最頂端 = 尾的 tip 高度）
+        points.push([mAx, mAy]);
+        // 走過 sawtooth：left margin（socket 左半邊）→ 進入 socket → ...
+        // pinW 是 socket 寬（在 mAy 那層的水平距離）
+        // 由於 socket 是「外窄內寬」（pin shape），所以 socket 在 mAy 的寬度 = pinW，
+        // 在 mBodyTop 的寬度 = pinW + 2 * dtAngleHOffset
+        // ↑ 也就是 socket 越往板內越寬（鳩尾凹的特徵：捏不出去）
+        let x = mAx + mMargin; // 第一個 socket 的 left 邊在 mAy 那層
+        for (let i = 0; i < N_TAILS + 1; i++) {
+          // 從 (x, mAy) 斜下到 socket 底（mBodyTop），底邊更寬 dtAngleHOffset
+          points.push([x, mAy]); // socket 在端面上的左邊（窄）
+          points.push([x - dtAngleHOffset, mBodyTop]); // socket 底邊的左角（寬）
+          points.push([x + pinW + dtAngleHOffset, mBodyTop]); // socket 底邊的右角（寬）
+          points.push([x + pinW, mAy]); // socket 在端面上的右邊（窄）
+          if (i < N_TAILS) {
+            // 跨過 tail 頂（tail 是 socket 之間的剩餘木料，tail 頂在 mAy 那層）
+            x += pinW + tailW;
+            // 不需要額外 push，下個 iteration 的 [x, mAy] 自動接續
+          }
+        }
+        // 收尾：從最後一個 socket 的右邊回到 top-right
+        points.push([mAx + pieceLen, mAy]);
+        points.push([mAx + pieceLen, mBodyBot]);
+        points.push([mAx, mBodyBot]); // close
+        return (
+          <g>
+            <polygon
+              points={points.map((p) => p.join(",")).join(" ")}
+              fill={COLOR_MORTISE}
+              stroke={COLOR_OUTLINE}
+            />
+            <text
+              x={mAx + pieceLen / 2}
+              y={mBodyBot + 14}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              母件（尾板，{N_TAILS} 個尾 + 兩端半銷位）
+            </text>
+            <DimLine
+              x1={mAx - 10}
+              y1={mAy}
+              x2={mAx - 10}
+              y2={mBodyTop}
+              label={`榫深 ${tl}`}
+              side="left"
+            />
+            <text x={mAx + pieceLen / 2} y={mAy - 6} fontSize={8} fill="#999" textAnchor="middle">
+              ↑ 尾頂（端面，板的最上緣）
+            </text>
+          </g>
+        );
+      })()}
 
-      {/* CHILD (pin board — drawer front) */}
-      <g>
-        <rect
-          x={cAx}
-          y={mBodyTop}
-          width={pieceLen}
-          height={bodyExt}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        {/* pins sticking up from the end — narrow at top (outside), wide at bottom */}
-        {pinCenters.map((cx, i) => (
-          <path
-            key={i}
-            d={pinPath(cx, mBodyTop, mAy)}
-            fill={COLOR_TENON}
-            stroke={COLOR_OUTLINE}
-          />
-        ))}
-        <text
-          x={cAx + pieceLen / 2}
-          y={mBodyBot + 14}
-          fontSize={9}
-          textAnchor="middle"
-          fill="#666"
-        >
-          公件（銷板，{N_PINS} 個銷；抽屜面板）
-        </text>
-        <text x={cAx} y={mAy - 6} fontSize={8} fill="#999">
-          ← 銷面（窄）
-        </text>
-      </g>
+      {/* CHILD (pin board — drawer front)
+          相反方向的 sawtooth：pin 在端面上，pin 是「外窄內寬」的形狀（看起來像 ▲），
+          socket（給 tail 用的）在 pin 之間，是「外寬內窄」（tail 形狀）。 */}
+      {(() => {
+        const points: Array<[number, number]> = [];
+        points.push([cAx, mBodyBot]);
+        points.push([cAx, mAy]);
+        // pin 在 mAy 寬度 = pinW，pin 在 mBodyTop 寬度 = pinW + 2 * dtAngleHOffset
+        // 第一個 feature 是 left margin（沒 pin、是 tail-socket 半段）
+        let x = cAx + mMargin;
+        // 第一個 tail-socket 的左邊：寬（在 mAy）
+        points.push([x + dtAngleHOffset, mAy]); // 收起左 margin 的木料
+        points.push([x, mBodyTop]); // socket 底（窄）
+        for (let i = 0; i < N_PINS; i++) {
+          // 過 socket 底
+          points.push([x + tailW, mBodyTop]); // socket 底（窄）
+          points.push([x + tailW + dtAngleHOffset, mAy]); // socket 在端面（寬）
+          // 跨 pin 頂（pin 是 socket 之間的剩餘木料）
+          x += tailW;
+          if (i < N_PINS - 1) {
+            // pin 頂在 mAy 寬 pinW
+            points.push([x + pinW, mAy]);
+            points.push([x + pinW + dtAngleHOffset, mBodyTop]);
+            x += pinW;
+          }
+        }
+        // 最後從 mAy 平拉到右上
+        points.push([cAx + pieceLen, mAy]);
+        points.push([cAx + pieceLen, mBodyBot]);
+        return (
+          <g>
+            <polygon
+              points={points.map((p) => p.join(",")).join(" ")}
+              fill={COLOR_TENON}
+              stroke={COLOR_OUTLINE}
+            />
+            <text
+              x={cAx + pieceLen / 2}
+              y={mBodyBot + 14}
+              fontSize={9}
+              textAnchor="middle"
+              fill="#666"
+            >
+              公件（銷板，{N_PINS - 1} 個銷 + 兩端半銷）
+            </text>
+            <text x={cAx + pieceLen / 2} y={mAy - 6} fontSize={8} fill="#999" textAnchor="middle">
+              ↑ 銷頂（端面，板的最上緣）
+            </text>
+          </g>
+        );
+      })()}
 
       {/* ASSEMBLED L-corner */}
       <text
