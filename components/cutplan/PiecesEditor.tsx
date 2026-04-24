@@ -112,14 +112,19 @@ export function PiecesEditor({
 
   /**
    * 拼板分割：將一件寬板依條數平均切成 N 條窄板（再黏合還原成寬板）。
-   * 例如 1040×640×28 分成 4 條 → 1040×160×28 × 4 件；spec 仍保留在原位置，
-   * 名稱加「（拼 N 條）」後綴，寬度 = 原寬/N，數量 = 原數量×N。
+   * 每條額外多 10mm 寬當膠合+刨平損耗（邊緣直紋刨平會吃掉 3–5mm，邊緣
+   * 粗糙也要修，抓 +10mm 偏保守但安全）。
+   *
+   * 例：1040×640×28 分 4 條 → 每條 (640/4)+10 = 170mm → 1040×170×28 × 4 件
+   * 膠合後毛料 680mm，刨平到 640 綽綽有餘。
    */
+  const GLUE_ALLOWANCE_MM = 10;
+
   const splitSpec = (id: string) => {
     const src = specs.find((s) => s.id === id);
     if (!src) return;
     const input = window.prompt(
-      `拼板分割——「${src.name}」寬 ${src.width}mm 要分成幾條？\n（分完平均寬 = 原寬 ÷ 條數，膠合還原）`,
+      `拼板分割——「${src.name}」寬 ${src.width}mm 要分成幾條？\n（每條會自動 +${GLUE_ALLOWANCE_MM}mm 膠合/刨平損耗）`,
       "3",
     );
     if (input === null) return;
@@ -128,7 +133,7 @@ export function PiecesEditor({
       alert("條數要 ≥ 2");
       return;
     }
-    const newWidth = Math.floor(src.width / n);
+    const newWidth = Math.ceil(src.width / n) + GLUE_ALLOWANCE_MM;
     const baseName = src.name.replace(/（拼\s*\d+\s*條）\s*$/, "");
     const updated: PieceSpec = {
       ...src,
