@@ -5,6 +5,8 @@ export interface CutPiece {
   /** 零件 id（同設計裡的 part.id） */
   partId: string;
   partNameZh: string;
+  /** 簡易編號 A / B / C...（由 PieceSpec 的順序推導；多件同規格共用同一編號） */
+  code?: string;
   /** 切料後的長（沿纖維方向） */
   length: number;
   /** 切料後的寬 */

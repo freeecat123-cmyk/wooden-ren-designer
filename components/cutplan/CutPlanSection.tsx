@@ -76,6 +76,11 @@ function UnplacedNotice({
       <ul className="text-xs ml-4 list-disc">
         {unplaced.map((p, i) => (
           <li key={i}>
+            {p.code && (
+              <span className="inline-block font-mono font-bold mr-1">
+                [{p.code}]
+              </span>
+            )}
             {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
           </li>
         ))}

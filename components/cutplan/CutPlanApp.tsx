@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { NestConfig } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
-import { planFromSpecs } from "@/lib/cutplan/piece-spec";
+import { planFromSpecs, indexToCode } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
@@ -119,6 +119,7 @@ export function CutPlanApp({
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="border-b border-zinc-300">
+              <th className="text-center p-1 w-8">#</th>
               <th className="text-left p-1">零件</th>
               <th className="text-left p-1">材質</th>
               <th className="text-right p-1">長 × 寬 × 厚 (mm)</th>
@@ -126,8 +127,9 @@ export function CutPlanApp({
             </tr>
           </thead>
           <tbody>
-            {specs.map((s) => (
+            {specs.map((s, idx) => (
               <tr key={s.id} className="border-b border-zinc-100">
+                <td className="p-1 text-center font-mono font-bold">{indexToCode(idx)}</td>
                 <td className="p-1">{s.name}</td>
                 <td className="p-1">
                   {MATERIALS[s.material]?.nameZh ?? s.material}

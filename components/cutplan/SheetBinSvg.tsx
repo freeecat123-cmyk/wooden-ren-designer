@@ -60,29 +60,30 @@ export function SheetBinSvg({
                   stroke="#52525b"
                   strokeWidth={0.5}
                 />
-                {w > 40 && h > 18 && (
-                  <>
-                    <text
-                      x={x + w / 2}
-                      y={y + h / 2 - 2}
-                      textAnchor="middle"
-                      fontSize={9}
-                      fill="#18181b"
-                      fontWeight={600}
-                    >
-                      {p.piece.partNameZh}
-                      {p.rotated ? " ↻" : ""}
-                    </text>
-                    <text
-                      x={x + w / 2}
-                      y={y + h / 2 + 10}
-                      textAnchor="middle"
-                      fontSize={8}
-                      fill="#52525b"
-                    >
-                      {p.w} × {p.h} × {p.piece.thickness}
-                    </text>
-                  </>
+                {p.piece.code && w > 16 && h > 16 && (
+                  <text
+                    x={x + w / 2}
+                    y={y + h / 2 + 5}
+                    textAnchor="middle"
+                    fontSize={Math.min(16, Math.max(10, Math.min(w, h) / 2.5))}
+                    fill="#18181b"
+                    fontWeight={800}
+                    fontFamily="monospace"
+                  >
+                    {p.piece.code}
+                  </text>
+                )}
+                {w > 50 && h > 26 && (
+                  <text
+                    x={x + w / 2}
+                    y={y + h - 4}
+                    textAnchor="middle"
+                    fontSize={7}
+                    fill="#52525b"
+                  >
+                    {p.w}×{p.h}×{p.piece.thickness}
+                    {p.rotated ? " ↻" : ""}
+                  </text>
                 )}
               </g>
             );

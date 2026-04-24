@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
+import { indexToCode } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
 import { SOLID_WOOD_THICKNESSES, SHEET_THICKNESSES } from "@/lib/cutplan";
@@ -165,6 +166,7 @@ export function PiecesEditor({
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
+                <th className="text-center px-2 py-2 w-10">#</th>
                 <th className="text-left px-3 py-2 w-40">名稱</th>
                 <th className="text-left px-3 py-2 w-36">材質</th>
                 <th className="text-right px-2 py-2 w-20">長</th>
@@ -176,13 +178,19 @@ export function PiecesEditor({
               </tr>
             </thead>
             <tbody>
-              {specs.map((s) => {
+              {specs.map((s, idx) => {
                 const billableVal =
                   s.billable === "plywood" || s.billable === "mdf"
                     ? s.billable
                     : s.material;
+                const code = indexToCode(idx);
                 return (
                   <tr key={s.id} className="border-t border-zinc-100">
+                    <td className="px-2 py-1 text-center">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-zinc-800 text-white text-xs font-bold font-mono">
+                        {code}
+                      </span>
+                    </td>
                     <td className="px-3 py-1">
                       <input
                         type="text"

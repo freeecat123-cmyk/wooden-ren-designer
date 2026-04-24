@@ -55,14 +55,30 @@ export function collapseIntoSpecs(pieces: CutPiece[]): PieceSpec[] {
   return Array.from(map.values());
 }
 
+/**
+ * Excel-style 欄位編號：0→A, 25→Z, 26→AA, 27→AB, ...
+ * 用於 PieceSpec 的簡易編號，方便裁切圖辨認。
+ */
+export function indexToCode(i: number): string {
+  let n = i;
+  let s = "";
+  do {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return s;
+}
+
 /** 把 PieceSpec 展開成 CutPiece 陣列，供排料演算法使用 */
 export function expandSpecs(specs: PieceSpec[]): CutPiece[] {
   const out: CutPiece[] = [];
-  for (const s of specs) {
+  specs.forEach((s, idx) => {
+    const code = indexToCode(idx);
     for (let i = 0; i < s.quantity; i++) {
       out.push({
         partId: s.quantity === 1 ? s.id : `${s.id}-${i}`,
         partNameZh: s.quantity === 1 ? s.name : `${s.name} ${i + 1}`,
+        code,
         length: s.length,
         width: s.width,
         thickness: s.thickness,
@@ -71,7 +87,7 @@ export function expandSpecs(specs: PieceSpec[]): CutPiece[] {
         allowRotate: s.allowRotate,
       });
     }
-  }
+  });
   return out;
 }
 
