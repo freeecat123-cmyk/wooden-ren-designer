@@ -33,7 +33,7 @@ body {
 /* ---------- Print / PDF rules ---------- */
 @page {
   size: A4 portrait;
-  margin: 14mm 12mm 18mm 12mm;
+  margin: 10mm 10mm 12mm 10mm;
 }
 
 @media print {
@@ -104,14 +104,6 @@ body {
     break-before: page;
     page-break-before: always;
   }
-  /* 裁切計算器列印：套用窄邊距 named page */
-  .cutplan-print {
-    page: cutplan;
-  }
-}
-@page cutplan {
-  size: A4 portrait;
-  margin: 8mm;
 }
 /* 螢幕上也限制高度，避免報價頁縮圖吃掉版面 */
 .compact-three-views svg {
