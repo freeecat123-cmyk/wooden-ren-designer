@@ -74,9 +74,9 @@ export function StockEditor({
         ...inventory,
         {
           kind: meta.kind,
-          thickness: 0,
-          length: 2440,
-          width: 1220,
+          thickness: 18,
+          length: 2400,
+          width: 1200,
           count: null,
         },
       ]);
@@ -162,9 +162,19 @@ export function StockEditor({
                           patchRow(idx, {
                             kind: "solid",
                             material: s.material ?? "maple",
+                            length: 1818,
+                            width: 200,
+                            thickness: s.thickness || 0,
                           });
                         } else {
-                          patchRow(idx, { kind, material: undefined });
+                          // 夾板 / 中纖板：台灣市場常見 4×8 ft ≈ 2400×1200、厚 18mm
+                          patchRow(idx, {
+                            kind,
+                            material: undefined,
+                            length: 2400,
+                            width: 1200,
+                            thickness: 18,
+                          });
                         }
                       }}
                       className="w-full px-2 py-1 border border-zinc-200 rounded text-sm"
