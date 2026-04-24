@@ -13,11 +13,17 @@ interface Props {
   initial: CustomerInfo;
   /** hidden input 的 prefix（對應 URL param key） */
   fieldPrefix?: string;
+  /**
+   * 程式呼叫 setData 時通知外層（套用歷史 chip、清空按鈕）。
+   * 為什麼需要：React setState 改 input value 不會 dispatch native change 事件，
+   * 外層 <form onChange> 收不到，URL 不會 sync。callback 讓外層自己決定怎麼推 URL。
+   */
+  onApply?: (next: CustomerInfo) => void;
 }
 
 const PREFIX_DEFAULT = "customer";
 
-export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT }: Props) {
+export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }: Props) {
   const [data, setData] = useState<CustomerInfo>(initial);
   const [history, setHistory] = useState<CustomerInfo[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -36,9 +42,13 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT }: Props) {
   const applyHistoryByIndex = (idx: number) => {
     if (!Number.isFinite(idx) || idx < 0 || idx >= history.length) return;
     setData(history[idx]);
+    onApply?.(history[idx]);
   };
 
-  const clearAll = () => setData(EMPTY_CUSTOMER);
+  const clearAll = () => {
+    setData(EMPTY_CUSTOMER);
+    onApply?.(EMPTY_CUSTOMER);
+  };
 
   const removeFromHistory = (idx: number) => {
     if (!Number.isFinite(idx) || idx < 0 || idx >= history.length) return;

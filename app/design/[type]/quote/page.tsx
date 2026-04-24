@@ -14,10 +14,9 @@ import { BrandingForm } from "@/components/branding/BrandingForm";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CsvExportButton } from "@/components/CsvExportButton";
 import { QuoteLaborForm } from "@/components/quote/QuoteLaborForm";
+import { QuoteShareActions } from "@/components/quote/QuoteShareActions";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
-import { LineShareButton } from "@/components/LineShareButton";
-import { EmailShareButton } from "@/components/EmailShareButton";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -181,42 +180,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         </div>
         <div className="flex items-center gap-2">
           <ViewModeToggle current={viewMode} />
-          <LineShareButton
-            customerName={customer.name}
-            furnitureName={entry.nameZh}
-            dimensions={`${length} × ${width} × ${height} mm`}
+          <QuoteShareActions
+            design={design}
+            type={type}
+            furnitureNameZh={entry.nameZh}
+            dimensionsLabel={`${length} × ${width} × ${height} mm`}
             materialName={MATERIALS[material].nameZh}
-            total={quote.total}
-            depositAmount={quote.depositAmount}
-            balanceAmount={quote.balanceAmount}
-            depositRate={laborOpts.depositRate}
-            deliveryDate={deliveryIso}
-            expiryDate={expiryIso}
-            quoteNo={quoteNo}
-            printPath={`/design/${type}/quote/print?${fullQuery}`}
           />
-          <EmailShareButton
-            toEmail={customer.email}
-            customerName={customer.name}
-            furnitureName={entry.nameZh}
-            dimensions={`${length} × ${width} × ${height} mm`}
-            materialName={MATERIALS[material].nameZh}
-            total={quote.total}
-            depositAmount={quote.depositAmount}
-            balanceAmount={quote.balanceAmount}
-            depositRate={laborOpts.depositRate}
-            deliveryDate={deliveryIso}
-            expiryDate={expiryIso}
-            quoteNo={quoteNo}
-            printPath={`/design/${type}/quote/print?${fullQuery}`}
-          />
-          <Link
-            href={`/design/${type}/quote/print?${fullQuery}`}
-            target="_blank"
-            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
-          >
-            🧾 列印 / PDF
-          </Link>
         </div>
       </header>
 
@@ -229,6 +199,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           primaryMaterialName={MATERIALS[material].nameZh}
           initialCustomer={customer}
           terms={{ termIncludeShipping, termIncludeInstallation }}
+          viewMode={viewMode}
         />
 
         {/* 右側：總價摘要卡（lg 以上 sticky） */}

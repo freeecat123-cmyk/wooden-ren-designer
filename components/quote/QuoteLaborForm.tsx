@@ -52,6 +52,7 @@ export function QuoteLaborForm({
   primaryMaterialName,
   initialCustomer,
   terms,
+  viewMode,
 }: {
   type: string;
   designQuery: string;
@@ -59,6 +60,7 @@ export function QuoteLaborForm({
   primaryMaterialName: string;
   initialCustomer: CustomerInfo;
   terms: { termIncludeShipping: boolean; termIncludeInstallation: boolean };
+  viewMode: "customer" | "internal";
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -66,7 +68,12 @@ export function QuoteLaborForm({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
 
-  const pushURL = useCallback(() => {
+  /**
+   * 把當前表單推到 URL。
+   * `customerOverride` 用於 CustomerForm 套用歷史 chip 時——React setState 改 input value
+   * 不會 dispatch native change 事件，而 FormData 又只讀 DOM 當下值，所以要手動覆寫。
+   */
+  const pushURL = useCallback((customerOverride?: CustomerInfo) => {
     if (!formRef.current) return;
     const data = new FormData(formRef.current);
     const params = new URLSearchParams();
@@ -77,6 +84,14 @@ export function QuoteLaborForm({
     formRef.current.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((cb) => {
       if (!cb.checked) params.delete(cb.name);
     });
+    if (customerOverride) {
+      params.set("customerName", customerOverride.name);
+      params.set("customerContact", customerOverride.contact);
+      params.set("customerPhone", customerOverride.phone);
+      params.set("customerAddress", customerOverride.address);
+      params.set("customerTaxId", customerOverride.taxId);
+      params.set("customerEmail", customerOverride.email);
+    }
     setPending(false);
     router.replace(`/design/${type}/quote?${params.toString()}`);
   }, [type, router]);
@@ -84,8 +99,17 @@ export function QuoteLaborForm({
   const handleChange = useCallback(() => {
     setPending(true);
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(pushURL, 600);
+    timerRef.current = setTimeout(() => pushURL(), 600);
   }, [pushURL]);
+
+  const handleCustomerApply = useCallback(
+    (next: CustomerInfo) => {
+      // 取消任何 pending debounce，立即用 next 覆寫推 URL
+      clearTimeout(timerRef.current);
+      pushURL(next);
+    },
+    [pushURL],
+  );
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
@@ -97,6 +121,7 @@ export function QuoteLaborForm({
 
   return (
     <form
+      id="quote-labor-form"
       ref={formRef}
       onChange={handleChange}
       method="get"
@@ -106,9 +131,11 @@ export function QuoteLaborForm({
       {Object.entries(designParams).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
+      {/* viewMode 透過 hidden input 帶入，避免 form 重組 URL 時遺失（由 ViewModeToggle 設定） */}
+      <input type="hidden" name="viewMode" value={viewMode} />
 
       {/* 客戶資料 */}
-      <CustomerForm initial={initialCustomer} />
+      <CustomerForm initial={initialCustomer} onApply={handleCustomerApply} />
 
       {/* 常用微調：議價 / 數量 / 折扣 / 訂金 + 含運/含安裝 */}
       <fieldset className="mt-5 pt-4 border-t border-zinc-200">
