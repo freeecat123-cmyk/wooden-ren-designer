@@ -90,17 +90,22 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   if (joineryMode) printQuery.set("joineryMode", "true");
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
+    <main className="max-w-7xl mx-auto px-6 py-6">
       <Link href="/" className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 hover:underline">
         <span>←</span> 回家具列表
       </Link>
 
-      <header className="mt-4 mb-8">
-        <div className="flex items-baseline justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
-            <p className="mt-1 text-sm text-zinc-600 max-w-2xl">{entry.description}</p>
-          </div>
+      <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
+          <p className="mt-0.5 text-xs text-zinc-500 flex flex-wrap items-center gap-2">
+            <span>{entry.description}</span>
+            <span className="font-mono text-zinc-700">· {length} × {width} × {height} mm</span>
+            <span>· {MATERIALS[material].nameZh}</span>
+            <span>· {design.parts.length} 件</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Link
             href={`/design/${type}/quote?${printQuery.toString()}`}
             target="_blank"
@@ -111,115 +116,131 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <Link
             href={`/design/${type}/print?${printQuery.toString()}`}
             target="_blank"
-            className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-700 transition"
+            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700 transition"
           >
             🖨️ 列印 / PDF
           </Link>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          <span className="px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-700 font-mono">
-            {length} × {width} × {height} mm
-          </span>
-          <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 ring-1 ring-amber-200">
-            {MATERIALS[material].nameZh}
-          </span>
-          <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">
-            {design.parts.length} 件零件
-          </span>
-        </div>
       </header>
 
-      <ParameterForm
-        type={type}
-        defaults={{ length, width, height, material }}
-        optionSchema={optionSchema}
-        optionValues={options}
-        joineryMode={joineryMode}
-      />
-
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          透視圖（3D）
-        </h2>
-        <LazyPerspectiveView design={design} />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          工程三視圖
-        </h2>
-        <ThreeViewLayout design={design} />
-        <p className="mt-3 text-xs text-zinc-500">
-          ⚠️ 標示為組裝後可見尺寸（肩到肩）。實際切料尺寸含榫頭，請看下方材料單。
-        </p>
-      </section>
-
-      <section className="mt-10">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <span className="w-1 h-5 bg-amber-500 rounded-full" />
-            材料單
-          </h2>
-          <Link
-            href={`/design/${type}/cut-plan?${printQuery.toString()}`}
-            target="_blank"
-            className="px-3 py-1.5 bg-amber-600 text-white rounded text-xs hover:bg-amber-700"
-          >
-            🪚 裁切計算器
-          </Link>
+      {/* 主視覺：左邊參數（sticky）↔ 右邊 3D + 三視圖 */}
+      <section className="grid lg:grid-cols-[5fr_7fr] gap-4">
+        <div className="lg:sticky lg:top-4 self-start">
+          <ParameterForm
+            type={type}
+            defaults={{ length, width, height, material }}
+            optionSchema={optionSchema}
+            optionValues={options}
+            joineryMode={joineryMode}
+          />
         </div>
-        <div className="rounded-lg border border-zinc-200 overflow-hidden">
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+            <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
+              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+              透視圖（3D · 拖曳旋轉）
+            </div>
+            <LazyPerspectiveView design={design} />
+          </div>
+
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+            <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
+              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+              工程三視圖
+              <span className="ml-auto text-[10px] font-normal text-zinc-400">
+                標示為組裝後肩到肩可見尺寸
+              </span>
+            </div>
+            <div className="p-3">
+              <ThreeViewLayout design={design} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 下半：施工備料（按需展開） */}
+      <details className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden" open>
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800 flex items-center gap-2">
+            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            🪵 材料單
+            <span className="text-[10px] font-normal text-zinc-400">{design.parts.length} 件 · 切料尺寸已含榫頭</span>
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200">
+          <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between text-[11px] text-zinc-500">
+            <span>切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。</span>
+            <Link
+              href={`/design/${type}/cut-plan?${printQuery.toString()}`}
+              target="_blank"
+              className="px-2.5 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
+            >
+              🪚 裁切計算器
+            </Link>
+          </div>
           <MaterialList design={design} />
         </div>
-        <p className="mt-3 text-xs text-zinc-500">
-          切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。
-        </p>
-      </section>
+      </details>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          {joineryMode ? "榫卯細節圖" : "組裝接合說明"}
-        </h2>
-        {joineryMode ? (
-          <JoinerySection design={design} />
-        ) : (
-          <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
-            <p className="font-semibold mb-2">📐 無榫卯組裝方式（擇一或混用）</p>
-            <ul className="space-y-1.5 list-disc list-inside ml-1">
-              <li><b>斜孔螺絲</b>—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。</li>
-              <li><b>木釘拼接</b>—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。</li>
-              <li><b>DOMINO 圓榫</b>—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。</li>
-              <li><b>木工螺絲 + 白膠</b>—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。</li>
-              <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。</li>
-            </ul>
-            <p className="mt-3 text-xs text-emerald-700">
-              建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。
-            </p>
-            <p className="mt-2 text-xs text-emerald-600">
-              如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選上方「榫接模式」。
-            </p>
-          </div>
-        )}
-      </section>
+      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800 flex items-center gap-2">
+            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            {joineryMode ? "🪚 榫卯細節圖" : "🔩 組裝接合說明"}
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200 p-4">
+          {joineryMode ? (
+            <JoinerySection design={design} />
+          ) : (
+            <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-5 text-sm text-emerald-900 leading-relaxed">
+              <p className="font-semibold mb-2">📐 無榫卯組裝方式（擇一或混用）</p>
+              <ul className="space-y-1.5 list-disc list-inside ml-1">
+                <li><b>斜孔螺絲</b>—— 板材垂直接合（頂板↔側板、層板↔側板）。用斜孔器夾具鑽 15° 斜孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。</li>
+                <li><b>木釘拼接</b>—— 板材拼寬或結構補強，用木板打孔定位器 + 8mm 木釘。</li>
+                <li><b>DOMINO 圓榫</b>—— 想要更接近榫接強度可用 DOMINO 系統（機具另備）。</li>
+                <li><b>木工螺絲 + 白膠</b>—— 框架類（椅腳↔牙板、橫撐↔椅腳）最簡單。先鑽先導孔避免劈裂。</li>
+                <li><b>所有接點務必上白膠</b>—— 機械緊固 + 膠合才是真正牢固。螺絲木釘只是夾緊工具。</li>
+              </ul>
+              <p className="mt-3 text-xs text-emerald-700">
+                建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 夾具×4、砂紙 120/240/400。
+              </p>
+              <p className="mt-2 text-xs text-emerald-600">
+                如需傳統榫卯設計（含榫頭榫眼細節圖、工序更精緻）請勾選左側「榫接模式」。
+              </p>
+            </div>
+          )}
+        </div>
+      </details>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          工具清單
-        </h2>
-        <ToolList design={design} />
-      </section>
+      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800 flex items-center gap-2">
+            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            🛠️ 工具清單
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200 p-4">
+          <ToolList design={design} />
+        </div>
+      </details>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 bg-amber-500 rounded-full" />
-          製作工序
-        </h2>
-        <BuildSteps design={design} />
-      </section>
+      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800 flex items-center gap-2">
+            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            📋 製作工序
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200 p-4">
+          <BuildSteps design={design} />
+        </div>
+      </details>
     </main>
   );
 }
