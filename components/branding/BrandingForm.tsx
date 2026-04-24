@@ -8,7 +8,7 @@ const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
 export function BrandingForm() {
   const { data, hydrated, update, reset } = useBranding();
   const [logoError, setLogoError] = useState<string>("");
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   if (!hydrated) {
     return (
@@ -55,7 +55,7 @@ export function BrandingForm() {
     JSON.stringify(data) === JSON.stringify(DEFAULT_BRANDING);
 
   return (
-    <section className="mt-4 rounded-lg border border-zinc-200 bg-white">
+    <section className="mt-3 rounded-lg border border-zinc-200 bg-white">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

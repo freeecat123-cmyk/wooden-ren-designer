@@ -164,7 +164,7 @@ export function QuoteHistory({ current }: Props) {
   if (entries.length === 0) return null;
 
   return (
-    <details open className="mb-4 rounded-lg border border-zinc-200 bg-white">
+    <details className="mt-3 rounded-lg border border-zinc-200 bg-white">
       <summary className="cursor-pointer list-none px-4 py-2.5 text-sm flex items-center justify-between hover:bg-zinc-50">
         <span className="font-medium text-zinc-800 flex items-center gap-2 flex-wrap">
           📁 最近報價（{entries.length}）
@@ -177,7 +177,7 @@ export function QuoteHistory({ current }: Props) {
             </span>
           )}
         </span>
-        <span className="text-xs text-zinc-400">點擊收合</span>
+        <span className="text-xs text-zinc-400">展開 / 收合</span>
       </summary>
       <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
         {entries.map((e, i) => {

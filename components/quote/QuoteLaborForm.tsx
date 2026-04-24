@@ -107,116 +107,109 @@ export function QuoteLaborForm({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
 
-      {/* 快速預設 */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-zinc-500 font-medium">快速套入：</span>
-        {PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => applyPreset(p)}
-            className="text-xs px-3 py-1 rounded-full border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-          >
-            {p.emoji} {p.label}
-          </button>
-        ))}
-        {pending && (
-          <span className="text-xs text-zinc-400 ml-1 animate-pulse">更新中…</span>
-        )}
-      </div>
+      {/* 客戶資料 */}
+      <CustomerForm initial={initialCustomer} />
 
-      <div className="mb-4 pb-4 border-b border-zinc-100">
-        <CustomerForm initial={initialCustomer} />
-      </div>
-
-      <fieldset className="mb-3 p-3 rounded-md bg-emerald-50 border-2 border-emerald-300">
-        <legend className="text-sm text-emerald-800 font-semibold px-2">
-          ✅ 附加條款（會印到 PDF 備註區）
-        </legend>
-        <div className="flex flex-wrap gap-6 text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
+      {/* 常用微調：議價 / 數量 / 折扣 / 訂金 + 含運/含安裝 */}
+      <fieldset className="mt-5 pt-4 border-t border-zinc-200">
+        <div className="flex items-baseline justify-between mb-2">
+          <legend className="text-xs text-zinc-500 font-medium">
+            💰 議價與條款（最常微調）
+          </legend>
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <span>套用：</span>
+            {PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className="px-2 py-0.5 rounded-full border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 transition-colors text-[11px] text-zinc-700"
+              >
+                {p.emoji} {p.label}
+              </button>
+            ))}
+            {pending && (
+              <span className="text-zinc-400 animate-pulse ml-1">更新中…</span>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <NumField
+            name="overrideUnitPrice"
+            label="議價 NT$（0=不覆寫）"
+            value={defaults.overrideUnitPrice}
+            min={LABOR_BOUNDS.overrideUnitPrice.min}
+            max={LABOR_BOUNDS.overrideUnitPrice.max}
+            step={LABOR_BOUNDS.overrideUnitPrice.step}
+            hint="客戶砍到 25000 就填 → 毛利自動反算"
+          />
+          <NumField name="quantity" label="數量" value={defaults.quantity} min={LABOR_BOUNDS.quantity.min} max={LABOR_BOUNDS.quantity.max} step={LABOR_BOUNDS.quantity.step} />
+          <NumField name="discountRate" label="折扣率" value={defaults.discountRate} min={LABOR_BOUNDS.discountRate.min} max={LABOR_BOUNDS.discountRate.max} step={LABOR_BOUNDS.discountRate.step} decimal hint="0.05 = 95 折" />
+          <NumField name="depositRate" label="訂金比例" value={defaults.depositRate} min={LABOR_BOUNDS.depositRate.min} max={LABOR_BOUNDS.depositRate.max} step={LABOR_BOUNDS.depositRate.step} decimal hint="0.5 = 50%" />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               name="termIncludeShipping"
               value="1"
               defaultChecked={terms.termIncludeShipping}
-              className="w-5 h-5"
+              className="w-4 h-4"
             />
-            <span className="font-medium">🚚 報價含運費</span>
-            <span className="text-[10px] text-zinc-500">（不勾會印「運費另計」）</span>
+            <span>🚚 含運費</span>
+            <span className="text-[10px] text-zinc-400">（PDF 備註）</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               name="termIncludeInstallation"
               value="1"
               defaultChecked={terms.termIncludeInstallation}
-              className="w-5 h-5"
+              className="w-4 h-4"
             />
-            <span className="font-medium">🔧 含現場安裝</span>
-            <span className="text-[10px] text-zinc-500">（不勾會印「不含安裝」）</span>
+            <span>🔧 含現場安裝</span>
+            <span className="text-[10px] text-zinc-400">（PDF 備註）</span>
           </label>
         </div>
       </fieldset>
 
-      <fieldset className="mb-3 p-2 rounded bg-amber-50 border border-amber-200">
-        <legend className="text-xs text-amber-800 mb-1 font-medium px-1">
-          💰 議價覆寫（留 0 = 沿用成本加成）
-        </legend>
-        <div className="grid grid-cols-1">
-          <NumField
-            name="overrideUnitPrice"
-            label="單件最終價 NT$（未稅）"
-            value={defaults.overrideUnitPrice}
-            min={LABOR_BOUNDS.overrideUnitPrice.min}
-            max={LABOR_BOUNDS.overrideUnitPrice.max}
-            step={LABOR_BOUNDS.overrideUnitPrice.step}
-            hint="例：客戶砍到 NT$25,000，填 25000 → 成本明細保留、毛利自動反算"
-          />
-        </div>
-      </fieldset>
-
-      <fieldset className="mb-3">
-        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
-          數量 / 折扣 / 有效期 / 訂金 / 交期
-        </legend>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <NumField name="quantity" label="數量" value={defaults.quantity} min={LABOR_BOUNDS.quantity.min} max={LABOR_BOUNDS.quantity.max} step={LABOR_BOUNDS.quantity.step} />
-          <NumField name="discountRate" label="折扣率（0–50%）" value={defaults.discountRate} min={LABOR_BOUNDS.discountRate.min} max={LABOR_BOUNDS.discountRate.max} step={LABOR_BOUNDS.discountRate.step} decimal hint="0.05 = 95 折；0 表示無折扣" />
-          <NumField name="expiryDays" label="有效期（天）" value={defaults.expiryDays} min={LABOR_BOUNDS.expiryDays.min} max={LABOR_BOUNDS.expiryDays.max} step={LABOR_BOUNDS.expiryDays.step} />
-          <NumField name="depositRate" label="訂金比例" value={defaults.depositRate} min={LABOR_BOUNDS.depositRate.min} max={LABOR_BOUNDS.depositRate.max} step={LABOR_BOUNDS.depositRate.step} decimal hint="0.5 = 50%；0 表示不收訂金" />
-          <NumField name="bufferDays" label="塗裝/出貨緩衝（天）" value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint="乾燥+出貨，併入交期" />
-        </div>
-      </fieldset>
-
-      {/* 進階成本設定（折疊） */}
-      <div className="mb-3">
+      {/* 進階設定（折疊）：有效期/緩衝/材料單價/工資/毛利率/稅率 */}
+      <div className="mt-4 pt-3 border-t border-zinc-100">
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           className="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-colors"
         >
           <span>{showAdvanced ? "▲" : "▼"}</span>
-          <span>進階成本設定（材料單價、工資）</span>
+          <span>進階設定（有效期、材料單價、時薪、毛利率、稅率）</span>
         </button>
 
         {showAdvanced && (
-          <div className="mt-3 space-y-3 border-t border-zinc-100 pt-3">
+          <div className="mt-3 space-y-4">
+            <fieldset>
+              <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+                有效期 / 交期緩衝
+              </legend>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <NumField name="expiryDays" label="報價有效期（天）" value={defaults.expiryDays} min={LABOR_BOUNDS.expiryDays.min} max={LABOR_BOUNDS.expiryDays.max} step={LABOR_BOUNDS.expiryDays.step} />
+                <NumField name="bufferDays" label="塗裝/出貨緩衝（天）" value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint="乾燥+出貨，併入交期" />
+              </div>
+            </fieldset>
             <fieldset>
               <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
                 材料單價（NT$/板才）
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <NumField name="primaryMaterialPricePerBdft" label={`${primaryMaterialName}（主材）`} value={defaults.primaryMaterialPricePerBdft} min={LABOR_BOUNDS.primaryMaterialPricePerBdft.min} max={LABOR_BOUNDS.primaryMaterialPricePerBdft.max} step={LABOR_BOUNDS.primaryMaterialPricePerBdft.step} />
-                <NumField name="plywoodPricePerBdft" label="夾板（背板/抽屜底）" value={defaults.plywoodPricePerBdft} min={LABOR_BOUNDS.plywoodPricePerBdft.min} max={LABOR_BOUNDS.plywoodPricePerBdft.max} step={LABOR_BOUNDS.plywoodPricePerBdft.step} optional hint="留空則併入主材" />
-                <NumField name="mdfPricePerBdft" label="中纖板（抽屜側背）" value={defaults.mdfPricePerBdft} min={LABOR_BOUNDS.mdfPricePerBdft.min} max={LABOR_BOUNDS.mdfPricePerBdft.max} step={LABOR_BOUNDS.mdfPricePerBdft.step} optional hint="留空則併入主材" />
+                <NumField name="plywoodPricePerBdft" label="夾板（背板/抽屜底）" value={defaults.plywoodPricePerBdft} min={LABOR_BOUNDS.plywoodPricePerBdft.min} max={LABOR_BOUNDS.plywoodPricePerBdft.max} step={LABOR_BOUNDS.plywoodPricePerBdft.step} optional hint="留空併入主材" />
+                <NumField name="mdfPricePerBdft" label="中纖板（抽屜側背）" value={defaults.mdfPricePerBdft} min={LABOR_BOUNDS.mdfPricePerBdft.min} max={LABOR_BOUNDS.mdfPricePerBdft.max} step={LABOR_BOUNDS.mdfPricePerBdft.step} optional hint="留空併入主材" />
               </div>
             </fieldset>
             <fieldset>
               <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
-                工資 / 其他
+                時薪 / 雜項 / 毛利
               </legend>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <NumField name="hourlyRate" label="師傅時薪 (NT$/hr)" value={defaults.hourlyRate} min={LABOR_BOUNDS.hourlyRate.min} max={LABOR_BOUNDS.hourlyRate.max} step={LABOR_BOUNDS.hourlyRate.step} />
                 <NumField name="equipmentRate" label="設備折舊 (NT$/hr)" value={defaults.equipmentRate} min={LABOR_BOUNDS.equipmentRate.min} max={LABOR_BOUNDS.equipmentRate.max} step={LABOR_BOUNDS.equipmentRate.step} />
                 <NumField name="consumables" label="耗材 (NT$)" value={defaults.consumables} min={LABOR_BOUNDS.consumables.min} max={LABOR_BOUNDS.consumables.max} step={LABOR_BOUNDS.consumables.step} />
@@ -231,13 +224,6 @@ export function QuoteLaborForm({
           </div>
         )}
       </div>
-
-      <button
-        type="submit"
-        className="mt-1 px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
-      >
-        重新計算
-      </button>
     </form>
   );
 }

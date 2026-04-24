@@ -163,7 +163,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     .slice(0, 10);
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
+    <main className="max-w-6xl mx-auto px-6 py-8">
       <Link
         href={`/design/${type}?${designQuery}`}
         className="text-sm text-zinc-500 hover:underline"
@@ -171,15 +171,15 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         ← 回{entry.nameZh}設計
       </Link>
 
-      <header className="mt-3 mb-6 flex items-baseline justify-between flex-wrap gap-3">
+      <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900">客製家具報價</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h1 className="text-2xl font-bold text-zinc-900">客製家具報價</h1>
+          <p className="mt-0.5 text-xs text-zinc-500">
             {entry.nameZh} · {length} × {width} × {height} mm ·{" "}
-            {MATERIALS[material].nameZh}
+            {MATERIALS[material].nameZh} · #{quoteNo}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <ViewModeToggle current={viewMode} />
           <LineShareButton
             customerName={customer.name}
@@ -213,38 +213,88 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <Link
             href={`/design/${type}/quote/print?${fullQuery}`}
             target="_blank"
-            className="px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
+            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
           >
             🧾 列印 / PDF
           </Link>
         </div>
       </header>
 
-      <QuoteHistory
-        current={{
-          customerName: customer.name,
-          furnitureName: entry.nameZh,
-          query: fullQuery,
-          total: quote.total,
-          quoteNo,
-        }}
-      />
+      {/* 主視覺：表單 ↔ 總價卡 並排 */}
+      <section className="grid lg:grid-cols-[3fr_2fr] gap-4">
+        <QuoteLaborForm
+          type={type}
+          designQuery={designQuery}
+          defaults={laborOpts}
+          primaryMaterialName={MATERIALS[material].nameZh}
+          initialCustomer={customer}
+          terms={{ termIncludeShipping, termIncludeInstallation }}
+        />
 
-      <QuoteLaborForm
-        type={type}
-        designQuery={designQuery}
-        defaults={laborOpts}
-        primaryMaterialName={MATERIALS[material].nameZh}
-        initialCustomer={customer}
-        terms={{ termIncludeShipping, termIncludeInstallation }}
-      />
+        {/* 右側：總價摘要卡（lg 以上 sticky） */}
+        <aside className="lg:sticky lg:top-4 self-start space-y-3">
+          <div className="rounded-xl border-2 border-zinc-900 bg-white overflow-hidden shadow-sm">
+            <div className="bg-zinc-900 text-white px-4 py-3">
+              <div className="text-[10px] uppercase tracking-wider opacity-70">
+                {laborOpts.vatRate > 0 ? "含稅總計" : "總計"}
+              </div>
+              <div className="mt-0.5 text-3xl font-mono font-bold">
+                {formatTWD(quote.total)}
+              </div>
+              {quote.quantity > 1 && (
+                <div className="text-[10px] opacity-70 mt-0.5">
+                  {quote.quantity} 件 · 單件 {formatTWD(quote.unitPriceExclVat)}（未稅）
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200">
+              <div className="p-3">
+                <div className="text-[10px] text-emerald-700 font-medium">
+                  訂金（{(laborOpts.depositRate * 100).toFixed(0)}%）
+                </div>
+                <div className="mt-0.5 text-base font-mono font-semibold text-emerald-900">
+                  {formatTWD(quote.depositAmount)}
+                </div>
+              </div>
+              <div className="p-3">
+                <div className="text-[10px] text-zinc-600 font-medium">
+                  尾款（{((1 - laborOpts.depositRate) * 100).toFixed(0)}%）
+                </div>
+                <div className="mt-0.5 text-base font-mono font-semibold text-zinc-900">
+                  {formatTWD(quote.balanceAmount)}
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-sky-50">
+              <div className="text-[10px] text-sky-700 font-medium">預計交期</div>
+              <div className="mt-0.5 text-base font-mono font-semibold text-sky-900">
+                {deliveryIso}
+              </div>
+              <div className="text-[10px] text-sky-700 mt-0.5">
+                約 {quote.estimatedWorkdays} 個工作天 · 工時 {quote.laborHours.toFixed(1)}h
+              </div>
+            </div>
+          </div>
 
-      <BrandingForm />
+          {/* 報價有效期 / 簡訊提示 */}
+          <div className="text-[11px] text-zinc-500 px-1">
+            報價有效至 {expiryIso}（{laborOpts.expiryDays} 天）
+          </div>
+        </aside>
+      </section>
 
-      <CsvExportButton design={design} />
-
-      <section className="mt-8 rounded-xl border border-zinc-200 bg-white overflow-hidden">
-        <table className="w-full text-sm">
+      {/* 成本明細（折疊） */}
+      <details className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800">
+            📊 成本明細（材料 + 工資 + 毛利 拆解）
+          </span>
+          <span className="text-xs text-zinc-400 flex items-center gap-3">
+            <CsvExportButton design={design} />
+            <span>展開 / 收合</span>
+          </span>
+        </summary>
+        <table className="w-full text-sm border-t border-zinc-200">
           <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
               <th className="text-left p-3">項目</th>
@@ -354,51 +404,34 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             )}
           </tfoot>
         </table>
-      </section>
+      </details>
 
-      <section className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <div className="text-[10px] text-emerald-700 font-medium">訂金（下訂時收）</div>
-          <div className="mt-1 text-lg font-mono font-semibold text-emerald-900">
-            {formatTWD(quote.depositAmount)}
-          </div>
-          <div className="text-[10px] text-emerald-700 mt-0.5">
-            {(laborOpts.depositRate * 100).toFixed(0)}% of {formatTWD(quote.total)}
-          </div>
-        </div>
-        <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-3">
-          <div className="text-[10px] text-zinc-700 font-medium">尾款（交貨時收）</div>
-          <div className="mt-1 text-lg font-mono font-semibold text-zinc-900">
-            {formatTWD(quote.balanceAmount)}
-          </div>
-          <div className="text-[10px] text-zinc-600 mt-0.5">
-            {((1 - laborOpts.depositRate) * 100).toFixed(0)}% 餘額
-          </div>
-        </div>
-        <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
-          <div className="text-[10px] text-sky-700 font-medium">預計交期</div>
-          <div className="mt-1 text-lg font-mono font-semibold text-sky-900">
-            {addWorkdays(new Date(), quote.estimatedWorkdays).toISOString().slice(0, 10)}
-          </div>
-          <div className="text-[10px] text-sky-700 mt-0.5">
-            約 {quote.estimatedWorkdays} 個工作天（工時 {quote.laborHours.toFixed(1)}h ÷ 8 + 緩衝 {laborOpts.bufferDays}）
-          </div>
-        </div>
-      </section>
+      {/* 公司抬頭 / 付款條件（折疊） */}
+      <BrandingForm />
 
-      <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 leading-relaxed">
-        <p className="font-semibold mb-1">報價說明</p>
-        <ul className="list-disc pl-5 space-y-0.5">
+      {/* 最近報價（自帶 details，預設折疊） */}
+      <QuoteHistory
+        current={{
+          customerName: customer.name,
+          furnitureName: entry.nameZh,
+          query: fullQuery,
+          total: quote.total,
+          quoteNo,
+        }}
+      />
+
+      {/* 報價說明（折疊） */}
+      <details className="mt-4 rounded-lg border border-amber-200 bg-amber-50 overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-2 text-xs text-amber-900 font-medium hover:bg-amber-100">
+          ℹ️ 報價說明（材料計法、工時來源、不含項目）
+        </summary>
+        <ul className="px-4 pb-3 pt-1 list-disc pl-9 space-y-0.5 text-xs text-amber-900 leading-relaxed">
           <li>材料以「板才」計（1 板才 = 1&quot; × 12&quot; × 12&quot; ≈ 2,360 cm³ ≈ 8.5 台才），已含 10% 切料損耗</li>
           <li>工時從製作工序自動加總，依難度與零件數估算</li>
           <li>本工具估算值僅供參考，實際報價請師傅依現場條件微調</li>
           <li>不含跨區運費、現場安裝、五金（滑軌/鉸鏈）另計</li>
         </ul>
-      </div>
-
-      <p className="mt-4 text-xs text-zinc-500">
-        報價單編號：{quoteNo}
-      </p>
+      </details>
     </main>
   );
 }
