@@ -1,17 +1,7 @@
 import type { StockGroup } from "@/lib/cutplan";
 import { MATERIALS } from "@/lib/materials";
 import { SheetBinSvg } from "./SheetBinSvg";
-
-const PART_COLORS = [
-  "#fde68a", "#fca5a5", "#a5f3fc", "#bef264", "#c4b5fd",
-  "#f9a8d4", "#fdba74", "#86efac", "#93c5fd", "#f0abfc",
-];
-
-function colorFor(partId: string): string {
-  let h = 0;
-  for (let i = 0; i < partId.length; i++) h = (h * 31 + partId.charCodeAt(i)) >>> 0;
-  return PART_COLORS[h % PART_COLORS.length];
-}
+import { colorForCode } from "@/lib/cutplan/colors";
 
 function kindLabel(kind: StockGroup["kind"]): string {
   if (kind === "plywood") return "夾板";
@@ -55,7 +45,12 @@ export function CutPlanSection({
       {group.bins.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {group.bins.map((bin, i) => (
-            <SheetBinSvg key={i} bin={bin} index={i + 1} colorFor={colorFor} />
+            <SheetBinSvg
+              key={i}
+              bin={bin}
+              index={i + 1}
+              colorFor={(piece) => colorForCode(piece.code ?? piece.partId)}
+            />
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { SheetBin } from "@/lib/cutplan";
+import type { CutPiece, SheetBin } from "@/lib/cutplan";
 
 export function SheetBinSvg({
   bin,
@@ -7,7 +7,7 @@ export function SheetBinSvg({
 }: {
   bin: SheetBin;
   index: number;
-  colorFor: (partId: string) => string;
+  colorFor: (piece: CutPiece) => string;
 }) {
   const PAD = 14;
   // 以長邊 = x 軸、寬邊 = y 軸畫。最大 SVG 寬度 500。
@@ -48,7 +48,7 @@ export function SheetBinSvg({
             const y = PAD + p.y * scale;
             const w = p.w * scale;
             const h = p.h * scale;
-            const color = colorFor(p.piece.partId);
+            const color = colorFor(p.piece);
             return (
               <g key={`${si}-${pi}`}>
                 <rect
@@ -60,14 +60,14 @@ export function SheetBinSvg({
                   stroke="#52525b"
                   strokeWidth={0.5}
                 />
-                {/* 編號：threshold 用 viewBox 單位（svg coord）夠放就顯示 */}
-                {p.piece.code && w >= 10 && h >= 8 && (
+                {/* 編號：threshold 放寬；字級隨 h 縮放但保底 5，上限 14 */}
+                {p.piece.code && w >= 8 && h >= 3 && (
                   <text
                     x={x + w / 2}
                     y={y + h / 2}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={Math.min(14, Math.max(6, h * 0.55))}
+                    fontSize={Math.min(14, Math.max(5, h * 0.7))}
                     fill="#18181b"
                     fontWeight={800}
                     fontFamily="monospace"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { indexToCode } from "@/lib/cutplan/piece-spec";
+import { colorForCode } from "@/lib/cutplan/colors";
 import { MATERIALS } from "@/lib/materials";
 import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
 import { SOLID_WOOD_THICKNESSES, SHEET_THICKNESSES } from "@/lib/cutplan";
@@ -187,7 +188,10 @@ export function PiecesEditor({
                 return (
                   <tr key={s.id} className="border-t border-zinc-100">
                     <td className="px-2 py-1 text-center">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-zinc-800 text-white text-xs font-bold font-mono">
+                      <span
+                        className="inline-flex items-center justify-center w-7 h-7 rounded border border-zinc-400 text-zinc-900 text-xs font-bold font-mono"
+                        style={{ backgroundColor: colorForCode(code) }}
+                      >
                         {code}
                       </span>
                     </td>

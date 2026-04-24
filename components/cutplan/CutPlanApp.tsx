@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { NestConfig } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { planFromSpecs, indexToCode } from "@/lib/cutplan/piece-spec";
+import { colorForCode } from "@/lib/cutplan/colors";
 import { MATERIALS } from "@/lib/materials";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
@@ -127,9 +128,18 @@ export function CutPlanApp({
             </tr>
           </thead>
           <tbody>
-            {specs.map((s, idx) => (
+            {specs.map((s, idx) => {
+              const code = indexToCode(idx);
+              return (
               <tr key={s.id} className="border-b border-zinc-100">
-                <td className="p-1 text-center font-mono font-bold">{indexToCode(idx)}</td>
+                <td className="p-1 text-center font-mono font-bold">
+                  <span
+                    className="inline-block w-5 h-5 rounded border border-zinc-400 leading-5"
+                    style={{ backgroundColor: colorForCode(code) }}
+                  >
+                    {code}
+                  </span>
+                </td>
                 <td className="p-1">{s.name}</td>
                 <td className="p-1">
                   {MATERIALS[s.material]?.nameZh ?? s.material}
@@ -144,7 +154,8 @@ export function CutPlanApp({
                 </td>
                 <td className="text-right p-1">{s.quantity}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </section>
