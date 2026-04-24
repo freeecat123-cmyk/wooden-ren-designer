@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/check-behind.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x \"C:/Users/freee/Desktop/wooden-ren-designer/.git/hooks/post-commit\" \"C:/Users/freee/Desktop/wooden-ren-designer/.claude/check-behind.sh\")"
+    ]
+  }
+}
