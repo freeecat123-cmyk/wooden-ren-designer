@@ -1,6 +1,6 @@
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 import { buildCutPieces, materialZh } from "./group";
-import { packGroup } from "./pack";
+import { buildSharedPool, packGroup } from "./pack";
 import type { CutPiece, NestConfig, NestPlan, StockItem } from "./types";
 
 export * from "./types";
@@ -66,14 +66,22 @@ export function computePlanFromPieces(
     groupMap.get(gk)!.pieces.push(...pieces);
   }
 
-  const groups = Array.from(groupMap.values())
+  // 共享 pool：庫存不綁厚度，所以同一筆庫存的 count 會跨 group 共享消耗
+  const sharedPool = buildSharedPool(config.inventory);
+
+  // 依厚度降冪排（厚先排，厚零件佔空間大、先佔用有限庫存比較合理）
+  const orderedGroups = Array.from(groupMap.values()).sort(
+    (a, b) => b.key.thickness - a.key.thickness,
+  );
+
+  const groups = orderedGroups
     .map(({ key, pieces }) =>
       packGroup(
         key.kind,
         key.material,
         key.thickness,
         pieces,
-        config.inventory,
+        sharedPool,
         config.kerf,
         config.minWasteMm,
         config.allowSheetRotate,

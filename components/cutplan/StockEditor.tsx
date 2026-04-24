@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import type { StockItem } from "@/lib/cutplan";
-import { SOLID_WOOD_THICKNESSES, SHEET_THICKNESSES } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { MATERIALS } from "@/lib/materials";
 import type { MaterialId } from "@/lib/types";
@@ -16,34 +14,28 @@ export function StockEditor({
   inventory: StockItem[];
   onChange: (next: StockItem[]) => void;
 }) {
-  // 偵測零件用到但沒列的 (kind, material?, thickness) 組合——給快速加按鈕
+  // 偵測零件用到但庫存沒列的 (kind, material?) 組合——給快速加按鈕
+  // 不再依厚度匹配：庫存不綁厚度，一筆 maple 1818×200 可同時供應 25/38mm 零件
   const usedKeys = new Set<string>();
   const usedMeta = new Map<
     string,
-    { kind: StockItem["kind"]; material?: MaterialId; thickness: number }
+    { kind: StockItem["kind"]; material?: MaterialId }
   >();
   for (const s of specs) {
     const kind: StockItem["kind"] =
       s.billable === "plywood" || s.billable === "mdf" ? s.billable : "solid";
-    const key =
-      kind === "solid"
-        ? `solid|${s.material}|${s.thickness}`
-        : `${kind}|${s.thickness}`;
+    const key = kind === "solid" ? `solid|${s.material}` : kind;
     if (!usedKeys.has(key)) {
       usedKeys.add(key);
       usedMeta.set(key, {
         kind,
         material: kind === "solid" ? s.material : undefined,
-        thickness: s.thickness,
       });
     }
   }
   const coveredKeys = new Set<string>();
   for (const s of inventory) {
-    const key =
-      s.kind === "solid"
-        ? `solid|${s.material}|${s.thickness}`
-        : `${s.kind}|${s.thickness}`;
+    const key = s.kind === "solid" ? `solid|${s.material}` : s.kind;
     coveredKeys.add(key);
   }
 
@@ -53,7 +45,7 @@ export function StockEditor({
       {
         kind: "solid",
         material: "maple",
-        thickness: 25,
+        thickness: 0,
         length: 1818,
         width: 200,
         count: null,
@@ -64,7 +56,6 @@ export function StockEditor({
   const quickAdd = (meta: {
     kind: StockItem["kind"];
     material?: MaterialId;
-    thickness: number;
   }) => {
     if (meta.kind === "solid") {
       onChange([
@@ -72,7 +63,7 @@ export function StockEditor({
         {
           kind: "solid",
           material: meta.material,
-          thickness: meta.thickness,
+          thickness: 0,
           length: 1818,
           width: 200,
           count: null,
@@ -83,7 +74,7 @@ export function StockEditor({
         ...inventory,
         {
           kind: meta.kind,
-          thickness: meta.thickness,
+          thickness: 0,
           length: 2440,
           width: 1220,
           count: null,
@@ -116,11 +107,9 @@ export function StockEditor({
               </span>
             ) : (
               <>
-                實木常見厚度{" "}
-                <span className="font-mono">25 / 32 / 38 / 51 / 76 / 102mm</span>
-                （1&quot; / 1¼&quot; / 1½&quot; / 2&quot; / 3&quot; / 4&quot;）
-                ；夾板{" "}
-                <span className="font-mono">{SHEET_THICKNESSES.join(" / ")}mm</span>
+                依「類別＋材質＋長寬」記錄實際庫存，
+                <span className="font-semibold">不綁厚度</span>
+                ；同一筆可同時供應不同厚度的零件（現場刨到所需厚度）。
               </>
             )}
           </p>
@@ -140,9 +129,8 @@ export function StockEditor({
               <tr>
                 <th className="text-left px-3 py-2 w-28">類別</th>
                 <th className="text-left px-3 py-2 w-28">材質</th>
-                <th className="text-right px-2 py-2 w-24">厚 (mm)</th>
-                <th className="text-right px-2 py-2 w-24">長 (mm)</th>
-                <th className="text-right px-2 py-2 w-24">寬 (mm)</th>
+                <th className="text-right px-2 py-2 w-28">長 (mm)</th>
+                <th className="text-right px-2 py-2 w-28">寬 (mm)</th>
                 <th className="text-right px-2 py-2 w-20">支數</th>
                 <th className="px-2 py-2 w-12"></th>
               </tr>
@@ -189,13 +177,6 @@ export function StockEditor({
                     ) : (
                       <span className="text-xs text-zinc-400 px-2">—</span>
                     )}
-                  </td>
-                  <td className="px-2 py-1">
-                    <ThicknessSelect
-                      value={s.thickness}
-                      isSheet={s.kind !== "solid"}
-                      onChange={(t) => patchRow(idx, { thickness: t })}
-                    />
                   </td>
                   <td className="px-2 py-1">
                     <input
@@ -260,8 +241,10 @@ export function StockEditor({
               const meta = usedMeta.get(k)!;
               const label =
                 meta.kind === "solid"
-                  ? `${MATERIALS[meta.material!]?.nameZh ?? meta.material} × ${meta.thickness}mm`
-                  : `${meta.kind === "plywood" ? "夾板" : "中纖板"} × ${meta.thickness}mm`;
+                  ? MATERIALS[meta.material!]?.nameZh ?? meta.material
+                  : meta.kind === "plywood"
+                  ? "夾板"
+                  : "中纖板";
               return (
                 <button
                   key={k}
@@ -279,62 +262,3 @@ export function StockEditor({
   );
 }
 
-function ThicknessSelect({
-  value,
-  isSheet,
-  onChange,
-}: {
-  value: number;
-  isSheet: boolean;
-  onChange: (v: number) => void;
-}) {
-  const OTHER = "__other__";
-  const presets = isSheet ? SHEET_THICKNESSES : SOLID_WOOD_THICKNESSES;
-  const inPreset = presets.includes(value);
-  const [custom, setCustom] = useState(!inPreset && value > 0);
-
-  if (custom) {
-    return (
-      <div className="flex items-center gap-1">
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
-        />
-        <button
-          onClick={() => setCustom(false)}
-          className="text-xs text-zinc-400 hover:text-zinc-700"
-          title="切回下拉"
-        >
-          ⇆
-        </button>
-      </div>
-    );
-  }
-
-  const options = Array.from(new Set([...presets, value]))
-    .filter((n) => n > 0)
-    .sort((a, b) => a - b);
-
-  return (
-    <select
-      value={value}
-      onChange={(e) => {
-        if (e.target.value === OTHER) {
-          setCustom(true);
-          return;
-        }
-        onChange(Number(e.target.value));
-      }}
-      className="w-full px-2 py-1 border border-zinc-200 rounded text-sm text-right"
-    >
-      {options.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
-      ))}
-      <option value={OTHER}>其他…</option>
-    </select>
-  );
-}

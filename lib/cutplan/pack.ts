@@ -1,38 +1,52 @@
 import type { CutPiece, SheetBin, StockGroup, StockItem } from "./types";
 
+/** 可變 pool 項目：remaining 會跨 group 共享消耗 */
+export interface PoolItem {
+  kind: StockItem["kind"];
+  material?: StockGroup["material"];
+  length: number;
+  width: number;
+  remaining: number;
+}
+
+/** 從庫存產生共享 pool（不綁厚度——一筆庫存可同時供應多種厚度零件） */
+export function buildSharedPool(stocks: StockItem[]): PoolItem[] {
+  return stocks
+    .map<PoolItem>((s) => ({
+      kind: s.kind,
+      material: s.kind === "solid" ? s.material : undefined,
+      length: s.length,
+      width: s.width,
+      remaining: s.count === null || s.count <= 0 ? Infinity : s.count,
+    }))
+    .sort((a, b) => a.length * a.width - b.length * b.width);
+}
+
 /**
  * 統一 2D shelf 排料器：實木 + 板材走同一套邏輯。
  *
  * - 板材（plywood / mdf）：依 allowRotate 嘗試旋轉
  * - 實木（solid）：不旋轉（纖維方向敏感）
  *
- * 同 kind + (material if solid) + thickness 為一組。庫存清單裡篩出符合這組的
- * 板才，shelf 法塞入；庫存不夠或沒列 → unplaced。
+ * 同 kind + (material if solid) + thickness 為一組。但 sharedPool 不依厚度篩，
+ * 因此一筆實際庫存可同時供應不同厚度的零件（餘量在多個 group 之間共享消耗）。
  */
 export function packGroup(
   kind: StockItem["kind"],
   material: StockGroup["material"],
   thickness: number,
   pieces: CutPiece[],
-  stocks: StockItem[],
+  sharedPool: PoolItem[],
   kerf: number,
   minWasteMm: number,
   allowRotateForSolid: boolean,
 ): StockGroup {
-  // 從 inventory 過濾出這 group 可用的板才；面積小→大排序（小先用完）
-  const pool = stocks
-    .filter((s) => {
-      if (s.kind !== kind) return false;
-      if (kind === "solid" && s.material !== material) return false;
-      if (s.thickness !== thickness) return false;
-      return true;
-    })
-    .map((s) => ({
-      length: s.length,
-      width: s.width,
-      remaining: s.count === null || s.count <= 0 ? Infinity : s.count,
-    }))
-    .sort((a, b) => a.length * a.width - b.length * b.width);
+  void thickness;
+  const pool = sharedPool.filter((s) => {
+    if (s.kind !== kind) return false;
+    if (kind === "solid" && s.material !== material) return false;
+    return true;
+  });
 
   // 零件定向：長邊沿板長、短邊沿板寬
   const prepped = pieces.map((piece) => {
