@@ -150,10 +150,11 @@ export function packGroupGuillotine(
 
   function findBestFit(item: Item): Best | null {
     let best: Best | null = null;
+    // 勾了旋轉 = 優先用旋轉方向；給旋轉一個偏置讓它在 leftover 接近時贏
     const attempts = item.canRotate
       ? [
-          { w: item.w, h: item.h, rotated: false },
           { w: item.h, h: item.w, rotated: true },
+          { w: item.w, h: item.h, rotated: false },
         ]
       : [{ w: item.w, h: item.h, rotated: false }];
     for (let b = 0; b < bins.length; b++) {
@@ -162,7 +163,9 @@ export function packGroupGuillotine(
         const rect = rects[r];
         for (const att of attempts) {
           if (att.w <= rect.w && att.h <= rect.h) {
-            const leftover = Math.min(rect.w - att.w, rect.h - att.h);
+            // 偏置：旋轉方向的 leftover 打 90% 折扣（等效優先旋轉）
+            const raw = Math.min(rect.w - att.w, rect.h - att.h);
+            const leftover = att.rotated && item.canRotate ? raw * 0.9 : raw;
             if (!best || leftover < best.score) {
               best = {
                 binIdx: b,
