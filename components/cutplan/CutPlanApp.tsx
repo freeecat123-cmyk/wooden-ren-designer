@@ -112,7 +112,7 @@ export function CutPlanApp({
         </div>
       )}
 
-      <section className="hidden print:block mt-6">
+      <section className="hidden print:block mt-6 print:break-before-page">
         <h3 className="text-sm font-semibold mb-2">零件清單</h3>
         <table className="w-full text-xs border-collapse">
           <thead>
