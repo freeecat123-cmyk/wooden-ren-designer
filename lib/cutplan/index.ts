@@ -1,6 +1,7 @@
 import type { FurnitureDesign, MaterialId } from "@/lib/types";
 import { buildCutPieces, materialZh } from "./group";
 import { buildSharedPool, packGroup } from "./pack";
+import { packGroupGuillotine } from "./pack-guillotine";
 import type { CutPiece, NestConfig, NestPlan, StockItem } from "./types";
 
 export * from "./types";
@@ -70,19 +71,31 @@ export function computePlanFromPieces(
   const sharedPool = buildSharedPool(config.inventory);
 
   // packGroup 不再需要 thickness 參數（傳 0 佔位）
+  const strat = config.strategy ?? "ffd";
   const groups = Array.from(groupMap.values())
     .map(({ key, pieces }) =>
-      packGroup(
-        key.kind,
-        key.material,
-        0,
-        pieces,
-        sharedPool,
-        config.kerf,
-        config.minWasteMm,
-        config.allowSheetRotate,
-        config.strategy ?? "ffd",
-      ),
+      strat === "guillotine"
+        ? packGroupGuillotine(
+            key.kind,
+            key.material,
+            0,
+            pieces,
+            sharedPool,
+            config.kerf,
+            config.minWasteMm,
+            config.allowSheetRotate,
+          )
+        : packGroup(
+            key.kind,
+            key.material,
+            0,
+            pieces,
+            sharedPool,
+            config.kerf,
+            config.minWasteMm,
+            config.allowSheetRotate,
+            strat,
+          ),
     )
     .sort((a, b) => {
       const kindOrder = { solid: 0, plywood: 1, mdf: 2 };

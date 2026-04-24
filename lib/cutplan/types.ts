@@ -50,6 +50,8 @@ export interface SheetBin {
   }>;
   /** 已使用高度（含 shelf 之間 kerf） */
   usedHeight: number;
+  /** 標記：guillotine 排料的 bin，shelves 是虛擬的（每塊零件一個 shelf），不可自動畫 shelf-間 kerf 線 */
+  guillotine?: boolean;
 }
 
 /**
@@ -120,8 +122,9 @@ export interface NestConfig {
    * 排料策略：
    * - "ffd" First-Fit Decreasing：第一個塞得下的 shelf 就放（預設，快且穩定）
    * - "bfd" Best-Fit Decreasing：挑剩餘空間最少但塞得下的 shelf（通常利用率更高）
+   * - "guillotine" 刀線式：允許在放完零件後剩餘空間 L 型切，小零件可填入大零件旁的「肚子」空間
    */
-  strategy?: "ffd" | "bfd";
+  strategy?: "ffd" | "bfd" | "guillotine";
 }
 
 export interface NestPlan {

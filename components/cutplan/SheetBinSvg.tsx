@@ -130,24 +130,26 @@ export function SheetBinSvg({
           }
           return lines;
         })}
-        {/* shelf 之間水平鋸 */}
-        {bin.shelves.slice(0, -1).map((shelf, si) => {
-          const next = bin.shelves[si + 1];
-          const gapMid = shelf.y + shelf.height + (next.y - shelf.y - shelf.height) / 2;
-          const cutY = PAD + gapMid * scale;
-          return (
-            <line
-              key={`hk-${si}`}
-              x1={PAD}
-              y1={cutY}
-              x2={PAD + bin.stockLength * scale}
-              y2={cutY}
-              stroke="#18181b"
-              strokeWidth={0.8}
-              strokeDasharray="2 1"
-            />
-          );
-        })}
+        {/* shelf 之間水平鋸——guillotine 模式 shelves 非平行長條，跳過（鋸線無法一刀到底） */}
+        {!bin.guillotine &&
+          bin.shelves.slice(0, -1).map((shelf, si) => {
+            const next = bin.shelves[si + 1];
+            const gapMid =
+              shelf.y + shelf.height + (next.y - shelf.y - shelf.height) / 2;
+            const cutY = PAD + gapMid * scale;
+            return (
+              <line
+                key={`hk-${si}`}
+                x1={PAD}
+                y1={cutY}
+                x2={PAD + bin.stockLength * scale}
+                y2={cutY}
+                stroke="#18181b"
+                strokeWidth={0.8}
+                strokeDasharray="2 1"
+              />
+            );
+          })}
         {/* 零件左緣 x 座標標註（從板左起算 mm），供現場對尺 */}
         {bin.shelves.flatMap((shelf, si) =>
           shelf.pieces.map((p, pi) => {

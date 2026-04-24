@@ -55,15 +55,18 @@ export function CutPlanConfigPanel({
           <select
             value={value.strategy ?? "ffd"}
             onChange={(e) =>
-              patch({ strategy: e.target.value as "ffd" | "bfd" })
+              patch({
+                strategy: e.target.value as "ffd" | "bfd" | "guillotine",
+              })
             }
             className="w-full px-2 py-1 border rounded text-sm"
           >
             <option value="ffd">FFD 第一適合（穩）</option>
             <option value="bfd">BFD 最佳適合（省料）</option>
+            <option value="guillotine">Guillotine 刀線式（最省）</option>
           </select>
           <p className="text-[11px] text-zinc-400 mt-1">
-            BFD 挑最貼合的縫插零件，通常多 1–5% 利用率。
+            Guillotine 可讓小零件填入大零件旁的肚子，消除 shelf 尾巴死洞。
           </p>
         </div>
       </div>
