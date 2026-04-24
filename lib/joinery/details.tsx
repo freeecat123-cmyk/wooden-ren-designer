@@ -422,6 +422,59 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
           stroke={COLOR_OUTLINE}
           strokeWidth={0.5}
         />
+        {/* 楔片（wedges）：正規通榫的精髓——榫頭頂端鋸兩道縫，組裝後敲入楔片把榫頭撐開，
+            從另一面看是「鎖死」狀態，永遠拉不出來。畫成兩個小三角放在端面上方。 */}
+        {(() => {
+          const wedgeBase = PX(tt) * 0.18;
+          const wedgeH = 8;
+          const w1cx = asmChildX + PX(tt) * 0.28;
+          const w2cx = asmChildX + PX(tt) * 0.72;
+          // saw kerfs（榫頭內看不到，畫虛線提示）
+          return (
+            <g>
+              <line
+                x1={w1cx}
+                y1={asmChildTop}
+                x2={w1cx}
+                y2={asmChildTop + PX(mt) * 0.55}
+                stroke="#a85"
+                strokeWidth={0.8}
+                strokeDasharray="2 2"
+              />
+              <line
+                x1={w2cx}
+                y1={asmChildTop}
+                x2={w2cx}
+                y2={asmChildTop + PX(mt) * 0.55}
+                stroke="#a85"
+                strokeWidth={0.8}
+                strokeDasharray="2 2"
+              />
+              {/* 兩個楔片三角形 */}
+              <polygon
+                points={`${w1cx - wedgeBase},${asmChildTop - 5 - wedgeH} ${w1cx + wedgeBase},${asmChildTop - 5 - wedgeH} ${w1cx},${asmChildTop - 5}`}
+                fill="#a85"
+                stroke={COLOR_OUTLINE}
+                strokeWidth={0.5}
+              />
+              <polygon
+                points={`${w2cx - wedgeBase},${asmChildTop - 5 - wedgeH} ${w2cx + wedgeBase},${asmChildTop - 5 - wedgeH} ${w2cx},${asmChildTop - 5}`}
+                fill="#a85"
+                stroke={COLOR_OUTLINE}
+                strokeWidth={0.5}
+              />
+              <text
+                x={asmChildX + PX(tt) / 2}
+                y={asmChildTop - 5 - wedgeH - 4}
+                fontSize={8}
+                textAnchor="middle"
+                fill="#a85"
+              >
+                楔片 × 2（敲入後撐開榫頭，鎖死）
+              </text>
+            </g>
+          );
+        })()}
         <text
           x={asmChildX + PX(tt) + 4}
           y={asmChildTop - 1}
@@ -1016,8 +1069,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
   const tt = p.tenonThickness;
   const mt = p.motherThickness;
   const ct = p.childThickness ?? tt;
+  // 正規做法：凹槽深度比舌長多 1–2mm 留漲縮餘量（Popular Woodworking, Rockler）。
+  // 不留會在乾季時舌縮 → 整片浮，濕季時舌頂底 → 板被拘束撕裂。
+  const grooveDepth = tl + 1;
 
-  const s = fitScale(Math.max(mt * 2 + tl, ct * 2 + tl), 120);
+  const s = fitScale(Math.max(mt * 2 + grooveDepth, ct * 2 + tl), 120);
   const PX = (mm: number) => mm * s;
 
   const pieceLen = Math.max(PX(mt) * 2.5, 110);
@@ -1065,11 +1121,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fill={COLOR_MORTISE}
           stroke={COLOR_OUTLINE}
         />
-        {/* groove cut — centered thickness-wise */}
+        {/* groove cut — centered thickness-wise; depth = tongue + 1mm */}
         <rect
-          x={mAx + pieceLen - PX(tl)}
+          x={mAx + pieceLen - PX(grooveDepth)}
           y={mAy + PX(mt) / 2 - PX(tt) / 2}
-          width={PX(tl)}
+          width={PX(grooveDepth)}
           height={PX(tt)}
           fill="white"
           stroke={COLOR_OUTLINE}
@@ -1084,11 +1140,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           母件（凹槽）
         </text>
         <DimLine
-          x1={mAx + pieceLen - PX(tl)}
+          x1={mAx + pieceLen - PX(grooveDepth)}
           y1={mAy + PX(mt) / 2 - PX(tt) / 2 - 3}
           x2={mAx + pieceLen}
           y2={mAy + PX(mt) / 2 - PX(tt) / 2 - 3}
-          label={`槽深 ${tl}`}
+          label={`槽深 ${grooveDepth}`}
           side="top"
         />
         <DimLine
@@ -1179,6 +1235,23 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
+        {/* 1mm 漲縮空隙：舌的右端 vs 槽底之間的小空白 */}
+        <line
+          x1={asmX + pieceLen}
+          y1={mAy + PX(mt) / 2 - PX(tt) / 2 - 6}
+          x2={asmX + pieceLen}
+          y2={mAy + PX(mt) / 2 + PX(tt) / 2 + 6}
+          stroke="#a85"
+          strokeDasharray="2 2"
+        />
+        <text
+          x={asmX + pieceLen + 4}
+          y={mAy - 4}
+          fontSize={8}
+          fill="#a85"
+        >
+          ← 槽底比舌長深 1mm（漲縮餘量）
+        </text>
         <text
           x={asmX + pieceLen}
           y={mAy + PX(mt) + 20}
@@ -1860,6 +1933,303 @@ function DovetailDetail(p: JoineryDetailParams) {
           梯形咬合，抽屜前後板常用
         </text>
       </g>
+
+      {/* 角度標註：軟硬木標準角度。畫在分解圖下方一行小字 */}
+      <text
+        x={mAx}
+        y={mBodyBot + 32}
+        fontSize={9}
+        fill="#0a4d8c"
+      >
+        標準角度：硬木 1:8（≈7.1°）｜軟木 1:6（≈9.5°）— 軟木角大才不脫
+      </text>
+    </svg>
+  );
+}
+
+/* ============================================================
+ * 指接榫 finger-joint / box joint
+ *   兩塊板端面對端面 L 型接合，方齒交錯。指厚 = 板厚 / 2 是常見比例。
+ * ============================================================ */
+function FingerJointDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const ct = p.childThickness ?? p.tenonThickness;
+  const N = 5; // 視覺示意，非真實計算
+
+  const w = 720;
+  const h = 280;
+  const eX = 30;
+  const eY = 50;
+  const aX = 400;
+  const aY = 50;
+
+  const pieceLen = 320;
+  const pieceThk = 56;
+  const fingerW = pieceLen / (N * 2 - 1);
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <defs>
+        <Hatching id="hatch-finger" color="#7a5a2c" />
+      </defs>
+
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（兩片板端面對端面）
+      </text>
+
+      {/* A 件：奇數位指（1, 3, 5）凸出 */}
+      {(() => {
+        const points: string[] = [`${eX},${eY + pieceThk}`, `${eX},${eY}`];
+        for (let i = 0; i < N; i++) {
+          const baseX = eX + i * 2 * fingerW;
+          // 凸出區（finger）
+          points.push(`${baseX + fingerW},${eY}`);
+          points.push(`${baseX + fingerW},${eY - tl}`);
+          points.push(`${baseX + 2 * fingerW},${eY - tl}`);
+          points.push(`${baseX + 2 * fingerW},${eY}`);
+        }
+        // 最後一個 finger 後沒有凹槽
+        points.push(`${eX + pieceLen},${eY}`);
+        points.push(`${eX + pieceLen},${eY + pieceThk}`);
+        return (
+          <g>
+            <polygon points={points.join(" ")} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+            <text x={eX + pieceLen / 2} y={eY + pieceThk + 14} fontSize={9} textAnchor="middle" fill="#666">
+              A 件（{N} 個指）
+            </text>
+            <DimLine
+              x1={eX + 2 * fingerW}
+              y1={eY - tl - 4}
+              x2={eX + 3 * fingerW}
+              y2={eY - tl - 4}
+              label={`指寬 ${Math.round(ct)}`}
+              side="top"
+            />
+            <DimLine
+              x1={eX - 10}
+              y1={eY - tl}
+              x2={eX - 10}
+              y2={eY}
+              label={`指長 ${tl}`}
+              side="left"
+            />
+          </g>
+        );
+      })()}
+
+      {/* B 件：偶數位指（2, 4）凸出，畫在下方 */}
+      {(() => {
+        const bY = eY + pieceThk + 60;
+        const points: string[] = [`${eX},${bY - tl + tl}`, `${eX},${bY + pieceThk}`];
+        // 起始凹槽（即 A 的指 1 凸出位）
+        points.unshift(`${eX + fingerW},${bY}`);
+        points.unshift(`${eX + fingerW},${bY - tl}`);
+        points.unshift(`${eX},${bY - tl}`);
+        // 內部 N-1 個凸出指
+        const polyPts: string[] = [`${eX},${bY - tl}`, `${eX + fingerW},${bY - tl}`, `${eX + fingerW},${bY}`];
+        for (let i = 0; i < N - 1; i++) {
+          const baseX = eX + (i * 2 + 1) * fingerW;
+          polyPts.push(`${baseX + fingerW},${bY}`);
+          polyPts.push(`${baseX + fingerW},${bY - tl}`);
+          polyPts.push(`${baseX + 2 * fingerW},${bY - tl}`);
+          polyPts.push(`${baseX + 2 * fingerW},${bY}`);
+        }
+        polyPts.push(`${eX + pieceLen},${bY}`);
+        polyPts.push(`${eX + pieceLen},${bY + pieceThk}`);
+        polyPts.push(`${eX},${bY + pieceThk}`);
+        return (
+          <g>
+            <polygon points={polyPts.join(" ")} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+            <text x={eX + pieceLen / 2} y={bY + pieceThk + 14} fontSize={9} textAnchor="middle" fill="#666">
+              B 件（{N - 1} 個指 + 兩端凹）
+            </text>
+          </g>
+        );
+      })()}
+
+      {/* 組合：L 型轉角 */}
+      <text x={aX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合（L 型轉角）
+      </text>
+      <g>
+        {/* 水平 A 件 */}
+        <rect x={aX} y={aY + 60} width={200} height={pieceThk} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* 垂直 B 件 */}
+        <rect
+          x={aX + 200}
+          y={aY + 60}
+          width={pieceThk}
+          height={150}
+          fill="url(#hatch-finger)"
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 指接縫線 */}
+        <g stroke={COLOR_OUTLINE} strokeWidth={0.6} strokeDasharray="2 2">
+          {Array.from({ length: N * 2 - 1 }).map((_, i) => {
+            const y = aY + 60 + ((i + 1) * pieceThk) / (N * 2);
+            return <line key={i} x1={aX + 200} y1={y} x2={aX + 200 + pieceThk} y2={y} />;
+          })}
+        </g>
+        <text x={aX + 100} y={aY + pieceThk + 80} fontSize={9} textAnchor="middle" fill="#666">
+          方齒交錯，膠合面積大
+        </text>
+      </g>
+
+      <text x={eX} y={h - 10} fontSize={9} fill="#0a4d8c">
+        指厚常用 = 板厚 1/2（{ct}mm 板 → {Math.round(ct / 2)}mm 指厚），比例 1:1 或 1:2 都可
+      </text>
+    </svg>
+  );
+}
+
+/* ============================================================
+ * 圓棒榫 dowel
+ *   兩件對接，鑽配對孔插入木釘。釘徑 = 板厚 1/3（最大 1/2），
+ *   長 = 徑 × 1.5 + 1/16" 餘量。
+ * ============================================================ */
+function DowelDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tt = p.tenonThickness; // 釘徑
+  const ct = p.childThickness ?? p.tenonThickness;
+  const cw = p.childWidth ?? p.tenonWidth;
+
+  const w = 720;
+  const h = 260;
+
+  const eX = 30;
+  const eY = 50;
+  const aX = 400;
+  const aY = 50;
+
+  // 視覺：A 件在左、B 件在右，中間兩根木釘
+  const pieceLen = 130;
+  const pieceThk = Math.max(36, ct * 1.2);
+  const dowelDiamPx = Math.max(8, tt * 0.8);
+  const dowelLenPx = Math.max(40, tl * 1.4);
+
+  const dy1 = eY + pieceThk * 0.3;
+  const dy2 = eY + pieceThk * 0.7;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（兩件 + 木釘）
+      </text>
+      <text x={eX} y={36} fontSize={9} fill="#888">
+        兩件對接面各鑽配對孔（位置誤差 &lt; 0.3mm），插入木釘
+      </text>
+
+      {/* A 件 */}
+      <rect x={eX} y={eY} width={pieceLen} height={pieceThk} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <circle cx={eX + pieceLen - 8} cy={dy1} r={dowelDiamPx / 2} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="2 2" />
+      <circle cx={eX + pieceLen - 8} cy={dy2} r={dowelDiamPx / 2} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="2 2" />
+      <text x={eX + pieceLen / 2} y={eY + pieceThk + 14} fontSize={9} textAnchor="middle" fill="#666">
+        A 件（兩側鑽孔）
+      </text>
+
+      {/* 木釘（中央兩根） */}
+      <rect
+        x={eX + pieceLen + 30}
+        y={dy1 - dowelDiamPx / 2}
+        width={dowelLenPx}
+        height={dowelDiamPx}
+        fill={COLOR_TENON}
+        stroke={COLOR_OUTLINE}
+        rx={dowelDiamPx / 2}
+      />
+      <rect
+        x={eX + pieceLen + 30}
+        y={dy2 - dowelDiamPx / 2}
+        width={dowelLenPx}
+        height={dowelDiamPx}
+        fill={COLOR_TENON}
+        stroke={COLOR_OUTLINE}
+        rx={dowelDiamPx / 2}
+      />
+      <text
+        x={eX + pieceLen + 30 + dowelLenPx / 2}
+        y={eY + pieceThk + 14}
+        fontSize={9}
+        textAnchor="middle"
+        fill="#666"
+      >
+        木釘 × 2
+      </text>
+
+      {/* B 件 */}
+      <rect
+        x={eX + pieceLen + 30 + dowelLenPx + 30}
+        y={eY}
+        width={pieceLen}
+        height={pieceThk}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <circle
+        cx={eX + pieceLen + 30 + dowelLenPx + 30 + 8}
+        cy={dy1}
+        r={dowelDiamPx / 2}
+        fill="white"
+        stroke={COLOR_OUTLINE}
+        strokeDasharray="2 2"
+      />
+      <circle
+        cx={eX + pieceLen + 30 + dowelLenPx + 30 + 8}
+        cy={dy2}
+        r={dowelDiamPx / 2}
+        fill="white"
+        stroke={COLOR_OUTLINE}
+        strokeDasharray="2 2"
+      />
+      <text
+        x={eX + pieceLen + 30 + dowelLenPx + 30 + pieceLen / 2}
+        y={eY + pieceThk + 14}
+        fontSize={9}
+        textAnchor="middle"
+        fill="#666"
+      >
+        B 件（鑽配對孔）
+      </text>
+
+      {/* 組合 */}
+      <text x={aX} y={120} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合
+      </text>
+      <g>
+        <rect x={aX} y={aY + 80} width={pieceLen + 40} height={pieceThk} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        <rect
+          x={aX + pieceLen + 40}
+          y={aY + 80}
+          width={pieceLen + 40}
+          height={pieceThk}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 木釘埋在交界處（虛線） */}
+        <line
+          x1={aX + pieceLen + 20}
+          y1={aY + 80 + pieceThk * 0.3}
+          x2={aX + pieceLen + 60}
+          y2={aY + 80 + pieceThk * 0.3}
+          stroke="#a85"
+          strokeWidth={2}
+        />
+        <line
+          x1={aX + pieceLen + 20}
+          y1={aY + 80 + pieceThk * 0.7}
+          x2={aX + pieceLen + 60}
+          y2={aY + 80 + pieceThk * 0.7}
+          stroke="#a85"
+          strokeWidth={2}
+        />
+        <text x={aX + pieceLen + 40} y={aY + 80 + pieceThk + 14} fontSize={9} textAnchor="middle" fill="#666">
+          木釘埋於兩件之間，加白膠
+        </text>
+      </g>
+
+      <text x={eX} y={h - 12} fontSize={9} fill="#0a4d8c">
+        釘徑 {tt}mm（建議 = 板厚 1/3，最大 1/2）· 釘長 {tl}mm（建議徑×1.5）· 板寬 {cw}mm
+      </text>
     </svg>
   );
 }
@@ -1873,6 +2243,8 @@ const RENDERERS: Partial<
   "half-lap": HalfLapDetail,
   "tongue-and-groove": TongueAndGrooveDetail,
   dovetail: DovetailDetail,
+  "finger-joint": FingerJointDetail,
+  dowel: DowelDetail,
 };
 
 export function JoineryDetail({
