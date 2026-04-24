@@ -78,6 +78,40 @@ const JOINERY_TOOLS: Record<
     { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
     { id: "drill-bits", priority: "required", reason: "搭配電鑽" },
   ],
+  // 明式進階：除了 M&T 工具，更看重高精度劃線與細齒鋸
+  "clamping-shoulder": [
+    { id: "marking-gauge", priority: "required", reason: "劃 45° 斜肩與三角榫眼基準" },
+    { id: "japanese-saw", priority: "required", reason: "切斜肩與榫頰" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿三角榫眼" },
+    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+  ],
+  "three-way-mitered": [
+    { id: "marking-gauge", priority: "required", reason: "三向 45° 對齊放樣" },
+    { id: "japanese-saw", priority: "required", reason: "精密切 45° 斜面" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "整修內部榫舌" },
+    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+  ],
+  "clamping-tenon-frame": [
+    { id: "japanese-saw", priority: "required", reason: "切夾口與牙板鳩尾肩" },
+    { id: "dovetail-saw", priority: "required", reason: "切牙板鳩尾收緊角度" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "整修夾口內側" },
+    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+  ],
+  "frame-and-panel": [
+    { id: "groove-plane", priority: "required", reason: "邊框內側開心板槽" },
+    { id: "groove-blade", priority: "recommended", reason: "圓鋸快速開槽" },
+    { id: "japanese-saw", priority: "required", reason: "心板四邊削薄" },
+  ],
+  "sliding-dovetail": [
+    { id: "dovetail-saw", priority: "required", reason: "切鳩尾鍵與槽" },
+    { id: "router-table", priority: "recommended", reason: "用鳩尾刀批量切槽" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "整修槽底與鍵肩" },
+  ],
+  "king-strut": [
+    { id: "japanese-saw", priority: "required", reason: "切斜撐兩端勾頭" },
+    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿勾頭榫眼" },
+    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+  ],
 };
 
 export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {

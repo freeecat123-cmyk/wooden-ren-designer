@@ -26,9 +26,10 @@ export type FurnitureCategory =
   | "nightstand";
 
 export type JoineryType =
+  // 基礎（西式 + 簡單中式）
   | "through-tenon"
   | "blind-tenon"
-  | "shouldered-tenon"
+  | "shouldered-tenon" // 格肩榫（45° miter shoulder M&T，中式做法）
   | "half-lap"
   | "dovetail"
   | "finger-joint"
@@ -36,7 +37,14 @@ export type JoineryType =
   | "dowel"
   | "mitered-spline"
   | "pocket-hole"
-  | "screw";
+  | "screw"
+  // 明式進階（高難度，純手工）
+  | "clamping-shoulder" // 抱肩榫——有束腰桌的腳/束腰/牙板三件互鎖
+  | "three-way-mitered" // 粽角榫——三件 45° 在角點相會
+  | "clamping-tenon-frame" // 夾頭榫——案桌腳穿過面框夾住牙板
+  | "frame-and-panel" // 攢邊打槽裝板——框中浮裝心板，避免木性脹縮撕裂
+  | "sliding-dovetail" // 走馬銷——可插拔的鳩尾鍵
+  | "king-strut"; // 霸王棖——桌底斜撐，從腳內勾住桌面
 
 export type TenonPosition =
   | "start"

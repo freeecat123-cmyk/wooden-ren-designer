@@ -1432,6 +1432,29 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           strokeWidth={0.8}
         />
 
+        {/* 格肩 45° 斜面（明式做法）：在主榫底角畫一條 45° miter 標示線。
+            西式 haunched 是直角肩；中式格肩是 45° 斜面，外觀只見一條斜線。 */}
+        {bottomGap > 0 && (
+          <>
+            <line
+              x1={cAx + cBodyLen}
+              y1={tenonBottom}
+              x2={cAx + cBodyLen + Math.min(PX(bottomGap), PX(haunchLen))}
+              y2={cBottom}
+              stroke="#a85"
+              strokeWidth={1.5}
+            />
+            <text
+              x={cAx + cBodyLen + Math.min(PX(bottomGap), PX(haunchLen)) + 4}
+              y={cBottom - 2}
+              fontSize={8}
+              fill="#a85"
+            >
+              45° 格肩
+            </text>
+          </>
+        )}
+
         <text
           x={cAx + cBodyLen / 2}
           y={cBottom + 14}
@@ -1597,6 +1620,23 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           fill={COLOR_TENON}
           stroke={COLOR_OUTLINE}
         />
+        {/* 45° 格肩 miter 線：腳柱外角到牙板上緣，明式格肩的標誌 */}
+        <line
+          x1={asmOriginX + 20 + PX(mt) * 2}
+          y1={mAy}
+          x2={asmOriginX + 20 + PX(mt) * 2 + 14}
+          y2={mAy + 14}
+          stroke="#a85"
+          strokeWidth={1.5}
+        />
+        <text
+          x={asmOriginX + 20 + PX(mt) * 2 + 16}
+          y={mAy + 10}
+          fontSize={8}
+          fill="#a85"
+        >
+          45° 格肩線
+        </text>
         <text
           x={asmOriginX + 20 + PX(mt)}
           y={mAy + PX(mt) + 16}
@@ -1604,7 +1644,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
           textAnchor="middle"
           fill="#666"
         >
-          主榫藏於柱腳，上方肩榫防旋轉
+          主榫藏於柱腳，上方肩榫防旋轉，外角 45° 格肩
         </text>
       </g>
     </svg>
@@ -1864,6 +1904,869 @@ function DovetailDetail(p: JoineryDetailParams) {
   );
 }
 
+/* ============================================================
+ * 明式進階榫卯（Ming-style advanced）—— 概念圖，凸顯關鍵幾何而非工程精度
+ *
+ * 共用設計：
+ *   - 左側分解圖（exploded） + 右側組合剖面（assembled）
+ *   - 用 schematic 比例（不嚴格按 mm），但保留榫長 / 母厚 / 板厚的相對大小
+ *   - 標註重點尺寸與該榫的「明式 know-how」字句
+ * ============================================================ */
+
+/* ─── 抱肩榫 clamping-shoulder ───
+ * 三件互鎖：腳柱頂端 / 束腰 / 牙板。
+ * 腳柱開三角形榫眼（45° 內斜），牙板上端有 45° 斜肩 + 主榫，
+ * 束腰夾在中間。難度 ★★★★★
+ */
+function ClampingShoulderDetail(p: JoineryDetailParams) {
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+  const tl = p.tenonLength;
+
+  const w = 720;
+  const h = 320;
+
+  // Exploded 分解圖（左半）
+  const eX = 30;
+  const eY = 50;
+
+  // 腳柱（leg）— 垂直長條
+  const legW = 56;
+  const legH = 220;
+  const legX = eX;
+  const legY = eY;
+
+  // 三角形榫眼（45° 切角）位於腳柱頂端內側
+  const sockH = 70;
+  const sockW = legW * 0.65;
+  // 三角形：起點在腳柱右上角內側、向下延伸 + 45° 斜下到內側面
+  const sockX = legX + (legW - sockW);
+  const sockY = legY + 28;
+
+  // 束腰（waist rail）— 細長橫條，原本位置在腳柱右側
+  const waistW = 130;
+  const waistH = 22;
+  const waistX = legX + legW + 24;
+  const waistY = legY + 30;
+
+  // 牙板（apron）— 較高的橫板，下方有 45° 斜肩 + 主榫
+  const apronW = 130;
+  const apronH = 90;
+  const apronX = waistX;
+  const apronY = waistY + waistH + 6;
+
+  // 牙板末端（左邊）有 45° 斜肩 + 主榫舌
+  const tongueLen = 22;
+  const miterDepth = 16;
+
+  // Assembled 組合剖面（右半）
+  const aX = 360;
+  const aY = 50;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      style={{ maxWidth: "720px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-cs" color="#7a5a2c" />
+      </defs>
+
+      {/* ===== 分解圖 ===== */}
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（束腰桌腳-束腰-牙板）
+      </text>
+      <text x={eX} y={36} fontSize={9} fill="#888">
+        三件互鎖，全靠 45° 斜肩定位，無膠也不脫
+      </text>
+
+      {/* 腳柱 */}
+      <rect x={legX} y={legY} width={legW} height={legH} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <text x={legX + legW / 2} y={legY + legH + 14} fontSize={9} textAnchor="middle" fill="#666">
+        腳柱
+      </text>
+      {/* 三角形榫眼（45° 內斜） */}
+      <polygon
+        points={`${sockX},${sockY} ${sockX + sockW},${sockY} ${sockX + sockW},${sockY + sockH} ${sockX},${sockY + sockH - sockW * 0.6}`}
+        fill="white"
+        stroke={COLOR_OUTLINE}
+        strokeDasharray="3 2"
+      />
+      <text
+        x={sockX + sockW / 2}
+        y={sockY + sockH / 2}
+        fontSize={8}
+        textAnchor="middle"
+        fill="#a85"
+      >
+        三角榫眼
+      </text>
+
+      {/* 束腰 */}
+      <rect x={waistX} y={waistY} width={waistW} height={waistH} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+      <text x={waistX + waistW + 6} y={waistY + waistH / 2 + 3} fontSize={9} fill="#666">
+        束腰
+      </text>
+
+      {/* 牙板：本體 + 左端 45° 斜肩 + 主榫舌 */}
+      <g>
+        {/* 牙板本體（含斜肩切口） */}
+        <polygon
+          points={`
+            ${apronX + miterDepth},${apronY}
+            ${apronX + apronW},${apronY}
+            ${apronX + apronW},${apronY + apronH}
+            ${apronX},${apronY + apronH}
+            ${apronX},${apronY + miterDepth}
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 主榫舌（向左伸出） */}
+        <rect
+          x={apronX - tongueLen}
+          y={apronY + apronH * 0.4}
+          width={tongueLen}
+          height={apronH * 0.35}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text x={apronX + apronW + 6} y={apronY + apronH / 2 + 3} fontSize={9} fill="#666">
+          牙板
+        </text>
+        <text
+          x={apronX - tongueLen - 4}
+          y={apronY + apronH * 0.4 - 3}
+          fontSize={8}
+          textAnchor="end"
+          fill="#a85"
+        >
+          主榫
+        </text>
+        {/* 45° 斜肩標註 */}
+        <text x={apronX + miterDepth + 4} y={apronY - 4} fontSize={8} fill="#a85">
+          45° 斜肩
+        </text>
+      </g>
+
+      {/* ===== 組合剖面 ===== */}
+      <text x={aX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合剖面
+      </text>
+      <text x={aX} y={36} fontSize={9} fill="#888">
+        牙板斜肩貼住腳柱榫眼斜面，束腰嵌入上方溝
+      </text>
+
+      {/* 腳柱 + 嵌入的束腰、牙板 */}
+      <g>
+        {/* 腳柱（含已開三角榫眼的剖面） */}
+        <polygon
+          points={`
+            ${aX},${aY}
+            ${aX + legW},${aY}
+            ${aX + legW},${aY + 28}
+            ${aX + 18},${aY + 28}
+            ${aX + 18},${aY + 28 + sockH}
+            ${aX + legW},${aY + 28 + sockH + 4}
+            ${aX + legW},${aY + legH}
+            ${aX},${aY + legH}
+          `}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 束腰嵌入 */}
+        <rect
+          x={aX + 18}
+          y={aY + 30}
+          width={waistW + 14}
+          height={waistH}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 牙板嵌入：含斜肩 + 主榫 */}
+        <polygon
+          points={`
+            ${aX + 18 + miterDepth},${aY + 28 + waistH + 6}
+            ${aX + 18 + waistW + 14},${aY + 28 + waistH + 6}
+            ${aX + 18 + waistW + 14},${aY + 28 + waistH + 6 + apronH}
+            ${aX + 18},${aY + 28 + waistH + 6 + apronH}
+            ${aX + 18},${aY + 28 + waistH + 6 + miterDepth}
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 主榫深入腳柱 */}
+        <rect
+          x={aX + 4}
+          y={aY + 28 + waistH + 6 + apronH * 0.4}
+          width={14}
+          height={apronH * 0.35}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
+      </g>
+
+      <text x={aX} y={h - 10} fontSize={9} fill="#666">
+        ★★★★★ 純手工放樣，王世襄《明式家具研究》圖 7-1
+      </text>
+
+      {/* 關鍵尺寸 */}
+      <text x={eX} y={h - 22} fontSize={9} fill="#0a4d8c">
+        牙板厚 {ct}mm · 主榫長 {tl}mm · 腳柱寬 {mt}mm · 榫頭 {tw}×{tt}mm
+      </text>
+      <text x={eX} y={h - 8} fontSize={9} fill="#666">
+        cw={cw}mm（牙板寬）
+      </text>
+    </svg>
+  );
+}
+
+/* ─── 粽角榫 three-way-mitered ───
+ * 三件 45° 在一個角點相會（頂面板邊 + 側面板邊 + 腳柱頂）。
+ * 從外面看像「粽子角」全 45° 線。
+ */
+function ThreeWayMiteredDetail(p: JoineryDetailParams) {
+  const w = 720;
+  const h = 300;
+
+  const eX = 30;
+  const eY = 60;
+  const aX = 380;
+  const aY = 60;
+
+  const memberThk = 28;
+  const memberLen = 130;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      style={{ maxWidth: "720px" }}
+      className="bg-white"
+    >
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（三件 45° 切角）
+      </text>
+      <text x={eX} y={36} fontSize={9} fill="#888">
+        頂板 + 側板 + 腳柱頂，各自切 45° 後相互嵌合
+      </text>
+
+      {/* 三件分解 — 用 isometric-ish 排列 */}
+      {/* 件 A：頂板（橫向） */}
+      <polygon
+        points={`
+          ${eX},${eY}
+          ${eX + memberLen},${eY}
+          ${eX + memberLen - memberThk},${eY + memberThk}
+          ${eX + memberThk},${eY + memberThk}
+        `}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={eX + memberLen / 2} y={eY - 4} fontSize={9} textAnchor="middle" fill="#666">
+        頂面板（A）
+      </text>
+
+      {/* 件 B：側板（垂直） */}
+      <polygon
+        points={`
+          ${eX},${eY + 60}
+          ${eX + memberThk},${eY + 60 + memberThk}
+          ${eX + memberThk},${eY + 60 + memberLen}
+          ${eX},${eY + 60 + memberLen - memberThk}
+        `}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={eX + memberThk + 6} y={eY + 60 + memberLen / 2} fontSize={9} fill="#666">
+        側板（B）
+      </text>
+
+      {/* 件 C：腳柱頂（從 z 軸過來，畫成傾斜方塊） */}
+      <polygon
+        points={`
+          ${eX + 90},${eY + 60}
+          ${eX + 90 + memberThk * 1.3},${eY + 60 + memberThk * 0.5}
+          ${eX + 90 + memberThk * 1.3},${eY + 60 + memberThk * 0.5 + memberLen}
+          ${eX + 90},${eY + 60 + memberLen}
+        `}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={eX + 90 + memberThk + 6} y={eY + 60 + memberLen / 2} fontSize={9} fill="#666">
+        腳柱頂（C）
+      </text>
+
+      {/* 45° 切角線示意 */}
+      <line
+        x1={eX + memberThk}
+        y1={eY + memberThk}
+        x2={eX + memberThk + 30}
+        y2={eY + memberThk + 30}
+        stroke="#a85"
+        strokeWidth={1.2}
+        strokeDasharray="4 3"
+      />
+      <text x={eX + memberThk + 36} y={eY + memberThk + 36} fontSize={8} fill="#a85">
+        45° 切口
+      </text>
+
+      {/* ===== 組合剖面：三件相會於右上角點 ===== */}
+      <text x={aX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合（三向 45° 相會於角點）
+      </text>
+      <text x={aX} y={36} fontSize={9} fill="#888">
+        外觀只看到三條 45° 線從同一點發散，明式櫃頂特徵
+      </text>
+
+      {/* 一個 isometric corner cube */}
+      <g>
+        {/* Top face (rhombus) */}
+        <polygon
+          points={`
+            ${aX + 80},${aY}
+            ${aX + 160},${aY + 30}
+            ${aX + 80},${aY + 60}
+            ${aX},${aY + 30}
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Right face */}
+        <polygon
+          points={`
+            ${aX + 160},${aY + 30}
+            ${aX + 160},${aY + 130}
+            ${aX + 80},${aY + 160}
+            ${aX + 80},${aY + 60}
+          `}
+          fill={COLOR_MORTISE}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* Left face */}
+        <polygon
+          points={`
+            ${aX},${aY + 30}
+            ${aX + 80},${aY + 60}
+            ${aX + 80},${aY + 160}
+            ${aX},${aY + 130}
+          `}
+          fill={COLOR_HIDDEN}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 三條 45° 切角線 — 從中心點向外延伸 */}
+        <line
+          x1={aX + 80}
+          y1={aY + 60}
+          x2={aX + 80}
+          y2={aY}
+          stroke="#a85"
+          strokeWidth={1.4}
+        />
+        <line
+          x1={aX + 80}
+          y1={aY + 60}
+          x2={aX + 160}
+          y2={aY + 30}
+          stroke="#a85"
+          strokeWidth={1.4}
+        />
+        <line
+          x1={aX + 80}
+          y1={aY + 60}
+          x2={aX}
+          y2={aY + 30}
+          stroke="#a85"
+          strokeWidth={1.4}
+        />
+        <circle cx={aX + 80} cy={aY + 60} r={3} fill="#a85" />
+        <text x={aX + 168} y={aY + 24} fontSize={9} fill="#a85">
+          三線一點
+        </text>
+      </g>
+
+      <text x={aX} y={h - 12} fontSize={9} fill="#666">
+        ★★★★★ 三向 45° 必須完全對齊，常見小櫃、香几頂角
+      </text>
+      <text x={eX} y={h - 12} fontSize={9} fill="#0a4d8c">
+        構材厚 {p.motherThickness}mm；三件規格相等
+      </text>
+    </svg>
+  );
+}
+
+/* ─── 夾頭榫 clamping-tenon-frame ───
+ * 案桌（平頭/翹頭案）腳柱穿過面框、再夾住牙板。
+ * 腳上端開大榫眼，牙板有鳩尾形雙榫從兩側插入並收緊。
+ */
+function ClampingTenonFrameDetail(p: JoineryDetailParams) {
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const tl = p.tenonLength;
+
+  const w = 720;
+  const h = 300;
+
+  const eX = 30;
+  const eY = 50;
+
+  const legW = 50;
+  const legH = 220;
+  // 腳柱頂端有大型方榫眼 + 兩側夾住牙板
+  const slotY = eY + 50;
+  const slotH = 90;
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      style={{ maxWidth: "720px" }}
+      className="bg-white"
+    >
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（案桌腳-面框-牙板）
+      </text>
+      <text x={eX} y={36} fontSize={9} fill="#888">
+        腳穿面框、再從兩側夾住牙板
+      </text>
+
+      {/* 腳柱（中央） */}
+      <g>
+        <rect x={eX + 50} y={eY} width={legW} height={legH} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* 腳頂的「夾口」溝 */}
+        <rect
+          x={eX + 50 - 18}
+          y={slotY}
+          width={legW + 36}
+          height={slotH}
+          fill="white"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
+        <text x={eX + 50 + legW / 2} y={eY + legH + 14} fontSize={9} textAnchor="middle" fill="#666">
+          腳柱（含夾口）
+        </text>
+        <text x={eX + 50 - 22} y={slotY + slotH / 2 + 3} fontSize={8} textAnchor="end" fill="#a85">
+          夾口
+        </text>
+      </g>
+
+      {/* 牙板（從腳左邊插入） */}
+      <g>
+        <polygon
+          points={`
+            ${eX + 180},${slotY + 8}
+            ${eX + 280},${slotY + 8}
+            ${eX + 280},${slotY + slotH - 8}
+            ${eX + 180},${slotY + slotH - 8}
+            ${eX + 168},${slotY + slotH / 2}
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text x={eX + 230} y={slotY + slotH + 14} fontSize={9} textAnchor="middle" fill="#666">
+          牙板（鳩尾雙榫）
+        </text>
+        <text x={eX + 162} y={slotY + slotH / 2 + 3} fontSize={8} textAnchor="end" fill="#a85">
+          鳩尾收緊
+        </text>
+      </g>
+
+      {/* ===== 組合剖面 ===== */}
+      <text x={400} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合剖面
+      </text>
+      <text x={400} y={36} fontSize={9} fill="#888">
+        牙板鳩尾從腳兩側嵌入夾口，受力越大夾越緊
+      </text>
+
+      <g>
+        <rect x={400 + 50} y={eY} width={legW} height={legH} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* 牙板（穿過腳兩側） */}
+        <polygon
+          points={`
+            ${400 + 10},${slotY + 8}
+            ${400 + 50 + legW + 60},${slotY + 8}
+            ${400 + 50 + legW + 60},${slotY + slotH - 8}
+            ${400 + 10},${slotY + slotH - 8}
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 鳩尾收緊角度（內側） */}
+        <line
+          x1={400 + 50 - 6}
+          y1={slotY + 8}
+          x2={400 + 50 + 6}
+          y2={slotY + slotH - 8}
+          stroke="#a85"
+          strokeWidth={1}
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={400 + 50 + legW + 6}
+          y1={slotY + 8}
+          x2={400 + 50 + legW - 6}
+          y2={slotY + slotH - 8}
+          stroke="#a85"
+          strokeWidth={1}
+          strokeDasharray="3 2"
+        />
+      </g>
+
+      <text x={400} y={h - 12} fontSize={9} fill="#666">
+        ★★★★ 平頭案、翹頭案的腳-牙板鎖法
+      </text>
+      <text x={eX} y={h - 12} fontSize={9} fill="#0a4d8c">
+        腳寬 {mt}mm · 榫長 {tl}mm · 牙板榫 {tw}×{tt}mm
+      </text>
+    </svg>
+  );
+}
+
+/* ─── 攢邊打槽裝板 frame-and-panel ───
+ * 四邊框 45° 接合（或大格肩），內側開槽；心板四邊削薄成舌嵌入。
+ * 板可隨季節脹縮，最常見於桌面、椅面、櫃門、抽屜底。
+ */
+function FrameAndPanelDetail(p: JoineryDetailParams) {
+  const tt = p.tenonThickness;
+  const ct = p.childThickness ?? tt;
+
+  const w = 720;
+  const h = 320;
+
+  const eX = 30;
+  const eY = 50;
+
+  // 框 + 心板的「俯視圖」
+  const frameW = 280;
+  const frameH = 180;
+  const railW = 32; // 邊框寬度
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      width="100%"
+      style={{ maxWidth: "720px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-fp" color="#7a5a2c" />
+      </defs>
+
+      <text x={eX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        俯視圖（框 + 心板）
+      </text>
+      <text x={eX} y={36} fontSize={9} fill="#888">
+        四邊框內側開槽，心板浮裝於槽中（不上膠，可漲縮）
+      </text>
+
+      {/* 外框 */}
+      <rect x={eX} y={eY} width={frameW} height={frameH} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      {/* 內側心板區 */}
+      <rect
+        x={eX + railW}
+        y={eY + railW}
+        width={frameW - 2 * railW}
+        height={frameH - 2 * railW}
+        fill={COLOR_TENON}
+        stroke={COLOR_OUTLINE}
+      />
+      {/* 四角 45° 對角線 */}
+      <line
+        x1={eX}
+        y1={eY}
+        x2={eX + railW}
+        y2={eY + railW}
+        stroke={COLOR_OUTLINE}
+      />
+      <line
+        x1={eX + frameW}
+        y1={eY}
+        x2={eX + frameW - railW}
+        y2={eY + railW}
+        stroke={COLOR_OUTLINE}
+      />
+      <line
+        x1={eX}
+        y1={eY + frameH}
+        x2={eX + railW}
+        y2={eY + frameH - railW}
+        stroke={COLOR_OUTLINE}
+      />
+      <line
+        x1={eX + frameW}
+        y1={eY + frameH}
+        x2={eX + frameW - railW}
+        y2={eY + frameH - railW}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={eX + frameW / 2} y={eY + frameH / 2 + 3} fontSize={10} textAnchor="middle" fill="#5a3">
+        心板（floating）
+      </text>
+      <text x={eX + railW / 2} y={eY + frameH / 2 + 3} fontSize={8} textAnchor="middle" fill="#fff">
+        框
+      </text>
+
+      {/* ===== 右側：剖面圖 ===== */}
+      <text x={380} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        剖面（穿過邊框 + 心板）
+      </text>
+      <text x={380} y={36} fontSize={9} fill="#888">
+        框開凹槽、心板舌嵌入，留 1–2mm 漲縮餘量
+      </text>
+
+      {(() => {
+        const sX = 380;
+        const sY = 60;
+        return (
+          <g>
+            {/* 左邊框剖面 */}
+            <rect x={sX} y={sY} width={50} height={60} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+            <rect x={sX + 50 - 14} y={sY + 22} width={14} height={16} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="3 2" />
+            <text x={sX + 25} y={sY + 76} fontSize={9} textAnchor="middle" fill="#666">
+              邊框
+            </text>
+            {/* 心板（中間） */}
+            <rect x={sX + 50} y={sY + 22} width={120} height={16} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+            <rect x={sX + 50 - 14} y={sY + 22} width={14} height={16} fill={COLOR_TENON} stroke={COLOR_OUTLINE} strokeDasharray="2 2" />
+            <text x={sX + 110} y={sY + 76} fontSize={9} textAnchor="middle" fill="#666">
+              心板（厚 {ct}mm）
+            </text>
+            {/* 右邊框 */}
+            <rect x={sX + 170} y={sY} width={50} height={60} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+            <rect x={sX + 170} y={sY + 22} width={14} height={16} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="3 2" />
+            <rect x={sX + 170} y={sY + 22} width={14} height={16} fill={COLOR_TENON} stroke={COLOR_OUTLINE} strokeDasharray="2 2" />
+            {/* 漲縮餘量標註 */}
+            <text x={sX + 110} y={sY + 12} fontSize={8} textAnchor="middle" fill="#a85">
+              ← 預留 1–2mm 漲縮 →
+            </text>
+          </g>
+        );
+      })()}
+
+      <text x={380} y={h - 12} fontSize={9} fill="#666">
+        ★★★ 中式桌面、椅面、門板、抽屜底全用此法
+      </text>
+      <text x={eX} y={h - 12} fontSize={9} fill="#0a4d8c">
+        舌厚 ≈ 板厚 / 3 = {Math.round(ct / 3)}mm
+      </text>
+    </svg>
+  );
+}
+
+/* ─── 走馬銷 sliding-dovetail ───
+ * 一支「鳩尾鍵」從側面滑入榫槽，可拆，無膠不脫。
+ * 用於可拆零件、抽屜面板加固。
+ */
+function SlidingDovetailDetail(p: JoineryDetailParams) {
+  const w = 720;
+  const h = 280;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <text x={30} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（鳩尾鍵 + 槽）
+      </text>
+      <text x={30} y={36} fontSize={9} fill="#888">
+        鍵為梯形剖面，從側面滑入，越往內越緊
+      </text>
+
+      {/* 母板（含鳩尾槽） */}
+      <g>
+        <rect x={30} y={60} width={300} height={70} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* 鳩尾槽（內寬 < 外寬） */}
+        <polygon
+          points={`
+            60,80
+            300,80
+            290,110
+            70,110
+          `}
+          fill="white"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="3 2"
+        />
+        <text x={180} y={150} fontSize={9} textAnchor="middle" fill="#666">
+          母板（含鳩尾槽，深 8–10mm）
+        </text>
+      </g>
+
+      {/* 鳩尾鍵（獨立件） */}
+      <g>
+        <polygon
+          points={`
+            30,180
+            330,180
+            320,220
+            40,220
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text x={180} y={245} fontSize={9} textAnchor="middle" fill="#666">
+          鳩尾鍵（梯形剖面，下底 &gt; 上底）
+        </text>
+      </g>
+
+      {/* 組合：箭頭表示「滑入」方向 */}
+      <g>
+        <text x={400} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+          組合（從側面滑入）
+        </text>
+        <text x={400} y={36} fontSize={9} fill="#888">
+          可重複拆裝、無膠
+        </text>
+        <rect x={400} y={60} width={280} height={70} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        <polygon
+          points={`
+            430,80
+            670,80
+            660,110
+            440,110
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text
+          x={690}
+          y={97}
+          fontSize={11}
+          fill="#a85"
+        >
+          ←
+        </text>
+        <text
+          x={400}
+          y={97}
+          fontSize={11}
+          fill="#a85"
+        >
+          滑
+        </text>
+      </g>
+
+      <text x={30} y={h - 12} fontSize={9} fill="#0a4d8c">
+        鍵長 {p.tenonLength}mm · 鍵厚 {p.tenonThickness}mm · 鍵寬 {p.tenonWidth}mm
+      </text>
+      <text x={400} y={h - 12} fontSize={9} fill="#666">
+        ★★★★ 抽屜可拆面板、椅座加固
+      </text>
+    </svg>
+  );
+}
+
+/* ─── 霸王棖 king-strut ───
+ * 從桌腳內側對角斜伸到桌面下緣，末端有勾頭卡進桌面下榫眼。
+ * 大桌標配，增加抗變形能力。
+ */
+function KingStrutDetail(p: JoineryDetailParams) {
+  const w = 720;
+  const h = 320;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <text x={30} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        側視圖（桌腳 + 桌面下方）
+      </text>
+      <text x={30} y={36} fontSize={9} fill="#888">
+        斜撐從腳內側勾住桌面，提供抗扭抗推力
+      </text>
+
+      {/* 桌面（俯視底面） */}
+      <rect x={30} y={50} width={400} height={20} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      {/* 桌面底部的勾頭榫眼 */}
+      <rect x={300} y={70} width={18} height={10} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="3 2" />
+      <text x={309} y={94} fontSize={8} textAnchor="middle" fill="#a85">
+        勾頭眼
+      </text>
+
+      {/* 桌腳（垂直） */}
+      <rect x={50} y={70} width={36} height={210} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <text x={68} y={295} fontSize={9} textAnchor="middle" fill="#666">
+        桌腳
+      </text>
+
+      {/* 霸王棖：斜撐 */}
+      <g>
+        <polygon
+          points={`
+            86,200
+            96,210
+            300,80
+            290,72
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        {/* 末端勾頭 */}
+        <polygon
+          points={`
+            290,72
+            300,72
+            300,80
+          `}
+          fill={COLOR_HIDDEN}
+          stroke={COLOR_OUTLINE}
+        />
+        <text x={200} y={170} fontSize={10} textAnchor="middle" fill="#666" transform="rotate(-30 200 170)">
+          霸王棖（斜撐）
+        </text>
+      </g>
+
+      {/* 另一支對稱 */}
+      <rect x={400} y={70} width={36} height={210} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <polygon
+        points={`
+          400,200
+          410,210
+          200,80
+          210,72
+        `}
+        fill={COLOR_TENON}
+        stroke={COLOR_OUTLINE}
+        opacity={0.5}
+      />
+
+      {/* ===== 勾頭細節 ===== */}
+      <text x={500} y={140} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        勾頭剖面
+      </text>
+      <text x={500} y={156} fontSize={9} fill="#888">
+        斜撐末端鈎進桌面榫眼，自鎖
+      </text>
+      <g>
+        <rect x={500} y={180} width={120} height={26} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        <polygon
+          points={`
+            500,206
+            550,260
+            560,260
+            560,236
+            580,206
+          `}
+          fill={COLOR_TENON}
+          stroke={COLOR_OUTLINE}
+        />
+        <text x={580} y={194} fontSize={8} fill="#a85">
+          鈎口
+        </text>
+      </g>
+
+      <text x={30} y={h - 8} fontSize={9} fill="#0a4d8c">
+        斜撐料厚 {p.tenonThickness}mm × 寬 {p.tenonWidth}mm
+      </text>
+    </svg>
+  );
+}
+
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
 > = {
@@ -1873,6 +2776,12 @@ const RENDERERS: Partial<
   "half-lap": HalfLapDetail,
   "tongue-and-groove": TongueAndGrooveDetail,
   dovetail: DovetailDetail,
+  "clamping-shoulder": ClampingShoulderDetail,
+  "three-way-mitered": ThreeWayMiteredDetail,
+  "clamping-tenon-frame": ClampingTenonFrameDetail,
+  "frame-and-panel": FrameAndPanelDetail,
+  "sliding-dovetail": SlidingDovetailDetail,
+  "king-strut": KingStrutDetail,
 };
 
 export function JoineryDetail({
@@ -1890,7 +2799,7 @@ export function JoineryDetail({
 export const JOINERY_LABEL: Record<JoineryType, string> = {
   "through-tenon": "通榫",
   "blind-tenon": "半榫 / 盲榫",
-  "shouldered-tenon": "帶肩榫（haunched）",
+  "shouldered-tenon": "格肩榫（內肩 45°）",
   "half-lap": "半搭榫",
   dovetail: "鳩尾榫",
   "finger-joint": "指接榫",
@@ -1899,12 +2808,18 @@ export const JOINERY_LABEL: Record<JoineryType, string> = {
   "mitered-spline": "斜接餅乾榫",
   "pocket-hole": "斜孔螺絲（口袋孔）",
   screw: "螺絲 + 白膠",
+  "clamping-shoulder": "抱肩榫（束腰桌專用）",
+  "three-way-mitered": "粽角榫（三向 45° 角）",
+  "clamping-tenon-frame": "夾頭榫（案桌牙板鎖腳）",
+  "frame-and-panel": "攢邊打槽裝板（框中浮裝心板）",
+  "sliding-dovetail": "走馬銷（可拆滑鳩尾鍵）",
+  "king-strut": "霸王棖（桌腳對角斜撐）",
 };
 
 export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "through-tenon": "榫頭穿過母件、可從另一面看到。強度最高，適合椅腳、桌腳重要結構。",
   "blind-tenon": "榫頭藏在母件內、外觀看不到。美觀，適合桌腳橫撐、櫃體等。",
-  "shouldered-tenon": "主榫加上方的「肩榫」（haunch），主榫扛拉力、肩榫防旋轉。桌腳↔牙板正規做法。",
+  "shouldered-tenon": "主榫上方加肩榫（haunch），且公件外側肩呈 45° 斜面（明式格肩做法）。主榫扛拉力、肩防旋轉、45° 格肩讓接合處不見直角縫。桌腳↔牙板的明式標準。",
   "half-lap": "兩件各削一半厚度後相疊，搭肩固定。簡單常用於框架交叉。",
   dovetail: "梯形榫頭咬合，抗拉力極強。經典用於抽屜、箱體轉角。",
   "finger-joint": "對稱方齒交錯接合。常用於箱體、托盤轉角。",
@@ -1913,4 +2828,43 @@ export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "mitered-spline": "45° 斜接後插入餅乾片或薄木條補強。",
   "pocket-hole": "用斜孔器夾具鑽 15° 斜孔，再用專用螺絲從隱藏處鎖入。快速、不需榫卯的常見接合方式。",
   screw: "木工白膠 + 木螺絲直鎖。螺絲頭可埋頭並用木塞蓋住，最簡單。",
+  "clamping-shoulder": "明式束腰桌的標準做法。腳柱頂端開三角形榫眼 + 45° 內斜，束腰夾在中間，牙板上端有 45° 斜肩 + 主榫，三件互鎖。難度極高，純手工。",
+  "three-way-mitered": "三件構材（頂面板、側面板、腳柱頂）在角點以 45° 互切相會。常見於頂端封閉的小櫃、香几頂角。難度極高，三向角度必須完全對齊。",
+  "clamping-tenon-frame": "案桌（平頭案／翹頭案）腳柱穿過面框、再從兩側夾住牙板（牙板呈鳩尾收緊）。腳上端開大榫眼，吃下牙板與面框的雙榫。明式經典。",
+  "frame-and-panel": "四邊框內側開槽，心板四邊削薄成舌嵌入，板可隨季節脹縮但不被拘束。桌面、椅面、櫃門、抽屜底的標準做法。",
+  "sliding-dovetail": "鍵狀鳩尾從側面滑入榫槽，不靠膠也不會脫落，但可以拆。明式抽屜面板加固、可拆裝零件常用。",
+  "king-strut": "從桌腳內側對角斜伸到桌面下緣，末端有勾頭卡進桌面下的榫眼。增加大桌的抗變形能力，明式大桌標配。",
+};
+
+/**
+ * 二級分級：basic = 西式 / 簡單中式（一般人也做得來）；
+ *           ming  = 明式進階（高難度、純手工、需要精密放樣）。
+ *
+ * UI 用此資料分組顯示，提醒使用者「明式榫卯選了會難很多」。
+ */
+export type JoineryTier = "basic" | "ming";
+
+export const JOINERY_TIER: Record<JoineryType, JoineryTier> = {
+  "through-tenon": "basic",
+  "blind-tenon": "basic",
+  "shouldered-tenon": "basic", // 格肩 — 基礎中還算進階，但標 basic 因常見
+  "half-lap": "basic",
+  dovetail: "basic",
+  "finger-joint": "basic",
+  "tongue-and-groove": "basic",
+  dowel: "basic",
+  "mitered-spline": "basic",
+  "pocket-hole": "basic",
+  screw: "basic",
+  "clamping-shoulder": "ming",
+  "three-way-mitered": "ming",
+  "clamping-tenon-frame": "ming",
+  "frame-and-panel": "ming",
+  "sliding-dovetail": "ming",
+  "king-strut": "ming",
+};
+
+export const JOINERY_TIER_LABEL: Record<JoineryTier, string> = {
+  basic: "基礎",
+  ming: "明式進階",
 };
