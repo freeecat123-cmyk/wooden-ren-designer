@@ -2273,6 +2273,226 @@ function DowelDetail(p: JoineryDetailParams) {
   );
 }
 
+/* ============================================================
+ * 斜接餅乾榫 mitered-spline
+ *   兩件 45° 斜接，中間開槽插入餅乾片（biscuit）或薄木條補強。
+ * ============================================================ */
+function MiteredSplineDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const ct = p.childThickness ?? p.tenonThickness;
+
+  const w = 720;
+  const h = 260;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <defs>
+        <Hatching id="hatch-ms" color="#7a5a2c" />
+      </defs>
+      <text x={30} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖（兩件 45° + 餅乾片）
+      </text>
+      <text x={30} y={36} fontSize={9} fill="#888">
+        兩件斜切面對面，中央開弧形槽嵌入餅乾片
+      </text>
+
+      {/* A 件：橫向板、右端 45° 斜切 */}
+      <polygon
+        points={`30,70 220,70 250,110 30,110`}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={125} y={130} fontSize={9} textAnchor="middle" fill="#666">
+        A 件（右端 45° 斜切）
+      </text>
+      {/* 餅乾槽（弧形） */}
+      <ellipse cx={235} cy={90} rx={14} ry={6} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="3 2" />
+
+      {/* 餅乾片（獨立件） */}
+      <ellipse cx={360} cy={95} rx={22} ry={8} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+      <text x={360} y={130} fontSize={9} textAnchor="middle" fill="#666">
+        餅乾片（壓縮木 #0/#10/#20）
+      </text>
+
+      {/* B 件：垂直板、左端 45° 斜切 */}
+      <polygon
+        points={`460,110 490,70 680,70 680,110`}
+        fill={COLOR_MORTISE}
+        stroke={COLOR_OUTLINE}
+      />
+      <text x={585} y={130} fontSize={9} textAnchor="middle" fill="#666">
+        B 件（左端 45° 斜切）
+      </text>
+      <ellipse cx={475} cy={90} rx={14} ry={6} fill="white" stroke={COLOR_OUTLINE} strokeDasharray="3 2" />
+
+      {/* 組合：L 型轉角 */}
+      <g transform="translate(0, 160)">
+        <polygon points={`30,0 270,0 290,20 30,20`} fill="url(#hatch-ms)" stroke={COLOR_OUTLINE} />
+        <polygon points={`270,0 290,20 290,80 270,60`} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+        <text x={200} y={48} fontSize={9} fill="#666">
+          45° 接縫平整，餅乾片吸水膨脹自鎖
+        </text>
+      </g>
+
+      <text x={30} y={h - 8} fontSize={9} fill="#0a4d8c">
+        板厚 {ct}mm · 餅乾片長 {tl}mm · 常用於櫃框 / 畫框轉角
+      </text>
+    </svg>
+  );
+}
+
+/* ============================================================
+ * 口袋孔螺絲 pocket-hole
+ *   15° 斜孔器夾具鑽孔，螺絲從隱藏面鎖入，外觀看不到螺絲頭。
+ * ============================================================ */
+function PocketHoleDetail(p: JoineryDetailParams) {
+  const ct = p.childThickness ?? p.tenonThickness;
+
+  const w = 720;
+  const h = 280;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <text x={30} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        剖面圖（15° 斜孔 + 自攻螺絲）
+      </text>
+      <text x={30} y={36} fontSize={9} fill="#888">
+        A 件背面鑽 15° 斜孔，螺絲從隱藏面鎖進 B 件
+      </text>
+
+      {/* A 件（水平板）含斜孔 */}
+      <rect x={30} y={70} width={280} height={54} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      {/* 斜孔 (15°) */}
+      <polygon
+        points={`180,124 210,124 240,78 230,70 200,70`}
+        fill="white"
+        stroke={COLOR_OUTLINE}
+        strokeDasharray="3 2"
+      />
+      <text x={155} y={140} fontSize={9} textAnchor="middle" fill="#666">
+        A 件（背面鑽孔）
+      </text>
+
+      {/* B 件（垂直板） */}
+      <rect x={300} y={70} width={56} height={180} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <text x={328} y={265} fontSize={9} textAnchor="middle" fill="#666">
+        B 件
+      </text>
+
+      {/* 螺絲（從 A 的斜孔穿進 B） */}
+      <g>
+        {/* 螺桿 */}
+        <line x1={205} y1={105} x2={340} y2={100} stroke="#888" strokeWidth={3} />
+        {/* 螺紋 */}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const t = i / 7;
+          const x = 215 + (325 - 215) * t;
+          const y = 104 - 2 * t;
+          return (
+            <line key={i} x1={x - 3} y1={y - 4} x2={x + 3} y2={y + 4} stroke="#666" strokeWidth={0.8} />
+          );
+        })}
+        {/* 螺絲頭（在斜孔袋內） */}
+        <rect x={198} y={100} width={14} height={10} fill="#555" stroke={COLOR_OUTLINE} />
+      </g>
+      <text x={320} y={60} fontSize={9} fill="#a85">
+        ← 自攻螺絲（粗牙、尖頭）
+      </text>
+
+      {/* 組合結果說明 */}
+      <g transform="translate(420, 60)">
+        <text fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+          組裝後
+        </text>
+        <rect x={0} y={20} width={180} height={34} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        <rect x={180} y={20} width={40} height={140} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        {/* 斜孔（隱藏面看得到的孔袋） */}
+        <polygon
+          points={`80,54 100,54 120,40 110,34 90,34`}
+          fill="white"
+          stroke={COLOR_OUTLINE}
+          strokeDasharray="2 2"
+        />
+        <text x={110} y={88} fontSize={9} fill="#666">
+          斜孔在 A 的隱藏面
+        </text>
+        <text x={110} y={100} fontSize={8} fill="#999">
+          可用木塞封口
+        </text>
+      </g>
+
+      <text x={30} y={h - 8} fontSize={9} fill="#0a4d8c">
+        板厚 {ct}mm · 15° 標準角度 · Kreg 斜孔器 / Milescraft 夾具
+      </text>
+    </svg>
+  );
+}
+
+/* ============================================================
+ * 螺絲 + 白膠 screw
+ *   最簡單接合：先鑽先導孔避免劈裂，再鎖螺絲 + 上白膠補強。
+ * ============================================================ */
+function ScrewDetail(p: JoineryDetailParams) {
+  const ct = p.childThickness ?? p.tenonThickness;
+
+  const w = 720;
+  const h = 240;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <text x={30} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        剖面圖（先導孔 + 自攻螺絲 + 白膠）
+      </text>
+      <text x={30} y={36} fontSize={9} fill="#888">
+        硬木務必先鑽先導孔（螺桿徑 × 80%）避免木料劈裂
+      </text>
+
+      {/* A 件（上方橫板） */}
+      <rect x={30} y={70} width={300} height={40} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <text x={180} y={128} fontSize={9} textAnchor="middle" fill="#666">
+        A 件（含螺絲埋頭孔 + 先導孔）
+      </text>
+
+      {/* B 件（下方直板） */}
+      <rect x={30} y={110} width={300} height={90} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+      <text x={180} y={218} fontSize={9} textAnchor="middle" fill="#666">
+        B 件（直接鎖入，無先導孔）
+      </text>
+
+      {/* 螺絲（垂直） */}
+      {[120, 240].map((cx, i) => (
+        <g key={i}>
+          {/* 埋頭孔（A 件上方） */}
+          <polygon
+            points={`${cx - 6},70 ${cx + 6},70 ${cx + 3},76 ${cx - 3},76`}
+            fill="white"
+            stroke={COLOR_OUTLINE}
+          />
+          {/* 螺桿 */}
+          <line x1={cx} y1={76} x2={cx} y2={185} stroke="#888" strokeWidth={2.5} />
+          {/* 螺紋（下半段） */}
+          {Array.from({ length: 14 }).map((_, j) => {
+            const y = 115 + j * 5;
+            return <line key={j} x1={cx - 3} y1={y} x2={cx + 3} y2={y - 2} stroke="#666" strokeWidth={0.7} />;
+          })}
+          {/* 白膠縫（螺絲旁的虛線） */}
+          <line x1={cx - 14} y1={110} x2={cx + 14} y2={110} stroke="#e8a" strokeWidth={1} strokeDasharray="2 1.5" />
+        </g>
+      ))}
+      <text x={340} y={110} fontSize={8} fill="#c58">
+        ← 白膠塗滿接合面
+      </text>
+      <text x={340} y={80} fontSize={8} fill="#666">
+        ← 螺絲頭埋頭（可用木塞蓋）
+      </text>
+
+      <text x={30} y={h - 8} fontSize={9} fill="#0a4d8c">
+        板厚 {ct}mm · 螺絲徑 = 板厚 1/4（4mm 常用）· 先導孔 = 螺桿徑 × 80%
+      </text>
+    </svg>
+  );
+}
+
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
 > = {
@@ -2284,6 +2504,9 @@ const RENDERERS: Partial<
   dovetail: DovetailDetail,
   "finger-joint": FingerJointDetail,
   dowel: DowelDetail,
+  "mitered-spline": MiteredSplineDetail,
+  "pocket-hole": PocketHoleDetail,
+  screw: ScrewDetail,
 };
 
 export function JoineryDetail({

@@ -15,6 +15,7 @@ import {
 } from "@/lib/joinery/details";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
+import { DesignFormShell } from "@/components/design/DesignFormShell";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -348,8 +349,7 @@ function ParameterForm({
   joineryMode: boolean;
 }) {
   return (
-    <form
-      method="get"
+    <DesignFormShell
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
@@ -409,13 +409,11 @@ function ParameterForm({
         </>
       )}
 
-      <button
-        type="submit"
-        className="px-5 py-2 bg-zinc-900 text-white rounded hover:bg-zinc-700 text-sm font-medium"
-      >
-        重新生成
-      </button>
-    </form>
+      <p className="text-[11px] text-zinc-500 flex items-center gap-2">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        改參數 0.5 秒後自動更新設計
+      </p>
+    </DesignFormShell>
   );
 }
 
