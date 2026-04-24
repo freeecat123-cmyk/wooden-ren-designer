@@ -1724,6 +1724,8 @@ function DovetailDetail(p: JoineryDetailParams) {
   const s = fitScale(Math.max(tl * 6, 80), 180);
   const PX = (mm: number) => mm * s;
 
+  // pieceDepth = 母件尾深。公件 end view 的高度（peH）必須等於 pieceDepth，
+  // 兩件才能共用同一 offset → 同一視覺斜度。否則會產生「比例斜度不一樣」的錯誤。
   const pieceDepth = PX(tl);
   const pieceLen = Math.max(200, PX(ct) * 6);
   const bodyExt = pieceDepth * 1.0;
@@ -1848,12 +1850,13 @@ function DovetailDetail(p: JoineryDetailParams) {
             - 尾凹（▽ 空切）：外寬內窄，是給對方 tail 嵌入的空槽
           —— FineWoodworking、Wikipedia、Highland Woodworking 共同慣例 */}
       {(() => {
-        // 端面剖面尺寸：寬 = pieceLen（板的 width 維度）；高 = 板的厚度
+        // 端面剖面：寬 = pieceLen（板的 width）、高 = pieceDepth（= 母件尾深）
+        // peH 必須等於 pieceDepth，兩件才會在同一尺度下顯示同樣的斜度
         const peW = pieceLen;
-        const peH = Math.max(80, PX(ct) * 1.5);
+        const peH = pieceDepth;
         const peX = cAx;
-        // 垂直置中對齊 tail board body 區域，方便兩件對照
-        const peY = mAy + (mBodyBot - mAy - peH) / 2;
+        // peY 對齊 mAy，讓公母件的「外面」都在圖的上緣，「內面」都在下緣
+        const peY = mAy;
         const offset = dtAngleHOffset;
 
         return (
