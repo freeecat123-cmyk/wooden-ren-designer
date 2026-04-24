@@ -110,6 +110,35 @@ export function PiecesEditor({
     onChange([...specs, copy]);
   };
 
+  /**
+   * 拼板分割：將一件寬板依條數平均切成 N 條窄板（再黏合還原成寬板）。
+   * 例如 1040×640×28 分成 4 條 → 1040×160×28 × 4 件；spec 仍保留在原位置，
+   * 名稱加「（拼 N 條）」後綴，寬度 = 原寬/N，數量 = 原數量×N。
+   */
+  const splitSpec = (id: string) => {
+    const src = specs.find((s) => s.id === id);
+    if (!src) return;
+    const input = window.prompt(
+      `拼板分割——「${src.name}」寬 ${src.width}mm 要分成幾條？\n（分完平均寬 = 原寬 ÷ 條數，膠合還原）`,
+      "3",
+    );
+    if (input === null) return;
+    const n = Math.max(2, Math.min(20, parseInt(input, 10) || 0));
+    if (n < 2) {
+      alert("條數要 ≥ 2");
+      return;
+    }
+    const newWidth = Math.floor(src.width / n);
+    const baseName = src.name.replace(/（拼\s*\d+\s*條）\s*$/, "");
+    const updated: PieceSpec = {
+      ...src,
+      name: `${baseName}（拼${n}條）`,
+      width: newWidth,
+      quantity: src.quantity * n,
+    };
+    onChange(specs.map((s) => (s.id === id ? updated : s)));
+  };
+
   const addBlank = () => {
     const base = specs[0];
     const blank: PieceSpec = {
@@ -175,7 +204,7 @@ export function PiecesEditor({
                 <th className="text-right px-2 py-2 w-24">厚</th>
                 <th className="text-right px-2 py-2 w-16">數量</th>
                 <th className="text-center px-2 py-2 w-16">旋轉</th>
-                <th className="px-2 py-2 w-24"></th>
+                <th className="px-2 py-2 w-36"></th>
               </tr>
             </thead>
             <tbody>
@@ -273,6 +302,13 @@ export function PiecesEditor({
                       />
                     </td>
                     <td className="px-2 py-1 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => splitSpec(s.id)}
+                        className="text-xs text-indigo-600 hover:text-indigo-900 mr-2"
+                        title="將寬度平均分成 N 條（拼板用）"
+                      >
+                        ✂ 分割
+                      </button>
                       <button
                         onClick={() => duplicateSpec(s.id)}
                         className="text-xs text-zinc-500 hover:text-zinc-900 mr-2"
