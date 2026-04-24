@@ -1871,53 +1871,74 @@ function DovetailDetail(p: JoineryDetailParams) {
       })()}
 
       {/* CHILD (pin board — drawer front)
-          相反方向的 sawtooth：pin 在端面上，pin 是「外窄內寬」的形狀（看起來像 ▲），
-          socket（給 tail 用的）在 pin 之間，是「外寬內窄」（tail 形狀）。 */}
+          ★ 重要：公件是「從端面看下去」的橫向 cross-section（寬 × 厚），
+          不是 face view！鳩尾的角度只在端面這個剖面才看得到（角度方向是
+          沿厚度方向斜），所以畫成一個橫的 W×T 矩形，內部有交替的：
+            - 銷（▲ 實心）：外窄內寬，是剩下的木料
+            - 尾凹（▽ 空切）：外寬內窄，是給對方 tail 嵌入的空槽
+          —— FineWoodworking、Wikipedia、Highland Woodworking 共同慣例 */}
       {(() => {
-        const points: Array<[number, number]> = [];
-        points.push([cAx, mBodyBot]);
-        points.push([cAx, mAy]);
-        // pin 在 mAy 寬度 = pinW，pin 在 mBodyTop 寬度 = pinW + 2 * dtAngleHOffset
-        // 第一個 feature 是 left margin（沒 pin、是 tail-socket 半段）
-        let x = cAx + mMargin;
-        // 第一個 tail-socket 的左邊：寬（在 mAy）
-        points.push([x + dtAngleHOffset, mAy]); // 收起左 margin 的木料
-        points.push([x, mBodyTop]); // socket 底（窄）
-        for (let i = 0; i < N_PINS; i++) {
-          // 過 socket 底
-          points.push([x + tailW, mBodyTop]); // socket 底（窄）
-          points.push([x + tailW + dtAngleHOffset, mAy]); // socket 在端面（寬）
-          // 跨 pin 頂（pin 是 socket 之間的剩餘木料）
-          x += tailW;
-          if (i < N_PINS - 1) {
-            // pin 頂在 mAy 寬 pinW
-            points.push([x + pinW, mAy]);
-            points.push([x + pinW + dtAngleHOffset, mBodyTop]);
-            x += pinW;
-          }
-        }
-        // 最後從 mAy 平拉到右上
-        points.push([cAx + pieceLen, mAy]);
-        points.push([cAx + pieceLen, mBodyBot]);
+        // 端面剖面尺寸：寬 = pieceLen（板的 width 維度）；高 = 板的厚度
+        const peW = pieceLen;
+        const peH = Math.max(80, PX(ct) * 1.5);
+        const peX = cAx;
+        // 垂直置中對齊 tail board body 區域，方便兩件對照
+        const peY = mAy + (mBodyBot - mAy - peH) / 2;
+        const offset = dtAngleHOffset;
+
         return (
           <g>
-            <polygon
-              points={points.map((p) => p.join(",")).join(" ")}
+            {/* 板的端面剖面整片（先填滿銷顏色） */}
+            <rect
+              x={peX}
+              y={peY}
+              width={peW}
+              height={peH}
               fill={COLOR_TENON}
               stroke={COLOR_OUTLINE}
             />
+            {/* 切出 N_TAILS 個尾凹（▽ 形狀，等距排列） */}
+            {Array.from({ length: N_TAILS }).map((_, i) => {
+              // socket 起點 x（在端面的左邊緣）
+              const sx = peX + mMargin + i * (tailW + pinW);
+              const points = [
+                [sx, peY], // top-left（外面，寬）
+                [sx + tailW, peY], // top-right
+                [sx + tailW - offset, peY + peH], // bottom-right（內面，窄）
+                [sx + offset, peY + peH], // bottom-left
+              ];
+              return (
+                <polygon
+                  key={i}
+                  points={points.map((p) => p.join(",")).join(" ")}
+                  fill="white"
+                  stroke={COLOR_OUTLINE}
+                />
+              );
+            })}
             <text
-              x={cAx + pieceLen / 2}
-              y={mBodyBot + 14}
+              x={peX + peW / 2}
+              y={peY + peH + 16}
               fontSize={9}
               textAnchor="middle"
               fill="#666"
             >
-              公件（銷板，{N_PINS - 1} 個銷 + 兩端半銷）
+              公件（銷板）— 端面剖面看下去：寬 {p.tenonWidth || "—"} × 厚 {ct} mm
             </text>
-            <text x={cAx + pieceLen / 2} y={mAy - 6} fontSize={8} fill="#999" textAnchor="middle">
-              ↑ 銷頂（端面，板的最上緣）
+            <text x={peX + peW / 2} y={peY - 6} fontSize={8} fill="#999" textAnchor="middle">
+              ↑ 板外面（銷窄、尾凹寬）
             </text>
+            <text x={peX + peW / 2} y={peY + peH + 30} fontSize={8} fill="#999" textAnchor="middle">
+              ↓ 板內面（銷寬、尾凹窄）
+            </text>
+            <DimLine
+              x1={peX + peW + 10}
+              y1={peY}
+              x2={peX + peW + 10}
+              y2={peY + peH}
+              label={`厚 ${ct}`}
+              side="right"
+            />
           </g>
         );
       })()}
