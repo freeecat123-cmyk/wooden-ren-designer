@@ -104,31 +104,9 @@ body {
     break-before: page;
     page-break-before: always;
   }
-  /* 裁切計算器列印：徹底消空白第二頁 */
+  /* 裁切計算器列印：套用窄邊距 named page */
   .cutplan-print {
     page: cutplan;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    break-after: avoid !important;
-    page-break-after: avoid !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  .cutplan-print *,
-  .cutplan-print *::before,
-  .cutplan-print *::after {
-    break-after: auto !important;
-    page-break-after: auto !important;
-    break-before: auto !important;
-    page-break-before: auto !important;
-  }
-  .cutplan-print > *:last-child,
-  .cutplan-print > * > *:last-child {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
   }
 }
 @page cutplan {
