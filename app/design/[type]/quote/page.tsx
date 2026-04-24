@@ -454,6 +454,39 @@ function LaborForm({
       <div className="mb-4 pb-4 border-b border-zinc-100">
         <CustomerForm initial={initialCustomer} />
       </div>
+      <fieldset className="mb-3 p-3 rounded-md bg-emerald-50 border-2 border-emerald-300">
+        <legend className="text-sm text-emerald-800 font-semibold px-2">
+          ✅ 附加條款（會印到 PDF 備註區）
+        </legend>
+        <div className="flex flex-wrap gap-6 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="termIncludeShipping"
+              value="1"
+              defaultChecked={terms.termIncludeShipping}
+              className="w-5 h-5"
+            />
+            <span className="font-medium">🚚 報價含運費</span>
+            <span className="text-[10px] text-zinc-500">
+              （不勾會印「運費另計」）
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="termIncludeInstallation"
+              value="1"
+              defaultChecked={terms.termIncludeInstallation}
+              className="w-5 h-5"
+            />
+            <span className="font-medium">🔧 含現場安裝</span>
+            <span className="text-[10px] text-zinc-500">
+              （不勾會印「不含安裝」）
+            </span>
+          </label>
+        </div>
+      </fieldset>
       <fieldset className="mb-3 p-2 rounded bg-amber-50 border border-amber-200">
         <legend className="text-xs text-amber-800 mb-1 font-medium px-1">
           💰 議價覆寫（留 0 = 沿用成本加成）
@@ -636,33 +669,6 @@ function LaborForm({
             step={LABOR_BOUNDS.vatRate.step}
             decimal
           />
-        </div>
-      </fieldset>
-      <fieldset className="mt-3">
-        <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
-          附加條款（勾選自動加進 PDF 備註）
-        </legend>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="checkbox"
-              name="termIncludeShipping"
-              value="1"
-              defaultChecked={terms.termIncludeShipping}
-              className="w-4 h-4"
-            />
-            <span>🚚 報價含運費</span>
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="checkbox"
-              name="termIncludeInstallation"
-              value="1"
-              defaultChecked={terms.termIncludeInstallation}
-              className="w-4 h-4"
-            />
-            <span>🔧 含現場安裝</span>
-          </label>
         </div>
       </fieldset>
       <button

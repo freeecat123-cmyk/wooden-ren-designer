@@ -164,17 +164,20 @@ export function QuoteHistory({ current }: Props) {
   if (entries.length === 0) return null;
 
   return (
-    <details className="mb-4 rounded-lg border border-zinc-200 bg-white">
+    <details open className="mb-4 rounded-lg border border-zinc-200 bg-white">
       <summary className="cursor-pointer list-none px-4 py-2.5 text-sm flex items-center justify-between hover:bg-zinc-50">
-        <span className="font-medium text-zinc-800 flex items-center gap-2">
+        <span className="font-medium text-zinc-800 flex items-center gap-2 flex-wrap">
           📁 最近報價（{entries.length}）
+          <span className="text-[10px] text-zinc-400 font-normal">
+            點左邊 badge 可切換 待確認 / 已成交 / 已拒絕
+          </span>
           {winRate !== null && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
               轉單率 {winRate}% · 成交 {wonCount} / 拒絕 {lostCount}
             </span>
           )}
         </span>
-        <span className="text-xs text-zinc-400">點擊展開</span>
+        <span className="text-xs text-zinc-400">點擊收合</span>
       </summary>
       <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
         {entries.map((e, i) => {

@@ -170,7 +170,7 @@ export default async function QuotePrintPage({
                 </dd>
               </div>
             </div>
-            <QrCode size={72} />
+            <QrCode size={110} />
           </div>
         </header>
 

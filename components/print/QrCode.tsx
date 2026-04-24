@@ -24,10 +24,10 @@ export function QrCode({ url, size = 120, showCaption = true }: Props) {
     const finalUrl = url ?? window.location.href;
     setTarget(finalUrl);
     QRCode.toDataURL(finalUrl, {
-      errorCorrectionLevel: "M",
-      margin: 1,
-      width: size * 2, // 2x for sharp print
-      color: { dark: "#18181b", light: "#ffffff" },
+      errorCorrectionLevel: "H", // 高容錯：列印出來有髒污也能掃
+      margin: 2, // quiet zone 至少 2 模組寬才掃得穩
+      width: size * 4, // 4x 高解析供 300dpi 列印
+      color: { dark: "#000000", light: "#ffffff" },
     })
       .then((d) => setDataUrl(d))
       .catch(() => setDataUrl(""));

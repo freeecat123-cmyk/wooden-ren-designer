@@ -46,9 +46,13 @@ export function EmailShareButton({
   printPath,
   senderName,
 }: Props) {
-  if (!toEmail || !toEmail.includes("@")) return null;
+  const hasEmail = toEmail && toEmail.includes("@");
 
   const handleClick = () => {
+    if (!hasEmail) {
+      alert("客戶還沒填 Email。請在下方「客戶資料」欄填入 email 後再試。");
+      return;
+    }
     const origin =
       typeof window !== "undefined" ? window.location.origin : "";
     const printUrl = origin + printPath;
@@ -95,8 +99,12 @@ export function EmailShareButton({
     <button
       type="button"
       onClick={handleClick}
-      className="px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700"
-      title={`寄報價單給 ${toEmail}`}
+      className={`px-4 py-2 rounded text-sm text-white ${
+        hasEmail
+          ? "bg-sky-600 hover:bg-sky-700"
+          : "bg-sky-300 hover:bg-sky-400"
+      }`}
+      title={hasEmail ? `寄報價單給 ${toEmail}` : "請先填客戶 Email"}
     >
       📧 寄 Email
     </button>
