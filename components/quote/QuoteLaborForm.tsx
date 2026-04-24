@@ -53,6 +53,7 @@ export function QuoteLaborForm({
   initialCustomer,
   terms,
   viewMode,
+  quotedAt,
 }: {
   type: string;
   designQuery: string;
@@ -61,6 +62,7 @@ export function QuoteLaborForm({
   initialCustomer: CustomerInfo;
   terms: { termIncludeShipping: boolean; termIncludeInstallation: boolean };
   viewMode: "customer" | "internal";
+  quotedAt: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -133,6 +135,9 @@ export function QuoteLaborForm({
       ))}
       {/* viewMode 透過 hidden input 帶入，避免 form 重組 URL 時遺失（由 ViewModeToggle 設定） */}
       <input type="hidden" name="viewMode" value={viewMode} />
+      {/* quotedAt：第一次開頁時 server 算今天，QuoteLaborForm 把它寫死回 URL，
+          重整不會漂移、寄出去的連結客人看到的有效期跟我看到的一致 */}
+      <input type="hidden" name="quotedAt" value={quotedAt} />
 
       {/* 客戶資料 */}
       <CustomerForm initial={initialCustomer} onApply={handleCustomerApply} />

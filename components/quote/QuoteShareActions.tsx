@@ -10,6 +10,7 @@ import {
 import { LABOR_DEFAULTS, type LaborDefaults } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { loadBranding } from "@/components/branding/branding";
+import { QrCode } from "@/components/print/QrCode";
 
 /**
  * 分享按鈕列（LINE / Email / PDF）。
@@ -32,6 +33,26 @@ interface Props {
   materialName: string;
 }
 
+type CopiedState = "line" | "link" | null;
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+}
+
 export function QuoteShareActions({
   design,
   type,
@@ -39,20 +60,30 @@ export function QuoteShareActions({
   dimensionsLabel,
   materialName,
 }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<CopiedState>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrBusy, setQrBusy] = useState(false);
 
-  const handleLine = async () => {
+  // 共用：拿到當下表單狀態 + 解析 origin + 短碼。沒設 publicBaseUrl 會 alert 並回 null。
+  const prepareShareUrl = async () => {
     const state = readFormState(design);
     if (!state) {
       alert("找不到報價表單，請重新整理頁面");
-      return;
+      return null;
     }
-    const { customer, quote, opts, deliveryIso, expiryIso, params } = state;
     const origin = resolvePublicOrigin();
-    if (!origin) return; // 使用者取消（localhost 沒設 publicBaseUrl）
-    const longPath = `/design/${type}/quote/print?${params.toString()}`;
+    if (!origin) return null;
+    const longPath = `/design/${type}/quote/print?${state.params.toString()}`;
     const printUrl = await shortenIfPossible(origin, longPath);
-    const quoteNo = generateQuoteNumber(design.id);
+    const contextForNo = `${state.customer.name}|${design.id}|${(state.params.get("material") ?? "")}`;
+    const quoteNo = generateQuoteNumber(design.id, contextForNo, new Date(state.todayIso + "T00:00:00"));
+    return { ...state, printUrl, quoteNo, origin };
+  };
+
+  const handleLine = async () => {
+    const ctx = await prepareShareUrl();
+    if (!ctx) return;
+    const { customer, quote, opts, deliveryIso, expiryIso, printUrl, quoteNo } = ctx;
     const message = buildLineMessage({
       customerName: customer.name,
       furnitureName: furnitureNameZh,
@@ -67,41 +98,39 @@ export function QuoteShareActions({
       quoteNo,
       printUrl,
     });
-    try {
-      await navigator.clipboard.writeText(message);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = message;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } finally {
-        document.body.removeChild(ta);
-      }
+    await copyToClipboard(message);
+    setCopied("line");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleCopyLink = async () => {
+    const ctx = await prepareShareUrl();
+    if (!ctx) return;
+    await copyToClipboard(ctx.printUrl);
+    setCopied("link");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleQr = async () => {
+    if (qrUrl) {
+      setQrUrl(null);
+      return;
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setQrBusy(true);
+    const ctx = await prepareShareUrl();
+    setQrBusy(false);
+    if (!ctx) return;
+    setQrUrl(ctx.printUrl);
   };
 
   const handleEmail = async () => {
-    const state = readFormState(design);
-    if (!state) {
-      alert("找不到報價表單，請重新整理頁面");
-      return;
-    }
-    const { customer, quote, opts, deliveryIso, expiryIso, params } = state;
+    const ctx = await prepareShareUrl();
+    if (!ctx) return;
+    const { customer, quote, opts, deliveryIso, expiryIso, printUrl, quoteNo } = ctx;
     if (!customer.email || !customer.email.includes("@")) {
       alert("客戶還沒填 Email。請在下方「客戶資料」欄填入 email 後再試。");
       return;
     }
-    const origin = resolvePublicOrigin();
-    if (!origin) return;
-    const longPath = `/design/${type}/quote/print?${params.toString()}`;
-    const printUrl = await shortenIfPossible(origin, longPath);
-    const quoteNo = generateQuoteNumber(design.id);
     const { subject, body } = buildEmailContent({
       customerName: customer.name,
       furnitureName: furnitureNameZh,
@@ -132,32 +161,61 @@ export function QuoteShareActions({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleLine}
-        className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
-          copied ? "bg-emerald-600" : "bg-green-500 hover:bg-green-600"
-        }`}
-        title="複製格式化的 LINE 訊息"
-      >
-        {copied ? "✅ 已複製" : "💬 複製 LINE 訊息"}
-      </button>
-      <button
-        type="button"
-        onClick={handleEmail}
-        className="px-3 py-1.5 rounded text-xs text-white bg-sky-600 hover:bg-sky-700"
-        title="開啟郵件客戶端寄給客戶 Email"
-      >
-        📧 寄 Email
-      </button>
-      <button
-        type="button"
-        onClick={handlePdf}
-        className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
-        title="開新分頁列印 / 存 PDF"
-      >
-        🧾 列印 / PDF
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleLine}
+          className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
+            copied === "line" ? "bg-emerald-600" : "bg-green-500 hover:bg-green-600"
+          }`}
+          title="複製格式化的 LINE 訊息"
+        >
+          {copied === "line" ? "✅ 已複製" : "💬 LINE 訊息"}
+        </button>
+        <button
+          type="button"
+          onClick={handleEmail}
+          className="px-3 py-1.5 rounded text-xs text-white bg-sky-600 hover:bg-sky-700"
+          title="開啟郵件客戶端寄給客戶 Email"
+        >
+          📧 寄 Email
+        </button>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
+            copied === "link" ? "bg-emerald-600" : "bg-zinc-600 hover:bg-zinc-700"
+          }`}
+          title="複製短連結，可貼到任何地方"
+        >
+          {copied === "link" ? "✅ 已複製" : "🔗 複製連結"}
+        </button>
+        <button
+          type="button"
+          onClick={handleQr}
+          disabled={qrBusy}
+          className="px-3 py-1.5 rounded text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+          title="顯示 QR 給現場客戶手機掃"
+        >
+          {qrBusy ? "…" : qrUrl ? "✕ 收起 QR" : "📱 QR"}
+        </button>
+        <button
+          type="button"
+          onClick={handlePdf}
+          className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
+          title="開新分頁列印 / 存 PDF"
+        >
+          🧾 列印 / PDF
+        </button>
+      </div>
+      {qrUrl && (
+        <div className="absolute right-6 mt-2 z-20 bg-white border-2 border-violet-300 rounded-lg shadow-xl p-3">
+          <QrCode url={qrUrl} size={180} showCaption={false} />
+          <div className="mt-2 max-w-[180px] text-[10px] text-zinc-500 text-center font-mono break-all">
+            {qrUrl}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -283,7 +341,14 @@ function readFormState(design: FurnitureDesign) {
 
   const quote = calculateQuote(design, opts);
 
-  const today = new Date();
+  // quotedAt 鎖定：從 form 拿；沒有就用今天，並把它「凍結」到 params 裡，
+  // 讓寄出去的連結帶著這個日期，客人那邊 expiry 不會漂移。
+  const quotedAtFromForm = get("quotedAt");
+  const todayIso =
+    quotedAtFromForm && /^\d{4}-\d{2}-\d{2}$/.test(quotedAtFromForm)
+      ? quotedAtFromForm
+      : new Date().toISOString().slice(0, 10);
+  const today = new Date(todayIso + "T00:00:00");
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(opts.expiryDays));
   const expiryIso = expiry.toISOString().slice(0, 10);
@@ -299,8 +364,10 @@ function readFormState(design: FurnitureDesign) {
   form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((cb) => {
     if (!cb.checked) params.delete(cb.name);
   });
+  // 確保短連結帶 quotedAt，給客人的有效期就鎖死了
+  params.set("quotedAt", todayIso);
 
-  return { opts, customer, quote, expiryIso, deliveryIso, params };
+  return { opts, customer, quote, todayIso, expiryIso, deliveryIso, params };
 }
 
 /* ─────────────── 訊息與 Email 格式 ─────────────── */

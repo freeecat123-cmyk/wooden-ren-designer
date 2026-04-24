@@ -52,6 +52,7 @@ interface PageProps {
     customerTaxId?: string;
     customerEmail?: string;
     viewMode?: string;
+    quotedAt?: string;
   }>;
 }
 
@@ -125,7 +126,6 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
   const design = entry.template({ length, width, height, material });
   const quote = calculateQuote(design, laborOpts);
-  const quoteNo = generateQuoteNumber(design.id);
 
   const customer: CustomerInfo = {
     name: sp.customerName ?? "",
@@ -135,6 +135,15 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     taxId: sp.customerTaxId ?? "",
     email: sp.customerEmail ?? "",
   };
+
+  // quotedAt: 從 URL 派生（穩定）；沒帶就用今天。share 時 QuoteShareActions
+  // 會把當下 quotedAt 寫進 URL，客人收到的連結 expiry 不會漂移。
+  const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
+  const today = quotedAtRaw ? new Date(quotedAtRaw + "T00:00:00") : new Date();
+  const todayIso = today.toISOString().slice(0, 10);
+  // quoteNo 加客戶+規格 hash 防同日撞號
+  const contextForNo = `${customer.name}|${length}x${width}x${height}|${material}`;
+  const quoteNo = generateQuoteNumber(design.id, contextForNo, today);
   const viewMode: "customer" | "internal" =
     sp.viewMode === "internal" ? "internal" : "customer";
   const termIncludeShipping = sp.termIncludeShipping === "1";
@@ -151,9 +160,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     customerEmail: customer.email,
   }).toString();
   const termQuery = `termIncludeShipping=${termIncludeShipping ? "1" : "0"}&termIncludeInstallation=${termIncludeInstallation ? "1" : "0"}`;
-  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}&${termQuery}`;
+  const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}&${termQuery}&quotedAt=${todayIso}`;
 
-  const today = new Date();
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
   const expiryIso = expiry.toISOString().slice(0, 10);
@@ -200,6 +208,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           initialCustomer={customer}
           terms={{ termIncludeShipping, termIncludeInstallation }}
           viewMode={viewMode}
+          quotedAt={todayIso}
         />
 
         {/* 右側：總價摘要卡（lg 以上 sticky） */}

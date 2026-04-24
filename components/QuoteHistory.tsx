@@ -154,6 +154,14 @@ export function QuoteHistory({ current }: Props) {
     setEntries(next);
   };
 
+  // 「重發」=> 直接開新分頁帶這筆 query 到 quote 編輯頁，重整 quotedAt 為今天
+  // （讓有效期重新算 30 天，不然客人收到舊連結一打開就過期了）
+  const resendQuote = (e: QuoteHistoryEntry) => {
+    const params = new URLSearchParams(e.query);
+    params.delete("quotedAt"); // 讓 server 用今天重新蓋，產生新的有效期
+    window.open(`${e.pathname}?${params.toString()}`, "_blank");
+  };
+
   // 轉單率統計
   const wonCount = entries.filter((e) => e.status === "won").length;
   const lostCount = entries.filter((e) => e.status === "lost").length;
@@ -238,6 +246,14 @@ export function QuoteHistory({ current }: Props) {
                   {formatTWD(e.total)}
                 </span>
               </Link>
+              <button
+                type="button"
+                onClick={() => resendQuote(e)}
+                className="flex-shrink-0 px-2 py-0.5 text-[10px] rounded border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100"
+                title="開新分頁，直接帶這筆參數重發給同一個客人"
+              >
+                ↗ 重發
+              </button>
             </li>
           );
         })}

@@ -94,9 +94,13 @@ export default async function QuotePrintPage({
 
   const design = entry.template({ length, width, height, material });
   const quote = calculateQuote(design, laborOpts);
-  const quoteNo = generateQuoteNumber(design.id);
-  const today = new Date();
+  // quotedAt 優先從 URL 帶（客戶收到的連結都該帶這欄），fallback 才用今天
+  const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
+  const today = quotedAtRaw ? new Date(quotedAtRaw + "T00:00:00") : new Date();
   const todayStr = today.toISOString().slice(0, 10);
+  const customerName = sp.customerName ?? "";
+  const contextForNo = `${customerName}|${length}x${width}x${height}|${material}`;
+  const quoteNo = generateQuoteNumber(design.id, contextForNo, today);
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
   const expiryStr = expiry.toISOString().slice(0, 10);
@@ -104,7 +108,6 @@ export default async function QuotePrintPage({
     .toISOString()
     .slice(0, 10);
 
-  const customerName = sp.customerName ?? "";
   const customerContact = sp.customerContact ?? "";
   const customerPhone = sp.customerPhone ?? "";
   const customerAddress = sp.customerAddress ?? "";

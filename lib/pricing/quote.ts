@@ -285,9 +285,29 @@ export function addWorkdays(start: Date, workdays: number): Date {
   return d;
 }
 
-/** 產生報價單編號 Q-YYYYMMDD-<設計id前 4 碼> */
-export function generateQuoteNumber(designId: string, date = new Date()): string {
+/** djb2-ish 字串雜湊，base36 取 3 碼。穩定（同 input → 同 output），不需亂數。 */
+function shortHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+  }
+  return Math.abs(h).toString(36).slice(0, 3).toUpperCase().padStart(3, "X");
+}
+
+/**
+ * 產生報價單編號 Q-YYYYMMDD-<設計id前 4 碼>[-<context 雜湊 3 碼>]
+ *
+ * context 通常是「客戶名+規格+材料」字串，讓同一天同設計但不同客戶不撞號。
+ * 同客戶同規格同天 → 同編號（穩定，重複報價不重複編號）。
+ * 不傳 context（舊行為）→ 沒有後綴。
+ */
+export function generateQuoteNumber(
+  designId: string,
+  context: string = "",
+  date = new Date(),
+): string {
   const ymd = date.toISOString().slice(0, 10).replace(/-/g, "");
   const hash = designId.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "X");
-  return `Q-${ymd}-${hash}`;
+  const suffix = context.trim() ? `-${shortHash(context.trim())}` : "";
+  return `Q-${ymd}-${hash}${suffix}`;
 }
