@@ -42,7 +42,13 @@ body {
     --background: #ffffff;
     --foreground: #111111;
   }
+  /* 取消 layout.tsx 的 h-full / min-h-full flex — 避免 body 撐滿視窗
+     高度導致列印時尾端溢出產生空白頁 */
+  html,
   body {
+    height: auto !important;
+    min-height: 0 !important;
+    display: block !important;
     background: #ffffff !important;
     color: #111 !important;
   }
