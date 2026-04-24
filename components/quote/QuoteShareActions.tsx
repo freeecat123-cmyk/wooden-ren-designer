@@ -9,6 +9,7 @@ import {
 } from "@/lib/pricing/quote";
 import { LABOR_DEFAULTS, type LaborDefaults } from "@/lib/pricing/labor";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
+import { loadBranding } from "@/components/branding/branding";
 
 /**
  * 分享按鈕列（LINE / Email / PDF）。
@@ -47,7 +48,8 @@ export function QuoteShareActions({
       return;
     }
     const { customer, quote, opts, deliveryIso, expiryIso, params } = state;
-    const origin = window.location.origin;
+    const origin = resolvePublicOrigin();
+    if (!origin) return; // 使用者取消（localhost 沒設 publicBaseUrl）
     const printUrl = `${origin}/design/${type}/quote/print?${params.toString()}`;
     const quoteNo = generateQuoteNumber(design.id);
     const message = buildLineMessage({
@@ -94,7 +96,8 @@ export function QuoteShareActions({
       alert("客戶還沒填 Email。請在下方「客戶資料」欄填入 email 後再試。");
       return;
     }
-    const origin = window.location.origin;
+    const origin = resolvePublicOrigin();
+    if (!origin) return;
     const printUrl = `${origin}/design/${type}/quote/print?${params.toString()}`;
     const quoteNo = generateQuoteNumber(design.id);
     const { subject, body } = buildEmailContent({
@@ -155,6 +158,31 @@ export function QuoteShareActions({
       </button>
     </>
   );
+}
+
+/* ─────────────── 公開連結 base URL 解析 ─────────────── */
+
+/**
+ * 解析「分享出去的連結」應該用哪個 origin。
+ * 優先用 Branding 設定的 publicBaseUrl，否則用 window.location.origin。
+ * 如果偵測到 localhost / 私有 IP 且沒設 publicBaseUrl → 警告並回 null。
+ */
+function resolvePublicOrigin(): string | null {
+  const branding = loadBranding();
+  const explicit = branding.publicBaseUrl.trim().replace(/\/$/, "");
+  if (explicit) return explicit;
+
+  const origin = window.location.origin;
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+    origin,
+  );
+  if (isLocal) {
+    alert(
+      "⚠️ 你正在 localhost 編輯，分享出去的連結客戶無法打開。\n\n請先到下方「報價單抬頭設定」展開，填入「對外公開網址」（例如 https://你的網站.vercel.app），再寄出。",
+    );
+    return null;
+  }
+  return origin;
 }
 
 /* ─────────────── 從 form DOM 讀取當下狀態 + 重算 quote ─────────────── */

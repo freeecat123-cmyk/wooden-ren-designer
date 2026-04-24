@@ -13,6 +13,12 @@ export interface BrandingData {
   email: string;
   /** base64 data URL；空字串表示使用預設 /logo.png */
   logoDataUrl: string;
+  /**
+   * 對外公開網址（例：https://woodenren-designer.vercel.app）。
+   * 寄 LINE/Email 給客戶時，「完整報價單連結」會用這個當 base，避免在 localhost
+   * 編輯時寄出 localhost URL 給客戶。空字串 = 使用 window.location.origin。
+   */
+  publicBaseUrl: string;
   // ── 報價單條款（使用者自訂，存 localStorage）──
   /** 付款條件（多行文字） */
   paymentTerms: string;
@@ -36,6 +42,7 @@ export const DEFAULT_BRANDING: BrandingData = {
   contact: "木頭仁",
   email: "",
   logoDataUrl: "",
+  publicBaseUrl: "",
   paymentTerms:
     "訂金：簽約付款 50%\n尾款：交貨前付款 50%\n匯款銀行：＿＿＿＿\n帳戶：＿＿＿＿",
   deliveryTerms: "簽約後 ____ 天內，工坊自取／另議運費",

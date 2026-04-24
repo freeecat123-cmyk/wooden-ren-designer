@@ -166,6 +166,37 @@ export function BrandingForm() {
             />
           </div>
 
+          {/* 對外公開網址：用於 LINE/Email 內的「完整報價單連結」 */}
+          <div className="pt-3 mt-3 border-t border-zinc-100">
+            <label className="flex flex-col text-xs">
+              <span className="text-zinc-600 mb-1 flex items-center gap-2">
+                對外公開網址（給客戶看的連結 base）
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      update({ publicBaseUrl: window.location.origin });
+                    }
+                  }}
+                  className="text-[10px] text-sky-700 hover:text-sky-900 hover:underline"
+                  title="把現在這個瀏覽器分頁的網址當作公開網址（建議在線上版開一次按一下，之後 localhost 編輯時自動用線上 URL）"
+                >
+                  📋 抓當前網址
+                </button>
+              </span>
+              <input
+                type="text"
+                value={data.publicBaseUrl}
+                onChange={handleField("publicBaseUrl")}
+                placeholder="例：https://你的網站.vercel.app（留空則用當前 origin）"
+                className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-mono"
+              />
+              <span className="mt-0.5 text-[10px] text-zinc-400">
+                寄 LINE/Email 給客戶時，「完整報價單連結」會用這個當前綴。在 localhost 編輯時必填，不然客戶連不上你電腦。
+              </span>
+            </label>
+          </div>
+
           <div className="pt-3 mt-3 border-t border-zinc-100">
             <p className="text-xs text-zinc-500 font-medium mb-2">
               報價單條款（可自行編輯，會套用在 A4 報價單）
