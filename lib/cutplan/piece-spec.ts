@@ -69,12 +69,14 @@ export function indexToCode(i: number): string {
   return s;
 }
 
-/** 把 PieceSpec 展開成 CutPiece 陣列，供排料演算法使用 */
+/** 把 PieceSpec 展開成 CutPiece 陣列，供排料演算法使用
+ *  多件同規格時 code 加序號（C1, C2, C3...），方便現場辨識同款零件的第 N 件 */
 export function expandSpecs(specs: PieceSpec[]): CutPiece[] {
   const out: CutPiece[] = [];
   specs.forEach((s, idx) => {
-    const code = indexToCode(idx);
+    const baseCode = indexToCode(idx);
     for (let i = 0; i < s.quantity; i++) {
+      const code = s.quantity === 1 ? baseCode : `${baseCode}${i + 1}`;
       out.push({
         partId: s.quantity === 1 ? s.id : `${s.id}-${i}`,
         partNameZh: s.quantity === 1 ? s.name : `${s.name} ${i + 1}`,

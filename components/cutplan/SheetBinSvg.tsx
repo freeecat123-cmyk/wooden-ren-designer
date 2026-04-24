@@ -60,29 +60,20 @@ export function SheetBinSvg({
                   stroke="#52525b"
                   strokeWidth={0.5}
                 />
-                {p.piece.code && w > 16 && h > 16 && (
+                {/* 編號：threshold 用 viewBox 單位（svg coord）夠放就顯示 */}
+                {p.piece.code && w >= 10 && h >= 8 && (
                   <text
                     x={x + w / 2}
-                    y={y + h / 2 + 5}
+                    y={y + h / 2}
                     textAnchor="middle"
-                    fontSize={Math.min(16, Math.max(10, Math.min(w, h) / 2.5))}
+                    dominantBaseline="central"
+                    fontSize={Math.min(14, Math.max(6, h * 0.55))}
                     fill="#18181b"
                     fontWeight={800}
                     fontFamily="monospace"
                   >
                     {p.piece.code}
-                  </text>
-                )}
-                {w > 50 && h > 26 && (
-                  <text
-                    x={x + w / 2}
-                    y={y + h - 4}
-                    textAnchor="middle"
-                    fontSize={7}
-                    fill="#52525b"
-                  >
-                    {p.w}×{p.h}×{p.piece.thickness}
-                    {p.rotated ? " ↻" : ""}
+                    {p.rotated ? "↻" : ""}
                   </text>
                 )}
               </g>
