@@ -282,7 +282,7 @@ export function PiecesEditor({
                     }}
                   >
                     <td
-                      className="px-1 py-1 text-center cursor-grab active:cursor-grabbing text-zinc-300 hover:text-zinc-700 select-none"
+                      className="px-1 py-1 text-center cursor-grab active:cursor-grabbing text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 select-none text-base leading-none"
                       draggable
                       onDragStart={(e) => {
                         setDragFrom(idx);
@@ -294,7 +294,7 @@ export function PiecesEditor({
                       }}
                       title="拖拉調整順序（順序決定編號 A/B/C...）"
                     >
-                      ⋮⋮
+                      ☰
                     </td>
                     <td className="px-2 py-1 text-center">
                       <span
