@@ -56,9 +56,17 @@ export interface QuoteBreakdown {
   vat: number;
   /** 含稅總計 */
   total: number;
+  /** 訂金（下訂時收） */
+  depositAmount: number;
+  /** 尾款（交貨時收） */
+  balanceAmount: number;
+  /** 預估工作天數（工時 ÷ 8hr + bufferDays） */
+  estimatedWorkdays: number;
   /** 行項目（用於表格顯示，單件） */
   lines: QuoteLineItem[];
 }
+
+const HOURS_PER_WORKDAY = 8;
 
 const WASTE_RATE = 0.1; // 10% 切料損耗
 
@@ -172,6 +180,16 @@ export function calculateQuote(
   const vat = subtotalExclVat * opts.vatRate;
   const total = subtotalExclVat + vat;
 
+  // 7. 訂金/尾款拆分（依含稅總計）
+  const depositRate = Math.max(0, Math.min(1, opts.depositRate ?? 0.5));
+  const depositAmount = Math.round(total * depositRate);
+  const balanceAmount = Math.max(0, Math.round(total) - depositAmount);
+
+  // 8. 預估工作天數（實做工時 × 數量 ÷ 8hr/天 + 塗裝乾燥/出貨緩衝）
+  const bufferDays = Math.max(0, Math.round(opts.bufferDays ?? 0));
+  const estimatedWorkdays =
+    Math.ceil((laborHours * quantity) / HOURS_PER_WORKDAY) + bufferDays;
+
   const lines: QuoteLineItem[] = [
     ...materialLines,
     {
@@ -244,8 +262,23 @@ export function calculateQuote(
     subtotalExclVat,
     vat,
     total,
+    depositAmount,
+    balanceAmount,
+    estimatedWorkdays,
     lines,
   };
+}
+
+/** 從起始日起跳 workdays 個工作天（週六日不算），回傳預計交貨日 */
+export function addWorkdays(start: Date, workdays: number): Date {
+  const d = new Date(start);
+  let added = 0;
+  while (added < workdays) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) added++;
+  }
+  return d;
 }
 
 /** 產生報價單編號 Q-YYYYMMDD-<設計id前 4 碼> */

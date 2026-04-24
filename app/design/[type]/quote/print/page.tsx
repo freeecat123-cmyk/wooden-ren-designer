@@ -6,6 +6,7 @@ import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
 import {
   calculateQuote,
   generateQuoteNumber,
+  addWorkdays,
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { PrintButton } from "@/components/print/PrintButton";
@@ -85,6 +86,8 @@ export default async function QuotePrintPage({
     quantity: parseNum(sp.quantity, LABOR_DEFAULTS.quantity),
     discountRate: parseNum(sp.discountRate, LABOR_DEFAULTS.discountRate),
     expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
+    depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
+    bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
   };
 
   const design = entry.template({ length, width, height, material });
@@ -95,6 +98,9 @@ export default async function QuotePrintPage({
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
   const expiryStr = expiry.toISOString().slice(0, 10);
+  const deliveryStr = addWorkdays(today, quote.estimatedWorkdays)
+    .toISOString()
+    .slice(0, 10);
 
   const customerName = sp.customerName ?? "";
   const customerContact = sp.customerContact ?? "";
@@ -140,6 +146,13 @@ export default async function QuotePrintPage({
               <dd className="font-mono text-right">{todayStr}</dd>
               <dt className="text-zinc-500">有效期限</dt>
               <dd className="font-mono text-right">{expiryStr}</dd>
+              <dt className="text-zinc-500">預計交期</dt>
+              <dd className="font-mono text-right">
+                {deliveryStr}
+                <span className="text-zinc-400 text-[10px]">
+                  {" "}（約 {quote.estimatedWorkdays} 工作天）
+                </span>
+              </dd>
             </div>
           </div>
         </header>
@@ -326,6 +339,26 @@ export default async function QuotePrintPage({
                     <td className="py-2 pl-2">含稅總計 TOTAL</td>
                     <td className="py-2 pr-2 text-right font-mono text-base">
                       {formatTWD(quote.total)}
+                    </td>
+                  </tr>
+                </>
+              )}
+              {laborOpts.depositRate > 0 && laborOpts.depositRate < 1 && (
+                <>
+                  <tr>
+                    <td className="pt-3 py-1 text-emerald-700">
+                      訂金（下訂時付 {(laborOpts.depositRate * 100).toFixed(0)}%）
+                    </td>
+                    <td className="pt-3 py-1 text-right font-mono text-emerald-700">
+                      {formatTWD(quote.depositAmount)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-1 text-zinc-600">
+                      尾款（交貨時付 {((1 - laborOpts.depositRate) * 100).toFixed(0)}%）
+                    </td>
+                    <td className="py-1 text-right font-mono">
+                      {formatTWD(quote.balanceAmount)}
                     </td>
                   </tr>
                 </>

@@ -7,6 +7,7 @@ import { LABOR_DEFAULTS, LABOR_BOUNDS } from "@/lib/pricing/labor";
 import {
   calculateQuote,
   generateQuoteNumber,
+  addWorkdays,
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { BrandingForm } from "@/components/branding/BrandingForm";
@@ -35,6 +36,8 @@ interface PageProps {
     quantity?: string;
     discountRate?: string;
     expiryDays?: string;
+    depositRate?: string;
+    bufferDays?: string;
     primaryMaterialPricePerBdft?: string;
     plywoodPricePerBdft?: string;
     mdfPricePerBdft?: string;
@@ -99,6 +102,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     quantity: parseNum(sp.quantity, LABOR_DEFAULTS.quantity),
     discountRate: parseNum(sp.discountRate, LABOR_DEFAULTS.discountRate),
     expiryDays: parseNum(sp.expiryDays, LABOR_DEFAULTS.expiryDays),
+    depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
+    bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
@@ -129,7 +134,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp.viewMode === "internal" ? "internal" : "customer";
 
   const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,
     customerContact: customer.contact,
@@ -290,6 +295,36 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         </table>
       </section>
 
+      <section className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+          <div className="text-[10px] text-emerald-700 font-medium">訂金（下訂時收）</div>
+          <div className="mt-1 text-lg font-mono font-semibold text-emerald-900">
+            {formatTWD(quote.depositAmount)}
+          </div>
+          <div className="text-[10px] text-emerald-700 mt-0.5">
+            {(laborOpts.depositRate * 100).toFixed(0)}% of {formatTWD(quote.total)}
+          </div>
+        </div>
+        <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-3">
+          <div className="text-[10px] text-zinc-700 font-medium">尾款（交貨時收）</div>
+          <div className="mt-1 text-lg font-mono font-semibold text-zinc-900">
+            {formatTWD(quote.balanceAmount)}
+          </div>
+          <div className="text-[10px] text-zinc-600 mt-0.5">
+            {((1 - laborOpts.depositRate) * 100).toFixed(0)}% 餘額
+          </div>
+        </div>
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+          <div className="text-[10px] text-sky-700 font-medium">預計交期</div>
+          <div className="mt-1 text-lg font-mono font-semibold text-sky-900">
+            {addWorkdays(new Date(), quote.estimatedWorkdays).toISOString().slice(0, 10)}
+          </div>
+          <div className="text-[10px] text-sky-700 mt-0.5">
+            約 {quote.estimatedWorkdays} 個工作天（工時 {quote.laborHours.toFixed(1)}h ÷ 8 + 緩衝 {laborOpts.bufferDays}）
+          </div>
+        </div>
+      </section>
+
       <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 leading-relaxed">
         <p className="font-semibold mb-1">報價說明</p>
         <ul className="list-disc pl-5 space-y-0.5">
@@ -329,6 +364,8 @@ function LaborForm({
     quantity: number;
     discountRate: number;
     expiryDays: number;
+    depositRate: number;
+    bufferDays: number;
     primaryMaterialPricePerBdft: number;
     plywoodPricePerBdft: number | null;
     mdfPricePerBdft: number | null;
@@ -355,9 +392,9 @@ function LaborForm({
       </div>
       <fieldset className="mb-3">
         <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
-          數量 / 折扣 / 有效期
+          數量 / 折扣 / 有效期 / 訂金 / 交期
         </legend>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <NumField
             name="quantity"
             label="數量"
@@ -383,6 +420,25 @@ function LaborForm({
             min={LABOR_BOUNDS.expiryDays.min}
             max={LABOR_BOUNDS.expiryDays.max}
             step={LABOR_BOUNDS.expiryDays.step}
+          />
+          <NumField
+            name="depositRate"
+            label="訂金比例"
+            value={defaults.depositRate}
+            min={LABOR_BOUNDS.depositRate.min}
+            max={LABOR_BOUNDS.depositRate.max}
+            step={LABOR_BOUNDS.depositRate.step}
+            decimal
+            hint="0.5 = 50%；0 表示不收訂金"
+          />
+          <NumField
+            name="bufferDays"
+            label="塗裝/出貨緩衝（天）"
+            value={defaults.bufferDays}
+            min={LABOR_BOUNDS.bufferDays.min}
+            max={LABOR_BOUNDS.bufferDays.max}
+            step={LABOR_BOUNDS.bufferDays.step}
+            hint="乾燥+出貨，併入交期"
           />
         </div>
       </fieldset>

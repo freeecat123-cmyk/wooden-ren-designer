@@ -58,6 +58,19 @@ function formatDate(iso: string): string {
   }
 }
 
+/** 依 query 中的 expiryDays（預設 14）與 savedAt 判斷是否已過期 */
+function isExpired(savedAt: string, query: string): boolean {
+  try {
+    const params = new URLSearchParams(query);
+    const days = parseInt(params.get("expiryDays") ?? "14", 10) || 14;
+    const saved = new Date(savedAt).getTime();
+    const expireAt = saved + days * 86400000;
+    return Date.now() > expireAt;
+  } catch {
+    return false;
+  }
+}
+
 interface Props {
   /** 當前報價資料——若客戶名非空，自動寫入歷史 */
   current: {
@@ -121,25 +134,45 @@ export function QuoteHistory({ current }: Props) {
         <span className="text-xs text-zinc-400">點擊展開</span>
       </summary>
       <ul className="divide-y divide-zinc-100 border-t border-zinc-100">
-        {entries.map((e, i) => (
-          <li key={i}>
-            <Link
-              href={`${e.pathname}?${e.query}`}
-              className="flex items-baseline gap-3 px-4 py-2.5 text-xs hover:bg-emerald-50 transition-colors"
-            >
-              <span className="font-mono text-zinc-400 whitespace-nowrap">
-                {formatDate(e.savedAt)}
-              </span>
-              <span className="font-medium text-zinc-800 flex-shrink-0">
-                {e.customerName}
-              </span>
-              <span className="text-zinc-500">· {e.furnitureName}</span>
-              <span className="ml-auto font-mono font-semibold text-zinc-900">
-                {formatTWD(e.total)}
-              </span>
-            </Link>
-          </li>
-        ))}
+        {entries.map((e, i) => {
+          const expired = isExpired(e.savedAt, e.query);
+          return (
+            <li key={i}>
+              <Link
+                href={`${e.pathname}?${e.query}`}
+                className={`flex items-baseline gap-3 px-4 py-2.5 text-xs transition-colors ${
+                  expired
+                    ? "text-zinc-400 hover:bg-zinc-50"
+                    : "hover:bg-emerald-50"
+                }`}
+              >
+                <span
+                  className={`font-mono whitespace-nowrap ${expired ? "text-zinc-300" : "text-zinc-400"}`}
+                >
+                  {formatDate(e.savedAt)}
+                </span>
+                <span
+                  className={`font-medium flex-shrink-0 ${expired ? "text-zinc-400 line-through" : "text-zinc-800"}`}
+                >
+                  {e.customerName}
+                </span>
+                <span className={expired ? "text-zinc-300" : "text-zinc-500"}>
+                  · {e.furnitureName}
+                </span>
+                {expired && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-zinc-200 text-zinc-500">
+                    已過期
+                  </span>
+                )}
+                <span
+                  className={`ml-auto font-mono font-semibold ${expired ? "text-zinc-400" : "text-zinc-900"}`}
+                >
+                  {formatTWD(e.total)}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       <div className="px-4 py-2 border-t border-zinc-100 text-right">
         <button
