@@ -16,6 +16,7 @@ import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/custome
 import { CsvExportButton } from "@/components/CsvExportButton";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
+import { LineShareButton } from "@/components/LineShareButton";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -145,6 +146,14 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   }).toString();
   const fullQuery = `${designQuery}&${laborQuery}&${customerQuery}&viewMode=${viewMode}`;
 
+  const today = new Date();
+  const expiry = new Date(today);
+  expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
+  const expiryIso = expiry.toISOString().slice(0, 10);
+  const deliveryIso = addWorkdays(today, quote.estimatedWorkdays)
+    .toISOString()
+    .slice(0, 10);
+
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
       <Link
@@ -164,12 +173,26 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         </div>
         <div className="flex items-center gap-3">
           <ViewModeToggle current={viewMode} />
+          <LineShareButton
+            customerName={customer.name}
+            furnitureName={entry.nameZh}
+            dimensions={`${length} × ${width} × ${height} mm`}
+            materialName={MATERIALS[material].nameZh}
+            total={quote.total}
+            depositAmount={quote.depositAmount}
+            balanceAmount={quote.balanceAmount}
+            depositRate={laborOpts.depositRate}
+            deliveryDate={deliveryIso}
+            expiryDate={expiryIso}
+            quoteNo={quoteNo}
+            printPath={`/design/${type}/quote/print?${fullQuery}`}
+          />
           <Link
             href={`/design/${type}/quote/print?${fullQuery}`}
             target="_blank"
             className="px-4 py-2 bg-zinc-900 text-white rounded text-sm hover:bg-zinc-700"
           >
-            🧾 列印報價單 / 存成 PDF
+            🧾 列印 / PDF
           </Link>
         </div>
       </header>

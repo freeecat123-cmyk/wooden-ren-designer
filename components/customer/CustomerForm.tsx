@@ -33,13 +33,24 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT }: Props) {
       setData((prev) => ({ ...prev, [key]: e.target.value }));
     };
 
-  const applyHistory = (e: ChangeEvent<HTMLSelectElement>) => {
-    const idx = parseInt(e.target.value);
+  const applyHistoryByIndex = (idx: number) => {
     if (!Number.isFinite(idx) || idx < 0 || idx >= history.length) return;
     setData(history[idx]);
   };
 
   const clearAll = () => setData(EMPTY_CUSTOMER);
+
+  const removeFromHistory = (idx: number) => {
+    if (!Number.isFinite(idx) || idx < 0 || idx >= history.length) return;
+    const next = history.filter((_, i) => i !== idx);
+    setHistory(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        "wooden-ren-designer:customers:v1",
+        JSON.stringify(next),
+      );
+    }
+  };
 
   // 表單 submit 前先把 data 存進 history（實際 submit 由外層 form 處理）
   const handleBlurSave = () => {
@@ -50,24 +61,43 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT }: Props) {
 
   return (
     <fieldset>
-      <legend className="text-xs text-zinc-500 mb-1.5 font-medium flex items-center justify-between">
-        <span>客戶資料（報價單「客戶 TO」欄會帶入）</span>
-        {hydrated && history.length > 0 && (
-          <select
-            onChange={applyHistory}
-            className="text-xs border border-zinc-300 rounded px-2 py-0.5 bg-white"
-            defaultValue=""
-          >
-            <option value="">↺ 套用近期客戶…</option>
-            {history.map((c, i) => (
-              <option key={i} value={i}>
-                {c.name}
-                {c.phone ? ` · ${c.phone}` : ""}
-              </option>
-            ))}
-          </select>
-        )}
+      <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+        客戶資料（報價單「客戶 TO」欄會帶入）
       </legend>
+      {hydrated && history.length > 0 && (
+        <div className="mb-3 p-2 rounded-md bg-sky-50 border border-sky-200">
+          <div className="text-[10px] text-sky-700 font-medium mb-1.5">
+            📇 近期客戶（{history.length}）— 點一下直接套用
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {history.map((c, i) => (
+              <span
+                key={i}
+                className="group inline-flex items-center gap-1 text-xs bg-white border border-sky-300 rounded-full pl-3 pr-1 py-0.5 hover:bg-sky-100 hover:border-sky-500 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => applyHistoryByIndex(i)}
+                  className="font-medium text-zinc-800"
+                  title={`套用 ${c.name}${c.phone ? ` · ${c.phone}` : ""}${c.taxId ? ` · 統編 ${c.taxId}` : ""}`}
+                >
+                  {c.taxId ? "🏢 " : ""}
+                  {c.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeFromHistory(i)}
+                  className="w-4 h-4 rounded-full text-zinc-400 hover:bg-red-100 hover:text-red-600 text-[10px] leading-none flex items-center justify-center"
+                  title="從歷史刪除"
+                  aria-label="移除"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Field
           label="公司 / 姓名"
