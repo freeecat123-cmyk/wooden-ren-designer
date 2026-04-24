@@ -169,8 +169,11 @@ export function QuoteShareActions({
  * 失敗情境：API 503（伺服器沒設 UPSTASH 環境變數）、network error。
  */
 async function shortenIfPossible(origin: string, longPath: string): Promise<string> {
+  // 故意打到 publicOrigin（origin 參數）的 API，而非 window.location.origin。
+  // 在 localhost 編輯時，window.location.origin 是 localhost:3000，但 localhost
+  // dev server 沒設 UPSTASH 環境變數會回 503，所以要打到線上版（Vercel）的 API。
   try {
-    const res = await fetch("/api/quote/shorten", {
+    const res = await fetch(`${origin}/api/quote/shorten`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ path: longPath }),
