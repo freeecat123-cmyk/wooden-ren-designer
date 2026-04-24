@@ -36,50 +36,45 @@ export function computePlanFromPieces(
   sheetGroups: Map<string, CutPiece[]>,
   config: NestConfig,
 ): NestPlan {
-  // 合併為 (kind, material?, thickness) → pieces[]
-  type GroupKey = { kind: StockItem["kind"]; material?: MaterialId; thickness: number };
+  // 合併為 (kind, material?) → pieces[]
+  // 不再按厚度拆組——實體庫存一塊板可同時產出不同厚度零件（由刨床工序決定成品厚度）
+  type GroupKey = { kind: StockItem["kind"]; material?: MaterialId };
   const groupMap = new Map<string, { key: GroupKey; pieces: CutPiece[] }>();
 
-  for (const [k, pieces] of lumberGroups) {
-    const [material, , thicknessStr] = k.split("|");
-    const gk = `solid|${material}|${thicknessStr}`;
-    if (!groupMap.has(gk)) {
-      groupMap.set(gk, {
-        key: { kind: "solid", material: material as MaterialId, thickness: Number(thicknessStr) },
-        pieces: [],
-      });
+  for (const [, pieces] of lumberGroups) {
+    for (const p of pieces) {
+      const gk = `solid|${p.material}`;
+      if (!groupMap.has(gk)) {
+        groupMap.set(gk, {
+          key: { kind: "solid", material: p.material },
+          pieces: [],
+        });
+      }
+      groupMap.get(gk)!.pieces.push(p);
     }
-    groupMap.get(gk)!.pieces.push(...pieces);
   }
   for (const [k, pieces] of sheetGroups) {
-    const [billable, thicknessStr] = k.split("|");
-    const gk = `${billable}|_|${thicknessStr}`;
+    const [billable] = k.split("|");
+    const gk = `${billable}|_`;
     if (!groupMap.has(gk)) {
       groupMap.set(gk, {
-        key: {
-          kind: billable as "plywood" | "mdf",
-          thickness: Number(thicknessStr),
-        },
+        key: { kind: billable as "plywood" | "mdf" },
         pieces: [],
       });
     }
     groupMap.get(gk)!.pieces.push(...pieces);
   }
 
-  // 共享 pool：庫存不綁厚度，所以同一筆庫存的 count 會跨 group 共享消耗
+  // 共享 pool：庫存不綁厚度；同一筆庫存的 count 跨 group 共享消耗
   const sharedPool = buildSharedPool(config.inventory);
 
-  // 依厚度降冪排（厚先排，厚零件佔空間大、先佔用有限庫存比較合理）
-  const orderedGroups = Array.from(groupMap.values()).sort(
-    (a, b) => b.key.thickness - a.key.thickness,
-  );
-
-  const groups = orderedGroups
+  // packGroup 不再需要 thickness 參數（傳 0 佔位）
+  const groups = Array.from(groupMap.values())
     .map(({ key, pieces }) =>
       packGroup(
         key.kind,
         key.material,
-        key.thickness,
+        0,
         pieces,
         sharedPool,
         config.kerf,
@@ -92,7 +87,7 @@ export function computePlanFromPieces(
       if (a.kind !== b.kind) return kindOrder[a.kind] - kindOrder[b.kind];
       if (a.material && b.material && a.material !== b.material)
         return a.material.localeCompare(b.material);
-      return a.thickness - b.thickness;
+      return 0;
     });
 
   return { groups, config };

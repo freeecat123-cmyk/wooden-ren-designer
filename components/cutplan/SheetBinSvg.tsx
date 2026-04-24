@@ -80,7 +80,7 @@ export function SheetBinSvg({
                       fontSize={8}
                       fill="#52525b"
                     >
-                      {p.w} × {p.h}
+                      {p.w} × {p.h} × {p.piece.thickness}
                     </text>
                   </>
                 )}

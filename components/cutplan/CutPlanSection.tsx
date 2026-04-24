@@ -28,7 +28,13 @@ export function CutPlanSection({
     group.kind === "solid"
       ? MATERIALS[group.material!]?.nameZh ?? group.material
       : kindLabel(group.kind);
-  const title = `${matLabel}．${group.thickness} mm`;
+  // 厚度集合——同一組可能有多種厚度零件（由實體板材刨到所需厚度）
+  const thicknesses = Array.from(new Set(group.pieces.map((p) => p.thickness)))
+    .sort((a, b) => b - a);
+  const title =
+    thicknesses.length > 0
+      ? `${matLabel}．${thicknesses.join(" / ")} mm`
+      : matLabel;
 
   return (
     <section>
