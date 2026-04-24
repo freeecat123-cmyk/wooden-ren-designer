@@ -50,7 +50,8 @@ export function QuoteShareActions({
     const { customer, quote, opts, deliveryIso, expiryIso, params } = state;
     const origin = resolvePublicOrigin();
     if (!origin) return; // 使用者取消（localhost 沒設 publicBaseUrl）
-    const printUrl = `${origin}/design/${type}/quote/print?${params.toString()}`;
+    const longPath = `/design/${type}/quote/print?${params.toString()}`;
+    const printUrl = await shortenIfPossible(origin, longPath);
     const quoteNo = generateQuoteNumber(design.id);
     const message = buildLineMessage({
       customerName: customer.name,
@@ -85,7 +86,7 @@ export function QuoteShareActions({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleEmail = () => {
+  const handleEmail = async () => {
     const state = readFormState(design);
     if (!state) {
       alert("找不到報價表單，請重新整理頁面");
@@ -98,7 +99,8 @@ export function QuoteShareActions({
     }
     const origin = resolvePublicOrigin();
     if (!origin) return;
-    const printUrl = `${origin}/design/${type}/quote/print?${params.toString()}`;
+    const longPath = `/design/${type}/quote/print?${params.toString()}`;
+    const printUrl = await shortenIfPossible(origin, longPath);
     const quoteNo = generateQuoteNumber(design.id);
     const { subject, body } = buildEmailContent({
       customerName: customer.name,
@@ -158,6 +160,28 @@ export function QuoteShareActions({
       </button>
     </>
   );
+}
+
+/* ─────────────── 短網址（可選，沒接 Upstash 就 fallback 長 URL） ─────────────── */
+
+/**
+ * 嘗試把長 path 換成短碼網址。失敗時 fallback 用原本的長 URL，不阻擋分享動作。
+ * 失敗情境：API 503（伺服器沒設 UPSTASH 環境變數）、network error。
+ */
+async function shortenIfPossible(origin: string, longPath: string): Promise<string> {
+  try {
+    const res = await fetch("/api/quote/shorten", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: longPath }),
+    });
+    if (!res.ok) return `${origin}${longPath}`;
+    const data = (await res.json()) as { code?: string };
+    if (!data.code) return `${origin}${longPath}`;
+    return `${origin}/q/${data.code}`;
+  } catch {
+    return `${origin}${longPath}`;
+  }
 }
 
 /* ─────────────── 公開連結 base URL 解析 ─────────────── */

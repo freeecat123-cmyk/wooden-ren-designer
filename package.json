@@ -10,6 +10,8 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
+    "@upstash/redis": "^1.37.0",
+    "nanoid": "^5.1.9",
     "next": "16.2.4",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
