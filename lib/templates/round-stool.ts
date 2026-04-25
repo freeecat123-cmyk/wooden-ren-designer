@@ -139,6 +139,22 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
     // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
     const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
+    // 梯形 apron：上窄下寬（matching legs splay）
+    // length 在 apron 頂端 (Y top) 縮為 ratio_top，底端 (Y bottom) 縮為 ratio_bottom
+    // 因為 visible.length = 2 × (cornerOffset + apronSplayCenter)
+    // top should be 2 × (cornerOffset + splay × shiftFactorTop)
+    // bottom should be 2 × (cornerOffset + splay × shiftFactorBottom)
+    const apronTopShiftFactor = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
+    const apronBotShiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
+    const apronCenterSplayMax = Math.max(apronSplayDx, apronSplayDz);
+    const apronTopSplayMax = Math.max(splayDx * apronTopShiftFactor, splayDz * apronTopShiftFactor);
+    const apronBotSplayMax = Math.max(splayDx * apronBotShiftFactor, splayDz * apronBotShiftFactor);
+    const apronTrapezoidTopScale = isSplayed && apronCenterSplayMax !== -cornerOffset
+      ? (cornerOffset + apronTopSplayMax) / (cornerOffset + apronCenterSplayMax)
+      : 1;
+    const apronTrapezoidBotScale = isSplayed && apronCenterSplayMax !== -cornerOffset
+      ? (cornerOffset + apronBotSplayMax) / (cornerOffset + apronCenterSplayMax)
+      : 1;
     const sides = [
       { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
       { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
@@ -160,6 +176,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
         origin: { x: s.origin.x, y: apronY, z: s.origin.z },
         rotation,
+        shape: isSplayed
+          ? { kind: "apron-trapezoid", topLengthScale: apronTrapezoidTopScale, bottomLengthScale: apronTrapezoidBotScale }
+          : undefined,
         tenons: [
           { position: "start", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
           { position: "end", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },

@@ -46,7 +46,8 @@ type ShapeSpec =
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number };
+  | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number };
 
 function Part({
   position,
@@ -77,6 +78,9 @@ function Part({
     }
     if (shape.kind === "splayed-tapered") {
       return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
+    }
+    if (shape.kind === "apron-trapezoid") {
+      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale);
     }
     return null;
   }, [size, shape]);
@@ -259,6 +263,53 @@ function buildSplayedGeometry(
     ...f(1, 5, 6, 2),
     ...f(2, 6, 7, 3),
     ...f(3, 7, 4, 0),
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 牙條梯形：上窄下寬（或反之）的 box，length 軸在 ±width/2 端不同尺寸。
+ * 用於外斜腳家具的 apron——讓 apron 的左右端跟著腳的中心軸傾斜對齊。
+ * 8 corners: 上 (local Z=-hz) 用 topScale 縮 length，下 (local Z=+hz) 用 bottomScale。
+ */
+function buildApronTrapezoidGeometry(
+  size: [number, number, number],
+  topScale: number,
+  bottomScale: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const topX = hx * topScale;
+  const botX = hx * bottomScale;
+  // local Z=-hz (top of apron in world Y after rotation): topScale length
+  // local Z=+hz (bottom): bottomScale length
+  const v: number[] = [
+    // 4 corners at z = -hz (top) — order: -x-y, +x-y, +x+y, -x+y
+    -topX, -hy, -hz,
+    topX, -hy, -hz,
+    topX, hy, -hz,
+    -topX, hy, -hz,
+    // 4 corners at z = +hz (bottom)
+    -botX, -hy, hz,
+    botX, -hy, hz,
+    botX, hy, hz,
+    -botX, hy, hz,
+  ];
+  // 6 faces, CCW from outside
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // -z face (top of apron in world)
+    ...f(4, 5, 6, 7), // +z face (bottom of apron in world)
+    ...f(0, 1, 5, 4), // -y face
+    ...f(2, 3, 7, 6), // +y face
+    ...f(1, 2, 6, 5), // +x face
+    ...f(3, 0, 4, 7), // -x face
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -526,6 +577,12 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               bottomScale: part.shape.bottomScale,
               dx: part.shape.dxMm * SCALE,
               dz: part.shape.dzMm * SCALE,
+            };
+          } else if (part.shape?.kind === "apron-trapezoid") {
+            shape = {
+              kind: "apron-trapezoid",
+              topLengthScale: part.shape.topLengthScale,
+              bottomLengthScale: part.shape.bottomLengthScale,
             };
           }
           return (

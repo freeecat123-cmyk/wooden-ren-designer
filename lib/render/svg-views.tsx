@@ -309,16 +309,25 @@ export function OrthoView({
             />
           );
         }
-        // 傾斜 box（例：外斜模式時 apron 跟著腳同角度傾斜）
+        // 傾斜 box / 梯形 apron
         // worldExtents 只認 quarter rotation，傾斜後要算實際投影 silhouette
-        if ((!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part)) {
+        const isTiltedBox =
+          (!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part);
+        const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
+        if (isTiltedBox || isApronTrapezoid) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
           if (view === "top") {
             const lx = part.visible.length;
             const ly = part.visible.thickness;
             const lz = part.visible.width;
+            const trap = isApronTrapezoid && part.shape?.kind === "apron-trapezoid" ? part.shape : null;
             const proj = (xl: number, yl: number, zl: number) => {
+              // 梯形：x 依 z 端的 scale 縮放
+              const xScale = trap
+                ? zl < 0 ? trap.topLengthScale : trap.bottomLengthScale
+                : 1;
+              xl = xl * xScale;
               const rx = part.rotation?.x ?? 0;
               const ry = part.rotation?.y ?? 0;
               const rz = part.rotation?.z ?? 0;

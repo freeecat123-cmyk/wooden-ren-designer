@@ -43,10 +43,15 @@ export function projectTiltedBoxSilhouette(
   const { yExt } = worldExtents(part);
   const yOffset = part.origin.y + yExt / 2;
   const projected: Array<{ x: number; y: number }> = [];
+  // 梯形 apron：上 (z=-hz) 用 topScale 縮 length，下 (z=+hz) 用 bottomScale
+  const trap = part.shape?.kind === "apron-trapezoid" ? part.shape : null;
   for (const ex of [-1, 1] as const) {
     for (const ey of [-1, 1] as const) {
       for (const ez of [-1, 1] as const) {
-        let x = (ex * lx) / 2;
+        const xScale = trap
+          ? ez < 0 ? trap.topLengthScale : trap.bottomLengthScale
+          : 1;
+        let x = (ex * lx * xScale) / 2;
         let y = (ey * ly) / 2;
         let z = (ez * lz) / 2;
         // Rx

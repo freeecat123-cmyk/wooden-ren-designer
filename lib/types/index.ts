@@ -161,6 +161,14 @@ export interface Part {
         bottomScale: number;
         dxMm: number;
         dzMm: number;
+      }
+    /** Apron trapezoid: 牙條/橫撐梯形（上窄下寬或反之），用於外斜腳家具。
+     *  讓 apron 的 length 軸在頂端 (local z=-width/2) 縮為 length×topScale，
+     *  在底端 (local z=+width/2) 縮為 length×bottomScale。對齊外斜腳中心軸。 */
+    | {
+        kind: "apron-trapezoid";
+        topLengthScale: number;
+        bottomLengthScale: number;
       };
 }
 
