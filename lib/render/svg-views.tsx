@@ -593,6 +593,12 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
             <td className="px-2 py-1.5 text-right text-xs font-mono text-sky-700">—</td>
             <td />
           </tr>
+          <tr className="bg-sky-50/60">
+            <td colSpan={6} className="px-3 py-1.5 text-[11px] text-sky-800 italic">
+              ⚠️ 此尺寸僅供參考——實際應在門片做完、量過實際開口後再向玻璃行下單，
+              避免框料切削誤差導致玻璃尺寸不合。
+            </td>
+          </tr>
           {glassRows.map(({ part, cut, materialLabel, tenonNotes }) => {
             const [vl, vw, vt] = sortDimsDesc(
               part.visible.length,
