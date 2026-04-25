@@ -120,7 +120,7 @@ export function packGroupGuillotine(
     }
   }
 
-  function openNewBin(): number | null {
+  function openNewBin(): { idx: number; pool: PoolItem } | null {
     for (const s of pool) {
       if (s.remaining <= 0) continue;
       s.remaining -= 1;
@@ -132,9 +132,17 @@ export function packGroupGuillotine(
         guillotine: true,
       });
       freeRectsPerBin.push([{ x: 0, y: 0, w: s.length, h: s.width }]);
-      return bins.length - 1;
+      return { idx: bins.length - 1, pool: s };
     }
     return null;
+  }
+
+  /** 撤銷新開但沒裝零件的 bin（零件本身太大塞不下任何庫存時用）。
+      pop bin + freeRect + 退回 pool count，避免出現「板 #N 利用率 0%」。 */
+  function revertEmptyBin(opened: { idx: number; pool: PoolItem }) {
+    bins.pop();
+    freeRectsPerBin.pop();
+    opened.pool.remaining += 1;
   }
 
   type Best = {
@@ -189,13 +197,15 @@ export function packGroupGuillotine(
     let best = findBestFit(item);
     if (!best) {
       // 開新板
-      const idx = openNewBin();
-      if (idx === null) {
+      const opened = openNewBin();
+      if (opened === null) {
         unplaced.push(item.piece);
         continue;
       }
       best = findBestFit(item);
       if (!best) {
+        // 新 bin 也塞不下（零件本身就 > 庫存尺寸）→ 撤銷空 bin
+        revertEmptyBin(opened);
         unplaced.push(item.piece);
         continue;
       }
