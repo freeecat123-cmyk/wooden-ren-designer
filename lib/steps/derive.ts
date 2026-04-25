@@ -148,20 +148,26 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     });
   }
 
-  // 5. 試組
+  // 5. 試組 — 文案依「有無榫卯」分組裝版 / 榫接版
+  const hasJoinery = joineryUsages.length > 0;
   steps.push({
     id: "step-05-fit",
     phase: "fit",
     title: "乾組試裝",
-    description:
-      `不上膠先把所有榫卯試插一次，確認：（1）榫頭能順利進入榫眼但不過鬆；` +
-      `（2）整體方正、無扭歪；（3）肩線密合無縫隙。緊的地方用鑿刀微調榫頭` +
-      `（不要修榫眼）。`,
-    toolIds: ["mallet", "chisel-set-3-6-12", "try-square"],
+    description: hasJoinery
+      ? `不上膠先把所有榫卯試插一次，確認：（1）榫頭能順利進入榫眼但不過鬆；` +
+        `（2）整體方正、無扭歪；（3）肩線密合無縫隙。緊的地方用鑿刀微調榫頭` +
+        `（不要修榫眼）。`
+      : `不上膠先把所有零件依組裝順序試擺一次，確認：（1）板對板貼合、無翹起或縫隙；` +
+        `（2）整體方正、無扭歪；（3）斜孔螺絲 / 木釘 / DOMINO 對位準確。` +
+        `不準的地方用試挫修整接合面。`,
+    toolIds: hasJoinery
+      ? ["mallet", "chisel-set-3-6-12", "try-square"]
+      : ["try-square"],
     estimatedMinutes: 20,
-    warnings: [
-      "若榫頭太緊硬敲，膠合時膨脹會把母件撐裂——寧鬆勿緊，留 0.1mm 膠縫。",
-    ],
+    warnings: hasJoinery
+      ? ["若榫頭太緊硬敲，膠合時膨脹會把母件撐裂——寧鬆勿緊，留 0.1mm 膠縫。"]
+      : ["板對板組裝先試後鎖；先夾緊+對齊，再下螺絲，避免位移後再校正。"],
   });
 
   // 6. 膠合
@@ -169,10 +175,14 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     id: "step-06-glue",
     phase: "glue",
     title: "上膠夾合",
-    description:
-      `太棒膠二號（PVA）塗在榫頭與榫眼內壁（薄薄一層即可），` +
-      `按試組順序組裝，依序夾緊。靜置 24 小時完全固化。` +
-      `組裝順序建議：先做小組件（如腳架）→ 再合大件。`,
+    description: hasJoinery
+      ? `太棒膠二號（PVA）塗在榫頭與榫眼內壁（薄薄一層即可），` +
+        `按試組順序組裝，依序夾緊。靜置 24 小時完全固化。` +
+        `組裝順序建議：先做小組件（如腳架）→ 再合大件。`
+      : `太棒膠二號（PVA）薄塗於板對板接合面，` +
+        `按試組順序組裝，依序鎖斜孔螺絲 / 打木釘 + 夾緊。` +
+        `靜置 24 小時膠完全固化。` +
+        `組裝順序建議：先做小組件（如腳架）→ 再合大件。`,
     toolIds: [
       "pva-glue",
       "f-clamp-x4",
@@ -186,19 +196,17 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     ],
   });
 
-  // 7. 砂磨
+  // 7. 砂磨 — 從 150 起跳（60/80 太粗會把木表面磨花）
   steps.push({
     id: "step-07-sand",
     phase: "sand",
     title: "砂磨表面",
     description:
-      `按砂紙番數遞進：${isHardwood ? "60 → " : ""}120 → 240 → 400。` +
+      `按砂紙番數遞進：150 → 240 → 400` +
+      `${isHardwood ? "（白橡等硬木刨痕較深可從 120 起）" : ""}。` +
       `每換一次砂紙都要把上一道的痕跡完全磨掉再進下一道。` +
       `砂磨方向順木紋，避免逆紋產生橫向刮痕。`,
-    toolIds: [
-      "sandpaper-set",
-      ...(isHardwood ? ["sandpaper-coarse-60"] : []),
-    ],
+    toolIds: ["sandpaper-set"],
     estimatedMinutes: 60,
   });
 
