@@ -41,7 +41,8 @@ type ShapeSpec =
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number }
   | { kind: "splayed"; dx: number; dz: number }
-  | { kind: "hoof"; hoofHeight: number; hoofScale: number };
+  | { kind: "hoof"; hoofHeight: number; hoofScale: number }
+  | { kind: "round" };
 
 function Part({
   position,
@@ -87,6 +88,18 @@ function Part({
           opacity={0.25}
           metalness={0}
         />
+      </mesh>
+    );
+  }
+
+  // 圓盤：直徑 = size[0]（length），厚 = size[1]（thickness/Y）
+  // CylinderGeometry 預設立軸沿 Y，剛好對應 size[1]
+  if (shape?.kind === "round") {
+    const radius = size[0] / 2;
+    return (
+      <mesh position={position} rotation={rotation} castShadow receiveShadow>
+        <cylinderGeometry args={[radius, radius, size[1], 48]} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
       </mesh>
     );
   }
@@ -340,6 +353,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               hoofHeight: part.shape.hoofMm * SCALE,
               hoofScale: part.shape.hoofScale,
             };
+          } else if (part.shape?.kind === "round") {
+            shape = { kind: "round" };
           }
           return (
             <Part

@@ -19,6 +19,9 @@ import { wardrobe, wardrobeOptions } from "./wardrobe";
 import { barStool, barStoolOptions } from "./bar-stool";
 import { mediaConsole, mediaConsoleOptions } from "./media-console";
 import { nightstand, nightstandOptions } from "./nightstand";
+import { roundStool, roundStoolOptions } from "./round-stool";
+import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
+import { roundTable, roundTableOptions } from "./round-table";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -174,6 +177,33 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     template: nightstand,
     defaults: { length: 450, width: 380, height: 600 },
     optionSchema: nightstandOptions,
+  },
+  {
+    category: "round-stool",
+    nameZh: "圓凳",
+    description: "圓座 + 4 隻腳，35cm 直徑常見",
+    difficulty: "beginner",
+    template: roundStool,
+    defaults: { length: 350, width: 350, height: 450 },
+    optionSchema: roundStoolOptions,
+  },
+  {
+    category: "round-tea-table",
+    nameZh: "圓茶几",
+    description: "圓桌面 + 4 隻腳含牙板，70cm 直徑常見",
+    difficulty: "intermediate",
+    template: roundTeaTable,
+    defaults: { length: 700, width: 700, height: 450 },
+    optionSchema: roundTeaTableOptions,
+  },
+  {
+    category: "round-table",
+    nameZh: "圓餐桌",
+    description: "100cm+ 直徑圓餐桌，桌面需拼板",
+    difficulty: "advanced",
+    template: roundTable,
+    defaults: { length: 1000, width: 1000, height: 750 },
+    optionSchema: roundTableOptions,
   },
 ];
 

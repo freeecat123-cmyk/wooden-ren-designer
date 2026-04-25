@@ -247,11 +247,31 @@ export function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        // 圓盤俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
+        if (part.shape?.kind === "round" && view === "top") {
+          const r = projectPart(part, view);
+          const cx = r.x + r.w / 2;
+          const cy = r.y + r.h / 2;
+          const radius = Math.min(r.w, r.h) / 2;
+          return (
+            <circle
+              key={part.id}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+              strokeDasharray={dash}
+            />
+          );
+        }
         // Use polygon when the shape is non-box AND it would differ from a rect
         // in this view.
         const useShape =
           part.shape &&
           part.shape.kind !== "box" &&
+          part.shape.kind !== "round" &&
           !(view === "top" && part.shape.kind !== "splayed");
         if (useShape) {
           const poly = projectPartPolygon(part, view);

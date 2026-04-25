@@ -23,7 +23,10 @@ export type FurnitureCategory =
   | "wardrobe"
   | "bar-stool"
   | "media-console"
-  | "nightstand";
+  | "nightstand"
+  | "round-stool"
+  | "round-tea-table"
+  | "round-table";
 
 export type JoineryType =
   | "through-tenon"
@@ -137,7 +140,11 @@ export interface Part {
     | { kind: "splayed"; dxMm: number; dzMm: number }
     /** Hoof: straight for most of the length, then flares outward over the
      *  bottom `hoofMm` by a factor of `hoofScale`. hoofScale > 1 widens. */
-    | { kind: "hoof"; hoofMm: number; hoofScale: number };
+    | { kind: "hoof"; hoofMm: number; hoofScale: number }
+    /** Round disc: 圓盤（圓桌面 / 圓凳座面）。length = width = 直徑，
+     *  thickness = 厚度。3D 用 cylinder，三視圖俯視畫圓、側視畫矩形。
+     *  Cut plan 以方料 D×D 計算（廢料率高）。 */
+    | { kind: "round" };
 }
 
 export interface FurnitureDesign {
