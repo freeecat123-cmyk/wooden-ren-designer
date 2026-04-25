@@ -135,7 +135,39 @@ export function CutPlanApp({
               沒有可排料的零件——請新增零件或重設回設計。
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-3">
+              {/* 排料策略：直接放在排料圖上方，切換立刻重算 */}
+              <div className="flex items-center gap-2 px-1 flex-wrap">
+                <span className="text-xs text-zinc-600">排料策略：</span>
+                {(
+                  [
+                    { value: "guillotine", label: "刀線式", help: "最省料（小件填大件肚子）" },
+                    { value: "ffd", label: "FFD", help: "第一適合，穩定" },
+                    { value: "bfd", label: "BFD", help: "最佳適合，省料" },
+                  ] as const
+                ).map((opt) => {
+                  const active = (config.strategy ?? "guillotine") === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setConfig({ ...config, strategy: opt.value })}
+                      title={opt.help}
+                      className={`px-2.5 py-1 rounded text-xs border transition ${
+                        active
+                          ? "bg-zinc-900 text-white border-zinc-900"
+                          : "bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+                <span className="text-[11px] text-zinc-400 ml-auto">
+                  鋸路 {config.kerf}mm · 餘料下限 {config.minWasteMm}mm
+                </span>
+              </div>
+
               {plan.groups.map((g, i) => (
                 <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
                   <CutPlanSection group={g} inventory={config.inventory} />
@@ -165,9 +197,9 @@ export function CutPlanApp({
       <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800">
-            ⚙️ 排料設定
+            ⚙️ 進階設定（鋸路 / 最小餘料 / 板材旋轉）
             <span className="ml-2 text-[11px] font-normal text-zinc-400">
-              鋸路 {config.kerf}mm · 最小餘料 {config.minWasteMm}mm · {config.strategy === "guillotine" ? "Guillotine" : "FFD"}
+              鋸路 {config.kerf}mm · 最小餘料 {config.minWasteMm}mm
             </span>
           </span>
           <span className="text-xs text-zinc-400">展開 / 收合</span>

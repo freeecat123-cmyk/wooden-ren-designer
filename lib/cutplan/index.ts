@@ -7,13 +7,13 @@ import type { CutPiece, NestConfig, NestPlan, StockItem } from "./types";
 export * from "./types";
 export { buildCutPieces, materialZh };
 
-/** 預設：沒庫存，鋸路 3mm，最小餘料 50mm，板材允許旋轉 */
+/** 預設：沒庫存，鋸路 3mm，最小餘料 50mm，板材允許旋轉，刀線式排料（最省料） */
 export const DEFAULT_NEST_CONFIG: NestConfig = {
   inventory: [],
   kerf: 3,
   minWasteMm: 50,
   allowSheetRotate: true,
-  strategy: "ffd",
+  strategy: "guillotine",
 };
 
 export function computeNestPlan(
