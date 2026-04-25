@@ -591,7 +591,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const backClearance = hasSlide ? 10 : 6;
     // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，箱體前板有可能直接 = 面板
     const drawerOuterW = drawerSlotW - 2 * slideGap;
-    const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
+    // 箱體實際外寬（位置/側板/back/bottom 都用這個）：
+    // - 滑軌模式：直接 = drawerOuterW（slot 寬扣 25mm 滑軌即是箱體寬，不再扣縫）
+    // - 無滑軌模式：drawerOuterW - 4（箱體前板兼任面板，左右各 2mm reveal）
+    const boxExtW = hasSlide ? drawerOuterW : drawerOuterW - 4;
+    const drawerInnerW = boxExtW - 2 * drawerSideT;
     // 箱體可用深度：櫃內深 − faceTBoxOffset − 前留 1mm − 背板空隙
     const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
     // 面板高（無滑軌時直接 = 箱體前板；上下 2mm 縫）
@@ -697,7 +701,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         grainDirection: "length",
         visible: {
-          length: drawerOuterW - 4,
+          length: boxExtW,
           width: boxH,
           thickness: drawerFrontT,
         },
@@ -769,7 +773,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             thickness: drawerSideT,
           },
           origin: {
-            x: xCenter + side * (drawerInnerW / 2 + drawerSideT / 2 + 2),
+            x: xCenter + side * (boxExtW / 2 - drawerSideT / 2),
             y: yBase + boxYOffset,
             z: (zFront + zBack) / 2,
           },
