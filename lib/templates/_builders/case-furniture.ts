@@ -559,7 +559,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerSideT = 14;
     const drawerBackT = 12;
     const drawerBottomT = 6;
-    const drawerGap = 4;
+    // 抽屜面板四周統一 2mm 縫隙（與入柱門板同規格）
+    const drawerGap = 2;
     // 2 排以上抽屜需在中間插直立分隔板（中柱），供抽屜滑軌固定
     const partitionT = cols > 1 ? panelT : 0;
     const totalPartitionW = (cols - 1) * partitionT;
@@ -574,14 +575,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，面板直接 = 箱體前板
     const drawerOuterW = drawerSlotW - 2 * slideGap;
     const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
-    // 箱體可用深度：櫃內深（入柱模式已扣門板厚）− 面板 − 前留 1mm − 背板空隙
+    // 箱體可用深度：櫃內深 − 面板 − 前留 1mm − 背板空隙
     const drawerInnerD = innerD - faceT - drawerFrontT - drawerBackT - backClearance;
-    // 面板高（補滿外觀的那一片；等於傳統模式 5 件的面板高）
+    // 面板高（無滑軌時直接 = 箱體前板；上下 2mm 縫）
     const drawerH = drawerSlotH - drawerGap * 2;
-    // 滑軌模式下箱體（前板/後板/左右側板）比面板再縮 2mm（上下各 1mm），
-    // 加上 drawerGap=4 合計 上下各 5mm 給滑軌機構伸縮用，避免摩擦托不動
+    // 滑軌模式下箱體上下各留 5mm 給滑軌行程（與面板縫隙無關，硬體需求）
     const boxH = hasSlide ? drawerSlotH - 10 : drawerH;
-    const boxYOffset = hasSlide ? 1 : 0;
+    // 滑軌模式 yBase 多縮 (5 - drawerGap) 把箱體推高到對齊滑軌中心
+    const boxYOffset = hasSlide ? 5 - drawerGap : 0;
     const dovetailLen = drawerSideT;
 
     // 先放直立分隔板（中柱）——每列交界處一片，全 zone 高
@@ -619,13 +620,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const zFront = -width / 2 + faceT + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
-      // 【滑軌模式獨有】外觀面板：slot 寬 / 高各只留 2mm reveal（總共 -2mm）
-      // 遠大於箱體尺寸，蓋掉左右 12.5mm 滑軌空隙 + 上下滑軌行程
+      // 【滑軌模式獨有】外觀面板：上下左右各 2mm 縫隙（與入柱門板同規格）
+      // 蓋掉左右 12.5mm 滑軌空隙 + 上下滑軌行程
       if (hasSlide) {
-        const faceW = drawerSlotW - 2;
-        const faceHeight = drawerSlotH - 2;
-        // 垂直置中在 slot 內（slot 底起算 1mm）
-        const faceYBase = drawerZoneBottomY + row * drawerSlotH + 1;
+        const faceW = drawerSlotW - 2 * drawerGap;
+        const faceHeight = drawerSlotH - 2 * drawerGap;
+        // 垂直置中在 slot 內（slot 底起算 drawerGap mm）
+        const faceYBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
