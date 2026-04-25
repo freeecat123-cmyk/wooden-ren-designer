@@ -19,7 +19,14 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
   const legPart = design.parts.find(
     (p) => /^leg-/.test(p.id) && p.visible.length === p.visible.width,
   );
-  const legSize = legPart ? legPart.visible.length : 0;
+  // 圓腳沒有平面可以當 butt joint 著陸——beginner 模式不縮短 apron，
+  // 維持「腳中心到腳中心」讓 apron 在視覺上連到腳（實際接合靠 stub-joint
+  // 或圓榫進入腳內，apron body 延伸到腳邊緣已經視覺正確）。
+  const isRoundLeg =
+    legPart?.shape?.kind === "round" ||
+    legPart?.shape?.kind === "round-tapered" ||
+    legPart?.shape?.kind === "shaker";
+  const legSize = legPart && !isRoundLeg ? legPart.visible.length : 0;
 
   // 只有真正「接腳」的零件（牙板、橫撐、背橫木）才需要縮短；
   // 櫃體的側板、層板、zone 分隔板、抽屜箱、門框 等都是面板對面板接合，
