@@ -70,67 +70,11 @@ export function packGroup(
   const bins: SheetBin[] = [];
   const unplaced: CutPiece[] = [];
 
-  // —— 批次優先：同規格（w,h）≥ 3 件的零件先獨占一塊板，避免散落到多塊板上 ——
-  // 判準：該批次在某塊可用庫存上能於「單一 shelf」裝下 ≥ 3 件
-  const dimGroups = new Map<string, Item[]>();
-  for (const it of prepped) {
-    const key = `${it.w}x${it.h}`;
-    if (!dimGroups.has(key)) dimGroups.set(key, []);
-    dimGroups.get(key)!.push(it);
-  }
-  for (const [, items] of dimGroups) {
-    if (items.length < 3) continue;
-    const first = items[0];
-    // 兩個方向都試（若允許旋轉），取能塞最多件的那個
-    // 勾了旋轉就優先用旋轉方向
-    const orientations = first.canRotate
-      ? [
-          { w: first.h, h: first.w, rotated: true },
-          { w: first.w, h: first.h, rotated: false },
-        ]
-      : [{ w: first.w, h: first.h, rotated: false }];
-    let best:
-      | { stock: PoolItem; fitCount: number; w: number; h: number; rotated: boolean }
-      | null = null;
-    for (const s of pool) {
-      if (s.remaining <= 0) continue;
-      for (const o of orientations) {
-        if (s.length < o.w || s.width < o.h) continue;
-        const fitCount = Math.min(
-          items.length,
-          Math.floor((s.length + kerf) / (o.w + kerf)),
-        );
-        if (fitCount < 3) continue;
-        if (!best || fitCount > best.fitCount) best = { stock: s, fitCount, ...o };
-      }
-    }
-    if (!best) continue;
-    // 開專屬板，一字排開
-    best.stock.remaining -= 1;
-    const bin: SheetBin = {
-      stockLength: best.stock.length,
-      stockWidth: best.stock.width,
-      shelves: [{ y: 0, height: best.h, pieces: [], usedWidth: 0 }],
-      usedHeight: best.h,
-    };
-    const shelf = bin.shelves[0];
-    let x = 0;
-    for (let i = 0; i < best.fitCount; i++) {
-      const it = items[i];
-      shelf.pieces.push({
-        piece: it.piece,
-        x,
-        y: 0,
-        w: best.w,
-        h: best.h,
-        rotated: best.rotated,
-      });
-      shelf.usedWidth = x + best.w;
-      x += best.w + kerf;
-      it.placed = true;
-    }
-    bins.push(bin);
-  }
+  // —— 過去這裡有「批次優先：同規格 ≥ 3 件先獨占一塊板」的邏輯 ——
+  // 砍掉了。原本意圖是讓同款零件視覺上聚在一塊板，但會犧牲利用率：
+  // 4 × 560×70 + 4 × 560×50 + 4 × 400×40 在 1818×258 板上理論可塞 1 塊
+  // （4 shelves: 70+70+50+40+kerfs = 239 ≤ 258），批次卻硬開 3 塊獨立板。
+  // 純 shelf packing 已經會自然處理同高度集中的情況。
 
   // 勾了旋轉 = 優先用旋轉方向（塞得下就轉；塞不下才回退原方向）
   function attemptsOf(item: (typeof prepped)[number]) {
