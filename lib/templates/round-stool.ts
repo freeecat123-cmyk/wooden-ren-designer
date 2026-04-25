@@ -22,7 +22,7 @@ export const roundStoolOptions: OptionSpec[] = [
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 25, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板/橫撐會跟著腳一起斜同角度。僅外斜系列有效" },
   { group: "apron", type: "checkbox", key: "withApron", label: "加橫撐", defaultValue: true, help: "腳之間用橫撐連結，結構穩固" },
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm" },
@@ -131,13 +131,22 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
     // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
     const apronSpan = 2 * cornerOffset;
+    // 外斜模式時 apron 也跟著腳一起斜（同角度）
+    const isSplayed = legShape.startsWith("splayed-");
+    const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
     const sides = [
-      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, origin: { x: 0, z: -cornerOffset } },
-      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, origin: { x: 0, z: cornerOffset } },
-      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, origin: { x: -cornerOffset, z: 0 } },
-      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, origin: { x: cornerOffset, z: 0 } },
+      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -cornerOffset } },
+      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset } },
+      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -cornerOffset, z: 0 } },
+      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset, z: 0 } },
     ];
     for (const s of sides) {
+      // X 軸 apron（前後）：tilt = -sz * α 加到 X 軸 rotation；底部往 sz 方向斜
+      // Z 軸 apron（左右）：tilt = +sx * α 加到 Z 軸 rotation；底部往 sx 方向斜
+      const rotation =
+        s.axis === "z"
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 };
       parts.push({
         id: s.id,
         nameZh: s.nameZh,
@@ -145,10 +154,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
         origin: { x: s.origin.x, y: apronY, z: s.origin.z },
-        rotation:
-          s.axis === "z"
-            ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
-            : { x: Math.PI / 2, y: 0, z: 0 },
+        rotation,
         tenons: [
           { position: "start", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
           { position: "end", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },

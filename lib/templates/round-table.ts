@@ -123,11 +123,13 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
   // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
   const apronSpan = 2 * cornerOffset;
+  const isSplayed = legShape.startsWith("splayed-");
+  const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, origin: { x: 0, z: -cornerOffset } },
-    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, origin: { x: 0, z: cornerOffset } },
-    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, origin: { x: -cornerOffset, z: 0 } },
-    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, origin: { x: cornerOffset, z: 0 } },
+    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -cornerOffset } },
+    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset } },
+    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -cornerOffset, z: 0 } },
+    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset, z: 0 } },
   ].map((s) => ({
     id: s.id,
     nameZh: s.nameZh,
@@ -135,10 +137,11 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length" as const,
     visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
     origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+    // 外斜模式時牙板跟著腳一起斜（同角度）
     rotation:
       s.axis === "z"
-        ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
-        : { x: Math.PI / 2, y: 0, z: 0 },
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+        : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
     tenons: [
       { position: "start" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(30, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
       { position: "end" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(30, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
