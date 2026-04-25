@@ -38,9 +38,12 @@ export function CutPlanApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 自動補齊庫存：設計用到但庫存沒列的材料各加一筆預設 entry。
-  // 以前要使用者手動點「+ 楓木」chip 才會加，新使用者很常忘了加 → 全件「排不下」很嚇人。
-  // 用 functional setState 讀最新 inventory，避免跟 localStorage restore effect 競爭順序。
+  // 庫存嚴格跟設計材料同步：
+  // - 設計用到的材料：保留現有 entry（保留使用者自訂尺寸）或補預設
+  // - 設計沒用到的舊材料：過濾掉，不混淆
+  //
+  // 之前只「加缺的」不「移多餘的」，使用者切換木種後 localStorage 累積一堆
+  // 不相關 entry（木芯板設計卻看到楓木+夾板+中纖板）。
   useEffect(() => {
     setConfig((c) => {
       const isSheetPrimary = (mat?: string) =>
@@ -52,20 +55,36 @@ export function CutPlanApp({
         material?: string,
       ) => (kind === "solid" ? `solid|${material}` : kind);
 
-      const covered = new Set<string>();
-      for (const s of c.inventory) covered.add(keyOf(s.kind, s.material));
-
-      const additions: StockItem[] = [];
+      // 1. 收集設計用到的 (kind, material) keys + 對應 spec
+      const usedKeys = new Set<string>();
+      const usedSpecsByKey = new Map<string, (typeof initialSpecs)[number]>();
       for (const sp of initialSpecs) {
         const kind: StockItem["kind"] =
           sp.billable === "plywood" || sp.billable === "mdf"
             ? sp.billable
             : "solid";
         const key = keyOf(kind, sp.material);
-        if (covered.has(key)) continue;
-        covered.add(key);
+        if (!usedKeys.has(key)) {
+          usedKeys.add(key);
+          usedSpecsByKey.set(key, sp);
+        }
+      }
+
+      // 2. 過濾現有 inventory 只留 design 用到的 material（保留使用者自訂尺寸）
+      const kept = c.inventory.filter((s) =>
+        usedKeys.has(keyOf(s.kind, s.material)),
+      );
+      const presentKeys = new Set(kept.map((s) => keyOf(s.kind, s.material)));
+
+      // 3. 缺的材料補預設 entry
+      const additions: StockItem[] = [];
+      for (const [key, sp] of usedSpecsByKey) {
+        if (presentKeys.has(key)) continue;
+        const kind: StockItem["kind"] =
+          sp.billable === "plywood" || sp.billable === "mdf"
+            ? sp.billable
+            : "solid";
         if (kind === "solid") {
-          // *-primary 材料是裝潢板材，預設 4×8 ft；其餘實木預設 3m×200mm
           if (isSheetPrimary(sp.material)) {
             additions.push({
               kind: "solid",
@@ -95,10 +114,12 @@ export function CutPlanApp({
           });
         }
       }
-      if (additions.length === 0) return c;
-      return { ...c, inventory: [...c.inventory, ...additions] };
+
+      if (kept.length === c.inventory.length && additions.length === 0) {
+        return c;
+      }
+      return { ...c, inventory: [...kept, ...additions] };
     });
-    // 依 initialSpecs：使用者切換家具時自動補新材料
   }, [initialSpecs]);
 
   // 每次 inventory 變動都同步到 localStorage（含「清空」→ 刪除 key）
