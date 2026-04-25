@@ -77,25 +77,15 @@ export function CutPlanApp({
 
   const hasStock = config.inventory.length > 0;
 
+  const stockEmpty = !hasStock;
+  const nothingToPlan =
+    hasStock &&
+    plan.groups.every((g) => g.bins.length === 0 && g.unplaced.length === 0);
+
   return (
-    <div className="space-y-6 print:space-y-2">
-      <div className="no-print">
-        <CutPlanConfigPanel value={config} onChange={setConfig} />
-      </div>
-
-      <div className="no-print">
-        <PiecesEditor specs={specs} onChange={setSpecs} />
-      </div>
-
-      <div className="no-print">
-        <StockEditor
-          specs={specs}
-          inventory={config.inventory}
-          onChange={(inv) => setConfig({ ...config, inventory: inv })}
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 no-print">
+    <div className="space-y-4 print:space-y-2">
+      {/* 頂部狀態列 + 動作按鈕（no-print） */}
+      <div className="flex items-center justify-between gap-3 flex-wrap no-print">
         <div className="text-sm text-zinc-600">
           {entryNameZh}．共 {totalPieces} 件
           {hasStock ? `．排出 ${totalBins} 塊原料` : "．尚未列庫存"}
@@ -120,6 +110,74 @@ export function CutPlanApp({
         </div>
       </div>
 
+      {/* 主視覺：左 sticky 庫存 ↔ 右即時排料圖 */}
+      <div className="grid lg:grid-cols-[5fr_7fr] gap-4 no-print">
+        <aside className="lg:sticky lg:top-4 self-start">
+          <StockEditor
+            specs={specs}
+            inventory={config.inventory}
+            onChange={(inv) => setConfig({ ...config, inventory: inv })}
+          />
+        </aside>
+
+        <div>
+          {stockEmpty ? (
+            <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900 min-h-[420px] flex flex-col items-center justify-center text-center">
+              <p className="text-3xl mb-2">🪵</p>
+              <p className="font-semibold mb-1">還沒列原料庫存</p>
+              <p className="text-xs max-w-xs">
+                在左邊「原料庫存」按「＋ 加一筆」加入你實際有的板才（實木 / 夾板 /
+                中纖板皆可），右邊會立刻算出排料圖。
+              </p>
+            </div>
+          ) : nothingToPlan ? (
+            <div className="p-6 bg-amber-50 text-amber-800 rounded-lg">
+              沒有可排料的零件——請新增零件或重設回設計。
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {plan.groups.map((g, i) => (
+                <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
+                  <CutPlanSection group={g} inventory={config.inventory} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 下半：零件清單 + 排料設定（按需展開） */}
+      <details className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800">
+            📋 零件清單
+            <span className="ml-2 text-[11px] font-normal text-zinc-400">
+              {specs.length} 種規格 · 共 {totalPieces} 件 · 從設計匯入，可手改
+            </span>
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200 p-4">
+          <PiecesEditor specs={specs} onChange={setSpecs} />
+        </div>
+      </details>
+
+      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
+          <span className="font-medium text-zinc-800">
+            ⚙️ 排料設定
+            <span className="ml-2 text-[11px] font-normal text-zinc-400">
+              鋸路 {config.kerf}mm · 最小餘料 {config.minWasteMm}mm · {config.strategy === "guillotine" ? "Guillotine" : "FFD"}
+            </span>
+          </span>
+          <span className="text-xs text-zinc-400">展開 / 收合</span>
+        </summary>
+        <div className="border-t border-zinc-200 p-4">
+          <CutPlanConfigPanel value={config} onChange={setConfig} />
+        </div>
+      </details>
+
+      {/* 列印用 header */}
       <header className="hidden print:block print:mb-2">
         <h1 className="text-lg font-bold">{entryNameZh}．裁切排料圖</h1>
         <p className="text-xs text-zinc-600">
@@ -129,28 +187,16 @@ export function CutPlanApp({
         <hr className="my-1" />
       </header>
 
-      {!hasStock ? (
-        <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
-          <p className="font-semibold mb-1">🪵 還沒列原料庫存</p>
-          <p>
-            在上面「原料庫存」區按「＋ 加一筆」加入你實際有的板才（實木 / 夾板 /
-            中纖板皆可），才會開始排料。
-          </p>
-        </div>
-      ) : plan.groups.every((g) => g.bins.length === 0 && g.unplaced.length === 0) ? (
-        <div className="p-6 bg-amber-50 text-amber-800 rounded-lg">
-          沒有可排料的零件——請新增零件或重設回設計。
-        </div>
-      ) : (
-        <div className="space-y-8 print:space-y-3">
+      {/* 列印用排料圖（僅列印時顯示，螢幕版已經在上面的 grid 裡了） */}
+      {hasStock && !nothingToPlan && (
+        <div className="hidden print:block print:space-y-3">
           {plan.groups.map((g, i) => (
-            <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
+            <div key={`print-grp-${g.kind}-${g.material ?? "_"}-${i}`}>
               <CutPlanSection group={g} inventory={config.inventory} />
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 }

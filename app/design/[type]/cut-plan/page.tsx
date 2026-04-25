@@ -75,7 +75,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   if (joineryMode) designQuery.set("joineryMode", "true");
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 print:px-0 print:py-4 cutplan-print">
+    <main className="max-w-7xl mx-auto px-6 py-6 print:px-0 print:py-4 cutplan-print">
       <Link
         href={`/design/${type}?${designQuery.toString()}`}
         className="text-sm text-zinc-500 hover:underline no-print"
@@ -83,10 +83,10 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
         ← 回{entry.nameZh}設計
       </Link>
 
-      <header className="mt-4 mb-6 no-print">
-        <h1 className="text-3xl font-bold">裁切計算器</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          {entry.nameZh}．預設從設計匯入零件；加入原料庫存後才會排料
+      <header className="mt-2 mb-4 no-print">
+        <h1 className="text-2xl font-bold">裁切計算器</h1>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          {entry.nameZh} · {length}×{width}×{height}mm · {MATERIALS[material].nameZh}．左邊輸入庫存 → 右邊立刻看排料圖
         </p>
       </header>
 
