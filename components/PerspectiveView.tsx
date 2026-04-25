@@ -345,12 +345,14 @@ function buildSplayedRoundTaperedGeometry(
     const i1 = (i + 1) % segments;
     const j0 = segments + i;
     const j1 = segments + ((i + 1) % segments);
-    // 側面（CCW from outside = 順著 +Y → 下繞）
-    idx.push(i0, j0, j1, i0, j1, i1);
-    // 上 cap（CCW from above）
-    idx.push(topCenter, i1, i0);
-    // 下 cap（CCW from below = 從下方往上看）
-    idx.push(botCenter, j0, j1);
+    // 側面：CCW from outside（法線朝外）
+    // theta 由小到大走 CCW 從上往下看（+Y），但側面要從外側看 CCW
+    // 順序：i0 (top θ) → i1 (top θ+δ) → j1 (bot θ+δ) → j0 (bot θ)
+    idx.push(i0, i1, j1, i0, j1, j0);
+    // 上 cap（CCW from above looking +Y down）：center → i0 → i1
+    idx.push(topCenter, i0, i1);
+    // 下 cap（CCW from below looking -Y up）：center → j1 → j0
+    idx.push(botCenter, j1, j0);
   }
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
