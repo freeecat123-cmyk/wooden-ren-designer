@@ -505,8 +505,14 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
   });
 
   // 依分類排序 + 每類內的原有順序（stable sort）
+  // 玻璃單獨抽出來，不混在木材分類裡（玻璃行訂製，跟木工區隔）
   const byCategory = new Map<PartCategory, typeof rows>();
+  const glassRows: typeof rows = [];
   for (const r of rows) {
+    if (r.isGlass) {
+      glassRows.push(r);
+      continue;
+    }
     if (!byCategory.has(r.category)) byCategory.set(r.category, []);
     byCategory.get(r.category)!.push(r);
   }
@@ -545,7 +551,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
               <td />
             </tr>
             {catRows.map(
-              ({ part, cut, bdft, materialLabel, tenonNotes, isGlass }) => {
+              ({ part, cut, bdft, materialLabel, tenonNotes }) => {
                 const [vl, vw, vt] = sortDimsDesc(
                   part.visible.length,
                   part.visible.width,
@@ -557,10 +563,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                   cut.thickness,
                 );
                 return (
-                  <tr
-                    key={part.id}
-                    className={`border-b border-zinc-100 ${isGlass ? "bg-sky-50/40" : ""}`}
-                  >
+                  <tr key={part.id} className="border-b border-zinc-100">
                     <td className="p-2">{part.nameZh}</td>
                     <td className="p-2">{materialLabel}</td>
                     <td className="p-2 text-right">
@@ -570,7 +573,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                       {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
                     </td>
                     <td className="p-2 text-right font-mono">
-                      {isGlass ? "—" : bdft.toFixed(2)}
+                      {bdft.toFixed(2)}
                     </td>
                     <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
                   </tr>
@@ -580,6 +583,40 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
           </tbody>
         );
       })}
+      {glassRows.length > 0 && (
+        <tbody className="border-t-2 border-sky-300 bg-sky-50/30">
+          <tr className="bg-sky-100/60">
+            <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-sky-900">
+              🪟 玻璃（另向玻璃行訂製，不入裁切）
+              <span className="ml-2 font-normal text-sky-700">· {glassRows.length} 片</span>
+            </td>
+            <td className="px-2 py-1.5 text-right text-xs font-mono text-sky-700">—</td>
+            <td />
+          </tr>
+          {glassRows.map(({ part, cut, materialLabel, tenonNotes }) => {
+            const [vl, vw, vt] = sortDimsDesc(
+              part.visible.length,
+              part.visible.width,
+              part.visible.thickness,
+            );
+            const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
+            return (
+              <tr key={part.id} className="border-b border-sky-100">
+                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{materialLabel}</td>
+                <td className="p-2 text-right">
+                  {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
+                </td>
+                <td className="p-2 text-right font-semibold">
+                  {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
+                </td>
+                <td className="p-2 text-right font-mono text-sky-600">—</td>
+                <td className="p-2 text-xs text-sky-700">{tenonNotes}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      )}
       <tfoot className="bg-zinc-100 border-t-2 border-zinc-400">
         <tr>
           <td className="p-2 font-semibold" colSpan={4}>
