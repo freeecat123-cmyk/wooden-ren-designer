@@ -129,22 +129,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
   // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
   const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
-  // 梯形 apron：上窄下寬。⚠️ 用 tilt 後的實際 corner Y 才會剛好對齊腳中心軸
-  const halfWorldYExt = (apronWidth * Math.cos((splayAngle * Math.PI) / 180) +
-    apronThickness * Math.sin((splayAngle * Math.PI) / 180)) / 2;
-  const apronTopCornerY = apronYCenter + halfWorldYExt;
-  const apronBotCornerY = apronYCenter - halfWorldYExt;
-  const apronTopShiftFactor = legHeight > 0 ? 1 - apronTopCornerY / legHeight : 0;
-  const apronBotShiftFactor = legHeight > 0 ? 1 - apronBotCornerY / legHeight : 0;
-  const apronCenterSplayMax = Math.max(apronSplayDx, apronSplayDz);
-  const apronTopSplayMax = Math.max(splayDx * apronTopShiftFactor, splayDz * apronTopShiftFactor);
-  const apronBotSplayMax = Math.max(splayDx * apronBotShiftFactor, splayDz * apronBotShiftFactor);
-  const apronTrapezoidTopScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
-    ? (cornerOffset + apronTopSplayMax) / (cornerOffset + apronCenterSplayMax)
-    : 1;
-  const apronTrapezoidBotScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
-    ? (cornerOffset + apronBotSplayMax) / (cornerOffset + apronCenterSplayMax)
-    : 1;
+  // 簡化：apron 也斜 α 度（matches leg），中心對到腳在 apron Y center 的中心
+  // 不做 trapezoid，apron 就是矩形 + tilt
   const aprons: Part[] = [
     { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
     { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
@@ -162,9 +148,6 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
         : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-    shape: isSplayed
-      ? { kind: "apron-trapezoid" as const, topLengthScale: apronTrapezoidTopScale, bottomLengthScale: apronTrapezoidBotScale }
-      : undefined,
     tenons: [
       { position: "start" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(20, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
       { position: "end" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(20, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
