@@ -228,6 +228,8 @@ export type OptionSpec =
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;
+      /** 佔整行寬度（不擠 grid 欄位）— 適合 help 文字較長的選項 */
+      wide?: boolean;
     };
 
 /** Look up an option spec by its key (so templates don't break when order changes). */

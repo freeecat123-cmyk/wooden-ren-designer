@@ -11,23 +11,16 @@ export const drawerSlideOption: OptionSpec = {
   group: "drawer",
   type: "checkbox",
   key: "useDrawerSlide",
-  label: "三段式滑軌",
+  label: "三段式滑軌（左右各 12.5mm 五金縫）",
   defaultValue: false,
-  // help 顯示在 label 下方（短一行）；hover label 看完整細節（看 OptionField title）
+  wide: true, // 佔整行，full help 攤開放裡面
   help:
-    "勾 = 五金軌（含面板）｜不勾 = 傳統木製側拉。詳細數值 hover 看。",
+    "勾選後：抽屜箱體總寬縮 25mm 留給滑軌五金；" +
+    "另加一片「面板」蓋掉左右空隙（面板比抽屜格小 2mm，上下左右各 1mm 縫）；" +
+    "箱體（5 件）向後縮 18mm（面板厚）藏在面板後；" +
+    "箱體高比抽屜格縮 10mm（上下各 5mm 滑軌行程空隙）；" +
+    "箱體距背板留 10mm 防撞。不勾選視為傳統木製側拉 / 無滑軌。",
 };
-
-/**
- * drawerSlideOption 的完整細節 — 給 OptionField 的 title 屬性，hover 顯示。
- * label/help 太長會撐爆 grid 欄位高度，把細節抽出來放 tooltip。
- */
-export const DRAWER_SLIDE_DETAIL =
-  "勾選後：抽屜箱體總寬縮 25mm 留給滑軌五金；" +
-  "另加一片「面板」蓋掉左右空隙（面板比抽屜格小 2mm，上下左右各 1mm 縫）；" +
-  "箱體（5 件）向後縮 18mm（面板厚）藏在面板後；" +
-  "箱體高比抽屜格縮 10mm（上下各 5mm 滑軌行程空隙）；" +
-  "箱體距背板留 10mm 防撞。不勾選視為傳統木製側拉 / 無滑軌。";
 
 export const DRAWER_SLIDE_GAP_MM = 12.5;
 

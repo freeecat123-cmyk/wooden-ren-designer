@@ -505,13 +505,17 @@ function GroupedOptionFields({
               </span>
             </summary>
             <div className="px-3 pb-3 pt-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2.5">
-              {specs.map((spec) => (
-                <OptionField
-                  key={spec.key}
-                  spec={spec}
-                  value={optionValues[spec.key]}
-                />
-              ))}
+              {specs.map((spec) => {
+                const isWide = spec.type === "checkbox" && spec.wide;
+                return (
+                  <div
+                    key={spec.key}
+                    className={isWide ? "col-span-2 md:col-span-3 lg:col-span-4" : ""}
+                  >
+                    <OptionField spec={spec} value={optionValues[spec.key]} />
+                  </div>
+                );
+              })}
             </div>
           </details>
         );
