@@ -43,8 +43,9 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
   // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
-    { value: "wood", label: "木板門" },
+    { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門" },
+    { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
   ] },
   // 腳
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 120, min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座" },

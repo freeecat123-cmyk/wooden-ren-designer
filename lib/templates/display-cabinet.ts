@@ -17,7 +17,8 @@ export const displayCabinetOptions: OptionSpec[] = [
   }),
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "glass", choices: [
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
-    { value: "wood", label: "木鑲板門" },
+    { value: "wood", label: "木鑲板門（框 + 鑲板）" },
+    { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
   ] },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
