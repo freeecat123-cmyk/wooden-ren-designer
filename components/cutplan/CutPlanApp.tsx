@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { NestConfig, StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
-import { planFromSpecs } from "@/lib/cutplan/piece-spec";
+import { planFromSpecs, splitSpecPrompt } from "@/lib/cutplan/piece-spec";
 import { CutPlanConfigPanel } from "./CutPlanConfigPanel";
 import { PiecesEditor } from "./PiecesEditor";
 import { CutPlanSection } from "./CutPlanSection";
@@ -74,6 +74,8 @@ export function CutPlanApp({
       setSpecs(initialSpecs);
     }
   };
+  // 共用分割 callback：PiecesEditor 的 ✂ 按鈕 + CutPlanSection 排不下警告區的 ✂ 都用
+  const handleSplitSpec = (id: string) => splitSpecPrompt(specs, id, setSpecs);
 
   const hasStock = config.inventory.length > 0;
 
@@ -170,7 +172,11 @@ export function CutPlanApp({
 
               {plan.groups.map((g, i) => (
                 <div key={`grp-${g.kind}-${g.material ?? "_"}-${i}`}>
-                  <CutPlanSection group={g} inventory={config.inventory} />
+                  <CutPlanSection
+                    group={g}
+                    inventory={config.inventory}
+                    onSplitSpec={handleSplitSpec}
+                  />
                 </div>
               ))}
             </div>

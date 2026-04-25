@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
-import { indexToCode } from "@/lib/cutplan/piece-spec";
+import { indexToCode, splitSpecPrompt } from "@/lib/cutplan/piece-spec";
 import { colorForCode } from "@/lib/cutplan/colors";
 import { MATERIALS } from "@/lib/materials";
 import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
@@ -110,69 +110,7 @@ export function PiecesEditor({
     onChange([...specs, copy]);
   };
 
-  /**
-   * 拼板分割（兩種模式）：
-   * - 平均：輸入整數 N → 每條寬 = ceil(原寬/N) + 10mm 膠合/刨平損耗，數量 × N
-   * - 自訂：輸入逗號分隔（例「220,200,220」）→ 拆成 N 個獨立 spec，各自寬度，
-   *   不加損耗（使用者自己拿捏）。件數 = 原件數（每張拼板都需要這 N 條）
-   */
-  const GLUE_ALLOWANCE_MM = 10;
-
-  const stripSplitSuffix = (name: string) =>
-    name.replace(/（拼\s*\d+\s*條）\s*$/, "").replace(/（拼板\s*\d+mm）\s*$/, "");
-
-  const splitSpec = (id: string) => {
-    const src = specs.find((s) => s.id === id);
-    if (!src) return;
-    const input = window.prompt(
-      [
-        `拼板分割——「${src.name}」寬 ${src.width}mm`,
-        "",
-        "輸入條數（平均，自動 +10mm 損耗）：如 3",
-        "或各條寬度（逗號分隔，不加損耗）：如 220,200,220",
-      ].join("\n"),
-      "3",
-    );
-    if (input === null) return;
-    const trimmed = input.trim();
-    const baseName = stripSplitSuffix(src.name);
-
-    if (/[,，]/.test(trimmed)) {
-      // 自訂不等寬模式
-      const widths = trimmed
-        .split(/[,，]/)
-        .map((s) => parseInt(s.trim(), 10))
-        .filter((n) => Number.isFinite(n) && n > 0);
-      if (widths.length < 2) {
-        alert("自訂模式至少要 2 條有效寬度");
-        return;
-      }
-      const newSpecs: PieceSpec[] = widths.map((w, i) => ({
-        ...src,
-        id: `${src.id}-s${i}`,
-        name: `${baseName}（拼板 ${w}mm）`,
-        width: w,
-        quantity: src.quantity,
-      }));
-      onChange(specs.flatMap((s) => (s.id === id ? newSpecs : [s])));
-      return;
-    }
-
-    // 平均模式
-    const n = Math.max(2, Math.min(20, parseInt(trimmed, 10) || 0));
-    if (n < 2) {
-      alert("條數要 ≥ 2");
-      return;
-    }
-    const newWidth = Math.ceil(src.width / n) + GLUE_ALLOWANCE_MM;
-    const updated: PieceSpec = {
-      ...src,
-      name: `${baseName}（拼${n}條）`,
-      width: newWidth,
-      quantity: src.quantity * n,
-    };
-    onChange(specs.map((s) => (s.id === id ? updated : s)));
-  };
+  const splitSpec = (id: string) => splitSpecPrompt(specs, id, onChange);
 
   const addBlank = () => {
     const base = specs[0];

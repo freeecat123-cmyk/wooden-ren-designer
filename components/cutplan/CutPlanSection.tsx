@@ -12,9 +12,12 @@ function kindLabel(kind: StockGroup["kind"]): string {
 export function CutPlanSection({
   group,
   inventory = [],
+  onSplitSpec,
 }: {
   group: StockGroup;
   inventory?: StockItem[];
+  /** 點排不下零件旁的「✂ 分割」時，傳回該零件的 spec id 給上層處理 */
+  onSplitSpec?: (specId: string) => void;
 }) {
   const matLabel =
     group.kind === "solid"
@@ -48,6 +51,7 @@ export function CutPlanSection({
           unplaced={group.unplaced}
           group={group}
           inventory={inventory}
+          onSplitSpec={onSplitSpec}
         />
       )}
       {group.bins.length > 0 && (
@@ -71,10 +75,12 @@ function UnplacedNotice({
   unplaced,
   group,
   inventory,
+  onSplitSpec,
 }: {
   unplaced: StockGroup["unplaced"];
   group: StockGroup;
   inventory: StockItem[];
+  onSplitSpec?: (specId: string) => void;
 }) {
   // 估算還需要多少塊板——以「該 kind/material 已用過的原料平均面積」或
   // 「庫存裡該類最常見的規格」推估；用 1.2 倍利用率寬鬆抓
@@ -106,17 +112,35 @@ function UnplacedNotice({
       {shortageMsg && (
         <p className="text-xs mb-1 font-semibold text-red-900">🧮 {shortageMsg}</p>
       )}
-      <ul className="text-xs ml-4 list-disc">
-        {unplaced.map((p, i) => (
-          <li key={i}>
-            {p.code && (
-              <span className="inline-block font-mono font-bold mr-1">
-                [{p.code}]
+      <ul className="text-xs space-y-1 ml-1">
+        {unplaced.map((p, i) => {
+          // partId 形如 "spec-abc123-2"（quantity > 1）或 "spec-abc123"（quantity === 1）
+          // 拼板分割產生的 id 帶 -s0/-s1 後綴，要保留；只剝最末段的純數字 -N。
+          const specId = p.partId.replace(/-\d+$/, "");
+          return (
+            <li key={i} className="flex items-baseline gap-2">
+              <span className="text-red-400">·</span>
+              {p.code && (
+                <span className="inline-block font-mono font-bold">
+                  [{p.code}]
+                </span>
+              )}
+              <span>
+                {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
               </span>
-            )}
-            {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
-          </li>
-        ))}
+              {onSplitSpec && (
+                <button
+                  type="button"
+                  onClick={() => onSplitSpec(specId)}
+                  className="ml-auto text-[10px] px-2 py-0.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-100"
+                  title="拼板分割：把寬度拆成 N 條，多板拼合（自動加 10mm 膠合損耗）"
+                >
+                  ✂ 分割
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

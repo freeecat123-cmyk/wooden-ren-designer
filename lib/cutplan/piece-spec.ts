@@ -120,4 +120,83 @@ export function planFromSpecs(specs: PieceSpec[], config: NestConfig) {
   return computePlanFromPieces(lumberGroups, sheetGroups, config);
 }
 
+/**
+ * 拼板分割 — 把一筆 spec 拆成多條較窄的等寬條。
+ * 共用：PiecesEditor 表格、CutPlanSection 排不下警告區。
+ *
+ * 兩種模式：
+ *   - 平均：輸入整數 N → 每條寬 = ceil(原寬/N) + 10mm 膠合刨平損耗，數量 × N
+ *   - 自訂：輸入逗號分隔（如 "220,200,220"）→ 拆 N 個獨立 spec，不加損耗
+ *
+ * 用 window.prompt 收輸入；user 取消 / 輸入無效會 alert + 不做事。
+ * 直接 mutate 並 onChange — 呼叫端不必處理 ID 變化。
+ */
+export function splitSpecPrompt(
+  specs: PieceSpec[],
+  id: string,
+  onChange: (next: PieceSpec[]) => void,
+): void {
+  const GLUE_ALLOWANCE_MM = 10;
+  const stripSplitSuffix = (name: string) =>
+    name.replace(/(拼\s*\d+\s*條)\s*$/, "").replace(/(拼板\s*\d+mm)\s*$/, "").trim();
+
+  const src = specs.find((s) => s.id === id);
+  if (!src) return;
+  const input = window.prompt(
+    [
+      `拼板分割——「${src.name}」寬 ${src.width}mm`,
+      "",
+      "輸入條數（平均，自動 +10mm 損耗）：如 3",
+      "或各條寬度（逗號分隔，不加損耗）：如 220,200,220",
+    ].join("\n"),
+    "3",
+  );
+  if (input === null) return;
+  const trimmed = input.trim();
+  const baseName = stripSplitSuffix(src.name);
+
+  if (/[,，]/.test(trimmed)) {
+    const widths = trimmed
+      .split(/[,,]/)
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (widths.length < 2) {
+      alert("自訂模式至少要 2 條有效寬度");
+      return;
+    }
+    const newSpecs: PieceSpec[] = widths.map((w, i) => ({
+      ...src,
+      id: `${src.id}-s${i}`,
+      name: `${baseName}（拼板 ${w}mm）`,
+      width: w,
+      quantity: src.quantity,
+    }));
+    onChange(specs.flatMap((s) => (s.id === id ? newSpecs : [s])));
+    return;
+  }
+
+  const n = Math.max(2, Math.min(20, parseInt(trimmed, 10) || 0));
+  if (n < 2) {
+    alert("條數要 ≥ 2");
+    return;
+  }
+  const newWidth = Math.ceil(src.width / n) + GLUE_ALLOWANCE_MM;
+  const updated: PieceSpec = {
+    ...src,
+    name: `${baseName}（拼${n}條）`,
+    width: newWidth,
+    quantity: src.quantity * n,
+  };
+  onChange(specs.map((s) => (s.id === id ? updated : s)));
+}
+
+/**
+ * partId 反查 spec id：expandSpecs 產生的 partId 是 `${specId}-${i}`（quantity > 1）
+ * 或就是 specId（quantity === 1）。要分割時要拿回原 spec id。
+ */
+export function specIdFromPartId(partId: string): string {
+  // 拿掉尾巴的 -123 數字，但保留 -s0 / -s1 之類的 split 後 spec id
+  return partId.replace(/-\d+$/, "");
+}
+
 export { materialZh };
