@@ -46,7 +46,7 @@ export function StockEditor({
         kind: "solid",
         material: "maple",
         thickness: 0,
-        length: 1818,
+        length: 3000,
         width: 200,
         count: null,
       },
@@ -64,7 +64,7 @@ export function StockEditor({
           kind: "solid",
           material: meta.material,
           thickness: 0,
-          length: 1818,
+          length: 3000,
           width: 200,
           count: null,
         },
@@ -206,6 +206,7 @@ export function StockEditor({
                   <td className="px-2 py-1">
                     <input
                       type="number"
+                      list={s.kind === "solid" ? "stock-length-solid" : "stock-length-sheet"}
                       value={s.length}
                       onChange={(e) =>
                         patchRow(idx, { length: Number(e.target.value) || 0 })
@@ -216,6 +217,7 @@ export function StockEditor({
                   <td className="px-2 py-1">
                     <input
                       type="number"
+                      list={s.kind === "solid" ? "stock-width-solid" : "stock-width-sheet"}
                       value={s.width}
                       onChange={(e) =>
                         patchRow(idx, { width: Number(e.target.value) || 0 })
@@ -283,6 +285,36 @@ export function StockEditor({
           </div>
         </div>
       )}
+
+      {/* HTML5 datalist 快選 — input 聚焦時顯示常見尺寸下拉 */}
+      <datalist id="stock-length-solid">
+        <option value="1818">6 尺（1818mm）</option>
+        <option value="2000">2m</option>
+        <option value="2438">8 尺（2438mm）</option>
+        <option value="3000">3m</option>
+        <option value="4000">4m</option>
+        <option value="5000">5m</option>
+        <option value="6000">6m</option>
+      </datalist>
+      <datalist id="stock-width-solid">
+        <option value="100" />
+        <option value="150" />
+        <option value="180" />
+        <option value="200" />
+        <option value="250" />
+        <option value="300" />
+        <option value="400" />
+      </datalist>
+      <datalist id="stock-length-sheet">
+        <option value="2400">4×8 ft（2440mm）</option>
+        <option value="2440">2440mm</option>
+        <option value="2745">9 尺（2745mm）</option>
+      </datalist>
+      <datalist id="stock-width-sheet">
+        <option value="1220">4 尺（1220mm）</option>
+        <option value="1200">1200mm</option>
+        <option value="900" />
+      </datalist>
     </section>
   );
 }
