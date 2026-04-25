@@ -312,6 +312,62 @@ export function OrthoView({
         // 傾斜 box（例：外斜模式時 apron 跟著腳同角度傾斜）
         // worldExtents 只認 quarter rotation，傾斜後要算實際投影 silhouette
         if ((!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part)) {
+          // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
+          // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
+          if (view === "top") {
+            const lx = part.visible.length;
+            const ly = part.visible.thickness;
+            const lz = part.visible.width;
+            const proj = (xl: number, yl: number, zl: number) => {
+              const rx = part.rotation?.x ?? 0;
+              const ry = part.rotation?.y ?? 0;
+              const rz = part.rotation?.z ?? 0;
+              const cxR = Math.cos(rx), sxR = Math.sin(rx);
+              const cyR = Math.cos(ry), syR = Math.sin(ry);
+              const czR = Math.cos(rz), szR = Math.sin(rz);
+              let x = xl, y = yl, z = zl;
+              let y2 = y * cxR - z * sxR;
+              let z2 = y * sxR + z * cxR;
+              y = y2; z = z2;
+              let x2 = x * cyR + z * syR;
+              z2 = -x * syR + z * cyR;
+              x = x2; z = z2;
+              x2 = x * czR - y * szR;
+              y2 = x * szR + y * czR;
+              x = x2; y = y2;
+              return { x: -(x + part.origin.x), y: z + part.origin.z };
+            };
+            // 上面（local z = -lz/2）= 接座那面，下面 = 接地那面
+            const topCorners = [
+              proj(-lx / 2, -ly / 2, -lz / 2),
+              proj(+lx / 2, -ly / 2, -lz / 2),
+              proj(+lx / 2, +ly / 2, -lz / 2),
+              proj(-lx / 2, +ly / 2, -lz / 2),
+            ];
+            const botCorners = [
+              proj(-lx / 2, -ly / 2, +lz / 2),
+              proj(+lx / 2, -ly / 2, +lz / 2),
+              proj(+lx / 2, +ly / 2, +lz / 2),
+              proj(-lx / 2, +ly / 2, +lz / 2),
+            ];
+            const fmt = (pts: typeof topCorners) =>
+              pts.map((p) => `${p.x},${-p.y}`).join(" ");
+            return (
+              <g key={part.id}>
+                <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                <polygon points={fmt(botCorners)} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+                {topCorners.map((tc, i) => (
+                  <line
+                    key={i}
+                    x1={tc.x} y1={-tc.y}
+                    x2={botCorners[i].x} y2={-botCorners[i].y}
+                    stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                  />
+                ))}
+              </g>
+            );
+          }
+          // 其他 view：convex hull silhouette
           const poly = projectTiltedBoxSilhouette(part, view);
           const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
           return (
