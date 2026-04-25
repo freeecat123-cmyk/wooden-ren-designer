@@ -113,34 +113,29 @@ function UnplacedNotice({
         <p className="text-xs mb-1 font-semibold text-red-900">🧮 {shortageMsg}</p>
       )}
       <ul className="text-xs space-y-1 ml-1">
-        {unplaced.map((p, i) => {
-          // partId 形如 "spec-abc123-2"（quantity > 1）或 "spec-abc123"（quantity === 1）
-          // 拼板分割產生的 id 帶 -s0/-s1 後綴，要保留；只剝最末段的純數字 -N。
-          const specId = p.partId.replace(/-\d+$/, "");
-          return (
-            <li key={i} className="flex items-baseline gap-2">
-              <span className="text-red-400">·</span>
-              {p.code && (
-                <span className="inline-block font-mono font-bold">
-                  [{p.code}]
-                </span>
-              )}
-              <span>
-                {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
+        {unplaced.map((p, i) => (
+          <li key={i} className="flex items-baseline gap-2">
+            <span className="text-red-400">·</span>
+            {p.code && (
+              <span className="inline-block font-mono font-bold">
+                [{p.code}]
               </span>
-              {onSplitSpec && (
-                <button
-                  type="button"
-                  onClick={() => onSplitSpec(specId)}
-                  className="ml-auto text-[10px] px-2 py-0.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-100"
-                  title="拼板分割：把寬度拆成 N 條，多板拼合（自動加 10mm 膠合損耗）"
-                >
-                  ✂ 分割
-                </button>
-              )}
-            </li>
-          );
-        })}
+            )}
+            <span>
+              {p.partNameZh}（{p.length} × {p.width} × {p.thickness}）
+            </span>
+            {onSplitSpec && (
+              <button
+                type="button"
+                onClick={() => onSplitSpec(p.partId)}
+                className="ml-auto text-[10px] px-2 py-0.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-100"
+                title="拼板分割：把寬度拆成 N 條，多板拼合（自動加 10mm 膠合損耗）"
+              >
+                ✂ 分割
+              </button>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );

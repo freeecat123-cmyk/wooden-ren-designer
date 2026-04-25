@@ -133,15 +133,22 @@ export function planFromSpecs(specs: PieceSpec[], config: NestConfig) {
  */
 export function splitSpecPrompt(
   specs: PieceSpec[],
-  id: string,
+  idOrPartId: string,
   onChange: (next: PieceSpec[]) => void,
 ): void {
   const GLUE_ALLOWANCE_MM = 10;
   const stripSplitSuffix = (name: string) =>
     name.replace(/(拼\s*\d+\s*條)\s*$/, "").replace(/(拼板\s*\d+mm)\s*$/, "").trim();
 
-  const src = specs.find((s) => s.id === id);
+  // 接受 spec id 或 partId（從排料圖傳來時可能帶 -N 實例後綴）。
+  // spec id 本身就是 "spec-0"，直接 strip 會誤砍——必須先試完整 id。
+  let src = specs.find((s) => s.id === idOrPartId);
+  if (!src) {
+    const stripped = idOrPartId.replace(/-\d+$/, "");
+    src = specs.find((s) => s.id === stripped);
+  }
   if (!src) return;
+  const id = src.id;
   const input = window.prompt(
     [
       `拼板分割——「${src.name}」寬 ${src.width}mm`,
