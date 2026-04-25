@@ -458,6 +458,12 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
     const arr = [l, w, t].sort((a, b) => b - a);
     return [arr[0], arr[1], arr[2]];
   };
+  // 顯示尺寸時最多保留 1 位小數，整數就不顯示「.0」。
+  // 木工現場 0.1mm 已是極限，130.66666666 這種沒意義反而難讀。
+  const fmt = (n: number): string => {
+    const rounded = Math.round(n * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  };
 
   const rows = design.parts
     .filter((part) => part.visual !== "glass")
@@ -550,10 +556,10 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                     <td className="p-2">{part.nameZh}</td>
                     <td className="p-2">{materialLabel}</td>
                     <td className="p-2 text-right">
-                      {vl} × {vw} × {vt}
+                      {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
                     </td>
                     <td className="p-2 text-right font-semibold">
-                      {cl} × {cw} × {ct}
+                      {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
                     </td>
                     <td className="p-2 text-right font-mono">
                       {bdft.toFixed(2)}
