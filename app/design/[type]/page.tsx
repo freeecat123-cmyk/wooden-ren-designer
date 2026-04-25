@@ -375,8 +375,8 @@ function ParameterForm({
         </h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <NumberInput name="length" label="長 (mm)" defaultValue={defaults.length} />
-        <NumberInput name="width" label="寬 (mm)" defaultValue={defaults.width} />
+        <NumberInput name="length" label="寬 (mm)" defaultValue={defaults.length} />
+        <NumberInput name="width" label="深 (mm)" defaultValue={defaults.width} />
         <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} />
         <label className="flex flex-col text-xs">
           <span className="text-zinc-600 mb-1">木材</span>

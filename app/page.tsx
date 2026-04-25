@@ -26,7 +26,7 @@ export default function Home() {
           從尺寸到圖紙，三秒鐘完成
         </h1>
         <p className="mt-3 max-w-2xl text-zinc-600 leading-relaxed">
-          選一件家具、輸入長寬高，自動生成 3D 透視圖、工程三視圖、榫卯細節、切料尺寸、
+          選一件家具、輸入寬深高，自動生成 3D 透視圖、工程三視圖、榫卯細節、切料尺寸、
           工具清單與製作工序。所有尺寸以毫米為單位，切料長度已自動計算榫頭凸出量。
         </p>
         <div className="mt-5 flex gap-6 text-sm text-zinc-500">
