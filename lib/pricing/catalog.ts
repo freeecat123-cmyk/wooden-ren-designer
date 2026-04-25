@@ -22,20 +22,25 @@ export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   pine: 80,
   teak: 300, // 估算（使用者未提供）
   "douglas-fir": 90, // 估算（花旗松比松木略貴）
-  // 板材類（裝潢用）— 約等於板材單張價格 / 板才換算
-  "blockboard-primary": 50, // 木芯板 4×8 ft 一張約 1500–1800
-  "plywood-primary": 60, // 夾板（裝潢用）4×8 ft 一張約 1800–2200
-  "mdf-primary": 35, // 中纖板 4×8 ft 一張約 800–1200
+  // —— 板材類（裝潢用）——
+  // 換算：一張 2400×1200×18mm = 21.97 板才；單張價 / 21.97 = 每板才價
+  // 注意：現實是「整張買」，半張也付全張錢。短期用 bdft 估價；
+  // TODO: 之後改 per-sheet 計價（根據 cut-plan 算出 ceil(N 張) × 單張價）
+  "blockboard-primary": 27, // 木芯板（NT$ 600 / 張 18mm）
+  "plywood-primary": 50, // 夾板裝潢用（NT$ 1100 / 張 18mm）
+  "mdf-primary": 27, // 中纖板（NT$ 600 / 張 18mm）
 };
 
 /**
  * 板材單價表 (NT$ / 板才)
  *
  * 夾板、中纖板用於背板、抽屜底板、抽屜側背板等非結構零件。
+ * 換算：18mm 4×8 ft 一張 = 21.97 板才；單張價 / 21.97 = 每板才。
+ * 板材實際是按整張賣，bdft 是估算用，跟主材的 *-primary 採同樣校正。
  */
 export const SHEET_GOOD_PRICE_PER_BDFT: Record<SheetGood, number> = {
-  plywood: 20,
-  mdf: 15,
+  plywood: 50, // NT$ 1100 / 張 18mm
+  mdf: 27, // NT$ 600 / 張 18mm
 };
 
 export const SHEET_GOOD_LABEL: Record<SheetGood, string> = {
