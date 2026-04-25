@@ -120,18 +120,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 4 條牙板（餐桌結構承重，用帶肩榫）
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  // 圓斷面腳（含 shaker / splayed-round）：apron 只到腳外緣不到中心
-  // （圓柱比方柱細，延伸到中心會從另一側透出來）
-  const isRoundCrossSection =
-    legShape === "round" ||
-    legShape === "round-taper-down" ||
-    legShape === "round-taper-up" ||
-    legShape === "shaker" ||
-    legShape === "splayed-round-taper-down" ||
-    legShape === "splayed-round-taper-up";
-  const apronSpan = isRoundCrossSection
-    ? 2 * cornerOffset - legSize
-    : 2 * cornerOffset;
+  // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
+  // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
+  const apronSpan = 2 * cornerOffset;
   const isSplayed = legShape.startsWith("splayed-");
   const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
   const aprons: Part[] = [

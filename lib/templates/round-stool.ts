@@ -128,19 +128,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條橫撐（兩兩腳之間）
   if (withApron) {
     const apronY = legHeight - apronWidth - apronDropFromTop;
-    // 圓斷面腳（含 shaker 與 splayed-round 系列）：apron 只到腳外緣，
-    // 不到中心——因為圓柱比方柱更細，apron 延伸到中心會從腳的另一側
-    // 透出來變透視效果。方腳（含 splayed-tapered）則維持到中心讓榫頭視覺化。
-    const isRoundCrossSection =
-      legShape === "round" ||
-      legShape === "round-taper-down" ||
-      legShape === "round-taper-up" ||
-      legShape === "shaker" ||
-      legShape === "splayed-round-taper-down" ||
-      legShape === "splayed-round-taper-up";
-    const apronSpan = isRoundCrossSection
-      ? 2 * cornerOffset - legSize
-      : 2 * cornerOffset;
+    // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
+    // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
+    const apronSpan = 2 * cornerOffset;
     // 外斜模式時 apron 也跟著腳一起斜（同角度）
     const isSplayed = legShape.startsWith("splayed-");
     const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
