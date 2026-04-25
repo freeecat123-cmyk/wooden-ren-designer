@@ -139,20 +139,22 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
     // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
     const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
-    // 梯形 apron：上窄下寬（matching legs splay）
-    // length 在 apron 頂端 (Y top) 縮為 ratio_top，底端 (Y bottom) 縮為 ratio_bottom
-    // 因為 visible.length = 2 × (cornerOffset + apronSplayCenter)
-    // top should be 2 × (cornerOffset + splay × shiftFactorTop)
-    // bottom should be 2 × (cornerOffset + splay × shiftFactorBottom)
-    const apronTopShiftFactor = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
-    const apronBotShiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
+    // 梯形 apron：上窄下寬。length 在 apron 頂端 / 底端 不同 scale 對齊腳中心軸。
+    // ⚠️ 必須用 tilt 後的實際 top/bottom corner Y（不是 apronY/apronY+apronWidth），
+    // 不然 apron corner 不會剛好落在腳的中心軸上。
+    const halfWorldYExt = (apronWidth * Math.cos((splayAngle * Math.PI) / 180) +
+      apronThickness * Math.sin((splayAngle * Math.PI) / 180)) / 2;
+    const apronTopCornerY = apronYCenter + halfWorldYExt;
+    const apronBotCornerY = apronYCenter - halfWorldYExt;
+    const apronTopShiftFactor = legHeight > 0 ? 1 - apronTopCornerY / legHeight : 0;
+    const apronBotShiftFactor = legHeight > 0 ? 1 - apronBotCornerY / legHeight : 0;
     const apronCenterSplayMax = Math.max(apronSplayDx, apronSplayDz);
     const apronTopSplayMax = Math.max(splayDx * apronTopShiftFactor, splayDz * apronTopShiftFactor);
     const apronBotSplayMax = Math.max(splayDx * apronBotShiftFactor, splayDz * apronBotShiftFactor);
-    const apronTrapezoidTopScale = isSplayed && apronCenterSplayMax !== -cornerOffset
+    const apronTrapezoidTopScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
       ? (cornerOffset + apronTopSplayMax) / (cornerOffset + apronCenterSplayMax)
       : 1;
-    const apronTrapezoidBotScale = isSplayed && apronCenterSplayMax !== -cornerOffset
+    const apronTrapezoidBotScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
       ? (cornerOffset + apronBotSplayMax) / (cornerOffset + apronCenterSplayMax)
       : 1;
     const sides = [

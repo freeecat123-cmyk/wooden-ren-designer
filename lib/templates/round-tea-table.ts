@@ -129,16 +129,20 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
   // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
   const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
-  // 梯形 apron：上窄下寬，length 在 Y 頂端 / 底端 不同 scale 對齊腳中心軸
-  const apronTopShiftFactor = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
-  const apronBotShiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
+  // 梯形 apron：上窄下寬。⚠️ 用 tilt 後的實際 corner Y 才會剛好對齊腳中心軸
+  const halfWorldYExt = (apronWidth * Math.cos((splayAngle * Math.PI) / 180) +
+    apronThickness * Math.sin((splayAngle * Math.PI) / 180)) / 2;
+  const apronTopCornerY = apronYCenter + halfWorldYExt;
+  const apronBotCornerY = apronYCenter - halfWorldYExt;
+  const apronTopShiftFactor = legHeight > 0 ? 1 - apronTopCornerY / legHeight : 0;
+  const apronBotShiftFactor = legHeight > 0 ? 1 - apronBotCornerY / legHeight : 0;
   const apronCenterSplayMax = Math.max(apronSplayDx, apronSplayDz);
   const apronTopSplayMax = Math.max(splayDx * apronTopShiftFactor, splayDz * apronTopShiftFactor);
   const apronBotSplayMax = Math.max(splayDx * apronBotShiftFactor, splayDz * apronBotShiftFactor);
-  const apronTrapezoidTopScale = isSplayed
+  const apronTrapezoidTopScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
     ? (cornerOffset + apronTopSplayMax) / (cornerOffset + apronCenterSplayMax)
     : 1;
-  const apronTrapezoidBotScale = isSplayed
+  const apronTrapezoidBotScale = isSplayed && (cornerOffset + apronCenterSplayMax) > 0
     ? (cornerOffset + apronBotSplayMax) / (cornerOffset + apronCenterSplayMax)
     : 1;
   const aprons: Part[] = [
