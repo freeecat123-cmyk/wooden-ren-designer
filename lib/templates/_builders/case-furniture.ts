@@ -167,18 +167,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
    */
   const caseInnerZ = -backT / 2;
 
-  // 門板安裝方式（影響內部層板/抽屜深度與門板 z 位置）
+  // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
+  // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
   const doorMount = opts.doorMount ?? "overlay-6";
-  // 入柱模式：門埋進框內，背後內部零件需縮短深度
-  // 門厚 = slab 18mm；wood/glass 框料 22mm（renderDoorZone 中 frameT=22）
+  // 入柱模式：門埋進框內，門後方內藏的層板需縮短深度
+  // 門厚 = slab 18mm；wood/glass 框料 22mm
   const insetDoorThick = doorType === "slab" ? 18 : 22;
-  const insetClearance = 5; // 門背與層板/抽屜之間的安全空隙
+  const insetClearance = 5; // 門背與層板之間的安全空隙
   const insetReducedDepth =
     doorMount === "inset" ? insetDoorThick + insetClearance : 0;
-  /** 內部層板 / 分隔板 / 抽屜的有效深度（入柱模式縮短）。 */
-  const partInnerD = innerD - insetReducedDepth;
-  /** 內部零件的 Z 中心（入柱模式整體往後縮，後緣仍貼背板，前緣讓給門）。 */
-  const partInnerZ = caseInnerZ + insetReducedDepth / 2;
 
   const parts: Part[] = [];
 
@@ -433,12 +430,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
-      // 入柱模式：榫眼也跟著層板往後偏 insetReducedDepth/2，
-      // 不然層板的 tongue 對不到母件孔位。
       mortises: shelfFractions.map((f) => ({
-        origin: { x: 0, y: f * innerH, z: insetReducedDepth / 2 },
+        origin: { x: 0, y: f * innerH, z: 0 },
         depth: tenonLen,
-        length: partInnerD - 10,
+        length: innerD - 10,
         width: shelfTongueT,
         through: false,
       })),
@@ -457,21 +452,21 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       nameZh: drawerCount > 0 ? `抽屜分隔板 ${i + 1}` : `層板 ${i + 1}`,
       material,
       grainDirection: "length",
-      visible: { length: innerW, width: partInnerD, thickness: shelfT },
-      origin: { x: 0, y, z: partInnerZ },
+      visible: { length: innerW, width: innerD, thickness: shelfT },
+      origin: { x: 0, y, z: caseInnerZ },
       tenons: [
         {
           position: "start",
           type: "tongue-and-groove",
           length: tenonLen,
-          width: partInnerD - 10,
+          width: innerD - 10,
           thickness: shelfTongueT,
         },
         {
           position: "end",
           type: "tongue-and-groove",
           length: tenonLen,
-          width: partInnerD - 10,
+          width: innerD - 10,
           thickness: shelfTongueT,
         },
       ],
@@ -533,11 +528,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: `${labelPrefix}分隔板 ${d + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: zoneW, width: partInnerD, thickness: shelfT },
-        origin: { x: zoneCx, y: dividerY - shelfT, z: partInnerZ },
+        visible: { length: zoneW, width: innerD, thickness: shelfT },
+        origin: { x: zoneCx, y: dividerY - shelfT, z: caseInnerZ },
         tenons: [
-          { position: "start", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
-          { position: "end", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
         ],
         mortises: [],
       });
@@ -550,11 +545,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: dividerFrom === "below" ? `${labelPrefix}區底板` : `${labelPrefix}區頂板`,
         material,
         grainDirection: "length",
-        visible: { length: zoneW, width: partInnerD, thickness: shelfT },
-        origin: { x: zoneCx, y: boundaryY - shelfT, z: partInnerZ },
+        visible: { length: zoneW, width: innerD, thickness: shelfT },
+        origin: { x: zoneCx, y: boundaryY - shelfT, z: caseInnerZ },
         tenons: [
-          { position: "start", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
-          { position: "end", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
         ],
         mortises: [],
       });
@@ -580,7 +575,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerOuterW = drawerSlotW - 2 * slideGap;
     const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
     // 箱體可用深度：櫃內深（入柱模式已扣門板厚）− 面板 − 前留 1mm − 背板空隙
-    const drawerInnerD = partInnerD - faceT - drawerFrontT - drawerBackT - backClearance;
+    const drawerInnerD = innerD - faceT - drawerFrontT - drawerBackT - backClearance;
     // 面板高（補滿外觀的那一片；等於傳統模式 5 件的面板高）
     const drawerH = drawerSlotH - drawerGap * 2;
     // 滑軌模式下箱體（前板/後板/左右側板）比面板再縮 2mm（上下各 1mm），
@@ -602,8 +597,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           nameZh: `${labelPrefix}直立分隔板 ${j + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: partitionT, width: partInnerD, thickness: zoneH },
-          origin: { x: partX, y: drawerZoneBottomY, z: partInnerZ },
+          visible: { length: partitionT, width: innerD, thickness: zoneH },
+          origin: { x: partX, y: drawerZoneBottomY, z: caseInnerZ },
           tenons: [],
           mortises: [],
         });
@@ -1137,25 +1132,34 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     height: number;
     count: number;
     idPrefix: string;
+    /** 中文名稱前綴，例：「下層」「上層門內」「左欄」。為空則只顯示「層板 N」（多 zone 易混淆） */
+    labelPrefix?: string;
     xCenter?: number;
     colInnerW?: number;
+    /** 入柱門後方的內藏層板：深度自動扣 insetReducedDepth 讓位給門 */
+    behindInsetDoor?: boolean;
   }) => {
     const internalShelves = Math.max(0, cfg.count - 1);
     if (internalShelves === 0) return;
     const zoneCx = cfg.xCenter ?? 0;
     const zoneW = cfg.colInnerW ?? innerW;
+    // 只有「入柱門後方層板」才縮深度，其他 zone 的層板維持 innerD
+    const reduce = cfg.behindInsetDoor ? insetReducedDepth : 0;
+    const shelfD = innerD - reduce;
+    const shelfZ = caseInnerZ + reduce / 2;
+    const prefix = cfg.labelPrefix ?? "";
     for (let i = 0; i < internalShelves; i++) {
       const y = cfg.yStart + ((i + 1) * cfg.height) / cfg.count;
       parts.push({
         id: `${cfg.idPrefix}-shelf-${i + 1}`,
-        nameZh: `層板 ${i + 1}`,
+        nameZh: `${prefix}層板 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: zoneW, width: partInnerD, thickness: shelfT },
-        origin: { x: zoneCx, y: y - shelfT, z: partInnerZ },
+        visible: { length: zoneW, width: shelfD, thickness: shelfT },
+        origin: { x: zoneCx, y: y - shelfT, z: shelfZ },
         tenons: [
-          { position: "start", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
-          { position: "end", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
+          { position: "start", type: "tongue-and-groove", length: tenonLen, width: shelfD - 10, thickness: shelfTongueT },
+          { position: "end", type: "tongue-and-groove", length: tenonLen, width: shelfD - 10, thickness: shelfTongueT },
         ],
         mortises: [],
       });
@@ -1207,6 +1211,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         renderShelvesZone({
           yStart: colYStart, height: colH,
           count: col.count ?? 1, idPrefix,
+          labelPrefix: `${labelPrefix}欄`,
           xCenter: colCx, colInnerW: colW,
         });
       }
@@ -1221,8 +1226,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           nameZh: `直立分隔板 ${i + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: partitionW, width: partInnerD, thickness: innerH },
-          origin: { x: cursorX + partitionW / 2, y: caseBottomY + panelT, z: partInnerZ },
+          visible: { length: partitionW, width: innerD, thickness: innerH },
+          origin: { x: cursorX + partitionW / 2, y: caseBottomY + panelT, z: caseInnerZ },
           tenons: [],
           mortises: [],
         });
@@ -1265,6 +1270,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           labelPrefix: `${labelPrefix}門`,
         });
         // 門板後方可加內層板（使用者勾選門內層板數時）
+        // 入柱模式下這層深度自動扣掉門厚 + 5mm 空隙
         const innerShelves = z.doorInnerShelves ?? 0;
         if (innerShelves > 0) {
           renderShelvesZone({
@@ -1273,6 +1279,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             // renderShelvesZone 的 count 是「儲物層數」=（片數 + 1）
             count: innerShelves + 1,
             idPrefix: `${idPrefix}-door-inner`,
+            labelPrefix: `${labelPrefix}門內`,
+            behindInsetDoor: doorMount === "inset",
           });
         }
       } else if (z.type === "shelves") {
@@ -1281,6 +1289,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           height: z.heightMm,
           count: z.count ?? 1,
           idPrefix,
+          labelPrefix,
         });
       } else if (z.type === "hanging") {
         // 吊衣桿：區中央加一根橫桿，其餘空間留給衣服懸掛
@@ -1307,11 +1316,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           nameZh: `${labelPrefix}區頂板`,
           material,
           grainDirection: "length",
-          visible: { length: innerW, width: partInnerD, thickness: shelfT },
-          origin: { x: 0, y: yEnd - shelfT, z: partInnerZ },
+          visible: { length: innerW, width: innerD, thickness: shelfT },
+          origin: { x: 0, y: yEnd - shelfT, z: caseInnerZ },
           tenons: [
-            { position: "start", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
-            { position: "end", type: "tongue-and-groove", length: tenonLen, width: partInnerD - 10, thickness: shelfTongueT },
+            { position: "start", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
+            { position: "end", type: "tongue-and-groove", length: tenonLen, width: innerD - 10, thickness: shelfTongueT },
           ],
           mortises: [],
         });
