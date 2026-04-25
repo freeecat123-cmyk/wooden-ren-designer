@@ -197,7 +197,7 @@ export function CutPlanApp({
       <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800">
-            ⚙️ 進階設定（鋸路 / 最小餘料 / 板材旋轉）
+            ⚙️ 進階設定（鋸路 / 最小餘料）
             <span className="ml-2 text-[11px] font-normal text-zinc-400">
               鋸路 {config.kerf}mm · 最小餘料 {config.minWasteMm}mm
             </span>
