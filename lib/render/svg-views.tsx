@@ -8,9 +8,11 @@ import {
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
 import {
+  hasNonQuarterRotation,
   isPartHidden,
   projectPart,
   projectPartPolygon,
+  projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
   type OrthoView,
@@ -258,6 +260,18 @@ export function OrthoView({
           const cx = r.x + r.w / 2;
           const cy = r.y + r.h / 2;
           const radius = Math.min(r.w, r.h) / 2;
+          // 外斜圓錐：實線=腳頂位置，虛線=腳底位置（shifted + scaled）
+          if (part.shape.kind === "splayed-round-tapered") {
+            const scale = part.shape.bottomScale;
+            const footCx = cx + -part.shape.dxMm; // 俯視鏡像 X
+            const footCy = cy + part.shape.dzMm;
+            return (
+              <g key={part.id}>
+                <circle cx={cx} cy={cy} r={radius} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                <circle cx={footCx} cy={footCy} r={radius * scale} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+              </g>
+            );
+          }
           return (
             <circle
               key={part.id}
@@ -269,6 +283,37 @@ export function OrthoView({
               strokeWidth={sw}
               strokeDasharray={dash}
             />
+          );
+        }
+        // 傾斜 box（例：外斜模式時 apron 跟著腳同角度傾斜）
+        // worldExtents 只認 quarter rotation，傾斜後要算實際投影 silhouette
+        if ((!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part)) {
+          const poly = projectTiltedBoxSilhouette(part, view);
+          const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+          return (
+            <polygon
+              key={part.id}
+              points={points}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+              strokeDasharray={dash}
+            />
+          );
+        }
+        // 外斜方錐俯視：實線=腳頂位置，虛線=腳底位置（shifted + scaled）
+        if (part.shape?.kind === "splayed-tapered" && view === "top") {
+          const r = projectPart(part, view);
+          const scale = part.shape.bottomScale;
+          const footW = r.w * scale;
+          const footH = r.h * scale;
+          const footX = r.x + r.w / 2 - footW / 2 + -part.shape.dxMm;
+          const footY = r.y + r.h / 2 - footH / 2 + part.shape.dzMm;
+          return (
+            <g key={part.id}>
+              <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+            </g>
           );
         }
         // Use polygon when the shape is non-box AND it would differ from a rect

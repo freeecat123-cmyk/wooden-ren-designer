@@ -21,6 +21,102 @@ export function worldExtents(part: Part) {
 export type OrthoView = "front" | "side" | "top";
 
 /**
+ * 把零件的 8 個 box corner 套用完整 rotation（含非 quarter）→ 投影到 view 平面
+ * → convex hull 算出 silhouette polygon。
+ *
+ * 用於零件有非 90° 倍數的旋轉（例如外斜腳的 apron tilt α）時，
+ * 標準 worldExtents bbox 無法正確呈現，需要實際算傾斜後的形狀。
+ */
+export function projectTiltedBoxSilhouette(
+  part: Part,
+  view: OrthoView,
+): Array<{ x: number; y: number }> {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  const cx = Math.cos(rx), sx = Math.sin(rx);
+  const cy = Math.cos(ry), sy = Math.sin(ry);
+  const cz = Math.cos(rz), sz = Math.sin(rz);
+  const { yExt } = worldExtents(part);
+  const yOffset = part.origin.y + yExt / 2;
+  const projected: Array<{ x: number; y: number }> = [];
+  for (const ex of [-1, 1] as const) {
+    for (const ey of [-1, 1] as const) {
+      for (const ez of [-1, 1] as const) {
+        let x = (ex * lx) / 2;
+        let y = (ey * ly) / 2;
+        let z = (ez * lz) / 2;
+        // Rx
+        let y2 = y * cx - z * sx;
+        let z2 = y * sx + z * cx;
+        y = y2; z = z2;
+        // Ry
+        let x2 = x * cy + z * sy;
+        z2 = -x * sy + z * cy;
+        x = x2; z = z2;
+        // Rz
+        x2 = x * cz - y * sz;
+        y2 = x * sz + y * cz;
+        x = x2; y = y2;
+        const wx = x + part.origin.x;
+        const wy = y + yOffset;
+        const wz = z + part.origin.z;
+        let vx: number, vy: number;
+        if (view === "top") { vx = -wx; vy = wz; }
+        else if (view === "side") { vx = wz; vy = wy; }
+        else { vx = -wx; vy = wy; }
+        projected.push({ x: vx, y: vy });
+      }
+    }
+  }
+  return convexHull2D(projected);
+}
+
+/** Andrew's monotone chain — 2D convex hull, CCW order. */
+function convexHull2D(
+  pts: Array<{ x: number; y: number }>,
+): Array<{ x: number; y: number }> {
+  if (pts.length < 3) return pts;
+  const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (
+    o: { x: number; y: number },
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Array<{ x: number; y: number }> = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: Array<{ x: number; y: number }> = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return lower.concat(upper);
+}
+
+/** 偵測零件是否有非 quarter（非 90° 倍數）的旋轉。 */
+export function hasNonQuarterRotation(part: Part): boolean {
+  const eps = 0.01;
+  const isQuarter = (a: number) => {
+    const m = Math.abs(((a % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2));
+    return m < eps || Math.PI / 2 - m < eps;
+  };
+  return (
+    !isQuarter(part.rotation?.x ?? 0) ||
+    !isQuarter(part.rotation?.y ?? 0) ||
+    !isQuarter(part.rotation?.z ?? 0)
+  );
+}
+
+/**
  * 2D silhouette of a part for the given orthographic view.
  * Origin convention: part.origin.y is bottom of the part; x/z are centered.
  * Returned rect is in **world coords** (not yet flipped for SVG Y-down).
