@@ -2,8 +2,11 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  doorMountLabel,
+  doorMountOption,
   drawerSlideOption,
   makeZoneOptions,
+  resolveDoorMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
@@ -22,6 +25,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
   ] },
+  doorMountOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
@@ -42,6 +46,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const doorMount = resolveDoorMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -71,7 +76,8 @@ export const wardrobe: FurnitureTemplate = (input) => {
     legSize: 45,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    doorMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；${doorCount} 扇門${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、門鉸鏈、抽屜滑軌。`,
+    notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。`,
   });
 };

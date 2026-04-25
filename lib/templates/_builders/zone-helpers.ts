@@ -32,6 +32,44 @@ export function resolveDrawerSlideGap(
   return on ? DRAWER_SLIDE_GAP_MM : 0;
 }
 
+/**
+ * 共用選項：門板安裝方式（裝潢界三種標準作法，皆配西德鉸鏈不同蓋型）。
+ * - overlay-6 全蓋（蓋 6 分=18mm，蓋滿框寬，雙門幾乎相觸）：最常見
+ * - overlay-3 半蓋（蓋 3 分=9mm，蓋住框邊一半，留小縫看見框）
+ * - inset 入柱（門埋進框內、與櫃面齊平，四周留 2mm 縫供開合）
+ *   入柱模式會自動把內部層板/抽屜深度縮 23mm（門厚 + 5mm 安全空隙）。
+ */
+export const doorMountOption: OptionSpec = {
+  group: "door",
+  type: "select",
+  key: "doorMount",
+  label: "門板安裝方式",
+  defaultValue: "overlay-6",
+  choices: [
+    { value: "overlay-6", label: "蓋 6 分（全蓋，蓋滿 18mm 框）— 全蓋西德鉸鏈" },
+    { value: "overlay-3", label: "蓋 3 分（半蓋，蓋住 9mm 框）— 半蓋西德鉸鏈" },
+    { value: "inset", label: "入柱（門埋進框內、齊平櫃面）— 入柱西德鉸鏈" },
+  ],
+};
+
+export type DoorMount = "overlay-3" | "overlay-6" | "inset";
+
+export function resolveDoorMount(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): DoorMount {
+  const v = getOption<string>(input, opt(options, "doorMount"));
+  return v === "overlay-3" || v === "inset" ? v : "overlay-6";
+}
+
+export function doorMountLabel(mount: DoorMount): string {
+  return mount === "overlay-6"
+    ? "蓋 6 分全蓋"
+    : mount === "overlay-3"
+      ? "蓋 3 分半蓋"
+      : "入柱（齊平）";
+}
+
 /** 每個 zone 可選的類型 */
 export const ZONE_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },

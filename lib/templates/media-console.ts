@@ -2,7 +2,10 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture, type CabinetZone, type CabinetColumn } from "./_builders/case-furniture";
 import {
+  doorMountLabel,
+  doorMountOption,
   drawerSlideOption,
+  resolveDoorMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
 
@@ -47,6 +50,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "glass", label: "玻璃門" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
   ] },
+  doorMountOption,
   // 腳
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 120, min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
@@ -96,6 +100,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const doorMount = resolveDoorMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
 
@@ -185,7 +190,8 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    doorMount,
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
-    notes: `電視櫃：${noteParts.join("；")}。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
+    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
   });
 };
