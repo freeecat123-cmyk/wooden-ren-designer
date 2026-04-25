@@ -44,7 +44,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const drawerMount = resolveDrawerMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
 
   return caseFurniture({
     category: "chest-of-drawers",
@@ -65,5 +65,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
+    warnings,
   });
 };

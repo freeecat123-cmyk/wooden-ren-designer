@@ -33,7 +33,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
 
   return caseFurniture({
     category: "open-bookshelf",
@@ -52,5 +52,6 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
+    warnings,
   });
 };

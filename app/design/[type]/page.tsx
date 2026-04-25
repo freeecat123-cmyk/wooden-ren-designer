@@ -124,6 +124,22 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </header>
 
+      {design.warnings && design.warnings.length > 0 && (
+        <div className="mb-4 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="flex items-start gap-2">
+            <span className="text-base leading-none mt-0.5">⚠️</span>
+            <div className="flex-1">
+              <div className="font-semibold mb-1">設計參數有問題（已自動修正後續渲染）：</div>
+              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                {design.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 主視覺：左邊參數（sticky）↔ 右邊 3D + 三視圖 */}
       <section className="grid lg:grid-cols-[5fr_7fr] gap-4">
         <div className="lg:sticky lg:top-4 self-start">

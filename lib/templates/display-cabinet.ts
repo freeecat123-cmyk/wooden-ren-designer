@@ -54,7 +54,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const { zones, notesLine } = resolveZones(input, o, innerH, doorLabel);
+  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "display-cabinet",
@@ -82,5 +82,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
+    warnings,
   });
 };

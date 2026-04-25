@@ -131,27 +131,51 @@ export interface ZoneDefaults {
  * 產生 3-zone 櫃體的標準 option 表單。上/中/下各有 type 選單 + 數量/尺寸。
  * 中層高度自動填滿剩餘空間（= 內高 − 上層 − 下層），不需要使用者輸入。
  */
-export function makeZoneOptions(defaults: ZoneDefaults, allowHanging = false): OptionSpec[] {
+export function makeZoneOptions(
+  defaults: ZoneDefaults,
+  allowHanging = false,
+  opts: { skipMid?: boolean; autoFillSide?: "top" | "bottom" } = {},
+): OptionSpec[] {
   const choices = allowHanging ? ZONE_TYPE_CHOICES_WITH_HANGING : ZONE_TYPE_CHOICES;
-  return [
+  // skipMid 模式下，預設「上層自動填滿」（使用者設下層高度，上層吃剩）
+  const autoSide: "top" | "bottom" = opts.skipMid ? (opts.autoFillSide ?? "top") : "bottom";
+  const topHeightHelp = opts.skipMid && autoSide === "top" ? "高度自動填滿剩餘空間" : undefined;
+  const botHeightHelp = opts.skipMid && autoSide === "bottom" ? "高度自動填滿剩餘空間" : undefined;
+  const specs: OptionSpec[] = [
     // 上層
-    { group: "zone-top", type: "select", key: "topType", label: "類型", defaultValue: defaults.topType, choices },
-    { group: "zone-top", type: "number", key: "topHeight", label: "高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 },
+    { group: "zone-top", type: "select", key: "topType", label: "類型", defaultValue: defaults.topType, choices, help: topHeightHelp },
+  ];
+  // skipMid + 上層自動填滿時，不顯示高度欄位
+  if (!(opts.skipMid && autoSide === "top")) {
+    specs.push({ group: "zone-top", type: "number", key: "topHeight", label: "高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 });
+  }
+  specs.push(
     { group: "zone-top", type: "number", key: "topCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
     { group: "zone-top", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1 },
     { group: "zone-top", type: "number", key: "topDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
-    // 中層（自動填滿）
-    { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
-    { group: "zone-mid", type: "number", key: "midCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
-    { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1 },
-    { group: "zone-mid", type: "number", key: "midDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
+  );
+  if (!opts.skipMid) {
+    specs.push(
+      // 中層（自動填滿）
+      { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
+      { group: "zone-mid", type: "number", key: "midCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
+      { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1 },
+      { group: "zone-mid", type: "number", key: "midDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
+    );
+  }
+  specs.push(
     // 下層
-    { group: "zone-bot", type: "select", key: "bottomType", label: "類型", defaultValue: defaults.bottomType, choices },
-    { group: "zone-bot", type: "number", key: "bottomHeight", label: "高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 },
+    { group: "zone-bot", type: "select", key: "bottomType", label: "類型", defaultValue: defaults.bottomType, choices, help: botHeightHelp },
+  );
+  if (!(opts.skipMid && autoSide === "bottom")) {
+    specs.push({ group: "zone-bot", type: "number", key: "bottomHeight", label: "高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 });
+  }
+  specs.push(
     { group: "zone-bot", type: "number", key: "bottomCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
     { group: "zone-bot", type: "number", key: "bottomCols", label: "抽屜列數（左右分）", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1 },
     { group: "zone-bot", type: "number", key: "bottomDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）" },
-  ];
+  );
+  return specs;
 }
 
 export interface ResolvedZones {
@@ -170,6 +194,8 @@ export interface ResolvedZones {
   bottomCols: number;
   /** 人類可讀備註，會列出三層設定（實際高度） */
   notesLine: string;
+  /** 高度被自動修正時的警告訊息（給設計頁顯示用） */
+  warnings: string[];
 }
 
 const toCabinetZone = (
@@ -198,16 +224,19 @@ export function resolveZones(
   doorLabel: "玻璃" | "木" | "平板" = "木",
 ): ResolvedZones {
   const topType = getOption<string>(input, opt(options, "topType")) as ZoneType;
-  const topH0 = getOption<number>(input, opt(options, "topHeight"));
+  const hasTopHeight = options.some((s) => s.key === "topHeight");
+  const topH0 = hasTopHeight ? getOption<number>(input, opt(options, "topHeight")) : 0;
   const topCount = getOption<number>(input, opt(options, "topCount"));
   const topCols = getOption<number>(input, opt(options, "topCols"));
   const topDoorShelves = getOption<number>(input, opt(options, "topDoorShelves"));
-  const midType = getOption<string>(input, opt(options, "midType")) as ZoneType;
-  const midCount = getOption<number>(input, opt(options, "midCount"));
-  const midCols = getOption<number>(input, opt(options, "midCols"));
-  const midDoorShelves = getOption<number>(input, opt(options, "midDoorShelves"));
+  const hasMid = options.some((s) => s.key === "midType");
+  const midType = (hasMid ? getOption<string>(input, opt(options, "midType")) : "none") as ZoneType;
+  const midCount = hasMid ? getOption<number>(input, opt(options, "midCount")) : 0;
+  const midCols = hasMid ? getOption<number>(input, opt(options, "midCols")) : 1;
+  const midDoorShelves = hasMid ? getOption<number>(input, opt(options, "midDoorShelves")) : 0;
   const bottomType = getOption<string>(input, opt(options, "bottomType")) as ZoneType;
-  const botH0 = getOption<number>(input, opt(options, "bottomHeight"));
+  const hasBotHeight = options.some((s) => s.key === "bottomHeight");
+  const botH0 = hasBotHeight ? getOption<number>(input, opt(options, "bottomHeight")) : 0;
   const bottomCount = getOption<number>(input, opt(options, "bottomCount"));
   const bottomCols = getOption<number>(input, opt(options, "bottomCols"));
   const bottomDoorShelves = getOption<number>(input, opt(options, "bottomDoorShelves"));
@@ -215,17 +244,50 @@ export function resolveZones(
   const MIN_MID = 80;
   let topH = topH0;
   let botH = botH0;
+  let midH: number;
   const available = innerH;
-  if (topH + botH > available - MIN_MID) {
-    const scale = Math.max(0, available - MIN_MID) / (topH + botH);
-    topH = Math.round(topH * scale);
-    botH = Math.round(botH * scale);
+  const warnings: string[] = [];
+  if (available < 160) {
+    warnings.push(
+      `櫃內可用高度只有 ${Math.max(0, available)}mm（總高 − 腳高 − 上下板 2×板厚），太矮塞不下兩層收納。請降低腳高或增加總高。`,
+    );
   }
-  const midH = Math.max(MIN_MID, available - topH - botH);
+  if (!hasMid) {
+    // 兩段式：哪邊有 height 欄位就吃使用者設定，另一邊吃剩
+    midH = 0;
+    if (hasTopHeight && !hasBotHeight) {
+      if (topH > available - 80) {
+        warnings.push(`上層高度 ${topH}mm 超過可用空間，已自動修正為 ${Math.max(80, available - 80)}mm（下層至少留 80mm）。`);
+        topH = Math.max(80, available - 80);
+      }
+      botH = Math.max(80, available - topH);
+    } else if (hasBotHeight && !hasTopHeight) {
+      if (botH > available - 80) {
+        warnings.push(`下層高度 ${botH}mm 超過可用空間（內高 ${available}mm − 上層至少 80mm），已自動修正為 ${Math.max(80, available - 80)}mm。請降低下層高度、降低腳高或增加總高。`);
+        botH = Math.max(80, available - 80);
+      }
+      topH = Math.max(80, available - botH);
+    } else {
+      if (topH + botH > available) {
+        warnings.push(`上層 ${topH} + 下層 ${botH} = ${topH + botH}mm 超過內高 ${available}mm，已按比例壓縮。`);
+        const scale = available / (topH + botH);
+        topH = Math.round(topH * scale);
+        botH = available - topH;
+      }
+    }
+  } else {
+    if (topH + botH > available - MIN_MID) {
+      warnings.push(`上層 ${topH} + 下層 ${botH} = ${topH + botH}mm 超過內高 ${available}mm − 中層最少 ${MIN_MID}mm，已按比例壓縮。`);
+      const scale = Math.max(0, available - MIN_MID) / (topH + botH);
+      topH = Math.round(topH * scale);
+      botH = Math.round(botH * scale);
+    }
+    midH = Math.max(MIN_MID, available - topH - botH);
+  }
 
   const zones: CabinetZone[] = [];
   const b = toCabinetZone(bottomType, botH, bottomCount, bottomCols, bottomDoorShelves);
-  const m = toCabinetZone(midType, midH, midCount, midCols, midDoorShelves);
+  const m = hasMid ? toCabinetZone(midType, midH, midCount, midCols, midDoorShelves) : null;
   const t = toCabinetZone(topType, topH, topCount, topCols, topDoorShelves);
   if (b) zones.push(b);
   if (m) zones.push(m);
@@ -249,7 +311,9 @@ export function resolveZones(
     if (ty === "hanging") return `${name} 吊衣空間 ${h}mm（含 1 根吊衣桿）`;
     return "";
   };
-  const notesLine = `三層組合：${describe("上層", topType, topH, topCount, topCols, topDoorShelves)}；${describe("中層", midType, midH, midCount, midCols, midDoorShelves)}（自動填滿）；${describe("下層", bottomType, botH, bottomCount, bottomCols, bottomDoorShelves)}`;
+  const notesLine = hasMid
+    ? `三層組合：${describe("上層", topType, topH, topCount, topCols, topDoorShelves)}；${describe("中層", midType, midH, midCount, midCols, midDoorShelves)}（自動填滿）；${describe("下層", bottomType, botH, bottomCount, bottomCols, bottomDoorShelves)}`
+    : `兩層組合：${describe("上層", topType, topH, topCount, topCols, topDoorShelves)}；${describe("下層", bottomType, botH, bottomCount, bottomCols, bottomDoorShelves)}（自動填滿）`;
 
   return {
     zones,
@@ -266,5 +330,6 @@ export function resolveZones(
     midCols,
     bottomCols,
     notesLine,
+    warnings,
   };
 }

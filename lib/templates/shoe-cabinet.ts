@@ -16,11 +16,11 @@ import {
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
-    // 傳統鞋櫃：上層開放收納 / 中層層板 / 下層門板藏鞋
+    // 兩段式鞋櫃：上層開放（鑰匙小物）/ 下層門板藏鞋；無中層
     topType: "shelves", topHeight: 250, topCount: 1,
-    midType: "shelves", midCount: 3,
+    midType: "none", midCount: 0,
     bottomType: "door", bottomHeight: 600, bottomCount: 2,
-  }),
+  }, false, { skipMid: true }),
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
@@ -55,7 +55,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const { zones, notesLine } = resolveZones(input, o, innerH, doorLabel);
+  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "shoe-cabinet",
@@ -83,5 +83,6 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。層板可用層板釘做可調式。`,
+    warnings,
   });
 };

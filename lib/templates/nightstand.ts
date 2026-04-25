@@ -1,19 +1,33 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  doorMountLabel,
+  doorMountOption,
   drawerMountOption,
   drawerSlideOption,
+  makeZoneOptions,
+  resolveDoorMount,
   resolveDrawerMount,
   resolveDrawerSlideGap,
+  resolveZones,
 } from "./_builders/zone-helpers";
 
 export const nightstandOptions: OptionSpec[] = [
-  { group: "drawer", type: "number", key: "drawerCount", label: "抽屜排數", defaultValue: 1, min: 0, max: 4, step: 1 },
-  { group: "drawer", type: "number", key: "drawerCols", label: "抽屜列數（左右）", defaultValue: 1, min: 1, max: 3, step: 1 },
-  { group: "drawer", type: "number", key: "drawerHeight", label: "抽屜區高 (mm)", defaultValue: 180, min: 0, max: 500, step: 10 },
-  { group: "top", type: "number", key: "shelfCount", label: "下方開放層板", defaultValue: 1, min: 0, max: 3, step: 1, help: "抽屜下方開放區的層板數" },
   { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
+  ...makeZoneOptions({
+    // 兩段式床頭櫃：上層抽屜 / 下層開放層板（皆可改成抽屜 / 門 / 開放）
+    topType: "drawer", topHeight: 180, topCount: 1, topCols: 1,
+    midType: "none", midCount: 0,
+    bottomType: "shelves", bottomHeight: 250, bottomCount: 1,
+  }, false, { skipMid: true }),
+  { group: "door", type: "select", key: "doorType", label: "門材質（如有門板）", defaultValue: "wood", choices: [
+    { value: "wood", label: "木鑲板門" },
+    { value: "slab", label: "夾板貼皮平板門" },
+    { value: "glass", label: "玻璃門" },
+  ] },
+  doorMountOption,
+  drawerMountOption,
   { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 120, min: 0, max: 300, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 70, step: 1 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
@@ -22,25 +36,29 @@ export const nightstandOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5 },
-  drawerMountOption,
   drawerSlideOption,
 ];
 
 /**
  * 床頭櫃（nightstand）
- * 長 400–500、寬 350–400、高 500–650。常見 1 抽屜 + 下方開放層。
+ * 長 400–500、寬 350–400、高 500–650。
+ * 兩段式：上層 / 下層皆可獨立設為層板 / 抽屜 / 門片。
  */
 export const nightstand: FurnitureTemplate = (input) => {
-  const drawerCount = getOption<number>(input, nightstandOptions[0]);
-  const drawerCols = getOption<number>(input, nightstandOptions[1]);
-  const drawerHeight = getOption<number>(input, nightstandOptions[2]);
-  const shelfCount = getOption<number>(input, nightstandOptions[3]);
-  const panelThickness = getOption<number>(input, nightstandOptions[4]);
-  const legHeight = getOption<number>(input, nightstandOptions[5]);
-  const legSize = getOption<number>(input, nightstandOptions[6]);
-  const legShape = getOption<string>(input, nightstandOptions[7]);
-  const legInset = getOption<number>(input, nightstandOptions[8]);
-  const drawerMount = resolveDrawerMount(input, nightstandOptions);
+  const o = nightstandOptions;
+  const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
+  const doorType = getOption<string>(input, opt(o, "doorType"));
+  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const doorMount = resolveDoorMount(input, o);
+  const drawerMount = resolveDrawerMount(input, o);
+
+  const innerH = input.height - legHeight - 2 * panelThickness;
+  const doorLabel =
+    doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
+  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "nightstand",
@@ -49,11 +67,14 @@ export const nightstand: FurnitureTemplate = (input) => {
     width: input.width,
     height: input.height,
     material: input.material,
-    shelfCount,
-    drawerCount,
-    drawerCols,
-    drawerAreaHeight: drawerHeight,
-    doorCount: 0,
+    shelfCount: 0,
+    zones,
+    doorType:
+      doorType === "wood"
+        ? "wood"
+        : doorType === "slab"
+          ? "slab"
+          : "glass",
     panelThickness,
     shelfThickness: panelThickness,
     backThickness: 6,
@@ -61,8 +82,10 @@ export const nightstand: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    doorMount,
     drawerMount,
-    drawerSlideGap: resolveDrawerSlideGap(input, nightstandOptions),
-    notes: `床頭櫃：${drawerCount} 排 × ${drawerCols} 列抽屜（共 ${drawerHeight}mm 高）+ 下方 ${shelfCount} 層開放區；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+    warnings,
   });
 };

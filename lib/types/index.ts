@@ -152,6 +152,8 @@ export interface FurnitureDesign {
   primaryMaterial: MaterialId;
 
   notes?: string;
+  /** 設計參數不合理時（例如下層高度超過可用內高）自動產生的警告 */
+  warnings?: string[];
 }
 
 export interface FurnitureTemplateInput {

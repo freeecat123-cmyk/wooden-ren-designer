@@ -81,6 +81,8 @@ export interface CaseFurnitureOpts {
    */
   columns?: CabinetColumn[];
   notes?: string;
+  /** 從 resolveZones 等 helper 帶進來的設計參數警告，會原封不動傳到 design.warnings */
+  warnings?: string[];
 }
 
 export interface CabinetColumn {
@@ -178,6 +180,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // 入柱模式：門埋進框內，門後方內藏的層板需縮短深度
   // 門厚 = slab 18mm；wood/glass 框料 22mm
   const insetDoorThick = doorType === "slab" ? 18 : 22;
+  // 抽屜面板厚度跟著門板樣式：木鑲板門 / 玻璃門 用 22mm 框料 → 抽屜面板也升 22mm
+  // 維持門 / 面板前後緣齊平；平板門或無門時照舊 18mm
+  const drawerFacePanelT = doorType === "wood" || doorType === "glass" ? 22 : 18;
   const insetClearance = 5; // 門背與層板之間的安全空隙
   const insetReducedDepth =
     doorMount === "inset" ? insetDoorThick + insetClearance : 0;
@@ -584,9 +589,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // hasFacePanel：是否需要單獨一片面板（slide 必有；overlay 任何模式必有；inset 無 slide 時面板=箱體前板）
     const hasFacePanel = hasSlide || !isInsetDrawer;
     // 面板厚度（單獨面板才有；inset 無 slide 時 = 0，由箱體前板兼任）
-    const faceT = hasFacePanel ? 18 : 0;
+    // 跟門板樣式連動：木鑲板/玻璃門配 22mm 框料 → 抽屜面板也 22mm 對齊
+    const faceT = hasFacePanel ? drawerFacePanelT : 0;
     // 「箱體要為了 face 後退多少」— 只有 inset+slide 才有（face 在櫃內前方占空間）
-    const faceTBoxOffset = isInsetDrawer && hasSlide ? 18 : 0;
+    const faceTBoxOffset = isInsetDrawer && hasSlide ? drawerFacePanelT : 0;
     // 使用滑軌時箱體與背板保留 10mm 空隙防撞；木製側拉維持原本 6mm
     const backClearance = hasSlide ? 10 : 6;
     // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，箱體前板有可能直接 = 面板
@@ -1294,7 +1300,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const labelPrefix =
         zones.length === 3
           ? i === 0 ? "下層" : i === 1 ? "中層" : "上層"
-          : `區${i + 1}`;
+          : zones.length === 2
+            ? i === 0 ? "下層" : "上層"
+            : zones.length === 1
+              ? ""
+              : `區${i + 1}`;
       const idPrefix = `z${i + 1}`;
       if (z.type === "drawer") {
         renderDrawerZone({
@@ -1435,5 +1445,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     notes:
       opts.notes ??
       "頂板/底板/側板半榫接合；層板半榫入側板；背板薄板入兩側溝槽；抽屜/門板需另配五金（滑軌/鉸鏈）。",
+    warnings: opts.warnings && opts.warnings.length > 0 ? opts.warnings : undefined,
   };
 }
