@@ -16,6 +16,8 @@ export interface JoineryUsage {
   count: number;
   /** 匹配到的母件名稱（去重） */
   motherPartNames: string[];
+  /** 母件斷面形狀（"round" 表示母件是圓 / 蓋圓 / 夏克風腳） */
+  motherShape: "box" | "round";
 }
 
 /**
@@ -31,6 +33,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
     `${t.type}-${t.length}-${t.width}-${t.thickness}`;
   const motherThicknessByKey: Map<string, number> = new Map();
   const motherNamesByKey: Map<string, Set<string>> = new Map();
+  const motherShapeByKey: Map<string, "box" | "round"> = new Map();
 
   for (const part of design.parts) {
     for (const mortise of part.mortises) {
@@ -75,6 +78,17 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
                 part.visible.thickness,
               ),
             );
+            // 偵測母件斷面形狀：圓 / 蓋圓 / 夏克風腳 = round
+            const motherKind = part.shape?.kind;
+            if (
+              motherKind === "round" ||
+              motherKind === "round-tapered" ||
+              motherKind === "shaker"
+            ) {
+              motherShapeByKey.set(k, "round");
+            } else if (!motherShapeByKey.has(k)) {
+              motherShapeByKey.set(k, "box");
+            }
             // Strip instance numbers anywhere (椅腳 1 → 椅腳, 抽屜1 左側板 →
             // 抽屜 左側板) and collapse double spaces. With 4 identical legs
             // or 4 drawers this keeps the display compact.
@@ -148,6 +162,7 @@ export function extractJoineryUsages(design: FurnitureDesign): JoineryUsage[] {
           childWidth,
           count: 1,
           motherPartNames,
+          motherShape: motherShapeByKey.get(key) ?? "box",
         });
       }
     }

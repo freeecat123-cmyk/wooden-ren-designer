@@ -344,6 +344,7 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
               motherThickness: u.estimatedMotherThickness,
               childThickness: u.childThickness,
               childWidth: u.childWidth,
+              motherShape: u.motherShape,
             }}
           />
         </div>

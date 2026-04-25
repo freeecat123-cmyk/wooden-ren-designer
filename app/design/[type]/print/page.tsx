@@ -205,6 +205,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                     motherThickness: u.estimatedMotherThickness,
                     childThickness: u.childThickness,
                     childWidth: u.childWidth,
+                    motherShape: u.motherShape,
                   }}
                 />
               </div>

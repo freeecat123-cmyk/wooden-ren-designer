@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { validateRoundLegJoinery } from "./_validators";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
@@ -142,7 +143,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  return {
+  const design: FurnitureDesign = {
     id: `round-stool-${diameter}x${height}`,
     category: "round-stool",
     nameZh: "圓凳",
@@ -152,4 +153,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShape === "tapered" ? "錐形" : "方"}腳${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。`,
   };
+  const w = validateRoundLegJoinery(design);
+  if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  return design;
 };

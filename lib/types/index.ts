@@ -32,6 +32,7 @@ export type JoineryType =
   | "through-tenon"
   | "blind-tenon"
   | "shouldered-tenon"
+  | "stub-joint"
   | "half-lap"
   | "dovetail"
   | "finger-joint"

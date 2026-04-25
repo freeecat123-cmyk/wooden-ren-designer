@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { validateRoundLegJoinery } from "./_validators";
 
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
@@ -131,7 +132,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   }));
 
-  return {
+  const design: FurnitureDesign = {
     id: `round-table-${diameter}x${height}`,
     category: "round-table",
     nameZh: "圓餐桌",
@@ -141,4 +142,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShape === "tapered" ? "錐形" : "方"}腳含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。`,
   };
+  const w = validateRoundLegJoinery(design);
+  if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  return design;
 };

@@ -43,6 +43,11 @@ const JOINERY_TOOLS: Record<
     { id: "japanese-saw", priority: "required", reason: "切肩線" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
   ],
+  "stub-joint": [
+    { id: "chisel-set-3-6-12", priority: "required", reason: "鑿出寬深榫眼讓整支牙條卡入" },
+    { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "router-table", priority: "recommended", reason: "用銑床快速挖槽，比手鑿快數倍" },
+  ],
   "half-lap": [
     { id: "japanese-saw", priority: "required", reason: "切搭接深度" },
     { id: "chisel-set-3-6-12", priority: "required", reason: "整平搭接面" },

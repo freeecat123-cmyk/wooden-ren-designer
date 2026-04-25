@@ -43,6 +43,7 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "through-tenon": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
   "blind-tenon": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
   "shouldered-tenon": ["japanese-saw", "chisel-set-3-6-12", "mallet"],
+  "stub-joint": ["chisel-set-3-6-12", "mallet", "router-table"],
   "half-lap": ["japanese-saw", "chisel-set-3-6-12"],
   dovetail: ["dovetail-saw", "dovetail-marker", "chisel-set-3-6-12"],
   "finger-joint": ["chisel-set-3-6-12", "router-table"],

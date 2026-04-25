@@ -24,6 +24,8 @@ export interface JoineryDetailParams {
   childThickness?: number;
   /** mm — child piece width (wide axis of the tenon-carrier's cross-section) */
   childWidth?: number;
+  /** 母件斷面形狀。"round" → 母件畫圓（圓腳），公件榫頭也視為圓榫（直徑 = min(width, thickness)）*/
+  motherShape?: "box" | "round";
 }
 
 const COLOR_TENON = "#e6c89a";
@@ -766,10 +768,50 @@ function BlindTenonDetail(p: JoineryDetailParams) {
         const legSide = asmLegSide;
         const mortiseL = AX(tl);
         const mortiseT = AX(tt);
+        const isRoundMother = p.motherShape === "round";
         // Mortise opens from the right face, centered vertically in the leg
         const mortiseTop = legY + (legSide - mortiseT) / 2;
         const mortiseBottom = mortiseTop + mortiseT;
         const mortiseLeft = legX + legSide - mortiseL;
+        const cx = legX + legSide / 2;
+        const cy = legY + legSide / 2;
+        const rLeg = legSide / 2;
+
+        if (isRoundMother) {
+          // 圓腳 + 圓榫：母件畫圓，榫頭剖面仍是矩形（圓榫的水平剖面 = 矩形）
+          // 但榫頭直徑 = min(width, thickness) 較小，視覺上比方榫更細
+          return (
+            <g>
+              <circle cx={cx} cy={cy} r={rLeg} fill="url(#hatch-blind)" stroke={COLOR_OUTLINE} />
+              {/* 榫眼開口虛線（內側） */}
+              <rect x={mortiseLeft} y={mortiseTop} width={mortiseL} height={mortiseT} fill="none" stroke="#555" strokeWidth={0.5} strokeDasharray="2 1.5" />
+              {/* 圓榫剖面 = 矩形（從上方剖開圓柱榫） */}
+              <rect x={mortiseLeft} y={mortiseTop} width={mortiseL} height={mortiseT} fill={COLOR_TENON} stroke={COLOR_OUTLINE} strokeWidth={0.8} />
+              {/* 牙板 body 從圓腳右邊緣延伸 */}
+              <rect x={cx + rLeg} y={cy - AX(ct) / 2} width={asmApronLen} height={AX(ct)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+              <line x1={cx + rLeg} y1={cy - AX(ct) / 2} x2={cx + rLeg} y2={cy + AX(ct) / 2} stroke={COLOR_OUTLINE} strokeWidth={0.8} />
+              {/* 標籤 */}
+              <g fontSize={9} fill="#5a3f1e" stroke="none">
+                <text x={legX - 30} y={legY + 18} textAnchor="end" fontWeight="bold">母件（圓腳）</text>
+                <line x1={legX - 28} y1={legY + 15} x2={cx - rLeg + 6} y2={cy} stroke="#5a3f1e" strokeWidth={0.5} />
+              </g>
+              <g fontSize={9} fill="#8a6a3a" stroke="none">
+                <text x={cx + rLeg + 30} y={legY + legSide + 4} textAnchor="start" fontWeight="bold">圓榫（公件）</text>
+                <line x1={cx + rLeg + 28} y1={legY + legSide + 1} x2={mortiseLeft + mortiseL / 2} y2={cy} stroke="#8a6a3a" strokeWidth={0.5} />
+              </g>
+              <text x={cx + rLeg + asmApronLen / 2 + 30} y={cy - AX(ct) / 2 - 6} fontSize={9} textAnchor="middle" fill="#666" stroke="none">
+                牙板 body
+              </text>
+              <text x={cx + asmApronLen / 2} y={legY + legSide + 20} fontSize={9} textAnchor="middle" fill="#666">
+                圓榫頭埋進圓腳的圓孔（Forstner 鑽頭打孔）
+              </text>
+              <DimLine x1={cx - rLeg} y1={legY - 6} x2={cx + rLeg} y2={legY - 6} label={`圓腳直徑 ${mt}`} side="top" />
+              <DimLine x1={mortiseLeft} y1={legY + legSide + 34} x2={legX + legSide} y2={legY + legSide + 34} label={`榫眼深 ${tl}`} side="bottom" />
+              <DimLine x1={cx + rLeg + asmApronLen + 10} y1={cy - AX(ct) / 2} x2={cx + rLeg + asmApronLen + 10} y2={cy + AX(ct) / 2} label={`板厚 ${ct}`} side="right" />
+            </g>
+          );
+        }
+
         // Path traces around the leg perimeter, then dips INTO the right face
         // to carve out the mortise.
         const legPath =
@@ -1643,42 +1685,42 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
       </text>
 
       <g>
-        {/* Leg cross-section (hatched square) */}
-        <rect
-          x={asmOriginX + 20}
-          y={mAy}
-          width={PX(mt) * 2}
-          height={PX(mt)}
-          fill="url(#hatch-shouldered)"
-          stroke={COLOR_OUTLINE}
-        />
-        {/* Main tenon inside leg */}
-        <rect
-          x={asmOriginX + 20 + PX(mt) * 2 - PX(tl)}
-          y={mAy + PX(mt) / 2 - PX(tt) / 2}
-          width={PX(tl)}
-          height={PX(tt)}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        {/* Apron body extending right */}
-        <rect
-          x={asmOriginX + 20 + PX(mt) * 2}
-          y={mAy + PX(mt) / 2 - PX(ct) / 2}
-          width={PX(ct) * 4}
-          height={PX(ct)}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-        />
-        <text
-          x={asmOriginX + 20 + PX(mt)}
-          y={mAy + PX(mt) + 16}
-          fontSize={9}
-          textAnchor="middle"
-          fill="#666"
-        >
-          主榫藏於柱腳，上方肩榫防旋轉
-        </text>
+        {(() => {
+          const isRoundMother = p.motherShape === "round";
+          const legX0 = asmOriginX + 20;
+          const legW = PX(mt) * 2;
+          const legH = PX(mt);
+          const legCx = legX0 + legW / 2;
+          const legCy = mAy + legH / 2;
+          const legR = legH / 2;
+          const tenonRectX = legX0 + legW - PX(tl);
+          const tenonRectY = mAy + legH / 2 - PX(tt) / 2;
+          const apronX = legX0 + legW;
+          const apronY = mAy + legH / 2 - PX(ct) / 2;
+          if (isRoundMother) {
+            // 圓腳剖面 = 圓；主榫剖面仍為矩形（圓榫的水平剖面）；牙板從圓緣延伸
+            return (
+              <>
+                <circle cx={legCx} cy={legCy} r={legR} fill="url(#hatch-shouldered)" stroke={COLOR_OUTLINE} />
+                <rect x={tenonRectX} y={tenonRectY} width={PX(tl)} height={PX(tt)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+                <rect x={legCx + legR} y={apronY} width={PX(ct) * 4} height={PX(ct)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+                <text x={legCx + legR / 2} y={mAy + legH + 16} fontSize={9} textAnchor="middle" fill="#666">
+                  圓榫頭埋進圓腳的圓孔（帶肩防旋轉）
+                </text>
+              </>
+            );
+          }
+          return (
+            <>
+              <rect x={legX0} y={mAy} width={legW} height={legH} fill="url(#hatch-shouldered)" stroke={COLOR_OUTLINE} />
+              <rect x={tenonRectX} y={tenonRectY} width={PX(tl)} height={PX(tt)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+              <rect x={apronX} y={apronY} width={PX(ct) * 4} height={PX(ct)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+              <text x={legX0 + PX(mt)} y={mAy + legH + 16} fontSize={9} textAnchor="middle" fill="#666">
+                主榫藏於柱腳，上方肩榫防旋轉
+              </text>
+            </>
+          );
+        })()}
       </g>
     </svg>
   );
@@ -2493,12 +2535,146 @@ function ScrewDetail(p: JoineryDetailParams) {
   );
 }
 
+/**
+ * Stub joint (整支卡榫 / housing joint)：牙條/橫撐不另做榫，整個端面（全斷面）
+ * 卡進母件上挖的同尺寸寬深榫眼。常用於圓腳——圓側面難加工標準肩榫。
+ *
+ * 視覺差異 vs blind-tenon：
+ * - 沒有「肩」（榫頭斷面 = 公件斷面，不縮小）
+ * - 母件榫眼斷面 = 公件全斷面（apronWidth × apronThickness）
+ * - 圓腳時母件畫圓、榫眼是內接的長方形
+ */
+function StubJointDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const cw = p.childWidth ?? p.tenonWidth;
+  const ct = p.childThickness ?? p.tenonThickness;
+  const mt = p.motherThickness;
+  const isRound = p.motherShape === "round";
+
+  const s = fitScale(Math.max(mt, cw + 40, ct + 40, tl * 4) * 1.4, 200);
+  const PX = (mm: number) => mm * s;
+  const sAsm = Math.max(fitScale(Math.max(mt, tl + cw, cw) * 1.1, 200), 160 / mt);
+  const AX = (mm: number) => mm * sAsm;
+
+  const leftPad = 50;
+
+  // EXPLODED: 母件 = 圓 / 方斷面側面（顯示榫眼開口）
+  const motherFaceW = isRound ? PX(mt) + 30 : PX(mt) + 30;
+  const motherFaceH = PX(cw) + 80;
+  const childBodyLen = Math.max(120, PX(cw) * 1.6);
+  const expWidth = Math.max(motherFaceW + 100, childBodyLen + PX(tl) + 80);
+  const expHeight = motherFaceH + 40 + PX(ct) + 80;
+
+  // ASSEMBLED: 母件 = 圓 (或方)、榫眼 = 整個牙條斷面（cw × ct）
+  const asmLegSide = AX(mt);
+  const asmApronLen = Math.max(160, AX(cw) * 1.2);
+  const asmWidth = asmLegSide + asmApronLen + 130;
+  const asmHeight = asmLegSide + 100;
+
+  const w = expWidth + asmWidth + PADDING * 3 + leftPad;
+  const h = Math.max(expHeight, asmHeight) + PADDING + 60;
+
+  // 分解圖位置
+  const mAx = PADDING + leftPad;
+  const mAy = PADDING + 30;
+  const mortiseW = PX(ct);
+  const mortiseH = PX(cw);
+  const mortiseX = mAx + (motherFaceW - mortiseW) / 2;
+  const mortiseY = mAy + (motherFaceH - mortiseH) / 2;
+  const cAx = PADDING + leftPad;
+  const cAy = mAy + motherFaceH + 40;
+
+  // 組合圖位置
+  const asmOriginX = PADDING * 2 + expWidth + leftPad;
+  const asmLegX = asmOriginX + 20;
+  const asmLegY = PADDING + 30;
+  const asmCx = asmLegX + asmLegSide / 2;
+  const asmCy = asmLegY + asmLegSide / 2;
+  const asmR = asmLegSide / 2;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{ maxWidth: "720px" }} className="bg-white">
+      <defs>
+        <Hatching id="hatch-stub" color="#7a5a2c" />
+      </defs>
+
+      {/* ========= EXPLODED ========= */}
+      <text x={PADDING} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        分解圖
+      </text>
+
+      {/* 母件側面（圓腳側面 = 矩形，方腳側面也是矩形，外形相同）+ 寬深榫眼開口 */}
+      <g>
+        <rect x={mAx} y={mAy} width={motherFaceW} height={motherFaceH} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} />
+        <rect x={mortiseX} y={mortiseY} width={mortiseW} height={mortiseH} fill="#3d2a14" stroke={COLOR_OUTLINE} />
+        <text x={mAx + motherFaceW / 2} y={mAy + motherFaceH + 16} fontSize={9} textAnchor="middle" fill="#666">
+          母件（{isRound ? "圓腳側面" : "方腳側面"}） — 寬深榫眼 = 公件全斷面
+        </text>
+      </g>
+
+      {/* 公件 — 整支牙條，端面 = 全斷面（無縮小，無肩） */}
+      <g>
+        <rect x={cAx} y={cAy} width={childBodyLen} height={PX(ct)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} />
+        {/* 凸出的「stub」——其實就是 body 的延伸，沒有縮減 */}
+        <rect x={cAx + childBodyLen} y={cAy} width={PX(tl)} height={PX(ct)} fill={COLOR_TENON} stroke={COLOR_OUTLINE} strokeDasharray="2 2" />
+        <text x={cAx + childBodyLen / 2} y={cAy + PX(ct) + 14} fontSize={9} textAnchor="middle" fill="#666">
+          公件（牙條 / 橫撐）— 整支端面 = 榫，無肩
+        </text>
+        <DimLine x1={cAx + childBodyLen} y1={cAy + PX(ct) + 4} x2={cAx + childBodyLen + PX(tl)} y2={cAy + PX(ct) + 4} label={`卡入深 ${tl}`} side="bottom" />
+      </g>
+
+      {/* ========= ASSEMBLED ========= */}
+      <text x={asmOriginX} y={18} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        組合剖面（上視切面）
+      </text>
+
+      {(() => {
+        const mortiseL = AX(tl);
+        const mortiseT = AX(ct);
+        // 母件外形（圓 vs 方）
+        const motherShapeEl = isRound ? (
+          <circle cx={asmCx} cy={asmCy} r={asmR} fill="url(#hatch-stub)" stroke={COLOR_OUTLINE} />
+        ) : (
+          <rect x={asmLegX} y={asmLegY} width={asmLegSide} height={asmLegSide} fill="url(#hatch-stub)" stroke={COLOR_OUTLINE} />
+        );
+        // 榫眼從母件右邊往內挖（公件斷面卡進去），寬度 = mortiseT (= ct)
+        const mortiseTop = asmCy - mortiseT / 2;
+        const mortiseLeft = asmLegX + asmLegSide - mortiseL;
+        const apronOuterRight = asmLegX + asmLegSide + asmApronLen;
+        return (
+          <g>
+            {motherShapeEl}
+            {/* Stub 榫頭（與牙板 body 同斷面，無肩）填入榫眼並延伸出來 */}
+            <rect x={mortiseLeft} y={mortiseTop} width={mortiseL + asmApronLen} height={mortiseT} fill={COLOR_TENON} stroke={COLOR_OUTLINE} strokeWidth={0.8} />
+            {/* 母件榫眼開口虛線（圓 / 方都標一下） */}
+            <rect x={mortiseLeft} y={mortiseTop} width={mortiseL} height={mortiseT} fill="none" stroke="#555" strokeWidth={0.5} strokeDasharray="2 1.5" />
+            {/* 標籤 */}
+            <text x={asmCx} y={asmLegY - 8} fontSize={9} textAnchor="middle" fill="#5a3f1e" fontWeight="bold">
+              母件（{isRound ? "圓腳" : "方腳"}）
+            </text>
+            <text x={(asmLegX + asmLegSide + apronOuterRight) / 2} y={asmCy - mortiseT / 2 - 10} fontSize={9} textAnchor="middle" fill="#8a6a3a" fontWeight="bold">
+              整支牙條（無肩）
+            </text>
+            <text x={asmLegX + asmLegSide + asmApronLen / 2} y={asmLegY + asmLegSide + 20} fontSize={9} textAnchor="middle" fill="#666">
+              整支端面 = 榫，無縮小、無肩
+            </text>
+            <DimLine x1={asmLegX} y1={asmLegY - 22} x2={asmLegX + asmLegSide} y2={asmLegY - 22} label={`母件${isRound ? "直徑" : "寬"} ${mt}`} side="top" />
+            <DimLine x1={mortiseLeft} y1={asmLegY + asmLegSide + 34} x2={asmLegX + asmLegSide} y2={asmLegY + asmLegSide + 34} label={`卡入深 ${tl}`} side="bottom" />
+            <DimLine x1={apronOuterRight + 10} y1={mortiseTop} x2={apronOuterRight + 10} y2={mortiseTop + mortiseT} label={`板厚 ${ct}`} side="right" />
+          </g>
+        );
+      })()}
+    </svg>
+  );
+}
+
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
 > = {
   "through-tenon": ThroughTenonDetail,
   "blind-tenon": BlindTenonDetail,
   "shouldered-tenon": ShoulderedTenonDetail,
+  "stub-joint": StubJointDetail,
   "half-lap": HalfLapDetail,
   "tongue-and-groove": TongueAndGrooveDetail,
   dovetail: DovetailDetail,
@@ -2525,6 +2701,7 @@ export const JOINERY_LABEL: Record<JoineryType, string> = {
   "through-tenon": "通榫",
   "blind-tenon": "半榫 / 盲榫",
   "shouldered-tenon": "帶肩榫（haunched）",
+  "stub-joint": "整支卡榫（housing joint）",
   "half-lap": "半搭榫",
   dovetail: "鳩尾榫",
   "finger-joint": "指接榫",
@@ -2539,6 +2716,7 @@ export const JOINERY_DESCRIPTION: Record<JoineryType, string> = {
   "through-tenon": "榫頭穿過母件、可從另一面看到。強度最高，適合椅腳、桌腳重要結構。",
   "blind-tenon": "榫頭藏在母件內、外觀看不到。美觀，適合桌腳橫撐、櫃體等。",
   "shouldered-tenon": "主榫加上方的「肩榫」（haunch），主榫扛拉力、肩榫防旋轉。桌腳↔牙板正規做法。",
+  "stub-joint": "牙條/橫撐不另外做榫，整支端面（全斷面）直接卡進母件上挖的同尺寸寬深榫眼。常用於圓腳——曲面難加工標準肩榫，整支卡進去最直接。",
   "half-lap": "兩件各削一半厚度後相疊，搭肩固定。簡單常用於框架交叉。",
   dovetail: "梯形榫頭咬合，抗拉力極強。經典用於抽屜、箱體轉角。",
   "finger-joint": "對稱方齒交錯接合。常用於箱體、托盤轉角。",
