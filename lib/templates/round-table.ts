@@ -12,7 +12,11 @@ export const roundTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
-    { value: "tapered", label: "錐形腳（下方收窄）" },
+    { value: "tapered", label: "方錐腳（方料下方收窄）" },
+    { value: "round", label: "圓腳（直圓柱）" },
+    { value: "round-taper-down", label: "圓錐腳（上粗下細）" },
+    { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
+    { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
   ] },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
@@ -77,7 +81,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       shape:
         legShape === "tapered"
           ? ({ kind: "tapered", bottomScale: 0.55 } as const)
-          : undefined,
+          : legShape === "round"
+            ? ({ kind: "round" } as const)
+            : legShape === "round-taper-down"
+              ? ({ kind: "round-tapered", bottomScale: 0.55 } as const)
+              : legShape === "round-taper-up"
+                ? ({ kind: "round-tapered", bottomScale: 1.4 } as const)
+                : legShape === "shaker"
+                  ? ({ kind: "shaker" } as const)
+                  : undefined,
       tenons: [
         {
           position: "top" as const,

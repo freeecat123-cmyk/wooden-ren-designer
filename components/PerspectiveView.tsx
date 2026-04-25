@@ -42,7 +42,9 @@ type ShapeSpec =
   | { kind: "tapered"; bottomScale: number }
   | { kind: "splayed"; dx: number; dz: number }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number }
-  | { kind: "round" };
+  | { kind: "round" }
+  | { kind: "round-tapered"; bottomScale: number }
+  | { kind: "shaker" };
 
 function Part({
   position,
@@ -101,6 +103,48 @@ function Part({
         <cylinderGeometry args={[radius, radius, size[1], 48]} />
         <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
       </mesh>
+    );
+  }
+
+  // 圓錐腳：上 radius = size[0]/2，下 radius = 上 × bottomScale
+  if (shape?.kind === "round-tapered") {
+    const topR = size[0] / 2;
+    const botR = topR * shape.bottomScale;
+    return (
+      <mesh position={position} rotation={rotation} castShadow receiveShadow>
+        <cylinderGeometry args={[topR, botR, size[1], 48]} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+      </mesh>
+    );
+  }
+
+  // 夏克風腳：上方 25% 方頂 + 下方 75% 圓錐（bottomScale 0.6）
+  // 用 group 組合兩個 mesh：上方 BoxGeometry + 下方 CylinderGeometry tapered
+  if (shape?.kind === "shaker") {
+    const SQUARE_FRAC = 0.25;
+    const TAPER_BOT_SCALE = 0.6;
+    const fullH = size[1];
+    const squareH = fullH * SQUARE_FRAC;
+    const taperH = fullH * (1 - SQUARE_FRAC);
+    const fullR = size[0] / 2;
+    const botR = fullR * TAPER_BOT_SCALE;
+    // 方頂中心相對於整支腳中心的 Y 偏移：上半 25% 的中心 = +37.5% 的 fullH
+    // 整支中心在 size[1]/2，方頂中心 = size[1]/2 + (1-SQUARE_FRAC)/2 * size[1]
+    // 但 CylinderGeometry 也以中心為原點。所以兩個 mesh 都相對 group 中心定位。
+    // group 中心對齊整支腳中心。方頂中心 = +taperH/2，圓錐中心 = -squareH/2。
+    const squareYOffset = taperH / 2;
+    const taperYOffset = -squareH / 2;
+    return (
+      <group position={position} rotation={rotation}>
+        <mesh position={[0, squareYOffset, 0]} castShadow receiveShadow>
+          <boxGeometry args={[size[0], squareH, size[2]]} />
+          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+        </mesh>
+        <mesh position={[0, taperYOffset, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[fullR, botR, taperH, 48]} />
+          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+        </mesh>
+      </group>
     );
   }
 
@@ -355,6 +399,10 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             };
           } else if (part.shape?.kind === "round") {
             shape = { kind: "round" };
+          } else if (part.shape?.kind === "round-tapered") {
+            shape = { kind: "round-tapered", bottomScale: part.shape.bottomScale };
+          } else if (part.shape?.kind === "shaker") {
+            shape = { kind: "shaker" };
           }
           return (
             <Part

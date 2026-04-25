@@ -121,6 +121,41 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
+  // 圓錐腳：silhouette 跟方錐腳一樣是梯形（俯視仍是矩形 bbox，由 svg-views 改畫圓）
+  if (part.shape.kind === "round-tapered") {
+    if (view === "top") return box;
+    const scale = part.shape.bottomScale;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfTop = r.w / 2;
+    const halfBot = halfTop * scale;
+    return [
+      { x: cx - halfTop, y: r.y + r.h },
+      { x: cx + halfTop, y: r.y + r.h },
+      { x: cx + halfBot, y: r.y },
+      { x: cx - halfBot, y: r.y },
+    ];
+  }
+
+  // 夏克風腳：上方 25% 方頂 + 下方 75% 圓錐（bottomScale 0.6）
+  // 前/側視 silhouette = 矩形上半 + 梯形下半的疊加
+  if (part.shape.kind === "shaker") {
+    if (view === "top") return box;
+    const SQUARE_FRAC = 0.25;
+    const TAPER_BOT_SCALE = 0.6;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfFull = r.w / 2;
+    const halfBot = halfFull * TAPER_BOT_SCALE;
+    const splitY = r.y + r.h * (1 - SQUARE_FRAC); // 方頂底端 = 圓錐頂端
+    return [
+      { x: cx - halfFull, y: r.y + r.h },
+      { x: cx + halfFull, y: r.y + r.h },
+      { x: cx + halfFull, y: splitY },
+      { x: cx + halfBot, y: r.y },
+      { x: cx - halfBot, y: r.y },
+      { x: cx - halfFull, y: splitY },
+    ];
+  }
+
   return box;
 }
 

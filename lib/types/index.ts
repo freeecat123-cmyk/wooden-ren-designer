@@ -141,10 +141,15 @@ export interface Part {
     /** Hoof: straight for most of the length, then flares outward over the
      *  bottom `hoofMm` by a factor of `hoofScale`. hoofScale > 1 widens. */
     | { kind: "hoof"; hoofMm: number; hoofScale: number }
-    /** Round disc: 圓盤（圓桌面 / 圓凳座面）。length = width = 直徑，
-     *  thickness = 厚度。3D 用 cylinder，三視圖俯視畫圓、側視畫矩形。
-     *  Cut plan 以方料 D×D 計算（廢料率高）。 */
-    | { kind: "round" };
+    /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
+     *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。 */
+    | { kind: "round" }
+    /** Round tapered: 圓錐腳。bottomScale < 1 = 上粗下細；> 1 = 上細下粗。
+     *  3D 用 cylinder(topR, bottomR, height)；前/側視梯形。 */
+    | { kind: "round-tapered"; bottomScale: number }
+    /** Shaker: 夏克風腳。上方 25% 方料 + 下方 75% 圓錐腳（bottomScale 0.6）。
+     *  經典實木家具腳形，兼顧結構（方頂接牙板）與優雅（圓錐落地）。 */
+    | { kind: "shaker" };
 }
 
 export interface FurnitureDesign {

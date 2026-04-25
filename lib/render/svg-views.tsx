@@ -247,8 +247,11 @@ export function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
-        // 圓盤俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
-        if (part.shape?.kind === "round" && view === "top") {
+        // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
+        if (
+          (part.shape?.kind === "round" || part.shape?.kind === "round-tapered") &&
+          view === "top"
+        ) {
           const r = projectPart(part, view);
           const cx = r.x + r.w / 2;
           const cy = r.y + r.h / 2;
