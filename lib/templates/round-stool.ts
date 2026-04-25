@@ -159,6 +159,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 };
+      // 上下緣切斜面，貼椅面 / 地面。bevelAngle = 繞 local X 軸的補償旋轉
+      const bevelAngle = isSplayed
+        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+        : 0;
       parts.push({
         id: s.id,
         nameZh: s.nameZh,
@@ -167,6 +171,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
         origin: { x: s.origin.x, y: apronY, z: s.origin.z },
         rotation,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
         tenons: [
           { position: "start", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
           { position: "end", type: "blind-tenon", length: Math.round(legSize * 0.5), width: Math.max(15, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },

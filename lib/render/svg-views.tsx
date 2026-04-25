@@ -314,7 +314,8 @@ export function OrthoView({
         const isTiltedBox =
           (!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part);
         const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
-        if (isTiltedBox || isApronTrapezoid) {
+        const isApronBeveled = part.shape?.kind === "apron-beveled";
+        if (isTiltedBox || isApronTrapezoid || isApronBeveled) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
           if (view === "top") {
@@ -322,12 +323,16 @@ export function OrthoView({
             const ly = part.visible.thickness;
             const lz = part.visible.width;
             const trap = isApronTrapezoid && part.shape?.kind === "apron-trapezoid" ? part.shape : null;
+            const bev = isApronBeveled && part.shape?.kind === "apron-beveled" ? part.shape : null;
+            const bevShear = bev ? Math.tan(bev.bevelAngle) : 0;
             const proj = (xl: number, yl: number, zl: number) => {
               // 梯形：x 依 z 端的 scale 縮放
               const xScale = trap
                 ? zl < 0 ? trap.topLengthScale : trap.bottomLengthScale
                 : 1;
               xl = xl * xScale;
+              // 斜邊 apron：z 依 y 偏移（上下緣轉成水平面）
+              zl = zl - yl * bevShear;
               const rx = part.rotation?.x ?? 0;
               const ry = part.rotation?.y ?? 0;
               const rz = part.rotation?.z ?? 0;

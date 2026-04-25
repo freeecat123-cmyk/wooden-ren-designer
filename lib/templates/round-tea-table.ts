@@ -151,6 +151,13 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
         : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+    // 上下緣切斜面，貼桌面 / 地面
+    shape: isSplayed
+      ? ({
+          kind: "apron-beveled" as const,
+          bevelAngle: s.axis === "x" ? -s.sz * tilt : -s.sx * tilt,
+        })
+      : undefined,
     tenons: [
       { position: "start" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(20, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
       { position: "end" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(20, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },

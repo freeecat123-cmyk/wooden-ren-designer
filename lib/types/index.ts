@@ -169,7 +169,12 @@ export interface Part {
         kind: "apron-trapezoid";
         topLengthScale: number;
         bottomLengthScale: number;
-      };
+      }
+    /** Apron beveled: 牙條上下緣切斜面，配合外斜腳家具的 apron tilt。
+     *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
+     *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
+     *  套用後上下緣面在 world 中保持水平 → 可貼緊椅面 / 地面。 */
+    | { kind: "apron-beveled"; bevelAngle: number };
 }
 
 export interface FurnitureDesign {

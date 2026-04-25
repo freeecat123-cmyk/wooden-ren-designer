@@ -47,7 +47,8 @@ type ShapeSpec =
   | { kind: "shaker" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number };
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
+  | { kind: "apron-beveled"; bevelAngle: number };
 
 function Part({
   position,
@@ -81,6 +82,9 @@ function Part({
     }
     if (shape.kind === "apron-trapezoid") {
       return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale);
+    }
+    if (shape.kind === "apron-beveled") {
+      return buildBeveledApronGeometry(size, shape.bevelAngle);
     }
     return null;
   }, [size, shape]);
@@ -302,6 +306,52 @@ function buildApronTrapezoidGeometry(
     -botX, hy, hz,
   ];
   // 6 faces, CCW from outside
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1), // -z face (top of apron in world)
+    ...f(4, 5, 6, 7), // +z face (bottom of apron in world)
+    ...f(0, 1, 5, 4), // -y face
+    ...f(2, 3, 7, 6), // +y face
+    ...f(1, 2, 6, 5), // +x face
+    ...f(3, 0, 4, 7), // -x face
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 牙條斜邊（apron beveled）：上下緣切斜面，跟外斜腳 apron tilt 互補。
+ * Local 截面從矩形變平行四邊形：所有 corner 的 z 偏移 -y × tan(bevelAngle)。
+ * 套用 part rotation 後上下緣面在世界中保持水平（可貼緊椅面 / 地面）。
+ *
+ * bevelAngle = 牙條繞 local X 軸的「補償用」旋轉量（signed radians）。
+ *   X 軸 apron（前/後）：bevelAngle = (-sz) × tilt
+ *   Z 軸 apron（左/右）：bevelAngle = -(sx) × tilt
+ */
+function buildBeveledApronGeometry(
+  size: [number, number, number],
+  bevelAngle: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const shear = Math.tan(bevelAngle);
+  // For corner (x, y, z): z' = z - y × shear. Top z = -hz, bottom z = +hz.
+  // 8 verts in same order as buildApronTrapezoidGeometry：z=-hz first, z=+hz second
+  const v: number[] = [
+    -hx, -hy, -hz - (-hy) * shear, // 0: -x, -y, top  → z' = -hz + hy*shear
+    +hx, -hy, -hz - (-hy) * shear, // 1: +x, -y, top
+    +hx, +hy, -hz - (+hy) * shear, // 2: +x, +y, top  → z' = -hz - hy*shear
+    -hx, +hy, -hz - (+hy) * shear, // 3: -x, +y, top
+    -hx, -hy, +hz - (-hy) * shear, // 4: -x, -y, bot  → z' = +hz + hy*shear
+    +hx, -hy, +hz - (-hy) * shear, // 5: +x, -y, bot
+    +hx, +hy, +hz - (+hy) * shear, // 6: +x, +y, bot  → z' = +hz - hy*shear
+    -hx, +hy, +hz - (+hy) * shear, // 7: -x, +y, bot
+  ];
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
   const idx = [
     ...f(0, 3, 2, 1), // -z face (top of apron in world)
@@ -584,6 +634,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
             };
+          } else if (part.shape?.kind === "apron-beveled") {
+            shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
           }
           return (
             <Part

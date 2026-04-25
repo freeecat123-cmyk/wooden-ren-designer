@@ -45,6 +45,9 @@ export function projectTiltedBoxSilhouette(
   const projected: Array<{ x: number; y: number }> = [];
   // 梯形 apron：上 (z=-hz) 用 topScale 縮 length，下 (z=+hz) 用 bottomScale
   const trap = part.shape?.kind === "apron-trapezoid" ? part.shape : null;
+  // 斜邊 apron：local z 方向 shear -y × tan(bevelAngle)，上下緣旋轉後保持水平
+  const bev = part.shape?.kind === "apron-beveled" ? part.shape : null;
+  const bevShear = bev ? Math.tan(bev.bevelAngle) : 0;
   for (const ex of [-1, 1] as const) {
     for (const ey of [-1, 1] as const) {
       for (const ez of [-1, 1] as const) {
@@ -53,7 +56,7 @@ export function projectTiltedBoxSilhouette(
           : 1;
         let x = (ex * lx * xScale) / 2;
         let y = (ey * ly) / 2;
-        let z = (ez * lz) / 2;
+        let z = (ez * lz) / 2 - y * bevShear;
         // Rx
         let y2 = y * cx - z * sx;
         let z2 = y * sx + z * cx;
