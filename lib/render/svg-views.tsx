@@ -260,15 +260,39 @@ export function OrthoView({
           const cx = r.x + r.w / 2;
           const cy = r.y + r.h / 2;
           const radius = Math.min(r.w, r.h) / 2;
-          // 外斜圓錐：實線=腳頂位置，虛線=腳底位置（shifted + scaled）
+          // 外斜圓錐：實線=腳頂位置，虛線=腳底位置 + 兩條外切線連起來才看得出是腳
           if (part.shape.kind === "splayed-round-tapered") {
             const scale = part.shape.bottomScale;
             const footCx = cx + -part.shape.dxMm; // 俯視鏡像 X
             const footCy = cy + part.shape.dzMm;
+            const r1 = radius;
+            const r2 = radius * scale;
+            // 兩個圓的外切線：N = cosθ·p + sinθ·u，其中 sinθ = (r1-r2)/d
+            const ddx = footCx - cx;
+            const ddy = footCy - cy;
+            const d = Math.hypot(ddx, ddy);
+            const tangents: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+            if (d > Math.abs(r1 - r2) + 0.01) {
+              const ux = ddx / d, uy = ddy / d;
+              const px = -uy, py = ux;
+              const sinT = (r1 - r2) / d;
+              const cosT = Math.sqrt(Math.max(0, 1 - sinT * sinT));
+              for (const s of [-1, 1] as const) {
+                const Nx = s * cosT * px + sinT * ux;
+                const Ny = s * cosT * py + sinT * uy;
+                tangents.push({
+                  x1: cx + r1 * Nx, y1: cy + r1 * Ny,
+                  x2: footCx + r2 * Nx, y2: footCy + r2 * Ny,
+                });
+              }
+            }
             return (
               <g key={part.id}>
-                <circle cx={cx} cy={cy} r={radius} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
-                <circle cx={footCx} cy={footCy} r={radius * scale} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+                <circle cx={cx} cy={cy} r={r1} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+                {tangents.map((t, i) => (
+                  <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                ))}
               </g>
             );
           }
@@ -301,7 +325,7 @@ export function OrthoView({
             />
           );
         }
-        // 外斜方錐俯視：實線=腳頂位置，虛線=腳底位置（shifted + scaled）
+        // 外斜方錐俯視：實線=腳頂位置，虛線=腳底位置 + 4 條角對角線
         if (part.shape?.kind === "splayed-tapered" && view === "top") {
           const r = projectPart(part, view);
           const scale = part.shape.bottomScale;
@@ -309,10 +333,20 @@ export function OrthoView({
           const footH = r.h * scale;
           const footX = r.x + r.w / 2 - footW / 2 + -part.shape.dxMm;
           const footY = r.y + r.h / 2 - footH / 2 + part.shape.dzMm;
+          // 4 個角對角線：頂角 → 底角
+          const topCorners = [
+            [r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h],
+          ];
+          const botCorners = [
+            [footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH],
+          ];
           return (
             <g key={part.id}>
               <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
               <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
+              {topCorners.map((tc, i) => (
+                <line key={i} x1={tc[0]} y1={tc[1]} x2={botCorners[i][0]} y2={botCorners[i][1]} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              ))}
             </g>
           );
         }
