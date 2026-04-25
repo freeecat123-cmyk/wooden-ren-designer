@@ -16,6 +16,11 @@ export const shoeCabinetOptions: OptionSpec[] = [
     midType: "shelves", midCount: 3,
     bottomType: "door", bottomHeight: 600, bottomCount: 2,
   }),
+  { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
+    { value: "wood", label: "木鑲板門（框 + 鑲板）" },
+    { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
+    { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
+  ] },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -32,13 +37,16 @@ export const shoeCabinetOptions: OptionSpec[] = [
 export const shoeCabinet: FurnitureTemplate = (input) => {
   const o = shoeCabinetOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
+  const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+  const doorLabel =
+    doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
+  const { zones, notesLine } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "shoe-cabinet",
@@ -49,7 +57,12 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     material: input.material,
     shelfCount: 0,
     zones,
-    doorType: "wood",
+    doorType:
+      doorType === "wood"
+        ? "wood"
+        : doorType === "slab"
+          ? "slab"
+          : "glass",
     panelThickness,
     shelfThickness: panelThickness,
     backThickness: 6,

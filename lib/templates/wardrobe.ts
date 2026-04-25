@@ -17,6 +17,11 @@ export const wardrobeOptions: OptionSpec[] = [
     bottomType: "drawer", bottomHeight: 400, bottomCount: 2, bottomCols: 2,
   }, true),
   { group: "door", type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
+  { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "slab", choices: [
+    { value: "slab", label: "夾板貼皮平板門（裝潢常用，衣櫃首選）" },
+    { value: "wood", label: "木鑲板門（框 + 鑲板）" },
+    { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
+  ] },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
@@ -33,12 +38,15 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const o = wardrobeOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorCount = getOption<number>(input, opt(o, "doorCount"));
+  const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine } = resolveZones(input, o, innerH, "木");
+  const doorLabel =
+    doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
+  const { zones, notesLine } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "wardrobe",
@@ -50,7 +58,12 @@ export const wardrobe: FurnitureTemplate = (input) => {
     shelfCount: 0,
     zones,
     doorCount,
-    doorType: "wood",
+    doorType:
+      doorType === "wood"
+        ? "wood"
+        : doorType === "slab"
+          ? "slab"
+          : "glass",
     panelThickness,
     shelfThickness: panelThickness,
     backThickness: 6,
