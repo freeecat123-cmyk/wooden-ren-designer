@@ -465,27 +465,32 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   };
 
-  const rows = design.parts
-    .filter((part) => part.visual !== "glass")
-    .map((part) => {
-      const cut = calculateCutDimensions(part);
-      const volMm3 = cut.length * cut.width * cut.thickness;
-      const bdft = volMm3 / MM3_PER_BDFT;
-      totalBdft += bdft;
+  const rows = design.parts.map((part) => {
+    const cut = calculateCutDimensions(part);
+    const isGlass = part.visual === "glass";
+    const volMm3 = cut.length * cut.width * cut.thickness;
+    // 玻璃不算木材材積（另向玻璃行訂製）；不累計 totalBdft / bdftByMaterial
+    const bdft = isGlass ? 0 : volMm3 / MM3_PER_BDFT;
+    if (!isGlass) totalBdft += bdft;
 
-      const billable = effectiveBillableMaterial(part);
-      const materialLabel =
-        billable === "plywood" || billable === "mdf"
-          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-          : MATERIALS[part.material].nameZh;
+    const billable = effectiveBillableMaterial(part);
+    const materialLabel = isGlass
+      ? `${cut.thickness}mm 強化玻璃`
+      : billable === "plywood" || billable === "mdf"
+        ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
+        : MATERIALS[part.material].nameZh;
 
+    if (!isGlass) {
       const groupKey =
         billable === "plywood" || billable === "mdf"
           ? SHEET_GOOD_LABEL[billable]
           : MATERIALS[part.material].nameZh;
       bdftByMaterial.set(groupKey, (bdftByMaterial.get(groupKey) ?? 0) + bdft);
+    }
 
-      const tenonNotes = part.tenons.length
+    const tenonNotes = isGlass
+      ? "另向玻璃行訂製，不入裁切"
+      : part.tenons.length
         ? part.tenons
             .map(
               (t) =>
@@ -494,10 +499,10 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
             .join("、")
         : "—";
 
-      const category = categorizePart(part.id);
+    const category = categorizePart(part.id);
 
-      return { part, cut, bdft, materialLabel, tenonNotes, category };
-    });
+    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass };
+  });
 
   // 依分類排序 + 每類內的原有順序（stable sort）
   const byCategory = new Map<PartCategory, typeof rows>();
@@ -540,7 +545,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
               <td />
             </tr>
             {catRows.map(
-              ({ part, cut, bdft, materialLabel, tenonNotes }) => {
+              ({ part, cut, bdft, materialLabel, tenonNotes, isGlass }) => {
                 const [vl, vw, vt] = sortDimsDesc(
                   part.visible.length,
                   part.visible.width,
@@ -552,7 +557,10 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                   cut.thickness,
                 );
                 return (
-                  <tr key={part.id} className="border-b border-zinc-100">
+                  <tr
+                    key={part.id}
+                    className={`border-b border-zinc-100 ${isGlass ? "bg-sky-50/40" : ""}`}
+                  >
                     <td className="p-2">{part.nameZh}</td>
                     <td className="p-2">{materialLabel}</td>
                     <td className="p-2 text-right">
@@ -562,7 +570,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                       {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
                     </td>
                     <td className="p-2 text-right font-mono">
-                      {bdft.toFixed(2)}
+                      {isGlass ? "—" : bdft.toFixed(2)}
                     </td>
                     <td className="p-2 text-xs text-zinc-600">{tenonNotes}</td>
                   </tr>
