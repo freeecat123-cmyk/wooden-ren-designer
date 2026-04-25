@@ -4,9 +4,11 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   doorMountLabel,
   doorMountOption,
+  drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
   resolveDoorMount,
+  resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
@@ -24,6 +26,7 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
   ] },
   doorMountOption,
+  drawerMountOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -46,6 +49,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
+  const drawerMount = resolveDrawerMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -75,6 +79,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
+    drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
   });

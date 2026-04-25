@@ -41,6 +41,11 @@ export interface CaseFurnitureOpts {
    *  - "inset"     入柱：門埋進框內、與櫃面齊平。會把內部層板/抽屜深度
    *                自動縮 23mm（門厚 18 + 5mm 安全空隙），給門板留位置。 */
   doorMount?: "overlay-6" | "overlay-3" | "inset";
+  /** Drawer face mount style — 同三模式但獨立於門板控制：
+   *  - "overlay-6" 全蓋：面板蓋滿框 + 抽屜間中柱
+   *  - "overlay-3" 半蓋：面板蓋住框邊 9mm
+   *  - "inset"     入柱：面板埋進 slot 內、與框齊平 */
+  drawerMount?: "overlay-6" | "overlay-3" | "inset";
   panelThickness?: number;
   shelfThickness?: number;
   backThickness?: number;
@@ -176,6 +181,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const insetClearance = 5; // 門背與層板之間的安全空隙
   const insetReducedDepth =
     doorMount === "inset" ? insetDoorThick + insetClearance : 0;
+  // 抽屜面板安裝方式（與門板獨立設定）
+  const drawerMount = opts.drawerMount ?? "overlay-6";
 
   const parts: Part[] = [];
 
@@ -568,15 +575,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // 三段式滑軌要左右各留 gap；傳統木製側拉 = 0。
     const slideGap = opts.drawerSlideGap ?? 0;
     const hasSlide = slideGap > 0;
-    // 使用滑軌時：抽屜加一片「面板」補滿外觀、5 件箱體向後縮進去一片面板厚
-    const faceT = hasSlide ? 18 : 0;
+    // —— 抽屜面板安裝方式（mount）————————————————————————————
+    // inset：面板在 slot 內、與框齊平；蓋門：面板蓋過框 / partition / 分隔板
+    const isInsetDrawer = drawerMount === "inset";
+    const drawerOverlay =
+      drawerMount === "overlay-3" ? 9 :
+      drawerMount === "overlay-6" ? panelT : 0;
+    // hasFacePanel：是否需要單獨一片面板（slide 必有；overlay 任何模式必有；inset 無 slide 時面板=箱體前板）
+    const hasFacePanel = hasSlide || !isInsetDrawer;
+    // 面板厚度（單獨面板才有；inset 無 slide 時 = 0，由箱體前板兼任）
+    const faceT = hasFacePanel ? 18 : 0;
+    // 「箱體要為了 face 後退多少」— 只有 inset+slide 才有（face 在櫃內前方占空間）
+    const faceTBoxOffset = isInsetDrawer && hasSlide ? 18 : 0;
     // 使用滑軌時箱體與背板保留 10mm 空隙防撞；木製側拉維持原本 6mm
     const backClearance = hasSlide ? 10 : 6;
-    // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，面板直接 = 箱體前板
+    // 抽屜箱外寬（扣掉滑軌 gap）；若無滑軌，箱體前板有可能直接 = 面板
     const drawerOuterW = drawerSlotW - 2 * slideGap;
     const drawerInnerW = drawerOuterW - 4 - 2 * drawerSideT;
-    // 箱體可用深度：櫃內深 − 面板 − 前留 1mm − 背板空隙
-    const drawerInnerD = innerD - faceT - drawerFrontT - drawerBackT - backClearance;
+    // 箱體可用深度：櫃內深 − faceTBoxOffset − 前留 1mm − 背板空隙
+    const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
     // 面板高（無滑軌時直接 = 箱體前板；上下 2mm 縫）
     const drawerH = drawerSlotH - drawerGap * 2;
     // 滑軌模式下箱體上下各留 5mm 給滑軌行程（與面板縫隙無關，硬體需求）
@@ -584,6 +601,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // 滑軌模式 yBase 多縮 (5 - drawerGap) 把箱體推高到對齊滑軌中心
     const boxYOffset = hasSlide ? 5 - drawerGap : 0;
     const dovetailLen = drawerSideT;
+    // —— 蓋門模式才用：面板總跨距 + 各面板尺寸 + 起點位置 ————————————
+    const inColumn = cfg.colInnerW !== undefined;
+    const totalFaceW = isInsetDrawer
+      ? 0
+      : drawerMount === "overlay-6"
+        ? (inColumn ? zoneW + 2 * panelT - 2 * drawerGap : length - 2 * drawerGap)
+        : zoneW + 2 * drawerOverlay - 2 * drawerGap;
+    const totalFaceH = isInsetDrawer
+      ? 0
+      : zoneH + 2 * drawerOverlay - 2 * drawerGap;
+    const perFaceW_ov = isInsetDrawer ? 0 : (totalFaceW - (cols - 1) * drawerGap) / cols;
+    const perFaceH_ov = isInsetDrawer ? 0 : (totalFaceH - (rows - 1) * drawerGap) / rows;
 
     // 先放直立分隔板（中柱）——每列交界處一片，全 zone 高
     if (cols > 1) {
@@ -615,18 +644,32 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         zoneW / 2 +
         drawerSlotW / 2 +
         col * (drawerSlotW + partitionT);
-      // 面板 z（僅滑軌模式）在最前面；箱體前板 z 再往後退一片面板厚度
-      const zFace = -width / 2 + faceT / 2 + 1;
-      const zFront = -width / 2 + faceT + drawerFrontT / 2 + 1;
+      // 面板 z：入柱在櫃前內 1mm；蓋門突出櫃前 1mm
+      const zFace = isInsetDrawer
+        ? -width / 2 + faceT / 2 + 1
+        : -width / 2 - faceT / 2 - 1;
+      // 箱體前板 z：入柱+slide 退 faceTBoxOffset；其他直接在 slot 內
+      const zFront = -width / 2 + faceTBoxOffset + drawerFrontT / 2 + 1;
       const zBack = zFront + drawerInnerD + drawerFrontT / 2 + drawerBackT / 2;
 
-      // 【滑軌模式獨有】外觀面板：上下左右各 2mm 縫隙（與入柱門板同規格）
-      // 蓋掉左右 12.5mm 滑軌空隙 + 上下滑軌行程
-      if (hasSlide) {
-        const faceW = drawerSlotW - 2 * drawerGap;
-        const faceHeight = drawerSlotH - 2 * drawerGap;
-        // 垂直置中在 slot 內（slot 底起算 drawerGap mm）
-        const faceYBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
+      // —— 外觀面板（slide 必有；overlay 任何模式必有；inset 無 slide 時跳過，由箱體前板兼任）
+      if (hasFacePanel) {
+        // 計算面板尺寸與位置（inset = slot 內；overlay = 跨多 slot 蓋過 partition/分隔板）
+        let faceW: number, faceHeight: number, faceX: number, faceY: number;
+        if (isInsetDrawer) {
+          faceW = drawerSlotW - 2 * drawerGap;
+          faceHeight = drawerSlotH - 2 * drawerGap;
+          faceX = xCenter;
+          faceY = drawerZoneBottomY + row * drawerSlotH + drawerGap;
+        } else {
+          faceW = perFaceW_ov;
+          faceHeight = perFaceH_ov;
+          // 蓋門 grid：起點位置 = 區中心 - totalFaceW/2，row 從 zone 底向下 overlay
+          const blockStartX = zoneCx - totalFaceW / 2;
+          const blockStartY = drawerZoneBottomY - drawerOverlay + drawerGap;
+          faceX = blockStartX + col * (perFaceW_ov + drawerGap) + perFaceW_ov / 2;
+          faceY = blockStartY + row * (perFaceH_ov + drawerGap);
+        }
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
@@ -637,18 +680,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             width: faceHeight,
             thickness: faceT,
           },
-          origin: { x: xCenter, y: faceYBase, z: zFace },
+          origin: { x: faceX, y: faceY, z: zFace },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           mortises: [],
         });
       }
 
-      // 面板（無滑軌）／箱體前板（滑軌模式）：左右燕尾榫接側板 — X 旋轉站立
-      // 箱體前板在滑軌模式下比面板再縮 2mm，位置也上移 1mm（上下各 1mm 滑軌空隙）
+      // 箱體前板（有獨立面板時叫「箱體前板」；無獨立面板時兼任面板叫「面板」）
+      // 左右燕尾榫接側板 — X 旋轉站立
       parts.push({
         id: `${idPrefix}-${i + 1}-front`,
-        nameZh: hasSlide
+        nameZh: hasFacePanel
           ? `${labelPrefix}${i + 1} 箱體前板`
           : `${labelPrefix}${i + 1} 面板`,
         material,

@@ -2,8 +2,10 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
+  resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
@@ -27,6 +29,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerMountOption,
   drawerSlideOption,
 ];
 
@@ -38,6 +41,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const drawerMount = resolveDrawerMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine } = resolveZones(input, o, innerH, "木");
@@ -58,6 +62,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
+    drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
   });

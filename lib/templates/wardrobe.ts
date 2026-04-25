@@ -4,9 +4,11 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   doorMountLabel,
   doorMountOption,
+  drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
   resolveDoorMount,
+  resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
@@ -35,6 +37,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地" },
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  drawerMountOption,
   drawerSlideOption,
 ];
 
@@ -47,6 +50,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
+  const drawerMount = resolveDrawerMount(input, o);
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -77,6 +81,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
+    drawerMount,
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。`,
   });

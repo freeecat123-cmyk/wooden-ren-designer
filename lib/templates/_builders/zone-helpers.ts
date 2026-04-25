@@ -70,6 +70,33 @@ export function doorMountLabel(mount: DoorMount): string {
       : "入柱（齊平）";
 }
 
+/**
+ * 抽屜面板安裝方式（與門板同三模式，獨立設定）。
+ * - overlay-6 全蓋：面板蓋滿櫃前框 + 抽屜間中柱（最常見現代裝潢風格）
+ * - overlay-3 半蓋：面板蓋住框邊 9mm
+ * - inset 入柱：面板埋進開口內、與框齊平（傳統實木家具常見）
+ */
+export const drawerMountOption: OptionSpec = {
+  group: "drawer",
+  type: "select",
+  key: "drawerMount",
+  label: "抽屜面板安裝方式",
+  defaultValue: "overlay-6",
+  choices: [
+    { value: "overlay-6", label: "蓋 6 分（全蓋，面板蓋滿）" },
+    { value: "overlay-3", label: "蓋 3 分（半蓋，面板蓋 9mm）" },
+    { value: "inset", label: "入柱（面板埋進框內、齊平）" },
+  ],
+};
+
+export function resolveDrawerMount(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): DoorMount {
+  const v = getOption<string>(input, opt(options, "drawerMount"));
+  return v === "overlay-3" || v === "inset" ? v : "overlay-6";
+}
+
 /** 每個 zone 可選的類型 */
 export const ZONE_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },
