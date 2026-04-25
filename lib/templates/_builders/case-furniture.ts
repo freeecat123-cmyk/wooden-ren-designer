@@ -30,8 +30,11 @@ export interface CaseFurnitureOpts {
   doorYOffset?: number;
   /** Height (mm) of the door zone. Default = innerH (full front). */
   doorAreaHeight?: number;
-  /** Door type for notes; "glass" implies optional glass + frame. */
-  doorType?: "wood" | "glass";
+  /** Door type:
+   *  - "wood"  框 + 木鑲板（5 件 / 扇）
+   *  - "glass" 框 + 5mm 強化玻璃（4 框 + 1 玻璃片，玻璃不計才）
+   *  - "slab"  整片夾板貼皮（1 件 / 扇，無框，材積走 plywood billing） */
+  doorType?: "wood" | "glass" | "slab";
   panelThickness?: number;
   shelfThickness?: number;
   backThickness?: number;
@@ -798,7 +801,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     yStart: number;
     height: number;
     count: number;
-    doorType: "wood" | "glass";
+    doorType: "wood" | "glass" | "slab";
     idPrefix: string;
     labelPrefix: string;
     xCenter?: number;
@@ -825,6 +828,34 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const doorOuterH = doorZoneH - 4;
       const innerOpenW = doorOuterW - 2 * stileW;
       const innerOpenH = doorOuterH - 2 * railW;
+
+      // —— Slab 平板門：直接一片夾板覆蓋整個 doorOuterW × doorOuterH ——
+      // 表面用主木材色（貼皮），billing 走 plywood（夾板比實木便宜）。
+      // 厚度 18mm 是裝潢界對櫃門的常用值。無框、無鑲板，1 件 / 扇。
+      if (doorType === "slab") {
+        const slabT = 18;
+        parts.push({
+          id: `${idPrefix}-${i + 1}-slab`,
+          nameZh: `${labelPrefix}${i + 1} 平板門（夾板貼皮）`,
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: {
+            length: doorOuterW,
+            width: doorOuterH,
+            thickness: slabT,
+          },
+          origin: {
+            x: xCenter,
+            y: doorZoneBottomY + 2,
+            z: zFront,
+          },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+        continue; // 跳過下面所有框料 / 鑲板邏輯
+      }
 
       // 上橫檔 — 橫放但垂直站立（X 軸旋轉）
       parts.push({
@@ -1182,7 +1213,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           yStart,
           height: z.heightMm,
           count: z.count ?? 2,
-          doorType: (z as { doorTypeOverride?: "wood" | "glass" }).doorTypeOverride ?? doorType ?? "wood",
+          doorType: (z as { doorTypeOverride?: "wood" | "glass" | "slab" }).doorTypeOverride ?? doorType ?? "wood",
           idPrefix: `${idPrefix}-door`,
           labelPrefix: `${labelPrefix}門`,
         });

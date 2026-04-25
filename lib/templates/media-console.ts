@@ -105,7 +105,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   if (layoutMode === "v-1layer") {
     if (upperType === "door") {
       zones = [{ type: "door", heightMm: innerH, count: upperCount }];
-      noteParts.push(`1 層 ${upperCount} 扇${doorType === "glass" ? "玻璃" : "木"}門`);
+      noteParts.push(`1 層 ${upperCount} 扇${doorType === "glass" ? "玻璃" : doorType === "slab" ? "平板" : "木"}門`);
     } else {
       zones = [{ type: "shelves", heightMm: innerH, count: upperCount }];
       noteParts.push(`1 層 ${upperCount} 層開放`);
@@ -136,7 +136,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     const describe = (name: string, t: ColType, n: number) => {
       if (t === "none") return `${name}空區`;
       if (t === "drawer") return `${name} ${n} 抽屜`;
-      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : "木"}門`;
+      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : doorType === "slab" ? "平板" : "木"}門`;
       return `${name} ${n} 層開放`;
     };
     noteParts.push(`橫向 2 欄：${describe("左", leftType, leftCount)}｜${describe("右", rightType, rightCount)}`);
@@ -160,7 +160,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     const describe = (name: string, t: ColType, n: number) => {
       if (t === "none") return `${name}空區`;
       if (t === "drawer") return `${name} ${n} 抽屜`;
-      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : "木"}門`;
+      if (t === "door") return `${name} ${n} 扇${doorType === "glass" ? "玻璃" : doorType === "slab" ? "平板" : "木"}門`;
       return `${name} ${n} 層開放`;
     };
     noteParts.push(`橫向 3 欄：${describe("左", leftType, leftCount)}｜${describe("中", centerType, centerCount)}｜${describe("右", rightType, rightCount)}`);
@@ -176,7 +176,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     shelfCount: 0,
     zones,
     columns,
-    doorType: doorType === "glass" ? "glass" : "wood",
+    doorType: doorType === "glass" ? "glass" : doorType === "slab" ? "slab" : "wood",
     panelThickness,
     shelfThickness: panelThickness,
     backThickness: 6,

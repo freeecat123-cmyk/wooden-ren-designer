@@ -42,7 +42,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine } = resolveZones(input, o, innerH, doorType === "wood" ? "木" : "玻璃");
+  const doorLabel =
+    doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
+  const { zones, notesLine } = resolveZones(input, o, innerH, doorLabel);
 
   return caseFurniture({
     category: "display-cabinet",
@@ -52,7 +54,12 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     height: input.height,
     material: input.material,
     shelfCount: 0,
-    doorType: doorType === "wood" ? "wood" : "glass",
+    doorType:
+      doorType === "wood"
+        ? "wood"
+        : doorType === "slab"
+          ? "slab"
+          : "glass",
     zones,
     panelThickness,
     shelfThickness: panelThickness - 2,

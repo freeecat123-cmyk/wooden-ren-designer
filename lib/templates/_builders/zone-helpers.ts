@@ -129,7 +129,7 @@ export function resolveZones(
   input: FurnitureTemplateInput,
   options: OptionSpec[],
   innerH: number,
-  doorLabel: "玻璃" | "木" = "木",
+  doorLabel: "玻璃" | "木" | "平板" = "木",
 ): ResolvedZones {
   const topType = getOption<string>(input, opt(options, "topType")) as ZoneType;
   const topH0 = getOption<number>(input, opt(options, "topHeight"));
