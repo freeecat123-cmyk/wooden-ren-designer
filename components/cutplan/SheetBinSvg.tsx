@@ -1,4 +1,7 @@
+"use client";
+
 import type React from "react";
+import { useEffect, useState } from "react";
 import type { CutPiece, SheetBin } from "@/lib/cutplan";
 
 export function SheetBinSvg({
@@ -23,28 +26,39 @@ export function SheetBinSvg({
   );
   const pct = (usedAreaMm2 / (bin.stockLength * bin.stockWidth)) * 100;
 
-  return (
-    <div className="border border-zinc-200 rounded p-3 bg-white">
-      <div className="flex items-baseline justify-between mb-2 text-xs">
-        <span className="font-semibold text-zinc-700">
-          板 #{index}．{bin.stockLength} × {bin.stockWidth} mm
-        </span>
-        <span className="text-zinc-500">利用率 {pct.toFixed(1)}%</span>
-      </div>
-      <svg viewBox={`0 0 ${viewW} ${viewH}`} className="w-full">
-        {/* 整板 */}
-        <rect
-          x={PAD}
-          y={PAD}
-          width={bin.stockLength * scale}
-          height={bin.stockWidth * scale}
-          fill="#f4f4f5"
-          stroke="#a1a1aa"
-          strokeWidth={1}
-        />
-        {/* 零件 */}
-        {bin.shelves.flatMap((shelf, si) =>
-          shelf.pieces.map((p, pi) => {
+  // 點擊圖打開放大 modal；ESC 或點背景關
+  const [zoomed, setZoomed] = useState(false);
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomed(false);
+    };
+    document.addEventListener("keydown", onKey);
+    // 鎖背景捲動
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [zoomed]);
+
+  // SVG 內容渲染函式：inline 圖跟 modal 放大圖共用
+  const renderSvgContent = () => (
+    <>
+      {/* 整板 */}
+      <rect
+        x={PAD}
+        y={PAD}
+        width={bin.stockLength * scale}
+        height={bin.stockWidth * scale}
+        fill="#f4f4f5"
+        stroke="#a1a1aa"
+        strokeWidth={1}
+      />
+      {/* 零件 */}
+      {bin.shelves.flatMap((shelf, si) =>
+        shelf.pieces.map((p, pi) => {
             const x = PAD + p.x * scale;
             const y = PAD + p.y * scale;
             const w = p.w * scale;
@@ -171,18 +185,66 @@ export function SheetBinSvg({
             );
           }),
         )}
-        {/* 尺標 */}
-        <text
-          x={PAD + (bin.stockLength * scale) / 2}
-          y={PAD + bin.stockWidth * scale + 18}
-          textAnchor="middle"
-          fontSize={9}
-          fill="#52525b"
-        >
-          {bin.stockLength} mm
-        </text>
+      {/* 尺標 */}
+      <text
+        x={PAD + (bin.stockLength * scale) / 2}
+        y={PAD + bin.stockWidth * scale + 18}
+        textAnchor="middle"
+        fontSize={9}
+        fill="#52525b"
+      >
+        {bin.stockLength} mm
+      </text>
+    </>
+  );
+
+  return (
+    <div className="border border-zinc-200 rounded p-3 bg-white">
+      <div className="flex items-baseline justify-between mb-2 text-xs">
+        <span className="font-semibold text-zinc-700">
+          板 #{index}．{bin.stockLength} × {bin.stockWidth} mm
+        </span>
+        <span className="text-zinc-500">
+          利用率 {pct.toFixed(1)}%
+          <span className="ml-2 text-zinc-400 print:hidden">🔍 點圖放大</span>
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${viewW} ${viewH}`}
+        className="w-full cursor-zoom-in print:cursor-default"
+        onClick={() => setZoomed(true)}
+      >
+        {renderSvgContent()}
       </svg>
       <CutListTable bin={bin} />
+
+      {/* 放大 modal — fixed 全螢幕黑底，內含同 SVG 內容；ESC / 點背景關閉 */}
+      {zoomed && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 flex flex-col items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setZoomed(false)}
+        >
+          <div className="text-white text-sm mb-3 flex items-center gap-3">
+            <span className="font-semibold">
+              板 #{index}．{bin.stockLength} × {bin.stockWidth} mm
+            </span>
+            <span className="opacity-70">利用率 {pct.toFixed(1)}%</span>
+            <span className="opacity-50 text-xs">點任意處 / ESC 關閉</span>
+          </div>
+          <div
+            className="bg-white rounded-lg p-6 max-w-[95vw] max-h-[85vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg
+              viewBox={`0 0 ${viewW} ${viewH}`}
+              className="block"
+              style={{ width: "min(90vw, 1600px)", height: "auto" }}
+            >
+              {renderSvgContent()}
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
