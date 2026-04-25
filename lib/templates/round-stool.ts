@@ -112,7 +112,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條橫撐（兩兩腳之間）
   if (withApron) {
     const apronY = legHeight - apronWidth - apronDropFromTop;
-    const apronSpan = 2 * cornerOffset - legSize; // 兩腳中心距離 - 腳粗
+    // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
+    // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
+    const apronSpan = 2 * cornerOffset;
     const sides = [
       { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, origin: { x: 0, z: -cornerOffset } },
       { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, origin: { x: 0, z: cornerOffset } },

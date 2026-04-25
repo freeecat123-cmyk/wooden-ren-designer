@@ -105,7 +105,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 4 條牙板（餐桌結構承重，用帶肩榫）
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  const apronSpan = 2 * cornerOffset - legSize;
+  // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
+  // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
+  const apronSpan = 2 * cornerOffset;
   const aprons: Part[] = [
     { id: "apron-front", nameZh: "前牙板", axis: "x" as const, origin: { x: 0, z: -cornerOffset } },
     { id: "apron-back", nameZh: "後牙板", axis: "x" as const, origin: { x: 0, z: cornerOffset } },
