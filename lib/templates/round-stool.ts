@@ -128,9 +128,14 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條橫撐（兩兩腳之間）
   if (withApron) {
     const apronY = legHeight - apronWidth - apronDropFromTop;
-    // 外斜模式時 apron 也跟著腳一起斜（同角度）
+    // 外斜模式時 apron 也跟著腳一起斜
+    // 注意：圓家具腳對角線 splay，腳在「正視/側視」這個平面的 Z 投影斜率
+    // = splayMm/legHeight = tan(α)/√2，不是 tan(α) 本身
+    // 所以 apron 的 tilt 應該是 arctan(tan(α)/√2)，不是 α
     const isSplayed = legShape.startsWith("splayed-");
-    const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
+    const tilt = isSplayed
+      ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
+      : 0;
     // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
     // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
     const apronYCenter = apronY + apronWidth / 2;

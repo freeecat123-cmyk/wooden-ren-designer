@@ -120,7 +120,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條牙板
   const apronY = legHeight - apronWidth - apronDropFromTop;
   const isSplayed = legShape.startsWith("splayed-");
-  const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
+  // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
+  const tilt = isSplayed
+    ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
+    : 0;
   // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
   // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
   const apronYCenter = apronY + apronWidth / 2;
