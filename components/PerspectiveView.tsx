@@ -7,6 +7,35 @@ import { BufferGeometry, Euler, Float32BufferAttribute } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { categorizePart } from "@/lib/render/svg-views";
+
+/**
+ * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
+ * Used to highlight drawer / door parts so they're easy to spot against
+ * the rest of the cabinet (which all share the same wood color).
+ */
+function tintHex(baseHex: string, tintHex: string, amount: number): string {
+  const parse = (h: string) => {
+    const s = h.replace("#", "");
+    return [
+      parseInt(s.slice(0, 2), 16),
+      parseInt(s.slice(2, 4), 16),
+      parseInt(s.slice(4, 6), 16),
+    ];
+  };
+  const [br, bg, bb] = parse(baseHex);
+  const [tr, tg, tb] = parse(tintHex);
+  const mix = (a: number, b: number) =>
+    Math.round(a * (1 - amount) + b * amount);
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(mix(br, tr))}${toHex(mix(bg, tg))}${toHex(mix(bb, tb))}`;
+}
+
+// 抽屜 / 門（夾板貼皮 / 鑲板 / 玻璃）統一暖橘色微染——
+// 跟櫃體結構區隔，一眼看出哪些零件是可動面板。
+const DRAWER_TINT = "#ff9a3d";
+const DOOR_TINT = "#ff9a3d";
+const TINT_AMOUNT = 0.32;
 
 type ShapeSpec =
   | { kind: "box" }
@@ -284,7 +313,14 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
         />
 
         {design.parts.map((part) => {
-          const color = MATERIALS[part.material].color;
+          const baseColor = MATERIALS[part.material].color;
+          const category = categorizePart(part.id);
+          const color =
+            category === "drawer"
+              ? tintHex(baseColor, DRAWER_TINT, TINT_AMOUNT)
+              : category === "door"
+                ? tintHex(baseColor, DOOR_TINT, TINT_AMOUNT)
+                : baseColor;
           const { yExt } = worldExtents(part);
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;

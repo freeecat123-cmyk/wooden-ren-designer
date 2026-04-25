@@ -2,17 +2,21 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  backModeOption,
+  drawerBottomModeOption,
   drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
+  resolveBackMode,
+  resolveDrawerBottomMode,
   resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  { group: "back", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  backModeOption,
   ...makeZoneOptions({
     // 傳統斗櫃：三層都是抽屜（經典 6 抽）
     topType: "drawer", topHeight: 300, topCount: 2, topCols: 1,
@@ -30,13 +34,13 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   drawerMountOption,
+  drawerBottomModeOption,
   drawerSlideOption,
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
   const o = chestOfDrawersOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const backThickness = getOption<number>(input, opt(o, "backThickness"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -57,12 +61,13 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     zones,
     panelThickness,
     shelfThickness: panelThickness,
-    backThickness,
+    backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     drawerMount,
+    drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
     warnings,

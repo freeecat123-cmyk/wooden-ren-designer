@@ -2,19 +2,23 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  backModeOption,
   doorMountLabel,
   doorMountOption,
+  drawerBottomModeOption,
   drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
+  resolveBackMode,
   resolveDoorMount,
+  resolveDrawerBottomMode,
   resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
     // 標準衣櫃：上層層板收納、中層吊衣、下層抽屜
     topType: "shelves", topHeight: 300, topCount: 2,
@@ -38,6 +42,8 @@ export const wardrobeOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   drawerMountOption,
+  drawerBottomModeOption,
+  backModeOption,
   drawerSlideOption,
 ];
 
@@ -75,13 +81,14 @@ export const wardrobe: FurnitureTemplate = (input) => {
           : "glass",
     panelThickness,
     shelfThickness: panelThickness,
-    backThickness: 6,
+    backMode: resolveBackMode(input, o),
     legHeight,
     legSize: 45,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
     drawerMount,
+    drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。`,
     warnings,

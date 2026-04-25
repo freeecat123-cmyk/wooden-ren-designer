@@ -174,6 +174,7 @@ export type FurnitureTemplate = (input: FurnitureTemplateInput) => FurnitureDesi
  */
 /** Logical group for rendering — options with the same group cluster together. */
 export type OptionGroup =
+  | "structure"
   | "leg"
   | "top"
   | "apron"

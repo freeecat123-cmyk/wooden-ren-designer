@@ -2,19 +2,23 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import {
+  backModeOption,
   doorMountLabel,
   doorMountOption,
+  drawerBottomModeOption,
   drawerMountOption,
   drawerSlideOption,
   makeZoneOptions,
+  resolveBackMode,
   resolveDoorMount,
+  resolveDrawerBottomMode,
   resolveDrawerMount,
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
 
 export const nightstandOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
   ...makeZoneOptions({
     // 兩段式床頭櫃：上層抽屜 / 下層開放層板（皆可改成抽屜 / 門 / 開放）
     topType: "drawer", topHeight: 180, topCount: 1, topCols: 1,
@@ -28,6 +32,8 @@ export const nightstandOptions: OptionSpec[] = [
   ] },
   doorMountOption,
   drawerMountOption,
+  drawerBottomModeOption,
+  backModeOption,
   { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 120, min: 0, max: 300, step: 10 },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 70, step: 1 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
@@ -77,13 +83,14 @@ export const nightstand: FurnitureTemplate = (input) => {
           : "glass",
     panelThickness,
     shelfThickness: panelThickness,
-    backThickness: 6,
+    backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
     drawerMount,
+    drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
     warnings,

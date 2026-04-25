@@ -16,7 +16,7 @@ export const drawerSlideOption: OptionSpec = {
   wide: true, // 佔整行，full help 攤開放裡面
   help:
     "勾選後：抽屜箱體總寬縮 25mm 留給滑軌五金；" +
-    "另加一片「面板」蓋掉左右空隙（面板比抽屜格小 2mm，上下左右各 1mm 縫）；" +
+    "另加一片「面板」蓋掉左右空隙（面板比抽屜格小 4mm，上下左右各 2mm 縫，與入柱門同規格）；" +
     "箱體（5 件）向後縮 18mm（面板厚）藏在面板後；" +
     "箱體高比抽屜格縮 10mm（上下各 5mm 滑軌行程空隙）；" +
     "箱體距背板留 10mm 防撞。不勾選視為傳統木製側拉 / 無滑軌。",
@@ -95,6 +95,67 @@ export function resolveDrawerMount(
 ): DoorMount {
   const v = getOption<string>(input, opt(options, "drawerMount"));
   return v === "overlay-3" || v === "inset" ? v : "overlay-6";
+}
+
+/**
+ * 共用選項：背板作法。
+ * - surface（裝潢慣例）：3mm 夾板釘 / 鎖在櫃體背面，尺寸 = 全外長 × 全外高，
+ *   蓋過頂底側板背緣。最快、最便宜，但側面看得到背板邊。
+ * - rebated（榫卯 / 鄉村風家具標準）：背板嵌進側板內側溝槽，9mm 厚為主。
+ *   側面看不到背板邊，結構更挺，但側板要開溝，工序多。
+ * 概念上跟抽屜底板（卡進前後左右板的溝裡）相同——薄板靠四周框料的溝固定。
+ */
+export const backModeOption: OptionSpec = {
+  group: "structure",
+  type: "select",
+  key: "backMode",
+  label: "背板作法",
+  defaultValue: "surface",
+  choices: [
+    { value: "surface", label: "釘背（3mm 夾板蓋滿背面）— 裝潢標準" },
+    { value: "rebated", label: "入溝（9mm 嵌進側板溝裡）— 榫卯 / 鄉村風家具" },
+    { value: "none", label: "無背板（開放式陳列櫃）" },
+  ],
+};
+
+export type BackMode = "surface" | "rebated" | "none";
+
+export function resolveBackMode(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): BackMode {
+  const v = getOption<string>(input, opt(options, "backMode"));
+  return v === "rebated" || v === "none" ? v : "surface";
+}
+
+/**
+ * 抽屜底板作法（跟櫃體背板同概念，但用在抽屜上）：
+ * - surface 釘底：3mm 夾板從下方釘在抽屜箱底，尺寸 = 抽屜外框長 × 外框深，
+ *   側板/前後板下緣不開溝。裝潢市場最常見、最快、最便宜。
+ * - rebated 入溝：6mm 夾板四邊舌頭嵌進前/後/左/右板下緣的溝裡。
+ *   榫卯家具標準作法，無釘無膠靠木工接合，跟櫃體入溝背板同思路。
+ * 預設 surface（裝潢慣例）。
+ */
+export const drawerBottomModeOption: OptionSpec = {
+  group: "drawer",
+  type: "select",
+  key: "drawerBottomMode",
+  label: "抽屜底板作法",
+  defaultValue: "surface",
+  choices: [
+    { value: "surface", label: "釘底（3mm 夾板從下釘上）— 裝潢標準" },
+    { value: "rebated", label: "入溝（6mm 嵌進四邊溝裡）— 榫卯家具" },
+  ],
+};
+
+export type DrawerBottomMode = "surface" | "rebated";
+
+export function resolveDrawerBottomMode(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): DrawerBottomMode {
+  const v = getOption<string>(input, opt(options, "drawerBottomMode"));
+  return v === "rebated" ? "rebated" : "surface";
 }
 
 /** 每個 zone 可選的類型 */

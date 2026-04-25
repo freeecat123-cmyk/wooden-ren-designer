@@ -49,6 +49,19 @@ export interface CaseFurnitureOpts {
   panelThickness?: number;
   shelfThickness?: number;
   backThickness?: number;
+  /** 抽屜底板作法：
+   *  - "surface" 釘底：3mm 夾板從下方釘在箱底，側/前/後板下緣不開溝。
+   *  - "rebated" 入溝：6mm 夾板四邊嵌進溝裡（傳統榫卯抽屜）。
+   *  預設 "surface"。 */
+  drawerBottomMode?: "surface" | "rebated";
+  /** 背板作法：
+   *  - "surface" 表面釘背：薄板（預設 3mm 夾板）直接釘/鎖在櫃體背面，
+   *    尺寸 = 全外長 × 全外高（蓋過頂/底/側板背緣）。裝潢市場標準作法。
+   *  - "rebated" 入溝背板：較厚（預設 9mm）嵌進側板內側溝槽，
+   *    尺寸 = 內寬 × 內高。榫卯家具 / 鄉村風松杉木家具標準作法。
+   *  - "none" 無背板：開放式櫃體（書櫃 / 陳列架）。
+   *  預設 "surface"。 */
+  backMode?: "surface" | "rebated" | "none";
   /** Raise the case on 4 corner legs (e.g. sofa legs). When set, legHeight adds under the bottom panel. */
   legHeight?: number;
   legSize?: number;
@@ -145,7 +158,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   const panelT = opts.panelThickness ?? 18;
   const shelfT = opts.shelfThickness ?? 18;
-  const backT = opts.backThickness ?? 6;
+  const backMode = opts.backMode ?? "surface";
+  // 表面釘背預設 3mm 夾板（裝潢慣例）；入溝背板預設 9mm（足夠開溝又不過厚）；
+  // 無背板模式 backT=0（內部空間 = 全深，跟 surface 模式幾何上等價，差別只是少一片背板）。
+  const backT =
+    backMode === "none"
+      ? 0
+      : opts.backThickness ?? (backMode === "surface" ? 3 : 9);
   // 企口榫舌頭厚度 = 板厚 / 3（正規比例，18mm 板 → 6mm 舌）
   const panelTongueT = Math.max(4, Math.round(panelT / 3));
   const shelfTongueT = Math.max(4, Math.round(shelfT / 3));
@@ -164,15 +183,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  const innerD = width - backT;
+  // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚。
+  const innerD = backMode === "rebated" ? width - backT : width;
   const tenonLen = Math.round(panelT * 0.6);
   /**
    * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
-   * 它們深度 = innerD = width − backT，若放在 z=0 會 4mm 短於櫃體前緣
-   * （頂板是全寬 width），造成「左右 / 前端有縫」的分解感。
-   * 向前偏移 backT/2 → 前緣貼齊櫃前面 z=−width/2，後緣貼齊背板前面。
+   * - surface：innerD = width，內部零件居中放 z=0（前後皆貼齊外緣）。
+   * - rebated：innerD = width − backT，向前偏移 backT/2 讓前緣貼齊櫃前面 z=−width/2，
+   *   後緣貼齊背板前面（不會跟背板撞）。
    */
-  const caseInnerZ = -backT / 2;
+  const caseInnerZ = backMode === "rebated" ? -backT / 2 : 0;
 
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
@@ -486,31 +506,41 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     });
   }
 
-  // 背板（6mm 夾板——不吃主材）
-  parts.push({
+  // 背板：三種作法
+  // - surface：3mm 夾板釘在櫃體背面，尺寸 = 全外長 × 全外高（蓋滿）
+  // - rebated：嵌在側板溝裡，尺寸 = 內寬 × 內高 + 兩端各 6mm 舌頭
+  // - none：略過背板（開放式櫃體）
+  const isSurfaceBack = backMode === "surface";
+  if (backMode !== "none") parts.push({
     id: "back",
-    nameZh: "背板",
+    nameZh: isSurfaceBack ? "背板（釘背）" : "背板（入溝）",
     material,
     materialOverride: "plywood",
     grainDirection: "length",
-    visible: { length: innerW, width: backT, thickness: innerH },
-    origin: { x: 0, y: caseBottomY + panelT, z: width / 2 - backT / 2 },
-    tenons: [
-      {
-        position: "start",
-        type: "tongue-and-groove",
-        length: 6,
-        width: innerH,
-        thickness: backT,
-      },
-      {
-        position: "end",
-        type: "tongue-and-groove",
-        length: 6,
-        width: innerH,
-        thickness: backT,
-      },
-    ],
+    visible: isSurfaceBack
+      ? { length: length, width: backT, thickness: caseHeight }
+      : { length: innerW, width: backT, thickness: innerH },
+    origin: isSurfaceBack
+      ? { x: 0, y: caseBottomY, z: width / 2 + backT / 2 }
+      : { x: 0, y: caseBottomY + panelT, z: width / 2 - backT / 2 },
+    tenons: isSurfaceBack
+      ? []
+      : [
+          {
+            position: "start",
+            type: "tongue-and-groove",
+            length: 6,
+            width: innerH,
+            thickness: backT,
+          },
+          {
+            position: "end",
+            type: "tongue-and-groove",
+            length: 6,
+            width: innerH,
+            thickness: backT,
+          },
+        ],
     mortises: [],
   });
 
@@ -570,7 +600,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerFrontT = 18;
     const drawerSideT = 14;
     const drawerBackT = 12;
-    const drawerBottomT = 6;
+    const drawerBottomMode = opts.drawerBottomMode ?? "surface";
+    const isSurfaceDrawerBottom = drawerBottomMode === "surface";
+    // 釘底 3mm 夾板（裝潢慣例）；入溝 6mm 夾板（傳統榫卯抽屜）
+    const drawerBottomT = isSurfaceDrawerBottom ? 3 : 6;
     // 抽屜面板四周統一 2mm 縫隙（與入柱門板同規格）
     const drawerGap = 2;
     // 2 排以上抽屜需在中間插直立分隔板（中柱），供抽屜滑軌固定
@@ -801,65 +834,78 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               width: drawerBackT,
               through: false,
             },
-            // 底板溝槽
-            {
-              origin: { x: 0, y: -(boxH / 2) + drawerBottomT, z: 0 },
-              depth: 4,
-              length: drawerInnerD - 4,
-              width: drawerBottomT + 1,
-              through: false,
-            },
+            // 底板溝槽（只有入溝模式才有；釘底模式下緣直接釘 3mm 板）
+            ...(isSurfaceDrawerBottom
+              ? []
+              : [
+                  {
+                    origin: { x: 0, y: -(boxH / 2) + drawerBottomT, z: 0 },
+                    depth: 4,
+                    length: drawerInnerD - 4,
+                    width: drawerBottomT + 1,
+                    through: false,
+                  },
+                ]),
           ],
         });
       }
 
-      // 底板（6mm 夾板）：四邊舌頭嵌入溝槽
+      // 底板：兩種作法
+      // - surface 釘底：3mm 板貼在抽屜箱底，尺寸 = 外框長 × 外框深（蓋過四邊下緣）
+      // - rebated 入溝：6mm 板四邊舌頭嵌入溝槽，尺寸 = 內寬+4 × 內深+4
+      const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
       parts.push({
         id: `${idPrefix}-${i + 1}-bottom`,
-        nameZh: `${labelPrefix}${i + 1} 底板`,
+        nameZh: isSurfaceDrawerBottom
+          ? `${labelPrefix}${i + 1} 底板（釘底）`
+          : `${labelPrefix}${i + 1} 底板（入溝）`,
         material,
         materialOverride: "plywood",
         grainDirection: "length",
-        visible: {
-          length: drawerInnerW + 4,
-          width: drawerInnerD + 4,
-          thickness: drawerBottomT,
-        },
+        visible: isSurfaceDrawerBottom
+          ? { length: boxExtW, width: drawerOuterD, thickness: drawerBottomT }
+          : { length: drawerInnerW + 4, width: drawerInnerD + 4, thickness: drawerBottomT },
         origin: {
           x: xCenter,
-          y: yBase + boxYOffset + drawerBottomT / 2 + 2,
+          // 釘底：底板貼在側板/前後板下方（y 從 boxYOffset - drawerBottomT 到 boxYOffset）
+          // 入溝：底板嵌在溝裡（中心 y = boxYOffset + drawerBottomT/2 + 2）
+          y: isSurfaceDrawerBottom
+            ? yBase + boxYOffset - drawerBottomT / 2
+            : yBase + boxYOffset + drawerBottomT / 2 + 2,
           z: (zFront + zBack) / 2,
         },
-        tenons: [
-          {
-            position: "start",
-            type: "tongue-and-groove",
-            length: 4,
-            width: drawerInnerD + 4,
-            thickness: drawerBottomT,
-          },
-          {
-            position: "end",
-            type: "tongue-and-groove",
-            length: 4,
-            width: drawerInnerD + 4,
-            thickness: drawerBottomT,
-          },
-          {
-            position: "left",
-            type: "tongue-and-groove",
-            length: 4,
-            width: drawerInnerW + 4,
-            thickness: drawerBottomT,
-          },
-          {
-            position: "right",
-            type: "tongue-and-groove",
-            length: 4,
-            width: drawerInnerW + 4,
-            thickness: drawerBottomT,
-          },
-        ],
+        tenons: isSurfaceDrawerBottom
+          ? []
+          : [
+              {
+                position: "start",
+                type: "tongue-and-groove",
+                length: 4,
+                width: drawerInnerD + 4,
+                thickness: drawerBottomT,
+              },
+              {
+                position: "end",
+                type: "tongue-and-groove",
+                length: 4,
+                width: drawerInnerD + 4,
+                thickness: drawerBottomT,
+              },
+              {
+                position: "left",
+                type: "tongue-and-groove",
+                length: 4,
+                width: drawerInnerW + 4,
+                thickness: drawerBottomT,
+              },
+              {
+                position: "right",
+                type: "tongue-and-groove",
+                length: 4,
+                width: drawerInnerW + 4,
+                thickness: drawerBottomT,
+              },
+            ],
         mortises: [],
       });
      }
@@ -1306,10 +1352,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               ? ""
               : `區${i + 1}`;
       const idPrefix = `z${i + 1}`;
+      // 區頂的 boundary 板（非最上層才有）會吃掉這個 zone 頂部 shelfT mm，
+      // 所以傳給 renderer 的 height 要扣掉 boundary 厚度，避免門/抽屜面板的 Y 範圍
+      // 撞進 boundary 板（入柱門尤其嚴重——門前緣與 boundary 前緣同 z，會物理穿模）。
+      const usableH = isLast ? z.heightMm : z.heightMm - shelfT;
       if (z.type === "drawer") {
         renderDrawerZone({
           yStart,
-          height: z.heightMm,
+          height: usableH,
           rows: z.count ?? 1,
           cols: z.cols ?? 1,
           idPrefix: `${idPrefix}-drawer`,
@@ -1319,9 +1369,35 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           dividerFrom: "none",
         });
       } else if (z.type === "door") {
+        // 蓋門模式下，門板要往外延伸覆蓋相鄰邊界（case 板 / boundary 板）：
+        // - overlay-6：延伸 panelT 蓋滿 case 頂/底板
+        // - overlay-3：延伸 9mm 蓋一半
+        // - inset：不延伸（門埋在開口內）
+        // 鄰居是 case 邊（i==0 / isLast）：延伸 doorOverlap
+        // 鄰居是另一個門 zone：兩門共享 boundary，各延伸 shelfT/2 + 1，中間留 2mm reveal
+        // 鄰居是非門 zone（shelves/drawer）：延伸 doorOverlap 蓋滿 boundary
+        const doorOverlap =
+          doorMount === "overlay-6" ? panelT : doorMount === "overlay-3" ? 9 : 0;
+        const halfBoundary = Math.round(shelfT / 2 + 1);
+        const isFirstZone = i === 0;
+        const isTopZone = isLast;
+        const neighborBelowIsDoor =
+          !isFirstZone && zones[i - 1].type === "door";
+        const neighborAboveIsDoor =
+          !isTopZone && zones[i + 1].type === "door";
+        const extendBottom = isFirstZone
+          ? doorOverlap
+          : neighborBelowIsDoor
+            ? halfBoundary
+            : doorOverlap;
+        const extendTop = isTopZone
+          ? doorOverlap
+          : neighborAboveIsDoor
+            ? halfBoundary
+            : doorOverlap;
         renderDoorZone({
-          yStart,
-          height: z.heightMm,
+          yStart: yStart - extendBottom,
+          height: usableH + extendBottom + extendTop,
           count: z.count ?? 2,
           doorType: (z as { doorTypeOverride?: "wood" | "glass" | "slab" }).doorTypeOverride ?? doorType ?? "wood",
           idPrefix: `${idPrefix}-door`,
@@ -1333,7 +1409,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         if (innerShelves > 0) {
           renderShelvesZone({
             yStart,
-            height: z.heightMm,
+            height: usableH,
             // renderShelvesZone 的 count 是「儲物層數」=（片數 + 1）
             count: innerShelves + 1,
             idPrefix: `${idPrefix}-door-inner`,
@@ -1344,7 +1420,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       } else if (z.type === "shelves") {
         renderShelvesZone({
           yStart,
-          height: z.heightMm,
+          height: usableH,
           count: z.count ?? 1,
           idPrefix,
           labelPrefix,
@@ -1352,7 +1428,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       } else if (z.type === "hanging") {
         // 吊衣桿：區中央加一根橫桿，其餘空間留給衣服懸掛
         const rodD = 28;
-        const rodY = yStart + Math.min(60, z.heightMm - 60); // 頂端下方 60mm
+        const rodY = yStart + Math.min(60, usableH - 60); // 頂端下方 60mm
         parts.push({
           id: `${idPrefix}-rod`,
           nameZh: `${labelPrefix}吊衣桿`,

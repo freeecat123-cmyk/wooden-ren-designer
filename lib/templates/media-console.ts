@@ -2,11 +2,15 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture, type CabinetZone, type CabinetColumn } from "./_builders/case-furniture";
 import {
+  backModeOption,
   doorMountLabel,
   doorMountOption,
+  drawerBottomModeOption,
   drawerMountOption,
   drawerSlideOption,
+  resolveBackMode,
   resolveDoorMount,
+  resolveDrawerBottomMode,
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
@@ -19,24 +23,24 @@ const COL_TYPE_CHOICES = [
 ];
 
 export const mediaConsoleOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   // 佈局模式
-  { group: "top", type: "select", key: "layoutMode", label: "佈局模式", defaultValue: "v-2layer", choices: [
+  { group: "structure", type: "select", key: "layoutMode", label: "佈局模式", defaultValue: "v-2layer", choices: [
     { value: "v-1layer", label: "縱向 1 層（整個一種）" },
     { value: "v-2layer", label: "縱向 2 層（上層板 + 下抽屜）" },
     { value: "h-2col", label: "橫向 2 欄（左右各一種）" },
     { value: "h-3col", label: "橫向 3 欄（左中右各一種）" },
   ] },
-  // 縱向模式的類型
-  { group: "top", type: "select", key: "upperType", label: "縱向 1 層類型 / 2 層的上層類型", defaultValue: "shelves", choices: [
+  // 縱向模式：上層內容（zone-top）
+  { group: "zone-top", type: "select", key: "upperType", label: "上層類型（縱向 1 / 2 層）", defaultValue: "shelves", choices: [
     { value: "shelves", label: "開放層板（輸入=層數）" },
     { value: "door", label: "門板" },
   ] },
-  { group: "top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1 },
-  // 縱向 2 層的抽屜
-  { group: "drawer", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1 },
-  { group: "drawer", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "drawer", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1 },
+  // 縱向 2 層：下層抽屜（zone-bot）
+  { group: "zone-bot", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1 },
+  { group: "zone-bot", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
+  { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
   // 橫向 2/3 欄模式：每欄的類型 + 數量 + 寬度
   { group: "col-left", type: "select", key: "leftType", label: "類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
   { group: "col-left", type: "number", key: "leftCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
@@ -54,6 +58,8 @@ export const mediaConsoleOptions: OptionSpec[] = [
   ] },
   doorMountOption,
   drawerMountOption,
+  drawerBottomModeOption,
+  backModeOption,
   // 腳
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 120, min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
@@ -189,13 +195,14 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     doorType: doorType === "glass" ? "glass" : doorType === "slab" ? "slab" : "wood",
     panelThickness,
     shelfThickness: panelThickness,
-    backThickness: 6,
+    backMode: resolveBackMode(input, mediaConsoleOptions),
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
     drawerMount,
+    drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
   });

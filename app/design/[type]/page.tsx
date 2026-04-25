@@ -4,7 +4,8 @@ import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
-import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
+import { MaterialList } from "@/lib/render/svg-views";
+import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { MATERIALS } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
@@ -170,7 +171,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               </span>
             </div>
             <div className="p-3">
-              <ThreeViewLayout design={design} />
+              <ZoomableThreeViews design={design} />
             </div>
           </div>
         </div>
@@ -437,6 +438,7 @@ const GROUP_META: Record<
   string,
   { label: string; icon: string; bar: string }
 > = {
+  structure:  { label: "櫃體結構 / 板材",icon: "🏗️", bar: "bg-stone-400"   },
   top:        { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
   // 三層櫃：上中下（從上到下排序）
   "zone-top": { label: "上層",         icon: "▲", bar: "bg-sky-500"     },
@@ -446,29 +448,36 @@ const GROUP_META: Record<
   "col-left":  { label: "左欄",        icon: "◀", bar: "bg-violet-500"  },
   "col-mid":   { label: "中欄",        icon: "●", bar: "bg-violet-400"  },
   "col-right": { label: "右欄",        icon: "▶", bar: "bg-violet-300"  },
-  leg:        { label: "桌腳 / 椅腳",   icon: "🦵", bar: "bg-rose-400"    },
+  door:       { label: "門板",         icon: "▯", bar: "bg-fuchsia-400" },
+  drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
+  leg:        { label: "底座 / 桌椅腳",  icon: "🦵", bar: "bg-rose-400"    },
   apron:      { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
   stretcher:  { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
-  back:       { label: "椅背 / 背板",   icon: "◧", bar: "bg-teal-400"    },
-  drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
-  door:       { label: "門",           icon: "▯", bar: "bg-fuchsia-400" },
+  back:       { label: "椅背",         icon: "◧", bar: "bg-teal-400"    },
   misc:       { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
 };
 
+// 顯示順序：從「整體骨架」往「五金細節」走
+//  1. 結構（板厚、背板作法）— 影響全櫃
+//  2. 內容（zones / columns）— 櫃體內每區放什麼
+//  3. 門板、抽屜 — 內容區的五金細節
+//  4. 底座 — 高度、樣式
+//  5. 桌椅專用：top / apron / stretcher / back
 const GROUP_ORDER = [
-  "top",
+  "structure",
   "zone-top",
   "zone-mid",
   "zone-bot",
   "col-left",
   "col-mid",
   "col-right",
+  "door",
+  "drawer",
   "leg",
+  "top",
   "apron",
   "stretcher",
   "back",
-  "drawer",
-  "door",
   "misc",
 ];
 

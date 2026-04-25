@@ -1,11 +1,23 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveZones } from "./_builders/zone-helpers";
+import { makeZoneOptions, resolveBackMode, resolveZones } from "./_builders/zone-helpers";
 
 export const openBookshelfOptions: OptionSpec[] = [
-  { group: "top", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  { group: "back", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 6, min: 0, max: 18, step: 1, help: "設 0 則無背板" },
+  { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
+  // 開放書櫃預設無背板（最常見），但仍可改成釘背 / 入溝
+  {
+    group: "structure",
+    type: "select",
+    key: "backMode",
+    label: "背板作法",
+    defaultValue: "none",
+    choices: [
+      { value: "none", label: "無背板（開放式陳列）" },
+      { value: "surface", label: "釘背（3mm 夾板蓋滿背面）— 裝潢標準" },
+      { value: "rebated", label: "入溝（9mm 嵌進側板溝裡）— 榫卯 / 鄉村風家具" },
+    ],
+  },
   ...makeZoneOptions({
     topType: "shelves", topHeight: 400, topCount: 2,
     midType: "shelves", midCount: 3,
@@ -26,7 +38,6 @@ export const openBookshelfOptions: OptionSpec[] = [
 export const openBookshelf: FurnitureTemplate = (input) => {
   const o = openBookshelfOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const backThickness = getOption<number>(input, opt(o, "backThickness"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -46,7 +57,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     zones,
     panelThickness,
     shelfThickness: panelThickness,
-    backThickness,
+    backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
