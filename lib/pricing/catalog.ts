@@ -22,6 +22,10 @@ export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   pine: 80,
   teak: 300, // 估算（使用者未提供）
   "douglas-fir": 90, // 估算（花旗松比松木略貴）
+  // 板材類（裝潢用）— 約等於板材單張價格 / 板才換算
+  "blockboard-primary": 50, // 木芯板 4×8 ft 一張約 1500–1800
+  "plywood-primary": 60, // 夾板（裝潢用）4×8 ft 一張約 1800–2200
+  "mdf-primary": 35, // 中纖板 4×8 ft 一張約 800–1200
 };
 
 /**

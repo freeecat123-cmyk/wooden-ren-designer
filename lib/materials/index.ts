@@ -96,4 +96,32 @@ export const MATERIALS: Record<MaterialId, MaterialSpec> = {
     color: "#e8cfa5",
     notes: "價格便宜、節眼多，DIY 入門常用",
   },
+  // —— 板材類（裝潢用）—— hardness 設低，不觸發硬木工具/粗砂紙建議
+  "blockboard-primary": {
+    id: "blockboard-primary",
+    nameZh: "木芯板",
+    nameEn: "Blockboard",
+    density: 450,
+    hardness: 1200,
+    color: "#d8be97",
+    notes: "中央松木條 + 上下夾板貼皮；輕、便宜、不會翹曲，裝潢櫃常用",
+  },
+  "plywood-primary": {
+    id: "plywood-primary",
+    nameZh: "夾板（裝潢用）",
+    nameEn: "Plywood",
+    density: 600,
+    hardness: 1500,
+    color: "#d2b896",
+    notes: "多層薄木板交錯膠合；穩定不變形，可貼皮做出實木質感",
+  },
+  "mdf-primary": {
+    id: "mdf-primary",
+    nameZh: "中纖板（MDF）",
+    nameEn: "MDF",
+    density: 750,
+    hardness: 1300,
+    color: "#c4a47c",
+    notes: "木纖維高溫壓製；密度均勻適合烤漆 / CNC 雕刻，但怕水",
+  },
 };

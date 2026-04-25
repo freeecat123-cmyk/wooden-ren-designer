@@ -72,6 +72,7 @@ export interface Mortise {
 }
 
 export type MaterialId =
+  // 實木
   | "taiwan-cypress"
   | "teak"
   | "white-oak"
@@ -80,7 +81,11 @@ export type MaterialId =
   | "maple"
   | "ash"
   | "beech"
-  | "pine";
+  | "pine"
+  // 板材（裝潢常用）— 跟 SheetGood 重疊但這裡作為「主材質」用
+  | "blockboard-primary"
+  | "plywood-primary"
+  | "mdf-primary";
 
 /** 板材類（計價用，不參與 3D 渲染與紋理） */
 export type SheetGood = "plywood" | "mdf";
