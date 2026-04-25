@@ -44,7 +44,9 @@ type ShapeSpec =
   | { kind: "hoof"; hoofHeight: number; hoofScale: number }
   | { kind: "round" }
   | { kind: "round-tapered"; bottomScale: number }
-  | { kind: "shaker" };
+  | { kind: "shaker" }
+  | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
+  | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number };
 
 function Part({
   position,
@@ -72,6 +74,9 @@ function Part({
     }
     if (shape.kind === "hoof") {
       return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale);
+    }
+    if (shape.kind === "splayed-tapered") {
+      return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
     }
     return null;
   }, [size, shape]);
@@ -113,6 +118,17 @@ function Part({
     return (
       <mesh position={position} rotation={rotation} castShadow receiveShadow>
         <cylinderGeometry args={[topR, botR, size[1], 48]} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+      </mesh>
+    );
+  }
+
+  // 外斜圓錐腳：圓料 + tapered + splay（底部偏移）
+  if (shape?.kind === "splayed-round-tapered") {
+    const geo = buildSplayedRoundTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz, 48);
+    return (
+      <mesh position={position} rotation={rotation} castShadow receiveShadow>
+        <primitive attach="geometry" object={geo} />
         <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
       </mesh>
     );
@@ -244,6 +260,98 @@ function buildSplayedGeometry(
     ...f(2, 6, 7, 3),
     ...f(3, 7, 4, 0),
   ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 外斜方錐：方料 + 上下不同尺寸 + 底部偏移。
+ * 上方面 (lx × lz) 在 y=+hy（無偏移），下方面 (lx*scale × lz*scale) 在 y=-hy
+ * 偏移 (dx, dz)。
+ */
+function buildSplayedTaperedGeometry(
+  size: [number, number, number],
+  scale: number,
+  dx: number,
+  dz: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const bx = hx * scale;
+  const bz = hz * scale;
+  const v: number[] = [
+    -bx + dx, -hy, -bz + dz,
+    bx + dx, -hy, -bz + dz,
+    bx + dx, -hy, bz + dz,
+    -bx + dx, -hy, bz + dz,
+    -hx, hy, -hz,
+    hx, hy, -hz,
+    hx, hy, hz,
+    -hx, hy, hz,
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 1, 2, 3),
+    ...f(4, 7, 6, 5),
+    ...f(0, 4, 5, 1),
+    ...f(1, 5, 6, 2),
+    ...f(2, 6, 7, 3),
+    ...f(3, 7, 4, 0),
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 外斜圓錐：圓料（直徑 = lx）+ 上下不同半徑 + 底部偏移。
+ * segments 段邊（48 段視覺平滑），加上下 cap 中心點。
+ */
+function buildSplayedRoundTaperedGeometry(
+  size: [number, number, number],
+  scale: number,
+  dx: number,
+  dz: number,
+  segments = 48,
+): BufferGeometry {
+  const [lx, ly] = size;
+  const r = lx / 2;
+  const hy = ly / 2;
+  const rTop = r;
+  const rBot = r * scale;
+  const v: number[] = [];
+  for (let i = 0; i < segments; i++) {
+    const theta = (i / segments) * 2 * Math.PI;
+    v.push(Math.cos(theta) * rTop, hy, Math.sin(theta) * rTop);
+  }
+  for (let i = 0; i < segments; i++) {
+    const theta = (i / segments) * 2 * Math.PI;
+    v.push(Math.cos(theta) * rBot + dx, -hy, Math.sin(theta) * rBot + dz);
+  }
+  const topCenter = segments * 2;
+  const botCenter = segments * 2 + 1;
+  v.push(0, hy, 0);
+  v.push(dx, -hy, dz);
+  const idx: number[] = [];
+  for (let i = 0; i < segments; i++) {
+    const i0 = i;
+    const i1 = (i + 1) % segments;
+    const j0 = segments + i;
+    const j1 = segments + ((i + 1) % segments);
+    // 側面（CCW from outside = 順著 +Y → 下繞）
+    idx.push(i0, j0, j1, i0, j1, i1);
+    // 上 cap（CCW from above）
+    idx.push(topCenter, i1, i0);
+    // 下 cap（CCW from below = 從下方往上看）
+    idx.push(botCenter, j0, j1);
+  }
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
@@ -403,6 +511,20 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             shape = { kind: "round-tapered", bottomScale: part.shape.bottomScale };
           } else if (part.shape?.kind === "shaker") {
             shape = { kind: "shaker" };
+          } else if (part.shape?.kind === "splayed-tapered") {
+            shape = {
+              kind: "splayed-tapered",
+              bottomScale: part.shape.bottomScale,
+              dx: part.shape.dxMm * SCALE,
+              dz: part.shape.dzMm * SCALE,
+            };
+          } else if (part.shape?.kind === "splayed-round-tapered") {
+            shape = {
+              kind: "splayed-round-tapered",
+              bottomScale: part.shape.bottomScale,
+              dx: part.shape.dxMm * SCALE,
+              dz: part.shape.dzMm * SCALE,
+            };
           }
           return (
             <Part

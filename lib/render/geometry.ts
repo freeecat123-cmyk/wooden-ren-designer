@@ -136,6 +136,26 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
+  // 外斜方錐 / 圓錐腳：silhouette 是 tapered 梯形 + 底部偏移（splay）
+  if (
+    part.shape.kind === "splayed-tapered" ||
+    part.shape.kind === "splayed-round-tapered"
+  ) {
+    if (view === "top") return box;
+    const scale = part.shape.bottomScale;
+    const offset =
+      view === "front" ? -part.shape.dxMm : part.shape.dzMm;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfTop = r.w / 2;
+    const halfBot = halfTop * scale;
+    return [
+      { x: cx - halfTop, y: r.y + r.h },
+      { x: cx + halfTop, y: r.y + r.h },
+      { x: cx + halfBot + offset, y: r.y },
+      { x: cx - halfBot + offset, y: r.y },
+    ];
+  }
+
   // 夏克風腳：上方 25% 方頂 + 下方 75% 圓錐（bottomScale 0.6）
   // 前/側視 silhouette = 矩形上半 + 梯形下半的疊加
   if (part.shape.kind === "shaker") {

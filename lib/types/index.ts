@@ -150,7 +150,18 @@ export interface Part {
     | { kind: "round-tapered"; bottomScale: number }
     /** Shaker: 夏克風腳。上方 25% 方料 + 下方 75% 圓錐腳（bottomScale 0.6）。
      *  經典實木家具腳形，兼顧結構（方頂接牙板）與優雅（圓錐落地）。 */
-    | { kind: "shaker" };
+    | { kind: "shaker" }
+    /** Splayed tapered: 外斜方錐腳——方料漸縮 + 整支外傾（底部偏移 dxMm/dzMm）。
+     *  bottomScale < 1 上粗下細；> 1 上細下粗（搭配外斜常見：上細下粗 + splay = 倒角桶腳） */
+    | { kind: "splayed-tapered"; bottomScale: number; dxMm: number; dzMm: number }
+    /** Splayed round tapered: 外斜圓錐腳——圓料漸縮 + 整支外傾。
+     *  bottomScale < 1 = 外斜圓錐；> 1 = 外斜倒圓錐 */
+    | {
+        kind: "splayed-round-tapered";
+        bottomScale: number;
+        dxMm: number;
+        dzMm: number;
+      };
 }
 
 export interface FurnitureDesign {

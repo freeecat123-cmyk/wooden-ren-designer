@@ -18,7 +18,11 @@ export const roundStoolOptions: OptionSpec[] = [
     { value: "round-taper-down", label: "圓錐腳（上粗下細）" },
     { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
     { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
+    { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
+    { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
+    { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 25, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效" },
   { group: "apron", type: "checkbox", key: "withApron", label: "加橫撐", defaultValue: true, help: "腳之間用橫撐連結，結構穩固" },
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm" },
@@ -44,11 +48,16 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
+  const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
 
   const radius = diameter / 2;
   const legHeight = height - seatThickness;
   // 4 隻腳於圓內接正方形的 4 個角，距中心 = (R - legInset) / sqrt(2)
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
+  // 外斜：底部偏移總長 = legHeight × tan(angle)，方向沿腳對角線（45°）外推
+  const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
+  const splayDx = splayMm / Math.SQRT2;
+  const splayDz = splayMm / Math.SQRT2;
 
   // 圓座板（用 shape: round 渲染為圓盤）
   const seat: Part = {
@@ -94,7 +103,13 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 ? ({ kind: "round-tapered", bottomScale: 1.4 } as const)
                 : legShape === "shaker"
                   ? ({ kind: "shaker" } as const)
-                  : undefined,
+                  : legShape === "splayed-tapered"
+                    ? ({ kind: "splayed-tapered", bottomScale: 0.6, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                    : legShape === "splayed-round-taper-down"
+                      ? ({ kind: "splayed-round-tapered", bottomScale: 0.6, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                      : legShape === "splayed-round-taper-up"
+                        ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                        : undefined,
       tenons: [
         {
           position: "top" as const,
