@@ -120,16 +120,21 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 4 條牙板（餐桌結構承重，用帶肩榫）
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
-  // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
-  const apronSpan = 2 * cornerOffset;
   const isSplayed = legShape.startsWith("splayed-");
   const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
+  // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
+  // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
+  const apronYCenter = apronY + apronWidth / 2;
+  const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+  const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
+  const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
+  // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
+  const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -cornerOffset } },
-    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset } },
-    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -cornerOffset, z: 0 } },
-    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset, z: 0 } },
+    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
+    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
+    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronSplayDx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronSplayDx, z: 0 } },
   ].map((s) => ({
     id: s.id,
     nameZh: s.nameZh,

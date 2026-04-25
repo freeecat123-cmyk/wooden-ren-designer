@@ -25,7 +25,8 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
   const isRoundLeg =
     legPart?.shape?.kind === "round" ||
     legPart?.shape?.kind === "round-tapered" ||
-    legPart?.shape?.kind === "shaker";
+    legPart?.shape?.kind === "shaker" ||
+    legPart?.shape?.kind === "splayed-round-tapered";
   const legSize = legPart && !isRoundLeg ? legPart.visible.length : 0;
 
   // 只有真正「接腳」的零件（牙板、橫撐、背橫木）才需要縮短；

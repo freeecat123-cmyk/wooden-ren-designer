@@ -128,17 +128,22 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條橫撐（兩兩腳之間）
   if (withApron) {
     const apronY = legHeight - apronWidth - apronDropFromTop;
-    // 慣例：visible.length = 腳中心到腳中心（榫接模式視覺化榫頭）
-    // beginner-mode.ts 會自動縮 legSize 變成內側面到內側面
-    const apronSpan = 2 * cornerOffset;
     // 外斜模式時 apron 也跟著腳一起斜（同角度）
     const isSplayed = legShape.startsWith("splayed-");
     const tilt = isSplayed ? (splayAngle * Math.PI) / 180 : 0;
+    // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
+    // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
+    const apronYCenter = apronY + apronWidth / 2;
+    const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+    const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
+    const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
+    // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
+    const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
     const sides = [
-      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -cornerOffset } },
-      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset } },
-      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -cornerOffset, z: 0 } },
-      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset, z: 0 } },
+      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
+      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
+      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronSplayDx), z: 0 } },
+      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronSplayDx, z: 0 } },
     ];
     for (const s of sides) {
       // X 軸 apron（前後）：tilt = -sz * α 加到 X 軸 rotation；底部往 sz 方向斜
