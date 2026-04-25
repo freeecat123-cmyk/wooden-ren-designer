@@ -57,9 +57,11 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
 
   const { lumberGroups, sheetGroups } = buildCutPieces(design);
+  // 旋轉預設不勾——使用者可在零件清單個別勾。原本為 sheet 強制 allowRotate:true
+  // 是想自動最大化板材利用率，但實際使用上會把零件方向轉錯。
   const allPieces = [
     ...Array.from(lumberGroups.values()).flat(),
-    ...Array.from(sheetGroups.values()).flat().map((p) => ({ ...p, allowRotate: true })),
+    ...Array.from(sheetGroups.values()).flat(),
   ];
   const initialSpecs = collapseIntoSpecs(allPieces);
 

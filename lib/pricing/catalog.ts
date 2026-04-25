@@ -48,10 +48,19 @@ export const SHEET_GOOD_LABEL: Record<SheetGood, string> = {
   mdf: "中纖板",
 };
 
-/** 零件實際計價材料：有 override 就用 override，否則用主材 */
+/** 零件實際計價材料：有 override 就用 override，否則用主材。
+ *  例外：主材已是 *-primary 板材時，整個家具都是同一塊板材，
+ *  override 沒意義（不會用實木家具搭夾板背板，因為主材本身就是夾板）。 */
 export function effectiveBillableMaterial<
   P extends { material: MaterialId; materialOverride?: SheetGood },
 >(part: P): BillableMaterial {
+  if (
+    part.material === "blockboard-primary" ||
+    part.material === "plywood-primary" ||
+    part.material === "mdf-primary"
+  ) {
+    return part.material;
+  }
   return part.materialOverride ?? part.material;
 }
 
