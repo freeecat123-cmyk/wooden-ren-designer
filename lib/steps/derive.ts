@@ -57,6 +57,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const steps: BuildStep[] = [];
   const material = MATERIALS[design.primaryMaterial];
   const joineryUsages = extractJoineryUsages(design);
+  const hasJoinery = joineryUsages.length > 0;
   const isHardwood = material.hardness >= 5000;
   const isLong = design.overall.length > 1200;
 
@@ -81,9 +82,10 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     id: "step-02-cut-stock",
     phase: "cut-stock",
     title: `切料 ${totalParts} 件`,
-    description:
-      `依材料單的「切料尺寸」鋸出 ${totalParts} 件。注意：含榫零件的切料長度` +
-      `已包含榫頭凸出量，請勿再額外加長。鋸切後逐件編號對應材料單。`,
+    description: hasJoinery
+      ? `依材料單的「切料尺寸」鋸出 ${totalParts} 件。注意：含榫零件的切料長度` +
+        `已包含榫頭凸出量，請勿再額外加長。鋸切後逐件編號對應材料單。`
+      : `依材料單的「切料尺寸」鋸出 ${totalParts} 件。鋸切後逐件編號對應材料單。`,
     toolIds: [
       "tape-measure-5m",
       "try-square",
@@ -149,7 +151,6 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // 5. 試組 — 文案依「有無榫卯」分組裝版 / 榫接版
-  const hasJoinery = joineryUsages.length > 0;
   steps.push({
     id: "step-05-fit",
     phase: "fit",
