@@ -38,6 +38,69 @@ export function CutPlanApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 自動補齊庫存：設計用到但庫存沒列的材料各加一筆預設 entry。
+  // 以前要使用者手動點「+ 楓木」chip 才會加，新使用者很常忘了加 → 全件「排不下」很嚇人。
+  // 用 functional setState 讀最新 inventory，避免跟 localStorage restore effect 競爭順序。
+  useEffect(() => {
+    setConfig((c) => {
+      const isSheetPrimary = (mat?: string) =>
+        mat === "blockboard-primary" ||
+        mat === "plywood-primary" ||
+        mat === "mdf-primary";
+      const keyOf = (
+        kind: StockItem["kind"],
+        material?: string,
+      ) => (kind === "solid" ? `solid|${material}` : kind);
+
+      const covered = new Set<string>();
+      for (const s of c.inventory) covered.add(keyOf(s.kind, s.material));
+
+      const additions: StockItem[] = [];
+      for (const sp of initialSpecs) {
+        const kind: StockItem["kind"] =
+          sp.billable === "plywood" || sp.billable === "mdf"
+            ? sp.billable
+            : "solid";
+        const key = keyOf(kind, sp.material);
+        if (covered.has(key)) continue;
+        covered.add(key);
+        if (kind === "solid") {
+          // *-primary 材料是裝潢板材，預設 4×8 ft；其餘實木預設 3m×200mm
+          if (isSheetPrimary(sp.material)) {
+            additions.push({
+              kind: "solid",
+              material: sp.material,
+              thickness: 0,
+              length: 2400,
+              width: 1220,
+              count: null,
+            });
+          } else {
+            additions.push({
+              kind: "solid",
+              material: sp.material,
+              thickness: 0,
+              length: 3000,
+              width: 200,
+              count: null,
+            });
+          }
+        } else {
+          additions.push({
+            kind,
+            thickness: 18,
+            length: 2400,
+            width: 1200,
+            count: null,
+          });
+        }
+      }
+      if (additions.length === 0) return c;
+      return { ...c, inventory: [...c.inventory, ...additions] };
+    });
+    // 依 initialSpecs：使用者切換家具時自動補新材料
+  }, [initialSpecs]);
+
   // 每次 inventory 變動都同步到 localStorage（含「清空」→ 刪除 key）
   useEffect(() => {
     try {
