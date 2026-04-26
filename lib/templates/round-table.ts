@@ -22,8 +22,232 @@ function legShapeLabel(s: string): string {
     "splayed-tapered": "外斜方錐腳",
     "splayed-round-taper-down": "外斜圓錐腳",
     "splayed-round-taper-up": "外斜倒圓錐腳",
+    pedestal: "獨柱餐桌",
+    trestle: "端梁餐桌",
   };
   return m[s] ?? s;
+}
+
+/**
+ * 獨柱餐桌：中央 1 支粗柱（cross-section legSize×3）+ 4 爪底盤
+ * 柱頂直接支撐圓桌面（透過頂部 cleat 連接，這裡簡化）
+ * 4 隻爪從柱底向 4 個方向放射延伸，端部往內收呈現「獸足」感
+ */
+function buildPedestalRoundTable(p: {
+  diameter: number; height: number; material: string;
+  topThickness: number; legSize: number; legHeight: number; radius: number;
+}): FurnitureDesign {
+  const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  // 柱粗 = legSize × 2.5，太細看起來會像柱頂頂著桌面要倒
+  const columnSize = Math.round(legSize * 2.5);
+  // 底盤爪：每爪長 = 半徑 × 0.6（從中心往外），高 50, 厚 35
+  const footLength = Math.round(radius * 0.6);
+  const footWidth = 50;
+  const footThickness = 35;
+  // 柱頂連接用的方板（與桌面下方膠合）
+  const topCleatSize = columnSize + 30;
+  const topCleatThickness = 22;
+
+  const top: Part = {
+    id: "top",
+    nameZh: "圓桌面",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: diameter, width: diameter, thickness: topThickness },
+    origin: { x: 0, y: legHeight, z: 0 },
+    shape: { kind: "round" },
+    tenons: [],
+    mortises: [],
+  };
+  // 中央柱
+  const column: Part = {
+    id: "pedestal-column",
+    nameZh: "中央柱",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
+    origin: { x: 0, y: footThickness, z: 0 },
+    tenons: [
+      { position: "top", type: "blind-tenon", length: 30, width: Math.round(columnSize * 0.4), thickness: Math.round(columnSize * 0.4) },
+    ],
+    mortises: [],
+  };
+  // 柱頂方板（接桌面）
+  const topCleat: Part = {
+    id: "pedestal-top-cleat",
+    nameZh: "柱頂連接板",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: topCleatSize, width: topCleatSize, thickness: topCleatThickness },
+    origin: { x: 0, y: legHeight - topCleatThickness, z: 0 },
+    tenons: [],
+    mortises: [
+      { origin: { x: 0, y: 0, z: 0 }, depth: 30, length: Math.round(columnSize * 0.4), width: Math.round(columnSize * 0.4), through: false },
+    ],
+  };
+  // 4 隻爪（東西南北方向往外放射）
+  // 爪原點在中心，body 沿 X 或 Z 軸延伸到柱外
+  // 為簡化：每隻爪是矩形板，從柱面到 footLength 處
+  const feet: Part[] = [
+    { id: "pedestal-foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1 },
+    { id: "pedestal-foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1 },
+    { id: "pedestal-foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1 },
+    { id: "pedestal-foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1 },
+  ].map((f) => {
+    const isXAxis = f.axis === "x";
+    return {
+      id: f.id,
+      nameZh: f.nameZh,
+      material: material as "maple",
+      grainDirection: "length" as const,
+      visible: { length: footLength, width: footWidth, thickness: footThickness },
+      origin: {
+        x: isXAxis ? f.sign * footLength / 2 : 0,
+        y: 0,
+        z: !isXAxis ? f.sign * footLength / 2 : 0,
+      },
+      // X 軸爪 rotation x: π/2; Z 軸爪 rotation x: π/2 + y: π/2
+      rotation: isXAxis
+        ? { x: Math.PI / 2, y: 0, z: 0 }
+        : { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      tenons: [
+        // 接柱：start 端入柱（柱在中心，爪從柱面延伸出去）
+        { position: "start" as const, type: "shouldered-tenon" as const, length: 25, width: footWidth - 12, thickness: 18 },
+      ],
+      mortises: [],
+    };
+  });
+  // 給柱開 4 個榫眼接 4 隻爪
+  column.mortises = [
+    { origin: { x: -columnSize / 2, y: footWidth / 2, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: columnSize / 2, y: footWidth / 2, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: 0, y: footWidth / 2, z: -columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: 0, y: footWidth / 2, z: columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+  ];
+
+  return {
+    id: `round-table-pedestal-${diameter}x${height}`,
+    category: "round-table",
+    nameZh: "圓餐桌（獨柱）",
+    overall: { length: diameter, width: diameter, thickness: height },
+    parts: [top, topCleat, column, ...feet],
+    defaultJoinery: "shouldered-tenon",
+    primaryMaterial: material as "maple",
+    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板膠合到桌面下方。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
+  };
+}
+
+/**
+ * 端梁餐桌（trestle round table）：兩端梁框 + 中央連接橫木
+ * 圓桌通常不用 trestle（trestle 適合矩形長桌），此處做簡化版：
+ * - 2 個端梁框（在世界 Z = ±radius×0.6 位置）
+ * - 每框 = 2 支粗腳 + 1 條頂橫木 + 1 條底足
+ * - 1 條中央橫木連接兩框中心
+ */
+function buildTrestleRoundTable(p: {
+  diameter: number; height: number; material: string;
+  topThickness: number; legSize: number; legHeight: number; radius: number;
+}): FurnitureDesign {
+  const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  // 端框位置：z = ±frameZ
+  const frameZ = Math.round(radius * 0.55);
+  // 每框 2 支腳間距 = 半徑 × 0.5
+  const frameLegSpacing = Math.round(radius * 0.5);
+  const trestleLegSize = Math.round(legSize * 1.3);
+  // 頂橫木 + 底足：跨越 frameLegSpacing + trestleLegSize（稍長）
+  const frameRailLen = frameLegSpacing + trestleLegSize;
+  const frameRailWidth = 60;
+  const frameRailThickness = 28;
+  const frameFootWidth = 80;
+  const frameFootThickness = 35;
+  // 中央橫木：連接 2 框中心，長 = 2 × frameZ
+  const centerStretcherLen = 2 * frameZ;
+  const centerStretcherWidth = 50;
+  const centerStretcherThickness = 25;
+  // 中央橫木 Y：底足上方一點（避免絆腳）
+  const centerStretcherY = frameFootThickness + 30;
+
+  const top: Part = {
+    id: "top",
+    nameZh: "圓桌面",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: diameter, width: diameter, thickness: topThickness },
+    origin: { x: 0, y: legHeight, z: 0 },
+    shape: { kind: "round" },
+    tenons: [],
+    mortises: [],
+  };
+
+  const parts: Part[] = [top];
+  // 兩個端框
+  for (const fz of [-frameZ, frameZ] as const) {
+    const fid = fz < 0 ? "front" : "back";
+    const fLabel = fz < 0 ? "前" : "後";
+    // 2 支腳
+    for (const fx of [-frameLegSpacing / 2, frameLegSpacing / 2] as const) {
+      const sid = fx < 0 ? "left" : "right";
+      const sLabel = fx < 0 ? "左" : "右";
+      parts.push({
+        id: `trestle-${fid}-${sid}-leg`,
+        nameZh: `${fLabel}框${sLabel}腳`,
+        material: material as "maple",
+        grainDirection: "length",
+        visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeight - frameFootThickness - frameRailThickness },
+        origin: { x: fx, y: frameFootThickness, z: fz },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 頂橫木
+    parts.push({
+      id: `trestle-${fid}-top-rail`,
+      nameZh: `${fLabel}框頂橫木`,
+      material: material as "maple",
+      grainDirection: "length",
+      visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
+      origin: { x: 0, y: legHeight - frameRailThickness, z: fz },
+      tenons: [],
+      mortises: [],
+    });
+    // 底足
+    parts.push({
+      id: `trestle-${fid}-foot`,
+      nameZh: `${fLabel}框底足`,
+      material: material as "maple",
+      grainDirection: "length",
+      visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
+      origin: { x: 0, y: 0, z: fz },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 中央橫木（沿 Z 軸跨越兩框中心）
+  parts.push({
+    id: "trestle-center-stretcher",
+    nameZh: "中央連接橫木",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
+    origin: { x: 0, y: centerStretcherY, z: 0 },
+    rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+    tenons: [
+      { position: "start", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
+      { position: "end", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
+    ],
+    mortises: [],
+  });
+
+  return {
+    id: `round-table-trestle-${diameter}x${height}`,
+    category: "round-table",
+    nameZh: "圓餐桌（端梁）",
+    overall: { length: diameter, width: diameter, thickness: height },
+    parts,
+    defaultJoinery: "shouldered-tenon",
+    primaryMaterial: material as "maple",
+    notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。`,
+  };
 }
 
 export const roundTableOptions: OptionSpec[] = [
@@ -44,6 +268,8 @@ export const roundTableOptions: OptionSpec[] = [
     { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
+    { value: "pedestal", label: "獨柱餐桌（中央 1 支粗柱 + 4 爪底盤）" },
+    { value: "trestle", label: "端梁餐桌（兩端梁框 + 中央連接橫木）" },
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 5, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效（餐桌 5° 內最自然，避免絆腳）" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm" },
@@ -81,6 +307,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   const radius = diameter / 2;
   const legHeight = height - topThickness;
+
+  // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
+  if (legShape === "pedestal") {
+    return buildPedestalRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+  }
+  if (legShape === "trestle") {
+    return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+  }
+
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
   const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
   const splayDx = splayMm / Math.SQRT2;
