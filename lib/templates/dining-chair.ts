@@ -91,6 +91,49 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatTopTenonLen = seatThickness;
   const slatThickness = 18;
 
+  // 椅背 joinery 位置事先算好，腳/頂橫木/後牙板 都會引用
+  const topRailHeight = topRailHeightOpt;
+  const topRailThickness = 22;
+  const topRailY = height - topRailHeight;
+  const topRailYCenter = topRailY + topRailHeight / 2;
+  const topRailTenonThick = Math.max(
+    6,
+    Math.min(topRailThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+  );
+  const topRailTenonW = Math.max(15, topRailHeight - 2 * MIN_SHOULDER);
+  const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
+  const backZonHeight = topRailY - seatHeight;
+  // 椅背元件位置：slat / splat 用 X，rung 用 Y
+  const ladderRungWidth = 55;
+  const ladderRungThickness = 18;
+  const slatXs: number[] = [];
+  if (backStyle === "slats" && slatCount > 0) {
+    const availableWidth = length - legSize - 40;
+    const slotPitch = availableWidth / (slatCount + 1);
+    for (let i = 0; i < slatCount; i++) {
+      slatXs.push(-availableWidth / 2 + slotPitch * (i + 1));
+    }
+  }
+  const rungYs: number[] = [];
+  if (backStyle === "ladder") {
+    for (let i = 0; i < ladderRungs; i++) {
+      rungYs.push(
+        seatHeight + ((i + 1) * backZonHeight) / (ladderRungs + 1) -
+          ladderRungWidth / 2,
+      );
+    }
+  }
+  // slat / splat tenon 規格（給 rail / apron 的母榫眼用）
+  const slatTenonLen = 15;
+  const slatTenonW = (w: number) => Math.max(10, w - Math.round(w / 4));
+  const slatTenonT = Math.max(5, Math.round(slatThickness / 3));
+  const splatThicknessConst = 18;
+  const splatTenonW = Math.max(12, splatWidth - 20);
+  const splatTenonT = Math.max(5, Math.round(splatThicknessConst / 3));
+  // ladder rung tenon（給後腳的母榫眼用）
+  const rungTenonW = Math.max(12, ladderRungWidth - 2 * MIN_SHOULDER);
+  const rungTenonT = Math.max(5, Math.round(ladderRungThickness / 3));
+
   const cornerPts = corners(length, width, legSize);
 
   // Leg shape mapping (reused from simple-table conventions)
@@ -141,7 +184,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         {
           origin: {
             x: 0,
-            y: seatHeight - seatThickness - apronWidth - apronOffset,
+            y: apronY,
             z: c.z > 0 ? -1 : 1,
           },
           depth: apronTenonLen,
@@ -153,7 +196,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         {
           origin: {
             x: c.x > 0 ? -1 : 1,
-            y: seatHeight - seatThickness - apronWidth - apronOffset,
+            y: apronY,
             z: 0,
           },
           depth: apronTenonLen,
@@ -161,6 +204,36 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonThick,
           through: false,
         },
+        // 背腳：頂橫木的母榫眼（橫木在 x 軸，從世界 ±x 方向接入腳）
+        ...(isBack
+          ? [
+              {
+                origin: {
+                  x: c.x > 0 ? -1 : 1,
+                  y: topRailYCenter,
+                  z: 0,
+                },
+                depth: apronTenonLen,
+                length: topRailTenonW,
+                width: topRailTenonThick,
+                through: false,
+              },
+            ]
+          : []),
+        // 背腳：橫檔（ladder rung）的母榫眼，每根橫檔一個
+        ...(isBack && backStyle === "ladder"
+          ? rungYs.map((ry) => ({
+              origin: {
+                x: c.x > 0 ? -1 : 1,
+                y: ry + ladderRungWidth / 2,
+                z: 0,
+              },
+              depth: apronTenonLen,
+              length: rungTenonW,
+              width: rungTenonT,
+              through: false,
+            }))
+          : []),
       ],
     };
   });
@@ -174,21 +247,34 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatHeight - seatThickness, z: 0 },
     tenons: [],
-    mortises: cornerPts
-      .filter((c) => c.z < 0) // 只有前 2 腳穿過座板
-      .map((c) => ({
-        origin: { x: c.x, y: 0, z: c.z },
-        depth: seatThickness,
-        length: legTopTenonSize,
-        width: legTopTenonSize,
-        through: true,
-      })),
+    // 前 2 腳通榫進來（榫頭從下方刺穿座板）；
+    // 後 2 腳沒通榫但腳本身穿過座板高度範圍——也要開孔讓腳通過，
+    // 不然 3D 看起來座板跟腳會重疊（撞穿）
+    mortises: [
+      ...cornerPts
+        .filter((c) => c.z < 0)
+        .map((c) => ({
+          origin: { x: c.x, y: 0, z: c.z },
+          depth: seatThickness,
+          length: legTopTenonSize,
+          width: legTopTenonSize,
+          through: true,
+        })),
+      ...cornerPts
+        .filter((c) => c.z > 0)
+        .map((c) => ({
+          origin: { x: c.x, y: 0, z: c.z },
+          depth: seatThickness,
+          length: legSize,
+          width: legSize,
+          through: true,
+        })),
+    ],
   };
 
   // 4 座面下牙板 —— body 延伸到腳中心
   const apronInnerSpan = { x: length - legSize, z: width - legSize };
   void backHeight;
-  const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
   const apronSides = [
     {
       key: "front",
@@ -249,13 +335,30 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: apronTenonThick,
       },
     ],
-    mortises: [],
+    // 後牙板：上緣加 slat / splat 母榫眼。世界上方 = local -Z 面（rotation x:π/2）
+    mortises:
+      s.key === "back" && backStyle === "slats" && slatXs.length > 0
+        ? slatXs.map((sx) => ({
+            origin: { x: sx, y: 0, z: -1 },
+            depth: slatTenonLen,
+            length: slatTenonW(slatWidth),
+            width: slatTenonT,
+            through: false,
+          }))
+        : s.key === "back" && backStyle === "splat"
+          ? [
+              {
+                origin: { x: 0, y: 0, z: -1 },
+                depth: slatTenonLen,
+                length: splatTenonW,
+                width: splatTenonT,
+                through: false,
+              },
+            ]
+          : [],
   }));
 
   // 椅背頂橫木（連接後 2 椅腳）
-  const topRailHeight = topRailHeightOpt;
-  const topRailThickness = 22;
-  const topRailY = height - topRailHeight;
   const backTopRail: Part = {
     id: "back-top-rail",
     nameZh: "椅背頂橫木",
@@ -268,24 +371,38 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         position: "start",
         type: "shouldered-tenon",
         length: apronTenonLen,
-        width: Math.max(15, topRailHeight - 2 * MIN_SHOULDER),
-        thickness: Math.max(
-          6,
-          Math.min(topRailThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
-        ),
+        width: topRailTenonW,
+        thickness: topRailTenonThick,
       },
       {
         position: "end",
         type: "shouldered-tenon",
         length: apronTenonLen,
-        width: Math.max(15, topRailHeight - 2 * MIN_SHOULDER),
-        thickness: Math.max(
-          6,
-          Math.min(topRailThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
-        ),
+        width: topRailTenonW,
+        thickness: topRailTenonThick,
       },
     ],
-    mortises: [],
+    // 椅背頂橫木：下緣加 slat / splat 母榫眼。底面 = local Y=0
+    mortises:
+      backStyle === "slats" && slatXs.length > 0
+        ? slatXs.map((sx) => ({
+            origin: { x: sx, y: 0, z: 0 },
+            depth: slatTenonLen,
+            length: slatTenonW(slatWidth),
+            width: slatTenonT,
+            through: false,
+          }))
+        : backStyle === "splat"
+          ? [
+              {
+                origin: { x: 0, y: 0, z: 0 },
+                depth: slatTenonLen,
+                length: splatTenonW,
+                width: splatTenonT,
+                through: false,
+              },
+            ]
+          : [],
   };
 
   // 下橫撐——依 stretcherStyle 決定組態
@@ -352,9 +469,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 椅背部件——依 backStyle 生成
+  // 椅背部件——依 backStyle 生成（backZonHeight 已在頂部宣告）
   const backParts: Part[] = [];
-  const backZonHeight = topRailY - seatHeight; // available vertical space
   const backZ = width / 2 - legSize / 2;
   if (backStyle === "slats" && slatCount > 0) {
     const availableWidth = length - legSize - 40;

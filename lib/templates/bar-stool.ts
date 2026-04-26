@@ -91,6 +91,26 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     return undefined;
   };
 
+  // 椅背 joinery 位置：頂橫木 + 板條 X 座標——legs / rail / apron / seat 都要引用
+  const topRailH = withBack ? Math.min(50, Math.round(backHeight / 3)) : 0;
+  const topRailThickness = 22;
+  const topRailY = withBack ? seatY + backHeight - topRailH : 0;
+  const topRailYCenter = topRailY + topRailH / 2;
+  const topRailTenonW = withBack ? Math.max(12, topRailH - 10) : 0;
+  const topRailTenonThick = 17;
+  const slatXs: number[] = [];
+  const slatThicknessConst = 16;
+  const slatTenonLen = 12;
+  const slatTenonW = (w: number) => Math.max(10, w - 10);
+  const slatTenonT = Math.max(5, Math.round(slatThicknessConst / 3));
+  if (withBack && backStyle === "slats" && backSlatCount > 0) {
+    const availableW = length - legSize - 40;
+    const pitch = availableW / (backSlatCount + 1);
+    for (let i = 0; i < backSlatCount; i++) {
+      slatXs.push(-availableW / 2 + pitch * (i + 1));
+    }
+  }
+
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0 && withBack;
     const legTotalH = isBack ? seatY + backHeight : seatY;
@@ -142,6 +162,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: frTenonThick,
           through: false,
         },
+        // 背腳：椅背頂橫木的母榫眼
+        ...(isBack
+          ? [
+              {
+                origin: { x: c.x > 0 ? -1 : 1, y: topRailYCenter, z: 0 },
+                depth: apronTenonLen,
+                length: topRailTenonW,
+                width: topRailTenonThick,
+                through: false,
+              },
+            ]
+          : []),
       ],
     };
   });
@@ -154,15 +186,35 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
     tenons: [],
-    mortises: cornerPts
-      .filter((c) => !(withBack && c.z > 0))
-      .map((c) => ({
-        origin: { x: c.x, y: 0, z: c.z },
-        depth: seatThickness,
-        length: legTopTenonSize,
-        width: legTopTenonSize,
-        through: true,
+    // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
+    // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼
+    mortises: [
+      ...cornerPts
+        .filter((c) => !(withBack && c.z > 0))
+        .map((c) => ({
+          origin: { x: c.x, y: 0, z: c.z },
+          depth: seatThickness,
+          length: legTopTenonSize,
+          width: legTopTenonSize,
+          through: true,
+        })),
+      ...cornerPts
+        .filter((c) => withBack && c.z > 0)
+        .map((c) => ({
+          origin: { x: c.x, y: 0, z: c.z },
+          depth: seatThickness,
+          length: legSize,
+          width: legSize,
+          through: true,
+        })),
+      ...slatXs.map((sx) => ({
+        origin: { x: sx, y: seatThickness, z: width / 2 - legSize / 2 },
+        depth: slatTenonLen,
+        length: slatTenonW(backSlatWidth),
+        width: slatTenonT,
+        through: false,
       })),
+    ],
   };
 
   const innerSpanX = length - legSize;
@@ -186,6 +238,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       { position: "start", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
       { position: "end", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
     ],
+    // 後牙板：上緣加 slat 母榫眼（slat 從上面接入）。但 bar-stool 的 slat 落在
+    // 座板上方不穿過 apron 區，這裡其實沒 slat 母——slats 接座板上面 + 頂橫木下面
     mortises: [],
   }));
 
@@ -207,43 +261,44 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const parts: Part[] = [seatPanel, ...legs, ...aprons, ...footRests];
 
   if (withBack) {
-    const topRailH = Math.min(50, Math.round(backHeight / 3));
-    // 頂橫木一定有——鎖住後腳頂部
+    // 頂橫木一定有——鎖住後腳頂部。slat 從下方接入，下緣加 slat 母榫眼
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
       material,
       grainDirection: "length",
-      visible: { length: length - legSize, width: 22, thickness: topRailH },
-      origin: { x: 0, y: seatY + backHeight - topRailH, z: width / 2 - legSize / 2 },
+      visible: { length: length - legSize, width: topRailThickness, thickness: topRailH },
+      origin: { x: 0, y: topRailY, z: width / 2 - legSize / 2 },
       tenons: [
-        { position: "start", type: "blind-tenon", length: apronTenonLen, width: Math.max(12, topRailH - 10), thickness: 17 },
-        { position: "end", type: "blind-tenon", length: apronTenonLen, width: Math.max(12, topRailH - 10), thickness: 17 },
+        { position: "start", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
+        { position: "end", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
       ],
-      mortises: [],
+      mortises: slatXs.map((sx) => ({
+        origin: { x: sx, y: 0, z: 0 },
+        depth: slatTenonLen,
+        length: slatTenonW(backSlatWidth),
+        width: slatTenonT,
+        through: false,
+      })),
     });
     if (backStyle === "slats" && backSlatCount > 0) {
-      const slatThickness = 16;
-      const availableW = length - legSize - 40;
-      const pitch = availableW / (backSlatCount + 1);
       const slatLen = backHeight - topRailH;
-      for (let i = 0; i < backSlatCount; i++) {
-        const xCenter = -availableW / 2 + pitch * (i + 1);
+      slatXs.forEach((xCenter, i) => {
         parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背板條 ${i + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: slatLen, width: backSlatWidth, thickness: slatThickness },
+          visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },
           origin: { x: xCenter, y: seatY, z: width / 2 - legSize / 2 },
           rotation: { x: 0, y: 0, z: Math.PI / 2 },
           tenons: [
-            { position: "start", type: "blind-tenon", length: 12, width: Math.max(10, backSlatWidth - 10), thickness: Math.max(5, Math.round(slatThickness / 3)) },
-            { position: "end", type: "blind-tenon", length: 12, width: Math.max(10, backSlatWidth - 10), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+            { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
+            { position: "end", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
           ],
           mortises: [],
         });
-      }
+      });
     }
   }
 
