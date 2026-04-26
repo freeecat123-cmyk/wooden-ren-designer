@@ -58,14 +58,15 @@ function buildPedestalRoundTable(p: {
     tenons: [],
     mortises: [],
   };
-  // 中央柱：用 lathe-turned 車旋輪廓做出花瓶形態，不是死板方柱
+  // 中央柱：lathe-turned 從地面一路到 cleat 下方，底部 flare 把
+  // 4 隻底爪的內側包住；爪只看得到從柱外冒出來的部分
   const column: Part = {
     id: "pedestal-column",
     nameZh: "中央柱",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
-    origin: { x: 0, y: footThickness, z: 0 },
+    origin: { x: 0, y: 0, z: 0 },
     shape: { kind: "lathe-turned" },
     tenons: [
       { position: "top", type: "blind-tenon", length: 30, width: Math.round(columnSize * 0.4), thickness: Math.round(columnSize * 0.4) },
@@ -117,12 +118,14 @@ function buildPedestalRoundTable(p: {
       mortises: [],
     };
   });
-  // 給柱開 4 個榫眼接 4 隻爪
+  // 給柱開 4 個榫眼接 4 隻爪。爪 mesh 中心 Y = footThickness/2，
+  // 榫眼也對到那裡才不會偏一邊
+  const footMortiseY = footThickness / 2;
   column.mortises = [
-    { origin: { x: -columnSize / 2, y: footWidth / 2, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
-    { origin: { x: columnSize / 2, y: footWidth / 2, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
-    { origin: { x: 0, y: footWidth / 2, z: -columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
-    { origin: { x: 0, y: footWidth / 2, z: columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: -columnSize / 2, y: footMortiseY, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: columnSize / 2, y: footMortiseY, z: 0 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: 0, y: footMortiseY, z: -columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
+    { origin: { x: 0, y: footMortiseY, z: columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
   ];
 
   return {
