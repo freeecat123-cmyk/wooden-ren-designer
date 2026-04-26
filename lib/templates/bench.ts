@@ -51,15 +51,22 @@ export const bench: FurnitureTemplate = (input) => {
 
   if (withUnderShelf) {
     const shelfT = 18;
-    const shelfY = Math.round((input.height - topThickness) * 0.22) + 10;
+    // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 25%）+ 寬 40
+    const stretcherW = 40;
+    const stretcherY = lowerStretcherHeight > 0
+      ? lowerStretcherHeight
+      : Math.round((input.height - topThickness) * 0.25);
+    // 層板坐在下橫撐頂面，不能埋進橫撐內部
+    const shelfY = stretcherY + stretcherW;
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
       material: input.material,
       grainDirection: "length",
       visible: {
-        length: input.length - 2 * legSize - 20,
-        width: input.width - 2 * legSize - 20,
+        // 扣腳本身 + legInset，再各邊留 10mm 間隙
+        length: Math.max(50, input.length - 2 * legSize - 2 * legInset - 20),
+        width: Math.max(50, input.width - 2 * legSize - 2 * legInset - 20),
         thickness: shelfT,
       },
       origin: { x: 0, y: shelfY, z: 0 },
