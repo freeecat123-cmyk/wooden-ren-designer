@@ -7,6 +7,21 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
 
+function legShapeLabel(s: string): string {
+  const m: Record<string, string> = {
+    box: "直方腳",
+    tapered: "方錐腳",
+    round: "圓腳",
+    "round-taper-down": "圓錐腳",
+    "round-taper-up": "倒圓錐腳",
+    shaker: "夏克風腳",
+    "splayed-tapered": "外斜方錐腳",
+    "splayed-round-taper-down": "外斜圓錐腳",
+    "splayed-round-taper-up": "外斜倒圓錐腳",
+  };
+  return m[s] ?? s;
+}
+
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
@@ -54,6 +69,11 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
   const splayDx = splayMm / Math.SQRT2;
   const splayDz = splayMm / Math.SQRT2;
+  const apronY0 = legHeight - apronWidth - apronDropFromTop;
+  const apronYCenter0 = apronY0 + apronWidth / 2;
+  const apronTenonWidth = Math.max(30, Math.min(apronWidth - 12, legSize - 6));
+  const apronTenonThick = Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3)));
+  const apronTenonLen = Math.round(legSize * 0.6);
 
   // 圓桌面
   const top: Part = {
@@ -109,17 +129,32 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         {
           position: "top" as const,
           type: "blind-tenon" as const,
-          length: Math.min(topThickness * 0.6, 20),
+          length: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
           width: Math.round(legSize * 0.6),
           thickness: Math.round(legSize * 0.6),
         },
       ],
-      mortises: [],
+      mortises: [
+        {
+          origin: { x: 0, y: apronYCenter0, z: -sz * (legSize / 2) },
+          depth: apronTenonLen,
+          length: apronTenonWidth,
+          width: apronTenonThick,
+          through: false,
+        },
+        {
+          origin: { x: -sx * (legSize / 2), y: apronYCenter0, z: 0 },
+          depth: apronTenonLen,
+          length: apronTenonWidth,
+          width: apronTenonThick,
+          through: false,
+        },
+      ],
     })),
   );
 
   // 4 條牙板（餐桌結構承重，用帶肩榫）
-  const apronY = legHeight - apronWidth - apronDropFromTop;
+  const apronY = apronY0;
   const isSplayed = legShape.startsWith("splayed-");
   // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
   const tilt = isSplayed
@@ -132,7 +167,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
   const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
   // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
-  const apronSpan = 2 * (cornerOffset + Math.max(apronSplayDx, apronSplayDz));
+  const apronSpan = 2 * (cornerOffset + apronSplayDx);
   // 簡化：apron 也斜 α 度（matches leg），中心對到腳在 apron Y center 的中心
   // 不做 trapezoid，apron 就是矩形 + tilt
   const aprons: Part[] = [
@@ -160,8 +195,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         })
       : undefined,
     tenons: [
-      { position: "start" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(30, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
-      { position: "end" as const, type: "shouldered-tenon" as const, length: Math.round(legSize * 0.6), width: Math.max(30, apronWidth - 12), thickness: Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3))) },
+      { position: "start" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
+      { position: "end" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
     ],
     mortises: [],
   }));
@@ -174,7 +209,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [top, ...legs, ...aprons],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShape === "tapered" ? "錐形" : "方"}腳含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。`,
+    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
