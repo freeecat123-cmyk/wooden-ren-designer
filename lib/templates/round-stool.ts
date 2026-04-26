@@ -38,15 +38,15 @@ export const roundStoolOptions: OptionSpec[] = [
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
-  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板/橫撐會跟著腳一起斜同角度。僅外斜系列有效" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板/橫撐會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
   { group: "apron", type: "checkbox", key: "withApron", label: "加上橫撐", defaultValue: true, help: "座板下方接腳的橫撐，結構穩固" },
-  { group: "apron", type: "number", key: "apronWidth", label: "上橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm" },
-  { group: "apron", type: "number", key: "apronThickness", label: "上橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "上橫撐距座板 (mm)", defaultValue: 25, min: 0, max: 200, step: 5, unit: "mm" },
+  { group: "apron", type: "number", key: "apronWidth", label: "上橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "上橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "上橫撐距座板 (mm)", defaultValue: 25, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐，更耐絆腳但料較費" },
-  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm" },
-  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 16, min: 10, max: 30, step: 1, unit: "mm" },
-  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", help: "下橫撐底面距離地面的高度" },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 16, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", help: "下橫撐底面距離地面的高度", dependsOn: { key: "withLowerStretcher", equals: true } },
 ];
 
 /**

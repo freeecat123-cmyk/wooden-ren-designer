@@ -34,15 +34,15 @@ export const displayCabinetOptions: OptionSpec[] = [
   drawerBottomModeOption,
   backModeOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5 },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
-  ] },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  ] , dependsOn: { key: "legHeight", notIn: [0] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
 ];
 

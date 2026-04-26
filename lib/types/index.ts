@@ -242,6 +242,9 @@ export interface OptionDependency {
   /** Hide when the referenced option's value is in this list（select 用，例如
    *  pedestal/trestle 切換時把 4-leg 專屬選項藏起來） */
   notIn?: Array<string | number | boolean>;
+  /** Show only when the referenced option's value is in this list（外斜系列
+   *  只 3 個值要 splayAngle 顯示，比 notIn 列 6 個排除值清爽） */
+  oneOf?: Array<string | number | boolean>;
 }
 
 export type OptionSpec =

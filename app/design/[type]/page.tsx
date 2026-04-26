@@ -494,8 +494,9 @@ function isVisible(
   if (!dep) return true;
   const v = values[dep.key];
   if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
+  if (dep.oneOf && !dep.oneOf.includes(v as string | number | boolean)) return false;
   if (dep.equals !== undefined && v !== dep.equals) return false;
-  if (dep.equals === undefined && dep.notIn === undefined && !v) return false;
+  if (dep.equals === undefined && dep.notIn === undefined && dep.oneOf === undefined && !v) return false;
   return true;
 }
 

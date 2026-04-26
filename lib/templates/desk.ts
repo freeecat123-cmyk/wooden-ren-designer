@@ -19,10 +19,10 @@ export const deskOptions: OptionSpec[] = [
     { value: "left", label: "左側" },
     { value: "right", label: "右側" },
     { value: "center", label: "中央（窄型）" },
-  ] },
+  ], dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動" },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 
 export const desk: FurnitureTemplate = (input) => {

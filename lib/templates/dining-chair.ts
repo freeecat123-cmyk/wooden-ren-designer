@@ -30,10 +30,10 @@ export const diningChairOptions: OptionSpec[] = [
     { value: "ladder", label: "橫檔式（水平橫木 3–5 根）" },
     { value: "splat", label: "中板式（中央單片寬板）" },
   ] },
-  { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 2, min: 0, max: 10, step: 1, help: "backStyle=直條 時有效" },
-  { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5 },
-  { group: "back", type: "number", key: "ladderRungs", label: "橫檔數（橫檔式用）", defaultValue: 4, min: 2, max: 8, step: 1 },
-  { group: "back", type: "number", key: "splatWidth", label: "中板寬 (mm)（中板式用）", defaultValue: 180, min: 80, max: 400, step: 10 },
+  { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 2, min: 0, max: 10, step: 1, help: "backStyle=直條 時有效", dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "ladderRungs", label: "橫檔數（橫檔式用）", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "ladder" } },
+  { group: "back", type: "number", key: "splatWidth", label: "中板寬 (mm)（中板式用）", defaultValue: 180, min: 80, max: 400, step: 10, dependsOn: { key: "backStyle", equals: "splat" } },
   { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
   // 橫撐
   { group: "stretcher", type: "select", key: "stretcherStyle", label: "下橫撐樣式", defaultValue: "none", choices: [
@@ -42,7 +42,7 @@ export const diningChairOptions: OptionSpec[] = [
     { value: "box", label: "田字形（四周一圈）" },
     { value: "side-only", label: "雙側（左右兩條，前後不加）" },
   ] },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "0 = 自動（坐高的 25%）" },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "0 = 自動（坐高的 25%）", dependsOn: { key: "stretcherStyle", notIn: ["none"] } },
 ];
 
 /**

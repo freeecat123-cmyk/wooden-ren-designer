@@ -89,8 +89,27 @@ URL 模式：`/design/<category>`、`/design/<category>/print`、`/design/<categ
 ## 2D 三視圖 X 軸翻轉
 `projectPart` 的 front + top 視圖有 `-x - xExt/2`，把世界 +X 映射到 SVG 左側，跟預設 3D 相機方向一致。side view 不翻（用 Z 軸）。加新 shape 時記得 splayed 的 `dxMm` 也要負號。
 
-## 條件顯示 `dependsOn`（目前失效）
-schema 還留著 `dependsOn: { key, equals? }` 欄位，但 `page.tsx` 的 `isVisible` 現在永遠回傳 `true`，所有子選項常駐顯示。原因：使用者反映勾父 checkbox 後子選項沒跳出來，直接改成不 gate。加新選項可以不用填 `dependsOn`，填了也不會生效。
+## 條件顯示 `dependsOn`（必填規則）
+
+OptionSpec 的 `dependsOn` 已經啟用（commit `b653cbb`）。**任何 option 只在某條件下才有意義時，必須加 `dependsOn` 隱藏不適用的情境**，避免使用者調了參數但對結果沒影響的錯亂感。
+
+`OptionDependency` 支援 3 種 evaluate（`lib/types/index.ts` 的 OptionDependency）：
+- `{ key, equals: value }` — 父選項值必須等於 value 才顯示（select 用 `"splayed-tapered"` 字串、checkbox 用 `true`）
+- `{ key, notIn: [values...] }` — 父選項值不在排除清單時才顯示（select 用，例如「除了 pedestal/trestle 都顯示」）
+- `{ key }` 沒帶 equals/notIn — 父選項 truthy 才顯示（最常用：checkbox 父子）
+
+**Reactivity**：form 的 `onChange` 觸發 debounced URL push（`DesignFormShell`）→ Next.js re-render → `optionValues` 從 URL 重新讀取 → `isVisible` 重新 evaluate。select / checkbox 都正常 reactive，**不會踩當年那個父子 race condition** 的雷（已用 URL params 取代 client-side state）。
+
+**常見 pattern**：
+- 牙板 / 橫撐子選項：`dependsOn: { key: "withCenterStretcher", equals: true }` 或 `{ key: "withCenterStretcher" }` (truthy)
+- 外斜角度：`dependsOn: { key: "legShape", equals: "splayed-tapered" }`（或 `notIn: ["box","tapered","round",...]` 排除清單）
+- 結構切換時的整組無關選項：`dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] }` 整批 8 個 option 都標
+- 抽屜尺寸：`dependsOn: { key: "drawerCount" }`（drawerCount > 0 為 truthy → 顯示）
+- 椅背樣式相依：slat 數只在 `backStyle === "slats"`、ladder 數只在 `"ladder"`、splat 寬只在 `"splat"`
+
+**加新 option 一定先想：「這個值在哪些情境下有意義？」** 其他情境設了沒用就要 `dependsOn` 藏掉。
+
+**例外**：基本尺寸（length / width / height / material）一律不藏。整體尺寸跟材質永遠都有意義。
 
 ## `reactStrictMode: false`（踩過雷）
 `next.config.ts` 關著 strict mode，**不要打開**。r3f Canvas 在 dev 雙掛載時第一個 WebGL context 被清掉後，Chromium 來不及給第二個 context，透視圖整個空白（console 會看到 `THREE.WebGLRenderer: Context Lost`）。prod build 不雙掛載，所以關它對生產 0 影響。

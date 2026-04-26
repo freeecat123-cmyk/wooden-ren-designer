@@ -31,25 +31,26 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "h-2col", label: "橫向 2 欄（左右各一種）" },
     { value: "h-3col", label: "橫向 3 欄（左中右各一種）" },
   ] },
-  // 縱向模式：上層內容（zone-top）
+  // 縱向模式：上層內容（zone-top）—— 只在縱向 1/2 層用到
   { group: "zone-top", type: "select", key: "upperType", label: "上層類型（縱向 1 / 2 層）", defaultValue: "shelves", choices: [
     { value: "shelves", label: "開放層板（輸入=層數）" },
     { value: "door", label: "門板" },
-  ] },
-  { group: "zone-top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1 },
-  // 縱向 2 層：下層抽屜（zone-bot）
-  { group: "zone-bot", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1 },
-  { group: "zone-bot", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10 },
+  ], dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1, dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
+  // 縱向 2 層：下層抽屜（zone-bot）—— 只在 v-2layer
+  { group: "zone-bot", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
+  { group: "zone-bot", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
+  { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   // 橫向 2/3 欄模式：每欄的類型 + 數量 + 寬度
-  { group: "col-left", type: "select", key: "leftType", label: "類型", defaultValue: "door", choices: COL_TYPE_CHOICES },
-  { group: "col-left", type: "number", key: "leftCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1 },
-  { group: "col-left", type: "number", key: "leftWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
-  { group: "col-mid", type: "select", key: "centerType", label: "類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES },
-  { group: "col-mid", type: "number", key: "centerCount", label: "數量", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "col-right", type: "select", key: "rightType", label: "類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES },
-  { group: "col-right", type: "number", key: "rightCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 2, min: 1, max: 6, step: 1 },
-  { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10 },
+  { group: "col-left", type: "select", key: "leftType", label: "類型", defaultValue: "door", choices: COL_TYPE_CHOICES, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  { group: "col-left", type: "number", key: "leftCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  { group: "col-left", type: "number", key: "leftWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  // 中欄只 3 欄用
+  { group: "col-mid", type: "select", key: "centerType", label: "類型（3 欄用，寬度自動填滿）", defaultValue: "shelves", choices: COL_TYPE_CHOICES, dependsOn: { key: "layoutMode", equals: "h-3col" } },
+  { group: "col-mid", type: "number", key: "centerCount", label: "數量", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", equals: "h-3col" } },
+  { group: "col-right", type: "select", key: "rightType", label: "類型", defaultValue: "drawer", choices: COL_TYPE_CHOICES, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  { group: "col-right", type: "number", key: "rightCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
+  { group: "col-right", type: "number", key: "rightWidthMm", label: "寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
   // 門材質
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
@@ -62,15 +63,15 @@ export const mediaConsoleOptions: OptionSpec[] = [
   backModeOption,
   // 腳
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 120, min: 0, max: 400, step: 10, help: "電視櫃常見 100–150mm 底座" },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5 },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
-  ] },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  ] , dependsOn: { key: "legHeight", notIn: [0] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
 ];
 
