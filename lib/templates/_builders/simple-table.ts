@@ -185,68 +185,90 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   };
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  // 外斜模式：腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splayMm
+  // 牙板中心對到腳的真實中心（不然榫頭會偏一邊讓壁太薄爆掉）
+  const isSplayed = legShape === "splayed";
+  const apronYCenter = apronY + apronWidth / 2;
+  const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+  const apronSplay = isSplayed ? splayMm * shiftFactor : 0;
+  // 牙板斜度 = arctan(每軸位移 / 腳高)。simpleTable 的 splayMm 本來就是每軸值
+  const tilt = isSplayed ? Math.atan(splayMm / legHeight) : 0;
   const apronSides = [
     {
       key: "front",
       nameZh: "前牙板",
-      visibleLength: apronInnerSpan.x,
+      visibleLength: apronInnerSpan.x + 2 * apronSplay,
       axis: "x" as const,
-      origin: { x: 0, z: -apronEdgeZ },
+      sx: 0,
+      sz: -1,
+      origin: { x: 0, z: -(apronEdgeZ + apronSplay) },
     },
     {
       key: "back",
       nameZh: "後牙板",
-      visibleLength: apronInnerSpan.x,
+      visibleLength: apronInnerSpan.x + 2 * apronSplay,
       axis: "x" as const,
-      origin: { x: 0, z: apronEdgeZ },
+      sx: 0,
+      sz: 1,
+      origin: { x: 0, z: apronEdgeZ + apronSplay },
     },
     {
       key: "left",
       nameZh: "左牙板",
-      visibleLength: apronInnerSpan.z,
+      visibleLength: apronInnerSpan.z + 2 * apronSplay,
       axis: "z" as const,
-      origin: { x: -apronEdgeX, z: 0 },
+      sx: -1,
+      sz: 0,
+      origin: { x: -(apronEdgeX + apronSplay), z: 0 },
     },
     {
       key: "right",
       nameZh: "右牙板",
-      visibleLength: apronInnerSpan.z,
+      visibleLength: apronInnerSpan.z + 2 * apronSplay,
       axis: "z" as const,
-      origin: { x: apronEdgeX, z: 0 },
+      sx: 1,
+      sz: 0,
+      origin: { x: apronEdgeX + apronSplay, z: 0 },
     },
   ];
-  const aprons: Part[] = apronSides.map((s) => ({
-    id: `apron-${s.key}`,
-    nameZh: s.nameZh,
-    material,
-    grainDirection: "length",
-    visible: {
-      length: s.visibleLength,
-      width: apronWidth,
-      thickness: apronThickness,
-    },
-    origin: { x: s.origin.x, y: apronY, z: s.origin.z },
-    rotation: s.axis === "z"
-      ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
-      : { x: Math.PI / 2, y: 0, z: 0 },
-    tenons: [
-      {
-        position: "start",
-        type: "shouldered-tenon",
-        length: apronTenonLen,
-        width: apronTenonWidth,
-        thickness: apronTenonThick,
+  const aprons: Part[] = apronSides.map((s) => {
+    const bevelAngle = isSplayed
+      ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+      : 0;
+    return {
+      id: `apron-${s.key}`,
+      nameZh: s.nameZh,
+      material,
+      grainDirection: "length" as const,
+      visible: {
+        length: s.visibleLength,
+        width: apronWidth,
+        thickness: apronThickness,
       },
-      {
-        position: "end",
-        type: "shouldered-tenon",
-        length: apronTenonLen,
-        width: apronTenonWidth,
-        thickness: apronTenonThick,
-      },
-    ],
-    mortises: [],
-  }));
+      origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+      rotation: s.axis === "z"
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+        : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+      shape: isSplayed ? { kind: "apron-beveled" as const, bevelAngle } : undefined,
+      tenons: [
+        {
+          position: "start" as const,
+          type: "shouldered-tenon" as const,
+          length: apronTenonLen,
+          width: apronTenonWidth,
+          thickness: apronTenonThick,
+        },
+        {
+          position: "end" as const,
+          type: "shouldered-tenon" as const,
+          length: apronTenonLen,
+          width: apronTenonWidth,
+          thickness: apronTenonThick,
+        },
+      ],
+      mortises: [],
+    };
+  });
 
   const parts: Part[] = [topPanel, ...legs, ...aprons];
 
@@ -261,13 +283,20 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
+    // 外斜模式：橫撐在 stretcherY 高度的腳中心，shiftFactor 跟 apron 不同（更下方→更外）
+    const stretcherYCenter = stretcherY + stretcherWidth / 2;
+    const sShiftFactor = legHeight > 0 ? 1 - stretcherYCenter / legHeight : 0;
+    const sSplay = isSplayed ? splayMm * sShiftFactor : 0;
     const lowerSides = [
-      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -apronEdgeZ } },
-      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: apronEdgeZ } },
-      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -apronEdgeX, z: 0 } },
-      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: apronEdgeX, z: 0 } },
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplay) } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplay } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplay), z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplay, z: 0 } },
     ];
     for (const s of lowerSides) {
+      const bevelAngle = isSplayed
+        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+        : 0;
       parts.push({
         id: s.key,
         nameZh: s.nameZh,
@@ -275,7 +304,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         grainDirection: "length",
         visible: { length: s.visibleLength, width: stretcherWidth, thickness: stretcherThickness },
         origin: { x: s.origin.x, y: stretcherY, z: s.origin.z },
-        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        rotation: s.axis === "z"
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
         tenons: [
           { position: "start", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
           { position: "end", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
