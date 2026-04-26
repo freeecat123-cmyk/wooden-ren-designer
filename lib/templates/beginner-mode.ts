@@ -33,9 +33,11 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
   // 櫃體的側板、層板、zone 分隔板、抽屜箱、門框 等都是面板對面板接合，
   // 長度已經是正確的內部尺寸，不能再縮——否則會比櫃體內高少 legSize，
   // 在 3D 看起來到處有縫、分解。
+  // tea-table 的 ID 是 upper-apron-* / lower-stretcher-*，所以 apron / stretcher
+  // 用 substring（不限定開頭）抓得到 upper- / lower- 等前綴變體
   const isApronLike = (id: string): boolean =>
-    /^apron/.test(id) ||
-    /^stretcher/.test(id) ||
+    /(?:^|-)apron/.test(id) ||
+    /(?:^|-)stretcher/.test(id) ||
     /^ls-/.test(id) ||
     id === "center-stretcher" ||
     id === "back-rail" ||
