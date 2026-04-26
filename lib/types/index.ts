@@ -239,6 +239,9 @@ export interface OptionDependency {
   key: string;
   /** If omitted, "truthy value" is enough (e.g. checkbox = true / select = any non-empty). */
   equals?: string | number | boolean;
+  /** Hide when the referenced option's value is in this list（select 用，例如
+   *  pedestal/trestle 切換時把 4-leg 專屬選項藏起來） */
+  notIn?: Array<string | number | boolean>;
 }
 
 export type OptionSpec =

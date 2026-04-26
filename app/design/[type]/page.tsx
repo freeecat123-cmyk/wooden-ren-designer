@@ -483,10 +483,19 @@ const GROUP_ORDER = [
 ];
 
 function isVisible(
-  _spec: OptionSpec,
-  _values: Record<string, string | number | boolean>,
+  spec: OptionSpec,
+  values: Record<string, string | number | boolean>,
 ): boolean {
-  // 常駐顯示所有子選項，不用勾父 checkbox 才出來
+  // 沒設 dependsOn 一律顯示。設了 dependsOn 就依規則 evaluate。
+  // 之前用 checkbox 父子有 race condition（勾父子沒跳出來），現在只認
+  // select-based notIn——切 select 會觸發 URL params 更新跟完整 re-render
+  // 不會卡住
+  const dep = spec.dependsOn;
+  if (!dep) return true;
+  const v = values[dep.key];
+  if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
+  if (dep.equals !== undefined && v !== dep.equals) return false;
+  if (dep.equals === undefined && dep.notIn === undefined && !v) return false;
   return true;
 }
 
