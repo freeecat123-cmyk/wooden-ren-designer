@@ -63,22 +63,29 @@ export const desk: FurnitureTemplate = (input) => {
 
   if (drawerCount > 0) {
     const legHeight = input.height - topThickness;
+    // 內側可用空間 = 總長 - 兩端腳 - 兩端 legInset
+    const innerW = input.length - 2 * legSize - 2 * legInset;
     const caseW = drawerSide === "center"
       ? Math.min(400, input.length * 0.4)
-      : Math.min(450, (input.length - 2 * legSize) * 0.4);
+      : Math.min(450, innerW * 0.4);
     const caseH = Math.min(legHeight * 0.55, drawerCount * 120 + 40);
     const caseD = input.width - 40;
     const caseY = legHeight - caseH;
     const sideT = 15;
+    // caseX 要扣 legInset，case 才落在腳內側 20mm 處（不撞內縮的腳）
     const caseX = drawerSide === "center"
       ? 0
       : drawerSide === "left"
-      ? -(input.length / 2 - legSize - caseW / 2 - 20)
-      : (input.length / 2 - legSize - caseW / 2 - 20);
+      ? -(input.length / 2 - legSize - legInset - caseW / 2 - 20)
+      : (input.length / 2 - legSize - legInset - caseW / 2 - 20);
 
     const drawers: Part[] = [];
     const slotH = caseH / drawerCount;
     const frontT = 15;
+    // 抽屜面板 Z 位置：與牙板前面平齊（overlay drawer），不再卡在桌面前緣
+    // 牙板中心 Z = -(width/2 - legInset - legSize/2)，前面 = 中心 - apronThickness/2
+    const apronFrontZ = -(input.width / 2 - legInset - legSize / 2) - apronThickness / 2;
+    const drawerFaceZ = apronFrontZ - frontT / 2;
     for (let i = 0; i < drawerCount; i++) {
       drawers.push({
         id: `desk-drawer-${i + 1}-front`,
@@ -86,7 +93,7 @@ export const desk: FurnitureTemplate = (input) => {
         material: input.material,
         grainDirection: "length",
         visible: { length: caseW - 4, width: slotH - 4, thickness: frontT },
-        origin: { x: caseX, y: caseY + i * slotH + 2, z: -input.width / 2 + frontT / 2 },
+        origin: { x: caseX, y: caseY + i * slotH + 2, z: drawerFaceZ },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [],
         mortises: [],
