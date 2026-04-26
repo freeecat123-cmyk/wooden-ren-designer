@@ -819,13 +819,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
           tenons: [],
           // 兩端各有燕尾榫眼接面板，背端有半搭接眼接後板
+          // 燕尾深度 = 側板厚 → 通榫，through 標 true 才誠實
           mortises: [
             {
               origin: { x: 0, y: 0, z: -drawerInnerD / 2 - 1 },
               depth: dovetailLen,
               length: boxH - 6,
               width: drawerFrontT - 2,
-              through: false,
+              through: true,
             },
             {
               origin: { x: 0, y: 0, z: drawerInnerD / 2 + 1 },
@@ -835,11 +836,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               through: false,
             },
             // 底板溝槽（只有入溝模式才有；釘底模式下緣直接釘 3mm 板）
+            // 側板 rotation { x: π/2, y: π/2 } 後：local Z 變垂直軸 → 底端 = local +Z
+            // （local +Z → world -Y）。原本用 local Y 是錯的——Y 是側板厚度才 ±7mm
             ...(isSurfaceDrawerBottom
               ? []
               : [
                   {
-                    origin: { x: 0, y: -(boxH / 2) + drawerBottomT, z: 0 },
+                    origin: { x: 0, y: 0, z: boxH / 2 - drawerBottomT / 2 },
                     depth: 4,
                     length: drawerInnerD - 4,
                     width: drawerBottomT + 1,
