@@ -39,10 +39,14 @@ export const roundStoolOptions: OptionSpec[] = [
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板/橫撐會跟著腳一起斜同角度。僅外斜系列有效" },
-  { group: "apron", type: "checkbox", key: "withApron", label: "加橫撐", defaultValue: true, help: "腳之間用橫撐連結，結構穩固" },
-  { group: "apron", type: "number", key: "apronWidth", label: "橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm" },
-  { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm" },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 25, min: 0, max: 200, step: 5, unit: "mm" },
+  { group: "apron", type: "checkbox", key: "withApron", label: "加上橫撐", defaultValue: true, help: "座板下方接腳的橫撐，結構穩固" },
+  { group: "apron", type: "number", key: "apronWidth", label: "上橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm" },
+  { group: "apron", type: "number", key: "apronThickness", label: "上橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm" },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "上橫撐距座板 (mm)", defaultValue: 25, min: 0, max: 200, step: 5, unit: "mm" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐，更耐絆腳但料較費" },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm" },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 16, min: 10, max: 30, step: 1, unit: "mm" },
+  { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", help: "下橫撐底面距離地面的高度" },
 ];
 
 /**
@@ -65,6 +69,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
+  const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
+  const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
+  const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  const lowerStretcherFromGround = getOption<number>(input, opt(o, "lowerStretcherFromGround"));
 
   const radius = diameter / 2;
   const legHeight = height - seatThickness;
@@ -99,14 +107,20 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
-  // 4 隻腳——榫眼數量會在 apron 段補上（這裡先 placeholder 後面 push）
-  // 計算 apron 中心 Y（在外面用一次，腳跟 apron 都要）
+  // 4 隻腳——榫眼依上下橫撐動態加
+  // 上橫撐 中心 Y + tenon 規格（腳跟 apron 共用）
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
   // 圓腳 tenon 寬度上限：legSize - 6（兩側留 3mm 木）避免 tenon 比腳直徑寬
   const apronTenonWidth = Math.max(15, Math.min(apronWidth - 12, legSize - 6));
   const apronTenonThick = Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3)));
   const apronTenonLen = Math.round(legSize * 0.5);
+  // 下橫撐 同樣公式（用 lowerStretcher* 數值）
+  const lsY0 = lowerStretcherFromGround;
+  const lsYCenter0 = lsY0 + lowerStretcherWidth / 2;
+  const lsTenonWidth = Math.max(15, Math.min(lowerStretcherWidth - 12, legSize - 6));
+  const lsTenonThick = Math.max(6, Math.min(lowerStretcherThickness - 12, Math.round(legSize / 3)));
+  const lsTenonLen = Math.round(legSize * 0.5);
 
   const legs: Part[] = [-1, 1].flatMap((sx) =>
     [-1, 1].map((sz) => ({
@@ -143,25 +157,45 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: Math.round(legSize * 0.6),
         },
       ],
-      // 有 apron 時補兩個 mortise（X 軸 + Z 軸）給 apron tenon 配對
-      mortises: withApron
-        ? [
-            {
-              origin: { x: 0, y: apronYCenter0, z: -sz * (legSize / 2) },
-              depth: apronTenonLen,
-              length: apronTenonWidth,
-              width: apronTenonThick,
-              through: false,
-            },
-            {
-              origin: { x: -sx * (legSize / 2), y: apronYCenter0, z: 0 },
-              depth: apronTenonLen,
-              length: apronTenonWidth,
-              width: apronTenonThick,
-              through: false,
-            },
-          ]
-        : [],
+      // 上下橫撐各自加 X + Z 軸 mortise；沒開的不加
+      mortises: [
+        ...(withApron
+          ? [
+              {
+                origin: { x: 0, y: apronYCenter0, z: -sz * (legSize / 2) },
+                depth: apronTenonLen,
+                length: apronTenonWidth,
+                width: apronTenonThick,
+                through: false,
+              },
+              {
+                origin: { x: -sx * (legSize / 2), y: apronYCenter0, z: 0 },
+                depth: apronTenonLen,
+                length: apronTenonWidth,
+                width: apronTenonThick,
+                through: false,
+              },
+            ]
+          : []),
+        ...(withLowerStretcher
+          ? [
+              {
+                origin: { x: 0, y: lsYCenter0, z: -sz * (legSize / 2) },
+                depth: lsTenonLen,
+                length: lsTenonWidth,
+                width: lsTenonThick,
+                through: false,
+              },
+              {
+                origin: { x: -sx * (legSize / 2), y: lsYCenter0, z: 0 },
+                depth: lsTenonLen,
+                length: lsTenonWidth,
+                width: lsTenonThick,
+                through: false,
+              },
+            ]
+          : []),
+      ],
     })),
   );
 
@@ -218,6 +252,48 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: [
           { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
           { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
+        ],
+        mortises: [],
+      });
+    }
+  }
+
+  // 4 條下橫撐——同邏輯但用 lowerStretcher* 參數，靠近地面
+  if (withLowerStretcher) {
+    const isSplayed = legShape.startsWith("splayed-");
+    const tilt = isSplayed
+      ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
+      : 0;
+    const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
+    const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
+    const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;
+    const lsSpan = 2 * (cornerOffset + lsSplayDx);
+    const lsSides = [
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsSplayDz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsSplayDz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsSplayDx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsSplayDx, z: 0 } },
+    ];
+    for (const s of lsSides) {
+      const rotation =
+        s.axis === "z"
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 };
+      const bevelAngle = isSplayed
+        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+        : 0;
+      parts.push({
+        id: s.id,
+        nameZh: s.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: lsSpan, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
+        origin: { x: s.origin.x, y: lsY0, z: s.origin.z },
+        rotation,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        tenons: [
+          { position: "start", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
+          { position: "end", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
         ],
         mortises: [],
       });
