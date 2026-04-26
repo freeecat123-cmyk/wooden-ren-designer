@@ -28,6 +28,26 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     legPart?.shape?.kind === "shaker" ||
     legPart?.shape?.kind === "splayed-round-tapered";
   const legSize = legPart && !isRoundLeg ? legPart.visible.length : 0;
+  const legHeight = legPart?.visible.thickness ?? 0;
+  // tapered / splayed-tapered 腳的下半部比較細——下橫撐高度的腳寬要照
+  // bottomScale 算，不然 stretcher 縮太多會跟腳之間有縫
+  const legBottomScale = (() => {
+    const k = legPart?.shape?.kind;
+    if (k === "tapered" || k === "splayed-tapered") {
+      return legPart?.shape && "bottomScale" in legPart.shape
+        ? legPart.shape.bottomScale
+        : 1;
+    }
+    return 1;
+  })();
+  // 給定世界 Y，算腳在這個 Y 的橫切寬度
+  const legWidthAt = (worldY: number): number => {
+    if (legSize === 0 || legHeight === 0) return legSize;
+    const yFromBottom = Math.max(0, Math.min(legHeight, worldY));
+    // 上端寬 = legSize（尺度=1），下端寬 = legSize × bottomScale
+    const scale = legBottomScale + (1 - legBottomScale) * (yFromBottom / legHeight);
+    return legSize * scale;
+  };
 
   // 只有真正「接腳」的零件（牙板、橫撐、背橫木）才需要縮短；
   // 櫃體的側板、層板、zone 分隔板、抽屜箱、門框 等都是面板對面板接合，
@@ -52,8 +72,12 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
       isApronLike(p.id) &&
       legSize > 0 &&
       p.visible.length > legSize;
+    // apron 在世界 Y 中心位置 ≈ origin.y + visible.width/2（rotation x:π/2 後
+    // visible.width 變成世界垂直軸）
+    const apronYCenter = p.origin.y + p.visible.width / 2;
+    const shrinkAmount = legWidthAt(apronYCenter);
     const visible = shouldShrink
-      ? { ...p.visible, length: p.visible.length - legSize }
+      ? { ...p.visible, length: p.visible.length - shrinkAmount }
       : p.visible;
     return {
       ...p,
