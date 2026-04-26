@@ -37,6 +37,33 @@ const DRAWER_TINT = "#ff9a3d";
 const DOOR_TINT = "#ff9a3d";
 const TINT_AMOUNT = 0.32;
 
+/**
+ * 車旋腳輪廓（古典花瓶/baluster 風格）：
+ * [topRScale, botRScale, hFrac]，從上到下
+ * - 頂部：滿尺寸做榫接區
+ * - 上球節：圓潤外凸
+ * - 凹頸：明顯收進去
+ * - 花瓶腹身：先外擴再內收，像花瓶
+ * - 主桿：細長下漸細
+ * - 下球節：再次外擴
+ * - 足盤：穩定的較粗底座
+ * 半徑 scale 全部以 fullR (= legSize/2) 為基準
+ */
+export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
+  [1.0, 1.0, 0.05],   // 頂端榫接區（直圓柱）
+  [1.0, 1.10, 0.04],  // 上球節 ↑
+  [1.10, 1.0, 0.04],  // 上球節 ↓
+  [1.0, 0.55, 0.10],  // 凹頸 cove
+  [0.55, 0.78, 0.18], // 花瓶腹身上半（外擴）
+  [0.78, 0.55, 0.20], // 花瓶腹身下半（內收）
+  [0.55, 0.50, 0.10], // 主桿（細部）
+  [0.50, 0.95, 0.10], // 下球節 ↑
+  [0.95, 0.85, 0.05], // 過渡
+  [0.85, 0.95, 0.06], // 足盤外擴
+  [0.95, 0.95, 0.05], // 足底圓盤
+  [0.95, 0.80, 0.03], // 足底斜邊
+];
+
 type ShapeSpec =
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number }
@@ -175,28 +202,18 @@ function Part({
   if (shape?.kind === "lathe-turned") {
     const fullH = size[1];
     const fullR = size[0] / 2;
-    // 段 = [hFrac, rScale]，從上到下
-    const segments: Array<[number, number]> = [
-      [0.06, 0.95], // 頂頸圈
-      [0.10, 1.10], // 上球節
-      [0.06, 0.55], // 上凹頸
-      [0.50, 0.85], // 主桿（最長）
-      [0.10, 0.50], // 下凹頸
-      [0.10, 1.05], // 下球節
-      [0.04, 0.90], // 足盤
-      [0.04, 0.70], // 足底
-    ];
-    let yCursor = fullH / 2; // 從頂端開始往下排
+    let yCursor = fullH / 2;
     return (
       <group position={position} rotation={rotation}>
-        {segments.map(([hFrac, rScale], i) => {
+        {LATHE_TURNED_SEGMENTS.map(([topR, botR, hFrac], i) => {
           const segH = fullH * hFrac;
-          const segR = fullR * rScale;
           const segYCenter = yCursor - segH / 2;
           yCursor -= segH;
+          // CylinderGeometry(topRadius, bottomRadius, height, segments)
+          // 不同 top/bot 半徑 → cone frustum，多段串起來輪廓平滑
           return (
             <mesh key={i} position={[0, segYCenter, 0]} castShadow receiveShadow>
-              <cylinderGeometry args={[segR, segR, segH, 32]} />
+              <cylinderGeometry args={[fullR * topR, fullR * botR, segH, 32]} />
               <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
             </mesh>
           );

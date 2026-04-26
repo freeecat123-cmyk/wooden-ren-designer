@@ -17,7 +17,6 @@ function legShapeLabel(s: string): string {
     "round-taper-up": "倒圓錐腳",
     "heavy-round-taper": "重型圓錐腳",
     shaker: "夏克風腳",
-    "thick-shaker": "胖夏克風腳",
     "lathe-turned": "車旋腳",
     "splayed-tapered": "外斜方錐腳",
     "splayed-round-taper-down": "外斜圓錐腳",
@@ -59,7 +58,7 @@ function buildPedestalRoundTable(p: {
     tenons: [],
     mortises: [],
   };
-  // 中央柱
+  // 中央柱：用 lathe-turned 車旋輪廓做出花瓶形態，不是死板方柱
   const column: Part = {
     id: "pedestal-column",
     nameZh: "中央柱",
@@ -67,6 +66,7 @@ function buildPedestalRoundTable(p: {
     grainDirection: "length",
     visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
     origin: { x: 0, y: footThickness, z: 0 },
+    shape: { kind: "lathe-turned" },
     tenons: [
       { position: "top", type: "blind-tenon", length: 30, width: Math.round(columnSize * 0.4), thickness: Math.round(columnSize * 0.4) },
     ],
@@ -160,12 +160,13 @@ function buildTrestleRoundTable(p: {
   const frameRailThickness = 28;
   const frameFootWidth = 80;
   const frameFootThickness = 35;
-  // 中央橫木：連接 2 框中心，長 = 2 × frameZ
-  const centerStretcherLen = 2 * frameZ;
-  const centerStretcherWidth = 50;
-  const centerStretcherThickness = 25;
-  // 中央橫木 Y：底足上方一點（避免絆腳）
-  const centerStretcherY = frameFootThickness + 30;
+  // 中央橫木：跨越 2 個底足之間，落在底足 Y 範圍內（傳統 trestle 結構）
+  // 長度 = 2 框中心距離 - 兩端底足厚度（榫入足內側面）
+  const centerStretcherLen = 2 * frameZ - frameFootWidth;
+  const centerStretcherWidth = 25;
+  const centerStretcherThickness = 30;
+  // 中央橫木 Y：嵌在底足內部（足厚 35，橫木高 25 → 居中放）
+  const centerStretcherY = (frameFootThickness - centerStretcherWidth) / 2;
 
   const top: Part = {
     id: "top",
@@ -263,8 +264,7 @@ export const roundTableOptions: OptionSpec[] = [
     { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
     { value: "heavy-round-taper", label: "重型圓錐腳（大幅下收）" },
     { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
-    { value: "thick-shaker", label: "胖夏克風腳（方頂占比大、收斂少）" },
-    { value: "lathe-turned", label: "車旋腳（多段球節 + 主桿）" },
+    { value: "lathe-turned", label: "車旋腳（古典花瓶輪廓）" },
     { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
@@ -378,17 +378,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
                     ? ({ kind: "round-tapered", bottomScale: 0.4 } as const)
                     : legShape === "shaker"
                       ? ({ kind: "shaker" } as const)
-                      : legShape === "thick-shaker"
-                        ? ({ kind: "shaker", squareFrac: 0.4, bottomScale: 0.75 } as const)
-                        : legShape === "lathe-turned"
-                          ? ({ kind: "lathe-turned" } as const)
-                          : legShape === "splayed-tapered"
-                            ? ({ kind: "splayed-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                            : legShape === "splayed-round-taper-down"
-                              ? ({ kind: "splayed-round-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                              : legShape === "splayed-round-taper-up"
-                                ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                                : undefined,
+                      : legShape === "lathe-turned"
+                        ? ({ kind: "lathe-turned" } as const)
+                        : legShape === "splayed-tapered"
+                          ? ({ kind: "splayed-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                          : legShape === "splayed-round-taper-down"
+                            ? ({ kind: "splayed-round-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                            : legShape === "splayed-round-taper-up"
+                              ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                              : undefined,
       tenons: [
         {
           position: "top" as const,

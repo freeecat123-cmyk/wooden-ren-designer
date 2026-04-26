@@ -280,34 +280,36 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
-  // 車旋腳：silhouette 順著 6+ 段不同半徑的輪廓畫
-  // 跟 PerspectiveView 的 segments 配對，比例要一致
+  // 車旋腳：silhouette 順著 cone-frustum 段組的輪廓畫
+  // 段定義跟 PerspectiveView.LATHE_TURNED_SEGMENTS 必須一致
   if (part.shape.kind === "lathe-turned") {
     if (view === "top") return box;
     const cx = (r.x + r.x + r.w) / 2;
     const halfFull = r.w / 2;
-    const segments: Array<[number, number]> = [
-      [0.06, 0.95],
-      [0.10, 1.10],
-      [0.06, 0.55],
-      [0.50, 0.85],
-      [0.10, 0.50],
-      [0.10, 1.05],
-      [0.04, 0.90],
-      [0.04, 0.70],
+    // [topRScale, botRScale, hFrac]
+    const segments: Array<[number, number, number]> = [
+      [1.0, 1.0, 0.05],
+      [1.0, 1.10, 0.04],
+      [1.10, 1.0, 0.04],
+      [1.0, 0.55, 0.10],
+      [0.55, 0.78, 0.18],
+      [0.78, 0.55, 0.20],
+      [0.55, 0.50, 0.10],
+      [0.50, 0.95, 0.10],
+      [0.95, 0.85, 0.05],
+      [0.85, 0.95, 0.06],
+      [0.95, 0.95, 0.05],
+      [0.95, 0.80, 0.03],
     ];
-    // 從上到下排，每段是矩形 — 兩側輪廓串成多邊形
     const right: Array<{ x: number; y: number }> = [];
     const left: Array<{ x: number; y: number }> = [];
-    let yCursor = r.y + r.h; // 從頂端 Y 開始往下
-    for (const [hFrac, rScale] of segments) {
+    let yCursor = r.y + r.h;
+    for (const [topR, botR, hFrac] of segments) {
       const segH = r.h * hFrac;
-      const segHalf = halfFull * rScale;
-      // 段頂跟段底兩個 corner 各一
-      right.push({ x: cx + segHalf, y: yCursor });
-      right.push({ x: cx + segHalf, y: yCursor - segH });
-      left.unshift({ x: cx - segHalf, y: yCursor });
-      left.unshift({ x: cx - segHalf, y: yCursor - segH });
+      right.push({ x: cx + halfFull * topR, y: yCursor });
+      right.push({ x: cx + halfFull * botR, y: yCursor - segH });
+      left.unshift({ x: cx - halfFull * topR, y: yCursor });
+      left.unshift({ x: cx - halfFull * botR, y: yCursor - segH });
       yCursor -= segH;
     }
     return [...right, ...left];
