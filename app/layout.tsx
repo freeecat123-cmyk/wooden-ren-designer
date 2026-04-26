@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { createClient } from "@/lib/supabase/server";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { HeaderUser } from "@/components/auth/HeaderUser";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,11 +21,17 @@ export const metadata: Metadata = {
     "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // SSR 階段先讀一次 user，傳給 client AuthProvider 避免閃白「未登入」
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html
       lang="zh-Hant"
@@ -30,7 +39,13 @@ export default function RootLayout({
       style={{ colorScheme: "light" }}
     >
       <body className="bg-[#fafaf7] text-zinc-900">
-        {children}
+        <AuthProvider initialUser={user}>
+          {/* 全站固定右上角浮動的登入狀態 widget，不干擾既有 per-page header */}
+          <div className="fixed top-4 right-4 z-40">
+            <HeaderUser />
+          </div>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

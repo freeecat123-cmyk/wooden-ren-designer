@@ -73,6 +73,17 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
               </div>
             )}
 
+            {step.bullets && step.bullets.length > 0 && (
+              <ul className="mt-3 space-y-1.5 text-sm text-zinc-700">
+                {step.bullets.map((b, j) => (
+                  <li key={j} className="flex gap-2 leading-relaxed">
+                    <span className="text-amber-600 shrink-0">·</span>
+                    <span dangerouslySetInnerHTML={{ __html: b.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-zinc-900">$1</strong>') }} />
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {step.warnings && step.warnings.length > 0 && (
               <ul className="mt-3 space-y-1">
                 {step.warnings.map((w, j) => (
