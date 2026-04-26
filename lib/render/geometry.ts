@@ -260,16 +260,16 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
-  // 夏克風腳：上方 25% 方頂 + 下方 75% 圓錐（bottomScale 0.6）
+  // 夏克風腳：上方 squareFrac 方頂 + 下方圓錐（bottomScale）
   // 前/側視 silhouette = 矩形上半 + 梯形下半的疊加
   if (part.shape.kind === "shaker") {
     if (view === "top") return box;
-    const SQUARE_FRAC = 0.25;
-    const TAPER_BOT_SCALE = 0.6;
+    const SQUARE_FRAC = part.shape.squareFrac ?? 0.25;
+    const TAPER_BOT_SCALE = part.shape.bottomScale ?? 0.6;
     const cx = (r.x + r.x + r.w) / 2;
     const halfFull = r.w / 2;
     const halfBot = halfFull * TAPER_BOT_SCALE;
-    const splitY = r.y + r.h * (1 - SQUARE_FRAC); // 方頂底端 = 圓錐頂端
+    const splitY = r.y + r.h * (1 - SQUARE_FRAC);
     return [
       { x: cx - halfFull, y: r.y + r.h },
       { x: cx + halfFull, y: r.y + r.h },
@@ -278,6 +278,39 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
       { x: cx - halfBot, y: r.y },
       { x: cx - halfFull, y: splitY },
     ];
+  }
+
+  // 車旋腳：silhouette 順著 6+ 段不同半徑的輪廓畫
+  // 跟 PerspectiveView 的 segments 配對，比例要一致
+  if (part.shape.kind === "lathe-turned") {
+    if (view === "top") return box;
+    const cx = (r.x + r.x + r.w) / 2;
+    const halfFull = r.w / 2;
+    const segments: Array<[number, number]> = [
+      [0.06, 0.95],
+      [0.10, 1.10],
+      [0.06, 0.55],
+      [0.50, 0.85],
+      [0.10, 0.50],
+      [0.10, 1.05],
+      [0.04, 0.90],
+      [0.04, 0.70],
+    ];
+    // 從上到下排，每段是矩形 — 兩側輪廓串成多邊形
+    const right: Array<{ x: number; y: number }> = [];
+    const left: Array<{ x: number; y: number }> = [];
+    let yCursor = r.y + r.h; // 從頂端 Y 開始往下
+    for (const [hFrac, rScale] of segments) {
+      const segH = r.h * hFrac;
+      const segHalf = halfFull * rScale;
+      // 段頂跟段底兩個 corner 各一
+      right.push({ x: cx + segHalf, y: yCursor });
+      right.push({ x: cx + segHalf, y: yCursor - segH });
+      left.unshift({ x: cx - segHalf, y: yCursor });
+      left.unshift({ x: cx - segHalf, y: yCursor - segH });
+      yCursor -= segH;
+    }
+    return [...right, ...left];
   }
 
   return box;

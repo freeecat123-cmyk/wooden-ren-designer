@@ -26,6 +26,7 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     legPart?.shape?.kind === "round" ||
     legPart?.shape?.kind === "round-tapered" ||
     legPart?.shape?.kind === "shaker" ||
+    legPart?.shape?.kind === "lathe-turned" ||
     legPart?.shape?.kind === "splayed-round-tapered";
   const legSize = legPart && !isRoundLeg ? legPart.visible.length : 0;
   const legHeight = legPart?.visible.thickness ?? 0;

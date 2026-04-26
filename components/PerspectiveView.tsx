@@ -44,7 +44,8 @@ type ShapeSpec =
   | { kind: "hoof"; hoofHeight: number; hoofScale: number }
   | { kind: "round" }
   | { kind: "round-tapered"; bottomScale: number }
-  | { kind: "shaker" }
+  | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
+  | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
@@ -142,20 +143,16 @@ function Part({
     );
   }
 
-  // 夏克風腳：上方 25% 方頂 + 下方 75% 圓錐（bottomScale 0.6）
-  // 用 group 組合兩個 mesh：上方 BoxGeometry + 下方 CylinderGeometry tapered
+  // 夏克風腳：上方 squareFrac 方頂 + 下方圓錐（bottomScale）
+  // 「胖夏克」傳 squareFrac=0.4, bottomScale=0.75 讓方頂占比大、整支看起來壯
   if (shape?.kind === "shaker") {
-    const SQUARE_FRAC = 0.25;
-    const TAPER_BOT_SCALE = 0.6;
+    const SQUARE_FRAC = shape.squareFrac ?? 0.25;
+    const TAPER_BOT_SCALE = shape.bottomScale ?? 0.6;
     const fullH = size[1];
     const squareH = fullH * SQUARE_FRAC;
     const taperH = fullH * (1 - SQUARE_FRAC);
     const fullR = size[0] / 2;
     const botR = fullR * TAPER_BOT_SCALE;
-    // 方頂中心相對於整支腳中心的 Y 偏移：上半 25% 的中心 = +37.5% 的 fullH
-    // 整支中心在 size[1]/2，方頂中心 = size[1]/2 + (1-SQUARE_FRAC)/2 * size[1]
-    // 但 CylinderGeometry 也以中心為原點。所以兩個 mesh 都相對 group 中心定位。
-    // group 中心對齊整支腳中心。方頂中心 = +taperH/2，圓錐中心 = -squareH/2。
     const squareYOffset = taperH / 2;
     const taperYOffset = -squareH / 2;
     return (
@@ -168,6 +165,42 @@ function Part({
           <cylinderGeometry args={[fullR, botR, taperH, 48]} />
           <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
         </mesh>
+      </group>
+    );
+  }
+
+  // 車旋腳：多段不同半徑的圓柱組合，視覺像車床車出來的
+  // 分 6 段（從上到下）：頸圈、上球節、上桿、下桿、下球節、足盤
+  // 每段相對 fullR 的半徑跟 fullH 的高度比例都固定
+  if (shape?.kind === "lathe-turned") {
+    const fullH = size[1];
+    const fullR = size[0] / 2;
+    // 段 = [hFrac, rScale]，從上到下
+    const segments: Array<[number, number]> = [
+      [0.06, 0.95], // 頂頸圈
+      [0.10, 1.10], // 上球節
+      [0.06, 0.55], // 上凹頸
+      [0.50, 0.85], // 主桿（最長）
+      [0.10, 0.50], // 下凹頸
+      [0.10, 1.05], // 下球節
+      [0.04, 0.90], // 足盤
+      [0.04, 0.70], // 足底
+    ];
+    let yCursor = fullH / 2; // 從頂端開始往下排
+    return (
+      <group position={position} rotation={rotation}>
+        {segments.map(([hFrac, rScale], i) => {
+          const segH = fullH * hFrac;
+          const segR = fullR * rScale;
+          const segYCenter = yCursor - segH / 2;
+          yCursor -= segH;
+          return (
+            <mesh key={i} position={[0, segYCenter, 0]} castShadow receiveShadow>
+              <cylinderGeometry args={[segR, segR, segH, 32]} />
+              <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+            </mesh>
+          );
+        })}
       </group>
     );
   }
@@ -613,7 +646,13 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           } else if (part.shape?.kind === "round-tapered") {
             shape = { kind: "round-tapered", bottomScale: part.shape.bottomScale };
           } else if (part.shape?.kind === "shaker") {
-            shape = { kind: "shaker" };
+            shape = {
+              kind: "shaker",
+              squareFrac: part.shape.squareFrac,
+              bottomScale: part.shape.bottomScale,
+            };
+          } else if (part.shape?.kind === "lathe-turned") {
+            shape = { kind: "lathe-turned" };
           } else if (part.shape?.kind === "splayed-tapered") {
             shape = {
               kind: "splayed-tapered",

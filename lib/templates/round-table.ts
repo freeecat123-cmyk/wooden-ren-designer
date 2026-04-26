@@ -11,10 +11,14 @@ function legShapeLabel(s: string): string {
   const m: Record<string, string> = {
     box: "直方腳",
     tapered: "方錐腳",
+    "fluted-square": "古典方腿（4 面凹槽）",
     round: "圓腳",
     "round-taper-down": "圓錐腳",
     "round-taper-up": "倒圓錐腳",
+    "heavy-round-taper": "重型圓錐腳",
     shaker: "夏克風腳",
+    "thick-shaker": "胖夏克風腳",
+    "lathe-turned": "車旋腳",
     "splayed-tapered": "外斜方錐腳",
     "splayed-round-taper-down": "外斜圓錐腳",
     "splayed-round-taper-up": "外斜倒圓錐腳",
@@ -29,10 +33,14 @@ export const roundTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "方錐腳（方料下方收窄）" },
+    { value: "fluted-square", label: "古典方腿（方料 + 4 面凹槽）" },
     { value: "round", label: "圓腳（直圓柱）" },
     { value: "round-taper-down", label: "圓錐腳（上粗下細）" },
     { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
+    { value: "heavy-round-taper", label: "重型圓錐腳（大幅下收）" },
     { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
+    { value: "thick-shaker", label: "胖夏克風腳（方頂占比大、收斂少）" },
+    { value: "lathe-turned", label: "車旋腳（多段球節 + 主桿）" },
     { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
@@ -123,21 +131,29 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       shape:
         legShape === "tapered"
           ? ({ kind: "tapered", bottomScale: 0.55 } as const)
-          : legShape === "round"
-            ? ({ kind: "round" } as const)
-            : legShape === "round-taper-down"
-              ? ({ kind: "round-tapered", bottomScale: 0.55 } as const)
-              : legShape === "round-taper-up"
-                ? ({ kind: "round-tapered", bottomScale: 1.4 } as const)
-                : legShape === "shaker"
-                  ? ({ kind: "shaker" } as const)
-                  : legShape === "splayed-tapered"
-                    ? ({ kind: "splayed-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                    : legShape === "splayed-round-taper-down"
-                      ? ({ kind: "splayed-round-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                      : legShape === "splayed-round-taper-up"
-                        ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                        : undefined,
+          : legShape === "fluted-square"
+            ? ({ kind: "tapered", bottomScale: 1 } as const)
+            : legShape === "round"
+              ? ({ kind: "round" } as const)
+              : legShape === "round-taper-down"
+                ? ({ kind: "round-tapered", bottomScale: 0.55 } as const)
+                : legShape === "round-taper-up"
+                  ? ({ kind: "round-tapered", bottomScale: 1.4 } as const)
+                  : legShape === "heavy-round-taper"
+                    ? ({ kind: "round-tapered", bottomScale: 0.4 } as const)
+                    : legShape === "shaker"
+                      ? ({ kind: "shaker" } as const)
+                      : legShape === "thick-shaker"
+                        ? ({ kind: "shaker", squareFrac: 0.4, bottomScale: 0.75 } as const)
+                        : legShape === "lathe-turned"
+                          ? ({ kind: "lathe-turned" } as const)
+                          : legShape === "splayed-tapered"
+                            ? ({ kind: "splayed-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                            : legShape === "splayed-round-taper-down"
+                              ? ({ kind: "splayed-round-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                              : legShape === "splayed-round-taper-up"
+                                ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
+                                : undefined,
       tenons: [
         {
           position: "top" as const,
@@ -277,7 +293,15 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [top, ...legs, ...aprons, ...lowerStretchers],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。`,
+    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。${
+      legShape === "fluted-square"
+        ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
+        : ""
+    }${
+      legShape === "lathe-turned"
+        ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
+        : ""
+    }`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

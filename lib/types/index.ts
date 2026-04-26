@@ -148,9 +148,14 @@ export interface Part {
     /** Round tapered: 圓錐腳。bottomScale < 1 = 上粗下細；> 1 = 上細下粗。
      *  3D 用 cylinder(topR, bottomR, height)；前/側視梯形。 */
     | { kind: "round-tapered"; bottomScale: number }
-    /** Shaker: 夏克風腳。上方 25% 方料 + 下方 75% 圓錐腳（bottomScale 0.6）。
-     *  經典實木家具腳形，兼顧結構（方頂接牙板）與優雅（圓錐落地）。 */
-    | { kind: "shaker" }
+    /** Shaker: 夏克風腳。上方 squareFrac 方料 + 下方圓錐腳（bottomScale）。
+     *  默認 squareFrac=0.25, bottomScale=0.6。
+     *  「胖夏克」可用 squareFrac=0.4, bottomScale=0.75（方頂占比大、收斂少）。 */
+    | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
+    /** Lathe-turned: 車旋腳——多段圓柱組合（上頸圈 + 主桿 + 下頸圈 + 球節）。
+     *  整支沿 Y 軸切若干段，每段是不同半徑的圓柱，視覺上像車床車出來的腳。
+     *  半徑全部以 legSize/2 為基準，每段相對縮放 + 高度比例。 */
+    | { kind: "lathe-turned" }
     /** Splayed tapered: 外斜方錐腳——方料漸縮 + 整支外傾（底部偏移 dxMm/dzMm）。
      *  bottomScale < 1 上粗下細；> 1 上細下粗（搭配外斜常見：上細下粗 + splay = 倒角桶腳） */
     | { kind: "splayed-tapered"; bottomScale: number; dxMm: number; dzMm: number }

@@ -13,7 +13,7 @@ export function validateRoundLegJoinery(design: FurnitureDesign): string[] {
   const warnings: string[] = [];
   for (const part of design.parts) {
     const k = part.shape?.kind;
-    const isRoundLeg = k === "round" || k === "round-tapered" || k === "shaker";
+    const isRoundLeg = k === "round" || k === "round-tapered" || k === "shaker" || k === "lathe-turned";
     if (!isRoundLeg) continue;
     for (const m of part.mortises) {
       if (m.through) {

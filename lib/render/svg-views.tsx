@@ -253,7 +253,8 @@ export function OrthoView({
         if (
           (part.shape?.kind === "round" ||
             part.shape?.kind === "round-tapered" ||
-            part.shape?.kind === "splayed-round-tapered") &&
+            part.shape?.kind === "splayed-round-tapered" ||
+            part.shape?.kind === "lathe-turned") &&
           view === "top"
         ) {
           const r = projectPart(part, view);
