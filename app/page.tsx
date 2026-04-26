@@ -66,11 +66,20 @@ const GROUPS: CategoryGroup[] = [
       c === "wardrobe" || c === "media-console" || c === "nightstand",
   },
   {
+    key: "accessories",
+    emoji: "🎁",
+    title: "小物件",
+    description: "筆筒、書擋、相框、托盤、盒子、紅酒架、衣帽架",
+    match: (c) =>
+      c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
+      c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack",
+  },
+  {
     key: "other",
     emoji: "✨",
     title: "其他",
     description: "尚未分類的特殊家具",
-    match: () => true, // catch-all，永遠最後
+    match: () => true,
   },
 ];
 

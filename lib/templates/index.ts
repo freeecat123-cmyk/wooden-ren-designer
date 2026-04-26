@@ -22,6 +22,13 @@ import { nightstand, nightstandOptions } from "./nightstand";
 import { roundStool, roundStoolOptions } from "./round-stool";
 import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
 import { roundTable, roundTableOptions } from "./round-table";
+import { pencilHolder, pencilHolderOptions } from "./pencil-holder";
+import { bookend, bookendOptions } from "./bookend";
+import { photoFrame, photoFrameOptions } from "./photo-frame";
+import { tray, trayOptions } from "./tray";
+import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
+import { wineRack, wineRackOptions } from "./wine-rack";
+import { coatRack, coatRackOptions } from "./coat-rack";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -204,6 +211,70 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     template: roundTable,
     defaults: { length: 1000, width: 1000, height: 750 },
     optionSchema: roundTableOptions,
+  },
+  // ---- 小物件 (accessories) ----
+  {
+    category: "pencil-holder",
+    nameZh: "筆筒",
+    description: "5 片實木組成的方盒，桌上文具收納入門款",
+    difficulty: "beginner",
+    template: pencilHolder,
+    defaults: { length: 80, width: 80, height: 110 },
+    optionSchema: pencilHolderOptions,
+  },
+  {
+    category: "bookend",
+    nameZh: "書擋",
+    description: "L 型結構的書架夾，可選三角加固",
+    difficulty: "beginner",
+    template: bookend,
+    defaults: { length: 150, width: 120, height: 180 },
+    optionSchema: bookendOptions,
+  },
+  {
+    category: "photo-frame",
+    nameZh: "相框",
+    description: "4 條邊框 45° 斜接，含玻璃槽與背板",
+    difficulty: "beginner",
+    template: photoFrame,
+    defaults: { length: 100, width: 150, height: 18 },
+    optionSchema: photoFrameOptions,
+  },
+  {
+    category: "tray",
+    nameZh: "托盤",
+    description: "底板 + 4 圍邊，茶盤 / 文件 / 早餐通用",
+    difficulty: "intermediate",
+    template: tray,
+    defaults: { length: 400, width: 280, height: 60 },
+    optionSchema: trayOptions,
+  },
+  {
+    category: "dovetail-box",
+    nameZh: "鳩尾盒",
+    description: "鳩尾榫 4 角接合 + 槽底，鳩尾接合練習主角",
+    difficulty: "intermediate",
+    template: dovetailBox,
+    defaults: { length: 250, width: 150, height: 80 },
+    optionSchema: dovetailBoxOptions,
+  },
+  {
+    category: "wine-rack",
+    nameZh: "紅酒架",
+    description: "格柵結構，瓶數可調（2×2 到 8×6）",
+    difficulty: "intermediate",
+    template: wineRack,
+    defaults: { length: 400, width: 280, height: 300 },
+    optionSchema: wineRackOptions,
+  },
+  {
+    category: "coat-rack",
+    nameZh: "立式衣帽架",
+    description: "立柱 + 底爪 + 多向掛鉤，玄關客廳款",
+    difficulty: "intermediate",
+    template: coatRack,
+    defaults: { length: 280, width: 280, height: 1700 },
+    optionSchema: coatRackOptions,
   },
 ];
 

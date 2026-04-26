@@ -26,7 +26,15 @@ export type FurnitureCategory =
   | "nightstand"
   | "round-stool"
   | "round-tea-table"
-  | "round-table";
+  | "round-table"
+  // 小物件 (accessories)
+  | "pencil-holder"
+  | "bookend"
+  | "photo-frame"
+  | "tray"
+  | "dovetail-box"
+  | "wine-rack"
+  | "coat-rack";
 
 export type JoineryType =
   | "through-tenon"

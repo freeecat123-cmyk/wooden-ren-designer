@@ -55,7 +55,7 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
 };
 
 /** 家具大類別歸類，給工序加分支用 */
-function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" | "other" {
+function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" | "accessory" | "other" {
   if (
     c === "tea-table" || c === "side-table" || c === "low-table" ||
     c === "dining-table" || c === "desk" || c === "round-tea-table" ||
@@ -70,6 +70,10 @@ function categoryFamily(c: FurnitureCategory): "table" | "seating" | "cabinet" |
     c === "display-cabinet" || c === "wardrobe" || c === "media-console" ||
     c === "nightstand"
   ) return "cabinet";
+  if (
+    c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
+    c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack"
+  ) return "accessory";
   return "other";
 }
 
