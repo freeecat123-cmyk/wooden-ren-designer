@@ -74,15 +74,19 @@ const GROUPS: CategoryGroup[] = [
   },
 ];
 
+const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+
 function groupFurniture(entries: FurnitureCatalogEntry[]) {
   const used = new Set<string>();
   return GROUPS.map((g) => {
-    const items = entries.filter((e) => {
-      if (used.has(e.category)) return false;
-      if (!g.match(e.category)) return false;
-      used.add(e.category);
-      return true;
-    });
+    const items = entries
+      .filter((e) => {
+        if (used.has(e.category)) return false;
+        if (!g.match(e.category)) return false;
+        used.add(e.category);
+        return true;
+      })
+      .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]);
     return { ...g, items };
   }).filter((g) => g.items.length > 0);
 }
