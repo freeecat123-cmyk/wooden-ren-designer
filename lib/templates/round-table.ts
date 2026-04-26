@@ -156,10 +156,13 @@ function buildTrestleRoundTable(p: {
   const trestleLegSize = Math.round(legSize * 1.3);
   // 頂橫木 + 底足：跨越 frameLegSpacing + trestleLegSize（稍長）
   const frameRailLen = frameLegSpacing + trestleLegSize;
-  const frameRailWidth = 60;
-  const frameRailThickness = 28;
-  const frameFootWidth = 80;
-  const frameFootThickness = 35;
+  // 頂橫木：Z 方向（深）=  腳的 Z 跟腳齊；Y 方向（高）= 腳粗 60% 才有結構量感
+  // 不然從下往上看頂橫木會像細皮帶夾在兩個粗腳之間
+  const frameRailWidth = trestleLegSize;
+  const frameRailThickness = Math.round(trestleLegSize * 0.6);
+  // 底足：比腳寬 10mm 一點點突出做穩定，厚 50 比較有結構感
+  const frameFootWidth = trestleLegSize + 10;
+  const frameFootThickness = 50;
   // 中央橫木：跨越 2 個底足之間，落在底足 Y 範圍內（傳統 trestle 結構）
   // 長度 = 2 框中心距離 - 兩端底足厚度（榫入足內側面）
   const centerStretcherLen = 2 * frameZ - frameFootWidth;
