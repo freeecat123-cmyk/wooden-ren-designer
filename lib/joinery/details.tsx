@@ -2232,6 +2232,147 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
     </svg>
   );
 
+  // === 厚度剖面：在 (length × thickness) 平面切一刀，顯示鳩尾的厚度方向 taper ===
+  // 公件側面剖面：板長 × 板厚 = 矩形（直的），tail 段也是矩形（厚度方向沒有 taper）
+  // 母件側面剖面：板長 × 板厚 = 矩形，socket 是 TRAPEZOIDAL 切口（厚度方向 taper）
+  const SIDE_PAD = 25;
+  // socket 在厚度方向的兩個臨界值（以 motherT 為單位）
+  // 端面（length=0）較窄、深處（length=tailDepth）較寬 → 鳩尾自鎖原理
+  const socketThicknessNarrow = motherT * 0.45;
+  const socketThicknessWide = motherT * 0.85;
+  // 矩形剖面整體尺寸（visual）
+  const sideViewLen = totalH;  // 板長：含端面 + 板身延伸
+  const sideViewT = Math.max(motherT, boardT);
+  const sideVB = `0 0 ${sideViewLen + 2 * SIDE_PAD + 60} ${sideViewT + 2 * SIDE_PAD + 30}`;
+
+  const tailSideView = (
+    <svg viewBox={sideVB} className="w-full h-auto">
+      <g transform={`translate(${SIDE_PAD}, ${SIDE_PAD})`}>
+        {/* 板身 + tail 全是矩形（厚度方向沒有 taper）*/}
+        <rect
+          x={0}
+          y={0}
+          width={sideViewLen}
+          height={boardT}
+          fill={AXON_COLOR.tenon}
+          fillOpacity={0.85}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1.2}
+        />
+        {/* 端面位置標示（tail 跟板身的接縫）*/}
+        <line
+          x1={tailDepth}
+          y1={0}
+          x2={tailDepth}
+          y2={boardT}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+        <text x={tailDepth - 3} y={-5} textAnchor="end" fontSize={9} fill={AXON_COLOR.dim}>
+          ← tail 段
+        </text>
+        <text x={tailDepth + 3} y={-5} textAnchor="start" fontSize={9} fill={AXON_COLOR.dim}>
+          板身段 →
+        </text>
+        {/* 板厚標尺 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          <line x1={sideViewLen + 8} y1={0} x2={sideViewLen + 8} y2={boardT} />
+          <text x={sideViewLen + 12} y={boardT / 2 + 3} stroke="none">
+            板厚 {boardT}
+          </text>
+        </g>
+        {/* 板長延伸虛線 */}
+        <line
+          x1={sideViewLen}
+          y1={boardT / 2}
+          x2={sideViewLen + 12}
+          y2={boardT / 2}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+      </g>
+    </svg>
+  );
+
+  const pinSideView = (
+    <svg viewBox={sideVB} className="w-full h-auto">
+      <g transform={`translate(${SIDE_PAD}, ${SIDE_PAD})`}>
+        {/* 板身整體矩形 */}
+        <rect
+          x={0}
+          y={0}
+          width={sideViewLen}
+          height={motherT}
+          fill="#c9a16a"
+          fillOpacity={0.95}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1.2}
+        />
+        {/* socket 厚度方向梯形：左端（端面）窄，右端（深處）寬。中心對齊板厚中心線 */}
+        {(() => {
+          const yMid = motherT / 2;
+          const yEndTop = yMid - socketThicknessNarrow / 2;
+          const yEndBot = yMid + socketThicknessNarrow / 2;
+          const yDepthTop = yMid - socketThicknessWide / 2;
+          const yDepthBot = yMid + socketThicknessWide / 2;
+          return (
+            <polygon
+              points={`${0},${yEndTop} ${tailDepth},${yDepthTop} ${tailDepth},${yDepthBot} ${0},${yEndBot}`}
+              fill="white"
+              stroke={AXON_COLOR.outline}
+              strokeWidth={1.2}
+            />
+          );
+        })()}
+        {/* 端面位置 */}
+        <line
+          x1={tailDepth}
+          y1={0}
+          x2={tailDepth}
+          y2={motherT}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+        <text x={tailDepth + 3} y={-5} textAnchor="start" fontSize={9} fill={AXON_COLOR.dim}>
+          板身段 →
+        </text>
+        <text x={tailDepth - 3} y={-5} textAnchor="end" fontSize={9} fill={AXON_COLOR.dim}>
+          ← socket 段
+        </text>
+        {/* 厚度方向標尺 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          {/* 端面窄 */}
+          <line x1={-8} y1={motherT / 2 - socketThicknessNarrow / 2} x2={-8} y2={motherT / 2 + socketThicknessNarrow / 2} />
+          <text x={-12} y={motherT / 2 + 3} textAnchor="end" stroke="none">
+            端面 {Math.round(socketThicknessNarrow)}
+          </text>
+          {/* 深處寬 */}
+          <line x1={tailDepth + 8} y1={motherT / 2 - socketThicknessWide / 2} x2={tailDepth + 8} y2={motherT / 2 + socketThicknessWide / 2} />
+          <text x={tailDepth + 12} y={motherT / 2 + 3} stroke="none">
+            深處 {Math.round(socketThicknessWide)}
+          </text>
+          {/* 板厚 */}
+          <line x1={sideViewLen + 8} y1={0} x2={sideViewLen + 8} y2={motherT} />
+          <text x={sideViewLen + 12} y={motherT / 2 + 3} stroke="none">
+            板厚 {motherT}
+          </text>
+        </g>
+        <line
+          x1={sideViewLen}
+          y1={motherT / 2}
+          x2={sideViewLen + 12}
+          y2={motherT / 2}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+      </g>
+    </svg>
+  );
+
   // === axon viewBox 計算 ===
   const tailVerts = [
     boxVertices(0, 0, 0, showLen, boardT, jointWidth),
@@ -2252,15 +2393,31 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <figure>
-        <div className="text-[10px] text-zinc-400 mb-0.5">板直立、端面朝上（3D 深度條表示板厚）</div>
-        {tailTopView}
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">廣面（長×寬方向）— 看到梯形 tail</div>
+            {tailTopView}
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">厚度剖面（長×厚方向）— 直的（沒有 taper）</div>
+            {tailSideView}
+          </div>
+        </div>
         <figcaption className="mt-2 text-xs text-zinc-600 text-center">
           <strong>公件</strong>（鳩尾頭板 / Tail board）— 抽屜側板
         </figcaption>
       </figure>
       <figure>
-        <div className="text-[10px] text-zinc-400 mb-0.5">板直立、端面朝上（鳩尾眼從端面鋸入）</div>
-        {pinTopView}
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">廣面（長×寬方向）— socket 是直的矩形</div>
+            {pinTopView}
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">厚度剖面（長×厚方向）— socket 在這裡才看到鳩尾梯形 taper</div>
+            {pinSideView}
+          </div>
+        </div>
         <figcaption className="mt-2 text-xs text-zinc-600 text-center">
           <strong>母件</strong>（鳩尾眼板 / Pin board）— 抽屜面板
         </figcaption>
