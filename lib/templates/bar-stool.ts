@@ -12,7 +12,7 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
-  seatEdgeOption("top", "rounded"),
+  seatEdgeOption("top", 5),
   { group: "stretcher", type: "select", key: "footrestStyle", label: "腳踏樣式", defaultValue: "four-sides", choices: [
     { value: "four-sides", label: "四面腳踏（最穩，傳統做法）" },
     { value: "front-only", label: "只前面腳踏（極簡）" },

@@ -145,91 +145,95 @@ export function rectLegShape(
   return undefined;
 }
 
-/** 座板邊緣處理選項。會實際渲染 chamfered-top shape（commit 9980c3d）。 */
-export const SEAT_EDGE_CHOICES = [
-  { value: "square", label: "直角（最簡單，不修邊）" },
-  { value: "chamfered", label: "倒角 5×45°（不壓腿）" },
-  { value: "chamfered-large", label: "大倒角 10×45°（明顯斜邊）" },
-  { value: "rounded", label: "圓角 R5（手感佳）" },
-  { value: "rounded-large", label: "大圓角 R12（蛋形邊）" },
-];
+// SEAT_EDGE_CHOICES / LEG_EDGE_CHOICES 已移除——改成數值輸入更彈性。
+// 兼容舊 URL 字串（chamfered / chamfered-large / rounded / rounded-large）：
+// parseSeatChamferMm() 接受 number 或舊 string，自動轉成 mm 數。
 
-/** 腳 / 橫撐邊緣處理選項。會渲染 chamfered-edges shape（4 條長邊倒角）。
- *  跟座板分開 helper 是因為視覺位置不同——腳是垂直 4 邊角線，
- *  橫撐是水平 4 條長邊。 */
-export const LEG_EDGE_CHOICES = [
-  { value: "square", label: "直角（最簡單）" },
-  { value: "chamfered", label: "倒角 3×45°（細緻）" },
-  { value: "chamfered-large", label: "大倒角 8×45°（明顯八角斷面）" },
-];
+/** 把舊的 string 值（chamfered / chamfered-large / rounded / rounded-large）
+ *  或新的 number mm 值，統一轉成 mm 數字。 */
+export function parseSeatChamferMm(v: string | number | boolean | undefined): number {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return 0;
+  if (v === "" || v === "square") return 0;
+  if (v === "chamfered" || v === "rounded") return 5;
+  if (v === "chamfered-large" || v === "rounded-large") return 12;
+  // 數字字串（從 URL params 或舊版表單）
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+export function parseLegChamferMm(v: string | number | boolean | undefined): number {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return 0;
+  if (v === "" || v === "square") return 0;
+  if (v === "chamfered") return 3;
+  if (v === "chamfered-large") return 8;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export function seatEdgeOption(
   group: OptionGroup = "top",
-  defaultValue: string = "chamfered",
+  defaultValue: number = 5,
 ): OptionSpec {
   return {
     group,
-    type: "select",
+    type: "number",
     key: "seatEdge",
-    label: "座板邊緣處理",
+    label: "座板邊緣倒角 (mm)",
     defaultValue,
-    choices: SEAT_EDGE_CHOICES,
-    help: "座板四周邊緣修飾，直角最簡單，倒角/圓角不刮腿、坐感更佳",
+    min: 0,
+    max: 30,
+    step: 1,
+    unit: "mm",
+    help: "0 = 直角；3-5 細倒角不壓腿；8-12 明顯倒角／圓潤邊（修邊機 V 刀或圓刀）",
   };
 }
 
-/** 把 seatEdge 字串轉成 Part.shape——square 不修飾、其他都用 chamfered-top
- *  做出 45° 倒角視覺（圓角 R5/R12 在 3D 用 chamfer 視覺替代，等比例放大 mm 數）。
- *  套在座板 / 桌面 part 的 .shape 即可，3D 跟前/側視會看到斜邊。 */
-export function seatEdgeShape(seatEdge: string): { kind: "chamfered-top"; chamferMm: number } | undefined {
-  if (seatEdge === "chamfered") return { kind: "chamfered-top", chamferMm: 5 };
-  if (seatEdge === "chamfered-large") return { kind: "chamfered-top", chamferMm: 10 };
-  if (seatEdge === "rounded") return { kind: "chamfered-top", chamferMm: 5 };
-  if (seatEdge === "rounded-large") return { kind: "chamfered-top", chamferMm: 12 };
-  return undefined;
+/** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。 */
+export function seatEdgeShape(
+  v: string | number | undefined,
+): { kind: "chamfered-top"; chamferMm: number } | undefined {
+  const mm = parseSeatChamferMm(v);
+  return mm > 0 ? { kind: "chamfered-top", chamferMm: mm } : undefined;
 }
 
 /** 腳 / 橫撐邊緣 → chamfered-edges shape（4 條長邊各倒 45°）。 */
-export function legEdgeShape(legEdge: string): { kind: "chamfered-edges"; chamferMm: number } | undefined {
-  if (legEdge === "chamfered") return { kind: "chamfered-edges", chamferMm: 3 };
-  if (legEdge === "chamfered-large") return { kind: "chamfered-edges", chamferMm: 8 };
-  return undefined;
+export function legEdgeShape(
+  v: string | number | undefined,
+): { kind: "chamfered-edges"; chamferMm: number } | undefined {
+  const mm = parseLegChamferMm(v);
+  return mm > 0 ? { kind: "chamfered-edges", chamferMm: mm } : undefined;
 }
 
 export function legEdgeOption(
   group: OptionGroup = "leg",
-  defaultValue: string = "square",
+  defaultValue: number = 0,
 ): OptionSpec {
   return {
     group,
-    type: "select",
+    type: "number",
     key: "legEdge",
-    label: "腳 / 橫撐邊緣處理",
+    label: "腳 / 橫撐邊緣倒角 (mm)",
     defaultValue,
-    choices: LEG_EDGE_CHOICES,
-    help: "4 條長邊角線倒角，視覺與手感變柔和。橫撐也套用同樣處理。",
+    min: 0,
+    max: 20,
+    step: 1,
+    unit: "mm",
+    help: "0 = 直角；3-5 細倒角；8 起明顯八角斷面（明清風）。橫撐也套用同樣處理。",
   };
 }
 
-export function legEdgeNote(legEdge: string): string {
-  if (legEdge === "chamfered") return "腳跟橫撐 4 條長邊各倒 3mm × 45°（修邊機 V 型刀）。";
-  if (legEdge === "chamfered-large") return "腳跟橫撐 4 條長邊各倒 8mm × 45°，截面變八角形，明清風常見。";
-  return "";
+export function legEdgeNote(legEdge: string | number): string {
+  const mm = parseLegChamferMm(legEdge);
+  if (mm <= 0) return "";
+  return `腳跟橫撐 4 條長邊各倒 ${mm}mm × 45°（修邊機 V 型刀走兩刀）。`;
 }
 
-export function seatEdgeNote(seatEdge: string): string {
-  switch (seatEdge) {
-    case "square":
-      return "座板邊緣保持 90° 直角（最快做，但坐久邊緣會壓腿）。";
-    case "chamfered":
-      return "座板邊緣 5mm × 45° 倒角（手刨或修邊機倒角刀），去除銳邊不壓腿。";
-    case "rounded":
-      return "座板邊緣 R5 圓角（修邊機 1/4 圓銑刀），手感舒服。";
-    case "rounded-large":
-      return "座板邊緣 R12 大圓角（修邊機 1/2 圓銑刀），蛋形圓潤、視覺柔和。";
-    default:
-      return "";
-  }
+export function seatEdgeNote(seatEdge: string | number): string {
+  const mm = parseSeatChamferMm(seatEdge);
+  if (mm <= 0) return "座板邊緣保持 90° 直角（最快做，但坐久邊緣會壓腿）。";
+  if (mm <= 5) return `座板邊緣倒角 ${mm}mm × 45°（手刨或修邊機倒角刀），去除銳邊不壓腿。`;
+  return `座板邊緣大倒角 ${mm}mm × 45°（修邊機倒角刀走兩刀），明顯斜邊或圓潤蛋形（依選用銑刀）。`;
 }
 
 /** 椅背傾角（rake）選項：椅背向後傾斜的角度。 */

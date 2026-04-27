@@ -15,7 +15,7 @@ export const diningChairOptions: OptionSpec[] = [
   // 座板
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 150, max: 900, step: 10, help: "地面到座板上緣，一般 440–460" },
-  seatEdgeOption("top", "rounded"),
+  seatEdgeOption("top", 5),
   // 座面舒適度
   { group: "top", type: "select", key: "seatProfile", label: "座面挖型", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },

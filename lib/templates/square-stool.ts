@@ -11,9 +11,10 @@ import { applyStandardChecks } from "./_validators";
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
-  legEdgeOption("leg", "square"),
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "腳中心離座板邊緣的內縮量。> 0 讓座板外伸、視覺更俐落" },
+  legEdgeOption("leg", 0),
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
-  seatEdgeOption("top", "chamfered"),
+  seatEdgeOption("top", 5),
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
@@ -51,6 +52,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const o = squareStoolOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
@@ -87,7 +89,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）
-      ...corners(length, width, legSize).map((c) => ({
+      ...corners(length, width, legSize, legInset).map((c) => ({
         origin: { x: c.x, y: 0, z: c.z },
         depth: seatThickness,
         length: legTopTenonSize,
@@ -98,7 +100,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   // 4 隻凳腳
-  const legs: Part[] = corners(length, width, legSize).map((c, i) => ({
+  const legs: Part[] = corners(length, width, legSize, legInset).map((c, i) => ({
     id: `leg-${i + 1}`,
     nameZh: `凳腳 ${i + 1}`,
     material,
@@ -130,16 +132,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 4 條橫撐（凳腳之間）—— body 延伸到腳中心以視覺呈現榫頭位置
   const apronInnerSpan = {
-    x: length - legSize,
-    z: width - legSize,
+    x: length - legSize - 2 * legInset,
+    z: width - legSize - 2 * legInset,
   };
   const aprons: Part[] = [
     // 前後兩條（沿 X 方向）
-    apron("apron-front", "前橫撐", apronInnerSpan.x, "x", { z: -(width / 2 - legSize / 2) }),
-    apron("apron-back", "後橫撐", apronInnerSpan.x, "x", { z: width / 2 - legSize / 2 }),
+    apron("apron-front", "前橫撐", apronInnerSpan.x, "x", { z: -(width / 2 - legSize / 2 - legInset) }),
+    apron("apron-back", "後橫撐", apronInnerSpan.x, "x", { z: width / 2 - legSize / 2 - legInset }),
     // 左右兩條（沿 Z 方向）
-    apron("apron-left", "左橫撐", apronInnerSpan.z, "z", { x: -(length / 2 - legSize / 2) }),
-    apron("apron-right", "右橫撐", apronInnerSpan.z, "z", { x: length / 2 - legSize / 2 }),
+    apron("apron-left", "左橫撐", apronInnerSpan.z, "z", { x: -(length / 2 - legSize / 2 - legInset) }),
+    apron("apron-right", "右橫撐", apronInnerSpan.z, "z", { x: length / 2 - legSize / 2 - legInset }),
   ].map((p) => ({
     ...p,
     material,
@@ -188,10 +190,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     );
     const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
     const sides = [
-      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
-      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
-      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
-      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2 - legInset) } },
+      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 - legInset } },
+      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2 - legInset), z: 0 } },
+      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2 - legInset, z: 0 } },
     ];
     for (const s of sides) {
       parts.push({
