@@ -27,7 +27,6 @@ export const squareStoolOptions: OptionSpec[] = [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈，最穩）" },
     { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
   ], dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板放鞋子/雜物。需先勾下橫撐＋H 字（X 字無支撐面）", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretcher", equals: true } },
@@ -77,7 +76,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
   const lowerStretcherStyle = getOption<string>(input, opt(o, "lowerStretcherStyle"));
-  const withUnderShelf = getOption<boolean>(input, opt(o, "withUnderShelf"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -297,31 +295,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 座下層板（落在下橫撐頂面）。需先勾下橫撐 + h-frame 才有支撐
-  // X 字撐無法承載層板（中間是空的）
-  if (withLowerStretcher && withUnderShelf && lowerStretcherStyle !== "x-cross") {
-    const lowerY = lowerStretcherHeightOpt > 0
-      ? lowerStretcherHeightOpt
-      : Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
-    const lowerW = lowerStretcherWidth;
-    parts.push({
-      id: "under-shelf",
-      nameZh: "座下層板",
-      material,
-      grainDirection: "length",
-      visible: {
-        // 內側可用空間 = 整體寬 - 兩側腳 - legInset，再各邊留 SHELF_CLEARANCE_MM 間隙
-        length: Math.max(50, length - 2 * legSize - 2 * legInset - 2 * 10),
-        width: Math.max(50, width - 2 * legSize - 2 * legInset - 2 * 10),
-        thickness: 18,
-      },
-      // 層板坐在下橫撐頂面（不能埋進橫撐內部）
-      origin: { x: 0, y: lowerY + lowerW, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
   const design: FurnitureDesign = {
     id: `square-stool-${length}x${width}x${height}`,
     category: "stool",
@@ -337,7 +310,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           ? " 加 X 字交叉橫撐（明清交杌做法）。"
           : " 加 H 字下橫撐結構。"
         : "") +
-      (withUnderShelf && lowerStretcherStyle !== "x-cross" ? " 座下加層板放雜物。" : "") +
       ` ${seatEdgeNote(seatEdge)}` +
       (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
   };
