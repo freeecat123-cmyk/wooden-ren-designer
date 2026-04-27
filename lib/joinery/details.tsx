@@ -1748,12 +1748,10 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
  * ============================================================ */
 function DovetailDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
-  const tw = p.tenonWidth;
-  void tw;
+  const tw = p.tenonWidth;          // joint 總寬（沿板寬方向）
   const tt = p.tenonThickness;
-  const ct = p.childThickness ?? tt;
-  const mt = p.motherThickness;
-  void mt;
+  const ct = p.childThickness ?? tt; // 公件板厚
+  const mt = p.motherThickness;      // 母件板厚（= tail 深度，through dovetail 時）
 
   // Typical drawer: 3 tails and 4 pins (pins = tails + 1 so the corners of
   // the joint are always pins, not tails — pins catch the outside pull force).
@@ -1788,11 +1786,12 @@ function DovetailDetail(p: JoineryDetailParams) {
   const expW = pieceLen * 2 + gap;
   const asmW = pieceLen * 0.9 + pieceDepth + 30;
   const w = expW + asmW + PADDING * 3 + leftPad;
-  const h = pieceDepth + bodyExt + 80;
+  // h 多預留：頂端 50px 給「尾寬/銷寬」兩條標尺、底端 +50 給「板寬」標尺與標準角度文字
+  const h = pieceDepth + bodyExt + 130;
 
   // Mother = TAIL board (left)
   const mAx = PADDING + leftPad;
-  const mAy = PADDING + 20;
+  const mAy = PADDING + 60; // 上推給標尺空間
   const mBodyTop = mAy + pieceDepth;
   const mBodyBot = mBodyTop + bodyExt;
 
@@ -1869,15 +1868,49 @@ function DovetailDetail(p: JoineryDetailParams) {
             >
               母件（尾板，{N_TAILS} 個尾 + 兩端半銷凹）
             </text>
+            {/* 標尺：榫深（垂直）+ 板寬（水平）+ 尾寬 + 銷寬 */}
             <DimLine
               x1={mAx - 10}
               y1={mAy}
               x2={mAx - 10}
               y2={mBodyTop}
-              label={`榫深 ${tl}`}
+              label={`榫深 ${tl}mm`}
               side="left"
             />
-            <text x={mAx + pieceLen / 2} y={mAy - 6} fontSize={8} fill="#999" textAnchor="middle">
+            <DimLine
+              x1={mAx}
+              y1={mBodyBot + 36}
+              x2={mAx + pieceLen}
+              y2={mBodyBot + 36}
+              label={`板寬 ${tw || "—"}mm`}
+              side="bottom"
+            />
+            {/* 尾寬與銷寬（單一標註，避免擠）*/}
+            {(() => {
+              const firstTailLeft = mAx + halfPinW_top;
+              const firstTailRight = firstTailLeft + tailW;
+              return (
+                <>
+                  <DimLine
+                    x1={firstTailLeft}
+                    y1={mAy - 12}
+                    x2={firstTailRight}
+                    y2={mAy - 12}
+                    label={`尾寬 ≈ ${Math.round((tw || pieceLen) / (N_TAILS * 1.55))}mm`}
+                    side="top"
+                  />
+                  <DimLine
+                    x1={firstTailRight}
+                    y1={mAy - 28}
+                    x2={firstTailRight + pinW}
+                    y2={mAy - 28}
+                    label={`銷寬 ≈ ${Math.round(((tw || pieceLen) / (N_TAILS * 1.55)) * 0.55)}mm`}
+                    side="top"
+                  />
+                </>
+              );
+            })()}
+            <text x={mAx + pieceLen / 2} y={mAy - 46} fontSize={8} fill="#999" textAnchor="middle">
               ↑ 尾頂（端面，板的最上緣）
             </text>
           </g>
@@ -1940,7 +1973,7 @@ function DovetailDetail(p: JoineryDetailParams) {
               textAnchor="middle"
               fill="#666"
             >
-              公件（銷板）— 端面剖面看下去：寬 {p.tenonWidth || "—"} × 厚 {ct} mm
+              公件（銷板）— 端面剖面看下去：寬 {tw || "—"} × 厚 {ct}mm
             </text>
             <text x={peX + peW / 2} y={peY - 6} fontSize={8} fill="#999" textAnchor="middle">
               ↑ 板外面（銷窄、尾凹寬）
@@ -1948,14 +1981,50 @@ function DovetailDetail(p: JoineryDetailParams) {
             <text x={peX + peW / 2} y={peY + peH + 30} fontSize={8} fill="#999" textAnchor="middle">
               ↓ 板內面（銷寬、尾凹窄）
             </text>
+            {/* 標尺：板厚（剖面高）+ 板寬（剖面寬，跟母件對齊）*/}
             <DimLine
               x1={peX + peW + 10}
               y1={peY}
               x2={peX + peW + 10}
               y2={peY + peH}
-              label={`厚 ${ct}`}
+              label={`板厚 ${ct}mm`}
               side="right"
             />
+            <DimLine
+              x1={peX}
+              y1={peY + peH + 36}
+              x2={peX + peW}
+              y2={peY + peH + 36}
+              label={`板寬 ${tw || "—"}mm`}
+              side="bottom"
+            />
+            {/* 角度標註（visual exaggerated 1:3，但實際工法是 1:8 硬木 / 1:6 軟木）*/}
+            {(() => {
+              // 取第一個 socket 的左斜邊做角度標
+              const sx = peX + halfPinW_top;
+              const angleLabel = "1:8 硬木標準";
+              return (
+                <g>
+                  <line
+                    x1={sx + 2}
+                    y1={peY + 4}
+                    x2={sx + dtAngleHOffset + 2}
+                    y2={peY + peH - 4}
+                    stroke="#0a4d8c"
+                    strokeWidth={0.6}
+                    strokeDasharray="2 2"
+                  />
+                  <text
+                    x={sx + dtAngleHOffset / 2 + 8}
+                    y={peY + peH / 2}
+                    fontSize={8}
+                    fill="#0a4d8c"
+                  >
+                    {angleLabel}
+                  </text>
+                </g>
+              );
+            })()}
           </g>
         );
       })()}
@@ -2015,14 +2084,23 @@ function DovetailDetail(p: JoineryDetailParams) {
         </text>
       </g>
 
-      {/* 角度標註：軟硬木標準角度。畫在分解圖下方一行小字 */}
+      {/* 角度標註：軟硬木標準角度（畫在板寬標尺下方）*/}
       <text
         x={mAx}
-        y={mBodyBot + 32}
+        y={mBodyBot + 60}
         fontSize={9}
         fill="#0a4d8c"
       >
         標準角度：硬木 1:8（≈7.1°）｜軟木 1:6（≈9.5°）— 軟木角大才不脫
+      </text>
+      {/* 母件板厚也標一下（在母件的右邊空白處）*/}
+      <text
+        x={mAx + pieceLen + 18}
+        y={(mAy + mBodyTop) / 2 + 3}
+        fontSize={9}
+        fill="#0a4d8c"
+      >
+        母件板厚 {mt}mm
       </text>
     </svg>
   );
