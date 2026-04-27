@@ -2,7 +2,7 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import { makeZoneOptions, resolveBackMode, resolveZones } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -87,6 +87,18 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withWallAnchor ? "頂板背面預留 L 型固定片孔位，務必鎖牆防傾倒（高書櫃必做）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
-  applyStandardChecks(design, { minLength: 400, minWidth: 200, minHeight: 600 });
+  applyStandardChecks(design, {
+    minLength: 400, minWidth: 200, minHeight: 600,
+    maxLength: 1500, maxWidth: 500, maxHeight: 2400,
+  });
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+      hasWallAnchor: withWallAnchor,
+    }),
+  );
   return design;
 };

@@ -16,7 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -116,6 +116,24 @@ export const nightstand: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 400 });
+  applyStandardChecks(design, {
+    minLength: 300, minWidth: 300, minHeight: 400,
+    maxLength: 600, maxWidth: 500, maxHeight: 800,
+  });
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+    }),
+  );
+  if (input.length > 600 || input.height > 800) {
+    appendSuggestion(design, {
+      text: `${input.length}×${input.height}mm 比較像斗櫃 / 五斗櫃尺寸——斗櫃模板有完整抽屜結構選項。`,
+      suggestedCategory: "chest-of-drawers",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };

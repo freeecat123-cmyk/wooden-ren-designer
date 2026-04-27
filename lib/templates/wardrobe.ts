@@ -16,7 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -119,6 +119,21 @@ export const wardrobe: FurnitureTemplate = (input) => {
     notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  applyStandardChecks(design, { minLength: 600, minWidth: 400, minHeight: 1500 });
+  applyStandardChecks(design, {
+    minLength: 600, minWidth: 400, minHeight: 1500,
+    maxLength: 2400, maxWidth: 800, maxHeight: 2500,
+  });
+  const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+      hasDrawers: true,
+      drawerCount: 4,
+      hasDrawerSlide: useDrawerSlide,
+    }),
+  );
   return design;
 };

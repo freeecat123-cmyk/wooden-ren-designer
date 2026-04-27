@@ -16,7 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -117,6 +117,17 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${glassShelves ? "層板換 8mm 強化玻璃，需向玻璃行訂製，邊緣磨平 + 倒角防割手。" : ""} ${withLedStrip ? "頂板下面開 12mm 寬 × 6mm 深溝藏 LED 燈條（需配 12V 變壓器 + 線材孔）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 600 });
+  applyStandardChecks(design, {
+    minLength: 500, minWidth: 300, minHeight: 600,
+    maxLength: 1500, maxWidth: 600, maxHeight: 2200,
+  });
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+    }),
+  );
   return design;
 };

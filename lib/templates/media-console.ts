@@ -14,7 +14,7 @@ import {
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -238,6 +238,24 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
-  applyStandardChecks(design, { minLength: 800, minWidth: 300, minHeight: 300 });
+  applyStandardChecks(design, {
+    minLength: 800, minWidth: 300, minHeight: 300,
+    maxLength: 3000, maxWidth: 700, maxHeight: 900,
+  });
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+    }),
+  );
+  if (input.height > 900 || input.length > 3000) {
+    appendSuggestion(design, {
+      text: `${input.length}×${input.height}mm 已不算電視矮櫃——展示櫃模板支援更高尺寸。`,
+      suggestedCategory: "display-cabinet",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };

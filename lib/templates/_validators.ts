@@ -172,6 +172,58 @@ export interface StoolStructureRules {
   hasLowerStretcher?: boolean;
 }
 
+/**
+ * 櫃類結構穩定性 / 安全性檢查。
+ *
+ * 規則：
+ *   - 板厚 < 12mm 但層板跨距 > 600mm → 層板會凹陷
+ *   - 板厚 < 15mm 但櫃高 > 1500mm → 整體結構偏弱
+ *   - 高櫃 (>1500mm) 沒勾 wall anchor → 安全風險
+ *   - 抽屜超過 3 個但沒勾滑軌 → 大抽屜純木滑軌易卡
+ */
+export interface CabinetStructureRules {
+  panelThickness: number;
+  height: number;
+  /** 層板跨距（mm，通常 = 內寬） */
+  shelfSpan?: number;
+  /** 是否預留牆面固定五金（只對高櫃有意義） */
+  hasWallAnchor?: boolean;
+  /** 是否有抽屜（任何 zone / column 是 drawer 就 true） */
+  hasDrawers?: boolean;
+  /** 抽屜總數量 */
+  drawerCount?: number;
+  /** 是否啟用滑軌（useDrawerSlide / drawerSlideGap > 0） */
+  hasDrawerSlide?: boolean;
+}
+
+export function validateCabinetStructure(rules: CabinetStructureRules): string[] {
+  const warnings: string[] = [];
+  const { panelThickness, height } = rules;
+  if (rules.shelfSpan && rules.shelfSpan > 600 && panelThickness < 12) {
+    warnings.push(
+      `層板跨距 ${rules.shelfSpan}mm 但板厚只 ${panelThickness}mm（< 12mm）——` +
+        `承重時會明顯下凹。建議加厚到 15mm 以上、或縮短跨距、或加中央分隔板。`,
+    );
+  }
+  if (height > 1500 && panelThickness < 15) {
+    warnings.push(
+      `櫃高 ${height}mm 但板厚僅 ${panelThickness}mm，整體結構偏弱——建議加厚到 18mm。`,
+    );
+  }
+  if (height > 1500 && rules.hasWallAnchor === false) {
+    warnings.push(
+      `高櫃 ${height}mm 沒預留牆面固定五金——傾倒風險（小孩 / 地震時危險）。` +
+        `建議勾選「預留牆面固定」、用 L 型角鐵鎖到牆面 stud。`,
+    );
+  }
+  if (rules.hasDrawers && (rules.drawerCount ?? 0) >= 3 && rules.hasDrawerSlide === false) {
+    warnings.push(
+      `共 ${rules.drawerCount} 個抽屜但沒勾「三段式滑軌」——大抽屜純木製滑軌易卡且開合費力，建議加滑軌五金。`,
+    );
+  }
+  return warnings;
+}
+
 export function validateStoolStructure(rules: StoolStructureRules): string[] {
   const warnings: string[] = [];
   const { legSize, height } = rules;

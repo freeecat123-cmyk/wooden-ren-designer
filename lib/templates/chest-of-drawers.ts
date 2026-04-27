@@ -13,7 +13,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
   shelfPinSystemOption,
   shelfPinSystemNote,
@@ -102,6 +102,28 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 500 });
+  applyStandardChecks(design, {
+    minLength: 500, minWidth: 300, minHeight: 500,
+    maxLength: 1300, maxWidth: 600, maxHeight: 1500,
+  });
+  const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
+  appendWarnings(
+    design,
+    validateCabinetStructure({
+      panelThickness,
+      height: input.height,
+      shelfSpan: input.length - 2 * panelThickness,
+      hasDrawers: true,
+      drawerCount: 6,
+      hasDrawerSlide: useDrawerSlide,
+    }),
+  );
+  if (input.height > 1500) {
+    appendSuggestion(design, {
+      text: `櫃高 ${input.height}mm 已接近衣櫃尺寸——衣櫃模板有吊衣桿、長褲架等收納選項。`,
+      suggestedCategory: "wardrobe",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };
