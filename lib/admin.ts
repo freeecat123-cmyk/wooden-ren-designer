@@ -6,11 +6,16 @@
  * 還是由 server route handler / middleware 用 server-side 變數驗證）。
  *
  * 環境變數設定（.env.local）：
- *   ADMIN_EMAILS=wengbinren@gmail.com,other@woodenren.com
- *   NEXT_PUBLIC_ADMIN_EMAILS=wengbinren@gmail.com,other@woodenren.com   # 可同上，給 client UI 判斷
+ *   ADMIN_EMAILS=freeecat123@woodenren.com,freeecat123@gmail.com
+ *   NEXT_PUBLIC_ADMIN_EMAILS=freeecat123@woodenren.com,freeecat123@gmail.com
+ *
+ * 沒設環境變數時用下方 FALLBACK_ADMINS（避免本機開發或 Vercel preview 漏設環境變數時整個 admin 被擋）。
  */
 
-const FALLBACK_ADMIN = "wengbinren@gmail.com";
+const FALLBACK_ADMINS = [
+  "freeecat123@woodenren.com",
+  "freeecat123@gmail.com",
+];
 
 function parseList(raw: string | undefined): string[] {
   if (!raw) return [];
@@ -24,14 +29,14 @@ function parseList(raw: string | undefined): string[] {
 export function getServerAdminEmails(): string[] {
   const list = parseList(process.env.ADMIN_EMAILS);
   if (list.length > 0) return list;
-  return [FALLBACK_ADMIN];
+  return FALLBACK_ADMINS;
 }
 
 /** Client + Server：給 UI 用。空值同樣 fallback。 */
 export function getPublicAdminEmails(): string[] {
   const list = parseList(process.env.NEXT_PUBLIC_ADMIN_EMAILS);
   if (list.length > 0) return list;
-  return [FALLBACK_ADMIN];
+  return FALLBACK_ADMINS;
 }
 
 export function isAdminEmail(email: string | null | undefined, list: string[]): boolean {
