@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
+import { createClient } from "@/lib/supabase/server";
+import { canAccessCategory, isPaidCategory } from "@/lib/permissions";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
@@ -30,6 +32,28 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
+
+  // 付費門檻：免費版只能進 FREE_UNLOCKED_CATEGORIES，其他導去 /pricing
+  if (isPaidCategory(type as FurnitureCategory)) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    let profile = null;
+    if (user) {
+      const { data } = await supabase
+        .from("users")
+        .select(
+          "plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at",
+        )
+        .eq("id", user.id)
+        .single();
+      profile = data;
+    }
+    if (!canAccessCategory(profile, type as FurnitureCategory)) {
+      redirect(`/pricing?locked=${type}`);
+    }
+  }
 
   if (!entry.template) {
     return (

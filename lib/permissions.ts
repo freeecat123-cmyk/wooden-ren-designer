@@ -3,7 +3,24 @@
  * 跟 supabase/schema.sql 的 plan check constraint 對齊。
  */
 
+import type { FurnitureCategory } from "./types";
+
 export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
+
+/**
+ * 免費版可訪問的家具範本——只有這 3 種「入門級代表」。
+ * 其他 16 種要付費（個人版以上）才能進。
+ */
+export const FREE_UNLOCKED_CATEGORIES: FurnitureCategory[] = [
+  "stool",          // 方凳（椅凳代表）
+  "tea-table",      // 茶几（桌類代表）
+  "pencil-holder",  // 筆筒（小物件代表）
+];
+
+/** 該分類是否需要付費才能進 */
+export function isPaidCategory(category: FurnitureCategory): boolean {
+  return !FREE_UNLOCKED_CATEGORIES.includes(category);
+}
 
 export interface PlanFeatures {
   /** 同時儲存的設計件數上限 */
@@ -135,6 +152,16 @@ export function canUseFeature(
 export function getPlanFeatures(profile: UserPlanProfile | null | undefined): PlanFeatures {
   const plan = getEffectivePlan(profile);
   return PLAN_FEATURES[plan];
+}
+
+/** 該方案是否能進這個家具範本（免費版只能進 FREE_UNLOCKED_CATEGORIES） */
+export function canAccessCategory(
+  profile: UserPlanProfile | null | undefined,
+  category: FurnitureCategory,
+): boolean {
+  const plan = getEffectivePlan(profile);
+  if (plan === "free") return FREE_UNLOCKED_CATEGORIES.includes(category);
+  return true; // 付費版全部解鎖
 }
 
 /** 對外推薦：哪個方案最低就能用某功能 */

@@ -1,7 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const CATEGORY_NAME_ZH: Record<string, string> = {
+  stool: "方凳",
+  bench: "長凳",
+  "tea-table": "茶几",
+  "side-table": "邊桌 / 床頭櫃",
+  "low-table": "矮桌",
+  "open-bookshelf": "開放書櫃",
+  "chest-of-drawers": "斗櫃",
+  "shoe-cabinet": "鞋櫃",
+  "display-cabinet": "玻璃展示櫃",
+  "dining-table": "餐桌",
+  desk: "書桌",
+  "dining-chair": "餐椅",
+  wardrobe: "衣櫃",
+  "bar-stool": "吧檯椅",
+  "media-console": "電視櫃",
+  nightstand: "床頭櫃",
+  "round-stool": "圓凳",
+  "round-tea-table": "圓茶几",
+  "round-table": "圓餐桌",
+  "pencil-holder": "筆筒",
+  bookend: "書擋",
+  "photo-frame": "相框",
+  tray: "托盤",
+  "dovetail-box": "鳩尾盒",
+  "wine-rack": "紅酒架",
+  "coat-rack": "立式衣帽架",
+};
 
 type BillingPeriod = "monthly" | "yearly";
 
@@ -27,14 +56,18 @@ const PLANS: PlanCard[] = [
     name: "免費版",
     monthlyPrice: 0,
     yearlyPrice: 0,
-    audience: ["想先試試看的", "偶爾畫一張就好的", "做小物件練手的"],
+    audience: [
+      "想先試試看的",
+      "做方凳、茶几、筆筒就夠的",
+      "還沒決定要不要付費的",
+    ],
     features: [
-      { ok: true, text: "全部 19 種家具範本" },
+      { ok: true, text: "3 種入門家具：方凳、茶几、筆筒" },
       { ok: true, text: "3D 透視圖預覽" },
       { ok: true, text: "工程三視圖（含浮水印）" },
+      { ok: false, text: "其他 16 種家具" },
       { ok: false, text: "下載 PDF" },
       { ok: false, text: "客製家具報價" },
-      { ok: false, text: "儲存超過 1 件設計" },
     ],
     cta: "立即免費使用",
   },
@@ -118,9 +151,35 @@ const STUDENT_PLANS: PlanCard[] = [
 
 export function PricingClient() {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
+  const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const locked = sp.get("locked");
+    if (locked) setLockedCategory(locked);
+  }, []);
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      {lockedCategory && (
+        <div
+          className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-xl border-2 flex items-start gap-3"
+          style={{ background: "#fff8ee", borderColor: "#d4a574" }}
+        >
+          <span className="text-2xl flex-shrink-0">🔒</span>
+          <div className="flex-1 text-sm leading-relaxed">
+            <p className="font-semibold text-[#5a3812]">
+              「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」是付費版才能用的家具範本
+            </p>
+            <p className="mt-1 text-[#7c4f1a]">
+              免費版只開放 3 種入門款（方凳、茶几、筆筒），其他 16 種要升級個人版以上。
+              下方挑一個適合你的方案就能解鎖。
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-8">
         <Link
           href="/"

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
+import { isPaidCategory } from "@/lib/permissions";
 
 /**
  * 首頁設計（第一性原理重排版）：
@@ -188,13 +189,24 @@ export default function Home() {
 }
 
 function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
+  const paid = isPaidCategory(item.category);
   return (
     <Link
       href={`/design/${item.category}`}
-      className="group block rounded-lg border border-zinc-200 bg-white p-4 hover:border-amber-400 hover:shadow-sm transition"
+      className={`group block rounded-lg border bg-white p-4 transition ${
+        paid
+          ? "border-zinc-200 hover:border-amber-400 hover:shadow-sm"
+          : "border-emerald-200 hover:border-emerald-400 hover:shadow-sm"
+      }`}
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900">
+        <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
+          {paid && (
+            <span title="付費版才能進入" className="text-amber-600">🔒</span>
+          )}
+          {!paid && (
+            <span title="免費版可用" className="text-emerald-600">✨</span>
+          )}
           {item.nameZh}
         </h3>
         <span
@@ -211,6 +223,16 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       </p>
       {!item.template && (
         <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
+      )}
+      {paid && (
+        <p className="mt-1 text-[10px] text-amber-700 font-medium">
+          需付費版（個人 / 專業）
+        </p>
+      )}
+      {!paid && (
+        <p className="mt-1 text-[10px] text-emerald-700 font-medium">
+          🆓 免費可用
+        </p>
       )}
     </Link>
   );
