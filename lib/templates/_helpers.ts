@@ -215,7 +215,7 @@ export function seatEdgeStyleOption(
 
 export function stretcherEdgeOption(
   group: OptionGroup = "stretcher",
-  defaultValue: number = 0,
+  defaultValue: number = 1,
 ): OptionSpec {
   return {
     group,
@@ -227,7 +227,7 @@ export function stretcherEdgeOption(
     max: 15,
     step: 1,
     unit: "mm",
-    help: "0 = 直角；3-5 細倒邊；8 起明顯八角斷面",
+    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊；8 起明顯八角斷面",
   };
 }
 
@@ -277,7 +277,7 @@ export function legEdgeShape(
 
 export function legEdgeOption(
   group: OptionGroup = "leg",
-  defaultValue: number = 0,
+  defaultValue: number = 1,
 ): OptionSpec {
   return {
     group,
@@ -289,7 +289,7 @@ export function legEdgeOption(
     max: 20,
     step: 1,
     unit: "mm",
-    help: "0 = 直角；3-5 細倒邊；8 起明顯八角斷面（明清風）。橫撐另外設定",
+    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊；8 起明顯八角斷面（明清風）。橫撐另外設定",
   };
 }
 

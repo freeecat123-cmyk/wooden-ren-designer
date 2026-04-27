@@ -4,8 +4,21 @@ import type {
   OptionSpec,
   Part,
 } from "@/lib/types";
-import { getOption } from "@/lib/types";
-import { corners } from "./_helpers";
+import { getOption, opt } from "@/lib/types";
+import {
+  corners,
+  seatEdgeOption,
+  seatEdgeStyleOption,
+  seatEdgeNote,
+  seatEdgeShape,
+  legEdgeOption,
+  legEdgeStyleOption,
+  legEdgeNote,
+  legEdgeShape,
+  stretcherEdgeOption,
+  stretcherEdgeStyleOption,
+  stretcherEdgeNote,
+} from "./_helpers";
 import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
 import { applyStandardChecks } from "./_validators";
 
@@ -16,6 +29,12 @@ export const teaTableOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
+  seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
   { group: "top", type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
@@ -39,12 +58,19 @@ export const teaTableOptions: OptionSpec[] = [
 export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
 
-  const legShape = getOption<string>(input, teaTableOptions[0]);
-  const legSize = getOption<number>(input, teaTableOptions[1]);
-  const topThickness = getOption<number>(input, teaTableOptions[2]);
-  const upperApronWidth = getOption<number>(input, teaTableOptions[3]);
-  const stretcherFloorOffset = getOption<number>(input, teaTableOptions[4]);
-  const hasLowerShelf = getOption<boolean>(input, teaTableOptions[5]);
+  const o = teaTableOptions;
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const upperApronWidth = getOption<number>(input, opt(o, "upperApronWidth"));
+  const stretcherFloorOffset = getOption<number>(input, opt(o, "shelfFloorOffset"));
+  const hasLowerShelf = getOption<boolean>(input, opt(o, "hasLowerShelf"));
   const upperApronThickness = 22;
   const lowerStretcherWidth = 50;
   const lowerStretcherThickness = 22;
@@ -82,6 +108,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
+    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },
@@ -100,7 +127,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : undefined,
+    shape: legShape === "tapered" ? { kind: "tapered", bottomScale: 0.55 } : legEdgeShape(legEdge, legEdgeStyle),
     tenons: [
       {
         position: "top",
@@ -167,6 +194,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     tenonWidth: apronTenonW,
     tenonType: "shouldered-tenon",
     y: upperApronY,
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     extraMortises: () => [],
   });
 
@@ -184,6 +212,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     tenonThickness: strTenonThick,
     tenonWidth: strTenonW,
     y: stretcherFloorOffset,
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     // 內側面開長槽，棚板舌頭嵌入
     extraMortises: (visibleLength) => [
       {
@@ -257,7 +286,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      "桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。",
+      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   applyStandardChecks(design, { minLength: 400, minWidth: 400, minHeight: 250 });
   return design;
@@ -280,6 +309,8 @@ interface ApronRingOpts {
   tenonWidth: number;
   tenonType?: "blind-tenon" | "shouldered-tenon";
   y: number;
+  /** Optional shape applied to every apron / stretcher in the ring (e.g. chamfered-edges). */
+  shape?: Part["shape"];
   extraMortises: (visibleLength: number) => Part["mortises"];
 }
 
@@ -331,6 +362,7 @@ function makeApronRing(o: ApronRingOpts): Part[] {
     rotation: s.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
+    shape: o.shape,
     tenons: [
       {
         position: "start",

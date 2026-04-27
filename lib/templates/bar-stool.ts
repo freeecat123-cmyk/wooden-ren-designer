@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const barStoolOptions: OptionSpec[] = [
@@ -13,6 +13,11 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "stretcher", type: "select", key: "footrestStyle", label: "腳踏樣式", defaultValue: "four-sides", choices: [
     { value: "four-sides", label: "四面腳踏（最穩，傳統做法）" },
     { value: "front-only", label: "只前面腳踏（極簡）" },
@@ -44,6 +49,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const footrestStyle = getOption<string>(input, opt(o, "footrestStyle"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -126,7 +136,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: legSize, width: legSize, thickness: legTotalH },
       origin: { x: c.x, y: 0, z: c.z },
-      shape: legShapeFor(c),
+      shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
       tenons: isBack ? [] : [
         {
           position: "top",
@@ -190,7 +200,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
-    shape: seatEdgeShape(seatEdge),
+    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
     // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼
@@ -240,6 +250,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
     origin: { x: s.origin.x, y: ringY, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       { position: "start", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
       { position: "end", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
@@ -257,6 +268,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: s.visibleLength, width: footRestWidth, thickness: footRestThickness },
     origin: { x: s.origin.x, y: footrestHeight, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       { position: "start", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
       { position: "end", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
@@ -319,7 +331,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
-      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge)}`,
+      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 600 });
   return design;

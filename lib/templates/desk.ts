@@ -1,7 +1,15 @@
 import type { FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { applyStandardChecks } from "./_validators";
+import {
+  seatEdgeOption,
+  seatEdgeStyleOption,
+  legEdgeOption,
+  legEdgeStyleOption,
+  stretcherEdgeOption,
+  stretcherEdgeStyleOption,
+} from "./_helpers";
 
 export const deskOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
@@ -10,6 +18,12 @@ export const deskOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
+  seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2 },
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 30, min: 0, max: 300, step: 5 },
@@ -27,19 +41,26 @@ export const deskOptions: OptionSpec[] = [
 ];
 
 export const desk: FurnitureTemplate = (input) => {
-  const legShape = getOption<string>(input, deskOptions[0]);
-  const legSize = getOption<number>(input, deskOptions[1]);
-  const topThickness = getOption<number>(input, deskOptions[2]);
-  const apronWidth = getOption<number>(input, deskOptions[3]);
-  const apronThickness = getOption<number>(input, deskOptions[4]);
-  const topOverhang = getOption<number>(input, deskOptions[5]);
-  const withCenterStretcher = getOption<boolean>(input, deskOptions[6]);
-  const withLowerStretchers = getOption<boolean>(input, deskOptions[7]);
-  const drawerCount = getOption<number>(input, deskOptions[8]);
-  const drawerSide = getOption<string>(input, deskOptions[9]);
-  const legInset = getOption<number>(input, deskOptions[10]);
-  const apronOffset = getOption<number>(input, deskOptions[11]);
-  const lowerStretcherHeight = getOption<number>(input, deskOptions[12]);
+  const o = deskOptions;
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
+  const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
+  const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
+  const drawerCount = getOption<number>(input, opt(o, "drawerCount"));
+  const drawerSide = getOption<string>(input, opt(o, "drawerSide"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
   const design = simpleTable({
     category: "desk",
@@ -59,6 +80,12 @@ export const desk: FurnitureTemplate = (input) => {
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: legShape === "tapered" ? "tapered" : "box",
+    seatEdge,
+    seatEdgeStyle,
+    legEdge,
+    legEdgeStyle,
+    stretcherEdge,
+    stretcherEdgeStyle,
     notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。`,
   });
 

@@ -6,11 +6,15 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeNote } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", 5),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 30, min: 20, max: 80, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 40, min: 20, max: 200, step: 5, unit: "mm", help: "腳中心離座板圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
@@ -48,6 +52,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const o = roundStoolOptions;
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -132,7 +140,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                       ? ({ kind: "splayed-round-tapered", bottomScale: 0.6, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
                       : legShape === "splayed-round-taper-up"
                         ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                        : undefined,
+                        : legEdgeShape(legEdge, legEdgeStyle),
       tenons: [
         {
           position: "top" as const,
@@ -231,7 +239,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
         origin: { x: s.origin.x, y: apronY, z: s.origin.z },
         rotation,
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
           { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
@@ -271,7 +279,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: lsSpan, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
         origin: { x: s.origin.x, y: lsY0, z: s.origin.z },
         rotation,
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
           { position: "end", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
@@ -289,7 +297,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
-    notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge)}`,
+    notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

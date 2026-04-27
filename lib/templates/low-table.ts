@@ -1,7 +1,15 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
-import { getOption } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { applyStandardChecks } from "./_validators";
+import {
+  seatEdgeOption,
+  seatEdgeStyleOption,
+  legEdgeOption,
+  legEdgeStyleOption,
+  stretcherEdgeOption,
+  stretcherEdgeStyleOption,
+} from "./_helpers";
 
 export const lowTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -10,6 +18,12 @@ export const lowTableOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 45, min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 1 },
+  seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
@@ -20,16 +34,23 @@ export const lowTableOptions: OptionSpec[] = [
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
-  const legShape = getOption<string>(input, lowTableOptions[0]);
-  const legSize = getOption<number>(input, lowTableOptions[1]);
-  const topThickness = getOption<number>(input, lowTableOptions[2]);
-  const apronWidth = getOption<number>(input, lowTableOptions[3]);
-  const topOverhang = getOption<number>(input, lowTableOptions[4]);
-  const withCenterStretcher = getOption<boolean>(input, lowTableOptions[5]);
-  const withLowerStretchers = getOption<boolean>(input, lowTableOptions[6]);
-  const legInset = getOption<number>(input, lowTableOptions[7]);
-  const apronOffset = getOption<number>(input, lowTableOptions[8]);
-  const lowerStretcherHeight = getOption<number>(input, lowTableOptions[9]);
+  const o = lowTableOptions;
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
+  const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
+  const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const design = simpleTable({
     category: "low-table",
     nameZh: "矮桌",
@@ -47,6 +68,12 @@ export const lowTable: FurnitureTemplate = (input) => {
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: legShape === "tapered" ? "tapered" : "box",
+    seatEdge,
+    seatEdgeStyle,
+    legEdge,
+    legEdgeStyle,
+    stretcherEdge,
+    stretcherEdgeStyle,
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });
   applyStandardChecks(design, { minLength: 500, minWidth: 400, minHeight: 250 });

@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry } from "./_helpers";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
 const TABLE_TYPE_LABEL: Record<string, string> = {
@@ -250,6 +250,10 @@ function buildTrestleRoundTable(p: {
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -290,6 +294,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const o = roundTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -380,7 +388,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
                             ? ({ kind: "splayed-round-tapered", bottomScale: 0.55, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
                             : legShape === "splayed-round-taper-up"
                               ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                              : undefined,
+                              : legEdgeShape(legEdge, legEdgeStyle),
       tenons: [
         {
           position: "top" as const,
@@ -465,7 +473,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           kind: "apron-beveled" as const,
           bevelAngle: s.axis === "x" ? -s.sz * tilt : -s.sx * tilt,
         })
-      : undefined,
+      : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       { position: "start" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
       { position: "end" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
@@ -500,7 +508,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         rotation: s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "shouldered-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
           { position: "end", type: "shouldered-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
@@ -526,7 +534,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }`,
+    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

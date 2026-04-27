@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape } from "../_helpers";
+import { corners, seatEdgeShape, legEdgeShape } from "../_helpers";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -48,8 +48,19 @@ export interface SimpleTableOpts {
   lowerStretcherWidth?: number;
   /** Lower stretcher thickness (horizontal, mm). Default 20. */
   lowerStretcherThickness?: number;
-  /** 桌面 / 座板邊緣處理 — 'square' / 'chamfered' / 'rounded' / 'rounded-large' */
-  seatEdge?: string;
+  /** 桌面 / 座板邊緣處理 — 'square' / 'chamfered' / 'rounded' / 'rounded-large'
+   *  或直接傳數字 mm（搭配 seatEdgeStyle 控制 V 角 vs 圓角）。 */
+  seatEdge?: string | number;
+  /** 座板邊緣樣式 — "chamfered"(45°) / "rounded"(圓刀)。預設 chamfered */
+  seatEdgeStyle?: string;
+  /** 腳邊緣倒角（mm）。0 = 直角。當 legShape 是 box 時生效，其他造型腳忽略 */
+  legEdge?: string | number;
+  /** 腳邊緣樣式 — "chamfered"(45°) / "rounded"(圓刀)。預設 chamfered */
+  legEdgeStyle?: string;
+  /** 牙板與下橫撐邊緣倒角（mm）。0 = 直角。外斜模式 (apron-beveled) 時忽略 */
+  stretcherEdge?: string | number;
+  /** 牙板/橫撐邊緣樣式 */
+  stretcherEdgeStyle?: string;
   notes?: string;
 }
 
@@ -113,7 +124,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatEdgeShape(opts.seatEdge ?? "square"),
+    shape: seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle),
     tenons: [],
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },
@@ -151,7 +162,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    shape: legShapeFor(c),
+    // legShape (tapered/splayed/...) 與 legEdge (chamfered-edges) 互斥；
+    // 造型腳優先，box 腳才能套倒角。
+    shape: legShapeFor(c) ?? legEdgeShape(opts.legEdge, opts.legEdgeStyle),
     tenons: [
       {
         position: "top",
@@ -252,7 +265,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       rotation: s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
         : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-      shape: isSplayed ? { kind: "apron-beveled" as const, bevelAngle } : undefined,
+      // 外斜模式 apron-beveled 與倒角互斥；非外斜時才能套倒角
+      shape: isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
       tenons: [
         {
           position: "start" as const,
@@ -310,7 +326,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         rotation: s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        shape: isSplayed
+          ? { kind: "apron-beveled", bevelAngle }
+          : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
           { position: "end", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
@@ -361,6 +379,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
       origin: { x: 0, y: originY, z: 0 },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      shape: legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
       tenons: [
         {
           position: "start",

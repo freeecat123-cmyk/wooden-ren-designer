@@ -6,11 +6,15 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel, computeSplayGeometry } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
 
 export const roundTeaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -45,6 +49,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const o = roundTeaTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -122,7 +130,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
                       ? ({ kind: "splayed-round-tapered", bottomScale: 0.6, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
                       : legShape === "splayed-round-taper-up"
                         ? ({ kind: "splayed-round-tapered", bottomScale: 1.4, dxMm: sx * splayDx, dzMm: sz * splayDz } as const)
-                        : undefined,
+                        : legEdgeShape(legEdge, legEdgeStyle),
       tenons: [
         {
           position: "top" as const,
@@ -207,7 +215,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           kind: "apron-beveled" as const,
           bevelAngle: s.axis === "x" ? -s.sz * tilt : -s.sx * tilt,
         })
-      : undefined,
+      : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       { position: "start" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
       { position: "end" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
@@ -242,7 +250,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         rotation: s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : undefined,
+        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
           { position: "end", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
@@ -260,7 +268,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [top, ...legs, ...aprons, ...lowerStretchers],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。桌面 ${diameter >= 600 ? "需用實木拼板（建議 3-4 片寬度 150-200mm 的料拼接）" : "可整片實木裁切"}。`,
+    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。桌面 ${diameter >= 600 ? "需用實木拼板（建議 3-4 片寬度 150-200mm 的料拼接）" : "可整片實木裁切"}。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

@@ -5,7 +5,14 @@ import { applyStandardChecks } from "./_validators";
 import {
   RECT_LEG_SHAPE_CHOICES,
   seatEdgeOption,
+  seatEdgeStyleOption,
   seatEdgeNote,
+  legEdgeOption,
+  legEdgeStyleOption,
+  legEdgeNote,
+  stretcherEdgeOption,
+  stretcherEdgeStyleOption,
+  stretcherEdgeNote,
   legShapeLabel,
 } from "./_helpers";
 import {
@@ -19,6 +26,11 @@ export const benchOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 80, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 20, min: 0, max: 400, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
@@ -34,6 +46,11 @@ export const bench: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
@@ -59,7 +76,12 @@ export const bench: FurnitureTemplate = (input) => {
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
     seatEdge,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge)}`,
+    seatEdgeStyle,
+    legEdge,
+    legEdgeStyle,
+    stretcherEdge,
+    stretcherEdgeStyle,
+    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   });
 
   if (withUnderShelf) {

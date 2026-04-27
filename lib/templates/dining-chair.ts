@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const diningChairOptions: OptionSpec[] = [
@@ -16,6 +16,11 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 150, max: 900, step: 10, help: "地面到座板上緣，一般 440–460" },
   seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   // 座面舒適度
   { group: "top", type: "select", key: "seatProfile", label: "座面挖型", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },
@@ -73,6 +78,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatHeight = getOption<number>(input, opt(o, "seatHeight"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -177,7 +187,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: legSize, width: legSize, thickness: legTotalH },
       origin: { x: c.x, y: 0, z: c.z },
-      shape: legShapeFor(c),
+      shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
       tenons: isBack
         ? [] // 後腳頂端接椅背頂橫木（橫木有公榫，不在腳上）
         : [
@@ -256,7 +266,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatHeight - seatThickness, z: 0 },
-    shape: seatEdgeShape(seatEdge),
+    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     // 前 2 腳通榫進來（榫頭從下方刺穿座板）；
     // 後 2 腳沒通榫但腳本身穿過座板高度範圍——也要開孔讓腳通過，
@@ -330,6 +340,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     rotation: s.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       {
         position: "start",
@@ -557,7 +568,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes:
       `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
-      ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge)}` +
+      ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}` +
       (seatProfile === "saddle" ? " 座面馬鞍挖型，需用刨刀或雕刻機由後向前 5° 弧度挖出馬鞍狀凹陷。" : "") +
       (seatProfile === "scooped" ? " 座面雙凹挖型，左右各挖 6mm 深的對稱凹槽。" : "") +
       (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +

@@ -1,7 +1,15 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-import { legShapeLabel } from "./_helpers";
+import {
+  legShapeLabel,
+  seatEdgeOption,
+  seatEdgeStyleOption,
+  legEdgeOption,
+  legEdgeStyleOption,
+  stretcherEdgeOption,
+  stretcherEdgeStyleOption,
+} from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const diningTableOptions: OptionSpec[] = [
@@ -19,6 +27,12 @@ export const diningTableOptions: OptionSpec[] = [
   // 桌面 (top)
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 2 },
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
+  seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  legEdgeOption("leg", 1),
+  legEdgeStyleOption("leg"),
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   // 牙板 (apron)
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 28, min: 10, max: 50, step: 2 },
@@ -52,6 +66,12 @@ export const diningTable: FurnitureTemplate = (input) => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const legEdge = getOption<number>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
+  const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const design = simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -75,6 +95,12 @@ export const diningTable: FurnitureTemplate = (input) => {
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
+    seatEdge,
+    seatEdgeStyle,
+    legEdge,
+    legEdgeStyle,
+    stretcherEdge,
+    stretcherEdgeStyle,
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
   applyStandardChecks(design, { minLength: 900, minWidth: 600, minHeight: 600 });
