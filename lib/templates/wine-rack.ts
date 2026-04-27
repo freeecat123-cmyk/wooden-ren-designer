@@ -30,7 +30,11 @@ export const wineRackOptions: OptionSpec[] = [
   { group: "structure", type: "select", key: "mountStyle", label: "安裝方式", defaultValue: "freestanding", choices: [
     { value: "freestanding", label: "立式（直接立於地面/桌上）" },
     { value: "wall-mount", label: "掛壁式（背面加吊掛條鎖牆）" },
+    { value: "stackable", label: "可堆疊（上下加凹凸卡榫，多座往上疊）" },
   ] },
+  { group: "structure", type: "checkbox", key: "withGlassRack", label: "頂部加掛酒杯架", defaultValue: false, help: "頂板下方加 4-6 道 30mm 寬槽軌（高腳杯倒掛），酒架同時是杯架。需為高腳杯預留至少 200mm 淨高", wide: true },
+  { group: "structure", type: "checkbox", key: "withFelt", label: "瓶位內貼絨布", defaultValue: false, help: "每個瓶位四壁內側貼薄絨布，瓶身放入時不會碰撞瓶身刮花標籤", wide: true },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "外露邊倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "頂板 / 底板 / 側板外露邊倒角，2-3mm 防割手 + 美感" },
 ];
 
 /**
@@ -46,6 +50,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
   const mountStyle = getOption<string>(input, opt(o, "mountStyle"));
+  const withGlassRack = getOption<boolean>(input, opt(o, "withGlassRack"));
+  const withFelt = getOption<boolean>(input, opt(o, "withFelt"));
+  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const cellSize = bd + CELL_CLEARANCE;
   const innerW = bw * cellSize;
@@ -172,6 +179,12 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "tongue-and-groove",
     primaryMaterial: material,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${CELL_CLEARANCE}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${mountStyle === "wall-mount" ? "已加背面吊掛條，鎖到牆內龍骨上即可。" : "可直接立於地面或桌上。"}`,
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${CELL_CLEARANCE}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
+      mountStyle === "wall-mount"
+        ? "已加背面吊掛條，鎖到牆內龍骨上即可。"
+        : mountStyle === "stackable"
+          ? "頂底加凹凸卡榫，多座可往上疊（每座頂面挖 4 個 8×20mm 凹孔，下座底面凸 4 個對應榫）。"
+          : "可直接立於地面或桌上。"
+    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withFelt ? " 每個瓶位四壁內側貼 1mm 絨布（B&Q 自黏絨布裁好黏入），瓶身不會撞傷標籤。" : ""}${edgeChamfer > 0 ? ` 頂底板及側板外露邊倒 ${edgeChamfer}mm 防割。` : ""}`,
   };
 };

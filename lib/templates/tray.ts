@@ -15,9 +15,17 @@ export const trayOptions: OptionSpec[] = [
     { value: "dovetail", label: "鳩尾（更高階，視覺最美）" },
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
   ] },
-  { group: "structure", type: "checkbox", key: "withHandles", label: "加握把孔", defaultValue: true, help: "兩端短邊各挖一個橢圓孔當握把" },
-  { group: "structure", type: "number", key: "handleWidth", label: "握把孔寬 (mm)", defaultValue: 80, min: 60, max: 120, step: 5, unit: "mm", dependsOn: { key: "withHandles" } },
-  { group: "structure", type: "number", key: "handleHeight", label: "握把孔高 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm", dependsOn: { key: "withHandles" } },
+  { group: "structure", type: "select", key: "handleStyle", label: "握把樣式", defaultValue: "hole", choices: [
+    { value: "hole", label: "握把孔（橢圓孔，最簡單）" },
+    { value: "cutout", label: "凹陷把手（短邊上緣 V 型缺口）" },
+    { value: "rope", label: "麻繩握把（兩側打孔穿麻繩繞圈）" },
+    { value: "metal", label: "金屬鉤環（鎖在外側，最不傷手）" },
+    { value: "none", label: "不加握把（純展示用托盤）" },
+  ] },
+  { group: "structure", type: "number", key: "handleWidth", label: "握把孔寬 (mm)", defaultValue: 80, min: 60, max: 120, step: 5, unit: "mm", dependsOn: { key: "handleStyle", oneOf: ["hole", "cutout"] } },
+  { group: "structure", type: "number", key: "handleHeight", label: "握把孔高 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm", dependsOn: { key: "handleStyle", oneOf: ["hole", "cutout"] } },
+  { group: "structure", type: "checkbox", key: "withFeltPad", label: "底面貼防滑墊", defaultValue: false, help: "底板下緣貼 4 片小氈墊，端到桌面不刮傷且止滑", wide: true },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "圍邊倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "圍邊頂緣倒角，2-3mm 手感佳不會割手" },
 ];
 
 /**
@@ -34,9 +42,12 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     | "finger-joint"
     | "dovetail"
     | "stub-joint";
-  const withHandles = getOption<boolean>(input, opt(o, "withHandles"));
+  const handleStyle = getOption<string>(input, opt(o, "handleStyle"));
+  const withHandles = handleStyle !== "none";
   const handleW = getOption<number>(input, opt(o, "handleWidth"));
   const handleH = getOption<number>(input, opt(o, "handleHeight"));
+  const withFeltPad = getOption<boolean>(input, opt(o, "withFeltPad"));
+  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({
     outerL,
@@ -72,7 +83,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     parts: built.parts,
     defaultJoinery: cornerJoinery,
     primaryMaterial: material,
-    notes: `托盤 ${outerL}×${outerW}mm（圍邊高 ${wallH}mm）。底板與圍邊用槽接（圍邊內側下緣鋸 ${botT}×${botT}mm 槽）。4 角 ${cornerLabel}。${withHandles ? `**短邊握把**：兩端短邊上緣中央挖 ${handleW}×${handleH}mm 橢圓孔，邊緣倒 R5 圓角好握。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
+    notes: `托盤 ${outerL}×${outerW}mm（圍邊高 ${wallH}mm）。底板與圍邊用槽接（圍邊內側下緣鋸 ${botT}×${botT}mm 槽）。4 角 ${cornerLabel}。${
+      handleStyle === "hole"
+        ? `**握把孔**：兩端短邊中央挖 ${handleW}×${handleH}mm 橢圓孔，邊緣倒 R5 好握。`
+        : handleStyle === "cutout"
+          ? `**凹陷把手**：兩端短邊上緣中央挖 ${handleW}mm 寬 V 型缺口（深 ${handleH}mm）。`
+          : handleStyle === "rope"
+            ? `**麻繩握把**：兩端短邊各鑽 2 個 12mm 圓孔（間距 80mm），穿 8mm 黃麻繩繞 3 圈打結。`
+            : handleStyle === "metal"
+              ? `**金屬把手**：兩端短邊外側各鎖一個復古黃銅 / 黑色金屬把手（B&Q 五金行 NT$ 80-150 / 個）。`
+              : `無握把（純展示用 / 桌面點心盤）。`
+    }${withFeltPad ? " 底面貼 4 片自黏氈墊，桌面不刮傷且止滑。" : ""}${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
   };
   if (built.warnings.length) design.warnings = built.warnings;
   return design;

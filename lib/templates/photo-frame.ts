@@ -17,6 +17,18 @@ export const photoFrameOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
   { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚 (mm)", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
   { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深 (mm)", defaultValue: 8, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 + 背板 + 一點裕度" },
+  { group: "structure", type: "select", key: "frameProfile", label: "邊框輪廓", defaultValue: "flat", choices: [
+    { value: "flat", label: "平面（最簡單）" },
+    { value: "chamfer-out", label: "外緣 45° 倒角" },
+    { value: "chamfer-in", label: "內緣斜面（朝照片方向斜下）" },
+    { value: "ogee", label: "古典 Ogee 線（雙曲線）" },
+    { value: "cove", label: "凹弧 Cove（內凹圓弧）" },
+  ], help: "邊框正面輪廓樣式。平面最簡單；其他需修邊機 + 對應曲線刀" },
+  { group: "structure", type: "select", key: "stand", label: "立架／吊掛", defaultValue: "easel", choices: [
+    { value: "easel", label: "立架（背面 V 型支撐板，立桌面）" },
+    { value: "wall-hung", label: "吊掛式（背面 D 形勾或鋸齒鈎）" },
+    { value: "both", label: "兩用（立架可摺收 + 吊掛勾）" },
+  ], help: "立架最常見，吊掛適合走廊牆面，兩用最彈性" },
 ];
 
 /**
@@ -31,6 +43,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const backT = getOption<number>(input, opt(o, "backThickness"));
   const glassT = getOption<number>(input, opt(o, "glassThickness"));
   const glassGrooveDepth = getOption<number>(input, opt(o, "glassGrooveDepth"));
+  const frameProfile = getOption<string>(input, opt(o, "frameProfile"));
+  const stand = getOption<string>(input, opt(o, "stand"));
 
   // 整框外尺寸 = 照片 + 兩側邊框
   const outerL = photoW + 2 * frameW;
@@ -118,6 +132,6 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。**玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
+    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面外緣 45° 倒角（修邊機 V 型刀）。` : frameProfile === "chamfer-in" ? `邊框正面內緣斜面下垂（修邊機 chamfer 刀）。` : frameProfile === "ogee" ? `邊框正面 Ogee 古典線型（修邊機 Ogee 線刀）。` : frameProfile === "cove" ? `邊框正面凹弧 Cove（修邊機 Cove 刀）。` : ""}${stand === "easel" ? ` 背面加 V 型立架（鉸鏈 + 摺收支撐板，立桌面用）。` : stand === "wall-hung" ? ` 背面加 D 形掛勾或鋸齒鈎（吊牆用）。` : ` 兩用：背面同時加可摺立架 + 掛勾。`}**玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };
