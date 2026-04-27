@@ -1972,18 +1972,33 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
   // 公件俯視：看到 3 個梯形 tail 從板端突出
   // 範圍：x ∈ [0, showLen + tailDepth], z ∈ [0, jointWidth]
   // SVG 直接 1mm = 1px（autoViewBox 處理範圍）
-  // === 端面俯視 2D（板直立、端面朝上、鋸切時的真實視角）===
-  // 約定：在 SVG 內，X = 板的 width 方向（jointWidth），Y = 板的 length 方向。
-  // Y 軸往「下」(SVG 慣例)代表往「板身內部」深入。端面在 SVG 頂部 y=0。
+  // === 端面俯視 + 3D 深度條（板直立、端面朝上、cabinet projection 加 30° 側深）===
+  // SVG 約定：x = 板寬（jointWidth），y = 板長（端面在 y=0，板身往下延伸）。
+  // 額外右側畫一條斜向後上的「深度條」表示板厚（boardT），讓 2D 看起來有 3D 感。
   const TOP_PAD = 30;
-  const showBodyLen = Math.max(60, tailDepth * 1.5);  // 顯示一截板身，視覺平衡
-  const totalH = tailDepth + showBodyLen;  // 鳩尾段 + 板身段
+  const showBodyLen = Math.max(60, tailDepth * 1.5);
+  const totalH = tailDepth + showBodyLen;
   const totalW = jointWidth;
-  const tailTopVB = `0 0 ${totalW + 2 * TOP_PAD + 60} ${totalH + 2 * TOP_PAD}`;
+  // 深度條偏移（cabinet projection 30°）
+  const depthAngle = Math.PI / 6;
+  const dxBoard = boardT * Math.cos(depthAngle); // 板厚往右偏
+  const dyBoard = -boardT * Math.sin(depthAngle); // 板厚往上偏（負值 = SVG 上方）
+  const dxMother = motherT * Math.cos(depthAngle);
+  const dyMother = -motherT * Math.sin(depthAngle);
+  const tailTopVB = `0 ${dyBoard - 5} ${totalW + 2 * TOP_PAD + dxBoard + 60} ${totalH + 2 * TOP_PAD - dyBoard}`;
   const tailTopView = (
     <svg viewBox={tailTopVB} className="w-full h-auto">
       <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
-        {/* 板身（鳩尾下方部分）*/}
+        {/* === 板身（鳩尾下方部分）+ 右側 3D 深度條 === */}
+        {/* 板身右側 3D 深度條（cabinet projection）*/}
+        <polygon
+          points={`${totalW},${tailDepth} ${totalW + dxBoard},${tailDepth + dyBoard} ${totalW + dxBoard},${totalH + dyBoard} ${totalW},${totalH}`}
+          fill={AXON_COLOR.tenon}
+          fillOpacity={0.5}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1}
+        />
+        {/* 板身前面 */}
         <rect
           x={0}
           y={tailDepth}
@@ -2004,23 +2019,41 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           strokeDasharray="4 2"
           strokeWidth={0.7}
         />
-        {/* 每個 tail（梯形，端面在頂端 y=0，靠板身那端 y=tailDepth 較窄）*/}
+        {/* 每個 tail（梯形，端面在頂端 y=0，靠板身那端 y=tailDepth 較窄）+ 各自的 3D 深度條 */}
         {tailZCenters.map((zc, i) => {
           const yEnd = 0;             // 端面（頂端，露出鋸口）
           const yBody = tailDepth;    // 連接板身
-          const endZ1 = zc - tailTopW / 2;     // 端面寬
+          const endZ1 = zc - tailTopW / 2;
           const endZ2 = zc + tailTopW / 2;
-          const bodyZ1 = zc - tailBaseW / 2;   // 板身端窄
+          const bodyZ1 = zc - tailBaseW / 2;
           const bodyZ2 = zc + tailBaseW / 2;
           return (
-            <polygon
-              key={`tail-${i}`}
-              points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
-              fill={AXON_COLOR.tenon}
-              fillOpacity={0.85}
-              stroke={AXON_COLOR.outline}
-              strokeWidth={1.2}
-            />
+            <g key={`tail-${i}`}>
+              {/* 上方：tail 的「頂面」（depth strip）— cabinet 投影看到上面 */}
+              <polygon
+                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${endZ2 + dxBoard},${yEnd + dyBoard} ${endZ1 + dxBoard},${yEnd + dyBoard}`}
+                fill={AXON_COLOR.tenon}
+                fillOpacity={0.6}
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1}
+              />
+              {/* 右側：tail 的「右側面」（看到斜面）*/}
+              <polygon
+                points={`${endZ2},${yEnd} ${endZ2 + dxBoard},${yEnd + dyBoard} ${bodyZ2 + dxBoard},${yBody + dyBoard} ${bodyZ2},${yBody}`}
+                fill={AXON_COLOR.tenon}
+                fillOpacity={0.45}
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1}
+              />
+              {/* 前面：trapezoid（最主要視覺）*/}
+              <polygon
+                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
+                fill={AXON_COLOR.tenon}
+                fillOpacity={0.85}
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1.2}
+              />
+            </g>
           );
         })}
         {/* 標尺：鳩尾長（垂直方向，左側）*/}
@@ -2068,12 +2101,28 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
     </svg>
   );
 
-  // === 母件端面俯視 2D：板直立、端面朝上、鳩尾眼從端面鋸入 ===
-  const pinTopVB = `0 0 ${totalW + 2 * TOP_PAD + 60} ${totalH + 2 * TOP_PAD}`;
+  // === 母件端面俯視 2D + 3D 深度條：板直立、端面朝上、鳩尾眼從端面鋸入 ===
+  const pinTopVB = `0 ${dyMother - 5} ${totalW + 2 * TOP_PAD + dxMother + 60} ${totalH + 2 * TOP_PAD - dyMother}`;
   const pinTopView = (
     <svg viewBox={pinTopVB} className="w-full h-auto">
       <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
-        {/* 整片板（包含端面到板身全範圍）*/}
+        {/* 板身右側 3D 深度條 */}
+        <polygon
+          points={`${totalW},${0} ${totalW + dxMother},${dyMother} ${totalW + dxMother},${totalH + dyMother} ${totalW},${totalH}`}
+          fill="#a47e4f"
+          fillOpacity={0.5}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1}
+        />
+        {/* 板身頂部（端面）3D 深度條：從端面 y=0 推到 y=dyMother，整片板寬 */}
+        <polygon
+          points={`${0},${0} ${totalW},${0} ${totalW + dxMother},${dyMother} ${dxMother},${dyMother}`}
+          fill="#b08c5f"
+          fillOpacity={0.7}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1}
+        />
+        {/* 整片板前面 */}
         <rect
           x={0}
           y={0}
@@ -2084,22 +2133,31 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           stroke={AXON_COLOR.outline}
           strokeWidth={1.2}
         />
-        {/* 鳩尾眼（負空間，從端面 y=0 鋸入到 y=tailDepth）*/}
+        {/* 鳩尾眼（負空間，含 3D 深度感的開口）*/}
         {tailZCenters.map((zc, i) => {
           const yEnd = 0;
           const yBody = tailDepth;
-          const endZ1 = zc - tailTopW / 2;     // 端面開口寬
+          const endZ1 = zc - tailTopW / 2;
           const endZ2 = zc + tailTopW / 2;
-          const bodyZ1 = zc - tailBaseW / 2;   // 內側窄
+          const bodyZ1 = zc - tailBaseW / 2;
           const bodyZ2 = zc + tailBaseW / 2;
           return (
-            <polygon
-              key={`pin-${i}`}
-              points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
-              fill="white"
-              stroke={AXON_COLOR.outline}
-              strokeWidth={1.2}
-            />
+            <g key={`pin-${i}`}>
+              {/* 端面上的鳩尾眼開口（在 3D 頂面上開的洞）*/}
+              <polygon
+                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${endZ2 + dxMother},${yEnd + dyMother} ${endZ1 + dxMother},${yEnd + dyMother}`}
+                fill="white"
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1}
+              />
+              {/* 前面負空間（梯形開口）*/}
+              <polygon
+                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
+                fill="white"
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1.2}
+              />
+            </g>
           );
         })}
         {/* 板身延伸虛線 */}
@@ -2168,39 +2226,25 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
   const tailVB = autoViewBox(allPts(...tailVerts), 60);
   const pinVB = autoViewBox(allPts(...pinVerts), 60);
 
+  // 舊 horizontal axon 已不採用（保留 viewBox 變數以免 ts unused 報錯）
+  void tailVB;
+  void pinVB;
+  void tailBoard;
+  void pinBoard;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <figure>
-        <div className="flex flex-col gap-2">
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">立體圖</div>
-            <svg viewBox={tailVB} className="w-full h-auto">
-              {tailBoard}
-            </svg>
-          </div>
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">端面正視（板直立、端面朝上）</div>
-            {tailTopView}
-          </div>
-        </div>
-        <figcaption className="mt-1 text-xs text-zinc-600 text-center">
+        <div className="text-[10px] text-zinc-400 mb-0.5">板直立、端面朝上（3D 深度條表示板厚）</div>
+        {tailTopView}
+        <figcaption className="mt-2 text-xs text-zinc-600 text-center">
           <strong>公件</strong>（鳩尾頭板 / Tail board）— 抽屜側板
         </figcaption>
       </figure>
       <figure>
-        <div className="flex flex-col gap-2">
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">立體圖</div>
-            <svg viewBox={pinVB} className="w-full h-auto">
-              {pinBoard}
-            </svg>
-          </div>
-          <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">端面正視（鋸口朝上，鳩尾眼一目了然）</div>
-            {pinTopView}
-          </div>
-        </div>
-        <figcaption className="mt-1 text-xs text-zinc-600 text-center">
+        <div className="text-[10px] text-zinc-400 mb-0.5">板直立、端面朝上（鳩尾眼從端面鋸入）</div>
+        {pinTopView}
+        <figcaption className="mt-2 text-xs text-zinc-600 text-center">
           <strong>母件</strong>（鳩尾眼板 / Pin board）— 抽屜面板
         </figcaption>
       </figure>
