@@ -19,6 +19,7 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 
 interface PageProps {
@@ -479,6 +480,7 @@ function ParameterForm({
               細部設定
             </h3>
           </div>
+          <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields
             optionSchema={optionSchema}
             optionValues={optionValues}

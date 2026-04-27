@@ -315,15 +315,80 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     return [...right, ...left];
   }
 
-  // 板狀零件頂緣倒角（座板 / 桌面）：前/側視 = 矩形上 2 角斜切
-  // 俯視仍是矩形（從上方看不到倒角）
+  // 4 條長邊倒角（腳 / 橫撐）：在「沿最長軸看過去」的那個視圖才看得到截角
+  // chamfered → 八邊形截面；rounded → 多段近似圓角
+  if (part.shape.kind === "chamfered-edges") {
+    const c = part.shape.chamferMm;
+    if (c <= 0) return box;
+    const { xExt, yExt, zExt } = worldExtents(part);
+    // 找世界座標下的最長軸
+    const axes: Array<["x" | "y" | "z", number]> = [
+      ["x", xExt],
+      ["y", yExt],
+      ["z", zExt],
+    ];
+    axes.sort((a, b) => b[1] - a[1]);
+    const longestAxis = axes[0][0];
+    // 截面視圖 = 沿最長軸看過去的那個（front 沿 Z、side 沿 X、top 沿 Y）
+    const crossView = longestAxis === "x" ? "side" : longestAxis === "y" ? "top" : "front";
+    if (view !== crossView) return box;
+    const cap = Math.min(c, r.w * 0.45, r.h * 0.45);
+    if (cap <= 0) return box;
+    if (part.shape.style !== "rounded") {
+      // 八邊形（4 角各斜切）
+      return [
+        { x: r.x + cap, y: r.y + r.h },
+        { x: r.x + r.w - cap, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y + r.h - cap },
+        { x: r.x + r.w, y: r.y + cap },
+        { x: r.x + r.w - cap, y: r.y },
+        { x: r.x + cap, y: r.y },
+        { x: r.x, y: r.y + cap },
+        { x: r.x, y: r.y + r.h - cap },
+      ];
+    }
+    // 圓角：4 個四分圓弧（每個 4 段）— 共 16 段，視覺上接近圓角
+    const segs = 4;
+    const arc = (cx: number, cy: number, t0: number, t1: number) => {
+      const pts: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= segs; i++) {
+        const t = t0 + ((t1 - t0) * i) / segs;
+        pts.push({ x: cx + cap * Math.cos(t), y: cy + cap * Math.sin(t) });
+      }
+      return pts;
+    };
+    return [
+      ...arc(r.x + r.w - cap, r.y + r.h - cap, 0, Math.PI / 2),
+      ...arc(r.x + cap, r.y + r.h - cap, Math.PI / 2, Math.PI),
+      ...arc(r.x + cap, r.y + cap, Math.PI, (3 * Math.PI) / 2),
+      ...arc(r.x + r.w - cap, r.y + cap, (3 * Math.PI) / 2, 2 * Math.PI),
+    ];
+  }
+
+  // 板狀零件頂緣倒角（座板 / 桌面）：前/側視 = 矩形上 2 角斜切（chamfered）
+  // 或圓角弧線（rounded）。俯視仍是矩形（從上方看不到倒角）。
   if (part.shape.kind === "chamfered-top") {
     if (view === "top") return box;
     const c = Math.min(part.shape.chamferMm, r.h * 0.45, r.w * 0.45);
     if (c <= 0) return box;
-    // box = [TL, TR, BR, BL]
-    // 倒角：TL → 兩點 (r.x+c, r.y+r.h) + (r.x, r.y+r.h-c)
-    //       TR → 兩點 (r.x+r.w-c, r.y+r.h) + (r.x+r.w, r.y+r.h-c)
+    if (part.shape.style === "rounded") {
+      // TL/TR 用 4 段近似四分圓
+      const segs = 4;
+      const arc = (cx: number, cy: number, t0: number, t1: number) => {
+        const pts: Array<{ x: number; y: number }> = [];
+        for (let i = 0; i <= segs; i++) {
+          const t = t0 + ((t1 - t0) * i) / segs;
+          pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
+        }
+        return pts;
+      };
+      return [
+        ...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2),
+        ...arc(r.x + c, r.y + r.h - c, Math.PI / 2, Math.PI),
+        { x: r.x, y: r.y },
+        { x: r.x + r.w, y: r.y },
+      ];
+    }
     return [
       { x: r.x + c, y: r.y + r.h },        // 頂面左端
       { x: r.x + r.w - c, y: r.y + r.h },  // 頂面右端

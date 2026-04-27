@@ -1,6 +1,69 @@
-import type { BillableMaterial, FurnitureDesign } from "@/lib/types";
+import type { BillableMaterial, FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
+
+/**
+ * 倒角 / 圓角加工工時。每條外露邊跑修邊機（V 角 / 圓刀）+ 手工砂磨。
+ *
+ * 比例（保守估）：
+ *   chamfered (45°): 3 sec/mm = 3 min/m
+ *   rounded:         4.8 sec/mm = 4.8 min/m（圓角砂磨更費時）
+ *   每種規格 setup 3 min（換刀 + 試切）
+ *
+ * 跳過 visual=glass（玻璃）與 chamferMm <= 0 的 part。
+ */
+function chamferEdgeMm(part: Part): { perimeterMm: number; style: "chamfered" | "rounded" } | null {
+  const s = part.shape;
+  if (!s) return null;
+  if (s.kind === "chamfered-top") {
+    if (s.chamferMm <= 0) return null;
+    // 4 條頂緣 = 周長 = 2 × (length + width)
+    return {
+      perimeterMm: 2 * (part.visible.length + part.visible.width),
+      style: s.style === "rounded" ? "rounded" : "chamfered",
+    };
+  }
+  if (s.kind === "chamfered-edges") {
+    if (s.chamferMm <= 0) return null;
+    // 4 條長邊 = 4 × max(length, width, thickness)
+    const longest = Math.max(part.visible.length, part.visible.width, part.visible.thickness);
+    return {
+      perimeterMm: 4 * longest,
+      style: s.style === "rounded" ? "rounded" : "chamfered",
+    };
+  }
+  return null;
+}
+
+export function computeChamferLaborHours(design: FurnitureDesign): {
+  hours: number;
+  totalMmChamfered: number;
+  totalMmRounded: number;
+  uniqueConfigs: number;
+} {
+  let totalMmChamfered = 0;
+  let totalMmRounded = 0;
+  const configs = new Set<string>();
+  for (const part of design.parts) {
+    if (part.visual === "glass") continue;
+    const e = chamferEdgeMm(part);
+    if (!e) continue;
+    if (e.style === "rounded") totalMmRounded += e.perimeterMm;
+    else totalMmChamfered += e.perimeterMm;
+    // 同 R 值 + 同樣式 = 同次 setup（不同零件可共用一次裝刀）
+    if (part.shape && (part.shape.kind === "chamfered-top" || part.shape.kind === "chamfered-edges")) {
+      configs.add(`${e.style}-${part.shape.chamferMm}`);
+    }
+  }
+  const cutHours = totalMmChamfered * 0.00005 + totalMmRounded * 0.00008;
+  const setupHours = configs.size * 0.05;
+  return {
+    hours: cutHours + setupHours,
+    totalMmChamfered,
+    totalMmRounded,
+    uniqueConfigs: configs.size,
+  };
+}
 import {
   MATERIAL_PRICE_PER_BDFT,
   MM3_PER_BDFT,
@@ -143,9 +206,11 @@ export function calculateQuote(
     totalBdft += bdft;
   }
 
-  // 2. 工時成本（build steps 加總）
+  // 2. 工時成本（build steps 加總 + 倒角加工）
   const steps = deriveBuildSteps(design);
-  const laborHours = totalEstimatedHours(steps);
+  const baseLaborHours = totalEstimatedHours(steps);
+  const chamferLabor = computeChamferLaborHours(design);
+  const laborHours = baseLaborHours + chamferLabor.hours;
   const laborCost = laborHours * opts.hourlyRate;
 
   // 3. 設備折舊（按工時分攤）
@@ -194,11 +259,32 @@ export function calculateQuote(
   const estimatedWorkdays =
     Math.ceil((laborHours * quantity) / HOURS_PER_WORKDAY) + bufferDays;
 
+  // 倒角工時拆出來顯示，讓客戶看得出 R 值大小對價格的影響
+  const chamferDetail =
+    chamferLabor.hours > 0
+      ? [
+          chamferLabor.totalMmChamfered > 0
+            ? `45° 倒角 ${(chamferLabor.totalMmChamfered / 1000).toFixed(1)}m`
+            : "",
+          chamferLabor.totalMmRounded > 0
+            ? `圓角 ${(chamferLabor.totalMmRounded / 1000).toFixed(1)}m`
+            : "",
+          chamferLabor.uniqueConfigs > 0
+            ? `${chamferLabor.uniqueConfigs} 種規格 setup`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("、")
+      : "";
+
   const lines: QuoteLineItem[] = [
     ...materialLines,
     {
       label: "加工工資",
-      detail: `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
+      detail:
+        chamferLabor.hours > 0
+          ? `主工時 ${baseLaborHours.toFixed(1)}h + 倒角 ${chamferLabor.hours.toFixed(1)}h（${chamferDetail}）× NT$${opts.hourlyRate}/hr`
+          : `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
       amount: laborCost,
     },
     {
