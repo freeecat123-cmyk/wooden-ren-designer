@@ -14,6 +14,20 @@ import {
   resolveZones,
 } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  toeKickOptions,
+  toeKickNote,
+  crownMoldingOptions,
+  crownMoldingNote,
+  backPanelMaterialOption,
+  backPanelMaterialNote,
+  drawerJoineryOption,
+  drawerJoineryNote,
+  drawerSlideTypeOption,
+  drawerSlideTypeNote,
+} from "./_helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -37,6 +51,12 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   drawerSlideOption,
+  drawerJoineryOption("drawer"),
+  drawerSlideTypeOption("drawer"),
+  shelfPinSystemOption("structure"),
+  ...toeKickOptions("structure"),
+  ...crownMoldingOptions("structure"),
+  backPanelMaterialOption("back"),
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
@@ -47,6 +67,15 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const drawerMount = resolveDrawerMount(input, o);
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
+  const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
+  const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
+  const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
+  const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
+  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
+  const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
+  const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -70,7 +99,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
+    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 500 });

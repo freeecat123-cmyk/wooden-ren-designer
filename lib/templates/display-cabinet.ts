@@ -17,6 +17,16 @@ import {
   resolveZones,
 } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  toeKickOptions,
+  toeKickNote,
+  crownMoldingOptions,
+  crownMoldingNote,
+  backPanelMaterialOption,
+  backPanelMaterialNote,
+} from "./_helpers";
 
 export const displayCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
@@ -45,6 +55,12 @@ export const displayCabinetOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
+  shelfPinSystemOption("structure"),
+  ...toeKickOptions("structure"),
+  ...crownMoldingOptions("structure"),
+  backPanelMaterialOption("back"),
+  { group: "structure", type: "checkbox", key: "glassShelves", label: "玻璃層板（透光感）", defaultValue: false, help: "層板換成 8mm 強化玻璃，光線可以從上層透到下層。常見於精品櫃 / 公仔櫃", wide: true },
+  { group: "structure", type: "checkbox", key: "withLedStrip", label: "預留 LED 燈條溝", defaultValue: false, help: "頂板背面開 12mm 寬 × 6mm 深溝藏 LED 燈條，照亮櫃內展品。需配 12V 變壓器", wide: true },
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
@@ -57,6 +73,15 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
+  const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
+  const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
+  const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
+  const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
+  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
+  const glassShelves = getOption<boolean>(input, opt(o, "glassShelves"));
+  const withLedStrip = getOption<boolean>(input, opt(o, "withLedStrip"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -89,7 +114,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${glassShelves ? "層板換 8mm 強化玻璃，需向玻璃行訂製，邊緣磨平 + 倒角防割手。" : ""} ${withLedStrip ? "頂板下面開 12mm 寬 × 6mm 深溝藏 LED 燈條（需配 12V 變壓器 + 線材孔）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 600 });

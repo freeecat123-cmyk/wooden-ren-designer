@@ -17,6 +17,16 @@ import {
   resolveZones,
 } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  toeKickOptions,
+  toeKickNote,
+  crownMoldingOptions,
+  crownMoldingNote,
+  backPanelMaterialOption,
+  backPanelMaterialNote,
+} from "./_helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -46,6 +56,11 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
+  shelfPinSystemOption("structure"),
+  ...toeKickOptions("structure"),
+  ...crownMoldingOptions("structure"),
+  backPanelMaterialOption("back"),
+  { group: "structure", type: "checkbox", key: "tiltedShelf", label: "斜放層板（鞋頭朝下）", defaultValue: false, help: "層板向後傾斜 5-10°，鞋子放上去後鞋頭朝下、不會滑出。傳統鞋櫃常用做法", wide: true },
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
@@ -58,6 +73,14 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
+  const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
+  const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
+  const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
+  const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
+  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
+  const tiltedShelf = getOption<boolean>(input, opt(o, "tiltedShelf"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -90,7 +113,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。層板可用層板釘做可調式。`,
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${tiltedShelf ? "層板向後傾 8°，鞋頭朝下不易滑出（前緣加 8mm 擋條更保險）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, { minLength: 500, minWidth: 250, minHeight: 500 });

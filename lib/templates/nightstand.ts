@@ -17,6 +17,16 @@ import {
   resolveZones,
 } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  backPanelMaterialOption,
+  backPanelMaterialNote,
+  drawerJoineryOption,
+  drawerJoineryNote,
+  drawerSlideTypeOption,
+  drawerSlideTypeNote,
+} from "./_helpers";
 
 export const nightstandOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
@@ -44,6 +54,11 @@ export const nightstandOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
+  drawerJoineryOption("drawer"),
+  drawerSlideTypeOption("drawer"),
+  shelfPinSystemOption("structure"),
+  backPanelMaterialOption("back"),
+  { group: "structure", type: "checkbox", key: "withCableHole", label: "預留充電線孔", defaultValue: true, help: "後板開 25mm 圓孔讓手機充電線穿過，床頭櫃必備", wide: true },
 ];
 
 /**
@@ -61,6 +76,11 @@ export const nightstand: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
+  const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
+  const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
+  const withCableHole = getOption<boolean>(input, opt(o, "withCableHole"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -93,7 +113,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 400 });

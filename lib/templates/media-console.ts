@@ -15,6 +15,16 @@ import {
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  toeKickOptions,
+  toeKickNote,
+  crownMoldingOptions,
+  crownMoldingNote,
+  backPanelMaterialOption,
+  backPanelMaterialNote,
+} from "./_helpers";
 
 const COL_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },
@@ -74,6 +84,17 @@ export const mediaConsoleOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
+  shelfPinSystemOption("structure"),
+  ...toeKickOptions("structure"),
+  ...crownMoldingOptions("structure"),
+  backPanelMaterialOption("back"),
+  { group: "structure", type: "select", key: "cableHoles", label: "後板線材孔", defaultValue: "2", choices: [
+    { value: "0", label: "無" },
+    { value: "1", label: "1 個（中央 80mm 圓孔）" },
+    { value: "2", label: "2 個（左右各一）" },
+    { value: "3", label: "3 個（每欄一個）" },
+  ], help: "電視 / AV 設備走線必備，每孔配黑色塑膠 grommet 圈" },
+  { group: "structure", type: "checkbox", key: "withVentSlots", label: "後板散熱孔", defaultValue: false, help: "AV 設備櫃必備（擴大機、機上盒會發熱），後板開 6×40mm 長條散熱孔陣列", wide: true },
 ];
 
 type ColType = "none" | "drawer" | "door" | "shelves";
@@ -113,6 +134,15 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
+  const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
+  const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
+  const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
+  const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
+  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
+  const cableHoles = parseInt(getOption<string>(input, opt(o, "cableHoles"))) || 0;
+  const withVentSlots = getOption<boolean>(input, opt(o, "withVentSlots"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
 
@@ -206,7 +236,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
-    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
+    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
   applyStandardChecks(design, { minLength: 800, minWidth: 300, minHeight: 300 });
   return design;

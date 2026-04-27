@@ -3,6 +3,14 @@ import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import { makeZoneOptions, resolveBackMode, resolveZones } from "./_builders/zone-helpers";
 import { applyStandardChecks } from "./_validators";
+import {
+  shelfPinSystemOption,
+  shelfPinSystemNote,
+  toeKickOptions,
+  toeKickNote,
+  crownMoldingOptions,
+  crownMoldingNote,
+} from "./_helpers";
 
 export const openBookshelfOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -34,6 +42,11 @@ export const openBookshelfOptions: OptionSpec[] = [
     { value: "panel-side", label: "側板延伸落地（書櫃常見）" },
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  shelfPinSystemOption("structure"),
+  ...toeKickOptions("structure"),
+  ...crownMoldingOptions("structure"),
+  { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "層板後緣加 8mm 擋條防書本掉到後面，無背板書櫃常用做法", wide: true },
+  { group: "structure", type: "checkbox", key: "withWallAnchor", label: "預留牆面固定五金", defaultValue: false, help: "高書櫃 (>1200mm) 必加：頂板背面預留 L 型固定片孔位，鎖牆防傾倒", wide: true },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -43,6 +56,14 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
+  const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
+  const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
+  const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
+  const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
+  const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
+  const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
+  const withWallAnchor = getOption<boolean>(input, opt(o, "withWallAnchor"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -63,7 +84,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withWallAnchor ? "頂板背面預留 L 型固定片孔位，務必鎖牆防傾倒（高書櫃必做）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, { minLength: 400, minWidth: 200, minHeight: 600 });

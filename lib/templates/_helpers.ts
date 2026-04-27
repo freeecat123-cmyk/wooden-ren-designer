@@ -413,3 +413,210 @@ export function backRakeNote(deg: number): string {
   if (deg <= 10) return `椅背後傾 ${deg}°（較放鬆，介於餐椅與休閒椅之間）。`;
   return `椅背後傾 ${deg}°（明顯後仰，偏向休閒椅或閱讀椅）。`;
 }
+
+/* ─────────────── 櫃類通用選項 helpers ─────────────── */
+
+/** 可調層板釘孔系統。
+ *  - none: 不開孔，層板固定（最簡單但不可調）
+ *  - eu-32mm: 歐式 32mm system，板側面整排 5mm 孔每 32mm 一個（業界標準）
+ *  - diy-line: 上下兩排線狀打孔，每孔間距 20-25mm（DIY 常用，精度低但夠用）
+ *  影響：notes + 層板固定方式說明；3D 不畫孔避免雜訊 */
+export function shelfPinSystemOption(group: OptionGroup = "structure"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "shelfPinSystem",
+    label: "層板可調孔",
+    defaultValue: "eu-32mm",
+    choices: [
+      { value: "none", label: "固定層板（dado / 半榫接合）" },
+      { value: "eu-32mm", label: "歐式 32mm 系統（業界標準）" },
+      { value: "diy-line", label: "DIY 線狀孔（每 20-25mm）" },
+    ],
+    help: "可調層板靠側板上的 5mm 釘孔 + 金屬層板釘。32mm 系統需配 32mm 鑽孔模板",
+  };
+}
+
+export function shelfPinSystemNote(system: string): string {
+  if (system === "eu-32mm") {
+    return "側板開歐式 32mm 系統孔（5mm 直徑、32mm 等距、距前後緣 37mm）— 用打孔模板量產一致。";
+  }
+  if (system === "diy-line") {
+    return "側板上下兩排 5mm 孔，每孔間距 20-25mm（手作精度可接受）。";
+  }
+  return "層板固定（dado / 企口 / 半榫接合），裝後不可調。";
+}
+
+/** 踢腳板（toe kick）—— 底部往內凹一段讓腳趾不撞櫃面，地櫃必備
+ *  withToeKick = false 時 toeKickHeight/Recess 不生效 */
+export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
+  return [
+    {
+      group,
+      type: "checkbox",
+      key: "withToeKick",
+      label: "踢腳板（toe kick）",
+      defaultValue: false,
+      help: "底部前緣內凹一段，腳趾不會撞櫃面（地櫃廚櫃必備，立櫃可選）",
+      wide: true,
+    },
+    {
+      group,
+      type: "number",
+      key: "toeKickHeight",
+      label: "踢腳板高 (mm)",
+      defaultValue: 80,
+      min: 50,
+      max: 150,
+      step: 10,
+      help: "標準 80-100mm，符合鞋面高度",
+      dependsOn: { key: "withToeKick", equals: true },
+    },
+    {
+      group,
+      type: "number",
+      key: "toeKickRecess",
+      label: "踢腳板內凹 (mm)",
+      defaultValue: 50,
+      min: 30,
+      max: 100,
+      step: 5,
+      help: "從前緣往內退的距離，標準 50mm",
+      dependsOn: { key: "withToeKick", equals: true },
+    },
+  ];
+}
+
+export function toeKickNote(withToeKick: boolean, h: number, r: number): string {
+  if (!withToeKick) return "";
+  return `底部踢腳板：高 ${h}mm × 內凹 ${r}mm，腳趾不撞櫃。`;
+}
+
+/** 冠飾線（crown molding）—— 頂部裝飾線條，傳統櫃常見
+ *  影響 notes 與 3D（加一條沿頂部的薄條）。3D 渲染待加。 */
+export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpec[] {
+  return [
+    {
+      group,
+      type: "checkbox",
+      key: "withCrownMolding",
+      label: "頂部冠飾線",
+      defaultValue: false,
+      help: "櫃頂繞一圈裝飾線條，傳統美式 / 古典風格櫃必備",
+      wide: true,
+    },
+    {
+      group,
+      type: "number",
+      key: "crownProjection",
+      label: "冠飾外伸 (mm)",
+      defaultValue: 30,
+      min: 15,
+      max: 80,
+      step: 5,
+      help: "冠飾線往外伸的距離（含上方斜邊）",
+      dependsOn: { key: "withCrownMolding", equals: true },
+    },
+  ];
+}
+
+export function crownMoldingNote(withCrown: boolean, projection: number): string {
+  if (!withCrown) return "";
+  return `頂部冠飾線：${projection}mm 外伸（用 ogee / cove / chamfer profile 修邊機刀），上漆前先繞櫃黏貼。`;
+}
+
+/** 後板材質——影響材料單與裁切（背板按片計） */
+export function backPanelMaterialOption(group: OptionGroup = "back"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "backPanelMaterial",
+    label: "後板材質",
+    defaultValue: "plywood",
+    choices: [
+      { value: "plywood", label: "夾板（最常用，4mm 或 6mm）" },
+      { value: "mdf", label: "中纖板 MDF（平整、易上漆）" },
+      { value: "hardboard", label: "硬紙板（最便宜，3mm）" },
+      { value: "solid", label: "實木拼板（最貴、整體感最好）" },
+    ],
+    help: "結構強度差不多，但實木最有質感、夾板最 CP 值",
+  };
+}
+
+export function backPanelMaterialNote(mat: string): string {
+  switch (mat) {
+    case "plywood":
+      return "後板用 4-6mm 夾板，鑲入側板後緣 dado 槽。";
+    case "mdf":
+      return "後板用 5mm MDF，槽接 + 邊緣上膠。MDF 平整易上漆但不耐潮。";
+    case "hardboard":
+      return "後板用 3mm 硬紙板（masonite），最便宜，槽接 + U 釘固定。";
+    case "solid":
+      return "後板用實木拼板（>10mm），鑲入槽 + 浮動安裝（中間留縫吸收形變）。";
+  }
+  return "";
+}
+
+/** 抽屜接合方式（chest / nightstand / media-console 用）*/
+export function drawerJoineryOption(group: OptionGroup = "drawer"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "drawerJoinery",
+    label: "抽屜箱接合",
+    defaultValue: "half-blind-dovetail",
+    choices: [
+      { value: "rabbet", label: "搭接 + 釘 / 螺絲（最簡單）" },
+      { value: "box-joint", label: "鎖盒榫（finger joint，CNC / 治具）" },
+      { value: "half-blind-dovetail", label: "半隱鳩尾（傳統，前面板看不到接合）" },
+      { value: "through-dovetail", label: "通透鳩尾（古典感，正面可見鳩尾）" },
+    ],
+    help: "從上到下 = 越來越費工，強度也越大。半隱鳩尾是商業家具標配",
+  };
+}
+
+export function drawerJoineryNote(j: string): string {
+  switch (j) {
+    case "rabbet":
+      return "抽屜箱用搭接（rabbet）+ 釘槍 / 細螺絲固定，最快，強度尚可。";
+    case "box-joint":
+      return "抽屜箱用鎖盒榫（finger joint），需治具或 CNC 切，前後等齒。";
+    case "half-blind-dovetail":
+      return "抽屜箱用半隱鳩尾（half-blind dovetail），前面板看不到接合線，業界標準。";
+    case "through-dovetail":
+      return "抽屜箱用通透鳩尾（through dovetail），古典感，前後都能看到鳩尾片，需高精度。";
+  }
+  return "";
+}
+
+/** 抽屜滑軌種類（select 版，跟 zone-helpers 的 useDrawerSlide checkbox 不衝突） */
+export function drawerSlideTypeOption(group: OptionGroup = "drawer"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "drawerSlideType",
+    label: "抽屜滑軌種類",
+    defaultValue: "soft-close-side",
+    choices: [
+      { value: "wood-runner", label: "木製滑軌（傳統，純木工）" },
+      { value: "side-mount", label: "側裝鋼珠滑軌（一般）" },
+      { value: "soft-close-side", label: "緩衝側裝滑軌（業界主流）" },
+      { value: "undermount", label: "底裝隱藏滑軌（高級櫃，看不到金屬）" },
+    ],
+    help: "底裝隱藏 > 緩衝側裝 > 一般側裝 > 木製。價格也是這個順序",
+  };
+}
+
+export function drawerSlideTypeNote(s: string): string {
+  switch (s) {
+    case "wood-runner":
+      return "抽屜用木製滑軌（純木工，無金屬），開合需上蠟維護。";
+    case "side-mount":
+      return "抽屜配側裝鋼珠滑軌（一般 350-450mm 規格），抽屜寬 -25mm 留間隙。";
+    case "soft-close-side":
+      return "抽屜配緩衝側裝滑軌（Blum / Hettich 等品牌），尺寸同一般側裝，多 NT$ 200/對。";
+    case "undermount":
+      return "抽屜配底裝隱藏滑軌（Blum Tandem / Movento），抽屜底要對應切槽，組裝較精細。";
+  }
+  return "";
+}
