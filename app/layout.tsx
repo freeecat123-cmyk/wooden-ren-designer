@@ -17,10 +17,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://wooden-ren-designer.vercel.app";
+const SITE_TITLE = "木頭仁家具設計生成器 · 自動產出工程圖紙";
+const SITE_DESC =
+  "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。";
+
 export const metadata: Metadata = {
-  title: "木頭仁家具設計生成器 · 自動產出工程圖紙",
-  description:
-    "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESC,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -28,8 +33,27 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/logo.png" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "zh_TW",
+    url: SITE_URL,
+    siteName: "木頭仁工程圖生成器",
+    title: SITE_TITLE,
+    description: SITE_DESC,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: SITE_TITLE }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESC,
+    images: ["/og.png"],
   },
 };
 
