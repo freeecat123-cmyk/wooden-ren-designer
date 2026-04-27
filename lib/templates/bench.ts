@@ -1,6 +1,11 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import {
+  SHELF_CLEARANCE_MM,
+  DEFAULT_SHELF_THICKNESS_MM,
+  LOWER_STRETCHER_HEIGHT_RATIO,
+} from "./_constants";
 
 export const benchOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -50,12 +55,12 @@ export const bench: FurnitureTemplate = (input) => {
   });
 
   if (withUnderShelf) {
-    const shelfT = 18;
-    // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 25%）+ 寬 40
+    const shelfT = DEFAULT_SHELF_THICKNESS_MM;
+    // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 × LOWER_STRETCHER_HEIGHT_RATIO）+ 寬 40
     const stretcherW = 40;
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
-      : Math.round((input.height - topThickness) * 0.25);
+      : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
     // 層板坐在下橫撐頂面，不能埋進橫撐內部
     const shelfY = stretcherY + stretcherW;
     design.parts.push({
@@ -64,9 +69,9 @@ export const bench: FurnitureTemplate = (input) => {
       material: input.material,
       grainDirection: "length",
       visible: {
-        // 扣腳本身 + legInset，再各邊留 10mm 間隙
-        length: Math.max(50, input.length - 2 * legSize - 2 * legInset - 20),
-        width: Math.max(50, input.width - 2 * legSize - 2 * legInset - 20),
+        // 扣腳本身 + legInset，再各邊留 SHELF_CLEARANCE_MM 間隙
+        length: Math.max(50, input.length - 2 * legSize - 2 * legInset - 2 * SHELF_CLEARANCE_MM),
+        width: Math.max(50, input.width - 2 * legSize - 2 * legInset - 2 * SHELF_CLEARANCE_MM),
         thickness: shelfT,
       },
       origin: { x: 0, y: shelfY, z: 0 },

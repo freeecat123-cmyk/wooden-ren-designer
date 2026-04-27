@@ -6,21 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
-
-function legShapeLabel(s: string): string {
-  const m: Record<string, string> = {
-    box: "直方腳",
-    tapered: "方錐腳",
-    round: "圓腳",
-    "round-taper-down": "圓錐腳",
-    "round-taper-up": "倒圓錐腳",
-    shaker: "夏克風腳",
-    "splayed-tapered": "外斜方錐腳",
-    "splayed-round-taper-down": "外斜圓錐腳",
-    "splayed-round-taper-up": "外斜倒圓錐腳",
-  };
-  return m[s] ?? s;
-}
+import { legShapeLabel, computeSplayGeometry } from "./_helpers";
 
 export const roundTeaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
@@ -73,9 +59,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const radius = diameter / 2;
   const legHeight = height - topThickness;
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
-  const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
-  const splayDx = splayMm / Math.SQRT2;
-  const splayDz = splayMm / Math.SQRT2;
+  const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   // 圓家具 apron 公用尺寸，腳跟 apron 共用以對得起來
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
@@ -189,9 +173,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronY = apronY0;
   const isSplayed = legShape.startsWith("splayed-");
   // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
-  const tilt = isSplayed
-    ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
-    : 0;
+  const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
   // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
   // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
   const apronYCenter = apronY + apronWidth / 2;

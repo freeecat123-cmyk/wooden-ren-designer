@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
+import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -68,7 +69,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
 
   const legHeight = height - topThickness;
-  const upperApronY = legHeight - upperApronWidth - 20;
+  const upperApronY = legHeight - upperApronWidth - APRON_OFFSET_DEFAULT_MM;
 
   const cornerPts = corners(length, width, legSize);
 

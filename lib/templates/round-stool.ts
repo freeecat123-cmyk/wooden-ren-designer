@@ -6,22 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
-
-/** 把 legShape enum key 翻成短中文標籤，notes 字串用 */
-function legShapeLabel(s: string): string {
-  const m: Record<string, string> = {
-    box: "直方腳",
-    tapered: "方錐腳",
-    round: "圓腳",
-    "round-taper-down": "圓錐腳",
-    "round-taper-up": "倒圓錐腳",
-    shaker: "夏克風腳",
-    "splayed-tapered": "外斜方錐腳",
-    "splayed-round-taper-down": "外斜圓錐腳",
-    "splayed-round-taper-up": "外斜倒圓錐腳",
-  };
-  return m[s] ?? s;
-}
+import { legShapeLabel, computeSplayGeometry } from "./_helpers";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
@@ -79,9 +64,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 隻腳於圓內接正方形的 4 個角，距中心 = (R - legInset) / sqrt(2)
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
   // 外斜：底部偏移總長 = legHeight × tan(angle)，方向沿腳對角線（45°）外推
-  const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
-  const splayDx = splayMm / Math.SQRT2;
-  const splayDz = splayMm / Math.SQRT2;
+  const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
 
   // 圓座板（用 shape: round 渲染為圓盤）
   const seat: Part = {
@@ -209,9 +192,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     // = splayMm/legHeight = tan(α)/√2，不是 tan(α) 本身
     // 所以 apron 的 tilt 應該是 arctan(tan(α)/√2)，不是 α
     const isSplayed = legShape.startsWith("splayed-");
-    const tilt = isSplayed
-      ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
-      : 0;
+    const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
     // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
     // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
     const apronYCenter = apronY + apronWidth / 2;
@@ -261,9 +242,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條下橫撐——同邏輯但用 lowerStretcher* 參數，靠近地面
   if (withLowerStretcher) {
     const isSplayed = legShape.startsWith("splayed-");
-    const tilt = isSplayed
-      ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
-      : 0;
+    const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
     const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
     const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;

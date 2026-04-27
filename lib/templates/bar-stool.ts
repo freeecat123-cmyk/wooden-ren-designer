@@ -29,6 +29,8 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backHeight", label: "椅背高 (mm)", defaultValue: 200, min: 80, max: 500, step: 10, help: "從座板上緣到椅背頂", dependsOn: { key: "backStyle", notIn: ["none"] } },
   { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 1, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
+  { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
 ];
 
 /**
@@ -48,11 +50,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backHeightOpt = getOption<number>(input, opt(o, "backHeight"));
   const backSlatCount = getOption<number>(input, opt(o, "backSlats"));
   const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
+  const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
+  const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
   const withBack = backStyle !== "none";
 
   const apronThickness = 18;
-  const footRestWidth = 30;
-  const footRestThickness = 22;
+  // footRestWidth / footRestThickness 已從 options 讀入（line 50-51）
   // 正規榫卯比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
   const MIN_SHOULDER = 6;
   const apronTenonLen = Math.round((legSize * 2) / 3);

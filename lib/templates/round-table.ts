@@ -6,25 +6,15 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery } from "./_validators";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry } from "./_helpers";
 
+/** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
+const TABLE_TYPE_LABEL: Record<string, string> = {
+  pedestal: "獨柱餐桌",
+  trestle: "端梁餐桌",
+};
 function legShapeLabel(s: string): string {
-  const m: Record<string, string> = {
-    box: "直方腳",
-    tapered: "方錐腳",
-    "fluted-square": "古典方腿（4 面凹槽）",
-    round: "圓腳",
-    "round-taper-down": "圓錐腳",
-    "round-taper-up": "倒圓錐腳",
-    "heavy-round-taper": "重型圓錐腳",
-    shaker: "夏克風腳",
-    "lathe-turned": "車旋腳",
-    "splayed-tapered": "外斜方錐腳",
-    "splayed-round-taper-down": "外斜圓錐腳",
-    "splayed-round-taper-up": "外斜倒圓錐腳",
-    pedestal: "獨柱餐桌",
-    trestle: "端梁餐桌",
-  };
-  return m[s] ?? s;
+  return TABLE_TYPE_LABEL[s] ?? sharedLegShapeLabel(s);
 }
 
 /**
@@ -323,9 +313,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
-  const splayMm = legHeight * Math.tan((splayAngle * Math.PI) / 180);
-  const splayDx = splayMm / Math.SQRT2;
-  const splayDz = splayMm / Math.SQRT2;
+  const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
   const apronTenonWidth = Math.max(30, Math.min(apronWidth - 12, legSize - 6));
@@ -443,9 +431,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronY = apronY0;
   const isSplayed = legShape.startsWith("splayed-");
   // 圓家具腳對角線 splay，apron 在前/側視平面看到的 Z 斜率 = tan(α)/√2
-  const tilt = isSplayed
-    ? Math.atan(Math.tan((splayAngle * Math.PI) / 180) / Math.SQRT2)
-    : 0;
+  const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
   // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
   // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
   const apronYCenter = apronY + apronWidth / 2;

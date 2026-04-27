@@ -1,18 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-
-function legShapeLabel(s: string): string {
-  const m: Record<string, string> = {
-    box: "方直腳",
-    tapered: "錐形腳",
-    "strong-taper": "方錐漸縮",
-    inverted: "倒錐腳",
-    splayed: "斜腳",
-    hoof: "馬蹄腳",
-  };
-  return m[s] ?? s;
-}
+import { legShapeLabel } from "./_helpers";
 
 export const diningTableOptions: OptionSpec[] = [
   // 桌腳 (leg)
