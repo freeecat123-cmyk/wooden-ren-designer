@@ -5,6 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { corners, seatEdgeShape, legEdgeShape } from "../_helpers";
+import { LOWER_STRETCHER_HEIGHT_RATIO } from "../_constants";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -293,7 +294,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
 
   // Optional 4 lower stretchers (連腳橫撐), default ≈ 22% of leg height
   if (withLowerStretchers) {
-    const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * 0.22);
+    // 用常數而非 hardcode，bench 的 under-shelf 才能算對 stretcher 頂面位置
+    const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const stretcherWidth = opts.lowerStretcherWidth ?? 40;
     const stretcherThickness = opts.lowerStretcherThickness ?? 20;
     const tenonLen = Math.round((legSize * 2) / 3);

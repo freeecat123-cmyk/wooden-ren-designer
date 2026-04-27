@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
+import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -215,7 +216,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   if (withLowerStretcher) {
     const lowerY = lowerStretcherHeightOpt > 0
       ? lowerStretcherHeightOpt
-      : Math.round(legHeight * 0.22);
+      : Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const lowerW = lowerStretcherWidth;
     const lowerT = lowerStretcherThickness;
     const lowerTenon = Math.round((legSize * 2) / 3);
@@ -301,7 +302,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   if (withLowerStretcher && withUnderShelf && lowerStretcherStyle !== "x-cross") {
     const lowerY = lowerStretcherHeightOpt > 0
       ? lowerStretcherHeightOpt
-      : Math.round(legHeight * 0.22);
+      : Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const lowerW = lowerStretcherWidth;
     parts.push({
       id: "under-shelf",
@@ -362,7 +363,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       lowerStretcherHeight: withLowerStretcher
         ? lowerStretcherHeightOpt > 0
           ? lowerStretcherHeightOpt
-          : Math.round(legHeight * 0.22)
+          : Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO)
         : undefined,
       hasLowerStretcher: withLowerStretcher,
     }),
