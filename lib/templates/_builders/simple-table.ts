@@ -64,6 +64,11 @@ export interface SimpleTableOpts {
   stretcherEdgeStyle?: string;
   /** 桌面拼板片數（1-4）。> 1 時材料單顯示 N 片小料、裁切器拆 N 片排料 */
   topPanelPieces?: number;
+  /** 桌面兩端加 breadboard end（端板）—— 與桌面正交紋理的木條，
+   *  傳統實木桌防止跨度太大時翹曲。預設 60mm 寬，與桌面厚度同。 */
+  withBreadboardEnds?: boolean;
+  /** Breadboard 端板寬（mm，沿桌面長度軸方向延伸）。預設 60 */
+  breadboardWidth?: number;
   notes?: string;
 }
 
@@ -294,6 +299,30 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   });
 
   const parts: Part[] = [topPanel, ...legs, ...aprons];
+
+  // Breadboard ends（端板）—— 與桌面正交紋理，防止跨度大時翹曲
+  // 端板擺在桌面長度方向兩端，紋理沿桌面寬度方向（grainDirection: "width"）
+  // 接合：tongue-and-groove，中央用一根穿釘固定、其餘鬆配讓桌面熱漲冷縮
+  if (opts.withBreadboardEnds) {
+    const bbWidth = opts.breadboardWidth ?? 60;
+    const bbThickness = topThickness; // 跟桌面齊平
+    // 端板 length = 桌面寬（width 軸），width = bbWidth（沿桌面 length 軸延伸），thickness = 桌面厚
+    // 沒 rotation：local length=X, width=Z, thickness=Y。要讓 length 方向跑 Z 軸 → rotation y=π/2
+    const bbY = topPanel.origin.y;
+    for (const sx of [-1, 1] as const) {
+      parts.push({
+        id: `breadboard-${sx < 0 ? "left" : "right"}`,
+        nameZh: sx < 0 ? "左端板" : "右端板",
+        material,
+        grainDirection: "length",
+        visible: { length: topWid, width: bbWidth, thickness: bbThickness },
+        origin: { x: sx * (topLen / 2 + bbWidth / 2), y: bbY, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
 
   // Optional 4 lower stretchers (連腳橫撐), default ≈ 22% of leg height
   if (withLowerStretchers) {

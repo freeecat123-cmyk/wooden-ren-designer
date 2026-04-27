@@ -23,6 +23,7 @@ export const deskOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   topPanelPiecesOption("top"),
+  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -38,6 +39,12 @@ export const deskOptions: OptionSpec[] = [
     { value: "right", label: "右側" },
     { value: "center", label: "中央（窄型）" },
   ], dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "top", type: "select", key: "grommetCount", label: "桌面線材孔", defaultValue: "0", choices: [
+    { value: "0", label: "無" },
+    { value: "1", label: "1 個（50mm 圓孔）" },
+    { value: "2", label: "2 個（兩端各一）" },
+  ], help: "穿線出口孔，需用 50mm 環孔鋸 + 黑色塑膠 grommet 圈" },
+  { group: "drawer", type: "checkbox", key: "withKeyboardTray", label: "鍵盤抽屜（滑出式）", defaultValue: false, help: "桌面下方 60mm 處加一片滑軌式鍵盤板，需配 350mm 鍵盤滑軌（B 級五金行有售）", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
@@ -55,6 +62,9 @@ export const desk: FurnitureTemplate = (input) => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
+  const grommetCount = parseInt(getOption<string>(input, opt(o, "grommetCount"))) || 0;
+  const withKeyboardTray = getOption<boolean>(input, opt(o, "withKeyboardTray"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
@@ -91,7 +101,8 @@ export const desk: FurnitureTemplate = (input) => {
     stretcherEdge,
     stretcherEdgeStyle,
     topPanelPieces,
-    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}`,
+    withBreadboardEnds,
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}`,
   });
 
   if (drawerCount > 0) {
@@ -158,6 +169,70 @@ export const desk: FurnitureTemplate = (input) => {
       mortises: [],
     });
     design.parts.push(...sides, ...drawers);
+  }
+
+  // 線材孔（grommet）—— 50mm 圓盤標記，視覺提示孔位
+  // 用 visual: "glass" 不入材料/裁切（這是孔不是料），但 3D 半透明可見
+  if (grommetCount > 0) {
+    const legHeight = input.height - topThickness;
+    const grommetD = 50;
+    // 孔位往後緣 100mm，貼近牆邊讓線從這裡穿下去
+    const grommetZ = input.width / 2 - 100;
+    const positions = grommetCount === 1
+      ? [{ x: 0, label: "中央" }]
+      : [
+          { x: -input.length * 0.3, label: "左" },
+          { x: input.length * 0.3, label: "右" },
+        ];
+    for (const p of positions) {
+      design.parts.push({
+        id: `desk-grommet-${p.label}`,
+        nameZh: `線材孔（${p.label}）`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: grommetD, width: grommetD, thickness: topThickness + 2 },
+        // 孔在桌面厚度範圍內，y = legHeight 起到 +topThickness（穿透）
+        origin: { x: p.x, y: legHeight - 1, z: grommetZ },
+        shape: { kind: "round" },
+        visual: "glass",
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // 鍵盤抽屜—— 桌面下方滑出式鍵盤板。預設 600 × 280 × 18mm
+  if (withKeyboardTray) {
+    const legHeight = input.height - topThickness;
+    const trayLen = Math.min(700, input.length * 0.55);
+    const trayWid = Math.min(320, input.width * 0.55);
+    const trayThick = 18;
+    // Y 位置：桌面下緣 - 60mm 滑軌空間 - tray 厚度
+    const trayY = legHeight - 60 - trayThick;
+    // Z 位置：偏前緣（讓使用者打字方便），不要卡到後牙板
+    const trayZ = -input.width / 2 + trayWid / 2 + 30;
+    design.parts.push({
+      id: "desk-keyboard-tray",
+      nameZh: "鍵盤抽屜板",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: trayLen, width: trayWid, thickness: trayThick },
+      origin: { x: 0, y: trayY, z: trayZ },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
+  // 補充說明
+  if (grommetCount > 0 || withKeyboardTray) {
+    const extras: string[] = [];
+    if (grommetCount > 0) {
+      extras.push(`${grommetCount} 個 50mm 線材孔（用環孔鋸鑽，套黑色塑膠 grommet 圈）`);
+    }
+    if (withKeyboardTray) {
+      extras.push("含滑出式鍵盤板（需配 350mm 鍵盤滑軌一對）");
+    }
+    design.notes = (design.notes ?? "") + " " + extras.join("；") + "。";
   }
 
   applyStandardChecks(design, {

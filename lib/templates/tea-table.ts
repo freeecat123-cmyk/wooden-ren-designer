@@ -41,6 +41,12 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
   { group: "top", type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
+  { group: "drawer", type: "select", key: "drawerCount", label: "前緣抽屜", defaultValue: "0", choices: [
+    { value: "0", label: "無" },
+    { value: "1", label: "1 個（全寬）" },
+    { value: "2", label: "2 個（左右各一）" },
+  ], help: "茶几前緣淺抽屜，藏遙控器、雜物。深度 50mm" },
+  { group: "top", type: "checkbox", key: "liftTop", label: "升降桌面", defaultValue: false, help: "桌面可氣壓桿升起變小餐桌——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈，五金行有售）", wide: true },
 ];
 
 /**
@@ -68,6 +74,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const drawerCount = parseInt(getOption<string>(input, opt(o, "drawerCount"))) || 0;
+  const liftTop = getOption<boolean>(input, opt(o, "liftTop"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -280,18 +288,53 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
+  // 茶几前緣抽屜（淺型，藏遙控器）。掛在前牙板下方
+  const drawerParts: Part[] = [];
+  if (drawerCount > 0) {
+    const drawerHeight = 50;
+    const drawerDepth = Math.min(width - 80, 280); // Z 方向深度
+    const drawerY = upperApronY - drawerHeight - 5; // 牙板下緣 -5mm 留間隙
+    const drawerFaceThick = 18;
+    // 抽屜面板 Z 位置：與前牙板前面平齊
+    const apronFrontZ = -(width / 2 - legSize / 2) - upperApronThickness / 2;
+    const drawerFaceZ = apronFrontZ - drawerFaceThick / 2;
+    const innerSpan = length - 2 * legSize - 20;
+    const slotW = drawerCount === 1 ? innerSpan : innerSpan / 2 - 5;
+    for (let i = 0; i < drawerCount; i++) {
+      const xCenter = drawerCount === 1
+        ? 0
+        : (i === 0 ? -1 : 1) * (slotW / 2 + 2.5);
+      drawerParts.push({
+        id: `tea-drawer-${i + 1}-front`,
+        nameZh: `淺抽屜${i + 1} 面板`,
+        material,
+        grainDirection: "length",
+        visible: { length: slotW - 4, width: drawerHeight - 4, thickness: drawerFaceThick },
+        origin: { x: xCenter, y: drawerY + 2, z: drawerFaceZ },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   const design: FurnitureDesign = {
     id: `tea-table-${length}x${width}x${height}`,
     category: "tea-table",
     nameZh: "茶几",
     overall: { length, width, thickness: height },
-    parts: hasLowerShelf
-      ? [topPanel, ...legs, ...upperAprons, ...lowerStretchers, lowerShelf]
-      : [topPanel, ...legs, ...upperAprons, ...lowerStretchers],
+    parts: [
+      topPanel,
+      ...legs,
+      ...upperAprons,
+      ...lowerStretchers,
+      ...(hasLowerShelf ? [lowerShelf] : []),
+      ...drawerParts,
+    ],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}`,
+      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}`,
   };
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,

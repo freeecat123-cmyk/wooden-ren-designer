@@ -16,6 +16,8 @@ export const roundTeaTableOptions: OptionSpec[] = [
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   topPanelPiecesOption("top"),
+  { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -55,6 +57,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const withLazySusan = getOption<boolean>(input, opt(o, "withLazySusan"));
+  const lazySusanDiameter = getOption<number>(input, opt(o, "lazySusanDiameter"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -268,10 +272,28 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     category: "round-tea-table",
     nameZh: "圓茶几",
     overall: { length: diameter, width: diameter, thickness: height },
-    parts: [top, ...legs, ...aprons, ...lowerStretchers],
+    parts: [
+      top,
+      ...legs,
+      ...aprons,
+      ...lowerStretchers,
+      ...(withLazySusan
+        ? [{
+            id: "lazy-susan",
+            nameZh: `旋轉盤 (${Math.min(lazySusanDiameter, diameter - 100)}mm)`,
+            material,
+            grainDirection: "length" as const,
+            visible: { length: Math.min(lazySusanDiameter, diameter - 100), width: Math.min(lazySusanDiameter, diameter - 100), thickness: 18 },
+            origin: { x: 0, y: legHeight + 20, z: 0 },
+            shape: { kind: "round" as const },
+            tenons: [],
+            mortises: [],
+          }]
+        : []),
+    ],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, diameter)}`,
+    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, diameter)}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

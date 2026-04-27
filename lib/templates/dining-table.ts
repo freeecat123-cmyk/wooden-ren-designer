@@ -32,6 +32,7 @@ export const diningTableOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   topPanelPiecesOption("top"),
+  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，傳統實木桌防止跨度大時翹曲。中央穿釘固定、兩側鬆配讓木材熱漲冷縮", wide: true },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -76,6 +77,7 @@ export const diningTable: FurnitureTemplate = (input) => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const design = simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -106,7 +108,8 @@ export const diningTable: FurnitureTemplate = (input) => {
     stretcherEdge,
     stretcherEdgeStyle,
     topPanelPieces,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}`,
+    withBreadboardEnds,
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合，中央穿釘 + 兩側鬆配吸收木材形變）。" : ""}`,
   });
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,

@@ -23,6 +23,7 @@ export const lowTableOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   topPanelPiecesOption("top"),
+  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -48,6 +49,7 @@ export const lowTable: FurnitureTemplate = (input) => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
@@ -79,7 +81,8 @@ export const lowTable: FurnitureTemplate = (input) => {
     stretcherEdge,
     stretcherEdgeStyle,
     topPanelPieces,
-    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}`,
+    withBreadboardEnds,
+    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}`,
   });
   applyStandardChecks(design, {
     minLength: 500, minWidth: 400, minHeight: 250,

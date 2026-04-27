@@ -259,6 +259,8 @@ export const roundTableOptions: OptionSpec[] = [
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   topPanelPiecesOption("top"),
+  { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配", wide: true },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { key: "withLazySusan", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -304,6 +306,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
+  const withLazySusan = getOption<boolean>(input, opt(o, "withLazySusan"));
+  const lazySusanDiameter = getOption<number>(input, opt(o, "lazySusanDiameter"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -525,12 +529,30 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // 中央旋轉盤——坐在桌面上方 25mm 處（給軸承留空間）
+  const lazySusanParts: Part[] = [];
+  if (withLazySusan) {
+    const dia = Math.min(lazySusanDiameter, diameter - 200);
+    lazySusanParts.push({
+      id: "lazy-susan",
+      nameZh: `旋轉盤 (${dia}mm)`,
+      material,
+      grainDirection: "length",
+      visible: { length: dia, width: dia, thickness: 22 },
+      // 桌面頂面 = legHeight + topThickness；軸承約 25mm 高
+      origin: { x: 0, y: legHeight + 25, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   const design: FurnitureDesign = {
     id: `round-table-${diameter}x${height}`,
     category: "round-table",
     nameZh: "圓餐桌",
     overall: { length: diameter, width: diameter, thickness: height },
-    parts: [top, ...legs, ...aprons, ...lowerStretchers],
+    parts: [top, ...legs, ...aprons, ...lowerStretchers, ...lazySusanParts],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
     notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${topPanelPiecesNote(topPanelPieces, diameter)}${
@@ -541,7 +563,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`.trim(),
+    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}`.trim(),
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
