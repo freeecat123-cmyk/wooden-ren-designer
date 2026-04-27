@@ -62,7 +62,7 @@ export const displayCabinetOptions: OptionSpec[] = [
   shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("back"),
+  backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "glassShelves", label: "玻璃層板（透光感）", defaultValue: false, help: "層板換成 8mm 強化玻璃，光線可以從上層透到下層。常見於精品櫃 / 公仔櫃", wide: true },
   { group: "structure", type: "checkbox", key: "withLedStrip", label: "預留 LED 燈條溝", defaultValue: false, help: "頂板背面開 12mm 寬 × 6mm 深溝藏 LED 燈條，照亮櫃內展品。需配 12V 變壓器", wide: true },
   pullStyleOption("door"),

@@ -91,7 +91,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
   shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("back"),
+  backPanelMaterialOption("structure"),
   { group: "structure", type: "select", key: "cableHoles", label: "後板線材孔", defaultValue: "2", choices: [
     { value: "0", label: "無" },
     { value: "1", label: "1 個（中央 80mm 圓孔）" },

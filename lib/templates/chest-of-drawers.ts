@@ -62,7 +62,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("back"),
+  backPanelMaterialOption("structure"),
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {

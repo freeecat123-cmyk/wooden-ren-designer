@@ -63,7 +63,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("back"),
+  backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "tiltedShelf", label: "斜放層板（鞋頭朝下）", defaultValue: false, help: "層板向後傾斜 5-10°，鞋子放上去後鞋頭朝下、不會滑出。傳統鞋櫃常用做法", wide: true },
   pullStyleOption("door"),
   softCloseOption("door"),

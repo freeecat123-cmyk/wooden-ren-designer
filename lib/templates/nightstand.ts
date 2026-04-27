@@ -61,7 +61,7 @@ export const nightstandOptions: OptionSpec[] = [
   drawerJoineryOption("drawer"),
   drawerSlideTypeOption("drawer"),
   shelfPinSystemOption("structure"),
-  backPanelMaterialOption("back"),
+  backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "withCableHole", label: "預留充電線孔", defaultValue: true, help: "後板開 25mm 圓孔讓手機充電線穿過，床頭櫃必備", wide: true },
   pullStyleOption("drawer"),
   softCloseOption("drawer"),
