@@ -8,6 +8,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 import { categorizePart } from "@/lib/render/svg-views";
+import { woodOnBeforeCompile } from "@/components/wood-shader";
 
 /**
  * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
@@ -154,7 +155,7 @@ function Part({
     return (
       <mesh position={position} rotation={rotation} castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius, size[1], 48]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
       </mesh>
     );
   }
@@ -166,7 +167,7 @@ function Part({
     return (
       <mesh position={position} rotation={rotation} castShadow receiveShadow>
         <cylinderGeometry args={[topR, botR, size[1], 48]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
       </mesh>
     );
   }
@@ -177,7 +178,7 @@ function Part({
     return (
       <mesh position={position} rotation={rotation} castShadow receiveShadow>
         <primitive attach="geometry" object={geo} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
       </mesh>
     );
   }
@@ -198,11 +199,11 @@ function Part({
       <group position={position} rotation={rotation}>
         <mesh position={[0, squareYOffset, 0]} castShadow receiveShadow>
           <boxGeometry args={[size[0], squareH, size[2]]} />
-          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
         </mesh>
         <mesh position={[0, taperYOffset, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[fullR, botR, taperH, 48]} />
-          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
         </mesh>
       </group>
     );
@@ -226,7 +227,7 @@ function Part({
           return (
             <mesh key={i} position={[0, segYCenter, 0]} castShadow receiveShadow>
               <cylinderGeometry args={[fullR * topR, fullR * botR, segH, 32]} />
-              <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} />
+              <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodOnBeforeCompile} />
             </mesh>
           );
         })}
@@ -245,6 +246,7 @@ function Part({
         color={color}
         roughness={0.55}
         metalness={0.05}
+        onBeforeCompile={woodOnBeforeCompile}
       />
     </mesh>
   );
