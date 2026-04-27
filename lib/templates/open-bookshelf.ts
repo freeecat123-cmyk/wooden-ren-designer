@@ -2,6 +2,7 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
 import { makeZoneOptions, resolveBackMode, resolveZones } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const openBookshelfOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -46,7 +47,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "open-bookshelf",
     nameZh: "開放書櫃",
     length: input.length,
@@ -65,4 +66,6 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。`,
     warnings,
   });
+  applyStandardChecks(design, { minLength: 400, minWidth: 200, minHeight: 600 });
+  return design;
 };

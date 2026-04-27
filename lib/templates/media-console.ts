@@ -14,6 +14,7 @@ import {
   resolveDrawerMount,
   resolveDrawerSlideGap,
 } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 const COL_TYPE_CHOICES = [
   { value: "none", label: "不設（空區）" },
@@ -183,7 +184,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     noteParts.push(`橫向 3 欄：${describe("左", leftType, leftCount)}｜${describe("中", centerType, centerCount)}｜${describe("右", rightType, rightCount)}`);
   }
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "media-console",
     nameZh: "電視櫃",
     length: input.length,
@@ -207,4 +208,6 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。建議預留線孔走線。`,
   });
+  applyStandardChecks(design, { minLength: 800, minWidth: 300, minHeight: 300 });
+  return design;
 };

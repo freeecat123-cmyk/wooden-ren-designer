@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { corners } from "./_helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const diningChairOptions: OptionSpec[] = [
   // 腳
@@ -536,7 +537,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   }
   const slats = backParts; // 向下相容：後面 parts 陣列仍引用 slats 變數
 
-  return {
+  const design: FurnitureDesign = {
     id: `dining-chair-${length}x${width}x${height}`,
     category: "dining-chair",
     nameZh: "餐椅",
@@ -547,4 +548,6 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       "前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };
+  applyStandardChecks(design, { minLength: 350, minWidth: 350, minHeight: 700 });
+  return design;
 };

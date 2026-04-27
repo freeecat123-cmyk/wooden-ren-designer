@@ -13,6 +13,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -50,7 +51,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "chest-of-drawers",
     nameZh: "斗櫃",
     length: input.length,
@@ -72,4 +73,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。抽屜需配側拉滑軌或木製滑軌。`,
     warnings,
   });
+  applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 500 });
+  return design;
 };

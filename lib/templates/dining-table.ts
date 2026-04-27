@@ -2,6 +2,7 @@ import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import { legShapeLabel } from "./_helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const diningTableOptions: OptionSpec[] = [
   // 桌腳 (leg)
@@ -51,7 +52,7 @@ export const diningTable: FurnitureTemplate = (input) => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
-  return simpleTable({
+  const design = simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
     length: input.length,
@@ -76,4 +77,6 @@ export const diningTable: FurnitureTemplate = (input) => {
     legShape: legShape as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
+  applyStandardChecks(design, { minLength: 900, minWidth: 600, minHeight: 600 });
+  return design;
 };

@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { corners } from "./_helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: [
@@ -305,7 +306,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  return {
+  const design: FurnitureDesign = {
     id: `bar-stool-${length}x${width}x${height}`,
     category: "bar-stool",
     nameZh: "吧檯椅",
@@ -315,4 +316,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `吧檯椅：高度 ${height}mm（建議 700–800）；腳踏離地 ${footrestHeight}mm；${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。`,
   };
+  applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 600 });
+  return design;
 };

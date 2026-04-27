@@ -1,6 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import { applyStandardChecks } from "./_validators";
 import {
   SHELF_CLEARANCE_MM,
   DEFAULT_SHELF_THICKNESS_MM,
@@ -80,5 +81,6 @@ export const bench: FurnitureTemplate = (input) => {
     });
   }
 
+  applyStandardChecks(design, { minLength: 600, minWidth: 200, minHeight: 350 });
   return design;
 };

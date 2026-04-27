@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { validateRoundLegJoinery } from "./_validators";
+import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legShapeLabel, computeSplayGeometry } from "./_helpers";
 
 export const roundTeaTableOptions: OptionSpec[] = [
@@ -264,5 +264,6 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  applyStandardChecks(design, { minLength: 400, minWidth: 400, minHeight: 250 });
   return design;
 };

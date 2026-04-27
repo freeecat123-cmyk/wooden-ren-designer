@@ -1,6 +1,7 @@
 import type { FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import { applyStandardChecks } from "./_validators";
 
 export const deskOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
@@ -127,5 +128,6 @@ export const desk: FurnitureTemplate = (input) => {
     design.parts.push(...sides, ...drawers);
   }
 
+  applyStandardChecks(design, { minLength: 900, minWidth: 400, minHeight: 650 });
   return design;
 };

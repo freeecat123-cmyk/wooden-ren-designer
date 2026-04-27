@@ -126,3 +126,24 @@ export function appendWarnings(design: FurnitureDesign, ...lists: string[][]): v
   if (all.length === 0) return;
   design.warnings = [...(design.warnings ?? []), ...all];
 }
+
+/**
+ * 一行套用標準幾何檢查的 wrapper。
+ * 模板尾端 return 前呼叫即可，避免每個模板都寫一遍 spread / 條件判斷。
+ *
+ *   applyStandardChecks(design, { minLength: 250, minWidth: 250, minHeight: 350 });
+ *   return design;
+ */
+export function applyStandardChecks(
+  design: FurnitureDesign,
+  mins: { minLength?: number; minWidth?: number; minHeight?: number },
+): void {
+  appendWarnings(
+    design,
+    validateBasicGeometry(design, {
+      minOverallLength: mins.minLength,
+      minOverallWidth: mins.minWidth,
+      minOverallHeight: mins.minHeight,
+    }),
+  );
+}

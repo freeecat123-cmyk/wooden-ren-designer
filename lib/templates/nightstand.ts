@@ -16,6 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const nightstandOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
@@ -66,7 +67,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "nightstand",
     nameZh: "床頭櫃",
     length: input.length,
@@ -95,4 +96,6 @@ export const nightstand: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
     warnings,
   });
+  applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 400 });
+  return design;
 };

@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { corners } from "./_helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
@@ -199,7 +200,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  return {
+  const design: FurnitureDesign = {
     id: `square-stool-${length}x${width}x${height}`,
     category: "stool",
     nameZh: "方凳",
@@ -209,6 +210,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: "座板與凳腳用通榫，凳腳與橫撐用半榫。" + (withLowerStretcher ? " 加下橫撐 H 形結構。" : ""),
   };
+  applyStandardChecks(design, { minLength: 250, minWidth: 250, minHeight: 350 });
+  return design;
 };
 
 // ----- helpers -----

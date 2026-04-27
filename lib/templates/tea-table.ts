@@ -7,6 +7,7 @@ import type {
 import { getOption } from "@/lib/types";
 import { corners } from "./_helpers";
 import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
+import { applyStandardChecks } from "./_validators";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -245,7 +246,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
-  return {
+  const design: FurnitureDesign = {
     id: `tea-table-${length}x${width}x${height}`,
     category: "tea-table",
     nameZh: "茶几",
@@ -258,6 +259,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       "桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。",
   };
+  applyStandardChecks(design, { minLength: 400, minWidth: 400, minHeight: 250 });
+  return design;
 };
 
 // ----- helpers -----

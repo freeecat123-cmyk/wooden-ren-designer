@@ -1,6 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import { applyStandardChecks } from "./_validators";
 
 export const lowTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -29,7 +30,7 @@ export const lowTable: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, lowTableOptions[7]);
   const apronOffset = getOption<number>(input, lowTableOptions[8]);
   const lowerStretcherHeight = getOption<number>(input, lowTableOptions[9]);
-  return simpleTable({
+  const design = simpleTable({
     category: "low-table",
     nameZh: "矮桌",
     length: input.length,
@@ -48,4 +49,6 @@ export const lowTable: FurnitureTemplate = (input) => {
     legShape: legShape === "tapered" ? "tapered" : "box",
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });
+  applyStandardChecks(design, { minLength: 500, minWidth: 400, minHeight: 250 });
+  return design;
 };

@@ -16,6 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const displayCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
@@ -62,7 +63,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "display-cabinet",
     nameZh: "玻璃展示櫃",
     length: input.length,
@@ -91,4 +92,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。`,
     warnings,
   });
+  applyStandardChecks(design, { minLength: 500, minWidth: 300, minHeight: 600 });
+  return design;
 };

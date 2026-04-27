@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { validateRoundLegJoinery } from "./_validators";
+import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry } from "./_helpers";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
@@ -530,5 +530,6 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  applyStandardChecks(design, { minLength: 700, minWidth: 700, minHeight: 600 });
   return design;
 };

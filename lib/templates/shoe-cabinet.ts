@@ -16,6 +16,7 @@ import {
   resolveDrawerSlideGap,
   resolveZones,
 } from "./_builders/zone-helpers";
+import { applyStandardChecks } from "./_validators";
 
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
@@ -63,7 +64,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
 
-  return caseFurniture({
+  const design = caseFurniture({
     category: "shoe-cabinet",
     nameZh: "鞋櫃",
     length: input.length,
@@ -92,4 +93,6 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。層板可用層板釘做可調式。`,
     warnings,
   });
+  applyStandardChecks(design, { minLength: 500, minWidth: 250, minHeight: 500 });
+  return design;
 };
