@@ -2101,7 +2101,15 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
     </svg>
   );
 
-  // === 母件端面俯視 2D + 3D 深度條：板直立、端面朝上、鳩尾眼從端面鋸入 ===
+  // === 母件 2.5D：廣面 = 矩形 socket（長寬方向是直的，沒有梯形）===
+  // 母件的梯形 taper 在「厚度方向」，看廣面看不到（要看側面剖面才看得到）。
+  // 廣面 view：板身 + N+1 個矩形 PIN 凸起（中間夾 N 個矩形 socket 鋸入）
+  const pinWidthAtOpening = tailTopW;  // socket 寬 = 跟 tail 寬端對齊（單一寬度，不變窄）
+  const socketSegs = tailZCenters.map((zc) => ({
+    left: zc - pinWidthAtOpening / 2,
+    right: zc + pinWidthAtOpening / 2,
+  }));
+
   const pinTopVB = `0 ${dyMother - 5} ${totalW + 2 * TOP_PAD + dxMother + 60} ${totalH + 2 * TOP_PAD - dyMother}`;
   const pinTopView = (
     <svg viewBox={pinTopVB} className="w-full h-auto">
@@ -2114,7 +2122,7 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           stroke={AXON_COLOR.outline}
           strokeWidth={1}
         />
-        {/* 板身頂部（端面）3D 深度條：從端面 y=0 推到 y=dyMother，整片板寬 */}
+        {/* 板身頂面 3D 深度條（端面，rectangular pins + sockets 都在這條上）*/}
         <polygon
           points={`${0},${0} ${totalW},${0} ${totalW + dxMother},${dyMother} ${dxMother},${dyMother}`}
           fill="#b08c5f"
@@ -2122,7 +2130,7 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           stroke={AXON_COLOR.outline}
           strokeWidth={1}
         />
-        {/* 整片板前面 */}
+        {/* 整片板前面（廣面）*/}
         <rect
           x={0}
           y={0}
@@ -2133,26 +2141,35 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           stroke={AXON_COLOR.outline}
           strokeWidth={1.2}
         />
-        {/* 鳩尾眼（負空間，含 3D 深度感的開口）*/}
-        {tailZCenters.map((zc, i) => {
+        {/* 板身延伸虛線 */}
+        <line
+          x1={0}
+          y1={totalH}
+          x2={totalW}
+          y2={totalH}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="4 2"
+          strokeWidth={0.7}
+        />
+        {/* N 個矩形 socket（端面開口 + 廣面負空間，全部矩形——沒有 taper）*/}
+        {socketSegs.map((seg, i) => {
           const yEnd = 0;
-          const yBody = tailDepth;
-          const endZ1 = zc - tailTopW / 2;
-          const endZ2 = zc + tailTopW / 2;
-          const bodyZ1 = zc - tailBaseW / 2;
-          const bodyZ2 = zc + tailBaseW / 2;
+          const yBase = tailDepth;
           return (
-            <g key={`pin-${i}`}>
-              {/* 端面上的鳩尾眼開口（在 3D 頂面上開的洞）*/}
+            <g key={`socket-${i}`}>
+              {/* 端面上的 socket 矩形開口（在 3D 頂面深度條上）*/}
               <polygon
-                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${endZ2 + dxMother},${yEnd + dyMother} ${endZ1 + dxMother},${yEnd + dyMother}`}
+                points={`${seg.left},${yEnd} ${seg.right},${yEnd} ${seg.right + dxMother},${yEnd + dyMother} ${seg.left + dxMother},${yEnd + dyMother}`}
                 fill="white"
                 stroke={AXON_COLOR.outline}
                 strokeWidth={1}
               />
-              {/* 前面負空間（梯形開口）*/}
-              <polygon
-                points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
+              {/* 廣面 socket 矩形（從端面 y=0 鋸下到 y=tailDepth，**直的**沒梯形）*/}
+              <rect
+                x={seg.left}
+                y={yEnd}
+                width={seg.right - seg.left}
+                height={yBase - yEnd}
                 fill="white"
                 stroke={AXON_COLOR.outline}
                 strokeWidth={1.2}
