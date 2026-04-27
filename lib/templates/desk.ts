@@ -24,6 +24,7 @@ export const deskOptions: OptionSpec[] = [
   seatEdgeStyleOption("top"),
   topPanelPiecesOption("top"),
   { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -45,6 +46,13 @@ export const deskOptions: OptionSpec[] = [
     { value: "2", label: "2 個（兩端各一）" },
   ], help: "穿線出口孔，需用 50mm 環孔鋸 + 黑色塑膠 grommet 圈" },
   { group: "drawer", type: "checkbox", key: "withKeyboardTray", label: "鍵盤抽屜（滑出式）", defaultValue: false, help: "桌面下方 60mm 處加一片滑軌式鍵盤板，需配 350mm 鍵盤滑軌（B 級五金行有售）", wide: true },
+  { group: "top", type: "select", key: "lShape", label: "L 字形延伸", defaultValue: "none", choices: [
+    { value: "none", label: "無（直線桌）" },
+    { value: "right", label: "右側延伸（return on right）" },
+    { value: "left", label: "左側延伸（return on left）" },
+  ], help: "桌面右/左側加垂直延伸（return panel）做 L 形，含 1 隻角落腳。延伸方向為 +Z（朝牆面內側）" },
+  { group: "top", type: "number", key: "lShapeReturnLength", label: "延伸長度 (mm)", defaultValue: 800, min: 400, max: 1500, step: 50, dependsOn: { key: "lShape", notIn: ["none"] }, help: "L 形延伸的長度（沿深度方向）" },
+  { group: "top", type: "number", key: "lShapeReturnDepth", label: "延伸深度 (mm)", defaultValue: 500, min: 300, max: 800, step: 25, dependsOn: { key: "lShape", notIn: ["none"] }, help: "L 形延伸的寬（深）" },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
@@ -63,8 +71,12 @@ export const desk: FurnitureTemplate = (input) => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
+  const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const grommetCount = parseInt(getOption<string>(input, opt(o, "grommetCount"))) || 0;
   const withKeyboardTray = getOption<boolean>(input, opt(o, "withKeyboardTray"));
+  const lShape = getOption<string>(input, opt(o, "lShape"));
+  const lShapeReturnLength = getOption<number>(input, opt(o, "lShapeReturnLength"));
+  const lShapeReturnDepth = getOption<number>(input, opt(o, "lShapeReturnDepth"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
@@ -102,7 +114,8 @@ export const desk: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     topPanelPieces,
     withBreadboardEnds,
-    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}`,
+    liveEdge,
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}`,
   });
 
   if (drawerCount > 0) {
@@ -223,14 +236,52 @@ export const desk: FurnitureTemplate = (input) => {
     });
   }
 
+  // L 形延伸（return panel）—— 主桌面 +X 或 -X 側加垂直延伸
+  // 注意：本實作只加延伸桌面 + 1 隻角落腳，視覺上看得出 L 形但結構需自行補強。
+  // 完整實作需要 6 隻腳 + 角落支撐結構，未來再加。
+  if (lShape !== "none") {
+    const legHeight = input.height - topThickness;
+    const sx = lShape === "right" ? 1 : -1;
+    // 延伸面板：沿 Z 軸延伸 lShapeReturnLength 距離（朝後牆方向 +Z）
+    const returnLen = lShapeReturnLength;
+    const returnDep = lShapeReturnDepth;
+    // 延伸面板原點：在主桌面 ±X 端、向 +Z 延伸
+    const returnX = sx * (input.length / 2 + returnDep / 2);
+    const returnZ = input.width / 2 + returnLen / 2;
+    design.parts.push({
+      id: `desk-l-return`,
+      nameZh: `L 形延伸桌面（${lShape === "right" ? "右" : "左"}）`,
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: returnDep, width: returnLen, thickness: topThickness },
+      origin: { x: returnX, y: legHeight, z: returnZ },
+      tenons: [],
+      mortises: [],
+    });
+    // 延伸區角落腳（far corner）
+    design.parts.push({
+      id: `desk-l-corner-leg`,
+      nameZh: `L 形角落腳`,
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: legSize, width: legSize, thickness: legHeight },
+      origin: { x: sx * (input.length / 2 + returnDep - legSize / 2), y: 0, z: input.width / 2 + returnLen - legSize / 2 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   // 補充說明
-  if (grommetCount > 0 || withKeyboardTray) {
+  if (grommetCount > 0 || withKeyboardTray || lShape !== "none") {
     const extras: string[] = [];
     if (grommetCount > 0) {
       extras.push(`${grommetCount} 個 50mm 線材孔（用環孔鋸鑽，套黑色塑膠 grommet 圈）`);
     }
     if (withKeyboardTray) {
       extras.push("含滑出式鍵盤板（需配 350mm 鍵盤滑軌一對）");
+    }
+    if (lShape !== "none") {
+      extras.push(`L 形${lShape === "right" ? "右" : "左"}側延伸 ${lShapeReturnDepth}×${lShapeReturnLength}mm（含角落腳一隻；完整 L 桌結構需 5-6 隻腳，目前模板簡化版，安裝時建議補加 1-2 隻支撐腳）`);
     }
     design.notes = (design.notes ?? "") + " " + extras.join("；") + "。";
   }

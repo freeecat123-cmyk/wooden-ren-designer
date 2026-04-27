@@ -212,7 +212,11 @@ export interface Part {
      *  橫撐（length=長 × width × thickness，最長軸 = length=X）
      *  style="chamfered"（45°）→ cross-section 八角形
      *  style="rounded"（圓角）→ 多段 chamfer 拼出近似圓弧 */
-    | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" };
+    | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
+    /** Live edge 板狀零件——桌面長邊用 sin 組合 noise 做不規則波浪，
+     *  模擬保留樹皮的原木板。amplitudeMm = 波幅（±值），預設 12mm。
+     *  跟 chamfered-top 互斥（live-edge 已含造型，不疊倒角）。 */
+    | { kind: "live-edge"; amplitudeMm?: number };
 }
 
 export interface FurnitureDesign {

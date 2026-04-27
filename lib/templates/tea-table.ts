@@ -47,6 +47,7 @@ export const teaTableOptions: OptionSpec[] = [
     { value: "2", label: "2 個（左右各一）" },
   ], help: "茶几前緣淺抽屜，藏遙控器、雜物。深度 50mm" },
   { group: "top", type: "checkbox", key: "liftTop", label: "升降桌面", defaultValue: false, help: "桌面可氣壓桿升起變小餐桌——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈，五金行有售）", wide: true },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線（風潮款，需用單片大板）", wide: true },
 ];
 
 /**
@@ -76,6 +77,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const drawerCount = parseInt(getOption<string>(input, opt(o, "drawerCount"))) || 0;
   const liftTop = getOption<boolean>(input, opt(o, "liftTop"));
+  const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -120,7 +122,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
+    shape: liveEdge ? { kind: "live-edge", amplitudeMm: 12 } : seatEdgeShape(seatEdge, seatEdgeStyle),
     panelPieces: topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({
@@ -334,7 +336,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}`,
+      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,

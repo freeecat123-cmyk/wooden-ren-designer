@@ -78,7 +78,8 @@ type ShapeSpec =
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" }
-  | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" };
+  | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
+  | { kind: "live-edge"; amplitudeMm: number };
 
 function Part({
   position,
@@ -121,6 +122,9 @@ function Part({
     }
     if (shape.kind === "chamfered-edges") {
       return buildChamferedEdgesGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
+    }
+    if (shape.kind === "live-edge") {
+      return buildLiveEdgeGeometry(size, shape.amplitudeMm);
     }
     return null;
   }, [size, shape]);
@@ -694,6 +698,87 @@ function buildSplayedRoundTaperedGeometry(
 }
 
 /**
+ * Live edge 板狀零件（保留樹皮的原木板桌面）。
+ *
+ * 兩條長邊（±Z 方向）以多段 sin 組合 noise 做不規則波浪，模擬樹皮的有機曲線。
+ * 兩端 (±X) 與上下面 (±Y) 保持平直。
+ *
+ * 段數固定 32（沿長邊取樣），波形 = 3 個不同週期的 sin 疊加，振幅 = amplitudeMm。
+ * 兩條長邊用不同 phase（差 π/3），看起來不會對稱。
+ */
+function buildLiveEdgeGeometry(
+  size: [number, number, number],
+  amplitudeMm: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const N = 32; // 段數
+  const amp = amplitudeMm;
+
+  // 沿 length 軸（X）取樣，每個 x_i 各算 +Z 邊和 -Z 邊的 z 偏移（向外側突出 amp 範圍內）
+  const noise = (x: number, phase: number) =>
+    amp * 0.6 * Math.sin((x + phase) / (lx * 0.06)) +
+    amp * 0.3 * Math.sin((x + phase * 1.7) / (lx * 0.035)) +
+    amp * 0.1 * Math.sin((x + phase * 2.3) / (lx * 0.02));
+
+  // 取樣點 (i = 0..N)，端點 (i=0, i=N) 強制 noise=0 讓兩端平整
+  const xs: number[] = [];
+  const zPos: number[] = []; // +Z 邊
+  const zNeg: number[] = []; // -Z 邊
+  for (let i = 0; i <= N; i++) {
+    const x = -hx + (lx * i) / N;
+    xs.push(x);
+    const t = i / N;
+    // 兩端漸退讓 noise 收斂為 0（避免端面變形）
+    const taper = Math.sin(Math.PI * t);
+    zPos.push(hz + noise(x, 0) * taper);
+    zNeg.push(-hz - noise(x, Math.PI / 3) * taper);
+  }
+
+  // Vertex layout：每個取樣點上 4 個 vertex（top-front, top-back, bot-front, bot-back）
+  // index = i * 4 + (0=botBack, 1=botFront, 2=topFront, 3=topBack)
+  // botBack = (xs[i], -hy, zPos[i])
+  // botFront = (xs[i], -hy, zNeg[i])
+  // topFront = (xs[i], +hy, zNeg[i])
+  // topBack  = (xs[i], +hy, zPos[i])
+  const v: number[] = [];
+  for (let i = 0; i <= N; i++) {
+    v.push(xs[i], -hy, zPos[i]);
+    v.push(xs[i], -hy, zNeg[i]);
+    v.push(xs[i], hy, zNeg[i]);
+    v.push(xs[i], hy, zPos[i]);
+  }
+
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const vi = (i: number, k: number) => i * 4 + k;
+  const idx: number[] = [];
+
+  // Side faces between i and i+1
+  for (let i = 0; i < N; i++) {
+    // bottom face (looking from -Y): vertices at -hy, CCW from -Y
+    idx.push(...f(vi(i, 0), vi(i, 1), vi(i + 1, 1), vi(i + 1, 0)));
+    // top face (from +Y): CCW from +Y
+    idx.push(...f(vi(i, 3), vi(i + 1, 3), vi(i + 1, 2), vi(i, 2)));
+    // +Z 長邊（後緣，向 +Z 突出）。normal +Z when viewed from +Z
+    idx.push(...f(vi(i, 0), vi(i + 1, 0), vi(i + 1, 3), vi(i, 3)));
+    // -Z 長邊（前緣，向 -Z 突出）。normal -Z
+    idx.push(...f(vi(i, 1), vi(i, 2), vi(i + 1, 2), vi(i + 1, 1)));
+  }
+  // 端面 -X (i=0)
+  idx.push(...f(vi(0, 0), vi(0, 3), vi(0, 2), vi(0, 1)));
+  // 端面 +X (i=N)
+  idx.push(...f(vi(N, 0), vi(N, 1), vi(N, 2), vi(N, 3)));
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
  * 明式馬蹄腳。
  *
  * 結構：上方直料 → 馬蹄區段 4 環，外側 2 面做 S 形（上半外凸 → 中段內凹收腰
@@ -934,6 +1019,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             shape = { kind: "chamfered-top", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
           } else if (part.shape?.kind === "chamfered-edges") {
             shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
+          } else if (part.shape?.kind === "live-edge") {
+            shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };
           }
           return (
             <Part

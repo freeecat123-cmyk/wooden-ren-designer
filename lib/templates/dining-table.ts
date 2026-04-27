@@ -33,6 +33,13 @@ export const diningTableOptions: OptionSpec[] = [
   seatEdgeStyleOption("top"),
   topPanelPiecesOption("top"),
   { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，傳統實木桌防止跨度大時翹曲。中央穿釘固定、兩側鬆配讓木材熱漲冷縮", wide: true },
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
+  { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
+    { value: "none", label: "無" },
+    { value: "one-side", label: "單側翻板（一端可延伸）" },
+    { value: "two-sides", label: "雙側翻板（兩端可延伸）" },
+  ], help: "桌面兩端用蝶式鉸鏈加可摺疊延伸板，展開變大、收合變小。需配 1.5\" 鋼製蝶式鉸鏈" },
+  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬 (mm)", defaultValue: 250, min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -78,6 +85,9 @@ export const diningTable: FurnitureTemplate = (input) => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
+  const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
+  const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
+  const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const design = simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -109,7 +119,10 @@ export const diningTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     topPanelPieces,
     withBreadboardEnds,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合，中央穿釘 + 兩側鬆配吸收木材形變）。" : ""}`,
+    liveEdge,
+    dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
+    dropLeafWidth,
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合，中央穿釘 + 兩側鬆配吸收木材形變）。" : ""}${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
   });
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,

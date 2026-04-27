@@ -69,6 +69,16 @@ export interface SimpleTableOpts {
   withBreadboardEnds?: boolean;
   /** Breadboard 端板寬（mm，沿桌面長度軸方向延伸）。預設 60 */
   breadboardWidth?: number;
+  /** Live edge 桌面——長邊不規則波浪邊緣（保留樹皮的原木板桌）。
+   *  跟倒角互斥（liveEdge 已含造型）。預設振幅 12mm。 */
+  liveEdge?: boolean;
+  /** Live edge 振幅（mm，預設 12） */
+  liveEdgeAmplitude?: number;
+  /** Drop-leaf 翻板：在桌面長度軸兩端各加一片可摺疊的延伸板。
+   *  none / one-side（只 +X 端）/ two-sides。3D 渲染為展開狀態。 */
+  dropLeaf?: "none" | "one-side" | "two-sides";
+  /** Drop-leaf 寬度（沿桌面長度軸延伸，mm）。預設 250 */
+  dropLeafWidth?: number;
   notes?: string;
 }
 
@@ -132,7 +142,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle),
+    shape: opts.liveEdge
+      ? { kind: "live-edge", amplitudeMm: opts.liveEdgeAmplitude ?? 12 }
+      : seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle),
     panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({
@@ -317,6 +329,27 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         grainDirection: "length",
         visible: { length: topWid, width: bbWidth, thickness: bbThickness },
         origin: { x: sx * (topLen / 2 + bbWidth / 2), y: bbY, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // Drop-leaf 翻板（沿 length 軸 ±X 端延伸）。展開狀態下 = 與主桌面共面
+  // 接合：蝶式鉸鏈一對 / 端面一條，使用者收合時可垂下
+  if (opts.dropLeaf && opts.dropLeaf !== "none") {
+    const leafLen = opts.dropLeafWidth ?? 250;
+    const leafSides = opts.dropLeaf === "two-sides" ? [-1, 1] : [1];
+    for (const sx of leafSides) {
+      parts.push({
+        id: `drop-leaf-${sx < 0 ? "left" : "right"}`,
+        nameZh: `${sx < 0 ? "左" : "右"}翻板`,
+        material,
+        grainDirection: "length",
+        // 翻板 length = 桌面寬（width 軸），width = leafLen（沿長度軸延伸），thickness = topT
+        visible: { length: topWid, width: leafLen, thickness: topThickness },
+        origin: { x: sx * (topLen / 2 + leafLen / 2), y: legHeight, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
