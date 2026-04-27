@@ -251,8 +251,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "dovetail-box",
-    nameZh: "鳩尾盒",
-    description: "鳩尾榫 4 角接合 + 槽底，鳩尾接合練習主角",
+    nameZh: "木盒",
+    description: "4 角接合 + 槽底木盒；切到榫接模式變身鳩尾盒，鳩尾練習主角",
     difficulty: "intermediate",
     template: dovetailBox,
     defaults: { length: 250, width: 150, height: 80 },

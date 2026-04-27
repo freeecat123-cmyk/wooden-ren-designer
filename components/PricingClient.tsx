@@ -27,7 +27,7 @@ const CATEGORY_NAME_ZH: Record<string, string> = {
   bookend: "書擋",
   "photo-frame": "相框",
   tray: "托盤",
-  "dovetail-box": "鳩尾盒",
+  "dovetail-box": "木盒",
   "wine-rack": "紅酒架",
   "coat-rack": "立式衣帽架",
 };

@@ -88,9 +88,16 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     };
   });
 
+  // 組裝版改名：鳩尾盒 → 木盒（鳩尾是榫接版本才有的稱呼）
+  const beginnerNameMap: Record<string, string> = {
+    "鳩尾盒": "木盒",
+  };
+  const newNameZh = beginnerNameMap[design.nameZh] ?? design.nameZh;
+
   return {
     ...design,
     parts,
+    nameZh: newNameZh,
     defaultJoinery: "pocket-hole",
     notes:
       (design.notes ? design.notes + "\n\n" : "") +
