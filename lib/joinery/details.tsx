@@ -2101,41 +2101,44 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
     </svg>
   );
 
-  // === 母件 2.5D：廣面 = 矩形 socket（長寬方向是直的，沒有梯形）===
-  // 母件的梯形 taper 在「厚度方向」，看廣面看不到（要看側面剖面才看得到）。
-  // 廣面 view：板身 + N+1 個矩形 PIN 凸起（中間夾 N 個矩形 socket 鋸入）
-  const pinWidthAtOpening = tailTopW;  // socket 寬 = 跟 tail 寬端對齊（單一寬度，不變窄）
-  const socketSegs = tailZCenters.map((zc) => ({
-    left: zc - pinWidthAtOpening / 2,
-    right: zc + pinWidthAtOpening / 2,
-  }));
+  // === 母件 2.5D：板身（下半段）+ N+1 個 PIN 矩形凸起往上 ===
+  // 跟公件相反：公件 tails 是梯形凸起、母件 pins 是矩形凸起（廣面看是直的）。
+  // pin 之間的 gap 才是 tail 要進來的位置（剛好跟公件 tails 互鎖）。
+  const socketWidthOnFront = tailTopW; // gap 寬 = tail 寬端寬，pin 是 gap 之間的木頭
+  const pinSegs: Array<{ left: number; right: number }> = [];
+  // 左半 pin
+  pinSegs.push({ left: 0, right: tailZCenters[0] - socketWidthOnFront / 2 });
+  // 中間 pins
+  for (let i = 0; i < N_TAILS - 1; i++) {
+    pinSegs.push({
+      left: tailZCenters[i] + socketWidthOnFront / 2,
+      right: tailZCenters[i + 1] - socketWidthOnFront / 2,
+    });
+  }
+  // 右半 pin
+  pinSegs.push({
+    left: tailZCenters[N_TAILS - 1] + socketWidthOnFront / 2,
+    right: jointWidth,
+  });
 
   const pinTopVB = `0 ${dyMother - 5} ${totalW + 2 * TOP_PAD + dxMother + 60} ${totalH + 2 * TOP_PAD - dyMother}`;
   const pinTopView = (
     <svg viewBox={pinTopVB} className="w-full h-auto">
       <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
-        {/* 板身右側 3D 深度條 */}
+        {/* 板身右側 3D 深度條（只到板身段 y ∈ [tailDepth, totalH]）*/}
         <polygon
-          points={`${totalW},${0} ${totalW + dxMother},${dyMother} ${totalW + dxMother},${totalH + dyMother} ${totalW},${totalH}`}
+          points={`${totalW},${tailDepth} ${totalW + dxMother},${tailDepth + dyMother} ${totalW + dxMother},${totalH + dyMother} ${totalW},${totalH}`}
           fill="#a47e4f"
           fillOpacity={0.5}
           stroke={AXON_COLOR.outline}
           strokeWidth={1}
         />
-        {/* 板身頂面 3D 深度條（端面，rectangular pins + sockets 都在這條上）*/}
-        <polygon
-          points={`${0},${0} ${totalW},${0} ${totalW + dxMother},${dyMother} ${dxMother},${dyMother}`}
-          fill="#b08c5f"
-          fillOpacity={0.7}
-          stroke={AXON_COLOR.outline}
-          strokeWidth={1}
-        />
-        {/* 整片板前面（廣面）*/}
+        {/* 板身前面（鳩尾下方部分，y 從 tailDepth 開始）*/}
         <rect
           x={0}
-          y={0}
+          y={tailDepth}
           width={totalW}
-          height={totalH}
+          height={showBodyLen}
           fill="#c9a16a"
           fillOpacity={0.95}
           stroke={AXON_COLOR.outline}
@@ -2151,26 +2154,38 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
           strokeDasharray="4 2"
           strokeWidth={0.7}
         />
-        {/* N 個矩形 socket（端面開口 + 廣面負空間，全部矩形——沒有 taper）*/}
-        {socketSegs.map((seg, i) => {
-          const yEnd = 0;
-          const yBase = tailDepth;
+        {/* N+1 個矩形 PIN 凸起（每個 pin 是矩形塊，從 y=0 到 y=tailDepth）+ 各自 3D 深度條 */}
+        {pinSegs.map((seg, i) => {
+          const yTop = 0;       // 端面（pin tip）
+          const yBase = tailDepth; // 連接板身（pin base）
+          const w = seg.right - seg.left;
+          if (w <= 0) return null;
           return (
-            <g key={`socket-${i}`}>
-              {/* 端面上的 socket 矩形開口（在 3D 頂面深度條上）*/}
+            <g key={`pin-${i}`}>
+              {/* pin 頂面（depth strip on tip）*/}
               <polygon
-                points={`${seg.left},${yEnd} ${seg.right},${yEnd} ${seg.right + dxMother},${yEnd + dyMother} ${seg.left + dxMother},${yEnd + dyMother}`}
-                fill="white"
+                points={`${seg.left},${yTop} ${seg.right},${yTop} ${seg.right + dxMother},${yTop + dyMother} ${seg.left + dxMother},${yTop + dyMother}`}
+                fill="#b08c5f"
+                fillOpacity={0.7}
                 stroke={AXON_COLOR.outline}
                 strokeWidth={1}
               />
-              {/* 廣面 socket 矩形（從端面 y=0 鋸下到 y=tailDepth，**直的**沒梯形）*/}
+              {/* pin 右側面（厚度方向 3D 深度條）*/}
+              <polygon
+                points={`${seg.right},${yTop} ${seg.right + dxMother},${yTop + dyMother} ${seg.right + dxMother},${yBase + dyMother} ${seg.right},${yBase}`}
+                fill="#8a6c43"
+                fillOpacity={0.45}
+                stroke={AXON_COLOR.outline}
+                strokeWidth={1}
+              />
+              {/* pin 前面（廣面看到的矩形——直邊沒 taper）*/}
               <rect
                 x={seg.left}
-                y={yEnd}
-                width={seg.right - seg.left}
-                height={yBase - yEnd}
-                fill="white"
+                y={yTop}
+                width={w}
+                height={yBase - yTop}
+                fill="#c9a16a"
+                fillOpacity={0.95}
                 stroke={AXON_COLOR.outline}
                 strokeWidth={1.2}
               />
