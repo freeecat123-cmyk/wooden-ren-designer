@@ -17,6 +17,7 @@ import { QuoteLaborForm } from "@/components/quote/QuoteLaborForm";
 import { QuoteShareActions } from "@/components/quote/QuoteShareActions";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
+import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -178,6 +179,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         ← 回{entry.nameZh}設計
       </Link>
 
+      <QuoteAccessGate>
       <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">客製家具報價</h1>
@@ -412,6 +414,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <li>不含跨區運費、現場安裝、五金（滑軌/鉸鏈）另計</li>
         </ul>
       </details>
+      </QuoteAccessGate>
     </main>
   );
 }

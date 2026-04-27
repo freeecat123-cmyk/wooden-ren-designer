@@ -1,0 +1,20 @@
+{
+  "name": "木頭仁工程圖生成器",
+  "short_name": "木頭仁",
+  "description": "從尺寸到圖紙，三秒完成 — 木頭仁木匠學院出品。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF6F0",
+  "theme_color": "#8B4513",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +19,22 @@ export const metadata: Metadata = {
   title: "木頭仁家具設計生成器 · 自動產出工程圖紙",
   description:
     "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "木頭仁",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/logo.png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#8B4513",
 };
 
 export default async function RootLayout({

@@ -15,7 +15,7 @@ import {
   JOINERY_DESCRIPTION,
 } from "@/lib/joinery/details";
 import { PrintToolList } from "@/components/print/PrintToolList";
-import { PrintButton } from "@/components/print/PrintButton";
+import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
 import {
   deriveBuildSteps,
   totalEstimatedHours,
@@ -89,12 +89,15 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         <span>木頭仁 · woodenren.com</span>
       </div>
 
+      {/* 免費版螢幕浮水印（付費版自動隱藏） */}
+      <PrintWatermarkLayer />
+
       {/* Top bar — hidden in print */}
       <div className="no-print sticky top-0 z-10 bg-zinc-50 border-b border-zinc-200 px-6 py-3 flex items-center justify-between">
         <p className="text-sm text-zinc-600">
           列印預覽（A4 直式）— 按下按鈕後在系統對話框選擇「另存為 PDF」
         </p>
-        <PrintButton />
+        <PrintAccessGate />
       </div>
 
       {/* ================= Page 1: Cover ================= */}
