@@ -18,6 +18,8 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
+  topPanelPiecesOption,
+  topPanelPiecesNote,
 } from "./_helpers";
 import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
 import { applyStandardChecks, appendSuggestion } from "./_validators";
@@ -31,6 +33,7 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  topPanelPiecesOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -64,6 +67,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -109,6 +113,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length, width, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: seatEdgeShape(seatEdge, seatEdgeStyle),
+    panelPieces: topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },
@@ -286,7 +291,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
+      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}`,
   };
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,

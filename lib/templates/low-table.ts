@@ -9,6 +9,8 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  topPanelPiecesOption,
+  topPanelPiecesNote,
 } from "./_helpers";
 
 export const lowTableOptions: OptionSpec[] = [
@@ -20,6 +22,7 @@ export const lowTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  topPanelPiecesOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -44,6 +47,7 @@ export const lowTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
@@ -74,7 +78,8 @@ export const lowTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
+    topPanelPieces,
+    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}`,
   });
   applyStandardChecks(design, {
     minLength: 500, minWidth: 400, minHeight: 250,

@@ -9,6 +9,8 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  topPanelPiecesOption,
+  topPanelPiecesNote,
 } from "./_helpers";
 
 export const deskOptions: OptionSpec[] = [
@@ -20,6 +22,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  topPanelPiecesOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -51,6 +54,7 @@ export const desk: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
@@ -86,7 +90,8 @@ export const desk: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。`,
+    topPanelPieces,
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}`,
   });
 
   if (drawerCount > 0) {

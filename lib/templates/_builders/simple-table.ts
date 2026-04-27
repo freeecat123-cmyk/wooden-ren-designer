@@ -62,6 +62,8 @@ export interface SimpleTableOpts {
   stretcherEdge?: string | number;
   /** 牙板/橫撐邊緣樣式 */
   stretcherEdgeStyle?: string;
+  /** 桌面拼板片數（1-4）。> 1 時材料單顯示 N 片小料、裁切器拆 N 片排料 */
+  topPanelPieces?: number;
   notes?: string;
 }
 
@@ -126,6 +128,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle),
+    panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },

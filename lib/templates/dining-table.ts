@@ -9,6 +9,8 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  topPanelPiecesOption,
+  topPanelPiecesNote,
 } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
@@ -29,6 +31,7 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  topPanelPiecesOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -72,6 +75,7 @@ export const diningTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const design = simpleTable({
     category: "dining-table",
     nameZh: "餐桌",
@@ -101,7 +105,8 @@ export const diningTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
+    topPanelPieces,
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}`,
   });
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,

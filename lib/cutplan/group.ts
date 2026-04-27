@@ -20,32 +20,40 @@ export function buildCutPieces(design: FurnitureDesign): {
     if (part.visual === "glass") continue;
     const cut = calculateCutDimensions(part);
     const billable = effectiveBillableMaterial(part);
+    // 拼板：concept 是 1 塊面板，實際買料 / 裁切是 N 片小料。把寬度切成 N 等份
+    // 各自進排料；總材積仍與單片一致。
+    const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
     // 裁切語意：長邊 = 沿纖維長度，中邊 = 寬，短邊 = 厚。
     // visible / cut dims 是幾何軸（length→X、thickness→Y 垂直、width→Z），
     // 立柱的長邊在 thickness、面板的長邊在 length，不能直接對應。
-    const [longSide, midSide, shortSide] = [cut.length, cut.width, cut.thickness].sort(
+    // 拼板下，width 要先除以片數再排序（拆完才是真正單片橫截面）
+    const splitWidth = cut.width / pieces;
+    const [longSide, midSide, shortSide] = [cut.length, splitWidth, cut.thickness].sort(
       (a, b) => b - a,
     );
-    const piece: CutPiece = {
-      partId: part.id,
-      partNameZh: part.nameZh,
-      length: longSide,
-      width: midSide,
-      thickness: shortSide,
-      material: part.material,
-      billable,
-    };
 
-    if (billable === "plywood" || billable === "mdf") {
-      const key = `${billable}|${piece.thickness}`;
-      if (!sheetGroups.has(key)) sheetGroups.set(key, []);
-      sheetGroups.get(key)!.push(piece);
-    } else {
-      // 實木：寬厚取「較大兩邊為橫截面 × 最長邊為長」，沿纖維走。
-      // cut.length 已是纖維方向長度，width/thickness 是橫截面。
-      const key = `${piece.material}|${piece.width}|${piece.thickness}`;
-      if (!lumberGroups.has(key)) lumberGroups.set(key, []);
-      lumberGroups.get(key)!.push(piece);
+    for (let i = 0; i < pieces; i++) {
+      const suffix = pieces > 1 ? ` (${i + 1}/${pieces})` : "";
+      const piece: CutPiece = {
+        partId: pieces > 1 ? `${part.id}-piece-${i + 1}` : part.id,
+        partNameZh: `${part.nameZh}${suffix}`,
+        length: longSide,
+        width: midSide,
+        thickness: shortSide,
+        material: part.material,
+        billable,
+      };
+
+      if (billable === "plywood" || billable === "mdf") {
+        const key = `${billable}|${piece.thickness}`;
+        if (!sheetGroups.has(key)) sheetGroups.set(key, []);
+        sheetGroups.get(key)!.push(piece);
+      } else {
+        // 實木：寬厚取「較大兩邊為橫截面 × 最長邊為長」，沿纖維走。
+        const key = `${piece.material}|${piece.width}|${piece.thickness}`;
+        if (!lumberGroups.has(key)) lumberGroups.set(key, []);
+        lumberGroups.get(key)!.push(piece);
+      }
     }
   }
 

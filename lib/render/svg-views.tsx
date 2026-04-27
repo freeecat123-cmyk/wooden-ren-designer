@@ -1031,6 +1031,8 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
     // 玻璃不算木材材積（另向玻璃行訂製）；不累計 totalBdft / bdftByMaterial
     const bdft = isGlass ? 0 : volMm3 / MM3_PER_BDFT;
     if (!isGlass) totalBdft += bdft;
+    // 拼板：顯示「桌面板 ×3 (each 200 × 1500 × 30mm)」讓學員按片下料
+    const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
 
     const billable = effectiveBillableMaterial(part);
     const materialLabel = isGlass
@@ -1060,7 +1062,7 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
 
     const category = categorizePart(part.id);
 
-    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass };
+    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass, pieces };
   });
 
   // 依分類排序 + 每類內的原有順序（stable sort）
@@ -1110,26 +1112,37 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
               <td />
             </tr>
             {catRows.map(
-              ({ part, cut, bdft, materialLabel, tenonNotes }) => {
+              ({ part, cut, bdft, materialLabel, tenonNotes, pieces }) => {
+                // 拼板：可見/切料寬度都先除以片數（單片實際尺寸），方便去料行下單
+                const dispVw = part.visible.width / pieces;
+                const dispCw = cut.width / pieces;
                 const [vl, vw, vt] = sortDimsDesc(
                   part.visible.length,
-                  part.visible.width,
+                  dispVw,
                   part.visible.thickness,
                 );
                 const [cl, cw, ct] = sortDimsDesc(
                   cut.length,
-                  cut.width,
+                  dispCw,
                   cut.thickness,
                 );
+                const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
                 return (
                   <tr key={part.id} className="border-b border-zinc-100">
-                    <td className="p-2">{part.nameZh}</td>
+                    <td className="p-2">
+                      {part.nameZh}
+                      {pieces > 1 && (
+                        <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">
+                          拼 {pieces} 片
+                        </span>
+                      )}
+                    </td>
                     <td className="p-2">{materialLabel}</td>
                     <td className="p-2 text-right">
-                      {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
+                      {piecesPrefix}{fmt(vl)} × {fmt(vw)} × {fmt(vt)}
                     </td>
                     <td className="p-2 text-right font-semibold">
-                      {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
+                      {piecesPrefix}{fmt(cl)} × {fmt(cw)} × {fmt(ct)}
                     </td>
                     <td className="p-2 text-right font-mono">
                       {bdft.toFixed(2)}

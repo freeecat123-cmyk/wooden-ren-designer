@@ -364,6 +364,32 @@ export function seatProfileNote(profile: string): string {
   return "";
 }
 
+/** 桌面 / 座板拼板片數選項。1 = 整片實木（小桌面）；2-4 = 拼板（大桌面常見）。
+ *  影響材料單顯示（每片寬度 = 桌面寬 / N）+ 裁切計算（拆成 N 個小片）。
+ *  3D / 總材積不變——這只是「這塊面板實際是用幾片實木拼出來」的木工資訊。 */
+export function topPanelPiecesOption(group: OptionGroup = "top"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "topPanelPieces",
+    label: "桌面拼板片數",
+    defaultValue: "1",
+    choices: [
+      { value: "1", label: "整片（< 300mm 寬可用單片實木）" },
+      { value: "2", label: "2 片拼" },
+      { value: "3", label: "3 片拼（最常見，每片 ~200-300mm 寬）" },
+      { value: "4", label: "4 片拼（大桌面）" },
+    ],
+    help: "影響材料單顯示與裁切。實木 > 300mm 寬建議拼板防翹曲",
+  };
+}
+
+export function topPanelPiecesNote(pieces: number, panelWidth: number): string {
+  if (pieces <= 1) return "";
+  const perPieceWidth = Math.round(panelWidth / pieces);
+  return `桌面 ${pieces} 片拼板（每片寬 ${perPieceWidth}mm，平拼後上 PVA 木工膠 + F 夾固定 24hr）。寬度 > 300mm 強烈建議拼板防止單片翹曲。`;
+}
+
 /** 椅背傾角（rake）選項：椅背向後傾斜的角度。 */
 export function backRakeOption(group: OptionGroup = "back"): OptionSpec {
   return {

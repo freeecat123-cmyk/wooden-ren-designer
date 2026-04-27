@@ -126,6 +126,15 @@ export interface Part {
   materialOverride?: SheetGood;
 
   /**
+   * 拼板片數——大面板（桌面、座板）實際買料要按片計，例如 600mm 寬桌面
+   * 通常拼 3 片 200mm 寬實木。設 > 1 時：
+   * - 材料單顯示 "×N" 並把 width 切成 N 等份
+   * - 裁切計算器把這個零件展開成 N 個小片
+   * - 3D / 報價總材積不變（同一塊概念面板）
+   */
+  panelPieces?: number;
+
+  /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：
    * - "glass"：半透明玻璃，不計才、不進材料單、不進 CSV
    */

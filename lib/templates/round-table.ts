@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, topPanelPiecesOption, topPanelPiecesNote } from "./_helpers";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
 const TABLE_TYPE_LABEL: Record<string, string> = {
@@ -25,6 +25,7 @@ function legShapeLabel(s: string): string {
 function buildPedestalRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
+  topPanelPieces?: number;
 }): FurnitureDesign {
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
   // 柱粗 = legSize × 2.5，太細看起來會像柱頂頂著桌面要倒
@@ -45,6 +46,7 @@ function buildPedestalRoundTable(p: {
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: { kind: "round" },
+    panelPieces: p.topPanelPieces,
     tenons: [],
     mortises: [],
   };
@@ -140,6 +142,7 @@ function buildPedestalRoundTable(p: {
 function buildTrestleRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
+  topPanelPieces?: number;
 }): FurnitureDesign {
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
   // 端框位置：z = ±frameZ
@@ -172,6 +175,7 @@ function buildTrestleRoundTable(p: {
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: { kind: "round" },
+    panelPieces: p.topPanelPieces,
     tenons: [],
     mortises: [],
   };
@@ -254,6 +258,7 @@ export const roundTableOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
+  topPanelPiecesOption("top"),
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -298,6 +303,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -314,10 +320,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
-    return buildPedestalRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+    return buildPedestalRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius, topPanelPieces });
   }
   if (legShape === "trestle") {
-    return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+    return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius, topPanelPieces });
   }
 
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
@@ -342,6 +348,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: { kind: "round" },
+    panelPieces: topPanelPieces,
     tenons: [],
     mortises: [
       ...[-1, 1].flatMap((sx) =>
@@ -526,7 +533,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [top, ...legs, ...aprons, ...lowerStretchers],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。桌面通常需 ${diameter >= 1100 ? "5" : diameter >= 900 ? "4" : "3"} 片實木拼板（每片寬 150-200mm，避免單片過寬翹曲）。${
+    notes: `圓餐桌直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含帶肩牙板。${topPanelPiecesNote(topPanelPieces, diameter)}${
       legShape === "fluted-square"
         ? `古典方腿：腳的 4 面各刨 3-5 道垂直凹槽（reed/flute），凹槽寬 5-8mm、深 3-5mm，從腳頂下 30mm 起到地面上 50mm 止（端不通到底，留實木）。`
         : ""
@@ -534,7 +541,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
+    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`.trim(),
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
