@@ -61,20 +61,23 @@ float wd_fbm(vec2 p) {
     .replace(
       "#include <map_fragment>",
       `#include <map_fragment>
-// 真實木紋：用 fbm noise 扭曲 X 軸再做 sin 條紋，紋路會像水波一樣彎曲，
-// 不是格子布規則直線。輔以低頻變化讓粗條寬度不一致——更像實木。
+// 真實木紋年輪：sawtooth 漸變（淺→深→突然 reset 回淺）+ 大尺度低頻
+// 扭曲讓紋路偶爾大彎、平常平直（模擬實木鋸切後的年輪）。
 vec3 wp = vWoodWorldPos;
-// 用 Y/Z 平面的 noise 扭曲 X 座標——紋路就會沿垂直方向有波浪
-float distort = (wd_fbm(wp.yz * 6.0) - 0.5) * 0.6;
-float xc = wp.x + distort;
-// 主年輪：取 abs(sin) 並乘冪讓尖峰處才深（線狀紋路），平均週期 ~25mm
-float ring = abs(sin(xc * 25.0 + wd_fbm(wp.yz * 12.0) * 1.0));
-ring = pow(ring, 6.0);
-// 粗變化：低頻 noise 模擬「明暗區塊」，遠看有層次不會太均勻
-float lowFreq = wd_fbm(wp.xz * 1.5) * 0.18;
-// 細紋（高頻 sin），加一點點質感不要太搶
-float fine = abs(sin(xc * 90.0)) * 0.05;
-float grainDarken = ring * 0.4 + fine + lowFreq;
-diffuseColor.rgb *= (1.0 - grainDarken);`,
+// 1. 低頻扭曲：用大尺度 fbm 偏移 X 座標。週期約 200mm 才大彎
+//    fbm 而非單層 noise → 變化更自然，不會看起來像鋸齒
+float distort = (wd_fbm(wp.yz * 0.5) - 0.5) * 0.5
+              + (wd_fbm(wp.yz * 1.4 + vec2(31.0, 17.0)) - 0.5) * 0.2;
+float wavyX = wp.x + distort;
+// 2. 主年輪：每 ~23mm 一圈，sawtooth 用 mod
+//    多加 noise(yz * 6.0) * 0.02 讓 ring 邊界不要完全平行
+float ring = mod(wavyX * 4.4 + wd_noise(wp.yz * 6.0) * 0.04, 1.0);
+// 3. 深色帶 = ring 接近 1.0 那段；用 smoothstep 把深色集中在 80-100% 區間
+//    （年輪「冬材」很窄、「夏材」較寬，不是均勻 50/50）
+float darkBand = smoothstep(0.65, 0.95, ring) * (1.0 - smoothstep(0.95, 1.0, ring));
+float dimming = 1.0 - darkBand * 0.45;
+// 4. 大尺度明暗區塊：模擬不同部位木材深淺差
+dimming -= wd_fbm(wp.xz * 0.8) * 0.06;
+diffuseColor.rgb *= dimming;`,
     );
 };
