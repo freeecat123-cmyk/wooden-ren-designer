@@ -73,7 +73,10 @@ export function WhitelistAdminClient() {
   }, [rows, search]);
 
   async function handleAddSingle() {
-    if (!newEmail.trim()) return;
+    if (!newEmail.trim()) {
+      setFlash("⚠️ 請先輸入 email（如果是用瀏覽器自動填入，請手動再敲一個字觸發更新）");
+      return;
+    }
     setBusy(true);
     setFlash(null);
     try {
@@ -204,9 +207,13 @@ export function WhitelistAdminClient() {
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <header className="mb-6">
-        <a href="/" className="text-sm text-zinc-500 hover:underline">
-          ← 回首頁
-        </a>
+        <div className="flex items-center gap-3 text-sm text-zinc-500">
+          <a href="/admin" className="hover:underline">
+            ← 後台儀表板
+          </a>
+          <span>/</span>
+          <a href="/" className="hover:underline">回首頁</a>
+        </div>
         <h1 className="text-2xl sm:text-3xl font-bold mt-2 text-zinc-900">
           白名單管理
         </h1>
@@ -238,6 +245,8 @@ export function WhitelistAdminClient() {
               placeholder="email@example.com"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
+              onInput={(e) => setNewEmail((e.target as HTMLInputElement).value)}
+              autoComplete="off"
               className="w-full px-3 py-2 rounded border border-zinc-300 text-sm"
             />
             <div className="flex gap-2">
@@ -263,7 +272,7 @@ export function WhitelistAdminClient() {
             <button
               type="button"
               onClick={handleAddSingle}
-              disabled={busy || !newEmail.trim()}
+              disabled={busy}
               className="px-4 py-2 rounded bg-emerald-700 text-white text-sm hover:bg-emerald-800 disabled:opacity-50"
             >
               {busy ? "新增中…" : "新增"}

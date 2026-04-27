@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import { LoginButton } from "./LoginButton";
+import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
 
 /**
  * 頁首右上角浮動的登入狀態 widget。
@@ -49,6 +50,7 @@ function UserDropdown({
 
   const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "已登入";
   const avatar = user.user_metadata?.avatar_url;
+  const isAdmin = isAdminEmail(user.email, getPublicAdminEmails());
 
   return (
     <div ref={ref} className="relative">
@@ -95,12 +97,28 @@ function UserDropdown({
             🗂 我的設計
           </Link>
           <Link
+            href="/my-subscription"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
+            onClick={() => setOpen(false)}
+          >
+            💎 我的訂閱
+          </Link>
+          <Link
             href="/pricing"
             className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
             onClick={() => setOpen(false)}
           >
-            💎 訂閱方案
+            💰 方案
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="block px-4 py-2 text-sm text-amber-800 hover:bg-amber-100 font-medium border-t border-amber-100"
+              onClick={() => setOpen(false)}
+            >
+              🛠 後台儀表板
+            </Link>
+          )}
           <button
             type="button"
             onClick={signOut}
