@@ -95,7 +95,7 @@ export function QuoteLaborForm({
       params.set("customerEmail", customerOverride.email);
     }
     setPending(false);
-    router.replace(`/design/${type}/quote?${params.toString()}`);
+    router.replace(`/design/${type}/quote?${params.toString()}`, { scroll: false });
   }, [type, router]);
 
   const handleChange = useCallback(() => {
@@ -116,7 +116,7 @@ export function QuoteLaborForm({
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     Object.entries(preset.values).forEach(([k, v]) => params.set(k, v));
-    router.replace(`/design/${type}/quote?${params.toString()}`);
+    router.replace(`/design/${type}/quote?${params.toString()}`, { scroll: false });
   };
 
   const designParams = Object.fromEntries(new URLSearchParams(designQuery)) as Record<string, string>;

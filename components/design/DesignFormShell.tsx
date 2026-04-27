@@ -40,7 +40,9 @@ export function DesignFormShell({
       .forEach((cb) => {
         if (!cb.checked) params.delete(cb.name);
       });
-    router.replace(`${action}?${params.toString()}`);
+    // scroll: false 防止 Next.js 預設行為——router.replace 會把頁面捲回最上面，
+    // 改參數時就會「跳掉看不到剛編輯的欄位」，嚴重影響操作。
+    router.replace(`${action}?${params.toString()}`, { scroll: false });
   }, [action, router]);
 
   const handleChange = useCallback(() => {
