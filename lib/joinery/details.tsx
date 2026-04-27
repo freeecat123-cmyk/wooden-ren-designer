@@ -1972,142 +1972,185 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
   // 公件俯視：看到 3 個梯形 tail 從板端突出
   // 範圍：x ∈ [0, showLen + tailDepth], z ∈ [0, jointWidth]
   // SVG 直接 1mm = 1px（autoViewBox 處理範圍）
-  const TOP_PAD = 28;
-  const tailTopVB = `0 0 ${showLen + tailDepth + 2 * TOP_PAD} ${jointWidth + 3 * TOP_PAD}`;
+  // === 端面俯視 2D（板直立、端面朝上、鋸切時的真實視角）===
+  // 約定：在 SVG 內，X = 板的 width 方向（jointWidth），Y = 板的 length 方向。
+  // Y 軸往「下」(SVG 慣例)代表往「板身內部」深入。端面在 SVG 頂部 y=0。
+  const TOP_PAD = 30;
+  const showBodyLen = Math.max(60, tailDepth * 1.5);  // 顯示一截板身，視覺平衡
+  const totalH = tailDepth + showBodyLen;  // 鳩尾段 + 板身段
+  const totalW = jointWidth;
+  const tailTopVB = `0 0 ${totalW + 2 * TOP_PAD + 60} ${totalH + 2 * TOP_PAD}`;
   const tailTopView = (
     <svg viewBox={tailTopVB} className="w-full h-auto">
       <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
-        {/* 板身（不含鳩尾）*/}
+        {/* 板身（鳩尾下方部分）*/}
         <rect
           x={0}
-          y={0}
-          width={showLen}
-          height={jointWidth}
+          y={tailDepth}
+          width={totalW}
+          height={showBodyLen}
           fill={AXON_COLOR.tenon}
           fillOpacity={0.95}
           stroke={AXON_COLOR.outline}
           strokeWidth={1.2}
         />
-        {/* 板的延伸虛線（板太長截斷示意）*/}
+        {/* 板身延伸虛線 */}
         <line
           x1={0}
-          y1={0}
-          x2={-15}
-          y2={0}
+          y1={totalH}
+          x2={totalW}
+          y2={totalH}
           stroke={AXON_COLOR.outline}
-          strokeDasharray="3 2"
+          strokeDasharray="4 2"
           strokeWidth={0.7}
         />
-        {/* 每個鳩尾 tail（梯形）*/}
+        {/* 每個 tail（梯形，端面在頂端 y=0，靠板身那端 y=tailDepth 較窄）*/}
         {tailZCenters.map((zc, i) => {
-          const xBase = showLen;
-          const xTop = showLen + tailDepth;
-          const baseZ1 = zc - tailBaseW / 2;
-          const baseZ2 = zc + tailBaseW / 2;
-          const topZ1 = zc - tailTopW / 2;
-          const topZ2 = zc + tailTopW / 2;
+          const yEnd = 0;             // 端面（頂端，露出鋸口）
+          const yBody = tailDepth;    // 連接板身
+          const endZ1 = zc - tailTopW / 2;     // 端面寬
+          const endZ2 = zc + tailTopW / 2;
+          const bodyZ1 = zc - tailBaseW / 2;   // 板身端窄
+          const bodyZ2 = zc + tailBaseW / 2;
           return (
             <polygon
-              key={`top-tail-${i}`}
-              points={`${xBase},${baseZ1} ${xTop},${topZ1} ${xTop},${topZ2} ${xBase},${baseZ2}`}
+              key={`tail-${i}`}
+              points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
               fill={AXON_COLOR.tenon}
-              fillOpacity={0.7}
+              fillOpacity={0.85}
               stroke={AXON_COLOR.outline}
               strokeWidth={1.2}
             />
           );
         })}
-        {/* 標尺：榫長 */}
+        {/* 標尺：鳩尾長（垂直方向，左側）*/}
         <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={10}>
-          <line x1={showLen} y1={jointWidth + 12} x2={showLen + tailDepth} y2={jointWidth + 12} />
-          <line x1={showLen} y1={jointWidth + 8} x2={showLen} y2={jointWidth + 16} strokeWidth={0.7} />
-          <line x1={showLen + tailDepth} y1={jointWidth + 8} x2={showLen + tailDepth} y2={jointWidth + 16} strokeWidth={0.7} />
-          <text x={showLen + tailDepth / 2} y={jointWidth + 26} textAnchor="middle" stroke="none">
-            榫長 {tailDepth}mm
+          <line x1={-15} y1={0} x2={-15} y2={tailDepth} />
+          <line x1={-19} y1={0} x2={-11} y2={0} strokeWidth={0.7} />
+          <line x1={-19} y1={tailDepth} x2={-11} y2={tailDepth} strokeWidth={0.7} />
+          <text
+            x={-22}
+            y={tailDepth / 2 + 3}
+            textAnchor="end"
+            stroke="none"
+          >
+            榫長 {tailDepth}
           </text>
         </g>
-        {/* 標尺：tail top wide / tail base narrow */}
+        {/* 標尺：tail 寬端（端面那側）*/}
         <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
           <text
-            x={showLen + tailDepth + 4}
-            y={tailZCenters[0] - tailTopW / 2 + 3}
+            x={tailZCenters[0] + tailTopW / 2 + 3}
+            y={-3}
             stroke="none"
           >
-            寬 {Math.round(tailTopW)}
+            寬端 {Math.round(tailTopW)}
           </text>
           <text
-            x={showLen + 4}
-            y={tailZCenters[0] - tailBaseW / 2 + 3}
+            x={tailZCenters[0] + tailBaseW / 2 + 3}
+            y={tailDepth + 11}
             stroke="none"
           >
-            窄 {Math.round(tailBaseW)}
+            窄端 {Math.round(tailBaseW)}
+          </text>
+        </g>
+        {/* 標尺：板厚（右側） */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          <text
+            x={totalW + 4}
+            y={tailDepth + showBodyLen / 2 + 3}
+            stroke="none"
+          >
+            板厚 {boardT}
           </text>
         </g>
       </g>
     </svg>
   );
 
-  // 母件俯視：板身 + N 個鳩尾眼（負空間，從端面鋸入）
-  const pinTopVB = `0 0 ${showLen + 2 * TOP_PAD} ${jointWidth + 3 * TOP_PAD}`;
+  // === 母件端面俯視 2D：板直立、端面朝上、鳩尾眼從端面鋸入 ===
+  const pinTopVB = `0 0 ${totalW + 2 * TOP_PAD + 60} ${totalH + 2 * TOP_PAD}`;
   const pinTopView = (
     <svg viewBox={pinTopVB} className="w-full h-auto">
       <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
-        {/* 板身：先全填，再用「鳩尾眼」白色覆蓋 */}
+        {/* 整片板（包含端面到板身全範圍）*/}
         <rect
           x={0}
           y={0}
-          width={showLen}
-          height={jointWidth}
+          width={totalW}
+          height={totalH}
           fill="#c9a16a"
           fillOpacity={0.95}
           stroke={AXON_COLOR.outline}
           strokeWidth={1.2}
         />
-        {/* 鳩尾眼（梯形負空間，從 x=showLen 鋸入到 x=showLen-tailDepth）*/}
+        {/* 鳩尾眼（負空間，從端面 y=0 鋸入到 y=tailDepth）*/}
         {tailZCenters.map((zc, i) => {
-          const xOuter = showLen;
-          const xInner = showLen - tailDepth;
-          const outerZ1 = zc - tailTopW / 2;
-          const outerZ2 = zc + tailTopW / 2;
-          const innerZ1 = zc - tailBaseW / 2;
-          const innerZ2 = zc + tailBaseW / 2;
+          const yEnd = 0;
+          const yBody = tailDepth;
+          const endZ1 = zc - tailTopW / 2;     // 端面開口寬
+          const endZ2 = zc + tailTopW / 2;
+          const bodyZ1 = zc - tailBaseW / 2;   // 內側窄
+          const bodyZ2 = zc + tailBaseW / 2;
           return (
             <polygon
-              key={`top-pin-${i}`}
-              points={`${xOuter},${outerZ1} ${xOuter},${outerZ2} ${xInner},${innerZ2} ${xInner},${innerZ1}`}
+              key={`pin-${i}`}
+              points={`${endZ1},${yEnd} ${endZ2},${yEnd} ${bodyZ2},${yBody} ${bodyZ1},${yBody}`}
               fill="white"
               stroke={AXON_COLOR.outline}
               strokeWidth={1.2}
             />
           );
         })}
-        {/* 板的延伸虛線 */}
+        {/* 板身延伸虛線 */}
         <line
           x1={0}
-          y1={0}
-          x2={-15}
-          y2={0}
+          y1={totalH}
+          x2={totalW}
+          y2={totalH}
           stroke={AXON_COLOR.outline}
-          strokeDasharray="3 2"
+          strokeDasharray="4 2"
           strokeWidth={0.7}
         />
         {/* 標尺：眼深 */}
         <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={10}>
-          <line x1={showLen - tailDepth} y1={jointWidth + 12} x2={showLen} y2={jointWidth + 12} />
-          <line x1={showLen - tailDepth} y1={jointWidth + 8} x2={showLen - tailDepth} y2={jointWidth + 16} strokeWidth={0.7} />
-          <line x1={showLen} y1={jointWidth + 8} x2={showLen} y2={jointWidth + 16} strokeWidth={0.7} />
-          <text x={showLen - tailDepth / 2} y={jointWidth + 26} textAnchor="middle" stroke="none">
-            眼深 {tailDepth}mm
+          <line x1={-15} y1={0} x2={-15} y2={tailDepth} />
+          <line x1={-19} y1={0} x2={-11} y2={0} strokeWidth={0.7} />
+          <line x1={-19} y1={tailDepth} x2={-11} y2={tailDepth} strokeWidth={0.7} />
+          <text
+            x={-22}
+            y={tailDepth / 2 + 3}
+            textAnchor="end"
+            stroke="none"
+          >
+            眼深 {tailDepth}
           </text>
         </g>
-        {/* 標尺：開口寬 */}
+        {/* 標尺：開口寬 / 內窄 */}
         <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
           <text
-            x={showLen + 4}
-            y={tailZCenters[0] - tailTopW / 2 + 3}
+            x={tailZCenters[0] + tailTopW / 2 + 3}
+            y={-3}
             stroke="none"
           >
             開口 {Math.round(tailTopW)}
+          </text>
+          <text
+            x={tailZCenters[0] + tailBaseW / 2 + 3}
+            y={tailDepth + 11}
+            stroke="none"
+          >
+            內窄 {Math.round(tailBaseW)}
+          </text>
+        </g>
+        {/* 標尺：板厚 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          <text
+            x={totalW + 4}
+            y={tailDepth + showBodyLen / 2 + 3}
+            stroke="none"
+          >
+            板厚 {motherT}
           </text>
         </g>
       </g>
@@ -2136,7 +2179,7 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
             </svg>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">俯視（看鳩尾形狀）</div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">端面正視（板直立、端面朝上）</div>
             {tailTopView}
           </div>
         </div>
@@ -2153,7 +2196,7 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
             </svg>
           </div>
           <div>
-            <div className="text-[10px] text-zinc-400 mb-0.5">俯視（看鳩尾眼形狀）</div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">端面正視（鋸口朝上，鳩尾眼一目了然）</div>
             {pinTopView}
           </div>
         </div>
