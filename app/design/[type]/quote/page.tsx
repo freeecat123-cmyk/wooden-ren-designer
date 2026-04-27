@@ -18,6 +18,7 @@ import { QuoteShareActions } from "@/components/quote/QuoteShareActions";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
+import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -125,7 +126,15 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     ),
   };
 
-  const design = entry.template({ length, width, height, material });
+  // 模板 options（legStyle / 倒角 / 內縮腳…）必須一起讀，否則 quote 頁
+  // 重建 design 用 defaults，跟設計頁顯示的版本不一樣。
+  const optionSchema = entry.optionSchema ?? [];
+  const options = parseOptionsFromQuery(
+    optionSchema,
+    sp as Record<string, string | string[] | undefined>,
+  );
+
+  const design = entry.template({ length, width, height, material, options });
   const quote = calculateQuote(design, laborOpts);
 
   const customer: CustomerInfo = {
@@ -150,7 +159,17 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const termIncludeShipping = sp.termIncludeShipping === "1";
   const termIncludeInstallation = sp.termIncludeInstallation === "1";
 
-  const designQuery = `length=${length}&width=${width}&height=${height}&material=${material}`;
+  // designQuery 必須含 template options，否則 QuoteLaborForm 隱藏 input 漏帶，
+  // 客戶從 LINE 連結點進去的 print 頁會用 default options 重建設計（價格也會錯）。
+  const designParams = new URLSearchParams();
+  designParams.set("length", String(length));
+  designParams.set("width", String(width));
+  designParams.set("height", String(height));
+  designParams.set("material", material);
+  for (const spec of optionSchema) {
+    designParams.set(spec.key, String(options[spec.key]));
+  }
+  const designQuery = designParams.toString();
   const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,

@@ -22,6 +22,7 @@ import {
 } from "@/components/branding/BrandedTerms";
 import { CompactThreeViews } from "@/lib/render/svg-views";
 import { QrCode } from "@/components/print/QrCode";
+import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -92,7 +93,12 @@ export default async function QuotePrintPage({
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
   };
 
-  const design = entry.template({ length, width, height, material });
+  // 模板 options（legStyle / 倒角 / 內縮腳…）必須一起讀，
+  // 否則客戶看到的是 default-options 版本，跟使用者編輯的不一致。
+  const optionSchema = entry.optionSchema ?? [];
+  const options = parseOptionsFromQuery(optionSchema, sp);
+
+  const design = entry.template({ length, width, height, material, options });
   const quote = calculateQuote(design, laborOpts);
   // quotedAt 優先從 URL 帶（客戶收到的連結都該帶這欄），fallback 才用今天
   const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
