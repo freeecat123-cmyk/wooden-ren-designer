@@ -5,8 +5,8 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
-import { applyStandardChecks } from "./_validators";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -17,10 +17,16 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  seatProfileOption("top"),
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
-  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐（H形）", defaultValue: false, help: "在腳下方 1/4 高再加一圈橫撐，結構更穩" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "在腳下方 1/4 高加一圈橫撐，結構更穩" },
+  { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
+    { value: "h-frame", label: "H 字形（4 條繞 1 圈，最穩）" },
+    { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
+  ], dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板放鞋子/雜物。需先勾下橫撐＋H 字（X 字無支撐面）", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretcher", equals: true } },
@@ -62,12 +68,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const stretcherEdge = getOption<string>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
+  const lowerStretcherStyle = getOption<string>(input, opt(o, "lowerStretcherStyle"));
+  const withUnderShelf = getOption<boolean>(input, opt(o, "withUnderShelf"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -219,36 +228,97 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsYCenter = lowerY + lowerW / 2;
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter / legHeight : 0;
     const lsSplay = isSplayed ? splayMm * lsShiftFactor : 0;
-    const sides = [
-      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplay) } },
-      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplay } },
-      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplay), z: 0 } },
-      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplay, z: 0 } },
-    ];
-    for (const s of sides) {
-      const bevelAngle = isSplayed
-        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
-        : 0;
-      parts.push({
-        id: s.id,
-        nameZh: s.nameZh,
-        material,
-        grainDirection: "length",
-        visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
-        origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
-        rotation: s.axis === "z"
-          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
-          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
-        shape: isSplayed
-          ? { kind: "apron-beveled", bevelAngle }
-          : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-        tenons: [
-          { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
-          { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
-        ],
-        mortises: [],
-      });
+    if (lowerStretcherStyle === "x-cross") {
+      // X 字交叉橫撐：兩條對角線連接 4 隻腳，過中心半搭接。
+      // 外斜模式時對角橫撐做法太複雜（要傾斜+扭轉），先不支援；fallback 走直立 X。
+      // 視覺上 2 條交叉時可能有 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
+      const halfX = apronEdgeX + lsSplay;
+      const halfZ = apronEdgeZ + lsSplay;
+      const diagLen = 2 * Math.sqrt(halfX * halfX + halfZ * halfZ);
+      // 對角斜撐 length 較長 → 重新算 tenon（仍是 1/3 法則）
+      const xTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
+      const xTenonThick = Math.max(6, Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)));
+      // 角度：atan2(halfZ, halfX)，方型凳 = 45°
+      const angle = Math.atan2(halfZ, halfX);
+      const diagonals = [
+        { id: "ls-x1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
+        { id: "ls-x2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerT * 0.05 },
+      ];
+      for (const d of diagonals) {
+        parts.push({
+          id: d.id,
+          nameZh: d.nameZh,
+          material,
+          grainDirection: "length",
+          visible: { length: diagLen, width: lowerW, thickness: lowerT },
+          origin: { x: 0, y: lowerY + d.yLift, z: 0 },
+          rotation: { x: Math.PI / 2, y: d.yRot, z: 0 },
+          shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+          tenons: [
+            { position: "start", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick },
+            { position: "end", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick },
+          ],
+          mortises: [],
+        });
+      }
+    } else {
+      // h-frame: 4 條繞 1 圈
+      const sides = [
+        { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplay) } },
+        { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplay } },
+        { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplay), z: 0 } },
+        { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplay, z: 0 } },
+      ];
+      for (const s of sides) {
+        const bevelAngle = isSplayed
+          ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+          : 0;
+        parts.push({
+          id: s.id,
+          nameZh: s.nameZh,
+          material,
+          grainDirection: "length",
+          visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
+          origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
+          rotation: s.axis === "z"
+            ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+            : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+          shape: isSplayed
+            ? { kind: "apron-beveled", bevelAngle }
+            : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+          tenons: [
+            { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
+            { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
+          ],
+          mortises: [],
+        });
+      }
     }
+  }
+
+  // 座下層板（落在下橫撐頂面）。需先勾下橫撐 + h-frame 才有支撐
+  // X 字撐無法承載層板（中間是空的）
+  if (withLowerStretcher && withUnderShelf && lowerStretcherStyle !== "x-cross") {
+    const lowerY = lowerStretcherHeightOpt > 0
+      ? lowerStretcherHeightOpt
+      : Math.round(legHeight * 0.22);
+    const lowerW = lowerStretcherWidth;
+    parts.push({
+      id: "under-shelf",
+      nameZh: "座下層板",
+      material,
+      grainDirection: "length",
+      visible: {
+        // 內側可用空間 = 整體寬 - 兩側腳 - legInset，再各邊留 SHELF_CLEARANCE_MM 間隙
+        length: Math.max(50, length - 2 * legSize - 2 * legInset - 2 * 10),
+        width: Math.max(50, width - 2 * legSize - 2 * legInset - 2 * 10),
+        thickness: 18,
+      },
+      // 層板坐在下橫撐頂面（不能埋進橫撐內部）
+      origin: { x: 0, y: lowerY + lowerW, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
   }
 
   const design: FurnitureDesign = {
@@ -261,10 +331,31 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes:
       `腳樣式：${legShapeLabel(legShape)}。座板與凳腳用通榫，凳腳與橫撐用半榫。` +
-      (withLowerStretcher ? " 加下橫撐 H 形結構。" : "") +
-      ` ${seatEdgeNote(seatEdge)}`,
+      (withLowerStretcher
+        ? lowerStretcherStyle === "x-cross"
+          ? " 加 X 字交叉橫撐（明清交杌做法）。"
+          : " 加 H 字下橫撐結構。"
+        : "") +
+      (withUnderShelf && lowerStretcherStyle !== "x-cross" ? " 座下加層板放雜物。" : "") +
+      ` ${seatEdgeNote(seatEdge)}` +
+      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
   };
   applyStandardChecks(design, { minLength: 250, minWidth: 250, minHeight: 350 });
+  appendWarnings(
+    design,
+    validateStoolStructure({
+      legSize,
+      height,
+      seatThickness,
+      seatSpan: Math.max(length, width),
+      lowerStretcherHeight: withLowerStretcher
+        ? lowerStretcherHeightOpt > 0
+          ? lowerStretcherHeightOpt
+          : Math.round(legHeight * 0.22)
+        : undefined,
+      hasLowerStretcher: withLowerStretcher,
+    }),
+  );
   return design;
 };
 

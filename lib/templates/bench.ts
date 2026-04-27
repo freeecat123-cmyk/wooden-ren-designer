@@ -1,12 +1,14 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import {
   RECT_LEG_SHAPE_CHOICES,
   seatEdgeOption,
   seatEdgeStyleOption,
   seatEdgeNote,
+  seatProfileOption,
+  seatProfileNote,
   legEdgeOption,
   legEdgeStyleOption,
   legEdgeNote,
@@ -27,6 +29,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  seatProfileOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -47,6 +50,7 @@ export const bench: FurnitureTemplate = (input) => {
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -81,7 +85,7 @@ export const bench: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
+    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
   });
 
   if (withUnderShelf) {
@@ -111,5 +115,18 @@ export const bench: FurnitureTemplate = (input) => {
   }
 
   applyStandardChecks(design, { minLength: 600, minWidth: 200, minHeight: 350 });
+  appendWarnings(
+    design,
+    validateStoolStructure({
+      legSize,
+      height: input.height,
+      seatThickness: topThickness,
+      seatSpan: input.length, // 長凳座板跨距 = length（長邊）
+      lowerStretcherHeight: withLowerStretchers && lowerStretcherHeight > 0
+        ? lowerStretcherHeight
+        : undefined,
+      hasLowerStretcher: withLowerStretchers || withUnderShelf,
+    }),
+  );
   return design;
 };

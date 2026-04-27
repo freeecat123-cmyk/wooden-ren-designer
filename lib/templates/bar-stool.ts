@@ -5,8 +5,8 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
-import { applyStandardChecks } from "./_validators";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 
 export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -14,6 +14,7 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
+  seatProfileOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -50,6 +51,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -331,8 +333,19 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
-      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
+      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
   };
   applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 600 });
+  appendWarnings(
+    design,
+    validateStoolStructure({
+      legSize,
+      height,
+      seatThickness,
+      seatSpan: Math.max(length, width),
+      lowerStretcherHeight: footrestHeight > 0 ? footrestHeight : undefined,
+      hasLowerStretcher: true, // bar-stool 一定有腳踏圈，視為下橫撐結構
+    }),
+  );
   return design;
 };

@@ -336,6 +336,34 @@ export function seatEdgeNote(seatEdge: string | number, style: string = "chamfer
   return `座板邊緣${styleLabel}，去除銳邊不壓腿、手感佳。`;
 }
 
+/** 座面挖型選項：平面 / 馬鞍挖座 / 微凹挖座。
+ *  目前只影響 notes / 工序，3D 視覺尚未渲染（需 displaced surface mesh，後續再加）。 */
+export function seatProfileOption(group: OptionGroup = "top"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "seatProfile",
+    label: "座面挖型",
+    defaultValue: "flat",
+    choices: [
+      { value: "flat", label: "平面（最簡單）" },
+      { value: "saddle", label: "馬鞍挖座（人體工學，需 5° 弧）" },
+      { value: "scooped", label: "微凹挖座（雙凹各 6mm）" },
+    ],
+    help: "座面是否挖型。挖座更舒適但需用刨/雕刻機加工",
+  };
+}
+
+export function seatProfileNote(profile: string): string {
+  if (profile === "saddle") {
+    return "座面馬鞍挖型，需用刨刀或雕刻機由後向前 5° 弧度挖出馬鞍狀凹陷。";
+  }
+  if (profile === "scooped") {
+    return "座面雙凹挖型，左右各挖 6mm 深的對稱凹槽。";
+  }
+  return "";
+}
+
 /** 椅背傾角（rake）選項：椅背向後傾斜的角度。 */
 export function backRakeOption(group: OptionGroup = "back"): OptionSpec {
   return {

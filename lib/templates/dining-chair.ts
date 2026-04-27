@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const diningChairOptions: OptionSpec[] = [
@@ -22,11 +22,7 @@ export const diningChairOptions: OptionSpec[] = [
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   // 座面舒適度
-  { group: "top", type: "select", key: "seatProfile", label: "座面挖型", defaultValue: "flat", choices: [
-    { value: "flat", label: "平面（最簡單）" },
-    { value: "saddle", label: "馬鞍挖座（人體工學，需 5° 弧）" },
-    { value: "scooped", label: "微凹挖座（雙凹各 6mm）" },
-  ], help: "座面是否挖型。挖座更舒適但需用刨/雕刻機加工" },
+  seatProfileOption("top"),
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
@@ -569,8 +565,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
       ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}` +
-      (seatProfile === "saddle" ? " 座面馬鞍挖型，需用刨刀或雕刻機由後向前 5° 弧度挖出馬鞍狀凹陷。" : "") +
-      (seatProfile === "scooped" ? " 座面雙凹挖型，左右各挖 6mm 深的對稱凹槽。" : "") +
+      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
       (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
       " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };

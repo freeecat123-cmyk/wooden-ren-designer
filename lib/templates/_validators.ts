@@ -128,6 +128,75 @@ export function appendWarnings(design: FurnitureDesign, ...lists: string[][]): v
 }
 
 /**
+ * 凳 / 椅類結構穩定性檢查。
+ *
+ * 規則（基於常見木工規範）：
+ *   - 腳粗 < 高度/15 → 太細，坐久會晃
+ *   - 座板厚 < 跨距/40 → 中央會凹陷
+ *   - 下橫撐離地 < 80mm → 容易踢腳、清地面難
+ *   - 高度 > 500mm 但沒下橫撐 → 強烈建議加（晃動風險高）
+ *
+ * 模板尾端呼叫，回傳警告陣列加進 design.warnings。
+ */
+export interface StoolStructureRules {
+  legSize: number;
+  height: number;
+  seatThickness?: number;
+  /** 座板對角跨距（mm）。沒帶就跳過跨距檢查 */
+  seatSpan?: number;
+  /** 下橫撐離地高（mm）。沒下橫撐就傳 undefined */
+  lowerStretcherHeight?: number;
+  /** 是否有任何下橫撐結構（H-frame / X-cross / 任何加強橫撐） */
+  hasLowerStretcher?: boolean;
+}
+
+export function validateStoolStructure(rules: StoolStructureRules): string[] {
+  const warnings: string[] = [];
+  const { legSize, height } = rules;
+
+  // 腳粗 vs 高度（一般木工建議 1:12 ~ 1:15）
+  const minLegSize = Math.ceil(height / 15);
+  if (legSize < minLegSize) {
+    warnings.push(
+      `腳粗 ${legSize}mm 對 ${height}mm 高的凳子可能太細（建議至少 ${minLegSize}mm，` +
+        `比例 1:15）——坐久會晃，建議加粗或加下橫撐結構補強。`,
+    );
+  }
+
+  // 座板厚 vs 跨距（每 40mm 跨距至少 1mm 厚）
+  if (rules.seatThickness !== undefined && rules.seatSpan !== undefined) {
+    const minThick = Math.ceil(rules.seatSpan / 40);
+    if (rules.seatThickness < minThick) {
+      warnings.push(
+        `座板厚 ${rules.seatThickness}mm 對 ${rules.seatSpan}mm 跨距偏薄（建議至少 ${minThick}mm）——` +
+          `承重時中央會明顯下凹。建議加厚或加中央橫木支撐。`,
+      );
+    }
+  }
+
+  // 下橫撐離地太低
+  if (
+    rules.lowerStretcherHeight !== undefined &&
+    rules.lowerStretcherHeight > 0 &&
+    rules.lowerStretcherHeight < 80
+  ) {
+    warnings.push(
+      `下橫撐離地僅 ${rules.lowerStretcherHeight}mm（< 80mm），坐下時容易踢到、清掃地面也麻煩。` +
+        `建議拉高到 100-150mm。`,
+    );
+  }
+
+  // 高凳沒下橫撐
+  if (height > 500 && rules.hasLowerStretcher === false) {
+    warnings.push(
+      `凳高 ${height}mm 超過 500mm 但沒加下橫撐——高凳結構不穩定，建議勾選「加下橫撐」。`,
+    );
+  }
+
+  return warnings;
+}
+
+/**
  * 一行套用標準幾何檢查的 wrapper。
  * 模板尾端 return 前呼叫即可，避免每個模板都寫一遍 spread / 條件判斷。
  *
