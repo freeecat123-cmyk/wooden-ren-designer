@@ -579,20 +579,34 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     ].filter(Boolean),
   });
 
-  // 小物件（accessory）整體工時調整：
-  // - 備料/平刨/厚刨減半（常用 scrap 或 S4S 規料）
-  // - 各組裝步驟整體 ×0.6（尺寸小、夾具好對準、膠合面少）
-  // - 完工驗收時間減半
+  // 小物件（accessory）整體工時調整。實做經驗：筆筒/書擋這種「真小物件」
+  // 1-2 小時就能做完，跟櫃子用同一套估工時極不合理。分兩段套：
+  //
+  // (A) accessory 共通因子：
+  //     - 備料/平刨/厚刨：×0.3（多半用 S4S 規料 / scrap，跳過大件選料）
+  //     - 完工驗收：×0.5（尺寸小、檢查項目少）
+  //     - 其他組裝/上漆/砂磨：×0.5（尺寸小、夾具快對準、膠合面少）
+  //
+  // (B) 「真小物件」額外縮減：最大邊 ≤ 200mm（筆筒、相框、小書擋）×0.7；
+  //     ≤ 400mm（托盤、鳩尾盒）×0.85；> 400mm 不再縮減（紅酒架、衣帽架）。
   if (family === "accessory") {
+    const maxDim = Math.max(
+      design.overall.length,
+      design.overall.width,
+      design.overall.thickness,
+    );
+    const sizeFactor = maxDim <= 200 ? 0.7 : maxDim <= 400 ? 0.85 : 1.0;
     for (const s of steps) {
       if (!s.estimatedMinutes) continue;
+      let factor: number;
       if (s.id === "step-01-select-stock" || s.id === "step-02-jointer-planer") {
-        s.estimatedMinutes = Math.max(10, Math.round(s.estimatedMinutes * 0.4));
+        factor = 0.3;
       } else if (s.id === "step-99-final-check") {
-        s.estimatedMinutes = Math.max(10, Math.round(s.estimatedMinutes * 0.5));
+        factor = 0.5;
       } else {
-        s.estimatedMinutes = Math.max(8, Math.round(s.estimatedMinutes * 0.6));
+        factor = 0.5;
       }
+      s.estimatedMinutes = Math.max(5, Math.round(s.estimatedMinutes * factor * sizeFactor));
     }
   }
 
