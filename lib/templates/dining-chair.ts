@@ -5,23 +5,23 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const diningChairOptions: OptionSpec[] = [
   // 腳
-  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: [
-    { value: "box", label: "方直腳" },
-    { value: "tapered", label: "錐形腳（下方收窄）" },
-    { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
-    { value: "inverted", label: "倒錐腳（下方更粗）" },
-    { value: "splayed", label: "斜腳（整支外傾）" },
-    { value: "hoof", label: "馬蹄腳（底部外撇）" },
-  ] },
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
   // 座板
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: 450, min: 150, max: 900, step: 10, help: "地面到座板上緣，一般 440–460" },
+  seatEdgeOption("top", "rounded"),
+  // 座面舒適度
+  { group: "top", type: "select", key: "seatProfile", label: "座面挖型", defaultValue: "flat", choices: [
+    { value: "flat", label: "平面（最簡單）" },
+    { value: "saddle", label: "馬鞍挖座（人體工學，需 5° 弧）" },
+    { value: "scooped", label: "微凹挖座（雙凹各 6mm）" },
+  ], help: "座面是否挖型。挖座更舒適但需用刨/雕刻機加工" },
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
@@ -36,6 +36,10 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "ladderRungs", label: "橫檔數（橫檔式用）", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "ladder" } },
   { group: "back", type: "number", key: "splatWidth", label: "中板寬 (mm)（中板式用）", defaultValue: 180, min: 80, max: 400, step: 10, dependsOn: { key: "backStyle", equals: "splat" } },
   { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
+  backRakeOption("back"),
+  // 扶手
+  { group: "back", type: "checkbox", key: "withArmrest", label: "加扶手", defaultValue: false, help: "後腳延伸往前接到前腳上方的扶手（會增加木料 + 工時）" },
+  { group: "back", type: "number", key: "armrestHeight", label: "扶手高（座板上）(mm)", defaultValue: 200, min: 150, max: 280, step: 10, help: "從座板上緣到扶手頂面", dependsOn: { key: "withArmrest", equals: true } },
   // 橫撐
   { group: "stretcher", type: "select", key: "stretcherStyle", label: "下橫撐樣式", defaultValue: "none", choices: [
     { value: "none", label: "無下橫撐" },
@@ -68,9 +72,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatHeight = getOption<number>(input, opt(o, "seatHeight"));
+  const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
+  const backRake = getOption<number>(input, opt(o, "backRake"));
+  const withArmrest = getOption<boolean>(input, opt(o, "withArmrest"));
+  const armrestHeight = getOption<number>(input, opt(o, "armrestHeight"));
   const slatCount = getOption<number>(input, opt(o, "backSlats"));
   const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
   const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
@@ -546,7 +555,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      "前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
+      `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
+      ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge)}` +
+      (seatProfile === "saddle" ? " 座面馬鞍挖型，需用刨刀或雕刻機由後向前 5° 弧度挖出馬鞍狀凹陷。" : "") +
+      (seatProfile === "scooped" ? " 座面雙凹挖型，左右各挖 6mm 深的對稱凹槽。" : "") +
+      (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
+      " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };
   applyStandardChecks(design, { minLength: 350, minWidth: 350, minHeight: 700 });
   return design;

@@ -5,21 +5,20 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const barStoolOptions: OptionSpec[] = [
-  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: [
-    { value: "box", label: "方直腳" },
-    { value: "tapered", label: "錐形腳（下方收窄）" },
-    { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
-    { value: "inverted", label: "倒錐腳（下方更粗）" },
-    { value: "splayed", label: "斜腳（整支外傾）" },
-    { value: "hoof", label: "馬蹄腳（底部外撇）" },
-  ] },
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
-  { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏/下橫撐高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度" },
+  seatEdgeOption("top", "rounded"),
+  { group: "stretcher", type: "select", key: "footrestStyle", label: "腳踏樣式", defaultValue: "four-sides", choices: [
+    { value: "four-sides", label: "四面腳踏（最穩，傳統做法）" },
+    { value: "front-only", label: "只前面腳踏（極簡）" },
+    { value: "ring", label: "金屬環（外加，木工不負責）" },
+  ], help: "吧檯椅腳踏的配置方式" },
+  { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度，標準 200–230mm" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "none", choices: [
@@ -44,6 +43,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
+  const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const footrestStyle = getOption<string>(input, opt(o, "footrestStyle"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -314,7 +315,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
-    notes: `吧檯椅：高度 ${height}mm（建議 700–800）；腳踏離地 ${footrestHeight}mm；${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。`,
+    notes:
+      `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
+      `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
+      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge)}`,
   };
   applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 600 });
   return design;
