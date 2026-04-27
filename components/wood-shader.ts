@@ -32,25 +32,49 @@ vWoodWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;`,
     .replace(
       "#include <common>",
       `#include <common>
-varying vec3 vWoodWorldPos;`,
+varying vec3 vWoodWorldPos;
+// value noise + fbm helpers——必須放 <common>（即 main 之外）
+float wd_hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float wd_noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = wd_hash(i);
+  float b = wd_hash(i + vec2(1.0, 0.0));
+  float c = wd_hash(i + vec2(0.0, 1.0));
+  float d = wd_hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float wd_fbm(vec2 p) {
+  float v = 0.0;
+  float amp = 0.5;
+  for (int i = 0; i < 4; i++) {
+    v += amp * wd_noise(p);
+    p *= 2.0;
+    amp *= 0.5;
+  }
+  return v;
+}`,
     )
     .replace(
       "#include <map_fragment>",
       `#include <map_fragment>
-// Wood grain via world-position sin noise.
-// 主紋路沿 X 軸（適合大部分桌面與橫撐），同時帶 Y/Z 微擾動讓接合處不會
-// 看起來像同一條垂直線。家具用實木紋路通常一條一條清晰可見。
+// 真實木紋：用 fbm noise 扭曲 X 軸再做 sin 條紋，紋路會像水波一樣彎曲，
+// 不是格子布規則直線。輔以低頻變化讓粗條寬度不一致——更像實木。
 vec3 wp = vWoodWorldPos;
-float wobble = sin(wp.y * 4.0 + wp.z * 3.0) * 0.08;
-// 粗條紋（年輪粗線）：每 30mm 一條
-float coarse = sin((wp.x + wobble) * 22.0 + sin(wp.z * 6.0) * 0.3);
-// 細條紋（細紋）：每 8mm 一條
-float fine = sin((wp.x + wobble * 0.6) * 80.0);
-// 把 sin 範圍 -1..1 轉成「線」（峰值處才暗，其他保持原色）
-// 拉寬 smoothstep 範圍 + 加重深度讓紋更明顯
-float coarseLine = smoothstep(0.3, 0.95, coarse) * 0.45;
-float fineLine = smoothstep(0.5, 0.95, fine) * 0.18;
-float grainDarken = coarseLine + fineLine;
+// 用 Y/Z 平面的 noise 扭曲 X 座標——紋路就會沿垂直方向有波浪
+float distort = (wd_fbm(wp.yz * 6.0) - 0.5) * 0.6;
+float xc = wp.x + distort;
+// 主年輪：取 abs(sin) 並乘冪讓尖峰處才深（線狀紋路），平均週期 ~25mm
+float ring = abs(sin(xc * 25.0 + wd_fbm(wp.yz * 12.0) * 1.0));
+ring = pow(ring, 6.0);
+// 粗變化：低頻 noise 模擬「明暗區塊」，遠看有層次不會太均勻
+float lowFreq = wd_fbm(wp.xz * 1.5) * 0.18;
+// 細紋（高頻 sin），加一點點質感不要太搶
+float fine = abs(sin(xc * 90.0)) * 0.05;
+float grainDarken = ring * 0.4 + fine + lowFreq;
 diffuseColor.rgb *= (1.0 - grainDarken);`,
     );
 };
