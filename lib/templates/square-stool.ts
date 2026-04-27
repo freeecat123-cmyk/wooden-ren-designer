@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeShape, legEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
@@ -13,8 +13,10 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "腳中心離座板邊緣的內縮量。> 0 讓座板外伸、視覺更俐落" },
   legEdgeOption("leg", 0),
+  legEdgeStyleOption("leg"),
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
@@ -22,6 +24,8 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretcher", equals: true } },
+  stretcherEdgeOption("stretcher", 0),
+  stretcherEdgeStyleOption("stretcher"),
 ];
 
 /**
@@ -54,8 +58,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
+  const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const stretcherEdge = getOption<string>(input, opt(o, "stretcherEdge"));
+  const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
@@ -154,7 +162,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     rotation: p.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(legEdge),
+    shape: legEdgeShape(stretcherEdge),
     tenons: [
       {
         position: "start" as const,
@@ -204,7 +212,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
-        shape: legEdgeShape(legEdge),
+        shape: legEdgeShape(stretcherEdge),
         tenons: [
           { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
           { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
