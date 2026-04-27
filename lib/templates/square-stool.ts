@@ -5,12 +5,13 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legShapeLabel } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legEdgeOption, legEdgeShape, legEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
+  legEdgeOption("leg", "square"),
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", "chamfered"),
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
@@ -50,6 +51,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const o = squareStoolOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -103,7 +105,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    shape: rectLegShape(legShape, c, { splayedFrontOnly: false }),
+    // 主 leg shape（box / tapered / splayed 等）優先；leg 是 box 時可改套
+    // chamfered-edges（4 條長邊倒角）。tapered/splayed 已有自己的視覺，不疊加。
+    shape: rectLegShape(legShape, c, { splayedFrontOnly: false }) ?? legEdgeShape(legEdge),
     tenons: [
       {
         position: "top",
@@ -148,6 +152,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     rotation: p.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
+    shape: legEdgeShape(legEdge),
     tenons: [
       {
         position: "start" as const,
@@ -197,6 +202,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        shape: legEdgeShape(legEdge),
         tenons: [
           { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
           { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },

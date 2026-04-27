@@ -145,12 +145,22 @@ export function rectLegShape(
   return undefined;
 }
 
-/** 座板邊緣處理選項（純 metadata，不影響 part 結構，注入 notes 即可）。 */
+/** 座板邊緣處理選項。會實際渲染 chamfered-top shape（commit 9980c3d）。 */
 export const SEAT_EDGE_CHOICES = [
   { value: "square", label: "直角（最簡單，不修邊）" },
   { value: "chamfered", label: "倒角 5×45°（不壓腿）" },
+  { value: "chamfered-large", label: "大倒角 10×45°（明顯斜邊）" },
   { value: "rounded", label: "圓角 R5（手感佳）" },
   { value: "rounded-large", label: "大圓角 R12（蛋形邊）" },
+];
+
+/** 腳 / 橫撐邊緣處理選項。會渲染 chamfered-edges shape（4 條長邊倒角）。
+ *  跟座板分開 helper 是因為視覺位置不同——腳是垂直 4 邊角線，
+ *  橫撐是水平 4 條長邊。 */
+export const LEG_EDGE_CHOICES = [
+  { value: "square", label: "直角（最簡單）" },
+  { value: "chamfered", label: "倒角 3×45°（細緻）" },
+  { value: "chamfered-large", label: "大倒角 8×45°（明顯八角斷面）" },
 ];
 
 export function seatEdgeOption(
@@ -173,9 +183,38 @@ export function seatEdgeOption(
  *  套在座板 / 桌面 part 的 .shape 即可，3D 跟前/側視會看到斜邊。 */
 export function seatEdgeShape(seatEdge: string): { kind: "chamfered-top"; chamferMm: number } | undefined {
   if (seatEdge === "chamfered") return { kind: "chamfered-top", chamferMm: 5 };
+  if (seatEdge === "chamfered-large") return { kind: "chamfered-top", chamferMm: 10 };
   if (seatEdge === "rounded") return { kind: "chamfered-top", chamferMm: 5 };
   if (seatEdge === "rounded-large") return { kind: "chamfered-top", chamferMm: 12 };
   return undefined;
+}
+
+/** 腳 / 橫撐邊緣 → chamfered-edges shape（4 條長邊各倒 45°）。 */
+export function legEdgeShape(legEdge: string): { kind: "chamfered-edges"; chamferMm: number } | undefined {
+  if (legEdge === "chamfered") return { kind: "chamfered-edges", chamferMm: 3 };
+  if (legEdge === "chamfered-large") return { kind: "chamfered-edges", chamferMm: 8 };
+  return undefined;
+}
+
+export function legEdgeOption(
+  group: OptionGroup = "leg",
+  defaultValue: string = "square",
+): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "legEdge",
+    label: "腳 / 橫撐邊緣處理",
+    defaultValue,
+    choices: LEG_EDGE_CHOICES,
+    help: "4 條長邊角線倒角，視覺與手感變柔和。橫撐也套用同樣處理。",
+  };
+}
+
+export function legEdgeNote(legEdge: string): string {
+  if (legEdge === "chamfered") return "腳跟橫撐 4 條長邊各倒 3mm × 45°（修邊機 V 型刀）。";
+  if (legEdge === "chamfered-large") return "腳跟橫撐 4 條長邊各倒 8mm × 45°，截面變八角形，明清風常見。";
+  return "";
 }
 
 export function seatEdgeNote(seatEdge: string): string {

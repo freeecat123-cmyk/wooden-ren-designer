@@ -77,7 +77,8 @@ type ShapeSpec =
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
   | { kind: "apron-beveled"; bevelAngle: number }
-  | { kind: "chamfered-top"; chamferMm: number };
+  | { kind: "chamfered-top"; chamferMm: number }
+  | { kind: "chamfered-edges"; chamferMm: number };
 
 function Part({
   position,
@@ -117,6 +118,9 @@ function Part({
     }
     if (shape.kind === "chamfered-top") {
       return buildChamferedTopGeometry(size, shape.chamferMm);
+    }
+    if (shape.kind === "chamfered-edges") {
+      return buildChamferedEdgesGeometry(size, shape.chamferMm);
     }
     return null;
   }, [size, shape]);
@@ -494,6 +498,85 @@ function buildChamferedTopGeometry(
 }
 
 /**
+ * 4 條沿最長軸的長邊各倒 45°——cross-section 從正方形變八角形。
+ * 自動偵測 size 三軸最大者當「長軸」（腳 = Y、橫撐 = X）。
+ * 16 vertices = 8 cross-section corners × 2 ends。
+ */
+function buildChamferedEdgesGeometry(
+  size: [number, number, number],
+  chamferMm: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  // 找最長軸
+  const longAxis: 0 | 1 | 2 =
+    ly > lx && ly > lz ? 1 : lz > lx && lz > ly ? 2 : 0;
+  // 短軸對應的兩個 dim
+  const shortDim = (i: 0 | 1 | 2) => (i === 0 ? lx : i === 1 ? ly : lz);
+  const longLen = shortDim(longAxis);
+  const sa1 = ((longAxis + 1) % 3) as 0 | 1 | 2;
+  const sa2 = ((longAxis + 2) % 3) as 0 | 1 | 2;
+  const ha = longLen / 2;
+  const hb = shortDim(sa1) / 2;
+  const hc = shortDim(sa2) / 2;
+  // 倒角量限縮（不能超過短軸 1/2）
+  const c = Math.min(chamferMm, hb * 0.45, hc * 0.45);
+
+  // Cross-section octagon（在 sa1-sa2 plane）8 corners，CCW from +longAxis 看：
+  //   1. (+hb-c, +hc) 2. (+hb, +hc-c) 3. (+hb, -hc+c) 4. (+hb-c, -hc)
+  //   5. (-hb+c, -hc) 6. (-hb, -hc+c) 7. (-hb, +hc-c) 8. (-hb+c, +hc)
+  const cs: Array<[number, number]> = [
+    [hb - c, hc],
+    [hb, hc - c],
+    [hb, -hc + c],
+    [hb - c, -hc],
+    [-hb + c, -hc],
+    [-hb, -hc + c],
+    [-hb, hc - c],
+    [-hb + c, hc],
+  ];
+
+  // 每個 cross-section corner 在兩端 (long axis = ±ha) 各一個 vertex → 16 verts
+  // vertex layout: 0..7 = 端 -ha 的 8 點，8..15 = 端 +ha 的 8 點
+  // 把 (a, b, c) 的 longAxis 座標放對位置
+  const place = (axisVal: number, sa1Val: number, sa2Val: number): [number, number, number] => {
+    const arr: [number, number, number] = [0, 0, 0];
+    arr[longAxis] = axisVal;
+    arr[sa1] = sa1Val;
+    arr[sa2] = sa2Val;
+    return arr;
+  };
+
+  const v: number[] = [];
+  for (const [b, cc] of cs) v.push(...place(-ha, b, cc));
+  for (const [b, cc] of cs) v.push(...place(+ha, b, cc));
+
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx: number[] = [];
+
+  // 8 個側面（octagon 邊長 × 長軸延伸）
+  for (let i = 0; i < 8; i++) {
+    const next = (i + 1) % 8;
+    // -ha 端 i, next；+ha 端 i+8, next+8
+    idx.push(...f(i, next, next + 8, i + 8));
+  }
+  // 兩個八角形端面（octagon 三角化：fan from vertex 0）
+  // -ha 端（從 -longAxis 看 CCW）
+  for (let i = 1; i < 7; i++) {
+    idx.push(0, i + 1, i);
+  }
+  // +ha 端（從 +longAxis 看 CCW）
+  for (let i = 1; i < 7; i++) {
+    idx.push(8, 8 + i, 8 + i + 1);
+  }
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
  * 外斜方錐：方料 + 上下不同尺寸 + 底部偏移。
  * 上方面 (lx × lz) 在 y=+hy（無偏移），下方面 (lx*scale × lz*scale) 在 y=-hy
  * 偏移 (dx, dz)。
@@ -769,6 +852,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
           } else if (part.shape?.kind === "chamfered-top") {
             shape = { kind: "chamfered-top", chamferMm: part.shape.chamferMm * SCALE };
+          } else if (part.shape?.kind === "chamfered-edges") {
+            shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE };
           }
           return (
             <Part
