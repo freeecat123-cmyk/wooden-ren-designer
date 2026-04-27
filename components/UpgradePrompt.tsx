@@ -18,10 +18,11 @@ interface Props {
 
 const PLAN_PRICE_LINE: Record<PlanId, string> = {
   free: "",
-  personal: "個人版 NT$ 290 / 月",
-  pro: "專業版 NT$ 890 / 月",
+  personal: "個人版 NT$ 290 / 月（年付 2,900）",
+  pro: "專業版 NT$ 890 / 月（年付 8,900）",
   student: "學員版（憑學員身份）",
-  lifetime: "終身版 NT$ 8,900",
+  // lifetime 留著供舊資料相容；不再對外推銷
+  lifetime: "終身版（已停售）",
 };
 
 /**

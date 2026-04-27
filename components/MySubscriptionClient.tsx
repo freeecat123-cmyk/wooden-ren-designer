@@ -148,8 +148,7 @@ function StudentSection({
             ⚠️ 還剩 {daysLeft} 天到期
           </div>
           <p className="text-sm text-[#7c4f1a] mt-1 leading-relaxed">
-            第 3 年起可享學員專屬價 <strong>NT$ 490 / 月</strong>
-            （原價 890，學員 8 折）。
+            第 3 年起可享學員專屬價（DIY 自家用 NT$ 219、接案/工作室 NT$ 690 / 月）。
           </p>
           <Link
             href="/pricing"
@@ -168,7 +167,7 @@ function StudentSection({
           <div className="font-semibold text-red-700">已過期</div>
           <p className="text-sm text-red-600 mt-1 leading-relaxed">
             學員專屬版 2 年免費期已結束，已自動降為免費版。
-            可選「學員續用版 NT$ 490 / 月」延續完整功能。
+            可選學員續用版（個人 NT$ 219 / 專業 NT$ 690 / 月）延續使用。
           </p>
           <Link
             href="/pricing"
@@ -181,7 +180,7 @@ function StudentSection({
 
       {!expiringSoon && !expired && (
         <p className="mt-4 text-xs text-zinc-500 leading-relaxed">
-          到期後可享學員續用價 NT$ 490 / 月（原價 890）。
+          到期後可享學員續用價：個人 NT$ 219、專業 NT$ 690 / 月。
         </p>
       )}
     </div>

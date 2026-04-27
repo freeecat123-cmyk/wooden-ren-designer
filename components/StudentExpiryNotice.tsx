@@ -53,7 +53,7 @@ export function StudentExpiryNotice() {
       <div className="flex-1 min-w-0 text-sm leading-relaxed">
         <strong>你的學員專屬版還有 {daysLeft} 天到期</strong>
         <span className="ml-2 text-[#7c4f1a]">
-          ／ 第 3 年起可享學員專屬價 NT$ 490 / 月（原價 890）
+          ／ 第 3 年起可享學員專屬價：個人 NT$ 219、專業 NT$ 690 / 月
         </span>
       </div>
       <Link
