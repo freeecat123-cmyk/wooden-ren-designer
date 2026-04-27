@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
@@ -81,6 +81,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
+    shape: seatEdgeShape(seatEdge),
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）

@@ -315,6 +315,25 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     return [...right, ...left];
   }
 
+  // 板狀零件頂緣倒角（座板 / 桌面）：前/側視 = 矩形上 2 角斜切
+  // 俯視仍是矩形（從上方看不到倒角）
+  if (part.shape.kind === "chamfered-top") {
+    if (view === "top") return box;
+    const c = Math.min(part.shape.chamferMm, r.h * 0.45, r.w * 0.45);
+    if (c <= 0) return box;
+    // box = [TL, TR, BR, BL]
+    // 倒角：TL → 兩點 (r.x+c, r.y+r.h) + (r.x, r.y+r.h-c)
+    //       TR → 兩點 (r.x+r.w-c, r.y+r.h) + (r.x+r.w, r.y+r.h-c)
+    return [
+      { x: r.x + c, y: r.y + r.h },        // 頂面左端
+      { x: r.x + r.w - c, y: r.y + r.h },  // 頂面右端
+      { x: r.x + r.w, y: r.y + r.h - c },  // 右上倒角下緣
+      { x: r.x + r.w, y: r.y },            // 右下角
+      { x: r.x, y: r.y },                  // 左下角
+      { x: r.x, y: r.y + r.h - c },        // 左上倒角下緣
+    ];
+  }
+
   return box;
 }
 

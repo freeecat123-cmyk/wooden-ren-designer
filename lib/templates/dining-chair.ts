@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const diningChairOptions: OptionSpec[] = [
@@ -256,6 +256,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatHeight - seatThickness, z: 0 },
+    shape: seatEdgeShape(seatEdge),
     tenons: [],
     // 前 2 腳通榫進來（榫頭從下方刺穿座板）；
     // 後 2 腳沒通榫但腳本身穿過座板高度範圍——也要開孔讓腳通過，

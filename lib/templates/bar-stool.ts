@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeNote, seatEdgeShape, legShapeLabel } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
 export const barStoolOptions: OptionSpec[] = [
@@ -190,6 +190,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
+    shape: seatEdgeShape(seatEdge),
     tenons: [],
     // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
     // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼

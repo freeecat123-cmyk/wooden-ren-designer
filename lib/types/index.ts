@@ -187,7 +187,12 @@ export interface Part {
      *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
      *  套用後上下緣面在 world 中保持水平 → 可貼緊椅面 / 地面。 */
-    | { kind: "apron-beveled"; bevelAngle: number };
+    | { kind: "apron-beveled"; bevelAngle: number }
+    /** Chamfered top: 板狀零件（座板 / 桌面）的頂緣 4 邊倒角。
+     *  chamferMm = 從外緣往內倒掉的水平距離（=== 從頂面往下倒掉的垂直距離）。
+     *  視覺上頂面變小一點點、外側多一個 45° 斜邊。
+     *  rounded R5/R12 也用這個 shape，差別在 chamferMm（5 vs 12）。 */
+    | { kind: "chamfered-top"; chamferMm: number };
 }
 
 export interface FurnitureDesign {

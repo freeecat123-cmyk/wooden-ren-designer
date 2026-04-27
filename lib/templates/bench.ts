@@ -58,6 +58,7 @@ export const bench: FurnitureTemplate = (input) => {
     legInset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
     legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
+    seatEdge,
     notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge)}`,
   });
 

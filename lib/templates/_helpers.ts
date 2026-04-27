@@ -168,6 +168,16 @@ export function seatEdgeOption(
   };
 }
 
+/** 把 seatEdge 字串轉成 Part.shape——square 不修飾、其他都用 chamfered-top
+ *  做出 45° 倒角視覺（圓角 R5/R12 在 3D 用 chamfer 視覺替代，等比例放大 mm 數）。
+ *  套在座板 / 桌面 part 的 .shape 即可，3D 跟前/側視會看到斜邊。 */
+export function seatEdgeShape(seatEdge: string): { kind: "chamfered-top"; chamferMm: number } | undefined {
+  if (seatEdge === "chamfered") return { kind: "chamfered-top", chamferMm: 5 };
+  if (seatEdge === "rounded") return { kind: "chamfered-top", chamferMm: 5 };
+  if (seatEdge === "rounded-large") return { kind: "chamfered-top", chamferMm: 12 };
+  return undefined;
+}
+
 export function seatEdgeNote(seatEdge: string): string {
   switch (seatEdge) {
     case "square":

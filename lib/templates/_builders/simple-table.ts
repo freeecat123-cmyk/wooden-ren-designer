@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners } from "../_helpers";
+import { corners, seatEdgeShape } from "../_helpers";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -48,6 +48,8 @@ export interface SimpleTableOpts {
   lowerStretcherWidth?: number;
   /** Lower stretcher thickness (horizontal, mm). Default 20. */
   lowerStretcherThickness?: number;
+  /** 桌面 / 座板邊緣處理 — 'square' / 'chamfered' / 'rounded' / 'rounded-large' */
+  seatEdge?: string;
   notes?: string;
 }
 
@@ -111,6 +113,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     grainDirection: "length",
     visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
+    shape: seatEdgeShape(opts.seatEdge ?? "square"),
     tenons: [],
     mortises: cornerPts.map((c) => ({
       origin: { x: c.x, y: 0, z: c.z },

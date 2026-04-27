@@ -76,7 +76,8 @@ type ShapeSpec =
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
-  | { kind: "apron-beveled"; bevelAngle: number };
+  | { kind: "apron-beveled"; bevelAngle: number }
+  | { kind: "chamfered-top"; chamferMm: number };
 
 function Part({
   position,
@@ -113,6 +114,9 @@ function Part({
     }
     if (shape.kind === "apron-beveled") {
       return buildBeveledApronGeometry(size, shape.bevelAngle);
+    }
+    if (shape.kind === "chamfered-top") {
+      return buildChamferedTopGeometry(size, shape.chamferMm);
     }
     return null;
   }, [size, shape]);
@@ -419,6 +423,77 @@ function buildBeveledApronGeometry(
 }
 
 /**
+ * 板狀零件頂緣 4 邊倒角（chamfered top）：
+ * 座板 / 桌面常見的「邊緣 5×45° 倒角」或「R5/R12 圓角」視覺呈現。
+ * 為簡化都用 45° 倒角實作（視覺接近，3D 不真做圓弧）：
+ *   - chamfered: chamferMm = 5
+ *   - rounded R5: chamferMm = 5（同 chamfered，視覺差異看 SVG label）
+ *   - rounded R12: chamferMm = 12
+ * Local Y 是厚度軸（origin = 底部），頂面 = +y 那面。
+ * 16 vertices: 8 原 box 頂點 + 8 新增（頂面 4 角往內縮、頂面下緣 4 角）
+ */
+function buildChamferedTopGeometry(
+  size: [number, number, number],
+  chamferMm: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hz = lz / 2;
+  // y 範圍 [0, ly]（origin=底部）。轉成 mesh local（mesh 是 [-ly/2, +ly/2] 居中）
+  const yBot = -ly / 2;
+  const yTop = ly / 2;
+  // 倒角 45°：水平內縮 c = 垂直下降 c
+  const c = Math.min(chamferMm, ly * 0.45, hx * 0.45, hz * 0.45);
+  const yChamferStart = yTop - c;
+  const inX = hx - c;
+  const inZ = hz - c;
+
+  // 4 底部 corner (y = yBot)
+  // 4 頂面下緣 corner (y = yChamferStart, x/z 同底部)
+  // 4 頂面 corner (y = yTop, x/z 內縮)
+  // 順序：(-x,-z), (+x,-z), (+x,+z), (-x,+z)
+  const v: number[] = [
+    // 0..3 底部
+    -hx, yBot, -hz,
+    +hx, yBot, -hz,
+    +hx, yBot, +hz,
+    -hx, yBot, +hz,
+    // 4..7 頂面下緣（倒角開始處）
+    -hx, yChamferStart, -hz,
+    +hx, yChamferStart, -hz,
+    +hx, yChamferStart, +hz,
+    -hx, yChamferStart, +hz,
+    // 8..11 頂面（內縮 c）
+    -inX, yTop, -inZ,
+    +inX, yTop, -inZ,
+    +inX, yTop, +inZ,
+    -inX, yTop, +inZ,
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    // 底面（從下面看 CCW）
+    ...f(0, 1, 2, 3),
+    // 4 個側面（垂直部分，從外看 CCW）
+    ...f(0, 4, 5, 1), // -z 面
+    ...f(1, 5, 6, 2), // +x 面
+    ...f(2, 6, 7, 3), // +z 面
+    ...f(3, 7, 4, 0), // -x 面
+    // 4 個倒角斜面（從外看 CCW）
+    ...f(4, 8, 9, 5), // -z 倒角
+    ...f(5, 9, 10, 6), // +x 倒角
+    ...f(6, 10, 11, 7), // +z 倒角
+    ...f(7, 11, 8, 4), // -x 倒角
+    // 頂面（從上看 CCW）
+    ...f(8, 11, 10, 9),
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
  * 外斜方錐：方料 + 上下不同尺寸 + 底部偏移。
  * 上方面 (lx × lz) 在 y=+hy（無偏移），下方面 (lx*scale × lz*scale) 在 y=-hy
  * 偏移 (dx, dz)。
@@ -692,6 +767,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             };
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
+          } else if (part.shape?.kind === "chamfered-top") {
+            shape = { kind: "chamfered-top", chamferMm: part.shape.chamferMm * SCALE };
           }
           return (
             <Part
