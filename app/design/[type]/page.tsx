@@ -584,7 +584,7 @@ function GroupedOptionFields({
     Array.from(grouped.keys()).filter((k) => !GROUP_ORDER.includes(k)),
   );
   return (
-    <div className="mb-5 rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
+    <div className="mb-4 rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
       {keysInOrder.map((g) => {
         const meta = GROUP_META[g] ?? GROUP_META.misc;
         const specs = grouped.get(g)!;
@@ -594,25 +594,25 @@ function GroupedOptionFields({
             open
             className="group"
           >
-            <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none hover:bg-zinc-50 select-none">
-              <span className={`w-1 h-4 rounded-full ${meta.bar}`} />
-              <span className="text-sm font-semibold text-zinc-800">
+            <summary className="flex items-center gap-1.5 px-2.5 py-1 cursor-pointer list-none hover:bg-zinc-50 select-none">
+              <span className={`w-1 h-3.5 rounded-full ${meta.bar}`} />
+              <span className="text-xs font-semibold text-zinc-800">
                 {meta.label}
               </span>
               <span className="text-[10px] text-zinc-400">
-                {specs.length} 項
+                {specs.length}
               </span>
-              <span className="ml-auto text-xs text-zinc-400 group-open:rotate-180 transition-transform">
+              <span className="ml-auto text-[10px] text-zinc-400 group-open:rotate-180 transition-transform">
                 ▾
               </span>
             </summary>
-            <div className="px-3 pb-3 pt-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2.5">
+            <div className="px-2.5 pb-2 pt-0.5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-2 gap-y-1.5">
               {specs.map((spec) => {
                 const isWide = spec.type === "checkbox" && spec.wide;
                 return (
                   <div
                     key={spec.key}
-                    className={isWide ? "col-span-2 md:col-span-3 lg:col-span-4" : ""}
+                    className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
                     <OptionField spec={spec} value={optionValues[spec.key]} />
                   </div>
@@ -635,8 +635,8 @@ function OptionField({
 }) {
   if (spec.type === "number") {
     return (
-      <label className="flex flex-col text-xs">
-        <span className="text-zinc-700 mb-1">
+      <label className="flex flex-col text-xs" title={spec.help}>
+        <span className="text-zinc-700 mb-0.5 truncate">
           {spec.label}
           {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
         </span>
@@ -647,20 +647,20 @@ function OptionField({
           min={spec.min}
           max={spec.max}
           step={spec.step ?? 1}
-          className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+          className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
         />
-        {spec.help && <span className="mt-1 text-[10px] text-zinc-500">{spec.help}</span>}
+        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
       </label>
     );
   }
   if (spec.type === "select") {
     return (
-      <label className="flex flex-col text-xs">
-        <span className="text-zinc-700 mb-1">{spec.label}</span>
+      <label className="flex flex-col text-xs" title={spec.help}>
+        <span className="text-zinc-700 mb-0.5 truncate">{spec.label}</span>
         <select
           name={spec.key}
           defaultValue={String(value)}
-          className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+          className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
         >
           {spec.choices.map((c) => (
             <option key={c.value} value={c.value}>
@@ -668,7 +668,7 @@ function OptionField({
             </option>
           ))}
         </select>
-        {spec.help && <span className="mt-1 text-[10px] text-zinc-500">{spec.help}</span>}
+        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
       </label>
     );
   }
