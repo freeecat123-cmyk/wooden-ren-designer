@@ -38,6 +38,10 @@ export function WhitelistAdminClient() {
   const [csvPreview, setCsvPreview] = useState<CsvPreviewRow[] | null>(null);
   const [csvImporting, setCsvImporting] = useState(false);
 
+  // 批次延長到期日
+  const [extendDays, setExtendDays] = useState(365);
+  const [extendBusy, setExtendBusy] = useState(false);
+
   async function load() {
     setLoading(true);
     setError(null);
@@ -143,6 +147,40 @@ export function WhitelistAdminClient() {
       setFlash(`❌ ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setCsvImporting(false);
+    }
+  }
+
+  async function handleExtendStudents() {
+    if (!Number.isFinite(extendDays) || extendDays <= 0) {
+      setFlash("❌ 天數要 > 0");
+      return;
+    }
+    if (
+      !window.confirm(
+        `這會把所有 plan='student' 的使用者 student_expires_at 往後延 ${extendDays} 天，確認嗎？`,
+      )
+    ) {
+      return;
+    }
+    setExtendBusy(true);
+    setFlash(null);
+    try {
+      const res = await fetch("/api/admin/extend-students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: extendDays }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "extend failed");
+      setFlash(
+        `✅ 已延長 ${extendDays} 天${
+          json.affected != null ? `，影響 ${json.affected} 位學員` : ""
+        }`,
+      );
+    } catch (e) {
+      setFlash(`❌ ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setExtendBusy(false);
     }
   }
 
@@ -268,6 +306,42 @@ export function WhitelistAdminClient() {
               </button>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* === 批次延長到期日 === */}
+      <section className="border border-amber-200 rounded-lg p-4 bg-amber-50/50 mb-6">
+        <h2 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+          ⏳ 批次延長學員到期日
+        </h2>
+        <p className="text-xs text-amber-800 mb-3 leading-relaxed">
+          會把所有 <code className="font-mono">plan=&apos;student&apos;</code> 的
+          <code className="font-mono"> student_expires_at</code> 一次往後延 N 天。
+          適合品牌週年慶、暑期回饋等情境，避免一筆筆改。
+        </p>
+        <div className="flex items-end gap-3 flex-wrap">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-600">延長天數</span>
+            <input
+              type="number"
+              min={1}
+              max={3650}
+              value={extendDays}
+              onChange={(e) => setExtendDays(Number(e.target.value))}
+              className="w-32 px-3 py-2 rounded border border-zinc-300 text-sm font-mono"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleExtendStudents}
+            disabled={extendBusy}
+            className="px-4 py-2 rounded bg-amber-700 text-white text-sm hover:bg-amber-800 disabled:opacity-50"
+          >
+            {extendBusy ? "處理中…" : `延長所有現有學員 + ${extendDays} 天`}
+          </button>
+          <span className="text-xs text-zinc-500">
+            常用：365（1 年）／ 90（3 個月）／ 30（1 個月）
+          </span>
         </div>
       </section>
 

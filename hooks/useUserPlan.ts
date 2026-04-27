@@ -43,7 +43,9 @@ export function useUserPlan(): UserPlanState {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("users")
-        .select("plan, subscription_status, subscription_expires_at")
+        .select(
+          "plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at",
+        )
         .eq("id", user.id)
         .single();
       if (cancelled) return;

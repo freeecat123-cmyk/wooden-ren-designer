@@ -7,13 +7,15 @@ export const metadata: Metadata = {
 };
 
 interface PlanCard {
-  id: "free" | "personal" | "pro" | "lifetime";
+  id: "free" | "personal" | "pro" | "lifetime" | "student_renewal";
   name: string;
   price: string;
+  originalPrice?: string;
   priceUnit?: string;
   audience: string[];
   features: Array<{ ok: boolean; text: string }>;
   highlight?: boolean;
+  studentOnly?: boolean;
   cta: string;
   ctaDisabled?: boolean;
 }
@@ -85,6 +87,29 @@ const PLANS: PlanCard[] = [
   },
 ];
 
+/** 學員續用版——學員 2 年免費期結束後的續用方案，獨立卡片顯示 */
+const STUDENT_RENEWAL: PlanCard = {
+  id: "student_renewal",
+  name: "學員續用版",
+  price: "NT$ 490",
+  originalPrice: "NT$ 890",
+  priceUnit: "/ 月",
+  audience: [
+    "已是木匠學院學員",
+    "2 年免費期結束的人",
+    "需要完整功能繼續接案的"
+  ],
+  features: [
+    { ok: true, text: "完整功能（同專業版）" },
+    { ok: true, text: "學員專屬優惠 8 折" },
+    { ok: true, text: "客製報價系統" },
+    { ok: true, text: "客戶資料管理" },
+    { ok: true, text: "隨時可取消" },
+  ],
+  studentOnly: true,
+  cta: "選擇學員續用版",
+};
+
 export default function PricingPage() {
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
@@ -108,6 +133,21 @@ export default function PricingPage() {
           <PlanCard key={p.id} plan={p} />
         ))}
       </div>
+
+      {/* 學員續用版（獨立區塊，視覺上跟主方案分開） */}
+      <section className="mt-14 sm:mt-16">
+        <div className="text-center mb-5">
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
+            🎓 學員專屬續用方案
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500">
+            木匠學院 / Hahow 學員 2 年免費期結束後，可享專屬 8 折續用價
+          </p>
+        </div>
+        <div className="max-w-md mx-auto">
+          <PlanCard plan={STUDENT_RENEWAL} />
+        </div>
+      </section>
 
       <div className="mt-12 text-center text-xs text-zinc-500 max-w-2xl mx-auto leading-relaxed">
         <p>
@@ -135,12 +175,20 @@ function PlanCard({ plan }: { plan: PlanCard }) {
       )}
 
       <h2 className="text-lg sm:text-xl font-bold text-zinc-900">{plan.name}</h2>
-      <div className="mt-2 flex items-baseline gap-1">
+      <div className="mt-2 flex items-baseline gap-1 flex-wrap">
         <span className="text-2xl sm:text-3xl font-bold text-zinc-900">{plan.price}</span>
+        {plan.originalPrice && (
+          <span className="text-sm text-zinc-400 line-through">{plan.originalPrice}</span>
+        )}
         {plan.priceUnit && (
           <span className="text-sm text-zinc-500">{plan.priceUnit}</span>
         )}
       </div>
+      {plan.studentOnly && (
+        <p className="mt-1 text-xs text-amber-700 font-medium">
+          🎓 限木匠學院學員
+        </p>
+      )}
 
       <ul className="mt-3 text-xs text-zinc-600 space-y-0.5">
         {plan.audience.map((a) => (

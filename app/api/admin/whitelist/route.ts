@@ -95,11 +95,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 把已註冊但 plan='free' 的同 email 升級為 student
+  // 把已註冊但 plan='free' 的同 email 升級為 student（補 2 年到期日）
   const emails = records.map((r) => r.email);
+  const now = new Date();
+  const expires = new Date(now);
+  expires.setFullYear(expires.getFullYear() + 2);
   const { error: upErr } = await svc
     .from("users")
-    .update({ plan: "student", subscription_status: "active" })
+    .update({
+      plan: "student",
+      subscription_status: "active",
+      student_activated_at: now.toISOString(),
+      student_expires_at: expires.toISOString(),
+    })
     .in("email", emails)
     .eq("plan", "free");
   // 升級失敗不致命（可能根本還沒註冊）—— 只記錄
