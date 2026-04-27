@@ -1968,8 +1968,153 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
     </g>
   );
 
-  // === viewBox 計算 ===
-  // 公件 用左半邊：算所有頂點
+  // === 俯視 2D（最能看出鳩尾形狀的視角）===
+  // 公件俯視：看到 3 個梯形 tail 從板端突出
+  // 範圍：x ∈ [0, showLen + tailDepth], z ∈ [0, jointWidth]
+  // SVG 直接 1mm = 1px（autoViewBox 處理範圍）
+  const TOP_PAD = 28;
+  const tailTopVB = `0 0 ${showLen + tailDepth + 2 * TOP_PAD} ${jointWidth + 3 * TOP_PAD}`;
+  const tailTopView = (
+    <svg viewBox={tailTopVB} className="w-full h-auto">
+      <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
+        {/* 板身（不含鳩尾）*/}
+        <rect
+          x={0}
+          y={0}
+          width={showLen}
+          height={jointWidth}
+          fill={AXON_COLOR.tenon}
+          fillOpacity={0.95}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1.2}
+        />
+        {/* 板的延伸虛線（板太長截斷示意）*/}
+        <line
+          x1={0}
+          y1={0}
+          x2={-15}
+          y2={0}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+        {/* 每個鳩尾 tail（梯形）*/}
+        {tailZCenters.map((zc, i) => {
+          const xBase = showLen;
+          const xTop = showLen + tailDepth;
+          const baseZ1 = zc - tailBaseW / 2;
+          const baseZ2 = zc + tailBaseW / 2;
+          const topZ1 = zc - tailTopW / 2;
+          const topZ2 = zc + tailTopW / 2;
+          return (
+            <polygon
+              key={`top-tail-${i}`}
+              points={`${xBase},${baseZ1} ${xTop},${topZ1} ${xTop},${topZ2} ${xBase},${baseZ2}`}
+              fill={AXON_COLOR.tenon}
+              fillOpacity={0.7}
+              stroke={AXON_COLOR.outline}
+              strokeWidth={1.2}
+            />
+          );
+        })}
+        {/* 標尺：榫長 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={10}>
+          <line x1={showLen} y1={jointWidth + 12} x2={showLen + tailDepth} y2={jointWidth + 12} />
+          <line x1={showLen} y1={jointWidth + 8} x2={showLen} y2={jointWidth + 16} strokeWidth={0.7} />
+          <line x1={showLen + tailDepth} y1={jointWidth + 8} x2={showLen + tailDepth} y2={jointWidth + 16} strokeWidth={0.7} />
+          <text x={showLen + tailDepth / 2} y={jointWidth + 26} textAnchor="middle" stroke="none">
+            榫長 {tailDepth}mm
+          </text>
+        </g>
+        {/* 標尺：tail top wide / tail base narrow */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          <text
+            x={showLen + tailDepth + 4}
+            y={tailZCenters[0] - tailTopW / 2 + 3}
+            stroke="none"
+          >
+            寬 {Math.round(tailTopW)}
+          </text>
+          <text
+            x={showLen + 4}
+            y={tailZCenters[0] - tailBaseW / 2 + 3}
+            stroke="none"
+          >
+            窄 {Math.round(tailBaseW)}
+          </text>
+        </g>
+      </g>
+    </svg>
+  );
+
+  // 母件俯視：板身 + N 個鳩尾眼（負空間，從端面鋸入）
+  const pinTopVB = `0 0 ${showLen + 2 * TOP_PAD} ${jointWidth + 3 * TOP_PAD}`;
+  const pinTopView = (
+    <svg viewBox={pinTopVB} className="w-full h-auto">
+      <g transform={`translate(${TOP_PAD}, ${TOP_PAD})`}>
+        {/* 板身：先全填，再用「鳩尾眼」白色覆蓋 */}
+        <rect
+          x={0}
+          y={0}
+          width={showLen}
+          height={jointWidth}
+          fill="#c9a16a"
+          fillOpacity={0.95}
+          stroke={AXON_COLOR.outline}
+          strokeWidth={1.2}
+        />
+        {/* 鳩尾眼（梯形負空間，從 x=showLen 鋸入到 x=showLen-tailDepth）*/}
+        {tailZCenters.map((zc, i) => {
+          const xOuter = showLen;
+          const xInner = showLen - tailDepth;
+          const outerZ1 = zc - tailTopW / 2;
+          const outerZ2 = zc + tailTopW / 2;
+          const innerZ1 = zc - tailBaseW / 2;
+          const innerZ2 = zc + tailBaseW / 2;
+          return (
+            <polygon
+              key={`top-pin-${i}`}
+              points={`${xOuter},${outerZ1} ${xOuter},${outerZ2} ${xInner},${innerZ2} ${xInner},${innerZ1}`}
+              fill="white"
+              stroke={AXON_COLOR.outline}
+              strokeWidth={1.2}
+            />
+          );
+        })}
+        {/* 板的延伸虛線 */}
+        <line
+          x1={0}
+          y1={0}
+          x2={-15}
+          y2={0}
+          stroke={AXON_COLOR.outline}
+          strokeDasharray="3 2"
+          strokeWidth={0.7}
+        />
+        {/* 標尺：眼深 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={10}>
+          <line x1={showLen - tailDepth} y1={jointWidth + 12} x2={showLen} y2={jointWidth + 12} />
+          <line x1={showLen - tailDepth} y1={jointWidth + 8} x2={showLen - tailDepth} y2={jointWidth + 16} strokeWidth={0.7} />
+          <line x1={showLen} y1={jointWidth + 8} x2={showLen} y2={jointWidth + 16} strokeWidth={0.7} />
+          <text x={showLen - tailDepth / 2} y={jointWidth + 26} textAnchor="middle" stroke="none">
+            眼深 {tailDepth}mm
+          </text>
+        </g>
+        {/* 標尺：開口寬 */}
+        <g stroke={AXON_COLOR.dim} fill={AXON_COLOR.dim} strokeWidth={0.6} fontSize={9}>
+          <text
+            x={showLen + 4}
+            y={tailZCenters[0] - tailTopW / 2 + 3}
+            stroke="none"
+          >
+            開口 {Math.round(tailTopW)}
+          </text>
+        </g>
+      </g>
+    </svg>
+  );
+
+  // === axon viewBox 計算 ===
   const tailVerts = [
     boxVertices(0, 0, 0, showLen, boardT, jointWidth),
     boxVertices(showLen, 0, 0, tailDepth, boardT, jointWidth),
@@ -1981,19 +2126,37 @@ function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
   const pinVB = autoViewBox(allPts(...pinVerts), 60);
 
   return (
-    <div className="flex gap-4 flex-wrap">
-      <figure className="flex-1 min-w-[280px]">
-        <svg viewBox={tailVB} className="w-full h-auto">
-          {tailBoard}
-        </svg>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <figure>
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">立體圖</div>
+            <svg viewBox={tailVB} className="w-full h-auto">
+              {tailBoard}
+            </svg>
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">俯視（看鳩尾形狀）</div>
+            {tailTopView}
+          </div>
+        </div>
         <figcaption className="mt-1 text-xs text-zinc-600 text-center">
           <strong>公件</strong>（鳩尾頭板 / Tail board）— 抽屜側板
         </figcaption>
       </figure>
-      <figure className="flex-1 min-w-[280px]">
-        <svg viewBox={pinVB} className="w-full h-auto">
-          {pinBoard}
-        </svg>
+      <figure>
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">立體圖</div>
+            <svg viewBox={pinVB} className="w-full h-auto">
+              {pinBoard}
+            </svg>
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-400 mb-0.5">俯視（看鳩尾眼形狀）</div>
+            {pinTopView}
+          </div>
+        </div>
         <figcaption className="mt-1 text-xs text-zinc-600 text-center">
           <strong>母件</strong>（鳩尾眼板 / Pin board）— 抽屜面板
         </figcaption>
