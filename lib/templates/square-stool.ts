@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
-import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
+import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -340,7 +340,18 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       ` ${seatEdgeNote(seatEdge)}` +
       (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
   };
-  applyStandardChecks(design, { minLength: 250, minWidth: 250, minHeight: 350 });
+  applyStandardChecks(design, {
+    minLength: 250, minWidth: 250, minHeight: 350,
+    maxLength: 600, maxWidth: 600, maxHeight: 550,
+  });
+  // 尺寸明顯比較像桌類 → 建議切茶几模板
+  if (length > 600 || width > 600) {
+    appendSuggestion(design, {
+      text: `${length}×${width}mm 比較像茶几尺寸——茶几模板有專屬選項（下棚板、牙板距桌面、外伸）。`,
+      suggestedCategory: "tea-table",
+      presetParams: { length, width, height: Math.min(height, 500), material },
+    });
+  }
   appendWarnings(
     design,
     validateStoolStructure({

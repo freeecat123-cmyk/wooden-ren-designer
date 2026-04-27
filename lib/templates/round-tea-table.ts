@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
+import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
 import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
 
 export const roundTeaTableOptions: OptionSpec[] = [
@@ -272,6 +272,16 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
-  applyStandardChecks(design, { minLength: 400, minWidth: 400, minHeight: 250 });
+  applyStandardChecks(design, {
+    minLength: 400, minWidth: 400, minHeight: 250,
+    maxLength: 1100, maxWidth: 1100, maxHeight: 500,
+  });
+  if (input.length > 1100 || input.height > 500) {
+    appendSuggestion(design, {
+      text: `直徑 ${input.length}mm × 高 ${input.height}mm 已不算茶几——圓餐桌支援獨柱 / 端梁等大型結構。`,
+      suggestedCategory: "round-table",
+      presetParams: { length: input.length, width: input.length, height: Math.max(input.height, 700), material: input.material },
+    });
+  }
   return design;
 };

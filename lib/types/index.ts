@@ -220,6 +220,18 @@ export interface FurnitureDesign {
   notes?: string;
   /** 設計參數不合理時（例如下層高度超過可用內高）自動產生的警告 */
   warnings?: string[];
+  /** 尺寸超出本模板合理範圍時的「換模板」建議。比 warnings 更具體：
+   *  - text: 顯示給使用者的整句說明
+   *  - suggestedCategory: 建議跳到哪個 catalog
+   *  - presetParams: 跳轉時要帶過去的 URL params（length/width/height/material 等）
+   *  UI 會自動依使用者方案決定 link：
+   *    付費 → 直接 /design/<suggestedCategory>?{params}
+   *    免費 → /pricing?locked=<suggestedCategory> */
+  suggestions?: Array<{
+    text: string;
+    suggestedCategory: FurnitureCategory;
+    presetParams: Record<string, string>;
+  }>;
 }
 
 export interface FurnitureTemplateInput {

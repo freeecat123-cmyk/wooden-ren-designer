@@ -569,6 +569,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
       " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };
-  applyStandardChecks(design, { minLength: 350, minWidth: 350, minHeight: 700 });
+  applyStandardChecks(design, {
+    minLength: 350, minWidth: 350, minHeight: 700,
+    maxLength: 600, maxWidth: 650, maxHeight: 1100,
+  });
   return design;
 };

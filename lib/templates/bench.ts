@@ -1,7 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
+import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
   RECT_LEG_SHAPE_CHOICES,
   seatEdgeOption,
@@ -114,7 +114,17 @@ export const bench: FurnitureTemplate = (input) => {
     });
   }
 
-  applyStandardChecks(design, { minLength: 600, minWidth: 200, minHeight: 350 });
+  applyStandardChecks(design, {
+    minLength: 600, minWidth: 200, minHeight: 350,
+    maxLength: 2000, maxWidth: 550, maxHeight: 550,
+  });
+  if (input.height > 550) {
+    appendSuggestion(design, {
+      text: `坐高 ${input.height}mm 已接近桌面高度——建議用低桌或餐桌模板，含中央橫撐 + 牙板選項。`,
+      suggestedCategory: input.height >= 700 ? "dining-table" : "low-table",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   appendWarnings(
     design,
     validateStoolStructure({

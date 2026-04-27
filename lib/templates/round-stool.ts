@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
+import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
 import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote } from "./_helpers";
 
 export const roundStoolOptions: OptionSpec[] = [
@@ -301,6 +301,16 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
-  applyStandardChecks(design, { minLength: 200, minWidth: 200, minHeight: 350 });
+  applyStandardChecks(design, {
+    minLength: 200, minWidth: 200, minHeight: 350,
+    maxLength: 600, maxWidth: 600, maxHeight: 550,
+  });
+  if (input.length > 600) {
+    appendSuggestion(design, {
+      text: `直徑 ${input.length}mm 比較像圓茶几——圓茶几模板有牙板、下橫撐選項。`,
+      suggestedCategory: "round-tea-table",
+      presetParams: { length: input.length, width: input.length, height: Math.min(input.height, 500), material: input.material },
+    });
+  }
   return design;
 };

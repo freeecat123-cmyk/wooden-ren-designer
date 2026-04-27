@@ -1,4 +1,4 @@
-import type { FurnitureDesign } from "@/lib/types";
+import type { FurnitureCategory, FurnitureDesign } from "@/lib/types";
 
 /**
  * 檢查圓腳家具的榫接合規性。
@@ -49,6 +49,12 @@ export interface BasicGeometryRules {
   minOverallLength?: number;
   /** 整體寬度最低值（mm） */
   minOverallWidth?: number;
+  /** 整體高度上限（mm）— 超過會警告。配 suggestCategory 用做模板切換建議。 */
+  maxOverallHeight?: number;
+  /** 整體長度上限（mm） */
+  maxOverallLength?: number;
+  /** 整體寬度上限（mm） */
+  maxOverallWidth?: number;
   /** 壁厚 / 板厚（櫃箱類用）—— 會跟 outerSpan 比對 */
   wallThickness?: number;
   /** 外尺寸（櫃箱用）— 用來檢查 wallThickness × 2 < outerSpan */
@@ -80,6 +86,22 @@ export function validateBasicGeometry(
   if (rules.minOverallWidth !== undefined && overall.width < rules.minOverallWidth) {
     warnings.push(
       `整體寬度 ${overall.width}mm 低於合理下限 ${rules.minOverallWidth}mm。`,
+    );
+  }
+  if (rules.maxOverallHeight !== undefined && overall.thickness > rules.maxOverallHeight) {
+    warnings.push(
+      `整體高度 ${overall.thickness}mm 超過本模板合理上限 ${rules.maxOverallHeight}mm——` +
+        `這個尺寸比較像別種家具，下方會建議切換模板。`,
+    );
+  }
+  if (rules.maxOverallLength !== undefined && overall.length > rules.maxOverallLength) {
+    warnings.push(
+      `整體長度 ${overall.length}mm 超過本模板合理上限 ${rules.maxOverallLength}mm。`,
+    );
+  }
+  if (rules.maxOverallWidth !== undefined && overall.width > rules.maxOverallWidth) {
+    warnings.push(
+      `整體寬度 ${overall.width}mm 超過本模板合理上限 ${rules.maxOverallWidth}mm。`,
     );
   }
 
@@ -205,14 +227,53 @@ export function validateStoolStructure(rules: StoolStructureRules): string[] {
  */
 export function applyStandardChecks(
   design: FurnitureDesign,
-  mins: { minLength?: number; minWidth?: number; minHeight?: number },
+  bounds: {
+    minLength?: number;
+    minWidth?: number;
+    minHeight?: number;
+    maxLength?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+  },
 ): void {
   appendWarnings(
     design,
     validateBasicGeometry(design, {
-      minOverallLength: mins.minLength,
-      minOverallWidth: mins.minWidth,
-      minOverallHeight: mins.minHeight,
+      minOverallLength: bounds.minLength,
+      minOverallWidth: bounds.minWidth,
+      minOverallHeight: bounds.minHeight,
+      maxOverallLength: bounds.maxLength,
+      maxOverallWidth: bounds.maxWidth,
+      maxOverallHeight: bounds.maxHeight,
     }),
   );
+}
+
+/**
+ * 加上「換模板」建議——當尺寸超出本模板合理範圍時呼叫。
+ * 建議只附帶「明顯該換」的情境（例：方凳長寬都 > 800 → 改用茶几），
+ * 不要動不動就跳，太煩。
+ *
+ * UI 會自動依使用者方案決定點擊行為（付費直跳、免費去 /pricing）。
+ */
+export function appendSuggestion(
+  design: FurnitureDesign,
+  suggestion: {
+    text: string;
+    suggestedCategory: FurnitureCategory;
+    presetParams: Record<string, string | number | boolean>;
+  },
+): void {
+  const params: Record<string, string> = {};
+  for (const [k, v] of Object.entries(suggestion.presetParams)) {
+    params[k] = String(v);
+  }
+  design.suggestions = [
+    ...(design.suggestions ?? []),
+    {
+      text: suggestion.text,
+      suggestedCategory: suggestion.suggestedCategory,
+      presetParams: params,
+    },
+  ];
 }

@@ -1,7 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendSuggestion } from "./_validators";
 import {
   seatEdgeOption,
   seatEdgeStyleOption,
@@ -76,6 +76,16 @@ export const lowTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     notes: "和室矮桌、地板桌；席地而坐高度約 350mm。",
   });
-  applyStandardChecks(design, { minLength: 500, minWidth: 400, minHeight: 250 });
+  applyStandardChecks(design, {
+    minLength: 500, minWidth: 400, minHeight: 250,
+    maxLength: 1400, maxWidth: 1000, maxHeight: 450,
+  });
+  if (input.height > 450) {
+    appendSuggestion(design, {
+      text: `桌高 ${input.height}mm 已超過矮桌範圍——餐桌模板適合站立 / 坐椅高度。`,
+      suggestedCategory: "dining-table",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };

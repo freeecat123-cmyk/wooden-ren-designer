@@ -20,6 +20,7 @@ import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
+import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 
 interface PageProps {
@@ -199,6 +200,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {design.suggestions && design.suggestions.length > 0 && (
+        <SuggestionsBox suggestions={design.suggestions} />
       )}
 
       {/* 主視覺：左邊參數（sticky）↔ 右邊 3D + 三視圖 */}

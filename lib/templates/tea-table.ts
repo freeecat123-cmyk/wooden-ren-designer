@@ -20,7 +20,7 @@ import {
   stretcherEdgeNote,
 } from "./_helpers";
 import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendSuggestion } from "./_validators";
 
 export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -288,7 +288,23 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
-  applyStandardChecks(design, { minLength: 400, minWidth: 400, minHeight: 250 });
+  applyStandardChecks(design, {
+    minLength: 400, minWidth: 400, minHeight: 250,
+    maxLength: 1200, maxWidth: 900, maxHeight: 500,
+  });
+  if (input.height > 500) {
+    appendSuggestion(design, {
+      text: `桌高 ${input.height}mm 已不算茶几——餐桌模板有完整中央橫撐 / 牙板厚度等選項。`,
+      suggestedCategory: "dining-table",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  } else if (input.length > 1200 || input.width > 900) {
+    appendSuggestion(design, {
+      text: `${input.length}×${input.width}mm 較大——矮桌模板支援更大尺寸 + 中央橫撐。`,
+      suggestedCategory: "low-table",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };
 

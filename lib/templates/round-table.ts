@@ -538,6 +538,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
-  applyStandardChecks(design, { minLength: 700, minWidth: 700, minHeight: 600 });
+  applyStandardChecks(design, {
+    minLength: 700, minWidth: 700, minHeight: 600,
+    maxLength: 1500, maxWidth: 1500, maxHeight: 800,
+  });
   return design;
 };

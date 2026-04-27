@@ -103,6 +103,9 @@ export const diningTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。`,
   });
-  applyStandardChecks(design, { minLength: 900, minWidth: 600, minHeight: 600 });
+  applyStandardChecks(design, {
+    minLength: 900, minWidth: 600, minHeight: 600,
+    maxLength: 2400, maxWidth: 1200, maxHeight: 800,
+  });
   return design;
 };

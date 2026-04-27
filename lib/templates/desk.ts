@@ -155,6 +155,9 @@ export const desk: FurnitureTemplate = (input) => {
     design.parts.push(...sides, ...drawers);
   }
 
-  applyStandardChecks(design, { minLength: 900, minWidth: 400, minHeight: 650 });
+  applyStandardChecks(design, {
+    minLength: 900, minWidth: 400, minHeight: 650,
+    maxLength: 2000, maxWidth: 900, maxHeight: 800,
+  });
   return design;
 };

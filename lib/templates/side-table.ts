@@ -1,7 +1,7 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
-import { applyStandardChecks } from "./_validators";
+import { applyStandardChecks, appendSuggestion } from "./_validators";
 import {
   seatEdgeOption,
   seatEdgeStyleOption,
@@ -73,6 +73,16 @@ export const sideTable: FurnitureTemplate = (input) => {
     stretcherEdgeStyle,
     notes: "床側收納用矮桌，可加下橫撐增穩定。",
   });
-  applyStandardChecks(design, { minLength: 300, minWidth: 250, minHeight: 400 });
+  applyStandardChecks(design, {
+    minLength: 300, minWidth: 250, minHeight: 400,
+    maxLength: 700, maxWidth: 550, maxHeight: 800,
+  });
+  if (input.length > 700 || input.width > 550) {
+    appendSuggestion(design, {
+      text: `${input.length}×${input.width}mm 已大於床頭櫃——抽屜櫃模板含完整抽屜結構。`,
+      suggestedCategory: "chest-of-drawers",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
   return design;
 };

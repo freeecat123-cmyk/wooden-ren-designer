@@ -7,6 +7,7 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
+// 吧台椅尺寸範圍很穩定，沒明顯需要建議切換的目標模板（dining-chair 是椅背較大的不同物件）。
 
 export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -335,7 +336,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
       `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
   };
-  applyStandardChecks(design, { minLength: 300, minWidth: 300, minHeight: 600 });
+  applyStandardChecks(design, {
+    minLength: 300, minWidth: 300, minHeight: 600,
+    maxLength: 550, maxWidth: 550, maxHeight: 900,
+  });
   appendWarnings(
     design,
     validateStoolStructure({
