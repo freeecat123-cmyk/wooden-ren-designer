@@ -81,6 +81,32 @@ export default async function RootLayout({
       style={{ colorScheme: "light" }}
     >
       <body className="bg-[#fafaf7] text-zinc-900">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "木頭仁工程圖生成器",
+              alternateName: "木頭仁家具設計生成器",
+              applicationCategory: "DesignApplication",
+              operatingSystem: "Web",
+              url: SITE_URL,
+              description: SITE_DESC,
+              inLanguage: "zh-TW",
+              offers: [
+                { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: "TWD" },
+                { "@type": "Offer", name: "個人版", price: "290", priceCurrency: "TWD" },
+                { "@type": "Offer", name: "專業版", price: "890", priceCurrency: "TWD" },
+              ],
+              creator: {
+                "@type": "Organization",
+                name: "木頭仁木匠學院 Wooden Ren Education",
+                url: "https://woodenren.com",
+              },
+            }),
+          }}
+        />
         <AuthProvider initialUser={user}>
           {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
           <StudentExpiryNotice />

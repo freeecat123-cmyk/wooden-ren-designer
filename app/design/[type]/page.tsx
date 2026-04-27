@@ -26,6 +26,28 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ type: string }> }) {
+  const { type } = await params;
+  const entry = getTemplate(type as FurnitureCategory);
+  if (!entry) return { title: "找不到家具範本" };
+  const title = `${entry.nameZh}設計圖｜輸入尺寸自動產出三視圖、材料單、報價`;
+  const description = `${entry.description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖紙。木頭仁木匠學院出品。`;
+  const url = `/design/${entry.category}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      images: [{ url: "/og.png", width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
+  };
+}
+
 export default async function DesignPage({ params, searchParams }: PageProps) {
   const { type } = await params;
   const sp = await searchParams;
