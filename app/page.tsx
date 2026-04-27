@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
+import { StudentLoginHint } from "@/components/StudentLoginHint";
 
 /**
  * 首頁設計（第一性原理重排版）：
@@ -106,6 +107,7 @@ export default function Home() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
+      <StudentLoginHint />
       <header className="mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />

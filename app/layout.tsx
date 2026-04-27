@@ -4,6 +4,7 @@ import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { HeaderUser } from "@/components/auth/HeaderUser";
+import { StudentWelcomeModal } from "@/components/StudentWelcomeModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,6 +62,7 @@ export default async function RootLayout({
             <HeaderUser />
           </div>
           {children}
+          <StudentWelcomeModal />
         </AuthProvider>
       </body>
     </html>
