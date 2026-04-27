@@ -2145,163 +2145,200 @@ function DovetailAxon3D({
   tl: number;
 }) {
   void ct;
+  void pieceLen;
+  void pieceDepth;
+  void bodyExt;
+  void tailW;
+  void pinW;
+  void halfPinW_top;
   // Cabinet projection：z 軸向右上 30°，深度縮 0.5
   const ANG = (30 * Math.PI) / 180;
   const DZ_X = Math.cos(ANG) * 0.5;
   const DZ_Y = -Math.sin(ANG) * 0.5;
-  const proj = (x: number, y: number, z: number): [number, number] =>
-    [x + z * DZ_X, y + z * DZ_Y];
 
-  // Layout
-  const PAD = 30;
-  const titleH = 30;
-  const labelH = 24;
+  // ============================================================
+  // 共用：建立鳩尾母件 face outline（鋸齒朝某個方向凸出）
+  //   - 完全沿用前 3 張 2D 圖的形狀邏輯
+  //   - tailDir = "up" 時 tails 朝 -Y（板端在 yTop），body 朝 +Y
+  //   - tailDir = "down" 時 tails 朝 +Y（板端在 yBot），body 朝 -Y
+  //   回傳 CCW polygon points，face 朝觀眾 (+Z)
+  // ============================================================
+  const buildToothedOutline = (
+    OX: number,
+    yBody: number,           // body 那一側的 y（板身較深處）
+    yEdge: number,           // 板端（tails 末端那一側）的 y
+    yMid: number,            // tail base / body 與 tail 分界
+    totalW: number,
+    nTails: number,
+    tW: number,
+    pW: number,
+    hP: number,
+    off: number,
+  ): Array<[number, number]> => {
+    const pts: Array<[number, number]> = [];
+    // body 角 → body 上緣 → 進入 tail 區
+    pts.push([OX, yBody]);
+    pts.push([OX, yMid]);
+    pts.push([OX + hP + off, yMid]);
+    let tL = OX + hP;
+    pts.push([tL, yEdge]);
+    for (let i = 0; i < nTails; i++) {
+      const tR = tL + tW;
+      pts.push([tR, yEdge]);
+      if (i < nTails - 1) {
+        pts.push([tR - off, yMid]);
+        const nL = tR + pW;
+        pts.push([nL + off, yMid]);
+        pts.push([nL, yEdge]);
+        tL = nL;
+      }
+    }
+    const lastTR = tL + tW;
+    pts.push([lastTR - off, yMid]);
+    pts.push([OX + totalW, yMid]);
+    pts.push([OX + totalW, yBody]);
+    return pts;
+  };
 
-  // ----- View 4: 母件（尾板）3D -----
-  // 板的尺寸：長 pieceLen（X 軸）、高 bodyExt + pieceDepth（Y）、厚 pieceDepth*0.9（Z = mt scaled）
-  const v4Thk = Math.max(28, pieceDepth * 0.9);
-  const v4W = pieceLen;
-  const v4Body = bodyExt;
-  const v4TailH = pieceDepth;
-  const v4OX = PAD;
-  const v4OY = titleH;
-  // 後上 corner 的偏移用來算總邊界
-  const v4Corner = proj(v4W, 0, v4Thk);
+  // 建立 pin board face outline：face 是矩形，但靠 mating 邊有 N 個 socket 凹切
+  // edgeSide = "top" 表示 sockets 在 yMin 邊；socket mouth 寬、bottom 窄（沿 X 方向 taper）
+  const buildPinFaceOutline = (
+    OX: number,
+    yEdge: number,           // 嵌合邊（sockets 在這條邊）
+    yDeep: number,           // socket bottom 的 y（從 edge 進去 tailDepth 深）
+    yFar: number,            // 板的另一端（沒嵌合的那邊）
+    totalW: number,
+    nTails: number,
+    tW: number,
+    pW: number,
+    hP: number,
+    off: number,
+  ): Array<[number, number]> => {
+    const pts: Array<[number, number]> = [];
+    pts.push([OX, yEdge]);
+    let x = OX + hP;
+    pts.push([x, yEdge]);                // 第一個 socket mouth left
+    for (let i = 0; i < nTails; i++) {
+      pts.push([x + off, yDeep]);        // 斜下到 socket bottom-left
+      pts.push([x + tW - off, yDeep]);   // 平到 socket bottom-right
+      pts.push([x + tW, yEdge]);         // 斜上到 socket mouth right
+      if (i < nTails - 1) {
+        const nextL = x + tW + pW;
+        pts.push([nextL, yEdge]);
+        x = nextL;
+      }
+    }
+    pts.push([OX + totalW, yEdge]);
+    pts.push([OX + totalW, yFar]);
+    pts.push([OX, yFar]);
+    return pts;
+  };
 
-  // ----- View 5: L 型組合 3D -----
-  const v5Tail = pieceDepth; // 嚙合深度
-  const v5HoriLen = pieceLen * 0.9; // 水平尾板長
-  const v5VertLen = pieceLen * 0.7; // 垂直銷板長
-  const v5Thk = v4Thk;
-  // 放在第 4 圖右邊
-  const v5OX = v4OX + v4W + Math.abs(v4Corner[0] - v4W) + 80;
-  const v5OY = titleH;
+  // ============================================================
+  // View 4：母件 face outline 沿 Z 方向 extrude
+  // ============================================================
+  const v4_OX = 30;
+  const v4_OY = 50;
+  const v4_W = 240;
+  const v4_TailH = 32;
+  const v4_BodyH = 50;
+  const v4_Thk = 28;
+  const v4_Off = v4_TailH * 0.35;
+  const v4_tW = v4_W / (N_TAILS * 1.55);
+  const v4_pW = v4_tW * 0.55;
+  const v4_hP = v4_pW / 2;
 
-  const totalW = v5OX + v5HoriLen + v5Thk + v5Thk * DZ_X + PAD;
-  const totalH = titleH + Math.max(v4Body + v4TailH, v5VertLen + v5Thk) + labelH * 2 + 40;
+  const v4_yEdge = v4_OY;                    // 板端（tails 最上緣）
+  const v4_yMid = v4_OY + v4_TailH;
+  const v4_yBody = v4_OY + v4_TailH + v4_BodyH;
 
-  // -------- 尾板 3D 路徑生成 --------
-  // 板可看作 box，前面 (z=0) 是看得到的 face；上面 (y=0) 是 top face；右側 (x=v4W) 是 end face。
-  // 但「尾頭」實際上在 end face 上，作為從 body 高度延伸出的尖齒（在 X 軸方向）。
-  // 我們把尾頭畫成從板右端凸出的 N_TAILS 個梯形齒（在 top face 看到，在 end face 看到）。
-  //
-  // 為了畫得清楚：把整片板做成一個 6 面 box，body 部分 X = [0, v4W]，
-  // 然後在 X = v4W 處的右端「上半部」（y=0..v4TailH）切成梯形齒形（外寬內窄沿 z 方向）。
-  // 簡化：直接畫前面、頂面、端面三個 polygon，每個內部畫尾頭/凹槽。
-  //
-  // 為避免太複雜，這裡只示意：把右端整體當成「凸出的尾頭」群組，
-  // 上方畫 body，body 右上接齒形 outline。
+  const v4Outline = buildToothedOutline(
+    v4_OX, v4_yBody, v4_yEdge, v4_yMid, v4_W,
+    N_TAILS, v4_tW, v4_pW, v4_hP, v4_Off,
+  );
 
-  // 前面 (z=0)：左下→左上→沿頂面到右上 body 邊界（v4W, 0）→右下→閉合
-  // 在右上 body 邊界處沒有齒形（前面看不到 z 方向的梯形差，前面只看到一條垂直線）
-  // 所以前面就是個矩形。
-  const frontFace = [
-    proj(0, 0, 0),
-    proj(v4W, 0, 0),
-    proj(v4W, v4Body + v4TailH, 0),
-    proj(0, v4Body + v4TailH, 0),
-  ];
+  const v4_dxz = v4_Thk * DZ_X;
+  const v4_dyz = v4_Thk * DZ_Y;
+  const v4OutlineBack = v4Outline.map(([x, y]) => [x + v4_dxz, y + v4_dyz] as [number, number]);
 
-  // 頂面（y=0），有齒/凹的 X 區段：沿著板長畫成多邊形，內外用 z 標距
-  // top face 在 z 方向的「外緣」是 z=0（前面），「內緣」是 z=v4Thk（後面）
-  // 但齒形是沿 X 方向切，於是 top face 看下去是矩形 + 齒切口（沒有 z 切變化）
-  // 實際上鳩尾的 z 方向 taper 在 end face 才看得到。
-  // 簡化：top face 畫成「矩形上緣有 N_TAILS+1 個方形凹切」，每個凹切深 = v4TailH
-  // 這個視角是頂視 — 但其實 cabinet 投影下我們看到的是 *top* (z 從 0 到 thk)
-  const topFace = [
-    proj(0, 0, 0),
-    proj(0, 0, v4Thk),
-    proj(v4W, 0, v4Thk),
-    proj(v4W, 0, 0),
-  ];
+  // 看得見的 side quads：edge 朝上 (dy<0) 或朝右 (dx>0) 才畫
+  // outline 為 CCW、face 朝 +Z
+  const buildSideQuads = (
+    front: Array<[number, number]>,
+    back: Array<[number, number]>,
+  ): Array<Array<[number, number]>> => {
+    const quads: Array<Array<[number, number]>> = [];
+    for (let i = 0; i < front.length; i++) {
+      const j = (i + 1) % front.length;
+      const [x1, y1] = front[i];
+      const [x2, y2] = front[j];
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (dy < -0.1 || dx > 0.1) {
+        quads.push([front[i], front[j], back[j], back[i]]);
+      }
+    }
+    return quads;
+  };
+  const v4SideQuads = buildSideQuads(v4Outline, v4OutlineBack);
 
-  // 右端面 (x=v4W)：這裡才是看到尾頭/凹槽 z 方向梯形 taper 的地方
-  // 端面是 (y, z) 矩形，y=0..v4TailH+v4Body，z=0..v4Thk
-  // 在 y=0..v4TailH 區段內，沿 z 方向切成 N_TAILS 個尾凹梯形（外寬 z=0、內窄 z=v4Thk）
-  // y=v4TailH..v4Body+v4TailH 是 body（無變化）
+  // ============================================================
+  // View 5：L corner 分解組合（上：尾板 tails 朝下；下：銷板 sockets 朝上）
+  // ============================================================
+  const v5_OX = v4_OX + v4_W + 80 + Math.abs(v4_dxz);
+  const v5_OY = v4_OY;
+  const v5_W = 220;
+  const v5_TailH = 28;
+  const v5_HoriBody = 36;          // 水平尾板的 body 高度
+  const v5_PinL = 90;              // 銷板長度（從 socket 進去再延伸）
+  const v5_Off = v5_TailH * 0.35;
+  const v5_tW = v5_W / (N_TAILS * 1.55);
+  const v5_pW = v5_tW * 0.55;
+  const v5_hP = v5_pW / 2;
+  const v5_explode = 18;           // 分解視圖的縫隙
 
-  // 端面外框
-  const endFaceOuter = [
-    proj(v4W, 0, 0),
-    proj(v4W, 0, v4Thk),
-    proj(v4W, v4Body + v4TailH, v4Thk),
-    proj(v4W, v4Body + v4TailH, 0),
-  ];
+  // 水平尾板：tails 朝下（板端在 yBot 那邊）
+  const v5h_yTop = v5_OY;
+  const v5h_yMid = v5_OY + v5_HoriBody;
+  const v5h_yBot = v5_OY + v5_HoriBody + v5_TailH;
+  // tails 朝下時 outline 直接套 buildToothedOutline 但 yBody = yTop, yEdge = yBot, yMid = yMid
+  // 這樣產出的 outline 走 (OX, yTop) → (OX, yMid) → 進 tail 區 → ... → (OX+W, yMid) → (OX+W, yTop)
+  // 順序是 CCW （body 在「上」，tails 在「下」朝下凸） — face 朝 +Z ✓
+  const v5HoriOutline = buildToothedOutline(
+    v5_OX, v5h_yTop, v5h_yBot, v5h_yMid, v5_W,
+    N_TAILS, v5_tW, v5_pW, v5_hP, v5_Off,
+  );
+  const v5HoriBack = v5HoriOutline.map(([x, y]) => [x + v4_dxz, y + v4_dyz] as [number, number]);
+  const v5HoriSideQuads = buildSideQuads(v5HoriOutline, v5HoriBack);
 
-  // 為了讓齒看起來像凸出，我把 X 方向延伸畫一點點齒
-  const v4TipExt = 8; // 尾頭在 X 方向凸出量（視覺）
-  // N_TAILS 個尾頭，沿 z 方向位置與 2D 視圖一致
-  const tooth3DList: Array<{
-    bottom: [number, number];
-    topFront: [number, number];
-    topBack: [number, number];
-    sideFront: [number, number];
-    sideBack: [number, number];
-  }> = [];
-  // 用 2D 圖中的 z 座標：halfPinW_top + i*(tailW+pinW) ~ halfPinW_top + i*(tailW+pinW)+tailW
-  // 但這裡 z 軸對應的是「板寬方向」 — 我們把 v4Thk 對映 pieceLen（板寬），即 z = (i / pieceLen) * v4Thk
-  // 讓尺度一致：直接把 z 用 [halfPinW_top, ..., pieceLen-halfPinW_top] 之間 N_TAILS 個齒
-  // 為了不要 overflow，把 z 重新縮放
-  const zScale = v4Thk / pieceLen;
+  // 垂直銷板：sockets 在頂邊（與 tails 對齊），face 是矩形 + sockets 凹切
+  const v5p_yEdge = v5h_yBot + v5_explode;        // 板上緣（嵌合邊）
+  const v5p_yDeep = v5p_yEdge + v5_TailH;         // socket 底
+  const v5p_yFar = v5p_yEdge + v5_PinL;           // 板下緣
 
-  // 端面齒形 polygon
-  const teethPolys: string[] = [];
+  const v5PinOutline = buildPinFaceOutline(
+    v5_OX, v5p_yEdge, v5p_yDeep, v5p_yFar, v5_W,
+    N_TAILS, v5_tW, v5_pW, v5_hP, v5_Off,
+  );
+  const v5PinBack = v5PinOutline.map(([x, y]) => [x + v4_dxz, y + v4_dyz] as [number, number]);
+  const v5PinSideQuads = buildSideQuads(v5PinOutline, v5PinBack);
+
+  // 對齊輔助線：每個 tail tip 中心 → 對應 socket mouth 中心
+  const v5AlignLines: Array<{ x: number; y1: number; y2: number }> = [];
   for (let i = 0; i < N_TAILS; i++) {
-    const tailLeftZ = (halfPinW_top + i * (tailW + pinW)) * zScale;
-    const tailRightZ = tailLeftZ + tailW * zScale;
-    const offset = pieceDepth * 0.35 * zScale; // 對應 dtAngleHOffset
-    // 端面上 y=0 是外面（寬），y=v4TailH 是內面（窄）— 注意鳩尾 taper 方向
-    // 但在這個 3D 視角下，taper 是沿著 z 方向（板厚），所以是 z 方向縮窄
-    // 在端面上，外緣（z=0）寬，內緣（z=v4Thk）也應該寬（兩個外面都寬）
-    // ⚠ 實際上對抽屜尾板，taper 是沿「面方向」、不是沿「厚度方向」 — 這個觀念複雜
-    // 為簡化教學，這裡呈現抽屜板邊上的 dovetail：齒在 z=v4Thk 處外、z=0 處外都寬
-    const p1 = proj(v4W, 0, tailLeftZ);
-    const p2 = proj(v4W, 0, tailRightZ);
-    const p3 = proj(v4W + v4TipExt, 0, tailRightZ - offset);
-    const p4 = proj(v4W + v4TipExt, 0, tailLeftZ + offset);
-    teethPolys.push([p1, p2, p3, p4].map((p) => p.join(",")).join(" "));
+    const tailMidX = v5_OX + v5_hP + i * (v5_tW + v5_pW) + v5_tW / 2;
+    v5AlignLines.push({ x: tailMidX, y1: v5h_yBot + 1, y2: v5p_yEdge - 1 });
   }
 
-  // -------- 組合 L corner 3D --------
-  // tail board：水平擺，X = [0, v5HoriLen]，Y = [0, v5Thk]，Z = [0, v5Thk]
-  // pin board：垂直擺於 tail board 右端，X = [v5HoriLen, v5HoriLen+v5Thk]，Y = [0, v5VertLen]，Z = [0, v5Thk]
-  const horiFront = [
-    proj(0, 0, 0),
-    proj(v5HoriLen + v5Thk, 0, 0),
-    proj(v5HoriLen + v5Thk, v5Thk, 0),
-    proj(0, v5Thk, 0),
-  ];
-  const horiTop = [
-    proj(0, 0, 0),
-    proj(0, 0, v5Thk),
-    proj(v5HoriLen + v5Thk, 0, v5Thk),
-    proj(v5HoriLen + v5Thk, 0, 0),
-  ];
-  const vertFront = [
-    proj(v5HoriLen, v5Thk, 0),
-    proj(v5HoriLen + v5Thk, v5Thk, 0),
-    proj(v5HoriLen + v5Thk, v5Thk + v5VertLen, 0),
-    proj(v5HoriLen, v5Thk + v5VertLen, 0),
-  ];
-  const vertSide = [
-    proj(v5HoriLen + v5Thk, v5Thk, 0),
-    proj(v5HoriLen + v5Thk, v5Thk, v5Thk),
-    proj(v5HoriLen + v5Thk, v5Thk + v5VertLen, v5Thk),
-    proj(v5HoriLen + v5Thk, v5Thk + v5VertLen, 0),
-  ];
-  // 在 horiTop 上畫 N_TAILS 個尾凹陰影（dashed）顯示嚙合位置
-  const interlockLines: Array<[[number, number], [number, number]]> = [];
-  for (let i = 0; i < N_TAILS; i++) {
-    const tailLeftZ = (halfPinW_top + i * (tailW + pinW)) * (v5Thk / pieceLen);
-    const tailRightZ = tailLeftZ + tailW * (v5Thk / pieceLen);
-    interlockLines.push([
-      proj(v5HoriLen + v5Thk * 0.2, 0, tailLeftZ),
-      proj(v5HoriLen + v5Thk * 0.2, 0, tailRightZ),
-    ]);
-  }
+  // ============ Total bounds ============
+  const totalW = v5_OX + v5_W + Math.abs(v4_dxz) + 30;
+  const totalH = Math.max(
+    v4_yBody + Math.abs(v4_dyz),
+    v5p_yFar + Math.abs(v4_dyz),
+  ) + 60;
 
-  const polyStr = (pts: Array<[number, number]>, ox: number, oy: number) =>
-    pts.map((p) => `${(p[0] + ox).toFixed(1)},${(p[1] + oy).toFixed(1)}`).join(" ");
+  const polyStr = (pts: Array<[number, number]>) =>
+    pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
 
   return (
     <svg
@@ -2314,116 +2351,56 @@ function DovetailAxon3D({
         <Hatching id="hatch-dt-3d" color="#7a5a2c" />
       </defs>
 
-      {/* ===== View 4 title ===== */}
-      <text x={v4OX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
-        立體圖（母件尾板）
+      {/* ============ View 4 ============ */}
+      <text x={v4_OX} y={v4_OY - 20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        立體圖（母件尾板）— 沿厚度方向 extrude
       </text>
-
-      {/* 尾板 box：前面、頂面、端面 + 端面齒形 */}
-      <polygon
-        points={polyStr(frontFace, v4OX, v4OY + v4TailH * 0)}
-        fill={COLOR_MORTISE}
-        stroke={COLOR_OUTLINE}
-      />
-      <polygon
-        points={polyStr(topFace, v4OX, v4OY)}
-        fill="#d8b988"
-        stroke={COLOR_OUTLINE}
-      />
-      <polygon
-        points={polyStr(endFaceOuter, v4OX, v4OY)}
-        fill="#b88a4d"
-        stroke={COLOR_OUTLINE}
-      />
-      {teethPolys.map((pts, i) => (
-        <polygon
-          key={`v4-tooth-${i}`}
-          points={pts
-            .split(" ")
-            .map((p) => {
-              const [x, y] = p.split(",").map(Number);
-              return `${(x + v4OX).toFixed(1)},${(y + v4OY).toFixed(1)}`;
-            })
-            .join(" ")}
-          fill={COLOR_TENON}
-          stroke={COLOR_OUTLINE}
-          strokeWidth={0.8}
-        />
+      {/* 後輪廓 */}
+      <polygon points={polyStr(v4OutlineBack)} fill="#e8d4a8" stroke={COLOR_OUTLINE} strokeOpacity={0.4} strokeWidth={0.6} />
+      {/* 側面 */}
+      {v4SideQuads.map((q, i) => (
+        <polygon key={`v4s-${i}`} points={polyStr(q)} fill="#c9a472" stroke={COLOR_OUTLINE} strokeWidth={0.5} />
       ))}
-      <text
-        x={v4OX + v4W / 2}
-        y={v4OY + v4Body + v4TailH + 22}
-        fontSize={9}
-        textAnchor="middle"
-        fill="#666"
-      >
-        尾板：尾頭從端面凸出，梯形外寬內窄（z 方向）
+      {/* 前 face（鳩尾形狀，跟前 3 圖一致） */}
+      <polygon points={polyStr(v4Outline)} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} strokeWidth={1.2} />
+
+      <text x={v4_OX + v4_W / 2} y={v4_yBody + Math.abs(v4_dyz) + 22} fontSize={9} textAnchor="middle" fill="#666">
+        母件 face 形狀同前圖，加 {mt}mm 板厚（Z 軸後縮）
       </text>
-      <text
-        x={v4OX + v4W / 2}
-        y={v4OY + v4Body + v4TailH + 36}
-        fontSize={8}
-        textAnchor="middle"
-        fill="#999"
-      >
-        參考尺寸：板厚 {mt}mm、板寬 {tw || "—"}mm、尾深 {tl}mm
+      <text x={v4_OX + v4_W / 2} y={v4_yBody + Math.abs(v4_dyz) + 36} fontSize={8} textAnchor="middle" fill="#999">
+        參考：板厚 {mt}mm、板寬 {tw || "—"}mm、尾深 {tl}mm
       </text>
 
-      {/* ===== View 5 title ===== */}
-      <text x={v5OX} y={20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
-        立體圖（L 型轉角組合）
+      {/* ============ View 5 ============ */}
+      <text x={v5_OX} y={v5_OY - 20} fontSize={11} fontWeight="bold" fill={COLOR_OUTLINE}>
+        立體圖（L 型轉角分解）— 上：尾板，下：銷板
       </text>
-      {/* 水平尾板 */}
-      <polygon
-        points={polyStr(horiFront, v5OX, v5OY)}
-        fill={COLOR_MORTISE}
-        stroke={COLOR_OUTLINE}
-      />
-      <polygon
-        points={polyStr(horiTop, v5OX, v5OY)}
-        fill="#d8b988"
-        stroke={COLOR_OUTLINE}
-      />
-      {/* 垂直銷板 */}
-      <polygon
-        points={polyStr(vertFront, v5OX, v5OY)}
-        fill="url(#hatch-dt-3d)"
-        stroke={COLOR_OUTLINE}
-      />
-      <polygon
-        points={polyStr(vertSide, v5OX, v5OY)}
-        fill="#a07a4a"
-        stroke={COLOR_OUTLINE}
-      />
-      {/* 嚙合縫（dashed） */}
-      <g stroke={COLOR_OUTLINE} fill="none" strokeWidth={0.8} strokeDasharray="2 2">
-        {interlockLines.map(([a, b], i) => (
-          <line
-            key={`v5-il-${i}`}
-            x1={a[0] + v5OX}
-            y1={a[1] + v5OY}
-            x2={b[0] + v5OX}
-            y2={b[1] + v5OY}
-          />
+      {/* 水平尾板（tails 朝下）*/}
+      <polygon points={polyStr(v5HoriBack)} fill="#e8d4a8" stroke={COLOR_OUTLINE} strokeOpacity={0.4} strokeWidth={0.6} />
+      {v5HoriSideQuads.map((q, i) => (
+        <polygon key={`v5h-${i}`} points={polyStr(q)} fill="#c9a472" stroke={COLOR_OUTLINE} strokeWidth={0.5} />
+      ))}
+      <polygon points={polyStr(v5HoriOutline)} fill={COLOR_MORTISE} stroke={COLOR_OUTLINE} strokeWidth={1.2} />
+
+      {/* 垂直銷板（sockets 朝上）*/}
+      <polygon points={polyStr(v5PinBack)} fill="#dec59a" stroke={COLOR_OUTLINE} strokeOpacity={0.4} strokeWidth={0.6} />
+      {v5PinSideQuads.map((q, i) => (
+        <polygon key={`v5p-${i}`} points={polyStr(q)} fill="#a87a48" stroke={COLOR_OUTLINE} strokeWidth={0.5} />
+      ))}
+      <polygon points={polyStr(v5PinOutline)} fill="url(#hatch-dt-3d)" stroke={COLOR_OUTLINE} strokeWidth={1.2} />
+
+      {/* 對齊虛線：tail tip → socket mouth */}
+      <g stroke="#0a4d8c" strokeDasharray="3 2" strokeWidth={0.6}>
+        {v5AlignLines.map((l, i) => (
+          <line key={`v5a-${i}`} x1={l.x} y1={l.y1} x2={l.x} y2={l.y2} />
         ))}
       </g>
-      <text
-        x={v5OX + (v5HoriLen + v5Thk) / 2}
-        y={v5OY + v5Thk + v5VertLen + 22}
-        fontSize={9}
-        textAnchor="middle"
-        fill="#666"
-      >
-        水平尾板（淺色頂面）+ 垂直銷板（斜紋）90° 互鎖
+
+      <text x={v5_OX + v5_W / 2} y={v5p_yFar + Math.abs(v4_dyz) + 22} fontSize={9} textAnchor="middle" fill="#666">
+        上方尾板的尾頭往下嵌入下方銷板的 socket（虛線對齊位置）
       </text>
-      <text
-        x={v5OX + (v5HoriLen + v5Thk) / 2}
-        y={v5OY + v5Thk + v5VertLen + 36}
-        fontSize={8}
-        textAnchor="middle"
-        fill="#999"
-      >
-        虛線 = 內部嚙合面位置（尾凹／銷凹咬合）
+      <text x={v5_OX + v5_W / 2} y={v5p_yFar + Math.abs(v4_dyz) + 36} fontSize={8} textAnchor="middle" fill="#999">
+        分解視圖；組合時兩板貼合，外面看到指狀鳩尾紋
       </text>
     </svg>
   );
