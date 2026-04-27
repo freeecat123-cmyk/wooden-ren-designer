@@ -293,5 +293,17 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  // max bounds + 結構檢查
+  const extraWarnings: string[] = [];
+  if (height > 2000) {
+    extraWarnings.push(`衣帽架高度 ${height}mm 過高（max 2000mm）——重心高 + 容易碰天花，建議縮到 1800mm 以下`);
+  }
+  if (height < 1500) {
+    extraWarnings.push(`衣帽架高度 ${height}mm 過矮（min 1500mm）——掛長外套會拖地`);
+  }
+  if (footLength < height / 8) {
+    extraWarnings.push(`底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`);
+  }
+  if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;
 };

@@ -26,6 +26,10 @@ import {
   crownMoldingNote,
   backPanelMaterialOption,
   backPanelMaterialNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
@@ -61,6 +65,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("back"),
   { group: "structure", type: "checkbox", key: "tiltedShelf", label: "斜放層板（鞋頭朝下）", defaultValue: false, help: "層板向後傾斜 5-10°，鞋子放上去後鞋頭朝下、不會滑出。傳統鞋櫃常用做法", wide: true },
+  pullStyleOption("door"),
+  softCloseOption("door"),
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
@@ -81,6 +87,8 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const tiltedShelf = getOption<boolean>(input, opt(o, "tiltedShelf"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -113,7 +121,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${tiltedShelf ? "層板向後傾 8°，鞋頭朝下不易滑出（前緣加 8mm 擋條更保險）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${tiltedShelf ? "層板向後傾 8°，鞋頭朝下不易滑出（前緣加 8mm 擋條更保險）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

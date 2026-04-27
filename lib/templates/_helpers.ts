@@ -620,3 +620,65 @@ export function drawerSlideTypeNote(s: string): string {
   }
   return "";
 }
+
+/* ─────────────── 抽屜 / 門板把手樣式 ─────────────── */
+
+/** 抽屜把手 / 門板把手樣式選項，櫃類通用 */
+export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "pullStyle",
+    label: "抽屜 / 門板把手",
+    defaultValue: "knob",
+    choices: [
+      { value: "knob", label: "圓把手（knob，傳統）" },
+      { value: "bar", label: "長條把手（bar handle，現代簡約）" },
+      { value: "cup", label: "杯型 / 古典把手（cup pull，鄉村 / 古典款）" },
+      { value: "finger-pull", label: "手指槽（門上緣 / 抽屜上緣斜挖）" },
+      { value: "push-to-open", label: "Push-to-open（按壓開啟，無外露五金）" },
+      { value: "edge-bevel", label: "斜邊（J-pull，門上緣切 45° 當把手）" },
+      { value: "none", label: "不裝（純展示用）" },
+    ],
+    help: "把手樣式影響五金費用 + 工序",
+  };
+}
+
+export function pullStyleNote(style: string): string {
+  switch (style) {
+    case "knob":
+      return "抽屜 / 門板配圓把手（B&Q 五金 NT$ 30-100/個），鎖在中央或對稱位置。";
+    case "bar":
+      return "抽屜 / 門板配長條把手（96/128/160mm 規格，NT$ 50-200/個），現代風常見。";
+    case "cup":
+      return "抽屜配杯型把手（cup pull，黃銅 / 鐵 NT$ 100-300/個），鄉村 / 古典風必配。";
+    case "finger-pull":
+      return "門上緣 / 抽屜上緣斜挖手指槽（25mm 寬 × 15mm 深），無五金，視覺乾淨。";
+    case "push-to-open":
+      return "Push-to-open 緩衝器（Blum / Hettich 等品牌 NT$ 80-150/組），按壓門 / 抽屜會自動彈出。";
+    case "edge-bevel":
+      return "門上緣切 45° 斜邊當 J-pull 把手（手指扣住斜邊拉開），北歐設計常見。";
+    case "none":
+      return "不裝把手（純展示 / 客戶後續自選）。";
+  }
+  return "";
+}
+
+/** 緩衝鉸鏈 / 滑軌建議（給有門 / 抽屜的櫃用） */
+export function softCloseOption(group: OptionGroup = "door"): OptionSpec {
+  return {
+    group,
+    type: "checkbox",
+    key: "softClose",
+    label: "緩衝關閉（soft-close）",
+    defaultValue: true,
+    help: "鉸鏈 / 滑軌都配緩衝版（多 NT$ 100-200/組），門板 / 抽屜關閉時不會撞響、自動緩降",
+    wide: true,
+  };
+}
+
+export function softCloseNote(soft: boolean): string {
+  return soft
+    ? "所有鉸鏈 / 滑軌配緩衝版（Blum / Hettich / 國產均有），門 / 抽屜輕關時不撞響。"
+    : "鉸鏈 / 滑軌用一般版（無緩衝），可後續升級配件。";
+}

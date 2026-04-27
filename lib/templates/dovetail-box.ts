@@ -102,5 +102,14 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     }。` : ""}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
   };
   if (built.warnings.length) design.warnings = built.warnings;
+  // max bounds + suggestions
+  const extraWarnings: string[] = [];
+  if (outerL > 400 || outerW > 300 || outerH > 250) {
+    extraWarnings.push(`鳩尾盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重 / 鳩尾要切很多齒`);
+  }
+  if (wallT < 10 && outerL > 250) {
+    extraWarnings.push(`壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`);
+  }
+  if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;
 };

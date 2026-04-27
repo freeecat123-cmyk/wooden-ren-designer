@@ -96,5 +96,14 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }${withFeltPad ? " 底面貼 4 片自黏氈墊，桌面不刮傷且止滑。" : ""}${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
   };
   if (built.warnings.length) design.warnings = built.warnings;
+  // max bounds
+  const extraWarnings: string[] = [];
+  if (outerL > 600 || outerW > 450) {
+    extraWarnings.push(`托盤 ${outerL}×${outerW}mm 超過家用合理範圍（max 600×450mm）。大托盤承重 + 端起來重，建議減小尺寸 / 改用其他容器`);
+  }
+  if (wallT < 8 && outerL > 400) {
+    extraWarnings.push(`圍邊厚 ${wallT}mm 對 ${outerL}mm 長托盤太薄——端起時容易裂；建議加厚到 12mm`);
+  }
+  if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;
 };

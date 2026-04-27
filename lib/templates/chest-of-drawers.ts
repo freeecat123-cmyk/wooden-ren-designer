@@ -27,6 +27,10 @@ import {
   drawerJoineryNote,
   drawerSlideTypeOption,
   drawerSlideTypeNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 export const chestOfDrawersOptions: OptionSpec[] = [
@@ -53,6 +57,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   drawerSlideOption,
   drawerJoineryOption("drawer"),
   drawerSlideTypeOption("drawer"),
+  pullStyleOption("drawer"),
+  softCloseOption("drawer"),
   shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
@@ -76,6 +82,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
   const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -99,7 +107,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

@@ -26,6 +26,10 @@ import {
   crownMoldingNote,
   backPanelMaterialOption,
   backPanelMaterialNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
@@ -62,6 +66,8 @@ export const wardrobeOptions: OptionSpec[] = [
   backPanelMaterialOption("back"),
   { group: "structure", type: "checkbox", key: "withTrouserRack", label: "拉出式長褲架", defaultValue: false, help: "可拉出的橫桿陣列，掛長褲（每根 50mm 間距、配側裝滑軌）", wide: true },
   { group: "structure", type: "checkbox", key: "withTieShelf", label: "領帶 / 配件抽板", defaultValue: false, help: "薄抽板（厚 20mm）內含格子，分類放領帶、皮帶、首飾", wide: true },
+  pullStyleOption("door"),
+  softCloseOption("door"),
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
@@ -83,6 +89,8 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const withTrouserRack = getOption<boolean>(input, opt(o, "withTrouserRack"));
   const withTieShelf = getOption<boolean>(input, opt(o, "withTieShelf"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -116,7 +124,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

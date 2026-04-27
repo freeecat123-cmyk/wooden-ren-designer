@@ -124,6 +124,14 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
+  const warnings: string[] = [];
+  if (photoW > 800 || photoH > 800) {
+    warnings.push(`相框照片 ${photoW}×${photoH}mm 超過 800mm（最大）——大尺寸玻璃易破，建議改用壓克力或拆成多框拼接`);
+  }
+  if (frameW > photoW * 0.3 || frameW > photoH * 0.3) {
+    warnings.push(`邊框寬 ${frameW}mm 占照片邊長 > 30%，視覺比例失衡。建議邊框寬不超過照片短邊的 1/4`);
+  }
+
   return {
     id: `photo-frame-${photoW}x${photoH}`,
     category: "photo-frame",
@@ -132,6 +140,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
+    warnings: warnings.length > 0 ? warnings : undefined,
     notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面外緣 45° 倒角（修邊機 V 型刀）。` : frameProfile === "chamfer-in" ? `邊框正面內緣斜面下垂（修邊機 chamfer 刀）。` : frameProfile === "ogee" ? `邊框正面 Ogee 古典線型（修邊機 Ogee 線刀）。` : frameProfile === "cove" ? `邊框正面凹弧 Cove（修邊機 Cove 刀）。` : ""}${stand === "easel" ? ` 背面加 V 型立架（鉸鏈 + 摺收支撐板，立桌面用）。` : stand === "wall-hung" ? ` 背面加 D 形掛勾或鋸齒鈎（吊牆用）。` : ` 兩用：背面同時加可摺立架 + 掛勾。`}**玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };

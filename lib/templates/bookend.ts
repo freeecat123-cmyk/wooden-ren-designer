@@ -116,6 +116,14 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}${withFeltPad ? "底板下緣貼 4 片 20mm 自黏氈墊（B&Q / 五金行有售），不傷桌面 + 防滑。" : ""}${withWeight ? "底板厚度加倍，內鑽 30mm 圓孔嵌 1-2 片 50g 鐵塊（用環孔鋸 + AB 膠固定），擋大全集穩。" : ""}${edgeChamfer > 0 ? `所有外露邊緣倒 ${edgeChamfer}mm 防扎手。` : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
+  // max bounds
+  if (baseDepth > 250 || baseWidth > 300 || backHeight > 350) {
+    warnings.push(`書擋 ${baseDepth}×${baseWidth}×${backHeight}mm 超過合理範圍（max 250×300×350mm）。再大就不是書擋而是 L 型桌或小櫃`);
+  }
+  // 結構檢查
+  if (panelT < 12 && backHeight > 200) {
+    warnings.push(`板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`);
+  }
   if (warnings.length) design.warnings = warnings;
   return design;
 };

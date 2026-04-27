@@ -24,6 +24,10 @@ import {
   crownMoldingNote,
   backPanelMaterialOption,
   backPanelMaterialNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 const COL_TYPE_CHOICES = [
@@ -95,6 +99,8 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "3", label: "3 個（每欄一個）" },
   ], help: "電視 / AV 設備走線必備，每孔配黑色塑膠 grommet 圈" },
   { group: "structure", type: "checkbox", key: "withVentSlots", label: "後板散熱孔", defaultValue: false, help: "AV 設備櫃必備（擴大機、機上盒會發熱），後板開 6×40mm 長條散熱孔陣列", wide: true },
+  pullStyleOption("door"),
+  softCloseOption("door"),
 ];
 
 type ColType = "none" | "drawer" | "door" | "shelves";
@@ -143,6 +149,8 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const cableHoles = parseInt(getOption<string>(input, opt(o, "cableHoles"))) || 0;
   const withVentSlots = getOption<boolean>(input, opt(o, "withVentSlots"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
 
@@ -236,7 +244,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
-    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
   applyStandardChecks(design, {
     minLength: 800, minWidth: 300, minHeight: 300,

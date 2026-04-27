@@ -26,6 +26,10 @@ import {
   drawerJoineryNote,
   drawerSlideTypeOption,
   drawerSlideTypeNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 export const nightstandOptions: OptionSpec[] = [
@@ -59,6 +63,8 @@ export const nightstandOptions: OptionSpec[] = [
   shelfPinSystemOption("structure"),
   backPanelMaterialOption("back"),
   { group: "structure", type: "checkbox", key: "withCableHole", label: "預留充電線孔", defaultValue: true, help: "後板開 25mm 圓孔讓手機充電線穿過，床頭櫃必備", wide: true },
+  pullStyleOption("drawer"),
+  softCloseOption("drawer"),
 ];
 
 /**
@@ -81,6 +87,8 @@ export const nightstand: FurnitureTemplate = (input) => {
   const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
   const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
   const withCableHole = getOption<boolean>(input, opt(o, "withCableHole"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -113,7 +121,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {
