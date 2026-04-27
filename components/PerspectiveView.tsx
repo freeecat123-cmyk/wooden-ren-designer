@@ -68,7 +68,7 @@ type ShapeSpec =
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number }
   | { kind: "splayed"; dx: number; dz: number }
-  | { kind: "hoof"; hoofHeight: number; hoofScale: number }
+  | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "round" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
@@ -105,7 +105,7 @@ function Part({
       return buildSplayedGeometry(size, shape.dx, shape.dz);
     }
     if (shape.kind === "hoof") {
-      return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale);
+      return buildHoofGeometry(size, shape.hoofHeight, shape.hoofScale, shape.dirX, shape.dirZ);
     }
     if (shape.kind === "splayed-tapered") {
       return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
@@ -694,54 +694,109 @@ function buildSplayedRoundTaperedGeometry(
 }
 
 /**
- * Hoof leg: straight full-width box from top down to (hoofHeight above the
- * bottom), then flares outward linearly to (hoofScale × full-width) at the
- * very bottom. 12 vertices, 3 horizontal rings.
+ * 明式馬蹄腳。
+ *
+ * 結構：上方直料 → 馬蹄區段 4 環，外側 2 面做 S 形（上半外凸 → 中段內凹收腰
+ * → 下半外撇腳趾），內側 2 面保持直線。dirX/dirZ 決定哪 2 面是「外側」。
+ *
+ * 為什麼這麼做：原本實作所有 4 面對稱外擴 → 像漏斗，跟明式馬蹄腳完全不像。
+ * 真正的馬蹄腳只有「朝家具外」的兩個面才會踢出來，其他 2 面（朝中心）保持
+ * 直線——這樣才能把腳趾的方向感做出來。
+ *
+ * 參數：
+ *  hoofHeight = 馬蹄區段總高（從底部往上算）
+ *  hoofScale  = 腳趾外側 flare 倍率（>1 = 外撇）
+ *  dirX/dirZ  = 外側方向（±1 = 該軸的這個方向是外側、要 flare；0 = 該軸不 flare）
+ *
+ * 環高度比例：top 50% 直線 / 鼓肚 25% / 收腰 15% / 腳趾 10%
  */
 function buildHoofGeometry(
   size: [number, number, number],
   hoofHeight: number,
   hoofScale: number,
+  dirX: -1 | 0 | 1,
+  dirZ: -1 | 0 | 1,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
   const hy = ly / 2;
   const hz = lz / 2;
-  const flareY = -hy + Math.min(hoofHeight, ly); // start of flare (above bottom)
-  const bx = hx * hoofScale;
-  const bz = hz * hoofScale;
-  const v: number[] = [
-    // 0..3 bottom (widest)
-    -bx, -hy, -bz,
-    bx, -hy, -bz,
-    bx, -hy, bz,
-    -bx, -hy, bz,
-    // 4..7 flare start (= full width)
-    -hx, flareY, -hz,
-    hx, flareY, -hz,
-    hx, flareY, hz,
-    -hx, flareY, hz,
-    // 8..11 top (= full width)
-    -hx, hy, -hz,
-    hx, hy, -hz,
-    hx, hy, hz,
-    -hx, hy, hz,
+  const hoofH = Math.min(hoofHeight, ly * 0.5);
+
+  // 4 個馬蹄區段環的 Y（從上到下）+ 該環各 4 個 corner 的 X/Z 縮放比
+  // 比例是「外側面相對直料寬」的縮放：
+  //   start: 1.00（剛離開直料，全寬）
+  //   bulge: 1.10（外側面鼓出去——S 上半圓弧）
+  //   waist: 0.85（外側面內凹收腰，比直料窄 15%）
+  //   toe:   hoofScale（腳趾外撇到最大寬）
+  // 內側面所有環都保持 1.0（直料），這樣外側才看得出 S 形腳趾踢出去。
+  const rings = [
+    { yFrac: 0.00, outerScale: 1.00 },  // 馬蹄頂（與直料銜接）
+    { yFrac: 0.45, outerScale: 1.10 },  // 鼓肚
+    { yFrac: 0.78, outerScale: 0.85 },  // 收腰（要明顯一點才看得出 S 形）
+    { yFrac: 1.00, outerScale: hoofScale }, // 腳趾（最寬）
   ];
+  const yTopHoof = -hy + hoofH; // 馬蹄區段的頂端
+
+  // 收 vertex 的 helper：給 ring index + corner sign (sx, sz)，回傳 [x, y, z]
+  const cornerVert = (
+    ringIdx: number,
+    sx: -1 | 1,
+    sz: -1 | 1,
+  ): [number, number, number] => {
+    const ring = rings[ringIdx];
+    const y = yTopHoof - hoofH * ring.yFrac;
+    // 外側軸（sx === dirX 或 sz === dirZ）才套 outerScale；內側保持 1
+    // dirX/dirZ 可能是 0（中柱腳，該軸不外撇），這時跟 sx/sz 都不相等 → 走 1.0
+    const xScale = (dirX as number) !== 0 && sx === dirX ? ring.outerScale : 1;
+    const zScale = (dirZ as number) !== 0 && sz === dirZ ? ring.outerScale : 1;
+    return [sx * hx * xScale, y, sz * hz * zScale];
+  };
+
+  const v: number[] = [];
+  // 環 0..3：馬蹄區段 4 環，每環 4 個 corner，順序 (-,-) (+,-) (+,+) (-,+)
+  // 對應 vertex index：環 r 的 corner i 在 v 的 4*r + i
+  for (let r = 0; r < 4; r++) {
+    v.push(...cornerVert(r, -1, -1));
+    v.push(...cornerVert(r, 1, -1));
+    v.push(...cornerVert(r, 1, 1));
+    v.push(...cornerVert(r, -1, 1));
+  }
+  // 環 4：直料頂端（= 馬蹄區段頂端 + 上方直料）。原本 yTopHoof = -hy + hoofH，
+  // 直料頂在 +hy。所以 ring 0 (= yTopHoof) 跟 ring 4 (= +hy) 之間是直料。
+  v.push(-hx, hy, -hz);
+  v.push(hx, hy, -hz);
+  v.push(hx, hy, hz);
+  v.push(-hx, hy, hz);
+
+  // f(a, b, c, d) → 兩個三角形組成 quad，winding 由 caller 控制
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    ...f(0, 1, 2, 3), // bottom
-    ...f(8, 11, 10, 9), // top
-    // flare section (bottom ring 0..3 → flare ring 4..7)
-    ...f(0, 4, 5, 1),
-    ...f(1, 5, 6, 2),
-    ...f(2, 6, 7, 3),
-    ...f(3, 7, 4, 0),
-    // straight section (flare ring 4..7 → top ring 8..11)
-    ...f(4, 8, 9, 5),
-    ...f(5, 9, 10, 6),
-    ...f(6, 10, 11, 7),
-    ...f(7, 11, 8, 4),
-  ];
+  // 環 r 的 corner 索引：4*r + i (i = 0..3)
+  // ring 0 = 馬蹄頂；ring 3 = 腳趾底；ring 4 = 直料頂（最高）。
+  const ri = (r: number, i: number) => 4 * r + i;
+  const idx: number[] = [];
+  // 底面（ring 3 = 腳趾底，normal -Y）
+  idx.push(...f(ri(3, 0), ri(3, 1), ri(3, 2), ri(3, 3)));
+  // 頂面（ring 4 = 直料頂，normal +Y）
+  idx.push(...f(ri(4, 0), ri(4, 3), ri(4, 2), ri(4, 1)));
+  // 4 個側面 × 4 個環間區段（ring r 在上、ring r+1 在下；
+  // r=3 的時候 r+1=4，這是直料區段—直料頂端 ring 4 在最上方，
+  // 但 corner 順序仍對齊 ring 0..3 的 (-,-) (+,-) (+,+) (-,+)）
+  // 為避免直料區段方向反，r 從 0 到 2 處理馬蹄區，r=3 額外處理直料區。
+  // CCW from outside: bot → top → top_next → bot_next
+  for (let r = 0; r < 3; r++) {
+    // 馬蹄區段（r 在上、r+1 在下）
+    idx.push(...f(ri(r + 1, 0), ri(r, 0), ri(r, 1), ri(r + 1, 1))); // -Z 面
+    idx.push(...f(ri(r + 1, 1), ri(r, 1), ri(r, 2), ri(r + 1, 2))); // +X 面
+    idx.push(...f(ri(r + 1, 2), ri(r, 2), ri(r, 3), ri(r + 1, 3))); // +Z 面
+    idx.push(...f(ri(r + 1, 3), ri(r, 3), ri(r, 0), ri(r + 1, 0))); // -X 面
+  }
+  // 直料區段：ring 4 在上 (+hy)、ring 0 在下 (yTopHoof = -hy + hoofH)
+  idx.push(...f(ri(0, 0), ri(4, 0), ri(4, 1), ri(0, 1)));
+  idx.push(...f(ri(0, 1), ri(4, 1), ri(4, 2), ri(0, 2)));
+  idx.push(...f(ri(0, 2), ri(4, 2), ri(4, 3), ri(0, 3)));
+  idx.push(...f(ri(0, 3), ri(4, 3), ri(4, 0), ri(0, 0)));
+
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
@@ -838,6 +893,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               kind: "hoof",
               hoofHeight: part.shape.hoofMm * SCALE,
               hoofScale: part.shape.hoofScale,
+              dirX: part.shape.dirX ?? 0,
+              dirZ: part.shape.dirZ ?? 0,
             };
           } else if (part.shape?.kind === "round") {
             shape = { kind: "round" };

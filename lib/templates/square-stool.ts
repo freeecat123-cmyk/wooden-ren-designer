@@ -143,45 +143,63 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     x: length - legSize - 2 * legInset,
     z: width - legSize - 2 * legInset,
   };
-  const aprons: Part[] = [
-    // 前後兩條（沿 X 方向）
-    apron("apron-front", "前橫撐", apronInnerSpan.x, "x", { z: -(width / 2 - legSize / 2 - legInset) }),
-    apron("apron-back", "後橫撐", apronInnerSpan.x, "x", { z: width / 2 - legSize / 2 - legInset }),
-    // 左右兩條（沿 Z 方向）
-    apron("apron-left", "左橫撐", apronInnerSpan.z, "z", { x: -(length / 2 - legSize / 2 - legInset) }),
-    apron("apron-right", "右橫撐", apronInnerSpan.z, "z", { x: length / 2 - legSize / 2 - legInset }),
-  ].map((p) => ({
-    ...p,
-    material,
-    grainDirection: "length" as const,
-    visible: {
-      length: p.visibleLength,
-      width: apronWidth,
-      thickness: apronThickness,
-    },
-    rotation: p.axis === "z"
-      ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
-      : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      {
-        position: "start" as const,
-        type: "shouldered-tenon" as const,
-        length: apronTenonLength,
-        width: apronTenonW,
-        thickness: apronTenonThick,
+  // 外斜模式：腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splayMm
+  // 牙板中心對到腳的真實中心（不然榫頭會偏一邊讓壁太薄爆掉）
+  const isSplayed = legShape === "splayed";
+  const splayMm = 30; // 跟 rectLegShape 預設一致
+  const apronY = legHeight - apronWidth - apronDropFromTop;
+  const apronYCenter = apronY + apronWidth / 2;
+  const apronShiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+  const apronSplay = isSplayed ? splayMm * apronShiftFactor : 0;
+  const tilt = isSplayed ? Math.atan(splayMm / legHeight) : 0;
+  const apronEdgeZ = width / 2 - legSize / 2 - legInset;
+  const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  const apronSides = [
+    { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplay) } },
+    { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplay } },
+    { id: "apron-left", nameZh: "左橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + apronSplay), z: 0 } },
+    { id: "apron-right", nameZh: "右橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + apronSplay, z: 0 } },
+  ];
+  const aprons: Part[] = apronSides.map((s) => {
+    const bevelAngle = isSplayed
+      ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+      : 0;
+    return {
+      id: s.id,
+      nameZh: s.nameZh,
+      material,
+      grainDirection: "length" as const,
+      visible: {
+        length: s.visibleLength,
+        width: apronWidth,
+        thickness: apronThickness,
       },
-      {
-        position: "end" as const,
-        type: "shouldered-tenon" as const,
-        length: apronTenonLength,
-        width: apronTenonW,
-        thickness: apronTenonThick,
-      },
-    ],
-    mortises: [],
-    origin: { ...p.origin, y: legHeight - apronWidth - apronDropFromTop },
-  }));
+      origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+      rotation: s.axis === "z"
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+        : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+      shape: isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+      tenons: [
+        {
+          position: "start" as const,
+          type: "shouldered-tenon" as const,
+          length: apronTenonLength,
+          width: apronTenonW,
+          thickness: apronTenonThick,
+        },
+        {
+          position: "end" as const,
+          type: "shouldered-tenon" as const,
+          length: apronTenonLength,
+          width: apronTenonW,
+          thickness: apronTenonThick,
+        },
+      ],
+      mortises: [],
+    };
+  });
 
   const parts: Part[] = [seatPanel, ...legs, ...aprons];
 
@@ -197,13 +215,20 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
+    // 下橫撐位置低 → 腳已外推更多，shiftFactor 更大
+    const lsYCenter = lowerY + lowerW / 2;
+    const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter / legHeight : 0;
+    const lsSplay = isSplayed ? splayMm * lsShiftFactor : 0;
     const sides = [
-      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2 - legInset) } },
-      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 - legInset } },
-      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2 - legInset), z: 0 } },
-      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2 - legInset, z: 0 } },
+      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplay) } },
+      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplay } },
+      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplay), z: 0 } },
+      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplay, z: 0 } },
     ];
     for (const s of sides) {
+      const bevelAngle = isSplayed
+        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+        : 0;
       parts.push({
         id: s.id,
         nameZh: s.nameZh,
@@ -211,8 +236,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
-        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
-        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        rotation: s.axis === "z"
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
+          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+        shape: isSplayed
+          ? { kind: "apron-beveled", bevelAngle }
+          : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
           { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },

@@ -123,8 +123,10 @@ export function rectLegShape(
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
-  const hoofMm = opts?.hoofMm ?? 35;
-  const hoofScale = opts?.hoofScale ?? 1.3;
+  // 明式馬蹄腳的腳趾通常占腳高 15-25%。35mm 在 450mm 腳上只有 8% → 看不出來。
+  // 預設 90mm（占典型 450mm 凳腳的 20%），符合明清案桌實作慣例。
+  const hoofMm = opts?.hoofMm ?? 90;
+  const hoofScale = opts?.hoofScale ?? 1.4;
   const splayedFrontOnly = opts?.splayedFrontOnly ?? false;
 
   if (shape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
@@ -141,7 +143,12 @@ export function rectLegShape(
         : Math.sign(c.z) * splayMm,
     };
   }
-  if (shape === "hoof") return { kind: "hoof", hoofMm, hoofScale };
+  if (shape === "hoof") {
+    // 馬蹄腳：腳趾朝家具外側（遠離中心）踢出去
+    const dirX = (Math.sign(c.x) || 0) as -1 | 0 | 1;
+    const dirZ = (Math.sign(c.z) || 0) as -1 | 0 | 1;
+    return { kind: "hoof", hoofMm, hoofScale, dirX, dirZ };
+  }
   return undefined;
 }
 

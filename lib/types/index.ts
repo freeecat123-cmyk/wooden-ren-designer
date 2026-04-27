@@ -147,9 +147,14 @@ export interface Part {
      *  the top in the part's LOCAL frame. Positive values → bottom shifts
      *  toward +x/+z of the leg. */
     | { kind: "splayed"; dxMm: number; dzMm: number }
-    /** Hoof: straight for most of the length, then flares outward over the
-     *  bottom `hoofMm` by a factor of `hoofScale`. hoofScale > 1 widens. */
-    | { kind: "hoof"; hoofMm: number; hoofScale: number }
+    /** Hoof: 明式馬蹄腳——直料 + 底部「外側」2 面以 S 形外撇形成腳趾。
+     *  hoofMm = 馬蹄區段高度（從底部往上算）
+     *  hoofScale = 外側面 flare 倍率（>1 = 外撇，傳統 ~1.3）
+     *  dirX/dirZ ∈ {-1, 0, +1}：外側方向。一般四角腳取自 sign(c.x)/sign(c.z)，
+     *  讓馬蹄都朝家具外側「踢出去」。0 = 該軸不外撇（中柱腳用）。
+     *  渲染分 4 段：straight body → 外緣轉 (S 上半) → 內凹收腰 → 外撇腳趾 (S 下半)。
+     *  舊資料沒帶 dirX/dirZ → fallback 對稱 4 面外擴（僅相容用，視覺較差）。 */
+    | { kind: "hoof"; hoofMm: number; hoofScale: number; dirX?: -1 | 0 | 1; dirZ?: -1 | 0 | 1 }
     /** Round disc / 圓柱腳：直徑 = length = width，厚 = thickness。
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。 */
     | { kind: "round" }
