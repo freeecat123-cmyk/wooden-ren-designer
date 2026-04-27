@@ -246,20 +246,33 @@ export function stretcherEdgeStyleOption(
   };
 }
 
-/** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。 */
+/** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。
+ *  style="rounded" 用多段 chamfer 拼近似圓角，"chamfered"（默認）用單段 45°。 */
 export function seatEdgeShape(
   v: string | number | undefined,
-): { kind: "chamfered-top"; chamferMm: number } | undefined {
+  style?: string,
+): { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" } | undefined {
   const mm = parseSeatChamferMm(v);
-  return mm > 0 ? { kind: "chamfered-top", chamferMm: mm } : undefined;
+  if (mm <= 0) return undefined;
+  return {
+    kind: "chamfered-top",
+    chamferMm: mm,
+    style: style === "rounded" ? "rounded" : "chamfered",
+  };
 }
 
-/** 腳 / 橫撐邊緣 → chamfered-edges shape（4 條長邊各倒 45°）。 */
+/** 腳 / 橫撐邊緣 → chamfered-edges shape（4 條長邊各倒 45° 或圓角）。 */
 export function legEdgeShape(
   v: string | number | undefined,
-): { kind: "chamfered-edges"; chamferMm: number } | undefined {
+  style?: string,
+): { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" } | undefined {
   const mm = parseLegChamferMm(v);
-  return mm > 0 ? { kind: "chamfered-edges", chamferMm: mm } : undefined;
+  if (mm <= 0) return undefined;
+  return {
+    kind: "chamfered-edges",
+    chamferMm: mm,
+    style: style === "rounded" ? "rounded" : "chamfered",
+  };
 }
 
 export function legEdgeOption(

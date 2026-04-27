@@ -93,7 +93,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatEdgeShape(seatEdge),
+    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）
@@ -117,7 +117,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: c.x, y: 0, z: c.z },
     // 主 leg shape（box / tapered / splayed 等）優先；leg 是 box 時可改套
     // chamfered-edges（4 條長邊倒角）。tapered/splayed 已有自己的視覺，不疊加。
-    shape: rectLegShape(legShape, c, { splayedFrontOnly: false }) ?? legEdgeShape(legEdge),
+    shape: rectLegShape(legShape, c, { splayedFrontOnly: false }) ?? legEdgeShape(legEdge, legEdgeStyle),
     tenons: [
       {
         position: "top",
@@ -162,7 +162,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     rotation: p.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge),
+    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       {
         position: "start" as const,
@@ -212,7 +212,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
         rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
-        shape: legEdgeShape(stretcherEdge),
+        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
           { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },

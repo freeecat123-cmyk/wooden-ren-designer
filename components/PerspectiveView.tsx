@@ -77,8 +77,8 @@ type ShapeSpec =
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
   | { kind: "apron-beveled"; bevelAngle: number }
-  | { kind: "chamfered-top"; chamferMm: number }
-  | { kind: "chamfered-edges"; chamferMm: number };
+  | { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" }
+  | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" };
 
 function Part({
   position,
@@ -117,10 +117,10 @@ function Part({
       return buildBeveledApronGeometry(size, shape.bevelAngle);
     }
     if (shape.kind === "chamfered-top") {
-      return buildChamferedTopGeometry(size, shape.chamferMm);
+      return buildChamferedTopGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
     }
     if (shape.kind === "chamfered-edges") {
-      return buildChamferedEdgesGeometry(size, shape.chamferMm);
+      return buildChamferedEdgesGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
     }
     return null;
   }, [size, shape]);
@@ -439,57 +439,80 @@ function buildBeveledApronGeometry(
 function buildChamferedTopGeometry(
   size: [number, number, number],
   chamferMm: number,
+  style: "chamfered" | "rounded" = "chamfered",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
   const hz = lz / 2;
-  // y 範圍 [0, ly]（origin=底部）。轉成 mesh local（mesh 是 [-ly/2, +ly/2] 居中）
   const yBot = -ly / 2;
   const yTop = ly / 2;
-  // 倒角 45°：水平內縮 c = 垂直下降 c
   const c = Math.min(chamferMm, ly * 0.45, hx * 0.45, hz * 0.45);
-  const yChamferStart = yTop - c;
-  const inX = hx - c;
-  const inZ = hz - c;
 
-  // 4 底部 corner (y = yBot)
-  // 4 頂面下緣 corner (y = yChamferStart, x/z 同底部)
-  // 4 頂面 corner (y = yTop, x/z 內縮)
-  // 順序：(-x,-z), (+x,-z), (+x,+z), (-x,+z)
-  const v: number[] = [
-    // 0..3 底部
-    -hx, yBot, -hz,
-    +hx, yBot, -hz,
-    +hx, yBot, +hz,
-    -hx, yBot, +hz,
-    // 4..7 頂面下緣（倒角開始處）
-    -hx, yChamferStart, -hz,
-    +hx, yChamferStart, -hz,
-    +hx, yChamferStart, +hz,
-    -hx, yChamferStart, +hz,
-    // 8..11 頂面（內縮 c）
-    -inX, yTop, -inZ,
-    +inX, yTop, -inZ,
-    +inX, yTop, +inZ,
-    -inX, yTop, +inZ,
-  ];
+  // 圓角用多段 chamfer 拼近似四分圓，45° 用單段斜面
+  const segs = style === "rounded" ? 4 : 1;
+  // 圓心位於 (hx-c, yTop-c)（角落內側）；θ=0 在側面、θ=π/2 在頂面
+  // 為每個段產生一個高度層；level i ∈ [0..segs] 對應 θ=i*(π/2)/segs
+  // 內縮量 dx = c - c*cos(θ), 上升量 dy = c*sin(θ)
+  // 底層（i=0）= 倒角起點（在側面，y=yTop-c, dx=0）
+  // 頂層（i=segs）= 頂面（y=yTop, dx=c）
+  const levels: Array<{ y: number; inset: number }> = [];
+  for (let i = 0; i <= segs; i++) {
+    const θ = (i * Math.PI) / 2 / segs;
+    levels.push({
+      y: yTop - c + c * Math.sin(θ),
+      inset: c - c * Math.cos(θ),
+    });
+  }
+
+  // Vertex layout:
+  //   0..3   底部 (y=yBot)
+  //   4..7   倒角底層 (y=yTop-c, 全外緣)（== levels[0]，但 y 跟下方一致）
+  //   8..   每個 chamfer level 4 vertices
+  //   最後 4   頂面 (內縮 c)
+  // 為簡化：用「底部」+ 每個 level 1 組（全部從 levels 取座標，含 i=0 跟 i=segs）
+  const v: number[] = [];
+  // 底部
+  v.push(-hx, yBot, -hz);
+  v.push(+hx, yBot, -hz);
+  v.push(+hx, yBot, +hz);
+  v.push(-hx, yBot, +hz);
+  // 每個 level
+  for (const L of levels) {
+    const x = hx - L.inset;
+    const z = hz - L.inset;
+    v.push(-x, L.y, -z);
+    v.push(+x, L.y, -z);
+    v.push(+x, L.y, +z);
+    v.push(-x, L.y, +z);
+  }
+
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
-  const idx = [
-    // 底面（從下面看 CCW）
-    ...f(0, 1, 2, 3),
-    // 4 個側面（垂直部分，從外看 CCW）
-    ...f(0, 4, 5, 1), // -z 面
-    ...f(1, 5, 6, 2), // +x 面
-    ...f(2, 6, 7, 3), // +z 面
-    ...f(3, 7, 4, 0), // -x 面
-    // 4 個倒角斜面（從外看 CCW）
-    ...f(4, 8, 9, 5), // -z 倒角
-    ...f(5, 9, 10, 6), // +x 倒角
-    ...f(6, 10, 11, 7), // +z 倒角
-    ...f(7, 11, 8, 4), // -x 倒角
-    // 頂面（從上看 CCW）
-    ...f(8, 11, 10, 9),
-  ];
+  const idx: number[] = [];
+
+  // 底面 CCW（從下方看）
+  idx.push(...f(0, 1, 2, 3));
+
+  // 4 個側面（垂直部分）：底部 → level[0]
+  const lv0 = 4; // first level vertex base index
+  idx.push(...f(0, lv0 + 0, lv0 + 1, 1));
+  idx.push(...f(1, lv0 + 1, lv0 + 2, 2));
+  idx.push(...f(2, lv0 + 2, lv0 + 3, 3));
+  idx.push(...f(3, lv0 + 3, lv0 + 0, 0));
+
+  // 倒角 / 圓角分段：每兩個相鄰 level 之間 4 個側面
+  for (let i = 0; i < segs; i++) {
+    const a = 4 + i * 4;
+    const b = 4 + (i + 1) * 4;
+    idx.push(...f(a + 0, b + 0, b + 1, a + 1));
+    idx.push(...f(a + 1, b + 1, b + 2, a + 2));
+    idx.push(...f(a + 2, b + 2, b + 3, a + 3));
+    idx.push(...f(a + 3, b + 3, b + 0, a + 0));
+  }
+
+  // 頂面（最後一個 level）— 從上方看 CCW
+  const tv = 4 + segs * 4;
+  idx.push(...f(tv + 0, tv + 3, tv + 2, tv + 1));
+
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
@@ -505,12 +528,11 @@ function buildChamferedTopGeometry(
 function buildChamferedEdgesGeometry(
   size: [number, number, number],
   chamferMm: number,
+  style: "chamfered" | "rounded" = "chamfered",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
-  // 找最長軸
   const longAxis: 0 | 1 | 2 =
     ly > lx && ly > lz ? 1 : lz > lx && lz > ly ? 2 : 0;
-  // 短軸對應的兩個 dim
   const shortDim = (i: 0 | 1 | 2) => (i === 0 ? lx : i === 1 ? ly : lz);
   const longLen = shortDim(longAxis);
   const sa1 = ((longAxis + 1) % 3) as 0 | 1 | 2;
@@ -518,22 +540,27 @@ function buildChamferedEdgesGeometry(
   const ha = longLen / 2;
   const hb = shortDim(sa1) / 2;
   const hc = shortDim(sa2) / 2;
-  // 倒角量限縮（不能超過短軸 1/2）
   const c = Math.min(chamferMm, hb * 0.45, hc * 0.45);
 
-  // Cross-section octagon（在 sa1-sa2 plane）8 corners，CCW from +longAxis 看：
-  //   1. (+hb-c, +hc) 2. (+hb, +hc-c) 3. (+hb, -hc+c) 4. (+hb-c, -hc)
-  //   5. (-hb+c, -hc) 6. (-hb, -hc+c) 7. (-hb, +hc-c) 8. (-hb+c, +hc)
-  const cs: Array<[number, number]> = [
-    [hb - c, hc],
-    [hb, hc - c],
-    [hb, -hc + c],
-    [hb - c, -hc],
-    [-hb + c, -hc],
-    [-hb, -hc + c],
-    [-hb, hc - c],
-    [-hb + c, hc],
-  ];
+  // 圓角用 N=4 段 chamfer 拼近似四分圓；45° 用 1 段
+  const segs = style === "rounded" ? 4 : 1;
+  // 每個 corner 都是凸圓弧，圓心在內側 c 距離處
+  // CCW 順序（從 +b 軸看 +long 方向）：NE → NW → SW → SE
+  const arcPts = (cx: number, cy: number, θ0: number, θ1: number): Array<[number, number]> => {
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i <= segs; i++) {
+      const θ = θ0 + ((θ1 - θ0) * i) / segs;
+      pts.push([cx + c * Math.cos(θ), cy + c * Math.sin(θ)]);
+    }
+    return pts;
+  };
+  const ne = arcPts(hb - c, hc - c, 0, Math.PI / 2);            // (hb, hc-c) → (hb-c, hc)
+  const nw = arcPts(-hb + c, hc - c, Math.PI / 2, Math.PI);     // (-hb+c, hc) → (-hb, hc-c)
+  const sw = arcPts(-hb + c, -hc + c, Math.PI, 3 * Math.PI / 2); // (-hb, -hc+c) → (-hb+c, -hc)
+  const se = arcPts(hb - c, -hc + c, 3 * Math.PI / 2, 2 * Math.PI); // (hb-c, -hc) → (hb, -hc+c)
+  // 一圈 CCW：ne 末 = (hb-c, hc) → nw 起 = (-hb+c, hc) 之間是 top straight（不加中間點）
+  // 完整序列：ne ∪ nw ∪ sw ∪ se
+  const cs: Array<[number, number]> = [...ne, ...nw, ...sw, ...se];
 
   // 每個 cross-section corner 在兩端 (long axis = ±ha) 各一個 vertex → 16 verts
   // vertex layout: 0..7 = 端 -ha 的 8 點，8..15 = 端 +ha 的 8 點
@@ -546,6 +573,7 @@ function buildChamferedEdgesGeometry(
     return arr;
   };
 
+  const N = cs.length; // chamfered=8, rounded=20
   const v: number[] = [];
   for (const [b, cc] of cs) v.push(...place(-ha, b, cc));
   for (const [b, cc] of cs) v.push(...place(+ha, b, cc));
@@ -553,20 +581,15 @@ function buildChamferedEdgesGeometry(
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
   const idx: number[] = [];
 
-  // 8 個側面（octagon 邊長 × 長軸延伸）
-  for (let i = 0; i < 8; i++) {
-    const next = (i + 1) % 8;
-    // -ha 端 i, next；+ha 端 i+8, next+8
-    idx.push(...f(i, next, next + 8, i + 8));
+  // N 個側面（cross-section 邊 × 長軸延伸）
+  for (let i = 0; i < N; i++) {
+    const next = (i + 1) % N;
+    idx.push(...f(i, next, next + N, i + N));
   }
-  // 兩個八角形端面（octagon 三角化：fan from vertex 0）
-  // -ha 端（從 -longAxis 看 CCW）
-  for (let i = 1; i < 7; i++) {
-    idx.push(0, i + 1, i);
-  }
-  // +ha 端（從 +longAxis 看 CCW）
-  for (let i = 1; i < 7; i++) {
-    idx.push(8, 8 + i, 8 + i + 1);
+  // 兩個多邊形端面（fan from vertex 0）
+  for (let i = 1; i < N - 1; i++) {
+    idx.push(0, i + 1, i);          // -ha 端
+    idx.push(N, N + i, N + i + 1);  // +ha 端
   }
 
   const g = new BufferGeometry();
@@ -851,9 +874,9 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           } else if (part.shape?.kind === "apron-beveled") {
             shape = { kind: "apron-beveled", bevelAngle: part.shape.bevelAngle };
           } else if (part.shape?.kind === "chamfered-top") {
-            shape = { kind: "chamfered-top", chamferMm: part.shape.chamferMm * SCALE };
+            shape = { kind: "chamfered-top", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
           } else if (part.shape?.kind === "chamfered-edges") {
-            shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE };
+            shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
           }
           return (
             <Part
