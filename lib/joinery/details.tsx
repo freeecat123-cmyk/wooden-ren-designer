@@ -10,6 +10,16 @@
  */
 
 import type { JoineryType } from "@/lib/types";
+import {
+  AXON_COLOR,
+  AxonBox,
+  AxonDimLine,
+  allPts,
+  autoViewBox,
+  boxVertices,
+  lineFromTo,
+  project,
+} from "./_axon";
 
 export interface JoineryDetailParams {
   /** mm — tenon protrusion length */
@@ -1747,6 +1757,257 @@ function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
  *   should be the tail board, so the roles have been swapped here.
  * ============================================================ */
 function DovetailDetail(p: JoineryDetailParams) {
+  return <DovetailDetailAxon p={p} />;
+}
+
+/**
+ * 鳩尾榫——軸測立體版（新版）。
+ *
+ * 對接抽屜結構：
+ *   公件 = TAIL board（鳩尾頭板，傳統側板用）：右端有 N 個梯形鳩尾
+ *   母件 = PIN board（鳩尾眼板，傳統面板用）：右端鋸出對應的鳩尾眼
+ *
+ * 視覺：兩件分左右獨立繪製，30° isometric 投影，標尺直接帶入使用者輸入的尺寸。
+ */
+function DovetailDetailAxon({ p }: { p: JoineryDetailParams }) {
+  // === 從 props 推算所有 3D 尺寸（mm） ===
+  const tailDepth = p.tenonLength;                    // 鳩尾深度（= 母件厚）
+  const boardT = p.childThickness ?? p.tenonThickness; // 公件板厚
+  const motherT = p.motherThickness;                   // 母件板厚（= tailDepth 在通鳩尾）
+  // 鳩尾數量（視覺示意，3 個鳩尾就夠表達）
+  const N_TAILS = 3;
+  // 接合面寬度——使用者輸入的 tenonWidth 通常是「整個鳩尾接合的總寬度」，
+  // 若太小視覺看不出來，給最小 100mm
+  const jointWidth = Math.max(100, p.tenonWidth);
+  // 半個邊角的 pin（鳩尾眼）寬，讓最外側保留 pin 不是 tail
+  const halfPin = jointWidth / (N_TAILS * 2);
+  // 每個 tail 的 pitch
+  const pitch = (jointWidth - 2 * halfPin) / (N_TAILS - 1 + 0.0001);
+  // tail 在最窄處的寬度（base，靠母件那端）
+  const tailBaseW = pitch * 0.55;
+  // tail 在最寬處的寬度（top，往板外端漸闊）
+  const tailTopW = pitch * 0.85;
+  // 兩件畫面尺寸（顯示用，板長截到夠看到接合就好）
+  const showLen = Math.max(80, tailDepth * 1.2);
+
+  // === 計算公件鳩尾頭頂點 ===
+  // 公件板：占 x ∈ [0, showLen]（板身），y ∈ [0, boardT]，z ∈ [0, jointWidth]
+  // 鳩尾從 x = showLen 突出，到 x = showLen + tailDepth
+  // 第 i 個 tail 的中心 z 座標
+  const tailZCenters = Array.from({ length: N_TAILS }, (_, i) =>
+    halfPin + i * pitch,
+  );
+
+  // 公件 axon 視圖
+  const tailBoard = (
+    <g>
+      {/* 主板身 */}
+      <AxonBox
+        ox={0}
+        oy={0}
+        oz={0}
+        length={showLen}
+        height={boardT}
+        depth={jointWidth}
+        fill={AXON_COLOR.tenon}
+        showHidden={false}
+      />
+      {/* 每個鳩尾的梯形頭 */}
+      {tailZCenters.map((zc, i) => {
+        // 8 個頂點，base 端在 x = showLen，top 端在 x = showLen + tailDepth
+        const xBase = showLen;
+        const xTop = showLen + tailDepth;
+        const baseZ1 = zc - tailBaseW / 2;
+        const baseZ2 = zc + tailBaseW / 2;
+        const topZ1 = zc - tailTopW / 2;
+        const topZ2 = zc + tailTopW / 2;
+        const v = {
+          // base = 連接板身那端（窄）
+          bbf: project(xBase, 0, baseZ2),         // base bottom front
+          bbb: project(xBase, 0, baseZ1),
+          btf: project(xBase, boardT, baseZ2),
+          btb: project(xBase, boardT, baseZ1),
+          // top = 突出端（寬）
+          tbf: project(xTop, 0, topZ2),
+          tbb: project(xTop, 0, topZ1),
+          ttf: project(xTop, boardT, topZ2),
+          ttb: project(xTop, boardT, topZ1),
+        };
+        // 可見面：頂面（梯形 btf-btb-ttb-ttf）、前側梯形面（bbf-btf-ttf-tbf）、
+        // 突出端面（tbf-tbb-ttb-ttf）
+        const topFace = `M ${v.btf.x} ${v.btf.y} L ${v.btb.x} ${v.btb.y} L ${v.ttb.x} ${v.ttb.y} L ${v.ttf.x} ${v.ttf.y} Z`;
+        const frontFace = `M ${v.bbf.x} ${v.bbf.y} L ${v.btf.x} ${v.btf.y} L ${v.ttf.x} ${v.ttf.y} L ${v.tbf.x} ${v.tbf.y} Z`;
+        const endFace = `M ${v.tbf.x} ${v.tbf.y} L ${v.tbb.x} ${v.tbb.y} L ${v.ttb.x} ${v.ttb.y} L ${v.ttf.x} ${v.ttf.y} Z`;
+        return (
+          <g key={`tail-${i}`}>
+            <path d={topFace} fill={AXON_COLOR.tenon} fillOpacity={0.7} stroke={AXON_COLOR.outline} strokeWidth={1.2} />
+            <path d={frontFace} fill={AXON_COLOR.tenon} fillOpacity={0.95} stroke={AXON_COLOR.outline} strokeWidth={1.2} />
+            <path d={endFace} fill={AXON_COLOR.tenon} fillOpacity={0.55} stroke={AXON_COLOR.outline} strokeWidth={1.2} />
+          </g>
+        );
+      })}
+
+      {/* 標尺：鳩尾長（從板端到突出端） */}
+      <AxonDimLine
+        from={{ x: showLen, y: 0, z: jointWidth }}
+        to={{ x: showLen + tailDepth, y: 0, z: jointWidth }}
+        label={`榫長 ${tailDepth}mm`}
+        offsetDir={{ z: 1 }}
+        offsetMm={20}
+      />
+      {/* 標尺：板厚（公件） */}
+      <AxonDimLine
+        from={{ x: showLen + tailDepth, y: 0, z: 0 }}
+        to={{ x: showLen + tailDepth, y: boardT, z: 0 }}
+        label={`板厚 ${boardT}mm`}
+        offsetDir={{ x: 1 }}
+        offsetMm={15}
+      />
+      {/* 標尺：tail 寬（最寬處） */}
+      <AxonDimLine
+        from={{
+          x: showLen + tailDepth,
+          y: boardT,
+          z: tailZCenters[0] - tailTopW / 2,
+        }}
+        to={{
+          x: showLen + tailDepth,
+          y: boardT,
+          z: tailZCenters[0] + tailTopW / 2,
+        }}
+        label={`榫寬 ${Math.round(tailTopW)}mm`}
+        offsetDir={{ y: 1 }}
+        offsetMm={20}
+      />
+      {/* 標尺：接合總寬 */}
+      <AxonDimLine
+        from={{ x: 0, y: 0, z: 0 }}
+        to={{ x: 0, y: 0, z: jointWidth }}
+        label={`接合總寬 ${jointWidth}mm`}
+        offsetDir={{ y: -1 }}
+        offsetMm={15}
+      />
+    </g>
+  );
+
+  // === 母件 axon（鳩尾眼板）===
+  // 母件板：占 x ∈ [0, showLen]，y ∈ [0, motherT]，z ∈ [0, jointWidth]
+  // 鳩尾眼從 x = showLen - tailDepth 鋸入到 x = showLen（即從右端鋸入）
+  const pinBoard = (
+    <g>
+      {/* 主板身（不開鳩尾的部分） */}
+      <AxonBox
+        ox={0}
+        oy={0}
+        oz={0}
+        length={showLen - tailDepth}
+        height={motherT}
+        depth={jointWidth}
+        fill="#c9a16a"
+        showHidden={false}
+      />
+      {/* 鳩尾眼之間的 pin（凸出來的部分） */}
+      {/* pin 是 tail 之間 + 兩端的部分 */}
+      {(() => {
+        // pin 區段：[0, halfPin], [tailZCenters[0]+tailBaseW/2, tailZCenters[1]-tailBaseW/2], ..., [tailZCenters[N-1]+tailBaseW/2, jointWidth]
+        const pinSegs: Array<[number, number]> = [];
+        let prev = 0;
+        for (const zc of tailZCenters) {
+          const z1 = zc - tailBaseW / 2;
+          if (z1 > prev) pinSegs.push([prev, z1]);
+          prev = zc + tailBaseW / 2;
+        }
+        if (prev < jointWidth) pinSegs.push([prev, jointWidth]);
+        return pinSegs.map(([z0, z1], i) => (
+          <AxonBox
+            key={`pin-${i}`}
+            ox={showLen - tailDepth}
+            oy={0}
+            oz={z0}
+            length={tailDepth}
+            height={motherT}
+            depth={z1 - z0}
+            fill="#c9a16a"
+            showHidden={false}
+          />
+        ));
+      })()}
+
+      {/* 標尺：鳩尾眼深 */}
+      <AxonDimLine
+        from={{ x: showLen - tailDepth, y: 0, z: jointWidth }}
+        to={{ x: showLen, y: 0, z: jointWidth }}
+        label={`眼深 ${tailDepth}mm`}
+        offsetDir={{ z: 1 }}
+        offsetMm={20}
+      />
+      {/* 標尺：母件板厚 */}
+      <AxonDimLine
+        from={{ x: showLen, y: 0, z: 0 }}
+        to={{ x: showLen, y: motherT, z: 0 }}
+        label={`板厚 ${motherT}mm`}
+        offsetDir={{ x: 1 }}
+        offsetMm={15}
+      />
+      {/* 標尺：眼寬（=tailBaseW） */}
+      <AxonDimLine
+        from={{
+          x: showLen,
+          y: motherT,
+          z: tailZCenters[0] - tailBaseW / 2,
+        }}
+        to={{
+          x: showLen,
+          y: motherT,
+          z: tailZCenters[0] + tailBaseW / 2,
+        }}
+        label={`眼寬 ${Math.round(tailBaseW)}mm`}
+        offsetDir={{ y: 1 }}
+        offsetMm={20}
+      />
+    </g>
+  );
+
+  // === viewBox 計算 ===
+  // 公件 用左半邊：算所有頂點
+  const tailVerts = [
+    boxVertices(0, 0, 0, showLen, boardT, jointWidth),
+    boxVertices(showLen, 0, 0, tailDepth, boardT, jointWidth),
+  ];
+  const pinVerts = [
+    boxVertices(0, 0, 0, showLen, motherT, jointWidth),
+  ];
+  const tailVB = autoViewBox(allPts(...tailVerts), 60);
+  const pinVB = autoViewBox(allPts(...pinVerts), 60);
+
+  return (
+    <div className="flex gap-4 flex-wrap">
+      <figure className="flex-1 min-w-[280px]">
+        <svg viewBox={tailVB} className="w-full h-auto">
+          {tailBoard}
+        </svg>
+        <figcaption className="mt-1 text-xs text-zinc-600 text-center">
+          <strong>公件</strong>（鳩尾頭板 / Tail board）— 抽屜側板
+        </figcaption>
+      </figure>
+      <figure className="flex-1 min-w-[280px]">
+        <svg viewBox={pinVB} className="w-full h-auto">
+          {pinBoard}
+        </svg>
+        <figcaption className="mt-1 text-xs text-zinc-600 text-center">
+          <strong>母件</strong>（鳩尾眼板 / Pin board）— 抽屜面板
+        </figcaption>
+      </figure>
+      <p className="w-full mt-2 text-[11px] text-zinc-500 leading-relaxed">
+        標準角度：硬木 1:8（≈7.1°）／ 軟木 1:6（≈9.5°）。先在公件畫線鋸出鳩尾、
+        再用公件當樣板畫到母件鋸出鳩尾眼。最外側保留 pin（半個鳩尾眼）不是 tail，
+        承拉力較強。
+      </p>
+    </div>
+  );
+}
+
+function DovetailDetailLegacy(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   void tw;
