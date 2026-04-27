@@ -6,10 +6,17 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 
+/** 背板裝入時相對玻璃的擴大量（每邊 mm，預留卡入裕度） */
+const BACK_PANEL_CLEARANCE = 4;
+/** 玻璃槽內縮量（讓玻璃不會從正面看到槽口） */
+const GLASS_FRAME_INSET = 2;
+
 export const photoFrameOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "frameWidth", label: "邊框寬 (mm)", defaultValue: 25, min: 15, max: 60, step: 1, unit: "mm", help: "邊框面寬度（從照片邊緣往外的木料寬）" },
   { group: "structure", type: "number", key: "frameThickness", label: "邊框厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
+  { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚 (mm)", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
+  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深 (mm)", defaultValue: 8, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 + 背板 + 一點裕度" },
 ];
 
 /**
@@ -22,13 +29,14 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const frameW = getOption<number>(input, opt(o, "frameWidth"));
   const frameT = getOption<number>(input, opt(o, "frameThickness"));
   const backT = getOption<number>(input, opt(o, "backThickness"));
+  const glassT = getOption<number>(input, opt(o, "glassThickness"));
+  const glassGrooveDepth = getOption<number>(input, opt(o, "glassGrooveDepth"));
 
   // 整框外尺寸 = 照片 + 兩側邊框
   const outerL = photoW + 2 * frameW;
   const outerW = photoH + 2 * frameW;
 
-  // 4 條邊框（45° 斜接，body 長 = 對應外邊長）
-  // 上下橫邊：length = outerL，width = frameW（從外邊往內），thickness = frameT
+  // 上下橫邊：完整 outerL
   const topRail: Part = {
     id: "frame-top",
     nameZh: "上邊框",
@@ -36,7 +44,10 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: outerL, width: frameW, thickness: frameT },
     origin: { x: 0, y: 0, z: outerW / 2 - frameW / 2 },
-    tenons: [],
+    tenons: [
+      { position: "start", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
+      { position: "end", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
+    ],
     mortises: [],
   };
   const bottomRail: Part = {
@@ -45,8 +56,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "下邊框",
     origin: { x: 0, y: 0, z: -(outerW / 2 - frameW / 2) },
   };
-  // 左右立邊：扣掉上下邊厚度（或直接用外高）—— 45 度切後實際長就是 outerW
-  // 這裡用內側長度避免 45° 視覺誤差
+
+  // 左右立邊：扣掉上下邊厚度（45° 斜接後接觸線在外角）
   const sideLen = outerW - 2 * frameW;
   const leftRail: Part = {
     id: "frame-left",
@@ -56,7 +67,10 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: sideLen, width: frameW, thickness: frameT },
     origin: { x: -(outerL / 2 - frameW / 2), y: 0, z: 0 },
     rotation: { x: 0, y: Math.PI / 2, z: 0 },
-    tenons: [],
+    tenons: [
+      { position: "start", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
+      { position: "end", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
+    ],
     mortises: [],
   };
   const rightRail: Part = {
@@ -66,14 +80,31 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: outerL / 2 - frameW / 2, y: 0, z: 0 },
   };
 
-  // 背板（三合板，蓋住整個照片區 + 內框溝槽）
+  // 玻璃（visual: glass 不入材積、不出材料單）
+  const glass: Part = {
+    id: "glass",
+    nameZh: "玻璃",
+    material,
+    visual: "glass",
+    grainDirection: "length",
+    visible: { length: photoW, width: photoH, thickness: glassT },
+    origin: { x: 0, y: frameT - glassGrooveDepth - glassT, z: 0 },
+    tenons: [],
+    mortises: [],
+  };
+
+  // 背板（夾板，槽接從後方滑入，比照片大 BACK_PANEL_CLEARANCE 一圈）
   const backPanel: Part = {
     id: "back-panel",
     nameZh: "背板（夾板）",
     material,
     materialOverride: "plywood",
     grainDirection: "length",
-    visible: { length: photoW + 4, width: photoH + 4, thickness: backT },
+    visible: {
+      length: photoW + 2 * BACK_PANEL_CLEARANCE,
+      width: photoH + 2 * BACK_PANEL_CLEARANCE,
+      thickness: backT,
+    },
     origin: { x: 0, y: frameT - backT, z: 0 },
     tenons: [],
     mortises: [],
@@ -84,9 +115,9 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     category: "photo-frame",
     nameZh: "相框",
     overall: { length: outerL, width: outerW, thickness: frameT },
-    parts: [topRail, bottomRail, leftRail, rightRail, backPanel],
+    parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 8×4mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接，建議插花榫片（spline）補強——純斜接膠合強度不夠，下次搬家就鬆了。**玻璃自備**（厚 2mm 透明玻璃，到玻璃行裁 ${photoW}×${photoH}mm）。`,
+    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。**玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };

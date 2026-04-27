@@ -6,6 +6,15 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 
+/** 三角加固板厚（恆 12mm，過厚反而難切斜邊） */
+const BRACE_THICKNESS = 12;
+/** 三角加固相對底深的最大占比 */
+const BRACE_DEPTH_FRAC = 0.5;
+/** 三角加固相對背高的最大占比 */
+const BRACE_HEIGHT_FRAC = 0.4;
+/** 帶肩榫的肩寬（每邊各內縮多少 mm） */
+const TENON_SHOULDER = 4;
+
 export const bookendOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
   { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加三角支撐，避免重書壓彎" },
@@ -17,12 +26,19 @@ export const bookendOptions: OptionSpec[] = [
  *   length = 底板深度（書方向）
  *   width  = 底板寬度（順書架方向）
  *   height = 背板高度
+ *
+ * 書擋一定一對使用——overall 是「單件」尺寸，材料/工時 ×2 才是實際需求。
  */
 export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: baseDepth, width: baseWidth, height: backHeight, material } = input;
   const o = bookendOptions;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const withBrace = getOption<boolean>(input, opt(o, "withBrace"));
+
+  // 背板貼底板後緣立起，本身高 = backHeight - 底板厚
+  const backPanelH = backHeight - panelT;
+  // 帶肩榫：榫長 = 底板厚（從背板下緣往底板裡插），寬 = 底板寬內縮 2× 肩寬
+  const tenonW = Math.max(1, baseWidth - 2 * TENON_SHOULDER);
 
   const base: Part = {
     id: "base",
@@ -32,41 +48,59 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: baseDepth, width: baseWidth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
     tenons: [],
-    mortises: [],
+    mortises: [
+      {
+        origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT / 2) },
+        depth: panelT,
+        length: tenonW,
+        width: panelT - 2,
+        through: false,
+      },
+    ],
   };
 
-  // 背板立在底板後緣，本身高 = backHeight - panelT (扣底板厚度)
   const back: Part = {
     id: "back",
     nameZh: "背板",
     material,
     grainDirection: "length",
-    visible: { length: baseWidth, width: backHeight - panelT, thickness: panelT },
+    visible: { length: baseWidth, width: backPanelH, thickness: panelT },
     origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT / 2) },
     rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-    tenons: [],
+    tenons: [
+      {
+        position: "bottom",
+        type: "shouldered-tenon",
+        length: panelT,
+        width: tenonW,
+        thickness: panelT - 2,
+      },
+    ],
     mortises: [],
   };
 
   const parts: Part[] = [base, back];
+  const warnings: string[] = [];
+
+  if (backPanelH <= 0) {
+    warnings.push(`背板高度 ≤ 0：總高 ${backHeight}mm 小於板厚 ${panelT}mm。`);
+  }
 
   if (withBrace) {
-    // 三角加固板：直角三角形，水平短邊靠底板、垂直短邊靠背板
-    const braceLeg = Math.min(baseDepth * 0.5, backHeight * 0.4);
+    const braceLeg = Math.min(baseDepth * BRACE_DEPTH_FRAC, backHeight * BRACE_HEIGHT_FRAC);
     parts.push({
       id: "brace",
       nameZh: "三角加固",
       material,
       grainDirection: "length",
-      visible: { length: braceLeg, width: braceLeg, thickness: 12 },
+      visible: { length: braceLeg, width: braceLeg, thickness: BRACE_THICKNESS },
       origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT - braceLeg / 2) },
       tenons: [],
       mortises: [],
-      // 形狀渲染為 box（簡化），實際製作時切成直角三角形
     });
   }
 
-  return {
+  const design: FurnitureDesign = {
     id: `bookend-${baseDepth}x${baseWidth}x${backHeight}`,
     category: "bookend",
     nameZh: "書擋（一對）",
@@ -74,6 +108,8 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `書擋一對 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（或鳩尾接更傳統）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}**請做 2 件**——書擋本身一定一對，下方切料表是單件用量，一對請 ×2。`,
+    notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
+  if (warnings.length) design.warnings = warnings;
+  return design;
 };

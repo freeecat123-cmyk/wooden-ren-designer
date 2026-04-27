@@ -5,6 +5,24 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { validateRoundLegJoinery } from "./_validators";
+
+/** 底爪相對立柱粗的縮放：腳厚 = columnSize × FOOT_THICKNESS_RATIO */
+const FOOT_THICKNESS_RATIO = 0.6;
+/** 底爪相對立柱粗的縮放：腳寬 = columnSize × FOOT_WIDTH_RATIO */
+const FOOT_WIDTH_RATIO = 0.8;
+/** 掛鉤直徑（圓料） */
+const HOOK_SIZE = 18;
+/** 第二排掛鉤距離主排的下移量（mm） */
+const SECOND_ROW_OFFSET_Y = 200;
+/** 第二排掛鉤外伸長度的縮放（比主排略短） */
+const SECOND_ROW_LENGTH_SCALE = 0.85;
+/** 主排掛鉤距離柱頂的縮減（柱頂稍微露出，不要鉤頂著天花） */
+const HOOK_TOP_INSET = 30;
+/** 底爪榫頭埋入立柱的深度比（× columnSize） */
+const FOOT_TENON_DEPTH_RATIO = 0.5;
+/** 掛鉤盲榫的深度比（× columnSize） */
+const HOOK_TENON_DEPTH_RATIO = 0.4;
 
 export const coatRackOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "columnSize", label: "立柱粗 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm" },
@@ -18,6 +36,7 @@ export const coatRackOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "hookCount", label: "掛鉤數", defaultValue: 6, min: 4, max: 8, step: 2 },
   { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長 (mm)", defaultValue: 110, min: 60, max: 180, step: 10 },
   { group: "structure", type: "checkbox", key: "withSecondHookRow", label: "加第二排掛鉤", defaultValue: false, help: "在主排下方 200mm 處加一圈，掛短外套 / 圍巾" },
+  { group: "structure", type: "checkbox", key: "wallMode", label: "靠牆模式（省後排掛鉤）", defaultValue: false, help: "假定靠牆放，省掉朝牆面的 1/3 掛鉤（前 240° 範圍保留）" },
 ];
 
 /**
@@ -34,38 +53,34 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const hookCount = getOption<number>(input, opt(o, "hookCount"));
   const hookLength = getOption<number>(input, opt(o, "hookLength"));
   const withSecondHookRow = getOption<boolean>(input, opt(o, "withSecondHookRow"));
+  const wallMode = getOption<boolean>(input, opt(o, "wallMode"));
 
-  const footThickness = 30;
-  const footWidth = 40;
+  const footThickness = Math.round(columnSize * FOOT_THICKNESS_RATIO);
+  const footWidth = Math.round(columnSize * FOOT_WIDTH_RATIO);
   const columnHeight = height - footThickness;
+  const footTenonDepth = Math.max(8, Math.round(columnSize * FOOT_TENON_DEPTH_RATIO));
+  const hookTenonDepth = Math.max(8, Math.round(columnSize * HOOK_TENON_DEPTH_RATIO));
+
+  // 立柱形狀：box 沒有 shape prop（預設方料），round/lathe-turned 才指定
+  const columnShape =
+    columnStyle === "round"
+      ? ({ kind: "round" } as const)
+      : columnStyle === "lathe-turned"
+      ? ({ kind: "lathe-turned" } as const)
+      : undefined;
 
   // 立柱：底部離地 footThickness（爪頂端），頂端到 height
-  const column: Part = {
-    id: "column",
-    nameZh: "中央立柱",
-    material,
-    grainDirection: "length",
-    visible: { length: columnSize, width: columnSize, thickness: columnHeight },
-    origin: { x: 0, y: 0, z: 0 },
-    shape:
-      columnStyle === "round"
-        ? { kind: "round" }
-        : columnStyle === "lathe-turned"
-          ? { kind: "lathe-turned" }
-          : undefined,
-    tenons: [],
-    mortises: [],
-  };
+  // 立柱身上開的 mortise：底爪 + 掛鉤
+  const columnMortises = [];
 
   // 底爪：footCount 個方向放射
   const feet: Part[] = [];
   if (footCount === 4) {
-    // 4 爪沿 ±X / ±Z 4 個正交方向
     const dirs = [
-      { id: "foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1 },
-      { id: "foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1 },
-      { id: "foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1 },
-      { id: "foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1 },
+      { id: "foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1, mAngle: -Math.PI / 2 },
+      { id: "foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1, mAngle: Math.PI / 2 },
+      { id: "foot-left", nameZh: "左底爪", axis: "x" as const, sign: -1, mAngle: Math.PI },
+      { id: "foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1, mAngle: 0 },
     ];
     for (const d of dirs) {
       const isXAxis = d.axis === "x";
@@ -76,19 +91,37 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: footLength, width: footWidth, thickness: footThickness },
         origin: {
-          x: isXAxis ? d.sign * footLength / 2 : 0,
+          x: isXAxis ? (d.sign * footLength) / 2 : 0,
           y: 0,
-          z: !isXAxis ? d.sign * footLength / 2 : 0,
+          z: !isXAxis ? (d.sign * footLength) / 2 : 0,
         },
         rotation: isXAxis
           ? { x: Math.PI / 2, y: 0, z: 0 }
           : { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
+        tenons: [
+          {
+            position: "start",
+            type: "blind-tenon",
+            length: footTenonDepth,
+            width: Math.max(1, footWidth - 8),
+            thickness: Math.max(1, footThickness - 6),
+          },
+        ],
         mortises: [],
+      });
+      columnMortises.push({
+        origin: {
+          x: isXAxis ? (d.sign * columnSize) / 2 : 0,
+          y: footThickness / 2,
+          z: !isXAxis ? (d.sign * columnSize) / 2 : 0,
+        },
+        depth: footTenonDepth,
+        length: Math.max(1, footWidth - 8),
+        width: Math.max(1, footThickness - 6),
+        through: false,
       });
     }
   } else {
-    // 3 爪每 120° 平分
     for (let i = 0; i < 3; i++) {
       const angle = (i * 2 * Math.PI) / 3;
       feet.push({
@@ -103,64 +136,146 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           z: (Math.sin(angle) * footLength) / 2,
         },
         rotation: { x: Math.PI / 2, y: angle, z: 0 },
-        tenons: [],
+        tenons: [
+          {
+            position: "start",
+            type: "blind-tenon",
+            length: footTenonDepth,
+            width: Math.max(1, footWidth - 8),
+            thickness: Math.max(1, footThickness - 6),
+          },
+        ],
         mortises: [],
+      });
+      columnMortises.push({
+        origin: {
+          x: (Math.cos(angle) * columnSize) / 2,
+          y: footThickness / 2,
+          z: (Math.sin(angle) * columnSize) / 2,
+        },
+        depth: footTenonDepth,
+        length: Math.max(1, footWidth - 8),
+        width: Math.max(1, footThickness - 6),
+        through: false,
       });
     }
   }
 
-  // 頂部掛鉤：水平短料（直徑 18mm 的圓料），從柱頂往外伸
-  // hookCount 平均分佈於 360°
-  const hookY = height - 30;
-  const hookSize = 18;
+  // 頂部掛鉤：18mm 圓料盲榫接入立柱
+  const hookY = height - HOOK_TOP_INSET;
   const hooks: Part[] = [];
+  // 靠牆模式：保留前 240°（4/6 圈）的掛鉤，跳過後方 120°
+  const wallModeKept = (i: number, count: number): boolean => {
+    if (!wallMode) return true;
+    const angle = (i * 2 * Math.PI) / count;
+    // 後方定義為 z > 0（angle 在 [π/3, 2π/3]）
+    const z = Math.sin(angle);
+    const x = Math.cos(angle);
+    return !(z > 0.5 && Math.abs(x) < 0.6);
+  };
+
   for (let i = 0; i < hookCount; i++) {
+    if (!wallModeKept(i, hookCount)) continue;
     const angle = (i * 2 * Math.PI) / hookCount;
     hooks.push({
       id: `hook-${i + 1}`,
       nameZh: `掛鉤 ${i + 1}`,
       material,
       grainDirection: "length",
-      visible: { length: hookLength, width: hookSize, thickness: hookSize },
+      visible: { length: hookLength, width: HOOK_SIZE, thickness: HOOK_SIZE },
       origin: {
-        x: (Math.cos(angle) * (columnSize / 2 + hookLength / 2)),
+        x: Math.cos(angle) * (columnSize / 2 + hookLength / 2),
         y: hookY,
-        z: (Math.sin(angle) * (columnSize / 2 + hookLength / 2)),
+        z: Math.sin(angle) * (columnSize / 2 + hookLength / 2),
       },
       shape: { kind: "round" },
       rotation: { x: Math.PI / 2, y: angle, z: 0 },
-      tenons: [],
+      tenons: [
+        {
+          position: "start",
+          type: "blind-tenon",
+          length: hookTenonDepth,
+          width: HOOK_SIZE,
+          thickness: HOOK_SIZE,
+        },
+      ],
       mortises: [],
+    });
+    columnMortises.push({
+      origin: {
+        x: Math.cos(angle) * (columnSize / 2),
+        y: hookY,
+        z: Math.sin(angle) * (columnSize / 2),
+      },
+      depth: hookTenonDepth,
+      length: HOOK_SIZE,
+      width: HOOK_SIZE,
+      through: false,
     });
   }
 
-  // 第二排掛鉤（選用）—— 主排下方 200mm
   if (withSecondHookRow) {
-    const row2Y = hookY - 200;
-    // 旋轉 30° 錯開避免跟主排撞到，數量同 hookCount
+    const row2Y = hookY - SECOND_ROW_OFFSET_Y;
     const offset = Math.PI / hookCount;
+    const r2Length = hookLength * SECOND_ROW_LENGTH_SCALE;
     for (let i = 0; i < hookCount; i++) {
+      if (!wallModeKept(i, hookCount)) continue;
       const angle = (i * 2 * Math.PI) / hookCount + offset;
       hooks.push({
         id: `hook-r2-${i + 1}`,
         nameZh: `下排掛鉤 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: hookLength * 0.85, width: hookSize, thickness: hookSize },
+        visible: { length: r2Length, width: HOOK_SIZE, thickness: HOOK_SIZE },
         origin: {
-          x: (Math.cos(angle) * (columnSize / 2 + hookLength * 0.85 / 2)),
+          x: Math.cos(angle) * (columnSize / 2 + r2Length / 2),
           y: row2Y,
-          z: (Math.sin(angle) * (columnSize / 2 + hookLength * 0.85 / 2)),
+          z: Math.sin(angle) * (columnSize / 2 + r2Length / 2),
         },
         shape: { kind: "round" },
         rotation: { x: Math.PI / 2, y: angle, z: 0 },
-        tenons: [],
+        tenons: [
+          {
+            position: "start",
+            type: "blind-tenon",
+            length: hookTenonDepth,
+            width: HOOK_SIZE,
+            thickness: HOOK_SIZE,
+          },
+        ],
         mortises: [],
+      });
+      columnMortises.push({
+        origin: {
+          x: Math.cos(angle) * (columnSize / 2),
+          y: row2Y,
+          z: Math.sin(angle) * (columnSize / 2),
+        },
+        depth: hookTenonDepth,
+        length: HOOK_SIZE,
+        width: HOOK_SIZE,
+        through: false,
       });
     }
   }
 
-  return {
+  const column: Part = {
+    id: "column",
+    nameZh: "中央立柱",
+    material,
+    grainDirection: "length",
+    visible: { length: columnSize, width: columnSize, thickness: columnHeight },
+    origin: { x: 0, y: 0, z: 0 },
+    ...(columnShape ? { shape: columnShape } : {}),
+    tenons: [],
+    mortises: columnMortises,
+  };
+
+  const styleLabel =
+    columnStyle === "lathe-turned" ? "車旋古典" : columnStyle === "round" ? "圓料" : "方料";
+
+  const totalHooks = hooks.length;
+  const design: FurnitureDesign = {
     id: `coat-rack-${height}`,
     category: "coat-rack",
     nameZh: "立式衣帽架",
@@ -168,6 +283,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [column, ...feet, ...hooks],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
-    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${columnStyle === "lathe-turned" ? "車旋古典" : columnStyle === "round" ? "圓料" : "方料"}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${hookCount + (withSecondHookRow ? hookCount : 0)} 個掛鉤。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ ${columnSize}mm 的圓料車出花瓶輪廓——餐桌獨柱腳同款做法。" : ""}底爪用帶肩榫接入柱面，4 個方向各一個榫眼。掛鉤是 18mm 圓料，柱頂鑽穿透孔（透孔 / 通榫）讓掛鉤從一邊穿進去釘膠固定。**需要靠牆放可以省 1-2 個掛鉤**（後方那兩個用不到）。`,
+    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}`,
   };
+  const w = validateRoundLegJoinery(design);
+  if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
+  return design;
 };

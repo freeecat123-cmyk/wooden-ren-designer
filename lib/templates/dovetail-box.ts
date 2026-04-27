@@ -2,9 +2,9 @@ import type {
   FurnitureDesign,
   FurnitureTemplate,
   OptionSpec,
-  Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { buildBox } from "./_builders/box-builder";
 
 export const dovetailBoxOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
@@ -28,83 +28,51 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const withLid = getOption<boolean>(input, opt(o, "withLid"));
   const dovetailStyle = getOption<string>(input, opt(o, "dovetailStyle"));
 
-  // 壁高 = 整體高 - 底厚 - (有蓋時的)蓋厚
+  // 蓋板與壁同厚，方便共用同款料
   const lidT = withLid ? wallT : 0;
-  const wallH = outerH - botT - lidT;
 
-  const innerL = outerL - 2 * wallT;
-  const innerW = outerW - 2 * wallT;
-
-  const bottom: Part = {
-    id: "bottom",
-    nameZh: "底板",
+  const built = buildBox({
+    outerL,
+    outerW,
+    outerH,
+    wallT,
+    botT,
+    lidT,
     material,
-    grainDirection: "length",
-    visible: { length: outerL - 2 * 4, width: outerW - 2 * 4, thickness: botT },
-    origin: { x: 0, y: 0, z: 0 },
-    tenons: [],
-    mortises: [],
-  };
-
-  // 4 壁，全用鳩尾接合
-  const longWall = (id: string, nameZh: string, z: number): Part => ({
-    id,
-    nameZh,
-    material,
-    grainDirection: "length",
-    visible: { length: outerL, width: wallH, thickness: wallT },
-    origin: { x: 0, y: botT, z },
-    rotation: { x: Math.PI / 2, y: 0, z: 0 },
-    tenons: [
-      { position: "start", type: "dovetail", length: wallT, width: wallH - 4, thickness: wallT - 2 },
-      { position: "end", type: "dovetail", length: wallT, width: wallH - 4, thickness: wallT - 2 },
-    ],
-    mortises: [],
-  });
-  const shortWall = (id: string, nameZh: string, x: number): Part => ({
-    id,
-    nameZh,
-    material,
-    grainDirection: "length",
-    visible: { length: innerW, width: wallH, thickness: wallT },
-    origin: { x, y: botT, z: 0 },
-    rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-    tenons: [],
-    mortises: [
-      { origin: { x: 0, y: 0, z: -innerW / 2 - 1 }, depth: wallT, length: wallH - 4, width: wallT - 2, through: dovetailStyle === "through" },
-      { origin: { x: 0, y: 0, z: innerW / 2 + 1 }, depth: wallT, length: wallH - 4, width: wallT - 2, through: dovetailStyle === "through" },
-    ],
+    cornerJoinery: "dovetail",
+    bottomFit: "grooved",
   });
 
-  const parts: Part[] = [
-    bottom,
-    longWall("wall-front", "前壁（鳩尾）", -(outerW / 2 - wallT / 2)),
-    longWall("wall-back", "後壁（鳩尾）", outerW / 2 - wallT / 2),
-    shortWall("wall-left", "左壁（鳩尾母）", -(outerL / 2 - wallT / 2)),
-    shortWall("wall-right", "右壁（鳩尾母）", outerL / 2 - wallT / 2),
-  ];
-
-  if (withLid) {
-    parts.push({
-      id: "lid",
-      nameZh: "蓋板",
-      material,
-      grainDirection: "length",
-      visible: { length: outerL, width: outerW, thickness: lidT },
-      origin: { x: 0, y: outerH - lidT, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
+  // 半隱鳩尾的 mortise 不貫穿
+  if (dovetailStyle === "half-blind") {
+    for (const p of built.parts) {
+      if (p.id === "wall-left" || p.id === "wall-right") {
+        for (const m of p.mortises) m.through = false;
+      }
+    }
   }
 
-  return {
+  // 重新貼上鳩尾盒的中文零件名（box-builder 預設叫 前壁/後壁/左壁/右壁）
+  const nameMap: Record<string, string> = {
+    "wall-front": "前壁（鳩尾公）",
+    "wall-back": "後壁（鳩尾公）",
+    "wall-left": "左壁（鳩尾母）",
+    "wall-right": "右壁（鳩尾母）",
+  };
+  for (const p of built.parts) {
+    if (nameMap[p.id]) p.nameZh = nameMap[p.id];
+  }
+
+  const design: FurnitureDesign = {
     id: `dovetail-box-${outerL}x${outerW}x${outerH}`,
     category: "dovetail-box",
     nameZh: "鳩尾盒",
     overall: { length: outerL, width: outerW, thickness: outerH },
-    parts,
+    parts: built.parts,
     defaultJoinery: "dovetail",
     primaryMaterial: material,
     notes: `鳩尾盒 ${outerL}×${outerW}×${outerH}mm，${dovetailStyle === "through" ? "**通鳩尾**" : "**半隱鳩尾**"}接合。${dovetailStyle === "through" ? "通鳩尾從盒外能看到指狀鳩尾紋路，傳統工藝展示款。" : "半隱鳩尾從正面看不到鳩尾，盒身視覺乾淨——傳統抽屜做法，可同步學會。"}底板槽接 4 壁內側下緣，不上膠（讓底板可熱漲冷縮）。${withLid ? "蓋板可選滑入式（蓋兩側下緣鋸對稱凸條，前後壁內側上緣鋸對應槽，從前面滑入）或鉸鏈式（後壁裝小銅鉸鏈）。" : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
   };
+  if (built.warnings.length) design.warnings = built.warnings;
+  return design;
 };

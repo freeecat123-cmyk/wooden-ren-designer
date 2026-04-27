@@ -579,6 +579,23 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
     ].filter(Boolean),
   });
 
+  // 小物件（accessory）整體工時調整：
+  // - 備料/平刨/厚刨減半（常用 scrap 或 S4S 規料）
+  // - 各組裝步驟整體 ×0.6（尺寸小、夾具好對準、膠合面少）
+  // - 完工驗收時間減半
+  if (family === "accessory") {
+    for (const s of steps) {
+      if (!s.estimatedMinutes) continue;
+      if (s.id === "step-01-select-stock" || s.id === "step-02-jointer-planer") {
+        s.estimatedMinutes = Math.max(10, Math.round(s.estimatedMinutes * 0.4));
+      } else if (s.id === "step-99-final-check") {
+        s.estimatedMinutes = Math.max(10, Math.round(s.estimatedMinutes * 0.5));
+      } else {
+        s.estimatedMinutes = Math.max(8, Math.round(s.estimatedMinutes * 0.6));
+      }
+    }
+  }
+
   return steps;
 }
 

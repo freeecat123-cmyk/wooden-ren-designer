@@ -2,13 +2,17 @@ import type {
   FurnitureDesign,
   FurnitureTemplate,
   OptionSpec,
-  Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { buildBox } from "./_builders/box-builder";
 
 export const pencilHolderOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "stub-joint", choices: [
+    { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
+    { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
+  ] },
 ];
 
 /**
@@ -16,71 +20,35 @@ export const pencilHolderOptions: OptionSpec[] = [
  * input: 外尺寸（長×寬×高）
  */
 export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
-  const { length: outerL, width: outerW, height, material } = input;
+  const { length: outerL, width: outerW, height: outerH, material } = input;
   const o = pencilHolderOptions;
   const wallT = getOption<number>(input, opt(o, "wallThickness"));
   const botT = getOption<number>(input, opt(o, "bottomThickness"));
+  const cornerJoinery = getOption<string>(input, opt(o, "cornerJoinery")) as
+    | "stub-joint"
+    | "finger-joint";
 
-  const innerL = outerL - 2 * wallT;
-  const innerW = outerW - 2 * wallT;
-
-  const bottom: Part = {
-    id: "bottom",
-    nameZh: "底板",
+  const built = buildBox({
+    outerL,
+    outerW,
+    outerH,
+    wallT,
+    botT,
     material,
-    grainDirection: "length",
-    visible: { length: outerL, width: outerW, thickness: botT },
-    origin: { x: 0, y: 0, z: 0 },
-    tenons: [],
-    mortises: [],
-  };
+    cornerJoinery,
+    bottomFit: "grooved",
+  });
 
-  const front: Part = {
-    id: "wall-front",
-    nameZh: "前壁",
-    material,
-    grainDirection: "length",
-    visible: { length: outerL, width: height - botT, thickness: wallT },
-    origin: { x: 0, y: botT, z: -(outerW / 2 - wallT / 2) },
-    rotation: { x: Math.PI / 2, y: 0, z: 0 },
-    tenons: [],
-    mortises: [],
-  };
-
-  const back: Part = {
-    ...front,
-    id: "wall-back",
-    nameZh: "後壁",
-    origin: { x: 0, y: botT, z: outerW / 2 - wallT / 2 },
-  };
-
-  const left: Part = {
-    id: "wall-left",
-    nameZh: "左壁",
-    material,
-    grainDirection: "length",
-    visible: { length: innerW, width: height - botT, thickness: wallT },
-    origin: { x: -(outerL / 2 - wallT / 2), y: botT, z: 0 },
-    rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-    tenons: [],
-    mortises: [],
-  };
-
-  const right: Part = {
-    ...left,
-    id: "wall-right",
-    nameZh: "右壁",
-    origin: { x: outerL / 2 - wallT / 2, y: botT, z: 0 },
-  };
-
-  return {
-    id: `pencil-holder-${outerL}x${outerW}x${height}`,
+  const design: FurnitureDesign = {
+    id: `pencil-holder-${outerL}x${outerW}x${outerH}`,
     category: "pencil-holder",
     nameZh: "筆筒",
-    overall: { length: outerL, width: outerW, thickness: height },
-    parts: [bottom, front, back, left, right],
-    defaultJoinery: "tongue-and-groove",
+    overall: { length: outerL, width: outerW, thickness: outerH },
+    parts: built.parts,
+    defaultJoinery: cornerJoinery,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${height}mm，5 片實木組成。建議底板用企口槽嵌入 4 壁，4 壁角落可用 finger joint 或 rabbet 簡單接合。內部空間 ${innerL}×${innerW}mm 約可放 ${Math.floor((innerL * innerW) / 100)} 支筆。`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，5 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。`,
   };
+  if (built.warnings.length) design.warnings = [...built.warnings];
+  return design;
 };
