@@ -96,6 +96,9 @@ export function checkErgonomics(input: ErgoInput): ErgoWarning[] {
       const sh = seatHeight ?? overall.height;
       const w = check(sh, CHAIR.seatHeight, "seatHeight", "坐高");
       if (w) warnings.push(w);
+      // 側向穩定性：用 overall.length 當左右腳距 b（椅子寬）
+      const stab = checkSideStability(sh, overall.length);
+      if (stab) warnings.push(stab);
       break;
     }
     case "round-stool":
@@ -103,12 +106,18 @@ export function checkErgonomics(input: ErgoInput): ErgoWarning[] {
       const sh = seatHeight ?? overall.height;
       const w = check(sh, STOOL.height, "height", "凳高");
       if (w) warnings.push(w);
+      // 凳子側向穩定性更關鍵（無椅背重心更高？人體一樣）
+      const stab = checkSideStability(sh, Math.min(overall.length, overall.width));
+      if (stab) warnings.push(stab);
       break;
     }
     case "bench": {
       const sh = seatHeight ?? overall.height;
       const w = check(sh, BENCH.height, "height", "長椅座高");
       if (w) warnings.push(w);
+      // 長椅短邊是側向腳距
+      const stab = checkSideStability(sh, overall.width);
+      if (stab) warnings.push(stab);
       break;
     }
     case "dining-table": {
@@ -152,4 +161,41 @@ export function checkChairTableGap(seatHeight: number, tableHeight: number): Erg
     "diff",
     `桌椅差距`,
   );
+}
+
+/**
+ * 椅子側向穩定性檢查（drafting-math.md §V）
+ *
+ * 公式：θ_side = atan((b/2) / h_total)
+ *  - b = 左右腳距（取 overall.length，方凳/餐椅 ≈ 椅子寬）
+ *  - h_total ≈ 座面高 + 180mm（人體坐姿重心，per §V1）
+ *
+ * 閾值（家用）：
+ *  - θ_side ≥ 20° → OK
+ *  - 12° ≤ θ_side < 20° → WARN（接近極限，靠材料剛性撐著）
+ *  - θ_side < 12° → ERROR（高腳椅腳距太窄，會倒）
+ *
+ * 用例：吧椅 750mm 高 + 腳距 350mm → θ ≈ 10.4° → ERROR
+ */
+export function checkSideStability(seatHeight: number, legSpanB: number): ErgoWarning | null {
+  if (legSpanB <= 0) return null;
+  const hTotal = seatHeight + 180;
+  const thetaRad = Math.atan(legSpanB / 2 / hTotal);
+  const thetaDeg = (thetaRad * 180) / Math.PI;
+
+  if (thetaDeg >= 20) return null;
+  if (thetaDeg >= 12) {
+    return {
+      field: "stability",
+      level: "WARN",
+      message: `側向穩定性偏弱（θ ≈ ${thetaDeg.toFixed(1)}°，腳距 ${legSpanB} / 座高 ${seatHeight}）`,
+      suggest: `加大左右腳距 ≥ ${Math.ceil(2 * hTotal * Math.tan((20 * Math.PI) / 180))} mm，或降低座面`,
+    };
+  }
+  return {
+    field: "stability",
+    level: "ERROR",
+    message: `側向會倒！θ ≈ ${thetaDeg.toFixed(1)}°（< 12° 危險）`,
+    suggest: `腳距至少 ${Math.ceil(2 * hTotal * Math.tan((12 * Math.PI) / 180))} mm，或腳底外撇 splay 補償`,
+  };
 }
