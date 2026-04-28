@@ -562,19 +562,90 @@ export function OrthoView({
         // ===== 桌椅 / 凳子 / 茶几（無 cabinet 部分）=====
         if (!cabinet) {
           if (view === "top") {
-            // 俯視圖：只標腳粗（腳跨距 = 寬-legSize 沒有實用價值，外緣已標總寬）
+            // 俯視圖：腳粗 + 桌面外伸（4 角到腳外面距離）+ 對角線（檢查方正度）
             if (!legFootprint) return null;
-            const { minX, minZ, legSize } = legFootprint;
+            const { minX, maxX, minZ, maxZ, legSize } = legFootprint;
+            const overhangXr = w / 2 - (maxX + legSize / 2);  // 右側外伸
+            const overhangXl = -w / 2 - (minX - legSize / 2); // 左側 (負值取 abs)
+            const overhangZb = h / 2 - (maxZ + legSize / 2);  // 後側 (z>0)
+            const overhangZf = -h / 2 - (minZ - legSize / 2); // 前側 (negative)
+            const showOverhang = Math.abs(overhangXr) > 1; // > 1mm 才標
+            // 對角線（檢查方正度用）：從左前角到右後角
+            const diagonal = Math.sqrt(w * w + h * h);
             return (
-              <text
-                x={minX + legSize / 2 + 4}
-                y={minZ - 4}
-                fontSize={10}
-                fill="#444"
-                fontFamily="sans-serif"
-              >
-                腳 {legSize}×{legSize}
-              </text>
+              <>
+                {/* 腳粗 */}
+                <text
+                  x={minX + legSize / 2 + 4}
+                  y={minZ - 4}
+                  fontSize={10}
+                  fill="#444"
+                  fontFamily="sans-serif"
+                >
+                  腳 {legSize}×{legSize}
+                </text>
+                {/* 桌面外伸——只在右上角標一個（4 邊對稱所以只標 1 處夠用）*/}
+                {showOverhang && (
+                  <>
+                    <DimensionLine
+                      arrowId={`arr-${view}`}
+                      x1={maxX + legSize / 2}
+                      x2={w / 2}
+                      y={-h / 2 - 16}
+                      label={`外伸 ${Math.round(overhangXr)}`}
+                    />
+                    <VerticalDimensionLine
+                      arrowId={`arr-${view}`}
+                      x={w / 2 + 16}
+                      y1={maxZ + legSize / 2}
+                      y2={h / 2}
+                      label={`外伸 ${Math.round(overhangZb)}`}
+                    />
+                  </>
+                )}
+                {/* 對角線——左前 → 右後虛線 + 標（標籤離線 14px 避免重疊）*/}
+                <line
+                  x1={-w / 2}
+                  y1={-h / 2}
+                  x2={w / 2}
+                  y2={h / 2}
+                  stroke="#a55"
+                  strokeWidth={0.4}
+                  strokeDasharray="4 3"
+                />
+                {(() => {
+                  const angDeg = (Math.atan2(h, w) * 180) / Math.PI;
+                  const angRad = Math.atan2(h, w);
+                  // 沿對角線往中央放，再垂直線方向偏移 14px 避開線
+                  const offX = -Math.sin(angRad) * 14;
+                  const offY = Math.cos(angRad) * 14;
+                  const label = `對角 ${Math.round(diagonal)}（量此檢查方正）`;
+                  return (
+                    <g transform={`translate(${offX}, ${offY}) rotate(${angDeg})`}>
+                      {/* 白底擋住虛線，避免線穿過字 */}
+                      <rect
+                        x={-label.length * 5}
+                        y={-7}
+                        width={label.length * 10}
+                        height={13}
+                        fill="white"
+                        opacity={0.9}
+                      />
+                      <text
+                        x={0}
+                        y={0}
+                        fontSize={10}
+                        fill="#a55"
+                        fontFamily="sans-serif"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        {label}
+                      </text>
+                    </g>
+                  );
+                })()}
+              </>
             );
           }
           // front / side：主面厚 + 淨高 + 座面高 + 層板 + 橫撐 / 牙板 / 椅背
