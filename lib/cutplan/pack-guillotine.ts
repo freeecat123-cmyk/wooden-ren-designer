@@ -238,11 +238,13 @@ export function packGroupGuillotine(
     pruneContained(rects);
   }
 
-  // 切料順序：依位置 top-to-bottom、left-to-right
+  // 切料順序：column-major——同一直行先上→下切完，再切下一行
+  // (跟 FFD/BFD 的 row-major 區別：guillotine 鋸線通常先一刀切到底分左右，
+  //  所以一行切完才換下一行；row-major 在多直行時會左右跳很亂)
   for (const bin of bins) {
     const flat: Array<SheetBin["shelves"][number]["pieces"][number]> = [];
     for (const shelf of bin.shelves) for (const p of shelf.pieces) flat.push(p);
-    flat.sort((a, b) => a.y - b.y || a.x - b.x);
+    flat.sort((a, b) => a.x - b.x || a.y - b.y);
     flat.forEach((p, i) => (p.order = i + 1));
   }
 
