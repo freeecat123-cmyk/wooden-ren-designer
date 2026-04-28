@@ -94,6 +94,9 @@ function extractFurnitureDims(design: FurnitureDesign) {
             180) /
           Math.PI
         : null;
+      // 軸向：rotation.y ≈ π/2 → Z 軸橫撐（左/右），else X 軸（前/後）
+      // 用來決定哪個視圖該顯示這條橫撐的長度標
+      const isZAxis = Math.abs(p.rotation?.y ?? 0) > Math.PI / 4;
       return {
         id: p.id,
         nameZh: p.nameZh,
@@ -102,6 +105,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
         yExt,
         cutLengthMm,
         cutAngleDeg,
+        isZAxis,
       };
     })
     .sort((a, b) => a.bottomY - b.bottomY);
@@ -666,11 +670,16 @@ export function OrthoView({
                   </text>
                 ));
               })()}
-              {/* 梯形橫撐：總長 + 斜面角度——用水平標線拉箭頭，視 Y 去重 */}
+              {/* 梯形橫撐：總長 + 斜面角度——用水平標線拉箭頭
+                  按視圖軸過濾：front 顯示 X 軸橫撐、side 顯示 Z 軸（不然側視圖會
+                  顯示前橫撐的長度，跟看到的 Z 軸橫撐尺寸不符） */}
               {(() => {
                 const seenTrap = new Map<string, typeof crossPieces[0]>();
                 for (const c of crossPieces) {
                   if (c.cutLengthMm === null || c.cutAngleDeg === null || c.cutAngleDeg <= 0.1) continue;
+                  // 視圖軸過濾：front 只看 X 軸（!isZAxis）；side 只看 Z 軸
+                  if (view === "front" && c.isZAxis) continue;
+                  if (view === "side" && !c.isZAxis) continue;
                   const key = `${Math.round(c.bottomY)}_${Math.round(c.cutLengthMm)}`;
                   if (!seenTrap.has(key)) seenTrap.set(key, c);
                 }
