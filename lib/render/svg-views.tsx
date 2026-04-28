@@ -81,19 +81,18 @@ function extractFurnitureDims(design: FurnitureDesign) {
     )
     .map((p) => {
       const { yExt } = worldExtents(p);
-      // 梯形橫撐（外斜腳的 trap apron）：算總長 + 斜面角度供工坊切料
-      // length = bottom 邊長度 = visible.length
-      // top 邊 = visible.length × topLengthScale
-      // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，從垂直起算
+      // 所有橫撐都標總長（拉箭頭）；梯形橫撐多標斜面角度
+      // length = visible.length（bottom 邊長度，or 一般矩形的長度）
+      // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，trap shape 才有
       const trap = p.shape?.kind === "apron-trapezoid" ? p.shape : null;
-      const cutLengthMm = trap ? p.visible.length : null;
+      const cutLengthMm = p.visible.length;
       const cutAngleDeg = trap
         ? (Math.atan(
             (p.visible.length * (1 - trap.topLengthScale)) / 2 / p.visible.width,
           ) *
             180) /
           Math.PI
-        : null;
+        : 0;
       // 軸向：rotation.y ≈ π/2 → Z 軸橫撐（左/右），else X 軸（前/後）
       // 用來決定哪個視圖該顯示這條橫撐的長度標
       const isZAxis = Math.abs(p.rotation?.y ?? 0) > Math.PI / 4;
@@ -670,30 +669,28 @@ export function OrthoView({
                   </text>
                 ));
               })()}
-              {/* 梯形橫撐：總長 + 斜面角度——用水平標線拉箭頭
-                  按視圖軸過濾：front 顯示 X 軸橫撐、side 顯示 Z 軸（不然側視圖會
-                  顯示前橫撐的長度，跟看到的 Z 軸橫撐尺寸不符） */}
+              {/* 橫撐長度標——所有橫撐都標 L（拉箭頭），梯形多標 ∠
+                  按視圖軸過濾：front 顯示 X 軸（前/後）、side 顯示 Z 軸（左/右） */}
               {(() => {
-                const seenTrap = new Map<string, typeof crossPieces[0]>();
+                const seenLen = new Map<string, typeof crossPieces[0]>();
                 for (const c of crossPieces) {
-                  if (c.cutLengthMm === null || c.cutAngleDeg === null || c.cutAngleDeg <= 0.1) continue;
-                  // 視圖軸過濾：front 只看 X 軸（!isZAxis）；side 只看 Z 軸
                   if (view === "front" && c.isZAxis) continue;
                   if (view === "side" && !c.isZAxis) continue;
                   const key = `${Math.round(c.bottomY)}_${Math.round(c.cutLengthMm)}`;
-                  if (!seenTrap.has(key)) seenTrap.set(key, c);
+                  if (!seenLen.has(key)) seenLen.set(key, c);
                 }
                 const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
-                return [...seenTrap.values()].map((c, i) => {
-                  const halfL = (c.cutLengthMm as number) / 2;
-                  // 標線放在橫撐 bottom 下方 12px
+                return [...seenLen.values()].map((c) => {
+                  const halfL = c.cutLengthMm / 2;
                   const yLine = -c.bottomY + 12;
+                  const showAngle = c.cutAngleDeg > 0.1;
                   return (
                     <g key={`xp-len-${c.id}`} stroke="#a55" fill="#a55" strokeWidth={0.5} fontFamily="sans-serif">
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(c.nameZh)} L{Math.round(c.cutLengthMm as number)} ∠{(c.cutAngleDeg as number).toFixed(1)}°
+                        {bare(c.nameZh)} L{Math.round(c.cutLengthMm)}
+                        {showAngle ? ` ∠${c.cutAngleDeg.toFixed(1)}°` : ""}
                       </text>
                     </g>
                   );
