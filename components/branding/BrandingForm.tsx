@@ -276,13 +276,6 @@ export function BrandingForm({
                 />
               </div>
               <TextField
-                label="交貨期"
-                value={data.deliveryTerms}
-                onChange={handleField("deliveryTerms")}
-                colSpan2
-                hint="文字中的 ＿＿ 空白會自動填入預估工作天"
-              />
-              <TextField
                 label="保固"
                 value={data.warranty}
                 onChange={handleField("warranty")}
