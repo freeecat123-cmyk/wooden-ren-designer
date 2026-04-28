@@ -15,6 +15,24 @@ import {
 } from "@/lib/projects/types";
 import type { FurnitureCategory } from "@/lib/types";
 import type { DesignRow } from "@/lib/projects/design-row";
+import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
+import { estimateUnitPriceFromParams } from "@/lib/projects/estimate-price";
+
+const COMMON_ROOMS = [
+  "主臥室",
+  "次臥室",
+  "兒童房",
+  "客房",
+  "書房",
+  "客廳",
+  "餐廳",
+  "廚房",
+  "玄關",
+  "衛浴",
+  "陽台",
+  "儲藏室",
+  "辦公室",
+];
 
 function categoryLabel(type: string): string {
   const slug = type.replace(/_/g, "-") as FurnitureCategory;
@@ -141,6 +159,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       const insertName =
         design.name?.trim() ||
         `${categoryLabel(design.furniture_type)}${dim ? " " + dim : ""}`;
+      const estimatedPrice = estimateUnitPriceFromParams(
+        design.furniture_type,
+        design.params as Record<string, unknown>,
+      );
       const { data, error } = await supabase
         .from("project_items")
         .insert({
@@ -150,6 +172,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           name: insertName,
           params: design.params,
           quantity: 1,
+          unit_price_override: estimatedPrice,
           room: room || null,
           sort_order: items?.length ?? 0,
         })
@@ -250,6 +273,11 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <datalist id="project-rooms">
+        {COMMON_ROOMS.map((r) => (
+          <option key={r} value={r} />
+        ))}
+      </datalist>
       <Link href="/projects" className="text-sm text-zinc-500 hover:underline">
         ← 回專案列表
       </Link>
@@ -375,6 +403,28 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             </div>
           </div>
         </div>
+
+        {totals.count > 0 && (
+          <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-wrap gap-2 justify-end">
+            <Link
+              href={`/projects/${projectId}/quote`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
+            >
+              👀 預覽報價
+            </Link>
+            <Link
+              href={`/projects/${projectId}/quote/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
+            >
+              🖨️ 列印 / 存 PDF
+            </Link>
+            <CopyShareLinkButton projectId={projectId} />
+          </div>
+        )}
       </section>
 
       {/* 危險區 */}
@@ -457,6 +507,7 @@ function ItemRow({
         type="text"
         defaultValue={item.room ?? ""}
         placeholder="房間"
+        list="project-rooms"
         onBlur={(e) => {
           const v = e.target.value.trim();
           if (v !== (item.room ?? "")) onUpdate({ room: v || null });
@@ -479,26 +530,13 @@ function ItemRow({
         />
       </label>
 
-      <label className="flex items-center gap-1 text-xs text-zinc-600">
-        單價
-        <input
-          type="number"
-          min={0}
-          step={100}
-          defaultValue={item.unit_price_override ?? ""}
-          placeholder="—"
-          onBlur={(e) => {
-            const raw = e.target.value.trim();
-            const n = raw === "" ? null : Math.max(0, parseFloat(raw) || 0);
-            if (n !== item.unit_price_override) onUpdate({ unit_price_override: n });
-          }}
-          className="w-24 border border-zinc-300 rounded px-1.5 py-1 text-xs bg-white text-right font-mono"
-        />
-      </label>
+      <UnitPriceInput item={item} onUpdate={onUpdate} />
 
       <div className="flex items-center gap-1.5">
         <Link
           href={buildDesignHref(item)}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-xs text-amber-700 hover:underline px-2"
         >
           開啟
@@ -513,6 +551,70 @@ function ItemRow({
         </button>
       </div>
     </li>
+  );
+}
+
+function UnitPriceInput({
+  item,
+  onUpdate,
+}: {
+  item: ProjectItemRow;
+  onUpdate: (patch: Partial<ProjectItemRow>) => void;
+}) {
+  const [val, setVal] = useState(item.unit_price_override?.toString() ?? "");
+  useEffect(() => {
+    setVal(item.unit_price_override?.toString() ?? "");
+  }, [item.unit_price_override]);
+
+  const estimated = useMemo(
+    () =>
+      estimateUnitPriceFromParams(
+        item.furniture_type,
+        item.params as Record<string, unknown>,
+      ),
+    [item.furniture_type, item.params],
+  );
+
+  const hasEstimate = estimated != null && estimated > 0;
+  const isEmpty = item.unit_price_override == null;
+  const isDifferent =
+    hasEstimate &&
+    item.unit_price_override != null &&
+    item.unit_price_override !== estimated;
+
+  return (
+    <label className="flex items-center gap-1 text-xs text-zinc-600">
+      單價
+      <div className="flex flex-col items-end">
+        <input
+          type="number"
+          min={0}
+          step={100}
+          value={val}
+          placeholder={hasEstimate ? `估 ${estimated}` : "—"}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={() => {
+            const raw = val.trim();
+            const n = raw === "" ? null : Math.max(0, parseFloat(raw) || 0);
+            if (n !== item.unit_price_override) onUpdate({ unit_price_override: n });
+          }}
+          className="w-24 border border-zinc-300 rounded px-1.5 py-1 text-xs bg-white text-right font-mono"
+        />
+        {hasEstimate && (isEmpty || isDifferent) && (
+          <button
+            type="button"
+            onClick={() => {
+              setVal(String(estimated));
+              onUpdate({ unit_price_override: estimated });
+            }}
+            className="mt-0.5 text-[10px] text-amber-700 hover:underline"
+            title="用模板與預設工資估算"
+          >
+            {isEmpty ? "帶入" : "更新為"}估價 ${estimated.toLocaleString()}
+          </button>
+        )}
+      </div>
+    </label>
   );
 }
 
@@ -546,6 +648,7 @@ function AddItemPanel({
             value={room}
             onChange={(e) => setRoom(e.target.value)}
             placeholder="例：玄關 / 客廳"
+            list="project-rooms"
             className="w-28 border border-amber-300 rounded px-2 py-1 text-xs bg-white"
           />
         </label>

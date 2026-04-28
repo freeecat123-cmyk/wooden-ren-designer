@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useUserPlan } from "@/hooks/useUserPlan";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
   PROJECT_STATUS_LABEL,
@@ -24,15 +24,22 @@ function formatDate(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function ProjectsClient() {
-  const { isLoading: planLoading, isLoggedIn, userId } = useUserPlan();
-  const [rows, setRows] = useState<ProjectRow[] | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ProjectsClient({
+  initialRows,
+}: {
+  initialRows: ProjectRow[] | null;
+}) {
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+  const isLoggedIn = !!user;
+  const [rows, setRows] = useState<ProjectRow[] | null>(initialRows);
+  const [loading, setLoading] = useState(initialRows === null);
   const [err, setErr] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (planLoading) return;
+    if (initialRows !== null) return;
+    if (authLoading) return;
     if (!isLoggedIn || !userId) {
       setLoading(false);
       return;
@@ -57,7 +64,7 @@ export function ProjectsClient() {
     return () => {
       cancelled = true;
     };
-  }, [planLoading, isLoggedIn, userId]);
+  }, [authLoading, isLoggedIn, userId, initialRows]);
 
   const handleCreate = async () => {
     if (!userId) return;
@@ -80,7 +87,7 @@ export function ProjectsClient() {
     }
   };
 
-  if (planLoading || loading) {
+  if (loading || (authLoading && rows === null)) {
     return (
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-sm text-zinc-500">
         載入中…
