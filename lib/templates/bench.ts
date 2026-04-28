@@ -132,22 +132,22 @@ export const bench: FurnitureTemplate = (input) => {
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
-    // 層板坐在下橫撐頂面，邊緣延伸到橫撐內面（跟橫撐重疊 stretcherT/2）
-    // 不然層板會比橫撐窄、底下沒東西支撐，看起來像懸空
+    // 層板坐在下橫撐頂面，邊緣延伸到橫撐內面，4 角缺角避開腳柱
     const shelfY = stretcherY + stretcherW;
+    const shelfLen = Math.max(50, input.length - legSize - 2 * legInset - stretcherT);
+    const shelfWid = Math.max(50, input.width - legSize - 2 * legInset - stretcherT);
+    // 缺角尺寸 = 層板邊緣到腳柱內面的距離 = (legSize - stretcherT) / 2
+    const notchSize = Math.max(0, (legSize - stretcherT) / 2);
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
       material: input.material,
       grainDirection: "length",
-      visible: {
-        // = input.dim - legSize - 2*legInset - stretcherT，正好讓層板邊緣
-        // 落在橫撐內面（橫撐 z 中心 ±legInset 外緣，內面再內縮 stretcherT/2）
-        length: Math.max(50, input.length - legSize - 2 * legInset - stretcherT),
-        width: Math.max(50, input.width - legSize - 2 * legInset - stretcherT),
-        thickness: shelfT,
-      },
+      visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
       origin: { x: 0, y: shelfY, z: 0 },
+      shape: notchSize > 0
+        ? { kind: "notched-corners", notchLengthMm: notchSize, notchWidthMm: notchSize }
+        : undefined,
       tenons: [],
       mortises: [],
     });

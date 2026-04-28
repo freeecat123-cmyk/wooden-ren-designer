@@ -472,7 +472,8 @@ export function OrthoView({
             view === "top" &&
             part.shape.kind !== "splayed" &&
             part.shape.kind !== "splayed-tapered" &&
-            part.shape.kind !== "splayed-round-tapered"
+            part.shape.kind !== "splayed-round-tapered" &&
+            part.shape.kind !== "notched-corners"
           );
         if (useShape) {
           const poly = projectPartPolygon(part, view);

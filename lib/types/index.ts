@@ -220,6 +220,11 @@ export interface Part {
     /** Live edge 板狀零件——桌面長邊用 sin 組合 noise 做不規則波浪，
      *  模擬保留樹皮的原木板。amplitudeMm = 波幅（±值），預設 12mm。
      *  跟 chamfered-top 互斥（live-edge 已含造型，不疊倒角）。 */
+    /** 4 角缺角板：層板要避開腳柱時，4 個角各切掉一塊矩形。
+     *  notchLengthMm = 沿 length 軸切掉長度（兩側對稱）
+     *  notchWidthMm  = 沿 width 軸切掉長度
+     *  常見用途：座下層板延伸到下橫撐齊平、跟腳重疊的部分要切掉。 */
+    | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
     | { kind: "live-edge"; amplitudeMm?: number }
     /** Seat scoop: 座板挖型。saddle = 馬鞍式中央凹（雙軸 paraboloid），
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。

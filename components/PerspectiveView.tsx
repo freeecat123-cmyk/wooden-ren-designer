@@ -80,6 +80,7 @@ type ShapeSpec =
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
+  | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped"; depth: number };
 
@@ -138,6 +139,9 @@ function Part({
     }
     if (shape.kind === "chamfered-edges") {
       return buildChamferedEdgesGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
+    }
+    if (shape.kind === "notched-corners") {
+      return buildNotchedCornersGeometry(size, shape.notchLengthMm, shape.notchWidthMm);
     }
     if (shape.kind === "live-edge") {
       return buildLiveEdgeGeometry(size, shape.amplitudeMm);
@@ -757,6 +761,79 @@ function buildSplayedRoundTaperedGeometry(
  * 段數固定 32（沿長邊取樣），波形 = 3 個不同週期的 sin 疊加，振幅 = amplitudeMm。
  * 兩條長邊用不同 phase（差 π/3），看起來不會對稱。
  */
+/**
+ * 4 角缺角板：層板 4 個角各切掉 notchLength × notchWidth 的矩形。
+ * 用 8-corner 多邊形 prism——上下兩面都是 8 邊形，4 條垂直邊連起來。
+ * 用途：座下層板延伸到下橫撐齊平、跟腳柱重疊的角要切掉。
+ */
+function buildNotchedCornersGeometry(
+  size: [number, number, number],
+  notchL: number,
+  notchW: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const nL = Math.max(0, Math.min(notchL, hx * 0.95));
+  const nW = Math.max(0, Math.min(notchW, hz * 0.95));
+  if (nL <= 0 || nW <= 0) {
+    // Fallback: regular box
+    const g = new BufferGeometry();
+    const v = [
+      -hx, -hy, -hz,  hx, -hy, -hz,  hx, hy, -hz,  -hx, hy, -hz,
+      -hx, -hy,  hz,  hx, -hy,  hz,  hx, hy,  hz,  -hx, hy,  hz,
+    ];
+    const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+    const idx = [
+      ...f(0, 1, 2, 3), ...f(7, 6, 5, 4),
+      ...f(4, 5, 1, 0), ...f(2, 6, 7, 3),
+      ...f(1, 5, 6, 2), ...f(0, 3, 7, 4),
+    ];
+    g.setAttribute("position", new Float32BufferAttribute(v, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }
+  // 8 outer corners on top + 8 on bottom 環一圈順時針：
+  // (hx, -hz+nW), (hx, hz-nW), (hx-nL, hz-nW), (hx-nL, hz),
+  // (-hx+nL, hz), (-hx+nL, hz-nW), (-hx, hz-nW), (-hx, -hz+nW),
+  // (-hx+nL, -hz+nW), (-hx+nL, -hz), (hx-nL, -hz), (hx-nL, -hz+nW)
+  const ring: Array<[number, number]> = [
+    [+hx, -hz + nW], [+hx, +hz - nW], [+hx - nL, +hz - nW], [+hx - nL, +hz],
+    [-hx + nL, +hz], [-hx + nL, +hz - nW], [-hx, +hz - nW], [-hx, -hz + nW],
+    [-hx + nL, -hz + nW], [-hx + nL, -hz], [+hx - nL, -hz], [+hx - nL, -hz + nW],
+  ];
+  const v: number[] = [];
+  // bottom ring (y=-hy), then top ring (y=+hy)
+  for (const [x, z] of ring) v.push(x, -hy, z);
+  for (const [x, z] of ring) v.push(x,  hy, z);
+  const N = ring.length;
+  const idx: number[] = [];
+  // 側面：相鄰 2 點 + 對應 top 的 2 點 → 1 個 quad = 2 三角
+  for (let i = 0; i < N; i++) {
+    const a = i;
+    const b = (i + 1) % N;
+    const at = a + N;
+    const bt = b + N;
+    // CCW from outside: (a, b, bt) + (a, bt, at)
+    idx.push(a, b, bt, a, bt, at);
+  }
+  // 底面（fan from vertex 0），CCW from below = 0,2,1 ...
+  for (let i = 1; i < N - 1; i++) {
+    idx.push(0, i + 1, i);
+  }
+  // 頂面（fan from vertex N），CCW from above
+  for (let i = 1; i < N - 1; i++) {
+    idx.push(N, N + i, N + i + 1);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 function buildLiveEdgeGeometry(
   size: [number, number, number],
   amplitudeMm: number,
@@ -1227,6 +1304,12 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             };
           } else if (part.shape?.kind === "chamfered-edges") {
             shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
+          } else if (part.shape?.kind === "notched-corners") {
+            shape = {
+              kind: "notched-corners",
+              notchLengthMm: part.shape.notchLengthMm * SCALE,
+              notchWidthMm: part.shape.notchWidthMm * SCALE,
+            };
           } else if (part.shape?.kind === "live-edge") {
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };
           } else if (part.shape?.kind === "seat-scoop") {

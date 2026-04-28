@@ -368,6 +368,29 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
+  // 4 角缺角板（座下層板避腳柱）：俯視畫 8 角多邊形，前/側視仍是矩形
+  // （前/側 silhouette 沿 X-Y / Z-Y 投影，corner 缺角不影響 max extent）
+  if (part.shape.kind === "notched-corners" && view === "top") {
+    const nL = Math.max(0, Math.min(part.shape.notchLengthMm, r.w * 0.45));
+    const nW = Math.max(0, Math.min(part.shape.notchWidthMm, r.h * 0.45));
+    if (nL <= 0 || nW <= 0) return box;
+    // 俯視 box：(r.x, r.y) 為左下角，(r.x+r.w, r.y+r.h) 為右上角
+    return [
+      { x: r.x + nL, y: r.y },
+      { x: r.x + r.w - nL, y: r.y },
+      { x: r.x + r.w - nL, y: r.y + nW },
+      { x: r.x + r.w, y: r.y + nW },
+      { x: r.x + r.w, y: r.y + r.h - nW },
+      { x: r.x + r.w - nL, y: r.y + r.h - nW },
+      { x: r.x + r.w - nL, y: r.y + r.h },
+      { x: r.x + nL, y: r.y + r.h },
+      { x: r.x + nL, y: r.y + r.h - nW },
+      { x: r.x, y: r.y + r.h - nW },
+      { x: r.x, y: r.y + nW },
+      { x: r.x + nL, y: r.y + nW },
+    ];
+  }
+
   // 板狀零件頂緣倒角（座板 / 桌面）：前/側視 = 矩形上 2 角斜切（chamfered）
   // 或圓角弧線（rounded）。俯視仍是矩形（從上方看不到倒角）。
   // bottomChamferMm > 0 → 下 2 角也斜切（腳內縮、座板下緣外露時用）。
