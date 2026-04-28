@@ -590,18 +590,20 @@ export function OrthoView({
         opacity={0.8}
       />
 
-      {/* horizontal dimension below */}
+      {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
+          Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
       <DimensionLine
         arrowId={`arr-${view}`}
         x1={-w / 2}
         x2={w / 2}
         y={drawAreaTop + h + 28}
-        label={`${w} mm`}
+        label={`${view === "side" ? "深" : "寬"} ${w} mm`}
       />
 
       {/* vertical dimension on right side
           桌椅類前/側視圖左側已有「座面 ${h}」/「桌面 ${h}」高度標，避免重複；
-          頂視圖跟櫃類沒有左側等價標籤，仍顯示總高 */}
+          頂視圖跟櫃類沒有左側等價標籤，仍顯示總高
+          Front/Side 投影 Y 軸 = 高（thickness）；Top 投影 Y 軸 = 深（width）*/}
       {(() => {
         const hasFlatTopLeftLabel =
           view !== "top" && extractFurnitureDims(design) !== null;
@@ -612,7 +614,7 @@ export function OrthoView({
             x={w / 2 + 28}
             y1={view === "top" ? -h / 2 : -h}
             y2={view === "top" ? h / 2 : 0}
-            label={`${h} mm`}
+            label={`${view === "top" ? "深" : "高"} ${h} mm`}
           />
         );
       })()}

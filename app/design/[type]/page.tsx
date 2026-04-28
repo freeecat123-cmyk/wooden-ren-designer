@@ -20,6 +20,7 @@ import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
+import { DesignChecks } from "@/components/DesignChecks";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
@@ -215,6 +216,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {design.suggestions && design.suggestions.length > 0 && (
         <SuggestionsBox suggestions={design.suggestions} />
       )}
+
+      {/* 設計合理性檢查：撓度/木紋/市售對齊（折疊式，無警告時不顯示）*/}
+      <DesignChecks design={design} />
 
       {/* 主視覺：左邊參數捲動 ↔ 右邊 3D + 三視圖 sticky 在右上 */}
       <section className="grid lg:grid-cols-[5fr_7fr] gap-4">
