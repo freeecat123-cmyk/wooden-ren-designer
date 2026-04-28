@@ -48,7 +48,6 @@ export const lowTableOptions: OptionSpec[] = [
     { value: "ice-bowl", label: "保冰碗凹槽（IGGY 桌中央放冰碗）" },
     { value: "tatami-tray", label: "和室托盤凹（平時可收納成平面）" },
   ], help: "桌面中央挖凹槽嵌入特殊配件。火盆桌需配防火磚 + 隔熱層" },
-  { group: "top", type: "checkbox", key: "foldable", label: "可摺式（和室半摺）", defaultValue: false, help: "桌腳可向內摺貼桌面下方收納，4 隻金屬摺疊鉸鏈（外購一組 NT$ 200）", wide: true },
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
@@ -102,7 +101,7 @@ export const lowTable: FurnitureTemplate = (input) => {
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}${(() => { const ci = getOption<string>(input, opt(o, "centerInsert")); const fd = getOption<boolean>(input, opt(o, "foldable")); return `${ci === "fire-pit" ? " 桌面中央挖 ⌀200×100mm 凹槽 + 防火磚襯底 + 鋁箔隔熱層，放炭 / 酒精爐（火盆桌）。" : ci === "ice-bowl" ? " 桌面中央挖 ⌀250×80mm 凹槽放保冰碗（IGGY 風格）。" : ci === "tatami-tray" ? " 桌面中央挖凹平時收成平面、托盤可拉出。" : ""}${fd ? " 桌腳可向內摺貼桌面下方收納（金屬摺疊鉸鏈一組）。" : ""}`; })()}`,
+    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}${(() => { const ci = getOption<string>(input, opt(o, "centerInsert")); return ci === "fire-pit" ? " 桌面中央挖 ⌀200×100mm 凹槽 + 防火磚襯底 + 鋁箔隔熱層，放炭 / 酒精爐（火盆桌）。" : ci === "ice-bowl" ? " 桌面中央挖 ⌀250×80mm 凹槽放保冰碗（IGGY 風格）。" : ci === "tatami-tray" ? " 桌面中央挖凹平時收成平面、托盤可拉出。" : ""; })()}`,
   });
   // 中央嵌入凹槽：在 top 加 mortise
   const centerInsert = getOption<string>(input, opt(o, "centerInsert"));

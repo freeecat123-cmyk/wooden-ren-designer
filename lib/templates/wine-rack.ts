@@ -35,7 +35,6 @@ export const wineRackOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "withGlassRack", label: "頂部加掛酒杯架", defaultValue: false, help: "頂板下方加 4-6 道 30mm 寬槽軌（高腳杯倒掛），酒架同時是杯架。需為高腳杯預留至少 200mm 淨高", wide: true },
   { group: "structure", type: "checkbox", key: "withFelt", label: "瓶位內貼絨布", defaultValue: false, help: "每個瓶位四壁內側貼薄絨布，瓶身放入時不會碰撞瓶身刮花標籤", wide: true },
   { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: "底部加 100mm 高抽屜，放開瓶器/酒塞/濾酒器等配件", wide: true },
-  { group: "structure", type: "checkbox", key: "withInsulationFoam", label: "內部保溫泡棉襯墊", defaultValue: false, help: "瓶位四壁加 5mm EVA 泡棉，搭配 cellar 環境穩定瓶身溫度（同時減震防碰撞）", wide: true },
   { group: "structure", type: "number", key: "edgeChamfer", label: "外露邊倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "頂板 / 底板 / 側板外露邊倒角，2-3mm 防割手 + 美感" },
 ];
 
@@ -55,7 +54,6 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const withGlassRack = getOption<boolean>(input, opt(o, "withGlassRack"));
   const withFelt = getOption<boolean>(input, opt(o, "withFelt"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
-  const withInsulationFoam = getOption<boolean>(input, opt(o, "withInsulationFoam"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const cellSize = bd + CELL_CLEARANCE;
@@ -215,6 +213,6 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         : mountStyle === "stackable"
           ? "頂底加凹凸卡榫，多座可往上疊（每座頂面挖 4 個 8×20mm 凹孔，下座底面凸 4 個對應榫）。"
           : "可直接立於地面或桌上。"
-    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withFelt ? " 每個瓶位四壁內側貼 1mm 絨布（B&Q 自黏絨布裁好黏入），瓶身不會撞傷標籤。" : ""}${withPullOutDrawer ? " 底部加 100mm 高拉出抽屜（裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。" : ""}${withInsulationFoam ? " 瓶位四壁加 5mm EVA 泡棉襯墊，減震防撞 + 穩定瓶身環境。" : ""}${edgeChamfer > 0 ? ` 頂底板及側板外露邊倒 ${edgeChamfer}mm 防割。` : ""}`,
+    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withFelt ? " 每個瓶位四壁內側貼 1mm 絨布（B&Q 自黏絨布裁好黏入），瓶身不會撞傷標籤。" : ""}${withPullOutDrawer ? " 底部加 100mm 高拉出抽屜（裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。" : ""}${edgeChamfer > 0 ? ` 頂底板及側板外露邊倒 ${edgeChamfer}mm 防割。` : ""}`,
   };
 };

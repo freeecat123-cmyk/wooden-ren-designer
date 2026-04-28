@@ -37,13 +37,6 @@ export const roundStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 16, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", help: "下橫撐底面距離地面的高度", dependsOn: { key: "withLowerStretcher", equals: true } },
-  { group: "top", type: "select", key: "seatSurface", label: "座面材質", defaultValue: "solid", choices: [
-    { value: "solid", label: "實木座板" },
-    { value: "rattan", label: "藤編（圓座框 + 藤編）" },
-    { value: "rope", label: "麻繩編織" },
-    { value: "crowned", label: "上拱實木（座板中央高 8mm，視覺輕盈）" },
-  ] },
-  { group: "leg", type: "checkbox", key: "wedgedTenon", label: "通榫腳楔外露", defaultValue: false, help: "腳上端通榫穿過座板後加木楔（wedge），楔尖外露成為視覺裝飾", wide: true },
 ];
 
 /**
@@ -304,7 +297,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
-    notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${(() => { const ss = getOption<string>(input, opt(o, "seatSurface")); const wt = getOption<boolean>(input, opt(o, "wedgedTenon")); return `${ss === "rattan" ? " 圓座框 + 藤編。" : ss === "rope" ? " 圓座框 + 麻繩編織。" : ss === "crowned" ? " 座板中央上拱 8mm（圓盤狀），視覺更輕盈。" : ""}${wt ? " 腳通榫穿過座板上緣後加木楔（wedge），楔尖外露為裝飾。" : ""}`; })()}`,
+    notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

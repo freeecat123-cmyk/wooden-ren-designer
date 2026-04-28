@@ -24,11 +24,6 @@ export const photoFrameOptions: OptionSpec[] = [
     { value: "ogee", label: "古典 Ogee 線（雙曲線）" },
     { value: "cove", label: "凹弧 Cove（內凹圓弧）" },
   ], help: "邊框正面輪廓樣式。平面最簡單；其他需修邊機 + 對應曲線刀" },
-  { group: "structure", type: "select", key: "cornerJoint", label: "邊框角接合", defaultValue: "mitered-spline", choices: [
-    { value: "mitered-spline", label: "45° 斜接 + 花榫片（spline，最穩）" },
-    { value: "butt", label: "對接（butt joint，最簡單但強度最弱）" },
-    { value: "half-lap", label: "半搭接（half-lap，承重佳適合大框）" },
-  ], help: "邊框 4 角接合方式。spline 是相框經典做法，補強純斜接的弱點" },
   { group: "structure", type: "select", key: "multiPhotoLayout", label: "多照片排列", defaultValue: "single", choices: [
     { value: "single", label: "單張" },
     { value: "horizontal-2", label: "橫排 2 張（共用中間隔板）" },
@@ -56,7 +51,6 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const glassT = getOption<number>(input, opt(o, "glassThickness"));
   const glassGrooveDepth = getOption<number>(input, opt(o, "glassGrooveDepth"));
   const frameProfile = getOption<string>(input, opt(o, "frameProfile"));
-  const cornerJoint = getOption<string>(input, opt(o, "cornerJoint"));
   const multiPhotoLayout = getOption<string>(input, opt(o, "multiPhotoLayout"));
   const stand = getOption<string>(input, opt(o, "stand"));
 
@@ -213,6 +207,6 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面外緣 45° 倒角（修邊機 V 型刀）。` : frameProfile === "chamfer-in" ? `邊框正面內緣斜面下垂（修邊機 chamfer 刀）。` : frameProfile === "ogee" ? `邊框正面 Ogee 古典線型（修邊機 Ogee 線刀）。` : frameProfile === "cove" ? `邊框正面凹弧 Cove（修邊機 Cove 刀）。` : ""}${stand === "easel" ? ` 背面加 V 型立架（鉸鏈 + 摺收支撐板，立桌面用）。` : stand === "wall-hung" ? ` 背面加 D 形掛勾或鋸齒鈎（吊牆用）。` : ` 兩用：背面同時加可摺立架 + 掛勾。`}${cornerJoint === "butt" ? "4 角對接（butt joint，最簡單，膠合即可，承重弱）。" : cornerJoint === "half-lap" ? "4 角半搭接（half-lap，承重佳，做大框用）。" : ""}${multiPhotoLayout !== "single" ? ` 多照片排列：${multiPhotoLayout}（邊框內加 mullion 隔條、每格獨立鋸槽放照片）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
+    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面外緣 45° 倒角（修邊機 V 型刀）。` : frameProfile === "chamfer-in" ? `邊框正面內緣斜面下垂（修邊機 chamfer 刀）。` : frameProfile === "ogee" ? `邊框正面 Ogee 古典線型（修邊機 Ogee 線刀）。` : frameProfile === "cove" ? `邊框正面凹弧 Cove（修邊機 Cove 刀）。` : ""}${stand === "easel" ? ` 背面加 V 型立架（鉸鏈 + 摺收支撐板，立桌面用）。` : stand === "wall-hung" ? ` 背面加 D 形掛勾或鋸齒鈎（吊牆用）。` : ` 兩用：背面同時加可摺立架 + 掛勾。`}${multiPhotoLayout !== "single" ? ` 多照片排列：${multiPhotoLayout}（邊框內加 mullion 隔條、每格獨立鋸槽放照片）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };
