@@ -43,10 +43,14 @@ export const benchOptions: OptionSpec[] = [
     { value: "none", label: "無（純長凳）" },
     { value: "low", label: "矮椅背 板式（150mm，腰靠感）" },
     { value: "high", label: "高椅背 板式（350mm，正式座椅）" },
-    { value: "slatted", label: "高椅背 直格條（350mm，5 條垂直料）" },
+    { value: "slatted", label: "高椅背 直格條（350mm，垂直料 + 頂橫木）" },
     { value: "ladder", label: "高椅背 橫格條（350mm，3 條水平橫木）" },
     { value: "windsor", label: "Windsor 風（350mm，2 邊柱+5 細圓料）" },
   ], help: "沿長邊背側加椅背料，靠著有依靠感" },
+  { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 50, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -69,6 +73,10 @@ export const bench: FurnitureTemplate = (input) => {
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const withUnderShelf = getOption<boolean>(input, opt(o, "withUnderShelf"));
   const endSplat = getOption<string>(input, opt(o, "endSplat"));
+  const slatCount = getOption<number>(input, opt(o, "slatCount"));
+  const slatSize = getOption<number>(input, opt(o, "slatSize"));
+  const topRailSize = getOption<number>(input, opt(o, "topRailSize"));
+  const slatBackInset = getOption<number>(input, opt(o, "slatBackInset"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
@@ -121,15 +129,20 @@ export const bench: FurnitureTemplate = (input) => {
         mortises: [],
       });
     } else if (endSplat === "slatted") {
-      // 直格條：5 條垂直料 + 頂橫木把它們連起來
-      const topRailH = 50;
-      const topRailT = 25;
-      const slatN = 5;
-      const slatW = 50;
-      const slatT = 18;
-      // 直料只到頂橫木下緣，避免穿透
+      // 直格條：N 條垂直料（方料截面 slatSize × slatSize） + 頂橫木
+      // slatBackInset：直料 + 頂橫木整體往前移（座板背緣往前推 slatBackInset）
+      const topRailH = topRailSize;
+      const topRailT = 25; // 頂橫木 thickness 固定 25mm
+      const slatN = slatCount;
+      const slatW = slatSize;
+      const slatT = slatSize;
       const slatHeight = splatHeight - topRailH;
-      const slatGap = (input.length - slatN * slatW) / (slatN - 1);
+      const slatGap = (input.length - slatN * slatW) / Math.max(1, slatN - 1);
+      // 直料 origin.z 從 backZ 往前推 slatBackInset，但 backZ 算法用了 splatThick/2，
+      // 直料截面是 slatT 不是 splatThick，要校正：直料背面齊平座板背緣 - slatBackInset
+      // → origin.z = halfW - slatT/2 - slatBackInset
+      const slatZ = halfW - slatT / 2 - slatBackInset;
+      const railZ = halfW - topRailT / 2 - slatBackInset;
       for (let i = 0; i < slatN; i++) {
         const x = -input.length / 2 + slatW / 2 + i * (slatW + slatGap);
         design.parts.push({
@@ -138,20 +151,19 @@ export const bench: FurnitureTemplate = (input) => {
           material: mat,
           grainDirection: "length",
           visible: { length: slatW, width: slatHeight, thickness: slatT },
-          origin: { x, y: seatTop, z: backZ },
+          origin: { x, y: seatTop, z: slatZ },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           mortises: [],
         });
       }
-      // 頂橫木：跨整條長邊，疊在直料上面
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木",
         material: mat,
         grainDirection: "length",
         visible: { length: input.length, width: topRailH, thickness: topRailT },
-        origin: { x: 0, y: seatTop + slatHeight, z: backZ },
+        origin: { x: 0, y: seatTop + slatHeight, z: railZ },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [],
         mortises: [],
