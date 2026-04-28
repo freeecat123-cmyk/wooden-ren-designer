@@ -141,6 +141,122 @@ export function CutPlanApp({
   const totalUnplaced = plan.groups.reduce((s, g) => s + g.unplaced.length, 0);
   const totalPieces = specs.reduce((s, sp) => s + sp.quantity, 0);
 
+  const handleExportCsv = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    const csvEscape = (v: string | number) => {
+      const s = String(v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows: string[] = [];
+    // Header 1：零件清單（拿去料行用）
+    rows.push("# 零件清單（去料行用）");
+    rows.push(
+      ["零件名稱", "長 mm", "寬 mm", "厚 mm", "材料", "計價類別", "件數"]
+        .map(csvEscape)
+        .join(","),
+    );
+    for (const sp of specs) {
+      rows.push(
+        [
+          sp.name,
+          sp.length,
+          sp.width,
+          sp.thickness,
+          sp.material,
+          sp.billable,
+          sp.quantity,
+        ]
+          .map(csvEscape)
+          .join(","),
+      );
+    }
+    // Header 2：排料明細（哪片放哪塊原料）
+    rows.push("");
+    rows.push("# 排料明細（每片零件的板上座標）");
+    rows.push(
+      [
+        "原料種類",
+        "材料",
+        "厚 mm",
+        "原料 #",
+        "原料長 mm",
+        "原料寬 mm",
+        "編號",
+        "零件",
+        "切料長 mm",
+        "切料寬 mm",
+        "x mm",
+        "y mm",
+        "已旋轉",
+      ]
+        .map(csvEscape)
+        .join(","),
+    );
+    for (const g of plan.groups) {
+      g.bins.forEach((bin, binIdx) => {
+        for (const shelf of bin.shelves) {
+          for (const p of shelf.pieces) {
+            rows.push(
+              [
+                g.kind,
+                g.material ?? "",
+                g.thickness,
+                binIdx + 1,
+                bin.stockLength,
+                bin.stockWidth,
+                p.piece.code ?? "",
+                p.piece.partNameZh,
+                p.piece.length,
+                p.piece.width,
+                p.x,
+                p.y,
+                p.rotated ? "是" : "否",
+              ]
+                .map(csvEscape)
+                .join(","),
+            );
+          }
+        }
+      });
+      if (g.unplaced.length > 0) {
+        for (const piece of g.unplaced) {
+          rows.push(
+            [
+              g.kind,
+              g.material ?? "",
+              g.thickness,
+              "排不下",
+              "",
+              "",
+              piece.code ?? "",
+              piece.partNameZh,
+              piece.length,
+              piece.width,
+              "",
+              "",
+              "",
+            ]
+              .map(csvEscape)
+              .join(","),
+          );
+        }
+      }
+    }
+    // BOM (Excel 中文相容)
+    const blob = new Blob(["﻿" + rows.join("\r\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${entryNameZh}_裁切清單_${date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handlePrint = () => {
     const original = typeof document !== "undefined" ? document.title : "";
     const date = new Date().toISOString().slice(0, 10);
@@ -185,6 +301,14 @@ export function CutPlanApp({
             className="px-3 py-1.5 text-sm bg-zinc-100 hover:bg-zinc-200 rounded"
           >
             ↺ 重設為原始設計
+          </button>
+          <button
+            onClick={handleExportCsv}
+            disabled={specs.length === 0}
+            title="下載零件清單 + 排料明細 CSV，可直接交給料行或 Excel 打開"
+            className="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:bg-zinc-400 disabled:cursor-not-allowed"
+          >
+            📄 下載 CSV
           </button>
           <button
             onClick={handlePrint}

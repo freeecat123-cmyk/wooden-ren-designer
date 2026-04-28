@@ -5,6 +5,10 @@ import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
 import { isPaidCategory } from "@/lib/permissions";
 
+interface SearchParams {
+  view?: string;
+}
+
 export const metadata: Metadata = {
   title: "木頭仁家具設計生成器｜輸入尺寸 3 秒生工程圖、材料單、報價",
   description:
@@ -110,9 +114,44 @@ function groupFurniture(entries: FurnitureCatalogEntry[]) {
   }).filter((g) => g.items.length > 0);
 }
 
-export default function Home() {
+const DIFFICULTY_GROUPS = [
+  {
+    key: "beginner" as const,
+    emoji: "🌱",
+    title: "入門",
+    description: "簡單組裝、少榫卯——第一次拿木工工具就能做",
+  },
+  {
+    key: "intermediate" as const,
+    emoji: "🪚",
+    title: "中階",
+    description: "簡單榫接、細部修飾——上過幾次課的學員適合",
+  },
+  {
+    key: "advanced" as const,
+    emoji: "🛠️",
+    title: "進階",
+    description: "複雜榫卯、抽屜門板——進階木工挑戰",
+  },
+];
+
+function groupByDifficulty(entries: FurnitureCatalogEntry[]) {
+  return DIFFICULTY_GROUPS.map((g) => ({
+    ...g,
+    items: entries.filter((e) => e.difficulty === g.key),
+  })).filter((g) => g.items.length > 0);
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const view = sp.view === "level" ? "level" : "category";
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
   const grouped = groupFurniture(FURNITURE_CATALOG);
+  const groupedByLevel = groupByDifficulty(FURNITURE_CATALOG);
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
@@ -159,31 +198,85 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="space-y-12">
-        {grouped.map((group) => (
-          <section key={group.key} id={group.key}>
-            <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
-              <span className="text-2xl leading-none" aria-hidden>
-                {group.emoji}
-              </span>
-              <h2 className="text-xl font-semibold text-zinc-800">
-                {group.title}
-              </h2>
-              <span className="text-xs text-zinc-500 font-medium">
-                {group.items.length} 件
-              </span>
-              <span className="text-sm text-zinc-500 ml-auto hidden sm:inline">
-                {group.description}
-              </span>
-            </div>
+      {/* 視圖切換：依類別 vs 依難度 */}
+      <div className="mb-6 inline-flex gap-1 p-1 bg-zinc-100 rounded-lg text-sm">
+        <Link
+          href="/"
+          className={`px-3 py-1.5 rounded transition ${
+            view === "category"
+              ? "bg-white text-zinc-900 shadow-sm font-medium"
+              : "text-zinc-600 hover:text-zinc-900"
+          }`}
+        >
+          📂 依類別
+        </Link>
+        <Link
+          href="/?view=level"
+          className={`px-3 py-1.5 rounded transition ${
+            view === "level"
+              ? "bg-white text-zinc-900 shadow-sm font-medium"
+              : "text-zinc-600 hover:text-zinc-900"
+          }`}
+        >
+          🎯 依程度
+        </Link>
+      </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {group.items.map((item) => (
-                <FurnitureCard key={item.category} item={item} />
-              ))}
-            </div>
-          </section>
-        ))}
+      <div className="space-y-12">
+        {view === "level"
+          ? groupedByLevel.map((group) => (
+              <section key={group.key} id={group.key}>
+                <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
+                  <span className="text-2xl leading-none" aria-hidden>
+                    {group.emoji}
+                  </span>
+                  <h2 className="text-xl font-semibold text-zinc-800">
+                    {group.title}
+                  </h2>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[group.key]}`}
+                  >
+                    {DIFFICULTY_LABEL[group.key]}
+                  </span>
+                  <span className="text-xs text-zinc-500 font-medium">
+                    {group.items.length} 件
+                  </span>
+                  <span className="text-sm text-zinc-500 ml-auto hidden sm:inline">
+                    {group.description}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {group.items.map((item) => (
+                    <FurnitureCard key={item.category} item={item} />
+                  ))}
+                </div>
+              </section>
+            ))
+          : grouped.map((group) => (
+              <section key={group.key} id={group.key}>
+                <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
+                  <span className="text-2xl leading-none" aria-hidden>
+                    {group.emoji}
+                  </span>
+                  <h2 className="text-xl font-semibold text-zinc-800">
+                    {group.title}
+                  </h2>
+                  <span className="text-xs text-zinc-500 font-medium">
+                    {group.items.length} 件
+                  </span>
+                  <span className="text-sm text-zinc-500 ml-auto hidden sm:inline">
+                    {group.description}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {group.items.map((item) => (
+                    <FurnitureCard key={item.category} item={item} />
+                  ))}
+                </div>
+              </section>
+            ))}
       </div>
 
       <footer className="mt-20 pt-8 border-t border-zinc-200 text-sm text-zinc-500 flex flex-wrap justify-between gap-4">

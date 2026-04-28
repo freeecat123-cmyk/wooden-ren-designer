@@ -956,6 +956,22 @@ const CATEGORY_LABEL: Record<PartCategory, string> = {
   misc: "⚙ 其他",
 };
 
+// 色碼分組：每個分類一個顯眼色，左側 4px 直條 + 標頭背景。
+// 木工現場掃讀用，顏色選相近自然色（避免螢光色）。
+const CATEGORY_COLOR: Record<
+  PartCategory,
+  { bar: string; head: string; text: string }
+> = {
+  case:    { bar: "bg-amber-500",   head: "bg-amber-50",   text: "text-amber-900"   },
+  divider: { bar: "bg-orange-400",  head: "bg-orange-50",  text: "text-orange-900"  },
+  drawer:  { bar: "bg-rose-400",    head: "bg-rose-50",    text: "text-rose-900"    },
+  door:    { bar: "bg-fuchsia-400", head: "bg-fuchsia-50", text: "text-fuchsia-900" },
+  apron:   { bar: "bg-lime-500",    head: "bg-lime-50",    text: "text-lime-900"    },
+  seat:    { bar: "bg-emerald-500", head: "bg-emerald-50", text: "text-emerald-900" },
+  leg:     { bar: "bg-sky-500",     head: "bg-sky-50",     text: "text-sky-900"     },
+  misc:    { bar: "bg-zinc-400",    head: "bg-zinc-50",    text: "text-zinc-700"    },
+};
+
 export function categorizePart(id: string): PartCategory {
   // 抽屜組件：z*-drawer-N-face / front / back / side / bottom
   if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
@@ -1094,19 +1110,21 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
       {sortedCategories.map((cat) => {
         const catRows = byCategory.get(cat)!;
         const catBdft = catRows.reduce((s, r) => s + r.bdft, 0);
+        const color = CATEGORY_COLOR[cat];
         return (
           <tbody key={cat} className="border-t-2 border-zinc-200">
-            <tr className="bg-zinc-50/80">
+            <tr className={color.head}>
               <td
                 colSpan={4}
-                className="px-2 py-1.5 text-xs font-semibold text-zinc-700"
+                className={`relative px-2 py-1.5 pl-3 text-xs font-semibold ${color.text}`}
               >
+                <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar}`} />
                 {CATEGORY_LABEL[cat]}
-                <span className="ml-2 font-normal text-zinc-400">
+                <span className="ml-2 font-normal opacity-60">
                   · {catRows.length} 件
                 </span>
               </td>
-              <td className="px-2 py-1.5 text-right text-xs font-mono text-zinc-600">
+              <td className={`px-2 py-1.5 text-right text-xs font-mono ${color.text}`}>
                 {catBdft.toFixed(2)}
               </td>
               <td />
@@ -1129,7 +1147,8 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                 const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
                 return (
                   <tr key={part.id} className="border-b border-zinc-100">
-                    <td className="p-2">
+                    <td className="p-2 pl-3 relative">
+                      <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar} opacity-50`} />
                       {part.nameZh}
                       {pieces > 1 && (
                         <span className="ml-1 text-[10px] text-amber-700 bg-amber-100 px-1 rounded">

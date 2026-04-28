@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export interface BrandingData {
   companyNameZh: string;
@@ -49,7 +50,6 @@ export const DEFAULT_BRANDING: BrandingData = {
   warranty: "一年（非人為損害）",
   afterSales: "",
   notes: [
-    "本報價含材料、加工、組裝、表面塗裝。",
     "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
     "客製樣式確認後如欲修改設計，需重新報價；確認下訂並開工後變更：每次酌收變更費 NT$ 1,000 起。",
     "如需開立發票（營業稅 5%），請於下訂時告知。",
@@ -57,6 +57,70 @@ export const DEFAULT_BRANDING: BrandingData = {
 };
 
 const STORAGE_KEY = "wooden-ren-designer:branding:v1";
+
+export interface BrandingPreset {
+  id: string;
+  label: string;
+  description: string;
+  patch: Partial<BrandingData>;
+}
+
+export const BRANDING_PRESETS: BrandingPreset[] = [
+  {
+    id: "studio",
+    label: "🪵 木匠工作室",
+    description: "個人 / 小型工作室接案，輕鬆口吻、客製為主",
+    patch: {
+      tagline: "手作家具・接單客製",
+      paymentTerms:
+        "訂金：簽約付款 50%\n尾款：交貨前付款 50%\n匯款銀行：＿＿＿＿\n帳戶：＿＿＿＿",
+      deliveryTerms: "簽約後 ____ 天內，工坊自取／另議運費",
+      warranty: "一年（非人為損害）",
+      afterSales: "終身榫卯維修；木皮磨損費另計",
+      notes: [
+        "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
+        "客製樣式確認後如欲修改設計，需重新報價。",
+        "如需開立發票（營業稅 5%），請於下訂時告知。",
+      ].join("\n"),
+    },
+  },
+  {
+    id: "factory",
+    label: "🏭 接案工廠",
+    description: "正式工廠 / 量產接單，條款偏保守，含驗收與發票",
+    patch: {
+      tagline: "客製家具・量產代工",
+      paymentTerms:
+        "訂金：簽約付款 30%\n中期款：木工完成 40%\n尾款：交貨驗收 30%\n匯款銀行：＿＿＿＿\n帳戶：＿＿＿＿",
+      deliveryTerms: "簽約後 ____ 個工作天內交貨，運費另計",
+      warranty: "結構保固 2 年（非人為損害）；五金 1 年",
+      afterSales: "保固期內免費維修，逾期工料費另計",
+      notes: [
+        "本報價含材料、加工、組裝、表面塗裝；不含拆裝、現場校正、上樓費。",
+        "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
+        "確認下訂並開工後變更：每次酌收變更費 NT$ 1,000 起。",
+        "報價含 5% 營業稅，開立統一發票。",
+      ].join("\n"),
+    },
+  },
+  {
+    id: "academy",
+    label: "🎓 教學示範",
+    description: "課堂 / 工作坊使用，條款簡化、重點在材料說明",
+    patch: {
+      tagline: "課堂教學示範報價",
+      paymentTerms: "課程費用以課程頁公告為準，本報價單僅供材料估算參考",
+      deliveryTerms: "課程當天現場領取材料包",
+      warranty: "教學示範用，不適用一般保固",
+      afterSales: "課堂內提供操作指導，課後榫卯問題可於社團發問",
+      notes: [
+        "本報價單為教學參考，實際成本以材料行公告為準。",
+        "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
+        "學員自行加購材料另議。",
+      ].join("\n"),
+    },
+  },
+];
 
 export function loadBranding(): BrandingData {
   if (typeof window === "undefined") return DEFAULT_BRANDING;

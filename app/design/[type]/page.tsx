@@ -22,6 +22,10 @@ import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
+import {
+  parseDesignSearchParams,
+  designParamsToQuery,
+} from "@/lib/design/parse-search-params";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -93,52 +97,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     );
   }
 
-  const spStr = (k: string): string | undefined => {
-    const v = sp[k];
-    return Array.isArray(v) ? v[0] : v;
-  };
-  const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
-  const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
-  const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
-  const material = (spStr("material") as MaterialId) ?? "maple";
-
-  const options: Record<string, string | number | boolean> = {};
+  const parsed = parseDesignSearchParams(sp, entry);
+  const { length, width, height, material, options, joineryMode } = parsed;
   const optionSchema = entry.optionSchema ?? [];
-  for (const spec of optionSchema) {
-    const raw = spStr(spec.key);
-    if (raw === undefined || raw === "") {
-      options[spec.key] = spec.defaultValue;
-      continue;
-    }
-    if (spec.type === "number") {
-      const n = Number(raw);
-      options[spec.key] = Number.isFinite(n) ? n : spec.defaultValue;
-    } else if (spec.type === "checkbox") {
-      options[spec.key] = raw === "true" || raw === "on" || raw === "1";
-    } else {
-      options[spec.key] = raw;
-    }
-  }
 
-  // 預設為「組裝版」（無榫卯，螺絲＋白膠組裝）。想要傳統榫接設計要明確加 joineryMode=true
-  // 保留舊 URL 相容：beginnerMode=false 視為開啟榫接模式
-  const joineryMode =
-    spStr("joineryMode") === "true" ||
-    spStr("joineryMode") === "1" ||
-    spStr("beginnerMode") === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
 
-  const printQuery = new URLSearchParams({
-    length: String(length),
-    width: String(width),
-    height: String(height),
-    material,
-  });
-  for (const spec of optionSchema) {
-    printQuery.set(spec.key, String(options[spec.key]));
-  }
-  if (joineryMode) printQuery.set("joineryMode", "true");
+  const printQuery = designParamsToQuery(parsed, entry);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-6">
@@ -439,21 +405,59 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      <label className="mb-5 flex items-start gap-3 p-3 rounded-lg bg-amber-50 ring-1 ring-amber-200 cursor-pointer">
-        <input
-          type="checkbox"
-          name="joineryMode"
-          value="true"
-          defaultChecked={joineryMode}
-          className="mt-0.5 h-4 w-4 accent-amber-600"
-        />
-        <div className="flex-1">
-          <div className="text-sm font-semibold text-amber-900">🪵 榫接模式（傳統榫卯）</div>
-          <div className="text-xs text-amber-700 mt-0.5">
-            開啟後使用傳統榫卯接合（含榫頭榫眼細節圖 + 精緻工序）。不勾選則為**組裝版**（螺絲、木釘、DOMINO、斜孔系統，無榫卯）——施作更快，結構強度約榫接版 60–70%，日常家具夠用。
-          </div>
+      <fieldset className="mb-5">
+        <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
+          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+          工法選擇
+          <span className="text-[10px] font-normal text-zinc-400">— 影響材料單與接合工序</span>
+        </legend>
+        <div className="grid grid-cols-2 gap-2">
+          <label
+            className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+              !joineryMode
+                ? "ring-emerald-500 bg-emerald-50"
+                : "ring-zinc-200 bg-white hover:ring-zinc-300"
+            }`}
+          >
+            <input
+              type="radio"
+              name="joineryMode"
+              value=""
+              defaultChecked={!joineryMode}
+              className="sr-only"
+            />
+            <div className="text-sm font-semibold text-emerald-900 flex items-center gap-1">
+              🔩 組裝版
+              <span className="text-[10px] font-normal text-emerald-700 ml-auto">推薦新手</span>
+            </div>
+            <div className="text-[11px] text-emerald-800 leading-relaxed">
+              螺絲 / 木釘 / DOMINO / 斜孔系統。施作快、強度約榫接版 60–70%，日常家具夠用。
+            </div>
+          </label>
+          <label
+            className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+              joineryMode
+                ? "ring-amber-500 bg-amber-50"
+                : "ring-zinc-200 bg-white hover:ring-zinc-300"
+            }`}
+          >
+            <input
+              type="radio"
+              name="joineryMode"
+              value="true"
+              defaultChecked={joineryMode}
+              className="sr-only"
+            />
+            <div className="text-sm font-semibold text-amber-900 flex items-center gap-1">
+              🪵 榫接版
+              <span className="text-[10px] font-normal text-amber-700 ml-auto">傳統工法</span>
+            </div>
+            <div className="text-[11px] text-amber-800 leading-relaxed">
+              傳統榫卯接合，含榫頭榫眼細節圖、精緻工序。難度較高、做工較久。
+            </div>
+          </label>
         </div>
-      </label>
+      </fieldset>
       <div className="mb-4 pb-3 border-b border-zinc-200">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />

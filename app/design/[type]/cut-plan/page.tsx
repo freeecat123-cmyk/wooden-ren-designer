@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
-import type { FurnitureCategory, MaterialId } from "@/lib/types";
+import type { FurnitureCategory } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import {
   DEFAULT_NEST_CONFIG,
@@ -10,6 +10,10 @@ import {
 } from "@/lib/cutplan";
 import { collapseIntoSpecs } from "@/lib/cutplan/piece-spec";
 import { CutPlanApp } from "@/components/cutplan/CutPlanApp";
+import {
+  parseDesignSearchParams,
+  designParamsToQuery,
+} from "@/lib/design/parse-search-params";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -23,36 +27,9 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
 
-  const spStr = (k: string): string | undefined => {
-    const v = sp[k];
-    return Array.isArray(v) ? v[0] : v;
-  };
+  const parsed = parseDesignSearchParams(sp, entry);
+  const { length, width, height, material, options, joineryMode } = parsed;
 
-  const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
-  const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
-  const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
-  const material = (spStr("material") as MaterialId) ?? "maple";
-
-  const options: Record<string, string | number | boolean> = {};
-  const optionSchema = entry.optionSchema ?? [];
-  for (const spec of optionSchema) {
-    const raw = spStr(spec.key);
-    if (raw === undefined || raw === "") {
-      options[spec.key] = spec.defaultValue;
-      continue;
-    }
-    if (spec.type === "number") {
-      const n = Number(raw);
-      options[spec.key] = Number.isFinite(n) ? n : spec.defaultValue;
-    } else if (spec.type === "checkbox") {
-      options[spec.key] = raw === "true" || raw === "on" || raw === "1";
-    } else {
-      options[spec.key] = raw;
-    }
-  }
-
-  const joineryMode =
-    spStr("joineryMode") === "true" || spStr("joineryMode") === "1";
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
 
@@ -65,16 +42,7 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   ];
   const initialSpecs = collapseIntoSpecs(allPieces);
 
-  const designQuery = new URLSearchParams({
-    length: String(length),
-    width: String(width),
-    height: String(height),
-    material,
-  });
-  for (const spec of optionSchema) {
-    designQuery.set(spec.key, String(options[spec.key]));
-  }
-  if (joineryMode) designQuery.set("joineryMode", "true");
+  const designQuery = designParamsToQuery(parsed, entry);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-6 print:px-0 print:py-4 cutplan-print">
