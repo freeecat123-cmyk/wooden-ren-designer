@@ -157,7 +157,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     origin: { x: 0, y: legHeight, z: 0 },
     shape: opts.liveEdge
       ? { kind: "live-edge", amplitudeMm: opts.liveEdgeAmplitude ?? 12 }
-      : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle, legInset > 0 || topOverhang > 0)),
+      : opts.seatProfile === "waterfall"
+        // 瀑布前緣：座板下緣前後兩面大圓角（22mm），上緣維持 seatEdge 設定
+        ? { kind: "chamfered-top", chamferMm: typeof opts.seatEdge === "number" ? opts.seatEdge : 5, bottomChamferMm: 22, style: "rounded" }
+        : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle, legInset > 0 || topOverhang > 0)),
     panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({

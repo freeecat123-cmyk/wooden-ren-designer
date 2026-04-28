@@ -230,7 +230,7 @@ export interface Part {
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
      *  depthMm = 最深處下挖量（mm），通常 6–12mm。
      *  俯視/前視/側視仍以矩形 bbox 顯示（不影響材料計算）；3D 顯示挖型曲面。 */
-    | { kind: "seat-scoop"; profile: "saddle" | "scooped"; depthMm: number };
+    | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number };
 }
 
 export interface FurnitureDesign {

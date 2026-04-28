@@ -370,18 +370,23 @@ export function seatProfileOption(group: OptionGroup = "top"): OptionSpec {
       { value: "flat", label: "平面（最簡單）" },
       { value: "saddle", label: "馬鞍挖座（人體工學，需 5° 弧）" },
       { value: "scooped", label: "微凹挖座（雙凹各 6mm）" },
+      { value: "waterfall", label: "前緣下垂（瀑布前緣，腿後不卡）" },
+      { value: "dished", label: "中央碗狀（單軸下凹，給長坐用）" },
     ],
     help: "座面是否挖型。挖座更舒適但需用刨/雕刻機加工",
   };
 }
 
 /** 把 seatProfile 轉成 Part.shape；flat 回 undefined（不覆蓋現有 shape）。
- *  saddle 預設 10mm 深；scooped 預設 6mm 深，足以在 3D 看出弧度。 */
+ *  saddle 預設 10mm 深；scooped 預設 6mm 深；dished 8mm 深（單軸沿 X）。
+ *  waterfall 不靠 seat-scoop——只是前緣加大圓角，由 template 自行用 chamfered-top
+ *  傳大 bottomChamferMm 實作（這 helper 回 undefined 讓 caller 處理）。 */
 export function seatScoopShape(
   profile: string,
-): { kind: "seat-scoop"; profile: "saddle" | "scooped"; depthMm: number } | undefined {
+): { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number } | undefined {
   if (profile === "saddle") return { kind: "seat-scoop", profile: "saddle", depthMm: 10 };
   if (profile === "scooped") return { kind: "seat-scoop", profile: "scooped", depthMm: 6 };
+  if (profile === "dished") return { kind: "seat-scoop", profile: "dished", depthMm: 8 };
   return undefined;
 }
 
@@ -391,6 +396,12 @@ export function seatProfileNote(profile: string): string {
   }
   if (profile === "scooped") {
     return "座面雙凹挖型，左右各挖 6mm 深的對稱凹槽。";
+  }
+  if (profile === "dished") {
+    return "座面碗狀單凹（沿短邊 8mm 深），長坐久了腿不會麻。";
+  }
+  if (profile === "waterfall") {
+    return "座板前緣大圓角下垂（瀑布邊），坐久了大腿後側不會被銳邊壓。";
   }
   return "";
 }

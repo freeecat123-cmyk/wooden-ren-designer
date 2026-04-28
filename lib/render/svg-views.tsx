@@ -545,6 +545,11 @@ export function OrthoView({
             if (scoop.profile === "saddle") {
               return scoop.depthMm * Math.max(0, 1 - t * t);
             }
+            if (scoop.profile === "dished") {
+              // 沿 Z 軸單軸下凹：側視全弧、前視淺弧
+              if (view === "side") return scoop.depthMm * Math.max(0, 1 - t * t);
+              return scoop.depthMm * Math.max(0, 1 - t * t * 0.3);
+            }
             // scooped 兩個 basin（中心在 ±0.5）
             // 前視 (X 軸 ↔ length)：能看到 M 形雙凹
             // 側視 (Z 軸 ↔ width)：兩 basin 沿 Z 全長延伸（兩端稍淺），畫單凹

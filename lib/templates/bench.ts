@@ -39,11 +39,14 @@ export const benchOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "top", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
-  { group: "back", type: "select", key: "endSplat", label: "椅背立板", defaultValue: "none", choices: [
+  { group: "back", type: "select", key: "endSplat", label: "椅背款式", defaultValue: "none", choices: [
     { value: "none", label: "無（純長凳）" },
-    { value: "low", label: "矮椅背（150mm 高，腰靠感）" },
-    { value: "high", label: "高椅背（350mm 高，正式座椅）" },
-  ], help: "沿長邊背側加垂直立板當椅背，靠著有依靠感" },
+    { value: "low", label: "矮椅背 板式（150mm，腰靠感）" },
+    { value: "high", label: "高椅背 板式（350mm，正式座椅）" },
+    { value: "slatted", label: "高椅背 直格條（350mm，5 條垂直料）" },
+    { value: "ladder", label: "高椅背 橫格條（350mm，3 條水平橫木）" },
+    { value: "windsor", label: "Windsor 風（350mm，2 邊柱+5 細圓料）" },
+  ], help: "沿長邊背側加椅背料，靠著有依靠感" },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -92,36 +95,124 @@ export const bench: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 背側加 ${endSplat === "low" ? "150mm 矮椅背（腰靠感）" : "350mm 高椅背（正式座椅）"}。` : ""}`,
+    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 椅背：${endSplat === "low" ? "150mm 板式（腰靠感）" : endSplat === "high" ? "350mm 板式" : endSplat === "slatted" ? "直格條 5 料" : endSplat === "ladder" ? "橫格條 3 條" : "Windsor 風（邊柱+5 圓料）"}。` : ""}`,
   });
 
-  // 椅背立板 —— 沿長邊背側（+Z）從座板上緣往上延伸
+  // 椅背 —— 沿長邊背側（+Z）從座板上緣往上延伸
   if (endSplat !== "none") {
     const splatHeight = endSplat === "low" ? 150 : 350;
     const splatThick = 25;
-    const seatTop = input.height; // 座板頂面
+    const seatTop = input.height;
     const halfW = input.width / 2;
-    design.parts.push({
-      id: "back-splat",
-      nameZh: "椅背立板",
-      material: input.material,
-      grainDirection: "length",
-      visible: {
-        length: input.length,           // 沿長邊
-        width: splatHeight,             // 立板高度（rotation x:π/2 後成世界 Y）
-        thickness: splatThick,          // 立板厚度（rotation x:π/2 後成世界 Z）
-      },
-      // 立在 +Z 背邊，外面齊平座板背緣（origin.z = halfW - splatThick/2 → 立板外緣 = halfW）
-      origin: {
-        x: 0,
-        y: seatTop,
-        z: halfW - splatThick / 2,
-      },
-      // local Z（width=splatHeight）→ 旋轉 x:π/2 後變世界 Y → 立板向上延伸 splatHeight
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
+    const backZ = halfW - splatThick / 2;
+    const mat = input.material;
+
+    if (endSplat === "low" || endSplat === "high") {
+      // 板式：單片整面立板
+      design.parts.push({
+        id: "back-splat",
+        nameZh: "椅背立板",
+        material: mat,
+        grainDirection: "length",
+        visible: { length: input.length, width: splatHeight, thickness: splatThick },
+        origin: { x: 0, y: seatTop, z: backZ },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    } else if (endSplat === "slatted") {
+      // 直格條：5 條垂直料平均分布在長度方向，間隔等於格條寬
+      // 邊柱 60×splatHeight×25，中間 4 條 50×splatHeight×18
+      const slatN = 5;
+      const slatW = 50;
+      const slatT = 18;
+      const slatGap = (input.length - slatN * slatW) / (slatN - 1);
+      for (let i = 0; i < slatN; i++) {
+        const x = -input.length / 2 + slatW / 2 + i * (slatW + slatGap);
+        design.parts.push({
+          id: `back-slat-${i + 1}`,
+          nameZh: `椅背直料 ${i + 1}`,
+          material: mat,
+          grainDirection: "length",
+          visible: { length: slatW, width: splatHeight, thickness: slatT },
+          origin: { x, y: seatTop, z: backZ },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (endSplat === "ladder") {
+      // 橫格條：頂橫木 + 2 條中段橫料（高 60mm）
+      const railH = 60;
+      const railT = 25;
+      const railSpacing = (splatHeight - 3 * railH) / 2; // 3 條 + 2 個間隔
+      for (let i = 0; i < 3; i++) {
+        const yBot = seatTop + i * (railH + railSpacing);
+        design.parts.push({
+          id: `back-rail-${i + 1}`,
+          nameZh: i === 2 ? "椅背頂橫木" : `椅背橫料 ${i + 1}`,
+          material: mat,
+          grainDirection: "length",
+          visible: { length: input.length, width: railH, thickness: railT },
+          origin: { x: 0, y: yBot, z: backZ },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (endSplat === "windsor") {
+      // Windsor 風：2 邊柱（方料）+ 1 頂橫木 + 5 條圓料連接座板和頂橫木
+      const postW = 35;
+      const postT = 35;
+      const topRailH = 50;
+      const topRailT = 25;
+      const spindleD = 18; // 圓料直徑
+      const spindleN = 5;
+      // 2 邊柱
+      for (const sx of [-1, 1] as const) {
+        design.parts.push({
+          id: `back-post-${sx > 0 ? "right" : "left"}`,
+          nameZh: `椅背${sx > 0 ? "右" : "左"}邊柱`,
+          material: mat,
+          grainDirection: "length",
+          visible: { length: postW, width: splatHeight, thickness: postT },
+          origin: { x: sx * (input.length / 2 - postW / 2), y: seatTop, z: backZ },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // 頂橫木
+      design.parts.push({
+        id: "back-top-rail",
+        nameZh: "椅背頂橫木",
+        material: mat,
+        grainDirection: "length",
+        visible: { length: input.length - 2 * postW, width: topRailH, thickness: topRailT },
+        origin: { x: 0, y: seatTop + splatHeight - topRailH, z: backZ },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      // 5 圓料：均分在邊柱之間
+      const spindleSpan = input.length - 2 * postW - spindleD;
+      const spindleH = splatHeight - topRailH;
+      for (let i = 0; i < spindleN; i++) {
+        const x = -spindleSpan / 2 + (i / (spindleN - 1)) * spindleSpan;
+        design.parts.push({
+          id: `back-spindle-${i + 1}`,
+          nameZh: `椅背圓料 ${i + 1}`,
+          material: mat,
+          grainDirection: "length",
+          visible: { length: spindleD, width: spindleH, thickness: spindleD },
+          origin: { x, y: seatTop, z: backZ },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          shape: { kind: "round" },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
   }
 
   if (withUnderShelf) {

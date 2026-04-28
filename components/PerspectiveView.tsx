@@ -82,7 +82,7 @@ type ShapeSpec =
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "live-edge"; amplitudeMm: number }
-  | { kind: "seat-scoop"; profile: "saddle" | "scooped"; depth: number };
+  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number };
 
 function Part({
   position,
@@ -1031,7 +1031,7 @@ function buildHoofGeometry(
  */
 function buildSeatScoopGeometry(
   size: [number, number, number],
-  profile: "saddle" | "scooped",
+  profile: "saddle" | "scooped" | "dished",
   depth: number,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
@@ -1051,6 +1051,13 @@ function buildSeatScoopGeometry(
       const fx = Math.max(0, 1 - rx * rx);
       const fz = Math.max(0, 1 - rz * rz);
       return -maxDip * fx * fz;
+    }
+    if (profile === "dished") {
+      // 沿 Z 軸（座深方向）單軸下凹—— 給長坐用，Z 中央最深、X 全長均勻
+      // X 方向兩端稍微淺一點，避免邊緣銳利
+      const fz = Math.max(0, 1 - rz * rz);
+      const fx = Math.max(0, 1 - rx * rx * 0.3);
+      return -maxDip * fz * fx;
     }
     // scooped: 兩個 basin 中心在 x = ±lx/4，每個寬 lx/2，沿 z 全長延伸（兩端漸收）
     const bw = lx / 4; // basin half-width
