@@ -132,12 +132,14 @@ export const bench: FurnitureTemplate = (input) => {
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
-    // 層板坐在下橫撐頂面，邊緣延伸到橫撐內面，4 角缺角避開腳柱
+    // 層板坐在下橫撐頂面，邊緣延伸到「橫撐外面」（覆滿橫撐頂面）。
+    // 4 角缺角 = 腳跟層板交集 = (legSize + stretcherT)/2，剛好切掉跟腳重疊的部分。
+    // 註：beginner 模式 L/R 橫撐會縮 legSize，層板在側視圖看起來會比 L/R 橫撐寬，
+    //     但實際靠 F/B 橫撐支撐邊緣（不會掉），這是榫接 vs 對接設計的差異。
     const shelfY = stretcherY + stretcherW;
-    const shelfLen = Math.max(50, input.length - legSize - 2 * legInset - stretcherT);
-    const shelfWid = Math.max(50, input.width - legSize - 2 * legInset - stretcherT);
-    // 缺角尺寸 = 層板邊緣到腳柱內面的距離 = (legSize - stretcherT) / 2
-    const notchSize = Math.max(0, (legSize - stretcherT) / 2);
+    const shelfLen = Math.max(50, input.length - legSize - 2 * legInset + stretcherT);
+    const shelfWid = Math.max(50, input.width - legSize - 2 * legInset + stretcherT);
+    const notchSize = Math.max(0, (legSize + stretcherT) / 2);
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
