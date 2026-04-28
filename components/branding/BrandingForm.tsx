@@ -310,10 +310,18 @@ export function BrandingForm({
           <div className="flex items-center gap-3 pt-2 border-t border-zinc-100">
             <button
               type="button"
-              onClick={reset}
-              className="text-xs text-zinc-500 hover:text-zinc-800 hover:underline"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "確定要全部還原為預設嗎？\n\n這會清空：\n- 公司抬頭、LOGO\n- 匯款銀行、帳戶\n- 付款分期、條款、備註\n\n此動作無法復原。",
+                  )
+                ) {
+                  reset();
+                }
+              }}
+              className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
             >
-              全部還原為預設
+              ⚠️ 全部還原為預設
             </button>
           </div>
         </div>
