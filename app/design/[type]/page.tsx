@@ -212,6 +212,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <ParameterForm
             type={type}
             defaults={{ length, width, height, material }}
+            limits={entry.limits}
             optionSchema={optionSchema}
             optionValues={options}
             joineryMode={joineryMode}
@@ -421,12 +422,14 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
 function ParameterForm({
   type,
   defaults,
+  limits,
   optionSchema,
   optionValues,
   joineryMode,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
+  limits?: { length: number; width: number; height: number };
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
@@ -458,9 +461,9 @@ function ParameterForm({
         </h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <NumberInput name="length" label="寬 (mm)" defaultValue={defaults.length} />
-        <NumberInput name="width" label="深 (mm)" defaultValue={defaults.width} />
-        <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} />
+        <NumberInput name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
+        <NumberInput name="width" label="深 (mm)" defaultValue={defaults.width} max={limits?.width} />
+        <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} max={limits?.height} />
         <label className="flex flex-col text-xs">
           <span className="text-zinc-600 mb-1">木材</span>
           <select
@@ -687,20 +690,22 @@ function NumberInput({
   name,
   label,
   defaultValue,
+  max,
 }: {
   name: string;
   label: string;
   defaultValue: number;
+  max?: number;
 }) {
   return (
     <label className="flex flex-col text-xs">
-      <span className="text-zinc-600 mb-1">{label}</span>
+      <span className="text-zinc-600 mb-1">{label}{max ? ` · 上限 ${max}` : ""}</span>
       <input
         type="number"
         name={name}
         defaultValue={defaultValue}
         min={20}
-        max={4000}
+        max={max ?? 4000}
         step={5}
         inputMode="numeric"
         pattern="[0-9]*"

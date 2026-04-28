@@ -37,6 +37,7 @@ export interface FurnitureCatalogEntry {
   difficulty: "beginner" | "intermediate" | "advanced";
   template?: FurnitureTemplate;
   defaults: { length: number; width: number; height: number };
+  limits?: { length: number; width: number; height: number };
   optionSchema?: OptionSpec[];
 }
 
@@ -48,6 +49,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: squareStool,
     defaults: { length: 350, width: 350, height: 450 },
+    limits: { length: 500, width: 500, height: 500 },
     optionSchema: squareStoolOptions,
   },
   {
@@ -57,6 +59,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: bench,
     defaults: { length: 1200, width: 350, height: 450 },
+    limits: { length: 3000, width: 550, height: 500 },
     optionSchema: benchOptions,
   },
   {
@@ -66,6 +69,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: teaTable,
     defaults: { length: 600, width: 600, height: 400 },
+    limits: { length: 1200, width: 900, height: 500 },
     optionSchema: teaTableOptions,
   },
   {
@@ -75,6 +79,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: sideTable,
     defaults: { length: 450, width: 400, height: 600 },
+    limits: { length: 700, width: 400, height: 800 },
     optionSchema: sideTableOptions,
   },
   {
@@ -84,6 +89,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: lowTable,
     defaults: { length: 1000, width: 600, height: 350 },
+    limits: { length: 1400, width: 1000, height: 400 },
     optionSchema: lowTableOptions,
   },
   {
@@ -129,6 +135,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: diningTable,
     defaults: { length: 1500, width: 800, height: 750 },
+    limits: { length: 2400, width: 1200, height: 800 },
     optionSchema: diningTableOptions,
   },
   {
@@ -138,6 +145,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: desk,
     defaults: { length: 1200, width: 600, height: 750 },
+    limits: { length: 2000, width: 900, height: 800 },
     optionSchema: deskOptions,
   },
   {
@@ -147,6 +155,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: diningChair,
     defaults: { length: 450, width: 450, height: 850 },
+    limits: { length: 600, width: 650, height: 1100 },
     optionSchema: diningChairOptions,
   },
   {
@@ -165,6 +174,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: barStool,
     defaults: { length: 350, width: 350, height: 750 },
+    limits: { length: 500, width: 500, height: 900 },
     optionSchema: barStoolOptions,
   },
   {
@@ -192,6 +202,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: roundStool,
     defaults: { length: 350, width: 350, height: 450 },
+    limits: { length: 500, width: 500, height: 500 },
     optionSchema: roundStoolOptions,
   },
   {
@@ -201,6 +212,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: roundTeaTable,
     defaults: { length: 700, width: 700, height: 450 },
+    limits: { length: 1100, width: 1100, height: 500 },
     optionSchema: roundTeaTableOptions,
   },
   {
@@ -210,6 +222,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: roundTable,
     defaults: { length: 1000, width: 1000, height: 750 },
+    limits: { length: 1500, width: 1500, height: 800 },
     optionSchema: roundTableOptions,
   },
   // ---- 小物件 (accessories) ----
