@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { EarlyBirdBanner, EARLY_BIRD } from "./EarlyBirdBanner";
 
 const CATEGORY_NAME_ZH: Record<string, string> = {
   stool: "方凳",
@@ -162,6 +163,8 @@ export function PricingClient() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <EarlyBirdBanner />
+
       {lockedCategory && (
         <div
           className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-xl border-2 flex items-start gap-3"
@@ -234,7 +237,12 @@ export function PricingClient() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         {PLANS.map((p) => (
-          <PlanCardView key={p.id} plan={p} period={period} />
+          <PlanCardView
+            key={p.id}
+            plan={p}
+            period={period}
+            earlyBird={p.id === "pro" && period === "monthly" && EARLY_BIRD.isActive()}
+          />
         ))}
       </div>
 
@@ -275,9 +283,11 @@ export function PricingClient() {
 function PlanCardView({
   plan,
   period,
+  earlyBird = false,
 }: {
   plan: PlanCard;
   period: BillingPeriod;
+  earlyBird?: boolean;
 }) {
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
@@ -313,6 +323,24 @@ function PlanCardView({
         {plan.originalYearly &&
           plan.originalYearly > plan.yearlyPrice &&
           `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
+      </p>
+    );
+  } else if (earlyBird) {
+    const earlyPrice = Math.round(plan.monthlyPrice / 2);
+    priceLine = (
+      <>
+        <span className="text-2xl sm:text-3xl font-bold text-[#c0651e]">
+          NT$ {earlyPrice.toLocaleString()}
+        </span>
+        <span className="text-sm text-zinc-400 line-through">
+          NT$ {plan.monthlyPrice.toLocaleString()}
+        </span>
+        <span className="text-sm text-zinc-500">/ 月</span>
+      </>
+    );
+    belowPrice = (
+      <p className="mt-1 text-xs text-[#c0651e] font-semibold">
+        🔥 早鳥半價 · 首 3 個月，第 4 個月起 NT$ {plan.monthlyPrice}/月
       </p>
     );
   } else {
