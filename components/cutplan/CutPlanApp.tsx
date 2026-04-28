@@ -321,7 +321,7 @@ export function CutPlanApp({
       </div>
 
       {/* 主視覺：左 sticky 庫存 ↔ 右即時排料圖 */}
-      <div className="grid lg:grid-cols-[5fr_7fr] gap-4 no-print">
+      <div className="grid lg:grid-cols-[3fr_9fr] gap-4 no-print">
         <aside className="lg:sticky lg:top-4 self-start">
           <StockEditor
             specs={specs}
