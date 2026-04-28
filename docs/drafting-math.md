@@ -225,12 +225,12 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ## D. 實作 Priority 建議
 
 ### 規範性修正（先做）
-1. **箭頭夾角從 30° 改 20°**（CNS 3-3 強制）
-2. **加第三角法投影符號**（CNS 強制）
-3. **中文字體改黑體 / 等線體**（noto-sans-tc / 思源黑體）
+1. ✅ **箭頭夾角從 30° 改 20°**（CNS 3-3 強制）— commit `97984df` 2026-04-28
+2. **加第三角法投影符號**（CNS 強制）— 跳過：客戶看不懂（per `feedback_user_questions_signal_cut`）
+3. ✅ **中文字體改黑體 / 等線體** — globals.css 已 fallback Noto Sans TC = 思源黑體，無需改
 
 ### 功能性建議
-4. **三視圖加總長/寬/高三條主標註**（目前只有 bbox）
+4. ✅ **三視圖加總長/寬/高三條主標註** — commit `aa3948d` 2026-04-28（加方向 prefix「寬/深/高」）
 5. **燕尾榫斜度確認用 1:6 / 1:8** 而非任意值
 6. **隱藏線（虛線）** — 用 Painter's algorithm + polygon-clipping，先試 three-plotter-renderer
 7. **木紋方向條紋** — 公榫木紋沿榫長軸、母榫垂直；視覺辨識度大幅提升
@@ -241,7 +241,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 10. 銀錠榫、楔釘榫、走馬銷、包蟻組接、抱肩榫（高 CP 值，見 G3）
 
 ### 結構驗證（新）
-11. **木紋方向檢查 MVP**：P0-1 順紋承載、P0-2 公榫紋向、P0-4 寬板 movement、P1-6 母榫壁厚（見 L5）
+11. ✅ **木紋方向檢查 MVP** — commit `aa3948d` 2026-04-28（`lib/design/grain.ts` 受力構件 leg/apron/stretcher 必須順紋；當前 templates 都正確，是 future-proof）
 
 ### 進階功能（新，估期長）
 12. **爆炸圖** — Axis-Aligned + part type rules + ortho iso 視角 + slider（見 H）
@@ -250,8 +250,8 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 15. **派系 preset** — 中式家具加蘇/京/廣/徽/晉下拉選單（見 K2-K3）
 
 ### 結構驗證 v2
-16. **撓度檢查** — shelf/top 均佈簡支，警告 OK/WARN/ERROR + 加橫撐建議（見 M6-M7）
-17. **人體工學警告** — 椅高/桌高/椅桌差/座深等邊緣值警告，hobbyist 友善文字（見 O8）
+16. ✅ **撓度檢查** — commit `aa3948d` 2026-04-28（`lib/design/deflection.ts` 簡支樑均佈載重 + L/240 + 12 種材料 E 值 + 反向求建議厚度）
+17. ✅ **人體工學警告** — commit `97984df` 2026-04-28（`lib/design/ergonomics.ts` 7 類家具 OK/WARN/ERROR + ErgoHints UI）
 
 ### 工程輸出 pipeline
 18. **五金鑽孔圖** — 鉸鏈/滑軌/層板托/拉手孔位 + 分層 SVG（見 N7）
@@ -261,7 +261,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ### 裁切與曲線（新）
 21. **CutPlan v2** — Skyline → MaxRects-BSSF + kerf 設定 + grainLocked（見 R8）
 22. **邊緣導圓 + 線腳庫** — Three.js bevelEnabled + 5-8 個明西式線腳 preset（見 S10）
-23. **市售規格對齊** — STANDARD_THICKNESSES + SHEET_SIZES 常數，UI 顯示「市售 X 差 Δ」（見 T7）
+23. ✅ **市售規格對齊** — commit `aa3948d` 2026-04-28（`lib/design/standards.ts` STANDARD_THICKNESSES_MM + collectThicknessHints + DesignChecks UI）
 
 ### 美學擴充（新）
 24. **中式紋樣庫** — 4 個 MVP（meander/swastika/ruyi/iceCrack）+ 派系 preset 自動帶（見 U6）
@@ -276,7 +276,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 27. **工時細項分項計算** — 抽 `joinery-labor.ts`、表面處理改面積×單價、複雜度四檔、批量學習曲線（見 X6）
 
 ### 視覺品質（新）
-28. **3D 渲染 MVP** — ACES tone + Environment preset + SoftShadows，30 行內視覺 +50%（見 Y7）
+28. ⚠️ **3D 渲染 MVP** — commit `97984df` 2026-04-28（ACES tone mapping 已加；SoftShadows 因為 unpackRGBAToDepth shader 衝突暫時撤掉）
 29. **三段品質模式** — edit/preview/render Quality switch + EffectComposer SSAO/Bloom/DoF（見 Y5）
 
 ### 工程交付（新）
