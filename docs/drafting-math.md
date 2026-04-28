@@ -234,7 +234,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 5. ✅ **燕尾榫斜度確認用 1:6 / 1:8** — commit `4efc081` 2026-04-29（pickDovetailAngle 依材料密度自動切軟硬木標準）
 6. **隱藏線（虛線）** — 用 Painter's algorithm + polygon-clipping，先試 three-plotter-renderer
 7. **木紋方向條紋** — 公榫木紋沿榫長軸、母榫垂直；視覺辨識度大幅提升
-8. **比例尺自動選整數**（1:1/2/5/10/20/50）
+8. ✅ **比例尺**（100mm 參考棒）— commit `8a5b6a5` 2026-04-29（圖框左下角，含中央 tick + 「100 mm」label，靠視覺基準估其他尺寸）
 9. **木材剖面用波浪線**（不要 ANSI31 45° 斜線——那是金屬）
 
 ### 榫卯擴充優先序
@@ -286,6 +286,14 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ### 內容深化（新）
 32. **經典家具 20 款** — 第一波 6 件 A 級，2 週可上（見 AB5）
 33. **木材立體屬性** — 雷達圖 + 屬性 chips + 派系推薦 + CITES 警示（見 AC9）
+
+### 三視圖 polish（新）
+34. ✅ **CNS 線寬分層** — commit `8a5b6a5` 2026-04-29（標註線 0.4 / 延伸線 0.25 / 粗:細 2:1，per §C2）
+
+### 3D 場景升級（新）
+35. ✅ **環境主題切換**（5 個 preset 純白/北歐/日式/工業/中式）— commit `da6033a` 2026-04-29（地板 + 環境光 + 色溫 RGB tint，per §AD3）
+36. **anisotropy 木紋方向反射** — 待實作（風險：跟 wrd 自訂 wood shader 互動需測，per §Y3）
+37. **三段品質模式** edit/preview/render — 待實作（per §Y5）
 
 ---
 
