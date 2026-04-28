@@ -81,6 +81,7 @@ export const bench: FurnitureTemplate = (input) => {
     legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof",
     seatEdge,
     seatEdgeStyle,
+    seatProfile,
     legEdge,
     legEdgeStyle,
     stretcherEdge,

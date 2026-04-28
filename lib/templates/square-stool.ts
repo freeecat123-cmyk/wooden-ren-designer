@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 
@@ -101,7 +101,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
+    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）

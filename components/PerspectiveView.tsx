@@ -80,7 +80,8 @@ type ShapeSpec =
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
-  | { kind: "live-edge"; amplitudeMm: number };
+  | { kind: "live-edge"; amplitudeMm: number }
+  | { kind: "seat-scoop"; profile: "saddle" | "scooped"; depth: number };
 
 function Part({
   position,
@@ -130,6 +131,9 @@ function Part({
     }
     if (shape.kind === "live-edge") {
       return buildLiveEdgeGeometry(size, shape.amplitudeMm);
+    }
+    if (shape.kind === "seat-scoop") {
+      return buildSeatScoopGeometry(size, shape.profile, shape.depth);
     }
     return null;
   }, [size, shape]);
@@ -895,6 +899,147 @@ function buildHoofGeometry(
   return g;
 }
 
+/**
+ * 座面挖型曲面：把座板頂面換成 displaced grid。
+ *  saddle  = 中央 paraboloid 凹陷（雙軸）
+ *  scooped = 沿 X 軸兩個並列 basin（左右各一個沿 Z 方向延伸的凹槽）
+ *
+ * 為了讓側面與底面保持平直、不被 grid 平均的 normal 帶歪，側 / 底面用獨立 quad
+ * 建立（自帶頂點，不跟 grid 共用），grid 用 32×32 細分套 computeVertexNormals
+ * 平滑出曲面。
+ */
+function buildSeatScoopGeometry(
+  size: [number, number, number],
+  profile: "saddle" | "scooped",
+  depth: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const nx = 32;
+  const nz = 32;
+
+  // depth 是 scene units（已乘 SCALE）。clip 到不超過厚度 70%
+  const maxDip = Math.min(depth, ly * 0.7);
+
+  function dipAt(x: number, z: number): number {
+    const rx = (2 * x) / lx; // [-1, 1]
+    const rz = (2 * z) / lz;
+    if (profile === "saddle") {
+      const fx = Math.max(0, 1 - rx * rx);
+      const fz = Math.max(0, 1 - rz * rz);
+      return -maxDip * fx * fz;
+    }
+    // scooped: 兩個 basin 中心在 x = ±lx/4，每個寬 lx/2，沿 z 全長延伸（兩端漸收）
+    const bw = lx / 4; // basin half-width
+    const r1 = (x - lx / 4) / bw;
+    const r2 = (x + lx / 4) / bw;
+    const f1 = Math.max(0, 1 - r1 * r1);
+    const f2 = Math.max(0, 1 - r2 * r2);
+    const fz = Math.max(0, 1 - rz * rz * 0.6); // z 方向稍微收（兩端稍淺）
+    return -maxDip * Math.max(f1, f2) * fz;
+  }
+
+  const v: number[] = [];
+  const idx: number[] = [];
+
+  // 1) 頂面 grid（(nx+1) × (nz+1) 個頂點，displaced）
+  const topStart = 0;
+  for (let i = 0; i <= nx; i++) {
+    const x = -hx + (i / nx) * lx;
+    for (let j = 0; j <= nz; j++) {
+      const z = -hz + (j / nz) * lz;
+      v.push(x, hy + dipAt(x, z), z);
+    }
+  }
+  for (let i = 0; i < nx; i++) {
+    for (let j = 0; j < nz; j++) {
+      const a = topStart + i * (nz + 1) + j;
+      const b = topStart + (i + 1) * (nz + 1) + j;
+      const c = topStart + (i + 1) * (nz + 1) + j + 1;
+      const d = topStart + i * (nz + 1) + j + 1;
+      idx.push(a, b, c, a, c, d);
+    }
+  }
+
+  // 2) 側面 + 底面：4 個邊牆 + 1 個底面，獨立頂點以保平面 shading
+  // 邊牆頂端的 Y 對齊 grid 邊緣，但用獨立 vertex 不分享。
+  const sideStart = v.length / 3;
+
+  // -Z 面（front, j=0），i=0..nx
+  for (let i = 0; i <= nx; i++) {
+    const x = -hx + (i / nx) * lx;
+    v.push(x, hy + dipAt(x, -hz), -hz); // 頂
+    v.push(x, -hy, -hz);                 // 底
+  }
+  const negZBase = sideStart;
+  for (let i = 0; i < nx; i++) {
+    const a = negZBase + i * 2;
+    const b = negZBase + (i + 1) * 2;
+    const ab = a + 1;
+    const bb = b + 1;
+    idx.push(a, ab, bb, a, bb, b);
+  }
+
+  const posZBase = v.length / 3;
+  for (let i = 0; i <= nx; i++) {
+    const x = -hx + (i / nx) * lx;
+    v.push(x, hy + dipAt(x, hz), hz);
+    v.push(x, -hy, hz);
+  }
+  for (let i = 0; i < nx; i++) {
+    const a = posZBase + i * 2;
+    const b = posZBase + (i + 1) * 2;
+    const ab = a + 1;
+    const bb = b + 1;
+    idx.push(a, bb, ab, a, b, bb);
+  }
+
+  const negXBase = v.length / 3;
+  for (let j = 0; j <= nz; j++) {
+    const z = -hz + (j / nz) * lz;
+    v.push(-hx, hy + dipAt(-hx, z), z);
+    v.push(-hx, -hy, z);
+  }
+  for (let j = 0; j < nz; j++) {
+    const a = negXBase + j * 2;
+    const b = negXBase + (j + 1) * 2;
+    const ab = a + 1;
+    const bb = b + 1;
+    idx.push(a, bb, ab, a, b, bb);
+  }
+
+  const posXBase = v.length / 3;
+  for (let j = 0; j <= nz; j++) {
+    const z = -hz + (j / nz) * lz;
+    v.push(hx, hy + dipAt(hx, z), z);
+    v.push(hx, -hy, z);
+  }
+  for (let j = 0; j < nz; j++) {
+    const a = posXBase + j * 2;
+    const b = posXBase + (j + 1) * 2;
+    const ab = a + 1;
+    const bb = b + 1;
+    idx.push(a, ab, bb, a, bb, b);
+  }
+
+  // 底面 4 角（normal -Y）
+  const botBase = v.length / 3;
+  v.push(-hx, -hy, -hz);
+  v.push(hx, -hy, -hz);
+  v.push(hx, -hy, hz);
+  v.push(-hx, -hy, hz);
+  idx.push(botBase, botBase + 2, botBase + 1);
+  idx.push(botBase, botBase + 3, botBase + 2);
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 export function PerspectiveView({ design }: { design: FurnitureDesign }) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
@@ -1027,6 +1172,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
             shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
           } else if (part.shape?.kind === "live-edge") {
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };
+          } else if (part.shape?.kind === "seat-scoop") {
+            shape = { kind: "seat-scoop", profile: part.shape.profile, depth: part.shape.depthMm * SCALE };
           }
           return (
             <Part

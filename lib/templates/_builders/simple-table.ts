@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, legEdgeShape } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape } from "../_helpers";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "../_constants";
 
 export interface SimpleTableOpts {
@@ -52,6 +52,9 @@ export interface SimpleTableOpts {
   /** 桌面 / 座板邊緣處理 — 'square' / 'chamfered' / 'rounded' / 'rounded-large'
    *  或直接傳數字 mm（搭配 seatEdgeStyle 控制 V 角 vs 圓角）。 */
   seatEdge?: string | number;
+  /** 座面挖型 — "flat"(預設) / "saddle"(馬鞍挖座) / "scooped"(雙凹)。
+   *  非 flat 時覆蓋 seatEdge shape，3D 渲染挖型曲面。 */
+  seatProfile?: string;
   /** 座板邊緣樣式 — "chamfered"(45°) / "rounded"(圓刀)。預設 chamfered */
   seatEdgeStyle?: string;
   /** 腳邊緣倒角（mm）。0 = 直角。當 legShape 是 box 時生效，其他造型腳忽略 */
@@ -144,7 +147,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     origin: { x: 0, y: legHeight, z: 0 },
     shape: opts.liveEdge
       ? { kind: "live-edge", amplitudeMm: opts.liveEdgeAmplitude ?? 12 }
-      : seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle),
+      : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle)),
     panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({

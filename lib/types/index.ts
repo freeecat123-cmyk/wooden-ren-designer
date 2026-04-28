@@ -216,7 +216,12 @@ export interface Part {
     /** Live edge 板狀零件——桌面長邊用 sin 組合 noise 做不規則波浪，
      *  模擬保留樹皮的原木板。amplitudeMm = 波幅（±值），預設 12mm。
      *  跟 chamfered-top 互斥（live-edge 已含造型，不疊倒角）。 */
-    | { kind: "live-edge"; amplitudeMm?: number };
+    | { kind: "live-edge"; amplitudeMm?: number }
+    /** Seat scoop: 座板挖型。saddle = 馬鞍式中央凹（雙軸 paraboloid），
+     *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
+     *  depthMm = 最深處下挖量（mm），通常 6–12mm。
+     *  俯視/前視/側視仍以矩形 bbox 顯示（不影響材料計算）；3D 顯示挖型曲面。 */
+    | { kind: "seat-scoop"; profile: "saddle" | "scooped"; depthMm: number };
 }
 
 export interface FurnitureDesign {

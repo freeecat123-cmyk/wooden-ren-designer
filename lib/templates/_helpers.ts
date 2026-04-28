@@ -353,6 +353,16 @@ export function seatProfileOption(group: OptionGroup = "top"): OptionSpec {
   };
 }
 
+/** 把 seatProfile 轉成 Part.shape；flat 回 undefined（不覆蓋現有 shape）。
+ *  saddle 預設 10mm 深；scooped 預設 6mm 深，足以在 3D 看出弧度。 */
+export function seatScoopShape(
+  profile: string,
+): { kind: "seat-scoop"; profile: "saddle" | "scooped"; depthMm: number } | undefined {
+  if (profile === "saddle") return { kind: "seat-scoop", profile: "saddle", depthMm: 10 };
+  if (profile === "scooped") return { kind: "seat-scoop", profile: "scooped", depthMm: 6 };
+  return undefined;
+}
+
 export function seatProfileNote(profile: string): string {
   if (profile === "saddle") {
     return "座面馬鞍挖型，需用刨刀或雕刻機由後向前 5° 弧度挖出馬鞍狀凹陷。";

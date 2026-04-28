@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 // 吧台椅尺寸範圍很穩定，沒明顯需要建議切換的目標模板（dining-chair 是椅背較大的不同物件）。
 
@@ -203,7 +203,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
-    shape: seatEdgeShape(seatEdge, seatEdgeStyle),
+    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle),
     tenons: [],
     // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
     // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼
