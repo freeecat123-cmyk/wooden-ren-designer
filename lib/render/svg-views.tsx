@@ -626,9 +626,10 @@ export function OrthoView({
                   </>
                 )}
                 {/* 外斜腳：腳落地點突出椅面的距離（落地比腳頂多偏 splayDx mm）
-                    正值 = 腳落地超出椅面、負值 = 落地仍在椅面內。畫虛線示意落地位置 */}
+                    正值 = 腳落地超出椅面、負值 = 落地仍在椅面內。畫藍虛線示意落地位置
+                    （藍色跟紅色對角線區分；對角線為紅、落地框為藍） */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
-                  // 落地點突出 = 落地外面 X − 椅面外緣
+                  const footColor = "#2780b8"; // 藍色，跟對角線紅 #a55 區分
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
@@ -642,27 +643,31 @@ export function OrthoView({
                         width={maxX - minX + 2 * maxSplayDx + legSize}
                         height={maxZ - minZ + 2 * maxSplayDz + legSize}
                         fill="none"
-                        stroke="#a55"
-                        strokeWidth={0.4}
-                        strokeDasharray="2 3"
+                        stroke={footColor}
+                        strokeWidth={0.5}
+                        strokeDasharray="3 3"
                       />
                       {maxSplayDx > 0 && Math.abs(footProtrudeX) > 0.5 && (
-                        <DimensionLine
-                          arrowId={`arr-${view}`}
-                          x1={Math.min(w / 2, maxX + maxSplayDx + legSize / 2)}
-                          x2={Math.max(w / 2, maxX + maxSplayDx + legSize / 2)}
-                          y={-h / 2 - 32}
-                          label={protrudeLabel(footProtrudeX)}
-                        />
+                        <g stroke={footColor} fill={footColor}>
+                          <DimensionLine
+                            arrowId={`arr-${view}`}
+                            x1={Math.min(w / 2, maxX + maxSplayDx + legSize / 2)}
+                            x2={Math.max(w / 2, maxX + maxSplayDx + legSize / 2)}
+                            y={-h / 2 - 32}
+                            label={protrudeLabel(footProtrudeX)}
+                          />
+                        </g>
                       )}
                       {maxSplayDz > 0 && Math.abs(footProtrudeZ) > 0.5 && (
-                        <VerticalDimensionLine
-                          arrowId={`arr-${view}`}
-                          x={w / 2 + 32}
-                          y1={Math.min(h / 2, maxZ + maxSplayDz + legSize / 2)}
-                          y2={Math.max(h / 2, maxZ + maxSplayDz + legSize / 2)}
-                          label={protrudeLabel(footProtrudeZ)}
-                        />
+                        <g stroke={footColor} fill={footColor}>
+                          <VerticalDimensionLine
+                            arrowId={`arr-${view}`}
+                            x={w / 2 + 32}
+                            y1={Math.min(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                            y2={Math.max(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                            label={protrudeLabel(footProtrudeZ)}
+                          />
+                        </g>
                       )}
                     </>
                   );
