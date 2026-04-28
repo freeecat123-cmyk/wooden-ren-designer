@@ -521,14 +521,23 @@ export function OrthoView({
         label={`${w} mm`}
       />
 
-      {/* vertical dimension on right side (all views) */}
-      <VerticalDimensionLine
-        arrowId={`arr-${view}`}
-        x={w / 2 + 28}
-        y1={view === "top" ? -h / 2 : -h}
-        y2={view === "top" ? h / 2 : 0}
-        label={`${h} mm`}
-      />
+      {/* vertical dimension on right side
+          桌椅類前/側視圖左側已有「座面 ${h}」/「桌面 ${h}」高度標，避免重複；
+          頂視圖跟櫃類沒有左側等價標籤，仍顯示總高 */}
+      {(() => {
+        const hasFlatTopLeftLabel =
+          view !== "top" && extractFurnitureDims(design) !== null;
+        if (hasFlatTopLeftLabel) return null;
+        return (
+          <VerticalDimensionLine
+            arrowId={`arr-${view}`}
+            x={w / 2 + 28}
+            y1={view === "top" ? -h / 2 : -h}
+            y2={view === "top" ? h / 2 : 0}
+            label={`${h} mm`}
+          />
+        );
+      })()}
 
       {/* === 額外標線（內部尺寸 + zone 高度鏈 / 桌面厚 + 淨高 / 層板高度）=== */}
       {(() => {
