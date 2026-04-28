@@ -146,6 +146,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
       : null;
 
   return {
+    legs,
     maxSplayDx,
     maxSplayDz,
     main,
@@ -576,6 +577,7 @@ export function OrthoView({
           shelves,
           crossPieces,
           legFootprint,
+          legs,
           maxSplayDx,
           maxSplayDz,
         } = dims;
@@ -625,28 +627,41 @@ export function OrthoView({
                     />
                   </>
                 )}
-                {/* 外斜腳：腳落地點突出椅面的距離（落地比腳頂多偏 splayDx mm）
-                    正值 = 腳落地超出椅面、負值 = 落地仍在椅面內。畫藍虛線示意落地位置
-                    （藍色跟紅色對角線區分；對角線為紅、落地框為藍） */}
+                {/* 外斜腳：每隻腳的落地點畫 1 個藍色虛線方框（legSize × legSize），
+                    位置 = 腳頂 + (dxMm, dzMm)。藍色跟對角線紅區分。
+                    下方再標「落地超出椅面 X」量度 */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
-                  const footColor = "#2780b8"; // 藍色，跟對角線紅 #a55 區分
+                  const footColor = "#2780b8";
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
                     mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
                   return (
                     <>
-                      {/* 4 角落地點虛線方框（外推 splayDx/Dz） */}
-                      <rect
-                        x={minX - maxSplayDx - legSize / 2}
-                        y={minZ - maxSplayDz - legSize / 2}
-                        width={maxX - minX + 2 * maxSplayDx + legSize}
-                        height={maxZ - minZ + 2 * maxSplayDz + legSize}
-                        fill="none"
-                        stroke={footColor}
-                        strokeWidth={0.5}
-                        strokeDasharray="3 3"
-                      />
+                      {/* 4 隻腳的落地框——逐隻畫 legSize × legSize */}
+                      {legs.map((leg) => {
+                        const sh = leg.shape;
+                        const dx = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
+                          ? sh.dxMm : 0;
+                        const dz = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
+                          ? sh.dzMm : 0;
+                        if (dx === 0 && dz === 0) return null;
+                        const footCx = leg.origin.x + dx;
+                        const footCz = leg.origin.z + dz;
+                        return (
+                          <rect
+                            key={`foot-${leg.id}`}
+                            x={footCx - legSize / 2}
+                            y={footCz - legSize / 2}
+                            width={legSize}
+                            height={legSize}
+                            fill="none"
+                            stroke={footColor}
+                            strokeWidth={0.5}
+                            strokeDasharray="3 3"
+                          />
+                        );
+                      })}
                       {maxSplayDx > 0 && Math.abs(footProtrudeX) > 0.5 && (
                         <DimensionLine
                           arrowId={`arr-${view}`}
