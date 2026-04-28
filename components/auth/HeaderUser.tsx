@@ -97,6 +97,13 @@ function UserDropdown({
             🗂 我的設計
           </Link>
           <Link
+            href="/projects"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
+            onClick={() => setOpen(false)}
+          >
+            📁 我的專案
+          </Link>
+          <Link
             href="/my-subscription"
             className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
             onClick={() => setOpen(false)}
