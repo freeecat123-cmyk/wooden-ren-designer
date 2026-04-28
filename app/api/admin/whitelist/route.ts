@@ -28,21 +28,30 @@ function unauthorized(reason: string) {
   return NextResponse.json({ error: "Unauthorized", reason }, { status: 401 });
 }
 
+function serverError(e: unknown) {
+  const message = e instanceof Error ? e.message : String(e);
+  return NextResponse.json({ error: message }, { status: 500 });
+}
+
 // ---------- GET：列出全部 whitelist ----------
 export async function GET() {
-  const check = await ensureAdmin();
-  if (!check.ok) return unauthorized(check.reason ?? "unknown");
+  try {
+    const check = await ensureAdmin();
+    if (!check.ok) return unauthorized(check.reason ?? "unknown");
 
-  const svc = getServiceSupabase();
-  const { data, error } = await svc
-    .from("whitelist")
-    .select("*")
-    .order("created_at", { ascending: false });
+    const svc = getServiceSupabase();
+    const { data, error } = await svc
+      .from("whitelist")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ data });
+  } catch (e) {
+    return serverError(e);
   }
-  return NextResponse.json({ data });
 }
 
 // ---------- POST：新增（單筆或批量） ----------
@@ -55,6 +64,7 @@ interface PostBody {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const check = await ensureAdmin();
   if (!check.ok) return unauthorized(check.reason ?? "unknown");
 
@@ -117,27 +127,34 @@ export async function POST(request: NextRequest) {
     added: records.length,
     upgradeError: upErr?.message ?? null,
   });
+  } catch (e) {
+    return serverError(e);
+  }
 }
 
 // ---------- DELETE：移除單筆 ----------
 export async function DELETE(request: NextRequest) {
-  const check = await ensureAdmin();
-  if (!check.ok) return unauthorized(check.reason ?? "unknown");
+  try {
+    const check = await ensureAdmin();
+    if (!check.ok) return unauthorized(check.reason ?? "unknown");
 
-  const { email } = (await request.json().catch(() => ({}))) as { email?: string };
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "email required" }, { status: 400 });
+    const { email } = (await request.json().catch(() => ({}))) as { email?: string };
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "email required" }, { status: 400 });
+    }
+
+    const svc = getServiceSupabase();
+    const { error } = await svc
+      .from("whitelist")
+      .delete()
+      .eq("email", email.toLowerCase().trim());
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    // 注意：不自動降級已升 student 的 user—— 需手動處理（避免誤砍學員）
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return serverError(e);
   }
-
-  const svc = getServiceSupabase();
-  const { error } = await svc
-    .from("whitelist")
-    .delete()
-    .eq("email", email.toLowerCase().trim());
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  // 注意：不自動降級已升 student 的 user—— 需手動處理（避免誤砍學員）
-  return NextResponse.json({ success: true });
 }
