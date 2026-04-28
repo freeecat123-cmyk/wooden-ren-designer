@@ -370,35 +370,63 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
 
   // 板狀零件頂緣倒角（座板 / 桌面）：前/側視 = 矩形上 2 角斜切（chamfered）
   // 或圓角弧線（rounded）。俯視仍是矩形（從上方看不到倒角）。
+  // bottomChamferMm > 0 → 下 2 角也斜切（腳內縮、座板下緣外露時用）。
   if (part.shape.kind === "chamfered-top") {
     if (view === "top") return box;
-    const c = Math.min(part.shape.chamferMm, r.h * 0.45, r.w * 0.45);
-    if (c <= 0) return box;
-    if (part.shape.style === "rounded") {
-      // TL/TR 用 4 段近似四分圓
-      const segs = 4;
-      const arc = (cx: number, cy: number, t0: number, t1: number) => {
-        const pts: Array<{ x: number; y: number }> = [];
-        for (let i = 0; i <= segs; i++) {
-          const t = t0 + ((t1 - t0) * i) / segs;
-          pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
-        }
-        return pts;
-      };
-      return [
-        ...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2),
-        ...arc(r.x + c, r.y + r.h - c, Math.PI / 2, Math.PI),
-        { x: r.x, y: r.y },
-        { x: r.x + r.w, y: r.y },
-      ];
+    const cTop = Math.min(part.shape.chamferMm, r.h * 0.45, r.w * 0.45);
+    const cBot = part.shape.bottomChamferMm
+      ? Math.min(part.shape.bottomChamferMm, r.h * 0.45, r.w * 0.45)
+      : 0;
+    if (cTop <= 0 && cBot <= 0) return box;
+    const rounded = part.shape.style === "rounded";
+    const segs = rounded ? 4 : 1;
+    const arc = (cx: number, cy: number, c: number, t0: number, t1: number) => {
+      const pts: Array<{ x: number; y: number }> = [];
+      const n = c > 0 ? segs : 0;
+      if (n === 0) return [{ x: cx + c * Math.cos(t0), y: cy + c * Math.sin(t0) }];
+      for (let i = 0; i <= n; i++) {
+        const t = t0 + ((t1 - t0) * i) / n;
+        pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
+      }
+      return pts;
+    };
+    if (rounded || cBot > 0) {
+      // 順時針從右上角→左上角→左下角→右下角繞一圈
+      const pts: Array<{ x: number; y: number }> = [];
+      // TR 上倒角 (圓心右上內側)
+      if (cTop > 0) {
+        pts.push(...arc(r.x + r.w - cTop, r.y + r.h - cTop, cTop, 0, Math.PI / 2));
+      } else {
+        pts.push({ x: r.x + r.w, y: r.y + r.h });
+      }
+      // TL 上倒角
+      if (cTop > 0) {
+        pts.push(...arc(r.x + cTop, r.y + r.h - cTop, cTop, Math.PI / 2, Math.PI));
+      } else {
+        pts.push({ x: r.x, y: r.y + r.h });
+      }
+      // BL 下倒角 (圓心左下內側)
+      if (cBot > 0) {
+        pts.push(...arc(r.x + cBot, r.y + cBot, cBot, Math.PI, (3 * Math.PI) / 2));
+      } else {
+        pts.push({ x: r.x, y: r.y });
+      }
+      // BR 下倒角
+      if (cBot > 0) {
+        pts.push(...arc(r.x + r.w - cBot, r.y + cBot, cBot, (3 * Math.PI) / 2, 2 * Math.PI));
+      } else {
+        pts.push({ x: r.x + r.w, y: r.y });
+      }
+      return pts;
     }
+    // 純頂面 45° 倒角：原本的快路徑
     return [
-      { x: r.x + c, y: r.y + r.h },        // 頂面左端
-      { x: r.x + r.w - c, y: r.y + r.h },  // 頂面右端
-      { x: r.x + r.w, y: r.y + r.h - c },  // 右上倒角下緣
-      { x: r.x + r.w, y: r.y },            // 右下角
-      { x: r.x, y: r.y },                  // 左下角
-      { x: r.x, y: r.y + r.h - c },        // 左上倒角下緣
+      { x: r.x + cTop, y: r.y + r.h },
+      { x: r.x + r.w - cTop, y: r.y + r.h },
+      { x: r.x + r.w, y: r.y + r.h - cTop },
+      { x: r.x + r.w, y: r.y },
+      { x: r.x, y: r.y },
+      { x: r.x, y: r.y + r.h - cTop },
     ];
   }
 

@@ -272,16 +272,19 @@ export function stretcherEdgeStyleOption(
 }
 
 /** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。
- *  style="rounded" 用多段 chamfer 拼近似圓角，"chamfered"（默認）用單段 45°。 */
+ *  style="rounded" 用多段 chamfer 拼近似圓角，"chamfered"（默認）用單段 45°。
+ *  bothSides=true 時底面也倒角（腳內縮時座板下緣外露才用得到）。 */
 export function seatEdgeShape(
   v: string | number | undefined,
   style?: string,
-): { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" } | undefined {
+  bothSides?: boolean,
+): { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" } | undefined {
   const mm = parseSeatChamferMm(v);
   if (mm <= 0) return undefined;
   return {
     kind: "chamfered-top",
     chamferMm: mm,
+    bottomChamferMm: bothSides ? mm : undefined,
     style: style === "rounded" ? "rounded" : "chamfered",
   };
 }

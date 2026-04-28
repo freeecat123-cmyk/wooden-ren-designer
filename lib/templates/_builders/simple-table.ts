@@ -157,7 +157,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     origin: { x: 0, y: legHeight, z: 0 },
     shape: opts.liveEdge
       ? { kind: "live-edge", amplitudeMm: opts.liveEdgeAmplitude ?? 12 }
-      : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle)),
+      : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle, legInset > 0 || topOverhang > 0)),
     panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({

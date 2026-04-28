@@ -103,7 +103,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle),
+    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0),
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）

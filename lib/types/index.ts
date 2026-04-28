@@ -208,8 +208,9 @@ export interface Part {
     /** Chamfered top: 板狀零件（座板 / 桌面）的頂緣 4 邊倒角。
      *  chamferMm = 從外緣往內倒掉的水平距離（=== 從頂面往下倒掉的垂直距離）。
      *  視覺上頂面變小一點點、外側多一個 45° 斜邊。
-     *  rounded R5/R12 也用這個 shape，差別在 chamferMm（5 vs 12）。 */
-    | { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" }
+     *  rounded R5/R12 也用這個 shape，差別在 chamferMm（5 vs 12）。
+     *  bottomChamferMm > 0：底面 4 邊也倒角（腳內縮時座板下緣外露才用得到）。 */
+    | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" }
     /** Chamfered long edges：4 條沿最長軸的角線各倒 45° 角或圓角。
      *  腳（length=legSize × width=legSize × thickness=legHeight，最長軸 = thickness=Y）
      *  橫撐（length=長 × width × thickness，最長軸 = length=X）
