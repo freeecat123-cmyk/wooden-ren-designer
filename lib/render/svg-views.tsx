@@ -627,10 +627,10 @@ export function OrthoView({
                 )}
                 {/* 外斜腳：每個橫撐的上下緣 Y 跟落地 Y 都畫一圈腳框
                     （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
-                    淺藍 = 橫撐接腳 Y；深藍 = 落地 Y */}
+                    深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
-                  const footColor = "#2780b8";
-                  const stretcherColor = "#7cb3da";  // 淺藍：橫撐 Y 的腳框
+                  const footColor = "#c63d3d";        // 深紅：落地 Y
+                  const stretcherColor = "#e89090";   // 淺紅：橫撐 Y
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
