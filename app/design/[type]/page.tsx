@@ -20,6 +20,7 @@ import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
+import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
@@ -524,6 +525,7 @@ function ParameterForm({
           )}
         </h3>
       </div>
+      <SizePresetButtons category={type as FurnitureCategory} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <NumberInput name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
         <NumberInput name="width" label="深 (mm)" defaultValue={defaults.width} max={limits?.width} />

@@ -7,6 +7,7 @@ import {
   OwnerBrandedHeader,
   OwnerContactBlock,
 } from "@/components/projects/OwnerBrandedHeader";
+import { ContactCraftsmanCTA } from "@/components/projects/ContactCraftsmanCTA";
 import { PrintButton } from "@/components/print/PrintButton";
 import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
 import { ProjectQuoteShareActions } from "@/components/projects/ProjectQuoteShareActions";
@@ -272,6 +273,14 @@ export default async function ProjectQuotePage({
           <p className="mt-1">本報價自寄出日起 14 日內有效。</p>
         </footer>
       </article>
+
+      {publicAccess && (
+        <ContactCraftsmanCTA
+          branding={branding}
+          quoteNo={quoteNo}
+          customerName={p.customer_name}
+        />
+      )}
     </>
   );
 

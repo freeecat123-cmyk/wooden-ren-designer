@@ -4,6 +4,7 @@ import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
 import { isPaidCategory } from "@/lib/permissions";
+import { CatalogSearch } from "@/components/CatalogSearch";
 
 interface SearchParams {
   view?: string;
@@ -198,6 +199,8 @@ export default async function Home({
         </div>
       </header>
 
+      <CatalogSearch />
+
       {/* 視圖切換：依類別 vs 依難度 */}
       <div className="mb-6 inline-flex gap-1 p-1 bg-zinc-100 rounded-lg text-sm">
         <Link
@@ -225,7 +228,7 @@ export default async function Home({
       <div className="space-y-12">
         {view === "level"
           ? groupedByLevel.map((group) => (
-              <section key={group.key} id={group.key}>
+              <section key={group.key} id={group.key} data-catalog-group>
                 <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
                   <span className="text-2xl leading-none" aria-hidden>
                     {group.emoji}
@@ -254,7 +257,7 @@ export default async function Home({
               </section>
             ))
           : grouped.map((group) => (
-              <section key={group.key} id={group.key}>
+              <section key={group.key} id={group.key} data-catalog-group>
                 <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
                   <span className="text-2xl leading-none" aria-hidden>
                     {group.emoji}
@@ -291,9 +294,17 @@ export default async function Home({
 
 function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const paid = isPaidCategory(item.category);
+  const searchTokens = [
+    item.nameZh,
+    item.category,
+    item.description,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <Link
       href={`/design/${item.category}`}
+      data-catalog-search={searchTokens}
       className={`group block rounded-lg border bg-white p-4 transition ${
         paid
           ? "border-zinc-200 hover:border-amber-400 hover:shadow-sm"
