@@ -40,13 +40,11 @@ export const wardrobeOptions: OptionSpec[] = [
     midType: "hanging", midCount: 1,
     bottomType: "drawer", bottomHeight: 400, bottomCount: 2, bottomCols: 2,
   }, true),
-  { group: "door", type: "number", key: "doorCount", label: "門板數", defaultValue: 2, min: 0, max: 6, step: 1 },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "slab", choices: [
     { value: "slab", label: "夾板貼皮平板門（裝潢常用，衣櫃首選）" },
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
   ] },
-  { group: "door", type: "checkbox", key: "slidingDoor", label: "滑門模式（省空間）", defaultValue: false, help: "門片改裝在櫃前（前移 30mm）+ 上下加滑軌條，省掉 600mm+ 開門半徑空間，小坪數臥室必選。需配上下軌道五金一組。", wide: true },
   doorMountOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
@@ -77,7 +75,6 @@ export const wardrobeOptions: OptionSpec[] = [
 export const wardrobe: FurnitureTemplate = (input) => {
   const o = wardrobeOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const doorCount = getOption<number>(input, opt(o, "doorCount"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -98,7 +95,6 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const withInteriorLed = getOption<boolean>(input, opt(o, "withInteriorLed"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
-  const slidingDoor = getOption<boolean>(input, opt(o, "slidingDoor"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -114,7 +110,6 @@ export const wardrobe: FurnitureTemplate = (input) => {
     material: input.material,
     shelfCount: 0,
     zones,
-    doorCount,
     doorType:
       doorType === "wood"
         ? "wood"
@@ -132,7 +127,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；${doorCount} 扇門（${slidingDoor ? "滑門" : doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${slidingDoor ? "滑門模式：門片前移 30mm 裝在上下鋁軌上，需配 2 軌滑門五金組（HAFELE / Blum 或國產 NT$ 1500-3500/門）；省掉開門半徑、適合小坪數臥室。" : `需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。`}${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   // 頂部棉被櫃：水平隔板（Part）距頂端 350mm
@@ -181,42 +176,6 @@ export const wardrobe: FurnitureTemplate = (input) => {
       grainDirection: "length",
       visible: { length: input.length - 2 * panelThickness - 20, width: 12, thickness: 6 },
       origin: { x: 0, y: input.height - panelThickness - 10, z: input.width / 2 - panelThickness - 8 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
-  // 滑門模式：把所有門 part 往前平移 30mm（前 18mm 板厚 + 12mm 軌道空隙），
-  // 並加上下兩條鋁軌條代表（每條 30mm 高 × 12mm 厚 × 全長）。
-  // 圖紙差異：側視圖門片明顯前突 30mm；俯視圖門片在櫃前緣外。
-  if (slidingDoor && doorCount > 0) {
-    const slideOffset = panelThickness + 12; // 30mm 前移
-    for (const part of design.parts) {
-      if (part.id.startsWith("door-")) {
-        part.origin = { ...part.origin, z: part.origin.z + slideOffset };
-      }
-    }
-    // 上軌道（裝在頂板下緣前緣）
-    design.parts.push({
-      id: "slide-track-top",
-      nameZh: "滑門上軌道",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: input.length - 2 * panelThickness, width: 30, thickness: 12 },
-      origin: { x: 0, y: input.height - panelThickness - 15, z: input.width / 2 - panelThickness / 2 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-    // 下軌道（裝在底板上緣前緣）
-    design.parts.push({
-      id: "slide-track-bottom",
-      nameZh: "滑門下軌道",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: input.length - 2 * panelThickness, width: 30, thickness: 12 },
-      origin: { x: 0, y: legHeight + panelThickness + 15, z: input.width / 2 - panelThickness / 2 },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
       mortises: [],

@@ -679,8 +679,8 @@ export function softCloseOption(group: OptionGroup = "door"): OptionSpec {
     key: "softClose",
     label: "緩衝關閉（soft-close）",
     defaultValue: true,
-    help: "鉸鏈 / 滑軌都配緩衝版（多 NT$ 100-200/組），門板 / 抽屜關閉時不會撞響、自動緩降",
     wide: true,
+    dependsOn: HIDDEN_DEP,
   };
 }
 
