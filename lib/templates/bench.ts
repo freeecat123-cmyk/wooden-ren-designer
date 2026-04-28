@@ -152,23 +152,25 @@ export const bench: FurnitureTemplate = (input) => {
       const railZ = halfW - topRailT / 2 - slatBackInset;
       for (let i = 0; i < slatN; i++) {
         const x = -slatSpan / 2 + slatW / 2 + i * (slatW + slatGap);
-        // 頂橫木在這個 X 位置的後彎量（弧形中央最大）
+        // 頂橫木在這個 X 位置的後彎量
         const tBend = (2 * x) / input.length;
         const dzAtTop = topRailBendMm > 0
           ? topRailBendMm * Math.max(0, 1 - tBend * tBend)
           : 0;
-        // 直料底部固定在座板，頂部跟著頂橫木向後彎 → 整支料向後傾斜 θ
-        // tan(θ) = dz / slatHeight；料長要除 cos(θ) 補償，不然會比頂橫木短
+        // 直料底部接座板 (slatX, seatTop, slatZ)、頂部接彎頂橫木 (..., seatTop+slatHeight, slatZ+dz)
+        // 整支向後傾斜 θ = atan(dz / slatHeight)，料長除 cos(θ) 補償
         const tilt = dzAtTop > 0 ? Math.atan(dzAtTop / slatHeight) : 0;
         const tiltedHeight = slatHeight / Math.cos(tilt);
+        // PerspectiveView py = (origin.y + yExt/2) → 調 origin 讓料中軸中點落在 (slatX, seatTop+slatHeight/2, slatZ+dz/2)
+        const originY = seatTop + (slatHeight - tiltedHeight) / 2;
+        const originZ = slatZ + dzAtTop / 2;
         design.parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背直料 ${i + 1}`,
           material: mat,
           grainDirection: "length",
           visible: { length: slatW, width: tiltedHeight, thickness: slatT },
-          origin: { x, y: seatTop, z: slatZ },
-          // rotation x:π/2 + tilt → 料站起來再向後傾，頂部接到彎曲頂橫木
+          origin: { x, y: originY, z: originZ },
           rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
           tenons: [],
           mortises: [],
