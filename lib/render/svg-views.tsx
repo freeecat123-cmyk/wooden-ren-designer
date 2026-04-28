@@ -637,19 +637,22 @@ export function OrthoView({
                     mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
                   return (
                     <>
-                      {/* 橫撐上下緣 Y 的腳框（淺藍）+ 落地點腳框（深藍）
+                      {/* 橫撐上下緣 Y 的腳框（淺紅）+ 落地點腳框（深紅）
                           每隻腳依 splay 物理在每個 Y 算位置：
-                          legX(Y) = origin.x + dxMm * (1 − Y / legHeight) */}
+                          legX(Y) = origin.x + dxMm * (1 − Y / legHeight)
+                          dedupe by Y——4 個 stretcher 同 Y 只畫一次（避免 React key 衝突 */}
                       {(() => {
                         const sample = legs[0];
                         const legHeight = sample.visible.thickness;
-                        // 收集所有要畫的 Y：橫撐 top/bottom + 落地 (Y=0)
-                        const ys: { y: number; color: string }[] = [];
+                        const yMap = new Map<number, string>();
                         for (const c of crossPieces) {
-                          ys.push({ y: c.bottomY, color: stretcherColor });
-                          ys.push({ y: c.topY, color: stretcherColor });
+                          const yb = Math.round(c.bottomY);
+                          const yt = Math.round(c.topY);
+                          if (!yMap.has(yb)) yMap.set(yb, stretcherColor);
+                          if (!yMap.has(yt)) yMap.set(yt, stretcherColor);
                         }
-                        ys.push({ y: 0, color: footColor }); // 落地
+                        yMap.set(0, footColor); // 落地（覆蓋同 Y stretcher 的話以落地為主）
+                        const ys = [...yMap.entries()].map(([y, color]) => ({ y, color }));
                         // 4 隻腳 × N 個 Y → 同 Y 同腳的框
                         return legs.flatMap((leg) => {
                           const sh = leg.shape;
