@@ -287,11 +287,9 @@ export function OrthoView({
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(design.parts, view).map((part) => {
         const hidden = isPartHidden(part, design.parts, view);
-        // 俯視圖的下橫撐單獨用深藍虛線，跟上方牙板分得開
-        const isLowerStretcherTop = view === "top" && /^ls-/.test(part.id);
-        const stroke = isLowerStretcherTop ? "#1e3a8a" : (hidden ? "#888" : "#111");
-        const sw = isLowerStretcherTop ? 0.7 : (hidden ? 0.5 : 0.9);
-        const dash = isLowerStretcherTop ? "5 3" : (hidden ? "4 3" : undefined);
+        const stroke = hidden ? "#888" : "#111";
+        const sw = hidden ? 0.5 : 0.9;
+        const dash = hidden ? "4 3" : undefined;
         // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
         if (
           (part.shape?.kind === "round" ||
