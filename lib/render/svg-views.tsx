@@ -635,32 +635,52 @@ export function OrthoView({
                 y2={sFloor}
                 label={`${labelClear} ${Math.round(mainBottomY)} mm`}
               />
-              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 各自右側標小字
-                  梯形橫撐另外標總長 + 斜面角度（外斜腳切料用） */}
-              {crossPieces.map((c) => (
-                <g key={`xp-thick-${c.id}`}>
+              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同 Y 同尺寸去重，只標一次
+                  名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」） */}
+              {(() => {
+                const seen = new Map<string, typeof crossPieces[0]>();
+                for (const c of crossPieces) {
+                  const key = `${Math.round(c.bottomY)}_${Math.round(c.yExt)}`;
+                  if (!seen.has(key)) seen.set(key, c);
+                }
+                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
+                return [...seen.values()].map((c) => (
                   <text
+                    key={`xp-thick-${c.id}`}
                     x={w / 2 + 4}
                     y={-(c.bottomY + c.yExt / 2) + 4}
                     fontSize={10}
                     fill="#444"
                     fontFamily="sans-serif"
                   >
-                    {c.nameZh} {Math.round(c.yExt)}
+                    {bare(c.nameZh)} {Math.round(c.yExt)}
                   </text>
-                  {c.cutLengthMm !== null && c.cutAngleDeg !== null && c.cutAngleDeg > 0.1 && (
-                    <text
-                      x={w / 2 + 4}
-                      y={-(c.bottomY + c.yExt / 2) + 16}
-                      fontSize={9}
-                      fill="#a55"
-                      fontFamily="sans-serif"
-                    >
-                      L{Math.round(c.cutLengthMm)} ∠{c.cutAngleDeg.toFixed(1)}°
-                    </text>
-                  )}
-                </g>
-              ))}
+                ));
+              })()}
+              {/* 梯形橫撐：總長 + 斜面角度——用水平標線拉箭頭，視 Y 去重 */}
+              {(() => {
+                const seenTrap = new Map<string, typeof crossPieces[0]>();
+                for (const c of crossPieces) {
+                  if (c.cutLengthMm === null || c.cutAngleDeg === null || c.cutAngleDeg <= 0.1) continue;
+                  const key = `${Math.round(c.bottomY)}_${Math.round(c.cutLengthMm)}`;
+                  if (!seenTrap.has(key)) seenTrap.set(key, c);
+                }
+                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
+                return [...seenTrap.values()].map((c, i) => {
+                  const halfL = (c.cutLengthMm as number) / 2;
+                  // 標線放在橫撐 bottom 下方 12px
+                  const yLine = -c.bottomY + 12;
+                  return (
+                    <g key={`xp-len-${c.id}`} stroke="#a55" fill="#a55" strokeWidth={0.5} fontFamily="sans-serif">
+                      <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
+                        markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
+                      <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
+                        {bare(c.nameZh)} L{Math.round(c.cutLengthMm as number)} ∠{(c.cutAngleDeg as number).toFixed(1)}°
+                      </text>
+                    </g>
+                  );
+                });
+              })()}
               {/* 左側高度堆疊 */}
               {dedupedStack.map((it, i) => (
                 <VerticalDimensionLine
