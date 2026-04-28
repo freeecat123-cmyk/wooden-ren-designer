@@ -1176,7 +1176,14 @@ function buildSeatScoopGeometry(
   return g;
 }
 
-export function PerspectiveView({ design }: { design: FurnitureDesign }) {
+export function PerspectiveView({
+  design,
+  sceneTheme,
+}: {
+  design: FurnitureDesign;
+  /** 場景環境主題（natural=現況，其他加地板+調光）*/
+  sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
+}) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
   const maxDim = Math.max(
@@ -1184,6 +1191,11 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
     design.overall.width,
     design.overall.thickness,
   ) * SCALE;
+  const themeFloor = sceneTheme?.floorColor ?? null;
+  const ambientMul = sceneTheme?.ambientMul ?? 1.0;
+  const tint = sceneTheme?.lightTint ?? { r: 1, g: 1, b: 1 };
+  // 把 (r,g,b) 0-1 轉成 rgb() string（Three.js Color.set 不接 array）
+  const lightHex = `rgb(${Math.round(tint.r * 255)}, ${Math.round(tint.g * 255)}, ${Math.round(tint.b * 255)})`;
 
   return (
     <div className="w-full h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
@@ -1212,10 +1224,11 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
       >
         {/* SoftShadows 暫時移除——drei 注入的 shader 用了 unpackRGBAToDepth
             在當前 Three.js 版本不存在，整個 fragment shader 編譯失敗 → 3D blank */}
-        <ambientLight intensity={0.45} />
+        <ambientLight intensity={0.45 * ambientMul} color={lightHex} />
         <directionalLight
           position={[maxDim * 1.5, maxDim * 2, maxDim * 1.2]}
-          intensity={1.0}
+          intensity={1.0 * ambientMul}
+          color={lightHex}
           castShadow
           shadow-mapSize={[1024, 1024]}
           shadow-camera-left={-maxDim * 2}
@@ -1226,7 +1239,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
         />
         <directionalLight
           position={[-maxDim, maxDim, -maxDim]}
-          intensity={0.3}
+          intensity={0.3 * ambientMul}
+          color={lightHex}
         />
 
         <Environment preset="apartment" />
@@ -1239,14 +1253,29 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           scale={maxDim * 3}
         />
 
-        <gridHelper
-          args={[
-            (Math.max(design.overall.length, design.overall.width) * SCALE) * 3,
-            20,
-            "#aaa",
-            "#ddd",
-          ]}
-        />
+        {/* 場景主題地板：theme=natural 時不渲染，回到原本懸浮在 grid 上的視覺 */}
+        {themeFloor && (
+          <mesh
+            position={[0, -0.001, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[maxDim * 8, maxDim * 8]} />
+            <meshStandardMaterial color={themeFloor} roughness={0.85} metalness={0} />
+          </mesh>
+        )}
+
+        {/* 沒選 theme 時保留原本的 grid（給設計師量度），有 theme 時用實心地板 */}
+        {!themeFloor && (
+          <gridHelper
+            args={[
+              (Math.max(design.overall.length, design.overall.width) * SCALE) * 3,
+              20,
+              "#aaa",
+              "#ddd",
+            ]}
+          />
+        )}
 
         {design.parts.map((part) => {
           const baseColor = MATERIALS[part.material].color;

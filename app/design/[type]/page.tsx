@@ -21,6 +21,8 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
 import { DesignChecks } from "@/components/DesignChecks";
+import { SceneThemeToggle } from "@/components/SceneThemeToggle";
+import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
@@ -124,6 +126,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+
+  // 場景主題：URL `?scene=nordic|japandi|industrial|chinese`，預設 natural
+  const sceneIdRaw = (typeof sp.scene === "string" ? sp.scene : "natural") as SceneThemeId;
+  const sceneId: SceneThemeId = (Object.keys(SCENE_THEMES) as SceneThemeId[]).includes(sceneIdRaw)
+    ? sceneIdRaw
+    : "natural";
+  const sceneTheme = SCENE_THEMES[sceneId];
 
   const printQuery = designParamsToQuery(parsed, entry);
 
@@ -243,7 +252,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
               透視圖（3D · 拖曳旋轉）
             </div>
-            <LazyPerspectiveView design={design} />
+            <SceneThemeToggle current={sceneId} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} />
           </div>
         </div>
       </section>

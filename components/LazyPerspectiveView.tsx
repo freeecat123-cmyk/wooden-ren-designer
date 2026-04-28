@@ -27,6 +27,12 @@ const PerspectiveViewLazy = dynamic(
   },
 );
 
-export function LazyPerspectiveView({ design }: { design: FurnitureDesign }) {
-  return <PerspectiveViewLazy design={design} />;
+export function LazyPerspectiveView({
+  design,
+  sceneTheme,
+}: {
+  design: FurnitureDesign;
+  sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
+}) {
+  return <PerspectiveViewLazy design={design} sceneTheme={sceneTheme} />;
 }
