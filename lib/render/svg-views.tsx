@@ -762,15 +762,20 @@ export function OrthoView({
                     </>
                   );
                 })()}
-                {/* 對角線——量方正度。
-                    splayed 腳：抓「腳落地點」對角（穩定性才看落地）
-                    一般腳：抓「椅面」對角 */}
+                {/* 對角線——量方正度，一律抓「腳外角」對角。
+                    splayed 腳：抓「腳落地點外角」（穩定性才看落地）
+                    一般腳：抓「腳頂面外角」（量這條檢查腳位有沒有歪） */}
                 {(() => {
                   const isSplayed = maxSplayDx > 0 || maxSplayDz > 0;
-                  const dx1 = isSplayed ? minX - maxSplayDx - legSize / 2 : -w / 2;
-                  const dy1 = isSplayed ? minZ - maxSplayDz - legSize / 2 : -h / 2;
-                  const dx2 = isSplayed ? maxX + maxSplayDx + legSize / 2 : w / 2;
-                  const dy2 = isSplayed ? maxZ + maxSplayDz + legSize / 2 : h / 2;
+                  // SVG 俯視 X 鏡像：world +X → SVG -X，所以 minX/maxX 要取負
+                  const lxMin = -maxX - (isSplayed ? maxSplayDx : 0) - legSize / 2;
+                  const lxMax = -minX + (isSplayed ? maxSplayDx : 0) + legSize / 2;
+                  const lzMin = minZ - (isSplayed ? maxSplayDz : 0) - legSize / 2;
+                  const lzMax = maxZ + (isSplayed ? maxSplayDz : 0) + legSize / 2;
+                  const dx1 = lxMin;
+                  const dy1 = lzMin;
+                  const dx2 = lxMax;
+                  const dy2 = lzMax;
                   const dw = dx2 - dx1;
                   const dh = dy2 - dy1;
                   const diagLen = Math.sqrt(dw * dw + dh * dh);
@@ -780,7 +785,7 @@ export function OrthoView({
                   const angRad = Math.atan2(dh, dw);
                   const offX = -Math.sin(angRad) * 14;
                   const offY = Math.cos(angRad) * 14;
-                  const label = `對角 ${Math.round(diagLen)}${isSplayed ? "（落地點）" : "（量此檢查方正）"}`;
+                  const label = `對角 ${Math.round(diagLen)}${isSplayed ? "（落地外角）" : "（腳外角）"}`;
                   return (
                     <>
                       <line
