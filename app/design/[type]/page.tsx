@@ -543,6 +543,11 @@ function ParameterForm({
               </option>
             ))}
           </select>
+          {MATERIALS[defaults.material]?.notes && (
+            <span className="mt-1 text-[10px] text-zinc-500 leading-relaxed">
+              💡 {MATERIALS[defaults.material].notes}
+            </span>
+          )}
         </label>
       </div>
 

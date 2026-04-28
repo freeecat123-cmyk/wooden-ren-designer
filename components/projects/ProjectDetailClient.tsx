@@ -435,6 +435,15 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             >
               🖨️ 列印 / 存 PDF
             </Link>
+            <Link
+              href={`/projects/${projectId}/purchase`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
+              title="按材質聚合所有家具的木料板才"
+            >
+              🛒 採購清單
+            </Link>
             <CopyShareLinkButton projectId={projectId} />
           </div>
         )}
