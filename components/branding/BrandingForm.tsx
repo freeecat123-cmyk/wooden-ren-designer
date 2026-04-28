@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { BRANDING_PRESETS, DEFAULT_BRANDING, useBranding } from "./branding";
+import { DEFAULT_BRANDING, useBranding } from "./branding";
 
 const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
 
@@ -208,33 +208,9 @@ export function BrandingForm() {
           </div>
 
           <div className="pt-3 mt-3 border-t border-zinc-100">
-            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              <p className="text-xs text-zinc-500 font-medium">
-                報價單條款（可自行編輯，會套用在 A4 報價單）
-              </p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-400">套用樣板：</span>
-                {BRANDING_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => {
-                      if (
-                        !window.confirm(
-                          `套用「${preset.label}」會覆寫目前的條款（付款/交貨/保固/售後/備註），確定？`,
-                        )
-                      )
-                        return;
-                      update(preset.patch);
-                    }}
-                    title={preset.description}
-                    className="text-[10px] px-2 py-1 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 hover:border-zinc-400"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-zinc-500 font-medium mb-2">
+              報價單條款（可自行編輯，會套用在 A4 報價單）
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <TextAreaField
                 label="付款條件"
