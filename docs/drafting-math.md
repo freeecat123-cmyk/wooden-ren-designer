@@ -231,7 +231,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 
 ### 功能性建議
 4. ✅ **三視圖加總長/寬/高三條主標註** — commit `aa3948d` 2026-04-28（加方向 prefix「寬/深/高」）
-5. **燕尾榫斜度確認用 1:6 / 1:8** 而非任意值
+5. ✅ **燕尾榫斜度確認用 1:6 / 1:8** — commit `4efc081` 2026-04-29（pickDovetailAngle 依材料密度自動切軟硬木標準）
 6. **隱藏線（虛線）** — 用 Painter's algorithm + polygon-clipping，先試 three-plotter-renderer
 7. **木紋方向條紋** — 公榫木紋沿榫長軸、母榫垂直；視覺辨識度大幅提升
 8. **比例尺自動選整數**（1:1/2/5/10/20/50）
@@ -264,10 +264,10 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 23. ✅ **市售規格對齊** — commit `aa3948d` 2026-04-28（`lib/design/standards.ts` STANDARD_THICKNESSES_MM + collectThicknessHints + DesignChecks UI）
 
 ### 美學擴充（新）
-24. **中式紋樣庫** — 4 個 MVP（meander/swastika/ruyi/iceCrack）+ 派系 preset 自動帶（見 U6）
+24. ✅ **中式紋樣庫** — commit `e6af139` 2026-04-29（4 個 MVP：meander/swastika/ruyi/iceCrack，純 SVG generator，未整合家具立面）
 
 ### 結構驗證 v3（新）
-25. **椅子穩定性** — θ_side 先上（公式最簡），加 backTiltDeg 一個欄位（見 V6）
+25. ✅ **椅子穩定性** — commit `bb67773` 2026-04-29（checkSideStability θ_side ≥ 20° OK / 12-20° WARN / < 12° ERROR，接到餐椅/凳/長椅）
 
 ### AI 入口（新）
 26. **拍照推薦模板** — Claude Vision API + structured JSON，2-3 天工，月成本 $8（見 W2）
