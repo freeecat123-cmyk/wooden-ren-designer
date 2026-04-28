@@ -39,11 +39,11 @@ export const benchOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "top", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
-  { group: "back", type: "select", key: "endSplat", label: "兩端立板", defaultValue: "none", choices: [
+  { group: "back", type: "select", key: "endSplat", label: "椅背立板", defaultValue: "none", choices: [
     { value: "none", label: "無（純長凳）" },
-    { value: "low", label: "矮立板（150mm 高，扶手感）" },
-    { value: "high", label: "高立板（350mm 高，教堂長椅式）" },
-  ], help: "兩端加垂直立板，靠著有依靠感、視覺更有結構" },
+    { value: "low", label: "矮椅背（150mm 高，腰靠感）" },
+    { value: "high", label: "高椅背（350mm 高，正式座椅）" },
+  ], help: "沿長邊背側加垂直立板當椅背，靠著有依靠感" },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -92,36 +92,36 @@ export const bench: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 兩端加 ${endSplat === "low" ? "150mm" : "350mm"} 立板（${endSplat === "low" ? "矮扶手感" : "教堂長椅式"}）。` : ""}`,
+    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 背側加 ${endSplat === "low" ? "150mm 矮椅背（腰靠感）" : "350mm 高椅背（正式座椅）"}。` : ""}`,
   });
 
-  // 兩端立板（end splat）—— 從座板上緣往上延伸，立在 +x / -x 兩端
+  // 椅背立板 —— 沿長邊背側（+Z）從座板上緣往上延伸
   if (endSplat !== "none") {
     const splatHeight = endSplat === "low" ? 150 : 350;
     const splatThick = 25;
     const seatTop = input.height; // 座板頂面
-    const halfL = input.length / 2;
-    for (const side of [-1, 1] as const) {
-      design.parts.push({
-        id: `end-splat-${side > 0 ? "right" : "left"}`,
-        nameZh: `${side > 0 ? "右" : "左"}端立板`,
-        material: input.material,
-        grainDirection: "length",
-        visible: {
-          length: input.width - 20,
-          width: splatHeight,
-          thickness: splatThick,
-        },
-        origin: {
-          x: side * (halfL - splatThick / 2),
-          y: seatTop,
-          z: 0,
-        },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
+    const halfW = input.width / 2;
+    design.parts.push({
+      id: "back-splat",
+      nameZh: "椅背立板",
+      material: input.material,
+      grainDirection: "length",
+      visible: {
+        length: input.length,           // 沿長邊
+        width: splatHeight,             // 立板高度（rotation x:π/2 後成世界 Y）
+        thickness: splatThick,          // 立板厚度（rotation x:π/2 後成世界 Z）
+      },
+      // 立在 +Z 背邊，外面齊平座板背緣（origin.z = halfW - splatThick/2 → 立板外緣 = halfW）
+      origin: {
+        x: 0,
+        y: seatTop,
+        z: halfW - splatThick / 2,
+      },
+      // local Z（width=splatHeight）→ 旋轉 x:π/2 後變世界 Y → 立板向上延伸 splatHeight
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
   }
 
   if (withUnderShelf) {
