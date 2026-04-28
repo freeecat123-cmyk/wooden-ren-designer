@@ -274,7 +274,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 {deliveryIso}
               </div>
               <div className="text-[10px] text-sky-700 mt-0.5">
-                約 {quote.estimatedWorkdays} 個工作天 · 工時 {quote.laborHours.toFixed(1)}h
+                實做 {quote.buildWorkdays} 天
+                {quote.bufferDays > 0 && ` + 乾燥/出貨緩衝 ${quote.bufferDays} 天`}
+                {" · "}工時 {quote.laborHours.toFixed(1)}h（6hr/天）
               </div>
             </div>
           </div>

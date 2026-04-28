@@ -123,13 +123,18 @@ export interface QuoteBreakdown {
   depositAmount: number;
   /** 尾款（交貨時收） */
   balanceAmount: number;
-  /** 預估工作天數（工時 ÷ 8hr + bufferDays） */
+  /** 預估工作天數（實做 + bufferDays） */
   estimatedWorkdays: number;
+  /** 實做工作天（工時 × 數量 ÷ 8hr，無緩衝） */
+  buildWorkdays: number;
+  /** 塗裝乾燥/出貨緩衝天數 */
+  bufferDays: number;
   /** 行項目（用於表格顯示，單件） */
   lines: QuoteLineItem[];
 }
 
-const HOURS_PER_WORKDAY = 8;
+// 一個工作天實際產出工時≈6hr（扣除溝通、整理工作台、刀具更換、休息等隱形時間）
+const HOURS_PER_WORKDAY = 6;
 
 const WASTE_RATE = 0.1; // 10% 切料損耗
 
@@ -258,10 +263,10 @@ export function calculateQuote(
   const depositAmount = Math.round(total * depositRate);
   const balanceAmount = Math.max(0, Math.round(total) - depositAmount);
 
-  // 8. 預估工作天數（實做工時 × 數量 ÷ 8hr/天 + 塗裝乾燥/出貨緩衝）
+  // 8. 預估工作天數（實做工時 × 數量 ÷ 6hr/天 + 塗裝乾燥/出貨緩衝）
   const bufferDays = Math.max(0, Math.round(opts.bufferDays ?? 0));
-  const estimatedWorkdays =
-    Math.ceil((laborHours * quantity) / HOURS_PER_WORKDAY) + bufferDays;
+  const buildWorkdays = Math.ceil((laborHours * quantity) / HOURS_PER_WORKDAY);
+  const estimatedWorkdays = buildWorkdays + bufferDays;
 
   // 倒角工時拆出來顯示，讓客戶看得出 R 值大小對價格的影響
   const chamferDetail =
@@ -360,6 +365,8 @@ export function calculateQuote(
     depositAmount,
     balanceAmount,
     estimatedWorkdays,
+    buildWorkdays,
+    bufferDays,
     lines,
   };
 }
