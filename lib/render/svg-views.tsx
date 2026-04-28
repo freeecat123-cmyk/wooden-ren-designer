@@ -648,26 +648,22 @@ export function OrthoView({
                         strokeDasharray="3 3"
                       />
                       {maxSplayDx > 0 && Math.abs(footProtrudeX) > 0.5 && (
-                        <g stroke={footColor} fill={footColor}>
-                          <DimensionLine
-                            arrowId={`arr-${view}`}
-                            x1={Math.min(w / 2, maxX + maxSplayDx + legSize / 2)}
-                            x2={Math.max(w / 2, maxX + maxSplayDx + legSize / 2)}
-                            y={-h / 2 - 32}
-                            label={protrudeLabel(footProtrudeX)}
-                          />
-                        </g>
+                        <DimensionLine
+                          arrowId={`arr-${view}`}
+                          x1={Math.min(w / 2, maxX + maxSplayDx + legSize / 2)}
+                          x2={Math.max(w / 2, maxX + maxSplayDx + legSize / 2)}
+                          y={-h / 2 - 32}
+                          label={protrudeLabel(footProtrudeX)}
+                        />
                       )}
                       {maxSplayDz > 0 && Math.abs(footProtrudeZ) > 0.5 && (
-                        <g stroke={footColor} fill={footColor}>
-                          <VerticalDimensionLine
-                            arrowId={`arr-${view}`}
-                            x={w / 2 + 32}
-                            y1={Math.min(h / 2, maxZ + maxSplayDz + legSize / 2)}
-                            y2={Math.max(h / 2, maxZ + maxSplayDz + legSize / 2)}
-                            label={protrudeLabel(footProtrudeZ)}
-                          />
-                        </g>
+                        <VerticalDimensionLine
+                          arrowId={`arr-${view}`}
+                          x={w / 2 + 32}
+                          y1={Math.min(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                          y2={Math.max(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                          label={protrudeLabel(footProtrudeZ)}
+                        />
                       )}
                     </>
                   );
