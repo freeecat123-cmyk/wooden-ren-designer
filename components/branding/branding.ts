@@ -47,7 +47,7 @@ export const DEFAULT_BRANDING: BrandingData = {
     "訂金：簽約付款 50%\n尾款：交貨前付款 50%\n匯款銀行：＿＿＿＿\n帳戶：＿＿＿＿",
   deliveryTerms: "簽約後 ____ 天內，工坊自取／另議運費",
   warranty: "一年（非人為損害）",
-  afterSales: "終身榫卯維修",
+  afterSales: "",
   notes: [
     "本報價含材料、加工、組裝、表面塗裝。",
     "木材依實際乾燥度、紋理挑選會有 ±3% 尺寸與色差誤差。",
