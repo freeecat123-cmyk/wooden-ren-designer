@@ -121,11 +121,14 @@ export const bench: FurnitureTemplate = (input) => {
         mortises: [],
       });
     } else if (endSplat === "slatted") {
-      // 直格條：5 條垂直料平均分布在長度方向，間隔等於格條寬
-      // 邊柱 60×splatHeight×25，中間 4 條 50×splatHeight×18
+      // 直格條：5 條垂直料 + 頂橫木把它們連起來
+      const topRailH = 50;
+      const topRailT = 25;
       const slatN = 5;
       const slatW = 50;
       const slatT = 18;
+      // 直料只到頂橫木下緣，避免穿透
+      const slatHeight = splatHeight - topRailH;
       const slatGap = (input.length - slatN * slatW) / (slatN - 1);
       for (let i = 0; i < slatN; i++) {
         const x = -input.length / 2 + slatW / 2 + i * (slatW + slatGap);
@@ -134,13 +137,25 @@ export const bench: FurnitureTemplate = (input) => {
           nameZh: `椅背直料 ${i + 1}`,
           material: mat,
           grainDirection: "length",
-          visible: { length: slatW, width: splatHeight, thickness: slatT },
+          visible: { length: slatW, width: slatHeight, thickness: slatT },
           origin: { x, y: seatTop, z: backZ },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           mortises: [],
         });
       }
+      // 頂橫木：跨整條長邊，疊在直料上面
+      design.parts.push({
+        id: "back-top-rail",
+        nameZh: "椅背頂橫木",
+        material: mat,
+        grainDirection: "length",
+        visible: { length: input.length, width: topRailH, thickness: topRailT },
+        origin: { x: 0, y: seatTop + slatHeight, z: backZ },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
     } else if (endSplat === "ladder") {
       // 橫格條：頂橫木 + 2 條中段橫料（高 60mm）
       const railH = 60;
