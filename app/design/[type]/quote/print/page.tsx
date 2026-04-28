@@ -72,6 +72,7 @@ export default async function QuotePrintPage({
     installationCost: parseNum(sp.installationCost, LABOR_DEFAULTS.installationCost),
     hardwareCost: parseNum(sp.hardwareCost, LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
+    designerMarkupRate: parseNum(sp.designerMarkupRate, LABOR_DEFAULTS.designerMarkupRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
@@ -310,6 +311,16 @@ export default async function QuotePrintPage({
                       + {formatTWD(quote.margin)}
                     </td>
                   </tr>
+                  {quote.designerMarkupRate > 0 && (
+                    <tr>
+                      <td className="py-1 text-amber-800">
+                        🎨 設計師加成（{Math.round(quote.designerMarkupRate * 100)}%）
+                      </td>
+                      <td className="py-1 text-right font-mono text-amber-800">
+                        + {formatTWD(quote.designerMarkupAmount)}
+                      </td>
+                    </tr>
+                  )}
                 </>
               )}
               {viewMode === "customer" && (

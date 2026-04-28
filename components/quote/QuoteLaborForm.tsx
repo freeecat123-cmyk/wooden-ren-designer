@@ -33,6 +33,7 @@ type Defaults = {
   installationCost: number;
   hardwareCost: number;
   marginRate: number;
+  designerMarkupRate: number;
   vatRate: number;
   quantity: number;
   discountRate: number;
@@ -253,6 +254,27 @@ export function QuoteLaborForm({
                 <NumField name="installationCost" label="安裝費 (NT$)" value={defaults.installationCost} min={LABOR_BOUNDS.installationCost.min} max={LABOR_BOUNDS.installationCost.max} step={LABOR_BOUNDS.installationCost.step} />
                 <NumField name="marginRate" label="毛利率" value={defaults.marginRate} min={LABOR_BOUNDS.marginRate.min} max={LABOR_BOUNDS.marginRate.max} step={LABOR_BOUNDS.marginRate.step} decimal />
                 <NumField name="vatRate" label="營業稅率" value={defaults.vatRate} min={LABOR_BOUNDS.vatRate.min} max={LABOR_BOUNDS.vatRate.max} step={LABOR_BOUNDS.vatRate.step} decimal />
+              </div>
+            </fieldset>
+            <fieldset className="rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
+              <legend className="text-xs text-amber-900 px-1.5 font-semibold">
+                🎨 設計師加成（對外提案專用）
+              </legend>
+              <p className="text-[10px] text-amber-700 mb-2 leading-relaxed">
+                在「成本＋毛利」之上再乘一層。給裝潢設計師對自己客戶報價：木匠出貨價 × (1 + 加成) = 對外單價。<br />
+                0 = 不啟用（一般木工接案模式）；常見 30~50%。後台仍可看到原始木匠價。
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <NumField
+                  name="designerMarkupRate"
+                  label="設計師加成"
+                  value={defaults.designerMarkupRate}
+                  min={LABOR_BOUNDS.designerMarkupRate.min}
+                  max={LABOR_BOUNDS.designerMarkupRate.max}
+                  step={LABOR_BOUNDS.designerMarkupRate.step}
+                  decimal
+                  hint="0=關閉；0.30=加 30%；0.50=加 50%"
+                />
               </div>
             </fieldset>
           </div>

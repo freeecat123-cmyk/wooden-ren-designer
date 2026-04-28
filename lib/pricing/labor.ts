@@ -28,6 +28,11 @@ export interface LaborDefaults {
   hardwareCost: number;
   /** 毛利率（0–1） */
   marginRate: number;
+  /**
+   * 設計師加成（0–1.5）。在「成本＋毛利」之上再乘一層，給裝潢設計師對自己客戶報價用。
+   * 0 = 不加成（一般木工接案模式）；常見 30~50%。
+   */
+  designerMarkupRate: number;
   /** 營業稅率（0–1），開發票加計 */
   vatRate: number;
   /** 數量（相同家具做幾張），預設 1 */
@@ -66,6 +71,7 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   installationCost: 0,
   hardwareCost: 0,
   marginRate: 0.3,
+  designerMarkupRate: 0,
   vatRate: 0,
   quantity: 1,
   discountRate: 0,
@@ -90,6 +96,7 @@ export const LABOR_BOUNDS = {
   installationCost: { min: 0, max: 30000, step: 100 },
   hardwareCost: { min: 0, max: 50000, step: 100 },
   marginRate: { min: 0, max: 0.8, step: 0.05 },
+  designerMarkupRate: { min: 0, max: 1.5, step: 0.05 },
   vatRate: { min: 0, max: 0.1, step: 0.01 },
   quantity: { min: 1, max: 100, step: 1 },
   discountRate: { min: 0, max: 0.5, step: 0.01 },

@@ -318,6 +318,7 @@ function readFormState(design: FurnitureDesign) {
     installationCost: parseNum(get("installationCost"), LABOR_DEFAULTS.installationCost),
     hardwareCost: parseNum(get("hardwareCost"), LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(get("marginRate"), LABOR_DEFAULTS.marginRate),
+    designerMarkupRate: parseNum(get("designerMarkupRate"), LABOR_DEFAULTS.designerMarkupRate),
     vatRate: parseNum(get("vatRate"), LABOR_DEFAULTS.vatRate),
     quantity: parseNum(get("quantity"), LABOR_DEFAULTS.quantity),
     discountRate: parseNum(get("discountRate"), LABOR_DEFAULTS.discountRate),

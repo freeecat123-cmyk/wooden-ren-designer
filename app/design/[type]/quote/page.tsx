@@ -37,6 +37,7 @@ interface PageProps {
     installationCost?: string;
     hardwareCost?: string;
     marginRate?: string;
+    designerMarkupRate?: string;
     vatRate?: string;
     quantity?: string;
     discountRate?: string;
@@ -108,6 +109,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     installationCost: parseNum(sp.installationCost, LABOR_DEFAULTS.installationCost),
     hardwareCost: parseNum(sp.hardwareCost, LABOR_DEFAULTS.hardwareCost),
     marginRate: parseNum(sp.marginRate, LABOR_DEFAULTS.marginRate),
+    designerMarkupRate: parseNum(sp.designerMarkupRate, LABOR_DEFAULTS.designerMarkupRate),
     vatRate: parseNum(sp.vatRate, LABOR_DEFAULTS.vatRate),
     quantity: parseNum(sp.quantity, LABOR_DEFAULTS.quantity),
     discountRate: parseNum(sp.discountRate, LABOR_DEFAULTS.discountRate),
@@ -174,7 +176,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     designParams.set(spec.key, String(options[spec.key]));
   }
   const designQuery = designParams.toString();
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&laborHoursOverride=${laborOpts.laborHoursOverride}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&designerMarkupRate=${laborOpts.designerMarkupRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&laborHoursOverride=${laborOpts.laborHoursOverride}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,
     customerContact: customer.contact,
@@ -380,6 +382,19 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
                 {formatTWD(quote.margin)}
               </td>
             </tr>
+            {quote.designerMarkupRate > 0 && (
+              <tr className="bg-amber-50/50">
+                <td className="p-3 text-amber-900" colSpan={2}>
+                  🎨 設計師加成（{Math.round(quote.designerMarkupRate * 100)}%）
+                  <span className="ml-1 text-[10px] text-amber-700">
+                    在木匠出貨價 {formatTWD(quote.makerUnitPriceExclVat)} 之上再加
+                  </span>
+                </td>
+                <td className="p-3 text-right font-mono text-amber-900">
+                  + {formatTWD(quote.designerMarkupAmount)}
+                </td>
+              </tr>
+            )}
             <tr className="border-t border-zinc-300">
               <td className="p-3 font-semibold" colSpan={2}>
                 單件未稅報價

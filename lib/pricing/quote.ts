@@ -124,9 +124,15 @@ export interface QuoteBreakdown {
   hardwareCost: number;
   /** 成本小計（未加毛利、未含稅、單件） */
   costSubtotal: number;
-  /** 毛利金額（單件） */
+  /** 毛利金額（單件，木匠端） */
   margin: number;
-  /** 單件報價（未稅、未打折） */
+  /** 木匠端單件未稅價（成本 + 毛利）。設計師加成前。 */
+  makerUnitPriceExclVat: number;
+  /** 設計師加成比例（0–1.5）。0 表示沒啟用設計師模式。 */
+  designerMarkupRate: number;
+  /** 設計師加成金額（單件）= makerUnitPriceExclVat × designerMarkupRate。 */
+  designerMarkupAmount: number;
+  /** 對外單件未稅價（已含設計師加成）。所有下游 subtotal/vat/total 皆以此為基準。 */
   unitPriceExclVat: number;
   /** 數量 */
   quantity: number;
@@ -292,8 +298,14 @@ export function calculateQuote(
   // 否則按 marginRate 加成
   const override = opts.overrideUnitPrice ?? 0;
   const hasOverride = override > 0;
-  const unitPriceExclVat = hasOverride ? override : costSubtotal * (1 + opts.marginRate);
-  const margin = unitPriceExclVat - costSubtotal;
+  const makerUnitPriceExclVat = hasOverride ? override : costSubtotal * (1 + opts.marginRate);
+  const margin = makerUnitPriceExclVat - costSubtotal;
+
+  // 設計師加成：在「木匠成本＋毛利」之上再乘一層，給裝潢設計師對自己客戶報價用。
+  // 0 = 一般木工接案模式（行為跟過去一致）；> 0 = 對外單價 = 木匠價 × (1 + markup)。
+  const designerMarkupRate = Math.max(0, Math.min(1.5, opts.designerMarkupRate ?? 0));
+  const designerMarkupAmount = makerUnitPriceExclVat * designerMarkupRate;
+  const unitPriceExclVat = makerUnitPriceExclVat + designerMarkupAmount;
 
   // 6. 數量 × 折扣 → 稅
   const quantity = Math.max(1, Math.round(opts.quantity ?? 1));
@@ -401,6 +413,9 @@ export function calculateQuote(
     hardwareCost,
     costSubtotal,
     margin,
+    makerUnitPriceExclVat,
+    designerMarkupRate,
+    designerMarkupAmount,
     unitPriceExclVat,
     quantity,
     subtotalBeforeDiscount,
