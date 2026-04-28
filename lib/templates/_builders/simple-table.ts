@@ -255,11 +255,16 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const splayDz =
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
-  // 牙板兩端：bottom Y 腳外推較多、top Y 較少。bottom 當基準長度，top 縮成梯形
+  // 牙板上下緣：以「中軸 Y」算 splay 基準位移，讓牙板中軸跟腳中軸對齊。
+  // top 邊縮、bot 邊放，bevelAngle 補償讓上下面切平（跟地面平行）。
+  const apronCenterY = apronY + apronWidth / 2;
   const apronBotShift = legHeight > 0 ? 1 - apronY / legHeight : 0;
   const apronTopShift = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
-  const apronSplayX = splayDx * apronBotShift;
-  const apronSplayZ = splayDz * apronBotShift;
+  const apronCenterShift = legHeight > 0 ? 1 - apronCenterY / legHeight : 0;
+  const apronSplayX = splayDx * apronCenterShift;     // 中心（基準）
+  const apronSplayZ = splayDz * apronCenterShift;
+  const apronSplayXBot = splayDx * apronBotShift;
+  const apronSplayZBot = splayDz * apronBotShift;
   const apronSplayXTop = splayDx * apronTopShift;
   const apronSplayZTop = splayDz * apronTopShift;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
@@ -309,15 +314,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
-    // 同軸有 splay → 梯形（top 端比 bottom 端短，避免跟腳重疊）
+    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放
     const trapTopScale =
       s.axis === "x" && splayDx > 0
         ? (apronEdgeX + apronSplayXTop) / (apronEdgeX + apronSplayX)
         : s.axis === "z" && splayDz > 0
           ? (apronEdgeZ + apronSplayZTop) / (apronEdgeZ + apronSplayZ)
           : null;
+    const trapBotScale =
+      s.axis === "x" && splayDx > 0
+        ? (apronEdgeX + apronSplayXBot) / (apronEdgeX + apronSplayX)
+        : s.axis === "z" && splayDz > 0
+          ? (apronEdgeZ + apronSplayZBot) / (apronEdgeZ + apronSplayZ)
+          : 1;
     const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
       : isSplayed
         ? { kind: "apron-beveled" as const, bevelAngle }
         : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
@@ -415,11 +426,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
-    // 下橫撐 bottom 跟 top Y 各自算 splay shift；用 bottom 當基準長度，top 縮成梯形
+    // 下橫撐：以中軸對齊腳中軸，top/bot 都從中心向外/向內推
+    const sCenterY = stretcherY + stretcherWidth / 2;
     const sBotShift = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
     const sTopShift = legHeight > 0 ? 1 - (stretcherY + stretcherWidth) / legHeight : 0;
-    const sSplayX = splayDx * sBotShift;
-    const sSplayZ = splayDz * sBotShift;
+    const sCenterShift = legHeight > 0 ? 1 - sCenterY / legHeight : 0;
+    const sSplayX = splayDx * sCenterShift;       // 中心
+    const sSplayZ = splayDz * sCenterShift;
+    const sSplayXBot = splayDx * sBotShift;
+    const sSplayZBot = splayDz * sBotShift;
     const sSplayXTop = splayDx * sTopShift;
     const sSplayZTop = splayDz * sTopShift;
     const lowerSides = [
@@ -438,8 +453,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           : s.axis === "z" && splayDz > 0
             ? (apronEdgeZ + sSplayZTop) / (apronEdgeZ + sSplayZ)
             : null;
+      const trapBotScale =
+        s.axis === "x" && splayDx > 0
+          ? (apronEdgeX + sSplayXBot) / (apronEdgeX + sSplayX)
+          : s.axis === "z" && splayDz > 0
+            ? (apronEdgeZ + sSplayZBot) / (apronEdgeZ + sSplayZ)
+            : 1;
       const lsShape = trapTopScale !== null
-        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
         : isSplayed
           ? { kind: "apron-beveled" as const, bevelAngle }
           : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
