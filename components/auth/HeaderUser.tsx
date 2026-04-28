@@ -111,6 +111,13 @@ function UserDropdown({
             👥 客戶名單
           </Link>
           <Link
+            href="/settings/branding"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
+            onClick={() => setOpen(false)}
+          >
+            🏢 抬頭設定
+          </Link>
+          <Link
             href="/my-subscription"
             className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
             onClick={() => setOpen(false)}
