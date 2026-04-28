@@ -139,24 +139,90 @@ export function saveBranding(data: BrandingData): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+/**
+ * Sync 策略：
+ *   1. mount → 立即用 localStorage 顯示（避免閃白）
+ *   2. async 抓 Supabase user_branding；有資料就覆蓋並寫回 localStorage
+ *   3. 之後每次 update：
+ *      - 立即更新 state + localStorage（不等網路）
+ *      - debounce 1.5s 推到 Supabase
+ *
+ * 未登入時跳過 Supabase 部分，純 localStorage 模式（保留舊行為）。
+ */
+const SYNC_DEBOUNCE_MS = 1500;
+
 export function useBranding(): {
   data: BrandingData;
   hydrated: boolean;
+  syncedAt: number | null;
   update: (patch: Partial<BrandingData>) => void;
   reset: () => void;
 } {
   const [data, setData] = useState<BrandingData>(DEFAULT_BRANDING);
   const [hydrated, setHydrated] = useState(false);
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 1. 開機：先吃 localStorage（同步），再非同步抓 Supabase
   useEffect(() => {
     setData(loadBranding());
     setHydrated(true);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData.user?.id ?? null;
+        userIdRef.current = uid;
+        if (!uid || cancelled) return;
+        const { data: row } = await supabase
+          .from("user_branding")
+          .select("data, updated_at")
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (cancelled) return;
+        if (row?.data) {
+          const merged = { ...DEFAULT_BRANDING, ...(row.data as Partial<BrandingData>) };
+          setData(merged);
+          saveBranding(merged);
+          setSyncedAt(Date.now());
+        }
+      } catch {
+        // 沒網 / 沒登入 → 純 local 模式
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    };
   }, []);
+
+  const schedulePush = (next: BrandingData) => {
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = setTimeout(async () => {
+      const uid = userIdRef.current;
+      if (!uid) return;
+      try {
+        const supabase = createClient();
+        await supabase.from("user_branding").upsert(
+          { user_id: uid, data: next, updated_at: new Date().toISOString() },
+          { onConflict: "user_id" },
+        );
+        setSyncedAt(Date.now());
+      } catch {
+        // 失敗就靜悄悄；下次 update 會再試。資料還在 localStorage，不會掉。
+      }
+    }, SYNC_DEBOUNCE_MS);
+  };
 
   const update = (patch: Partial<BrandingData>) => {
     setData((prev) => {
       const next = { ...prev, ...patch };
       saveBranding(next);
+      schedulePush(next);
       return next;
     });
   };
@@ -164,7 +230,8 @@ export function useBranding(): {
   const reset = () => {
     setData(DEFAULT_BRANDING);
     saveBranding(DEFAULT_BRANDING);
+    schedulePush(DEFAULT_BRANDING);
   };
 
-  return { data, hydrated, update, reset };
+  return { data, hydrated, syncedAt, update, reset };
 }

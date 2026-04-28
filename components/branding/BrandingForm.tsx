@@ -6,7 +6,7 @@ import { BRANDING_PRESETS, DEFAULT_BRANDING, useBranding } from "./branding";
 const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
 
 export function BrandingForm() {
-  const { data, hydrated, update, reset } = useBranding();
+  const { data, hydrated, syncedAt, update, reset } = useBranding();
   const [logoError, setLogoError] = useState<string>("");
   const [open, setOpen] = useState(false);
 
@@ -280,7 +280,9 @@ export function BrandingForm() {
               全部還原為預設
             </button>
             <span className="text-xs text-zinc-400">
-              設定會存在這台裝置（localStorage），換裝置要重新輸入一次
+              {syncedAt
+                ? `☁️ 已同步雲端（登入帳號跨裝置共用） · ${new Date(syncedAt).toLocaleTimeString()}`
+                : "設定存在本機（localStorage）；登入後會自動同步到雲端"}
             </span>
           </div>
         </div>
