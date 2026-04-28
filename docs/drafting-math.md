@@ -246,7 +246,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ### 進階功能（新，估期長）
 12. **爆炸圖** — Axis-Aligned + part type rules + ortho iso 視角 + slider（見 H）
 13. **自動標註** — rbush + 4 側 layout + 短內長外 stacking + L 形 leader（見 I7）
-14. **板材展開圖** — 圓柱/圓錐/截頂圓錐公式直接套，自由曲面警示後 LSCM（見 J8）
+14. ✅ **板材展開圖** — commit `7a79660` 2026-04-29（lib/design/unfold.ts 圓柱/圓錐/截頂/層壓+高斯曲率，純函數庫未整合 UI）
 15. **派系 preset** — 中式家具加蘇/京/廣/徽/晉下拉選單（見 K2-K3）
 
 ### 結構驗證 v2
@@ -280,12 +280,12 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 29. **三段品質模式** — edit/preview/render Quality switch + EffectComposer SSAO/Bloom/DoF（見 Y5）
 
 ### 工程交付（新）
-30. **打包出貨估算** — 三邊和材積 + 黑貓/新竹分級報價 + KD 拆裝建議（見 Z7）
+30. ✅ **打包出貨估算** — commit `f8acc76` 2026-04-29（lib/design/shipping.ts 重量+三邊和+4 業者推薦+KD 警示，整合 DesignChecks）
 31. **訂單管線 MVP** — Supabase orders 表 + LINE Notify + 綠界，工廠半自動 v2（見 AA5）
 
 ### 內容深化（新）
 32. **經典家具 20 款** — 第一波 6 件 A 級，2 週可上（見 AB5）
-33. **木材立體屬性** — 雷達圖 + 屬性 chips + 派系推薦 + CITES 警示（見 AC9）
+33. ✅ **木材立體屬性** — commit `48b4d27` 2026-04-29（MaterialSpec.attrs 6 軸 + MaterialAttributesPanel 雷達圖 + 派系推薦 + CITES/油性警示）
 
 ### 三視圖 polish（新）
 34. ✅ **CNS 線寬分層** — commit `8a5b6a5` 2026-04-29（標註線 0.4 / 延伸線 0.25 / 粗:細 2:1，per §C2）
