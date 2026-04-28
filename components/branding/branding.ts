@@ -103,14 +103,20 @@ export function useBranding(): {
   data: BrandingData;
   hydrated: boolean;
   syncedAt: number | null;
+  /** true = 有變更等著推到雲端（debounce 中或還沒推成功） */
+  pendingPush: boolean;
   update: (patch: Partial<BrandingData>) => void;
   reset: () => void;
+  /** 立刻 flush 雲端推送（取消 debounce 直接送）；未登入則只回 false */
+  flush: () => Promise<boolean>;
 } {
   const [data, setData] = useState<BrandingData>(DEFAULT_BRANDING);
   const [hydrated, setHydrated] = useState(false);
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const [pendingPush, setPendingPush] = useState(false);
   const userIdRef = useRef<string | null>(null);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestDataRef = useRef<BrandingData>(DEFAULT_BRANDING);
 
   // 1. 開機：先吃 localStorage（同步），再非同步抓 Supabase
   useEffect(() => {
@@ -148,21 +154,34 @@ export function useBranding(): {
     };
   }, []);
 
+  const pushNow = async (next: BrandingData): Promise<boolean> => {
+    const uid = userIdRef.current;
+    if (!uid) {
+      setPendingPush(false);
+      return false;
+    }
+    try {
+      const supabase = createClient();
+      await supabase.from("user_branding").upsert(
+        { user_id: uid, data: next, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+      setSyncedAt(Date.now());
+      setPendingPush(false);
+      return true;
+    } catch {
+      // 失敗：保留 pending 旗標，下一次 update / flush 會再試
+      return false;
+    }
+  };
+
   const schedulePush = (next: BrandingData) => {
+    latestDataRef.current = next;
+    setPendingPush(true);
     if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    pushTimerRef.current = setTimeout(async () => {
-      const uid = userIdRef.current;
-      if (!uid) return;
-      try {
-        const supabase = createClient();
-        await supabase.from("user_branding").upsert(
-          { user_id: uid, data: next, updated_at: new Date().toISOString() },
-          { onConflict: "user_id" },
-        );
-        setSyncedAt(Date.now());
-      } catch {
-        // 失敗就靜悄悄；下次 update 會再試。資料還在 localStorage，不會掉。
-      }
+    pushTimerRef.current = setTimeout(() => {
+      pushTimerRef.current = null;
+      void pushNow(latestDataRef.current);
     }, SYNC_DEBOUNCE_MS);
   };
 
@@ -181,5 +200,13 @@ export function useBranding(): {
     schedulePush(DEFAULT_BRANDING);
   };
 
-  return { data, hydrated, syncedAt, update, reset };
+  const flush = async (): Promise<boolean> => {
+    if (pushTimerRef.current) {
+      clearTimeout(pushTimerRef.current);
+      pushTimerRef.current = null;
+    }
+    return pushNow(latestDataRef.current);
+  };
+
+  return { data, hydrated, syncedAt, pendingPush, update, reset, flush };
 }

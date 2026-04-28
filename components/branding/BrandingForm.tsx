@@ -8,9 +8,20 @@ const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
 export function BrandingForm({
   defaultOpen = false,
 }: { defaultOpen?: boolean } = {}) {
-  const { data, hydrated, syncedAt, update, reset } = useBranding();
+  const { data, hydrated, syncedAt, pendingPush, update, reset, flush } =
+    useBranding();
   const [logoError, setLogoError] = useState<string>("");
   const [open, setOpen] = useState(defaultOpen);
+  const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
+
+  const handleManualSave = async () => {
+    setSavePulse("saving");
+    await flush();
+    setSavePulse("saved");
+    setTimeout(() => setSavePulse("idle"), 1500);
+  };
 
   if (!hydrated) {
     return (
@@ -73,6 +84,30 @@ export function BrandingForm({
 
       {open && (
         <div className="border-t border-zinc-200 p-4 space-y-4">
+          {/* 儲存狀態 + 立即儲存按鈕——sticky 在頂端，捲動時也看得到 */}
+          <div className="sticky top-0 z-10 -m-4 mb-0 px-4 py-2 bg-white border-b border-zinc-100 flex items-center justify-between gap-3 flex-wrap">
+            <SaveStatusBadge
+              pendingPush={pendingPush}
+              syncedAt={syncedAt}
+              savePulse={savePulse}
+            />
+            <button
+              type="button"
+              onClick={handleManualSave}
+              disabled={savePulse === "saving"}
+              className={`text-xs px-3 py-1.5 rounded border transition ${
+                savePulse === "saved"
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-700 disabled:opacity-50"
+              }`}
+            >
+              {savePulse === "saving"
+                ? "⏳ 儲存中…"
+                : savePulse === "saved"
+                  ? "✓ 已儲存"
+                  : "💾 立即儲存"}
+            </button>
+          </div>
           <div>
             <label className="text-xs text-zinc-600 mb-1 block">
               公司 LOGO（建議 256×256 以內，png 透明背景）
@@ -275,11 +310,6 @@ export function BrandingForm({
             >
               全部還原為預設
             </button>
-            <span className="text-xs text-zinc-400">
-              {syncedAt
-                ? `☁️ 已同步雲端（登入帳號跨裝置共用） · ${new Date(syncedAt).toLocaleTimeString()}`
-                : "設定存在本機（localStorage）；登入後會自動同步到雲端"}
-            </span>
           </div>
         </div>
       )}
@@ -358,6 +388,51 @@ function TextAreaField({
         <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
       )}
     </label>
+  );
+}
+
+function SaveStatusBadge({
+  pendingPush,
+  syncedAt,
+  savePulse,
+}: {
+  pendingPush: boolean;
+  syncedAt: number | null;
+  savePulse: "idle" | "saving" | "saved";
+}) {
+  if (savePulse === "saving") {
+    return (
+      <span className="text-xs text-amber-700 font-medium">
+        ⏳ 同步雲端中…
+      </span>
+    );
+  }
+  if (savePulse === "saved") {
+    return (
+      <span className="text-xs text-emerald-700 font-medium">
+        ✓ 已存到雲端
+      </span>
+    );
+  }
+  if (pendingPush) {
+    return (
+      <span className="text-xs text-amber-700">
+        💾 已存本機 · 1.5 秒後自動同步雲端
+      </span>
+    );
+  }
+  if (syncedAt) {
+    const ts = new Date(syncedAt).toLocaleTimeString();
+    return (
+      <span className="text-xs text-emerald-700">
+        ✓ 已同步雲端 · {ts}（登入帳號跨裝置共用）
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-zinc-500">
+      💾 設定存在本機；登入後會自動同步到雲端
+    </span>
   );
 }
 
