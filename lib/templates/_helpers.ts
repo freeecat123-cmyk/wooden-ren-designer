@@ -430,6 +430,10 @@ export function backRakeNote(deg: number): string {
  *  - eu-32mm: 歐式 32mm system，板側面整排 5mm 孔每 32mm 一個（業界標準）
  *  - diy-line: 上下兩排線狀打孔，每孔間距 20-25mm（DIY 常用，精度低但夠用）
  *  影響：notes + 層板固定方式說明；3D 不畫孔避免雜訊 */
+// 隱藏在 form 上的 sentinel dependsOn —— spec 還在 schema 裡（opt() 不會 throw），
+// 但 isVisible 永遠回 false（key "__hidden" 在 values 裡是 undefined ≠ "__yes"）。
+const HIDDEN_DEP = { key: "__hidden", equals: "__yes" } as const;
+
 export function shelfPinSystemOption(group: OptionGroup = "structure"): OptionSpec {
   return {
     group,
@@ -443,17 +447,13 @@ export function shelfPinSystemOption(group: OptionGroup = "structure"): OptionSp
       { value: "diy-line", label: "DIY 線狀孔（每 20-25mm）" },
     ],
     help: "可調層板靠側板上的 5mm 釘孔 + 金屬層板釘。32mm 系統需配 32mm 鑽孔模板",
+    dependsOn: HIDDEN_DEP,
   };
 }
 
-export function shelfPinSystemNote(system: string): string {
-  if (system === "eu-32mm") {
-    return "側板開歐式 32mm 系統孔（5mm 直徑、32mm 等距、距前後緣 37mm）— 用打孔模板量產一致。";
-  }
-  if (system === "diy-line") {
-    return "側板上下兩排 5mm 孔，每孔間距 20-25mm（手作精度可接受）。";
-  }
-  return "層板固定（dado / 企口 / 半榫接合），裝後不可調。";
+// 已從 form 移除（圖紙不畫釘孔陣列），note 也清空避免誤導使用者。
+export function shelfPinSystemNote(_system: string): string {
+  return "";
 }
 
 /** 踢腳板（toe kick）—— 底部往內凹一段讓腳趾不撞櫃面，地櫃必備
@@ -466,8 +466,9 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       key: "withToeKick",
       label: "踢腳板（toe kick）",
       defaultValue: false,
-      help: "底部前緣內凹一段，腳趾不會撞櫃面（地櫃廚櫃必備，立櫃可選）",
+      help: "底部前緣內凹一段，腳趾不會撞櫃面",
       wide: true,
+      dependsOn: HIDDEN_DEP,
     },
     {
       group,
@@ -478,8 +479,7 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       min: 50,
       max: 150,
       step: 10,
-      help: "標準 80-100mm，符合鞋面高度",
-      dependsOn: { key: "withToeKick", equals: true },
+      dependsOn: HIDDEN_DEP,
     },
     {
       group,
@@ -490,8 +490,7 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       min: 30,
       max: 100,
       step: 5,
-      help: "從前緣往內退的距離，標準 50mm",
-      dependsOn: { key: "withToeKick", equals: true },
+      dependsOn: HIDDEN_DEP,
     },
   ];
 }
@@ -511,8 +510,8 @@ export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpe
       key: "withCrownMolding",
       label: "頂部冠飾線",
       defaultValue: false,
-      help: "櫃頂繞一圈裝飾線條，傳統美式 / 古典風格櫃必備",
       wide: true,
+      dependsOn: HIDDEN_DEP,
     },
     {
       group,
@@ -523,8 +522,7 @@ export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpe
       min: 15,
       max: 80,
       step: 5,
-      help: "冠飾線往外伸的距離（含上方斜邊）",
-      dependsOn: { key: "withCrownMolding", equals: true },
+      dependsOn: HIDDEN_DEP,
     },
   ];
 }
