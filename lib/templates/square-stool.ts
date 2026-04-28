@@ -163,11 +163,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  // 用牙板「最下緣」算 splay shift——下緣 Y 較低、腳已外傾較多
-  // 如果用中心會讓下緣短於腳跨距，產生缺口（splayed 腳越下面越外傾）
-  const apronShiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
-  const apronSplayX = splayDx * apronShiftFactor;
-  const apronSplayZ = splayDz * apronShiftFactor;
+  // 牙板兩端：bottom Y 腳外推較多、top Y 較少。用 bottom 當基準算長度，
+  // top 用比例縮成梯形——這樣牙板會貼緊腳的內邊（去除跟腳重疊的部分）
+  const apronBotShift = legHeight > 0 ? 1 - apronY / legHeight : 0;
+  const apronTopShift = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
+  const apronSplayX = splayDx * apronBotShift;
+  const apronSplayZ = splayDz * apronBotShift;
+  const apronSplayXTop = splayDx * apronTopShift;
+  const apronSplayZTop = splayDz * apronTopShift;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
@@ -183,6 +186,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
+    // 同軸有 splay → 梯形（top 端比 bottom 端短一截，避開跟腳重疊）
+    // 同軸沒 splay 但異軸有 → 純 bevel；都沒 splay → 一般倒邊
+    const trapTopScale =
+      s.axis === "x" && splayDx > 0
+        ? (apronEdgeX + apronSplayXTop) / (apronEdgeX + apronSplayX)
+        : s.axis === "z" && splayDz > 0
+          ? (apronEdgeZ + apronSplayZTop) / (apronEdgeZ + apronSplayZ)
+          : null;
+    const partShape = trapTopScale !== null
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+      : isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
     return {
       id: s.id,
       nameZh: s.nameZh,
@@ -197,9 +213,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       rotation: s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
         : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
-      shape: isSplayed
-        ? { kind: "apron-beveled" as const, bevelAngle }
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+      shape: partShape,
       tenons: [
         {
           position: "start" as const,
@@ -234,11 +248,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
-    // 用下橫撐「最下緣」算 splay shift（同 apron 邏輯）：
-    // 下緣 Y 最低、腳已外推最多，bottom edge 才會貼到腳；用中心 Y 會留缺口
-    const lsShiftFactor = legHeight > 0 ? 1 - lowerY / legHeight : 0;
-    const lsSplayX = splayDx * lsShiftFactor;
-    const lsSplayZ = splayDz * lsShiftFactor;
+    // 下橫撐 bottom 跟 top Y 各自算 splay shift；用 bottom 當基準長度，
+    // top 縮成梯形避開跟腳重疊
+    const lsBotShift = legHeight > 0 ? 1 - lowerY / legHeight : 0;
+    const lsTopShift = legHeight > 0 ? 1 - (lowerY + lowerW) / legHeight : 0;
+    const lsSplayX = splayDx * lsBotShift;
+    const lsSplayZ = splayDz * lsBotShift;
+    const lsSplayXTop = splayDx * lsTopShift;
+    const lsSplayZTop = splayDz * lsTopShift;
     if (lowerStretcherStyle === "x-cross") {
       // X 字交叉橫撐：兩條對角線連接 4 隻腳，過中心半搭接。
       // 外斜模式時對角橫撐做法太複雜（要傾斜+扭轉），先不支援；fallback 走直立 X。
@@ -284,6 +301,17 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         const bevelAngle = isSplayed
           ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
           : 0;
+        const trapTopScale =
+          s.axis === "x" && splayDx > 0
+            ? (apronEdgeX + lsSplayXTop) / (apronEdgeX + lsSplayX)
+            : s.axis === "z" && splayDz > 0
+              ? (apronEdgeZ + lsSplayZTop) / (apronEdgeZ + lsSplayZ)
+              : null;
+        const lsShape = trapTopScale !== null
+          ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+          : isSplayed
+            ? { kind: "apron-beveled" as const, bevelAngle }
+            : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
         parts.push({
           id: s.id,
           nameZh: s.nameZh,
@@ -294,9 +322,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           rotation: s.axis === "z"
             ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
             : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
-          shape: isSplayed
-            ? { kind: "apron-beveled", bevelAngle }
-            : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+          shape: lsShape,
           tenons: [
             { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
             { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },

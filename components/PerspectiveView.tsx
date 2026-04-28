@@ -76,7 +76,7 @@ type ShapeSpec =
   | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number }
   | { kind: "apron-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
@@ -128,7 +128,7 @@ function Part({
       return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
     }
     if (shape.kind === "apron-trapezoid") {
-      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale);
+      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0);
     }
     if (shape.kind === "apron-beveled") {
       return buildBeveledApronGeometry(size, shape.bevelAngle);
@@ -374,6 +374,7 @@ function buildApronTrapezoidGeometry(
   size: [number, number, number],
   topScale: number,
   bottomScale: number,
+  bevelAngle: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -381,19 +382,22 @@ function buildApronTrapezoidGeometry(
   const hz = lz / 2;
   const topX = hx * topScale;
   const botX = hx * bottomScale;
+  // bevel shear：z' = z - y × tan(bevel)（同 buildBeveledApronGeometry）
+  // 0 表示純梯形不傾斜
+  const shear = Math.tan(bevelAngle);
   // local Z=-hz (top of apron in world Y after rotation): topScale length
   // local Z=+hz (bottom): bottomScale length
   const v: number[] = [
     // 4 corners at z = -hz (top) — order: -x-y, +x-y, +x+y, -x+y
-    -topX, -hy, -hz,
-    topX, -hy, -hz,
-    topX, hy, -hz,
-    -topX, hy, -hz,
+    -topX, -hy, -hz - (-hy) * shear,
+    topX, -hy, -hz - (-hy) * shear,
+    topX, hy, -hz - (+hy) * shear,
+    -topX, hy, -hz - (+hy) * shear,
     // 4 corners at z = +hz (bottom)
-    -botX, -hy, hz,
-    botX, -hy, hz,
-    botX, hy, hz,
-    -botX, hy, hz,
+    -botX, -hy, hz - (-hy) * shear,
+    botX, -hy, hz - (-hy) * shear,
+    botX, hy, hz - (+hy) * shear,
+    -botX, hy, hz - (+hy) * shear,
   ];
   // 6 faces, CCW from outside
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
@@ -1200,6 +1204,7 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           } else if (part.shape?.kind === "apron-trapezoid") {
             shape = {
               kind: "apron-trapezoid",
+              bevelAngle: part.shape.bevelAngle,
               topLengthScale: part.shape.topLengthScale,
               bottomLengthScale: part.shape.bottomLengthScale,
             };

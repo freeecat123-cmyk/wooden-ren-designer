@@ -255,12 +255,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const splayDz =
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
-  // 用牙板「最下緣」算 splay shift——下緣 Y 較低、腳已外傾較多
-  // 用中心 Y 會讓下緣短於腳跨距，bottom edge 看到缺口（splayed 越下面越外）
-  const shiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
-  const apronSplayX = splayDx * shiftFactor;
-  const apronSplayZ = splayDz * shiftFactor;
-  // 牙板斜度 = arctan(該軸位移 / 腳高)
+  // 牙板兩端：bottom Y 腳外推較多、top Y 較少。bottom 當基準長度，top 縮成梯形
+  const apronBotShift = legHeight > 0 ? 1 - apronY / legHeight : 0;
+  const apronTopShift = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
+  const apronSplayX = splayDx * apronBotShift;
+  const apronSplayZ = splayDz * apronBotShift;
+  const apronSplayXTop = splayDx * apronTopShift;
+  const apronSplayZTop = splayDz * apronTopShift;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronSides = [
@@ -305,10 +306,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     },
   ];
   const aprons: Part[] = apronSides.map((s) => {
-    // 牙板補償傾角：x 軸牙板（前/後）用 Z 外斜的 tiltZ；z 軸牙板（左/右）用 X 外斜的 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
+    // 同軸有 splay → 梯形（top 端比 bottom 端短，避免跟腳重疊）
+    const trapTopScale =
+      s.axis === "x" && splayDx > 0
+        ? (apronEdgeX + apronSplayXTop) / (apronEdgeX + apronSplayX)
+        : s.axis === "z" && splayDz > 0
+          ? (apronEdgeZ + apronSplayZTop) / (apronEdgeZ + apronSplayZ)
+          : null;
+    const partShape = trapTopScale !== null
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+      : isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
@@ -320,15 +332,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         thickness: apronThickness,
       },
       origin: { x: s.origin.x, y: apronY, z: s.origin.z },
-      // 牙板 3D 旋轉：z 軸牙板繞 y 90°；額外傾角讓牙板貼緊外斜腳的角度
-      // x 軸牙板補 tiltZ；z 軸牙板補 tiltX（因為 X 軸跨向 → 受 X 外斜影響）
       rotation: s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
         : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
-      // 外斜模式 apron-beveled 與倒角互斥；非外斜時才能套倒角
-      shape: isSplayed
-        ? { kind: "apron-beveled" as const, bevelAngle }
-        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
+      shape: partShape,
       tenons: [
         {
           position: "start" as const,
@@ -408,10 +415,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
-    // 用下橫撐「最下緣」算 splay shift——下緣 Y 最低、腳外推最多
-    const sShiftFactor = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
-    const sSplayX = splayDx * sShiftFactor;
-    const sSplayZ = splayDz * sShiftFactor;
+    // 下橫撐 bottom 跟 top Y 各自算 splay shift；用 bottom 當基準長度，top 縮成梯形
+    const sBotShift = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
+    const sTopShift = legHeight > 0 ? 1 - (stretcherY + stretcherWidth) / legHeight : 0;
+    const sSplayX = splayDx * sBotShift;
+    const sSplayZ = splayDz * sBotShift;
+    const sSplayXTop = splayDx * sTopShift;
+    const sSplayZTop = splayDz * sTopShift;
     const lowerSides = [
       { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplayZ) } },
       { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplayZ } },
@@ -422,6 +432,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const bevelAngle = isSplayed
         ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
         : 0;
+      const trapTopScale =
+        s.axis === "x" && splayDx > 0
+          ? (apronEdgeX + sSplayXTop) / (apronEdgeX + sSplayX)
+          : s.axis === "z" && splayDz > 0
+            ? (apronEdgeZ + sSplayZTop) / (apronEdgeZ + sSplayZ)
+            : null;
+      const lsShape = trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: 1, bevelAngle: bevelAngle || undefined }
+        : isSplayed
+          ? { kind: "apron-beveled" as const, bevelAngle }
+          : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
       parts.push({
         id: s.key,
         nameZh: s.nameZh,
@@ -432,9 +453,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         rotation: s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
           : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
-        shape: isSplayed
-          ? { kind: "apron-beveled", bevelAngle }
-          : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
+        shape: lsShape,
         tenons: [
           { position: "start", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
           { position: "end", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },

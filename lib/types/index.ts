@@ -192,11 +192,13 @@ export interface Part {
       }
     /** Apron trapezoid: 牙條/橫撐梯形（上窄下寬或反之），用於外斜腳家具。
      *  讓 apron 的 length 軸在頂端 (local z=-width/2) 縮為 length×topScale，
-     *  在底端 (local z=+width/2) 縮為 length×bottomScale。對齊外斜腳中心軸。 */
+     *  在底端 (local z=+width/2) 縮為 length×bottomScale。對齊外斜腳中心軸。
+     *  bevelAngle 可選——同時做梯形 + 傾角，用於對稱外斜（X+Z 都外）腳。 */
     | {
         kind: "apron-trapezoid";
         topLengthScale: number;
         bottomLengthScale: number;
+        bevelAngle?: number;
       }
     /** Apron beveled: 牙條上下緣切斜面，配合外斜腳家具的 apron tilt。
      *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
