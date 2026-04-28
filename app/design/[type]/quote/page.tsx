@@ -457,7 +457,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       {(() => {
         const exclusions: string[] = [];
         if (laborOpts.shippingCost <= 0 && !termIncludeShipping) {
-          exclusions.push("跨區運費（基隆以外）");
+          exclusions.push("運費");
         }
         if (laborOpts.installationCost <= 0 && !termIncludeInstallation) {
           exclusions.push("現場安裝、上牆、水平調整");
