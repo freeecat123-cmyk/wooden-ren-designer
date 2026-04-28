@@ -80,9 +80,24 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     const visible = shouldShrink
       ? { ...p.visible, length: p.visible.length - shrinkAmount }
       : p.visible;
+    // 梯形 apron 縮短後 topLengthScale 要重算——不然 top edge 仍按原比例縮，
+    // 對齊不到 leg 內面（splay 角度大時尤其明顯，會看到 2-3mm 重疊）
+    // beginnerTop = joineryTop − legSize、beginnerBot = joineryBot − legSize
+    // 新 topScale = beginnerTop / beginnerBot
+    let shape = p.shape;
+    if (shouldShrink && shape?.kind === "apron-trapezoid") {
+      const Lorig = p.visible.length;
+      const Lnew = Lorig - shrinkAmount;
+      if (Lnew > 0) {
+        const newTopScale = (shape.topLengthScale * Lorig - shrinkAmount) / Lnew;
+        const newBotScale = (shape.bottomLengthScale * Lorig - shrinkAmount) / Lnew;
+        shape = { ...shape, topLengthScale: newTopScale, bottomLengthScale: newBotScale };
+      }
+    }
     return {
       ...p,
       visible,
+      shape,
       tenons: [],
       mortises: [],
     };
