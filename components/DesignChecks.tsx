@@ -2,6 +2,7 @@ import type { FurnitureDesign } from "@/lib/types";
 import { collectThicknessHints } from "@/lib/design/standards";
 import { checkShelfDeflection } from "@/lib/design/deflection";
 import { checkGrainDirection } from "@/lib/design/grain";
+import { estimateShipping } from "@/lib/design/shipping";
 
 /**
  * 設計合理性檢查面板：
@@ -15,11 +16,13 @@ export function DesignChecks({ design }: { design: FurnitureDesign }) {
   const deflectionWarnings = checkShelfDeflection(design.parts);
   const grainWarnings = checkGrainDirection(design.parts);
   const thicknessHints = collectThicknessHints(design.parts);
+  const shipping = estimateShipping(design);
 
   const hasAny =
     deflectionWarnings.length > 0 ||
     grainWarnings.length > 0 ||
-    thicknessHints.length > 0;
+    thicknessHints.length > 0 ||
+    shipping.weightKg > 0;
   if (!hasAny) return null;
 
   return (
@@ -82,6 +85,47 @@ export function DesignChecks({ design }: { design: FurnitureDesign }) {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* 出貨估算 */}
+        {shipping.weightKg > 0 && (
+          <section>
+            <h4 className="text-[11px] font-semibold text-zinc-700 mb-1.5">
+              📦 出貨估算
+            </h4>
+            <div className="text-[11px] leading-relaxed px-2.5 py-1.5 rounded border bg-zinc-50 border-zinc-200 text-zinc-700 space-y-1">
+              <div>
+                <span className="font-medium">{shipping.weightKg} kg</span>（含包裝）
+                <span className="ml-2 text-zinc-500">
+                  · 三邊和 {shipping.threeBangSumCm} cm
+                  · 最長 {shipping.longestEdgeCm} cm
+                </span>
+                {shipping.needsKD && (
+                  <span className="ml-2 text-rose-700 font-medium">⚠ 須 KD 拆裝出貨</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mt-1">
+                {shipping.carriers.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`px-2 py-1 rounded border text-[10px] ${
+                      c.feasible
+                        ? "bg-white border-zinc-200"
+                        : "bg-zinc-100 border-zinc-200 opacity-60"
+                    }`}
+                  >
+                    <div className="font-medium text-zinc-800">
+                      {c.name}
+                      {c.feeNtd != null && (
+                        <span className="ml-1 text-emerald-700 font-mono">NT$ {c.feeNtd}</span>
+                      )}
+                    </div>
+                    <div className="text-[9px] text-zinc-500 mt-0.5">{c.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
         )}
 
