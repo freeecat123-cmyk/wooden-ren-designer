@@ -61,7 +61,7 @@ interface PageProps {
     quotedAt?: string;
     joineryMode?: string;
     beginnerMode?: string;
-    deliveryTerms?: string;
+    deliveryDaysOverride?: string;
   }>;
 }
 
@@ -121,6 +121,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
     laborHoursOverride: parseNum(sp.laborHoursOverride, LABOR_DEFAULTS.laborHoursOverride),
+    deliveryDaysOverride: parseNum(sp.deliveryDaysOverride, LABOR_DEFAULTS.deliveryDaysOverride),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
@@ -151,7 +152,10 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const quote = calculateQuote(design, laborOpts);
-  const deliveryTermsOverride = sp.deliveryTerms ?? "";
+  const finalDeliveryWorkdays =
+    laborOpts.deliveryDaysOverride > 0
+      ? laborOpts.deliveryDaysOverride
+      : quote.estimatedWorkdays;
 
   const customer: CustomerInfo = {
     name: sp.customerName ?? "",
@@ -259,7 +263,6 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           viewMode={viewMode}
           quotedAt={todayIso}
           autoLaborHours={quote.autoLaborHours}
-          deliveryTerms={deliveryTermsOverride}
         />
 
         {/* 右側：總價摘要卡（lg 以上 sticky） */}
@@ -477,8 +480,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           depositAmount={quote.depositAmount}
           balanceAmount={quote.balanceAmount}
           totalAmount={quote.total}
-          deliveryWorkdays={quote.estimatedWorkdays}
-          deliveryTermsOverride={deliveryTermsOverride}
+          deliveryWorkdays={finalDeliveryWorkdays}
         />
       </div>
 

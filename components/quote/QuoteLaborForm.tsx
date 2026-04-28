@@ -42,6 +42,7 @@ type Defaults = {
   bufferDays: number;
   overrideUnitPrice: number;
   laborHoursOverride: number;
+  deliveryDaysOverride: number;
   primaryMaterialPricePerBdft: number;
   plywoodPricePerBdft: number | null;
   mdfPricePerBdft: number | null;
@@ -57,7 +58,6 @@ export function QuoteLaborForm({
   viewMode,
   quotedAt,
   autoLaborHours,
-  deliveryTerms,
 }: {
   type: string;
   designQuery: string;
@@ -68,7 +68,6 @@ export function QuoteLaborForm({
   viewMode: "customer" | "internal";
   quotedAt: string;
   autoLaborHours: number;
-  deliveryTerms: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -226,25 +225,13 @@ export function QuoteLaborForm({
           <div className="mt-3 space-y-4">
             <fieldset>
               <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
-                有效期 / 交期緩衝 / 交貨期文字
+                有效期 / 交期 / 緩衝
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <NumField name="expiryDays" label="報價有效期（天）" value={defaults.expiryDays} min={LABOR_BOUNDS.expiryDays.min} max={LABOR_BOUNDS.expiryDays.max} step={LABOR_BOUNDS.expiryDays.step} />
-                <NumField name="bufferDays" label="塗裝/出貨緩衝（天）" value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint="乾燥+出貨，併入交期" />
+                <NumField name="deliveryDaysOverride" label="交貨工作天" value={defaults.deliveryDaysOverride} min={LABOR_BOUNDS.deliveryDaysOverride.min} max={LABOR_BOUNDS.deliveryDaysOverride.max} step={LABOR_BOUNDS.deliveryDaysOverride.step} hint={`0=自動估 ${autoLaborHours > 0 ? "（含緩衝）" : ""}；填值=直接覆寫`} />
+                <NumField name="bufferDays" label="塗裝/出貨緩衝（天）" value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint="乾燥+出貨，併入自動估" />
               </div>
-              <label className="flex flex-col text-xs mt-3">
-                <span className="text-zinc-600 mb-1">交貨期文字（A4 報價單顯示）</span>
-                <input
-                  type="text"
-                  name="deliveryTerms"
-                  defaultValue={deliveryTerms}
-                  placeholder="簽約後 ____ 天內，工坊自取／另議運費"
-                  className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
-                />
-                <span className="mt-0.5 text-[10px] text-zinc-600">
-                  文字中的 ＿＿ 空白會自動填入預估工作天數（例 ____ → 約 5 個工作）
-                </span>
-              </label>
             </fieldset>
             <fieldset>
               <legend className="text-xs text-zinc-700 mb-1.5 font-medium">

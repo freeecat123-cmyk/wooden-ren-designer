@@ -94,6 +94,7 @@ export default async function QuotePrintPage({
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
     laborHoursOverride: parseNum(sp.laborHoursOverride, LABOR_DEFAULTS.laborHoursOverride),
+    deliveryDaysOverride: parseNum(sp.deliveryDaysOverride, LABOR_DEFAULTS.deliveryDaysOverride),
   };
 
   // 模板 options（legStyle / 倒角 / 內縮腳…）必須一起讀，
@@ -109,7 +110,10 @@ export default async function QuotePrintPage({
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const quote = calculateQuote(design, laborOpts);
-  const deliveryTermsOverride = sp.deliveryTerms ?? "";
+  const finalDeliveryWorkdays =
+    laborOpts.deliveryDaysOverride > 0
+      ? laborOpts.deliveryDaysOverride
+      : quote.estimatedWorkdays;
   // quotedAt 優先從 URL 帶（客戶收到的連結都該帶這欄），fallback 才用今天
   const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
   const today = quotedAtRaw ? new Date(quotedAtRaw + "T00:00:00") : new Date();
@@ -418,8 +422,7 @@ export default async function QuotePrintPage({
           depositAmount={quote.depositAmount}
           balanceAmount={quote.balanceAmount}
           totalAmount={quote.total}
-          deliveryWorkdays={quote.estimatedWorkdays}
-          deliveryTermsOverride={deliveryTermsOverride}
+          deliveryWorkdays={finalDeliveryWorkdays}
         />
         <BrandedNotes prependNotes={termNotes} />
 

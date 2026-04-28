@@ -26,8 +26,6 @@ interface TermsProps {
   totalAmount?: number;
   /** 預估工作天（把交貨期裡的 ____ 填掉） */
   deliveryWorkdays?: number;
-  /** URL 帶的交貨期文字（QuoteLaborForm 填的）；空字串時 fallback 到 BrandingData.deliveryTerms */
-  deliveryTermsOverride?: string;
 }
 
 /** 付款條件 + 交貨售後 兩個資訊區塊 */
@@ -37,7 +35,6 @@ export function BrandedTermsBlocks({
   balanceAmount,
   totalAmount,
   deliveryWorkdays,
-  deliveryTermsOverride,
 }: TermsProps = {}) {
   const { data } = useBranding();
 
@@ -78,13 +75,9 @@ export function BrandedTermsBlocks({
   if (data.bankAccount.trim()) bankLines.push(`帳戶：${data.bankAccount}`);
   const paymentBody = [...autoPaymentLines, ...userLines, ...bankLines].join("\n");
 
-  // 2. 交貨期：URL 覆寫優先、其次抬頭設定、最後 fallback 一串底線
-  // 若原文字含 ____ 空格，自動填入實際工作天
-  const baseDeliveryText =
-    (deliveryTermsOverride && deliveryTermsOverride.trim()) ||
-    data.deliveryTerms ||
-    "";
-  let deliveryText = baseDeliveryText || "＿＿＿＿＿＿＿＿";
+  // 2. 交貨期：用 BrandingData 的模板，若含 ____ 空格自動填入工作天
+  // (workdays 由報價頁自動估算，或被 deliveryDaysOverride 覆寫後傳進來)
+  let deliveryText = data.deliveryTerms || "＿＿＿＿＿＿＿＿";
   if (
     typeof deliveryWorkdays === "number" &&
     deliveryWorkdays > 0 &&
