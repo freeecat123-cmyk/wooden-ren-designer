@@ -258,6 +258,20 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 19. **DXF 輸出 MVP** — `@tarikjabiri/dxf`，從內部 model 直出，CUT/DRILL/ENGRAVE 分層 + ACI 顏色（見 Q6）
 20. **CNC G-code（v3）** — 先 DXF（80% 解），再 jscut，最後自家 G-code（Clipper2）（見 P5）
 
+### 裁切與曲線（新）
+21. **CutPlan v2** — Skyline → MaxRects-BSSF + kerf 設定 + grainLocked（見 R8）
+22. **邊緣導圓 + 線腳庫** — Three.js bevelEnabled + 5-8 個明西式線腳 preset（見 S10）
+23. **市售規格對齊** — STANDARD_THICKNESSES + SHEET_SIZES 常數，UI 顯示「市售 X 差 Δ」（見 T7）
+
+### 美學擴充（新）
+24. **中式紋樣庫** — 4 個 MVP（meander/swastika/ruyi/iceCrack）+ 派系 preset 自動帶（見 U6）
+
+### 結構驗證 v3（新）
+25. **椅子穩定性** — θ_side 先上（公式最簡），加 backTiltDeg 一個欄位（見 V6）
+
+### AI 入口（新）
+26. **拍照推薦模板** — Claude Vision API + structured JSON，2-3 天工，月成本 $8（見 W2）
+
 ---
 
 ## 相關慣例
@@ -1190,3 +1204,490 @@ y_dxf = viewBox.minY + viewBox.height - y_svg
 - **Path arc flag**：SVG large-arc-flag / sweep-flag 跟 DXF 對應方向**相反**，用對稱形狀驗證
 - **Cubic flatten 誤差**：木工 0.1mm 夠、雷切要 0.05mm
 - **負數座標**：DXF OK，但部分 CAM 抗議；可平移到第一象限
+
+---
+
+## R. 裁切排版（Bin Packing / Nesting）
+
+wrd cutplan 屬 2D Bin Packing with guillotine constraint。NP-hard，必走啟發式。
+
+### R1. 演算法對照
+| 演算法 | 複雜度 | 省料率 | Guillotine | 難度 |
+|--------|-------|-------|-----------|------|
+| BL / BLF | O(n²) | 70-80% | 否 | ★ |
+| **Skyline (BL/BF)** | O(n·s) | 75-85% | 部分 | ★★（wrd 現況） |
+| Guillotine split | O(n²) | 75-82% | 是 | ★★ |
+| **MaxRects (BSSF)** | O(n²) | **82-90%** | 否 | ★★★（v2 推薦） |
+| Hybrid GA | O(n²·G) | 85-92% | 視 | ★★★★ |
+| ILP / Column Gen | 指數 | **95%+** | 視 | ★★★★★ |
+| NFP + GA (Deepnest) | 很慢 | 88-95% | 否 | ★★★★★ |
+
+### R2. Guillotine vs Free Placement
+| | Guillotine | Free |
+|---|------------|------|
+| 限制 | 一刀切到底（板鋸） | 任意（CNC/雷切） |
+| 省料 | 75-85% | 88-95% |
+| wrd 受眾 | **多數**（DIY+小工坊） | 少數（有 CNC） |
+
+**wrd 應預設 guillotine，選配 free**。
+
+### R3. Pre-sort 策略
+- **DFD（Decreasing First Dimension）**：max(w,h) 降冪 — 通用最強
+- **Area Decreasing**：FFD/BFD 標配
+- **Height Decreasing**：適合 Skyline column-major（wrd 現況，per memory）
+- **Width Decreasing**：適合 row-major guillotine
+- 紋理綁定 sort：先按紋理方向長邊降冪
+
+實測：FFD 最壞比 11/9，BFD > FFD ≈ 5%。
+
+### R4. MaxRects 偽碼（v2 推薦）
+```
+freeRects = [{x:0, y:0, w:W, h:H}]
+sort(parts, by: max(w,h) desc)
+for each part p:
+  best = null; bestScore = ∞
+  for each fr in freeRects:
+    for orient in orientations(p):
+      if fits(orient, fr):
+        score = BSSF(fr, orient)  // Best Short Side Fit
+        if score < bestScore: best = {fr, orient}; bestScore = score
+  if best == null: openNewBin()
+  place(p)
+  splitRects = guillotineSplit(best.fr, kerf)
+  freeRects = freeRects.filter(notIntersect(p)).concat(splitRects)
+  pruneContained(freeRects)
+```
+
+### R5. Kerf 處理
+- 推台鋸 kerf = 3.0–3.2mm（家用）/ 3.5–4.5mm（工業）
+- 每零件 +kerf/2 各邊 或 split 時新 free rect 起點 +kerf
+- 60 刀 × 3.2mm = 192mm 損料 ≈ 少一片大零件
+
+wrd 加參數：`kerfMm`（預設 3）、`trimMm`（預設 5）。
+
+### R6. 紋理約束
+- 木芯板/夾板 face grain → `rotation = false`
+- MDF/塑合板無紋理 → `rotation = true` 多省 3-8%
+- 必須 piece metadata 掛 `grainLocked: boolean`
+
+### R7. 切割順序（2-stage）
+1. Stage 1：水平/垂直主切（rip）→ 切成「條（strip）」
+2. Stage 2：條內二次切 → 切成「件」
+3. 優化：最少翻板 + 主切方向與紋理一致；先大件、先長刀
+
+### R8. 改進路線
+**v2（1-2 週）**
+1. Skyline-BFD → **MaxRects-BSSF** offline，省料 +5-10%
+2. 加 `kerfMm` 設定（預設 3）
+3. 加 `grainLocked` per-part flag
+4. 餘料報告：每板剩餘可用面積（>100×100）
+
+**v3（1 個月）**
+5. 多板規格 stock list
+6. Offcut 入庫（>200×200 自動進 stock pool）
+7. 切割順序輸出（含翻板次數）
+8. 多 packer 競賽：Skyline + Guillotine + MaxRects 取最佳
+
+**v4（可選）**：Free placement 模式（CNC 用戶），整合 `maxrects-packer` (npm)
+
+### R9. 推薦 lib
+- `maxrects-packer`（npm）— Next.js 直接 import
+- `bin-packing-2d-js`（npm）— 輕量
+- `gomory`（GitHub）— 兩階段 guillotine，woodworking 導向
+- Deepnest / SVGnest — free placement 參考
+
+---
+
+## S. 參數化曲線（Bezier / B-spline / NURBS / 線腳）
+
+### S1. Cubic Bezier（最常用）
+```
+B(t) = (1-t)³P₀ + 3t(1-t)²P₁ + 3t²(1-t)P₂ + t³P₃
+```
+- 經過 P₀ 和 P₃，**不經過** P₁、P₂
+- 起點切線方向 = (P₁ − P₀)
+- C1 連續：兩段相接相鄰控制點共線等距
+- 仿射不變性：對控制點變換 = 對曲線變換
+
+### S2. B-spline (Cox-de Boor 遞迴)
+```
+N_{i,0}(u) = 1 if u_i <= u < u_{i+1} else 0
+N_{i,p}(u) = (u-u_i)/(u_{i+p}-u_i) · N_{i,p-1}
+           + (u_{i+p+1}-u)/(u_{i+p+1}-u_{i+1}) · N_{i+1,p-1}
+```
+- Clamped knot：頭尾各重複 p+1 次 → 經過首尾控制點（最常用）
+- knot 重複度 k → C^(p−k) 連續
+
+### S3. NURBS
+B-spline + 權重 wᵢ。可**精確**表達圓、橢圓、二次曲線（Bezier 只能近似圓 0.027% 誤差用 4 段 cubic）。
+
+單位圓 NURBS：9 控制點、knot = {0,0,0,¼,¼,½,½,¾,¾,1,1,1}、權重 = {1, √2/2, 1, ...}
+
+### S4. de Casteljau（Bezier 求點 + 細分）
+```js
+function deCasteljau(P, t) {
+  const Q = P.map(p => p.clone());
+  for (let r = 1; r < Q.length; r++)
+    for (let i = Q.length - 1; i >= r; i--)
+      Q[i].lerp(Q[i-1], 1 - t);
+  return Q[Q.length - 1];
+}
+```
+
+### S5. Adaptive Flattening（細分到容差 ε）
+```js
+function flatten(P, eps, out) {
+  if (chordHeight(P) < eps) { out.push(P[3]); return; }
+  const [L, R] = subdivide(P, 0.5);
+  flatten(L, eps, out); flatten(R, eps, out);
+}
+```
+弦高 = max(distance(P₁ 到 P₀P₃), distance(P₂ 到 P₀P₃))。
+SVG/DXF 輸出 ε = 0.1mm（雷切 0.05mm）。
+
+### S6. 線腳（Moulding）參數化
+
+統一資料結構：
+```ts
+type Moulding = {
+  id: string;
+  name: string;       // "皮條線" | "ogee" | ...
+  width: number;
+  height: number;
+  path: string;       // SVG path
+  params: { r?: number; flat?: number; ... };
+};
+```
+
+**明式線腳**
+- 皮條線：`M 0,0 L flat,0 A r,r 0 0,1 flat+2r,0 L width,0`（半圓 + 兩側平台）
+- 兩柱香：兩個半圓中間夾平台
+- 冰盤沿：階梯狀，多段 cubic Bezier 串接
+
+**西式線腳**（截面公式）
+- Ovolo（凸 1/4 圓）：`A r,r 0 0,1 r,-r`
+- Cavetto（凹 1/4 圓）：`A r,r 0 0,0 r,-r`
+- Cyma recta（S 形，凹上凸下）：兩段 1/4 圓 C1 連續
+- Ogee（S 形，凸上凹下）：cyma recta 反轉
+
+### S7. 椅背 / 椅腿曲線
+- 官帽椅搭腦：3 點 quadratic Bezier，中央 P₁ 高出 30-50mm，R ≈ 800mm
+- 圈椅椅圈：clamped cubic B-spline，5-7 控制點繞圓心橢圓化
+- 馬蹄腿（cabriole）：兩段 cubic Bezier 形成 S 曲線（cyma）
+- 鼓腿彭牙：單段 quadratic，P₁ 向外推
+
+### S8. Sweep / Revolve
+**Revolve**（車削椅腿，Three.js `LatheGeometry`）：
+```
+surface(u, v) = (profile_x(u)·cos(v), profile_y(u), profile_x(u)·sin(v))
+```
+
+**Sweep**（邊緣導圓，`ExtrudeGeometry` / `TubeGeometry`）：
+```
+surface(u, v) = path(v) + frame(v) · profile(u)
+```
+
+### S9. JS Lib 取捨
+| Lib | 用途 | wrd |
+|-----|------|-----|
+| **Three.js 內建** | CubicBezierCurve3、CatmullRomCurve3、LatheGeometry、ExtrudeGeometry | **首選** 3D |
+| **bezier-js** | 求點/切線/長度/求交/offset | 線腳 offset、CNC toolpath |
+| **paper.js** | 完整 2D 曲線編輯（boolean、smooth） | 線腳編輯器 UI |
+| **verb-nurbs** | 純 JS NURBS（含 surface） | 真要 NURBS 才上 |
+| **opentype.js** | 字體外框 → Bezier | 雕字、招牌 |
+
+### S10. wrd 實作優先序
+1. **P0 邊緣導圓**：所有桌面/椅面套 quadratic Bezier 圓角，r ∈ {2, 5, 10, 20}mm。Three.js `ExtrudeGeometry` 的 `bevelEnabled`。**1-2 天可上**
+2. **P1 線腳庫**：5-8 個 preset（皮條線/兩柱香/冰盤沿/ovolo/cavetto/cyma/ogee）SVG path 存 JSON
+3. **P2 椅背搭腦**：官帽椅、圈椅模板加 quadratic/cubic Bezier 控制
+4. **P3 車削輪廓編輯器**：drag 控制點 → `LatheGeometry` 即時更新
+5. **P4 DXF/CNC 輸出**：adaptive flatten ε=0.1mm 後輸出 polyline
+6. **P5（最後）NURBS**：cubic Bezier + B-spline 已夠 90%，NURBS 留高擬真才上
+
+> **不需要全套 NURBS**——cubic Bezier + clamped B-spline + Three.js 內建 Lathe/Extrude 已涵蓋椅背、線腳、車削、導圓 90% 需求。
+
+---
+
+## T. 台灣木材市場規格
+
+### T1. 分 → mm 轉換
+| 台分 | mm | 用途 |
+|------|----|------|
+| 1 分 | 3.03 (≈3) | 薄合板、貼皮 |
+| 2 分 | 6.06 (≈6) | 背板、抽屜底 |
+| 3 分 | 9.09 (≈9) | 線板、薄門板 |
+| 4 分 | 12.12 (≈12) | 抽屜側板 |
+| 5 分 | 15.15 (≈15) | 集成材 |
+| **6 分** | **18.18 (≈18)** | **主流板厚** |
+| 8 分 | 24.24 (≈24) | 厚板桌面 |
+| 1 寸 | 30.30 (≈30) | 角料、桌面 |
+
+實務上「6分板」業界直接念 18mm。
+
+### T2. 尺與才積
+- 1 台寸 = 30.3mm；1 台尺 = 303mm
+- 1 英呎 = 304.8mm（差 1.8mm，板材標尺常混用）
+- 4×8 尺板：1212×2424（台尺）/ 1220×2440（公制 ISO）
+
+**1 才 = 1 寸 × 1 寸 × 10 尺 = 30.3 × 30.3 × 3030mm = 2,781.87 cm³**
+- 簡記：1 才 ≈ 2782 cc，1 m³ ≈ 360 才
+- 才數 = 厚(寸) × 寬(寸) × 長(尺)
+
+### T3. 板材規格
+| 板材 | 標準 (mm) | 常見厚度 |
+|------|----------|---------|
+| 木芯板 | 1220×2440 | **18**, 12, 25 |
+| 夾板 | 1220×2440 | 3 / 4.5 / 6 / 9 / 12 / 15 / **18** |
+| 防水夾板 | 1220×2440 | 12, 18 |
+| 可彎夾板 | 1220×2440 | 5.5, 9 |
+| MDF | 1220×2440 | 3 / 6 / 9 / 12 / 15 / **18** / 25 |
+| 塑合板 | 1220×2440 | **18**, 25 |
+| 松木集成材 | 600×1800 / 800×1800 | **18**, 24, 30, 38 |
+| 橡木集成材 | 600×1800 / 800×2400 | 18, 24, 30 |
+
+### T4. 實木角料
+| 寸規格 | mm | 用途 |
+|--------|-----|------|
+| 1×3 | 30×90 | 框料 |
+| 1×4 | 30×120 | 牙條 |
+| 1×6 | 30×180 | 桌面拼板 |
+| 2×3 | 60×90 | 椅腳 |
+| 2×4 | 60×120 | 結構材 |
+| 3×3 | 90×90 | 桌腳 |
+| 4×4 | 120×120 | 大桌腳/柱料 |
+
+長度：6 / 8 / 10 / 12 尺（1818 / 2424 / 3030 / 3636mm）
+
+### T5. 設計 vs 市售缺口
+| 設計值 | 市售可選 | 處理 |
+|--------|---------|------|
+| 寬 280 | 250 / 300 | 取 300 修邊 20 |
+| 寬 350 | 300 / 400 | 取 400 修 50，或 300 拼 |
+| 厚 16 | 15 / 18 | 取 18 刨 16 |
+| 厚 20 | 18 / 24 | 取 24 刨削 |
+| 長 1850 | 1800 / 2400 | 取 2400 切 550 損 |
+| 長 2000 | 1800 / 2400 | 取 2400 切 400 損 |
+
+### T6. 損料常數
+- 推台鋸 kerf 3mm、手持圓鋸 2.5mm、線鋸 1mm、手鋸 1.5mm
+- 修邊每邊 5-10mm
+- 試切首切損 30-50mm
+- 排版安全餘裕 ≥ 5%
+
+### T7. wrd 資料結構
+```ts
+export const STANDARD_THICKNESSES_MM = [3, 6, 9, 12, 15, 18, 24, 25, 30] as const;
+export const STANDARD_SHEET_SIZES = [
+  { w: 1220, l: 2440 },  // 公制 4×8
+  { w: 1212, l: 2424 },  // 台尺 4×8
+  { w: 600,  l: 1800 },  // 集成材小片
+  { w: 800,  l: 1800 },
+  { w: 800,  l: 2400 },
+];
+export const KERF_MM = { tableSaw: 3, circularSaw: 2.5, jigsaw: 1, handsaw: 1.5 };
+export const TRIM_PER_EDGE_MM = 8;
+export const TSAI_TO_M3 = 0.00278;
+export const SUN_TO_MM = 30.3;
+export const CHI_TO_MM = 303;
+```
+
+對齊演算法：給設計尺寸 (t, w, l) → 從 STANDARD 找最小可包覆規格 → 回傳 `{spec, wasteMm³, wastePercent, suggestion}`
+
+UI：欄位下方加灰字「市售 18mm（你設計 16mm，刨光 2mm）」；材料單列「採購：松木集成材 18×600×1800 ×2 片，預估 NT$1,200，損料 12%」
+
+---
+
+## U. 中式紋樣參數化
+
+### U1. 主要紋樣對照
+| 紋樣 | 結構 | 參數 | 適合派系 |
+|------|------|------|----------|
+| **回紋 Meander** | 直角折線單元 × 四方連續 | a (邊長 8-20mm), t (線粗 a/4), turns | 京、晉 |
+| **卐字錦 Swastika** | 4 個 L 形旋轉 90° 對稱 | a (寬), t (a/5), spacing, linked | 京、晉 |
+| **如意雲頭 Ruyi** | 雲頭(270°圓弧) + 雲身(S) + 雲尾(卷收) | L, r, amp, layers | 京、廣 |
+| **夔龍/拐子龍** | 折線 + 圓眼 + 卷尾 | linew, segments, headStyle, tailCurl | 京 |
+| **纏枝** | S 形正弦波主莖 + 葉/花節點 | λ, A, leafDensity, flower | 廣、徽 |
+| **博古** | 寫實器物（鼎/瓶/書/卷） | — 不參數化，建 SVG 圖庫 | 徽 |
+| **捲草 Acanthus** | 阿基米德螺線 + 葉脈 | pitch, turns, leafCount | 廣 |
+| **冰裂紋** | Voronoi tessellation | density, seed, relax | 蘇、徽 |
+| **龜背紋** | 規則六邊形網格 | r | 徽 |
+| **五瓣花/海棠** | n 重旋轉對稱 | petals, petalLen, coreR | 通用 |
+
+### U2. 雲紋（如意）SVG 公式
+```js
+function ruyiCloud(cx, cy, r) {
+  const c = 0.5523 * r;  // 圓弧 Bezier 近似
+  return `M ${cx},${cy-r}
+          C ${cx+c},${cy-r} ${cx+r},${cy-c} ${cx+r},${cy}
+          C ${cx+r},${cy+c} ${cx+c*0.5},${cy+r*0.6} ${cx},${cy+r*0.3}
+          C ${cx-c*0.5},${cy+r*0.6} ${cx-r},${cy+c} ${cx-r},${cy}
+          C ${cx-r},${cy-c} ${cx-c},${cy-r} ${cx},${cy-r} Z`;
+}
+```
+
+### U3. 冰裂紋（Voronoi）
+```js
+import { Delaunay } from "d3-delaunay";
+const points = poissonDisk(w, h, minDist, seed);  // Poisson-disk 比 random 均勻
+const voronoi = Delaunay.from(points).voronoi([0,0,w,h]);
+return voronoi.render();
+// Lloyd 鬆弛：每次迭代把點移到 cell 的 centroid，≥2 次更勻稱
+```
+**重點**：seed 要可重現，用 Poisson-disk 不用 `Math.random()`。
+
+### U4. 派系紋樣偏好
+| 派系 | 主紋樣 | 雕飾密度 | preset 配置 |
+|------|--------|---------|-------------|
+| 蘇作 | 線腳為主，少紋 | 極低 (10-20%) | meander 細、ruyi 單枚 |
+| 京作 | 雲龍、回紋、夔龍、卐字錦 | 極高 (70-90%) | kuilong + meander + swastika |
+| 廣作 | 西洋捲草、貝殼、束帶、纏枝 | 高 (60-80%) | acanthus + twiningVine |
+| 徽作 | 博古、淺浮雕花鳥 | 中 (30-50%) | bogu 圖庫 + 小面積 vine |
+| 晉作 | 卐字、福壽、漆飾大塊面 | 中（漆色搶戲） | swastika 大尺度 + fushou |
+
+### U5. wrd 紋樣庫資料結構
+```ts
+type PatternId = 'meander' | 'swastika' | 'ruyi' | 'kuilong'
+               | 'twiningVine' | 'bogu' | 'acanthus'
+               | 'iceCrack' | 'turtle' | 'flower' | 'fushou';
+
+interface PatternDef {
+  id: PatternId;
+  nameZh: string;
+  category: 'geometric' | 'cloud' | 'dragon' | 'floral' | 'lattice';
+  generator: (opts: PatternOptions) => SVGString;
+  defaults: PatternOptions;
+  schools: ('su'|'jing'|'guang'|'hui'|'jin')[];
+  applicableTo: ('apron'|'waist'|'chairBack'|'panel')[];
+  thumbnail: string;
+}
+```
+
+統一函數簽名 `(opts) => string`，座標 viewBox `[0,0,100,100]` 正規化。
+雕刻深度純 fill/stroke 表現（`stroke="#5a3a20" stroke-width="0.3"`），不展開 3D。
+
+### U6. 實作優先序
+1. **MVP**：meander + swastika + ruyi + iceCrack（4 個蓋蘇/京/晉 80%）
+2. 第二批：kuilong + twiningVine + flower（補京/廣）
+3. 第三批：bogu 圖庫 + acanthus（徽/廣完備）
+
+---
+
+## V. 椅子穩定性力學
+
+### V1. 重心估算
+```
+椅子重心 h_chair ≈ 座面高 × 0.55 + 椅背高 × 0.15
+人體重心 h_user  = 座面高 + 200mm（成人坐姿，腰椎 L4-L5）
+合體重心 h_total = (8·h_chair + 70·h_user) / 78  ≈ h_user + 微調
+                 ≈ 座面高 + 180mm（保守近似）
+```
+水平：人體重心約座面前緣後 150-180mm（坐骨結節後）。
+
+### V2. 支撐多邊形與傾倒角
+四腳椅支點線：
+- 後仰：兩後腳連線
+- 前傾：兩前腳連線
+- 側向：同側兩腳連線
+
+```
+θ_back  = atan(d_back  / h_total)
+θ_front = atan(d_front / h_total)
+θ_side  = atan(b/2 / h_total)
+```
+其中 `d_back = a/2 − x_offset_back`、`d_front = a/2 + x_offset_back`、`a` 前後腳距、`b` 左右腳距、`x_offset_back` ≈ 50 + (椅背傾角°−5)·8mm
+
+### V3. 警告閾值
+| 指標 | ERROR | WARN | OK |
+|------|-------|------|-----|
+| 後仰 θ_back | < 8° | 8-15° | ≥ 15° |
+| 側向 θ_side | < 12° | 12-20° | ≥ 20° |
+| 前傾 θ_front | < 6° | 6-12° | ≥ 12° |
+| 邊際比 d/h | < 0.15 | 0.15-0.3 | ≥ 0.3 |
+
+依據：ANSI/BIFMA X5.1（商用），EN 1022（家用），JIS S 1203。
+
+### V4. wrd Pseudo-code
+```ts
+function checkChairStability(c) {
+  const a = c.legDepth;
+  const b = (c.frontLegSpan + c.rearLegSpan) / 2;
+  const hChair = c.seatH * 0.55 + c.backH * 0.15;
+  const hUser  = c.seatH + 200;
+  const hTotal = (c.chairMass*hChair + c.userMass*hUser) / (c.chairMass + c.userMass);
+  const xBack  = 50 + (c.backTiltDeg - 5) * 8;
+  const dBack  = Math.max(a/2 - xBack, 0);
+  const dFront = a/2 + xBack;
+  const dSide  = b/2;
+  const θBack  = Math.atan(dBack  / hTotal) * 180/Math.PI;
+  const θFront = Math.atan(dFront / hTotal) * 180/Math.PI;
+  const θSide  = Math.atan(dSide  / hTotal) * 180/Math.PI;
+  const lvl = (v, e, w) => v < e ? 'ERROR' : v < w ? 'WARN' : 'OK';
+  return {
+    back:  { angle: θBack,  level: lvl(θBack,  8, 15) },
+    front: { angle: θFront, level: lvl(θFront, 6, 12) },
+    side:  { angle: θSide,  level: lvl(θSide, 12, 20) },
+    margin: Math.min(dBack, dFront, dSide) / hTotal,
+  };
+}
+```
+
+### V5. 反例
+- 吧椅 750mm 高 + 腳距 350mm → θ_side ≈ 10.4° ERROR；修：腳底外撇 +80mm
+- 細腳餐椅 380×380 + 座 450 → θ ≈ 14° WARN，靠材料剛性
+- 後仰躺椅 30° → 重心後移 ~200mm，後腳離座面後緣 < 100mm 直接倒；傳統休閒椅後腳外伸 100-150mm 補償
+- 三腳凳邊緣坐：靜態穩，但有效翻倒角小（內切圓半徑）
+
+### V6. wrd 實作優先建議
+**最該先上**：θ_side（公式最簡，只用 b 和 seatH，不依賴椅背參數，覆蓋率最高）
+**唯一新欄位**：`backTiltDeg`（椅背傾角）
+**不要做**：即時跑完整剛體模擬。靜態傾倒角夠用且 0 計算成本，每次拖滑桿都能算。
+
+---
+
+## W. AI 看圖推薦模板（Vision LLM）
+
+### W1. 為何不做真 3D 重建
+| 方案 | wrd 適用 | 理由 |
+|------|---------|------|
+| NeRF / 3DGS | 低 | 要 mesh 不是 radiance field |
+| Photogrammetry | 低 | 要拍 20-50 張 |
+| iPhone LiDAR | 中（要 native app） | wrd 是 Web |
+| TripoSR / Trellis / Hunyuan3D | 低-中 | 家具特化沒到位、無絕對尺寸、Vercel 不能跑 GPU |
+| 雲端 API（Meshy/Tripo/Luma） | 低 | mesh 不接 wrd 工程流 |
+| **Vision LLM → 模板參數** | **極高** | 直接落在合法模板上，免費，1 張圖即可 |
+
+**關鍵洞察**：wrd 輸出不是 mesh 是「模板 + 參數」。任何輸出 mesh 的方案都需要再做 mesh→ 模板擬合，**Vision LLM 直接出參數**才是最短路徑。
+
+### W2. 推薦實作流程
+1. 使用者點「上傳參考照片」
+2. 前端壓縮到 1024px → 上傳 Vercel API route
+3. 後端呼叫 `claude-sonnet-4` Vision API（或 4.7 Opus）
+4. structured output JSON
+5. 確認 modal：「我猜這是【四腳椅】，座高 ~470mm、椅背高 ~850mm、有扶手。要套用嗎？」
+6. 確認後直接帶入模板 designer state
+
+### W3. Prompt 範例
+```
+你是家具辨識助手。看圖判斷：
+- furniture_type: 從這 26 種選一個 [chair_4leg, dining_table, ...]
+- estimated_dims_mm: { width, depth, height, seat_height? }
+- style_tags: ["太師椅", "束腰", "圓腳"...]
+- confidence: 0–1
+- notes: 給木匠看的觀察重點
+回 JSON only。
+```
+
+### W4. 尺寸絕對化策略
+1. **MVP**：常識先驗（座高 420-480、餐桌 720-760），LLM 推估
+2. **v2**：用戶選「畫面中有信用卡 / A4 / 寶特瓶」當 reference
+   - 信用卡 85.6×53.98mm 是最穩標的
+3. **v3**：要求兩張不同角度 + 已知物 → DUSt3R-like 幾何
+
+### W5. 成本
+Claude Sonnet 4 vision：input ~1500 tokens（含圖）+ output ~300 tokens ≈ **$0.008/次**。月 1000 次才 $8。
+
+### W6. 文案要點
+不承諾「精準尺寸」，寫「AI 估算，請以實際丈量為準」。
+
+### W7. 入口擴展
+客戶 LINE 傳家裡舊椅子照片 → telegram bot 直接回「我猜這是 X 型椅，座高 Y」→ 木頭仁複製到 wrd。把入口接到 Telegram bot。
