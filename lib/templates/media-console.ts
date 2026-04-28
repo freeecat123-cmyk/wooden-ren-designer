@@ -250,6 +250,43 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${withSpeakerGrille ? "兩端側板加 200×400mm 喇叭網格槽（⌀5mm 孔陣列），藏式環繞音響。" : ""} ${withSoundBarShelf ? "頂面前緣下挖 80mm 深 × 全寬凹槽，放 SoundBar 不擋電視畫面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
+  // SoundBar 凹槽：在頂板正面前緣加一條凹陷的「凹槽板」（thin top rail）形成槽
+  // 簡化做法：在頂板 part 上鑿一個 mortise（看起來會像挖溝）
+  if (withSoundBarShelf) {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      topPart.mortises = [
+        ...topPart.mortises,
+        {
+          origin: { x: 0, y: 0, z: -(input.width / 2) + 50 },
+          depth: 80,
+          length: input.length - 200,
+          width: 100,
+          through: false,
+        },
+      ];
+    }
+  }
+
+  // Speaker grille 槽：在左右側板各加一個 mortise（200×400mm）
+  if (withSpeakerGrille) {
+    for (const sideId of ["side-left", "side-right"]) {
+      const sidePart = design.parts.find((p) => p.id === sideId);
+      if (sidePart) {
+        sidePart.mortises = [
+          ...sidePart.mortises,
+          {
+            origin: { x: 0, y: input.height / 2, z: 0 },
+            depth: panelThickness,
+            length: 400,
+            width: 200,
+            through: true,
+          },
+        ];
+      }
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 800, minWidth: 300, minHeight: 300,
     maxLength: 3000, maxWidth: 700, maxHeight: 900,

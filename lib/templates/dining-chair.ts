@@ -555,6 +555,47 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       ],
       mortises: [],
     });
+  } else if (backStyle === "windsor") {
+    // Windsor spindle：6 支圓棒（直徑 18mm）由座板上方插入頂橫木
+    const spindleCount = 6;
+    const spindleDia = 18;
+    const availableWidth = length - legSize - 60;
+    const slotPitch = availableWidth / (spindleCount + 1);
+    for (let i = 0; i < spindleCount; i++) {
+      const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      backParts.push({
+        id: `back-spindle-${i + 1}`,
+        nameZh: `椅背圓棒 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: spindleDia, width: spindleDia, thickness: backZonHeight },
+        origin: { x: xCenter, y: seatHeight, z: backZ },
+        shape: { kind: "round" },
+        tenons: [
+          { position: "top", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6) },
+          { position: "bottom", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6) },
+        ],
+        mortises: [],
+      });
+    }
+  } else if (backStyle === "curved-splat") {
+    // 曲面中板：較厚（25mm）+ 較寬（splatWidth × 1.2），實作為旋轉的板（蒸彎模擬）
+    const cThickness = 25;
+    const cWidth = Math.round(splatWidth * 1.2);
+    backParts.push({
+      id: "back-curved-splat",
+      nameZh: "椅背曲面中板",
+      material,
+      grainDirection: "length",
+      visible: { length: backZonHeight, width: cWidth, thickness: cThickness },
+      origin: { x: 0, y: seatHeight, z: backZ },
+      rotation: { x: 0, y: 0, z: Math.PI / 2 },
+      tenons: [
+        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
+        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
+      ],
+      mortises: [],
+    });
   }
   const slats = backParts; // 向下相容：後面 parts 陣列仍引用 slats 變數
 

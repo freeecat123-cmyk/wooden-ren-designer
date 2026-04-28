@@ -133,6 +133,46 @@ export const diningTable: FurnitureTemplate = (input) => {
     dropLeafWidth,
     notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合，中央穿釘 + 兩側鬆配吸收木材形變）。" : ""}${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}${topPattern === "herringbone" ? " 桌面採人字拼（herringbone）：短料 80×400mm 互相鎖合 45° 排列，工時 +50%。" : topPattern === "chevron" ? " 桌面採魚骨拼（chevron）：等高 45° 對接，視覺更有方向感、工時 +50%。" : topPattern === "book-match" ? " 桌面採對稱書配拼（book-matched）：中央剖板鏡像對拼，紋路成蝴蝶狀。" : topPattern === "end-grain" ? " 桌面採端紋拼板（butcher block）：木紋朝上、像砧板，不易刮痕、超耐磨。" : ""}${withExtensionLeaf ? " 桌面中央分開，含 1 片 400mm 寬活動延伸板（用桌下夾扣固定，平時可拆下平放收納）。" : ""}`,
   });
+  // herringbone / chevron 桌面：把單一 top part 拆成多片斜向小料
+  if (topPattern === "herringbone" || topPattern === "chevron") {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      const topL = topPart.visible.length;
+      const topW = topPart.visible.width;
+      const topT = topPart.visible.thickness;
+      const topY = topPart.origin.y;
+      const plankW = 80;
+      const plankL = 400;
+      // 移除舊 top
+      design.parts = design.parts.filter((p) => p.id !== "top");
+      // 用 panelPieces 計概念：多片斜向小料，rotation Y = 45 / -45 度
+      const rows = Math.ceil(topW / (plankL * Math.SQRT1_2));
+      const cols = Math.ceil(topL / (plankL * Math.SQRT1_2));
+      let idx = 0;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const xOff = -topL / 2 + (c + 0.5) * (topL / cols);
+          const zOff = -topW / 2 + (r + 0.5) * (topW / rows);
+          // herringbone: 交替 ±45°；chevron: 同列正向、交錯列反向
+          const rotY = topPattern === "herringbone"
+            ? ((r + c) % 2 === 0 ? Math.PI / 4 : -Math.PI / 4)
+            : (r % 2 === 0 ? Math.PI / 4 : -Math.PI / 4);
+          design.parts.push({
+            id: `top-plank-${idx++}`,
+            nameZh: `桌面拼料 ${idx}`,
+            material: input.material,
+            grainDirection: "length",
+            visible: { length: plankL, width: plankW, thickness: topT },
+            origin: { x: xOff, y: topY, z: zOff },
+            rotation: { x: 0, y: rotY, z: 0 },
+            tenons: [],
+            mortises: [],
+          });
+        }
+      }
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,
     maxLength: 2400, maxWidth: 1200, maxHeight: 800,

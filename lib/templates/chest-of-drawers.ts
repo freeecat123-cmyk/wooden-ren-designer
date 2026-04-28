@@ -120,6 +120,79 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${drawerFaceStyle === "flat" ? "" : drawerFaceStyle === "shaker" ? "抽屜面板採夏克 5 件式 frame-and-panel（外框 60mm 寬、內凹平鑲板）。" : drawerFaceStyle === "inset" ? "抽屜面板嵌入式 inset（面板小於開口 3mm、四週留 reveal）。" : drawerFaceStyle === "overlay" ? "抽屜面板全蓋式 overlay（面板蓋住整個開口）。" : "抽屜面板凸版 raised-panel（外框 + 中央凸 6mm 雕花板）。"} ${withGalleryRail ? "頂面四週加 25mm 高 gallery 木條圍欄。" : ""}`.trim(),
     warnings,
   });
+  // 抽屜面板樣式：shaker → 5 件式 frame-and-panel
+  if (drawerFaceStyle === "shaker") {
+    const faceParts = design.parts.filter((p) => p.id.endsWith("-face"));
+    const railW = 60;
+    const panelInset = 8;
+    for (const face of faceParts) {
+      const fL = face.visible.length;
+      const fH = face.visible.width;
+      const fT = face.visible.thickness;
+      const idx = face.id;
+      // remove the slab face
+      design.parts = design.parts.filter((p) => p.id !== face.id);
+      const baseOrigin = face.origin;
+      const baseRot = face.rotation;
+      // top rail
+      design.parts.push({
+        id: `${idx}-rail-top`,
+        nameZh: face.nameZh + " 上框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x, y: baseOrigin.y + fH / 2 - railW / 2, z: baseOrigin.z },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-rail-bottom`,
+        nameZh: face.nameZh + " 下框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x, y: baseOrigin.y - fH / 2 + railW / 2, z: baseOrigin.z },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-stile-left`,
+        nameZh: face.nameZh + " 左框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x - fL / 2 + railW / 2, y: baseOrigin.y, z: baseOrigin.z },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-stile-right`,
+        nameZh: face.nameZh + " 右框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x + fL / 2 - railW / 2, y: baseOrigin.y, z: baseOrigin.z },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-panel`,
+        nameZh: face.nameZh + " 中央鑲板",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL - 2 * railW, width: fH - 2 * railW, thickness: Math.max(8, fT - panelInset) },
+        origin: { x: baseOrigin.x, y: baseOrigin.y, z: baseOrigin.z + panelInset / 2 },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 500, minWidth: 300, minHeight: 500,
     maxLength: 1300, maxWidth: 600, maxHeight: 1500,

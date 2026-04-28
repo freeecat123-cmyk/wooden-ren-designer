@@ -97,6 +97,35 @@ export const bench: FurnitureTemplate = (input) => {
     notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 兩端加 ${endSplat === "low" ? "150mm" : "350mm"} 立板（${endSplat === "low" ? "矮扶手感" : "教堂長椅式"}）。` : ""}${withCushionGroove ? " 座板四週鋸 8mm 深凹邊，坐墊不會滑開。" : ""}`,
   });
 
+  // 兩端立板（end splat）—— 從座板上緣往上延伸，立在 +x / -x 兩端
+  if (endSplat !== "none") {
+    const splatHeight = endSplat === "low" ? 150 : 350;
+    const splatThick = 25;
+    const seatTop = input.height; // 座板頂面
+    const halfL = input.length / 2;
+    for (const side of [-1, 1] as const) {
+      design.parts.push({
+        id: `end-splat-${side > 0 ? "right" : "left"}`,
+        nameZh: `${side > 0 ? "右" : "左"}端立板`,
+        material: input.material,
+        grainDirection: "length",
+        visible: {
+          length: input.width - 20,
+          width: splatHeight,
+          thickness: splatThick,
+        },
+        origin: {
+          x: side * (halfL - splatThick / 2),
+          y: seatTop,
+          z: 0,
+        },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   if (withUnderShelf) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
     // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 × LOWER_STRETCHER_HEIGHT_RATIO）+ 寬 40
