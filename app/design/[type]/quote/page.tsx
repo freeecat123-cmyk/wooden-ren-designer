@@ -257,6 +257,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           terms={{ termIncludeShipping, termIncludeInstallation }}
           viewMode={viewMode}
           quotedAt={todayIso}
+          autoLaborHours={quote.autoLaborHours}
         />
 
         {/* 右側：總價摘要卡（lg 以上 sticky） */}

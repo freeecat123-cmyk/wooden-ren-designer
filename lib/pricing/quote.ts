@@ -108,6 +108,8 @@ export interface QuoteBreakdown {
   materialCost: number;
   /** 預估工時（hr） */
   laborHours: number;
+  /** 自動估算的工時（hr）；laborHoursOverride 沒填時 = laborHours */
+  autoLaborHours: number;
   /** 工資 */
   laborCost: number;
   /** 設備折舊 */
@@ -404,6 +406,7 @@ export function calculateQuote(
     totalVolumeMm3,
     materialCost,
     laborHours,
+    autoLaborHours,
     laborCost,
     equipmentCost,
     consumables,
