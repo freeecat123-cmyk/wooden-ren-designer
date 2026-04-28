@@ -474,6 +474,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           depositRate={laborOpts.depositRate}
           depositAmount={quote.depositAmount}
           balanceAmount={quote.balanceAmount}
+          totalAmount={quote.total}
           deliveryWorkdays={quote.estimatedWorkdays}
         />
       </div>

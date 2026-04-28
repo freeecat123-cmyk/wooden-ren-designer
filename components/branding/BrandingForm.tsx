@@ -256,6 +256,12 @@ export function BrandingForm() {
                 onChange={handleField("bankAccount")}
                 placeholder="例：戶名 木頭仁 / 0123-456-789012"
               />
+              <div className="md:col-span-2">
+                <InstallmentsEditor
+                  value={data.paymentInstallments}
+                  onChange={(next) => update({ paymentInstallments: next })}
+                />
+              </div>
               <TextField
                 label="交貨期"
                 value={data.deliveryTerms}
@@ -374,5 +380,136 @@ function TextAreaField({
         <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
       )}
     </label>
+  );
+}
+
+const INSTALLMENT_PRESETS: Record<
+  number,
+  Array<{ label: string; ratio: number }>
+> = {
+  1: [{ label: "全額", ratio: 1 }],
+  2: [
+    { label: "訂金", ratio: 0.5 },
+    { label: "尾款", ratio: 0.5 },
+  ],
+  3: [
+    { label: "訂金", ratio: 0.3 },
+    { label: "中期款", ratio: 0.4 },
+    { label: "尾款", ratio: 0.3 },
+  ],
+  4: [
+    { label: "訂金", ratio: 0.25 },
+    { label: "備料款", ratio: 0.25 },
+    { label: "木工完成款", ratio: 0.25 },
+    { label: "尾款", ratio: 0.25 },
+  ],
+  5: [
+    { label: "訂金", ratio: 0.2 },
+    { label: "備料款", ratio: 0.2 },
+    { label: "木工完成款", ratio: 0.2 },
+    { label: "塗裝完成款", ratio: 0.2 },
+    { label: "尾款", ratio: 0.2 },
+  ],
+};
+
+function InstallmentsEditor({
+  value,
+  onChange,
+}: {
+  value: Array<{ label: string; ratio: number }>;
+  onChange: (next: Array<{ label: string; ratio: number }>) => void;
+}) {
+  const enabled = value.length > 0;
+  const totalPct = value.reduce((s, r) => s + r.ratio * 100, 0);
+  const totalDelta = Math.abs(totalPct - 100);
+  const totalOk = !enabled || totalDelta < 0.5;
+
+  return (
+    <div className="border border-zinc-200 rounded p-3 bg-zinc-50/50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-zinc-700 font-medium">
+          付款分期(覆寫上方訂金比例)
+        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] text-zinc-500">分</span>
+          {([0, 1, 2, 3, 4, 5] as const).map((n) => {
+            const active = n === 0 ? !enabled : value.length === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => {
+                  if (n === 0) {
+                    onChange([]);
+                  } else {
+                    onChange(INSTALLMENT_PRESETS[n].map((r) => ({ ...r })));
+                  }
+                }}
+                className={`text-[11px] px-2 py-0.5 rounded border transition ${
+                  active
+                    ? "bg-zinc-900 text-white border-zinc-900"
+                    : "bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100"
+                }`}
+              >
+                {n === 0 ? "不分期" : `${n} 期`}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {!enabled && (
+        <p className="text-[10px] text-zinc-400 leading-relaxed">
+          目前用報價頁的訂金比例(depositRate)做 2 段拆分。設成 1–5 期後改用這裡的設定，每期自訂名稱與 % 數。
+        </p>
+      )}
+      {enabled && (
+        <>
+          <div className="space-y-1.5">
+            {value.map((row, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 font-mono w-6">
+                  #{idx + 1}
+                </span>
+                <input
+                  type="text"
+                  value={row.label}
+                  onChange={(e) => {
+                    const next = value.slice();
+                    next[idx] = { ...row, label: e.target.value };
+                    onChange(next);
+                  }}
+                  placeholder="期別名稱"
+                  className="flex-1 border border-zinc-300 rounded px-2 py-1 bg-white text-zinc-900 text-sm"
+                />
+                <input
+                  type="number"
+                  value={Math.round(row.ratio * 1000) / 10}
+                  onChange={(e) => {
+                    const pct = Number(e.target.value);
+                    if (!Number.isFinite(pct)) return;
+                    const next = value.slice();
+                    next[idx] = { ...row, ratio: pct / 100 };
+                    onChange(next);
+                  }}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  className="w-16 border border-zinc-300 rounded px-2 py-1 bg-white text-zinc-900 text-sm text-right"
+                />
+                <span className="text-xs text-zinc-500">%</span>
+              </div>
+            ))}
+          </div>
+          <p
+            className={`mt-2 text-[10px] ${
+              totalOk ? "text-zinc-500" : "text-rose-700 font-semibold"
+            }`}
+          >
+            合計：{totalPct.toFixed(1)}%
+            {!totalOk && `(差 ${(100 - totalPct).toFixed(1)}%——加總要 100%)`}
+          </p>
+        </>
+      )}
+    </div>
   );
 }

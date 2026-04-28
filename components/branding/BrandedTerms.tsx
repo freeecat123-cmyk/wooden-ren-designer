@@ -22,6 +22,8 @@ interface TermsProps {
   depositRate?: number;
   depositAmount?: number;
   balanceAmount?: number;
+  /** 報價總額——當 BrandingData.paymentInstallments 設了多期時，用來算每期金額 */
+  totalAmount?: number;
   /** 預估工作天（把交貨期裡的 ____ 填掉） */
   deliveryWorkdays?: number;
 }
@@ -31,17 +33,31 @@ export function BrandedTermsBlocks({
   depositRate,
   depositAmount,
   balanceAmount,
+  totalAmount,
   deliveryWorkdays,
 }: TermsProps = {}) {
   const { data } = useBranding();
 
-  // 1. 付款條件：去掉原本的訂金/尾款行，用計算出的值替換
-  // 同時把使用者寫在文字裡的「匯款銀行/帳戶」行也濾掉——改用專屬欄位 bankName/bankAccount 帶入
+  // 1. 付款條件：去掉原本的訂金/尾款/中期款/匯款銀行/帳戶行
+  // 訂金/尾款行會被自動算的金額取代；匯款資訊改用專屬欄位 bankName/bankAccount
   const userLines = splitLines(data.paymentTerms).filter(
-    (l) => !/^(訂金|尾款|匯款銀行|帳戶)/.test(l),
+    (l) => !/^(訂金|中期款|尾款|匯款銀行|帳戶)/.test(l),
   );
   const autoPaymentLines: string[] = [];
+  // 優先：抬頭設定的 N 期分期（覆寫 depositRate）
   if (
+    data.paymentInstallments.length > 0 &&
+    typeof totalAmount === "number" &&
+    totalAmount > 0
+  ) {
+    for (const inst of data.paymentInstallments) {
+      const pct = Math.round(inst.ratio * 1000) / 10;
+      const amt = Math.round(totalAmount * inst.ratio);
+      autoPaymentLines.push(
+        `${inst.label || "—"}：${pct}%（${twd(amt)}）`,
+      );
+    }
+  } else if (
     typeof depositRate === "number" &&
     depositRate > 0 &&
     depositRate < 1 &&

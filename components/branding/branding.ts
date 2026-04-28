@@ -35,6 +35,11 @@ export interface BrandingData {
   bankName: string;
   /** 匯款帳戶（戶名 + 帳號） */
   bankAccount: string;
+  /**
+   * 付款分期設定（1–5 期）。空陣列表示不啟用——回退到舊版 depositRate 二段式。
+   * ratio 是 0–1 小數（0.5 = 50%）；label 是「訂金」「中期款」「尾款」之類顯示名稱。
+   */
+  paymentInstallments: Array<{ label: string; ratio: number }>;
 }
 
 export const DEFAULT_BRANDING: BrandingData = {
@@ -60,6 +65,7 @@ export const DEFAULT_BRANDING: BrandingData = {
   ].join("\n"),
   bankName: "",
   bankAccount: "",
+  paymentInstallments: [],
 };
 
 const STORAGE_KEY = "wooden-ren-designer:branding:v1";

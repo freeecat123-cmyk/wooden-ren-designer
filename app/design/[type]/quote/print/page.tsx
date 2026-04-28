@@ -416,6 +416,7 @@ export default async function QuotePrintPage({
           depositRate={laborOpts.depositRate}
           depositAmount={quote.depositAmount}
           balanceAmount={quote.balanceAmount}
+          totalAmount={quote.total}
           deliveryWorkdays={quote.estimatedWorkdays}
         />
         <BrandedNotes prependNotes={termNotes} />
