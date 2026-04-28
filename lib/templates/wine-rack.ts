@@ -21,7 +21,7 @@ const SHELF_TONGUE_THICKNESS_OFFSET = 6;
 export const wineRackOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1 },
   { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1 },
-  { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 100, step: 5, help: "標準波爾多瓶 75mm，香檳瓶 90mm" },
+  { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
   { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottleOrientation", label: "瓶身擺放方向", defaultValue: "upright", choices: [
     { value: "upright", label: `直立式（深度 ${UPRIGHT_DEPTH}mm，省空間）` },
