@@ -1,10 +1,13 @@
 "use client";
 
 /**
- * Checkbox that auto-submits its enclosing <form> when toggled. Used for
- * parent checkboxes that gate dependent sub-options: flipping the checkbox
- * re-renders the form with the newly-visible (or newly-hidden) fields,
- * without the user needing to click "重新生成" first.
+ * Checkbox component for parameter form. The change event bubbles to the
+ * parent form's onChange handler (DesignFormShell), which debounces a
+ * router.replace({ scroll: false }) URL push.
+ *
+ * 為什麼不用 form.requestSubmit()：requestSubmit 會觸發 <form method="get">
+ * 預設導航 = 整頁 reload + 捲回頂部，繞過 DesignFormShell 的 scroll: false。
+ * 純靠 onChange bubble 雖然有 500ms debounce 略延遲，但不再跳頁。
  */
 export function AutoSubmitCheckbox({
   name,
@@ -25,7 +28,6 @@ export function AutoSubmitCheckbox({
         value="true"
         defaultChecked={defaultChecked}
         className="mt-0.5"
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
       />
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-zinc-800 font-medium truncate">{label}</span>
