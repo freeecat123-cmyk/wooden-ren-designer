@@ -160,8 +160,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  const apronYCenter = apronY + apronWidth / 2;
-  const apronShiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+  // 用牙板「最下緣」算 splay shift——下緣 Y 較低、腳已外傾較多
+  // 如果用中心會讓下緣短於腳跨距，產生缺口（splayed 腳越下面越外傾）
+  const apronShiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
   const apronSplayX = splayDx * apronShiftFactor;
   const apronSplayZ = splayDz * apronShiftFactor;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
@@ -230,9 +231,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
-    // 下橫撐位置低 → 腳已外推更多，shiftFactor 更大
-    const lsYCenter = lowerY + lowerW / 2;
-    const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter / legHeight : 0;
+    // 用下橫撐「最下緣」算 splay shift（同 apron 邏輯）：
+    // 下緣 Y 最低、腳已外推最多，bottom edge 才會貼到腳；用中心 Y 會留缺口
+    const lsShiftFactor = legHeight > 0 ? 1 - lowerY / legHeight : 0;
     const lsSplayX = splayDx * lsShiftFactor;
     const lsSplayZ = splayDz * lsShiftFactor;
     if (lowerStretcherStyle === "x-cross") {

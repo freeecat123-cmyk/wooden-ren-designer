@@ -248,10 +248,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const splayDz =
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
-  // 腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splay
-  // 牙板中心對到腳的真實中心（不然榫頭會偏一邊讓壁太薄爆掉）
-  const apronYCenter = apronY + apronWidth / 2;
-  const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
+  // 用牙板「最下緣」算 splay shift——下緣 Y 較低、腳已外傾較多
+  // 用中心 Y 會讓下緣短於腳跨距，bottom edge 看到缺口（splayed 越下面越外）
+  const shiftFactor = legHeight > 0 ? 1 - apronY / legHeight : 0;
   const apronSplayX = splayDx * shiftFactor;
   const apronSplayZ = splayDz * shiftFactor;
   // 牙板斜度 = arctan(該軸位移 / 腳高)
@@ -402,9 +401,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
-    // 外斜模式：橫撐在 stretcherY 高度的腳中心，shiftFactor 跟 apron 不同（更下方→更外）
-    const stretcherYCenter = stretcherY + stretcherWidth / 2;
-    const sShiftFactor = legHeight > 0 ? 1 - stretcherYCenter / legHeight : 0;
+    // 用下橫撐「最下緣」算 splay shift——下緣 Y 最低、腳外推最多
+    const sShiftFactor = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
     const sSplayX = splayDx * sShiftFactor;
     const sSplayZ = splayDz * sShiftFactor;
     const lowerSides = [
