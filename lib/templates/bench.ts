@@ -52,6 +52,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭 (mm)", defaultValue: 0, min: 0, max: 200, step: 10, help: "直料兩端往內縮的距離（頂橫木仍跨整條長邊不動），0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "topRailBendMm", label: "頂橫木向後彎弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "頂橫木中央往後（背側）彎的最大量，給人靠著符合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -79,6 +80,7 @@ export const bench: FurnitureTemplate = (input) => {
   const topRailSize = getOption<number>(input, opt(o, "topRailSize"));
   const slatBackInset = getOption<number>(input, opt(o, "slatBackInset"));
   const slatEndInset = getOption<number>(input, opt(o, "slatEndInset"));
+  const topRailBendMm = getOption<number>(input, opt(o, "topRailBendMm"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
@@ -162,14 +164,16 @@ export const bench: FurnitureTemplate = (input) => {
           mortises: [],
         });
       }
+      // 頂橫木：不旋轉，讓 local Z = 深度方向，arch-bent 才能在世界 Z 方向彎
+      // local X=長 (世界 X)、local Y=高度 (世界 Y, thickness 借當高)、local Z=深度 (世界 Z, width 借當深)
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木",
         material: mat,
         grainDirection: "length",
-        visible: { length: input.length, width: topRailH, thickness: topRailT },
+        visible: { length: input.length, width: topRailT, thickness: topRailH },
         origin: { x: 0, y: seatTop + slatHeight, z: railZ },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        shape: topRailBendMm > 0 ? { kind: "arch-bent" as const, bendMm: topRailBendMm } : undefined,
         tenons: [],
         mortises: [],
       });

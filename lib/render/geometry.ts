@@ -368,6 +368,33 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
+  // 弧形彎料（椅背頂橫木向後彎）：俯視畫弧線輪廓，前/側視仍是矩形
+  if (part.shape.kind === "arch-bent" && view === "top") {
+    const bend = part.shape.bendMm;
+    if (Math.abs(bend) < 0.5) return box;
+    const SAMPLES = part.shape.segments ?? 16;
+    // box r 是 X-Z bbox in projected coords (top view: x = -worldX, y = worldZ)
+    // length 沿 worldX → 投影 x 軸（取負）。寬度沿 worldZ → 投影 y 軸。
+    // 沿料的長軸（projected x）每段算 z 偏移。
+    // 用 box r 來定座標，bend 在 worldZ 方向 → 投影 y 軸。
+    const xL = r.x;
+    const xR = r.x + r.w;
+    const yFront = r.y;       // 前緣 = z 小那側
+    const yBack = r.y + r.h;  // 背緣 = z 大那側
+    // bend > 0 表示往 +Z 凸（背後彎）→ 在 top view 投影 y 變大
+    const front: Array<{x: number; y: number}> = [];
+    const back: Array<{x: number; y: number}> = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      const u = i / SAMPLES;     // [0, 1]
+      const t = 2 * u - 1;       // [-1, 1]
+      const xc = xL + (xR - xL) * u;
+      const dy = bend * Math.max(0, 1 - t * t);
+      front.push({ x: xc, y: yFront + dy });
+      back.push({ x: xc, y: yBack + dy });
+    }
+    return [...front, ...back.reverse()];
+  }
+
   // 4 角缺角板（座下層板避腳柱）：俯視畫 8 角多邊形，前/側視仍是矩形
   // （前/側 silhouette 沿 X-Y / Z-Y 投影，corner 缺角不影響 max extent）
   if (part.shape.kind === "notched-corners" && view === "top") {

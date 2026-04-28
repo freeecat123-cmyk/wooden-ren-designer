@@ -81,6 +81,7 @@ type ShapeSpec =
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
+  | { kind: "arch-bent"; bendMm: number; segments?: number }
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number };
 
@@ -142,6 +143,9 @@ function Part({
     }
     if (shape.kind === "notched-corners") {
       return buildNotchedCornersGeometry(size, shape.notchLengthMm, shape.notchWidthMm);
+    }
+    if (shape.kind === "arch-bent") {
+      return buildArchBentGeometry(size, shape.bendMm, shape.segments ?? 16);
     }
     if (shape.kind === "live-edge") {
       return buildLiveEdgeGeometry(size, shape.amplitudeMm);
@@ -837,6 +841,63 @@ function buildNotchedCornersGeometry(
   return g;
 }
 
+/**
+ * 弧形彎料：沿 length 軸切 N 段，每段 z 軸偏移 = bend × (1 - (2x/L)²)
+ * 用於椅背頂橫木向後彎的弧形。box 截面 (ly × lz) 不變、只是 z 中心彎。
+ * 上下/左右 face 用 N+1 環 vertex 連接側面，端面 2 個 quad。
+ */
+function buildArchBentGeometry(
+  size: [number, number, number],
+  bendMm: number,
+  segments: number = 16,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const N = Math.max(2, segments);
+  // 計算每個 X 切片的 z 中心偏移
+  const zOffsetAt = (x: number): number => {
+    const t = (2 * x) / lx; // [-1, 1]
+    return bendMm * Math.max(0, 1 - t * t);
+  };
+  const v: number[] = [];
+  // 每個 slice 4 個 vertex（截面 4 角）：bottom-front, top-front, top-back, bottom-back
+  for (let i = 0; i <= N; i++) {
+    const x = -hx + (lx * i) / N;
+    const dz = zOffsetAt(x);
+    v.push(x, -hy, -hz + dz);  // 0: front-bot
+    v.push(x,  hy, -hz + dz);  // 1: front-top
+    v.push(x,  hy,  hz + dz);  // 2: back-top
+    v.push(x, -hy,  hz + dz);  // 3: back-bot
+  }
+  const idx: number[] = [];
+  // 4 個 side face 沿 length 連接每個 slice
+  for (let i = 0; i < N; i++) {
+    const a = i * 4;
+    const b = (i + 1) * 4;
+    // bottom face (y=-hy): a+0 → a+3 → b+3 → b+0
+    idx.push(a + 0, a + 3, b + 3, a + 0, b + 3, b + 0);
+    // top face (y=+hy): a+2 → a+1 → b+1 → b+2
+    idx.push(a + 2, a + 1, b + 1, a + 2, b + 1, b + 2);
+    // front face (z=-hz+dz): a+0 → b+0 → b+1 → a+1
+    idx.push(a + 0, b + 0, b + 1, a + 0, b + 1, a + 1);
+    // back face (z=+hz+dz): a+3 → a+2 → b+2 → b+3
+    idx.push(a + 3, a + 2, b + 2, a + 3, b + 2, b + 3);
+  }
+  // 兩端 cap：第 0 slice 跟第 N slice 各 1 個 quad
+  // 起始端（X=-hx，朝 -X 看是外）：CCW from outside = 0,1,2,3 reversed
+  idx.push(0, 3, 2, 0, 2, 1);
+  // 終止端（X=+hx，朝 +X 看是外）
+  const e = N * 4;
+  idx.push(e, e + 1, e + 2, e, e + 2, e + 3);
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 function buildLiveEdgeGeometry(
   size: [number, number, number],
   amplitudeMm: number,
@@ -1358,6 +1419,12 @@ export function PerspectiveView({
               kind: "notched-corners",
               notchLengthMm: part.shape.notchLengthMm * SCALE,
               notchWidthMm: part.shape.notchWidthMm * SCALE,
+            };
+          } else if (part.shape?.kind === "arch-bent") {
+            shape = {
+              kind: "arch-bent",
+              bendMm: part.shape.bendMm * SCALE,
+              segments: part.shape.segments,
             };
           } else if (part.shape?.kind === "live-edge") {
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };

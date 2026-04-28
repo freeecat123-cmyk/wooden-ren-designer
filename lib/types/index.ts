@@ -225,6 +225,10 @@ export interface Part {
      *  notchWidthMm  = 沿 width 軸切掉長度
      *  常見用途：座下層板延伸到下橫撐齊平、跟腳重疊的部分要切掉。 */
     | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
+    /** 弧形彎料：沿 length 軸切 N 段，每段 z 偏移 = bendMm × (1 - (2x/L)²)
+     *  用於椅背頂橫木向後彎的弧形（蒸彎或疊片），向 +Z 凸出。
+     *  bendMm > 0 → 向 +Z（背後）凸；bendMm < 0 → 向 -Z 凸。 */
+    | { kind: "arch-bent"; bendMm: number; segments?: number }
     | { kind: "live-edge"; amplitudeMm?: number }
     /** Seat scoop: 座板挖型。saddle = 馬鞍式中央凹（雙軸 paraboloid），
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
