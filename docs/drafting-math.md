@@ -240,6 +240,15 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ### 榫卯擴充優先序
 10. 銀錠榫、楔釘榫、走馬銷、包蟻組接、抱肩榫（高 CP 值，見 G3）
 
+### 結構驗證（新）
+11. **木紋方向檢查 MVP**：P0-1 順紋承載、P0-2 公榫紋向、P0-4 寬板 movement、P1-6 母榫壁厚（見 L5）
+
+### 進階功能（新，估期長）
+12. **爆炸圖** — Axis-Aligned + part type rules + ortho iso 視角 + slider（見 H）
+13. **自動標註** — rbush + 4 側 layout + 短內長外 stacking + L 形 leader（見 I7）
+14. **板材展開圖** — 圓柱/圓錐/截頂圓錐公式直接套，自由曲面警示後 LSCM（見 J8）
+15. **派系 preset** — 中式家具加蘇/京/廣/徽/晉下拉選單（見 K2-K3）
+
 ---
 
 ## 相關慣例
@@ -439,3 +448,313 @@ joinery.style: "western" | "ming" | "japanese"
 //   japanese: 1:4（76°）
 ```
 銀錠榫 / 走馬銷可共用「葫蘆形/蝴蝶形」幾何 primitive。
+
+---
+
+## H. 爆炸圖（Exploded View）
+
+### H1. 演算法策略對照
+| 策略 | 公式 | 適合 wrd 嗎 |
+|------|------|------------|
+| Radial-from-Centroid | `dir = normalize(center_i - O); pos += dir × dist × k` | 簡單但「炸飛」不像「拆開」 |
+| **Axis-Aligned**（推薦） | 投影到主導軸（argmax \|delta\|），桌面+y、腳-y | 家具最對味 |
+| Assembly-Direction | mating face 法向當 dir，沿榫頭軸推 | 榫卯特寫用 |
+
+### H2. 第一版實作（Axis-Aligned + part type rules）
+讀 wrd 現有的 part metadata（top/leg/apron/drawer），寫死規則：
+```ts
+type='top'    → +y axis
+type='bottom' → -y axis
+type='leg'    → radial in xz plane, signed
+type='apron'  → 沿其長軸的法向
+type='drawer' → +z (front)
+```
+
+### H3. 位移量（避免重疊）
+簡化版：`distance = max(2 × size_i[axis], min_neighbour_gap)`
+碰撞測試用 Three.js `Box3.intersectsBox()`。
+精細版（Li et al. 2008）：sort by |delta| ascending，從內向外累積 bounding box，反覆膨脹直到不交。
+
+### H4. 視角與動畫
+- **平行投影 + iso 視角**（30°/30°）— IKEA、SolidWorks、Onshape 業界慣例
+- Three.js `OrthographicCamera`，相機朝 (1,1,1)
+- 爆炸度 0~1 slider 給使用者刮（scrub）比按鈕好用
+- 動畫：GSAP `power2.inOut`，1.5–2.5s，從外向內 stagger 0.1–0.2s
+
+### H5. 引導虛線（trace lines）
+- 直線版：`Line2` + dashed material，`stroke-dasharray="3 2"`
+- L 形折線：`mid = start + axis_dominant_component(end - start)`
+- z-order：`depthTest=false` + `renderOrder=-1` 避免穿插
+
+### H6. 複雜榫卯特寫
+粽角榫、三方留組接等：**局部爆炸**——只爆該節點的 2-4 件、其他半透明（opacity 0.15）。
+
+### H7. 沒有現成 lib
+- akella/ExplodingObjects（程式可參考）
+- react-three-fiber + GSAP 自己組（DevDojo 範例 30 行 demo 完）
+- 結論：**自己寫 ~150 行**比找 lib 快，wrd 的 part metadata 是優勢
+
+---
+
+## I. 自動標註（Auto-Dimensioning）
+
+### I1. 標註位置選擇
+四側評分：`score(side) = freeWidth × freeHeight × (1 − occupancy)`
+經驗法則：
+- 水平尺寸（長度）→ 下方
+- 垂直尺寸（寬度）→ 右側
+- 孔位中心線 → 最近輪廓側
+
+### I2. 平行多條尺寸線堆疊
+規則（CNS / ISO 129-1）：
+- 間距 ≥ 7mm（建議）/ 5mm（最低）
+- **短在內、長在外**（near-to-far）— 短尺寸貼輪廓，長尺寸往外推，避免引線交叉
+- 同方向對齊在同一基準
+
+```ts
+function stackDimensions(dims, side) {
+  dims.sort((a, b) => a.length - b.length);
+  let offset = 10;  // mm
+  for (const d of dims) {
+    d.lineOffset = offset;
+    offset += 7;
+  }
+}
+```
+
+### I3. 碰撞偵測
+- R-tree（rbush.js）做空間索引，O(log n) 查詢
+- 文字 bbox 用 SVG `getBBox()` 或 canvas `measureText`
+
+解決順序（cost 由低到高）：
+1. 平移文字到尺寸線另一側
+2. 沿尺寸線移動到端點外
+3. 加引線拉到空白區
+4. 旋轉文字 90°（最後手段）
+5. 縮小字體（避免）
+
+這是 NP-hard 的 Map Labeling 問題，用啟發式：
+- Greedy with backtracking（MVP）
+- Force-directed（d3-force）— 標註之間互斥
+- Simulated Annealing（Christensen 1995）
+
+### I4. 引線（Leader Line）
+| 類型 | 用法 | 難度 |
+|------|------|------|
+| 直線 | 短距離 | 低 |
+| L 形 | 90° 轉折，標孔位常用 | 中 |
+| 45° 折線 | 機械製圖標準 | 中 |
+| Bezier | 多障礙繞行 | 高 |
+
+MVP：L 形 + 45°，折點在文字 bbox 角與目標點曼哈頓中點，落在輪廓內就退回 45° 直線。
+進階：A* / visibility graph 找避障最短路徑（pathfinding.js）。
+
+### I5. Chain vs Baseline 自動切換
+```
+if 孔位等重複特徵 && 累計誤差不敏感   → chain
+if 從同一基準量測 && 精度敏感         → baseline
+if 尺寸數 > 5                         → baseline
+```
+**家具製作偏 baseline**（從板邊量孔位最直觀），wrd 板件預設 baseline。
+
+### I6. 數量取捨（足夠 + 不冗餘）
+- 必標：板長、板寬、板厚（3 自由度）
+- 特徵尺寸：每孔/榫的兩座標 + 直徑
+- 可推導不標：對角線、總長 = 各段和、對稱件對稱尺寸
+- 冗餘檢測：`dimA + dimB == dimC` 則 dimC 過約束，刪除短的或標 `(REF)`
+
+### I7. wrd MVP 實作路徑
+1. 每塊板獨立 SVG，固定 4 側 layout：上=長度、左=寬度、下=baseline 孔位、右=備用
+2. **rbush** 做 bbox 碰撞偵測
+3. Stacking 短內長外，固定間距 8mm
+4. 文字碰撞只做「平移到另一側」一招
+5. Leader line 只用直線 + L 形
+
+> JS 生態這塊幾乎空白（OpenCASCADE/CadQuery 都沒自動標註），自幹 600 行內可拿到 80% 效果。
+
+---
+
+## J. 板材展開圖（Surface Unfolding）
+
+### J1. 可展性判斷（Gaussian Curvature）
+```
+function gaussianCurvatureAtVertex(v, mesh):
+  angleSum = Σ interior angles at v
+  areaSum  = Σ adjacent triangle areas / 3
+  K_v = (2π − angleSum) / areaSum
+function isDevelopable(mesh, eps=1e-3):
+  return all(|K_v| < eps for v in vertices)
+```
+| K | 形狀 | 可展？ |
+|---|------|-------|
+| K=0 | 平面、圓柱、圓錐、切線面 | 是 |
+| K>0 | 球面 | 否（會撕裂） |
+| K<0 | 馬鞍 | 否（會皺褶） |
+| 變號 | 環面、自由曲面 | 否（必須切片） |
+
+### J2. 圓柱展開
+完整：半徑 R、高 H → 矩形 `(2πR, H)`
+部分（弧角 θ rad）：寬 = `R·θ`，高 = H
+弦長 `c = 2R·sin(θ/2)`，矢高 `h = R − R·cos(θ/2)`
+
+### J3. 圓錐展開
+```
+slant L = √(h² + r²)
+扇形半徑 = L
+扇形角 α = 360° × r / L  （rad: 2π · r / L）
+```
+
+### J4. 截頂圓錐（喇叭口、收口家具）
+下半徑 r₁、上半徑 r₂、垂直高 h：
+```
+slant s = √((r₁ − r₂)² + h²)
+外半徑 R = s · r₁ / (r₁ − r₂)
+內半徑 r = s · r₂ / (r₁ − r₂)
+扇環角 θ = 360° × r₁ / R
+```
+若 r₁ ≈ r₂ 時公式發散，fallback 為部分圓柱（s × π × (r₁+r₂) 條狀）。
+
+### J5. 任意 mesh 展開（Triangle Strip / LSCM）
+- **Triangle Strip**：把 mesh 切三角形帶，沿共邊翻轉到 2D；累積失真 > 5% 換新 strip
+- **LSCM**（Lévy 2002）：解 (2·#tri) × #vert 稀疏線性系統，最小化角度失真。lib：libigl `igl::lscm()`
+- **ARAP**（as-rigid-as-possible）保面積較好，視覺更接近實木板狀態
+
+### J6. 蒸彎 / 層壓彎曲補正
+- 最小彎曲半徑：未蒸 R ≥ 20–30t；蒸彎 R ≥ 5t（白臘木可到 2t）
+- 回彈補償：冷卻 +30%、乾燥 +1–4%；模具半徑 = 目標 × 0.7（過彎 30%）
+- 層壓：單層 9–12mm；總長 = 弧長 × (1 + 5–8% 損料)
+- 第 i 層長：`L_i = (R + i·t) × θ`
+
+### J7. 木紋方向（展開後標示）
+| 件 | 木紋方向 | 理由 |
+|------|---------|------|
+| 蒸彎/層壓彎件 | **沿弧長** | 纖維平行受力，強度最大 |
+| 圓柱貼皮 | 沿弧長 | 視覺連續、避免裂 |
+| 圓錐 / 截頂圓錐 | 沿母線 | 母線是直線，順紋裁切 |
+
+### J8. wrd 元件分類建議
+```ts
+type ComponentType = 'developable' | 'bent-laminated' | 'sculpted'
+```
+- `developable` → 跑公式產 SVG，接 CutPlan
+- `bent-laminated` → 產**料表**（總長 = 弧長×(1+ε)、層數）而非展開圖
+- `sculpted`（鞍形椅面、雙曲椅背）→ 跳過展開，給「成形料」最小外包 bbox + 警示「展開有失真」+ max distortion
+
+座標慣例：展開圖 origin = 板材左下，對齊 CutPlan 排料邏輯。
+
+---
+
+## K. 派系預設（中式家具 Style Preset）
+
+### K1. 五大派系特徵對照
+| 派系 | 比例 | 構件粗細 | 榫卯偏好 | 裝飾 | 材質 |
+|------|------|---------|---------|------|------|
+| **蘇作** Suzhou | 椅背:座寬 1.3-1.4；腿徑/腿高 1/22-1/25 | 細瘦（28-32mm） | 格肩榫、暗榫、霸王棖 | 線腳簡練，留白多 | 黃花梨、紫檀、櫸木 |
+| **京作** Beijing | 1.2-1.3；1/16-1/18 | 中粗 | 抱肩榫、夾頭榫、粽角榫 | 雕花密集（雲龍、回紋） | 紫檀、紅木、雞翅木 |
+| **廣作** Guangzhou | 1.1-1.2；1/12-1/15 | 厚實（≥45mm） | 走馬銷、明榫多、長榫到底 | 西洋捲草、貝殼，雕地深 | 老紅木、酸枝、花梨 |
+| **徽作** Huizhou | 櫃高:寬 2.2-2.5 | 中細 | 透榫、燕尾榫、悶榫 | 文房題材、淺浮雕 | 楠木、櫸木、樟木 |
+| **晉作** Shanxi | 桌高 820-860 | 最粗（≥1/13） | 大進大出榫、栽銷 | 大塊面雕飾、漆飾 | 核桃木、榆木 |
+
+### K2. Preset 自動帶入參數
+| 參數 | 蘇 | 京 | 廣 | 徽 | 晉 |
+|------|---|---|---|---|---|
+| `legThickness`（×高度） | 0.042 | 0.060 | 0.090 | 0.045 | 0.100 |
+| `apronT:W` | 1:3.2 | 1:2.2 | 1:1.8 | 1:3.0 | 1:1.5 |
+| `waistHeight`(mm) | 0-40 | 60-80 | 80-110 | 0-40 | 40-60 |
+| `topThickness`(mm) | 25-30 | 32-38 | 38-45 | 28-32 | 40-50 |
+| `joinery.preferred` | 格肩/霸王棖 | 抱肩/粽角 | 走馬銷/明榫 | 燕尾/透榫 | 大進大出 |
+| `mouldingProfile` | 單線/皮條 | 雲紋/回紋 | 西洋捲草 | 兩柱香 | 平直起線 |
+| `footStyle` | 內翻馬蹄 | 雕雲頭馬蹄 | 鼓腿彭牙 | 內翻矮馬蹄 | 直方足 |
+
+### K3. UI 建議
+- 下拉選單只在「中式家具」模板顯示（per `feedback_dynamic_option_visibility`）
+- preset 套用後使用者改任一參數 → 跳「已偏離 XX 作預設」banner，可一鍵 revert
+- 中位數當預設、極值在 advanced 面板開放（派系是傾向不是定律）
+
+---
+
+## L. 木紋方向結構規則
+
+### L1. 三向強度（MPa, ~12% MC）
+| 性質 | 順紋 L | 徑向 R | 切向 T | L:R:T |
+|------|-------|--------|--------|-------|
+| 抗拉 | 80-180 | 5-7 | 3-5 | ~30:2:1 |
+| 抗壓 | 30-60 | 5-10 | 5-10 | ~6:1:1 |
+
+**橫紋抗拉只有順紋的 1/20–1/40**。任何受拉構件，纖維必須沿受力方向。
+
+### L2. 線收縮率（green → oven-dry）
+| 樹種 | 切向 T% | 徑向 R% | T/R |
+|------|---------|---------|-----|
+| 松 | 6.1 | 2.1 | 2.9 |
+| 紅橡 | 8.6 | 4.0 | 2.2 |
+| 胡桃 | 7.8 | 5.5 | 1.4 |
+
+順紋 < 0.1%（可視為 0）。每 1% MC 變化 → 切向 0.1–0.3%、徑向 0.05–0.15%。
+**設計含意**：跨木紋接合面（桌面接腿、面板嵌邊條）必須允許橫向滑動。
+
+### L3. 規則清單（priority 排序）
+
+#### P0-1 順紋承載原則
+受力構件（椅腿、桌腿、橫撐、面框、榫頭）長軸 = L 方向。
+檢查：`angle(piece.longAxis, piece.grainDir) > 15°` → ERROR。
+違反：橫紋當腿一掰就斷（橫紋抗拉只 5%）。
+
+#### P0-2 公榫（tenon）木紋方向
+公榫纖維沿榫長軸。
+檢查：tenon 子 mesh 長軸 vs parent grainDir > 15° → ERROR。
+
+#### P0-3 燕尾抽屜配置
+- 抽屜「側板=tail board、前後板=pin board」（tails 抗拉開抽屜的力）
+- 上下端為 half-pin 不可 half-tail（half-tail 內角短紋會崩）
+- drawer template 強制 side=tails、front/back=pins
+
+#### P0-4 跨紋寬板必須允許 movement
+寬度 > 200mm 的板跨紋接合：
+- 桌面用穿帶 + 鈕扣 / 8 字鐵
+- 面板入溝**不上膠**（留 2-3mm 縮脹空間）
+- breadboard end 中央榫上膠、兩端浮動
+
+檢查：board.width > 200mm 且法線跨另一件 grainDir → 要求 `floating: true` 或附 movement hardware。
+
+#### P1-5 桌面拼板年輪交替（heart-bark-heart）
+flat-sawn 拼面年輪交替（bark-up / bark-down），降低整體 cup；或全 quarter-sawn。
+
+#### P1-6 母榫壁厚
+母榫到木件邊緣壁厚 ≥ 公榫厚度；端面距邊 ≥ 25mm 避免 blow-out。
+檢查：mortise 邊框最薄處 < tenonThickness 或 < 8mm → ERROR；距端面 < 25mm → WARN。
+
+#### P1-7 圓腳/曲面禁通榫
+（per memory `project_wooden_ren_round_leg_joinery`）
+parent.shape ∈ {round, turned, curved} 且 tenon.type=through → ERROR。
+
+#### P1-8 面板入溝不上膠
+panel 嵌 groove 留 2-3mm 縮脹；panel 寬 = 開口寬 − 2×gap − tongue 深。
+
+#### P1-9 抽屜面板木紋走向
+抽屜前板木紋**水平**（沿開拉方向看是橫向）。
+檢查：drawer.front.grainDir 應與 width 軸平行。
+
+#### P1-10 結構件節疤
+腿/橫撐/榫頭 30mm 內禁大節疤。
+
+### L4. 資料結構建議
+```ts
+interface Piece {
+  bbox: { l, w, t };
+  grainAxis: 'length' | 'width' | 'thickness';  // 99% 是 'length'
+  cutType?: 'flat' | 'quarter' | 'rift';
+  ringNormal?: Vec3;  // bark-side 法線（拼板用）
+}
+```
+- **不要存 free vector** — 木工實務 grain 永遠對齊主軸
+- `grainAxis` 預設 `length`，弧形貼皮才允許其他值（且必噴 WARN）
+- 世界座標 grainDir = `transform.rotation × axisVector(grainAxis)`
+
+### L5. wrd MVP 先做這四條
+1. **P0-1 順紋承載**（最高 ROI）
+2. **P0-2 公榫紋向**
+3. **P0-4 寬板 movement**
+4. **P1-6 母榫壁厚**
+
+第二期：P0-3 燕尾、P1-5 拼板年輪交替（後者需 cutType 資料）。
