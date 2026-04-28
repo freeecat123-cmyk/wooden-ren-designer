@@ -17,6 +17,9 @@ export const deskOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
+    { value: "splayed", label: "斜腳（四角對角外傾）" },
+    { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
+    { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
@@ -109,7 +112,7 @@ export const desk: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape === "tapered" ? "tapered" : "box",
+    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width",
     seatEdge,
     seatEdgeStyle,
     legEdge,

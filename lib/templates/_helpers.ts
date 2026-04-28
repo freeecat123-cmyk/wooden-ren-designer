@@ -70,7 +70,9 @@ export const LEG_SHAPE_LABEL: Record<string, string> = {
   "strong-taper": "方錐漸縮",
   inverted: "倒錐腳",
   // 斜腳系（矩形）
-  splayed: "斜腳",
+  splayed: "對角斜腳",
+  "splayed-length": "單向斜腳（沿長邊）",
+  "splayed-width": "單向斜腳（沿寬邊）",
   hoof: "馬蹄腳",
   // 古典方腿
   "fluted-square": "古典方腿（4 面凹槽）",
@@ -101,7 +103,9 @@ export const RECT_LEG_SHAPE_CHOICES = [
   { value: "tapered", label: "錐形腳（下方收窄）" },
   { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
   { value: "inverted", label: "倒錐腳（下方更粗）" },
-  { value: "splayed", label: "斜腳（整支外傾）" },
+  { value: "splayed", label: "斜腳（四角對角外傾）" },
+  { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
+  { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
 ];
 
 /**
@@ -141,6 +145,14 @@ export function rectLegShape(
           : 0
         : Math.sign(c.z) * splayMm,
     };
+  }
+  // 單向斜腳：只沿長邊（X 軸）外傾，左右兩側板正視仍然垂直
+  if (shape === "splayed-length") {
+    return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+  }
+  // 單向斜腳：只沿寬邊（Z 軸）外傾，前後兩側板正視仍然垂直
+  if (shape === "splayed-width") {
+    return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
   }
   if (shape === "hoof") {
     // 馬蹄腳：腳趾朝家具外側（遠離中心）踢出去

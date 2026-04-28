@@ -34,13 +34,23 @@ export interface SimpleTableOpts {
   /** Overhang of top beyond leg outer face, mm. Default 0 (flush). */
   topOverhang?: number;
   /** Leg shape:
-   *   box         = 方直腳（預設）
-   *   tapered     = 錐形腳（下方收窄）
-   *   strong-taper = 方錐漸縮（大幅下收）
-   *   inverted    = 倒錐腳（下方反而更粗）
-   *   splayed     = 斜腳（整支向外傾）
-   *   hoof        = 馬蹄腳（底部外撇） */
-  legShape?: "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "hoof";
+   *   box             = 方直腳（預設）
+   *   tapered         = 錐形腳（下方收窄）
+   *   strong-taper    = 方錐漸縮（大幅下收）
+   *   inverted        = 倒錐腳（下方反而更粗）
+   *   splayed         = 斜腳（四角對角整支外傾）
+   *   splayed-length  = 單向斜腳（只沿長邊外傾）
+   *   splayed-width   = 單向斜腳（只沿寬邊外傾）
+   *   hoof            = 馬蹄腳（底部外撇） */
+  legShape?:
+    | "box"
+    | "tapered"
+    | "strong-taper"
+    | "inverted"
+    | "splayed"
+    | "splayed-length"
+    | "splayed-width"
+    | "hoof";
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -176,6 +186,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         dzMm: Math.sign(c.z) * splayMm,
       };
     }
+    if (legShape === "splayed-length") {
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+    }
+    if (legShape === "splayed-width") {
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
+    }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     return undefined;
   };
@@ -225,55 +241,67 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   };
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
-  // 外斜模式：腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splayMm
+  // 外斜支援 3 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width（只沿 Z）
+  // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
+  const splayDx =
+    legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+  const splayDz =
+    legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+  const isSplayed = splayDx > 0 || splayDz > 0;
+  // 腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splay
   // 牙板中心對到腳的真實中心（不然榫頭會偏一邊讓壁太薄爆掉）
-  const isSplayed = legShape === "splayed";
   const apronYCenter = apronY + apronWidth / 2;
   const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
-  const apronSplay = isSplayed ? splayMm * shiftFactor : 0;
-  // 牙板斜度 = arctan(每軸位移 / 腳高)。simpleTable 的 splayMm 本來就是每軸值
-  const tilt = isSplayed ? Math.atan(splayMm / legHeight) : 0;
+  const apronSplayX = splayDx * shiftFactor;
+  const apronSplayZ = splayDz * shiftFactor;
+  // 牙板斜度 = arctan(該軸位移 / 腳高)
+  const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
+  const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronSides = [
     {
       key: "front",
       nameZh: "前牙板",
-      visibleLength: apronInnerSpan.x + 2 * apronSplay,
+      // 前後牙板沿 X 軸 → 跨距受 X 軸外斜影響
+      visibleLength: apronInnerSpan.x + 2 * apronSplayX,
       axis: "x" as const,
       sx: 0,
       sz: -1,
-      origin: { x: 0, z: -(apronEdgeZ + apronSplay) },
+      // Z 位移由 Z 軸外斜決定
+      origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) },
     },
     {
       key: "back",
       nameZh: "後牙板",
-      visibleLength: apronInnerSpan.x + 2 * apronSplay,
+      visibleLength: apronInnerSpan.x + 2 * apronSplayX,
       axis: "x" as const,
       sx: 0,
       sz: 1,
-      origin: { x: 0, z: apronEdgeZ + apronSplay },
+      origin: { x: 0, z: apronEdgeZ + apronSplayZ },
     },
     {
       key: "left",
       nameZh: "左牙板",
-      visibleLength: apronInnerSpan.z + 2 * apronSplay,
+      // 左右牙板沿 Z 軸 → 跨距受 Z 軸外斜影響
+      visibleLength: apronInnerSpan.z + 2 * apronSplayZ,
       axis: "z" as const,
       sx: -1,
       sz: 0,
-      origin: { x: -(apronEdgeX + apronSplay), z: 0 },
+      origin: { x: -(apronEdgeX + apronSplayX), z: 0 },
     },
     {
       key: "right",
       nameZh: "右牙板",
-      visibleLength: apronInnerSpan.z + 2 * apronSplay,
+      visibleLength: apronInnerSpan.z + 2 * apronSplayZ,
       axis: "z" as const,
       sx: 1,
       sz: 0,
-      origin: { x: apronEdgeX + apronSplay, z: 0 },
+      origin: { x: apronEdgeX + apronSplayX, z: 0 },
     },
   ];
   const aprons: Part[] = apronSides.map((s) => {
+    // 牙板補償傾角：x 軸牙板（前/後）用 Z 外斜的 tiltZ；z 軸牙板（左/右）用 X 外斜的 tiltX
     const bevelAngle = isSplayed
-      ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+      ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
     return {
       id: `apron-${s.key}`,
@@ -286,9 +314,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         thickness: apronThickness,
       },
       origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+      // 牙板 3D 旋轉：z 軸牙板繞 y 90°；額外傾角讓牙板貼緊外斜腳的角度
+      // x 軸牙板補 tiltZ；z 軸牙板補 tiltX（因為 X 軸跨向 → 受 X 外斜影響）
       rotation: s.axis === "z"
-        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
-        : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+        : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
       // 外斜模式 apron-beveled 與倒角互斥；非外斜時才能套倒角
       shape: isSplayed
         ? { kind: "apron-beveled" as const, bevelAngle }
@@ -375,16 +405,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 外斜模式：橫撐在 stretcherY 高度的腳中心，shiftFactor 跟 apron 不同（更下方→更外）
     const stretcherYCenter = stretcherY + stretcherWidth / 2;
     const sShiftFactor = legHeight > 0 ? 1 - stretcherYCenter / legHeight : 0;
-    const sSplay = isSplayed ? splayMm * sShiftFactor : 0;
+    const sSplayX = splayDx * sShiftFactor;
+    const sSplayZ = splayDz * sShiftFactor;
     const lowerSides = [
-      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplay) } },
-      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplay } },
-      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplay), z: 0 } },
-      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplay, z: 0 } },
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplayZ) } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplayZ } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplayX), z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplayX, z: 0 } },
     ];
     for (const s of lowerSides) {
       const bevelAngle = isSplayed
-        ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+        ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
         : 0;
       parts.push({
         id: s.key,
@@ -394,8 +425,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         visible: { length: s.visibleLength, width: stretcherWidth, thickness: stretcherThickness },
         origin: { x: s.origin.x, y: stretcherY, z: s.origin.z },
         rotation: s.axis === "z"
-          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
-          : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+          : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
         shape: isSplayed
           ? { kind: "apron-beveled", bevelAngle }
           : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
