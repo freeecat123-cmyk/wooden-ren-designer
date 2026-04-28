@@ -44,6 +44,7 @@ interface PageProps {
     termIncludeShipping?: string;
     termIncludeInstallation?: string;
     overrideUnitPrice?: string;
+    laborHoursOverride?: string;
     primaryMaterialPricePerBdft?: string;
     plywoodPricePerBdft?: string;
     mdfPricePerBdft?: string;
@@ -112,6 +113,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
+    laborHoursOverride: parseNum(sp.laborHoursOverride, LABOR_DEFAULTS.laborHoursOverride),
     primaryMaterialPricePerBdft: parseNum(
       sp.primaryMaterialPricePerBdft,
       catalogPrimaryPrice,
@@ -170,7 +172,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     designParams.set(spec.key, String(options[spec.key]));
   }
   const designQuery = designParams.toString();
-  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
+  const laborQuery = `hourlyRate=${laborOpts.hourlyRate}&equipmentRate=${laborOpts.equipmentRate}&consumables=${laborOpts.consumables}&finishingCost=${laborOpts.finishingCost}&shippingCost=${laborOpts.shippingCost}&installationCost=${laborOpts.installationCost}&hardwareCost=${laborOpts.hardwareCost}&marginRate=${laborOpts.marginRate}&vatRate=${laborOpts.vatRate}&quantity=${laborOpts.quantity}&discountRate=${laborOpts.discountRate}&expiryDays=${laborOpts.expiryDays}&depositRate=${laborOpts.depositRate}&bufferDays=${laborOpts.bufferDays}&overrideUnitPrice=${laborOpts.overrideUnitPrice}&laborHoursOverride=${laborOpts.laborHoursOverride}&primaryMaterialPricePerBdft=${laborOpts.primaryMaterialPricePerBdft}&plywoodPricePerBdft=${laborOpts.plywoodPricePerBdft ?? ""}&mdfPricePerBdft=${laborOpts.mdfPricePerBdft ?? ""}`;
   const customerQuery = new URLSearchParams({
     customerName: customer.name,
     customerContact: customer.contact,

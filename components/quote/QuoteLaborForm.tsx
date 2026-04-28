@@ -40,6 +40,7 @@ type Defaults = {
   depositRate: number;
   bufferDays: number;
   overrideUnitPrice: number;
+  laborHoursOverride: number;
   primaryMaterialPricePerBdft: number;
   plywoodPricePerBdft: number | null;
   mdfPricePerBdft: number | null;
@@ -243,6 +244,7 @@ export function QuoteLaborForm({
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <NumField name="hourlyRate" label="師傅時薪 (NT$/hr)" value={defaults.hourlyRate} min={LABOR_BOUNDS.hourlyRate.min} max={LABOR_BOUNDS.hourlyRate.max} step={LABOR_BOUNDS.hourlyRate.step} />
+                <NumField name="laborHoursOverride" label="工時覆寫 (hr)" value={defaults.laborHoursOverride} min={LABOR_BOUNDS.laborHoursOverride.min} max={LABOR_BOUNDS.laborHoursOverride.max} step={LABOR_BOUNDS.laborHoursOverride.step} decimal hint="0=自動估算；填值=直接覆寫總工時" />
                 <NumField name="equipmentRate" label="設備折舊 (NT$/hr)" value={defaults.equipmentRate} min={LABOR_BOUNDS.equipmentRate.min} max={LABOR_BOUNDS.equipmentRate.max} step={LABOR_BOUNDS.equipmentRate.step} />
                 <NumField name="consumables" label="耗材 (NT$)" value={defaults.consumables} min={LABOR_BOUNDS.consumables.min} max={LABOR_BOUNDS.consumables.max} step={LABOR_BOUNDS.consumables.step} />
                 <NumField name="finishingCost" label="塗裝費 (NT$)" value={defaults.finishingCost} min={LABOR_BOUNDS.finishingCost.min} max={LABOR_BOUNDS.finishingCost.max} step={LABOR_BOUNDS.finishingCost.step} />

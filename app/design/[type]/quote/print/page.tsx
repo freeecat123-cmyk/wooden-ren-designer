@@ -91,6 +91,7 @@ export default async function QuotePrintPage({
     depositRate: parseNum(sp.depositRate, LABOR_DEFAULTS.depositRate),
     bufferDays: parseNum(sp.bufferDays, LABOR_DEFAULTS.bufferDays),
     overrideUnitPrice: parseNum(sp.overrideUnitPrice, LABOR_DEFAULTS.overrideUnitPrice),
+    laborHoursOverride: parseNum(sp.laborHoursOverride, LABOR_DEFAULTS.laborHoursOverride),
   };
 
   // 模板 options（legStyle / 倒角 / 內縮腳…）必須一起讀，

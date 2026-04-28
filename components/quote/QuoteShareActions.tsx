@@ -325,6 +325,7 @@ function readFormState(design: FurnitureDesign) {
     depositRate: parseNum(get("depositRate"), LABOR_DEFAULTS.depositRate),
     bufferDays: parseNum(get("bufferDays"), LABOR_DEFAULTS.bufferDays),
     overrideUnitPrice: parseNum(get("overrideUnitPrice"), LABOR_DEFAULTS.overrideUnitPrice),
+    laborHoursOverride: parseNum(get("laborHoursOverride"), LABOR_DEFAULTS.laborHoursOverride),
     primaryMaterialPricePerBdft: parseNum(get("primaryMaterialPricePerBdft"), catalogPrimary),
     plywoodPricePerBdft: parseOptNum(get("plywoodPricePerBdft"), LABOR_DEFAULTS.plywoodPricePerBdft),
     mdfPricePerBdft: parseOptNum(get("mdfPricePerBdft"), LABOR_DEFAULTS.mdfPricePerBdft),

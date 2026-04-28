@@ -42,6 +42,9 @@ export interface LaborDefaults {
   bufferDays: number;
   /** 手動覆寫「單件未稅報價」；0 表示不覆寫（沿用 cost+margin 計算）。用於議價場景 */
   overrideUnitPrice: number;
+  /** 手動覆寫「總工時」(hr)；0 表示不覆寫（沿用 build steps + 倒角自動估算）。
+   *  用於難度高/熟練度差/特殊要求的客製案件直接打總工時 */
+  laborHoursOverride: number;
   /** 主材單價 (NT$/板才)——使用者輸入，頁面依所選木材預填 catalog 預設 */
   primaryMaterialPricePerBdft: number;
   /** 夾板單價 (NT$/板才)；null 表示不分開計價，背板/抽屜底板併入主材 */
@@ -70,6 +73,7 @@ export const LABOR_DEFAULTS: Omit<LaborDefaults, "primaryMaterialPricePerBdft"> 
   depositRate: 0.5,
   bufferDays: 7,
   overrideUnitPrice: 0,
+  laborHoursOverride: 0,
   // 預設為 null：背板、抽屜底板、抽屜側背板全部併入主材以主材單價計（木頭仁
   // 實務上材積報價不分材料種類）。想分開計的使用者可在報價表單自行填入。
   plywoodPricePerBdft: null,
@@ -93,6 +97,7 @@ export const LABOR_BOUNDS = {
   depositRate: { min: 0, max: 1, step: 0.05 },
   bufferDays: { min: 0, max: 60, step: 1 },
   overrideUnitPrice: { min: 0, max: 1000000, step: 100 },
+  laborHoursOverride: { min: 0, max: 500, step: 0.5 },
   primaryMaterialPricePerBdft: { min: 20, max: 3000, step: 10 },
   plywoodPricePerBdft: { min: 5, max: 150, step: 5 },
   mdfPricePerBdft: { min: 5, max: 150, step: 5 },

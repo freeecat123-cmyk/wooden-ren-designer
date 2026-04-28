@@ -207,10 +207,14 @@ export function calculateQuote(
   }
 
   // 2. 工時成本（build steps 加總 + 倒角加工）
+  // 若使用者設了 laborHoursOverride > 0，整個總工時直接覆寫（用於難度高/特殊客製/熟練度差異）
   const steps = deriveBuildSteps(design);
   const baseLaborHours = totalEstimatedHours(steps);
   const chamferLabor = computeChamferLaborHours(design);
-  const laborHours = baseLaborHours + chamferLabor.hours;
+  const autoLaborHours = baseLaborHours + chamferLabor.hours;
+  const hoursOverride = opts.laborHoursOverride ?? 0;
+  const hasHoursOverride = hoursOverride > 0;
+  const laborHours = hasHoursOverride ? hoursOverride : autoLaborHours;
   const laborCost = laborHours * opts.hourlyRate;
 
   // 3. 設備折舊（按工時分攤）
@@ -281,8 +285,9 @@ export function calculateQuote(
     ...materialLines,
     {
       label: "加工工資",
-      detail:
-        chamferLabor.hours > 0
+      detail: hasHoursOverride
+        ? `${laborHours.toFixed(1)} 小時（手動覆寫；自動估 ${autoLaborHours.toFixed(1)}h）× NT$${opts.hourlyRate}/hr`
+        : chamferLabor.hours > 0
           ? `主工時 ${baseLaborHours.toFixed(1)}h + 倒角 ${chamferLabor.hours.toFixed(1)}h（${chamferDetail}）× NT$${opts.hourlyRate}/hr`
           : `${laborHours.toFixed(1)} 小時 × NT$${opts.hourlyRate}/hr`,
       amount: laborCost,
