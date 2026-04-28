@@ -1104,6 +1104,29 @@ export function OrthoView({
           </text>
         </g>
       )}
+
+      {/* 比例尺：100mm 參考棒（per drafting-math.md §A3）
+          位於圖框左下角，給讀者一個視覺基準快速估其他尺寸 */}
+      <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
+        {(() => {
+          const sx = frameX + 14;
+          const sy = frameY + frameH - 14;
+          const barLen = 100; // mm in SVG units (since viewBox is mm-based)
+          return (
+            <>
+              {/* 主棒 */}
+              <line x1={sx} y1={sy} x2={sx + barLen} y2={sy} strokeWidth={0.6} />
+              {/* 兩端 + 中央 tick */}
+              <line x1={sx} y1={sy - 4} x2={sx} y2={sy + 4} strokeWidth={0.6} />
+              <line x1={sx + barLen / 2} y1={sy - 3} x2={sx + barLen / 2} y2={sy + 3} strokeWidth={0.4} />
+              <line x1={sx + barLen} y1={sy - 4} x2={sx + barLen} y2={sy + 4} strokeWidth={0.6} />
+              <text x={sx + barLen / 2} y={sy + 14} textAnchor="middle" fontSize={9} stroke="none" fill="#666">
+                100 mm
+              </text>
+            </>
+          );
+        })()}
+      </g>
     </svg>
   );
 }
@@ -1122,11 +1145,12 @@ function DimensionLine({
   arrowId: string;
 }) {
   const ext = 8;
+  // CNS 線寬分層：標註線 0.4（細），延伸線 0.25（更細），輪廓另由 part rendering 0.6+
   return (
-    <g stroke="#111" fill="#111" strokeWidth={0.6} fontFamily="sans-serif">
+    <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
       {/* extension lines */}
-      <line x1={x1} y1={y - 16} x2={x1} y2={y + ext} strokeWidth={0.4} stroke="#666" />
-      <line x1={x2} y1={y - 16} x2={x2} y2={y + ext} strokeWidth={0.4} stroke="#666" />
+      <line x1={x1} y1={y - 16} x2={x1} y2={y + ext} strokeWidth={0.25} stroke="#888" />
+      <line x1={x2} y1={y - 16} x2={x2} y2={y + ext} strokeWidth={0.25} stroke="#888" />
       {/* dim line with arrows at both ends */}
       <line
         x1={x1}
@@ -1165,9 +1189,9 @@ function VerticalDimensionLine({
 }) {
   const ext = 8;
   return (
-    <g stroke="#111" fill="#111" strokeWidth={0.6} fontFamily="sans-serif">
-      <line x1={x - 16} y1={y1} x2={x + ext} y2={y1} strokeWidth={0.4} stroke="#666" />
-      <line x1={x - 16} y1={y2} x2={x + ext} y2={y2} strokeWidth={0.4} stroke="#666" />
+    <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
+      <line x1={x - 16} y1={y1} x2={x + ext} y2={y1} strokeWidth={0.25} stroke="#888" />
+      <line x1={x - 16} y1={y2} x2={x + ext} y2={y2} strokeWidth={0.25} stroke="#888" />
       <line
         x1={x}
         y1={y1}
