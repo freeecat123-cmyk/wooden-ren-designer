@@ -110,6 +110,55 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             : ""
     }${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
   };
+  // 分隔板
+  if (dividerLayout === "split-2") {
+    design.parts.push({
+      id: "divider-mid",
+      nameZh: "中央縱向隔板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerL - 2 * wallT - 4, width: wallH - 4, thickness: wallT - 2 },
+      origin: { x: 0, y: botT + (wallH - 4) / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  } else if (dividerLayout === "grid-4") {
+    design.parts.push({
+      id: "divider-x",
+      nameZh: "X 方向隔板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerL - 2 * wallT - 4, width: wallH - 4, thickness: wallT - 2 },
+      origin: { x: 0, y: botT + (wallH - 4) / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+    design.parts.push({
+      id: "divider-z",
+      nameZh: "Z 方向隔板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerW - 2 * wallT - 4, width: wallH - 4, thickness: wallT - 2 },
+      origin: { x: 0, y: botT + (wallH - 4) / 2, z: 0 },
+      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  } else if (dividerLayout === "tea-set") {
+    // 茶組固定凹槽 — 在底板加 mortises
+    const bottomPart = design.parts.find((p) => p.id === "bottom");
+    if (bottomPart) {
+      bottomPart.mortises = [
+        ...bottomPart.mortises,
+        { origin: { x: 0, y: 0, z: 0 }, depth: 5, length: 120, width: 120, through: false },
+        { origin: { x: -outerL / 4, y: 0, z: -outerW / 4 }, depth: 5, length: 60, width: 60, through: false },
+        { origin: { x: outerL / 4, y: 0, z: -outerW / 4 }, depth: 5, length: 60, width: 60, through: false },
+        { origin: { x: -outerL / 4, y: 0, z: outerW / 4 }, depth: 5, length: 60, width: 60, through: false },
+        { origin: { x: outerL / 4, y: 0, z: outerW / 4 }, depth: 5, length: 60, width: 60, through: false },
+      ];
+    }
+  }
+
   if (built.warnings.length) design.warnings = built.warnings;
   // max bounds
   const extraWarnings: string[] = [];

@@ -285,12 +285,41 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     columnStyle === "lathe-turned" ? "車旋古典" : columnStyle === "round" ? "圓料" : "方料";
 
   const totalHooks = hooks.length;
+
+  // 頂端帽架橫木：長 60×30 木條，X 方向
+  const topAccessories: Part[] = [];
+  if (withHatRail) {
+    topAccessories.push({
+      id: "hat-rail",
+      nameZh: "頂端帽架橫木",
+      material,
+      grainDirection: "length",
+      visible: { length: footLength + 200, width: 60, thickness: 30 },
+      origin: { x: 0, y: height - 30, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 底盤鞋墊托：⌀400 圓盤
+  if (withFloorTray) {
+    topAccessories.push({
+      id: "floor-tray",
+      nameZh: "底盤鞋墊托",
+      material,
+      grainDirection: "length",
+      visible: { length: 400, width: 400, thickness: 18 },
+      origin: { x: 0, y: footThickness, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    });
+  }
   const design: FurnitureDesign = {
     id: `coat-rack-${height}`,
     category: "coat-rack",
     nameZh: "立式衣帽架",
     overall: { length: footLength, width: footLength, thickness: height },
-    parts: [column, ...feet, ...hooks],
+    parts: [column, ...feet, ...hooks, ...topAccessories],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,

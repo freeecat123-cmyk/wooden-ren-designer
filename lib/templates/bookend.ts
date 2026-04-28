@@ -128,6 +128,39 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   if (panelT < 12 && backHeight > 200) {
     warnings.push(`板厚 ${panelT}mm 對 ${backHeight}mm 高背板太薄——重書壓久會彎，建議加厚到 15mm 以上`);
   }
+  // 對夾凹槽：背板內側中央加 mortise
+  if (withClampNotch) {
+    const backPart = design.parts.find((p) => p.id === "back");
+    if (backPart) {
+      backPart.mortises = [
+        ...backPart.mortises,
+        {
+          origin: { x: 0, y: backPanelH / 2, z: 0 },
+          depth: panelT / 2,
+          length: 50,
+          width: 30,
+          through: false,
+        },
+      ];
+    }
+  }
+  // 底面刻字位 mortise（淺凹）
+  if (withInitialEngrave) {
+    const basePart = design.parts.find((p) => p.id === "base");
+    if (basePart) {
+      basePart.mortises = [
+        ...basePart.mortises,
+        {
+          origin: { x: 0, y: 0, z: 0 },
+          depth: 1,
+          length: 60,
+          width: 30,
+          through: false,
+        },
+      ];
+    }
+  }
+
   if (warnings.length) design.warnings = warnings;
   return design;
 };

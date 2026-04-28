@@ -104,6 +104,20 @@ export const lowTable: FurnitureTemplate = (input) => {
     dropLeafWidth,
     notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}${(() => { const ci = getOption<string>(input, opt(o, "centerInsert")); const fd = getOption<boolean>(input, opt(o, "foldable")); return `${ci === "fire-pit" ? " 桌面中央挖 ⌀200×100mm 凹槽 + 防火磚襯底 + 鋁箔隔熱層，放炭 / 酒精爐（火盆桌）。" : ci === "ice-bowl" ? " 桌面中央挖 ⌀250×80mm 凹槽放保冰碗（IGGY 風格）。" : ci === "tatami-tray" ? " 桌面中央挖凹平時收成平面、托盤可拉出。" : ""}${fd ? " 桌腳可向內摺貼桌面下方收納（金屬摺疊鉸鏈一組）。" : ""}`; })()}`,
   });
+  // 中央嵌入凹槽：在 top 加 mortise
+  const centerInsert = getOption<string>(input, opt(o, "centerInsert"));
+  if (centerInsert !== "none") {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      const dia = centerInsert === "fire-pit" ? 200 : centerInsert === "ice-bowl" ? 250 : 280;
+      const dep = centerInsert === "fire-pit" ? 100 : centerInsert === "ice-bowl" ? 80 : 25;
+      topPart.mortises = [
+        ...topPart.mortises,
+        { origin: { x: 0, y: 0, z: 0 }, depth: dep, length: dia, width: dia, through: false },
+      ];
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 500, minWidth: 400, minHeight: 250,
     maxLength: 1400, maxWidth: 1000, maxHeight: 450,

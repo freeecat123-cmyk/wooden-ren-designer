@@ -128,6 +128,23 @@ export const nightstand: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${withWirelessCharging ? "頂面嵌入 Qi 無線充電板（10W 模組，挖 ⌀75 × 深 8mm 圓槽）。" : ""} ${withHiddenCompartment ? "抽屜底板下加 30mm 暗格隔層（重要物品收納）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
+  // 無線充電板凹槽：頂板挖 ⌀75×8mm 圓孔（mortise）
+  if (withWirelessCharging) {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      topPart.mortises = [
+        ...topPart.mortises,
+        {
+          origin: { x: 0, y: 0, z: 0 },
+          depth: 8,
+          length: 75,
+          width: 75,
+          through: false,
+        },
+      ];
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 400,
     maxLength: 600, maxWidth: 500, maxHeight: 800,

@@ -129,6 +129,35 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${tiltedShelf ? "層板向後傾 8°，鞋頭朝下不易滑出（前緣加 8mm 擋條更保險）。" : ""} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${withTopSeatCushion ? "頂面加 30mm 厚海綿坐墊 + 布套（魔鬼氈固定），玄關穿鞋椅功能。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
+  // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
+  if (doorType === "louvered") {
+    const doorParts = design.parts.filter((p) => p.id.includes("door") || p.id.endsWith("-face"));
+    for (const dp of doorParts) {
+      const dH = dp.visible.width;
+      const slatPitch = 23; // 8mm 葉片 + 15mm 間距
+      const count = Math.floor((dH - 40) / slatPitch);
+      const newM = [...dp.mortises];
+      for (let r = 0; r < count; r++) {
+        const y = -dH / 2 + 20 + (r + 0.5) * slatPitch;
+        newM.push({ origin: { x: 0, y, z: 0 }, depth: 6, length: dp.visible.length - 30, width: 8, through: false });
+      }
+      dp.mortises = newM;
+    }
+  }
+  // 頂面坐墊：加一片軟墊 Part（薄板代表）
+  if (withTopSeatCushion) {
+    design.parts.push({
+      id: "seat-cushion",
+      nameZh: "頂面坐墊",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length - 20, width: input.width - 20, thickness: 30 },
+      origin: { x: 0, y: input.height + 15, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   applyStandardChecks(design, {
     minLength: 500, minWidth: 250, minHeight: 500,
     maxLength: 1500, maxWidth: 500, maxHeight: 2000,

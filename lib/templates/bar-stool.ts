@@ -344,6 +344,43 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
       `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${footrestMaterial === "metal" ? " 腳踏採鋁/不鏽鋼條替代木料（耐磨防刮）。" : footrestMaterial === "rope" ? " 腳踏纏麻繩（手工感、防止鞋底刮花）。" : ""}${withSwivelMech ? " 含 360° 旋轉座 + 氣壓升降桿（外購 NT$ 800-1500，椅腳改十字鋼底）。" : ""}`,
   };
+  // 旋轉座 + 升降氣壓桿：以中央圓柱 + 4 爪十字底盤代表
+  if (withSwivelMech) {
+    // 移除原本 4 隻腳和橫撐
+    design.parts = design.parts.filter((p) => !p.id.startsWith("leg-") && !p.id.startsWith("apron-") && !p.id.startsWith("footrest-"));
+    const colDia = 60;
+    design.parts.push({
+      id: "swivel-column",
+      nameZh: "中央升降氣壓桿（外購）",
+      material,
+      grainDirection: "length",
+      visible: { length: colDia, width: colDia, thickness: height - 80 - seatThickness },
+      origin: { x: 0, y: 80, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    });
+    // 4 爪底盤
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2;
+      design.parts.push({
+        id: `swivel-leg-${i + 1}`,
+        nameZh: `底盤腳 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: 250, width: 40, thickness: 20 },
+        origin: {
+          x: Math.cos(angle) * 100,
+          y: 10,
+          z: Math.sin(angle) * 100,
+        },
+        rotation: { x: 0, y: angle, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 600,
     maxLength: 550, maxWidth: 550, maxHeight: 900,

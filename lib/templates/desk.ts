@@ -290,6 +290,34 @@ export const desk: FurnitureTemplate = (input) => {
     design.notes = (design.notes ?? "") + " " + extras.join("；") + "。";
   }
 
+  // 前飾遮腿板（modesty panel）
+  if (withModestyPanel) {
+    design.parts.push({
+      id: "modesty-panel",
+      nameZh: "前飾遮腿板",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length - 100, width: 350, thickness: 18 },
+      origin: { x: 0, y: input.height - 380, z: -input.width / 2 + 30 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 桌面下筆槽（pencil tray）
+  if (withPencilTray) {
+    design.parts.push({
+      id: "pencil-tray",
+      nameZh: "桌下筆槽抽屜",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: 400, width: 200, thickness: 45 },
+      origin: { x: 0, y: input.height - 70, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   applyStandardChecks(design, {
     minLength: 900, minWidth: 400, minHeight: 650,
     maxLength: 2000, maxWidth: 900, maxHeight: 800,

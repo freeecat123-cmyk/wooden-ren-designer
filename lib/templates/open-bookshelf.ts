@@ -91,6 +91,47 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withWallAnchor ? "頂板背面預留 L 型固定片孔位，務必鎖牆防傾倒（高書櫃必做）。" : ""} ${withAdjustableShelfPins ? "兩側板鑽 32mm 間距 ⌀5mm 釘孔陣列（European 32mm system，配 3-5mm 鋼/塑膠書釘），層板可任意調整。" : ""} ${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
+  // 可調層板釘孔陣列：兩側板鑽 ⌀5mm 釘孔（mortise 代表）
+  if (withAdjustableShelfPins) {
+    const pitch = 32;
+    const startY = 100;
+    const endY = input.height - 100;
+    const rowCount = Math.floor((endY - startY) / pitch);
+    for (const sideId of ["side-left", "side-right"]) {
+      const sidePart = design.parts.find((p) => p.id === sideId);
+      if (!sidePart) continue;
+      const newMortises = [...sidePart.mortises];
+      for (let r = 0; r < rowCount; r++) {
+        const y = startY + r * pitch;
+        // 兩排（前後）
+        for (const z of [-input.width / 2 + 40, input.width / 2 - 40]) {
+          newMortises.push({
+            origin: { x: 0, y, z },
+            depth: 12,
+            length: 5,
+            width: 5,
+            through: false,
+          });
+        }
+      }
+      sidePart.mortises = newMortises;
+    }
+  }
+  // 頂端 cornice 飾條
+  if (withLedderRail) {
+    design.parts.push({
+      id: "cornice-front",
+      nameZh: "頂端 cornice 飾條",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length + 20, width: 30, thickness: 18 },
+      origin: { x: 0, y: input.height + 15, z: input.width / 2 + 10 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   applyStandardChecks(design, {
     minLength: 400, minWidth: 200, minHeight: 600,
     maxLength: 1500, maxWidth: 500, maxHeight: 2400,

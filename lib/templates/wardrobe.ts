@@ -133,6 +133,58 @@ export const wardrobe: FurnitureTemplate = (input) => {
     notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
+  // 頂部棉被櫃：水平隔板（Part）距頂端 350mm
+  if (withTopCompartment) {
+    design.parts.push({
+      id: "top-compartment-divider",
+      nameZh: "頂部棉被櫃水平隔板",
+      material: input.material,
+      grainDirection: "length",
+      visible: {
+        length: input.length - 2 * panelThickness,
+        width: input.width - 2 * panelThickness,
+        thickness: panelThickness,
+      },
+      origin: { x: 0, y: input.height - 350, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 底部鞋格：2 層斜板
+  if (withBottomShoeRack) {
+    for (let i = 0; i < 2; i++) {
+      design.parts.push({
+        id: `shoe-rack-${i + 1}`,
+        nameZh: `底部鞋格 ${i + 1}`,
+        material: input.material,
+        grainDirection: "length",
+        visible: {
+          length: input.length - 2 * panelThickness,
+          width: input.width - 2 * panelThickness - 20,
+          thickness: panelThickness - 4,
+        },
+        origin: { x: 0, y: legHeight + 50 + i * 90, z: 0 },
+        rotation: { x: -8 * Math.PI / 180, y: 0, z: 0 }, // 8° 斜
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+  // 內部 LED：頂端加細長條代表
+  if (withInteriorLed) {
+    design.parts.push({
+      id: "interior-led-strip",
+      nameZh: "內部 LED 燈條",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length - 2 * panelThickness - 20, width: 12, thickness: 6 },
+      origin: { x: 0, y: input.height - panelThickness - 10, z: input.width / 2 - panelThickness - 8 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   applyStandardChecks(design, {
     minLength: 600, minWidth: 400, minHeight: 1500,
     maxLength: 2400, maxWidth: 800, maxHeight: 2500,

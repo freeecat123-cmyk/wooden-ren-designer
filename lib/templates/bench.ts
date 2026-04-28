@@ -126,6 +126,19 @@ export const bench: FurnitureTemplate = (input) => {
     }
   }
 
+  // 座板坐墊托槽：在 top 上挖 4 條淺凹邊（用 4 個窄 mortise）
+  if (withCushionGroove) {
+    const topPart = design.parts.find((p) => p.id === "top");
+    if (topPart) {
+      const topL = topPart.visible.length;
+      const topW = topPart.visible.width;
+      topPart.mortises = [
+        ...topPart.mortises,
+        { origin: { x: 0, y: 0, z: 0 }, depth: 8, length: topL - 60, width: topW - 60, through: false },
+      ];
+    }
+  }
+
   if (withUnderShelf) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
     // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 × LOWER_STRETCHER_HEIGHT_RATIO）+ 寬 40

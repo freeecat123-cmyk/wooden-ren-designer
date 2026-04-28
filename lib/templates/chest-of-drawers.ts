@@ -193,6 +193,41 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     }
   }
 
+  // 頂面 gallery 飾邊：4 條小木條圍欄
+  if (withGalleryRail) {
+    const railH = 25;
+    const railT = 12;
+    const yTop = input.height + railH / 2;
+    // front/back
+    for (const side of [-1, 1]) {
+      design.parts.push({
+        id: `gallery-${side > 0 ? "back" : "front"}`,
+        nameZh: `頂面 gallery ${side > 0 ? "後" : "前"}條`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: input.length, width: railH, thickness: railT },
+        origin: { x: 0, y: yTop, z: side * (input.width / 2 - railT / 2) },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // left/right
+    for (const side of [-1, 1]) {
+      design.parts.push({
+        id: `gallery-${side > 0 ? "right" : "left"}`,
+        nameZh: `頂面 gallery ${side > 0 ? "右" : "左"}條`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: input.width, width: railH, thickness: railT },
+        origin: { x: side * (input.length / 2 - railT / 2), y: yTop, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 500, minWidth: 300, minHeight: 500,
     maxLength: 1300, maxWidth: 600, maxHeight: 1500,

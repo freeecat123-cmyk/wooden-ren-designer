@@ -173,6 +173,23 @@ export const diningTable: FurnitureTemplate = (input) => {
     }
   }
 
+  // 中央延伸板（額外的 plank Part 放在桌面中央，與桌面同高）
+  if (withExtensionLeaf) {
+    const topPart = design.parts.find((p) => p.id === "top" || p.id.startsWith("top-plank"));
+    if (topPart) {
+      design.parts.push({
+        id: "extension-leaf",
+        nameZh: "中央延伸板",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: 400, width: input.width - 60, thickness: topThickness },
+        origin: { x: 0, y: topPart.origin.y, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 900, minWidth: 600, minHeight: 600,
     maxLength: 2400, maxWidth: 1200, maxHeight: 800,

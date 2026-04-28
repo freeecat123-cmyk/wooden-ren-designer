@@ -160,6 +160,32 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const parts: Part[] = [bottom, top, leftSide, rightSide, ...horizontalShelves, ...verticalDividers];
 
+  // 底部拉出抽屜（高 100mm）
+  if (withPullOutDrawer) {
+    const drawerH = 100;
+    parts.push({
+      id: "drawer-front",
+      nameZh: "底部抽屜面板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerW, width: drawerH, thickness: panelT },
+      origin: { x: 0, y: -drawerH / 2 - panelT / 2, z: depth / 2 - panelT / 2 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+    parts.push({
+      id: "drawer-bottom",
+      nameZh: "底部抽屜底板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerW - 30, width: depth - 30, thickness: 8 },
+      origin: { x: 0, y: -drawerH - 4, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   if (mountStyle === "wall-mount") {
     // 背面加一條全寬吊掛條，鎖到牆內龍骨上
     parts.push({

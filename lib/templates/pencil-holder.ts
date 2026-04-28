@@ -83,6 +83,27 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部 ${dividers} 片直立隔板分區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}${tiltedFront ? " 前壁比後壁矮 30mm（鉛筆斜放看得清標籤）。" : ""}${twoTierBottom ? " 1/3 區域底面墊高 50mm 做雙層槽，淺槽放橡皮擦 / 小物、深槽放筆。" : ""}`,
   };
+  // 傾斜款：前壁矮 30mm
+  if (tiltedFront) {
+    const frontWall = design.parts.find((p) => p.id === "wall-front");
+    if (frontWall) {
+      frontWall.visible = { ...frontWall.visible, width: Math.max(20, frontWall.visible.width - 30) };
+    }
+  }
+  // 雙層底：在 1/3 位置加一片高底板
+  if (twoTierBottom) {
+    design.parts.push({
+      id: "tier-floor",
+      nameZh: "雙層底（高底板）",
+      material,
+      grainDirection: "length",
+      visible: { length: built.innerL / 3, width: built.innerW, thickness: 6 },
+      origin: { x: -built.innerL / 3, y: botT + 50, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   if (built.warnings.length) design.warnings = [...built.warnings];
   // 結構檢查 + max bounds
   const warnings: string[] = [];

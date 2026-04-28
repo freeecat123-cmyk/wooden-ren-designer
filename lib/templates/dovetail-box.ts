@@ -103,6 +103,26 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
             : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
     }。` : ""}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
   };
+  // 內部 jewelry 抽板（活動隔板）
+  if (withInnerTray) {
+    const trayH = 30;
+    const trayPanelT = 6;
+    design.parts.push({
+      id: "inner-tray",
+      nameZh: "內部活動隔板（jewelry tray）",
+      material,
+      grainDirection: "length",
+      visible: {
+        length: outerL - 2 * wallT - 4,
+        width: outerW - 2 * wallT - 4,
+        thickness: trayPanelT,
+      },
+      origin: { x: 0, y: outerH - trayH - (withLid ? wallT : 0) - 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   if (built.warnings.length) design.warnings = built.warnings;
   // max bounds + suggestions
   const extraWarnings: string[] = [];
