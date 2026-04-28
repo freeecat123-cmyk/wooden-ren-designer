@@ -13,6 +13,7 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "腳中心離座板邊緣的內縮量。> 0 讓座板外伸、視覺更俐落" },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 5, min: 1, max: 15, step: 0.5, unit: "°", help: "斜腳系列才有效——從垂直起算的外傾角度。預設 5° 適度外斜；10° 起明顯誇張（北歐風)；15° 極限" },
   legEdgeOption("leg", 0),
   legEdgeStyleOption("leg"),
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
@@ -63,6 +64,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
@@ -124,8 +126,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
     // box 走 legEdgeShape；splayed 系列把 chamfer 帶入組合；tapered 系列暫不支援組合
+    // splayMm 由 splayAngle 換算：tan(angle) × legHeight
     shape: rectLegShape(legShape, c, {
       splayedFrontOnly: false,
+      splayMm: Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight),
       chamferMm: parseLegChamferMm(legEdge),
       chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
     }) ?? legEdgeShape(legEdge, legEdgeStyle),
@@ -156,7 +160,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
-  const splayMm = 30; // 跟 rectLegShape 預設一致
+  // splayMm = tan(splayAngle) × legHeight，跟 rectLegShape 內部用一致的角度
+  const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight);
   const splayDx =
     legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
   const splayDz =
