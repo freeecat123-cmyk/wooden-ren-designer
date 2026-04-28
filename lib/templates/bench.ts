@@ -128,10 +128,12 @@ export const bench: FurnitureTemplate = (input) => {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
     // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 × LOWER_STRETCHER_HEIGHT_RATIO）+ 寬 40
     const stretcherW = 40;
+    const stretcherT = 20; // 跟 simple-table opts.lowerStretcherThickness 預設一致
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
-    // 層板坐在下橫撐頂面，不能埋進橫撐內部
+    // 層板坐在下橫撐頂面，邊緣延伸到橫撐內面（跟橫撐重疊 stretcherT/2）
+    // 不然層板會比橫撐窄、底下沒東西支撐，看起來像懸空
     const shelfY = stretcherY + stretcherW;
     design.parts.push({
       id: "under-shelf",
@@ -139,9 +141,10 @@ export const bench: FurnitureTemplate = (input) => {
       material: input.material,
       grainDirection: "length",
       visible: {
-        // 扣腳本身 + legInset，再各邊留 SHELF_CLEARANCE_MM 間隙
-        length: Math.max(50, input.length - 2 * legSize - 2 * legInset - 2 * SHELF_CLEARANCE_MM),
-        width: Math.max(50, input.width - 2 * legSize - 2 * legInset - 2 * SHELF_CLEARANCE_MM),
+        // = input.dim - legSize - 2*legInset - stretcherT，正好讓層板邊緣
+        // 落在橫撐內面（橫撐 z 中心 ±legInset 外緣，內面再內縮 stretcherT/2）
+        length: Math.max(50, input.length - legSize - 2 * legInset - stretcherT),
+        width: Math.max(50, input.width - legSize - 2 * legInset - stretcherT),
         thickness: shelfT,
       },
       origin: { x: 0, y: shelfY, z: 0 },
