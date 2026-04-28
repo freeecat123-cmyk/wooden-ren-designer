@@ -243,6 +243,11 @@ function Part({
     );
   }
 
+  // chamfered-edges / chamfered-top 用 flatShading：每個 facet 自己的法線 →
+  // 視覺上顯示獨立色階（八角斷面看得出來），不然 smooth shading 會把
+  // 8 facet 平滑成連續曲面，看起來跟方料沒兩樣
+  const useFlatShading =
+    shape?.kind === "chamfered-edges" || shape?.kind === "chamfered-top";
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
       {geometry ? (
@@ -254,6 +259,7 @@ function Part({
         color={color}
         roughness={0.55}
         metalness={0.05}
+        flatShading={useFlatShading}
         onBeforeCompile={woodCompile}
       />
     </mesh>
