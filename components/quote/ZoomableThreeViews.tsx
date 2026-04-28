@@ -133,13 +133,9 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
               </div>
             </div>
             <div className="p-4 overflow-auto">
-              <div
-                className="origin-top-left transition-transform"
-                style={{
-                  transform: `scale(${scale})`,
-                  width: scale > 1 ? `${100 * scale}%` : "100%",
-                }}
-              >
+              {/* CSS zoom 比 transform: scale 適合這個情境——zoom 會影響 layout，
+                  outer overflow-auto 自動算對 scrollbar；transform 只改視覺、scrollbar 不對齊 */}
+              <div style={{ zoom: scale }}>
                 <OrthoView
                   design={design}
                   view={zoomed}
