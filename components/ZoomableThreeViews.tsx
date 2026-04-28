@@ -15,14 +15,19 @@ const VIEW_TITLES: Record<ViewKind, { zh: string; en: string }> = {
 /**
  * 三視圖三宮格——每張獨立可點擊放大；放大時 modal 只顯示被點的那一張，
  * 占滿視窗（90vw × 88vh），SVG 自動依比例最大化。ESC / 點背景關閉。
+ * Modal 內含 +/- zoom 控制：1x = fit，可放到 4x（內部捲軸瀏覽）
  */
 export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     if (!zoomed) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setZoomed(null);
+      if (e.key === "+" || e.key === "=") setScale((s) => Math.min(4, s + 0.25));
+      if (e.key === "-" || e.key === "_") setScale((s) => Math.max(1, s - 0.25));
+      if (e.key === "0") setScale(1);
     };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -31,6 +36,11 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
+  }, [zoomed]);
+
+  // 換 view 時 reset scale
+  useEffect(() => {
+    if (zoomed) setScale(1);
   }, [zoomed]);
 
   return (
@@ -88,6 +98,28 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                     {VIEW_TITLES[v].zh}
                   </button>
                 ))}
+                <div className="ml-2 flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setScale((s) => Math.max(1, s - 0.25))}
+                    disabled={scale <= 1}
+                    className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
+                    title="縮小 (−)"
+                  >−</button>
+                  <button
+                    type="button"
+                    onClick={() => setScale(1)}
+                    className="px-1.5 h-6 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
+                    title="重設 (0)"
+                  >{Math.round(scale * 100)}%</button>
+                  <button
+                    type="button"
+                    onClick={() => setScale((s) => Math.min(4, s + 0.25))}
+                    disabled={scale >= 4}
+                    className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
+                    title="放大 (+)"
+                  >＋</button>
+                </div>
                 <button
                   type="button"
                   onClick={() => setZoomed(null)}
@@ -99,15 +131,24 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden flex items-center justify-center bg-zinc-50">
-              {/* 用 inline style 強制 SVG 填滿；preserveAspectRatio 仍保持比例 */}
-              <OrthoView
-                design={design}
-                view={zoomed}
-                title={VIEW_TITLES[zoomed].zh}
-                titleEn={VIEW_TITLES[zoomed].en}
-                className="bg-white w-full h-full"
-              />
+            <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-zinc-50">
+              {/* scale > 1 時用 transform: scale + 內部 div 給 overflow 捲軸瀏覽 */}
+              <div
+                style={{
+                  width: `${scale * 100}%`,
+                  height: `${scale * 100}%`,
+                  flexShrink: 0,
+                }}
+                className="flex items-center justify-center"
+              >
+                <OrthoView
+                  design={design}
+                  view={zoomed}
+                  title={VIEW_TITLES[zoomed].zh}
+                  titleEn={VIEW_TITLES[zoomed].en}
+                  className="bg-white w-full h-full"
+                />
+              </div>
             </div>
           </div>
         </div>
