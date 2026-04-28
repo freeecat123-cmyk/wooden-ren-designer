@@ -625,41 +625,60 @@ export function OrthoView({
                     />
                   </>
                 )}
-                {/* 外斜腳：每隻腳的落地點畫 1 個藍色虛線方框（legSize × legSize），
-                    位置 = 腳頂 + (dxMm, dzMm)。藍色跟對角線紅區分。
-                    下方再標「落地超出椅面 X」量度 */}
+                {/* 外斜腳：每個橫撐的上下緣 Y 跟落地 Y 都畫一圈腳框
+                    （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
+                    淺藍 = 橫撐接腳 Y；深藍 = 落地 Y */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
                   const footColor = "#2780b8";
+                  const stretcherColor = "#7cb3da";  // 淺藍：橫撐 Y 的腳框
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
                     mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
                   return (
                     <>
-                      {/* 4 隻腳的落地框——逐隻畫 legSize × legSize */}
-                      {legs.map((leg) => {
-                        const sh = leg.shape;
-                        const dx = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
-                          ? sh.dxMm : 0;
-                        const dz = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
-                          ? sh.dzMm : 0;
-                        if (dx === 0 && dz === 0) return null;
-                        const footCx = leg.origin.x + dx;
-                        const footCz = leg.origin.z + dz;
-                        return (
-                          <rect
-                            key={`foot-${leg.id}`}
-                            x={footCx - legSize / 2}
-                            y={footCz - legSize / 2}
-                            width={legSize}
-                            height={legSize}
-                            fill="none"
-                            stroke={footColor}
-                            strokeWidth={0.5}
-                            strokeDasharray="3 3"
-                          />
-                        );
-                      })}
+                      {/* 橫撐上下緣 Y 的腳框（淺藍）+ 落地點腳框（深藍）
+                          每隻腳依 splay 物理在每個 Y 算位置：
+                          legX(Y) = origin.x + dxMm * (1 − Y / legHeight) */}
+                      {(() => {
+                        const sample = legs[0];
+                        const legHeight = sample.visible.thickness;
+                        // 收集所有要畫的 Y：橫撐 top/bottom + 落地 (Y=0)
+                        const ys: { y: number; color: string }[] = [];
+                        for (const c of crossPieces) {
+                          ys.push({ y: c.bottomY, color: stretcherColor });
+                          ys.push({ y: c.topY, color: stretcherColor });
+                        }
+                        ys.push({ y: 0, color: footColor }); // 落地
+                        // 4 隻腳 × N 個 Y → 同 Y 同腳的框
+                        return legs.flatMap((leg) => {
+                          const sh = leg.shape;
+                          const dx = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
+                            ? sh.dxMm : 0;
+                          const dz = sh?.kind === "splayed" || sh?.kind === "splayed-tapered" || sh?.kind === "splayed-round-tapered"
+                            ? sh.dzMm : 0;
+                          if (dx === 0 && dz === 0) return [];
+                          return ys.map(({ y, color }) => {
+                            // 腳越下面外推越多：shift = (1 − y/legHeight)
+                            const shift = legHeight > 0 ? 1 - y / legHeight : 0;
+                            const cx = leg.origin.x + dx * shift;
+                            const cz = leg.origin.z + dz * shift;
+                            return (
+                              <rect
+                                key={`leg-${leg.id}-y${Math.round(y)}`}
+                                x={cx - legSize / 2}
+                                y={cz - legSize / 2}
+                                width={legSize}
+                                height={legSize}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth={0.4}
+                                strokeDasharray="2 3"
+                              />
+                            );
+                          });
+                        });
+                      })()}
                       {maxSplayDx > 0 && Math.abs(footProtrudeX) > 0.5 && (
                         <DimensionLine
                           arrowId={`arr-${view}`}
