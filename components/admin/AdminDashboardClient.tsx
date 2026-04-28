@@ -78,6 +78,12 @@ export function AdminDashboardClient() {
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href="/admin/users"
+            className="px-3 py-1.5 rounded bg-sky-700 text-white text-sm hover:bg-sky-800"
+          >
+            👤 用戶清單
+          </Link>
+          <Link
             href="/admin/whitelist"
             className="px-3 py-1.5 rounded bg-emerald-700 text-white text-sm hover:bg-emerald-800"
           >
