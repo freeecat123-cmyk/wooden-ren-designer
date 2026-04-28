@@ -20,7 +20,7 @@ import {
   BrandedNotes,
   BrandedTermsBlocks,
 } from "@/components/branding/BrandedTerms";
-import { CompactThreeViews } from "@/lib/render/svg-views";
+import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { QrCode } from "@/components/print/QrCode";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -221,7 +221,7 @@ export default async function QuotePrintPage({
               設計編號：{design.id}
             </span>
           </div>
-          <CompactThreeViews design={design} />
+          <ZoomableThreeViews design={design} />
           <p className="mt-1 text-[9px] text-zinc-400">
             三視圖顯示家具尺寸與比例，實際成品木紋、色差依天然木材狀態而定。
           </p>
