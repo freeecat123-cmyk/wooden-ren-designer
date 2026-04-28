@@ -14,13 +14,23 @@ const VIEWS: { kind: ViewKind; title: string; titleEn: string }[] = [
 
 export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
+  const [scale, setScale] = useState(1);
 
   const close = useCallback(() => setZoomed(null), []);
+
+  // 切換視圖時 scale 重置
+  const switchView = useCallback((kind: ViewKind) => {
+    setZoomed(kind);
+    setScale(1);
+  }, []);
 
   useEffect(() => {
     if (!zoomed) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
+      if (e.key === "+" || e.key === "=") setScale((s) => Math.min(4, s + 0.25));
+      if (e.key === "-" || e.key === "_") setScale((s) => Math.max(0.5, s - 0.25));
+      if (e.key === "0") setScale(1);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -33,7 +43,7 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
           <button
             key={v.kind}
             type="button"
-            onClick={() => setZoomed(v.kind)}
+            onClick={() => switchView(v.kind)}
             className="group relative h-36 border border-zinc-300 rounded overflow-hidden bg-white hover:border-zinc-900 hover:shadow-md transition-all cursor-zoom-in flex items-center justify-center"
             aria-label={`放大${v.title}`}
           >
@@ -67,12 +77,12 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                   {VIEWS.find((v) => v.kind === zoomed)?.titleEn}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {VIEWS.map((v) => (
                   <button
                     key={v.kind}
                     type="button"
-                    onClick={() => setZoomed(v.kind)}
+                    onClick={() => switchView(v.kind)}
                     className={`text-xs px-2.5 py-1 rounded border transition-colors ${
                       zoomed === v.kind
                         ? "bg-zinc-900 text-white border-zinc-900"
@@ -82,6 +92,36 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                     {v.title}
                   </button>
                 ))}
+                <div className="flex items-center gap-1 ml-2 border-l border-zinc-200 pl-2">
+                  <button
+                    type="button"
+                    onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
+                    disabled={scale <= 0.5}
+                    className="w-7 h-7 rounded border border-zinc-300 bg-white hover:bg-zinc-100 disabled:opacity-40 text-sm flex items-center justify-center font-bold"
+                    aria-label="縮小"
+                    title="縮小（按 -）"
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScale(1)}
+                    className="text-[11px] px-2 py-1 rounded border border-zinc-300 bg-white hover:bg-zinc-100 font-mono min-w-[3.5rem]"
+                    title="重設縮放（按 0）"
+                  >
+                    {Math.round(scale * 100)}%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScale((s) => Math.min(4, s + 0.25))}
+                    disabled={scale >= 4}
+                    className="w-7 h-7 rounded border border-zinc-300 bg-white hover:bg-zinc-100 disabled:opacity-40 text-sm flex items-center justify-center font-bold"
+                    aria-label="放大"
+                    title="放大（按 +）"
+                  >
+                    ＋
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={close}
@@ -92,13 +132,21 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                 </button>
               </div>
             </div>
-            <div className="p-4">
-              <OrthoView
-                design={design}
-                view={zoomed}
-                title={VIEWS.find((v) => v.kind === zoomed)?.title ?? ""}
-                titleEn={VIEWS.find((v) => v.kind === zoomed)?.titleEn ?? ""}
-              />
+            <div className="p-4 overflow-auto">
+              <div
+                className="origin-top-left transition-transform"
+                style={{
+                  transform: `scale(${scale})`,
+                  width: scale > 1 ? `${100 * scale}%` : "100%",
+                }}
+              >
+                <OrthoView
+                  design={design}
+                  view={zoomed}
+                  title={VIEWS.find((v) => v.kind === zoomed)?.title ?? ""}
+                  titleEn={VIEWS.find((v) => v.kind === zoomed)?.titleEn ?? ""}
+                />
+              </div>
             </div>
           </div>
         </div>
