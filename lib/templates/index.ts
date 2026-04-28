@@ -233,6 +233,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: pencilHolder,
     defaults: { length: 80, width: 80, height: 110 },
+    limits: { length: 200, width: 200, height: 250 },
     optionSchema: pencilHolderOptions,
   },
   {
