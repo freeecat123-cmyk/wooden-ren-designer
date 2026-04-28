@@ -20,6 +20,7 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 
 interface PageProps {
@@ -59,6 +60,8 @@ interface PageProps {
     customerEmail?: string;
     viewMode?: string;
     quotedAt?: string;
+    joineryMode?: string;
+    beginnerMode?: string;
   }>;
 }
 
@@ -140,7 +143,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     sp as Record<string, string | string[] | undefined>,
   );
 
-  const design = entry.template({ length, width, height, material, options });
+  // 預設組裝版（無榫卯）；URL 帶 joineryMode=true（或 beginnerMode=false）才出榫接版
+  const joineryMode =
+    sp.joineryMode === "true" ||
+    sp.joineryMode === "1" ||
+    sp.beginnerMode === "false";
+  const rawDesign = entry.template({ length, width, height, material, options });
+  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const quote = calculateQuote(design, laborOpts);
 
   const customer: CustomerInfo = {

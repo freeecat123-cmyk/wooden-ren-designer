@@ -23,6 +23,7 @@ import {
 import { CompactThreeViews } from "@/lib/render/svg-views";
 import { QrCode } from "@/components/print/QrCode";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
+import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -100,7 +101,13 @@ export default async function QuotePrintPage({
   const optionSchema = entry.optionSchema ?? [];
   const options = parseOptionsFromQuery(optionSchema, sp);
 
-  const design = entry.template({ length, width, height, material, options });
+  // 預設組裝版（無榫卯）；URL 帶 joineryMode=true（或 beginnerMode=false）才出榫接版
+  const joineryMode =
+    sp.joineryMode === "true" ||
+    sp.joineryMode === "1" ||
+    sp.beginnerMode === "false";
+  const rawDesign = entry.template({ length, width, height, material, options });
+  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
   const quote = calculateQuote(design, laborOpts);
   // quotedAt 優先從 URL 帶（客戶收到的連結都該帶這欄），fallback 才用今天
   const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
