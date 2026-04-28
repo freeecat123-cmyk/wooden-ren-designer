@@ -28,16 +28,22 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {VIEWS.map((v) => (
           <button
             key={v.kind}
             type="button"
             onClick={() => setZoomed(v.kind)}
-            className="flex-1 group relative border border-zinc-300 rounded overflow-hidden bg-white hover:border-zinc-900 hover:shadow-md transition-all cursor-zoom-in"
+            className="group relative h-36 border border-zinc-300 rounded overflow-hidden bg-white hover:border-zinc-900 hover:shadow-md transition-all cursor-zoom-in flex items-center justify-center"
             aria-label={`放大${v.title}`}
           >
-            <OrthoView design={design} view={v.kind} title={v.title} titleEn={v.titleEn} />
+            <OrthoView
+              design={design}
+              view={v.kind}
+              title={v.title}
+              titleEn={v.titleEn}
+              className="bg-white w-full h-full"
+            />
             <span className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded bg-zinc-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
               🔍 放大
             </span>

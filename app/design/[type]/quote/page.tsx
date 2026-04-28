@@ -232,9 +232,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <span>📐 設計預覽（三視圖）</span>
           <span className="text-zinc-400 normal-case">點擊任一視圖放大</span>
         </div>
-        <div className="max-h-40 overflow-hidden">
-          <ZoomableThreeViews design={design} />
-        </div>
+        <ZoomableThreeViews design={design} />
       </section>
 
       {/* 主視覺：表單 ↔ 總價卡 並排 */}
