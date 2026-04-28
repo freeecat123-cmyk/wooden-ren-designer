@@ -629,8 +629,9 @@ export function OrthoView({
                     （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
                     深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
-                  const footColor = "#c63d3d";        // 深紅：落地 Y
-                  const stretcherColor = "#e89090";   // 淺紅：橫撐 Y
+                  // 落地 Y + 橫撐 Y 全部用深紅，不分濃淡
+                  const footColor = "#c63d3d";
+                  const stretcherColor = "#c63d3d";
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
