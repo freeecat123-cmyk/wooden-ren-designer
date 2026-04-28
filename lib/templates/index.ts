@@ -99,6 +99,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: openBookshelf,
     defaults: { length: 800, width: 300, height: 1800 },
+    limits: { length: 1500, width: 500, height: 2400 },
     optionSchema: openBookshelfOptions,
   },
   {
@@ -108,6 +109,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: chestOfDrawers,
     defaults: { length: 800, width: 450, height: 900 },
+    limits: { length: 1300, width: 600, height: 1500 },
     optionSchema: chestOfDrawersOptions,
   },
   {
@@ -117,6 +119,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: shoeCabinet,
     defaults: { length: 900, width: 350, height: 1000 },
+    limits: { length: 1500, width: 500, height: 2000 },
     optionSchema: shoeCabinetOptions,
   },
   {
@@ -126,6 +129,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: displayCabinet,
     defaults: { length: 800, width: 400, height: 1600 },
+    limits: { length: 1500, width: 600, height: 2200 },
     optionSchema: displayCabinetOptions,
   },
   {
@@ -165,6 +169,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "advanced",
     template: wardrobe,
     defaults: { length: 1200, width: 600, height: 2000 },
+    limits: { length: 2400, width: 800, height: 2500 },
     optionSchema: wardrobeOptions,
   },
   {
@@ -184,6 +189,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: mediaConsole,
     defaults: { length: 1500, width: 400, height: 500 },
+    limits: { length: 3000, width: 700, height: 900 },
     optionSchema: mediaConsoleOptions,
   },
   {
@@ -193,6 +199,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: nightstand,
     defaults: { length: 450, width: 380, height: 600 },
+    limits: { length: 600, width: 500, height: 800 },
     optionSchema: nightstandOptions,
   },
   {
@@ -243,6 +250,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: bookend,
     defaults: { length: 150, width: 120, height: 180 },
+    limits: { length: 250, width: 300, height: 350 },
     optionSchema: bookendOptions,
   },
   {
@@ -252,6 +260,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "beginner",
     template: photoFrame,
     defaults: { length: 100, width: 150, height: 18 },
+    limits: { length: 1200, width: 1200, height: 35 },
     optionSchema: photoFrameOptions,
   },
   {
@@ -261,6 +270,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: tray,
     defaults: { length: 400, width: 280, height: 60 },
+    limits: { length: 600, width: 450, height: 120 },
     optionSchema: trayOptions,
   },
   {
@@ -270,6 +280,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: dovetailBox,
     defaults: { length: 250, width: 150, height: 80 },
+    limits: { length: 400, width: 300, height: 250 },
     optionSchema: dovetailBoxOptions,
   },
   {
@@ -279,6 +290,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: wineRack,
     defaults: { length: 400, width: 280, height: 300 },
+    limits: { length: 1000, width: 400, height: 1000 },
     optionSchema: wineRackOptions,
   },
   {
@@ -288,6 +300,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     difficulty: "intermediate",
     template: coatRack,
     defaults: { length: 280, width: 280, height: 1700 },
+    limits: { length: 1000, width: 1000, height: 2200 },
     optionSchema: coatRackOptions,
   },
 ];
