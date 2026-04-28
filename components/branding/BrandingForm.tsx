@@ -133,12 +133,17 @@ export function BrandingForm({
                 />
               )}
               <div className="flex flex-col gap-1">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogo}
-                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-zinc-300 file:bg-white file:text-zinc-700 hover:file:bg-zinc-50"
-                />
+                <label className="inline-flex items-center text-xs">
+                  <span className="px-3 py-1.5 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 cursor-pointer">
+                    📁 選擇 LOGO 圖檔
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogo}
+                    className="sr-only"
+                  />
+                </label>
                 {data.logoDataUrl && (
                   <button
                     type="button"
