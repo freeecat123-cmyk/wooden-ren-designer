@@ -81,12 +81,27 @@ function extractFurnitureDims(design: FurnitureDesign) {
     )
     .map((p) => {
       const { yExt } = worldExtents(p);
+      // 梯形橫撐（外斜腳的 trap apron）：算總長 + 斜面角度供工坊切料
+      // length = bottom 邊長度 = visible.length
+      // top 邊 = visible.length × topLengthScale
+      // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，從垂直起算
+      const trap = p.shape?.kind === "apron-trapezoid" ? p.shape : null;
+      const cutLengthMm = trap ? p.visible.length : null;
+      const cutAngleDeg = trap
+        ? (Math.atan(
+            (p.visible.length * (1 - trap.topLengthScale)) / 2 / p.visible.width,
+          ) *
+            180) /
+          Math.PI
+        : null;
       return {
         id: p.id,
         nameZh: p.nameZh,
         bottomY: p.origin.y,
         topY: p.origin.y + yExt,
         yExt,
+        cutLengthMm,
+        cutAngleDeg,
       };
     })
     .sort((a, b) => a.bottomY - b.bottomY);
@@ -620,18 +635,31 @@ export function OrthoView({
                 y2={sFloor}
                 label={`${labelClear} ${Math.round(mainBottomY)} mm`}
               />
-              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 各自右側標小字 */}
+              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 各自右側標小字
+                  梯形橫撐另外標總長 + 斜面角度（外斜腳切料用） */}
               {crossPieces.map((c) => (
-                <text
-                  key={`xp-thick-${c.id}`}
-                  x={w / 2 + 4}
-                  y={-(c.bottomY + c.yExt / 2) + 4}
-                  fontSize={10}
-                  fill="#444"
-                  fontFamily="sans-serif"
-                >
-                  {c.nameZh} {Math.round(c.yExt)}
-                </text>
+                <g key={`xp-thick-${c.id}`}>
+                  <text
+                    x={w / 2 + 4}
+                    y={-(c.bottomY + c.yExt / 2) + 4}
+                    fontSize={10}
+                    fill="#444"
+                    fontFamily="sans-serif"
+                  >
+                    {c.nameZh} {Math.round(c.yExt)}
+                  </text>
+                  {c.cutLengthMm !== null && c.cutAngleDeg !== null && c.cutAngleDeg > 0.1 && (
+                    <text
+                      x={w / 2 + 4}
+                      y={-(c.bottomY + c.yExt / 2) + 16}
+                      fontSize={9}
+                      fill="#a55"
+                      fontFamily="sans-serif"
+                    >
+                      L{Math.round(c.cutLengthMm)} ∠{c.cutAngleDeg.toFixed(1)}°
+                    </text>
+                  )}
+                </g>
               ))}
               {/* 左側高度堆疊 */}
               {dedupedStack.map((it, i) => (
