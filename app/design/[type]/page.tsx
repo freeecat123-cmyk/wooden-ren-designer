@@ -230,30 +230,29 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           />
         </div>
 
-        <div className="space-y-4">
-          {/* 只讓 3D sticky——三視圖正常捲動。
-              右欄整個 sticky 會失效因為欄高跟 section 差不多，sticky range ~83px 立刻 release。
-              z-10 確保 sticky 3D 蓋在後續內容（三視圖）之上而不是被覆蓋 */}
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden lg:sticky lg:top-4 lg:z-10">
+        <div className="lg:sticky lg:top-4 self-start">
+          {/* 3D sticky 在右上：form 自己捲時實時看設計變化。
+              三視圖搬到 section 下方獨立顯示——不擋 3D 又有更寬空間（全寬比窄欄看清楚） */}
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
             <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
               <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
               透視圖（3D · 拖曳旋轉）
             </div>
             <LazyPerspectiveView design={design} />
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-            <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
-              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
-              工程三視圖
-              <span className="ml-auto text-[10px] font-normal text-zinc-400">
-                標示為組裝後肩到肩可見尺寸
-              </span>
-            </div>
-            <div className="p-3">
-              <ZoomableThreeViews design={design} />
-            </div>
-          </div>
+      <section className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+        <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
+          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+          工程三視圖
+          <span className="ml-auto text-[10px] font-normal text-zinc-400">
+            標示為組裝後肩到肩可見尺寸
+          </span>
+        </div>
+        <div className="p-3">
+          <ZoomableThreeViews design={design} />
         </div>
       </section>
 
