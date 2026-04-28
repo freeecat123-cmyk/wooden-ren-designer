@@ -25,7 +25,7 @@ export function BrandingForm({
 
   if (!hydrated) {
     return (
-      <div className="mt-4 p-3 text-xs text-zinc-400 border border-dashed border-zinc-200 rounded">
+      <div className="mt-4 p-3 text-xs text-zinc-600 border border-dashed border-zinc-200 rounded">
         載入品牌設定…
       </div>
     );
@@ -77,7 +77,7 @@ export function BrandingForm({
         <span className="font-medium text-zinc-800">
           🏢 報價單抬頭設定（公司名稱 + LOGO）
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-zinc-700">
           {isDefault ? "尚未客製（使用預設）" : "已客製"} · {open ? "收合" : "展開"}
         </span>
       </button>
@@ -238,14 +238,14 @@ export function BrandingForm({
                 placeholder="例：https://你的網站.vercel.app（留空則用當前 origin）"
                 className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-mono"
               />
-              <span className="mt-0.5 text-[10px] text-zinc-400">
+              <span className="mt-0.5 text-[10px] text-zinc-600">
                 寄 LINE/Email 給客戶時，「完整報價單連結」會用這個當前綴。在 localhost 編輯時必填，不然客戶連不上你電腦。
               </span>
             </label>
           </div>
 
           <div className="pt-3 mt-3 border-t border-zinc-100">
-            <p className="text-xs text-zinc-500 font-medium mb-2">
+            <p className="text-xs text-zinc-700 font-medium mb-2">
               報價單條款（可自行編輯，會套用在 A4 報價單）
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -348,7 +348,7 @@ function TextField({
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
       />
       {hint && (
-        <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
+        <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>
       )}
     </label>
   );
@@ -386,7 +386,7 @@ function TextAreaField({
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-sans leading-relaxed resize-y"
       />
       {hint && (
-        <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>
+        <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>
       )}
     </label>
   );
@@ -431,7 +431,7 @@ function SaveStatusBadge({
     );
   }
   return (
-    <span className="text-xs text-zinc-500">
+    <span className="text-xs text-zinc-700">
       💾 設定存在本機；登入後會自動同步到雲端
     </span>
   );
@@ -485,7 +485,7 @@ function InstallmentsEditor({
           付款分期(覆寫上方訂金比例)
         </span>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] text-zinc-500">分</span>
+          <span className="text-[10px] text-zinc-700">分</span>
           {([0, 1, 2, 3, 4, 5] as const).map((n) => {
             const active = n === 0 ? !enabled : value.length === n;
             return (
@@ -512,7 +512,7 @@ function InstallmentsEditor({
         </div>
       </div>
       {!enabled && (
-        <p className="text-[10px] text-zinc-400 leading-relaxed">
+        <p className="text-[10px] text-zinc-600 leading-relaxed">
           目前用報價頁的訂金比例(depositRate)做 2 段拆分。設成 1–5 期後改用這裡的設定，每期自訂名稱與 % 數。
         </p>
       )}
@@ -521,7 +521,7 @@ function InstallmentsEditor({
           <div className="space-y-1.5">
             {value.map((row, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <span className="text-[10px] text-zinc-400 font-mono w-6">
+                <span className="text-[10px] text-zinc-600 font-mono w-6">
                   #{idx + 1}
                 </span>
                 <input
@@ -550,13 +550,13 @@ function InstallmentsEditor({
                   step={0.5}
                   className="w-16 border border-zinc-300 rounded px-2 py-1 bg-white text-zinc-900 text-sm text-right"
                 />
-                <span className="text-xs text-zinc-500">%</span>
+                <span className="text-xs text-zinc-700">%</span>
               </div>
             ))}
           </div>
           <p
             className={`mt-2 text-[10px] ${
-              totalOk ? "text-zinc-500" : "text-rose-700 font-semibold"
+              totalOk ? "text-zinc-700" : "text-rose-700 font-semibold"
             }`}
           >
             合計：{totalPct.toFixed(1)}%

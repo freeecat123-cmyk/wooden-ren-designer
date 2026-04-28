@@ -71,7 +71,7 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
 
   return (
     <fieldset>
-      <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+      <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
         客戶資料（報價單「客戶 TO」欄會帶入）
       </legend>
       {hydrated && history.length > 0 && (
@@ -157,7 +157,7 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
       <button
         type="button"
         onClick={clearAll}
-        className="mt-2 text-[11px] text-zinc-500 hover:text-zinc-800 hover:underline"
+        className="mt-2 text-[11px] text-zinc-700 hover:text-zinc-900 hover:underline"
       >
         清除客戶資料
       </button>

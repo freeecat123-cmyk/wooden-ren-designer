@@ -151,10 +151,10 @@ export function QuoteLaborForm({
       {/* 常用微調：議價 / 數量 / 折扣 / 訂金 + 含運/含安裝 */}
       <fieldset className="mt-5 pt-4 border-t border-zinc-200">
         <div className="flex items-baseline justify-between mb-2">
-          <legend className="text-xs text-zinc-500 font-medium">
+          <legend className="text-xs text-zinc-700 font-medium">
             💰 議價與條款（最常微調）
           </legend>
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-600">
             <span>套用：</span>
             {PRESETS.map((p) => (
               <button
@@ -167,7 +167,7 @@ export function QuoteLaborForm({
               </button>
             ))}
             {pending && (
-              <span className="text-zinc-400 animate-pulse ml-1">更新中…</span>
+              <span className="text-zinc-600 animate-pulse ml-1">更新中…</span>
             )}
           </div>
         </div>
@@ -195,7 +195,7 @@ export function QuoteLaborForm({
               className="w-4 h-4"
             />
             <span>🚚 含運費</span>
-            <span className="text-[10px] text-zinc-400">（PDF 備註）</span>
+            <span className="text-[10px] text-zinc-600">（PDF 備註）</span>
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
@@ -206,7 +206,7 @@ export function QuoteLaborForm({
               className="w-4 h-4"
             />
             <span>🔧 含現場安裝</span>
-            <span className="text-[10px] text-zinc-400">（PDF 備註）</span>
+            <span className="text-[10px] text-zinc-600">（PDF 備註）</span>
           </label>
         </div>
       </fieldset>
@@ -216,7 +216,7 @@ export function QuoteLaborForm({
         <button
           type="button"
           onClick={() => setShowAdvanced((v) => !v)}
-          className="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-colors"
+          className="text-xs text-zinc-700 hover:text-zinc-800 flex items-center gap-1.5 transition-colors"
         >
           <span>{showAdvanced ? "▲" : "▼"}</span>
           <span>進階設定（有效期、材料單價、時薪、毛利率、稅率）</span>
@@ -225,7 +225,7 @@ export function QuoteLaborForm({
         {showAdvanced && (
           <div className="mt-3 space-y-4">
             <fieldset>
-              <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+              <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
                 有效期 / 交期緩衝 / 交貨期文字
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -241,13 +241,13 @@ export function QuoteLaborForm({
                   placeholder="簽約後 ____ 天內，工坊自取／另議運費"
                   className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
                 />
-                <span className="mt-0.5 text-[10px] text-zinc-400">
+                <span className="mt-0.5 text-[10px] text-zinc-600">
                   文字中的 ＿＿ 空白會自動填入預估工作天數（例 ____ → 約 5 個工作）
                 </span>
               </label>
             </fieldset>
             <fieldset>
-              <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+              <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
                 材料單價（NT$/板才）
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -257,7 +257,7 @@ export function QuoteLaborForm({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-xs text-zinc-500 mb-1.5 font-medium">
+              <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
                 時薪 / 雜項 / 毛利
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -337,7 +337,7 @@ function NumField({
         placeholder={optional ? "（不填 / 0＝併入主材）" : undefined}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
-      {hint && <span className="mt-0.5 text-[10px] text-zinc-400">{hint}</span>}
+      {hint && <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>}
     </label>
   );
 }

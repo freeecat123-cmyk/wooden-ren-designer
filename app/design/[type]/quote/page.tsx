@@ -209,7 +209,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
     <main className="max-w-6xl mx-auto px-6 py-8">
       <Link
         href={`/design/${type}?${designQuery}`}
-        className="text-sm text-zinc-500 hover:underline"
+        className="text-sm text-zinc-700 hover:underline"
       >
         ← 回{entry.nameZh}設計
       </Link>
@@ -219,11 +219,11 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">
             {entry.nameZh}
-            <span className="ml-2 text-sm font-normal text-zinc-500">客製報價</span>
+            <span className="ml-2 text-sm font-normal text-zinc-700">客製報價</span>
           </h1>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-0.5 text-xs text-zinc-700">
             {length} × {width} × {height} mm · {MATERIALS[material].nameZh}
-            <span className="ml-2 text-zinc-400">#{quoteNo}</span>
+            <span className="ml-2 text-zinc-600">#{quoteNo}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -240,9 +240,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
       {/* 三視圖預覽：點擊放大，給客戶/木頭仁立即視覺確認 */}
       <section className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3">
-        <div className="text-[10px] text-zinc-500 mb-2 font-medium tracking-wider flex items-center justify-between">
+        <div className="text-[10px] text-zinc-700 mb-2 font-medium tracking-wider flex items-center justify-between">
           <span>📐 設計預覽（三視圖）</span>
-          <span className="text-zinc-400 normal-case">點擊任一視圖放大</span>
+          <span className="text-zinc-600 normal-case">點擊任一視圖放大</span>
         </div>
         <ZoomableThreeViews design={design} />
       </section>
@@ -311,7 +311,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
             {/* 有效期：併入 sticky 卡片底部，手機版也看得到 */}
             <div className="px-4 py-2 bg-zinc-50 border-t border-zinc-200 text-[10px] text-zinc-600 flex items-center justify-between">
               <span>📅 報價有效至 {expiryIso}</span>
-              <span className="text-zinc-400">({laborOpts.expiryDays} 天)</span>
+              <span className="text-zinc-600">({laborOpts.expiryDays} 天)</span>
             </div>
           </div>
         </aside>
@@ -339,7 +339,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <span className="font-medium text-zinc-800">
             📊 成本明細（內部）— 材料 + 工資 + 毛利 拆解
           </span>
-          <span className="text-xs text-zinc-400 flex items-center gap-3">
+          <span className="text-xs text-zinc-600 flex items-center gap-3">
             <CsvExportButton design={design} />
             <span>展開 / 收合</span>
           </span>
