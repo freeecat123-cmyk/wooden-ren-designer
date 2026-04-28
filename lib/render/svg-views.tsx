@@ -631,9 +631,10 @@ export function OrthoView({
                     （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
                     深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y */}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
-                  // 落地 Y + 橫撐 Y 全部用深紅，不分濃淡
+                  // 落地 Y + 牙板 Y 用深紅；下橫撐 (ls-) Y 用深藍，跟牙板分得開
                   const footColor = "#c63d3d";
                   const stretcherColor = "#c63d3d";
+                  const lowerStretcherColor = "#1e3a8a";
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
@@ -648,11 +649,16 @@ export function OrthoView({
                         const sample = legs[0];
                         const legHeight = sample.visible.thickness;
                         const yMap = new Map<number, string>();
-                        for (const c of crossPieces) {
+                        // 牙板先寫（紅），下橫撐後寫蓋過去（藍）——這樣同 Y 時藍勝出
+                        const sortedPieces = [...crossPieces].sort(
+                          (a, b) => Number(/^ls-/.test(a.id)) - Number(/^ls-/.test(b.id)),
+                        );
+                        for (const c of sortedPieces) {
+                          const color = /^ls-/.test(c.id) ? lowerStretcherColor : stretcherColor;
                           const yb = Math.round(c.bottomY);
                           const yt = Math.round(c.topY);
-                          if (!yMap.has(yb)) yMap.set(yb, stretcherColor);
-                          if (!yMap.has(yt)) yMap.set(yt, stretcherColor);
+                          yMap.set(yb, color);
+                          yMap.set(yt, color);
                         }
                         yMap.set(0, footColor); // 落地（覆蓋同 Y stretcher 的話以落地為主）
                         const ys = [...yMap.entries()].map(([y, color]) => ({ y, color }));
