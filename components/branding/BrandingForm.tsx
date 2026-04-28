@@ -136,8 +136,15 @@ export function BrandingForm({
               <div className="flex flex-col gap-1">
                 <button
                   type="button"
-                  onClick={() => logoInputRef.current?.click()}
-                  className="self-start px-3 py-1.5 rounded border border-zinc-300 bg-white text-xs text-zinc-700 hover:bg-zinc-50"
+                  onClick={() => {
+                    console.log("[LOGO] button click — ref =", logoInputRef.current);
+                    if (logoInputRef.current) {
+                      logoInputRef.current.click();
+                    } else {
+                      alert("ref 沒抓到 input — 請告訴我這段訊息");
+                    }
+                  }}
+                  className="self-start px-3 py-1.5 rounded border border-zinc-300 bg-white text-xs text-zinc-700 hover:bg-zinc-50 cursor-pointer"
                 >
                   📁 選擇 LOGO 圖檔
                 </button>
