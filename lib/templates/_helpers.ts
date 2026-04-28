@@ -102,7 +102,6 @@ export const RECT_LEG_SHAPE_CHOICES = [
   { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
   { value: "inverted", label: "倒錐腳（下方更粗）" },
   { value: "splayed", label: "斜腳（整支外傾）" },
-  { value: "hoof", label: "馬蹄腳（底部外撇）" },
 ];
 
 /**

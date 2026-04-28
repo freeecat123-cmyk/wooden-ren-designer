@@ -22,7 +22,6 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "strong-taper", label: "方錐漸縮（大幅下收）" },
     { value: "inverted", label: "倒錐腳（下方更粗）" },
     { value: "splayed", label: "斜腳（整支外傾）" },
-    { value: "hoof", label: "馬蹄腳（底部外撇）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
