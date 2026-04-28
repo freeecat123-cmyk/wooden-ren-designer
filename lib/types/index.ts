@@ -154,8 +154,9 @@ export interface Part {
     | { kind: "tapered"; bottomScale: number }
     /** Splayed: whole leg tilts so the bottom is offset in (dxMm, dzMm) from
      *  the top in the part's LOCAL frame. Positive values → bottom shifts
-     *  toward +x/+z of the leg. */
-    | { kind: "splayed"; dxMm: number; dzMm: number }
+     *  toward +x/+z of the leg.
+     *  chamferMm / chamferStyle 可選——讓外斜腳同時帶 4 條長邊倒角。 */
+    | { kind: "splayed"; dxMm: number; dzMm: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
     /** Hoof: 明式馬蹄腳——直料 + 底部「外側」2 面以 S 形外撇形成腳趾。
      *  hoofMm = 馬蹄區段高度（從底部往上算）
      *  hoofScale = 外側面 flare 倍率（>1 = 外撇，傳統 ~1.3）

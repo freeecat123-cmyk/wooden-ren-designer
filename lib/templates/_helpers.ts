@@ -123,6 +123,9 @@ export function rectLegShape(
     hoofMm?: number;
     hoofScale?: number;
     splayedFrontOnly?: boolean;
+    /** 同時套腳 4 邊倒角（splayed 系列才支援組合）；非 splayed 時忽略 */
+    chamferMm?: number;
+    chamferStyle?: "chamfered" | "rounded";
   },
 ): Part["shape"] {
   const splayMm = opts?.splayMm ?? 30;
@@ -131,6 +134,8 @@ export function rectLegShape(
   const hoofMm = opts?.hoofMm ?? 90;
   const hoofScale = opts?.hoofScale ?? 1.4;
   const splayedFrontOnly = opts?.splayedFrontOnly ?? false;
+  const chamferMm = opts?.chamferMm && opts.chamferMm > 0 ? opts.chamferMm : undefined;
+  const chamferStyle = opts?.chamferStyle;
 
   if (shape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
   if (shape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
@@ -144,15 +149,17 @@ export function rectLegShape(
           ? Math.sign(c.z) * splayMm
           : 0
         : Math.sign(c.z) * splayMm,
+      chamferMm,
+      chamferStyle,
     };
   }
   // 單向斜腳：只沿長邊（X 軸）外傾，左右兩側板正視仍然垂直
   if (shape === "splayed-length") {
-    return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+    return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm, chamferStyle };
   }
   // 單向斜腳：只沿寬邊（Z 軸）外傾，前後兩側板正視仍然垂直
   if (shape === "splayed-width") {
-    return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
+    return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm, chamferStyle };
   }
   if (shape === "hoof") {
     // 馬蹄腳：腳趾朝家具外側（遠離中心）踢出去

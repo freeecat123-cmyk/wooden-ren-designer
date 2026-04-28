@@ -163,6 +163,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
     if (legShape === "inverted") return { kind: "tapered", bottomScale: 1.25 };
+    const cs: "chamfered" | "rounded" = legEdgeStyle === "rounded" ? "rounded" : "chamfered";
+    const cm = legEdge > 0 ? legEdge : undefined;
     if (legShape === "splayed") {
       return {
         kind: "splayed",
@@ -170,14 +172,16 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         // Back legs often stay plumb in real chairs; splay only front legs
         // so the chair doesn't scoot out from underneath. Front = z < 0.
         dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0,
+        chamferMm: cm,
+        chamferStyle: cs,
       };
     }
     if (legShape === "splayed-length") {
-      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm: cm, chamferStyle: cs };
     }
     if (legShape === "splayed-width") {
       // 餐椅單向沿寬邊外傾：只前腳，後腳保持垂直（避免後腳外傾不穩）
-      return { kind: "splayed", dxMm: 0, dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0 };
+      return { kind: "splayed", dxMm: 0, dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0, chamferMm: cm, chamferStyle: cs };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;

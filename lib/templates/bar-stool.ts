@@ -105,13 +105,15 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         kind: "splayed",
         dxMm: Math.sign(c.x) * splayMm,
         dzMm: Math.sign(c.z) * splayMm,
+        chamferMm: legEdge > 0 ? legEdge : undefined,
+        chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
       };
     }
     if (legShape === "splayed-length") {
-      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "splayed-width") {
-      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;

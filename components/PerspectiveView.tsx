@@ -68,7 +68,7 @@ export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
 type ShapeSpec =
   | { kind: "box" }
   | { kind: "tapered"; bottomScale: number }
-  | { kind: "splayed"; dx: number; dz: number }
+  | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "round" }
   | { kind: "round-tapered"; bottomScale: number }
@@ -109,6 +109,16 @@ function Part({
       return buildTaperedGeometry(size, shape.bottomScale);
     }
     if (shape.kind === "splayed") {
+      // 有 chamfer → 用 chamfered-edges builder + 底端偏移；無 chamfer → 純 splayed box
+      if (shape.chamferMm && shape.chamferMm > 0) {
+        return buildChamferedEdgesGeometry(
+          size,
+          shape.chamferMm,
+          shape.chamferStyle ?? "chamfered",
+          shape.dx,
+          shape.dz,
+        );
+      }
       return buildSplayedGeometry(size, shape.dx, shape.dz);
     }
     if (shape.kind === "hoof") {
@@ -243,11 +253,13 @@ function Part({
     );
   }
 
-  // chamfered-edges / chamfered-top 用 flatShading：每個 facet 自己的法線 →
-  // 視覺上顯示獨立色階（八角斷面看得出來），不然 smooth shading 會把
-  // 8 facet 平滑成連續曲面，看起來跟方料沒兩樣
+  // chamfered-edges / chamfered-top / splayed+chamfer 用 flatShading：
+  // 每個 facet 自己的法線 → 八角斷面看得出來；不然 smooth shading 會把
+  // 多 facet 平滑成連續曲面，看起來跟方料沒兩樣
   const useFlatShading =
-    shape?.kind === "chamfered-edges" || shape?.kind === "chamfered-top";
+    shape?.kind === "chamfered-edges" ||
+    shape?.kind === "chamfered-top" ||
+    (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0);
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
       {geometry ? (
@@ -544,11 +556,16 @@ function buildChamferedTopGeometry(
  * 4 條沿最長軸的長邊各倒 45°——cross-section 從正方形變八角形。
  * 自動偵測 size 三軸最大者當「長軸」（腳 = Y、橫撐 = X）。
  * 16 vertices = 8 cross-section corners × 2 ends。
+ *
+ * splayDx / splayDz：可選的「底端偏移」——非 0 時把長軸最低端（-ha）整面
+ * 沿 X / Z 平移，組合 chamfered + splayed（外斜腳也要倒角）。
  */
 function buildChamferedEdgesGeometry(
   size: [number, number, number],
   chamferMm: number,
   style: "chamfered" | "rounded" = "chamfered",
+  splayDx: number = 0,
+  splayDz: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const longAxis: 0 | 1 | 2 =
@@ -595,7 +612,13 @@ function buildChamferedEdgesGeometry(
 
   const N = cs.length; // chamfered=8, rounded=20
   const v: number[] = [];
-  for (const [b, cc] of cs) v.push(...place(-ha, b, cc));
+  // 底端（-ha 端）整面 splayDx/Dz 平移——splayed + chamfered 組合
+  for (const [b, cc] of cs) {
+    const p = place(-ha, b, cc);
+    p[0] += splayDx;
+    p[2] += splayDz;
+    v.push(...p);
+  }
   for (const [b, cc] of cs) v.push(...place(+ha, b, cc));
 
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
@@ -1137,6 +1160,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
               kind: "splayed",
               dx: part.shape.dxMm * SCALE,
               dz: part.shape.dzMm * SCALE,
+              chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
+              chamferStyle: part.shape.chamferStyle,
             };
           } else if (part.shape?.kind === "hoof") {
             shape = {

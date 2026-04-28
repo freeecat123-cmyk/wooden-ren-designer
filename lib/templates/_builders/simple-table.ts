@@ -175,6 +175,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // from the leg's position (c.x, c.z).
   const splayMm = 40; // bottom offset for splayed style — tune if needed
   const hoofMm = Math.max(30, Math.round(legHeight * 0.08)); // flare height
+  // splayed 系列把 legEdge 帶入做組合（外斜腳同時帶倒角）
+  const legChamferMm =
+    typeof opts.legEdge === "number" ? opts.legEdge : Number(opts.legEdge ?? 0) || 0;
+  const legChamferStyle: "chamfered" | "rounded" =
+    opts.legEdgeStyle === "rounded" ? "rounded" : "chamfered";
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.55 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
@@ -184,13 +189,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         kind: "splayed",
         dxMm: Math.sign(c.x) * splayMm,
         dzMm: Math.sign(c.z) * splayMm,
+        chamferMm: legChamferMm > 0 ? legChamferMm : undefined,
+        chamferStyle: legChamferStyle,
       };
     }
     if (legShape === "splayed-length") {
-      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm: legChamferMm > 0 ? legChamferMm : undefined, chamferStyle: legChamferStyle };
     }
     if (legShape === "splayed-width") {
-      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: legChamferMm > 0 ? legChamferMm : undefined, chamferStyle: legChamferStyle };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     return undefined;

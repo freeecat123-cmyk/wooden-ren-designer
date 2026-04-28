@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 
@@ -123,9 +123,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    // 主 leg shape（box / tapered / splayed 等）優先；leg 是 box 時可改套
-    // chamfered-edges（4 條長邊倒角）。tapered/splayed 已有自己的視覺，不疊加。
-    shape: rectLegShape(legShape, c, { splayedFrontOnly: false }) ?? legEdgeShape(legEdge, legEdgeStyle),
+    // box 走 legEdgeShape；splayed 系列把 chamfer 帶入組合；tapered 系列暫不支援組合
+    shape: rectLegShape(legShape, c, {
+      splayedFrontOnly: false,
+      chamferMm: parseLegChamferMm(legEdge),
+      chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+    }) ?? legEdgeShape(legEdge, legEdgeStyle),
     tenons: [
       {
         position: "top",
