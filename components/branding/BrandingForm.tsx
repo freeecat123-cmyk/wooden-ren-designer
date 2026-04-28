@@ -85,8 +85,8 @@ export function BrandingForm({
 
       {open && (
         <div className="border-t border-zinc-200 p-4 space-y-4">
-          {/* 儲存狀態 + 立即儲存按鈕——sticky 在頂端，捲動時也看得到 */}
-          <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-white border-b border-zinc-200 flex items-center justify-between gap-3 flex-wrap">
+          {/* 儲存狀態 + 立即儲存按鈕——常駐在表單頂端 */}
+          <div className="-mx-4 px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-3 flex-wrap">
             <SaveStatusBadge
               pendingPush={pendingPush}
               syncedAt={syncedAt}
