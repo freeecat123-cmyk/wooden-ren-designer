@@ -139,6 +139,14 @@ export function BrandingForm({
                   onChange={handleLogo}
                   className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-zinc-300 file:bg-white file:text-zinc-700 file:cursor-pointer hover:file:bg-zinc-50"
                 />
+                {/* DEBUG：完全沒樣式的對照組，如果這個能按、上面不行，是 CSS 問題；
+                    如果這個也不能按，是瀏覽器/系統層的問題（重啟 Chrome / 試 Safari） */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogo}
+                  data-testid="logo-debug-bare"
+                />
                 {data.logoDataUrl && (
                   <button
                     type="button"
