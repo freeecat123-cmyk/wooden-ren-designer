@@ -48,6 +48,8 @@ export const teaTableOptions: OptionSpec[] = [
   ], help: "茶几前緣淺抽屜，藏遙控器、雜物。深度 50mm" },
   { group: "top", type: "checkbox", key: "liftTop", label: "升降桌面", defaultValue: false, help: "桌面可氣壓桿升起變小餐桌——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈，五金行有售）", wide: true },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線（風潮款，需用單片大板）", wide: true },
+  { group: "top", type: "checkbox", key: "withCoasterInsets", label: "桌面嵌磁石杯墊孔", defaultValue: false, help: "桌面四角各挖 ⌀100×3mm 圓凹放磁石杯墊（防止杯子滑動）", wide: true },
+  { group: "leg", type: "checkbox", key: "withMetalAccent", label: "金屬細腳混搭", defaultValue: false, help: "下橫撐改用 25×25mm 黑鐵管 + 焊接腳套（中世紀混搭風）", wide: true },
 ];
 
 /**
@@ -336,7 +338,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
     notes:
-      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
+      `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}${(() => { const ci = getOption<boolean>(input, opt(o, "withCoasterInsets")); const ma = getOption<boolean>(input, opt(o, "withMetalAccent")); return `${ci ? " 桌面四角各挖 ⌀100×3mm 圓凹嵌磁石杯墊。" : ""}${ma ? " 下橫撐改 25×25mm 黑鐵管 + 焊接腳套（中世紀混搭風）。" : ""}`; })()}`,
   };
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,

@@ -286,6 +286,12 @@ export const roundTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 120, min: 30, max: 500, step: 10, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "top", type: "select", key: "topPattern", label: "桌面拼板花紋", defaultValue: "radial", choices: [
+    { value: "radial", label: "放射狀（pie segments，最有圓桌感）" },
+    { value: "concentric", label: "同心環（內外兩圈拼板）" },
+    { value: "star-match", label: "星形拼（4-8 個三角板對拼）" },
+    { value: "straight", label: "直拼（普通拼板，最簡單）" },
+  ], help: "圓桌面拼板樣式。放射狀是最經典做法，同心環適合大桌（>1.2m）" },
 ];
 
 /**
@@ -563,7 +569,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}`.trim(),
+    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${(() => { const tp = getOption<string>(input, opt(o, "topPattern")); return tp === "radial" ? " 桌面採放射狀拼板（pie segments，4-8 片三角板對拼出圓盤）。" : tp === "concentric" ? " 桌面採同心環拼板（內小圓 + 外環兩圈）。" : tp === "star-match" ? " 桌面採星形對拼（4-8 個三角板鏡像對拼出星形紋路）。" : ""; })()}`.trim(),
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

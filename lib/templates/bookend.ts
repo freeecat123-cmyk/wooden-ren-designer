@@ -20,6 +20,8 @@ export const bookendOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加三角支撐，避免重書壓彎" },
   { group: "structure", type: "checkbox", key: "withFeltPad", label: "底面貼防滑氈墊", defaultValue: true, help: "底板下緣貼 4 片自黏氈墊（每片 20mm），不傷桌面 + 防止書擋滑動", wide: true },
   { group: "structure", type: "checkbox", key: "withWeight", label: "底板加重（內藏鐵塊）", defaultValue: false, help: "底板厚度增 2 倍，內鑽孔嵌 1-2 片鐵塊（每片 50g），擋重書更穩。需用木鑽 + 環孔鋸", wide: true },
+  { group: "structure", type: "checkbox", key: "withClampNotch", label: "可對夾凹槽（兩片合夾書）", defaultValue: false, help: "背板內側中央加 50×30mm 凹槽，兩個書擋合起來能夾住單本書當展示", wide: true },
+  { group: "structure", type: "checkbox", key: "withInitialEngrave", label: "底面預留刻字位", defaultValue: false, help: "底面中央預留 60×30mm 平面區域給雷雕 / 刻字 / 銅牌", wide: true },
   { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳" },
 ];
 
@@ -39,6 +41,8 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const withBrace = getOption<boolean>(input, opt(o, "withBrace"));
   const withFeltPad = getOption<boolean>(input, opt(o, "withFeltPad"));
   const withWeight = getOption<boolean>(input, opt(o, "withWeight"));
+  const withClampNotch = getOption<boolean>(input, opt(o, "withClampNotch"));
+  const withInitialEngrave = getOption<boolean>(input, opt(o, "withInitialEngrave"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   // 背板貼底板後緣立起，本身高 = backHeight - 底板厚
@@ -114,7 +118,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     parts,
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material,
-    notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}${withFeltPad ? "底板下緣貼 4 片 20mm 自黏氈墊（B&Q / 五金行有售），不傷桌面 + 防滑。" : ""}${withWeight ? "底板厚度加倍，內鑽 30mm 圓孔嵌 1-2 片 50g 鐵塊（用環孔鋸 + AB 膠固定），擋大全集穩。" : ""}${edgeChamfer > 0 ? `所有外露邊緣倒 ${edgeChamfer}mm 防扎手。` : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
+    notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}${withFeltPad ? "底板下緣貼 4 片 20mm 自黏氈墊（B&Q / 五金行有售），不傷桌面 + 防滑。" : ""}${withWeight ? "底板厚度加倍，內鑽 30mm 圓孔嵌 1-2 片 50g 鐵塊（用環孔鋸 + AB 膠固定），擋大全集穩。" : ""}${edgeChamfer > 0 ? `所有外露邊緣倒 ${edgeChamfer}mm 防扎手。` : ""}${withClampNotch ? "背板內側中央加 50×30mm 凹槽（一對合起來能夾住單本展示書）。" : ""}${withInitialEngrave ? "底面中央預留 60×30mm 平面，可送雷雕廠刻字或鑲銅牌。" : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };
   // max bounds
   if (baseDepth > 250 || baseWidth > 300 || backHeight > 350) {

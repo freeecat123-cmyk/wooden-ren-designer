@@ -65,6 +65,14 @@ export const displayCabinetOptions: OptionSpec[] = [
   backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "glassShelves", label: "玻璃層板（透光感）", defaultValue: false, help: "層板換成 8mm 強化玻璃，光線可以從上層透到下層。常見於精品櫃 / 公仔櫃", wide: true },
   { group: "structure", type: "checkbox", key: "withLedStrip", label: "預留 LED 燈條溝", defaultValue: false, help: "頂板背面開 12mm 寬 × 6mm 深溝藏 LED 燈條，照亮櫃內展品。需配 12V 變壓器", wide: true },
+  { group: "structure", type: "checkbox", key: "withMirroredBack", label: "背板鏡面", defaultValue: false, help: "背板換成 4mm 鏡面玻璃，櫃內展品反射加倍視覺，精品櫃常用", wide: true },
+  { group: "door", type: "select", key: "doorMullion", label: "玻璃門木格分隔（mullion）", defaultValue: "none", choices: [
+    { value: "none", label: "整面玻璃（最簡單）" },
+    { value: "cross", label: "十字 4 格（古典款）" },
+    { value: "vertical-3", label: "縱向 3 格" },
+    { value: "colonial", label: "Colonial 6 格（殖民風）" },
+    { value: "art-deco", label: "Art Deco 幾何（菱形/扇形）" },
+  ], help: "玻璃門加木格分條（mullion），打破整片玻璃的單調，傳統感更強", dependsOn: { key: "doorType", equals: "glass" } },
   pullStyleOption("door"),
   softCloseOption("door"),
 ];
@@ -88,6 +96,8 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const glassShelves = getOption<boolean>(input, opt(o, "glassShelves"));
   const withLedStrip = getOption<boolean>(input, opt(o, "withLedStrip"));
+  const withMirroredBack = getOption<boolean>(input, opt(o, "withMirroredBack"));
+  const doorMullion = getOption<string>(input, opt(o, "doorMullion"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
@@ -122,7 +132,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${glassShelves ? "層板換 8mm 強化玻璃，需向玻璃行訂製，邊緣磨平 + 倒角防割手。" : ""} ${withLedStrip ? "頂板下面開 12mm 寬 × 6mm 深溝藏 LED 燈條（需配 12V 變壓器 + 線材孔）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${glassShelves ? "層板換 8mm 強化玻璃，需向玻璃行訂製，邊緣磨平 + 倒角防割手。" : ""} ${withLedStrip ? "頂板下面開 12mm 寬 × 6mm 深溝藏 LED 燈條（需配 12V 變壓器 + 線材孔）。" : ""} ${withMirroredBack ? "背板換成 4mm 鏡面玻璃（需玻璃行裁邊磨光），展品視覺加倍。" : ""} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

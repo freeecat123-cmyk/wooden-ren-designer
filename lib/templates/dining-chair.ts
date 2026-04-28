@@ -23,6 +23,7 @@ export const diningChairOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   // 座面舒適度
   seatProfileOption("top"),
+  { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
@@ -31,6 +32,8 @@ export const diningChairOptions: OptionSpec[] = [
     { value: "slats", label: "直條式（垂直板條）" },
     { value: "ladder", label: "橫檔式（水平橫木 3–5 根）" },
     { value: "splat", label: "中板式（中央單片寬板）" },
+    { value: "windsor", label: "Windsor spindle 風格（多支圓棒）" },
+    { value: "curved-splat", label: "曲面中板（弧形貼合背部）" },
   ] },
   { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 2, min: 0, max: 10, step: 1, help: "backStyle=直條 時有效", dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
@@ -80,6 +83,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
+  const seatFrontWaterfall = getOption<boolean>(input, opt(o, "seatFrontWaterfall"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
@@ -566,6 +570,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
       ` ${backRakeNote(backRake)} ${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}` +
       (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+      (seatFrontWaterfall ? " 座板前緣 R25 大圓化（waterfall edge），減少對大腿後側壓迫。" : "") +
+      (backStyle === "windsor" ? " Windsor spindle 椅背：5-7 支車旋圓棒由座板上緣插入頂橫木。" : "") +
+      (backStyle === "curved-splat" ? " 曲面中板：中央單片寬板用蒸彎木 R600 弧度成型，貼合背部曲線。" : "") +
       (withArmrest ? ` 加扶手：扶手前端接前腳上方加高柱（${armrestHeight}mm 處），後端半榫接後腳。會增加 4 件零件 + 2-3 小時工時。` : "") +
       " 後腳於圖面以直料呈現，實作建議依樣板鋸出 10–15° 後仰曲線以提升坐感。",
   };

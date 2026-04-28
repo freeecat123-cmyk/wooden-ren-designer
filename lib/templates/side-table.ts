@@ -33,6 +33,8 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 200, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "structure", type: "checkbox", key: "withMagazineSlot", label: "側面雜誌槽", defaultValue: false, help: "桌側板開 200×30mm 縱向凹槽，可插放雜誌、平板、書", wide: true },
+  { group: "top", type: "checkbox", key: "withHiddenChargingHub", label: "隱藏 USB 充電埋藏", defaultValue: false, help: "桌面下方裝 4-port USB 充電器（外購 NT$ 300-500），桌面後緣鋸線材出口槽", wide: true },
 ];
 
 export const sideTable: FurnitureTemplate = (input) => {
@@ -53,6 +55,8 @@ export const sideTable: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  const withMagazineSlot = getOption<boolean>(input, opt(o, "withMagazineSlot"));
+  const withHiddenChargingHub = getOption<boolean>(input, opt(o, "withHiddenChargingHub"));
   const design = simpleTable({
     category: "side-table",
     nameZh: "邊桌 / 床頭櫃",
@@ -76,7 +80,7 @@ export const sideTable: FurnitureTemplate = (input) => {
     stretcherEdge,
     stretcherEdgeStyle,
     topPanelPieces,
-    notes: `床側收納用矮桌，可加下橫撐增穩定。${topPanelPiecesNote(topPanelPieces, input.width)}`,
+    notes: `床側收納用矮桌，可加下橫撐增穩定。${topPanelPiecesNote(topPanelPieces, input.width)}${withMagazineSlot ? " 桌側板開 200×30mm 縱向凹槽（雜誌/平板插放）。" : ""}${withHiddenChargingHub ? " 桌面下隱藏 4-port USB 充電器，後緣鋸線材出口槽。" : ""}`,
   });
   applyStandardChecks(design, {
     minLength: 300, minWidth: 250, minHeight: 400,

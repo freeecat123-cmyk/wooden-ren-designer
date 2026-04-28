@@ -25,6 +25,12 @@ export const trayOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "handleWidth", label: "握把孔寬 (mm)", defaultValue: 80, min: 60, max: 120, step: 5, unit: "mm", dependsOn: { key: "handleStyle", oneOf: ["hole", "cutout"] } },
   { group: "structure", type: "number", key: "handleHeight", label: "握把孔高 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm", dependsOn: { key: "handleStyle", oneOf: ["hole", "cutout"] } },
   { group: "structure", type: "checkbox", key: "withFeltPad", label: "底面貼防滑墊", defaultValue: false, help: "底板下緣貼 4 片小氈墊，端到桌面不刮傷且止滑", wide: true },
+  { group: "structure", type: "select", key: "dividerLayout", label: "內格分隔", defaultValue: "none", choices: [
+    { value: "none", label: "無分隔（整片開放）" },
+    { value: "split-2", label: "縱向 1 道隔板（茶具左右分區）" },
+    { value: "grid-4", label: "田字格 4 格（杯墊 / 點心分隔）" },
+    { value: "tea-set", label: "茶組固定槽（茶壺 + 4 杯固定凹槽）" },
+  ] },
   { group: "structure", type: "number", key: "edgeChamfer", label: "圍邊倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "圍邊頂緣倒角，2-3mm 手感佳不會割手" },
 ];
 
@@ -47,6 +53,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const handleW = getOption<number>(input, opt(o, "handleWidth"));
   const handleH = getOption<number>(input, opt(o, "handleHeight"));
   const withFeltPad = getOption<boolean>(input, opt(o, "withFeltPad"));
+  const dividerLayout = getOption<string>(input, opt(o, "dividerLayout"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({
@@ -93,7 +100,15 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             : handleStyle === "metal"
               ? `**金屬把手**：兩端短邊外側各鎖一個復古黃銅 / 黑色金屬把手（B&Q 五金行 NT$ 80-150 / 個）。`
               : `無握把（純展示用 / 桌面點心盤）。`
-    }${withFeltPad ? " 底面貼 4 片自黏氈墊，桌面不刮傷且止滑。" : ""}${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
+    }${withFeltPad ? " 底面貼 4 片自黏氈墊，桌面不刮傷且止滑。" : ""}${
+      dividerLayout === "split-2"
+        ? " 內部加 1 道縱向隔板（${wallT}mm 厚），槽接卡入兩側壁。"
+        : dividerLayout === "grid-4"
+          ? " 內部加田字格隔板（縱橫各 1 道，4 格分區）。"
+          : dividerLayout === "tea-set"
+            ? " 內部按茶組挖固定凹槽：中央 ⌀120mm 茶壺槽 + 4 個 ⌀60mm 杯槽（深 5mm）。"
+            : ""
+    }${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}托盤是入門到中階的銜接練習：拼板、${cornerJoinery === "dovetail" ? "鳩尾" : cornerJoinery === "finger-joint" ? "指接" : "搭接"}、刨削、收邊倒角，一件做完所有基本功都會。`,
   };
   if (built.warnings.length) design.warnings = built.warnings;
   // max bounds

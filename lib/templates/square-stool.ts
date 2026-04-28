@@ -32,6 +32,13 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, unit: "mm", help: "0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretcher", equals: true } },
   stretcherEdgeOption("stretcher", 0),
   stretcherEdgeStyleOption("stretcher"),
+  { group: "top", type: "select", key: "seatSurface", label: "座面材質", defaultValue: "solid", choices: [
+    { value: "solid", label: "實木座板" },
+    { value: "rattan", label: "藤編座面（座板挖洞 + 藤編）" },
+    { value: "rope", label: "麻繩編織座面（傳統交椅）" },
+    { value: "leather", label: "皮革座墊（座板上加 25mm 海綿 + 皮革包邊）" },
+  ], help: "藤編 / 麻繩透氣 + 顯傳統手工，皮革現代感強" },
+  { group: "structure", type: "checkbox", key: "knockDown", label: "可拆式（旅行/儲物）", defaultValue: false, help: "腳與座板用螺絲楔（threaded insert + bolt）連接，可整支拆下平放收納", wide: true },
 ];
 
 /**
@@ -69,6 +76,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
+  const seatSurface = getOption<string>(input, opt(o, "seatSurface"));
+  const knockDown = getOption<boolean>(input, opt(o, "knockDown"));
   const stretcherEdge = getOption<string>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -311,7 +320,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           : " 加 H 字下橫撐結構。"
         : "") +
       ` ${seatEdgeNote(seatEdge)}` +
-      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""),
+      (seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : "") +
+      (seatSurface === "rattan" ? " 座面採藤編：座板鋸成中空木框 + 藤編填滿（可送藤工坊或自編）。" :
+       seatSurface === "rope" ? " 座面採麻繩編織（傳統交杌）：座框立柱間穿 8mm 黃麻繩反覆繞圈編。" :
+       seatSurface === "leather" ? " 座面加 25mm 海綿 + 皮革包邊（裝潢釘固定外緣）。" : "") +
+      (knockDown ? " 可拆式（knock-down）：腳與座板用螺絲楔 + 機械螺絲連接，整支可拆平放收納。" : ""),
   };
   applyStandardChecks(design, {
     minLength: 250, minWidth: 250, minHeight: 350,

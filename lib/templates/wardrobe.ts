@@ -66,6 +66,9 @@ export const wardrobeOptions: OptionSpec[] = [
   backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "withTrouserRack", label: "拉出式長褲架", defaultValue: false, help: "可拉出的橫桿陣列，掛長褲（每根 50mm 間距、配側裝滑軌）", wide: true },
   { group: "structure", type: "checkbox", key: "withTieShelf", label: "領帶 / 配件抽板", defaultValue: false, help: "薄抽板（厚 20mm）內含格子，分類放領帶、皮帶、首飾", wide: true },
+  { group: "structure", type: "checkbox", key: "withTopCompartment", label: "頂部棉被櫃", defaultValue: false, help: "頂端 350mm 加水平隔板做獨立空間，放棉被/換季衣物", wide: true },
+  { group: "structure", type: "checkbox", key: "withBottomShoeRack", label: "底部鞋格", defaultValue: false, help: "底部 200mm 加 2 層斜放層板做鞋櫃用", wide: true },
+  { group: "structure", type: "checkbox", key: "withInteriorLed", label: "內部感應 LED", defaultValue: false, help: "頂部裝 LED 燈條，門開時自動感應點亮", wide: true },
   pullStyleOption("door"),
   softCloseOption("door"),
 ];
@@ -89,6 +92,9 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const withTrouserRack = getOption<boolean>(input, opt(o, "withTrouserRack"));
   const withTieShelf = getOption<boolean>(input, opt(o, "withTieShelf"));
+  const withTopCompartment = getOption<boolean>(input, opt(o, "withTopCompartment"));
+  const withBottomShoeRack = getOption<boolean>(input, opt(o, "withBottomShoeRack"));
+  const withInteriorLed = getOption<boolean>(input, opt(o, "withInteriorLed"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
@@ -124,7 +130,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；${doorCount} 扇門（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTrouserRack ? "含拉出式長褲架（5-7 根橫桿 + 一對側裝滑軌）。" : ""} ${withTieShelf ? "含領帶 / 配件抽板（淺型 20mm 厚 + 內部分隔格）。" : ""} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

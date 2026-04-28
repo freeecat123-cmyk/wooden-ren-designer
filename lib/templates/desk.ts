@@ -46,6 +46,8 @@ export const deskOptions: OptionSpec[] = [
     { value: "2", label: "2 個（兩端各一）" },
   ], help: "穿線出口孔，需用 50mm 環孔鋸 + 黑色塑膠 grommet 圈" },
   { group: "drawer", type: "checkbox", key: "withKeyboardTray", label: "鍵盤抽屜（滑出式）", defaultValue: false, help: "桌面下方 60mm 處加一片滑軌式鍵盤板，需配 350mm 鍵盤滑軌（B 級五金行有售）", wide: true },
+  { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
+  { group: "drawer", type: "checkbox", key: "withPencilTray", label: "桌面下筆槽", defaultValue: false, help: "桌面正下方中央加一條淺抽屜（45mm 高），放筆 / 名片 / 印章", wide: true },
   { group: "top", type: "select", key: "lShape", label: "L 字形延伸", defaultValue: "none", choices: [
     { value: "none", label: "無（直線桌）" },
     { value: "right", label: "右側延伸（return on right）" },
@@ -74,6 +76,8 @@ export const desk: FurnitureTemplate = (input) => {
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const grommetCount = parseInt(getOption<string>(input, opt(o, "grommetCount"))) || 0;
   const withKeyboardTray = getOption<boolean>(input, opt(o, "withKeyboardTray"));
+  const withModestyPanel = getOption<boolean>(input, opt(o, "withModestyPanel"));
+  const withPencilTray = getOption<boolean>(input, opt(o, "withPencilTray"));
   const lShape = getOption<string>(input, opt(o, "lShape"));
   const lShapeReturnLength = getOption<number>(input, opt(o, "lShapeReturnLength"));
   const lShapeReturnDepth = getOption<number>(input, opt(o, "lShapeReturnDepth"));
@@ -115,7 +119,7 @@ export const desk: FurnitureTemplate = (input) => {
     topPanelPieces,
     withBreadboardEnds,
     liveEdge,
-    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}`,
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${withKeyboardTray ? " 桌下加滑出式鍵盤板。" : ""}${withModestyPanel ? " 前方加 350mm 高 modesty 飾遮腿板（會議/客戶桌風格）。" : ""}${withPencilTray ? " 桌面下方中央加 45mm 高淺抽屜（筆/名片/印章）。" : ""}`,
   });
 
   if (drawerCount > 0) {

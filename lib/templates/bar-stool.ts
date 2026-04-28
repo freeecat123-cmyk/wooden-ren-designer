@@ -38,6 +38,12 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
   { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
+  { group: "stretcher", type: "select", key: "footrestMaterial", label: "腳踏材質", defaultValue: "wood", choices: [
+    { value: "wood", label: "木料（同主材）" },
+    { value: "metal", label: "鋁/不鏽鋼條（外觀工業風 + 防磨）" },
+    { value: "rope", label: "麻繩纏繞（手工感）" },
+  ], help: "腳踏是磨耗最大的部位，金屬條最耐操、麻繩最有手工感" },
+  { group: "structure", type: "checkbox", key: "withSwivelMech", label: "旋轉座（含升降氣壓桿）", defaultValue: false, help: "座板下方加 360° 旋轉軸 + 氣壓升降桿（外購整組 NT$ 800-1500），椅腳改為十字鋼底", wide: true },
 ];
 
 /**
@@ -67,6 +73,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
+  const footrestMaterial = getOption<string>(input, opt(o, "footrestMaterial"));
+  const withSwivelMech = getOption<boolean>(input, opt(o, "withSwivelMech"));
   const withBack = backStyle !== "none";
 
   const apronThickness = 18;
@@ -334,7 +342,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
-      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
+      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${footrestMaterial === "metal" ? " 腳踏採鋁/不鏽鋼條替代木料（耐磨防刮）。" : footrestMaterial === "rope" ? " 腳踏纏麻繩（手工感、防止鞋底刮花）。" : ""}${withSwivelMech ? " 含 360° 旋轉座 + 氣壓升降桿（外購 NT$ 800-1500，椅腳改十字鋼底）。" : ""}`,
   };
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 600,

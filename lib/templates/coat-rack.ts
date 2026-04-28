@@ -39,6 +39,8 @@ export const coatRackOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "wallMode", label: "靠牆模式（省後排掛鉤）", defaultValue: false, help: "假定靠牆放，省掉朝牆面的 1/3 掛鉤（前 240° 範圍保留）" },
   { group: "structure", type: "checkbox", key: "withUmbrellaBase", label: "底部加傘架槽", defaultValue: false, help: "底爪之間加一個 200mm 直徑淺盤（金屬或塑膠 tray）放雨傘 / 雨鞋。實際盤要外購，木工只標位置", wide: true },
   { group: "structure", type: "checkbox", key: "withMirror", label: "立柱中段加掛鏡", defaultValue: false, help: "在立柱中段固定一面方形鏡（300×400mm 常見），出門前可整理儀容", wide: true },
+  { group: "structure", type: "checkbox", key: "withHatRail", label: "頂端帽架橫木", defaultValue: false, help: "立柱頂端加 60mm 寬橫木 + 掛鉤，掛禮帽 / 報童帽不變形", wide: true },
+  { group: "structure", type: "checkbox", key: "withFloorTray", label: "底盤鞋墊托", defaultValue: false, help: "底爪上加一片圓盤（400mm 直徑），放鞋墊承接滴水", wide: true },
   { group: "structure", type: "number", key: "edgeChamfer", label: "立柱邊倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "方柱才有效；圓柱已經圓了。1-2mm 微倒手感佳" },
 ];
 
@@ -59,6 +61,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const wallMode = getOption<boolean>(input, opt(o, "wallMode"));
   const withUmbrellaBase = getOption<boolean>(input, opt(o, "withUmbrellaBase"));
   const withMirror = getOption<boolean>(input, opt(o, "withMirror"));
+  const withHatRail = getOption<boolean>(input, opt(o, "withHatRail"));
+  const withFloorTray = getOption<boolean>(input, opt(o, "withFloorTray"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const footThickness = Math.round(columnSize * FOOT_THICKNESS_RATIO);
@@ -289,7 +293,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [column, ...feet, ...hooks],
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
-    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
+    notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

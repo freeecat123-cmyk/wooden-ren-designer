@@ -39,6 +39,12 @@ export const benchOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "top", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
+  { group: "back", type: "select", key: "endSplat", label: "兩端立板", defaultValue: "none", choices: [
+    { value: "none", label: "無（純長凳）" },
+    { value: "low", label: "矮立板（150mm 高，扶手感）" },
+    { value: "high", label: "高立板（350mm 高，教堂長椅式）" },
+  ], help: "兩端加垂直立板，靠著有依靠感、視覺更有結構" },
+  { group: "top", type: "checkbox", key: "withCushionGroove", label: "座板加坐墊托槽", defaultValue: false, help: "座板四週鋸 8mm 深凹邊，坐墊放上去不會滑開", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -60,6 +66,8 @@ export const bench: FurnitureTemplate = (input) => {
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const withUnderShelf = getOption<boolean>(input, opt(o, "withUnderShelf"));
+  const endSplat = getOption<string>(input, opt(o, "endSplat"));
+  const withCushionGroove = getOption<boolean>(input, opt(o, "withCushionGroove"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
@@ -86,7 +94,7 @@ export const bench: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
+    notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 兩端加 ${endSplat === "low" ? "150mm" : "350mm"} 立板（${endSplat === "low" ? "矮扶手感" : "教堂長椅式"}）。` : ""}${withCushionGroove ? " 座板四週鋸 8mm 深凹邊，坐墊不會滑開。" : ""}`,
   });
 
   if (withUnderShelf) {
