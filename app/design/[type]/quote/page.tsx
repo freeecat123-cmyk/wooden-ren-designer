@@ -10,7 +10,6 @@ import {
   addWorkdays,
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
-import { BrandingForm } from "@/components/branding/BrandingForm";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CsvExportButton } from "@/components/CsvExportButton";
@@ -514,8 +513,19 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         );
       })()}
 
-      {/* 公司抬頭 / 付款條件（折疊） */}
-      <BrandingForm />
+      {/* 公司抬頭 / 匯款 / 分期 / 條款設定——獨立頁，這裡只放連結 */}
+      <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-zinc-600">
+          🏢 公司抬頭、匯款、分期、條款都搬到設定頁了，一次設好不用每次填
+        </span>
+        <Link
+          href="/settings/branding"
+          target="_blank"
+          className="px-3 py-1.5 rounded border border-zinc-700 bg-white text-xs text-zinc-700 hover:bg-zinc-100"
+        >
+          ⚙️ 抬頭設定
+        </Link>
+      </div>
 
       {/* 最近報價（自帶 details，預設折疊） */}
       <QuoteHistory

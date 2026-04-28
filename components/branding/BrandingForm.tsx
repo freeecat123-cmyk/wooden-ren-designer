@@ -5,10 +5,12 @@ import { DEFAULT_BRANDING, useBranding } from "./branding";
 
 const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
 
-export function BrandingForm() {
+export function BrandingForm({
+  defaultOpen = false,
+}: { defaultOpen?: boolean } = {}) {
   const { data, hydrated, syncedAt, update, reset } = useBranding();
   const [logoError, setLogoError] = useState<string>("");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   if (!hydrated) {
     return (
