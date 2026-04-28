@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { DEFAULT_BRANDING, useBranding } from "./branding";
 
 const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
@@ -15,7 +15,6 @@ export function BrandingForm({
   const [savePulse, setSavePulse] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
-  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleManualSave = async () => {
     setSavePulse("saving");
@@ -134,26 +133,11 @@ export function BrandingForm({
                 />
               )}
               <div className="flex flex-col gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log("[LOGO] button click — ref =", logoInputRef.current);
-                    if (logoInputRef.current) {
-                      logoInputRef.current.click();
-                    } else {
-                      alert("ref 沒抓到 input — 請告訴我這段訊息");
-                    }
-                  }}
-                  className="self-start px-3 py-1.5 rounded border border-zinc-300 bg-white text-xs text-zinc-700 hover:bg-zinc-50 cursor-pointer"
-                >
-                  📁 選擇 LOGO 圖檔
-                </button>
                 <input
-                  ref={logoInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleLogo}
-                  style={{ display: "none" }}
+                  className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-zinc-300 file:bg-white file:text-zinc-700 file:cursor-pointer hover:file:bg-zinc-50"
                 />
                 {data.logoDataUrl && (
                   <button
