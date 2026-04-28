@@ -819,13 +819,15 @@ function buildNotchedCornersGeometry(
     // CCW from outside: (a, b, bt) + (a, bt, at)
     idx.push(a, b, bt, a, bt, at);
   }
-  // 底面（fan from vertex 0），CCW from below = 0,2,1 ...
+  // ring 在上方俯視是 CW 順序，所以底面（從下方看）是 CCW，
+  // 但頂面（從上方看）是 CW → 需要反轉 winding
+  // 底面 fan from vertex 0：idx 順序 0, i, i+1（順 ring CW）= 從下看 CCW ✓
   for (let i = 1; i < N - 1; i++) {
-    idx.push(0, i + 1, i);
+    idx.push(0, i, i + 1);
   }
-  // 頂面（fan from vertex N），CCW from above
+  // 頂面 fan from vertex N：要從上看 CCW，所以反轉 ring 順序 → N, i+1, i
   for (let i = 1; i < N - 1; i++) {
-    idx.push(N, N + i, N + i + 1);
+    idx.push(N, N + i + 1, N + i);
   }
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
