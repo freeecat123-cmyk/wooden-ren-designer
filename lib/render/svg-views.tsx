@@ -594,8 +594,6 @@ export function OrthoView({
             const overhangZb = h / 2 - (maxZ + legSize / 2);  // 後側 (z>0)
             const overhangZf = -h / 2 - (minZ - legSize / 2); // 前側 (negative)
             const showOverhang = Math.abs(overhangXr) > 1; // > 1mm 才標
-            // 對角線（檢查方正度用）：從左前角到右後角
-            const diagonal = Math.sqrt(w * w + h * h);
             return (
               <>
                 {/* 腳粗 */}
@@ -683,46 +681,58 @@ export function OrthoView({
                     </>
                   );
                 })()}
-                {/* 對角線——左前 → 右後虛線 + 標（標籤離線 14px 避免重疊）*/}
-                <line
-                  x1={-w / 2}
-                  y1={-h / 2}
-                  x2={w / 2}
-                  y2={h / 2}
-                  stroke="#a55"
-                  strokeWidth={0.4}
-                  strokeDasharray="4 3"
-                />
+                {/* 對角線——量方正度。
+                    splayed 腳：抓「腳落地點」對角（穩定性才看落地）
+                    一般腳：抓「椅面」對角 */}
                 {(() => {
-                  const angDeg = (Math.atan2(h, w) * 180) / Math.PI;
-                  const angRad = Math.atan2(h, w);
-                  // 沿對角線往中央放，再垂直線方向偏移 14px 避開線
+                  const isSplayed = maxSplayDx > 0 || maxSplayDz > 0;
+                  const dx1 = isSplayed ? minX - maxSplayDx - legSize / 2 : -w / 2;
+                  const dy1 = isSplayed ? minZ - maxSplayDz - legSize / 2 : -h / 2;
+                  const dx2 = isSplayed ? maxX + maxSplayDx + legSize / 2 : w / 2;
+                  const dy2 = isSplayed ? maxZ + maxSplayDz + legSize / 2 : h / 2;
+                  const dw = dx2 - dx1;
+                  const dh = dy2 - dy1;
+                  const diagLen = Math.sqrt(dw * dw + dh * dh);
+                  const cx = (dx1 + dx2) / 2;
+                  const cy = (dy1 + dy2) / 2;
+                  const angDeg = (Math.atan2(dh, dw) * 180) / Math.PI;
+                  const angRad = Math.atan2(dh, dw);
                   const offX = -Math.sin(angRad) * 14;
                   const offY = Math.cos(angRad) * 14;
-                  const label = `對角 ${Math.round(diagonal)}（量此檢查方正）`;
+                  const label = `對角 ${Math.round(diagLen)}${isSplayed ? "（落地點）" : "（量此檢查方正）"}`;
                   return (
-                    <g transform={`translate(${offX}, ${offY}) rotate(${angDeg})`}>
-                      {/* 白底擋住虛線，避免線穿過字 */}
-                      <rect
-                        x={-label.length * 5}
-                        y={-7}
-                        width={label.length * 10}
-                        height={13}
-                        fill="white"
-                        opacity={0.9}
+                    <>
+                      <line
+                        x1={dx1}
+                        y1={dy1}
+                        x2={dx2}
+                        y2={dy2}
+                        stroke="#a55"
+                        strokeWidth={0.4}
+                        strokeDasharray="4 3"
                       />
-                      <text
-                        x={0}
-                        y={0}
-                        fontSize={10}
-                        fill="#a55"
-                        fontFamily="sans-serif"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        {label}
-                      </text>
-                    </g>
+                      <g transform={`translate(${cx + offX}, ${cy + offY}) rotate(${angDeg})`}>
+                        <rect
+                          x={-label.length * 5}
+                          y={-7}
+                          width={label.length * 10}
+                          height={13}
+                          fill="white"
+                          opacity={0.9}
+                        />
+                        <text
+                          x={0}
+                          y={0}
+                          fontSize={10}
+                          fill="#a55"
+                          fontFamily="sans-serif"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          {label}
+                        </text>
+                      </g>
+                    </>
                   );
                 })()}
               </>
