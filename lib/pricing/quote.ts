@@ -157,7 +157,30 @@ export interface QuoteBreakdown {
 // 一個工作天實際產出工時≈6hr（扣除溝通、整理工作台、刀具更換、休息等隱形時間）
 const HOURS_PER_WORKDAY = 6;
 
-const WASTE_RATE = 0.1; // 10% 切料損耗
+/**
+ * 切料損耗：依家具類別調整
+ * - accessory（筆筒/相框/小書擋等）：25%——小件零碎多、刨整邊角浪費高
+ * - 一般家具：10%——常見值
+ */
+const WASTE_RATES: Record<"accessory" | "default", number> = {
+  accessory: 0.25,
+  default: 0.1,
+};
+
+function wasteRateFor(category: string): number {
+  const accessoryCategories = new Set([
+    "pencil-holder",
+    "bookend",
+    "photo-frame",
+    "tray",
+    "dovetail-box",
+    "wine-rack",
+    "coat-rack",
+  ]);
+  return accessoryCategories.has(category)
+    ? WASTE_RATES.accessory
+    : WASTE_RATES.default;
+}
 
 function materialLabel(m: BillableMaterial): string {
   if (m === "plywood" || m === "mdf") return SHEET_GOOD_LABEL[m];
@@ -198,7 +221,8 @@ export function calculateQuote(
   });
 
   for (const [mat, volMm3] of sortedEntries) {
-    const withWaste = volMm3 * (1 + WASTE_RATE);
+    const wasteRate = wasteRateFor(design.category);
+    const withWaste = volMm3 * (1 + wasteRate);
     const bdft = withWaste / MM3_PER_BDFT;
 
     // 單價優先順序：使用者輸入 > catalog 預設
@@ -224,7 +248,7 @@ export function calculateQuote(
         : "";
     materialLines.push({
       label: `材料｜${materialLabel(mat)}${suffix}`,
-      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(WASTE_RATE * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
+      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(wasteRateFor(design.category) * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
       amount,
     });
     materialCost += amount;

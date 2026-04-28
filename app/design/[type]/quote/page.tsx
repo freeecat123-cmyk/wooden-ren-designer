@@ -11,6 +11,7 @@ import {
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
 import { BrandingForm } from "@/components/branding/BrandingForm";
+import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CsvExportButton } from "@/components/CsvExportButton";
 import { QuoteLaborForm } from "@/components/quote/QuoteLaborForm";
@@ -203,10 +204,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       <QuoteAccessGate>
       <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">客製家具報價</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">
+            {entry.nameZh}
+            <span className="ml-2 text-sm font-normal text-zinc-500">客製報價</span>
+          </h1>
           <p className="mt-0.5 text-xs text-zinc-500">
-            {entry.nameZh} · {length} × {width} × {height} mm ·{" "}
-            {MATERIALS[material].nameZh} · #{quoteNo}
+            {length} × {width} × {height} mm · {MATERIALS[material].nameZh}
+            <span className="ml-2 text-zinc-400">#{quoteNo}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -275,24 +279,41 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
               </div>
               <div className="text-[10px] text-sky-700 mt-0.5">
                 實做 {quote.buildWorkdays} 天
-                {quote.bufferDays > 0 && ` + 乾燥/出貨緩衝 ${quote.bufferDays} 天`}
+                {quote.quantity > 1 && `（${quote.quantity} 件合計）`}
+                {quote.bufferDays > 0 && ` + 乾燥/出貨 ${quote.bufferDays} 天`}
                 {" · "}工時 {quote.laborHours.toFixed(1)}h（6hr/天）
               </div>
             </div>
-          </div>
-
-          {/* 報價有效期 / 簡訊提示 */}
-          <div className="text-[11px] text-zinc-500 px-1">
-            報價有效至 {expiryIso}（{laborOpts.expiryDays} 天）
+            {/* 有效期：併入 sticky 卡片底部，手機版也看得到 */}
+            <div className="px-4 py-2 bg-zinc-50 border-t border-zinc-200 text-[10px] text-zinc-600 flex items-center justify-between">
+              <span>📅 報價有效至 {expiryIso}</span>
+              <span className="text-zinc-400">({laborOpts.expiryDays} 天)</span>
+            </div>
           </div>
         </aside>
       </section>
 
-      {/* 成本明細（折疊） */}
-      <details className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
+      {/* Sanity 警告：工時=0 / 毛利為負（議價低於成本） */}
+      {(quote.laborHours < 1 || (laborOpts.overrideUnitPrice > 0 && quote.margin < 0)) && (
+        <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-900">
+          <div className="font-semibold mb-0.5">⚠️ 報價檢查</div>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {quote.laborHours < 1 && (
+              <li>工時極低（{quote.laborHours.toFixed(1)}h）— 可能 template 估算異常，建議手動覆寫工時</li>
+            )}
+            {laborOpts.overrideUnitPrice > 0 && quote.margin < 0 && (
+              <li>議價 {formatTWD(laborOpts.overrideUnitPrice)} 低於成本 {formatTWD(quote.costSubtotal)}，賠 {formatTWD(-quote.margin)}/件</li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* 成本明細（折疊）— 僅內部模式可見，客戶版完全隱藏 */}
+      {viewMode === "internal" && (
+      <details open className="mt-6 rounded-lg border border-zinc-200 bg-white overflow-hidden">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800">
-            📊 成本明細（材料 + 工資 + 毛利 拆解）
+            📊 成本明細（內部）— 材料 + 工資 + 毛利 拆解
           </span>
           <span className="text-xs text-zinc-400 flex items-center gap-3">
             <CsvExportButton design={design} />
@@ -410,6 +431,30 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           </tfoot>
         </table>
       </details>
+      )}
+
+      {/* 付款條件 / 保固 / 售後（從 BrandingData 渲染，與 print 一致） */}
+      <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-4">
+        <BrandedTermsBlocks
+          depositRate={laborOpts.depositRate}
+          depositAmount={quote.depositAmount}
+          balanceAmount={quote.balanceAmount}
+          deliveryWorkdays={quote.estimatedWorkdays}
+        />
+      </div>
+
+      {/* 不含項目醒目警示（不可折疊，避免客戶錯誤期待） */}
+      <div className="mt-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+        <div className="text-xs font-semibold text-amber-900 mb-1.5">
+          ⚠️ 本報價不含
+        </div>
+        <ul className="list-disc pl-5 space-y-0.5 text-xs text-amber-900 leading-relaxed">
+          <li>跨區運費（基隆以外）</li>
+          <li>現場安裝、上牆、水平調整</li>
+          <li>五金件：滑軌、鉸鏈、把手、鎖具（如有需求另計）</li>
+          <li>確認下訂後變更設計／尺寸／材質：每次需重新報價並酌收變更費</li>
+        </ul>
+      </div>
 
       {/* 公司抬頭 / 付款條件（折疊） */}
       <BrandingForm />
@@ -428,13 +473,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       {/* 報價說明（折疊） */}
       <details className="mt-4 rounded-lg border border-amber-200 bg-amber-50 overflow-hidden">
         <summary className="cursor-pointer list-none px-4 py-2 text-xs text-amber-900 font-medium hover:bg-amber-100">
-          ℹ️ 報價說明（材料計法、工時來源、不含項目）
+          ℹ️ 報價說明（材料計法、工時來源）
         </summary>
         <ul className="px-4 pb-3 pt-1 list-disc pl-9 space-y-0.5 text-xs text-amber-900 leading-relaxed">
-          <li>材料以「板才」計（1 板才 = 1&quot; × 12&quot; × 12&quot; ≈ 2,360 cm³ ≈ 8.5 台才），已含 10% 切料損耗</li>
-          <li>工時從製作工序自動加總，依難度與零件數估算</li>
+          <li>材料以「板才」計（1 板才 = 1&quot; × 12&quot; × 12&quot; ≈ 2,360 cm³ ≈ 8.5 台才），已含切料損耗（小件 25%、一般家具 10%）</li>
+          <li>工時從製作工序與倒角加工自動加總；如案件難度高/客戶有特殊要求，可在表單「工時覆寫」直接打總工時</li>
+          <li>一個工作天以實際產出 6 小時計（扣除溝通、整理工作台、換刀、休息等隱形時間）</li>
           <li>本工具估算值僅供參考，實際報價請師傅依現場條件微調</li>
-          <li>不含跨區運費、現場安裝、五金（滑軌/鉸鏈）另計</li>
         </ul>
       </details>
       </QuoteAccessGate>
