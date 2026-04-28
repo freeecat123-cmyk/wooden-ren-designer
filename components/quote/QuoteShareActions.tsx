@@ -160,7 +160,7 @@ export function QuoteShareActions({
   };
 
   return (
-    <>
+    <div className="relative">
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -209,14 +209,14 @@ export function QuoteShareActions({
         </button>
       </div>
       {qrUrl && (
-        <div className="absolute right-6 mt-2 z-20 bg-white border-2 border-violet-300 rounded-lg shadow-xl p-3">
+        <div className="absolute right-0 top-full mt-2 z-50 bg-white border-2 border-violet-300 rounded-lg shadow-xl p-3">
           <QrCode url={qrUrl} size={180} showCaption={false} />
           <div className="mt-2 max-w-[180px] text-[10px] text-zinc-500 text-center font-mono break-all">
             {qrUrl}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
