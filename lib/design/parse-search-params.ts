@@ -10,6 +10,12 @@ export interface ParsedDesignParams {
   material: MaterialId;
   options: Record<string, string | number | boolean>;
   joineryMode: boolean;
+  /**
+   * 設計師模式：解除範本 limits 上限，允許自由輸入到 mm。
+   * 用於系統櫃級客製場景（卡牆、避柱），但極端尺寸下範本可能產生不合理結果，
+   * 請以三視圖檢核。預設 false。
+   */
+  designerMode: boolean;
 }
 
 const spStr = (sp: SpRecord, key: string): string | undefined => {
@@ -57,7 +63,10 @@ export function parseDesignSearchParams(
     joineryRaw === "1" ||
     spStr(sp, "beginnerMode") === "false";
 
-  return { length, width, height, material, options, joineryMode };
+  const designerRaw = spStr(sp, "designerMode");
+  const designerMode = designerRaw === "true" || designerRaw === "1";
+
+  return { length, width, height, material, options, joineryMode, designerMode };
 }
 
 /**
@@ -78,5 +87,6 @@ export function designParamsToQuery(
     q.set(spec.key, String(parsed.options[spec.key]));
   }
   if (parsed.joineryMode) q.set("joineryMode", "true");
+  if (parsed.designerMode) q.set("designerMode", "true");
   return q;
 }
