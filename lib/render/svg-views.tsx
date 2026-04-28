@@ -226,7 +226,8 @@ export function OrthoView({
           markerHeight="8"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#111" />
+          {/* CNS 3-3 規定箭頭夾角 20°：半角 10° → 半寬 = 10·tan(10°) ≈ 1.76 */}
+          <path d="M 0 3.24 L 10 5 L 0 6.76 z" fill="#111" />
         </marker>
       </defs>
 

@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { BufferGeometry, Euler, Float32BufferAttribute } from "three";
+import { OrbitControls, Environment, ContactShadows, SoftShadows } from "@react-three/drei";
+import { ACESFilmicToneMapping, BufferGeometry, Euler, Float32BufferAttribute, SRGBColorSpace } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -1186,6 +1186,14 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
         frameloop="demand"
         // dpr 上限 1.5 防止 Retina 螢幕 4× 像素做 shadow map。
         dpr={[1, 1.5]}
+        // ACES Filmic tone mapping — 電影業界標準，給 PBR 材質正確的高光衰減
+        // outputColorSpace SRGB — 讓 albedo 紋理顏色不偏暗
+        gl={{
+          toneMapping: ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+          outputColorSpace: SRGBColorSpace,
+          antialias: true,
+        }}
         camera={{
           // Distance driven by the piece's LARGEST dimension so tall furniture
           // (wardrobe, open-bookshelf) doesn't get clipped top/bottom even
@@ -1194,6 +1202,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           fov: 38,
         }}
       >
+        {/* SoftShadows 讓 directionalLight 的陰影邊緣柔化，比硬邊 shadow 真實 */}
+        <SoftShadows size={25} samples={16} focus={0.5} />
         <ambientLight intensity={0.45} />
         <directionalLight
           position={[maxDim * 1.5, maxDim * 2, maxDim * 1.2]}

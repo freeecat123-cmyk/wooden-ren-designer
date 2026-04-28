@@ -19,6 +19,7 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { ErgoHints } from "@/components/ErgoHints";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
@@ -589,6 +590,17 @@ function ParameterForm({
           )}
         </label>
       </div>
+
+      {/* 人體工學提示：根據家具類別給座高/桌高/椅桌差等合理範圍警告 */}
+      <ErgoHints
+        category={type}
+        overall={{
+          length: defaults.length,
+          width: defaults.width,
+          height: defaults.height,
+        }}
+        options={optionValues}
+      />
 
       {optionSchema.length > 0 && (
         <>
