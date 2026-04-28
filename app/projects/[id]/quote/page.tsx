@@ -1,22 +1,29 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { formatTWD } from "@/lib/pricing/catalog";
 import { getTemplate } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
-import { BrandedHeader } from "@/components/branding/BrandedHeader";
+import {
+  OwnerBrandedHeader,
+  OwnerContactBlock,
+} from "@/components/projects/OwnerBrandedHeader";
 import { PrintButton } from "@/components/print/PrintButton";
 import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
+import { ProjectQuoteShareActions } from "@/components/projects/ProjectQuoteShareActions";
+import { CompactThreeViews } from "@/lib/render/svg-views";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
   PROJECT_STATUS_LABEL,
   type ProjectItemRow,
-  type ProjectRow,
 } from "@/lib/projects/types";
 import type { FurnitureCategory } from "@/lib/types";
+import { fetchProjectQuoteData } from "@/lib/projects/fetch-quote-data";
+import { rebuildDesignFromItem } from "@/lib/projects/rebuild-design";
+import { projectQuoteNumber } from "@/lib/projects/quote-number";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
 }
 
 function categoryLabel(type: string): string {
@@ -40,24 +47,16 @@ function materialLabel(item: ProjectItemRow): string {
     : "—";
 }
 
-export default async function ProjectQuotePage({ params }: PageProps) {
+export default async function ProjectQuotePage({
+  params,
+  searchParams,
+}: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
+  const { token } = await searchParams;
+  const data = await fetchProjectQuoteData(id, token ?? null);
+  if (!data) notFound();
 
-  const [{ data: project }, { data: items }] = await Promise.all([
-    supabase.from("projects").select("*").eq("id", id).single(),
-    supabase
-      .from("project_items")
-      .select("*")
-      .eq("project_id", id)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-  ]);
-
-  if (!project) notFound();
-
-  const p = project as ProjectRow;
-  const list = (items ?? []) as ProjectItemRow[];
+  const { project: p, items: list, branding, publicAccess } = data;
 
   let subtotal = 0;
   let count = 0;
@@ -80,23 +79,37 @@ export default async function ProjectQuotePage({ params }: PageProps) {
     return [...map.entries()];
   })();
 
-  const today = new Date().toISOString().slice(0, 10);
-  const filename = `報價_${p.customer_name || p.name}_${today}.pdf`;
+  const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
+  const quoteNo = projectQuoteNumber(id, today);
+  const filename = `報價_${p.customer_name || p.name}_${quoteNo}.pdf`;
+  const printHref = `/projects/${id}/quote/print${token ? `?token=${token}` : ""}`;
 
-  return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-0">
-      <QuoteAccessGate>
+  const body = (
+    <>
       <div className="flex items-baseline justify-between mb-4 print:hidden">
-        <Link
-          href={`/projects/${id}`}
-          className="text-sm text-zinc-500 hover:underline"
-        >
-          ← 回專案編輯
-        </Link>
-        <div className="flex items-center gap-2">
-          <CopyShareLinkButton projectId={id} />
+        {publicAccess ? (
+          <span className="text-xs text-zinc-400">客戶版檢視</span>
+        ) : (
           <Link
-            href={`/projects/${id}/quote/print`}
+            href={`/projects/${id}`}
+            className="text-sm text-zinc-500 hover:underline"
+          >
+            ← 回專案編輯
+          </Link>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {!publicAccess && <CopyShareLinkButton projectId={id} />}
+          <ProjectQuoteShareActions
+            projectId={id}
+            quoteNo={quoteNo}
+            customerName={p.customer_name ?? null}
+            projectName={p.name}
+            total={subtotal}
+            token={publicAccess ? token ?? null : null}
+          />
+          <Link
+            href={printHref}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
@@ -109,12 +122,16 @@ export default async function ProjectQuotePage({ params }: PageProps) {
 
       <article className="rounded-2xl border-2 border-zinc-200 bg-white p-6 sm:p-8 print:border-0 print:p-0">
         <header className="flex items-start justify-between gap-4 pb-5 border-b border-zinc-200 mb-5">
-          <BrandedHeader />
+          <div className="space-y-2">
+            <OwnerBrandedHeader branding={branding} />
+            <OwnerContactBlock branding={branding} />
+          </div>
           <div className="text-right text-xs text-zinc-500">
-            <p>報價日期：{today}</p>
-            <p className="mt-0.5">
-              狀態：{PROJECT_STATUS_LABEL[p.status]}
-            </p>
+            <p className="font-mono text-zinc-700">{quoteNo}</p>
+            <p className="mt-0.5">報價日期：{todayIso}</p>
+            {!publicAccess && (
+              <p className="mt-0.5">狀態：{PROJECT_STATUS_LABEL[p.status]}</p>
+            )}
           </div>
         </header>
 
@@ -152,68 +169,56 @@ export default async function ProjectQuotePage({ params }: PageProps) {
             </div>
           )}
           {grouped.map(([room, roomItems]) => (
-            <div key={room} className="mb-5">
-              <h2 className="text-sm font-semibold text-zinc-700 mb-2 flex items-center gap-2">
+            <div key={room} className="mb-6">
+              <h2 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2 border-b border-zinc-200 pb-1.5">
                 <span>📐</span>
                 <span>{room}</span>
                 <span className="text-xs text-zinc-400 font-normal">
                   ({roomItems.length} 件)
                 </span>
               </h2>
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-zinc-300 text-xs text-zinc-500 text-left">
-                    <th className="py-2 pr-2 font-medium">品項</th>
-                    <th className="py-2 px-2 font-medium">規格 / 材質</th>
-                    <th className="py-2 px-2 font-medium text-right w-16">
-                      數量
-                    </th>
-                    <th className="py-2 px-2 font-medium text-right w-28">
-                      單價
-                    </th>
-                    <th className="py-2 pl-2 font-medium text-right w-28">
-                      小計
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roomItems.map((it) => {
-                    const unit = it.unit_price_override ?? 0;
-                    const lineTotal = unit * it.quantity;
-                    return (
-                      <tr
-                        key={it.id}
-                        className="border-b border-zinc-100 align-top"
-                      >
-                        <td className="py-2 pr-2">
-                          <div className="font-medium text-zinc-900">
+              <div className="space-y-4">
+                {roomItems.map((it) => {
+                  const unit = it.unit_price_override ?? 0;
+                  const lineTotal = unit * it.quantity;
+                  const design = rebuildDesignFromItem(it);
+                  return (
+                    <div
+                      key={it.id}
+                      className="rounded-lg border border-zinc-200 p-3 sm:p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-zinc-900">
                             {it.name}
                           </div>
                           <div className="text-[11px] text-zinc-500 mt-0.5">
-                            {categoryLabel(it.furniture_type)}
+                            {categoryLabel(it.furniture_type)} ·{" "}
+                            {dimensionLabel(it)} · {materialLabel(it)}
                           </div>
-                        </td>
-                        <td className="py-2 px-2 text-xs text-zinc-600">
-                          {dimensionLabel(it)}
-                          <br />
-                          <span className="text-zinc-500">
-                            {materialLabel(it)}
-                          </span>
-                        </td>
-                        <td className="py-2 px-2 text-right font-mono">
-                          {it.quantity}
-                        </td>
-                        <td className="py-2 px-2 text-right font-mono">
-                          {unit > 0 ? formatTWD(unit) : "—"}
-                        </td>
-                        <td className="py-2 pl-2 text-right font-mono font-semibold">
-                          {lineTotal > 0 ? formatTWD(lineTotal) : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xs text-zinc-500">
+                            {it.quantity > 1 && (
+                              <span>
+                                {formatTWD(unit)} × {it.quantity}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-lg font-mono font-bold text-zinc-900">
+                            {lineTotal > 0 ? formatTWD(lineTotal) : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      {design && (
+                        <div className="mt-2">
+                          <CompactThreeViews design={design} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </section>
@@ -267,7 +272,12 @@ export default async function ProjectQuotePage({ params }: PageProps) {
           <p className="mt-1">本報價自寄出日起 14 日內有效。</p>
         </footer>
       </article>
-      </QuoteAccessGate>
+    </>
+  );
+
+  return (
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-0">
+      {publicAccess ? body : <QuoteAccessGate>{body}</QuoteAccessGate>}
     </main>
   );
 }

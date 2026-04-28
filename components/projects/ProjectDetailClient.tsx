@@ -19,6 +19,7 @@ import type { DesignRow } from "@/lib/projects/design-row";
 import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
 import { estimateUnitPriceFromParams } from "@/lib/projects/estimate-price";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
+import { BrandingSetupGate } from "@/components/projects/BrandingSetupGate";
 
 const COMMON_ROOMS = [
   "主臥室",
@@ -285,6 +286,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         ← 回專案列表
       </Link>
       <QuoteAccessGate>
+      <BrandingSetupGate>
 
       {/* 專案抬頭 */}
       <section className="mt-3 mb-6">
@@ -449,6 +451,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           刪除整個專案
         </button>
       </section>
+      </BrandingSetupGate>
       </QuoteAccessGate>
     </main>
   );
