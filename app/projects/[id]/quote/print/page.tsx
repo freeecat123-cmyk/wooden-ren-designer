@@ -5,6 +5,7 @@ import { getTemplate } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import { PrintButton } from "@/components/print/PrintButton";
+import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
   PROJECT_STATUS_LABEL,
   type ProjectItemRow,
@@ -82,6 +83,7 @@ export default async function ProjectQuotePrintPage({ params }: PageProps) {
 
   return (
     <main className="max-w-[800px] mx-auto px-8 py-8 text-zinc-900 print:p-0">
+      <QuoteAccessGate>
       <div className="print:hidden mb-4 flex justify-end">
         <PrintButton suggestedFilename={filename} />
       </div>
@@ -216,6 +218,7 @@ export default async function ProjectQuotePrintPage({ params }: PageProps) {
         <p>報價以本單載明品項為準；變更設計、尺寸、材質須重新報價。</p>
         <p>本報價自寄出日起 14 日內有效。</p>
       </footer>
+      </QuoteAccessGate>
     </main>
   );
 }

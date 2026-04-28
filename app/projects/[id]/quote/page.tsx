@@ -7,6 +7,7 @@ import { MATERIALS } from "@/lib/materials";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import { PrintButton } from "@/components/print/PrintButton";
 import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
+import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
   PROJECT_STATUS_LABEL,
   type ProjectItemRow,
@@ -84,6 +85,7 @@ export default async function ProjectQuotePage({ params }: PageProps) {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-0">
+      <QuoteAccessGate>
       <div className="flex items-baseline justify-between mb-4 print:hidden">
         <Link
           href={`/projects/${id}`}
@@ -265,6 +267,7 @@ export default async function ProjectQuotePage({ params }: PageProps) {
           <p className="mt-1">本報價自寄出日起 14 日內有效。</p>
         </footer>
       </article>
+      </QuoteAccessGate>
     </main>
   );
 }

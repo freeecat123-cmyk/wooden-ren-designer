@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
   PROJECT_STATUS_LABEL,
   type ProjectRow,
@@ -111,6 +112,7 @@ export function ProjectsClient({
       <Link href="/" className="text-sm text-zinc-500 hover:underline">
         ← 回家具列表
       </Link>
+      <QuoteAccessGate>
       <div className="mt-3 mb-2 flex items-baseline justify-between gap-3 flex-wrap">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">我的專案</h1>
         <button
@@ -190,6 +192,7 @@ export function ProjectsClient({
           ))}
         </ul>
       )}
+      </QuoteAccessGate>
     </main>
   );
 }
