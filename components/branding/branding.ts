@@ -31,6 +31,10 @@ export interface BrandingData {
   afterSales: string;
   /** 備註（多行，每行一條，以 \n 分隔） */
   notes: string;
+  /** 匯款銀行（含分行） */
+  bankName: string;
+  /** 匯款帳戶（戶名 + 帳號） */
+  bankAccount: string;
 }
 
 export const DEFAULT_BRANDING: BrandingData = {
@@ -54,6 +58,8 @@ export const DEFAULT_BRANDING: BrandingData = {
     "客製樣式確認後如欲修改設計，需重新報價；確認下訂並開工後變更：每次酌收變更費 NT$ 1,000 起。",
     "如需開立發票（營業稅 5%），請於下訂時告知。",
   ].join("\n"),
+  bankName: "",
+  bankAccount: "",
 };
 
 const STORAGE_KEY = "wooden-ren-designer:branding:v1";

@@ -242,7 +242,19 @@ export function BrandingForm() {
                 onChange={handleField("paymentTerms")}
                 rows={4}
                 colSpan2
-                hint="開頭「訂金」「尾款」行會被上方訂金比例自動覆寫；其他行（匯款銀行/帳戶等）原樣保留"
+                hint="開頭「訂金」「尾款」行會被上方訂金比例自動覆寫；匯款銀行/帳戶填下面欄位即可（會自動接到付款條件後面）"
+              />
+              <TextField
+                label="匯款銀行"
+                value={data.bankName}
+                onChange={handleField("bankName")}
+                placeholder="例：玉山銀行 暖暖分行（808）"
+              />
+              <TextField
+                label="匯款帳戶"
+                value={data.bankAccount}
+                onChange={handleField("bankAccount")}
+                placeholder="例：戶名 木頭仁 / 0123-456-789012"
               />
               <TextField
                 label="交貨期"

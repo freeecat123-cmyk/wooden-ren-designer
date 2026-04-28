@@ -36,8 +36,9 @@ export function BrandedTermsBlocks({
   const { data } = useBranding();
 
   // 1. 付款條件：去掉原本的訂金/尾款行，用計算出的值替換
+  // 同時把使用者寫在文字裡的「匯款銀行/帳戶」行也濾掉——改用專屬欄位 bankName/bankAccount 帶入
   const userLines = splitLines(data.paymentTerms).filter(
-    (l) => !/^(訂金|尾款)/.test(l),
+    (l) => !/^(訂金|尾款|匯款銀行|帳戶)/.test(l),
   );
   const autoPaymentLines: string[] = [];
   if (
@@ -53,7 +54,10 @@ export function BrandedTermsBlocks({
       `尾款：交貨前付款 ${100 - depositPct}%（${twd(balanceAmount)}）`,
     );
   }
-  const paymentBody = [...autoPaymentLines, ...userLines].join("\n");
+  const bankLines: string[] = [];
+  if (data.bankName.trim()) bankLines.push(`匯款銀行：${data.bankName}`);
+  if (data.bankAccount.trim()) bankLines.push(`帳戶：${data.bankAccount}`);
+  const paymentBody = [...autoPaymentLines, ...userLines, ...bankLines].join("\n");
 
   // 2. 交貨期：若原文字含 ____ 空格，填入實際工作天
   let deliveryText = data.deliveryTerms || "＿＿＿＿＿＿＿＿";
