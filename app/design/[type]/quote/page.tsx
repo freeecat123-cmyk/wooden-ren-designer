@@ -20,7 +20,7 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
-import { CompactThreeViews } from "@/lib/render/svg-views";
+import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -226,13 +226,14 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         </div>
       </header>
 
-      {/* 三視圖預覽：放在 header 下方，給客戶/木頭仁立即視覺確認 */}
+      {/* 三視圖預覽：點擊放大，給客戶/木頭仁立即視覺確認 */}
       <section className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3">
-        <div className="text-[10px] text-zinc-500 mb-2 font-medium tracking-wider">
-          📐 設計預覽（三視圖）
+        <div className="text-[10px] text-zinc-500 mb-2 font-medium tracking-wider flex items-center justify-between">
+          <span>📐 設計預覽（三視圖）</span>
+          <span className="text-zinc-400 normal-case">點擊任一視圖放大</span>
         </div>
         <div className="max-h-40 overflow-hidden">
-          <CompactThreeViews design={design} />
+          <ZoomableThreeViews design={design} />
         </div>
       </section>
 
@@ -454,18 +455,40 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         />
       </div>
 
-      {/* 不含項目醒目警示（不可折疊，避免客戶錯誤期待） */}
-      <div className="mt-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
-        <div className="text-xs font-semibold text-amber-900 mb-1.5">
-          ⚠️ 本報價不含
-        </div>
-        <ul className="list-disc pl-5 space-y-0.5 text-xs text-amber-900 leading-relaxed">
-          <li>跨區運費（基隆以外）</li>
-          <li>現場安裝、上牆、水平調整</li>
-          <li>五金件：滑軌、鉸鏈、把手、鎖具（如有需求另計）</li>
-          <li>確認下訂後變更設計／尺寸／材質：每次需重新報價並酌收變更費</li>
-        </ul>
-      </div>
+      {/* 不含項目醒目警示（依表單已含項目動態移除）*/}
+      {(() => {
+        const exclusions: string[] = [];
+        if (laborOpts.shippingCost <= 0 && !termIncludeShipping) {
+          exclusions.push("跨區運費（基隆以外）");
+        }
+        if (laborOpts.installationCost <= 0 && !termIncludeInstallation) {
+          exclusions.push("現場安裝、上牆、水平調整");
+        }
+        if (laborOpts.hardwareCost <= 0) {
+          exclusions.push("五金件：滑軌、鉸鏈、把手、鎖具（如有需求另計）");
+        }
+        exclusions.push("確認下訂後變更設計／尺寸／材質：每次需重新報價並酌收變更費");
+        if (exclusions.length === 1) {
+          // 只剩變更費那一條的話，這個區塊還是要存在但低調點
+          return (
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
+              <span className="font-medium">📌 條款：</span>{exclusions[0]}
+            </div>
+          );
+        }
+        return (
+          <div className="mt-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+            <div className="text-xs font-semibold text-amber-900 mb-1.5">
+              ⚠️ 本報價不含
+            </div>
+            <ul className="list-disc pl-5 space-y-0.5 text-xs text-amber-900 leading-relaxed">
+              {exclusions.map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* 公司抬頭 / 付款條件（折疊） */}
       <BrandingForm />
