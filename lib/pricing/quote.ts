@@ -35,6 +35,27 @@ function chamferEdgeMm(part: Part): { perimeterMm: number; style: "chamfered" | 
   return null;
 }
 
+/** 座面挖型加工時。saddle 雙軸曲面（手工 scorp/雕刻機）= 1.5hr/座；
+ *  scooped 兩條平行凹槽（router 跑模板）= 1.0hr/座。 */
+export function computeSeatScoopLaborHours(design: FurnitureDesign): {
+  hours: number;
+  saddleSeats: number;
+  scoopedSeats: number;
+} {
+  let saddleSeats = 0;
+  let scoopedSeats = 0;
+  for (const part of design.parts) {
+    if (part.shape?.kind !== "seat-scoop") continue;
+    if (part.shape.profile === "saddle") saddleSeats++;
+    else if (part.shape.profile === "scooped") scoopedSeats++;
+  }
+  return {
+    hours: saddleSeats * 1.5 + scoopedSeats * 1.0,
+    saddleSeats,
+    scoopedSeats,
+  };
+}
+
 export function computeChamferLaborHours(design: FurnitureDesign): {
   hours: number;
   totalMmChamfered: number;
@@ -216,7 +237,8 @@ export function calculateQuote(
   const steps = deriveBuildSteps(design);
   const baseLaborHours = totalEstimatedHours(steps);
   const chamferLabor = computeChamferLaborHours(design);
-  const autoLaborHours = baseLaborHours + chamferLabor.hours;
+  const seatScoopLabor = computeSeatScoopLaborHours(design);
+  const autoLaborHours = baseLaborHours + chamferLabor.hours + seatScoopLabor.hours;
   const hoursOverride = opts.laborHoursOverride ?? 0;
   const hasHoursOverride = hoursOverride > 0;
   const laborHours = hasHoursOverride ? hoursOverride : autoLaborHours;
