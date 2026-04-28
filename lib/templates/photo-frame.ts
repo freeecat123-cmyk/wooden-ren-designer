@@ -146,12 +146,70 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     warnings.push(`邊框寬 ${frameW}mm 占照片邊長 > 30%，視覺比例失衡。建議邊框寬不超過照片短邊的 1/4`);
   }
 
+  // 多照片 mullion：在邊框內部加分隔木條
+  const mullions: Part[] = [];
+  if (multiPhotoLayout !== "single") {
+    const mullionW = 15;
+    if (multiPhotoLayout === "horizontal-2" || multiPhotoLayout === "horizontal-3") {
+      const cuts = multiPhotoLayout === "horizontal-2" ? 1 : 2;
+      const innerW = outerL - 2 * frameW;
+      const slotW = innerW / (cuts + 1);
+      for (let i = 0; i < cuts; i++) {
+        mullions.push({
+          id: `mullion-h-${i + 1}`,
+          nameZh: `橫排 mullion ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: outerW - 2 * frameW, width: mullionW, thickness: frameT },
+          origin: { x: -outerL / 2 + frameW + slotW * (i + 1), y: 0, z: 0 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (multiPhotoLayout === "vertical-2") {
+      const innerH = outerW - 2 * frameW;
+      mullions.push({
+        id: `mullion-v-1`,
+        nameZh: `直排 mullion`,
+        material,
+        grainDirection: "length",
+        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: frameT },
+        origin: { x: 0, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    } else if (multiPhotoLayout === "grid-4") {
+      mullions.push({
+        id: `mullion-grid-h`,
+        nameZh: `田字 mullion 橫`,
+        material,
+        grainDirection: "length",
+        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: frameT },
+        origin: { x: 0, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      mullions.push({
+        id: `mullion-grid-v`,
+        nameZh: `田字 mullion 縱`,
+        material,
+        grainDirection: "length",
+        visible: { length: outerW - 2 * frameW, width: mullionW, thickness: frameT },
+        origin: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   return {
     id: `photo-frame-${photoW}x${photoH}`,
     category: "photo-frame",
     nameZh: "相框",
     overall: { length: outerL, width: outerW, thickness: frameT },
-    parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
+    parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel, ...mullions],
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,

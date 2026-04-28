@@ -288,6 +288,20 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 頂端帽架橫木：長 60×30 木條，X 方向
   const topAccessories: Part[] = [];
+  // 傘架淺盤
+  if (withUmbrellaBase) {
+    topAccessories.push({
+      id: "umbrella-tray",
+      nameZh: "傘架淺盤",
+      material,
+      grainDirection: "length",
+      visible: { length: 200, width: 200, thickness: 25 },
+      origin: { x: 0, y: footThickness + 10, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    });
+  }
   if (withHatRail) {
     topAccessories.push({
       id: "hat-rail",
