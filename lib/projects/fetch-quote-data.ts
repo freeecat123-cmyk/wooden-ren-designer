@@ -22,11 +22,20 @@ export const DEFAULT_OWNER_BRANDING: OwnerBranding = {
   contact: "",
 };
 
+export interface ProjectMessage {
+  id: string;
+  sender_role: "customer" | "craftsman";
+  sender_name: string | null;
+  content: string;
+  created_at: string;
+}
+
 export interface ProjectQuoteData {
   project: ProjectRow;
   items: ProjectItemRow[];
   /** 專案擁有者（木工）的品牌資料；客戶端就直接 render 這份，不再讀 localStorage */
   branding: OwnerBranding;
+  messages: ProjectMessage[];
   /** true 表示是用 share_token 公開讀的（客戶視角），可拿來決定隱藏編輯按鈕 */
   publicAccess: boolean;
 }
@@ -73,7 +82,7 @@ export async function fetchProjectQuoteData(
       .maybeSingle();
     if (!project) return null;
     const proj = project as ProjectRow;
-    const [{ data: items }, branding] = await Promise.all([
+    const [{ data: items }, branding, { data: messages }] = await Promise.all([
       admin
         .from("project_items")
         .select("*")
@@ -81,11 +90,17 @@ export async function fetchProjectQuoteData(
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
       fetchOwnerBranding(admin, proj.user_id),
+      admin
+        .from("project_messages")
+        .select("id, sender_role, sender_name, content, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true }),
     ]);
     return {
       project: proj,
       items: (items ?? []) as ProjectItemRow[],
       branding,
+      messages: (messages ?? []) as ProjectMessage[],
       publicAccess: true,
     };
   }
@@ -98,7 +113,7 @@ export async function fetchProjectQuoteData(
     .maybeSingle();
   if (!project) return null;
   const proj = project as ProjectRow;
-  const [{ data: items }, branding] = await Promise.all([
+  const [{ data: items }, branding, { data: messages }] = await Promise.all([
     supabase
       .from("project_items")
       .select("*")
@@ -106,11 +121,17 @@ export async function fetchProjectQuoteData(
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),
     fetchOwnerBranding(admin, proj.user_id),
+    supabase
+      .from("project_messages")
+      .select("id, sender_role, sender_name, content, created_at")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true }),
   ]);
   return {
     project: proj,
     items: (items ?? []) as ProjectItemRow[],
     branding,
+    messages: (messages ?? []) as ProjectMessage[],
     publicAccess: false,
   };
 }

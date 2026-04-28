@@ -8,6 +8,8 @@ import {
   OwnerContactBlock,
 } from "@/components/projects/OwnerBrandedHeader";
 import { ContactCraftsmanCTA } from "@/components/projects/ContactCraftsmanCTA";
+import { MessageThread } from "@/components/projects/MessageThread";
+import { ExpiryBanner } from "@/components/projects/ExpiryBanner";
 import { PrintButton } from "@/components/print/PrintButton";
 import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
 import { ProjectQuoteShareActions } from "@/components/projects/ProjectQuoteShareActions";
@@ -57,7 +59,7 @@ export default async function ProjectQuotePage({
   const data = await fetchProjectQuoteData(id, token ?? null);
   if (!data) notFound();
 
-  const { project: p, items: list, branding, publicAccess } = data;
+  const { project: p, items: list, branding, messages, publicAccess } = data;
 
   let subtotal = 0;
   let count = 0;
@@ -120,6 +122,8 @@ export default async function ProjectQuotePage({
           <PrintButton suggestedFilename={filename} />
         </div>
       </div>
+
+      <ExpiryBanner expiresAt={p.expires_at} publicAccess={publicAccess} />
 
       <article className="rounded-2xl border-2 border-zinc-200 bg-white p-6 sm:p-8 print:border-0 print:p-0">
         <header className="flex items-start justify-between gap-4 pb-5 border-b border-zinc-200 mb-5">
@@ -275,11 +279,19 @@ export default async function ProjectQuotePage({
       </article>
 
       {publicAccess && (
-        <ContactCraftsmanCTA
-          branding={branding}
-          quoteNo={quoteNo}
-          customerName={p.customer_name}
-        />
+        <>
+          <ContactCraftsmanCTA
+            branding={branding}
+            quoteNo={quoteNo}
+            customerName={p.customer_name}
+          />
+          <MessageThread
+            projectId={id}
+            initialMessages={messages}
+            mode="customer"
+            token={token ?? undefined}
+          />
+        </>
       )}
     </>
   );

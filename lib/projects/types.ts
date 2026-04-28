@@ -39,6 +39,7 @@ export interface ProjectRow {
   deposit_rate: number;
   labor_opts: ProjectLaborOpts | null;
   share_token: string | null;
+  expires_at: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

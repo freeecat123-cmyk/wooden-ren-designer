@@ -20,6 +20,8 @@ import { CopyShareLinkButton } from "@/components/projects/CopyShareLinkButton";
 import { estimateUnitPriceFromParams } from "@/lib/projects/estimate-price";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { BrandingSetupGate } from "@/components/projects/BrandingSetupGate";
+import { MessageThread } from "@/components/projects/MessageThread";
+import type { ProjectMessage } from "@/lib/projects/fetch-quote-data";
 
 const COMMON_ROOMS = [
   "主臥室",
@@ -59,6 +61,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [items, setItems] = useState<ProjectItemRow[] | null>(null);
   const [savedDesigns, setSavedDesigns] = useState<DesignRow[] | null>(null);
+  const [messages, setMessages] = useState<ProjectMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,27 +77,37 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     (async () => {
       try {
         const supabase = createClient();
-        const [{ data: pData, error: pErr }, { data: iData, error: iErr }, { data: dData }] =
-          await Promise.all([
-            supabase.from("projects").select("*").eq("id", projectId).single(),
-            supabase
-              .from("project_items")
-              .select("*")
-              .eq("project_id", projectId)
-              .order("sort_order", { ascending: true })
-              .order("created_at", { ascending: true }),
-            supabase
-              .from("designs")
-              .select("id, furniture_type, name, params")
-              .eq("user_id", userId)
-              .order("updated_at", { ascending: false }),
-          ]);
+        const [
+          { data: pData, error: pErr },
+          { data: iData, error: iErr },
+          { data: dData },
+          { data: mData },
+        ] = await Promise.all([
+          supabase.from("projects").select("*").eq("id", projectId).single(),
+          supabase
+            .from("project_items")
+            .select("*")
+            .eq("project_id", projectId)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("designs")
+            .select("id, furniture_type, name, params")
+            .eq("user_id", userId)
+            .order("updated_at", { ascending: false }),
+          supabase
+            .from("project_messages")
+            .select("id, sender_role, sender_name, content, created_at")
+            .eq("project_id", projectId)
+            .order("created_at", { ascending: true }),
+        ]);
         if (pErr) throw pErr;
         if (iErr) throw iErr;
         if (!cancelled) {
           setProject(pData as ProjectRow);
           setItems((iData ?? []) as ProjectItemRow[]);
           setSavedDesigns((dData ?? []) as DesignRow[]);
+          setMessages((mData ?? []) as ProjectMessage[]);
         }
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
@@ -448,6 +461,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           </div>
         )}
       </section>
+
+      <MessageThread
+        projectId={projectId}
+        initialMessages={messages}
+        mode="craftsman"
+      />
 
       {/* 危險區 */}
       <section className="mt-12 pt-6 border-t border-zinc-200">
