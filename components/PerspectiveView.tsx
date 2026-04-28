@@ -1033,6 +1033,14 @@ function buildSeatScoopGeometry(
   idx.push(botBase, botBase + 2, botBase + 1);
   idx.push(botBase, botBase + 3, botBase + 2);
 
+  // 上面 winding 是內外相反（top 變 backface culled、座面整個消失）。
+  // 一次性翻轉所有 triangle 的 winding，再算 normal。
+  for (let k = 0; k < idx.length; k += 3) {
+    const tmp = idx[k + 1];
+    idx[k + 1] = idx[k + 2];
+    idx[k + 2] = tmp;
+  }
+
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
