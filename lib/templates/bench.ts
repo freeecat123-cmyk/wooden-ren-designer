@@ -126,20 +126,34 @@ export const bench: FurnitureTemplate = (input) => {
 
   if (withUnderShelf) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
-    // 下橫撐 Y（跟 simple-table 同邏輯：自動 = 腳高 × LOWER_STRETCHER_HEIGHT_RATIO）+ 寬 40
     const stretcherW = 40;
     const stretcherT = 20; // 跟 simple-table opts.lowerStretcherThickness 預設一致
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
-    // 層板坐在下橫撐頂面，邊緣延伸到「橫撐外面」（覆滿橫撐頂面）。
-    // 4 角缺角 = 腳跟層板交集 = (legSize + stretcherT)/2，剛好切掉跟腳重疊的部分。
-    // 註：beginner 模式 L/R 橫撐會縮 legSize，層板在側視圖看起來會比 L/R 橫撐寬，
-    //     但實際靠 F/B 橫撐支撐邊緣（不會掉），這是榫接 vs 對接設計的差異。
     const shelfY = stretcherY + stretcherW;
-    const shelfLen = Math.max(50, input.length - legSize - 2 * legInset + stretcherT);
-    const shelfWid = Math.max(50, input.width - legSize - 2 * legInset + stretcherT);
-    const notchSize = Math.max(0, (legSize + stretcherT) / 2);
+    // 跟著 simple-table 的 splay 慣例算橫撐 origin 偏移：splayed 腳的橫撐
+    // 會以「中軸 Y」算外推量（centerline alignment），shelf 也要跟上。
+    const splayMm = 40;
+    const splayDx = legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+    const splayDz = legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+    const legHeight = input.height - topThickness;
+    const sCenterY = stretcherY + stretcherW / 2;
+    const sCenterShift = legHeight > 0 ? 1 - sCenterY / legHeight : 0;
+    const sSplayX = splayDx * sCenterShift;
+    const sSplayZ = splayDz * sCenterShift;
+    // shelf 邊緣 = 橫撐外面（apronEdge + splay@centerY + stretcherT/2）×2
+    const shelfLen = Math.max(50, input.length - legSize - 2 * legInset + 2 * sSplayX + stretcherT);
+    const shelfWid = Math.max(50, input.width - legSize - 2 * legInset + 2 * sSplayZ + stretcherT);
+    // 缺角公式：shelf 邊緣 vs 腳在 shelf-Y 的內面
+    //   shelf_edge = apronEdge + splay@centerY + stretcherT/2
+    //   leg_inner_at_shelfY = apronEdge + splay@shelfY - legSize/2
+    //   overlap = splay × (centerShift - shelfShift) + (stretcherT + legSize)/2
+    //           = splay × stretcherW / (2 × legHeight) + (legSize + stretcherT)/2
+    const splayExtraX = legHeight > 0 ? (splayDx * stretcherW) / (2 * legHeight) : 0;
+    const splayExtraZ = legHeight > 0 ? (splayDz * stretcherW) / (2 * legHeight) : 0;
+    const notchLen = Math.max(0, splayExtraX + (legSize + stretcherT) / 2);
+    const notchWid = Math.max(0, splayExtraZ + (legSize + stretcherT) / 2);
     design.parts.push({
       id: "under-shelf",
       nameZh: "座下層板",
@@ -147,8 +161,8 @@ export const bench: FurnitureTemplate = (input) => {
       grainDirection: "length",
       visible: { length: shelfLen, width: shelfWid, thickness: shelfT },
       origin: { x: 0, y: shelfY, z: 0 },
-      shape: notchSize > 0
-        ? { kind: "notched-corners", notchLengthMm: notchSize, notchWidthMm: notchSize }
+      shape: notchLen > 0 || notchWid > 0
+        ? { kind: "notched-corners", notchLengthMm: notchLen, notchWidthMm: notchWid }
         : undefined,
       tenons: [],
       mortises: [],
