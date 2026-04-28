@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, ContactShadows, SoftShadows } from "@react-three/drei";
+import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BufferGeometry, Euler, Float32BufferAttribute, SRGBColorSpace } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
@@ -1202,8 +1202,8 @@ export function PerspectiveView({ design }: { design: FurnitureDesign }) {
           fov: 38,
         }}
       >
-        {/* SoftShadows 讓 directionalLight 的陰影邊緣柔化，比硬邊 shadow 真實 */}
-        <SoftShadows size={25} samples={16} focus={0.5} />
+        {/* SoftShadows 暫時移除——drei 注入的 shader 用了 unpackRGBAToDepth
+            在當前 Three.js 版本不存在，整個 fragment shader 編譯失敗 → 3D blank */}
         <ambientLight intensity={0.45} />
         <directionalLight
           position={[maxDim * 1.5, maxDim * 2, maxDim * 1.2]}
