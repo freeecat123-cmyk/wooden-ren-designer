@@ -42,14 +42,28 @@ export function WhitelistAdminClient() {
   const [extendDays, setExtendDays] = useState(365);
   const [extendBusy, setExtendBusy] = useState(false);
 
+  // 安全 JSON parse——response body 空白時 res.json() 會丟「Unexpected end of
+  // JSON input」，包成更明確的錯誤
+  async function safeJson(res: Response): Promise<{ data?: unknown; error?: string; [key: string]: unknown }> {
+    const text = await res.text();
+    if (!text) {
+      throw new Error(`HTTP ${res.status}：伺服器沒有回傳內容（可能是登入過期或 timeout）`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`HTTP ${res.status}：回傳格式錯誤（${text.slice(0, 100)}）`);
+    }
+  }
+
   async function load() {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/whitelist", { cache: "no-store" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "load failed");
-      setRows(json.data ?? []);
+      const json = await safeJson(res);
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "load failed");
+      setRows(Array.isArray(json.data) ? (json.data as WhitelistRow[]) : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -89,7 +103,7 @@ export function WhitelistAdminClient() {
           note: newNote || undefined,
         }),
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "add failed");
       setFlash(`✅ 新增 ${json.added ?? 1} 筆`);
       setNewEmail("");
@@ -136,7 +150,7 @@ export function WhitelistAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: csvPreview }),
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "import failed");
       setFlash(
         `✅ 匯入完成：${json.added ?? 0} 筆${
@@ -173,7 +187,7 @@ export function WhitelistAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ days: extendDays }),
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "extend failed");
       setFlash(
         `✅ 已延長 ${extendDays} 天${
@@ -195,7 +209,7 @@ export function WhitelistAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const json = await res.json();
+      const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "delete failed");
       setFlash(`✅ 已移除 ${email}`);
       await load();
