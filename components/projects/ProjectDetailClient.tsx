@@ -12,6 +12,7 @@ import {
   type ProjectRow,
   type ProjectItemRow,
   type ProjectStatus,
+  type ProjectLaborOpts,
 } from "@/lib/projects/types";
 import type { FurnitureCategory } from "@/lib/types";
 import type { DesignRow } from "@/lib/projects/design-row";
@@ -162,6 +163,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       const estimatedPrice = estimateUnitPriceFromParams(
         design.furniture_type,
         design.params as Record<string, unknown>,
+        project?.labor_opts ?? null,
       );
       const { data, error } = await supabase
         .from("project_items")
@@ -333,6 +335,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         </div>
       </section>
 
+      {/* 報價設定（影響「帶入估價」用的工資/毛利等） */}
+      <LaborOptsPanel
+        value={project.labor_opts}
+        onSave={(opts) => updateProject({ labor_opts: opts })}
+      />
+
       {/* 項目列表 */}
       <section className="mb-6">
         <div className="flex items-baseline justify-between gap-2 mb-3">
@@ -370,6 +378,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                     <ItemRow
                       key={it.id}
                       item={it}
+                      laborOpts={project.labor_opts}
                       onUpdate={(patch) => updateItem(it.id, patch)}
                       onDelete={() => deleteItem(it.id)}
                       disabled={busy}
@@ -472,11 +481,13 @@ function LabelField({
 
 function ItemRow({
   item,
+  laborOpts,
   onUpdate,
   onDelete,
   disabled,
 }: {
   item: ProjectItemRow;
+  laborOpts: ProjectLaborOpts | null;
   onUpdate: (patch: Partial<ProjectItemRow>) => void;
   onDelete: () => void;
   disabled: boolean;
@@ -530,7 +541,7 @@ function ItemRow({
         />
       </label>
 
-      <UnitPriceInput item={item} onUpdate={onUpdate} />
+      <UnitPriceInput item={item} laborOpts={laborOpts} onUpdate={onUpdate} />
 
       <div className="flex items-center gap-1.5">
         <Link
@@ -556,9 +567,11 @@ function ItemRow({
 
 function UnitPriceInput({
   item,
+  laborOpts,
   onUpdate,
 }: {
   item: ProjectItemRow;
+  laborOpts: ProjectLaborOpts | null;
   onUpdate: (patch: Partial<ProjectItemRow>) => void;
 }) {
   const [val, setVal] = useState(item.unit_price_override?.toString() ?? "");
@@ -571,8 +584,9 @@ function UnitPriceInput({
       estimateUnitPriceFromParams(
         item.furniture_type,
         item.params as Record<string, unknown>,
+        laborOpts,
       ),
-    [item.furniture_type, item.params],
+    [item.furniture_type, item.params, laborOpts],
   );
 
   const hasEstimate = estimated != null && estimated > 0;
@@ -615,6 +629,97 @@ function UnitPriceInput({
         )}
       </div>
     </label>
+  );
+}
+
+const LABOR_FIELDS: Array<{
+  key: keyof ProjectLaborOpts;
+  label: string;
+  step: number;
+  isRate?: boolean;
+  hint?: string;
+}> = [
+  { key: "hourlyRate", label: "時薪 NT$/hr", step: 50, hint: "預設 500（資深師傅）" },
+  { key: "marginRate", label: "毛利 %", step: 5, isRate: true, hint: "預設 30%" },
+  { key: "finishingCost", label: "塗裝 NT$", step: 100, hint: "預設 1500" },
+  { key: "shippingCost", label: "運費 NT$", step: 100, hint: "預設 0（自取）" },
+  { key: "installationCost", label: "安裝 NT$", step: 100, hint: "預設 0" },
+  { key: "hardwareCost", label: "五金 NT$", step: 100, hint: "預設 0" },
+  { key: "vatRate", label: "稅率 %", step: 1, isRate: true, hint: "預設 0（不開發票）" },
+  { key: "discountRate", label: "折扣 %", step: 1, isRate: true, hint: "0 = 不打折" },
+];
+
+function LaborOptsPanel({
+  value,
+  onSave,
+}: {
+  value: ProjectLaborOpts | null;
+  onSave: (opts: ProjectLaborOpts | null) => void;
+}) {
+  const opts = value ?? {};
+  const isEdited = value != null && Object.keys(value).length > 0;
+
+  const handleChange = (key: keyof ProjectLaborOpts, raw: string, isRate: boolean) => {
+    const trimmed = raw.trim();
+    const next = { ...opts };
+    if (trimmed === "") {
+      delete next[key];
+    } else {
+      const n = parseFloat(trimmed);
+      if (!Number.isFinite(n)) return;
+      next[key] = isRate ? n / 100 : n;
+    }
+    onSave(Object.keys(next).length === 0 ? null : next);
+  };
+
+  return (
+    <details className="mb-6 rounded-2xl border-2 border-zinc-200 bg-white" open={isEdited}>
+      <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
+        <span className="font-semibold text-zinc-900 text-sm">
+          ⚙️ 報價設定
+          <span className="ml-2 text-xs font-normal text-zinc-500">
+            （影響「帶入估價」用的工資、毛利、稅率等）
+          </span>
+        </span>
+        <span className="text-xs text-zinc-400">
+          {isEdited ? "已自訂" : "用系統預設"}
+        </span>
+      </summary>
+      <div className="px-5 pb-5 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {LABOR_FIELDS.map((f) => {
+          const v = opts[f.key];
+          const display =
+            v == null ? "" : f.isRate ? Math.round(v * 100).toString() : v.toString();
+          return (
+            <label key={f.key} className="flex flex-col text-xs">
+              <span className="text-zinc-500 mb-1">{f.label}</span>
+              <input
+                type="number"
+                step={f.step}
+                defaultValue={display}
+                placeholder={f.hint?.replace("預設 ", "")}
+                onBlur={(e) => handleChange(f.key, e.target.value, !!f.isRate)}
+                className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-sm font-mono"
+              />
+              {f.hint && (
+                <span className="text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>
+              )}
+            </label>
+          );
+        })}
+        {isEdited && (
+          <div className="col-span-2 sm:col-span-4 pt-2 border-t border-zinc-200 flex justify-end">
+            <button
+              type="button"
+              onClick={() => onSave(null)}
+              className="text-xs text-zinc-500 hover:underline"
+            >
+              重設為系統預設
+            </button>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 

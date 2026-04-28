@@ -15,6 +15,18 @@ export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   cancelled: "已取消",
 };
 
+/** 專案層的報價設定。每個欄位都是 optional（null 沿用 LABOR_DEFAULTS）。 */
+export interface ProjectLaborOpts {
+  hourlyRate?: number;
+  marginRate?: number;
+  finishingCost?: number;
+  shippingCost?: number;
+  installationCost?: number;
+  hardwareCost?: number;
+  vatRate?: number;
+  discountRate?: number;
+}
+
 export interface ProjectRow {
   id: string;
   user_id: string;
@@ -25,6 +37,7 @@ export interface ProjectRow {
   design_concept: string | null;
   status: ProjectStatus;
   deposit_rate: number;
+  labor_opts: ProjectLaborOpts | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
