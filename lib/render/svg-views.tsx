@@ -85,13 +85,11 @@ function extractFurnitureDims(design: FurnitureDesign) {
       // length = visible.length（bottom 邊長度，or 一般矩形的長度）
       // 斜面角度 = atan((bottom - top) / 2 / apronWidth)，trap shape 才有
       const trap = p.shape?.kind === "apron-trapezoid" ? p.shape : null;
-      // 中軸對齊後 bottomLengthScale 也可能 ≠ 1（top 收、bot 放），
-      // 取兩端較長者當切料長，角度看 top↔bot 差
-      const trapBotLen = trap ? p.visible.length * trap.bottomLengthScale : p.visible.length;
-      const trapTopLen = trap ? p.visible.length * trap.topLengthScale : p.visible.length;
-      const cutLengthMm = Math.max(trapBotLen, trapTopLen);
+      const cutLengthMm = p.visible.length;
       const cutAngleDeg = trap
-        ? (Math.atan(Math.abs(trapBotLen - trapTopLen) / 2 / p.visible.width) *
+        ? (Math.atan(
+            (p.visible.length * (1 - trap.topLengthScale)) / 2 / p.visible.width,
+          ) *
             180) /
           Math.PI
         : 0;
