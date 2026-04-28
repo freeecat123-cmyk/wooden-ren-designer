@@ -562,38 +562,19 @@ export function OrthoView({
         // ===== 桌椅 / 凳子 / 茶几（無 cabinet 部分）=====
         if (!cabinet) {
           if (view === "top") {
-            // 俯視圖：腳間距（X / Z）+ 腳粗
+            // 俯視圖：只標腳粗（腳跨距 = 寬-legSize 沒有實用價值，外緣已標總寬）
             if (!legFootprint) return null;
-            const { minX, maxX, minZ, maxZ, legSize } = legFootprint;
+            const { minX, minZ, legSize } = legFootprint;
             return (
-              <>
-                {/* 腳間距 X 方向（前緣下方再畫一條） */}
-                <DimensionLine
-                  arrowId={`arr-${view}`}
-                  x1={minX}
-                  x2={maxX}
-                  y={drawAreaTop + h + 80}
-                  label={`腳跨距 ${Math.round(maxX - minX)} mm`}
-                />
-                {/* 腳間距 Z 方向（右側內側多一條） */}
-                <VerticalDimensionLine
-                  arrowId={`arr-${view}`}
-                  x={w / 2 + 96}
-                  y1={minZ}
-                  y2={maxZ}
-                  label={`腳跨距 ${Math.round(maxZ - minZ)} mm`}
-                />
-                {/* 腳粗（小字標在第一根腳旁邊） */}
-                <text
-                  x={minX + legSize / 2 + 4}
-                  y={minZ - 4}
-                  fontSize={10}
-                  fill="#444"
-                  fontFamily="sans-serif"
-                >
-                  腳 {legSize}×{legSize}
-                </text>
-              </>
+              <text
+                x={minX + legSize / 2 + 4}
+                y={minZ - 4}
+                fontSize={10}
+                fill="#444"
+                fontFamily="sans-serif"
+              >
+                腳 {legSize}×{legSize}
+              </text>
             );
           }
           // front / side：主面厚 + 淨高 + 座面高 + 層板 + 橫撐 / 牙板 / 椅背
