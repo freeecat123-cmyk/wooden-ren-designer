@@ -51,7 +51,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 50, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭 (mm)", defaultValue: 0, min: 0, max: 200, step: 10, help: "直料 + 頂橫木兩端往內縮的距離，0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭 (mm)", defaultValue: 0, min: 0, max: 200, step: 10, help: "直料兩端往內縮的距離（頂橫木仍跨整條長邊不動），0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -139,16 +139,17 @@ export const bench: FurnitureTemplate = (input) => {
       const slatW = slatSize;
       const slatT = slatSize;
       const slatHeight = splatHeight - topRailH;
-      // 兩端往內縮 slatEndInset，剩下空間平均分配 N 條直料
-      const railSpan = Math.max(slatN * slatW, input.length - 2 * slatEndInset);
-      const slatGap = (railSpan - slatN * slatW) / Math.max(1, slatN - 1);
+      // 直料兩端往內縮 slatEndInset，剩下空間平均分配 N 條直料
+      // 頂橫木維持跨整條長邊（input.length）不縮
+      const slatSpan = Math.max(slatN * slatW, input.length - 2 * slatEndInset);
+      const slatGap = (slatSpan - slatN * slatW) / Math.max(1, slatN - 1);
       // 直料 origin.z 從 backZ 往前推 slatBackInset，但 backZ 算法用了 splatThick/2，
       // 直料截面是 slatT 不是 splatThick，要校正：直料背面齊平座板背緣 - slatBackInset
       // → origin.z = halfW - slatT/2 - slatBackInset
       const slatZ = halfW - slatT / 2 - slatBackInset;
       const railZ = halfW - topRailT / 2 - slatBackInset;
       for (let i = 0; i < slatN; i++) {
-        const x = -railSpan / 2 + slatW / 2 + i * (slatW + slatGap);
+        const x = -slatSpan / 2 + slatW / 2 + i * (slatW + slatGap);
         design.parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背直料 ${i + 1}`,
@@ -166,7 +167,7 @@ export const bench: FurnitureTemplate = (input) => {
         nameZh: "椅背頂橫木",
         material: mat,
         grainDirection: "length",
-        visible: { length: railSpan, width: topRailH, thickness: topRailT },
+        visible: { length: input.length, width: topRailH, thickness: topRailT },
         origin: { x: 0, y: seatTop + slatHeight, z: railZ },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [],
