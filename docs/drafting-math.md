@@ -249,6 +249,15 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 14. **板材展開圖** — 圓柱/圓錐/截頂圓錐公式直接套，自由曲面警示後 LSCM（見 J8）
 15. **派系 preset** — 中式家具加蘇/京/廣/徽/晉下拉選單（見 K2-K3）
 
+### 結構驗證 v2
+16. **撓度檢查** — shelf/top 均佈簡支，警告 OK/WARN/ERROR + 加橫撐建議（見 M6-M7）
+17. **人體工學警告** — 椅高/桌高/椅桌差/座深等邊緣值警告，hobbyist 友善文字（見 O8）
+
+### 工程輸出 pipeline
+18. **五金鑽孔圖** — 鉸鏈/滑軌/層板托/拉手孔位 + 分層 SVG（見 N7）
+19. **DXF 輸出 MVP** — `@tarikjabiri/dxf`，從內部 model 直出，CUT/DRILL/ENGRAVE 分層 + ACI 顏色（見 Q6）
+20. **CNC G-code（v3）** — 先 DXF（80% 解），再 jscut，最後自家 G-code（Clipper2）（見 P5）
+
 ---
 
 ## 相關慣例
@@ -758,3 +767,426 @@ interface Piece {
 4. **P1-6 母榫壁厚**
 
 第二期：P0-3 燕尾、P1-5 拼板年輪交替（後者需 cutType 資料）。
+
+---
+
+## M. 板材力學與撓度（Span / Deflection）
+
+### M1. 撓度公式
+矩形截面慣性矩：`I = b·h³/12`（h 是受力方向板厚）。**厚度立方主導剛度** — 加厚 3mm 比加寬 50mm 有用。
+
+| 邊界條件 | 中央集中 P | 均佈 w (N/mm) |
+|---------|----------|-------------|
+| 簡支樑（兩端平擱） | δ = P·L³ / (48·E·I) | δ = 5·w·L⁴ / (384·E·I) |
+| 兩端固定（入榫/dado） | δ = P·L³ / (192·E·I) | δ = w·L⁴ / (384·E·I) |
+| 一固一簡 | δ = 7·P·L³ / (768·E·I) | δ = w·L⁴ / (185·E·I) |
+| 懸臂（出挑） | δ = P·L³ / (3·E·I) | δ = w·L⁴ / (8·E·I) |
+
+### M2. 材料彈性模數 E（MPa, 含水率 12%）
+| 材料 | E |
+|------|---|
+| 松木 / SPF / 雲杉 | 9,000–11,000 |
+| 杉木 / 紅檜 / 扁柏 | 8,000–11,000 |
+| 橡木 | 12,000–13,000 |
+| 楓木 | 12,600 |
+| 胡桃 | 11,500 |
+| 櫸木 | 14,000 |
+| 集成材 | 11,000–13,500 |
+| 樺木夾板 | 7,000–10,000 ‖ / 1,500–2,500 ⊥ |
+| 木芯板 | 5,500–7,500 |
+| MDF | 3,500–4,000 |
+| 粒片板 | 2,400–3,500 |
+| OSB | 4,500–5,500 ‖ / 1,500–1,700 ⊥ |
+
+夾板異性：載荷沿面紋平行用 E∥，垂直用 E⊥；不確定保守取 E⊥。**設計原則：長邊一定要對齊面紋**。
+
+### M3. 撓度容許比
+| 比 | 用途 |
+|------|------|
+| L/360 | 餐桌、書桌面、玻璃面（嚴格） |
+| L/240 | 書架、餐櫃層板（一般） |
+| L/180 | 工具櫃、儲物（粗放） |
+| L/600 | 視覺察覺門檻（Sagulator 推薦） |
+
+### M4. 經驗法則（書本載荷 ≈ 30kg/m，板寬 250mm，L/240）
+| 材料 | 板厚 | 安全跨距 |
+|------|------|---------|
+| 松木 | 18 / 25mm | 750 / 950mm |
+| 橡木 | 18 / 25mm | 850 / 1050mm |
+| 夾板（紋平行） | 18mm | 700mm |
+| 木芯板 | 18mm | 600mm |
+| MDF | 18 / 25mm | 500 / 650mm |
+| 粒片板 | 18mm | 400mm |
+
+### M5. 反向求最大載荷
+```
+P_max (集中) = δ_max · 48·E·I / L³
+w_max (均佈) = δ_max · 384·E·I / (5·L⁴)
+```
+撓度是使用性極限；強度極限（彎矩 M ≤ MOR·b·h²/6 / SF, SF≈3）家具一般撓度先爆，撓度檢查就夠用。
+
+### M6. wrd 警告 pseudo-code
+```ts
+function checkDeflection(p: Piece, mat: Material) {
+  const E = effectiveE(mat, p);  // 處理夾板方向
+  const I = (p.width * p.thickness ** 3) / 12;
+  const w = LOAD_PRESETS[p.loadType](p.width);
+  const L = p.span;
+  const delta = boundaryFormula(p.endCondition, w, L, E, I);
+  const limit = L / DEFLECTION_RATIO[p.type];  // top:360, shelf:240
+  const ratio = delta / limit;
+  if (ratio < 0.7) return { level: 'OK' };
+  if (ratio < 1.0) return { level: 'WARN', msg: `跨距偏長，預計下垂 ${delta.toFixed(1)}mm，建議加厚或加中央橫撐` };
+  return { level: 'ERROR', msg: `會明顯下垂！建議：① 換 ${suggestMaterial(mat)}；② 厚度 → ${suggest}mm；③ 中央橫撐切半跨距（撓度 ÷16）` };
+}
+```
+
+### M7. wrd 實作優先序
+1. shelf + top 均佈簡支檢查（80% 案例）
+2. 材料表先放 9 種：松/橡/胡桃/楓/夾板/木芯板/MDF/粒片板/集成材
+3. 端條件用 piece type 推：榫接=fixed、平擱=simple、出挑=cantilever
+4. 「中央加橫撐」按鈕：L 砍半，撓度立刻 ÷16
+
+---
+
+## N. 五金孔位（Hardware Hole Patterns）
+
+### N1. 歐式杯狀鉸鏈（Cup Hinge）
+- 杯孔 **Φ35mm × 12.5mm 深**
+- 杯孔中心距板邊 **21.5–22.5mm**（C 值 4–5mm 最常見）
+- 杯心兩側 ±**48mm** 螺絲孔（CLIP top）/ ±45.5mm（Sensys），Φ2.5mm
+- 鉸鏈數：`n = ceil(door_height / 600) + 1`，最少 2 個
+- 門板上下距邊緣 **80–100mm** 起算
+- 側板安裝座：距板前緣 **37mm**，32mm 倍數
+- Overlay：全蓋 = door_thickness − overlay；半蓋 = (side/2) − gap；內蓋 C 較大（5–7mm）
+
+### N2. 抽屜滑軌
+- **抽屜寬 = 內框淨寬 − 25mm**（per memory `project_wooden_ren_door_drawer`）
+- 抽屜深 = 滑軌標稱深 − 0~10mm（標準 250/300/350/400/450/500/550mm）
+- 側掛孔：距板前緣 **37mm** 第一孔，後續 **32mm 倍數**，Φ5×13mm
+- 底掛 undermount：底板後端離後板 37mm 開 10mm 寬避空槽
+- 推按式（TIP-ON）後端避空 ~30mm
+
+### N3. 32mm 系統孔（層板托）
+- 孔 **Φ5mm × 13mm 深**（板厚 18mm 不可鑽穿）
+- 縱向間距嚴格 **32mm**
+- 距板前/後緣 **37mm**
+- 起始基準：距底 9mm 或 32mm 倍數 + 9mm 偏移
+
+雙排規則：
+- 板深 ≤ 200mm → 1 排（中間 37mm）
+- 200–400mm → 2 排（前後各 37mm）
+- > 400mm → 3 排（前/中/後）
+
+`hole_count = floor((zone − 2×64) / 32) + 1`（edge_margin 64mm 避免太靠頂底）
+
+### N4. 拉手 / 把手
+- 標準 C/C：32 / 64 / 96 / 128 / 160 / 192 / 224 / 256 / 320 / 416 / 480mm
+- 抽屜寬 < 400 → 96/128；400–600 → 128/160；600–900 → 160/192
+- 抽屜拉手：水平居中，高度 = face/2 或上 1/3
+- **上開門**：距底 2/3（向下伸手）；**吊櫃下開**：距頂 1/3（向上伸手）
+- 距門邊水平 50–75mm
+
+### N5. 對照表
+| 五金 | 孔徑 | 孔深 | 距板邊 | 間距/CC |
+|------|-----|------|-------|---------|
+| 鉸鏈杯孔 | Φ35 | 12.5 | 中心 22.5 | 杯心 ±48 螺絲 |
+| 鉸鏈臂 | Φ5 | 13 | 前緣 37 | 32 |
+| 滑軌側掛 | Φ5 | 13 | 前緣 37 | 32 倍數 |
+| 層板托 | Φ5 | 13 | 前/後 37 | 32 |
+| 拉手螺絲 | Φ5 | 穿 | 視 CC | 96/128/160/192 |
+
+### N6. 鑽孔圖規則
+- 標註：座標式（板左下 0,0），列 (X, Y, Φ, depth, type)
+- 圖例：杯孔 Φ35 = 粗實線圓 + ⌀35×12.5；系統孔 Φ5 = 細實線圓 + ⌀5×13
+- 分層：系統孔（綠）vs 功能孔（紅）vs 避空槽（藍）
+
+### N7. wrd Pseudo-code
+```ts
+function generateHolePattern(board, hardware): Hole[] {
+  const holes: Hole[] = [];
+  for (const hw of hardware) {
+    if (hw.type === 'hinge') {
+      for (const y of computeHingePositions(board.height)) {
+        holes.push({ x: 22.5, y, dia: 35, depth: 12.5, kind: 'cup' });
+        holes.push({ x: 22.5 - 48, y, dia: 2.5, depth: 10, kind: 'screw' });
+        holes.push({ x: 22.5 + 48, y, dia: 2.5, depth: 10, kind: 'screw' });
+      }
+    }
+    if (hw.type === 'shelfPin') {
+      const rows = board.depth > 400 ? [37, board.depth/2, board.depth-37]
+                 : board.depth > 200 ? [37, board.depth-37] : [board.depth/2];
+      for (const x of rows)
+        for (let y = 64; y < board.height - 64; y += 32)
+          holes.push({ x, y, dia: 5, depth: 13, kind: 'system' });
+    }
+    // ... slide / pull
+  }
+  return holes;
+}
+```
+
+---
+
+## O. 人體工學（Ergonomics）
+
+### O1. 椅子
+| 尺寸 | OK | WARN | ERROR |
+|------|----|------|-------|
+| 餐椅座高 | 430-460 | 410-429 / 461-480 | <410 / >480 |
+| 辦公椅座高（可調） | 410-540 | 400-409 / 541-550 | <400 / >550 |
+| 座深 | 400-430 | 380-399 / 431-460 | <380 / >460（壓膕窩） |
+| 座寬（單椅） | ≥400 | 380-399 | <380 |
+| 座寬（扶手椅） | ≥500 | 460-499 | <460 |
+| 椅背高（腰靠） | 350-500 | <350 | — |
+| 椅背高（含頸） | ≥730 | 600-729 | — |
+| 椅背角度（餐） | 100-105° | 95-99 / 106-110 | <90 / >115 |
+| 椅背角度（辦公） | 95-100° | 90-94 / 101-105 | — |
+| 扶手高 | 200-250 | 180-199 / 251-280 | <170 / >300 |
+
+### O2. 桌子
+| 類型 | 高 OK | 深 OK | 註 |
+|------|-------|-------|-----|
+| 餐桌 | 720-760 | 750-1100 | 椅桌差 270-310 |
+| 書桌（坐） | 730-760 | 600-800 | |
+| 站姿工作桌 | 950-1100 | — | 立姿肘高 −50~100 |
+| 吧台 | 900-1100 | — | 配吧椅 600-800 |
+| 茶几 | 380-460 | — | 沙發座面 −50~+25 |
+| 邊桌 | 550-650 | 400-500 | 沙發扶手齊 |
+
+### O3. 餐桌容量
+| 人數 / 形 | 推薦 | 最小 |
+|----------|------|------|
+| 4 方 | 900×900 | 750×750 |
+| 4 長 | 1200×800 | 1100×750 |
+| 4 圓 Ø | 1100 | 900 |
+| 6 長 | 1800×900 | 1500×900 |
+| 6 圓 Ø | 1370 | 1200 |
+| 8 圓 Ø | 1500 | 1300 |
+
+### O4. 櫃類
+| 尺寸 | OK | 依據 |
+|------|------|------|
+| 衣櫃總高 | 2100-2400 | 天花淨高 |
+| 掛長外套 | 1400-1700mm 高 | 身高 +50 |
+| 掛襯衫 | 1000-1100mm | 雙層下層 |
+| 抽屜區 | ≤1300 | 俯視取物 |
+| 廚房地櫃高 | 850-900 | NKBA 36 in |
+| 廚房地櫃深 | 580-600 | NKBA 24 in |
+| 吊櫃離檯面 | 450-600 | NKBA 18 in |
+| 吊櫃深 | 300-350 | NKBA 12 in |
+| 鞋櫃女鞋 | 150-180/層 | |
+| 鞋櫃男鞋 | 180-220/層 | |
+| 書櫃層深（書） | 220-280 | |
+| 書櫃層高 | 280-380 | |
+
+### O5. 沙發 / 床
+| 尺寸 | OK | WARN |
+|------|----|------|
+| 沙發座高 | 400-460 | 380-399 / 461-500 |
+| 沙發座深（坐） | 550-650 | 530-549 |
+| 沙發座深（躺） | 800-1000 | — |
+| 沙發扶手 | 600-700 | 560-599 / 701-740 |
+| 床高（含床墊） | 450-600 | 400-449 / 601-650 |
+| 床頭板 | 900-1200 | 850-899 / 1201-1400 |
+
+### O6. 抽屜內高
+| 用途 | 高 |
+|------|---|
+| 餐具 | 50-80 |
+| 文具 | 60-100 |
+| 衣物 | 150-200 |
+| 棉被/深抽 | 200-300 |
+| 外露面板 | 80-300（過 300 順手度差） |
+
+內深 = 櫃深 − 50mm（滑軌避空，per N2）。
+
+### O7. 與身高 H 的縮放公式
+```
+座高（popliteal） = H × 0.25 (±20)
+書桌高           = H × 0.43
+椅桌差           = H × 0.18
+肘高（站）        = H × 0.63 → 工作桌高 = 肘高 −50~100
+眼高（坐）        = H × 0.45 → 螢幕中心線
+肩寬             = H × 0.245 → 椅寬下限 ×1.1
+臀寬             = H × 0.20  → 座寬下限
+膕窩深           = H × 0.27  → 座深上限
+```
+預設 H=1700（台灣男性中位）→ 座 425 / 餐桌 731 / 差 306mm。
+派系/體型三檔：迷你（1550）/ 標準（1700）/ 高大歐美（1820）
+
+### O8. UI 提示風格（給 hobbyist）
+- 餐桌高 800 → `WARN：太高了，手肘會抬，建議 720–760mm`
+- 椅深 500 → `WARN：太深，膝蓋後會壓到，建議 380–430mm`
+- 椅桌差 250 → `WARN：差距太小，腿會卡，建議 270–310mm`
+- 衣櫃 2600 → `ERROR：超出標準天花，建議 ≤2400mm`
+
+---
+
+## P. CNC 加工路徑（Toolpath）
+
+### P1. 作業類型
+| 類型 | 用途 | 演算法 | 銑刀 |
+|------|------|--------|------|
+| Profile cut | 切穿輪廓 | Polygon offset（外偏 r） | end mill / compression |
+| Engrave | 表面淺刻 | 沿線 G01，深 0.5–2mm | V-bit / ball nose |
+| Pocket | 挖槽榫眼 | Offset spiral / Zigzag | end mill |
+| Drill | 定點鑽孔 | G81 / G83 啄鑽 | drill bit |
+| 3D carving | 立體浮雕 | Drop-cutter / Waterline（不做） | ball nose |
+
+### P2. 核心演算法
+
+**Cutter Offset**（用 Clipper2 lib `js-angusj-clipper`）：
+```
+function offsetPath(polygon, r, side):
+  return ClipperOffset.Execute(polygon, side * r, joinType=Round)
+// 外切 side=+1，內挖 side=-1
+```
+
+**Pocket spiral**（推薦）：
+```
+inset = -bit/2
+while True:
+  ring = ClipperOffset(boundary, inset)
+  if ring.empty: break
+  rings.push(ring)
+  inset -= stepover
+return connectRingsAsSpiral(rings)
+```
+
+**Pocket zigzag**（最簡）：產 parallel lines → clip by polygon → chain zigzag。首尾要加 contour pass 收邊。
+
+**路徑排序**：nearest-neighbor TSP 簡化版即可，差距 < 10%。
+
+### P3. 切削參數對照
+公式：`feed = chipload × flutes × RPM`
+
+| 木材 | 刀徑 | 刀數 | RPM | Chipload | Feed | Pass |
+|------|------|------|-----|---------|------|------|
+| 軟木 | 6mm | 2 | 18000 | 0.10 | 3600 | 6-9mm |
+| 軟木 | 3mm | 2 | 22000 | 0.05 | 2200 | 3-4.5mm |
+| 硬木 | 6mm | 2 | 18000 | 0.07 | 2520 | 4-6mm |
+| 硬木 | 3mm | 2 | 22000 | 0.04 | 1760 | 2-3mm |
+| 合板 | 6mm | 2 (compression) | 18000 | 0.08 | 2880 | 6mm |
+| MDF | 6mm | 2 | 18000 | 0.10 | 3600 | 8mm |
+| V-bit | — | 1 | 24000 | 0.03 | 1500 | 0.3-1mm |
+
+Stepover：粗 0.4–0.6×刀徑、精 0.1–0.3×刀徑。**順銑（climb）撕裂少，wrd 預設用 climb**（Clipper offset 順時針）。
+
+### P4. 木工 CNC 特殊考量
+- **Holding tabs**（留筋）：5–8mm 寬、1–2mm 高（金屬可 3/0.5，木頭脆要大）。實作：外輪廓最後一層 cut 沿輪廓間隔 80–150mm 抬刀
+- **Pocket relief**（榫眼避空）：圓銑刀做不出方角，方榫進不去 → 四角加 1–2mm 半徑「狗骨 dogbone」凹弧
+- **Plunge**：直下燒刀，pocket 入刀用螺旋（半徑 = bit/4，斜率 1° 內）
+- **Compression bit**：合板上下不撕邊，但只能一刀切到底（壓縮段必須沒入板材）
+
+### P5. wrd 階段建議
+
+**MVP — 輸出 DXF**（解 80% 用戶需求）：每板畫成 DXF（外輪廓 + 榫眼 + 鑽孔），分層 CUT/POCKET/DRILL/ENGRAVE，操作員拿進 VCarve/Fusion CAM 自己排。**這階段就夠**。lib 用 `dxf-writer` 或自寫 ASCII。
+
+**第二階段 — jscut JSON**：產 jscut 規格 SVG（path 用 colour/class 標 operation），用戶丟 jscut.org 一鍵生 G-code。
+
+**第三階段 — 自家 G-code**：Clipper2 JS 做 offset + pocket，三組預設參數（軟/硬/合板），對應 GRBL / Mach3 兩方言。
+
+**不做**：3D carving、Adaptive clearing、CAM 模擬（Carve / Fusion 已經做得很好）。
+
+### P6. G-code 基礎
+| 指令 | 作用 |
+|------|------|
+| G00 | 快速定位 |
+| G01 F | 直線插補（切削） |
+| G02 / G03 | CW / CCW 圓弧 |
+| G81 / G83 | 鑽孔 / 啄鑽（**GRBL 不支援，要展開**） |
+| G20 / G21 | 英吋 / 公釐 |
+| M03 S | 主軸正轉 + 轉速 |
+
+GRBL 不支援 G81、刀具補正、G41/G42。Mach3 / LinuxCNC 完整。
+
+### P7. 開源工具鏈
+| 階段 | 工具 |
+|------|------|
+| Polygon | Clipper2 / `js-angusj-clipper` |
+| 2.5D CAM | jscut |
+| 3D toolpath | OpenCAMLib |
+| Nesting 排版 | SVGnest / Deepnest |
+
+---
+
+## Q. SVG → DXF 轉換
+
+### Q1. DXF 格式重點
+- ASCII 純文字，五段：HEADER / TABLES / BLOCKS / ENTITIES / OBJECTS
+- 版本：**R12 或 R2000**（CNC/雷切業界），DWG 是 binary 私有 → **MVP 放棄**
+- 每 entity 用 group code：`0` entity type、`8` layer、`10/20` x/y、`11/21` end x/y...
+
+### Q2. SVG → DXF Entity 對照
+| SVG | DXF | 註 |
+|-----|-----|-----|
+| `<line>` | LINE | 直接 |
+| `<rect>` | LWPOLYLINE flag=1 | 4 點 + close |
+| `<polyline>` | LWPOLYLINE flag=0 | |
+| `<polygon>` | LWPOLYLINE flag=1 | |
+| `<circle>` | CIRCLE | |
+| `<ellipse>` | ELLIPSE | major axis vec + ratio |
+| `<path>` | LWPOLYLINE / SPLINE / ARC | 最難（見 Q3） |
+| `<text>` | TEXT / MTEXT | 中文字要轉外框 |
+| `<g>` | BLOCK + INSERT 或展平 | MVP 直接展平 transform |
+| `<image>` | 跳過 | 雷切多忽略 |
+
+屬性：`stroke` color → DXF ACI（0-255）；`stroke-width` → lineweight（370 group code，0.01mm）。
+
+### Q3. 演算法重點
+
+**Y 軸翻轉**（SVG 向下、DXF 向上）：
+```
+y_dxf = viewBox.minY + viewBox.height - y_svg
+```
+不要只 `y = -y` 會跑到第三象限。
+
+**單位**：HEADER `$INSUNITS = 4`（mm）+ `$MEASUREMENT = 1`，**只看 viewBox 不看 width/height attr**。
+
+**Path 解析**（最痛）：
+1. Tokenize（用 `svg-path-parser` / `svgpath`）正規化成絕對座標
+2. 直線（L H V）→ LWPOLYLINE 頂點
+3. Cubic Bezier（C/S）→ flatten 成多段折線（弦高誤差 0.05–0.1mm，雷切 0.05mm）
+4. Quadratic（Q/T）→ 升階 cubic 再 flatten
+5. Arc（A）→ 轉 center parametrization 才能寫 DXF ARC（W3C SVG spec Appendix B.2.4）
+6. Z → 閉合 polyline（70 group code = 1）
+
+**Transform 展平**：DOM 走訪累乘 CTM，apply 到每座標再寫 DXF。不要對應到 DXF BLOCK transform，mirror/skew 會爆。
+
+### Q4. 雷切 Layer 顏色慣例
+| 作業 | 顏色 | DXF ACI |
+|------|------|---------|
+| 切穿 CUT | 紅 | 1 |
+| 雕刻 ENGRAVE | 藍 | 5 |
+| 刻線 SCORE | 綠 | 3 |
+| 標註不切 | 黃/灰 | 2 / 8 |
+
+下游 RD-Works / Lightburn 用顏色分配雷射功率。
+
+### Q5. JS Lib 比較
+| Lib | 特性 | wrd 適用 |
+|-----|------|---------|
+| **@tarikjabiri/dxf** | TS、AutoCAD 2007+、SPLINE/ELLIPSE/MTEXT/BLOCK | **強烈推薦** |
+| **dxf-writer** | API 直觀、R12、無 SPLINE | MVP 首選 |
+| **maker.js** | SVG import + DXF/SVG/PNG export | 中型 |
+| **dxf** | parse 用，寫不全 | 不適 |
+| **inkscape CLI** | 後端 `--export-type=dxf` | Vercel serverless 部署噩夢，不適 |
+
+### Q6. wrd 實作建議
+
+**MVP（一週）**
+1. Lib：`@tarikjabiri/dxf`（純前端打包）
+2. 從 wrd 內部資料模型直接寫 DXF entity，**不要先 render SVG 再 parse 回來**會丟資訊
+3. 三視圖：每視圖一個 BLOCK
+4. 裁切圖：每板 BLOCK，CUT 紅色 / DRILL 藍色 / LABEL 黃色
+5. 強制 mm，輸出 round 0.1mm
+6. 下載：`new Blob([str], {type: 'application/dxf'})` + `<a download>`
+
+### Q7. 要避開的坑
+- **中文字**：DXF 預設 SHX 字體不含中文 → 用 `opentype.js` 把字外框拆成 polyline 輸出（**雷切首選**）
+- **stroke-width 不是切割線寬**：雷切線寬是雷射光斑，by-layer 即可
+- **base64 圖片**：跳過，警告使用者
+- **Path arc flag**：SVG large-arc-flag / sweep-flag 跟 DXF 對應方向**相反**，用對稱形狀驗證
+- **Cubic flatten 誤差**：木工 0.1mm 夠、雷切要 0.05mm
+- **負數座標**：DXF OK，但部分 CAM 抗議；可平移到第一象限
