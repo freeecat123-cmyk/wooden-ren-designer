@@ -525,6 +525,56 @@ export function OrthoView({
         );
       })}
 
+      {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
+           俯視看不到挖型不畫；曲線從矩形頂緣往下凹（最深點 = depthMm） */}
+      {view !== "top" && design.parts
+        .filter((p) => p.shape?.kind === "seat-scoop")
+        .map((p) => {
+          if (p.shape?.kind !== "seat-scoop") return null;
+          const scoop = p.shape;
+          const r = projectPart(p, view);
+          const yTop = -r.y - r.h; // SVG y for the seat top
+          // x 軸：前視看 length，側視看 width
+          const axisLen = view === "side" ? p.visible.width : p.visible.length;
+          const halfL = axisLen / 2;
+          const SAMPLES = 40;
+          const dipFn = (t: number): number => {
+            // t ∈ [-1, 1]
+            if (scoop.profile === "saddle") {
+              return scoop.depthMm * Math.max(0, 1 - t * t);
+            }
+            // scooped 兩個 basin（中心在 ±0.5）
+            // 前視 (X 軸 ↔ length)：能看到 M 形雙凹
+            // 側視 (Z 軸 ↔ width)：兩 basin 沿 Z 全長延伸（兩端稍淺），畫單凹
+            if (view === "side") {
+              return scoop.depthMm * Math.max(0, 1 - t * t * 0.6);
+            }
+            const r1 = (t - 0.5) / 0.5;
+            const r2 = (t + 0.5) / 0.5;
+            const f1 = Math.max(0, 1 - r1 * r1);
+            const f2 = Math.max(0, 1 - r2 * r2);
+            return scoop.depthMm * Math.max(f1, f2);
+          };
+          const cx = r.x + r.w / 2;
+          const pts: string[] = [];
+          for (let i = 0; i <= SAMPLES; i++) {
+            const t = -1 + (2 * i) / SAMPLES;
+            const x = cx + t * halfL;
+            const y = yTop + dipFn(t);
+            pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`);
+          }
+          return (
+            <path
+              key={`scoop-${p.id}-${view}`}
+              d={pts.join(" ")}
+              fill="none"
+              stroke="#666"
+              strokeWidth={0.6}
+              strokeDasharray="3 2"
+            />
+          );
+        })}
+
       {/* outer bounding box (dashed ghost) */}
       <rect
         x={-w / 2}
