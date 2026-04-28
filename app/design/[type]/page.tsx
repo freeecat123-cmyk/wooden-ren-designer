@@ -215,9 +215,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <SuggestionsBox suggestions={design.suggestions} />
       )}
 
-      {/* 主視覺：左邊參數（sticky）↔ 右邊 3D + 三視圖 */}
+      {/* 主視覺：左邊參數捲動 ↔ 右邊 3D + 三視圖 sticky 在右上 */}
       <section className="grid lg:grid-cols-[5fr_7fr] gap-4">
-        <div className="lg:sticky lg:top-4 self-start">
+        <div>
           <ParameterForm
             type={type}
             defaults={{ length, width, height, material }}
@@ -231,7 +231,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+          {/* 只讓 3D sticky——三視圖正常捲動。
+              右欄整個 sticky 會失效因為欄高跟 section 差不多，sticky range ~83px 立刻 release。
+              z-10 確保 sticky 3D 蓋在後續內容（三視圖）之上而不是被覆蓋 */}
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden lg:sticky lg:top-4 lg:z-10">
             <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
               <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
               透視圖（3D · 拖曳旋轉）
