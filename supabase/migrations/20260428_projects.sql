@@ -7,6 +7,18 @@
 -- furniture_type/params 一份，這樣即便來源 design 被刪也能繼續顯示與報價。
 -- =============================================================================
 
+-- 共用 trigger function（用於各表的 updated_at 自動更新；防呆，重複建無副作用）
+create or replace function public.tg_set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
