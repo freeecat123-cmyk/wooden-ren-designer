@@ -811,13 +811,14 @@ function buildNotchedCornersGeometry(
   const N = ring.length;
   const idx: number[] = [];
   // 側面：相鄰 2 點 + 對應 top 的 2 點 → 1 個 quad = 2 三角
+  // ring 是俯視 CW，所以從外面看 quad（a, b, bt, at）順序是 CW → backface culled。
+  // 反成 (a, at, bt, b) 才是 CCW from outside。
   for (let i = 0; i < N; i++) {
     const a = i;
     const b = (i + 1) % N;
     const at = a + N;
     const bt = b + N;
-    // CCW from outside: (a, b, bt) + (a, bt, at)
-    idx.push(a, b, bt, a, bt, at);
+    idx.push(a, at, bt, a, bt, b);
   }
   // ring 在上方俯視是 CW 順序，所以底面（從下方看）是 CCW，
   // 但頂面（從上方看）是 CW → 需要反轉 winding
