@@ -429,6 +429,7 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
               childThickness: u.childThickness,
               childWidth: u.childWidth,
               motherShape: u.motherShape,
+              material: design.parts.find((part) => part.id === u.partId)?.material ?? design.parts[0]?.material,
             }}
           />
         </div>

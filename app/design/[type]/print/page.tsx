@@ -209,6 +209,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
                     childThickness: u.childThickness,
                     childWidth: u.childWidth,
                     motherShape: u.motherShape,
+                    material: design.parts.find((part) => part.id === u.partId)?.material ?? material,
                   }}
                 />
               </div>

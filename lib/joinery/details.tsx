@@ -26,6 +26,8 @@ export interface JoineryDetailParams {
   childWidth?: number;
   /** 母件斷面形狀。"round" → 母件畫圓（圓腳），公件榫頭也視為圓榫（直徑 = min(width, thickness)）*/
   motherShape?: "box" | "round";
+  /** 公件材料（給燕尾榫決定 1:6 軟木 vs 1:8 硬木 標準斜度） */
+  material?: import("@/lib/types").MaterialId;
 }
 
 const COLOR_TENON = "#e6c89a";
@@ -33,6 +35,20 @@ const COLOR_MORTISE = "#b08a4e";
 const COLOR_OUTLINE = "#222";
 const COLOR_DIM = "#0a4d8c";
 const COLOR_HIDDEN = "#b59062";
+
+/**
+ * 燕尾榫斜度標準（per drafting-math.md §B2）：
+ *   軟木（密度 < 600 kg/m³）→ 1:6（≈9.46°）
+ *   硬木（密度 ≥ 600 kg/m³）→ 1:8（≈7.13°）
+ *   板材 / 不確定 → 1:8（保守）
+ */
+function pickDovetailAngle(materialId?: import("@/lib/types").MaterialId): string {
+  if (!materialId) return "1:8 硬木標準";
+  // 跟 lib/materials/index.ts 同步維護的軟木清單（density < 600）
+  const SOFTWOODS = new Set(["taiwan-cypress", "douglas-fir", "pine", "spruce", "cedar"]);
+  if (SOFTWOODS.has(materialId)) return "1:6 軟木標準";
+  return "1:8 硬木標準";
+}
 
 const PADDING = 30;
 
@@ -2005,7 +2021,8 @@ function DovetailDetail(p: JoineryDetailParams) {
             {(() => {
               // 取第一個 socket 的左斜邊做角度標
               const sx = peX + halfPinW_top;
-              const angleLabel = "1:8 硬木標準";
+              // 依材料密度決定標準斜度：軟木（< 600 kg/m³）= 1:6，硬木 = 1:8
+              const angleLabel = pickDovetailAngle(p.material);
               return (
                 <g>
                   <line
