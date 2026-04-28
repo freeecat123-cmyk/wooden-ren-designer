@@ -272,6 +272,21 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 ### AI 入口（新）
 26. **拍照推薦模板** — Claude Vision API + structured JSON，2-3 天工，月成本 $8（見 W2）
 
+### 報價與工時（新）
+27. **工時細項分項計算** — 抽 `joinery-labor.ts`、表面處理改面積×單價、複雜度四檔、批量學習曲線（見 X6）
+
+### 視覺品質（新）
+28. **3D 渲染 MVP** — ACES tone + Environment preset + SoftShadows，30 行內視覺 +50%（見 Y7）
+29. **三段品質模式** — edit/preview/render Quality switch + EffectComposer SSAO/Bloom/DoF（見 Y5）
+
+### 工程交付（新）
+30. **打包出貨估算** — 三邊和材積 + 黑貓/新竹分級報價 + KD 拆裝建議（見 Z7）
+31. **訂單管線 MVP** — Supabase orders 表 + LINE Notify + 綠界，工廠半自動 v2（見 AA5）
+
+### 內容深化（新）
+32. **經典家具 20 款** — 第一波 6 件 A 級，2 週可上（見 AB5）
+33. **木材立體屬性** — 雷達圖 + 屬性 chips + 派系推薦 + CITES 警示（見 AC9）
+
 ---
 
 ## 相關慣例
@@ -1691,3 +1706,612 @@ Claude Sonnet 4 vision：input ~1500 tokens（含圖）+ output ~300 tokens ≈ 
 
 ### W7. 入口擴展
 客戶 LINE 傳家裡舊椅子照片 → telegram bot 直接回「我猜這是 X 型椅，座高 Y」→ 木頭仁複製到 wrd。把入口接到 Telegram bot。
+
+---
+
+## X. 報價與工時演算法
+
+### X1. 工時細項對照（台灣行情中位）
+| 類別 | 項目 | 工時 |
+|------|------|------|
+| **基礎** | 板材選料+平刨+厚刨 | 0.3-0.5 hr/板（硬木 ×1.3） |
+| | 縱橫切（推台鋸） | 0.05 hr/切口（CNC ×0.4） |
+| | 砂磨 80→120→180→240 | ≈ 1 hr/m² 全程 |
+| | 試組+微調 | 件數 × 0.3 hr |
+| | 膠合+夾具 | 0.5 hr/主結構 |
+| **榫卯**（手作）| 半搭/企口 | 8-12 min（router 模板砍半）|
+| | 通榫 | 10-15 min |
+| | 盲榫 | 12-18 min |
+| | 抱肩榫 | 30-45 min |
+| | 手切燕尾 | 30-45 min（抽屜 4 角 ≈ 2-3 hr）|
+| | 機切燕尾（jig+router）| 8-12 min |
+| | **粽角榫** | **60-120 min/角** |
+| | **霸王棖（含掛榫）** | **90-180 min/支** |
+| | 圓榫釘 dowel | 2-3 min |
+| | 口袋孔 pocket-hole | 1-2 min |
+| **車削** | 圓腳車削 | 15-25 min/支 |
+| | 圓腳車紋裝飾 | +10-20 min/支 |
+| **雕花** | 平面淺雕 | 1.5-3 hr/dm² |
+| | 高浮雕/透雕 | 4-8 hr/dm² |
+| | 線腳 router 跑模 | 2 min/m + setup 30 min |
+| **拼板** | 直拼 | 0.3 hr/m 縫 |
+| | 燕尾/龍鳳榫拼 | 1.5 hr/m 縫 |
+| **表面處理** | 護木油（擦塗 2 道）| 0.4 hr/m² |
+| | 水性漆（噴 2 底 2 面）| 0.8 hr/m² |
+| | 染色+透明漆 | 1.2 hr/m² |
+| | 鋼刷做舊 | +0.5 hr/m² |
+| **組裝/出貨** | 五金安裝（鉸鏈/滑軌）| 10 min/組 |
+| | 現場組裝+調水平 | 0.5-2 hr/件 |
+
+> 業界俗語「三分木工、七分油工」— 表面處理工時容易被低估，**獨立科目不要併入塗裝固定金額**。
+
+### X2. 損料率分級
+- 實木 10%
+- 硬雜木（紅木/胡桃）15%
+- accessory 小件 25%
+- 彎料/曲面 20-30%
+
+### X3. 複雜度係數（不要憑感覺打整體分數，依特徵累加）
+```
+base = 1.00
+形狀（取最大）：
+  全直線板狀         + 0.00
+  含倒角/圓角        + 0.10
+  含曲線/弧形腿      + 0.30
+  含雕花             + 0.50（淺）/ 1.50（深）
+榫卯（取最大）：
+  螺絲/口袋孔        + 0.00
+  圓榫/半搭          + 0.10
+  通榫/盲榫          + 0.20
+  燕尾/抱肩          + 0.40
+  粽角/霸王棖/一腿三牙 + 1.00–2.00
+派系標籤：
+  明式/京/蘇          ×1.3
+  簡約北歐            ×1.0
+  日式茶道具          ×1.2
+最終 complexity = clamp(base + 加總, 1.0, 4.0)
+```
+**只套工時不套料費**。
+
+### X4. 規模經濟（80% 學習曲線）
+NASA 對「75% 手工 + 25% 機器」建議：
+```
+T(n) = T(1) × n^(log2(0.8)) = T(1) × n^(-0.322)
+第 1 件 = 1.00 × T1
+第 2 件 = 0.80
+第 4 件 = 0.64
+第 10 件 = 0.48
+```
+實作上做批次平均：`avg = T1 × n^(-0.322)`。料費不享學習折讓（線性堆積）。
+
+### X5. wrd Pseudo-code v2
+```ts
+function calculateQuoteV2(design, opts) {
+  // 工時分項
+  const baseHours = sum(parts.map(planeAndSandHours));
+  const cutHours = sum(parts.map(p => 0.05 * cutCount(p)));
+  const joineryHours = sum(joineryUsages.map(j =>
+    JOINERY_MIN[j.type] / 60 * j.count));
+  const turningHours = roundLegs.length * 0.33;
+  const carvingHours = carvingArea_dm2 * (depth==="deep" ? 6 : 2);
+  const finishHours = surfaceArea_m2 * FINISH_HR[opts.finish];
+  const assemblyHours = 0.5 + hardwareCount * (10/60);
+
+  let laborHours = (baseHours + cutHours + joineryHours +
+    turningHours + carvingHours + finishHours + assemblyHours)
+    * complexityFactor(design)
+    * batchFactor(opts.quantity);
+
+  // 料費分項
+  const woodCost = sum(materials.map(m =>
+    m.bdft * (1 + wasteRate(design.category, m.kind)) * m.unitPrice));
+  const finishCost = surfaceArea_m2 * FINISH_COST[opts.finish];
+  const hardwareCost = sum(hardware.map(h => h.qty * h.unitPrice));
+  const consumables = 200 + joineryHours * 30; // 榫多耗膠多
+
+  // 間接成本
+  const overhead = laborHours * (opts.equipmentRate + opts.shopRentPerHr);
+
+  // 訂價
+  const cost = woodCost + finishCost + hardwareCost +
+               consumables + laborHours * opts.hourlyRate + overhead;
+  const price = cost * (1 + opts.marginRate) * (1 + opts.designerMarkupRate);
+
+  return { laborHours, breakdown: {...}, price };
+}
+```
+
+### X6. wrd 既有程式升級建議
+1. 榫卯工時走 `extractJoineryUsages` × `JOINERY_MIN_PER_UNIT` 表 — 抽出 `lib/pricing/joinery-labor.ts`
+2. 表面處理工時改用「外露表面積 × finish/m²」表，不用固定 `finishingCost: 1500`
+3. 複雜度開放使用者調：UI 加四檔（簡單/普通/複雜/明式高難度）→ 1.0/1.2/1.5/2.5
+4. 批量學習曲線：`quantity > 1` 平均工時打折，line item 列「批量折讓 −X hr」
+5. 耗材動態化：`consumables = 200 + joineryHours × 30`
+6. 派系 preset：明式/北歐/日式 各自一組 hourlyRate × complexity × finishType 預設
+
+---
+
+## Y. 3D 渲染品質（PBR / IBL / AO / Postprocess）
+
+### Y1. 技術階段對照
+| 階段 | 技術 | 套件 | wrd |
+|------|------|------|-----|
+| **MVP** | HDRI 環境光 (IBL) | drei `Environment` | 立刻加 |
+| MVP | ACES Filmic Tone Mapping | three core | 立刻加（0 成本）|
+| MVP | PCFSoftShadowMap | three core | 立刻加 |
+| MVP | AO map（烘焙） | 木紋紋理打包 | v1 |
+| 中 | SSAO postprocess | `@react-three/postprocessing` | 預覽模式 |
+| 中 | MeshPhysicalMaterial + clearcoat | three core | 上漆家具 |
+| 中 | anisotropy（木紋方向反射）| three r163+ | 中階 |
+| 中 | Bloom + Vignette + DoF | postprocessing | 出圖模式 |
+| 進階 | AccumulativeShadows / SoftShadows | drei | 靜態出圖 |
+| 進階 | three-gpu-pathtracer | 獨立套件 | 出最終圖才用 |
+
+### Y2. MVP 改 Canvas 立刻見效
+```tsx
+<Canvas
+  shadows
+  gl={{
+    toneMapping: THREE.ACESFilmicToneMapping,
+    toneMappingExposure: 1.0,
+    outputColorSpace: THREE.SRGBColorSpace,
+    antialias: true,
+  }}
+  camera={{ position: [2, 1.5, 3], fov: 35 }}
+>
+  <SoftShadows size={25} samples={16} focus={0.5} />
+  <Environment preset="apartment" background={false} environmentIntensity={0.8} />
+  <directionalLight position={[5,8,4]} intensity={2.5} castShadow
+    shadow-mapSize={[2048,2048]} shadow-bias={-0.0001} />
+  ...
+</Canvas>
+```
+drei 內建 HDRI presets：apartment / city / studio / sunset / warehouse / lobby — 零下載即用。
+
+### Y3. 木紋 PBR Material（v2）
+```tsx
+<meshPhysicalMaterial
+  map={albedo}
+  normalMap={normal}
+  roughnessMap={roughness}
+  aoMap={ao}             // 需 geometry uv2（r152 後 uv1）
+  aoMapIntensity={1.0}
+  metalness={0}
+  roughness={0.7}
+  // 上漆家具
+  clearcoat={0.3}
+  clearcoatRoughness={0.4}
+  // 木紋方向反射 (r163+)
+  anisotropy={0.6}
+  anisotropyRotation={Math.PI / 2}
+/>
+```
+
+### Y4. 後製鏈（出圖模式）
+```tsx
+<EffectComposer multisampling={4}>
+  <SSAO samples={31} radius={0.1} intensity={20} luminanceInfluence={0.6} />
+  <Bloom mipmapBlur intensity={0.4} luminanceThreshold={0.9} />
+  <DepthOfField focusDistance={0.02} focalLength={0.05} bokehScale={3} />
+  <Vignette offset={0.3} darkness={0.6} />
+</EffectComposer>
+```
+
+### Y5. 三段品質模式
+```ts
+type Quality = 'edit' | 'preview' | 'render'
+const cfg = {
+  edit:    { shadowMap: 512,  ssao: false, bloom: false, dof: false, samples: 0 },
+  preview: { shadowMap: 2048, ssao: true,  bloom: false, dof: false, samples: 4 },
+  render:  { shadowMap: 4096, ssao: true,  bloom: true,  dof: true,  samples: 8 },
+}
+```
+- **edit**：拖滑桿 60fps 流暢比畫質重要 — 全關 postprocess
+- **preview**：放開滑桿觸發，等 0.5s
+- **render**：「匯出圖」按鈕，AccumulativeShadows + DoF 對焦主體 + Vignette
+
+### Y6. 木紋 procedural（cathedral grain）
+wrd 已有 (commit daae5bc)，被打槍要拉更長。
+- **Cathedral (flat sawn)**：3D simplex noise，**X 比 Y 長 8-15 倍**才像長條木板
+- **Straight (quarter sawn)**：純條紋 + 髓線小斑點（0.5-2mm 隨機白點）
+- **Burl/雜紋**：fbm noise 加旋轉場
+
+procedural 0 紋理檔；極致照片感還是貼圖贏 — MVP procedural、render 模式換 4K 貼圖。
+
+### Y7. 立刻可動三步
+1. **今天**：`gl={{toneMapping: ACESFilmic}}` + `<Environment preset="apartment" />` + `<SoftShadows />` — 視覺立刻 +50%
+2. **這週**：木紋貼圖四張一組（albedo/normal/rough/ao）+ MeshPhysicalMaterial + clearcoat 0.3，分「原木/上漆」preset
+3. **下週**：preview/render 模式切換 + EffectComposer 包 SSAO + Vignette
+
+> path tracing 等 v3 客戶報價單需要 hero shot 再上。
+
+---
+
+## Z. 打包出貨（Packaging & Shipping）
+
+### Z1. 體積重 / 材積公式
+**國際快遞**（DHL/FedEx/UPS）：
+```
+體積重 (kg) = (L × W × H cm) / 5000   # 國際空運
+            = (L × W × H cm) / 6000   # 部分海運/陸運
+應收費重 = MAX(實重, 體積重)
+```
+
+**台灣國內貨運**（黑貓/新竹/大榮）：
+```
+材積 = (L + W + H) cm    # 三邊和，台灣慣例（不是體積重）
+```
+台灣多採三邊和分級計費，**不是**國際的 L×W×H/5000。
+
+**海運**：
+```
+CBM = L × W × H (m³)
+運費 = MAX(CBM × 費率, 重量噸 × 費率)   # W/M
+```
+
+### Z2. 台灣貨運規格
+| 業者 | 限制（三邊和/單邊） | 重量 | 適用 |
+|------|-------------------|------|------|
+| 黑貓宅急便 | 三邊和 ≤ 150cm，單邊 ≤ 100cm | 20kg | 椅子、小桌、拆裝板片 |
+| 黑貓超商取貨 | 45×30×30 / 45×30×45cm | 5kg | 五金包、配件 |
+| 新竹物流 | 三邊和 ≤ 220，最長 ≤ 150 | 30kg（大件 60kg）| 中型家具、長板 |
+| 新竹大型 | 最長 200-240cm | 議價 | 床板、衣櫃側板 |
+| 嘉里大榮 | 棧板 110×110×150 | 1000kg/棧板 | 整裝家具、批次出貨 |
+| 宅配通 | 三邊和 ≤ 160 | 25kg | 一般家具 |
+| DHL Express | 單邊 ≤ 120，總 ≤ 300 | 70kg/件 | 國際小件 |
+
+**關鍵紅線**：台灣國內單邊 **≤ 150cm** 是甜蜜點，超過跳到大件議價/棧板。
+
+### Z3. 拆裝設計（KD）決策
+```
+for each 接合點:
+  if 接合 == 膠合 + 榫卯: 永久接合（出廠前組好）
+  elif 接合 == 純榫卯（無膠）: 可拆但需客戶現場敲合 → 不建議 KD
+  elif 接合 == 螺絲/偏心鎖/木榫釘: KD 候選
+
+if 任一邊 > 150cm OR 三邊和 > 220cm: 必須 KD
+elif 體積重 > 實重 × 1.5: 建議 KD
+else: 整裝
+```
+
+### Z4. KD 五金優先序（IKEA 風格）
+1. **偏心鎖（cam lock）+ 木榫釘（dowel）**：板對板隱形，最常用
+2. **KD fitting / minifix**：可重複拆裝
+3. **直角鐵 + 自攻螺絲**：粗框（衣櫃背板、桌腳橫撐）
+4. **連接螺栓（connector bolt）**：床架、桌腳（重承載）
+
+### Z5. 緩衝材
+- 角保護：每外露角 + 50mm EPE 保麗龍角套
+- 板平面：每片 + 5mm PE 泡棉全包
+- 易碎面（玻璃、烤漆）：再加 10mm 珍珠棉
+- 紙箱：5 層瓦楞 BC 楞 ≥ 0.4 kg/m²
+- **包裝重 ≈ 家具實重 × 8-15%**
+
+### Z6. 五種家具標準打包
+| 家具 | 整裝可行 | KD 方案 | 箱數 |
+|------|---------|---------|------|
+| 椅子 450×450×900 | 可（黑貓） | 椅腳 4 + 椅面 + 靠背 | 1 |
+| 餐桌 1500×900×750 | 否 | 桌面板 + 4 桌腳 + 牙條 | 2 |
+| 床（雙人 2000×1500） | 否 | 床頭 + 床尾 + 邊軌×2 + 床板條 | 3 |
+| 衣櫃 800×600×2400 | 否 | 側板×2 + 頂底 + 門 + 層板 + 背板 + 抽屜 | 4-5 |
+| 書櫃 800×300×1800 | 否 | 側板×2 + 層板×N + 背板 | 2 |
+
+### Z7. wrd MVP 建議
+最小可行：「**單一最佳箱推薦 + 三邊和材積 + 黑貓/新竹分級報價**」
+- 跳過 3D bin packing solver
+- 用啟發式：板材按厚度疊、桌腳併一束、五金一袋
+- 等真實出貨資料後再上 packing solver
+
+---
+
+## AA. 訂單管線（Design → Manufacturing）
+
+### AA1. 管線概觀
+```
+[wrd 設計] → [報價] → [訂金 30-50%] → [DXF + 裁切圖 + BOM + 三視圖]
+板式分流 → CAM → CNC → 封邊/鑽孔 → 五金植入
+實木分流 → 人工裁料 → 機加工 → 拼板/榫接 → 雕花/車削
+合流 → 組裝 + 表面處理 → QC 拍照 → 尾款 → 出貨/安裝
+```
+
+### AA2. 標準檔格式
+| 環節 | 格式 | 工具 |
+|------|------|------|
+| 設計交付師傅 | PDF 三視圖 + DXF | AutoCAD / Illustrator（wrd 已有）|
+| 設計交付工廠 | DXF 2D + STEP 3D | SolidWorks / Fusion 360 |
+| 板材 nesting | DXF（顏色分 layer）| AlphaCAM / Enroute / SigmaNEST |
+| CNC | G-code (.nc/.tap) | 機台 post-processor 自動產 |
+| 板式櫃體 | XML / 機台原生 | Cabinet Vision / Mozaik / KD Max |
+| Homag 機台 | WoodWOP MPR | WoodWOP |
+| 雷切/雕花 | DXF + 顏色 layer | LightBurn |
+| 五金清單 | CSV / Excel BOM | Cabinet Vision 出 |
+| 板片標籤 | 條碼 PDF + 編號貼紙 | 標籤機 |
+
+### AA3. 工廠 CAM 系統
+- **AlphaCAM**（Hexagon）：歐美 CNC 木工標準
+- **Cabinet Vision**：櫃體界霸主，但只吃自家設計（wrd 難直接餵）
+- **Mozaik**：北美獨立工坊愛用
+- **WoodWOP**：Homag/Weeke 機台原生
+- **Fusion 360**：個人工坊+小工廠 CAM 入門
+
+> **台灣現實**：多數中小木工廠是「收 PDF + DXF，師傅看圖手動操作 CNC」。完全自動化 CAM 在台灣板式大廠才有（櫻花、愛菲爾、歐德內部供應鏈）。
+
+### AA4. 板式 vs 實木自動化差距
+| 項目 | 板式 | 實木 |
+|------|------|------|
+| 標準化 | 高 | 低（每塊紋理不同） |
+| Setup time | 短 | 長（挑料+定位） |
+| 一條龍 | 是 | 否 |
+| wrd 切入點 | **直接出 CAM 檔** | **出尺寸表 + 三視圖讓師傅做** |
+| 損益平衡 | 5-10 件可開批次 | 通常單件接 |
+
+### AA5. wrd 三階段
+**MVP（現在 → 6 個月）**：個人接案
+- wrd 出 PDF/DXF/BOM → 木頭仁工坊接單手工製作
+- 訂單系統：Supabase + `/orders` 頁，狀態 enum：`draft/paid/making/qc/shipped/done`
+- 訂單編號：`YYMMDD-001`
+- 客戶通知：LINE Notify / Email
+- 付款：綠界（國內）+ Stripe（國外）
+
+**v2（6-18 個月）**：合作工廠半自動
+- 簽 1-2 家板式工廠當供應鏈，wrd 自動寄 DXF + BOM
+- 工廠端人工把 DXF 餵 AlphaCAM/Cabinet Vision
+- 進度回報：工廠拍照上傳 → wrd timeline 顯示
+- 客戶看到「裁切完成 / 封邊完成 / 組裝完成」三張照片
+- **不要追求工廠 API**（台灣木工廠沒有）
+
+**v3（18 個月+）**：設計交易平台
+- 木匠在 wrd 上架自己會做的家具型 → 客戶下單 → 多家工坊競標
+- 平台抽 10-15%
+- 對標 Custommade.com / Etsy 客製化模式
+- 風險：QC 不可控，要有評分+保固機制
+
+### AA6. 數位化不可能解的環節（接受）
+- 木紋配色 → 工廠拍照給客戶選板
+- 上漆顏色 → 寄色板樣
+- 現場安裝 → 派人去
+- 最終驗收 → 影片+簽名
+
+不要做進 wrd，做了只是讓系統變重。
+
+### AA7. 規模經濟（板式書桌 120×60×75 粗估）
+- **單件客製**：板材 NT$3,500 + 工時 6h × 800 = NT$8,300，售價 NT$15,000
+- **10 件批次同款**：板材 NT$30,000 + 工時 25h × 800 = NT$50,000 → 單件 NT$5,000，售 NT$10,000
+- **100 件開模**：模具 NT$30,000 + 單件 NT$3,500 → 售 NT$7,500
+
+**5-10 件就有顯著規模效益**，wrd v3 平台若能聚集「同型訂單」批次生產，能讓客戶享半量產價格。
+
+### AA8. 對標
+- **Opendesk**（英國）：開源檔 + 全球在地工廠網絡 — **最接近 wrd 想做的事**
+- **Custommade**（美國）：設計師媒合平台
+- **AtFAB**：CNC 開源家具
+
+---
+
+## AB. 經典家具圖譜（明清 20 款）
+
+### AB1. 學術圖譜核心
+| 著作 | 對 wrd 的價值 |
+|------|--------------|
+| 王世襄《明式家具研究》《珍賞》 | 分類（5 大類 16 品 8 病）+ 162 件實物彩圖含尺寸 |
+| Ecke《中國花梨家具圖考》 | 最早系統測繪含三視圖比例 |
+| 楊耀《明式家具研究》 | 工程角度測繪+結構詳圖 |
+| 田家青《清代家具》 | 清式系統，補京/廣作差異 |
+| 上博莊氏館藏圖錄、故宮《明清家具》卷 | 可附「× 上博藏」「× 故宮藏」浮水印 |
+
+### AB2. 推薦「經典 20 款」分級
+**A 級｜簡單可參數化（4-6 參數搞定，6 件）**
+| # | 名稱 | 典型尺寸 cm | 關鍵參數 |
+|---|------|------------|---------|
+| 1 | 黃花梨無束腰方凳 | 52×52×50 | 面寬/高/腿粗/棖高 |
+| 2 | 黃花梨夾頭榫平頭案 | 350×62.7×93 | 長/寬/高/牙頭厚/腿粗 |
+| 3 | 黃花梨夾頭榫畫案 | 151×69×82.5 | 同上 |
+| 4 | 條桌（無束腰直足）| 130×40×85 | 長/寬/高/腿粗 |
+| 5 | 黃花梨架格三層 | 90×45×170 | 寬/深/高/層數/板厚 |
+| 6 | 燈掛椅 | 51×40×105 | 座寬/座深/座高/通高/搭腦長 |
+
+**B 級｜中等含曲線可參數化（5 件）**
+| # | 名稱 | 尺寸 cm |
+|---|------|--------|
+| 7 | 八仙方桌（束腰馬蹄足）| 96×96×85 |
+| 8 | 六仙方桌 | 74×74×79 |
+| 9 | 玫瑰椅 | 59×45×84 |
+| 10 | 黃花梨大燈掛椅 | 57.5×41.5×117 |
+| 11 | 圓角櫃（櫸木王世襄舊藏）| 95×50×167 |
+| 12 | 翹頭案 | 200×45×85 |
+
+**C 級｜複雜（4 件，需 mesh 模板，先簡化版）**
+| # | 名稱 | 尺寸 |
+|---|------|------|
+| 13 | 圈椅（黃花梨五接）| 63×49.3×106 |
+| 14 | 四出頭官帽椅（上博柔婉款）| 56×44×120 |
+| 15 | 南官帽椅（黃花梨高扶手）| 57×43×88.6 |
+| 16 | 矮南官帽椅 | 71×58×77 |
+
+**D 級｜大件（4 件，先做框架雕花後補）**
+| # | 名稱 | 尺寸 |
+|---|------|------|
+| 17 | 羅漢床（三屏風式）| 199×103.5×48 |
+| 18 | 架子床 | 220×140×220 |
+| 19 | 頂箱櫃（一對）| 100×55×220+50 |
+| 20 | 黃花梨坐墩（鼓墩）| Φ34×46 |
+
+> 明式椅人因參數：座高 ~45cm（≈ 小腿高）、座深 40cm，wrd 可作為 default 限制。
+
+### AB3. wrd 資料結構
+```ts
+type ClassicFurniture = {
+  id: string;                // "ming_yokeback_chair_shanghai"
+  name_zh: string; name_en: string;
+  category: 'chair'|'stool'|'table'|'case'|'bed'|'misc';
+  template_id: string;       // 對應 wrd 既有模板
+  school: 'su'|'jing'|'guang'|'hui'|'jin';
+  era: 'late_ming'|'early_qing'|'mid_qing';
+  source: {
+    book: '王世襄珍賞'|'王世襄研究'|'Ecke'|'田家青清代'|'故宮'|'上博';
+    page?: number; plate?: string; collection?: string;
+  };
+  thumb: string;             // /classics/thumbs/xxx.jpg
+  watermark: string;         // "× 上海博物館藏"
+  dimensions: {
+    L,W,H: number;           // mm
+    seat_h?, seat_w?, seat_d?, leg_d?, apron_h?, waist_h?: number;
+  };
+  features: {
+    waisted: boolean;
+    foot: 'straight'|'horse_hoof'|'splayed'|'round';
+    joinery: ('jiatou'|'baojian'|'zongjiao'|'bawang'|'xieding')[];
+    arm: 'none'|'four_out'|'south'|'rose'|'arm_chair';
+    ornament: 'plain'|'beading'|'carved'|'pierced';
+  };
+  material_default: 'huanghuali'|'zitan'|'jichi'|'hongmu';
+  notes_zh: string;
+};
+```
+
+UI：選經典款 → 套 template_id + dimensions + features → 派系 preset 自動切到 school → 「× 上博藏」浮水印 → 使用者所有欄位仍可改（標 *已偏離原型*）
+
+### AB4. 法律
+- 古代尺寸是公開知識，**不涉版權**
+- 已出版實測值屬學術引用，必須註明出處（書名/頁碼/圖版號）
+- **不要照搬** 3D mesh / 線稿（袁荃猷手繪、Ecke 圖版仍受版權保護）
+- wrd 既有模板自己生的就 OK
+- 浮水印要謹慎：只在尺寸引自其著作時用，不要暗示「王世襄監製」
+
+### AB5. Roadmap
+1. **第一波 6 款（A 級）**：方凳/平頭案/畫案/條桌/架格/燈掛椅 — 直接套既有模板，2 週可上
+2. **第二波 5 款（B 級）**：擴模板能力（束腰、側腳收分、翹頭）
+3. **第三波 9 款（C/D 級）**：先框架版（直線化扶手/平直圍子），慢慢補曲線 spline + 雕花
+4. 模板新能力：**側腳收分角**、**搭腦起翹**、**S 形靠背板**、**馬蹄足曲線**、**圍子攢接圖案**
+
+---
+
+## AC. 木材非視覺屬性
+
+### AC1. 聲學
+聲速 c = √(E/ρ)；阻尼 tan δ（低=共鳴持久、高=吸音溫暖）
+
+| 木材 | 聲速 m/s | tan δ | 用途 |
+|------|---------|-------|------|
+| 雲杉 | 5000-6000 | 0.006-0.009 | 吉他/小提琴面板 |
+| 紅松 | 4800-5400 | 0.008 | 古典吉他面板 |
+| 楓 | 4400 | 0.004（低）| 提琴背板、亮音 |
+| 印度玫瑰 | 3800-4200 | 0.010 | 指板、背側板 |
+| 桃花心 | 4000 | 0.012（高）| 溫暖音色 |
+| 胡桃 | 3900 | 0.011 | 中性、聲學透明 |
+
+家具關聯：抽屜開合聲、桌面敲擊感。**老師傅「敲一敲聽聲音」就是在用人耳量 tan δ**。
+
+### AC2. 氣味
+| 類別 | 木材 | 主香 | 揮發週期 |
+|------|------|------|---------|
+| 強香 | 紅檜、扁柏 | 檜木素（柑橘樟腦）| 5-10 年衰減 |
+| 強香 | 雪松 | balsamic 樟腦 | 3-5 年 |
+| 強香 | 樟木 | 樟腦（防蟲）| 終身淡出 |
+| 強香 | 印度檀香 | 奶香木質 | 數十年 |
+| 中性 | 松、杉 | 淡松脂 | 1-2 年 |
+| 異味 | 橡木 | 單寧澀酸 | 永久（與酒互動才好）|
+| 過敏原 | 紫檀、紅木 | 粉塵刺激 | 加工時最嚴重 |
+
+家具場景：衣櫃用樟/雪松、香盒用檜、廚房收納避橡木（單寧污染食物）。
+
+### AC3. 觸感（5 大類）
+- **dense-cool**：紫檀、烏木、鐵刀木 — 表面如石、導熱快、上手涼
+- **oily-smooth**：黃花梨、酸枝、柚木 — 天然油脂滑順、免上漆已有光
+- **warm-firm**：櫸、橡、白蠟 — 中密度、導熱慢、握感踏實
+- **soft-warm**：松、杉、雲杉 — 指甲可壓痕、溫暖
+- **coarse-grain**：白橡（髓線）、栗、榆 — 顆粒感明顯、未填孔粗
+
+### AC4. 加工性（Janka 硬度為主軸）
+| 木材 | Janka N | 切削 | 釘接 | 黏合 |
+|------|---------|------|------|------|
+| 杉/雲杉 | 1100 | 易 | 直接 | 好 |
+| 松 | 1570 | 易 | 直接 | 好 |
+| 櫻桃 | 4225 | 中 | 預鑽 | 好 |
+| 胡桃 | 4490 | 中 | 預鑽 | 好 |
+| 柚木 | 5070 | 中（鈍刀）| 預鑽 | **差**（油性）|
+| 紅/白橡 | 5990-6000 | 中 | 預鑽 | 好 |
+| 硬楓 | 6450 | 中 | 預鑽 | 好（易翹）|
+| 印度玫瑰 | 10870 | 難 | 必鑽 | 差（油）|
+| 黑檀 | 14000+ | 極難 | 必鑽 | 差 |
+| 癒創木 | 20000+ | 極難磨刀 | 必鑽 | 極差 |
+
+**踩雷點**：
+- 柚/紫檀/黃花梨多油 — 上膠前用丙酮擦油，否則一週後分離
+- 楓/榆易翹 — 板厚留 +2mm 修整裕度
+
+### AC5. 耐久性（USDA 抗腐 5 級）
+| 等級 | 代表 | 戶外 |
+|------|------|------|
+| 5 極佳 | 柚木、洋槐、紅檜、紫檀 | 是（柚木為標竿）|
+| 4 佳 | 白橡、雪松、栗 | 是（需上油）|
+| 3 中 | 胡桃、櫻桃 | 限有遮蔽 |
+| 2 差 | 紅橡、櫸 | 否 |
+| 1 極差 | 楓、樺、松、白楊、雲杉 | 否 |
+
+抗 UV：胡桃褪色變灰、櫻桃變深紅、柚木氧化銀灰
+耐衝擊：白蠟、橡、櫸（棒球棍/工具柄首選）
+
+### AC6. 永續
+- **CITES Appendix II**：所有 *Dalbergia*（紫檀屬）、所有馬達加斯加 *Diospyros*（黑檀屬部分）、Bubinga、Pernambuco
+- **#15 Annotation 豁免**：≤10kg 個人攜帶 + 樂器成品免證 — **家具不在豁免名單**，整批進口必申報
+- FSC：北美胡桃/櫻桃/白橡普及；東南亞柚木 FSC 較稀
+- 碳足跡：本地（台灣相思/櫸/烏心石）< 北美 < 歐洲 < 非洲 < 南美
+
+### AC7. 文化定位
+| 派系 | 推薦木種 | 象徵 |
+|------|---------|------|
+| 明式/清式 | 黃花梨、紫檀、酸枝、雞翅 | 文人/皇室 |
+| 新中式 | 胡桃、烏心石、黑檀（克制）| 當代東方 |
+| 日式/禪 | 紅檜、扁柏、栓木、櫸 | 神社、長壽 |
+| 北歐 | 白橡、白蠟、樺、松 | 簡約 |
+| 美式工藝 | 黑胡桃、櫻桃、紅橡 | Stickley/Shaker |
+| 殖民風 | 柚、桃花心 | 船舶、戶外 |
+| 工業風 | 松實木 + 鐵件、舊料 | 復古、再生 |
+
+### AC8. WoodSpec 擴充資料結構
+```ts
+interface WoodSpec {
+  id, nameZh, nameEn, scientific: string;
+  // 力學（已有）
+  density, janka, E: number;
+  shrinkage: { radial, tangential: number };
+  // 聲學
+  acoustic: { soundSpeed, tanDelta: number; tone: 'bright'|'warm'|'balanced'|'transparent' };
+  // 氣味
+  aroma: { intensity: 'strong'|'mild'|'none'|'unpleasant'; note?: string;
+           decayYears?: number; allergen?: 'dust'|'skin'|'respiratory'|null };
+  // 觸感
+  tactile: ('dense-cool'|'oily-smooth'|'warm-firm'|'soft-warm'|'coarse-grain')[];
+  thermalFeel: 'cool'|'neutral'|'warm';
+  // 加工性 1-5
+  workability: { cutting, nailing, gluing, warpRisk: 1|2|3|4|5; bluntsBlade: boolean };
+  // 耐久 1-5
+  durability: { decay, insect, impact: 1|2|3|4|5; uv: 'darkens'|'fades'|'greys'|'stable' };
+  outdoor: boolean;
+  // 永續
+  cites: 'I'|'II'|'III'|null;
+  fscAvailable: boolean;
+  origin: 'local-tw'|'na'|'eu'|'sea'|'africa'|'sa';
+  carbonTier: 1|2|3|4|5;  // 1=本地最低
+  // 文化
+  styles: ('ming'|'qing'|'neo-cn'|'jp'|'nordic'|'american-craft'|'colonial'|'industrial')[];
+  // 視覺、商業
+  colorRange, pricetag, weightAlertKg;
+}
+```
+
+### AC9. UI 建議
+1. **6 軸雷達圖**（硬度/加工性/耐候/香氣/環保/價格）— 0-5 normalize，雷達比文字快 10× 判讀
+2. **屬性 chips**：4 個最強 tag，例「[強香][抗蟲][難黏][CITES II]」
+3. **過濾器**：戶外用/有香氣/易加工/本地材/無 CITES/預算
+4. **派系一鍵推薦**：選「新中式」→ 推胡桃 + 烏心石；「明式」→ 黃花梨 + 紫檀（CITES 警示）
+5. **警示卡**：選柚木自動跳「⚠ 油性木，黏合前需擦丙酮 / 重量大」
+6. **三維對比視圖**：兩款木並排，差異維度高亮（像 Wood Database）
+7. **「敲一聽」聲音樣本**（進階）：每木種錄敲擊聲 30s 預覽
+8. **CITES 角標**：受限木種右上紅角，hover 顯示豁免條件
+
+### AC10. 落地優先序
+1. 資料結構 + 雷達圖 + 文字描述卡（D2-D3，3 天）— 選材體驗從 2D 變 3D
+2. 香氣/觸感/派系推薦（D4，第二批）
+3. 「敲一聽」聲音樣本最後（要真去錄音）
