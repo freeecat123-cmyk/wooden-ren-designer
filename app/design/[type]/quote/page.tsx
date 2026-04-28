@@ -20,6 +20,7 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { QuoteHistory } from "@/components/QuoteHistory";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import { parseOptionsFromQuery } from "@/lib/templates/parse-options";
+import { CompactThreeViews } from "@/lib/render/svg-views";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -224,6 +225,16 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           />
         </div>
       </header>
+
+      {/* 三視圖預覽：放在 header 下方，給客戶/木頭仁立即視覺確認 */}
+      <section className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50/50 p-3">
+        <div className="text-[10px] text-zinc-500 mb-2 font-medium tracking-wider">
+          📐 設計預覽（三視圖）
+        </div>
+        <div className="max-h-40 overflow-hidden">
+          <CompactThreeViews design={design} />
+        </div>
+      </section>
 
       {/* 主視覺：表單 ↔ 總價卡 並排 */}
       <section className="grid lg:grid-cols-[3fr_2fr] gap-4">
