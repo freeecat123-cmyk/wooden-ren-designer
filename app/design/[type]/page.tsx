@@ -23,6 +23,7 @@ import { ErgoHints } from "@/components/ErgoHints";
 import { DesignChecks } from "@/components/DesignChecks";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
+import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
@@ -598,13 +599,11 @@ function ParameterForm({
               </option>
             ))}
           </select>
-          {MATERIALS[defaults.material]?.notes && (
-            <span className="mt-1 text-[10px] text-zinc-500 leading-relaxed">
-              💡 {MATERIALS[defaults.material].notes}
-            </span>
-          )}
         </label>
       </div>
+
+      {/* 木材立體屬性面板：6 軸雷達圖 + 文化定位 + CITES/油性警示 */}
+      <MaterialAttributesPanel materialId={defaults.material} />
 
       {/* 人體工學提示：根據家具類別給座高/桌高/椅桌差等合理範圍警告 */}
       <ErgoHints
