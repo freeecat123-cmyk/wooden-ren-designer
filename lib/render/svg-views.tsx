@@ -111,6 +111,24 @@ function extractFurnitureDims(design: FurnitureDesign) {
 
   // 腳：取所有 id 開頭為 leg- 的件（俯視圖用來標腳跨距 / 腳粗）
   const legs = design.parts.filter((p) => /^leg-?\d*$/.test(p.id));
+  // 外斜腳的最大落地點偏移（splayed shape 的 dxMm / dzMm 絕對值最大者）
+  // 用來算落地點 X / Z 範圍 vs 椅面邊距
+  const maxSplayDx = Math.max(
+    0,
+    ...legs.map((p) =>
+      p.shape?.kind === "splayed" || p.shape?.kind === "splayed-tapered" || p.shape?.kind === "splayed-round-tapered"
+        ? Math.abs(p.shape.dxMm)
+        : 0,
+    ),
+  );
+  const maxSplayDz = Math.max(
+    0,
+    ...legs.map((p) =>
+      p.shape?.kind === "splayed" || p.shape?.kind === "splayed-tapered" || p.shape?.kind === "splayed-round-tapered"
+        ? Math.abs(p.shape.dzMm)
+        : 0,
+    ),
+  );
   const legFootprint =
     legs.length >= 2
       ? (() => {
@@ -128,6 +146,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
       : null;
 
   return {
+    maxSplayDx,
+    maxSplayDz,
     main,
     mainT,
     mainBottomY,
@@ -556,6 +576,8 @@ export function OrthoView({
           shelves,
           crossPieces,
           legFootprint,
+          maxSplayDx,
+          maxSplayDz,
         } = dims;
         const sFloor = drawAreaTop + h;
 
@@ -603,6 +625,48 @@ export function OrthoView({
                     />
                   </>
                 )}
+                {/* 外斜腳：腳落地點突出椅面的距離（落地比腳頂多偏 splayDx mm）
+                    正值 = 腳落地超出椅面、負值 = 落地仍在椅面內。畫虛線示意落地位置 */}
+                {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
+                  // 落地點突出 = 落地外面 X − 椅面外緣
+                  const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
+                  const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
+                  const protrudeLabel = (mm: number) =>
+                    mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
+                  return (
+                    <>
+                      {/* 4 角落地點虛線方框（外推 splayDx/Dz） */}
+                      <rect
+                        x={minX - maxSplayDx - legSize / 2}
+                        y={minZ - maxSplayDz - legSize / 2}
+                        width={maxX - minX + 2 * maxSplayDx + legSize}
+                        height={maxZ - minZ + 2 * maxSplayDz + legSize}
+                        fill="none"
+                        stroke="#a55"
+                        strokeWidth={0.4}
+                        strokeDasharray="2 3"
+                      />
+                      {maxSplayDx > 0 && Math.abs(footProtrudeX) > 0.5 && (
+                        <DimensionLine
+                          arrowId={`arr-${view}`}
+                          x1={Math.min(w / 2, maxX + maxSplayDx + legSize / 2)}
+                          x2={Math.max(w / 2, maxX + maxSplayDx + legSize / 2)}
+                          y={-h / 2 - 32}
+                          label={protrudeLabel(footProtrudeX)}
+                        />
+                      )}
+                      {maxSplayDz > 0 && Math.abs(footProtrudeZ) > 0.5 && (
+                        <VerticalDimensionLine
+                          arrowId={`arr-${view}`}
+                          x={w / 2 + 32}
+                          y1={Math.min(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                          y2={Math.max(h / 2, maxZ + maxSplayDz + legSize / 2)}
+                          label={protrudeLabel(footProtrudeZ)}
+                        />
+                      )}
+                    </>
+                  );
+                })()}
                 {/* 對角線——左前 → 右後虛線 + 標（標籤離線 14px 避免重疊）*/}
                 <line
                   x1={-w / 2}
