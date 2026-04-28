@@ -7,7 +7,7 @@ import {
   OwnerContactBlock,
 } from "@/components/projects/OwnerBrandedHeader";
 import { PrintButton } from "@/components/print/PrintButton";
-import { CompactThreeViews } from "@/lib/render/svg-views";
+import { ZoomableThreeViews } from "@/components/quote/ZoomableThreeViews";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
   PROJECT_STATUS_LABEL,
@@ -160,7 +160,7 @@ export default async function ProjectQuotePrintPage({
                       </div>
                     </div>
                   </div>
-                  {design && <CompactThreeViews design={design} />}
+                  {design && <ZoomableThreeViews design={design} />}
                 </div>
               );
             })}
