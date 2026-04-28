@@ -216,7 +216,7 @@ export function SheetBinSvg({
       >
         {renderSvgContent()}
       </svg>
-      <CutListTable bin={bin} />
+      <CutListTable bin={bin} colorFor={colorFor} />
 
       {/* 放大 modal — fixed 全螢幕黑底，內含同 SVG 內容；ESC / 點背景關閉 */}
       {zoomed && (
@@ -249,7 +249,13 @@ export function SheetBinSvg({
   );
 }
 
-function CutListTable({ bin }: { bin: SheetBin }) {
+function CutListTable({
+  bin,
+  colorFor,
+}: {
+  bin: SheetBin;
+  colorFor: (piece: CutPiece) => string;
+}) {
   // 收集所有零件 + 順序 + 位置
   const rows: Array<{
     order: number;
@@ -261,6 +267,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
     x: number;
     y: number;
     rotated: boolean;
+    piece: CutPiece;
   }> = [];
   for (const shelf of bin.shelves) {
     for (const p of shelf.pieces) {
@@ -274,6 +281,7 @@ function CutListTable({ bin }: { bin: SheetBin }) {
         x: Math.round(p.x),
         y: Math.round(p.y),
         rotated: p.rotated,
+        piece: p.piece,
       });
     }
   }
@@ -299,8 +307,15 @@ function CutListTable({ bin }: { bin: SheetBin }) {
             <tr key={r.order} className="border-t border-zinc-100">
               <td className="text-center px-1 py-0.5 font-mono font-bold">{r.order}</td>
               <td className="px-1 py-0.5 font-mono">
-                {r.code}
-                {r.rotated && "↻"}
+                {r.code && (
+                  <span
+                    className="inline-block px-1.5 rounded border border-zinc-400 font-bold text-zinc-900"
+                    style={{ backgroundColor: colorFor(r.piece) }}
+                  >
+                    {r.code}
+                  </span>
+                )}
+                {r.rotated && <span className="ml-1">↻</span>}
               </td>
               <td className="px-1 py-0.5">{r.name}</td>
               <td className="text-right px-1 py-0.5 font-mono">
