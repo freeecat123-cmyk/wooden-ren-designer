@@ -98,7 +98,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   const parsed = parseDesignSearchParams(sp, entry);
-  const { length, width, height, material, options, joineryMode } = parsed;
+  const { length, width, height, material, options, joineryMode, designerMode } = parsed;
   const optionSchema = entry.optionSchema ?? [];
 
   const rawDesign = entry.template({ length, width, height, material, options });
@@ -178,10 +178,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <ParameterForm
             type={type}
             defaults={{ length, width, height, material }}
-            limits={entry.limits}
+            limits={designerMode ? undefined : entry.limits}
             optionSchema={optionSchema}
             optionValues={options}
             joineryMode={joineryMode}
+            designerMode={designerMode}
           />
         </div>
 
@@ -392,6 +393,7 @@ function ParameterForm({
   optionSchema,
   optionValues,
   joineryMode,
+  designerMode,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
@@ -399,6 +401,7 @@ function ParameterForm({
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
+  designerMode: boolean;
 }) {
   return (
     <DesignFormShell
@@ -458,10 +461,39 @@ function ParameterForm({
           </label>
         </div>
       </fieldset>
+      <fieldset className="mb-4 rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
+        <legend className="text-xs text-amber-900 px-1.5 font-semibold">
+          🎨 設計師模式（自由尺寸）
+        </legend>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="designerMode"
+            value="true"
+            defaultChecked={designerMode}
+            className="mt-0.5 h-4 w-4 accent-amber-600 shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-amber-900 leading-relaxed">
+              開啟後解除範本上限，可輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
+            </div>
+            {designerMode && (
+              <div className="mt-1.5 text-[10px] text-amber-700 leading-relaxed">
+                ⚠️ 已啟用：尺寸不再受範本上限限制。極端尺寸下範本可能產生不合理結果（樑深不足、榫接無法成立），請務必以三視圖檢核。
+              </div>
+            )}
+          </div>
+        </label>
+      </fieldset>
       <div className="mb-4 pb-3 border-b border-zinc-200">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
           整體尺寸
+          {designerMode && (
+            <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+              無上限
+            </span>
+          )}
         </h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
