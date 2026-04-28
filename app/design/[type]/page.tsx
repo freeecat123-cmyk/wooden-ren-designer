@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessCategory, isPaidCategory } from "@/lib/permissions";
+import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
@@ -61,27 +61,30 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) notFound();
 
-  // 付費門檻：免費版只能進 FREE_UNLOCKED_CATEGORIES，其他導去 /pricing
-  if (isPaidCategory(type as FurnitureCategory)) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    let profile = null;
-    if (user) {
-      const { data } = await supabase
-        .from("users")
-        .select(
-          "plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at",
-        )
-        .eq("id", user.id)
-        .single();
-      profile = data;
-    }
-    if (!canAccessCategory(profile, type as FurnitureCategory)) {
-      redirect(`/pricing?locked=${type}`);
-    }
+  // 付費門檻：免費版只能進 FREE_UNLOCKED_CATEGORIES，其他導去 /pricing；
+  // 同時拉一次 profile 給「設計師模式」門檻用，避免重複查詢。
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let profile = null;
+  if (user) {
+    const { data } = await supabase
+      .from("users")
+      .select(
+        "plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at",
+      )
+      .eq("id", user.id)
+      .single();
+    profile = data;
   }
+  if (
+    isPaidCategory(type as FurnitureCategory) &&
+    !canAccessCategory(profile, type as FurnitureCategory)
+  ) {
+    redirect(`/pricing?locked=${type}`);
+  }
+  const canUseDesignerMode = getPlanFeatures(profile).canUseDesignerMode;
 
   if (!entry.template) {
     return (
@@ -98,7 +101,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   const parsed = parseDesignSearchParams(sp, entry);
-  const { length, width, height, material, options, joineryMode, designerMode } = parsed;
+  const { length, width, height, material, options, joineryMode } = parsed;
+  // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
+  // 避免被分享連結繞過上限檢查。
+  const designerMode = canUseDesignerMode && parsed.designerMode;
   const optionSchema = entry.optionSchema ?? [];
 
   const rawDesign = entry.template({ length, width, height, material, options });
@@ -183,6 +189,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             optionValues={options}
             joineryMode={joineryMode}
             designerMode={designerMode}
+            canUseDesignerMode={canUseDesignerMode}
           />
         </div>
 
@@ -394,6 +401,7 @@ function ParameterForm({
   optionValues,
   joineryMode,
   designerMode,
+  canUseDesignerMode,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
@@ -402,6 +410,7 @@ function ParameterForm({
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
   designerMode: boolean;
+  canUseDesignerMode: boolean;
 }) {
   return (
     <DesignFormShell
@@ -465,25 +474,44 @@ function ParameterForm({
         <legend className="text-xs text-amber-900 px-1.5 font-semibold">
           🎨 設計師模式（自由尺寸）
         </legend>
-        <label className="flex items-start gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            name="designerMode"
-            value="true"
-            defaultChecked={designerMode}
-            className="mt-0.5 h-4 w-4 accent-amber-600 shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="text-xs text-amber-900 leading-relaxed">
-              開啟後解除範本上限，可輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
-            </div>
-            {designerMode && (
-              <div className="mt-1.5 text-[10px] text-amber-700 leading-relaxed">
-                ⚠️ 已啟用：尺寸不再受範本上限限制。極端尺寸下範本可能產生不合理結果（樑深不足、榫接無法成立），請務必以三視圖檢核。
+        {canUseDesignerMode ? (
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="designerMode"
+              value="true"
+              defaultChecked={designerMode}
+              className="mt-0.5 h-4 w-4 accent-amber-600 shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-amber-900 leading-relaxed">
+                開啟後解除範本上限，可輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
               </div>
-            )}
+              {designerMode && (
+                <div className="mt-1.5 text-[10px] text-amber-700 leading-relaxed">
+                  ⚠️ 已啟用：尺寸不再受範本上限限制。極端尺寸下範本可能產生不合理結果（樑深不足、榫接無法成立），請務必以三視圖檢核。
+                </div>
+              )}
+            </div>
+          </label>
+        ) : (
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 h-4 w-4 shrink-0 rounded border border-amber-300 bg-white flex items-center justify-center text-[10px] text-amber-600">
+              🔒
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-amber-900 leading-relaxed">
+                解除範本尺寸上限，輸入到 mm 級客製尺寸（卡牆 2387 / 避柱凹槽 等系統櫃級需求）。
+              </div>
+              <div className="mt-1.5 text-[11px] text-amber-800">
+                這是 <span className="font-semibold">專業版</span> 功能。
+                <Link href="/pricing" className="ml-1 underline font-medium hover:text-amber-900">
+                  看方案 →
+                </Link>
+              </div>
+            </div>
           </div>
-        </label>
+        )}
       </fieldset>
       <div className="mb-4 pb-3 border-b border-zinc-200">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">

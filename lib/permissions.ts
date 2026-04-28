@@ -35,6 +35,8 @@ export interface PlanFeatures {
   canCustomizeQuoteHeader: boolean;
   /** 客戶資料管理 */
   canManageCustomers: boolean;
+  /** 設計師模式（自由尺寸，解除範本上限） */
+  canUseDesignerMode: boolean;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -45,6 +47,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseQuoteSystem: false,
     canCustomizeQuoteHeader: false,
     canManageCustomers: false,
+    canUseDesignerMode: false,
   },
   personal: {
     maxDesigns: Infinity,
@@ -53,6 +56,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseQuoteSystem: false,
     canCustomizeQuoteHeader: false,
     canManageCustomers: false,
+    canUseDesignerMode: false,
   },
   pro: {
     maxDesigns: Infinity,
@@ -61,6 +65,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseQuoteSystem: true,
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
+    canUseDesignerMode: true,
   },
   student: {
     maxDesigns: Infinity,
@@ -69,6 +74,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseQuoteSystem: true,
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
+    canUseDesignerMode: true,
   },
   lifetime: {
     maxDesigns: Infinity,
@@ -77,6 +83,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canUseQuoteSystem: true,
     canCustomizeQuoteHeader: true,
     canManageCustomers: true,
+    canUseDesignerMode: true,
   },
 };
 
