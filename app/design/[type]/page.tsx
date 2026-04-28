@@ -102,11 +102,23 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   const parsed = parseDesignSearchParams(sp, entry);
-  const { length, width, height, material, options, joineryMode } = parsed;
+  const { material, options, joineryMode } = parsed;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
   const optionSchema = entry.optionSchema ?? [];
+  // Server-side hard clamp：免費 / 個人版超過 entry.limits 直接縮回上限，
+  // 防止 ?length=800 之類的 URL 繞過。clampedDims 收集被縮的維度供 UI 顯示。
+  const limits = designerMode ? null : entry.limits ?? null;
+  const length = limits ? Math.min(parsed.length, limits.length) : parsed.length;
+  const width = limits ? Math.min(parsed.width, limits.width) : parsed.width;
+  const height = limits ? Math.min(parsed.height, limits.height) : parsed.height;
+  const clampedDims: { dim: string; from: number; to: number }[] = [];
+  if (limits) {
+    if (parsed.length > limits.length) clampedDims.push({ dim: "寬", from: parsed.length, to: limits.length });
+    if (parsed.width > limits.width) clampedDims.push({ dim: "深", from: parsed.width, to: limits.width });
+    if (parsed.height > limits.height) clampedDims.push({ dim: "高", from: parsed.height, to: limits.height });
+  }
 
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
@@ -158,6 +170,30 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </Link>
         </div>
       </header>
+
+      {clampedDims.length > 0 && (
+        <div className="mb-4 rounded-lg border-2 border-rose-400 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+          <div className="flex items-start gap-2">
+            <span className="text-base leading-none mt-0.5">🔒</span>
+            <div className="flex-1">
+              <div className="font-semibold mb-1">已達免費版尺寸上限——已自動縮回</div>
+              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                {clampedDims.map((c) => (
+                  <li key={c.dim}>
+                    {c.dim}：{c.from} mm <span className="text-rose-500">→</span> {c.to} mm
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-xs">
+                想做更大尺寸？開啟「設計師模式」自由輸入到 mm 級——
+                <Link href="/pricing" className="font-semibold underline hover:text-rose-700">
+                  升級專業版 →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {design.warnings && design.warnings.length > 0 && (
         <div className="mb-4 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -527,9 +563,10 @@ function ParameterForm({
       </div>
       <SizePresetButtons category={type as FurnitureCategory} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <NumberInput name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
-        <NumberInput name="width" label="深 (mm)" defaultValue={defaults.width} max={limits?.width} />
-        <NumberInput name="height" label="高 (mm)" defaultValue={defaults.height} max={limits?.height} />
+        {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
+        <NumberInput key={`length-${defaults.length}`} name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
+        <NumberInput key={`width-${defaults.width}`} name="width" label="深 (mm)" defaultValue={defaults.width} max={limits?.width} />
+        <NumberInput key={`height-${defaults.height}`} name="height" label="高 (mm)" defaultValue={defaults.height} max={limits?.height} />
         <label className="flex flex-col text-xs">
           <span className="text-zinc-600 mb-1">木材</span>
           <select
