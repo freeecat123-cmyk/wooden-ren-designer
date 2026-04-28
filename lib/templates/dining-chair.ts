@@ -172,6 +172,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0,
       };
     }
+    if (legShape === "splayed-length") {
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+    }
+    if (legShape === "splayed-width") {
+      // 餐椅單向沿寬邊外傾：只前腳，後腳保持垂直（避免後腳外傾不穩）
+      return { kind: "splayed", dxMm: 0, dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0 };
+    }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;
   };

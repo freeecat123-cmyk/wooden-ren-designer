@@ -107,6 +107,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         dzMm: Math.sign(c.z) * splayMm,
       };
     }
+    if (legShape === "splayed-length") {
+      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0 };
+    }
+    if (legShape === "splayed-width") {
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm };
+    }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;
   };

@@ -151,26 +151,33 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     x: length - legSize - 2 * legInset,
     z: width - legSize - 2 * legInset,
   };
-  // 外斜模式：腳在 apron Y 高度的中心 = 頂端 corner + shiftFactor × splayMm
-  // 牙板中心對到腳的真實中心（不然榫頭會偏一邊讓壁太薄爆掉）
-  const isSplayed = legShape === "splayed";
+  // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
+  // splayDx/splayDz 拆開計算，axis-aware 牙板補償
   const splayMm = 30; // 跟 rectLegShape 預設一致
+  const splayDx =
+    legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+  const splayDz =
+    legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+  const isSplayed = splayDx > 0 || splayDz > 0;
   const apronY = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter = apronY + apronWidth / 2;
   const apronShiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
-  const apronSplay = isSplayed ? splayMm * apronShiftFactor : 0;
-  const tilt = isSplayed ? Math.atan(splayMm / legHeight) : 0;
+  const apronSplayX = splayDx * apronShiftFactor;
+  const apronSplayZ = splayDz * apronShiftFactor;
+  const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
+  const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
   const apronSides = [
-    { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplay) } },
-    { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplay } },
-    { id: "apron-left", nameZh: "左橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + apronSplay), z: 0 } },
-    { id: "apron-right", nameZh: "右橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + apronSplay, z: 0 } },
+    { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) } },
+    { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplayZ } },
+    { id: "apron-left", nameZh: "左橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + apronSplayX), z: 0 } },
+    { id: "apron-right", nameZh: "右橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + apronSplayX, z: 0 } },
   ];
   const aprons: Part[] = apronSides.map((s) => {
+    // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
-      ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+      ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
     return {
       id: s.id,
@@ -184,8 +191,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       },
       origin: { x: s.origin.x, y: apronY, z: s.origin.z },
       rotation: s.axis === "z"
-        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
-        : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+        : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
       shape: isSplayed
         ? { kind: "apron-beveled" as const, bevelAngle }
         : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
@@ -226,13 +233,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // 下橫撐位置低 → 腳已外推更多，shiftFactor 更大
     const lsYCenter = lowerY + lowerW / 2;
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter / legHeight : 0;
-    const lsSplay = isSplayed ? splayMm * lsShiftFactor : 0;
+    const lsSplayX = splayDx * lsShiftFactor;
+    const lsSplayZ = splayDz * lsShiftFactor;
     if (lowerStretcherStyle === "x-cross") {
       // X 字交叉橫撐：兩條對角線連接 4 隻腳，過中心半搭接。
       // 外斜模式時對角橫撐做法太複雜（要傾斜+扭轉），先不支援；fallback 走直立 X。
       // 視覺上 2 條交叉時可能有 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
-      const halfX = apronEdgeX + lsSplay;
-      const halfZ = apronEdgeZ + lsSplay;
+      const halfX = apronEdgeX + lsSplayX;
+      const halfZ = apronEdgeZ + lsSplayZ;
       const diagLen = 2 * Math.sqrt(halfX * halfX + halfZ * halfZ);
       // 對角斜撐 length 較長 → 重新算 tenon（仍是 1/3 法則）
       const xTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
@@ -263,14 +271,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     } else {
       // h-frame: 4 條繞 1 圈
       const sides = [
-        { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplay) } },
-        { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplay, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplay } },
-        { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplay), z: 0 } },
-        { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplay, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplay, z: 0 } },
+        { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
+        { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
+        { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplayX), z: 0 } },
+        { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplayX, z: 0 } },
       ];
       for (const s of sides) {
         const bevelAngle = isSplayed
-          ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
+          ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
           : 0;
         parts.push({
           id: s.id,
@@ -280,8 +288,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
           origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
           rotation: s.axis === "z"
-            ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
-            : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
+            ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+            : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
           shape: isSplayed
             ? { kind: "apron-beveled", bevelAngle }
             : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
