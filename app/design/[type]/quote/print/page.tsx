@@ -245,9 +245,6 @@ export default async function QuotePrintPage({
                   </div>
                   <div>木材：{MATERIALS[material].nameZh}</div>
                   <div>零件數：{design.parts.length} 件</div>
-                  <div>
-                    榫卯：以 {design.defaultJoinery === "blind-tenon" ? "閉口榫" : design.defaultJoinery} 為主
-                  </div>
                   <div>估工：{quote.laborHours.toFixed(1)} 小時</div>
                 </td>
                 <td className="text-center p-2 border-r border-zinc-300 align-top font-semibold">
