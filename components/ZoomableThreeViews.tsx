@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { OrthoView } from "@/lib/render/svg-views";
 import type { FurnitureDesign } from "@/lib/types";
 
@@ -20,6 +20,16 @@ const VIEW_TITLES: Record<ViewKind, { zh: string; en: string }> = {
 export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // scale 變動時把 scroll 位置同步到「中央錨定放大」效果——使用者按 +
+  // 不會看到圖往右下跑，而是維持以中心為基準向四周擴張
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+    el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
+  }, [scale, zoomed]);
 
   useEffect(() => {
     if (!zoomed) return;
@@ -131,7 +141,10 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto flex bg-zinc-50 [align-items:safe_center] [justify-content:safe_center]">
+            <div
+              ref={scrollRef}
+              className="flex-1 min-h-0 overflow-auto flex bg-zinc-50 [align-items:safe_center] [justify-content:safe_center]"
+            >
               {/* scale > 1 時內容溢出對稱方向；safe center 讓溢出時退回 start-alignment，scrollbar 才能捲到頂部/最左邊 */}
               <div
                 style={{
