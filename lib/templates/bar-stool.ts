@@ -10,7 +10,8 @@ import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_
 // 吧台椅尺寸範圍很穩定，沒明顯需要建議切換的目標模板（dining-chair 是椅背較大的不同物件）。
 
 export const barStoolOptions: OptionSpec[] = [
-  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
+  // 吧檯椅排除「方錐漸縮（大幅下收）」——重心高、下收太多會頭重腳輕
+  { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES.filter((c) => c.value !== "strong-taper") },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   seatEdgeOption("top", 5),
