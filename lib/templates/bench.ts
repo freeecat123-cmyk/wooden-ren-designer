@@ -55,6 +55,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "windsorTopRailH", label: "Windsor 頂橫木寬度 (mm)", defaultValue: 45, min: 25, max: 100, step: 5, help: "頂橫木 (bow) 高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度 (mm)", defaultValue: 28, min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorBackInset", label: "Windsor 椅背距座板背緣 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅背整體（圓料+邊柱+頂橫木）往前推離座板背緣的距離；0 = 齊平", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorEndInset", label: "Windsor 椅背距座板端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背左右兩端往內縮的距離（邊柱外緣 + bow 兩端）；0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 20, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
@@ -109,6 +110,7 @@ export const bench: FurnitureTemplate = (input) => {
   const windsorTopRailH = getOption<number>(input, opt(o, "windsorTopRailH"));
   const windsorTopRailT = getOption<number>(input, opt(o, "windsorTopRailT"));
   const windsorBackInset = getOption<number>(input, opt(o, "windsorBackInset"));
+  const windsorEndInset = getOption<number>(input, opt(o, "windsorEndInset"));
 
   const design = simpleTable({
     category: "bench",
@@ -397,17 +399,20 @@ export const bench: FurnitureTemplate = (input) => {
       const topRailT = Math.max(15, Math.min(60, windsorTopRailT || 28));  // 頂橫木（bow）厚度
       const bowBendMm = Math.max(0, windsorBowBendMm);
       const backInset = Math.max(0, Math.min(150, windsorBackInset || 0));
+      const endInset = Math.max(0, Math.min(200, windsorEndInset || 0));
       const spindleN = Math.max(5, Math.min(13, Math.round(windsorSpindleCount || 7)));
       void windsorRakeMm; // TODO: 後傾要搭配 tilt-z shape，跟 round 不能用 rotation 疊
 
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
-      // arch-bent 公式：每根圓料在自己 X 位置上、bow 中心往 +Z 偏多少
-      // → 圓料頂端跟著偏，底端維持齊座板背緣，整支變斜
+      // 預先算 stumpX（要等下面 stumpInset 算完才知道）→ 先把 bow 範圍預備好
+      const _stumpInsetPre = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
+      const _bowLengthPre = Math.max(100, 2 * (input.length / 2 - _stumpInsetPre) + stumpD);
+      // arch-bent 公式：每根圓料用「bow 自身長度」算，跟 bow 同步彎度
       const archDzAt = (x: number) =>
         bowBendMm > 0
-          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / input.length, 2))
+          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / _bowLengthPre, 2))
           : 0;
 
       // 從座板背緣垂直往上、頂端跟著 bow 後彎傾斜的車旋圓料
@@ -438,8 +443,9 @@ export const bench: FurnitureTemplate = (input) => {
         });
       };
 
-      // 兩側邊柱 (stump posts) — 略內縮避免懸出座板邊
-      const stumpInset = stumpD / 2 + 8;
+      // 兩側邊柱 (stump posts)：邊柱「外緣」距座板端面 = endInset
+      // 預設留 8mm 安全邊距避免邊柱整支懸出
+      const stumpInset = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
       const stumpX = input.length / 2 - stumpInset;
       buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
       buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
@@ -456,12 +462,14 @@ export const bench: FurnitureTemplate = (input) => {
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
       const railZ = halfW - topRailT / 2 - backInset;
+      // bow 長度跟著 stumpX 縮：bow 兩端對齊邊柱外緣
+      const bowLength = Math.max(100, 2 * stumpX + stumpD);
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
         material: mat,
         grainDirection: "length",
-        visible: { length: input.length, width: topRailT, thickness: topRailH },
+        visible: { length: bowLength, width: topRailT, thickness: topRailH },
         origin: { x: 0, y: railBotY, z: railZ },
         shape: bowBendMm > 0 ? { kind: "arch-bent" as const, bendMm: bowBendMm } : undefined,
         tenons: [],
