@@ -426,7 +426,8 @@ export const bench: FurnitureTemplate = (input) => {
       ) => {
         if (partH <= 0) return;
         const dz = archDzAt(x);
-        const zTop = halfW - diameter / 2 - backInset + dz; // 頂端跟 bow 偏 +Z，整體前推 backInset
+        // 圓料軸心對齊 bow 下緣中軸線：z = halfW − topRailT/2 − backInset + archDz
+        const zTop = halfW - topRailT / 2 - backInset + dz;
         const useSplay = dz > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
@@ -447,8 +448,8 @@ export const bench: FurnitureTemplate = (input) => {
       // 預設留 8mm 安全邊距避免邊柱整支懸出
       const stumpInset = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
       const stumpX = input.length / 2 - stumpInset;
-      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", true);
-      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", true);
+      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
+      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
 
       // 中央圓料 (spindles)：在兩邊柱「內側邊」之間等距分佈
       // 用 slot-pitch 法：兩端 gap = 中間相鄰 gap，避免端點圓料貼到邊柱
