@@ -13,6 +13,7 @@ export const barStoolOptions: OptionSpec[] = [
   // 吧檯椅排除「方錐漸縮（大幅下收）」——重心高、下收太多會頭重腳輕
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES.filter((c) => c.value !== "strong-taper") },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
+  { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 5, min: 1, max: 12, step: 0.5, unit: "°", help: "斜腳系列才有效——從垂直起算的外傾角度。吧檯椅較高，建議不超過 8°，太斜底盤過大不穩", dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
@@ -68,6 +69,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
+  const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const withBack = backStyle !== "none";
 
   const apronThickness = 18;
@@ -93,7 +95,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const cornerPts = corners(length, width, legSize);
 
   // Leg shape mapping (same set as dining-table / dining-chair)
-  const splayMm = 25;
+  // splayMm = tan(splayAngle) × seatY，腳底向外偏移量（前後腳共用同一偏移，視覺一致）
+  const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
   const hoofMm = 30;
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
