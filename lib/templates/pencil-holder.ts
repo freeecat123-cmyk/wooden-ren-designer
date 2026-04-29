@@ -45,6 +45,22 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     bottomFit: "grooved",
   });
 
+  // 斜接 (miter) 的下料規則：4 片壁都用「全外尺寸」下料、兩端 45° 斜切，
+  // 不像 stub-joint 那樣 2 長 (outerL) + 2 短 (innerW)。
+  // 我們繼續用 stub-joint 幾何畫 3D（避免角落破面），但 cut list 必須反映 miter
+  // 的實際下料：覆寫 visible.length + 清掉 stub 的 tenon allowance。
+  if (cornerJoinery === "miter") {
+    for (const part of built.parts) {
+      if (part.id === "wall-front" || part.id === "wall-back") {
+        part.visible = { ...part.visible, length: outerL };
+        part.tenons = [];
+      } else if (part.id === "wall-left" || part.id === "wall-right") {
+        part.visible = { ...part.visible, length: outerW };
+        part.tenons = [];
+      }
+    }
+  }
+
   // 加內部直立隔板（縱向：沿 length 軸切，跟長邊垂直）
   const dividerParts: typeof built.parts = [];
   const dividerThick = wallT - 2;
