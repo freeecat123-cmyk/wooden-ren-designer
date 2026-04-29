@@ -40,7 +40,16 @@ export interface ProjectRow {
   labor_opts: ProjectLaborOpts | null;
   share_token: string | null;
   expires_at: string | null;
+  /** 公開備註（會顯示在報價單給客戶看）*/
   notes: string | null;
+  /** 內部備註（業主看不到，給設計師/木匠做筆記，per migration 20260429）*/
+  internal_notes: string | null;
+  /** 訂金收款日（null = 尚未收，per migration 20260429）*/
+  deposit_received_at: string | null;
+  /** 尾款收款日（null = 尚未收，per migration 20260429）*/
+  balance_received_at: string | null;
+  /** 手動覆寫的預計完工日（null = 用估算值，per migration 20260429）*/
+  delivery_date_override: string | null;
   created_at: string;
   updated_at: string;
 }

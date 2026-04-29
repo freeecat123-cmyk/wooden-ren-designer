@@ -334,6 +334,56 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     }
   };
 
+  // 複製專案：建一個新 project + 複製所有 items（給第二次接單或同建商案用）
+  const duplicateProject = async () => {
+    if (!project || !items) return;
+    const newName = window.prompt("新專案名稱？", `${project.name} (副本)`);
+    if (!newName?.trim()) return;
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      // 1. 建新 project（不複製 share_token / 收款日期 / status 重設成 draft）
+      const { data: newProj, error: pErr } = await supabase
+        .from("projects")
+        .insert({
+          user_id: project.user_id,
+          name: newName.trim(),
+          customer_name: project.customer_name,
+          customer_contact: project.customer_contact,
+          project_address: project.project_address,
+          design_concept: project.design_concept,
+          status: "draft",
+          deposit_rate: project.deposit_rate,
+          labor_opts: project.labor_opts,
+          notes: project.notes,
+        })
+        .select()
+        .single();
+      if (pErr) throw pErr;
+      // 2. 複製 items
+      if (items.length > 0) {
+        const newItems = items.map((it) => ({
+          project_id: newProj.id,
+          design_id: it.design_id,
+          furniture_type: it.furniture_type,
+          name: it.name,
+          params: it.params,
+          quantity: it.quantity,
+          unit_price_override: it.unit_price_override,
+          room: it.room,
+          sort_order: it.sort_order,
+          notes: it.notes,
+        }));
+        const { error: iErr } = await supabase.from("project_items").insert(newItems);
+        if (iErr) throw iErr;
+      }
+      window.location.href = `/projects/${newProj.id}`;
+    } catch (e) {
+      window.alert(`複製失敗：${e instanceof Error ? e.message : String(e)}`);
+      setBusy(false);
+    }
+  };
+
   const deleteProject = async () => {
     if (!project) return;
     if (
@@ -452,6 +502,31 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <LaborOptsPanel
         value={project.labor_opts}
         onSave={(opts) => updateProject({ labor_opts: opts })}
+      />
+
+      {/* 金流追蹤 + 預計完工日（業界最痛點，常被問「訂金收了嗎？」「啥時交貨？」）*/}
+      <PaymentDeliveryPanel
+        project={project}
+        totals={totals}
+        onSave={(patch) => updateProject(patch)}
+      />
+
+      {/* 公開備註（會顯示在報價單） */}
+      <NotesPanel
+        title="📌 公開備註"
+        subtitle="會顯示在報價單給客戶看"
+        placeholder="例：完工後將提供保養手冊、保固期 1 年、含送貨上樓服務..."
+        value={project.notes ?? ""}
+        onSave={(v) => updateProject({ notes: v || null })}
+      />
+
+      {/* 內部備註（業主看不到）*/}
+      <NotesPanel
+        title="📝 內部備註"
+        subtitle="業主看不到，給自己 / 工頭做筆記"
+        placeholder="例：客戶殺價空間 5%、老闆認識可打 9 折、工頭叮嚀板厚 18mm 不能變、客戶介紹人是 OOO..."
+        value={project.internal_notes ?? ""}
+        onSave={(v) => updateProject({ internal_notes: v || null })}
       />
 
       {/* 項目列表 */}
@@ -637,23 +712,40 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         mode="craftsman"
       />
 
-      {/* 危險區（收進 disclosure，避免常駐誤點）*/}
+      {/* 更多操作（複製 + 危險區，收進 disclosure）*/}
       <details className="mt-12 pt-6 border-t border-zinc-200">
         <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-700 list-none flex items-center gap-1">
           <span>⋯</span> 更多操作
         </summary>
-        <div className="mt-3 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200">
-          <p className="text-[11px] text-rose-700 mb-2">
-            ⚠️ 危險區：以下動作不可復原
-          </p>
-          <button
-            type="button"
-            onClick={deleteProject}
-            disabled={busy}
-            className="text-xs text-red-700 hover:underline disabled:opacity-50 font-medium"
-          >
-            🗑 刪除整個專案
-          </button>
+        <div className="mt-3 space-y-3">
+          {/* 安全區：複製專案 */}
+          <div className="px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200">
+            <p className="text-[11px] text-zinc-600 mb-2">
+              📋 給第二次接單或同建商案用，複製本專案的客戶資料、項目、報價設定
+            </p>
+            <button
+              type="button"
+              onClick={duplicateProject}
+              disabled={busy}
+              className="text-xs text-zinc-700 hover:underline disabled:opacity-50 font-medium"
+            >
+              📋 複製此專案
+            </button>
+          </div>
+          {/* 危險區 */}
+          <div className="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200">
+            <p className="text-[11px] text-rose-700 mb-2">
+              ⚠️ 危險區：以下動作不可復原
+            </p>
+            <button
+              type="button"
+              onClick={deleteProject}
+              disabled={busy}
+              className="text-xs text-red-700 hover:underline disabled:opacity-50 font-medium"
+            >
+              🗑 刪除整個專案
+            </button>
+          </div>
         </div>
       </details>
 
@@ -965,6 +1057,179 @@ const LABOR_GROUPS: Array<{ title: string; icon: string; fields: LaborField[] }>
     ],
   },
 ];
+
+function PaymentDeliveryPanel({
+  project,
+  totals,
+  onSave,
+}: {
+  project: ProjectRow;
+  totals: { subtotal: number; count: number };
+  onSave: (patch: Partial<ProjectRow>) => void;
+}) {
+  const depositAmount = Math.round(totals.subtotal * project.deposit_rate);
+  const balanceAmount = Math.max(0, Math.round(totals.subtotal) - depositAmount);
+  const depositPaid = !!project.deposit_received_at;
+  const balancePaid = !!project.balance_received_at;
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <details className="mb-6 rounded-2xl border-2 border-zinc-200 bg-white" open>
+      <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
+        <span className="font-semibold text-zinc-900 text-sm">
+          💰 金流 · 進度
+        </span>
+        <span className="text-xs">
+          {depositPaid && balancePaid ? (
+            <span className="text-emerald-700 font-medium">✓ 全額收清</span>
+          ) : depositPaid ? (
+            <span className="text-amber-700 font-medium">已收訂金</span>
+          ) : (
+            <span className="text-zinc-400">未收款</span>
+          )}
+          {project.delivery_date_override && (
+            <span className="ml-2 text-zinc-600">交貨：{project.delivery_date_override}</span>
+          )}
+        </span>
+      </summary>
+      <div className="px-5 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* 訂金 */}
+        <div>
+          <label className="flex items-center gap-2 text-xs text-zinc-600 mb-1">
+            <input
+              type="checkbox"
+              checked={depositPaid}
+              onChange={(e) =>
+                onSave({
+                  deposit_received_at: e.target.checked ? new Date().toISOString() : null,
+                })
+              }
+              className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
+            />
+            <span className="font-medium">
+              訂金（{Math.round(project.deposit_rate * 100)}%）
+            </span>
+          </label>
+          <div className="text-base font-mono font-semibold text-zinc-900">
+            {formatTWD(depositAmount)}
+          </div>
+          {depositPaid && (
+            <input
+              type="date"
+              value={(project.deposit_received_at ?? "").slice(0, 10)}
+              onChange={(e) =>
+                onSave({
+                  deposit_received_at: e.target.value
+                    ? new Date(e.target.value + "T00:00:00").toISOString()
+                    : null,
+                })
+              }
+              className="mt-1 text-xs border border-zinc-300 rounded px-1.5 py-0.5 bg-white"
+            />
+          )}
+        </div>
+
+        {/* 尾款 */}
+        <div>
+          <label className="flex items-center gap-2 text-xs text-zinc-600 mb-1">
+            <input
+              type="checkbox"
+              checked={balancePaid}
+              onChange={(e) =>
+                onSave({
+                  balance_received_at: e.target.checked ? new Date().toISOString() : null,
+                })
+              }
+              className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
+            />
+            <span className="font-medium">尾款</span>
+          </label>
+          <div className="text-base font-mono font-semibold text-zinc-900">
+            {formatTWD(balanceAmount)}
+          </div>
+          {balancePaid && (
+            <input
+              type="date"
+              value={(project.balance_received_at ?? "").slice(0, 10)}
+              onChange={(e) =>
+                onSave({
+                  balance_received_at: e.target.value
+                    ? new Date(e.target.value + "T00:00:00").toISOString()
+                    : null,
+                })
+              }
+              className="mt-1 text-xs border border-zinc-300 rounded px-1.5 py-0.5 bg-white"
+            />
+          )}
+        </div>
+
+        {/* 預計完工日 */}
+        <div>
+          <label className="text-xs text-zinc-600 mb-1 block font-medium">
+            📅 預計完工日
+          </label>
+          <input
+            type="date"
+            value={project.delivery_date_override ?? ""}
+            min={today}
+            onChange={(e) =>
+              onSave({ delivery_date_override: e.target.value || null })
+            }
+            className="text-sm border border-zinc-300 rounded px-2 py-1 bg-white w-full"
+          />
+          <p className="text-[10px] text-zinc-400 mt-1">
+            空白 = 用工時自動估算
+          </p>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function NotesPanel({
+  title,
+  subtitle,
+  placeholder,
+  value,
+  onSave,
+}: {
+  title: string;
+  subtitle: string;
+  placeholder: string;
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  const [v, setV] = useState(value);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => setV(value), [value]);
+  return (
+    <details className="mb-6 rounded-2xl border-2 border-zinc-200 bg-white" open={!!value.trim()}>
+      <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
+        <span className="font-semibold text-zinc-900 text-sm">
+          {title}
+          <span className="ml-2 text-xs font-normal text-zinc-500">（{subtitle}）</span>
+        </span>
+        {saved && <span className="text-[10px] text-emerald-600 font-medium">✓ 已儲存</span>}
+      </summary>
+      <div className="px-5 pb-5 pt-1">
+        <textarea
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onBlur={() => {
+            if (v !== value) {
+              onSave(v.trim());
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            }
+          }}
+          placeholder={placeholder}
+          rows={3}
+          className="w-full border border-zinc-300 rounded px-3 py-2 bg-white text-sm leading-relaxed resize-y"
+        />
+      </div>
+    </details>
+  );
+}
 
 function LaborOptsPanel({
   value,
