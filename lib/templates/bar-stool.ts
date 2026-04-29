@@ -251,11 +251,27 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const innerSpanX = length - legSize;
   const innerSpanZ = width - legSize;
   const ringY = seatY - apronWidth - apronOffset;
+
+  // 斜腳補償：splayed shape 的腳底向外偏 splayMm（在 y=0），腳頂在原角點（y=seatY）。
+  // 線性內插：在高度 yMm 處，腳中心向外偏 splayMm × (1 - yMm/seatY)。
+  // 牙板/腳踏要跟著腳的當下位置走，否則接不到。
+  const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
+  const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
+  const dxAtY = (yMm: number) =>
+    isLengthSplay ? Math.max(0, splayMm * (1 - yMm / seatY)) : 0;
+  const dzAtY = (yMm: number) =>
+    isWidthSplay ? Math.max(0, splayMm * (1 - yMm / seatY)) : 0;
+
+  const apronDx = dxAtY(ringY);
+  const apronDz = dzAtY(ringY);
+  const frDx = dxAtY(footrestHeight);
+  const frDz = dzAtY(footrestHeight);
+
   const apronSides = [
-    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
-    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
-    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
+    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) - apronDz } },
+    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 + apronDz } },
+    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2) - apronDx, z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, origin: { x: length / 2 - legSize / 2 + apronDx, z: 0 } },
   ];
   const aprons: Part[] = apronSides.map((s) => ({
     id: `apron-${s.key}`,
@@ -275,7 +291,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   }));
 
-  const footRests: Part[] = apronSides.map((s) => ({
+  const footRestSides = [
+    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) - frDz } },
+    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 + frDz } },
+    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2) - frDx, z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, origin: { x: length / 2 - legSize / 2 + frDx, z: 0 } },
+  ];
+  const footRests: Part[] = footRestSides.map((s) => ({
     id: `footrest-${s.key}`,
     nameZh: `腳踏-${s.nameZh.replace("牙板", "")}`,
     material,
