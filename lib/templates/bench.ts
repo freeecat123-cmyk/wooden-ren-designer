@@ -393,6 +393,7 @@ export const bench: FurnitureTemplate = (input) => {
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
       // 從座板背緣垂直往上的車旋圓料（vertical turned dowel/post）
+      // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高（垂直長軸）→ 不旋轉
       const buildVerticalRound = (
         x: number,
         diameter: number,
@@ -406,9 +407,8 @@ export const bench: FurnitureTemplate = (input) => {
           nameZh,
           material: mat,
           grainDirection: "length",
-          visible: { length: diameter, width: partH, thickness: diameter },
+          visible: { length: diameter, width: diameter, thickness: partH },
           origin: { x, y: seatTop, z: zCenter },
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           shape: { kind: "round" },
           tenons: [],
           mortises: [],
