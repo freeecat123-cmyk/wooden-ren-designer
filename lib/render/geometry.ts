@@ -331,6 +331,40 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
   ];
   if (!part.shape || part.shape.kind === "box") return box;
 
+  // 帶頂緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視
+  // 矩形 + 頂面 2 角倒角。等同 chamfered-top with bottomChamferMm=0。
+  if (part.shape.kind === "round" && (part.shape.chamferMm ?? 0) > 0) {
+    if (view === "top") return box;
+    const cTop = Math.min(part.shape.chamferMm!, r.h * 0.45, r.w * 0.45);
+    if (cTop <= 0) return box;
+    const rounded = part.shape.chamferStyle === "rounded";
+    if (rounded) {
+      const segs = 4;
+      const arc = (cx: number, cy: number, c: number, t0: number, t1: number) => {
+        const pts: Array<{ x: number; y: number }> = [];
+        for (let i = 0; i <= segs; i++) {
+          const t = t0 + ((t1 - t0) * i) / segs;
+          pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
+        }
+        return pts;
+      };
+      const pts: Array<{ x: number; y: number }> = [];
+      pts.push(...arc(r.x + r.w - cTop, r.y + r.h - cTop, cTop, 0, Math.PI / 2));
+      pts.push(...arc(r.x + cTop, r.y + r.h - cTop, cTop, Math.PI / 2, Math.PI));
+      pts.push({ x: r.x, y: r.y });
+      pts.push({ x: r.x + r.w, y: r.y });
+      return pts;
+    }
+    return [
+      { x: r.x + cTop, y: r.y + r.h },
+      { x: r.x + r.w - cTop, y: r.y + r.h },
+      { x: r.x + r.w, y: r.y + r.h - cTop },
+      { x: r.x + r.w, y: r.y },
+      { x: r.x, y: r.y },
+      { x: r.x, y: r.y + r.h - cTop },
+    ];
+  }
+
   // Taper only applies when the part stands vertically (length/thickness →
   // world Y). Always skipped in top view.
   if (part.shape.kind === "tapered") {

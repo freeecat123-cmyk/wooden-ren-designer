@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BufferGeometry, Euler, Float32BufferAttribute, SRGBColorSpace } from "three";
+import { ACESFilmicToneMapping, BufferGeometry, Euler, Float32BufferAttribute, SRGBColorSpace, Vector2 } from "three";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -91,7 +91,7 @@ type ShapeSpec =
   | { kind: "tapered"; bottomScale: number }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "round" }
+  | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
   | { kind: "lathe-turned" }
@@ -199,6 +199,43 @@ function Part({
   // CylinderGeometry 預設立軸沿 Y，剛好對應 size[1]
   if (shape?.kind === "round") {
     const radius = size[0] / 2;
+    const chamfer = shape.chamferMm ?? 0;
+    if (chamfer > 0) {
+      // 帶頂面外緣倒角的圓盤——用 lathe 旋轉 2D profile 出來。
+      // Profile 從中軸向外、由底往頂繞一圈：
+      //   底中→底外→垂直外緣到 (h - c)→ 45° 倒角到 (radius - c, h)→ 頂中
+      const h = size[1];
+      const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
+      const innerR = Math.max(0.5, radius - cap);
+      const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
+      const points: Vector2[] = [
+        new Vector2(0, -h / 2),
+        new Vector2(radius, -h / 2),
+        new Vector2(radius, h / 2 - cap),
+      ];
+      // chamferStyle="rounded" → 用多段 quarter arc 拼出圓角；"chamfered" → 單段 45°
+      if (styleSegs === 1) {
+        points.push(new Vector2(innerR, h / 2));
+      } else {
+        for (let i = 1; i <= styleSegs; i++) {
+          const t = (i / styleSegs) * (Math.PI / 2);
+          // arc 圓心 (innerR, h/2 - cap)，半徑 cap，從 0° 掃到 90°
+          points.push(
+            new Vector2(
+              innerR + cap * Math.cos(t),
+              h / 2 - cap + cap * Math.sin(t),
+            ),
+          );
+        }
+      }
+      points.push(new Vector2(0, h / 2));
+      return (
+        <mesh position={position} rotation={rotation} castShadow receiveShadow>
+          <latheGeometry args={[points, 48]} />
+          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
+        </mesh>
+      );
+    }
     return (
       <mesh position={position} rotation={rotation} castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius, size[1], 48]} />
@@ -1395,7 +1432,11 @@ export function PerspectiveView({
               dirZ: part.shape.dirZ ?? 0,
             };
           } else if (part.shape?.kind === "round") {
-            shape = { kind: "round" };
+            shape = {
+              kind: "round",
+              chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
+              chamferStyle: part.shape.chamferStyle,
+            };
           } else if (part.shape?.kind === "round-tapered") {
             shape = { kind: "round-tapered", bottomScale: part.shape.bottomScale };
           } else if (part.shape?.kind === "shaker") {

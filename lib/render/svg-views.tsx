@@ -761,10 +761,15 @@ export function OrthoView({
         }
         // Use polygon when the shape is non-box AND it would differ from a rect
         // in this view.
+        // round 一般不走 polygon（俯視畫圓另外處理；前/側視就是矩形），
+        // 但「帶 chamferMm 的 round（圓凳座板倒角）」前/側視會多 2 個倒角，
+        // 這時要走 polygon 路徑；俯視仍由上面的圓形 case 處理。
+        const isRoundWithChamfer =
+          part.shape?.kind === "round" && (part.shape.chamferMm ?? 0) > 0;
         const useShape =
           part.shape &&
           part.shape.kind !== "box" &&
-          part.shape.kind !== "round" &&
+          (part.shape.kind !== "round" || (isRoundWithChamfer && view !== "top")) &&
           !(
             view === "top" &&
             part.shape.kind !== "splayed" &&
