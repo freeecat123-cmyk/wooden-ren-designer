@@ -16,7 +16,6 @@ export const pencilHolderOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）" },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）" },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "頂緣倒角 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "頂緣外側倒 1-3mm 防扎手，無倒角設 0" },
 ];
 
 /**
@@ -34,7 +33,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     | "miter";
   const dividers = getOption<number>(input, opt(o, "dividers"));
   const crossDividers = getOption<number>(input, opt(o, "crossDividers"));
-  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({
     outerL,
@@ -100,7 +98,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [...built.parts, ...dividerParts],
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
