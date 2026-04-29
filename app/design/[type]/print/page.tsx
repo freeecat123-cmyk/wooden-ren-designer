@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 import { ThreeViewLayout, MaterialList } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
+import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import {
   JoineryDetail,
@@ -79,7 +80,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const usages = extractJoineryUsages(design);
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = taipeiIsoDate();
   const totalVolumeM3 = estimateTotalVolume(design);
 
   return (
