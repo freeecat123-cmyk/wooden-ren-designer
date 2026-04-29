@@ -3554,4 +3554,207 @@ shape = splayed-round-tapered, dzMm = zBottom − zTop
 
 只要替換 `seatTop` → 結構底面 Y、`halfW` → 結構背緣 Z，公式不變。
 
+---
+
+## AT. 木工幾何與放樣參考公式（複斜角 / 單斜角 / 投影 / 放樣）
+
+> 蒐集自 Fine Woodworking、Lost Art Press、Tage Frid、Toshio Odate、王世襄、JIS/GB 製圖標準等來源。
+> 用於 designer 內部建模 + 木匠學院教材公開引用。所有公式以**度**為輸入單位，工程上直接代入。
+
+### AT1. 複斜角 (Compound Angles)
+
+複斜角出現於：鬥形容器 (hopper)、外撇腿凳椅、煙囪罩、傾斜畫框、Windsor 椅後腿。
+構件同時有**外撇 (splay)**與**側傾 (cant)**時，鋸片需同時調整**傾角 (bevel)**與**斜切角 (miter)**。
+
+#### AT1.1 Hopper Formula（n 邊形對稱外撇盒，最廣泛引用）
+
+```
+Miter (M)      = arctan( cos(S) × tan(180°/n) )
+Blade Tilt (B) = arcsin( sin(S) × cos(180°/n) )
+```
+
+| 變數 | 意義 |
+|---|---|
+| `S` | 側板外撇角（與垂直線夾角） |
+| `n` | 邊數（方鬥 n=4、六角桶 n=6、八角桶 n=8） |
+| `M` | 鋸枱左右轉角（複斜切鋸） |
+| `B` | 鋸片左右傾倒角 |
+
+**來源**：Gary Rogowski《Complete Illustrated Guide to Joinery》Taunton 2002；Wally Kunkel "Compound Miters Made Simple" *FWW* #84 (1990)；Bridge City Tool Works *CT-12 Manual*
+
+#### AT1.2 替代形式（Tage Frid 派）
+
+```
+Blade Tilt  = arctan( sin(S) × tan(T) )
+Miter Angle = arctan( cos(S) / tan(T) )    後再 90° 補角
+```
+
+T = 半夾角（方鬥 T=45°）。**注意**：Rogowski 派跟 Frid 派 miter 定義差 90° 補角，使用前確認該書鋸枱讀數方向。
+
+#### AT1.3 Windsor 椅 Resultant + Sightline（鑽座板腿榫眼）
+
+後腿同時外撇 (splay) + 後傾 (rake) 時：
+
+```
+α_resultant = arccos( cos(splay) × cos(rake) )
+sightline   = arctan( tan(rake) / tan(splay) )
+```
+
+從椅後方拉一條 `sightline` 角度的視線，沿視線鑽 `α_resultant` 即同時得到外撇 + 後傾。
+
+**來源**：Pete Galbert《Chairmaker's Notebook》LAP 2015；Drew Langsner《The Chairmaker's Workshop》Lark 1997；Christopher Schwarz《The Stick Chair Book》LAP 2021
+
+#### AT1.4 工作範例
+
+**方鬥 S=15°, n=4**：
+- M = arctan(cos15° × tan45°) = arctan(0.9659) = **44.00°**
+- B = arcsin(sin15° × cos45°) = arcsin(0.1830) = **10.54°**
+
+**Windsor 後腿 splay=14°, rake=8°**：
+- Resultant = arccos(cos14° × cos8°) = **16.06°**
+- Sightline = arctan(tan8° / tan14°) = **29.40°**
+
+### AT2. 單斜角 (Single Bevel)
+
+只有外撇、無側傾的純 splay 結構（凳腳、桌腳、簡易花架）。
+
+#### AT2.1 Splay 換算
+
+```
+頂部榫眼角 θ_m = 90° − S
+腳底水平偏移 d = h × tan(S)
+```
+
+| 變數 | 意義 |
+|---|---|
+| `S` | 外撇角（垂直線量測） |
+| `h` | 腿長 |
+| `d` | 腳底距垂直投影點偏移 |
+
+#### AT2.2 真角 vs 視角（前後 + 左右雙向 splay）
+
+```
+tan(α_apparent_front) = tan(S_side) / cos(S_front)
+tan(α_true)           = √( tan²(S_side) + tan²(S_front) )
+```
+
+#### AT2.3 燕尾比 Rule of Thumb
+
+| 木性 | 比例 | 角度 |
+|---|---|---|
+| 硬木 | 1:8 | 7.13° |
+| 軟木 | 1:6 | 9.46° |
+| 折衷 | 1:7 | 8.13° |
+
+**來源**：Frank Klausz *Dovetail a Drawer*；Ian Kirby《The Complete Dovetail》；Schwarz "1:8 vs 1:6 — pick one and move on"
+
+### AT3. 投影 / 軸測 (Projection / Axonometric)
+
+#### AT3.1 第一角法 vs 第三角法
+
+- **第三角法**（美/日/台主流）：上視在上、左視在左。JIS B 0001 採用。
+- **第一角法**（歐陸/中國 GB 主流）：視圖配置鏡像。GB/T 17452 採用。
+- 跨國圖紙必須標 ISO 圓錐符號。
+
+#### AT3.2 真長公式
+
+```
+True Length = √( L_top² + h² ) = √( L_front² + d² ) = √( Δx² + Δy² + Δz² )
+
+線與水平面夾角 θ = arctan( Δz / √(Δx² + Δy²) )
+```
+
+#### AT3.3 軸測縮短率
+
+| 投影 | X | Y | Z | 軸夾角 |
+|---|---|---|---|---|
+| Isometric 等角 | 0.816 (實務 1.0) | 0.816 | 0.816 | 120°/120°/120° |
+| Dimetric 二測 | 1.0 | 1.0 | 0.5 | 7°/41°/41° |
+| Cabinet 斜二測 | 1.0 | 1.0 | 0.5 @ 30° | 適家具速繪 |
+| Cavalier 斜等測 | 1.0 | 1.0 | 1.0 @ 45° | 深度看似太長 |
+
+**等角 (isometric) 速繪**：所有水平線畫成 30° 仰角；圓變橢圓，長/短軸比 = cos(35.26°) = 0.816。
+**Cabinet projection**：正面 1:1 真比例、深度 30° 角縮一半。Krenov / Frid 教科書速繪標配。
+
+**來源**：Frederick Giesecke《Technical Drawing》15th ed Pearson；JIS B 0001:2019；GB/T 17452-1998；Krenov《The Fine Art of Cabinetmaking》Sterling 1977
+
+### AT4. 放樣 (Setting Out / Full-Size Layout)
+
+#### AT4.1 1:1 地面放樣 (Lofting)
+
+源自造船業 (lofting floor)、Roubo 工作台、Welsh stick chair。
+
+1. 在地板/合板上畫 1:1 平面 + 正面 + 側面三視
+2. 椅腳落點四角（footprint rectangle）
+3. 座板天花投影榫眼四角（mortise rectangle）
+4. 連線得腿水平投影 `L_plan`
+5. 側面圖量垂直高度 `h`
+6. **真長 `L_true = √(L_plan² + h²)`**
+7. **腿與地夾角 `= arctan(h / L_plan)`**
+
+#### AT4.2 日本曲尺 (Sashigane / さしがね)
+
+曲尺背面有兩種特殊刻度：
+
+| 刻度 | 倍率 | 用途 |
+|---|---|---|
+| 角目 (kakume) | ×√2 | 量正方料邊長即得對角線 → 方料變八角 |
+| 丸目 (marume) | ×1/π | 量直徑即得圓周 → 桶箍料 |
+
+**規矩術 (kiku-jutsu)**：屋頂隅木複斜角全靠曲尺幾何作圖求得，不用三角函數。
+
+```
+隅勾配（屋頂隅木斜率） = 本勾配 / √2
+```
+
+→ 此即角目 ×√2 刻度的由來，曲尺直接讀取免計算。
+
+**來源**：Toshio Odate《Japanese Woodworking Tools》Linden 1984；大江新太郎《規矩術の基礎》井上書院
+
+#### AT4.3 中華傳統丈杆 (Story Stick)
+
+一根長木條，刻墨線標每個關鍵尺寸（座高、肩高、榫位）。明式家具匠人「不用尺，只用杆」（王世襄《明式家具研究》三聯書店 1985）。批量做同款椅子一杆到底，避免抄寫誤差。
+
+西方對應：Roy Underhill 在 *The Woodwright's Shop* (PBS) 多次示範 story stick；Schwarz《The Anarchist's Design Book》Ch. 2 詳述。
+
+#### AT4.4 Welsh / Stick Chair Schwarz 法
+
+不用 sightline，改在座板下用 bevel gauge 直接設定 resultant 角度。Schwarz 推通用可坐參數：**resultant 12°-14°、sightline 25°-30°**。
+
+#### AT4.5 Roubo 工作台腿距
+
+Roubo (1769)《L'Art du Menuisier》Plate 11：腿距台面端頭 = 台面長 / 5。
+現代換算（Schwarz《Workbenches》2007）：250 cm 台面 → 腿距端 50 cm。
+
+### AT5. 常見錯誤檢查清單
+
+1. **Miter 定義方向錯誤** — Rogowski 派 vs Frid 派差 90° 補角
+2. **Splay 量測基準錯誤** — 須從垂直線量、非水平線
+3. **公式套用對象錯誤** — n 邊形對稱鬥公式不適用於不對稱外撇
+4. **單位錯誤** — Excel `TAN()` 吃弳度、多數計算機吃度
+5. **三視真長假設錯誤** — 只有平行於投影面的線段才在該視為真長
+6. **跨海圖紙忘標第一/第三角法符號**
+7. **1:6 vs 1:8 燕尾比迷信** — 差別小於季節木材變動
+
+### AT6. Excel / 計算機速查
+
+```
+方鬥 n=4 一行求 tilt + miter (S 為外撇角):
+  Miter  =DEGREES(ATAN(COS(RADIANS(S)) * TAN(RADIANS(180/n))))
+  Bevel  =DEGREES(ASIN(SIN(RADIANS(S)) * COS(RADIANS(180/n))))
+
+Windsor resultant + sightline (rake/splay 為角度):
+  Resultant =DEGREES(ACOS(COS(RADIANS(rake)) * COS(RADIANS(splay))))
+  Sightline =DEGREES(ATAN(TAN(RADIANS(rake)) / TAN(RADIANS(splay))))
+```
+
+### AT7. 參考來源彙整
+
+| 主題 | 主要來源 |
+|---|---|
+| 複斜角 | Rogowski 2002、Kunkel FWW#84 1990、Hoadley *Understanding Wood* 2000 附錄 B、Frid Vol.1 1979、Galbert 2015、Schwarz *Stick Chair Book* 2021、Langsner 1997 |
+| 單斜角 | John Brown《Welsh Stick Chairs》1990、Klausz、Kirby |
+| 投影 | Giesecke《Technical Drawing》、JIS B 0001:2019、GB/T 17452-1998、Krenov 1977 |
+| 放樣 | Galbert 2015、Schwarz LAP 全套、王世襄《明式家具研究》1985、Odate 1984、大江新太郎《規矩術の基礎》、Roubo 1769（archive.org PDF） |
+
 
