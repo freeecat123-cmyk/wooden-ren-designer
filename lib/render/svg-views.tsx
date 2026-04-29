@@ -593,14 +593,7 @@ export function OrthoView({
               <g key={part.id}>
                 <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
                 <polygon points={fmt(botCorners)} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
-                {topCorners.map((tc, i) => (
-                  <line
-                    key={i}
-                    x1={tc.x} y1={-tc.y}
-                    x2={botCorners[i].x} y2={-botCorners[i].y}
-                    stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                  />
-                ))}
+                {/* 之前畫 4 條 top↔bot 連接線（短實線）——拿掉避免俯視圖太雜 */}
               </g>
             );
           }
