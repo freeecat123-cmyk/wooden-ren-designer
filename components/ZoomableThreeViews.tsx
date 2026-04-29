@@ -131,8 +131,8 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                 </button>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-zinc-50">
-              {/* scale > 1 時用 transform: scale + 內部 div 給 overflow 捲軸瀏覽 */}
+            <div className="flex-1 min-h-0 overflow-auto flex bg-zinc-50 [align-items:safe_center] [justify-content:safe_center]">
+              {/* scale > 1 時內容溢出對稱方向；safe center 讓溢出時退回 start-alignment，scrollbar 才能捲到頂部/最左邊 */}
               <div
                 style={{
                   width: `${scale * 100}%`,
