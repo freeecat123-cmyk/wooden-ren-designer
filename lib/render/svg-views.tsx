@@ -8,8 +8,10 @@ import {
   effectiveBillableMaterial,
 } from "@/lib/pricing/catalog";
 import {
+  classifyEdgeVisibility,
   hasNonQuarterRotation,
   isPartHidden,
+  makeHiddenChecker,
   projectPart,
   projectPartPolygon,
   projectTiltedBoxSilhouette,
@@ -546,19 +548,52 @@ export function OrthoView({
           );
         }
         const r = projectPart(part, view);
-        return (
-          <rect
-            key={part.id}
-            x={r.x}
-            y={view === "top" ? -(r.y + r.h) : -r.y - r.h}
-            width={r.w}
-            height={r.h}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={sw}
-            strokeDasharray={dash}
-          />
-        );
+        // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
+        // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
+        if (hidden) {
+          return (
+            <rect
+              key={part.id}
+              x={r.x}
+              y={view === "top" ? -(r.y + r.h) : -r.y - r.h}
+              width={r.w}
+              height={r.h}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+              strokeDasharray={dash}
+            />
+          );
+        }
+        const corners = [
+          { x: r.x, y: r.y },
+          { x: r.x + r.w, y: r.y },
+          { x: r.x + r.w, y: r.y + r.h },
+          { x: r.x, y: r.y + r.h },
+        ];
+        const isHiddenAt = makeHiddenChecker(part, design.parts, view);
+        const lines: React.ReactNode[] = [];
+        for (let i = 0; i < 4; i++) {
+          const a = corners[i];
+          const b = corners[(i + 1) % 4];
+          const segs = classifyEdgeVisibility(a, b, isHiddenAt);
+          segs.forEach((seg, segIdx) => {
+            lines.push(
+              <line
+                key={`${part.id}-e${i}-s${segIdx}`}
+                x1={seg.a.x}
+                y1={-seg.a.y}
+                x2={seg.b.x}
+                y2={-seg.b.y}
+                stroke={seg.hidden ? "#888" : "#111"}
+                strokeWidth={seg.hidden ? 0.5 : 0.9}
+                strokeDasharray={seg.hidden ? "4 3" : undefined}
+                fill="none"
+              />,
+            );
+          });
+        }
+        return <g key={part.id}>{lines}</g>;
       })}
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓

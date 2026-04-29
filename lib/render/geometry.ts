@@ -156,6 +156,89 @@ export function projectPartSilhouette(
 /** @deprecated 使用 projectPartSilhouette。保留別名做漸進遷移。 */
 export const projectTiltedBoxSilhouette = projectPartSilhouette;
 
+/** 標準 ray-casting point-in-polygon 測試。poly 須為閉合多邊形（首尾不需重複）。 */
+export function pointInPolygon(
+  p: { x: number; y: number },
+  poly: Array<{ x: number; y: number }>,
+): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    const intersect = ((yi > p.y) !== (yj > p.y)) &&
+      (p.x < ((xj - xi) * (p.y - yi)) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * 把一條 2D 線段 a→b 沿線採樣 N 點，每點檢查 isHidden(x,y)，相鄰同狀態合併成 segment。
+ * 用來分段渲染：visible 段畫實線、hidden 段畫虛線（standard engineering hidden-line）。
+ *
+ * 時間 O(N) per edge；典型 N=20 對視覺夠了。
+ */
+export function classifyEdgeVisibility(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  isHiddenAt: (x: number, y: number) => boolean,
+  samples: number = 20,
+): Array<{ a: { x: number; y: number }; b: { x: number; y: number }; hidden: boolean }> {
+  const states: boolean[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    states.push(isHiddenAt(x, y));
+  }
+  const segs: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; hidden: boolean }> = [];
+  let i = 0;
+  while (i < samples) {
+    const startT = i / samples;
+    const startHidden = states[i];
+    let j = i;
+    // 往後合併同狀態
+    while (j < samples && states[j + 1] === startHidden) j++;
+    const endT = (j + 1) / samples;
+    segs.push({
+      a: { x: a.x + (b.x - a.x) * startT, y: a.y + (b.y - a.y) * startT },
+      b: { x: a.x + (b.x - a.x) * endT, y: a.y + (b.y - a.y) * endT },
+      hidden: startHidden,
+    });
+    i = j + 1;
+  }
+  return segs;
+}
+
+/**
+ * 預先算好「擋住別人」的零件 silhouette + depth，讓後續每條邊查 hidden 時用 closure 加速。
+ * 回傳 isHiddenAt(x, y)，給 thisPart 的某條 edge 上的點查用。
+ */
+export function makeHiddenChecker(
+  thisPart: Part,
+  allParts: Part[],
+  view: OrthoView,
+): (x: number, y: number) => boolean {
+  // SVG 渲染後 y 軸會 flip，但 polygon 點都在同一座標系所以一致
+  const thisNear = partDepth(thisPart, view).near;
+  const blockers: Array<{ poly: Array<{ x: number; y: number }>; near: number }> = [];
+  for (const other of allParts) {
+    if (other.id === thisPart.id) continue;
+    const otherNear = partDepth(other, view).near;
+    // 必須比 thisPart 更靠近鏡頭才能擋住
+    if (otherNear <= thisNear + 0.5) continue;
+    const poly = projectPartSilhouette(other, view);
+    if (poly.length < 3) continue;
+    blockers.push({ poly, near: otherNear });
+  }
+  return (x: number, y: number) => {
+    for (const b of blockers) {
+      if (pointInPolygon({ x, y }, b.poly)) return true;
+    }
+    return false;
+  };
+}
+
 /** Andrew's monotone chain — 2D convex hull, CCW order. */
 function convexHull2D(
   pts: Array<{ x: number; y: number }>,
