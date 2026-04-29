@@ -56,6 +56,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度 (mm)", defaultValue: 28, min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorBackInset", label: "Windsor 椅背距座板背緣 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅背整體（圓料+邊柱+頂橫木）往前推離座板背緣的距離；0 = 齊平", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorEndInset", label: "Windsor 椅背距座板端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背左右兩端往內縮的距離（邊柱外緣 + bow 兩端）；0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorHeight", label: "Windsor 靠背高度 (mm)", defaultValue: 350, min: 200, max: 700, step: 10, help: "從座板上緣到 bow 頂端的總高度。標準椅背 350、太師椅 450~500、高背椅 600+", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 20, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
@@ -106,6 +107,7 @@ export const bench: FurnitureTemplate = (input) => {
   const windsorPostD = getOption<number>(input, opt(o, "windsorPostD"));
   const windsorSpindleD = getOption<number>(input, opt(o, "windsorSpindleD"));
   const windsorRakeDeg = getOption<number>(input, opt(o, "windsorRakeDeg"));
+  const windsorHeight = getOption<number>(input, opt(o, "windsorHeight"));
   const windsorBowBendMm = getOption<number>(input, opt(o, "windsorBowBendMm"));
   const windsorTopRailH = getOption<number>(input, opt(o, "windsorTopRailH"));
   const windsorTopRailT = getOption<number>(input, opt(o, "windsorTopRailT"));
@@ -140,7 +142,11 @@ export const bench: FurnitureTemplate = (input) => {
 
   // 椅背 —— 沿長邊背側（+Z）從座板上緣往上延伸
   if (endSplat !== "none") {
-    const splatHeight = endSplat === "low" ? 150 : 350;
+    const splatHeight = endSplat === "low"
+      ? 150
+      : endSplat === "windsor"
+        ? Math.max(200, Math.min(700, windsorHeight || 350))
+        : 350;
     // overall.thickness 需含椅背，否則三視圖 viewBox 會切到椅背頂端
     design.overall = { ...design.overall, thickness: input.height + splatHeight };
     const splatThick = 25;
