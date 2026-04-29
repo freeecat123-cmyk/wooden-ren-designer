@@ -499,13 +499,82 @@ export function OrthoView({
                 });
               }
             }
+            // HLE：在俯視找出 bow（arch-bent + rotation.x）作為遮蔽體，
+            // 算出 bow 頂面 top-view footprint，spindle 在裡面的部分用虛線
+            const bowOccluder = design.parts.find(
+              (q) =>
+                q.id !== part.id &&
+                q.shape?.kind === "arch-bent" &&
+                Math.abs(q.rotation?.x ?? 0) > 0.01 &&
+                (q.origin?.y ?? 0) > (part.origin?.y ?? 0),
+            );
+            let bowFace: Array<{ x: number; y: number }> | null = null;
+            if (bowOccluder && bowOccluder.shape?.kind === "arch-bent") {
+              const arch = bowOccluder.shape;
+              const rakeRad = bowOccluder.rotation!.x;
+              const cosRake = Math.cos(rakeRad);
+              const sinRake = Math.sin(rakeRad);
+              const blx = bowOccluder.visible.length;
+              const bly = bowOccluder.visible.thickness;
+              const blz = bowOccluder.visible.width;
+              const segments = arch.segments ?? 16;
+              const front: Array<{ x: number; y: number }> = [];
+              const back: Array<{ x: number; y: number }> = [];
+              for (let i = 0; i <= segments; i++) {
+                const t = -1 + (2 * i) / segments;
+                const xLocal = (blx * t) / 2;
+                const archDz = arch.bendMm * Math.max(0, 1 - t * t);
+                const yLocal = bly / 2; // 頂面 ey=+1
+                const zFrontLocal = -blz / 2 + archDz;
+                const zBackLocal = +blz / 2 + archDz;
+                const wzFront = yLocal * sinRake + zFrontLocal * cosRake + bowOccluder.origin.z;
+                const wzBack = yLocal * sinRake + zBackLocal * cosRake + bowOccluder.origin.z;
+                const wx = xLocal + bowOccluder.origin.x;
+                front.push({ x: -wx, y: -wzFront });
+                back.push({ x: -wx, y: -wzBack });
+              }
+              bowFace = [...front, ...back.reverse()];
+            }
+            const isHidden = (x: number, y: number): boolean =>
+              bowFace ? pointInPolygon({ x, y }, bowFace) : false;
+            // tangent 線分段：被 bow 蓋的虛線
+            const tangentEls: React.ReactNode[] = [];
+            tangents.forEach((t, i) => {
+              const segs = classifyEdgeVisibility(
+                { x: t.x1, y: t.y1 },
+                { x: t.x2, y: t.y2 },
+                isHidden,
+              );
+              segs.forEach((seg, segIdx) => {
+                tangentEls.push(
+                  <line
+                    key={`t-${i}-${segIdx}`}
+                    x1={seg.a.x}
+                    y1={seg.a.y}
+                    x2={seg.b.x}
+                    y2={seg.b.y}
+                    stroke={seg.hidden ? "#888" : stroke}
+                    strokeWidth={seg.hidden ? 0.5 : sw}
+                    strokeDasharray={seg.hidden ? "4 3" : dash}
+                  />,
+                );
+              });
+            });
+            // 頂圓（接 bow 那端）：圓心在 bow footprint 內 → 整圓虛線
+            const topCircleHidden = isHidden(cx, cy);
             return (
               <g key={part.id}>
-                <circle cx={cx} cy={cy} r={r1} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r1}
+                  fill="none"
+                  stroke={topCircleHidden ? "#888" : stroke}
+                  strokeWidth={topCircleHidden ? 0.5 : sw}
+                  strokeDasharray={topCircleHidden ? "4 3" : dash}
+                />
                 <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
-                {tangents.map((t, i) => (
-                  <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
-                ))}
+                {tangentEls}
               </g>
             );
           }
