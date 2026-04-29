@@ -1442,13 +1442,14 @@ function DimensionLine({
   label: string;
   arrowId: string;
 }) {
-  const ext = 8;
+  const ext = 2; // 越過 dim line 2 (per CNS 2-3mm)
+  const reach = 26; // 從 dim line 往 bbox 方向延伸 26（典型 dim 距 bbox 28，剩 2 mm 為 CNS gap）
   // CNS 線寬分層：標註線 0.4（細），延伸線 0.25（更細），輪廓另由 part rendering 0.6+
   return (
     <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
-      {/* extension lines */}
-      <line x1={x1} y1={y - 16} x2={x1} y2={y + ext} strokeWidth={0.25} stroke="#888" />
-      <line x1={x2} y1={y - 16} x2={x2} y2={y + ext} strokeWidth={0.25} stroke="#888" />
+      {/* extension lines — 從 bbox 邊（離 1-2mm gap）拉到 dim line 過去 2mm */}
+      <line x1={x1} y1={y - reach} x2={x1} y2={y + ext} strokeWidth={0.25} stroke="#888" />
+      <line x1={x2} y1={y - reach} x2={x2} y2={y + ext} strokeWidth={0.25} stroke="#888" />
       {/* dim line with arrows at both ends */}
       <line
         x1={x1}
@@ -1485,11 +1486,15 @@ function VerticalDimensionLine({
   label: string;
   arrowId: string;
 }) {
-  const ext = 8;
+  const ext = 2; // 越過 dim line 2 (per CNS 2-3mm)
+  const reach = 26; // 從 dim line 往 bbox 方向延伸 26（典型 dim 距 bbox 28，剩 2 mm 為 CNS gap）
+  // bbox 通常跨 0；x>0 代表 dim 在 bbox 右側（朝 -x 方向延伸到 bbox），x<0 反之
+  const towardBbox = x >= 0 ? -reach : reach;
+  const pastDim = x >= 0 ? ext : -ext;
   return (
     <g stroke="#111" fill="#111" strokeWidth={0.4} fontFamily="sans-serif">
-      <line x1={x - 16} y1={y1} x2={x + ext} y2={y1} strokeWidth={0.25} stroke="#888" />
-      <line x1={x - 16} y1={y2} x2={x + ext} y2={y2} strokeWidth={0.25} stroke="#888" />
+      <line x1={x + towardBbox} y1={y1} x2={x + pastDim} y2={y1} strokeWidth={0.25} stroke="#888" />
+      <line x1={x + towardBbox} y1={y2} x2={x + pastDim} y2={y2} strokeWidth={0.25} stroke="#888" />
       <line
         x1={x}
         y1={y1}
@@ -1499,9 +1504,9 @@ function VerticalDimensionLine({
         markerEnd={`url(#${arrowId})`}
       />
       <text
-        x={x + 6}
+        x={x >= 0 ? x + 6 : x - 6}
         y={(y1 + y2) / 2}
-        textAnchor="start"
+        textAnchor={x >= 0 ? "start" : "end"}
         dominantBaseline="middle"
         fontSize={13}
         fontWeight="600"
