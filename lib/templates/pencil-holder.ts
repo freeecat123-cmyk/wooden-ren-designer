@@ -45,11 +45,13 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     bottomFit: "grooved",
   });
 
-  // 斜接 (miter) 的下料規則：4 片壁都用「全外尺寸」下料、兩端 45° 斜切，
-  // 不像 stub-joint 那樣 2 長 (outerL) + 2 短 (innerW)。
-  // 我們繼續用 stub-joint 幾何畫 3D（避免角落破面），但 cut list 必須反映 miter
-  // 的實際下料：覆寫 visible.length + 清掉 stub 的 tenon allowance。
-  if (cornerJoinery === "miter") {
+  // 斜接 (miter) / 指接 (finger-joint) 的下料規則：4 片壁都用「全外尺寸」下料。
+  // - 斜接：兩端 45° 斜切，4 片同尺寸
+  // - 指接：兩端切指，指頭交錯填入角落體積（不會超出外緣），所以 4 片也都到 outer
+  // 只有搭接 (stub-joint) 才是 2 長 (outerL) + 2 短 (innerW) 的傳統佈料。
+  // 我們繼續用 stub-joint 幾何畫 3D（避免角落破面），但 cut list 必須反映實際下料：
+  // 覆寫 visible.length + 清掉 box-builder 的 stub tenon allowance。
+  if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
         part.visible = { ...part.visible, length: outerL };
