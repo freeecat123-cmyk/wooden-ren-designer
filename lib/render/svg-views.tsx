@@ -301,13 +301,14 @@ export function OrthoView({
         ) {
           const r = projectPart(part, view);
           const cx = r.x + r.w / 2;
-          const cy = r.y + r.h / 2;
+          // Top view 翻轉 Y 跟 polygon 路徑（-p.y）一致：world +Z (BACK) → SVG 上方
+          const cy = -(r.y + r.h / 2);
           const radius = Math.min(r.w, r.h) / 2;
           // 外斜圓錐：實線=腳頂位置，虛線=腳底位置 + 兩條外切線連起來才看得出是腳
           if (part.shape.kind === "splayed-round-tapered") {
             const scale = part.shape.bottomScale;
             const footCx = cx + -part.shape.dxMm; // 俯視鏡像 X
-            const footCy = cy + part.shape.dzMm;
+            const footCy = cy - part.shape.dzMm;  // 翻轉 Y 後 dzMm 符號要反過來
             const r1 = radius;
             const r2 = radius * scale;
             // 兩個圓的外切線：N = cosθ·p + sinθ·u，其中 sinθ = (r1-r2)/d
@@ -454,18 +455,20 @@ export function OrthoView({
           const scale = part.shape.bottomScale;
           const footW = r.w * scale;
           const footH = r.h * scale;
+          // Top view 翻轉 Y：原 y → -(y+h)
+          const headY = -(r.y + r.h);
           const footX = r.x + r.w / 2 - footW / 2 + -part.shape.dxMm;
-          const footY = r.y + r.h / 2 - footH / 2 + part.shape.dzMm;
-          // 4 個角對角線：頂角 → 底角
+          const footY = -(r.y + r.h / 2 + footH / 2) - part.shape.dzMm;
+          // 4 個角對角線：頂角 → 底角（翻轉 Y）
           const topCorners = [
-            [r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h],
+            [r.x, headY], [r.x + r.w, headY], [r.x + r.w, headY + r.h], [r.x, headY + r.h],
           ];
           const botCorners = [
             [footX, footY], [footX + footW, footY], [footX + footW, footY + footH], [footX, footY + footH],
           ];
           return (
             <g key={part.id}>
-              <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+              <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
               <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
               {topCorners.map((tc, i) => (
                 <line key={i} x1={tc[0]} y1={tc[1]} x2={botCorners[i][0]} y2={botCorners[i][1]} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
@@ -499,7 +502,7 @@ export function OrthoView({
               <rect
                 key={`${part.id}-foot`}
                 x={r.x + -part.shape.dxMm}
-                y={r.y + part.shape.dzMm}
+                y={-(r.y + r.h) - part.shape.dzMm}
                 width={r.w}
                 height={r.h}
                 fill="none"
@@ -547,7 +550,7 @@ export function OrthoView({
           <rect
             key={part.id}
             x={r.x}
-            y={view === "top" ? r.y : -r.y - r.h}
+            y={view === "top" ? -(r.y + r.h) : -r.y - r.h}
             width={r.w}
             height={r.h}
             fill="none"
