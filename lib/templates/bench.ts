@@ -410,9 +410,17 @@ export const bench: FurnitureTemplate = (input) => {
       const rakeDeg = Math.max(0, Math.min(20, windsorRakeDeg || 0));
 
       const railBotY = seatTop + splatHeight - topRailH;
-      const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
-      // 角度轉成頂端後縮 mm：rakeMm = partH × tan(rakeDeg)
-      const rakeMm = partH * Math.tan((rakeDeg * Math.PI) / 180);
+      const baseH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → bow 下緣中軸）
+      const rakeRadCalc = (rakeDeg * Math.PI) / 180;
+      const cosRake = Math.cos(rakeRadCalc);
+      const tanRake = Math.tan(rakeRadCalc);
+      // 角度轉成頂端後縮 mm：rakeMm = baseH × tan(rakeDeg)
+      const rakeMm = baseH * tanRake;
+      // bow 旋轉後底面是斜面：在 spindle 的 Z 位置(zTop)，底面 Y =
+      //   railBotY + topRailH/2 × (1 − 1/cosθ) − tanθ × archDz
+      // 圓料頂端 Y 用這個值才不會插進 bow 中央
+      const bowBottomYAt = (archDz: number) =>
+        railBotY + (topRailH / 2) * (1 - 1 / cosRake) - tanRake * archDz;
 
       // bow 長度永遠 = 座板長，不跟 endInset 縮（邊柱可內縮但頂橫木仍跨整條座板）
       const bowLength = input.length;
@@ -432,11 +440,14 @@ export const bench: FurnitureTemplate = (input) => {
         idSuffix: string,
         nameZh: string,
       ) => {
-        if (partH <= 0) return;
+        const archDz = archDzAt(x);
         // 整支圓料總後傾量 = rake（整組後傾）+ archDz（中央跟 bow 彎度）
-        const dz = rakeMm + archDzAt(x);
+        const dz = rakeMm + archDz;
         // 圓料軸心對齊 bow 下緣中軸線（已含 rake 後傾）
         const zTop = halfW - topRailT / 2 - backInset + dz;
+        // 此根圓料的實際長度：頂端 Y = 旋轉後 bow 底面在這個 Z 位置的 Y
+        const partH = bowBottomYAt(archDz) - seatTop;
+        if (partH <= 0) return;
         const useSplay = dz > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
