@@ -666,6 +666,55 @@ export function OrthoView({
               </g>
             );
           }
+          // arch-bent + rotation.x 側視特例：silhouette（含彎弧凸出）+ 端面截面平行四邊形輪廓
+          // 端面 = x=±L/2 (archDz=0) 的橫截面，旋轉 rakeRad 後變平行四邊形
+          // 兩端 X 在側視同點，所以端面只畫一個 overlay
+          if (
+            view === "side" &&
+            part.shape?.kind === "arch-bent" &&
+            Math.abs(part.rotation?.x ?? 0) > 0.01
+          ) {
+            const arch = part.shape;
+            const rakeRad = part.rotation!.x;
+            const cosRake = Math.cos(rakeRad);
+            const sinRake = Math.sin(rakeRad);
+            const ly = part.visible.thickness;
+            const lz = part.visible.width;
+            const ly_ext = ly * Math.abs(cosRake) + lz * Math.abs(sinRake);
+            const yOff = part.origin.y + ly_ext / 2;
+            // end-face 4 corners (z_local 不加 archDz)
+            const endCorners = ([
+              [-1, -1], [-1, +1], [+1, +1], [+1, -1],
+            ] as const).map(([ey, ez]) => {
+              const yL = (ey * ly) / 2;
+              const zL = (ez * lz) / 2;
+              const wy = yL * cosRake - zL * sinRake + yOff;
+              const wz = yL * sinRake + zL * cosRake + part.origin.z;
+              // side view: svg x = wz, svg y = -wy
+              return { x: wz, y: -wy };
+            });
+            const endPts = endCorners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+            const poly = projectTiltedBoxSilhouette(part, view);
+            const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+            void arch;
+            return (
+              <g key={part.id}>
+                <polygon
+                  points={points}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={sw}
+                  strokeDasharray={dash}
+                />
+                <polygon
+                  points={endPts}
+                  fill="none"
+                  stroke="#111"
+                  strokeWidth={0.5}
+                />
+              </g>
+            );
+          }
           // 其他 view：convex hull silhouette
           const poly = projectTiltedBoxSilhouette(part, view);
           const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
