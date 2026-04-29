@@ -433,21 +433,17 @@ export const bench: FurnitureTemplate = (input) => {
         nameZh: string,
       ) => {
         if (partH <= 0) return;
-        // 整支圓料總後傾量 = rake（整組後傾）+ archDz（中央跟 bow 彎度）
-        const dz = rakeMm + archDzAt(x);
-        // 圓料軸心對齊 bow 下緣中軸線（已含 rake 後傾）
-        const zTop = halfW - topRailT / 2 - backInset + dz;
-        const useSplay = dz > 0.5;
+        // 圓料整支「垂直」站立，軸心 z = bow 中軸線在這個 X 位置上的 z
+        // bow 中軸線：railZ + archDzAt(x)（中央往後彎、兩端原位）
+        const zCenter = halfW - topRailT / 2 - backInset + rakeMm + archDzAt(x);
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
           material: mat,
           grainDirection: "length",
           visible: { length: diameter, width: diameter, thickness: partH },
-          origin: { x, y: seatTop, z: zTop },
-          shape: useSplay
-            ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: -dz }
-            : { kind: "round" as const },
+          origin: { x, y: seatTop, z: zCenter },
+          shape: { kind: "round" as const },
           tenons: [],
           mortises: [],
         });
