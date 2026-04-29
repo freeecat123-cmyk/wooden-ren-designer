@@ -472,9 +472,9 @@ export const bench: FurnitureTemplate = (input) => {
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
-      // 加 rakeMm：bow 跟著椅背料頂端一起後傾（只後移、不旋轉）
-      // 不加 rotation.x：bow 維持水平，圓料水平頂端跟 bow 水平底面才能貼齊
+      // bow 跟著椅背料一起後傾：位置 +rakeMm，cross-section 旋轉 rakeRad
       const railZ = halfW - topRailT / 2 - backInset + rakeMm;
+      const rakeRad = (rakeDeg * Math.PI) / 180;
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
@@ -482,6 +482,7 @@ export const bench: FurnitureTemplate = (input) => {
         grainDirection: "length",
         visible: { length: bowLength, width: topRailT, thickness: topRailH },
         origin: { x: 0, y: railBotY, z: railZ },
+        rotation: rakeRad > 0 ? { x: rakeRad, y: 0, z: 0 } : undefined,
         shape: bowBendMm > 0 ? { kind: "arch-bent" as const, bendMm: bowBendMm } : undefined,
         tenons: [],
         mortises: [],
