@@ -378,44 +378,37 @@ export const bench: FurnitureTemplate = (input) => {
         }
       }
     } else if (endSplat === "windsor") {
-      // 真 Windsor 風：兩支車旋邊柱 (stump posts) + N 條中央車旋圓料 (spindles)
-      // 全部往後傾斜 (rake) 形成腰背曲線；頂橫木為彎弧 bow（arch-bent）
-      // 結構特徵：所有椅背料皆圓料、底端齊座板背緣、頂端往後 rakeMm
+      // Windsor 風：兩支車旋邊柱 + N 條中央車旋圓料 + 彎弧頂橫木 (bow)
+      // 全部垂直（純圓料用 rotation X = π/2 立起來），底端接座板、頂端接頂橫木
+      // 注意：rake 後傾跟 round shape 的 rotation 會衝突 → 暫時保留選項供未來實作，目前忽略
       const stumpD = 32;       // 邊柱直徑（較粗）
       const spindleD = 16;     // 中央圓料直徑（細）
       const topRailH = 45;     // 頂橫木（bow）高度
       const topRailT = 28;     // 頂橫木（bow）厚度
-      const rakeMm = Math.max(0, windsorRakeMm);
       const bowBendMm = Math.max(0, windsorBowBendMm);
       const spindleN = Math.max(5, Math.min(13, Math.round(windsorSpindleCount || 7)));
+      void windsorRakeMm; // TODO: 後傾要搭配 tilt-z shape，跟 round 不能用 rotation 疊
 
-      const splatBaseY = seatTop;
-      const splatTopY = seatTop + splatHeight;
-      const railBotY = splatTopY - topRailH;
-      const partH = railBotY - splatBaseY; // 圓料/邊柱直立段高度
+      const railBotY = seatTop + splatHeight - topRailH;
+      const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
-      // 通用：從座板背緣垂直往上、頂端往後 rakeMm 的車旋圓料
-      const buildRakedRound = (
+      // 從座板背緣垂直往上的車旋圓料（vertical turned dowel/post）
+      const buildVerticalRound = (
         x: number,
         diameter: number,
         idSuffix: string,
         nameZh: string,
       ) => {
         if (partH <= 0) return;
-        const zBase = halfW - diameter / 2;     // 底端：背面齊座板背緣
-        const zTop = zBase + rakeMm;             // 頂端：往背側後縮 rakeMm
-        const tilt = rakeMm > 0 ? Math.atan(rakeMm / partH) : 0;
-        const tiltedH = partH / Math.cos(tilt);
-        const originY = splatBaseY + (partH - tiltedH) / 2;
-        const originZ = (zBase + zTop) / 2;
+        const zCenter = halfW - diameter / 2; // 背面齊座板背緣
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
           material: mat,
           grainDirection: "length",
-          visible: { length: diameter, width: tiltedH, thickness: diameter },
-          origin: { x, y: originY, z: originZ },
-          rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
+          visible: { length: diameter, width: partH, thickness: diameter },
+          origin: { x, y: seatTop, z: zCenter },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           shape: { kind: "round" },
           tenons: [],
           mortises: [],
@@ -425,19 +418,18 @@ export const bench: FurnitureTemplate = (input) => {
       // 兩側邊柱 (stump posts) — 略內縮避免懸出座板邊
       const stumpInset = stumpD / 2 + 8;
       const stumpX = input.length / 2 - stumpInset;
-      buildRakedRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
-      buildRakedRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
+      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
+      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
 
       // 中央圓料 (spindles)：均分在兩邊柱之間
       const spindleSpan = 2 * stumpX - stumpD - spindleD;
       for (let i = 0; i < spindleN; i++) {
         const x = -spindleSpan / 2 + (i / (spindleN - 1)) * spindleSpan;
-        buildRakedRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`);
+        buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`);
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
-      // 位置：跟著 rake 移到椅背料頂端後縮的位置
-      const railZ = halfW - topRailT / 2 + rakeMm;
+      const railZ = halfW - topRailT / 2;
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
