@@ -445,15 +445,15 @@ function buildMiteredEndBoxGeometry(
     +yMinus, -hy, -hz, // 6
     -yMinus, -hy, -hz, // 7
   ];
-  // CCW from outside
+  // CCW from outside（用分析法驗證每個面的 cross product 給對外的 normal）
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
   const idx = [
-    ...f(0, 1, 2, 3),       // +z face (top, viewing from +Z 看：CCW)
-    ...f(7, 6, 5, 4),       // -z face (bottom, opposite winding)
-    ...f(0, 4, 5, 1),       // +y face (outer if outerY=1)
-    ...f(3, 2, 6, 7),       // -y face (inner if outerY=1)
-    ...f(1, 5, 6, 2),       // +x end (mitre 45°)
-    ...f(0, 3, 7, 4),       // -x end (mitre 45°)
+    ...f(0, 3, 2, 1),       // +Z face (top)
+    ...f(4, 5, 6, 7),       // -Z face (bottom)
+    ...f(0, 1, 5, 4),       // +Y face
+    ...f(2, 3, 7, 6),       // -Y face
+    ...f(1, 2, 6, 5),       // +X end (mitre 45°)
+    ...f(0, 4, 7, 3),       // -X end (mitre 45°)
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
