@@ -435,7 +435,6 @@ export const bench: FurnitureTemplate = (input) => {
       const bowCenterDy = (topRailH / 2) * (1 - cosRake);
       const bowCenterDz = -(topRailH / 2) * sinRake;
 
-      const tanRake = sinRake / Math.max(0.0001, cosRake);
       const buildVerticalRound = (
         x: number,
         diameter: number,
@@ -445,9 +444,10 @@ export const bench: FurnitureTemplate = (input) => {
         // BOTTOM 齊座板背緣（不動）；TOP 跟 bow 旋轉後底面中軸線跑
         const zTopRaw = halfW - topRailT / 2 - backInset + rakeMm + archDzAt(x);
         const zTop = zTopRaw + bowCenterDz;     // 旋轉後 bow 中軸線 Z 前縮
-        // TOP 軸心 Y 從中軸線 (railBotY + bowCenterDy) 再減 tanθ × D/2
-        // 讓圓料 back 邊 (z = zTop + D/2) 剛好在 bow 底面上、不再穿透
-        const yTop = railBotY + bowCenterDy - tanRake * (diameter / 2);
+        // TOP 軸心 Y 對齊 bow 旋轉後底面中軸線 (railBotY + bowCenterDy)。
+        // 圓料 back 邊 (z = zTop + D/2) 會略嵌入 bow 約 tanθ × D/2，
+        // 視覺上小一點的 overlap 比 gap 好（避免 post 跟 bow 之間有縫隙）。
+        const yTop = railBotY + bowCenterDy;
         const zBottom = halfW - diameter / 2 - backInset;
         const partHActual = yTop - seatTop;
         if (partHActual <= 0) return;
