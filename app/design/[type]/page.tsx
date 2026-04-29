@@ -748,9 +748,12 @@ function GroupedOptionFields({
             <div className="px-2.5 pb-2 pt-0.5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-2 gap-y-1.5">
               {specs.map((spec) => {
                 const isWide = spec.type === "checkbox" && spec.wide;
+                // key 帶 value：URL 改變（如 EdgePresetButtons 一鍵套用倒角）時
+                // 強制 remount，input/select 才會用新 defaultValue；
+                // 沒 key 的話 React 重用 DOM node，defaultValue 變動被忽略 → 表單顯示舊值
                 return (
                   <div
-                    key={spec.key}
+                    key={`${spec.key}-${String(optionValues[spec.key])}`}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
                     <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} />
