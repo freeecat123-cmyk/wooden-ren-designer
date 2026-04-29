@@ -16,7 +16,6 @@ export const pencilHolderOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "number", key: "dividers", label: "內部隔板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "0 = 整空筆筒；1-3 加直立隔板分區（鉛筆 / 筆 / 橡皮擦分開放）" },
   { group: "structure", type: "checkbox", key: "tiltedFront", label: "前低後高傾斜款", defaultValue: false, help: "前壁比後壁矮 30mm，鉛筆斜放看得清楚標籤", wide: true },
-  { group: "structure", type: "checkbox", key: "twoTierBottom", label: "雙層深淺底", defaultValue: false, help: "1/3 區域加高底（深度減半），分淺槽（橡皮擦/小物）+ 深槽（筆）", wide: true },
   { group: "structure", type: "number", key: "edgeChamfer", label: "頂緣倒角 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "頂緣外側倒 1-3mm 防扎手，無倒角設 0" },
 ];
 
@@ -35,7 +34,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     | "miter";
   const dividers = getOption<number>(input, opt(o, "dividers"));
   const tiltedFront = getOption<boolean>(input, opt(o, "tiltedFront"));
-  const twoTierBottom = getOption<boolean>(input, opt(o, "twoTierBottom"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({
@@ -81,7 +79,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [...built.parts, ...dividerParts],
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部 ${dividers} 片直立隔板分區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}${tiltedFront ? " 前壁比後壁矮 30mm（鉛筆斜放看得清標籤）。" : ""}${twoTierBottom ? " 1/3 區域底面墊高 50mm 做雙層槽，淺槽放橡皮擦 / 小物、深槽放筆。" : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部 ${dividers} 片直立隔板分區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}${tiltedFront ? " 前壁比後壁矮 30mm（鉛筆斜放看得清標籤）。" : ""}`,
   };
   // 傾斜款：前壁矮 30mm
   if (tiltedFront) {
@@ -89,19 +87,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     if (frontWall) {
       frontWall.visible = { ...frontWall.visible, width: Math.max(20, frontWall.visible.width - 30) };
     }
-  }
-  // 雙層底：在 1/3 位置加一片高底板
-  if (twoTierBottom) {
-    design.parts.push({
-      id: "tier-floor",
-      nameZh: "雙層底（高底板）",
-      material,
-      grainDirection: "length",
-      visible: { length: built.innerL / 3, width: built.innerW, thickness: 6 },
-      origin: { x: -built.innerL / 3, y: botT + 50, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
   }
 
   if (built.warnings.length) design.warnings = [...built.warnings];
