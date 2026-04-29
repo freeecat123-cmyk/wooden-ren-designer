@@ -589,11 +589,34 @@ export function OrthoView({
             ];
             const fmt = (pts: typeof topCorners) =>
               pts.map((p) => `${p.x},${-p.y}`).join(" ");
+            // top 面用 HLE classifier 分段：被其他零件（如座板）蓋住的段虛線、外露實線
+            // topCorners 是 world-y-up（vy = wz for top view），跟 makeHiddenChecker 一致
+            const isHiddenAt = makeHiddenChecker(part, design.parts, view);
+            const topLines: React.ReactNode[] = [];
+            for (let i = 0; i < topCorners.length; i++) {
+              const a = topCorners[i];
+              const b = topCorners[(i + 1) % topCorners.length];
+              const segs = classifyEdgeVisibility(a, b, isHiddenAt);
+              segs.forEach((seg, segIdx) => {
+                topLines.push(
+                  <line
+                    key={`${part.id}-top-${i}-${segIdx}`}
+                    x1={seg.a.x}
+                    y1={-seg.a.y}
+                    x2={seg.b.x}
+                    y2={-seg.b.y}
+                    stroke={seg.hidden ? "#888" : "#111"}
+                    strokeWidth={seg.hidden ? 0.5 : 0.9}
+                    strokeDasharray={seg.hidden ? "4 3" : undefined}
+                    fill="none"
+                  />,
+                );
+              });
+            }
             return (
               <g key={part.id}>
-                <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
+                {topLines}
                 <polygon points={fmt(botCorners)} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
-                {/* 之前畫 4 條 top↔bot 連接線（短實線）——拿掉避免俯視圖太雜 */}
               </g>
             );
           }
