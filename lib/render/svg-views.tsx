@@ -294,21 +294,27 @@ export function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
-        // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
+        // 任何 rotation.x 非 quarter（≈ 傾斜零件）OR arch-bent 在正視圖：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
+        const _rxFront = part.rotation?.x ?? 0;
+        const _rxFrontIsQuarter = (() => {
+          const m = ((_rxFront % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2);
+          return m < 0.02 || Math.PI / 2 - m < 0.02;
+        })();
         if (
           view === "front" &&
-          part.shape?.kind === "arch-bent" &&
-          Math.abs(part.rotation?.x ?? 0) > 0.01
+          (part.shape?.kind === "arch-bent" ||
+            (Math.abs(_rxFront) > 0.02 && !_rxFrontIsQuarter))
         ) {
-          const arch = part.shape;
-          const rakeRad = part.rotation!.x;
+          const arch = part.shape?.kind === "arch-bent" ? part.shape : null;
+          const rakeRad = _rxFront;
           const cosRake = Math.cos(rakeRad);
           const sinRake = Math.sin(rakeRad);
           const lx = part.visible.length;
           const ly = part.visible.thickness;
           const lz = part.visible.width;
-          const segments = arch.segments ?? 16;
+          const segments = arch ? (arch.segments ?? 16) : 1;
+          const archBend = arch ? arch.bendMm : 0;
           // worldExtents 對非 quarter rotation 取近似——這裡手動算正確 yExt
           const yExt = ly * Math.abs(cosRake) + lz * Math.abs(sinRake);
           const yOffset = part.origin.y + yExt / 2;
@@ -320,7 +326,7 @@ export function OrthoView({
             for (let i = 0; i <= segments; i++) {
               const t = -1 + (2 * i) / segments;
               const xLocal = (lx * t) / 2;
-              const archDz = arch.bendMm * Math.max(0, 1 - t * t);
+              const archDz = archBend * Math.max(0, 1 - t * t);
               const zLocal = (ez * lz) / 2 + archDz;
               // Top edge
               const yTopLocal = +ly / 2;
@@ -382,21 +388,27 @@ export function OrthoView({
             </g>
           );
         }
-        // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）俯視特例：
+        // 任何 rotation.x 非 quarter OR arch-bent 在俯視圖：
         // 頂面 vs 底面在 Z 軸偏移 ly·sin(rake)/2，分開畫頂面實線、底面虛線
+        const _rxTop = part.rotation?.x ?? 0;
+        const _rxTopIsQuarter = (() => {
+          const m = ((_rxTop % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2);
+          return m < 0.02 || Math.PI / 2 - m < 0.02;
+        })();
         if (
           view === "top" &&
-          part.shape?.kind === "arch-bent" &&
-          Math.abs(part.rotation?.x ?? 0) > 0.01
+          (part.shape?.kind === "arch-bent" ||
+            (Math.abs(_rxTop) > 0.02 && !_rxTopIsQuarter))
         ) {
-          const arch = part.shape;
-          const rakeRad = part.rotation!.x;
+          const arch = part.shape?.kind === "arch-bent" ? part.shape : null;
+          const rakeRad = _rxTop;
           const cosRake = Math.cos(rakeRad);
           const sinRake = Math.sin(rakeRad);
           const lx = part.visible.length;
           const ly = part.visible.thickness;
           const lz = part.visible.width;
-          const segments = arch.segments ?? 16;
+          const segments = arch ? (arch.segments ?? 16) : 1;
+          const archBend = arch ? arch.bendMm : 0;
           // 頂面 (ey=+1) 跟底面 (ey=-1) 各自的 outline (front 弧 + back 弧 + 兩端)
           const buildFaceOutline = (ey: 1 | -1): Array<{ x: number; y: number }> => {
             const front: Array<{ x: number; y: number }> = [];
@@ -404,7 +416,7 @@ export function OrthoView({
             for (let i = 0; i <= segments; i++) {
               const t = -1 + (2 * i) / segments;
               const xLocal = (lx * t) / 2;
-              const archDz = arch.bendMm * Math.max(0, 1 - t * t);
+              const archDz = archBend * Math.max(0, 1 - t * t);
               const yLocal = (ey * ly) / 2;
               const zFrontLocal = -lz / 2 + archDz;
               const zBackLocal = +lz / 2 + archDz;
