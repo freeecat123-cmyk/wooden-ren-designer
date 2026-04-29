@@ -435,19 +435,22 @@ export const bench: FurnitureTemplate = (input) => {
       const bowCenterDy = (topRailH / 2) * (1 - cosRake);
       const bowCenterDz = -(topRailH / 2) * sinRake;
 
+      const tanRake = sinRake / Math.max(0.0001, cosRake);
       const buildVerticalRound = (
         x: number,
         diameter: number,
         idSuffix: string,
         nameZh: string,
+        kind: "post" | "spindle" = "spindle",
       ) => {
         // BOTTOM 齊座板背緣（不動）；TOP 跟 bow 旋轉後底面中軸線跑
         const zTopRaw = halfW - topRailT / 2 - backInset + rakeMm + archDzAt(x);
         const zTop = zTopRaw + bowCenterDz;     // 旋轉後 bow 中軸線 Z 前縮
-        // TOP 軸心 Y 對齊 bow 旋轉後底面中軸線 (railBotY + bowCenterDy)。
-        // 圓料 back 邊 (z = zTop + D/2) 會略嵌入 bow 約 tanθ × D/2，
-        // 視覺上小一點的 overlap 比 gap 好（避免 post 跟 bow 之間有縫隙）。
-        const yTop = railBotY + bowCenterDy;
+        // post: TOP 對齊 bow 中軸線（背邊嵌入 bow ≈ tanθ × D/2，視覺 OK）
+        // spindle: TOP 壓低 tanθ × D/2 讓圓料背邊跟 bow 底面相切，避免穿透感
+        const yTop = kind === "post"
+          ? railBotY + bowCenterDy
+          : railBotY + bowCenterDy - tanRake * (diameter / 2);
         const zBottom = halfW - diameter / 2 - backInset;
         const partHActual = yTop - seatTop;
         if (partHActual <= 0) return;
@@ -472,8 +475,8 @@ export const bench: FurnitureTemplate = (input) => {
       // 預設留 8mm 安全邊距避免邊柱整支懸出
       const stumpInset = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
       const stumpX = input.length / 2 - stumpInset;
-      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
-      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
+      buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）", "post");
+      buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）", "post");
 
       // 中央圓料 (spindles)：在兩邊柱「內側邊」之間等距分佈
       // 用 slot-pitch 法：兩端 gap = 中間相鄰 gap，避免端點圓料貼到邊柱
