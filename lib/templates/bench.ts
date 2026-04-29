@@ -50,7 +50,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "windsorSpindleCount", label: "Windsor 圓料數", defaultValue: 7, min: 5, max: 13, step: 1, help: "中央車旋圓料根數（不含兩支邊柱）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorPostD", label: "Windsor 邊柱直徑 (mm)", defaultValue: 32, min: 20, max: 60, step: 2, help: "兩支較粗的車旋邊柱直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorSpindleD", label: "Windsor 圓料直徑 (mm)", defaultValue: 16, min: 10, max: 35, step: 1, help: "中央細圓料直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
-  { group: "back", type: "number", key: "windsorRakeMm", label: "Windsor 後傾量 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "椅背料頂端比底端往後縮的距離（rake 整組後傾）；0 = 椅背直立、bow 位置不變；非 0 時 bow 跟著後縮、邊柱 + 圓料 + bow 一起斜", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorRakeMm", label: "Windsor 靠背角度 (後傾 mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "整個靠背（圓料+邊柱+bow）頂端往後傾的距離。0 = 直立；建議 20~40mm 像太師椅那樣略後仰", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorBowBendMm", label: "Windsor 頂橫木彎弧 (mm)", defaultValue: 40, min: 0, max: 80, step: 5, help: "頂橫木 (bow) 中央向後彎的最大量；0 = 直線", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorTopRailH", label: "Windsor 頂橫木寬度 (mm)", defaultValue: 45, min: 25, max: 100, step: 5, help: "頂橫木 (bow) 高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度 (mm)", defaultValue: 28, min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
@@ -401,7 +401,7 @@ export const bench: FurnitureTemplate = (input) => {
       const backInset = Math.max(0, Math.min(150, windsorBackInset || 0));
       const endInset = Math.max(0, Math.min(200, windsorEndInset || 0));
       const spindleN = Math.max(5, Math.min(13, Math.round(windsorSpindleCount || 7)));
-      void windsorRakeMm; // 預留未實作（rake 跟 round shape 互動會搞亂 spindle）
+      const rakeMm = Math.max(0, Math.min(80, windsorRakeMm || 0));
 
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
@@ -425,8 +425,9 @@ export const bench: FurnitureTemplate = (input) => {
         nameZh: string,
       ) => {
         if (partH <= 0) return;
-        const dz = archDzAt(x);
-        // 圓料軸心對齊 bow 下緣中軸線：z = halfW − topRailT/2 − backInset + archDz
+        // 整支圓料總後傾量 = rake（整組後傾）+ archDz（中央跟 bow 彎度）
+        const dz = rakeMm + archDzAt(x);
+        // 圓料軸心對齊 bow 下緣中軸線（已含 rake 後傾）
         const zTop = halfW - topRailT / 2 - backInset + dz;
         const useSplay = dz > 0.5;
         design.parts.push({
@@ -462,7 +463,8 @@ export const bench: FurnitureTemplate = (input) => {
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
-      const railZ = halfW - topRailT / 2 - backInset;
+      // 加 rakeMm：bow 跟著椅背料頂端一起後傾
+      const railZ = halfW - topRailT / 2 - backInset + rakeMm;
       // bow 長度已上面算好（= input.length − 2×endInset）
       design.parts.push({
         id: "back-top-rail",
