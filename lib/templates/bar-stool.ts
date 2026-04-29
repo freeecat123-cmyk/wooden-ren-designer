@@ -38,7 +38,6 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
   { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
-  { group: "structure", type: "checkbox", key: "withSwivelMech", label: "旋轉座（含升降氣壓桿）", defaultValue: false, help: "座板下方加 360° 旋轉軸 + 氣壓升降桿（外購整組 NT$ 800-1500），椅腳改為十字鋼底", wide: true },
 ];
 
 /**
@@ -68,7 +67,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
-  const withSwivelMech = getOption<boolean>(input, opt(o, "withSwivelMech"));
   const withBack = backStyle !== "none";
 
   const apronThickness = 18;
@@ -344,44 +342,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
       `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
-      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${withSwivelMech ? " 含 360° 旋轉座 + 氣壓升降桿（外購 NT$ 800-1500，椅腳改十字鋼底）。" : ""}`,
+      `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
   };
-  // 旋轉座 + 升降氣壓桿：以中央圓柱 + 4 爪十字底盤代表
-  if (withSwivelMech) {
-    // 移除原本 4 隻腳和橫撐
-    design.parts = design.parts.filter((p) => !p.id.startsWith("leg-") && !p.id.startsWith("apron-") && !p.id.startsWith("footrest-"));
-    const colDia = 60;
-    design.parts.push({
-      id: "swivel-column",
-      nameZh: "中央升降氣壓桿（外購）",
-      material,
-      grainDirection: "length",
-      visible: { length: colDia, width: colDia, thickness: height - 80 - seatThickness },
-      origin: { x: 0, y: 80, z: 0 },
-      shape: { kind: "round" },
-      tenons: [],
-      mortises: [],
-    });
-    // 4 爪底盤
-    for (let i = 0; i < 4; i++) {
-      const angle = (i * Math.PI) / 2;
-      design.parts.push({
-        id: `swivel-leg-${i + 1}`,
-        nameZh: `底盤腳 ${i + 1}`,
-        material,
-        grainDirection: "length",
-        visible: { length: 250, width: 40, thickness: 20 },
-        origin: {
-          x: Math.cos(angle) * 100,
-          y: 10,
-          z: Math.sin(angle) * 100,
-        },
-        rotation: { x: 0, y: angle, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
-  }
 
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 600,
