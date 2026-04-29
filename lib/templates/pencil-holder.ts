@@ -92,27 +92,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 頂緣倒角：套到 4 壁的「外緣 4 邊倒角」（chamfered-top 走 local +Y 面，
-  // 即 wall 旋轉後的 outer face → 壁外側上下左右 4 邊都倒，視覺上頂緣
-  // 跟外側 ends 都圓滑；底邊被底板蓋住、壁端在角落被相鄰壁蓋住，所以
-  // 實際看到的就是「頂緣外側倒角」）
-  if (edgeChamfer > 0) {
-    for (const part of built.parts) {
-      if (
-        part.id === "wall-front" ||
-        part.id === "wall-back" ||
-        part.id === "wall-left" ||
-        part.id === "wall-right"
-      ) {
-        part.shape = {
-          kind: "chamfered-top",
-          chamferMm: edgeChamfer,
-          style: "chamfered",
-        };
-      }
-    }
-  }
-
   const design: FurnitureDesign = {
     id: `pencil-holder-${outerL}x${outerW}x${outerH}`,
     category: "pencil-holder",
