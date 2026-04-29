@@ -14,7 +14,8 @@ export const pencilHolderOptions: OptionSpec[] = [
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
   ] },
-  { group: "structure", type: "number", key: "dividers", label: "內部隔板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "0 = 整空筆筒；1-3 加直立隔板分區（鉛筆 / 筆 / 橡皮擦分開放）" },
+  { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）" },
+  { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）" },
   { group: "structure", type: "number", key: "edgeChamfer", label: "頂緣倒角 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "頂緣外側倒 1-3mm 防扎手，無倒角設 0" },
 ];
 
@@ -32,6 +33,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     | "finger-joint"
     | "miter";
   const dividers = getOption<number>(input, opt(o, "dividers"));
+  const crossDividers = getOption<number>(input, opt(o, "crossDividers"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({
@@ -45,15 +47,15 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     bottomFit: "grooved",
   });
 
-  // 加內部直立隔板
+  // 加內部直立隔板（縱向：沿 length 軸切，跟長邊垂直）
   const dividerParts: typeof built.parts = [];
+  const dividerThick = wallT - 2;
   if (dividers > 0) {
     const dividerSpacing = built.innerL / (dividers + 1);
-    const dividerThick = wallT - 2;
     for (let i = 1; i <= dividers; i++) {
       dividerParts.push({
         id: `divider-${i}`,
-        nameZh: `隔板 ${i}`,
+        nameZh: `縱向隔板 ${i}`,
         material,
         grainDirection: "length",
         visible: { length: built.innerW, width: outerH - botT, thickness: dividerThick },
@@ -68,6 +70,27 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       });
     }
   }
+  // 橫向隔板（沿 width 軸切，跟短邊垂直）
+  if (crossDividers > 0) {
+    const dividerSpacing = built.innerW / (crossDividers + 1);
+    for (let i = 1; i <= crossDividers; i++) {
+      dividerParts.push({
+        id: `cross-divider-${i}`,
+        nameZh: `橫向隔板 ${i}`,
+        material,
+        grainDirection: "length",
+        visible: { length: built.innerL, width: outerH - botT, thickness: dividerThick },
+        origin: {
+          x: 0,
+          y: botT,
+          z: -built.innerW / 2 + i * dividerSpacing,
+        },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
 
   const design: FurnitureDesign = {
     id: `pencil-holder-${outerL}x${outerW}x${outerH}`,
@@ -77,7 +100,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     parts: [...built.parts, ...dividerParts],
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部 ${dividers} 片直立隔板分區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}${edgeChamfer > 0 ? ` 頂緣外側倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
