@@ -38,6 +38,7 @@ export const roundStoolOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 16, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", help: "下橫撐底面距離地面的高度", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "2 對錯開 (mm)", defaultValue: 0, min: 0, max: 50, step: 5, unit: "mm", help: "左右一對比前後一對抬高的量，避免兩對橫撐在腳上的榫眼重疊。0 = 同高（榫頭會撞）；建議 ≥ lowerStretcherThickness", dependsOn: { key: "withLowerStretcher", equals: true } },
 ];
 
 /**
@@ -70,6 +71,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherFromGround = getOption<number>(input, opt(o, "lowerStretcherFromGround"));
+  const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
 
   const radius = diameter / 2;
   const legHeight = height - seatThickness;
@@ -119,8 +121,12 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronTenonThick = Math.max(6, Math.min(apronThickness - 12, Math.round(legSize / 3)));
   const apronTenonLen = Math.round(legSize * 0.5);
   // 下橫撐 同樣公式（用 lowerStretcher* 數值）
+  // 2 對錯開：X 軸（前/後）那對保持 lowerStretcherFromGround，Z 軸（左/右）那對抬高 staggerMm。
+  // 對應的 leg mortise Y 也要分開，否則榫眼還是會撞。
   const lsY0 = lowerStretcherFromGround;
   const lsYCenter0 = lsY0 + lowerStretcherWidth / 2;
+  const lsY0_z = lsY0 + lowerStretcherStaggerMm;
+  const lsYCenter0_z = lsY0_z + lowerStretcherWidth / 2;
   const lsTenonWidth = Math.max(15, Math.min(lowerStretcherWidth - 12, legSize - 6));
   const lsTenonThick = Math.max(6, Math.min(lowerStretcherThickness - 12, Math.round(legSize / 3)));
   const lsTenonLen = Math.round(legSize * 0.5);
@@ -187,6 +193,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
           : []),
         ...(withLowerStretcher
           ? [
+              // X 軸下橫撐（前/後對）的榫眼，留在 lsYCenter0
               {
                 origin: { x: 0, y: lsYCenter0, z: -sz * (legSize / 2) },
                 depth: lsTenonLen,
@@ -194,8 +201,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 width: lsTenonThick,
                 through: false,
               },
+              // Z 軸下橫撐（左/右對）的榫眼抬高 staggerMm
               {
-                origin: { x: -sx * (legSize / 2), y: lsYCenter0, z: 0 },
+                origin: { x: -sx * (legSize / 2), y: lsYCenter0_z, z: 0 },
                 depth: lsTenonLen,
                 length: lsTenonWidth,
                 width: lsTenonThick,
@@ -292,7 +300,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: lsSpan, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
-        origin: { x: s.origin.x, y: lsY0, z: s.origin.z },
+        origin: { x: s.origin.x, y: s.axis === "z" ? lsY0_z : lsY0, z: s.origin.z },
         rotation,
         shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
