@@ -45,20 +45,9 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     wallT,
     botT,
     material,
-    cornerJoinery: cornerJoinery === "miter" ? "mitered-spline" : cornerJoinery,
+    cornerJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     bottomFit: "grooved",
   });
-
-  // 斜角拼（miter）視覺處理：4 壁都做成「滿外緣」，4 角會 45° 對接
-  // （buildBox 預設 stub-joint 把長壁滿、短壁內縮——miter 視覺剛好相反）
-  if (cornerJoinery === "miter") {
-    for (const part of built.parts) {
-      if (part.id === "wall-left" || part.id === "wall-right") {
-        // 短壁從 innerW 改成 outerW，4 壁同時滿外緣
-        part.visible = { ...part.visible, length: outerW };
-      }
-    }
-  }
 
   // 加內部直立隔板
   const dividerParts: typeof built.parts = [];
