@@ -137,9 +137,9 @@ export function rectLegShape(
   const chamferMm = opts?.chamferMm && opts.chamferMm > 0 ? opts.chamferMm : undefined;
   const chamferStyle = opts?.chamferStyle;
 
-  if (shape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
-  if (shape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
-  if (shape === "inverted") return { kind: "tapered", bottomScale: 1.25 };
+  if (shape === "tapered") return { kind: "tapered", bottomScale: 0.6, chamferMm, chamferStyle };
+  if (shape === "strong-taper") return { kind: "tapered", bottomScale: 0.4, chamferMm, chamferStyle };
+  if (shape === "inverted") return { kind: "tapered", bottomScale: 1.25, chamferMm, chamferStyle };
   if (shape === "splayed") {
     return {
       kind: "splayed",

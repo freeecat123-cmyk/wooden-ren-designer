@@ -88,7 +88,7 @@ export const LATHE_TURNED_SEGMENTS: Array<[number, number, number]> = [
 
 type ShapeSpec =
   | { kind: "box" }
-  | { kind: "tapered"; bottomScale: number }
+  | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
   | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
@@ -128,6 +128,18 @@ function Part({
   const geometry = useMemo(() => {
     if (!shape || shape.kind === "box") return null;
     if (shape.kind === "tapered") {
+      // 帶倒角的方錐（圓凳/餐椅方錐腳套用 legEdge）：用 chamfered-edges
+      // builder 帶 bottomScale，cross-section 八邊形 + 底端縮小。
+      if (shape.chamferMm && shape.chamferMm > 0) {
+        return buildChamferedEdgesGeometry(
+          size,
+          shape.chamferMm,
+          shape.chamferStyle ?? "chamfered",
+          0,
+          0,
+          shape.bottomScale,
+        );
+      }
       if (shape.bottomScale === 1) return null;
       return buildTaperedGeometry(size, shape.bottomScale);
     }
@@ -644,6 +656,7 @@ function buildChamferedEdgesGeometry(
   style: "chamfered" | "rounded" = "chamfered",
   splayDx: number = 0,
   splayDz: number = 0,
+  bottomScale: number = 1,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const longAxis: 0 | 1 | 2 =
@@ -690,9 +703,10 @@ function buildChamferedEdgesGeometry(
 
   const N = cs.length; // chamfered=8, rounded=20
   const v: number[] = [];
-  // 底端（-ha 端）整面 splayDx/Dz 平移——splayed + chamfered 組合
+  // 底端（-ha 端）：可選 bottomScale 縮 cross-section（tapered+chamfered 用）
+  // 加 splayDx/Dz 平移（splayed+chamfered 用）。兩者可獨立或組合。
   for (const [b, cc] of cs) {
-    const p = place(-ha, b, cc);
+    const p = place(-ha, b * bottomScale, cc * bottomScale);
     p[0] += splayDx;
     p[2] += splayDz;
     v.push(...p);
@@ -1414,7 +1428,12 @@ export function PerspectiveView({
           const pz = part.origin.z * SCALE;
           let shape: ShapeSpec | undefined;
           if (part.shape?.kind === "tapered") {
-            shape = { kind: "tapered", bottomScale: part.shape.bottomScale };
+            shape = {
+              kind: "tapered",
+              bottomScale: part.shape.bottomScale,
+              chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
+              chamferStyle: part.shape.chamferStyle,
+            };
           } else if (part.shape?.kind === "splayed") {
             shape = {
               kind: "splayed",

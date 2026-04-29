@@ -150,8 +150,15 @@ export interface Part {
   shape?:
     | { kind: "box" }
     /** Tapered: scale the bottom face relative to top. bottomScale > 1 = 倒錐
-     *  (wider at bottom), bottomScale < 1 = 方錐漸縮 (narrower at bottom). */
-    | { kind: "tapered"; bottomScale: number }
+     *  (wider at bottom), bottomScale < 1 = 方錐漸縮 (narrower at bottom).
+     *  chamferMm > 0：4 條長邊（沿 Y 軸）倒角，cross-section 八邊形。
+     *  讓圓凳/餐椅的方錐腳能同時錐形＋倒角。 */
+    | {
+        kind: "tapered";
+        bottomScale: number;
+        chamferMm?: number;
+        chamferStyle?: "chamfered" | "rounded";
+      }
     /** Splayed: whole leg tilts so the bottom is offset in (dxMm, dzMm) from
      *  the top in the part's LOCAL frame. Positive values → bottom shifts
      *  toward +x/+z of the leg.

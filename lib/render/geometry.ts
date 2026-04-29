@@ -366,9 +366,26 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
   }
 
   // Taper only applies when the part stands vertically (length/thickness →
-  // world Y). Always skipped in top view.
+  // world Y). 俯視在無倒角時用 box；有倒角時畫八邊形 cross-section
+  // （與 chamfered-edges 同 convention）。前/側視仍是梯形（倒角只在 cross-
+  // section view 顯示，跟 chamfered-edges 邏輯一致）。
   if (part.shape.kind === "tapered") {
-    if (view === "top") return box;
+    const chamferMm = part.shape.chamferMm ?? 0;
+    if (view === "top") {
+      if (chamferMm <= 0) return box;
+      const cap = Math.min(chamferMm, r.w * 0.45, r.h * 0.45);
+      if (cap <= 0) return box;
+      return [
+        { x: r.x + cap, y: r.y + r.h },
+        { x: r.x + r.w - cap, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y + r.h - cap },
+        { x: r.x + r.w, y: r.y + cap },
+        { x: r.x + r.w - cap, y: r.y },
+        { x: r.x + cap, y: r.y },
+        { x: r.x, y: r.y + cap },
+        { x: r.x, y: r.y + r.h - cap },
+      ];
+    }
     const scale = part.shape.bottomScale;
     const cx = (r.x + r.x + r.w) / 2;
     const halfTop = r.w / 2;

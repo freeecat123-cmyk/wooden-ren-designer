@@ -766,6 +766,10 @@ export function OrthoView({
         // 這時要走 polygon 路徑；俯視仍由上面的圓形 case 處理。
         const isRoundWithChamfer =
           part.shape?.kind === "round" && (part.shape.chamferMm ?? 0) > 0;
+        // tapered 帶 chamfer（圓凳/餐椅方錐腳套 legEdge）：俯視要畫八邊形
+        // cross-section；前/側視仍是梯形（同 chamfered-edges convention）。
+        const isTaperedWithChamfer =
+          part.shape?.kind === "tapered" && (part.shape.chamferMm ?? 0) > 0;
         const useShape =
           part.shape &&
           part.shape.kind !== "box" &&
@@ -776,7 +780,8 @@ export function OrthoView({
             part.shape.kind !== "splayed-tapered" &&
             part.shape.kind !== "splayed-round-tapered" &&
             part.shape.kind !== "notched-corners" &&
-            part.shape.kind !== "arch-bent"
+            part.shape.kind !== "arch-bent" &&
+            !isTaperedWithChamfer
           );
         if (useShape) {
           const poly = projectPartPolygon(part, view);

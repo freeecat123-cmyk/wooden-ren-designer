@@ -125,7 +125,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
     origin: { x: c.x, y: 0, z: c.z },
-    // box 走 legEdgeShape；splayed 系列把 chamfer 帶入組合；tapered 系列暫不支援組合
+    // box 走 legEdgeShape；splayed/tapered 系列把 chamfer 帶入組合（cross-section 八邊形）
     // splayMm 由 splayAngle 換算：tan(angle) × legHeight
     shape: rectLegShape(legShape, c, {
       splayedFrontOnly: false,

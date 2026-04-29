@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm } from "./_helpers";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
@@ -135,7 +135,12 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
       shape:
         legShape === "tapered"
-          ? ({ kind: "tapered", bottomScale: 0.6 } as const)
+          ? ({
+              kind: "tapered",
+              bottomScale: 0.6,
+              chamferMm: parseLegChamferMm(legEdge),
+              chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+            } as const)
           : legShape === "round"
             ? ({ kind: "round" } as const)
             : legShape === "round-taper-down"
