@@ -408,9 +408,16 @@ export const bench: FurnitureTemplate = (input) => {
 
       // bow 長度永遠 = 座板長，不跟 endInset 縮（邊柱可內縮但頂橫木仍跨整條座板）
       const bowLength = input.length;
+      // arch-bent 公式：每根圓料用「bow 自身長度」算，跟 bow 同步彎度
+      const archDzAt = (x: number) =>
+        bowBendMm > 0
+          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / bowLength, 2))
+          : 0;
 
-      // 從座板背緣垂直往上的車旋圓料（不再加 archDz 傾斜，避免俯視圖渲染衝突）
+      // 從座板背緣往上、頂端跟著 bow 後彎傾斜的車旋圓料
       // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高
+      // splayed-round-tapered: dzMm 是「底端 Z 位移」相對於 origin（top）
+      // 所有椅背料（邊柱+圓料）共用同一條公式：dz = rakeMm + archDzAt(x)
       const buildVerticalRound = (
         x: number,
         diameter: number,
@@ -418,18 +425,19 @@ export const bench: FurnitureTemplate = (input) => {
         nameZh: string,
       ) => {
         if (partH <= 0) return;
-        // 純垂直圓料：origin.z = 座板背緣前推 backInset，所有 X 位置相同
-        // （不用 splayed-round-tapered 是因為俯視圖 svg-views 會把圓料圓心畫在
-        //   非翻轉 Y、跟 arch-bent polygon 翻轉 Y 不同邊，造成圓棒跑到視圖下面）
-        const zCenter = halfW - diameter / 2 - backInset;
+        const dz = archDzAt(x);
+        const zTop = halfW - diameter / 2 - backInset + dz; // 頂端跟 bow 偏 +Z，整體前推 backInset
+        const useSplay = dz > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
           material: mat,
           grainDirection: "length",
           visible: { length: diameter, width: diameter, thickness: partH },
-          origin: { x, y: seatTop, z: zCenter },
-          shape: { kind: "round" as const },
+          origin: { x, y: seatTop, z: zTop },
+          shape: useSplay
+            ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: -dz }
+            : { kind: "round" as const },
           tenons: [],
           mortises: [],
         });
