@@ -293,6 +293,64 @@ export function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）俯視特例：
+        // 頂面 vs 底面在 Z 軸偏移 ly·sin(rake)/2，分開畫頂面實線、底面虛線
+        if (
+          view === "top" &&
+          part.shape?.kind === "arch-bent" &&
+          Math.abs(part.rotation?.x ?? 0) > 0.01
+        ) {
+          const arch = part.shape;
+          const rakeRad = part.rotation!.x;
+          const cosRake = Math.cos(rakeRad);
+          const sinRake = Math.sin(rakeRad);
+          const lx = part.visible.length;
+          const ly = part.visible.thickness;
+          const lz = part.visible.width;
+          const segments = arch.segments ?? 16;
+          // 頂面 (ey=+1) 跟底面 (ey=-1) 各自的 outline (front 弧 + back 弧 + 兩端)
+          const buildFaceOutline = (ey: 1 | -1): Array<{ x: number; y: number }> => {
+            const front: Array<{ x: number; y: number }> = [];
+            const back: Array<{ x: number; y: number }> = [];
+            for (let i = 0; i <= segments; i++) {
+              const t = -1 + (2 * i) / segments;
+              const xLocal = (lx * t) / 2;
+              const archDz = arch.bendMm * Math.max(0, 1 - t * t);
+              const yLocal = (ey * ly) / 2;
+              const zFrontLocal = -lz / 2 + archDz;
+              const zBackLocal = +lz / 2 + archDz;
+              // 旋轉 x:rakeRad 後 world Z = y·sin + z·cos
+              const wzFront = yLocal * sinRake + zFrontLocal * cosRake + part.origin.z;
+              const wzBack = yLocal * sinRake + zBackLocal * cosRake + part.origin.z;
+              const wx = xLocal + part.origin.x;
+              // top view 投影：vx = -wx, vy = wz；svg flip：svg y = -vy = -wz
+              front.push({ x: -wx, y: -wzFront });
+              back.push({ x: -wx, y: -wzBack });
+            }
+            return [...front, ...back.reverse()];
+          };
+          const topFace = buildFaceOutline(+1);
+          const botFace = buildFaceOutline(-1);
+          const fmt = (pts: Array<{ x: number; y: number }>) =>
+            pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+          return (
+            <g key={part.id}>
+              <polygon
+                points={fmt(botFace)}
+                fill="none"
+                stroke="#888"
+                strokeWidth={0.5}
+                strokeDasharray="4 3"
+              />
+              <polygon
+                points={fmt(topFace)}
+                fill="none"
+                stroke="#111"
+                strokeWidth={0.9}
+              />
+            </g>
+          );
+        }
         // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
         if (
           (part.shape?.kind === "round" ||
