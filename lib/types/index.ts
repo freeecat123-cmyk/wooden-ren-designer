@@ -229,6 +229,10 @@ export interface Part {
      *  用於椅背頂橫木向後彎的弧形（蒸彎或疊片），向 +Z 凸出。
      *  bendMm > 0 → 向 +Z（背後）凸；bendMm < 0 → 向 -Z 凸。 */
     | { kind: "arch-bent"; bendMm: number; segments?: number }
+    /** 沿 Z 軸傾斜的長條（椅背直料配合彎頂橫木）：底面在 origin.z，頂面 z 偏移 topShiftMm。
+     *  baseHeightMm = 未傾斜時的世界 Y 高度（visible.width 是已含 cos 補償的料長）。
+     *  side view 渲染為平行四邊形而非 AABB，避免跟上方頂橫木視覺重疊。 */
+    | { kind: "tilt-z"; topShiftMm: number; baseHeightMm: number }
     | { kind: "live-edge"; amplitudeMm?: number }
     /** Seat scoop: 座板挖型。saddle = 馬鞍式中央凹（雙軸 paraboloid），
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
@@ -333,7 +337,9 @@ export type OptionSpec =
       key: string;
       label: string;
       defaultValue: string;
-      choices: Array<{ value: string; label: string }>;
+      /** 每個 choice 可選帶 dependsOn，依其他選項值動態隱藏該選項
+       *  （例如某些椅背樣式只在 box 腳時可選）。 */
+      choices: Array<{ value: string; label: string; dependsOn?: OptionDependency }>;
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;

@@ -873,22 +873,23 @@ function buildArchBentGeometry(
   }
   const idx: number[] = [];
   // 4 個 side face 沿 length 連接每個 slice
+  // 注意：所有三角形 winding 為 CCW 從外側看（法線朝外）
   for (let i = 0; i < N; i++) {
     const a = i * 4;
     const b = (i + 1) * 4;
-    // bottom face (y=-hy): a+0 → a+3 → b+3 → b+0
-    idx.push(a + 0, a + 3, b + 3, a + 0, b + 3, b + 0);
-    // top face (y=+hy): a+2 → a+1 → b+1 → b+2
-    idx.push(a + 2, a + 1, b + 1, a + 2, b + 1, b + 2);
-    // front face (z=-hz+dz): a+0 → b+0 → b+1 → a+1
-    idx.push(a + 0, b + 0, b + 1, a + 0, b + 1, a + 1);
-    // back face (z=+hz+dz): a+3 → a+2 → b+2 → b+3
-    idx.push(a + 3, a + 2, b + 2, a + 3, b + 2, b + 3);
+    // bottom face (法線 -Y)：從 -Y 看 CCW
+    idx.push(a + 0, b + 0, b + 3, a + 0, b + 3, a + 3);
+    // top face (法線 +Y)：從 +Y 看 CCW
+    idx.push(a + 1, a + 2, b + 2, a + 1, b + 2, b + 1);
+    // front face (法線 -Z)：從 -Z 看 CCW
+    idx.push(a + 0, a + 1, b + 1, a + 0, b + 1, b + 0);
+    // back face (法線 +Z)：從 +Z 看 CCW
+    idx.push(a + 3, b + 3, b + 2, a + 3, b + 2, a + 2);
   }
   // 兩端 cap：第 0 slice 跟第 N slice 各 1 個 quad
-  // 起始端（X=-hx，朝 -X 看是外）：CCW from outside = 0,1,2,3 reversed
+  // 起始端（X=-hx，法線 -X）：從 -X 看 CCW = 0 → 3 → 2 → 1
   idx.push(0, 3, 2, 0, 2, 1);
-  // 終止端（X=+hx，朝 +X 看是外）
+  // 終止端（X=+hx，法線 +X）：從 +X 看 CCW = e → e+1 → e+2 → e+3
   const e = N * 4;
   idx.push(e, e + 1, e + 2, e, e + 2, e + 3);
   const g = new BufferGeometry();

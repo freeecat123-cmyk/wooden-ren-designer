@@ -44,15 +44,20 @@ export const benchOptions: OptionSpec[] = [
     { value: "low", label: "矮椅背 板式（150mm，腰靠感）" },
     { value: "high", label: "高椅背 板式（350mm，正式座椅）" },
     { value: "slatted", label: "高椅背 直格條（350mm，垂直料 + 頂橫木）" },
-    { value: "ladder", label: "高椅背 橫格條（350mm，3 條水平橫木）" },
+    { value: "ladder", label: "高椅背 橫格條（350mm，1~3 條水平橫木 + 2 立柱）", dependsOn: { key: "legShape", notIn: ["splayed", "splayed-width"] } },
     { value: "windsor", label: "Windsor 風（350mm，2 邊柱+5 細圓料）" },
   ], help: "沿長邊背側加椅背料，靠著有依靠感" },
   { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
-  { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 50, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 20, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatBackInset", label: "直料距背緣 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "直料背面跟座板背緣的距離，0 = 齊平", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatEndInset", label: "直料距端頭 (mm)", defaultValue: 0, min: 0, max: 200, step: 10, help: "直料兩端往內縮的距離（頂橫木仍跨整條長邊不動），0 = 齊平座板兩端", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailBendMm", label: "頂橫木向後彎弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "頂橫木中央往後（背側）彎的最大量，給人靠著符合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "slatted" } },
+  { group: "back", type: "number", key: "ladderRungs", label: "橫格條數", defaultValue: 2, min: 1, max: 3, step: 1, help: "全部排在椅背上半段，下緣不貼座板", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailH", label: "橫格條寬度 (mm)", defaultValue: 60, min: 25, max: 150, step: 5, help: "橫木的高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailT", label: "橫格條厚度 (mm)", defaultValue: 25, min: 15, max: 50, step: 5, help: "橫木的厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailGap", label: "橫格條間距 (mm)", defaultValue: 40, min: 10, max: 200, step: 5, help: "相鄰橫木之間的空隙；橫木從頂橫木往下依序疊", dependsOn: { key: "endSplat", equals: "ladder" } },
+  { group: "back", type: "number", key: "ladderRailBendMm", label: "橫格條向後弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "每條橫格條中央往後（背側）彎的最大量，貼合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "ladder" } },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
@@ -83,6 +88,11 @@ export const bench: FurnitureTemplate = (input) => {
   const topRailBendMm = getOption<number>(input, opt(o, "topRailBendMm"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
+  const ladderRailH = getOption<number>(input, opt(o, "ladderRailH"));
+  const ladderRailT = getOption<number>(input, opt(o, "ladderRailT"));
+  const ladderRailGap = getOption<number>(input, opt(o, "ladderRailGap"));
+  const ladderRailBendMm = getOption<number>(input, opt(o, "ladderRailBendMm"));
 
   const design = simpleTable({
     category: "bench",
@@ -113,6 +123,8 @@ export const bench: FurnitureTemplate = (input) => {
   // 椅背 —— 沿長邊背側（+Z）從座板上緣往上延伸
   if (endSplat !== "none") {
     const splatHeight = endSplat === "low" ? 150 : 350;
+    // overall.thickness 需含椅背，否則三視圖 viewBox 會切到椅背頂端
+    design.overall = { ...design.overall, thickness: input.height + splatHeight };
     const splatThick = 25;
     const seatTop = input.height;
     const halfW = input.width / 2;
@@ -172,6 +184,9 @@ export const bench: FurnitureTemplate = (input) => {
           visible: { length: slatW, width: tiltedHeight, thickness: slatT },
           origin: { x, y: originY, z: originZ },
           rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
+          shape: dzAtTop > 0
+            ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
+            : undefined,
           tenons: [],
           mortises: [],
         });
@@ -190,23 +205,171 @@ export const bench: FurnitureTemplate = (input) => {
         mortises: [],
       });
     } else if (endSplat === "ladder") {
-      // 橫格條：頂橫木 + 2 條中段橫料（高 60mm）
-      const railH = 60;
-      const railT = 25;
-      const railSpacing = (splatHeight - 3 * railH) / 2; // 3 條 + 2 個間隔
-      for (let i = 0; i < 3; i++) {
-        const yBot = seatTop + i * (railH + railSpacing);
+      // 橫格條：N 條（1~3）水平橫料 + 2 條後背立柱接座板
+      // 結構：立柱靠最後（背面齊座板背緣），橫木掛在立柱「前面」→ 從正視圖看
+      // 立柱在橫木後面（被橫木遮住）
+      // 從頂橫木往下依序疊放，每兩條之間留 ladderRailGap 空隙
+      const railH = Math.max(15, ladderRailH || 60);
+      const railT = Math.max(10, ladderRailT || 25);
+      const railGap = Math.max(0, ladderRailGap || 40);
+      const postW = legSize;
+      const postT = legSize;
+      const N = Math.max(1, Math.min(3, Math.round(ladderRungs || 2)));
+      // 立柱位置 = 後腳位置（後腳延伸上來當立柱）
+      const rearLegZ = halfW - legSize / 2 - legInset;
+      const postZ = rearLegZ;
+      // 橫木：背面貼立柱前面（rail 中心 = 後腳前緣再往前 railT/2）
+      const railZ = rearLegZ - legSize / 2 - railT / 2;
+      // 橫木 X 軸長度 = 整條長凳長（跟原本一樣）；重疊立柱的部分另外把立柱切開
+      const postX = input.length / 2 - legSize / 2 - legInset;
+      const railLength = input.length;
+      // 頂橫木下緣 = splat 區段最上方
+      const topRailBotY = seatTop + splatHeight - railH;
+      // 檢查最底下那條會不會掉到座板下方；若會，自動縮 gap 至剛好 fit 進上半段
+      const stackHeight = N * railH + (N - 1) * railGap;
+      const minBotY = seatTop + splatHeight / 2; // 不准低於背高一半
+      const adjustedGap = stackHeight > splatHeight - railH
+        ? Math.max(0, (splatHeight - railH - N * railH) / Math.max(1, N - 1))
+        : railGap;
+      const railIntervals: Array<{ bot: number; top: number }> = [];
+      for (let i = 0; i < N; i++) {
+        // i=0 → 最上面（頂橫木）；逐條往下
+        const yBot = topRailBotY - i * (railH + adjustedGap);
+        const isTop = i === 0;
+        if (yBot < minBotY) break; // 底線保護：超過上半段不畫
+        railIntervals.push({ bot: yBot, top: yBot + railH });
+        // 不旋轉（像 slatted 頂橫木）：let local Z = 世界 Z 才能讓 arch-bent 在世界 +Z 彎
+        // local X=長 (世界 X)、local Y(thickness)=高度 (世界 Y)、local Z(width)=深度 (世界 Z)
         design.parts.push({
           id: `back-rail-${i + 1}`,
-          nameZh: i === 2 ? "椅背頂橫木" : `椅背橫料 ${i + 1}`,
+          nameZh: isTop ? "椅背頂橫木" : `椅背橫料 ${i + 1}`,
           material: mat,
           grainDirection: "length",
-          visible: { length: input.length, width: railH, thickness: railT },
-          origin: { x: 0, y: yBot, z: backZ },
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          visible: { length: railLength, width: railT, thickness: railH },
+          origin: { x: 0, y: yBot, z: railZ },
+          shape: ladderRailBendMm > 0
+            ? { kind: "arch-bent", bendMm: ladderRailBendMm }
+            : undefined,
           tenons: [],
           mortises: [],
         });
+      }
+      // 後背立柱 = 後腳延長上來。
+      // 「鋁向後彎時跟立柱會在 X 範圍內重疊」的處理：
+      // 在「鋁堆疊 Y 區間（railSpanBot..railSpanTop）」內，立柱前緣往後縮 cutDepth
+      // 的距離，讓鋁的後彎曲線剛好通過。實作是把立柱拆成三段：
+      //   下段：legHeight..railSpanBot，全寬
+      //   中段：railSpanBot..railSpanTop，前緣往後縮 cutDepth（width 軸縮，origin.z 往 +Z 偏 cutDepth/2）
+      //   上段：railSpanTop..postTopY，全寬
+      // 切的「斜面長度」= 鋁堆疊總高（=railSpanTop − railSpanBot），剛好對應你說的
+      // 「3 條鋁總高 120cm 就切 120cm」。
+      const splayedSet = new Set(["splayed", "splayed-length", "splayed-width"]);
+      const taperedSet = new Set(["tapered", "strong-taper", "inverted", "hoof"]);
+      const isSplayed = splayedSet.has(legShape);
+      const isTapered = taperedSet.has(legShape);
+      const legHeight = input.height - topThickness;
+      const postUpExt = topThickness + splatHeight;
+      const postTopY = legHeight + postUpExt;
+
+      // 鋁堆疊 Y 範圍 + 在後腳 X 位置的 bend cut depth
+      // (postX 上面已宣告)
+      let railSpanBot = Infinity, railSpanTop = -Infinity;
+      for (const r of railIntervals) {
+        railSpanBot = Math.min(railSpanBot, r.bot);
+        railSpanTop = Math.max(railSpanTop, r.top);
+      }
+      const tBendAtPost = (2 * postX) / input.length;
+      const cutDepth = ladderRailBendMm > 0 && railIntervals.length > 0
+        ? ladderRailBendMm * Math.max(0, 1 - tBendAtPost * tBendAtPost)
+        : 0;
+      const hasCut = cutDepth > 0.5 && railSpanTop > railSpanBot;
+
+      const splayMm = 40;
+      const splayHasX = legShape === "splayed" || legShape === "splayed-length";
+      const splayHasZ = legShape === "splayed" || legShape === "splayed-width";
+
+      // 公用：依 (legId, segBot, segTop, cutDepthThis) 加一段立柱
+      const addPostSeg = (
+        leg: typeof design.parts[number],
+        segBot: number,
+        segTop: number,
+        cut: number,
+        suffix: string,
+      ) => {
+        const segH = segTop - segBot;
+        if (segH <= 0.5) return;
+        const legId = leg.id.slice(4);
+        // 中段切除：width 縮 cut，origin.z 往 +Z 偏 cut/2 → 後緣不動、前緣後縮 cut
+        const widthAdj = legSize - cut;
+        const zAdj = cut / 2;
+        if (isSplayed) {
+          const dxLeg = splayHasX ? Math.sign(leg.origin.x) * splayMm : 0;
+          const dzLeg = splayHasZ ? Math.sign(leg.origin.z) * splayMm : 0;
+          const tiltX = (dxLeg * postUpExt) / legHeight;
+          const tiltZ = (dzLeg * postUpExt) / legHeight;
+          const fBot = (segBot - legHeight) / postUpExt;
+          const fTop = (segTop - legHeight) / postUpExt;
+          const segBotX = leg.origin.x - tiltX * fBot;
+          const segTopX = leg.origin.x - tiltX * fTop;
+          const segBotZ = leg.origin.z - tiltZ * fBot;
+          const segTopZ = leg.origin.z - tiltZ * fTop;
+          const legChamferMm = leg.shape?.kind === "splayed" ? leg.shape.chamferMm : undefined;
+          const legChamferStyle = leg.shape?.kind === "splayed" ? leg.shape.chamferStyle : undefined;
+          design.parts.push({
+            id: `back-post-${legId}-${suffix}`,
+            nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            material: mat,
+            grainDirection: "length",
+            visible: { length: legSize, width: widthAdj, thickness: segH },
+            origin: { x: segTopX, y: segBot, z: segTopZ + zAdj },
+            shape: {
+              kind: "splayed",
+              dxMm: segBotX - segTopX,
+              dzMm: segBotZ - segTopZ,
+              ...(legChamferMm ? { chamferMm: legChamferMm } : {}),
+              ...(legChamferStyle ? { chamferStyle: legChamferStyle } : {}),
+            },
+            tenons: [],
+            mortises: [],
+          });
+        } else {
+          const postShape = leg.shape?.kind === "chamfered-edges"
+            ? { kind: "chamfered-edges" as const, chamferMm: leg.shape.chamferMm, style: leg.shape.style }
+            : undefined;
+          design.parts.push({
+            id: `back-post-${legId}-${suffix}`,
+            nameZh: `椅背柱-${suffix}（接後腳 ${legId}）`,
+            material: mat,
+            grainDirection: "length",
+            visible: { length: legSize, width: segH, thickness: widthAdj },
+            origin: { x: leg.origin.x, y: segBot, z: leg.origin.z + zAdj },
+            rotation: { x: Math.PI / 2, y: 0, z: 0 },
+            shape: postShape,
+            tenons: [],
+            mortises: [],
+          });
+        }
+      };
+
+      const rearLegs = design.parts.filter(p => p.id.startsWith("leg-") && p.origin.z > 0);
+      if (!isSplayed && !isTapered && !hasCut) {
+        // box 腳 + 沒有切除 → 直接延長後腳
+        for (const p of rearLegs) {
+          p.visible = { ...p.visible, thickness: p.visible.thickness + postUpExt };
+          p.nameZh = `後腳/椅背柱 ${p.id.slice(4)}`;
+        }
+      } else if (!hasCut) {
+        // splayed/tapered + 沒切除 → 加單支立柱（不分段）
+        for (const leg of rearLegs) {
+          addPostSeg(leg, legHeight, postTopY, 0, "full");
+        }
+      } else {
+        // 有切除 → 三段：下段 + 中段（前緣後縮 cutDepth）+ 上段
+        for (const leg of rearLegs) {
+          if (railSpanBot > legHeight) addPostSeg(leg, legHeight, railSpanBot, 0, "lower");
+          addPostSeg(leg, railSpanBot, railSpanTop, cutDepth, "mid");
+          if (postTopY > railSpanTop) addPostSeg(leg, railSpanTop, postTopY, 0, "upper");
+        }
       }
     } else if (endSplat === "windsor") {
       // Windsor 風：2 邊柱（方料）+ 1 頂橫木 + 5 條圓料連接座板和頂橫木

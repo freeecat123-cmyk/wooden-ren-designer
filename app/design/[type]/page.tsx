@@ -753,7 +753,7 @@ function GroupedOptionFields({
                     key={spec.key}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
-                    <OptionField spec={spec} value={optionValues[spec.key]} />
+                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} />
                   </div>
                 );
               })}
@@ -768,10 +768,22 @@ function GroupedOptionFields({
 function OptionField({
   spec,
   value,
+  allValues,
 }: {
   spec: OptionSpec;
   value: string | number | boolean;
+  allValues?: Record<string, string | number | boolean>;
 }) {
+  const choiceVisible = (
+    dep: import("@/lib/types").OptionDependency | undefined,
+  ): boolean => {
+    if (!dep || !allValues) return true;
+    const v = allValues[dep.key];
+    if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
+    if (dep.oneOf && !dep.oneOf.includes(v as string | number | boolean)) return false;
+    if (dep.equals !== undefined && v !== dep.equals) return false;
+    return true;
+  };
   if (spec.type === "number") {
     return (
       <label className="flex flex-col text-xs" title={spec.help}>
@@ -801,7 +813,7 @@ function OptionField({
           defaultValue={String(value)}
           className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
         >
-          {spec.choices.map((c) => (
+          {spec.choices.filter((c) => choiceVisible(c.dependsOn)).map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
             </option>

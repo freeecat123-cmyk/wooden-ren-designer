@@ -21,13 +21,14 @@ export function worldExtents(part: Part) {
 export type OrthoView = "front" | "side" | "top";
 
 /**
- * 把零件的 8 個 box corner 套用完整 rotation（含非 quarter）→ 投影到 view 平面
- * → convex hull 算出 silhouette polygon。
+ * 通用零件 silhouette：取零件 local-frame 採樣點 → 套形狀修飾（taper/splay/
+ * arch-bent/tilt-z/apron-trapezoid/apron-beveled）→ 套 rotation → 加 origin →
+ * 投影到 view 平面 → convex hull → 剪影 polygon。
  *
- * 用於零件有非 90° 倍數的旋轉（例如外斜腳的 apron tilt α）時，
- * 標準 worldExtents bbox 無法正確呈現，需要實際算傾斜後的形狀。
+ * 一條演算法處理所有「需要 3D 計算才能正確投影 2D」的情況，取代以往
+ * 各 view × 各 shape 散落的 polygon 邏輯。
  */
-export function projectTiltedBoxSilhouette(
+export function projectPartSilhouette(
   part: Part,
   view: OrthoView,
 ): Array<{ x: number; y: number }> {
@@ -42,49 +43,118 @@ export function projectTiltedBoxSilhouette(
   const cz = Math.cos(rz), sz = Math.sin(rz);
   const { yExt } = worldExtents(part);
   const yOffset = part.origin.y + yExt / 2;
-  const projected: Array<{ x: number; y: number }> = [];
-  // 梯形 apron：上 (z=-hz) 用 topScale 縮 length，下 (z=+hz) 用 bottomScale
+
+  // === Shape modifiers ===
   const trap = part.shape?.kind === "apron-trapezoid" ? part.shape : null;
-  // 斜邊 apron：local z 方向 shear -y × tan(bevelAngle)，上下緣旋轉後保持水平
-  // apron-trapezoid 也帶 bevelAngle（外斜腳家具），同樣要補 shear，
-  // 不然側/前視圖剪影會出現「折角」、上下緣看起來不水平。
   const bev = part.shape?.kind === "apron-beveled" ? part.shape : null;
-  const bevAngle = bev?.bevelAngle ?? trap?.bevelAngle ?? 0;
-  const bevShear = Math.tan(bevAngle);
-  for (const ex of [-1, 1] as const) {
+  const bevShear = Math.tan(bev?.bevelAngle ?? trap?.bevelAngle ?? 0);
+  // Tapered family: 底面 (y = +ly/2) 沿 X 縮 bottomScale
+  const tapered = part.shape?.kind === "tapered" ? part.shape.bottomScale
+    : part.shape?.kind === "round-tapered" ? part.shape.bottomScale
+    : part.shape?.kind === "splayed-tapered" ? part.shape.bottomScale
+    : part.shape?.kind === "splayed-round-tapered" ? part.shape.bottomScale
+    : 1;
+  // Splayed family: 底面 (y = +ly/2) 沿 X 偏 dxMm、沿 Z 偏 dzMm
+  const splay =
+    part.shape?.kind === "splayed" ? { dx: part.shape.dxMm, dz: part.shape.dzMm }
+    : part.shape?.kind === "splayed-tapered" ? { dx: part.shape.dxMm, dz: part.shape.dzMm }
+    : part.shape?.kind === "splayed-round-tapered" ? { dx: part.shape.dxMm, dz: part.shape.dzMm }
+    : null;
+  // Arch-bent: 沿 X 切 N 片，每片 z 軸偏移 bend × (1 - (2x/L)²)
+  const arch = part.shape?.kind === "arch-bent" ? part.shape : null;
+  const archSegments = arch ? Math.max(2, arch.segments ?? 16) : 0;
+  // Tilt-z: 頂面 (y = +ly/2 → 旋轉前的局部頂端) 沿 Z 偏 topShiftMm
+  // baseHeightMm 已在 visible.width 反映傾斜後的料長，不另外 scale。
+  const tiltZ = part.shape?.kind === "tilt-z" ? part.shape.topShiftMm : 0;
+  // Round / round-tapered / lathe-turned / shaker：截面圓形，採樣 N 點而非 4 角
+  const isRound = part.shape?.kind === "round" || part.shape?.kind === "round-tapered"
+    || part.shape?.kind === "lathe-turned";
+  const ROUND_SAMPLES = 16;
+
+  const projected: Array<{ x: number; y: number }> = [];
+  const pushPoint = (xL: number, yL: number, zL: number) => {
+    let x = xL, y = yL, z = zL;
+    // Rx
+    let y2 = y * cx - z * sx;
+    let z2 = y * sx + z * cx;
+    y = y2; z = z2;
+    // Ry
+    let x2 = x * cy + z * sy;
+    z2 = -x * sy + z * cy;
+    x = x2; z = z2;
+    // Rz
+    x2 = x * cz - y * sz;
+    y2 = x * sz + y * cz;
+    x = x2; y = y2;
+    const wx = x + part.origin.x;
+    const wy = y + yOffset;
+    const wz = z + part.origin.z;
+    let vx: number, vy: number;
+    if (view === "top") { vx = -wx; vy = wz; }
+    else if (view === "side") { vx = wz; vy = wy; }
+    else { vx = -wx; vy = wy; }
+    projected.push({ x: vx, y: vy });
+  };
+
+  // 採樣每個 (ex, ey, ez) bbox 角，套 shape 修飾算實際 local 座標
+  // 對 arch-bent 沿 ex 軸額外切 N 片
+  const xSlices: number[] = arch
+    ? Array.from({ length: archSegments + 1 }, (_, i) => -1 + (2 * i) / archSegments)
+    : [-1, 1];
+  for (const exNorm of xSlices) {
+    // exNorm ∈ [-1, 1]：-1 = X 左端，+1 = X 右端
+    const tArch = exNorm; // arch bend 用 (1 - tArch²) 計算
+    const archDz = arch ? arch.bendMm * Math.max(0, 1 - tArch * tArch) : 0;
     for (const ey of [-1, 1] as const) {
-      for (const ez of [-1, 1] as const) {
-        const xScale = trap
-          ? ez < 0 ? trap.topLengthScale : trap.bottomLengthScale
+      // 採截面：圓形 → ROUND_SAMPLES 點；方形 → ez=±1
+      const samples: Array<[number, number]> = isRound
+        ? Array.from({ length: ROUND_SAMPLES }, (_, i) => {
+            const a = (i / ROUND_SAMPLES) * Math.PI * 2;
+            return [Math.sin(a), Math.cos(a)];
+          })
+        : [[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([yS, zS]) => [yS, zS] as [number, number])
+          .filter(([yS]) => yS === ey);
+      for (const [eySamp, ezSamp] of samples) {
+        // 注意 isRound 時迴圈 ey 失效，但採樣已涵蓋整圈
+        const eyEff = isRound ? eySamp : ey;
+        // 底面 = ey > 0（local +Y 是底，因為 origin.y 是底，local Y 軸向 +Y 增加）
+        // 等等——其實這套幾何裡 visible.thickness=Y，origin.y 是底，所以 ey=-1 是底、ey=+1 是頂?
+        // 實際：local center 在 origin + extents/2，local y ∈ [-ly/2, +ly/2]，
+        // 對應世界 y ∈ [origin.y, origin.y + ly]（假設無旋轉）。
+        // 所以 ey=+1 = 世界 y 高 = 「上面」，ey=-1 = 「下面（origin.y 處）」
+        // 但對腳/apron 來說 trap.bottomScale 是「腳底」= 世界 y 低 = ey=-1。
+        // 此處沿用原 projectTiltedBoxSilhouette 慣例：ez<0 = top，ez>0 = bottom（梯形 apron 走 Z 軸）。
+        // taper/splay 一般沿 Y：bottom = ey=+1（世界 +Y? 不對）...
+        // 為相容原行為，taper/splay 套在 ey=+1（座標較高）= 「上面」？
+        // 翻原 simple-table：腳 length=high, width=legSize, thickness=legSize；底面 = origin.y。
+        // origin 是 local 中心 - extents/2 嗎？看 yOffset = origin.y + yExt/2 → origin.y = bottom，
+        // local y = (ey * ly) / 2 → ey=-1 是 origin.y 處 = 「底」(地面)。
+        // 所以：ey=-1 = 腳底 = bottomScale 套在這。
+        const isBottom = eyEff < 0;
+        const xScaleTaper = isBottom ? tapered : 1;
+        const xScaleTrap = trap
+          ? ezSamp < 0 ? trap.topLengthScale : trap.bottomLengthScale
           : 1;
-        let x = (ex * lx * xScale) / 2;
-        let y = (ey * ly) / 2;
-        let z = (ez * lz) / 2 - y * bevShear;
-        // Rx
-        let y2 = y * cx - z * sx;
-        let z2 = y * sx + z * cx;
-        y = y2; z = z2;
-        // Ry
-        let x2 = x * cy + z * sy;
-        z2 = -x * sy + z * cy;
-        x = x2; z = z2;
-        // Rz
-        x2 = x * cz - y * sz;
-        y2 = x * sz + y * cz;
-        x = x2; y = y2;
-        const wx = x + part.origin.x;
-        const wy = y + yOffset;
-        const wz = z + part.origin.z;
-        let vx: number, vy: number;
-        if (view === "top") { vx = -wx; vy = wz; }
-        else if (view === "side") { vx = wz; vy = wy; }
-        else { vx = -wx; vy = wy; }
-        projected.push({ x: vx, y: vy });
+        const splayDx = splay && isBottom ? splay.dx : 0;
+        const splayDz = splay && isBottom ? splay.dz : 0;
+        // tilt-z: 頂端 (ezSamp = +1，假設 width 是高度) z 偏 topShiftMm/2，底端偏 -topShiftMm/2
+        // 不過 tilt-z 多半搭 rotation 用，rotation 已轉好，這裡只需要直接位移。
+        const tiltZdz = tiltZ * (ezSamp / 2);
+
+        const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
+          + (isBottom ? splayDx : 0);
+        const yLocal = (eyEff * ly) / 2;
+        const zLocal = (ezSamp * lz) / 2 + archDz + tiltZdz - yLocal * bevShear
+          + (isBottom ? splayDz : 0);
+        pushPoint(xLocal, yLocal, zLocal);
       }
     }
   }
   return convexHull2D(projected);
 }
+
+/** @deprecated 使用 projectPartSilhouette。保留別名做漸進遷移。 */
+export const projectTiltedBoxSilhouette = projectPartSilhouette;
 
 /** Andrew's monotone chain — 2D convex hull, CCW order. */
 function convexHull2D(
@@ -365,6 +435,58 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
       ...arc(r.x + cap, r.y + r.h - cap, Math.PI / 2, Math.PI),
       ...arc(r.x + cap, r.y + cap, Math.PI, (3 * Math.PI) / 2),
       ...arc(r.x + r.w - cap, r.y + cap, (3 * Math.PI) / 2, 2 * Math.PI),
+    ];
+  }
+
+  // 沿 Z 傾斜長條（椅背直料）：side view 畫平行四邊形，front view 畫直立矩形
+  // （厚度=slatT 在 X 方向；高度=baseHeightMm；頂端往 +Z 偏 topShiftMm）
+  if (part.shape.kind === "tilt-z") {
+    const topShift = part.shape.topShiftMm;
+    const baseH = part.shape.baseHeightMm;
+    const slatT = part.visible.thickness;
+    const yBot = part.origin.y + (part.visible.width - baseH) / 2;
+    const yTop = yBot + baseH;
+    if (view === "side") {
+      // 投影 X = world Z；底面中心 z = origin.z - topShift/2，頂面 z = origin.z + topShift/2
+      const zBotCenter = part.origin.z - topShift / 2;
+      const zTopCenter = part.origin.z + topShift / 2;
+      return [
+        { x: zTopCenter - slatT / 2, y: yTop },     // top-left
+        { x: zTopCenter + slatT / 2, y: yTop },     // top-right
+        { x: zBotCenter + slatT / 2, y: yBot },     // bottom-right
+        { x: zBotCenter - slatT / 2, y: yBot },     // bottom-left
+      ];
+    }
+    if (view === "front") {
+      // 投影 X = -world X（鏡像）；長條沿 X 軸寬度 = visible.length
+      const xCenter = -part.origin.x;
+      const halfL = part.visible.length / 2;
+      return [
+        { x: xCenter - halfL, y: yTop },
+        { x: xCenter + halfL, y: yTop },
+        { x: xCenter + halfL, y: yBot },
+        { x: xCenter - halfL, y: yBot },
+      ];
+    }
+    // top view 沿用 box
+    return box;
+  }
+
+  // 弧形彎料（椅背頂橫木向後彎）側視：沿 worldX 看不到 length；silhouette =
+  // 各段 X 的 cross-section union，等於把後緣（+Z 方向）整體外推 bendMm。
+  // 結果是寬度 = topRailT + bendMm 的長方形，前緣維持原位、後緣 +bendMm。
+  if (part.shape.kind === "arch-bent" && view === "side") {
+    const bend = part.shape.bendMm;
+    if (Math.abs(bend) < 0.5) return box;
+    const xFront = r.x;
+    const xBack = r.x + r.w + bend;
+    const yBot = r.y;
+    const yTop = r.y + r.h;
+    return [
+      { x: xFront, y: yTop },
+      { x: xBack, y: yTop },
+      { x: xBack, y: yBot },
+      { x: xFront, y: yBot },
     ];
   }
 

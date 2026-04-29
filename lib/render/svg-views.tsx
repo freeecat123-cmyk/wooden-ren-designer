@@ -352,13 +352,23 @@ export function OrthoView({
             />
           );
         }
-        // 傾斜 box / 梯形 apron
-        // worldExtents 只認 quarter rotation，傾斜後要算實際投影 silhouette
+        // 傾斜 box / 梯形 apron / arch-bent / tilt-z
+        // worldExtents 只認 quarter rotation；非 quarter 旋轉、彎料、傾斜料都要走
+        // projectPartSilhouette（3D corner sample → rotate → project → hull）
         const isTiltedBox =
           (!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part);
         const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
         const isApronBeveled = part.shape?.kind === "apron-beveled";
-        if (isTiltedBox || isApronTrapezoid || isApronBeveled) {
+        const isArchBentSideFront =
+          part.shape?.kind === "arch-bent" && view !== "top";
+        const isTiltZ = part.shape?.kind === "tilt-z" && view !== "top";
+        if (
+          isTiltedBox ||
+          isApronTrapezoid ||
+          isApronBeveled ||
+          isArchBentSideFront ||
+          isTiltZ
+        ) {
           // 俯視特例：上面（接座）+ 下面（接地，虛線）+ 4 條連接線
           // 跟外斜腳同樣的視覺風格——讓使用者看出 apron 是傾斜的
           if (view === "top") {
@@ -498,6 +508,26 @@ export function OrthoView({
                 strokeDasharray="3 3"
               />,
             );
+          }
+          // Arch-bent 側視：在未彎時的端面後緣多畫一條垂直實線，標示
+          // 端面（cross-section）邊界——讓看圖的人分得出料的真實厚度 vs 彎弧延伸
+          if (part.shape?.kind === "arch-bent" && view === "side") {
+            const r = projectPart(part, view);
+            const bend = part.shape.bendMm;
+            if (Math.abs(bend) >= 0.5) {
+              const xBackOriginal = r.x + r.w; // 未彎時的後緣
+              extras.push(
+                <line
+                  key={`${part.id}-endface`}
+                  x1={xBackOriginal}
+                  x2={xBackOriginal}
+                  y1={-r.y}
+                  y2={-(r.y + r.h)}
+                  stroke={stroke}
+                  strokeWidth={sw}
+                />,
+              );
+            }
           }
           return (
             <g key={part.id}>
