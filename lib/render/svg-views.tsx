@@ -301,32 +301,46 @@ export function OrthoView({
           part.shape?.kind === "arch-bent" &&
           Math.abs(part.rotation?.x ?? 0) > 0.01
         ) {
+          const arch = part.shape;
           const rakeRad = part.rotation!.x;
           const cosRake = Math.cos(rakeRad);
           const sinRake = Math.sin(rakeRad);
           const lx = part.visible.length;
           const ly = part.visible.thickness;
           const lz = part.visible.width;
+          const segments = arch.segments ?? 16;
           // worldExtents 對非 quarter rotation 取近似——這裡手動算正確 yExt
           const yExt = ly * Math.abs(cosRake) + lz * Math.abs(sinRake);
           const yOffset = part.origin.y + yExt / 2;
           // 建構單一面 (ez=-1 = front 面 / +1 = back 面) 在 front view 的 svg 多邊形
+          // 沿 X 軸採樣 N 段，每段 archDz 影響 Z，再經 rake 旋轉吃進 Y → 弧形輪廓
           const buildFace = (ez: 1 | -1): Array<{ x: number; y: number }> => {
-            const zLocal = (ez * lz) / 2;
-            const corners: Array<{ x: number; y: number }> = [];
-            // CCW: top-right, top-left, bot-left, bot-right (svg flip Y, so top-Y = small svg y)
-            for (const [exN, eyN] of [[+1, +1], [-1, +1], [-1, -1], [+1, -1]] as const) {
-              const yLocal = (eyN * ly) / 2;
-              const xLocal = (exN * lx) / 2;
-              // Rotate about X axis
-              const yWorld = yLocal * cosRake - zLocal * sinRake;
-              const xWorld = xLocal;
-              // Front view: vx = -xWorld, vy = yWorld + yOffset; svg y = -vy
-              const vx = -(xWorld + part.origin.x);
-              const vy = yWorld + yOffset;
-              corners.push({ x: vx, y: -vy });
+            const top: Array<{ x: number; y: number }> = []; // ey=+1 (top edge, smaller svg y)
+            const bot: Array<{ x: number; y: number }> = []; // ey=-1 (bottom edge)
+            for (let i = 0; i <= segments; i++) {
+              const t = -1 + (2 * i) / segments;
+              const xLocal = (lx * t) / 2;
+              const archDz = arch.bendMm * Math.max(0, 1 - t * t);
+              const zLocal = (ez * lz) / 2 + archDz;
+              // Top edge
+              const yTopLocal = +ly / 2;
+              const yTopWorld = yTopLocal * cosRake - zLocal * sinRake;
+              top.push({
+                x: -(xLocal + part.origin.x),
+                y: -(yTopWorld + yOffset),
+              });
+              // Bottom edge
+              const yBotLocal = -ly / 2;
+              const yBotWorld = yBotLocal * cosRake - zLocal * sinRake;
+              bot.push({
+                x: -(xLocal + part.origin.x),
+                y: -(yBotWorld + yOffset),
+              });
             }
-            return corners;
+            // CCW: top edge left-to-right + bottom edge right-to-left
+            // svg y 較小 = 上方；top.y < bot.y。CCW（svg y-down）= 順時針 in math sense
+            // 從 svg 角度走外圈：top-left → top-right → bot-right → bot-left
+            return [...top, ...bot.reverse()];
           };
           const frontFace = buildFace(-1);
           const backFace = buildFace(+1);
