@@ -20,4 +20,6 @@ export interface PlacedItem {
   yMm: number;
   rotation: 0 | 90 | 180 | 270;
   footprintMm: { length: number; width: number };
+  /** 完整設計 params（length/width/height/material/joinery + 客製 options），重建俯視圖用 */
+  designParams: Record<string, unknown>;
 }

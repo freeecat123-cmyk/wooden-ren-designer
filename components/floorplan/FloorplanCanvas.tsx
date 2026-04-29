@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Rect, Line, Text, Group } from "react-konva";
+import { createElement, useEffect, useMemo, useRef, useState } from "react";
+import { Stage, Layer, Rect, Line, Text, Group, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type { PlacedItem, RoomDimensions } from "@/lib/floorplan/types";
 import { clampToRoom, getFootprint, snapToWalls } from "@/lib/floorplan/geometry";
+import { buildDesignFromParams } from "@/lib/floorplan/buildDesign";
+import { svgElementToDataUrl } from "@/lib/floorplan/svgIcon";
+import { TopViewIcon } from "./TopViewIcon";
 
 interface Props {
   room: RoomDimensions;
@@ -130,6 +133,29 @@ export function FloorplanCanvas({
   );
 }
 
+function useDataUrlImage(url: string | null) {
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    if (!url) {
+      setImg(null);
+      return;
+    }
+    const i = new window.Image();
+    let cancelled = false;
+    i.onload = () => {
+      if (!cancelled) setImg(i);
+    };
+    i.onerror = () => {
+      if (!cancelled) setImg(null);
+    };
+    i.src = url;
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return img;
+}
+
 function FurnitureNode({
   item,
   room,
@@ -157,8 +183,36 @@ function FurnitureNode({
   const xPx = offsetX + item.xMm * scale;
   const yPx = offsetY + item.yMm * scale;
 
-  const stroke = isOverlapping ? "#f43f5e" : isSelected ? "#f59e0b" : "#52525b";
-  const fill = isOverlapping ? "#fecdd3" : isSelected ? "#fde68a" : "#e4e4e7";
+  // 重建設計 → SVG → dataURL；只在 designParams / type 變動時重算（不隨拖動觸發）
+  const iconUrl = useMemo(() => {
+    const design = buildDesignFromParams(item.furnitureType, item.designParams);
+    if (!design) return null;
+    return svgElementToDataUrl(createElement(TopViewIcon, { design }));
+  }, [item.furnitureType, item.designParams]);
+
+  const iconImg = useDataUrlImage(iconUrl);
+
+  // Native (未旋轉) 像素尺寸：Image 寬高永遠用 footprintMm.length × .width，旋轉靠 Konva
+  const nativeWpx = item.footprintMm.length * scale;
+  const nativeHpx = item.footprintMm.width * scale;
+
+  // 旋轉後讓 bounding box 左上角落在 Group 本地原點 (0,0)
+  // rot 0:   image at (0, 0)
+  // rot 90:  image at (footprintW_visual_px, 0) = (hPx, 0)  ← bbox 寬 = native height
+  // rot 180: image at (nativeWpx, nativeHpx)
+  // rot 270: image at (0, nativeWpx)
+  let imgX = 0;
+  let imgY = 0;
+  if (item.rotation === 90) {
+    imgX = nativeHpx;
+  } else if (item.rotation === 180) {
+    imgX = nativeWpx;
+    imgY = nativeHpx;
+  } else if (item.rotation === 270) {
+    imgY = nativeWpx;
+  }
+
+  const stroke = isOverlapping ? "#f43f5e" : isSelected ? "#f59e0b" : "transparent";
 
   return (
     <Group
@@ -186,8 +240,31 @@ function FurnitureNode({
         onMove(item.id, xMm, yMm);
       }}
     >
-      <Rect width={wPx} height={hPx} fill={fill} stroke={stroke} strokeWidth={isSelected || isOverlapping ? 2 : 1} />
-      <Line points={[0, 0, wPx, 0]} stroke={stroke} strokeWidth={3} />
+      {iconImg ? (
+        <KonvaImage
+          image={iconImg}
+          x={imgX}
+          y={imgY}
+          width={nativeWpx}
+          height={nativeHpx}
+          rotation={item.rotation}
+        />
+      ) : (
+        <Rect width={wPx} height={hPx} fill="#e4e4e7" stroke="#52525b" strokeWidth={1} />
+      )}
+
+      {/* 重疊 / 選取邊框 */}
+      {(isSelected || isOverlapping) && (
+        <Rect
+          width={wPx}
+          height={hPx}
+          fill="transparent"
+          stroke={stroke}
+          strokeWidth={2}
+          listening={false}
+        />
+      )}
+
       <Text
         x={4}
         y={4}
@@ -197,6 +274,7 @@ function FurnitureNode({
         fill="#27272a"
         ellipsis
         wrap="none"
+        listening={false}
       />
       <Text
         x={4}
@@ -205,6 +283,7 @@ function FurnitureNode({
         text={`${footW}×${footH}`}
         fontSize={10}
         fill="#52525b"
+        listening={false}
       />
     </Group>
   );

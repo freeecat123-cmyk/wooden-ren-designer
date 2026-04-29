@@ -54,6 +54,7 @@ export function FloorplanClient({ initialDesigns, isLoggedIn }: Props) {
         yMm: y,
         rotation: 0,
         footprintMm: footprint,
+        designParams: d.params ?? {},
       };
       setItems((prev) => [...prev, newItem]);
       setSelectedId(newItem.id);
