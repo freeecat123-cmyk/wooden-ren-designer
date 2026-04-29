@@ -294,6 +294,80 @@ export function OrthoView({
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
+        // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
+        if (
+          view === "front" &&
+          part.shape?.kind === "arch-bent" &&
+          Math.abs(part.rotation?.x ?? 0) > 0.01
+        ) {
+          const rakeRad = part.rotation!.x;
+          const cosRake = Math.cos(rakeRad);
+          const sinRake = Math.sin(rakeRad);
+          const lx = part.visible.length;
+          const ly = part.visible.thickness;
+          const lz = part.visible.width;
+          // worldExtents 對非 quarter rotation 取近似——這裡手動算正確 yExt
+          const yExt = ly * Math.abs(cosRake) + lz * Math.abs(sinRake);
+          const yOffset = part.origin.y + yExt / 2;
+          // 建構單一面 (ez=-1 = front 面 / +1 = back 面) 在 front view 的 svg 多邊形
+          const buildFace = (ez: 1 | -1): Array<{ x: number; y: number }> => {
+            const zLocal = (ez * lz) / 2;
+            const corners: Array<{ x: number; y: number }> = [];
+            // CCW: top-right, top-left, bot-left, bot-right (svg flip Y, so top-Y = small svg y)
+            for (const [exN, eyN] of [[+1, +1], [-1, +1], [-1, -1], [+1, -1]] as const) {
+              const yLocal = (eyN * ly) / 2;
+              const xLocal = (exN * lx) / 2;
+              // Rotate about X axis
+              const yWorld = yLocal * cosRake - zLocal * sinRake;
+              const xWorld = xLocal;
+              // Front view: vx = -xWorld, vy = yWorld + yOffset; svg y = -vy
+              const vx = -(xWorld + part.origin.x);
+              const vy = yWorld + yOffset;
+              corners.push({ x: vx, y: -vy });
+            }
+            return corners;
+          };
+          const frontFace = buildFace(-1);
+          const backFace = buildFace(+1);
+          const fmt = (pts: Array<{ x: number; y: number }>) =>
+            pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+          const isHiddenByFront = (x: number, y: number): boolean => {
+            return pointInPolygon({ x, y }, frontFace);
+          };
+          const backLines: React.ReactNode[] = [];
+          for (let i = 0; i < backFace.length; i++) {
+            const a = backFace[i];
+            const b = backFace[(i + 1) % backFace.length];
+            const segs = classifyEdgeVisibility(a, b, isHiddenByFront);
+            segs.forEach((seg, segIdx) => {
+              backLines.push(
+                <line
+                  key={`${part.id}-back-${i}-${segIdx}`}
+                  x1={seg.a.x}
+                  y1={seg.a.y}
+                  x2={seg.b.x}
+                  y2={seg.b.y}
+                  stroke={seg.hidden ? "#888" : "#111"}
+                  strokeWidth={seg.hidden ? 0.5 : 0.9}
+                  strokeDasharray={seg.hidden ? "4 3" : undefined}
+                  fill="none"
+                />,
+              );
+            });
+          }
+          return (
+            <g key={part.id}>
+              {backLines}
+              <polygon
+                points={fmt(frontFace)}
+                fill="none"
+                stroke="#111"
+                strokeWidth={0.9}
+              />
+            </g>
+          );
+        }
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）俯視特例：
         // 頂面 vs 底面在 Z 軸偏移 ly·sin(rake)/2，分開畫頂面實線、底面虛線
         if (
