@@ -400,8 +400,8 @@ export const bench: FurnitureTemplate = (input) => {
       const bowBendMm = Math.max(0, windsorBowBendMm);
       const backInset = Math.max(0, Math.min(150, windsorBackInset || 0));
       const endInset = Math.max(0, Math.min(200, windsorEndInset || 0));
-      const rakeMm = Math.max(0, Math.min(80, windsorRakeMm || 0));
       const spindleN = Math.max(5, Math.min(13, Math.round(windsorSpindleCount || 7)));
+      void windsorRakeMm; // 預留未實作（rake 跟 round shape 互動會搞亂 spindle）
 
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
@@ -414,21 +414,19 @@ export const bench: FurnitureTemplate = (input) => {
           ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / bowLength, 2))
           : 0;
 
-      // 從座板背緣往上、頂端後傾接到 bow 的車旋圓料
+      // 從座板背緣往上、頂端跟著 bow 後彎傾斜的車旋圓料
       // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高
       // splayed-round-tapered: dzMm 是「底端 Z 位移」相對於 origin（top）
-      // 所有椅背料都有共同 rake 後傾；中央圓料再額外加 archDz（跟 bow 彎度同步）
-      // forceVertical=true → 邊柱不再加 archDz，但仍套 rake（從側視看仍是斜的）
+      // 所有椅背料（邊柱+圓料）共用同一條公式：dz = rakeMm + archDzAt(x)
       const buildVerticalRound = (
         x: number,
         diameter: number,
         idSuffix: string,
         nameZh: string,
-        forceVertical = false,
       ) => {
         if (partH <= 0) return;
-        const dz = rakeMm + (forceVertical ? 0 : archDzAt(x));
-        const zTop = halfW - diameter / 2 - backInset + dz; // 頂端後傾 + 整體前推 backInset
+        const dz = archDzAt(x);
+        const zTop = halfW - diameter / 2 - backInset + dz; // 頂端跟 bow 偏 +Z，整體前推 backInset
         const useSplay = dz > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
@@ -463,8 +461,7 @@ export const bench: FurnitureTemplate = (input) => {
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
-      // 加 rakeMm：bow 跟著椅背料頂端一起後傾 → 邊柱頂端剛好對到 bow 端點
-      const railZ = halfW - topRailT / 2 - backInset + rakeMm;
+      const railZ = halfW - topRailT / 2 - backInset;
       // bow 長度已上面算好（= input.length − 2×endInset）
       design.parts.push({
         id: "back-top-rail",
