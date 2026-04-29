@@ -426,25 +426,37 @@ export const bench: FurnitureTemplate = (input) => {
       // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高
       // splayed-round-tapered: dzMm 是「底端 Z 位移」相對於 origin（top）
       // 所有椅背料（邊柱+圓料）共用同一條公式：dz = rakeMm + archDzAt(x)
+      // bow 旋轉後底面中軸線位移：
+      //   Y 上提 H/2 × (1 − cosθ)
+      //   Z 前縮 H/2 × sinθ
+      const rakeRad = (rakeDeg * Math.PI) / 180;
+      const cosRake = Math.cos(rakeRad);
+      const sinRake = Math.sin(rakeRad);
+      const bowCenterDy = (topRailH / 2) * (1 - cosRake);
+      const bowCenterDz = -(topRailH / 2) * sinRake;
+
       const buildVerticalRound = (
         x: number,
         diameter: number,
         idSuffix: string,
         nameZh: string,
       ) => {
-        if (partH <= 0) return;
-        // BOTTOM 永遠齊座板背緣（不動）：z = halfW − D/2 − backInset
-        // TOP 對齊 bow 下緣中軸線：z = railZ + archDzAt(x) = halfW − topRailT/2 − backInset + rakeMm + archDz
-        const zTop = halfW - topRailT / 2 - backInset + rakeMm + archDzAt(x);
+        // BOTTOM 齊座板背緣（不動）；TOP 跟 bow 旋轉後底面中軸線跑
+        // 允許 spindle 穿過 bow 底面（後續可做重疊修整）
+        const zTopRaw = halfW - topRailT / 2 - backInset + rakeMm + archDzAt(x);
+        const zTop = zTopRaw + bowCenterDz;     // 旋轉後 bow 中軸線 Z 前縮
+        const yTop = railBotY + bowCenterDy;     // 旋轉後 bow 中軸線 Y 上提
         const zBottom = halfW - diameter / 2 - backInset;
-        const dzShape = zBottom - zTop; // splay 把 origin.z (= TOP) 拉到 BOTTOM 位置
+        const partHActual = yTop - seatTop;
+        if (partHActual <= 0) return;
+        const dzShape = zBottom - zTop;
         const useSplay = Math.abs(dzShape) > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
           material: mat,
           grainDirection: "length",
-          visible: { length: diameter, width: diameter, thickness: partH },
+          visible: { length: diameter, width: diameter, thickness: partHActual },
           origin: { x, y: seatTop, z: zTop },
           shape: useSplay
             ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: dzShape }
@@ -472,8 +484,8 @@ export const bench: FurnitureTemplate = (input) => {
       }
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
-      // 加 rakeMm：bow 跟著椅背料頂端一起後傾（只後移、不旋轉）
-      // 不加 rotation.x：bow 維持水平，圓料水平頂端跟 bow 水平底面才能貼齊
+      // bow 跟圓料同步：位置 +rakeMm，cross-section 旋轉 rakeRad
+      // 圓料 TOP 已在 buildVerticalRound 補上 bow 旋轉後中軸線的 Y/Z 偏移
       const railZ = halfW - topRailT / 2 - backInset + rakeMm;
       design.parts.push({
         id: "back-top-rail",
@@ -482,6 +494,7 @@ export const bench: FurnitureTemplate = (input) => {
         grainDirection: "length",
         visible: { length: bowLength, width: topRailT, thickness: topRailH },
         origin: { x: 0, y: railBotY, z: railZ },
+        rotation: rakeRad > 0 ? { x: rakeRad, y: 0, z: 0 } : undefined,
         shape: bowBendMm > 0 ? { kind: "arch-bent" as const, bendMm: bowBendMm } : undefined,
         tenons: [],
         mortises: [],
