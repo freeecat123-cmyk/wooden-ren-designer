@@ -12,6 +12,7 @@ import {
   hasNonQuarterRotation,
   isPartHidden,
   makeHiddenChecker,
+  pointInPolygon,
   projectPart,
   projectPartPolygon,
   projectTiltedBoxSilhouette,
@@ -333,15 +334,35 @@ export function OrthoView({
           const botFace = buildFaceOutline(-1);
           const fmt = (pts: Array<{ x: number; y: number }>) =>
             pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+          // 底面的每條邊：被頂面 polygon 蓋到的段虛線、沒蓋到的實線
+          // 用 pointInPolygon 判斷頂面是否包含底面採樣點
+          const isHiddenByTopFace = (x: number, y: number): boolean => {
+            return pointInPolygon({ x, y }, topFace);
+          };
+          const botLines: React.ReactNode[] = [];
+          for (let i = 0; i < botFace.length; i++) {
+            const a = botFace[i];
+            const b = botFace[(i + 1) % botFace.length];
+            const segs = classifyEdgeVisibility(a, b, isHiddenByTopFace);
+            segs.forEach((seg, segIdx) => {
+              botLines.push(
+                <line
+                  key={`${part.id}-bot-${i}-${segIdx}`}
+                  x1={seg.a.x}
+                  y1={seg.a.y}
+                  x2={seg.b.x}
+                  y2={seg.b.y}
+                  stroke={seg.hidden ? "#888" : "#111"}
+                  strokeWidth={seg.hidden ? 0.5 : 0.9}
+                  strokeDasharray={seg.hidden ? "4 3" : undefined}
+                  fill="none"
+                />,
+              );
+            });
+          }
           return (
             <g key={part.id}>
-              <polygon
-                points={fmt(botFace)}
-                fill="none"
-                stroke="#888"
-                strokeWidth={0.5}
-                strokeDasharray="4 3"
-              />
+              {botLines}
               <polygon
                 points={fmt(topFace)}
                 fill="none"
