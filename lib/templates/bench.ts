@@ -48,8 +48,12 @@ export const benchOptions: OptionSpec[] = [
     { value: "windsor", label: "Windsor 風（轉柱+圓料+彎弧頂木 bow）" },
   ], help: "沿長邊背側加椅背料，靠著有依靠感" },
   { group: "back", type: "number", key: "windsorSpindleCount", label: "Windsor 圓料數", defaultValue: 7, min: 5, max: 13, step: 1, help: "中央車旋圓料根數（不含兩支邊柱）", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorPostD", label: "Windsor 邊柱直徑 (mm)", defaultValue: 32, min: 20, max: 60, step: 2, help: "兩支較粗的車旋邊柱直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorSpindleD", label: "Windsor 圓料直徑 (mm)", defaultValue: 16, min: 10, max: 35, step: 1, help: "中央細圓料直徑", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorRakeMm", label: "Windsor 後傾量 (mm)", defaultValue: 35, min: 0, max: 80, step: 5, help: "椅背料頂端比底端往後縮的距離；越大越貼腰背", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "windsorBowBendMm", label: "Windsor 頂橫木彎弧 (mm)", defaultValue: 40, min: 0, max: 80, step: 5, help: "頂橫木 (bow) 中央向後彎的最大量；0 = 直線", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorTopRailH", label: "Windsor 頂橫木寬度 (mm)", defaultValue: 45, min: 25, max: 100, step: 5, help: "頂橫木 (bow) 高度（正視看到的寬度）", dependsOn: { key: "endSplat", equals: "windsor" } },
+  { group: "back", type: "number", key: "windsorTopRailT", label: "Windsor 頂橫木厚度 (mm)", defaultValue: 28, min: 15, max: 60, step: 1, help: "頂橫木 (bow) 厚度（側視看到的深度）", dependsOn: { key: "endSplat", equals: "windsor" } },
   { group: "back", type: "number", key: "slatCount", label: "直料根數", defaultValue: 5, min: 3, max: 12, step: 1, dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "slatSize", label: "直料粗細 (mm)", defaultValue: 20, min: 20, max: 100, step: 5, help: "方料截面，width 跟 thickness 都用這值", dependsOn: { key: "endSplat", equals: "slatted" } },
   { group: "back", type: "number", key: "topRailSize", label: "頂橫木粗細 (mm)", defaultValue: 50, min: 25, max: 100, step: 5, help: "頂橫木高度，thickness 自動配 25mm", dependsOn: { key: "endSplat", equals: "slatted" } },
@@ -97,8 +101,12 @@ export const bench: FurnitureTemplate = (input) => {
   const ladderRailGap = getOption<number>(input, opt(o, "ladderRailGap"));
   const ladderRailBendMm = getOption<number>(input, opt(o, "ladderRailBendMm"));
   const windsorSpindleCount = getOption<number>(input, opt(o, "windsorSpindleCount"));
+  const windsorPostD = getOption<number>(input, opt(o, "windsorPostD"));
+  const windsorSpindleD = getOption<number>(input, opt(o, "windsorSpindleD"));
   const windsorRakeMm = getOption<number>(input, opt(o, "windsorRakeMm"));
   const windsorBowBendMm = getOption<number>(input, opt(o, "windsorBowBendMm"));
+  const windsorTopRailH = getOption<number>(input, opt(o, "windsorTopRailH"));
+  const windsorTopRailT = getOption<number>(input, opt(o, "windsorTopRailT"));
 
   const design = simpleTable({
     category: "bench",
@@ -381,10 +389,10 @@ export const bench: FurnitureTemplate = (input) => {
       // Windsor 風：兩支車旋邊柱 + N 條中央車旋圓料 + 彎弧頂橫木 (bow)
       // 全部垂直（純圓料用 rotation X = π/2 立起來），底端接座板、頂端接頂橫木
       // 注意：rake 後傾跟 round shape 的 rotation 會衝突 → 暫時保留選項供未來實作，目前忽略
-      const stumpD = 32;       // 邊柱直徑（較粗）
-      const spindleD = 16;     // 中央圓料直徑（細）
-      const topRailH = 45;     // 頂橫木（bow）高度
-      const topRailT = 28;     // 頂橫木（bow）厚度
+      const stumpD = Math.max(20, Math.min(60, windsorPostD || 32));     // 邊柱直徑（較粗）
+      const spindleD = Math.max(10, Math.min(35, windsorSpindleD || 16)); // 中央圓料直徑（細）
+      const topRailH = Math.max(25, Math.min(100, windsorTopRailH || 45)); // 頂橫木（bow）高度
+      const topRailT = Math.max(15, Math.min(60, windsorTopRailT || 28));  // 頂橫木（bow）厚度
       const bowBendMm = Math.max(0, windsorBowBendMm);
       const spindleN = Math.max(5, Math.min(13, Math.round(windsorSpindleCount || 7)));
       void windsorRakeMm; // TODO: 後傾要搭配 tilt-z shape，跟 round 不能用 rotation 疊
@@ -421,10 +429,13 @@ export const bench: FurnitureTemplate = (input) => {
       buildVerticalRound(-stumpX, stumpD, "post-left", "椅背左邊柱（轉柱）");
       buildVerticalRound(stumpX, stumpD, "post-right", "椅背右邊柱（轉柱）");
 
-      // 中央圓料 (spindles)：均分在兩邊柱之間
-      const spindleSpan = 2 * stumpX - stumpD - spindleD;
+      // 中央圓料 (spindles)：在兩邊柱「內側邊」之間等距分佈
+      // 用 slot-pitch 法：兩端 gap = 中間相鄰 gap，避免端點圓料貼到邊柱
+      const innerWidth = 2 * stumpX - stumpD; // 邊柱內緣到內緣
+      const slotPitch = innerWidth / (spindleN + 1);
+      const innerLeft = -stumpX + stumpD / 2;
       for (let i = 0; i < spindleN; i++) {
-        const x = -spindleSpan / 2 + (i / (spindleN - 1)) * spindleSpan;
+        const x = innerLeft + slotPitch * (i + 1);
         buildVerticalRound(x, spindleD, `spindle-${i + 1}`, `椅背圓料 ${i + 1}`);
       }
 
