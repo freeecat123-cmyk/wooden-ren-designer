@@ -3456,3 +3456,102 @@ quote_meta {
   change_order_unit_prices,  // 追加單價表
 }
 ```
+
+---
+
+## AS. BATT 算法 — Bottom-Anchored Top-Tracking（圓料下錨上追式）
+
+> Windsor 椅背 / 任何「直立圓料 + 旋轉斜橫木」結構通用幾何法則。
+> 用於 `lib/templates/bench.ts` 的 windsor 分支，可推廣到 dining-chair、bar-stool 的背靠彎弧 bow。
+
+### AS1. 適用場景
+
+- 一組 **垂直細圓料 / 邊柱** 連接 **座板** 到 **頂端橫木 (bow)**
+- 頂端橫木有以下任一或全部：
+  - 整體後傾旋轉（rotation.x = rakeRad）
+  - 沿 X 軸彎弧（arch-bent，bendMm 沿 +Z 凸）
+- 要求圓料底端固定錨在座板背緣，頂端「追蹤」橫木旋轉 + 彎弧後的底面中軸線。
+
+### AS2. 五條基本原則
+
+1. **底錨不動**：所有圓料/邊柱底端 (BOTTOM) 中心 z 永遠 = `halfW − D/2 − backInset`，背面齊座板背緣。
+2. **頂追中軸**：圓料頂端中軸線必須落在橫木旋轉 + 彎弧後底面中軸線曲線上。
+3. **圓料整支斜（splay）**：用 `splayed-round-tapered` shape，dzMm = zBottom − zTop，讓 BOTTOM 跟 TOP 在不同 Z 位置但同 X，圓料是 slanted prism。
+4. **允許穿透**：圓料 TOP 圓盤是水平面、橫木底面是斜面 → 必有局部穿透。先讓 TOP 軸心抵達中軸線，後修剪。
+5. **修剪規則**：把 TOP 軸心 Y 再下降 `tan(rakeRad) × D/2`，讓圓料 back 邊 (z = zTop + D/2) 剛好落在橫木底面平面上，圓料外緣不再穿入橫木內部。Front 邊會留 `tan(rakeRad) × D` 的小三角缺口（不可避免）。
+
+### AS3. 幾何推導
+
+**輸入**：
+- `rakeRad` — 整組後傾角度（弧度）
+- `topRailH` — 橫木 cross-section 高（Y 方向，旋轉前）
+- `topRailT` — 橫木 cross-section 厚（Z 方向，旋轉前）
+- `bowBendMm` — 橫木沿 X 中央往 +Z 彎弧最大量
+- `bowLength` — 橫木總長
+- `D` — 圓料/邊柱直徑
+- `partH = railBotY − seatTop` — 椅背料完整直立基準高度
+- `rakeMm = partH × tan(rakeRad)` — 整組後傾的位移
+
+**橫木 (bow) 中軸線（旋轉後）**：
+
+橫木未旋轉時 cross-section 中心位於 (Y, Z) = (railBotY + topRailH/2, railZ)，railZ 已含 rakeMm 偏移。
+旋轉 X 軸 rakeRad 後，**底面中軸線**位移：
+
+```
+ΔY = (topRailH / 2) × (1 − cos(rakeRad))      # 上提
+ΔZ = -(topRailH / 2) × sin(rakeRad)           # 前縮
+```
+
+加上 archDz(x) 的沿 X 彎弧偏移：
+
+```
+y_center(x) = railBotY + ΔY
+z_center(x) = railZ + ΔZ + archDz(x)
+```
+
+其中 `archDz(x) = bowBendMm × max(0, 1 − (2x / bowLength)²)`。
+
+**圓料 TOP 軸心位置**：
+
+```
+zTop(x) = z_center(x)
+yTop(x) = y_center(x) − tan(rakeRad) × (D / 2)        # 修剪：back 邊不穿透 bow 底面
+```
+
+**圓料 BOTTOM 軸心位置**：
+
+```
+zBottom = halfW − D/2 − backInset                     # 底錨（不依賴 X 或 archDz）
+```
+
+**Splay shape 參數**：
+
+```
+visible.thickness = yTop − seatTop
+origin = (x, seatTop, zTop)
+shape = splayed-round-tapered, dzMm = zBottom − zTop
+```
+
+`splayed-round-tapered` 慣例：origin.z 是 TOP 中心、bottom 中心 = origin.z + dzMm。
+
+### AS4. 設計取捨
+
+| 方案 | 優點 | 缺點 |
+|---|---|---|
+| 圓料垂直 + bow 不旋轉 | 完全貼合無縫 | bow 視覺不傾斜 |
+| 圓料 splay + bow 旋轉 + 底錨上追（**BATT**） | bow 跟圓料同角度後傾，視覺正確 | front 邊有 tanθ×D 三角缺口 |
+| 圓料整支也旋轉（rotation.x = rakeRad） | 完美貼合 | 圓料底面也斜，離開座板平面 |
+
+**BATT 是視覺平衡點**：bow 看起來跟圓料同角度斜、底面跟圓料 back 邊接觸、唯一可見小瑕疵是 front 邊的 tanθ×D 缺口（θ=10° D=16 → ~2.8mm，θ=20° D=16 → ~5.5mm，視覺可忽略）。
+
+### AS5. 推廣
+
+任何「N 根圓料垂直連接平面到旋轉橫木」結構皆適用 BATT：
+- `dining-chair.ts` 的 Windsor 椅背
+- `bar-stool.ts` 帶 bow 的矮背
+- 未來鞦韆椅、長椅、雙人椅的後傾結構
+- 床頭板（headboard）的圓料 + 橫木組合
+
+只要替換 `seatTop` → 結構底面 Y、`halfW` → 結構背緣 Z，公式不變。
+
+
