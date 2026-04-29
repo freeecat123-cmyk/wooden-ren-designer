@@ -39,6 +39,16 @@ const COMMON_ROOMS = [
   "辦公室",
 ];
 
+/** 狀態 → 顏色（給 status pill 用）*/
+const STATUS_COLOR: Record<ProjectStatus, string> = {
+  draft: "bg-zinc-100 text-zinc-700 border-zinc-300",
+  sent: "bg-sky-100 text-sky-800 border-sky-300",
+  confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  in_production: "bg-amber-100 text-amber-800 border-amber-300",
+  delivered: "bg-purple-100 text-purple-800 border-purple-300",
+  cancelled: "bg-rose-100 text-rose-700 border-rose-300",
+};
+
 function categoryLabel(type: string): string {
   const slug = type.replace(/_/g, "-") as FurnitureCategory;
   return getTemplate(slug)?.nameZh ?? type;
@@ -314,7 +324,8 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           <select
             value={project.status}
             onChange={(e) => updateProject({ status: e.target.value as ProjectStatus })}
-            className="text-xs px-2 py-1 rounded border border-zinc-300 bg-white"
+            className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_COLOR[project.status]} cursor-pointer`}
+            title="變更專案狀態"
           >
             {Object.entries(PROJECT_STATUS_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
@@ -380,8 +391,27 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         )}
 
         {grouped.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500">
-            還沒有家具項目。先去設計幾件家具並儲存，再回來加入這個專案。
+          <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-8 text-center">
+            <div className="text-4xl mb-2">🪑</div>
+            <p className="text-sm font-medium text-zinc-700 mb-1">這個專案還沒有家具</p>
+            <p className="text-xs text-zinc-500 mb-4">
+              先去設計幾件家具並儲存，再回來加入這個專案。
+            </p>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowAdd(true)}
+                className="px-4 py-2 rounded bg-[#8b4513] text-white text-xs font-medium hover:bg-[#6f370f]"
+              >
+                + 從儲存的設計加入
+              </button>
+              <Link
+                href="/"
+                className="px-4 py-2 rounded border border-zinc-300 bg-white text-xs hover:bg-zinc-50"
+              >
+                先去設計家具
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-5">
@@ -432,11 +462,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
         {totals.count > 0 && (
           <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-wrap gap-2 justify-end">
+            {/* 主要動作：預覽 + 列印（橙底突顯）*/}
             <Link
               href={`/projects/${projectId}/quote`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
+              className="px-3 py-2 rounded text-sm bg-amber-700 text-white hover:bg-amber-800 font-medium"
             >
               👀 預覽報價
             </Link>
@@ -444,10 +475,11 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               href={`/projects/${projectId}/quote/print`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
+              className="px-3 py-2 rounded text-sm bg-zinc-900 text-white hover:bg-zinc-700 font-medium"
             >
-              🖨️ 列印 / 存 PDF
+              🖨️ 列印 / PDF
             </Link>
+            {/* 次要動作：採購 + 分享（灰白底）*/}
             <Link
               href={`/projects/${projectId}/purchase`}
               target="_blank"
@@ -729,7 +761,8 @@ function LaborOptsPanel({
   onSave: (opts: ProjectLaborOpts | null) => void;
 }) {
   const opts = value ?? {};
-  const isEdited = value != null && Object.keys(value).length > 0;
+  const editedCount = value ? Object.keys(value).length : 0;
+  const isEdited = editedCount > 0;
 
   const handleChange = (key: keyof ProjectLaborOpts, raw: string, isRate: boolean) => {
     const trimmed = raw.trim();
@@ -754,7 +787,11 @@ function LaborOptsPanel({
           </span>
         </span>
         <span className="text-xs text-zinc-400">
-          {isEdited ? "已自訂" : "用系統預設"}
+          {isEdited ? (
+            <span className="text-amber-700 font-medium">已自訂 {editedCount} 項</span>
+          ) : (
+            "用系統預設"
+          )}
         </span>
       </summary>
       <div className="px-5 pb-5 pt-1 space-y-4">
