@@ -49,13 +49,33 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     bottomFit: "grooved",
   });
 
-  // 斜角拼（miter）視覺處理：4 壁都做成「滿外緣」，4 角會 45° 對接
-  // （buildBox 預設 stub-joint 把長壁滿、短壁內縮——miter 視覺剛好相反）
+  // 斜角拼（miter）視覺處理：4 壁的兩端各 45° 砍切（mitered-end-box shape）
+  // 短壁同時改成 outerW（滿外緣），4 角自然 45° 對接
+  // outerY 決定哪面是外、哪面是內：
+  //   front (z=+halfWidth, rotation x=π/2)：local +Y 對應世界 +Z = 外面 → outerY=+1
+  //   back  (z=-halfWidth)               ：local +Y 對應 +Z = 內面 → outerY=-1
+  //   right (x=+halfLength, rot y=π/2)    ：local +Y 對應世界 +X = 外面 → outerY=+1
+  //   left  (x=-halfLength)              ：local +Y 對應 +X = 內面 → outerY=-1
   if (cornerJoinery === "miter") {
     for (const part of built.parts) {
-      if (part.id === "wall-left" || part.id === "wall-right") {
-        // 短壁從 innerW 改成 outerW，4 壁同時滿外緣
-        part.visible = { ...part.visible, length: outerW };
+      const isShortWall = part.id === "wall-left" || part.id === "wall-right";
+      const outerY: 1 | -1 =
+        part.id === "wall-front" || part.id === "wall-right" ? 1 : -1;
+      if (
+        part.id === "wall-front" ||
+        part.id === "wall-back" ||
+        part.id === "wall-left" ||
+        part.id === "wall-right"
+      ) {
+        if (isShortWall) {
+          // 短壁從 innerW 改成 outerW
+          part.visible = { ...part.visible, length: outerW };
+        }
+        part.shape = {
+          kind: "mitered-end-box",
+          miterDepthMm: wallT,
+          outerY,
+        };
       }
     }
   }

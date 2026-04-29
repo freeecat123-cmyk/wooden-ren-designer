@@ -104,7 +104,8 @@ type ShapeSpec =
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "arch-bent"; bendMm: number; segments?: number }
   | { kind: "live-edge"; amplitudeMm: number }
-  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number };
+  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
+  | { kind: "mitered-end-box"; miterDepth: number; outerY: 1 | -1 };
 
 function Part({
   position,
@@ -173,6 +174,9 @@ function Part({
     }
     if (shape.kind === "seat-scoop") {
       return buildSeatScoopGeometry(size, shape.profile, shape.depth);
+    }
+    if (shape.kind === "mitered-end-box") {
+      return buildMiteredEndBoxGeometry(size, shape.miterDepth, shape.outerY);
     }
     return null;
   }, [size, shape]);
@@ -399,6 +403,65 @@ function buildSplayedGeometry(
  * 用於外斜腳家具的 apron——讓 apron 的左右端跟著腳的中心軸傾斜對齊。
  * 8 corners: 上 (local Z=-hz) 用 topScale 縮 length，下 (local Z=+hz) 用 bottomScale。
  */
+/**
+ * 兩端 45° 砍切的板（盒角斜接 mitre 視覺）。
+ * Local X = length（兩端被 45° 砍進 miterDepth）
+ * Local Y = thickness（mitre 從一個 Y 面砍向另一個）
+ * outerY = +1 → +Y 面為外面（保持全長 lx）；-Y 面為內面（縮短 2*miterDepth）
+ * outerY = -1 → -Y 面為外面（保持全長）；+Y 面為內面（縮短）
+ *
+ * 對應 4 個 corner 的 vertex（looking from +Z 方向，俯視 X-Y 平面）：
+ *   +Y 面（top）：(±lx/2 [or 縮], +hy)
+ *   -Y 面（bot）：(±lx/2 [or 縮], -hy)
+ * 高度（Z）兩端對齊，前後面為平行四邊形。
+ */
+function buildMiteredEndBoxGeometry(
+  size: [number, number, number],
+  miterDepth: number,
+  outerY: 1 | -1,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const inset = Math.min(miterDepth, lx / 2 - 1); // 防止 miter 大於板長一半
+  // 兩端 X 座標：外面 = ±hx，內面 = ±(hx - inset)
+  const outX = hx;
+  const inX = hx - inset;
+  // 8 verts: 4 角各上下 2 (z = ±hz)
+  // 順序（看 +Z 俯視）：+x+y → -x+y → -x-y → +x-y，再下面 z 一輪
+  // 但 +y 是不是外面要看 outerY
+  const yPlus = outerY === 1 ? outX : inX;  // +Y 面這條的 X 半長
+  const yMinus = outerY === 1 ? inX : outX; // -Y 面這條的 X 半長
+  const v: number[] = [
+    // top (z = +hz): (-x to +x) at +y, (-x to +x) at -y
+    -yPlus, +hy, +hz, // 0
+    +yPlus, +hy, +hz, // 1
+    +yMinus, -hy, +hz, // 2
+    -yMinus, -hy, +hz, // 3
+    // bottom (z = -hz)
+    -yPlus, +hy, -hz, // 4
+    +yPlus, +hy, -hz, // 5
+    +yMinus, -hy, -hz, // 6
+    -yMinus, -hy, -hz, // 7
+  ];
+  // CCW from outside
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 1, 2, 3),       // +z face (top, viewing from +Z 看：CCW)
+    ...f(7, 6, 5, 4),       // -z face (bottom, opposite winding)
+    ...f(0, 4, 5, 1),       // +y face (outer if outerY=1)
+    ...f(3, 2, 6, 7),       // -y face (inner if outerY=1)
+    ...f(1, 5, 6, 2),       // +x end (mitre 45°)
+    ...f(0, 3, 7, 4),       // -x end (mitre 45°)
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 function buildApronTrapezoidGeometry(
   size: [number, number, number],
   topScale: number,
@@ -1454,6 +1517,12 @@ export function PerspectiveView({
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };
           } else if (part.shape?.kind === "seat-scoop") {
             shape = { kind: "seat-scoop", profile: part.shape.profile, depth: part.shape.depthMm * SCALE };
+          } else if (part.shape?.kind === "mitered-end-box") {
+            shape = {
+              kind: "mitered-end-box",
+              miterDepth: part.shape.miterDepthMm * SCALE,
+              outerY: part.shape.outerY,
+            };
           }
           return (
             <Part
