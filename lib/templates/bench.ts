@@ -38,7 +38,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 20, min: 0, max: 400, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
-  { group: "top", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書" },
+  { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書（會自動啟用下橫撐當層板支撐）" },
   { group: "back", type: "select", key: "endSplat", label: "椅背款式", defaultValue: "none", choices: [
     { value: "none", label: "無（純長凳）" },
     { value: "low", label: "矮椅背 板式（150mm，腰靠感）" },
