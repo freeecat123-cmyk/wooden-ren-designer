@@ -76,6 +76,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  // 房間群組摺疊狀態（store 收起的房間，預設全展開）
+  const [collapsedRooms, setCollapsedRooms] = useState<Set<string>>(new Set());
+  // 多選 batch 操作（選中的 item id）
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 拖拉中的 item id（給視覺 feedback）
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (planLoading) return;
@@ -242,8 +248,87 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       const { error } = await supabase.from("project_items").delete().eq("id", id);
       if (error) throw error;
       setItems((prev) => (prev ? prev.filter((it) => it.id !== id) : prev));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (e) {
       window.alert(`移除失敗：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 批次刪除選中的 items
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`確定移除 ${selectedIds.size} 個項目？`)) return;
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("project_items").delete().in("id", ids);
+      if (error) throw error;
+      setItems((prev) => (prev ? prev.filter((it) => !selectedIds.has(it.id)) : prev));
+      setSelectedIds(new Set());
+    } catch (e) {
+      window.alert(`刪除失敗：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 切換多選
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // 切換房間摺疊
+  const toggleRoomCollapse = (room: string) =>
+    setCollapsedRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(room)) next.delete(room);
+      else next.add(room);
+      return next;
+    });
+
+  // 拖拉重排（同房間內。重新從 0 編 sort_order，DB 並行更新）
+  const reorderInRoom = async (sourceId: string, targetId: string) => {
+    if (sourceId === targetId || !items) return;
+    const sIdx = items.findIndex((it) => it.id === sourceId);
+    const tIdx = items.findIndex((it) => it.id === targetId);
+    if (sIdx === -1 || tIdx === -1) return;
+    const sRoom = items[sIdx].room?.trim() || "未分組";
+    const tRoom = items[tIdx].room?.trim() || "未分組";
+    if (sRoom !== tRoom) return; // 跨房間不處理
+    // splice 重排
+    const newItems = [...items];
+    const [moved] = newItems.splice(sIdx, 1);
+    const adjusted = sIdx < tIdx ? tIdx - 1 : tIdx;
+    newItems.splice(adjusted, 0, moved);
+    // 重編 sort_order = index
+    const withNewOrder = newItems.map((it, i) => ({ ...it, sort_order: i }));
+    setItems(withNewOrder);
+    // DB updates 並行：只更新真的變動的
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const changed = withNewOrder.filter(
+        (it, i) => items[i]?.id !== it.id || items[i]?.sort_order !== it.sort_order,
+      );
+      await Promise.all(
+        changed.map((it) =>
+          supabase
+            .from("project_items")
+            .update({ sort_order: it.sort_order })
+            .eq("id", it.id),
+        ),
+      );
     } finally {
       setBusy(false);
     }
@@ -382,6 +467,31 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           </button>
         </div>
 
+        {/* 批次操作 bar：選中項目 > 0 時顯示 */}
+        {selectedIds.size > 0 && (
+          <div className="mb-3 rounded-lg bg-amber-100 border-2 border-amber-300 px-3 py-2 flex items-center gap-3 sticky top-2 z-30 shadow-sm">
+            <span className="text-xs font-medium text-amber-900">
+              已選 {selectedIds.size} 個項目
+            </span>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-zinc-700 hover:underline"
+            >
+              取消選取
+            </button>
+            <button
+              type="button"
+              onClick={deleteSelected}
+              disabled={busy}
+              className="px-3 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700 disabled:opacity-50"
+            >
+              🗑 批次刪除
+            </button>
+          </div>
+        )}
+
         {showAdd && (
           <AddItemPanel
             savedDesigns={savedDesigns ?? []}
@@ -415,25 +525,52 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           </div>
         ) : (
           <div className="space-y-5">
-            {grouped.map(([room, list]) => (
-              <div key={room}>
-                <h3 className="text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wide">
-                  📐 {room}（{list.length} 件）
-                </h3>
-                <ul className="space-y-2">
-                  {list.map((it) => (
-                    <ItemRow
-                      key={it.id}
-                      item={it}
-                      laborOpts={project.labor_opts}
-                      onUpdate={(patch) => updateItem(it.id, patch)}
-                      onDelete={() => deleteItem(it.id)}
-                      disabled={busy}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {grouped.map(([room, list]) => {
+              const collapsed = collapsedRooms.has(room);
+              const roomTotal = list.reduce(
+                (s, it) => s + (it.unit_price_override ?? 0) * it.quantity,
+                0,
+              );
+              return (
+                <div key={room}>
+                  <button
+                    type="button"
+                    onClick={() => toggleRoomCollapse(room)}
+                    className="w-full flex items-baseline justify-between gap-2 mb-2 group cursor-pointer"
+                  >
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide group-hover:text-zinc-700 flex items-center gap-1.5">
+                      <span className="text-zinc-400 text-[10px]">
+                        {collapsed ? "▶" : "▼"}
+                      </span>
+                      📐 {room}（{list.length} 件）
+                    </h3>
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {formatTWD(roomTotal)}
+                    </span>
+                  </button>
+                  {!collapsed && (
+                    <ul className="space-y-2">
+                      {list.map((it) => (
+                        <ItemRow
+                          key={it.id}
+                          item={it}
+                          laborOpts={project.labor_opts}
+                          selected={selectedIds.has(it.id)}
+                          onToggleSelect={() => toggleSelect(it.id)}
+                          onUpdate={(patch) => updateItem(it.id, patch)}
+                          onDelete={() => deleteItem(it.id)}
+                          onDragStart={() => setDraggingId(it.id)}
+                          onDragEnd={() => setDraggingId(null)}
+                          onDropOn={(sourceId) => reorderInRoom(sourceId, it.id)}
+                          isDragging={draggingId === it.id}
+                          disabled={busy}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
@@ -500,17 +637,47 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         mode="craftsman"
       />
 
-      {/* 危險區 */}
-      <section className="mt-12 pt-6 border-t border-zinc-200">
-        <button
-          type="button"
-          onClick={deleteProject}
-          disabled={busy}
-          className="text-xs text-red-600 hover:underline disabled:opacity-50"
-        >
-          刪除整個專案
-        </button>
-      </section>
+      {/* 危險區（收進 disclosure，避免常駐誤點）*/}
+      <details className="mt-12 pt-6 border-t border-zinc-200">
+        <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-700 list-none flex items-center gap-1">
+          <span>⋯</span> 更多操作
+        </summary>
+        <div className="mt-3 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200">
+          <p className="text-[11px] text-rose-700 mb-2">
+            ⚠️ 危險區：以下動作不可復原
+          </p>
+          <button
+            type="button"
+            onClick={deleteProject}
+            disabled={busy}
+            className="text-xs text-red-700 hover:underline disabled:opacity-50 font-medium"
+          >
+            🗑 刪除整個專案
+          </button>
+        </div>
+      </details>
+
+      {/* 行動端 sticky bottom bar：總計 + 預覽（捲到列表底也能快速操作）*/}
+      {totals.count > 0 && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-zinc-200 shadow-lg p-3 flex items-center justify-between z-40 gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] text-zinc-500">{totals.count} 件 · 總計</div>
+            <div className="text-lg font-bold font-mono text-zinc-900 truncate">
+              {formatTWD(totals.subtotal)}
+            </div>
+          </div>
+          <Link
+            href={`/projects/${projectId}/quote`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 rounded bg-amber-700 text-white text-sm font-medium hover:bg-amber-800 shrink-0"
+          >
+            👀 預覽報價
+          </Link>
+        </div>
+      )}
+      {/* 行動端 sticky bottom bar 預留空間，避免最後內容被擋 */}
+      {totals.count > 0 && <div className="md:hidden h-20" />}
       </BrandingSetupGate>
       </QuoteAccessGate>
     </main>
@@ -560,14 +727,26 @@ function LabelField({
 function ItemRow({
   item,
   laborOpts,
+  selected,
+  onToggleSelect,
   onUpdate,
   onDelete,
+  onDragStart,
+  onDragEnd,
+  onDropOn,
+  isDragging,
   disabled,
 }: {
   item: ProjectItemRow;
   laborOpts: ProjectLaborOpts | null;
+  selected: boolean;
+  onToggleSelect: () => void;
   onUpdate: (patch: Partial<ProjectItemRow>) => void;
   onDelete: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDropOn: (sourceId: string) => void;
+  isDragging: boolean;
   disabled: boolean;
 }) {
   const p = item.params as Record<string, unknown>;
@@ -580,17 +759,51 @@ function ItemRow({
     matKey && (MATERIALS as Record<string, { nameZh: string }>)[matKey]?.nameZh;
 
   return (
-    <li className="rounded-xl border-2 border-zinc-200 bg-white p-3 sm:p-4 hover:border-zinc-300 transition-colors">
-      {/* 第一行：名稱 + 規格（永遠最上） */}
-      <div className="min-w-0 mb-2 sm:mb-0 sm:float-left sm:w-[calc(100%-280px)] sm:pr-3">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-medium text-zinc-900 truncate">{item.name}</span>
-          <span className="text-xs text-zinc-500">{categoryLabel(item.furniture_type)}</span>
+    <li
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", item.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const sourceId = e.dataTransfer.getData("text/plain");
+        if (sourceId && sourceId !== item.id) onDropOn(sourceId);
+      }}
+      className={`rounded-xl border-2 bg-white p-3 sm:p-4 transition-all ${
+        selected
+          ? "border-amber-400 bg-amber-50/30"
+          : "border-zinc-200 hover:border-zinc-300"
+      } ${isDragging ? "opacity-40" : ""}`}
+    >
+      {/* 拖拉 handle + checkbox + 內容 */}
+      <div className="flex items-start gap-2 mb-2 sm:mb-0 sm:float-left sm:w-[calc(100%-280px)] sm:pr-3 min-w-0">
+        <span
+          className="text-zinc-400 cursor-grab select-none mt-1 hover:text-zinc-600"
+          title="拖拉重排（同房間內）"
+        >
+          ⋮⋮
+        </span>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="mt-1.5 w-3.5 h-3.5 cursor-pointer accent-amber-600"
+          title="多選"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-medium text-zinc-900 truncate">{item.name}</span>
+            <span className="text-xs text-zinc-500">{categoryLabel(item.furniture_type)}</span>
+          </div>
+          <p className="text-[11px] text-zinc-500 mt-1">
+            {dim}
+            {matName ? ` · ${matName}` : ""}
+          </p>
         </div>
-        <p className="text-[11px] text-zinc-500 mt-1">
-          {dim}
-          {matName ? ` · ${matName}` : ""}
-        </p>
       </div>
 
       {/* 第二行（手機）/ 同行（桌機）：房間/數量/單價/操作 */}
