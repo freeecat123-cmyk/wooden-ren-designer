@@ -4,6 +4,7 @@ import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
+import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import {
   calculateQuote,
   generateQuoteNumber,
@@ -170,7 +171,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   // 會把當下 quotedAt 寫進 URL，客人收到的連結 expiry 不會漂移。
   const quotedAtRaw = sp.quotedAt && /^\d{4}-\d{2}-\d{2}$/.test(sp.quotedAt) ? sp.quotedAt : null;
   const today = quotedAtRaw ? new Date(quotedAtRaw + "T00:00:00") : new Date();
-  const todayIso = today.toISOString().slice(0, 10);
+  // 用台北時區算日期，避免 Vercel UTC server 跑成「昨天/明天」
+  const todayIso = taipeiIsoDate(today);
   // quoteNo 加客戶+規格 hash 防同日撞號
   const contextForNo = `${customer.name}|${length}x${width}x${height}|${material}`;
   const quoteNo = generateQuoteNumber(design.id, contextForNo, today);
@@ -204,10 +206,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(laborOpts.expiryDays));
-  const expiryIso = expiry.toISOString().slice(0, 10);
-  const deliveryIso = addWorkdays(today, quote.estimatedWorkdays)
-    .toISOString()
-    .slice(0, 10);
+  const expiryIso = taipeiIsoDate(expiry);
+  const deliveryIso = taipeiIsoDate(addWorkdays(today, quote.estimatedWorkdays));
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-8">

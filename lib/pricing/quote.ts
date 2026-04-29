@@ -1,6 +1,7 @@
 import type { BillableMaterial, FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { deriveBuildSteps, totalEstimatedHours } from "@/lib/steps/derive";
+import { taipeiYMD } from "@/lib/utils/date-tw";
 
 /**
  * 倒角 / 圓角加工工時。每條外露邊跑修邊機（V 角 / 圓刀）+ 手工砂磨。
@@ -462,13 +463,17 @@ function shortHash(s: string): string {
  * context 通常是「客戶名+規格+材料」字串，讓同一天同設計但不同客戶不撞號。
  * 同客戶同規格同天 → 同編號（穩定，重複報價不重複編號）。
  * 不傳 context（舊行為）→ 沒有後綴。
+ *
+ * 注意：用台北時區算日期。Vercel server 在 UTC，若用 toISOString()，
+ * 台北早上 0-8 點會跑成「昨天」、下午 4 點後跑成「今天/明天」邊界錯亂——
+ * 這就是過去「LINE 分享案號跟畫面顯示對不上」的 bug 來源。
  */
 export function generateQuoteNumber(
   designId: string,
   context: string = "",
   date = new Date(),
 ): string {
-  const ymd = date.toISOString().slice(0, 10).replace(/-/g, "");
+  const ymd = taipeiYMD(date);
   const hash = designId.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "X");
   const suffix = context.trim() ? `-${shortHash(context.trim())}` : "";
   return `Q-${ymd}-${hash}${suffix}`;

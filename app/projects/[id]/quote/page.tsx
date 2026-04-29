@@ -23,6 +23,7 @@ import type { FurnitureCategory } from "@/lib/types";
 import { fetchProjectQuoteData } from "@/lib/projects/fetch-quote-data";
 import { rebuildDesignFromItem } from "@/lib/projects/rebuild-design";
 import { projectQuoteNumber } from "@/lib/projects/quote-number";
+import { taipeiIsoDate } from "@/lib/utils/date-tw";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -83,7 +84,7 @@ export default async function ProjectQuotePage({
   })();
 
   const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = taipeiIsoDate(today);
   const quoteNo = projectQuoteNumber(id, today);
   const filename = `報價_${p.customer_name || p.name}_${quoteNo}.pdf`;
   const printHref = `/projects/${id}/quote/print${token ? `?token=${token}` : ""}`;

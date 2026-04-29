@@ -8,6 +8,7 @@ import {
   addWorkdays,
 } from "@/lib/pricing/quote";
 import { LABOR_DEFAULTS, type LaborDefaults } from "@/lib/pricing/labor";
+import { taipeiIsoDate } from "@/lib/utils/date-tw";
 import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 import { loadBranding } from "@/components/branding/branding";
 import { QrCode } from "@/components/print/QrCode";
@@ -350,14 +351,12 @@ function readFormState(design: FurnitureDesign) {
   const todayIso =
     quotedAtFromForm && /^\d{4}-\d{2}-\d{2}$/.test(quotedAtFromForm)
       ? quotedAtFromForm
-      : new Date().toISOString().slice(0, 10);
+      : taipeiIsoDate();
   const today = new Date(todayIso + "T00:00:00");
   const expiry = new Date(today);
   expiry.setDate(expiry.getDate() + Math.round(opts.expiryDays));
-  const expiryIso = expiry.toISOString().slice(0, 10);
-  const deliveryIso = addWorkdays(today, quote.estimatedWorkdays)
-    .toISOString()
-    .slice(0, 10);
+  const expiryIso = taipeiIsoDate(expiry);
+  const deliveryIso = taipeiIsoDate(addWorkdays(today, quote.estimatedWorkdays));
 
   // 組出當下完整 URL params（給 print page 用）；checkbox 沒勾的要從 params 移除
   const params = new URLSearchParams();
