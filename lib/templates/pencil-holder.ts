@@ -46,18 +46,19 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // 斜接 (miter) / 指接 (finger-joint) 的下料規則：4 片壁都用「全外尺寸」下料。
-  // - 斜接：兩端 45° 斜切，4 片同尺寸
-  // - 指接：兩端切指，指頭交錯填入角落體積（不會超出外緣），所以 4 片也都到 outer
-  // 只有搭接 (stub-joint) 才是 2 長 (outerL) + 2 短 (innerW) 的傳統佈料。
-  // 我們繼續用 stub-joint 幾何畫 3D（避免角落破面），但 cut list 必須反映實際下料：
-  // 覆寫 visible.length + 清掉 box-builder 的 stub tenon allowance。
+  // - 長 = outerL (前/後) 或 outerW (左/右)：兩端的接合在垂直邊（指接交錯/45° 斜切）
+  // - 寬 = outerH：底板用槽接嵌入牆內側下緣，牆從地板延伸到盒頂全高
+  // - 厚 = wallT：不變
+  // 只有搭接 (stub-joint) 才是 2 長 + 2 短 + 牆坐底板上 (wallH = outerH - botT) 的傳統佈料。
   if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
-        part.visible = { ...part.visible, length: outerL };
+        part.visible = { ...part.visible, length: outerL, width: outerH };
+        part.origin = { ...part.origin, y: 0 };
         part.tenons = [];
       } else if (part.id === "wall-left" || part.id === "wall-right") {
-        part.visible = { ...part.visible, length: outerW };
+        part.visible = { ...part.visible, length: outerW, width: outerH };
+        part.origin = { ...part.origin, y: 0 };
         part.tenons = [];
       }
     }
