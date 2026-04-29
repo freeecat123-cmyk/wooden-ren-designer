@@ -406,8 +406,8 @@ export const bench: FurnitureTemplate = (input) => {
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
-      // bow 長度 = 座板長 − 2×endInset（預設 endInset=0 → bow 跟座板等長）
-      const bowLength = Math.max(100, input.length - 2 * endInset);
+      // bow 長度永遠 = 座板長，不跟 endInset 縮（邊柱可內縮但頂橫木仍跨整條座板）
+      const bowLength = input.length;
       // arch-bent 公式：每根圓料用「bow 自身長度」算，跟 bow 同步彎度
       const archDzAt = (x: number) =>
         bowBendMm > 0
