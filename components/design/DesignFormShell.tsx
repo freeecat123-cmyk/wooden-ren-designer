@@ -33,12 +33,15 @@ export function DesignFormShell({
     for (const [k, v] of data.entries()) {
       params.set(k, v as string);
     }
-    // Unchecked checkboxes are absent from FormData — remove them so server
-    // sees no value (which the parser treats as "false")
+    // 未勾選的 checkbox 不在 FormData 裡，但 server parser 對「缺 key」
+    // 的處理是回 spec.defaultValue——defaultValue=true 的 checkbox（如圓凳
+    // withApron）勾掉後會被解析回 true，等於勾不掉。
+    // 所以這裡要把「所有 checkbox」明確寫入 URL（true / false），讓 server
+    // 看到 "false" 就確實當成關閉。
     formRef.current
       .querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
       .forEach((cb) => {
-        if (!cb.checked) params.delete(cb.name);
+        params.set(cb.name, cb.checked ? "true" : "false");
       });
     // scroll: false 防止 Next.js 預設行為——router.replace 會把頁面捲回最上面，
     // 改參數時就會「跳掉看不到剛編輯的欄位」，嚴重影響操作。
