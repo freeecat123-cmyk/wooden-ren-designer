@@ -101,6 +101,8 @@ function extractFurnitureDims(design: FurnitureDesign) {
       // 軸向：rotation.y ≈ π/2 → Z 軸橫撐（左/右），else X 軸（前/後）
       // 用來決定哪個視圖該顯示這條橫撐的長度標
       const isZAxis = Math.abs(p.rotation?.y ?? 0) > Math.PI / 4;
+      // arch-bent（如 Windsor bow）會往 +Z 凸出 bendMm，側視圖標籤要避讓
+      const archBendMm = p.shape?.kind === "arch-bent" ? p.shape.bendMm : 0;
       return {
         id: p.id,
         nameZh: p.nameZh,
@@ -110,6 +112,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
         cutLengthMm,
         cutAngleDeg,
         isZAxis,
+        archBendMm,
       };
     })
     .sort((a, b) => a.bottomY - b.bottomY);
@@ -1240,18 +1243,23 @@ export function OrthoView({
                   if (!seen.has(key)) seen.set(key, c);
                 }
                 const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
-                return [...seen.values()].map((c) => (
-                  <text
-                    key={`xp-thick-${c.id}`}
-                    x={w / 2 + 4}
-                    y={-(c.bottomY + c.yExt / 2) + 4}
-                    fontSize={10}
-                    fill="#444"
-                    fontFamily="sans-serif"
-                  >
-                    {bare(c.nameZh)} {Math.round(c.yExt)}
-                  </text>
-                ));
+                return [...seen.values()].map((c) => {
+                  // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm，標籤要再往右閃避
+                  // 不然會壓在彎弧凸出的 silhouette 上面（使用者 4.29 回報 bow 標籤蓋到圖）
+                  const archShift = view === "side" ? c.archBendMm : 0;
+                  return (
+                    <text
+                      key={`xp-thick-${c.id}`}
+                      x={w / 2 + 4 + archShift}
+                      y={-(c.bottomY + c.yExt / 2) + 4}
+                      fontSize={10}
+                      fill="#444"
+                      fontFamily="sans-serif"
+                    >
+                      {bare(c.nameZh)} {Math.round(c.yExt)}
+                    </text>
+                  );
+                });
               })()}
               {/* 橫撐長度標——所有橫撐都標 L（拉箭頭），梯形多標 ∠
                   按視圖軸過濾：front 顯示 X 軸（前/後）、side 顯示 Z 軸（左/右） */}
