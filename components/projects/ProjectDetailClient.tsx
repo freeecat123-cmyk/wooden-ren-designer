@@ -497,16 +497,28 @@ function LabelField({
   onSave: (v: string) => void;
 }) {
   const [v, setV] = useState(value);
+  const [saved, setSaved] = useState(false);
   useEffect(() => setV(value), [value]);
   return (
     <label className="flex flex-col text-xs">
-      <span className="text-zinc-500 mb-1">{label}</span>
+      <span className="text-zinc-500 mb-1 flex items-center gap-1.5">
+        {label}
+        {saved && (
+          <span className="text-[10px] text-emerald-600 font-medium">✓ 已儲存</span>
+        )}
+      </span>
       <input
         type="text"
         value={v}
         placeholder={placeholder}
         onChange={(e) => setV(e.target.value)}
-        onBlur={() => v !== value && onSave(v.trim())}
+        onBlur={() => {
+          if (v !== value) {
+            onSave(v.trim());
+            setSaved(true);
+            setTimeout(() => setSaved(false), 1500);
+          }
+        }}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-sm"
       />
     </label>
@@ -536,8 +548,9 @@ function ItemRow({
     matKey && (MATERIALS as Record<string, { nameZh: string }>)[matKey]?.nameZh;
 
   return (
-    <li className="rounded-xl border-2 border-zinc-200 bg-white p-3 sm:p-4 grid sm:grid-cols-[1fr_auto_auto_auto_auto] gap-2 sm:gap-3 items-center">
-      <div className="min-w-0">
+    <li className="rounded-xl border-2 border-zinc-200 bg-white p-3 sm:p-4 hover:border-zinc-300 transition-colors">
+      {/* 第一行：名稱 + 規格（永遠最上） */}
+      <div className="min-w-0 mb-2 sm:mb-0 sm:float-left sm:w-[calc(100%-280px)] sm:pr-3">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-medium text-zinc-900 truncate">{item.name}</span>
           <span className="text-xs text-zinc-500">{categoryLabel(item.furniture_type)}</span>
@@ -548,53 +561,57 @@ function ItemRow({
         </p>
       </div>
 
-      <input
-        type="text"
-        defaultValue={item.room ?? ""}
-        placeholder="房間"
-        list="project-rooms"
-        onBlur={(e) => {
-          const v = e.target.value.trim();
-          if (v !== (item.room ?? "")) onUpdate({ room: v || null });
-        }}
-        className="w-20 border border-zinc-300 rounded px-2 py-1 text-xs bg-white"
-      />
-
-      <label className="flex items-center gap-1 text-xs text-zinc-600">
-        ×
+      {/* 第二行（手機）/ 同行（桌機）：房間/數量/單價/操作 */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
         <input
-          type="number"
-          min={1}
-          max={999}
-          defaultValue={item.quantity}
+          type="text"
+          defaultValue={item.room ?? ""}
+          placeholder="房間"
+          list="project-rooms"
           onBlur={(e) => {
-            const n = Math.max(1, parseInt(e.target.value) || 1);
-            if (n !== item.quantity) onUpdate({ quantity: n });
+            const v = e.target.value.trim();
+            if (v !== (item.room ?? "")) onUpdate({ room: v || null });
           }}
-          className="w-14 border border-zinc-300 rounded px-1.5 py-1 text-xs bg-white text-right"
+          className="w-20 border border-zinc-300 rounded px-2 py-1 text-xs bg-white"
         />
-      </label>
 
-      <UnitPriceInput item={item} laborOpts={laborOpts} onUpdate={onUpdate} />
+        <label className="flex items-center gap-1 text-xs text-zinc-600">
+          ×
+          <input
+            type="number"
+            min={1}
+            max={999}
+            defaultValue={item.quantity}
+            onBlur={(e) => {
+              const n = Math.max(1, parseInt(e.target.value) || 1);
+              if (n !== item.quantity) onUpdate({ quantity: n });
+            }}
+            className="w-14 border border-zinc-300 rounded px-1.5 py-1 text-xs bg-white text-right"
+          />
+        </label>
 
-      <div className="flex items-center gap-1.5">
-        <Link
-          href={buildDesignHref(item)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-amber-700 hover:underline px-2"
-        >
-          開啟
-        </Link>
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={disabled}
-          className="text-xs text-red-600 hover:underline px-2 disabled:opacity-50"
-        >
-          移除
-        </button>
+        <UnitPriceInput item={item} laborOpts={laborOpts} onUpdate={onUpdate} />
+
+        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+          <Link
+            href={buildDesignHref(item)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-amber-700 hover:underline px-2"
+          >
+            開啟
+          </Link>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={disabled}
+            className="text-xs text-red-600 hover:underline px-2 disabled:opacity-50"
+          >
+            移除
+          </button>
+        </div>
       </div>
+      <div className="clear-both" />
     </li>
   );
 }
@@ -666,21 +683,42 @@ function UnitPriceInput({
   );
 }
 
-const LABOR_FIELDS: Array<{
+type LaborField = {
   key: keyof ProjectLaborOpts;
   label: string;
   step: number;
   isRate?: boolean;
   hint?: string;
-}> = [
-  { key: "hourlyRate", label: "時薪 NT$/hr", step: 50, hint: "預設 500（資深師傅）" },
-  { key: "marginRate", label: "毛利 %", step: 5, isRate: true, hint: "預設 30%" },
-  { key: "finishingCost", label: "塗裝 NT$", step: 100, hint: "預設 1500" },
-  { key: "shippingCost", label: "運費 NT$", step: 100, hint: "預設 0（自取）" },
-  { key: "installationCost", label: "安裝 NT$", step: 100, hint: "預設 0" },
-  { key: "hardwareCost", label: "五金 NT$", step: 100, hint: "預設 0" },
-  { key: "vatRate", label: "稅率 %", step: 1, isRate: true, hint: "預設 0（不開發票）" },
-  { key: "discountRate", label: "折扣 %", step: 1, isRate: true, hint: "0 = 不打折" },
+};
+
+// 分 3 組：工錢與毛利 / 雜費 / 稅折
+const LABOR_GROUPS: Array<{ title: string; icon: string; fields: LaborField[] }> = [
+  {
+    title: "工錢與毛利",
+    icon: "💰",
+    fields: [
+      { key: "hourlyRate", label: "時薪 NT$/hr", step: 50, hint: "預設 500（資深師傅）" },
+      { key: "marginRate", label: "毛利 %", step: 5, isRate: true, hint: "預設 30%" },
+    ],
+  },
+  {
+    title: "雜費",
+    icon: "📦",
+    fields: [
+      { key: "finishingCost", label: "塗裝 NT$", step: 100, hint: "預設 1500" },
+      { key: "shippingCost", label: "運費 NT$", step: 100, hint: "預設 0（自取）" },
+      { key: "installationCost", label: "安裝 NT$", step: 100, hint: "預設 0" },
+      { key: "hardwareCost", label: "五金 NT$", step: 100, hint: "預設 0" },
+    ],
+  },
+  {
+    title: "稅與折扣",
+    icon: "🧾",
+    fields: [
+      { key: "vatRate", label: "稅率 %", step: 1, isRate: true, hint: "預設 0（不開發票）" },
+      { key: "discountRate", label: "折扣 %", step: 1, isRate: true, hint: "0 = 不打折" },
+    ],
+  },
 ];
 
 function LaborOptsPanel({
@@ -719,30 +757,40 @@ function LaborOptsPanel({
           {isEdited ? "已自訂" : "用系統預設"}
         </span>
       </summary>
-      <div className="px-5 pb-5 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {LABOR_FIELDS.map((f) => {
-          const v = opts[f.key];
-          const display =
-            v == null ? "" : f.isRate ? Math.round(v * 100).toString() : v.toString();
-          return (
-            <label key={f.key} className="flex flex-col text-xs">
-              <span className="text-zinc-500 mb-1">{f.label}</span>
-              <input
-                type="number"
-                step={f.step}
-                defaultValue={display}
-                placeholder={f.hint?.replace("預設 ", "")}
-                onBlur={(e) => handleChange(f.key, e.target.value, !!f.isRate)}
-                className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-sm font-mono"
-              />
-              {f.hint && (
-                <span className="text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>
-              )}
-            </label>
-          );
-        })}
+      <div className="px-5 pb-5 pt-1 space-y-4">
+        {LABOR_GROUPS.map((group) => (
+          <div key={group.title}>
+            <h4 className="text-[11px] font-semibold text-zinc-700 mb-2 flex items-center gap-1">
+              <span>{group.icon}</span>
+              {group.title}
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {group.fields.map((f) => {
+                const v = opts[f.key];
+                const display =
+                  v == null ? "" : f.isRate ? Math.round(v * 100).toString() : v.toString();
+                return (
+                  <label key={f.key} className="flex flex-col text-xs">
+                    <span className="text-zinc-500 mb-1">{f.label}</span>
+                    <input
+                      type="number"
+                      step={f.step}
+                      defaultValue={display}
+                      placeholder={f.hint?.replace("預設 ", "")}
+                      onBlur={(e) => handleChange(f.key, e.target.value, !!f.isRate)}
+                      className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-sm font-mono"
+                    />
+                    {f.hint && (
+                      <span className="text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
         {isEdited && (
-          <div className="col-span-2 sm:col-span-4 pt-2 border-t border-zinc-200 flex justify-end">
+          <div className="pt-2 border-t border-zinc-200 flex justify-end">
             <button
               type="button"
               onClick={() => onSave(null)}
