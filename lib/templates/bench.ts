@@ -400,8 +400,16 @@ export const bench: FurnitureTemplate = (input) => {
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
-      // 從座板背緣垂直往上的車旋圓料（vertical turned dowel/post）
-      // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高（垂直長軸）→ 不旋轉
+      // arch-bent 公式：每根圓料在自己 X 位置上、bow 中心往 +Z 偏多少
+      // → 圓料頂端跟著偏，底端維持齊座板背緣，整支變斜
+      const archDzAt = (x: number) =>
+        bowBendMm > 0
+          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / input.length, 2))
+          : 0;
+
+      // 從座板背緣垂直往上、頂端跟著 bow 後彎傾斜的車旋圓料
+      // round shape 軸序：length=X 寬, width=Z 深, thickness=Y 高
+      // splayed-round-tapered: dzMm 是「底端 Z 位移」相對於 origin（top）
       const buildVerticalRound = (
         x: number,
         diameter: number,
@@ -409,15 +417,19 @@ export const bench: FurnitureTemplate = (input) => {
         nameZh: string,
       ) => {
         if (partH <= 0) return;
-        const zCenter = halfW - diameter / 2; // 背面齊座板背緣
+        const dz = archDzAt(x);
+        const zTop = halfW - diameter / 2 + dz;     // 頂端跟著 bow 偏 +Z
+        const useSplay = dz > 0.5;
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
           material: mat,
           grainDirection: "length",
           visible: { length: diameter, width: diameter, thickness: partH },
-          origin: { x, y: seatTop, z: zCenter },
-          shape: { kind: "round" },
+          origin: { x, y: seatTop, z: zTop },
+          shape: useSplay
+            ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: -dz }
+            : { kind: "round" as const },
           tenons: [],
           mortises: [],
         });
