@@ -39,6 +39,27 @@ const DOOR_TINT = "#ff9a3d";
 const TINT_AMOUNT = 0.32;
 
 /**
+ * 給每塊板細微的明度抖動（±6%），讓相鄰同材質的板看得出邊界。
+ * Hash partId → 穩定 jitter（同 part 永遠同色，刷新不會跳）。
+ */
+function jitterColorByPartId(hex: string, partId: string): string {
+  let h = 5381;
+  for (let i = 0; i < partId.length; i++) {
+    h = ((h << 5) + h) ^ partId.charCodeAt(i);
+  }
+  // -0.06 .. +0.06
+  const jitter = ((Math.abs(h) % 1000) / 1000 - 0.5) * 0.12;
+  const factor = 1 + jitter;
+  const s = hex.replace("#", "");
+  const r = parseInt(s.slice(0, 2), 16);
+  const g = parseInt(s.slice(2, 4), 16);
+  const b = parseInt(s.slice(4, 6), 16);
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n * factor)));
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(clamp(r))}${toHex(clamp(g))}${toHex(clamp(b))}`;
+}
+
+/**
  * 車旋腳輪廓（古典花瓶/baluster 風格）：
  * [topRScale, botRScale, hFrac]，從上到下
  * - 頂部：滿尺寸做榫接區
@@ -1342,12 +1363,14 @@ export function PerspectiveView({
         {design.parts.map((part) => {
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
-          const color =
+          const tintedColor =
             category === "drawer"
               ? tintHex(baseColor, DRAWER_TINT, TINT_AMOUNT)
               : category === "door"
                 ? tintHex(baseColor, DOOR_TINT, TINT_AMOUNT)
                 : baseColor;
+          // 細微 jitter（±6%）讓相鄰同材質的板看得出邊界
+          const color = jitterColorByPartId(tintedColor, part.id);
           const { yExt } = worldExtents(part);
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;
