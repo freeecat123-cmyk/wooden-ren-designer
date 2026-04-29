@@ -238,14 +238,7 @@ export interface Part {
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
      *  depthMm = 最深處下挖量（mm），通常 6–12mm。
      *  俯視/前視/側視仍以矩形 bbox 顯示（不影響材料計算）；3D 顯示挖型曲面。 */
-    | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number }
-    /** 兩端 45° 砍切的板（盒角斜接 mitre 用）：
-     *  Local X = length（兩端會被 45° 砍）
-     *  Local Y = thickness（mitre 從一個 Y 面砍向另一個）
-     *  miterDepth = X 兩端各切進去多少（通常 = 板厚）
-     *  outerY = +1 → local +Y 面是外面（保持全長）；-1 → local -Y 面是外面
-     *  套到 4 壁的盒角斜接：4 塊壁的對應 outerY 不同（看 part 的旋轉）*/
-    | { kind: "mitered-end-box"; miterDepthMm: number; outerY: 1 | -1 };
+    | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number };
 }
 
 export interface FurnitureDesign {
