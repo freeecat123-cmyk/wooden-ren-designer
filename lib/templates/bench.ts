@@ -406,13 +406,12 @@ export const bench: FurnitureTemplate = (input) => {
       const railBotY = seatTop + splatHeight - topRailH;
       const partH = railBotY - seatTop; // 椅背料完整直立高度（座板上緣 → 頂橫木下緣）
 
-      // 預先算 stumpX（要等下面 stumpInset 算完才知道）→ 先把 bow 範圍預備好
-      const _stumpInsetPre = Math.max(stumpD / 2 + 8, endInset + stumpD / 2);
-      const _bowLengthPre = Math.max(100, 2 * (input.length / 2 - _stumpInsetPre) + stumpD);
+      // bow 長度 = 座板長 − 2×endInset（預設 endInset=0 → bow 跟座板等長）
+      const bowLength = Math.max(100, input.length - 2 * endInset);
       // arch-bent 公式：每根圓料用「bow 自身長度」算，跟 bow 同步彎度
       const archDzAt = (x: number) =>
         bowBendMm > 0
-          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / _bowLengthPre, 2))
+          ? bowBendMm * Math.max(0, 1 - Math.pow((2 * x) / bowLength, 2))
           : 0;
 
       // 從座板背緣垂直往上、頂端跟著 bow 後彎傾斜的車旋圓料
@@ -462,8 +461,7 @@ export const bench: FurnitureTemplate = (input) => {
 
       // 頂橫木 (bow)：椅背頂端水平彎弧木，連接所有圓料 + 邊柱
       const railZ = halfW - topRailT / 2 - backInset;
-      // bow 長度跟著 stumpX 縮：bow 兩端對齊邊柱外緣
-      const bowLength = Math.max(100, 2 * stumpX + stumpD);
+      // bow 長度已上面算好（= input.length − 2×endInset）
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
