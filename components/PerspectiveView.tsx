@@ -39,7 +39,7 @@ const DOOR_TINT = "#ff9a3d";
 const TINT_AMOUNT = 0.32;
 
 /**
- * 給每塊板細微的明度抖動（±6%），讓相鄰同材質的板看得出邊界。
+ * 給每塊板明度抖動（±15%），讓相鄰同材質的板邊界明顯。
  * Hash partId → 穩定 jitter（同 part 永遠同色，刷新不會跳）。
  */
 function jitterColorByPartId(hex: string, partId: string): string {
@@ -47,8 +47,8 @@ function jitterColorByPartId(hex: string, partId: string): string {
   for (let i = 0; i < partId.length; i++) {
     h = ((h << 5) + h) ^ partId.charCodeAt(i);
   }
-  // -0.06 .. +0.06
-  const jitter = ((Math.abs(h) % 1000) / 1000 - 0.5) * 0.12;
+  // -0.15 .. +0.15
+  const jitter = ((Math.abs(h) % 1000) / 1000 - 0.5) * 0.30;
   const factor = 1 + jitter;
   const s = hex.replace("#", "");
   const r = parseInt(s.slice(0, 2), 16);
