@@ -69,7 +69,7 @@ export const benchOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "ladderRailGap", label: "橫格條間距 (mm)", defaultValue: 40, min: 10, max: 200, step: 5, help: "相鄰橫木之間的空隙；橫木從頂橫木往下依序疊", dependsOn: { key: "endSplat", equals: "ladder" } },
   { group: "back", type: "number", key: "ladderRailBendMm", label: "橫格條向後弧 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "每條橫格條中央往後（背側）彎的最大量，貼合腰背曲線。0 = 直線", dependsOn: { key: "endSplat", equals: "ladder" } },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐 / 層板離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 = 自動 (≈ 腳高的 25%)；下橫撐跟座下層板都用這值定位" },
 ];
 
 export const bench: FurnitureTemplate = (input) => {
