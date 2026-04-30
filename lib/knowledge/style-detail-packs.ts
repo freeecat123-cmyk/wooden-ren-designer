@@ -1,27 +1,6 @@
 /**
- * 風格 × 模板 細部設定包（detail packs）—— 22 categories × 8 styles 完整覆蓋。
- *
- * 第一輪 4 agent 平行：Shaker/Mission/Mid-Century/Ming/Windsor/Chippendale
- *   /Industrial/Japanese × 10 priority templates（chair / chest / table / desk
- *   / bench / stools / shelf）。
- * 第二輪 3 agent 平行：6 個櫃類（wardrobe/display-cabinet/shoe-cabinet/
- *   media-console/nightstand + open-bookshelf zone 補）+ 4 個桌椅
- *   （tea-table/round-tea-table/round-table/bar-stool）+ 7 個小物件
- *   （pencil-holder/bookend/photo-frame/tray/dovetail-box/wine-rack/coat-rack）。
- *
- * 所有值都對過 OptionSpec 的 min/max + select choices，沒有編造的 key。
- *
- * Windsor：椅匠傳統不做櫃 / 桌 / 小物件。Windsor 只在 dining-chair /
- * round-stool / bench / square-stool / bar-stool 等坐具有完整 detail，其他
- * template 給通用值或省略——applyStylePreset() 在 Windsor 沒對應的 template
- * 自動 fallback 到 base preset。
- *
- * 用法：applyStylePreset(styleId, category) merge：
- *   STYLE_PRESETS[styleId].base params
- *   ↓
- *   STYLE_DETAIL_PACKS[styleId][category]  ← 這份檔
- *   ↓
- *   使用者後續 URL 修改
+ * 風格 × 模板 細部設定包（detail packs）—— 自動產生 + 手動審改 hybrid。
+ * 詳見 AGENTS.md「家具設計器：加新家具種類的 SOP」。
  */
 
 export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, string | number | boolean>>> = {
@@ -484,14 +463,12 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 25,
       "apronOffset": 0,
-      "apronStaggerMm": 26,
       "backStyle": "rail",
       "backHeight": 220,
       "topRailHeight": 50,
       "topRailThickness": 28,
       "footrestWidth": 40,
       "footrestThickness": 25,
-      "footrestStaggerMm": 26,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -1037,7 +1014,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 90,
       "apronThickness": 25,
       "apronOffset": 5,
-      "apronStaggerMm": 26,
       "backStyle": "panel",
       "backHeight": 280,
       "backPanelHeight": 220,
@@ -1052,7 +1028,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backPostFromEdge": 35,
       "footrestWidth": 35,
       "footrestThickness": 22,
-      "footrestStaggerMm": 26,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -1499,14 +1474,12 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 50,
       "apronThickness": 18,
       "apronOffset": 8,
-      "apronStaggerMm": 20,
       "backStyle": "rail",
       "backHeight": 180,
       "topRailHeight": 35,
       "topRailThickness": 22,
       "footrestWidth": 32,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -1954,14 +1927,12 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 55,
       "apronThickness": 20,
       "apronOffset": 5,
-      "apronStaggerMm": 22,
       "backStyle": "rail",
       "backHeight": 200,
       "topRailHeight": 0,
       "topRailThickness": 22,
       "footrestWidth": 35,
       "footrestThickness": 20,
-      "footrestStaggerMm": 22,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -2478,14 +2449,12 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 45,
       "apronThickness": 18,
       "apronOffset": 8,
-      "apronStaggerMm": 20,
       "backStyle": "rail",
       "backHeight": 150,
       "topRailHeight": 30,
       "topRailThickness": 18,
       "footrestWidth": 28,
       "footrestThickness": 18,
-      "footrestStaggerMm": 20,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -2956,7 +2925,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 80,
       "apronThickness": 22,
       "apronOffset": 0,
-      "apronStaggerMm": 24,
       "backStyle": "slats",
       "backHeight": 280,
       "backSlats": 5,
@@ -2966,7 +2934,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 25,
       "footrestWidth": 40,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
@@ -3254,7 +3221,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 0,
       "apronThickness": 18,
       "apronOffset": 0,
-      "apronStaggerMm": 22,
       "backStyle": "slats",
       "backHeight": 250,
       "backSlats": 5,
@@ -3264,7 +3230,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 22,
       "footrestWidth": 28,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24,
       "lowerStretcherHeight": 0
     }
   },
@@ -3654,14 +3619,12 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 22,
       "apronOffset": 0,
-      "apronStaggerMm": 24,
       "backStyle": "none",
       "backHeight": 80,
       "topRailHeight": 0,
       "topRailThickness": 22,
       "footrestWidth": 32,
       "footrestThickness": 22,
-      "footrestStaggerMm": 26,
       "lowerStretcherHeight": 0
     },
     "pencil-holder": {
