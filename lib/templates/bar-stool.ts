@@ -25,7 +25,7 @@ export const barStoolOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度，標準 200–230mm" },
+  { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 350, min: 50, max: 700, step: 10, help: "腳踏離地高度。吧檯椅標準＝座面下 400–450mm（座面 750→腳踏 300–350；座面 800→腳踏 350–400）；counter stool 較矮，距座面約 300mm" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, help: "牙板的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
@@ -34,10 +34,24 @@ export const barStoolOptions: OptionSpec[] = [
     { value: "none", label: "無椅背" },
     { value: "rail", label: "短橫木（一根橫木）" },
     { value: "slats", label: "直條式（N 根垂直板條）" },
+    { value: "panel", label: "弧形板（單片圓角板背）" },
   ] },
+  { group: "back", type: "number", key: "backPanelHeight", label: "弧形板高 (mm)", defaultValue: 180, min: 100, max: 400, step: 10, help: "椅背板的垂直高（圓角矩形板）", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelThickness", label: "弧形板厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelCornerR", label: "弧形板圓角 (mm)", defaultValue: 30, min: 0, max: 100, step: 2, help: "板的四角圓角半徑", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelTopArch", label: "上緣拱起 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板上緣中央向上拱起的高度（弧形造型）；0 = 平頂", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelBottomArch", label: "下緣拱起 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板下緣中央向上凹/拱的深度（讓板成 D 形或月牙形）；0 = 平底", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelFaceBend", label: "弧形板大面彎曲 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板的大面（前/後）凹陷量；0 = 平板，數值越大越彎（建議 10–30 做 lumbar 腰靠）", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPostDiameter", label: "圓形支撐柱直徑 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, help: "支撐椅背板的兩支圓形垂直木", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelInset", label: "靠背距椅面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "圓柱後緣從椅面後緣往前的距離；0 = 圓柱後緣與椅面後緣對齊", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backReclineDeg", label: "靠背後仰角 (°)", defaultValue: 0, min: 0, max: 20, step: 0.5, unit: "°", help: "靠背向後傾斜的角度；正視圖看仍是直的，側視圖才會看到斜度（圓柱與板同步傾斜）", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPostFromEdge", label: "圓柱距板端面 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, help: "圓柱中心到靠背板左/右端面的距離；圓柱貼著板背", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backHeight", label: "椅背高 (mm)", defaultValue: 200, min: 80, max: 500, step: 10, help: "從座板上緣到椅背頂", dependsOn: { key: "backStyle", notIn: ["none"] } },
   { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 1, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "backSlatThickness", label: "直條厚 (mm)", defaultValue: 16, min: 8, max: 40, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "topRailHeight", label: "頂橫木寬 (mm)", defaultValue: 0, min: 0, max: 120, step: 5, help: "0 = 自動（椅背高的 1/3，最大 50）；自己填值會優先", dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
+  { group: "back", type: "number", key: "topRailThickness", label: "頂橫木厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1, dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
   { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
   { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
   { group: "stretcher", type: "number", key: "footrestStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "左右下橫撐相對前後下橫撐抬高量，避免榫眼重疊；建議 ≥ 腳踏厚" },
@@ -74,6 +88,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backHeightOpt = getOption<number>(input, opt(o, "backHeight"));
   const backSlatCount = getOption<number>(input, opt(o, "backSlats"));
   const backSlatWidth = getOption<number>(input, opt(o, "backSlatWidth"));
+  const backPanelHeight = getOption<number>(input, opt(o, "backPanelHeight"));
+  const backPanelThickness = getOption<number>(input, opt(o, "backPanelThickness"));
+  const backPanelCornerR = getOption<number>(input, opt(o, "backPanelCornerR"));
+  const backPanelFaceBend = getOption<number>(input, opt(o, "backPanelFaceBend"));
+  const backPanelTopArch = getOption<number>(input, opt(o, "backPanelTopArch"));
+  const backPanelBottomArch = getOption<number>(input, opt(o, "backPanelBottomArch"));
+  const backPostDiameter = getOption<number>(input, opt(o, "backPostDiameter"));
+  const backPanelInset = getOption<number>(input, opt(o, "backPanelInset"));
+  const backReclineDeg = getOption<number>(input, opt(o, "backReclineDeg"));
+  const backPostFromEdge = getOption<number>(input, opt(o, "backPostFromEdge"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
@@ -140,14 +164,17 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   // 椅背 joinery 位置：頂橫木 + 板條 X 座標——legs / rail / apron / seat 都要引用
-  const topRailH = withBack ? Math.min(50, Math.round(backHeight / 3)) : 0;
-  const topRailThickness = 22;
+  const topRailHOverride = getOption<number>(input, opt(o, "topRailHeight"));
+  const topRailH = withBack
+    ? (topRailHOverride > 0 ? topRailHOverride : Math.min(50, Math.round(backHeight / 3)))
+    : 0;
+  const topRailThickness = getOption<number>(input, opt(o, "topRailThickness"));
   const topRailY = withBack ? seatY + backHeight - topRailH : 0;
   const topRailYCenter = topRailY + topRailH / 2;
   const topRailTenonW = withBack ? Math.max(12, topRailH - 10) : 0;
   const topRailTenonThick = 17;
   const slatXs: number[] = [];
-  const slatThicknessConst = 16;
+  const slatThicknessConst = getOption<number>(input, opt(o, "backSlatThickness"));
   const slatTenonLen = 12;
   const slatTenonW = (w: number) => Math.max(10, w - 10);
   const slatTenonT = Math.max(5, Math.round(slatThicknessConst / 3));
@@ -160,7 +187,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   const legs: Part[] = cornerPts.map((c, i) => {
-    const isBack = c.z > 0 && withBack;
+    // 弧形板背：後腳不延伸到椅背高（板由獨立圓柱支撐）
+    const isBack = c.z > 0 && withBack && backStyle !== "panel";
     const legTotalH = isBack ? seatY + backHeight : seatY;
     return {
       id: `leg-${i + 1}`,
@@ -268,77 +296,136 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const ringY = seatY - apronWidth - apronOffset;
 
-  // 斜腳補償：splayed shape 的腳底向外偏 splayMm（在 y=0），腳頂在原角點（y=seatY）。
-  // 線性內插：在高度 yMm 處，腳中心向外偏 splayMm × (1 - yMm/seatY)。
-  // 牙板/腳踏要跟著腳的當下位置走，否則接不到。
+  // 斜腳補償（同 square-stool）：以橫撐中軸 Y 為基準算 splay 偏移 → 中軸跟腳中軸對齊；
+  // 上下緣縮放成 trapezoid → 端面跟著腳傾斜；rotation 帶 tilt → 橫撐軸與腳軸平行。
   const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
   const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
-  const dxAtY = (yMm: number) =>
-    isLengthSplay ? Math.max(0, splayMm * (1 - yMm / seatY)) : 0;
-  const dzAtY = (yMm: number) =>
-    isWidthSplay ? Math.max(0, splayMm * (1 - yMm / seatY)) : 0;
+  const splayDx = isLengthSplay ? splayMm : 0;
+  const splayDz = isWidthSplay ? splayMm : 0;
+  const isSplayed = splayDx > 0 || splayDz > 0;
+  const tiltX = splayDx > 0 ? Math.atan(splayDx / seatY) : 0;
+  const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
-  const apronDx = dxAtY(ringY);
-  const apronDz = dzAtY(ringY);
-  const frDx = dxAtY(footrestHeight);
-  const frDz = dzAtY(footrestHeight);
+  // 通用：給定該層橫撐的「橫撐料」中軸 Y 與料厚 W，產生四面 sides。
+  const buildSides = (centerY: number, beamWidth: number, namePrefix: string) => {
+    const botY = centerY - beamWidth / 2;
+    const topY = centerY + beamWidth / 2;
+    const shiftAt = (yMm: number) => seatY > 0 ? 1 - yMm / seatY : 0;
+    const sCenter = shiftAt(centerY);
+    const sBot = shiftAt(botY);
+    const sTop = shiftAt(topY);
+    const splayXc = splayDx * sCenter;
+    const splayZc = splayDz * sCenter;
+    const splayXt = splayDx * sTop;
+    const splayZt = splayDz * sTop;
+    const splayXb = splayDx * sBot;
+    const splayZb = splayDz * sBot;
+    return {
+      sides: [
+        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+      ],
+      splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
+    };
+  };
 
-  const apronSides = [
-    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: -legEdgeZ - apronDz } },
-    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: legEdgeZ + apronDz } },
-    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, yOffset: -apronStaggerMm, origin: { x: -legEdgeX - apronDx, z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, yOffset: -apronStaggerMm, origin: { x: legEdgeX + apronDx, z: 0 } },
-  ];
-  const aprons: Part[] = apronSides.map((s) => ({
-    id: `apron-${s.key}`,
-    nameZh: s.nameZh,
-    material,
-    grainDirection: "length",
-    visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
-    origin: { x: s.origin.x, y: ringY + s.yOffset, z: s.origin.z },
-    rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      { position: "start", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
-      { position: "end", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
-    ],
-    // 後牙板：上緣加 slat 母榫眼（slat 從上面接入）。但 bar-stool 的 slat 落在
-    // 座板上方不穿過 apron 區，這裡其實沒 slat 母——slats 接座板上面 + 頂橫木下面
-    mortises: [],
-  }));
+  const apronCenterY = ringY + apronWidth / 2;
+  const apronB = buildSides(apronCenterY, apronWidth, "牙板");
+  const aprons: Part[] = apronB.sides.map((s) => {
+    const trapTopScale =
+      s.axis === "x" && splayDx > 0
+        ? (legEdgeX + apronB.splayXt) / (legEdgeX + apronB.splayXc)
+        : s.axis === "z" && splayDz > 0
+          ? (legEdgeZ + apronB.splayZt) / (legEdgeZ + apronB.splayZc)
+          : null;
+    const trapBotScale =
+      s.axis === "x" && splayDx > 0
+        ? (legEdgeX + apronB.splayXb) / (legEdgeX + apronB.splayXc)
+        : s.axis === "z" && splayDz > 0
+          ? (legEdgeZ + apronB.splayZb) / (legEdgeZ + apronB.splayZc)
+          : 1;
+    const bevelAngle = isSplayed
+      ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
+      : 0;
+    const partShape = trapTopScale !== null
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+      : isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+    return {
+      id: `apron-${s.key}`,
+      nameZh: s.nameZh,
+      material,
+      grainDirection: "length" as const,
+      visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
+      origin: { x: s.origin.x, y: ringY + (s.axis === "z" ? -apronStaggerMm : 0), z: s.origin.z },
+      rotation: s.axis === "z"
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+        : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
+      shape: partShape,
+      tenons: [
+        { position: "start" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+        { position: "end" as const, type: "shouldered-tenon" as const, length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+      ],
+      mortises: [],
+    };
+  });
 
-  const footRestSides = [
-    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: -legEdgeZ - frDz } },
-    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: legEdgeZ + frDz } },
-    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, yOffset: footrestStaggerMm, origin: { x: -legEdgeX - frDx, z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, yOffset: footrestStaggerMm, origin: { x: legEdgeX + frDx, z: 0 } },
-  ];
-  const footRests: Part[] = footRestSides.map((s) => ({
-    id: `footrest-${s.key}`,
-    nameZh: `腳踏-${s.nameZh.replace("牙板", "")}`,
-    material,
-    grainDirection: "length",
-    visible: { length: s.visibleLength, width: footRestWidth, thickness: footRestThickness },
-    origin: { x: s.origin.x, y: footrestHeight + s.yOffset, z: s.origin.z },
-    rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      { position: "start", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
-      { position: "end", type: "blind-tenon", length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
-    ],
-    mortises: [],
-  }));
+  const frCenterY = footrestHeight + footRestWidth / 2;
+  const frB = buildSides(frCenterY, footRestWidth, "腳踏");
+  const footRests: Part[] = frB.sides.map((s) => {
+    const trapTopScale =
+      s.axis === "x" && splayDx > 0
+        ? (legEdgeX + frB.splayXt) / (legEdgeX + frB.splayXc)
+        : s.axis === "z" && splayDz > 0
+          ? (legEdgeZ + frB.splayZt) / (legEdgeZ + frB.splayZc)
+          : null;
+    const trapBotScale =
+      s.axis === "x" && splayDx > 0
+        ? (legEdgeX + frB.splayXb) / (legEdgeX + frB.splayXc)
+        : s.axis === "z" && splayDz > 0
+          ? (legEdgeZ + frB.splayZb) / (legEdgeZ + frB.splayZc)
+          : 1;
+    const bevelAngle = isSplayed
+      ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
+      : 0;
+    const partShape = trapTopScale !== null
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+      : isSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+    return {
+      id: `footrest-${s.key}`,
+      nameZh: `腳踏-${s.nameZh.replace("腳踏", "")}`,
+      material,
+      grainDirection: "length" as const,
+      visible: { length: s.visibleLength, width: footRestWidth, thickness: footRestThickness },
+      origin: { x: s.origin.x, y: footrestHeight + (s.axis === "z" ? footrestStaggerMm : 0), z: s.origin.z },
+      rotation: s.axis === "z"
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+        : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
+      shape: partShape,
+      tenons: [
+        { position: "start" as const, type: "blind-tenon" as const, length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
+        { position: "end" as const, type: "blind-tenon" as const, length: apronTenonLen, width: frTenonW, thickness: frTenonThick },
+      ],
+      mortises: [],
+    };
+  });
 
   const parts: Part[] = [seatPanel, ...legs, ...aprons, ...footRests];
 
   if (withBack) {
+    if (backStyle !== "panel") {
     // 頂橫木一定有——鎖住後腳頂部。slat 從下方接入，下緣加 slat 母榫眼
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
       material,
       grainDirection: "length",
-      visible: { length: innerSpanX, width: topRailThickness, thickness: topRailH },
+      visible: { length: innerSpanX + 2 * apronTenonLen, width: topRailThickness, thickness: topRailH },
       origin: { x: 0, y: topRailY, z: legEdgeZ },
       tenons: [
         { position: "start", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
@@ -352,7 +439,59 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         through: false,
       })),
     });
-    if (backStyle === "slats" && backSlatCount > 0) {
+    }
+    if (backStyle === "panel") {
+      // 弧形板背：板跨左右後腳間，圓柱貼在板背面，距板端面 backPostFromEdge
+      const panelLen = innerSpanX + 2 * apronTenonLen;
+      // 參照物 = 圓柱「接座板處」的後緣（圓柱底端）。inset=0 → 圓柱底後緣對齊椅面後緣
+      // 後仰時圓柱底端會往 -Z 偏 reclineDz，故 postZ（中心，頂端在此 Z）需 +reclineDz 補回
+      const reclineRad = (backReclineDeg * Math.PI) / 180;
+      const reclineDz = Math.tan(reclineRad) * backHeight;
+      const postBottomBackZ = width / 2 - backPanelInset; // 圓柱底端後緣 Z（基準）
+      const postZ_calc = postBottomBackZ - backPostDiameter / 2 + reclineDz;
+      const panelZ = postZ_calc - backPostDiameter / 2 - backPanelThickness / 2;
+      const postX = panelLen / 2 - backPostFromEdge;
+      const postZ = postZ_calc;
+      const postBottomY = seatY;
+      const postH = backHeight;
+      const panelTopY = seatY + backHeight;
+      const panelOriginY = panelTopY - backPanelHeight;
+      // 兩支圓柱：正視圖直立（X 不斜），側視圖跟著靠背後仰角度斜（Z 方向）；reclineRad/reclineDz 已在上面定義
+      [-1, 1].forEach((sx) => {
+        parts.push({
+          id: `back-post-${sx > 0 ? "right" : "left"}`,
+          nameZh: `椅背圓柱-${sx > 0 ? "右" : "左"}`,
+          material,
+          grainDirection: "length",
+          visible: { length: backPostDiameter, width: backPostDiameter, thickness: postH },
+          origin: { x: sx * postX, y: postBottomY, z: postZ },
+          shape: reclineDz > 0
+            ? { kind: "splayed", dxMm: 0, dzMm: -reclineDz }
+            : { kind: "round" },
+          tenons: [
+            { position: "bottom", type: "blind-tenon", length: 25, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
+            { position: "top", type: "blind-tenon", length: 20, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
+          ],
+          mortises: [],
+        });
+      });
+      // 弧形板：跟著圓柱一起後仰。圓柱用 splayed shape，底端在 -Z 偏 reclineDz、頂在 origin。
+      // 板的底邊（panelOriginY 高度處）跟圓柱前緣對齊，再以 rotation.x = reclineRad 讓板整片同步傾斜。
+      const postZAtPanelBottom = postZ - reclineDz * (backPanelHeight / Math.max(1, postH));
+      const panelBottomZ = postZAtPanelBottom - backPostDiameter / 2 - backPanelThickness / 2;
+      parts.push({
+        id: "back-panel",
+        nameZh: "椅背弧形板",
+        material,
+        grainDirection: "length",
+        visible: { length: panelLen, width: backPanelThickness, thickness: backPanelHeight },
+        origin: { x: 0, y: panelOriginY, z: panelBottomZ },
+        rotation: reclineDz > 0 ? { x: reclineRad, y: 0, z: 0 } : undefined,
+        shape: { kind: "face-rounded", cornerR: backPanelCornerR, topArchMm: backPanelTopArch, bottomArchMm: backPanelBottomArch, bendMm: backPanelFaceBend },
+        tenons: [],
+        mortises: [],
+      });
+    } else if (backStyle === "slats" && backSlatCount > 0) {
       const slatLen = backHeight - topRailH;
       slatXs.forEach((xCenter, i) => {
         parts.push({

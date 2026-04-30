@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BufferGeometry, Euler, Float32BufferAttribute, SRGBColorSpace, Vector2 } from "three";
+import { ACESFilmicToneMapping, BufferGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, Shape, SRGBColorSpace, Vector2 } from "three";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
@@ -104,7 +105,8 @@ type ShapeSpec =
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "arch-bent"; bendMm: number; segments?: number }
   | { kind: "live-edge"; amplitudeMm: number }
-  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number };
+  | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
+  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number };
 
 function Part({
   position,
@@ -185,6 +187,9 @@ function Part({
     }
     if (shape.kind === "seat-scoop") {
       return buildSeatScoopGeometry(size, shape.profile, shape.depth);
+    }
+    if (shape.kind === "face-rounded") {
+      return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0);
     }
     return null;
   }, [size, shape]);
@@ -914,6 +919,82 @@ function buildNotchedCornersGeometry(
 }
 
 /**
+ * 板狀零件正面 4 角圓角：用 Three.js Shape + ExtrudeGeometry
+ * 在 X-Y 平面繪 rounded rect (lx × ly)，沿 Z 擠 lz 厚。Z 不縮，適合薄板。
+ */
+function buildFaceRoundedGeometry(
+  size: [number, number, number],
+  cornerR: number,
+  topArchMm: number = 0,
+  bottomArchMm: number = 0,
+  bendMm: number = 0,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const r = Math.min(cornerR, lx * 0.45, ly * 0.45);
+  const hx = lx / 2;
+  const hy = ly / 2;
+  // 用 40 段沿 X、12 段沿 Y 的密集點建邊；這樣 earcut 會切出夠多的小三角形，
+  // 不論是 bend、topArch、bottomArch 任一個套用都能平滑呈現。
+  const nx = 40;
+  const ny = 12;
+  const arcSegs = Math.max(8, Math.round(r / 4));
+  const shape = new Shape();
+  // 左下角圓角起點
+  shape.moveTo(-hx + r, -hy);
+  // 下緣：均分 nx 段
+  for (let i = 1; i <= nx; i++) {
+    const t = i / nx;
+    const x = -hx + r + (lx - 2 * r) * t;
+    const y = bottomArchMm > 0 ? -hy + bottomArchMm * Math.sin(Math.PI * t) : -hy;
+    shape.lineTo(x, y);
+  }
+  // 右下圓角
+  shape.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0, false);
+  // 右側
+  for (let i = 1; i <= ny; i++) {
+    const t = i / ny;
+    shape.lineTo(hx, -hy + r + (ly - 2 * r) * t);
+  }
+  // 右上圓角
+  shape.absarc(hx - r, hy - r, r, 0, Math.PI / 2, false);
+  // 上緣：均分 nx 段（往左）
+  for (let i = 1; i <= nx; i++) {
+    const t = i / nx;
+    const x = (hx - r) - (lx - 2 * r) * t;
+    const y = topArchMm > 0 ? hy + topArchMm * Math.sin(Math.PI * t) : hy;
+    shape.lineTo(x, y);
+  }
+  // 左上圓角
+  shape.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI, false);
+  // 左側
+  for (let i = 1; i <= ny; i++) {
+    const t = i / ny;
+    shape.lineTo(-hx, (hy - r) - (ly - 2 * r) * t);
+  }
+  // 左下圓角
+  shape.absarc(-hx + r, -hy + r, r, Math.PI, (3 * Math.PI) / 2, false);
+  const geom = new ExtrudeGeometry(shape, { depth: lz, bevelEnabled: false, curveSegments: arcSegs });
+  geom.translate(0, 0, -lz / 2);
+  if (bendMm > 0) {
+    const flatHx = Math.max(1, hx - r);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      let dz = 0;
+      if (Math.abs(x) <= flatHx) {
+        const t = x / flatHx;
+        dz = bendMm * (1 - t * t);
+      }
+      pos.setZ(i, z + dz);
+    }
+    pos.needsUpdate = true;
+    geom.computeVertexNormals();
+  }
+  return geom;
+}
+
+/**
  * 弧形彎料：沿 length 軸切 N 段，每段 z 軸偏移 = bend × (1 - (2x/L)²)
  * 用於椅背頂橫木向後彎的弧形。box 截面 (ly × lz) 不變、只是 z 中心彎。
  * 上下/左右 face 用 N+1 環 vertex 連接側面，端面 2 個 quad。
@@ -1514,6 +1595,14 @@ export function PerspectiveView({
             shape = { kind: "live-edge", amplitudeMm: (part.shape.amplitudeMm ?? 12) * SCALE };
           } else if (part.shape?.kind === "seat-scoop") {
             shape = { kind: "seat-scoop", profile: part.shape.profile, depth: part.shape.depthMm * SCALE };
+          } else if (part.shape?.kind === "face-rounded") {
+            shape = {
+              kind: "face-rounded",
+              cornerR: part.shape.cornerR * SCALE,
+              topArchMm: (part.shape.topArchMm ?? 0) * SCALE,
+              bottomArchMm: (part.shape.bottomArchMm ?? 0) * SCALE,
+              bendMm: (part.shape.bendMm ?? 0) * SCALE,
+            };
           }
           return (
             <Part

@@ -736,6 +736,57 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     ];
   }
 
+  // 板狀零件：正視面 4 角圓角（圓角的「面」=length×thickness 的 X-Y 矩形）
+  // top 視圖看是矩形；front/side 視圖看是 4 角圓角的矩形。
+  if (part.shape.kind === "face-rounded") {
+    if (view === "top") return box;
+    const c = Math.min(part.shape.cornerR, r.w * 0.45, r.h * 0.45);
+    const topArch = part.shape.topArchMm ?? 0;
+    const botArch = part.shape.bottomArchMm ?? 0;
+    if (c <= 0 && topArch <= 0 && botArch <= 0) return box;
+    const segs = 6;
+    const archSegs = 16;
+    const arc = (cx: number, cy: number, t0: number, t1: number) => {
+      const pts: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= segs; i++) {
+        const t = t0 + ((t1 - t0) * i) / segs;
+        pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
+      }
+      return pts;
+    };
+    // SVG: r.y 為頂、r.y+r.h 為底（y 軸向下），相對世界要鏡像。對拱：top 拱起 = 在 r.y 邊向上突 = 減 y。
+    const pts: Array<{ x: number; y: number }> = [];
+    // 左上角 R（順時針從左上開始繞）
+    pts.push(...arc(r.x + c, r.y + c, Math.PI, (3 * Math.PI) / 2));
+    // 上緣（往右），可選拱起
+    if (topArch > 0) {
+      for (let i = 1; i <= archSegs; i++) {
+        const t = i / archSegs;
+        const x = r.x + c + (r.w - 2 * c) * t;
+        const y = r.y - topArch * Math.sin(Math.PI * t);
+        pts.push({ x, y });
+      }
+    }
+    // 右上角 R
+    pts.push(...arc(r.x + r.w - c, r.y + c, (3 * Math.PI) / 2, 2 * Math.PI));
+    // 右側
+    pts.push({ x: r.x + r.w, y: r.y + r.h - c });
+    // 右下角 R
+    pts.push(...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2));
+    // 下緣（往左），可選拱起（中央向上 = 減 y）
+    if (botArch > 0) {
+      for (let i = 1; i <= archSegs; i++) {
+        const t = i / archSegs;
+        const x = r.x + r.w - c - (r.w - 2 * c) * t;
+        const y = r.y + r.h - botArch * Math.sin(Math.PI * t);
+        pts.push({ x, y });
+      }
+    }
+    // 左下角 R
+    pts.push(...arc(r.x + c, r.y + r.h - c, Math.PI / 2, Math.PI));
+    return pts;
+  }
+
   return box;
 }
 

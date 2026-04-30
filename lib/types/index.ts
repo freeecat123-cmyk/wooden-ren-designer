@@ -247,7 +247,10 @@ export interface Part {
      *  scooped = 雙凹（左右兩個沿前後方向的凹槽）。
      *  depthMm = 最深處下挖量（mm），通常 6–12mm。
      *  俯視/前視/側視仍以矩形 bbox 顯示（不影響材料計算）；3D 顯示挖型曲面。 */
-    | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number };
+    | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number }
+    /** 板狀零件正視面 4 角圓角（length×thickness 面，從正視/側視都看得到圓角）。
+     *  Z 方向（width 軸）保持滿厚度不內縮，故適合薄板（例如靠背板 18mm 厚但要 R30 圓角）。 */
+    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number };
 }
 
 export interface FurnitureDesign {
