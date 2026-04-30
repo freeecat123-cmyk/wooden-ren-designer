@@ -76,7 +76,21 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
     // apron 在世界 Y 中心位置 ≈ origin.y + visible.width/2（rotation x:π/2 後
     // visible.width 變成世界垂直軸）
     const apronYCenter = p.origin.y + p.visible.width / 2;
-    const shrinkAmount = legWidthAt(apronYCenter);
+    // joinery mode 的 visible.length 額外加 2×tenonLen（榫頭凸出端進入腿的
+    // 母榫）+ 2×splayXc（splay 補償，已 baked in）。Beginner mode 要 butt 到
+    // 腳的「在這個 Y 的內面」：
+    //   shrink = 2×tenonLen（去掉榫頭凸出部分） − taperOffset（腿在這個 Y 比
+    //   較細的話、stretcher 該再延長一點補回來）
+    // 之前 shrink = legWidthAt 是錯的——只砍掉 legSize 不夠（少 1/3 個
+    // legSize），所以 beginner mode stretcher 仍凸出腳邊每側 6mm，看起來像
+    // 「穿過腳」。
+    const endTenonLen = p.tenons
+      .filter((t) => t.position === "start" || t.position === "end")
+      .reduce((sum, t) => sum + t.length, 0);
+    const widthAtY = legWidthAt(apronYCenter);
+    const taperOffset = legSize - widthAtY; // 腿在這個 Y 比 top 細多少
+    const shrinkAmount =
+      endTenonLen > 0 ? endTenonLen - taperOffset : widthAtY;
     const visible = shouldShrink
       ? { ...p.visible, length: p.visible.length - shrinkAmount }
       : p.visible;
