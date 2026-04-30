@@ -976,16 +976,22 @@ function buildFaceRoundedGeometry(
   const geom = new ExtrudeGeometry(shape, { depth: lz, bevelEnabled: false, curveSegments: arcSegs });
   geom.translate(0, 0, -lz / 2);
   if (bendMm > 0) {
+    // 大面彎曲 = lumbar 腰靠：前面凹（往使用者方向），背面保持平（貼著腳柱）。
+    // 之前所有 vertex 都同方向偏 +Z，整片板往後凸 → 離開腳柱、看起來扭曲。
+    // 改成 wedge：dz 大小依 vertex 的「前面比例」線性縮放——
+    //   前面 (z = -lz/2) → dz = -bendMm × (1−t²)（凹向使用者）
+    //   背面 (z = +lz/2) → dz = 0（不動）
+    //   側壁 vertex 線性內插
     const flatHx = Math.max(1, hx - r);
+    const halfLz = lz / 2;
     const pos = geom.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
-      let dz = 0;
-      if (Math.abs(x) <= flatHx) {
-        const t = x / flatHx;
-        dz = bendMm * (1 - t * t);
-      }
+      if (Math.abs(x) > flatHx) continue;
+      const t = x / flatHx;
+      const frontFaceness = (halfLz - z) / Math.max(1e-6, lz); // 1 at front, 0 at back
+      const dz = -bendMm * (1 - t * t) * frontFaceness;
       pos.setZ(i, z + dz);
     }
     pos.needsUpdate = true;
