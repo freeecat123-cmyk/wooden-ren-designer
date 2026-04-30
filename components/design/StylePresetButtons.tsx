@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
-import { STYLE_PRESETS, applyStylePreset } from "@/lib/knowledge/style-presets";
+import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
 
 /** 風格圖示 → emoji 對照（沒對到的用🪵） */
 const STYLE_EMOJI: Record<string, string> = {
@@ -53,6 +53,12 @@ export function StylePresetButtons({
     const params = applyStylePreset(id, category);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
+
+    // 清掉所有風格可能管到的 key——避免舊風格設過、新風格沒覆寫的 key 殘留。
+    // 例：套 Shaker 設了 ladderRungs=4，切到 Mid-Century 仍會殘留 ladder 設定
+    const managedKeys = getAllStyleManagedKeys(category);
+    managedKeys.forEach((k) => next.delete(k));
+
     // 標記目前風格——讓 StyleMismatchWarning 等其他元件能讀到
     next.set("style", id);
     Object.entries(params).forEach(([k, v]) => {

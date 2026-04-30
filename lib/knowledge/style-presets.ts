@@ -245,6 +245,35 @@ export function getStyleChoices(applicableTo?: string) {
     .map((p) => ({ value: p.id, label: p.nameZh }));
 }
 
+/** 任一 style preset（base + detail packs）會寫的 URL key 全集。
+ *  切換風格前先清掉這組 key、再寫新風格——避免舊風格設過但新風格沒覆蓋的
+ *  key 殘留（例：Shaker 設了 ladderRungs=4，切到 Mid-Century 仍然殘留）。 */
+export function getAllStyleManagedKeys(category?: string): Set<string> {
+  const keys = new Set<string>([
+    // base preset 永遠會寫的
+    "legShape", "legSize", "legEdge", "legEdgeStyle",
+    "seatEdge", "seatEdgeStyle", "topEdge", "topEdgeStyle",
+    "material", "stretcherEdgeStyle",
+    "apronWidth", "backStyle", "seatProfile", "splayAngle",
+  ]);
+  // detail packs 的所有 key
+  for (const styleId of Object.keys(STYLE_DETAIL_PACKS)) {
+    const pack = category
+      ? STYLE_DETAIL_PACKS[styleId]?.[category]
+      : undefined;
+    if (pack) {
+      for (const k of Object.keys(pack)) keys.add(k);
+    } else {
+      // 沒給 category：聯集所有 category 的 key（給 UI 預先清空用）
+      const stylePacks = STYLE_DETAIL_PACKS[styleId] ?? {};
+      for (const cat of Object.keys(stylePacks)) {
+        for (const k of Object.keys(stylePacks[cat])) keys.add(k);
+      }
+    }
+  }
+  return keys;
+}
+
 /** 套用風格 preset：給定風格 id（+ 可選 category），回傳一組可塞 URL params
  *  的 key-value。
  *
