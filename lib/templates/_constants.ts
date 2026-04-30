@@ -8,29 +8,50 @@
  * - 命名要把單位寫在後面（_MM、_RATIO）
  * - 每個常數都有 一行 // 說明來源（傳統工法 / 設計慣例 / 經驗值）
  * - 不放跟特定家具強耦合的常數（例如 BENCH_DEFAULT_LENGTH）
+ *
+ * Knowledge cross-ref：完整知識在 wood-master/knowledge/joinery.md §2-§4、
+ * books_workshop_manuals.md §1（Tage Frid 接合系統）、
+ * books_chinese_classics.md §3（明式榫卯）。
  */
 
 // ═══════════════════════════════════════════════════════════════════
 // 榫卯比例（Fine Woodworking / Popular Woodworking 共識）
 // ═══════════════════════════════════════════════════════════════════
 
-/** 公榫頭厚度 ÷ 母件（柱腳）厚度 — 經典 1/3 規則，避免母件被掏太空斷裂 */
+/** 公榫頭厚度 ÷ 母件（柱腳）厚度 — 經典 1/3 規則，避免母件被掏太空斷裂。
+ *  Source: wood-master/knowledge/joinery.md §2.1（榫頭厚度=母材1/3）+
+ *  books_workshop_manuals.md §1.2（Tage Frid mortise-tenon proportions）。 */
 export const TENON_THICKNESS_RATIO = 1 / 3;
 
-/** 公榫頭尺寸 ÷ 母件斷面 — 通榫從上方插入的版本，留四面肩 */
+/** 公榫頭尺寸 ÷ 母件斷面 — 通榫從上方插入的版本，留四面肩。
+ *  Source: wood-master/knowledge/joinery.md §2.3（通榫加楔片強度最高）。 */
 export const THROUGH_TENON_RATIO = 2 / 3;
 
-/** 公榫頭長度 ÷ 母件厚度 — 盲榫深度（不貫穿）的標準比 */
+/** 公榫頭長度 ÷ 母件厚度 — 盲榫深度（不貫穿）的標準比。
+ *  Source: wood-master/knowledge/joinery.md §2.2（盲榫深度=母材2/3）。 */
 export const BLIND_TENON_DEPTH_RATIO = 2 / 3;
 
-/** 榫頭上下肩部最小寬度（每邊各內縮 mm）— 太薄母件會崩 */
+/** 榫頭上下肩部最小寬度（每邊各內縮 mm）— 太薄母件會崩。
+ *  Source: wood-master/knowledge/joinery.md §2.4（肩留 6mm 是經驗下限）。 */
 export const MIN_SHOULDER_MM = 6;
 
-/** 鳩尾肩部留量（每邊各內縮 mm，避免邊角崩） */
+/** 鳩尾肩部留量（每邊各內縮 mm，避免邊角崩）。
+ *  Source: wood-master/knowledge/joinery.md §3（鳩尾製作 SOP）+
+ *  books_chinese_classics.md §3.10（穿帶/鳩尾邊角處理）。 */
 export const DOVETAIL_SHOULDER_MM = 2;
 
 /** 鳩尾在厚度方向的內縮（每邊各 mm，公母咬合裕度） */
 export const DOVETAIL_THICKNESS_INSET_MM = 1;
+
+/** 企口榫舌頭厚度 ÷ 板厚（標準比例，18mm 板 → 6mm 舌）。
+ *  Source: wood-master/knowledge/joinery.md §5（企口/T&G 工法）。 */
+export const TONGUE_GROOVE_TONGUE_RATIO = 1 / 3;
+
+/** 鳩尾角度：軟木 1:6（≈9.5°）、硬木 1:8（≈7.1°）。
+ *  Source: wood-master/knowledge/joinery.md §3.1 + books_workshop_manuals.md §1.5。
+ *  使用：軟木椴木/松木選 SOFT、橡木/胡桃/櫻桃選 HARD。 */
+export const DOVETAIL_ANGLE_SOFT = 1 / 6;
+export const DOVETAIL_ANGLE_HARD = 1 / 8;
 
 // ═══════════════════════════════════════════════════════════════════
 // 牙板 / 橫撐 預設位置（傳統家具測量）

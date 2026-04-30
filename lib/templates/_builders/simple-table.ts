@@ -5,7 +5,13 @@ import type {
   Part,
 } from "@/lib/types";
 import { corners, seatEdgeShape, seatScoopShape, legEdgeShape } from "../_helpers";
-import { LOWER_STRETCHER_HEIGHT_RATIO } from "../_constants";
+import {
+  LOWER_STRETCHER_HEIGHT_RATIO,
+  TENON_THICKNESS_RATIO,
+  BLIND_TENON_DEPTH_RATIO,
+  THROUGH_TENON_RATIO,
+  MIN_SHOULDER_MM,
+} from "../_constants";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -118,26 +124,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronOffset = opts.apronOffset ?? 20;
   const topOverhang = opts.topOverhang ?? 0;
   const withLowerStretchers = opts.withLowerStretchers ?? false;
-  // 正規榫卯比例（Fine Woodworking / Popular Woodworking 共識）：
-  // - 榫厚 = 被開榫眼的母件（柱腳）厚度的 1/3
-  //   但不能超過公件（牙板）厚度減兩側最小肩 6mm
-  // - 榫長 = 母件厚度的 2/3（盲榫）
-  // - 榫寬 = 牙板寬減上下各 6mm（固定肩，非比例）
-  const MIN_SHOULDER = 6;
-  const apronTenonLen = Math.round((legSize * 2) / 3);
+  // 榫卯比例 — 全部從 _constants.ts 取（連回 wood-master/knowledge/joinery.md §2）
+  const apronTenonLen = Math.round(legSize * BLIND_TENON_DEPTH_RATIO);
   const apronTenonThick = Math.max(
     6,
     Math.min(
-      apronThickness - 2 * MIN_SHOULDER,
-      Math.round(legSize / 3),
+      apronThickness - 2 * MIN_SHOULDER_MM,
+      Math.round(legSize * TENON_THICKNESS_RATIO),
     ),
   );
-  const apronTenonWidth = Math.max(15, apronWidth - 2 * MIN_SHOULDER);
+  const apronTenonWidth = Math.max(15, apronWidth - 2 * MIN_SHOULDER_MM);
   const legTopTenonLen = topThickness;
-  // Through tenon at leg top should be SMALLER than the leg so the shoulder
-  // rests on the underside of the panel (locks the leg in place). Standard
-  // proportion: tenon = 2/3 of leg cross-section, leaving shoulders on all 4 sides.
-  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
+  // 通榫從上方插入：榫頭=母件 2/3，留四面肩。
+  const legTopTenonSize = Math.max(15, Math.round(legSize * THROUGH_TENON_RATIO));
 
   const legHeight = height - topThickness;
   const apronY = legHeight - apronWidth - apronOffset;
@@ -423,12 +422,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const stretcherWidth = opts.lowerStretcherWidth ?? 40;
     const stretcherThickness = opts.lowerStretcherThickness ?? 20;
-    const tenonLen = Math.round((legSize * 2) / 3);
+    const tenonLen = Math.round(legSize * BLIND_TENON_DEPTH_RATIO);
     const tenonThick = Math.max(
       6,
-      Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
+      Math.min(stretcherThickness - 2 * MIN_SHOULDER_MM, Math.round(legSize * TENON_THICKNESS_RATIO)),
     );
-    const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER);
+    const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER_MM);
     // 下橫撐：以中軸對齊腳中軸，top/bot 都從中心向外/向內推
     const sCenterY = stretcherY + stretcherWidth / 2;
     const sBotShift = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
@@ -503,9 +502,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // Center stretcher's mother = apron, so base tenon thickness on apron thickness
     const cTenonThick = Math.max(
       6,
-      Math.min(stretcherThickness - 2 * MIN_SHOULDER, Math.round(apronThickness / 3)),
+      Math.min(stretcherThickness - 2 * MIN_SHOULDER_MM, Math.round(apronThickness * TENON_THICKNESS_RATIO)),
     );
-    const cTenonW = Math.max(15, stretcherWidth - 2 * MIN_SHOULDER);
+    const cTenonW = Math.max(15, stretcherWidth - 2 * MIN_SHOULDER_MM);
     // centerStretcherDrop (label = "距牙板頂") 的語意：stretcher 頂面距牙板頂
     // 的距離。bigger drop → stretcher lower → farther from tabletop. 預設
     // 把 stretcher 壓到牙板底緣附近（居中 + 額外往下），避免緊貼桌面。
