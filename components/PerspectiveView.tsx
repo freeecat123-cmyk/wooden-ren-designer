@@ -976,16 +976,15 @@ function buildFaceRoundedGeometry(
   const geom = new ExtrudeGeometry(shape, { depth: lz, bevelEnabled: false, curveSegments: arcSegs });
   geom.translate(0, 0, -lz / 2);
   if (bendMm > 0) {
-    const flatHx = Math.max(1, hx - r);
+    // 全板 vertex 一起 bend（包含 4 角圓角區域），用整片半寬當基準。
+    // 之前只 bend |x|<=flatHx 的區域 → 圓角邊緣留在 Z=0 但中央 +Z，邊界
+    // 出現不連續，外觀是「邊緣怪扭、中央鼓」的不規則彎曲。
     const pos = geom.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
-      let dz = 0;
-      if (Math.abs(x) <= flatHx) {
-        const t = x / flatHx;
-        dz = bendMm * (1 - t * t);
-      }
+      const t = x / hx; // [-1, 1] 跨整片寬
+      const dz = bendMm * Math.max(0, 1 - t * t);
       pos.setZ(i, z + dz);
     }
     pos.needsUpdate = true;
