@@ -45,7 +45,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backTopRailHeight": 60,
       "backRake": 0,
       "withArmrest": false,
-      "stretcherStyle": "h-frame"
+      "stretcherStyle": "h-frame",
+      "lowerStretcherHeight": 180
     },
     "chest-of-drawers": {
       "panelThickness": 25,
@@ -149,7 +150,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": true,
       "withLowerStretchers": true,
       "withUnderShelf": false,
-      "endSplat": "none"
+      "endSplat": "none",
+      "lowerStretcherHeight": 130,
+      "apronDropFromTop": 0
     },
     "square-stool": {
       "legShape": "box",
@@ -170,7 +173,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherWidth": 60,
       "lowerStretcherThickness": 25,
       "stretcherEdge": 0,
-      "stretcherEdgeStyle": "chamfered"
+      "stretcherEdgeStyle": "chamfered",
+      "lowerStretcherHeight": 100
     },
     "low-table": {
       "legShape": "box",
@@ -254,7 +258,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherFromGround": 150,
       "lowerStretcherStaggerMm": 25,
       "stretcherEdge": 0,
-      "stretcherEdgeStyle": "chamfered"
+      "stretcherEdgeStyle": "chamfered",
+      "lowerStretcherHeight": 150
     },
     "wardrobe": {
       "panelThickness": 25,
@@ -485,7 +490,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 28,
       "footrestWidth": 40,
       "footrestThickness": 25,
-      "footrestStaggerMm": 26
+      "footrestStaggerMm": 26,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 14,
@@ -604,7 +610,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherWidth": 35,
       "lowerStretcherThickness": 18,
       "lowerStretcherFromGround": 100,
-      "lowerStretcherStaggerMm": 22
+      "lowerStretcherStaggerMm": 22,
+      "lowerStretcherHeight": 100
     },
     "bench": {
       "legShape": "tapered",
@@ -624,7 +631,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withUnderShelf": false,
       "endSplat": "high",
       "legInset": 0,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 0,
+      "apronDropFromTop": 8
     },
     "square-stool": {
       "legShape": "tapered",
@@ -1042,7 +1050,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backPostFromEdge": 35,
       "footrestWidth": 35,
       "footrestThickness": 22,
-      "footrestStaggerMm": 26
+      "footrestStaggerMm": 26,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 12,
@@ -1196,7 +1205,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "endSplat": "none",
       "withCenterStretcher": false,
       "withLowerStretchers": false,
-      "withUnderShelf": false
+      "withUnderShelf": false,
+      "lowerStretcherHeight": 0,
+      "apronDropFromTop": 15
     },
     "square-stool": {
       "legShape": "splayed",
@@ -1206,7 +1217,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 45,
       "apronThickness": 18,
       "apronDropFromTop": 15,
-      "withLowerStretcher": false
+      "withLowerStretcher": false,
+      "lowerStretcherHeight": 0
     },
     "low-table": {
       "topThickness": 28,
@@ -1263,7 +1275,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 40,
       "apronThickness": 18,
       "apronDropFromTop": 25,
-      "withLowerStretcher": false
+      "withLowerStretcher": false,
+      "lowerStretcherHeight": 0
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -1490,7 +1503,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 22,
       "footrestWidth": 32,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24
+      "footrestStaggerMm": 24,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 8,
@@ -1572,7 +1586,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backRake": 5,
       "apronOffset": 5,
       "stretcherStyle": "h-frame",
-      "lowerStretcherHeight": 0,
+      "lowerStretcherHeight": 200,
       "seatThickness": 22,
       "seatFrontWaterfall": false,
       "withArmrest": false
@@ -1650,18 +1664,20 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "endSplat": "low",
       "ladderRungs": 2,
       "ladderRailH": 50,
-      "ladderRailT": 22
+      "ladderRailT": 22,
+      "lowerStretcherHeight": 180,
+      "apronDropFromTop": 15
     },
     "square-stool": {
       "seatThickness": 22,
       "apronWidth": 50,
       "apronThickness": 18,
-      "apronDropFromTop": 20,
+      "apronDropFromTop": 25,
       "withLowerStretcher": true,
       "lowerStretcherStyle": "h-frame",
       "lowerStretcherWidth": 35,
       "lowerStretcherThickness": 18,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 150
     },
     "low-table": {
       "topThickness": 25,
@@ -1713,8 +1729,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withApron": true,
       "apronWidth": 45,
       "apronThickness": 18,
-      "apronDropFromTop": 20,
-      "withLowerStretcher": false
+      "apronDropFromTop": 25,
+      "withLowerStretcher": false,
+      "lowerStretcherHeight": 150
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -1941,7 +1958,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 22,
       "footrestWidth": 35,
       "footrestThickness": 20,
-      "footrestStaggerMm": 22
+      "footrestStaggerMm": 22,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 8,
@@ -2037,7 +2055,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backTopRailHeight": 40,
       "backRake": 5,
       "withArmrest": false,
-      "stretcherStyle": "side-only"
+      "stretcherStyle": "side-only",
+      "lowerStretcherHeight": 0
     },
     "chest-of-drawers": {
       "panelThickness": 18,
@@ -2137,7 +2156,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": false,
       "withLowerStretchers": false,
       "withUnderShelf": false,
-      "endSplat": "none"
+      "endSplat": "none",
+      "lowerStretcherHeight": 0,
+      "apronDropFromTop": 10
     },
     "square-stool": {
       "legShape": "box",
@@ -2155,7 +2176,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronDropFromTop": 8,
       "withLowerStretcher": false,
       "stretcherEdge": 1,
-      "stretcherEdgeStyle": "chamfered"
+      "stretcherEdgeStyle": "chamfered",
+      "lowerStretcherHeight": 0
     },
     "low-table": {
       "legShape": "box",
@@ -2235,7 +2257,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronDropFromTop": 8,
       "withLowerStretcher": false,
       "stretcherEdge": 1,
-      "stretcherEdgeStyle": "rounded"
+      "stretcherEdgeStyle": "rounded",
+      "lowerStretcherHeight": 0
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -2459,7 +2482,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 18,
       "footrestWidth": 28,
       "footrestThickness": 18,
-      "footrestStaggerMm": 20
+      "footrestStaggerMm": 20,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 6,
@@ -2543,7 +2567,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 80,
       "apronOffset": 0,
       "stretcherStyle": "h-frame",
-      "lowerStretcherHeight": 0,
+      "lowerStretcherHeight": 180,
       "seatThickness": 28,
       "seatFrontWaterfall": false,
       "withArmrest": false
@@ -2622,7 +2646,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailSize": 70,
       "slatBackInset": 0,
       "slatEndInset": 0,
-      "topRailBendMm": 0
+      "topRailBendMm": 0,
+      "lowerStretcherHeight": 130,
+      "apronDropFromTop": 5
     },
     "square-stool": {
       "seatThickness": 32,
@@ -2633,7 +2659,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherStyle": "h-frame",
       "lowerStretcherWidth": 50,
       "lowerStretcherThickness": 25,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 100
     },
     "low-table": {
       "topThickness": 35,
@@ -2696,7 +2722,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 45,
       "lowerStretcherThickness": 22,
-      "lowerStretcherFromGround": 100
+      "lowerStretcherFromGround": 100,
+      "lowerStretcherHeight": 120
     },
     "wardrobe": {
       "panelThickness": 22,
@@ -2936,7 +2963,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 25,
       "footrestWidth": 40,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24
+      "footrestStaggerMm": 24,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 12,
@@ -3032,7 +3060,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backRake": 12,
       "withArmrest": false,
       "stretcherStyle": "h-frame",
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 180
     },
     "round-stool": {
       "seatThickness": 40,
@@ -3051,7 +3079,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherWidth": 28,
       "lowerStretcherThickness": 18,
       "lowerStretcherFromGround": 130,
-      "lowerStretcherStaggerMm": 25
+      "lowerStretcherStaggerMm": 25,
+      "lowerStretcherHeight": 130,
+      "apronDropFromTop": 0
     },
     "bench": {
       "legShape": "splayed",
@@ -3081,7 +3111,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "windsorEndInset": 60,
       "windsorHeight": 380,
       "legInset": 0,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 150,
+      "apronDropFromTop": 0
     },
     "square-stool": {
       "legShape": "splayed",
@@ -3101,7 +3132,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherStyle": "h-frame",
       "lowerStretcherWidth": 28,
       "lowerStretcherThickness": 18,
-      "lowerStretcherHeight": 0,
+      "lowerStretcherHeight": 130,
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "rounded"
     },
@@ -3230,7 +3261,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 22,
       "footrestWidth": 28,
       "footrestThickness": 22,
-      "footrestStaggerMm": 24
+      "footrestStaggerMm": 24,
+      "lowerStretcherHeight": 0
     }
   },
   "ming": {
@@ -3246,7 +3278,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withArmrest": true,
       "armrestHeight": 220,
       "stretcherStyle": "box",
-      "lowerStretcherHeight": 200,
+      "lowerStretcherHeight": 220,
       "seatProfile": "flat",
       "seatFrontWaterfall": false
     },
@@ -3322,7 +3354,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": false,
       "withLowerStretchers": true,
       "withUnderShelf": false,
-      "lowerStretcherHeight": 150
+      "lowerStretcherHeight": 250,
+      "apronDropFromTop": 20
     },
     "square-stool": {
       "legShape": "splayed",
@@ -3336,7 +3369,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherStyle": "x-cross",
       "lowerStretcherWidth": 35,
       "lowerStretcherThickness": 20,
-      "lowerStretcherHeight": 100
+      "lowerStretcherHeight": 200
     },
     "low-table": {
       "topThickness": 28,
@@ -3395,7 +3428,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 50,
       "apronThickness": 20,
       "apronDropFromTop": 20,
-      "withLowerStretcher": false
+      "withLowerStretcher": false,
+      "lowerStretcherHeight": 100
     },
     "wardrobe": {
       "panelThickness": 22,
@@ -3624,7 +3658,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailThickness": 22,
       "footrestWidth": 32,
       "footrestThickness": 22,
-      "footrestStaggerMm": 26
+      "footrestStaggerMm": 26,
+      "lowerStretcherHeight": 0
     },
     "pencil-holder": {
       "wallThickness": 10,
