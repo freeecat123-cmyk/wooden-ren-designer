@@ -45,6 +45,17 @@ export function AIRefineButton({
   const styleId = sp?.get("style");
   const material = sp?.get("material") ?? undefined;
   const keys = new Set(optionSchema.map((s) => s.key));
+  const labelFor = (k: string): string => {
+    const spec = optionSchema.find((s) => s.key === k);
+    return spec?.label ?? k;
+  };
+  // select 類型：把 value 轉成 label（例「splayed」→「斜腳（四角對角外傾）」）
+  const valueLabelFor = (k: string, v: string): string => {
+    const spec = optionSchema.find((s) => s.key === k);
+    if (!spec || spec.type !== "select" || !("choices" in spec)) return v;
+    const choice = spec.choices?.find((c) => c.value === v);
+    return choice?.label ?? v;
+  };
 
   // 掛載時打 GET 健康檢查——後端有 ANTHROPIC_API_KEY 才 render 按鈕
   useEffect(() => {
@@ -194,16 +205,20 @@ export function AIRefineButton({
                     <div className="text-xs font-medium text-zinc-700 mb-1">
                       🔧 建議調整 ({Object.keys(result.suggestions).length} 個欄位)
                     </div>
-                    <div className="text-xs space-y-1 bg-zinc-50 ring-1 ring-zinc-200 rounded p-2 font-mono">
+                    <div className="text-xs space-y-1.5 bg-zinc-50 ring-1 ring-zinc-200 rounded p-2">
                       {Object.entries(result.suggestions).map(([k, v]) => {
                         const old = sp?.get(k);
+                        const newDisplay = valueLabelFor(k, String(v));
+                        const oldDisplay = old !== null && old !== undefined
+                          ? valueLabelFor(k, old)
+                          : null;
                         return (
-                          <div key={k} className="flex items-baseline gap-2">
-                            <span className="text-zinc-500">{k}:</span>
-                            {old !== null && old !== undefined ? (
-                              <span className="text-zinc-400 line-through">{old}</span>
+                          <div key={k} className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-zinc-700 font-medium">{labelFor(k)}：</span>
+                            {oldDisplay !== null ? (
+                              <span className="text-zinc-400 line-through">{oldDisplay}</span>
                             ) : null}
-                            <span className="text-emerald-700 font-medium">→ {String(v)}</span>
+                            <span className="text-emerald-700 font-medium">→ {newDisplay}</span>
                           </div>
                         );
                       })}
