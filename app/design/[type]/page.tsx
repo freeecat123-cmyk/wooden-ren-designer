@@ -25,6 +25,7 @@ import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
+import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
@@ -624,6 +625,7 @@ function ParameterForm({
               細部設定
             </h3>
           </div>
+          <StylePresetButtons optionSchema={optionSchema} category={type as FurnitureCategory} />
           <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields
             optionSchema={optionSchema}
