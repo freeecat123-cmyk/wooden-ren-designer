@@ -49,7 +49,8 @@ export function StylePresetButtons({
   );
 
   const apply = (id: string) => {
-    const params = applyStylePreset(id);
+    // 傳 category：取得包含 per-category detail pack 的完整參數
+    const params = applyStylePreset(id, category);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
     // 標記目前風格——讓 StyleMismatchWarning 等其他元件能讀到

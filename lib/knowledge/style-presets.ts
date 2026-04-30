@@ -15,6 +15,7 @@
  */
 
 import type { MaterialId } from "@/lib/types";
+import { STYLE_DETAIL_PACKS } from "./style-detail-packs";
 
 export interface StylePreset {
   /** 風格 key，跨檔引用用 */
@@ -244,15 +245,24 @@ export function getStyleChoices(applicableTo?: string) {
     .map((p) => ({ value: p.id, label: p.nameZh }));
 }
 
-/** 套用風格 preset：給定風格 id，回傳一組可塞 URL params 的 key-value。
+/** 套用風格 preset：給定風格 id（+ 可選 category），回傳一組可塞 URL params
+ *  的 key-value。
  *
- *  StylePresetButtons 會把這些 key 跟當前模板的 optionSchema 取交集——
- *  也就是「模板沒這個欄位的就跳過」，避免汙染 URL。所以這裡儘量把所有
- *  風格相關欄位都列出來，讓不同模板各取所需。 */
-export function applyStylePreset(styleId: string): Record<string, string | number> | null {
+ *  Merge 順序：
+ *    1. base preset（萬用：legShape / legSize / material / 邊緣 / 椅背 / splay）
+ *    2. STYLE_DETAIL_PACKS[styleId][category]（per-category 細部包，覆寫 base）
+ *
+ *  StylePresetButtons 會把結果跟當前模板的 optionSchema 取交集——也就是
+ *  「模板沒這個欄位的就跳過」，避免汙染 URL。所以這裡可放心列所有可能的
+ *  欄位，由 caller 過濾。
+ *
+ *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
+ *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
+ *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
+export function applyStylePreset(styleId: string, category?: string): Record<string, string | number | boolean> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
-  const params: Record<string, string | number> = {
+  const params: Record<string, string | number | boolean> = {
     // 腳形 / 粗細 / 邊緣（影響 stool / chair / table）
     legShape: preset.legShape,
     legSize: preset.legSizeMm,
@@ -280,5 +290,14 @@ export function applyStylePreset(styleId: string): Record<string, string | numbe
   if (preset.splayAngleDeg !== undefined) {
     params.splayAngle = preset.splayAngleDeg;
   }
+
+  // 套 per-category detail pack（覆寫 base 同名 key）
+  if (category) {
+    const detailPack = STYLE_DETAIL_PACKS[styleId]?.[category];
+    if (detailPack) {
+      Object.assign(params, detailPack);
+    }
+  }
+
   return params;
 }
