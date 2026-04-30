@@ -127,6 +127,11 @@ export function AIRefineButton({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
+          // 攔截 textarea / button 的 change 事件冒泡——避免被外層
+          // DesignFormShell 的 onChange 抓到觸發 router.replace（會讓
+          // modal 整個 unmount）
+          onChange={(e) => e.stopPropagation()}
+          onInput={(e) => e.stopPropagation()}
         >
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b">
