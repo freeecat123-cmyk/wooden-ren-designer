@@ -43,7 +43,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "pullStyle": "knob",
       "drawerFaceStyle": "shaker",
       "backPanelMaterial": "solid",
-      "withGalleryRail": false
+      "withGalleryRail": false,
+      "topType": "drawer",
+      "topHeight": 200,
+      "topCount": 2,
+      "topCols": 1,
+      "midType": "drawer",
+      "midCount": 2,
+      "midCols": 1,
+      "bottomType": "drawer",
+      "bottomHeight": 280,
+      "bottomCount": 2,
+      "bottomCols": 1
     },
     "dining-table": {
       "topThickness": 28,
@@ -175,7 +186,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "pullStyle": "cup",
       "drawerFaceStyle": "flat",
       "backPanelMaterial": "solid",
-      "withGalleryRail": false
+      "withGalleryRail": false,
+      "topType": "drawer",
+      "topHeight": 180,
+      "topCount": 1,
+      "topCols": 2,
+      "midType": "drawer",
+      "midCount": 1,
+      "midCols": 1,
+      "bottomType": "drawer",
+      "bottomHeight": 320,
+      "bottomCount": 2,
+      "bottomCols": 1
     },
     "dining-table": {
       "topThickness": 40,
@@ -319,7 +341,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerBottomMode": "rebated",
       "backMode": "rebated",
       "backPanelMaterial": "plywood",
-      "withGalleryRail": false
+      "withGalleryRail": false,
+      "topType": "drawer",
+      "topHeight": 180,
+      "topCount": 1,
+      "topCols": 1,
+      "midType": "drawer",
+      "midCount": 2,
+      "midCols": 1,
+      "bottomType": "drawer",
+      "bottomHeight": 280,
+      "bottomCount": 1,
+      "bottomCols": 1
     },
     "dining-table": {
       "topThickness": 28,
@@ -449,7 +482,19 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerBottomMode": "rebated",
       "backMode": "rebated",
       "backPanelMaterial": "solid",
-      "withGalleryRail": false
+      "withGalleryRail": false,
+      "topType": "door",
+      "topHeight": 550,
+      "topCount": 2,
+      "topCols": 1,
+      "topDoorShelves": 2,
+      "midType": "drawer",
+      "midCount": 2,
+      "midCols": 2,
+      "bottomType": "drawer",
+      "bottomHeight": 250,
+      "bottomCount": 1,
+      "bottomCols": 1
     },
     "dining-table": {
       "topThickness": 30,
@@ -951,7 +996,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 35,
       "backPanelMaterial": "solid",
-      "withGalleryRail": false
+      "withGalleryRail": false,
+      "topType": "drawer",
+      "topHeight": 200,
+      "topCount": 1,
+      "topCols": 1,
+      "midType": "drawer",
+      "midCount": 2,
+      "midCols": 1,
+      "bottomType": "drawer",
+      "bottomHeight": 320,
+      "bottomCount": 2,
+      "bottomCols": 1
     },
     "open-bookshelf": {
       "panelThickness": 22,
@@ -1011,7 +1067,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withToeKick": false,
       "withCrownMolding": false,
       "shelfPinSystem": "none",
-      "backPanelMaterial": "plywood"
+      "backPanelMaterial": "plywood",
+      "topType": "drawer",
+      "topHeight": 250,
+      "topCount": 1,
+      "topCols": 1,
+      "midType": "drawer",
+      "midCount": 1,
+      "midCols": 1,
+      "bottomType": "drawer",
+      "bottomHeight": 350,
+      "bottomCount": 1,
+      "bottomCols": 1
     },
     "dining-table": {
       "legShape": "box",
@@ -1225,7 +1292,18 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withToeKick": false,
       "withCrownMolding": false,
       "shelfPinSystem": "none",
-      "backPanelMaterial": "solid"
+      "backPanelMaterial": "solid",
+      "topType": "drawer",
+      "topHeight": 160,
+      "topCount": 1,
+      "topCols": 4,
+      "midType": "drawer",
+      "midCount": 2,
+      "midCols": 2,
+      "bottomType": "drawer",
+      "bottomHeight": 250,
+      "bottomCount": 1,
+      "bottomCols": 1
     },
     "dining-table": {
       "legShape": "box",
