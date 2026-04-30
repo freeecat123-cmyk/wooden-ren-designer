@@ -89,7 +89,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topPanelPieces": "4",
       "withBreadboardEnds": false,
       "liveEdge": false,
-      "topPattern": "straight",
+      "topPattern": "end-grain",
       "withExtensionLeaf": false,
       "dropLeaf": "none",
       "legEdge": 0,
@@ -196,7 +196,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronOffset": 0,
       "withCenterStretcher": true,
       "withLowerStretchers": true,
-      "centerInsert": "none"
+      "centerInsert": "none",
+      "topPattern": "end-grain"
     },
     "side-table": {
       "legShape": "box",
@@ -223,7 +224,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 2,
       "midCols": 1,
       "bottomType": "shelves",
       "bottomHeight": 400,
@@ -557,7 +558,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "footLength": 350,
       "hookCount": 6,
       "hookLength": 120,
-      "withSecondHookRow": false,
+      "withSecondHookRow": true,
       "wallMode": false,
       "withUmbrellaBase": true,
       "withMirror": false,
@@ -667,7 +668,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topPanelPieces": "2",
       "withBreadboardEnds": false,
       "liveEdge": false,
-      "topPattern": "straight",
+      "topPattern": "book-match",
       "withExtensionLeaf": true,
       "dropLeaf": "none",
       "legEdge": 8,
@@ -729,7 +730,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": false,
       "withLowerStretchers": false,
       "apronOffset": 10,
-      "centerInsert": "none"
+      "centerInsert": "none",
+      "topPattern": "book-match"
     },
     "side-table": {
       "legShape": "tapered",
@@ -771,7 +773,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 35,
       "backPanelMaterial": "solid",
-      "withGalleryRail": false,
+      "withGalleryRail": true,
       "topType": "drawer",
       "topHeight": 200,
       "topCount": 1,
@@ -849,7 +851,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 4,
       "midCols": 1,
       "bottomType": "door",
       "bottomHeight": 550,
@@ -955,7 +957,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 15,
       "drawerJoinery": "half-blind-dovetail",
       "drawerSlideType": "wood-runner",
-      "withCableHole": true,
+      "withCableHole": false,
       "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "cup",
@@ -1014,7 +1016,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronThickness": 28,
       "apronDropFromTop": 5,
       "withLowerStretcher": false,
-      "topPattern": "radial"
+      "topPattern": "concentric"
     },
     "bar-stool": {
       "legShape": "tapered",
@@ -1122,7 +1124,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withUmbrellaBase": false,
       "withMirror": true,
       "withHatRail": true,
-      "withFloorTray": false,
+      "withFloorTray": true,
       "edgeChamfer": 2
     }
   },
@@ -1172,7 +1174,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topOverhang": 50,
       "topPanelPieces": "3",
       "withBreadboardEnds": true,
-      "topPattern": "straight",
+      "topPattern": "book-match",
       "legShape": "tapered",
       "legSize": 60,
       "apronWidth": 60,
@@ -1230,7 +1232,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topOverhang": 30,
       "withCenterStretcher": false,
       "withLowerStretchers": false,
-      "centerInsert": "none"
+      "centerInsert": "none",
+      "topPattern": "book-match"
     },
     "side-table": {
       "topThickness": 22,
@@ -1247,14 +1250,14 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backMode": "none",
       "topType": "shelves",
       "topHeight": 350,
-      "topCount": 2,
+      "topCount": 1,
       "topCols": 1,
       "midType": "shelves",
       "midCount": 3,
       "midCols": 1,
       "bottomType": "shelves",
       "bottomHeight": 400,
-      "bottomCount": 2,
+      "bottomCount": 1,
       "bottomCols": 1,
       "legHeight": 150,
       "legSize": 32,
@@ -1285,8 +1288,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "hanging",
-      "midCount": 1,
-      "midCols": 1,
+      "midCount": 2,
+      "midCols": 2,
       "bottomType": "drawer",
       "bottomHeight": 250,
       "bottomCount": 1,
@@ -1316,7 +1319,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 2,
       "midCols": 1,
       "bottomType": "door",
       "bottomHeight": 450,
@@ -1389,7 +1392,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cableHoles": "2",
       "withVentSlots": true,
       "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
+      "withSoundBarShelf": true,
       "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull",
       "softClose": true
@@ -1548,7 +1551,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lidType": "lift-off",
       "withFeltLining": true,
       "withMagneticClosure": true,
-      "withInnerTray": false,
+      "withInnerTray": true,
       "edgeChamfer": 2
     },
     "wine-rack": {
@@ -1574,7 +1577,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "wallMode": false,
       "withUmbrellaBase": false,
       "withMirror": false,
-      "withHatRail": false,
+      "withHatRail": true,
       "withFloorTray": false,
       "edgeChamfer": 1
     }
@@ -2223,14 +2226,14 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backMode": "rebated",
       "topType": "shelves",
       "topHeight": 320,
-      "topCount": 2,
+      "topCount": 1,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 4,
       "midCols": 1,
       "bottomType": "shelves",
       "bottomHeight": 350,
-      "bottomCount": 2,
+      "bottomCount": 1,
       "bottomCols": 1,
       "legHeight": 60,
       "legSize": 32,
@@ -2298,7 +2301,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 2,
       "midCols": 1,
       "bottomType": "door",
       "bottomHeight": 450,
@@ -2368,7 +2371,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "cableHoles": "2",
       "withVentSlots": true,
       "withSpeakerGrille": false,
-      "withSoundBarShelf": true,
+      "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
       "softClose": true
@@ -2395,7 +2398,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 8,
       "drawerJoinery": "half-blind-dovetail",
       "drawerSlideType": "wood-runner",
-      "withCableHole": true,
+      "withCableHole": false,
       "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
@@ -2494,7 +2497,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "bookend": {
       "panelThickness": 14,
-      "withBrace": true,
+      "withBrace": false,
       "edgeChamfer": 1
     },
     "photo-frame": {
@@ -2583,7 +2586,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "pullStyle": "cup",
       "drawerFaceStyle": "flat",
       "backPanelMaterial": "solid",
-      "withGalleryRail": false,
+      "withGalleryRail": true,
       "topType": "drawer",
       "topHeight": 180,
       "topCount": 1,
@@ -2611,7 +2614,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": true,
       "centerStretcherWidth": 80,
       "centerStretcherThickness": 35,
-      "withLowerStretchers": false
+      "withLowerStretchers": true
     },
     "desk": {
       "topThickness": 32,
@@ -2656,7 +2659,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronThickness": 25,
       "apronDropFromTop": 10,
       "withLowerStretcher": true,
-      "lowerStretcherStyle": "h-frame",
+      "lowerStretcherStyle": "box",
       "lowerStretcherWidth": 50,
       "lowerStretcherThickness": 25,
       "lowerStretcherHeight": 100
@@ -2692,7 +2695,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "midType": "shelves",
-      "midCount": 3,
+      "midCount": 4,
       "midCols": 1,
       "bottomType": "shelves",
       "bottomHeight": 400,
@@ -2887,7 +2890,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "upperApronWidth": 90,
       "shelfFloorOffset": 80,
       "hasLowerShelf": true,
-      "drawerCount": "0",
+      "drawerCount": "1",
       "liftTop": false,
       "liveEdge": false,
       "withCoasterInsets": false
@@ -2911,7 +2914,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherWidth": 60,
       "lowerStretcherThickness": 25,
       "lowerStretcherFromGround": 100,
-      "topPattern": "straight"
+      "topPattern": "radial"
     },
     "round-table": {
       "topThickness": 35,
@@ -3034,8 +3037,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "wallMode": false,
       "withUmbrellaBase": true,
       "withMirror": false,
-      "withHatRail": false,
-      "withFloorTray": false,
+      "withHatRail": true,
+      "withFloorTray": true,
       "edgeChamfer": 1
     }
   },
@@ -3401,14 +3404,14 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backMode": "none",
       "topType": "shelves",
       "topHeight": 400,
-      "topCount": 2,
+      "topCount": 1,
       "topCols": 1,
       "midType": "shelves",
       "midCount": 3,
       "midCols": 1,
       "bottomType": "shelves",
       "bottomHeight": 450,
-      "bottomCount": 2,
+      "bottomCount": 1,
       "bottomCols": 1,
       "legHeight": 0,
       "legSize": 50,
@@ -3553,7 +3556,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "panelThickness": 22,
       "topType": "drawer",
       "topHeight": 160,
-      "topCount": 1,
+      "topCount": 0,
       "topCols": 1,
       "bottomType": "door",
       "bottomHeight": 320,
