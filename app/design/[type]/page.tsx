@@ -26,8 +26,10 @@ import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
+import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
+import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
   parseDesignSearchParams,
@@ -155,6 +157,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <AskMasterButton
+            category={type as FurnitureCategory}
+            defaults={{ length, width, height }}
+          />
           <SaveDesignButton
             furnitureType={type}
             defaultName={`${entry.nameZh} ${length}×${width}×${height}`}
@@ -626,6 +632,7 @@ function ParameterForm({
             </h3>
           </div>
           <StylePresetButtons optionSchema={optionSchema} category={type as FurnitureCategory} />
+          <StyleMismatchWarning />
           <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields
             optionSchema={optionSchema}

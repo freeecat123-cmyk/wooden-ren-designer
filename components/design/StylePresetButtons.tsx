@@ -52,6 +52,8 @@ export function StylePresetButtons({
     const params = applyStylePreset(id);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
+    // 標記目前風格——讓 StyleMismatchWarning 等其他元件能讀到
+    next.set("style", id);
     Object.entries(params).forEach(([k, v]) => {
       // 只寫當前模板有的 key（沒有的視為無關，跳過）
       if (keys.has(k) || k === "material") {
