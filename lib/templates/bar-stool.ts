@@ -468,10 +468,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: backPostDiameter, width: backPostDiameter, thickness: postH },
-          origin: { x: sx * postX, y: postBottomY, z: postZ },
-          shape: reclineDz > 0
-            ? { kind: "splayed", dxMm: 0, dzMm: -reclineDz }
-            : { kind: "round" },
+          // round + rotation 讓圓柱後仰；之前用 splayed 會 fallback 成方柱（splayed 不在 isRound）
+          // rotation 繞 mesh 中心，所以 origin.z 要往後偏 halfPostH×sin θ 讓底端回到原位
+          origin: { x: sx * postX, y: postBottomY - (postH / 2) * (1 - Math.cos(reclineRad)), z: (postBottomBackZ - backPostDiameter / 2) + (postH / 2) * Math.sin(reclineRad) },
+          rotation: reclineRad > 0 ? { x: reclineRad, y: 0, z: 0 } : undefined,
+          shape: { kind: "round" },
           tenons: [
             { position: "bottom", type: "blind-tenon", length: 25, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
             { position: "top", type: "blind-tenon", length: 20, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
