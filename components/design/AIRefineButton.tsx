@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 
@@ -40,13 +40,25 @@ export function AIRefineButton({
   const [intent, setIntent] = useState("");
   const [result, setResult] = useState<SuggestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
 
   const styleId = sp?.get("style");
   const material = sp?.get("material") ?? undefined;
   const keys = new Set(optionSchema.map((s) => s.key));
 
+  // 掛載時打 GET 健康檢查——後端有 ANTHROPIC_API_KEY 才 render 按鈕
+  useEffect(() => {
+    fetch("/api/style-suggest")
+      .then((r) => r.json())
+      .then((d) => setAvailable(!!d.available))
+      .catch(() => setAvailable(false));
+  }, []);
+
   // 沒套風格時不顯示——AI 微調是基於「當前風格」的優化
   if (!styleId) return null;
+  // 後端沒設 key 不顯示——避免使用者點到才看錯誤訊息
+  if (available === false) return null;
+  if (available === null) return null; // 未確認前不閃
 
   const askAI = async () => {
     setLoading(true);
