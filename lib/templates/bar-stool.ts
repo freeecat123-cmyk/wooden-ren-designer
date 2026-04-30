@@ -323,10 +323,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const splayZb = splayDz * sBot;
     return {
       sides: [
-        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
-        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+        // visibleLength 不加 apronTenonLen——榫頭由 tenons[].start/end 另外渲染，
+        // 再加進 visible 等於算兩次，會看到橫撐穿過腳。對齊 square-stool 慣例。
+        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
       ],
       splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
     };
