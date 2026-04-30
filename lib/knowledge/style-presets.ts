@@ -32,12 +32,32 @@ export interface StylePreset {
   /** 預設腳形（對應 _helpers.ts RECT_LEG_SHAPE_CHOICES 的 value） */
   legShape: "box" | "tapered" | "strong-taper" | "splayed" | "splayed-length" | "splayed-width" | "round";
 
+  /** 腳粗細（mm，正方腳邊長）— 風格的關鍵視覺驅動。
+   *  細：30-35（Shaker / Mid-Century 簡約）
+   *  中：40-45（一般）
+   *  粗：50-60（Mission / Industrial / Chippendale 厚實感） */
+  legSizeMm: number;
+
   /** 腳邊緣處理（mm）— 0=直角，3-5 細倒，8 起明顯八角 */
   legEdgeMm: number;
   /** 座板/桌面邊緣處理（mm） */
   topEdgeMm: number;
   /** 邊緣樣式 */
   edgeStyle: "chamfered" | "rounded";
+
+  /** 牙條/橫撐高（mm）— 影響視覺比例。細：50-60，粗：80+ */
+  apronWidthMm?: number;
+
+  /** 椅背樣式（dining-chair 用）— 對應 backStyle 選項：
+   *  slats（直條式，Shaker / 北歐）
+   *  ladder（橫檔式，Shaker rocking / 鄉村）
+   *  splat（中板式，Chippendale / 古典英式）
+   *  windsor（圓棒，Windsor / 美式傳統） */
+  backStyle?: "slats" | "ladder" | "splat" | "windsor";
+
+  /** 座面挖型（影響椅 / 凳的座板）：
+   *  flat / saddle（馬鞍）/ scooped（單凹）/ waterfall（瀑布前緣）/ dished */
+  seatProfile?: "flat" | "saddle" | "scooped" | "waterfall" | "dished";
 
   /** 預設榫接型（影響材料單 + 工序） */
   defaultJoinery: "blind-tenon" | "through-tenon" | "shouldered-tenon" | "stub-joint" | "dowel" | "screw";
@@ -62,12 +82,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "shaker",
     nameZh: "Shaker（夏克）",
     nameEn: "Shaker",
-    visualHint: "極簡、無裝飾、直線、櫻桃/楓木淺色、through-tenon 加楔片",
-    materials: ["maple", "ash", "walnut"], // 美國 Shaker 用 cherry / maple / pine
+    visualHint: "極簡、無裝飾、細料漸縮腳、櫻桃/楓木淺色、through-tenon 加楔片、椅背用 ladder（橫檔）",
+    materials: ["maple", "ash", "walnut"],
     legShape: "tapered",
-    legEdgeMm: 1, // 微倒邊不壓腿
+    legSizeMm: 30, // 細腳——Shaker 招牌
+    legEdgeMm: 1,
     topEdgeMm: 3,
     edgeStyle: "chamfered",
+    apronWidthMm: 50, // 細牙條
+    backStyle: "ladder", // Shaker rocking chair 招牌
+    seatProfile: "flat",
     defaultJoinery: "through-tenon",
     source: "books_furniture_styles.md §2",
   },
@@ -77,12 +101,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "midCentury",
     nameZh: "Mid-Century（北歐）",
     nameEn: "Mid-Century Modern",
-    visualHint: "外斜腳、柚木/胡桃木、Y 椅 / shell chair 風、扶手有機曲線",
+    visualHint: "外斜腳 5°、細料、柚木/胡桃木、Y 椅風直條椅背、座面微凹有機曲線",
     materials: ["walnut", "teak", "white-oak"],
     legShape: "splayed",
-    legEdgeMm: 5, // 細倒邊
-    topEdgeMm: 8, // 圓潤蛋形邊
+    legSizeMm: 32, // 略細
+    legEdgeMm: 5,
+    topEdgeMm: 8,
     edgeStyle: "rounded",
+    apronWidthMm: 55,
+    backStyle: "slats", // 直條，Wegner 風
+    seatProfile: "scooped", // Wegner shell chair 微凹
     defaultJoinery: "blind-tenon",
     splayAngleDeg: 5,
     source: "books_furniture_styles.md §5（Wegner / Eames）",
@@ -93,12 +121,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "mission",
     nameZh: "Mission（美式工藝）",
     nameEn: "Mission / Arts & Crafts",
-    visualHint: "白橡徑切（quartersawn）+ through-tenon 加楔、粗腳直線、機械感重",
+    visualHint: "白橡徑切 + through-tenon 加楔、粗腳 50mm 直線方料、寬牙條 80mm、椅背直條密集",
     materials: ["white-oak"],
     legShape: "box",
-    legEdgeMm: 0, // 直角，工業氣
+    legSizeMm: 50, // 粗腳——Stickley 招牌
+    legEdgeMm: 0,
     topEdgeMm: 3,
     edgeStyle: "chamfered",
+    apronWidthMm: 80, // 寬牙條
+    backStyle: "slats", // Stickley 直條密集
+    seatProfile: "flat",
     defaultJoinery: "through-tenon",
     source: "books_furniture_styles.md §4（Stickley + Greene & Greene）",
   },
@@ -108,12 +140,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "ming",
     nameZh: "明式（中國傳統）",
     nameEn: "Ming Style",
-    visualHint: "圓潤線腳、抱肩榫 / 夾頭榫、紅木深色、不上顯眼五金",
-    materials: ["walnut", "taiwan-cypress"], // 替代黃花梨/紫檀，台灣本土用紅檜/相思
+    visualHint: "圓料腳、抱肩榫、深色紅木、中板式椅背（圈椅靠背板）、座高偏高",
+    materials: ["walnut", "taiwan-cypress"],
     legShape: "round",
+    legSizeMm: 38, // 圓料中等粗
     legEdgeMm: 3,
     topEdgeMm: 5,
     edgeStyle: "rounded",
+    apronWidthMm: 65,
+    backStyle: "splat", // 中板式（明式圈椅靠背板）
+    seatProfile: "flat",
     defaultJoinery: "shouldered-tenon",
     source: "books_chinese_classics.md §1-§4",
   },
@@ -123,12 +159,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "windsor",
     nameZh: "Windsor（傳統椅匠）",
     nameEn: "Windsor",
-    visualHint: "外斜圓腳（前 7°/後 13°）+ 蒸彎弓背 + 直料 spindle 椅背 + milk paint",
-    materials: ["white-oak", "ash", "maple"], // 座板=白松、腿=橡/白蠟、bow=白蠟
+    visualHint: "圓料外斜腳 10°、Windsor spindle 圓棒椅背、座板 saddle 挖型大圓邊、milk paint 著色",
+    materials: ["white-oak", "ash", "maple"],
     legShape: "splayed",
-    legEdgeMm: 0, // 圓料無邊
-    topEdgeMm: 12, // 座板 saddle 挖型，邊緣大圓
+    legSizeMm: 28, // 圓料偏細（spindle 細料感）
+    legEdgeMm: 0,
+    topEdgeMm: 12, // 座板大圓邊（saddle）
     edgeStyle: "rounded",
+    apronWidthMm: 0, // Windsor 沒牙條（直接腳上座板）
+    backStyle: "windsor", // 圓棒 spindle
+    seatProfile: "saddle", // Windsor 招牌座面
     defaultJoinery: "blind-tenon",
     splayAngleDeg: 10,
     applicableTo: ["dining-chair", "round-stool", "bench"],
@@ -140,13 +180,17 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "industrial",
     nameZh: "工業風（Loft）",
     nameEn: "Industrial",
-    visualHint: "粗木板桌面 + 黑鐵腳（木工只負責桌面）、邊緣方正",
+    visualHint: "厚實粗料 60mm、松木/道格拉斯杉、直角無倒邊、無牙條（鐵腳模擬）、極簡椅背",
     materials: ["pine", "douglas-fir", "white-oak"],
     legShape: "box",
+    legSizeMm: 60, // 粗腳
     legEdgeMm: 0,
-    topEdgeMm: 0, // 直角強調粗獷感
+    topEdgeMm: 0,
     edgeStyle: "chamfered",
-    defaultJoinery: "screw", // 鐵腳螺絲鎖
+    apronWidthMm: 0, // 沒牙條
+    backStyle: "ladder", // 工業簡單橫檔
+    seatProfile: "flat",
+    defaultJoinery: "screw",
     source: "books_furniture_styles.md §9（quick-ID 對照表）",
   },
 
@@ -155,13 +199,17 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "japanese",
     nameZh: "日式禪風（和家具）",
     nameEn: "Japanese / Wa-furniture",
-    visualHint: "檜木 / 杉木淺色、低矮、線腳極簡、面板大但不裝飾",
-    materials: ["taiwan-cypress", "douglas-fir", "ash"], // 檜木 / 杉木對應
+    visualHint: "檜木淺色、細料 35mm 方腳、極簡無椅背或低矮椅背、無顯著倒邊、藏榫",
+    materials: ["taiwan-cypress", "douglas-fir", "ash"],
     legShape: "box",
-    legEdgeMm: 1, // 防扎手即可
+    legSizeMm: 35,
+    legEdgeMm: 1,
     topEdgeMm: 3,
     edgeStyle: "chamfered",
-    defaultJoinery: "blind-tenon", // 隠し （藏榫）
+    apronWidthMm: 45, // 細牙條（和家具特徵）
+    backStyle: "slats", // 簡單直條
+    seatProfile: "flat",
+    defaultJoinery: "blind-tenon",
     source: "books_japanese_techniques.md §6（宮大工仕口）",
   },
 
@@ -170,12 +218,16 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     id: "chippendale",
     nameZh: "古典歐式（Chippendale）",
     nameEn: "Chippendale / 18th C. English",
-    visualHint: "ball-and-claw foot、cabriole 曲腿、深色桃花心木 / 胡桃、線腳 ovolo + cyma",
+    visualHint: "粗料 45mm 漸縮腳、深色胡桃、寬牙條 90mm、中板式椅背（splat）、線腳大圓邊",
     materials: ["walnut", "white-oak"],
-    legShape: "tapered", // 簡化版；真要 cabriole 需另刻
-    legEdgeMm: 8, // 明顯倒邊塑造線腳
+    legShape: "tapered",
+    legSizeMm: 45,
+    legEdgeMm: 8,
     topEdgeMm: 12,
     edgeStyle: "rounded",
+    apronWidthMm: 90, // 寬牙條塑古典氣
+    backStyle: "splat", // 中板式（Chippendale 招牌）
+    seatProfile: "flat",
     defaultJoinery: "shouldered-tenon",
     source: "books_furniture_styles.md §3",
   },
@@ -192,18 +244,39 @@ export function getStyleChoices(applicableTo?: string) {
     .map((p) => ({ value: p.id, label: p.nameZh }));
 }
 
-/** 套用風格 preset：給定風格 id，回傳一組可塞 URL params 的 key-value */
+/** 套用風格 preset：給定風格 id，回傳一組可塞 URL params 的 key-value。
+ *
+ *  StylePresetButtons 會把這些 key 跟當前模板的 optionSchema 取交集——
+ *  也就是「模板沒這個欄位的就跳過」，避免汙染 URL。所以這裡儘量把所有
+ *  風格相關欄位都列出來，讓不同模板各取所需。 */
 export function applyStylePreset(styleId: string): Record<string, string | number> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
   const params: Record<string, string | number> = {
+    // 腳形 / 粗細 / 邊緣（影響 stool / chair / table）
     legShape: preset.legShape,
+    legSize: preset.legSizeMm,
     legEdge: preset.legEdgeMm,
     legEdgeStyle: preset.edgeStyle,
-    seatEdge: preset.topEdgeMm, // 椅/凳叫 seatEdge
+    // 座板 / 桌面邊緣
+    seatEdge: preset.topEdgeMm,
     seatEdgeStyle: preset.edgeStyle,
-    material: preset.materials[0], // 首選材
+    topEdge: preset.topEdgeMm, // 桌類用 topEdge（如 dining-table）
+    topEdgeStyle: preset.edgeStyle,
+    // 主材
+    material: preset.materials[0],
+    // 邊緣樣式適用所有
+    stretcherEdgeStyle: preset.edgeStyle,
   };
+  if (preset.apronWidthMm !== undefined) {
+    params.apronWidth = preset.apronWidthMm;
+  }
+  if (preset.backStyle !== undefined) {
+    params.backStyle = preset.backStyle;
+  }
+  if (preset.seatProfile !== undefined) {
+    params.seatProfile = preset.seatProfile;
+  }
   if (preset.splayAngleDeg !== undefined) {
     params.splayAngle = preset.splayAngleDeg;
   }
