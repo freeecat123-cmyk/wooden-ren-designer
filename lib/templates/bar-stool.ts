@@ -12,7 +12,10 @@ import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_
 export const barStoolOptions: OptionSpec[] = [
   // 吧檯椅排除「方錐漸縮（大幅下收）」——重心高、下收太多會頭重腳輕
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES.filter((c) => c.value !== "strong-taper") },
-  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1 },
+  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, help: "正方腳預設值。若下方寬/厚另填則優先使用" },
+  { group: "leg", type: "number", key: "legWidthOverride", label: "椅腳寬 X (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）" },
+  { group: "leg", type: "number", key: "legDepthOverride", label: "椅腳厚 Z (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板寬邊 Z 的尺寸" },
+  { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅腳從座板邊緣往內縮的距離（每邊）" },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: 5, min: 1, max: 12, step: 0.5, unit: "°", help: "斜腳系列才有效——從垂直起算的外傾角度。吧檯椅較高，建議不超過 8°，太斜底盤過大不穩", dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   seatEdgeOption("top", 5),
@@ -22,14 +25,11 @@ export const barStoolOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "stretcher", type: "select", key: "footrestStyle", label: "腳踏樣式", defaultValue: "four-sides", choices: [
-    { value: "four-sides", label: "四面腳踏（最穩，傳統做法）" },
-    { value: "front-only", label: "只前面腳踏（極簡）" },
-    { value: "ring", label: "金屬環（外加，木工不負責）" },
-  ], help: "吧檯椅腳踏的配置方式" },
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 200, min: 50, max: 700, step: 10, help: "腳踏橫撐離地高度，標準 200–230mm" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, help: "牙板的水平厚度（垂直於座板邊）" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "左右牙板相對前後牙板抬高量，避免榫眼重疊；建議 ≥ 牙板厚" },
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "none", choices: [
     { value: "none", label: "無椅背" },
     { value: "rail", label: "短橫木（一根橫木）" },
@@ -40,6 +40,7 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
   { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
+  { group: "stretcher", type: "number", key: "footrestStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "左右下橫撐相對前後下橫撐抬高量，避免榫眼重疊；建議 ≥ 腳踏厚" },
 ];
 
 /**
@@ -51,6 +52,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const o = barStoolOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
+  const legWidthOverride = getOption<number>(input, opt(o, "legWidthOverride"));
+  const legDepthOverride = getOption<number>(input, opt(o, "legDepthOverride"));
+  const legW = legWidthOverride > 0 ? legWidthOverride : legSize;
+  const legD = legDepthOverride > 0 ? legDepthOverride : legSize;
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
+  const footrestStaggerMm = getOption<number>(input, opt(o, "footrestStaggerMm"));
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
@@ -59,7 +67,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
-  const footrestStyle = getOption<string>(input, opt(o, "footrestStyle"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -72,7 +79,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const withBack = backStyle !== "none";
 
-  const apronThickness = 18;
+  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   // footRestWidth / footRestThickness 已從 options 讀入（line 50-51）
   // 正規榫卯比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
   const MIN_SHOULDER = 6;
@@ -92,7 +99,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const seatY = height - seatThickness;
   const backHeight = withBack ? backHeightOpt : 0;
-  const cornerPts = corners(length, width, legSize);
+  const halfL = length / 2 - legW / 2 - legInset;
+  const halfW = width / 2 - legD / 2 - legInset;
+  const cornerPts = [
+    { x: -halfL, z: -halfW },
+    { x: halfL, z: -halfW },
+    { x: -halfL, z: halfW },
+    { x: halfL, z: halfW },
+  ];
+  const innerSpanX = length - legW - 2 * legInset;
+  const innerSpanZ = width - legD - 2 * legInset;
+  const legEdgeZ = halfW;
+  const legEdgeX = halfL;
 
   // Leg shape mapping (same set as dining-table / dining-chair)
   // splayMm = tan(splayAngle) × seatY，腳底向外偏移量（前後腳共用同一偏移，視覺一致）
@@ -149,7 +167,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: isBack ? `後椅腳 ${i + 1}` : `椅腳 ${i + 1}`,
       material,
       grainDirection: "length",
-      visible: { length: legSize, width: legSize, thickness: legTotalH },
+      visible: { length: legW, width: legD, thickness: legTotalH },
       origin: { x: c.x, y: 0, z: c.z },
       shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
       tenons: isBack ? [] : [
@@ -162,7 +180,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         },
       ],
       mortises: [
-        // 座板下牙板
+        // 座板下牙板（前/後牙板：y = ringY；左/右牙板：y = ringY - apronStaggerMm）
         {
           origin: { x: 0, y: seatY - apronWidth - apronOffset, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
@@ -171,13 +189,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           through: false,
         },
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - apronOffset, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - apronOffset - apronStaggerMm, z: 0 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
           through: false,
         },
-        // 腳踏橫撐
+        // 腳踏橫撐（前/後：y = footrestHeight；左/右：y = footrestHeight + footrestStaggerMm）
         {
           origin: { x: 0, y: footrestHeight, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
@@ -186,7 +204,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           through: false,
         },
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: footrestHeight, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: footrestHeight + footrestStaggerMm, z: 0 },
           depth: apronTenonLen,
           length: frTenonW,
           width: frTenonThick,
@@ -239,7 +257,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           through: true,
         })),
       ...slatXs.map((sx) => ({
-        origin: { x: sx, y: seatThickness, z: width / 2 - legSize / 2 },
+        origin: { x: sx, y: seatThickness, z: legEdgeZ },
         depth: slatTenonLen,
         length: slatTenonW(backSlatWidth),
         width: slatTenonT,
@@ -248,8 +266,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
-  const innerSpanX = length - legSize;
-  const innerSpanZ = width - legSize;
   const ringY = seatY - apronWidth - apronOffset;
 
   // 斜腳補償：splayed shape 的腳底向外偏 splayMm（在 y=0），腳頂在原角點（y=seatY）。
@@ -268,10 +284,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const frDz = dzAtY(footrestHeight);
 
   const apronSides = [
-    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) - apronDz } },
-    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 + apronDz } },
-    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2) - apronDx, z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, origin: { x: length / 2 - legSize / 2 + apronDx, z: 0 } },
+    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: -legEdgeZ - apronDz } },
+    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * apronDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: legEdgeZ + apronDz } },
+    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, yOffset: -apronStaggerMm, origin: { x: -legEdgeX - apronDx, z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * apronDz, axis: "z" as const, yOffset: -apronStaggerMm, origin: { x: legEdgeX + apronDx, z: 0 } },
   ];
   const aprons: Part[] = apronSides.map((s) => ({
     id: `apron-${s.key}`,
@@ -279,7 +295,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
-    origin: { x: s.origin.x, y: ringY, z: s.origin.z },
+    origin: { x: s.origin.x, y: ringY + s.yOffset, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
     shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
@@ -292,10 +308,10 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   }));
 
   const footRestSides = [
-    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) - frDz } },
-    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 + frDz } },
-    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2) - frDx, z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, origin: { x: length / 2 - legSize / 2 + frDx, z: 0 } },
+    { key: "front", nameZh: "前牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: -legEdgeZ - frDz } },
+    { key: "back", nameZh: "後牙板", visibleLength: innerSpanX + 2 * frDx, axis: "x" as const, yOffset: 0, origin: { x: 0, z: legEdgeZ + frDz } },
+    { key: "left", nameZh: "左牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, yOffset: footrestStaggerMm, origin: { x: -legEdgeX - frDx, z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: innerSpanZ + 2 * frDz, axis: "z" as const, yOffset: footrestStaggerMm, origin: { x: legEdgeX + frDx, z: 0 } },
   ];
   const footRests: Part[] = footRestSides.map((s) => ({
     id: `footrest-${s.key}`,
@@ -303,7 +319,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: s.visibleLength, width: footRestWidth, thickness: footRestThickness },
-    origin: { x: s.origin.x, y: footrestHeight, z: s.origin.z },
+    origin: { x: s.origin.x, y: footrestHeight + s.yOffset, z: s.origin.z },
     rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
     shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
@@ -322,8 +338,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "椅背頂橫木",
       material,
       grainDirection: "length",
-      visible: { length: length - legSize, width: topRailThickness, thickness: topRailH },
-      origin: { x: 0, y: topRailY, z: width / 2 - legSize / 2 },
+      visible: { length: innerSpanX, width: topRailThickness, thickness: topRailH },
+      origin: { x: 0, y: topRailY, z: legEdgeZ },
       tenons: [
         { position: "start", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
         { position: "end", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
@@ -345,7 +361,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },
-          origin: { x: xCenter, y: seatY, z: width / 2 - legSize / 2 },
+          origin: { x: xCenter, y: seatY, z: legEdgeZ },
           rotation: { x: 0, y: 0, z: Math.PI / 2 },
           tenons: [
             { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
@@ -367,7 +383,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
-      `腳踏樣式：${footrestStyle === "four-sides" ? "四面腳踏" : footrestStyle === "front-only" ? "僅前面腳踏" : "金屬環"}（離地 ${footrestHeight}mm）；` +
+      `四面腳踏（離地 ${footrestHeight}mm）；` +
       `${withBack ? "含短椅背" : "無椅背"}。座板與椅腳通榫，牙板/腳踏與椅腳半榫。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}`,
   };
 
