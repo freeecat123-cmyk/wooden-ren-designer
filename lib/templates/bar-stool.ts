@@ -486,13 +486,22 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 板中心 Y 距圓柱頂端的距離 = backPanelHeight/2；圓柱頂後仰 reclineDz，所以中心 Y 處後仰 reclineDz × (1 − halfPanelH/postH)。
       const postZAtPanelCenter = postZ - reclineDz * (backPanelHeight / 2 / Math.max(1, postH));
       const panelBottomZ = postZAtPanelCenter - backPostDiameter / 2 - backPanelThickness / 2;
+      // bend + recline 視覺修正：彎板把幾何中心推到 +Z（centroid ≈ bendMm × 2/3），
+      // 但 mesh.rotation.x 是繞 mesh 局部 (0,0,0) 轉，不是繞 centroid。
+      // 結果：recline 後板會往下沉、視覺上頂緣比底緣更彎、整片像扭一下。
+      // 修法：補上「繞 centroid 旋轉」等價的 origin 偏移：
+      //   newOrigin = origin + (I − R) × centroid
+      //   對 X 軸旋轉 + centroid (0,0,c)：偏移 = (0, c·sinθ, c·(1−cosθ))
+      const bendCentroidZ = (backPanelFaceBend * 2) / 3;
+      const compensationY = bendCentroidZ * Math.sin(reclineRad);
+      const compensationZ = bendCentroidZ * (1 - Math.cos(reclineRad));
       parts.push({
         id: "back-panel",
         nameZh: "椅背弧形板",
         material,
         grainDirection: "length",
         visible: { length: panelLen, width: backPanelThickness, thickness: backPanelHeight },
-        origin: { x: 0, y: panelOriginY, z: panelBottomZ },
+        origin: { x: 0, y: panelOriginY + compensationY, z: panelBottomZ + compensationZ },
         rotation: reclineDz > 0 ? { x: reclineRad, y: 0, z: 0 } : undefined,
         shape: { kind: "face-rounded", cornerR: backPanelCornerR, topArchMm: backPanelTopArch, bottomArchMm: backPanelBottomArch, bendMm: backPanelFaceBend },
         tenons: [],
