@@ -480,9 +480,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         });
       });
       // 弧形板：跟著圓柱一起後仰。圓柱用 splayed shape，底端在 -Z 偏 reclineDz、頂在 origin。
-      // 板的底邊（panelOriginY 高度處）跟圓柱前緣對齊，再以 rotation.x = reclineRad 讓板整片同步傾斜。
-      const postZAtPanelBottom = postZ - reclineDz * (backPanelHeight / Math.max(1, postH));
-      const panelBottomZ = postZAtPanelBottom - backPostDiameter / 2 - backPanelThickness / 2;
+      // rotation.x = reclineRad 是繞「板自己的中心」轉，所以對齊基準要用「板中心 Y」處的圓柱位置，
+      // 不是板底 Y——用板底會讓板頂過頭、板底跑出來，整片扭曲。
+      // 板中心 Y 距圓柱頂端的距離 = backPanelHeight/2；圓柱頂後仰 reclineDz，所以中心 Y 處後仰 reclineDz × (1 − halfPanelH/postH)。
+      const postZAtPanelCenter = postZ - reclineDz * (backPanelHeight / 2 / Math.max(1, postH));
+      const panelBottomZ = postZAtPanelCenter - backPostDiameter / 2 - backPanelThickness / 2;
       parts.push({
         id: "back-panel",
         nameZh: "椅背弧形板",
