@@ -919,8 +919,11 @@ function buildNotchedCornersGeometry(
 }
 
 /**
- * 板狀零件正面 4 角圓角：用 Three.js Shape + ExtrudeGeometry
- * 在 X-Y 平面繪 rounded rect (lx × ly)，沿 Z 擠 lz 厚。Z 不縮，適合薄板。
+ * 板狀零件正面 4 角圓角：
+ * - 不彎曲（bendMm=0）→ Shape + ExtrudeGeometry，圓角 + topArch/bottomArch 都可用
+ * - 彎曲（bendMm>0）→ 自製 grid-based BufferGeometry，
+ *   M×N 細密 mesh（80×24）+ 圓角用 corner clamping 投影回 rounded-rect 邊界
+ *   這樣 bent surface 才平滑、不會出現 ExtrudeGeometry earcut 大三角的 facet
  */
 function buildFaceRoundedGeometry(
   size: [number, number, number],
@@ -930,66 +933,208 @@ function buildFaceRoundedGeometry(
   bendMm: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
-  const r = Math.min(cornerR, lx * 0.45, ly * 0.45);
   const hx = lx / 2;
   const hy = ly / 2;
-  // 用 40 段沿 X、12 段沿 Y 的密集點建邊；這樣 earcut 會切出夠多的小三角形，
-  // 不論是 bend、topArch、bottomArch 任一個套用都能平滑呈現。
+  const r = Math.min(cornerR, lx * 0.45, ly * 0.45);
+  if (bendMm <= 0) {
+    return buildFaceRoundedExtrude(lx, ly, lz, r, topArchMm, bottomArchMm);
+  }
+  return buildBentPanelGrid(lx, ly, lz, r, topArchMm, bottomArchMm, bendMm);
+}
+
+function buildFaceRoundedExtrude(
+  lx: number,
+  ly: number,
+  lz: number,
+  r: number,
+  topArchMm: number,
+  bottomArchMm: number,
+): BufferGeometry {
+  const hx = lx / 2;
+  const hy = ly / 2;
   const nx = 40;
   const ny = 12;
   const arcSegs = Math.max(8, Math.round(r / 4));
   const shape = new Shape();
-  // 左下角圓角起點
   shape.moveTo(-hx + r, -hy);
-  // 下緣：均分 nx 段
   for (let i = 1; i <= nx; i++) {
     const t = i / nx;
     const x = -hx + r + (lx - 2 * r) * t;
     const y = bottomArchMm > 0 ? -hy + bottomArchMm * Math.sin(Math.PI * t) : -hy;
     shape.lineTo(x, y);
   }
-  // 右下圓角
   shape.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0, false);
-  // 右側
   for (let i = 1; i <= ny; i++) {
     const t = i / ny;
     shape.lineTo(hx, -hy + r + (ly - 2 * r) * t);
   }
-  // 右上圓角
   shape.absarc(hx - r, hy - r, r, 0, Math.PI / 2, false);
-  // 上緣：均分 nx 段（往左）
   for (let i = 1; i <= nx; i++) {
     const t = i / nx;
     const x = (hx - r) - (lx - 2 * r) * t;
     const y = topArchMm > 0 ? hy + topArchMm * Math.sin(Math.PI * t) : hy;
     shape.lineTo(x, y);
   }
-  // 左上圓角
   shape.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI, false);
-  // 左側
   for (let i = 1; i <= ny; i++) {
     const t = i / ny;
     shape.lineTo(-hx, (hy - r) - (ly - 2 * r) * t);
   }
-  // 左下圓角
   shape.absarc(-hx + r, -hy + r, r, Math.PI, (3 * Math.PI) / 2, false);
   const geom = new ExtrudeGeometry(shape, { depth: lz, bevelEnabled: false, curveSegments: arcSegs });
   geom.translate(0, 0, -lz / 2);
-  if (bendMm > 0) {
-    // 全板 vertex 一起 bend（包含 4 角圓角區域），用整片半寬當基準。
-    // 之前只 bend |x|<=flatHx 的區域 → 圓角邊緣留在 Z=0 但中央 +Z，邊界
-    // 出現不連續，外觀是「邊緣怪扭、中央鼓」的不規則彎曲。
-    const pos = geom.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const t = x / hx; // [-1, 1] 跨整片寬
-      const dz = bendMm * Math.max(0, 1 - t * t);
-      pos.setZ(i, z + dz);
+  return geom;
+}
+
+/**
+ * 彎曲薄板：M+1 × N+1 grid 構成 front + back faces，加 4 條側壁。
+ * 每個 grid vertex 的 (x, y) 先在矩形邊界上，遇到圓角區域時往內投影到圓角弧上；
+ * 然後 z = ±lz/2 + bendMm × (1 − (x/hx)²)。
+ */
+function buildBentPanelGrid(
+  lx: number,
+  ly: number,
+  lz: number,
+  r: number,
+  topArchMm: number,
+  bottomArchMm: number,
+  bendMm: number,
+): BufferGeometry {
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const M = 80;
+  const N = 24;
+
+  // 給定 grid 索引 (i, j)，回傳該點在 X-Y 平面上的位置。
+  // 圓角處理：若該點落在角落矩形外、角落圓弧內，就把它投影到圓弧上。
+  const gridXY = (i: number, j: number): [number, number] => {
+    const ti = i / M;
+    const tj = j / N;
+    let x = -hx + lx * ti;
+    let y = -hy + ly * tj;
+    // 邊緣 arch 套用：頂緣 (j=N) 上拱、底緣 (j=0) 上拱（凹）
+    if (j === N && topArchMm > 0) {
+      y += topArchMm * Math.sin(Math.PI * ti);
+    } else if (j === 0 && bottomArchMm > 0) {
+      y += bottomArchMm * Math.sin(Math.PI * ti);
     }
-    pos.needsUpdate = true;
-    geom.computeVertexNormals();
+    // 圓角投影：如果 (x, y) 落在 4 個角的外側矩形區域內、距角心 > r，
+    // 就把它推進到 r 半徑的弧上。
+    if (r > 0) {
+      const sx = Math.sign(x) || 1;
+      const sy = Math.sign(y) || 1;
+      const cx = sx * (hx - r);
+      const cy = sy * (hy - r);
+      const inCornerBox =
+        Math.abs(x) > hx - r && Math.abs(y) > hy - r;
+      if (inCornerBox) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const d = Math.hypot(dx, dy);
+        if (d > r && d > 1e-6) {
+          x = cx + (dx / d) * r;
+          y = cy + (dy / d) * r;
+        }
+      }
+    }
+    return [x, y];
+  };
+
+  const bendDz = (x: number): number => {
+    const t = x / hx;
+    return bendMm * Math.max(0, 1 - t * t);
+  };
+
+  const positions: number[] = [];
+  const indices: number[] = [];
+
+  // Front face vertices (z = +hz + dz)
+  const frontStart = 0;
+  for (let j = 0; j <= N; j++) {
+    for (let i = 0; i <= M; i++) {
+      const [x, y] = gridXY(i, j);
+      const dz = bendDz(x);
+      positions.push(x, y, hz + dz);
+    }
   }
+  // Back face vertices (z = -hz + dz, 相同 x/y)
+  const backStart = (M + 1) * (N + 1);
+  for (let j = 0; j <= N; j++) {
+    for (let i = 0; i <= M; i++) {
+      const [x, y] = gridXY(i, j);
+      const dz = bendDz(x);
+      positions.push(x, y, -hz + dz);
+    }
+  }
+
+  const fIdx = (i: number, j: number) => frontStart + j * (M + 1) + i;
+  const bIdx = (i: number, j: number) => backStart + j * (M + 1) + i;
+
+  // Front face: outward normal +Z (兩三角形 winding 為 CCW 從 +Z 看)
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < M; i++) {
+      const a = fIdx(i, j);
+      const b = fIdx(i + 1, j);
+      const c = fIdx(i, j + 1);
+      const d = fIdx(i + 1, j + 1);
+      indices.push(a, b, d);
+      indices.push(a, d, c);
+    }
+  }
+  // Back face: outward normal -Z (反向 winding)
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < M; i++) {
+      const a = bIdx(i, j);
+      const b = bIdx(i + 1, j);
+      const c = bIdx(i, j + 1);
+      const d = bIdx(i + 1, j + 1);
+      indices.push(a, d, b);
+      indices.push(a, c, d);
+    }
+  }
+  // 側壁：4 條邊把 front 連到 back
+  // 上邊 j=N (outward +Y)
+  for (let i = 0; i < M; i++) {
+    const fa = fIdx(i, N);
+    const fb = fIdx(i + 1, N);
+    const ba = bIdx(i, N);
+    const bb = bIdx(i + 1, N);
+    indices.push(fa, ba, fb);
+    indices.push(fb, ba, bb);
+  }
+  // 下邊 j=0 (outward -Y)
+  for (let i = 0; i < M; i++) {
+    const fa = fIdx(i, 0);
+    const fb = fIdx(i + 1, 0);
+    const ba = bIdx(i, 0);
+    const bb = bIdx(i + 1, 0);
+    indices.push(fa, fb, ba);
+    indices.push(fb, bb, ba);
+  }
+  // 右邊 i=M (outward +X)
+  for (let j = 0; j < N; j++) {
+    const fa = fIdx(M, j);
+    const fb = fIdx(M, j + 1);
+    const ba = bIdx(M, j);
+    const bb = bIdx(M, j + 1);
+    indices.push(fa, fb, ba);
+    indices.push(fb, bb, ba);
+  }
+  // 左邊 i=0 (outward -X)
+  for (let j = 0; j < N; j++) {
+    const fa = fIdx(0, j);
+    const fb = fIdx(0, j + 1);
+    const ba = bIdx(0, j);
+    const bb = bIdx(0, j + 1);
+    indices.push(fa, ba, fb);
+    indices.push(fb, ba, bb);
+  }
+
+  const geom = new BufferGeometry();
+  geom.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
   return geom;
 }
 
