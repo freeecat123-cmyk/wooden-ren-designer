@@ -27,6 +27,7 @@ import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
+import { AIRefineButton } from "@/components/design/AIRefineButton";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
@@ -631,7 +632,18 @@ function ParameterForm({
               細部設定
             </h3>
           </div>
-          <StylePresetButtons optionSchema={optionSchema} category={type as FurnitureCategory} />
+          <StylePresetButtons
+            optionSchema={optionSchema}
+            category={type as FurnitureCategory}
+            designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
+          />
+          <div className="mb-3 flex justify-end">
+            <AIRefineButton
+              optionSchema={optionSchema}
+              category={type as FurnitureCategory}
+              designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
+            />
+          </div>
           <StyleMismatchWarning />
           <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields

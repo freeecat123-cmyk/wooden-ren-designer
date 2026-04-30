@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
@@ -31,14 +32,18 @@ const STYLE_EMOJI: Record<string, string> = {
 export function StylePresetButtons({
   optionSchema,
   category,
+  designSize,
 }: {
   optionSchema: OptionSpec[];
   category?: FurnitureCategory;
+  /** 當前家具尺寸，給 adapter 用來公式化調整（legSize 隨 size scale 等） */
+  designSize?: { length: number; width: number; height: number };
 }) {
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
   const keys = new Set(optionSchema.map((s) => s.key));
+  const [adapterNotes, setAdapterNotes] = useState<string[]>([]);
 
   // 至少要有 legShape 或 material 才有意義顯示
   if (!keys.has("legShape") && !keys.has("material")) return null;
@@ -49,20 +54,31 @@ export function StylePresetButtons({
   );
 
   const apply = (id: string) => {
-    // 傳 category：取得包含 per-category detail pack 的完整參數
-    const params = applyStylePreset(id, category);
+    // 傳 category + ctx：取得包含 per-category detail pack + 公式化適應的完整參數
+    const ctx = designSize
+      ? {
+          totalLength: designSize.length,
+          totalWidth: designSize.width,
+          totalHeight: designSize.height,
+          material: sp?.get("material") ?? undefined,
+        }
+      : undefined;
+    const params = applyStylePreset(id, category, ctx);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
 
-    // 清掉所有風格可能管到的 key——避免舊風格設過、新風格沒覆寫的 key 殘留。
-    // 例：套 Shaker 設了 ladderRungs=4，切到 Mid-Century 仍會殘留 ladder 設定
+    // 清掉所有風格可能管到的 key——避免舊風格設過、新風格沒覆寫的 key 殘留
     const managedKeys = getAllStyleManagedKeys(category);
     managedKeys.forEach((k) => next.delete(k));
 
-    // 標記目前風格——讓 StyleMismatchWarning 等其他元件能讀到
     next.set("style", id);
+    // _adapterNotes 不寫進 URL，但收集起來顯示給使用者
+    const notes = typeof params._adapterNotes === "string"
+      ? params._adapterNotes.split(" | ")
+      : [];
+    setAdapterNotes(notes);
     Object.entries(params).forEach(([k, v]) => {
-      // 只寫當前模板有的 key（沒有的視為無關，跳過）
+      if (k.startsWith("_")) return; // skip meta
       if (keys.has(k) || k === "material") {
         next.set(k, String(v));
       }
@@ -92,6 +108,18 @@ export function StylePresetButtons({
           </button>
         ))}
       </div>
+      {adapterNotes.length > 0 && (
+        <div className="mt-2 px-2 py-1.5 rounded bg-white/60 ring-1 ring-violet-200">
+          <div className="text-[10px] text-violet-700 font-medium mb-0.5">
+            🔧 依當前尺寸 / 材質微調：
+          </div>
+          <ul className="text-[10px] text-zinc-600 space-y-0.5 list-disc list-inside">
+            {adapterNotes.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@
 
 import type { MaterialId } from "@/lib/types";
 import { STYLE_DETAIL_PACKS } from "./style-detail-packs";
+import { adaptStyleParams } from "./style-adapter";
 
 export interface StylePreset {
   /** 風格 key，跨檔引用用 */
@@ -288,7 +289,11 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-export function applyStylePreset(styleId: string, category?: string): Record<string, string | number | boolean> | null {
+export function applyStylePreset(
+  styleId: string,
+  category?: string,
+  ctx?: { totalLength: number; totalWidth: number; totalHeight: number; material?: string },
+): Record<string, string | number | boolean> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
   const params: Record<string, string | number | boolean> = {
@@ -326,6 +331,20 @@ export function applyStylePreset(styleId: string, category?: string): Record<str
     if (detailPack) {
       Object.assign(params, detailPack);
     }
+  }
+
+  // 公式化適應（若提供 ctx）：依 size / material 調整 legSize / apronWidth /
+  // Walker zone 高度等。回傳 notes 寫進 _adapterNotes 給 UI 顯示。
+  if (ctx && category) {
+    const { params: adapted, notes } = adaptStyleParams(
+      { ...params, _styleId: styleId },
+      { ...ctx, category },
+    );
+    if (notes.length > 0) {
+      adapted._adapterNotes = notes.join(" | ");
+    }
+    delete adapted._styleId;
+    return adapted;
   }
 
   return params;
