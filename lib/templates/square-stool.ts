@@ -21,6 +21,7 @@ export const squareStoolOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   seatProfileOption("top"),
+  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile" },
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 30, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離" },
@@ -72,6 +73,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
+  const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const stretcherEdge = getOption<string>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
@@ -104,7 +106,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0),
+    shape: seatBendMm > 0
+      ? { kind: "face-rounded" as const, cornerR: 0, bendMm: -seatBendMm, bendAxis: "y" as const }
+      : seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0),
     tenons: [],
     mortises: [
       // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）

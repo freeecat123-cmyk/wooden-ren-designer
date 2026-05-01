@@ -250,7 +250,7 @@ export interface Part {
     | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number }
     /** 板狀零件正視面 4 角圓角（length×thickness 面，從正視/側視都看得到圓角）。
      *  Z 方向（width 軸）保持滿厚度不內縮，故適合薄板（例如靠背板 18mm 厚但要 R30 圓角）。 */
-    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number };
+    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
 }
 
 export interface FurnitureDesign {

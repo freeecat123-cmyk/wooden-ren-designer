@@ -23,6 +23,7 @@ export const barStoolOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   seatProfileOption("top"),
+  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile，但保留四角圓角" },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -81,6 +82,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
+  const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -267,6 +269,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
     shape: (() => {
+      // 椅面整片彎曲（bent plywood 視覺）：face-rounded.bendMm 是唯一支援大面 bend 的形狀。
+      // 啟用會覆蓋 scoop / edge profile，但保留 cornerR；負值讓中央往 -Z（下）凹陷
+      if (seatBendMm > 0) {
+        return { kind: "face-rounded" as const, cornerR: seatCornerR, bendMm: -seatBendMm, bendAxis: "y" as const };
+      }
       const scoop = seatScoopShape(seatProfile);
       if (scoop) return scoop;
       // chamfered-top 加上 cornerR（4 角圓角，俯視）。即使 seatEdge=0 也建一個帶 cornerR 的 chamfered-top。

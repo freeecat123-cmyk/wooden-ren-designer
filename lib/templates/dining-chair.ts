@@ -25,6 +25,7 @@ export const diningChairOptions: OptionSpec[] = [
   // 座面舒適度
   seatProfileOption("top"),
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
+  { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall" },
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
@@ -85,6 +86,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const seatFrontWaterfall = getOption<boolean>(input, opt(o, "seatFrontWaterfall"));
+  const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
@@ -278,7 +280,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatHeight - seatThickness, z: 0 },
-    shape: seatScoopShape(seatProfile) ?? (seatFrontWaterfall ? { kind: "chamfered-top", chamferMm: 25, style: "rounded" } : seatEdgeShape(seatEdge, seatEdgeStyle)),
+    shape: seatBendMm > 0
+      ? { kind: "face-rounded" as const, cornerR: 0, bendMm: -seatBendMm, bendAxis: "y" as const }
+      : seatScoopShape(seatProfile) ?? (seatFrontWaterfall ? { kind: "chamfered-top", chamferMm: 25, style: "rounded" } : seatEdgeShape(seatEdge, seatEdgeStyle)),
     tenons: [],
     // 前 2 腳通榫進來（榫頭從下方刺穿座板）；
     // 後 2 腳沒通榫但腳本身穿過座板高度範圍——也要開孔讓腳通過，

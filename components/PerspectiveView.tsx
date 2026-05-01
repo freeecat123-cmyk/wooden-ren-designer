@@ -106,7 +106,7 @@ type ShapeSpec =
   | { kind: "arch-bent"; bendMm: number; segments?: number }
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
-  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number };
+  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
 
 function Part({
   position,
@@ -189,7 +189,7 @@ function Part({
       return buildSeatScoopGeometry(size, shape.profile, shape.depth);
     }
     if (shape.kind === "face-rounded") {
-      return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0);
+      return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
     return null;
   }, [size, shape]);
@@ -974,15 +974,17 @@ function buildFaceRoundedGeometry(
   topArchMm: number = 0,
   bottomArchMm: number = 0,
   bendMm: number = 0,
+  bendAxis: "z" | "y" = "z",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
-  const hx = lx / 2;
-  const hy = ly / 2;
-  const r = Math.min(cornerR, lx * 0.45, ly * 0.45);
-  if (bendMm <= 0) {
+  // 圓角夾在「大面」兩軸：bendAxis="z" 大面 = lx × ly（靠背）；
+  // bendAxis="y" 大面 = lx × lz（椅面）。用薄軸夾會把 cornerR 壓死成板厚一半
+  const faceB = bendAxis === "z" ? ly : lz;
+  const r = Math.min(cornerR, lx * 0.45, faceB * 0.45);
+  if (bendMm === 0) {
     return buildFaceRoundedExtrude(lx, ly, lz, r, topArchMm, bottomArchMm);
   }
-  return buildBentPanelGrid(lx, ly, lz, r, topArchMm, bottomArchMm, bendMm);
+  return buildBentPanelGrid(lx, ly, lz, r, topArchMm, bottomArchMm, bendMm, bendAxis);
 }
 
 function buildFaceRoundedExtrude(
@@ -1030,9 +1032,16 @@ function buildFaceRoundedExtrude(
 }
 
 /**
- * 彎曲薄板：M+1 × N+1 grid 構成 front + back faces，加 4 條側壁。
- * 每個 grid vertex 的 (x, y) 先在矩形邊界上，遇到圓角區域時往內投影到圓角弧上；
- * 然後 z = ±lz/2 + bendMm × (1 − (x/hx)²)。
+ * 彎曲薄板：M+1 × N+1 grid 構成兩片大面 + 4 條側壁。
+ *
+ * bendAxis 決定板子的「薄軸」：
+ *  - "z"（預設，靠背用）：薄軸 = local Z（lz=厚度），大面在 X-Y 平面，
+ *    grid 鋪在 (lx, ly)，兩片大面位於 z=±hz，bend 推 Z
+ *  - "y"（椅面用）：薄軸 = local Y（ly=厚度），大面在 X-Z 平面，
+ *    grid 鋪在 (lx, lz)，兩片大面位於 y=±hy，bend 推 Y（負值=中央往下凹）
+ *
+ * bend 公式統一：offset = bendMm × (1 − (x/hx)²)，沿 X 軸對稱、兩端 0。
+ * 圓角處理在大面上執行；arch（topArch/bottomArch）只用於 bendAxis="z"（靠背 4 邊）。
  */
 function buildBentPanelGrid(
   lx: number,
@@ -1042,6 +1051,7 @@ function buildBentPanelGrid(
   topArchMm: number,
   bottomArchMm: number,
   bendMm: number,
+  bendAxis: "z" | "y" = "z",
 ): BufferGeometry {
   const hx = lx / 2;
   const hy = ly / 2;
@@ -1049,39 +1059,42 @@ function buildBentPanelGrid(
   const M = 80;
   const N = 24;
 
-  // 給定 grid 索引 (i, j)，回傳該點在 X-Y 平面上的位置。
-  // 圓角處理：若該點落在角落矩形外、角落圓弧內，就把它投影到圓弧上。
-  const gridXY = (i: number, j: number): [number, number] => {
+  // 大面內第二軸的「半長」：z 模式用 hy，y 模式用 hz
+  const hu = bendAxis === "z" ? hy : hz;
+
+  // 給定 grid 索引 (i, j)，回傳該點在大面平面上的位置 (x, u)。
+  // u 是大面的第二軸：bendAxis="z" 時 u=y，bendAxis="y" 時 u=z。
+  const gridFace = (i: number, j: number): [number, number] => {
     const ti = i / M;
     const tj = j / N;
     let x = -hx + lx * ti;
-    let y = -hy + ly * tj;
-    // 圓角投影必須先做（用原始 rect 座標）；之後再套 arch，
-    // 否則 arch 把 y 推到 hy+arch 之後整個頂緣都會誤判進 |y|>hy-r 的角落區。
-    if (r > 0 && Math.abs(x) > hx - r && Math.abs(y) > hy - r) {
+    let u = -hu + 2 * hu * tj;
+    // 圓角投影：在原始矩形角落區內把點投影到 R 弧上
+    if (r > 0 && Math.abs(x) > hx - r && Math.abs(u) > hu - r) {
       const sx = Math.sign(x) || 1;
-      const sy = Math.sign(y) || 1;
+      const su = Math.sign(u) || 1;
       const cx = sx * (hx - r);
-      const cy = sy * (hy - r);
+      const cu = su * (hu - r);
       const dx = x - cx;
-      const dy = y - cy;
-      const d = Math.hypot(dx, dy);
+      const du = u - cu;
+      const d = Math.hypot(dx, du);
       if (d > r && d > 1e-6) {
         x = cx + (dx / d) * r;
-        y = cy + (dy / d) * r;
+        u = cu + (du / d) * r;
       }
     }
-    // 邊緣 arch 套用（在圓角投影之後）：正值=往外拱、負值=往內凹
-    // 圓角區的 ti 接近 0 或 1，sin(π·ti)≈0，所以角落幾乎不被 arch 影響，過渡平滑
-    if (j === N && topArchMm !== 0) {
-      y += topArchMm * Math.sin(Math.PI * ti);
-    } else if (j === 0 && bottomArchMm !== 0) {
-      y += bottomArchMm * Math.sin(Math.PI * ti);
+    // arch 只在 z 軸（靠背）模式套到頂/底緣（u 軸=ly=面高度方向）
+    if (bendAxis === "z") {
+      if (j === N && topArchMm !== 0) {
+        u += topArchMm * Math.sin(Math.PI * ti);
+      } else if (j === 0 && bottomArchMm !== 0) {
+        u += bottomArchMm * Math.sin(Math.PI * ti);
+      }
     }
-    return [x, y];
+    return [x, u];
   };
 
-  const bendDz = (x: number): number => {
+  const bendOffset = (x: number): number => {
     const t = x / hx;
     return bendMm * Math.max(0, 1 - t * t);
   };
@@ -1089,22 +1102,30 @@ function buildBentPanelGrid(
   const positions: number[] = [];
   const indices: number[] = [];
 
-  // Front face vertices (z = +hz + dz)
+  // 兩片大面：bendAxis="z" 在 z=±hz；bendAxis="y" 在 y=±hy
+  // 命名為 frontStart / backStart 維持原語義（front=+offset 那片，back=-offset 那片）
   const frontStart = 0;
   for (let j = 0; j <= N; j++) {
     for (let i = 0; i <= M; i++) {
-      const [x, y] = gridXY(i, j);
-      const dz = bendDz(x);
-      positions.push(x, y, hz + dz);
+      const [x, u] = gridFace(i, j);
+      const off = bendOffset(x);
+      if (bendAxis === "z") {
+        positions.push(x, u, hz + off);
+      } else {
+        positions.push(x, hy + off, u);
+      }
     }
   }
-  // Back face vertices (z = -hz + dz, 相同 x/y)
   const backStart = (M + 1) * (N + 1);
   for (let j = 0; j <= N; j++) {
     for (let i = 0; i <= M; i++) {
-      const [x, y] = gridXY(i, j);
-      const dz = bendDz(x);
-      positions.push(x, y, -hz + dz);
+      const [x, u] = gridFace(i, j);
+      const off = bendOffset(x);
+      if (bendAxis === "z") {
+        positions.push(x, u, -hz + off);
+      } else {
+        positions.push(x, -hy + off, u);
+      }
     }
   }
 
@@ -1169,6 +1190,15 @@ function buildBentPanelGrid(
     const bb = bIdx(0, j + 1);
     indices.push(fa, fb, ba);
     indices.push(fb, bb, ba);
+  }
+
+  // 大面換軸後三角形 winding 都會反向（cross product sign flip），統一翻所有 indices
+  if (bendAxis === "y") {
+    for (let i = 0; i < indices.length; i += 3) {
+      const tmp = indices[i + 1];
+      indices[i + 1] = indices[i + 2];
+      indices[i + 2] = tmp;
+    }
   }
 
   const geom = new BufferGeometry();
@@ -1787,6 +1817,7 @@ export function PerspectiveView({
               topArchMm: (part.shape.topArchMm ?? 0) * SCALE,
               bottomArchMm: (part.shape.bottomArchMm ?? 0) * SCALE,
               bendMm: (part.shape.bendMm ?? 0) * SCALE,
+              bendAxis: part.shape.bendAxis ?? "z",
             };
           }
           return (
