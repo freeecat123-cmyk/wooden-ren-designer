@@ -56,6 +56,8 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backSlatThickness", label: "直條厚 (mm)", defaultValue: 16, min: 8, max: 40, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "topRailHeight", label: "頂橫木寬 (mm)", defaultValue: 0, min: 0, max: 120, step: 5, help: "0 = 自動（椅背高的 1/3，最大 50）；自己填值會優先", dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
   { group: "back", type: "number", key: "topRailThickness", label: "頂橫木厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1, dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
+  { group: "back", type: "number", key: "backRailInsetZ", label: "支撐柱距椅面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背支撐柱後緣從椅面後緣往前的距離；0 = 柱後緣與椅面後緣對齊", dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
+  { group: "back", type: "number", key: "backRailInsetX", label: "支撐柱距椅面端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背支撐柱外緣從椅面左/右端面往內的距離；0 = 柱外緣與椅面端面對齊", dependsOn: { key: "backStyle", notIn: ["none", "panel"] } },
   { group: "stretcher", type: "number", key: "footrestWidth", label: "腳踏寬 (mm)", defaultValue: 30, min: 20, max: 60, step: 1, help: "腳踏橫撐的垂直高（粗）" },
   { group: "stretcher", type: "number", key: "footrestThickness", label: "腳踏厚 (mm)", defaultValue: 22, min: 12, max: 40, step: 1, help: "腳踏橫撐的水平厚（深）" },
   { group: "stretcher", type: "number", key: "footrestStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "左右下橫撐相對前後下橫撐抬高量，避免榫眼重疊；建議 ≥ 腳踏厚" },
@@ -105,6 +107,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backReclineDeg = getOption<number>(input, opt(o, "backReclineDeg"));
   const backPostFromEdge = getOption<number>(input, opt(o, "backPostFromEdge"));
   const backPanelEmbed = getOption<number>(input, opt(o, "backPanelEmbed"));
+  const backRailInsetZ = getOption<number>(input, opt(o, "backRailInsetZ"));
+  const backRailInsetX = getOption<number>(input, opt(o, "backRailInsetX"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
@@ -203,7 +207,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const slatTenonW = (w: number) => Math.max(10, w - 10);
   const slatTenonT = Math.max(5, Math.round(slatThicknessConst / 3));
   if (withBack && backStyle === "slats" && backSlatCount > 0) {
-    const availableW = length - legSize - 40;
+    // 直條寬度 = 兩支 back-post 內側之間（受 backRailInsetX 影響），
+    // 留 40mm 邊距防榫眼太靠近端面
+    const availableW = length - legSize - 40 - 2 * backRailInsetX;
     const pitch = availableW / (backSlatCount + 1);
     for (let i = 0; i < backSlatCount; i++) {
       slatXs.push(-availableW / 2 + pitch * (i + 1));
@@ -464,20 +470,24 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     if (backStyle !== "panel") {
     // rail / slats 模式的椅背支撐柱：2 根方截面（同 legSize）從 seatY 起到
     // seatY+backHeight。獨立於椅腳，這樣腳可以隨意 splay、正視也能跟前腳重疊。
+    // backRailInsetZ：柱後緣從椅面後緣往前的距離（0 = 對齊）
+    // backRailInsetX：柱外緣從椅面端面往內的距離（0 = 對齊）
     const backCorners = cornerPts.filter((c) => c.z > 0);
+    const postZ = width / 2 - legD / 2 - backRailInsetZ;
     backCorners.forEach((c, i) => {
+      const postX = Math.sign(c.x) * (length / 2 - legW / 2 - backRailInsetX);
       parts.push({
         id: `back-post-${i + 1}`,
         nameZh: `椅背支撐柱 ${i + 1}`,
         material,
         grainDirection: "length",
         visible: { length: legW, width: legD, thickness: backHeight },
-        origin: { x: c.x, y: seatY, z: c.z },
+        origin: { x: postX, y: seatY, z: postZ },
         shape: legEdgeShape(legEdge, legEdgeStyle),
         tenons: [],
         mortises: [
           {
-            origin: { x: c.x > 0 ? -1 : 1, y: topRailYCenter - seatY, z: 0 },
+            origin: { x: postX > 0 ? -1 : 1, y: topRailYCenter - seatY, z: 0 },
             depth: apronTenonLen,
             length: topRailTenonW,
             width: topRailTenonThick,
@@ -486,14 +496,15 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
         ],
       });
     });
-    // 頂橫木：鎖住兩支獨立後支撐柱頂部。slat 從下方接入。
+    // 頂橫木：跨在兩支 back-post 上方。length 跟 X/Z 都跟著 back-post 走。
+    const railLen = length - legW - 2 * backRailInsetX + 2 * apronTenonLen;
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
       material,
       grainDirection: "length",
-      visible: { length: innerSpanX + 2 * apronTenonLen, width: topRailThickness, thickness: topRailH },
-      origin: { x: 0, y: topRailY, z: legEdgeZ },
+      visible: { length: railLen, width: topRailThickness, thickness: topRailH },
+      origin: { x: 0, y: topRailY, z: postZ },
       tenons: [
         { position: "start", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
         { position: "end", type: "blind-tenon", length: apronTenonLen, width: topRailTenonW, thickness: topRailTenonThick },
@@ -578,6 +589,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       });
     } else if (backStyle === "slats" && backSlatCount > 0) {
       const slatLen = backHeight - topRailH;
+      const slatZ = width / 2 - legD / 2 - backRailInsetZ;
       slatXs.forEach((xCenter, i) => {
         parts.push({
           id: `back-slat-${i + 1}`,
@@ -585,7 +597,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: slatLen, width: backSlatWidth, thickness: slatThicknessConst },
-          origin: { x: xCenter, y: seatY, z: legEdgeZ },
+          origin: { x: xCenter, y: seatY, z: slatZ },
           rotation: { x: 0, y: 0, z: Math.PI / 2 },
           tenons: [
             { position: "start", type: "blind-tenon", length: slatTenonLen, width: slatTenonW(backSlatWidth), thickness: slatTenonT },
