@@ -115,7 +115,9 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
-  // 背板（夾板，槽接從後方滑入，比照片大 BACK_PANEL_CLEARANCE 一圈）
+  // 背板（夾板）— butt-joint 慣例：尺寸 = 內部開窗，貼在邊框背面（不嵌入溝槽）
+  // 用螺絲 / 卡釘 / 旋轉扣固定到邊框背面。
+  void BACK_PANEL_CLEARANCE;
   const backPanel: Part = {
     id: "back-panel",
     nameZh: "背板（夾板）",
@@ -123,11 +125,11 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     materialOverride: "plywood",
     grainDirection: "length",
     visible: {
-      length: photoW + 2 * BACK_PANEL_CLEARANCE,
-      width: photoH + 2 * BACK_PANEL_CLEARANCE,
+      length: photoW,
+      width: photoH,
       thickness: backT,
     },
-    origin: { x: 0, y: frameT - backT, z: 0 },
+    origin: { x: 0, y: frameT, z: 0 },
     tenons: [],
     mortises: [],
   };
@@ -204,6 +206,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "相框",
     overall: { length: outerL, width: outerW, thickness: frameT },
     parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel, ...mullions],
+    useButtJointConvention: true,
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,

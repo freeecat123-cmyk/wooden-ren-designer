@@ -42,6 +42,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   // 帶肩榫：榫長 = 底板厚（從背板下緣往底板裡插），寬 = 底板寬內縮 2× 肩寬
   const tenonW = Math.max(1, baseWidth - 2 * TENON_SHOULDER);
 
+  // 底板沿世界 X = baseDepth（書方向，前後深度），世界 Z = baseWidth（沿書架）
   const base: Part = {
     id: "base",
     nameZh: "底板",
@@ -52,7 +53,8 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [],
     mortises: [
       {
-        origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT / 2) },
+        // 背板榫眼開在底板「後緣」(世界 -X 端) 的中央
+        origin: { x: -(baseDepth / 2 - panelT / 2), y: panelT, z: 0 },
         depth: panelT,
         length: tenonW,
         width: panelT - 2,
@@ -61,13 +63,15 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
+  // 背板立在底板的「後緣」(世界 -X)，沿世界 Z 跨滿整個 baseWidth，
+  // 旋轉後板厚 panelT 落在世界 X 軸（厚度方向）。
   const back: Part = {
     id: "back",
     nameZh: "背板",
     material,
     grainDirection: "length",
     visible: { length: baseWidth, width: backPanelH, thickness: panelT },
-    origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT / 2) },
+    origin: { x: -(baseDepth / 2 - panelT / 2), y: panelT, z: 0 },
     rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
     tenons: [
       {
@@ -90,13 +94,15 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
 
   if (withBrace) {
     const braceLeg = Math.min(baseDepth * BRACE_DEPTH_FRAC, backHeight * BRACE_HEIGHT_FRAC);
+    // 三角加固（其實是矩形板）卡在「底板上面 + 背板前面」的角落，
+    // 沿世界 X 從背板前面 (X=-baseDepth/2 + panelT) 往前延伸 braceLeg
     parts.push({
       id: "brace",
       nameZh: "三角加固",
       material,
       grainDirection: "length",
       visible: { length: braceLeg, width: braceLeg, thickness: BRACE_THICKNESS },
-      origin: { x: 0, y: panelT, z: -(baseDepth / 2 - panelT - braceLeg / 2) },
+      origin: { x: -baseDepth / 2 + panelT + braceLeg / 2, y: panelT, z: 0 },
       tenons: [],
       mortises: [],
     });
@@ -109,6 +115,7 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: baseDepth, width: baseWidth, thickness: backHeight },
     parts,
     defaultJoinery: "shouldered-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `書擋 ${baseDepth}×${baseWidth}×${backHeight}mm。底板與背板用帶肩榫接（榫長 ${panelT}mm、寬 ${tenonW}mm）。${withBrace ? "三角加固板斜切後膠合到 L 角內側，承重大大提升。" : ""}${edgeChamfer > 0 ? `所有外露邊緣倒 ${edgeChamfer}mm 防扎手。` : ""}**書擋一定一對使用**——本表是單件用量，下單請 ×2。`,
   };

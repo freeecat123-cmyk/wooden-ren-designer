@@ -83,7 +83,13 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 立柱身上開的 mortise：底爪 + 掛鉤
   const columnMortises = [];
 
-  // 底爪：footCount 個方向放射
+  // 底爪：footCount 個方向放射。butt-joint 慣例：底爪近端剛好頂在立柱外面。
+  // 方柱沿斜角方向的外緣距離 = (columnSize/2) / max(|cos|, |sin|)，圓柱用半徑。
+  const isRoundColumn = columnStyle === "round" || columnStyle === "lathe-turned";
+  const columnContactDist = (cosA: number, sinA: number) =>
+    isRoundColumn
+      ? columnSize / 2
+      : columnSize / 2 / Math.max(Math.abs(cosA), Math.abs(sinA));
   const feet: Part[] = [];
   if (footCount === 4) {
     const dirs = [
@@ -94,16 +100,20 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     ];
     for (const d of dirs) {
       const isXAxis = d.axis === "x";
+      // 4 爪都是 0°/90°/180°/270°，contactDist = columnSize/2
+      const contact = columnContactDist(isXAxis ? 1 : 0, isXAxis ? 0 : 1);
+      const len = Math.max(1, footLength - contact);
+      const center = (contact + footLength) / 2;
       feet.push({
         id: d.id,
         nameZh: d.nameZh,
         material,
         grainDirection: "length",
-        visible: { length: footLength, width: footWidth, thickness: footThickness },
+        visible: { length: len, width: footWidth, thickness: footThickness },
         origin: {
-          x: isXAxis ? (d.sign * footLength) / 2 : 0,
+          x: isXAxis ? d.sign * center : 0,
           y: 0,
-          z: !isXAxis ? (d.sign * footLength) / 2 : 0,
+          z: !isXAxis ? d.sign * center : 0,
         },
         rotation: isXAxis
           ? { x: Math.PI / 2, y: 0, z: 0 }
@@ -134,16 +144,21 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   } else {
     for (let i = 0; i < 3; i++) {
       const angle = (i * 2 * Math.PI) / 3;
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const contact = columnContactDist(cosA, sinA);
+      const len = Math.max(1, footLength - contact);
+      const center = (contact + footLength) / 2;
       feet.push({
         id: `foot-${i + 1}`,
         nameZh: `底爪 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: footLength, width: footWidth, thickness: footThickness },
+        visible: { length: len, width: footWidth, thickness: footThickness },
         origin: {
-          x: (Math.cos(angle) * footLength) / 2,
+          x: cosA * center,
           y: 0,
-          z: (Math.sin(angle) * footLength) / 2,
+          z: sinA * center,
         },
         rotation: { x: Math.PI / 2, y: angle, z: 0 },
         tenons: [
@@ -335,6 +350,7 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: footLength, width: footLength, thickness: height },
     parts: [column, ...feet, ...hooks, ...topAccessories],
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `立式衣帽架，總高 ${height}mm，立柱 ${columnSize}mm（${styleLabel}），${footCount} 底爪${footCount === 3 ? "（120° 三角穩定）" : "（4 方向放射）"}，${totalHooks} 個掛鉤${wallMode ? "（已啟用靠牆模式，省略後方掛鉤）" : ""}。底爪用盲榫接入柱面（榫深 ${footTenonDepth}mm）。掛鉤是 ${HOOK_SIZE}mm 圓料盲榫接入柱面（榫深 ${hookTenonDepth}mm）—— 圓柱母件不能用通榫，盲榫接合最穩。${columnStyle === "lathe-turned" ? "車旋柱建議用直徑 ≥ " + columnSize + "mm 的圓料車出花瓶輪廓。" : ""}${withUmbrellaBase ? " 底爪之間加金屬 / 塑膠淺盤（200mm 直徑，B&Q 有售 NT$ 100），放雨傘 / 雨鞋接水。" : ""}${withMirror ? " 立柱中段（離地 1500mm 處）固定 300×400mm 方鏡（玻璃行訂製含磨邊），用 4 個鏡釘固定。" : ""}${withHatRail ? " 立柱頂端加 60mm 寬橫木（兩端各 200mm 外伸）+ 圓鉤，掛禮帽 / 報童帽不變形。" : ""}${withFloorTray ? " 底爪上加 ⌀400mm 圓盤承接鞋墊（防雨鞋滴水弄濕地板）。" : ""}${edgeChamfer > 0 && columnStyle === "box" ? ` 方柱 4 條長邊倒 ${edgeChamfer}mm 防扎手。` : ""}`,
   };

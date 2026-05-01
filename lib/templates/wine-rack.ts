@@ -135,25 +135,36 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
-  // 內部垂直分隔（bw-1 片，每層都有）
-  // origin 簡化：x 坐標 = 第 col 個格子的右邊界 - halfOuterW
+  // 內部垂直分隔——butt-joint 慣例：切成段，每段位於相鄰 2 條水平板之間
+  // （或最上 / 最下層位於水平板與頂 / 底板之間），不再貫穿水平板。
+  // 每排 (bw-1) 個分隔板 × bt 排 = (bw-1)×bt 段。
   const verticalDividers: Part[] = [];
-  for (let col = 1; col < bw; col++) {
-    verticalDividers.push({
-      id: `divider-v-${col}`,
-      nameZh: `第 ${col} 縱向分隔`,
-      material,
-      grainDirection: "length",
-      visible: { length: depth, width: innerH, thickness: panelT },
-      origin: {
-        x: -halfOuterW + panelT + col * cellSize - panelT / 2,
-        y: panelT,
-        z: 0,
-      },
-      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
+  for (let row = 0; row < bt; row++) {
+    // 該排頂底 Y（避開水平板厚度）
+    const yMin = row === 0
+      ? panelT
+      : panelT + row * cellSize + panelT / 2;
+    const yMax = row === bt - 1
+      ? panelT + bt * cellSize
+      : panelT + (row + 1) * cellSize - panelT / 2;
+    const segH = yMax - yMin;
+    for (let col = 1; col < bw; col++) {
+      verticalDividers.push({
+        id: `divider-v-r${row + 1}-c${col}`,
+        nameZh: `第 ${row + 1} 排第 ${col} 縱向分隔`,
+        material,
+        grainDirection: "length",
+        visible: { length: depth, width: segH, thickness: panelT },
+        origin: {
+          x: -halfOuterW + panelT + col * cellSize - panelT / 2,
+          y: yMin,
+          z: 0,
+        },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   const parts: Part[] = [bottom, top, leftSide, rightSide, ...horizontalShelves, ...verticalDividers];
@@ -206,6 +217,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: outerW, width: depth, thickness: outerH },
     parts,
     defaultJoinery: "tongue-and-groove",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${CELL_CLEARANCE}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       mountStyle === "wall-mount"
