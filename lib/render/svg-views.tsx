@@ -188,7 +188,7 @@ function partFill(part: Part) {
 // 把 part-local AABB（tenon 或 mortise 的小箱）投影到 view 平面，回 bbox。
 // 採跟 projectPartSilhouette 相同的 Euler XYZ + bottom-origin 慣例：
 //   M = Rx * Ry * Rz；part.origin.y 是 part 底部；local 軸 length=X、thickness=Y、width=Z
-type LocalBox = {
+export type LocalBox = {
   cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
   hx: number; hy: number; hz: number;     // half-extents
 };
@@ -328,7 +328,7 @@ function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
  *
  * 限制：對非軸對齊 mortise（例如圓腳上的 mortise）無法處理，等 Phase 4+。
  */
-function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
+export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;

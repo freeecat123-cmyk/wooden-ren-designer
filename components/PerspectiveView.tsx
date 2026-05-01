@@ -3,13 +3,15 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BufferGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, Shape, SRGBColorSpace, Vector2 } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
-import { categorizePart } from "@/lib/render/svg-views";
+import type { LocalBox } from "@/lib/render/svg-views";
+import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
 
 /**
@@ -109,6 +111,50 @@ type ShapeSpec =
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
 
+/**
+ * 把母件的 base geometry 用 CSG 減掉每個 mortise 對應的方塊，produce 帶
+ * 真實榫眼洞的 buffer geometry。box 座標已 SCALE 過（three.js units）。
+ *
+ * - through mortise 由 caller 傳入時自帶內墊（避免 CSG 留薄殼）
+ * - 共用一個 Evaluator 跑完所有 mortise（sequential subtraction）
+ * - 中間 brush 的 geometry 會 dispose；保留原 baseGeo 不動（useMemo 會重用）
+ */
+function subtractMortisesFromGeometry(
+  baseGeo: BufferGeometry,
+  mortiseBoxes: LocalBox[],
+): BufferGeometry {
+  if (mortiseBoxes.length === 0) return baseGeo;
+  // 確保 base 有 normal 跟 index（CSG 必須）。原 builder 多半都做了，
+  // 但雙保險：toNonIndexed → mergeVertices? 實際試 prepareGeometry 再
+  // call evaluator。BoxGeometry / buildChamferedEdgesGeometry 都 indexed。
+  const material = new MeshStandardMaterial();
+  const evaluator = new Evaluator();
+  evaluator.useGroups = false;
+  // 限定只處理 position + normal，避免 base 有 uv 但 cut 沒 uv（或反之）
+  // 觸發 evaluator 內部 attribute mismatch crash。
+  evaluator.attributes = ["position", "normal"];
+  // 統一兩個 brush 的 attribute set：剝掉 uv
+  const baseClean = baseGeo.clone();
+  baseClean.deleteAttribute("uv");
+  if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
+  let acc = new Brush(baseClean, material);
+  acc.updateMatrixWorld();
+  for (let i = 0; i < mortiseBoxes.length; i++) {
+    const m = mortiseBoxes[i];
+    if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
+    const cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * m.hz);
+    cutGeo.deleteAttribute("uv");
+    const cut = new Brush(cutGeo, material);
+    cut.position.set(m.cx, m.cy, m.cz);
+    cut.updateMatrixWorld();
+    const next = evaluator.evaluate(acc, cut, SUBTRACTION);
+    cutGeo.dispose();
+    acc.geometry.dispose();
+    acc = next;
+  }
+  return acc.geometry;
+}
+
 function Part({
   position,
   size,
@@ -117,6 +163,7 @@ function Part({
   shape,
   isGlass,
   grainDirection,
+  mortiseBoxes,
 }: {
   position: [number, number, number];
   size: [number, number, number];
@@ -125,6 +172,9 @@ function Part({
   shape?: ShapeSpec;
   isGlass?: boolean;
   grainDirection?: "length" | "width";
+  /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
+   *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
+  mortiseBoxes?: LocalBox[];
 }) {
   // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）
   const woodCompile = grainDirection === "width" ? woodCompileZ : woodCompileX;
@@ -194,6 +244,32 @@ function Part({
     }
     return null;
   }, [size, shape]);
+
+  // joineryMode CSG：把每個 mortise 從 base geo 挖掉。base geo 為 null 時
+  // 用預設 box 當底建 brush；圓料 / 多 mesh shape（lathe-turned / shaker）
+  // 暫時不挖（這些榫眼模型也有問題，留 phase 4+）。
+  const csgGeometry = useMemo(() => {
+    if (!mortiseBoxes || mortiseBoxes.length === 0) return null;
+    if (
+      shape?.kind === "round" ||
+      shape?.kind === "round-tapered" ||
+      shape?.kind === "splayed-round-tapered" ||
+      shape?.kind === "shaker" ||
+      shape?.kind === "lathe-turned" ||
+      shape?.kind === "live-edge" ||
+      shape?.kind === "arch-bent" ||
+      shape?.kind === "face-rounded" ||
+      shape?.kind === "seat-scoop"
+    ) {
+      // 非簡單方料 / 圓料：phase 1 不挖洞，跟 svg-views 慣例一致
+      return null;
+    }
+    const baseGeo = geometry ?? new BoxGeometry(size[0], size[1], size[2]);
+    const result = subtractMortisesFromGeometry(baseGeo, mortiseBoxes);
+    // 若 baseGeo 是新建的 BoxGeometry（不是 useMemo cache 的 geometry），dispose
+    if (!geometry) baseGeo.dispose();
+    return result;
+  }, [geometry, mortiseBoxes, shape, size]);
 
   if (isGlass) {
     return (
@@ -346,7 +422,9 @@ function Part({
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0);
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
-      {geometry ? (
+      {csgGeometry ? (
+        <primitive attach="geometry" object={csgGeometry} />
+      ) : geometry ? (
         <primitive attach="geometry" object={geometry} />
       ) : (
         <boxGeometry args={size} />
@@ -1957,6 +2035,21 @@ export function PerspectiveView({
             </mesh>
           ) : null;
 
+          // joineryMode：把 mortise 算成 SCALE 過的 LocalBox 給 Part 做 CSG 挖洞
+          const mortiseBoxesScaled: LocalBox[] | undefined =
+            joineryMode && part.mortises.length > 0
+              ? part.mortises.map((m) => {
+                  const lb = mortiseLocalBox(part, m);
+                  return {
+                    cx: lb.cx * SCALE,
+                    cy: lb.cy * SCALE,
+                    cz: lb.cz * SCALE,
+                    hx: lb.hx * SCALE,
+                    hy: lb.hy * SCALE,
+                    hz: lb.hz * SCALE,
+                  };
+                })
+              : undefined;
           return (
             <group key={part.id}>
               <Part
@@ -1976,6 +2069,7 @@ export function PerspectiveView({
                 shape={shape}
                 isGlass={part.visual === "glass"}
                 grainDirection={part.grainDirection}
+                mortiseBoxes={mortiseBoxesScaled}
               />
               {tenonMeshes}
               {auditOverlay}
