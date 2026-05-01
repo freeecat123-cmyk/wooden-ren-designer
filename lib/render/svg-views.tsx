@@ -202,7 +202,16 @@ export function OrthoView({
   const w = view === "side" ? overall.width : overall.length;
   const h = view === "top" ? overall.width : overall.thickness;
 
-  const vbW = w + PADDING * 2;
+  // 預檢 splayed 腳：俯視圖才會走「左半詳細圖 + 右半地坪簡化」雙欄
+  const _dimsPre = extractFurnitureDims(design);
+  const isSplayedTop =
+    view === "top" &&
+    !!_dimsPre &&
+    (_dimsPre.maxSplayDx > 0 || _dimsPre.maxSplayDz > 0);
+  const SPLIT_GAP = 40;
+  const splitOffsetX = isSplayedTop ? w + SPLIT_GAP : 0;
+
+  const vbW = w + PADDING * 2 + splitOffsetX;
   const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
   const vbX = -PADDING - w / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
@@ -1642,6 +1651,115 @@ export function OrthoView({
           );
         })()}
       </g>
+      {isSplayedTop && _dimsPre && (() => {
+        // 右半「地坪 footprint」簡化圖（option A）：椅面 + 含 splay 的外接矩形
+        // + 占地 W×D 標示。位置 = 左半右側 + GAP，offset 套在 transform。
+        const dimsR = _dimsPre;
+        const fpW = w + 2 * dimsR.maxSplayDx;
+        const fpD = h + 2 * dimsR.maxSplayDz;
+        const cx = splitOffsetX; // group 中心 X (相對左半中心 0)
+        const cy = drawAreaTop + h / 2; // group 中心 Y
+        return (
+          <g>
+            {/* outer frame for right panel */}
+            <rect
+              x={frameX + splitOffsetX}
+              y={frameY}
+              width={frameW}
+              height={frameH}
+              fill="none"
+              stroke="#222"
+              strokeWidth={1}
+            />
+            {/* 標題 */}
+            <text
+              x={cx}
+              y={drawAreaTop - 4}
+              fontSize={11}
+              fontFamily="sans-serif"
+              fill="#444"
+              textAnchor="middle"
+            >
+              地坪 footprint
+            </text>
+            <g transform={`translate(${cx}, ${cy})`}>
+              {/* 地坪外接矩形（虛線紅）*/}
+              <rect
+                x={-fpW / 2}
+                y={-fpD / 2}
+                width={fpW}
+                height={fpD}
+                fill="none"
+                stroke="#a55"
+                strokeWidth={0.8}
+                strokeDasharray="4 3"
+              />
+              {/* 椅面內框（實線灰）*/}
+              <rect
+                x={-w / 2}
+                y={-h / 2}
+                width={w}
+                height={h}
+                fill="none"
+                stroke="#888"
+                strokeWidth={0.6}
+              />
+              {/* 4 個落地點圓圈 */}
+              {(() => {
+                const lf = dimsR.legFootprint;
+                if (!lf) return null;
+                const dots: React.ReactNode[] = [];
+                const corners = [
+                  { x: lf.minX, z: lf.minZ },
+                  { x: lf.maxX, z: lf.minZ },
+                  { x: lf.maxX, z: lf.maxZ },
+                  { x: lf.minX, z: lf.maxZ },
+                ];
+                corners.forEach((c, i) => {
+                  // splay：腳底 = origin + dxMm/dzMm 方向（4 角各往外）
+                  const sxSign = c.x < 0 ? -1 : 1;
+                  const szSign = c.z < 0 ? -1 : 1;
+                  const fx = -(c.x + sxSign * dimsR.maxSplayDx);
+                  const fz = c.z + szSign * dimsR.maxSplayDz;
+                  dots.push(
+                    <circle
+                      key={`fp-${i}`}
+                      cx={fx}
+                      cy={fz}
+                      r={lf.legSize / 2}
+                      fill="#c63d3d"
+                      opacity={0.6}
+                    />,
+                  );
+                });
+                return dots;
+              })()}
+              {/* 占地 W×D 標示 */}
+              <text
+                x={0}
+                y={-fpD / 2 - 8}
+                fontSize={11}
+                fontFamily="sans-serif"
+                fill="#a55"
+                textAnchor="middle"
+              >
+                占地 {Math.round(fpW)} × {Math.round(fpD)} mm
+              </text>
+              {/* 椅面尺寸子標 */}
+              <text
+                x={0}
+                y={fpD / 2 + 18}
+                fontSize={9}
+                fontFamily="sans-serif"
+                fill="#666"
+                textAnchor="middle"
+              >
+                椅面 {Math.round(w)} × {Math.round(h)} mm
+              </text>
+            </g>
+          </g>
+        );
+      })()}
     </svg>
   );
 }
