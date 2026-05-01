@@ -881,6 +881,25 @@ export function OrthoView({
             </g>
           );
         }
+        // Default rect path 之前的兜底：非 quarter rotation（recline 4°、splay 等
+        // 之前沒被任何 special case 接到的）一律走 silhouette polygon，這樣靠背
+        // 後仰圓柱 / 弧形板才會在 SVG 看到斜度。
+        if (hasNonQuarterRotation(part)) {
+          const poly = projectTiltedBoxSilhouette(part, view);
+          if (poly.length >= 3) {
+            const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+            return (
+              <polygon
+                key={part.id}
+                points={points}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={sw}
+                strokeDasharray={dash}
+              />
+            );
+          }
+        }
         const r = projectPart(part, view);
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
