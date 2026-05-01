@@ -144,27 +144,36 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeX = halfL;
 
   // Leg shape mapping (same set as dining-table / dining-chair)
-  // splayMm = tan(splayAngle) × seatY，腳底向外偏移量（前後腳共用同一偏移，視覺一致）
+  // splayMm = tan(splayAngle) × seatY，腳底向外偏移量
+  // 注意：後腳延伸到椅背頂時（rail/slats），splay 偏移要按該腳實際高度放大，
+  // 不然後腳會被較矮的「前腳同 splayMm」做出比例 → 兩種腳角度不同 = 不平行。
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
+  const splayAngleRad = (splayAngle * Math.PI) / 180;
+  const splayMmFor = (c: { x: number; z: number }): number => {
+    const isTallBack = c.z > 0 && withBack && backStyle !== "panel";
+    const legH = isTallBack ? seatY + backHeight : seatY;
+    return Math.round(Math.tan(splayAngleRad) * legH);
+  };
   const hoofMm = 30;
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
     if (legShape === "tapered") return { kind: "tapered", bottomScale: 0.6 };
     if (legShape === "strong-taper") return { kind: "tapered", bottomScale: 0.4 };
     if (legShape === "inverted") return { kind: "tapered", bottomScale: 1.25 };
+    const sm = splayMmFor(c);
     if (legShape === "splayed") {
       return {
         kind: "splayed",
-        dxMm: Math.sign(c.x) * splayMm,
-        dzMm: Math.sign(c.z) * splayMm,
+        dxMm: Math.sign(c.x) * sm,
+        dzMm: Math.sign(c.z) * sm,
         chamferMm: legEdge > 0 ? legEdge : undefined,
         chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
       };
     }
     if (legShape === "splayed-length") {
-      return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
+      return { kind: "splayed", dxMm: Math.sign(c.x) * sm, dzMm: 0, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "splayed-width") {
-      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * sm, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;
