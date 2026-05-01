@@ -190,37 +190,33 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     return undefined;
   };
 
-  // 4 椅腳（前 2 短，後 2 長）
+  // butt-joint 慣例：腳本身只到座板下緣（前後都一樣），後腳的「上半段」用
+  // 獨立的「背柱」零件 (back-post)，讓座板可以乾乾淨淨坐在 4 隻腳上面，
+  // 不會跟後腳穿模。
+  const legBaseHeight = seatHeight - seatThickness;
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0;
-    const legTotalH = isBack ? height : seatHeight;
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `前椅腳 ${i + 1}`,
       material,
       grainDirection: "length",
-      visible: { length: legSize, width: legSize, thickness: legTotalH },
+      visible: { length: legSize, width: legSize, thickness: legBaseHeight },
       origin: { x: c.x, y: 0, z: c.z },
       shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
-      tenons: isBack
-        ? [] // 後腳頂端接椅背頂橫木（橫木有公榫，不在腳上）
-        : [
-            {
-              position: "top",
-              type: "through-tenon",
-              length: seatTopTenonLen,
-              width: legTopTenonSize,
-              thickness: legTopTenonSize,
-            },
-          ],
+      tenons: [
+        {
+          position: "top",
+          type: "through-tenon",
+          length: seatTopTenonLen,
+          width: legTopTenonSize,
+          thickness: legTopTenonSize,
+        },
+      ],
       mortises: [
         // 座面下牙板 X 向
         {
-          origin: {
-            x: 0,
-            y: apronY,
-            z: c.z > 0 ? -1 : 1,
-          },
+          origin: { x: 0, y: apronY, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
@@ -228,40 +224,49 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         },
         // 座面下牙板 Z 向
         {
-          origin: {
-            x: c.x > 0 ? -1 : 1,
-            y: apronY,
-            z: 0,
-          },
+          origin: { x: c.x > 0 ? -1 : 1, y: apronY, z: 0 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
           through: false,
         },
-        // 背腳：頂橫木的母榫眼（橫木在 x 軸，從世界 ±x 方向接入腳）
-        ...(isBack
-          ? [
-              {
-                origin: {
-                  x: c.x > 0 ? -1 : 1,
-                  y: topRailYCenter,
-                  z: 0,
-                },
-                depth: apronTenonLen,
-                length: topRailTenonW,
-                width: topRailTenonThick,
-                through: false,
-              },
-            ]
-          : []),
-        // 背腳：橫檔（ladder rung）的母榫眼，每根橫檔一個
-        ...(isBack && backStyle === "ladder"
+      ],
+    };
+  });
+
+  // 後腳延伸出來的「背柱」(back-post) — 座板上方支撐椅背
+  const backPosts: Part[] = cornerPts
+    .filter((c) => c.z > 0)
+    .map((c, i) => ({
+      id: `back-post-${i + 1}`,
+      nameZh: `背柱 ${i + 1}`,
+      material,
+      grainDirection: "length",
+      visible: { length: legSize, width: legSize, thickness: height - seatHeight },
+      origin: { x: c.x, y: seatHeight, z: c.z },
+      shape: legEdgeShape(legEdge, legEdgeStyle),
+      tenons: [
+        {
+          position: "bottom",
+          type: "blind-tenon",
+          length: seatThickness,
+          width: legTopTenonSize,
+          thickness: legTopTenonSize,
+        },
+      ],
+      mortises: [
+        // 頂橫木的母榫眼
+        {
+          origin: { x: c.x > 0 ? -1 : 1, y: topRailYCenter - seatHeight, z: 0 },
+          depth: apronTenonLen,
+          length: topRailTenonW,
+          width: topRailTenonThick,
+          through: false,
+        },
+        // 橫檔（ladder rung）的母榫眼
+        ...(backStyle === "ladder"
           ? rungYs.map((ry) => ({
-              origin: {
-                x: c.x > 0 ? -1 : 1,
-                y: ry + ladderRungWidth / 2,
-                z: 0,
-              },
+              origin: { x: c.x > 0 ? -1 : 1, y: ry + ladderRungWidth / 2 - seatHeight, z: 0 },
               depth: apronTenonLen,
               length: rungTenonW,
               width: rungTenonT,
@@ -269,8 +274,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             }))
           : []),
       ],
-    };
-  });
+    }));
 
   // 座板（前腳通榫進來）
   const seatPanel: Part = {
@@ -284,33 +288,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       ? { kind: "face-rounded" as const, cornerR: 0, bendMm: -seatBendMm, bendAxis: "y" as const }
       : seatScoopShape(seatProfile) ?? (seatFrontWaterfall ? { kind: "chamfered-top", chamferMm: 25, style: "rounded" } : seatEdgeShape(seatEdge, seatEdgeStyle)),
     tenons: [],
-    // 前 2 腳通榫進來（榫頭從下方刺穿座板）；
-    // 後 2 腳沒通榫但腳本身穿過座板高度範圍——也要開孔讓腳通過，
-    // 不然 3D 看起來座板跟腳會重疊（撞穿）
+    // 4 腳通榫進來（榫頭從下方刺穿座板，背柱也從上方接，共用同一個榫眼）
     mortises: [
-      ...cornerPts
-        .filter((c) => c.z < 0)
-        .map((c) => ({
-          origin: { x: c.x, y: 0, z: c.z },
-          depth: seatThickness,
-          length: legTopTenonSize,
-          width: legTopTenonSize,
-          through: true,
-        })),
-      ...cornerPts
-        .filter((c) => c.z > 0)
-        .map((c) => ({
-          origin: { x: c.x, y: 0, z: c.z },
-          depth: seatThickness,
-          length: legSize,
-          width: legSize,
-          through: true,
-        })),
+      ...cornerPts.map((c) => ({
+        origin: { x: c.x, y: 0, z: c.z },
+        depth: seatThickness,
+        length: legTopTenonSize,
+        width: legTopTenonSize,
+        through: true,
+      })),
     ],
   };
 
-  // 4 座面下牙板 —— body 延伸到腳中心
-  const apronInnerSpan = { x: length - legSize, z: width - legSize };
+  // 4 座面下牙板 —— butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
+  const apronInnerSpan = { x: length - 2 * legSize, z: width - 2 * legSize };
   void backHeight;
   const apronSides = [
     {
@@ -402,7 +393,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "椅背頂橫木",
     material,
     grainDirection: "length",
-    visible: { length: length - legSize, width: topRailThickness, thickness: topRailHeight },
+    visible: { length: length - 2 * legSize, width: topRailThickness, thickness: topRailHeight },
     origin: { x: 0, y: topRailY, z: width / 2 - legSize / 2 },
     tenons: [
       {
@@ -620,8 +611,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     category: "dining-chair",
     nameZh: "餐椅",
     overall: { length, width, thickness: height },
-    parts: [seatPanel, ...legs, ...aprons, ...lowerStretchers, backTopRail, ...slats],
+    parts: [seatPanel, ...legs, ...backPosts, ...aprons, ...lowerStretchers, backTopRail, ...slats],
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       `腳樣式：${legShapeLabel(legShape)}。前椅腳通榫接座板；後椅腳延伸成椅背支柱；牙板與椅腳半榫；椅背板條上下半榫接頂橫木與後牙板。` +
