@@ -131,7 +131,11 @@ export function projectPartSilhouette(
         // local y = (ey * ly) / 2 → ey=-1 是 origin.y 處 = 「底」(地面)。
         // 所以：ey=-1 = 腳底 = bottomScale 套在這。
         const isBottom = eyEff < 0;
+        // tapered 家族在底端兩軸（local X 與 local Z）同步縮，對齊 3D
+        // buildTaperedGeometry 雙軸縮放（bx = hx*scale, bz = hz*scale）。歷史
+        // 上 silhouette 只縮 X，三視圖跟 3D 不一致；2026-05-01 修正。
         const xScaleTaper = isBottom ? tapered : 1;
+        const zScaleTaper = isBottom ? tapered : 1;
         const xScaleTrap = trap
           ? ezSamp < 0 ? trap.topLengthScale : trap.bottomLengthScale
           : 1;
@@ -144,7 +148,7 @@ export function projectPartSilhouette(
         const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
           + (isBottom ? splayDx : 0);
         const yLocal = (eyEff * ly) / 2;
-        const zLocal = (ezSamp * lz) / 2 + archDz + tiltZdz - yLocal * bevShear
+        const zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
           + (isBottom ? splayDz : 0);
         pushPoint(xLocal, yLocal, zLocal);
       }

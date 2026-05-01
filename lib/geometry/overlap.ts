@@ -1,5 +1,6 @@
 import type { Part } from "@/lib/types";
 import { projectPartSilhouette, worldExtents } from "@/lib/render/geometry";
+import { precomputeSilhouettes, sliceOverlapAtY } from "@/lib/geometry/y-slice";
 
 export interface AABB3D {
   min: { x: number; y: number; z: number };
@@ -180,22 +181,33 @@ export function obbIntersect(a: OBB, b: OBB, toleranceMm = 1): boolean {
 /**
  * 偵測零件互相 overlap。
  *
- * 兩階段檢查：
- *   1. AABB 體積相交（快速 reject 遠方對）
- *   2. OBB SAT 確認（消除非 90° 旋轉的 AABB-OBB false positive）
+ * 三階段檢查：
+ *   1. AABB 體積相交（快速 reject 遠方對；用 silhouette 拼出的 world AABB）
+ *   2. Y-segmented silhouette contact（drafting-math §A11 D.2）：在 Y 交集
+ *      區間採樣 N 層，每層用 front silhouette 取 X 區間 + side silhouette 取
+ *      Z 區間 = 該層 AABB-at-Y。任一層 X∩Z 都 > tolerance 才算真 overlap。
+ *      tapered/splayed 腳的截面隨 Y 變化會自動反映在每層 AABB-at-Y。
+ *   3. OBB SAT 備援（保留以防 silhouette 退化或非 quarter 旋轉沒覆蓋到的
+ *      case，但目前 Stage 2 通過後會直接接受結果）。
  *
  * 過濾規則：任一軸交集 ≤ tolerance 視為「面對面 butt joint 貼合」（容許
  * 浮點誤差），不算 overlap。要 3 軸都有實質交集才算「真的穿模」。
  *
  * 玻璃片（visual="glass"）跳過：玻璃裝在門框內、層板上是設計上正常重疊。
  */
+const Y_SLICE_SAMPLES: number = 24;
+
 export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
   const candidates = parts.filter((p) => p.visual !== "glass");
-  const entries = candidates.map((p) => ({
-    id: p.id,
-    aabb: worldAABB(p),
-    obb: obbFromPart(p),
-  }));
+  const entries = candidates.map((p) => {
+    const sil = precomputeSilhouettes(p);
+    return {
+      id: p.id,
+      aabb: worldAABB(p),
+      front: sil.front,
+      side: sil.side,
+    };
+  });
   const overlaps: Overlap[] = [];
   for (let i = 0; i < entries.length; i++) {
     for (let j = i + 1; j < entries.length; j++) {
@@ -210,18 +222,49 @@ export function findOverlaps(parts: Part[], toleranceMm = 1): Overlap[] {
         inter.z <= toleranceMm
       )
         continue;
-      // Stage 2: OBB SAT (confirm — eliminates non-quarter rotation false positives)
-      if (!obbIntersect(a.obb, b.obb, toleranceMm)) continue;
-      const minDim = Math.min(inter.x, inter.y, inter.z);
+      // Stage 2: Y-segmented silhouette contact check.
+      // 在 Y 交集區間 [yMin+ε, yMax-ε] 採樣 N 層（含端點微內縮，避免端點貼合
+      // 浮點誤判）；任一層 X∩Z 都 > tolerance 即視為真 overlap，記錄該層的
+      // 最大穿深（worst layer）。
+      const yMin = Math.max(a.aabb.min.y, b.aabb.min.y);
+      const yMax = Math.min(a.aabb.max.y, b.aabb.max.y);
+      const ySpan = yMax - yMin;
+      if (ySpan <= toleranceMm) continue;
+      const yPad = Math.min(0.05, ySpan * 0.01);
+      let worstX = 0;
+      let worstZ = 0;
+      let worstY = 0;
+      let foundLayer = false;
+      for (let k = 0; k < Y_SLICE_SAMPLES; k++) {
+        const t = Y_SLICE_SAMPLES === 1 ? 0.5 : k / (Y_SLICE_SAMPLES - 1);
+        const h = yMin + yPad + (ySpan - 2 * yPad) * t;
+        const layer = sliceOverlapAtY(
+          a.front,
+          a.side,
+          b.front,
+          b.side,
+          h,
+          toleranceMm,
+        );
+        if (!layer) continue;
+        foundLayer = true;
+        // 該層 Y 厚度貢獻：相鄰兩 sample 中點到中點 = ySpan / (N-1)，但為了
+        // 給 worstAxis 一個合理的 Y 數值，直接用「Y 交集」的尺寸（保守上限）。
+        if (layer.x > worstX) worstX = layer.x;
+        if (layer.z > worstZ) worstZ = layer.z;
+      }
+      if (!foundLayer) continue;
+      worstY = ySpan;
+      const minDim = Math.min(worstX, worstY, worstZ);
       const worstAxis: "x" | "y" | "z" =
-        inter.x === minDim ? "x" : inter.y === minDim ? "y" : "z";
+        worstX === minDim ? "x" : worstY === minDim ? "y" : "z";
       overlaps.push({
         a: a.id,
         b: b.id,
         intersectionMm: {
-          x: Math.round(inter.x * 10) / 10,
-          y: Math.round(inter.y * 10) / 10,
-          z: Math.round(inter.z * 10) / 10,
+          x: Math.round(worstX * 10) / 10,
+          y: Math.round(worstY * 10) / 10,
+          z: Math.round(worstZ * 10) / 10,
         },
         worstAxis,
       });

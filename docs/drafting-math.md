@@ -475,27 +475,48 @@ buttHalfXBot(splay) = apronEdgeX + splay − apronLegSizeBot / 2
 
 否則模板會 render 對的腳形狀，但 apron / stretcher 端面長度沒補償 → 端面對不齊。
 
-**A11.7 Audit 偵測限制（已知盲點）**：
+**A11.7 Audit 偵測限制（D.2 改架構後現況）**：
 
-`scripts/audit-overlaps.ts` 用 AABB + OBB SAT 偵測零件穿模，**兩階段都用
-`part.visible` 算固定方塊**，不模擬 shape 沿 Y 的變化：
+`scripts/audit-overlaps.ts` 2026-05-01 從 OBB SAT 改成 **Y-segmented silhouette
+contact check**（`lib/geometry/y-slice.ts`）：
 
-1. **gap 不偵測**：audit 只報 overlap、不報 gap。tapered 腳跟 apron 之間原本
-   錯位 5–10mm 縫，audit 一直報 0 overlap（沒人發現直到使用者手動切 legShape
-   才看出來）。要徹底解決需另寫 silhouette-based contact check。
+```
+Stage 1: AABB 體積相交（fast reject）
+Stage 2: 在 Y 交集區間採樣 24 層，每層用 front silhouette 取 X 區間 +
+         side silhouette 取 Z 區間 = AABB-at-Y。任一層 X∩Z > tolerance 即
+         真 overlap（worst layer）。
+```
 
-2. **OBB 用「腳頂寬」常數方塊**：tapered 腳的 cross-section 隨 Y 變化、splayed
-   腳整支歪斜，但 OBB 仍用 visible.length × visible.width 算盒子。對於低處
-   橫撐配 tapered 腳的情境，audit 會「**誤報** overlap」（5–8mm AABB 相交，
-   實際 silhouette 沒接觸）。`SHAPE_AWARE_VARIANTS` allowlist 把這些 case 標
-   `⚠️ obb-fp` 不擋 CI。
+Y-slice 把 OBB 的「常數截面」死角解掉——tapered 腳的 cross-section 隨 Y
+線性變化，AABB-at-Y 跟著實際 silhouette 走；splayed 腳的位移也自動反映。
 
-3. **Audit parametrize**：對每個 template 的 `legShape` select 選項所有
-   choice 各跑一次（不只 default），把 26 case 擴成約 120 case，能抓到非
-   default 才會出現的真 overlap（false positive 由 allowlist 過濾）。
+**配套 silhouette 修正（同時 D.2）**：`lib/render/geometry.ts` 的 tapered
+形狀修飾原本只縮 local X，**不縮 local Z**——這跟 3D `buildTaperedGeometry`
+（`bx = hx*scale, bz = hz*scale` 兩軸都縮）不一致，三視圖跟透視圖長期錯
+位但沒人發現。D.2 改成兩軸同步縮（`xScaleTaper, zScaleTaper`），SVG/3D
+對位、audit 也跟著對。
+
+**現況（2026-05-01）**：
+
+- 120 case 中 99 case audit clean
+- 21 case 列入 `SHAPE_AWARE_VARIANTS` allowlist 為 **template 設計殘差**
+  （改名 `⚠️ design-residue`，不是 OBB blindspot）：
+  - **`bracket`**（8 templates）：bracket 嵌入腳 2mm 但沒用 tenon/mortise
+    model，是 template 結構性重疊
+  - **`splayed-tapered` / `splayed-round-taper-down/up`**（3 個圓家具）：
+    splay × taper 雙效果，apron-trapezoid 沒 fully 同時 model splay+taper
+  - **`round-taper-up`**（3 個圓家具）：倒圓錐腳 apron-front 1.4-3.1mm 殘差
+  - **`strong-taper`**（dining-chair 1 case）：dining-chair 沒套
+    apron-trapezoid，apron 是常數矩形，bottomScale=0.4 補償邊界 1.5mm
+  - **`pedestal`**（round-table 1 case）：柱-腳設計性大重疊
+- **gap 不偵測**：audit 只報 overlap、不報 gap。沒接觸的 case 仍可能有縫，
+  靠 unit 測試 / 視覺 review 抓。
+
+**Audit parametrize**：對每個 template 的 `legShape` select 選項所有
+choice 各跑一次（不只 default），把 26 case 擴成約 120 case。
 
 `scripts/audit-joints.ts` 也同步 parametrize legShape，joint dim 對位 audit
-跑 120 case。
+跑 120 case，2026-05-01 D.1 後 EXPECTED_FAILS 全清空。
 
 ---
 

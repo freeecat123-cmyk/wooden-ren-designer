@@ -1,59 +1,49 @@
 /**
  * Audit zero-tolerance part overlaps for every furniture template.
  *
- * 跑每個 FURNITURE_CATALOG 條目對組裝版（無榫，預設模式）做 AABB + OBB SAT
- * overlap 偵測，輸出 markdown 表。
+ * 跑每個 FURNITURE_CATALOG 條目對組裝版（無榫，預設模式）做 Y-segmented
+ * silhouette overlap 偵測（drafting-math §A11 D.2，2026-05-01 改架構）：
  *
- * Parametrize：對 `legShape` 這類 select 選項，每個 choice 各跑一次（不是
- * 只跑 default）。原本只測 26 case，現在每個有 legShape 的 template 跑全部
- * 7 種腳形 → 約 150 case，能抓到非 default 才會出現的 overlap（例如 inverted
- * 腳被誤算成 apron 太長）。
+ *   Stage 1 — AABB 體積相交（fast reject）
+ *   Stage 2 — Y-slice silhouette 接觸（在 Y 交集區間採樣 24 層，每層用
+ *             front/side silhouette 取 X/Z 區間 = AABB-at-Y；任一層 X∩Z >
+ *             tolerance 才算真 overlap）
  *
- * **已知盲點 #1（gap 偵測）**：audit 只看 OBB / AABB 相交，不會偵測「該貼
- * 但沒貼」的 GAP。tapered 腳跟 apron 之間的 gap bug（drafting-math.md §A11）
- * 因此漏網——visible.length 用常數 legSize 算，OBB 一致也是常數，兩個 OBB
- * 端對端剛好接觸不算 overlap，但 3D / SVG 用真實 silhouette 渲染會看到縫。
+ * Y-slice 把 OBB 的「常數截面」死角解掉——tapered 腳在低 Y 自動縮、splayed
+ * 腳自動位移，AABB-at-Y 跟著實際幾何走。
  *
- * **已知盲點 #2（OBB Y 軸不變）**：tapered 腳的 cross-section 隨 Y 線性變
- * 化，OBB 卻用「腳頂寬」常數 box。對於 tapered 腳 + 低處橫撐（lower stretcher
- * 處於低 Y、腳實際變細）的組合，正確幾何下 ls 端面 = 腳在 ls Y 處的內面，
- * 但 leg OBB 仍展開到頂部寬度 → AABB / OBB 報「假 overlap」（5–8mm）。
- *
- * 暫時解：EXPECTED_OBB_FAILS allowlist 列已驗算過的 false-positive case，
- * audit 仍報但不擋 CI。徹底解需要 Y-segmented silhouette 接觸偵測（TODO）。
+ * Parametrize：對 `legShape` 這類 select 選項，每個 choice 各跑一次。
  *
  * Run: npx tsx scripts/audit-overlaps.ts [--joinery]
  *      --joinery 旗標：用榫接版（保留 tenons/mortises）跑 audit
  */
 
 /**
- * 非 box 腳形的 variant set——這些 leg shapes 的 cross-section 隨 Y 變化或
- * 整支歪斜，OBB 用「常數方塊」跟不上，會誤報 overlap。已用 drafting-math.md
- * §A11 + splay 公式驗算過 visible 端面對齊腳的實際 silhouette。
+ * Template-level 設計殘差 allowlist——這些 variant 在某些模板會殘留小幅
+ * 重疊（1–3mm），不是 Y-slice false positive，而是 template 自己的補償寫法
+ * 在 apron Y 邊界沒處理完整、bracket 結構性重疊（兩件實質有 2mm 嵌入）、
+ * pedestal 柱-腳設計重疊。
  *
- * 加進這個 set 的 variant，audit 仍報但不擋 CI（標 ⚠️ obb-fp）。
- * 徹底解需 Y-segmented silhouette contact check（TODO）。
+ * 列在這的 variant，audit 報但不擋 CI（標 ⚠️ design-residue）。Phase 4+
+ * 一一檢視 template 修。原本 SHAPE_AWARE_VARIANTS 為 OBB blindspot 的暫時
+ * 解，2026-05-01 D.2 改 Y-slice 後 OBB 死角全消，殘留就是 template 的
+ * 設計殘差。
  */
 const SHAPE_AWARE_VARIANTS = new Set<string>([
-  // tapered family
-  "tapered",
+  // tapered 家族殘留：dining-chair strong-taper 補償在 apron Y 邊界仍有
+  // 1.5mm（bottomScale=0.4 比 0.6 更激進，apron-trapezoid 比例不夠精準）
   "strong-taper",
-  "inverted",
-  // splayed family（整支歪斜）
-  "splayed",
-  "splayed-length",
-  "splayed-width",
-  // 圓家具特殊組合
+  // splayed-tapered 家族（圓家具）：splay × taper 雙效果在 apron 邊界
+  // 各 2-3mm 殘差，apron-trapezoid 沒 fully 同時 model splay+taper
   "splayed-tapered",
   "splayed-round-taper-down",
   "splayed-round-taper-up",
-  "round-taper-down",
+  // 倒圓錐腳（上窄下寬）：apron-front 1.4-3.1mm 殘差
   "round-taper-up",
-  "heavy-round-taper",
-  // 案桌類
-  "pedestal",
-  "trestle",
+  // 案桌類結構性重疊：bracket 嵌入腳 2mm（沒寫 tenon/mortise）；pedestal
+  // 柱-腳設計性大重疊（3D 看起來正常但兩 box 共占 X×Z 空間）
   "bracket",
+  "pedestal",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
@@ -160,7 +150,7 @@ console.log("|---|---|---|---|---|---|---|---|");
 for (const r of rows) {
   const exCol = r.examples.length > 0 ? r.examples.join("<br>") : "—";
   const status =
-    r.overlapCount === 0 ? "✅" : r.expected ? "⚠️ obb-fp" : "❌ NEW";
+    r.overlapCount === 0 ? "✅" : r.expected ? "⚠️ design-residue" : "❌ NEW";
   console.log(
     `| ${status} | ${r.flag} | \`${r.category}\` | \`${r.variant}\` | ${r.nameZh} | ${r.partsCount} | **${r.overlapCount}** | ${exCol} |`,
   );
@@ -176,7 +166,7 @@ const expectedNowPassing = rows.filter(
 
 if (expectedStillFailing.length > 0) {
   console.log(
-    `⚠️  ${expectedStillFailing.length} case(s) with OBB false-positive overlaps (drafting-math.md §A11，shape-aware variant 之 OBB 盲點)：`,
+    `⚠️  ${expectedStillFailing.length} case(s) with template design residue (drafting-math.md §A11 D.2 後殘留——bracket 結構性嵌入、splayed-tapered 補償邊界、pedestal 設計重疊)：`,
   );
   for (const r of expectedStillFailing) {
     console.log(
@@ -188,7 +178,7 @@ if (expectedStillFailing.length > 0) {
 
 if (expectedNowPassing.length > 0) {
   console.log(
-    `🎉 ${expectedNowPassing.length} shape-aware variant case(s) now pass clean — consider tightening detector:`,
+    `🎉 ${expectedNowPassing.length} design-residue variant case(s) now pass clean — consider tightening allowlist:`,
   );
   for (const r of expectedNowPassing) {
     console.log(`   - ${r.category} × ${r.variant}`);
