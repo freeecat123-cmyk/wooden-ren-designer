@@ -211,9 +211,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   const legs: Part[] = cornerPts.map((c, i) => {
-    // 弧形板背：後腳不延伸到椅背高（板由獨立圓柱支撐）
-    const isBack = c.z > 0 && withBack && backStyle !== "panel";
-    const legTotalH = isBack ? seatY + backHeight : seatY;
+    // 所有椅腳統一只到 seatY；rail / slats / panel 的椅背支撐都由獨立垂直木處理
+    // （之前 rail/slats 讓後腳延伸到 seatY+backHeight，配上 splayed 會造成
+    //  後腳左右距離跟前腳不等距、正視也不重疊。改用獨立支撐木分離）
+    const isBack = false;
+    const legTotalH = seatY;
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `椅腳 ${i + 1}`,
@@ -460,7 +462,31 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   if (withBack) {
     if (backStyle !== "panel") {
-    // 頂橫木一定有——鎖住後腳頂部。slat 從下方接入，下緣加 slat 母榫眼
+    // rail / slats 模式的椅背支撐柱：2 根方截面（同 legSize）從 seatY 起到
+    // seatY+backHeight。獨立於椅腳，這樣腳可以隨意 splay、正視也能跟前腳重疊。
+    const backCorners = cornerPts.filter((c) => c.z > 0);
+    backCorners.forEach((c, i) => {
+      parts.push({
+        id: `back-post-${i + 1}`,
+        nameZh: `椅背支撐柱 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: legW, width: legD, thickness: backHeight },
+        origin: { x: c.x, y: seatY, z: c.z },
+        shape: legEdgeShape(legEdge, legEdgeStyle),
+        tenons: [],
+        mortises: [
+          {
+            origin: { x: c.x > 0 ? -1 : 1, y: topRailYCenter - seatY, z: 0 },
+            depth: apronTenonLen,
+            length: topRailTenonW,
+            width: topRailTenonThick,
+            through: false,
+          },
+        ],
+      });
+    });
+    // 頂橫木：鎖住兩支獨立後支撐柱頂部。slat 從下方接入。
     parts.push({
       id: "back-rail",
       nameZh: "椅背頂橫木",
