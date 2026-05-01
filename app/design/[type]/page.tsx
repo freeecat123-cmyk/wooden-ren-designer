@@ -33,6 +33,7 @@ import { HeightToSizeButton } from "@/components/design/HeightToSizeButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
+import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
   parseDesignSearchParams,
@@ -184,6 +185,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
           />
+          <PhotoToParamsButton />
           <SaveDesignButton
             furnitureType={type}
             defaultName={`${entry.nameZh} ${length}×${width}×${height}`}
