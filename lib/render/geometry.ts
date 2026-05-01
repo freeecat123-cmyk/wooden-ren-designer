@@ -5,17 +5,58 @@ import type { Part } from "@/lib/types";
  *
  * Local (unrotated) convention: length→X, thickness→Y, width→Z.
  * Rotations are applied in three.js default Euler XYZ order (extrinsic around
- * world X, then world Y, then world Z). Only ~90° quarter-turns are supported.
+ * world X, then world Y, then world Z).
+ *
+ * Quarter-turn (sin>0.5) → 整段尺寸交換；非 quarter（例如 recline 4°）→ 走
+ * 8 corner sample 算實際旋轉後 AABB，這樣 SVG viewBox 才能包到斜過去的
+ * panel/post，不會被切掉頂部。
  */
 export function worldExtents(part: Part) {
-  let xExt = part.visible.length;
-  let yExt = part.visible.thickness;
-  let zExt = part.visible.width;
-  const quarter = (a: number) => Math.abs(Math.sin(a)) > 0.5;
-  if (quarter(part.rotation?.x ?? 0)) [yExt, zExt] = [zExt, yExt];
-  if (quarter(part.rotation?.y ?? 0)) [xExt, zExt] = [zExt, xExt];
-  if (quarter(part.rotation?.z ?? 0)) [xExt, yExt] = [yExt, xExt];
-  return { xExt, yExt, zExt };
+  const xExt = part.visible.length;
+  const yExt = part.visible.thickness;
+  const zExt = part.visible.width;
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  const isQuarter = (a: number) => {
+    const s = Math.abs(Math.sin(a));
+    return s > 0.99 || s < 0.01;
+  };
+  if (isQuarter(rx) && isQuarter(ry) && isQuarter(rz)) {
+    let xE = xExt;
+    let yE = yExt;
+    let zE = zExt;
+    const quarter = (a: number) => Math.abs(Math.sin(a)) > 0.5;
+    if (quarter(rx)) [yE, zE] = [zE, yE];
+    if (quarter(ry)) [xE, zE] = [zE, xE];
+    if (quarter(rz)) [xE, yE] = [yE, xE];
+    return { xExt: xE, yExt: yE, zExt: zE };
+  }
+  // 非 quarter rotation：8 個 local corner 套旋轉算 AABB
+  const cxR = Math.cos(rx), sxR = Math.sin(rx);
+  const cyR = Math.cos(ry), syR = Math.sin(ry);
+  const czR = Math.cos(rz), szR = Math.sin(rz);
+  const hx = xExt / 2, hy = yExt / 2, hz = zExt / 2;
+  let maxX = 0, maxY = 0, maxZ = 0;
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+    let x = sx * hx, y = sy * hy, z = sz * hz;
+    // X 軸旋轉
+    let y2 = y * cxR - z * sxR;
+    let z2 = y * sxR + z * cxR;
+    y = y2; z = z2;
+    // Y 軸旋轉
+    let x2 = x * cyR + z * syR;
+    z2 = -x * syR + z * cyR;
+    x = x2; z = z2;
+    // Z 軸旋轉
+    x2 = x * czR - y * szR;
+    y2 = x * szR + y * czR;
+    x = x2; y = y2;
+    if (Math.abs(x) > maxX) maxX = Math.abs(x);
+    if (Math.abs(y) > maxY) maxY = Math.abs(y);
+    if (Math.abs(z) > maxZ) maxZ = Math.abs(z);
+  }
+  return { xExt: 2 * maxX, yExt: 2 * maxY, zExt: 2 * maxZ };
 }
 
 export type OrthoView = "front" | "side" | "top";
