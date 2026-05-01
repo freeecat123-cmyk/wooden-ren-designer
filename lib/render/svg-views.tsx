@@ -1198,8 +1198,10 @@ export function OrthoView({
                 )}
                 {/* 外斜腳：每個橫撐的上下緣 Y 跟落地 Y 都畫一圈腳框
                     （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
-                    深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y */}
-                {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
+                    深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y
+                    試 A：主俯視預設不畫地坪 footprint（落地腳框 + 落地超出標
+                    + 對角）保持簡潔；地坪資訊改放右下小詳圖。設 true 還原。 */}
+                {false && (maxSplayDx > 0 || maxSplayDz > 0) && (() => {
                   // 落地 Y + 牙板 Y 用深紅；下橫撐 (ls-) Y 用深藍，跟牙板分得開
                   const footColor = "#c63d3d";
                   const stretcherColor = "#c63d3d";
@@ -1281,10 +1283,75 @@ export function OrthoView({
                     </>
                   );
                 })()}
+                {/* splayed 腳：右下小詳圖標出地坪外接矩形 + 占地 W×D
+                    主俯視保持乾淨；要看落地外伸 / 對角 / footprint 細節去詳圖。
+                    詳圖 = 主圖右下 1/4 區域，scale 0.25，輕量虛線+簡單標註 */}
+                {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
+                  // 地坪外接矩形：含 splay 後 4 角最遠落地點
+                  const fpW = w + 2 * maxSplayDx;
+                  const fpD = h + 2 * maxSplayDz;
+                  // 詳圖 viewport：放主圖右下、避開主標註，scale 自動算
+                  const insetW = w * 0.32;
+                  const insetH = h * 0.32;
+                  const insetX = w / 2 + 6;
+                  const insetY = h / 2 + 16; // SVG 下方
+                  const sx = insetW / fpW;
+                  const sy = insetH / fpD;
+                  const s = Math.min(sx, sy);
+                  return (
+                    <g
+                      transform={`translate(${insetX - insetW}, ${insetY}) scale(${s})`}
+                    >
+                      {/* 地坪外接矩形（虛線） */}
+                      <rect
+                        x={-fpW / 2}
+                        y={-fpD / 2}
+                        width={fpW}
+                        height={fpD}
+                        fill="none"
+                        stroke="#a55"
+                        strokeWidth={2 / s}
+                        strokeDasharray={`${4 / s} ${3 / s}`}
+                      />
+                      {/* 椅面內框（實線） */}
+                      <rect
+                        x={-w / 2}
+                        y={-h / 2}
+                        width={w}
+                        height={h}
+                        fill="none"
+                        stroke="#888"
+                        strokeWidth={1 / s}
+                      />
+                      {/* 占地標示 */}
+                      <text
+                        x={0}
+                        y={-fpD / 2 - 6 / s}
+                        fontSize={11 / s}
+                        fill="#a55"
+                        fontFamily="sans-serif"
+                        textAnchor="middle"
+                      >
+                        占地 {Math.round(fpW)}×{Math.round(fpD)}
+                      </text>
+                      <text
+                        x={0}
+                        y={fpD / 2 + 14 / s}
+                        fontSize={9 / s}
+                        fill="#888"
+                        fontFamily="sans-serif"
+                        textAnchor="middle"
+                      >
+                        詳圖：地坪 footprint
+                      </text>
+                    </g>
+                  );
+                })()}
                 {/* 對角線——量方正度，一律抓「腳外角」對角。
                     splayed 腳：抓「腳落地點外角」（穩定性才看落地）
-                    一般腳：抓「腳頂面外角」（量這條檢查腳位有沒有歪） */}
-                {(() => {
+                    一般腳：抓「腳頂面外角」（量這條檢查腳位有沒有歪）
+                    試 A：splayed 時主俯視先不畫對角線（要看時去地坪詳圖） */}
+                {!(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
                   const isSplayed = maxSplayDx > 0 || maxSplayDz > 0;
                   // SVG 俯視 X 鏡像：world +X → SVG -X，所以 minX/maxX 要取負
                   const lxMin = -maxX - (isSplayed ? maxSplayDx : 0) - legSize / 2;
