@@ -915,14 +915,23 @@ export function OrthoView({
           const ox = part.origin.x;
           const oy = part.origin.y + lyL / 2;
           const oz = part.origin.z;
+          // face-rounded + bendAxis="z" 在側視要延伸 |bendMm|（前面凸出的弧範圍）
+          const bendMm = isFaceRounded && part.shape?.kind === "face-rounded"
+            ? (part.shape.bendMm ?? 0)
+            : 0;
+          const bendAxis = isFaceRounded && part.shape?.kind === "face-rounded"
+            ? (part.shape.bendAxis ?? "z")
+            : "z";
+          const zMin = bendAxis === "z" && bendMm < 0 ? -lzL / 2 + bendMm : -lzL / 2;
+          const zMax = bendAxis === "z" && bendMm > 0 ? +lzL / 2 + bendMm : +lzL / 2;
           // YZ 4 corners（local center）→ X 旋轉 → 加 origin → 投影
           const corners4: Array<[number, number, number]> = [
-            [-lyL / 2, -lzL / 2, -lxL / 2],
-            [-lyL / 2, +lzL / 2, -lxL / 2],
-            [+lyL / 2, +lzL / 2, -lxL / 2],
-            [+lyL / 2, -lzL / 2, -lxL / 2],
+            [-lyL / 2, zMin, -lxL / 2],
+            [-lyL / 2, zMax, -lxL / 2],
+            [+lyL / 2, zMax, -lxL / 2],
+            [+lyL / 2, zMin, -lxL / 2],
           ];
-          const projected = corners4.map(([yL, zL, xL]) => {
+          const projectOne = (yL: number, zL: number, xL: number) => {
             const yR = yL * cx - zL * sx;
             const zR = yL * sx + zL * cx;
             const wx = xL + ox;
@@ -930,21 +939,43 @@ export function OrthoView({
             const wz = zR + oz;
             if (view === "side") return { x: wz, y: wy };
             return { x: -wx, y: wy }; // front
-          });
-          // 對正視（觀察軸 Z）：X 旋轉只動 YZ，所以 silhouette 在正視看是
-          // 「上下兩條邊都被拉長 lzL · sin(rotX)」的長方形——上面 4 corners
-          // 已經涵蓋這個。但 round 圓柱的正視 X 寬永遠是 lxL（直徑），所以
-          // 直接用就行。
+          };
+          const projected = corners4.map(([yL, zL, xL]) => projectOne(yL, zL, xL));
           const points = projected.map((p) => `${p.x},${-p.y}`).join(" ");
+          // 端面 / 彎曲分隔線（face-rounded + bend > 0 在側視要分出原板邊界）
+          let dividerLine: React.ReactNode = null;
+          if (
+            view === "side" &&
+            isFaceRounded &&
+            bendAxis === "z" &&
+            Math.abs(bendMm) >= 0.5
+          ) {
+            const zDiv = bendMm > 0 ? +lzL / 2 : -lzL / 2;
+            const a = projectOne(-lyL / 2, zDiv, -lxL / 2);
+            const b = projectOne(+lyL / 2, zDiv, -lxL / 2);
+            dividerLine = (
+              <line
+                key={`${part.id}-endface`}
+                x1={a.x}
+                y1={-a.y}
+                x2={b.x}
+                y2={-b.y}
+                stroke={stroke}
+                strokeWidth={sw}
+              />
+            );
+          }
           return (
-            <polygon
-              key={part.id}
-              points={points}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={sw}
-              strokeDasharray={dash}
-            />
+            <g key={part.id}>
+              <polygon
+                points={points}
+                fill="none"
+                stroke={stroke}
+                strokeWidth={sw}
+                strokeDasharray={dash}
+              />
+              {dividerLine}
+            </g>
           );
         }
         const r = projectPart(part, view);
