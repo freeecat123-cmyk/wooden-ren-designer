@@ -25,7 +25,7 @@ export const squareStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronWidth", label: "橫撐高度 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, unit: "mm" },
   { group: "apron", type: "number", key: "apronThickness", label: "橫撐厚度 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "橫撐距座板 (mm)", defaultValue: 12, min: 0, max: 400, step: 5, unit: "mm", help: "橫撐頂面距座板下緣的距離；小凳子建議 10–15 才不會頭重腳輕" },
-  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "在腳下方 1/4 高加一圈橫撐，結構更穩" },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: true, help: "在腳下方 1/4 高加一圈橫撐，結構更穩；傳統方凳必備（取消勾選 = 簡約款）" },
   { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈，最穩）" },
     { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
