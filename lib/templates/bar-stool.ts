@@ -249,29 +249,30 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [
         // 座板下牙板（前/後牙板：y = ringY；左/右牙板：y = ringY - apronStaggerMm）
         {
-          origin: { x: 0, y: seatY - apronWidth - apronOffset, z: c.z > 0 ? -1 : 1 },
+          // mortise origin = CENTER（part-local，Y 從底量）；apron 中心線 Y
+          origin: { x: 0, y: seatY - apronWidth / 2 - apronOffset, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
           through: false,
         },
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth - apronOffset - apronStaggerMm, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: seatY - apronWidth / 2 - apronOffset - apronStaggerMm, z: 0 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
           through: false,
         },
-        // 腳踏橫撐（前/後：y = footrestHeight；左/右：y = footrestHeight + footrestStaggerMm）
+        // 腳踏橫撐 mortise origin = CENTER（中心線 Y = footrestHeight + footRestWidth / 2）
         {
-          origin: { x: 0, y: footrestHeight, z: c.z > 0 ? -1 : 1 },
+          origin: { x: 0, y: footrestHeight + footRestWidth / 2, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
           length: frTenonW,
           width: frTenonThick,
           through: false,
         },
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: footrestHeight + footrestStaggerMm, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: footrestHeight + footRestWidth / 2 + footrestStaggerMm, z: 0 },
           depth: apronTenonLen,
           length: frTenonW,
           width: frTenonThick,

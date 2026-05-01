@@ -86,6 +86,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: outerL, width: outerW, thickness: outerH },
     parts: built.parts,
     defaultJoinery: "dovetail",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `鳩尾盒 ${outerL}×${outerW}×${outerH}mm，${
       dovetailStyle === "through"

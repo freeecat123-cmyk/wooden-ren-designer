@@ -72,6 +72,11 @@ export interface Tenon {
   length: Millimeters;
   width: Millimeters;
   thickness: Millimeters;
+  /**
+   * 公榫件斷面上哪幾邊有肩（"left/right" = ±width 軸；"top/bottom" = ±thickness 軸）。
+   * standardTenon 預設回 4 邊全肩；edge-protection 動 offsetWidth 時自動移除
+   * 對應的「flush 邊」（drafting-math.md §A10.10）。
+   */
   shoulderOn?: Array<"top" | "bottom" | "left" | "right">;
   /**
    * 公榫件斷面上的中心偏移（mm）。

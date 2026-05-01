@@ -116,6 +116,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: outerL, width: outerW, thickness: outerH },
     parts: [...built.parts, ...dividerParts],
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };

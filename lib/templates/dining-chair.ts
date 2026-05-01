@@ -216,7 +216,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [
         // 座面下牙板 X 向
         {
-          origin: { x: 0, y: apronY, z: c.z > 0 ? -1 : 1 },
+          // mortise origin = CENTER（part-local，Y 從底量）；apron 中心線 Y
+          origin: { x: 0, y: apronY + apronWidth / 2, z: c.z > 0 ? -1 : 1 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,
@@ -224,7 +225,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         },
         // 座面下牙板 Z 向
         {
-          origin: { x: c.x > 0 ? -1 : 1, y: apronY, z: 0 },
+          origin: { x: c.x > 0 ? -1 : 1, y: apronY + apronWidth / 2, z: 0 },
           depth: apronTenonLen,
           length: apronTenonW,
           width: apronTenonThick,

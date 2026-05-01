@@ -1567,6 +1567,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     overall: { length, width, thickness: height },
     parts,
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       opts.notes ??

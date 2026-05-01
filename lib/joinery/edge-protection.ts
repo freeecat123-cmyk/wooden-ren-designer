@@ -248,6 +248,15 @@ export function applyEdgeProtection(design: FurnitureDesign): FurnitureDesign {
       // 公榫件 axis-aligned（v1 限制），所以 world axis = part-local axis = tenon width axis
       const t = parts[pair.partIndex].tenons[pair.tenonIndex];
       t.offsetWidth = (t.offsetWidth ?? 0) + shift;
+      // 同步 shoulderOn：tenon 中心朝 +width 偏 → "right"（+width side）跟母件
+      // 邊齊平、那邊沒肩 → 從 shoulderOn 移除 "right"。反之移除 "left"。
+      // 慣例（tenon cross-section）："left/right" = ±width 軸；"top/bottom" = ±thickness 軸。
+      if (Math.abs(t.offsetWidth) > 0.5) {
+        const sideToRemove: "left" | "right" =
+          t.offsetWidth > 0 ? "right" : "left";
+        const current = t.shoulderOn ?? ["top", "bottom", "left", "right"];
+        t.shoulderOn = current.filter((s) => s !== sideToRemove);
+      }
     }
   }
 

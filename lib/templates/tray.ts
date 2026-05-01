@@ -89,6 +89,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: outerL, width: outerW, thickness: botT + wallH },
     parts: built.parts,
     defaultJoinery: cornerJoinery,
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `托盤 ${outerL}×${outerW}mm（圍邊高 ${wallH}mm）。底板與圍邊用槽接（圍邊內側下緣鋸 ${botT}×${botT}mm 槽）。4 角 ${cornerLabel}。${
       handleStyle === "hole"
