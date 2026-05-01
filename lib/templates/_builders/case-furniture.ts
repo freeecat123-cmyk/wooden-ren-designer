@@ -637,10 +637,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const drawerInnerW = boxExtW - 2 * drawerSideT;
     // 箱體可用深度：櫃內深 − faceTBoxOffset − 前留 1mm − 背板空隙
     const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
-    // 面板高（無滑軌時直接 = 箱體前板；上下 2mm 縫）
-    const drawerH = drawerSlotH - drawerGap * 2;
+    // butt-joint：每個抽屜 slot 上方都會被一個 divider（相鄰抽屜間）或 zone-
+    // boundary（最上一格 dividerFrom='above' 時）佔掉 shelfT 的高度。drawer 高
+    // 度要扣 shelfT 才不會穿模到上方分隔板。
+    // (最上一格 dividerFrom='none' 的 corner case 會 18mm 矮一點，視覺可接受)
+    const drawerH = drawerSlotH - shelfT - drawerGap * 2;
     // 滑軌模式下箱體上下各留 5mm 給滑軌行程（與面板縫隙無關，硬體需求）
-    const boxH = hasSlide ? drawerSlotH - 10 : drawerH;
+    const boxH = hasSlide ? drawerSlotH - shelfT - 10 : drawerH;
     // 滑軌模式 yBase 多縮 (5 - drawerGap) 把箱體推高到對齊滑軌中心
     const boxYOffset = hasSlide ? 5 - drawerGap : 0;
     const dovetailLen = drawerSideT;
@@ -799,6 +802,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       });
 
       // 左右側板（中纖板／雜木）— 長度沿 Z，需 {x: π/2, y: π/2} 旋轉
+      // butt-joint 慣例：side 端面剛好頂在 drawer-front/back 的內側面（不重疊）。
+      //   drawer-front 後面 = zFront + drawerFrontT/2
+      //   drawer-back 前面 = zBack - drawerBackT/2
+      //   side 中心 = (兩面中點)，length = drawerInnerD
+      const sideZCenter =
+        (zFront + drawerFrontT / 2 + zBack - drawerBackT / 2) / 2;
       for (const side of [-1, 1] as const) {
         parts.push({
           id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
@@ -807,14 +816,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           materialOverride: "mdf",
           grainDirection: "length",
           visible: {
-            length: drawerInnerD + drawerFrontT + drawerBackT - 4,
+            length: drawerInnerD,
             width: boxH,
             thickness: drawerSideT,
           },
           origin: {
             x: xCenter + side * (boxExtW / 2 - drawerSideT / 2),
             y: yBase + boxYOffset,
-            z: (zFront + zBack) / 2,
+            z: sideZCenter,
           },
           rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
           tenons: [],
@@ -870,11 +879,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           : { length: drawerInnerW + 4, width: drawerInnerD + 4, thickness: drawerBottomT },
         origin: {
           x: xCenter,
-          // 釘底：底板貼在側板/前後板下方（y 從 boxYOffset - drawerBottomT 到 boxYOffset）
-          // 入溝：底板嵌在溝裡（中心 y = boxYOffset + drawerBottomT/2 + 2）
+          // 釘底：底板貼在側板/前後板下方（origin.y 是底面，y 範圍 = [origin.y, origin.y+thickness]）
+          // 入溝：底板嵌在溝裡（中心 y = boxYOffset + drawerBottomT/2 + 2，origin.y = +2）
           y: isSurfaceDrawerBottom
-            ? yBase + boxYOffset - drawerBottomT / 2
-            : yBase + boxYOffset + drawerBottomT / 2 + 2,
+            ? yBase + boxYOffset - drawerBottomT
+            : yBase + boxYOffset + 2,
           z: (zFront + zBack) / 2,
         },
         tenons: isSurfaceDrawerBottom
