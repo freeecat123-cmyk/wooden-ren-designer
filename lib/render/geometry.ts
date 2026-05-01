@@ -743,7 +743,7 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     const c = Math.min(part.shape.cornerR, r.w * 0.45, r.h * 0.45);
     const topArch = part.shape.topArchMm ?? 0;
     const botArch = part.shape.bottomArchMm ?? 0;
-    if (c <= 0 && topArch <= 0 && botArch <= 0) return box;
+    if (c <= 0 && topArch === 0 && botArch === 0) return box;
     const segs = 6;
     const archSegs = 16;
     const arc = (cx: number, cy: number, t0: number, t1: number) => {
@@ -759,7 +759,7 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     // 左上角 R（順時針從左上開始繞）
     pts.push(...arc(r.x + c, r.y + c, Math.PI, (3 * Math.PI) / 2));
     // 上緣（往右），可選拱起
-    if (topArch > 0) {
+    if (topArch !== 0) {
       for (let i = 1; i <= archSegs; i++) {
         const t = i / archSegs;
         const x = r.x + c + (r.w - 2 * c) * t;
@@ -774,7 +774,7 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     // 右下角 R
     pts.push(...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2));
     // 下緣（往左），可選拱起（中央向上 = 減 y）
-    if (botArch > 0) {
+    if (botArch !== 0) {
       for (let i = 1; i <= archSegs; i++) {
         const t = i / archSegs;
         const x = r.x + r.w - c - (r.w - 2 * c) * t;

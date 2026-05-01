@@ -960,7 +960,7 @@ function buildFaceRoundedExtrude(
   for (let i = 1; i <= nx; i++) {
     const t = i / nx;
     const x = -hx + r + (lx - 2 * r) * t;
-    const y = bottomArchMm > 0 ? -hy + bottomArchMm * Math.sin(Math.PI * t) : -hy;
+    const y = bottomArchMm !== 0 ? -hy + bottomArchMm * Math.sin(Math.PI * t) : -hy;
     shape.lineTo(x, y);
   }
   shape.absarc(hx - r, -hy + r, r, -Math.PI / 2, 0, false);
@@ -972,7 +972,7 @@ function buildFaceRoundedExtrude(
   for (let i = 1; i <= nx; i++) {
     const t = i / nx;
     const x = (hx - r) - (lx - 2 * r) * t;
-    const y = topArchMm > 0 ? hy + topArchMm * Math.sin(Math.PI * t) : hy;
+    const y = topArchMm !== 0 ? hy + topArchMm * Math.sin(Math.PI * t) : hy;
     shape.lineTo(x, y);
   }
   shape.absarc(-hx + r, hy - r, r, Math.PI / 2, Math.PI, false);
@@ -1013,10 +1013,10 @@ function buildBentPanelGrid(
     const tj = j / N;
     let x = -hx + lx * ti;
     let y = -hy + ly * tj;
-    // 邊緣 arch 套用：頂緣 (j=N) 上拱、底緣 (j=0) 上拱（凹）
-    if (j === N && topArchMm > 0) {
+    // 邊緣 arch 套用：正值=往外拱、負值=往內凹
+    if (j === N && topArchMm !== 0) {
       y += topArchMm * Math.sin(Math.PI * ti);
-    } else if (j === 0 && bottomArchMm > 0) {
+    } else if (j === 0 && bottomArchMm !== 0) {
       y += bottomArchMm * Math.sin(Math.PI * ti);
     }
     // 圓角投影：如果 (x, y) 落在 4 個角的外側矩形區域內、距角心 > r，

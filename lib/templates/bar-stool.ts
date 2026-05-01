@@ -40,13 +40,14 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backPanelHeight", label: "弧形板高 (mm)", defaultValue: 180, min: 100, max: 400, step: 10, help: "椅背板的垂直高（圓角矩形板）", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelThickness", label: "弧形板厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelCornerR", label: "弧形板圓角 (mm)", defaultValue: 30, min: 0, max: 100, step: 2, help: "板的四角圓角半徑", dependsOn: { key: "backStyle", equals: "panel" } },
-  { group: "back", type: "number", key: "backPanelTopArch", label: "上緣拱起 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板上緣中央向上拱起的高度（弧形造型）；0 = 平頂", dependsOn: { key: "backStyle", equals: "panel" } },
-  { group: "back", type: "number", key: "backPanelBottomArch", label: "下緣拱起 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板下緣中央向上凹/拱的深度（讓板成 D 形或月牙形）；0 = 平底", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelTopArch", label: "上緣拱起 (mm)", defaultValue: 0, min: -80, max: 80, step: 2, help: "板上緣中央位移；正值往上拱（拱形頂），負值往下凹（凹弧頂）；0 = 平頂", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelBottomArch", label: "下緣拱起 (mm)", defaultValue: 0, min: -80, max: 80, step: 2, help: "板下緣中央位移；正值往上拱（D 形/月牙），負值往下延伸（裙擺）；0 = 平底", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelFaceBend", label: "弧形板大面彎曲 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, help: "板的大面（前/後）凹陷量；0 = 平板，數值越大越彎（建議 10–30 做 lumbar 腰靠）", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPostDiameter", label: "圓形支撐柱直徑 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, help: "支撐椅背板的兩支圓形垂直木", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelInset", label: "靠背距椅面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "圓柱後緣從椅面後緣往前的距離；0 = 圓柱後緣與椅面後緣對齊", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backReclineDeg", label: "靠背後仰角 (°)", defaultValue: 0, min: 0, max: 20, step: 0.5, unit: "°", help: "靠背向後傾斜的角度；正視圖看仍是直的，側視圖才會看到斜度（圓柱與板同步傾斜）", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPostFromEdge", label: "圓柱距板端面 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, help: "圓柱中心到靠背板左/右端面的距離；圓柱貼著板背", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPanelEmbed", label: "靠背卡入圓柱 (mm)", defaultValue: 6, min: 0, max: 30, step: 1, help: "靠背板嵌入圓柱的深度；接合處從圓柱扣掉同尺寸的平面", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backHeight", label: "椅背高 (mm)", defaultValue: 200, min: 80, max: 500, step: 10, help: "從座板上緣到椅背頂", dependsOn: { key: "backStyle", notIn: ["none"] } },
   { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 1, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "backSlatWidth", label: "直條寬 (mm)", defaultValue: 40, min: 15, max: 150, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
@@ -99,6 +100,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const backPanelInset = getOption<number>(input, opt(o, "backPanelInset"));
   const backReclineDeg = getOption<number>(input, opt(o, "backReclineDeg"));
   const backPostFromEdge = getOption<number>(input, opt(o, "backPostFromEdge"));
+  const backPanelEmbed = getOption<number>(input, opt(o, "backPanelEmbed"));
   const footRestWidth = getOption<number>(input, opt(o, "footrestWidth"));
   const footRestThickness = getOption<number>(input, opt(o, "footrestThickness"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
@@ -453,7 +455,11 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       const reclineDz = Math.tan(reclineRad) * backHeight;
       const postBottomBackZ = width / 2 - backPanelInset; // 圓柱底端後緣 Z（基準）
       const postZ_calc = postBottomBackZ - backPostDiameter / 2 + reclineDz;
-      const panelZ = postZ_calc - backPostDiameter / 2 - backPanelThickness / 2;
+      // 靠背板嵌入圓柱 backPanelEmbed mm；後仰時板繞自身中軸旋轉，板背面會位移：
+      // 板背面 Z 偏移 = backPanelHeight/2 * sin + backPanelThickness/2 * cos，要從 panelZ 扣回來
+      const cosR = Math.cos(reclineRad);
+      const sinR = Math.sin(reclineRad);
+      const panelZ = postZ_calc - backPostDiameter / 2 - (backPanelThickness / 2) * cosR + backPanelEmbed - (backPanelHeight / 2) * sinR;
       const postX = panelLen / 2 - backPostFromEdge;
       const postZ = postZ_calc;
       const postBottomY = seatY;
