@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legScaleAt } from "./_helpers";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
@@ -233,11 +233,25 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
     const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
     const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
-    // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
-    // = 2 × (cornerOffset + splay) - legSize（每端各內縮 legSize/2）
-    const apronSpan = 2 * (cornerOffset + apronSplayDx) - legSize;
-    // 簡化：apron 也斜 α 度（matches leg），中心對到腳在 apron Y center 的中心
-    // 不再做 trapezoid，apron 就是矩形 + tilt
+    // tapered 補償（drafting-math §A11）：腳在 apron Y 處的截面寬，端面對接
+    // 用 apronLegSize（**不是** legSize 頂寬）。對應每段 Y 的腳寬：
+    const apronBottomScale = legBottomScale(legShape);
+    const apronLegSizeCenter = legSize * legScaleAt(apronYCenter, legHeight, apronBottomScale);
+    const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, apronBottomScale);
+    const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, apronBottomScale);
+    // butt-joint 慣例：visible.length 兩端剛好頂在腳在 apron Y center 的內側面
+    const apronSpan = 2 * (cornerOffset + apronSplayDx) - apronLegSizeCenter;
+    // apron-trapezoid：上下緣腳寬不同（tapered 上下不同；splay shift 也不同）
+    const hasTaper = apronBottomScale !== 1;
+    const apronShiftTop = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
+    const apronShiftBot = legHeight > 0 ? 1 - apronY / legHeight : 0;
+    const apronSplayDxTop = isSplayed ? splayDx * apronShiftTop : 0;
+    const apronSplayDxBot = isSplayed ? splayDx * apronShiftBot : 0;
+    const apronSpanCenterEdge = cornerOffset + apronSplayDx - apronLegSizeCenter / 2;
+    const apronSpanTopEdge = cornerOffset + apronSplayDxTop - apronLegSizeTop / 2;
+    const apronSpanBotEdge = cornerOffset + apronSplayDxBot - apronLegSizeBot / 2;
+    const trapTopScale = hasTaper && apronSpanCenterEdge > 0 ? apronSpanTopEdge / apronSpanCenterEdge : 1;
+    const trapBotScale = hasTaper && apronSpanCenterEdge > 0 ? apronSpanBotEdge / apronSpanCenterEdge : 1;
     const sides = [
       { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
       { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
@@ -263,7 +277,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
         origin: { x: s.origin.x, y: apronY, z: s.origin.z },
         rotation,
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        shape: hasTaper
+          ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+          : isSplayed
+            ? { kind: "apron-beveled", bevelAngle }
+            : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
           { position: "end", type: "blind-tenon", length: apronTenonLen, width: apronTenonWidth, thickness: apronTenonThick },
@@ -280,7 +298,22 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
     const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
     const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;
-    const lsSpan = 2 * (cornerOffset + lsSplayDx) - legSize;
+    // tapered 補償：下橫撐 Y 處的腳寬（與 apron 同邏輯）
+    const lsBottomScale = legBottomScale(legShape);
+    const lsLegSizeCenter = legSize * legScaleAt(lsYCenter0, legHeight, lsBottomScale);
+    const lsLegSizeTop = legSize * legScaleAt(lsYCenter0 + lowerStretcherWidth / 2, legHeight, lsBottomScale);
+    const lsLegSizeBot = legSize * legScaleAt(lsYCenter0 - lowerStretcherWidth / 2, legHeight, lsBottomScale);
+    const lsSpan = 2 * (cornerOffset + lsSplayDx) - lsLegSizeCenter;
+    const lsHasTaper = lsBottomScale !== 1;
+    const lsShiftTop = legHeight > 0 ? 1 - (lsYCenter0 + lowerStretcherWidth / 2) / legHeight : 0;
+    const lsShiftBot = legHeight > 0 ? 1 - (lsYCenter0 - lowerStretcherWidth / 2) / legHeight : 0;
+    const lsSplayDxTop = isSplayed ? splayDx * lsShiftTop : 0;
+    const lsSplayDxBot = isSplayed ? splayDx * lsShiftBot : 0;
+    const lsCenterEdge = cornerOffset + lsSplayDx - lsLegSizeCenter / 2;
+    const lsTopEdge = cornerOffset + lsSplayDxTop - lsLegSizeTop / 2;
+    const lsBotEdge = cornerOffset + lsSplayDxBot - lsLegSizeBot / 2;
+    const lsTrapTopScale = lsHasTaper && lsCenterEdge > 0 ? lsTopEdge / lsCenterEdge : 1;
+    const lsTrapBotScale = lsHasTaper && lsCenterEdge > 0 ? lsBotEdge / lsCenterEdge : 1;
     const lsSides = [
       { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsSplayDz) } },
       { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsSplayDz } },
@@ -303,7 +336,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: lsSpan, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
         origin: { x: s.origin.x, y: s.axis === "z" ? lsY0_z : lsY0, z: s.origin.z },
         rotation,
-        shape: isSplayed ? { kind: "apron-beveled", bevelAngle } : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        shape: lsHasTaper
+          ? { kind: "apron-trapezoid" as const, topLengthScale: lsTrapTopScale, bottomLengthScale: lsTrapBotScale, bevelAngle: bevelAngle || undefined }
+          : isSplayed
+            ? { kind: "apron-beveled", bevelAngle }
+            : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },
           { position: "end", type: "blind-tenon", length: lsTenonLen, width: lsTenonWidth, thickness: lsTenonThick },

@@ -332,7 +332,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             mortises: [],
           });
           if (legShape === "bracket") {
-            // 托腳牙板：從腳內側斜向支撐底板
+            // 托腳牙板：從腳內側水平延伸支撐櫃底（butt-joint 慣例：端面貼
+            // 腳內面，不嵌入；joinery 模式可在 leg 內側挖盲榫眼搭配，這裡
+            // 預設無榫，screw / dowel 鎖固即可）
             const bracketLen = Math.min(legHeight * 1.4, 80);
             parts.push({
               id: `bracket-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
@@ -341,7 +343,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               grainDirection: "length",
               visible: { length: bracketLen, width: legHeight * 0.7, thickness: 14 },
               origin: {
-                x: sx * (legOffsetX - legSize / 2 - bracketLen / 2 + 2),
+                x: sx * (legOffsetX - legSize / 2 - bracketLen / 2),
                 y: legHeight * 0.3,
                 z: sz * legOffsetZ,
               },

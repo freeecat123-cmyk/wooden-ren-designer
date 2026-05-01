@@ -496,19 +496,27 @@ Y-slice 把 OBB 的「常數截面」死角解掉——tapered 腳的 cross-sect
 位但沒人發現。D.2 改成兩軸同步縮（`xScaleTaper, zScaleTaper`），SVG/3D
 對位、audit 也跟著對。
 
-**現況（2026-05-01）**：
+**現況（2026-05-01 D.2 + 全模板殘差收尾完成）**：
 
-- 120 case 中 99 case audit clean
-- 21 case 列入 `SHAPE_AWARE_VARIANTS` allowlist 為 **template 設計殘差**
-  （改名 `⚠️ design-residue`，不是 OBB blindspot）：
-  - **`bracket`**（8 templates）：bracket 嵌入腳 2mm 但沒用 tenon/mortise
-    model，是 template 結構性重疊
-  - **`splayed-tapered` / `splayed-round-taper-down/up`**（3 個圓家具）：
-    splay × taper 雙效果，apron-trapezoid 沒 fully 同時 model splay+taper
-  - **`round-taper-up`**（3 個圓家具）：倒圓錐腳 apron-front 1.4-3.1mm 殘差
-  - **`strong-taper`**（dining-chair 1 case）：dining-chair 沒套
-    apron-trapezoid，apron 是常數矩形，bottomScale=0.4 補償邊界 1.5mm
-  - **`pedestal`**（round-table 1 case）：柱-腳設計性大重疊
+- **120 / 120 case audit clean**，`SHAPE_AWARE_VARIANTS` allowlist 為空
+- 已修的 template 殘差：
+  - **`bracket`**（8 templates）：foot origin 從 `+2` 嵌入改 `0`，端面對齊
+    腳內面（`case-furniture.ts`）
+  - **`strong-taper`**（dining-chair）：套 apron-trapezoid + 修正
+    apronInnerSpan 公式（`length − legSize − apronLegSize` 而非
+    `length − 2 × apronLegSize`，腳實際由 legSize 頂寬錨定不是 apronLegSize）
+  - **圓家具 `splayed-tapered` / `splayed-round-taper-*` / `round-taper-up`**
+    （round-stool / round-tea-table / round-table）：builder 加
+    legBottomScale 路徑 + apron-trapezoid（含上下橫撐）；
+    `legBottomScale` 擴充處理 round-tapered 系列 + splayed-tapered 系列
+  - **`pedestal`**（round-table）：foot origin 從 `sign × footLength/2` 改成
+    `sign × (columnSize/2 + footLength/2)`，爪從柱外緣延伸（不嵌入柱）
+  - **silhouette tapered/splay 線性內插**（`lib/render/geometry.ts`）：原本
+    `xScaleTaper = isBottom ? bottomScale : 1` 是 step-function，導致 round
+    samples 整個上半段全寬、下半段才縮（hexagon 形）。改成
+    `bottomScale + (1 − bottomScale) × (eyEff + 1) / 2` 線性內插，box 端點
+    結果不變，round 16-sample 變成正確的平滑梯形 / 圓錐。splay 同理改成
+    `splayDx × (1 − taperT)`。
 - **gap 不偵測**：audit 只報 overlap、不報 gap。沒接觸的 case 仍可能有縫，
   靠 unit 測試 / 視覺 review 抓。
 

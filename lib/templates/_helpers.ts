@@ -119,6 +119,14 @@ export function legBottomScale(legShape: string): number {
   if (legShape === "tapered") return 0.6;
   if (legShape === "strong-taper") return 0.4;
   if (legShape === "inverted") return 1.25;
+  // 圓家具 round-stool / round-tea-table / round-table 變體（與 template
+  // 內部 shape mapping 對齊）：
+  if (legShape === "round-taper-down") return 0.6;
+  if (legShape === "round-taper-up") return 1.4;
+  if (legShape === "heavy-round-taper") return 0.4;
+  if (legShape === "splayed-tapered") return 0.6;
+  if (legShape === "splayed-round-taper-down") return 0.6;
+  if (legShape === "splayed-round-taper-up") return 1.4;
   return 1; // box / splayed / splayed-length / splayed-width 不縮 cross-section
 }
 

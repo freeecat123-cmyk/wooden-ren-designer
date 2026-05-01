@@ -130,26 +130,33 @@ export function projectPartSilhouette(
         // origin 是 local 中心 - extents/2 嗎？看 yOffset = origin.y + yExt/2 → origin.y = bottom，
         // local y = (ey * ly) / 2 → ey=-1 是 origin.y 處 = 「底」(地面)。
         // 所以：ey=-1 = 腳底 = bottomScale 套在這。
-        const isBottom = eyEff < 0;
         // tapered 家族在底端兩軸（local X 與 local Z）同步縮，對齊 3D
         // buildTaperedGeometry 雙軸縮放（bx = hx*scale, bz = hz*scale）。歷史
         // 上 silhouette 只縮 X，三視圖跟 3D 不一致；2026-05-01 修正。
-        const xScaleTaper = isBottom ? tapered : 1;
-        const zScaleTaper = isBottom ? tapered : 1;
+        // 對 round / round-tapered shape，eyEff 是連續 sin(angle) ∈ [-1, 1]，
+        // 用 LINEAR 內插（不是 step-function isBottom），才會描出平滑梯形而
+        // 非「上半全寬、下半縮」的 hexagon。對 box/4-corner samples 來說
+        // eyEff=±1，線性內插結果跟 step-function 等價（0.6 vs 1）。
+        const taperT = (eyEff + 1) / 2; // 0 = bottom, 1 = top
+        const xScaleTaper = tapered + (1 - tapered) * taperT;
+        const zScaleTaper = tapered + (1 - tapered) * taperT;
         const xScaleTrap = trap
           ? ezSamp < 0 ? trap.topLengthScale : trap.bottomLengthScale
           : 1;
-        const splayDx = splay && isBottom ? splay.dx : 0;
-        const splayDz = splay && isBottom ? splay.dz : 0;
+        // splay 在頂端不偏、底端偏 dx/dz，沿 Y 線性內插（非 round 4-corner 一樣
+        // 拿到 isBottom?dx:0 的端點值，convex hull 給線性中間值；round 16-sample
+        // 需要每個樣本都用 (1-taperT)*dx 才不會有 step）
+        const splayDx = splay ? splay.dx * (1 - taperT) : 0;
+        const splayDz = splay ? splay.dz * (1 - taperT) : 0;
         // tilt-z: 頂端 (ezSamp = +1，假設 width 是高度) z 偏 topShiftMm/2，底端偏 -topShiftMm/2
         // 不過 tilt-z 多半搭 rotation 用，rotation 已轉好，這裡只需要直接位移。
         const tiltZdz = tiltZ * (ezSamp / 2);
 
         const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
-          + (isBottom ? splayDx : 0);
+          + splayDx;
         const yLocal = (eyEff * ly) / 2;
         const zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
-          + (isBottom ? splayDz : 0);
+          + splayDz;
         pushPoint(xLocal, yLocal, zLocal);
       }
     }

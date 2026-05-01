@@ -19,32 +19,18 @@
  */
 
 /**
- * Template-level 設計殘差 allowlist——這些 variant 在某些模板會殘留小幅
- * 重疊（1–3mm），不是 Y-slice false positive，而是 template 自己的補償寫法
- * 在 apron Y 邊界沒處理完整、bracket 結構性重疊（兩件實質有 2mm 嵌入）、
- * pedestal 柱-腳設計重疊。
+ * Template-level 設計殘差 allowlist——保留以擋將來新模板的非預期 false
+ * positive。2026-05-01 D.2 完整收尾後此清單為空（120/120 全綠）：
  *
- * 列在這的 variant，audit 報但不擋 CI（標 ⚠️ design-residue）。Phase 4+
- * 一一檢視 template 修。原本 SHAPE_AWARE_VARIANTS 為 OBB blindspot 的暫時
- * 解，2026-05-01 D.2 改 Y-slice 後 OBB 死角全消，殘留就是 template 的
- * 設計殘差。
+ *   - bracket: 改成端面對腳（不嵌入），audit 通過
+ *   - strong-taper (dining-chair): 套 apron-trapezoid + 修正 apronInnerSpan
+ *     公式（length − legSize − apronLegSize 而非 length − 2*apronLegSize）
+ *   - splayed-tapered family / round-taper-up（圓家具）：圓家具 builder 加
+ *     legBottomScale 路徑 + apron-trapezoid，silhouette code tapered
+ *     X/Z 雙軸線性內插（取代 step-function isBottom）
+ *   - pedestal: foot origin 改成從柱外面延伸（不嵌入柱）
  */
-const SHAPE_AWARE_VARIANTS = new Set<string>([
-  // tapered 家族殘留：dining-chair strong-taper 補償在 apron Y 邊界仍有
-  // 1.5mm（bottomScale=0.4 比 0.6 更激進，apron-trapezoid 比例不夠精準）
-  "strong-taper",
-  // splayed-tapered 家族（圓家具）：splay × taper 雙效果在 apron 邊界
-  // 各 2-3mm 殘差，apron-trapezoid 沒 fully 同時 model splay+taper
-  "splayed-tapered",
-  "splayed-round-taper-down",
-  "splayed-round-taper-up",
-  // 倒圓錐腳（上窄下寬）：apron-front 1.4-3.1mm 殘差
-  "round-taper-up",
-  // 案桌類結構性重疊：bracket 嵌入腳 2mm（沒寫 tenon/mortise）；pedestal
-  // 柱-腳設計性大重疊（3D 看起來正常但兩 box 共占 X×Z 空間）
-  "bracket",
-  "pedestal",
-]);
+const SHAPE_AWARE_VARIANTS = new Set<string>([]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
 import { toBeginnerMode } from "../lib/templates/beginner-mode";

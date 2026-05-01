@@ -302,11 +302,24 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   // 4 座面下牙板 —— butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
-  // tapered 補償（drafting-math.md §A11）：legSize × legScaleAt(apronCenterY) 而非腳頂寬
+  // tapered 補償（drafting-math.md §A11）：腳位置由 legSize（頂寬）錨定在
+  // corners(L, W, legSize)，所以 apron 長度 = L − legSize − apronLegSize
+  // （**不是** L − 2*apronLegSize，那會把 1.5mm 殘差留在 apron 端面）。
   const bottomScale = legBottomScale(legShape);
   const apronCenterY = apronY + apronWidth / 2;
-  const apronLegSize = legSize * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
-  const apronInnerSpan = { x: length - 2 * apronLegSize, z: width - 2 * apronLegSize };
+  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
+  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legBaseHeight, bottomScale);
+  const apronLegSizeBot = legSize * legScaleAt(apronY, legBaseHeight, bottomScale);
+  const apronInnerSpan = {
+    x: length - legSize - apronLegSizeCenter,
+    z: width - legSize - apronLegSizeCenter,
+  };
+  // apron-trapezoid 比例：apron 上下緣對齊腳在 apron Y 邊界的實際寬度
+  const hasTaper = bottomScale !== 1;
+  const trapTopX = hasTaper && apronInnerSpan.x > 0 ? (length - legSize - apronLegSizeTop) / apronInnerSpan.x : 1;
+  const trapBotX = hasTaper && apronInnerSpan.x > 0 ? (length - legSize - apronLegSizeBot) / apronInnerSpan.x : 1;
+  const trapTopZ = hasTaper && apronInnerSpan.z > 0 ? (width - legSize - apronLegSizeTop) / apronInnerSpan.z : 1;
+  const trapBotZ = hasTaper && apronInnerSpan.z > 0 ? (width - legSize - apronLegSizeBot) / apronInnerSpan.z : 1;
   void backHeight;
   const apronSides = [
     {
@@ -352,7 +365,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     rotation: s.axis === "z"
       ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
       : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+    shape: hasTaper
+      ? {
+          kind: "apron-trapezoid" as const,
+          topLengthScale: s.axis === "x" ? trapTopX : trapTopZ,
+          bottomLengthScale: s.axis === "x" ? trapBotX : trapBotZ,
+        }
+      : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     tenons: [
       {
         position: "start",
