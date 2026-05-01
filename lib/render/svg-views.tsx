@@ -773,7 +773,16 @@ export function OrthoView({
         // face-rounded 帶 bendMm（靠背彎合板）：top view 也要走 polygon 才能畫出彎弧
         const isFaceRoundedBent =
           part.shape?.kind === "face-rounded" && Math.abs(part.shape.bendMm ?? 0) > 0;
+        // face-rounded 板帶 rotation.x（recline）→ projectPartPolygon 用的
+        // worldExtents 不認非 quarter rotation，會把 panel 畫成直立矩形看不到
+        // 後仰角度。這種 case 跳過 useShape，讓它落到下面手算 silhouette 兜底。
+        const isFaceRoundedXTilt =
+          part.shape?.kind === "face-rounded" &&
+          Math.abs(part.rotation?.x ?? 0) > 0.01 &&
+          Math.abs(part.rotation?.x ?? 0) < Math.PI / 2 - 0.01 &&
+          view !== "top";
         const useShape =
+          !isFaceRoundedXTilt &&
           part.shape &&
           part.shape.kind !== "box" &&
           (part.shape.kind !== "round" || (isRoundWithChamfer && view !== "top")) &&
@@ -879,6 +888,63 @@ export function OrthoView({
               />
               {extras}
             </g>
+          );
+        }
+        // 兜底：rotation.x ≠ 0 且非 quarter（typical 是 recline 4° 之類），
+        // 但前面任何 special case 都沒接到的圓柱 / 弧形板。手算「YZ 平面 4 角
+        // 經 X 旋轉」的 silhouette，在側視 / 正視畫成平行四邊形。
+        // （projectPartSilhouette 對 round 的取樣假設橫向 dowel = 軸 X，
+        //  對垂直圓柱 = 軸 Y 會出錯。）
+        const rotX = part.rotation?.x ?? 0;
+        const isXTilt =
+          Math.abs(rotX) > 0.01 &&
+          Math.abs(rotX) < Math.PI / 2 - 0.01 &&
+          !(part.rotation?.y) &&
+          !(part.rotation?.z);
+        const isRoundLike =
+          part.shape?.kind === "round" ||
+          part.shape?.kind === "round-tapered" ||
+          part.shape?.kind === "lathe-turned" ||
+          part.shape?.kind === "shaker";
+        const isFaceRounded = part.shape?.kind === "face-rounded";
+        if (isXTilt && (isRoundLike || isFaceRounded) && view !== "top") {
+          const lyL = part.visible.thickness; // 垂直高（局部 Y）
+          const lzL = part.visible.width;     // 局部 Z（深度）
+          const lxL = part.visible.length;    // 局部 X
+          const cx = Math.cos(rotX), sx = Math.sin(rotX);
+          const ox = part.origin.x;
+          const oy = part.origin.y + lyL / 2;
+          const oz = part.origin.z;
+          // YZ 4 corners（local center）→ X 旋轉 → 加 origin → 投影
+          const corners4: Array<[number, number, number]> = [
+            [-lyL / 2, -lzL / 2, -lxL / 2],
+            [-lyL / 2, +lzL / 2, -lxL / 2],
+            [+lyL / 2, +lzL / 2, -lxL / 2],
+            [+lyL / 2, -lzL / 2, -lxL / 2],
+          ];
+          const projected = corners4.map(([yL, zL, xL]) => {
+            const yR = yL * cx - zL * sx;
+            const zR = yL * sx + zL * cx;
+            const wx = xL + ox;
+            const wy = yR + oy;
+            const wz = zR + oz;
+            if (view === "side") return { x: wz, y: wy };
+            return { x: -wx, y: wy }; // front
+          });
+          // 對正視（觀察軸 Z）：X 旋轉只動 YZ，所以 silhouette 在正視看是
+          // 「上下兩條邊都被拉長 lzL · sin(rotX)」的長方形——上面 4 corners
+          // 已經涵蓋這個。但 round 圓柱的正視 X 寬永遠是 lxL（直徑），所以
+          // 直接用就行。
+          const points = projected.map((p) => `${p.x},${-p.y}`).join(" ");
+          return (
+            <polygon
+              key={part.id}
+              points={points}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+              strokeDasharray={dash}
+            />
           );
         }
         const r = projectPart(part, view);
