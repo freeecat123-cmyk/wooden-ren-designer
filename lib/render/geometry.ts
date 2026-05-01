@@ -759,6 +759,36 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
   // 板狀零件：正視面 4 角圓角（圓角的「面」=length×thickness 的 X-Y 矩形）
   // top 視圖看是矩形；front/side 視圖看是 4 角圓角的矩形。
   if (part.shape.kind === "face-rounded") {
+    const bendMm = part.shape.bendMm ?? 0;
+    const bendAxis = part.shape.bendAxis ?? "z";
+    // 大面彎曲在哪個視圖看得到（兩條長邊都隨 X 同步偏移 bend × (1-(2x/w)²))：
+    //   bendAxis="z"（靠背 face=XY，bend 推世界 Z）→ top view (X×Z) 顯示
+    //   bendAxis="y"（椅面 face=XZ，bend 推世界 Y）→ front view (X×Y) 顯示
+    const bendInThisView =
+      bendMm !== 0 &&
+      ((bendAxis === "z" && view === "top") ||
+        (bendAxis === "y" && view === "front"));
+    if (bendInThisView) {
+      // bend 視圖 = 把上下緣兩條長邊同時偏移；cornerR 與 arch 在此視圖不顯示
+      // （cornerR/arch 是在大面的另一個 view 上看的）
+      const archSegs = 24;
+      const pts: Array<{ x: number; y: number }> = [];
+      const bendAt = (t: number): number => {
+        const xLocal = 2 * t - 1; // [0,1] → [-1,1]
+        return bendMm * Math.max(0, 1 - xLocal * xLocal);
+      };
+      // 上緣：左 → 右，y = r.y + r.h + bend
+      for (let i = 0; i <= archSegs; i++) {
+        const t = i / archSegs;
+        pts.push({ x: r.x + r.w * t, y: r.y + r.h + bendAt(t) });
+      }
+      // 下緣：右 → 左，y = r.y + bend
+      for (let i = 0; i <= archSegs; i++) {
+        const t = i / archSegs;
+        pts.push({ x: r.x + r.w * (1 - t), y: r.y + bendAt(1 - t) });
+      }
+      return pts;
+    }
     if (view === "top") return box;
     const c = Math.min(part.shape.cornerR, r.w * 0.45, r.h * 0.45);
     const topArch = part.shape.topArchMm ?? 0;
