@@ -770,6 +770,9 @@ export function OrthoView({
         // cross-section；前/側視仍是梯形（同 chamfered-edges convention）。
         const isTaperedWithChamfer =
           part.shape?.kind === "tapered" && (part.shape.chamferMm ?? 0) > 0;
+        // face-rounded 帶 bendMm（靠背彎合板）：top view 也要走 polygon 才能畫出彎弧
+        const isFaceRoundedBent =
+          part.shape?.kind === "face-rounded" && Math.abs(part.shape.bendMm ?? 0) > 0;
         const useShape =
           part.shape &&
           part.shape.kind !== "box" &&
@@ -781,7 +784,8 @@ export function OrthoView({
             part.shape.kind !== "splayed-round-tapered" &&
             part.shape.kind !== "notched-corners" &&
             part.shape.kind !== "arch-bent" &&
-            !isTaperedWithChamfer
+            !isTaperedWithChamfer &&
+            !isFaceRoundedBent
           );
         if (useShape) {
           const poly = projectPartPolygon(part, view);
@@ -823,6 +827,45 @@ export function OrthoView({
                   strokeWidth={sw}
                 />,
               );
+            }
+          }
+          // Face-rounded 側視（靠背 / 椅面彎合板）：silhouette 延伸 |bendMm|，
+          // 在原板邊界畫分隔線分出「端面真實厚度」與「彎曲延伸」兩塊。
+          if (part.shape?.kind === "face-rounded" && view === "side") {
+            const bend = part.shape.bendMm ?? 0;
+            const bendAxis = part.shape.bendAxis ?? "z";
+            if (Math.abs(bend) >= 0.5) {
+              const r = projectPart(part, view);
+              if (bendAxis === "z") {
+                // bendMm>0：往右延伸；分隔線在原右緣 r.x+r.w
+                // bendMm<0：往左延伸；分隔線在原左緣 r.x
+                const xDiv = bend > 0 ? r.x + r.w : r.x;
+                extras.push(
+                  <line
+                    key={`${part.id}-endface`}
+                    x1={xDiv}
+                    x2={xDiv}
+                    y1={-r.y}
+                    y2={-(r.y + r.h)}
+                    stroke={stroke}
+                    strokeWidth={sw}
+                  />,
+                );
+              } else {
+                // bendAxis="y"：bendMm>0 往上延伸；bendMm<0 往下延伸
+                const yDiv = bend > 0 ? r.y + r.h : r.y;
+                extras.push(
+                  <line
+                    key={`${part.id}-endface`}
+                    x1={r.x}
+                    x2={r.x + r.w}
+                    y1={-yDiv}
+                    y2={-yDiv}
+                    stroke={stroke}
+                    strokeWidth={sw}
+                  />,
+                );
+              }
             }
           }
           return (
