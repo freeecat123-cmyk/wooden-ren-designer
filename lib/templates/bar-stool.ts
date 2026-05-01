@@ -147,18 +147,19 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   // splayMm = tan(splayAngle) × seatY，腳底向外偏移量
   //
   // 前後腳幾何規則（rail / slats 後腳延伸到椅背頂時）：
-  //   X 軸（左右）：前腳左右距離 = 後腳左右距離 → X 偏移用 constant splayMm
-  //                 （不依腳高放大），讓 4 腳左右對齊在地面
-  //   Z 軸（前後）：前後腳要平行（同斜角）→ Z 偏移依該腳實際高度放大，
-  //                 確保 atan(dz/H) 對前/後腳相同
-  // 弧形板（panel）背：後腳本來就只到 seatY、跟前腳同高，自動兩條件都成立。
+  //   正視圖看「前腳跟後腳必須重疊」（同 X 位置整段）→ 不同腳高要重疊只有
+  //   一條解：X 偏移 = 0。所以 rail/slats 模式下 X splay 強制歸零。
+  //   Z 軸（前後）：依腳高縮放，前後腳同斜角 = 平行（俯視看 4 腳呈 V 字 OK）
+  // 弧形板（panel）背：後腳本來就只到 seatY、跟前腳同高，X splay 可保留。
+  const isTallBackSetup = withBack && backStyle !== "panel";
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
   const splayAngleRad = (splayAngle * Math.PI) / 180;
   const splayMmFor = (c: { x: number; z: number }): { x: number; z: number } => {
-    const isTallBack = c.z > 0 && withBack && backStyle !== "panel";
+    const isTallBack = c.z > 0 && isTallBackSetup;
     const legH = isTallBack ? seatY + backHeight : seatY;
     return {
-      x: splayMm, // X 等距：4 腳同 offset
+      // rail/slats 模式 X 強制 0 讓正視圖前後腳重疊；panel 模式 X 用 constant
+      x: isTallBackSetup ? 0 : splayMm,
       z: Math.round(Math.tan(splayAngleRad) * legH), // Z 平行：依高度縮放
     };
   };
