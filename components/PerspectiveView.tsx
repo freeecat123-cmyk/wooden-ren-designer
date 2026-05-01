@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
@@ -215,6 +215,46 @@ function Part({
     if (shape.kind === "splayed-tapered") {
       return buildSplayedTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz);
     }
+    // 圓料：把 cylinderGeometry / latheGeometry 改成 buffer geo 走 useMemo，
+    // CSG 才能挖洞（Phase 2 後續擴展）。座板上的方形 mortise 對圓腳 → 圓
+    // 柱面挖出方洞，視覺正確。
+    if (shape.kind === "round") {
+      const radius = size[0] / 2;
+      const chamfer = shape.chamferMm ?? 0;
+      if (chamfer > 0) {
+        const h = size[1];
+        const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
+        const innerR = Math.max(0.5, radius - cap);
+        const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
+        const points: Vector2[] = [
+          new Vector2(0, -h / 2),
+          new Vector2(radius, -h / 2),
+          new Vector2(radius, h / 2 - cap),
+        ];
+        if (styleSegs === 1) {
+          points.push(new Vector2(innerR, h / 2));
+        } else {
+          for (let i = 1; i <= styleSegs; i++) {
+            const t = (i / styleSegs) * (Math.PI / 2);
+            points.push(
+              new Vector2(innerR + cap * Math.cos(t), h / 2 - cap + cap * Math.sin(t)),
+            );
+          }
+        }
+        points.push(new Vector2(0, h / 2));
+        return new LatheGeometry(points, 48);
+      }
+      return new CylinderGeometry(radius, radius, size[1], 48);
+    }
+    if (shape.kind === "round-tapered") {
+      const topR = size[0] / 2;
+      const botR = topR * shape.bottomScale;
+      return new CylinderGeometry(topR, botR, size[1], 48);
+    }
+    if (shape.kind === "splayed-round-tapered") {
+      // 已經有 builder，重用即可（buffer geo + index）
+      return buildSplayedRoundTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz, 48);
+    }
     if (shape.kind === "apron-trapezoid") {
       return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0);
     }
@@ -246,14 +286,13 @@ function Part({
   }, [size, shape]);
 
   // joineryMode CSG：把每個 mortise 從 base geo 挖掉。base geo 為 null 時
-  // 用預設 box 當底建 brush；圓料 / 多 mesh shape（lathe-turned / shaker）
-  // 暫時不挖（這些榫眼模型也有問題，留 phase 4+）。
+  // 用預設 box 當底建 brush；多 mesh shape（lathe-turned / shaker）跟自由曲面
+  // （live-edge / arch-bent / face-rounded / seat-scoop）暫時不挖，留 phase 4+。
+  // 圓料 (round / round-tapered / splayed-round-tapered) 已於 2026-05-02 整進
+  // useMemo geometry，CSG 直接挖（座板上的方 mortise → 圓柱面方洞，視覺正確）。
   const csgGeometry = useMemo(() => {
     if (!mortiseBoxes || mortiseBoxes.length === 0) return null;
     if (
-      shape?.kind === "round" ||
-      shape?.kind === "round-tapered" ||
-      shape?.kind === "splayed-round-tapered" ||
       shape?.kind === "shaker" ||
       shape?.kind === "lathe-turned" ||
       shape?.kind === "live-edge" ||
@@ -261,7 +300,7 @@ function Part({
       shape?.kind === "face-rounded" ||
       shape?.kind === "seat-scoop"
     ) {
-      // 非簡單方料 / 圓料：phase 1 不挖洞，跟 svg-views 慣例一致
+      // 多段組合 / 自由曲面：phase 4+
       return null;
     }
     const baseGeo = geometry ?? new BoxGeometry(size[0], size[1], size[2]);
@@ -289,77 +328,9 @@ function Part({
     );
   }
 
-  // 圓盤：直徑 = size[0]（length），厚 = size[1]（thickness/Y）
-  // CylinderGeometry 預設立軸沿 Y，剛好對應 size[1]
-  if (shape?.kind === "round") {
-    const radius = size[0] / 2;
-    const chamfer = shape.chamferMm ?? 0;
-    if (chamfer > 0) {
-      // 帶頂面外緣倒角的圓盤——用 lathe 旋轉 2D profile 出來。
-      // Profile 從中軸向外、由底往頂繞一圈：
-      //   底中→底外→垂直外緣到 (h - c)→ 45° 倒角到 (radius - c, h)→ 頂中
-      const h = size[1];
-      const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
-      const innerR = Math.max(0.5, radius - cap);
-      const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
-      const points: Vector2[] = [
-        new Vector2(0, -h / 2),
-        new Vector2(radius, -h / 2),
-        new Vector2(radius, h / 2 - cap),
-      ];
-      // chamferStyle="rounded" → 用多段 quarter arc 拼出圓角；"chamfered" → 單段 45°
-      if (styleSegs === 1) {
-        points.push(new Vector2(innerR, h / 2));
-      } else {
-        for (let i = 1; i <= styleSegs; i++) {
-          const t = (i / styleSegs) * (Math.PI / 2);
-          // arc 圓心 (innerR, h/2 - cap)，半徑 cap，從 0° 掃到 90°
-          points.push(
-            new Vector2(
-              innerR + cap * Math.cos(t),
-              h / 2 - cap + cap * Math.sin(t),
-            ),
-          );
-        }
-      }
-      points.push(new Vector2(0, h / 2));
-      return (
-        <mesh position={position} rotation={rotation} castShadow receiveShadow>
-          <latheGeometry args={[points, 48]} />
-          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-        </mesh>
-      );
-    }
-    return (
-      <mesh position={position} rotation={rotation} castShadow receiveShadow>
-        <cylinderGeometry args={[radius, radius, size[1], 48]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-      </mesh>
-    );
-  }
-
-  // 圓錐腳：上 radius = size[0]/2，下 radius = 上 × bottomScale
-  if (shape?.kind === "round-tapered") {
-    const topR = size[0] / 2;
-    const botR = topR * shape.bottomScale;
-    return (
-      <mesh position={position} rotation={rotation} castShadow receiveShadow>
-        <cylinderGeometry args={[topR, botR, size[1], 48]} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-      </mesh>
-    );
-  }
-
-  // 外斜圓錐腳：圓料 + tapered + splay（底部偏移）
-  if (shape?.kind === "splayed-round-tapered") {
-    const geo = buildSplayedRoundTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz, 48);
-    return (
-      <mesh position={position} rotation={rotation} castShadow receiveShadow>
-        <primitive attach="geometry" object={geo} />
-        <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-      </mesh>
-    );
-  }
+  // round / round-tapered / splayed-round-tapered 已在 useMemo 統一回 buffer
+  // geometry，會走到底下的 final mesh + CSG pipeline；早期的 inline JSX 路徑
+  // 移除（Phase 2 圓料挖洞擴展）。
 
   // 夏克風腳：上方 squareFrac 方頂 + 下方圓錐（bottomScale）
   // 「胖夏克」傳 squareFrac=0.4, bottomScale=0.75 讓方頂占比大、整支看起來壯

@@ -49,9 +49,21 @@ for (const entry of FURNITURE_CATALOG) {
     }
   }
 
+  // 計算 mortise / tenon 總數，分辨「沒榫卯」vs「有但離邊夠遠不需 protect」
+  let mortiseCount = 0;
+  let tenonCount = 0;
+  for (const p of raw.parts) {
+    mortiseCount += p.mortises.length;
+    tenonCount += p.tenons.length;
+  }
+
   if (shifted.length > 0) {
-    console.log(`\n## ${entry.nameZh} (\`${entry.category}\`)`);
+    console.log(`\n## ${entry.nameZh} (\`${entry.category}\`) — ${shifted.length} shifts`);
     for (const s of shifted) console.log(s);
+  } else if (mortiseCount === 0 && tenonCount === 0) {
+    console.log(`\n## ${entry.nameZh} (\`${entry.category}\`) — no joinery (skipped)`);
+  } else {
+    console.log(`\n## ${entry.nameZh} (\`${entry.category}\`) — ${mortiseCount} mortises / ${tenonCount} tenons, no shift needed`);
   }
 }
 console.log("");
