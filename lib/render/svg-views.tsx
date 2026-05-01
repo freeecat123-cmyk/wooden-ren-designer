@@ -235,6 +235,10 @@ export function OrthoView({
           {/* CNS 3-3 規定箭頭夾角 20°：半角 10° → 半寬 = 10·tan(10°) ≈ 1.76 */}
           <path d="M 0 3.24 L 10 5 L 0 6.76 z" fill="#111" />
         </marker>
+        {/* splayed 俯視中間分割：左半詳細 / 右半簡化 用的 clipPath */}
+        <clipPath id={`leftHalf-${view}`}>
+          <rect x={vbX} y={vbY} width={-vbX} height={vbH} />
+        </clipPath>
       </defs>
 
       {/* outer frame */}
@@ -1196,9 +1200,47 @@ export function OrthoView({
                     />
                   </>
                 )}
+                {/* splayed 俯視中間分割：左半 = 詳細（含多 Y 腳框 + 落地超出 +
+                    對角線），右半 = 椅面簡化（只保留椅面 outline + 圓角 + 尺寸 +
+                    腳頂 + 外伸）。中間垂直虛線 + 兩側小標。 */}
+                {(maxSplayDx > 0 || maxSplayDz > 0) && (
+                  <g>
+                    <line
+                      x1={0}
+                      y1={-h / 2 - 6}
+                      x2={0}
+                      y2={h / 2 + 6}
+                      stroke="#bbb"
+                      strokeWidth={0.5}
+                      strokeDasharray="6 3"
+                    />
+                    <text
+                      x={-w / 4}
+                      y={-h / 2 - 50}
+                      fontSize={10}
+                      fontFamily="sans-serif"
+                      fill="#a55"
+                      textAnchor="middle"
+                    >
+                      詳細
+                    </text>
+                    <text
+                      x={w / 4}
+                      y={-h / 2 - 50}
+                      fontSize={10}
+                      fontFamily="sans-serif"
+                      fill="#888"
+                      textAnchor="middle"
+                    >
+                      簡化
+                    </text>
+                  </g>
+                )}
                 {/* 外斜腳：每個橫撐的上下緣 Y 跟落地 Y 都畫一圈腳框
                     （4 隻腳每個 Y 都畫 legSize×legSize），讓師傅看到腳在不同高度的位置。
-                    深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y */}
+                    深紅 = 落地 Y（最重要）；淺紅 = 橫撐接腳 Y
+
+                    詳細內容 clip 到 x<0 左半，clipPath 在 SVG defs 設好。*/}
                 {(maxSplayDx > 0 || maxSplayDz > 0) && (() => {
                   // 落地 Y + 牙板 Y 用深紅；下橫撐 (ls-) Y 用深藍，跟牙板分得開
                   const footColor = "#c63d3d";
@@ -1209,7 +1251,7 @@ export function OrthoView({
                   const protrudeLabel = (mm: number) =>
                     mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
                   return (
-                    <>
+                    <g clipPath={`url(#leftHalf-${view})`}>
                       {/* 橫撐上下緣 Y 的腳框（淺紅）+ 落地點腳框（深紅）
                           每隻腳依 splay 物理在每個 Y 算位置：
                           legX(Y) = origin.x + dxMm * (1 − Y / legHeight)
@@ -1278,7 +1320,7 @@ export function OrthoView({
                           label={protrudeLabel(footProtrudeZ)}
                         />
                       )}
-                    </>
+                    </g>
                   );
                 })()}
                 {/* 對角線——量方正度，一律抓「腳外角」對角。
@@ -1305,8 +1347,12 @@ export function OrthoView({
                   const offX = -Math.sin(angRad) * 14;
                   const offY = Math.cos(angRad) * 14;
                   const label = `對角 ${Math.round(diagLen)}${isSplayed ? "（落地外角）" : "（腳外角）"}`;
+                  // splayed 時對角線屬「詳細」，clip 到左半；非 splayed 維持全圖
+                  const wrapperProps = isSplayed
+                    ? { clipPath: `url(#leftHalf-${view})` }
+                    : {};
                   return (
-                    <>
+                    <g {...wrapperProps}>
                       <line
                         x1={dx1}
                         y1={dy1}
@@ -1337,7 +1383,7 @@ export function OrthoView({
                           {label}
                         </text>
                       </g>
-                    </>
+                    </g>
                   );
                 })()}
               </>
