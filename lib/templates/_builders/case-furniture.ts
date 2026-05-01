@@ -1159,6 +1159,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       }
 
       // 鑲板（木門）或玻璃片（玻璃門 — 標記為 part 但材質虛擬）
+      // butt-joint 慣例：鑲板尺寸 = 內部開窗（剛好夾在 rails/stiles 之間，不入溝）。
+      // 榫接版本可加 tongue-and-groove；組裝版用木釘 / 螺絲固定到框料背面。
       if (doorType === "wood") {
         parts.push({
           id: `${idPrefix}-${i + 1}-panel`,
@@ -1166,13 +1168,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           material,
           grainDirection: "length",
           visible: {
-            length: innerOpenW + 2 * grooveDepth - 2,
-            width: innerOpenH + 2 * grooveDepth - 2,
+            length: innerOpenW,
+            width: innerOpenH,
             thickness: panelT_door,
           },
           origin: {
             x: xCenter,
-            y: doorZoneBottomY + railW - grooveDepth,
+            y: doorZoneBottomY + railW,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },

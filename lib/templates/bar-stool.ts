@@ -375,13 +375,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const splayZb = splayDz * sBot;
     return {
       sides: [
-        // 正確 visible.length 公式：innerSpan(中心到中心) − legSize(扣兩半邊腳) + 2×tenonLen(榫頭凸進母榫)。
-        // 舊的 +2×tenonLen 沒扣 legSize → apron 兩端凸出腳外面 17mm，從正面看像穿過腳。
-        // beginner-mode.ts 的 shrink = 2×tenonLen − taperOffset 預期搭配此公式。
-        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc + 2 * apronTenonLen, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
-        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc + 2 * apronTenonLen, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+        // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
+        // = innerSpan(中心到中心) − legSize(扣兩半邊腳) + 2×splayXc（外斜補償）
+        // joinery 模式靠 cut-dimensions 加 tenon，3D 不延伸到腳裡。
+        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
       ],
       splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
     };
@@ -627,6 +627,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length, width, thickness: overallH },
     parts,
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       `吧檯椅：高度 ${height}mm（建議 700–800）；腳樣式 ${legShapeLabel(legShape)}；` +
