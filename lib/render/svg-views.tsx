@@ -1340,8 +1340,11 @@ export function OrthoView({
                   const dw = dx2 - dx1;
                   const dh = dy2 - dy1;
                   const diagLen = Math.sqrt(dw * dw + dh * dh);
-                  const cx = (dx1 + dx2) / 2;
-                  const cy = (dy1 + dy2) / 2;
+                  // splayed 模式下中間有 clipPath 切到 x=0；label 放中心會被切。
+                  // 改放對角線 1/4 位置（往左上角偏 0.25），確保整段都在 x<0 左半。
+                  const labelT = isSplayed ? 0.25 : 0.5;
+                  const cx = dx1 + dw * labelT;
+                  const cy = dy1 + dh * labelT;
                   const angDeg = (Math.atan2(dh, dw) * 180) / Math.PI;
                   const angRad = Math.atan2(dh, dw);
                   const offX = -Math.sin(angRad) * 14;
