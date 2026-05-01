@@ -554,11 +554,14 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // overall.thickness 需含椅背，否則三視圖 viewBox 會切到椅背頂端
+  // height = 座面高（不含椅背）；總高 = seatY + backHeight = height + backHeight - seatThickness
+  const overallH = withBack ? height + backHeight - seatThickness : height;
   const design: FurnitureDesign = {
     id: `bar-stool-${length}x${width}x${height}`,
     category: "bar-stool",
     nameZh: "吧檯椅",
-    overall: { length, width, thickness: height },
+    overall: { length, width, thickness: overallH },
     parts,
     defaultJoinery: "blind-tenon",
     primaryMaterial: material,
