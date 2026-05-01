@@ -49,7 +49,7 @@ export const nightstandOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 120, min: 0, max: 300, step: 10 },
+  { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 100, min: 0, max: 300, step: 10, help: "100 在 600mm 床頭櫃比例最穩；120 偏細長" },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 100, step: 1, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳" },

@@ -42,7 +42,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     midType: "drawer", midCount: 2, midCols: 1,
     bottomType: "drawer", bottomHeight: 300, bottomCount: 2, bottomCols: 1,
   }),
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },

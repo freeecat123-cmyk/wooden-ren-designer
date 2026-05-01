@@ -48,7 +48,7 @@ export const displayCabinetOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10 },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "0 = 貼地（系統櫃式）；70–80 = 沙發腳款（最常見展示櫃造型）" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },

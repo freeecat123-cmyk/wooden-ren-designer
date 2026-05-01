@@ -16,7 +16,7 @@ export const photoFrameOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "frameThickness", label: "邊框厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "backThickness", label: "背板厚 (mm)", defaultValue: 4, min: 3, max: 8, step: 1, unit: "mm", help: "三合板或卡紙板背板厚度" },
   { group: "structure", type: "number", key: "glassThickness", label: "玻璃厚 (mm)", defaultValue: 2, min: 2, max: 4, step: 1, unit: "mm", help: "玻璃行標準切片，2mm 透明玻璃最常用" },
-  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深 (mm)", defaultValue: 8, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 + 背板 + 一點裕度" },
+  { group: "structure", type: "number", key: "glassGrooveDepth", label: "玻璃槽深 (mm)", defaultValue: 6, min: 5, max: 12, step: 1, unit: "mm", help: "邊框內側鋸槽深度（4 邊都鋸），玻璃 2 + 背板 4 = 6mm 已足夠；太深會吃到 frameWidth 強度" },
   { group: "structure", type: "select", key: "frameProfile", label: "邊框輪廓", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },
     { value: "chamfer-out", label: "外緣 45° 倒角" },

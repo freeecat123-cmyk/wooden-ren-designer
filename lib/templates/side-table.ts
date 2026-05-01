@@ -31,7 +31,7 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側的距離" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 8, min: 0, max: 200, step: 5, help: "邊桌總高約 600，5–10 比例適中" },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 

@@ -31,7 +31,7 @@ export const coatRackOptions: OptionSpec[] = [
     { value: "round", label: "圓柱（直圓料）" },
     { value: "lathe-turned", label: "車旋柱（古典花瓶輪廓，最經典）" },
   ] },
-  { group: "leg", type: "number", key: "footCount", label: "底爪數", defaultValue: 4, min: 3, max: 4, step: 1, help: "3 腳穩定、4 腳更傳統" },
+  { group: "leg", type: "number", key: "footCount", label: "底爪數", defaultValue: 3, min: 3, max: 4, step: 1, help: "3 腳穩定、120° 等分視覺有設計感（預設）；4 腳更傳統，需 footLength ≥ 350 才不會視覺笨拙" },
   { group: "leg", type: "number", key: "footLength", label: "底爪長 (mm)", defaultValue: 280, min: 200, max: 450, step: 10, help: "從柱中心往外的長度（影響穩定度）" },
   { group: "structure", type: "number", key: "hookCount", label: "掛鉤數", defaultValue: 6, min: 4, max: 8, step: 2 },
   { group: "structure", type: "number", key: "hookLength", label: "掛鉤外伸長 (mm)", defaultValue: 110, min: 60, max: 180, step: 10 },

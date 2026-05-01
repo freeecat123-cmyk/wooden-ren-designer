@@ -28,7 +28,7 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall" },
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 5, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離" },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離；0 = 齊平座板下緣（最常見）" },
   // 椅背
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "slats", choices: [
     { value: "slats", label: "直條式（垂直板條）" },
@@ -37,8 +37,8 @@ export const diningChairOptions: OptionSpec[] = [
     { value: "windsor", label: "Windsor spindle 風格（多支圓棒）" },
     { value: "curved-splat", label: "曲面中板（弧形貼合背部）" },
   ] },
-  { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 2, min: 0, max: 10, step: 1, help: "backStyle=直條 時有效", dependsOn: { key: "backStyle", equals: "slats" } },
-  { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 60, min: 15, max: 200, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 0, max: 10, step: 1, help: "backStyle=直條 時有效", dependsOn: { key: "backStyle", equals: "slats" } },
+  { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 50, min: 15, max: 200, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "ladderRungs", label: "橫檔數（橫檔式用）", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "ladder" } },
   { group: "back", type: "number", key: "splatWidth", label: "中板寬 (mm)（中板式用）", defaultValue: 180, min: 80, max: 400, step: 10, dependsOn: { key: "backStyle", equals: "splat" } },
   { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
