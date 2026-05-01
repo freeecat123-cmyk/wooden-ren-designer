@@ -158,10 +158,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }),
   }));
 
-  // 4 條橫撐（凳腳之間）—— body 延伸到腳中心以視覺呈現榫頭位置
+  // 4 條橫撐（凳腳之間）—— body 延伸到腳外面（leg-outer-face 距離），
+  // 確保 3D 渲染時 body 兩端完全埋在腳裡、視覺無縫。tenons 從 body 端再延伸
+  // （但 tenon 不影響 3D 視覺，只影響材料切料表）
   const apronInnerSpan = {
-    x: length - legSize - 2 * legInset,
-    z: width - legSize - 2 * legInset,
+    x: length - 2 * legInset,
+    z: width - 2 * legInset,
   };
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
