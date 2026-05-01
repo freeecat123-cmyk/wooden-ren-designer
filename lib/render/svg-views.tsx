@@ -915,22 +915,13 @@ export function OrthoView({
           const ox = part.origin.x;
           const oy = part.origin.y + lyL / 2;
           const oz = part.origin.z;
-          // face-rounded + bendAxis="z" 在側視要延伸 |bendMm|（前面凸出的弧範圍）
           const bendMm = isFaceRounded && part.shape?.kind === "face-rounded"
-            ? (part.shape.bendMm ?? 0)
-            : 0;
+            ? (part.shape.bendMm ?? 0) : 0;
           const bendAxis = isFaceRounded && part.shape?.kind === "face-rounded"
-            ? (part.shape.bendAxis ?? "z")
-            : "z";
+            ? (part.shape.bendAxis ?? "z") : "z";
           const zMin = bendAxis === "z" && bendMm < 0 ? -lzL / 2 + bendMm : -lzL / 2;
           const zMax = bendAxis === "z" && bendMm > 0 ? +lzL / 2 + bendMm : +lzL / 2;
-          // YZ 4 corners（local center）→ X 旋轉 → 加 origin → 投影
-          const corners4: Array<[number, number, number]> = [
-            [-lyL / 2, zMin, -lxL / 2],
-            [-lyL / 2, zMax, -lxL / 2],
-            [+lyL / 2, zMax, -lxL / 2],
-            [+lyL / 2, zMin, -lxL / 2],
-          ];
+          // X 旋轉 + 加 origin + 投影到 view 平面
           const projectOne = (yL: number, zL: number, xL: number) => {
             const yR = yL * cx - zL * sx;
             const zR = yL * sx + zL * cx;
@@ -940,28 +931,47 @@ export function OrthoView({
             if (view === "side") return { x: wz, y: wy };
             return { x: -wx, y: wy }; // front
           };
-          const projected = corners4.map(([yL, zL, xL]) => projectOne(yL, zL, xL));
-          const points = projected.map((p) => `${p.x},${-p.y}`).join(" ");
-          // 端面 / 彎曲分隔線（face-rounded + bend > 0 在側視要分出原板邊界）
+          let polyPts: Array<{ x: number; y: number }>;
+          if (view === "side") {
+            // 側視：X 軸投影掉，YZ 4 corner → 平行四邊形（順時針）
+            polyPts = [
+              projectOne(-lyL / 2, zMin, 0),
+              projectOne(-lyL / 2, zMax, 0),
+              projectOne(+lyL / 2, zMax, 0),
+              projectOne(+lyL / 2, zMin, 0),
+            ];
+          } else {
+            // 正視：8 個 corner（左右 × 上下 × 前後 zMin/zMax）→ 投影到 XY
+            // X 旋轉不動 X，所以 X 範圍 = ±lxL/2；Y 範圍 = max/min of yR
+            const yRcandidates = [
+              -lyL / 2 * cx - zMin * sx,
+              -lyL / 2 * cx - zMax * sx,
+              +lyL / 2 * cx - zMin * sx,
+              +lyL / 2 * cx - zMax * sx,
+            ];
+            const yMin = Math.min(...yRcandidates) + oy;
+            const yMax = Math.max(...yRcandidates) + oy;
+            const xLeft = -(+lxL / 2 + ox);
+            const xRight = -(-lxL / 2 + ox);
+            polyPts = [
+              { x: xLeft, y: yMin },
+              { x: xRight, y: yMin },
+              { x: xRight, y: yMax },
+              { x: xLeft, y: yMax },
+            ];
+          }
+          const points = polyPts.map((p) => `${p.x},${-p.y}`).join(" ");
+          // face-rounded 帶 bend 在側視畫端面分隔線（區分真實厚度與彎曲延伸）
           let dividerLine: React.ReactNode = null;
-          if (
-            view === "side" &&
-            isFaceRounded &&
-            bendAxis === "z" &&
-            Math.abs(bendMm) >= 0.5
-          ) {
+          if (view === "side" && isFaceRounded && bendAxis === "z" && Math.abs(bendMm) >= 0.5) {
             const zDiv = bendMm > 0 ? +lzL / 2 : -lzL / 2;
-            const a = projectOne(-lyL / 2, zDiv, -lxL / 2);
-            const b = projectOne(+lyL / 2, zDiv, -lxL / 2);
+            const a = projectOne(-lyL / 2, zDiv, 0);
+            const b = projectOne(+lyL / 2, zDiv, 0);
             dividerLine = (
               <line
                 key={`${part.id}-endface`}
-                x1={a.x}
-                y1={-a.y}
-                x2={b.x}
-                y2={-b.y}
-                stroke={stroke}
-                strokeWidth={sw}
+                x1={a.x} y1={-a.y} x2={b.x} y2={-b.y}
+                stroke={stroke} strokeWidth={sw}
               />
             );
           }
