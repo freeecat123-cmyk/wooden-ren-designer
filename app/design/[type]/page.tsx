@@ -32,6 +32,7 @@ import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { HeightToSizeButton } from "@/components/design/HeightToSizeButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
+import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
   parseDesignSearchParams,
@@ -43,25 +44,41 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ type: string }> }) {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ type: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { type } = await params;
+  const sp = await searchParams;
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry) return { title: "找不到家具範本" };
+
+  const ogParams = new URLSearchParams({ type: entry.category });
+  for (const k of ["length", "width", "height", "material", "style"]) {
+    const v = sp[k];
+    if (typeof v === "string" && v) ogParams.set(k, v);
+  }
+  const ogImage = `/api/og?${ogParams.toString()}`;
+  const canonical = `/design/${entry.category}`;
+  const shareUrl = ogParams.toString() ? `${canonical}?${ogParams.toString().replace(/^type=[^&]+&?/, "")}` : canonical;
+
   const title = `${entry.nameZh}設計圖｜輸入尺寸自動產出三視圖、材料單、報價`;
   const description = `${entry.description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖紙。木頭仁木匠學院出品。`;
-  const url = `/design/${entry.category}`;
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical },
     openGraph: {
       title,
       description,
-      url,
+      url: shareUrl,
       type: "website",
-      images: [{ url: "/og.png", width: 1200, height: 630 }],
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 
@@ -160,6 +177,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <AskMasterButton
+            category={type as FurnitureCategory}
+            defaults={{ length, width, height }}
+          />
+          <ShareDesignButton
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
           />
