@@ -193,6 +193,126 @@ export type LocalBox = {
   hx: number; hy: number; hz: number;     // half-extents
 };
 
+/**
+ * 把 part-local 點 (xL, yL, zL) 經 part 的 Euler XYZ rotation + origin 投影
+ * 到指定 view 的 (vx, vy)。共用給 projectFeatureRect 跟 projectDovetailPolygon。
+ */
+function makeProjector(part: Part, view: OrthoView) {
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
+  const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
+  const cz_ = Math.cos(rz), sz_ = Math.sin(rz);
+  const { yExt } = worldExtents(part);
+  const yOffset = part.origin.y + yExt / 2;
+  return (xL: number, yL: number, zL: number) => {
+    let x = xL, y = yL, z = zL;
+    let y2 = y * cx_ - z * sx_;
+    let z2 = y * sx_ + z * cx_;
+    y = y2; z = z2;
+    let x2 = x * cy_ + z * sy_;
+    z2 = -x * sy_ + z * cy_;
+    x = x2; z = z2;
+    x2 = x * cz_ - y * sz_;
+    y2 = x * sz_ + y * cz_;
+    x = x2; y = y2;
+    const wx = x + part.origin.x;
+    const wy = y + yOffset;
+    const wz = z + part.origin.z;
+    if (view === "top") return { x: -wx, y: wz };
+    if (view === "side") return { x: wz, y: wy };
+    return { x: -wx, y: wy };
+  };
+}
+
+/**
+ * 鳩尾榫斷面投影：把 width 軸於 tenon TIP 端外擴 flare（標準 1:8 = L/8 per side），
+ * BASE 端保持 W。回 4 組 silhouette 凸包點（projected 2D），給 svg `<polygon>` 用。
+ *
+ * 用 tenon.position 推 length / width / thickness 對應到哪條 local axis；oW/oT
+ * 偏移跟一般 tenon 一致。返回 view-space 點。
+ */
+function projectDovetailPolygon(
+  part: Part,
+  tenon: Part["tenons"][number],
+  view: OrthoView,
+): Array<{ x: number; y: number }> {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const L = tenon.length;
+  const W = tenon.width;
+  const T = tenon.thickness;
+  const oW = tenon.offsetWidth ?? 0;
+  const oT = tenon.offsetThickness ?? 0;
+  const angleTan = 1 / 8; // 1:8 dovetail standard (硬木；軟木 1:6)
+  const flare = L * angleTan;
+  const project = makeProjector(part, view);
+  const ptsRaw: Array<[number, number, number]> = [];
+  // BASE = 0; TIP = +1; each pair (s_thick, s_widthAxis)
+  const addCorners = (axisL: "x" | "y" | "z", baseSign: -1 | 1, sign: -1 | 1) => {
+    // baseSign: where the tenon sits on part face (start/bottom/left = -1 face; end/top/right = +1)
+    // sign:    +1 = TIP (outer), -1 = BASE (at face)
+    // length axis goes from face out by sign × L; width axis flare = TIP wider
+    if (axisL === "x") {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const xL_ = baseSign * (lx / 2) + sign * baseSign * 0; // base at face
+      const xT_ = baseSign * (lx / 2) + sign * baseSign * L; // ... not quite
+      // simpler:
+      // BASE x = baseSign * lx/2; TIP x = baseSign * (lx/2 + L)
+      const xCoord = baseSign * (lx / 2 + (sign > 0 ? L : 0));
+      // 4 corners: ±T (thickness=Y), ±W (width=Z)
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([xCoord, oT + sT * (T / 2), oW + sW * halfW]);
+      }
+    } else if (axisL === "y") {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const yCoord = baseSign * (ly / 2 + (sign > 0 ? L : 0));
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([oW + sW * halfW, yCoord, oT + sT * (T / 2)]);
+      }
+    } else {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const zCoord = baseSign * (lz / 2 + (sign > 0 ? L : 0));
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([oW + sW * halfW, oT + sT * (T / 2), zCoord]);
+      }
+    }
+  };
+  switch (tenon.position) {
+    case "start":  addCorners("x", -1, -1); addCorners("x", -1, +1); break;
+    case "end":    addCorners("x", +1, -1); addCorners("x", +1, +1); break;
+    case "bottom": addCorners("y", -1, -1); addCorners("y", -1, +1); break;
+    case "top":    addCorners("y", +1, -1); addCorners("y", +1, +1); break;
+    case "left":   addCorners("z", -1, -1); addCorners("z", -1, +1); break;
+    case "right":  addCorners("z", +1, -1); addCorners("z", +1, +1); break;
+  }
+  const projected = ptsRaw.map(([a, b, c]) => project(a, b, c));
+  return convexHull2DLocal(projected);
+}
+
+/** 簡易 Andrew monotone-chain convex hull 2D（svg-views 內部用） */
+function convexHull2DLocal(pts: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> {
+  if (pts.length < 3) return pts.slice();
+  const sorted = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Array<{ x: number; y: number }> = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: Array<{ x: number; y: number }> = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
 function projectFeatureRect(
   part: Part,
   box: LocalBox,
@@ -1316,6 +1436,23 @@ export function OrthoView({
             for (let i = 0; i < part.tenons.length; i++) {
               const t = part.tenons[i];
               if (t.length <= 0) continue;
+              if (t.type === "dovetail") {
+                // 鳩尾榫：渲染 1:8 flare 梯形（基礎版，3D phase 4+）
+                const dovePts = projectDovetailPolygon(part, t, view);
+                if (dovePts.length >= 3) {
+                  const dvStr = dovePts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
+                  elements.push(
+                    <polygon
+                      key={`${part.id}-dt${i}`}
+                      points={dvStr}
+                      fill="none"
+                      stroke="#c0392b"
+                      strokeWidth={0.6}
+                    />,
+                  );
+                }
+                continue;
+              }
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
