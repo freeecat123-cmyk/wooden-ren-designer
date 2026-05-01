@@ -12,7 +12,13 @@ const VIEWS: { kind: ViewKind; title: string; titleEn: string }[] = [
   { kind: "top", title: "俯視圖", titleEn: "TOP" },
 ];
 
-export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
+export function ZoomableThreeViews({
+  design,
+  joineryMode = false,
+}: {
+  design: FurnitureDesign;
+  joineryMode?: boolean;
+}) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
 
@@ -53,6 +59,7 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
               title={v.title}
               titleEn={v.titleEn}
               className="bg-white w-full h-full"
+              joineryMode={joineryMode}
             />
             <span className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded bg-zinc-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
               🔍 放大
@@ -141,6 +148,7 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                   view={zoomed}
                   title={VIEWS.find((v) => v.kind === zoomed)?.title ?? ""}
                   titleEn={VIEWS.find((v) => v.kind === zoomed)?.titleEn ?? ""}
+                  joineryMode={joineryMode}
                 />
               </div>
             </div>
