@@ -17,6 +17,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `lib/pricing/*` — 報價 / 工時 / 材積 → §X, §AG, §T
 - `lib/knowledge/style-*` / 古家具參數 → §AB
 - `lib/templates/*` 任何家具 → §K（派系）, §L（木紋）, §M（撓度）, §O（人體工學）
+- `lib/templates/*` 改 `visible.length` / 牙板長度 / 抽屜尺寸 → **§A10 (butt-joint 慣例)** ⭐
+- `lib/templates/beginner-mode.ts` / `useButtJointConvention` flag → §A10.6
 
 doc 開頭有 grep keyword 索引表，動手前花 30 秒查：
 ```bash
@@ -28,6 +30,21 @@ grep -nE "<keyword>" docs/drafting-math.md
 
 修完發現新公式 / 新規則 → **回頭補進 doc 對應 section**，下個 dev / 下次 session
 才看得到。
+
+## ⭐ 加 / 改家具模板必跑 audit（butt-joint 迴歸）
+
+`scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
+零件 AABB 穿模。改完任一 `lib/templates/*` 後執行：
+
+```bash
+npx tsx scripts/audit-overlaps.ts
+```
+
+- 想加新家具：照 §A10 寫 visible.length（butt-joint length），design 設
+  `useButtJointConvention: true`，audit 必須 0 overlaps
+- 改舊家具：跑 audit 比較 before / after，數字不能變多
+- AABB 對 OBB false positive：非 quarter rotation 零件（如 coat-rack 60° foot）
+  audit 會誤報；3D 實際無穿模。需要 OBB SAT 才能消除（已知 / 後續處理）
 
 ## 卡住 / 改不好時也要查 doc（不要瞎試）
 

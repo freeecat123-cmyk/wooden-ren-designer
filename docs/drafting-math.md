@@ -28,6 +28,8 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 
 | 我要做的事 | grep keyword | 對應 section |
 |---|---|---|
+| visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
+| 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
 | 中心線 / 對稱軸 | `"中心線\|centerline"` | §A5 |
@@ -211,6 +213,98 @@ silhouette polygon 就對了。
 - 俯視：X 不變、Z 範圍會拉寬
 
 實作參考：`lib/render/svg-views.tsx` 在 default rect path 之前的 isXTilt 兜底。
+
+### A10. Part visible 慣例（butt-joint vs joinery）
+
+⭐ **核心設計決策**：所有家具模板的 `Part.visible.length / width / thickness` 一律
+代表「**端面對接後的可見尺寸**」（butt-joint length），而不是「肩到肩」的榫接版尺寸。
+
+這跟其他 CAD 系統不同——傳統 CAD 工程圖會把 visible 標成「假設榫接好 + 看不見
+榫頭」的 hidden line view；本工具直接用組裝版幾何當「真值」，榫接資訊全靠
+`tenons[]` / `mortises[]` 加上去。
+
+**A10.1 為什麼選 butt-joint 為基準**：
+- **預設模式 = 組裝版**（無榫，使用者打開頁面就看到的那個）
+  → visible 直接 = 渲染幾何，零件不會穿模 / 留縫
+- 榫接模式 = `?joineryMode=true`，是進階選項
+  → 切料尺寸由 `calculateCutDimensions()` 自動加 `tenon.length` 算（`lib/geometry/cut-dimensions.ts`）
+  → 3D 不視覺延伸到母件內，榫頭只在材料單上展現
+- 反過來如果以 joinery 為基準，組裝版要靠 `toBeginnerMode()` 反向縮短（含 splay
+  補償 / taper 補償...），補償公式很容易跟模板實際幾何不一致 → 縫 / 重疊。
+  歷史教訓：dining-table 預設 12mm 縫 + bar-stool 17mm 凸出腳外面。
+
+**A10.2 標準 butt-joint 公式**：
+
+腳排正方陣（square stool 系）、腳中心距家具中心 = `apronEdgeX/Z`，腳寬 `legSize`：
+```
+apronEdgeX = length / 2 - legSize / 2 - legInset      // 腳中心
+buttHalfX(splay) = apronEdgeX + splay - legSize / 2    // 腳內面 X (含 splay 補償)
+visible.length = 2 × buttHalfX(splay)                   // = length - 2*legSize - 2*legInset + 2*splay
+```
+
+對角放射 (round-stool / round-tea-table) 用 `cornerOffset`（腳中心到家具中心的對角距離）：
+```
+visible.length = 2 × (cornerOffset + splay) − legSize
+```
+
+圓腳（round leg）跟方腳沿軸方向的接合公式相同（直徑 = legSize）；圓腳沿斜角的
+butt-joint 由 cope cut（弧形端面）處理，但 visible.length 仍用同一公式。
+
+**A10.3 弧面 / 斜角接合（coat-rack 底爪、windsor 椅）**：
+
+零件接到 box leg 沿斜角 θ 方向時，box 沿該方向的「外面距離」不是半徑：
+```
+contactDist_box(θ) = (legSize / 2) / max(|cos θ|, |sin θ|)
+```
+- 90°/180°/270° (cardinal): contactDist = legSize/2 ✓
+- 45° (corner): contactDist = legSize × √2 / 2 ≈ 0.707 × legSize
+- 60°/120° (hexagonal coat-rack): contactDist = legSize / √3 ≈ 0.577 × legSize
+
+圓腳簡化為半徑：`contactDist_round = legSize / 2`（任意角度）。
+車旋腳 / shaker / lathe-turned 也算 round。
+
+**A10.4 splayed leg apron 的梯形 scale 公式**：
+
+外斜腳 apron `apron-trapezoid` shape 的 topLengthScale / bottomLengthScale 是
+**長度比例**（top / center 或 bot / center）。新慣例下用 buttHalf 計算：
+```
+trapTopScale = buttHalfX(apronSplayXTop) / buttHalfX(apronSplayX)
+trapBotScale = buttHalfX(apronSplayXBot) / buttHalfX(apronSplayX)
+```
+舊慣例的 leg-center 比例 `(apronEdgeX + splayXTop) / (apronEdgeX + splayX)` 在
+butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
+
+**A10.5 Drawer 抽屜的 butt-joint 規則**（`case-furniture` builder）：
+
+| 零件 | 規則 |
+|---|---|
+| `drawerH`（抽屜高） | `drawerSlotH − shelfT − 2*drawerGap`（扣分隔板厚度） |
+| drawer-side `length` | `drawerInnerD`（front 後面 → back 前面），不含 dovetail 區段 |
+| drawer-side `origin.z` | `(zFront + drawerFrontT/2 + zBack − drawerBackT/2) / 2` |
+| drawer-bottom 釘底 `origin.y` | `yBase + boxYOffset − drawerBottomT`（整個在 drawer 下方） |
+| col-partition | 切成 (rows) 段，每段在相鄰 drawer-divider 之間 |
+
+**A10.6 useButtJointConvention flag**：
+
+`FurnitureDesign.useButtJointConvention?: boolean`：
+- `true` → 模板已用 butt-joint 慣例，`toBeginnerMode()` **跳過縮短邏輯**，
+  只拔 `tenons` / `mortises` 即可
+- `false` / `undefined` → 舊慣例（visible.length = leg-center 距離），
+  `toBeginnerMode` 沿用「shrink = endTenonLen − taperOffset」邏輯做反向縮短
+
+新模板**一律設 `true`**。舊模板還沒遷移完的繼續用 `false`，但已知會有 12mm 縫
+等問題（見 A10.1）。
+
+**A10.7 Audit 工具**：
+
+`scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
+零件 AABB 體積相交（≥ 1mm 容差），輸出 markdown 表。每改家具模板執行：
+```bash
+npx tsx scripts/audit-overlaps.ts
+```
+- 0 overlaps = butt-joint 慣例貫徹
+- AABB 對 OBB false positive：旋轉非 90° 的零件（coat-rack 60° foot），AABB 比
+  OBB 大，audit 會誤報；3D 實際無穿模。需要 OBB-vs-OBB SAT 才能消除（未做）。
 
 ---
 
