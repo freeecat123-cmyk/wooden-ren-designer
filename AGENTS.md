@@ -43,8 +43,7 @@ npx tsx scripts/audit-overlaps.ts
 - 想加新家具：照 §A10 寫 visible.length（butt-joint length），design 設
   `useButtJointConvention: true`，audit 必須 0 overlaps
 - 改舊家具：跑 audit 比較 before / after，數字不能變多
-- AABB 對 OBB false positive：非 quarter rotation 零件（如 coat-rack 60° foot）
-  audit 會誤報；3D 實際無穿模。需要 OBB SAT 才能消除（已知 / 後續處理）
+- 偵測精準：AABB 快速 reject + OBB SAT 確認，非 90° 旋轉零件也準（見 §A10.7）
 
 ## 卡住 / 改不好時也要查 doc（不要瞎試）
 

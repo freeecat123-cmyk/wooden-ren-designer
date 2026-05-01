@@ -298,13 +298,22 @@ butt-joint 模式下**會過度縮窄**（每端少 legSize/2 的權重）。
 **A10.7 Audit 工具**：
 
 `scripts/audit-overlaps.ts` 跑遍所有 `FURNITURE_CATALOG`，組裝版（預設）下偵測
-零件 AABB 體積相交（≥ 1mm 容差），輸出 markdown 表。每改家具模板執行：
+零件穿模，輸出 markdown 表。每改家具模板執行：
 ```bash
 npx tsx scripts/audit-overlaps.ts
 ```
 - 0 overlaps = butt-joint 慣例貫徹
-- AABB 對 OBB false positive：旋轉非 90° 的零件（coat-rack 60° foot），AABB 比
-  OBB 大，audit 會誤報；3D 實際無穿模。需要 OBB-vs-OBB SAT 才能消除（未做）。
+
+兩階段 overlap 偵測（`lib/geometry/overlap.ts`）：
+1. **AABB 體積相交**（快速 reject 遠方對）：用 projectPartSilhouette 取
+   front + side + top 三視圖 silhouette 拼 3D AABB
+2. **OBB SAT 確認**（Separating Axis Theorem，15 軸：6 面法線 + 9 邊 cross）：
+   消除非 90° 旋轉的 AABB false positive（如 coat-rack 60° foot 的 AABB 跟
+   column 在某些軸上重疊，但 OBB 實際只跟 column 切線接觸）
+
+OBB center 對齊 PerspectiveView 渲染慣例：mesh.position = (origin.x,
+origin.y + yExt/2, origin.z)，rotation 用 Three.js Euler XYZ 順序
+(M = Rx*Ry*Rz)。
 
 ---
 
