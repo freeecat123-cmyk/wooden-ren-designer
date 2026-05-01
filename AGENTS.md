@@ -6,6 +6,31 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
+# 製圖 / 幾何 / 報價 公式集 = `docs/drafting-math.md`
+
+碰到下列任何 code 前**必須先 grep `docs/drafting-math.md` 對應 section**，
+提案要引用 § 編號（不引等於沒做）：
+
+- `lib/render/svg-views.tsx` — 三視圖 → §A
+- `lib/render/geometry.ts` — silhouette / projection → §A1, §A9
+- `components/.../details.tsx` — 榫卯細節圖 → §B, §G
+- `lib/pricing/*` — 報價 / 工時 / 材積 → §X, §AG, §T
+- `lib/knowledge/style-*` / 古家具參數 → §AB
+- `lib/templates/*` 任何家具 → §K（派系）, §L（木紋）, §M（撓度）, §O（人體工學）
+
+doc 開頭有 grep keyword 索引表，動手前花 30 秒查：
+```bash
+grep -nE "<keyword>" docs/drafting-math.md
+```
+
+⚠️ **doc 軸慣例（z 上 y 後）跟 code（y 上 z 後）不一樣**——doc 開頭有對照表，
+讀公式時心裡換軸。撞到 doc/code 衝突先停下、問使用者哪邊為準。
+
+修完發現新公式 / 新規則 → **回頭補進 doc 對應 section**，下個 dev / 下次 session
+才看得到。
+
+---
+
 # 家具設計器：加新家具種類的 SOP
 
 每次新增家具種類（FurnitureCategory）必走完這 4 步，否則「風格快速套用」按鈕的覆蓋會缺一塊。
