@@ -29,6 +29,7 @@ import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
 import { AIRefineButton } from "@/components/design/AIRefineButton";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
+import { HeightToSizeButton } from "@/components/design/HeightToSizeButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
@@ -589,6 +590,7 @@ function ParameterForm({
         </h3>
       </div>
       <SizePresetButtons category={type as FurnitureCategory} />
+      <HeightToSizeButton category={type as FurnitureCategory} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
         <NumberInput key={`length-${defaults.length}`} name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
