@@ -1013,30 +1013,27 @@ function buildBentPanelGrid(
     const tj = j / N;
     let x = -hx + lx * ti;
     let y = -hy + ly * tj;
-    // 邊緣 arch 套用：正值=往外拱、負值=往內凹
-    if (j === N && topArchMm !== 0) {
-      y += topArchMm * Math.sin(Math.PI * ti);
-    } else if (j === 0 && bottomArchMm !== 0) {
-      y += bottomArchMm * Math.sin(Math.PI * ti);
-    }
-    // 圓角投影：如果 (x, y) 落在 4 個角的外側矩形區域內、距角心 > r，
-    // 就把它推進到 r 半徑的弧上。
-    if (r > 0) {
+    // 圓角投影必須先做（用原始 rect 座標）；之後再套 arch，
+    // 否則 arch 把 y 推到 hy+arch 之後整個頂緣都會誤判進 |y|>hy-r 的角落區。
+    if (r > 0 && Math.abs(x) > hx - r && Math.abs(y) > hy - r) {
       const sx = Math.sign(x) || 1;
       const sy = Math.sign(y) || 1;
       const cx = sx * (hx - r);
       const cy = sy * (hy - r);
-      const inCornerBox =
-        Math.abs(x) > hx - r && Math.abs(y) > hy - r;
-      if (inCornerBox) {
-        const dx = x - cx;
-        const dy = y - cy;
-        const d = Math.hypot(dx, dy);
-        if (d > r && d > 1e-6) {
-          x = cx + (dx / d) * r;
-          y = cy + (dy / d) * r;
-        }
+      const dx = x - cx;
+      const dy = y - cy;
+      const d = Math.hypot(dx, dy);
+      if (d > r && d > 1e-6) {
+        x = cx + (dx / d) * r;
+        y = cy + (dy / d) * r;
       }
+    }
+    // 邊緣 arch 套用（在圓角投影之後）：正值=往外拱、負值=往內凹
+    // 圓角區的 ti 接近 0 或 1，sin(π·ti)≈0，所以角落幾乎不被 arch 影響，過渡平滑
+    if (j === N && topArchMm !== 0) {
+      y += topArchMm * Math.sin(Math.PI * ti);
+    } else if (j === 0 && bottomArchMm !== 0) {
+      y += bottomArchMm * Math.sin(Math.PI * ti);
     }
     return [x, y];
   };
@@ -1093,15 +1090,15 @@ function buildBentPanelGrid(
       indices.push(a, c, d);
     }
   }
-  // 側壁：4 條邊把 front 連到 back
+  // 側壁：4 條邊把 front 連到 back（winding 對應 outward normal，否則背面剔除後只看到一片正面）
   // 上邊 j=N (outward +Y)
   for (let i = 0; i < M; i++) {
     const fa = fIdx(i, N);
     const fb = fIdx(i + 1, N);
     const ba = bIdx(i, N);
     const bb = bIdx(i + 1, N);
-    indices.push(fa, ba, fb);
-    indices.push(fb, ba, bb);
+    indices.push(fa, fb, ba);
+    indices.push(fb, bb, ba);
   }
   // 下邊 j=0 (outward -Y)
   for (let i = 0; i < M; i++) {
@@ -1109,8 +1106,8 @@ function buildBentPanelGrid(
     const fb = fIdx(i + 1, 0);
     const ba = bIdx(i, 0);
     const bb = bIdx(i + 1, 0);
-    indices.push(fa, fb, ba);
-    indices.push(fb, bb, ba);
+    indices.push(fa, ba, fb);
+    indices.push(fb, ba, bb);
   }
   // 右邊 i=M (outward +X)
   for (let j = 0; j < N; j++) {
@@ -1118,8 +1115,8 @@ function buildBentPanelGrid(
     const fb = fIdx(M, j + 1);
     const ba = bIdx(M, j);
     const bb = bIdx(M, j + 1);
-    indices.push(fa, fb, ba);
-    indices.push(fb, bb, ba);
+    indices.push(fa, ba, fb);
+    indices.push(fb, ba, bb);
   }
   // 左邊 i=0 (outward -X)
   for (let j = 0; j < N; j++) {
@@ -1127,8 +1124,8 @@ function buildBentPanelGrid(
     const fb = fIdx(0, j + 1);
     const ba = bIdx(0, j);
     const bb = bIdx(0, j + 1);
-    indices.push(fa, ba, fb);
-    indices.push(fb, ba, bb);
+    indices.push(fa, fb, ba);
+    indices.push(fb, bb, ba);
   }
 
   const geom = new BufferGeometry();

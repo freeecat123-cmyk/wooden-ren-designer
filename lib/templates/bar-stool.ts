@@ -46,7 +46,7 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "backPostDiameter", label: "圓形支撐柱直徑 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, help: "支撐椅背板的兩支圓形垂直木", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelInset", label: "靠背距椅面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "圓柱後緣從椅面後緣往前的距離；0 = 圓柱後緣與椅面後緣對齊", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backReclineDeg", label: "靠背後仰角 (°)", defaultValue: 0, min: 0, max: 20, step: 0.5, unit: "°", help: "靠背向後傾斜的角度；正視圖看仍是直的，側視圖才會看到斜度（圓柱與板同步傾斜）", dependsOn: { key: "backStyle", equals: "panel" } },
-  { group: "back", type: "number", key: "backPostFromEdge", label: "圓柱距板端面 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, help: "圓柱中心到靠背板左/右端面的距離；圓柱貼著板背", dependsOn: { key: "backStyle", equals: "panel" } },
+  { group: "back", type: "number", key: "backPostFromEdge", label: "圓柱距板端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "圓柱外緣到靠背板左/右端面的距離；0 = 圓柱外緣齊板端面", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backPanelEmbed", label: "靠背卡入圓柱 (mm)", defaultValue: 6, min: 0, max: 30, step: 1, help: "靠背板嵌入圓柱的深度；接合處從圓柱扣掉同尺寸的平面", dependsOn: { key: "backStyle", equals: "panel" } },
   { group: "back", type: "number", key: "backHeight", label: "椅背高 (mm)", defaultValue: 200, min: 80, max: 500, step: 10, help: "從座板上緣到椅背頂", dependsOn: { key: "backStyle", notIn: ["none"] } },
   { group: "back", type: "number", key: "backSlats", label: "直條數（直條式用）", defaultValue: 3, min: 1, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "slats" } },
@@ -448,19 +448,15 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
     if (backStyle === "panel") {
       // 弧形板背：板跨左右後腳間，圓柱貼在板背面，距板端面 backPostFromEdge
-      const panelLen = innerSpanX + 2 * apronTenonLen;
+      // 板沒有榫（tenons: []），所以不加 apronTenonLen；同時上限 = 椅面 length，避免板突出椅面
+      const panelLen = Math.min(innerSpanX + 2 * apronTenonLen, length);
       // 參照物 = 圓柱「接座板處」的後緣（圓柱底端）。inset=0 → 圓柱底後緣對齊椅面後緣
       // 後仰時圓柱底端會往 -Z 偏 reclineDz，故 postZ（中心，頂端在此 Z）需 +reclineDz 補回
       const reclineRad = (backReclineDeg * Math.PI) / 180;
       const reclineDz = Math.tan(reclineRad) * backHeight;
       const postBottomBackZ = width / 2 - backPanelInset; // 圓柱底端後緣 Z（基準）
       const postZ_calc = postBottomBackZ - backPostDiameter / 2 + reclineDz;
-      // 靠背板嵌入圓柱 backPanelEmbed mm；後仰時板繞自身中軸旋轉，板背面會位移：
-      // 板背面 Z 偏移 = backPanelHeight/2 * sin + backPanelThickness/2 * cos，要從 panelZ 扣回來
-      const cosR = Math.cos(reclineRad);
-      const sinR = Math.sin(reclineRad);
-      const panelZ = postZ_calc - backPostDiameter / 2 - (backPanelThickness / 2) * cosR + backPanelEmbed - (backPanelHeight / 2) * sinR;
-      const postX = panelLen / 2 - backPostFromEdge;
+      const postX = panelLen / 2 - backPostFromEdge - backPostDiameter / 2;
       const postZ = postZ_calc;
       const postBottomY = seatY;
       const postH = backHeight;
@@ -491,7 +487,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 不是板底 Y——用板底會讓板頂過頭、板底跑出來，整片扭曲。
       // 板中心 Y 距圓柱頂端的距離 = backPanelHeight/2；圓柱頂後仰 reclineDz，所以中心 Y 處後仰 reclineDz × (1 − halfPanelH/postH)。
       const postZAtPanelCenter = postZ - reclineDz * (backPanelHeight / 2 / Math.max(1, postH));
-      const panelBottomZ = postZAtPanelCenter - backPostDiameter / 2 - backPanelThickness / 2;
+      // bend 把 vertex 推 +Z，dz = bendMm × (1 − (x/hx)²)；圓柱在 x = postX 不在中央，
+      // 所以補償用「圓柱位置的 bend 量」，不是中央最大值，否則 embed=0 會留出空隙
+      const halfPanelLen = panelLen / 2;
+      const postT = halfPanelLen > 0 ? Math.min(1, Math.abs(postX) / halfPanelLen) : 0;
+      const bendAtPost = backPanelFaceBend * Math.max(0, 1 - postT * postT);
+      // backPanelEmbed: 板再往 +Z 推這麼多 mm（卡進圓柱內部）
+      const panelBottomZ = postZAtPanelCenter - backPostDiameter / 2 - backPanelThickness / 2 - bendAtPost + backPanelEmbed;
       // bend + recline 視覺修正：彎板把幾何中心推到 +Z（centroid ≈ bendMm × 2/3），
       // 但 mesh.rotation.x 是繞 mesh 局部 (0,0,0) 轉，不是繞 centroid。
       // 結果：recline 後板會往下沉、視覺上頂緣比底緣更彎、整片像扭一下。

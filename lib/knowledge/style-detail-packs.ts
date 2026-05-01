@@ -1025,7 +1025,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backPostDiameter": 28,
       "backPanelInset": 10,
       "backReclineDeg": 4,
-      "backPostFromEdge": 35,
+      "backPostFromEdge": 22,
       "footrestWidth": 35,
       "footrestThickness": 22,
       "lowerStretcherHeight": 0
