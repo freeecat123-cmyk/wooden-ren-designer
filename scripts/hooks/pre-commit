@@ -1,15 +1,15 @@
 #!/bin/sh
-# Pre-commit hook: 跑 overlap audit，0 overlaps 才允許 commit。
+# Pre-commit hook: 跑 overlap + joint audit，全 pass 才允許 commit。
 # 安裝：npm install（會由 package.json 的 prepare script 自動 link 到 .git/hooks/）
 # 跳過：git commit --no-verify（緊急時用，但要寫清楚為什麼）
 
-# 只在 lib/templates/ 或 lib/geometry/overlap.ts 有改動時跑（節省時間）
-changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(lib/templates/|lib/geometry/overlap\.ts$|scripts/audit-overlaps\.ts$)')
+# 只在 lib/templates/、lib/geometry/、lib/joinery/、相關 audit script 有改動時跑
+changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(lib/templates/|lib/geometry/overlap\.ts$|lib/joinery/|scripts/audit-overlaps\.ts$|scripts/audit-joints\.ts$)')
 if [ -z "$changed" ]; then
   exit 0
 fi
 
-echo "🔍 Running overlap audit (template / overlap code changed)..."
+echo "🔍 Running overlap audit (template / overlap / joinery code changed)..."
 if ! npx tsx scripts/audit-overlaps.ts > /tmp/wrd-audit.log 2>&1; then
   echo ""
   echo "❌ Overlap audit failed. Output:"
@@ -21,4 +21,18 @@ if ! npx tsx scripts/audit-overlaps.ts > /tmp/wrd-audit.log 2>&1; then
   exit 1
 fi
 echo "✅ Overlap audit passed."
+
+echo "🔍 Running joint dim audit..."
+if ! npx tsx scripts/audit-joints.ts > /tmp/wrd-joint-audit.log 2>&1; then
+  echo ""
+  echo "❌ Joint audit failed. Output:"
+  echo ""
+  cat /tmp/wrd-joint-audit.log
+  echo ""
+  echo "Fix the joint dim mismatch（check standardTenon usage / mortise origin）."
+  echo "Or add the category to EXPECTED_FAILS in scripts/audit-joints.ts (Phase 4+ work)."
+  echo "To bypass for emergencies: git commit --no-verify"
+  exit 1
+fi
+echo "✅ Joint audit passed."
 exit 0

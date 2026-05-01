@@ -73,6 +73,18 @@ export interface Tenon {
   width: Millimeters;
   thickness: Millimeters;
   shoulderOn?: Array<"top" | "bottom" | "left" | "right">;
+  /**
+   * 公榫件斷面上的中心偏移（mm）。
+   * - `offsetWidth`：沿榫頭 width 軸方向的偏移
+   * - `offsetThickness`：沿榫頭 thickness 軸方向的偏移
+   *
+   * 用於「端面側單肩」等不對稱榫接（drafting-math.md §A10.10）：
+   * 例如 corner leg 的通榫，tenon 大小不變但中心朝內偏一個肩寬，
+   * 讓 mortise 遠離端面、多 10mm 留材保護。母件上對應的 mortise.origin
+   * 要跟著做相同偏移，才會對位。
+   */
+  offsetWidth?: Millimeters;
+  offsetThickness?: Millimeters;
 }
 
 export interface Mortise {

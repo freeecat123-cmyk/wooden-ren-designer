@@ -30,6 +30,8 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 |---|---|---|
 | visible.length 慣例 / butt-joint / 組裝版 | `"butt-joint\|useButtJointConvention\|端面對接"` | §A10 |
 | 弧面 / 斜角接合（含 coat-rack 底爪） | `"contactDist\|斜角\|cope"` | §A10.3 |
+| 端面側單肩 / mortise 邊緣保護 | `"端面側單肩\|edge-protection\|10mm 留材"` | §A10.10 |
+| 錐形腳 / 倒錐腳 → 牙條/橫撐補償 | `"tapered 補償\|legScaleAt\|legBottomScale"` | §A11 |
 | 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
 | hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
 | 中心線 / 對稱軸 | `"中心線\|centerline"` | §A5 |
@@ -314,6 +316,186 @@ npx tsx scripts/audit-overlaps.ts
 OBB center 對齊 PerspectiveView 渲染慣例：mesh.position = (origin.x,
 origin.y + yExt/2, origin.z)，rotation 用 Three.js Euler XYZ 順序
 (M = Rx*Ry*Rz)。
+
+**重要**：overlap audit 用 `part.visible` 算 OBB，**不含 tenon 凸出**。所以
+joineryMode 跟 butt-joint mode 跑出的結果一致——公榫凸入對應母榫不會被誤判
+為 overlap（tenons 在這層幾何不存在）。
+
+**A10.8 Joint dim audit**（Phase 1.3）：
+
+`scripts/audit-joints.ts` 在 joineryMode 下檢查每個公榫找得到對應母榫（dim
+對位，±1mm 容忍）。詳見 §B2 標準比例。
+
+```bash
+npx tsx scripts/audit-joints.ts
+npm run audit  # 同時跑 overlap + joints 兩個 audit
+```
+
+`EXPECTED_FAILS` allowlist：13 個 templates 的 tenon/mortise 維度 pre-existing
+不對位（tongue-and-groove 板拼接、圓家具圓腳 mortise、相框、矮桌中央橫撐）
+留在 allowlist 等 Phase 4+ 整合進 standardTenon()。新加 / 改 template 預設
+strict（不在 allowlist 內 unmatch 直接 fail CI）。
+
+`lib/joinery/standards.ts` 提供 `standardTenon({type, childThickness,
+childWidth, motherThickness})` → `{length, width, thickness, shoulder,
+shoulderOn}`，依 §B2 公式：
+- 榫厚 = T/3（硬軟木統一，clamp [6, T−2×肩]）
+- 榫寬 = W − 2 × 5mm 肩（4 邊全肩）
+- 盲榫長 = max(2/3 × M, 25)
+- 通榫長 = M
+
+新 template 的 tenon dim 一律 call `standardTenon()` 算，不要 hardcode。
+
+**A10.9 Mortise origin 慣例**：
+
+Mortise.origin 跟 part 之間：
+- **X / Z**：part-local 從 center 量（範圍 [−l/2, +l/2]，原點為 part 中心）。
+  ±1 sign-flag 形式（如 leg 內側 z = ±1）只用來標哪一面，不是實際座標。
+- **Y**：part-local **從底量**（範圍 [0, +ly]，原點為 part 底）。
+- **origin = mortise CENTER**（不是 face 上的左下角，也不是 part 底面位置）。
+
+對 apron-leg mortise：`origin.y = legHeight − apronDropFromTop − apronWidth/2`
+（apron 中心線 Y）。對下橫撐：`origin.y = lowerY + lowerW/2`。
+
+舊模板可能用「origin.y = apron 底」慣例（Phase 1.5 之前 legMortisesForApron 寫法），
+這會讓三視圖 mortise 虛線錯位 25mm。新慣例由 `mortiseLocalBox()`（lib/render/svg-views.tsx）
+解讀。
+
+**A10.10 端面側單肩 spec**：
+
+當 mortise（在母件上的榫眼）沿「長軸」方向距離母件對應 face < 2 × shoulder
+（= 10mm）時，4 邊全肩會讓端面側只剩 ≤ shoulder（5mm）木料 → 容易破裂。
+
+**自動觸發**（lib/joinery/edge-protection.ts post-process）：把 mortise 朝內側
+偏 (10 − 現有距離) mm，paired tenon 的 `offsetWidth` 跟著設成相同位移；
+最終端面側留材 = 10mm（2 × shoulder）。
+
+**只動 width 軸（offsetWidth）、thickness 軸不動**——側視圖看榫頭跟母件中
+心對齊，不偏。理由：visual 一致性 > 對稱保護；單軸保護已足以避免破裂。
+
+**Tenon 偏移欄位**：`Tenon.offsetWidth?` / `Tenon.offsetThickness?` —— 沿榫
+頭斷面 width / thickness 軸的中心偏移 mm。`tenonLocalBox()` 渲染時把
+offset 套進 cx/cy/cz；`calculateCutDimensions()` 不動（offset 不影響切料）。
+
+**Trigger 條件**：自動偵測。對 4 corner 腳家具（legInset=0），seat / 底板
+mortise 跟外側端面距離 = 5mm < 10，自動觸發 5mm 偏移；對 legInset > 5 的
+家具，距離 > 10mm，不觸發。對牙條 / 橫撐進腳的盲榫，如果該 mortise 靠近
+腳頂或腳底 < 10mm，也自動觸發（例如餐椅椅背頂橫木 → 背柱）。
+
+**v1 限制**：受方件（mortise 所在 part）必須 axis-aligned（無 rotation）；
+公榫件（tenon 所在）也要。Apron 等旋轉零件目前不在自動偏移範圍。
+
+---
+
+### A11. Tapered 腳跟橫撐／牙條對齊
+
+⭐ **核心問題**：tapered 腳（錐形腳 / 方錐漸縮 / 倒錐腳）的 cross-section
+隨 Y 線性變化。Apron / stretcher 的 `visible.length` 公式如果用「腳頂寬」
+（= legSize 常數），會跟腳在 apron Y 處的實際內面對不上 → 出現縫隙
+（apron 短）或 overlap（apron 長）。
+
+**A11.1 leg shape 的 bottomScale 對照表**：
+
+| Shape | bottomScale | 視覺 |
+|---|---|---|
+| `box` / `splayed*` | 1 | 腳寬不變（不縮）|
+| `tapered`（錐形腳） | 0.6 | 下方收窄至 60% |
+| `strong-taper`（方錐漸縮） | 0.4 | 下方收窄至 40% |
+| `inverted`（倒錐腳） | 1.25 | 下方更粗 25% |
+
+`splayed` 系列：腳整支歪斜（bottom 偏 dxMm/dzMm），cross-section 不變
+（已有 `apronCenterShift × splayDx` 補償），跟 taper 互不衝突。
+
+**A11.2 Y 處腳寬公式**：
+
+```ts
+scaleAt(Y, legHeight, bottomScale) = bottomScale + (1 − bottomScale) × Y/legHeight
+                                    = 1 − bottomFactor × (1 − bottomScale)
+```
+
+- Y = 0（底）：scale = bottomScale
+- Y = legHeight（頂）：scale = 1
+- 線性插值，bottomScale = 1 時提早 return 1（box / splayed）
+
+`bottomFactor = 1 − Y/legHeight = apronCenterShift`（同 splay 用的 shift）
+
+實作：`lib/templates/_helpers.ts`
+```ts
+export function legBottomScale(legShape: string): number;
+export function legScaleAt(Y, legHeight, bottomScale): number;
+```
+
+**A11.3 Apron / stretcher 端面位置**：
+
+母件 = leg（在 apron Y 位置）：
+```
+apronLegSize  = legSize × scaleAt(apronCenterY, legHeight, bottomScale)
+buttHalfX(splay) = apronEdgeX + splay − apronLegSize / 2
+apronInnerSpan.x = 2 × apronEdgeX − apronLegSize
+visibleLength = apronInnerSpan.x + 2 × apronSplayX
+```
+
+下橫撐 / 腳踏（更靠近底，scale 偏離 1 更明顯，錯位最大）：
+```
+lsLegSize = legSize × scaleAt(lsCenterY, legHeight, bottomScale)
+lsInnerSpan.x = 2 × apronEdgeX − lsLegSize
+```
+
+**A11.4 Apron-trapezoid（梯形 apron）scale 補償**：
+
+`apron-trapezoid` shape 的 `topLengthScale / bottomLengthScale` 用 buttHalf
+比例算。原本只支援 splay（splayDx > 0），現在加 `bottomScale !== 1` 也觸發：
+```ts
+const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+trapTopScale = buttHalfXTop(splayXt) / buttHalfX(splayXc)  // splay × taper combo
+trapBotScale = buttHalfXBot(splayXb) / buttHalfX(splayXc)
+```
+
+`buttHalfXTop / buttHalfXBot` 用 apron 上下緣 Y 對應的 `apronLegSizeTop / Bot`：
+```
+buttHalfXTop(splay) = apronEdgeX + splay − apronLegSizeTop / 2
+buttHalfXBot(splay) = apronEdgeX + splay − apronLegSizeBot / 2
+```
+
+→ apron 端面跟著腳的傾斜（splay）與粗細變化（taper）一起調整。
+
+**A11.5 套用範圍**：
+
+| 模板 | 使用 builder | 已套 |
+|---|---|---|
+| 方凳 | `square-stool.ts` | ✓ |
+| 長凳/茶几/邊桌/矮桌/餐桌/書桌 | `_builders/simple-table.ts` | ✓ |
+| 餐椅 | `dining-chair.ts` | ✓（apron 一層）|
+| 吧檯椅 | `bar-stool.ts` | ✓（apron + 腳踏 兩層）|
+
+**A11.6 新增 tapered 變體要動兩處**：
+
+1. `lib/templates/_helpers.ts` 的 `rectLegShape()` 加新 case
+2. 同檔的 `legBottomScale()` 加對應 bottomScale 值
+
+否則模板會 render 對的腳形狀，但 apron / stretcher 端面長度沒補償 → 端面對不齊。
+
+**A11.7 Audit 偵測限制（已知盲點）**：
+
+`scripts/audit-overlaps.ts` 用 AABB + OBB SAT 偵測零件穿模，**兩階段都用
+`part.visible` 算固定方塊**，不模擬 shape 沿 Y 的變化：
+
+1. **gap 不偵測**：audit 只報 overlap、不報 gap。tapered 腳跟 apron 之間原本
+   錯位 5–10mm 縫，audit 一直報 0 overlap（沒人發現直到使用者手動切 legShape
+   才看出來）。要徹底解決需另寫 silhouette-based contact check。
+
+2. **OBB 用「腳頂寬」常數方塊**：tapered 腳的 cross-section 隨 Y 變化、splayed
+   腳整支歪斜，但 OBB 仍用 visible.length × visible.width 算盒子。對於低處
+   橫撐配 tapered 腳的情境，audit 會「**誤報** overlap」（5–8mm AABB 相交，
+   實際 silhouette 沒接觸）。`SHAPE_AWARE_VARIANTS` allowlist 把這些 case 標
+   `⚠️ obb-fp` 不擋 CI。
+
+3. **Audit parametrize**：對每個 template 的 `legShape` select 選項所有
+   choice 各跑一次（不只 default），把 26 case 擴成約 120 case，能抓到非
+   default 才會出現的真 overlap（false positive 由 allowlist 過濾）。
+
+`scripts/audit-joints.ts` 也同步 parametrize legShape，joint dim 對位 audit
+跑 120 case。
 
 ---
 

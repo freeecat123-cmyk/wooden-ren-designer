@@ -184,6 +184,171 @@ function partFill(part: Part) {
   return MATERIALS[part.material].color;
 }
 
+// ─── Joinery overlay (Phase 1.5) ────────────────────────────────────────────
+// 把 part-local AABB（tenon 或 mortise 的小箱）投影到 view 平面，回 bbox。
+// 採跟 projectPartSilhouette 相同的 Euler XYZ + bottom-origin 慣例：
+//   M = Rx * Ry * Rz；part.origin.y 是 part 底部；local 軸 length=X、thickness=Y、width=Z
+type LocalBox = {
+  cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
+  hx: number; hy: number; hz: number;     // half-extents
+};
+
+function projectFeatureRect(
+  part: Part,
+  box: LocalBox,
+  view: OrthoView,
+): { x: number; y: number; w: number; h: number } {
+  const ly = part.visible.thickness;
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
+  const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
+  const cz_ = Math.cos(rz), sz_ = Math.sin(rz);
+  const { yExt } = worldExtents(part);
+  const yOffset = part.origin.y + yExt / 2;
+
+  const project = (xL: number, yL: number, zL: number) => {
+    let x = xL, y = yL, z = zL;
+    // Rx
+    let y2 = y * cx_ - z * sx_;
+    let z2 = y * sx_ + z * cx_;
+    y = y2; z = z2;
+    // Ry
+    let x2 = x * cy_ + z * sy_;
+    z2 = -x * sy_ + z * cy_;
+    x = x2; z = z2;
+    // Rz
+    x2 = x * cz_ - y * sz_;
+    y2 = x * sz_ + y * cz_;
+    x = x2; y = y2;
+    const wx = x + part.origin.x;
+    const wy = y + yOffset;
+    const wz = z + part.origin.z;
+    let vx: number, vy: number;
+    if (view === "top") { vx = -wx; vy = wz; }
+    else if (view === "side") { vx = wz; vy = wy; }
+    else { vx = -wx; vy = wy; }
+    return { x: vx, y: vy };
+  };
+
+  const corners: Array<{ x: number; y: number }> = [];
+  for (const sx of [-1, 1])
+    for (const sy of [-1, 1])
+      for (const sz of [-1, 1]) {
+        corners.push(project(box.cx + sx * box.hx, box.cy + sy * box.hy, box.cz + sz * box.hz));
+      }
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const c of corners) {
+    if (c.x < minX) minX = c.x;
+    if (c.x > maxX) maxX = c.x;
+    if (c.y < minY) minY = c.y;
+    if (c.y > maxY) maxY = c.y;
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+/**
+ * Tenon 在公榫件 local 座標下的 AABB。
+ * 慣例（drafting-math.md §A5/§B2）：
+ *   "start" 沿 -X、"end" 沿 +X 凸出；
+ *   "top" 沿 +Y、"bottom" 沿 -Y 凸出；
+ *   "left" 沿 -Z、"right" 沿 +Z 凸出。
+ *   length = 凸出方向尺寸；width × thickness 是斷面（4 邊全肩居中）。
+ *   斷面對應軸：start/end → width 沿 Z、thickness 沿 Y；
+ *              top/bottom → width 沿 X、thickness 沿 Z；
+ *              left/right → width 沿 X、thickness 沿 Y。
+ */
+function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const L = tenon.length;
+  const W = tenon.width;     // 斷面寬
+  const T = tenon.thickness; // 斷面厚
+  // 不對稱榫接的中心偏移（drafting-math.md §A10.10）
+  const oW = tenon.offsetWidth ?? 0;
+  const oT = tenon.offsetThickness ?? 0;
+  switch (tenon.position) {
+    // start/end：length 沿 ±X，width 沿 Z，thickness 沿 Y
+    case "start":
+      return { cx: -lx / 2 - L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+    case "end":
+      return { cx: +lx / 2 + L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+    // top/bottom：length 沿 ±Y，width 沿 X，thickness 沿 Z
+    case "top":
+      return { cx: oW, cy: +ly / 2 + L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+    case "bottom":
+      return { cx: oW, cy: -ly / 2 - L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+    // left/right：length 沿 ±Z，width 沿 X，thickness 沿 Y
+    case "left":
+      return { cx: oW, cy: oT, cz: -lz / 2 - L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+    case "right":
+      return { cx: oW, cy: oT, cz: +lz / 2 + L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+  }
+}
+
+/**
+ * Mortise 在母件 local 座標下的 AABB。
+ *
+ * Mortise.origin 慣例（從 lib/templates/* 散落用法歸納）：
+ *   - X / Z：part-local 從 center 量（範圍 [-l/2, +l/2]，原點為 part 中心）。
+ *     對於 ±1 sign-flag 形式（如 leg 內側 z = ±1），表示「靠該面的內側」，
+ *     渲染上 clamp 到 ±lz/2 - depth/2 把 mortise 推回到內部。
+ *   - Y：part-local 從底量（範圍 [0, +ly]，原點為 part 底）。
+ *
+ * Mortise depth 軸推測：origin 哪個軸最靠近 part 表面，就視為 depth 軸。
+ *   - Y 面：min(|y|, |y - ly|) 最小
+ *   - X 面：min(|x - lx/2|, |x + lx/2|) 最小
+ *   - Z 面：min(|z - lz/2|, |z + lz/2|) 最小
+ *
+ * 限制：對非軸對齊 mortise（例如圓腳上的 mortise）無法處理，等 Phase 4+。
+ */
+function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  // Y 是 from-bottom，shift 到 centered
+  const oxC = m.origin.x;
+  const oyC = m.origin.y - ly / 2;
+  const ozC = m.origin.z;
+
+  const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+  const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
+  const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+
+  // 通孔（through）depth = 母件厚（沿 depth 軸的全長）
+  // 深度軸 = 最靠近表面的軸
+  let depthAxis: "x" | "y" | "z";
+  if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
+  else if (xToFace <= zToFace) depthAxis = "x";
+  else depthAxis = "z";
+
+  const D = m.depth;
+  const Lm = m.length;
+  const Wm = m.width;
+
+  if (depthAxis === "y") {
+    // 入口面 = 上面 or 下面；mortise 的 length × width 在 X-Z 面上
+    // 中心 Y：通孔置中；半通由入口位置 + depth/2 推
+    const enterTop = m.origin.y >= ly - 1; // 若 origin 接近頂面
+    const cyL = m.through
+      ? 0
+      : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
+    return { cx: oxC, cy: cyL, cz: ozC, hx: Lm / 2, hy: D / 2, hz: Wm / 2 };
+  } else if (depthAxis === "x") {
+    const enterRight = m.origin.x >= 0;
+    const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
+    return { cx: cxL, cy: oyC, cz: ozC, hx: D / 2, hy: Lm / 2, hz: Wm / 2 };
+  } else {
+    // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg）。
+    // 慣例：mortise.length 沿 part Y（順 leg 高），mortise.width 沿 part X。
+    const enterFront = m.origin.z >= 0;
+    const czL = enterFront ? +lz / 2 - D / 2 : -lz / 2 + D / 2;
+    return { cx: oxC, cy: oyC, cz: czL, hx: Wm / 2, hy: Lm / 2, hz: D / 2 };
+  }
+}
+
 /** Single orthographic view with engineering-drawing frame and dim lines */
 export function OrthoView({
   design,
@@ -191,12 +356,15 @@ export function OrthoView({
   title,
   titleEn,
   className,
+  joineryMode = false,
 }: ViewProps & {
   view: OrthoView;
   title: string;
   titleEn: string;
   /** 覆蓋 SVG 預設 className（預設 "bg-white w-full h-auto max-h-[70vh]"） */
   className?: string;
+  /** 榫接模式：在三視圖上加畫公榫凸出（實線）+ 母榫（虛線）+ 肩寬虛線 */
+  joineryMode?: boolean;
 }) {
   const { overall } = design;
   const w = view === "side" ? overall.width : overall.length;
@@ -1109,6 +1277,59 @@ export function OrthoView({
         opacity={0.8}
       />
 
+      {/* 榫接模式 overlay：tenon 凸出實線（紅）+ mortise 虛線（藍）
+          Phase 1.5（drafting-math.md §B6）。glass 件略過。 */}
+      {joineryMode && (
+        <g pointerEvents="none">
+          {design.parts.map((part) => {
+            if (part.visual === "glass") return null;
+            const elements: React.ReactNode[] = [];
+            // tenon 凸出（公榫）— 實線紅
+            for (let i = 0; i < part.tenons.length; i++) {
+              const t = part.tenons[i];
+              if (t.length <= 0) continue;
+              const lb = tenonLocalBox(part, t);
+              const r = projectFeatureRect(part, lb, view);
+              if (r.w < 0.5 || r.h < 0.5) continue;
+              elements.push(
+                <rect
+                  key={`${part.id}-t${i}`}
+                  x={r.x}
+                  y={-(r.y + r.h)}
+                  width={r.w}
+                  height={r.h}
+                  fill="none"
+                  stroke="#c0392b"
+                  strokeWidth={0.6}
+                />,
+              );
+            }
+            // mortise 虛線（母榫）— 藍 dashed
+            for (let i = 0; i < part.mortises.length; i++) {
+              const m = part.mortises[i];
+              if (m.depth <= 0) continue;
+              const lb = mortiseLocalBox(part, m);
+              const r = projectFeatureRect(part, lb, view);
+              if (r.w < 0.5 || r.h < 0.5) continue;
+              elements.push(
+                <rect
+                  key={`${part.id}-m${i}`}
+                  x={r.x}
+                  y={-(r.y + r.h)}
+                  width={r.w}
+                  height={r.h}
+                  fill="none"
+                  stroke="#2980b9"
+                  strokeWidth={0.45}
+                  strokeDasharray="3 2"
+                />,
+              );
+            }
+            return elements.length > 0 ? <g key={`joinery-${part.id}`}>{elements}</g> : null;
+          })}
+        </g>
+      )}
+
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
           Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
       <DimensionLine
@@ -1718,17 +1939,23 @@ function VerticalDimensionLine({
   );
 }
 
-export function ThreeViewLayout({ design }: { design: FurnitureDesign }) {
+export function ThreeViewLayout({
+  design,
+  joineryMode = false,
+}: {
+  design: FurnitureDesign;
+  joineryMode?: boolean;
+}) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT VIEW" />
+        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT VIEW" joineryMode={joineryMode} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE VIEW" />
+        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE VIEW" joineryMode={joineryMode} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP VIEW" />
+        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP VIEW" joineryMode={joineryMode} />
       </div>
     </div>
   );

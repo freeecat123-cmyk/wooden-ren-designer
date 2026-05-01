@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR } from "@/lib/knowledge/chair-geometry";
 
@@ -301,7 +301,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   // 4 座面下牙板 —— butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
-  const apronInnerSpan = { x: length - 2 * legSize, z: width - 2 * legSize };
+  // tapered 補償（drafting-math.md §A11）：legSize × legScaleAt(apronCenterY) 而非腳頂寬
+  const bottomScale = legBottomScale(legShape);
+  const apronCenterY = apronY + apronWidth / 2;
+  const apronLegSize = legSize * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
+  const apronInnerSpan = { x: length - 2 * apronLegSize, z: width - 2 * apronLegSize };
   void backHeight;
   const apronSides = [
     {

@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -244,16 +244,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // Aprons (4 sides) — butt-joint 慣例：visible.length 兩端剛好頂在腳的內側
   // 面，組裝版渲染就是 final 幾何（不重疊、不留縫）。joinery 模式靠 tenon[]
   // 加切料長度，3D 不視覺延伸。
-  // 內側面距離 = length - 2*legSize - 2*legInset。
-  const apronInnerSpan = {
-    x: length - 2 * legSize - 2 * legInset,
-    z: width - 2 * legSize - 2 * legInset,
-  };
+  // 內側面距離 = length - 2*legSize - 2*legInset，再依 tapered 腳補償（drafting-math.md §A11）。
+  const bottomScale = legBottomScale(legShape);
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
-  // butt-joint 半長：腳中心 + splay 偏移 - legSize/2 = 腳內面位置。
-  const buttHalfX = (splay: number) => apronEdgeX + splay - legSize / 2;
-  const buttHalfZ = (splay: number) => apronEdgeZ + splay - legSize / 2;
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width（只沿 Z）
   // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
   const splayDx =
@@ -275,6 +269,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronSplayZTop = splayDz * apronTopShift;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
+  // tapered 補償：apron 三條 Y 位置（中、上、下）各自的腳寬
+  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
+  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
+  const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, bottomScale);
+  const apronInnerSpan = {
+    x: 2 * apronEdgeX - apronLegSizeCenter,
+    z: 2 * apronEdgeZ - apronLegSizeCenter,
+  };
+  // butt-joint 半長：腳中心 + splay 偏移 - apronLegSize/2 = 腳內面（在 apron Y 處）位置
+  const buttHalfX = (splay: number) => apronEdgeX + splay - apronLegSizeCenter / 2;
+  const buttHalfZ = (splay: number) => apronEdgeZ + splay - apronLegSizeCenter / 2;
+  const buttHalfXTop = (splay: number) => apronEdgeX + splay - apronLegSizeTop / 2;
+  const buttHalfXBot = (splay: number) => apronEdgeX + splay - apronLegSizeBot / 2;
+  const buttHalfZTop = (splay: number) => apronEdgeZ + splay - apronLegSizeTop / 2;
+  const buttHalfZBot = (splay: number) => apronEdgeZ + splay - apronLegSizeBot / 2;
   const apronSides = [
     {
       key: "front",
@@ -320,19 +329,20 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
-    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放。
-    // 用 butt-joint 半長算比例，跟 visible.length 慣例一致。
+    // 同軸有 splay 或 tapered → 梯形：以中軸對齊腳中軸，top/bot 各算 scale。
+    // 用 butt-joint 半長算比例，跟 visible.length 慣例一致（含 taper 補償）。
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
     const trapTopScale =
-      s.axis === "x" && splayDx > 0
-        ? buttHalfX(apronSplayXTop) / buttHalfX(apronSplayX)
-        : s.axis === "z" && splayDz > 0
-          ? buttHalfZ(apronSplayZTop) / buttHalfZ(apronSplayZ)
+      s.axis === "x" && hasShapeBend
+        ? buttHalfXTop(apronSplayXTop) / buttHalfX(apronSplayX)
+        : s.axis === "z" && hasShapeBend
+          ? buttHalfZTop(apronSplayZTop) / buttHalfZ(apronSplayZ)
           : null;
     const trapBotScale =
-      s.axis === "x" && splayDx > 0
-        ? buttHalfX(apronSplayXBot) / buttHalfX(apronSplayX)
-        : s.axis === "z" && splayDz > 0
-          ? buttHalfZ(apronSplayZBot) / buttHalfZ(apronSplayZ)
+      s.axis === "x" && hasShapeBend
+        ? buttHalfXBot(apronSplayXBot) / buttHalfX(apronSplayX)
+        : s.axis === "z" && hasShapeBend
+          ? buttHalfZBot(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
     const partShape = trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -444,27 +454,42 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sSplayZBot = splayDz * sBotShift;
     const sSplayXTop = splayDx * sTopShift;
     const sSplayZTop = splayDz * sTopShift;
+    // tapered 補償：下橫撐三條 Y 位置（中、上、下）各自的腳寬
+    const sLegSizeCenter = legSize * legScaleAt(sCenterY, legHeight, bottomScale);
+    const sLegSizeTop = legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
+    const sLegSizeBot = legSize * legScaleAt(stretcherY, legHeight, bottomScale);
+    const sInnerSpan = {
+      x: 2 * apronEdgeX - sLegSizeCenter,
+      z: 2 * apronEdgeZ - sLegSizeCenter,
+    };
+    const sButtHalfX = (splay: number) => apronEdgeX + splay - sLegSizeCenter / 2;
+    const sButtHalfZ = (splay: number) => apronEdgeZ + splay - sLegSizeCenter / 2;
+    const sButtHalfXTop = (splay: number) => apronEdgeX + splay - sLegSizeTop / 2;
+    const sButtHalfXBot = (splay: number) => apronEdgeX + splay - sLegSizeBot / 2;
+    const sButtHalfZTop = (splay: number) => apronEdgeZ + splay - sLegSizeTop / 2;
+    const sButtHalfZBot = (splay: number) => apronEdgeZ + splay - sLegSizeBot / 2;
     const lowerSides = [
-      { key: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplayZ) } },
-      { key: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplayZ } },
-      { key: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplayX), z: 0 } },
-      { key: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplayX, z: 0 } },
+      { key: "ls-front", nameZh: "前下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + sSplayZ) } },
+      { key: "ls-back", nameZh: "後下橫撐", visibleLength: sInnerSpan.x + 2 * sSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + sSplayZ } },
+      { key: "ls-left", nameZh: "左下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + sSplayX), z: 0 } },
+      { key: "ls-right", nameZh: "右下橫撐", visibleLength: sInnerSpan.z + 2 * sSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + sSplayX, z: 0 } },
     ];
     for (const s of lowerSides) {
       const bevelAngle = isSplayed
         ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
         : 0;
+      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
       const trapTopScale =
-        s.axis === "x" && splayDx > 0
-          ? buttHalfX(sSplayXTop) / buttHalfX(sSplayX)
-          : s.axis === "z" && splayDz > 0
-            ? buttHalfZ(sSplayZTop) / buttHalfZ(sSplayZ)
+        s.axis === "x" && hasShapeBend
+          ? sButtHalfXTop(sSplayXTop) / sButtHalfX(sSplayX)
+          : s.axis === "z" && hasShapeBend
+            ? sButtHalfZTop(sSplayZTop) / sButtHalfZ(sSplayZ)
             : null;
       const trapBotScale =
-        s.axis === "x" && splayDx > 0
-          ? buttHalfX(sSplayXBot) / buttHalfX(sSplayX)
-          : s.axis === "z" && splayDz > 0
-            ? buttHalfZ(sSplayZBot) / buttHalfZ(sSplayZ)
+        s.axis === "x" && hasShapeBend
+          ? sButtHalfXBot(sSplayXBot) / sButtHalfX(sSplayX)
+          : s.axis === "z" && hasShapeBend
+            ? sButtHalfZBot(sSplayZBot) / sButtHalfZ(sSplayZ)
             : 1;
       const lsShape = trapTopScale !== null
         ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }

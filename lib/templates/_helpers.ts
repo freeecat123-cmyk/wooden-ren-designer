@@ -109,6 +109,39 @@ export const RECT_LEG_SHAPE_CHOICES = [
 ];
 
 /**
+ * 對應各 leg shape 的 bottomScale。Apron / stretcher 計算 buttHalf 時要乘
+ * `legScaleAt(Y, legHeight, bottomScale)`，否則 tapered 腳的橫撐長度用了
+ * 「腳頂寬」算，會跟腳的實際內面對不上（drafting-math.md §A11）。
+ *
+ * 與 rectLegShape 內部 mapping 對齊；新增 tapered 變體要兩處同步。
+ */
+export function legBottomScale(legShape: string): number {
+  if (legShape === "tapered") return 0.6;
+  if (legShape === "strong-taper") return 0.4;
+  if (legShape === "inverted") return 1.25;
+  return 1; // box / splayed / splayed-length / splayed-width 不縮 cross-section
+}
+
+/**
+ * 腳在世界 y 高度 Y 處的 cross-section scale（相對 legSize）。Y=0 = 腳底；
+ * Y=legHeight = 腳頂。
+ *
+ * 等效公式：scale = bottomScale + (1 − bottomScale) × Y/legHeight
+ *         = 1 − bottomFactor × (1 − bottomScale)，
+ *         其中 bottomFactor = 1 − Y/legHeight（同 apronCenterShift 慣例）
+ */
+export function legScaleAt(
+  Y: number,
+  legHeight: number,
+  bottomScale: number,
+): number {
+  if (legHeight <= 0) return 1;
+  if (bottomScale === 1) return 1;
+  const t = Math.max(0, Math.min(1, Y / legHeight));
+  return bottomScale + (1 - bottomScale) * t;
+}
+
+/**
  * 矩形腳 shape mapping。給 corner 座標 c 與 shape key，回傳 Part.shape。
  * 用 { kind: ... } 形式跟現有 dining-chair / bar-stool 一致。
  *
@@ -140,6 +173,8 @@ export function rectLegShape(
   if (shape === "tapered") return { kind: "tapered", bottomScale: 0.6, chamferMm, chamferStyle };
   if (shape === "strong-taper") return { kind: "tapered", bottomScale: 0.4, chamferMm, chamferStyle };
   if (shape === "inverted") return { kind: "tapered", bottomScale: 1.25, chamferMm, chamferStyle };
+  // 注意：要新增 tapered 變體時，除這裡外也要改 lib/templates/_helpers.ts 內的
+  // legBottomScale() 才能讓 apron/stretcher 的 buttHalf 公式跟著補償
   if (shape === "splayed") {
     return {
       kind: "splayed",

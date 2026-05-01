@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type { FurnitureCategory } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import {
@@ -31,7 +32,9 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const { length, width, height, material, options, joineryMode } = parsed;
 
   const rawDesign = entry.template({ length, width, height, material, options });
-  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+  const design = joineryMode
+    ? applyEdgeProtection(rawDesign)
+    : toBeginnerMode(rawDesign);
 
   const { lumberGroups, sheetGroups } = buildCutPieces(design);
   // 旋轉預設不勾——使用者可在零件清單個別勾。原本為 sheet 強制 allowRotate:true

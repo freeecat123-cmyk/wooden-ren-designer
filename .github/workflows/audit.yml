@@ -1,20 +1,24 @@
-name: Overlap Audit
+name: Geometry Audit
 
 on:
   push:
     branches: [main]
     paths:
       - "lib/templates/**"
-      - "lib/geometry/overlap.ts"
+      - "lib/geometry/**"
+      - "lib/joinery/**"
       - "lib/render/geometry.ts"
       - "scripts/audit-overlaps.ts"
+      - "scripts/audit-joints.ts"
       - "lib/types/index.ts"
   pull_request:
     paths:
       - "lib/templates/**"
-      - "lib/geometry/overlap.ts"
+      - "lib/geometry/**"
+      - "lib/joinery/**"
       - "lib/render/geometry.ts"
       - "scripts/audit-overlaps.ts"
+      - "scripts/audit-joints.ts"
       - "lib/types/index.ts"
 
 jobs:
@@ -27,5 +31,5 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run overlap audit
+      - name: Run overlap + joint audits
         run: npm run audit

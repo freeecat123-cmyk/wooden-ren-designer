@@ -5,10 +5,11 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
+import { standardTenon } from "@/lib/joinery/standards";
 
 export const squareStoolOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
@@ -85,20 +86,31 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
 
-  const legTenonLength = seatThickness; // 通榫穿過座板
-  // 通榫也要有肩：tenon 斷面 = 柱腳的 2/3，四面留肩
-  const legTopTenonSize = Math.max(15, Math.round((legSize * 2) / 3));
-  // 正規比例：榫厚 = min(apron 厚 - 兩肩 12, 柱腳 1/3)；肩寬固定 6mm
-  const MIN_SHOULDER = 6;
-  const apronTenonLength = Math.round((legSize * 2) / 3);
-  const apronTenonThick = Math.max(
-    6,
-    Math.min(apronThickness - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
-  );
-  const apronTenonW = Math.max(15, apronWidth - 2 * MIN_SHOULDER);
-
   const legHeight = height - seatThickness;
 
+  // 直榫標準（drafting-math.md §B2）：榫厚 = 公件厚 / 3、肩寬固定 5mm 4 邊全肩、
+  // 盲榫長 = max(2/3 × 母厚, 25mm)、通榫長 = 母厚。
+  // 1) leg ↔ seat：通榫；公件 = 凳腳（square legSize × legSize），母件 = 座板（厚 seatThickness）
+  const legTenonStd = standardTenon({
+    type: "through-tenon",
+    childThickness: legSize,
+    childWidth: legSize,
+    motherThickness: seatThickness,
+  });
+  // 2) apron ↔ leg：盲榫；公件 = 牙板（厚 apronThickness × 寬 apronWidth），母件 = 凳腳（厚 legSize）
+  const apronTenonStd = standardTenon({
+    type: "shouldered-tenon",
+    childThickness: apronThickness,
+    childWidth: apronWidth,
+    motherThickness: legSize,
+  });
+  const apronTenonLength = apronTenonStd.length;
+  const apronTenonThick = apronTenonStd.thickness;
+  const apronTenonW = apronTenonStd.width;
+
+  // 端面側單肩 spec 由 lib/joinery/edge-protection.ts 通用 post-process 處理
+  // （drafting-math.md §A10.10）。模板維持「4 邊全肩中央」naive 慣例，
+  // edge protection auto-walker 偵測 mortise 邊距 < shoulder 時自動偏。
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
@@ -111,12 +123,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       : seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0),
     tenons: [],
     mortises: [
-      // 4 個通孔：座板四角放凳腳通榫（肩內縮的斷面）
+      // 4 個通孔：座板四角放凳腳通榫（rectangular，wide 軸沿 X 順 seat 紋向）
+      // mortise.length = tenon.width（寬軸）、mortise.width = tenon.thickness（窄軸）
       ...corners(length, width, legSize, legInset).map((c) => ({
         origin: { x: c.x, y: 0, z: c.z },
         depth: seatThickness,
-        length: legTopTenonSize,
-        width: legTopTenonSize,
+        length: legTenonStd.width,
+        width: legTenonStd.thickness,
         through: true,
       })),
     ],
@@ -142,9 +155,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       {
         position: "top",
         type: "through-tenon",
-        length: legTenonLength,
-        width: legTopTenonSize,
-        thickness: legTopTenonSize,
+        length: legTenonStd.length,
+        width: legTenonStd.width,
+        thickness: legTenonStd.thickness,
+        shoulderOn: [...legTenonStd.shoulderOn],
       },
     ],
     // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）
@@ -161,11 +175,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 4 條橫撐（凳腳之間）—— butt-joint 慣例：visible.length 兩端剛好頂在
   // 腳的內側面，組裝版渲染就是 final 幾何（不重疊）。joinery 模式靠 tenon[]
   // 加切料長度，3D 不視覺延伸（榫頭只在材料單上展現）。
-  // 計算式：腳中心 ±apronEdgeX，腳寬 legSize，所以內面距離 = length - 2*legSize - 2*legInset
-  const apronInnerSpan = {
-    x: length - 2 * legSize - 2 * legInset,
-    z: width - 2 * legSize - 2 * legInset,
-  };
+  //
+  // tapered 腳補償（drafting-math.md §A11）：腳的 cross-section 隨 Y 線性
+  // 變化，apron / stretcher 端面要對到 apron Y 處的「實際」腳內面，不能用
+  // legSize 常數，會跟腳貼不齊。apronLegSize = legSize × legScaleAt(apronY)。
+  const bottomScale = legBottomScale(legShape);
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
   // splayMm = tan(splayAngle) × legHeight，跟 rectLegShape 內部用一致的角度
@@ -192,10 +206,23 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  // tapered 補償：apron 三條 Y 位置（中、上、下）各自的腳寬
+  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
+  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
+  const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, bottomScale);
+  const apronInnerSpan = {
+    x: 2 * apronEdgeX - apronLegSizeCenter,
+    z: 2 * apronEdgeZ - apronLegSizeCenter,
+  };
   // butt-joint 半長：apronEdgeX/Z 是「腳中心」距家具中心的水平距離；
-  // 端面對接時，apron 端面 = 腳內面 = 腳中心 - legSize/2，再加 splay 偏移。
-  const buttHalfX = (splay: number) => apronEdgeX + splay - legSize / 2;
-  const buttHalfZ = (splay: number) => apronEdgeZ + splay - legSize / 2;
+  // 端面對接時，apron 端面 = 腳內面（在 apron Y 處）= 腳中心 − apronLegSize/2 + splay。
+  const buttHalfX = (splay: number) => apronEdgeX + splay - apronLegSizeCenter / 2;
+  const buttHalfZ = (splay: number) => apronEdgeZ + splay - apronLegSizeCenter / 2;
+  // 牙板上/下緣的腳寬（給 apron-trapezoid scale 用，端面跟著腳的傾斜)
+  const buttHalfXTop = (splay: number) => apronEdgeX + splay - apronLegSizeTop / 2;
+  const buttHalfXBot = (splay: number) => apronEdgeX + splay - apronLegSizeBot / 2;
+  const buttHalfZTop = (splay: number) => apronEdgeZ + splay - apronLegSizeTop / 2;
+  const buttHalfZBot = (splay: number) => apronEdgeZ + splay - apronLegSizeBot / 2;
   const apronSides = [
     { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) } },
     { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplayZ } },
@@ -207,19 +234,20 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
-    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放。
-    // 用 butt-joint 半長（端面 = 腳內面）算比例，跟 visible.length 慣例一致。
+    // 同軸有 splay 或 tapered → 梯形：以中軸對齊腳中軸，top/bot 各自算 scale。
+    // 用 butt-joint 半長（= 腳內面在 apron 對應 Y 處）算比例，含 taper 補償。
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
     const trapTopScale =
-      s.axis === "x" && splayDx > 0
-        ? buttHalfX(apronSplayXTop) / buttHalfX(apronSplayX)
-        : s.axis === "z" && splayDz > 0
-          ? buttHalfZ(apronSplayZTop) / buttHalfZ(apronSplayZ)
+      s.axis === "x" && hasShapeBend
+        ? buttHalfXTop(apronSplayXTop) / buttHalfX(apronSplayX)
+        : s.axis === "z" && hasShapeBend
+          ? buttHalfZTop(apronSplayZTop) / buttHalfZ(apronSplayZ)
           : null;
     const trapBotScale =
-      s.axis === "x" && splayDx > 0
-        ? buttHalfX(apronSplayXBot) / buttHalfX(apronSplayX)
-        : s.axis === "z" && splayDz > 0
-          ? buttHalfZ(apronSplayZBot) / buttHalfZ(apronSplayZ)
+      s.axis === "x" && hasShapeBend
+        ? buttHalfXBot(apronSplayXBot) / buttHalfX(apronSplayX)
+        : s.axis === "z" && hasShapeBend
+          ? buttHalfZBot(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
     const partShape = trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -248,6 +276,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronTenonLength,
           width: apronTenonW,
           thickness: apronTenonThick,
+          shoulderOn: [...apronTenonStd.shoulderOn],
         },
         {
           position: "end" as const,
@@ -255,6 +284,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronTenonLength,
           width: apronTenonW,
           thickness: apronTenonThick,
+          shoulderOn: [...apronTenonStd.shoulderOn],
         },
       ],
       mortises: [],
@@ -269,12 +299,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       : Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const lowerW = lowerStretcherWidth;
     const lowerT = lowerStretcherThickness;
-    const lowerTenon = Math.round((legSize * 2) / 3);
-    const lowerTenonThick = Math.max(
-      6,
-      Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
-    );
-    const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
+    // 下橫撐 ↔ 凳腳：盲榫；公件 = 下橫撐（厚 lowerT × 寬 lowerW），母件 = 凳腳（厚 legSize）
+    const lowerTenonStd = standardTenon({
+      type: "blind-tenon",
+      childThickness: lowerT,
+      childWidth: lowerW,
+      motherThickness: legSize,
+    });
+    const lowerTenon = lowerTenonStd.length;
+    const lowerTenonThick = lowerTenonStd.thickness;
+    const lowerTenonW = lowerTenonStd.width;
     // 下橫撐：以中軸對齊腳中軸，top/bot 都從中心向外/向內推
     const lsCenterY = lowerY + lowerW / 2;
     const lsBotShift = legHeight > 0 ? 1 - lowerY / legHeight : 0;
@@ -286,6 +320,20 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsSplayZBot = splayDz * lsBotShift;
     const lsSplayXTop = splayDx * lsTopShift;
     const lsSplayZTop = splayDz * lsTopShift;
+    // tapered 補償：下橫撐三條 Y 位置（中、上、下）各自的腳寬
+    const lsLegSizeCenter = legSize * legScaleAt(lsCenterY, legHeight, bottomScale);
+    const lsLegSizeTop = legSize * legScaleAt(lowerY + lowerW, legHeight, bottomScale);
+    const lsLegSizeBot = legSize * legScaleAt(lowerY, legHeight, bottomScale);
+    const lsInnerSpan = {
+      x: 2 * apronEdgeX - lsLegSizeCenter,
+      z: 2 * apronEdgeZ - lsLegSizeCenter,
+    };
+    const lsButtHalfX = (splay: number) => apronEdgeX + splay - lsLegSizeCenter / 2;
+    const lsButtHalfZ = (splay: number) => apronEdgeZ + splay - lsLegSizeCenter / 2;
+    const lsButtHalfXTop = (splay: number) => apronEdgeX + splay - lsLegSizeTop / 2;
+    const lsButtHalfXBot = (splay: number) => apronEdgeX + splay - lsLegSizeBot / 2;
+    const lsButtHalfZTop = (splay: number) => apronEdgeZ + splay - lsLegSizeTop / 2;
+    const lsButtHalfZBot = (splay: number) => apronEdgeZ + splay - lsLegSizeBot / 2;
     if (lowerStretcherStyle === "x-cross") {
       // X 字交叉橫撐：兩條對角線連接 4 隻腳，過中心半搭接。
       // 外斜模式時對角橫撐做法太複雜（要傾斜+扭轉），先不支援；fallback 走直立 X。
@@ -293,9 +341,9 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       const halfX = apronEdgeX + lsSplayX;
       const halfZ = apronEdgeZ + lsSplayZ;
       const diagLen = 2 * Math.sqrt(halfX * halfX + halfZ * halfZ);
-      // 對角斜撐 length 較長 → 重新算 tenon（仍是 1/3 法則）
-      const xTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
-      const xTenonThick = Math.max(6, Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)));
+      // 對角斜撐尺寸跟一般下橫撐相同（標準 1/3 法則 + 5mm 4 邊全肩）
+      const xTenonW = lowerTenonW;
+      const xTenonThick = lowerTenonThick;
       // 角度：atan2(halfZ, halfX)，方型凳 = 45°
       const angle = Math.atan2(halfZ, halfX);
       const diagonals = [
@@ -313,8 +361,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           rotation: { x: Math.PI / 2, y: d.yRot, z: 0 },
           shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
           tenons: [
-            { position: "start", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick },
-            { position: "end", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick },
+            { position: "start", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] },
+            { position: "end", type: "blind-tenon", length: lowerTenon, width: xTenonW, thickness: xTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] },
           ],
           mortises: [],
         });
@@ -322,26 +370,27 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     } else {
       // h-frame: 4 條繞 1 圈
       const sides = [
-        { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
-        { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
-        { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplayX), z: 0 } },
-        { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplayX, z: 0 } },
+        { id: "ls-front", nameZh: "前下橫撐", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + lsSplayZ) } },
+        { id: "ls-back", nameZh: "後下橫撐", visibleLength: lsInnerSpan.x + 2 * lsSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + lsSplayZ } },
+        { id: "ls-left", nameZh: "左下橫撐", visibleLength: lsInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + lsSplayX), z: 0 } },
+        { id: "ls-right", nameZh: "右下橫撐", visibleLength: lsInnerSpan.z + 2 * lsSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsSplayX, z: 0 } },
       ];
       for (const s of sides) {
         const bevelAngle = isSplayed
           ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
           : 0;
+        const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
         const trapTopScale =
-          s.axis === "x" && splayDx > 0
-            ? buttHalfX(lsSplayXTop) / buttHalfX(lsSplayX)
-            : s.axis === "z" && splayDz > 0
-              ? buttHalfZ(lsSplayZTop) / buttHalfZ(lsSplayZ)
+          s.axis === "x" && hasShapeBend
+            ? lsButtHalfXTop(lsSplayXTop) / lsButtHalfX(lsSplayX)
+            : s.axis === "z" && hasShapeBend
+              ? lsButtHalfZTop(lsSplayZTop) / lsButtHalfZ(lsSplayZ)
               : null;
         const trapBotScale =
-          s.axis === "x" && splayDx > 0
-            ? buttHalfX(lsSplayXBot) / buttHalfX(lsSplayX)
-            : s.axis === "z" && splayDz > 0
-              ? buttHalfZ(lsSplayZBot) / buttHalfZ(lsSplayZ)
+          s.axis === "x" && hasShapeBend
+            ? lsButtHalfXBot(lsSplayXBot) / lsButtHalfX(lsSplayX)
+            : s.axis === "z" && hasShapeBend
+              ? lsButtHalfZBot(lsSplayZBot) / lsButtHalfZ(lsSplayZ)
               : 1;
         const lsShape = trapTopScale !== null
           ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -360,11 +409,33 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
           shape: lsShape,
           tenons: [
-            { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
-            { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
+            { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] },
+            { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] },
           ],
           mortises: [],
         });
+      }
+      // 凳腳補 2 個下橫撐榫眼（前後 + 左右兩面），origin = mortise CENTER（同 apron 慣例）
+      const lsYCenter = lowerY + lowerW / 2;
+      for (const leg of legs) {
+        const cx = leg.origin.x;
+        const cz = leg.origin.z;
+        leg.mortises.push(
+          {
+            origin: { x: 0, y: lsYCenter, z: cz > 0 ? -1 : 1 },
+            depth: lowerTenon,
+            length: lowerTenonW,
+            width: lowerTenonThick,
+            through: false,
+          },
+          {
+            origin: { x: cx > 0 ? -1 : 1, y: lsYCenter, z: 0 },
+            depth: lowerTenon,
+            length: lowerTenonW,
+            width: lowerTenonThick,
+            through: false,
+          },
+        );
       }
     }
   }
@@ -434,11 +505,13 @@ function legMortisesForApron(
   },
 ) {
   const { apronTenonLength, apronTenonWidth, apronTenonThick, apronWidth, legHeight, apronDropFromTop } = opts;
-  const yOffset = legHeight - apronWidth - apronDropFromTop;
+  // mortise.origin = mortise CENTER（part-local，Y 從底量）。apron 中心線 Y =
+  // legHeight − apronDropFromTop − apronWidth/2，公榫 / 母榫 都對齊這條中線。
+  const yCenter = legHeight - apronDropFromTop - apronWidth / 2;
   return [
     // 內側 X 方向榫眼（前後橫撐插入）
     {
-      origin: { x: 0, y: yOffset, z: corner.z > 0 ? -1 : 1 },
+      origin: { x: 0, y: yCenter, z: corner.z > 0 ? -1 : 1 },
       depth: apronTenonLength,
       length: apronTenonWidth,
       width: apronTenonThick,
@@ -446,7 +519,7 @@ function legMortisesForApron(
     },
     // 內側 Z 方向榫眼（左右橫撐插入）
     {
-      origin: { x: corner.x > 0 ? -1 : 1, y: yOffset, z: 0 },
+      origin: { x: corner.x > 0 ? -1 : 1, y: yCenter, z: 0 },
       depth: apronTenonLength,
       length: apronTenonWidth,
       width: apronTenonThick,

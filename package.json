@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts",
+    "audit:overlaps": "tsx scripts/audit-overlaps.ts",
+    "audit:joints": "tsx scripts/audit-joints.ts",
     "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {

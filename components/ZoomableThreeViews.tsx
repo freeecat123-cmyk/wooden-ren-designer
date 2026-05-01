@@ -17,7 +17,13 @@ const VIEW_TITLES: Record<ViewKind, { zh: string; en: string }> = {
  * 占滿視窗（90vw × 88vh），SVG 自動依比例最大化。ESC / 點背景關閉。
  * Modal 內含 +/- zoom 控制：1x = fit，可放到 4x（內部捲軸瀏覽）
  */
-export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
+export function ZoomableThreeViews({
+  design,
+  joineryMode = false,
+}: {
+  design: FurnitureDesign;
+  joineryMode?: boolean;
+}) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,6 +76,7 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
               view={view}
               title={VIEW_TITLES[view].zh}
               titleEn={VIEW_TITLES[view].en}
+              joineryMode={joineryMode}
             />
             <span className="absolute top-1.5 right-1.5 text-[10px] bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
               🔍 點擊放大
@@ -160,6 +167,7 @@ export function ZoomableThreeViews({ design }: { design: FurnitureDesign }) {
                   title={VIEW_TITLES[zoomed].zh}
                   titleEn={VIEW_TITLES[zoomed].en}
                   className="bg-white w-full h-full"
+                  joineryMode={joineryMode}
                 />
               </div>
             </div>

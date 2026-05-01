@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 // 吧台椅尺寸範圍很穩定，沒明顯需要建議切換的目標模板（dining-chair 是椅背較大的不同物件）。
@@ -351,11 +351,13 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 斜腳補償（同 square-stool）：以橫撐中軸 Y 為基準算 splay 偏移 → 中軸跟腳中軸對齊；
   // 上下緣縮放成 trapezoid → 端面跟著腳傾斜；rotation 帶 tilt → 橫撐軸與腳軸平行。
+  // tapered 補償（drafting-math.md §A11）：legW × legScaleAt(centerY) 算實際腳寬。
   const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
   const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
   const splayDx = isLengthSplay ? splayMm : 0;
   const splayDz = isWidthSplay ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
+  const bottomScale = legBottomScale(legShape);
   const tiltX = splayDx > 0 ? Math.atan(splayDx / seatY) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / seatY) : 0;
 
@@ -373,34 +375,50 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     const splayZt = splayDz * sTop;
     const splayXb = splayDx * sBot;
     const splayZb = splayDz * sBot;
+    // 該 Y 位置的腳寬（含 taper 補償）
+    const lwC = legW * legScaleAt(centerY, seatY, bottomScale);
+    const lwT = legW * legScaleAt(topY, seatY, bottomScale);
+    const lwB = legW * legScaleAt(botY, seatY, bottomScale);
+    const ldC = legD * legScaleAt(centerY, seatY, bottomScale);
+    const ldT = legD * legScaleAt(topY, seatY, bottomScale);
+    const ldB = legD * legScaleAt(botY, seatY, bottomScale);
     return {
       sides: [
-        // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
-        // = innerSpan(中心到中心) − legSize(扣兩半邊腳) + 2×splayXc（外斜補償）
+        // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面（含 taper 補償）
+        // = innerSpan(中心到中心) − legW@centerY(扣兩半邊腳) + 2×splayXc（外斜補償）
         // joinery 模式靠 cut-dimensions 加 tenon，3D 不延伸到腳裡。
-        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX - legW + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
-        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ - legD + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
+        { key: "front", nameZh: `前${namePrefix}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+        { key: "back", nameZh: `後${namePrefix}`, visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: legEdgeZ + splayZc } },
+        { key: "left", nameZh: `左${namePrefix}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+        { key: "right", nameZh: `右${namePrefix}`, visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z" as const, sx: 1, sz: 0, origin: { x: legEdgeX + splayXc, z: 0 } },
       ],
       splayXc, splayZc, splayXt, splayZt, splayXb, splayZb,
+      lwC, lwT, lwB, ldC, ldT, ldB,
     };
   };
 
   const apronCenterY = ringY + apronWidth / 2;
   const apronB = buildSides(apronCenterY, apronWidth, "牙板");
   const aprons: Part[] = apronB.sides.map((s) => {
+    // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
+    const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
+    const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;
+    const halfX_B = legEdgeX + apronB.splayXb - apronB.lwB / 2;
+    const halfZ_C = legEdgeZ + apronB.splayZc - apronB.ldC / 2;
+    const halfZ_T = legEdgeZ + apronB.splayZt - apronB.ldT / 2;
+    const halfZ_B = legEdgeZ + apronB.splayZb - apronB.ldB / 2;
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
     const trapTopScale =
-      s.axis === "x" && splayDx > 0
-        ? (legEdgeX + apronB.splayXt) / (legEdgeX + apronB.splayXc)
-        : s.axis === "z" && splayDz > 0
-          ? (legEdgeZ + apronB.splayZt) / (legEdgeZ + apronB.splayZc)
+      s.axis === "x" && hasShapeBend
+        ? halfX_T / halfX_C
+        : s.axis === "z" && hasShapeBend
+          ? halfZ_T / halfZ_C
           : null;
     const trapBotScale =
-      s.axis === "x" && splayDx > 0
-        ? (legEdgeX + apronB.splayXb) / (legEdgeX + apronB.splayXc)
-        : s.axis === "z" && splayDz > 0
-          ? (legEdgeZ + apronB.splayZb) / (legEdgeZ + apronB.splayZc)
+      s.axis === "x" && hasShapeBend
+        ? halfX_B / halfX_C
+        : s.axis === "z" && hasShapeBend
+          ? halfZ_B / halfZ_C
           : 1;
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
@@ -432,17 +450,25 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const frCenterY = footrestHeight + footRestWidth / 2;
   const frB = buildSides(frCenterY, footRestWidth, "腳踏");
   const footRests: Part[] = frB.sides.map((s) => {
+    // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
+    const halfX_C = legEdgeX + frB.splayXc - frB.lwC / 2;
+    const halfX_T = legEdgeX + frB.splayXt - frB.lwT / 2;
+    const halfX_B = legEdgeX + frB.splayXb - frB.lwB / 2;
+    const halfZ_C = legEdgeZ + frB.splayZc - frB.ldC / 2;
+    const halfZ_T = legEdgeZ + frB.splayZt - frB.ldT / 2;
+    const halfZ_B = legEdgeZ + frB.splayZb - frB.ldB / 2;
+    const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
     const trapTopScale =
-      s.axis === "x" && splayDx > 0
-        ? (legEdgeX + frB.splayXt) / (legEdgeX + frB.splayXc)
-        : s.axis === "z" && splayDz > 0
-          ? (legEdgeZ + frB.splayZt) / (legEdgeZ + frB.splayZc)
+      s.axis === "x" && hasShapeBend
+        ? halfX_T / halfX_C
+        : s.axis === "z" && hasShapeBend
+          ? halfZ_T / halfZ_C
           : null;
     const trapBotScale =
-      s.axis === "x" && splayDx > 0
-        ? (legEdgeX + frB.splayXb) / (legEdgeX + frB.splayXc)
-        : s.axis === "z" && splayDz > 0
-          ? (legEdgeZ + frB.splayZb) / (legEdgeZ + frB.splayZc)
+      s.axis === "x" && hasShapeBend
+        ? halfX_B / halfX_C
+        : s.axis === "z" && hasShapeBend
+          ? halfZ_B / halfZ_C
           : 1;
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX

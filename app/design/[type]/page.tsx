@@ -4,6 +4,7 @@ import { getTemplate } from "@/lib/templates";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MaterialList } from "@/lib/render/svg-views";
@@ -148,7 +149,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   const rawDesign = entry.template({ length, width, height, material, options });
-  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+  const design = joineryMode
+    ? applyEdgeProtection(rawDesign)
+    : toBeginnerMode(rawDesign);
 
   // 場景主題：URL `?scene=nordic|japandi|industrial|chinese`，預設 natural
   const sceneIdRaw = (typeof sp.scene === "string" ? sp.scene : "natural") as SceneThemeId;
@@ -296,7 +299,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </span>
         </div>
         <div className="p-3">
-          <ZoomableThreeViews design={design} />
+          <ZoomableThreeViews design={design} joineryMode={joineryMode} />
         </div>
       </section>
 

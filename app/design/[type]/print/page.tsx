@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
+import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import type {
   FurnitureCategory,
   FurnitureDesign,
@@ -76,7 +77,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
     spStr("joineryMode") === "1" ||
     spStr("beginnerMode") === "false";
   const rawDesign = entry.template({ length, width, height, material, options });
-  const design = joineryMode ? rawDesign : toBeginnerMode(rawDesign);
+  const design = joineryMode
+    ? applyEdgeProtection(rawDesign)
+    : toBeginnerMode(rawDesign);
   const usages = extractJoineryUsages(design);
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);
@@ -165,7 +168,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         <p className="text-xs text-zinc-500 mb-4">
           ⚠️ 標示為組裝後可見尺寸（肩到肩）。實際切料含榫頭，請看下一頁材料單。
         </p>
-        <ThreeViewLayout design={design} />
+        <ThreeViewLayout design={design} joineryMode={joineryMode} />
       </section>
 
       {/* ================= Page 3: Material list ================= */}
