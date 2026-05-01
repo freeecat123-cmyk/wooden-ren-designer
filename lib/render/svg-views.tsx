@@ -1468,6 +1468,76 @@ export function OrthoView({
                     strokeWidth={0.6}
                   />,
                 );
+                // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
+                // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）
+                if (t.type === "finger-joint") {
+                  const longAxis = r.w >= r.h ? "x" : "y";
+                  const N = 4; // 4 條暗示分區
+                  for (let k = 1; k < N; k++) {
+                    const f = k / N;
+                    if (longAxis === "x") {
+                      const xL = r.x + r.w * f;
+                      elements.push(
+                        <line
+                          key={`${part.id}-fj${i}-${k}`}
+                          x1={xL}
+                          y1={-(r.y + r.h)}
+                          x2={xL}
+                          y2={-r.y}
+                          stroke="#c0392b"
+                          strokeWidth={0.3}
+                          opacity={0.7}
+                        />,
+                      );
+                    } else {
+                      const yL = -(r.y + r.h * (1 - f));
+                      elements.push(
+                        <line
+                          key={`${part.id}-fj${i}-${k}`}
+                          x1={r.x}
+                          y1={yL}
+                          x2={r.x + r.w}
+                          y2={yL}
+                          stroke="#c0392b"
+                          strokeWidth={0.3}
+                          opacity={0.7}
+                        />,
+                      );
+                    }
+                  }
+                }
+                // 半搭榫：對角斜線暗示 lap 搭接面
+                if (t.type === "half-lap") {
+                  elements.push(
+                    <line
+                      key={`${part.id}-hl${i}`}
+                      x1={r.x}
+                      y1={-r.y}
+                      x2={r.x + r.w}
+                      y2={-(r.y + r.h)}
+                      stroke="#c0392b"
+                      strokeWidth={0.3}
+                      strokeDasharray="2 1.5"
+                      opacity={0.6}
+                    />,
+                  );
+                }
+                // 企口榫（舌狀）：薄水平線暗示舌中心
+                if (t.type === "tongue-and-groove") {
+                  const midY = -(r.y + r.h / 2);
+                  elements.push(
+                    <line
+                      key={`${part.id}-tg${i}`}
+                      x1={r.x}
+                      y1={midY}
+                      x2={r.x + r.w}
+                      y2={midY}
+                      stroke="#c0392b"
+                      strokeWidth={0.3}
+                      opacity={0.6}
+                    />,
+                  );
+                }
               }
               // 肩位虛線：tenon 肩到肩 boundary（公榫件本體面投影）
               const sb = tenonShoulderBox(part, t);
