@@ -331,6 +331,45 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 4b. 組裝版：斜孔 / 木釘 / DOMINO（榫接版的對偶 phase）
+  //     只有 design.defaultJoinery === "pocket-hole" 且沒榫卯時觸發
+  // ---------------------------------------------------------------------------
+  const isAssemblyMode = !hasJoinery && design.defaultJoinery === "pocket-hole";
+  const needsConnection =
+    hasUpperApron || hasShelves || hasDrawer || hasDoor || hasBack ||
+    family === "cabinet" || family === "table" || family === "seating";
+  if (isAssemblyMode && needsConnection) {
+    steps.push({
+      id: "step-05-assembly-prep",
+      phase: "cut-joinery",
+      title: "組裝孔位準備（斜孔 / 木釘 / DOMINO 三選一）",
+      description:
+        `組裝版用機械接合替代傳統榫卯。**從下面三個方法挑一個熟悉的就好**，混用反而難對位：\n\n`
+        + `**A) 斜孔系統（最快，新手友善）**：用斜孔定位器在 apron / 橫撐 / 抽屜側板等公件上鑽 15° 斜孔（標 #6 配 1¼" 木螺絲），鑽完螺絲直接從斜孔鎖進母件。\n`
+        + `**B) 木釘（最便宜）**：用木釘定位器在公母件對應位置鑽 ⌀8mm × 30mm 深孔，插入 8 × 40mm 木釘 + 白膠。\n`
+        + `**C) DOMINO（最專業，要 Festool 機器）**：用 DOMINO 機在公母件對應位置切凹槽，插 5 × 30mm DOMINO 條。\n\n`
+        + `**所有孔位方向都跟原本榫頭方向一致**——apron 兩端插腳、橫撐插腳內側、抽屜側板插前後板等等。`,
+      toolIds: [
+        "pocket-hole-jig",
+        "drill",
+        "drill-bits",
+        "pva-glue",
+      ],
+      estimatedMinutes: needsConnection ? 35 : 20,
+      bullets: [
+        "**選一個方法做完整件家具**——斜孔做 apron 結果用木釘做抽屜，孔位邏輯不一樣會打架",
+        "公件（apron / 橫撐）鑽斜孔；母件（腳）不鑽——**斜孔不可見的那一面才能朝外**",
+        "鑽完用真空吸塵把木屑吸乾淨——殘屑卡在孔裡螺絲鎖不深",
+        "上膠後 10 分鐘內鎖好螺絲：膠固化前螺絲負責夾緊、固化後膠負責結構",
+      ],
+      warnings: [
+        "**斜孔方向不能朝外**——客廳能看到的那一面要朝牆 / 朝下，不然成品有醜醜的螺絲頭",
+        "木釘必須跟孔徑緊配（手指輕推能進、稍敲到底），鬆了結構失效",
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 5. 試組 — 全件無膠 dry fit
   // ---------------------------------------------------------------------------
   steps.push({
