@@ -108,7 +108,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
           origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
-          depth: Math.min(topThickness * 0.6, 18),
+          // 跟 leg seat tenon length 同公式才能對位（drafting-math.md §B2）
+          depth: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
           through: false,

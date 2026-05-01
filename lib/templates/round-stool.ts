@@ -100,10 +100,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [],
     mortises: [
       // 4 個盲榫眼接腳頂（圓座板下方四個內接位置）
+      // depth 跟 leg seat tenon length 同公式，audit 才對位
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
           origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
-          depth: Math.min(seatThickness * 0.6, 15),
+          depth: Math.round(Math.min(seatThickness * (2 / 3), seatThickness - 6)),
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
           through: false,

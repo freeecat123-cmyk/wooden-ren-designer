@@ -59,6 +59,32 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const outerW = photoH + 2 * frameW;
 
   // 上下橫邊：完整 outerL
+  // 邊框 mitered-spline 接合：top/bottom 出公榫（spline 凸出）、left/right 開
+  // 母榫眼（spline 槽）。每邊 2 個（兩端），共 4 tenon + 4 mortise，audit 1:1 配對。
+  // spline 本體不獨立模型化（小 biscuit 木片，藏在槽裡看不見）；
+  // defaultJoinery: "mitered-spline" 已標明，joinery detail 渲染由 extract.ts 處理。
+  const splineL = frameT;  // spline 嵌進 frame 深度
+  const splineT = 4;        // spline 厚度
+  const splineW = frameW;   // spline 寬（嵌進 frame 可見深度）
+  const cornerTenon = (pos: "start" | "end"): Part["tenons"][number] => ({
+    position: pos,
+    type: "mitered-spline",
+    length: splineL,
+    width: splineW,
+    thickness: splineT,
+  });
+  const cornerMortise = (lx: number, atStart: boolean): Part["mortises"][number] => ({
+    origin: {
+      x: atStart ? -lx / 2 + splineL / 2 : +lx / 2 - splineL / 2,
+      y: frameT / 2,
+      z: 0,
+    },
+    depth: splineL,
+    length: splineW,
+    width: splineT,
+    through: false,
+  });
+
   const topRail: Part = {
     id: "frame-top",
     nameZh: "上邊框",
@@ -66,10 +92,7 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: outerL, width: frameW, thickness: frameT },
     origin: { x: 0, y: 0, z: outerW / 2 - frameW / 2 },
-    tenons: [
-      { position: "start", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
-      { position: "end", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
-    ],
+    tenons: [cornerTenon("start"), cornerTenon("end")],
     mortises: [],
   };
   const bottomRail: Part = {
@@ -89,11 +112,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: sideLen, width: frameW, thickness: frameT },
     origin: { x: -(outerL / 2 - frameW / 2), y: 0, z: 0 },
     rotation: { x: 0, y: Math.PI / 2, z: 0 },
-    tenons: [
-      { position: "start", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
-      { position: "end", type: "mitered-spline", length: frameT, width: frameW, thickness: 4 },
-    ],
-    mortises: [],
+    tenons: [],
+    mortises: [cornerMortise(sideLen, true), cornerMortise(sideLen, false)],
   };
   const rightRail: Part = {
     ...leftRail,

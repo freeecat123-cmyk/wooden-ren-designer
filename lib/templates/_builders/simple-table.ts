@@ -577,6 +577,41 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       ],
       mortises: [],
     });
+    // Apron-front / apron-back 加 mortise 接 center-stretcher 兩端 tenon。
+    // apron 的 part-local 慣例（rotation x=π/2）：local +Y → world +Z。
+    //   apron-front (world Z<0) 的 inner face = local +Y → origin.y 靠 +Y face
+    //   apron-back  (world Z>0) 的 inner face = local -Y → origin.y 靠 -Y face
+    // mortise.length × .width 對應 stretcher tenon.width × .thickness。
+    const apronFrontPart = parts.find((p) => p.id === "apron-front");
+    const apronBackPart = parts.find((p) => p.id === "apron-back");
+    if (apronFrontPart && apronBackPart) {
+      const stretcherCenterY = originY + stretcherWidth / 2;
+      const apronCenterY = apronY + apronWidth / 2;
+      // apron-local +Z → world -Y，所以 stretcher 在 world Y 高於 apron 中心
+      // → apron-local Z 為負；low-table 預設 stretcher 跟 apron 中心線基本對齊
+      // 但有 dropFromApronTop 偏移時這個 zOffset 才不為 0。
+      const zOffset = apronCenterY - stretcherCenterY;
+      apronFrontPart.mortises = [
+        ...apronFrontPart.mortises,
+        {
+          origin: { x: 0, y: apronThickness - stretcherTenonLen / 2, z: zOffset },
+          depth: stretcherTenonLen,
+          length: cTenonW,
+          width: cTenonThick,
+          through: false,
+        },
+      ];
+      apronBackPart.mortises = [
+        ...apronBackPart.mortises,
+        {
+          origin: { x: 0, y: stretcherTenonLen / 2, z: zOffset },
+          depth: stretcherTenonLen,
+          length: cTenonW,
+          width: cTenonThick,
+          through: false,
+        },
+      ];
+    }
   }
 
   return {

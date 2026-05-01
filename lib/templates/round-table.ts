@@ -211,7 +211,7 @@ function buildTrestleRoundTable(p: {
       tenons: [],
       mortises: [],
     });
-    // 底足
+    // 底足（含中央橫木 mortise，audit 需要）
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
@@ -220,7 +220,16 @@ function buildTrestleRoundTable(p: {
       visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
       origin: { x: 0, y: 0, z: fz },
       tenons: [],
-      mortises: [],
+      mortises: [
+        {
+          // mortise on inner Z face for center-stretcher tenon
+          origin: { x: 0, y: frameFootThickness / 2, z: fz < 0 ? +frameFootWidth / 2 - 17 : -frameFootWidth / 2 + 17 },
+          depth: 35,
+          length: centerStretcherWidth - 12,
+          width: 18,
+          through: false,
+        },
+      ],
     });
   }
   // 中央橫木（沿 Z 軸跨越兩框中心）
@@ -364,7 +373,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
           origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
-          depth: Math.min(topThickness * 0.6, 20),
+          // 跟 leg seat tenon length 同公式才能對位（drafting-math.md §B2）
+          depth: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
           through: false,

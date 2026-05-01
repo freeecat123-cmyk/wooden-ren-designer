@@ -230,12 +230,13 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     y: stretcherFloorOffset,
     shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     // 內側面開長槽，棚板舌頭嵌入
+    // dim 跟 lowerShelf tongue 對齊（visibleLength − 4 = 對應 shelf 邊的長度）
     extraMortises: (visibleLength) => [
       {
         origin: { x: 0, y: 0, z: 0 },
         depth: shelfTongueLen,
-        length: visibleLength - 20,
-        width: shelfThickness + 1,
+        length: visibleLength - 4,
+        width: shelfThickness,
         through: false,
       },
     ],

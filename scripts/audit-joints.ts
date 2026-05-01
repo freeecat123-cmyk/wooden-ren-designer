@@ -26,21 +26,12 @@ import type {
  * 寬度、tongue-and-groove 板拼接、圓家具圓腳 mortise 對位）還沒整合進
  * standardTenon()。Phase 1 不修。
  */
-const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory>([
-  "tea-table",
-  "low-table",
-  "open-bookshelf",
-  "chest-of-drawers",
-  "shoe-cabinet",
-  "display-cabinet",
-  "wardrobe",
-  "media-console",
-  "nightstand",
-  "round-stool",
-  "round-tea-table",
-  "round-table",
-  "photo-frame",
-]);
+/**
+ * 空 allowlist = 所有 templates × 所有 legShape variant 都應該 audit pass。
+ * Phase 1 Group D.1 把 13 個 pre-existing fail 全部修完了（commit 歷史可查）。
+ * 將來新加 template 預設 strict，未對位直接擋 CI。
+ */
+const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory>();
 
 interface Row {
   category: FurnitureCategory;

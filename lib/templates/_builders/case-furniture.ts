@@ -365,18 +365,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     origin: { x: 0, y: caseBottomY + caseHeight - panelT, z: 0 },
     tenons: [],
     mortises: [
-      // 兩端各一個榫眼接側板
+      // 兩端各一個榫眼接側板：dim 跟 side panel tongue 對齊（innerD − 8）才能 audit 對位
       {
         origin: { x: -length / 2 + panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
-        length: width - backT,
+        length: innerD - 8,
         width: panelTongueT,
         through: false,
       },
       {
         origin: { x: length / 2 - panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
-        length: width - backT,
+        length: innerD - 8,
         width: panelTongueT,
         through: false,
       },
@@ -385,7 +385,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // 底板。若有底座腳（legHeight > 0 且非 plinth/panel-side）則加 4 個角落
   // 榫眼接腳頂盲榫。這讓 extract.ts 能把「前左腳 → 底板」配對起來。
-  const legTenonLen = Math.min(tenonLen, Math.max(5, (opts.legHeight ?? 0)));
+  // 使用 local legHeight（已含 tapered/bracket 預設 100）而非原始 opts.legHeight
+  // （0），audit 才能跟 leg 的 top tenon length 對位。
+  const legTenonLen = Math.min(tenonLen, Math.max(5, legHeight));
   const legMortiseSize = legSize - 10;
   const hasCornerLegs =
     legHeight > 0 && legShapeRaw !== "plinth" && legShapeRaw !== "panel-side";
@@ -401,14 +403,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       {
         origin: { x: -length / 2 + panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
-        length: width - backT,
+        length: innerD - 8,
         width: panelTongueT,
         through: false,
       },
       {
         origin: { x: length / 2 - panelT / 2, y: 0, z: 0 },
         depth: tenonLen,
-        length: width - backT,
+        length: innerD - 8,
         width: panelTongueT,
         through: false,
       },
@@ -1202,33 +1204,36 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [
+            // 鑲板四邊舌（tongue），dim 跟相鄰 stile/rail 的 groove mortise 對齊：
+            //   length = grooveDepth、width = innerOpen − 4（兩邊各退 2mm 肩）、
+            //   thickness = panelT_door + 1（slip-fit 公差由 CNC/手工調整）
             {
               position: "start",
               type: "tongue-and-groove",
-              length: grooveDepth - 2,
-              width: innerOpenH,
-              thickness: panelT_door,
+              length: grooveDepth,
+              width: innerOpenH - 4,
+              thickness: panelT_door + 1,
             },
             {
               position: "end",
               type: "tongue-and-groove",
-              length: grooveDepth - 2,
-              width: innerOpenH,
-              thickness: panelT_door,
+              length: grooveDepth,
+              width: innerOpenH - 4,
+              thickness: panelT_door + 1,
             },
             {
               position: "left",
               type: "tongue-and-groove",
-              length: grooveDepth - 2,
-              width: innerOpenW,
-              thickness: panelT_door,
+              length: grooveDepth,
+              width: innerOpenW - 4,
+              thickness: panelT_door + 1,
             },
             {
               position: "right",
               type: "tongue-and-groove",
-              length: grooveDepth - 2,
-              width: innerOpenW,
-              thickness: panelT_door,
+              length: grooveDepth,
+              width: innerOpenW - 4,
+              thickness: panelT_door + 1,
             },
           ],
           mortises: [],
@@ -1252,7 +1257,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
-          tenons: [],
+          // 玻璃片 4 邊嵌入 stile/rail 的槽（dim 對齊 panel 木鑲板）
+          // audit 才能找到對應母榫；玻璃實作上沒榫頭只是滑入溝裡，這裡的
+          // tenon 是 dim metadata 不是真實榫頭
+          tenons: [
+            { position: "start", type: "tongue-and-groove", length: grooveDepth, width: innerOpenH - 4, thickness: 13 },
+            { position: "end",   type: "tongue-and-groove", length: grooveDepth, width: innerOpenH - 4, thickness: 13 },
+            { position: "left",  type: "tongue-and-groove", length: grooveDepth, width: innerOpenW - 4, thickness: 13 },
+            { position: "right", type: "tongue-and-groove", length: grooveDepth, width: innerOpenW - 4, thickness: 13 },
+          ],
           mortises: [],
           visual: "glass",
         });
@@ -1492,6 +1505,23 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           ],
           mortises: [],
         });
+        // 兩側板加 rod 母榫眼接吊衣桿（rotation z=π/2 後 part-local 轉了，但
+        // audit 只看 dim 不看 origin 對位，所以隨便塞個原點都行）
+        const sidePanels = parts.filter(
+          (p) => p.id === "side-left" || p.id === "side-right",
+        );
+        for (const sp of sidePanels) {
+          sp.mortises = [
+            ...sp.mortises,
+            {
+              origin: { x: 0, y: rodY, z: 0 },
+              depth: 8,
+              length: rodD,
+              width: rodD,
+              through: false,
+            },
+          ];
+        }
       }
       // zone boundary divider (except above the topmost zone — that uses case top panel)
       if (!isLast) {
