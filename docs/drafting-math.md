@@ -5,6 +5,66 @@
 
 ---
 
+## ⚠️ 軸慣例警示（看本 doc 前必讀）
+
+本 doc 用**傳統製圖慣例**：`x = 寬, y = 深(後), z = 高(上)`
+實際 wrd code 用 **Three.js 慣例**：`x = 寬(length), y = 高(thickness), z = 深(width)`
+
+| 概念 | doc 慣例 | code 慣例（`Part.visible`） |
+|---|---|---|
+| 寬（左右） | x | length → x |
+| 高（垂直） | z | thickness → y |
+| 深（前後） | y | width → z |
+
+讀 doc 公式時心裡換軸：**doc 的 z = code 的 y、doc 的 y = code 的 z**。
+A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, −y)」=
+`projectPart` 在 svg-views.tsx 實際做的事。
+
+**不確定哪邊為準時先停下、問使用者**，別擅自挑。
+
+---
+
+## 🔍 快速 grep 索引（找 section 用）
+
+| 我要做的事 | grep keyword | 對應 section |
+|---|---|---|
+| 三視圖座標投影 / silhouette | `"正視\|側視\|俯視\|projection"` | §A1 §A2 |
+| hidden line 虛線判斷 | `"隱藏\|HLE"` | §A4 §E |
+| 中心線 / 對稱軸 | `"中心線\|centerline"` | §A5 |
+| 尺寸標註（箭頭、間距、字位、累進/並列） | `"標註\|dimension"` | §A6 |
+| 剖面線（hatching） | `"剖面\|hatching"` | §A7 |
+| 局部放大圖（detail view） | `"局部放大\|detail view"` | §A8 |
+| 榫卯細節圖 / 公榫位置 / 強度 | `"榫\|joinery\|tenon\|mortise"` | §B §G |
+| 爆炸圖 / 立體拆解 | `"爆炸\|exploded"` | §H |
+| 自動標註生成 | `"自動標註\|auto-dim"` | §I |
+| 板材展開 / 攤平 / 折線 | `"展開\|unfolding"` | §J |
+| 派系預設（中式 / 日式 / 北歐） | `"派系\|preset"` | §K |
+| 木紋方向結構 | `"木紋\|grain"` | §L |
+| 板材撓度 / Span | `"span\|deflection\|撓度"` | §M |
+| 五金孔位（鉸鏈 / 滑軌） | `"hardware\|hinge\|滑軌"` | §N |
+| 人體工學（座高 / 靠背角 / 桌高） | `"ergonom\|人體\|座高\|靠背"` | §O |
+| CNC 加工路徑 | `"toolpath\|CNC"` | §P |
+| SVG → DXF 轉換 | `"DXF"` | §Q |
+| 裁切排版 / bin packing / nesting | `"nesting\|bin packing\|排版"` | §R |
+| 參數化曲線（Bezier / NURBS / 線腳） | `"bezier\|spline\|線腳"` | §S |
+| 台灣木材市場規格 | `"台灣木材\|材積"` | §T |
+| 中式紋樣 | `"紋樣\|pattern\|榫頭斷面"` | §U |
+| 椅子穩定性力學 | `"穩定\|stability\|tip-over"` | §V |
+| AI 看圖推薦模板 | `"vision\|GPT-4\|看圖"` | §W |
+| 報價工時演算法 | `"報價\|工時\|labor"` | §X §AG |
+| 3D 渲染（PBR / IBL / AO） | `"PBR\|IBL\|AO\|render"` | §Y |
+| 打包出貨 / 紙箱規格 | `"打包\|出貨\|紙箱"` | §Z |
+| 訂單管線 | `"訂單\|order pipeline"` | §AA |
+| 明清古家具 20 款 | `"明清\|古家具\|圖譜"` | §AB |
+| 木材非視覺屬性（味道 / 過敏 / 油性） | `"味道\|過敏\|油性"` | §AC |
+| 配色與環境主題 | `"配色\|color science"` | §AD |
+| 訂單條款 / 保險 | `"條款\|保險"` | §AE |
+| 競品分析 | `"競品\|wrd 定位"` | §AF |
+| 木工數位行銷 / SEO | `"SEO\|行銷\|關鍵字"` | §AH |
+| 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
+
+---
+
 ## A. 三視圖（Orthographic Projection）
 
 ### A1. 座標投影
@@ -102,6 +162,55 @@ for d in range(d_min, d_max, 間距):
 2. 放大圖標題：`詳圖 A   2:1`
 3. 引線從圓 → 詳圖標題
 4. 放大比例選 2:1, 5:1, 10:1（整數倍最好認）
+
+### A9. 非 quarter rotation silhouette（後仰靠背 / 任意傾斜零件）
+
+當零件有 X 軸非 90° 倍數的旋轉（例如靠背後仰 4°），`worldExtents` 算出來的
+AABB 不認旋斜，導致 SVG 看不到傾斜——需要手算 silhouette polygon。
+
+**A9.1 軸標籤**（用 code 慣例：y 上, z 後, x 寬）：
+- `lyL = visible.thickness`（垂直高、局部 Y）
+- `lzL = visible.width`（深度、局部 Z）
+- `lxL = visible.length`（左右、局部 X）
+
+**A9.2 X 軸旋轉公式**（局部 → 旋轉後）：
+```
+yR = yL · cos(θ) − zL · sin(θ)
+zR = yL · sin(θ) + zL · cos(θ)
+xR = xL  // X 軸不動
+```
+
+**A9.3 三視圖 silhouette 對應**：
+
+| 視圖 | X 軸投影掉？ | silhouette 形狀 | 採樣點數 |
+|---|---|---|---|
+| 側視（看 Z-Y 平面） | ✓ X 不重要 | 平行四邊形（4 corner） | 4：(yL, zL) ∈ {±lyL/2} × {zMin, zMax} |
+| 正視（看 X-Y 平面） | ✗ X 是螢幕橫軸 | 矩形（X 範圍固定 lxL） | 8：另加 xL ∈ {±lxL/2}，但 X 旋轉不動 X，silhouette 必為矩形：高 = max−min(yR), 寬 = lxL |
+| 俯視（看 X-Z 平面） | ✗ Z 是螢幕縱軸 | 平行四邊形（4 corner） | 4：(yL, zL) ∈ {±lyL/2} × {zMin, zMax}，投影到 (x, zR) |
+
+⚠️ **正視只取 X 一邊（4 corner）會塌成單條垂直線看不到**。X 兩端都要採。
+
+**A9.4 face-rounded 帶 bend 的延伸**（例：弧形板大面彎曲 20mm）：
+彎曲方向是局部 +Z，所以 silhouette 的 Z 範圍要拉長 |bendMm|：
+```
+zMin = bendMm < 0 ? −lzL/2 + bendMm : −lzL/2
+zMax = bendMm > 0 ? +lzL/2 + bendMm : +lzL/2
+```
+再多畫一條「端面分隔線」在 zL = ±lzL/2（不含 bend），分出原板厚度 vs 彎曲延伸。
+這條線也要套同樣的 X 旋轉。
+
+**A9.5 round 圓柱不能用 `projectPartSilhouette` 通用採樣**
+通用 silhouette function 假設 round shape 軸 = X（橫向 dowel），對垂直圓柱（軸 = Y，
+ex: 椅腳 / 後仰靠背的圓柱支撐）會跑出三角形怪形狀。這 case 走 A9 公式手算
+silhouette polygon 就對了。
+
+**A9.6 三視圖必須同步**
+改任一視圖 transform 前確認另兩個視圖會跟著對。X 旋轉只動 YZ，所以：
+- 正視：X 不變、Y 範圍會拉寬（max yR − min yR）
+- 側視：YZ 平面看到平行四邊形
+- 俯視：X 不變、Z 範圍會拉寬
+
+實作參考：`lib/render/svg-views.tsx` 在 default rect path 之前的 isXTilt 兜底。
 
 ---
 
