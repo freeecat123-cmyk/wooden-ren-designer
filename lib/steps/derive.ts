@@ -203,6 +203,45 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 2c. 彎曲板製作（椅面 / 靠背彎合板）
+  // ---------------------------------------------------------------------------
+  const bentPanels = design.parts.filter(
+    (p) => p.shape?.kind === "face-rounded" && Math.abs((p.shape as { bendMm?: number }).bendMm ?? 0) > 0,
+  );
+  if (bentPanels.length > 0) {
+    const summary = bentPanels.map((p) => {
+      const bendMm = Math.abs(((p.shape as { bendMm?: number }).bendMm ?? 0));
+      // 彎曲量 vs 弦長對應曲率半徑（拋物線近似 R ≈ L²/(8h)）
+      const chord = p.visible.length;
+      const radius = bendMm > 0 ? Math.round((chord * chord) / (8 * bendMm)) : 0;
+      return `${p.nameZh}（彎 ${bendMm.toFixed(0)}mm，半徑 ≈ ${radius}mm）`;
+    }).join("、");
+    steps.push({
+      id: "step-03d-bent-panels",
+      phase: "prepare",
+      title: `製作彎曲板：${summary}`,
+      description:
+        `本設計含 ${bentPanels.length} 件大面彎曲板（bent panel），整片板從中央往一側彎弧。`
+        + `三種主流工法擇一：`
+        + `（A）**疊層膠合 lamination**：把板鋸成 4–6 層 ~5mm 薄片，刷 PVA 膠 + 上彎模具夾 8 小時，鬆夾後極少回彈、最穩；`
+        + `（B）**蒸彎 steam bending**：實木整片進蒸氣箱 1 小時 / 25mm 厚軟化纖維 → 上彎模急速冷卻定型，需要蒸彎機；`
+        + `（C）**鋸切凹槽 kerf bending**：板背鋸 N 條凹槽留 ~3mm 薄背層 → 強迫彎曲塞膠固定，最簡但結構最弱、外觀有溝紋。`,
+      toolIds: ["pva-glue", "f-clamp-x4", "long-clamp-x2"],
+      estimatedMinutes: 180,
+      bullets: [
+        "**做工夾彎模具**：用 MDF 切兩片陰陽配對的 ⌒⌣ 模具，比板長 + 100mm 留夾緣（疊層 / 蒸彎都用）",
+        "疊層的薄板厚度愈薄、彎得愈順手；3mm 比 6mm 容易彎且回彈少",
+        "蒸彎硬木（白橡 / 山毛櫸）成功率高；針葉木（松 / 杉）容易斷裂",
+        "彎曲完離模再校正 + 砂磨外緣，最後再鑿榫眼（先彎再鑿位置才準）",
+      ],
+      warnings: [
+        "彎完先放 24–48 小時平衡含水率再加工，立刻鑿榫會走位",
+        "材料用量 = 弦長 × ~1.02（弧長加 2% 損耗），疊層多 ~10% 切薄板損耗",
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 3. 劃線 — 榫卯標記 + 基準面標記
   // ---------------------------------------------------------------------------
   if (joineryUsages.length > 0) {
