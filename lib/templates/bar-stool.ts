@@ -145,14 +145,22 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   // Leg shape mapping (same set as dining-table / dining-chair)
   // splayMm = tan(splayAngle) × seatY，腳底向外偏移量
-  // 注意：後腳延伸到椅背頂時（rail/slats），splay 偏移要按該腳實際高度放大，
-  // 不然後腳會被較矮的「前腳同 splayMm」做出比例 → 兩種腳角度不同 = 不平行。
+  //
+  // 前後腳幾何規則（rail / slats 後腳延伸到椅背頂時）：
+  //   X 軸（左右）：前腳左右距離 = 後腳左右距離 → X 偏移用 constant splayMm
+  //                 （不依腳高放大），讓 4 腳左右對齊在地面
+  //   Z 軸（前後）：前後腳要平行（同斜角）→ Z 偏移依該腳實際高度放大，
+  //                 確保 atan(dz/H) 對前/後腳相同
+  // 弧形板（panel）背：後腳本來就只到 seatY、跟前腳同高，自動兩條件都成立。
   const splayMm = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
   const splayAngleRad = (splayAngle * Math.PI) / 180;
-  const splayMmFor = (c: { x: number; z: number }): number => {
+  const splayMmFor = (c: { x: number; z: number }): { x: number; z: number } => {
     const isTallBack = c.z > 0 && withBack && backStyle !== "panel";
     const legH = isTallBack ? seatY + backHeight : seatY;
-    return Math.round(Math.tan(splayAngleRad) * legH);
+    return {
+      x: splayMm, // X 等距：4 腳同 offset
+      z: Math.round(Math.tan(splayAngleRad) * legH), // Z 平行：依高度縮放
+    };
   };
   const hoofMm = 30;
   const legShapeFor = (c: { x: number; z: number }): Part["shape"] => {
@@ -163,17 +171,17 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     if (legShape === "splayed") {
       return {
         kind: "splayed",
-        dxMm: Math.sign(c.x) * sm,
-        dzMm: Math.sign(c.z) * sm,
+        dxMm: Math.sign(c.x) * sm.x,
+        dzMm: Math.sign(c.z) * sm.z,
         chamferMm: legEdge > 0 ? legEdge : undefined,
         chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
       };
     }
     if (legShape === "splayed-length") {
-      return { kind: "splayed", dxMm: Math.sign(c.x) * sm, dzMm: 0, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
+      return { kind: "splayed", dxMm: Math.sign(c.x) * sm.x, dzMm: 0, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "splayed-width") {
-      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * sm, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * sm.z, chamferMm: legEdge > 0 ? legEdge : undefined, chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered" };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;
