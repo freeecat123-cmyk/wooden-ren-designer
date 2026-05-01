@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
-import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
@@ -255,6 +255,44 @@ function Part({
       // 已經有 builder，重用即可（buffer geo + index）
       return buildSplayedRoundTaperedGeometry(size, shape.bottomScale, shape.dx, shape.dz, 48);
     }
+    // 夏克風 / 車旋腳：原本走 multi-mesh group，整合成單一 merged BufferGeometry
+    // 給 CSG pipeline 用（座板/橫撐 mortise → 圓柱面方洞）
+    if (shape.kind === "shaker") {
+      const SQUARE_FRAC = shape.squareFrac ?? 0.25;
+      const TAPER_BOT_SCALE = shape.bottomScale ?? 0.6;
+      const fullH = size[1];
+      const squareH = fullH * SQUARE_FRAC;
+      const taperH = fullH * (1 - SQUARE_FRAC);
+      const fullR = size[0] / 2;
+      const botR = fullR * TAPER_BOT_SCALE;
+      const squareYOffset = taperH / 2;
+      const taperYOffset = -squareH / 2;
+      const sq = new BoxGeometry(size[0], squareH, size[2]);
+      sq.translate(0, squareYOffset, 0);
+      const cyl = new CylinderGeometry(fullR, botR, taperH, 48);
+      cyl.translate(0, taperYOffset, 0);
+      const merged = mergeGeometries([sq, cyl], false);
+      sq.dispose();
+      cyl.dispose();
+      return merged ?? new BoxGeometry(size[0], size[1], size[2]);
+    }
+    if (shape.kind === "lathe-turned") {
+      const fullH = size[1];
+      const fullR = size[0] / 2;
+      let yCursor = fullH / 2;
+      const segs: BufferGeometry[] = [];
+      for (const [topR, botR, hFrac] of LATHE_TURNED_SEGMENTS) {
+        const segH = fullH * hFrac;
+        const segYCenter = yCursor - segH / 2;
+        yCursor -= segH;
+        const cyl = new CylinderGeometry(fullR * topR, fullR * botR, segH, 32);
+        cyl.translate(0, segYCenter, 0);
+        segs.push(cyl);
+      }
+      const merged = mergeGeometries(segs, false);
+      for (const s of segs) s.dispose();
+      return merged ?? new BoxGeometry(size[0], size[1], size[2]);
+    }
     if (shape.kind === "apron-trapezoid") {
       return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0);
     }
@@ -292,17 +330,6 @@ function Part({
   // useMemo geometry，CSG 直接挖（座板上的方 mortise → 圓柱面方洞，視覺正確）。
   const csgGeometry = useMemo(() => {
     if (!mortiseBoxes || mortiseBoxes.length === 0) return null;
-    if (
-      shape?.kind === "shaker" ||
-      shape?.kind === "lathe-turned" ||
-      shape?.kind === "live-edge" ||
-      shape?.kind === "arch-bent" ||
-      shape?.kind === "face-rounded" ||
-      shape?.kind === "seat-scoop"
-    ) {
-      // 多段組合 / 自由曲面：phase 4+
-      return null;
-    }
     const baseGeo = geometry ?? new BoxGeometry(size[0], size[1], size[2]);
     const result = subtractMortisesFromGeometry(baseGeo, mortiseBoxes);
     // 若 baseGeo 是新建的 BoxGeometry（不是 useMemo cache 的 geometry），dispose
@@ -332,57 +359,7 @@ function Part({
   // geometry，會走到底下的 final mesh + CSG pipeline；早期的 inline JSX 路徑
   // 移除（Phase 2 圓料挖洞擴展）。
 
-  // 夏克風腳：上方 squareFrac 方頂 + 下方圓錐（bottomScale）
-  // 「胖夏克」傳 squareFrac=0.4, bottomScale=0.75 讓方頂占比大、整支看起來壯
-  if (shape?.kind === "shaker") {
-    const SQUARE_FRAC = shape.squareFrac ?? 0.25;
-    const TAPER_BOT_SCALE = shape.bottomScale ?? 0.6;
-    const fullH = size[1];
-    const squareH = fullH * SQUARE_FRAC;
-    const taperH = fullH * (1 - SQUARE_FRAC);
-    const fullR = size[0] / 2;
-    const botR = fullR * TAPER_BOT_SCALE;
-    const squareYOffset = taperH / 2;
-    const taperYOffset = -squareH / 2;
-    return (
-      <group position={position} rotation={rotation}>
-        <mesh position={[0, squareYOffset, 0]} castShadow receiveShadow>
-          <boxGeometry args={[size[0], squareH, size[2]]} />
-          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-        </mesh>
-        <mesh position={[0, taperYOffset, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[fullR, botR, taperH, 48]} />
-          <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-        </mesh>
-      </group>
-    );
-  }
-
-  // 車旋腳：多段不同半徑的圓柱組合，視覺像車床車出來的
-  // 分 6 段（從上到下）：頸圈、上球節、上桿、下桿、下球節、足盤
-  // 每段相對 fullR 的半徑跟 fullH 的高度比例都固定
-  if (shape?.kind === "lathe-turned") {
-    const fullH = size[1];
-    const fullR = size[0] / 2;
-    let yCursor = fullH / 2;
-    return (
-      <group position={position} rotation={rotation}>
-        {LATHE_TURNED_SEGMENTS.map(([topR, botR, hFrac], i) => {
-          const segH = fullH * hFrac;
-          const segYCenter = yCursor - segH / 2;
-          yCursor -= segH;
-          // CylinderGeometry(topRadius, bottomRadius, height, segments)
-          // 不同 top/bot 半徑 → cone frustum，多段串起來輪廓平滑
-          return (
-            <mesh key={i} position={[0, segYCenter, 0]} castShadow receiveShadow>
-              <cylinderGeometry args={[fullR * topR, fullR * botR, segH, 32]} />
-              <meshStandardMaterial color={color} roughness={0.55} metalness={0.05} onBeforeCompile={woodCompile} />
-            </mesh>
-          );
-        })}
-      </group>
-    );
-  }
+  // shaker / lathe-turned 已整進 useMemo geometry，會走底下 final mesh + CSG。
 
   // chamfered-edges / chamfered-top / splayed+chamfer 用 flatShading：
   // 每個 facet 自己的法線 → 八角斷面看得出來；不然 smooth shading 會把
