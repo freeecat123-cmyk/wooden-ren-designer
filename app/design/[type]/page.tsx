@@ -160,6 +160,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     : "natural";
   const sceneTheme = SCENE_THEMES[sceneId];
 
+  // Dev audit mode（drafting-math.md §A10.7 / §A11.7）：?audit=true URL 啟
+  // 用，3D PerspectiveView 把 overlap 的 parts 用紅色 wireframe 高亮並
+  // console.warn 列表。給開發人員肉眼看 audit 結果用。
+  const auditMode = sp.audit === "true" || sp.audit === "1";
+
   const printQuery = designParamsToQuery(parsed, entry);
 
   return (
@@ -285,7 +290,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} />
           </div>
         </div>
       </section>

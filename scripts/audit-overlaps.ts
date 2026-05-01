@@ -56,10 +56,10 @@ const SHAPE_AWARE_VARIANTS = new Set<string>([
   "bracket",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
+import type { FurnitureCatalogEntry } from "../lib/templates";
 import { toBeginnerMode } from "../lib/templates/beginner-mode";
 import { findOverlaps } from "../lib/geometry/overlap";
 import type {
-  FurnitureCatalogEntry,
   FurnitureDesign,
   MaterialId,
   OptionSpec,
@@ -81,11 +81,11 @@ interface Row {
 /** 抓 template 的 legShape select 選項所有 choice value（包含 default） */
 function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   const spec: OptionSpec | undefined = (entry.optionSchema ?? []).find(
-    (o) => o.key === "legShape",
+    (o: OptionSpec) => o.key === "legShape",
   );
   if (!spec || spec.type !== "select") return ["default"];
   const choices = spec.choices ?? [];
-  return choices.map((c) => String(c.value));
+  return choices.map((c: { value: string | number | boolean }) => String(c.value));
 }
 
 function buildDesign(
@@ -95,7 +95,7 @@ function buildDesign(
   if (!entry.template) return null;
   const opts = (entry.optionSchema ?? []).reduce<
     Record<string, string | number | boolean>
-  >((acc, spec) => {
+  >((acc: Record<string, string | number | boolean>, spec: OptionSpec) => {
     acc[spec.key] = spec.defaultValue;
     return acc;
   }, {});

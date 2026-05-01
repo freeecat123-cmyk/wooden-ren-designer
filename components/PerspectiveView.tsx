@@ -8,6 +8,7 @@ import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { FurnitureDesign } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
+import { findOverlaps } from "@/lib/geometry/overlap";
 import { categorizePart } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
 
@@ -1608,10 +1609,16 @@ function buildSeatScoopGeometry(
 export function PerspectiveView({
   design,
   sceneTheme,
+  joineryMode = false,
+  auditMode = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
+  /** 榫接模式：3D 多畫一層紅色 tenon 凸出 */
+  joineryMode?: boolean;
+  /** Dev audit mode：?audit=true URL 啟用，overlap 的 parts 用紅色 wireframe 高亮 */
+  auditMode?: boolean;
 }) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
@@ -1625,6 +1632,33 @@ export function PerspectiveView({
   const tint = sceneTheme?.lightTint ?? { r: 1, g: 1, b: 1 };
   // 把 (r,g,b) 0-1 轉成 rgb() string（Three.js Color.set 不接 array）
   const lightHex = `rgb(${Math.round(tint.r * 255)}, ${Math.round(tint.g * 255)}, ${Math.round(tint.b * 255)})`;
+
+  // Audit mode：抓 overlap 對，把出現在裡面的 part id 拉成 set。標紅色高亮。
+  const overlapIds = useMemo(() => {
+    if (!auditMode) return new Set<string>();
+    const ids = new Set<string>();
+    try {
+      const overlaps = findOverlaps(design.parts);
+      for (const o of overlaps) {
+        ids.add(o.a);
+        ids.add(o.b);
+      }
+      if (overlaps.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[audit=true] ${overlaps.length} overlap pair(s):`,
+          overlaps,
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.info(`[audit=true] 0 overlaps`);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[audit=true] findOverlaps failed", e);
+    }
+    return ids;
+  }, [auditMode, design]);
 
   return (
     <div className="w-full h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
@@ -1820,26 +1854,132 @@ export function PerspectiveView({
               bendAxis: part.shape.bendAxis ?? "z",
             };
           }
-          return (
-            <Part
-              key={part.id}
+          // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
+          // tenon local center（含 offset）算 world position；box 跟 part 同
+          // rotation 才能讓 cross-section 對齊。
+          const tenonMeshes = joineryMode
+            ? part.tenons.map((t, ti) => {
+                if (t.length <= 0) return null;
+                const lx = part.visible.length;
+                const ly = part.visible.thickness;
+                const lz = part.visible.width;
+                const W = t.width;
+                const T = t.thickness;
+                const oW = t.offsetWidth ?? 0;
+                const oT = t.offsetThickness ?? 0;
+                let lcx = 0, lcy = 0, lcz = 0;
+                let hx = 0, hy = 0, hz = 0;
+                switch (t.position) {
+                  case "start":
+                    lcx = -lx / 2 - t.length / 2; lcy = oT; lcz = oW;
+                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    break;
+                  case "end":
+                    lcx = lx / 2 + t.length / 2; lcy = oT; lcz = oW;
+                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    break;
+                  case "top":
+                    lcx = oW; lcy = ly / 2 + t.length / 2; lcz = oT;
+                    hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    break;
+                  case "bottom":
+                    lcx = oW; lcy = -ly / 2 - t.length / 2; lcz = oT;
+                    hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    break;
+                  case "left":
+                    lcx = oW; lcy = oT; lcz = -lz / 2 - t.length / 2;
+                    hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    break;
+                  case "right":
+                    lcx = oW; lcy = oT; lcz = lz / 2 + t.length / 2;
+                    hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    break;
+                }
+                // 把 local center 經 part Euler XYZ 旋轉 → 加 part 中心 = world center
+                const rx = part.rotation?.x ?? 0;
+                const ry = part.rotation?.y ?? 0;
+                const rz = part.rotation?.z ?? 0;
+                const cosX = Math.cos(rx), sinX = Math.sin(rx);
+                const cosY = Math.cos(ry), sinY = Math.sin(ry);
+                const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
+                let x = lcx, y = lcy, z = lcz;
+                // Rx
+                let y2 = y * cosX - z * sinX;
+                let z2 = y * sinX + z * cosX;
+                y = y2; z = z2;
+                // Ry
+                let x2 = x * cosY + z * sinY;
+                z2 = -x * sinY + z * cosY;
+                x = x2; z = z2;
+                // Rz
+                x2 = x * cosZ - y * sinZ;
+                y2 = x * sinZ + y * cosZ;
+                x = x2; y = y2;
+                const wx = (part.origin.x + x) * SCALE;
+                const wy = (part.origin.y + worldExtents(part).yExt / 2 + y) * SCALE;
+                const wz = (part.origin.z + z) * SCALE;
+                return (
+                  <mesh
+                    key={`${part.id}-tenon-${ti}`}
+                    position={[wx, wy, wz]}
+                    rotation={new Euler(rx, ry, rz, "ZYX")}
+                    castShadow
+                  >
+                    <boxGeometry args={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]} />
+                    <meshStandardMaterial
+                      color="#c0392b"
+                      roughness={0.8}
+                    />
+                  </mesh>
+                );
+              })
+            : null;
+
+          // Audit mode：overlap part 加紅色半透明 wireframe overlay box
+          const auditOverlay = overlapIds.has(part.id) ? (
+            <mesh
               position={[px, py, pz]}
-              size={[
-                part.visible.length * SCALE,
-                part.visible.thickness * SCALE,
-                part.visible.width * SCALE,
-              ]}
               rotation={new Euler(
                 part.rotation?.x ?? 0,
                 part.rotation?.y ?? 0,
                 part.rotation?.z ?? 0,
                 "ZYX",
               )}
-              color={color}
-              shape={shape}
-              isGlass={part.visual === "glass"}
-              grainDirection={part.grainDirection}
-            />
+            >
+              <boxGeometry
+                args={[
+                  part.visible.length * SCALE,
+                  part.visible.thickness * SCALE,
+                  part.visible.width * SCALE,
+                ]}
+              />
+              <meshBasicMaterial color="#ff2030" wireframe transparent opacity={0.7} />
+            </mesh>
+          ) : null;
+
+          return (
+            <group key={part.id}>
+              <Part
+                position={[px, py, pz]}
+                size={[
+                  part.visible.length * SCALE,
+                  part.visible.thickness * SCALE,
+                  part.visible.width * SCALE,
+                ]}
+                rotation={new Euler(
+                  part.rotation?.x ?? 0,
+                  part.rotation?.y ?? 0,
+                  part.rotation?.z ?? 0,
+                  "ZYX",
+                )}
+                color={color}
+                shape={shape}
+                isGlass={part.visual === "glass"}
+                grainDirection={part.grainDirection}
+              />
+              {tenonMeshes}
+              {auditOverlay}
+            </group>
           );
         })}
 

@@ -131,6 +131,59 @@ function computeShift(
   return 0;
 }
 
+/**
+ * Tenon 的 width 軸（offsetWidth 走的軸）在 world 座標的方向。
+ * 對 part 的 Euler XYZ rotation 套單位向量得 world 軸 + 符號。
+ *
+ * 慣例：
+ *   start/end 位置 → width 沿 part-local Z
+ *   top/bottom    → width 沿 part-local X
+ *   left/right    → width 沿 part-local X
+ *
+ * v2（C.1）：取代 v1「skip rotated parts」的限制。對 apron 等 X 軸 90° 旋
+ * 轉零件能正確算出 width-axis 在 world Y 的負方向（sign=-1），edge-protection
+ * 因此能設正確 offsetWidth 值。
+ */
+function tenonWidthAxisInWorld(
+  part: Part,
+  position: TenonPosition,
+): { axis: "x" | "y" | "z"; sign: 1 | -1 } | null {
+  // Width 軸的 part-local 單位向量
+  const localVec: [number, number, number] =
+    position === "start" || position === "end"
+      ? [0, 0, 1]
+      : [1, 0, 0]; // top/bottom/left/right 都走 X
+  let [x, y, z] = localVec;
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  // Three.js Euler XYZ: M = Rx * Ry * Rz；先 Rz、再 Ry、再 Rx 套。
+  // 跟 svg-views.tsx projectFeatureRect 同順序。
+  // Rx
+  let y2 = y * Math.cos(rx) - z * Math.sin(rx);
+  let z2 = y * Math.sin(rx) + z * Math.cos(rx);
+  y = y2;
+  z = z2;
+  // Ry
+  let x2 = x * Math.cos(ry) + z * Math.sin(ry);
+  z2 = -x * Math.sin(ry) + z * Math.cos(ry);
+  x = x2;
+  z = z2;
+  // Rz
+  x2 = x * Math.cos(rz) - y * Math.sin(rz);
+  y2 = x * Math.sin(rz) + y * Math.cos(rz);
+  x = x2;
+  y = y2;
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  const az = Math.abs(z);
+  const max = Math.max(ax, ay, az);
+  if (max < 0.9) return null; // 非軸對齊（自由旋轉），v2 不處理
+  if (ax === max) return { axis: "x", sign: x > 0 ? 1 : -1 };
+  if (ay === max) return { axis: "y", sign: y > 0 ? 1 : -1 };
+  return { axis: "z", sign: z > 0 ? 1 : -1 };
+}
+
 /** Tenon 凸出端中心點的 part-local 座標（centered，未加 part.origin） */
 function tenonEndLocal(
   position: TenonPosition,
@@ -158,15 +211,31 @@ function tenonEndLocal(
   }
 }
 
-/** Tenon 凸出端中心 → world 座標。回 null 代表受 rotation 限制，v1 不處理。 */
+/** Tenon 凸出端中心 → world 座標。v2 支援 rotation（套 Euler XYZ）。 */
 function tenonEndWorld(part: Part, t: Tenon): { x: number; y: number; z: number } | null {
-  if (hasRotation(part)) return null;
   const local = tenonEndLocal(t.position, part, t);
   const ly = part.visible.thickness;
+  // 套 Euler XYZ rotation（與 svg-views projectFeatureRect 一致）
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  let { x, y, z } = local;
+  // Rx
+  let y2 = y * Math.cos(rx) - z * Math.sin(rx);
+  let z2 = y * Math.sin(rx) + z * Math.cos(rx);
+  y = y2; z = z2;
+  // Ry
+  let x2 = x * Math.cos(ry) + z * Math.sin(ry);
+  z2 = -x * Math.sin(ry) + z * Math.cos(ry);
+  x = x2; z = z2;
+  // Rz
+  x2 = x * Math.cos(rz) - y * Math.sin(rz);
+  y2 = x * Math.sin(rz) + y * Math.cos(rz);
+  x = x2; y = y2;
   return {
-    x: part.origin.x + local.x,
-    y: part.origin.y + ly / 2 + local.y,
-    z: part.origin.z + local.z,
+    x: part.origin.x + x,
+    y: part.origin.y + ly / 2 + y,
+    z: part.origin.z + z,
   };
 }
 
@@ -192,7 +261,7 @@ function findPairedTenon(
   for (let pi = 0; pi < parts.length; pi++) {
     const other = parts[pi];
     if (other.id === receivingPart.id) continue;
-    if (hasRotation(other)) continue; // v1: 公榫件不旋轉
+    // v2：rotated 公榫件也接受（tenonEndWorld 已套 rotation）
     for (let ti = 0; ti < other.tenons.length; ti++) {
       const t = other.tenons[ti];
       if (
@@ -244,10 +313,20 @@ export function applyEdgeProtection(design: FurnitureDesign): FurnitureDesign {
       else if (longAxis === "z") m.origin.z += shift;
       else m.origin.y += shift;
 
-      // 套相同 world-axis shift 到 paired tenon's offsetWidth
-      // 公榫件 axis-aligned（v1 限制），所以 world axis = part-local axis = tenon width axis
-      const t = parts[pair.partIndex].tenons[pair.tenonIndex];
-      t.offsetWidth = (t.offsetWidth ?? 0) + shift;
+      // 套 world-axis shift 到 paired tenon's offsetWidth
+      // v2：tenon 公榫件可能有 rotation，width 軸在 world 不一定 = mortise long
+      // 軸；先算 tenon width 軸的 world 方向 + 符號，只有跟 mortise long 軸吻合
+      // 才能用 offsetWidth 補償（不吻合就跳過——thickness 軸 v2 也不動，避免
+      // 改側視圖渲染對齊）。
+      const tenonPart = parts[pair.partIndex];
+      const t = tenonPart.tenons[pair.tenonIndex];
+      const widthInfo = tenonWidthAxisInWorld(tenonPart, t.position);
+      if (!widthInfo || widthInfo.axis !== longAxis) continue;
+      // shift 是 mortise origin 沿 longAxis world 方向的位移
+      // tenon offsetWidth × widthInfo.sign = world 方向位移
+      // → offsetWidth = shift × widthInfo.sign（sign ∈ ±1，故 ÷sign = ×sign）
+      const offsetVal = shift * widthInfo.sign;
+      t.offsetWidth = (t.offsetWidth ?? 0) + offsetVal;
       // 同步 shoulderOn：tenon 中心朝 +width 偏 → "right"（+width side）跟母件
       // 邊齊平、那邊沒肩 → 從 shoulderOn 移除 "right"。反之移除 "left"。
       // 慣例（tenon cross-section）："left/right" = ±width 軸；"top/bottom" = ±thickness 軸。

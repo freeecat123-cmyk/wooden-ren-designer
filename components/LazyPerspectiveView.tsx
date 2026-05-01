@@ -30,9 +30,20 @@ const PerspectiveViewLazy = dynamic(
 export function LazyPerspectiveView({
   design,
   sceneTheme,
+  joineryMode = false,
+  auditMode = false,
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
+  joineryMode?: boolean;
+  auditMode?: boolean;
 }) {
-  return <PerspectiveViewLazy design={design} sceneTheme={sceneTheme} />;
+  return (
+    <PerspectiveViewLazy
+      design={design}
+      sceneTheme={sceneTheme}
+      joineryMode={joineryMode}
+      auditMode={auditMode}
+    />
+  );
 }

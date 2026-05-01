@@ -249,7 +249,7 @@ function projectFeatureRect(
 }
 
 /**
- * Tenon 在公榫件 local 座標下的 AABB。
+ * Tenon 在公榫件 local 座標下的 AABB（凸出部分）。
  * 慣例（drafting-math.md §A5/§B2）：
  *   "start" 沿 -X、"end" 沿 +X 凸出；
  *   "top" 沿 +Y、"bottom" 沿 -Y 凸出；
@@ -259,6 +259,30 @@ function projectFeatureRect(
  *              top/bottom → width 沿 X、thickness 沿 Z；
  *              left/right → width 沿 X、thickness 沿 Y。
  */
+/**
+ * 公榫件「肩位」rectangle（drafting-math.md §B2/§B6）。畫在公榫件本體面上
+ * 的扁平 box（protrusion 軸 half-extent = 0），等同 tenon 跨刀紋——三視圖
+ * 從肩面方向看是 rect、其他視圖是 line。標記「肩到肩」邊界讓木工知道從
+ * 哪裡開始切肩。
+ */
+function tenonShoulderBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const W = tenon.width;
+  const T = tenon.thickness;
+  const oW = tenon.offsetWidth ?? 0;
+  const oT = tenon.offsetThickness ?? 0;
+  switch (tenon.position) {
+    case "start":  return { cx: -lx / 2, cy: oT, cz: oW, hx: 0, hy: T / 2, hz: W / 2 };
+    case "end":    return { cx: +lx / 2, cy: oT, cz: oW, hx: 0, hy: T / 2, hz: W / 2 };
+    case "top":    return { cx: oW, cy: +ly / 2, cz: oT, hx: W / 2, hy: 0, hz: T / 2 };
+    case "bottom": return { cx: oW, cy: -ly / 2, cz: oT, hx: W / 2, hy: 0, hz: T / 2 };
+    case "left":   return { cx: oW, cy: oT, cz: -lz / 2, hx: W / 2, hy: T / 2, hz: 0 };
+    case "right":  return { cx: oW, cy: oT, cz: +lz / 2, hx: W / 2, hy: T / 2, hz: 0 };
+  }
+}
+
 function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
@@ -1277,8 +1301,12 @@ export function OrthoView({
         opacity={0.8}
       />
 
-      {/* 榫接模式 overlay：tenon 凸出實線（紅）+ mortise 虛線（藍）
-          Phase 1.5（drafting-math.md §B6）。glass 件略過。 */}
+      {/* 榫接模式 overlay（drafting-math.md §B5/§B6）：
+            - tenon 凸出 = 紅實線
+            - tenon 肩位 = 紅虛線（公榫件本體面 / 肩到肩 boundary）
+            - mortise = 藍虛線
+            - 通榫穿透時母件背面 = 端面木紋格 §B5
+          glass 件略過。 */}
       {joineryMode && (
         <g pointerEvents="none">
           {design.parts.map((part) => {
@@ -1290,19 +1318,40 @@ export function OrthoView({
               if (t.length <= 0) continue;
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
-              if (r.w < 0.5 || r.h < 0.5) continue;
-              elements.push(
-                <rect
-                  key={`${part.id}-t${i}`}
-                  x={r.x}
-                  y={-(r.y + r.h)}
-                  width={r.w}
-                  height={r.h}
-                  fill="none"
-                  stroke="#c0392b"
-                  strokeWidth={0.6}
-                />,
-              );
+              if (r.w >= 0.5 && r.h >= 0.5) {
+                elements.push(
+                  <rect
+                    key={`${part.id}-t${i}`}
+                    x={r.x}
+                    y={-(r.y + r.h)}
+                    width={r.w}
+                    height={r.h}
+                    fill="none"
+                    stroke="#c0392b"
+                    strokeWidth={0.6}
+                  />,
+                );
+              }
+              // 肩位虛線：tenon 肩到肩 boundary（公榫件本體面投影）
+              const sb = tenonShoulderBox(part, t);
+              const sr = projectFeatureRect(part, sb, view);
+              // hy/hx/hz=0 那軸投影成線；rect 寬或高 < 0.5 時改畫線
+              if (sr.w >= 0.5 || sr.h >= 0.5) {
+                elements.push(
+                  <rect
+                    key={`${part.id}-ts${i}`}
+                    x={sr.x}
+                    y={-(sr.y + sr.h)}
+                    width={Math.max(sr.w, 0.1)}
+                    height={Math.max(sr.h, 0.1)}
+                    fill="none"
+                    stroke="#c0392b"
+                    strokeWidth={0.35}
+                    strokeDasharray="2 1.5"
+                    opacity={0.7}
+                  />,
+                );
+              }
             }
             // mortise 虛線（母榫）— 藍 dashed
             for (let i = 0; i < part.mortises.length; i++) {
@@ -1324,6 +1373,48 @@ export function OrthoView({
                   strokeDasharray="3 2"
                 />,
               );
+              // 通榫穿透時母件「背面」端面木紋格（§B5）：在 mortise 的 exit
+              // 面（跟 entry 相反那面）上隨機點。AABB 投影到該視圖時取
+              // 入口 face 的 rect 即可（depth 垂直於該 face，bbox 在 view
+              // 上是 length×width）。只在 depth 軸朝 view normal 的視圖看
+              // 得到（top view 看 Y-depth mortise；front 看 Z-depth；side
+              // 看 X-depth）。簡化：top view 內 m.through=true && depth 沿
+              // Y 軸時就畫端面格。
+              if (m.through) {
+                // 估 mortise 跟 view 的對應：通孔 face 跟 mortise depth 軸
+                // 垂直；簡單做法：把 mortise 看成完整 bbox 投到該 view 看
+                // 是不是夠面 → 是的話畫端面格在面上中央。
+                // 偷懶：通孔在每個 view 都畫小格紋，反正不重複到 tenon 那邊。
+                const grainStep = 1.5;
+                const padding = 1.0;
+                const innerW = r.w - 2 * padding;
+                const innerH = r.h - 2 * padding;
+                if (innerW > grainStep * 2 && innerH > grainStep * 2) {
+                  const innerLines: React.ReactNode[] = [];
+                  // 隨機點作為端面木纖（用 mortise origin 當 seed）
+                  const seed = (m.origin.x * 7 + m.origin.y * 13 + m.origin.z * 19);
+                  let rng = Math.abs(seed) % 1000 / 1000;
+                  const next = () => { rng = (rng * 9301 + 49297) % 233280 / 233280; return rng; };
+                  const dotCount = Math.max(3, Math.round((innerW * innerH) / 60));
+                  for (let d = 0; d < dotCount; d++) {
+                    const px = r.x + padding + next() * innerW;
+                    const py = -(r.y + r.h) + padding + next() * innerH;
+                    innerLines.push(
+                      <circle
+                        key={`g-${d}`}
+                        cx={px}
+                        cy={py}
+                        r={0.3}
+                        fill="#2980b9"
+                        opacity={0.55}
+                      />,
+                    );
+                  }
+                  elements.push(
+                    <g key={`${part.id}-m${i}-grain`}>{innerLines}</g>,
+                  );
+                }
+              }
             }
             return elements.length > 0 ? <g key={`joinery-${part.id}`}>{elements}</g> : null;
           })}

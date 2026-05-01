@@ -7,10 +7,10 @@
  * 對應檔案：lib/joinery/audit-joints.ts、docs/drafting-math.md §B2
  */
 import { FURNITURE_CATALOG } from "../lib/templates";
+import type { FurnitureCatalogEntry } from "../lib/templates";
 import { auditJoints, formatJointAudit } from "../lib/joinery/audit-joints";
 import { applyEdgeProtection } from "../lib/joinery/edge-protection";
 import type {
-  FurnitureCatalogEntry,
   FurnitureCategory,
   FurnitureDesign,
   MaterialId,
@@ -56,11 +56,11 @@ interface Row {
 /** 抓 template 的 legShape 所有 choice value（包含 default） */
 function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   const spec: OptionSpec | undefined = (entry.optionSchema ?? []).find(
-    (o) => o.key === "legShape",
+    (o: OptionSpec) => o.key === "legShape",
   );
   if (!spec || spec.type !== "select") return ["default"];
   const choices = spec.choices ?? [];
-  return choices.map((c) => String(c.value));
+  return choices.map((c: { value: string | number | boolean }) => String(c.value));
 }
 
 const rows: Row[] = [];
@@ -71,7 +71,7 @@ for (const entry of FURNITURE_CATALOG) {
   for (const variant of variants) {
     const opts = (entry.optionSchema ?? []).reduce<
       Record<string, string | number | boolean>
-    >((acc, spec) => {
+    >((acc: Record<string, string | number | boolean>, spec: OptionSpec) => {
       acc[spec.key] = spec.defaultValue;
       return acc;
     }, {});
