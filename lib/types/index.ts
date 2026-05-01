@@ -219,7 +219,7 @@ export interface Part {
      *  視覺上頂面變小一點點、外側多一個 45° 斜邊。
      *  rounded R5/R12 也用這個 shape，差別在 chamferMm（5 vs 12）。
      *  bottomChamferMm > 0：底面 4 邊也倒角（腳內縮時座板下緣外露才用得到）。 */
-    | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" }
+    | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
     /** Chamfered long edges：4 條沿最長軸的角線各倒 45° 角或圓角。
      *  腳（length=legSize × width=legSize × thickness=legHeight，最長軸 = thickness=Y）
      *  橫撐（length=長 × width × thickness，最長軸 = length=X）

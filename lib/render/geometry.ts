@@ -678,7 +678,27 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
   // 或圓角弧線（rounded）。俯視仍是矩形（從上方看不到倒角）。
   // bottomChamferMm > 0 → 下 2 角也斜切（腳內縮、座板下緣外露時用）。
   if (part.shape.kind === "chamfered-top") {
-    if (view === "top") return box;
+    if (view === "top") {
+      const cornerR = part.shape.cornerR ?? 0;
+      if (cornerR <= 0) return box;
+      const c = Math.min(cornerR, r.w * 0.45, r.h * 0.45);
+      const segs = 6;
+      const arc = (cx: number, cy: number, t0: number, t1: number) => {
+        const pts: Array<{ x: number; y: number }> = [];
+        for (let i = 0; i <= segs; i++) {
+          const t = t0 + ((t1 - t0) * i) / segs;
+          pts.push({ x: cx + c * Math.cos(t), y: cy + c * Math.sin(t) });
+        }
+        return pts;
+      };
+      // 4 角圓角矩形（CCW）
+      const pts: Array<{ x: number; y: number }> = [];
+      pts.push(...arc(r.x + c, r.y + c, Math.PI, (3 * Math.PI) / 2));
+      pts.push(...arc(r.x + r.w - c, r.y + c, (3 * Math.PI) / 2, 2 * Math.PI));
+      pts.push(...arc(r.x + r.w - c, r.y + r.h - c, 0, Math.PI / 2));
+      pts.push(...arc(r.x + c, r.y + r.h - c, Math.PI / 2, Math.PI));
+      return pts;
+    }
     const cTop = Math.min(part.shape.chamferMm, r.h * 0.45, r.w * 0.45);
     const cBot = part.shape.bottomChamferMm
       ? Math.min(part.shape.bottomChamferMm, r.h * 0.45, r.w * 0.45)

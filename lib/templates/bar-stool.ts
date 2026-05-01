@@ -19,6 +19,7 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅腳從座板邊緣往內縮的距離（每邊）" },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: SPLAY_ANGLE.stoolDefaultDeg, min: 1, max: SPLAY_ANGLE.barStoolMaxDeg, step: 0.5, unit: "°", help: `斜腳系列才有效——從垂直起算的外傾角度。吧檯椅較高，建議不超過 8°，太斜底盤過大不穩（上限 ${SPLAY_ANGLE.barStoolMaxDeg}°）`, dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
+  { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角 (mm)", defaultValue: 0, min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角" },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   seatProfileOption("top"),
@@ -79,6 +80,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
+  const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -264,7 +266,16 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length, width, thickness: seatThickness },
     origin: { x: 0, y: seatY, z: 0 },
-    shape: seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle),
+    shape: (() => {
+      const scoop = seatScoopShape(seatProfile);
+      if (scoop) return scoop;
+      // chamfered-top 加上 cornerR（4 角圓角，俯視）。即使 seatEdge=0 也建一個帶 cornerR 的 chamfered-top。
+      const edge = seatEdgeShape(seatEdge, seatEdgeStyle);
+      if (edge && seatCornerR > 0) return { ...edge, cornerR: seatCornerR };
+      if (edge) return edge;
+      if (seatCornerR > 0) return { kind: "chamfered-top" as const, chamferMm: 0, cornerR: seatCornerR };
+      return undefined;
+    })(),
     tenons: [],
     // 前腳通榫進來；後腳穿過座板高度範圍，要開大孔讓腳通過。
     // slats 從座板上面立起到頂橫木 → 座板上緣加 slat 母榫眼

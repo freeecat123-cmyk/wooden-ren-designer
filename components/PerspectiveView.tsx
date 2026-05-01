@@ -100,7 +100,7 @@ type ShapeSpec =
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number }
   | { kind: "apron-beveled"; bevelAngle: number }
-  | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" }
+  | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
   | { kind: "arch-bent"; bendMm: number; segments?: number }
@@ -171,7 +171,7 @@ function Part({
       return buildBeveledApronGeometry(size, shape.bevelAngle);
     }
     if (shape.kind === "chamfered-top") {
-      return buildChamferedTopGeometry(size, shape.chamferMm, shape.style ?? "chamfered", shape.bottomChamferMm ?? 0);
+      return buildChamferedTopGeometry(size, shape.chamferMm, shape.style ?? "chamfered", shape.bottomChamferMm ?? 0, shape.cornerR ?? 0);
     }
     if (shape.kind === "chamfered-edges") {
       return buildChamferedEdgesGeometry(size, shape.chamferMm, shape.style ?? "chamfered");
@@ -560,6 +560,7 @@ function buildChamferedTopGeometry(
   chamferMm: number,
   style: "chamfered" | "rounded" = "chamfered",
   bottomChamferMm: number = 0,
+  cornerR: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -570,29 +571,26 @@ function buildChamferedTopGeometry(
   const cBot = bottomChamferMm > 0
     ? Math.min(bottomChamferMm, ly * 0.45, hx * 0.45, hz * 0.45)
     : 0;
+  const baseR = Math.max(0, Math.min(cornerR, hx * 0.95, hz * 0.95));
 
   // 圓角用多段 chamfer 拼近似四分圓，45° 用單段斜面
   const segs = style === "rounded" ? 4 : 1;
+  const cornerSegs = baseR > 0 ? 6 : 0;
 
-  // 由下往上堆 levels：每個 level 有 (y, inset)，環一圈 4 點
+  // 由下往上堆 levels：每個 level 有 (y, inset)
   const levels: Array<{ y: number; inset: number }> = [];
   if (cBot > 0) {
-    // 底面倒角：y 從 yBot 到 yBot+cBot，inset 從 cBot 縮到 0
     for (let i = 0; i <= segs; i++) {
       const θ = (i * Math.PI) / 2 / segs;
       levels.push({
-        y: yBot + cBot - cBot * Math.sin(θ),  // i=0 → yBot+cBot, i=segs → yBot
-        inset: cBot - cBot * Math.cos(θ),     // i=0 → 0, i=segs → cBot
+        y: yBot + cBot - cBot * Math.sin(θ),
+        inset: cBot - cBot * Math.cos(θ),
       });
     }
-    // 反轉成 yBot → yBot+cBot 順序
     levels.reverse();
   } else {
-    // 沒底倒角：直接從 yBot 起算（inset=0 = 滿尺寸）
     levels.push({ y: yBot, inset: 0 });
   }
-  // 頂面倒角：y 從 yTop-cTop 到 yTop，inset 從 0 到 cTop
-  // 第一個 level（i=0, θ=0）跟下方滿尺寸 level 重複，跳過
   for (let i = 1; i <= segs; i++) {
     const θ = (i * Math.PI) / 2 / segs;
     levels.push({
@@ -600,45 +598,90 @@ function buildChamferedTopGeometry(
       inset: cTop - cTop * Math.cos(θ),
     });
   }
-  // 補一個「滿尺寸 level」在頂倒角起點（如果頂倒角的 inset 不是從 0 開始就要補）
-  // 上面 loop 從 i=1 開始，所以漏掉滿尺寸 level，補在這裡：
-  // 實際上 i=0 才是滿尺寸（cTop·(1-cos(0))=0），所以要在 reverse 前補
-  // 簡單作法：把 (yTop-cTop, 0) 補在頂倒角段最前面
   if (cTop > 0) {
-    // 在頂倒角第一段前插入 (yTop-cTop, inset=0)
     const insertIdx = levels.length - segs;
     levels.splice(insertIdx, 0, { y: yTop - cTop, inset: 0 });
   }
 
-  const v: number[] = [];
-  for (const L of levels) {
-    const x = hx - L.inset;
-    const z = hz - L.inset;
-    v.push(-x, L.y, -z);
-    v.push(+x, L.y, -z);
-    v.push(+x, L.y, +z);
-    v.push(-x, L.y, +z);
-  }
+  // 一個 level 的 perimeter (X-Z 平面 4 角圓角矩形)，CCW 從 +Y 方向看（俯視）
+  // 4 個角各 (cornerSegs+1) 點；無圓角時退回 4 角矩形
+  const perimeterAt = (inset: number): Array<[number, number]> => {
+    const ax = Math.max(0, hx - inset);
+    const az = Math.max(0, hz - inset);
+    const r = Math.max(0, Math.min(baseR - inset, ax, az));
+    if (r <= 0 || cornerSegs === 0) {
+      return [[-ax, -az], [+ax, -az], [+ax, +az], [-ax, +az]];
+    }
+    const pts: Array<[number, number]> = [];
+    // BR 角 (中心 +ax-r, -az+r)，從 -π/2 → 0
+    for (let i = 0; i <= cornerSegs; i++) {
+      const t = -Math.PI / 2 + (Math.PI / 2) * (i / cornerSegs);
+      pts.push([(ax - r) + r * Math.cos(t), (-az + r) + r * Math.sin(t)]);
+    }
+    // TR 角 (中心 +ax-r, +az-r)，從 0 → π/2
+    for (let i = 0; i <= cornerSegs; i++) {
+      const t = (Math.PI / 2) * (i / cornerSegs);
+      pts.push([(ax - r) + r * Math.cos(t), (az - r) + r * Math.sin(t)]);
+    }
+    // TL 角 (中心 -ax+r, +az-r)，從 π/2 → π
+    for (let i = 0; i <= cornerSegs; i++) {
+      const t = Math.PI / 2 + (Math.PI / 2) * (i / cornerSegs);
+      pts.push([(-ax + r) + r * Math.cos(t), (az - r) + r * Math.sin(t)]);
+    }
+    // BL 角 (中心 -ax+r, -az+r)，從 π → 3π/2
+    for (let i = 0; i <= cornerSegs; i++) {
+      const t = Math.PI + (Math.PI / 2) * (i / cornerSegs);
+      pts.push([(-ax + r) + r * Math.cos(t), (-az + r) + r * Math.sin(t)]);
+    }
+    return pts;
+  };
 
-  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  // 算每個 level 的 perimeter，K = 同一個值（每層點數一樣）
+  const perimeters = levels.map((L) => perimeterAt(L.inset));
+  const K = perimeters[0].length;
+
+  const v: number[] = [];
+  for (let li = 0; li < levels.length; li++) {
+    const L = levels[li];
+    const peri = perimeters[li];
+    for (const [x, z] of peri) {
+      v.push(x, L.y, z);
+    }
+  }
+  // 底面與頂面用 fan 三角化，center 點放最後
+  const bottomCenterIdx = levels.length * K;
+  v.push(0, levels[0].y, 0);
+  const topCenterIdx = bottomCenterIdx + 1;
+  v.push(0, levels[levels.length - 1].y, 0);
+
   const idx: number[] = [];
 
-  // 底面（第一個 level，從下方看 CCW）
-  idx.push(...f(0, 1, 2, 3));
-
-  // 相鄰 level 之間 4 個側面
-  for (let i = 0; i < levels.length - 1; i++) {
-    const a = i * 4;
-    const b = (i + 1) * 4;
-    idx.push(...f(a + 0, b + 0, b + 1, a + 1));
-    idx.push(...f(a + 1, b + 1, b + 2, a + 2));
-    idx.push(...f(a + 2, b + 2, b + 3, a + 3));
-    idx.push(...f(a + 3, b + 3, b + 0, a + 0));
+  // 底面 fan：perimeter 點 0..K-1 在 X-Z 平面是 BL→BR→TR→TL（CCW from +Y）
+  // 從 -Y 看（仰望）這變 CW；底面 outward=-Y，要 CCW from -Y 才對 → idx 用 (center, a, b)
+  for (let i = 0; i < K; i++) {
+    const a = i;
+    const b = (i + 1) % K;
+    idx.push(bottomCenterIdx, a, b);
   }
 
-  // 頂面（最後一個 level，從上方看 CCW）
-  const tv = (levels.length - 1) * 4;
-  idx.push(...f(tv + 0, tv + 3, tv + 2, tv + 1));
+  // 相鄰 level 之間連接（每邊 K 個 quad）
+  for (let li = 0; li < levels.length - 1; li++) {
+    const a0 = li * K;
+    const a1 = (li + 1) * K;
+    for (let i = 0; i < K; i++) {
+      const i1 = (i + 1) % K;
+      idx.push(a0 + i, a1 + i, a1 + i1);
+      idx.push(a0 + i, a1 + i1, a0 + i1);
+    }
+  }
+
+  // 頂面 fan：perimeter 是 CCW from +Y 看，頂面 outward=+Y 要 CCW from +Y → 用 (center, b, a)
+  const topBase = (levels.length - 1) * K;
+  for (let i = 0; i < K; i++) {
+    const a = topBase + i;
+    const b = topBase + ((i + 1) % K);
+    idx.push(topCenterIdx, b, a);
+  }
 
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
@@ -1717,6 +1760,7 @@ export function PerspectiveView({
               chamferMm: part.shape.chamferMm * SCALE,
               bottomChamferMm: part.shape.bottomChamferMm ? part.shape.bottomChamferMm * SCALE : undefined,
               style: part.shape.style,
+              cornerR: part.shape.cornerR ? part.shape.cornerR * SCALE : undefined,
             };
           } else if (part.shape?.kind === "chamfered-edges") {
             shape = { kind: "chamfered-edges", chamferMm: part.shape.chamferMm * SCALE, style: part.shape.style };
