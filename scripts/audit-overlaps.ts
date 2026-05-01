@@ -61,6 +61,8 @@ for (const entry of FURNITURE_CATALOG) {
 
 rows.sort((a, b) => b.overlapCount - a.overlapCount);
 
+const totalOverlaps = rows.reduce((sum, r) => sum + r.overlapCount, 0);
+
 console.log(
   `\n# Overlap Audit (${useJoinery ? "joinery" : "assembly/beginner"} mode)\n`,
 );
@@ -83,3 +85,14 @@ for (const r of rows) {
   );
 }
 console.log("");
+
+if (totalOverlaps > 0) {
+  console.error(
+    `❌ Audit failed: ${totalOverlaps} overlap pair(s) across ${rows.filter((r) => r.overlapCount > 0).length} template(s).`,
+  );
+  console.error(
+    `   Fix or set useButtJointConvention=true on the design (see docs/drafting-math.md §A10).`,
+  );
+  process.exit(1);
+}
+console.log(`✅ All ${rows.length} templates clean.`);

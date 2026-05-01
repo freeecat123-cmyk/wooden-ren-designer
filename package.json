@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "gen-style-pack": "tsx scripts/gen-style-pack.ts"
+    "gen-style-pack": "tsx scripts/gen-style-pack.ts",
+    "audit": "tsx scripts/audit-overlaps.ts",
+    "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

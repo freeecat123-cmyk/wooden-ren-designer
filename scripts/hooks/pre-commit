@@ -1,0 +1,24 @@
+#!/bin/sh
+# Pre-commit hook: 跑 overlap audit，0 overlaps 才允許 commit。
+# 安裝：npm install（會由 package.json 的 prepare script 自動 link 到 .git/hooks/）
+# 跳過：git commit --no-verify（緊急時用，但要寫清楚為什麼）
+
+# 只在 lib/templates/ 或 lib/geometry/overlap.ts 有改動時跑（節省時間）
+changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(lib/templates/|lib/geometry/overlap\.ts$|scripts/audit-overlaps\.ts$)')
+if [ -z "$changed" ]; then
+  exit 0
+fi
+
+echo "🔍 Running overlap audit (template / overlap code changed)..."
+if ! npx tsx scripts/audit-overlaps.ts > /tmp/wrd-audit.log 2>&1; then
+  echo ""
+  echo "❌ Overlap audit failed. Output:"
+  echo ""
+  cat /tmp/wrd-audit.log
+  echo ""
+  echo "Fix the overlaps or set useButtJointConvention=true (see docs/drafting-math.md §A10)."
+  echo "To bypass for emergencies: git commit --no-verify"
+  exit 1
+fi
+echo "✅ Overlap audit passed."
+exit 0
