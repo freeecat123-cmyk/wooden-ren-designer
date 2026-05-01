@@ -189,10 +189,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   }));
 
-  // ----- 上橫撐 / 下橫撐 共用建構 —— body 到腳中心 -----
+  // ----- 上橫撐 / 下橫撐 共用建構 —— butt-joint 慣例：兩端剛好頂在腳的內側面 -----
   const apronInnerSpan = {
-    x: length - legSize,
-    z: width - legSize,
+    x: length - 2 * legSize,
+    z: width - 2 * legSize,
   };
 
   const upperAprons: Part[] = makeApronRing({
@@ -335,6 +335,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...drawerParts,
     ],
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       `桌面與桌腳通榫；上下橫撐與桌腳半榫；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}${(() => { const ci = getOption<boolean>(input, opt(o, "withCoasterInsets")); return ci ? " 桌面四角各挖 ⌀100×3mm 圓凹嵌磁石杯墊。" : ""; })()}`,

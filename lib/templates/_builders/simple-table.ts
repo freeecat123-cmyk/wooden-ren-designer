@@ -241,15 +241,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ],
   }));
 
-  // Aprons (4 sides) — visible body spans leg center to leg center so the
-  // tenon portion inside the leg is visually represented in the three-view.
-  // Beginner-mode post-processing shortens this to the inner-face butt span.
+  // Aprons (4 sides) — butt-joint 慣例：visible.length 兩端剛好頂在腳的內側
+  // 面，組裝版渲染就是 final 幾何（不重疊、不留縫）。joinery 模式靠 tenon[]
+  // 加切料長度，3D 不視覺延伸。
+  // 內側面距離 = length - 2*legSize - 2*legInset。
   const apronInnerSpan = {
-    x: length - legSize - 2 * legInset,
-    z: width - legSize - 2 * legInset,
+    x: length - 2 * legSize - 2 * legInset,
+    z: width - 2 * legSize - 2 * legInset,
   };
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  // butt-joint 半長：腳中心 + splay 偏移 - legSize/2 = 腳內面位置。
+  const buttHalfX = (splay: number) => apronEdgeX + splay - legSize / 2;
+  const buttHalfZ = (splay: number) => apronEdgeZ + splay - legSize / 2;
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width（只沿 Z）
   // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
   const splayDx =
@@ -316,18 +320,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
-    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放
+    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放。
+    // 用 butt-joint 半長算比例，跟 visible.length 慣例一致。
     const trapTopScale =
       s.axis === "x" && splayDx > 0
-        ? (apronEdgeX + apronSplayXTop) / (apronEdgeX + apronSplayX)
+        ? buttHalfX(apronSplayXTop) / buttHalfX(apronSplayX)
         : s.axis === "z" && splayDz > 0
-          ? (apronEdgeZ + apronSplayZTop) / (apronEdgeZ + apronSplayZ)
+          ? buttHalfZ(apronSplayZTop) / buttHalfZ(apronSplayZ)
           : null;
     const trapBotScale =
       s.axis === "x" && splayDx > 0
-        ? (apronEdgeX + apronSplayXBot) / (apronEdgeX + apronSplayX)
+        ? buttHalfX(apronSplayXBot) / buttHalfX(apronSplayX)
         : s.axis === "z" && splayDz > 0
-          ? (apronEdgeZ + apronSplayZBot) / (apronEdgeZ + apronSplayZ)
+          ? buttHalfZ(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
     const partShape = trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -451,15 +456,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         : 0;
       const trapTopScale =
         s.axis === "x" && splayDx > 0
-          ? (apronEdgeX + sSplayXTop) / (apronEdgeX + sSplayX)
+          ? buttHalfX(sSplayXTop) / buttHalfX(sSplayX)
           : s.axis === "z" && splayDz > 0
-            ? (apronEdgeZ + sSplayZTop) / (apronEdgeZ + sSplayZ)
+            ? buttHalfZ(sSplayZTop) / buttHalfZ(sSplayZ)
             : null;
       const trapBotScale =
         s.axis === "x" && splayDx > 0
-          ? (apronEdgeX + sSplayXBot) / (apronEdgeX + sSplayX)
+          ? buttHalfX(sSplayXBot) / buttHalfX(sSplayX)
           : s.axis === "z" && splayDz > 0
-            ? (apronEdgeZ + sSplayZBot) / (apronEdgeZ + sSplayZ)
+            ? buttHalfZ(sSplayZBot) / buttHalfZ(sSplayZ)
             : 1;
       const lsShape = trapTopScale !== null
         ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -555,6 +560,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     overall: { length, width, thickness: height },
     parts,
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       opts.notes ?? "桌腳與桌面通榫；牙板與桌腳半榫；長桌建議加中央橫撐防扭。",

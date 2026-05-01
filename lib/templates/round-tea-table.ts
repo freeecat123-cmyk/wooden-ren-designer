@@ -201,8 +201,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
   const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
   const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
-  // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
-  const apronSpan = 2 * (cornerOffset + apronSplayDx);
+  // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
+  const apronSpan = 2 * (cornerOffset + apronSplayDx) - legSize;
   // 簡化：apron 也斜 α 度（matches leg），中心對到腳在 apron Y center 的中心
   // 不做 trapezoid，apron 就是矩形 + tilt
   const aprons: Part[] = [
@@ -242,7 +242,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
     const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
     const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;
-    const lsSpan = 2 * (cornerOffset + lsSplayDx);
+    const lsSpan = 2 * (cornerOffset + lsSplayDx) - legSize;
     const lsSides = [
       { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsSplayDz) } },
       { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsSplayDz } },
@@ -298,6 +298,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         : []),
     ],
     defaultJoinery: "shouldered-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, diameter)}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}${(() => { const tp = getOption<string>(input, opt(o, "topPattern")); return tp === "radial" ? " 桌面採放射狀拼板。" : tp === "concentric" ? " 桌面採同心環拼板。" : tp === "star-match" ? " 桌面採星形對拼。" : ""; })()}`,
   };

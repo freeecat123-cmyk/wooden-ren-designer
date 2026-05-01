@@ -232,9 +232,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
     const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
     const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
-    // 慣例：visible.length = 腳中心到腳中心（apron Y 的腳中心，不是頂端 corner）
-    // splayDx 跟 splayDz 同值（對角 splay），任取其一即可
-    const apronSpan = 2 * (cornerOffset + apronSplayDx);
+    // butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
+    // = 2 × (cornerOffset + splay) - legSize（每端各內縮 legSize/2）
+    const apronSpan = 2 * (cornerOffset + apronSplayDx) - legSize;
     // 簡化：apron 也斜 α 度（matches leg），中心對到腳在 apron Y center 的中心
     // 不再做 trapezoid，apron 就是矩形 + tilt
     const sides = [
@@ -279,7 +279,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
     const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
     const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;
-    const lsSpan = 2 * (cornerOffset + lsSplayDx);
+    const lsSpan = 2 * (cornerOffset + lsSplayDx) - legSize;
     const lsSides = [
       { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsSplayDz) } },
       { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsSplayDz } },
@@ -319,6 +319,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: diameter, width: diameter, thickness: height },
     parts,
     defaultJoinery: "blind-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes: `圓凳直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}${withApron ? "含橫撐" : ""}。座板用實木拼板（>=300mm 直徑通常需 2-3 片拼）。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}`,
   };
