@@ -556,6 +556,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     /** Optional X center and width when rendering inside a column. */
     xCenter?: number;
     colInnerW?: number;
+    /** Override drawer face overlay at bottom edge of zone (mm). When this
+     *  zone has a drawer/door zone below, pass shelfT/2 - drawerGap so faces
+     *  don't cross the boundary. Default = drawerOverlay. */
+    overlayBottom?: number;
+    /** Same as overlayBottom but for top edge. */
+    overlayTop?: number;
   }) => {
     const { yStart, height: zoneH, rows, cols, idPrefix, labelPrefix, dividerFrom } = cfg;
     const zoneCx = cfg.xCenter ?? 0;
@@ -649,6 +655,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const dovetailLen = drawerSideT;
     // —— 蓋門模式才用：面板總跨距 + 各面板尺寸 + 起點位置 ————————————
     const inColumn = cfg.colInnerW !== undefined;
+    // 預設 zone 上下兩側都用 drawerOverlay 全量延伸；caller 在 zone 邊界
+    // 時可傳 shelfT/2 - drawerGap 限制，避免相鄰 zone 的 face 互相蓋過。
+    const overlayBot = cfg.overlayBottom ?? drawerOverlay;
+    const overlayTop = cfg.overlayTop ?? drawerOverlay;
     const totalFaceW = isInsetDrawer
       ? 0
       : drawerMount === "overlay-6"
@@ -656,7 +666,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         : zoneW + 2 * drawerOverlay - 2 * drawerGap;
     const totalFaceH = isInsetDrawer
       ? 0
-      : zoneH + 2 * drawerOverlay - 2 * drawerGap;
+      : zoneH + overlayTop + overlayBot - 2 * drawerGap;
     const perFaceW_ov = isInsetDrawer ? 0 : (totalFaceW - (cols - 1) * drawerGap) / cols;
     const perFaceH_ov = isInsetDrawer ? 0 : (totalFaceH - (rows - 1) * drawerGap) / rows;
 
@@ -725,7 +735,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           faceHeight = perFaceH_ov;
           // 蓋門 grid：起點位置 = 區中心 - totalFaceW/2，row 從 zone 底向下 overlay
           const blockStartX = zoneCx - totalFaceW / 2;
-          const blockStartY = drawerZoneBottomY - drawerOverlay + drawerGap;
+          const blockStartY = drawerZoneBottomY - overlayBot + drawerGap;
           faceX = blockStartX + col * (perFaceW_ov + drawerGap) + perFaceW_ov / 2;
           faceY = blockStartY + row * (perFaceH_ov + drawerGap);
         }
@@ -1384,6 +1394,17 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 撞進 boundary 板（入柱門尤其嚴重——門前緣與 boundary 前緣同 z，會物理穿模）。
       const usableH = isLast ? z.heightMm : z.heightMm - shelfT;
       if (z.type === "drawer") {
+        // butt-joint at zone boundary：相鄰 zone（不論 drawer/door/shelves）共享
+        // shelfT 厚的 boundary 板，每邊 face 最多延伸 shelfT/2 - drawerGap
+        // (中間留 2*drawerGap 縫)。最外側 zone（碰 case top/bot）才用全量
+        // drawerOverlay 蓋滿 case 端面。
+        const drawerOverlayLocal =
+          drawerMount === "overlay-6" ? panelT : drawerMount === "overlay-3" ? 9 : 0;
+        // shelfT/2 - 2 (drawerGap) = 每邊 face 蓋過 boundary 多少；中間留
+        // 2 + 2 = 4mm 縫不互相蓋過
+        const halfBoundary = Math.max(0, Math.round(shelfT / 2) - 2);
+        const isFirstZone = i === 0;
+        const isTopZone = isLast;
         renderDrawerZone({
           yStart,
           height: usableH,
@@ -1394,6 +1415,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           // 在 zones 模式下，區與區之間的邊界板由外層 loop 統一加，
           // 這裡不要重複（否則兩片同 Y 疊在一起 → 看起來厚 + 分解感）
           dividerFrom: "none",
+          overlayBottom: isFirstZone ? drawerOverlayLocal : halfBoundary,
+          overlayTop: isTopZone ? drawerOverlayLocal : halfBoundary,
         });
       } else if (z.type === "door") {
         // 蓋門模式下，門板要往外延伸覆蓋相鄰邊界（case 板 / boundary 板）：
