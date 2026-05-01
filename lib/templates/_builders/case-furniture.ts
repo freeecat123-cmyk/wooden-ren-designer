@@ -660,7 +660,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const perFaceW_ov = isInsetDrawer ? 0 : (totalFaceW - (cols - 1) * drawerGap) / cols;
     const perFaceH_ov = isInsetDrawer ? 0 : (totalFaceH - (rows - 1) * drawerGap) / rows;
 
-    // 先放直立分隔板（中柱）——每列交界處一片，全 zone 高
+    // 先放直立分隔板（中柱）——butt-joint：每 col 邊界 × 每 row 一段，
+    // 避開水平分隔板的厚度（不貫穿）
     if (cols > 1) {
       for (let j = 0; j < cols - 1; j++) {
         const partX =
@@ -668,16 +669,28 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           zoneW / 2 +
           (j + 1) * drawerSlotW +
           (j + 0.5) * partitionT;
-        parts.push({
-          id: `${idPrefix}-col-partition-${j + 1}`,
-          nameZh: `${labelPrefix}直立分隔板 ${j + 1}`,
-          material,
-          grainDirection: "length",
-          visible: { length: partitionT, width: innerD, thickness: zoneH },
-          origin: { x: partX, y: drawerZoneBottomY, z: caseInnerZ },
-          tenons: [],
-          mortises: [],
-        });
+        for (let r = 0; r < rows; r++) {
+          const segYBot =
+            r === 0
+              ? drawerZoneBottomY
+              : drawerZoneBottomY + r * drawerSlotH;
+          const segYTop =
+            r === rows - 1
+              ? drawerZoneBottomY + zoneH
+              : drawerZoneBottomY + (r + 1) * drawerSlotH - shelfT;
+          const segH = segYTop - segYBot;
+          if (segH <= 0) continue;
+          parts.push({
+            id: `${idPrefix}-col-partition-r${r + 1}-c${j + 1}`,
+            nameZh: `${labelPrefix}直立分隔板 r${r + 1} c${j + 1}`,
+            material,
+            grainDirection: "length",
+            visible: { length: partitionT, width: innerD, thickness: segH },
+            origin: { x: partX, y: segYBot, z: caseInnerZ },
+            tenons: [],
+            mortises: [],
+          });
+        }
       }
     }
 
