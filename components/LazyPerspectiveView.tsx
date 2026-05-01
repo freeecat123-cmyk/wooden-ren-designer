@@ -32,11 +32,14 @@ export function LazyPerspectiveView({
   sceneTheme,
   joineryMode = false,
   auditMode = false,
+  explodeMm = 0,
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
   joineryMode?: boolean;
   auditMode?: boolean;
+  /** 爆炸視圖：tenon 外偏 explodeMm，視覺像榫頭抽出（joineryMode 才有意義） */
+  explodeMm?: number;
 }) {
   return (
     <PerspectiveViewLazy
@@ -44,6 +47,7 @@ export function LazyPerspectiveView({
       sceneTheme={sceneTheme}
       joineryMode={joineryMode}
       auditMode={auditMode}
+      explodeMm={explodeMm}
     />
   );
 }

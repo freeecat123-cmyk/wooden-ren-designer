@@ -1637,6 +1637,7 @@ export function PerspectiveView({
   sceneTheme,
   joineryMode = false,
   auditMode = false,
+  explodeMm = 0,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1645,6 +1646,9 @@ export function PerspectiveView({
   joineryMode?: boolean;
   /** Dev audit mode：?audit=true URL 啟用，overlap 的 parts 用紅色 wireframe 高亮 */
   auditMode?: boolean;
+  /** 爆炸視圖：joineryMode 下 tenon 沿 position 方向往外偏 explodeMm（mm），
+   *  視覺像榫頭從榫眼抽出來。0 = 無偏移（預設），> 0 拆得越開 */
+  explodeMm?: number;
 }) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
@@ -1895,32 +1899,42 @@ export function PerspectiveView({
                 const oT = t.offsetThickness ?? 0;
                 let lcx = 0, lcy = 0, lcz = 0;
                 let hx = 0, hy = 0, hz = 0;
+                // explode：tenon 沿 outward axis 多偏 explodeMm，視覺像榫頭從
+                // mortise 抽出來
+                let ex = 0, ey = 0, ez = 0;
                 switch (t.position) {
                   case "start":
                     lcx = -lx / 2 - t.length / 2; lcy = oT; lcz = oW;
                     hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    ex = -explodeMm;
                     break;
                   case "end":
                     lcx = lx / 2 + t.length / 2; lcy = oT; lcz = oW;
                     hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    ex = explodeMm;
                     break;
                   case "top":
                     lcx = oW; lcy = ly / 2 + t.length / 2; lcz = oT;
                     hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    ey = explodeMm;
                     break;
                   case "bottom":
                     lcx = oW; lcy = -ly / 2 - t.length / 2; lcz = oT;
                     hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    ey = -explodeMm;
                     break;
                   case "left":
                     lcx = oW; lcy = oT; lcz = -lz / 2 - t.length / 2;
                     hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    ez = -explodeMm;
                     break;
                   case "right":
                     lcx = oW; lcy = oT; lcz = lz / 2 + t.length / 2;
                     hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    ez = explodeMm;
                     break;
                 }
+                lcx += ex; lcy += ey; lcz += ez;
                 // 把 local center 經 part Euler XYZ 旋轉 → 加 part 中心 = world center
                 const rx = part.rotation?.x ?? 0;
                 const ry = part.rotation?.y ?? 0;

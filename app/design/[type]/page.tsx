@@ -165,6 +165,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // console.warn 列表。給開發人員肉眼看 audit 結果用。
   const auditMode = sp.audit === "true" || sp.audit === "1";
 
+  // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
+  // 視覺像榫頭從榫眼抽出。常用 20–40。
+  const explodeMm = (() => {
+    const raw = sp.explode;
+    if (typeof raw !== "string") return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.min(200, n) : 0;
+  })();
+
   const printQuery = designParamsToQuery(parsed, entry);
 
   return (
@@ -290,7 +299,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} />
           </div>
         </div>
       </section>
