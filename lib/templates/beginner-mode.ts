@@ -12,6 +12,28 @@ import type { FurnitureDesign, Part } from "@/lib/types";
  * dimension because the cut calculator adds tenon length on top.
  */
 export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
+  // 新慣例（useButtJointConvention=true）：visible.length 已是端面對接長度，
+  // 直接拔掉 tenons/mortises 就是組裝版幾何，無需縮短。
+  if (design.useButtJointConvention) {
+    const parts: Part[] = design.parts.map((p) => ({
+      ...p,
+      tenons: [],
+      mortises: [],
+    }));
+    const beginnerNameMap: Record<string, string> = { "鳩尾盒": "木盒" };
+    const newNameZh = beginnerNameMap[design.nameZh] ?? design.nameZh;
+    return {
+      ...design,
+      parts,
+      nameZh: newNameZh,
+      defaultJoinery: "pocket-hole",
+      notes:
+        (design.notes ? design.notes + "\n\n" : "") +
+        "【組裝版】不含榫卯，用螺絲 / 木釘 / DOMINO / 斜孔系統擇一或混用 + 木工白膠組裝。" +
+        "建議工具：斜孔器夾具、木板打孔定位器、電鑽、鑽頭組、PVA 木工膠、F 型夾具、砂紙。" +
+        "施作速度約為榫接版的 3–5 倍，結構強度約榫接版的 60–70%，日常家具使用足夠、重載或傳承級作品仍建議榫接。",
+    };
+  }
   // Normal mode keeps apron visible.length spanning leg center to leg center
   // (so the tenon portion is visually represented in the three-view). For a
   // butt-joined beginner build, shrink aprons by one legSize (half each end)

@@ -265,6 +265,14 @@ export interface FurnitureDesign {
   primaryMaterial: MaterialId;
 
   notes?: string;
+  /**
+   * 模板是否採用 butt-joint 慣例：visible.length = 端面對接後的長度
+   * （組裝版直接渲染、零件不重疊）。joinery 模式靠 cut-dimensions 加上
+   * tenon 算切料、3D 不視覺延長（榫頭只在材料單上展現）。
+   * undefined / false = 舊慣例：visible.length = leg-center 距離，需要
+   * toBeginnerMode 自動縮短才不會穿模。
+   */
+  useButtJointConvention?: boolean;
   /** 設計參數不合理時（例如下層高度超過可用內高）自動產生的警告 */
   warnings?: string[];
   /** 尺寸超出本模板合理範圍時的「換模板」建議。比 warnings 更具體：

@@ -158,12 +158,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     }),
   }));
 
-  // 4 條橫撐（凳腳之間）—— body 延伸到腳外面（leg-outer-face 距離），
-  // 確保 3D 渲染時 body 兩端完全埋在腳裡、視覺無縫。tenons 從 body 端再延伸
-  // （但 tenon 不影響 3D 視覺，只影響材料切料表）
+  // 4 條橫撐（凳腳之間）—— butt-joint 慣例：visible.length 兩端剛好頂在
+  // 腳的內側面，組裝版渲染就是 final 幾何（不重疊）。joinery 模式靠 tenon[]
+  // 加切料長度，3D 不視覺延伸（榫頭只在材料單上展現）。
+  // 計算式：腳中心 ±apronEdgeX，腳寬 legSize，所以內面距離 = length - 2*legSize - 2*legInset
   const apronInnerSpan = {
-    x: length - 2 * legInset,
-    z: width - 2 * legInset,
+    x: length - 2 * legSize - 2 * legInset,
+    z: width - 2 * legSize - 2 * legInset,
   };
   // 外斜支援 3 種：對角 splayed、單向 splayed-length（只 X）、splayed-width（只 Z）
   // splayDx/splayDz 拆開計算，axis-aware 牙板補償
@@ -191,6 +192,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  // butt-joint 半長：apronEdgeX/Z 是「腳中心」距家具中心的水平距離；
+  // 端面對接時，apron 端面 = 腳內面 = 腳中心 - legSize/2，再加 splay 偏移。
+  const buttHalfX = (splay: number) => apronEdgeX + splay - legSize / 2;
+  const buttHalfZ = (splay: number) => apronEdgeZ + splay - legSize / 2;
   const apronSides = [
     { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) } },
     { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplayZ } },
@@ -202,19 +207,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
-    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放
-    // 同軸沒 splay 但異軸有 → 純 bevel；都沒 splay → 一般倒邊
+    // 同軸有 splay → 梯形：以中軸對齊腳中軸，top 端縮、bot 端放。
+    // 用 butt-joint 半長（端面 = 腳內面）算比例，跟 visible.length 慣例一致。
     const trapTopScale =
       s.axis === "x" && splayDx > 0
-        ? (apronEdgeX + apronSplayXTop) / (apronEdgeX + apronSplayX)
+        ? buttHalfX(apronSplayXTop) / buttHalfX(apronSplayX)
         : s.axis === "z" && splayDz > 0
-          ? (apronEdgeZ + apronSplayZTop) / (apronEdgeZ + apronSplayZ)
+          ? buttHalfZ(apronSplayZTop) / buttHalfZ(apronSplayZ)
           : null;
     const trapBotScale =
       s.axis === "x" && splayDx > 0
-        ? (apronEdgeX + apronSplayXBot) / (apronEdgeX + apronSplayX)
+        ? buttHalfX(apronSplayXBot) / buttHalfX(apronSplayX)
         : s.axis === "z" && splayDz > 0
-          ? (apronEdgeZ + apronSplayZBot) / (apronEdgeZ + apronSplayZ)
+          ? buttHalfZ(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
     const partShape = trapTopScale !== null
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -328,15 +333,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           : 0;
         const trapTopScale =
           s.axis === "x" && splayDx > 0
-            ? (apronEdgeX + lsSplayXTop) / (apronEdgeX + lsSplayX)
+            ? buttHalfX(lsSplayXTop) / buttHalfX(lsSplayX)
             : s.axis === "z" && splayDz > 0
-              ? (apronEdgeZ + lsSplayZTop) / (apronEdgeZ + lsSplayZ)
+              ? buttHalfZ(lsSplayZTop) / buttHalfZ(lsSplayZ)
               : null;
         const trapBotScale =
           s.axis === "x" && splayDx > 0
-            ? (apronEdgeX + lsSplayXBot) / (apronEdgeX + lsSplayX)
+            ? buttHalfX(lsSplayXBot) / buttHalfX(lsSplayX)
             : s.axis === "z" && splayDz > 0
-              ? (apronEdgeZ + lsSplayZBot) / (apronEdgeZ + lsSplayZ)
+              ? buttHalfZ(lsSplayZBot) / buttHalfZ(lsSplayZ)
               : 1;
         const lsShape = trapTopScale !== null
           ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
@@ -371,6 +376,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length, width, thickness: height },
     parts,
     defaultJoinery: "through-tenon",
+    useButtJointConvention: true,
     primaryMaterial: material,
     notes:
       `腳樣式：${legShapeLabel(legShape)}。座板與凳腳用通榫，凳腳與橫撐用半榫。` +
