@@ -687,6 +687,7 @@ function ParameterForm({
           <GroupedOptionFields
             optionSchema={optionSchema}
             optionValues={optionValues}
+            joineryMode={joineryMode}
           />
         </>
       )}
@@ -767,11 +768,16 @@ function isVisible(
 function GroupedOptionFields({
   optionSchema,
   optionValues,
+  joineryMode,
 }: {
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
+  joineryMode: boolean;
 }) {
-  const visibleSchema = optionSchema.filter((s) => isVisible(s, optionValues));
+  // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
+  const visibleSchema = optionSchema.filter(
+    (s) => isVisible(s, optionValues) && (joineryMode || s.key !== "legPenetratingTenon"),
+  );
   const grouped = new Map<string, OptionSpec[]>();
   for (const spec of visibleSchema) {
     const g = spec.group ?? "misc";
