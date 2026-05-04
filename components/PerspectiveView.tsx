@@ -294,10 +294,13 @@ function Part({
       return merged ?? new BoxGeometry(size[0], size[1], size[2]);
     }
     if (shape.kind === "apron-trapezoid") {
-      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0);
+      return buildApronTrapezoidGeometry(size, shape.topLengthScale, shape.bottomLengthScale, shape.bevelAngle ?? 0, shape.bevelMode ?? "full");
     }
     if (shape.kind === "apron-beveled") {
       return buildBeveledApronGeometry(size, shape.bevelAngle);
+    }
+    if (shape.kind === "apron-half-beveled") {
+      return buildHalfBeveledApronGeometry(size, shape.bevelAngle);
     }
     if (shape.kind === "chamfered-top") {
       return buildChamferedTopGeometry(size, shape.chamferMm, shape.style ?? "chamfered", shape.bottomChamferMm ?? 0, shape.cornerR ?? 0);
@@ -485,6 +488,7 @@ function buildApronTrapezoidGeometry(
   topScale: number,
   bottomScale: number,
   bevelAngle: number = 0,
+  bevelMode: "full" | "half" = "full",
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -492,22 +496,20 @@ function buildApronTrapezoidGeometry(
   const hz = lz / 2;
   const topX = hx * topScale;
   const botX = hx * bottomScale;
-  // bevel shear：z' = z - y × tan(bevel)（同 buildBeveledApronGeometry）
-  // 0 表示純梯形不傾斜
+  // bevel shear：z' = z - y × tan(bevel)
+  // mode="half"：只 top 4 vertex shear（頂面水平、底面跟 rotation 自然斜）
   const shear = Math.tan(bevelAngle);
-  // local Z=-hz (top of apron in world Y after rotation): topScale length
-  // local Z=+hz (bottom): bottomScale length
+  const topShear = shear;
+  const botShear = bevelMode === "half" ? 0 : shear;
   const v: number[] = [
-    // 4 corners at z = -hz (top) — order: -x-y, +x-y, +x+y, -x+y
-    -topX, -hy, -hz - (-hy) * shear,
-    topX, -hy, -hz - (-hy) * shear,
-    topX, hy, -hz - (+hy) * shear,
-    -topX, hy, -hz - (+hy) * shear,
-    // 4 corners at z = +hz (bottom)
-    -botX, -hy, hz - (-hy) * shear,
-    botX, -hy, hz - (-hy) * shear,
-    botX, hy, hz - (+hy) * shear,
-    -botX, hy, hz - (+hy) * shear,
+    -topX, -hy, -hz - (-hy) * topShear,
+    topX, -hy, -hz - (-hy) * topShear,
+    topX, hy, -hz - (+hy) * topShear,
+    -topX, hy, -hz - (+hy) * topShear,
+    -botX, -hy, hz - (-hy) * botShear,
+    botX, -hy, hz - (-hy) * botShear,
+    botX, hy, hz - (+hy) * botShear,
+    -botX, hy, hz - (+hy) * botShear,
   ];
   // 6 faces, CCW from outside
   const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
@@ -564,6 +566,46 @@ function buildBeveledApronGeometry(
     ...f(2, 3, 7, 6), // +y face
     ...f(1, 2, 6, 5), // +x face
     ...f(3, 0, 4, 7), // -x face
+  ];
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Half-beveled apron: 只把「上 4 vertex」shear（補償 rotation 的 tilt → 頂面在 world 水平）；
+ * 「下 4 vertex」不動（底面跟著 rotation 自然斜，跟腳同向）。
+ * 牙條 apronDropFromTop=0 時用，頂面才能貼緊水平的座板。
+ */
+function buildHalfBeveledApronGeometry(
+  size: [number, number, number],
+  bevelAngle: number,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const shear = Math.tan(bevelAngle);
+  const v: number[] = [
+    -hx, -hy, -hz - (-hy) * shear, // 0: top, sheared
+    +hx, -hy, -hz - (-hy) * shear, // 1: top, sheared
+    +hx, +hy, -hz - (+hy) * shear, // 2: top, sheared
+    -hx, +hy, -hz - (+hy) * shear, // 3: top, sheared
+    -hx, -hy, +hz,                  // 4: bot, NOT sheared
+    +hx, -hy, +hz,                  // 5: bot
+    +hx, +hy, +hz,                  // 6: bot
+    -hx, +hy, +hz,                  // 7: bot
+  ];
+  const f = (a: number, b: number, c: number, d: number) => [a, b, c, a, c, d];
+  const idx = [
+    ...f(0, 3, 2, 1),
+    ...f(4, 5, 6, 7),
+    ...f(0, 1, 5, 4),
+    ...f(2, 3, 7, 6),
+    ...f(1, 2, 6, 5),
+    ...f(3, 0, 4, 7),
   ];
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));

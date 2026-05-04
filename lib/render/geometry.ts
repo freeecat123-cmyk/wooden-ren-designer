@@ -47,7 +47,11 @@ export function projectPartSilhouette(
   // === Shape modifiers ===
   const trap = part.shape?.kind === "apron-trapezoid" ? part.shape : null;
   const bev = part.shape?.kind === "apron-beveled" ? part.shape : null;
+  const halfBev = part.shape?.kind === "apron-half-beveled" ? part.shape : null;
   const bevShear = Math.tan(bev?.bevelAngle ?? trap?.bevelAngle ?? 0);
+  const halfBevShear = Math.tan(halfBev?.bevelAngle ?? 0);
+  // trapezoid 可能是 half-bevel：只 top 4 vertex shear
+  const trapHalfBevel = trap?.bevelMode === "half";
   // Tapered family: 底面 (y = +ly/2) 沿 X 縮 bottomScale
   const tapered = part.shape?.kind === "tapered" ? part.shape.bottomScale
     : part.shape?.kind === "round-tapered" ? part.shape.bottomScale
@@ -155,8 +159,12 @@ export function projectPartSilhouette(
         const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
           + splayDx;
         const yLocal = (eyEff * ly) / 2;
+        // half-bevel: 只有頂面（ezSamp < 0）vertex 套 shear，底面不動
+        const halfBevContribution = halfBev && ezSamp < 0 ? -yLocal * halfBevShear : 0;
+        // trapezoid + half-bevel: top 套 bevShear、bot 不套（蓋掉前面的 -yLocal * bevShear）
+        const trapBevAdjust = trapHalfBevel && ezSamp > 0 ? yLocal * bevShear : 0;
         const zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
-          + splayDz;
+          + halfBevContribution + trapBevAdjust + splayDz;
         pushPoint(xLocal, yLocal, zLocal);
       }
     }

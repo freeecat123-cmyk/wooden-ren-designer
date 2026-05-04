@@ -225,12 +225,18 @@ export interface Part {
         topLengthScale: number;
         bottomLengthScale: number;
         bevelAngle?: number;
+        /** "full"（預設, top+bot 都水平）或 "half"（只有 top 水平、bot 跟腳斜） */
+        bevelMode?: "full" | "half";
       }
     /** Apron beveled: 牙條上下緣切斜面，配合外斜腳家具的 apron tilt。
      *  本體仍是矩形截面，但 local z 方向 shear 量 = -y × tan(bevelAngle)。
      *  bevelAngle = 牙條補償用的「繞 local X 軸的旋轉量」(signed radians)。
      *  套用後上下緣面在 world 中保持水平 → 可貼緊椅面 / 地面。 */
     | { kind: "apron-beveled"; bevelAngle: number }
+    /** Half-beveled apron（頂水平、底斜）— 牙條頂面跟椅面重疊（apronDropFromTop=0）時用。
+     *  上 4 vertex 不動（頂面保持水平、可貼緊椅面），下 4 vertex shear: z' = z - y × tan(bevelAngle)。
+     *  bevelAngle = 腳外斜傾角（signed radians）。 */
+    | { kind: "apron-half-beveled"; bevelAngle: number }
     /** Chamfered top: 板狀零件（座板 / 桌面）的頂緣 4 邊倒角。
      *  chamferMm = 從外緣往內倒掉的水平距離（=== 從頂面往下倒掉的垂直距離）。
      *  視覺上頂面變小一點點、外側多一個 45° 斜邊。

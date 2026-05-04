@@ -373,6 +373,8 @@ function projectFeaturePolygon(
   part: Part,
   box: LocalBox,
   view: OrthoView,
+  /** true = box 是 tenon/mortise 之類 feature（強制走 full bevel，不套 half-bevel 的 top-only 邏輯） */
+  isFeature = false,
 ): Array<{ x: number; y: number }> {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
@@ -405,6 +407,31 @@ function projectFeaturePolygon(
             ? 1 - (yL + ly / 2) / ly
             : 0;
       return [xL + (shape.dxMm ?? 0) * t, yL, zL + (shape.dzMm ?? 0) * t];
+    }
+    // apron-trapezoid: 沿 z 軸線性內插（z=-lz/2 用 topLengthScale, z=+lz/2 用 bottomLengthScale）
+    // bevelAngle 套 z shear；bevelMode="half" 時只 top vertex (z<0) 套 shear
+    // tenon (isFeature=true) 完全不套 bevel shear（讓 tenon 4 邊都跟著 rotation tilt → 都斜）
+    // body 走原本邏輯（full bevel = 上下水平 / half bevel = 只 top 水平）
+    if (shape.kind === "apron-trapezoid") {
+      const tZ = lz > 0 ? (zL + lz / 2) / lz : 0.5;
+      const xScale = shape.topLengthScale + (shape.bottomLengthScale - shape.topLengthScale) * tZ;
+      const bev = shape.bevelAngle ?? 0;
+      const halfMode = shape.bevelMode === "half";
+      const bevShear = Math.tan(bev);
+      const applyShear = isFeature ? false : (halfMode ? zL < 0 : true);
+      const zOut = zL - (applyShear ? yL * bevShear : 0);
+      return [xL * xScale, yL, zOut];
+    }
+    if (shape.kind === "apron-beveled") {
+      const bevShear = Math.tan(shape.bevelAngle);
+      const zOut = isFeature ? zL : zL - yL * bevShear;
+      return [xL, yL, zOut];
+    }
+    if (shape.kind === "apron-half-beveled") {
+      const bevShear = Math.tan(shape.bevelAngle);
+      const applyShear = isFeature ? false : zL < 0;
+      const zOut = applyShear ? zL - yL * bevShear : zL;
+      return [xL, yL, zOut];
     }
     return [xL, yL, zL];
   };
@@ -1573,7 +1600,12 @@ export function OrthoView({
                 // 中心軸延伸方向一致（不被「直的母件 mortise」拉平）
                 const tCenter = boxWorldCenter(part, lb);
                 const match = findMortiseMatch(part.id, tCenter);
-                const useOwnPolygon = part.shape?.kind === "splayed";
+                // apron 系列 shape 也用 own polygon，讓 tenon 4 邊跟著母件變形
+                const useOwnPolygon =
+                  part.shape?.kind === "splayed" ||
+                  part.shape?.kind === "apron-trapezoid" ||
+                  part.shape?.kind === "apron-beveled" ||
+                  part.shape?.kind === "apron-half-beveled";
                 // 通榫凸出於母件外 → 可見 → 實線；盲榫/半榫埋進母件裡 → 不可見 → 虛線
                 const isVisibleTenon = t.type === "through-tenon";
                 // 俯視圖 splayed 公件 + through-tenon：腳是斜的，從上往下看
@@ -1598,7 +1630,7 @@ export function OrthoView({
                 } else {
                   const tPoly = match && !useOwnPolygon
                     ? match.polygon
-                    : projectFeaturePolygon(part, lb, view);
+                    : projectFeaturePolygon(part, lb, view, true);
                   const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
                   elements.push(
                     <polygon
