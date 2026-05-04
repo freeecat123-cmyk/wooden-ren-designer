@@ -41,6 +41,8 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "slatWidth", label: "直條寬 (mm)", defaultValue: 50, min: 15, max: 200, step: 5, dependsOn: { key: "backStyle", equals: "slats" } },
   { group: "back", type: "number", key: "ladderRungs", label: "橫檔數（橫檔式用）", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "backStyle", equals: "ladder" } },
   { group: "back", type: "number", key: "splatWidth", label: "中板寬 (mm)（中板式用）", defaultValue: 180, min: 80, max: 400, step: 10, dependsOn: { key: "backStyle", equals: "splat" } },
+  { group: "back", type: "number", key: "curvedSplatWidth", label: "曲面中板寬 (mm)", defaultValue: 220, min: 100, max: 450, step: 10, help: "曲面中板的水平寬度", dependsOn: { key: "backStyle", equals: "curved-splat" } },
+  { group: "back", type: "number", key: "curvedSplatBendMm", label: "曲面中板凹陷 (mm)", defaultValue: 20, min: -60, max: 60, step: 2, help: "正值往背面凹（貼合背部）；負值往前凸（外凸）；0 = 平板", dependsOn: { key: "backStyle", equals: "curved-splat" } },
   { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
   backRakeOption("back"),
   // 扶手
@@ -97,6 +99,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
   const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
   const splatWidth = getOption<number>(input, opt(o, "splatWidth"));
+  const curvedSplatBendMm = getOption<number>(input, opt(o, "curvedSplatBendMm"));
+  const curvedSplatWidth = getOption<number>(input, opt(o, "curvedSplatWidth"));
   const topRailHeightOpt = getOption<number>(input, opt(o, "backTopRailHeight"));
   const stretcherStyle = getOption<string>(input, opt(o, "stretcherStyle"));
   const lowerStretcherHeightOpt = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -169,12 +173,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const cs: "chamfered" | "rounded" = legEdgeStyle === "rounded" ? "rounded" : "chamfered";
     const cm = legEdge > 0 ? legEdge : undefined;
     if (legShape === "splayed") {
+      // 對稱 splay（同 bar-stool）：4 腳都往外傾，配合 buildSides 的對稱數學
       return {
         kind: "splayed",
         dxMm: Math.sign(c.x) * splayMm,
-        // Back legs often stay plumb in real chairs; splay only front legs
-        // so the chair doesn't scoot out from underneath. Front = z < 0.
-        dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0,
+        dzMm: Math.sign(c.z) * splayMm,
         chamferMm: cm,
         chamferStyle: cs,
       };
@@ -183,8 +186,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       return { kind: "splayed", dxMm: Math.sign(c.x) * splayMm, dzMm: 0, chamferMm: cm, chamferStyle: cs };
     }
     if (legShape === "splayed-width") {
-      // 餐椅單向沿寬邊外傾：只前腳，後腳保持垂直（避免後腳外傾不穩）
-      return { kind: "splayed", dxMm: 0, dzMm: c.z < 0 ? Math.sign(c.z) * splayMm : 0, chamferMm: cm, chamferStyle: cs };
+      return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: cm, chamferStyle: cs };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.3 };
     return undefined;
@@ -301,115 +303,116 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
-  // 4 座面下牙板 —— butt-joint 慣例：visible.length 兩端剛好頂在腳的內側面
-  // tapered 補償（drafting-math.md §A11）：腳位置由 legSize（頂寬）錨定在
-  // corners(L, W, legSize)，所以 apron 長度 = L − legSize − apronLegSize
-  // （**不是** L − 2*apronLegSize，那會把 1.5mm 殘差留在 apron 端面）。
+  // 4 座面下牙板 —— 套 bar-stool buildSides 算法（端面軸心對齊腳軸、上下緣保持水平、
+  // splay 椅腳時端面斜成腳的傾角）
   const bottomScale = legBottomScale(legShape);
   const apronCenterY = apronY + apronWidth / 2;
-  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
-  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legBaseHeight, bottomScale);
-  const apronLegSizeBot = legSize * legScaleAt(apronY, legBaseHeight, bottomScale);
-  const apronInnerSpan = {
-    x: length - legSize - apronLegSizeCenter,
-    z: width - legSize - apronLegSizeCenter,
-  };
-  // apron-trapezoid 比例：apron 上下緣對齊腳在 apron Y 邊界的實際寬度
-  const hasTaper = bottomScale !== 1;
-  const trapTopX = hasTaper && apronInnerSpan.x > 0 ? (length - legSize - apronLegSizeTop) / apronInnerSpan.x : 1;
-  const trapBotX = hasTaper && apronInnerSpan.x > 0 ? (length - legSize - apronLegSizeBot) / apronInnerSpan.x : 1;
-  const trapTopZ = hasTaper && apronInnerSpan.z > 0 ? (width - legSize - apronLegSizeTop) / apronInnerSpan.z : 1;
-  const trapBotZ = hasTaper && apronInnerSpan.z > 0 ? (width - legSize - apronLegSizeBot) / apronInnerSpan.z : 1;
   void backHeight;
-  const apronSides = [
-    {
-      key: "front",
-      nameZh: "前牙板",
-      visibleLength: apronInnerSpan.x,
-      axis: "x" as const,
-      origin: { x: 0, z: -(width / 2 - legSize / 2) },
-    },
-    {
-      key: "back",
-      nameZh: "後牙板",
-      visibleLength: apronInnerSpan.x,
-      axis: "x" as const,
-      origin: { x: 0, z: width / 2 - legSize / 2 },
-    },
-    {
-      key: "left",
-      nameZh: "左牙板",
-      visibleLength: apronInnerSpan.z,
-      axis: "z" as const,
-      origin: { x: -(length / 2 - legSize / 2), z: 0 },
-    },
-    {
-      key: "right",
-      nameZh: "右牙板",
-      visibleLength: apronInnerSpan.z,
-      axis: "z" as const,
-      origin: { x: length / 2 - legSize / 2, z: 0 },
-    },
+
+  const apronIsLengthSplay = legShape === "splayed" || legShape === "splayed-length";
+  const apronIsWidthSplay = legShape === "splayed" || legShape === "splayed-width";
+  const apronSplayDx = apronIsLengthSplay ? splayMm : 0;
+  const apronSplayDz = apronIsWidthSplay ? splayMm : 0;
+  const apronIsSplayed = apronSplayDx > 0 || apronSplayDz > 0;
+  const apronTiltX = apronSplayDx > 0 ? Math.atan(apronSplayDx / Math.max(1, legBaseHeight)) : 0;
+  const apronTiltZ = apronSplayDz > 0 ? Math.atan(apronSplayDz / Math.max(1, legBaseHeight)) : 0;
+  const apronInnerSpanX = length - legSize;
+  const apronInnerSpanZ = width - legSize;
+  const apronLegEdgeX = length / 2 - legSize / 2;
+  const apronLegEdgeZ = width / 2 - legSize / 2;
+
+  const apronShiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
+  const apronTopY = apronY + apronWidth;
+  const apronBotY = apronY;
+  const aSC = apronShiftAt(apronCenterY);
+  const aST = apronShiftAt(apronTopY);
+  const aSB = apronShiftAt(apronBotY);
+  const apronSplayXc = apronSplayDx * aSC;
+  const apronSplayZc = apronSplayDz * aSC;
+  const apronSplayXt = apronSplayDx * aST;
+  const apronSplayZt = apronSplayDz * aST;
+  const apronSplayXb = apronSplayDx * aSB;
+  const apronSplayZb = apronSplayDz * aSB;
+  const apronLwC = legSize * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
+  const apronLwT = legSize * legScaleAt(apronTopY, legBaseHeight, bottomScale);
+  const apronLwB = legSize * legScaleAt(apronBotY, legBaseHeight, bottomScale);
+
+  type ApronSideDef = {
+    key: string; nameZh: string; visibleLength: number;
+    axis: "x" | "z"; sx: number; sz: number;
+    origin: { x: number; z: number };
+  };
+  const apronSides: ApronSideDef[] = [
+    { key: "front", nameZh: "前牙板", visibleLength: apronInnerSpanX - apronLwC + 2 * apronSplayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronSplayZc) } },
+    { key: "back",  nameZh: "後牙板", visibleLength: apronInnerSpanX - apronLwC + 2 * apronSplayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronSplayZc } },
+    { key: "left",  nameZh: "左牙板", visibleLength: apronInnerSpanZ - apronLwC + 2 * apronSplayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronSplayXc), z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: apronInnerSpanZ - apronLwC + 2 * apronSplayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronSplayXc, z: 0 } },
   ];
-  const aprons: Part[] = apronSides.map((s) => ({
-    id: `apron-${s.key}`,
-    nameZh: s.nameZh,
-    material,
-    grainDirection: "length",
-    visible: {
-      length: s.visibleLength,
-      width: apronWidth,
-      thickness: apronThickness,
-    },
-    origin: { x: s.origin.x, y: apronY, z: s.origin.z },
-    rotation: s.axis === "z"
-      ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
-      : { x: Math.PI / 2, y: 0, z: 0 },
-    shape: hasTaper
-      ? {
-          kind: "apron-trapezoid" as const,
-          topLengthScale: s.axis === "x" ? trapTopX : trapTopZ,
-          bottomLengthScale: s.axis === "x" ? trapBotX : trapBotZ,
-        }
-      : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      {
-        position: "start",
-        type: "shouldered-tenon",
-        length: apronTenonLen,
-        width: apronTenonW,
-        thickness: apronTenonThick,
-      },
-      {
-        position: "end",
-        type: "shouldered-tenon",
-        length: apronTenonLen,
-        width: apronTenonW,
-        thickness: apronTenonThick,
-      },
-    ],
-    // 後牙板：上緣加 slat / splat 母榫眼。世界上方 = local -Z 面（rotation x:π/2）
-    mortises:
-      s.key === "back" && backStyle === "slats" && slatXs.length > 0
-        ? slatXs.map((sx) => ({
-            origin: { x: sx, y: 0, z: -1 },
-            depth: slatTenonLen,
-            length: slatTenonW(slatWidth),
-            width: slatTenonT,
-            through: false,
-          }))
-        : s.key === "back" && backStyle === "splat"
-          ? [
-              {
-                origin: { x: 0, y: 0, z: -1 },
-                depth: slatTenonLen,
-                length: splatTenonW,
-                width: splatTenonT,
-                through: false,
-              },
-            ]
-          : [],
-  }));
+
+  // apron-trapezoid 上下緣縮放與 bevelAngle 計算
+  const apronHalfX_C = apronLegEdgeX + apronSplayXc - apronLwC / 2;
+  const apronHalfX_T = apronLegEdgeX + apronSplayXt - apronLwT / 2;
+  const apronHalfX_B = apronLegEdgeX + apronSplayXb - apronLwB / 2;
+  const apronHalfZ_C = apronLegEdgeZ + apronSplayZc - apronLwC / 2;
+  const apronHalfZ_T = apronLegEdgeZ + apronSplayZt - apronLwT / 2;
+  const apronHalfZ_B = apronLegEdgeZ + apronSplayZb - apronLwB / 2;
+  const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;
+
+  const aprons: Part[] = apronSides.map((s) => {
+    const trapTopScale =
+      s.axis === "x" && apronHasShapeBend ? apronHalfX_T / apronHalfX_C
+      : s.axis === "z" && apronHasShapeBend ? apronHalfZ_T / apronHalfZ_C
+      : null;
+    const trapBotScale =
+      s.axis === "x" && apronHasShapeBend ? apronHalfX_B / apronHalfX_C
+      : s.axis === "z" && apronHasShapeBend ? apronHalfZ_B / apronHalfZ_C
+      : 1;
+    const bevelAngle = apronIsSplayed
+      ? s.axis === "x" ? -s.sz * apronTiltZ : -s.sx * apronTiltX
+      : 0;
+    const partShape = trapTopScale !== null
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+      : apronIsSplayed
+        ? { kind: "apron-beveled" as const, bevelAngle }
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+    return {
+      id: `apron-${s.key}`,
+      nameZh: s.nameZh,
+      material,
+      grainDirection: "length" as const,
+      visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
+      origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+      rotation: s.axis === "z"
+        ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * apronTiltX }
+        : { x: Math.PI / 2 + (-s.sz) * apronTiltZ, y: 0, z: 0 },
+      shape: partShape,
+      tenons: [
+        { position: "start", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+        { position: "end", type: "shouldered-tenon", length: apronTenonLen, width: apronTenonW, thickness: apronTenonThick },
+      ],
+      // 後牙板：上緣加 slat / splat 母榫眼。世界上方 = local -Z 面（rotation x:π/2）
+      mortises:
+        s.key === "back" && backStyle === "slats" && slatXs.length > 0
+          ? slatXs.map((sx) => ({
+              origin: { x: sx, y: 0, z: -1 },
+              depth: slatTenonLen,
+              length: slatTenonW(slatWidth),
+              width: slatTenonT,
+              through: false,
+            }))
+          : s.key === "back" && backStyle === "splat"
+            ? [
+                {
+                  origin: { x: 0, y: 0, z: -1 },
+                  depth: slatTenonLen,
+                  length: splatTenonW,
+                  width: splatTenonT,
+                  through: false,
+                },
+              ]
+            : [],
+    };
+  });
 
   // 椅背頂橫木（連接後 2 椅腳）
   const backTopRail: Part = {
@@ -473,38 +476,104 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       Math.min(lowerT - 2 * MIN_SHOULDER, Math.round(legSize / 3)),
     );
     const lowerTenonW = Math.max(12, lowerW - 2 * MIN_SHOULDER);
-    const frontBack = [
-      { id: "ls-front", nameZh: "前下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: -(width / 2 - legSize / 2) } },
-      { id: "ls-back", nameZh: "後下橫撐", visibleLength: apronInnerSpan.x, axis: "x" as const, origin: { x: 0, z: width / 2 - legSize / 2 } },
+
+    // ---- 參考 bar-stool buildSides 算法 ----
+    // splay 規則：dining-chair 「splayed」原本後腳 z 不外傾，但下橫撐用對稱 splay 算
+    // （視覺上前後一致；後腳 z 在 leg shape 仍是直立，stretcher 端面對齊腳的中軸面足以接合）
+    const isLengthSplay = legShape === "splayed" || legShape === "splayed-length";
+    const isWidthSplay = legShape === "splayed" || legShape === "splayed-width";
+    const splayDx = isLengthSplay ? splayMm : 0;
+    const splayDz = isWidthSplay ? splayMm : 0;
+    const isSplayed = splayDx > 0 || splayDz > 0;
+    const tiltX = splayDx > 0 ? Math.atan(splayDx / Math.max(1, legBaseHeight)) : 0;
+    const tiltZ = splayDz > 0 ? Math.atan(splayDz / Math.max(1, legBaseHeight)) : 0;
+    const innerSpanX = length - legSize; // 中心-中心
+    const innerSpanZ = width - legSize;
+    const legEdgeX = length / 2 - legSize / 2;
+    const legEdgeZ = width / 2 - legSize / 2;
+
+    const lowerCenterY = lowerY + lowerW / 2;
+    const lowerBotY = lowerY;
+    const lowerTopY = lowerY + lowerW;
+    const shiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
+    const sCenter = shiftAt(lowerCenterY);
+    const sBot = shiftAt(lowerBotY);
+    const sTop = shiftAt(lowerTopY);
+    const splayXc = splayDx * sCenter;
+    const splayZc = splayDz * sCenter;
+    const splayXt = splayDx * sTop;
+    const splayZt = splayDz * sTop;
+    const splayXb = splayDx * sBot;
+    const splayZb = splayDz * sBot;
+    const lwC = legSize * legScaleAt(lowerCenterY, legBaseHeight, bottomScale);
+    const lwT = legSize * legScaleAt(lowerTopY, legBaseHeight, bottomScale);
+    const lwB = legSize * legScaleAt(lowerBotY, legBaseHeight, bottomScale);
+
+    type SideDef = {
+      key: string; nameZh: string; visibleLength: number;
+      axis: "x" | "z"; sx: number; sz: number;
+      origin: { x: number; z: number };
+    };
+    const sides: SideDef[] = [
+      { key: "front", nameZh: "前下橫撐", visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
+      { key: "back",  nameZh: "後下橫撐", visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + splayZc } },
+      { key: "left",  nameZh: "左下橫撐", visibleLength: innerSpanZ - lwC + 2 * splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
+      { key: "right", nameZh: "右下橫撐", visibleLength: innerSpanZ - lwC + 2 * splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + splayXc, z: 0 } },
     ];
-    const leftRight = [
-      { id: "ls-left", nameZh: "左下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: -(length / 2 - legSize / 2), z: 0 } },
-      { id: "ls-right", nameZh: "右下橫撐", visibleLength: apronInnerSpan.z, axis: "z" as const, origin: { x: length / 2 - legSize / 2, z: 0 } },
-    ];
-    const pushStretcher = (s: { id: string; nameZh: string; visibleLength: number; axis: "x" | "z"; origin: { x: number; z: number } }) => {
-      lowerStretchers.push({
-        id: s.id,
+
+    const buildLowerPart = (s: SideDef): Part => {
+      const halfX_C = legEdgeX + splayXc - lwC / 2;
+      const halfX_T = legEdgeX + splayXt - lwT / 2;
+      const halfX_B = legEdgeX + splayXb - lwB / 2;
+      const halfZ_C = legEdgeZ + splayZc - lwC / 2;
+      const halfZ_T = legEdgeZ + splayZt - lwT / 2;
+      const halfZ_B = legEdgeZ + splayZb - lwB / 2;
+      const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+      const trapTopScale =
+        s.axis === "x" && hasShapeBend ? halfX_T / halfX_C
+        : s.axis === "z" && hasShapeBend ? halfZ_T / halfZ_C
+        : null;
+      const trapBotScale =
+        s.axis === "x" && hasShapeBend ? halfX_B / halfX_C
+        : s.axis === "z" && hasShapeBend ? halfZ_B / halfZ_C
+        : 1;
+      const bevelAngle = isSplayed
+        ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
+        : 0;
+      const partShape = trapTopScale !== null
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+        : isSplayed
+          ? { kind: "apron-beveled" as const, bevelAngle }
+          : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+      return {
+        id: `ls-${s.key}`,
         nameZh: s.nameZh,
         material,
         grainDirection: "length",
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
         origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
-        rotation: s.axis === "z" ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 } : { x: Math.PI / 2, y: 0, z: 0 },
+        rotation: s.axis === "z"
+          ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
+          : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
+        shape: partShape,
         tenons: [
           { position: "start", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
           { position: "end", type: "blind-tenon", length: lowerTenon, width: lowerTenonW, thickness: lowerTenonThick },
         ],
         mortises: [],
-      });
+      };
     };
+
+    const sideMap: Record<string, SideDef> = Object.fromEntries(sides.map(s => [s.key, s]));
     if (stretcherStyle === "box") {
-      [...frontBack, ...leftRight].forEach(pushStretcher);
+      ["front", "back", "left", "right"].forEach(k => lowerStretchers.push(buildLowerPart(sideMap[k])));
     } else if (stretcherStyle === "side-only") {
-      leftRight.forEach(pushStretcher);
+      ["left", "right"].forEach(k => lowerStretchers.push(buildLowerPart(sideMap[k])));
     } else if (stretcherStyle === "h-frame") {
-      // 左右兩條 + 中央連接橫撐（典型 H）
-      leftRight.forEach(pushStretcher);
-      const midBodyLen = Math.max(50, length - 2 * legSize - 2 * lowerT);
+      ["left", "right"].forEach(k => lowerStretchers.push(buildLowerPart(sideMap[k])));
+      // 中央橫撐：跨左右側橫撐 inner face；左右側橫撐中心 X = ±(legEdgeX + splayXc)，厚度 lowerT
+      const sideCenterX = legEdgeX + splayXc;
+      const midBodyLen = Math.max(50, 2 * sideCenterX - lowerT);
       lowerStretchers.push({
         id: "ls-center",
         nameZh: "中央連接橫撐",
@@ -525,18 +594,27 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 椅背部件——依 backStyle 生成（backZonHeight 已在頂部宣告）
   const backParts: Part[] = [];
   const backZ = width / 2 - legSize / 2;
+  // 椅面彎曲時，座面在 x 處的下凹量（face-rounded bendAxis="y" 公式）
+  // 把 back parts 的 bottom 跟著座面下降，避免懸空
+  const seatHx = length / 2;
+  const seatBendDipAt = (x: number): number => {
+    if (seatBendMm <= 0) return 0;
+    const t = seatHx > 0 ? x / seatHx : 0;
+    return seatBendMm * Math.max(0, 1 - t * t);
+  };
   if (backStyle === "slats" && slatCount > 0) {
     const availableWidth = length - legSize - 40;
     const slotPitch = availableWidth / (slatCount + 1);
     for (let i = 0; i < slatCount; i++) {
       const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      const dip = seatBendDipAt(xCenter);
       backParts.push({
         id: `back-slat-${i + 1}`,
         nameZh: `椅背板條 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: backZonHeight, width: slatWidth, thickness: slatThickness },
-        origin: { x: xCenter, y: seatHeight, z: backZ },
+        visible: { length: backZonHeight + dip, width: slatWidth, thickness: slatThickness },
+        origin: { x: xCenter, y: seatHeight - dip, z: backZ },
         rotation: { x: 0, y: 0, z: Math.PI / 2 },
         tenons: [
           { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
@@ -570,16 +648,18 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       });
     }
   } else if (backStyle === "splat") {
-    // 中央單片寬板
+    // 中央單片寬板：直立 + 寬面朝前後
+    // rotation (π/2, 0, π/2) 做循環置換：length→Y vertical, width→X 左右, thickness→Z 深度
     const splatThickness = 18;
+    const splatDip = seatBendDipAt(0);
     backParts.push({
       id: "back-splat",
       nameZh: "椅背中板",
       material,
       grainDirection: "length",
-      visible: { length: backZonHeight, width: splatWidth, thickness: splatThickness },
-      origin: { x: 0, y: seatHeight, z: backZ },
-      rotation: { x: 0, y: 0, z: Math.PI / 2 },
+      visible: { length: backZonHeight + splatDip, width: splatWidth, thickness: splatThickness },
+      origin: { x: 0, y: seatHeight - splatDip, z: backZ },
+      rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       tenons: [
         { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)) },
         { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)) },
@@ -594,13 +674,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const slotPitch = availableWidth / (spindleCount + 1);
     for (let i = 0; i < spindleCount; i++) {
       const xCenter = -availableWidth / 2 + slotPitch * (i + 1);
+      const dip = seatBendDipAt(xCenter);
       backParts.push({
         id: `back-spindle-${i + 1}`,
         nameZh: `椅背圓棒 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: spindleDia, width: spindleDia, thickness: backZonHeight },
-        origin: { x: xCenter, y: seatHeight, z: backZ },
+        visible: { length: spindleDia, width: spindleDia, thickness: backZonHeight + dip },
+        origin: { x: xCenter, y: seatHeight - dip, z: backZ },
         shape: { kind: "round" },
         tenons: [
           { position: "top", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6) },
@@ -610,17 +691,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       });
     }
   } else if (backStyle === "curved-splat") {
-    // 曲面中板：較厚（25mm）+ 較寬（splatWidth × 1.2），實作為旋轉的板（蒸彎模擬）
+    // 曲面中板：較厚（25mm），寬度由 curvedSplatWidth 設定，bendMm 控制凹陷深度
     const cThickness = 25;
-    const cWidth = Math.round(splatWidth * 1.2);
+    const cWidth = curvedSplatWidth;
+    const cDip = seatBendDipAt(0);
     backParts.push({
       id: "back-curved-splat",
       nameZh: "椅背曲面中板",
       material,
       grainDirection: "length",
-      visible: { length: backZonHeight, width: cWidth, thickness: cThickness },
-      origin: { x: 0, y: seatHeight, z: backZ },
-      rotation: { x: 0, y: 0, z: Math.PI / 2 },
+      visible: { length: backZonHeight + cDip, width: cWidth, thickness: cThickness },
+      origin: { x: 0, y: seatHeight - cDip, z: backZ },
+      rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
+      // 大面凹陷：thickness 才是薄軸，所以 bendAxis="y"；正值往背面凹、負值往前凸
+      shape: { kind: "face-rounded", cornerR: 0, bendMm: curvedSplatBendMm, bendAxis: "y" },
       tenons: [
         { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
         { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
@@ -629,6 +713,73 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
   const slats = backParts; // 向下相容：後面 parts 陣列仍引用 slats 變數
+
+  // ---- 椅背後仰 (backRake) ----
+  // 所有椅背部件繞 (seatHeight, backZ) X 軸傾斜 reclineRad
+  const reclineRad = (backRake * Math.PI) / 180;
+  if (Math.abs(reclineRad) > 1e-6) {
+    const cosR = Math.cos(reclineRad);
+    const sinR = Math.sin(reclineRad);
+    const yExtOf = (p: Part): number => {
+      // back-rung: rotation x:π/2 → width 垂直
+      if (p.id.startsWith("back-rung-")) return p.visible.width;
+      // slat / splat / curved-splat: rotation 讓 length 垂直
+      if (p.id.startsWith("back-slat-") || p.id === "back-splat" || p.id === "back-curved-splat") return p.visible.length;
+      // back-post / back-top-rail / back-spindle: thickness 垂直
+      return p.visible.thickness;
+    };
+    const tilt = (p: Part): Part => {
+      const yExt = yExtOf(p);
+      const cy = p.origin.y + yExt / 2;
+      const cz = p.origin.z;
+      const dy = cy - seatHeight;
+      const dz = cz - backZ;
+      const newCy = seatHeight + dy * cosR - dz * sinR;
+      const newCz = backZ + dy * sinR + dz * cosR;
+      // 加 world-X 旋轉 reclineRad（renderer Euler order = ZYX intrinsic）：
+      // - 若 existing Rz ≈ π/2（slat/splat/curved-splat）→ 等效解 rotation.y -= rx
+      //   （推導：Rx_world(rx) * Rz(π/2) = ZYX(0, -rx, π/2)；splat 的 Rx 保留）
+      // - 否則直接加到 rotation.x（無 Z rot 的情形：post/rail/rung/spindle）
+      const ex = p.rotation?.x ?? 0;
+      const ey = p.rotation?.y ?? 0;
+      const ez = p.rotation?.z ?? 0;
+      const hasZQuarter = Math.abs(Math.abs(ez) - Math.PI / 2) < 0.01;
+      // 錨在座面上的部件，傾斜後 bottom corner 要 ≥ seatHeight（避免與 seat AABB 重疊）
+      // - 一般部件（無 Rz）：bottom = origin.y - thickness/2*(1-cos)；clamp origin.y >= seatHeight
+      // - Rz=π/2 部件（slat/splat）：傾斜後 bottom-back corner 額外往下 (width/2)*sin(rec)
+      //   因此 origin.y 還要再加 (width/2)*sin(rec) 才能讓最低點不過 seatHeight
+      const wHalf = p.visible.width / 2;
+      const extraLift = hasZQuarter ? wHalf * Math.abs(sinR) : 0;
+      const yLowerBound = seatHeight + extraLift;
+      const rawOriginY = newCy - yExt / 2;
+      const isSeatAnchored = p.origin.y >= seatHeight - 0.01;
+      const clampedOriginY = isSeatAnchored ? Math.max(yLowerBound, rawOriginY) : rawOriginY;
+      // clamp 把 slat 抬高的量 → 同步從 length / thickness（垂直軸）扣掉，避免頂端撞到 top-rail
+      const liftedBy = clampedOriginY - rawOriginY;
+      let newVisible = p.visible;
+      if (liftedBy > 0.01) {
+        // back-rung 用 width 為 yExt；slat/splat/curved-splat 用 length；其他用 thickness
+        if (p.id.startsWith("back-rung-")) {
+          newVisible = { ...p.visible, width: Math.max(1, p.visible.width - liftedBy) };
+        } else if (p.id.startsWith("back-slat-") || p.id === "back-splat" || p.id === "back-curved-splat") {
+          newVisible = { ...p.visible, length: Math.max(1, p.visible.length - liftedBy) };
+        } else {
+          newVisible = { ...p.visible, thickness: Math.max(1, p.visible.thickness - liftedBy) };
+        }
+      }
+      return {
+        ...p,
+        visible: newVisible,
+        origin: { x: p.origin.x, y: clampedOriginY, z: newCz },
+        rotation: hasZQuarter
+          ? { x: ex, y: ey - reclineRad, z: ez }
+          : { x: ex + reclineRad, y: ey, z: ez },
+      };
+    };
+    for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
+    Object.assign(backTopRail, tilt(backTopRail));
+    for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
+  }
 
   const design: FurnitureDesign = {
     id: `dining-chair-${length}x${width}x${height}`,
