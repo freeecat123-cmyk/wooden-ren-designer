@@ -29,6 +29,7 @@ import { tray, trayOptions } from "./tray";
 import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
+import { bed, bedOptions } from "./bed";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -292,6 +293,16 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 400, width: 280, height: 300 },
     limits: { length: 1000, width: 400, height: 1000 },
     optionSchema: wineRackOptions,
+  },
+  {
+    category: "bed",
+    nameZh: "床架",
+    description: "傳統木製床架，含床頭板、可選床尾板、N 床板條，套用方凳系列榫卯規則",
+    difficulty: "advanced",
+    template: bed,
+    defaults: { length: 1900, width: 1525, height: 450 },
+    limits: { length: 2200, width: 2000, height: 600 },
+    optionSchema: bedOptions,
   },
   {
     category: "coat-rack",

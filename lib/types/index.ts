@@ -27,6 +27,7 @@ export type FurnitureCategory =
   | "round-stool"
   | "round-tea-table"
   | "round-table"
+  | "bed"
   // 小物件 (accessories)
   | "pencil-holder"
   | "bookend"
