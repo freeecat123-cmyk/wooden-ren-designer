@@ -19,6 +19,17 @@ export const SHOULDER_MM = 5 as const;
 export const MIN_BLIND_TENON_LEN = 25 as const;
 export const MIN_TENON_THICKNESS = 6 as const;
 export const MIN_TENON_WIDTH = 15 as const;
+/** 自動判定：母件厚 ≤ AUTO_THROUGH_THRESHOLD → 通榫；> 此值 → 盲榫 (length = round(M × 2/3)) */
+export const AUTO_THROUGH_THRESHOLD_MM = 25 as const;
+
+/**
+ * 依母件厚度自動決定榫類型：
+ *   - 母厚 ≤ 25mm → through-tenon（榫長 = 母厚，穿透）
+ *   - 母厚 > 25mm → blind-tenon（榫長 = round(母厚 × 2/3)）
+ */
+export function autoTenonType(motherThickness: number): "through-tenon" | "blind-tenon" {
+  return motherThickness <= AUTO_THROUGH_THRESHOLD_MM ? "through-tenon" : "blind-tenon";
+}
 export const STANDARD_SHOULDER_ON: ReadonlyArray<"top" | "bottom" | "left" | "right"> = [
   "top",
   "bottom",

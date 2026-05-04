@@ -313,11 +313,12 @@ function convexHull2DLocal(pts: Array<{ x: number; y: number }>): Array<{ x: num
   return lower.concat(upper);
 }
 
-function projectFeatureRect(
-  part: Part,
-  box: LocalBox,
-  view: OrthoView,
-): { x: number; y: number; w: number; h: number } {
+/**
+ * Box center 在世界座標（套 deform + rotation + origin）。
+ * 用來做 tenon ↔ mortise spatial match：榫接時公榫端面與母件 mortise 開口面
+ * 在世界座標重合（誤差 < 1mm），可用最近距離找對應母榫。
+ */
+function boxWorldCenter(part: Part, box: LocalBox): { x: number; y: number; z: number } {
   const ly = part.visible.thickness;
   const rx = part.rotation?.x ?? 0;
   const ry = part.rotation?.y ?? 0;
@@ -327,18 +328,96 @@ function projectFeatureRect(
   const cz_ = Math.cos(rz), sz_ = Math.sin(rz);
   const { yExt } = worldExtents(part);
   const yOffset = part.origin.y + yExt / 2;
+  let x = box.cx, y = box.cy, z = box.cz;
+  const shape = part.shape;
+  if (shape?.kind === "splayed") {
+    const yFromBottom = y + ly / 2;
+    const t = ly > 0 ? Math.max(0, 1 - yFromBottom / ly) : 0;
+    x += (shape.dxMm ?? 0) * t;
+    z += (shape.dzMm ?? 0) * t;
+  }
+  let y2 = y * cx_ - z * sx_;
+  let z2 = y * sx_ + z * cx_;
+  y = y2; z = z2;
+  let x2 = x * cy_ + z * sy_;
+  z2 = -x * sy_ + z * cy_;
+  x = x2; z = z2;
+  x2 = x * cz_ - y * sz_;
+  y2 = x * sz_ + y * cz_;
+  x = x2; y = y2;
+  return { x: x + part.origin.x, y: y + yOffset, z: z + part.origin.z };
+}
 
-  const project = (xL: number, yL: number, zL: number) => {
+function projectFeatureRect(
+  part: Part,
+  box: LocalBox,
+  view: OrthoView,
+): { x: number; y: number; w: number; h: number } {
+  const polygon = projectFeaturePolygon(part, box, view);
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const c of polygon) {
+    if (c.x < minX) minX = c.x;
+    if (c.x > maxX) maxX = c.x;
+    if (c.y < minY) minY = c.y;
+    if (c.y > maxY) maxY = c.y;
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+/**
+ * Box → polygon corners projected to view space, with part shape deformation
+ * applied so mortise / tenon track splay / taper / apron-trapezoid 變形。
+ * 用於 svg `<polygon>` 直接渲染斜邊。
+ */
+function projectFeaturePolygon(
+  part: Part,
+  box: LocalBox,
+  view: OrthoView,
+): Array<{ x: number; y: number }> {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const rx = part.rotation?.x ?? 0;
+  const ry = part.rotation?.y ?? 0;
+  const rz = part.rotation?.z ?? 0;
+  const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
+  const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
+  const cz_ = Math.cos(rz), sz_ = Math.sin(rz);
+  const { yExt } = worldExtents(part);
+  const yOffset = part.origin.y + yExt / 2;
+
+  // 套 part shape 變形：splayed 腳（local Y 軸 = mesh 高度方向）
+  // 俯視圖（top）：splay 是 Y 軸高度的偏移，垂直往下看不到「上下不同 X/Z」的差異，
+  // 應該顯示為 box 中心的單一 footprint（axis-aligned rect）。所以 top view 用 fixed t。
+  // t 不 clamp：腳頂上方（如腳頂凸出 tenon）t < 0，splay 軸線繼續延伸朝家具中心偏。
+  const shape = part.shape;
+  const fixedT =
+    view === "top" && shape?.kind === "splayed" && ly > 0
+      ? 1 - (box.cy + ly / 2) / ly
+      : null;
+  const deform = (xL: number, yL: number, zL: number): [number, number, number] => {
+    if (!shape) return [xL, yL, zL];
+    if (shape.kind === "splayed") {
+      const t =
+        fixedT !== null
+          ? fixedT
+          : ly > 0
+            ? 1 - (yL + ly / 2) / ly
+            : 0;
+      return [xL + (shape.dxMm ?? 0) * t, yL, zL + (shape.dzMm ?? 0) * t];
+    }
+    return [xL, yL, zL];
+  };
+
+  const project = (xL_in: number, yL_in: number, zL_in: number) => {
+    const [xL, yL, zL] = deform(xL_in, yL_in, zL_in);
     let x = xL, y = yL, z = zL;
-    // Rx
     let y2 = y * cx_ - z * sx_;
     let z2 = y * sx_ + z * cx_;
     y = y2; z = z2;
-    // Ry
     let x2 = x * cy_ + z * sy_;
     z2 = -x * sy_ + z * cy_;
     x = x2; z = z2;
-    // Rz
     x2 = x * cz_ - y * sz_;
     y2 = x * sz_ + y * cz_;
     x = x2; y = y2;
@@ -358,14 +437,9 @@ function projectFeatureRect(
       for (const sz of [-1, 1]) {
         corners.push(project(box.cx + sx * box.hx, box.cy + sy * box.hy, box.cz + sz * box.hz));
       }
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const c of corners) {
-    if (c.x < minX) minX = c.x;
-    if (c.x > maxX) maxX = c.x;
-    if (c.y < minY) minY = c.y;
-    if (c.y > maxY) maxY = c.y;
-  }
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  // unused vars to avoid lint
+  void lx; void lz;
+  return convexHull2DLocal(corners);
 }
 
 /**
@@ -1427,7 +1501,44 @@ export function OrthoView({
             - mortise = 藍虛線
             - 通榫穿透時母件背面 = 端面木紋格 §B5
           glass 件略過。 */}
-      {joineryMode && (
+      {joineryMode && (() => {
+        // Pre-build mortise polygon lookup：tenon 渲染時找對應母榫，用 mortise polygon
+        // 取代 tenon polygon → 榫接視覺重合（紅疊在藍上、且 tenon 跟著母件斜）
+        const mortiseEntries: Array<{
+          partId: string;
+          worldCenter: { x: number; y: number; z: number };
+          polygon: Array<{ x: number; y: number }>;
+        }> = [];
+        for (const part of design.parts) {
+          if (part.visual === "glass") continue;
+          for (const m of part.mortises) {
+            if (m.depth <= 0) continue;
+            const lb = mortiseLocalBox(part, m);
+            mortiseEntries.push({
+              partId: part.id,
+              worldCenter: boxWorldCenter(part, lb),
+              polygon: projectFeaturePolygon(part, lb, view),
+            });
+          }
+        }
+        const findMortiseMatch = (
+          partId: string,
+          tenonCenter: { x: number; y: number; z: number },
+        ): { polygon: Array<{ x: number; y: number }> } | null => {
+          const TOL = 15; // 公差 15mm — 公榫端面與母榫開口應 < 1mm
+          let best: typeof mortiseEntries[number] | null = null;
+          let bestDist = TOL;
+          for (const me of mortiseEntries) {
+            if (me.partId === partId) continue;
+            const dx = me.worldCenter.x - tenonCenter.x;
+            const dy = me.worldCenter.y - tenonCenter.y;
+            const dz = me.worldCenter.z - tenonCenter.z;
+            const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (d < bestDist) { best = me; bestDist = d; }
+          }
+          return best;
+        };
+        return (
         <g pointerEvents="none">
           {design.parts.map((part) => {
             if (part.visual === "glass") return null;
@@ -1456,18 +1567,50 @@ export function OrthoView({
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
-                elements.push(
-                  <rect
-                    key={`${part.id}-t${i}`}
-                    x={r.x}
-                    y={-(r.y + r.h)}
-                    width={r.w}
-                    height={r.h}
-                    fill="none"
-                    stroke="#c0392b"
-                    strokeWidth={0.6}
-                  />,
-                );
+                // 找對應母榫：tenon center 跟最近 mortise center match → 用 mortise
+                // polygon 取代（榫接視覺重合：跟著母件斜）
+                // 例外：公件有 splayed shape（如腳）→ 用 tenon 自己 polygon，跟公件
+                // 中心軸延伸方向一致（不被「直的母件 mortise」拉平）
+                const tCenter = boxWorldCenter(part, lb);
+                const match = findMortiseMatch(part.id, tCenter);
+                const useOwnPolygon = part.shape?.kind === "splayed";
+                // 通榫凸出於母件外 → 可見 → 實線；盲榫/半榫埋進母件裡 → 不可見 → 虛線
+                const isVisibleTenon = t.type === "through-tenon";
+                // 俯視圖 splayed 公件 + through-tenon：腳是斜的，從上往下看
+                // entry（腳頂端面位置）跟 exit（穿出母件上方位置）X-Z 不同 → 畫兩個 rect
+                if (view === "top" && useOwnPolygon && isVisibleTenon) {
+                  const drawSlice = (yLocal: number, key: string) => {
+                    const sliceBox: LocalBox = { ...lb, cy: yLocal, hy: 0.001 };
+                    const poly = projectFeaturePolygon(part, sliceBox, view);
+                    const pts = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+                    elements.push(
+                      <polygon
+                        key={`${part.id}-t${i}-${key}`}
+                        points={pts}
+                        fill="none"
+                        stroke="#c0392b"
+                        strokeWidth={0.6}
+                      />,
+                    );
+                  };
+                  drawSlice(lb.cy - lb.hy, "entry"); // 腳頂端面（進入孔位置）
+                  drawSlice(lb.cy + lb.hy, "exit");  // 榫頭頂端（穿出位置）
+                } else {
+                  const tPoly = match && !useOwnPolygon
+                    ? match.polygon
+                    : projectFeaturePolygon(part, lb, view);
+                  const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                  elements.push(
+                    <polygon
+                      key={`${part.id}-t${i}`}
+                      points={tPoints}
+                      fill="none"
+                      stroke="#c0392b"
+                      strokeWidth={0.6}
+                      {...(isVisibleTenon ? {} : { strokeDasharray: "3 2" })}
+                    />,
+                  );
+                }
                 // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
                 // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）
                 if (t.type === "finger-joint") {
@@ -1539,47 +1682,17 @@ export function OrthoView({
                   );
                 }
               }
-              // 肩位虛線：tenon 肩到肩 boundary（公榫件本體面投影）
-              const sb = tenonShoulderBox(part, t);
-              const sr = projectFeatureRect(part, sb, view);
-              // hy/hx/hz=0 那軸投影成線；rect 寬或高 < 0.5 時改畫線
-              if (sr.w >= 0.5 || sr.h >= 0.5) {
-                elements.push(
-                  <rect
-                    key={`${part.id}-ts${i}`}
-                    x={sr.x}
-                    y={-(sr.y + sr.h)}
-                    width={Math.max(sr.w, 0.1)}
-                    height={Math.max(sr.h, 0.1)}
-                    fill="none"
-                    stroke="#c0392b"
-                    strokeWidth={0.35}
-                    strokeDasharray="2 1.5"
-                    opacity={0.7}
-                  />,
-                );
-              }
+              // shoulder polygon 移除：tenon body 已表達榫接位置，shoulder 是重複資訊
             }
-            // mortise 虛線（母榫）— 藍 dashed
+            // mortise 不獨立畫：tenon 已用 mortise polygon 取代並依「通榫實線/盲榫虛線」
+            // 區分可見性。Mortise 自己畫只會跟 tenon 重疊，視覺重複。
+            // （保留通榫穿透時母件「背面」端面木紋格 §B5）
             for (let i = 0; i < part.mortises.length; i++) {
               const m = part.mortises[i];
               if (m.depth <= 0) continue;
               const lb = mortiseLocalBox(part, m);
               const r = projectFeatureRect(part, lb, view);
               if (r.w < 0.5 || r.h < 0.5) continue;
-              elements.push(
-                <rect
-                  key={`${part.id}-m${i}`}
-                  x={r.x}
-                  y={-(r.y + r.h)}
-                  width={r.w}
-                  height={r.h}
-                  fill="none"
-                  stroke="#2980b9"
-                  strokeWidth={0.45}
-                  strokeDasharray="3 2"
-                />,
-              );
               // 通榫穿透時母件「背面」端面木紋格（§B5）：在 mortise 的 exit
               // 面（跟 entry 相反那面）上隨機點。AABB 投影到該視圖時取
               // 入口 face 的 rect 即可（depth 垂直於該 face，bbox 在 view
@@ -1626,7 +1739,8 @@ export function OrthoView({
             return elements.length > 0 ? <g key={`joinery-${part.id}`}>{elements}</g> : null;
           })}
         </g>
-      )}
+        );
+      })()}
 
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
           Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
