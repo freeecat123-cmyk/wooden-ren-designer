@@ -84,6 +84,9 @@ export interface SimpleTableOpts {
   stretcherEdgeStyle?: string;
   /** 桌面拼板片數（1-4）。> 1 時材料單顯示 N 片小料、裁切器拆 N 片排料 */
   topPanelPieces?: number;
+  /** 腳上榫頭通透（明榫裝飾）：勾選 → 牙板/下橫撐進腳改通榫（穿透腳另一面）。
+   *  未勾選 → 依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）。 */
+  legPenetratingTenon?: boolean;
   /** 桌面兩端加 breadboard end（端板）—— 與桌面正交紋理的木條，
    *  傳統實木桌防止跨度太大時翹曲。預設 60mm 寬，與桌面厚度同。 */
   withBreadboardEnds?: boolean;
@@ -130,7 +133,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   //  - 通榫補 +5mm 補償斜腳 rotation tilt 在世界軸投影的損失
   //  - 半榫錯位：Z（左右）= 上半榫（保留 10mm 上肩）、X（前後）= 下半榫（無上下肩）
   //  - apronOffset === 0 + isSplayed → apron-trapezoid.bevelMode = "half"（頂面貼桌面水平）
-  const apronTenonType = autoTenonType(legSize);
+  //  - legPenetratingTenon = true → 強制牙板/下橫撐進腳通榫（明榫裝飾，覆寫 autoTenonType）
+  const legPenetratingTenon = opts.legPenetratingTenon ?? false;
+  const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
   const apronTenonStd = standardTenon({
     type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: apronThickness,
@@ -479,8 +484,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const stretcherWidth = opts.lowerStretcherWidth ?? 40;
     const stretcherThickness = opts.lowerStretcherThickness ?? 20;
-    // 下橫撐 ↔ 腳：autoTenonType + 通榫補 +5mm（同 square-stool）
-    const lowerTenonType = autoTenonType(legSize);
+    // 下橫撐 ↔ 腳：autoTenonType + legPenetratingTenon override + 通榫補 +5mm（同 square-stool）
+    const lowerTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
     const lowerTenonStd = standardTenon({
       type: lowerTenonType,
       childThickness: stretcherThickness,

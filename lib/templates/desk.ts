@@ -34,6 +34,7 @@ export const deskOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2 },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 30, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
@@ -86,6 +87,7 @@ export const desk: FurnitureTemplate = (input) => {
   const lShapeReturnDepth = getOption<number>(input, opt(o, "lShapeReturnDepth"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
@@ -106,6 +108,7 @@ export const desk: FurnitureTemplate = (input) => {
     topThickness,
     apronWidth,
     apronThickness,
+    legPenetratingTenon,
     topOverhang,
     withCenterStretcher: withCenterStretcher && drawerCount === 0,
     withLowerStretchers,

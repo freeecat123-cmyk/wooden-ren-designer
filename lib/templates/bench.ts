@@ -36,6 +36,7 @@ export const benchOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, help: "長凳常見 50–70；80+ 配薄座板會頭輕腳重" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 20, min: 0, max: 400, step: 5 },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書（會自動啟用下橫撐當層板支撐）" },
@@ -86,6 +87,7 @@ export const bench: FurnitureTemplate = (input) => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const withUnderShelf = getOption<boolean>(input, opt(o, "withUnderShelf"));
@@ -125,6 +127,7 @@ export const bench: FurnitureTemplate = (input) => {
     topThickness,
     apronWidth,
     apronOffset,
+    legPenetratingTenon,
     withCenterStretcher: withCenterStretcher || input.length > 1200,
     withLowerStretchers: withLowerStretchers || withUnderShelf,
     legInset,

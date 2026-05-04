@@ -43,6 +43,8 @@ export const teaTableOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）；> 0 時下棚板四邊長槽會跟著移動，建議搭配關閉下棚板" },
   { group: "top", type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
   { group: "drawer", type: "select", key: "drawerCount", label: "前緣抽屜", defaultValue: "0", choices: [
@@ -92,6 +94,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherFloorOffset = getOption<number>(input, opt(o, "shelfFloorOffset"));
   const hasLowerShelf = getOption<boolean>(input, opt(o, "hasLowerShelf"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
+  const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
+  const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
   const upperApronThickness = 22;
   const lowerStretcherWidth = 50;
   const lowerStretcherThickness = 22;
@@ -120,13 +124,16 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronTenonLength = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
   const apronTenonThick = apronTenonStd.thickness;
   const apronTenonW = apronTenonStd.width;
-  // 半榫錯位（無 stagger UI，預設 0 → 直接走半榫）
+  // 半榫錯位（連續位移）：
+  //   stagger > 0 → 前後牙板（X 軸）整支物理下移，榫頭整支跟著（中心榫）
+  //   stagger == 0 → 自動上下半榫錯位避免同位撞
   const APRON_TOP_SHOULDER = 10;
   const APRON_HALF_TENON_GAP = 4;
   const apronTotalTenonH = upperApronWidth - APRON_TOP_SHOULDER;
-  const apronCanHalfStagger = apronTotalTenonH >= 16;
+  const apronVisuallyStaggered = apronStaggerMm > 0;
+  const apronCanHalfStagger = apronStaggerMm < apronTenonW && apronTotalTenonH >= 16;
   const apronHalfTenonH = apronCanHalfStagger
-    ? Math.min(apronTenonW, Math.floor((apronTotalTenonH - APRON_HALF_TENON_GAP) / 2))
+    ? Math.min(apronTenonW, Math.floor((apronTotalTenonH + apronStaggerMm - APRON_HALF_TENON_GAP) / 2))
     : apronTenonW;
   // part-local：apron Y 從 0 (底) 到 apronWidth (頂)；中心 = apronWidth/2
   const apronUpperTenonOffset = apronCanHalfStagger
@@ -147,11 +154,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerTenonLength = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
   const lowerTenonThick = lowerTenonStd.thickness;
   const lowerTenonW = lowerTenonStd.width;
-  // 下橫撐半榫錯位（上下都無肩）
+  // 下橫撐半榫錯位（連續位移）：
+  //   stagger > 0 → 左右下橫撐（Z 軸）整支物理上移，榫頭整支跟著
+  //   stagger == 0 → 自動上下半榫錯位
   const LOWER_HALF_TENON_GAP = 4;
-  const lowerCanHalfStagger = lowerStretcherWidth >= 16;
+  const lowerVisuallyStaggered = lowerStretcherStaggerMm > 0;
+  const lowerCanHalfStagger = lowerStretcherStaggerMm < lowerTenonW && lowerStretcherWidth >= 16;
   const lowerHalfTenonH = lowerCanHalfStagger
-    ? Math.min(lowerTenonW, Math.floor((lowerStretcherWidth - LOWER_HALF_TENON_GAP) / 2))
+    ? Math.min(lowerTenonW, Math.floor((lowerStretcherWidth + lowerStretcherStaggerMm - LOWER_HALF_TENON_GAP) / 2))
     : lowerTenonW;
   const lowerUpperTenonOffset = lowerCanHalfStagger
     ? (lowerStretcherWidth / 2 - lowerHalfTenonH / 2)
@@ -220,7 +230,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       },
     ],
     mortises: [
-      // 上橫撐 Z 面（接左右上橫撐）— 上半榫
+      // 上橫撐 Z 面（接左右上橫撐, 靜止）— 上半榫
       {
         origin: { x: 0, y: apronCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
         depth: apronTenonLength,
@@ -228,23 +238,23 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         width: apronTenonThick,
         through: apronThrough,
       },
-      // 上橫撐 X 面（接前後上橫撐）— 下半榫
+      // 上橫撐 X 面（接前後上橫撐, 物理下移 apronStaggerMm）— 下半榫
       {
-        origin: { x: c.x > 0 ? -1 : 1, y: apronCenterY + apronLowerTenonOffset, z: 0 },
+        origin: { x: c.x > 0 ? -1 : 1, y: apronCenterY - apronStaggerMm + apronLowerTenonOffset, z: 0 },
         depth: apronTenonLength,
         length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
         width: apronTenonThick,
         through: apronThrough,
       },
-      // 下橫撐 Z 面（接左右下橫撐）— 上半榫
+      // 下橫撐 Z 面（接左右下橫撐, 物理上移 lowerStretcherStaggerMm）— 上半榫
       {
-        origin: { x: 0, y: lowerCenterY + lowerUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
+        origin: { x: 0, y: lowerCenterY + lowerStretcherStaggerMm + lowerUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
         depth: lowerTenonLength,
         length: lowerCanHalfStagger ? lowerHalfTenonH : lowerTenonW,
         width: lowerTenonThick,
         through: lowerThrough,
       },
-      // 下橫撐 X 面（接前後下橫撐）— 下半榫
+      // 下橫撐 X 面（接前後下橫撐, 靜止）— 下半榫
       {
         origin: { x: c.x > 0 ? -1 : 1, y: lowerCenterY + lowerLowerTenonOffset, z: 0 },
         depth: lowerTenonLength,
@@ -318,6 +328,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     trapBotScaleZ: apronTrapBotScaleZ,
     fallbackShape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
     extraMortises: () => [],
+    // 前後牙板（X 軸）整支物理下移 apronStaggerMm；左右（Z 軸）不動
+    xAxisYDelta: -apronStaggerMm,
+    zAxisYDelta: 0,
   });
 
   const lowerStretchers: Part[] = makeApronRing({
@@ -357,6 +370,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         through: false,
       },
     ],
+    // 左右下橫撐（Z 軸）整支物理上移 lowerStretcherStaggerMm；前後（X 軸）不動
+    xAxisYDelta: 0,
+    zAxisYDelta: lowerStretcherStaggerMm,
   });
 
   // ----- 下棚板 -----
@@ -523,6 +539,10 @@ interface ApronRingOpts {
   trapBotScaleZ: number;
   fallbackShape?: Part["shape"];
   extraMortises: (visibleLength: number) => Part["mortises"];
+  /** Y delta for X-axis sides (front/back). Default 0. 牙板用 -apronStaggerMm 下移 */
+  xAxisYDelta?: number;
+  /** Y delta for Z-axis sides (left/right). Default 0. 下橫撐用 +lowerStretcherStaggerMm 上移 */
+  zAxisYDelta?: number;
 }
 
 function makeApronRing(o: ApronRingOpts): Part[] {
@@ -583,7 +603,11 @@ function makeApronRing(o: ApronRingOpts): Part[] {
         width: o.apronWidth,
         thickness: o.apronThickness,
       },
-      origin: { x: s.origin.x, y: o.y, z: s.origin.z },
+      origin: {
+        x: s.origin.x,
+        y: o.y + (s.axis === "x" ? (o.xAxisYDelta ?? 0) : (o.zAxisYDelta ?? 0)),
+        z: s.origin.z,
+      },
       rotation: s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: 0 }
         : { x: Math.PI / 2, y: 0, z: 0 },

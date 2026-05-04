@@ -30,6 +30,7 @@ export const diningChairOptions: OptionSpec[] = [
   // 牙板
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離；0 = 齊平座板下緣（最常見）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 椅背
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "slats", choices: [
     { value: "slats", label: "直條式（垂直板條）" },
@@ -92,6 +93,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
   const backRake = getOption<number>(input, opt(o, "backRake"));
   const withArmrest = getOption<boolean>(input, opt(o, "withArmrest"));
@@ -118,8 +120,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     motherThickness: seatThickness,
   });
   const legTopTenonSize = legTenonStd.width; // legSize x legSize → width = thickness
-  // 2) apron ↔ leg：依自動規則（餐椅未提供 legPenetratingTenon UI option，全走自動）
-  const apronTenonType = autoTenonType(legSize);
+  // 2) apron ↔ leg：依自動規則 + legPenetratingTenon override
+  const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
   const apronTenonStd = standardTenon({
     type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
     childThickness: apronThickness,
@@ -560,8 +562,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         : Math.round(seatHeight * 0.25);
     const lowerW = 35;
     const lowerT = 18;
-    // 下橫撐 ↔ 椅腳：依自動規則
-    const lowerTenonType = autoTenonType(legSize);
+    // 下橫撐 ↔ 椅腳：依自動規則 + legPenetratingTenon override
+    const lowerTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
     const lowerTenonStd = standardTenon({
       type: lowerTenonType,
       childThickness: lowerT,
