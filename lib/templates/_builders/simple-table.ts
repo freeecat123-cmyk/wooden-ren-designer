@@ -12,6 +12,7 @@ import {
   THROUGH_TENON_RATIO,
   MIN_SHOULDER_MM,
 } from "../_constants";
+import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 
 export interface SimpleTableOpts {
   category: FurnitureCategory;
@@ -124,16 +125,37 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronOffset = opts.apronOffset ?? 20;
   const topOverhang = opts.topOverhang ?? 0;
   const withLowerStretchers = opts.withLowerStretchers ?? false;
-  // 榫卯比例 — 全部從 _constants.ts 取（連回 wood-master/knowledge/joinery.md §2）
-  const apronTenonLen = Math.round(legSize * BLIND_TENON_DEPTH_RATIO);
-  const apronTenonThick = Math.max(
-    6,
-    Math.min(
-      apronThickness - 2 * MIN_SHOULDER_MM,
-      Math.round(legSize * TENON_THICKNESS_RATIO),
-    ),
-  );
-  const apronTenonWidth = Math.max(15, apronWidth - 2 * MIN_SHOULDER_MM);
+  // 桌類榫卯規則（套自方凳 square-stool）：
+  //  - apron / lower stretcher 進腳：autoTenonType（legSize ≤ 25mm 通榫；> 25 盲榫 = round(legSize × 2/3)）
+  //  - 通榫補 +5mm 補償斜腳 rotation tilt 在世界軸投影的損失
+  //  - 半榫錯位：Z（左右）= 上半榫（保留 10mm 上肩）、X（前後）= 下半榫（無上下肩）
+  //  - apronOffset === 0 + isSplayed → apron-trapezoid.bevelMode = "half"（頂面貼桌面水平）
+  const apronTenonType = autoTenonType(legSize);
+  const apronTenonStd = standardTenon({
+    type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+    childThickness: apronThickness,
+    childWidth: apronWidth,
+    motherThickness: legSize,
+  });
+  const apronTenonLen = apronTenonStd.length + (apronTenonType === "through-tenon" ? 5 : 0);
+  const apronTenonThick = apronTenonStd.thickness;
+  const apronTenonWidth = apronTenonStd.width;
+  // 半榫錯位（stagger 預設 0 → 走半榫）
+  const APRON_TOP_SHOULDER = 10;
+  const APRON_HALF_TENON_GAP = 4;
+  const apronTotalTenonH = apronWidth - APRON_TOP_SHOULDER;
+  const apronCanHalfStagger = apronTotalTenonH >= 16;
+  const apronHalfTenonH = apronCanHalfStagger
+    ? Math.min(apronTenonWidth, Math.floor((apronTotalTenonH - APRON_HALF_TENON_GAP) / 2))
+    : apronTenonWidth;
+  // part-local：apron Y 從 0 (底) 到 apronWidth (頂)；中心 = apronWidth/2
+  // 上榫中心 Y = (apronWidth - 上肩) - 上榫高/2；下榫中心 Y = 下榫高/2
+  const apronUpperTenonOffset = apronCanHalfStagger
+    ? (apronWidth - APRON_TOP_SHOULDER - apronHalfTenonH / 2) - apronWidth / 2
+    : 0;
+  const apronLowerTenonOffset = apronCanHalfStagger
+    ? apronHalfTenonH / 2 - apronWidth / 2
+    : 0;
   const legTopTenonLen = topThickness;
   // 通榫從上方插入：榫頭=母件 2/3，留四面肩。
   const legTopTenonSize = Math.max(15, Math.round(legSize * THROUGH_TENON_RATIO));
@@ -224,20 +246,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
     ],
     mortises: [
+      // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
       {
-        // mortise origin = CENTER（part-local，Y 從底量）；apron 中心線 Y
-        origin: { x: 0, y: apronY + apronWidth / 2, z: c.z > 0 ? -1 : 1 },
+        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
         depth: apronTenonLen,
-        length: apronTenonWidth,
+        length: apronHalfTenonH,
         width: apronTenonThick,
-        through: false,
+        through: apronTenonType === "through-tenon",
       },
+      // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
       {
-        origin: { x: c.x > 0 ? -1 : 1, y: apronY + apronWidth / 2, z: 0 },
+        origin: { x: c.x > 0 ? -1 : 1, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
         depth: apronTenonLen,
-        length: apronTenonWidth,
+        length: apronHalfTenonH,
         width: apronTenonThick,
-        through: false,
+        through: apronTenonType === "through-tenon",
       },
     ],
   }));
@@ -345,11 +368,25 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         : s.axis === "z" && hasShapeBend
           ? buttHalfZBot(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
+    // bevel 規則：apronOffset === 0（牙條頂面貼桌面） + isSplayed → half-bevel
+    const apronTopAtTop = apronOffset === 0;
+    const useHalfBevel = isSplayed && apronTopAtTop;
     const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined, bevelMode: useHalfBevel ? "half" as const : undefined }
       : isSplayed
         ? { kind: "apron-beveled" as const, bevelAngle }
         : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
+    // 半榫指派：靜止 Z（左右）= 上半榫（保留 top 肩 + 10mm 上肩）；移動 X（前後）= 下半榫（無上下肩）
+    const tenonType: "through-tenon" | "shouldered-tenon" =
+      apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
+    const isUpper = s.axis === "z";
+    const tenonH = apronCanHalfStagger ? apronHalfTenonH : apronTenonWidth;
+    const worldOffset = apronCanHalfStagger
+      ? (isUpper ? apronUpperTenonOffset : apronLowerTenonOffset)
+      : 0;
+    const shoulderOn: Array<"top" | "bottom" | "left" | "right"> = apronCanHalfStagger
+      ? (isUpper ? ["top", "left", "right"] : ["left", "right"])
+      : ["top", "bottom", "left", "right"];
     return {
       id: `apron-${s.key}`,
       nameZh: s.nameZh,
@@ -368,17 +405,21 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       tenons: [
         {
           position: "start" as const,
-          type: "shouldered-tenon" as const,
+          type: tenonType,
           length: apronTenonLen,
-          width: apronTenonWidth,
+          width: tenonH,
           thickness: apronTenonThick,
+          shoulderOn,
+          offsetWidth: -worldOffset,
         },
         {
           position: "end" as const,
-          type: "shouldered-tenon" as const,
+          type: tenonType,
           length: apronTenonLen,
-          width: apronTenonWidth,
+          width: tenonH,
           thickness: apronTenonThick,
+          shoulderOn,
+          offsetWidth: -worldOffset,
         },
       ],
       mortises: [],
@@ -438,12 +479,27 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
     const stretcherWidth = opts.lowerStretcherWidth ?? 40;
     const stretcherThickness = opts.lowerStretcherThickness ?? 20;
-    const tenonLen = Math.round(legSize * BLIND_TENON_DEPTH_RATIO);
-    const tenonThick = Math.max(
-      6,
-      Math.min(stretcherThickness - 2 * MIN_SHOULDER_MM, Math.round(legSize * TENON_THICKNESS_RATIO)),
-    );
-    const tenonW = Math.max(12, stretcherWidth - 2 * MIN_SHOULDER_MM);
+    // 下橫撐 ↔ 腳：autoTenonType + 通榫補 +5mm（同 square-stool）
+    const lowerTenonType = autoTenonType(legSize);
+    const lowerTenonStd = standardTenon({
+      type: lowerTenonType,
+      childThickness: stretcherThickness,
+      childWidth: stretcherWidth,
+      motherThickness: legSize,
+    });
+    const tenonLen = lowerTenonStd.length + (lowerTenonType === "through-tenon" ? 5 : 0);
+    const tenonThick = lowerTenonStd.thickness;
+    const tenonW = lowerTenonStd.width;
+    // 半榫錯位（stagger 預設 0）：靜止 X（前後）= 下半榫；移動 Z（左右）= 上半榫
+    // 下橫撐上下都不留肩
+    const LOWER_HALF_TENON_GAP = 4;
+    const lowerCanHalfStagger = stretcherWidth >= 16;
+    const lowerHalfTenonH = lowerCanHalfStagger
+      ? Math.min(tenonW, Math.floor((stretcherWidth - LOWER_HALF_TENON_GAP) / 2))
+      : tenonW;
+    // part-local：stretcherWidth 是 Y 軸；中心 = stretcherWidth/2
+    const lowerUpperTenonOffset = lowerCanHalfStagger ? (stretcherWidth / 2 - lowerHalfTenonH / 2) : 0;
+    const lowerLowerTenonOffset = lowerCanHalfStagger ? (lowerHalfTenonH / 2 - stretcherWidth / 2) : 0;
     // 下橫撐：以中軸對齊腳中軸，top/bot 都從中心向外/向內推
     const sCenterY = stretcherY + stretcherWidth / 2;
     const sBotShift = legHeight > 0 ? 1 - stretcherY / legHeight : 0;
@@ -492,11 +548,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           : s.axis === "z" && hasShapeBend
             ? sButtHalfZBot(sSplayZBot) / sButtHalfZ(sSplayZ)
             : 1;
+      // 下橫撐：保留 trapezoid（避免接縫），完全沒 bevel（上下自由邊跟腳斜）
       const lsShape = trapTopScale !== null
-        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined }
-        : isSplayed
-          ? { kind: "apron-beveled" as const, bevelAngle }
-          : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
+        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
+      // 半榫指派：靜止 X（前後）= 下半榫；移動 Z（左右）= 上半榫；上下都不留肩
+      const lsTenonType: "through-tenon" | "blind-tenon" =
+        lowerTenonType === "through-tenon" ? "through-tenon" : "blind-tenon";
+      const isUpperLs = s.axis === "z";
+      const lsTenonH = lowerCanHalfStagger ? lowerHalfTenonH : tenonW;
+      const lsWorldOffset = lowerCanHalfStagger
+        ? (isUpperLs ? lowerUpperTenonOffset : lowerLowerTenonOffset)
+        : 0;
+      const lsShoulderOn: Array<"top" | "bottom" | "left" | "right"> = ["left", "right"];
       parts.push({
         id: s.key,
         nameZh: s.nameZh,
@@ -509,11 +573,36 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
         shape: lsShape,
         tenons: [
-          { position: "start", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
-          { position: "end", type: "blind-tenon", length: tenonLen, width: tenonW, thickness: tenonThick },
+          { position: "start", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset },
+          { position: "end", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset },
         ],
         mortises: [],
       });
+    }
+    // 補腳上下橫撐 mortise（簡單 simple-table 原本沒加，現在加齊）
+    // Z 面 mortise 接 Z apron（左右下橫撐）— 上半榫
+    // X 面 mortise 接 X apron（前後下橫撐）— 下半榫
+    const lsCenterY = stretcherY + stretcherWidth / 2;
+    const lsThrough = lowerTenonType === "through-tenon";
+    for (const leg of legs) {
+      const cx = leg.origin.x;
+      const cz = leg.origin.z;
+      leg.mortises.push(
+        {
+          origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
+          depth: tenonLen,
+          length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
+          width: tenonThick,
+          through: lsThrough,
+        },
+        {
+          origin: { x: cx > 0 ? -1 : 1, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
+          depth: tenonLen,
+          length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
+          width: tenonThick,
+          through: lsThrough,
+        },
+      );
     }
   }
 
