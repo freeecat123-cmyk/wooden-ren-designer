@@ -293,23 +293,46 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
 // 重複按同一風格時，用 deterministic jitter 把數值欄位微調，產出同風格的不同
 // 變體（v2, v3...）。所有家具通用——只要欄位是 number 就吃，string/enum 不動。
 //
-// 每個 key 預設 jitter delta（mm 或 °）；min/max 用 jitterClamp 防爆。沒列在
-// JITTER_DELTA 的數值 key 走 fallback ratio 10%（最少 ±2）。
-const JITTER_DELTA: Record<string, number> = {
-  legSize: 6, legInset: 8, splayAngle: 2,
-  apronWidth: 12, apronOffset: 8, apronThickness: 3, apronStaggerMm: 8,
-  seatThickness: 4, seatHeight: 15, seatCornerR: 12,
-  backTopRailHeight: 12, backTopRailThickness: 4, backSlatThickness: 3,
-  backSlats: 1, ladderRungs: 1, slatWidth: 8, splatWidth: 30,
-  curvedSplatWidth: 30, curvedSplatBendMm: 6, backRake: 2,
-  backInsetFromRearMm: 8, backInsetFromEndMm: 8,
-  lowerStretcherHeight: 25, lowerStretcherWidth: 5, lowerStretcherThickness: 4,
-  lowerStretcherStaggerMm: 8,
-  legEdge: 2, seatEdge: 3, stretcherEdge: 2, topEdge: 3,
-  armrestHeight: 15, topThickness: 5, topOverhang: 8,
-  legWidthOverride: 6, legDepthOverride: 6,
+// 每個 key 設 [delta, floor]：jitter 範圍 ±delta（mm 或 °），結果不低於 floor
+// 防止超薄怪物。沒列在 JITTER_SPEC 的數值 key 走 fallback ±max(2, value*8%)
+// 並保留至少 60% 原值。
+const JITTER_SPEC: Record<string, { delta: number; floor: number }> = {
+  legSize: { delta: 4, floor: 22 },
+  legInset: { delta: 8, floor: 0 },
+  splayAngle: { delta: 2, floor: 0 },
+  apronWidth: { delta: 8, floor: 35 },
+  apronOffset: { delta: 6, floor: 0 },
+  apronThickness: { delta: 2, floor: 14 },
+  apronStaggerMm: { delta: 6, floor: 0 },
+  seatThickness: { delta: 3, floor: 18 },
+  seatHeight: { delta: 12, floor: 380 },
+  seatCornerR: { delta: 10, floor: 0 },
+  backTopRailHeight: { delta: 8, floor: 30 },
+  backTopRailThickness: { delta: 3, floor: 16 },
+  backSlatThickness: { delta: 2, floor: 12 },
+  backSlats: { delta: 1, floor: 1 },
+  ladderRungs: { delta: 1, floor: 2 },
+  slatWidth: { delta: 6, floor: 25 },
+  splatWidth: { delta: 25, floor: 100 },
+  curvedSplatWidth: { delta: 25, floor: 120 },
+  curvedSplatBendMm: { delta: 5, floor: 0 },
+  backRake: { delta: 2, floor: 0 },
+  backInsetFromRearMm: { delta: 8, floor: 0 },
+  backInsetFromEndMm: { delta: 8, floor: 0 },
+  lowerStretcherHeight: { delta: 20, floor: 100 },
+  lowerStretcherWidth: { delta: 4, floor: 25 },
+  lowerStretcherThickness: { delta: 3, floor: 14 },
+  lowerStretcherStaggerMm: { delta: 6, floor: 0 },
+  legEdge: { delta: 2, floor: 0 },
+  seatEdge: { delta: 3, floor: 0 },
+  stretcherEdge: { delta: 2, floor: 0 },
+  topEdge: { delta: 3, floor: 0 },
+  armrestHeight: { delta: 12, floor: 160 },
+  topThickness: { delta: 4, floor: 22 },
+  topOverhang: { delta: 6, floor: 0 },
+  legWidthOverride: { delta: 4, floor: 0 },
+  legDepthOverride: { delta: 4, floor: 0 },
 };
-// 不能 jitter 的 key（enum / 衍生 / 計數型 already 太敏感）
 const JITTER_SKIP = new Set<string>([
   "material", "_adapterNotes", "_styleId",
 ]);
@@ -323,12 +346,13 @@ function hashKey(key: string, seed: number): number {
 function jitterValue(value: number, key: string, seed: number): number {
   const h = hashKey(key, seed);
   const r = ((h % 2000) / 1000 - 1); // -1 ~ +1
-  const delta = JITTER_DELTA[key] ?? Math.max(2, Math.abs(value) * 0.1);
+  const spec = JITTER_SPEC[key];
+  const delta = spec ? spec.delta : Math.max(2, Math.abs(value) * 0.08);
+  const floor = spec ? spec.floor : Math.round(Math.abs(value) * 0.6);
   const out = value + Math.round(delta * r);
-  // 不讓 jitter 把正數壓到 0 以下（例如 legSize、apronWidth 變負就壞了）
-  if (value > 0 && out < 1) return 1;
-  if (value === 0 && out < 0) return 0;
-  return out;
+  // floor 只在原值 > 0 時生效（原值 0 表示「關閉/預設」，保持 0）
+  if (value === 0) return Math.max(0, out);
+  return Math.max(floor, out);
 }
 
 export function applyStylePreset(
