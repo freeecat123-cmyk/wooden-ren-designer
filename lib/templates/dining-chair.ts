@@ -986,10 +986,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // N 根水平橫木，均勻分佈於 seatHeight → topRailY 之間
     const rungWidth = 55;
     const rungThickness = 18;
-    // rungBodyLen 應該 = 兩支背柱 inner-to-inner 距離（中間跨越，端面對接背柱內緣）
-    // 背柱中心 X = ±(length/2 - legW/2 - legInset[*split時還要-backInsetFromEndMm])
-    // 內面 = 中心 ∓ legW/2，inner-to-inner = length - 2*legW - 2*legInset - 2*backInsetFromEndMm
-    const rungBodyLen = length - 2 * legW - 2 * legInset - 2 * backInsetFromEndMm;
+    // rungBodyLen = 兩支背柱 inner-to-inner（跟 top-rail 同公式，分離模式背柱
+    // 不受 legInset 影響）。連做模式背柱跟著腳內縮，要扣 legInset
+    const rungBodyLen = length - 2 * legW - (isContinuous ? 2 * legInset : 0) - 2 * backInsetFromEndMm;
     const rungTenonThick = Math.max(5, Math.round(rungThickness / 3));
     const rungTenonW = Math.max(12, rungWidth - 2 * MIN_SHOULDER);
     for (let i = 0; i < ladderRungs; i++) {
