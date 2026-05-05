@@ -1946,13 +1946,15 @@ export function PerspectiveView({
                 let ex = 0, ey = 0, ez = 0;
                 switch (t.position) {
                   case "start":
-                    lcx = -lx / 2 - t.length / 2; lcy = oT; lcz = oW;
-                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    // 軸線對齊 mortiseLocalBox 慣例（depthAxis="x"：length→Y，width→Z）。
+                    // tenon.width 對 mortise.length（Y/順母件 grain），tenon.thickness 對 mortise.width（Z）。
+                    lcx = -lx / 2 - t.length / 2; lcy = oW; lcz = oT;
+                    hx = t.length / 2; hy = W / 2; hz = T / 2;
                     ex = -explodeMm;
                     break;
                   case "end":
-                    lcx = lx / 2 + t.length / 2; lcy = oT; lcz = oW;
-                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    lcx = lx / 2 + t.length / 2; lcy = oW; lcz = oT;
+                    hx = t.length / 2; hy = W / 2; hz = T / 2;
                     ex = explodeMm;
                     break;
                   case "top":
