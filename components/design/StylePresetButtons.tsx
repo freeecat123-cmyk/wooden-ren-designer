@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
-import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
+import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys, getStyleVariantCount } from "@/lib/knowledge/style-presets";
 
 /** 風格圖示 → emoji 對照（沒對到的用🪵） */
 const STYLE_EMOJI: Record<string, string> = {
@@ -58,8 +58,9 @@ export function StylePresetButtons({
   const currentVariant = parseInt(sp?.get("styleVariant") ?? "0", 10) || 0;
 
   const apply = (id: string) => {
-    // 重複按同一風格 → 變體 +1；切換風格 → 從 v1（seed=0）開始
-    const variantSeed = id === currentStyle ? currentVariant + 1 : 0;
+    // 重複按同一風格 → 變體 +1，到頂繞回 0；切換風格 → 從 v1（seed=0）開始
+    const total = getStyleVariantCount(id, category) + 1;
+    const variantSeed = id === currentStyle ? (currentVariant + 1) % total : 0;
     // 傳 category + ctx：取得包含 per-category detail pack + 公式化適應的完整參數
     const ctx = designSize
       ? {
@@ -109,8 +110,9 @@ export function StylePresetButtons({
       <div className="flex flex-wrap gap-2">
         {presets.map((p) => {
           const isActive = currentStyle === p.id;
-          const variantLabel = isActive && currentVariant > 0 ? ` v${currentVariant + 1}` : "";
-          const nextLabel = isActive ? ` → v${currentVariant + 2}` : "";
+          const variantCount = getStyleVariantCount(p.id, category) + 1; // +1 包含 base
+          const variantLabel = isActive && currentVariant > 0 ? ` v${currentVariant + 1}/${variantCount}` : "";
+          const noVariants = isActive && variantCount <= 1;
           return (
             <button
               key={p.id}
@@ -121,10 +123,9 @@ export function StylePresetButtons({
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
                   : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"
               }`}
-              title={`${p.visualHint}${isActive ? `\n\n按下將產出 v${currentVariant + 2}（同風格不同變體）` : ""}\n\n來源：${p.source}`}
+              title={`${p.visualHint}${isActive && variantCount > 1 ? `\n\n再按下產出 v${(currentVariant + 1) % variantCount + 1}（共 ${variantCount} 種設計）` : noVariants ? "\n\n此家具尚未定義變體，按了不變" : ""}\n\n來源：${p.source}`}
             >
               {STYLE_EMOJI[p.id] ?? "🪵"} {p.nameZh}{variantLabel}
-              {isActive && <span className="text-[9px] text-violet-600 ml-1">{nextLabel}</span>}
             </button>
           );
         })}

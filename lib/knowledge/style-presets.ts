@@ -272,6 +272,17 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
       }
     }
   }
+  // 變體 overlay 引入的 key（如 withArmrest / armrestHeight）也要清，避免換
+  // 風格時殘留前風格的變體選擇
+  for (const styleId of Object.keys(STYLE_STRUCTURAL_VARIANTS_LOCAL)) {
+    const cats = STYLE_STRUCTURAL_VARIANTS_LOCAL[styleId];
+    for (const cat of Object.keys(cats)) {
+      if (category && cat !== category) continue;
+      for (const overlay of cats[cat]) {
+        for (const k of Object.keys(overlay)) keys.add(k);
+      }
+    }
+  }
   return keys;
 }
 
@@ -289,71 +300,14 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-// ─── Variant jitter ───────────────────────────────────────────────────────
-// 重複按同一風格時，用 deterministic jitter 把數值欄位微調，產出同風格的不同
-// 變體（v2, v3...）。所有家具通用——只要欄位是 number 就吃，string/enum 不動。
+import { getStyleVariantOverlay, getStyleVariantCount, STYLE_STRUCTURAL_VARIANTS as STYLE_STRUCTURAL_VARIANTS_LOCAL } from "./style-variants";
+export { getStyleVariantCount };
+// ─── Structural variants ─────────────────────────────────────────────────
+// 重複按同一風格時，套 STYLE_STRUCTURAL_VARIANTS 裡的結構性 overlay 而非
+// 數值 jitter——換 backStyle、改 ladder/slat 數、加扶手、換 stretcherStyle、
+// 改 splayAngle 等「同風格不同設計」的選擇。詳見 style-variants.ts。
 //
-// 每個 key 設 [delta, floor]：jitter 範圍 ±delta（mm 或 °），結果不低於 floor
-// 防止超薄怪物。沒列在 JITTER_SPEC 的數值 key 走 fallback ±max(2, value*8%)
-// 並保留至少 60% 原值。
-const JITTER_SPEC: Record<string, { delta: number; floor: number }> = {
-  legSize: { delta: 4, floor: 22 },
-  legInset: { delta: 8, floor: 0 },
-  splayAngle: { delta: 2, floor: 0 },
-  apronWidth: { delta: 8, floor: 35 },
-  apronOffset: { delta: 6, floor: 0 },
-  apronThickness: { delta: 2, floor: 14 },
-  apronStaggerMm: { delta: 6, floor: 0 },
-  seatThickness: { delta: 3, floor: 18 },
-  seatHeight: { delta: 12, floor: 380 },
-  seatCornerR: { delta: 10, floor: 0 },
-  backTopRailHeight: { delta: 8, floor: 30 },
-  backTopRailThickness: { delta: 3, floor: 16 },
-  backSlatThickness: { delta: 2, floor: 12 },
-  backSlats: { delta: 1, floor: 1 },
-  ladderRungs: { delta: 1, floor: 2 },
-  slatWidth: { delta: 6, floor: 25 },
-  splatWidth: { delta: 25, floor: 100 },
-  curvedSplatWidth: { delta: 25, floor: 120 },
-  curvedSplatBendMm: { delta: 5, floor: 0 },
-  backRake: { delta: 2, floor: 0 },
-  backInsetFromRearMm: { delta: 8, floor: 0 },
-  backInsetFromEndMm: { delta: 8, floor: 0 },
-  lowerStretcherHeight: { delta: 20, floor: 100 },
-  lowerStretcherWidth: { delta: 4, floor: 25 },
-  lowerStretcherThickness: { delta: 3, floor: 14 },
-  lowerStretcherStaggerMm: { delta: 6, floor: 0 },
-  legEdge: { delta: 2, floor: 0 },
-  seatEdge: { delta: 3, floor: 0 },
-  stretcherEdge: { delta: 2, floor: 0 },
-  topEdge: { delta: 3, floor: 0 },
-  armrestHeight: { delta: 12, floor: 160 },
-  topThickness: { delta: 4, floor: 22 },
-  topOverhang: { delta: 6, floor: 0 },
-  legWidthOverride: { delta: 4, floor: 0 },
-  legDepthOverride: { delta: 4, floor: 0 },
-};
-const JITTER_SKIP = new Set<string>([
-  "material", "_adapterNotes", "_styleId",
-]);
-
-function hashKey(key: string, seed: number): number {
-  let h = (seed * 2654435761) >>> 0;
-  for (let i = 0; i < key.length; i++) h = ((h * 31) >>> 0) + key.charCodeAt(i);
-  return (h >>> 0);
-}
-
-function jitterValue(value: number, key: string, seed: number): number {
-  const h = hashKey(key, seed);
-  const r = ((h % 2000) / 1000 - 1); // -1 ~ +1
-  const spec = JITTER_SPEC[key];
-  const delta = spec ? spec.delta : Math.max(2, Math.abs(value) * 0.08);
-  const floor = spec ? spec.floor : Math.round(Math.abs(value) * 0.6);
-  const out = value + Math.round(delta * r);
-  // floor 只在原值 > 0 時生效（原值 0 表示「關閉/預設」，保持 0）
-  if (value === 0) return Math.max(0, out);
-  return Math.max(floor, out);
-}
+// 設計原則：尺寸不亂動（保留風格識別），只變結構選擇。
 
 export function applyStylePreset(
   styleId: string,
@@ -415,15 +369,20 @@ export function applyStylePreset(
     result = adapted;
   }
 
-  // 變體 jitter：variantSeed > 0 時，所有數值 key 用 deterministic hash 微調
+  // 變體：variantSeed > 0 時套結構性 overlay（換 backStyle、改 slat 數等）。
+  // 沒定義 variant 的 (style, category) 組合 → 維持 base
   if (variantSeed > 0) {
-    for (const k of Object.keys(result)) {
-      if (JITTER_SKIP.has(k) || k.startsWith("_")) continue;
-      const v = result[k];
-      if (typeof v === "number") result[k] = jitterValue(v, k, variantSeed);
+    const overlay = getStyleVariantOverlay(styleId, category, variantSeed);
+    if (overlay) {
+      Object.assign(result, overlay);
+      const total = getStyleVariantCount(styleId, category);
+      const idx = ((variantSeed - 1) % total) + 1;
+      const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
+      result._adapterNotes = `${prevNotes}變體 v${variantSeed + 1}（共 ${total + 1} 種設計）：結構選擇微調，尺寸維持風格基準`;
+    } else {
+      const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
+      result._adapterNotes = `${prevNotes}此風格 / 家具組合尚未定義變體（v2 = v1）`;
     }
-    const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
-    result._adapterNotes = `${prevNotes}變體 v${variantSeed + 1}：依風格微調數值，產出同風格不同變體`;
   }
 
   return result;
