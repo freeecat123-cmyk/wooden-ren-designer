@@ -18,6 +18,12 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legDepthOverride", label: "椅腳厚 Z (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板寬邊 Z 的尺寸" },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅腳中心離座板邊緣的內縮量。> 0 讓座板外伸、視覺更俐落" },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度 (°)", defaultValue: SPLAY_ANGLE.stoolDefaultDeg, min: 1, max: 10, step: 0.5, unit: "°", help: "斜腳系列才有效——從垂直起算的外傾角度。建議 3–8°；超過 10° 底盤太大不穩", dependsOn: { key: "legShape", oneOf: ["splayed", "splayed-length", "splayed-width"] } },
+  { group: "leg", type: "select", key: "rearPostMode", label: "後腳/背柱接合", defaultValue: "split", choices: [
+    { value: "split", label: "分離（後腳到座板 + 獨立背柱）" },
+    { value: "continuous-straight", label: "一木連做（A 直料）" },
+    { value: "continuous-bent", label: "一木連做（B 折角型，座面以上後仰）" },
+    { value: "continuous-s-curve", label: "一木連做（C S 形連續曲線）" },
+  ], help: "split = 現行設計；continuous-* = 後腳延伸成背柱，座板不再接後腳（浮在牙板上）" },
   // 座板
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: DINING_CHAIR.seatHeightMm, min: 150, max: 900, step: 10, help: `地面到座板上緣，一般 ${DINING_CHAIR.seatHeightRangeMm[0]}–${DINING_CHAIR.seatHeightRangeMm[1]}（FWW 共識）` },
@@ -55,8 +61,8 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "back", type: "number", key: "curvedSplatBendMm", label: "曲面中板凹陷 (mm)", defaultValue: 20, min: -60, max: 60, step: 2, help: "正值往背面凹（貼合背部）；負值往前凸（外凸）；0 = 平板", dependsOn: { key: "backStyle", equals: "curved-splat" } },
   { group: "back", type: "number", key: "backTopRailHeight", label: "椅背頂橫木高 (mm)", defaultValue: 50, min: 20, max: 180, step: 5 },
   { group: "back", type: "number", key: "backTopRailThickness", label: "椅背頂橫木厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
-  { group: "back", type: "number", key: "backInsetFromRearMm", label: "椅背距座面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背柱外緣往前縮多少；0 = 跟後腳齊（最常見）。> 0 時 slats/splat 會與後牙板脫開（建議改 ladder/windsor）" },
-  { group: "back", type: "number", key: "backInsetFromEndMm", label: "椅背距座面端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背柱外緣往內縮多少；0 = 跟後腳齊（最常見）。會同步縮短頂橫木與椅背元件可用寬" },
+  { group: "back", type: "number", key: "backInsetFromRearMm", label: "椅背距座面後緣 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背柱外緣往前縮多少；0 = 跟後腳齊（最常見）。> 0 時 slats/splat 會與後牙板脫開（建議改 ladder/windsor）", dependsOn: { key: "rearPostMode", equals: "split" } },
+  { group: "back", type: "number", key: "backInsetFromEndMm", label: "椅背距座面端面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "椅背柱外緣往內縮多少；0 = 跟後腳齊（最常見）。會同步縮短頂橫木與椅背元件可用寬", dependsOn: { key: "rearPostMode", equals: "split" } },
   backRakeOption("back"),
   // 扶手
   { group: "back", type: "checkbox", key: "withArmrest", label: "加扶手", defaultValue: false, help: "後腳延伸往前接到前腳上方的扶手（會增加木料 + 工時）" },
@@ -105,6 +111,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const legShortDim = Math.min(legW, legD);
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
+  const rearPostMode = getOption<string>(input, opt(o, "rearPostMode"));
+  const isContinuous = rearPostMode !== "split";
+  // 一木連做（A 直料）強制 backRake=0；B/C 用使用者設的角度
+  // continuous 模式 backInsetFromRear/End 強制歸零（背柱已跟後腳對齊）
+
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatHeight = getOption<number>(input, opt(o, "seatHeight"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
@@ -123,7 +134,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
-  const backRake = getOption<number>(input, opt(o, "backRake"));
+  const backRakeRaw = getOption<number>(input, opt(o, "backRake"));
+  // continuous-straight 模式強制 rake=0；其他模式用使用者設定
+  const backRake = rearPostMode === "continuous-straight" ? 0 : backRakeRaw;
   const withArmrest = getOption<boolean>(input, opt(o, "withArmrest"));
   const armrestHeight = getOption<number>(input, opt(o, "armrestHeight"));
   const armrestPostWidthOpt = getOption<number>(input, opt(o, "armrestPostWidth"));
@@ -276,17 +289,19 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 獨立的「背柱」零件 (back-post)，讓座板可以乾乾淨淨坐在 4 隻腳上面，
   // 不會跟後腳穿模。
   const legBaseHeight = seatHeight - seatThickness;
+  // 一木連做：後腳延伸到座面上緣（過座板），跟背柱對接；前腳維持 legBaseHeight
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0;
+    const isBackContinuous = isBack && isContinuous;
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `前椅腳 ${i + 1}`,
       material,
       grainDirection: "length",
-      visible: { length: legW, width: legD, thickness: legBaseHeight },
+      visible: { length: legW, width: legD, thickness: isBackContinuous ? seatHeight : legBaseHeight },
       origin: { x: c.x, y: 0, z: c.z },
       shape: legShapeFor(c) ?? legEdgeShape(legEdge, legEdgeStyle),
-      tenons: [
+      tenons: isBackContinuous ? [] : [
         {
           position: "top",
           type: legTopTenonType === "through-tenon" ? "through-tenon" : "blind-tenon",
@@ -346,8 +361,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 這樣調 legInset 只動腳，椅背不會跟著飄
   const backPostBaseX = length / 2 - legW / 2;
   const backPostBaseZ = width / 2 - legD / 2;
-  const backPostX = (c: { x: number; z: number }) => Math.sign(c.x) * (backPostBaseX - backInsetFromEndMm);
-  const backPostZ = (_c: { x: number; z: number }) => backPostBaseZ - backInsetFromRearMm;
+  // continuous 模式：背柱位置 = 後腳位置（同 X/Z），看起來像一木連做
+  // split 模式：背柱跟後腳脫鉤，受 backInsetFromRear/EndMm 控制
+  const backPostX = (c: { x: number; z: number }) => isContinuous ? c.x : Math.sign(c.x) * (backPostBaseX - backInsetFromEndMm);
+  const backPostZ = (c: { x: number; z: number }) => isContinuous ? c.z : backPostBaseZ - backInsetFromRearMm;
+  // continuous-s-curve 模式：背柱套 face-rounded shape，body 中段往背側彎
+  const backPostShape = (): NonNullable<Part["shape"]> | undefined => {
+    if (rearPostMode === "continuous-s-curve") {
+      return { kind: "face-rounded" as const, cornerR: 0, bendMm: 30, bendAxis: "y" as const };
+    }
+    return legEdgeShape(legEdge, legEdgeStyle);
+  };
   const backPosts: Part[] = cornerPts
     .filter((c) => c.z > 0)
     .map((c, i) => ({
@@ -357,8 +381,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: legW, width: legD, thickness: height - seatHeight },
       origin: { x: backPostX(c), y: seatHeight, z: backPostZ(c) },
-      shape: legEdgeShape(legEdge, legEdgeStyle),
-      tenons: [
+      shape: backPostShape(),
+      // continuous 模式背柱底端不再進座板（後腳已延伸到座面），不需要榫
+      tenons: isContinuous ? [] : [
         // 背柱底端進座板，與前腳頂端共用同一個座板榫眼 → dims 必須一致
         {
           position: "bottom",
@@ -392,14 +417,19 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 背柱位置與後腳已脫鉤——legInset > 0 時兩者也錯開，需給背柱獨立座板榫眼
   const backPostOffset = legInset > 0 || backInsetFromEndMm > 0 || backInsetFromRearMm > 0;
 
+  // 一木連做：座板後緣縮到後腳前緣（避免穿模），origin.z 偏移保持前緣不動
+  // 後腳前緣 z = (width/2 - legD/2 - legInset) - legD/2 = width/2 - legD - legInset
+  const seatBackShrink = isContinuous ? legD + legInset : 0;
+  const seatPanelWidth = width - seatBackShrink;
+  const seatPanelZOffset = -seatBackShrink / 2;
   // 座板（前腳通榫進來）
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
     material,
     grainDirection: "length",
-    visible: { length, width, thickness: seatThickness },
-    origin: { x: 0, y: seatHeight - seatThickness, z: 0 },
+    visible: { length, width: seatPanelWidth, thickness: seatThickness },
+    origin: { x: 0, y: seatHeight - seatThickness, z: seatPanelZOffset },
     shape: (() => {
       if (seatBendMm > 0) {
         return { kind: "face-rounded" as const, cornerR: seatCornerR, bendMm: -seatBendMm, bendAxis: "y" as const };
@@ -422,16 +452,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // mortise depth + through 跟 tenon type 同步（座板薄→通榫穿透；厚→盲榫不穿頂）
     // backInset > 0 時，背柱已偏離後腳角，需另外給背柱獨立的座板榫眼
     mortises: [
-      ...cornerPts.map((c) => ({
-        origin: { x: c.x, y: 0, z: c.z },
-        depth: legTenonStd.length,
-        length: legTenonStd.width,
-        width: legTenonStd.thickness,
-        through: legTopTenonType === "through-tenon",
-      })),
-      ...(backPostOffset
+      // continuous 模式：只給前 2 腳座板榫眼（後腳已過座板，背柱也不再進座板）
+      // origin.z 是 part-local，需扣掉 seat 自己的 z origin 偏移
+      ...cornerPts
+        .filter((c) => isContinuous ? c.z < 0 : true)
+        .map((c) => ({
+          origin: { x: c.x, y: 0, z: c.z - seatPanelZOffset },
+          depth: legTenonStd.length,
+          length: legTenonStd.width,
+          width: legTenonStd.thickness,
+          through: legTopTenonType === "through-tenon",
+        })),
+      ...(backPostOffset && !isContinuous
         ? cornerPts.filter((c) => c.z > 0).map((c) => ({
-            origin: { x: backPostX(c), y: 0, z: backPostZ(c) },
+            origin: { x: backPostX(c), y: 0, z: backPostZ(c) - seatPanelZOffset },
             depth: legTenonStd.length,
             length: legTenonStd.width,
             width: legTenonStd.thickness,
