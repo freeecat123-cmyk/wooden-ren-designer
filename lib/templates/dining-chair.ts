@@ -948,7 +948,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 椅背部件——依 backStyle 生成（backZonHeight 已在頂部宣告）
   const backParts: Part[] = [];
-  const backZ = width / 2 - legD / 2 - backInsetFromRearMm;
+  // 軸心對齊：slat / splat / spindle / curved-splat 中心 z 跟 apron 中心 z 對齊
+  // apron z = width/2 - legD/2 - legInset，所以 backZ 也要扣 legInset
+  const backZ = width / 2 - legD / 2 - legInset - backInsetFromRearMm;
   const backUsableLengthOffset = 2 * backInsetFromEndMm;
   // 一木連做：座板已縮回（不會跟背直立件穿模），slat/splat/spindle 可以
   // 延伸到後牙板頂緣 = apronY + apronWidth；split 模式維持原 seatHeight 起算
