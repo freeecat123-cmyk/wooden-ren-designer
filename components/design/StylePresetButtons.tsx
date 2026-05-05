@@ -84,6 +84,9 @@ export function StylePresetButtons({
       }
     });
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    // 強制 RSC 重新 fetch——預設 replace 在純 client 路徑可能 cache stale
+    // server props，導致表單不重新拿 optionValues（看起來像「按了沒反應」）
+    router.refresh();
   };
 
   return (
