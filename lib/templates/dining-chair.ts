@@ -61,6 +61,10 @@ export const diningChairOptions: OptionSpec[] = [
   // 扶手
   { group: "back", type: "checkbox", key: "withArmrest", label: "加扶手", defaultValue: false, help: "後腳延伸往前接到前腳上方的扶手（會增加木料 + 工時）" },
   { group: "back", type: "number", key: "armrestHeight", label: "扶手高（座板上）(mm)", defaultValue: 200, min: 150, max: 280, step: 10, help: "從座板上緣到扶手頂面", dependsOn: { key: "withArmrest", equals: true } },
+  { group: "back", type: "number", key: "armrestPostWidth", label: "扶手前柱寬 X (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 跟椅腳粗一樣", dependsOn: { key: "withArmrest", equals: true } },
+  { group: "back", type: "number", key: "armrestPostThickness", label: "扶手前柱厚 Z (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 跟椅腳厚一樣", dependsOn: { key: "withArmrest", equals: true } },
+  { group: "back", type: "number", key: "armrestPlankWidth", label: "扶手板寬 (mm)", defaultValue: 50, min: 25, max: 120, step: 5, help: "扶手板的左右寬（手掌平面）", dependsOn: { key: "withArmrest", equals: true } },
+  { group: "back", type: "number", key: "armrestPlankThickness", label: "扶手板厚 (mm)", defaultValue: 22, min: 14, max: 50, step: 1, help: "扶手板的垂直厚（從上方看到的厚度）", dependsOn: { key: "withArmrest", equals: true } },
   // 橫撐
   { group: "stretcher", type: "select", key: "stretcherStyle", label: "下橫撐樣式", defaultValue: "none", choices: [
     { value: "none", label: "無下橫撐" },
@@ -122,6 +126,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const backRake = getOption<number>(input, opt(o, "backRake"));
   const withArmrest = getOption<boolean>(input, opt(o, "withArmrest"));
   const armrestHeight = getOption<number>(input, opt(o, "armrestHeight"));
+  const armrestPostWidthOpt = getOption<number>(input, opt(o, "armrestPostWidth"));
+  const armrestPostThicknessOpt = getOption<number>(input, opt(o, "armrestPostThickness"));
+  const armrestPlankWidth = getOption<number>(input, opt(o, "armrestPlankWidth"));
+  const armrestPlankThickness = getOption<number>(input, opt(o, "armrestPlankThickness"));
   const slatCount = getOption<number>(input, opt(o, "backSlats"));
   const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
   const slatThickness = getOption<number>(input, opt(o, "backSlatThickness"));
@@ -578,8 +586,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // 扶手（withArmrest=true）：每側 2 件 = 1 前支柱（直立）+ 1 水平扶手板
-  const ARMREST_THICKNESS = 22;     // 垂直厚（手掌平面）
-  const ARMREST_PLANK_W = 50;       // 扶手左右寬
+  // post 尺寸：0 = 跟椅腳一樣；plank 尺寸從 UI 讀
+  const armrestPostW = armrestPostWidthOpt > 0 ? armrestPostWidthOpt : legW;
+  const armrestPostD = armrestPostThicknessOpt > 0 ? armrestPostThicknessOpt : legD;
   const armrestParts: Part[] = [];
   if (withArmrest) {
     const frontLegPair = cornerPts.filter((c) => c.z < 0);
@@ -588,7 +597,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       const sideZh = fl.x > 0 ? "右" : "左";
       const bpX = Math.sign(fl.x) * (length / 2 - legW / 2 - backInsetFromEndMm);
       const bpZ = width / 2 - legD / 2 - backInsetFromRearMm;
-      const postH = Math.max(0, armrestHeight - ARMREST_THICKNESS);
+      const postH = Math.max(0, armrestHeight - armrestPlankThickness);
       // 前支柱：座板上緣 → 扶手底
       if (postH > 0) {
         armrestParts.push({
@@ -596,7 +605,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           nameZh: `${sideZh}扶手前支柱`,
           material,
           grainDirection: "length",
-          visible: { length: legW, width: legD, thickness: postH },
+          visible: { length: armrestPostW, width: armrestPostD, thickness: postH },
           origin: { x: fl.x, y: seatHeight, z: fl.z },
           shape: legEdgeShape(legEdge, legEdgeStyle),
           tenons: [],
@@ -614,8 +623,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `${sideZh}扶手板`,
         material,
         grainDirection: "length",
-        visible: { length: plankLength, width: ARMREST_PLANK_W, thickness: ARMREST_THICKNESS },
-        origin: { x: plankX, y: seatHeight + armrestHeight - ARMREST_THICKNESS, z: plankCenterZ },
+        visible: { length: plankLength, width: armrestPlankWidth, thickness: armrestPlankThickness },
+        origin: { x: plankX, y: seatHeight + armrestHeight - armrestPlankThickness, z: plankCenterZ },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [],
