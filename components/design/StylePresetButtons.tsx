@@ -53,7 +53,13 @@ export function StylePresetButtons({
     (p) => !p.applicableTo || !category || p.applicableTo.includes(category),
   );
 
+  // 變體計數：URL ?style=midCentury&styleVariant=2 = 第 3 次按 midCentury
+  const currentStyle = sp?.get("style") ?? "";
+  const currentVariant = parseInt(sp?.get("styleVariant") ?? "0", 10) || 0;
+
   const apply = (id: string) => {
+    // 重複按同一風格 → 變體 +1；切換風格 → 從 v1（seed=0）開始
+    const variantSeed = id === currentStyle ? currentVariant + 1 : 0;
     // 傳 category + ctx：取得包含 per-category detail pack + 公式化適應的完整參數
     const ctx = designSize
       ? {
@@ -63,7 +69,7 @@ export function StylePresetButtons({
           material: sp?.get("material") ?? undefined,
         }
       : undefined;
-    const params = applyStylePreset(id, category, ctx);
+    const params = applyStylePreset(id, category, ctx, variantSeed);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
 
@@ -72,6 +78,8 @@ export function StylePresetButtons({
     managedKeys.forEach((k) => next.delete(k));
 
     next.set("style", id);
+    if (variantSeed > 0) next.set("styleVariant", String(variantSeed));
+    else next.delete("styleVariant");
     // _adapterNotes 不寫進 URL，但收集起來顯示給使用者
     const notes = typeof params._adapterNotes === "string"
       ? params._adapterNotes.split(" | ")
@@ -95,21 +103,31 @@ export function StylePresetButtons({
         <span>🎭</span>
         <span>風格快速套用</span>
         <span className="text-[10px] text-zinc-500 font-normal">
-          （自動填腳形 / 邊緣 / 木種 / splay 角度）
+          （重複按同一風格＝產出該風格的不同變體 v2 / v3 ...）
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {presets.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => apply(p.id)}
-            className="px-3 py-1.5 rounded-md bg-white text-zinc-800 text-xs ring-1 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400 transition"
-            title={`${p.visualHint}\n\n來源：${p.source}`}
-          >
-            {STYLE_EMOJI[p.id] ?? "🪵"} {p.nameZh}
-          </button>
-        ))}
+        {presets.map((p) => {
+          const isActive = currentStyle === p.id;
+          const variantLabel = isActive && currentVariant > 0 ? ` v${currentVariant + 1}` : "";
+          const nextLabel = isActive ? ` → v${currentVariant + 2}` : "";
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => apply(p.id)}
+              className={`px-3 py-1.5 rounded-md text-xs ring-1 transition ${
+                isActive
+                  ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
+                  : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"
+              }`}
+              title={`${p.visualHint}${isActive ? `\n\n按下將產出 v${currentVariant + 2}（同風格不同變體）` : ""}\n\n來源：${p.source}`}
+            >
+              {STYLE_EMOJI[p.id] ?? "🪵"} {p.nameZh}{variantLabel}
+              {isActive && <span className="text-[9px] text-violet-600 ml-1">{nextLabel}</span>}
+            </button>
+          );
+        })}
       </div>
       {adapterNotes.length > 0 && (
         <div className="mt-2 px-2 py-1.5 rounded bg-white/60 ring-1 ring-violet-200">

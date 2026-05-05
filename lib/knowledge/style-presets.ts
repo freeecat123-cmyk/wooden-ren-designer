@@ -289,10 +289,53 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
+// ─── Variant jitter ───────────────────────────────────────────────────────
+// 重複按同一風格時，用 deterministic jitter 把數值欄位微調，產出同風格的不同
+// 變體（v2, v3...）。所有家具通用——只要欄位是 number 就吃，string/enum 不動。
+//
+// 每個 key 預設 jitter delta（mm 或 °）；min/max 用 jitterClamp 防爆。沒列在
+// JITTER_DELTA 的數值 key 走 fallback ratio 10%（最少 ±2）。
+const JITTER_DELTA: Record<string, number> = {
+  legSize: 6, legInset: 8, splayAngle: 2,
+  apronWidth: 12, apronOffset: 8, apronThickness: 3, apronStaggerMm: 8,
+  seatThickness: 4, seatHeight: 15, seatCornerR: 12,
+  backTopRailHeight: 12, backTopRailThickness: 4, backSlatThickness: 3,
+  backSlats: 1, ladderRungs: 1, slatWidth: 8, splatWidth: 30,
+  curvedSplatWidth: 30, curvedSplatBendMm: 6, backRake: 2,
+  backInsetFromRearMm: 8, backInsetFromEndMm: 8,
+  lowerStretcherHeight: 25, lowerStretcherWidth: 5, lowerStretcherThickness: 4,
+  lowerStretcherStaggerMm: 8,
+  legEdge: 2, seatEdge: 3, stretcherEdge: 2, topEdge: 3,
+  armrestHeight: 15, topThickness: 5, topOverhang: 8,
+  legWidthOverride: 6, legDepthOverride: 6,
+};
+// 不能 jitter 的 key（enum / 衍生 / 計數型 already 太敏感）
+const JITTER_SKIP = new Set<string>([
+  "material", "_adapterNotes", "_styleId",
+]);
+
+function hashKey(key: string, seed: number): number {
+  let h = (seed * 2654435761) >>> 0;
+  for (let i = 0; i < key.length; i++) h = ((h * 31) >>> 0) + key.charCodeAt(i);
+  return (h >>> 0);
+}
+
+function jitterValue(value: number, key: string, seed: number): number {
+  const h = hashKey(key, seed);
+  const r = ((h % 2000) / 1000 - 1); // -1 ~ +1
+  const delta = JITTER_DELTA[key] ?? Math.max(2, Math.abs(value) * 0.1);
+  const out = value + Math.round(delta * r);
+  // 不讓 jitter 把正數壓到 0 以下（例如 legSize、apronWidth 變負就壞了）
+  if (value > 0 && out < 1) return 1;
+  if (value === 0 && out < 0) return 0;
+  return out;
+}
+
 export function applyStylePreset(
   styleId: string,
   category?: string,
   ctx?: { totalLength: number; totalWidth: number; totalHeight: number; material?: string },
+  variantSeed: number = 0,
 ): Record<string, string | number | boolean> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
@@ -335,6 +378,7 @@ export function applyStylePreset(
 
   // 公式化適應（若提供 ctx）：依 size / material 調整 legSize / apronWidth /
   // Walker zone 高度等。回傳 notes 寫進 _adapterNotes 給 UI 顯示。
+  let result: Record<string, string | number | boolean> = params;
   if (ctx && category) {
     const { params: adapted, notes } = adaptStyleParams(
       { ...params, _styleId: styleId },
@@ -344,8 +388,19 @@ export function applyStylePreset(
       adapted._adapterNotes = notes.join(" | ");
     }
     delete adapted._styleId;
-    return adapted;
+    result = adapted;
   }
 
-  return params;
+  // 變體 jitter：variantSeed > 0 時，所有數值 key 用 deterministic hash 微調
+  if (variantSeed > 0) {
+    for (const k of Object.keys(result)) {
+      if (JITTER_SKIP.has(k) || k.startsWith("_")) continue;
+      const v = result[k];
+      if (typeof v === "number") result[k] = jitterValue(v, k, variantSeed);
+    }
+    const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
+    result._adapterNotes = `${prevNotes}變體 v${variantSeed + 1}：依風格微調數值，產出同風格不同變體`;
+  }
+
+  return result;
 }
