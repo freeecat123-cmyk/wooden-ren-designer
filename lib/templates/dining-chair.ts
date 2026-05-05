@@ -420,19 +420,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 背柱位置與後腳已脫鉤——legInset > 0 時兩者也錯開，需給背柱獨立座板榫眼
   const backPostOffset = legInset > 0 || backInsetFromEndMm > 0 || backInsetFromRearMm > 0;
 
-  // 一木連做：座板後緣縮，避免後腳 + 椅背直立件穿模
-  // 縮量取較大者：(legD + legInset)（後腳前緣）or (legD + 椅背元件最寬)/2（讓直立件 front face 跟座板 back edge 齊）
-  const backPartMaxWidth = (() => {
-    if (backStyle === "slats") return slatWidth;
-    if (backStyle === "splat") return splatWidth;
-    if (backStyle === "curved-splat") return curvedSplatWidth;
-    return 0;
-  })();
-  // backRake 會讓椅背元件底端往前傾，多縮 seatThickness × tan(15°) ≈ 7mm 留 margin
+  // 一木連做：座板後緣縮到後腳前緣，避免穿模
+  // 椅背直立件（slats / splat / curved-splat / spindle）的 thickness（z 方向
+  // 深度）≤ 25mm，加 8mm rake margin 後仍小於 legD（35mm），所以蹺只看
+  // legD + legInset 即可
   const rakeTiltMargin = isContinuous ? 8 : 0;
-  const seatBackShrink = isContinuous
-    ? Math.max(legD + legInset, Math.ceil((legD + backPartMaxWidth) / 2) + rakeTiltMargin)
-    : 0;
+  const seatBackShrink = isContinuous ? legD + legInset + rakeTiltMargin : 0;
   const seatPanelWidth = width - seatBackShrink;
   const seatPanelZOffset = -seatBackShrink / 2;
   // 座板（前腳通榫進來）
@@ -982,7 +975,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: backSpan + dip, width: slatWidth, thickness: slatThickness },
         origin: { x: xCenter, y: backStartY - dip, z: backZ },
-        rotation: { x: 0, y: 0, z: Math.PI / 2 },
+        // 軸心對齊：slat 寬面 (slatWidth=50) 朝前後，厚面 (slatThickness=18) 朝
+        // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
+        rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
         tenons: [
           { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
           { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
