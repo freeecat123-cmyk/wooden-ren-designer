@@ -669,8 +669,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "椅背頂橫木",
     material,
     grainDirection: "length",
-    visible: { length: length - 2 * legW - 2 * legInset - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
-    origin: { x: 0, y: topRailY, z: width / 2 - legD / 2 - legInset - backInsetFromRearMm },
+    // 連做模式背柱跟著 legInset 內縮，分離模式背柱獨立於 legInset，length / z 都要分開
+    visible: { length: length - 2 * legW - (isContinuous ? 2 * legInset : 0) - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
+    origin: { x: 0, y: topRailY, z: (isContinuous ? width / 2 - legD / 2 - legInset : width / 2 - legD / 2) - backInsetFromRearMm },
     tenons: [
       {
         position: "start",
