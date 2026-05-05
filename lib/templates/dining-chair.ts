@@ -976,8 +976,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `椅背板條 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: backSpan + dip, width: slatWidth, thickness: cappedThickness(slatThickness) },
-        origin: { x: xCenter, y: backStartY - dip, z: backZ },
+        // slats 維持從 seatHeight 起算（不延伸到 apron-top）—— 否則在 continuous
+        // 模式下 slat 視覺上會掛在座板下方很怪；apron 連接靠 slat 的「start」
+        // tenon 從上方插入 apron 母榫眼。
+        visible: { length: backZonHeight + dip, width: slatWidth, thickness: cappedThickness(slatThickness) },
+        origin: { x: xCenter, y: seatHeight - dip, z: backZ },
         // 軸心對齊：slat 寬面 (slatWidth=50) 朝前後，厚面 (slatThickness=18) 朝
         // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
         rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
