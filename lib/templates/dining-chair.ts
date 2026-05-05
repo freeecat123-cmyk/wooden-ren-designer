@@ -1085,10 +1085,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 所有椅背部件繞 (seatHeight, backZ) X 軸傾斜 reclineRad
   const reclineRad = (backRake * Math.PI) / 180;
   if (Math.abs(reclineRad) > 1e-6) {
-    // 折角型：傾斜後背柱底面前緣會抬高 (legD/2)·sin(rake)，產生縫隙。
+    // 折角型 / S 曲：傾斜後背柱底面前緣會抬高 (legD/2)·sin(rake)，產生縫隙。
     // 預先把背柱往下延長 Δ = (legD/2)·tan(rake) → 傾斜後前緣剛好落在 seatHeight，
     // 後緣下沉進後腳 AABB 內（折角內側本來就重疊，視覺被遮）。頂端不變。
-    if (rearPostMode === "continuous-bent") {
+    const isBentOrSCurve = rearPostMode === "continuous-bent" || rearPostMode === "continuous-s-curve";
+    if (isBentOrSCurve) {
       const overshoot = (legD / 2) * Math.abs(Math.tan(reclineRad));
       for (let i = 0; i < backPosts.length; i++) {
         const bp = backPosts[i];
@@ -1130,8 +1131,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 沒這個 skip 中板會被推高 wHalf×sin(rake) 並砍掉等量長度，3D 看到上下都有縫。
       // 一木連做折角型：背柱底端要跟後腳頂端在折角點對接，不能 clamp 上抬，
       // 否則折角處會有 wHalf×sin(rake) 的縫隙；slat / top-rail 也跟著一起傾斜
-      const isBent = rearPostMode === "continuous-bent";
-      const skipClamp = p.id === "back-splat" || p.id === "back-curved-splat" || isBent;
+      const skipClamp = p.id === "back-splat" || p.id === "back-curved-splat" || isBentOrSCurve;
       // 錨在座面上的部件，傾斜後 bottom corner 要 ≥ seatHeight（避免與 seat AABB 重疊）
       const wHalf = p.visible.width / 2;
       const extraLift = hasZQuarter ? wHalf * Math.abs(sinR) : 0;
@@ -1166,7 +1166,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // 折角型 (continuous-bent)：椅背是一個剛性框架，後柱、上橫條、slat / splat /
     // spindle 全部一起繞折角點傾斜，才不會有「中間 slat 沒跟著倒」「上橫條跟柱頂脫離」
     for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
-    if (rearPostMode === "continuous-bent") {
+    if (isBentOrSCurve) {
       backTopRail = tilt(backTopRail);
       for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
     }
