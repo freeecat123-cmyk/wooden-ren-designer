@@ -420,12 +420,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 背柱位置與後腳已脫鉤——legInset > 0 時兩者也錯開，需給背柱獨立座板榫眼
   const backPostOffset = legInset > 0 || backInsetFromEndMm > 0 || backInsetFromRearMm > 0;
 
-  // 一木連做：座板後緣縮到後腳前緣，避免穿模
-  // 椅背直立件（slats / splat / curved-splat / spindle）的 thickness（z 方向
-  // 深度）≤ 25mm，加 8mm rake margin 後仍小於 legD（35mm），所以蹺只看
-  // legD + legInset 即可
-  const rakeTiltMargin = isContinuous ? 8 : 0;
-  const seatBackShrink = isContinuous ? legD + legInset + rakeTiltMargin : 0;
+  // 一木連做：座板後緣縮到後腳前緣，避免穿模（後腳延伸到 seatHeight，會跟座板共
+  // 用 y 範圍）。縮 legD + legInset 是幾何最小值，不留多餘 margin 才不會有大缺口。
+  const seatBackShrink = isContinuous ? legD + legInset : 0;
   const seatPanelWidth = width - seatBackShrink;
   const seatPanelZOffset = -seatBackShrink / 2;
   // 座板（前腳通榫進來）
