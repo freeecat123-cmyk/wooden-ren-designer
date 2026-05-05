@@ -674,7 +674,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // 椅背頂橫木（連接後 2 椅腳）
-  const backTopRail: Part = {
+  let backTopRail: Part = {
     id: "back-top-rail",
     nameZh: "椅背頂橫木",
     material,
@@ -1114,7 +1114,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 中板（splat / curved-splat）跳過 clamp——讓底端真的貼座面，傾斜時
       // bottom-back corner 自然下沉進座板 AABB（視覺被座板遮住，不影響）。
       // 沒這個 skip 中板會被推高 wHalf×sin(rake) 並砍掉等量長度，3D 看到上下都有縫。
-      const skipClamp = p.id === "back-splat" || p.id === "back-curved-splat";
+      // 一木連做折角型：背柱底端要跟後腳頂端在折角點對接，不能 clamp 上抬，
+      // 否則折角處會有 wHalf×sin(rake) 的縫隙；slat / top-rail 也跟著一起傾斜
+      const isBent = rearPostMode === "continuous-bent";
+      const skipClamp = p.id === "back-splat" || p.id === "back-curved-splat" || isBent;
       // 錨在座面上的部件，傾斜後 bottom corner 要 ≥ seatHeight（避免與 seat AABB 重疊）
       const wHalf = p.visible.width / 2;
       const extraLift = hasZQuarter ? wHalf * Math.abs(sinR) : 0;
@@ -1144,10 +1147,15 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           : { x: ex + reclineRad, y: ey, z: ez },
       };
     };
-    // backRake 只 tilt 後柱上半段；top-rail / slat / splat / spindle 不 tilt，
-    // 維持跟牙板同 z 對齊，slat 中心軸線才會跟牙板/上橫條中心軸線同直線
-    // （split / continuous 兩個模式都這樣處理）
+    // 一般情況（split / continuous-straight / continuous-s-curve）只 tilt 後柱，
+    // 維持 slat / top-rail 跟牙板同 z 對齊。
+    // 折角型 (continuous-bent)：椅背是一個剛性框架，後柱、上橫條、slat / splat /
+    // spindle 全部一起繞折角點傾斜，才不會有「中間 slat 沒跟著倒」「上橫條跟柱頂脫離」
     for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
+    if (rearPostMode === "continuous-bent") {
+      backTopRail = tilt(backTopRail);
+      for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
+    }
   }
 
   const design: FurnitureDesign = {
