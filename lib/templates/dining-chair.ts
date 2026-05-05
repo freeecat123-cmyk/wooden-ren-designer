@@ -394,8 +394,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       }
       const scoop = seatScoopShape(seatProfile);
       if (scoop) return scoop;
+      // waterfall：座板上下緣同時大圓化（egg edge）。chamferMm 受 seatThickness×0.45
+      // 上限制約，所以這裡直接設成 seatThickness（讓引擎 clamp 到最大可能），
+      // 並補 bottomChamferMm 把下緣一起做出來——視覺上跟預設 5mm 倒邊明顯區分
       const edge = seatFrontWaterfall
-        ? { kind: "chamfered-top" as const, chamferMm: 25, style: "rounded" as const }
+        ? { kind: "chamfered-top" as const, chamferMm: seatThickness, bottomChamferMm: seatThickness, style: "rounded" as const }
         : seatEdgeShape(seatEdge, seatEdgeStyle);
       if (edge && seatCornerR > 0) return { ...edge, cornerR: seatCornerR };
       if (edge) return edge;
