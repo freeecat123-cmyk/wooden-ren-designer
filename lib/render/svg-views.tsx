@@ -21,23 +21,16 @@ import {
   type OrthoView,
 } from "@/lib/render/geometry";
 
-/** Sutherland-Hodgman: clip polygon to half-plane (above=keep y >= clipY, below=keep y <= clipY). */
-function clipPolygonHalfPlane(
-  poly: Array<{ x: number; y: number }>,
-  clipY: number,
-  side: "above" | "below",
-) {
+/** Sutherland-Hodgman: clip polygon to half-plane y >= clipY. */
+function clipPolygonAboveY(poly: Array<{ x: number; y: number }>, clipY: number) {
   if (poly.length === 0) return poly;
   const out: Array<{ x: number; y: number }> = [];
   const n = poly.length;
-  const inside = side === "above"
-    ? (y: number) => y >= clipY
-    : (y: number) => y <= clipY;
   for (let i = 0; i < n; i++) {
     const a = poly[i];
     const b = poly[(i + 1) % n];
-    const aIn = inside(a.y);
-    const bIn = inside(b.y);
+    const aIn = a.y >= clipY;
+    const bIn = b.y >= clipY;
     if (aIn && bIn) {
       out.push(b);
     } else if (aIn && !bIn) {
@@ -51,10 +44,6 @@ function clipPolygonHalfPlane(
   }
   return out;
 }
-const clipPolygonAboveY = (poly: Array<{ x: number; y: number }>, clipY: number) =>
-  clipPolygonHalfPlane(poly, clipY, "above");
-const clipPolygonBelowY = (poly: Array<{ x: number; y: number }>, clipY: number) =>
-  clipPolygonHalfPlane(poly, clipY, "below");
 
 interface ViewProps {
   design: FurnitureDesign;
@@ -1178,18 +1167,13 @@ export function OrthoView({
           }
           // 其他 view：convex hull silhouette
           let poly = projectTiltedBoxSilhouette(part, view);
-          // back-* 部件在側/正視被座板上緣 + 上橫條下緣雙向 clip：
-          // 背柱底端 dip 進座板（overshoot 補縫），splat/slat 頂端 dip 進上橫條，
-          // 兩種都靠 polygon clip 在三視圖剪掉重疊部分。
-          if ((view === "side" || view === "front") && part.id.startsWith("back-") && part.id !== "back-top-rail") {
+          // back-* 部件在側/正視被座板上緣 clip：背柱後仰時 overshoot 延長底端
+          // 進座板 AABB（補底縫），三視圖把伸進座板的部分剪掉，視覺乾淨。
+          if ((view === "side" || view === "front") && part.id.startsWith("back-")) {
             const seat = design.parts.find((p) => p.id === "seat");
             if (seat) {
-              poly = clipPolygonAboveY(poly, seat.origin.y + seat.visible.thickness);
-            }
-            const topRail = design.parts.find((p) => p.id === "back-top-rail");
-            if (topRail) {
-              // top-rail 底緣 = origin.y（origin 是 box bottom）
-              poly = clipPolygonBelowY(poly, topRail.origin.y);
+              const clipY = seat.origin.y + seat.visible.thickness; // seatHeight
+              poly = clipPolygonAboveY(poly, clipY);
             }
           }
           const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
