@@ -1095,12 +1095,18 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     };
     const tilt = (p: Part): Part => {
       const yExt = yExtOf(p);
+      // pivot = 背柱前下角 (seatHeight, backZ - legD/2)：傾斜後背柱前緣下角
+      // 鎖在座板上緣，bottom-back 自然 dip 進座板 (audit butt-joint 例外放行)。
+      // 改 pivot 從 (seatHeight, backZ) → (seatHeight, backZ - legD/2)，避免繞中心
+      // 旋轉導致 bottom-front 升 (legD/2)·sin(rake) 出現縫隙。
+      const pivotY = seatHeight;
+      const pivotZ = backZ - legD / 2;
       const cy = p.origin.y + yExt / 2;
       const cz = p.origin.z;
-      const dy = cy - seatHeight;
-      const dz = cz - backZ;
-      const newCy = seatHeight + dy * cosR - dz * sinR;
-      const newCz = backZ + dy * sinR + dz * cosR;
+      const dy = cy - pivotY;
+      const dz = cz - pivotZ;
+      const newCy = pivotY + dy * cosR - dz * sinR;
+      const newCz = pivotZ + dy * sinR + dz * cosR;
       // 加 world-X 旋轉 reclineRad（renderer Euler order = ZYX intrinsic）：
       // - 若 existing Rz ≈ π/2（slat/splat/curved-splat）→ 等效解 rotation.y -= rx
       //   （推導：Rx_world(rx) * Rz(π/2) = ZYX(0, -rx, π/2)；splat 的 Rx 保留）
