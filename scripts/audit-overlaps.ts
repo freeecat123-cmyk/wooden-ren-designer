@@ -104,11 +104,8 @@ for (const entry of FURNITURE_CATALOG) {
     const overlaps = design.useButtJointConvention
       ? allOverlaps.filter((o) => {
           const ids = [o.a, o.b].sort();
-          // 椅背後仰時整組（back-post / back-slat / back-splat / back-spindle / back-rung）
-          // 繞前下角 pivot 旋轉，bottom-back corner 必然 dip 進座板 AABB（物理必然，
-          // 視覺被座板上緣遮，3D 跟三視圖一致）。butt-joint 設計放行。
-          if (ids[1] !== "seat") return true;
-          if (ids[0].startsWith("back-")) return false;
+          if (ids[0] === "back-post-1" && ids[1] === "seat") return false;
+          if (ids[0] === "back-post-2" && ids[1] === "seat") return false;
           return true;
         })
       : allOverlaps;
