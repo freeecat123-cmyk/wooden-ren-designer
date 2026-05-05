@@ -214,7 +214,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     6,
     Math.min(topRailThickness - 2 * MIN_SHOULDER, Math.round(legShortDim / 3)),
   );
-  const topRailTenonW = Math.max(15, topRailHeight - 2 * MIN_SHOULDER);
+  // 額外加 legD 上限：renderer 把 tenon.width 對到 Z 軸（深度）方向，超過 legD
+  // 會讓榫頭從後柱前後面凸出（在 3D joineryMode 看到外露紅色榫頭）。
+  const topRailTenonW = Math.max(15, Math.min(topRailHeight - 2 * MIN_SHOULDER, legD - 2 * MIN_SHOULDER));
   const apronY = seatHeight - seatThickness - apronWidth - apronOffset;
   const backZonHeight = topRailY - seatHeight;
   // 椅背元件位置：slat / splat 用 X，rung 用 Y
