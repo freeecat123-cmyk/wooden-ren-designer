@@ -96,18 +96,7 @@ for (const entry of FURNITURE_CATALOG) {
     const raw = buildDesign(entry, variant);
     if (!raw) continue;
     const design = useJoinery ? raw : toBeginnerMode(raw);
-    const allOverlaps = findOverlaps(design.parts);
-    // butt-joint convention 允許的幾何性微小重疊：椅背後仰時背柱底端必然 dip 進
-    // 座板 AABB ((legD/2)·tan(rake) + (legD/2)·sin(rake)，5° 約 3mm）。形狀為斜
-    // 切楔形被座板上緣遮住，視覺密合不透縫。
-    const overlaps = design.useButtJointConvention
-      ? allOverlaps.filter((o) => {
-          const ids = [o.a, o.b].sort();
-          if (ids[0] === "back-post-1" && ids[1] === "seat") return false;
-          if (ids[0] === "back-post-2" && ids[1] === "seat") return false;
-          return true;
-        })
-      : allOverlaps;
+    const overlaps = findOverlaps(design.parts);
     const examples = overlaps
       .slice(0, 3)
       .map(
