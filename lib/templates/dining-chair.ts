@@ -1147,9 +1147,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           : { x: ex + reclineRad, y: ey, z: ez },
       };
     };
+    // 一木連做 + backRake：只 tilt 後柱上半段；top-rail / slat / splat 不 tilt，
+    // 維持跟牙板同 z 對齊，slat 才能直立、不會上下橫條錯開
     for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
-    Object.assign(backTopRail, tilt(backTopRail));
-    for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
+    if (!isContinuous) {
+      Object.assign(backTopRail, tilt(backTopRail));
+      for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
+    }
   }
 
   const design: FurnitureDesign = {
