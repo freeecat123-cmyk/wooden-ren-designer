@@ -334,9 +334,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // 後腳延伸出來的「背柱」(back-post) — 座板上方支撐椅背
-  // backInsetFromEndMm/backInsetFromRearMm > 0 時，背柱往內 / 往前縮，與後腳分離
-  const backPostX = (c: { x: number; z: number }) => c.x - Math.sign(c.x) * backInsetFromEndMm;
-  const backPostZ = (c: { x: number; z: number }) => c.z - backInsetFromRearMm;
+  // 背柱位置基準 = 座板邊緣（不受 legInset 影響），只吃 backInsetFromEnd/RearMm
+  // 這樣調 legInset 只動腳，椅背不會跟著飄
+  const backPostBaseX = length / 2 - legW / 2;
+  const backPostBaseZ = width / 2 - legD / 2;
+  const backPostX = (c: { x: number; z: number }) => Math.sign(c.x) * (backPostBaseX - backInsetFromEndMm);
+  const backPostZ = (_c: { x: number; z: number }) => backPostBaseZ - backInsetFromRearMm;
   const backPosts: Part[] = cornerPts
     .filter((c) => c.z > 0)
     .map((c, i) => ({
@@ -378,7 +381,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           : []),
       ],
     }));
-  const backPostOffset = backInsetFromEndMm > 0 || backInsetFromRearMm > 0;
+  // 背柱位置與後腳已脫鉤——legInset > 0 時兩者也錯開，需給背柱獨立座板榫眼
+  const backPostOffset = legInset > 0 || backInsetFromEndMm > 0 || backInsetFromRearMm > 0;
 
   // 座板（前腳通榫進來）
   const seatPanel: Part = {
@@ -579,8 +583,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "椅背頂橫木",
     material,
     grainDirection: "length",
-    visible: { length: length - 2 * legW - 2 * legInset - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
-    origin: { x: 0, y: topRailY, z: width / 2 - legD / 2 - legInset - backInsetFromRearMm },
+    visible: { length: length - 2 * legW - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
+    origin: { x: 0, y: topRailY, z: width / 2 - legD / 2 - backInsetFromRearMm },
     tenons: [
       {
         position: "start",
@@ -848,8 +852,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 椅背部件——依 backStyle 生成（backZonHeight 已在頂部宣告）
   const backParts: Part[] = [];
-  const backZ = width / 2 - legD / 2 - legInset - backInsetFromRearMm;
-  const backUsableLengthOffset = 2 * (legInset + backInsetFromEndMm);
+  const backZ = width / 2 - legD / 2 - backInsetFromRearMm;
+  const backUsableLengthOffset = 2 * backInsetFromEndMm;
   // 椅面彎曲時，座面在 x 處的下凹量（face-rounded bendAxis="y" 公式）
   // 把 back parts 的 bottom 跟著座面下降，避免懸空
   const seatHx = length / 2;
