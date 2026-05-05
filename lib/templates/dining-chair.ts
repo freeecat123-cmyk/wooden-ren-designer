@@ -950,9 +950,6 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const backParts: Part[] = [];
   const backZ = width / 2 - legD / 2 - backInsetFromRearMm;
   const backUsableLengthOffset = 2 * backInsetFromEndMm;
-  // 一木連做：所有椅背直立件 thickness（z 方向深度）上限 = apronThickness，
-  // 確保 slat 中心 z 對齊 apron 中心 z 後不會凸出 apron 前/後
-  const cappedThickness = (t: number) => isContinuous ? Math.min(t, apronThickness) : t;
   // 一木連做：座板已縮回（不會跟背直立件穿模），slat/splat/spindle 可以
   // 延伸到後牙板頂緣 = apronY + apronWidth；split 模式維持原 seatHeight 起算
   const backStartY = isContinuous ? (apronY + apronWidth) : seatHeight;
@@ -976,7 +973,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `椅背板條 ${i + 1}`,
         material,
         grainDirection: "length",
-        visible: { length: backSpan + dip, width: slatWidth, thickness: cappedThickness(slatThickness) },
+        visible: { length: backSpan + dip, width: slatWidth, thickness: slatThickness },
         origin: { x: xCenter, y: backStartY - dip, z: backZ },
         // 軸心對齊：slat 寬面 (slatWidth=50) 朝前後，厚面 (slatThickness=18) 朝
         // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
@@ -1025,7 +1022,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "椅背中板",
       material,
       grainDirection: "length",
-      visible: { length: backSpan + splatDip, width: splatWidth, thickness: cappedThickness(splatThickness) },
+      visible: { length: backSpan + splatDip, width: splatWidth, thickness: splatThickness },
       origin: { x: 0, y: backStartY - splatDip, z: backZ },
       rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       tenons: [
@@ -1068,7 +1065,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "椅背曲面中板",
       material,
       grainDirection: "length",
-      visible: { length: backSpan + cDip, width: cWidth, thickness: cappedThickness(cThickness) },
+      visible: { length: backSpan + cDip, width: cWidth, thickness: cThickness },
       origin: { x: 0, y: backStartY - cDip, z: backZ },
       rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       // 大面凹陷：thickness 才是薄軸，所以 bendAxis="y"；正值往背面凹、負值往前凸
