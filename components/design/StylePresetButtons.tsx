@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
-import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys, getStyleVariantCount } from "@/lib/knowledge/style-presets";
+import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
 
 /** 風格圖示 → emoji 對照（沒對到的用🪵） */
 const STYLE_EMOJI: Record<string, string> = {
@@ -58,9 +58,8 @@ export function StylePresetButtons({
   const currentVariant = parseInt(sp?.get("styleVariant") ?? "0", 10) || 0;
 
   const apply = (id: string) => {
-    // 重複按同一風格 → 變體 +1，到頂繞回 0；切換風格 → 從 v1（seed=0）開始
-    const total = getStyleVariantCount(id, category) + 1;
-    const variantSeed = id === currentStyle ? (currentVariant + 1) % total : 0;
+    // 重複按同一風格 → 變體 +1（無上限，hash 抽樣）；切換風格 → 重置為 0（base）
+    const variantSeed = id === currentStyle ? currentVariant + 1 : 0;
     // 傳 category + ctx：取得包含 per-category detail pack + 公式化適應的完整參數
     const ctx = designSize
       ? {
@@ -88,7 +87,9 @@ export function StylePresetButtons({
     setAdapterNotes(notes);
     Object.entries(params).forEach(([k, v]) => {
       if (k.startsWith("_")) return; // skip meta
-      if (keys.has(k) || k === "material") {
+      // length/width/height 是 top-level 欄位（不在 optionSchema），但變體會動，
+      // 必須允許寫入 URL 才能讓表單寬高欄位跟著更新
+      if (keys.has(k) || k === "material" || k === "length" || k === "width" || k === "height") {
         next.set(k, String(v));
       }
     });
@@ -104,15 +105,13 @@ export function StylePresetButtons({
         <span>🎭</span>
         <span>風格快速套用</span>
         <span className="text-[10px] text-zinc-500 font-normal">
-          （重複按同一風格＝產出該風格的不同變體 v2 / v3 ...）
+          （重複按同一風格＝產出該風格的隨機變體 #1 / #2 / ... 含結構＋尺寸）
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
         {presets.map((p) => {
           const isActive = currentStyle === p.id;
-          const variantCount = getStyleVariantCount(p.id, category) + 1; // +1 包含 base
-          const variantLabel = isActive && currentVariant > 0 ? ` v${currentVariant + 1}/${variantCount}` : "";
-          const noVariants = isActive && variantCount <= 1;
+          const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
           return (
             <button
               key={p.id}
@@ -123,7 +122,7 @@ export function StylePresetButtons({
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
                   : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"
               }`}
-              title={`${p.visualHint}${isActive && variantCount > 1 ? `\n\n再按下產出 v${(currentVariant + 1) % variantCount + 1}（共 ${variantCount} 種設計）` : noVariants ? "\n\n此家具尚未定義變體，按了不變" : ""}\n\n來源：${p.source}`}
+              title={`${p.visualHint}${isActive ? `\n\n再按下產出 #${currentVariant + 1}（隨機變體，無上限）` : ""}\n\n來源：${p.source}`}
             >
               {STYLE_EMOJI[p.id] ?? "🪵"} {p.nameZh}{variantLabel}
             </button>

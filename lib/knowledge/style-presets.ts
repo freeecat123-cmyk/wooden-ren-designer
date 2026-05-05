@@ -272,17 +272,8 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
       }
     }
   }
-  // 變體 overlay 引入的 key（如 withArmrest / armrestHeight）也要清，避免換
-  // 風格時殘留前風格的變體選擇
-  for (const styleId of Object.keys(STYLE_STRUCTURAL_VARIANTS_LOCAL)) {
-    const cats = STYLE_STRUCTURAL_VARIANTS_LOCAL[styleId];
-    for (const cat of Object.keys(cats)) {
-      if (category && cat !== category) continue;
-      for (const overlay of cats[cat]) {
-        for (const k of Object.keys(overlay)) keys.add(k);
-      }
-    }
-  }
+  // 變體 pool 可能寫入的 key（含 length/width/height 整體尺寸）
+  for (const k of getAllPoolKeys()) keys.add(k);
   return keys;
 }
 
@@ -300,8 +291,7 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-import { getStyleVariantOverlay, getStyleVariantCount, STYLE_STRUCTURAL_VARIANTS as STYLE_STRUCTURAL_VARIANTS_LOCAL } from "./style-variants";
-export { getStyleVariantCount };
+import { sampleStyleVariant, getAllPoolKeys } from "./style-variants";
 // ─── Structural variants ─────────────────────────────────────────────────
 // 重複按同一風格時，套 STYLE_STRUCTURAL_VARIANTS 裡的結構性 overlay 而非
 // 數值 jitter——換 backStyle、改 ladder/slat 數、加扶手、換 stretcherStyle、
@@ -369,20 +359,14 @@ export function applyStylePreset(
     result = adapted;
   }
 
-  // 變體：variantSeed > 0 時套結構性 overlay（換 backStyle、改 slat 數等）。
-  // 沒定義 variant 的 (style, category) 組合 → 維持 base
-  if (variantSeed > 0) {
-    const overlay = getStyleVariantOverlay(styleId, category, variantSeed);
-    if (overlay) {
-      Object.assign(result, overlay);
-      const total = getStyleVariantCount(styleId, category);
-      const idx = ((variantSeed - 1) % total) + 1;
-      const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
-      result._adapterNotes = `${prevNotes}變體 v${variantSeed + 1}（共 ${total + 1} 種設計）：結構選擇微調，尺寸維持風格基準`;
-    } else {
-      const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
-      result._adapterNotes = `${prevNotes}此風格 / 家具組合尚未定義變體（v2 = v1）`;
-    }
+  // 變體：variantSeed > 0 時從 pool 隨機抽結構 + 尺寸 overlay（infinite variation）
+  if (variantSeed > 0 && ctx) {
+    const overlay = sampleStyleVariant(styleId, category, variantSeed,
+      { length: ctx.totalLength, width: ctx.totalWidth, height: ctx.totalHeight },
+      result);
+    Object.assign(result, overlay);
+    const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
+    result._adapterNotes = `${prevNotes}隨機變體 #${variantSeed}：結構與尺寸從風格池子抽樣（同風格不同設計）`;
   }
 
   return result;
