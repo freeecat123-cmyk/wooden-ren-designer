@@ -608,7 +608,12 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   if (depthAxis === "y") {
     // 入口面 = 上面 or 下面；mortise 的 length × width 在 X-Z 面上
     // 中心 Y：通孔置中；半通由入口位置 + depth/2 推
-    const enterTop = m.origin.y >= ly - 1; // 若 origin 接近頂面
+    // enterTop 改用 "origin.y 在 part 上半邊"（origin.y > ly/2）判斷，
+    // 不再要求貼到頂面 1mm 內——template 寫 "origin.y = ly - depth/2"
+    // （mortise 中心離頂面 depth/2）這種正常寫法也要能正確識別為頂面進。
+    // 之前只看 ly-1 → 中央橫撐進牙板的 mortise（origin.y=15 in 22 厚牙板）
+    // 被誤判成底面進 → CSG 挖在外面 → 紅榫頭穿透外露。
+    const enterTop = m.origin.y > ly / 2;
     const cyL = m.through
       ? 0
       : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);

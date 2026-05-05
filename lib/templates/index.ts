@@ -65,8 +65,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "tea-table",
-    nameZh: "茶几",
-    description: "客廳邊几，含下棚板可放茶具書本",
+    nameZh: "邊桌/床邊桌",
+    description: "邊桌、床邊桌、茶几通用——含下棚板可放書本雜物",
     difficulty: "beginner",
     template: teaTable,
     defaults: { length: 600, width: 600, height: 400 },

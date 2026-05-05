@@ -96,6 +96,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const footrestHeight = getOption<number>(input, opt(o, "footrestHeight"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）
+  const withApron = apronWidth > 0;
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const backStyle = getOption<string>(input, opt(o, "backStyle"));
   const backHeightOpt = getOption<number>(input, opt(o, "backHeight"));
@@ -325,6 +327,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 腳踏：靜止 X（前後）= 下半榫；移動 Z（左右，上移）= 上半榫
       mortises: [
         // === 牙板 ===
+        // 無牙板（apronWidth=0）→ skip 兩個牙板榫眼
+        ...(!withApron ? [] : [
         // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
         {
           origin: {
@@ -350,6 +354,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
         },
+        ]),
         // === 腳踏 ===
         // Z 面 mortise（接 Z 軸 = 左右腳踏, 上移）— 上榫
         {
@@ -498,7 +503,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   const apronCenterY = ringY + apronWidth / 2;
   const apronB = buildSides(apronCenterY, apronWidth, "牙板");
-  const aprons: Part[] = apronB.sides.map((s) => {
+  const aprons: Part[] = !withApron ? [] : apronB.sides.map((s) => {
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
     const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;

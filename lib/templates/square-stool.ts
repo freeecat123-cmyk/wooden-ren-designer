@@ -81,6 +81,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const stretcherEdge = getOption<string>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）
+  const withApron = apronWidth > 0;
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
@@ -223,7 +225,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       },
     ],
     // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）
-    mortises: legMortisesForApron(c, length, width, {
+    // 無牙板（apronWidth=0）→ 不開榫眼
+    mortises: !withApron ? [] : legMortisesForApron(c, length, width, {
       apronTenonLength,
       apronUpperTenonH,
       apronLowerTenonH,
@@ -295,7 +298,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     { id: "apron-left", nameZh: "左橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + apronSplayX), z: 0 } },
     { id: "apron-right", nameZh: "右橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + apronSplayX, z: 0 } },
   ];
-  const aprons: Part[] = apronSides.map((s) => {
+  const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX

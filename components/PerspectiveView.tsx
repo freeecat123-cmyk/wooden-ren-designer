@@ -14,6 +14,38 @@ import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
 
+// Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
+// rotation order used inline below for tenon mesh placement and the order
+// Three.js consumes from `new Euler(rx, ry, rz, "ZYX")`.
+function rotateXYZ(
+  rx: number, ry: number, rz: number,
+  lx: number, ly: number, lz: number,
+) {
+  const cosX = Math.cos(rx), sinX = Math.sin(rx);
+  const cosY = Math.cos(ry), sinY = Math.sin(ry);
+  const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
+  let x = lx, y = ly, z = lz;
+  const y1 = y * cosX - z * sinX;
+  const z1 = y * sinX + z * cosX;
+  y = y1; z = z1;
+  const x2 = x * cosY + z * sinY;
+  const z2 = -x * sinY + z * cosY;
+  x = x2; z = z2;
+  const x3 = x * cosZ - y * sinZ;
+  const y3 = x * sinZ + y * cosZ;
+  x = x3; y = y3;
+  return { x, y, z };
+}
+
+type WorldMortise = {
+  partId: string;
+  entryX: number; entryY: number; entryZ: number;
+  axis: "x" | "y" | "z";
+  sign: 1 | -1;
+  depth: number;
+  through: boolean;
+};
+
 /**
  * Blend a hex color toward a tint. amount=0 → original, 1 → tint.
  * Used to highlight drawer / door parts so they're easy to spot against
@@ -1705,6 +1737,77 @@ export function PerspectiveView({
   // 把 (r,g,b) 0-1 轉成 rgb() string（Three.js Color.set 不接 array）
   const lightHex = `rgb(${Math.round(tint.r * 255)}, ${Math.round(tint.g * 255)}, ${Math.round(tint.b * 255)})`;
 
+  // joineryMode：把所有 mortise 攤成 world 座標索引，給 tenon mesh 配對用。
+  // 配對後 tenon mesh 長度 clamp 到 mortise.depth，確保 mesh 永遠住在母件
+  // 預挖的洞裡，不會因為母件 shape（圓腳/倒角）讓 CSG 失效而從外面戳出來。
+  const worldMortiseIndex = useMemo<WorldMortise[]>(() => {
+    if (!joineryMode) return [];
+    const idx: WorldMortise[] = [];
+    for (const part of design.parts) {
+      if (!part.mortises || part.mortises.length === 0) continue;
+      const rx = part.rotation?.x ?? 0;
+      const ry = part.rotation?.y ?? 0;
+      const rz = part.rotation?.z ?? 0;
+      const lx = part.visible.length;
+      const ly = part.visible.thickness;
+      const lz = part.visible.width;
+      const yExt = worldExtents(part).yExt;
+      const pcx = part.origin.x;
+      const pcy = part.origin.y + yExt / 2;
+      const pcz = part.origin.z;
+      for (const m of part.mortises) {
+        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）
+        const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+        const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
+        const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+        let lex = 0, ley = 0, lez = 0;
+        let localAxis: "x" | "y" | "z";
+        let localSign: 1 | -1;
+        if (yToFace <= xToFace && yToFace <= zToFace) {
+          localAxis = "y";
+          localSign = m.origin.y >= ly - 1 ? 1 : -1;
+          lex = m.origin.x;
+          ley = localSign === 1 ? ly / 2 : -ly / 2;
+          lez = m.origin.z;
+        } else if (xToFace <= zToFace) {
+          localAxis = "x";
+          localSign = m.origin.x >= 0 ? 1 : -1;
+          lex = localSign === 1 ? lx / 2 : -lx / 2;
+          ley = m.origin.y - ly / 2;
+          lez = m.origin.z;
+        } else {
+          localAxis = "z";
+          localSign = m.origin.z >= 0 ? 1 : -1;
+          lex = m.origin.x;
+          ley = m.origin.y - ly / 2;
+          lez = localSign === 1 ? lz / 2 : -lz / 2;
+        }
+        const e = rotateXYZ(rx, ry, rz, lex, ley, lez);
+        const ax = localAxis === "x" ? localSign : 0;
+        const ay = localAxis === "y" ? localSign : 0;
+        const az = localAxis === "z" ? localSign : 0;
+        const a = rotateXYZ(rx, ry, rz, ax, ay, az);
+        const aX = Math.abs(a.x), aY = Math.abs(a.y), aZ = Math.abs(a.z);
+        let worldAxis: "x" | "y" | "z";
+        let worldSign: 1 | -1;
+        if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
+        else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
+        else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
+        idx.push({
+          partId: part.id,
+          entryX: pcx + e.x,
+          entryY: pcy + e.y,
+          entryZ: pcz + e.z,
+          axis: worldAxis,
+          sign: worldSign,
+          depth: m.depth,
+          through: m.through ?? false,
+        });
+      }
+    }
+    return idx;
+  }, [design.parts, joineryMode]);
+
   // Audit mode：抓 overlap 對，把出現在裡面的 part id 拉成 set。標紅色高亮。
   const overlapIds = useMemo(() => {
     if (!auditMode) return new Set<string>();
@@ -1929,6 +2032,12 @@ export function PerspectiveView({
           // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
           // tenon local center（含 offset）算 world position；box 跟 part 同
           // rotation 才能讓 cross-section 對齊。
+          //
+          // 配對母件 mortise：先找這個 tenon 在 worldMortiseIndex 裡的對應入口
+          // （outward 軸反向、entry 點最近），找到且非通榫就把 mesh 長度 clamp
+          // 到 mortise.depth，避免 tenon mesh 戳出母件外（圓腳/倒角讓 CSG 失
+          // 效時最明顯）。through-tenon 維持原長度，因為通榫本來就要凸出母件
+          // 背面。
           const tenonMeshes = joineryMode
             ? part.tenons.map((t, ti) => {
                 if (t.length <= 0) return null;
@@ -1939,6 +2048,53 @@ export function PerspectiveView({
                 const T = t.thickness;
                 const oW = t.offsetWidth ?? 0;
                 const oT = t.offsetThickness ?? 0;
+
+                // 算 tenon 根面世界座標 + outward 世界軸，給 mortise 配對用
+                const rxP = part.rotation?.x ?? 0;
+                const ryP = part.rotation?.y ?? 0;
+                const rzP = part.rotation?.z ?? 0;
+                let lrx = 0, lry = 0, lrz = 0;
+                let lox = 0, loy = 0, loz = 0;
+                switch (t.position) {
+                  case "start":  lrx = -lx / 2; lry = oT; lrz = oW; lox = -1; break;
+                  case "end":    lrx = +lx / 2; lry = oT; lrz = oW; lox = +1; break;
+                  case "top":    lrx = oW; lry = +ly / 2; lrz = oT; loy = +1; break;
+                  case "bottom": lrx = oW; lry = -ly / 2; lrz = oT; loy = -1; break;
+                  case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
+                  case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
+                }
+                const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
+                const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
+                const wRootX = part.origin.x + rRoot.x;
+                const wRootY = part.origin.y + worldExtents(part).yExt / 2 + rRoot.y;
+                const wRootZ = part.origin.z + rRoot.z;
+                const aX = Math.abs(rOut.x), aY = Math.abs(rOut.y), aZ = Math.abs(rOut.z);
+                let outAxis: "x" | "y" | "z";
+                let outSign: 1 | -1;
+                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = rOut.x >= 0 ? 1 : -1; }
+                else if (aY >= aZ) { outAxis = "y"; outSign = rOut.y >= 0 ? 1 : -1; }
+                else { outAxis = "z"; outSign = rOut.z >= 0 ? 1 : -1; }
+
+                // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
+                let bestMort: WorldMortise | null = null;
+                let bestDist = Infinity;
+                for (const mw of worldMortiseIndex) {
+                  if (mw.partId === part.id) continue;
+                  if (mw.axis !== outAxis) continue;
+                  if (mw.sign === outSign) continue;
+                  const dx = mw.entryX - wRootX;
+                  const dy = mw.entryY - wRootY;
+                  const dz = mw.entryZ - wRootZ;
+                  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                  // 50mm 容忍：parts 可能因斜腳 splay/錯位有些距離
+                  if (d < bestDist && d < 50) { bestDist = d; bestMort = mw; }
+                }
+
+                // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
+                const effLen = bestMort && !bestMort.through
+                  ? Math.min(t.length, bestMort.depth)
+                  : t.length;
+
                 let lcx = 0, lcy = 0, lcz = 0;
                 let hx = 0, hy = 0, hz = 0;
                 // explode：tenon 沿 outward axis 多偏 explodeMm，視覺像榫頭從
@@ -1946,33 +2102,33 @@ export function PerspectiveView({
                 let ex = 0, ey = 0, ez = 0;
                 switch (t.position) {
                   case "start":
-                    lcx = -lx / 2 - t.length / 2; lcy = oT; lcz = oW;
-                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    lcx = -lx / 2 - effLen / 2; lcy = oT; lcz = oW;
+                    hx = effLen / 2; hy = T / 2; hz = W / 2;
                     ex = -explodeMm;
                     break;
                   case "end":
-                    lcx = lx / 2 + t.length / 2; lcy = oT; lcz = oW;
-                    hx = t.length / 2; hy = T / 2; hz = W / 2;
+                    lcx = lx / 2 + effLen / 2; lcy = oT; lcz = oW;
+                    hx = effLen / 2; hy = T / 2; hz = W / 2;
                     ex = explodeMm;
                     break;
                   case "top":
-                    lcx = oW; lcy = ly / 2 + t.length / 2; lcz = oT;
-                    hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    lcx = oW; lcy = ly / 2 + effLen / 2; lcz = oT;
+                    hx = W / 2; hy = effLen / 2; hz = T / 2;
                     ey = explodeMm;
                     break;
                   case "bottom":
-                    lcx = oW; lcy = -ly / 2 - t.length / 2; lcz = oT;
-                    hx = W / 2; hy = t.length / 2; hz = T / 2;
+                    lcx = oW; lcy = -ly / 2 - effLen / 2; lcz = oT;
+                    hx = W / 2; hy = effLen / 2; hz = T / 2;
                     ey = -explodeMm;
                     break;
                   case "left":
-                    lcx = oW; lcy = oT; lcz = -lz / 2 - t.length / 2;
-                    hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    lcx = oW; lcy = oT; lcz = -lz / 2 - effLen / 2;
+                    hx = W / 2; hy = T / 2; hz = effLen / 2;
                     ez = -explodeMm;
                     break;
                   case "right":
-                    lcx = oW; lcy = oT; lcz = lz / 2 + t.length / 2;
-                    hx = W / 2; hy = T / 2; hz = t.length / 2;
+                    lcx = oW; lcy = oT; lcz = lz / 2 + effLen / 2;
+                    hx = W / 2; hy = T / 2; hz = effLen / 2;
                     ez = explodeMm;
                     break;
                 }

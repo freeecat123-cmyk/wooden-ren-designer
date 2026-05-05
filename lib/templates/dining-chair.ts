@@ -128,6 +128,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
   const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  // apronWidth=0 = 「無牙板」（windsor / industrial preset 故意這樣設）；
+  // 整段牙板跟對應 leg/back-post 榫眼都 skip，腳頂直接榫進座板
+  const withApron = apronWidth > 0;
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronOffsetRaw = getOption<number>(input, opt(o, "apronOffset"));
   // 一木連做：牙板強制貼齊座板下緣（apronOffset = 0），讓椅背直立件能直接
@@ -173,6 +176,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     motherThickness: seatThickness,
   });
   const legTopTenonSize = legTenonStd.width;
+  // legInset=0（腳跟座板端面切齊）→ 腳頂榫沿 X 軸朝家具中心偏，內側緣貼腳內緣
+  // → 內側無肩、外側留 (legW - tenonWidth)/2 的肩，防止座板端頭沿 X 木紋方向破裂。
+  // legInset > 0 時腳已退進來，端頭有足夠肉，不需要偏。
+  // 跟 square-stool.ts 同一套規則。
+  const legTopInsetX = legInset === 0
+    ? Math.max(0, Math.round((legW - legTenonStd.width) / 2))
+    : 0;
   // 2) apron ↔ leg：依自動規則 + legPenetratingTenon override
   const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legShortDim);
   const apronTenonStd = standardTenon({
@@ -312,9 +322,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           length: legTenonStd.length,
           width: legTenonStd.width,
           thickness: legTenonStd.thickness,
+          // legInset=0 時 tenon 朝家具中心偏，移除內側肩
+          shoulderOn: (() => {
+            if (legTopInsetX <= 0 || c.x === 0) return [...legTenonStd.shoulderOn];
+            // top position：shoulderOn left/right = ±width 軸 = ±part-local X
+            // 偏 -X (右腳, c.x > 0) → 移除 "left" 肩；偏 +X (左腳) → 移除 "right" 肩
+            const innerSide: "left" | "right" = c.x > 0 ? "left" : "right";
+            return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
+          })(),
+          offsetWidth: -Math.sign(c.x) * legTopInsetX,
         },
       ],
       mortises: (() => {
+        // 無牙板（apronWidth=0）→ 腳上完全不開牙板榫眼
+        if (!withApron) return [];
         // 牙板中心 Y（leg-local）；靜止 Z（左右）= 上榫；移動 X（前後）= 下榫
         // 餐椅 apronStaggerMm 固定為 0，xCenterY = zCenterY
         const zCenterY = apronY + apronWidth / 2;
@@ -383,12 +404,23 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // continuous 模式背柱底端不再進座板（後腳已延伸到座面），不需要榫
       tenons: isContinuous ? [] : [
         // 背柱底端進座板，與前腳頂端共用同一個座板榫眼 → dims 必須一致
+        // legInset=0 且 backPostOffset=false（背柱跟後腳同 X）→ tenon 也朝中心偏
         {
           position: "bottom",
           type: legTopTenonType === "through-tenon" ? "through-tenon" : "blind-tenon",
           length: legTenonStd.length,
           width: legTenonStd.width,
           thickness: legTenonStd.thickness,
+          shoulderOn: (() => {
+            // backInsetFromEndMm > 0 → 背柱已退離端面，不需偏；legInset > 0 同理（此時 legTopInsetX=0）
+            const sharesEndFace = legTopInsetX > 0 && backInsetFromEndMm === 0;
+            if (!sharesEndFace || c.x === 0) return [...legTenonStd.shoulderOn];
+            const innerSide: "left" | "right" = c.x > 0 ? "left" : "right";
+            return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
+          })(),
+          offsetWidth: (legTopInsetX > 0 && backInsetFromEndMm === 0)
+            ? -Math.sign(c.x) * legTopInsetX
+            : 0,
         },
       ],
       mortises: [
@@ -455,7 +487,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       ...cornerPts
         .filter((c) => isContinuous ? c.z < 0 : true)
         .map((c) => ({
-          origin: { x: c.x, y: 0, z: c.z - seatPanelZOffset },
+          // legInset=0：mortise 也跟著 tenon 朝中心偏（榫眼在座板上跟榫頭對齊）
+          origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z - seatPanelZOffset },
           depth: legTenonStd.length,
           length: legTenonStd.width,
           width: legTenonStd.thickness,
@@ -463,6 +496,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         })),
       ...(backPostOffset && !isContinuous
         ? cornerPts.filter((c) => c.z > 0).map((c) => ({
+            // backPost 自己有 backInsetFromEnd 計算 X 位置，這裡的 mortise 不再額外偏
             origin: { x: backPostX(c), y: 0, z: backPostZ(c) - seatPanelZOffset },
             depth: legTenonStd.length,
             length: legTenonStd.width,
@@ -532,7 +566,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronHalfZ_B = apronLegEdgeZ + apronSplayZb - apronLdB / 2;
   const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;
 
-  const aprons: Part[] = apronSides.map((s) => {
+  const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const trapTopScale =
       s.axis === "x" && apronHasShapeBend ? apronHalfX_T / apronHalfX_C
       : s.axis === "z" && apronHasShapeBend ? apronHalfZ_T / apronHalfZ_C
@@ -675,19 +709,26 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: length - 2 * legW - (isContinuous ? 2 * legInset : 0) - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
     origin: { x: 0, y: topRailY, z: (isContinuous ? width / 2 - legD / 2 - legInset : width / 2 - legD / 2) - backInsetFromRearMm },
     tenons: [
+      // 慣例（svg-views.tenonLocalBox start/end）：tenon.width 沿 Z（深度）、
+      // tenon.thickness 沿 Y（垂直）。`topRailTenonW` 是用 topRailHeight-12 跟
+      // legD-12 算的，bound 的是 Y 方向；`topRailTenonThick` 用 topRailThickness-12
+      // 跟 legShortDim/3 算的，bound 的是 Z 方向。所以指派要反過來：
+      // width←topRailTenonThick (Z)、thickness←topRailTenonW (Y)。
+      // 之前互換時 tenon Z=42 > rail Z=25 → mesh 本體比椅背還深，joineryMode
+      // 會看到紅榫頭從後柱前後面戳出來。
       {
         position: "start",
         type: "shouldered-tenon",
         length: apronTenonLen,
-        width: topRailTenonW,
-        thickness: topRailTenonThick,
+        width: topRailTenonThick,
+        thickness: topRailTenonW,
       },
       {
         position: "end",
         type: "shouldered-tenon",
         length: apronTenonLen,
-        width: topRailTenonW,
-        thickness: topRailTenonThick,
+        width: topRailTenonThick,
+        thickness: topRailTenonW,
       },
     ],
     // 椅背頂橫木：下緣加 slat / splat 母榫眼。底面 = local Y=0

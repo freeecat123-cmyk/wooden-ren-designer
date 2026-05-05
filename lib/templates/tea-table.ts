@@ -18,12 +18,9 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
-  topPanelPiecesOption,
-  topPanelPiecesNote,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
-import { APRON_OFFSET_DEFAULT_MM } from "./_constants";
 import { applyStandardChecks, appendSuggestion } from "./_validators";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
@@ -33,28 +30,33 @@ export const teaTableOptions: OptionSpec[] = [
     { value: "tapered", label: "錐形腳" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
+  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "桌面超出桌腳外側的距離，做飄浮感" },
+  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
+  { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
+    { value: "none", label: "無" },
+    { value: "one-side", label: "單側翻板" },
+    { value: "two-sides", label: "雙側翻板" },
+  ], help: "桌面長邊用蝶式鉸鏈加可摺疊延伸板。配 1.5\" 鋼製蝶式鉸鏈" },
+  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬 (mm)", defaultValue: 200, min: 150, max: 400, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
-  topPanelPiecesOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "upperApronThickness", label: "上橫撐厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "牙板頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
+  { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
+  { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 80, min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）；> 0 時下棚板四邊長槽會跟著移動，建議搭配關閉下棚板" },
-  { group: "top", type: "number", key: "shelfFloorOffset", label: "下棚板離地 (mm)", defaultValue: 80, min: 10, max: 400, step: 10 },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
-  { group: "drawer", type: "select", key: "drawerCount", label: "前緣抽屜", defaultValue: "0", choices: [
-    { value: "0", label: "無" },
-    { value: "1", label: "1 個（全寬）" },
-    { value: "2", label: "2 個（左右各一）" },
-  ], help: "茶几前緣淺抽屜，藏遙控器、雜物。深度 50mm" },
-  { group: "top", type: "checkbox", key: "liftTop", label: "升降桌面", defaultValue: false, help: "桌面可氣壓桿升起變小餐桌——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈，五金行有售）", wide: true },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線（風潮款，需用單片大板）", wide: true },
-  { group: "top", type: "checkbox", key: "withCoasterInsets", label: "桌面嵌磁石杯墊孔", defaultValue: false, help: "桌面四角各挖 ⌀100×3mm 圓凹放磁石杯墊（防止杯子滑動）", wide: true },
 ];
 
 /**
@@ -82,23 +84,26 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
-  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
-  const drawerCount = parseInt(getOption<string>(input, opt(o, "drawerCount"))) || 0;
-  const liftTop = getOption<boolean>(input, opt(o, "liftTop"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const upperApronWidth = getOption<number>(input, opt(o, "upperApronWidth"));
-  const stretcherFloorOffset = getOption<number>(input, opt(o, "shelfFloorOffset"));
+  const upperApronThickness = getOption<number>(input, opt(o, "upperApronThickness"));
+  const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
+  const stretcherFloorOffset = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const hasLowerShelf = getOption<boolean>(input, opt(o, "hasLowerShelf"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
-  const upperApronThickness = 22;
-  const lowerStretcherWidth = 50;
-  const lowerStretcherThickness = 22;
+  const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
+  const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
+  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
+  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
+  const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
+  const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const shelfThickness = 18;
   const shelfTongueLen = 8;
 
@@ -111,6 +116,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     childWidth: legSize,
     motherThickness: topThickness,
   });
+  // legInset === 0（腳跟桌面端切齊）→ tenon 沿 X 軸朝中心偏；legInset > 0 不偏
+  const legTopInsetX = legInset === 0
+    ? Math.max(0, Math.round((legSize - legTenonStd.width) / 2))
+    : 0;
 
   // 2) upper apron ↔ leg：依自動規則 + legPenetratingTenon override
   const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
@@ -171,12 +180,12 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
 
   const legHeight = height - topThickness;
-  const upperApronY = legHeight - upperApronWidth - APRON_OFFSET_DEFAULT_MM;
+  const upperApronY = legHeight - upperApronWidth - apronOffset;
   // 半榫指派的世界 Y 中心
   const apronCenterY = upperApronY + upperApronWidth / 2;
   const lowerCenterY = stretcherFloorOffset + lowerStretcherWidth / 2;
 
-  const cornerPts = corners(length, width, legSize);
+  const cornerPts = corners(length, width, legSize, legInset);
 
   // tapered 補償（apron 三條 Y 位置各自的腳寬）
   const bottomScale = legBottomScale(legShape);
@@ -189,18 +198,20 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const hasShapeBend = bottomScale !== 1;
 
   // ----- 桌面板 -----
+  const topLen = length + 2 * topOverhang;
+  const topWid = width + 2 * topOverhang;
   const topPanel: Part = {
     id: "top",
     nameZh: "桌面板",
     material,
     grainDirection: "length",
-    visible: { length, width, thickness: topThickness },
+    visible: { length: topLen, width: topWid, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape: liveEdge ? { kind: "live-edge", amplitudeMm: 12 } : seatEdgeShape(seatEdge, seatEdgeStyle),
-    panelPieces: topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => ({
-      origin: { x: c.x, y: 0, z: c.z },
+      // legInset=0 → mortise 跟 tenon 一起朝中心偏
+      origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
       depth: legTenonStd.length,
       length: legTenonStd.width,
       width: legTenonStd.thickness,
@@ -227,6 +238,13 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
         length: legTenonStd.length,
         width: legTenonStd.width,
         thickness: legTenonStd.thickness,
+        // legInset=0 → tenon 朝家具中心偏，移除內側肩
+        shoulderOn: (() => {
+          if (legTopInsetX <= 0 || c.x === 0) return [...legTenonStd.shoulderOn];
+          const innerSide: "left" | "right" = c.x > 0 ? "left" : "right";
+          return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
+        })(),
+        offsetWidth: -Math.sign(c.x) * legTopInsetX,
       },
     ],
     mortises: [
@@ -266,8 +284,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   }));
 
   // ----- 上橫撐 / 下橫撐 共用建構 -----
-  const apronEdgeX = length / 2 - legSize / 2;
-  const apronEdgeZ = width / 2 - legSize / 2;
+  // legInset > 0 時腳中心向內移，apronEdge（= 腳中心 X）對應減
+  const apronEdgeX = length / 2 - legSize / 2 - legInset;
+  const apronEdgeZ = width / 2 - legSize / 2 - legInset;
 
   // butt-half 計算（給 trapezoid scale 用）
   const apronButtHalfX = apronEdgeX - apronLegSizeCenter / 2;
@@ -292,13 +311,21 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerTrapTopScaleZ = hasShapeBend ? lowerButtHalfZTop / lowerButtHalfZ : null;
   const lowerTrapBotScaleZ = hasShapeBend ? lowerButtHalfZBot / lowerButtHalfZ : 1;
 
-  // butt-joint span：用 legSize（非 taper 補償後寬度），維持與下棚板 tongue 長度耦合
-  // tapered 補償交給 trapezoid topScale/botScale 處理（兩端視覺收窄）
+  // butt-joint span：兩端各扣「leg 中心點 X 距離 + leg 在該 Y 的半寬」
+  //   = length/2 - legSize/2（leg 中心）+ legSizeAtY/2（leg 半寬）
+  //   → length - legSize - legSizeAtY
+  // 上橫撐用 apron Y 位置的 leg 寬（高處幾乎=legSize）；下橫撐用 stretcher Y
+  // 位置的 leg 寬（錐形腳在低處變細，要扣較少才會頂到 leg 內側）
+  // 兩端各扣（leg 中心 X 距離 + leg 該 Y 半寬）= length/2 - legSize/2 - legInset + legSizeAtY/2
+  // → length - legSize - 2*legInset - legSizeAtY
   const apronInnerSpan = {
-    x: length - 2 * legSize,
-    z: width - 2 * legSize,
+    x: length - legSize - 2 * legInset - apronLegSizeCenter,
+    z: width - legSize - 2 * legInset - apronLegSizeCenter,
   };
-  const lowerInnerSpan = apronInnerSpan;
+  const lowerInnerSpan = {
+    x: length - legSize - 2 * legInset - lowerLegSizeCenter,
+    z: width - legSize - 2 * legInset - lowerLegSizeCenter,
+  };
 
   const upperAprons: Part[] = makeApronRing({
     idPrefix: "upper-apron",
@@ -331,6 +358,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     // 前後牙板（X 軸）整支物理下移 apronStaggerMm；左右（Z 軸）不動
     xAxisYDelta: -apronStaggerMm,
     zAxisYDelta: 0,
+    legInset,
   });
 
   const lowerStretchers: Part[] = makeApronRing({
@@ -360,26 +388,28 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     trapTopScaleZ: lowerTrapTopScaleZ,
     trapBotScaleZ: lowerTrapBotScaleZ,
     fallbackShape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    // 內側面開長槽，棚板舌頭嵌入
-    extraMortises: (visibleLength) => [
-      {
-        origin: { x: 0, y: 0, z: 0 },
-        depth: shelfTongueLen,
-        length: visibleLength - 4,
-        width: shelfThickness,
-        through: false,
-      },
-    ],
+    // 棚板放在橫撐上面（rest-on，跟 bench under-shelf 同設計）→ 橫撐不開槽
+    extraMortises: () => [],
     // 左右下橫撐（Z 軸）整支物理上移 lowerStretcherStaggerMm；前後（X 軸）不動
     xAxisYDelta: 0,
     zAxisYDelta: lowerStretcherStaggerMm,
+    legInset,
   });
 
   // ----- 下棚板 -----
-  const shelfLength = length - 2 * legSize - 4;
-  const shelfWidth = width - 2 * legSize - 4;
-  const shelfY =
-    stretcherFloorOffset + lowerStretcherWidth / 2 - shelfThickness / 2;
+  // 設計：棚板放在四向下橫撐的「上面」，跟 bench under-shelf 同概念（rest-on）。
+  // 棚板長/寬 = 橫撐 outer-to-outer 距離（橫撐外側面=length/2-legSize/2+thickness/2），
+  // 四角缺角 (notched-corners) 讓開腳柱位置。橫撐不開槽，棚板靠重力 + 木鞘卡住。
+  // 橫撐 outer face X = 腳中心 X + 橫撐厚/2，腳中心已含 legInset 偏移
+  const stretcherOuterX = length / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
+  const stretcherOuterZ = width / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
+  const shelfLength = 2 * stretcherOuterX; // = length - legSize + lowerStretcherThickness
+  const shelfWidth = 2 * stretcherOuterZ;
+  // 缺角尺寸：腳的 X/Z 範圍跟棚板邊緣 overlap = (legSize + stretcherThickness)/2
+  const notchLen = (legSize + lowerStretcherThickness) / 2;
+  const notchWid = (legSize + lowerStretcherThickness) / 2;
+  // 棚板 Y = 橫撐頂面（origin.y 是棚板 bottom 在 world 的位置）
+  const shelfY = stretcherFloorOffset + lowerStretcherWidth;
 
   const lowerShelf: Part = {
     id: "shelf",
@@ -392,63 +422,44 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       thickness: shelfThickness,
     },
     origin: { x: 0, y: shelfY, z: 0 },
-    tenons: [
-      {
-        position: "start",
-        type: "tongue-and-groove",
-        length: shelfTongueLen,
-        width: shelfWidth,
-        thickness: shelfThickness,
-      },
-      {
-        position: "end",
-        type: "tongue-and-groove",
-        length: shelfTongueLen,
-        width: shelfWidth,
-        thickness: shelfThickness,
-      },
-      {
-        position: "left",
-        type: "tongue-and-groove",
-        length: shelfTongueLen,
-        width: shelfLength,
-        thickness: shelfThickness,
-      },
-      {
-        position: "right",
-        type: "tongue-and-groove",
-        length: shelfTongueLen,
-        width: shelfLength,
-        thickness: shelfThickness,
-      },
-    ],
+    shape: { kind: "notched-corners", notchLengthMm: notchLen, notchWidthMm: notchWid },
+    tenons: [],
     mortises: [],
   };
 
-  // 茶几前緣抽屜（淺型，藏遙控器）。掛在前牙板下方
-  const drawerParts: Part[] = [];
-  if (drawerCount > 0) {
-    const drawerHeight = 50;
-    const drawerDepth = Math.min(width - 80, 280); // Z 方向深度
-    const drawerY = upperApronY - drawerHeight - 5; // 牙板下緣 -5mm 留間隙
-    const drawerFaceThick = 18;
-    // 抽屜面板 Z 位置：與前牙板前面平齊
-    const apronFrontZ = -(width / 2 - legSize / 2) - upperApronThickness / 2;
-    const drawerFaceZ = apronFrontZ - drawerFaceThick / 2;
-    const innerSpan = length - 2 * legSize - 20;
-    const slotW = drawerCount === 1 ? innerSpan : innerSpan / 2 - 5;
-    for (let i = 0; i < drawerCount; i++) {
-      const xCenter = drawerCount === 1
-        ? 0
-        : (i === 0 ? -1 : 1) * (slotW / 2 + 2.5);
-      drawerParts.push({
-        id: `tea-drawer-${i + 1}-front`,
-        nameZh: `淺抽屜${i + 1} 面板`,
+  // 桌面端板（防翹曲）：兩端加垂直木條，沿 width 方向延伸，紋路跟桌面正交
+  const breadboardParts: Part[] = [];
+  if (withBreadboardEnds) {
+    const bbWidth = 60;
+    const bbThickness = topThickness;
+    for (const sx of [-1, 1] as const) {
+      breadboardParts.push({
+        id: `breadboard-${sx < 0 ? "left" : "right"}`,
+        nameZh: sx < 0 ? "左端板" : "右端板",
         material,
         grainDirection: "length",
-        visible: { length: slotW - 4, width: drawerHeight - 4, thickness: drawerFaceThick },
-        origin: { x: xCenter, y: drawerY + 2, z: drawerFaceZ },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        visible: { length: topWid, width: bbWidth, thickness: bbThickness },
+        origin: { x: sx * (topLen / 2 + bbWidth / 2), y: legHeight, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // 翻板（drop-leaf）：沿 length 軸 ±X 端延伸，蝶式鉸鏈接
+  const dropLeafParts: Part[] = [];
+  if (dropLeaf !== "none") {
+    const sides = dropLeaf === "two-sides" ? [-1, 1] as const : [1] as const;
+    for (const sx of sides) {
+      dropLeafParts.push({
+        id: `drop-leaf-${sx < 0 ? "left" : "right"}`,
+        nameZh: `${sx < 0 ? "左" : "右"}翻板`,
+        material,
+        grainDirection: "length",
+        visible: { length: topWid, width: dropLeafWidth, thickness: topThickness },
+        origin: { x: sx * (topLen / 2 + dropLeafWidth / 2), y: legHeight, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
       });
@@ -458,7 +469,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const design: FurnitureDesign = {
     id: `tea-table-${length}x${width}x${height}`,
     category: "tea-table",
-    nameZh: "茶几",
+    nameZh: "邊桌/床邊桌",
     overall: { length, width, thickness: height },
     parts: [
       topPanel,
@@ -466,37 +477,23 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...upperAprons,
       ...lowerStretchers,
       ...(hasLowerShelf ? [lowerShelf] : []),
-      ...drawerParts,
+      ...breadboardParts,
+      ...dropLeafParts,
     ],
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
     notes:
-      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${topPanelPiecesNote(topPanelPieces, width)}${drawerCount > 0 ? ` 含 ${drawerCount} 個前緣淺抽屜（每個配 350mm 塑膠滑軌一對）。` : ""}${liftTop ? " 桌面可升降——需配 lift-top 五金組（兩支氣壓桿 + 摺疊鉸鏈一對，五金行有售）。" : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}${(() => { const ci = getOption<boolean>(input, opt(o, "withCoasterInsets")); return ci ? " 桌面四角各挖 ⌀100×3mm 圓凹嵌磁石杯墊。" : ""; })()}`,
+      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合 + 中央穿釘 + 兩側鬆配吸收形變）。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
-  // 桌面磁石杯墊孔：4 角各挖 ⌀100×3mm 圓凹
-  const withCoasterInsets = getOption<boolean>(input, opt(o, "withCoasterInsets"));
-  if (withCoasterInsets) {
-    const topPart = design.parts.find((p) => p.id === "top");
-    if (topPart) {
-      const topL = topPart.visible.length;
-      const topW = topPart.visible.width;
-      const off = 70;
-      const newM = [...topPart.mortises];
-      for (const sx of [-1, 1])
-        for (const sz of [-1, 1])
-          newM.push({ origin: { x: sx * (topL / 2 - off), y: 0, z: sz * (topW / 2 - off) }, depth: 3, length: 100, width: 100, through: false });
-      topPart.mortises = newM;
-    }
-  }
-
+  // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {
     minLength: 400, minWidth: 400, minHeight: 250,
     maxLength: 1200, maxWidth: 900, maxHeight: 500,
   });
   if (input.height > 500) {
     appendSuggestion(design, {
-      text: `桌高 ${input.height}mm 已不算茶几——餐桌模板有完整中央橫撐 / 牙板厚度等選項。`,
+      text: `桌高 ${input.height}mm 已超出邊桌範圍——餐桌模板有完整中央橫撐 / 牙板厚度等選項。`,
       suggestedCategory: "dining-table",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
     });
@@ -543,37 +540,42 @@ interface ApronRingOpts {
   xAxisYDelta?: number;
   /** Y delta for Z-axis sides (left/right). Default 0. 下橫撐用 +lowerStretcherStaggerMm 上移 */
   zAxisYDelta?: number;
+  legInset?: number;
 }
 
 function makeApronRing(o: ApronRingOpts): Part[] {
+  // 牙板/橫撐位置 = 腳中心軸對齊：腳中心 X = length/2 - legSize/2 - legInset
+  const inset = o.legInset ?? 0;
+  const edgeX = o.overallLength / 2 - o.legSize / 2 - inset;
+  const edgeZ = o.overallWidth / 2 - o.legSize / 2 - inset;
   const sides = [
     {
       key: "front",
       nameZh: "前",
       visibleLength: o.span.x,
       axis: "x" as const,
-      origin: { x: 0, z: -(o.overallWidth / 2 - o.legSize / 2) },
+      origin: { x: 0, z: -edgeZ },
     },
     {
       key: "back",
       nameZh: "後",
       visibleLength: o.span.x,
       axis: "x" as const,
-      origin: { x: 0, z: o.overallWidth / 2 - o.legSize / 2 },
+      origin: { x: 0, z: edgeZ },
     },
     {
       key: "left",
       nameZh: "左",
       visibleLength: o.span.z,
       axis: "z" as const,
-      origin: { x: -(o.overallLength / 2 - o.legSize / 2), z: 0 },
+      origin: { x: -edgeX, z: 0 },
     },
     {
       key: "right",
       nameZh: "右",
       visibleLength: o.span.z,
       axis: "z" as const,
-      origin: { x: o.overallLength / 2 - o.legSize / 2, z: 0 },
+      origin: { x: edgeX, z: 0 },
     },
   ];
 

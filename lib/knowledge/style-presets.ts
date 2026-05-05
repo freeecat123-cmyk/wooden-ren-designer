@@ -291,7 +291,7 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-import { sampleStyleVariant, getAllPoolKeys } from "./style-variants";
+import { sampleStyleVariant, getAllPoolKeys, getCanonicalSize } from "./style-variants";
 // ─── Structural variants ─────────────────────────────────────────────────
 // 重複按同一風格時，套 STYLE_STRUCTURAL_VARIANTS 裡的結構性 overlay 而非
 // 數值 jitter——換 backStyle、改 ladder/slat 數、加扶手、換 stretcherStyle、
@@ -346,11 +346,25 @@ export function applyStylePreset(
 
   // 公式化適應（若提供 ctx）：依 size / material 調整 legSize / apronWidth /
   // Walker zone 高度等。回傳 notes 寫進 _adapterNotes 給 UI 顯示。
+  // 變體模式（seed > 0）下，把 ctx 的 size 換成 canonical，避免連按時
+  // adapter 用 URL current（已被上次變體寫過）→ legSize × scale × scale ... 複利
+  let adapterCtx = ctx;
+  if (variantSeed > 0 && ctx && category) {
+    const canonical = getCanonicalSize(category);
+    if (canonical) {
+      adapterCtx = {
+        ...ctx,
+        totalLength: canonical.length,
+        totalWidth: canonical.width,
+        totalHeight: canonical.height,
+      };
+    }
+  }
   let result: Record<string, string | number | boolean> = params;
-  if (ctx && category) {
+  if (adapterCtx && category) {
     const { params: adapted, notes } = adaptStyleParams(
       { ...params, _styleId: styleId },
-      { ...ctx, category },
+      { ...adapterCtx, category },
     );
     if (notes.length > 0) {
       adapted._adapterNotes = notes.join(" | ");
@@ -360,9 +374,10 @@ export function applyStylePreset(
   }
 
   // 變體：variantSeed > 0 時從 pool 隨機抽結構 + 尺寸 overlay（infinite variation）
-  if (variantSeed > 0 && ctx) {
+  // baseSize 傳 adapterCtx（canonical-anchored）而非 URL current，避免複利暴衝
+  if (variantSeed > 0 && adapterCtx) {
     const overlay = sampleStyleVariant(styleId, category, variantSeed,
-      { length: ctx.totalLength, width: ctx.totalWidth, height: ctx.totalHeight },
+      { length: adapterCtx.totalLength, width: adapterCtx.totalWidth, height: adapterCtx.totalHeight },
       result);
     Object.assign(result, overlay);
     // 木種也跟著變：從該風格 materials[] 抽（用獨立 salt 避免跟結構選擇相關）
