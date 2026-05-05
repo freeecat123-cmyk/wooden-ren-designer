@@ -940,7 +940,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const backParts: Part[] = [];
   // 軸心對齊：slat / splat / spindle / curved-splat 中心 z 跟 apron 中心 z 對齊
   // apron z = width/2 - legD/2 - legInset，所以 backZ 也要扣 legInset
-  const backZ = width / 2 - legD / 2 - legInset - backInsetFromRearMm;
+  // 軸心對齊背柱：連做模式背柱 = 後腳位置（z 受 legInset 影響）；分離模式背柱
+  // 用 backPostBaseZ（不受 legInset 影響）。slat / splat / spindle 必須跟背柱同 z。
+  const backZ = isContinuous
+    ? width / 2 - legD / 2 - legInset - backInsetFromRearMm
+    : width / 2 - legD / 2 - backInsetFromRearMm;
   const backUsableLengthOffset = 2 * backInsetFromEndMm;
   // 一木連做：座板已縮回（不會跟背直立件穿模），slat/splat/spindle 可以
   // 延伸到後牙板頂緣 = apronY + apronWidth；split 模式維持原 seatHeight 起算
