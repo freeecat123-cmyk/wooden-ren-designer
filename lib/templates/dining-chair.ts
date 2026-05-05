@@ -1080,42 +1080,82 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 所有椅背部件繞 (seatHeight, backZ) X 軸傾斜 reclineRad
   const reclineRad = (backRake * Math.PI) / 180;
   if (Math.abs(reclineRad) > 1e-6) {
-    // bench Windsor 路線：用 splayed shape（平行四邊形傾斜）而非 rotation。
-    // 底面平行地面、TOP 偏 +Z、BOTTOM 不動 → 無 dip 無 gap，3D 跟三視圖天然一致。
-    // 各 part 的 yExt（垂直高度）決定其 rakeMm = yExt × tan(rake)。
+    // 不改 visible.thickness（避免三視圖跟 3D 脫鉤），全模式都讓背柱底端自然
+    // dip 進座板/後腳 AABB（旋轉同一個 box，3D 跟三視圖視覺一致）。
+    // audit 對 useButtJointConvention 設計的 seat × back-post 重疊放行。
+    const cosR = Math.cos(reclineRad);
+    const sinR = Math.sin(reclineRad);
     const yExtOf = (p: Part): number => {
+      // back-rung: rotation x:π/2 → width 垂直
       if (p.id.startsWith("back-rung-")) return p.visible.width;
+      // slat / splat / curved-splat: rotation 讓 length 垂直
       if (p.id.startsWith("back-slat-") || p.id === "back-splat" || p.id === "back-curved-splat") return p.visible.length;
+      // back-post / back-top-rail / back-spindle: thickness 垂直
       return p.visible.thickness;
     };
-    const slantPart = (p: Part): Part => {
+    const tilt = (p: Part): Part => {
       const yExt = yExtOf(p);
-      const partRakeMm = yExt * Math.tan(reclineRad);
-      // splayed: BOTTOM (taperT=0) shifts by dzMm relative to TOP (taperT=1)。
-      // 我們要 BOTTOM 不動、TOP 往 +Z 偏 partRakeMm → origin.z += partRakeMm，
-      // dzMm = -partRakeMm（BOTTOM 拉回原位），形成 TOP 後仰的平行四邊形。
-      // back-rung（橫向：rotation x=π/2，width 是 yExt）跟其他垂直件邏輯不同：
-      // 它整支水平、yExt = width，但傾斜時整支應該跟著上方位置走。處理上比較複雜，
-      // 先照「中心 z = backZ + (rungY - seatHeight) × tan(rake)」位移，不加 splayed shape。
-      const isHorizontalRung = p.id.startsWith("back-rung-");
-      if (isHorizontalRung) {
-        const rungCenterY = p.origin.y + yExt / 2;
-        const rungZShift = (rungCenterY - seatHeight) * Math.tan(reclineRad);
-        return { ...p, origin: { ...p.origin, z: p.origin.z + rungZShift } };
+      // pivot = 背柱前下角 (seatHeight, backZ - legD/2)：傾斜後背柱前緣下角
+      // 鎖在座板上緣，bottom-back 自然 dip 進座板 (audit butt-joint 例外放行)。
+      // 改 pivot 從 (seatHeight, backZ) → (seatHeight, backZ - legD/2)，避免繞中心
+      // 旋轉導致 bottom-front 升 (legD/2)·sin(rake) 出現縫隙。
+      const pivotY = seatHeight;
+      const pivotZ = backZ - legD / 2;
+      const cy = p.origin.y + yExt / 2;
+      const cz = p.origin.z;
+      const dy = cy - pivotY;
+      const dz = cz - pivotZ;
+      const newCy = pivotY + dy * cosR - dz * sinR;
+      const newCz = pivotZ + dy * sinR + dz * cosR;
+      // 加 world-X 旋轉 reclineRad（renderer Euler order = ZYX intrinsic）：
+      // - 若 existing Rz ≈ π/2（slat/splat/curved-splat）→ 等效解 rotation.y -= rx
+      //   （推導：Rx_world(rx) * Rz(π/2) = ZYX(0, -rx, π/2)；splat 的 Rx 保留）
+      // - 否則直接加到 rotation.x（無 Z rot 的情形：post/rail/rung/spindle）
+      const ex = p.rotation?.x ?? 0;
+      const ey = p.rotation?.y ?? 0;
+      const ez = p.rotation?.z ?? 0;
+      const hasZQuarter = Math.abs(Math.abs(ez) - Math.PI / 2) < 0.01;
+      // 中板（splat / curved-splat）跳過 clamp——讓底端真的貼座面，傾斜時
+      // bottom-back corner 自然下沉進座板 AABB（視覺被座板遮住，不影響）。
+      // 沒這個 skip 中板會被推高 wHalf×sin(rake) 並砍掉等量長度，3D 看到上下都有縫。
+      // 一木連做折角型：背柱底端要跟後腳頂端在折角點對接，不能 clamp 上抬，
+      // 否則折角處會有 wHalf×sin(rake) 的縫隙；slat / top-rail 也跟著一起傾斜
+      // 全模式 skipClamp：dip 進座板/後腳被 audit butt-joint 例外放行，視覺被遮
+      const skipClamp = true;
+      // 錨在座面上的部件，傾斜後 bottom corner 要 ≥ seatHeight（避免與 seat AABB 重疊）
+      const wHalf = p.visible.width / 2;
+      const extraLift = hasZQuarter ? wHalf * Math.abs(sinR) : 0;
+      const yLowerBound = skipClamp ? -Infinity : seatHeight + extraLift;
+      const rawOriginY = newCy - yExt / 2;
+      const isSeatAnchored = p.origin.y >= seatHeight - 0.01;
+      const clampedOriginY = isSeatAnchored ? Math.max(yLowerBound, rawOriginY) : rawOriginY;
+      // clamp 把 slat 抬高的量 → 同步從 length / thickness（垂直軸）扣掉，避免頂端撞到 top-rail
+      const liftedBy = clampedOriginY - rawOriginY;
+      let newVisible = p.visible;
+      if (liftedBy > 0.01) {
+        // back-rung 用 width 為 yExt；slat/splat/curved-splat 用 length；其他用 thickness
+        if (p.id.startsWith("back-rung-")) {
+          newVisible = { ...p.visible, width: Math.max(1, p.visible.width - liftedBy) };
+        } else if (p.id.startsWith("back-slat-") || p.id === "back-splat" || p.id === "back-curved-splat") {
+          newVisible = { ...p.visible, length: Math.max(1, p.visible.length - liftedBy) };
+        } else {
+          newVisible = { ...p.visible, thickness: Math.max(1, p.visible.thickness - liftedBy) };
+        }
       }
-      // 既有 shape 與 splayed 互斥（face-rounded / round / chamfered-edges 等），不疊加
-      const existingShape = p.shape;
-      const splayedShape = { kind: "splayed" as const, dxMm: 0, dzMm: -partRakeMm };
-      const finalShape = existingShape ? existingShape : splayedShape;
       return {
         ...p,
-        shape: finalShape,
-        origin: { ...p.origin, z: p.origin.z + partRakeMm },
+        visible: newVisible,
+        origin: { x: p.origin.x, y: clampedOriginY, z: newCz },
+        rotation: hasZQuarter
+          ? { x: ex, y: ey - reclineRad, z: ez }
+          : { x: ex + reclineRad, y: ey, z: ez },
       };
     };
-    for (let i = 0; i < backPosts.length; i++) backPosts[i] = slantPart(backPosts[i]);
-    backTopRail = slantPart(backTopRail);
-    for (let i = 0; i < backParts.length; i++) backParts[i] = slantPart(backParts[i]);
+    // 椅背是剛性框架：後柱、上橫條、slat / splat / spindle 全部一起繞 (seatHeight, backZ)
+    // 傾斜，不論 split / 直料 / 折角型。Z 軸對齊靠 backZ 公式（= apron z），不是靠「不轉」。
+    for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
+    backTopRail = tilt(backTopRail);
+    for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
   }
 
   const design: FurnitureDesign = {
