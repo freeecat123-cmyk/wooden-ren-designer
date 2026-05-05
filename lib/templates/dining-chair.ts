@@ -1080,11 +1080,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 所有椅背部件繞 (seatHeight, backZ) X 軸傾斜 reclineRad
   const reclineRad = (backRake * Math.PI) / 180;
   if (Math.abs(reclineRad) > 1e-6) {
-    // 折角型限定：背柱底端用 overshoot 預延長補縫（後腳延伸過座面，下沉進後腳
-    // AABB 不算 overlap）。split 模式背柱底端 = 座板上緣，dip 進座板會被 audit 標
-    // 為 overlap，只能靠 clamp 上抬接受微小 gap。
-    const isBent = rearPostMode === "continuous-bent";
-    if (isBent) {
+    // 全模式 overshoot：背柱底端預延長 Δ=(legD/2)·tan(rake)，傾斜後底面前緣剛好
+    // 落在 seatHeight，後緣自然 dip 進座板/後腳 AABB。butt-joint convention 下
+    // audit 已放行此 dip。
+    {
       const overshoot = (legD / 2) * Math.abs(Math.tan(reclineRad));
       for (let i = 0; i < backPosts.length; i++) {
         const bp = backPosts[i];
@@ -1126,9 +1125,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 沒這個 skip 中板會被推高 wHalf×sin(rake) 並砍掉等量長度，3D 看到上下都有縫。
       // 一木連做折角型：背柱底端要跟後腳頂端在折角點對接，不能 clamp 上抬，
       // 否則折角處會有 wHalf×sin(rake) 的縫隙；slat / top-rail 也跟著一起傾斜
-      // 折角型 skipClamp：背柱已用 overshoot 預延長，clamp 反而會把整組向上抬出縫。
-      // split 模式維持 clamp，避免背柱底端 dip 進座板 AABB 被 audit 標 overlap。
-      const skipClamp = p.id === "back-splat" || p.id === "back-curved-splat" || isBent;
+      // 全模式 skipClamp：背柱已用 overshoot 預延長，clamp 反而會把整組向上抬出縫
+      const skipClamp = true;
       // 錨在座面上的部件，傾斜後 bottom corner 要 ≥ seatHeight（避免與 seat AABB 重疊）
       const wHalf = p.visible.width / 2;
       const extraLift = hasZQuarter ? wHalf * Math.abs(sinR) : 0;
