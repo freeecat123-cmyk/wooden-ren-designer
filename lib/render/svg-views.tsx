@@ -1014,8 +1014,14 @@ export function OrthoView({
         // 傾斜 box / 梯形 apron / arch-bent / tilt-z
         // worldExtents 只認 quarter rotation；非 quarter 旋轉、彎料、傾斜料都要走
         // projectPartSilhouette（3D corner sample → rotate → project → hull）
-        const isTiltedBox =
-          (!part.shape || part.shape.kind === "box") && hasNonQuarterRotation(part);
+        // 任何「box-like」shape（含 chamfered-edges、chamfered-top 等微小邊緣修飾）
+        // + 非 quarter rotation 都要走 projectPartSilhouette，否則 worldExtents 只認
+        // quarter rotation，背柱 chamfered-edges + backRake 5° 會被畫成直立。
+        const boxLikeShape = !part.shape
+          || part.shape.kind === "box"
+          || part.shape.kind === "chamfered-edges"
+          || part.shape.kind === "chamfered-top";
+        const isTiltedBox = boxLikeShape && hasNonQuarterRotation(part);
         const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
         const isApronBeveled = part.shape?.kind === "apron-beveled";
         const isArchBentSideFront =
