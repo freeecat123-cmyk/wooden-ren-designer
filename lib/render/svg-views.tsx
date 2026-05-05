@@ -21,6 +21,30 @@ import {
   type OrthoView,
 } from "@/lib/render/geometry";
 
+/** Sutherland-Hodgman: clip polygon to half-plane y >= clipY. */
+function clipPolygonAboveY(poly: Array<{ x: number; y: number }>, clipY: number) {
+  if (poly.length === 0) return poly;
+  const out: Array<{ x: number; y: number }> = [];
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % n];
+    const aIn = a.y >= clipY;
+    const bIn = b.y >= clipY;
+    if (aIn && bIn) {
+      out.push(b);
+    } else if (aIn && !bIn) {
+      const t = (clipY - a.y) / (b.y - a.y);
+      out.push({ x: a.x + (b.x - a.x) * t, y: clipY });
+    } else if (!aIn && bIn) {
+      const t = (clipY - a.y) / (b.y - a.y);
+      out.push({ x: a.x + (b.x - a.x) * t, y: clipY });
+      out.push(b);
+    }
+  }
+  return out;
+}
+
 interface ViewProps {
   design: FurnitureDesign;
 }
@@ -1142,7 +1166,16 @@ export function OrthoView({
             );
           }
           // 其他 view：convex hull silhouette
-          const poly = projectTiltedBoxSilhouette(part, view);
+          let poly = projectTiltedBoxSilhouette(part, view);
+          // back-* 部件在側/正視被座板上緣 clip：背柱後仰時 overshoot 延長底端
+          // 進座板 AABB（補底縫），三視圖把伸進座板的部分剪掉，視覺乾淨。
+          if ((view === "side" || view === "front") && part.id.startsWith("back-")) {
+            const seat = design.parts.find((p) => p.id === "seat");
+            if (seat) {
+              const clipY = seat.origin.y + seat.visible.thickness; // seatHeight
+              poly = clipPolygonAboveY(poly, clipY);
+            }
+          }
           const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
           return (
             <polygon
