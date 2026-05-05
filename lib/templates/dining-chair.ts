@@ -686,8 +686,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "椅背頂橫木",
     material,
     grainDirection: "length",
-    visible: { length: length - 2 * legW - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
-    origin: { x: 0, y: topRailY, z: width / 2 - legD / 2 - backInsetFromRearMm },
+    visible: { length: length - 2 * legW - 2 * legInset - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
+    origin: { x: 0, y: topRailY, z: width / 2 - legD / 2 - legInset - backInsetFromRearMm },
     tenons: [
       {
         position: "start",
