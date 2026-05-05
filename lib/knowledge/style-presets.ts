@@ -365,8 +365,14 @@ export function applyStylePreset(
       { length: ctx.totalLength, width: ctx.totalWidth, height: ctx.totalHeight },
       result);
     Object.assign(result, overlay);
+    // 木種也跟著變：從該風格 materials[] 抽（用獨立 salt 避免跟結構選擇相關）
+    if (preset.materials.length > 1) {
+      let h = (variantSeed * 2654435761) >>> 0;
+      for (const c of "material") h = ((h * 31) + c.charCodeAt(0)) >>> 0;
+      result.material = preset.materials[h % preset.materials.length];
+    }
     const prevNotes = typeof result._adapterNotes === "string" ? result._adapterNotes + " | " : "";
-    result._adapterNotes = `${prevNotes}隨機變體 #${variantSeed}：結構與尺寸從風格池子抽樣（同風格不同設計）`;
+    result._adapterNotes = `${prevNotes}隨機變體 #${variantSeed}：結構＋尺寸＋木種從風格池子抽樣（同風格不同設計）`;
   }
 
   return result;
