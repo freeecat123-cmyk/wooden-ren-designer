@@ -1085,6 +1085,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 所有椅背部件繞 (seatHeight, backZ) X 軸傾斜 reclineRad
   const reclineRad = (backRake * Math.PI) / 180;
   if (Math.abs(reclineRad) > 1e-6) {
+    // 折角型：傾斜後背柱底面前緣會抬高 (legD/2)·sin(rake)，產生縫隙。
+    // 預先把背柱往下延長 Δ = (legD/2)·tan(rake) → 傾斜後前緣剛好落在 seatHeight，
+    // 後緣下沉進後腳 AABB 內（折角內側本來就重疊，視覺被遮）。頂端不變。
+    if (rearPostMode === "continuous-bent") {
+      const overshoot = (legD / 2) * Math.abs(Math.tan(reclineRad));
+      for (let i = 0; i < backPosts.length; i++) {
+        const bp = backPosts[i];
+        backPosts[i] = {
+          ...bp,
+          origin: { ...bp.origin, y: bp.origin.y - overshoot },
+          visible: { ...bp.visible, thickness: bp.visible.thickness + overshoot },
+        };
+      }
+    }
     const cosR = Math.cos(reclineRad);
     const sinR = Math.sin(reclineRad);
     const yExtOf = (p: Part): number => {
