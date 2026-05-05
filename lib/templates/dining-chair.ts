@@ -1151,15 +1151,11 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           : { x: ex + reclineRad, y: ey, z: ez },
       };
     };
-    // 一般情況（split / continuous-straight / continuous-s-curve）只 tilt 後柱，
-    // 維持 slat / top-rail 跟牙板同 z 對齊。
-    // 折角型 (continuous-bent)：椅背是一個剛性框架，後柱、上橫條、slat / splat /
-    // spindle 全部一起繞折角點傾斜，才不會有「中間 slat 沒跟著倒」「上橫條跟柱頂脫離」
+    // 椅背是剛性框架：後柱、上橫條、slat / splat / spindle 全部一起繞 (seatHeight, backZ)
+    // 傾斜，不論 split / 直料 / 折角型。Z 軸對齊靠 backZ 公式（= apron z），不是靠「不轉」。
     for (let i = 0; i < backPosts.length; i++) backPosts[i] = tilt(backPosts[i]);
-    if (isBent) {
-      backTopRail = tilt(backTopRail);
-      for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
-    }
+    backTopRail = tilt(backTopRail);
+    for (let i = 0; i < backParts.length; i++) backParts[i] = tilt(backParts[i]);
   }
 
   const design: FurnitureDesign = {
