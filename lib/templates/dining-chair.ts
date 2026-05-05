@@ -577,6 +577,53 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     };
   });
 
+  // 扶手（withArmrest=true）：每側 2 件 = 1 前支柱（直立）+ 1 水平扶手板
+  const ARMREST_THICKNESS = 22;     // 垂直厚（手掌平面）
+  const ARMREST_PLANK_W = 50;       // 扶手左右寬
+  const armrestParts: Part[] = [];
+  if (withArmrest) {
+    const frontLegPair = cornerPts.filter((c) => c.z < 0);
+    for (const fl of frontLegPair) {
+      const sideKey = fl.x > 0 ? "right" : "left";
+      const sideZh = fl.x > 0 ? "右" : "左";
+      const bpX = Math.sign(fl.x) * (length / 2 - legW / 2 - backInsetFromEndMm);
+      const bpZ = width / 2 - legD / 2 - backInsetFromRearMm;
+      const postH = Math.max(0, armrestHeight - ARMREST_THICKNESS);
+      // 前支柱：座板上緣 → 扶手底
+      if (postH > 0) {
+        armrestParts.push({
+          id: `armrest-front-post-${sideKey}`,
+          nameZh: `${sideZh}扶手前支柱`,
+          material,
+          grainDirection: "length",
+          visible: { length: legW, width: legD, thickness: postH },
+          origin: { x: fl.x, y: seatHeight, z: fl.z },
+          shape: legEdgeShape(legEdge, legEdgeStyle),
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // 水平扶手板：前支柱外緣 → 背柱前緣（butt joint，不穿過背柱避免組裝版重疊）
+      const startZ = fl.z - legD / 2;
+      const endZ = bpZ - legD / 2;
+      const plankCenterZ = (startZ + endZ) / 2;
+      const plankLength = endZ - startZ;
+      const plankX = (fl.x + bpX) / 2;
+      armrestParts.push({
+        id: `armrest-plank-${sideKey}`,
+        nameZh: `${sideZh}扶手板`,
+        material,
+        grainDirection: "length",
+        visible: { length: plankLength, width: ARMREST_PLANK_W, thickness: ARMREST_THICKNESS },
+        origin: { x: plankX, y: seatHeight + armrestHeight - ARMREST_THICKNESS, z: plankCenterZ },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   // 椅背頂橫木（連接後 2 椅腳）
   const backTopRail: Part = {
     id: "back-top-rail",
@@ -1046,7 +1093,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     category: "dining-chair",
     nameZh: "餐椅",
     overall: { length, width, thickness: height },
-    parts: [seatPanel, ...legs, ...backPosts, ...aprons, ...lowerStretchers, backTopRail, ...slats],
+    parts: [seatPanel, ...legs, ...backPosts, ...aprons, ...lowerStretchers, backTopRail, ...slats, ...armrestParts],
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
