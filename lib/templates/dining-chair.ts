@@ -446,8 +446,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronIsSplayed = apronSplayDx > 0 || apronSplayDz > 0;
   const apronTiltX = apronSplayDx > 0 ? Math.atan(apronSplayDx / Math.max(1, legBaseHeight)) : 0;
   const apronTiltZ = apronSplayDz > 0 ? Math.atan(apronSplayDz / Math.max(1, legBaseHeight)) : 0;
-  const apronInnerSpanX = length - legW;
-  const apronInnerSpanZ = width - legD;
+  const apronInnerSpanX = length - legW - 2 * legInset;
+  const apronInnerSpanZ = width - legD - 2 * legInset;
   const apronLegEdgeX = length / 2 - legW / 2 - legInset;
   const apronLegEdgeZ = width / 2 - legD / 2 - legInset;
 
@@ -667,8 +667,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const isSplayed = splayDx > 0 || splayDz > 0;
     const tiltX = splayDx > 0 ? Math.atan(splayDx / Math.max(1, legBaseHeight)) : 0;
     const tiltZ = splayDz > 0 ? Math.atan(splayDz / Math.max(1, legBaseHeight)) : 0;
-    const innerSpanX = length - legW; // 中心-中心
-    const innerSpanZ = width - legD;
+    const innerSpanX = length - legW - 2 * legInset; // 中心-中心
+    const innerSpanZ = width - legD - 2 * legInset;
     const legEdgeX = length / 2 - legW / 2 - legInset;
     const legEdgeZ = width / 2 - legD / 2 - legInset;
 
