@@ -1391,6 +1391,18 @@ export function OrthoView({
                 stroke={stroke} strokeWidth={sw}
               />
             );
+          } else if (view === "side" && isFaceRounded && bendAxis === "y" && Math.abs(bendMm) >= 0.5) {
+            // bendAxis="y" 側視 divider：bend 沿 Y 軸延伸，分隔線在原始 Y 邊界（Z 跨 lzL）
+            const yDiv = bendMm > 0 ? +lyL / 2 : -lyL / 2;
+            const a = projectOne(yDiv, -lzL / 2, 0);
+            const b = projectOne(yDiv, +lzL / 2, 0);
+            dividerLine = (
+              <line
+                key={`${part.id}-endface`}
+                x1={a.x} y1={-a.y} x2={b.x} y2={-b.y}
+                stroke={stroke} strokeWidth={sw}
+              />
+            );
           }
           return (
             <g key={part.id}>
