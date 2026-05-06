@@ -13,8 +13,11 @@ export function validateRoundLegJoinery(design: FurnitureDesign): string[] {
   const warnings: string[] = [];
   for (const part of design.parts) {
     const k = part.shape?.kind;
-    const isRoundLeg = k === "round" || k === "round-tapered" || k === "shaker" || k === "lathe-turned";
-    if (!isRoundLeg) continue;
+    const isRoundShape = k === "round" || k === "round-tapered" || k === "shaker" || k === "lathe-turned";
+    if (!isRoundShape) continue;
+    // 只檢查腳本身（part.id 以 "leg" 開頭）；圓桌面 / 座板 / 棚板 / 旋轉盤
+    // 也是 round shape 但是 panel，從頂面鑿榫眼是 OK 的（薄板還可以走通榫）。
+    if (!part.id.startsWith("leg")) continue;
     for (const m of part.mortises) {
       if (m.through) {
         warnings.push(
