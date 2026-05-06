@@ -399,12 +399,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         : s.axis === "z" && hasShapeBend
           ? buttHalfZBot(apronSplayZBot) / buttHalfZ(apronSplayZ)
           : 1;
-    // bevel 規則：apronOffset === 0（牙條頂面貼桌面） + isSplayed → half-bevel
+    // bevel 規則：
+    //   apronOffset === 0（牙板頂面貼座板）+ isSplayed → half-bevel（頂面水平、底面跟腳斜）
+    //   apronOffset > 0（牙板離座板有縫）→ 不套 bevelAngle，跟下橫撐一樣只用
+    //     trapezoid + rotation tilt（否則 full bevel 會跟 rotation tilt 抵消，
+    //     視覺看起來牙板是水平矩形，沒跟著腳斜）
     const apronTopAtTop = apronOffset === 0;
     const useHalfBevel = isSplayed && apronTopAtTop;
+    const apronBevelAngle = useHalfBevel ? bevelAngle : 0;
     const partShape = trapTopScale !== null
-      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: bevelAngle || undefined, bevelMode: useHalfBevel ? "half" as const : undefined }
-      : isSplayed
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: apronBevelAngle || undefined, bevelMode: useHalfBevel ? "half" as const : undefined }
+      : isSplayed && useHalfBevel
         ? { kind: "apron-beveled" as const, bevelAngle }
         : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
     // 半榫指派：靜止 Z（左右）= 上半榫（保留 top 肩 + 10mm 上肩）；移動 X（前後）= 下半榫（無上下肩）
