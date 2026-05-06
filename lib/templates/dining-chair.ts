@@ -526,24 +526,32 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const apronLegEdgeZ = width / 2 - legD / 2 - legInset;
 
   const apronShiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
-  const apronTopY = apronY + apronWidth;
-  const apronBotY = apronY;
-  const aSC = apronShiftAt(apronCenterY);
-  const aST = apronShiftAt(apronTopY);
-  const aSB = apronShiftAt(apronBotY);
-  const apronSplayXc = apronSplayDx * aSC;
-  const apronSplayZc = apronSplayDz * aSC;
-  const apronSplayXt = apronSplayDx * aST;
-  const apronSplayZt = apronSplayDz * aST;
-  const apronSplayXb = apronSplayDx * aSB;
-  const apronSplayZb = apronSplayDz * aSB;
-  // X-axis 牙板用 legW（沿 X 的腳尺寸）；Z-axis 牙板用 legD
-  const apronLwC = legW * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
-  const apronLwT = legW * legScaleAt(apronTopY, legBaseHeight, bottomScale);
-  const apronLwB = legW * legScaleAt(apronBotY, legBaseHeight, bottomScale);
-  const apronLdC = legD * legScaleAt(apronCenterY, legBaseHeight, bottomScale);
-  const apronLdT = legD * legScaleAt(apronTopY, legBaseHeight, bottomScale);
-  const apronLdB = legD * legScaleAt(apronBotY, legBaseHeight, bottomScale);
+  // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
+  // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legSize/innerSpan，否則接不到腳
+  const apronVisuallyStaggered = apronStaggerMm > 0;
+  const apronGeomFor = (yCenter: number) => {
+    const yTop = yCenter + apronWidth / 2;
+    const yBot = yCenter - apronWidth / 2;
+    const sCenter = apronShiftAt(yCenter);
+    const sTop = apronShiftAt(yTop);
+    const sBot = apronShiftAt(yBot);
+    return {
+      splayXc: apronSplayDx * sCenter,
+      splayZc: apronSplayDz * sCenter,
+      splayXt: apronSplayDx * sTop,
+      splayZt: apronSplayDz * sTop,
+      splayXb: apronSplayDx * sBot,
+      splayZb: apronSplayDz * sBot,
+      lwC: legW * legScaleAt(yCenter, legBaseHeight, bottomScale),
+      lwT: legW * legScaleAt(yTop, legBaseHeight, bottomScale),
+      lwB: legW * legScaleAt(yBot, legBaseHeight, bottomScale),
+      ldC: legD * legScaleAt(yCenter, legBaseHeight, bottomScale),
+      ldT: legD * legScaleAt(yTop, legBaseHeight, bottomScale),
+      ldB: legD * legScaleAt(yBot, legBaseHeight, bottomScale),
+    };
+  };
+  const apronGeomZ = apronGeomFor(apronCenterY);  // 左右（Z）牙板，靜止
+  const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0));  // 前後（X）牙板，下移後
 
   type ApronSideDef = {
     key: string; nameZh: string; visibleLength: number;
@@ -551,29 +559,30 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: number; z: number };
   };
   const apronSides: ApronSideDef[] = [
-    { key: "front", nameZh: "前牙板", visibleLength: apronInnerSpanX - apronLwC + 2 * apronSplayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronSplayZc) } },
-    { key: "back",  nameZh: "後牙板", visibleLength: apronInnerSpanX - apronLwC + 2 * apronSplayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronSplayZc } },
-    { key: "left",  nameZh: "左牙板", visibleLength: apronInnerSpanZ - apronLdC + 2 * apronSplayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronSplayXc), z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: apronInnerSpanZ - apronLdC + 2 * apronSplayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronSplayXc, z: 0 } },
+    { key: "front", nameZh: "前牙板", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
+    { key: "back",  nameZh: "後牙板", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
+    { key: "left",  nameZh: "左牙板", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
+    { key: "right", nameZh: "右牙板", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
   ];
 
-  // apron-trapezoid 上下緣縮放與 bevelAngle 計算（X 軸用 lwC、Z 軸用 ldC）
-  const apronHalfX_C = apronLegEdgeX + apronSplayXc - apronLwC / 2;
-  const apronHalfX_T = apronLegEdgeX + apronSplayXt - apronLwT / 2;
-  const apronHalfX_B = apronLegEdgeX + apronSplayXb - apronLwB / 2;
-  const apronHalfZ_C = apronLegEdgeZ + apronSplayZc - apronLdC / 2;
-  const apronHalfZ_T = apronLegEdgeZ + apronSplayZt - apronLdT / 2;
-  const apronHalfZ_B = apronLegEdgeZ + apronSplayZb - apronLdB / 2;
   const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;
 
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
+    const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // butt-joint 半長 = legEdge + splay − legSize@Y / 2
+    const halfX_C = apronLegEdgeX + geom.splayXc - geom.lwC / 2;
+    const halfX_T = apronLegEdgeX + geom.splayXt - geom.lwT / 2;
+    const halfX_B = apronLegEdgeX + geom.splayXb - geom.lwB / 2;
+    const halfZ_C = apronLegEdgeZ + geom.splayZc - geom.ldC / 2;
+    const halfZ_T = apronLegEdgeZ + geom.splayZt - geom.ldT / 2;
+    const halfZ_B = apronLegEdgeZ + geom.splayZb - geom.ldB / 2;
     const trapTopScale =
-      s.axis === "x" && apronHasShapeBend ? apronHalfX_T / apronHalfX_C
-      : s.axis === "z" && apronHasShapeBend ? apronHalfZ_T / apronHalfZ_C
+      s.axis === "x" && apronHasShapeBend ? halfX_T / halfX_C
+      : s.axis === "z" && apronHasShapeBend ? halfZ_T / halfZ_C
       : null;
     const trapBotScale =
-      s.axis === "x" && apronHasShapeBend ? apronHalfX_B / apronHalfX_C
-      : s.axis === "z" && apronHasShapeBend ? apronHalfZ_B / apronHalfZ_C
+      s.axis === "x" && apronHasShapeBend ? halfX_B / halfX_C
+      : s.axis === "z" && apronHasShapeBend ? halfZ_B / halfZ_C
       : 1;
     const bevelAngle = apronIsSplayed
       ? s.axis === "x" ? -s.sz * apronTiltZ : -s.sx * apronTiltX
@@ -590,7 +599,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length" as const,
       visible: { length: s.visibleLength, width: apronWidth, thickness: apronThickness },
-      origin: { x: s.origin.x, y: apronY, z: s.origin.z },
+      // 前後（X 軸）牙板物理下移 apronStaggerMm；左右（Z）不動
+      origin: { x: s.origin.x, y: apronY - (apronVisuallyStaggered && s.axis === "x" ? apronStaggerMm : 0), z: s.origin.z },
       rotation: s.axis === "z"
         ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * apronTiltX }
         : { x: Math.PI / 2 + (-s.sz) * apronTiltZ, y: 0, z: 0 },
@@ -803,24 +813,30 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const legEdgeZ = width / 2 - legD / 2 - legInset;
 
     const lowerCenterY = lowerY + lowerW / 2;
-    const lowerBotY = lowerY;
-    const lowerTopY = lowerY + lowerW;
     const shiftAt = (yMm: number) => legBaseHeight > 0 ? Math.max(0, 1 - yMm / legBaseHeight) : 0;
-    const sCenter = shiftAt(lowerCenterY);
-    const sBot = shiftAt(lowerBotY);
-    const sTop = shiftAt(lowerTopY);
-    const splayXc = splayDx * sCenter;
-    const splayZc = splayDz * sCenter;
-    const splayXt = splayDx * sTop;
-    const splayZt = splayDz * sTop;
-    const splayXb = splayDx * sBot;
-    const splayZb = splayDz * sBot;
-    const lwC = legW * legScaleAt(lowerCenterY, legBaseHeight, bottomScale);
-    const lwT = legW * legScaleAt(lowerTopY, legBaseHeight, bottomScale);
-    const lwB = legW * legScaleAt(lowerBotY, legBaseHeight, bottomScale);
-    const ldC = legD * legScaleAt(lowerCenterY, legBaseHeight, bottomScale);
-    const ldT = legD * legScaleAt(lowerTopY, legBaseHeight, bottomScale);
-    const ldB = legD * legScaleAt(lowerBotY, legBaseHeight, bottomScale);
+    // 下橫撐錯開時 Z 軸（左右）整支上移 lowerStretcherStaggerMm；外斜時腳在更高處 splay 較少——
+    // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legSize/innerSpan，否則接不到腳
+    const lowerVisuallyStaggered = lowerStretcherStaggerMm > 0;
+    const lsGeomFor = (yCenter: number) => {
+      const yTop = yCenter + lowerW / 2;
+      const yBot = yCenter - lowerW / 2;
+      const sCenter = shiftAt(yCenter);
+      const sTop = shiftAt(yTop);
+      const sBot = shiftAt(yBot);
+      return {
+        splayXc: splayDx * sCenter, splayZc: splayDz * sCenter,
+        splayXt: splayDx * sTop,    splayZt: splayDz * sTop,
+        splayXb: splayDx * sBot,    splayZb: splayDz * sBot,
+        lwC: legW * legScaleAt(yCenter, legBaseHeight, bottomScale),
+        lwT: legW * legScaleAt(yTop, legBaseHeight, bottomScale),
+        lwB: legW * legScaleAt(yBot, legBaseHeight, bottomScale),
+        ldC: legD * legScaleAt(yCenter, legBaseHeight, bottomScale),
+        ldT: legD * legScaleAt(yTop, legBaseHeight, bottomScale),
+        ldB: legD * legScaleAt(yBot, legBaseHeight, bottomScale),
+      };
+    };
+    const lsGeomX = lsGeomFor(lowerCenterY);  // 前後（X）下橫撐，靜止
+    const lsGeomZ = lsGeomFor(lowerCenterY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0));  // 左右（Z）下橫撐，上移後
 
     type SideDef = {
       key: string; nameZh: string; visibleLength: number;
@@ -828,19 +844,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: number; z: number };
     };
     const sides: SideDef[] = [
-      { key: "front", nameZh: "前下橫撐", visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + splayZc) } },
-      { key: "back",  nameZh: "後下橫撐", visibleLength: innerSpanX - lwC + 2 * splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + splayZc } },
-      { key: "left",  nameZh: "左下橫撐", visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + splayXc), z: 0 } },
-      { key: "right", nameZh: "右下橫撐", visibleLength: innerSpanZ - ldC + 2 * splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + splayXc, z: 0 } },
+      { key: "front", nameZh: "前下橫撐", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(legEdgeZ + lsGeomX.splayZc) } },
+      { key: "back",  nameZh: "後下橫撐", visibleLength: innerSpanX - lsGeomX.lwC + 2 * lsGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: legEdgeZ + lsGeomX.splayZc } },
+      { key: "left",  nameZh: "左下橫撐", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(legEdgeX + lsGeomZ.splayXc), z: 0 } },
+      { key: "right", nameZh: "右下橫撐", visibleLength: innerSpanZ - lsGeomZ.ldC + 2 * lsGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: legEdgeX + lsGeomZ.splayXc, z: 0 } },
     ];
 
     const buildLowerPart = (s: SideDef): Part => {
-      const halfX_C = legEdgeX + splayXc - lwC / 2;
-      const halfX_T = legEdgeX + splayXt - lwT / 2;
-      const halfX_B = legEdgeX + splayXb - lwB / 2;
-      const halfZ_C = legEdgeZ + splayZc - ldC / 2;
-      const halfZ_T = legEdgeZ + splayZt - ldT / 2;
-      const halfZ_B = legEdgeZ + splayZb - ldB / 2;
+      const geom = s.axis === "x" ? lsGeomX : lsGeomZ;
+      const halfX_C = legEdgeX + geom.splayXc - geom.lwC / 2;
+      const halfX_T = legEdgeX + geom.splayXt - geom.lwT / 2;
+      const halfX_B = legEdgeX + geom.splayXb - geom.lwB / 2;
+      const halfZ_C = legEdgeZ + geom.splayZc - geom.ldC / 2;
+      const halfZ_T = legEdgeZ + geom.splayZt - geom.ldT / 2;
+      const halfZ_B = legEdgeZ + geom.splayZb - geom.ldB / 2;
       const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
       const trapTopScale =
         s.axis === "x" && hasShapeBend ? halfX_T / halfX_C
@@ -862,7 +879,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: s.visibleLength, width: lowerW, thickness: lowerT },
-        origin: { x: s.origin.x, y: lowerY, z: s.origin.z },
+        // 左右（Z 軸）下橫撐整支上移；前後（X）不動
+        origin: { x: s.origin.x, y: lowerY + (lowerVisuallyStaggered && s.axis === "z" ? lowerStretcherStaggerMm : 0), z: s.origin.z },
         rotation: s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tiltX }
           : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
@@ -961,7 +979,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     } else if (stretcherStyle === "h-frame") {
       ["left", "right"].forEach(k => lowerStretchers.push(buildLowerPart(sideMap[k])));
       // 中央橫撐：跨左右側橫撐 inner face；左右側橫撐中心 X = ±(legEdgeX + splayXc)，厚度 lowerT
-      const sideCenterX = legEdgeX + splayXc;
+      // 左右橫撐用 Z 軸 geom（含上移後 splay）
+      const sideCenterX = legEdgeX + lsGeomZ.splayXc;
       const midBodyLen = Math.max(50, 2 * sideCenterX - lowerT);
       lowerStretchers.push({
         id: "ls-center",
@@ -969,7 +988,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: midBodyLen, width: lowerW, thickness: lowerT },
-        origin: { x: 0, y: lowerY, z: 0 },
+        // 中央橫撐接到左右橫撐，跟著上移
+        origin: { x: 0, y: lowerY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0), z: 0 },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           { position: "start", type: "blind-tenon", length: Math.min(12, lowerTenon), width: lowerTenonW, thickness: lowerTenonThick },

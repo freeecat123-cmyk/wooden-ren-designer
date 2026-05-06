@@ -333,40 +333,42 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     // 所以 apron 的 tilt 應該是 arctan(tan(α)/√2)，不是 α
     const isSplayed = legShape.startsWith("splayed-");
     const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
-    // 在 apron Y 中心位置算腳的真實中心——外斜時腳已從 corner 偏出去，
-    // 榫頭要打在腳真正的中心，apron 才對齊（不會偏一側讓壁太薄爆掉）
-    const apronYCenter = apronY + apronWidth / 2;
-    const shiftFactor = legHeight > 0 ? 1 - apronYCenter / legHeight : 0;
-    const apronSplayDx = isSplayed ? splayDx * shiftFactor : 0;
-    const apronSplayDz = isSplayed ? splayDz * shiftFactor : 0;
-    // tapered 補償（drafting-math §A11）：腳在 apron Y 處的截面寬，端面對接
-    // 用 apronLegSize（**不是** legSize 頂寬）。對應每段 Y 的腳寬：
     const apronBottomScale = legBottomScale(legShape);
-    const apronLegSizeCenter = legSize * legScaleAt(apronYCenter, legHeight, apronBottomScale);
-    const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, apronBottomScale);
-    const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, apronBottomScale);
-    // butt-joint 慣例：visible.length 兩端剛好頂在腳在 apron Y center 的內側面
-    const apronSpan = 2 * (cornerOffset + apronSplayDx) - apronLegSizeCenter;
-    // apron-trapezoid：上下緣腳寬不同（tapered 上下不同；splay shift 也不同）
     const hasTaper = apronBottomScale !== 1;
-    const apronShiftTop = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
-    const apronShiftBot = legHeight > 0 ? 1 - apronY / legHeight : 0;
-    const apronSplayDxTop = isSplayed ? splayDx * apronShiftTop : 0;
-    const apronSplayDxBot = isSplayed ? splayDx * apronShiftBot : 0;
-    const apronSpanCenterEdge = cornerOffset + apronSplayDx - apronLegSizeCenter / 2;
-    const apronSpanTopEdge = cornerOffset + apronSplayDxTop - apronLegSizeTop / 2;
-    const apronSpanBotEdge = cornerOffset + apronSplayDxBot - apronLegSizeBot / 2;
-    const trapTopScale = hasTaper && apronSpanCenterEdge > 0 ? apronSpanTopEdge / apronSpanCenterEdge : 1;
-    const trapBotScale = hasTaper && apronSpanCenterEdge > 0 ? apronSpanBotEdge / apronSpanCenterEdge : 1;
+    // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處外傾更多——
+    // X 軸跟 Z 軸要分別用各自的 Y 中心算 splay/span/trapezoid，否則接不到腳
+    const apronStaggerY = apronVisuallyStaggered ? apronStaggerMm : 0;
+    const apronGeomFor = (yCenter: number) => {
+      const shift = legHeight > 0 ? 1 - yCenter / legHeight : 0;
+      const dx = isSplayed ? splayDx * shift : 0;
+      const dz = isSplayed ? splayDz * shift : 0;
+      const yTop = yCenter + apronWidth / 2;
+      const yBot = yCenter - apronWidth / 2;
+      const legSizeC = legSize * legScaleAt(yCenter, legHeight, apronBottomScale);
+      const legSizeTop = legSize * legScaleAt(yTop, legHeight, apronBottomScale);
+      const legSizeBot = legSize * legScaleAt(yBot, legHeight, apronBottomScale);
+      const span = 2 * (cornerOffset + dx) - legSizeC;
+      const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
+      const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
+      const centerEdge = cornerOffset + dx - legSizeC / 2;
+      const topEdge = cornerOffset + dxTop - legSizeTop / 2;
+      const botEdge = cornerOffset + dxBot - legSizeBot / 2;
+      const trapTop = hasTaper && centerEdge > 0 ? topEdge / centerEdge : 1;
+      const trapBot = hasTaper && centerEdge > 0 ? botEdge / centerEdge : 1;
+      return { dx, dz, span, trapTop, trapBot };
+    };
+    const apronGeomZ = apronGeomFor(apronYCenter0);
+    const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
     const sides = [
-      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronSplayDz) } },
-      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronSplayDz } },
-      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronSplayDx), z: 0 } },
-      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronSplayDx, z: 0 } },
+      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
     ];
     // half-bevel 條件：apronDropFromTop===0（牙板頂面貼椅面）才用 half-bevel 讓頂面水平
     const apronTopAtSeat = apronDropFromTop === 0;
     for (const s of sides) {
+      const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
       const rotation =
         s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
@@ -376,7 +378,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         : 0;
       const useTopBevel = isSplayed && apronTopAtSeat;
       const partShape = hasTaper
-        ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
+        ? { kind: "apron-trapezoid" as const, topLengthScale: geom.trapTop, bottomLengthScale: geom.trapBot, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
         : isSplayed && apronTopAtSeat
           ? { kind: "apron-half-beveled" as const, bevelAngle }
           : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
@@ -417,7 +419,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: s.nameZh,
         material,
         grainDirection: "length",
-        visible: { length: apronSpan, width: apronWidth, thickness: apronThickness },
+        visible: { length: geom.span, width: apronWidth, thickness: apronThickness },
         // 前後（X 軸）牙板物理下移 apronStaggerMm；左右（Z）不動
         origin: { x: s.origin.x, y: apronY - (apronVisuallyStaggered && s.axis === "x" ? apronStaggerMm : 0), z: s.origin.z },
         rotation,
@@ -432,40 +434,47 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   if (withLowerStretcher) {
     const isSplayed = legShape.startsWith("splayed-");
     const tilt = isSplayed ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
-    const lsShiftFactor = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
-    const lsSplayDx = isSplayed ? splayDx * lsShiftFactor : 0;
-    const lsSplayDz = isSplayed ? splayDz * lsShiftFactor : 0;
-    // tapered 補償：下橫撐 Y 處的腳寬（與 apron 同邏輯）
     const lsBottomScale = legBottomScale(legShape);
-    const lsLegSizeCenter = legSize * legScaleAt(lsYCenter0, legHeight, lsBottomScale);
-    const lsLegSizeTop = legSize * legScaleAt(lsYCenter0 + lowerStretcherWidth / 2, legHeight, lsBottomScale);
-    const lsLegSizeBot = legSize * legScaleAt(lsYCenter0 - lowerStretcherWidth / 2, legHeight, lsBottomScale);
-    const lsSpan = 2 * (cornerOffset + lsSplayDx) - lsLegSizeCenter;
     const lsHasTaper = lsBottomScale !== 1;
-    const lsShiftTop = legHeight > 0 ? 1 - (lsYCenter0 + lowerStretcherWidth / 2) / legHeight : 0;
-    const lsShiftBot = legHeight > 0 ? 1 - (lsYCenter0 - lowerStretcherWidth / 2) / legHeight : 0;
-    const lsSplayDxTop = isSplayed ? splayDx * lsShiftTop : 0;
-    const lsSplayDxBot = isSplayed ? splayDx * lsShiftBot : 0;
-    const lsCenterEdge = cornerOffset + lsSplayDx - lsLegSizeCenter / 2;
-    const lsTopEdge = cornerOffset + lsSplayDxTop - lsLegSizeTop / 2;
-    const lsBotEdge = cornerOffset + lsSplayDxBot - lsLegSizeBot / 2;
-    const lsTrapTopScale = lsHasTaper && lsCenterEdge > 0 ? lsTopEdge / lsCenterEdge : 1;
-    const lsTrapBotScale = lsHasTaper && lsCenterEdge > 0 ? lsBotEdge / lsCenterEdge : 1;
+    // 下橫撐錯開時 Z 軸（左右）整支上移 lowerStretcherStaggerMm；X 軸（前後）保持原位
+    // 外斜時腳在更高處外傾較少，Z 軸的 splay/span 要用上移後 Y 算
+    const lsGeomFor = (yCenter: number) => {
+      const shift = legHeight > 0 ? 1 - yCenter / legHeight : 0;
+      const dx = isSplayed ? splayDx * shift : 0;
+      const dz = isSplayed ? splayDz * shift : 0;
+      const yTop = yCenter + lowerStretcherWidth / 2;
+      const yBot = yCenter - lowerStretcherWidth / 2;
+      const legSizeC = legSize * legScaleAt(yCenter, legHeight, lsBottomScale);
+      const legSizeTop = legSize * legScaleAt(yTop, legHeight, lsBottomScale);
+      const legSizeBot = legSize * legScaleAt(yBot, legHeight, lsBottomScale);
+      const span = 2 * (cornerOffset + dx) - legSizeC;
+      const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
+      const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
+      const centerEdge = cornerOffset + dx - legSizeC / 2;
+      const topEdge = cornerOffset + dxTop - legSizeTop / 2;
+      const botEdge = cornerOffset + dxBot - legSizeBot / 2;
+      const trapTop = lsHasTaper && centerEdge > 0 ? topEdge / centerEdge : 1;
+      const trapBot = lsHasTaper && centerEdge > 0 ? botEdge / centerEdge : 1;
+      return { dx, dz, span, trapTop, trapBot };
+    };
+    const lsGeomX = lsGeomFor(lsYCenter0);
+    const lsGeomZ = lsGeomFor(lsYCenter0_z);
     const lsSides = [
-      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsSplayDz) } },
-      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsSplayDz } },
-      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsSplayDx), z: 0 } },
-      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsSplayDx, z: 0 } },
+      { id: "lower-stretcher-front", nameZh: "前下橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + lsGeomX.dz) } },
+      { id: "lower-stretcher-back", nameZh: "後下橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + lsGeomX.dz } },
+      { id: "lower-stretcher-left", nameZh: "左下橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + lsGeomZ.dx), z: 0 } },
+      { id: "lower-stretcher-right", nameZh: "右下橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + lsGeomZ.dx, z: 0 } },
     ];
     // 下橫撐：trapezoid 是腳幾何要求（兩端縮到腳寬），但**永遠不 bevel**——
     // 上下都跟腳斜（自由邊），客戶手作不用切複合斜面。
     for (const s of lsSides) {
+      const geom = s.axis === "x" ? lsGeomX : lsGeomZ;
       const rotation =
         s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 };
       const partShape = lsHasTaper
-        ? { kind: "apron-trapezoid" as const, topLengthScale: lsTrapTopScale, bottomLengthScale: lsTrapBotScale }
+        ? { kind: "apron-trapezoid" as const, topLengthScale: geom.trapTop, bottomLengthScale: geom.trapBot }
         : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
       // 下橫撐 tenon：A 半榫錯位 — 靜止 X（前後）= 下榫；移動 Z（左右，上移）= 上榫
       const lsType: "through-tenon" | "blind-tenon" =
@@ -501,7 +510,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: s.nameZh,
         material,
         grainDirection: "length",
-        visible: { length: lsSpan, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
+        visible: { length: geom.span, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
         origin: { x: s.origin.x, y: s.axis === "z" ? lsY0_z : lsY0, z: s.origin.z },
         rotation,
         shape: partShape,

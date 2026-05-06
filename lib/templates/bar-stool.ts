@@ -502,8 +502,21 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   const apronCenterY = ringY + apronWidth / 2;
-  const apronB = buildSides(apronCenterY, apronWidth, "牙板");
-  const aprons: Part[] = !withApron ? [] : apronB.sides.map((s) => {
+  // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
+  // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legW/innerSpan，否則接不到腳
+  const apronBZ = buildSides(apronCenterY, apronWidth, "牙板");
+  const apronBX = apronVisuallyStaggered
+    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙板")
+    : apronBZ;
+  // X 軸用 apronBX 的 sides[0,1]（前/後），Z 軸用 apronBZ 的 sides[2,3]（左/右）
+  const apronCombinedSides = [
+    apronBX.sides[0],  // front
+    apronBX.sides[1],  // back
+    apronBZ.sides[2],  // left
+    apronBZ.sides[3],  // right
+  ];
+  const aprons: Part[] = !withApron ? [] : apronCombinedSides.map((s) => {
+    const apronB = s.axis === "x" ? apronBX : apronBZ;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
     const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;

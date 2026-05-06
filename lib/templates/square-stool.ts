@@ -259,63 +259,76 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
   const apronY = legHeight - apronWidth - apronDropFromTop;
-  // 牙板上下緣：以「中軸 Y」算 splay 基準位移，讓牙板中軸跟腳中軸對齊。
-  // top 邊縮、bot 邊放，bevelAngle 補償讓上下面切平（跟地面平行）。
   const apronCenterY = apronY + apronWidth / 2;
-  const apronBotShift = legHeight > 0 ? 1 - apronY / legHeight : 0;
-  const apronTopShift = legHeight > 0 ? 1 - (apronY + apronWidth) / legHeight : 0;
-  const apronCenterShift = legHeight > 0 ? 1 - apronCenterY / legHeight : 0;
-  const apronSplayX = splayDx * apronCenterShift;     // 中心 X 偏移（基準）
-  const apronSplayZ = splayDz * apronCenterShift;
-  const apronSplayXBot = splayDx * apronBotShift;
-  const apronSplayZBot = splayDz * apronBotShift;
-  const apronSplayXTop = splayDx * apronTopShift;
-  const apronSplayZTop = splayDz * apronTopShift;
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
-  // tapered 補償：apron 三條 Y 位置（中、上、下）各自的腳寬
-  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
-  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
-  const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, bottomScale);
-  const apronInnerSpan = {
-    x: 2 * apronEdgeX - apronLegSizeCenter,
-    z: 2 * apronEdgeZ - apronLegSizeCenter,
+  // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
+  // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legSize/innerSpan，否則接不到腳
+  const apronGeomFor = (yCenter: number) => {
+    const yTop = yCenter + apronWidth / 2;
+    const yBot = yCenter - apronWidth / 2;
+    const centerShift = legHeight > 0 ? 1 - yCenter / legHeight : 0;
+    const topShift = legHeight > 0 ? 1 - yTop / legHeight : 0;
+    const botShift = legHeight > 0 ? 1 - yBot / legHeight : 0;
+    return {
+      splayX: splayDx * centerShift,
+      splayZ: splayDz * centerShift,
+      splayXTop: splayDx * topShift,
+      splayZTop: splayDz * topShift,
+      splayXBot: splayDx * botShift,
+      splayZBot: splayDz * botShift,
+      legSizeCenter: legSize * legScaleAt(yCenter, legHeight, bottomScale),
+      legSizeTop: legSize * legScaleAt(yTop, legHeight, bottomScale),
+      legSizeBot: legSize * legScaleAt(yBot, legHeight, bottomScale),
+    };
   };
-  // butt-joint 半長：apronEdgeX/Z 是「腳中心」距家具中心的水平距離；
-  // 端面對接時，apron 端面 = 腳內面（在 apron Y 處）= 腳中心 − apronLegSize/2 + splay。
-  const buttHalfX = (splay: number) => apronEdgeX + splay - apronLegSizeCenter / 2;
-  const buttHalfZ = (splay: number) => apronEdgeZ + splay - apronLegSizeCenter / 2;
-  // 牙板上/下緣的腳寬（給 apron-trapezoid scale 用，端面跟著腳的傾斜)
-  const buttHalfXTop = (splay: number) => apronEdgeX + splay - apronLegSizeTop / 2;
-  const buttHalfXBot = (splay: number) => apronEdgeX + splay - apronLegSizeBot / 2;
-  const buttHalfZTop = (splay: number) => apronEdgeZ + splay - apronLegSizeTop / 2;
-  const buttHalfZBot = (splay: number) => apronEdgeZ + splay - apronLegSizeBot / 2;
+  const apronGeomZ = apronGeomFor(apronCenterY);  // 左右（Z）牙板，靜止
+  const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0));  // 前後（X）牙板，下移後
   const apronSides = [
-    { id: "apron-front", nameZh: "前橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(apronEdgeZ + apronSplayZ) } },
-    { id: "apron-back", nameZh: "後橫撐", visibleLength: apronInnerSpan.x + 2 * apronSplayX, axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: apronEdgeZ + apronSplayZ } },
-    { id: "apron-left", nameZh: "左橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: -1, sz: 0, origin: { x: -(apronEdgeX + apronSplayX), z: 0 } },
-    { id: "apron-right", nameZh: "右橫撐", visibleLength: apronInnerSpan.z + 2 * apronSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + apronSplayX, z: 0 } },
+    { id: "apron-front", nameZh: "前橫撐",
+      visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
+      axis: "x" as const, sx: 0, sz: -1,
+      origin: { x: 0, z: -(apronEdgeZ + apronGeomX.splayZ) } },
+    { id: "apron-back", nameZh: "後橫撐",
+      visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
+      axis: "x" as const, sx: 0, sz: 1,
+      origin: { x: 0, z: apronEdgeZ + apronGeomX.splayZ } },
+    { id: "apron-left", nameZh: "左橫撐",
+      visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
+      axis: "z" as const, sx: -1, sz: 0,
+      origin: { x: -(apronEdgeX + apronGeomZ.splayX), z: 0 } },
+    { id: "apron-right", nameZh: "右橫撐",
+      visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
+      axis: "z" as const, sx: 1, sz: 0,
+      origin: { x: apronEdgeX + apronGeomZ.splayX, z: 0 } },
   ];
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
+    const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
     // trapezoid 必要：兩端縮到腳實際寬度，避免接合縫；上下不同 scale
     const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
+    const buttHalfXCenter = apronEdgeX + geom.splayX - geom.legSizeCenter / 2;
+    const buttHalfZCenter = apronEdgeZ + geom.splayZ - geom.legSizeCenter / 2;
+    const buttHalfXTop = apronEdgeX + geom.splayXTop - geom.legSizeTop / 2;
+    const buttHalfXBot = apronEdgeX + geom.splayXBot - geom.legSizeBot / 2;
+    const buttHalfZTop = apronEdgeZ + geom.splayZTop - geom.legSizeTop / 2;
+    const buttHalfZBot = apronEdgeZ + geom.splayZBot - geom.legSizeBot / 2;
     const trapTopScale =
       s.axis === "x" && hasShapeBend
-        ? buttHalfXTop(apronSplayXTop) / buttHalfX(apronSplayX)
+        ? buttHalfXTop / buttHalfXCenter
         : s.axis === "z" && hasShapeBend
-          ? buttHalfZTop(apronSplayZTop) / buttHalfZ(apronSplayZ)
+          ? buttHalfZTop / buttHalfZCenter
           : null;
     const trapBotScale =
       s.axis === "x" && hasShapeBend
-        ? buttHalfXBot(apronSplayXBot) / buttHalfX(apronSplayX)
+        ? buttHalfXBot / buttHalfXCenter
         : s.axis === "z" && hasShapeBend
-          ? buttHalfZBot(apronSplayZBot) / buttHalfZ(apronSplayZ)
+          ? buttHalfZBot / buttHalfZCenter
           : 1;
     // bevel 規則：頂面跟椅面重疊（dropFromTop=0）才半 bevel 讓頂面水平；其他情況無 bevel
     const apronTopAtSeat = apronDropFromTop === 0;
