@@ -409,6 +409,13 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
   const lowerVisuallyStaggered = lowerStretcherStaggerMm > 0;
 
+  // 桌面厚 ≤25mm 自動通榫（同 autoTenonType 規則）
+  const legTopTenonType: "through-tenon" | "blind-tenon" =
+    topThickness <= 25 ? "through-tenon" : "blind-tenon";
+  const legTopTenonLen = legTopTenonType === "through-tenon"
+    ? topThickness
+    : Math.round(Math.min(topThickness * (2 / 3), topThickness - 6));
+
   // 圓桌面
   const top: Part = {
     id: "top",
@@ -423,11 +430,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
           origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
-          // 跟 leg seat tenon length 同公式才能對位（drafting-math.md §B2）
-          depth: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
+          depth: legTopTenonLen,
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
-          through: false,
+          through: legTopTenonType === "through-tenon",
         })),
       ),
     ],
@@ -469,8 +475,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [
         {
           position: "top" as const,
-          type: "blind-tenon" as const,
-          length: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
+          type: legTopTenonType,
+          length: legTopTenonLen,
           width: Math.round(legSize * 0.6),
           thickness: Math.round(legSize * 0.6),
         },

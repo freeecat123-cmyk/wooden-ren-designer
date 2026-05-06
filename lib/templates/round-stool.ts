@@ -94,13 +94,14 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legHeight = height - seatThickness;
   // 4 隻腳於圓內接正方形的 4 個角，距中心 = (R - legInset) / sqrt(2)
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
-  // 腳頂榫對圓座板做 radial 偏（X + Z 同時朝中心）— 圓座板沒「端面」概念，
-  // grain 跟 leg 位置不對應，4 隻腳都當「靠端面」一律保護。
-  // 偏移量比照方件規則：(legSize - tenonWidth) / 2，tenon = legSize × 0.6 → inset ≈ legSize × 0.2
-  const legTopTenonW_round = Math.round(legSize * 0.6);
-  const legTopRadialInset = Math.max(0, Math.round((legSize - legTopTenonW_round) / 2));
   // 外斜：底部偏移總長 = legHeight × tan(angle)，方向沿腳對角線（45°）外推
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
+  // 座板厚 ≤25mm 自動通榫（同 autoTenonType 規則）
+  const legTopTenonType: "through-tenon" | "blind-tenon" =
+    seatThickness <= 25 ? "through-tenon" : "blind-tenon";
+  const legTopTenonLen = legTopTenonType === "through-tenon"
+    ? seatThickness
+    : Math.round(Math.min(seatThickness * (2 / 3), seatThickness - 6));
 
   // 圓座板（shape: round；seatEdge > 0 時頂面外緣加倒角）
   const seatChamferMm = parseSeatChamferMm(seatEdge);
@@ -121,21 +122,18 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         : { kind: "round" },
     tenons: [],
     mortises: [
-      // 4 個盲榫眼接腳頂（圓座板下方四個內接位置）
-      // depth 跟 leg seat tenon length 同公式，audit 才對位
-      // 圓座板：tenon + mortise 都朝中心 radial 偏 — 不像方板能預測哪面是端面
-      // （grain 方向跟使用者 X 對齊，圓邊到 leg 的距離隨方位變），4 隻腳一律保護
+      // 4 個榫眼接腳頂（圓座板下方四個內接位置）；榫眼中心對齊腳中軸
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
           origin: {
-            x: sx * cornerOffset - sx * legTopRadialInset,
+            x: sx * cornerOffset,
             y: 0,
-            z: sz * cornerOffset - sz * legTopRadialInset,
+            z: sz * cornerOffset,
           },
-          depth: Math.round(Math.min(seatThickness * (2 / 3), seatThickness - 6)),
+          depth: legTopTenonLen,
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
-          through: false,
+          through: legTopTenonType === "through-tenon",
         })),
       ),
     ],
@@ -239,22 +237,12 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [
         {
           position: "top" as const,
-          type: "blind-tenon" as const,
-          length: Math.round(Math.min(seatThickness * (2 / 3), seatThickness - 6)),
+          type: legTopTenonType,
+          length: legTopTenonLen,
           width: Math.round(legSize * 0.6),
           thickness: Math.round(legSize * 0.6),
-          // tenon 朝座板中心 radial 偏（X 軸=offsetWidth、Z 軸=offsetThickness）
-          // 移除朝外那兩個肩，讓內側 2 邊貼腳邊、外側留肩防裂。
-          offsetWidth: -sx * legTopRadialInset,
-          offsetThickness: -sz * legTopRadialInset,
-          shoulderOn: (() => {
-            if (legTopRadialInset <= 0) return ["top", "bottom", "left", "right"] as const;
-            // top position：left/right 對應 ±width(=X)；top/bottom 對應 ±thickness(=Z)
-            const removeX: "left" | "right" = sx > 0 ? "left" : "right";
-            const removeZ: "top" | "bottom" = sz > 0 ? "bottom" : "top";
-            return (["top", "bottom", "left", "right"] as Array<"top" | "bottom" | "left" | "right">)
-              .filter((s) => s !== removeX && s !== removeZ);
-          })(),
+          // 榫頭中心對齊腳中軸
+          shoulderOn: ["top", "bottom", "left", "right"] as const,
         },
       ],
       // 上下橫撐各自加 X + Z 軸 mortise；沒開的不加
