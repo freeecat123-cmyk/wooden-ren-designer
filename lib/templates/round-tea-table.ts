@@ -37,7 +37,11 @@ export const roundTeaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固" },
-  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
+    { value: "h-frame", label: "H 字形（4 條繞 1 圈）" },
+    { value: "x-cross", label: "X 字交叉（2 條斜撐穿越中心，明清交杌做法）" },
+  ], dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）", dependsOn: { key: "lowerStretcherStyle", equals: "h-frame" } },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
@@ -70,6 +74,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
+  const lowerStretcherStyle = getOption<string>(input, opt(o, "lowerStretcherStyle"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherFromGround = getOption<number>(input, opt(o, "lowerStretcherFromGround"));
@@ -246,7 +251,9 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
         },
-        ...(withLowerStretcher
+        // X-cross 模式：腳上不加軸對齊 mortise（對角榫頭做法手作端要自行決定，
+        // 通常用 45° 盲榫或暗銷；3D 視覺仍接合，不影響材料單）
+        ...(withLowerStretcher && lowerStretcherStyle === "h-frame"
           ? [
               // X 面（前後對, 靜止）— 下半榫
               {
@@ -377,9 +384,9 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     };
   });
 
-  // 4 條下橫撐——同邏輯，靠近地面
+  // 下橫撐：h-frame（4 條繞 1 圈）或 x-cross（2 條對角穿越中心）
   const lowerStretchers: Part[] = [];
-  if (withLowerStretcher) {
+  if (withLowerStretcher && lowerStretcherStyle === "h-frame") {
     // 下橫撐錯開時，Z 軸（左右）整支上移 lowerStretcherStaggerMm；X 軸（前後）保持原位
     // 外斜時腳在更低位置外傾更多，上移後 Z 軸下橫撐 splay/span 要用上移後 Y 算才接得到腳
     const lsHasTaper = apronBottomScale !== 1;
@@ -456,6 +463,47 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 },
         shape: partShape,
         tenons,
+        mortises: [],
+      });
+    }
+  }
+
+  // X 字交叉橫撐：兩條對角線連接 4 隻腳，過中心半搭接（明清交杌做法）
+  // 外斜模式 fallback 走直立 X（對角斜撐 + 外斜要傾斜+扭轉太複雜，不支援）。
+  // 視覺上 2 條交叉時可能 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
+  if (withLowerStretcher && lowerStretcherStyle === "x-cross") {
+    const isSplayedXcross = legShape.startsWith("splayed-");
+    const xc_tilt = isSplayedXcross ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
+    const shiftX = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
+    const splayDxX = isSplayedXcross ? splayDx * shiftX : 0;
+    const splayDzX = isSplayedXcross ? splayDz * shiftX : 0;
+    const legSizeAtLs = legSize * legProfileScaleAt(legShape, lsYCenter0, legHeight);
+    // 半長：從中心到腳內角（X、Z 方向）；對角斜撐打到對角腳的內側面
+    const halfX = cornerOffset + splayDxX - legSizeAtLs / 2;
+    const halfZ = cornerOffset + splayDzX - legSizeAtLs / 2;
+    const diagLen = 2 * Math.sqrt(halfX * halfX + halfZ * halfZ);
+    const angle = Math.atan2(halfZ, halfX);  // 圓桌 4 腳對稱 = 45°
+    const xcTenonType: "through-tenon" | "shouldered-tenon" =
+      lowerTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
+    const diagonals = [
+      { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
+      { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
+    ];
+    void xc_tilt;
+    for (const d of diagonals) {
+      lowerStretchers.push({
+        id: d.id,
+        nameZh: d.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: diagLen, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
+        origin: { x: 0, y: lsY0 + d.yLift, z: 0 },
+        rotation: { x: Math.PI / 2, y: d.yRot, z: 0 },
+        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        tenons: [
+          { position: "start", type: xcTenonType, length: lsTenonLen, width: lsTenonW, thickness: lsTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right"> },
+          { position: "end", type: xcTenonType, length: lsTenonLen, width: lsTenonW, thickness: lsTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right"> },
+        ],
         mortises: [],
       });
     }
