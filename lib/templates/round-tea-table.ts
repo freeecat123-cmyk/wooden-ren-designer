@@ -41,6 +41,8 @@ export const roundTeaTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 35, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 18, min: 10, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherFromGround", label: "下橫撐離地 (mm)", defaultValue: 100, min: 30, max: 400, step: 10, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "checkbox", key: "withLowerShelf", label: "下層圓棚板", defaultValue: false, help: "下橫撐上方放圓棚板，rest-on 設計，收納茶具/雜誌（直徑自動算嵌入 4 腳內）", dependsOn: { key: "withLowerStretcher", equals: true } },
+  { group: "stretcher", type: "number", key: "lowerShelfThickness", label: "棚板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm", dependsOn: { key: "withLowerShelf", equals: true } },
 ];
 
 /**
@@ -71,6 +73,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherFromGround = getOption<number>(input, opt(o, "lowerStretcherFromGround"));
+  const withLowerShelf = getOption<boolean>(input, opt(o, "withLowerShelf"));
+  const lowerShelfThickness = getOption<number>(input, opt(o, "lowerShelfThickness"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const lowerStretcherStaggerMm = getOption<number>(input, opt(o, "lowerStretcherStaggerMm"));
   const legPenetratingTenonRaw = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -457,6 +461,36 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // 下層圓棚板：放在 4 條下橫撐上面（rest-on，靠重力 + 木鞘卡住，橫撐不開槽）
+  // 直徑取「腳內角對角距離 − 餘裕」，並確保至少蓋過下橫撐中心線（不然棚板沒地方擱）
+  const lowerShelfParts: Part[] = [];
+  if (withLowerStretcher && withLowerShelf) {
+    const isSplayedShelf = legShape.startsWith("splayed-");
+    const shelfBotY = lowerStretcherFromGround + lowerStretcherWidth;  // 棚板底面 = 下橫撐頂面
+    const shiftAtShelf = legHeight > 0 ? 1 - shelfBotY / legHeight : 0;
+    const splayShiftShelf = isSplayedShelf ? splayDx * shiftAtShelf : 0;
+    const cornerOffsetAtShelf = cornerOffset + splayShiftShelf;
+    const legSizeAtShelf = legSize * legProfileScaleAt(legShape, shelfBotY, legHeight);
+    // 腳內角對角距離 = √2 × (corner − legSize/2)；棚板半徑取此值 − 10mm 餘裕
+    const SHELF_CLEARANCE = 10;
+    const maxRadius = Math.SQRT2 * (cornerOffsetAtShelf - legSizeAtShelf / 2) - SHELF_CLEARANCE;
+    // 至少蓋過下橫撐中心線 + 半厚（讓棚板實際擱在橫撐上）
+    const minRadius = cornerOffsetAtShelf + lowerStretcherThickness / 2;
+    const shelfRadius = Math.max(minRadius, maxRadius);
+    const shelfDiameter = Math.round(shelfRadius * 2);
+    lowerShelfParts.push({
+      id: "lower-shelf",
+      nameZh: "下層圓棚板",
+      material,
+      grainDirection: "length",
+      visible: { length: shelfDiameter, width: shelfDiameter, thickness: lowerShelfThickness },
+      origin: { x: 0, y: shelfBotY, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   const design: FurnitureDesign = {
     id: `round-tea-table-${diameter}x${height}`,
     category: "round-tea-table",
@@ -467,6 +501,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...legs,
       ...aprons,
       ...lowerStretchers,
+      ...lowerShelfParts,
       ...(withLazySusan
         ? [{
             id: "lazy-susan",
@@ -484,7 +519,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
+    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
