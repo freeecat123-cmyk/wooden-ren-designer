@@ -473,10 +473,12 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 視覺上 2 條交叉時可能 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
   if (withLowerStretcher && lowerStretcherStyle === "x-cross") {
     const isSplayedXcross = legShape.startsWith("splayed-");
-    const shiftX = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
+    // 用 X 撐下緣 Y（lsY0）算腳位置：斜腳在更低 Y 處外傾更大，splay shift 更大
+    // → 下緣端面要伸到那裡才接到腳。直梁上緣會略伸過腳但視覺較好（外凸 ≪ 內凹的縫）。
+    const shiftX = legHeight > 0 ? 1 - lsY0 / legHeight : 0;
     const splayDxX = isSplayedXcross ? splayDx * shiftX : 0;
     const splayDzX = isSplayedXcross ? splayDz * shiftX : 0;
-    const legSizeAtLs = legSize * legProfileScaleAt(legShape, lsYCenter0, legHeight);
+    const legSizeAtLs = legSize * legProfileScaleAt(legShape, lsY0, legHeight);
     // 圓料腳（包含 shaker 下半 + 全部 round 系列）：對角斜撐打到的是腳邊（半徑），
     // 不是方料的對角內角；中心到腳邊距 = 中心到腳中心距 − 半徑
     const isRoundLeg =
