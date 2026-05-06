@@ -659,9 +659,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const slatThickness = Math.max(8, opts.slatThickness ?? 18);
       const slatCenterY = stretcherY + stretcherWidth / 2;
       const slatY = slatCenterY - slatThickness / 2;
-      const slatCenterShift = legHeight > 0 ? 1 - slatCenterY / legHeight : 0;
-      const slatSplayZ = splayDz * slatCenterShift;
-      // 條 length = 前後 stretcher inner face 到 inner face
+      // 斜腳：stretcher 是 tilted 的，inner face Z 隨 Y 變化（slat top Y 內側、
+      // slat bot Y 外側）。用 slat 底部 Y 算 splay → slat 兩端在 slat 底邊
+      // 剛好 butt stretcher inner face；slat 頂邊則略進 stretcher body（被
+      // stretcher 蓋住、視覺看不到）。
+      const slatBotShift = legHeight > 0 ? 1 - slatY / legHeight : 0;
+      const slatSplayZ = splayDz * slatBotShift;
+      // 條 length = 前後 stretcher inner face 到 inner face（取 slat 底邊位置）
       const slatLen = 2 * (apronEdgeZ + slatSplayZ) - stretcherThickness;
       // X span：從左腳內面到右腳內面（apronInnerSpan.x）
       const slatXSpan = 2 * apronEdgeX - legSize;
