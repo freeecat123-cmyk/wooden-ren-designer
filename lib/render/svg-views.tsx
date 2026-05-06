@@ -1629,6 +1629,50 @@ export function OrthoView({
                   view === "front" ? "z" : view === "side" ? "x" : "y";
                 const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
                 const isVisibleTenon = t.type === "through-tenon" && tipFaceView;
+                // 圓料腳的 top 榫：榫頭跟腳同軸同心 → 畫橢圓
+                // splayed-round-tapered 還要沿腳中軸 tilt（榫頭跟腳延伸成一直線）
+                const isRoundLegPart =
+                  part.shape?.kind === "round" ||
+                  part.shape?.kind === "round-tapered" ||
+                  part.shape?.kind === "shaker" ||
+                  part.shape?.kind === "splayed-round-tapered";
+                if (isRoundLegPart && t.position === "top") {
+                  const cx = r.x + r.w / 2;
+                  const cyWorld = r.y + r.h / 2;
+                  const cySvg = -cyWorld;
+                  const rx = r.w / 2;
+                  const ry = r.h / 2;
+                  let tiltDeg = 0;
+                  if (part.shape?.kind === "splayed-round-tapered") {
+                    const dx = part.shape.dxMm ?? 0;
+                    const dz = part.shape.dzMm ?? 0;
+                    const lh = part.visible.thickness;  // 腳高在 part-local Y 軸 = visible.thickness
+                    if (lh > 0) {
+                      // 腳底偏 (dx, dz) → 腳中軸從頂指向底是 (dx, -lh, dz)；
+                      // 榫頭沿軸往上 = (-dx, +lh, -dz)。投到視圖平面算角度：
+                      // 正視（collapsed Z）→ X-Y 平面，up 方向 (-dx, lh)
+                      // 側視（collapsed X）→ Z-Y 平面，up 方向 (-dz, lh)
+                      // SVG y 是反的，世界 CCW = SVG CW；正角度 = SVG 順時針
+                      if (view === "front") tiltDeg = -(Math.atan(dx / lh) * 180 / Math.PI);
+                      else if (view === "side") tiltDeg = -(Math.atan(dz / lh) * 180 / Math.PI);
+                    }
+                  }
+                  elements.push(
+                    <ellipse
+                      key={`${part.id}-t${i}-r`}
+                      cx={cx}
+                      cy={cySvg}
+                      rx={rx}
+                      ry={ry}
+                      fill="none"
+                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                      strokeWidth={0.6}
+                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                      transform={tiltDeg !== 0 ? `rotate(${tiltDeg} ${cx} ${cySvg})` : undefined}
+                    />,
+                  );
+                  continue;
+                }
                 // 側/正視 用 polygon 跟著 part shape（splayed/apron-trapezoid/
                 // beveled）變形——apron 斜的話榫頭也跟著斜。
                 // 俯視 用 axis-aligned rect——避免 apron-trapezoid 讓 top/bot
