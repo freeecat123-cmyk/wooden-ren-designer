@@ -1,4 +1,4 @@
-import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
+import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
 import {
@@ -22,6 +22,7 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "splayed", label: "斜腳（四角對角外傾）" },
     { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
     { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
+    { value: "trestle", label: "對柱腳（兩端梁框 + 中央橫木）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 70, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
@@ -63,12 +64,152 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretchers" } },
 ];
 
+/**
+ * 對柱腳餐桌（trestle dining table）：兩端梁框 + 中央連接橫木
+ * - 2 個端框（在桌長 X 軸的 ±frameX 位置）
+ * - 每框 = 2 支粗腳 + 1 條頂橫木 + 1 條底足
+ * - 1 條中央橫木（沿 X 軸）連接兩框中心
+ * 大餐桌經典做法（坐人膝蓋空間大、無 4 腳干擾）。
+ */
+function buildTrestleDiningTable(input: {
+  length: number; width: number; height: number; material: string;
+  topThickness: number; legSize: number;
+}): FurnitureDesign {
+  const { length, width, height, material, topThickness, legSize } = input;
+  const legHeight = height - topThickness;
+  // 端框位置：x = ±frameX（沿長邊內縮 22%，工程經驗值）
+  const frameX = Math.round(length * 0.28);
+  // 每框 2 腳沿 Z 間距 = 桌深 × 0.55
+  const frameLegSpacing = Math.round(width * 0.55);
+  const trestleLegSize = Math.round(legSize * 1.3);
+  // 頂橫木 + 底足跨越框內 2 腳，稍長
+  const frameRailLen = frameLegSpacing + trestleLegSize;
+  const frameRailWidth = trestleLegSize;
+  const frameRailThickness = Math.round(trestleLegSize * 0.6);
+  // 底足：比腳寬 10mm 一點點突出做穩定，厚 50 比較有結構感
+  const frameFootWidth = trestleLegSize + 10;
+  const frameFootThickness = 50;
+  // 中央橫木：跨越 2 框中心，落在底足 Y 範圍內
+  const centerStretcherLen = 2 * frameX - frameFootWidth;
+  const centerStretcherWidth = 30;
+  const centerStretcherThickness = 35;
+  const centerStretcherY = (frameFootThickness - centerStretcherWidth) / 2;
+
+  const top: Part = {
+    id: "top",
+    nameZh: "桌面",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length, width, thickness: topThickness },
+    origin: { x: 0, y: legHeight, z: 0 },
+    tenons: [],
+    mortises: [],
+  };
+
+  const parts: Part[] = [top];
+  // 兩個端框（沿 X 軸對稱）
+  for (const fx of [-frameX, frameX] as const) {
+    const fid = fx < 0 ? "left" : "right";
+    const fLabel = fx < 0 ? "左" : "右";
+    // 2 支腳（沿 Z 軸）
+    for (const fz of [-frameLegSpacing / 2, frameLegSpacing / 2] as const) {
+      const sid = fz < 0 ? "front" : "back";
+      const sLabel = fz < 0 ? "前" : "後";
+      parts.push({
+        id: `trestle-${fid}-${sid}-leg`,
+        nameZh: `${fLabel}框${sLabel}腳`,
+        material: material as "maple",
+        grainDirection: "length",
+        visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeight - frameFootThickness - frameRailThickness },
+        origin: { x: fx, y: frameFootThickness, z: fz },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 頂橫木（沿 Z 軸）
+    parts.push({
+      id: `trestle-${fid}-top-rail`,
+      nameZh: `${fLabel}框頂橫木`,
+      material: material as "maple",
+      grainDirection: "length",
+      visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
+      origin: { x: fx, y: legHeight - frameRailThickness, z: 0 },
+      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+    // 底足（沿 Z 軸，含中央橫木 mortise）
+    parts.push({
+      id: `trestle-${fid}-foot`,
+      nameZh: `${fLabel}框底足`,
+      material: material as "maple",
+      grainDirection: "length",
+      visible: { length: frameRailLen + 40, width: frameFootWidth, thickness: frameFootThickness },
+      origin: { x: fx, y: 0, z: 0 },
+      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [
+        {
+          // 內側 X 面：朝家具中心方向
+          origin: { x: fx < 0 ? +frameFootWidth / 2 - 17 : -frameFootWidth / 2 + 17, y: frameFootThickness / 2, z: 0 },
+          depth: 35,
+          length: centerStretcherWidth - 12,
+          width: 18,
+          through: false,
+        },
+      ],
+    });
+  }
+  // 中央橫木（沿 X 軸跨越兩框中心）
+  parts.push({
+    id: "trestle-center-stretcher",
+    nameZh: "中央連接橫木",
+    material: material as "maple",
+    grainDirection: "length",
+    visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
+    origin: { x: 0, y: centerStretcherY, z: 0 },
+    rotation: { x: Math.PI / 2, y: 0, z: 0 },
+    tenons: [
+      { position: "start", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
+      { position: "end", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
+    ],
+    mortises: [],
+  });
+
+  return {
+    id: `dining-table-trestle-${length}x${width}x${height}`,
+    category: "dining-table",
+    nameZh: "餐桌（對柱腳）",
+    overall: { length, width, thickness: height },
+    parts,
+    defaultJoinery: "shouldered-tenon",
+    primaryMaterial: material as "maple",
+    notes: `對柱腳餐桌：兩端梁框（左/右 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。框長 ${frameRailLen}mm，框間距 ${2 * frameX}mm。坐人膝蓋空間大、無 4 腳干擾，建議桌長 ≥ 1500mm 才用此結構。`,
+  };
+}
+
 export const diningTable: FurnitureTemplate = (input) => {
   const o = diningTableOptions;
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  // trestle 走獨立 builder（不走 simpleTable 4 腳結構）
+  if (legShape === "trestle") {
+    const design = buildTrestleDiningTable({
+      length: input.length,
+      width: input.width,
+      height: input.height,
+      material: input.material,
+      topThickness,
+      legSize,
+    });
+    applyStandardChecks(design, {
+      minLength: 900, minWidth: 600, minHeight: 600,
+      maxLength: 2400, maxWidth: 1200, maxHeight: 800,
+    });
+    return design;
+  }
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
