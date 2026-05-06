@@ -152,6 +152,33 @@ export function legScaleAt(
   return bottomScale + (1 - bottomScale) * t;
 }
 
+// shaker 腳：上 25% 方頂、下 75% 圓錐到 0.6（與 PerspectiveView buildLegGeometry 對齊）
+const SHAKER_SQUARE_FRAC = 0.25;
+const SHAKER_BOTTOM_SCALE = 0.6;
+
+/**
+ * legShape-aware scale at Y。給「指定 leg shape」對應的真實 cross-section scale。
+ * - shaker：piecewise（方頂段 = 1，圓錐段線性 1 → 0.6）
+ * - 其他 tapered 變體：走 legScaleAt(Y, legHeight, legBottomScale(legShape))
+ *
+ * 用於 round-stool / round-tea-table / round-table 算 lower stretcher 的腳寬，
+ * 否則 shaker 在圓錐區用「全寬腳」算 → 橫撐 visible.length 太短，跟腳有縫。
+ */
+export function legProfileScaleAt(
+  legShape: string,
+  Y: number,
+  legHeight: number,
+): number {
+  if (legHeight <= 0) return 1;
+  if (legShape === "shaker") {
+    const t = Math.max(0, Math.min(1, Y / legHeight));
+    if (t >= 1 - SHAKER_SQUARE_FRAC) return 1;  // 方頂區
+    const taperT = t / (1 - SHAKER_SQUARE_FRAC);  // 圓錐區歸一化
+    return SHAKER_BOTTOM_SCALE + (1 - SHAKER_BOTTOM_SCALE) * taperT;
+  }
+  return legScaleAt(Y, legHeight, legBottomScale(legShape));
+}
+
 /**
  * 矩形腳 shape mapping。給 corner 座標 c 與 shape key，回傳 Part.shape。
  * 用 { kind: ... } 形式跟現有 dining-chair / bar-stool 一致。

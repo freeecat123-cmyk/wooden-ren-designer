@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legScaleAt } from "./_helpers";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
@@ -548,9 +548,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     const dz = isSplayed ? splayDz * shift : 0;
     const yTop = yCenter + apronWidth / 2;
     const yBot = yCenter - apronWidth / 2;
-    const legSizeC = legSize * legScaleAt(yCenter, legHeight, apronBottomScale);
-    const legSizeTop = legSize * legScaleAt(yTop, legHeight, apronBottomScale);
-    const legSizeBot = legSize * legScaleAt(yBot, legHeight, apronBottomScale);
+    const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
+    const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
+    const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
     const span = 2 * (cornerOffset + dx) - legSizeC;
     const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
     const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
@@ -643,9 +643,9 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       const dz = isSplayed ? splayDz * shift : 0;
       const yTop = yCenter + lowerStretcherWidth / 2;
       const yBot = yCenter - lowerStretcherWidth / 2;
-      const legSizeC = legSize * legScaleAt(yCenter, legHeight, apronBottomScale);
-      const legSizeTop = legSize * legScaleAt(yTop, legHeight, apronBottomScale);
-      const legSizeBot = legSize * legScaleAt(yBot, legHeight, apronBottomScale);
+      const legSizeC = legSize * legProfileScaleAt(legShape, yCenter, legHeight);
+      const legSizeTop = legSize * legProfileScaleAt(legShape, yTop, legHeight);
+      const legSizeBot = legSize * legProfileScaleAt(legShape, yBot, legHeight);
       const span = 2 * (cornerOffset + dx) - legSizeC;
       const dxTop = isSplayed ? splayDx * (legHeight > 0 ? 1 - yTop / legHeight : 0) : 0;
       const dxBot = isSplayed ? splayDx * (legHeight > 0 ? 1 - yBot / legHeight : 0) : 0;
