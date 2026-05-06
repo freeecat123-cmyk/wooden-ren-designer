@@ -33,6 +33,10 @@ export const deskOptions: OptionSpec[] = [
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
+  { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 5, min: 2, max: 20, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
   { group: "drawer", type: "number", key: "drawerCount", label: "懸吊抽屜數", defaultValue: 0, min: 0, max: 3, step: 1, help: "桌面下掛一組抽屜櫃（0 = 無）" },
   { group: "drawer", type: "select", key: "drawerSide", label: "抽屜位置", defaultValue: "right", choices: [
     { value: "left", label: "左側" },
@@ -83,6 +87,10 @@ export const desk: FurnitureTemplate = (input) => {
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
+  const withSlatRack = getOption<boolean>(input, opt(o, "withSlatRack"));
+  const slatCount = getOption<number>(input, opt(o, "slatCount"));
+  const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
+  const slatThickness = getOption<number>(input, opt(o, "slatThickness"));
   const drawerCount = getOption<number>(input, opt(o, "drawerCount"));
   const drawerSide = getOption<string>(input, opt(o, "drawerSide"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -103,6 +111,10 @@ export const desk: FurnitureTemplate = (input) => {
     legPenetratingTenon,
     withCenterStretcher: withCenterStretcher && drawerCount === 0,
     withLowerStretchers,
+    withSlatRack,
+    slatCount,
+    slatWidth,
+    slatThickness,
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,

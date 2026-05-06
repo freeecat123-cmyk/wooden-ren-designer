@@ -66,6 +66,14 @@ export interface SimpleTableOpts {
   lowerStretcherWidth?: number;
   /** Lower stretcher thickness (horizontal, mm). Default 20. */
   lowerStretcherThickness?: number;
+  /** 下橫撐置物條（grille slats）：在前後下橫撐之間架 N 條格柵，做置物層 */
+  withSlatRack?: boolean;
+  /** 置物條數量（沿 X 軸均分）。預設 5 */
+  slatCount?: number;
+  /** 置物條寬（沿 X 軸，mm）。預設 35 */
+  slatWidth?: number;
+  /** 置物條厚（沿 Y 軸，mm）。預設 18 */
+  slatThickness?: number;
   /** 桌面 / 座板邊緣處理 — 'square' / 'chamfered' / 'rounded' / 'rounded-large'
    *  或直接傳數字 mm（搭配 seatEdgeStyle 控制 V 角 vs 圓角）。 */
   seatEdge?: string | number;
@@ -639,6 +647,44 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           through: lsThrough,
         },
       );
+    }
+
+    // 下橫撐置物條（slat rack）：在前後下橫撐上面架 N 條格柵
+    // 每條沿 Z 軸，length = 前後下橫撐中心到中心 + 兩端 stretcherThickness
+    //   讓條兩端剛好覆蓋在 stretcher 頂面（butt 到 stretcher 外緣）
+    // 條 X 位置在 leg 內側等距分佈，避免撞腳
+    if (opts.withSlatRack) {
+      const slatCount = Math.max(2, Math.min(20, opts.slatCount ?? 5));
+      const slatWidth = Math.max(15, opts.slatWidth ?? 35);
+      const slatThickness = Math.max(8, opts.slatThickness ?? 18);
+      // 條坐在 stretcher 頂面：Y = stretcherY + stretcherWidth
+      const slatY = stretcherY + stretcherWidth;
+      const slatTopShift = legHeight > 0 ? 1 - slatY / legHeight : 0;
+      const slatSplayZ = splayDz * slatTopShift;
+      // 條 length 從前 stretcher 外緣到後 stretcher 外緣（含 stretcherThickness 兩端覆蓋）
+      const slatLen = 2 * (apronEdgeZ + slatSplayZ) + stretcherThickness;
+      // X span：從左腳內面到右腳內面（apronInnerSpan.x）
+      const slatXSpan = 2 * apronEdgeX - legSize;
+      // 等距分佈：N 條的中心點均分 (slatXSpan - slatWidth)
+      const usableX = Math.max(0, slatXSpan - slatWidth);
+      for (let i = 0; i < slatCount; i++) {
+        const t = slatCount === 1 ? 0.5 : i / (slatCount - 1);
+        const slatX = -usableX / 2 + t * usableX;
+        parts.push({
+          id: `slat-${i + 1}`,
+          nameZh: `置物條 ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: slatLen, width: slatWidth, thickness: slatThickness },
+          origin: { x: slatX, y: slatY, z: 0 },
+          // length 沿 Z 軸（前後）、width 沿 X 軸、thickness 沿 Y 軸（垂直厚）
+          // rotation { x: π/2, y: π/2 }：local-X→world-Z（length）、
+          //   local-Y→world-X（width）、local-Z→world-Y（thickness）
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
   }
 

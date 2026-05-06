@@ -38,6 +38,10 @@ export const lowTableOptions: OptionSpec[] = [
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
+  { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 5, min: 2, max: 20, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 10, min: 0, max: 200, step: 5, help: "矮桌體量小，10mm 比例較不會牙板飄離" },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
@@ -61,6 +65,10 @@ export const lowTable: FurnitureTemplate = (input) => {
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
+  const withSlatRack = getOption<boolean>(input, opt(o, "withSlatRack"));
+  const slatCount = getOption<number>(input, opt(o, "slatCount"));
+  const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
+  const slatThickness = getOption<number>(input, opt(o, "slatThickness"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
@@ -77,6 +85,10 @@ export const lowTable: FurnitureTemplate = (input) => {
     legPenetratingTenon,
     withCenterStretcher: withCenterStretcher || input.length > 900,
     withLowerStretchers,
+    withSlatRack,
+    slatCount,
+    slatWidth,
+    slatThickness,
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,

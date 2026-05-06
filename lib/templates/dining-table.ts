@@ -62,6 +62,10 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers" } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers" } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動（腳高的 22%）", dependsOn: { key: "withLowerStretchers" } },
+  { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
+  { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 6, min: 2, max: 20, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 40, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
+  { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 20, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
 ];
 
 export const diningTable: FurnitureTemplate = (input) => {
@@ -82,6 +86,10 @@ export const diningTable: FurnitureTemplate = (input) => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
+  const withSlatRack = getOption<boolean>(input, opt(o, "withSlatRack"));
+  const slatCount = getOption<number>(input, opt(o, "slatCount"));
+  const slatWidth = getOption<number>(input, opt(o, "slatWidth"));
+  const slatThickness = getOption<number>(input, opt(o, "slatThickness"));
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
@@ -112,6 +120,10 @@ export const diningTable: FurnitureTemplate = (input) => {
     withLowerStretchers,
     lowerStretcherWidth,
     lowerStretcherThickness,
+    withSlatRack,
+    slatCount,
+    slatWidth,
+    slatThickness,
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
