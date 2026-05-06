@@ -75,7 +75,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "side-table",
-    nameZh: "邊桌 / 床頭櫃",
+    nameZh: "邊桌 / 床頭桌",
     description: "床側收納，可加單層抽屜",
     difficulty: "beginner",
     template: sideTable,
