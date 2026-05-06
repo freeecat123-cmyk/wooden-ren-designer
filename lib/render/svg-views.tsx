@@ -1637,40 +1637,72 @@ export function OrthoView({
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
                 if (isRoundLegPart && t.position === "top") {
-                  const cx = r.x + r.w / 2;
-                  const cyWorld = r.y + r.h / 2;
-                  const cySvg = -cyWorld;
-                  const rx = r.w / 2;
-                  const ry = r.h / 2;
-                  let tiltDeg = 0;
-                  if (part.shape?.kind === "splayed-round-tapered") {
-                    const dx = part.shape.dxMm ?? 0;
-                    const dz = part.shape.dzMm ?? 0;
-                    const lh = part.visible.thickness;  // 腳高在 part-local Y 軸 = visible.thickness
-                    if (lh > 0) {
-                      // 腳底偏 (dx, dz) → 腳中軸從頂指向底是 (dx, -lh, dz)；
-                      // 榫頭沿軸往上 = (-dx, +lh, -dz)。投到視圖平面算角度：
-                      // 正視（collapsed Z）→ X-Y 平面，up 方向 (-dx, lh)
-                      // 側視（collapsed X）→ Z-Y 平面，up 方向 (-dz, lh)
-                      // SVG y 是反的，世界 CCW = SVG CW；正角度 = SVG 順時針
-                      if (view === "front") tiltDeg = -(Math.atan(dx / lh) * 180 / Math.PI);
-                      else if (view === "side") tiltDeg = -(Math.atan(dz / lh) * 180 / Math.PI);
+                  if (view === "top") {
+                    // 俯視：圓榫畫成圓（圓料 cross-section）
+                    const cx = r.x + r.w / 2;
+                    const cyWorld = r.y + r.h / 2;
+                    const cySvg = -cyWorld;
+                    const radius = Math.min(r.w, r.h) / 2;
+                    elements.push(
+                      <circle
+                        key={`${part.id}-t${i}-r`}
+                        cx={cx}
+                        cy={cySvg}
+                        r={radius}
+                        fill="none"
+                        stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                        strokeWidth={0.6}
+                        strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                      />,
+                    );
+                  } else {
+                    // 正/側視：圓柱榫的側面投影 = 兩條沿腳中軸方向的平行延伸線
+                    // 不畫端面 cap（圓料端面是圓，但從側看就是線，畫了像方框）
+                    const cxBase = r.x + r.w / 2;  // 腳頂榫中心 X（在 r 底部，因為 tenon 從腳頂往上 = +Y 方向）
+                    const yBaseWorld = r.y;  // 腳頂 Y
+                    const yTopWorld = r.y + r.h;  // 榫頂 Y
+                    const halfWidth = r.w / 2;  // 圓料半徑
+                    // 腳中軸方向（從腳頂指向榫頂）：直腳=(0,1)，splayed=(-dx, lh) 歸一化
+                    let axDx = 0;
+                    let axDy = 1;
+                    if (part.shape?.kind === "splayed-round-tapered") {
+                      const dx = part.shape.dxMm ?? 0;
+                      const dz = part.shape.dzMm ?? 0;
+                      const lh = part.visible.thickness;
+                      if (lh > 0) {
+                        const projDx = view === "front" ? -dx : view === "side" ? -dz : 0;
+                        const norm = Math.sqrt(projDx * projDx + lh * lh);
+                        axDx = projDx / norm;
+                        axDy = lh / norm;
+                      }
                     }
+                    // 榫長 = 沿腳中軸延伸的距離；用 r.h（投影 Y 距離）≈ length × axDy
+                    const tenonLen = axDy > 0.01 ? r.h / axDy : r.h;
+                    // 兩條平行線：腳頂左右端點（垂直腳中軸偏 ±halfWidth）→ 沿軸延伸 tenonLen
+                    // 垂直軸的 unit vector (right side)：rotate 軸 90° → (axDy, -axDx)
+                    const perpX = axDy;
+                    const perpY = -axDx;
+                    for (const sgn of [-1, 1]) {
+                      const x1 = cxBase + sgn * halfWidth * perpX;
+                      const y1World = yBaseWorld + sgn * halfWidth * perpY;
+                      const x2 = x1 + tenonLen * axDx;
+                      const y2World = y1World + tenonLen * axDy;
+                      elements.push(
+                        <line
+                          key={`${part.id}-t${i}-r${sgn}`}
+                          x1={x1}
+                          y1={-y1World}
+                          x2={x2}
+                          y2={-y2World}
+                          fill="none"
+                          stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                          strokeWidth={0.6}
+                          strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                        />,
+                      );
+                    }
+                    void yTopWorld;
                   }
-                  elements.push(
-                    <ellipse
-                      key={`${part.id}-t${i}-r`}
-                      cx={cx}
-                      cy={cySvg}
-                      rx={rx}
-                      ry={ry}
-                      fill="none"
-                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
-                      strokeWidth={0.6}
-                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
-                      transform={tiltDeg !== 0 ? `rotate(${tiltDeg} ${cx} ${cySvg})` : undefined}
-                    />,
-                  );
                   continue;
                 }
                 // 側/正視 用 polygon 跟著 part shape（splayed/apron-trapezoid/
