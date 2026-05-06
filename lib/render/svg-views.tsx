@@ -1589,8 +1589,9 @@ export function OrthoView({
           {design.parts.map((part) => {
             if (part.visual === "glass") return null;
             const elements: React.ReactNode[] = [];
-            // tenon 凸出（公榫）—— 簡化版：一律 axis-aligned 2D rect。
-            // 不畫 splayed 2-slice、不跟 part shape 變形、不 match 母榫 polygon。
+            // tenon 凸出（公榫）—— 一律單 polygon，跟著公件 shape/rotation 變形
+            // （splayed 腳、apron-trapezoid 牙條），這樣腳斜時榫頭也跟著斜。
+            // 不再做 mortise polygon 配對、splayed 2-slice 等堆疊（避免「3D 太亂」）。
             // 通榫 = 藍實線（凸出可見），盲榫/其他 = 紅虛線（埋進母件不可見）。
             for (let i = 0; i < part.tenons.length; i++) {
               const t = part.tenons[i];
@@ -1598,9 +1599,7 @@ export function OrthoView({
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
-                // 通榫只有「端面正對視線」的視圖才該是藍實線（凸出可見）；
-                // 其他視圖榫頭埋在母件裡 → 紅虛線。
-                // 計算 tenon 長軸（part-local）→ 套 part rotation → 拿到 world axis
+                // tipFaceView 判斷：通榫只有「端面正對視線」的視圖才藍實線
                 let tenonLocalAxis: "x" | "y" | "z" = "x";
                 if (t.position === "top" || t.position === "bottom") tenonLocalAxis = "y";
                 else if (t.position === "left" || t.position === "right") tenonLocalAxis = "z";
@@ -1624,13 +1623,13 @@ export function OrthoView({
                   view === "front" ? "z" : view === "side" ? "x" : "y";
                 const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
                 const isVisibleTenon = t.type === "through-tenon" && tipFaceView;
+                // polygon 跟著 part shape（splayed/apron-trapezoid/beveled）變形
+                const tPoly = projectFeaturePolygon(part, lb, view, true);
+                const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
                 elements.push(
-                  <rect
+                  <polygon
                     key={`${part.id}-t${i}`}
-                    x={r.x}
-                    y={-(r.y + r.h)}
-                    width={r.w}
-                    height={r.h}
+                    points={tPoints}
                     fill="none"
                     stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
                     strokeWidth={0.6}
