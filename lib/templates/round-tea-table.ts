@@ -473,29 +473,42 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 視覺上 2 條交叉時可能 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
   if (withLowerStretcher && lowerStretcherStyle === "x-cross") {
     const isSplayedXcross = legShape.startsWith("splayed-");
-    // 用 X 撐下緣 Y（lsY0）算腳位置：斜腳在更低 Y 處外傾更大，splay shift 更大
-    // → 下緣端面要伸到那裡才接到腳。直梁上緣會略伸過腳但視覺較好（外凸 ≪ 內凹的縫）。
-    const shiftX = legHeight > 0 ? 1 - lsY0 / legHeight : 0;
-    const splayDxX = isSplayedXcross ? splayDx * shiftX : 0;
-    const splayDzX = isSplayedXcross ? splayDz * shiftX : 0;
-    const legSizeAtLs = legSize * legProfileScaleAt(legShape, lsY0, legHeight);
-    // 圓料腳（包含 shaker 下半 + 全部 round 系列）：對角斜撐打到的是腳邊（半徑），
-    // 不是方料的對角內角；中心到腳邊距 = 中心到腳中心距 − 半徑
     const isRoundLeg =
       legShape === "round" || legShape === "round-taper-down" || legShape === "round-taper-up" ||
       legShape === "shaker" ||
       legShape === "splayed-round-taper-down" || legShape === "splayed-round-taper-up";
-    const legCenterDist = Math.sqrt(
-      (cornerOffset + splayDxX) * (cornerOffset + splayDxX) +
-      (cornerOffset + splayDzX) * (cornerOffset + splayDzX),
-    );
-    const diagLen = isRoundLeg
-      ? 2 * (legCenterDist - legSizeAtLs / 2)
-      : 2 * Math.sqrt(
-          (cornerOffset + splayDxX - legSizeAtLs / 2) * (cornerOffset + splayDxX - legSizeAtLs / 2) +
-          (cornerOffset + splayDzX - legSizeAtLs / 2) * (cornerOffset + splayDzX - legSizeAtLs / 2),
-        );
-    const angle = Math.atan2(cornerOffset + splayDzX, cornerOffset + splayDxX);  // 圓桌 4 腳對稱 = 45°
+    // X 撐是直梁但腳在不同 Y 處 splay/scale 不同——上下緣端面對到腳邊距各算一次，
+    // visible.length 取最大值，trapezoid 把另一端縮進去，端面跟著腳邊斜
+    const halfDistAtY = (yMm: number) => {
+      const shift = legHeight > 0 ? 1 - yMm / legHeight : 0;
+      const dx = isSplayedXcross ? splayDx * shift : 0;
+      const dz = isSplayedXcross ? splayDz * shift : 0;
+      const r = legSize * legProfileScaleAt(legShape, yMm, legHeight) / 2;
+      const centerDist = Math.sqrt(
+        (cornerOffset + dx) * (cornerOffset + dx) +
+        (cornerOffset + dz) * (cornerOffset + dz),
+      );
+      // 圓料：腳邊距中心 = 中心到腳中心距 − 半徑
+      // 方料：對角線打到腳的對角內角 = √(halfX² + halfZ²)，halfX/Z = cornerOffset+d − r
+      return isRoundLeg
+        ? centerDist - r
+        : Math.sqrt(
+            (cornerOffset + dx - r) * (cornerOffset + dx - r) +
+            (cornerOffset + dz - r) * (cornerOffset + dz - r),
+          );
+    };
+    const halfTop = halfDistAtY(lsY0 + lowerStretcherWidth);
+    const halfBot = halfDistAtY(lsY0);
+    const halfMax = Math.max(halfTop, halfBot);
+    const diagLen = 2 * halfMax;
+    const trapTopScale = halfMax > 0 ? halfTop / halfMax : 1;
+    const trapBotScale = halfMax > 0 ? halfBot / halfMax : 1;
+    const isTrapezoid = Math.abs(trapTopScale - 1) > 0.001 || Math.abs(trapBotScale - 1) > 0.001;
+    // 對角方向（圓桌對稱 = 45°）；用中間 Y 的位置算 atan2 避免上下 Y 公式不一致
+    const midShift = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
+    const midDx = isSplayedXcross ? splayDx * midShift : 0;
+    const midDz = isSplayedXcross ? splayDz * midShift : 0;
+    const angle = Math.atan2(cornerOffset + midDz, cornerOffset + midDx);
     const xcTenonType: "through-tenon" | "shouldered-tenon" =
       lowerTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const diagonals = [
@@ -511,7 +524,9 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: diagLen, width: lowerStretcherWidth, thickness: lowerStretcherThickness },
         origin: { x: 0, y: lsY0 + d.yLift, z: 0 },
         rotation: { x: Math.PI / 2, y: d.yRot, z: 0 },
-        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+        shape: isTrapezoid
+          ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+          : legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [
           { position: "start", type: xcTenonType, length: lsTenonLen, width: lsTenonW, thickness: lsTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right"> },
           { position: "end", type: xcTenonType, length: lsTenonLen, width: lsTenonW, thickness: lsTenonThick, shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right"> },
