@@ -521,8 +521,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   if (withLowerStretchers) {
     // 用常數而非 hardcode，bench 的 under-shelf 才能算對 stretcher 頂面位置
     const stretcherY = opts.lowerStretcherHeight ?? Math.round(legHeight * LOWER_STRETCHER_HEIGHT_RATIO);
-    const stretcherWidth = opts.lowerStretcherWidth ?? 40;
-    const stretcherThickness = opts.lowerStretcherThickness ?? 20;
+    const stretcherWidth = opts.lowerStretcherWidth ?? 30;
+    const stretcherThickness = opts.lowerStretcherThickness ?? 18;
     // 下橫撐 ↔ 腳：autoTenonType + legPenetratingTenon override + 通榫補 +5mm（同 square-stool）
     const lowerTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
     const lowerTenonStd = standardTenon({
@@ -661,7 +661,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // visible 慣例改成 length=slatLen / width=slatThickness / thickness=slatWidth，
     // 配合 rotation 才會 yExt=slatThickness、xExt=slatWidth、zExt=slatLen。
     if (opts.withSlatRack) {
-      const slatCount = Math.max(2, Math.min(20, opts.slatCount ?? 5));
+      // slatCount 預設依桌長自動算：每 ~150mm 一條（min 3、max 12）。
+      // option spec 預設值 0 = 用此自動公式；> 0 = 使用者指定。
+      const slatCountAuto = Math.max(3, Math.min(12, Math.round(length / 150)));
+      const slatCountInput = opts.slatCount ?? 0;
+      const slatCount = slatCountInput > 0
+        ? Math.max(2, Math.min(20, slatCountInput))
+        : slatCountAuto;
       const slatWidth = Math.max(15, opts.slatWidth ?? 35);
       const slatThickness = Math.max(8, opts.slatThickness ?? 18);
       const slatCenterY = stretcherY + stretcherWidth / 2;
