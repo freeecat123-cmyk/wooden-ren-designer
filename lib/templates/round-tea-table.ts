@@ -180,6 +180,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: Math.round(legSize * 0.6),
           width: Math.round(legSize * 0.6),
           through: legTopTenonType === "through-tenon",
+          shape: isRoundShapeLeg ? "round" as const : "rect" as const,
         })),
       ),
     ],

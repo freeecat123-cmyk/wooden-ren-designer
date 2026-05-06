@@ -99,6 +99,8 @@ export interface Mortise {
   length: Millimeters;
   width: Millimeters;
   through: boolean;
+  /** 榫眼形狀：預設方形；圓料腳的圓榫對應的孔走 "round" → CSG 挖圓柱孔 */
+  shape?: "rect" | "round";
 }
 
 export type MaterialId =

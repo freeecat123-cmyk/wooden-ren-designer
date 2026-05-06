@@ -154,6 +154,7 @@ type ShapeSpec =
 function subtractMortisesFromGeometry(
   baseGeo: BufferGeometry,
   mortiseBoxes: LocalBox[],
+  mortiseShapes?: Array<"rect" | "round">,
 ): BufferGeometry {
   if (mortiseBoxes.length === 0) return baseGeo;
   // 確保 base 有 normal 跟 index（CSG 必須）。原 builder 多半都做了，
@@ -174,7 +175,15 @@ function subtractMortisesFromGeometry(
   for (let i = 0; i < mortiseBoxes.length; i++) {
     const m = mortiseBoxes[i];
     if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
-    const cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * m.hz);
+    const isRound = mortiseShapes?.[i] === "round";
+    let cutGeo: BufferGeometry;
+    if (isRound) {
+      // 圓孔沿 part-local Y 軸（top mortise 慣例）—— radius = min(hx, hz)
+      const r = Math.min(m.hx, m.hz);
+      cutGeo = new CylinderGeometry(r, r, 2 * m.hy, 24);
+    } else {
+      cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * m.hz);
+    }
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
@@ -196,6 +205,7 @@ function Part({
   isGlass,
   grainDirection,
   mortiseBoxes,
+  mortiseShapes,
 }: {
   position: [number, number, number];
   size: [number, number, number];
@@ -207,6 +217,8 @@ function Part({
   /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
    *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
   mortiseBoxes?: LocalBox[];
+  /** 對應 mortiseBoxes 每個的形狀（"rect" | "round"）；undefined = 全 rect */
+  mortiseShapes?: Array<"rect" | "round">;
 }) {
   // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）
   const woodCompile = grainDirection === "width" ? woodCompileZ : woodCompileX;
@@ -366,11 +378,11 @@ function Part({
   const csgGeometry = useMemo(() => {
     if (!mortiseBoxes || mortiseBoxes.length === 0) return null;
     const baseGeo = geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    const result = subtractMortisesFromGeometry(baseGeo, mortiseBoxes);
+    const result = subtractMortisesFromGeometry(baseGeo, mortiseBoxes, mortiseShapes);
     // 若 baseGeo 是新建的 BoxGeometry（不是 useMemo cache 的 geometry），dispose
     if (!geometry) baseGeo.dispose();
     return result;
-  }, [geometry, mortiseBoxes, shape, size]);
+  }, [geometry, mortiseBoxes, mortiseShapes, shape, size]);
 
   if (isGlass) {
     return (
@@ -2226,6 +2238,10 @@ export function PerspectiveView({
                   };
                 })
               : undefined;
+          const mortiseShapesArr: Array<"rect" | "round"> | undefined =
+            joineryMode && part.mortises.length > 0
+              ? part.mortises.map((m) => m.shape === "round" ? "round" : "rect")
+              : undefined;
           return (
             <group key={part.id}>
               <Part
@@ -2246,6 +2262,7 @@ export function PerspectiveView({
                 isGlass={part.visual === "glass"}
                 grainDirection={part.grainDirection}
                 mortiseBoxes={mortiseBoxesScaled}
+                mortiseShapes={mortiseShapesArr}
               />
               {tenonMeshes}
               {auditOverlay}
