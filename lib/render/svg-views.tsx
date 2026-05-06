@@ -747,14 +747,32 @@ export function OrthoView({
 
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(design.parts, view).map((part) => {
-        // Interior structural parts（中央橫撐、置物條格柵）在正視/側視被
-        // 牙條和下橫撐擋住，理論上 isPartHidden 的 AABB containment 會抓到，
-        // 但 slat/center-stretcher 比 stretcher 寬（超出邊界），落不到 contains。
-        // 直接 ID prefix 強制虛線——top view 仍實線（從上看得到）。
-        const isInterior =
-          (view === "front" || view === "side") &&
-          (/^slat-/.test(part.id) || part.id === "center-stretcher");
-        const hidden = isInterior || isPartHidden(part, design.parts, view);
+        // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
+        // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界）。
+        // 用 ID 規則直接判斷正視/側視看不到的內部結構件——top view 仍實線。
+        //
+        // 正視圖（從前往後看）：左右牙條/下橫撐（垂直方向延伸但被前牙條/前
+        //   下橫撐擋）+ 中央橫撐 + 置物條 + 後方牙條/下橫撐
+        // 側視圖（從側往內看）：前後牙條/下橫撐 + 中央橫撐 + 置物條
+        const isInteriorInFront =
+          view === "front" &&
+          (/^slat-/.test(part.id) ||
+            part.id === "center-stretcher" ||
+            part.id === "apron-left" ||
+            part.id === "apron-right" ||
+            part.id === "apron-back" ||
+            part.id === "ls-left" ||
+            part.id === "ls-right" ||
+            part.id === "ls-back");
+        const isInteriorInSide =
+          view === "side" &&
+          (/^slat-/.test(part.id) ||
+            part.id === "center-stretcher" ||
+            part.id === "apron-front" ||
+            part.id === "apron-back" ||
+            part.id === "ls-front" ||
+            part.id === "ls-back");
+        const hidden = isInteriorInFront || isInteriorInSide || isPartHidden(part, design.parts, view);
         const stroke = hidden ? "#888" : "#111";
         const sw = hidden ? 0.5 : 0.9;
         const dash = hidden ? "4 3" : undefined;
