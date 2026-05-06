@@ -1620,11 +1620,11 @@ export function OrthoView({
               // 腳頂中心 (世界): (ox, oy + lh, oz)
               const bx = ox + bottomDx, by = oy, bz = oz + bottomDz;
               const tx = ox, ty = oy + lh, tz = oz;
-              // 投影到視圖平面
+              // 投影到視圖平面（用跟 makeProjector 相同的慣例：front/top 都 -wx）
               const proj = (wx: number, wy: number, wz: number) => {
-                if (view === "front") return { x: wx, y: wy };
+                if (view === "front") return { x: -wx, y: wy };
                 if (view === "side") return { x: wz, y: wy };
-                return { x: wx, y: -wz };  // top view (won't use here)
+                return { x: -wx, y: wz };  // top view (won't use here)
               };
               const p1 = proj(bx, by, bz);
               const p2 = proj(tx, ty, tz);
@@ -1715,7 +1715,11 @@ export function OrthoView({
                       const dz = part.shape.dzMm ?? 0;
                       const lh = part.visible.thickness;
                       if (lh > 0) {
-                        const projDx = view === "front" ? -dx : view === "side" ? -dz : 0;
+                        // 世界中腳軸往上 = (-dx, +lh, -dz)；投到 screen：
+                        //   front: screen X = -world X → screen Δx = +dx
+                        //   side:  screen X =  world Z → screen Δx = -dz
+                        // screen Y = world Y 對 front/side 一致，axDy = lh/norm
+                        const projDx = view === "front" ? dx : view === "side" ? -dz : 0;
                         const norm = Math.sqrt(projDx * projDx + lh * lh);
                         axDx = projDx / norm;
                         axDy = lh / norm;
