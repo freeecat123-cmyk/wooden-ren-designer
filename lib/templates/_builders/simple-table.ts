@@ -650,28 +650,44 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     }
 
     // 下橫撐置物條（slat rack）：在前後下橫撐之間架 N 條格柵
-    // 條嵌在前後 stretcher 中間（length = inner face 到 inner face）
-    // 條中心軸跟 stretcher 中心軸對齊：slat center Y = stretcher center Y
-    // 條 X 位置在 leg 內側等距分佈，避免撞腳
+    // 條嵌在前後 stretcher 中間，中心軸跟 stretcher 中心軸對齊
+    // 條 X 位置在 leg 內側等距分佈（N+1 個 gap 等寬）
+    //
+    // 斜腳補償：stretcher 是 tilted 的（top 內、bot 外）。slat 兩端要梯形：
+    //   top edge 短到 stretcher inner face 在 slat top Y 的位置
+    //   bot edge 長到 stretcher inner face 在 slat bot Y 的位置
+    // 用 apron-trapezoid shape；rotation { x: π/2, y: π/2 } 讓 local Z 對應
+    // 世界 Y 軸（trapezoid 沿 local Z 內插 = 沿世界 Y 內插）。
+    // visible 慣例改成 length=slatLen / width=slatThickness / thickness=slatWidth，
+    // 配合 rotation 才會 yExt=slatThickness、xExt=slatWidth、zExt=slatLen。
     if (opts.withSlatRack) {
       const slatCount = Math.max(2, Math.min(20, opts.slatCount ?? 5));
       const slatWidth = Math.max(15, opts.slatWidth ?? 35);
       const slatThickness = Math.max(8, opts.slatThickness ?? 18);
       const slatCenterY = stretcherY + stretcherWidth / 2;
       const slatY = slatCenterY - slatThickness / 2;
-      // 斜腳：stretcher 是 tilted 的，inner face Z 隨 Y 變化（slat top Y 內側、
-      // slat bot Y 外側）。用 slat 底部 Y 算 splay → slat 兩端在 slat 底邊
-      // 剛好 butt stretcher inner face；slat 頂邊則略進 stretcher body（被
-      // stretcher 蓋住、視覺看不到）。
-      const slatBotShift = legHeight > 0 ? 1 - slatY / legHeight : 0;
-      const slatSplayZ = splayDz * slatBotShift;
-      // 條 length = 前後 stretcher inner face 到 inner face（取 slat 底邊位置）
-      const slatLen = 2 * (apronEdgeZ + slatSplayZ) - stretcherThickness;
+      const slatTopY = slatY + slatThickness;
+      const slatBotY = slatY;
+      const slatTopShift = legHeight > 0 ? 1 - slatTopY / legHeight : 0;
+      const slatBotShift = legHeight > 0 ? 1 - slatBotY / legHeight : 0;
+      const slatHalfAtTop = apronEdgeZ + splayDz * slatTopShift - stretcherThickness / 2;
+      const slatHalfAtBot = apronEdgeZ + splayDz * slatBotShift - stretcherThickness / 2;
+      const slatRefHalf = Math.max(slatHalfAtTop, slatHalfAtBot, 25);
+      const slatLen = 2 * slatRefHalf;
+      const slatTopLengthScale = slatRefHalf > 0 ? slatHalfAtTop / slatRefHalf : 1;
+      const slatBotLengthScale = slatRefHalf > 0 ? slatHalfAtBot / slatRefHalf : 1;
+      const slatNeedsTrapezoid = splayDz > 0 && Math.abs(slatTopLengthScale - slatBotLengthScale) > 0.001;
       // X span：從左腳內面到右腳內面（apronInnerSpan.x）
       const slatXSpan = 2 * apronEdgeX - legSize;
       // 等距分佈：N+1 個 gap（兩端到腳 + 條跟條之間）全部等寬，避免兩端條貼腳
       const gapCount = slatCount + 1;
       const gap = Math.max(0, (slatXSpan - slatCount * slatWidth) / gapCount);
+      // apron-trapezoid 沿 local Z 內插（zL=-lz/2 → topLengthScale，zL=+lz/2 → bot）。
+      // 我們的 slat rotation 後 local Z 映射到 world -Y（local Z=+ → world Y=−）。
+      // 所以 local Z=-lz/2（trapezoid 的 "top"）對應 world Y top（slat 高處）。
+      const slatShape = slatNeedsTrapezoid
+        ? { kind: "apron-trapezoid" as const, topLengthScale: slatTopLengthScale, bottomLengthScale: slatBotLengthScale }
+        : undefined;
       for (let i = 0; i < slatCount; i++) {
         const slatX = -slatXSpan / 2 + gap + slatWidth / 2 + i * (gap + slatWidth);
         parts.push({
@@ -679,12 +695,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           nameZh: `置物條 ${i + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: slatLen, width: slatWidth, thickness: slatThickness },
+          // visible 慣例（搭配 rotation x=π/2, y=π/2）：
+          //   length=slatLen → world Z（前後跨）
+          //   width=slatThickness → 經 rotation 後成 world Y（垂直厚）
+          //   thickness=slatWidth → 經 rotation 後成 world X（橫）
+          visible: { length: slatLen, width: slatThickness, thickness: slatWidth },
           origin: { x: slatX, y: slatY, z: 0 },
-          // length 沿 Z 軸（前後）、width 沿 X 軸（橫）、thickness 沿 Y 軸（垂直厚）
-          // 只繞 Y 軸 π/2：local-X(length)→world-Z、local-Y(thickness)→世界 Y、
-          //   local-Z(width)→world-X。worldExtents.yExt = slatThickness。
-          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          shape: slatShape,
           tenons: [],
           mortises: [],
         });
