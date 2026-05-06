@@ -93,8 +93,6 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legHeight = height - topThickness;
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
   // 腳頂榫對圓桌面 radial 偏（X+Z 朝中心）— 圓桌面沒「端面」概念，4 隻腳一律保護
-  const legTopTenonW_round = Math.round(legSize * 0.6);
-  const legTopRadialInset = Math.max(0, Math.round((legSize - legTopTenonW_round) / 2));
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
   // 套方凳榫卯規則
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
@@ -164,11 +162,11 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [
       ...[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => ({
-          // 跟 tenon 一起 radial 朝中心偏
+          // 榫眼中心對齊腳中軸（不 radial 內偏）
           origin: {
-            x: sx * cornerOffset - sx * legTopRadialInset,
+            x: sx * cornerOffset,
             y: 0,
-            z: sz * cornerOffset - sz * legTopRadialInset,
+            z: sz * cornerOffset,
           },
           // 跟 leg seat tenon length 同公式才能對位（drafting-math.md §B2）
           depth: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
@@ -214,16 +212,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: Math.round(Math.min(topThickness * (2 / 3), topThickness - 6)),
           width: Math.round(legSize * 0.6),
           thickness: Math.round(legSize * 0.6),
-          // 朝桌面中心 radial 偏；移除朝外 2 個肩
-          offsetWidth: -sx * legTopRadialInset,
-          offsetThickness: -sz * legTopRadialInset,
-          shoulderOn: (() => {
-            if (legTopRadialInset <= 0) return ["top", "bottom", "left", "right"] as const;
-            const removeX: "left" | "right" = sx > 0 ? "left" : "right";
-            const removeZ: "top" | "bottom" = sz > 0 ? "bottom" : "top";
-            return (["top", "bottom", "left", "right"] as Array<"top" | "bottom" | "left" | "right">)
-              .filter((s) => s !== removeX && s !== removeZ);
-          })(),
+          // 榫頭中心對齊腳中軸
+          shoulderOn: ["top", "bottom", "left", "right"] as const,
         },
       ],
       mortises: [
