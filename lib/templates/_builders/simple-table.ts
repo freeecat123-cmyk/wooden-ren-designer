@@ -680,10 +680,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           grainDirection: "length",
           visible: { length: slatLen, width: slatWidth, thickness: slatThickness },
           origin: { x: slatX, y: slatY, z: 0 },
-          // length 沿 Z 軸（前後）、width 沿 X 軸、thickness 沿 Y 軸（垂直厚）
-          // rotation { x: π/2, y: π/2 }：local-X→world-Z（length）、
-          //   local-Y→world-X（width）、local-Z→world-Y（thickness）
-          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          // length 沿 Z 軸（前後）、width 沿 X 軸（橫）、thickness 沿 Y 軸（垂直厚）
+          // 只繞 Y 軸 π/2：local-X(length)→world-Z、local-Y(thickness)→世界 Y、
+          //   local-Z(width)→world-X。worldExtents.yExt = slatThickness。
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
           tenons: [],
           mortises: [],
         });
