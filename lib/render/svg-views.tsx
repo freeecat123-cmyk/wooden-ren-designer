@@ -227,7 +227,7 @@ export type LocalBox = {
 
 /**
  * 把 part-local 點 (xL, yL, zL) 經 part 的 Euler XYZ rotation + origin 投影
- * 到指定 view 的 (vx, vy)。共用給 projectFeatureRect。
+ * 到指定 view 的 (vx, vy)。共用給 projectFeatureRect 跟 projectDovetailPolygon。
  */
 function makeProjector(part: Part, view: OrthoView) {
   const rx = part.rotation?.x ?? 0;
@@ -256,6 +256,72 @@ function makeProjector(part: Part, view: OrthoView) {
     if (view === "side") return { x: wz, y: wy };
     return { x: -wx, y: wy };
   };
+}
+
+/**
+ * 鳩尾榫斷面投影：把 width 軸於 tenon TIP 端外擴 flare（標準 1:8 = L/8 per side），
+ * BASE 端保持 W。回 4 組 silhouette 凸包點（projected 2D），給 svg `<polygon>` 用。
+ *
+ * 用 tenon.position 推 length / width / thickness 對應到哪條 local axis；oW/oT
+ * 偏移跟一般 tenon 一致。返回 view-space 點。
+ */
+function projectDovetailPolygon(
+  part: Part,
+  tenon: Part["tenons"][number],
+  view: OrthoView,
+): Array<{ x: number; y: number }> {
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const L = tenon.length;
+  const W = tenon.width;
+  const T = tenon.thickness;
+  const oW = tenon.offsetWidth ?? 0;
+  const oT = tenon.offsetThickness ?? 0;
+  const angleTan = 1 / 8; // 1:8 dovetail standard (硬木；軟木 1:6)
+  const flare = L * angleTan;
+  const project = makeProjector(part, view);
+  const ptsRaw: Array<[number, number, number]> = [];
+  // BASE = 0; TIP = +1; each pair (s_thick, s_widthAxis)
+  const addCorners = (axisL: "x" | "y" | "z", baseSign: -1 | 1, sign: -1 | 1) => {
+    // baseSign: where the tenon sits on part face (start/bottom/left = -1 face; end/top/right = +1)
+    // sign:    +1 = TIP (outer), -1 = BASE (at face)
+    // length axis goes from face out by sign × L; width axis flare = TIP wider
+    if (axisL === "x") {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const xL_ = baseSign * (lx / 2) + sign * baseSign * 0; // base at face
+      const xT_ = baseSign * (lx / 2) + sign * baseSign * L; // ... not quite
+      // simpler:
+      // BASE x = baseSign * lx/2; TIP x = baseSign * (lx/2 + L)
+      const xCoord = baseSign * (lx / 2 + (sign > 0 ? L : 0));
+      // 4 corners: ±T (thickness=Y), ±W (width=Z)
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([xCoord, oT + sT * (T / 2), oW + sW * halfW]);
+      }
+    } else if (axisL === "y") {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const yCoord = baseSign * (ly / 2 + (sign > 0 ? L : 0));
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([oW + sW * halfW, yCoord, oT + sT * (T / 2)]);
+      }
+    } else {
+      const halfW = sign > 0 ? W / 2 + flare : W / 2;
+      const zCoord = baseSign * (lz / 2 + (sign > 0 ? L : 0));
+      for (const sT of [-1, 1] as const) for (const sW of [-1, 1] as const) {
+        ptsRaw.push([oW + sW * halfW, oT + sT * (T / 2), zCoord]);
+      }
+    }
+  };
+  switch (tenon.position) {
+    case "start":  addCorners("x", -1, -1); addCorners("x", -1, +1); break;
+    case "end":    addCorners("x", +1, -1); addCorners("x", +1, +1); break;
+    case "bottom": addCorners("y", -1, -1); addCorners("y", -1, +1); break;
+    case "top":    addCorners("y", +1, -1); addCorners("y", +1, +1); break;
+    case "left":   addCorners("z", -1, -1); addCorners("z", -1, +1); break;
+    case "right":  addCorners("z", +1, -1); addCorners("z", +1, +1); break;
+  }
+  const projected = ptsRaw.map(([a, b, c]) => project(a, b, c));
+  return convexHull2DLocal(projected);
 }
 
 /** 簡易 Andrew monotone-chain convex hull 2D（svg-views 內部用） */
