@@ -1664,7 +1664,32 @@ export function OrthoView({
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
-                const isVisibleTenon = t.type === "through-tenon";
+                // 通榫只有「端面正對視線」的視圖才該是藍實線（凸出可見）；
+                // 其他視圖榫頭埋在母件裡 → 紅虛線。
+                // 計算 tenon 長軸（part-local）→ 套 part rotation → 拿到 world axis
+                let tenonLocalAxis: "x" | "y" | "z" = "x";
+                if (t.position === "top" || t.position === "bottom") tenonLocalAxis = "y";
+                else if (t.position === "left" || t.position === "right") tenonLocalAxis = "z";
+                const rx = part.rotation?.x ?? 0;
+                const ry = part.rotation?.y ?? 0;
+                let vx = tenonLocalAxis === "x" ? 1 : 0;
+                let vy = tenonLocalAxis === "y" ? 1 : 0;
+                let vz = tenonLocalAxis === "z" ? 1 : 0;
+                const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
+                const ny = vy * cx_ - vz * sx_;
+                const nz = vy * sx_ + vz * cx_;
+                vy = ny; vz = nz;
+                const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
+                const nx2 = vx * cy_ + vz * sy_;
+                const nz2 = -vx * sy_ + vz * cy_;
+                vx = nx2; vz = nz2;
+                const ax = Math.abs(vx), ay = Math.abs(vy), az = Math.abs(vz);
+                const tenonWorldAxis: "x" | "y" | "z" =
+                  ax >= ay && ax >= az ? "x" : ay >= az ? "y" : "z";
+                const viewCollapsedAxis: "x" | "y" | "z" =
+                  view === "front" ? "z" : view === "side" ? "x" : "y";
+                const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
+                const isVisibleTenon = t.type === "through-tenon" && tipFaceView;
                 elements.push(
                   <rect
                     key={`${part.id}-t${i}`}
