@@ -665,11 +665,11 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const slatLen = 2 * (apronEdgeZ + slatSplayZ) - stretcherThickness;
       // X span：從左腳內面到右腳內面（apronInnerSpan.x）
       const slatXSpan = 2 * apronEdgeX - legSize;
-      // 等距分佈：N 條的中心點均分 (slatXSpan - slatWidth)
-      const usableX = Math.max(0, slatXSpan - slatWidth);
+      // 等距分佈：N+1 個 gap（兩端到腳 + 條跟條之間）全部等寬，避免兩端條貼腳
+      const gapCount = slatCount + 1;
+      const gap = Math.max(0, (slatXSpan - slatCount * slatWidth) / gapCount);
       for (let i = 0; i < slatCount; i++) {
-        const t = slatCount === 1 ? 0.5 : i / (slatCount - 1);
-        const slatX = -usableX / 2 + t * usableX;
+        const slatX = -slatXSpan / 2 + gap + slatWidth / 2 + i * (gap + slatWidth);
         parts.push({
           id: `slat-${i + 1}`,
           nameZh: `置物條 ${i + 1}`,
