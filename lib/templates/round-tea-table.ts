@@ -473,23 +473,33 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   // 視覺上 2 條交叉時可能 z-fight，第二條稍微抬高 1mm 避免（肉眼看不出）。
   if (withLowerStretcher && lowerStretcherStyle === "x-cross") {
     const isSplayedXcross = legShape.startsWith("splayed-");
-    const xc_tilt = isSplayedXcross ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
     const shiftX = legHeight > 0 ? 1 - lsYCenter0 / legHeight : 0;
     const splayDxX = isSplayedXcross ? splayDx * shiftX : 0;
     const splayDzX = isSplayedXcross ? splayDz * shiftX : 0;
     const legSizeAtLs = legSize * legProfileScaleAt(legShape, lsYCenter0, legHeight);
-    // 半長：從中心到腳內角（X、Z 方向）；對角斜撐打到對角腳的內側面
-    const halfX = cornerOffset + splayDxX - legSizeAtLs / 2;
-    const halfZ = cornerOffset + splayDzX - legSizeAtLs / 2;
-    const diagLen = 2 * Math.sqrt(halfX * halfX + halfZ * halfZ);
-    const angle = Math.atan2(halfZ, halfX);  // 圓桌 4 腳對稱 = 45°
+    // 圓料腳（包含 shaker 下半 + 全部 round 系列）：對角斜撐打到的是腳邊（半徑），
+    // 不是方料的對角內角；中心到腳邊距 = 中心到腳中心距 − 半徑
+    const isRoundLeg =
+      legShape === "round" || legShape === "round-taper-down" || legShape === "round-taper-up" ||
+      legShape === "shaker" ||
+      legShape === "splayed-round-taper-down" || legShape === "splayed-round-taper-up";
+    const legCenterDist = Math.sqrt(
+      (cornerOffset + splayDxX) * (cornerOffset + splayDxX) +
+      (cornerOffset + splayDzX) * (cornerOffset + splayDzX),
+    );
+    const diagLen = isRoundLeg
+      ? 2 * (legCenterDist - legSizeAtLs / 2)
+      : 2 * Math.sqrt(
+          (cornerOffset + splayDxX - legSizeAtLs / 2) * (cornerOffset + splayDxX - legSizeAtLs / 2) +
+          (cornerOffset + splayDzX - legSizeAtLs / 2) * (cornerOffset + splayDzX - legSizeAtLs / 2),
+        );
+    const angle = Math.atan2(cornerOffset + splayDzX, cornerOffset + splayDxX);  // 圓桌 4 腳對稱 = 45°
     const xcTenonType: "through-tenon" | "shouldered-tenon" =
       lowerTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const diagonals = [
       { id: "ls-xcross-1", nameZh: "X 撐 1（前左↔後右）", yRot: angle, yLift: 0 },
       { id: "ls-xcross-2", nameZh: "X 撐 2（前右↔後左）", yRot: -angle, yLift: lowerStretcherThickness * 0.05 },
     ];
-    void xc_tilt;
     for (const d of diagonals) {
       lowerStretchers.push({
         id: d.id,
