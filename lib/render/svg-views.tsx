@@ -1623,19 +1623,38 @@ export function OrthoView({
                   view === "front" ? "z" : view === "side" ? "x" : "y";
                 const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
                 const isVisibleTenon = t.type === "through-tenon" && tipFaceView;
-                // polygon 跟著 part shape（splayed/apron-trapezoid/beveled）變形
-                const tPoly = projectFeaturePolygon(part, lb, view, true);
-                const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
-                elements.push(
-                  <polygon
-                    key={`${part.id}-t${i}`}
-                    points={tPoints}
-                    fill="none"
-                    stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
-                    strokeWidth={0.6}
-                    strokeDasharray={isVisibleTenon ? undefined : "3 2"}
-                  />,
-                );
+                // 側/正視 用 polygon 跟著 part shape（splayed/apron-trapezoid/
+                // beveled）變形——apron 斜的話榫頭也跟著斜。
+                // 俯視 用 axis-aligned rect——避免 apron-trapezoid 讓 top/bot
+                // 端 length scale 差距產生疊影 mess。
+                if (view === "top") {
+                  elements.push(
+                    <rect
+                      key={`${part.id}-t${i}`}
+                      x={r.x}
+                      y={-(r.y + r.h)}
+                      width={r.w}
+                      height={r.h}
+                      fill="none"
+                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                      strokeWidth={0.6}
+                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                    />,
+                  );
+                } else {
+                  const tPoly = projectFeaturePolygon(part, lb, view, true);
+                  const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                  elements.push(
+                    <polygon
+                      key={`${part.id}-t${i}`}
+                      points={tPoints}
+                      fill="none"
+                      stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                      strokeWidth={0.6}
+                      strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                    />,
+                  );
+                }
                 // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
                 // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）
                 if (t.type === "finger-joint") {
