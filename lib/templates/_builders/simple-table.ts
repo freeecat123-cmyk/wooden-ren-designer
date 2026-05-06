@@ -654,9 +654,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // Body length: from front-apron INNER face to back-apron INNER face.
     // (Tenon protrudes INTO each apron by stretcherTenonLen beyond this body.)
     // 斜腳補償（splayDz）：apron 在 stretcher Y 高度被外推 splayDz*shift，body 跟著
-    // 拉長才能butt 到 apron inner face。但 apron 是 tilted（cos(tiltZ)），inner
-    // face 在 stretcher TOP Y 最內側、BOTTOM Y 最外側，所以用 stretcher TOP Y
-    // 的 shift 算上限——避免覆蓋掉 apron（overlap audit 會抓 NEW pair）。
+    // 拉長才能 butt 到 apron inner face。但 apron 是 tilted（apron-trapezoid +
+    // tiltZ）：inner face 在 stretcher TOP Y 最內側、BOTTOM Y 最外側。
+    //
+    // 模仿下橫撐 (line 575-589)：bodyLen 用 BOTTOM Y 算（最寬處），再套
+    // apron-trapezoid 讓 top edge 縮短 = halfAtTop / halfAtBot。這樣 stretcher
+    // 兩端都剛好 butt apron inner face，沒 gap 也沒 overlap。
     const dropFromApronTop =
       opts.centerStretcherDrop ??
       Math.max(15, Math.round((apronWidth - stretcherWidth) / 2) + 10);
@@ -664,12 +667,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       apronY,
       apronY + apronWidth - dropFromApronTop - stretcherWidth,
     );
-    const stretcherTopShift = legHeight > 0 ? 1 - (originY + stretcherWidth) / legHeight : 0;
-    const stretcherApronSplayZ = splayDz * stretcherTopShift;
-    const bodyLen = Math.max(
-      50,
-      width - legSize - 2 * legInset - apronThickness + 2 * stretcherApronSplayZ,
-    );
+    const csTopShift = legHeight > 0 ? 1 - (originY + stretcherWidth) / legHeight : 0;
+    const csBotShift = legHeight > 0 ? 1 - originY / legHeight : 0;
+    const csHalfAtTop = apronEdgeZ + splayDz * csTopShift - apronThickness / 2;
+    const csHalfAtBot = apronEdgeZ + splayDz * csBotShift - apronThickness / 2;
+    const csReferenceHalf = Math.max(csHalfAtTop, csHalfAtBot, 25);
+    const bodyLen = Math.max(50, 2 * csReferenceHalf);
+    const csTopLengthScale = csReferenceHalf > 0 ? csHalfAtTop / csReferenceHalf : 1;
+    const csBotLengthScale = csReferenceHalf > 0 ? csHalfAtBot / csReferenceHalf : 1;
+    const csNeedsTrapezoid = splayDz > 0 && Math.abs(csTopLengthScale - csBotLengthScale) > 0.001;
     // 橫撐 → 牙板：榫頭兩軸的尺寸+肩位指派
     //   tenon.thickness 走 stretcher local Y = world 水平 = 25mm（橫撐 thickness）
     //     橫向**不開肩**（用 stretcherThickness 全值，shoulderOn 移除 top/bottom）。
@@ -693,7 +699,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
       origin: { x: 0, y: originY, z: 0 },
       rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      shape: legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
+      shape: csNeedsTrapezoid
+        ? { kind: "apron-trapezoid" as const, topLengthScale: csTopLengthScale, bottomLengthScale: csBotLengthScale }
+        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle),
       tenons: [
         {
           position: "start",
