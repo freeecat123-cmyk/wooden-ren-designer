@@ -660,9 +660,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     // 模仿下橫撐 (line 575-589)：bodyLen 用 BOTTOM Y 算（最寬處），再套
     // apron-trapezoid 讓 top edge 縮短 = halfAtTop / halfAtBot。這樣 stretcher
     // 兩端都剛好 butt apron inner face，沒 gap 也沒 overlap。
-    const dropFromApronTop =
-      opts.centerStretcherDrop ??
-      Math.max(15, Math.round((apronWidth - stretcherWidth) / 2) + 10);
+    // 預設 drop=0 → stretcher 頂面跟牙板上緣切齊（4-leg 桌子最常見的工法、視覺
+    // 上跟牙板連成一氣）。dining-table 仍可透過 centerStretcherDrop option 自訂
+    // 往下偏移。
+    const dropFromApronTop = opts.centerStretcherDrop ?? 0;
     const originY = Math.max(
       apronY,
       apronY + apronWidth - dropFromApronTop - stretcherWidth,

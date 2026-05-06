@@ -62,7 +62,7 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "明式 / 工業風款才用；現代北歐 / 日式風格不加。長桌（>1500mm）建議加防扭" },
   { group: "stretcher", type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withCenterStretcher" } },
-  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 自動置中於牙板", dependsOn: { key: "withCenterStretcher" } },
+  { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 跟牙板上緣切齊（預設）", dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 40, min: 20, max: 150, step: 5, dependsOn: { key: "withLowerStretchers" } },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 20, min: 10, max: 50, step: 1, dependsOn: { key: "withLowerStretchers" } },
