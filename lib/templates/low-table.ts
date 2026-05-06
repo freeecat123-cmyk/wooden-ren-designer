@@ -9,8 +9,6 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
-  topPanelPiecesOption,
-  topPanelPiecesNote,
 } from "./_helpers";
 
 export const lowTableOptions: OptionSpec[] = [
@@ -25,8 +23,6 @@ export const lowTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
-  topPanelPiecesOption("top"),
-  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
@@ -40,18 +36,11 @@ export const lowTableOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
-  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 10, min: 0, max: 200, step: 5, help: "矮桌體量小，10mm 比例較不會牙板飄離" },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 400, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
-  { group: "top", type: "select", key: "centerInsert", label: "中央嵌入物", defaultValue: "none", choices: [
-    { value: "none", label: "無（純桌面）" },
-    { value: "fire-pit", label: "炭/酒精爐凹槽（火盆桌）" },
-    { value: "ice-bowl", label: "保冰碗凹槽（IGGY 桌中央放冰碗）" },
-    { value: "tatami-tray", label: "和室托盤凹（平時可收納成平面）" },
-  ], help: "桌面中央挖凹槽嵌入特殊配件。火盆桌需配防火磚 + 隔熱層" },
 ];
 
 export const lowTable: FurnitureTemplate = (input) => {
@@ -65,14 +54,11 @@ export const lowTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
-  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
-  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
-  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -89,7 +75,6 @@ export const lowTable: FurnitureTemplate = (input) => {
     topThickness,
     apronWidth,
     legPenetratingTenon,
-    topOverhang,
     withCenterStretcher: withCenterStretcher || input.length > 900,
     withLowerStretchers,
     legInset,
@@ -102,26 +87,11 @@ export const lowTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    topPanelPieces,
-    withBreadboardEnds,
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}${(() => { const ci = getOption<string>(input, opt(o, "centerInsert")); return ci === "fire-pit" ? " 桌面中央挖 ⌀200×100mm 凹槽 + 防火磚襯底 + 鋁箔隔熱層，放炭 / 酒精爐（火盆桌）。" : ci === "ice-bowl" ? " 桌面中央挖 ⌀250×80mm 凹槽放保冰碗（IGGY 風格）。" : ci === "tatami-tray" ? " 桌面中央挖凹平時收成平面、托盤可拉出。" : ""; })()}`,
+    notes: `和室矮桌、地板桌；席地而坐高度約 350mm。${liveEdge ? " Live edge 原木邊。" : ""}${dropLeaf !== "none" ? ` 含${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬）。` : ""}`,
   });
-  // 中央嵌入凹槽：在 top 加 mortise
-  const centerInsert = getOption<string>(input, opt(o, "centerInsert"));
-  if (centerInsert !== "none") {
-    const topPart = design.parts.find((p) => p.id === "top");
-    if (topPart) {
-      const dia = centerInsert === "fire-pit" ? 200 : centerInsert === "ice-bowl" ? 250 : 280;
-      const dep = centerInsert === "fire-pit" ? 100 : centerInsert === "ice-bowl" ? 80 : 25;
-      topPart.mortises = [
-        ...topPart.mortises,
-        { origin: { x: 0, y: 0, z: 0 }, depth: dep, length: dia, width: dia, through: false },
-      ];
-    }
-  }
 
   applyStandardChecks(design, {
     minLength: 500, minWidth: 400, minHeight: 250,

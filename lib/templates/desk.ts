@@ -9,8 +9,6 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
-  topPanelPiecesOption,
-  topPanelPiecesNote,
 } from "./_helpers";
 
 export const deskOptions: OptionSpec[] = [
@@ -25,8 +23,6 @@ export const deskOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
-  topPanelPiecesOption("top"),
-  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
@@ -35,7 +31,6 @@ export const deskOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2 },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
-  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 30, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
   { group: "drawer", type: "number", key: "drawerCount", label: "懸吊抽屜數", defaultValue: 0, min: 0, max: 3, step: 1, help: "桌面下掛一組抽屜櫃（0 = 無）" },
@@ -75,8 +70,6 @@ export const desk: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
-  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
-  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const grommetCount = parseInt(getOption<string>(input, opt(o, "grommetCount"))) || 0;
   const withKeyboardTray = getOption<boolean>(input, opt(o, "withKeyboardTray"));
@@ -88,7 +81,6 @@ export const desk: FurnitureTemplate = (input) => {
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
-  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const drawerCount = getOption<number>(input, opt(o, "drawerCount"));
@@ -109,7 +101,6 @@ export const desk: FurnitureTemplate = (input) => {
     apronWidth,
     apronThickness,
     legPenetratingTenon,
-    topOverhang,
     withCenterStretcher: withCenterStretcher && drawerCount === 0,
     withLowerStretchers,
     legInset,
@@ -122,10 +113,8 @@ export const desk: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    topPanelPieces,
-    withBreadboardEnds,
     liveEdge,
-    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板防翹。" : ""}${liveEdge ? " Live edge 原木邊。" : ""}${withKeyboardTray ? " 桌下加滑出式鍵盤板。" : ""}${withModestyPanel ? " 前方加 350mm 高 modesty 飾遮腿板（會議/客戶桌風格）。" : ""}${withPencilTray ? " 桌面下方中央加 45mm 高淺抽屜（筆/名片/印章）。" : ""}`,
+    notes: `書桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerCount > 0 ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : ""}。${liveEdge ? " Live edge 原木邊。" : ""}${withKeyboardTray ? " 桌下加滑出式鍵盤板。" : ""}${withModestyPanel ? " 前方加 350mm 高 modesty 飾遮腿板（會議/客戶桌風格）。" : ""}${withPencilTray ? " 桌面下方中央加 45mm 高淺抽屜（筆/名片/印章）。" : ""}`,
   });
 
   if (drawerCount > 0) {

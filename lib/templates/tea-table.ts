@@ -32,8 +32,6 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
-  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "桌面超出桌腳外側的距離，做飄浮感" },
-  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，防止跨度大時翹曲", wide: true },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
     { value: "one-side", label: "單側翻板" },
@@ -100,8 +98,6 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
   const lowerStretcherThickness = getOption<number>(input, opt(o, "lowerStretcherThickness"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
-  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
-  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const shelfThickness = 18;
@@ -198,8 +194,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const hasShapeBend = bottomScale !== 1;
 
   // ----- 桌面板 -----
-  const topLen = length + 2 * topOverhang;
-  const topWid = width + 2 * topOverhang;
+  const topLen = length;
+  const topWid = width;
   const topPanel: Part = {
     id: "top",
     nameZh: "桌面板",
@@ -427,26 +423,6 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   };
 
-  // 桌面端板（防翹曲）：兩端加垂直木條，沿 width 方向延伸，紋路跟桌面正交
-  const breadboardParts: Part[] = [];
-  if (withBreadboardEnds) {
-    const bbWidth = 60;
-    const bbThickness = topThickness;
-    for (const sx of [-1, 1] as const) {
-      breadboardParts.push({
-        id: `breadboard-${sx < 0 ? "left" : "right"}`,
-        nameZh: sx < 0 ? "左端板" : "右端板",
-        material,
-        grainDirection: "length",
-        visible: { length: topWid, width: bbWidth, thickness: bbThickness },
-        origin: { x: sx * (topLen / 2 + bbWidth / 2), y: legHeight, z: 0 },
-        rotation: { x: 0, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
-  }
-
   // 翻板（drop-leaf）：沿 length 軸 ±X 端延伸，蝶式鉸鏈接
   const dropLeafParts: Part[] = [];
   if (dropLeaf !== "none") {
@@ -477,14 +453,13 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...upperAprons,
       ...lowerStretchers,
       ...(hasLowerShelf ? [lowerShelf] : []),
-      ...breadboardParts,
       ...dropLeafParts,
     ],
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
     notes:
-      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合 + 中央穿釘 + 兩側鬆配吸收形變）。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
+      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
   // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {

@@ -9,8 +9,6 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
-  topPanelPiecesOption,
-  topPanelPiecesNote,
 } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 
@@ -29,11 +27,8 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   // 桌面 (top)
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 2 },
-  { group: "top", type: "number", key: "topOverhang", label: "桌面外伸 (mm)", defaultValue: 40, min: 0, max: 300, step: 5, help: "桌面超出桌腳外側，決定膝蓋空間" },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
-  topPanelPiecesOption("top"),
-  { group: "top", type: "checkbox", key: "withBreadboardEnds", label: "桌面端板（防翹曲）", defaultValue: false, help: "兩端加垂直木條 + 企口接合，傳統實木桌防止跨度大時翹曲。中央穿釘固定、兩側鬆配讓木材熱漲冷縮", wide: true },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
   { group: "top", type: "select", key: "topPattern", label: "桌面拼板花紋", defaultValue: "straight", choices: [
     { value: "straight", label: "直拼（一般拼板）" },
@@ -75,7 +70,6 @@ export const diningTable: FurnitureTemplate = (input) => {
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
-  const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -94,8 +88,6 @@ export const diningTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
-  const topPanelPieces = parseInt(getOption<string>(input, opt(o, "topPanelPieces"))) || 1;
-  const withBreadboardEnds = getOption<boolean>(input, opt(o, "withBreadboardEnds"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const topPattern = getOption<string>(input, opt(o, "topPattern"));
   const withExtensionLeaf = getOption<boolean>(input, opt(o, "withExtensionLeaf"));
@@ -113,7 +105,6 @@ export const diningTable: FurnitureTemplate = (input) => {
     apronWidth,
     apronThickness,
     legPenetratingTenon,
-    topOverhang,
     withCenterStretcher,
     centerStretcherWidth,
     centerStretcherThickness,
@@ -131,12 +122,10 @@ export const diningTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    topPanelPieces,
-    withBreadboardEnds,
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${topPanelPiecesNote(topPanelPieces, input.width)}${withBreadboardEnds ? " 桌面兩端加端板（企口接合，中央穿釘 + 兩側鬆配吸收木材形變）。" : ""}${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}${topPattern === "herringbone" ? " 桌面採人字拼（herringbone）：短料 80×400mm 互相鎖合 45° 排列，工時 +50%。" : topPattern === "chevron" ? " 桌面採魚骨拼（chevron）：等高 45° 對接，視覺更有方向感、工時 +50%。" : topPattern === "book-match" ? " 桌面採對稱書配拼（book-matched）：中央剖板鏡像對拼，紋路成蝴蝶狀。" : topPattern === "end-grain" ? " 桌面採端紋拼板（butcher block）：木紋朝上、像砧板，不易刮痕、超耐磨。" : ""}${withExtensionLeaf ? " 桌面中央分開，含 1 片 400mm 寬活動延伸板（用桌下夾扣固定，平時可拆下平放收納）。" : ""}`,
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}${topPattern === "herringbone" ? " 桌面採人字拼（herringbone）：短料 80×400mm 互相鎖合 45° 排列，工時 +50%。" : topPattern === "chevron" ? " 桌面採魚骨拼（chevron）：等高 45° 對接，視覺更有方向感、工時 +50%。" : topPattern === "book-match" ? " 桌面採對稱書配拼（book-matched）：中央剖板鏡像對拼，紋路成蝴蝶狀。" : topPattern === "end-grain" ? " 桌面採端紋拼板（butcher block）：木紋朝上、像砧板，不易刮痕、超耐磨。" : ""}${withExtensionLeaf ? " 桌面中央分開，含 1 片 400mm 寬活動延伸板（用桌下夾扣固定，平時可拆下平放收納）。" : ""}`,
   });
   // herringbone / chevron 桌面：把單一 top part 拆成多片斜向小料
   if (topPattern === "herringbone" || topPattern === "chevron") {
