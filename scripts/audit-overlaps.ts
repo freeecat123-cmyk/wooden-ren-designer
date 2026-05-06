@@ -31,6 +31,17 @@
  *   - pedestal: foot origin 改成從柱外面延伸（不嵌入柱）
  */
 const SHAPE_AWARE_VARIANTS = new Set<string>([]);
+/**
+ * `${category}:${variant}` allowlist——shape-aware silhouette 看不到的 X-Z
+ * 缺口造成的 audit false positive：
+ *   - tea-table × box / tapered: shelf 用 notched-corners 切角避腳柱，
+ *     overlap 偵測 silhouette（front/side）看不到 X-Z 缺角，誤判 leg×shelf。
+ *     實際 3D 棚板四角已切除，物理上不重疊。
+ */
+const SHAPE_AWARE_CASES = new Set<string>([
+  "tea-table:box",
+  "tea-table:tapered",
+]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
 import { toBeginnerMode } from "../lib/templates/beginner-mode";
@@ -120,7 +131,9 @@ for (const entry of FURNITURE_CATALOG) {
       partsCount: design.parts.length,
       overlapCount: overlaps.length,
       flag: design.useButtJointConvention ? "✓" : "  ",
-      expected: SHAPE_AWARE_VARIANTS.has(variant),
+      expected:
+        SHAPE_AWARE_VARIANTS.has(variant) ||
+        SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`),
       examples,
     });
   }

@@ -31,14 +31,15 @@ export const sideTableOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, dependsOn: { key: "withDrawer", equals: false } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 8, min: 0, max: 200, step: 5, help: "邊桌總高約 600，5–10 比例適中" },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 8, min: 0, max: 200, step: 5, help: "邊桌總高約 600，5–10 比例適中", dependsOn: { key: "withDrawer", equals: false } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
   // ----- 前緣抽屜（藏雜物 / 床頭物品）-----
   { group: "drawer", type: "checkbox", key: "withDrawer", label: "加抽屜", defaultValue: false, help: "前緣抽屜，掛在前牙板下方" },
+  { group: "drawer", type: "number", key: "drawerHeight", label: "抽屜高 (mm)", defaultValue: 80, min: 30, max: 250, step: 5, help: "抽屜面板高（不含底下橫撐 20mm）；牙板高 = 抽屜高 + 20", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "number", key: "drawerDepth", label: "抽屜深 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, help: "0 = 自動（桌寬 -80）", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "number", key: "drawerFaceOffset", label: "面板距正面 (mm)", defaultValue: 0, min: -20, max: 50, step: 1, help: "0 = 跟正面齊平；正值 = 面板凸出；負值 = 面板內縮", dependsOn: { key: "withDrawer", equals: true } },
   { ...drawerJoineryOption("drawer"), dependsOn: { key: "withDrawer", equals: true } },
@@ -64,7 +65,8 @@ export const sideTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
-  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
+  const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
+  const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -73,6 +75,9 @@ export const sideTable: FurnitureTemplate = (input) => {
   const withDrawer = getOption<boolean>(input, opt(o, "withDrawer"));
   // 抽屜模式：牙板強制貼桌面底（apronOffset=0）→ 抽屜面板也貼著桌面下緣
   const effectiveApronOffset = withDrawer ? 0 : apronOffset;
+  // 抽屜模式：牙板高由 drawerHeight 反推（drawerHeight + 20mm 給底橫撐）
+  const RAIL_H = 20;
+  const apronWidth = withDrawer ? drawerHeight + RAIL_H : apronWidthRaw;
 
   const drawerCount = withDrawer ? 1 : 0; // 固定單抽屜（全寬）
   const drawerDepthOpt = getOption<number>(input, opt(o, "drawerDepth"));
@@ -102,7 +107,7 @@ export const sideTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（高 = 牙板高 ${apronWidth}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerJoineryNote(drawerJoinery)} ${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 13mm 鎖滑軌）" : "無滑軌（兩側 5mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
+    notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerJoineryNote(drawerJoinery)} ${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 13mm 鎖滑軌）" : "無滑軌（兩側 5mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
   });
 
   // 前緣抽屜：面板 + 抽屜箱（替代前牙板）
@@ -126,7 +131,6 @@ export const sideTable: FurnitureTemplate = (input) => {
       const legHeight = input.height - topThickness;
       const apronY = legHeight - apronWidth - effectiveApronOffset;
       // 抽屜面板高 = 牙板高 - 20mm（抽屜下方留 2cm 給橫撐）
-      const RAIL_H = 20;
       const effectiveDrawerHeight = Math.max(20, apronWidth - RAIL_H);
       const drawerY = apronY + RAIL_H; // 抽屜底面 = 橫撐頂面
       const drawerFaceThick = 18;

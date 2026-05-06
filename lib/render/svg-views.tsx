@@ -1694,7 +1694,7 @@ export function OrthoView({
                         key={`${part.id}-t${i}-${key}`}
                         points={pts}
                         fill="none"
-                        stroke="#c0392b"
+                        stroke="#2980b9"
                         strokeWidth={0.6}
                       />,
                     );
@@ -1702,20 +1702,143 @@ export function OrthoView({
                   drawSlice(lb.cy - lb.hy, "entry"); // 腳頂端面（進入孔位置）
                   drawSlice(lb.cy + lb.hy, "exit");  // 榫頭頂端（穿出位置）
                 } else {
-                  const tPoly = match && !useOwnPolygon
-                    ? match.polygon
-                    : projectFeaturePolygon(part, lb, view, true);
-                  const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
-                  elements.push(
-                    <polygon
-                      key={`${part.id}-t${i}`}
-                      points={tPoints}
-                      fill="none"
-                      stroke="#c0392b"
-                      strokeWidth={0.6}
-                      {...(isVisibleTenon ? {} : { strokeDasharray: "3 2" })}
-                    />,
-                  );
+                  // 視圖方向 vs tenon 長軸對齊判斷：
+                  //   對齊 → 看到的是端面 → 整個 polygon 是端面，通榫畫藍實線
+                  //   垂直 → 看到的是 tenon 側面 → 切「母件內紅虛 + 凸出端藍實」
+                  // 計算 tenon 長軸（part-local）→ 套 part rotation → 拿到 world axis
+                  let tenonLocalAxis: "x" | "y" | "z" = "x";
+                  if (t.position === "top" || t.position === "bottom") tenonLocalAxis = "y";
+                  else if (t.position === "left" || t.position === "right") tenonLocalAxis = "z";
+                  const rx = part.rotation?.x ?? 0;
+                  const ry = part.rotation?.y ?? 0;
+                  let vx = tenonLocalAxis === "x" ? 1 : 0;
+                  let vy = tenonLocalAxis === "y" ? 1 : 0;
+                  let vz = tenonLocalAxis === "z" ? 1 : 0;
+                  const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
+                  const ny = vy * cx_ - vz * sx_;
+                  const nz = vy * sx_ + vz * cx_;
+                  vy = ny; vz = nz;
+                  const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
+                  const nx = vx * cy_ + vz * sy_;
+                  const nz2 = -vx * sy_ + vz * cy_;
+                  vx = nx; vz = nz2;
+                  const ax = Math.abs(vx), ay = Math.abs(vy), az = Math.abs(vz);
+                  const tenonWorldAxis: "x" | "y" | "z" =
+                    ax >= ay && ax >= az ? "x" : ay >= az ? "y" : "z";
+                  const viewCollapsedAxis: "x" | "y" | "z" =
+                    view === "front" ? "z" : view === "side" ? "x" : "y";
+                  const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
+
+                  // 對齊視圖：通榫整個 polygon 都是「端面」，視為可見 → 藍實線
+                  if (tipFaceView && isVisibleTenon) {
+                    const tPoly = match && !useOwnPolygon
+                      ? match.polygon
+                      : projectFeaturePolygon(part, lb, view, true);
+                    const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                    elements.push(
+                      <polygon
+                        key={`${part.id}-t${i}`}
+                        points={tPoints}
+                        fill="none"
+                        stroke="#2980b9"
+                        strokeWidth={0.6}
+                      />,
+                    );
+                    continue;
+                  }
+
+                  // 算實際凸出量 = tenon.length - 母件在 depth 軸厚度
+                  // 沒凸出 → 整支紅虛線；有凸出 → 紅虛線母件內 + 藍實線凸出端，相鄰不重疊
+                  let actualProtrusion = 0;
+                  let motherDepth = t.length;
+                  if (isVisibleTenon && match) {
+                    const matchPart = design.parts.find((p) => p.id === match.partId);
+                    if (matchPart) {
+                      const mm = matchPart.mortises[match.mortiseIndex];
+                      if (mm) {
+                        const mlx = matchPart.visible.length;
+                        const mly = matchPart.visible.thickness;
+                        const mlz = matchPart.visible.width;
+                        const yToFace = Math.min(Math.abs(mm.origin.y), Math.abs(mm.origin.y - mly));
+                        const xToFace = Math.min(Math.abs(mm.origin.x - mlx / 2), Math.abs(mm.origin.x + mlx / 2));
+                        const zToFace = Math.min(Math.abs(mm.origin.z - mlz / 2), Math.abs(mm.origin.z + mlz / 2));
+                        if (yToFace <= xToFace && yToFace <= zToFace) motherDepth = mly;
+                        else if (xToFace <= zToFace) motherDepth = mlx;
+                        else motherDepth = mlz;
+                        actualProtrusion = Math.max(0, t.length - motherDepth);
+                      }
+                    }
+                  }
+
+                  if (actualProtrusion > 0) {
+                    // 切兩段：母件內紅虛線 + 凸出端藍實線
+                    const hHalf = motherDepth / 2;
+                    const vHalf = actualProtrusion / 2;
+                    let hiddenBox: LocalBox | null = null;
+                    let visibleBox: LocalBox | null = null;
+                    if (t.position === "start") {
+                      hiddenBox = { ...lb, cx: lb.cx + lb.hx - hHalf, hx: hHalf };
+                      visibleBox = { ...lb, cx: lb.cx - lb.hx + vHalf, hx: vHalf };
+                    } else if (t.position === "end") {
+                      hiddenBox = { ...lb, cx: lb.cx - lb.hx + hHalf, hx: hHalf };
+                      visibleBox = { ...lb, cx: lb.cx + lb.hx - vHalf, hx: vHalf };
+                    } else if (t.position === "top") {
+                      hiddenBox = { ...lb, cy: lb.cy - lb.hy + hHalf, hy: hHalf };
+                      visibleBox = { ...lb, cy: lb.cy + lb.hy - vHalf, hy: vHalf };
+                    } else if (t.position === "bottom") {
+                      hiddenBox = { ...lb, cy: lb.cy + lb.hy - hHalf, hy: hHalf };
+                      visibleBox = { ...lb, cy: lb.cy - lb.hy + vHalf, hy: vHalf };
+                    } else if (t.position === "left") {
+                      hiddenBox = { ...lb, cz: lb.cz + lb.hz - hHalf, hz: hHalf };
+                      visibleBox = { ...lb, cz: lb.cz - lb.hz + vHalf, hz: vHalf };
+                    } else if (t.position === "right") {
+                      hiddenBox = { ...lb, cz: lb.cz - lb.hz + hHalf, hz: hHalf };
+                      visibleBox = { ...lb, cz: lb.cz + lb.hz - vHalf, hz: vHalf };
+                    }
+                    if (hiddenBox) {
+                      const hPoly = projectFeaturePolygon(part, hiddenBox, view, true);
+                      const hPoints = hPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                      elements.push(
+                        <polygon
+                          key={`${part.id}-t${i}-hidden`}
+                          points={hPoints}
+                          fill="none"
+                          stroke="#c0392b"
+                          strokeWidth={0.6}
+                          strokeDasharray="3 2"
+                        />,
+                      );
+                    }
+                    if (visibleBox) {
+                      const vPoly = projectFeaturePolygon(part, visibleBox, view, true);
+                      const vPoints = vPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                      elements.push(
+                        <polygon
+                          key={`${part.id}-t${i}-visible`}
+                          points={vPoints}
+                          fill="none"
+                          stroke="#2980b9"
+                          strokeWidth={0.6}
+                        />,
+                      );
+                    }
+                  } else {
+                    // 沒實際凸出（盲榫 or tenon 等於母件厚）：整支紅虛線
+                    const tPoly = match && !useOwnPolygon
+                      ? match.polygon
+                      : projectFeaturePolygon(part, lb, view, true);
+                    const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                    elements.push(
+                      <polygon
+                        key={`${part.id}-t${i}`}
+                        points={tPoints}
+                        fill="none"
+                        stroke="#c0392b"
+                        strokeWidth={0.6}
+                        strokeDasharray="3 2"
+                      />,
+                    );
+                  }
                 }
                 // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
                 // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）

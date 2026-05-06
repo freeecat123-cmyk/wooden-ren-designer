@@ -718,14 +718,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 會看到紅榫頭從後柱前後面戳出來。
       {
         position: "start",
-        type: "shouldered-tenon",
+        type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
         length: apronTenonLen,
         width: topRailTenonThick,
         thickness: topRailTenonW,
       },
       {
         position: "end",
-        type: "shouldered-tenon",
+        type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
         length: apronTenonLen,
         width: topRailTenonThick,
         thickness: topRailTenonW,
