@@ -2156,6 +2156,13 @@ export function PerspectiveView({
                 const wx = (part.origin.x + x) * SCALE;
                 const wy = (part.origin.y + worldExtents(part).yExt / 2 + y) * SCALE;
                 const wz = (part.origin.z + z) * SCALE;
+                // 圓料腳的 top 榫頭：cross-section 是圓 → 用 cylinderGeometry（沿 Y 軸）
+                const isRoundLegPart =
+                  part.shape?.kind === "round" ||
+                  part.shape?.kind === "round-tapered" ||
+                  part.shape?.kind === "shaker" ||
+                  part.shape?.kind === "splayed-round-tapered";
+                const useRoundTenon = isRoundLegPart && t.position === "top";
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
@@ -2163,7 +2170,16 @@ export function PerspectiveView({
                     rotation={new Euler(rx, ry, rz, "ZYX")}
                     castShadow
                   >
-                    <boxGeometry args={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]} />
+                    {useRoundTenon ? (
+                      <cylinderGeometry args={[
+                        Math.min(hx, hz) * SCALE,
+                        Math.min(hx, hz) * SCALE,
+                        hy * 2 * SCALE,
+                        24,
+                      ]} />
+                    ) : (
+                      <boxGeometry args={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]} />
+                    )}
                     <meshStandardMaterial
                       color="#c0392b"
                       roughness={0.8}
