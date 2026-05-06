@@ -9,19 +9,20 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
-  drawerJoineryOption,
-  drawerJoineryNote,
   drawerSlideTypeOption,
   drawerSlideTypeNote,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
 import type { Part } from "@/lib/types";
+import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 
 export const sideTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
+    { value: "strong-taper", label: "強錐腳（底縮 60%）" },
+    { value: "shaker", label: "夏克風腳（上方頂+下圓錐）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
@@ -42,11 +43,10 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "drawerHeight", label: "抽屜高 (mm)", defaultValue: 80, min: 30, max: 250, step: 5, help: "抽屜面板高（不含底下橫撐 20mm）；牙板高 = 抽屜高 + 20", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "number", key: "drawerDepth", label: "抽屜深 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, help: "0 = 自動（桌寬 -80）", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "number", key: "drawerFaceOffset", label: "面板距正面 (mm)", defaultValue: 0, min: -20, max: 50, step: 1, help: "0 = 跟正面齊平；正值 = 面板凸出；負值 = 面板內縮", dependsOn: { key: "withDrawer", equals: true } },
-  { ...drawerJoineryOption("drawer"), dependsOn: { key: "withDrawer", equals: true } },
-  { group: "drawer", type: "select", key: "drawerSlideType", label: "抽屜滑軌種類", defaultValue: "side-mount", choices: [
-    { value: "side-mount", label: "三段滑軌（側裝鋼珠 13mm）" },
-    { value: "none", label: "無滑軌（木製或直接配合，5mm 鬆配）" },
-  ], help: "三段滑軌：抽屜兩側各留 13mm 給滑軌；無滑軌：兩側只留 5mm 鬆配", dependsOn: { key: "withDrawer", equals: true } },
+  { group: "drawer", type: "select", key: "drawerSlideType", label: "抽屜滑軌種類", defaultValue: "none", choices: [
+    { value: "side-mount", label: "三段滑軌（側裝鋼珠 12.5mm/側）" },
+    { value: "none", label: "無滑軌（木製或直接配合，1mm/側 鬆配）" },
+  ], help: "三段滑軌：抽屜兩側各留 12.5mm 給滑軌；無滑軌：兩側各留 1mm 鬆配", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "select", key: "pullStyle", label: "抽屜把手", defaultValue: "knob", choices: [
     { value: "knob", label: "圓把手（knob）" },
     { value: "bar", label: "長條把手（bar）" },
@@ -82,7 +82,6 @@ export const sideTable: FurnitureTemplate = (input) => {
   const drawerCount = withDrawer ? 1 : 0; // 固定單抽屜（全寬）
   const drawerDepthOpt = getOption<number>(input, opt(o, "drawerDepth"));
   const drawerFaceOffset = getOption<number>(input, opt(o, "drawerFaceOffset"));
-  const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
   const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const design = simpleTable({
@@ -100,14 +99,14 @@ export const sideTable: FurnitureTemplate = (input) => {
     legInset,
     apronOffset: effectiveApronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape === "tapered" ? "tapered" : "box",
+    legShape: legShape as "box" | "tapered" | "strong-taper" | "splayed" | "splayed-length" | "splayed-width" | "shaker" | "inverted" | "hoof",
     seatEdge,
     seatEdgeStyle,
     legEdge,
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
-    notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerJoineryNote(drawerJoinery)} ${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 13mm 鎖滑軌）" : "無滑軌（兩側 5mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
+    notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 12.5mm 鎖滑軌）" : "無滑軌（兩側 1mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
   });
 
   // 前緣抽屜：面板 + 抽屜箱（替代前牙板）
@@ -126,6 +125,32 @@ export const sideTable: FurnitureTemplate = (input) => {
         if (part) {
           const towardCenter = part.origin.x < 0 ? 1 : -1;
           part.origin.x += towardCenter * sideShift;
+          // shape 改 apron-beveled bevelAngle=0 → svg-views useOwnPolygon=true，
+          // tenon 用自己 polygon（在 apron 中軸 -176），不去 match 腳的母榫
+          // （bevelAngle=0 → bevShear=0 → 跟原矩形渲染一致）
+          part.shape = { kind: "apron-beveled", bevelAngle: 0 };
+        }
+      }
+      // 前腳（origin.z < 0）的 X 面母榫（接已刪除的 apron-front）→ 孤兒，過濾掉
+      // 通透模式時這條會穿透整支腳變成貫穿洞
+      for (const part of design.parts) {
+        if (!part.id.startsWith("leg-")) continue;
+        if (part.origin.z >= 0) continue;
+        part.mortises = part.mortises.filter(
+          (m) => !(Math.abs(m.origin.x) > 0.5 && Math.abs(m.origin.z) < 0.5),
+        );
+      }
+      // 4 支腳的 Z 面母榫（接 apron-left/right）跟著公榫朝中心 sideShift。
+      // origin.z 從 ±1 改 ±10 讓 zToFace=7.5 比 xToFace=11 小，
+      // mortiseLocalBox depthAxis 才不會被 origin.x 偏移翻成 X 軸（origin.z 數值不影響 cz 輸出）
+      for (const part of design.parts) {
+        if (!part.id.startsWith("leg-")) continue;
+        const towardCenter = part.origin.x < 0 ? 1 : -1;
+        for (const m of part.mortises) {
+          if (Math.abs(m.origin.z) > 0.5 && Math.abs(m.origin.x) < 0.5) {
+            m.origin.x += towardCenter * sideShift;
+            m.origin.z = m.origin.z > 0 ? 10 : -10;
+          }
         }
       }
       const legHeight = input.height - topThickness;
@@ -172,9 +197,18 @@ export const sideTable: FurnitureTemplate = (input) => {
       // 推到 origin.z = -(width/2 - legInset) + apronThickness/2，讓 rail 前面 = 腳前面
       // 長度用 rail 底部 (apronY) 的腳寬度計算 → 底部完美貼合，頂部微 overlap 進腳（隱藏）
       // 用 rail 底部而非中心：錐形腳越下越細、leg-inner 越外，底部是 rail 跟腳最遠的點
-      const bottomScale = legBottomScale(legShape === "tapered" ? "tapered" : "box");
+      const bottomScale = legBottomScale(legShape);
       const legSizeAtRailBot = legSize * legScaleAt(apronY, legHeight, bottomScale);
       const railLength = input.length - 2 * legInset - legSize - legSizeAtRailBot;
+      // rail 兩端進前腳：legSize=35>25 → blind-tenon depth=23
+      const railTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
+      const railTenonStd = standardTenon({
+        type: railTenonType,
+        childThickness: apronThicknessActual,
+        childWidth: RAIL_H,
+        motherThickness: legSize,
+      });
+      const railTenonLen = railTenonStd.length + (railTenonType === "through-tenon" ? 5 : 0);
       design.parts.push({
         id: "drawer-bottom-rail",
         nameZh: "抽屜下橫撐",
@@ -187,7 +221,13 @@ export const sideTable: FurnitureTemplate = (input) => {
         },
         origin: { x: 0, y: apronY, z: -(input.width / 2 - legInset) + apronThicknessActual / 2 },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
-        tenons: [],
+        // shape 設 apron-beveled bevelAngle=0 → svg-views useOwnPolygon=true，
+        // tenon 用自己 polygon 畫在 rail 中軸（不會 match 到非預期母榫）
+        shape: { kind: "apron-beveled", bevelAngle: 0 },
+        tenons: [
+          { position: "start", type: railTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon", length: railTenonLen, width: railTenonStd.width, thickness: railTenonStd.thickness },
+          { position: "end", type: railTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon", length: railTenonLen, width: railTenonStd.width, thickness: railTenonStd.thickness },
+        ],
         mortises: [],
       });
       // 抽屜箱外框寬 = 抽屜面板寬（slotW 已扣除滑軌空間）

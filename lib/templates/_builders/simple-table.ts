@@ -56,7 +56,8 @@ export interface SimpleTableOpts {
     | "splayed"
     | "splayed-length"
     | "splayed-width"
-    | "hoof";
+    | "hoof"
+    | "shaker";
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
   legInset?: number;
   /** Y position of lower stretcher from floor (mm). Default ≈ 22% of leg height. */
@@ -246,6 +247,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: legChamferMm > 0 ? legChamferMm : undefined, chamferStyle: legChamferStyle };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
+    if (legShape === "shaker") return { kind: "shaker" };
     return undefined;
   };
   const legs: Part[] = cornerPts.map((c, i) => ({

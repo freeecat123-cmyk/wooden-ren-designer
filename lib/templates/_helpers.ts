@@ -119,6 +119,9 @@ export function legBottomScale(legShape: string): number {
   if (legShape === "tapered") return 0.6;
   if (legShape === "strong-taper") return 0.4;
   if (legShape === "inverted") return 1.25;
+  // shaker 不加：上 25% 是方頂（scale=1，apron 在這），底下才縮到 0.6；
+  // legScaleAt 是線性公式無法表達 step → 走預設 1，apron/stretcher 補償會用方頂值。
+
   // 圓家具 round-stool / round-tea-table / round-table 變體（與 template
   // 內部 shape mapping 對齊）：
   if (legShape === "round-taper-down") return 0.6;
