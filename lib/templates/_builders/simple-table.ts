@@ -653,9 +653,22 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const stretcherTenonLen = Math.max(6, Math.min(apronTenonLen, Math.floor(apronThickness * 2 / 3)));
     // Body length: from front-apron INNER face to back-apron INNER face.
     // (Tenon protrudes INTO each apron by stretcherTenonLen beyond this body.)
+    // 斜腳補償（splayDz）：apron 在 stretcher Y 高度被外推 splayDz*shift，body 跟著
+    // 拉長才能butt 到 apron inner face。但 apron 是 tilted（cos(tiltZ)），inner
+    // face 在 stretcher TOP Y 最內側、BOTTOM Y 最外側，所以用 stretcher TOP Y
+    // 的 shift 算上限——避免覆蓋掉 apron（overlap audit 會抓 NEW pair）。
+    const dropFromApronTop =
+      opts.centerStretcherDrop ??
+      Math.max(15, Math.round((apronWidth - stretcherWidth) / 2) + 10);
+    const originY = Math.max(
+      apronY,
+      apronY + apronWidth - dropFromApronTop - stretcherWidth,
+    );
+    const stretcherTopShift = legHeight > 0 ? 1 - (originY + stretcherWidth) / legHeight : 0;
+    const stretcherApronSplayZ = splayDz * stretcherTopShift;
     const bodyLen = Math.max(
       50,
-      width - legSize - 2 * legInset - apronThickness,
+      width - legSize - 2 * legInset - apronThickness + 2 * stretcherApronSplayZ,
     );
     // 橫撐 → 牙板：榫頭兩軸的尺寸+肩位指派
     //   tenon.thickness 走 stretcher local Y = world 水平 = 25mm（橫撐 thickness）
@@ -668,16 +681,6 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       8,
       Math.min(stretcherWidth - 2 * MIN_SHOULDER_MM, Math.round(apronWidth * TENON_THICKNESS_RATIO)),
     ); // 1/3 母件 + 上下肩
-    // centerStretcherDrop (label = "距牙板頂") 的語意：stretcher 頂面距牙板頂
-    // 的距離。bigger drop → stretcher lower → farther from tabletop. 預設
-    // 把 stretcher 壓到牙板底緣附近（居中 + 額外往下），避免緊貼桌面。
-    const dropFromApronTop =
-      opts.centerStretcherDrop ??
-      Math.max(15, Math.round((apronWidth - stretcherWidth) / 2) + 10);
-    const originY = Math.max(
-      apronY,
-      apronY + apronWidth - dropFromApronTop - stretcherWidth,
-    );
     parts.push({
       id: "center-stretcher",
       nameZh: "中央橫撐",
