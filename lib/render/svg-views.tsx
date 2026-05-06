@@ -1598,6 +1598,51 @@ export function OrthoView({
             // 的方框畫出來會跟腳的圓輪廓重疊，視覺反而亂。
             // 對角榫做法手作端自行決定（45° 盲榫 / 暗銷 / 楔釘）。
             const isXCrossTopView = view === "top" && part.id.startsWith("ls-xcross-");
+
+            // 圓料腳中軸線（debug 用）：從腳底中心到腳頂中心
+            const isRoundLegPartForAxis =
+              part.shape?.kind === "round" ||
+              part.shape?.kind === "round-tapered" ||
+              part.shape?.kind === "shaker" ||
+              part.shape?.kind === "splayed-round-tapered";
+            if (isRoundLegPartForAxis && view !== "top") {
+              const lh = part.visible.thickness;
+              const ox = part.origin?.x ?? 0;
+              const oy = part.origin?.y ?? 0;
+              const oz = part.origin?.z ?? 0;
+              // splayed 腳：底偏 (dx, dz)；非 splayed：dx=dz=0
+              let bottomDx = 0, bottomDz = 0;
+              if (part.shape?.kind === "splayed-round-tapered") {
+                bottomDx = part.shape.dxMm ?? 0;
+                bottomDz = part.shape.dzMm ?? 0;
+              }
+              // 腳底中心 (世界): (ox + bottomDx, oy, oz + bottomDz)
+              // 腳頂中心 (世界): (ox, oy + lh, oz)
+              const bx = ox + bottomDx, by = oy, bz = oz + bottomDz;
+              const tx = ox, ty = oy + lh, tz = oz;
+              // 投影到視圖平面
+              const proj = (wx: number, wy: number, wz: number) => {
+                if (view === "front") return { x: wx, y: wy };
+                if (view === "side") return { x: wz, y: wy };
+                return { x: wx, y: -wz };  // top view (won't use here)
+              };
+              const p1 = proj(bx, by, bz);
+              const p2 = proj(tx, ty, tz);
+              elements.push(
+                <line
+                  key={`${part.id}-axis`}
+                  x1={p1.x}
+                  y1={-p1.y}
+                  x2={p2.x}
+                  y2={-p2.y}
+                  stroke="#444"
+                  strokeWidth={0.5}
+                  strokeDasharray="2 2"
+                  opacity={0.7}
+                />,
+              );
+            }
+
             for (let i = 0; i < part.tenons.length; i++) {
               const t = part.tenons[i];
               if (t.length <= 0) continue;
