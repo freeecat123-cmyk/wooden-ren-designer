@@ -748,33 +748,52 @@ export function OrthoView({
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(design.parts, view).map((part) => {
         // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
-        // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界）。
-        // 用 ID 規則直接判斷正視/側視看不到的內部結構件——top view 仍實線。
+        // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界、跨件
+        // 形變、apron-trapezoid scale）。用 ID 慣例直接標記內部結構件。
         //
-        // 正視圖（從前往後看）：左右牙條/下橫撐（垂直方向延伸但被前牙條/前
-        //   下橫撐擋）+ 中央橫撐 + 置物條 + 後方牙條/下橫撐
-        // 側視圖（從側往內看）：前後牙條/下橫撐 + 中央橫撐 + 置物條
+        // ID 慣例：方位後綴 -front/-back/-left/-right 標示零件所在方向。
+        //   front view（從 -Z 看 +Z）：left/right/back 的零件被前面/中間擋
+        //   side view（從 +X 看 -X）：front/back 的零件被側面/中間擋
+        //   top view 都看得到（俯視穿透）
+        const id = part.id;
+        const dir = id.match(/-(front|back|left|right)$/)?.[1] ?? null;
+        const isAlwaysInterior =
+          /^slat-/.test(id) ||
+          id === "center-stretcher" ||
+          id === "lazy-susan" ||
+          id === "column" ||
+          id === "pedestal-column" ||
+          id === "under-shelf" ||
+          id === "inner-tray" ||
+          id === "floor-tray" ||
+          id === "interior-led-strip" ||
+          id === "hanging-rod" ||
+          id === "hat-rail" ||
+          id === "trestle-center-stretcher";
+        const isBackOfChair =
+          id === "back-rail" || id === "back-top-rail" ||
+          id === "back-splat" || id === "back-curved-splat";
+        const isBedEnd = id === "headboard" || id === "footboard";
+        const isBedSideRail =
+          id === "side-rail-left" || id === "side-rail-right";
+        const isCabinetBack = id === "back-panel" || id === "back";
+
         const isInteriorInFront =
           view === "front" &&
-          (/^slat-/.test(part.id) ||
-            part.id === "center-stretcher" ||
-            part.id === "apron-left" ||
-            part.id === "apron-right" ||
-            part.id === "apron-back" ||
-            part.id === "ls-left" ||
-            part.id === "ls-right" ||
-            part.id === "ls-back");
+          (isAlwaysInterior ||
+            isCabinetBack ||
+            isBackOfChair ||
+            isBedSideRail ||
+            dir === "left" || dir === "right" || dir === "back");
         const isInteriorInSide =
           view === "side" &&
-          (/^slat-/.test(part.id) ||
-            part.id === "center-stretcher" ||
-            part.id === "apron-front" ||
-            part.id === "apron-back" ||
-            part.id === "ls-front" ||
-            part.id === "ls-back");
+          (isAlwaysInterior ||
+            isBedEnd ||
+            id === "cornice-front" ||
+            dir === "front" || dir === "back");
         const hidden = isInteriorInFront || isInteriorInSide || isPartHidden(part, design.parts, view);
-        const stroke = hidden ? "#888" : "#111";
-        const sw = hidden ? 0.5 : 0.9;
+        const stroke = hidden ? "#444" : "#111";
+        const sw = hidden ? 0.7 : 0.9;
         const dash = hidden ? "4 3" : undefined;
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
@@ -844,8 +863,8 @@ export function OrthoView({
                   y1={seg.a.y}
                   x2={seg.b.x}
                   y2={seg.b.y}
-                  stroke={seg.hidden ? "#888" : "#111"}
-                  strokeWidth={seg.hidden ? 0.5 : 0.9}
+                  stroke={seg.hidden ? "#444" : "#111"}
+                  strokeWidth={seg.hidden ? 0.7 : 0.9}
                   strokeDasharray={seg.hidden ? "4 3" : undefined}
                   fill="none"
                 />,
@@ -922,8 +941,8 @@ export function OrthoView({
                   y1={seg.a.y}
                   x2={seg.b.x}
                   y2={seg.b.y}
-                  stroke={seg.hidden ? "#888" : "#111"}
-                  strokeWidth={seg.hidden ? 0.5 : 0.9}
+                  stroke={seg.hidden ? "#444" : "#111"}
+                  strokeWidth={seg.hidden ? 0.7 : 0.9}
                   strokeDasharray={seg.hidden ? "4 3" : undefined}
                   fill="none"
                 />,
@@ -1035,8 +1054,8 @@ export function OrthoView({
                     y1={seg.a.y}
                     x2={seg.b.x}
                     y2={seg.b.y}
-                    stroke={seg.hidden ? "#888" : stroke}
-                    strokeWidth={seg.hidden ? 0.5 : sw}
+                    stroke={seg.hidden ? "#444" : stroke}
+                    strokeWidth={seg.hidden ? 0.7 : sw}
                     strokeDasharray={seg.hidden ? "4 3" : dash}
                   />,
                 );
@@ -1542,8 +1561,8 @@ export function OrthoView({
                 y1={-seg.a.y}
                 x2={seg.b.x}
                 y2={-seg.b.y}
-                stroke={seg.hidden ? "#888" : "#111"}
-                strokeWidth={seg.hidden ? 0.5 : 0.9}
+                stroke={seg.hidden ? "#444" : "#111"}
+                strokeWidth={seg.hidden ? 0.7 : 0.9}
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
                 fill="none"
               />,
