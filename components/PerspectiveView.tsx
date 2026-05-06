@@ -1856,7 +1856,7 @@ export function PerspectiveView({
           // Distance driven by the piece's LARGEST dimension so tall furniture
           // (wardrobe, open-bookshelf) doesn't get clipped top/bottom even
           // when its length/width is small.
-          position: [maxDim * 1.8, maxDim * 1.3, -maxDim * 2.0],
+          position: [maxDim * 1.3, maxDim * 1.0, -maxDim * 1.45],
           fov: 38,
         }}
       >
@@ -2243,7 +2243,7 @@ export function PerspectiveView({
           enableZoom
           enableRotate
           target={[0, (design.overall.thickness * SCALE) / 2, 0]}
-          minDistance={maxDim * 1.2}
+          minDistance={maxDim * 0.8}
           maxDistance={maxDim * 6}
           // 允許從底下往上看（到近乎正下方），只留極小的安全邊避免 gimbal-lock
           maxPolarAngle={Math.PI - 0.02}
