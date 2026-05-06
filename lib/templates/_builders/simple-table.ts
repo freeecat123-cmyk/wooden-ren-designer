@@ -649,20 +649,23 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       );
     }
 
-    // 下橫撐置物條（slat rack）：在前後下橫撐上面架 N 條格柵
-    // 每條沿 Z 軸，length = 前後下橫撐中心到中心 + 兩端 stretcherThickness
-    //   讓條兩端剛好覆蓋在 stretcher 頂面（butt 到 stretcher 外緣）
+    // 下橫撐置物條（slat rack）：在前後下橫撐之間架 N 條格柵
+    // 條嵌在前後 stretcher 中間（length = inner face 到 inner face）
+    // 條頂面跟 stretcher 頂面切齊：slat 底面 Y = stretcherTop - slatThickness
     // 條 X 位置在 leg 內側等距分佈，避免撞腳
     if (opts.withSlatRack) {
       const slatCount = Math.max(2, Math.min(20, opts.slatCount ?? 5));
       const slatWidth = Math.max(15, opts.slatWidth ?? 35);
       const slatThickness = Math.max(8, opts.slatThickness ?? 18);
-      // 條坐在 stretcher 頂面：Y = stretcherY + stretcherWidth
-      const slatY = stretcherY + stretcherWidth;
-      const slatTopShift = legHeight > 0 ? 1 - slatY / legHeight : 0;
-      const slatSplayZ = splayDz * slatTopShift;
-      // 條 length 從前 stretcher 外緣到後 stretcher 外緣（含 stretcherThickness 兩端覆蓋）
-      const slatLen = 2 * (apronEdgeZ + slatSplayZ) + stretcherThickness;
+      const stretcherTopY = stretcherY + stretcherWidth;
+      // origin.y = bottom of slat（visible 慣例），讓 slat 頂面 = stretcherTopY
+      const slatY = stretcherTopY - slatThickness;
+      // 用 slat 中心 Y 算 splay shift（條沿 Z 軸延伸）
+      const slatCenterY = slatY + slatThickness / 2;
+      const slatCenterShift = legHeight > 0 ? 1 - slatCenterY / legHeight : 0;
+      const slatSplayZ = splayDz * slatCenterShift;
+      // 條 length = 前後 stretcher inner face 到 inner face
+      const slatLen = 2 * (apronEdgeZ + slatSplayZ) - stretcherThickness;
       // X span：從左腳內面到右腳內面（apronInnerSpan.x）
       const slatXSpan = 2 * apronEdgeX - legSize;
       // 等距分佈：N 條的中心點均分 (slatXSpan - slatWidth)
