@@ -1647,169 +1647,37 @@ export function OrthoView({
             - 通榫穿透時母件背面 = 端面木紋格 §B5
           glass 件略過。 */}
       {joineryMode && (() => {
-        // Pre-build mortise polygon lookup：tenon 渲染時找對應母榫，用 mortise polygon
-        // 取代 tenon polygon → 榫接視覺重合（紅疊在藍上、且 tenon 跟著母件斜）
-        const mortiseEntries: Array<{
-          partId: string;
-          worldCenter: { x: number; y: number; z: number };
-          polygon: Array<{ x: number; y: number }>;
-        }> = [];
-        for (const part of design.parts) {
-          if (part.visual === "glass") continue;
-          for (const m of part.mortises) {
-            if (m.depth <= 0) continue;
-            const lb = mortiseLocalBox(part, m);
-            mortiseEntries.push({
-              partId: part.id,
-              worldCenter: boxWorldCenter(part, lb),
-              polygon: projectFeaturePolygon(part, lb, view),
-            });
-          }
-        }
-        const findMortiseMatch = (
-          partId: string,
-          tenonCenter: { x: number; y: number; z: number },
-        ): { polygon: Array<{ x: number; y: number }> } | null => {
-          const TOL = 15; // 公差 15mm — 公榫端面與母榫開口應 < 1mm
-          let best: typeof mortiseEntries[number] | null = null;
-          let bestDist = TOL;
-          for (const me of mortiseEntries) {
-            if (me.partId === partId) continue;
-            const dx = me.worldCenter.x - tenonCenter.x;
-            const dy = me.worldCenter.y - tenonCenter.y;
-            const dz = me.worldCenter.z - tenonCenter.z;
-            const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (d < bestDist) { best = me; bestDist = d; }
-          }
-          return best;
-        };
+        // 簡化版 joinery 渲染：tenon/mortise 一律用 axis-aligned 2D rect 畫
+        // （projectFeatureRect 取 AABB），不跟 part shape 變形、不 match 母榫
+        // polygon、不畫 splayed 2-slice。視覺乾淨，三視圖一致。
         return (
         <g pointerEvents="none">
           {design.parts.map((part) => {
             if (part.visual === "glass") return null;
             const elements: React.ReactNode[] = [];
-            // tenon 凸出（公榫）— 實線紅
+            // tenon 凸出（公榫）—— 簡化版：一律 axis-aligned 2D rect。
+            // 不畫 splayed 2-slice、不跟 part shape 變形、不 match 母榫 polygon。
+            // 通榫 = 藍實線（凸出可見），盲榫/其他 = 紅虛線（埋進母件不可見）。
             for (let i = 0; i < part.tenons.length; i++) {
               const t = part.tenons[i];
               if (t.length <= 0) continue;
-              if (t.type === "dovetail") {
-                // 鳩尾榫：渲染 1:8 flare 梯形（基礎版，3D phase 4+）
-                const dovePts = projectDovetailPolygon(part, t, view);
-                if (dovePts.length >= 3) {
-                  const dvStr = dovePts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
-                  elements.push(
-                    <polygon
-                      key={`${part.id}-dt${i}`}
-                      points={dvStr}
-                      fill="none"
-                      stroke="#c0392b"
-                      strokeWidth={0.6}
-                    />,
-                  );
-                }
-                continue;
-              }
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
-                // 找對應母榫：tenon center 跟最近 mortise center match → 用 mortise
-                // polygon 取代（榫接視覺重合：跟著母件斜）
-                // 例外：公件有 splayed shape（如腳）→ 用 tenon 自己 polygon，跟公件
-                // 中心軸延伸方向一致（不被「直的母件 mortise」拉平）
-                const tCenter = boxWorldCenter(part, lb);
-                const match = findMortiseMatch(part.id, tCenter);
-                // apron 系列 shape 也用 own polygon，讓 tenon 4 邊跟著母件變形
-                const useOwnPolygon =
-                  part.shape?.kind === "splayed" ||
-                  part.shape?.kind === "apron-trapezoid" ||
-                  part.shape?.kind === "apron-beveled" ||
-                  part.shape?.kind === "apron-half-beveled";
-                // 通榫凸出於母件外 → 可見 → 實線；盲榫/半榫埋進母件裡 → 不可見 → 虛線
                 const isVisibleTenon = t.type === "through-tenon";
-                // 俯視圖 splayed 公件 + through-tenon：腳是斜的，從上往下看
-                // entry（腳頂端面位置）跟 exit（穿出母件上方位置）X-Z 不同 → 畫兩個 rect
-                if (view === "top" && part.shape?.kind === "splayed" && isVisibleTenon) {
-                  const drawSlice = (yLocal: number, key: string) => {
-                    const sliceBox: LocalBox = { ...lb, cy: yLocal, hy: 0.001 };
-                    const poly = projectFeaturePolygon(part, sliceBox, view);
-                    const pts = poly.map((p) => `${p.x},${-p.y}`).join(" ");
-                    elements.push(
-                      <polygon
-                        key={`${part.id}-t${i}-${key}`}
-                        points={pts}
-                        fill="none"
-                        stroke="#2980b9"
-                        strokeWidth={0.6}
-                      />,
-                    );
-                  };
-                  drawSlice(lb.cy - lb.hy, "entry"); // 腳頂端面（進入孔位置）
-                  drawSlice(lb.cy + lb.hy, "exit");  // 榫頭頂端（穿出位置）
-                } else {
-                  // 視圖方向 vs tenon 長軸對齊判斷：
-                  //   對齊 → 看到的是端面 → 整個 polygon 是端面，通榫畫藍實線
-                  //   垂直 → 看到的是 tenon 側面 → 切「母件內紅虛 + 凸出端藍實」
-                  // 計算 tenon 長軸（part-local）→ 套 part rotation → 拿到 world axis
-                  let tenonLocalAxis: "x" | "y" | "z" = "x";
-                  if (t.position === "top" || t.position === "bottom") tenonLocalAxis = "y";
-                  else if (t.position === "left" || t.position === "right") tenonLocalAxis = "z";
-                  const rx = part.rotation?.x ?? 0;
-                  const ry = part.rotation?.y ?? 0;
-                  let vx = tenonLocalAxis === "x" ? 1 : 0;
-                  let vy = tenonLocalAxis === "y" ? 1 : 0;
-                  let vz = tenonLocalAxis === "z" ? 1 : 0;
-                  const cx_ = Math.cos(rx), sx_ = Math.sin(rx);
-                  const ny = vy * cx_ - vz * sx_;
-                  const nz = vy * sx_ + vz * cx_;
-                  vy = ny; vz = nz;
-                  const cy_ = Math.cos(ry), sy_ = Math.sin(ry);
-                  const nx = vx * cy_ + vz * sy_;
-                  const nz2 = -vx * sy_ + vz * cy_;
-                  vx = nx; vz = nz2;
-                  const ax = Math.abs(vx), ay = Math.abs(vy), az = Math.abs(vz);
-                  const tenonWorldAxis: "x" | "y" | "z" =
-                    ax >= ay && ax >= az ? "x" : ay >= az ? "y" : "z";
-                  const viewCollapsedAxis: "x" | "y" | "z" =
-                    view === "front" ? "z" : view === "side" ? "x" : "y";
-                  const tipFaceView = tenonWorldAxis === viewCollapsedAxis;
-
-                  // 對齊視圖：通榫整個 polygon 都是「端面」，視為可見 → 藍實線
-                  if (tipFaceView && isVisibleTenon) {
-                    const tPoly = match && !useOwnPolygon
-                      ? match.polygon
-                      : projectFeaturePolygon(part, lb, view, true);
-                    const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
-                    elements.push(
-                      <polygon
-                        key={`${part.id}-t${i}`}
-                        points={tPoints}
-                        fill="none"
-                        stroke="#2980b9"
-                        strokeWidth={0.6}
-                      />,
-                    );
-                    continue;
-                  }
-
-                  // tipFaceView=false 時不論通榫盲榫一律紅虛：
-                  // 規則「藍實線只給端面正對視線的可見端面」，凸出端「側面」即使
-                  // 物理可見也視為次要資訊（避免俯視圖看到 apron / rail 通榫
-                  // 凸出 5mm 全變藍）
-                  const tPoly = match && !useOwnPolygon
-                    ? match.polygon
-                    : projectFeaturePolygon(part, lb, view, true);
-                  const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
-                  elements.push(
-                    <polygon
-                      key={`${part.id}-t${i}`}
-                      points={tPoints}
-                      fill="none"
-                      stroke="#c0392b"
-                      strokeWidth={0.6}
-                      strokeDasharray="3 2"
-                    />,
-                  );
-                }
+                elements.push(
+                  <rect
+                    key={`${part.id}-t${i}`}
+                    x={r.x}
+                    y={-(r.y + r.h)}
+                    width={r.w}
+                    height={r.h}
+                    fill="none"
+                    stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                    strokeWidth={0.6}
+                    strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                  />,
+                );
                 // 指接榫加 zigzag 平行線：在 r 內部沿較長軸畫 3-5 條等距線，
                 // 暗示 finger 切口（drafting-math §B2 指數 n = 板高/板厚）
                 if (t.type === "finger-joint") {
