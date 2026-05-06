@@ -1731,6 +1731,7 @@ export function OrthoView({
                     // 垂直軸的 unit vector (right side)：rotate 軸 90° → (axDy, -axDx)
                     const perpX = axDy;
                     const perpY = -axDx;
+                    const ends: Array<{ x: number; y: number }> = [];
                     for (const sgn of [-1, 1]) {
                       const x1 = cxBase + sgn * halfWidth * perpX;
                       const y1World = yBaseWorld + sgn * halfWidth * perpY;
@@ -1743,6 +1744,23 @@ export function OrthoView({
                           y1={-y1World}
                           x2={x2}
                           y2={-y2World}
+                          fill="none"
+                          stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
+                          strokeWidth={0.6}
+                          strokeDasharray={isVisibleTenon ? undefined : "3 2"}
+                        />,
+                      );
+                      ends.push({ x: x2, y: -y2World });
+                    }
+                    // 頂端封口：連接兩條線的頂端，表達榫頭深度（端面 cap）
+                    if (ends.length === 2) {
+                      elements.push(
+                        <line
+                          key={`${part.id}-t${i}-r-cap`}
+                          x1={ends[0].x}
+                          y1={ends[0].y}
+                          x2={ends[1].x}
+                          y2={ends[1].y}
                           fill="none"
                           stroke={isVisibleTenon ? "#2980b9" : "#c0392b"}
                           strokeWidth={0.6}
