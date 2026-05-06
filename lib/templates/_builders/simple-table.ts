@@ -688,8 +688,16 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const slatShape = slatNeedsTrapezoid
         ? { kind: "apron-trapezoid" as const, topLengthScale: slatTopLengthScale, bottomLengthScale: slatBotLengthScale }
         : undefined;
+      // slat → stretcher 盲榫：橫向 cross-section（world X 方向，跟 ly=slatWidth 對應）
+      // 用 slatWidth-12（兩端各 6mm 肩）；垂直 cross-section（world Y 方向，跟
+      // lz=slatThickness 對應）用 min(slatThickness-4, 12)；榫深 8mm。
+      const slatTenonLen = 8;
+      const slatTenonThick = Math.max(8, slatWidth - 12);
+      const slatTenonW = Math.max(6, Math.min(slatThickness - 4, 12));
+      const slatXs: number[] = [];
       for (let i = 0; i < slatCount; i++) {
         const slatX = -slatXSpan / 2 + gap + slatWidth / 2 + i * (gap + slatWidth);
+        slatXs.push(slatX);
         parts.push({
           id: `slat-${i + 1}`,
           nameZh: `置物條 ${i + 1}`,
@@ -703,10 +711,57 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           origin: { x: slatX, y: slatY, z: 0 },
           rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
           shape: slatShape,
-          tenons: [],
+          tenons: [
+            {
+              position: "start",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonW,
+              thickness: slatTenonThick,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+            {
+              position: "end",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonW,
+              thickness: slatTenonThick,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+          ],
           mortises: [],
         });
       }
+      // 對應母榫 mortises 加在前後下橫撐 (ls-front, ls-back)
+      const lsFront = parts.find((p) => p.id === "ls-front");
+      const lsBack = parts.find((p) => p.id === "ls-back");
+      const lsCenterYWorld = stretcherY + stretcherWidth / 2;
+      // stretcher local 軸：local +Y 對 ls-front 是 inner（指向中心 +Z）；對
+      // ls-back 是 outer（指向 +Z 外）。對 back 來說 inner = local -Y。
+      // mortise.origin.z（stretcher local Z）對應世界 -Y，slat 在世界 Y =
+      // lsCenterYWorld 處，跟 stretcher 中心 Y 一樣 → local z = 0。
+      for (const slatX of slatXs) {
+        if (lsFront) {
+          lsFront.mortises.push({
+            origin: { x: slatX, y: stretcherThickness / 2 - slatTenonLen / 2, z: 0 },
+            depth: slatTenonLen,
+            length: slatTenonThick,
+            width: slatTenonW,
+            through: false,
+          });
+        }
+        if (lsBack) {
+          lsBack.mortises.push({
+            origin: { x: slatX, y: -stretcherThickness / 2 + slatTenonLen / 2, z: 0 },
+            depth: slatTenonLen,
+            length: slatTenonThick,
+            width: slatTenonW,
+            through: false,
+          });
+        }
+      }
+      // 用掉 lsCenterYWorld 變數（為了未來擴充非 center-aligned slat）
+      void lsCenterYWorld;
     }
   }
 
