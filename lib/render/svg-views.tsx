@@ -1593,9 +1593,15 @@ export function OrthoView({
             // （splayed 腳、apron-trapezoid 牙條），這樣腳斜時榫頭也跟著斜。
             // 不再做 mortise polygon 配對、splayed 2-slice 等堆疊（避免「3D 太亂」）。
             // 通榫 = 藍實線（凸出可見），盲榫/其他 = 紅虛線（埋進母件不可見）。
+            // X 字撐（rotation y 45°）的對角榫俯視圖不畫——
+            // 端面落在 X-Z 對角，tipFaceView 判定不在純軸；圓料腳鑿方榫
+            // 的方框畫出來會跟腳的圓輪廓重疊，視覺反而亂。
+            // 對角榫做法手作端自行決定（45° 盲榫 / 暗銷 / 楔釘）。
+            const isXCrossTopView = view === "top" && part.id.startsWith("ls-xcross-");
             for (let i = 0; i < part.tenons.length; i++) {
               const t = part.tenons[i];
               if (t.length <= 0) continue;
+              if (isXCrossTopView) continue;
               const lb = tenonLocalBox(part, t);
               const r = projectFeatureRect(part, lb, view);
               if (r.w >= 0.5 && r.h >= 0.5) {
