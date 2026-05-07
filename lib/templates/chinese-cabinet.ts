@@ -97,12 +97,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "arched", label: "壼門（底邊向下凹弧）" },
     { value: "cloud-head", label: "雲頭（上下都起翹）" },
   ], help: "明清家具靈魂裝飾——壼門/雲頭比直素牙更有「中式」感" },
-  { group: "stretcher", type: "select", key: "spandrelStyle", label: "牙頭裝飾", defaultValue: "none", choices: [
+  { group: "stretcher", type: "select", key: "spandrelStyle", label: "牙頭裝飾", defaultValue: "auto", choices: [
+    { value: "auto", label: "依比例風格（明=如意、清=雲頭、自訂=無）" },
     { value: "none", label: "無牙頭" },
     { value: "cloud-head", label: "雲頭牙頭（清式厚實）" },
     { value: "ruyi", label: "如意牙頭（明式典雅）" },
   ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
-  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", oneOf: ["cloud-head", "ruyi"] } },
+  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
   // 層數（1-8）
   { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -184,7 +185,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const skirtHeight = proportionStyle === "ming" ? 50 : proportionStyle === "qing" ? 80 : skirtHeightRaw;
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
   const skirtStyleRaw = getOption<string>(input, opt(o, "skirtStyle"));
-  const spandrelStyle = getOption<string>(input, opt(o, "spandrelStyle"));
+  const spandrelStyleRaw = getOption<string>(input, opt(o, "spandrelStyle"));
+  const spandrelStyle: string =
+    spandrelStyleRaw === "auto"
+      ? proportionStyle === "ming"
+        ? "ruyi"
+        : proportionStyle === "qing"
+          ? "cloud-head"
+          : "none"
+      : spandrelStyleRaw;
   const spandrelSize = getOption<number>(input, opt(o, "spandrelSize"));
   // skirtStyle="auto" → 依 proportionStyle 帶（明式壼門、清式雲頭、free 直素牙）
   const skirtStyle: string =
