@@ -255,11 +255,13 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   if (withSoundBarShelf) {
     const topPart = design.parts.find((p) => p.id === "top");
     if (topPart) {
+      // 凹槽深度限制在板厚 - 3mm 以內（避免穿透頂板）
+      const grooveDepth = Math.min(15, panelThickness - 3);
       topPart.mortises = [
         ...topPart.mortises,
         {
           origin: { x: 0, y: 0, z: -(input.width / 2) + 50 },
-          depth: 80,
+          depth: grooveDepth,
           length: input.length - 200,
           width: 100,
           through: false,
@@ -268,21 +270,24 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     }
   }
 
-  // Speaker grille 槽：在左右側板各加一個 mortise（200×400mm）
+  // Speaker grille 槽：side panel 高度 - 200mm 留邊框，避免穿透頂底板
   if (withSpeakerGrille) {
-    for (const sideId of ["side-left", "side-right"]) {
-      const sidePart = design.parts.find((p) => p.id === sideId);
-      if (sidePart) {
-        sidePart.mortises = [
-          ...sidePart.mortises,
-          {
-            origin: { x: 0, y: input.height / 2, z: 0 },
-            depth: panelThickness,
-            length: 400,
-            width: 200,
-            through: true,
-          },
-        ];
+    const grilleH = Math.min(400, Math.max(0, input.height - 200));
+    if (grilleH >= 100) {
+      for (const sideId of ["side-left", "side-right"]) {
+        const sidePart = design.parts.find((p) => p.id === sideId);
+        if (sidePart) {
+          sidePart.mortises = [
+            ...sidePart.mortises,
+            {
+              origin: { x: 0, y: input.height / 2, z: 0 },
+              depth: panelThickness,
+              length: grilleH,
+              width: Math.min(200, input.width - 100),
+              through: true,
+            },
+          ];
+        }
       }
     }
   }

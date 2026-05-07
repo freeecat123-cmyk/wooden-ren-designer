@@ -170,6 +170,18 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       shelfSpan: input.length - 2 * panelThickness,
     }),
   );
+  // 鞋層淨高 ergo：每層 < 170mm 高跟鞋放不下，> 350mm 太浪費；建議 190-280mm
+  // 從 zones 計算每個 shelves zone 的每層淨高（heightMm / count）
+  for (const z of zones) {
+    const c = z.count ?? 0;
+    if (z.type === "shelves" && c > 0) {
+      const perShelf = (z.heightMm - c * panelThickness) / (c + 1);
+      if (perShelf < 170) {
+        appendWarnings(design, [`鞋櫃層板每層淨高 ${Math.round(perShelf)}mm 偏矮：高跟鞋 / 短靴需 ≥ 190mm，建議減少層板數或加大區段高度。`]);
+        break;
+      }
+    }
+  }
   if (input.height > 2000 || input.length > 1500) {
     appendSuggestion(design, {
       text: `${input.length}×${input.height}mm 已超過鞋櫃常規——衣櫃模板支援大尺寸玄關櫃。`,

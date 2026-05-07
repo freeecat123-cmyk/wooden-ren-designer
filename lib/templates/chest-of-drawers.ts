@@ -233,14 +233,19 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     maxLength: 1300, maxWidth: 600, maxHeight: 1500,
   });
   const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
+  // 從 zones 累加實際抽屜總數（count × cols），使用者把區段改成層板/門時數量會跟著變
+  const actualDrawerCount = zones.reduce(
+    (sum, z) => sum + (z.type === "drawer" ? (z.count ?? 0) * (z.cols ?? 1) : 0),
+    0,
+  );
   appendWarnings(
     design,
     validateCabinetStructure({
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
-      hasDrawers: true,
-      drawerCount: 6,
+      hasDrawers: actualDrawerCount > 0,
+      drawerCount: actualDrawerCount,
       hasDrawerSlide: useDrawerSlide,
     }),
   );

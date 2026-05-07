@@ -35,11 +35,12 @@ import {
 export const nightstandOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
   ...makeZoneOptions({
-    // 兩段式床頭櫃：上層抽屜 / 下層開放層板（皆可改成抽屜 / 門 / 開放）
+    // 兩段式床頭櫃：上層抽屜 180mm（固定）+ 下層自動填滿
+    // autoFillSide: "bottom" 讓下層吃剩下高度，上層 180mm 鎖死（抽屜剛好放手機/書）
     topType: "drawer", topHeight: 180, topCount: 1, topCols: 1,
     midType: "none", midCount: 0,
     bottomType: "shelves", bottomHeight: 250, bottomCount: 1,
-  }, false, { skipMid: true }),
+  }, false, { skipMid: true, autoFillSide: "bottom" }),
   { group: "door", type: "select", key: "doorType", label: "門材質（如有門板）", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門" },
     { value: "slab", label: "夾板貼皮平板門" },
@@ -155,6 +156,12 @@ export const nightstand: FurnitureTemplate = (input) => {
       shelfSpan: input.length - 2 * panelThickness,
     }),
   );
+  // 床面齊平 ergo：標準床面 500-550mm（含床墊），床頭櫃高 ±50mm 才好用
+  if (input.height < 450) {
+    appendWarnings(design, [`床頭櫃高 ${input.height}mm 偏低：標準床面（含床墊）約 500-550mm，建議床頭櫃高 480-600mm 才能順手拿東西。`]);
+  } else if (input.height > 650) {
+    appendWarnings(design, [`床頭櫃高 ${input.height}mm 偏高：超過床面（500-550mm）+ 50mm 上限，躺著拿東西手要抬太高。`]);
+  }
   if (input.length > 600 || input.height > 800) {
     appendSuggestion(design, {
       text: `${input.length}×${input.height}mm 比較像斗櫃 / 五斗櫃尺寸——斗櫃模板有完整抽屜結構選項。`,

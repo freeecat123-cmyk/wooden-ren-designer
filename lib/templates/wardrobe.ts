@@ -47,6 +47,7 @@ export const wardrobeOptions: OptionSpec[] = [
   ] },
   doorMountOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
+  { group: "leg", type: "number", key: "legSize", label: "底座腳粗 (mm)", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { key: "legHeight", notIn: [0] }, help: "衣櫃高重，建議 50mm 以上" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
@@ -77,6 +78,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
   const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
@@ -120,7 +122,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
     legHeight,
-    legSize: 45,
+    legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
     legInset,
     doorMount,
@@ -198,5 +200,12 @@ export const wardrobe: FurnitureTemplate = (input) => {
       hasDrawerSlide: useDrawerSlide,
     }),
   );
+  // 吊衣桿高度 ergo：< 1100mm 大衣/長外套掛不下；1700+ 標配
+  for (const z of zones) {
+    if (z.type === "hanging" && z.heightMm < 1100) {
+      appendWarnings(design, [`吊衣區淨高 ${z.heightMm}mm < 1100mm，大衣 / 長洋裝會拖到底。建議加大櫃高或縮短上下層的高度，吊衣區留 1100-1700mm。`]);
+      break;
+    }
+  }
   return design;
 };
