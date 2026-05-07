@@ -15,6 +15,7 @@ export type FurnitureCategory =
   | "side-table"
   | "open-bookshelf"
   | "chest-of-drawers"
+  | "chinese-cabinet"
   | "shoe-cabinet"
   | "display-cabinet"
   | "dining-table"

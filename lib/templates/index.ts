@@ -12,6 +12,7 @@ import { diningTable, diningTableOptions } from "./dining-table";
 import { desk, deskOptions } from "./desk";
 import { openBookshelf, openBookshelfOptions } from "./open-bookshelf";
 import { chestOfDrawers, chestOfDrawersOptions } from "./chest-of-drawers";
+import { chineseCabinet, chineseCabinetOptions } from "./chinese-cabinet";
 import { shoeCabinet, shoeCabinetOptions } from "./shoe-cabinet";
 import { displayCabinet, displayCabinetOptions } from "./display-cabinet";
 import { diningChair, diningChairOptions } from "./dining-chair";
@@ -112,6 +113,16 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 800, width: 450, height: 900 },
     limits: { length: 1300, width: 600, height: 1500 },
     optionSchema: chestOfDrawersOptions,
+  },
+  {
+    category: "chinese-cabinet",
+    nameZh: "中式方角櫃",
+    description: "明清家具邊抹板心做法，4 立柱 + 6 面框板",
+    difficulty: "advanced",
+    template: chineseCabinet,
+    defaults: { length: 800, width: 400, height: 1500 },
+    limits: { length: 1500, width: 600, height: 2200 },
+    optionSchema: chineseCabinetOptions,
   },
   {
     category: "shoe-cabinet",

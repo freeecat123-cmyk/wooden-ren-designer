@@ -44,6 +44,9 @@ const SHAPE_AWARE_CASES = new Set<string>([
   // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
   // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
   "round-table:pedestal",
+  // 中式方角櫃：邊抹板心結構，rail 端頭榫接進立柱（傳統明式做法），
+  // audit 看到 rail × rail 在立柱位置交界其實是榫頭區，不是真實重疊。
+  "chinese-cabinet:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
