@@ -238,10 +238,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 側面（左/右/前/後）：每面在 postTopY 跟 postBottomY 各加 1 條水平 rail
   // 板心：在 4 條 rail 之間（同立柱間）
 
-  // 抹板（rail）端頭卡進立柱中央（明式榫頭埋入立柱中軸位置）
-  // 跨度 = 2 × postX/Z = 一立柱中心到另一立柱中心
-  const railLenX = 2 * postX;
-  const railLenZ = 2 * postZ;
+  // 抹板（rail）端頭跟立柱外面齊平（明式攢邊做法）
+  // 跨度 = 2 × (postX + postSize/2) = 立柱外面到立柱外面 = 整個櫃子寬度
+  const railLenX = 2 * (postX + postSize / 2);
+  const railLenZ = 2 * (postZ + postSize / 2);
   // 板心 / 內部 divider 留在兩立柱內面之間（不延伸進立柱）
   const innerSpanX = 2 * (postX - postSize / 2);
   const innerSpanZ = 2 * (postZ - postSize / 2);
