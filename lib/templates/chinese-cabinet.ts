@@ -443,14 +443,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           const pullY = layerCenterY;
           const pullZ = doorFrontZ - doorThickness / 2 - 4;  // 凸出門面 4mm
           if (doorPullType === "round-brass") {
+            // 圓銅環：直徑 30mm 圓盤、高 8mm（凸出門面 4mm 在門外側）
             parts.push({
               id: `layer${i + 1}-${lrId}-door-pull`,
               nameZh: `第 ${i + 1} 層${lrLabel}門拉環`,
               material,
               grainDirection: "length",
-              visible: { length: 30, width: 8, thickness: 30 },
-              origin: { x: pullX, y: pullY - 15, z: pullZ },
               shape: { kind: "round" },
+              visible: { length: 30, width: 30, thickness: 8 },
+              origin: { x: pullX, y: pullY - 4, z: pullZ },
               tenons: [],
               mortises: [],
             });
@@ -501,9 +502,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               nameZh: `第 ${i + 1} 層抽屜拉環 ${d + 1}`,
               material,
               grainDirection: "length",
-              visible: { length: 28, width: 8, thickness: 28 },
-              origin: { x: cxOffset, y: pullY - 14, z: pullZ },
               shape: { kind: "round" },
+              visible: { length: 28, width: 28, thickness: 8 },
+              origin: { x: cxOffset, y: pullY - 4, z: pullZ },
               tenons: [],
               mortises: [],
             });
