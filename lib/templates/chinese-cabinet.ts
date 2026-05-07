@@ -145,11 +145,12 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // panel 高度 = 上下抹之間 + 嵌入上下槽各 5mm
   const panelInnerH = upperRailY - lowerRailY - railWidth + 10;
 
-  // 明式邊抹板心：rail / panel 跟立柱「中心對齊」（rail 在立柱中軸，兩側各凹）
-  // 立柱厚 postSize > rail 厚 railThickness，rail 居中於立柱不會凸出立柱範圍
-  // panel 跟 rail 同中心位置（嵌入 rail 內側槽）
-  const sideRailOffsetX = postX;
-  const fbRailOffsetZ = postZ;
+  // 明式邊抹板心：rail / panel 跟立柱「外面共面」（嵌入立柱、外面齊平）
+  // rail 中心 = 立柱外面 - rail 厚/2（rail 在立柱範圍內偏外側）
+  // panel 中心 = rail 中心（嵌入 rail 內側槽）
+  // 立柱外面 X = postX + postSize/2，所以 rail center X = postX + postSize/2 - railThickness/2
+  const sideRailOffsetX = postX + postSize / 2 - railThickness / 2;
+  const fbRailOffsetZ = postZ + postSize / 2 - railThickness / 2;
 
   // visible 軸慣例：length → X、width → Z、thickness → Y（高度）
   // 對沿 Z 軸延伸的 rail（左/右側上下抹）：X=厚度、Y=高度、Z=長度
@@ -377,9 +378,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   });
 
-  // ── 牙條（直線素牙）：圍底框下緣 4 條，跟立柱中心對齊
-  const skirtOffsetX = postX;
-  const skirtOffsetZ = postZ;
+  // ── 牙條（直線素牙）：圍底框下緣 4 條
+  // 牙條中心位置：立柱外面 - skirtThickness/2（牙條外面跟立柱外面切齊）
+  const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2;
+  const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2;
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
