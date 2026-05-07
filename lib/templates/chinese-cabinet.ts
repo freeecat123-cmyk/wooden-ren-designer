@@ -128,7 +128,9 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "solid", label: "整片實木板" },
     { value: "lattice-cross", label: "格扇門：田字格（橫直櫺）" },
     { value: "lattice-lantern", label: "格扇門：燈籠錦（米字斜櫺）" },
-  ], help: "格扇門 = 明清書櫃/博古架靈魂門板，櫺條凸貼浮雕視覺" },
+    { value: "glass", label: "玻璃門（木框 + 中央玻璃片）" },
+    { value: "glass-lattice", label: "玻璃格扇門（田字格木櫺後襯玻璃）" },
+  ], help: "格扇門 = 明清書櫃/博古架靈魂；玻璃門 = 博古架/展示櫃常見" },
   { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
@@ -609,21 +611,29 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const muntinT = 8;        // 櫺條厚度（伸出門面）
       const muntinW = 18;       // 櫺條寬度
       const muntinFrontZ = doorFrontZ - doorThickness / 2 - muntinT / 2;  // 凸貼 -Z 面
+      const isGlassDoor = doorStyle === "glass" || doorStyle === "glass-lattice";
+      const hasOuterFrame = doorStyle === "lattice-cross" || doorStyle === "lattice-lantern" || isGlassDoor;
+      const hasCenterCross = doorStyle === "lattice-cross" || doorStyle === "lattice-lantern" || doorStyle === "glass-lattice";
+      const hasDiagonals = doorStyle === "lattice-lantern";
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
         const lrLabel = sx < 0 ? "左" : "右";
         const doorCX = sx * (doorWidth / 2 + doorGap / 2);
+        // 玻璃門：主板改 visual:"glass" + 厚度 5mm（不計入材料單）
+        const glassThickness = 5;
+        const mainPanelThickness = isGlassDoor ? glassThickness : doorThickness;
         parts.push({
           id: `layer${i + 1}-${lrId}-door`,
-          nameZh: `第 ${i + 1} 層${lrLabel}門`,
+          nameZh: `第 ${i + 1} 層${lrLabel}門${isGlassDoor ? "玻璃片" : ""}`,
           material,
           grainDirection: "length",
-          visible: { length: doorWidth, width: doorThickness, thickness: doorHeight },
+          visible: { length: doorWidth, width: mainPanelThickness, thickness: doorHeight },
           origin: { x: doorCX, y: layerCenterY - doorHeight / 2, z: doorFrontZ },
+          ...(isGlassDoor ? { visual: "glass" as const } : {}),
           tenons: [],
           mortises: [],
         });
-        // raised 凸面板心擴到 solid 門板：lattice 不加（會跟櫺條打架）
+        // raised 凸面板心擴到 solid 門板：lattice / glass 不加（會跟櫺條/玻璃打架）
         if (doorStyle === "solid" && panelStyle === "raised") {
           const plateauMargin = 35;
           const plateauThickness = 12;
@@ -638,8 +648,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
             mortises: [],
           });
         }
-        // 格扇門：4 邊外框 + 中央十字 (lattice-cross) / + 對角米字 (lattice-lantern)
-        if (doorStyle === "lattice-cross" || doorStyle === "lattice-lantern") {
+        // 格扇門 / 玻璃門：4 邊外框（木框）
+        if (hasOuterFrame) {
           const frameInsetX = muntinW / 2;
           const frameInsetY = muntinW / 2;
           // 4 邊外框：上 / 下 / 左 / 右（沿門邊內側）
@@ -679,7 +689,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               mortises: [],
             });
           }
-          // 中央十字：水平 + 垂直
+        }
+        // 中央十字（橫直櫺）：cross / lantern / glass-lattice 都加
+        if (hasCenterCross) {
+          const sideY = layerCenterY - doorHeight / 2;
           parts.push({
             id: `layer${i + 1}-${lrId}-door-muntin-hcenter`,
             nameZh: `第 ${i + 1} 層${lrLabel}門橫櫺`,
@@ -702,7 +715,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           });
         }
         // 燈籠錦：在 cross 基礎上加 4 條 45° 對角櫺條（米字）
-        if (doorStyle === "lattice-lantern") {
+        if (hasDiagonals) {
           const innerW = doorWidth - muntinW * 2 + 2;
           const innerH = doorHeight - muntinW * 2 + 2;
           // 對角線從中心放射到 4 角的「半條」櫺條：用 length = sqrt((innerW/2)^2+(innerH/2)^2)
