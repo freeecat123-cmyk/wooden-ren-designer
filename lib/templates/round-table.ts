@@ -51,35 +51,38 @@ function buildPedestalRoundTable(p: {
   };
   // 中央柱：lathe-turned 從地面一路到 cleat 下方，底部 flare 把
   // 4 隻底爪的內側包住；爪只看得到從柱外冒出來的部分
+  const columnHeight = legHeight - topCleatThickness;
   const column: Part = {
     id: "pedestal-column",
     nameZh: "中央柱",
     material: material as "maple",
     grainDirection: "length",
-    visible: { length: columnSize, width: columnSize, thickness: legHeight - topCleatThickness },
-    origin: { x: 0, y: 0, z: 0 },
+    visible: { length: columnSize, width: columnSize, thickness: columnHeight },
+    // mesh center = origin、Y 沿 thickness：柱底坐地面 → origin.y = columnHeight/2
+    origin: { x: 0, y: columnHeight / 2, z: 0 },
     shape: { kind: "lathe-turned" },
     tenons: [
       { position: "top", type: "blind-tenon", length: 30, width: Math.round(columnSize * 0.4), thickness: Math.round(columnSize * 0.4) },
     ],
     mortises: [],
   };
-  // 柱頂方板（接桌面）
+  // 柱頂方板（接桌面）：頂面貼桌面底，故 origin.y = legHeight - topCleatThickness/2
   const topCleat: Part = {
     id: "pedestal-top-cleat",
     nameZh: "柱頂連接板",
     material: material as "maple",
     grainDirection: "length",
     visible: { length: topCleatSize, width: topCleatSize, thickness: topCleatThickness },
-    origin: { x: 0, y: legHeight - topCleatThickness, z: 0 },
+    // cleat 頂面 = legHeight（接桌面下方），butt-joint 慣例下與 top 邊界重疊不算 overlap
+    origin: { x: 0, y: legHeight - topCleatThickness / 2, z: 0 },
     tenons: [],
     mortises: [
       { origin: { x: 0, y: 0, z: 0 }, depth: 30, length: Math.round(columnSize * 0.4), width: Math.round(columnSize * 0.4), through: false },
     ],
   };
   // 4 隻爪（東西南北方向往外放射）
-  // 爪原點在中心，body 沿 X 或 Z 軸延伸到柱外
-  // 為簡化：每隻爪是矩形板，從柱面到 footLength 處
+  // 慣例：part-X 0→length 對應「從柱面往外」，tenon "start"（X=0 端）= 朝柱
+  // mesh center = origin、Y 沿 thickness：爪坐地面 → origin.y = footThickness/2
   const feet: Part[] = [
     { id: "pedestal-foot-front", nameZh: "前底爪", axis: "z" as const, sign: -1 },
     { id: "pedestal-foot-back", nameZh: "後底爪", axis: "z" as const, sign: 1 },
@@ -87,22 +90,24 @@ function buildPedestalRoundTable(p: {
     { id: "pedestal-foot-right", nameZh: "右底爪", axis: "x" as const, sign: 1 },
   ].map((f) => {
     const isXAxis = f.axis === "x";
+    // rotation y 把 part-X 對到「從柱中心往 +sign 方向」
+    //   右(+X) 0、左(-X) π、後(+Z) -π/2、前(-Z) +π/2
+    const rotY =
+      isXAxis ? (f.sign > 0 ? 0 : Math.PI)
+              : (f.sign > 0 ? -Math.PI / 2 : Math.PI / 2);
     return {
       id: f.id,
       nameZh: f.nameZh,
       material: material as "maple",
       grainDirection: "length" as const,
       visible: { length: footLength, width: footWidth, thickness: footThickness },
-      // butt-joint 慣例：爪從柱外面延伸出去，不跟柱重疊；爪中心 = 柱外面 + footLength/2
+      // butt-joint 慣例：爪從柱外面延伸出去；爪中心 = 柱外面 + footLength/2
       origin: {
         x: isXAxis ? f.sign * (columnSize / 2 + footLength / 2) : 0,
-        y: 0,
+        y: footThickness / 2,
         z: !isXAxis ? f.sign * (columnSize / 2 + footLength / 2) : 0,
       },
-      // X 軸爪 rotation x: π/2; Z 軸爪 rotation x: π/2 + y: π/2
-      rotation: isXAxis
-        ? { x: Math.PI / 2, y: 0, z: 0 }
-        : { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      rotation: { x: 0, y: rotY, z: 0 },
       tenons: [
         // 接柱：start 端入柱（柱在中心，爪從柱面延伸出去）
         { position: "start" as const, type: "shouldered-tenon" as const, length: 25, width: footWidth - 12, thickness: 18 },
@@ -128,6 +133,7 @@ function buildPedestalRoundTable(p: {
     parts: [top, topCleat, column, ...feet],
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
+    useButtJointConvention: true,
     notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板膠合到桌面下方。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
   };
 }
