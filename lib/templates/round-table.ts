@@ -26,14 +26,17 @@ function legShapeLabel(s: string): string {
 function buildPedestalRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
+  footLengthOverride?: number; footWidth?: number; footThickness?: number;
 }): FurnitureDesign {
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
   // 柱粗 = legSize × 2.5，太細看起來會像柱頂頂著桌面要倒
   const columnSize = Math.round(legSize * 2.5);
-  // 底盤爪：每爪長 = 半徑 × 0.6（從中心往外），高 50, 厚 35
-  const footLength = Math.round(radius * 0.6);
-  const footWidth = 50;
-  const footThickness = 35;
+  // 底盤爪：override > 0 直接用，否則自動 = 半徑 × 0.6
+  const footLength = p.footLengthOverride && p.footLengthOverride > 0
+    ? p.footLengthOverride
+    : Math.round(radius * 0.6);
+  const footWidth = p.footWidth ?? 50;
+  const footThickness = p.footThickness ?? 35;
   // 柱頂連接用的方板（與桌面下方膠合）
   const topCleatSize = columnSize + 30;
   const topCleatThickness = 22;
@@ -290,6 +293,10 @@ export const roundTableOptions: OptionSpec[] = [
     { value: "trestle", label: "端梁餐桌（兩端梁框 + 中央連接橫木）" },
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 5, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立。僅外斜系列有效（餐桌 5° 內最自然，避免絆腳）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  // 獨柱餐桌底爪參數
+  { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬 (mm)", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
+  { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距桌面 (mm)", defaultValue: 30, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
@@ -345,7 +352,12 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
-    return buildPedestalRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+    return buildPedestalRoundTable({
+      diameter, height, material, topThickness, legSize, legHeight, radius,
+      footLengthOverride: getOption<number>(input, opt(o, "pedestalFootLength")),
+      footWidth: getOption<number>(input, opt(o, "pedestalFootWidth")),
+      footThickness: getOption<number>(input, opt(o, "pedestalFootThickness")),
+    });
   }
   if (legShape === "trestle") {
     return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
