@@ -15,6 +15,10 @@ const STYLE_EMOJI: Record<string, string> = {
   industrial: "🏭",
   japanese: "🎋",
   chippendale: "👑",
+  scandi: "❄️",
+  farmhouse: "🌾",
+  wabiSabi: "🍃",
+  bauhaus: "◼️",
 };
 
 /**

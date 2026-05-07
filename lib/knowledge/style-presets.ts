@@ -215,6 +215,85 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     source: "books_japanese_techniques.md §6（宮大工仕口）",
   },
 
+  // ─── 斯堪地（Scandi / 純白系北歐）────────────────────────────────
+  // 跟 midCentury 區隔：更純白、無 splay、椅面不挖型，極致簡素
+  scandi: {
+    id: "scandi",
+    nameZh: "斯堪地（純白系北歐）",
+    nameEn: "Scandinavian",
+    visualHint: "白橡 / 樺木淺色、直細腳 30mm、素料無 splay、座面平、極細倒邊",
+    materials: ["white-oak", "ash", "maple"],
+    legShape: "tapered",
+    legSizeMm: 30,
+    legEdgeMm: 2,
+    topEdgeMm: 5,
+    edgeStyle: "rounded",
+    apronWidthMm: 50,
+    backStyle: "slats",
+    seatProfile: "flat",
+    defaultJoinery: "blind-tenon",
+    source: "books_furniture_styles.md §5（IKEA / Carl Hansen）",
+  },
+
+  // ─── 美式農舍（Farmhouse）─────────────────────────────────────
+  farmhouse: {
+    id: "farmhouse",
+    nameZh: "美式農舍（Farmhouse）",
+    nameEn: "American Farmhouse",
+    visualHint: "厚粗料 55mm 直方腳、松木 / 橡木深色、X 形下橫撐、寬牙條 85mm、座面平",
+    materials: ["pine", "white-oak", "douglas-fir"],
+    legShape: "box",
+    legSizeMm: 55,
+    legEdgeMm: 0,
+    topEdgeMm: 5,
+    edgeStyle: "chamfered",
+    apronWidthMm: 85,
+    backStyle: "ladder",
+    seatProfile: "flat",
+    defaultJoinery: "shouldered-tenon",
+    source: "books_furniture_styles.md §6（Country / Farmhouse）",
+  },
+
+  // ─── 侘寂（Wabi-Sabi）─────────────────────────────────────────
+  // 粗實、保留材質感、自然邊風格——粗料 + 大圓邊 + 樸素接合
+  wabiSabi: {
+    id: "wabiSabi",
+    nameZh: "侘寂（Wabi-Sabi）",
+    nameEn: "Wabi-Sabi",
+    visualHint: "粗實 50mm 直腳、檜木 / 胡桃自然色、大圓邊 15mm、藏榫、無裝飾、低重心",
+    materials: ["taiwan-cypress", "walnut", "douglas-fir"],
+    legShape: "box",
+    legSizeMm: 50,
+    legEdgeMm: 6,
+    topEdgeMm: 15,
+    edgeStyle: "rounded",
+    apronWidthMm: 70,
+    backStyle: "slats",
+    seatProfile: "flat",
+    defaultJoinery: "blind-tenon",
+    source: "books_japanese_techniques.md §7（侘寂美學）",
+  },
+
+  // ─── 包浩斯（Bauhaus）─────────────────────────────────────────
+  // 純幾何、無曲線、對比色、無倒邊
+  bauhaus: {
+    id: "bauhaus",
+    nameZh: "包浩斯（Bauhaus）",
+    nameEn: "Bauhaus",
+    visualHint: "純幾何、直角無倒邊、黑/白/原木對比、細直腳 32mm、無 splay、無椅背曲線",
+    materials: ["maple", "ash", "walnut"],
+    legShape: "box",
+    legSizeMm: 32,
+    legEdgeMm: 0,
+    topEdgeMm: 0,
+    edgeStyle: "chamfered",
+    apronWidthMm: 50,
+    backStyle: "slats",
+    seatProfile: "flat",
+    defaultJoinery: "blind-tenon",
+    source: "books_furniture_styles.md §7（Breuer / Mies）",
+  },
+
   // ─── 古典歐式（Chippendale / 英式 18 世紀）─────────────────────
   chippendale: {
     id: "chippendale",
