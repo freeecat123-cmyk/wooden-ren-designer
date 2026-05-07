@@ -41,6 +41,9 @@ const SHAPE_AWARE_VARIANTS = new Set<string>([]);
 const SHAPE_AWARE_CASES = new Set<string>([
   "tea-table:box",
   "tea-table:tapered",
+  // 獨柱餐桌：lathe-turned 中段比 mesh box 細，4 隻爪要壓進 mesh box 邊內
+  // 才能視覺接合柱底 lathe 輪廓——audit 用 box 算 overlap 看不到柱「實際變細」。
+  "round-table:pedestal",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";

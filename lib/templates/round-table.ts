@@ -99,11 +99,12 @@ function buildPedestalRoundTable(p: {
       material: material as "maple",
       grainDirection: "length" as const,
       visible: { length: footLength, width: footWidth, thickness: footThickness },
-      // butt-joint 慣例：爪從柱外面延伸出去；origin.y = 0（bottom-anchored，爪坐地面）
+      // 爪內端壓進柱底（footWidth/2，避開另一軸爪），讓 lathe 中段任何輪廓
+      // 都能視覺接合；origin.y = 0（bottom-anchored，爪坐地面）
       origin: {
-        x: isXAxis ? f.sign * (columnSize / 2 + footLength / 2) : 0,
+        x: isXAxis ? f.sign * (footWidth / 2 + footLength / 2) : 0,
         y: 0,
-        z: !isXAxis ? f.sign * (columnSize / 2 + footLength / 2) : 0,
+        z: !isXAxis ? f.sign * (footWidth / 2 + footLength / 2) : 0,
       },
       rotation: { x: 0, y: rotY, z: 0 },
       tenons: [
