@@ -127,11 +127,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 側面（左/右/前/後）：每面在 postTopY 跟 postBottomY 各加 1 條水平 rail
   // 板心：在 4 條 rail 之間（同立柱間）
 
-  // 每個面（rail 跨度 = 在立柱之間，不含立柱本身）
-  // 前/後面：rail 沿 X，跨度 = 2 × postX − postSize（含 postSize/2 進立柱當榫接區）
-  // 左/右面：rail 沿 Z，跨度 = 2 × postZ − postSize
-  const railLenX = 2 * postX - postSize;  // 前/後面 rail 長度
-  const railLenZ = 2 * postZ - postSize;  // 左/右面 rail 長度
+  // 每個面（rail 跨度 = 在立柱內面之間，不含立柱本身）
+  // 前/後面：rail 沿 X，跨度 = 2 × (postX − postSize/2) = 兩立柱內面距離
+  // 左/右面：rail 沿 Z，跨度 = 2 × (postZ − postSize/2)
+  const railLenX = 2 * (postX - postSize / 2);
+  const railLenZ = 2 * (postZ - postSize / 2);
   const panelInnerW_X = railLenX - 10;  // 板心比 rail 短 5mm 兩邊（嵌入槽 5mm）
   const panelInnerW_Z = railLenZ - 10;
   // 板心 height = postHeight − railWidth × 2 + 10mm（嵌入上下 rail 槽各 5mm）
@@ -143,19 +143,32 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const upperRailY = postTopY - railWidth;  // 上抹底邊在這
   const lowerRailY = postBottomY;  // 下抹底邊在這
 
-  // ── 左/右側面 frame
+  // 各面 rail / panel 的「面內偏移」位置：
+  // 左/右側面：rail 中心 X = ±(立柱內面 - railThickness/2)，朝中心方向偏 railThickness/2
+  // 前/後面：rail 中心 Z = ±(立柱內面 - railThickness/2)
+  // panel 跟 rail 同 X/Z 中心位置（嵌入 rail 內側槽）
+  const sideRailOffsetX = postX - postSize / 2 - railThickness / 2;  // 立柱內面朝中心偏 railThickness/2
+  const fbRailOffsetZ = postZ - postSize / 2 - railThickness / 2;
+
+  // visible 軸慣例：length → X、width → Z、thickness → Y（高度）
+  // 對沿 Z 軸延伸的 rail（左/右側上下抹）：X=厚度、Y=高度、Z=長度
+  //   → visible: length=railThickness, width=railLenZ, thickness=railWidth
+  // 對沿 X 軸延伸的 rail（前/後上下抹）：X=長度、Y=高度、Z=厚度
+  //   → visible: length=railLenX, width=railThickness, thickness=railWidth
+  // 對立面 panel：高度沿 Y、長度沿延伸軸、厚度沿 face normal
+
+  // ── 左/右側面 frame（沿 Z 延伸）
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
-    // 上抹（沿 Z 軸）
+    // 上抹
     parts.push({
       id: `${lrId}-side-upper-rail`,
       nameZh: `${lrLabel}側上抹`,
       material,
       grainDirection: "length",
-      visible: { length: railLenZ, width: railWidth, thickness: railThickness },
-      origin: { x: sx * (postX - postSize / 2 + railThickness / 2), y: upperRailY, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      visible: { length: railThickness, width: railLenZ, thickness: railWidth },
+      origin: { x: sx * sideRailOffsetX, y: upperRailY, z: 0 },
       tenons: [],
       mortises: [],
     });
@@ -165,9 +178,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}側下抹`,
       material,
       grainDirection: "length",
-      visible: { length: railLenZ, width: railWidth, thickness: railThickness },
-      origin: { x: sx * (postX - postSize / 2 + railThickness / 2), y: lowerRailY, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      visible: { length: railThickness, width: railLenZ, thickness: railWidth },
+      origin: { x: sx * sideRailOffsetX, y: lowerRailY, z: 0 },
       tenons: [],
       mortises: [],
     });
@@ -177,23 +189,21 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}側板心`,
       material,
       grainDirection: "length",
-      visible: { length: panelInnerW_Z, width: panelInnerH, thickness: panelThickness },
-      origin: { x: sx * (postX - postSize / 2 + railThickness / 2), y: lowerRailY + railWidth - 5, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      visible: { length: panelThickness, width: panelInnerW_Z, thickness: panelInnerH },
+      origin: { x: sx * sideRailOffsetX, y: lowerRailY + railWidth - 5, z: 0 },
       tenons: [],
       mortises: [],
     });
   }
 
-  // ── 背面 frame
-  // 上抹（沿 X 軸）
+  // ── 背面 frame（沿 X 延伸）
   parts.push({
     id: "back-upper-rail",
     nameZh: "背面上抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railWidth, thickness: railThickness },
-    origin: { x: 0, y: upperRailY, z: postZ - postSize / 2 + railThickness / 2 },
+    visible: { length: railLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: upperRailY, z: fbRailOffsetZ },
     tenons: [],
     mortises: [],
   });
@@ -202,8 +212,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "背面下抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railWidth, thickness: railThickness },
-    origin: { x: 0, y: lowerRailY, z: postZ - postSize / 2 + railThickness / 2 },
+    visible: { length: railLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: lowerRailY, z: fbRailOffsetZ },
     tenons: [],
     mortises: [],
   });
@@ -212,21 +222,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "背面板心",
     material,
     grainDirection: "length",
-    visible: { length: panelInnerW_X, width: panelInnerH, thickness: panelThickness },
-    origin: { x: 0, y: lowerRailY + railWidth - 5, z: postZ - postSize / 2 + railThickness / 2 },
+    visible: { length: panelInnerW_X, width: panelThickness, thickness: panelInnerH },
+    origin: { x: 0, y: lowerRailY + railWidth - 5, z: fbRailOffsetZ },
     tenons: [],
     mortises: [],
   });
 
-  // ── 前面 frame（無門/抽屜的部分用框；有門/抽屜的層由各 layer 處理）
-  // 前面只放上下抹（不放板心，板心位置由 layer 內容填）
+  // ── 前面 frame
   parts.push({
     id: "front-upper-rail",
     nameZh: "前面上抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railWidth, thickness: railThickness },
-    origin: { x: 0, y: upperRailY, z: -(postZ - postSize / 2 + railThickness / 2) },
+    visible: { length: railLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: upperRailY, z: -(fbRailOffsetZ) },
     tenons: [],
     mortises: [],
   });
@@ -235,8 +244,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "前面下抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railWidth, thickness: railThickness },
-    origin: { x: 0, y: lowerRailY, z: -(postZ - postSize / 2 + railThickness / 2) },
+    visible: { length: railLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: lowerRailY, z: -(fbRailOffsetZ) },
     tenons: [],
     mortises: [],
   });
@@ -251,7 +260,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `第 ${i + 1}/${i + 2} 層分隔板`,
       material,
       grainDirection: "length",
-      visible: { length: railLenX, width: railWidth, thickness: 2 * postZ - postSize },
+      // 水平層板：X 方向 railLenX, Z 方向 = 2*(postZ-postSize/2), Y 厚 = railWidth
+      visible: { length: railLenX, width: 2 * (postZ - postSize / 2), thickness: railWidth },
       origin: { x: 0, y: dividerY, z: 0 },
       tenons: [],
       mortises: [],
@@ -282,8 +292,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           nameZh: `第 ${i + 1} 層${lrLabel}門`,
           material,
           grainDirection: "length",
-          visible: { length: doorWidth, width: doorHeight, thickness: doorThickness },
-          origin: { x: sx * (doorWidth / 2 + doorGap / 2), y: layerCenterY - doorHeight / 2, z: -(postZ - postSize / 2 + railThickness / 2) },
+          // 立著的門板：X 寬, Y 高, Z 厚
+          visible: { length: doorWidth, width: doorThickness, thickness: doorHeight },
+          origin: { x: sx * (doorWidth / 2 + doorGap / 2), y: layerCenterY - doorHeight / 2, z: -(fbRailOffsetZ) },
           tenons: [],
           mortises: [],
         });
@@ -294,14 +305,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const drawerWidth = railLenX - drawerGap * 2;
       const drawerHeight = thisLayerHeight - 4;
       const drawerThickness = railThickness;
-      // 抽屜面板（front）
+      // 抽屜面板（front）— 立著的板：X 寬, Y 高, Z 厚
       parts.push({
         id: `layer${i + 1}-drawer-front`,
         nameZh: `第 ${i + 1} 層抽屜面`,
         material,
         grainDirection: "length",
-        visible: { length: drawerWidth, width: drawerHeight, thickness: drawerThickness },
-        origin: { x: 0, y: layerCenterY - drawerHeight / 2, z: -(postZ - postSize / 2 + railThickness / 2) },
+        visible: { length: drawerWidth, width: drawerThickness, thickness: drawerHeight },
+        origin: { x: 0, y: layerCenterY - drawerHeight / 2, z: -(fbRailOffsetZ) },
         tenons: [],
         mortises: [],
       });
@@ -317,10 +328,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: [],
         mortises: [],
       });
-      // 抽屜兩側
+      // 抽屜兩側（立著的板，沿 Z 延伸）：X=厚, Y=高, Z=長
       const drawerSideThickness = 12;
       const drawerSideHeight = drawerHeight - 12;
-      const drawerSideLength = 2 * postZ - postSize - 30;
+      const drawerSideLength = 2 * (postZ - postSize / 2) - 30;
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
         parts.push({
@@ -328,20 +339,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           nameZh: `第 ${i + 1} 層抽屜${sx < 0 ? "左" : "右"}側`,
           material,
           grainDirection: "length",
-          visible: { length: drawerSideLength, width: drawerSideHeight, thickness: drawerSideThickness },
+          visible: { length: drawerSideThickness, width: drawerSideLength, thickness: drawerSideHeight },
           origin: { x: sx * (drawerWidth / 2 - 10 - drawerSideThickness / 2), y: layerBottomY + 5 + drawerBottomThickness, z: 0 },
-          rotation: { x: 0, y: Math.PI / 2, z: 0 },
           tenons: [],
           mortises: [],
         });
       }
-      // 抽屜後（簡化）
+      // 抽屜後（沿 X 延伸）：X=長, Y=高, Z=厚
       parts.push({
         id: `layer${i + 1}-drawer-back`,
         nameZh: `第 ${i + 1} 層抽屜後`,
         material,
         grainDirection: "length",
-        visible: { length: drawerWidth - 20 - drawerSideThickness * 2, width: drawerSideHeight, thickness: drawerSideThickness },
+        visible: { length: drawerWidth - 20 - drawerSideThickness * 2, width: drawerSideThickness, thickness: drawerSideHeight },
         origin: { x: 0, y: layerBottomY + 5 + drawerBottomThickness, z: postZ - postSize / 2 - 20 },
         tenons: [],
         mortises: [],
@@ -367,7 +377,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // ── 牙條（直線素牙）：圍底框下緣 4 條
-  // 前後牙條沿 X，左右沿 Z
+  // 牙條中心位置：立柱外面 - skirtThickness/2（牙條外面跟立柱外面切齊）
+  const skirtOffsetX = postX - postSize / 2 + skirtThickness / 2 - skirtThickness;  // = postX - postSize/2 - skirtThickness/2
+  const skirtOffsetZ = postZ - postSize / 2 - skirtThickness / 2;
+  // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
     const fbLabel = sz < 0 ? "前" : "後";
@@ -376,12 +389,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${fbLabel}牙條`,
       material,
       grainDirection: "length",
-      visible: { length: 2 * postX - postSize, width: skirtHeight, thickness: skirtThickness },
-      origin: { x: 0, y: 0, z: sz * (postZ - postSize / 2 + skirtThickness / 2) },
+      visible: { length: 2 * (postX - postSize / 2), width: skirtThickness, thickness: skirtHeight },
+      origin: { x: 0, y: 0, z: sz * skirtOffsetZ },
       tenons: [],
       mortises: [],
     });
   }
+  // 左右牙條（沿 Z 延伸）：X=厚, Y=高, Z=長
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
@@ -390,9 +404,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}牙條`,
       material,
       grainDirection: "length",
-      visible: { length: 2 * postZ - postSize - skirtThickness * 2, width: skirtHeight, thickness: skirtThickness },
-      origin: { x: sx * (postX - postSize / 2 + skirtThickness / 2), y: 0, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      visible: { length: skirtThickness, width: 2 * (postZ - postSize / 2) - skirtThickness * 2, thickness: skirtHeight },
+      origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
       tenons: [],
       mortises: [],
     });
