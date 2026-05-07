@@ -81,8 +81,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "頂蓋厚 (mm)", defaultValue: 22, min: 18, max: 35, step: 1, unit: "mm" },
   { group: "top", type: "number", key: "topOverhang", label: "頂蓋外伸 (mm)", defaultValue: 20, min: 0, max: 40, step: 5, unit: "mm", help: "頂蓋四周外伸量" },
   // 牙條
-  { group: "stretcher", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條（直線素牙）" },
+  { group: "stretcher", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
   { group: "stretcher", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
+  { group: "stretcher", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "straight", choices: [
+    { value: "straight", label: "直線素牙（最簡）" },
+    { value: "arched", label: "壼門（底邊向下凹弧）" },
+    { value: "cloud-head", label: "雲頭（上下都起翹）" },
+  ], help: "明清家具靈魂裝飾——壼門/雲頭比直素牙更有「中式」感" },
   // 層數（1-8）
   { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -140,6 +145,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const railWidth = proportionStyle === "ming" ? 45 : proportionStyle === "qing" ? 65 : railWidthRaw;
   const skirtHeight = proportionStyle === "ming" ? 50 : proportionStyle === "qing" ? 80 : skirtHeightRaw;
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
+  const skirtStyle = getOption<string>(input, opt(o, "skirtStyle"));
   const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
   const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
@@ -699,6 +705,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const SKIRT_INSET = 10;
   const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
   const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
+  // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
+  const skirtShape: Part["shape"] | undefined =
+    skirtStyle === "arched"
+      ? { kind: "face-rounded", cornerR: 5, bottomArchMm: skirtHeight * 0.4 }
+      : skirtStyle === "cloud-head"
+        ? { kind: "face-rounded", cornerR: 15, topArchMm: skirtHeight * 0.2, bottomArchMm: skirtHeight * 0.35 }
+        : undefined;
+
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
@@ -710,6 +724,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: 2 * (postX - postSize / 2), width: skirtThickness, thickness: skirtHeight },
       origin: { x: 0, y: 0, z: sz * skirtOffsetZ },
+      ...(skirtShape ? { shape: skirtShape } : {}),
       tenons: [],
       mortises: [],
     });
@@ -725,6 +740,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: skirtThickness, width: 2 * (postZ - postSize / 2), thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
+      ...(skirtShape ? { shape: skirtShape } : {}),
       tenons: [],
       mortises: [],
     });
