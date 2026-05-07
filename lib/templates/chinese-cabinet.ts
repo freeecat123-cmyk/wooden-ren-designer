@@ -762,6 +762,29 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
             }
           }
         }
+        // 合頁面葉（hinge plate）：門外側（遠離中縫一側）上下各 1 條長條銅片
+        // 凸貼於門面 -Z 2mm，沿垂直 Y 方向 80mm 長，仿明清銅件
+        if (doorPullType !== "none") {
+          const hingeX = sx * (doorWidth / 2 + doorGap / 2 - sx * 0);  // 對齊門外側邊
+          const hingeOuterX = doorCX + sx * (doorWidth / 2 - 18);  // 距離門外緣 18mm
+          const hingeZ = doorFrontZ - doorThickness / 2 - 1;  // 凸貼門面 2mm 厚銅片
+          const hingeTopY = layerCenterY + doorHeight / 2 - 60;
+          const hingeBotY = layerCenterY - doorHeight / 2 + 60;
+          for (const [hY, hLabel] of [[hingeTopY, "上"], [hingeBotY, "下"]] as const) {
+            parts.push({
+              id: `layer${i + 1}-${lrId}-door-hinge-${hLabel === "上" ? "top" : "bot"}`,
+              nameZh: `第 ${i + 1} 層${lrLabel}門${hLabel}合頁面葉`,
+              material,
+              grainDirection: "length",
+              visible: { length: 24, width: 2, thickness: 90 },
+              origin: { x: hingeOuterX, y: hY - 45, z: hingeZ },
+              visual: "brass-antique",
+              tenons: [],
+              mortises: [],
+            });
+          }
+          void hingeX;  // hingeX 保留供後續其他位置設計
+        }
         // 門拉手（朝中縫一側 30mm）
         if (doorPullType !== "none") {
           const pullX = sx * (doorGap / 2 + 30);
