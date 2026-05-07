@@ -64,6 +64,8 @@ function buildPedestalRoundTable(p: {
     origin: { x: 0, y: 0, z: 0 },
     shape: { kind: "lathe-turned" },
     tenons: [
+      // 柱頂方榫接 cleat：寬高對稱 (W=T) 因柱是 lathe 圓對稱、無木紋順向限制；
+      // 工程圖標註方向不影響強度
       { position: "top", type: "blind-tenon", length: 30, width: Math.round(columnSize * 0.4), thickness: Math.round(columnSize * 0.4) },
     ],
     mortises: [],
@@ -127,6 +129,10 @@ function buildPedestalRoundTable(p: {
     { origin: { x: 0, y: footMortiseY, z: columnSize / 2 }, depth: 25, length: footWidth - 12, width: 18, through: false },
   ];
 
+  const warnings: string[] = [];
+  if (diameter > 1100) {
+    warnings.push("獨柱結構承重極限：直徑 > 1100mm 桌面壓力超過單柱接合安全範圍，建議改用端梁（trestle）兩柱結構分散負載。");
+  }
   return {
     id: `round-table-pedestal-${diameter}x${height}`,
     category: "round-table",
@@ -136,7 +142,8 @@ function buildPedestalRoundTable(p: {
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
     useButtJointConvention: true,
-    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板膠合到桌面下方。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
+    warnings: warnings.length ? warnings : undefined,
+    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
   };
 }
 
@@ -266,7 +273,7 @@ function buildTrestleRoundTable(p: {
       ],
     });
   }
-  // 中央橫木（沿 Z 軸跨越兩框中心）
+  // 中央橫木（沿 Z 軸跨越兩框中心）— 單軸 rotation y:π/2 跟 dining-table 一致
   parts.push({
     id: "trestle-center-stretcher",
     nameZh: "中央連接橫木",
@@ -274,7 +281,7 @@ function buildTrestleRoundTable(p: {
     grainDirection: "length",
     visible: { length: centerStretcherLen, width: centerStretcherWidth, thickness: centerStretcherThickness },
     origin: { x: 0, y: centerStretcherY, z: 0 },
-    rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+    rotation: { x: 0, y: Math.PI / 2, z: 0 },
     tenons: [
       { position: "start", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
       { position: "end", type: "shouldered-tenon", length: 35, width: centerStretcherWidth - 12, thickness: 18 },
@@ -282,6 +289,10 @@ function buildTrestleRoundTable(p: {
     mortises: [],
   });
 
+  const trestleWarnings: string[] = [];
+  if (diameter < 1000) {
+    trestleWarnings.push(`直徑 ${diameter}mm 偏小：端梁框跨距 ${2 * frameZ}mm 視覺上比桌面還搶眼，建議改用 4 腳分支或加大直徑到 1000mm 以上。`);
+  }
   return {
     id: `round-table-trestle-${diameter}x${height}`,
     category: "round-table",
@@ -290,6 +301,7 @@ function buildTrestleRoundTable(p: {
     parts,
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
+    warnings: trestleWarnings.length ? trestleWarnings : undefined,
     notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。`,
   };
 }
