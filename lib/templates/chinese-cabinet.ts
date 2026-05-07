@@ -118,6 +118,11 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
   { group: "stretcher", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
+  { group: "stretcher", type: "select", key: "doorStyle", label: "門板樣式", defaultValue: "solid", choices: [
+    { value: "solid", label: "整片實木板" },
+    { value: "lattice-cross", label: "格扇門：田字格（橫直櫺）" },
+    { value: "lattice-lantern", label: "格扇門：燈籠錦（米字斜櫺）" },
+  ], help: "格扇門 = 明清書櫃/博古架靈魂門板，櫺條凸貼浮雕視覺" },
   { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
@@ -184,6 +189,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
   const doorPullType = getOption<string>(input, opt(o, "doorPullType"));
+  const doorStyle = getOption<string>(input, opt(o, "doorStyle"));
   const drawerSplit = getOption<string>(input, opt(o, "drawerSplit"));
   const drawerPullType = getOption<string>(input, opt(o, "drawerPullType"));
   const shelfExtraCount = getOption<number>(input, opt(o, "shelfExtraCount"));
