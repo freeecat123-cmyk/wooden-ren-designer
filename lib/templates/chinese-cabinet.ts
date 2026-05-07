@@ -90,6 +90,26 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "stretcher", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5] } },
   { group: "stretcher", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5] } },
   { group: "stretcher", type: "select", key: "layer5Type", label: "第 5 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5] } },
+  // 門細部
+  { group: "stretcher", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
+  { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
+    { value: "none", label: "無" },
+    { value: "round-brass", label: "圓銅環" },
+    { value: "strip", label: "長條銅片" },
+  ], help: "銅件是中式櫃靈魂裝飾" },
+  // 抽屜細部
+  { group: "stretcher", type: "select", key: "drawerSplit", label: "抽屜分格", defaultValue: "single", choices: [
+    { value: "single", label: "單格" },
+    { value: "double", label: "雙格（中央分隔）" },
+    { value: "triple", label: "三格" },
+  ], help: "抽屜面分割線（多格抽屜常見）" },
+  { group: "stretcher", type: "select", key: "drawerPullType", label: "抽屜拉手", defaultValue: "round-brass", choices: [
+    { value: "none", label: "無" },
+    { value: "round-brass", label: "圓銅環" },
+    { value: "strip", label: "長條銅片" },
+  ] },
+  // 開放層板細部
+  { group: "stretcher", type: "number", key: "shelfExtraCount", label: "層內活動板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "每個 shelf 層內額外加幾片活動層板" },
 ];
 
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
@@ -112,6 +132,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
+  const doorGap = getOption<number>(input, opt(o, "doorGap"));
+  const doorPullType = getOption<string>(input, opt(o, "doorPullType"));
+  const drawerSplit = getOption<string>(input, opt(o, "drawerSplit"));
+  const drawerPullType = getOption<string>(input, opt(o, "drawerPullType"));
+  const shelfExtraCount = getOption<number>(input, opt(o, "shelfExtraCount"));
   const userLayerCount = getOption<number>(input, opt(o, "layerCount"));
   const userLayerTypes = [
     getOption<string>(input, opt(o, "layer1Type")),
@@ -394,13 +419,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const layerCenterY = (layerBottomY + layerTopY) / 2;
 
     if (layerType === "door") {
-      // 對開門：2 扇，每扇 = 4 frames + 板心
-      // 門面寬 = (innerSpanX − 中縫 4mm) / 2，扣門框 4 邊各 railWidth
-      // 簡化：門用單 part 表示（不細拆 4 邊框），方便後續 hinge 動畫
-      const doorGap = 4;  // 中縫
+      // 對開門：2 扇 + 拉手
       const doorWidth = (innerSpanX - doorGap) / 2;
       const doorHeight = thisLayerHeight - 4;  // 上下各 2mm 隙
       const doorThickness = railThickness;
+      const doorFrontZ = -(fbRailOffsetZ);
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
         const lrLabel = sx < 0 ? "左" : "右";
@@ -409,30 +432,95 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           nameZh: `第 ${i + 1} 層${lrLabel}門`,
           material,
           grainDirection: "length",
-          // 立著的門板：X 寬, Y 高, Z 厚
           visible: { length: doorWidth, width: doorThickness, thickness: doorHeight },
-          origin: { x: sx * (doorWidth / 2 + doorGap / 2), y: layerCenterY - doorHeight / 2, z: -(fbRailOffsetZ) },
+          origin: { x: sx * (doorWidth / 2 + doorGap / 2), y: layerCenterY - doorHeight / 2, z: doorFrontZ },
           tenons: [],
           mortises: [],
         });
+        // 門拉手（朝中縫一側 30mm）
+        if (doorPullType !== "none") {
+          const pullX = sx * (doorGap / 2 + 30);
+          const pullY = layerCenterY;
+          const pullZ = doorFrontZ - doorThickness / 2 - 4;  // 凸出門面 4mm
+          if (doorPullType === "round-brass") {
+            parts.push({
+              id: `layer${i + 1}-${lrId}-door-pull`,
+              nameZh: `第 ${i + 1} 層${lrLabel}門拉環`,
+              material,
+              grainDirection: "length",
+              visible: { length: 30, width: 8, thickness: 30 },
+              origin: { x: pullX, y: pullY - 15, z: pullZ },
+              shape: { kind: "round" },
+              tenons: [],
+              mortises: [],
+            });
+          } else {  // strip
+            parts.push({
+              id: `layer${i + 1}-${lrId}-door-pull`,
+              nameZh: `第 ${i + 1} 層${lrLabel}門拉片`,
+              material,
+              grainDirection: "length",
+              visible: { length: 12, width: 6, thickness: 80 },
+              origin: { x: pullX, y: pullY - 40, z: pullZ },
+              tenons: [],
+              mortises: [],
+            });
+          }
+        }
       }
     } else if (layerType === "drawer") {
-      // 抽屜：單一 drawer face + 抽屜盒（簡化）
+      // 抽屜：依 drawerSplit 切 1/2/3 格抽屜面 + 抽屜盒
       const drawerGap = 3;
       const drawerWidth = innerSpanX - drawerGap * 2;
       const drawerHeight = thisLayerHeight - 4;
       const drawerThickness = railThickness;
-      // 抽屜面板（front）— 立著的板：X 寬, Y 高, Z 厚
-      parts.push({
-        id: `layer${i + 1}-drawer-front`,
-        nameZh: `第 ${i + 1} 層抽屜面`,
-        material,
-        grainDirection: "length",
-        visible: { length: drawerWidth, width: drawerThickness, thickness: drawerHeight },
-        origin: { x: 0, y: layerCenterY - drawerHeight / 2, z: -(fbRailOffsetZ) },
-        tenons: [],
-        mortises: [],
-      });
+      const drawerFrontZ = -(fbRailOffsetZ);
+      const drawerSplitCount = drawerSplit === "double" ? 2 : drawerSplit === "triple" ? 3 : 1;
+      const drawerSplitGap = drawerSplitCount > 1 ? 4 : 0;  // 格之間縫
+      const subDrawerWidth = (drawerWidth - drawerSplitGap * (drawerSplitCount - 1)) / drawerSplitCount;
+      // 第 1 個抽屜面位於最左：X 中心 = -drawerWidth/2 + subWidth/2
+      for (let d = 0; d < drawerSplitCount; d++) {
+        const cxOffset = -drawerWidth / 2 + subDrawerWidth / 2 + d * (subDrawerWidth + drawerSplitGap);
+        parts.push({
+          id: `layer${i + 1}-drawer-${d + 1}-front`,
+          nameZh: drawerSplitCount === 1 ? `第 ${i + 1} 層抽屜面` : `第 ${i + 1} 層抽屜面 ${d + 1}/${drawerSplitCount}`,
+          material,
+          grainDirection: "length",
+          visible: { length: subDrawerWidth, width: drawerThickness, thickness: drawerHeight },
+          origin: { x: cxOffset, y: layerCenterY - drawerHeight / 2, z: drawerFrontZ },
+          tenons: [],
+          mortises: [],
+        });
+        // 抽屜拉手（每個分格中央）
+        if (drawerPullType !== "none") {
+          const pullY = layerCenterY;
+          const pullZ = drawerFrontZ - drawerThickness / 2 - 4;
+          if (drawerPullType === "round-brass") {
+            parts.push({
+              id: `layer${i + 1}-drawer-${d + 1}-pull`,
+              nameZh: `第 ${i + 1} 層抽屜拉環 ${d + 1}`,
+              material,
+              grainDirection: "length",
+              visible: { length: 28, width: 8, thickness: 28 },
+              origin: { x: cxOffset, y: pullY - 14, z: pullZ },
+              shape: { kind: "round" },
+              tenons: [],
+              mortises: [],
+            });
+          } else {
+            parts.push({
+              id: `layer${i + 1}-drawer-${d + 1}-pull`,
+              nameZh: `第 ${i + 1} 層抽屜拉片 ${d + 1}`,
+              material,
+              grainDirection: "length",
+              visible: { length: Math.min(80, subDrawerWidth - 20), width: 6, thickness: 12 },
+              origin: { x: cxOffset, y: pullY - 6, z: pullZ },
+              tenons: [],
+              mortises: [],
+            });
+          }
+        }
+      }
       // 抽屜底（簡化用 1 片底板）
       const drawerBottomThickness = 6;
       parts.push({
@@ -474,9 +562,23 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       });
     } else {
-      // shelf：開放層板（無門無抽屜，只在前面留空）
-      // 這層的 divider 已經在上面 push 了；這層內部不額外加東西
-      // 視覺上呈現「開放層」由前面的「無門」自然體現
+      // shelf：開放層板。shelfExtraCount > 0 時加活動層板等分這個 layer
+      if (shelfExtraCount > 0) {
+        const extraSpacing = thisLayerHeight / (shelfExtraCount + 1);
+        for (let s = 0; s < shelfExtraCount; s++) {
+          const extraY = layerBottomY + extraSpacing * (s + 1) - 9;  // 18mm 厚活動板
+          parts.push({
+            id: `layer${i + 1}-extra-shelf-${s + 1}`,
+            nameZh: `第 ${i + 1} 層活動板 ${s + 1}`,
+            material,
+            grainDirection: "length",
+            visible: { length: innerSpanX - 4, width: innerSpanZ - 4, thickness: 18 },
+            origin: { x: 0, y: extraY, z: 0 },
+            tenons: [],
+            mortises: [],
+          });
+        }
+      }
     }
   }
 
