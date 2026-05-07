@@ -579,19 +579,110 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const doorHeight = thisLayerHeight - 4;  // 上下各 2mm 隙
       const doorThickness = railThickness;
       const doorFrontZ = -(fbRailOffsetZ);
+      // 格扇櫺條尺寸（凸貼門面 5mm）
+      const muntinT = 8;        // 櫺條厚度（伸出門面）
+      const muntinW = 18;       // 櫺條寬度
+      const muntinFrontZ = doorFrontZ - doorThickness / 2 - muntinT / 2;  // 凸貼 -Z 面
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
         const lrLabel = sx < 0 ? "左" : "右";
+        const doorCX = sx * (doorWidth / 2 + doorGap / 2);
         parts.push({
           id: `layer${i + 1}-${lrId}-door`,
           nameZh: `第 ${i + 1} 層${lrLabel}門`,
           material,
           grainDirection: "length",
           visible: { length: doorWidth, width: doorThickness, thickness: doorHeight },
-          origin: { x: sx * (doorWidth / 2 + doorGap / 2), y: layerCenterY - doorHeight / 2, z: doorFrontZ },
+          origin: { x: doorCX, y: layerCenterY - doorHeight / 2, z: doorFrontZ },
           tenons: [],
           mortises: [],
         });
+        // 格扇門：4 邊外框 + 中央十字 (lattice-cross) / + 對角米字 (lattice-lantern)
+        if (doorStyle === "lattice-cross" || doorStyle === "lattice-lantern") {
+          const frameInsetX = muntinW / 2;
+          const frameInsetY = muntinW / 2;
+          // 4 邊外框：上 / 下 / 左 / 右（沿門邊內側）
+          const sideY = layerCenterY - doorHeight / 2;
+          // 上框
+          parts.push({
+            id: `layer${i + 1}-${lrId}-door-muntin-top`,
+            nameZh: `第 ${i + 1} 層${lrLabel}門上框櫺`,
+            material,
+            grainDirection: "length",
+            visible: { length: doorWidth - muntinW * 2 + 2, width: muntinT, thickness: muntinW },
+            origin: { x: doorCX, y: sideY + doorHeight - frameInsetY - muntinW / 2, z: muntinFrontZ },
+            tenons: [],
+            mortises: [],
+          });
+          // 下框
+          parts.push({
+            id: `layer${i + 1}-${lrId}-door-muntin-bot`,
+            nameZh: `第 ${i + 1} 層${lrLabel}門下框櫺`,
+            material,
+            grainDirection: "length",
+            visible: { length: doorWidth - muntinW * 2 + 2, width: muntinT, thickness: muntinW },
+            origin: { x: doorCX, y: sideY + frameInsetY - muntinW / 2, z: muntinFrontZ },
+            tenons: [],
+            mortises: [],
+          });
+          // 左/右框
+          for (const sxF of [-1, 1] as const) {
+            parts.push({
+              id: `layer${i + 1}-${lrId}-door-muntin-${sxF < 0 ? "left" : "right"}`,
+              nameZh: `第 ${i + 1} 層${lrLabel}門${sxF < 0 ? "左" : "右"}框櫺`,
+              material,
+              grainDirection: "length",
+              visible: { length: muntinW, width: muntinT, thickness: doorHeight },
+              origin: { x: doorCX + sxF * (doorWidth / 2 - frameInsetX - muntinW / 2), y: sideY, z: muntinFrontZ },
+              tenons: [],
+              mortises: [],
+            });
+          }
+          // 中央十字：水平 + 垂直
+          parts.push({
+            id: `layer${i + 1}-${lrId}-door-muntin-hcenter`,
+            nameZh: `第 ${i + 1} 層${lrLabel}門橫櫺`,
+            material,
+            grainDirection: "length",
+            visible: { length: doorWidth - muntinW * 2 + 2, width: muntinT, thickness: muntinW },
+            origin: { x: doorCX, y: layerCenterY - muntinW / 2, z: muntinFrontZ },
+            tenons: [],
+            mortises: [],
+          });
+          parts.push({
+            id: `layer${i + 1}-${lrId}-door-muntin-vcenter`,
+            nameZh: `第 ${i + 1} 層${lrLabel}門直櫺`,
+            material,
+            grainDirection: "length",
+            visible: { length: muntinW, width: muntinT, thickness: doorHeight - muntinW * 2 + 2 },
+            origin: { x: doorCX, y: sideY + muntinW, z: muntinFrontZ },
+            tenons: [],
+            mortises: [],
+          });
+        }
+        // 燈籠錦：在 cross 基礎上加 4 條 45° 對角櫺條（米字）
+        if (doorStyle === "lattice-lantern") {
+          const innerW = doorWidth - muntinW * 2 + 2;
+          const innerH = doorHeight - muntinW * 2 + 2;
+          // 對角線從中心放射到 4 角的「半條」櫺條：用 length = sqrt((innerW/2)^2+(innerH/2)^2)
+          const halfDiag = Math.sqrt((innerW / 2) ** 2 + (innerH / 2) ** 2);
+          const angle = Math.atan2(innerH / 2, innerW / 2);  // 對角線 X-Y 角度
+          for (const sxA of [-1, 1] as const) {
+            for (const syA of [-1, 1] as const) {
+              parts.push({
+                id: `layer${i + 1}-${lrId}-door-muntin-diag-${sxA < 0 ? "l" : "r"}${syA < 0 ? "b" : "t"}`,
+                nameZh: `第 ${i + 1} 層${lrLabel}門斜櫺`,
+                material,
+                grainDirection: "length",
+                visible: { length: halfDiag, width: muntinT, thickness: muntinW * 0.6 },
+                origin: { x: doorCX + sxA * innerW / 4, y: layerCenterY - muntinW * 0.3, z: muntinFrontZ },
+                rotation: { x: 0, y: 0, z: sxA * syA * angle },
+                tenons: [],
+                mortises: [],
+              });
+            }
+          }
+        }
         // 門拉手（朝中縫一側 30mm）
         if (doorPullType !== "none") {
           const pullX = sx * (doorGap / 2 + 30);
