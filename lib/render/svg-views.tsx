@@ -895,6 +895,40 @@ export function OrthoView({
             </g>
           );
         }
+        // lathe-turned 前 / 側視畫花瓶階梯輪廓（segments 跟 PerspectiveView 那份同步）
+        if (part.shape?.kind === "lathe-turned" && view !== "top") {
+          const LATHE_SEG: Array<[number, number, number]> = [
+            [1.0, 1.0, 0.05], [1.0, 1.10, 0.04], [1.10, 1.0, 0.04],
+            [1.0, 0.55, 0.10], [0.55, 0.78, 0.18], [0.78, 0.55, 0.20],
+            [0.55, 0.50, 0.10], [0.50, 0.95, 0.10], [0.95, 0.85, 0.05],
+            [0.85, 0.95, 0.06], [0.95, 0.95, 0.05], [0.95, 0.80, 0.03],
+          ];
+          const r = projectPart(part, view);
+          const fullR = r.w / 2;
+          const fullH = r.h;
+          const cxSvg = r.x + r.w / 2;
+          const topYsvg = -(r.y + r.h); // SVG Y 翻轉，top = world top 取反
+          const right: Array<{ x: number; y: number }> = [];
+          const left: Array<{ x: number; y: number }> = [];
+          right.push({ x: cxSvg + fullR * LATHE_SEG[0][0], y: topYsvg });
+          left.push({ x: cxSvg - fullR * LATHE_SEG[0][0], y: topYsvg });
+          let ySvg = topYsvg;
+          for (const [, botR, hFrac] of LATHE_SEG) {
+            ySvg += fullH * hFrac;
+            right.push({ x: cxSvg + fullR * botR, y: ySvg });
+            left.push({ x: cxSvg - fullR * botR, y: ySvg });
+          }
+          const polyPts = [...right, ...left.reverse()];
+          return (
+            <polygon
+              key={part.id}
+              points={polyPts.map((p) => `${p.x},${p.y}`).join(" ")}
+              fill="none"
+              stroke="#111"
+              strokeWidth={0.9}
+            />
+          );
+        }
         // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
         if (
           (part.shape?.kind === "round" ||
