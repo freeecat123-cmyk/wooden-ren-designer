@@ -29,15 +29,15 @@ const LAYER_TYPE_CHOICES = [
  * 配置預設：一鍵套用常見中式櫃形 layer 配置（蓋過個別 layerNType 設定）
  * - bookshelf 書櫃：5 層全開放層板，放書展示
  * - cupboard  碗櫥：上下 2 門 + 中間 1 抽屜，廚房 / 餐廳收納
- * - tea-cabinet 茶櫃：上 shelf + 中 door + 下 drawer 的茶具收納
- * - shrine 神桌邊櫃：頂 shelf 中 door 下 drawer，傳統供桌側櫃
+ * - tea-cabinet 茶櫃：抽屜 + 門 + 層板，茶具收納
+ * - shrine 神桌邊櫃：4 層 抽屜 + 雙門上下 + 頂層 shelf，較高、上半封閉放供品香爐
  * - custom 自訂：依使用者 layer1-5 選擇
  */
 const CABINET_PRESET_LAYERS: Record<string, string[]> = {
   bookshelf: ["shelf", "shelf", "shelf", "shelf", "shelf"],
   cupboard: ["door", "drawer", "door"],
   "tea-cabinet": ["drawer", "door", "shelf"],
-  shrine: ["drawer", "door", "shelf"],
+  shrine: ["drawer", "door", "door", "shelf"],
 };
 
 export const chineseCabinetOptions: OptionSpec[] = [
