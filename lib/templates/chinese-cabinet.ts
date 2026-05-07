@@ -102,7 +102,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "cloud-head", label: "雲頭牙頭（清式厚實）" },
     { value: "ruyi", label: "如意牙頭（明式典雅）" },
   ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
-  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 50, min: 30, max: 100, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", oneOf: ["cloud-head", "ruyi"] } },
+  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", oneOf: ["cloud-head", "ruyi"] } },
   // 層數（1-8）
   { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -623,6 +623,21 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           tenons: [],
           mortises: [],
         });
+        // raised 凸面板心擴到 solid 門板：lattice 不加（會跟櫺條打架）
+        if (doorStyle === "solid" && panelStyle === "raised") {
+          const plateauMargin = 35;
+          const plateauThickness = 12;
+          parts.push({
+            id: `layer${i + 1}-${lrId}-door-raised`,
+            nameZh: `第 ${i + 1} 層${lrLabel}門凸面板`,
+            material,
+            grainDirection: "length",
+            visible: { length: doorWidth - plateauMargin * 2, width: plateauThickness, thickness: doorHeight - plateauMargin * 2 },
+            origin: { x: doorCX, y: layerCenterY - (doorHeight - plateauMargin * 2) / 2, z: doorFrontZ - doorThickness / 2 - plateauThickness / 2 },
+            tenons: [],
+            mortises: [],
+          });
+        }
         // 格扇門：4 邊外框 + 中央十字 (lattice-cross) / + 對角米字 (lattice-lantern)
         if (doorStyle === "lattice-cross" || doorStyle === "lattice-lantern") {
           const frameInsetX = muntinW / 2;
@@ -953,10 +968,12 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 牙頭裝飾（spandrel）：立柱跟牙條交角的小三角雕飾
   // ruyi 如意紋（明式）尖頂高弧、cloud-head 雲頭（清式）厚實圓弧
   if (spandrelStyle !== "none") {
+    // ruyi 如意：尖頂高弧（如意紋上端尖凸），cornerR 大、topArch 強、bottomArch 也凹下露出花邊
+    // cloud-head 雲頭：圓潤厚實（卷雲），cornerR 小、topArch 中等、bottomArch 不凹
     const spandrelShape: Part["shape"] =
       spandrelStyle === "ruyi"
-        ? { kind: "face-rounded", cornerR: 18, topArchMm: spandrelSize * 0.6 }
-        : { kind: "face-rounded", cornerR: 12, topArchMm: spandrelSize * 0.4 };
+        ? { kind: "face-rounded", cornerR: 28, topArchMm: spandrelSize * 0.75, bottomArchMm: spandrelSize * 0.25 }
+        : { kind: "face-rounded", cornerR: 8, topArchMm: spandrelSize * 0.45 };
     // 前後牙條兩端各 1 個（沿 X 延伸）
     for (const sz of [-1, 1] as const) {
       const fbId = sz < 0 ? "front" : "back";
