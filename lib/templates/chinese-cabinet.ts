@@ -69,19 +69,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const layerTypes = layerTypesRaw.slice(0, layerCount);
 
-  // 幾何規劃：頂蓋 + 4 立柱（高 = height − topThickness − skirtHeight）+ 牙條
-  // 立柱頂端 Y = height − topThickness（頂蓋下面）
-  // 立柱底端 Y = skirtHeight（牙條上方）
-  // 內部空間高 = height − topThickness − skirtHeight − railWidth × 2（頂底抹各佔 railWidth）
+  // 幾何規劃：4 立柱接地貫穿全高，牙條外掛在立柱底外側（傳統明式）
+  // 立柱：Y [0, height − topThickness]
+  // 牙條：Y [0, skirtHeight]，跟立柱底外側共存
+  // 上下抹：上抹底面 = postTopY − railWidth；下抹底面 = skirtHeight（牙條頂）
+  // 內部空間 = 上下抹之間
   const postTopY = height - topThickness;
-  const postBottomY = skirtHeight;
-  const postHeight = postTopY - postBottomY;
+  const postBottomY = 0;
+  const postHeight = postTopY;
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
-  // 內部開放空間：頂底抹之間
+  // 內部開放空間：頂底抹之間（下抹仍在牙條頂上方）
   const innerTopY = postTopY - railWidth;  // 上抹底面
-  const innerBottomY = postBottomY + railWidth;  // 下抹頂面
+  const innerBottomY = skirtHeight + railWidth;  // 下抹頂面（牙條頂 + railWidth）
   const innerHeight = innerTopY - innerBottomY;
   // 每層高度（等分）
   const layerHeight = innerHeight / layerCount;
@@ -134,14 +135,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const railLenZ = 2 * (postZ - postSize / 2);
   const panelInnerW_X = railLenX - 10;  // 板心比 rail 短 5mm 兩邊（嵌入槽 5mm）
   const panelInnerW_Z = railLenZ - 10;
-  // 板心 height = postHeight − railWidth × 2 + 10mm（嵌入上下 rail 槽各 5mm）
-  const panelInnerH = postHeight - railWidth * 2 + 10;
+  // 板心 height = 上下抹之間 + 嵌入上下槽各 5mm
 
   // 上抹/下抹位置（除頂蓋外，櫃身的 top/bottom rail）
   // 上抹頂面 = postTopY，下緣 = postTopY - railWidth
-  // 下抹頂面 = postBottomY + railWidth，下緣 = postBottomY
-  const upperRailY = postTopY - railWidth;  // 上抹底邊在這
-  const lowerRailY = postBottomY;  // 下抹底邊在這
+  // 下抹底邊 = skirtHeight（牙條頂），頂面 = skirtHeight + railWidth
+  const upperRailY = postTopY - railWidth;
+  const lowerRailY = skirtHeight;
+  // panel 高度 = 上下抹之間 + 嵌入上下槽各 5mm
+  const panelInnerH = upperRailY - lowerRailY - railWidth + 10;
 
   // 明式邊抹板心：rail / panel 跟立柱「外面共面」（嵌入立柱、外面齊平）
   // rail 中心 = 立柱外面 - rail 厚/2（rail 在立柱範圍內偏外側）
@@ -371,7 +373,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: 2 * postX - postSize, width: 2 * postZ - postSize, thickness: 18 },
-    origin: { x: 0, y: postBottomY + railWidth, z: 0 },
+    origin: { x: 0, y: skirtHeight + railWidth, z: 0 },
     tenons: [],
     mortises: [],
   });
