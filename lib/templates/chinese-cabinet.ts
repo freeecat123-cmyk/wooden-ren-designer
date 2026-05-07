@@ -62,6 +62,14 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "flush", label: "平頂（隱藏）" },
     { value: "exposedTenon", label: "露明榫（裝飾）" },
   ], help: "露明榫 = 立柱頂榫頭穿透頂蓋凸出，明清炫技做法" },
+  { group: "leg", type: "select", key: "legShape", label: "立柱底款", defaultValue: "auto", choices: [
+    { value: "auto", label: "依比例風格（明=內翻馬蹄、清=外翻馬蹄）" },
+    { value: "box", label: "直方足（無馬蹄）" },
+    { value: "inward-hoof", label: "內翻馬蹄足（明式典型）" },
+    { value: "outward-hoof", label: "外翻馬蹄足（清式厚實）" },
+  ], help: "馬蹄足 = 明清家具靈魂——立柱底端腳趾朝內/外翻起" },
+  { group: "leg", type: "number", key: "hoofMm", label: "馬蹄高 (mm)", defaultValue: 80, min: 50, max: 140, step: 5, unit: "mm", help: "馬蹄區段從柱底往上的高度", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
+  { group: "leg", type: "number", key: "hoofScale", label: "馬蹄外撇倍率", defaultValue: 1.35, min: 1.05, max: 1.6, step: 0.05, help: "腳趾相對直料寬的倍率（1=不撇、1.5=撇半倍）", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
   // 背板
   { group: "apron", type: "select", key: "backPanelStyle", label: "背板樣式", defaultValue: "framed", choices: [
     { value: "framed", label: "框板（上下抹+板心）" },
@@ -148,6 +156,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const skirtStyle = getOption<string>(input, opt(o, "skirtStyle"));
   const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
   const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
+  const legShapeRaw = getOption<string>(input, opt(o, "legShape"));
+  const hoofMmRaw = getOption<number>(input, opt(o, "hoofMm"));
+  const hoofScale = getOption<number>(input, opt(o, "hoofScale"));
+  // legShape="auto" → 依 proportionStyle：ming=內翻、qing=外翻、free=直方
+  const legShape: "box" | "inward-hoof" | "outward-hoof" =
+    legShapeRaw === "auto"
+      ? proportionStyle === "ming"
+        ? "inward-hoof"
+        : proportionStyle === "qing"
+          ? "outward-hoof"
+          : "box"
+      : (legShapeRaw as "box" | "inward-hoof" | "outward-hoof");
+  // 馬蹄高度不能超過牙條 + 一些餘量，否則馬蹄頂頂到下抹（牙條 + railWidth）
+  const hoofMm = legShape === "box" ? 0 : Math.min(hoofMmRaw, skirtHeight + railWidth - 10);
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
@@ -273,6 +295,18 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       // 上抹/下抹 Y 中心位置（rail 中心 Y）
       const upperRailCY = postTopY - railWidth / 2;
       const lowerRailCY = skirtHeight + railWidth / 2;
+      // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
+      const hoofDirSign: -1 | 1 = legShape === "outward-hoof" ? 1 : -1;
+      const postShape: Part["shape"] | undefined =
+        legShape === "box"
+          ? undefined
+          : {
+              kind: "hoof",
+              hoofMm,
+              hoofScale,
+              dirX: (sx * hoofDirSign) as -1 | 1,
+              dirZ: (sz * hoofDirSign) as -1 | 1,
+            };
       parts.push({
         id: `post-${fbId}-${lrId}`,
         nameZh: `${fbLabel}${lrLabel}立柱`,
@@ -280,6 +314,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: postSize, width: postSize, thickness: postHeight },
         origin: { x: sx * postX, y: postBottomY, z: sz * postZ },
+        ...(postShape ? { shape: postShape } : {}),
         tenons: postExposedTenon,
         mortises: [
           // 側面 rail 進立柱（Z 內面，朝對面立柱方向）
@@ -706,11 +741,12 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
   const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
   // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
+  // arched 走純底凹強弧（壼門深弧），cloud-head 同時帶上凸+下凹（雲頭起翹）
   const skirtShape: Part["shape"] | undefined =
     skirtStyle === "arched"
-      ? { kind: "face-rounded", cornerR: 5, bottomArchMm: skirtHeight * 0.4 }
+      ? { kind: "face-rounded", cornerR: 8, bottomArchMm: skirtHeight * 0.55 }
       : skirtStyle === "cloud-head"
-        ? { kind: "face-rounded", cornerR: 15, topArchMm: skirtHeight * 0.2, bottomArchMm: skirtHeight * 0.35 }
+        ? { kind: "face-rounded", cornerR: 18, topArchMm: skirtHeight * 0.32, bottomArchMm: skirtHeight * 0.45 }
         : undefined;
 
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚

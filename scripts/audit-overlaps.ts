@@ -46,7 +46,10 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "round-table:pedestal",
   // 中式方角櫃：邊抹板心結構，rail 端頭榫接進立柱（傳統明式做法），
   // audit 看到 rail × rail 在立柱位置交界其實是榫頭區，不是真實重疊。
-  "chinese-cabinet:default",
+  "chinese-cabinet:auto",
+  "chinese-cabinet:box",
+  "chinese-cabinet:inward-hoof",
+  "chinese-cabinet:outward-hoof",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
