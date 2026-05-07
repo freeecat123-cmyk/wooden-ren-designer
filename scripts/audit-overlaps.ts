@@ -41,10 +41,6 @@ const SHAPE_AWARE_VARIANTS = new Set<string>([]);
 const SHAPE_AWARE_CASES = new Set<string>([
   "tea-table:box",
   "tea-table:tapered",
-  // 獨柱餐桌：lathe-turned 中央柱跟 cleat / 桌面接合處 silhouette
-  // 看到「圓柱跟方板/桌面在頂部 cleat 區重疊」——實際 useButtJointConvention=true
-  // 邊界接觸不算 overlap，但 silhouette 投影看不出邊界差。
-  "round-table:pedestal",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
