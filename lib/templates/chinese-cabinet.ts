@@ -25,7 +25,30 @@ const LAYER_TYPE_CHOICES = [
   { value: "shelf", label: "開放層板" },
 ];
 
+/**
+ * 配置預設：一鍵套用常見中式櫃形 layer 配置（蓋過個別 layerNType 設定）
+ * - bookshelf 書櫃：5 層全開放層板，放書展示
+ * - cupboard  碗櫥：上下 2 門 + 中間 1 抽屜，廚房 / 餐廳收納
+ * - tea-cabinet 茶櫃：上 shelf + 中 door + 下 drawer 的茶具收納
+ * - shrine 神桌邊櫃：頂 shelf 中 door 下 drawer，傳統供桌側櫃
+ * - custom 自訂：依使用者 layer1-5 選擇
+ */
+const CABINET_PRESET_LAYERS: Record<string, string[]> = {
+  bookshelf: ["shelf", "shelf", "shelf", "shelf", "shelf"],
+  cupboard: ["door", "drawer", "door"],
+  "tea-cabinet": ["drawer", "door", "shelf"],
+  shrine: ["drawer", "door", "shelf"],
+};
+
 export const chineseCabinetOptions: OptionSpec[] = [
+  // 配置預設（最頂端，影響後續 layer 設定）
+  { group: "leg", type: "select", key: "cabinetPreset", label: "配置預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（依下方層配置）" },
+    { value: "bookshelf", label: "書櫃（5 層全開放）" },
+    { value: "cupboard", label: "碗櫥（門 + 抽屜 + 門）" },
+    { value: "tea-cabinet", label: "茶櫃（抽屜 + 門 + 層板）" },
+    { value: "shrine", label: "神桌邊櫃（抽屜 + 門 + 層板）" },
+  ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定" },
   // 立柱
   { group: "leg", type: "number", key: "postSize", label: "立柱粗 (mm)", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
   // 邊抹（rails）
@@ -59,15 +82,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
   const skirtHeight = getOption<number>(input, opt(o, "skirtHeight"));
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
-  const layerCount = getOption<number>(input, opt(o, "layerCount"));
-  const layerTypesRaw = [
+  const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
+  const userLayerCount = getOption<number>(input, opt(o, "layerCount"));
+  const userLayerTypes = [
     getOption<string>(input, opt(o, "layer1Type")),
     getOption<string>(input, opt(o, "layer2Type")),
     getOption<string>(input, opt(o, "layer3Type")),
     getOption<string>(input, opt(o, "layer4Type")),
     getOption<string>(input, opt(o, "layer5Type")),
   ];
-  const layerTypes = layerTypesRaw.slice(0, layerCount);
+  // 預設套用：cabinetPreset 不是 custom 時用 preset config，否則用 user 自訂
+  const presetConfig = CABINET_PRESET_LAYERS[cabinetPreset];
+  const layerCount = presetConfig ? presetConfig.length : userLayerCount;
+  const layerTypes = presetConfig ?? userLayerTypes.slice(0, userLayerCount);
 
   // 幾何規劃：4 立柱接地貫穿全高，牙條外掛在立柱底外側（傳統明式）
   // 立柱：Y [0, height − topThickness]
