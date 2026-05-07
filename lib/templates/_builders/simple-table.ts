@@ -110,8 +110,18 @@ export interface SimpleTableOpts {
   dropLeaf?: "none" | "one-side" | "two-sides";
   /** Drop-leaf 寬度（沿桌面長度軸延伸，mm）。預設 250 */
   dropLeafWidth?: number;
+  /** 腳頂榫頭兩側肩額外加厚（mm）。餐桌等承重大、桌面端頭沿 X 順紋方向有開裂風險，
+   *  傳 5+ 讓榫寬縮成 legSize - 2*(SHOULDER + extra)，外側肩變厚。預設 0（沿用標準 5mm 肩）。 */
+  legTopShoulderExtraMm?: number;
   notes?: string;
 }
+
+/**
+ * 腳上 mortise origin 的 face inset：origin.x 或 origin.z 設成 ±LEG_FACE_INSET
+ * 讓 mortiseLocalBox 用「最近表面」決定 depthAxis（避免落在腳中心、depthAxis 不確定）。
+ * Post-process（dining-table h-frame 等）偵測腳面榫眼也用這個值。
+ */
+export const LEG_FACE_INSET = 1;
 
 /**
  * Generic 4-leg + apron + top table.
@@ -175,14 +185,17 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // 腳頂榫：用 standardTenon 出 thickness=legSize/3、width=legSize-10（4 邊各 5mm 肩）
   // 比舊版 legSize * 2/3 細，避免側視圖看到 1/2 寬度的厚榫。跟 square-stool 同規則。
   const legTopTenonType = autoTenonType(topThickness);
+  const legTopShoulderExtra = Math.max(0, opts.legTopShoulderExtraMm ?? 0);
   const legTopStd = standardTenon({
     type: legTopTenonType,
     childThickness: legSize,
-    childWidth: legSize,
+    // 餐桌等承重大時 caller 傳 legTopShoulderExtraMm，把虛擬 childWidth 縮小，
+    // standardTenon 算出來的 width 跟著變窄 → 兩側肩各多 legTopShoulderExtra mm。
+    childWidth: legSize - 2 * legTopShoulderExtra,
     motherThickness: topThickness,
   });
   const legTopTenonLen = legTopStd.length;
-  const legTopTenonW = legTopStd.width;       // 沿 part-X，較寬（≈ legSize - 10）
+  const legTopTenonW = legTopStd.width;       // 沿 part-X，較寬（≈ legSize - 10 - 2*extra）
   const legTopTenonT = legTopStd.thickness;   // 沿 part-Z，較薄（≈ legSize/3）
 
   const legHeight = height - topThickness;
@@ -287,7 +300,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     mortises: !withApron ? [] : [
       // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
       {
-        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
+        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
@@ -295,7 +308,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       },
       // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
       {
-        origin: { x: c.x > 0 ? -1 : 1, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
+        origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
@@ -633,14 +646,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       const cz = leg.origin.z;
       leg.mortises.push(
         {
-          origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
+          origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
           depth: tenonLen,
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
           through: lsThrough,
         },
         {
-          origin: { x: cx > 0 ? -1 : 1, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
+          origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
           depth: tenonLen,
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,

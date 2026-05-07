@@ -353,7 +353,7 @@ export type OptionGroup =
 
 /** Only show this option when the referenced option has a matching value. */
 export interface OptionDependency {
-  key: string;
+  key?: string;
   /** If omitted, "truthy value" is enough (e.g. checkbox = true / select = any non-empty). */
   equals?: string | number | boolean;
   /** Hide when the referenced option's value is in this list（select 用，例如
@@ -362,6 +362,10 @@ export interface OptionDependency {
   /** Show only when the referenced option's value is in this list（外斜系列
    *  只 3 個值要 splayAngle 顯示，比 notIn 列 6 個排除值清爽） */
   oneOf?: Array<string | number | boolean>;
+  /** AND of multiple conditions — 用在多重依賴場景（trestle 切換要同時藏
+   *  withLowerStretchers + arrangement + 寬厚高等下橫撐相關所有選項）。
+   *  指定 all 時，key/equals/notIn/oneOf 一律忽略。 */
+  all?: OptionDependency[];
 }
 
 export type OptionSpec =

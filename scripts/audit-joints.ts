@@ -42,6 +42,18 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
   "dining-chair",
 ]);
 
+/**
+ * 特定 (category, legShape variant) 的豁免——當整個 category 不該全豁免，
+ * 只有特定 variant 因為旋轉 90° 等幾何因素 audit 對不上時用。
+ *
+ * dining-table × trestle：腳 ↔ 頂橫木 / 底足，橫木旋轉 y=π/2，榫頭寬邊
+ * 沿木紋方向對位，audit 用 axis-name 配對會抓到 W/T 軸序倒轉但 3D / 三視圖
+ * 都正確。
+ */
+const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
+  "dining-table:trestle",
+]);
+
 interface Row {
   category: FurnitureCategory;
   nameZh: string;
@@ -93,7 +105,9 @@ for (const entry of FURNITURE_CATALOG) {
       buttJoint: design.useButtJointConvention === true,
       unmatchedTenons: result.unmatchedTenons.length,
       unmatchedMortises: result.unmatchedMortises.length,
-      expected: EXPECTED_FAILS.has(entry.category),
+      expected:
+        EXPECTED_FAILS.has(entry.category) ||
+        EXPECTED_FAILS_VARIANT.has(`${entry.category}:${variant}`),
       detail:
         result.unmatchedTenons.length === 0 && result.unmatchedMortises.length === 0
           ? undefined

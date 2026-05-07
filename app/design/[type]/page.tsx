@@ -6,7 +6,7 @@ import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permis
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
-import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
+import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialList } from "@/lib/render/svg-views";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
@@ -757,6 +757,15 @@ function isVisible(
   // 不會卡住
   const dep = spec.dependsOn;
   if (!dep) return true;
+  return evalDep(dep, values);
+}
+
+function evalDep(
+  dep: OptionDependency,
+  values: Record<string, string | number | boolean>,
+): boolean {
+  if (dep.all) return dep.all.every((d) => evalDep(d, values));
+  if (!dep.key) return true;
   const v = values[dep.key];
   if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
   if (dep.oneOf && !dep.oneOf.includes(v as string | number | boolean)) return false;
@@ -846,11 +855,7 @@ function OptionField({
     dep: import("@/lib/types").OptionDependency | undefined,
   ): boolean => {
     if (!dep || !allValues) return true;
-    const v = allValues[dep.key];
-    if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
-    if (dep.oneOf && !dep.oneOf.includes(v as string | number | boolean)) return false;
-    if (dep.equals !== undefined && v !== dep.equals) return false;
-    return true;
+    return evalDep(dep, allValues);
   };
   if (spec.type === "number") {
     return (
