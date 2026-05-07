@@ -129,13 +129,21 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: [],
   });
 
-  // ── 4 立柱
+  // 榫接尺寸（明式攢邊打槽 / 悶榫接腳）
+  const tenonLen = Math.min(20, Math.round(postSize / 2 - 2));  // 進入立柱深度
+  const tenonW = Math.max(20, railWidth - 16);  // 留 8mm 肩
+  const tenonT = Math.max(6, Math.round(railThickness / 3));   // ~8mm 厚
+
+  // ── 4 立柱（含 4 個 mortise 接 rail：上抹/下抹 × 側面/前後面）
   for (const sx of [-1, 1] as const) {
     for (const sz of [-1, 1] as const) {
       const fbId = sz < 0 ? "front" : "back";
       const lrId = sx < 0 ? "left" : "right";
       const fbLabel = sz < 0 ? "前" : "後";
       const lrLabel = sx < 0 ? "左" : "右";
+      // 上抹/下抹 Y 中心位置（rail 中心 Y）
+      const upperRailCY = postTopY - railWidth / 2;
+      const lowerRailCY = skirtHeight + railWidth / 2;
       parts.push({
         id: `post-${fbId}-${lrId}`,
         nameZh: `${fbLabel}${lrLabel}立柱`,
@@ -144,7 +152,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         visible: { length: postSize, width: postSize, thickness: postHeight },
         origin: { x: sx * postX, y: postBottomY, z: sz * postZ },
         tenons: [],
-        mortises: [],
+        mortises: [
+          // 側面 rail 進立柱（Z 內面，朝對面立柱方向）
+          { origin: { x: 0, y: upperRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: 0, y: lowerRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          // 前/後 rail 進立柱（X 內面，朝對面立柱方向）
+          { origin: { x: -sx * postSize / 2, y: upperRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: -sx * postSize / 2, y: lowerRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+        ],
       });
     }
   }
@@ -201,7 +216,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: railThickness, width: railLenZ, thickness: railWidth },
       origin: { x: sx * sideRailOffsetX, y: upperRailY, z: 0 },
-      tenons: [],
+      tenons: [
+        { position: "left", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
+        { position: "right", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
+      ],
       mortises: [],
     });
     // 下抹
@@ -212,7 +230,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: railThickness, width: railLenZ, thickness: railWidth },
       origin: { x: sx * sideRailOffsetX, y: lowerRailY, z: 0 },
-      tenons: [],
+      tenons: [
+        { position: "left", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
+        { position: "right", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
+      ],
       mortises: [],
     });
     // 板心
@@ -229,6 +250,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // ── 背面 frame（沿 X 延伸）
+  const fbRailTenons = [
+    { position: "start" as const, type: "shouldered-tenon" as const, length: tenonLen, width: tenonW, thickness: tenonT },
+    { position: "end" as const, type: "shouldered-tenon" as const, length: tenonLen, width: tenonW, thickness: tenonT },
+  ];
   parts.push({
     id: "back-upper-rail",
     nameZh: "背面上抹",
@@ -236,7 +261,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: railLenX, width: railThickness, thickness: railWidth },
     origin: { x: 0, y: upperRailY, z: fbRailOffsetZ },
-    tenons: [],
+    tenons: fbRailTenons,
     mortises: [],
   });
   parts.push({
@@ -246,7 +271,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: railLenX, width: railThickness, thickness: railWidth },
     origin: { x: 0, y: lowerRailY, z: fbRailOffsetZ },
-    tenons: [],
+    tenons: fbRailTenons,
     mortises: [],
   });
   parts.push({
@@ -268,7 +293,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: railLenX, width: railThickness, thickness: railWidth },
     origin: { x: 0, y: upperRailY, z: -(fbRailOffsetZ) },
-    tenons: [],
+    tenons: fbRailTenons,
     mortises: [],
   });
   parts.push({
@@ -278,7 +303,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: railLenX, width: railThickness, thickness: railWidth },
     origin: { x: 0, y: lowerRailY, z: -(fbRailOffsetZ) },
-    tenons: [],
+    tenons: fbRailTenons,
     mortises: [],
   });
 
