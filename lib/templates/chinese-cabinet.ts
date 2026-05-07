@@ -397,7 +397,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
   }
-  // 左右牙條（沿 Z 延伸）：X=厚, Y=高, Z=長
+  // 左右牙條（沿 Z 延伸）：X=厚, Y=高, Z=長（接到兩立柱內面）
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
@@ -406,7 +406,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}牙條`,
       material,
       grainDirection: "length",
-      visible: { length: skirtThickness, width: 2 * (postZ - postSize / 2) - skirtThickness * 2, thickness: skirtHeight },
+      visible: { length: skirtThickness, width: 2 * (postZ - postSize / 2), thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
       tenons: [],
       mortises: [],
