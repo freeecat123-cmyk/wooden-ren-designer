@@ -139,6 +139,22 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "round-brass", label: "圓銅環" },
     { value: "strip", label: "長條銅片" },
   ] },
+  { group: "stretcher", type: "select", key: "drawerInternalGrid", label: "抽屜內格", defaultValue: "none", choices: [
+    { value: "none", label: "不分格（單格）" },
+    { value: "divided-2", label: "縱向分隔（2 格）" },
+    { value: "divided-4", label: "縱橫分隔（田字 4 格）" },
+  ], help: "抽屜盒內加分隔板，從上方俯視看得到（茶葉/茶罐/筆收納分裝）" },
+  { group: "stretcher", type: "select", key: "hiddenDrawerLayer", label: "暗抽層", defaultValue: "none", choices: [
+    { value: "none", label: "無暗抽" },
+    { value: "1", label: "第 1 層為暗抽" },
+    { value: "2", label: "第 2 層為暗抽" },
+    { value: "3", label: "第 3 層為暗抽" },
+    { value: "4", label: "第 4 層為暗抽" },
+    { value: "5", label: "第 5 層為暗抽" },
+    { value: "6", label: "第 6 層為暗抽" },
+    { value: "7", label: "第 7 層為暗抽" },
+    { value: "8", label: "第 8 層為暗抽" },
+  ], help: "暗抽 = 抽屜面跟相鄰門板齊平+無拉手+無分格（外觀看不出是抽屜）" },
   // 開放層板細部
   { group: "stretcher", type: "number", key: "shelfExtraCount", label: "層內活動板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "每個 shelf 層內額外加幾片活動層板" },
 ];
@@ -192,6 +208,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const doorStyle = getOption<string>(input, opt(o, "doorStyle"));
   const drawerSplit = getOption<string>(input, opt(o, "drawerSplit"));
   const drawerPullType = getOption<string>(input, opt(o, "drawerPullType"));
+  const drawerInternalGrid = getOption<string>(input, opt(o, "drawerInternalGrid"));
+  const hiddenDrawerLayer = getOption<string>(input, opt(o, "hiddenDrawerLayer"));
   const shelfExtraCount = getOption<number>(input, opt(o, "shelfExtraCount"));
   const userLayerCount = getOption<number>(input, opt(o, "layerCount"));
   const userLayerTypes = [
@@ -717,12 +735,16 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       }
     } else if (layerType === "drawer") {
       // 抽屜：依 drawerSplit 切 1/2/3 格抽屜面 + 抽屜盒
+      const isHidden = hiddenDrawerLayer === String(i + 1);
       const drawerGap = 3;
       const drawerWidth = innerSpanX - drawerGap * 2;
       const drawerHeight = thisLayerHeight - 4;
       const drawerThickness = railThickness;
       const drawerFrontZ = -(fbRailOffsetZ);
-      const drawerSplitCount = drawerSplit === "double" ? 2 : drawerSplit === "triple" ? 3 : 1;
+      // 暗抽強制 single + 無拉手；隱藏抽屜面分割線視覺
+      const effectiveSplit = isHidden ? "single" : drawerSplit;
+      const effectivePullType = isHidden ? "none" : drawerPullType;
+      const drawerSplitCount = effectiveSplit === "double" ? 2 : effectiveSplit === "triple" ? 3 : 1;
       const drawerSplitGap = drawerSplitCount > 1 ? 4 : 0;  // 格之間縫
       const subDrawerWidth = (drawerWidth - drawerSplitGap * (drawerSplitCount - 1)) / drawerSplitCount;
       // 第 1 個抽屜面位於最左：X 中心 = -drawerWidth/2 + subWidth/2
@@ -739,10 +761,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           mortises: [],
         });
         // 抽屜拉手（每個分格中央）
-        if (drawerPullType !== "none") {
+        if (effectivePullType !== "none") {
           const pullY = layerCenterY;
           const pullZ = drawerFrontZ - drawerThickness / 2 - 4;
-          if (drawerPullType === "round-brass") {
+          if (effectivePullType === "round-brass") {
             parts.push({
               id: `layer${i + 1}-drawer-${d + 1}-pull`,
               nameZh: `第 ${i + 1} 層抽屜拉環 ${d + 1}`,
@@ -808,6 +830,37 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: [],
         mortises: [],
       });
+      // 抽屜內格分隔板（暗抽不加）
+      if (!isHidden && drawerInternalGrid !== "none") {
+        const dividerThickness = 8;
+        const innerWidth = drawerWidth - 20 - drawerSideThickness * 2;     // 兩側板內寬
+        const innerLength = drawerSideLength - drawerSideThickness * 2;    // 後板到前抽屜面內深
+        const innerY = layerBottomY + 5 + drawerBottomThickness;
+        // 縱向分隔板（沿 Z 軸延伸，把抽屜分成左右兩格）
+        parts.push({
+          id: `layer${i + 1}-drawer-divider-vert`,
+          nameZh: `第 ${i + 1} 層抽屜縱向分隔板`,
+          material,
+          grainDirection: "length",
+          visible: { length: dividerThickness, width: innerLength, thickness: drawerSideHeight - 4 },
+          origin: { x: 0, y: innerY, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+        // 田字 4 格：再加 1 條橫向分隔板（沿 X 軸延伸）
+        if (drawerInternalGrid === "divided-4") {
+          parts.push({
+            id: `layer${i + 1}-drawer-divider-horiz`,
+            nameZh: `第 ${i + 1} 層抽屜橫向分隔板`,
+            material,
+            grainDirection: "length",
+            visible: { length: innerWidth, width: dividerThickness, thickness: drawerSideHeight - 4 },
+            origin: { x: 0, y: innerY, z: 0 },
+            tenons: [],
+            mortises: [],
+          });
+        }
+      }
     } else {
       // shelf：開放層板。shelfExtraCount > 0 時加活動層板等分這個 layer
       if (shelfExtraCount > 0) {
