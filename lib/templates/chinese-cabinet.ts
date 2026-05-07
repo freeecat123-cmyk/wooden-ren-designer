@@ -50,6 +50,12 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "tea-cabinet", label: "茶櫃（抽屜 + 門 + 層板）" },
     { value: "shrine", label: "神桌邊櫃（抽屜 + 門 + 層板）" },
   ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定" },
+  // 比例風格（一鍵切換明清整體比例）
+  { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
+    { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
+    { value: "qing", label: "清式（矮寬 H:W ≈ 1.2）" },
+    { value: "free", label: "自訂（依整體尺寸輸入）" },
+  ], help: "明式瘦高典雅、清式矮寬厚實。自訂 = 你輸入的寬深高比例" },
   // 立柱
   { group: "leg", type: "number", key: "postSize", label: "立柱粗 (mm)", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
   { group: "leg", type: "select", key: "postEndStyle", label: "立柱頂端", defaultValue: "flush", choices: [
@@ -89,13 +95,18 @@ export const chineseCabinetOptions: OptionSpec[] = [
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const o = chineseCabinetOptions;
   const { length, width, height, material } = input;
-  const postSize = getOption<number>(input, opt(o, "postSize"));
-  const railWidth = getOption<number>(input, opt(o, "railWidth"));
+  const proportionStyle = getOption<string>(input, opt(o, "proportionStyle"));
+  const postSizeRaw = getOption<number>(input, opt(o, "postSize"));
+  const railWidthRaw = getOption<number>(input, opt(o, "railWidth"));
   const railThickness = getOption<number>(input, opt(o, "railThickness"));
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const topOverhang = getOption<number>(input, opt(o, "topOverhang"));
-  const skirtHeight = getOption<number>(input, opt(o, "skirtHeight"));
+  const skirtHeightRaw = getOption<number>(input, opt(o, "skirtHeight"));
+  // proportionStyle 覆寫關鍵比例（除非 free）
+  const postSize = proportionStyle === "ming" ? 35 : proportionStyle === "qing" ? 50 : postSizeRaw;
+  const railWidth = proportionStyle === "ming" ? 45 : proportionStyle === "qing" ? 65 : railWidthRaw;
+  const skirtHeight = proportionStyle === "ming" ? 50 : proportionStyle === "qing" ? 80 : skirtHeightRaw;
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
   const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
   const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
@@ -162,9 +173,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const tenonT = Math.max(6, Math.round(railThickness / 3));   // ~8mm 厚
 
   // ── 4 立柱（含 4 個 mortise 接 rail：上抹/下抹 × 側面/前後面）
-  // postEndStyle="exposedTenon" 立柱頂榫頭穿透頂蓋凸出 8mm（明清炫技）
+  // postEndStyle="exposedTenon" 立柱頂榫頭穿透頂蓋凸出 18mm（明清炫技）
   const postExposedTenon = postEndStyle === "exposedTenon"
-    ? [{ position: "top" as const, type: "through-tenon" as const, length: topThickness + 8, width: Math.round(postSize * 0.5), thickness: Math.round(postSize * 0.5) }]
+    ? [{ position: "top" as const, type: "through-tenon" as const, length: topThickness + 18, width: Math.round(postSize * 0.5), thickness: Math.round(postSize * 0.5) }]
     : [];
   for (const sx of [-1, 1] as const) {
     for (const sz of [-1, 1] as const) {
@@ -268,7 +279,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
     // 板心 — panelStyle="raised" 板心加厚 4mm 模擬中央凸起
-    const sidePanelThickness = panelStyle === "raised" ? panelThickness + 4 : panelThickness;
+    const sidePanelThickness = panelStyle === "raised" ? panelThickness + 10 : panelThickness;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
@@ -321,7 +332,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     });
   } else {
     // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
-    const backPanelThickness = panelStyle === "raised" ? panelThickness + 4 : panelThickness;
+    const backPanelThickness = panelStyle === "raised" ? panelThickness + 10 : panelThickness;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
