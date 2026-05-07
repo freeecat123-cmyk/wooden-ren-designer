@@ -158,8 +158,10 @@ export interface Part {
   /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：
    * - "glass"：半透明玻璃，不計才、不進材料單、不進 CSV
+   * - "brass-antique"：仿古銅金屬色（拉手/合頁面葉等五金件），不計才、不進
+   *   材料單。3D 走 metallic material（metalness=0.85、古銅色 #8a6a3a）。
    */
-  visual?: "glass";
+  visual?: "glass" | "brass-antique";
 
   /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows

@@ -203,6 +203,7 @@ function Part({
   color,
   shape,
   isGlass,
+  isBrass,
   grainDirection,
   mortiseBoxes,
   mortiseShapes,
@@ -213,6 +214,7 @@ function Part({
   color: string;
   shape?: ShapeSpec;
   isGlass?: boolean;
+  isBrass?: boolean;
   grainDirection?: "length" | "width";
   /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
    *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
@@ -398,6 +400,16 @@ function Part({
           opacity={0.25}
           metalness={0}
         />
+      </mesh>
+    );
+  }
+  if (isBrass) {
+    // 仿古銅：metalness 高、低光澤、暖色調，模擬氧化銅件而非亮金
+    const brassGeo = geometry ?? null;
+    return (
+      <mesh position={position} rotation={rotation}>
+        {brassGeo ? <primitive object={brassGeo} attach="geometry" /> : <boxGeometry args={size} />}
+        <meshStandardMaterial color="#8a6a3a" roughness={0.35} metalness={0.85} />
       </mesh>
     );
   }
@@ -2260,6 +2272,7 @@ export function PerspectiveView({
                 color={color}
                 shape={shape}
                 isGlass={part.visual === "glass"}
+                isBrass={part.visual === "brass-antique"}
                 grainDirection={part.grainDirection}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}

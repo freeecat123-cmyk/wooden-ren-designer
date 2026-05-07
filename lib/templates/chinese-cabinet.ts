@@ -777,6 +777,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               shape: { kind: "round" },
               visible: { length: 30, width: 30, thickness: 8 },
               origin: { x: pullX, y: pullY - 4, z: pullZ },
+              visual: "brass-antique",
               tenons: [],
               mortises: [],
             });
@@ -788,6 +789,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               visible: { length: 12, width: 6, thickness: 80 },
               origin: { x: pullX, y: pullY - 40, z: pullZ },
+              visual: "brass-antique",
               tenons: [],
               mortises: [],
             });
@@ -834,6 +836,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               shape: { kind: "round" },
               visible: { length: 28, width: 28, thickness: 8 },
               origin: { x: cxOffset, y: pullY - 4, z: pullZ },
+              visual: "brass-antique",
               tenons: [],
               mortises: [],
             });
@@ -845,6 +848,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               grainDirection: "length",
               visible: { length: Math.min(80, subDrawerWidth - 20), width: 6, thickness: 12 },
               origin: { x: cxOffset, y: pullY - 6, z: pullZ },
+              visual: "brass-antique",
               tenons: [],
               mortises: [],
             });

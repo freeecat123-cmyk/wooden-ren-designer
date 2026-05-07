@@ -2749,21 +2749,25 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
   const rows = design.parts.map((part) => {
     const cut = calculateCutDimensions(part);
     const isGlass = part.visual === "glass";
+    const isBrass = part.visual === "brass-antique";
+    const isHardware = isGlass || isBrass;
     const volMm3 = cut.length * cut.width * cut.thickness;
-    // 玻璃不算木材材積（另向玻璃行訂製）；不累計 totalBdft / bdftByMaterial
-    const bdft = isGlass ? 0 : volMm3 / MM3_PER_BDFT;
-    if (!isGlass) totalBdft += bdft;
+    // 五金件（玻璃/銅件）不算木材材積；不累計 totalBdft / bdftByMaterial
+    const bdft = isHardware ? 0 : volMm3 / MM3_PER_BDFT;
+    if (!isHardware) totalBdft += bdft;
     // 拼板：顯示「桌面板 ×3 (each 200 × 1500 × 30mm)」讓學員按片下料
     const pieces = Math.max(1, Math.round(part.panelPieces ?? 1));
 
     const billable = effectiveBillableMaterial(part);
     const materialLabel = isGlass
       ? `${cut.thickness}mm 強化玻璃`
-      : billable === "plywood" || billable === "mdf"
-        ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-        : MATERIALS[part.material].nameZh;
+      : isBrass
+        ? "仿古銅五金（外購）"
+        : billable === "plywood" || billable === "mdf"
+          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
+          : MATERIALS[part.material].nameZh;
 
-    if (!isGlass) {
+    if (!isHardware) {
       const groupKey =
         billable === "plywood" || billable === "mdf"
           ? SHEET_GOOD_LABEL[billable]
@@ -2773,27 +2777,34 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
 
     const tenonNotes = isGlass
       ? "另向玻璃行訂製，不入裁切"
-      : part.tenons.length
-        ? part.tenons
-            .map(
-              (t) =>
-                `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
-            )
-            .join("、")
-        : "—";
+      : isBrass
+        ? "外購五金件，不入裁切"
+        : part.tenons.length
+          ? part.tenons
+              .map(
+                (t) =>
+                  `${t.position} ${t.length}mm ${JOINERY_LABEL[t.type] ?? t.type}`,
+              )
+              .join("、")
+          : "—";
 
     const category = categorizePart(part.id);
 
-    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass, pieces };
+    return { part, cut, bdft, materialLabel, tenonNotes, category, isGlass, isBrass, isHardware, pieces };
   });
 
   // 依分類排序 + 每類內的原有順序（stable sort）
-  // 玻璃單獨抽出來，不混在木材分類裡（玻璃行訂製，跟木工區隔）
+  // 玻璃 / 銅件單獨抽出來，不混在木材分類裡（外購五金，跟木工區隔）
   const byCategory = new Map<PartCategory, typeof rows>();
   const glassRows: typeof rows = [];
+  const brassRows: typeof rows = [];
   for (const r of rows) {
     if (r.isGlass) {
       glassRows.push(r);
+      continue;
+    }
+    if (r.isBrass) {
+      brassRows.push(r);
       continue;
     }
     if (!byCategory.has(r.category)) byCategory.set(r.category, []);
@@ -2915,6 +2926,40 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                 </td>
                 <td className="p-2 text-right font-mono text-sky-600">—</td>
                 <td className="p-2 text-xs text-sky-700">{tenonNotes}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      )}
+      {brassRows.length > 0 && (
+        <tbody className="border-t-2 border-amber-400 bg-amber-50/30">
+          <tr className="bg-amber-100/60">
+            <td colSpan={4} className="px-2 py-1.5 text-xs font-semibold text-amber-900">
+              🪙 仿古銅五金（外購，不入裁切）
+              <span className="ml-2 font-normal text-amber-700">· {brassRows.length} 件</span>
+            </td>
+            <td className="px-2 py-1.5 text-right text-xs font-mono text-amber-700">—</td>
+            <td />
+          </tr>
+          {brassRows.map(({ part, cut, materialLabel, tenonNotes }) => {
+            const [vl, vw, vt] = sortDimsDesc(
+              part.visible.length,
+              part.visible.width,
+              part.visible.thickness,
+            );
+            const [cl, cw, ct] = sortDimsDesc(cut.length, cut.width, cut.thickness);
+            return (
+              <tr key={part.id} className="border-b border-amber-100">
+                <td className="p-2">{part.nameZh}</td>
+                <td className="p-2">{materialLabel}</td>
+                <td className="p-2 text-right">
+                  {fmt(vl)} × {fmt(vw)} × {fmt(vt)}
+                </td>
+                <td className="p-2 text-right font-semibold">
+                  {fmt(cl)} × {fmt(cw)} × {fmt(ct)}
+                </td>
+                <td className="p-2 text-right font-mono text-amber-600">—</td>
+                <td className="p-2 text-xs text-amber-700">{tenonNotes}</td>
               </tr>
             );
           })}

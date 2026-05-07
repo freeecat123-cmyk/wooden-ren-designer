@@ -17,7 +17,7 @@ export function buildCutPieces(design: FurnitureDesign): {
   const sheetGroups = new Map<string, CutPiece[]>();
 
   for (const part of design.parts) {
-    if (part.visual === "glass") continue;
+    if (part.visual === "glass" || part.visual === "brass-antique") continue;
     const cut = calculateCutDimensions(part);
     const billable = effectiveBillableMaterial(part);
     // 拼板：concept 是 1 塊面板，實際買料 / 裁切是 N 片小料。把寬度切成 N 等份
