@@ -33,12 +33,22 @@ const LAYER_TYPE_CHOICES = [
  * - shrine 神桌邊櫃：4 層 抽屜 + 雙門上下 + 頂層 shelf，較高、上半封閉放供品香爐
  * - custom 自訂：依使用者 layer1-5 選擇
  */
-const CABINET_PRESET_LAYERS: Record<string, string[]> = {
-  bookshelf: ["shelf", "shelf", "shelf", "shelf", "shelf"],
-  cupboard: ["door", "drawer", "door"],
+interface CabinetPresetConfig {
+  layers: string[];
+  /** preset 帶的 doorStyle 預設值；user 手動覆寫仍優先 */
+  doorStyle?: string;
+}
+
+const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
+  bookshelf: { layers: ["shelf", "shelf", "shelf", "shelf", "shelf"] },
+  cupboard: { layers: ["door", "drawer", "door"] },
   // 茶櫃：傳統多抽屜分裝茶葉/茶罐 + 上方展示層板
-  "tea-cabinet": ["drawer", "drawer", "door", "shelf"],
-  shrine: ["drawer", "door", "door", "shelf"],
+  "tea-cabinet": { layers: ["drawer", "drawer", "door", "shelf"] },
+  shrine: { layers: ["drawer", "door", "door", "shelf"] },
+  // 博古架：玻璃格扇門 4 層展示古玩茶具，明清書房常見
+  "display-cabinet": { layers: ["door", "door", "door", "shelf"], doorStyle: "glass-lattice" },
+  // 玻璃書櫃：5 層全玻璃門，現代家居書房展示
+  "glass-bookshelf": { layers: ["door", "door", "door", "door", "door"], doorStyle: "glass" },
 };
 
 export const chineseCabinetOptions: OptionSpec[] = [
@@ -49,7 +59,9 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "cupboard", label: "碗櫥（門 + 抽屜 + 門）" },
     { value: "tea-cabinet", label: "茶櫃（抽屜 + 門 + 層板）" },
     { value: "shrine", label: "神桌邊櫃（抽屜 + 門 + 層板）" },
-  ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定" },
+    { value: "display-cabinet", label: "博古架（玻璃格扇門 × 4 層）" },
+    { value: "glass-bookshelf", label: "玻璃書櫃（5 層全玻璃門）" },
+  ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定。博古架/玻璃書櫃自動帶玻璃門" },
   // 比例風格（一鍵切換明清整體比例）
   { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
     { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
@@ -224,7 +236,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
   const doorPullType = getOption<string>(input, opt(o, "doorPullType"));
-  const doorStyle = getOption<string>(input, opt(o, "doorStyle"));
+  const doorStyleRaw = getOption<string>(input, opt(o, "doorStyle"));
+  // preset 帶的 doorStyle 在 user 未主動選非 solid 時生效（user override solid 也算「主動選」）
+  const presetDoorStyle = CABINET_PRESETS[cabinetPreset]?.doorStyle;
+  const doorStyle = doorStyleRaw === "solid" && presetDoorStyle ? presetDoorStyle : doorStyleRaw;
   const drawerSplit = getOption<string>(input, opt(o, "drawerSplit"));
   const drawerPullType = getOption<string>(input, opt(o, "drawerPullType"));
   const drawerInternalGrid = getOption<string>(input, opt(o, "drawerInternalGrid"));
@@ -255,12 +270,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // - layerCount > preset 長度：用 preset + user 補的 layerXType
   // - layerCount < preset 長度：截 preset 前 N 個
   // - layerCount === preset 長度：完全用 preset
-  const presetConfig = CABINET_PRESET_LAYERS[cabinetPreset];
+  const presetConfig = CABINET_PRESETS[cabinetPreset];
+  const presetLayers = presetConfig?.layers;
   const layerCount = userLayerCount;
-  const layerTypes: string[] = presetConfig
-    ? presetConfig.length >= layerCount
-      ? presetConfig.slice(0, layerCount)
-      : [...presetConfig, ...userLayerTypes.slice(presetConfig.length, layerCount)]
+  const layerTypes: string[] = presetLayers
+    ? presetLayers.length >= layerCount
+      ? presetLayers.slice(0, layerCount)
+      : [...presetLayers, ...userLayerTypes.slice(presetLayers.length, layerCount)]
     : userLayerTypes.slice(0, layerCount);
   // 各層高度 mm — 不論 preset 或 custom 都生效（user 想手動就手動）
   // 0 = 自動分（取剩餘空間平均）；> 0 = 指定值
