@@ -91,7 +91,8 @@ export const chineseCabinetOptions: OptionSpec[] = [
   // 牙條
   { group: "stretcher", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
   { group: "stretcher", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
-  { group: "stretcher", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "straight", choices: [
+  { group: "stretcher", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "auto", choices: [
+    { value: "auto", label: "依比例風格（明=壼門、清=雲頭）" },
     { value: "straight", label: "直線素牙（最簡）" },
     { value: "arched", label: "壼門（底邊向下凹弧）" },
     { value: "cloud-head", label: "雲頭（上下都起翹）" },
@@ -153,7 +154,16 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const railWidth = proportionStyle === "ming" ? 45 : proportionStyle === "qing" ? 65 : railWidthRaw;
   const skirtHeight = proportionStyle === "ming" ? 50 : proportionStyle === "qing" ? 80 : skirtHeightRaw;
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
-  const skirtStyle = getOption<string>(input, opt(o, "skirtStyle"));
+  const skirtStyleRaw = getOption<string>(input, opt(o, "skirtStyle"));
+  // skirtStyle="auto" → 依 proportionStyle 帶（明式壼門、清式雲頭、free 直素牙）
+  const skirtStyle: string =
+    skirtStyleRaw === "auto"
+      ? proportionStyle === "ming"
+        ? "arched"
+        : proportionStyle === "qing"
+          ? "cloud-head"
+          : "straight"
+      : skirtStyleRaw;
   const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
   const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
   const legShapeRaw = getOption<string>(input, opt(o, "legShape"));
