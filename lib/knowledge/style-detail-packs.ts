@@ -423,7 +423,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
       "withLazySusan": false,
       "legInset": 50,
       "legShape": "box",
@@ -444,7 +443,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "4",
       "withLazySusan": false,
       "legInset": 100,
       "legShape": "box",
@@ -455,8 +453,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 80,
       "lowerStretcherThickness": 30,
-      "lowerStretcherFromGround": 120,
-      "topPattern": "straight"
+      "lowerStretcherFromGround": 120
     },
     "bar-stool": {
       "legShape": "box",
@@ -1012,7 +1009,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "4",
       "withLazySusan": false,
       "legInset": 130,
       "legShape": "round-taper-down",
@@ -1020,8 +1016,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 130,
       "apronThickness": 28,
       "apronDropFromTop": 5,
-      "withLowerStretcher": false,
-      "topPattern": "concentric"
+      "withLowerStretcher": false
     },
     "bar-stool": {
       "legShape": "tapered",
@@ -1486,7 +1481,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "3",
       "withLazySusan": false,
       "legInset": 140,
       "legShape": "splayed-round-taper-down",
@@ -1494,8 +1488,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 22,
       "apronDropFromTop": 20,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "bar-stool": {
       "legShape": "splayed",
@@ -1953,7 +1946,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
       "withLazySusan": false,
       "legInset": 130,
       "legShape": "shaker",
@@ -1961,8 +1953,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 80,
       "apronThickness": 22,
       "apronDropFromTop": 25,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "bar-stool": {
       "legShape": "tapered",
@@ -2489,7 +2480,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
       "withLazySusan": false,
       "legInset": 180,
       "legShape": "box",
@@ -2497,8 +2487,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 22,
       "apronDropFromTop": 10,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "bar-stool": {
       "legShape": "box",
@@ -2955,7 +2944,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
       "withLazySusan": false,
       "legInset": 60,
       "legShape": "box",
@@ -2976,7 +2964,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "4",
       "withLazySusan": false,
       "legInset": 130,
       "legShape": "box",
@@ -2987,8 +2974,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 80,
       "lowerStretcherThickness": 28,
-      "lowerStretcherFromGround": 120,
-      "topPattern": "radial"
+      "lowerStretcherFromGround": 120
     },
     "bar-stool": {
       "legShape": "box",
@@ -3701,7 +3687,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 3,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "4",
       "withLazySusan": false,
       "legInset": 140,
       "legShape": "round-taper-down",
@@ -3709,8 +3694,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 110,
       "apronThickness": 28,
       "apronDropFromTop": 5,
-      "withLowerStretcher": false,
-      "topPattern": "radial"
+      "withLowerStretcher": false
     },
     "bar-stool": {
       "legShape": "box",

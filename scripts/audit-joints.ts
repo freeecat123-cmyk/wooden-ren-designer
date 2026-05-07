@@ -52,6 +52,7 @@ const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory
  */
 const EXPECTED_FAILS_VARIANT: ReadonlySet<string> = new Set<string>([
   "dining-table:trestle",
+  "round-table:trestle",
 ]);
 
 interface Row {

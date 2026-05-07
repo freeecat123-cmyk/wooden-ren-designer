@@ -186,27 +186,40 @@ function buildTrestleRoundTable(p: {
     mortises: [],
   };
 
+  // 腳 ↔ 頂橫木 / 底足 榫卯尺寸（沿用 dining-table:trestle 模式）
+  const legTopTenonLen = Math.round(frameRailThickness * 2 / 3);
+  const legBotTenonLen = Math.round(frameFootThickness * 2 / 3);
+  const legTenonThick = Math.round(trestleLegSize / 3);
+  // 沿木紋方向（世界 Z = 橫木/底足木紋）的榫寬，預留每側 15mm 肩
+  const legTenonW = Math.max(15, trestleLegSize - 30);
+  const legHeightInner = legHeight - frameFootThickness - frameRailThickness;
+
   const parts: Part[] = [top];
   // 兩個端框
   for (const fz of [-frameZ, frameZ] as const) {
     const fid = fz < 0 ? "front" : "back";
     const fLabel = fz < 0 ? "前" : "後";
     // 2 支腳
-    for (const fx of [-frameLegSpacing / 2, frameLegSpacing / 2] as const) {
-      const sid = fx < 0 ? "left" : "right";
-      const sLabel = fx < 0 ? "左" : "右";
+    const legXs: Array<-1 | 1> = [-1, 1];
+    for (const sgn of legXs) {
+      const fx = sgn * (frameLegSpacing / 2);
+      const sid = sgn < 0 ? "left" : "right";
+      const sLabel = sgn < 0 ? "左" : "右";
       parts.push({
         id: `trestle-${fid}-${sid}-leg`,
         nameZh: `${fLabel}框${sLabel}腳`,
         material: material as "maple",
         grainDirection: "length",
-        visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeight - frameFootThickness - frameRailThickness },
+        visible: { length: trestleLegSize, width: trestleLegSize, thickness: legHeightInner },
         origin: { x: fx, y: frameFootThickness, z: fz },
-        tenons: [],
+        tenons: [
+          { position: "top", type: "blind-tenon", length: legTopTenonLen, width: legTenonThick, thickness: legTenonW },
+          { position: "bottom", type: "blind-tenon", length: legBotTenonLen, width: legTenonThick, thickness: legTenonW },
+        ],
         mortises: [],
       });
     }
-    // 頂橫木
+    // 頂橫木 — 底面開 2 個 mortise 對應左右腳頂榫
     parts.push({
       id: `trestle-${fid}-top-rail`,
       nameZh: `${fLabel}框頂橫木`,
@@ -215,9 +228,16 @@ function buildTrestleRoundTable(p: {
       visible: { length: frameRailLen, width: frameRailWidth, thickness: frameRailThickness },
       origin: { x: 0, y: legHeight - frameRailThickness, z: fz },
       tenons: [],
-      mortises: [],
+      mortises: legXs.map((sgn) => ({
+        // mortise on bottom face: y=0 表示 part bottom；x 沿世界 X 對應腳位置；z 中心
+        origin: { x: sgn * (frameLegSpacing / 2), y: 0, z: 0 },
+        depth: legTopTenonLen,
+        length: legTenonW,
+        width: legTenonThick,
+        through: false,
+      })),
     });
-    // 底足（含中央橫木 mortise，audit 需要）
+    // 底足（頂面開 2 個腳榫 mortise + 內側面開中央橫木 mortise）
     parts.push({
       id: `trestle-${fid}-foot`,
       nameZh: `${fLabel}框底足`,
@@ -227,8 +247,16 @@ function buildTrestleRoundTable(p: {
       origin: { x: 0, y: 0, z: fz },
       tenons: [],
       mortises: [
+        // 頂面 2 個對應左右腳底榫
+        ...legXs.map((sgn) => ({
+          origin: { x: sgn * (frameLegSpacing / 2), y: frameFootThickness, z: 0 },
+          depth: legBotTenonLen,
+          length: legTenonW,
+          width: legTenonThick,
+          through: false,
+        })),
+        // 內側 Z 面：中央橫木榫眼
         {
-          // mortise on inner Z face for center-stretcher tenon
           origin: { x: 0, y: frameFootThickness / 2, z: fz < 0 ? +frameFootWidth / 2 - 17 : -frameFootWidth / 2 + 17 },
           depth: 35,
           length: centerStretcherWidth - 12,
@@ -273,8 +301,8 @@ export const roundTableOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配", wide: true },
-  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { key: "withLazySusan", equals: true } },
+  { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳（方料）" },
