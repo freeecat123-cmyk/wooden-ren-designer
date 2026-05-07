@@ -52,6 +52,20 @@ export const chineseCabinetOptions: OptionSpec[] = [
   ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定" },
   // 立柱
   { group: "leg", type: "number", key: "postSize", label: "立柱粗 (mm)", defaultValue: 40, min: 30, max: 60, step: 1, unit: "mm" },
+  { group: "leg", type: "select", key: "postEndStyle", label: "立柱頂端", defaultValue: "flush", choices: [
+    { value: "flush", label: "平頂（隱藏）" },
+    { value: "exposedTenon", label: "露明榫（裝飾）" },
+  ], help: "露明榫 = 立柱頂榫頭穿透頂蓋凸出，明清炫技做法" },
+  // 背板
+  { group: "apron", type: "select", key: "backPanelStyle", label: "背板樣式", defaultValue: "framed", choices: [
+    { value: "framed", label: "框板（上下抹+板心）" },
+    { value: "singleBoard", label: "整片實木板" },
+  ], help: "框板 = 傳統明式做法，整片 = 簡化做法" },
+  // 板心樣式
+  { group: "apron", type: "select", key: "panelStyle", label: "板心樣式", defaultValue: "flat", choices: [
+    { value: "flat", label: "平板心" },
+    { value: "raised", label: "凸面板心（中央凸起 5mm）" },
+  ], help: "凸面板心 = 板心邊緣斜削、中央凸起，視覺層次" },
   // 邊抹（rails）
   { group: "apron", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
   { group: "apron", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
@@ -84,6 +98,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const skirtHeight = getOption<number>(input, opt(o, "skirtHeight"));
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
   const cabinetPreset = getOption<string>(input, opt(o, "cabinetPreset"));
+  const postEndStyle = getOption<string>(input, opt(o, "postEndStyle"));
+  const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
+  const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const userLayerCount = getOption<number>(input, opt(o, "layerCount"));
   const userLayerTypes = [
     getOption<string>(input, opt(o, "layer1Type")),
@@ -118,6 +135,16 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const parts: Part[] = [];
 
   // ── 頂蓋（外伸）
+  // postEndStyle="exposedTenon" 時頂蓋有 4 個通孔接立柱頂榫
+  const topMortises = postEndStyle === "exposedTenon"
+    ? [-1, 1].flatMap(sx => [-1, 1].map(sz => ({
+        origin: { x: sx * postX, y: 0, z: sz * postZ },
+        depth: topThickness,
+        length: Math.round(postSize * 0.5),
+        width: Math.round(postSize * 0.5),
+        through: true,
+      })))
+    : [];
   parts.push({
     id: "top",
     nameZh: "頂蓋",
@@ -126,7 +153,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: length + topOverhang * 2, width: width + topOverhang * 2, thickness: topThickness },
     origin: { x: 0, y: postTopY, z: 0 },
     tenons: [],
-    mortises: [],
+    mortises: topMortises,
   });
 
   // 榫接尺寸（明式攢邊打槽 / 悶榫接腳）
@@ -135,6 +162,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const tenonT = Math.max(6, Math.round(railThickness / 3));   // ~8mm 厚
 
   // ── 4 立柱（含 4 個 mortise 接 rail：上抹/下抹 × 側面/前後面）
+  // postEndStyle="exposedTenon" 立柱頂榫頭穿透頂蓋凸出 8mm（明清炫技）
+  const postExposedTenon = postEndStyle === "exposedTenon"
+    ? [{ position: "top" as const, type: "through-tenon" as const, length: topThickness + 8, width: Math.round(postSize * 0.5), thickness: Math.round(postSize * 0.5) }]
+    : [];
   for (const sx of [-1, 1] as const) {
     for (const sz of [-1, 1] as const) {
       const fbId = sz < 0 ? "front" : "back";
@@ -151,7 +182,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: postSize, width: postSize, thickness: postHeight },
         origin: { x: sx * postX, y: postBottomY, z: sz * postZ },
-        tenons: [],
+        tenons: postExposedTenon,
         mortises: [
           // 側面 rail 進立柱（Z 內面，朝對面立柱方向）
           { origin: { x: 0, y: upperRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
@@ -236,13 +267,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       ],
       mortises: [],
     });
-    // 板心
+    // 板心 — panelStyle="raised" 板心加厚 4mm 模擬中央凸起
+    const sidePanelThickness = panelStyle === "raised" ? panelThickness + 4 : panelThickness;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
       material,
       grainDirection: "length",
-      visible: { length: panelThickness, width: panelInnerW_Z, thickness: panelInnerH },
+      visible: { length: sidePanelThickness, width: panelInnerW_Z, thickness: panelInnerH },
       origin: { x: sx * sideRailOffsetX, y: lowerRailY + railWidth - 5, z: 0 },
       tenons: [],
       mortises: [],
@@ -274,16 +306,33 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: fbRailTenons,
     mortises: [],
   });
-  parts.push({
-    id: "back-panel",
-    nameZh: "背面板心",
-    material,
-    grainDirection: "length",
-    visible: { length: panelInnerW_X, width: panelThickness, thickness: panelInnerH },
-    origin: { x: 0, y: lowerRailY + railWidth - 5, z: fbRailOffsetZ },
-    tenons: [],
-    mortises: [],
-  });
+  // 背面板心：framed = 框板嵌入（一般板心高度 panelInnerH）；singleBoard = 整片實木板蓋住整個背面（從上抹到下抹）
+  if (backPanelStyle === "singleBoard") {
+    // 整片背板：跨越 4 立柱內側，從 lower rail 頂面到 upper rail 底面
+    parts.push({
+      id: "back-panel",
+      nameZh: "背面整片板",
+      material,
+      grainDirection: "length",
+      visible: { length: innerSpanX, width: panelThickness, thickness: upperRailY - (lowerRailY + railWidth) },
+      origin: { x: 0, y: lowerRailY + railWidth, z: fbRailOffsetZ },
+      tenons: [],
+      mortises: [],
+    });
+  } else {
+    // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
+    const backPanelThickness = panelStyle === "raised" ? panelThickness + 4 : panelThickness;
+    parts.push({
+      id: "back-panel",
+      nameZh: "背面板心",
+      material,
+      grainDirection: "length",
+      visible: { length: panelInnerW_X, width: backPanelThickness, thickness: panelInnerH },
+      origin: { x: 0, y: lowerRailY + railWidth - 5, z: fbRailOffsetZ },
+      tenons: [],
+      mortises: [],
+    });
+  }
 
   // ── 前面 frame
   parts.push({
