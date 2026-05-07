@@ -36,7 +36,8 @@ const LAYER_TYPE_CHOICES = [
 const CABINET_PRESET_LAYERS: Record<string, string[]> = {
   bookshelf: ["shelf", "shelf", "shelf", "shelf", "shelf"],
   cupboard: ["door", "drawer", "door"],
-  "tea-cabinet": ["drawer", "door", "shelf"],
+  // 茶櫃：傳統多抽屜分裝茶葉/茶罐 + 上方展示層板
+  "tea-cabinet": ["drawer", "drawer", "door", "shelf"],
   shrine: ["drawer", "door", "door", "shelf"],
 };
 
