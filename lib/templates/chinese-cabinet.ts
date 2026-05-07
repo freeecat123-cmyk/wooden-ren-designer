@@ -83,19 +83,25 @@ export const chineseCabinetOptions: OptionSpec[] = [
   // 牙條
   { group: "stretcher", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條（直線素牙）" },
   { group: "stretcher", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
-  // 層數
-  { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 5, step: 1, help: "由下往上 1, 2, 3..." },
+  // 層數（1-8）
+  { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
-  { group: "stretcher", type: "select", key: "layer2Type", label: "第 2 層", defaultValue: "door", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5] } },
-  { group: "stretcher", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5] } },
-  { group: "stretcher", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5] } },
-  { group: "stretcher", type: "select", key: "layer5Type", label: "第 5 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5] } },
-  // 各層高度（mm，0 = 自動等分，> 0 = 指定該層高度。任一層手動設定就生效，不受 preset 影響）
+  { group: "stretcher", type: "select", key: "layer2Type", label: "第 2 層", defaultValue: "door", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "select", key: "layer5Type", label: "第 5 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
+  { group: "stretcher", type: "select", key: "layer6Type", label: "第 6 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
+  { group: "stretcher", type: "select", key: "layer7Type", label: "第 7 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [7, 8] } },
+  { group: "stretcher", type: "select", key: "layer8Type", label: "第 8 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [8] } },
+  // 各層高度（mm，0 = 自動等分，> 0 = 指定該層高度）
   { group: "stretcher", type: "number", key: "layer1HeightMm", label: "第 1 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", help: "0 = 自動等分；其他層加總過大會自動縮放" },
-  { group: "stretcher", type: "number", key: "layer2HeightMm", label: "第 2 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5] } },
-  { group: "stretcher", type: "number", key: "layer3HeightMm", label: "第 3 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5] } },
-  { group: "stretcher", type: "number", key: "layer4HeightMm", label: "第 4 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5] } },
-  { group: "stretcher", type: "number", key: "layer5HeightMm", label: "第 5 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5] } },
+  { group: "stretcher", type: "number", key: "layer2HeightMm", label: "第 2 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "number", key: "layer3HeightMm", label: "第 3 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "number", key: "layer4HeightMm", label: "第 4 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
+  { group: "stretcher", type: "number", key: "layer5HeightMm", label: "第 5 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
+  { group: "stretcher", type: "number", key: "layer6HeightMm", label: "第 6 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
+  { group: "stretcher", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
+  { group: "stretcher", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
   { group: "stretcher", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
   { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
@@ -150,6 +156,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     getOption<string>(input, opt(o, "layer3Type")),
     getOption<string>(input, opt(o, "layer4Type")),
     getOption<string>(input, opt(o, "layer5Type")),
+    getOption<string>(input, opt(o, "layer6Type")),
+    getOption<string>(input, opt(o, "layer7Type")),
+    getOption<string>(input, opt(o, "layer8Type")),
   ];
   const userLayerHeightsMm = [
     getOption<number>(input, opt(o, "layer1HeightMm")),
@@ -157,11 +166,21 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     getOption<number>(input, opt(o, "layer3HeightMm")),
     getOption<number>(input, opt(o, "layer4HeightMm")),
     getOption<number>(input, opt(o, "layer5HeightMm")),
+    getOption<number>(input, opt(o, "layer6HeightMm")),
+    getOption<number>(input, opt(o, "layer7HeightMm")),
+    getOption<number>(input, opt(o, "layer8HeightMm")),
   ];
-  // 預設套用：cabinetPreset 不是 custom 時用 preset config，否則用 user 自訂
+  // cabinetPreset 提供 layer types 範本，user 永遠可以調 layerCount 蓋過 preset 層數
+  // - layerCount > preset 長度：用 preset + user 補的 layerXType
+  // - layerCount < preset 長度：截 preset 前 N 個
+  // - layerCount === preset 長度：完全用 preset
   const presetConfig = CABINET_PRESET_LAYERS[cabinetPreset];
-  const layerCount = presetConfig ? presetConfig.length : userLayerCount;
-  const layerTypes = presetConfig ?? userLayerTypes.slice(0, userLayerCount);
+  const layerCount = userLayerCount;
+  const layerTypes: string[] = presetConfig
+    ? presetConfig.length >= layerCount
+      ? presetConfig.slice(0, layerCount)
+      : [...presetConfig, ...userLayerTypes.slice(presetConfig.length, layerCount)]
+    : userLayerTypes.slice(0, layerCount);
   // 各層高度 mm — 不論 preset 或 custom 都生效（user 想手動就手動）
   // 0 = 自動分（取剩餘空間平均）；> 0 = 指定值
   const layerHeightsRaw = userLayerHeightsMm.slice(0, layerCount);
@@ -340,18 +359,40 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       ],
       mortises: [],
     });
-    // 板心 — panelStyle="raised" 板心加厚 4mm 模擬中央凸起
-    const sidePanelThickness = panelStyle === "raised" ? panelThickness + 10 : panelThickness;
+    // 板心
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
       material,
       grainDirection: "length",
-      visible: { length: sidePanelThickness, width: panelInnerW_Z, thickness: panelInnerH },
+      visible: { length: panelThickness, width: panelInnerW_Z, thickness: panelInnerH },
       origin: { x: sx * sideRailOffsetX, y: lowerRailY + railWidth - 5, z: 0 },
       tenons: [],
       mortises: [],
     });
+    // raised 模式：加中央凸起 plateau（小一圈、外側突出 15mm）
+    if (panelStyle === "raised") {
+      const plateauMargin = 40;  // plateau 比 panel 縮小 40mm 兩邊
+      const plateauThickness = 15;
+      parts.push({
+        id: `${lrId}-side-panel-raised`,
+        nameZh: `${lrLabel}側板心凸面`,
+        material,
+        grainDirection: "length",
+        visible: {
+          length: plateauThickness,
+          width: panelInnerW_Z - plateauMargin * 2,
+          thickness: panelInnerH - plateauMargin * 2,
+        },
+        origin: {
+          x: sx * (sideRailOffsetX + panelThickness / 2 + plateauThickness / 2),
+          y: lowerRailY + railWidth - 5 + plateauMargin,
+          z: 0,
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // ── 背面 frame（沿 X 延伸）
@@ -397,17 +438,34 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     });
   } else {
     // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
-    const backPanelThickness = panelStyle === "raised" ? panelThickness + 10 : panelThickness;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
       material,
       grainDirection: "length",
-      visible: { length: panelInnerW_X, width: backPanelThickness, thickness: panelInnerH },
+      visible: { length: panelInnerW_X, width: panelThickness, thickness: panelInnerH },
       origin: { x: 0, y: lowerRailY + railWidth - 5, z: fbRailOffsetZ },
       tenons: [],
       mortises: [],
     });
+    if (panelStyle === "raised") {
+      const plateauMargin = 40;
+      const plateauThickness = 15;
+      parts.push({
+        id: "back-panel-raised",
+        nameZh: "背面板心凸面",
+        material,
+        grainDirection: "length",
+        visible: {
+          length: panelInnerW_X - plateauMargin * 2,
+          width: plateauThickness,
+          thickness: panelInnerH - plateauMargin * 2,
+        },
+        origin: { x: 0, y: lowerRailY + railWidth - 5 + plateauMargin, z: fbRailOffsetZ + panelThickness / 2 + plateauThickness / 2 },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // ── 前面 frame
