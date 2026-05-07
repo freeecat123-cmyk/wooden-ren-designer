@@ -97,6 +97,12 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "arched", label: "壼門（底邊向下凹弧）" },
     { value: "cloud-head", label: "雲頭（上下都起翹）" },
   ], help: "明清家具靈魂裝飾——壼門/雲頭比直素牙更有「中式」感" },
+  { group: "stretcher", type: "select", key: "spandrelStyle", label: "牙頭裝飾", defaultValue: "none", choices: [
+    { value: "none", label: "無牙頭" },
+    { value: "cloud-head", label: "雲頭牙頭（清式厚實）" },
+    { value: "ruyi", label: "如意牙頭（明式典雅）" },
+  ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
+  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 50, min: 30, max: 100, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", oneOf: ["cloud-head", "ruyi"] } },
   // 層數（1-8）
   { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -176,6 +182,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const skirtHeight = proportionStyle === "ming" ? 50 : proportionStyle === "qing" ? 80 : skirtHeightRaw;
   const skirtThickness = getOption<number>(input, opt(o, "skirtThickness"));
   const skirtStyleRaw = getOption<string>(input, opt(o, "skirtStyle"));
+  const spandrelStyle = getOption<string>(input, opt(o, "spandrelStyle"));
+  const spandrelSize = getOption<number>(input, opt(o, "spandrelSize"));
   // skirtStyle="auto" → 依 proportionStyle 帶（明式壼門、清式雲頭、free 直素牙）
   const skirtStyle: string =
     skirtStyleRaw === "auto"
@@ -940,6 +948,54 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [],
       mortises: [],
     });
+  }
+
+  // 牙頭裝飾（spandrel）：立柱跟牙條交角的小三角雕飾
+  // ruyi 如意紋（明式）尖頂高弧、cloud-head 雲頭（清式）厚實圓弧
+  if (spandrelStyle !== "none") {
+    const spandrelShape: Part["shape"] =
+      spandrelStyle === "ruyi"
+        ? { kind: "face-rounded", cornerR: 18, topArchMm: spandrelSize * 0.6 }
+        : { kind: "face-rounded", cornerR: 12, topArchMm: spandrelSize * 0.4 };
+    // 前後牙條兩端各 1 個（沿 X 延伸）
+    for (const sz of [-1, 1] as const) {
+      const fbId = sz < 0 ? "front" : "back";
+      const fbLabel = sz < 0 ? "前" : "後";
+      for (const sx of [-1, 1] as const) {
+        const lrLabel = sx < 0 ? "左" : "右";
+        parts.push({
+          id: `spandrel-${fbId}-${sx < 0 ? "left" : "right"}-x`,
+          nameZh: `${fbLabel}${lrLabel}牙頭`,
+          material,
+          grainDirection: "length",
+          visible: { length: spandrelSize, width: skirtThickness, thickness: skirtHeight },
+          // 立柱內側 X = sx*(postX - postSize/2)，spandrel 從那往 -sx 方向延伸
+          origin: { x: sx * (postX - postSize / 2) - sx * spandrelSize / 2, y: 0, z: sz * skirtOffsetZ },
+          shape: spandrelShape,
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+    // 左右牙條兩端各 1 個（沿 Z 延伸）
+    for (const sx of [-1, 1] as const) {
+      const lrId = sx < 0 ? "left" : "right";
+      const lrLabel = sx < 0 ? "左" : "右";
+      for (const sz of [-1, 1] as const) {
+        const fbLabel = sz < 0 ? "前" : "後";
+        parts.push({
+          id: `spandrel-${lrId}-${sz < 0 ? "front" : "back"}-z`,
+          nameZh: `${lrLabel}${fbLabel}牙頭`,
+          material,
+          grainDirection: "length",
+          visible: { length: skirtThickness, width: spandrelSize, thickness: skirtHeight },
+          origin: { x: sx * skirtOffsetX, y: 0, z: sz * (postZ - postSize / 2) - sz * spandrelSize / 2 },
+          shape: spandrelShape,
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
   }
 
   const layerSummary = layerTypes.map((t, i) => `${i + 1}=${t === "door" ? "對開門" : t === "drawer" ? "抽屜" : "層板"}`).join(" / ");

@@ -714,23 +714,28 @@ export function OrthoView({
         // 角柱（中式櫃 4 立柱）：ID `post-{fb}-{lr}` 末段 `-left/-right` 會被
         // dir 邏輯誤判成 interior。立柱是櫃體外輪廓，不該被當內部結構藏掉。
         const isCornerPost = /^post-(front|back)-(left|right)$/.test(id);
+        // 格扇門櫺條（凸貼門面浮雕）—— AABB 投影被門 part 完全 contain，
+        // isPartHidden 會把它判 hidden。但櫺條凸貼在門前方 Z 較小（更靠
+        // 觀察者），語意上是「正面浮雕」，必須當 visible 走實線。
+        const isDoorMuntin = /-door-muntin-/.test(id);
 
         const isInteriorInFront =
-          view === "front" && !isCornerPost &&
+          view === "front" && !isCornerPost && !isDoorMuntin &&
           (isAlwaysInterior ||
             isCabinetBack ||
             isBackOfChair ||
             isBedSideRail ||
             dir === "left" || dir === "right" || dir === "back");
         const isInteriorInSide =
-          view === "side" && !isCornerPost &&
+          view === "side" && !isCornerPost && !isDoorMuntin &&
           (isAlwaysInterior ||
             isBedEnd ||
             id === "cornice-front" ||
             dir === "front" || dir === "back");
         // 立柱永遠 visible（櫃體外輪廓骨架），不走 isPartHidden 的 4 立柱互相
-        // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）
-        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && isPartHidden(part, design.parts, view));
+        // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）。
+        // 格扇門櫺條同理——凸貼浮雕不該被它附著的門 part contain 規則藏掉。
+        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, design.parts, view));
         const stroke = hidden ? "#444" : "#111";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
         const sw = hidden ? 0.7 : (isCornerPost ? 1.4 : 0.9);
