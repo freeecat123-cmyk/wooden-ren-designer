@@ -711,21 +711,26 @@ export function OrthoView({
         const isBedSideRail =
           id === "side-rail-left" || id === "side-rail-right";
         const isCabinetBack = id === "back-panel" || id === "back";
+        // 角柱（中式櫃 4 立柱）：ID `post-{fb}-{lr}` 末段 `-left/-right` 會被
+        // dir 邏輯誤判成 interior。立柱是櫃體外輪廓，不該被當內部結構藏掉。
+        const isCornerPost = /^post-(front|back)-(left|right)$/.test(id);
 
         const isInteriorInFront =
-          view === "front" &&
+          view === "front" && !isCornerPost &&
           (isAlwaysInterior ||
             isCabinetBack ||
             isBackOfChair ||
             isBedSideRail ||
             dir === "left" || dir === "right" || dir === "back");
         const isInteriorInSide =
-          view === "side" &&
+          view === "side" && !isCornerPost &&
           (isAlwaysInterior ||
             isBedEnd ||
             id === "cornice-front" ||
             dir === "front" || dir === "back");
-        const hidden = isInteriorInFront || isInteriorInSide || isPartHidden(part, design.parts, view);
+        // 立柱永遠 visible（櫃體外輪廓骨架），不走 isPartHidden 的 4 立柱互相
+        // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）
+        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && isPartHidden(part, design.parts, view));
         const stroke = hidden ? "#444" : "#111";
         const sw = hidden ? 0.7 : 0.9;
         const dash = hidden ? "4 3" : undefined;
