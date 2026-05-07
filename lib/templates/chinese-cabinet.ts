@@ -379,9 +379,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   });
 
   // ── 牙條（直線素牙）：圍底框下緣 4 條
-  // 牙條中心位置：立柱外面 - skirtThickness/2（牙條外面跟立柱外面切齊）
-  const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2;
-  const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2;
+  // 牙條從立柱外面**內縮 10mm**（reveal 視覺凹進感）
+  const SKIRT_INSET = 10;
+  const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
+  const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
