@@ -732,7 +732,8 @@ export function OrthoView({
         // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）
         const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && isPartHidden(part, design.parts, view));
         const stroke = hidden ? "#444" : "#111";
-        const sw = hidden ? 0.7 : 0.9;
+        // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
+        const sw = hidden ? 0.7 : (isCornerPost ? 1.4 : 0.9);
         const dash = hidden ? "4 3" : undefined;
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
