@@ -90,6 +90,12 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "stretcher", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5] } },
   { group: "stretcher", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5] } },
   { group: "stretcher", type: "select", key: "layer5Type", label: "第 5 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5] } },
+  // 各層高度比例（1.0 = 平均分，0.5 = 較矮，2.0 = 兩倍高；最後 normalize 到 innerHeight）
+  { group: "stretcher", type: "number", key: "layer1HeightRatio", label: "第 1 層高度比例", defaultValue: 1, min: 0.3, max: 3, step: 0.1, help: "1.0 = 等分，0.5 = 矮一半，2.0 = 雙倍高（會自動歸一化）" },
+  { group: "stretcher", type: "number", key: "layer2HeightRatio", label: "第 2 層高度比例", defaultValue: 1, min: 0.3, max: 3, step: 0.1, dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5] } },
+  { group: "stretcher", type: "number", key: "layer3HeightRatio", label: "第 3 層高度比例", defaultValue: 1, min: 0.3, max: 3, step: 0.1, dependsOn: { key: "layerCount", oneOf: [3, 4, 5] } },
+  { group: "stretcher", type: "number", key: "layer4HeightRatio", label: "第 4 層高度比例", defaultValue: 1, min: 0.3, max: 3, step: 0.1, dependsOn: { key: "layerCount", oneOf: [4, 5] } },
+  { group: "stretcher", type: "number", key: "layer5HeightRatio", label: "第 5 層高度比例", defaultValue: 1, min: 0.3, max: 3, step: 0.1, dependsOn: { key: "layerCount", oneOf: [5] } },
   // 門細部
   { group: "stretcher", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
   { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
@@ -145,10 +151,22 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     getOption<string>(input, opt(o, "layer4Type")),
     getOption<string>(input, opt(o, "layer5Type")),
   ];
+  const userLayerRatios = [
+    getOption<number>(input, opt(o, "layer1HeightRatio")),
+    getOption<number>(input, opt(o, "layer2HeightRatio")),
+    getOption<number>(input, opt(o, "layer3HeightRatio")),
+    getOption<number>(input, opt(o, "layer4HeightRatio")),
+    getOption<number>(input, opt(o, "layer5HeightRatio")),
+  ];
   // 預設套用：cabinetPreset 不是 custom 時用 preset config，否則用 user 自訂
   const presetConfig = CABINET_PRESET_LAYERS[cabinetPreset];
   const layerCount = presetConfig ? presetConfig.length : userLayerCount;
   const layerTypes = presetConfig ?? userLayerTypes.slice(0, userLayerCount);
+  // 各層高度比例（custom mode 用 user 設定；preset mode 平均分）
+  const layerRatios = presetConfig
+    ? new Array(layerCount).fill(1)
+    : userLayerRatios.slice(0, layerCount);
+  const totalRatio = layerRatios.reduce((a, b) => a + b, 0);
 
   // 幾何規劃：4 立柱接地貫穿全高，牙條外掛在立柱底外側（傳統明式）
   // 立柱：Y [0, height − topThickness]
@@ -165,8 +183,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const innerTopY = postTopY - railWidth;  // 上抹底面
   const innerBottomY = skirtHeight + railWidth;  // 下抹頂面（牙條頂 + railWidth）
   const innerHeight = innerTopY - innerBottomY;
-  // 每層高度（等分）
-  const layerHeight = innerHeight / layerCount;
+  // 每層高度依 layerRatios 分配（自動 normalize 到 innerHeight）
+  const layerHeights = layerRatios.map(r => innerHeight * r / totalRatio);
+  // 累積：每層底端 Y 位置 = innerBottomY + 前 i 層高度之和
+  const layerBottomYs: number[] = [];
+  let acc = innerBottomY;
+  for (const h of layerHeights) {
+    layerBottomYs.push(acc);
+    acc += h;
+  }
 
   const parts: Part[] = [];
 
@@ -394,9 +419,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
   // ── 內部水平分隔板（dividers between layers）
   // layerCount 層 → 需要 (layerCount - 1) 條分隔板
-  // 第 i 層頂端 Y = innerBottomY + (i + 1) × layerHeight
+  // 第 i/i+1 層分隔板 Y = layerBottomYs[i+1] - railWidth/2
   for (let i = 0; i < layerCount - 1; i++) {
-    const dividerY = innerBottomY + (i + 1) * layerHeight - railWidth / 2;
+    const dividerY = layerBottomYs[i + 1] - railWidth / 2;
     parts.push({
       id: `divider-${i + 1}`,
       nameZh: `第 ${i + 1}/${i + 2} 層分隔板`,
@@ -413,9 +438,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // ── 每層功用內容
   for (let i = 0; i < layerCount; i++) {
     const layerType = layerTypes[i];
-    const layerBottomY = innerBottomY + i * layerHeight;
-    const layerTopY = innerBottomY + (i + 1) * layerHeight;
-    const thisLayerHeight = layerTopY - layerBottomY;
+    const layerBottomY = layerBottomYs[i];
+    const thisLayerHeight = layerHeights[i];
+    const layerTopY = layerBottomY + thisLayerHeight;
     const layerCenterY = (layerBottomY + layerTopY) / 2;
 
     if (layerType === "door") {
