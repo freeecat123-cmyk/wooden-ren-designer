@@ -128,13 +128,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 側面（左/右/前/後）：每面在 postTopY 跟 postBottomY 各加 1 條水平 rail
   // 板心：在 4 條 rail 之間（同立柱間）
 
-  // 每個面（rail 跨度 = 在立柱內面之間，不含立柱本身）
-  // 前/後面：rail 沿 X，跨度 = 2 × (postX − postSize/2) = 兩立柱內面距離
-  // 左/右面：rail 沿 Z，跨度 = 2 × (postZ − postSize/2)
-  const railLenX = 2 * (postX - postSize / 2);
-  const railLenZ = 2 * (postZ - postSize / 2);
-  const panelInnerW_X = railLenX - 10;  // 板心比 rail 短 5mm 兩邊（嵌入槽 5mm）
-  const panelInnerW_Z = railLenZ - 10;
+  // 抹板（rail）端頭卡進立柱中央（明式榫頭埋入立柱中軸位置）
+  // 跨度 = 2 × postX/Z = 一立柱中心到另一立柱中心
+  const railLenX = 2 * postX;
+  const railLenZ = 2 * postZ;
+  // 板心 / 內部 divider 留在兩立柱內面之間（不延伸進立柱）
+  const innerSpanX = 2 * (postX - postSize / 2);
+  const innerSpanZ = 2 * (postZ - postSize / 2);
+  const panelInnerW_X = innerSpanX - 10;  // 板心比內面短 5mm 兩邊（嵌入 rail 槽 5mm）
+  const panelInnerW_Z = innerSpanZ - 10;
   // 板心 height = 上下抹之間 + 嵌入上下槽各 5mm
 
   // 上抹/下抹位置（除頂蓋外，櫃身的 top/bottom rail）
@@ -262,8 +264,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `第 ${i + 1}/${i + 2} 層分隔板`,
       material,
       grainDirection: "length",
-      // 水平層板：X 方向 railLenX, Z 方向 = 2*(postZ-postSize/2), Y 厚 = railWidth
-      visible: { length: railLenX, width: 2 * (postZ - postSize / 2), thickness: railWidth },
+      // 水平層板：X 方向 = 兩立柱內面 innerSpanX, Z 方向 innerSpanZ, Y 厚 railWidth
+      visible: { length: innerSpanX, width: innerSpanZ, thickness: railWidth },
       origin: { x: 0, y: dividerY, z: 0 },
       tenons: [],
       mortises: [],
@@ -280,10 +282,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
     if (layerType === "door") {
       // 對開門：2 扇，每扇 = 4 frames + 板心
-      // 門面寬 = (railLenX − 中縫 4mm) / 2，扣門框 4 邊各 railWidth
+      // 門面寬 = (innerSpanX − 中縫 4mm) / 2，扣門框 4 邊各 railWidth
       // 簡化：門用單 part 表示（不細拆 4 邊框），方便後續 hinge 動畫
       const doorGap = 4;  // 中縫
-      const doorWidth = (railLenX - doorGap) / 2;
+      const doorWidth = (innerSpanX - doorGap) / 2;
       const doorHeight = thisLayerHeight - 4;  // 上下各 2mm 隙
       const doorThickness = railThickness;
       for (const sx of [-1, 1] as const) {
@@ -304,7 +306,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     } else if (layerType === "drawer") {
       // 抽屜：單一 drawer face + 抽屜盒（簡化）
       const drawerGap = 3;
-      const drawerWidth = railLenX - drawerGap * 2;
+      const drawerWidth = innerSpanX - drawerGap * 2;
       const drawerHeight = thisLayerHeight - 4;
       const drawerThickness = railThickness;
       // 抽屜面板（front）— 立著的板：X 寬, Y 高, Z 厚
