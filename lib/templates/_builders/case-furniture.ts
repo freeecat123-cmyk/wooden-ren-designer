@@ -680,9 +680,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // 度要扣 shelfT 才不會穿模到上方分隔板。
     // (最上一格 dividerFrom='none' 的 corner case 會 18mm 矮一點，視覺可接受)
     const drawerH = drawerSlotH - shelfT - drawerGap * 2;
-    // 滑軌模式下箱體上下各留 5mm 給滑軌行程（與面板縫隙無關，硬體需求）
-    const boxH = hasSlide ? drawerSlotH - shelfT - 10 : drawerH;
     // 滑軌模式 yBase 多縮 (5 - drawerGap) 把箱體推高到對齊滑軌中心
+    // boxH 已移到 row loop 內計算（per-row：top row 無 boundary 時加 shelfT）
     const boxYOffset = hasSlide ? 5 - drawerGap : 0;
     const dovetailLen = drawerSideT;
     // —— 蓋門模式才用：面板總跨距 + 各面板尺寸 + 起點位置 ————————————
@@ -739,6 +738,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     for (let row = 0; row < rows; row++) {
      for (let col = 0; col < cols; col++) {
       const i = row * cols + col;
+      // 最上一格無 top boundary 時，把多扣的 shelfT 加回去（drawer 撐到 zone top）
+      const isTopRowExpand = row === rows - 1 && dividerFrom !== "above";
+      const expandTop = isTopRowExpand ? shelfT : 0;
+      const drawerHRow = drawerH + expandTop;
+      const boxHRow = (hasSlide ? drawerSlotH - shelfT - 10 : drawerH) + expandTop;
       const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
       const xCenter =
         zoneCx -
@@ -759,9 +763,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         let faceW: number, faceHeight: number, faceX: number, faceY: number;
         if (isInsetDrawer) {
           faceW = drawerSlotW - 2 * drawerGap;
-          // 入柱面板高度 = 開口高度（不含上方分隔板）。原本沒扣 shelfT 導致面板
-          // 比實際開口高 18mm，正面看面板「上緣」蓋進分隔板區，視覺有 16mm 缺口。
-          faceHeight = drawerSlotH - shelfT - 2 * drawerGap;
+          // 入柱面板高度 = 開口高度（扣上方分隔板）；top row 無分隔板時加回 shelfT
+          faceHeight = drawerSlotH - shelfT - 2 * drawerGap + expandTop;
           faceX = xCenter;
           faceY = drawerZoneBottomY + row * drawerSlotH + drawerGap;
         } else {
@@ -807,7 +810,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               origin: {
                 x: 0,
                 y: drawerFrontT,
-                z: (boxH + frontExtraDown) / 2 - drawerBottomT / 2,
+                z: (boxHRow + frontExtraDown) / 2 - drawerBottomT / 2,
               },
               depth: 6,
               length: boxExtW - 4,
@@ -820,12 +823,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         : !isSurfaceDrawerBottom
           ? [
               // 入溝模式：底板內凹 6mm、槽深 6mm
-              //   z = boxH/2 - (6 + drawerBottomT/2) 對應底板中心
+              //   z = boxHRow/2 - (6 + drawerBottomT/2) 對應底板中心
               {
                 origin: {
                   x: 0,
                   y: drawerFrontT,
-                  z: boxH / 2 - (6 + drawerBottomT / 2),
+                  z: boxHRow / 2 - (6 + drawerBottomT / 2),
                 },
                 depth: 6,
                 length: drawerInnerW + 4,
@@ -845,7 +848,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: {
           length: boxExtW,
-          width: boxH + frontExtraDown,
+          width: boxHRow + frontExtraDown,
           thickness: drawerFrontT,
         },
         origin: { x: xCenter, y: yBase + boxYOffset - frontExtraDown, z: zFront },
@@ -855,14 +858,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             position: "start",
             type: "dovetail",
             length: dovetailLen,
-            width: boxH - 6,
+            width: boxHRow - 6,
             thickness: drawerFrontT - 2,
           },
           {
             position: "end",
             type: "dovetail",
             length: dovetailLen,
-            width: boxH - 6,
+            width: boxHRow - 6,
             thickness: drawerFrontT - 2,
           },
         ],
@@ -870,9 +873,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       });
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
-      // 釘底模式：全高 boxH 跟前/側板齊平（底板從下面釘在 4 邊）
+      // 釘底模式：全高 boxHRow 跟前/側板齊平（底板從下面釘在 4 邊）
       // 入溝模式：底板內凹 6mm + 框頂留 2mm，後板高度跟邊距讓出底板入溝空間
-      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 8;
+      const drawerBackHeight = isSurfaceDrawerBottom ? boxHRow : boxHRow - drawerBottomT - 8;
       const drawerBackY = isSurfaceDrawerBottom
         ? yBase + boxYOffset
         : yBase + boxYOffset + drawerBottomT + 6;
@@ -894,14 +897,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             position: "start",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: boxH - 8,
+            width: boxHRow - 8,
             thickness: drawerBackT,
           },
           {
             position: "end",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: boxH - 8,
+            width: boxHRow - 8,
             thickness: drawerBackT,
           },
         ],
@@ -924,7 +927,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           grainDirection: "length",
           visible: {
             length: drawerInnerD,
-            width: boxH,
+            width: boxHRow,
             thickness: drawerSideT,
           },
           origin: {
@@ -940,25 +943,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             {
               origin: { x: 0, y: 0, z: -drawerInnerD / 2 - 1 },
               depth: dovetailLen,
-              length: boxH - 6,
+              length: boxHRow - 6,
               width: drawerFrontT - 2,
               through: true,
             },
             {
               origin: { x: 0, y: 0, z: drawerInnerD / 2 + 1 },
               depth: drawerSideT * 0.5,
-              length: boxH - 8,
+              length: boxHRow - 8,
               width: drawerBackT,
               through: false,
             },
             // 底板溝槽（只有入溝模式才有；釘底模式下緣直接釘 3mm 板）
             // 側板 rotation { x: π/2, y: π/2 } 後：local Z 變垂直軸 → 底端 = local +Z
-            // 槽深 6mm，槽中心對齊底板中心（底板內凹 6mm，故 z = boxH/2 - 6 - drawerBottomT/2）
+            // 槽深 6mm，槽中心對齊底板中心（底板內凹 6mm，故 z = boxHRow/2 - 6 - drawerBottomT/2）
             ...(isSurfaceDrawerBottom
               ? []
               : [
                   {
-                    origin: { x: 0, y: 0, z: boxH / 2 - 6 - drawerBottomT / 2 },
+                    origin: { x: 0, y: 0, z: boxHRow / 2 - 6 - drawerBottomT / 2 },
                     depth: 6,
                     length: drawerInnerD - 4,
                     width: drawerBottomT + 1,
