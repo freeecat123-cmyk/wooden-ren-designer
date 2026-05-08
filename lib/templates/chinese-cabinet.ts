@@ -265,16 +265,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const topBoxRatio = getOption<number>(input, opt(o, "topBoxRatio"));
   const topBoxLayers = getOption<number>(input, opt(o, "topBoxLayers"));
   const cabinetCornerRaw = getOption<string>(input, opt(o, "cabinetCorner"));
-  const cabinetCorner = cabinetCornerRaw === "square" && presetEarly?.cabinetCorner
+  const cabinetCornerResolved = cabinetCornerRaw === "square" && presetEarly?.cabinetCorner
     ? presetEarly.cabinetCorner
     : cabinetCornerRaw;
+  // 互斥：圓角櫃靠側腳整體往上收窄、無法分件堆疊。明清史上沒有圓角頂箱櫃。
+  // 兩個都選時優先尊重圓角（後者更稀有且結構衝突更大），mute compoundMode。
+  const cabinetCorner = cabinetCornerResolved;
   const splayAngleDeg = getOption<number>(input, opt(o, "splayAngle"));
   const capOverhangExtra = getOption<number>(input, opt(o, "capOverhangExtra"));
   const isRoundCorner = cabinetCorner === "round";
   // 頂箱櫃模式：總高切上下兩段，下櫃用 effectiveHeight 走既有渲染，
   // 上頂箱另外堆一段 frame-and-panel。waistGap = 上下櫃之間的縫隙（傳統做法
   // 是兩段獨立分件、垂直堆疊但沒接觸——畫 5mm gap 視覺區分）
-  const isCompound = compoundMode === "topBox";
+  // 圓角櫃禁用頂箱（明清史上沒這形制）
+  const isCompound = compoundMode === "topBox" && !isRoundCorner;
   const waistGap = isCompound ? 5 : 0;
   const topBoxHeight = isCompound ? Math.round(heightInput * topBoxRatio) : 0;
   const height = isCompound ? heightInput - topBoxHeight - waistGap : heightInput;
@@ -634,29 +638,92 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     if (panelInlayActive) {
       const inlayMargin = Math.min(80, panelInnerW_Z * 0.2);
       const inlayThickness = 5;
-      const inlayShape: Part["shape"] | undefined =
-        panelInlay === "stone-medallion"
-          ? { kind: "face-rounded", cornerR: Math.round(panelInnerH * 0.15), bendMm: 0, bendAxis: "z" }
-          : undefined;
-      parts.push({
-        id: `${lrId}-side-panel-inlay`,
-        nameZh: `${lrLabel}側板心屏心`,
-        material,
-        grainDirection: "length",
-        visible: {
-          length: inlayThickness,
-          width: Math.max(60, panelInnerW_Z - inlayMargin * 2),
-          thickness: Math.max(60, panelInnerH - inlayMargin * 2),
-        },
-        origin: {
-          x: sx * (sideRailOffsetX + panelThickness / 2 + inlayThickness / 2),
-          y: lowerRailY + railWidth - 5 + inlayMargin,
-          z: 0,
-        },
-        ...(inlayShape ? { shape: inlayShape } : {}),
-        tenons: [],
-        mortises: [],
-      });
+      const inlayInnerW = Math.max(60, panelInnerW_Z - inlayMargin * 2);
+      const inlayInnerH = Math.max(60, panelInnerH - inlayMargin * 2);
+      const inlayCornerR = Math.round(Math.min(inlayInnerH, inlayInnerW) * 0.15);
+      // 三值差異化：
+      //  stone-medallion = 大圓角整片（橢圓開光感）
+      //  latticed-center = 細邊小框 + 中央田字格條陣列（10mm 邊框 + 4 條櫺）
+      //  calligraphy-frame = 厚邊框（內留空當字框，外環粗）
+      if (panelInlay === "stone-medallion") {
+        parts.push({
+          id: `${lrId}-side-panel-inlay`,
+          nameZh: `${lrLabel}側嵌石屏心`,
+          material,
+          grainDirection: "length",
+          visible: { length: inlayThickness, width: inlayInnerW, thickness: inlayInnerH },
+          origin: { x: sx * (sideRailOffsetX + panelThickness / 2 + inlayThickness / 2), y: lowerRailY + railWidth - 5 + inlayMargin, z: 0 },
+          shape: { kind: "face-rounded", cornerR: inlayCornerR * 2, bendMm: 0, bendAxis: "z" },
+          tenons: [],
+          mortises: [],
+        });
+      } else if (panelInlay === "latticed-center") {
+        // 中央 1 條橫 + 1 條直構成十字格框
+        const barT = 6;
+        const barX = sx * (sideRailOffsetX + panelThickness / 2 + inlayThickness / 2);
+        const baseY = lowerRailY + railWidth - 5 + inlayMargin;
+        // 外框 4 條
+        for (const [partKey, partLen, partThick, dy, dz] of [
+          ["top", inlayInnerW, barT, inlayInnerH - barT, 0],
+          ["bot", inlayInnerW, barT, 0, 0],
+          ["left", barT, inlayInnerH, 0, -inlayInnerW / 2 + barT / 2],
+          ["right", barT, inlayInnerH, 0, inlayInnerW / 2 - barT / 2],
+        ] as const) {
+          parts.push({
+            id: `${lrId}-side-panel-inlay-${partKey}`,
+            nameZh: `${lrLabel}側格紋屏心-${partKey}`,
+            material,
+            grainDirection: "length",
+            visible: { length: inlayThickness, width: partLen, thickness: partThick },
+            origin: { x: barX, y: baseY + dy, z: dz },
+            tenons: [],
+            mortises: [],
+          });
+        }
+        // 中央十字
+        parts.push({
+          id: `${lrId}-side-panel-inlay-cross-h`,
+          nameZh: `${lrLabel}側格紋十字-橫`,
+          material,
+          grainDirection: "length",
+          visible: { length: inlayThickness, width: inlayInnerW, thickness: barT },
+          origin: { x: barX, y: baseY + inlayInnerH / 2 - barT / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+        parts.push({
+          id: `${lrId}-side-panel-inlay-cross-v`,
+          nameZh: `${lrLabel}側格紋十字-直`,
+          material,
+          grainDirection: "length",
+          visible: { length: inlayThickness, width: barT, thickness: inlayInnerH },
+          origin: { x: barX, y: baseY, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      } else if (panelInlay === "calligraphy-frame") {
+        // 厚邊框 12mm 寬，中央留空（書法字框感）
+        const frameW = 12;
+        const barX = sx * (sideRailOffsetX + panelThickness / 2 + inlayThickness / 2);
+        const baseY = lowerRailY + railWidth - 5 + inlayMargin;
+        for (const [partKey, partLen, partThick, dy, dz] of [
+          ["top", inlayInnerW, frameW, inlayInnerH - frameW, 0],
+          ["bot", inlayInnerW, frameW, 0, 0],
+          ["left", frameW, inlayInnerH, 0, -inlayInnerW / 2 + frameW / 2],
+          ["right", frameW, inlayInnerH, 0, inlayInnerW / 2 - frameW / 2],
+        ] as const) {
+          parts.push({
+            id: `${lrId}-side-panel-inlay-frame-${partKey}`,
+            nameZh: `${lrLabel}側字框-${partKey}`,
+            material,
+            grainDirection: "length",
+            visible: { length: inlayThickness, width: partLen, thickness: partThick },
+            origin: { x: barX, y: baseY + dy, z: dz },
+            tenons: [],
+            mortises: [],
+          });
+        }
+      }
     }
   }
 
@@ -1322,19 +1389,73 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 只裝前面（背面有背板擋住沒人看；之前裝後面會跟背板重疊）
   if (friezePanel !== "none") {
     const friezeThickness = Math.max(10, panelThickness);
-    // 絛環板 Y 範圍：upperRailY（上抹底）以上 ~ postTopY（頂蓋底面）以下
-    // 避開背板（背板從 lowerRailY+railWidth-5 到 upperRailY-5）
-    const friezeY = upperRailY;  // 緊貼上抹頂面，往上延伸 friezeHeight
+    const friezeY = upperRailY;
+    const friezeLen = 2 * (postX - postSize / 2) - 4;
+    const friezeZ = -(postZ + postSize / 2 - friezeThickness / 2);
+    // 主絛環板背板（薄板）
     parts.push({
       id: "frieze-panel-front",
       nameZh: "前絛環板",
       material,
       grainDirection: "length",
-      visible: { length: 2 * (postX - postSize / 2) - 4, width: friezeThickness, thickness: friezeHeight },
-      origin: { x: 0, y: friezeY, z: -(postZ + postSize / 2 - friezeThickness / 2) },
+      visible: { length: friezeLen, width: friezeThickness, thickness: friezeHeight },
+      origin: { x: 0, y: friezeY, z: friezeZ },
       tenons: [],
       mortises: [],
     });
+    // 視覺差異化：lattice = 田字格內條陣列；openwork = face-rounded 圓鈍頭橫條
+    // 都用小厚度凸出薄板 3mm 表達裝飾紋
+    if (friezePanel === "lattice") {
+      // 田字格：1 條中央橫 + 4 條等分直
+      const overlayThickness = 3;
+      const overlayBarT = 8;
+      const overlayZ = friezeZ - friezeThickness / 2 - overlayThickness / 2;
+      // 中央橫桿
+      parts.push({
+        id: "frieze-overlay-h",
+        nameZh: "絛環中央橫條",
+        material,
+        grainDirection: "length",
+        visible: { length: friezeLen - 12, width: overlayThickness, thickness: overlayBarT },
+        origin: { x: 0, y: friezeY + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
+        tenons: [],
+        mortises: [],
+      });
+      // 4 條等分直櫺（橫條上下各半）
+      for (let i = 1; i <= 4; i++) {
+        const tFrac = i / 5;
+        parts.push({
+          id: `frieze-overlay-v${i}`,
+          nameZh: `絛環直櫺${i}`,
+          material,
+          grainDirection: "length",
+          visible: { length: overlayBarT, width: overlayThickness, thickness: friezeHeight - 12 },
+          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT / 2, y: friezeY + 6, z: overlayZ },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (friezePanel === "openwork") {
+      // 透雕：3 個雲頭 cornerR 鈍頭裝飾條（face-rounded 大 cornerR）
+      const overlayThickness = 4;
+      const overlayBarT = 30;
+      const overlayZ = friezeZ - friezeThickness / 2 - overlayThickness / 2;
+      const cloudShape: Part["shape"] = { kind: "face-rounded", cornerR: 14, bendMm: 0, bendAxis: "z" };
+      for (let i = 0; i < 3; i++) {
+        const tFrac = (i + 0.5) / 3;
+        parts.push({
+          id: `frieze-cloud-${i + 1}`,
+          nameZh: `絛環雲頭${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: overlayBarT * 1.6, width: overlayThickness, thickness: overlayBarT },
+          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT * 0.8, y: friezeY + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
+          shape: cloudShape,
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
   }
 
   // ── 亮格櫃 / 万歷櫃：頂端最上層 shelf 加圍欄（直櫺 / 卷草），3 面圍
@@ -1343,6 +1464,11 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     let topShelfIdx = -1;
     for (let i = layerCount - 1; i >= 0; i--) {
       if (layerTypes[i] === "shelf") { topShelfIdx = i; break; }
+    }
+    // 沒 shelf 時自動把最上層轉 shelf（万歷櫃形制需求）
+    if (topShelfIdx < 0 && layerCount > 0) {
+      topShelfIdx = layerCount - 1;
+      layerTypes[topShelfIdx] = "shelf";
     }
     if (topShelfIdx >= 0) {
       const baluBottomY = layerBottomYs[topShelfIdx] + (layerHeights[topShelfIdx] ?? 0);  // shelf 頂面（下個層的底）
@@ -1549,17 +1675,79 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       });
     }
     if (topBoxLayers === 2) {
-      // 頂箱小抽屜（橫貫頂箱前面，位於門板上方）
+      // 頂箱小抽屜（橫貫頂箱前面，位於門板上方）— 完整 5 件抽屜盒
+      const tbDrawerSideT = 12;       // 抽屜左右側板厚
+      const tbDrawerBackT = 12;       // 抽屜後板厚
+      const tbDrawerBottomT = 6;      // 抽屜底板厚
+      const tbDrawerY = tbDoorBottomY + tbDoorActualH + 2;
+      const tbDrawerW = tbDrawerH - 4;
+      const tbDrawerLen = tbInnerSpanX - 4;
+      const tbDrawerDepth = tbWidth - 30;  // 抽屜深 = 頂箱內深 - 30mm 餘量
+      // 1. 抽屜面板
       parts.push({
         id: "tb-drawer-front",
         nameZh: "頂箱抽屜面板",
         material,
         grainDirection: "length",
-        visible: { length: tbInnerSpanX - 4, width: tbDoorThickness, thickness: tbDrawerH - 4 },
-        origin: { x: 0, y: tbDoorBottomY + tbDoorActualH + 2, z: tbDoorZ },
+        visible: { length: tbDrawerLen, width: tbDoorThickness, thickness: tbDrawerW },
+        origin: { x: 0, y: tbDrawerY, z: tbDoorZ },
         tenons: [],
         mortises: [],
       });
+      // 2-3. 抽屜左右側板
+      for (const sx of [-1, 1] as const) {
+        const lrId = sx < 0 ? "left" : "right";
+        const lrLabel = sx < 0 ? "左" : "右";
+        parts.push({
+          id: `tb-drawer-side-${lrId}`,
+          nameZh: `頂箱抽屜${lrLabel}側板`,
+          material,
+          grainDirection: "length",
+          visible: { length: tbDrawerSideT, width: tbDrawerDepth, thickness: tbDrawerW },
+          origin: { x: sx * (tbDrawerLen / 2 - tbDrawerSideT / 2), y: tbDrawerY, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth / 2 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // 4. 抽屜後板
+      parts.push({
+        id: "tb-drawer-back",
+        nameZh: "頂箱抽屜後板",
+        material,
+        grainDirection: "length",
+        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerBackT, thickness: tbDrawerW - 8 },
+        origin: { x: 0, y: tbDrawerY + 4, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth - tbDrawerBackT / 2 },
+        tenons: [],
+        mortises: [],
+      });
+      // 5. 抽屜底板
+      parts.push({
+        id: "tb-drawer-bottom",
+        nameZh: "頂箱抽屜底板",
+        material,
+        grainDirection: "length",
+        visible: { length: tbDrawerLen - tbDrawerSideT * 2, width: tbDrawerDepth - 8, thickness: tbDrawerBottomT },
+        origin: { x: 0, y: tbDrawerY + 2, z: tbDoorZ + tbDoorThickness / 2 + tbDrawerDepth / 2 },
+        tenons: [],
+        mortises: [],
+      });
+      // 6. 拉手（圓銅環）
+      if (doorPullType !== "none") {
+        const pullSize = doorPullType === "round-brass" ? 30 : 60;
+        const pullW = doorPullType === "round-brass" ? 30 : 18;
+        parts.push({
+          id: "tb-drawer-pull",
+          nameZh: "頂箱抽屜拉手",
+          material,
+          grainDirection: "length",
+          visible: { length: pullSize, width: 5, thickness: pullW },
+          origin: { x: 0, y: tbDrawerY + tbDrawerW / 2 - pullW / 2, z: tbDoorZ - tbDoorThickness / 2 - 3 },
+          visual: "brass-antique",
+          ...(doorPullType === "round-brass" ? { shape: { kind: "face-rounded", cornerR: 14, bendMm: 0, bendAxis: "z" } as const } : {}),
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
     // 頂箱頂蓋
     parts.push({
