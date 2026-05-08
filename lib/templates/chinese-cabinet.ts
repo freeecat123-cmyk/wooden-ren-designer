@@ -106,6 +106,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "flat", label: "平板心" },
     { value: "raised", label: "凸面板心（中央凸起 5mm）" },
   ], help: "凸面板心 = 板心邊緣斜削、中央凸起，視覺層次" },
+  // 亮格櫃 / 万歷櫃：頂層敞格 + 圍欄（書房經典「上敞放古玩+下櫃放書」）
+  { group: "apron", type: "select", key: "balustradeStyle", label: "敞格圍欄", defaultValue: "none", choices: [
+    { value: "none", label: "無圍欄（標準櫃）" },
+    { value: "vertical", label: "直櫺欄（垂直細櫺杆 5 根）" },
+    { value: "scroll", label: "卷草欄（雲頭曲線櫺）" },
+  ], help: "圍欄裝在最上層 shelf 前緣，3 面圍——上方變敞格放古玩。配合 layerCount 把最上層設為 shelf 即成万歷櫃" },
+  { group: "apron", type: "number", key: "balustradeHeight", label: "圍欄高 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", dependsOn: { key: "balustradeStyle", notIn: ["none"] } },
   // 屏心嵌飾：板心中央嵌石 / 嵌格 / 留字框（明清板心開光裝飾）
   { group: "apron", type: "select", key: "panelInlay", label: "板心嵌飾（屏心）", defaultValue: "none", choices: [
     { value: "none", label: "無嵌飾（純板心）" },
@@ -295,6 +302,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const panelInlay = getOption<string>(input, opt(o, "panelInlay"));
+  const balustradeStyle = getOption<string>(input, opt(o, "balustradeStyle"));
+  const balustradeHeight = getOption<number>(input, opt(o, "balustradeHeight"));
   // 嵌飾只在 flat 板心生效（raised 凸面已經有層次了，不再加）
   const panelInlayActive = panelInlay !== "none" && panelStyle === "flat";
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
@@ -1282,6 +1291,77 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: [],
         mortises: [],
       });
+    }
+  }
+
+  // ── 亮格櫃 / 万歷櫃：頂端最上層 shelf 加圍欄（直櫺 / 卷草），3 面圍
+  // 找最上層 shelf（layer index 越高 = 越上層）；取 layerBottomYs + layerHeights
+  if (balustradeStyle !== "none") {
+    let topShelfIdx = -1;
+    for (let i = layerCount - 1; i >= 0; i--) {
+      if (layerTypes[i] === "shelf") { topShelfIdx = i; break; }
+    }
+    if (topShelfIdx >= 0) {
+      const baluBottomY = layerBottomYs[topShelfIdx] + (layerHeights[topShelfIdx] ?? 0);  // shelf 頂面（下個層的底）
+      // 圍欄頂高 = baluBottomY + balustradeHeight，但不能超過上抹
+      const baluTopY = Math.min(baluBottomY + balustradeHeight, upperRailY - 10);
+      const actualBaluH = baluTopY - baluBottomY;
+      const baluRailThick = 18;  // 上下圍欄橫桿厚度
+      const spindleSize = 10;     // 直櫺杆方料
+      // 前 + 左 + 右 三面（背面有背板不需要）
+      const baluFaces: Array<{ axis: "x" | "z"; sign: -1 | 1 }> = [
+        { axis: "z", sign: -1 },  // 前
+        { axis: "x", sign: -1 },  // 左
+        { axis: "x", sign: 1 },   // 右
+      ];
+      for (const f of baluFaces) {
+        const isFront = f.axis === "z";
+        const faceLabel = f.axis === "z" ? "前" : f.sign < 0 ? "左" : "右";
+        const spanLen = isFront ? 2 * (postX - postSize / 2) - 4 : 2 * (postZ - postSize / 2) - 4;
+        const baseX = isFront ? 0 : f.sign * (postX - postSize / 2 - baluRailThick / 2 - 2);
+        const baseZ = isFront ? f.sign * (postZ - postSize / 2 - baluRailThick / 2 - 2) : 0;
+        // 上下圍欄橫桿
+        for (const railRole of ["upper", "lower"] as const) {
+          const railY = railRole === "upper" ? baluTopY - baluRailThick : baluBottomY;
+          parts.push({
+            id: `balustrade-${faceLabel === "前" ? "front" : faceLabel === "左" ? "left" : "right"}-${railRole}-rail`,
+            nameZh: `${faceLabel}圍欄${railRole === "upper" ? "上" : "下"}橫桿`,
+            material,
+            grainDirection: "length",
+            visible: isFront
+              ? { length: spanLen, width: baluRailThick, thickness: baluRailThick }
+              : { length: baluRailThick, width: spanLen, thickness: baluRailThick },
+            origin: { x: baseX, y: railY, z: baseZ },
+            tenons: [],
+            mortises: [],
+          });
+        }
+        // 5 根直櫺杆（vertical 樣式）/ 卷草用 face-rounded 弧線
+        const spindleCount = balustradeStyle === "vertical" ? 5 : 3;
+        const spindleH = actualBaluH - baluRailThick * 2;
+        const spindleY = baluBottomY + baluRailThick;
+        const spindleShape: Part["shape"] | undefined =
+          balustradeStyle === "scroll"
+            ? { kind: "face-rounded", cornerR: 4, bendMm: 8, bendAxis: "y" }
+            : undefined;
+        for (let s = 0; s < spindleCount; s++) {
+          const tFrac = (s + 0.5) / spindleCount;  // 均分
+          const offset = (tFrac - 0.5) * (spanLen - 30);  // 兩端各留 15mm
+          const sx = isFront ? offset : baseX;
+          const sz = isFront ? baseZ : offset;
+          parts.push({
+            id: `balustrade-${faceLabel === "前" ? "front" : faceLabel === "左" ? "left" : "right"}-spindle-${s + 1}`,
+            nameZh: `${faceLabel}圍欄櫺杆${s + 1}`,
+            material,
+            grainDirection: "length",
+            visible: { length: spindleSize, width: spindleSize, thickness: spindleH },
+            origin: { x: sx, y: spindleY, z: sz },
+            ...(spindleShape ? { shape: spindleShape } : {}),
+            tenons: [],
+            mortises: [],
+          });
+        }
+      }
     }
   }
 
