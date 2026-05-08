@@ -1360,14 +1360,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // ── 底框（4 條 rail 圍成底箱，承層板/抽屜底）
-  // 簡化：用 1 片底板
+  // 簡化：用 1 片底板。圓角櫃 splay：依 Y 位置算內跨距，跟 splayed 立柱對齊
+  const bottomBoardY = skirtHeight + railWidth;
   parts.push({
     id: "bottom-board",
     nameZh: "底板",
     material,
     grainDirection: "length",
-    visible: { length: 2 * postX - postSize, width: 2 * postZ - postSize, thickness: 18 },
-    origin: { x: 0, y: skirtHeight + railWidth, z: 0 },
+    visible: { length: innerSpanXat(bottomBoardY), width: innerSpanZat(bottomBoardY), thickness: 18 },
+    origin: { x: 0, y: bottomBoardY, z: 0 },
     tenons: [],
     mortises: [],
   });
