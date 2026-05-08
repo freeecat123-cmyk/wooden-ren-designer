@@ -183,19 +183,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  // 入溝背板從側板/頂底板「後緣往前 6mm」開溝（標準入溝深度），背板後緣比框體後緣陷 6mm，
-  // 從後方看得到側板/頂底板形成的框。surface / none 模式不適用此 inset。
-  const backDadoInset = backMode === "rebated" ? 6 : 0;
-  // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚 + dado inset。
-  const innerD = backMode === "rebated" ? width - backT - backDadoInset : width;
+  // 入溝背板用 stopped dado（停止式槽）：
+  // - 框體後緣保持完整 panelT 厚（不切到後緣，外觀乾淨）
+  // - 內側面開 backT 寬 × 6mm 深的槽，槽位「離後緣 backRecess 處」開始往前延伸 backT
+  // - 背板 9mm 整片坐進槽內，後緣陷 backRecess(6mm) 形成可見內凹
+  const rebateDepth = backMode === "rebated" ? 6 : 0;       // 切進框板 thickness 的距離
+  const backRecess = backMode === "rebated" ? 6 : 0;        // 背板後緣比框體後緣陷的距離
+  const innerD = backMode === "rebated" ? width - backT - backRecess : width;
   const tenonLen = Math.round(panelT * 0.6);
   /**
    * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
    * - surface：innerD = width，內部零件居中放 z=0（前後皆貼齊外緣）。
-   * - rebated：innerD = width − backT，向前偏移 backT/2 讓前緣貼齊櫃前面 z=−width/2，
-   *   後緣貼齊背板前面（不會跟背板撞）。
+   * - rebated：內部零件後緣貼齊背板前緣，向前偏移 (backT + backRecess)/2。
    */
-  const caseInnerZ = backMode === "rebated" ? -(backT + backDadoInset) / 2 : 0;
+  const caseInnerZ = backMode === "rebated" ? -(backT + backRecess) / 2 : 0;
 
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
@@ -360,7 +361,22 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     }
   }
 
-  // 頂板
+  // 頂板。rebated：底面開 stopped dado（離後緣 backRecess 處往前延伸 backT，深 6mm），
+  // 槽不切到後緣保持外觀乾淨，背板 9mm 完整方形坐進槽內後緣陷 6mm。
+  const topBottomDado: Part["mortises"] =
+    backMode === "rebated"
+      ? [
+          {
+            origin: { x: 0, y: 0, z: width / 2 - backRecess - backT / 2 },
+            depth: rebateDepth,
+            length: length,
+            width: backT,
+            through: false,
+            cosmetic: true,
+            shape: "rect",
+          },
+        ]
+      : [];
   parts.push({
     id: "top",
     nameZh: "頂板",
@@ -385,6 +401,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         width: panelTongueT,
         through: false,
       },
+      ...topBottomDado,
     ],
   });
 
@@ -435,6 +452,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             })),
           )
         : []),
+      // rebated 槽在底板「朝上那面」（part-local y=panelT）開
+      ...topBottomDado.map((m) => ({ ...m, origin: { ...m.origin, y: panelT } })),
     ],
   });
 
@@ -470,13 +489,33 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
-      mortises: shelfFractions.map((f) => ({
-        origin: { x: 0, y: f * innerH, z: 0 },
-        depth: tenonLen,
-        length: innerD - 10,
-        width: shelfTongueT,
-        through: false,
-      })),
+      mortises: [
+        ...shelfFractions.map((f) => ({
+          origin: { x: 0, y: f * innerH, z: 0 },
+          depth: tenonLen,
+          length: innerD - 10,
+          width: shelfTongueT,
+          through: false,
+        })),
+        // rebated：內側面開 stopped dado（離後緣 backRecess 處往前延伸 backT × 全 innerH 高 × 6mm 深）
+        ...(backMode === "rebated"
+          ? [
+              {
+                origin: {
+                  x: 0,
+                  y: side < 0 ? 0 : panelT,
+                  z: width / 2 - backRecess - backT / 2,
+                },
+                depth: rebateDepth,
+                length: innerH,
+                width: backT,
+                through: false,
+                cosmetic: true,
+                shape: "rect" as const,
+              },
+            ]
+          : []),
+      ],
     });
   }
 
@@ -525,30 +564,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     material,
     materialOverride: "plywood",
     grainDirection: "length",
+    // rebated：背板是完整方形 9mm 厚，body 各方向 +12mm 進 4 框 stopped dado
+    // 後緣陷 backRecess(6mm) 形成可見內凹—框體後緣保持完整不切，外觀乾淨
     visible: isSurfaceBack
       ? { length: length, width: backT, thickness: caseHeight }
-      : { length: innerW, width: backT, thickness: innerH },
+      : { length: innerW + 2 * rebateDepth, width: backT, thickness: innerH + 2 * rebateDepth },
     origin: isSurfaceBack
       ? { x: 0, y: caseBottomY, z: width / 2 + backT / 2 }
-      : { x: 0, y: caseBottomY + panelT, z: width / 2 - backDadoInset - backT / 2 },
-    tenons: isSurfaceBack
-      ? []
-      : [
-          {
-            position: "start",
-            type: "tongue-and-groove",
-            length: 6,
-            width: innerH,
-            thickness: backT,
-          },
-          {
-            position: "end",
-            type: "tongue-and-groove",
-            length: 6,
-            width: innerH,
-            thickness: backT,
-          },
-        ],
+      : { x: 0, y: caseBottomY + panelT - rebateDepth, z: width / 2 - backRecess - backT / 2 },
+    tenons: [],
     mortises: [],
   });
 
