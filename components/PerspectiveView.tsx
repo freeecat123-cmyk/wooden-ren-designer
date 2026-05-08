@@ -2195,22 +2195,15 @@ export function PerspectiveView({
                     rotation={new Euler(rx, ry, rz, "ZYX")}
                     castShadow
                   >
-                    {/* 榫頭 mesh 比 mortise 開口各軸放大 0.3mm 防 Z-fighting／視覺缺角
-                        （effLen 已 clamp 到 mortise.depth，加 0.3mm 會稍微凸出母件背面但
-                         非通榫看不到，整體視覺上母榫眼被填滿） */}
                     {useRoundTenon ? (
                       <cylinderGeometry args={[
-                        (Math.min(hx, hz) + 0.3) * SCALE,
-                        (Math.min(hx, hz) + 0.3) * SCALE,
-                        (hy * 2 + 0.6) * SCALE,
+                        Math.min(hx, hz) * SCALE,
+                        Math.min(hx, hz) * SCALE,
+                        hy * 2 * SCALE,
                         24,
                       ]} />
                     ) : (
-                      <boxGeometry args={[
-                        (hx * 2 + 0.6) * SCALE,
-                        (hy * 2 + 0.6) * SCALE,
-                        (hz * 2 + 0.6) * SCALE,
-                      ]} />
+                      <boxGeometry args={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]} />
                     )}
                     <meshStandardMaterial
                       color="#c0392b"
