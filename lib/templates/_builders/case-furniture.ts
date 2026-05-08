@@ -215,13 +215,31 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     zFaceFront: number, // face 朝外那面的世界 z（往 -Z 方向延伸把手）
   ): Part[] => {
     if (pullStyle === "none" || pullStyle === "push-to-open" ||
-        pullStyle === "finger-pull" || pullStyle === "edge-bevel") {
+        pullStyle === "finger-pull") {
       return [];
     }
     const cx = faceX;
     const cy = faceY + faceHeight / 2;
     // 0.5mm clearance 避免跟面板 floating-point overlap
     const CLEAR = 0.5;
+    if (pullStyle === "edge-bevel") {
+      // J-pull：面板頂緣切 45° 斜邊當把手—用一條深色凸條表示切口位置
+      // 位置：面板頂端，寬幾乎全長 × 高 12mm × 深 8mm
+      const stripLen = faceWidth - 8;
+      const topY = faceY + faceHeight - 12; // 從面板頂端往下 12mm 開始
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "J-pull 斜邊把手",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        visible: { length: stripLen, width: 8, thickness: 12 },
+        origin: { x: cx, y: topY, z: zFaceFront - 4 - CLEAR },
+        visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
     if (pullStyle === "knob") {
       // 圓把手：30mm 直徑 × 25mm 長（往 -Z 凸出）
       const D = 30, L = 25;
