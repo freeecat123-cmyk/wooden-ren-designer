@@ -411,6 +411,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const postTopY = height - topThickness;
   const postBottomY = 0;
   const postHeight = postTopY;
+  // 圓角櫃側腳量：立柱底端往外擴 splayMm
+  const splayMmGlobal = isRoundCorner
+    ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
+    : 0;
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -487,18 +491,16 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const lowerRailCY = skirtHeight + railWidth / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
-      // 圓角櫃：原本用 splayed shape 給立柱底擴 splayMm 製造「上窄下寬」視覺效果，
-      // 但 frame 構件（門/側板/背板/抹頭/層板）全按直立柱 X 計算，於是底端產生
-      // splayMm 寬的縫（1°=26mm 肉眼可見，使用者 5/8 截圖回報）。
-      //
-      // 解：圓角櫃改用「立柱四角倒圓 + 加大噴面」當視覺辨識，立柱本身保持直立讓
-      // frame 構件完美對齊。倒角 chamferMm 跟 postSize 0.4 倍，視覺上立柱角隅圓潤
-      // 像 cylinder。完整 frame-trapezoid 同步修留下輪。
+      // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
+      // splayMm = tan(splayAngle) × postHeight；底端往 sign(c.x), sign(c.z) 方向偏
+      const splayMmRound = isRoundCorner
+        ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
+        : 0;
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
-            kind: "chamfered-edges",
-            chamferMm: Math.round(postSize * 0.4),
-            style: "rounded",
+            kind: "splayed",
+            dxMm: sx * splayMmRound,
+            dzMm: sz * splayMmRound,
           }
         : effectiveLegShape === "box"
           ? undefined
@@ -603,13 +605,24 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
     // 板心
+    // 圓角櫃 frame-trapezoid：板心底端 Z 跨距比頂端寬 splayMm × (1 - panel_bot_y/postHeight) × 2
+    // 用 tapered shape 套 bottomScale = panelBotZ / panelTopZ
+    const sidePanelBotY = lowerRailY + railWidth - 5;
+    const sidePanelTopY = sidePanelBotY + panelInnerH;
+    // 板心 Z 跨距隨高度線性：innerSpan_at_y = innerSpan + 2×splayMm×(1−y/postHeight)
+    // tapered shape：bottom 比 top 寬 = (1+底端 splay shift) / (1+頂端 splay shift)
+    const sidePanelTaper = isRoundCorner && splayMmGlobal > 0
+      ? (panelInnerW_Z + 2 * splayMmGlobal * (1 - sidePanelBotY / postHeight)) /
+        Math.max(1, panelInnerW_Z + 2 * splayMmGlobal * (1 - sidePanelTopY / postHeight))
+      : 1;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
       material,
       grainDirection: "length",
       visible: { length: panelThickness, width: panelInnerW_Z, thickness: panelInnerH },
-      origin: { x: sx * sideRailOffsetX, y: lowerRailY + railWidth - 5, z: 0 },
+      origin: { x: sx * sideRailOffsetX, y: sidePanelBotY, z: 0 },
+      ...(sidePanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: sidePanelTaper } } : {}),
       tenons: [],
       mortises: [],
     });
@@ -772,13 +785,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     });
   } else {
     // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
+    const backPanelBotY = lowerRailY + railWidth - 5;
+    const backPanelTopY = backPanelBotY + panelInnerH;
+    const backPanelTaper = isRoundCorner && splayMmGlobal > 0
+      ? (panelInnerW_X + 2 * splayMmGlobal * (1 - backPanelBotY / postHeight)) /
+        (panelInnerW_X + 2 * splayMmGlobal * (1 - backPanelTopY / postHeight))
+      : 1;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
       material,
       grainDirection: "length",
       visible: { length: panelInnerW_X, width: panelThickness, thickness: panelInnerH },
-      origin: { x: 0, y: lowerRailY + railWidth - 5, z: fbRailOffsetZ },
+      origin: { x: 0, y: backPanelBotY, z: fbRailOffsetZ },
+      ...(backPanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: backPanelTaper } } : {}),
       tenons: [],
       mortises: [],
     });
@@ -900,14 +920,22 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         // 玻璃門：主板改 visual:"glass" + 厚度 5mm（不計入材料單）
         const glassThickness = 5;
         const mainPanelThickness = isGlassDoor ? glassThickness : doorThickness;
+        // 圓角櫃 frame-trapezoid：門板底端比頂端寬 splayMm 對應差
+        const doorBotY = layerCenterY - doorHeight / 2;
+        const doorTopY = doorBotY + doorHeight;
+        const doorTaper = isRoundCorner && splayMmGlobal > 0
+          ? (doorWidth + 2 * splayMmGlobal * (1 - doorBotY / postHeight)) /
+            (doorWidth + 2 * splayMmGlobal * (1 - doorTopY / postHeight))
+          : 1;
         parts.push({
           id: `layer${i + 1}-${lrId}-door`,
           nameZh: `第 ${i + 1} 層${lrLabel}門${isGlassDoor ? "玻璃片" : ""}`,
           material,
           grainDirection: "length",
           visible: { length: doorWidth, width: mainPanelThickness, thickness: doorHeight },
-          origin: { x: doorCX, y: layerCenterY - doorHeight / 2, z: doorFrontZ },
+          origin: { x: doorCX, y: doorBotY, z: doorFrontZ },
           ...(isGlassDoor ? { visual: "glass" as const } : {}),
+          ...(!isGlassDoor && doorTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: doorTaper } } : {}),
           tenons: [],
           mortises: [],
         });
