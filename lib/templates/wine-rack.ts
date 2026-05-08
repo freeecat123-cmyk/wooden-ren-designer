@@ -18,7 +18,23 @@ const WALL_MOUNT_STRIP_T = 18;
 const SHELF_TONGUE_LEN = 8;
 const SHELF_TONGUE_THICKNESS_OFFSET = 6;
 
+/** 瓶型 preset：依 5 瓶型自動套瓶徑 + cell clearance（研究 doc §2） */
+const BOTTLE_TYPE_PRESETS: Record<string, { bottleDiameter: number; clearance: number; label: string }> = {
+  bordeaux: { bottleDiameter: 76, clearance: 12, label: "波爾多（細肩 ⌀76mm）" },
+  burgundy: { bottleDiameter: 81, clearance: 12, label: "勃根地（粗肩 ⌀81mm）" },
+  champagne: { bottleDiameter: 90, clearance: 12, label: "香檳（最粗 ⌀90mm）" },
+  magnum: { bottleDiameter: 105, clearance: 12, label: "Magnum 1.5L（⌀105mm）" },
+  custom: { bottleDiameter: 80, clearance: 8, label: "自訂瓶徑" },
+};
+
 export const wineRackOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "bottleType", label: "瓶型預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂瓶徑" },
+    { value: "bordeaux", label: "波爾多（⌀76mm，細肩）" },
+    { value: "burgundy", label: "勃根地（⌀81mm，粗肩）" },
+    { value: "champagne", label: "香檳（⌀90mm，最粗）" },
+    { value: "magnum", label: "Magnum 1.5L（⌀105mm）" },
+  ], help: "選瓶型自動套瓶徑 + 瓶位間距（user 改瓶徑後仍以 user 值為準）" },
   { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1 },
   { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1 },
   { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
@@ -45,9 +61,15 @@ export const wineRackOptions: OptionSpec[] = [
 export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { material } = input;
   const o = wineRackOptions;
+  const bottleType = getOption<string>(input, opt(o, "bottleType"));
+  const bottlePreset = BOTTLE_TYPE_PRESETS[bottleType];
   const bw = getOption<number>(input, opt(o, "bottlesWide"));
   const bt = getOption<number>(input, opt(o, "bottlesTall"));
-  const bd = getOption<number>(input, opt(o, "bottleDiameter"));
+  const bdRaw = getOption<number>(input, opt(o, "bottleDiameter"));
+  // 若 user 仍是 default 80，套 preset 瓶徑
+  const bd = bdRaw === 80 && bottlePreset && bottleType !== "custom" ? bottlePreset.bottleDiameter : bdRaw;
+  // 套 preset clearance 蓋過 const CELL_CLEARANCE
+  const cellClearance = bottlePreset && bottleType !== "custom" ? bottlePreset.clearance : CELL_CLEARANCE;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
   const mountStyle = getOption<string>(input, opt(o, "mountStyle"));
@@ -56,7 +78,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
-  const cellSize = bd + CELL_CLEARANCE;
+  const cellSize = bd + cellClearance;
   const innerW = bw * cellSize;
   const innerH = bt * cellSize;
   const outerW = innerW + 2 * panelT;

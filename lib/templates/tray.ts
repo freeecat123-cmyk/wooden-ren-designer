@@ -6,7 +6,38 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 
+/** 4 大使用情境 preset */
+interface TrayPresetConfig {
+  wallHeight?: number;
+  wallThickness?: number;
+  bottomThickness?: number;
+  cornerJoinery?: string;
+  handleStyle?: string;
+  withFeltPad?: boolean;
+  dividerLayout?: string;
+}
+const TRAY_PRESETS: Record<string, TrayPresetConfig> = {
+  // 早餐床頭托盤：高邊防潑灑、雙耳握把、整片開放、防滑墊
+  breakfast: { wallHeight: 80, wallThickness: 14, bottomThickness: 10, cornerJoinery: "finger-joint", handleStyle: "cutout", withFeltPad: true, dividerLayout: "none" },
+  // 茶盤：低邊圍住茶具、茶組固定槽、防滑墊
+  "tea-ceremony": { wallHeight: 40, wallThickness: 12, bottomThickness: 10, cornerJoinery: "dovetail", handleStyle: "none", withFeltPad: true, dividerLayout: "tea-set" },
+  // Charcuterie 起司板：超低邊（lip 15mm）、不加握把、整片實木
+  charcuterie: { wallHeight: 15, wallThickness: 10, bottomThickness: 25, cornerJoinery: "stub-joint", handleStyle: "none", withFeltPad: true, dividerLayout: "none" },
+  // 玄關鑰匙托盤：低邊、田字 4 格、麻繩握把
+  entryway: { wallHeight: 30, wallThickness: 10, bottomThickness: 8, cornerJoinery: "finger-joint", handleStyle: "rope", withFeltPad: false, dividerLayout: "grid-4" },
+  // 點心盤：中邊、雙隔板、雙耳握把
+  dessert: { wallHeight: 50, wallThickness: 12, bottomThickness: 10, cornerJoinery: "dovetail", handleStyle: "metal", withFeltPad: true, dividerLayout: "split-2" },
+};
+
 export const trayOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "trayUse", label: "使用情境預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    { value: "breakfast", label: "早餐床頭托盤（高邊 + 雙耳握把 + 防滑）" },
+    { value: "tea-ceremony", label: "茶盤（茶組固定槽 + 鳩尾接合）" },
+    { value: "charcuterie", label: "Charcuterie 起司板（超低邊 + 厚底）" },
+    { value: "entryway", label: "玄關鑰匙托盤（田字 4 格 + 麻繩）" },
+    { value: "dessert", label: "點心盤（中邊 + 雙隔板 + 金屬把手）" },
+  ], help: "依使用情境一鍵套圍邊高 / 接合 / 握把 / 分隔組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallHeight", label: "圍邊高 (mm)", defaultValue: 50, min: 25, max: 120, step: 5, unit: "mm" },
   { group: "structure", type: "number", key: "wallThickness", label: "圍邊厚 (mm)", defaultValue: 12, min: 8, max: 20, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底板厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
@@ -41,19 +72,28 @@ export const trayOptions: OptionSpec[] = [
 export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, material } = input;
   const o = trayOptions;
-  const wallH = getOption<number>(input, opt(o, "wallHeight"));
-  const wallT = getOption<number>(input, opt(o, "wallThickness"));
-  const botT = getOption<number>(input, opt(o, "bottomThickness"));
-  const cornerJoinery = getOption<string>(input, opt(o, "cornerJoinery")) as
+  const trayUse = getOption<string>(input, opt(o, "trayUse"));
+  const preset = TRAY_PRESETS[trayUse];
+  const wallHRaw = getOption<number>(input, opt(o, "wallHeight"));
+  const wallH = wallHRaw === 50 && preset?.wallHeight !== undefined ? preset.wallHeight : wallHRaw;
+  const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
+  const wallT = wallTRaw === 12 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
+  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
+  const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
+  const cornerJoinery = (cornerJoineryRaw === "finger-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
     | "finger-joint"
     | "dovetail"
     | "stub-joint";
-  const handleStyle = getOption<string>(input, opt(o, "handleStyle"));
+  const handleStyleRaw = getOption<string>(input, opt(o, "handleStyle"));
+  const handleStyle = handleStyleRaw === "hole" && preset?.handleStyle ? preset.handleStyle : handleStyleRaw;
   const withHandles = handleStyle !== "none";
   const handleW = getOption<number>(input, opt(o, "handleWidth"));
   const handleH = getOption<number>(input, opt(o, "handleHeight"));
-  const withFeltPad = getOption<boolean>(input, opt(o, "withFeltPad"));
-  const dividerLayout = getOption<string>(input, opt(o, "dividerLayout"));
+  const withFeltPadRaw = getOption<boolean>(input, opt(o, "withFeltPad"));
+  const withFeltPad = withFeltPadRaw === false && preset?.withFeltPad !== undefined ? preset.withFeltPad : withFeltPadRaw;
+  const dividerLayoutRaw = getOption<string>(input, opt(o, "dividerLayout"));
+  const dividerLayout = dividerLayoutRaw === "none" && preset?.dividerLayout ? preset.dividerLayout : dividerLayoutRaw;
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const built = buildBox({

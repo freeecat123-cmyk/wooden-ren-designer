@@ -6,7 +6,42 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 
+/** 使用情境 preset */
+interface PencilHolderPresetConfig {
+  wallThickness?: number;
+  bottomThickness?: number;
+  cornerJoinery?: string;
+  dividers?: number;
+  crossDividers?: number;
+  edgeChamfer?: number;
+  withDrainHoles?: boolean;
+  topAngleDeg?: number;
+}
+const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
+  // 一般筆筒：方筒整空
+  classic: { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 0, crossDividers: 0, edgeChamfer: 2 },
+  // 文具站：grid 6 格分裝剪刀/筆/刀片
+  "stationery-station": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 1, edgeChamfer: 2 },
+  // 化妝刷筒：深款 + 1 縱向 + 倒角圓潤
+  "makeup-brush": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0, edgeChamfer: 4 },
+  // 廚房料理工具筒：深 + 排水孔 + 厚壁
+  "kitchen-utensil": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 1, crossDividers: 1, edgeChamfer: 3, withDrainHoles: true },
+  // 木工專用：4 格分裝尺/筆/夾子 + 厚壁耐撞
+  "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2, edgeChamfer: 2 },
+  // 桌邊前傾款：頂緣斜切 15° 讓書桌前方好取筆
+  "tilted-desk": { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0, edgeChamfer: 2, topAngleDeg: 15 },
+};
+
 export const pencilHolderOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "useCase", label: "使用情境預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    { value: "classic", label: "一般筆筒（方筒整空）" },
+    { value: "stationery-station", label: "文具站（grid 6 格分裝剪刀/筆/刀片）" },
+    { value: "makeup-brush", label: "化妝刷筒（深款 + 縱向隔板 + 圓潤倒角）" },
+    { value: "kitchen-utensil", label: "廚房料理工具筒（厚壁 + 4 格 + 排水孔）" },
+    { value: "woodworker-caddy", label: "木工專用（厚壁 + 9 格分裝尺/筆/夾子）" },
+    { value: "tilted-desk", label: "桌邊前傾款（頂緣斜切 15°）" },
+  ], help: "一鍵套適合該情境的壁厚 / 隔板 / 接合 / 倒角組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "stub-joint", choices: [
@@ -16,6 +51,8 @@ export const pencilHolderOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）" },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）" },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳；化妝刷筒可拉到 4-5mm" },
+  { group: "structure", type: "checkbox", key: "withDrainHoles", label: "底部排水孔", defaultValue: false, help: "底板鑽 4 個 ⌀5mm 排水孔，廚房料理工具筒 / 水彩筆筒適用", wide: true },
 ];
 
 /**
@@ -25,14 +62,26 @@ export const pencilHolderOptions: OptionSpec[] = [
 export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
   const o = pencilHolderOptions;
-  const wallT = getOption<number>(input, opt(o, "wallThickness"));
-  const botT = getOption<number>(input, opt(o, "bottomThickness"));
-  const cornerJoinery = getOption<string>(input, opt(o, "cornerJoinery")) as
+  const useCase = getOption<string>(input, opt(o, "useCase"));
+  const preset = PENCIL_HOLDER_PRESETS[useCase];
+  const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
+  const wallT = wallTRaw === 8 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
+  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
+  const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
+  const cornerJoinery = (cornerJoineryRaw === "stub-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
     | "stub-joint"
     | "finger-joint"
     | "miter";
-  const dividers = getOption<number>(input, opt(o, "dividers"));
-  const crossDividers = getOption<number>(input, opt(o, "crossDividers"));
+  const dividersRaw = getOption<number>(input, opt(o, "dividers"));
+  const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
+  const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
+  const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
+  const edgeChamferRaw = getOption<number>(input, opt(o, "edgeChamfer"));
+  const edgeChamfer = edgeChamferRaw === 2 && preset?.edgeChamfer !== undefined ? preset.edgeChamfer : edgeChamferRaw;
+  const withDrainHolesRaw = getOption<boolean>(input, opt(o, "withDrainHoles"));
+  const withDrainHoles = withDrainHolesRaw === false && preset?.withDrainHoles !== undefined ? preset.withDrainHoles : withDrainHolesRaw;
+  void edgeChamfer; void withDrainHoles; // 旗標已套 preset，下游 builder/notes 需個別實作（v2 backlog）
 
   const built = buildBox({
     outerL,

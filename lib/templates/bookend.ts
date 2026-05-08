@@ -15,10 +15,26 @@ const BRACE_HEIGHT_FRAC = 0.6;
 /** 帶肩榫的肩寬（每邊各內縮多少 mm） */
 const TENON_SHOULDER = 4;
 
+/** 使用情境 preset */
+const BOOKEND_PRESETS: Record<string, { panelThickness?: number; withBrace?: boolean; edgeChamfer?: number; label: string }> = {
+  // 簡約款：薄板無加固
+  minimalist: { panelThickness: 15, withBrace: false, edgeChamfer: 2, label: "簡約極薄款（15mm + 無加固，適合輕書/設計感）" },
+  // 經典款：標準厚板 + 三角加固
+  classic: { panelThickness: 18, withBrace: true, edgeChamfer: 2, label: "經典加固款（18mm + 三角加固）" },
+  // 重型款：厚板 + 加固，撐住沉重收藏書/字典
+  heavy: { panelThickness: 25, withBrace: true, edgeChamfer: 3, label: "重型款（25mm + 加固，撐字典/年鑑）" },
+  // 兒童款：圓角倒大、加固防壓
+  kids: { panelThickness: 18, withBrace: true, edgeChamfer: 5, label: "兒童款（圓角 R5 防撞，加固防壓書）" },
+};
+
 export const bookendOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "bookendStyle", label: "風格預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    ...Object.entries(BOOKEND_PRESETS).map(([k, v]) => ({ value: k, label: v.label })),
+  ], help: "依使用情境一鍵套板厚 / 加固 / 倒角組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 18, min: 12, max: 30, step: 1, unit: "mm" },
   { group: "structure", type: "checkbox", key: "withBrace", label: "加三角加固", defaultValue: true, help: "底板與背板交界加三角支撐，避免重書壓彎" },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳" },
+  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳；兒童款可拉到 5mm" },
 ];
 
 /**
@@ -33,9 +49,14 @@ export const bookendOptions: OptionSpec[] = [
 export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: baseDepth, width: baseWidth, height: backHeight, material } = input;
   const o = bookendOptions;
-  const panelT = getOption<number>(input, opt(o, "panelThickness"));
-  const withBrace = getOption<boolean>(input, opt(o, "withBrace"));
-  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
+  const bookendStyle = getOption<string>(input, opt(o, "bookendStyle"));
+  const preset = BOOKEND_PRESETS[bookendStyle];
+  const panelTRaw = getOption<number>(input, opt(o, "panelThickness"));
+  const panelT = panelTRaw === 18 && preset?.panelThickness !== undefined ? preset.panelThickness : panelTRaw;
+  const withBraceRaw = getOption<boolean>(input, opt(o, "withBrace"));
+  const withBrace = withBraceRaw === true && preset?.withBrace !== undefined ? preset.withBrace : withBraceRaw;
+  const edgeChamferRaw = getOption<number>(input, opt(o, "edgeChamfer"));
+  const edgeChamfer = edgeChamferRaw === 2 && preset?.edgeChamfer !== undefined ? preset.edgeChamfer : edgeChamferRaw;
 
   // 背板貼底板後緣立起，本身高 = backHeight - 底板厚
   const backPanelH = backHeight - panelT;

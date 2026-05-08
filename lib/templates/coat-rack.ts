@@ -24,7 +24,39 @@ const FOOT_TENON_DEPTH_RATIO = 0.5;
 /** 掛鉤盲榫的深度比（× columnSize） */
 const HOOK_TENON_DEPTH_RATIO = 0.4;
 
+/** 5 風格 preset（依研究 doc Phase A） */
+interface CoatRackPresetConfig {
+  columnSize?: number;
+  columnStyle?: string;
+  footCount?: number;
+  footLength?: number;
+  hookCount?: number;
+  withSecondHookRow?: boolean;
+  withMirror?: boolean;
+  withHatRail?: boolean;
+}
+const COAT_RACK_PRESETS: Record<string, CoatRackPresetConfig> = {
+  // 古典車旋款：lathe-turned + 4 腳 + 8 鉤
+  classic: { columnSize: 70, columnStyle: "lathe-turned", footCount: 4, footLength: 380, hookCount: 8 },
+  // 現代極簡：方柱 + 3 腳 + 6 鉤、無配件
+  modern: { columnSize: 50, columnStyle: "box", footCount: 3, footLength: 350, hookCount: 6 },
+  // 玄關大型款（hall tree）：粗柱 + 4 腳 + 雙排鉤 + 鏡子 + 帽架
+  "hall-tree": { columnSize: 80, columnStyle: "lathe-turned", footCount: 4, footLength: 400, hookCount: 8, withSecondHookRow: true, withMirror: true, withHatRail: true },
+  // 兒童矮款：細柱 + 3 腳 + 矮鉤
+  kids: { columnSize: 50, columnStyle: "box", footCount: 3, footLength: 320, hookCount: 6 },
+  // 工業派：方柱 + 3 腳 + 圓鉤
+  industrial: { columnSize: 60, columnStyle: "box", footCount: 3, footLength: 350, hookCount: 6 },
+};
+
 export const coatRackOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "rackStyle", label: "風格預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    { value: "classic", label: "古典車旋款（lathe-turned + 4 腳 + 8 鉤）" },
+    { value: "modern", label: "現代極簡（方柱 + 3 腳 + 6 鉤）" },
+    { value: "hall-tree", label: "玄關大型款（hall tree + 鏡子 + 帽架）" },
+    { value: "kids", label: "兒童矮款（細柱 + 3 腳）" },
+    { value: "industrial", label: "工業派（方柱 + 3 腳）" },
+  ], help: "依風格一鍵套柱粗 / 樣式 / 底爪 / 鉤數 / 配件組合，user 後改不蓋。" },
   { group: "leg", type: "number", key: "columnSize", label: "立柱粗 (mm)", defaultValue: 60, min: 35, max: 80, step: 5, unit: "mm" },
   { group: "leg", type: "select", key: "columnStyle", label: "立柱樣式", defaultValue: "lathe-turned", choices: [
     { value: "box", label: "方柱（直方料）" },
@@ -51,17 +83,27 @@ export const coatRackOptions: OptionSpec[] = [
 export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
   const o = coatRackOptions;
-  const columnSize = getOption<number>(input, opt(o, "columnSize"));
-  const columnStyle = getOption<string>(input, opt(o, "columnStyle"));
-  const footCount = getOption<number>(input, opt(o, "footCount"));
-  const footLength = getOption<number>(input, opt(o, "footLength"));
-  const hookCount = getOption<number>(input, opt(o, "hookCount"));
+  const rackStyle = getOption<string>(input, opt(o, "rackStyle"));
+  const preset = COAT_RACK_PRESETS[rackStyle];
+  const columnSizeRaw = getOption<number>(input, opt(o, "columnSize"));
+  const columnSize = columnSizeRaw === 60 && preset?.columnSize !== undefined ? preset.columnSize : columnSizeRaw;
+  const columnStyleRaw = getOption<string>(input, opt(o, "columnStyle"));
+  const columnStyle = columnStyleRaw === "lathe-turned" && preset?.columnStyle ? preset.columnStyle : columnStyleRaw;
+  const footCountRaw = getOption<number>(input, opt(o, "footCount"));
+  const footCount = footCountRaw === 3 && preset?.footCount !== undefined ? preset.footCount : footCountRaw;
+  const footLengthRaw = getOption<number>(input, opt(o, "footLength"));
+  const footLength = footLengthRaw === 350 && preset?.footLength !== undefined ? preset.footLength : footLengthRaw;
+  const hookCountRaw = getOption<number>(input, opt(o, "hookCount"));
+  const hookCount = hookCountRaw === 6 && preset?.hookCount !== undefined ? preset.hookCount : hookCountRaw;
   const hookLength = getOption<number>(input, opt(o, "hookLength"));
-  const withSecondHookRow = getOption<boolean>(input, opt(o, "withSecondHookRow"));
+  const withSecondHookRowRaw = getOption<boolean>(input, opt(o, "withSecondHookRow"));
+  const withSecondHookRow = withSecondHookRowRaw === false && preset?.withSecondHookRow !== undefined ? preset.withSecondHookRow : withSecondHookRowRaw;
   const wallMode = getOption<boolean>(input, opt(o, "wallMode"));
   const withUmbrellaBase = getOption<boolean>(input, opt(o, "withUmbrellaBase"));
-  const withMirror = getOption<boolean>(input, opt(o, "withMirror"));
-  const withHatRail = getOption<boolean>(input, opt(o, "withHatRail"));
+  const withMirrorRaw = getOption<boolean>(input, opt(o, "withMirror"));
+  const withMirror = withMirrorRaw === false && preset?.withMirror !== undefined ? preset.withMirror : withMirrorRaw;
+  const withHatRailRaw = getOption<boolean>(input, opt(o, "withHatRail"));
+  const withHatRail = withHatRailRaw === false && preset?.withHatRail !== undefined ? preset.withHatRail : withHatRailRaw;
   const withFloorTray = getOption<boolean>(input, opt(o, "withFloorTray"));
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
