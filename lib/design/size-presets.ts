@@ -77,7 +77,9 @@ export const SIZE_PRESETS: Partial<Record<FurnitureCategory, SizePreset[]>> = {
     { label: "5 抽斗櫃", length: 900, width: 450, height: 1100 },
   ],
   nightstand: [
-    { label: "雙抽床頭櫃", length: 500, width: 400, height: 600 },
+    { label: "標準（抽屜+門）", length: 500, width: 400, height: 650 },
+    { label: "小坪數（窄）", length: 400, width: 350, height: 600 },
+    { label: "高腳極簡（japandi）", length: 450, width: 400, height: 620 },
   ],
   "round-table": [
     { label: "4 人圓餐桌", length: 1100, width: 1100, height: 740 },

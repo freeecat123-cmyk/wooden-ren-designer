@@ -35,11 +35,11 @@ import {
 export const nightstandOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 30, step: 1 },
   ...makeZoneOptions({
-    // 兩段式床頭櫃：上層抽屜 180mm（固定）+ 下層自動填滿
-    // autoFillSide: "bottom" 讓下層吃剩下高度，上層 180mm 鎖死（抽屜剛好放手機/書）
-    topType: "drawer", topHeight: 180, topCount: 1, topCols: 1,
+    // 兩段式床頭櫃：上層 150mm 抽屜（手機/書/眼鏡剛好）+ 下層門櫃自動填滿
+    // 下層改 door（不是 shelves）— 床邊小物要遮蔽防灰塵
+    topType: "drawer", topHeight: 150, topCount: 1, topCols: 1,
     midType: "none", midCount: 0,
-    bottomType: "shelves", bottomHeight: 250, bottomCount: 1,
+    bottomType: "door", bottomHeight: 280, bottomCount: 1,
   }, false, { skipMid: true, autoFillSide: "bottom" }),
   { group: "door", type: "select", key: "doorType", label: "門材質（如有門板）", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門" },
@@ -94,6 +94,12 @@ export const nightstand: FurnitureTemplate = (input) => {
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
+  const earlyWarnings: string[] = [];
+  if (innerH < 200) {
+    earlyWarnings.push(
+      `內部淨高僅 ${innerH}mm 過小：總高 ${input.height} − 腳高 ${legHeight} − 上下板 ${2 * panelThickness} 後不夠塞抽屜+下層，請降腳高或調總高。`,
+    );
+  }
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
@@ -118,23 +124,24 @@ export const nightstand: FurnitureTemplate = (input) => {
     backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
+    legShape: legShape as "box" | "tapered" | "bracket",
     legInset,
     doorMount,
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "後板開 25mm 充電線孔（黑色 grommet 圈防磨）。" : ""} ${withWirelessCharging ? "頂面嵌入 Qi 無線充電板（10W 模組，挖 ⌀75 × 深 8mm 圓槽）。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "（手工後製）後板開 25mm 充電線孔，建議套黑色 grommet 圈防磨。" : ""} ${withWirelessCharging ? "頂面 Qi 無線充電板（10W 模組）：挖 75×75×8mm 方槽，再以 forstner 修圓 ⌀75 配模組。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  // 無線充電板凹槽：頂板挖 ⌀75×8mm 圓孔（mortise）
+  // 無線充電板凹槽：頂板挖 75×75×8mm 方槽（手工以 forstner 修圓 ⌀75 配 Qi 模組）
+  // 偏前緣 30mm（手機通常放在靠床那側，避免撞燈具），左右置中
   if (withWirelessCharging) {
     const topPart = design.parts.find((p) => p.id === "top");
     if (topPart) {
       topPart.mortises = [
         ...topPart.mortises,
         {
-          origin: { x: 0, y: 0, z: 0 },
+          origin: { x: 0, y: 0, z: input.width / 2 - 75 / 2 - 30 },
           depth: 8,
           length: 75,
           width: 75,
@@ -148,12 +155,19 @@ export const nightstand: FurnitureTemplate = (input) => {
     minLength: 300, minWidth: 300, minHeight: 400,
     maxLength: 600, maxWidth: 500, maxHeight: 800,
   });
+  appendWarnings(design, earlyWarnings);
+  const drawerCount = zones
+    .filter((z) => z.type === "drawer")
+    .reduce((sum, z) => sum + (z.count ?? 0) * (z.cols ?? 1), 0);
   appendWarnings(
     design,
     validateCabinetStructure({
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
+      hasDrawers: drawerCount > 0,
+      drawerCount,
+      hasDrawerSlide: drawerSlideType !== "none",
     }),
   );
   // 床面齊平 ergo：標準床面 500-550mm（含床墊），床頭櫃高 ±50mm 才好用
