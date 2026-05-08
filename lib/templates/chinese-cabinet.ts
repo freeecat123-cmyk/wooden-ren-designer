@@ -106,6 +106,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "flat", label: "平板心" },
     { value: "raised", label: "凸面板心（中央凸起 5mm）" },
   ], help: "凸面板心 = 板心邊緣斜削、中央凸起，視覺層次" },
+  // 屏心嵌飾：板心中央嵌石 / 嵌格 / 留字框（明清板心開光裝飾）
+  { group: "apron", type: "select", key: "panelInlay", label: "板心嵌飾（屏心）", defaultValue: "none", choices: [
+    { value: "none", label: "無嵌飾（純板心）" },
+    { value: "stone-medallion", label: "嵌石開光（圓 / 方框中央嵌大理石）" },
+    { value: "latticed-center", label: "格紋中心（中央嵌田字格）" },
+    { value: "calligraphy-frame", label: "留字框（中央留出書法 / 對聯框）" },
+  ], help: "明清板心常嵌大理石 / 雲石 / 瘿木做圓形開光，或中央格紋裝飾。只在 panelStyle=flat 時生效" },
   // 邊抹（rails）
   { group: "apron", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
   { group: "apron", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
@@ -287,6 +294,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const hoofMm = effectiveLegShape === "box" ? 0 : Math.min(hoofMmRaw, skirtHeight + railWidth - 10);
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
+  const panelInlay = getOption<string>(input, opt(o, "panelInlay"));
+  // 嵌飾只在 flat 板心生效（raised 凸面已經有層次了，不再加）
+  const panelInlayActive = panelInlay !== "none" && panelStyle === "flat";
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
   const doorPullType = getOption<string>(input, opt(o, "doorPullType"));
   const doorStyleRaw = getOption<string>(input, opt(o, "doorStyle"));
@@ -566,6 +576,34 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       });
     }
+    // 屏心嵌飾：板心中央嵌石 / 嵌格 / 留字框（外凸 5mm，視覺開光）
+    if (panelInlayActive) {
+      const inlayMargin = Math.min(80, panelInnerW_Z * 0.2);
+      const inlayThickness = 5;
+      const inlayShape: Part["shape"] | undefined =
+        panelInlay === "stone-medallion"
+          ? { kind: "face-rounded", cornerR: Math.round(panelInnerH * 0.15), bendMm: 0, bendAxis: "z" }
+          : undefined;
+      parts.push({
+        id: `${lrId}-side-panel-inlay`,
+        nameZh: `${lrLabel}側板心屏心`,
+        material,
+        grainDirection: "length",
+        visible: {
+          length: inlayThickness,
+          width: Math.max(60, panelInnerW_Z - inlayMargin * 2),
+          thickness: Math.max(60, panelInnerH - inlayMargin * 2),
+        },
+        origin: {
+          x: sx * (sideRailOffsetX + panelThickness / 2 + inlayThickness / 2),
+          y: lowerRailY + railWidth - 5 + inlayMargin,
+          z: 0,
+        },
+        ...(inlayShape ? { shape: inlayShape } : {}),
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // ── 背面 frame（沿 X 延伸）
@@ -635,6 +673,34 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: panelInnerH - plateauMargin * 2,
         },
         origin: { x: 0, y: lowerRailY + railWidth - 5 + plateauMargin, z: fbRailOffsetZ + panelThickness / 2 + plateauThickness / 2 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 背板屏心嵌飾
+    if (panelInlayActive) {
+      const inlayMarginBack = Math.min(80, panelInnerW_X * 0.2);
+      const inlayThickness = 5;
+      const inlayShapeBack: Part["shape"] | undefined =
+        panelInlay === "stone-medallion"
+          ? { kind: "face-rounded", cornerR: Math.round(panelInnerH * 0.15), bendMm: 0, bendAxis: "z" }
+          : undefined;
+      parts.push({
+        id: "back-panel-inlay",
+        nameZh: "背板屏心",
+        material,
+        grainDirection: "length",
+        visible: {
+          length: Math.max(60, panelInnerW_X - inlayMarginBack * 2),
+          width: inlayThickness,
+          thickness: Math.max(60, panelInnerH - inlayMarginBack * 2),
+        },
+        origin: {
+          x: 0,
+          y: lowerRailY + railWidth - 5 + inlayMarginBack,
+          z: fbRailOffsetZ + panelThickness / 2 + inlayThickness / 2,
+        },
+        ...(inlayShapeBack ? { shape: inlayShapeBack } : {}),
         tenons: [],
         mortises: [],
       });
