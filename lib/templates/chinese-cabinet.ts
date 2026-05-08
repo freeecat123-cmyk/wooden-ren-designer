@@ -130,6 +130,20 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "ruyi", label: "如意牙頭（明式典雅）" },
   ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
   { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
+  // 站牙：立柱底端內側朝內延伸的三角穩定撐木（明清文人櫃站立感）
+  { group: "stretcher", type: "select", key: "standingBraceStyle", label: "站牙", defaultValue: "none", choices: [
+    { value: "none", label: "無站牙" },
+    { value: "scroll", label: "卷草站牙（明式典雅）" },
+    { value: "cloud", label: "雲頭站牙（清式厚實）" },
+  ], help: "站牙 = 立柱底外側朝外的三角撐木，補強站立感。spandrelStyle=ruyi 時自動隱藏避免擠在一起" },
+  { group: "stretcher", type: "number", key: "standingBraceSize", label: "站牙尺寸 (mm)", defaultValue: 100, min: 60, max: 200, step: 10, unit: "mm", help: "站牙沿立柱往上的高度", dependsOn: { key: "standingBraceStyle", notIn: ["none"] } },
+  // 絛環板：頂蓋下方一條裝飾橫帶（清式櫃常見「華而不空」橫條）
+  { group: "stretcher", type: "select", key: "friezePanel", label: "絛環板", defaultValue: "none", choices: [
+    { value: "none", label: "無絛環板" },
+    { value: "lattice", label: "格紋絛環（田字 / 十字格）" },
+    { value: "openwork", label: "透雕絛環（雲紋 / 卷草）" },
+  ], help: "絛環板 = 頂蓋下方 30–60mm 的薄板，內嵌 lattice / 透雕，清式櫃裝飾語彙" },
+  { group: "stretcher", type: "number", key: "friezeHeight", label: "絛環板高 (mm)", defaultValue: 50, min: 30, max: 80, step: 5, unit: "mm", dependsOn: { key: "friezePanel", notIn: ["none"] } },
   // 層數（1-8）
   { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
   { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
@@ -236,6 +250,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           : "none"
       : spandrelStyleRaw;
   const spandrelSize = getOption<number>(input, opt(o, "spandrelSize"));
+  const standingBraceStyleRaw = getOption<string>(input, opt(o, "standingBraceStyle"));
+  const standingBraceSize = getOption<number>(input, opt(o, "standingBraceSize"));
+  const friezePanel = getOption<string>(input, opt(o, "friezePanel"));
+  const friezeHeight = getOption<number>(input, opt(o, "friezeHeight"));
+  // 跟 spandrelStyle=ruyi 互斥（避免擠在一起）
+  const standingBraceStyle = (spandrelStyleRaw === "ruyi" || spandrelStyleRaw === "auto" && proportionStyle === "ming")
+    ? "none"
+    : standingBraceStyleRaw;
   // skirtStyle="auto" → 依 proportionStyle 帶（明式壼門、清式雲頭、free 直素牙）
   const skirtStyle: string =
     skirtStyleRaw === "auto"
@@ -1119,6 +1141,81 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           mortises: [],
         });
       }
+    }
+  }
+
+  // ── 站牙：4 立柱底外側朝外的小三角撐木（明清文人櫃站立感補強）
+  // shape: face-rounded 用 cornerR 製造卷草弧；雲頭用更大 cornerR 做圓鈍頭
+  // 位置：每隻立柱外側（左/右側 + 前/後）總共 4 隻立柱 × 2 邊 = 8 隻
+  // 跟牙頭分工：牙頭 = 立柱-牙條交角的內側裝飾；站牙 = 立柱外側朝外的撐木
+  if (standingBraceStyle !== "none") {
+    const braceShape: Part["shape"] =
+      standingBraceStyle === "scroll"
+        ? { kind: "face-rounded", cornerR: 35, bendMm: 0, bendAxis: "z" }
+        : { kind: "face-rounded", cornerR: 50, bendMm: 0, bendAxis: "z" };
+    const braceThickness = Math.max(15, skirtThickness - 4);
+    const braceOuterX = postX + postSize / 2 + 1;
+    const braceOuterZ = postZ + postSize / 2 + 1;
+    // 沿 Z 軸方向的站牙（左右側面）—4 個
+    for (const sx of [-1, 1] as const) {
+      const lrId = sx < 0 ? "left" : "right";
+      const lrLabel = sx < 0 ? "左" : "右";
+      for (const sz of [-1, 1] as const) {
+        const fbLabel = sz < 0 ? "前" : "後";
+        parts.push({
+          id: `standing-brace-${lrId}-${sz < 0 ? "front" : "back"}-z`,
+          nameZh: `${lrLabel}${fbLabel}站牙（側）`,
+          material,
+          grainDirection: "length",
+          visible: { length: braceThickness, width: standingBraceSize, thickness: standingBraceSize },
+          origin: { x: sx * (braceOuterX + braceThickness / 2), y: skirtHeight, z: sz * (postZ - standingBraceSize / 2) },
+          shape: braceShape,
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+    // 沿 X 軸方向的站牙（前後面）—4 個
+    for (const sz of [-1, 1] as const) {
+      const fbId = sz < 0 ? "front" : "back";
+      const fbLabel = sz < 0 ? "前" : "後";
+      for (const sx of [-1, 1] as const) {
+        const lrLabel = sx < 0 ? "左" : "右";
+        parts.push({
+          id: `standing-brace-${fbId}-${sx < 0 ? "left" : "right"}-x`,
+          nameZh: `${fbLabel}${lrLabel}站牙（前後）`,
+          material,
+          grainDirection: "length",
+          visible: { length: standingBraceSize, width: braceThickness, thickness: standingBraceSize },
+          origin: { x: sx * (postX - standingBraceSize / 2), y: skirtHeight, z: sz * (braceOuterZ + braceThickness / 2) },
+          shape: braceShape,
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+  }
+
+  // ── 絛環板：頂蓋下方一條裝飾橫帶（清式櫃靈魂橫條）
+  // 位置：頂蓋下方緊貼，沿前後兩面各一條
+  // 內嵌格紋 / 透雕——本輪先當實板處理（後續輪在 svg-views 加 lattice / openwork hint overlay）
+  if (friezePanel !== "none") {
+    const friezeY = postTopY - friezeHeight;
+    const friezeThickness = Math.max(10, panelThickness);
+    for (const sz of [-1, 1] as const) {
+      const fbId = sz < 0 ? "front" : "back";
+      const fbLabel = sz < 0 ? "前" : "後";
+      parts.push({
+        id: `frieze-panel-${fbId}`,
+        nameZh: `${fbLabel}絛環板`,
+        material,
+        grainDirection: "length",
+        // length=櫃寬、width=厚度（前後向）、thickness=絛環高
+        visible: { length: 2 * (postX - postSize / 2) - 4, width: friezeThickness, thickness: friezeHeight },
+        origin: { x: 0, y: friezeY, z: sz * (postZ + postSize / 2 - friezeThickness / 2) },
+        tenons: [],
+        mortises: [],
+      });
     }
   }
 
