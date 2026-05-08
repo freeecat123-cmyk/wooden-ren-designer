@@ -69,6 +69,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
   ], help: "頂箱櫃 = 明清主臥/廳堂主角，下櫃 + 上頂箱兩段，分件運輸。預設 = 單段" },
   { group: "leg", type: "number", key: "topBoxRatio", label: "頂箱佔總高比例", defaultValue: 0.3, min: 0.2, max: 0.45, step: 0.05, help: "頂箱高度佔總高的比例（0.25 偏低典雅、0.4 接近對半）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
   { group: "leg", type: "number", key: "topBoxLayers", label: "頂箱層數", defaultValue: 1, min: 1, max: 2, step: 1, help: "頂箱內部層數（1=純對開門、2=門+小抽屜）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
+  // 圓角櫃形制：上窄下寬側腳 + 噴面 + 木軸門（明式四大櫃形之一）
+  { group: "leg", type: "select", key: "cabinetCorner", label: "櫃角形制", defaultValue: "square", choices: [
+    { value: "square", label: "方角櫃（直立柱、銅合頁、直角）" },
+    { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
+  ], help: "圓角櫃 = 明式四大櫃形之一，靠側腳（splay）+ 噴面（cap overhang）+ 木軸（無金屬合頁）三件套，比方角更早期文人雅" },
+  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1, min: 0.5, max: 2.5, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度（0.5° 微噴 / 2° 明顯噴）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "leg", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
   { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
     { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
@@ -194,6 +201,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const compoundMode = getOption<string>(input, opt(o, "compoundMode"));
   const topBoxRatio = getOption<number>(input, opt(o, "topBoxRatio"));
   const topBoxLayers = getOption<number>(input, opt(o, "topBoxLayers"));
+  const cabinetCorner = getOption<string>(input, opt(o, "cabinetCorner"));
+  const splayAngleDeg = getOption<number>(input, opt(o, "splayAngle"));
+  const capOverhangExtra = getOption<number>(input, opt(o, "capOverhangExtra"));
+  const isRoundCorner = cabinetCorner === "round";
   // 頂箱櫃模式：總高切上下兩段，下櫃用 effectiveHeight 走既有渲染，
   // 上頂箱另外堆一段 frame-and-panel。waistGap = 上下櫃之間的縫隙（傳統做法
   // 是兩段獨立分件、垂直堆疊但沒接觸——畫 5mm gap 視覺區分）
@@ -249,7 +260,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           : "box"
       : (legShapeRaw as "box" | "inward-hoof" | "outward-hoof");
   // 馬蹄高度不能超過牙條 + 一些餘量，否則馬蹄頂頂到下抹（牙條 + railWidth）
-  const hoofMm = legShape === "box" ? 0 : Math.min(hoofMmRaw, skirtHeight + railWidth - 10);
+  // 圓角櫃模式自動鎖 legShape=box（馬蹄+側腳組合幾何複雜，初版純側腳）
+  const effectiveLegShape: "box" | "inward-hoof" | "outward-hoof" = isRoundCorner ? "box" : legShape;
+  const hoofMm = effectiveLegShape === "box" ? 0 : Math.min(hoofMmRaw, skirtHeight + railWidth - 10);
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
@@ -357,7 +370,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "頂蓋",
     material,
     grainDirection: "length",
-    visible: { length: length + topOverhang * 2, width: width + topOverhang * 2, thickness: topThickness },
+    visible: { length: length + (topOverhang + (isRoundCorner ? capOverhangExtra : 0)) * 2, width: width + (topOverhang + (isRoundCorner ? capOverhangExtra : 0)) * 2, thickness: topThickness },
     origin: { x: 0, y: postTopY, z: 0 },
     tenons: [],
     mortises: topMortises,
@@ -383,9 +396,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const upperRailCY = postTopY - railWidth / 2;
       const lowerRailCY = skirtHeight + railWidth / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
-      const hoofDirSign: -1 | 1 = legShape === "outward-hoof" ? 1 : -1;
-      const postShape: Part["shape"] | undefined =
-        legShape === "box"
+      const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
+      // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
+      // splayMm = tan(splayAngle) × postHeight；底端往 sign(c.x), sign(c.z) 方向偏
+      const splayMmRound = isRoundCorner
+        ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
+        : 0;
+      const postShape: Part["shape"] | undefined = isRoundCorner
+        ? {
+            kind: "splayed",
+            dxMm: sx * splayMmRound,
+            dzMm: sz * splayMmRound,
+          }
+        : effectiveLegShape === "box"
           ? undefined
           : {
               kind: "hoof",
@@ -782,7 +805,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         }
         // 合頁面葉（hinge plate）：門外側（遠離中縫一側）上下各 1 條長條銅片
         // 凸貼於門面 -Z 2mm，沿垂直 Y 方向 80mm 長，仿明清銅件
-        if (doorPullType !== "none") {
+        // 圓角櫃用木軸（門板上下出軸頭轉立柱），無金屬合頁——skip 銅片
+        if (doorPullType !== "none" && !isRoundCorner) {
           const hingeX = sx * (doorWidth / 2 + doorGap / 2 - sx * 0);  // 對齊門外側邊
           const hingeOuterX = doorCX + sx * (doorWidth / 2 - 18);  // 距離門外緣 18mm
           const hingeZ = doorFrontZ - doorThickness / 2 - 1;  // 凸貼門面 2mm 厚銅片
