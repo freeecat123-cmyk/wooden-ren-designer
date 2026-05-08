@@ -2,9 +2,11 @@ import type {
   FurnitureDesign,
   FurnitureTemplate,
   OptionSpec,
+  Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
+import { polygonStaves } from "./_builders/polygon-stave-builder";
 
 /** 4 大使用情境 preset */
 interface TrayPresetConfig {
@@ -30,6 +32,10 @@ const TRAY_PRESETS: Record<string, TrayPresetConfig> = {
 };
 
 export const trayOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "trayShape", label: "托盤形狀", defaultValue: "rect", choices: [
+    { value: "rect", label: "方形 / 長方形（最常見）" },
+    { value: "oct", label: "八角（8 片圍邊拼接，西式餐廳款）" },
+  ], help: "八角款用 stave 拼接（取 length/width 較小邊為直徑）；八角不支援 dividers / handle cutout" },
   { group: "preset", type: "select", key: "trayUse", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
     { value: "breakfast", label: "早餐床頭托盤（高邊 + 雙耳握把 + 防滑）" },
@@ -95,6 +101,35 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const dividerLayoutRaw = getOption<string>(input, opt(o, "dividerLayout"));
   const dividerLayout = dividerLayoutRaw === "none" && preset?.dividerLayout ? preset.dividerLayout : dividerLayoutRaw;
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
+  const trayShape = getOption<string>(input, opt(o, "trayShape")) as "rect" | "oct";
+
+  // 八角款：跳過 buildBox 直接組多邊形
+  if (trayShape === "oct") {
+    const outerD = Math.min(outerL, outerW);
+    const staves = polygonStaves({ sides: 8, outerD, outerH: wallH + botT, wallT, botT, material });
+    const polyBottom: Part = {
+      id: "bottom",
+      nameZh: "八角底板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerD - 2, width: outerD - 2, thickness: botT },
+      origin: { x: 0, y: 0, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    };
+    return {
+      id: `tray-oct-${outerD}x${wallH + botT}`,
+      category: "tray",
+      nameZh: "八角托盤",
+      overall: { length: outerD, width: outerD, thickness: wallH + botT },
+      parts: [polyBottom, ...staves],
+      defaultJoinery: "mitered-spline",
+      useButtJointConvention: false,
+      primaryMaterial: material,
+      notes: `八角托盤外接圓 ⌀${outerD}mm × 圍邊高 ${wallH}mm，壁厚 ${wallT}mm。8 段直立壁邊接 22.5° 斜切（45° 內角），相鄰邊用膠合 + biscuit / 暗榫加固。${withFeltPad ? "底面貼 8 片自黏氈墊。" : ""}${edgeChamfer > 0 ? ` 圍邊頂緣倒 ${edgeChamfer}mm 防割手。` : ""}`,
+    };
+  }
 
   const built = buildBox({
     outerL,
