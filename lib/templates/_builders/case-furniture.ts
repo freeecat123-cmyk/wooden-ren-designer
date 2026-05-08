@@ -805,7 +805,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 y: drawerFrontT,
                 z: -(boxH + frontExtraDown) / 2 + drawerBottomT / 2,
               },
-              depth: 9,
+              depth: 6,
               length: boxExtW - 4,
               width: drawerBottomT,
               through: false,
