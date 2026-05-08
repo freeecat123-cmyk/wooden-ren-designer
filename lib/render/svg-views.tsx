@@ -804,10 +804,10 @@ export function OrthoView({
               backLines.push(
                 <line
                   key={`${part.id}-back-${i}-${segIdx}`}
-                  x1={seg.a.x}
-                  y1={seg.a.y}
-                  x2={seg.b.x}
-                  y2={seg.b.y}
+                  x1={Number(seg.a.x.toFixed(2))}
+                  y1={Number(seg.a.y.toFixed(2))}
+                  x2={Number(seg.b.x.toFixed(2))}
+                  y2={Number(seg.b.y.toFixed(2))}
                   stroke={seg.hidden ? "#444" : "#111"}
                   strokeWidth={seg.hidden ? 0.7 : 0.9}
                   strokeDasharray={seg.hidden ? "4 3" : undefined}
@@ -882,10 +882,10 @@ export function OrthoView({
               botLines.push(
                 <line
                   key={`${part.id}-bot-${i}-${segIdx}`}
-                  x1={seg.a.x}
-                  y1={seg.a.y}
-                  x2={seg.b.x}
-                  y2={seg.b.y}
+                  x1={Number(seg.a.x.toFixed(2))}
+                  y1={Number(seg.a.y.toFixed(2))}
+                  x2={Number(seg.b.x.toFixed(2))}
+                  y2={Number(seg.b.y.toFixed(2))}
                   stroke={seg.hidden ? "#444" : "#111"}
                   strokeWidth={seg.hidden ? 0.7 : 0.9}
                   strokeDasharray={seg.hidden ? "4 3" : undefined}
@@ -1029,10 +1029,10 @@ export function OrthoView({
                 tangentEls.push(
                   <line
                     key={`t-${i}-${segIdx}`}
-                    x1={seg.a.x}
-                    y1={seg.a.y}
-                    x2={seg.b.x}
-                    y2={seg.b.y}
+                    x1={Number(seg.a.x.toFixed(2))}
+                    y1={Number(seg.a.y.toFixed(2))}
+                    x2={Number(seg.b.x.toFixed(2))}
+                    y2={Number(seg.b.y.toFixed(2))}
                     stroke={seg.hidden ? "#444" : stroke}
                     strokeWidth={seg.hidden ? 0.7 : sw}
                     strokeDasharray={seg.hidden ? "4 3" : dash}
@@ -1472,7 +1472,7 @@ export function OrthoView({
             dividerLine = (
               <line
                 key={`${part.id}-endface`}
-                x1={a.x} y1={-a.y} x2={b.x} y2={-b.y}
+                x1={Number(a.x.toFixed(2))} y1={Number((-a.y).toFixed(2))} x2={Number(b.x.toFixed(2))} y2={Number((-b.y).toFixed(2))}
                 stroke={stroke} strokeWidth={sw}
               />
             );
@@ -1484,7 +1484,7 @@ export function OrthoView({
             dividerLine = (
               <line
                 key={`${part.id}-endface`}
-                x1={a.x} y1={-a.y} x2={b.x} y2={-b.y}
+                x1={Number(a.x.toFixed(2))} y1={Number((-a.y).toFixed(2))} x2={Number(b.x.toFixed(2))} y2={Number((-b.y).toFixed(2))}
                 stroke={stroke} strokeWidth={sw}
               />
             );
