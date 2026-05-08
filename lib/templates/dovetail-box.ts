@@ -2,9 +2,11 @@ import type {
   FurnitureDesign,
   FurnitureTemplate,
   OptionSpec,
+  Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
+import { polygonStaves } from "./_builders/polygon-stave-builder";
 
 /** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合 */
 interface BoxPresetConfig {
@@ -30,6 +32,10 @@ const DOVETAIL_BOX_PRESETS: Record<string, BoxPresetConfig> = {
 };
 
 export const dovetailBoxOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "boxShape", label: "盒型", defaultValue: "rect", choices: [
+    { value: "rect", label: "方形 / 長方形（4 鳩尾角，傳統）" },
+    { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
+  ], help: "八角款用 stave 拼接 22.5° 邊接，鳩尾改 mitered-spline；不支援滑入式蓋" },
   { group: "preset", type: "select", key: "boxUse", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
     { value: "jewelry", label: "首飾盒（薄壁+半隱+絨布+磁吸+抽板）" },
@@ -84,9 +90,52 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
+  const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "oct";
 
   // 蓋板與壁同厚，方便共用同款料
   const lidT = withLid ? wallT : 0;
+
+  // 八角盒：跳過 buildBox 直接組多邊形 stave + 圓底盤 + (選用) 圓頂蓋
+  if (boxShape === "oct") {
+    const outerD = Math.min(outerL, outerW);
+    const staves = polygonStaves({ sides: 8, outerD, outerH, wallT, botT, material });
+    const polyBottom: Part = {
+      id: "bottom",
+      nameZh: "八角底板",
+      material,
+      grainDirection: "length",
+      visible: { length: outerD - 2, width: outerD - 2, thickness: botT },
+      origin: { x: 0, y: 0, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    };
+    const polyParts: Part[] = [polyBottom, ...staves];
+    if (withLid) {
+      polyParts.push({
+        id: "lid",
+        nameZh: "八角頂蓋",
+        material,
+        grainDirection: "length",
+        visible: { length: outerD - 2, width: outerD - 2, thickness: lidT },
+        origin: { x: 0, y: outerH - lidT, z: 0 },
+        shape: { kind: "round" },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    return {
+      id: `dovetail-box-oct-${outerD}x${outerH}`,
+      category: "dovetail-box",
+      nameZh: "八角鳩尾盒",
+      overall: { length: outerD, width: outerD, thickness: outerH },
+      parts: polyParts,
+      defaultJoinery: "mitered-spline",
+      useButtJointConvention: false,
+      primaryMaterial: material,
+      notes: `八角鳩尾盒外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。8 段直立壁邊接 22.5° 斜切（45° 內角），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。${withLid ? "頂蓋圓盤從盒口蓋上。" : ""}${withFeltLining ? " 內側 8 壁 + 底貼絨布。" : ""}${edgeChamfer > 0 ? ` 外露邊倒 ${edgeChamfer}mm 防割手。` : ""}`,
+    };
+  }
 
   const built = buildBox({
     outerL,
