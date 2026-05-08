@@ -924,6 +924,45 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
             mortises: [],
           });
         }
+        // 屏心嵌飾擴到 solid 門板（前 3D 視覺最常看到的位置）
+        if (doorStyle === "solid" && panelInlayActive) {
+          const inlayMargin = Math.min(50, doorWidth * 0.18);
+          const inlayThickness = 4;
+          const inlayInnerW = Math.max(50, doorWidth - inlayMargin * 2);
+          const inlayInnerH = Math.max(50, doorHeight - inlayMargin * 2);
+          if (panelInlay === "stone-medallion") {
+            parts.push({
+              id: `layer${i + 1}-${lrId}-door-inlay-stone`,
+              nameZh: `第 ${i + 1} 層${lrLabel}門嵌石屏心`,
+              material,
+              grainDirection: "length",
+              visible: { length: inlayInnerW, width: inlayThickness, thickness: inlayInnerH },
+              origin: { x: doorCX, y: layerCenterY - inlayInnerH / 2, z: doorFrontZ - doorThickness / 2 - inlayThickness / 2 },
+              shape: { kind: "face-rounded", cornerR: Math.round(Math.min(inlayInnerH, inlayInnerW) * 0.3), bendMm: 0, bendAxis: "z" },
+              tenons: [],
+              mortises: [],
+            });
+          } else if (panelInlay === "calligraphy-frame") {
+            const frameW = 10;
+            for (const [partKey, partLen, partThick, dy, dx] of [
+              ["top", inlayInnerW, frameW, inlayInnerH - frameW, 0],
+              ["bot", inlayInnerW, frameW, 0, 0],
+              ["left", frameW, inlayInnerH, 0, -inlayInnerW / 2 + frameW / 2],
+              ["right", frameW, inlayInnerH, 0, inlayInnerW / 2 - frameW / 2],
+            ] as const) {
+              parts.push({
+                id: `layer${i + 1}-${lrId}-door-inlay-frame-${partKey}`,
+                nameZh: `第 ${i + 1} 層${lrLabel}門字框-${partKey}`,
+                material,
+                grainDirection: "length",
+                visible: { length: partLen, width: inlayThickness, thickness: partThick },
+                origin: { x: doorCX + dx, y: layerCenterY - inlayInnerH / 2 + dy, z: doorFrontZ - doorThickness / 2 - inlayThickness / 2 },
+                tenons: [],
+                mortises: [],
+              });
+            }
+          }
+        }
         // 格扇門 / 玻璃門：4 邊外框（木框）
         if (hasOuterFrame) {
           const frameInsetX = muntinW / 2;
@@ -1284,7 +1323,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 牙頭裝飾（spandrel）：立柱跟牙條交角的小三角雕飾
   // ruyi 如意紋（明式）尖頂高弧、cloud-head 雲頭（清式）厚實圓弧
-  if (spandrelStyle !== "none") {
+  // 圓角櫃不該有牙頭（裝飾構件衝突明式四大櫃形 sleek 形式）
+  if (spandrelStyle !== "none" && !isRoundCorner) {
     // ruyi 如意：尖頂高弧（如意紋上端尖凸），cornerR 大、topArch 強、bottomArch 也凹下露出花邊
     // cloud-head 雲頭：圓潤厚實（卷雲），cornerR 小、topArch 中等、bottomArch 不凹
     const spandrelShape: Part["shape"] =
@@ -1341,7 +1381,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       standingBraceStyle === "scroll"
         ? { kind: "face-rounded", cornerR: 35, bendMm: 0, bendAxis: "z" }
         : { kind: "face-rounded", cornerR: 50, bendMm: 0, bendAxis: "z" };
-    const braceThickness = Math.max(15, skirtThickness - 4);
+    // 厚度從 skirtThickness-4（薄片）拉到 skirtThickness+8（25mm 起跳）
+    // 才看得見——3D 透視 3/4 角度站牙若 < 20mm 會變一條垂直細線
+    const braceThickness = Math.max(25, skirtThickness + 8);
     const braceOuterX = postX + postSize / 2 + 1;
     const braceOuterZ = postZ + postSize / 2 + 1;
     // 沿 Z 軸方向的站牙（左右側面）—4 個
@@ -1387,7 +1429,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // ── 絛環板：頂蓋下方一條裝飾橫帶（清式櫃靈魂橫條）
   // 位置：上抹頂面之上、頂蓋底面之下的薄帶（避開背板 Y 區間）
   // 只裝前面（背面有背板擋住沒人看；之前裝後面會跟背板重疊）
-  if (friezePanel !== "none") {
+  // 頂箱櫃模式：絛環板下櫃看不到（被頂箱底蓋遮住），只裝頂箱底蓋下方
+  // 但本輪先把絛環板鎖在「下櫃 upperRail」上方，topBox 模式下絛環板改畫
+  // 在頂箱頂部下方（之後再支援，本輪先不畫絛環板於頂箱模式）
+  if (friezePanel !== "none" && !isCompound) {
     const friezeThickness = Math.max(10, panelThickness);
     const friezeY = upperRailY;
     const friezeLen = 2 * (postX - postSize / 2) - 4;
@@ -1407,8 +1452,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 都用小厚度凸出薄板 3mm 表達裝飾紋
     if (friezePanel === "lattice") {
       // 田字格：1 條中央橫 + 4 條等分直
-      const overlayThickness = 3;
-      const overlayBarT = 8;
+      // 厚度從 3mm 拉到 6mm、櫺寬從 8mm 拉到 12mm，3D 透視才看得清
+      const overlayThickness = 6;
+      const overlayBarT = 12;
       const overlayZ = friezeZ - friezeThickness / 2 - overlayThickness / 2;
       // 中央橫桿
       parts.push({
