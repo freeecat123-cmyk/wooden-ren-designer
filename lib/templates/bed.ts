@@ -315,10 +315,8 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
-    origin: { x: headboardX, y: headboardCenterY - headboardPlateHeight / 2 + headboardPlateHeight / 2, z: 0 },
-    // rotation: x=π/2 把 length 軸對到 Z；現在我們要 length 對到 Z 軸（左右），所以 y=π/2
-    // 用 y=π/2 旋轉：local +X → world +Z，local +Z → world -X
-    rotation: { x: 0, y: Math.PI / 2, z: 0 },
+    origin: { x: headboardX, y: headboardPlateHeight / 2, z: 0 },
+    rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
     tenons: [
       // 兩端進頭腳側面：榫頭沿 Z 軸（頭板長度方向）
       // headboard 在腳的 sideRailCenterY 高度位置進腳（榫高 = headboardTenonStd.width）
@@ -363,7 +361,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: headLegInnerSpan, width: footPlateHeight, thickness: footboardThickness },
       origin: { x: apronEdgeX, y: footPlateHeight / 2, z: 0 },
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
       tenons: [
         {
           position: "start",
