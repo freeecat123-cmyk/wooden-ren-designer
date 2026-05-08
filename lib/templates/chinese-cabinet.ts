@@ -411,10 +411,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const postTopY = height - topThickness;
   const postBottomY = 0;
   const postHeight = postTopY;
-  // 圓角櫃側腳量：立柱底端往外擴 splayMm
-  const splayMmGlobal = isRoundCorner
-    ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
-    : 0;
+  // 圓角櫃側腳暫不啟用（frame 同步斜需要重構 rails 也跟著，本輪先 0）
+  const splayMmGlobal = 0;
+  void splayAngleDeg;
+  void splayMmGlobal;
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -491,16 +491,14 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const lowerRailCY = skirtHeight + railWidth / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
-      // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
-      // splayMm = tan(splayAngle) × postHeight；底端往 sign(c.x), sign(c.z) 方向偏
-      const splayMmRound = isRoundCorner
-        ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
-        : 0;
+      // 圓角櫃：之前嘗試立柱 splayed + frame tapered shape，但 frame 在 3D 預設
+      // camera 看不出 trapezoid（太微妙），rails 也沒跟著斜留下縫。改用「立柱
+      // 四角倒圓 + 加大噴面」當圓角櫃視覺辨識，立柱保持直立讓 frame 完美對齊。
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
-            kind: "splayed",
-            dxMm: sx * splayMmRound,
-            dzMm: sz * splayMmRound,
+            kind: "chamfered-edges",
+            chamferMm: Math.round(postSize * 0.4),
+            style: "rounded",
           }
         : effectiveLegShape === "box"
           ? undefined
