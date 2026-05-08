@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
@@ -107,13 +108,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       .single();
     profile = data;
   }
+  const isAdmin = isAdminEmail(user?.email, getServerAdminEmails());
   if (
+    !isAdmin &&
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory)
   ) {
     redirect(`/pricing?locked=${type}`);
   }
-  const canUseDesignerMode = getPlanFeatures(profile).canUseDesignerMode;
+  const canUseDesignerMode = isAdmin || getPlanFeatures(profile).canUseDesignerMode;
 
   if (!entry.template) {
     return (

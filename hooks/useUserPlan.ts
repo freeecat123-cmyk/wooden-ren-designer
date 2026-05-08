@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getEffectivePlan,
   getPlanFeatures,
+  PLAN_FEATURES,
   type PlanFeatures,
   type PlanId,
   type UserPlanProfile,
 } from "@/lib/permissions";
+import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
 
 interface UserPlanState {
   profile: UserPlanProfile | null;
@@ -62,8 +64,9 @@ export function useUserPlan(): UserPlanState {
     };
   }, [user, authLoading]);
 
-  const plan = getEffectivePlan(profile);
-  const features = getPlanFeatures(profile);
+  const isAdmin = isAdminEmail(user?.email, getPublicAdminEmails());
+  const plan = isAdmin ? "lifetime" : getEffectivePlan(profile);
+  const features = isAdmin ? PLAN_FEATURES.lifetime : getPlanFeatures(profile);
   return {
     profile,
     plan,
