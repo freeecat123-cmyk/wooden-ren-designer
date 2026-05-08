@@ -1506,18 +1506,26 @@ export function OrthoView({
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
         if (hidden) {
+          // 改畫成 4 條獨立 line + 同步 dashoffset（不再用 single rect path）
+          // 同 Y / 同 X 的多 part hidden 邊就能 phase 對齊不鋸齒
+          const ry = view === "top" ? -(r.y + r.h) : -r.y - r.h;
+          const PERIOD = 7; // dasharray "4 3"
+          const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
           return (
-            <rect
-              key={part.id}
-              x={r.x}
-              y={view === "top" ? -(r.y + r.h) : -r.y - r.h}
-              width={r.w}
-              height={r.h}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={sw}
-              strokeDasharray={dash}
-            />
+            <g key={part.id}>
+              <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(r.x)} fill="none" />
+              <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(ry)} fill="none" />
+              <line x1={r.x} y1={ry + r.h} x2={r.x + r.w} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(r.x)} fill="none" />
+              <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(ry)} fill="none" />
+            </g>
           );
         }
         const corners = [
