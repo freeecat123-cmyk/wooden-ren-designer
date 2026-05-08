@@ -350,6 +350,14 @@ export type OptionGroup =
   | "door"
   | "back"
   | "misc"
+  // chinese-cabinet 第一性原理重整新增：
+  | "preset"        // 配置預設一鍵套
+  | "form"          // 形制 / 比例（cabinetCorner / compoundMode / proportionStyle）
+  | "panel"         // 板心 / 背板細節
+  | "rail"          // 邊抹（框條尺寸）
+  | "skirt"         // 牙條 + 牙頭 + 站牙 + 絛環（框外裝飾）
+  | "balustrade"    // 万歷櫃圍欄
+  | "layers"        // 分層配置
   // 三層櫃體：上中下
   | "zone-top"
   | "zone-mid"

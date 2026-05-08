@@ -79,7 +79,7 @@ const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
 
 export const chineseCabinetOptions: OptionSpec[] = [
   // 配置預設（最頂端，影響後續 layer 設定）
-  { group: "leg", type: "select", key: "cabinetPreset", label: "配置預設", defaultValue: "custom", choices: [
+  { group: "preset", type: "select", key: "cabinetPreset", label: "配置預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（依下方層配置）" },
     { value: "bookshelf", label: "書櫃（5 層全開放）" },
     { value: "cupboard", label: "碗櫥（門 + 抽屜 + 門）" },
@@ -92,21 +92,21 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "wanli-cabinet", label: "万歷櫃（上敞下櫃 + 直櫺欄，書房經典）" },
   ], help: "選擇預設可一鍵套用層配置 + 形制 + 比例風格。會蓋過下方對應設定，但保留尺寸 / 細部" },
   // 頂箱櫃 compound mode：上下兩段堆疊（明清四件櫃 / 頂豎櫃）
-  { group: "leg", type: "select", key: "compoundMode", label: "形制", defaultValue: "single", choices: [
+  { group: "form", type: "select", key: "compoundMode", label: "形制", defaultValue: "single", choices: [
     { value: "single", label: "單段櫃（標準方角櫃）" },
     { value: "topBox", label: "頂箱櫃（上小下大兩段堆疊）" },
   ], help: "頂箱櫃 = 明清主臥/廳堂主角，下櫃 + 上頂箱兩段，分件運輸。預設 = 單段" },
-  { group: "leg", type: "number", key: "topBoxRatio", label: "頂箱佔總高比例", defaultValue: 0.3, min: 0.2, max: 0.45, step: 0.05, help: "頂箱高度佔總高的比例（0.25 偏低典雅、0.4 接近對半）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
-  { group: "leg", type: "number", key: "topBoxLayers", label: "頂箱層數", defaultValue: 1, min: 1, max: 2, step: 1, help: "頂箱內部層數（1=純對開門、2=門+小抽屜）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
+  { group: "form", type: "number", key: "topBoxRatio", label: "頂箱佔總高比例", defaultValue: 0.3, min: 0.2, max: 0.45, step: 0.05, help: "頂箱高度佔總高的比例（0.25 偏低典雅、0.4 接近對半）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
+  { group: "form", type: "number", key: "topBoxLayers", label: "頂箱層數", defaultValue: 1, min: 1, max: 2, step: 1, help: "頂箱內部層數（1=純對開門、2=門+小抽屜）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
   // 圓角櫃形制：上窄下寬側腳 + 噴面 + 木軸門（明式四大櫃形之一）
-  { group: "leg", type: "select", key: "cabinetCorner", label: "櫃角形制", defaultValue: "square", choices: [
+  { group: "form", type: "select", key: "cabinetCorner", label: "櫃角形制", defaultValue: "square", choices: [
     { value: "square", label: "方角櫃（直立柱、銅合頁、直角）" },
     { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
   ], help: "圓角櫃 = 明式四大櫃形之一，靠側腳（splay）+ 噴面（cap overhang）+ 木軸（無金屬合頁）三件套，比方角更早期文人雅" },
-  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1.0, min: 0.3, max: 3.0, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度。frame（門/側板/背板）已套 tapered shape 同步斜不留縫。0.5° 微噴 / 1° 標準 / 2° 明顯 / 3° 極限。", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
-  { group: "leg", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "form", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1.0, min: 0.3, max: 3.0, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度。frame（門/側板/背板）已套 tapered shape 同步斜不留縫。0.5° 微噴 / 1° 標準 / 2° 明顯 / 3° 極限。", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "form", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
-  { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
+  { group: "form", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
     { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
     { value: "qing", label: "清式（矮寬 H:W ≈ 1.2）" },
     { value: "free", label: "自訂（依整體尺寸輸入）" },
@@ -126,117 +126,117 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "hoofMm", label: "馬蹄高 (mm)", defaultValue: 80, min: 50, max: 140, step: 5, unit: "mm", help: "馬蹄區段從柱底往上的高度", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
   { group: "leg", type: "number", key: "hoofScale", label: "馬蹄外撇倍率", defaultValue: 1.35, min: 1.05, max: 1.6, step: 0.05, help: "腳趾相對直料寬的倍率（1=不撇、1.5=撇半倍）", dependsOn: { key: "legShape", oneOf: ["auto", "inward-hoof", "outward-hoof"] } },
   // 背板
-  { group: "apron", type: "select", key: "backPanelStyle", label: "背板樣式", defaultValue: "framed", choices: [
+  { group: "panel", type: "select", key: "backPanelStyle", label: "背板樣式", defaultValue: "framed", choices: [
     { value: "framed", label: "框板（上下抹+板心）" },
     { value: "singleBoard", label: "整片實木板" },
   ], help: "框板 = 傳統明式做法，整片 = 簡化做法" },
   // 板心樣式
-  { group: "apron", type: "select", key: "panelStyle", label: "板心樣式", defaultValue: "flat", choices: [
+  { group: "panel", type: "select", key: "panelStyle", label: "板心樣式", defaultValue: "flat", choices: [
     { value: "flat", label: "平板心" },
     { value: "raised", label: "凸面板心（中央凸起 5mm）" },
   ], help: "凸面板心 = 板心邊緣斜削、中央凸起，視覺層次" },
   // 亮格櫃 / 万歷櫃：頂層敞格 + 圍欄（書房經典「上敞放古玩+下櫃放書」）
-  { group: "apron", type: "select", key: "balustradeStyle", label: "敞格圍欄", defaultValue: "none", choices: [
+  { group: "balustrade", type: "select", key: "balustradeStyle", label: "敞格圍欄", defaultValue: "none", choices: [
     { value: "none", label: "無圍欄（標準櫃）" },
     { value: "vertical", label: "直櫺欄（垂直細櫺杆 5 根）" },
     { value: "scroll", label: "卷草欄（雲頭曲線櫺）" },
   ], help: "圍欄裝在最上層 shelf 前緣，3 面圍——上方變敞格放古玩。配合 layerCount 把最上層設為 shelf 即成万歷櫃" },
-  { group: "apron", type: "number", key: "balustradeHeight", label: "圍欄高 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", dependsOn: { key: "balustradeStyle", notIn: ["none"] } },
+  { group: "balustrade", type: "number", key: "balustradeHeight", label: "圍欄高 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", dependsOn: { key: "balustradeStyle", notIn: ["none"] } },
   // 屏心嵌飾：板心中央嵌石 / 嵌格 / 留字框（明清板心開光裝飾）
-  { group: "apron", type: "select", key: "panelInlay", label: "板心嵌飾（屏心）", defaultValue: "none", choices: [
+  { group: "panel", type: "select", key: "panelInlay", label: "板心嵌飾（屏心）", defaultValue: "none", choices: [
     { value: "none", label: "無嵌飾（純板心）" },
     { value: "stone-medallion", label: "嵌石開光（圓 / 方框中央嵌大理石）" },
     { value: "latticed-center", label: "格紋中心（中央嵌田字格）" },
     { value: "calligraphy-frame", label: "留字框（中央留出書法 / 對聯框）" },
   ], help: "明清板心常嵌大理石 / 雲石 / 瘿木做圓形開光，或中央格紋裝飾。只在 panelStyle=flat 時生效", dependsOn: { key: "panelStyle", oneOf: ["flat"] } },
   // 邊抹（rails）
-  { group: "apron", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
-  { group: "apron", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
+  { group: "rail", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
+  { group: "rail", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
   // 板心
-  { group: "apron", type: "number", key: "panelThickness", label: "板心厚 (mm)", defaultValue: 12, min: 8, max: 18, step: 1, unit: "mm", help: "嵌入框內側槽，浮放（不黏死讓木材吐縮）" },
+  { group: "panel", type: "number", key: "panelThickness", label: "板心厚 (mm)", defaultValue: 12, min: 8, max: 18, step: 1, unit: "mm", help: "嵌入框內側槽，浮放（不黏死讓木材吐縮）" },
   // 頂蓋
   { group: "top", type: "number", key: "topThickness", label: "頂蓋厚 (mm)", defaultValue: 22, min: 18, max: 35, step: 1, unit: "mm" },
   { group: "top", type: "number", key: "topOverhang", label: "頂蓋外伸 (mm)", defaultValue: 20, min: 0, max: 40, step: 5, unit: "mm", help: "頂蓋四周外伸量" },
   // 牙條
-  { group: "stretcher", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
-  { group: "stretcher", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
-  { group: "stretcher", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "auto", choices: [
+  { group: "skirt", type: "number", key: "skirtHeight", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 120, step: 5, unit: "mm", help: "底框下方裝飾牙條" },
+  { group: "skirt", type: "number", key: "skirtThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, unit: "mm" },
+  { group: "skirt", type: "select", key: "skirtStyle", label: "牙條樣式", defaultValue: "auto", choices: [
     { value: "auto", label: "依比例風格（明=壼門、清=雲頭）" },
     { value: "straight", label: "直線素牙（最簡）" },
     { value: "arched", label: "壼門（底邊向下凹弧）" },
     { value: "cloud-head", label: "雲頭（上下都起翹）" },
   ], help: "明清家具靈魂裝飾——壼門/雲頭比直素牙更有「中式」感" },
-  { group: "stretcher", type: "select", key: "spandrelStyle", label: "牙頭裝飾", defaultValue: "auto", choices: [
+  { group: "skirt", type: "select", key: "spandrelStyle", label: "牙頭裝飾", defaultValue: "auto", choices: [
     { value: "auto", label: "依比例風格（明=如意、清=雲頭、自訂=無）" },
     { value: "none", label: "無牙頭" },
     { value: "cloud-head", label: "雲頭牙頭（清式厚實）" },
     { value: "ruyi", label: "如意牙頭（明式典雅）" },
   ], help: "牙頭 = 立柱跟牙條交角的小三角雕飾，雲頭/如意是中式櫃靈魂" },
-  { group: "stretcher", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "spandrelSize", label: "牙頭尺寸 (mm)", defaultValue: 80, min: 50, max: 160, step: 5, unit: "mm", help: "牙頭沿立柱往牙條延伸的長度（高度跟著牙條走）", dependsOn: { key: "spandrelStyle", notIn: ["none"] } },
   // 站牙：立柱底端內側朝內延伸的三角穩定撐木（明清文人櫃站立感）
-  { group: "stretcher", type: "select", key: "standingBraceStyle", label: "站牙", defaultValue: "none", choices: [
+  { group: "skirt", type: "select", key: "standingBraceStyle", label: "站牙", defaultValue: "none", choices: [
     { value: "none", label: "無站牙" },
     { value: "scroll", label: "卷草站牙（明式典雅）" },
     { value: "cloud", label: "雲頭站牙（清式厚實）" },
   ], help: "站牙 = 立柱底外側朝外的三角撐木，補強站立感。spandrelStyle=ruyi 時自動隱藏避免擠在一起" },
-  { group: "stretcher", type: "number", key: "standingBraceSize", label: "站牙尺寸 (mm)", defaultValue: 100, min: 60, max: 200, step: 10, unit: "mm", help: "站牙沿立柱往上的高度", dependsOn: { key: "standingBraceStyle", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "standingBraceSize", label: "站牙尺寸 (mm)", defaultValue: 100, min: 60, max: 200, step: 10, unit: "mm", help: "站牙沿立柱往上的高度", dependsOn: { key: "standingBraceStyle", notIn: ["none"] } },
   // 絛環板：頂蓋下方一條裝飾橫帶（清式櫃常見「華而不空」橫條）
-  { group: "stretcher", type: "select", key: "friezePanel", label: "絛環板", defaultValue: "none", choices: [
+  { group: "skirt", type: "select", key: "friezePanel", label: "絛環板", defaultValue: "none", choices: [
     { value: "none", label: "無絛環板" },
     { value: "lattice", label: "格紋絛環（田字 / 十字格）" },
     { value: "openwork", label: "透雕絛環（雲紋 / 卷草）" },
   ], help: "絛環板 = 頂蓋下方 30–60mm 的薄板，內嵌 lattice / 透雕，清式櫃裝飾語彙" },
-  { group: "stretcher", type: "number", key: "friezeHeight", label: "絛環板高 (mm)", defaultValue: 50, min: 30, max: 80, step: 5, unit: "mm", dependsOn: { key: "friezePanel", notIn: ["none"] } },
+  { group: "skirt", type: "number", key: "friezeHeight", label: "絛環板高 (mm)", defaultValue: 50, min: 30, max: 80, step: 5, unit: "mm", dependsOn: { key: "friezePanel", notIn: ["none"] } },
   // 層數（1-8）
-  { group: "stretcher", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
-  { group: "stretcher", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
-  { group: "stretcher", type: "select", key: "layer2Type", label: "第 2 層", defaultValue: "door", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "select", key: "layer5Type", label: "第 5 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
-  { group: "stretcher", type: "select", key: "layer6Type", label: "第 6 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
-  { group: "stretcher", type: "select", key: "layer7Type", label: "第 7 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [7, 8] } },
-  { group: "stretcher", type: "select", key: "layer8Type", label: "第 8 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [8] } },
+  { group: "layers", type: "number", key: "layerCount", label: "分層數", defaultValue: 3, min: 1, max: 8, step: 1, help: "由下往上 1, 2, 3...，最多 8 層" },
+  { group: "layers", type: "select", key: "layer1Type", label: "第 1 層（最下層）", defaultValue: "drawer", choices: LAYER_TYPE_CHOICES },
+  { group: "layers", type: "select", key: "layer2Type", label: "第 2 層", defaultValue: "door", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "select", key: "layer3Type", label: "第 3 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "select", key: "layer4Type", label: "第 4 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
+  { group: "layers", type: "select", key: "layer5Type", label: "第 5 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
+  { group: "layers", type: "select", key: "layer6Type", label: "第 6 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
+  { group: "layers", type: "select", key: "layer7Type", label: "第 7 層", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [7, 8] } },
+  { group: "layers", type: "select", key: "layer8Type", label: "第 8 層（最上層）", defaultValue: "shelf", choices: LAYER_TYPE_CHOICES, dependsOn: { key: "layerCount", oneOf: [8] } },
   // 各層高度（mm，0 = 自動等分，> 0 = 指定該層高度）
-  { group: "stretcher", type: "number", key: "layer1HeightMm", label: "第 1 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", help: "0 = 自動等分；其他層加總過大會自動縮放" },
-  { group: "stretcher", type: "number", key: "layer2HeightMm", label: "第 2 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "number", key: "layer3HeightMm", label: "第 3 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "number", key: "layer4HeightMm", label: "第 4 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
-  { group: "stretcher", type: "number", key: "layer5HeightMm", label: "第 5 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
-  { group: "stretcher", type: "number", key: "layer6HeightMm", label: "第 6 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
-  { group: "stretcher", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
-  { group: "stretcher", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
+  { group: "layers", type: "number", key: "layer1HeightMm", label: "第 1 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", help: "0 = 自動等分；其他層加總過大會自動縮放" },
+  { group: "layers", type: "number", key: "layer2HeightMm", label: "第 2 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [2, 3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer3HeightMm", label: "第 3 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [3, 4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer4HeightMm", label: "第 4 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [4, 5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer5HeightMm", label: "第 5 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [5, 6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer6HeightMm", label: "第 6 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [6, 7, 8] } },
+  { group: "layers", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
+  { group: "layers", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
-  { group: "stretcher", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
-  { group: "stretcher", type: "select", key: "doorStyle", label: "門板樣式", defaultValue: "solid", choices: [
+  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
+  { group: "door", type: "select", key: "doorStyle", label: "門板樣式", defaultValue: "solid", choices: [
     { value: "solid", label: "整片實木板" },
     { value: "lattice-cross", label: "格扇門：田字格（橫直櫺）" },
     { value: "lattice-lantern", label: "格扇門：燈籠錦（米字斜櫺）" },
     { value: "glass", label: "玻璃門（木框 + 中央玻璃片）" },
     { value: "glass-lattice", label: "玻璃格扇門（田字格木櫺後襯玻璃）" },
   ], help: "格扇門 = 明清書櫃/博古架靈魂；玻璃門 = 博古架/展示櫃常見" },
-  { group: "stretcher", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
+  { group: "door", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
     { value: "strip", label: "長條銅片" },
   ], help: "銅件是中式櫃靈魂裝飾" },
   // 抽屜細部
-  { group: "stretcher", type: "select", key: "drawerSplit", label: "抽屜分格", defaultValue: "single", choices: [
+  { group: "drawer", type: "select", key: "drawerSplit", label: "抽屜分格", defaultValue: "single", choices: [
     { value: "single", label: "單格" },
     { value: "double", label: "雙格（中央分隔）" },
     { value: "triple", label: "三格" },
   ], help: "抽屜面分割線（多格抽屜常見）" },
-  { group: "stretcher", type: "select", key: "drawerPullType", label: "抽屜拉手", defaultValue: "round-brass", choices: [
+  { group: "drawer", type: "select", key: "drawerPullType", label: "抽屜拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
     { value: "strip", label: "長條銅片" },
   ] },
-  { group: "stretcher", type: "select", key: "drawerInternalGrid", label: "抽屜內格", defaultValue: "none", choices: [
+  { group: "drawer", type: "select", key: "drawerInternalGrid", label: "抽屜內格", defaultValue: "none", choices: [
     { value: "none", label: "不分格（單格）" },
     { value: "divided-2", label: "縱向分隔（2 格）" },
     { value: "divided-4", label: "縱橫分隔（田字 4 格）" },
   ], help: "抽屜盒內加分隔板，從上方俯視看得到（茶葉/茶罐/筆收納分裝）" },
-  { group: "stretcher", type: "select", key: "hiddenDrawerLayer", label: "暗抽層", defaultValue: "none", choices: [
+  { group: "layers", type: "select", key: "hiddenDrawerLayer", label: "暗抽層", defaultValue: "none", choices: [
     { value: "none", label: "無暗抽" },
     { value: "1", label: "第 1 層為暗抽" },
     { value: "2", label: "第 2 層為暗抽" },
@@ -248,7 +248,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "8", label: "第 8 層為暗抽" },
   ], help: "暗抽 = 抽屜面跟相鄰門板齊平+無拉手+無分格（外觀看不出是抽屜）" },
   // 開放層板細部
-  { group: "stretcher", type: "number", key: "shelfExtraCount", label: "層內活動板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "每個 shelf 層內額外加幾片活動層板" },
+  { group: "layers", type: "number", key: "shelfExtraCount", label: "層內活動板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "每個 shelf 層內額外加幾片活動層板" },
 ];
 
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {

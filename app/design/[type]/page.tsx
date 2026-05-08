@@ -707,8 +707,12 @@ const GROUP_META: Record<
   string,
   { label: string; icon: string; bar: string }
 > = {
+  preset:     { label: "配置預設",     icon: "⭐", bar: "bg-yellow-400"  },
+  form:       { label: "形制 / 比例",   icon: "🏛️", bar: "bg-stone-500"   },
   structure:  { label: "櫃體結構 / 板材",icon: "🏗️", bar: "bg-stone-400"   },
   top:        { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
+  panel:      { label: "板心 / 背板",   icon: "▣", bar: "bg-teal-500"    },
+  rail:       { label: "邊抹（框條）",  icon: "═", bar: "bg-amber-500"   },
   // 三層櫃：上中下（從上到下排序）
   "zone-top": { label: "上層",         icon: "▲", bar: "bg-sky-500"     },
   "zone-mid": { label: "中層",         icon: "■", bar: "bg-sky-400"     },
@@ -717,10 +721,13 @@ const GROUP_META: Record<
   "col-left":  { label: "左欄",        icon: "◀", bar: "bg-violet-500"  },
   "col-mid":   { label: "中欄",        icon: "●", bar: "bg-violet-400"  },
   "col-right": { label: "右欄",        icon: "▶", bar: "bg-violet-300"  },
+  layers:     { label: "分層配置",     icon: "▤", bar: "bg-indigo-400"  },
   door:       { label: "門板",         icon: "▯", bar: "bg-fuchsia-400" },
   drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
   leg:        { label: "底座 / 桌椅腳",  icon: "🦵", bar: "bg-rose-400"    },
   apron:      { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
+  skirt:      { label: "牙條 / 牙頭裝飾",icon: "〰", bar: "bg-orange-400" },
+  balustrade: { label: "敞格圍欄",     icon: "┃", bar: "bg-pink-400"    },
   stretcher:  { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
   back:       { label: "椅背",         icon: "◧", bar: "bg-teal-400"    },
   misc:       { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
@@ -733,17 +740,24 @@ const GROUP_META: Record<
 //  4. 底座 — 高度、樣式
 //  5. 桌椅專用：top / apron / stretcher / back
 const GROUP_ORDER = [
-  "structure",
+  "preset",       // 一鍵套配置
+  "form",         // 高階形制（明清比例 / 圓角櫃 / 頂箱櫃）
+  "structure",    // 櫃體結構
   "zone-top",
   "zone-mid",
   "zone-bot",
   "col-left",
   "col-mid",
   "col-right",
+  "leg",          // 立柱 / 桌椅腳
+  "top",          // 頂蓋 / 桌面
+  "panel",        // 板心 / 背板
+  "rail",         // 邊抹（框條）
+  "skirt",        // 牙條 + 牙頭 + 站牙 + 絛環
+  "balustrade",   // 敞格圍欄
+  "layers",       // 分層配置
   "door",
   "drawer",
-  "leg",
-  "top",
   "apron",
   "stretcher",
   "back",
