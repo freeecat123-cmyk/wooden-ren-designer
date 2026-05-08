@@ -6,7 +6,38 @@ import type {
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 
+/** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合 */
+interface BoxPresetConfig {
+  wallThickness?: number;
+  bottomThickness?: number;
+  dovetailStyle?: string;
+  lidType?: string;
+  withFeltLining?: boolean;
+  withMagneticClosure?: boolean;
+  withInnerTray?: boolean;
+}
+const DOVETAIL_BOX_PRESETS: Record<string, BoxPresetConfig> = {
+  // 首飾盒：薄壁、半隱鳩尾、絨布、磁吸、jewelry 抽板
+  jewelry: { wallThickness: 10, bottomThickness: 6, dovetailStyle: "half-blind", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, withInnerTray: true },
+  // 雪茄盒：較厚壁（保濕）、嵌入式蓋、絨布
+  cigar: { wallThickness: 15, bottomThickness: 8, dovetailStyle: "half-blind", lidType: "rabbeted", withFeltLining: true },
+  // 茶葉盒：厚壁防潮、滑入式蓋、無內襯
+  tea: { wallThickness: 12, bottomThickness: 8, dovetailStyle: "through", lidType: "sliding" },
+  // 手錶盒：薄壁、鉸鏈蓋、絨布、磁吸
+  watch: { wallThickness: 10, bottomThickness: 6, dovetailStyle: "half-blind", lidType: "hinged", withFeltLining: true, withMagneticClosure: true },
+  // 文件盒：厚壁、鉸鏈蓋、無內襯
+  document: { wallThickness: 14, bottomThickness: 8, dovetailStyle: "through", lidType: "hinged" },
+};
+
 export const dovetailBoxOptions: OptionSpec[] = [
+  { group: "preset", type: "select", key: "boxUse", label: "使用情境預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    { value: "jewelry", label: "首飾盒（薄壁+半隱+絨布+磁吸+抽板）" },
+    { value: "cigar", label: "雪茄盒（厚壁保濕+嵌入式蓋+絨布）" },
+    { value: "tea", label: "茶葉盒（厚壁+滑入式+無內襯）" },
+    { value: "watch", label: "手錶盒（薄壁+鉸鏈+絨布+磁吸）" },
+    { value: "document", label: "文件盒（厚壁+鉸鏈+無內襯）" },
+  ], help: "一鍵套適合該用途的壁厚 / 鳩尾 / 蓋型 / 內襯組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "checkbox", key: "withLid", label: "加蓋", defaultValue: true, help: "上方加滑入式或鉸鏈式蓋板" },
@@ -34,14 +65,24 @@ export const dovetailBoxOptions: OptionSpec[] = [
 export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
   const o = dovetailBoxOptions;
-  const wallT = getOption<number>(input, opt(o, "wallThickness"));
-  const botT = getOption<number>(input, opt(o, "bottomThickness"));
+  const boxUse = getOption<string>(input, opt(o, "boxUse"));
+  const preset = DOVETAIL_BOX_PRESETS[boxUse];
+  // preset 只蓋仍是 default 的 option
+  const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
+  const wallT = wallTRaw === 12 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
+  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
   const withLid = getOption<boolean>(input, opt(o, "withLid"));
-  const dovetailStyle = getOption<string>(input, opt(o, "dovetailStyle"));
-  const lidType = getOption<string>(input, opt(o, "lidType"));
-  const withFeltLining = getOption<boolean>(input, opt(o, "withFeltLining"));
-  const withMagneticClosure = getOption<boolean>(input, opt(o, "withMagneticClosure"));
-  const withInnerTray = getOption<boolean>(input, opt(o, "withInnerTray"));
+  const dovetailStyleRaw = getOption<string>(input, opt(o, "dovetailStyle"));
+  const dovetailStyle = dovetailStyleRaw === "through" && preset?.dovetailStyle ? preset.dovetailStyle : dovetailStyleRaw;
+  const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
+  const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
+  const withFeltLiningRaw = getOption<boolean>(input, opt(o, "withFeltLining"));
+  const withFeltLining = withFeltLiningRaw === false && preset?.withFeltLining !== undefined ? preset.withFeltLining : withFeltLiningRaw;
+  const withMagneticClosureRaw = getOption<boolean>(input, opt(o, "withMagneticClosure"));
+  const withMagneticClosure = withMagneticClosureRaw === false && preset?.withMagneticClosure !== undefined ? preset.withMagneticClosure : withMagneticClosureRaw;
+  const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
+  const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   // 蓋板與壁同厚，方便共用同款料
