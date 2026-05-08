@@ -62,6 +62,13 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "display-cabinet", label: "博古架（玻璃格扇門 × 4 層）" },
     { value: "glass-bookshelf", label: "玻璃書櫃（5 層全玻璃門）" },
   ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定。博古架/玻璃書櫃自動帶玻璃門" },
+  // 頂箱櫃 compound mode：上下兩段堆疊（明清四件櫃 / 頂豎櫃）
+  { group: "leg", type: "select", key: "compoundMode", label: "形制", defaultValue: "single", choices: [
+    { value: "single", label: "單段櫃（標準方角櫃）" },
+    { value: "topBox", label: "頂箱櫃（上小下大兩段堆疊）" },
+  ], help: "頂箱櫃 = 明清主臥/廳堂主角，下櫃 + 上頂箱兩段，分件運輸。預設 = 單段" },
+  { group: "leg", type: "number", key: "topBoxRatio", label: "頂箱佔總高比例", defaultValue: 0.3, min: 0.2, max: 0.45, step: 0.05, help: "頂箱高度佔總高的比例（0.25 偏低典雅、0.4 接近對半）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
+  { group: "leg", type: "number", key: "topBoxLayers", label: "頂箱層數", defaultValue: 1, min: 1, max: 2, step: 1, help: "頂箱內部層數（1=純對開門、2=門+小抽屜）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
   // 比例風格（一鍵切換明清整體比例）
   { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
     { value: "ming", label: "明式（瘦高 H:W ≈ 1.8）" },
@@ -182,7 +189,18 @@ export const chineseCabinetOptions: OptionSpec[] = [
 
 export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const o = chineseCabinetOptions;
-  const { length, width, height, material } = input;
+  const { length, width, material } = input;
+  const heightInput = input.height;
+  const compoundMode = getOption<string>(input, opt(o, "compoundMode"));
+  const topBoxRatio = getOption<number>(input, opt(o, "topBoxRatio"));
+  const topBoxLayers = getOption<number>(input, opt(o, "topBoxLayers"));
+  // 頂箱櫃模式：總高切上下兩段，下櫃用 effectiveHeight 走既有渲染，
+  // 上頂箱另外堆一段 frame-and-panel。waistGap = 上下櫃之間的縫隙（傳統做法
+  // 是兩段獨立分件、垂直堆疊但沒接觸——畫 5mm gap 視覺區分）
+  const isCompound = compoundMode === "topBox";
+  const waistGap = isCompound ? 5 : 0;
+  const topBoxHeight = isCompound ? Math.round(heightInput * topBoxRatio) : 0;
+  const height = isCompound ? heightInput - topBoxHeight - waistGap : heightInput;
   const proportionStyle = getOption<string>(input, opt(o, "proportionStyle"));
   const postSizeRaw = getOption<number>(input, opt(o, "postSize"));
   const railWidthRaw = getOption<number>(input, opt(o, "railWidth"));
@@ -1082,11 +1100,179 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
   const layerSummary = layerTypes.map((t, i) => `${i + 1}=${t === "door" ? "對開門" : t === "drawer" ? "抽屜" : "層板"}`).join(" / ");
 
+  // ── 頂箱櫃：在主櫃頂蓋之上堆一段縮小版 frame-and-panel
+  // 上頂箱結構：4 立柱（短）+ 4 面 上下抹+板心 + 頂蓋 + 1-2 層門
+  // Y 範圍：mainTopWithCap = postTopY + topThickness（主櫃頂蓋頂面）
+  //         tbBaseY = mainTopWithCap + waistGap（5mm 縫隙—兩段獨立分件）
+  //         tbHeight = topBoxHeight
+  if (isCompound) {
+    const tbBaseY = postTopY + topThickness + waistGap;
+    const tbPostSize = Math.max(28, postSize - 8);  // 頂箱立柱比下櫃略細
+    const tbRailWidth = Math.max(35, railWidth - 10);
+    const tbTopThickness = Math.max(15, topThickness - 6);
+    const tbTopOverhang = Math.max(10, topOverhang - 5);
+    // 頂箱寬深略縮（明清做法是上小下大），縮 30mm
+    const tbInsetXZ = 15;
+    const tbLength = length - tbInsetXZ * 2;
+    const tbWidth = width - tbInsetXZ * 2;
+    const tbPostX = tbLength / 2 - tbPostSize / 2;
+    const tbPostZ = tbWidth / 2 - tbPostSize / 2;
+    const tbPostTopY = tbBaseY + topBoxHeight - tbTopThickness;
+    const tbRailLenX = 2 * (tbPostX + tbPostSize / 2);
+    const tbRailLenZ = 2 * (tbPostZ + tbPostSize / 2);
+    const tbInnerSpanX = 2 * (tbPostX - tbPostSize / 2);
+    const tbInnerSpanZ = 2 * (tbPostZ - tbPostSize / 2);
+    const tbPanelInnerW_Z = tbInnerSpanZ - 10;
+    const tbUpperRailY = tbPostTopY - tbRailWidth;
+    const tbLowerRailY = tbBaseY;  // 頂箱底直接坐主櫃頂蓋（無 skirt）
+    const tbInnerH = tbUpperRailY - (tbLowerRailY + tbRailWidth);
+    const tbSideRailOffsetX = tbPostX + tbPostSize / 2 - railThickness / 2;
+    const tbFbRailOffsetZ = tbPostZ + tbPostSize / 2 - railThickness / 2;
+    const tbPanelH = tbInnerH + 10;
+
+    // 4 立柱
+    for (const sx of [-1, 1] as const) {
+      for (const sz of [-1, 1] as const) {
+        const fbId = sz < 0 ? "front" : "back";
+        const lrId = sx < 0 ? "left" : "right";
+        const fbLabel = sz < 0 ? "前" : "後";
+        const lrLabel = sx < 0 ? "左" : "右";
+        parts.push({
+          id: `tb-post-${fbId}-${lrId}`,
+          nameZh: `頂箱${fbLabel}${lrLabel}立柱`,
+          material,
+          grainDirection: "length",
+          visible: { length: tbPostSize, width: tbPostSize, thickness: topBoxHeight - tbTopThickness },
+          origin: { x: sx * tbPostX, y: tbBaseY, z: sz * tbPostZ },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+    // 4 面 frame-and-panel（左右 + 前後）
+    for (const sx of [-1, 1] as const) {
+      const lrId = sx < 0 ? "left" : "right";
+      const lrLabel = sx < 0 ? "左" : "右";
+      for (const railRole of ["upper", "lower"] as const) {
+        const railY = railRole === "upper" ? tbUpperRailY : tbLowerRailY;
+        const roleLabel = railRole === "upper" ? "上抹" : "下抹";
+        parts.push({
+          id: `tb-${lrId}-side-${railRole}-rail`,
+          nameZh: `頂箱${lrLabel}側${roleLabel}`,
+          material,
+          grainDirection: "length",
+          visible: { length: railThickness, width: tbRailLenZ, thickness: tbRailWidth },
+          origin: { x: sx * tbSideRailOffsetX, y: railY, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // 板心（側面，背面方向相同——即左右側板心不會被門擋）
+      parts.push({
+        id: `tb-${lrId}-side-panel`,
+        nameZh: `頂箱${lrLabel}側板心`,
+        material,
+        grainDirection: "length",
+        visible: { length: panelThickness, width: tbPanelInnerW_Z, thickness: tbPanelH },
+        origin: { x: sx * tbSideRailOffsetX, y: tbLowerRailY + tbRailWidth - 5, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 前/後面 frame：前面跟側面同 rail（上下抹）；後面除 rail 外還有板心
+    for (const sz of [-1, 1] as const) {
+      const fbId = sz < 0 ? "front" : "back";
+      const fbLabel = sz < 0 ? "前" : "後";
+      for (const railRole of ["upper", "lower"] as const) {
+        const railY = railRole === "upper" ? tbUpperRailY : tbLowerRailY;
+        const roleLabel = railRole === "upper" ? "上抹" : "下抹";
+        parts.push({
+          id: `tb-${fbId}-${railRole}-rail`,
+          nameZh: `頂箱${fbLabel}${roleLabel}`,
+          material,
+          grainDirection: "length",
+          visible: { length: tbRailLenX, width: railThickness, thickness: tbRailWidth },
+          origin: { x: 0, y: railY, z: sz * tbFbRailOffsetZ },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+    parts.push({
+      id: "tb-back-panel",
+      nameZh: "頂箱背板",
+      material,
+      grainDirection: "length",
+      visible: { length: tbInnerSpanX - 10, width: panelThickness, thickness: tbPanelH },
+      origin: { x: 0, y: tbLowerRailY + tbRailWidth - 5, z: tbFbRailOffsetZ },
+      tenons: [],
+      mortises: [],
+    });
+    // 前面對開門（topBoxLayers=1 一對門到頂；topBoxLayers=2 上方加一條小抽屜）
+    const tbDoorGap = doorGap;
+    const tbDoorThickness = panelThickness * 1.5;
+    const tbDoorBottomY = tbLowerRailY + tbRailWidth;
+    const tbDoorH = tbInnerH;
+    let tbDrawerH = 0;
+    if (topBoxLayers === 2) {
+      // 抽屜佔頂箱內部 1/4 高度（最少 80mm 最多 160mm）
+      tbDrawerH = Math.max(80, Math.min(160, Math.round(tbInnerH * 0.25)));
+    }
+    const tbDoorActualH = tbDoorH - tbDrawerH;
+    const tbDoorWidth = (tbInnerSpanX - tbDoorGap) / 2;
+    for (const sx of [-1, 1] as const) {
+      const lrId = sx < 0 ? "left" : "right";
+      const lrLabel = sx < 0 ? "左" : "右";
+      parts.push({
+        id: `tb-door-${lrId}`,
+        nameZh: `頂箱${lrLabel}門板`,
+        material,
+        grainDirection: "length",
+        visible: { length: tbDoorWidth, width: tbDoorThickness, thickness: tbDoorActualH },
+        origin: {
+          x: sx * (tbDoorGap / 2 + tbDoorWidth / 2),
+          y: tbDoorBottomY,
+          z: -tbPostZ - tbPostSize / 2 + tbDoorThickness / 2,
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    if (topBoxLayers === 2) {
+      // 頂箱小抽屜（橫貫頂箱前面，位於門板上方）
+      parts.push({
+        id: "tb-drawer-front",
+        nameZh: "頂箱抽屜面板",
+        material,
+        grainDirection: "length",
+        visible: { length: tbInnerSpanX - 4, width: tbDoorThickness, thickness: tbDrawerH - 4 },
+        origin: {
+          x: 0,
+          y: tbDoorBottomY + tbDoorActualH + 2,
+          z: -tbPostZ - tbPostSize / 2 + tbDoorThickness / 2,
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 頂箱頂蓋
+    parts.push({
+      id: "tb-top",
+      nameZh: "頂箱頂蓋",
+      material,
+      grainDirection: "length",
+      visible: { length: tbLength + tbTopOverhang * 2, width: tbWidth + tbTopOverhang * 2, thickness: tbTopThickness },
+      origin: { x: 0, y: tbPostTopY, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
   const design: FurnitureDesign = {
-    id: `chinese-cabinet-${length}x${width}x${height}`,
+    id: `chinese-cabinet-${length}x${width}x${heightInput}`,
     category: "chinese-cabinet",
-    nameZh: "中式方角櫃",
-    overall: { length, width, thickness: height },
+    nameZh: isCompound ? "中式頂箱櫃" : "中式方角櫃",
+    overall: { length, width, thickness: heightInput },
     parts,
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
@@ -1096,7 +1282,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
   applyStandardChecks(design, {
     minLength: 500, minWidth: 250, minHeight: 600,
-    maxLength: 1500, maxWidth: 600, maxHeight: 2200,
+    maxLength: 1500, maxWidth: 600, maxHeight: isCompound ? 2600 : 2200,
   });
   return design;
 };
