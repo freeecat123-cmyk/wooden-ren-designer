@@ -1535,21 +1535,28 @@ export function OrthoView({
           const b = corners[(i + 1) % 4];
           const segs = classifyEdgeVisibility(a, b, isHiddenAt);
           segs.forEach((seg, segIdx) => {
-            // dashoffset 用世界座標讓多條重疊虛線的 dash 對齊同相位（不再鋸齒）
-            // 水平線用 a.x、垂直線用 -a.y 當 phase anchor
-            const isHorizontal = Math.abs(seg.a.y - seg.b.y) < 0.01;
+            // Canonicalize 方向 (smaller→larger)，dashoffset 用世界座標當 phase anchor，
+            // 同 Y 的水平虛線、同 X 的垂直虛線都對齊到全局 (0,0) 同相位 → 重疊不鋸齒
+            const isHoriz = Math.abs(seg.a.y - seg.b.y) < 0.01;
+            const isVert = Math.abs(seg.a.x - seg.b.x) < 0.01;
+            const svgY1 = -seg.a.y;
+            const svgY2 = -seg.b.y;
+            let x1 = seg.a.x, y1 = svgY1, x2 = seg.b.x, y2 = svgY2;
+            if (isHoriz && x1 > x2) { [x1, x2] = [x2, x1]; }
+            if (isVert && y1 > y2) { [y1, y2] = [y2, y1]; }
+            // dashoffset = (anchor mod period) 讓所有同方向虛線 phase 對齊
+            const PERIOD = 7;  // dasharray "4 3"
+            const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
             const dashOffset = seg.hidden
-              ? isHorizontal
-                ? -seg.a.x
-                : -(-seg.a.y)
+              ? isHoriz ? mod(x1) : isVert ? mod(y1) : 0
               : undefined;
             lines.push(
               <line
                 key={`${part.id}-e${i}-s${segIdx}`}
-                x1={seg.a.x}
-                y1={-seg.a.y}
-                x2={seg.b.x}
-                y2={-seg.b.y}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
                 stroke={seg.hidden ? "#444" : "#111"}
                 strokeWidth={seg.hidden ? 0.7 : visibleSw}
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
