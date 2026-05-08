@@ -163,9 +163,13 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // 多照片 mullion：在邊框內部加分隔木條
+  // mullion 放在玻璃前方（朝觀察者一側），3D 才看得到，不會被玻璃/背板擋住
   const mullions: Part[] = [];
   if (multiPhotoLayout !== "single") {
-    const mullionW = 15;
+    const mullionW = 18;
+    const glassTopY = frameT - glassGrooveDepth - glassT + glassT; // 玻璃頂 y
+    const mullionY = glassTopY; // mullion 底面貼齊玻璃頂面
+    const mullionThick = Math.max(4, frameT - glassTopY); // 從玻璃頂往上到框面前緣
     if (multiPhotoLayout === "horizontal-2" || multiPhotoLayout === "horizontal-3") {
       const cuts = multiPhotoLayout === "horizontal-2" ? 1 : 2;
       const innerW = outerL - 2 * frameW;
@@ -176,22 +180,21 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
           nameZh: `橫排 mullion ${i + 1}`,
           material,
           grainDirection: "length",
-          visible: { length: outerW - 2 * frameW, width: mullionW, thickness: frameT },
-          origin: { x: -outerL / 2 + frameW + slotW * (i + 1), y: 0, z: 0 },
+          visible: { length: outerW - 2 * frameW, width: mullionW, thickness: mullionThick },
+          origin: { x: -outerL / 2 + frameW + slotW * (i + 1), y: mullionY, z: 0 },
           rotation: { x: 0, y: Math.PI / 2, z: 0 },
           tenons: [],
           mortises: [],
         });
       }
     } else if (multiPhotoLayout === "vertical-2") {
-      const innerH = outerW - 2 * frameW;
       mullions.push({
         id: `mullion-v-1`,
         nameZh: `直排 mullion`,
         material,
         grainDirection: "length",
-        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: frameT },
-        origin: { x: 0, y: 0, z: 0 },
+        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: mullionThick },
+        origin: { x: 0, y: mullionY, z: 0 },
         tenons: [],
         mortises: [],
       });
@@ -201,8 +204,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `田字 mullion 橫`,
         material,
         grainDirection: "length",
-        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: frameT },
-        origin: { x: 0, y: 0, z: 0 },
+        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: mullionThick },
+        origin: { x: 0, y: mullionY, z: 0 },
         tenons: [],
         mortises: [],
       });
@@ -211,8 +214,8 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `田字 mullion 縱`,
         material,
         grainDirection: "length",
-        visible: { length: outerW - 2 * frameW, width: mullionW, thickness: frameT },
-        origin: { x: 0, y: 0, z: 0 },
+        visible: { length: outerW - 2 * frameW, width: mullionW, thickness: mullionThick },
+        origin: { x: 0, y: mullionY, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
