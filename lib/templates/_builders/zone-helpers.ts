@@ -101,8 +101,8 @@ export function resolveDrawerMount(
  * 共用選項：背板作法。
  * - surface（裝潢慣例）：3mm 夾板釘 / 鎖在櫃體背面，尺寸 = 全外長 × 全外高，
  *   蓋過頂底側板背緣。最快、最便宜，但側面看得到背板邊。
- * - rebated（榫卯 / 鄉村風家具標準）：4 片框板後緣切 6mm 深 rebate 沿口，
- *   背板（9mm 完整方形）四邊各坐進去 6mm。側面看不到背板邊，結構更挺。
+ * - rebated（榫卯 / 鄉村風家具標準）：背板嵌進側板內側溝槽，9mm 厚為主。
+ *   側面看不到背板邊，結構更挺，但側板要開溝，工序多。
  * 概念上跟抽屜底板（卡進前後左右板的溝裡）相同——薄板靠四周框料的溝固定。
  */
 export const backModeOption: OptionSpec = {
@@ -113,7 +113,7 @@ export const backModeOption: OptionSpec = {
   defaultValue: "surface",
   choices: [
     { value: "surface", label: "釘背（3mm 夾板蓋滿背面）— 裝潢標準" },
-    { value: "rebated", label: "入溝（9mm 背板四邊各卡進框內 6mm）— 榫卯 / 鄉村風家具" },
+    { value: "rebated", label: "入溝（9mm 嵌進側板溝裡）— 榫卯 / 鄉村風家具" },
     { value: "none", label: "無背板（開放式陳列櫃）" },
   ],
 };
