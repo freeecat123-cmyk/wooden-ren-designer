@@ -817,15 +817,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           ]
         : !isSurfaceDrawerBottom
           ? [
-              // 入溝模式：槽位 part-local Z = boxH/2 - (2 + drawerBottomT/2)
-              //   → 世界 Y 對應底板中心 yBase+boxYOffset+2+drawerBottomT/2
+              // 入溝模式：底板內凹 6mm、槽深 6mm
+              //   z = boxH/2 - (6 + drawerBottomT/2) 對應底板中心
               {
                 origin: {
                   x: 0,
                   y: drawerFrontT,
-                  z: boxH / 2 - (2 + drawerBottomT / 2),
+                  z: boxH / 2 - (6 + drawerBottomT / 2),
                 },
-                depth: 4,
+                depth: 6,
                 length: drawerInnerW + 4,
                 width: drawerBottomT,
                 through: false,
@@ -869,11 +869,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
       // 釘底模式：全高 boxH 跟前/側板齊平（底板從下面釘在 4 邊）
-      // 入溝模式：高度短 drawerBottomT+4mm、底邊上抬 drawerBottomT+2mm（讓出底板入溝空間）
-      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 4;
+      // 入溝模式：底板內凹 6mm + 框頂留 2mm，後板高度跟邊距讓出底板入溝空間
+      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 8;
       const drawerBackY = isSurfaceDrawerBottom
         ? yBase + boxYOffset
-        : yBase + boxYOffset + drawerBottomT + 2;
+        : yBase + boxYOffset + drawerBottomT + 6;
       parts.push({
         id: `${idPrefix}-${i + 1}-back`,
         nameZh: `${labelPrefix}${i + 1} 後板`,
@@ -951,13 +951,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             },
             // 底板溝槽（只有入溝模式才有；釘底模式下緣直接釘 3mm 板）
             // 側板 rotation { x: π/2, y: π/2 } 後：local Z 變垂直軸 → 底端 = local +Z
-            // （local +Z → world -Y）。原本用 local Y 是錯的——Y 是側板厚度才 ±7mm
+            // 槽深 6mm，槽中心對齊底板中心（底板內凹 6mm，故 z = boxH/2 - 6 - drawerBottomT/2）
             ...(isSurfaceDrawerBottom
               ? []
               : [
                   {
-                    origin: { x: 0, y: 0, z: boxH / 2 - drawerBottomT / 2 },
-                    depth: 4,
+                    origin: { x: 0, y: 0, z: boxH / 2 - 6 - drawerBottomT / 2 },
+                    depth: 6,
                     length: drawerInnerD - 4,
                     width: drawerBottomT + 1,
                     through: false,
@@ -985,10 +985,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: {
           x: xCenter,
           // 釘底：底板貼在側板/前後板下方（origin.y 是底面，y 範圍 = [origin.y, origin.y+thickness]）
-          // 入溝：底板嵌在溝裡（中心 y = boxYOffset + drawerBottomT/2 + 2，origin.y = +2）
+          // 入溝：底板嵌在溝裡，內凹 6mm（origin.y = boxYOffset + 6）
           y: isSurfaceDrawerBottom
             ? yBase + boxYOffset - drawerBottomT
-            : yBase + boxYOffset + 2,
+            : yBase + boxYOffset + 6,
           z: (zFront + zBack) / 2,
         },
         tenons: isSurfaceDrawerBottom
@@ -997,28 +997,28 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               {
                 position: "start",
                 type: "tongue-and-groove",
-                length: 4,
+                length: 6,
                 width: drawerInnerD + 4,
                 thickness: drawerBottomT,
               },
               {
                 position: "end",
                 type: "tongue-and-groove",
-                length: 4,
+                length: 6,
                 width: drawerInnerD + 4,
                 thickness: drawerBottomT,
               },
               {
                 position: "left",
                 type: "tongue-and-groove",
-                length: 4,
+                length: 6,
                 width: drawerInnerW + 4,
                 thickness: drawerBottomT,
               },
               {
                 position: "right",
                 type: "tongue-and-groove",
-                length: 4,
+                length: 6,
                 width: drawerInnerW + 4,
                 thickness: drawerBottomT,
               },
