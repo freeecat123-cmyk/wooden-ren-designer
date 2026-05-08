@@ -107,12 +107,13 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   if (trayShape === "oct") {
     const outerD = Math.min(outerL, outerW);
     const staves = polygonStaves({ sides: 8, outerD, outerH: wallH + botT, wallT, botT, material });
+    const innerD = outerD * Math.cos(Math.PI / 8) - 2 * wallT - 2;
     const polyBottom: Part = {
       id: "bottom",
       nameZh: "八角底板",
       material,
       grainDirection: "length",
-      visible: { length: outerD - 2, width: outerD - 2, thickness: botT },
+      visible: { length: innerD, width: innerD, thickness: botT },
       origin: { x: 0, y: 0, z: 0 },
       shape: { kind: "round" },
       tenons: [],

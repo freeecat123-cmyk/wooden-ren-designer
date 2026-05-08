@@ -96,12 +96,14 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     const sides = bodyShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
     const staves = polygonStaves({ sides, outerD, outerH, wallT, botT, material });
+    // 底板大小 = 多邊形內接圓直徑 − 2 wallT（坐進壁內，不超過 stave 外緣）
+    const innerD = outerD * Math.cos(Math.PI / sides) - 2 * wallT - 2;
     const polyBottom: Part = {
       id: "bottom",
       nameZh: `${sides} 角底板`,
       material,
       grainDirection: "length",
-      visible: { length: outerD - 2, width: outerD - 2, thickness: botT },
+      visible: { length: innerD, width: innerD, thickness: botT },
       origin: { x: 0, y: 0, z: 0 },
       shape: { kind: "round" },
       tenons: [],
