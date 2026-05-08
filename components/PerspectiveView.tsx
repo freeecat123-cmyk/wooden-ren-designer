@@ -133,8 +133,9 @@ type ShapeSpec =
   | { kind: "lathe-turned" }
   | { kind: "splayed-tapered"; bottomScale: number; dx: number; dz: number }
   | { kind: "splayed-round-tapered"; bottomScale: number; dx: number; dz: number }
-  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number }
+  | { kind: "apron-trapezoid"; topLengthScale: number; bottomLengthScale: number; bevelAngle?: number; bevelMode?: "full" | "half" }
   | { kind: "apron-beveled"; bevelAngle: number }
+  | { kind: "apron-half-beveled"; bevelAngle: number }
   | { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded"; cornerR?: number }
   | { kind: "chamfered-edges"; chamferMm: number; style?: "chamfered" | "rounded" }
   | { kind: "notched-corners"; notchLengthMm: number; notchWidthMm: number }
