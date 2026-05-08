@@ -183,12 +183,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  // 入溝背板用 rebate（沿口）做：4 片框板後緣切 6mm 深 × backT 寬的 L 型階梯，從一頭通到另一頭，
-  // 背板是完整方形直接坐進去（4 角自然連通，不必在背板四角切方塊）。
-  // rebateDepth = 切進框板 thickness 的距離；背板 body 各方向 +12mm 填 rebate 容積。
-  const rebateDepth = backMode === "rebated" ? 6 : 0;
-  // surface / none 背板都不佔內部深度；rebated 模式背板坐在 rear，內部深度 = width - backT。
-  const innerD = backMode === "rebated" ? width - backT : width;
+  // 入溝背板從側板/頂底板「後緣往前 6mm」開溝（標準入溝深度），背板後緣比框體後緣陷 6mm，
+  // 從後方看得到側板/頂底板形成的框。surface / none 模式不適用此 inset。
+  const backDadoInset = backMode === "rebated" ? 6 : 0;
+  // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚 + dado inset。
+  const innerD = backMode === "rebated" ? width - backT - backDadoInset : width;
   const tenonLen = Math.round(panelT * 0.6);
   /**
    * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
@@ -196,7 +195,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
    * - rebated：innerD = width − backT，向前偏移 backT/2 讓前緣貼齊櫃前面 z=−width/2，
    *   後緣貼齊背板前面（不會跟背板撞）。
    */
-  const caseInnerZ = backMode === "rebated" ? -backT / 2 : 0;
+  const caseInnerZ = backMode === "rebated" ? -(backT + backDadoInset) / 2 : 0;
 
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
@@ -361,22 +360,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     }
   }
 
-  // 頂板。rebated 模式：底面後緣切一道 rebate 沿口（length × backT × 6mm 深），
-  // 跟左右側板/底板的 rebate 在四角自然連通，背板坐進去不必切角。
-  const topBottomRebate: Part["mortises"] =
-    backMode === "rebated"
-      ? [
-          {
-            origin: { x: 0, y: 0, z: width / 2 - backT / 2 },
-            depth: rebateDepth,
-            length: length,
-            width: backT,
-            through: false,
-            cosmetic: true,
-            shape: "rect",
-          },
-        ]
-      : [];
+  // 頂板
   parts.push({
     id: "top",
     nameZh: "頂板",
@@ -401,7 +385,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         width: panelTongueT,
         through: false,
       },
-      ...topBottomRebate,
     ],
   });
 
@@ -452,8 +435,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             })),
           )
         : []),
-      // rebate 在底板「朝上那面」（part-local y=panelT）開
-      ...topBottomRebate.map((m) => ({ ...m, origin: { ...m.origin, y: panelT } })),
     ],
   });
 
@@ -489,34 +470,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
-      mortises: [
-        ...shelfFractions.map((f) => ({
-          origin: { x: 0, y: f * innerH, z: 0 },
-          depth: tenonLen,
-          length: innerD - 10,
-          width: shelfTongueT,
-          through: false,
-        })),
-        // rebated 模式：內側面後緣切 rebate（innerH 全高 × backT 寬 × 6mm 深）
-        // 跟頂底板 rebate 在四角連通，背板整片坐進去
-        ...(backMode === "rebated"
-          ? [
-              {
-                origin: {
-                  x: 0,
-                  y: side < 0 ? 0 : panelT,
-                  z: width / 2 - backT / 2,
-                },
-                depth: rebateDepth,
-                length: innerH,
-                width: backT,
-                through: false,
-                cosmetic: true,
-                shape: "rect" as const,
-              },
-            ]
-          : []),
-      ],
+      mortises: shelfFractions.map((f) => ({
+        origin: { x: 0, y: f * innerH, z: 0 },
+        depth: tenonLen,
+        length: innerD - 10,
+        width: shelfTongueT,
+        through: false,
+      })),
     });
   }
 
@@ -565,15 +525,30 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     material,
     materialOverride: "plywood",
     grainDirection: "length",
-    // rebated：背板 body 各方向 +12mm（左右 +6 進側 rebate、上下 +6 進頂底 rebate），
-    // 是一整片完整方形，無需 tongue（沿口本身吃進框體 rebate 容積）
     visible: isSurfaceBack
       ? { length: length, width: backT, thickness: caseHeight }
-      : { length: innerW + 2 * rebateDepth, width: backT, thickness: innerH + 2 * rebateDepth },
+      : { length: innerW, width: backT, thickness: innerH },
     origin: isSurfaceBack
       ? { x: 0, y: caseBottomY, z: width / 2 + backT / 2 }
-      : { x: 0, y: caseBottomY + panelT - rebateDepth, z: width / 2 - backT / 2 },
-    tenons: [],
+      : { x: 0, y: caseBottomY + panelT, z: width / 2 - backDadoInset - backT / 2 },
+    tenons: isSurfaceBack
+      ? []
+      : [
+          {
+            position: "start",
+            type: "tongue-and-groove",
+            length: 6,
+            width: innerH,
+            thickness: backT,
+          },
+          {
+            position: "end",
+            type: "tongue-and-groove",
+            length: 6,
+            width: innerH,
+            thickness: backT,
+          },
+        ],
     mortises: [],
   });
 
