@@ -869,8 +869,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
       // 釘底模式：全高 boxH 跟前/側板齊平（底板從下面釘在 4 邊）
-      // 入溝模式：底板內凹 6mm + 框頂留 2mm，後板高度跟邊距讓出底板入溝空間
-      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 8;
+      // 入溝模式：底邊上抬 drawerBottomT+6 讓出底板入溝空間，頂端齊平側板（不留頂端 clearance）
+      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 6;
       const drawerBackY = isSurfaceDrawerBottom
         ? yBase + boxYOffset
         : yBase + boxYOffset + drawerBottomT + 6;
