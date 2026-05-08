@@ -637,6 +637,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 板心中心 X 同上抹：跟著立柱外緣偏移
     const sidePanelCenterY = (sidePanelBotY + sidePanelTopY) / 2;
     const sidePanelX = postOuterXat(sidePanelCenterY) - railThickness / 2;
+    // 圓角櫃側傾量：板心底端比頂端往外 sx 方向多偏 splayMm
+    const sidePanelTiltX = isRoundCorner
+      ? sx * (splayShiftAt(sidePanelBotY) - splayShiftAt(sidePanelTopY))
+      : 0;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
@@ -644,7 +648,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: panelThickness, width: sidePanelTopW, thickness: panelInnerH },
       origin: { x: sx * sidePanelX, y: sidePanelBotY, z: 0 },
-      ...(sidePanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: sidePanelTaper } } : {}),
+      ...(sidePanelTaper > 1.001 || Math.abs(sidePanelTiltX) > 0.5
+        ? { shape: { kind: "splayed-tapered" as const, bottomScale: sidePanelTaper, dxMm: sidePanelTiltX, dzMm: 0 } }
+        : {}),
       tenons: [],
       mortises: [],
     });
@@ -830,6 +836,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const backPanelTaper = backPanelTopW > 0 ? backPanelBotW / backPanelTopW : 1;
     const backPanelCenterY = (backPanelBotY + backPanelTopY) / 2;
     const backPanelZ = postOuterZat(backPanelCenterY) - railThickness / 2;
+    // 背板後傾量：底端比頂端往 +Z 方向多偏 splayMm
+    const backPanelTiltZ = isRoundCorner
+      ? splayShiftAt(backPanelBotY) - splayShiftAt(backPanelTopY)
+      : 0;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
@@ -837,7 +847,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: backPanelTopW, width: panelThickness, thickness: panelInnerH },
       origin: { x: 0, y: backPanelBotY, z: backPanelZ },
-      ...(backPanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: backPanelTaper } } : {}),
+      ...(backPanelTaper > 1.001 || Math.abs(backPanelTiltZ) > 0.5
+        ? { shape: { kind: "splayed-tapered" as const, bottomScale: backPanelTaper, dxMm: 0, dzMm: backPanelTiltZ } }
+        : {}),
       tenons: [],
       mortises: [],
     });
@@ -944,7 +956,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
     if (layerType === "door") {
       // 對開門：2 扇 + 拉手
-      // 圓角櫃 splay：門板按各自 Y 範圍算實際 X 跨距 + Z 偏移
+      // 圓角櫃 splay：門板用 splayed-tapered 跟立柱同步「前傾 + 底寬」
+      // 6% taper 在 3D 透視視角下太微妙看不出（reviewer 鑑定），加 dzMm
+      // 前傾才會明顯——門底整段往前移、門頂往後縮，跟立柱 splayed 同步傾斜
       const doorHeight = thisLayerHeight - 4;  // 上下各 2mm 隙
       const doorThickness = railThickness;
       const doorBotYInner = layerCenterY - doorHeight / 2;
@@ -958,6 +972,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       // door front Z 取門 Y 中段 (跟前抹同 Z 層)
       const doorCenterY = (doorBotYInner + doorTopYInner) / 2;
       const doorFrontZ = -(postOuterZat(doorCenterY) - railThickness / 2);
+      // 圓角櫃前傾量：門底端比門頂端更往前 (-Z) splayMm × (Y範圍佔比)
+      const doorTiltZ = isRoundCorner
+        ? -(splayShiftAt(doorBotYInner) - splayShiftAt(doorTopYInner))
+        : 0;
       // 格扇櫺條尺寸（凸貼門面 5mm）
       const muntinT = 8;        // 櫺條厚度（伸出門面）
       const muntinW = 18;       // 櫺條寬度
@@ -981,7 +999,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           visible: { length: doorWidth, width: mainPanelThickness, thickness: doorHeight },
           origin: { x: doorCX, y: doorBotYInner, z: doorFrontZ },
           ...(isGlassDoor ? { visual: "glass" as const } : {}),
-          ...(!isGlassDoor && doorTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: doorTaper } } : {}),
+          ...(!isGlassDoor && (doorTaper > 1.001 || Math.abs(doorTiltZ) > 0.5)
+            ? { shape: { kind: "splayed-tapered" as const, bottomScale: doorTaper, dxMm: 0, dzMm: doorTiltZ } }
+            : {}),
           tenons: [],
           mortises: [],
         });
