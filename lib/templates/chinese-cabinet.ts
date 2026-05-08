@@ -1583,7 +1583,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `中式方角櫃（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ 直線素牙（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。`,
+    notes: `${isCompound ? "中式頂箱櫃（compound）" : isRoundCorner ? "中式圓角櫃（splay-leg）" : "中式方角櫃"}（明式邊抹板心）：4 立柱 ${postSize}mm + 6 面框板（邊抹 ${railWidth}×${railThickness}mm + 板心 ${panelThickness}mm）+ ${skirtStyle === "arched" ? "壼門" : skirtStyle === "cloud-head" ? "雲頭" : "直線素牙"}（高 ${skirtHeight}mm）。${layerCount} 層配置：${layerSummary}。框角全帶肩榫；4 立柱頂角為粽角榫（三向交會：上抹+側抹+頂蓋）—明式櫃靈魂榫卯，傳統做法是立柱頂端開十字槽容納兩條抹頭+頂蓋；板心浮放於框內槽 5mm 深，不黏死讓木材吐縮不爆裂。${balustradeStyle !== "none" ? "頂層設 shelf 配圍欄即成万歷櫃形制。" : ""}${standingBraceStyle !== "none" ? "立柱底加站牙穩固。" : ""}${friezePanel !== "none" ? "頂蓋下絛環板裝飾橫帶。" : ""}${panelInlayActive ? "板心嵌屏心（中央開光）。" : ""}`,
   };
 
   applyStandardChecks(design, {
