@@ -183,10 +183,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  // 入溝背板從側板/頂底板「後緣往前 10mm」開溝（標準入溝深度），背板後緣比框體後緣陷 10mm，
-  // 從後方看清楚看到側板/頂底板形成的框。6mm 在三視圖比例下太小看不出，10mm 才有「卡進去」的視覺。
-  // surface / none 模式不適用此 inset。
-  const backDadoInset = backMode === "rebated" ? 10 : 0;
+  // 入溝背板從側板/頂底板「後緣往前 6mm」開溝（標準入溝深度），背板後緣比框體後緣陷 6mm，
+  // 從後方看得到側板/頂底板形成的框。surface / none 模式不適用此 inset。
+  const backDadoInset = backMode === "rebated" ? 6 : 0;
   // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚 + dado inset。
   const innerD = backMode === "rebated" ? width - backT - backDadoInset : width;
   const tenonLen = Math.round(panelT * 0.6);
