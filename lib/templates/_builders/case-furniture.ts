@@ -77,6 +77,8 @@ export interface CaseFurnitureOpts {
    * 不使用（傳統木製側拉）填 0 即可。套用在所有抽屜 zone。
    */
   drawerSlideGap?: number;
+  /** 抽屜/門板把手樣式：knob/bar/cup/finger-pull/push-to-open/edge-bevel/none */
+  pullStyle?: string;
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
   hangingArea?: { yStart: number; yEnd: number };
   /**
@@ -201,6 +203,77 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
   const doorMount = opts.doorMount ?? "overlay-6";
+  const pullStyle = opts.pullStyle ?? "none";
+
+  // 把手 helper：依 pullStyle 在 face 前方加一塊把手 part
+  const makePullParts = (
+    idPrefix: string,
+    faceX: number,
+    faceY: number,
+    faceWidth: number,
+    faceHeight: number,
+    zFaceFront: number, // face 朝外那面的世界 z（往 -Z 方向延伸把手）
+  ): Part[] => {
+    if (pullStyle === "none" || pullStyle === "push-to-open" ||
+        pullStyle === "finger-pull" || pullStyle === "edge-bevel") {
+      return [];
+    }
+    const cx = faceX;
+    const cy = faceY + faceHeight / 2;
+    // 0.5mm clearance 避免跟面板 floating-point overlap
+    const CLEAR = 0.5;
+    if (pullStyle === "knob") {
+      // 圓把手：30mm 直徑 × 25mm 長（往 -Z 凸出）
+      const D = 30, L = 25;
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "圓把手",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        // length=X 寬, thickness=Y 高（直徑 D），width=Z 凸出長 L
+        visible: { length: D, width: L, thickness: D },
+        origin: { x: cx, y: cy - D / 2, z: zFaceFront - L / 2 - CLEAR },
+        shape: { kind: "round" },
+        visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
+    if (pullStyle === "bar") {
+      // 長條把手：barLen × 14 高 × 25 凸出
+      const barLen = Math.min(128, Math.max(64, faceWidth * 0.5));
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "長條把手",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        visible: { length: barLen, width: 25, thickness: 14 },
+        origin: { x: cx, y: cy - 7, z: zFaceFront - 12.5 - CLEAR },
+        visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
+    if (pullStyle === "cup") {
+      // 杯型把手：cupLen × 25 高 × 25 凸出
+      const cupLen = Math.min(80, faceWidth * 0.4);
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "杯型把手",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        visible: { length: cupLen, width: 25, thickness: 25 },
+        origin: { x: cx, y: cy - 12.5, z: zFaceFront - 12.5 - CLEAR },
+        visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
+    return [];
+  };
   // 入柱模式：門埋進框內，門後方內藏的層板需縮短深度
   // 門厚 = slab 18mm；wood/glass 框料 22mm
   const insetDoorThick = doorType === "slab" ? 18 : 22;
@@ -791,6 +864,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           tenons: [],
           mortises: [],
         });
+        // 把手：face 朝前那面 = zFace - faceT/2
+        parts.push(...makePullParts(
+          `${idPrefix}-${i + 1}-face`,
+          faceX, faceY, faceW, faceHeight,
+          zFace - faceT / 2,
+        ));
       }
 
       // 箱體前板（有獨立面板時叫「箱體前板」；無獨立面板時兼任面板叫「面板」）
@@ -871,6 +950,17 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         ],
         mortises: frontGrooveMortises,
       });
+      // 入柱 + 無獨立面板：箱體前板兼任面板，把手裝在前板朝前那面
+      if (!hasFacePanel) {
+        parts.push(...makePullParts(
+          `${idPrefix}-${i + 1}-face`,
+          xCenter,
+          yBase + boxYOffset - frontExtraDown,
+          boxExtW,
+          boxHRow + frontExtraDown,
+          zFront - drawerFrontT / 2,
+        ));
+      }
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
       // 釘底模式：全高 boxHRow 跟前/側板齊平（底板從下面釘在 4 邊）
