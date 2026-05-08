@@ -926,8 +926,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `第 ${i + 1}/${i + 2} 層分隔板`,
       material,
       grainDirection: "length",
-      // 水平層板：X 方向 = 兩立柱內面 innerSpanX, Z 方向 innerSpanZ, Y 厚 railWidth
-      visible: { length: innerSpanX, width: innerSpanZ, thickness: railWidth },
+      // 圓角櫃 splay：水平分隔板按 Y 算 X / Z 跨距
+      visible: { length: innerSpanXat(dividerY + railWidth / 2), width: innerSpanZat(dividerY + railWidth / 2), thickness: railWidth },
       origin: { x: 0, y: dividerY, z: 0 },
       tenons: [],
       mortises: [],
@@ -1352,9 +1352,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
   // ── 牙條（直線素牙）：圍底框下緣 4 條
   // 牙條從立柱外面**內縮 10mm**（reveal 視覺凹進感）
+  // 圓角櫃 splay：牙條在 skirtHeight/2 中段，按該 Y 算 X/Z 偏移跟長度
   const SKIRT_INSET = 10;
-  const skirtOffsetX = postX + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
-  const skirtOffsetZ = postZ + postSize / 2 - skirtThickness / 2 - SKIRT_INSET;
+  const skirtCenterY = skirtHeight / 2;
+  const skirtOffsetX = postOuterXat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
+  const skirtOffsetZ = postOuterZat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
+  const skirtSpanXatY = 2 * (postOuterXat(skirtCenterY) - postSize / 2);
+  const skirtSpanZatY = 2 * (postOuterZat(skirtCenterY) - postSize / 2);
   // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
   // arched 走純底凹強弧（壼門深弧），cloud-head 同時帶上凸+下凹（雲頭起翹）
   const skirtShape: Part["shape"] | undefined =
@@ -1373,7 +1377,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${fbLabel}牙條`,
       material,
       grainDirection: "length",
-      visible: { length: 2 * (postX - postSize / 2), width: skirtThickness, thickness: skirtHeight },
+      visible: { length: skirtSpanXatY, width: skirtThickness, thickness: skirtHeight },
       origin: { x: 0, y: 0, z: sz * skirtOffsetZ },
       ...(skirtShape ? { shape: skirtShape } : {}),
       tenons: [],
@@ -1389,7 +1393,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}牙條`,
       material,
       grainDirection: "length",
-      visible: { length: skirtThickness, width: 2 * (postZ - postSize / 2), thickness: skirtHeight },
+      visible: { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
       ...(skirtShape ? { shape: skirtShape } : {}),
       tenons: [],
@@ -1419,8 +1423,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: spandrelSize, width: skirtThickness, thickness: skirtHeight },
-          // 立柱內側 X = sx*(postX - postSize/2)，spandrel 從那往 -sx 方向延伸
-          origin: { x: sx * (postX - postSize / 2) - sx * spandrelSize / 2, y: 0, z: sz * skirtOffsetZ },
+          // 立柱內側 X 按該 Y 計算（牙頭在 skirt Y 段中央）
+          origin: { x: sx * (postOuterXat(skirtCenterY) - postSize / 2) - sx * spandrelSize / 2, y: 0, z: sz * skirtOffsetZ },
           shape: spandrelShape,
           tenons: [],
           mortises: [],
@@ -1439,7 +1443,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: skirtThickness, width: spandrelSize, thickness: skirtHeight },
-          origin: { x: sx * skirtOffsetX, y: 0, z: sz * (postZ - postSize / 2) - sz * spandrelSize / 2 },
+          origin: { x: sx * skirtOffsetX, y: 0, z: sz * (postOuterZat(skirtCenterY) - postSize / 2) - sz * spandrelSize / 2 },
           shape: spandrelShape,
           tenons: [],
           mortises: [],
