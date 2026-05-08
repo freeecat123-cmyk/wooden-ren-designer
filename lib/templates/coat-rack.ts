@@ -90,15 +90,19 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const mountType = getOption<string>(input, opt(o, "mountType")) as "standing" | "wall-rail";
   const rackStyle = getOption<string>(input, opt(o, "rackStyle"));
   const preset = COAT_RACK_PRESETS[rackStyle];
+  // 提早讀 hookCount 避免 TDZ（壁掛分支需要）
+  const hookCountEarlyRaw = getOption<number>(input, opt(o, "hookCount"));
+  const hookCountEarly = hookCountEarlyRaw === 6 && preset?.hookCount !== undefined ? preset.hookCount : hookCountEarlyRaw;
 
-  // 壁掛 Shaker peg rail：完全不同的結構（背板 + N 個錐形木栓 + 法式 cleat 吊條）
+  // 壁掛 Shaker peg rail：完全不同的結構（背板 + N 個圓料木栓 + 法式 cleat 吊條）
   if (mountType === "wall-rail") {
     const railWidthMm = 600; // 預設背板長度
     const railHeightMm = 100; // 背板高度
     const railThicknessMm = 18; // 背板厚
-    const pegCount = Math.max(3, Math.min(8, Math.round(railWidthMm / 100)));
+    // user 給的 hookCount 直接用（reactive）；最少 3 最多 8
+    const pegCount = Math.max(3, Math.min(8, hookCountEarly));
     const pegSpacing = railWidthMm / (pegCount + 1);
-    const pegLengthMm = 89; // Shaker peg 標準總長
+    const pegLengthMm = 110; // 凸出牆面 110mm 才看得到衣物掛得上
     const pegHeadDiameter = 22; // 頂端 ⌀
     const cleatThicknessMm = 18;
     // 背板（沿世界 X 跨距，世界 Z 為厚度方向）
@@ -117,17 +121,17 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     const pegs: Part[] = [];
     for (let i = 0; i < pegCount; i++) {
       const xPos = -railWidthMm / 2 + pegSpacing * (i + 1);
-      // peg 沿 +Z 方向（穿出牆面）：lathe-turned 軸 = visible.thickness（mesh local Y）
-      // Rx(π/2) 把 Y→+Z，length 還在 X、width 在 Z 變 -Y（cross-section 兩軸都用，shape round 不影響）
+      // peg 圓料沿 +Z 方向凸出牆面：visible.length 是 peg 長度沿 X 預設，
+      // 用 Ry(-π/2) 把 X 軸轉到 +Z。shape: round 是純圓柱，沿 length 方向
       pegs.push({
         id: `peg-${i + 1}`,
-        nameZh: `Shaker peg ${i + 1}（${pegHeadDiameter}/${pegHeadDiameter - 8}/${pegHeadDiameter - 10}mm 錐形）`,
+        nameZh: `Shaker peg ${i + 1}（⌀${pegHeadDiameter}mm × ${pegLengthMm}mm 圓料）`,
         material,
         grainDirection: "length",
-        visible: { length: pegHeadDiameter, width: pegHeadDiameter, thickness: pegLengthMm },
-        origin: { x: xPos, y: railHeightMm / 2 - pegHeadDiameter / 2, z: railThicknessMm },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
-        shape: { kind: "lathe-turned" },
+        visible: { length: pegLengthMm, width: pegHeadDiameter, thickness: pegHeadDiameter },
+        origin: { x: xPos, y: railHeightMm / 2, z: railThicknessMm },
+        rotation: { x: 0, y: -Math.PI / 2, z: 0 },
+        shape: { kind: "round" },
         tenons: [],
         mortises: [],
       });
