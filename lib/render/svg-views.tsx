@@ -668,7 +668,16 @@ export function OrthoView({
         </text>
       </g>
 
-      {/* center lines disabled — 太搶眼，視覺上不需要 */}
+      {/* center lines (dot-dash) */}
+      <g stroke="#888" strokeWidth={0.5} strokeDasharray="8 2 2 2" opacity={0.7}>
+        <line x1={0} x2={0} y1={drawAreaTop - 10} y2={drawAreaTop + h + 10} />
+        <line
+          x1={-w / 2 - 10}
+          x2={w / 2 + 10}
+          y1={drawAreaTop + h / 2}
+          y2={drawAreaTop + h / 2}
+        />
+      </g>
 
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(design.parts, view).map((part) => {
