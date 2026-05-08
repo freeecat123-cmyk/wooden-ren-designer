@@ -759,7 +759,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         let faceW: number, faceHeight: number, faceX: number, faceY: number;
         if (isInsetDrawer) {
           faceW = drawerSlotW - 2 * drawerGap;
-          faceHeight = drawerSlotH - 2 * drawerGap;
+          // 入柱面板高度 = 開口高度（不含上方分隔板）。原本沒扣 shelfT 導致面板
+          // 比實際開口高 18mm，正面看面板「上緣」蓋進分隔板區，視覺有 16mm 缺口。
+          faceHeight = drawerSlotH - shelfT - 2 * drawerGap;
           faceX = xCenter;
           faceY = drawerZoneBottomY + row * drawerSlotH + drawerGap;
         } else {
