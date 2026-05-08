@@ -824,6 +824,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       });
 
       // 後板（中纖板／雜木）：兩端半搭接（half-lap）入側板 — X 旋轉站立
+      // 釘底模式：全高 boxH 跟前/側板齊平（底板從下面釘在 4 邊）
+      // 入溝模式：高度短 drawerBottomT+4mm、底邊上抬 drawerBottomT+2mm（讓出底板入溝空間）
+      const drawerBackHeight = isSurfaceDrawerBottom ? boxH : boxH - drawerBottomT - 4;
+      const drawerBackY = isSurfaceDrawerBottom
+        ? yBase + boxYOffset
+        : yBase + boxYOffset + drawerBottomT + 2;
       parts.push({
         id: `${idPrefix}-${i + 1}-back`,
         nameZh: `${labelPrefix}${i + 1} 後板`,
@@ -832,10 +838,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: {
           length: drawerInnerW + 2 * drawerSideT,
-          width: boxH - drawerBottomT - 4,
+          width: drawerBackHeight,
           thickness: drawerBackT,
         },
-        origin: { x: xCenter, y: yBase + boxYOffset + drawerBottomT + 2, z: zBack },
+        origin: { x: xCenter, y: drawerBackY, z: zBack },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
