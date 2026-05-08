@@ -53,7 +53,55 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
  *  - 特大 6×6.5 ft = 1828×1981
  */
 
+/**
+ * bedPreset 風格預設：一鍵套用 5 個影響 layout 最大的參數初始值（mm 級）
+ * - 採「user 沒覆寫 default 才以 preset 為準」邏輯（與 chinese-cabinet 一致）
+ * - 不覆寫 slat / ledger / edge 等細部，user 後改不蓋
+ */
+interface BedPresetConfig {
+  legSize?: number;
+  legShape?: string;
+  sideRailWidth?: number;
+  mattressClearanceMm?: number;
+  headboardHeight?: number;
+  withFootboard?: boolean;
+  footboardHeight?: number;
+  slatGapMm?: number;
+}
+
+const BED_PRESETS: Record<string, BedPresetConfig> = {
+  // 北歐簡約：細腳 tapered、低背、無床尾板
+  nordic: { legSize: 60, legShape: "tapered", sideRailWidth: 150, mattressClearanceMm: 220, headboardHeight: 700, withFootboard: false, slatGapMm: 80 },
+  // 工業風：厚重 box leg、無床尾板
+  industrial: { legSize: 70, legShape: "box", sideRailWidth: 180, mattressClearanceMm: 280, headboardHeight: 600, withFootboard: false, slatGapMm: 90 },
+  // 日式平床（榻榻米款）：低床、矮頭板
+  "japanese-platform": { legSize: 70, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 180, headboardHeight: 500, withFootboard: false, slatGapMm: 70 },
+  // 明式架子床（柱頭框先不做、headboard 加高）
+  "ming-canopy": { legSize: 90, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 320, headboardHeight: 1100, withFootboard: true, footboardHeight: 600, slatGapMm: 80 },
+  // 黃花梨四柱床（高床、加長頭板、加床尾板）
+  "huanghuali-4post": { legSize: 100, legShape: "tapered", sideRailWidth: 220, mattressClearanceMm: 350, headboardHeight: 1300, withFootboard: true, footboardHeight: 700, slatGapMm: 80 },
+  // 拔步床（明清頂級臥具，極高床+極高背）
+  "babu-alcove": { legSize: 110, legShape: "box", sideRailWidth: 240, mattressClearanceMm: 380, headboardHeight: 1400, withFootboard: true, footboardHeight: 800, slatGapMm: 80 },
+  // 高腳掀床（儲物用、加高 sideRail）
+  "storage-lift": { legSize: 90, legShape: "box", sideRailWidth: 280, mattressClearanceMm: 420, headboardHeight: 800, withFootboard: false, slatGapMm: 90 },
+  // 兒童床（細腳、矮、加床尾欄當圍欄）
+  kids: { legSize: 60, legShape: "box", sideRailWidth: 160, mattressClearanceMm: 260, headboardHeight: 700, withFootboard: true, footboardHeight: 500, slatGapMm: 70 },
+};
+
 export const bedOptions: OptionSpec[] = [
+  // ---------- 風格預設 ----------
+  { group: "preset", type: "select", key: "bedPreset", label: "風格預設", defaultValue: "custom", choices: [
+    { value: "custom", label: "自訂（不套 preset）" },
+    { value: "nordic", label: "北歐簡約（tapered 細腳、低背、無尾板）" },
+    { value: "industrial", label: "工業風（厚重直腳、矮背）" },
+    { value: "japanese-platform", label: "日式平床（榻榻米、低床矮頭板）" },
+    { value: "ming-canopy", label: "明式架子床（高背、含尾板）" },
+    { value: "huanghuali-4post", label: "黃花梨四柱床（高背 1300mm、含尾板）" },
+    { value: "babu-alcove", label: "拔步床（極高背 1400mm、頂級臥具）" },
+    { value: "storage-lift", label: "高腳掀床（高側板、儲物用）" },
+    { value: "kids", label: "兒童床（細腳、矮、含床尾欄）" },
+  ], help: "一鍵套用 5 個關鍵尺寸初始值。user 修改後仍以 user 值為準（preset 只蓋預設）。" },
+
   // ---------- 腳 ----------
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 80, min: 50, max: 150, step: 5, unit: "mm", help: "床腳要承重，建議 70mm 起跳；明式架子床常 90~100mm" },
@@ -91,22 +139,33 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
 
   const o = bedOptions;
-  const legShape = getOption<string>(input, opt(o, "legShape"));
-  const legSize = getOption<number>(input, opt(o, "legSize"));
+  const bedPreset = getOption<string>(input, opt(o, "bedPreset"));
+  const preset = BED_PRESETS[bedPreset];
+  // preset 只蓋仍是 default 值的 option（與 chinese-cabinet 一致）
+  const legShapeRaw = getOption<string>(input, opt(o, "legShape"));
+  const legShape = legShapeRaw === "box" && preset?.legShape ? preset.legShape : legShapeRaw;
+  const legSizeRaw = getOption<number>(input, opt(o, "legSize"));
+  const legSize = legSizeRaw === 80 && preset?.legSize !== undefined ? preset.legSize : legSizeRaw;
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const splayAngle = getOption<number>(input, opt(o, "splayAngle"));
   const legEdge = getOption<string>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
-  const headboardHeight = getOption<number>(input, opt(o, "headboardHeight"));
+  const headboardHeightRaw = getOption<number>(input, opt(o, "headboardHeight"));
+  const headboardHeight = headboardHeightRaw === 800 && preset?.headboardHeight !== undefined ? preset.headboardHeight : headboardHeightRaw;
   const headboardThickness = getOption<number>(input, opt(o, "headboardThickness"));
-  const withFootboard = getOption<boolean>(input, opt(o, "withFootboard"));
-  const footboardHeight = getOption<number>(input, opt(o, "footboardHeight"));
+  const withFootboardRaw = getOption<boolean>(input, opt(o, "withFootboard"));
+  const withFootboard = withFootboardRaw === false && preset?.withFootboard !== undefined ? preset.withFootboard : withFootboardRaw;
+  const footboardHeightRaw = getOption<number>(input, opt(o, "footboardHeight"));
+  const footboardHeight = footboardHeightRaw === 500 && preset?.footboardHeight !== undefined ? preset.footboardHeight : footboardHeightRaw;
   const footboardThickness = getOption<number>(input, opt(o, "footboardThickness"));
-  const sideRailWidth = getOption<number>(input, opt(o, "sideRailWidth"));
+  const sideRailWidthRaw = getOption<number>(input, opt(o, "sideRailWidth"));
+  const sideRailWidth = sideRailWidthRaw === 180 && preset?.sideRailWidth !== undefined ? preset.sideRailWidth : sideRailWidthRaw;
   const sideRailThickness = getOption<number>(input, opt(o, "sideRailThickness"));
-  const mattressClearanceMm = getOption<number>(input, opt(o, "mattressClearanceMm"));
+  const mattressClearanceMmRaw = getOption<number>(input, opt(o, "mattressClearanceMm"));
+  const mattressClearanceMm = mattressClearanceMmRaw === 250 && preset?.mattressClearanceMm !== undefined ? preset.mattressClearanceMm : mattressClearanceMmRaw;
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
-  const slatGapMm = getOption<number>(input, opt(o, "slatGapMm"));
+  const slatGapMmRaw = getOption<number>(input, opt(o, "slatGapMm"));
+  const slatGapMm = slatGapMmRaw === 80 && preset?.slatGapMm !== undefined ? preset.slatGapMm : slatGapMmRaw;
   const slatWidthMm = getOption<number>(input, opt(o, "slatWidthMm"));
   const slatThicknessMm = getOption<number>(input, opt(o, "slatThicknessMm"));
   const ledgerWidthMm = getOption<number>(input, opt(o, "ledgerWidthMm"));
