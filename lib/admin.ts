@@ -15,6 +15,7 @@
 const FALLBACK_ADMINS = [
   "freeecat123@woodenren.com",
   "freeecat123@gmail.com",
+  "wengbinren@gmail.com",
 ];
 
 function parseList(raw: string | undefined): string[] {
