@@ -439,14 +439,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   });
 
   // 側板 (左右) — local length points up (innerH), so rotate Z by 90° to stand it
+  // 側板深度永遠 = 全 width（rebated 模式也是全深度，背板嵌進來不縮側板）
   for (const side of [-1, 1]) {
     parts.push({
       id: side < 0 ? "side-left" : "side-right",
       nameZh: side < 0 ? "左側板" : "右側板",
       material,
       grainDirection: "length",
-      visible: { length: innerH, width: innerD, thickness: panelT },
-      origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: caseInnerZ },
+      visible: { length: innerH, width: width, thickness: panelT },
+      origin: { x: side * (length / 2 - panelT / 2), y: caseBottomY + panelT, z: 0 },
       rotation: { x: 0, y: 0, z: Math.PI / 2 },
       tenons: [
         // start/end = local length axis (innerH); after Z-rotation this is
