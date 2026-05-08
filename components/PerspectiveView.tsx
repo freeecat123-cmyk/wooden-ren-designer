@@ -2236,10 +2236,13 @@ export function PerspectiveView({
             </mesh>
           ) : null;
 
-          // joineryMode：把 mortise 算成 SCALE 過的 LocalBox 給 Part 做 CSG 挖洞
+          // mortise CSG：joineryMode 顯示全部；正常 3D 只顯示 cosmetic（無線充電/穿線孔等產品凹槽）
+          const mortisesToCsg = joineryMode
+            ? part.mortises
+            : part.mortises.filter((m) => m.cosmetic);
           const mortiseBoxesScaled: LocalBox[] | undefined =
-            joineryMode && part.mortises.length > 0
-              ? part.mortises.map((m) => {
+            mortisesToCsg.length > 0
+              ? mortisesToCsg.map((m) => {
                   const lb = mortiseLocalBox(part, m);
                   return {
                     cx: lb.cx * SCALE,
@@ -2252,8 +2255,8 @@ export function PerspectiveView({
                 })
               : undefined;
           const mortiseShapesArr: Array<"rect" | "round"> | undefined =
-            joineryMode && part.mortises.length > 0
-              ? part.mortises.map((m) => m.shape === "round" ? "round" : "rect")
+            mortisesToCsg.length > 0
+              ? mortisesToCsg.map((m) => m.shape === "round" ? "round" : "rect")
               : undefined;
           return (
             <group key={part.id}>

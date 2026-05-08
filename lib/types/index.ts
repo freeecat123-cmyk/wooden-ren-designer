@@ -102,6 +102,11 @@ export interface Mortise {
   through: boolean;
   /** 榫眼形狀：預設方形；圓料腳的圓榫對應的孔走 "round" → CSG 挖圓柱孔 */
   shape?: "rect" | "round";
+  /**
+   * 「裝飾性／產品功能」凹槽—例如無線充電板凹槽、後板穿線孔。
+   * 一般榫眼只在 joineryMode 才挖（避免破壞外觀），cosmetic=true 在正常 3D / 三視圖也要顯示。
+   */
+  cosmetic?: boolean;
 }
 
 export type MaterialId =

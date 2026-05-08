@@ -1982,6 +1982,53 @@ export function OrthoView({
         );
       })()}
 
+      {/* Cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）—正常三視圖也要可見 */}
+      <g pointerEvents="none">
+        {design.parts.map((part) => {
+          if (part.visual === "glass") return null;
+          const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0);
+          if (cosmetic.length === 0) return null;
+          return (
+            <g key={`cosmetic-${part.id}`}>
+              {cosmetic.map((m, i) => {
+                const lb = mortiseLocalBox(part, m);
+                const r = projectFeatureRect(part, lb, view);
+                if (r.w < 0.5 || r.h < 0.5) return null;
+                const cx = r.x + r.w / 2;
+                const cy = -(r.y + r.h) + r.h / 2;
+                if (m.shape === "round") {
+                  return (
+                    <circle
+                      key={`cm-${i}`}
+                      cx={cx}
+                      cy={cy}
+                      r={Math.min(r.w, r.h) / 2}
+                      fill="none"
+                      stroke="#c97a2b"
+                      strokeWidth={0.6}
+                      strokeDasharray={m.through ? undefined : "2 1.5"}
+                    />
+                  );
+                }
+                return (
+                  <rect
+                    key={`cm-${i}`}
+                    x={r.x}
+                    y={-(r.y + r.h)}
+                    width={r.w}
+                    height={r.h}
+                    fill="none"
+                    stroke="#c97a2b"
+                    strokeWidth={0.6}
+                    strokeDasharray={m.through ? undefined : "2 1.5"}
+                  />
+                );
+              })}
+            </g>
+          );
+        })}
+      </g>
+
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
           Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
       <DimensionLine

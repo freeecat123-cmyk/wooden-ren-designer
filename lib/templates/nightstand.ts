@@ -133,19 +133,39 @@ export const nightstand: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "（手工後製）後板開 25mm 充電線孔，建議套黑色 grommet 圈防磨。" : ""} ${withWirelessCharging ? "頂面 Qi 無線充電板（10W 模組）：挖 75×75×8mm 方槽，再以 forstner 修圓 ⌀75 配模組。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  // 無線充電板凹槽：頂板挖 75×75×8mm 方槽（手工以 forstner 修圓 ⌀75 配 Qi 模組）
-  // 偏前緣 30mm（手機通常放在靠床那側，避免撞燈具），左右置中
+  // 無線充電板凹槽：頂板從上面挖 ⌀75×8mm 圓槽（配 Qi 10W 模組）
+  // origin.y = panelThickness 從頂面入；z 偏前緣 30mm（手機朝床內側，避開後緣燈具）
   if (withWirelessCharging) {
     const topPart = design.parts.find((p) => p.id === "top");
     if (topPart) {
       topPart.mortises = [
         ...topPart.mortises,
         {
-          origin: { x: 0, y: 0, z: input.width / 2 - 75 / 2 - 30 },
+          origin: { x: 0, y: panelThickness, z: input.width / 2 - 75 / 2 - 30 },
           depth: 8,
           length: 75,
           width: 75,
           through: false,
+          shape: "round",
+          cosmetic: true,
+        },
+      ];
+    }
+  }
+  // 後板充電線孔：⌀25mm 穿孔（從底量起 80mm，讓電源線繞過踢腳板）
+  if (withCableHole) {
+    const backPart = design.parts.find((p) => p.id === "back");
+    if (backPart) {
+      backPart.mortises = [
+        ...backPart.mortises,
+        {
+          origin: { x: 0, y: 80, z: 0 },
+          depth: panelThickness,
+          length: 25,
+          width: 25,
+          through: true,
+          shape: "round",
+          cosmetic: true,
         },
       ];
     }
