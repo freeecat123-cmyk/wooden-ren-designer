@@ -1528,6 +1528,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const actualBaluH = baluTopY - baluBottomY;
       const baluRailThick = 18;  // 上下圍欄橫桿厚度
       const spindleSize = 10;     // 直櫺杆方料
+      // 防呆：shelf 太高 / 上抹太低時 actualBaluH ≤ 2*baluRailThick 圍欄塞不下，
+      // 之前沒擋會讓 spindleH 變負（reviewer b22f4d1 抓到）。直接 skip 整個圍欄渲染
+      const baluFits = actualBaluH > baluRailThick * 2 + 10;
+      if (baluFits) {
       // 前 + 左 + 右 三面（背面有背板不需要）
       const baluFaces: Array<{ axis: "x" | "z"; sign: -1 | 1 }> = [
         { axis: "z", sign: -1 },  // 前
@@ -1582,6 +1586,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
             mortises: [],
           });
         }
+      }
       }
     }
   }
