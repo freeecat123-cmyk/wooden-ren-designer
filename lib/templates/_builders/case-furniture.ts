@@ -183,8 +183,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚。
-  const innerD = backMode === "rebated" ? width - backT : width;
+  // 入溝背板從側板/頂底板「後緣往前 6mm」開溝（標準入溝深度），背板後緣比框體後緣陷 6mm，
+  // 從後方看得到側板/頂底板形成的框。surface / none 模式不適用此 inset。
+  const backDadoInset = backMode === "rebated" ? 6 : 0;
+  // surface / none 背板都不佔內部深度；rebated 模式背板嵌在內部 → 扣掉背板厚 + dado inset。
+  const innerD = backMode === "rebated" ? width - backT - backDadoInset : width;
   const tenonLen = Math.round(panelT * 0.6);
   /**
    * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
@@ -192,7 +195,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
    * - rebated：innerD = width − backT，向前偏移 backT/2 讓前緣貼齊櫃前面 z=−width/2，
    *   後緣貼齊背板前面（不會跟背板撞）。
    */
-  const caseInnerZ = backMode === "rebated" ? -backT / 2 : 0;
+  const caseInnerZ = backMode === "rebated" ? -(backT + backDadoInset) / 2 : 0;
 
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
@@ -526,7 +529,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       : { length: innerW, width: backT, thickness: innerH },
     origin: isSurfaceBack
       ? { x: 0, y: caseBottomY, z: width / 2 + backT / 2 }
-      : { x: 0, y: caseBottomY + panelT, z: width / 2 - backT / 2 },
+      : { x: 0, y: caseBottomY + panelT, z: width / 2 - backDadoInset - backT / 2 },
     tenons: isSurfaceBack
       ? []
       : [
