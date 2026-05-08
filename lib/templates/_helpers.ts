@@ -748,8 +748,6 @@ export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
       { value: "knob", label: "圓把手（knob，傳統）" },
       { value: "bar", label: "長條把手（bar handle，現代簡約）" },
       { value: "cup", label: "杯型 / 古典把手（cup pull，鄉村 / 古典款）" },
-      { value: "finger-pull", label: "手指槽（門上緣 / 抽屜上緣斜挖）" },
-      { value: "push-to-open", label: "Push-to-open（按壓開啟，無外露五金）" },
       { value: "edge-bevel", label: "斜邊（J-pull，門上緣切 45° 當把手）" },
       { value: "none", label: "不裝（純展示用）" },
     ],
@@ -765,10 +763,6 @@ export function pullStyleNote(style: string): string {
       return "抽屜 / 門板配長條把手（96/128/160mm 規格，NT$ 50-200/個），現代風常見。";
     case "cup":
       return "抽屜配杯型把手（cup pull，黃銅 / 鐵 NT$ 100-300/個），鄉村 / 古典風必配。";
-    case "finger-pull":
-      return "門上緣 / 抽屜上緣斜挖手指槽（25mm 寬 × 15mm 深），無五金，視覺乾淨。";
-    case "push-to-open":
-      return "Push-to-open 緩衝器（Blum / Hettich 等品牌 NT$ 80-150/組），按壓門 / 抽屜會自動彈出。";
     case "edge-bevel":
       return "門上緣切 45° 斜邊當 J-pull 把手（手指扣住斜邊拉開），北歐設計常見。";
     case "none":
