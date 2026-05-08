@@ -586,6 +586,21 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             width: innerH,
             thickness: backT,
           },
+          // 上下緣 tongue 卡進頂板/底板 dado—不加會讓背板四角缺料
+          {
+            position: "top",
+            type: "tongue-and-groove",
+            length: backDadoInset,
+            width: innerW,
+            thickness: backT,
+          },
+          {
+            position: "bottom",
+            type: "tongue-and-groove",
+            length: backDadoInset,
+            width: innerW,
+            thickness: backT,
+          },
         ],
     mortises: [],
   });
