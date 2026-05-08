@@ -794,16 +794,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 並在內側面切 9×3mm 槽收底板前緣
       const insetDrawerCoversBottom = isInsetDrawer && isSurfaceDrawerBottom && !hasFacePanel;
       const frontExtraDown = insetDrawerCoversBottom ? drawerBottomT : 0;
-      // 入柱+釘底時：前板背面（朝內）底部開 9mm 深 × 3mm 寬槽收底板前緣
-      // 前板 rotation x=π/2 後：part-local +Y → 世界 +Z（朝內）；part-local Z → 世界 Y（垂直）
-      // 槽 origin.y = drawerFrontT（背面 entry）、Z 軸 -(panel高/2)+drawerBottomT/2（底邊）
+      // 入柱+釘底時：前板背面（朝內）底部開 6mm 深 × 3mm 寬槽收底板前緣
+      // 前板 rotation x=π/2：part-local +Y → 世界 +Z（朝內）、part-local +Z → 世界 -Y（向下）
+      // 所以槽要放 part-local Z 正端（= 世界底部）：z = +(panel高/2) - drawerBottomT/2
       const frontGrooveMortises: Part["mortises"] = insetDrawerCoversBottom
         ? [
             {
               origin: {
                 x: 0,
                 y: drawerFrontT,
-                z: -(boxH + frontExtraDown) / 2 + drawerBottomT / 2,
+                z: (boxH + frontExtraDown) / 2 - drawerBottomT / 2,
               },
               depth: 6,
               length: boxExtW - 4,
