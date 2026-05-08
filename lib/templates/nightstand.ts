@@ -63,8 +63,6 @@ export const nightstandOptions: OptionSpec[] = [
   drawerSlideTypeOption("drawer"),
   shelfPinSystemOption("structure"),
   backPanelMaterialOption("structure"),
-  { group: "structure", type: "checkbox", key: "withCableHole", label: "預留充電線孔", defaultValue: true, help: "後板開 25mm 圓孔讓手機充電線穿過，床頭櫃必備", wide: true },
-  { group: "structure", type: "checkbox", key: "withWirelessCharging", label: "頂面嵌入無線充電板", defaultValue: false, help: "頂面挖 50mm 深圓槽鑲入 Qi 充電模組，標準 10W；需另購模組+電源線", wide: true },
   pullStyleOption("drawer"),
   softCloseOption("drawer"),
 ];
@@ -88,8 +86,6 @@ export const nightstand: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
   const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
-  const withCableHole = getOption<boolean>(input, opt(o, "withCableHole"));
-  const withWirelessCharging = getOption<boolean>(input, opt(o, "withWirelessCharging"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
@@ -130,46 +126,9 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${withCableHole ? "（手工後製）後板開 25mm 充電線孔，建議套黑色 grommet 圈防磨。" : ""} ${withWirelessCharging ? "頂面 Qi 無線充電板（10W 模組）：挖 75×75×8mm 方槽，再以 forstner 修圓 ⌀75 配模組。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
-  // 無線充電板凹槽：頂板從上面挖 ⌀75×8mm 圓槽（配 Qi 10W 模組）
-  // origin.y = panelThickness 從頂面入；z 偏前緣 30mm（手機朝床內側，避開後緣燈具）
-  if (withWirelessCharging) {
-    const topPart = design.parts.find((p) => p.id === "top");
-    if (topPart) {
-      topPart.mortises = [
-        ...topPart.mortises,
-        {
-          origin: { x: 0, y: panelThickness, z: input.width / 2 - 75 / 2 - 30 },
-          depth: 8,
-          length: 75,
-          width: 75,
-          through: false,
-          shape: "round",
-          cosmetic: true,
-        },
-      ];
-    }
-  }
-  // 後板充電線孔：⌀25mm 穿孔（從底量起 80mm，讓電源線繞過踢腳板）
-  if (withCableHole) {
-    const backPart = design.parts.find((p) => p.id === "back");
-    if (backPart) {
-      backPart.mortises = [
-        ...backPart.mortises,
-        {
-          origin: { x: 0, y: 80, z: 0 },
-          depth: panelThickness,
-          length: 25,
-          width: 25,
-          through: true,
-          shape: "round",
-          cosmetic: true,
-        },
-      ];
-    }
-  }
 
   applyStandardChecks(design, {
     minLength: 300, minWidth: 300, minHeight: 400,
