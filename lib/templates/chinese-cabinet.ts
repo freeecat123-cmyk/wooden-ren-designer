@@ -1209,8 +1209,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
     // 前面對開門（topBoxLayers=1 一對門到頂；topBoxLayers=2 上方加一條小抽屜）
+    // 厚度 = railThickness（跟前抹齊厚），不能比 rail 薄否則 z-order 被 rail 蓋住看不見
     const tbDoorGap = doorGap;
-    const tbDoorThickness = panelThickness * 1.5;
+    const tbDoorThickness = railThickness;
     const tbDoorBottomY = tbLowerRailY + tbRailWidth;
     const tbDoorH = tbInnerH;
     let tbDrawerH = 0;
@@ -1220,6 +1221,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     }
     const tbDoorActualH = tbDoorH - tbDrawerH;
     const tbDoorWidth = (tbInnerSpanX - tbDoorGap) / 2;
+    // 門 / 抽屜面 z 中心 = 跟前抹同 z 中心 = -tbFbRailOffsetZ（負 = 前面）
+    const tbDoorZ = -tbFbRailOffsetZ;
     for (const sx of [-1, 1] as const) {
       const lrId = sx < 0 ? "left" : "right";
       const lrLabel = sx < 0 ? "左" : "右";
@@ -1229,11 +1232,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: tbDoorWidth, width: tbDoorThickness, thickness: tbDoorActualH },
-        origin: {
-          x: sx * (tbDoorGap / 2 + tbDoorWidth / 2),
-          y: tbDoorBottomY,
-          z: -tbPostZ - tbPostSize / 2 + tbDoorThickness / 2,
-        },
+        origin: { x: sx * (tbDoorGap / 2 + tbDoorWidth / 2), y: tbDoorBottomY, z: tbDoorZ },
         tenons: [],
         mortises: [],
       });
@@ -1246,11 +1245,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: tbInnerSpanX - 4, width: tbDoorThickness, thickness: tbDrawerH - 4 },
-        origin: {
-          x: 0,
-          y: tbDoorBottomY + tbDoorActualH + 2,
-          z: -tbPostZ - tbPostSize / 2 + tbDoorThickness / 2,
-        },
+        origin: { x: 0, y: tbDoorBottomY + tbDoorActualH + 2, z: tbDoorZ },
         tenons: [],
         mortises: [],
       });
