@@ -1503,42 +1503,6 @@ export function OrthoView({
           );
         }
         const r = projectPart(part, view);
-        // 外殼薄板（side-left/right、top、bottom）在呈薄條的視圖裡，
-        // 內緣邊跟主輪廓緊貼（22mm 落差）會三線並排很雜。內緣 skip，
-        // 不畫的那條接力由相鄰可見部件的邊（抽屜面/層板/其他殼板）擔任。
-        // edges 0=top(TL→TR) 1=right(TR→BR) 2=bottom(BR→BL) 3=left(BL→TL)
-        // hidden / visible 兩條路徑都要套用，否則殼板被判 hidden 時還是會畫。
-        // 注意：corners 用的是 world y（非 svg y），所以 edge 0/2 上下要小心：
-        // r.y 是 part 的 world Y 起點（較小值），r.y+r.h 是較大值。
-        // edge 0 在 r.y（較小 world y）= 在 svg 下方；edge 2 在 r.y+r.h = svg 上方。
-        // 而 r.x 是較小 world x = svg 左側；r.x+r.w 是較大 = svg 右側。
-        // INNER 邊（朝櫃體中心）：
-        //  - side-left（在櫃體左側）：右邊 edge = svg 右 = r.x+r.w 那條 = edge 1
-        //    但實測 projectPart 對 side-left 的 r.x 落在 -203（內側），r.w 為負。
-        //    所以 corners[0] 在內側，edge 1 是外側……乾脆走「OUTER 留 INNER 砍」的相對距離判斷。
-        // 改用 world 座標距櫃體中心的距離：選離中心最遠的那條 vertical/horizontal 留下。
-        // 背板在前視圖整個 skip：silhouette 是大矩形（不是薄條），
-        // 且全被前方部件擋住成虛線，跟主輪廓平行 22mm 處又一條鬼影。
-        if (part.id === "back" && view === "front") {
-          return null;
-        }
-        let shellInnerEdge: number | null = null;
-        if (part.id === "side-left" || part.id === "side-right") {
-          if (view === "front" || view === "top") {
-            // 兩條 vertical edges：edge 1（x=r.x+r.w） vs edge 3（x=r.x）
-            // INNER = 距 x=0（中心）較近的那條
-            const x1 = r.x + r.w;
-            const x3 = r.x;
-            shellInnerEdge = Math.abs(x1) < Math.abs(x3) ? 1 : 3;
-          }
-        } else if (part.id === "top" || part.id === "bottom") {
-          if (view === "front" || view === "side") {
-            // 兩條 horizontal edges：edge 0（y=r.y）vs edge 2（y=r.y+r.h）
-            // 在 world：top 的「外」= 較大 y（y=r.y+r.h），「內」= 較小 y（y=r.y）= edge 0
-            // bottom 的「外」= 較小 y（y=r.y）= edge 0，「內」= edge 2
-            shellInnerEdge = part.id === "top" ? 0 : 2;
-          }
-        }
         // 預設 rect path：把 4 條邊用 HLE 分段——visible 段實線、hidden 段虛線
         // 整個零件被擋住時 hidden 變數會 true，沿用整體實線/虛線；否則用 per-edge 判斷
         if (hidden) {
@@ -1547,20 +1511,20 @@ export function OrthoView({
           const ry = view === "top" ? -(r.y + r.h) : -r.y - r.h;
           const PERIOD = 7; // dasharray "4 3"
           const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
-          // edges: 0=top, 1=right, 2=bottom, 3=left
-          const edges = [
-            { idx: 0, x1: r.x, y1: ry, x2: r.x + r.w, y2: ry, off: mod(r.x) },
-            { idx: 1, x1: r.x + r.w, y1: ry, x2: r.x + r.w, y2: ry + r.h, off: mod(ry) },
-            { idx: 2, x1: r.x, y1: ry + r.h, x2: r.x + r.w, y2: ry + r.h, off: mod(r.x) },
-            { idx: 3, x1: r.x, y1: ry, x2: r.x, y2: ry + r.h, off: mod(ry) },
-          ];
           return (
             <g key={part.id}>
-              {edges.filter(e => e.idx !== shellInnerEdge).map(e => (
-                <line key={`e${e.idx}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-                  stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                  strokeDashoffset={e.off} fill="none" />
-              ))}
+              <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(r.x)} fill="none" />
+              <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(ry)} fill="none" />
+              <line x1={r.x} y1={ry + r.h} x2={r.x + r.w} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(r.x)} fill="none" />
+              <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
+                stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
+                strokeDashoffset={mod(ry)} fill="none" />
             </g>
           );
         }
@@ -1575,7 +1539,6 @@ export function OrthoView({
         // 立柱可見邊用粗線 1.4 突顯（俯視圖立柱方塊容易被層板矩形蓋過）
         const visibleSw = isCornerPost ? 1.4 : 0.9;
         for (let i = 0; i < 4; i++) {
-          if (i === shellInnerEdge) continue;
           const a = corners[i];
           const b = corners[(i + 1) % 4];
           const segs = classifyEdgeVisibility(a, b, isHiddenAt);
