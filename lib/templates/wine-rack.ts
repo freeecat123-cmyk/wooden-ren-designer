@@ -195,6 +195,30 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
+  // 頂部杯軌：4 條 25mm 寬條沿 depth 方向跑，掛高腳杯倒立
+  if (withGlassRack) {
+    const railCount = 4;
+    const railWidthMm = 25;
+    const railThicknessMm = 12;
+    const railSpacing = (outerW - 2 * panelT) / (railCount + 1);
+    // 軌道貼在頂板下方、留 25mm 縫好掛高腳杯柱
+    const railY = outerH - panelT - 25 - railThicknessMm / 2;
+    for (let i = 0; i < railCount; i++) {
+      const xPos = -outerW / 2 + panelT + railSpacing * (i + 1);
+      parts.push({
+        id: `glass-rail-${i + 1}`,
+        nameZh: `杯軌 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: depth - 2 * panelT, width: railWidthMm, thickness: railThicknessMm },
+        origin: { x: xPos, y: railY, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   if (mountStyle === "wall-mount") {
     // 背面加一條全寬吊掛條，鎖到牆內龍骨上
     parts.push({
