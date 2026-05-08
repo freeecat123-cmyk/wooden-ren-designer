@@ -1215,12 +1215,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       }
     } else if (layerType === "drawer") {
       // 抽屜：依 drawerSplit 切 1/2/3 格抽屜面 + 抽屜盒
+      // 圓角櫃 splay：抽屜寬度跟 Z 位置都按該層 Y 算，跟 splayed 立柱對齊
       const isHidden = hiddenDrawerLayer === String(i + 1);
       const drawerGap = 3;
-      const drawerWidth = innerSpanX - drawerGap * 2;
+      const drawerWidth = innerSpanXat(layerCenterY) - drawerGap * 2;
       const drawerHeight = thisLayerHeight - 4;
       const drawerThickness = railThickness;
-      const drawerFrontZ = -(fbRailOffsetZ);
+      const drawerFrontZ = -(postOuterFaceZat(layerCenterY) - railThickness / 2);
       // 暗抽強制 single + 無拉手；隱藏抽屜面分割線視覺
       const effectiveSplit = isHidden ? "single" : drawerSplit;
       const effectivePullType = isHidden ? "none" : drawerPullType;
@@ -1272,14 +1273,16 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           }
         }
       }
-      // 抽屜底（簡化用 1 片底板）
+      // 抽屜底（簡化用 1 片底板）— 圓角櫃 splay：用該層 Y 算 Z 跨距
       const drawerBottomThickness = 6;
+      const drawerLayerCenterY = layerBottomY + drawerHeight / 2;
+      const drawerInnerSpanZ = innerSpanZat(drawerLayerCenterY);
       parts.push({
         id: `layer${i + 1}-drawer-bottom`,
         nameZh: `第 ${i + 1} 層抽屜底`,
         material,
         grainDirection: "length",
-        visible: { length: drawerWidth - 20, width: 2 * postZ - postSize - 30, thickness: drawerBottomThickness },
+        visible: { length: drawerWidth - 20, width: drawerInnerSpanZ - 30, thickness: drawerBottomThickness },
         origin: { x: 0, y: layerBottomY + 5, z: 0 },
         tenons: [],
         mortises: [],
@@ -1287,7 +1290,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       // 抽屜兩側（立著的板，沿 Z 延伸）：X=厚, Y=高, Z=長
       const drawerSideThickness = 12;
       const drawerSideHeight = drawerHeight - 12;
-      const drawerSideLength = 2 * (postZ - postSize / 2) - 30;
+      const drawerSideLength = drawerInnerSpanZ - 30;
       for (const sx of [-1, 1] as const) {
         const lrId = sx < 0 ? "left" : "right";
         parts.push({
@@ -1308,7 +1311,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: drawerWidth - 20 - drawerSideThickness * 2, width: drawerSideThickness, thickness: drawerSideHeight },
-        origin: { x: 0, y: layerBottomY + 5 + drawerBottomThickness, z: postZ - postSize / 2 - 20 },
+        origin: { x: 0, y: layerBottomY + 5 + drawerBottomThickness, z: postOuterZat(drawerLayerCenterY) - postSize / 2 - 20 },
         tenons: [],
         mortises: [],
       });
@@ -1492,8 +1495,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 厚度從 skirtThickness-4（薄片）拉到 skirtThickness+8（25mm 起跳）
     // 才看得見——3D 透視 3/4 角度站牙若 < 20mm 會變一條垂直細線
     const braceThickness = Math.max(25, skirtThickness + 8);
-    const braceOuterX = postX + postSize / 2 + 1;
-    const braceOuterZ = postZ + postSize / 2 + 1;
+    // 圓角櫃 splay：站牙在 Y=skirtHeight，立柱底端外擴；用該 Y 算外緣
+    const braceCenterY = skirtHeight;
+    const braceOuterX = postOuterFaceXat(braceCenterY) + 1;
+    const braceOuterZ = postOuterFaceZat(braceCenterY) + 1;
     // 沿 Z 軸方向的站牙（左右側面）—4 個
     for (const sx of [-1, 1] as const) {
       const lrId = sx < 0 ? "left" : "right";
@@ -1506,7 +1511,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: braceThickness, width: standingBraceSize, thickness: standingBraceSize },
-          origin: { x: sx * (braceOuterX + braceThickness / 2), y: skirtHeight, z: sz * (postZ - standingBraceSize / 2) },
+          origin: { x: sx * (braceOuterX + braceThickness / 2), y: skirtHeight, z: sz * (postOuterZat(braceCenterY) - standingBraceSize / 2) },
           shape: braceShape,
           tenons: [],
           mortises: [],
@@ -1525,7 +1530,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: standingBraceSize, width: braceThickness, thickness: standingBraceSize },
-          origin: { x: sx * (postX - standingBraceSize / 2), y: skirtHeight, z: sz * (braceOuterZ + braceThickness / 2) },
+          origin: { x: sx * (postOuterXat(braceCenterY) - standingBraceSize / 2), y: skirtHeight, z: sz * (braceOuterZ + braceThickness / 2) },
           shape: braceShape,
           tenons: [],
           mortises: [],
