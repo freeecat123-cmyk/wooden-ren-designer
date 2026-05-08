@@ -2,9 +2,11 @@ import type {
   FurnitureDesign,
   FurnitureTemplate,
   OptionSpec,
+  Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
+import { polygonStaves } from "./_builders/polygon-stave-builder";
 
 /** 使用情境 preset */
 interface PencilHolderPresetConfig {
@@ -33,6 +35,11 @@ const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
 };
 
 export const pencilHolderOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "bodyShape", label: "筒身形狀", defaultValue: "rect", choices: [
+    { value: "rect", label: "方筒（4 壁，最簡單）" },
+    { value: "hex", label: "六角筒（6 段拼接）" },
+    { value: "oct", label: "八角筒（8 段拼接）" },
+  ], help: "六/八角款用 stave 拼接（取 length/width 較小邊為直徑）；方筒以外不支援 dividers" },
   { group: "preset", type: "select", key: "useCase", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
     { value: "classic", label: "一般筆筒（方筒整空）" },
@@ -81,7 +88,37 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const edgeChamfer = edgeChamferRaw === 2 && preset?.edgeChamfer !== undefined ? preset.edgeChamfer : edgeChamferRaw;
   const withDrainHolesRaw = getOption<boolean>(input, opt(o, "withDrainHoles"));
   const withDrainHoles = withDrainHolesRaw === false && preset?.withDrainHoles !== undefined ? preset.withDrainHoles : withDrainHolesRaw;
+  const bodyShape = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
   void edgeChamfer; void withDrainHoles; // 旗標已套 preset，下游 builder/notes 需個別實作（v2 backlog）
+
+  // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 圓底
+  if (bodyShape === "hex" || bodyShape === "oct") {
+    const sides = bodyShape === "hex" ? 6 : 8;
+    const outerD = Math.min(outerL, outerW);
+    const staves = polygonStaves({ sides, outerD, outerH, wallT, botT, material });
+    const polyBottom: Part = {
+      id: "bottom",
+      nameZh: `${sides} 角底板`,
+      material,
+      grainDirection: "length",
+      visible: { length: outerD - 2, width: outerD - 2, thickness: botT },
+      origin: { x: 0, y: 0, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+    };
+    return {
+      id: `pencil-holder-${bodyShape}-${outerD}x${outerH}`,
+      category: "pencil-holder",
+      nameZh: `${sides === 6 ? "六" : "八"}角筆筒`,
+      overall: { length: outerD, width: outerD, thickness: outerH },
+      parts: [polyBottom, ...staves],
+      defaultJoinery: "mitered-spline",
+      useButtJointConvention: false,
+      primaryMaterial: material,
+      notes: `${sides} 角筆筒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板⌀${outerD - 2}mm 圓盤從底嵌入或膠合。`,
+    };
+  }
 
   const built = buildBox({
     outerL,
