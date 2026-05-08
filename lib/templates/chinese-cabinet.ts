@@ -1434,7 +1434,12 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 在頂箱頂部下方（之後再支援，本輪先不畫絛環板於頂箱模式）
   if (friezePanel !== "none" && !isCompound) {
     const friezeThickness = Math.max(10, panelThickness);
-    const friezeY = upperRailY;
+    // 絛環板 Y：移到「上抹頂面之下、板心區內最上端」當束腰板（傳統明式做法）
+    // 之前 friezeY = upperRailY 是上抹「底面」y，frieze 從那往上 50mm 整個鑽進
+    // 上抹 + 凸破頂蓋 5mm（B 報告 cf3bdd6 → 6f0b1ae 共 7 commit 都這 bug）
+    const friezeY = upperRailY - friezeHeight;
+    // 確保不超過板心頂端（避開鑽到下抹）
+    const friezeYClamped = Math.max(lowerRailY + railWidth + 10, friezeY);
     const friezeLen = 2 * (postX - postSize / 2) - 4;
     const friezeZ = -(postZ + postSize / 2 - friezeThickness / 2);
     // 主絛環板背板（薄板）
@@ -1444,7 +1449,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: friezeLen, width: friezeThickness, thickness: friezeHeight },
-      origin: { x: 0, y: friezeY, z: friezeZ },
+      origin: { x: 0, y: friezeYClamped, z: friezeZ },
       tenons: [],
       mortises: [],
     });
@@ -1463,7 +1468,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         material,
         grainDirection: "length",
         visible: { length: friezeLen - 12, width: overlayThickness, thickness: overlayBarT },
-        origin: { x: 0, y: friezeY + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
+        origin: { x: 0, y: friezeYClamped + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
         tenons: [],
         mortises: [],
       });
@@ -1476,7 +1481,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: overlayBarT, width: overlayThickness, thickness: friezeHeight - 12 },
-          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT / 2, y: friezeY + 6, z: overlayZ },
+          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT / 2, y: friezeYClamped + 6, z: overlayZ },
           tenons: [],
           mortises: [],
         });
@@ -1495,7 +1500,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           material,
           grainDirection: "length",
           visible: { length: overlayBarT * 1.6, width: overlayThickness, thickness: overlayBarT },
-          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT * 0.8, y: friezeY + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
+          origin: { x: -friezeLen / 2 + tFrac * friezeLen - overlayBarT * 0.8, y: friezeYClamped + friezeHeight / 2 - overlayBarT / 2, z: overlayZ },
           shape: cloudShape,
           tenons: [],
           mortises: [],
