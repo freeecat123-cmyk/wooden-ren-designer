@@ -22,10 +22,6 @@ import {
   shelfPinSystemNote,
   backPanelMaterialOption,
   backPanelMaterialNote,
-  drawerJoineryOption,
-  drawerJoineryNote,
-  drawerSlideTypeOption,
-  drawerSlideTypeNote,
   pullStyleOption,
   pullStyleNote,
   softCloseOption,
@@ -59,8 +55,6 @@ export const nightstandOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
-  drawerJoineryOption("drawer"),
-  drawerSlideTypeOption("drawer"),
   shelfPinSystemOption("structure"),
   backPanelMaterialOption("structure"),
   pullStyleOption("drawer"),
@@ -84,8 +78,6 @@ export const nightstand: FurnitureTemplate = (input) => {
   const drawerMount = resolveDrawerMount(input, o);
   const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
-  const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
@@ -126,7 +118,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
 
@@ -146,7 +138,7 @@ export const nightstand: FurnitureTemplate = (input) => {
       shelfSpan: input.length - 2 * panelThickness,
       hasDrawers: drawerCount > 0,
       drawerCount,
-      hasDrawerSlide: drawerSlideType !== "none",
+      hasDrawerSlide: getOption<boolean>(input, opt(o, "useDrawerSlide")),
     }),
   );
   // 床面齊平 ergo：標準床面 500-550mm（含床墊），床頭櫃高 ±50mm 才好用
