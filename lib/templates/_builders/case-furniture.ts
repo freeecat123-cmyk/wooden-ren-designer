@@ -969,8 +969,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 底板：兩種作法
       // - surface 釘底：3mm 板貼在抽屜箱底，尺寸 = 外框長 × 外框深（蓋過四邊下緣）
-      // - rebated 入溝：6mm 板四邊舌頭嵌入溝槽，尺寸 = 內寬+4 × 內深+4
+      // - rebated 入溝：6mm 板嵌入前/左/右槽，後緣滑進升高的後板底下到抽屜後緣
+      //   visible.width = drawerInnerD + drawerBackT + 2
+      //   （前 2mm 進前板槽 + drawerInnerD + drawerBackT 滑到後緣下）
       const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
+      const drawerBottomLengthRebated = drawerInnerD + drawerBackT + 2;
+      const drawerBottomFrontEdgeZ = zFront + drawerFrontT / 2 - 2;
+      const drawerBottomRearEdgeZ = zBack + drawerBackT / 2;
       parts.push({
         id: `${idPrefix}-${i + 1}-bottom`,
         nameZh: isSurfaceDrawerBottom
@@ -981,7 +986,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: isSurfaceDrawerBottom
           ? { length: boxExtW, width: drawerOuterD, thickness: drawerBottomT }
-          : { length: drawerInnerW + 4, width: drawerInnerD + 4, thickness: drawerBottomT },
+          : { length: drawerInnerW + 4, width: drawerBottomLengthRebated, thickness: drawerBottomT },
         origin: {
           x: xCenter,
           // 釘底：底板貼在側板/前後板下方（origin.y 是底面，y 範圍 = [origin.y, origin.y+thickness]）
@@ -989,7 +994,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           y: isSurfaceDrawerBottom
             ? yBase + boxYOffset - drawerBottomT
             : yBase + boxYOffset + 6,
-          z: (zFront + zBack) / 2,
+          z: isSurfaceDrawerBottom
+            ? (zFront + zBack) / 2
+            : (drawerBottomFrontEdgeZ + drawerBottomRearEdgeZ) / 2,
         },
         tenons: isSurfaceDrawerBottom
           ? []
@@ -1015,13 +1022,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 width: drawerInnerW + 4,
                 thickness: drawerBottomT,
               },
-              {
-                position: "right",
-                type: "tongue-and-groove",
-                length: 6,
-                width: drawerInnerW + 4,
-                thickness: drawerBottomT,
-              },
+              // 後緣不加 tongue—底板鋪到後板下方，後板無對應槽
             ],
         mortises: [],
       });
