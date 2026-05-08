@@ -103,7 +103,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "square", label: "方角櫃（直立柱、銅合頁、直角）" },
     { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
   ], help: "圓角櫃 = 明式四大櫃形之一，靠側腳（splay）+ 噴面（cap overhang）+ 木軸（無金屬合頁）三件套，比方角更早期文人雅" },
-  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1, min: 0.5, max: 2.5, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度（0.5° 微噴 / 2° 明顯噴）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)（暫保留）", defaultValue: 0.5, min: 0.2, max: 1.5, step: 0.1, unit: "°", help: "⚠️ 暫時不生效——圓角櫃改用「立柱倒圓 + 加大噴面」當視覺辨識，避免 frame 構件不跟著斜產生縫。完整 frame-trapezoid 同步修待下輪", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   { group: "leg", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
   { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
@@ -487,16 +487,18 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const lowerRailCY = skirtHeight + railWidth / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
-      // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
-      // splayMm = tan(splayAngle) × postHeight；底端往 sign(c.x), sign(c.z) 方向偏
-      const splayMmRound = isRoundCorner
-        ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
-        : 0;
+      // 圓角櫃：原本用 splayed shape 給立柱底擴 splayMm 製造「上窄下寬」視覺效果，
+      // 但 frame 構件（門/側板/背板/抹頭/層板）全按直立柱 X 計算，於是底端產生
+      // splayMm 寬的縫（1°=26mm 肉眼可見，使用者 5/8 截圖回報）。
+      //
+      // 解：圓角櫃改用「立柱四角倒圓 + 加大噴面」當視覺辨識，立柱本身保持直立讓
+      // frame 構件完美對齊。倒角 chamferMm 跟 postSize 0.4 倍，視覺上立柱角隅圓潤
+      // 像 cylinder。完整 frame-trapezoid 同步修留下輪。
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
-            kind: "splayed",
-            dxMm: sx * splayMmRound,
-            dzMm: sz * splayMmRound,
+            kind: "chamfered-edges",
+            chamferMm: Math.round(postSize * 0.4),
+            style: "rounded",
           }
         : effectiveLegShape === "box"
           ? undefined
