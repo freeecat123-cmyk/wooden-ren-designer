@@ -630,8 +630,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const sidePanelBotY = lowerRailY + railWidth - 5;
     const sidePanelTopY = sidePanelBotY + panelInnerH;
     // 圓角櫃 splay：板心 Z 跨距按 Y 算（visible.width = TOP 寬度，bottomScale 拉 bot/top 比）
-    const sidePanelTopW = innerSpanZat(sidePanelTopY) - 10;
-    const sidePanelBotW = innerSpanZat(sidePanelBotY) - 10;
+    // 注意：原本 -10（兩邊各 5mm 嵌進立柱槽），但立柱跟側抹都沒開縱向 panel groove，
+    // 結果前後各留 5mm 空氣縫。改 - 0 讓 panel 撐到立柱內面（reviewer 1.0 抓到）
+    const sidePanelTopW = innerSpanZat(sidePanelTopY);
+    const sidePanelBotW = innerSpanZat(sidePanelBotY);
     const sidePanelTaper = sidePanelTopW > 0 ? sidePanelBotW / sidePanelTopW : 1;
     // 圓角櫃同步斜：origin.x 用 TOP Y 對齊（splayed-tapered builder 是頂面不動底面偏移），
     // dxMm 補底端 X 平移量讓 panel 整片跟立柱底端外擴對齊
@@ -827,9 +829,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
     const backPanelBotY = lowerRailY + railWidth - 5;
     const backPanelTopY = backPanelBotY + panelInnerH;
-    // 圓角櫃 splay：按 Y 算 X 跨距
-    const backPanelTopW = innerSpanXat(backPanelTopY) - 10;
-    const backPanelBotW = innerSpanXat(backPanelBotY) - 10;
+    // 圓角櫃 splay：按 Y 算 X 跨距（同 side panel：去 -10 讓 panel 接到立柱內面）
+    const backPanelTopW = innerSpanXat(backPanelTopY);
+    const backPanelBotW = innerSpanXat(backPanelBotY);
     const backPanelTaper = backPanelTopW > 0 ? backPanelBotW / backPanelTopW : 1;
     const backPanelCenterY = (backPanelBotY + backPanelTopY) / 2;
     const backPanelZ = postOuterZat(backPanelCenterY) - railThickness / 2;
