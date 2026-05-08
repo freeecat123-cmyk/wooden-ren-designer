@@ -162,14 +162,12 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     warnings.push(`邊框寬 ${frameW}mm 占照片邊長 > 30%，視覺比例失衡。建議邊框寬不超過照片短邊的 1/4`);
   }
 
-  // 多照片 mullion：在邊框內部加分隔木條
-  // mullion 放在玻璃前方（朝觀察者一側），3D 才看得到，不會被玻璃/背板擋住
+  // 多照片 mullion：在邊框正面凸出 3mm 木條（3D 才看得到、不跟 frame 表面齊平）
   const mullions: Part[] = [];
   if (multiPhotoLayout !== "single") {
     const mullionW = 18;
-    const glassTopY = frameT - glassGrooveDepth - glassT + glassT; // 玻璃頂 y
-    const mullionY = glassTopY; // mullion 底面貼齊玻璃頂面
-    const mullionThick = Math.max(4, frameT - glassTopY); // 從玻璃頂往上到框面前緣
+    const mullionThick = 6; // 凸出 frame 表面的厚度
+    const mullionY = frameT - 3; // 底面貼進 frame 內 3mm，頂面凸出 frame 3mm
     if (multiPhotoLayout === "horizontal-2" || multiPhotoLayout === "horizontal-3") {
       const cuts = multiPhotoLayout === "horizontal-2" ? 1 : 2;
       const innerW = outerL - 2 * frameW;
