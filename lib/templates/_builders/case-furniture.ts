@@ -360,21 +360,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     }
   }
 
-  // 頂板。rebated 模式：底面（朝下那面）開一道 9mm 寬 × 6mm 深的 dado 槽給背板卡進去
-  const backDadoOnTopBottom: Part["mortises"] =
-    backMode === "rebated"
-      ? [
-          {
-            origin: { x: 0, y: 0, z: width / 2 - backDadoInset - backT / 2 },
-            depth: backDadoInset,
-            length: innerW,
-            width: backT,
-            through: false,
-            cosmetic: true,
-            shape: "rect",
-          },
-        ]
-      : [];
+  // 頂板
   parts.push({
     id: "top",
     nameZh: "頂板",
@@ -399,7 +385,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         width: panelTongueT,
         through: false,
       },
-      ...backDadoOnTopBottom,
     ],
   });
 
@@ -450,8 +435,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             })),
           )
         : []),
-      // rebated dado 在底板「朝上那面」（part-local y=panelT）開
-      ...backDadoOnTopBottom.map((m) => ({ ...m, origin: { ...m.origin, y: panelT } })),
     ],
   });
 
