@@ -423,12 +423,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 假設這個 helper 回傳 center，不是 outer face。維持原語意。
   const postOuterXat = (y: number): number => postX + splayShiftAt(y);
   const postOuterZat = (y: number): number => postZ + splayShiftAt(y);
+  // 立柱外緣 face X / Z（rail 跟 skirt 沿外緣對齊用）
+  const postOuterFaceXat = (y: number): number => postOuterXat(y) + postSize / 2;
+  const postOuterFaceZat = (y: number): number => postOuterZat(y) + postSize / 2;
   // 該 Y 高度的內跨距（兩立柱內緣間距 = 2 × (center − postSize/2)）
   const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
   const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
-  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × (center + postSize/2)）
-  const railLenXat = (y: number): number => 2 * (postOuterXat(y) + postSize / 2);
-  const railLenZat = (y: number): number => 2 * (postOuterZat(y) + postSize / 2);
+  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × outer face）
+  const railLenXat = (y: number): number => 2 * postOuterFaceXat(y);
+  const railLenZat = (y: number): number => 2 * postOuterFaceZat(y);
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -596,8 +599,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const upperSideRailLenZ = railLenZat(upperRailCenterY);
     const lowerSideRailLenZ = railLenZat(lowerRailCenterY);
     // 該 Y 高度的 X 位置（rail 中心 X = 立柱外緣 X - railThickness/2）
-    const upperSideRailX = postOuterXat(upperRailCenterY) - railThickness / 2;
-    const lowerSideRailX = postOuterXat(lowerRailCenterY) - railThickness / 2;
+    const upperSideRailX = postOuterFaceXat(upperRailCenterY) - railThickness / 2;
+    const lowerSideRailX = postOuterFaceXat(lowerRailCenterY) - railThickness / 2;
     // 上抹
     parts.push({
       id: `${lrId}-side-upper-rail`,
@@ -637,8 +640,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const sidePanelTaper = sidePanelTopW > 0 ? sidePanelBotW / sidePanelTopW : 1;
     // 圓角櫃同步斜：origin.x 用 TOP Y 對齊（splayed-tapered builder 是頂面不動底面偏移），
     // dxMm 補底端 X 平移量讓 panel 整片跟立柱底端外擴對齊
-    const sidePanelTopX = postOuterXat(sidePanelTopY) - railThickness / 2;
-    const sidePanelBotX = postOuterXat(sidePanelBotY) - railThickness / 2;
+    const sidePanelTopX = postOuterFaceXat(sidePanelTopY) - railThickness / 2;
+    const sidePanelBotX = postOuterFaceXat(sidePanelBotY) - railThickness / 2;
     const sidePanelDxMm = isRoundCorner ? sx * (sidePanelBotX - sidePanelTopX) : 0;
     parts.push({
       id: `${lrId}-side-panel`,
@@ -779,8 +782,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const lowerBackRailCenterY = lowerRailY + railWidth / 2;
   const upperBackRailLenX = railLenXat(upperBackRailCenterY);
   const lowerBackRailLenX = railLenXat(lowerBackRailCenterY);
-  const upperBackRailZ = postOuterZat(upperBackRailCenterY) - railThickness / 2;
-  const lowerBackRailZ = postOuterZat(lowerBackRailCenterY) - railThickness / 2;
+  const upperBackRailZ = postOuterFaceZat(upperBackRailCenterY) - railThickness / 2;
+  const lowerBackRailZ = postOuterFaceZat(lowerBackRailCenterY) - railThickness / 2;
   // singleBoard 模式不畫上下抹，整片背板取代框板結構
   if (backPanelStyle !== "singleBoard") {
     parts.push({
@@ -813,7 +816,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const sBackBotW = innerSpanXat(sBackBotY);
     const sBackTaper = sBackTopW > 0 ? sBackBotW / sBackTopW : 1;
     const sBackCenterY = (sBackBotY + sBackTopY) / 2;
-    const sBackZ = postOuterZat(sBackCenterY) - railThickness / 2;
+    const sBackZ = postOuterFaceZat(sBackCenterY) - railThickness / 2;
     parts.push({
       id: "back-panel",
       nameZh: "背面整片板",
@@ -834,10 +837,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const backPanelBotW = innerSpanXat(backPanelBotY);
     const backPanelTaper = backPanelTopW > 0 ? backPanelBotW / backPanelTopW : 1;
     const backPanelCenterY = (backPanelBotY + backPanelTopY) / 2;
-    const backPanelZ = postOuterZat(backPanelCenterY) - railThickness / 2;
+    const backPanelZ = postOuterFaceZat(backPanelCenterY) - railThickness / 2;
     // 背板 origin.z 用 TOP Y 對齊；dzMm 補底端 Z 平移量（後傾）
-    const backPanelTopZ = postOuterZat(backPanelTopY) - railThickness / 2;
-    const backPanelBotZ = postOuterZat(backPanelBotY) - railThickness / 2;
+    const backPanelTopZ = postOuterFaceZat(backPanelTopY) - railThickness / 2;
+    const backPanelBotZ = postOuterFaceZat(backPanelBotY) - railThickness / 2;
     const backPanelDzMm = isRoundCorner ? backPanelBotZ - backPanelTopZ : 0;
     parts.push({
       id: "back-panel",
@@ -904,8 +907,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // ── 前面 frame —— 圓角櫃 splay：按各自 Y 算 X 跨距 + Z 偏移（前面 z 取負）
   const upperFrontRailLenX = railLenXat(upperBackRailCenterY);  // 同上 back 同 Y
   const lowerFrontRailLenX = railLenXat(lowerBackRailCenterY);
-  const upperFrontRailZ = -(postOuterZat(upperBackRailCenterY) - railThickness / 2);
-  const lowerFrontRailZ = -(postOuterZat(lowerBackRailCenterY) - railThickness / 2);
+  const upperFrontRailZ = -(postOuterFaceZat(upperBackRailCenterY) - railThickness / 2);
+  const lowerFrontRailZ = -(postOuterFaceZat(lowerBackRailCenterY) - railThickness / 2);
   parts.push({
     id: "front-upper-rail",
     nameZh: "前面上抹",
@@ -969,8 +972,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const doorWidthBot = (doorBotInnerSpan - doorGap) / 2;
       const doorTaper = doorWidth > 0 ? doorWidthBot / doorWidth : 1;
       // door front Z origin 用 TOP Y 對齊；dzMm 補底端往前傾的 Z 平移量
-      const doorFrontZTop = -(postOuterZat(doorTopYInner) - railThickness / 2);
-      const doorFrontZBot = -(postOuterZat(doorBotYInner) - railThickness / 2);
+      const doorFrontZTop = -(postOuterFaceZat(doorTopYInner) - railThickness / 2);
+      const doorFrontZBot = -(postOuterFaceZat(doorBotYInner) - railThickness / 2);
       const doorDzMm = isRoundCorner ? doorFrontZBot - doorFrontZTop : 0;
       // 兼容：muntin / hinge / pull 等附件用門中段 Z 對齊（這些部件不跟門 splay）
       const doorFrontZ = (doorFrontZTop + doorFrontZBot) / 2;
@@ -1380,8 +1383,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 圓角櫃 splay：牙條在 skirtHeight/2 中段，按該 Y 算 X/Z 偏移跟長度
   const SKIRT_INSET = 10;
   const skirtCenterY = skirtHeight / 2;
-  const skirtOffsetX = postOuterXat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
-  const skirtOffsetZ = postOuterZat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
+  const skirtOffsetX = postOuterFaceXat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
+  const skirtOffsetZ = postOuterFaceZat(skirtCenterY) - skirtThickness / 2 - SKIRT_INSET;
   const skirtSpanXatY = 2 * (postOuterXat(skirtCenterY) - postSize / 2);
   const skirtSpanZatY = 2 * (postOuterZat(skirtCenterY) - postSize / 2);
   // 牙條 shape（雲頭 / 壼門用 face-rounded 的 archMm 表示弧度）
