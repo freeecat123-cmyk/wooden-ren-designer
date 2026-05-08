@@ -148,7 +148,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "stone-medallion", label: "嵌石開光（圓 / 方框中央嵌大理石）" },
     { value: "latticed-center", label: "格紋中心（中央嵌田字格）" },
     { value: "calligraphy-frame", label: "留字框（中央留出書法 / 對聯框）" },
-  ], help: "明清板心常嵌大理石 / 雲石 / 瘿木做圓形開光，或中央格紋裝飾。只在 panelStyle=flat 時生效" },
+  ], help: "明清板心常嵌大理石 / 雲石 / 瘿木做圓形開光，或中央格紋裝飾。只在 panelStyle=flat 時生效", dependsOn: { key: "panelStyle", oneOf: ["flat"] } },
   // 邊抹（rails）
   { group: "apron", type: "number", key: "railWidth", label: "邊抹寬 (mm)", defaultValue: 50, min: 35, max: 80, step: 5, unit: "mm", help: "頂底抹 / 內部水平分隔板的高度" },
   { group: "apron", type: "number", key: "railThickness", label: "邊抹厚 (mm)", defaultValue: 25, min: 18, max: 35, step: 1, unit: "mm" },
@@ -309,8 +309,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const standingBraceSize = getOption<number>(input, opt(o, "standingBraceSize"));
   const friezePanel = getOption<string>(input, opt(o, "friezePanel"));
   const friezeHeight = getOption<number>(input, opt(o, "friezeHeight"));
-  // 跟 spandrelStyle=ruyi 互斥（避免擠在一起）
-  const standingBraceStyle = (spandrelStyleRaw === "ruyi" || spandrelStyleRaw === "auto" && proportionStyle === "ming")
+  // 跟 spandrelStyle=ruyi 互斥（避免擠在一起）— 只擋顯式 ruyi，
+  // auto+ming 不再連帶 mute，使用者選了 scroll/cloud 站牙就會生效
+  const standingBraceStyle = spandrelStyleRaw === "ruyi"
     ? "none"
     : standingBraceStyleRaw;
   // skirtStyle="auto" → 依 proportionStyle 帶（明式壼門、清式雲頭、free 直素牙）
@@ -734,9 +735,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     if (panelInlayActive) {
       const inlayMarginBack = Math.min(80, panelInnerW_X * 0.2);
       const inlayThickness = 5;
+      // cornerR 用較小邊的 0.15 倍，避免長寬比例懸殊時形狀拉伸
       const inlayShapeBack: Part["shape"] | undefined =
         panelInlay === "stone-medallion"
-          ? { kind: "face-rounded", cornerR: Math.round(panelInnerH * 0.15), bendMm: 0, bendAxis: "z" }
+          ? { kind: "face-rounded", cornerR: Math.round(Math.min(panelInnerH, panelInnerW_X) * 0.15), bendMm: 0, bendAxis: "z" }
           : undefined;
       parts.push({
         id: "back-panel-inlay",
@@ -1316,26 +1318,23 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // ── 絛環板：頂蓋下方一條裝飾橫帶（清式櫃靈魂橫條）
-  // 位置：頂蓋下方緊貼，沿前後兩面各一條
-  // 內嵌格紋 / 透雕——本輪先當實板處理（後續輪在 svg-views 加 lattice / openwork hint overlay）
+  // 位置：上抹頂面之上、頂蓋底面之下的薄帶（避開背板 Y 區間）
+  // 只裝前面（背面有背板擋住沒人看；之前裝後面會跟背板重疊）
   if (friezePanel !== "none") {
-    const friezeY = postTopY - friezeHeight;
     const friezeThickness = Math.max(10, panelThickness);
-    for (const sz of [-1, 1] as const) {
-      const fbId = sz < 0 ? "front" : "back";
-      const fbLabel = sz < 0 ? "前" : "後";
-      parts.push({
-        id: `frieze-panel-${fbId}`,
-        nameZh: `${fbLabel}絛環板`,
-        material,
-        grainDirection: "length",
-        // length=櫃寬、width=厚度（前後向）、thickness=絛環高
-        visible: { length: 2 * (postX - postSize / 2) - 4, width: friezeThickness, thickness: friezeHeight },
-        origin: { x: 0, y: friezeY, z: sz * (postZ + postSize / 2 - friezeThickness / 2) },
-        tenons: [],
-        mortises: [],
-      });
-    }
+    // 絛環板 Y 範圍：upperRailY（上抹底）以上 ~ postTopY（頂蓋底面）以下
+    // 避開背板（背板從 lowerRailY+railWidth-5 到 upperRailY-5）
+    const friezeY = upperRailY;  // 緊貼上抹頂面，往上延伸 friezeHeight
+    parts.push({
+      id: "frieze-panel-front",
+      nameZh: "前絛環板",
+      material,
+      grainDirection: "length",
+      visible: { length: 2 * (postX - postSize / 2) - 4, width: friezeThickness, thickness: friezeHeight },
+      origin: { x: 0, y: friezeY, z: -(postZ + postSize / 2 - friezeThickness / 2) },
+      tenons: [],
+      mortises: [],
+    });
   }
 
   // ── 亮格櫃 / 万歷櫃：頂端最上層 shelf 加圍欄（直櫺 / 卷草），3 面圍
@@ -1362,8 +1361,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         const isFront = f.axis === "z";
         const faceLabel = f.axis === "z" ? "前" : f.sign < 0 ? "左" : "右";
         const spanLen = isFront ? 2 * (postX - postSize / 2) - 4 : 2 * (postZ - postSize / 2) - 4;
-        const baseX = isFront ? 0 : f.sign * (postX - postSize / 2 - baluRailThick / 2 - 2);
-        const baseZ = isFront ? f.sign * (postZ - postSize / 2 - baluRailThick / 2 - 2) : 0;
+        // 圍欄橫桿放在立柱內側 + baluRailThick/2，不再 -2（會穿入立柱 AABB）
+        const baseX = isFront ? 0 : f.sign * (postX - postSize / 2 - baluRailThick / 2);
+        const baseZ = isFront ? f.sign * (postZ - postSize / 2 - baluRailThick / 2) : 0;
         // 上下圍欄橫桿
         for (const railRole of ["upper", "lower"] as const) {
           const railY = railRole === "upper" ? baluTopY - baluRailThick : baluBottomY;
