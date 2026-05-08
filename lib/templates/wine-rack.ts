@@ -43,6 +43,10 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "upright", label: `直立式（深度 ${UPRIGHT_DEPTH}mm，省空間）` },
     { value: "horizontal", label: `橫躺式（深度 ${HORIZONTAL_DEPTH}mm，酒窖經典款）` },
   ] },
+  { group: "structure", type: "select", key: "gridLayout", label: "格子佈局", defaultValue: "rect", choices: [
+    { value: "rect", label: "方格陣列（橫直交錯，最多瓶位）" },
+    { value: "diamond", label: "菱形 X-cross（X 對角分 4 區，酒窖經典）" },
+  ], help: "菱形款用 2 片對角板拼 X，每區放 N/4 瓶（外尺寸跟方格一樣）" },
   { group: "structure", type: "select", key: "mountStyle", label: "安裝方式", defaultValue: "freestanding", choices: [
     { value: "freestanding", label: "立式（直接立於地面/桌上）" },
     { value: "wall-mount", label: "掛壁式（背面加吊掛條鎖牆）" },
@@ -189,7 +193,44 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  const parts: Part[] = [bottom, top, leftSide, rightSide, ...horizontalShelves, ...verticalDividers];
+  const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
+  // 菱形 X-cross：跳過 horizontalShelves + verticalDividers，改 2 片對角板
+  let layoutDividers: Part[] = [];
+  if (gridLayout === "diamond") {
+    // 對角線長度 = √(innerW² + innerH²)；扣 panelT × (cos+sin) 補償 thickness 旋轉貢獻
+    const angle = Math.atan2(innerH, innerW);
+    const fullDiag = Math.sqrt(innerW * innerW + innerH * innerH);
+    const diag = fullDiag - panelT * (Math.cos(angle) + Math.sin(angle)) - 4;
+    // diagonal: length 沿 +X 預設、width 沿 +Z 預設（剛好深度方向）、thickness 沿 +Y
+    // 只繞 Z 軸轉 angle，把 length 從 +X 旋轉到對角方向
+    layoutDividers = [
+      {
+        id: "diagonal-1",
+        nameZh: "對角分隔板 1（左下→右上）",
+        material,
+        grainDirection: "length",
+        visible: { length: diag, width: depth, thickness: panelT },
+        origin: { x: 0, y: panelT + innerH / 2 - panelT / 2, z: 0 },
+        rotation: { x: 0, y: 0, z: angle },
+        tenons: [],
+        mortises: [],
+      },
+      {
+        id: "diagonal-2",
+        nameZh: "對角分隔板 2（左上→右下）",
+        material,
+        grainDirection: "length",
+        visible: { length: diag, width: depth, thickness: panelT },
+        origin: { x: 0, y: panelT + innerH / 2 - panelT / 2, z: 0 },
+        rotation: { x: 0, y: 0, z: -angle },
+        tenons: [],
+        mortises: [],
+      },
+    ];
+  } else {
+    layoutDividers = [...horizontalShelves, ...verticalDividers];
+  }
+  const parts: Part[] = [bottom, top, leftSide, rightSide, ...layoutDividers];
 
   // 底部拉出抽屜（高 100mm）
   if (withPullOutDrawer) {
