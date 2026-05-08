@@ -790,6 +790,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 箱體前板（有獨立面板時叫「箱體前板」；無獨立面板時兼任面板叫「面板」）
       // 左右燕尾榫接側板 — X 旋轉站立
+      // 入柱 + 釘底時前板要往下延伸 drawerBottomT(3mm) 蓋住底板（從正面看不到底板邊）
+      // 並在內側面切 9×3mm 槽收底板前緣
+      const insetDrawerCoversBottom = isInsetDrawer && isSurfaceDrawerBottom && !hasFacePanel;
+      const frontExtraDown = insetDrawerCoversBottom ? drawerBottomT : 0;
       parts.push({
         id: `${idPrefix}-${i + 1}-front`,
         nameZh: hasFacePanel
@@ -799,10 +803,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: {
           length: boxExtW,
-          width: boxH,
+          width: boxH + frontExtraDown,
           thickness: drawerFrontT,
         },
-        origin: { x: xCenter, y: yBase + boxYOffset, z: zFront },
+        origin: { x: xCenter, y: yBase + boxYOffset - frontExtraDown, z: zFront },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
           {
