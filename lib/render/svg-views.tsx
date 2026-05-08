@@ -933,7 +933,7 @@ export function OrthoView({
           return (
             <polygon
               key={part.id}
-              points={polyPts.map((p) => `${p.x},${p.y}`).join(" ")}
+              points={polyPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
               fill="none"
               stroke="#111"
               strokeWidth={0.9}
@@ -1143,7 +1143,7 @@ export function OrthoView({
               proj(-lx / 2, +ly / 2, +lz / 2),
             ];
             const fmt = (pts: typeof topCorners) =>
-              pts.map((p) => `${p.x},${-p.y}`).join(" ");
+              pts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
             // 傾斜橫撐俯視：被座板蓋著 → top/bot 兩面都用虛線（不做 HLE 分段，避免短實線）
             return (
               <g key={part.id}>
@@ -1181,7 +1181,7 @@ export function OrthoView({
             });
             const endPts = endCorners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
             const poly = projectTiltedBoxSilhouette(part, view);
-            const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+            const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
             void arch;
             return (
               <g key={part.id}>
@@ -1222,7 +1222,7 @@ export function OrthoView({
               if (topRail) poly = clipPolygonBelowY(poly, topRail.origin.y);
             }
           }
-          const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+          const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           return (
             <polygon
               key={part.id}
@@ -1300,7 +1300,7 @@ export function OrthoView({
           );
         if (useShape) {
           const poly = projectPartPolygon(part, view);
-          const points = poly.map((p) => `${p.x},${-p.y}`).join(" ");
+          const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
           // Splayed top view: also draw the shifted bottom footprint so you
           // can see how far the foot lands from directly below the head.
@@ -1462,7 +1462,7 @@ export function OrthoView({
               { x: xLeft, y: yMax },
             ];
           }
-          const points = polyPts.map((p) => `${p.x},${-p.y}`).join(" ");
+          const points = polyPts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           // face-rounded 帶 bend 在側視畫端面分隔線（區分真實厚度與彎曲延伸）
           let dividerLine: React.ReactNode = null;
           if (view === "side" && isFaceRounded && bendAxis === "z" && Math.abs(bendMm) >= 0.5) {
@@ -1863,7 +1863,7 @@ export function OrthoView({
                   );
                 } else {
                   const tPoly = projectFeaturePolygon(part, lb, view, true);
-                  const tPoints = tPoly.map((p) => `${p.x},${-p.y}`).join(" ");
+                  const tPoints = tPoly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
                   elements.push(
                     <polygon
                       key={`${part.id}-t${i}`}

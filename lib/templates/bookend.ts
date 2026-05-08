@@ -9,9 +9,9 @@ import { getOption, opt } from "@/lib/types";
 /** 三角加固板厚（恆 12mm，過厚反而難切斜邊） */
 const BRACE_THICKNESS = 12;
 /** 三角加固相對底深的最大占比 */
-const BRACE_DEPTH_FRAC = 0.5;
+const BRACE_DEPTH_FRAC = 0.7;
 /** 三角加固相對背高的最大占比 */
-const BRACE_HEIGHT_FRAC = 0.4;
+const BRACE_HEIGHT_FRAC = 0.6;
 /** 帶肩榫的肩寬（每邊各內縮多少 mm） */
 const TENON_SHOULDER = 4;
 
