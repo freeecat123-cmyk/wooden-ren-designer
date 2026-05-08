@@ -411,10 +411,25 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const postTopY = height - topThickness;
   const postBottomY = 0;
   const postHeight = postTopY;
-  // 圓角櫃側腳暫不啟用（frame 同步斜需要重構 rails 也跟著，本輪先 0）
-  const splayMmGlobal = 0;
-  void splayAngleDeg;
-  void splayMmGlobal;
+  // 圓角櫃 splay：立柱底端外擴 splayMm。所有 frame / rail / 牙條 / 層板都按
+  // 各自的 Y 高度算實際 X/Z 跨距，確保跟 splayed 立柱對齊不留縫。
+  const splayMmGlobal = isRoundCorner
+    ? Math.round(Math.tan((splayAngleDeg * Math.PI) / 180) * postHeight)
+    : 0;
+  // 各 Y 高度的 splay shift（立柱中心朝外位移量；y=0 = splayMm，y=postHeight = 0）
+  const splayShiftAt = (y: number): number => splayMmGlobal * (1 - y / postHeight);
+  // 該 Y 高度的立柱外緣 / 內緣 X 跟 Z（單側）
+  const postOuterXat = (y: number): number => postX + splayShiftAt(y);
+  const postOuterZat = (y: number): number => postZ + splayShiftAt(y);
+  const postInnerXat = (y: number): number => postOuterXat(y) - postSize / 2;
+  void postInnerXat;
+  // 該 Y 高度的內跨距（兩立柱內緣間距）
+  const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
+  const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
+  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 整櫃寬）
+  const railLenXat = (y: number): number => 2 * (postOuterXat(y) + postSize / 2);
+  const railLenZat = (y: number): number => 2 * (postOuterZat(y) + postSize / 2);
+  void railLenZat;
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -491,14 +506,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const lowerRailCY = skirtHeight + railWidth / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
-      // 圓角櫃：之前嘗試立柱 splayed + frame tapered shape，但 frame 在 3D 預設
-      // camera 看不出 trapezoid（太微妙），rails 也沒跟著斜留下縫。改用「立柱
-      // 四角倒圓 + 加大噴面」當圓角櫃視覺辨識，立柱保持直立讓 frame 完美對齊。
+      // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
+      // 完整 refactor 版：rails/panels/doors 全部按各自 Y 算實際跨距，frame 跟立柱同步斜
       const postShape: Part["shape"] | undefined = isRoundCorner
         ? {
-            kind: "chamfered-edges",
-            chamferMm: Math.round(postSize * 0.4),
-            style: "rounded",
+            kind: "splayed",
+            dxMm: sx * splayMmGlobal,
+            dzMm: sz * splayMmGlobal,
           }
         : effectiveLegShape === "box"
           ? undefined
@@ -571,17 +585,28 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   // 對立面 panel：高度沿 Y、長度沿延伸軸、厚度沿 face normal
 
   // ── 左/右側面 frame（沿 Z 延伸）
+  // 圓角櫃 splay：每條 rail 在自己的 Y 中心位置算實際 Z 跨距 + X 偏移，
+  // 上抹靠近頂端 splay shift 小、下抹靠近底端 shift 大。
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
+    // 各 rail 的中心 Y（rail 是水平構件，其中心 Y 在 rail Y 範圍中段）
+    const upperRailCenterY = upperRailY + railWidth / 2;
+    const lowerRailCenterY = lowerRailY + railWidth / 2;
+    // 該 Y 高度的 Z 跨距（沿 Z 軸延伸的 rail 長度 = 整櫃深度 at that Y）
+    const upperSideRailLenZ = railLenZat(upperRailCenterY);
+    const lowerSideRailLenZ = railLenZat(lowerRailCenterY);
+    // 該 Y 高度的 X 位置（rail 中心 X = 立柱外緣 X - railThickness/2）
+    const upperSideRailX = postOuterXat(upperRailCenterY) - railThickness / 2;
+    const lowerSideRailX = postOuterXat(lowerRailCenterY) - railThickness / 2;
     // 上抹
     parts.push({
       id: `${lrId}-side-upper-rail`,
       nameZh: `${lrLabel}側上抹`,
       material,
       grainDirection: "length",
-      visible: { length: railThickness, width: railLenZ, thickness: railWidth },
-      origin: { x: sx * sideRailOffsetX, y: upperRailY, z: 0 },
+      visible: { length: railThickness, width: upperSideRailLenZ, thickness: railWidth },
+      origin: { x: sx * upperSideRailX, y: upperRailY, z: 0 },
       tenons: [
         { position: "left", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
         { position: "right", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
@@ -594,8 +619,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: `${lrLabel}側下抹`,
       material,
       grainDirection: "length",
-      visible: { length: railThickness, width: railLenZ, thickness: railWidth },
-      origin: { x: sx * sideRailOffsetX, y: lowerRailY, z: 0 },
+      visible: { length: railThickness, width: lowerSideRailLenZ, thickness: railWidth },
+      origin: { x: sx * lowerSideRailX, y: lowerRailY, z: 0 },
       tenons: [
         { position: "left", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
         { position: "right", type: "shouldered-tenon", length: tenonLen, width: tenonW, thickness: tenonT },
@@ -603,23 +628,22 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
     // 板心
-    // 圓角櫃 frame-trapezoid：板心底端 Z 跨距比頂端寬 splayMm × (1 - panel_bot_y/postHeight) × 2
-    // 用 tapered shape 套 bottomScale = panelBotZ / panelTopZ
     const sidePanelBotY = lowerRailY + railWidth - 5;
     const sidePanelTopY = sidePanelBotY + panelInnerH;
-    // 板心 Z 跨距隨高度線性：innerSpan_at_y = innerSpan + 2×splayMm×(1−y/postHeight)
-    // tapered shape：bottom 比 top 寬 = (1+底端 splay shift) / (1+頂端 splay shift)
-    const sidePanelTaper = isRoundCorner && splayMmGlobal > 0
-      ? (panelInnerW_Z + 2 * splayMmGlobal * (1 - sidePanelBotY / postHeight)) /
-        Math.max(1, panelInnerW_Z + 2 * splayMmGlobal * (1 - sidePanelTopY / postHeight))
-      : 1;
+    // 圓角櫃 splay：板心 Z 跨距按 Y 算（visible.width = TOP 寬度，bottomScale 拉 bot/top 比）
+    const sidePanelTopW = innerSpanZat(sidePanelTopY) - 10;
+    const sidePanelBotW = innerSpanZat(sidePanelBotY) - 10;
+    const sidePanelTaper = sidePanelTopW > 0 ? sidePanelBotW / sidePanelTopW : 1;
+    // 板心中心 X 同上抹：跟著立柱外緣偏移
+    const sidePanelCenterY = (sidePanelBotY + sidePanelTopY) / 2;
+    const sidePanelX = postOuterXat(sidePanelCenterY) - railThickness / 2;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
       material,
       grainDirection: "length",
-      visible: { length: panelThickness, width: panelInnerW_Z, thickness: panelInnerH },
-      origin: { x: sx * sideRailOffsetX, y: sidePanelBotY, z: 0 },
+      visible: { length: panelThickness, width: sidePanelTopW, thickness: panelInnerH },
+      origin: { x: sx * sidePanelX, y: sidePanelBotY, z: 0 },
       ...(sidePanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: sidePanelTaper } } : {}),
       tenons: [],
       mortises: [],
@@ -745,6 +769,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     { position: "start" as const, type: "shouldered-tenon" as const, length: tenonLen, width: tenonW, thickness: tenonT },
     { position: "end" as const, type: "shouldered-tenon" as const, length: tenonLen, width: tenonW, thickness: tenonT },
   ];
+  // 背面 rails（沿 X 延伸）—— 圓角櫃 splay：按各自 Y 算實際 X 跨距 + Z 偏移
+  const upperBackRailCenterY = upperRailY + railWidth / 2;
+  const lowerBackRailCenterY = lowerRailY + railWidth / 2;
+  const upperBackRailLenX = railLenXat(upperBackRailCenterY);
+  const lowerBackRailLenX = railLenXat(lowerBackRailCenterY);
+  const upperBackRailZ = postOuterZat(upperBackRailCenterY) - railThickness / 2;
+  const lowerBackRailZ = postOuterZat(lowerBackRailCenterY) - railThickness / 2;
   // singleBoard 模式不畫上下抹，整片背板取代框板結構
   if (backPanelStyle !== "singleBoard") {
     parts.push({
@@ -752,8 +783,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "背面上抹",
       material,
       grainDirection: "length",
-      visible: { length: railLenX, width: railThickness, thickness: railWidth },
-      origin: { x: 0, y: upperRailY, z: fbRailOffsetZ },
+      visible: { length: upperBackRailLenX, width: railThickness, thickness: railWidth },
+      origin: { x: 0, y: upperRailY, z: upperBackRailZ },
       tenons: fbRailTenons,
       mortises: [],
     });
@@ -762,22 +793,30 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       nameZh: "背面下抹",
       material,
       grainDirection: "length",
-      visible: { length: railLenX, width: railThickness, thickness: railWidth },
-      origin: { x: 0, y: lowerRailY, z: fbRailOffsetZ },
+      visible: { length: lowerBackRailLenX, width: railThickness, thickness: railWidth },
+      origin: { x: 0, y: lowerRailY, z: lowerBackRailZ },
       tenons: fbRailTenons,
       mortises: [],
     });
   }
   // 背面板心：framed = 框板嵌入（一般板心高度 panelInnerH）；singleBoard = 整片實木板蓋住整個背面（從上抹到下抹）
   if (backPanelStyle === "singleBoard") {
-    // 整片背板：跨越 4 立柱內側，從 lower rail 頂面到 upper rail 底面
+    // 整片背板：跨越 4 立柱內側，按 Y 計算 X 跨距，套 tapered shape
+    const sBackBotY = lowerRailY + railWidth;
+    const sBackTopY = upperRailY;
+    const sBackTopW = innerSpanXat(sBackTopY);
+    const sBackBotW = innerSpanXat(sBackBotY);
+    const sBackTaper = sBackTopW > 0 ? sBackBotW / sBackTopW : 1;
+    const sBackCenterY = (sBackBotY + sBackTopY) / 2;
+    const sBackZ = postOuterZat(sBackCenterY) - railThickness / 2;
     parts.push({
       id: "back-panel",
       nameZh: "背面整片板",
       material,
       grainDirection: "length",
-      visible: { length: innerSpanX, width: panelThickness, thickness: upperRailY - (lowerRailY + railWidth) },
-      origin: { x: 0, y: lowerRailY + railWidth, z: fbRailOffsetZ },
+      visible: { length: sBackTopW, width: panelThickness, thickness: sBackTopY - sBackBotY },
+      origin: { x: 0, y: sBackBotY, z: sBackZ },
+      ...(sBackTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: sBackTaper } } : {}),
       tenons: [],
       mortises: [],
     });
@@ -785,17 +824,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 框板浮芯（傳統做法）：panel 嵌入上下抹槽
     const backPanelBotY = lowerRailY + railWidth - 5;
     const backPanelTopY = backPanelBotY + panelInnerH;
-    const backPanelTaper = isRoundCorner && splayMmGlobal > 0
-      ? (panelInnerW_X + 2 * splayMmGlobal * (1 - backPanelBotY / postHeight)) /
-        (panelInnerW_X + 2 * splayMmGlobal * (1 - backPanelTopY / postHeight))
-      : 1;
+    // 圓角櫃 splay：按 Y 算 X 跨距
+    const backPanelTopW = innerSpanXat(backPanelTopY) - 10;
+    const backPanelBotW = innerSpanXat(backPanelBotY) - 10;
+    const backPanelTaper = backPanelTopW > 0 ? backPanelBotW / backPanelTopW : 1;
+    const backPanelCenterY = (backPanelBotY + backPanelTopY) / 2;
+    const backPanelZ = postOuterZat(backPanelCenterY) - railThickness / 2;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
       material,
       grainDirection: "length",
-      visible: { length: panelInnerW_X, width: panelThickness, thickness: panelInnerH },
-      origin: { x: 0, y: backPanelBotY, z: fbRailOffsetZ },
+      visible: { length: backPanelTopW, width: panelThickness, thickness: panelInnerH },
+      origin: { x: 0, y: backPanelBotY, z: backPanelZ },
       ...(backPanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: backPanelTaper } } : {}),
       tenons: [],
       mortises: [],
@@ -849,14 +890,18 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // ── 前面 frame
+  // ── 前面 frame —— 圓角櫃 splay：按各自 Y 算 X 跨距 + Z 偏移（前面 z 取負）
+  const upperFrontRailLenX = railLenXat(upperBackRailCenterY);  // 同上 back 同 Y
+  const lowerFrontRailLenX = railLenXat(lowerBackRailCenterY);
+  const upperFrontRailZ = -(postOuterZat(upperBackRailCenterY) - railThickness / 2);
+  const lowerFrontRailZ = -(postOuterZat(lowerBackRailCenterY) - railThickness / 2);
   parts.push({
     id: "front-upper-rail",
     nameZh: "前面上抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railThickness, thickness: railWidth },
-    origin: { x: 0, y: upperRailY, z: -(fbRailOffsetZ) },
+    visible: { length: upperFrontRailLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: upperRailY, z: upperFrontRailZ },
     tenons: fbRailTenons,
     mortises: [],
   });
@@ -865,8 +910,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     nameZh: "前面下抹",
     material,
     grainDirection: "length",
-    visible: { length: railLenX, width: railThickness, thickness: railWidth },
-    origin: { x: 0, y: lowerRailY, z: -(fbRailOffsetZ) },
+    visible: { length: lowerFrontRailLenX, width: railThickness, thickness: railWidth },
+    origin: { x: 0, y: lowerRailY, z: lowerFrontRailZ },
     tenons: fbRailTenons,
     mortises: [],
   });
@@ -899,10 +944,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
 
     if (layerType === "door") {
       // 對開門：2 扇 + 拉手
-      const doorWidth = (innerSpanX - doorGap) / 2;
+      // 圓角櫃 splay：門板按各自 Y 範圍算實際 X 跨距 + Z 偏移
       const doorHeight = thisLayerHeight - 4;  // 上下各 2mm 隙
       const doorThickness = railThickness;
-      const doorFrontZ = -(fbRailOffsetZ);
+      const doorBotYInner = layerCenterY - doorHeight / 2;
+      const doorTopYInner = doorBotYInner + doorHeight;
+      // door 在底部 Y 跟頂部 Y 對應的 innerSpanX 寬度
+      const doorTopInnerSpan = innerSpanXat(doorTopYInner);
+      const doorBotInnerSpan = innerSpanXat(doorBotYInner);
+      const doorWidth = (doorTopInnerSpan - doorGap) / 2;  // TOP 寬度（geometry visible.length）
+      const doorWidthBot = (doorBotInnerSpan - doorGap) / 2;
+      const doorTaper = doorWidth > 0 ? doorWidthBot / doorWidth : 1;
+      // door front Z 取門 Y 中段 (跟前抹同 Z 層)
+      const doorCenterY = (doorBotYInner + doorTopYInner) / 2;
+      const doorFrontZ = -(postOuterZat(doorCenterY) - railThickness / 2);
       // 格扇櫺條尺寸（凸貼門面 5mm）
       const muntinT = 8;        // 櫺條厚度（伸出門面）
       const muntinW = 18;       // 櫺條寬度
@@ -918,20 +973,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         // 玻璃門：主板改 visual:"glass" + 厚度 5mm（不計入材料單）
         const glassThickness = 5;
         const mainPanelThickness = isGlassDoor ? glassThickness : doorThickness;
-        // 圓角櫃 frame-trapezoid：門板底端比頂端寬 splayMm 對應差
-        const doorBotY = layerCenterY - doorHeight / 2;
-        const doorTopY = doorBotY + doorHeight;
-        const doorTaper = isRoundCorner && splayMmGlobal > 0
-          ? (doorWidth + 2 * splayMmGlobal * (1 - doorBotY / postHeight)) /
-            (doorWidth + 2 * splayMmGlobal * (1 - doorTopY / postHeight))
-          : 1;
         parts.push({
           id: `layer${i + 1}-${lrId}-door`,
           nameZh: `第 ${i + 1} 層${lrLabel}門${isGlassDoor ? "玻璃片" : ""}`,
           material,
           grainDirection: "length",
           visible: { length: doorWidth, width: mainPanelThickness, thickness: doorHeight },
-          origin: { x: doorCX, y: doorBotY, z: doorFrontZ },
+          origin: { x: doorCX, y: doorBotYInner, z: doorFrontZ },
           ...(isGlassDoor ? { visual: "glass" as const } : {}),
           ...(!isGlassDoor && doorTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: doorTaper } } : {}),
           tenons: [],
