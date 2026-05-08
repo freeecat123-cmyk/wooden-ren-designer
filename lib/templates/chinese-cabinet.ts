@@ -418,18 +418,21 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
   // 各 Y 高度的 splay shift（立柱中心朝外位移量；y=0 = splayMm，y=postHeight = 0）
   const splayShiftAt = (y: number): number => splayMmGlobal * (1 - y / postHeight);
-  // 該 Y 高度的立柱外緣 / 內緣 X 跟 Z（單側）
-  const postOuterXat = (y: number): number => postX + splayShiftAt(y);
-  const postOuterZat = (y: number): number => postZ + splayShiftAt(y);
-  const postInnerXat = (y: number): number => postOuterXat(y) - postSize / 2;
-  void postInnerXat;
-  // 該 Y 高度的內跨距（兩立柱內緣間距）
-  const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
-  const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
-  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 整櫃寬）
-  const railLenXat = (y: number): number => 2 * (postOuterXat(y) + postSize / 2);
-  const railLenZat = (y: number): number => 2 * (postOuterZat(y) + postSize / 2);
-  void railLenZat;
+  // 該 Y 高度的立柱中心 X 跟 Z（單側）—— postX 本身就是 post center
+  const postCenterXat = (y: number): number => postX + splayShiftAt(y);
+  const postCenterZat = (y: number): number => postZ + splayShiftAt(y);
+  // 立柱外緣 = 中心 + postSize/2；內緣 = 中心 - postSize/2
+  const postOuterFaceXat = (y: number): number => postCenterXat(y) + postSize / 2;
+  const postOuterFaceZat = (y: number): number => postCenterZat(y) + postSize / 2;
+  // 兼容舊命名（之前實際語意是 center）—— 漸進改名，先保留名字但提供正確 outer face
+  const postOuterXat = postOuterFaceXat;
+  const postOuterZat = postOuterFaceZat;
+  // 該 Y 高度的內跨距（兩立柱內緣間距 = 2 × postCenter − postSize）
+  const innerSpanXat = (y: number): number => 2 * (postCenterXat(y) - postSize / 2);
+  const innerSpanZat = (y: number): number => 2 * (postCenterZat(y) - postSize / 2);
+  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × postOuter）
+  const railLenXat = (y: number): number => 2 * postOuterFaceXat(y);
+  const railLenZat = (y: number): number => 2 * postOuterFaceZat(y);
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
@@ -637,10 +640,6 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     // 板心中心 X 同上抹：跟著立柱外緣偏移
     const sidePanelCenterY = (sidePanelBotY + sidePanelTopY) / 2;
     const sidePanelX = postOuterXat(sidePanelCenterY) - railThickness / 2;
-    // 圓角櫃側傾量：板心底端比頂端往外 sx 方向多偏 splayMm
-    const sidePanelTiltX = isRoundCorner
-      ? sx * (splayShiftAt(sidePanelBotY) - splayShiftAt(sidePanelTopY))
-      : 0;
     parts.push({
       id: `${lrId}-side-panel`,
       nameZh: `${lrLabel}側板心`,
@@ -648,9 +647,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: panelThickness, width: sidePanelTopW, thickness: panelInnerH },
       origin: { x: sx * sidePanelX, y: sidePanelBotY, z: 0 },
-      ...(sidePanelTaper > 1.001 || Math.abs(sidePanelTiltX) > 0.5
-        ? { shape: { kind: "splayed-tapered" as const, bottomScale: sidePanelTaper, dxMm: sidePanelTiltX, dzMm: 0 } }
-        : {}),
+      ...(sidePanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: sidePanelTaper } } : {}),
       tenons: [],
       mortises: [],
     });
@@ -836,10 +833,6 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     const backPanelTaper = backPanelTopW > 0 ? backPanelBotW / backPanelTopW : 1;
     const backPanelCenterY = (backPanelBotY + backPanelTopY) / 2;
     const backPanelZ = postOuterZat(backPanelCenterY) - railThickness / 2;
-    // 背板後傾量：底端比頂端往 +Z 方向多偏 splayMm
-    const backPanelTiltZ = isRoundCorner
-      ? splayShiftAt(backPanelBotY) - splayShiftAt(backPanelTopY)
-      : 0;
     parts.push({
       id: "back-panel",
       nameZh: "背面板心",
@@ -847,9 +840,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: { length: backPanelTopW, width: panelThickness, thickness: panelInnerH },
       origin: { x: 0, y: backPanelBotY, z: backPanelZ },
-      ...(backPanelTaper > 1.001 || Math.abs(backPanelTiltZ) > 0.5
-        ? { shape: { kind: "splayed-tapered" as const, bottomScale: backPanelTaper, dxMm: 0, dzMm: backPanelTiltZ } }
-        : {}),
+      ...(backPanelTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: backPanelTaper } } : {}),
       tenons: [],
       mortises: [],
     });
@@ -972,10 +963,6 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       // door front Z 取門 Y 中段 (跟前抹同 Z 層)
       const doorCenterY = (doorBotYInner + doorTopYInner) / 2;
       const doorFrontZ = -(postOuterZat(doorCenterY) - railThickness / 2);
-      // 圓角櫃前傾量：門底端比門頂端更往前 (-Z) splayMm × (Y範圍佔比)
-      const doorTiltZ = isRoundCorner
-        ? -(splayShiftAt(doorBotYInner) - splayShiftAt(doorTopYInner))
-        : 0;
       // 格扇櫺條尺寸（凸貼門面 5mm）
       const muntinT = 8;        // 櫺條厚度（伸出門面）
       const muntinW = 18;       // 櫺條寬度
@@ -999,9 +986,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           visible: { length: doorWidth, width: mainPanelThickness, thickness: doorHeight },
           origin: { x: doorCX, y: doorBotYInner, z: doorFrontZ },
           ...(isGlassDoor ? { visual: "glass" as const } : {}),
-          ...(!isGlassDoor && (doorTaper > 1.001 || Math.abs(doorTiltZ) > 0.5)
-            ? { shape: { kind: "splayed-tapered" as const, bottomScale: doorTaper, dxMm: 0, dzMm: doorTiltZ } }
-            : {}),
+          ...(!isGlassDoor && doorTaper > 1.001 ? { shape: { kind: "tapered" as const, bottomScale: doorTaper } } : {}),
           tenons: [],
           mortises: [],
         });
