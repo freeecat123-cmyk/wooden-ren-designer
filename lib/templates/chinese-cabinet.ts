@@ -103,7 +103,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "square", label: "方角櫃（直立柱、銅合頁、直角）" },
     { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
   ], help: "圓角櫃 = 明式四大櫃形之一，靠側腳（splay）+ 噴面（cap overhang）+ 木軸（無金屬合頁）三件套，比方角更早期文人雅" },
-  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)（暫保留）", defaultValue: 0.5, min: 0.2, max: 1.5, step: 0.1, unit: "°", help: "⚠️ 暫時不生效——圓角櫃改用「立柱倒圓 + 加大噴面」當視覺辨識，避免 frame 構件不跟著斜產生縫。完整 frame-trapezoid 同步修待下輪", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
+  { group: "leg", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1.0, min: 0.3, max: 3.0, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度。frame（門/側板/背板）已套 tapered shape 同步斜不留縫。0.5° 微噴 / 1° 標準 / 2° 明顯 / 3° 極限。", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   { group: "leg", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
   { group: "leg", type: "select", key: "proportionStyle", label: "比例風格", defaultValue: "ming", choices: [
