@@ -222,24 +222,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const cy = faceY + faceHeight / 2;
     // 0.5mm clearance 避免跟面板 floating-point overlap
     const CLEAR = 0.5;
-    if (pullStyle === "edge-bevel") {
-      // J-pull：面板頂緣切 45° 斜邊當把手—用一條深色凸條表示切口位置
-      // 位置：面板頂端，寬幾乎全長 × 高 12mm × 深 8mm
-      const stripLen = faceWidth - 8;
-      const topY = faceY + faceHeight - 12; // 從面板頂端往下 12mm 開始
-      return [{
-        id: `${idPrefix}-pull`,
-        nameZh: "J-pull 斜邊把手",
-        material,
-        materialOverride: "plywood",
-        grainDirection: "length",
-        visible: { length: stripLen, width: 8, thickness: 12 },
-        origin: { x: cx, y: topY, z: zFaceFront - 4 - CLEAR },
-        visual: "brass-antique",
-        tenons: [],
-        mortises: [],
-      }];
-    }
+    // edge-bevel 不在這裡產 part —由 caller 對 face panel 加 cosmetic mortise
+    // （見 face panel push 後的 J-pull 切口邏輯）
+    if (pullStyle === "edge-bevel") return [];
     if (pullStyle === "knob") {
       // 圓把手：30mm 直徑 × 25mm 長（往 -Z 凸出）
       const D = 30, L = 25;
@@ -867,6 +852,22 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           faceX = blockStartX + col * (perFaceW_ov + drawerGap) + perFaceW_ov / 2;
           faceY = blockStartY + row * (perFaceH_ov + drawerGap);
         }
+        // edge-bevel：面板頂緣前面切 25×25mm 凹槽（cosmetic mortise）模擬 J-pull
+        // face rotation x=π/2 後：part-local Y(thickness) → world Z(深度)，
+        //                       part-local Z(width=faceHeight) → world -Y(垂直)
+        // 「面板前面」= part-local y=0 面、「面板頂端」= part-local z=-lz/2 處
+        const faceJpullMortises: Part["mortises"] =
+          pullStyle === "edge-bevel"
+            ? [{
+                origin: { x: 0, y: 0, z: -faceHeight / 2 + 12.5 },
+                depth: 25,
+                length: faceW - 8,
+                width: 25,
+                through: false,
+                cosmetic: true,
+                shape: "rect",
+              }]
+            : [];
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
@@ -880,7 +881,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           origin: { x: faceX, y: faceY, z: zFace },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
-          mortises: [],
+          mortises: faceJpullMortises,
         });
         // 把手：face 朝前那面 = zFace - faceT/2
         parts.push(...makePullParts(
