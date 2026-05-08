@@ -1535,6 +1535,14 @@ export function OrthoView({
           const b = corners[(i + 1) % 4];
           const segs = classifyEdgeVisibility(a, b, isHiddenAt);
           segs.forEach((seg, segIdx) => {
+            // dashoffset 用世界座標讓多條重疊虛線的 dash 對齊同相位（不再鋸齒）
+            // 水平線用 a.x、垂直線用 -a.y 當 phase anchor
+            const isHorizontal = Math.abs(seg.a.y - seg.b.y) < 0.01;
+            const dashOffset = seg.hidden
+              ? isHorizontal
+                ? -seg.a.x
+                : -(-seg.a.y)
+              : undefined;
             lines.push(
               <line
                 key={`${part.id}-e${i}-s${segIdx}`}
@@ -1545,6 +1553,7 @@ export function OrthoView({
                 stroke={seg.hidden ? "#444" : "#111"}
                 strokeWidth={seg.hidden ? 0.7 : visibleSw}
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
+                strokeDashoffset={dashOffset}
                 fill="none"
               />,
             );
