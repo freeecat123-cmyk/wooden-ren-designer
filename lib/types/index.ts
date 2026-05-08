@@ -165,8 +165,13 @@ export interface Part {
    * - "glass"：半透明玻璃，不計才、不進材料單、不進 CSV
    * - "brass-antique"：仿古銅金屬色（拉手/合頁面葉等五金件），不計才、不進
    *   材料單。3D 走 metallic material（metalness=0.85、古銅色 #8a6a3a）。
+   * - "fabric"：絨布 / 棉麻內襯，不計才、不進材料單，但保留進 BOM 採購清單。
+   *   3D 走 cloth-like material（無金屬感、深色）
+   * - "metal"：銀色金屬（磁鐵 / 鉸鏈 / 滑軌等），不計才、進採購清單。
+   *   3D 走 metallic material（metalness=0.9、銀色 #c0c0c0）
+   * - "mirror"：鏡面，不計才、進採購清單。3D 走 reflective material。
    */
-  visual?: "glass" | "brass-antique";
+  visual?: "glass" | "brass-antique" | "fabric" | "metal" | "mirror";
 
   /**
    * Visual shape hint used by renderers. Default "box". "tapered" narrows

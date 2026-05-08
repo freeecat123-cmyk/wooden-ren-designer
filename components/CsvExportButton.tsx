@@ -36,7 +36,7 @@ export function CsvExportButton({ design }: Props) {
       [a, b, c].sort((x, y) => y - x);
 
     for (const part of design.parts) {
-      if (part.visual === "glass") continue;
+      if (part.visual !== undefined) continue;
       const cut = calculateCutDimensions(part);
       const bdft = (cut.length * cut.width * cut.thickness) / MM3_PER_BDFT;
       const billable = effectiveBillableMaterial(part);

@@ -145,6 +145,89 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
             : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
     }。` : ""}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
   };
+  // 絨布內襯：4 壁 + 底面 5 片 visual-only part（給 BOM 計料用，不入材積）
+  if (withFeltLining) {
+    const feltL = outerL - 2 * wallT - 2;
+    const feltW = outerW - 2 * wallT - 2;
+    const feltWallH = outerH - botT - (withLid ? lidT : 0) - 2;
+    design.parts.push({
+      id: "felt-bottom",
+      nameZh: "絨布內襯（底）",
+      material,
+      grainDirection: "length",
+      visible: { length: feltL, width: feltW, thickness: 1 },
+      origin: { x: 0, y: botT, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "fabric",
+    });
+    // 4 片絨布壁
+    design.parts.push({
+      id: "felt-front",
+      nameZh: "絨布內襯（前壁）",
+      material,
+      grainDirection: "length",
+      visible: { length: feltL, width: feltWallH, thickness: 1 },
+      origin: { x: 0, y: botT + feltWallH / 2, z: -outerW / 2 + wallT + 1 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "fabric",
+    });
+    design.parts.push({
+      id: "felt-back",
+      nameZh: "絨布內襯（後壁）",
+      material,
+      grainDirection: "length",
+      visible: { length: feltL, width: feltWallH, thickness: 1 },
+      origin: { x: 0, y: botT + feltWallH / 2, z: outerW / 2 - wallT - 1 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "fabric",
+    });
+    design.parts.push({
+      id: "felt-left",
+      nameZh: "絨布內襯（左壁）",
+      material,
+      grainDirection: "length",
+      visible: { length: feltW, width: feltWallH, thickness: 1 },
+      origin: { x: -outerL / 2 + wallT + 1, y: botT + feltWallH / 2, z: 0 },
+      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "fabric",
+    });
+    design.parts.push({
+      id: "felt-right",
+      nameZh: "絨布內襯（右壁）",
+      material,
+      grainDirection: "length",
+      visible: { length: feltW, width: feltWallH, thickness: 1 },
+      origin: { x: outerL / 2 - wallT - 1, y: botT + feltWallH / 2, z: 0 },
+      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "fabric",
+    });
+  }
+  // 磁吸閉合：2 個釹磁鐵（visual-only，hint 給 BOM 採購）
+  if (withMagneticClosure && withLid) {
+    for (let i = 0; i < 2; i++) {
+      design.parts.push({
+        id: `magnet-${i + 1}`,
+        nameZh: `釹磁鐵 ⌀6×3mm（${i === 0 ? "左" : "右"}）`,
+        material,
+        grainDirection: "length",
+        visible: { length: 6, width: 6, thickness: 3 },
+        origin: { x: (i === 0 ? -1 : 1) * (outerL / 4), y: outerH - lidT - 3, z: -outerW / 2 + wallT + 3 },
+        shape: { kind: "round" },
+        tenons: [],
+        mortises: [],
+        visual: "metal",
+      });
+    }
+  }
   // 內部 jewelry 抽板（活動隔板）
   if (withInnerTray) {
     const trayH = 30;

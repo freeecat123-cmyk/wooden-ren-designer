@@ -371,6 +371,36 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
       mortises: [],
     });
   }
+  // 中段方鏡（hall-tree preset 預設加）
+  if (withMirror) {
+    topAccessories.push({
+      id: "mirror",
+      nameZh: "中段方鏡 300×400mm",
+      material,
+      grainDirection: "length",
+      visible: { length: 300, width: 400, thickness: 4 },
+      origin: { x: 0, y: 1500 - 200, z: columnSize / 2 + 2 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+      visual: "mirror",
+    });
+  }
+  // 底部傘架淺盤（withUmbrellaBase）
+  if (withUmbrellaBase) {
+    topAccessories.push({
+      id: "umbrella-tray",
+      nameZh: "底部傘架淺盤 ⌀200mm",
+      material,
+      grainDirection: "length",
+      visible: { length: 200, width: 200, thickness: 30 },
+      origin: { x: 0, y: footThickness, z: 0 },
+      shape: { kind: "round" },
+      tenons: [],
+      mortises: [],
+      visual: "metal",
+    });
+  }
   // 底盤鞋墊托：⌀400 圓盤
   if (withFloorTray) {
     topAccessories.push({

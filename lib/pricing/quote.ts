@@ -67,7 +67,7 @@ export function computeChamferLaborHours(design: FurnitureDesign): {
   let totalMmRounded = 0;
   const configs = new Set<string>();
   for (const part of design.parts) {
-    if (part.visual === "glass") continue;
+    if (part.visual !== undefined) continue;
     const e = chamferEdgeMm(part);
     if (!e) continue;
     if (e.style === "rounded") totalMmRounded += e.perimeterMm;
@@ -205,7 +205,7 @@ export function calculateQuote(
   // 視覺裝飾（玻璃）不計入木料成本
   const volumeByMaterial = new Map<BillableMaterial, number>();
   for (const part of design.parts) {
-    if (part.visual === "glass") continue;
+    if (part.visual !== undefined) continue;
     const cut = calculateCutDimensions(part);
     const vol = cut.length * cut.width * cut.thickness;
     let mat = effectiveBillableMaterial(part);
