@@ -487,34 +487,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
-      mortises: [
-        ...shelfFractions.map((f) => ({
-          origin: { x: 0, y: f * innerH, z: 0 },
-          depth: tenonLen,
-          length: innerD - 10,
-          width: shelfTongueT,
-          through: false,
-        })),
-        // rebated 模式：內側面後緣加垂直 dado 槽（9mm 寬 × 6mm 深 × 全高長）
-        // origin.y 依 side 選 0 / panelT 對應該側內面；depth 沿 thickness 軸
-        ...(backMode === "rebated"
-          ? [
-              {
-                origin: {
-                  x: 0,
-                  y: side < 0 ? 0 : panelT,
-                  z: width / 2 - backDadoInset - backT / 2,
-                },
-                depth: backDadoInset,
-                length: innerH,
-                width: backT,
-                through: false,
-                cosmetic: true,
-                shape: "rect" as const,
-              },
-            ]
-          : []),
-      ],
+      mortises: shelfFractions.map((f) => ({
+        origin: { x: 0, y: f * innerH, z: 0 },
+        depth: tenonLen,
+        length: innerD - 10,
+        width: shelfTongueT,
+        through: false,
+      })),
     });
   }
 
