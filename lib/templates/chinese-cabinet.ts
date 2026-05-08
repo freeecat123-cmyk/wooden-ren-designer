@@ -37,6 +37,13 @@ interface CabinetPresetConfig {
   layers: string[];
   /** preset 帶的 doorStyle 預設值；user 手動覆寫仍優先 */
   doorStyle?: string;
+  /** v12 加：preset 可綁定形制 / 比例風格等高階組合 */
+  compoundMode?: string;
+  cabinetCorner?: string;
+  proportionStyle?: string;
+  balustradeStyle?: string;
+  spandrelStyle?: string;
+  legShape?: string;
 }
 
 const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
@@ -49,6 +56,25 @@ const CABINET_PRESETS: Record<string, CabinetPresetConfig> = {
   "display-cabinet": { layers: ["door", "door", "door", "shelf"], doorStyle: "glass-lattice" },
   // 玻璃書櫃：5 層全玻璃門，現代家居書房展示
   "glass-bookshelf": { layers: ["door", "door", "door", "door", "door"], doorStyle: "glass" },
+  // v12：頂箱櫃 — 明清主臥/廳堂主角，下櫃 4 層 + 頂箱（compoundMode），明式比例
+  "top-cabinet": {
+    layers: ["drawer", "door", "door", "shelf"],
+    compoundMode: "topBox",
+    proportionStyle: "ming",
+  },
+  // v12：圓角櫃 — 明式四大櫃形之一，側腳上窄下寬 + 噴面 + 木軸（cabinetCorner=round），明式比例
+  "round-cabinet": {
+    layers: ["door", "door", "shelf"],
+    cabinetCorner: "round",
+    proportionStyle: "ming",
+    legShape: "box",  // 圓角櫃強制無馬蹄
+  },
+  // v12：万歷櫃 — 上敞下櫃，最上層 shelf + 直櫺欄（balustrade）
+  "wanli-cabinet": {
+    layers: ["door", "door", "shelf"],
+    balustradeStyle: "vertical",
+    proportionStyle: "ming",
+  },
 };
 
 export const chineseCabinetOptions: OptionSpec[] = [
@@ -61,7 +87,10 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "shrine", label: "神桌邊櫃（抽屜 + 門 + 層板）" },
     { value: "display-cabinet", label: "博古架（玻璃格扇門 × 4 層）" },
     { value: "glass-bookshelf", label: "玻璃書櫃（5 層全玻璃門）" },
-  ], help: "選擇預設可一鍵套用層配置，會蓋過下方層設定。博古架/玻璃書櫃自動帶玻璃門" },
+    { value: "top-cabinet", label: "頂箱櫃（明清主臥/廳堂主角，上小下大兩段）" },
+    { value: "round-cabinet", label: "圓角櫃（明式四大櫃形，側腳+噴面+木軸）" },
+    { value: "wanli-cabinet", label: "万歷櫃（上敞下櫃 + 直櫺欄，書房經典）" },
+  ], help: "選擇預設可一鍵套用層配置 + 形制 + 比例風格。會蓋過下方對應設定，但保留尺寸 / 細部" },
   // 頂箱櫃 compound mode：上下兩段堆疊（明清四件櫃 / 頂豎櫃）
   { group: "leg", type: "select", key: "compoundMode", label: "形制", defaultValue: "single", choices: [
     { value: "single", label: "單段櫃（標準方角櫃）" },
@@ -226,10 +255,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const o = chineseCabinetOptions;
   const { length, width, material } = input;
   const heightInput = input.height;
-  const compoundMode = getOption<string>(input, opt(o, "compoundMode"));
+  const cabinetPresetEarly = getOption<string>(input, opt(o, "cabinetPreset"));
+  const presetEarly = CABINET_PRESETS[cabinetPresetEarly];
+  // preset 帶的 compoundMode / cabinetCorner 等高階形制：user 沒主動選非 default 時就以 preset 為準
+  const compoundModeRaw = getOption<string>(input, opt(o, "compoundMode"));
+  const compoundMode = compoundModeRaw === "single" && presetEarly?.compoundMode
+    ? presetEarly.compoundMode
+    : compoundModeRaw;
   const topBoxRatio = getOption<number>(input, opt(o, "topBoxRatio"));
   const topBoxLayers = getOption<number>(input, opt(o, "topBoxLayers"));
-  const cabinetCorner = getOption<string>(input, opt(o, "cabinetCorner"));
+  const cabinetCornerRaw = getOption<string>(input, opt(o, "cabinetCorner"));
+  const cabinetCorner = cabinetCornerRaw === "square" && presetEarly?.cabinetCorner
+    ? presetEarly.cabinetCorner
+    : cabinetCornerRaw;
   const splayAngleDeg = getOption<number>(input, opt(o, "splayAngle"));
   const capOverhangExtra = getOption<number>(input, opt(o, "capOverhangExtra"));
   const isRoundCorner = cabinetCorner === "round";
@@ -240,7 +278,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const waistGap = isCompound ? 5 : 0;
   const topBoxHeight = isCompound ? Math.round(heightInput * topBoxRatio) : 0;
   const height = isCompound ? heightInput - topBoxHeight - waistGap : heightInput;
-  const proportionStyle = getOption<string>(input, opt(o, "proportionStyle"));
+  const proportionStyleRaw = getOption<string>(input, opt(o, "proportionStyle"));
+  const proportionStyle = proportionStyleRaw === "ming" && presetEarly?.proportionStyle
+    ? presetEarly.proportionStyle
+    : proportionStyleRaw;
   const postSizeRaw = getOption<number>(input, opt(o, "postSize"));
   const railWidthRaw = getOption<number>(input, opt(o, "railWidth"));
   const railThickness = getOption<number>(input, opt(o, "railThickness"));
@@ -302,7 +343,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const backPanelStyle = getOption<string>(input, opt(o, "backPanelStyle"));
   const panelStyle = getOption<string>(input, opt(o, "panelStyle"));
   const panelInlay = getOption<string>(input, opt(o, "panelInlay"));
-  const balustradeStyle = getOption<string>(input, opt(o, "balustradeStyle"));
+  const balustradeStyleRaw = getOption<string>(input, opt(o, "balustradeStyle"));
+  const balustradeStyle = balustradeStyleRaw === "none" && presetEarly?.balustradeStyle
+    ? presetEarly.balustradeStyle
+    : balustradeStyleRaw;
   const balustradeHeight = getOption<number>(input, opt(o, "balustradeHeight"));
   // 嵌飾只在 flat 板心生效（raised 凸面已經有層次了，不再加）
   const panelInlayActive = panelInlay !== "none" && panelStyle === "flat";
