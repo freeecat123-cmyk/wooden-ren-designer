@@ -49,6 +49,10 @@ const COAT_RACK_PRESETS: Record<string, CoatRackPresetConfig> = {
 };
 
 export const coatRackOptions: OptionSpec[] = [
+  { group: "structure", type: "select", key: "mountType", label: "安裝形式", defaultValue: "standing", choices: [
+    { value: "standing", label: "立式（4 腳獨立站立，傳統款）" },
+    { value: "wall-rail", label: "壁掛 Shaker peg rail（橫板 + N 個木栓掛勾，玄關經典）" },
+  ], help: "壁掛款用 Shaker 傳統手法，1 條橫板 + N 個錐形木栓 + French cleat 45° 斜切吊條" },
   { group: "preset", type: "select", key: "rackStyle", label: "風格預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
     { value: "classic", label: "古典車旋款（lathe-turned + 4 腳 + 8 鉤）" },
@@ -83,8 +87,76 @@ export const coatRackOptions: OptionSpec[] = [
 export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
   const o = coatRackOptions;
+  const mountType = getOption<string>(input, opt(o, "mountType")) as "standing" | "wall-rail";
   const rackStyle = getOption<string>(input, opt(o, "rackStyle"));
   const preset = COAT_RACK_PRESETS[rackStyle];
+
+  // 壁掛 Shaker peg rail：完全不同的結構（背板 + N 個錐形木栓 + 法式 cleat 吊條）
+  if (mountType === "wall-rail") {
+    const railWidthMm = 600; // 預設背板長度
+    const railHeightMm = 100; // 背板高度
+    const railThicknessMm = 18; // 背板厚
+    const pegCount = Math.max(3, Math.min(8, Math.round(railWidthMm / 100)));
+    const pegSpacing = railWidthMm / (pegCount + 1);
+    const pegLengthMm = 89; // Shaker peg 標準總長
+    const pegHeadDiameter = 22; // 頂端 ⌀
+    const cleatThicknessMm = 18;
+    // 背板（沿世界 X 跨距，世界 Z 為厚度方向）
+    const backRail: Part = {
+      id: "back-rail",
+      nameZh: `Shaker peg 背板 ${railWidthMm}mm`,
+      material,
+      grainDirection: "length",
+      visible: { length: railWidthMm, width: railHeightMm, thickness: railThicknessMm },
+      origin: { x: 0, y: 0, z: 0 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    };
+    // N 個 Shaker peg：圓柱 visible，shape: round
+    const pegs: Part[] = [];
+    for (let i = 0; i < pegCount; i++) {
+      const xPos = -railWidthMm / 2 + pegSpacing * (i + 1);
+      // peg 沿 +Z 方向（穿出牆面）：lathe-turned 軸 = visible.thickness（mesh local Y）
+      // Rx(π/2) 把 Y→+Z，length 還在 X、width 在 Z 變 -Y（cross-section 兩軸都用，shape round 不影響）
+      pegs.push({
+        id: `peg-${i + 1}`,
+        nameZh: `Shaker peg ${i + 1}（${pegHeadDiameter}/${pegHeadDiameter - 8}/${pegHeadDiameter - 10}mm 錐形）`,
+        material,
+        grainDirection: "length",
+        visible: { length: pegHeadDiameter, width: pegHeadDiameter, thickness: pegLengthMm },
+        origin: { x: xPos, y: railHeightMm / 2 - pegHeadDiameter / 2, z: railThicknessMm },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        shape: { kind: "lathe-turned" },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // French cleat 上半條（背板背面 45° 斜切）
+    const cleat: Part = {
+      id: "french-cleat",
+      nameZh: `French cleat 吊條（45° 斜切，${railWidthMm}mm）`,
+      material,
+      grainDirection: "length",
+      visible: { length: railWidthMm, width: railHeightMm * 0.6, thickness: cleatThicknessMm },
+      origin: { x: 0, y: 0, z: -cleatThicknessMm - 1 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    };
+    return {
+      id: `coat-rack-wall-${railWidthMm}x${railHeightMm}`,
+      category: "coat-rack",
+      nameZh: `Shaker peg 壁掛衣帽架（${pegCount} 鉤）`,
+      overall: { length: railWidthMm, width: railHeightMm, thickness: railThicknessMm + cleatThicknessMm + 1 },
+      parts: [backRail, ...pegs, cleat],
+      defaultJoinery: "blind-tenon",
+      useButtJointConvention: true,
+      primaryMaterial: material,
+      notes: `Shaker 傳統壁掛衣帽架。背板 ${railWidthMm}×${railHeightMm}×${railThicknessMm}mm，等距 ${pegCount} 個 Shaker peg（總長 ${pegLengthMm}mm，頂端錐形 ⌀${pegHeadDiameter}mm）。背板正面預鑽 ⌀12 緊配孔（peg 榫⌀12.7 干涉 0.7mm，敲入即固，傳統不用膠）。背板背面加 ${cleatThicknessMm}mm × 45° 斜切 French cleat 與牆面對應 cleat 配對掛上——拆掉很容易、承重 30kg+。Shaker 傳統用 milk paint，現代款上木蠟油即可。`,
+    };
+  }
+
   const columnSizeRaw = getOption<number>(input, opt(o, "columnSize"));
   const columnSize = columnSizeRaw === 60 && preset?.columnSize !== undefined ? preset.columnSize : columnSizeRaw;
   const columnStyleRaw = getOption<string>(input, opt(o, "columnStyle"));
