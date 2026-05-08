@@ -418,21 +418,17 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
   // 各 Y 高度的 splay shift（立柱中心朝外位移量；y=0 = splayMm，y=postHeight = 0）
   const splayShiftAt = (y: number): number => splayMmGlobal * (1 - y / postHeight);
-  // 該 Y 高度的立柱中心 X 跟 Z（單側）—— postX 本身就是 post center
-  const postCenterXat = (y: number): number => postX + splayShiftAt(y);
-  const postCenterZat = (y: number): number => postZ + splayShiftAt(y);
-  // 立柱外緣 = 中心 + postSize/2；內緣 = 中心 - postSize/2
-  const postOuterFaceXat = (y: number): number => postCenterXat(y) + postSize / 2;
-  const postOuterFaceZat = (y: number): number => postCenterZat(y) + postSize / 2;
-  // 兼容舊命名（之前實際語意是 center）—— 漸進改名，先保留名字但提供正確 outer face
-  const postOuterXat = postOuterFaceXat;
-  const postOuterZat = postOuterFaceZat;
-  // 該 Y 高度的內跨距（兩立柱內緣間距 = 2 × postCenter − postSize）
-  const innerSpanXat = (y: number): number => 2 * (postCenterXat(y) - postSize / 2);
-  const innerSpanZat = (y: number): number => 2 * (postCenterZat(y) - postSize / 2);
-  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × postOuter）
-  const railLenXat = (y: number): number => 2 * postOuterFaceXat(y);
-  const railLenZat = (y: number): number => 2 * postOuterFaceZat(y);
+  // postOuterXat / postOuterZat 命名雖叫 outer 但回傳值 = post **CENTER**（postX/postZ 本身是 center）
+  // 加 splay shift。原 chinese-cabinet 程式碼的「postX + postSize/2」跟「postX - postSize/2」
+  // 假設這個 helper 回傳 center，不是 outer face。維持原語意。
+  const postOuterXat = (y: number): number => postX + splayShiftAt(y);
+  const postOuterZat = (y: number): number => postZ + splayShiftAt(y);
+  // 該 Y 高度的內跨距（兩立柱內緣間距 = 2 × (center − postSize/2)）
+  const innerSpanXat = (y: number): number => 2 * (postOuterXat(y) - postSize / 2);
+  const innerSpanZat = (y: number): number => 2 * (postOuterZat(y) - postSize / 2);
+  // 該 Y 高度的整櫃跨距（兩立柱外緣間距 = 2 × (center + postSize/2)）
+  const railLenXat = (y: number): number => 2 * (postOuterXat(y) + postSize / 2);
+  const railLenZat = (y: number): number => 2 * (postOuterZat(y) + postSize / 2);
   // 4 立柱位置：±(length/2 - postSize/2), ±(width/2 - postSize/2)
   const postX = length / 2 - postSize / 2;
   const postZ = width / 2 - postSize / 2;
