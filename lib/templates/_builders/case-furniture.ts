@@ -183,20 +183,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const caseHeight = height - legHeight;
   const innerW = length - 2 * panelT;
   const innerH = caseHeight - 2 * panelT;
-  // 入溝背板用 rebate（沿口）做：4 片框板後緣切 6mm 深 × (backT+backRecess) 寬的 L 型階梯，
-  // 從一頭通到另一頭，背板是完整方形坐進沿口前段，後段留 backRecess 空—從後方看背板內凹。
+  // 入溝背板用 rebate（沿口）做：4 片框板後緣切 6mm 深 × backT 寬的 L 型階梯，從一頭通到另一頭，
+  // 背板是完整方形直接坐進去（4 角自然連通，不必在背板四角切方塊）。
+  // rebateDepth = 切進框板 thickness 的距離；背板 body 各方向 +12mm 填 rebate 容積。
   const rebateDepth = backMode === "rebated" ? 6 : 0;
-  const backRecess = backMode === "rebated" ? 6 : 0;       // 背板後緣比框體後緣陷的距離
-  const rebateWidthZ = backMode === "rebated" ? backT + backRecess : 0;  // 沿口 Z 寬：含背板厚 + 內凹空隙
-  // 內部深度：rebated 扣掉沿口全寬（背板前面 + 內凹後空隙）；surface/none 全 width。
-  const innerD = backMode === "rebated" ? width - rebateWidthZ : width;
+  // surface / none 背板都不佔內部深度；rebated 模式背板坐在 rear，內部深度 = width - backT。
+  const innerD = backMode === "rebated" ? width - backT : width;
   const tenonLen = Math.round(panelT * 0.6);
   /**
    * 內部零件（側板 / 層板 / 分隔板 / 抽屜箱）的 Z 軸中心。
    * - surface：innerD = width，內部零件居中放 z=0（前後皆貼齊外緣）。
-   * - rebated：內部零件後緣貼齊背板前面，向前偏移 rebateWidthZ/2。
+   * - rebated：innerD = width − backT，向前偏移 backT/2 讓前緣貼齊櫃前面 z=−width/2，
+   *   後緣貼齊背板前面（不會跟背板撞）。
    */
-  const caseInnerZ = backMode === "rebated" ? -rebateWidthZ / 2 : 0;
+  const caseInnerZ = backMode === "rebated" ? -backT / 2 : 0;
 
   // 門板安裝方式：只影響門板 z 位置 + 該門後方內藏層板的深度
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
@@ -367,10 +367,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     backMode === "rebated"
       ? [
           {
-            origin: { x: 0, y: 0, z: width / 2 - rebateWidthZ / 2 },
+            origin: { x: 0, y: 0, z: width / 2 - backT / 2 },
             depth: rebateDepth,
             length: length,
-            width: rebateWidthZ,
+            width: backT,
             through: false,
             cosmetic: true,
             shape: "rect",
@@ -505,11 +505,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 origin: {
                   x: 0,
                   y: side < 0 ? 0 : panelT,
-                  z: width / 2 - rebateWidthZ / 2,
+                  z: width / 2 - backT / 2,
                 },
                 depth: rebateDepth,
                 length: innerH,
-                width: rebateWidthZ,
+                width: backT,
                 through: false,
                 cosmetic: true,
                 shape: "rect" as const,
@@ -572,7 +572,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       : { length: innerW + 2 * rebateDepth, width: backT, thickness: innerH + 2 * rebateDepth },
     origin: isSurfaceBack
       ? { x: 0, y: caseBottomY, z: width / 2 + backT / 2 }
-      : { x: 0, y: caseBottomY + panelT - rebateDepth, z: width / 2 - backRecess - backT / 2 },
+      : { x: 0, y: caseBottomY + panelT - rebateDepth, z: width / 2 - backT / 2 },
     tenons: [],
     mortises: [],
   });
