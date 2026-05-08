@@ -218,7 +218,9 @@ export function classifyEdgeVisibility(
     let j = i;
     // 往後合併同狀態
     while (j < samples && states[j + 1] === startHidden) j++;
-    const endT = (j + 1) / samples;
+    // bug fix: j 可遞增到 samples，再 +1 / samples 會 > 1（extrapolate 5% 過頭，
+    // 讓沒遮擋的邊向外延伸 1.75mm），改 clamp 到 samples 上限
+    const endT = Math.min(j + 1, samples) / samples;
     segs.push({
       a: { x: a.x + (b.x - a.x) * startT, y: a.y + (b.y - a.y) * startT },
       b: { x: a.x + (b.x - a.x) * endT, y: a.y + (b.y - a.y) * endT },
