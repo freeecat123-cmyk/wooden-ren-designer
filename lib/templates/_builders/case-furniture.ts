@@ -969,12 +969,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
       // 底板：兩種作法
       // - surface 釘底：3mm 板貼在抽屜箱底，尺寸 = 外框長 × 外框深（蓋過四邊下緣）
-      // - rebated 入溝：6mm 板嵌入前/左/右槽，後緣滑進升高的後板底下到抽屜後緣
-      //   visible.width = drawerInnerD + drawerBackT + 2
-      //   （前 2mm 進前板槽 + drawerInnerD + drawerBackT 滑到後緣下）
+      // - rebated 入溝：6mm 板深入前板槽 6mm（body 本體填滿前板槽）+ 後緣滑進升高的後板底下到抽屜後緣
+      //   visible.width = drawerInnerD + drawerBackT + 6
+      //   （前 6mm 進前板槽到槽底 + drawerInnerD + drawerBackT 鋪到後緣下）
       const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
-      const drawerBottomLengthRebated = drawerInnerD + drawerBackT + 2;
-      const drawerBottomFrontEdgeZ = zFront + drawerFrontT / 2 - 2;
+      const drawerBottomLengthRebated = drawerInnerD + drawerBackT + 6;
+      const drawerBottomFrontEdgeZ = zFront + drawerFrontT / 2 - 6;
       const drawerBottomRearEdgeZ = zBack + drawerBackT / 2;
       parts.push({
         id: `${idPrefix}-${i + 1}-bottom`,
@@ -1015,14 +1015,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 width: drawerInnerD + 4,
                 thickness: drawerBottomT,
               },
-              {
-                position: "left",
-                type: "tongue-and-groove",
-                length: 6,
-                width: drawerInnerW + 4,
-                thickness: drawerBottomT,
-              },
-              // 後緣不加 tongue—底板鋪到後板下方，後板無對應槽
+              // 前緣 body 已直接延伸 6mm 進前板槽（visible.width 含 +6），無需 tongue
+              // 後緣鋪到後板下方無對應槽
             ],
         mortises: [],
       });
