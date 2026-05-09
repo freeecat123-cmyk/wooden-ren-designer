@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts",
     "audit:overlaps": "tsx scripts/audit-overlaps.ts",
     "audit:joints": "tsx scripts/audit-joints.ts",
+    "audit:joinery-dims": "tsx scripts/audit-joinery-dynamic-dims.ts",
     "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "@types/three": "^0.184.0",
     "png-to-ico": "^3.0.1",
     "tailwindcss": "^4",
+    "ts-morph": "^28.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }
