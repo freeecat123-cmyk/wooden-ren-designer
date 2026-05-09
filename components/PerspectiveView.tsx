@@ -1956,12 +1956,13 @@ export function PerspectiveView({
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
           if (xrayMode !== "off") {
+            // face mode：只藏面板（drawer-face + 整個門 incl. slab/rail/stile/panel/glass）
+            // full mode：藏整個抽屜（face + 箱體 front/back/side/bottom）+ 整個門
             const isDoor = category === "door" || /-door-\d+-slab$/.test(part.id);
-            // face mode：藏「面板」+「箱體前板」（露出抽屜內部凹槽）
-            const isDrawerFront = /-drawer-\d+-(face|front)$/.test(part.id);
+            const isDrawerFace = /-drawer-\d+-face$/.test(part.id);
             const isDrawer = category === "drawer";
             if (isDoor) return null;
-            if (xrayMode === "face" && isDrawerFront) return null;
+            if (xrayMode === "face" && isDrawerFace) return null;
             if (xrayMode === "full" && isDrawer) return null;
           }
           const tintedColor =
