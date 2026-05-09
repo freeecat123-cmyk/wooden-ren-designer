@@ -75,17 +75,20 @@ const DOOR_TINT = "#ff9a3d";
 const TINT_AMOUNT = 0.32;
 
 /**
- * 給每塊板明度抖動（±15%），讓相鄰同材質的板邊界明顯。
- * Hash partId → 穩定 jitter（同 part 永遠同色，刷新不會跳）。
+ * 配對二元淺/深著色：
+ *   - 左/右 partId → 淺色（×1.08）
+ *   - 上/下 / 前/後 partId → 深色（×0.92）
+ *   - 沒方位字 → base 不變
+ * 同 category（框體 / 門 / 抽屜）內配對「左右一對 / 上下一對」共享同一色，
+ * 視覺乾淨——最多 2 個深淺，不像隨機 jitter 那樣亂。
  */
-function jitterColorByPartId(hex: string, partId: string): string {
-  let h = 5381;
-  for (let i = 0; i < partId.length; i++) {
-    h = ((h << 5) + h) ^ partId.charCodeAt(i);
-  }
-  // -0.15 .. +0.15
-  const jitter = ((Math.abs(h) % 1000) / 1000 - 0.5) * 0.30;
-  const factor = 1 + jitter;
+function pairShadeByPartId(hex: string, partId: string): string {
+  const id = partId.toLowerCase();
+  let factor = 1.0;
+  // 左右板：淺色
+  if (/(^|-)(left|right)($|-|\d)/.test(id)) factor = 1.08;
+  // 上下 / 前後 板：深色
+  else if (/(^|-)(top|bottom|front|back)($|-|\d)/.test(id)) factor = 0.92;
   const s = hex.replace("#", "");
   const r = parseInt(s.slice(0, 2), 16);
   const g = parseInt(s.slice(2, 4), 16);
@@ -1949,8 +1952,8 @@ export function PerspectiveView({
               : category === "door"
                 ? tintHex(baseColor, DOOR_TINT, TINT_AMOUNT)
                 : baseColor;
-          // 細微 jitter（±6%）讓相鄰同材質的板看得出邊界
-          const color = jitterColorByPartId(tintedColor, part.id);
+          // 配對二元淺/深：左右淺、上下深，最多 2 色不亂
+          const color = pairShadeByPartId(tintedColor, part.id);
           const { yExt } = worldExtents(part);
           const px = part.origin.x * SCALE;
           const py = (part.origin.y + yExt / 2) * SCALE;
