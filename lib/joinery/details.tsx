@@ -12,9 +12,22 @@
 import type { JoineryType } from "@/lib/types";
 import {
   COLOR,
+  STROKE,
+  FONT,
+  DASH,
   DimLine,
   Hatching,
   fitScale,
+  CenterLine,
+  SectionMark,
+  HiddenEdge,
+  GrainArrow,
+  ScaleBar,
+  TitleBlock,
+  DimChain,
+  IsometricGroup,
+  ThreeViewLayout,
+  WarningCallout,
 } from "./draw-primitives";
 
 export interface JoineryDetailParams {
@@ -2410,11 +2423,12 @@ function DovetailAxon3D({
   );
 }
 
+/* === BEGIN finger-joint-detail (owner: agent-C, group: C) === */
 /* ============================================================
  * 指接榫 finger-joint / box joint
  *   兩塊板端面對端面 L 型接合，方齒交錯。指厚 = 板厚 / 2 是常見比例。
  * ============================================================ */
-function FingerJointDetail(p: JoineryDetailParams) {
+function LegacyFingerJointDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const ct = p.childThickness ?? p.tenonThickness;
   const N = 5; // 視覺示意，非真實計算
@@ -2545,12 +2559,399 @@ function FingerJointDetail(p: JoineryDetailParams) {
   );
 }
 
+/**
+ * 教科書級重繪：指接（finger / box joint）
+ *
+ * 三視圖 + 等角圖 layout：
+ *   - 正視圖：A、B 兩件分解，奇/偶位指交錯
+ *   - 側視圖：兩件 L 型組合（俯瞰側面）
+ *   - 俯視圖：上方俯瞰指齒交錯排列
+ *   - 等角圖：3D 30° 視角單件指齒
+ *
+ * 指數 = floor(cw / tt)（剩餘均分到兩端肩）；指長 = mt（板厚相當）
+ */
+function FingerJointDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? p.tenonWidth;
+
+  // 真實指數計算：floor(cw / tt)，最少 3 指；剩餘均分兩端肩
+  const ttSafe = Math.max(1, tt);
+  const fingerCount = Math.max(3, Math.floor(cw / ttSafe));
+  const fingerLen = mt; // 指長 = 板厚相當（教科書慣例）
+  const fingersTotalMm = fingerCount * tt;
+  const shoulderTotalMm = Math.max(0, cw - fingersTotalMm);
+  const shoulderEachMm = shoulderTotalMm / 2;
+
+  const W = 960;
+  const H = 720;
+
+  // ===== 正視圖（左上）：A / B 兩件分解 =====
+  const front = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 20;
+
+    // 每片畫得夠大：寬度 = cw（mm），高度 = mt + fingerLen
+    const sX = usableW / Math.max(1, cw);
+    const sY = (usableH / 2 - 18) / Math.max(1, mt + fingerLen);
+    const s = Math.min(sX, sY);
+    const PX = (mm: number) => mm * s;
+
+    const aOX = pad;
+    const aOY = pad + 12;
+    const bOX = pad;
+    const bOY = aOY + PX(mt + fingerLen) + 36;
+
+    // A 件：肩 + (指、凹)*N + 肩
+    const buildAPoints = (oX: number, oY: number) => {
+      const pts: string[] = [`${oX},${oY + PX(fingerLen + mt)}`, `${oX},${oY + PX(fingerLen)}`];
+      let cx = oX + PX(shoulderEachMm);
+      pts.push(`${cx},${oY + PX(fingerLen)}`);
+      for (let i = 0; i < fingerCount; i++) {
+        // 指：上凸
+        pts.push(`${cx},${oY}`);
+        pts.push(`${cx + PX(tt)},${oY}`);
+        pts.push(`${cx + PX(tt)},${oY + PX(fingerLen)}`);
+        cx += PX(tt);
+        // 指間凹槽（不是最後一指才畫平台）
+        if (i < fingerCount - 1) {
+          pts.push(`${cx + PX(tt) * 0},${oY + PX(fingerLen)}`);
+        }
+      }
+      pts.push(`${oX + PX(cw)},${oY + PX(fingerLen)}`);
+      pts.push(`${oX + PX(cw)},${oY + PX(fingerLen + mt)}`);
+      return pts.join(" ");
+    };
+    // B 件：肩端 = 凹（從 0 到第一指 base 是凹）；偶數位反向
+    const buildBPoints = (oX: number, oY: number) => {
+      // B 凸的位置 = A 凹的位置；A 起始 shoulder 後就是 finger，所以 B 起始 = shoulder 後就是凹
+      const pts: string[] = [`${oX},${oY + PX(fingerLen + mt)}`, `${oX},${oY}`];
+      let cx = oX + PX(shoulderEachMm);
+      pts.push(`${cx},${oY}`);
+      // 起始凹（A 第一指位置）
+      pts.push(`${cx},${oY + PX(fingerLen)}`);
+      for (let i = 0; i < fingerCount; i++) {
+        if (i === 0) {
+          // A 第一指 → B 第一凹
+          pts.push(`${cx + PX(tt)},${oY + PX(fingerLen)}`);
+          pts.push(`${cx + PX(tt)},${oY}`);
+        } else {
+          // 在 A 凹的位置 B 是凸
+          pts.push(`${cx + PX(tt)},${oY}`);
+          // 接著 A 凸 → B 凹
+          pts.push(`${cx + PX(tt)},${oY + PX(fingerLen)}`);
+          pts.push(`${cx + PX(tt) * 2},${oY + PX(fingerLen)}`);
+          pts.push(`${cx + PX(tt) * 2},${oY}`);
+        }
+        cx += PX(tt) * (i === 0 ? 1 : 2);
+        if (cx >= oX + PX(cw - shoulderEachMm)) break;
+      }
+      pts.push(`${oX + PX(cw)},${oY}`);
+      pts.push(`${oX + PX(cw)},${oY + PX(fingerLen + mt)}`);
+      return pts.join(" ");
+    };
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（分解 A / B 兩件）</text>
+        {/* A 件 */}
+        <polygon points={buildAPoints(aOX, aOY)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={aOX + PX(cw) / 2} y={aOY + PX(fingerLen + mt) + 14} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
+          A 件（{fingerCount} 指）
+        </text>
+        {/* 指長 dim */}
+        <DimLine x1={aOX - 6} y1={aOY} x2={aOX - 6} y2={aOY + PX(fingerLen)} label={`${fingerLen}`} side="left" />
+        {/* 板厚 dim */}
+        <DimLine x1={aOX - 6} y1={aOY + PX(fingerLen)} x2={aOX - 6} y2={aOY + PX(fingerLen + mt)} label={`${mt}`} side="left" />
+        {/* 指寬 dim（第一指） */}
+        <DimLine
+          x1={aOX + PX(shoulderEachMm)}
+          y1={aOY - 4}
+          x2={aOX + PX(shoulderEachMm + tt)}
+          y2={aOY - 4}
+          label={`${tt}`}
+          side="top"
+        />
+        {/* 端肩 dim */}
+        {shoulderEachMm > 0 && (
+          <DimLine
+            x1={aOX}
+            y1={aOY - 4}
+            x2={aOX + PX(shoulderEachMm)}
+            y2={aOY - 4}
+            label={`肩 ${Math.round(shoulderEachMm)}`}
+            side="top"
+          />
+        )}
+        {/* 中心線 */}
+        <CenterLine x1={aOX + PX(cw) / 2} y1={aOY - 14} x2={aOX + PX(cw) / 2} y2={aOY + PX(fingerLen + mt) + 6} />
+
+        {/* B 件 */}
+        <polygon points={buildBPoints(bOX, bOY)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={bOX + PX(cw) / 2} y={bOY + PX(fingerLen + mt) + 14} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
+          B 件（互補指齒）
+        </text>
+        <CenterLine x1={bOX + PX(cw) / 2} y1={bOY - 8} x2={bOX + PX(cw) / 2} y2={bOY + PX(fingerLen + mt) + 6} />
+
+        {/* 木紋方向（沿板長方向） */}
+        <GrainArrow x={aOX + PX(cw) + 10} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow x={bOX + PX(cw) + 10} y={bOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+
+        {/* 剖面標 A-A（沿中軸切） */}
+        <SectionMark x={aOX + PX(cw) / 2 - 14} y={aOY - 18} label="A" direction="right" />
+        <SectionMark x={aOX + PX(cw) / 2 + 14} y={aOY - 18} label="A" direction="left" />
+      </g>
+    );
+  })();
+
+  // ===== 側視圖（右上）：L 型組合斷面 =====
+  const side = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 20;
+
+    // 兩塊厚度 ct + mt 顯示 L 型
+    const totalLen = ct + Math.max(80, mt * 4);
+    const sX = usableW / Math.max(1, totalLen + ct);
+    const sY = usableH / Math.max(1, totalLen + ct);
+    const s = Math.min(sX, sY) * 0.9;
+    const PX = (mm: number) => mm * s;
+
+    const armLen = Math.max(80, mt * 4);
+    const oX = pad + 10;
+    const oY = pad + 14;
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（L 型轉角斷面 A-A）</text>
+        <defs>
+          <Hatching id="hatch-finger-side" color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 水平件（A） */}
+        <rect x={oX} y={oY} width={PX(armLen)} height={PX(ct)} fill="url(#hatch-finger-side)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX} y={oY} width={PX(armLen)} height={PX(ct)} fill="none" stroke={COLOR.OUTLINE} />
+        {/* 垂直件（B） */}
+        <rect x={oX + PX(armLen)} y={oY} width={PX(ct)} height={PX(armLen)} fill="url(#hatch-finger-side)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX + PX(armLen)} y={oY} width={PX(ct)} height={PX(armLen)} fill="none" stroke={COLOR.OUTLINE} />
+
+        {/* 指接縫（虛線顯示交錯位置） */}
+        <g>
+          {Array.from({ length: fingerCount * 2 - 1 }).map((_, i) => {
+            const segH = PX(ct) / (fingerCount * 2);
+            const y = oY + segH * (i + 1);
+            return (
+              <HiddenEdge
+                key={i}
+                x1={oX + PX(armLen)}
+                y1={y}
+                x2={oX + PX(armLen) + PX(ct)}
+                y2={y}
+              />
+            );
+          })}
+        </g>
+        {/* 板厚 dim */}
+        <DimLine x1={oX + PX(armLen) + PX(ct) + 6} y1={oY} x2={oX + PX(armLen) + PX(ct) + 6} y2={oY + PX(ct)} label={`${ct}`} side="right" />
+        <DimLine x1={oX} y1={oY + PX(ct) + 6} x2={oX + PX(armLen)} y2={oY + PX(ct) + 6} label={`${Math.round(armLen)}`} side="bottom" />
+        <text x={oX + PX(armLen) / 2} y={oY + PX(ct) / 2 + 3} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>A 件（剖面）</text>
+        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>B 件</text>
+
+        {/* 警示 */}
+        <WarningCallout x={pad} y={innerH - 70} text={`指齒尖角應磨 R0.5 防爆裂`} severity="warn" />
+      </g>
+    );
+  })();
+
+  // ===== 俯視圖（左下）：上方俯瞰指齒交錯 =====
+  const top = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 20;
+
+    const sX = usableW / Math.max(1, cw + 20);
+    const sY = usableH / Math.max(1, ct * 4 + 60);
+    const s = Math.min(sX, sY) * 0.85;
+    const PX = (mm: number) => mm * s;
+
+    const oX = pad + 10;
+    const oY = pad + 18;
+    const rowH = PX(ct);
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（指齒交錯排列）</text>
+        {/* A 件指齒（俯視 = 看到 N 個方齒突出） */}
+        <g>
+          {/* A 件本體 */}
+          <rect x={oX} y={oY} width={PX(cw)} height={rowH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} />
+          {/* 端肩 */}
+          {shoulderEachMm > 0 && (
+            <>
+              <rect x={oX} y={oY - PX(fingerLen)} width={PX(shoulderEachMm)} height={PX(fingerLen)} fill="white" stroke={COLOR.OUTLINE} />
+              <rect x={oX + PX(cw - shoulderEachMm)} y={oY - PX(fingerLen)} width={PX(shoulderEachMm)} height={PX(fingerLen)} fill="white" stroke={COLOR.OUTLINE} />
+            </>
+          )}
+          {/* N 個指齒往上凸 */}
+          {Array.from({ length: fingerCount }).map((_, i) => (
+            <rect
+              key={i}
+              x={oX + PX(shoulderEachMm + i * tt)}
+              y={oY - PX(fingerLen)}
+              width={PX(tt)}
+              height={PX(fingerLen)}
+              fill={COLOR.TENON}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={STROKE.OUTLINE}
+            />
+          ))}
+          <text x={oX + PX(cw) / 2} y={oY + rowH + 12} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件俯視</text>
+        </g>
+
+        {/* B 件指齒 */}
+        <g transform={`translate(0,${PX(fingerLen) + rowH + 50})`}>
+          <rect x={oX} y={oY} width={PX(cw)} height={rowH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} />
+          {/* B 件指齒在 A 凹處（即 shoulder 後 + 奇數位置） */}
+          {Array.from({ length: fingerCount - 1 }).map((_, i) => (
+            <rect
+              key={i}
+              x={oX + PX(shoulderEachMm + (i + 0.5) * tt + 0.5 * tt)}
+              y={oY - PX(fingerLen)}
+              width={PX(tt)}
+              height={PX(fingerLen)}
+              fill={COLOR.MORTISE}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={STROKE.OUTLINE}
+            />
+          ))}
+          <text x={oX + PX(cw) / 2} y={oY + rowH + 12} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件俯視（互補）</text>
+        </g>
+
+        {/* dim chain：兩端肩 + N×指 */}
+        <DimLine x1={oX} y1={oY - PX(fingerLen) - 8} x2={oX + PX(cw)} y2={oY - PX(fingerLen) - 8} label={`板寬 ${cw}`} side="top" />
+      </g>
+    );
+  })();
+
+  // ===== 等角圖（右下）：3D 30° 視角單件指齒 =====
+  const isoOriginX = 200;
+  const isoOriginY = 220;
+  const iso = (() => {
+    // 為了簡化：在 IsometricGroup 內畫一個 finger-end 立體示意
+    // 用 mm-base 座標，IsometricGroup 會 30° 投影
+    const isoScale = Math.min(1.1, 100 / Math.max(1, cw));
+    const drawCw = cw;
+    const drawCt = ct;
+    const drawFL = fingerLen;
+    const drawTT = tt;
+
+    const elements: ReturnType<typeof FingerIsoElement>[] = [];
+    function FingerIsoElement(idx: number) {
+      const x = shoulderEachMm + idx * drawTT;
+      // 每個 finger 是長方體：x..x+tt, y=0..fingerLen, z=0..ct
+      // 在 IsoGroup 內，children 的 (x,y) 已被 30° 旋轉變成 iso；ct 是「Z 深度」我們手畫成 +(-y, +y) offset
+      const zOff = drawCt * 0.4; // depth visually
+      return (
+        <g key={idx}>
+          {/* 前面 */}
+          <polygon
+            points={`${x},${0} ${x + drawTT},${0} ${x + drawTT},${drawFL} ${x},${drawFL}`}
+            fill={COLOR.TENON}
+            stroke={COLOR.OUTLINE}
+            strokeWidth={STROKE.OUTLINE}
+          />
+          {/* 上面（往後 zOff） */}
+          <polygon
+            points={`${x},${0} ${x + drawTT},${0} ${x + drawTT - zOff},${-zOff} ${x - zOff},${-zOff}`}
+            fill="#f2dba8"
+            stroke={COLOR.OUTLINE}
+            strokeWidth={STROKE.OUTLINE}
+          />
+          {/* 側面 */}
+          <polygon
+            points={`${x + drawTT},${0} ${x + drawTT - zOff},${-zOff} ${x + drawTT - zOff},${drawFL - zOff} ${x + drawTT},${drawFL}`}
+            fill="#d6b683"
+            stroke={COLOR.OUTLINE}
+            strokeWidth={STROKE.OUTLINE}
+          />
+        </g>
+      );
+    }
+    for (let i = 0; i < fingerCount; i++) elements.push(FingerIsoElement(i));
+
+    // 板身（在 fingers 下方）
+    const boardBody = (
+      <g>
+        <polygon
+          points={`${0},${drawFL} ${drawCw},${drawFL} ${drawCw},${drawFL + 30} ${0},${drawFL + 30}`}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        <polygon
+          points={`${drawCw},${drawFL} ${drawCw - drawCt * 0.4},${drawFL - drawCt * 0.4} ${drawCw - drawCt * 0.4},${drawFL + 30 - drawCt * 0.4} ${drawCw},${drawFL + 30}`}
+          fill="#d6b683"
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+      </g>
+    );
+
+    return (
+      <g>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
+          指數 = floor({cw}/{tt}) = {fingerCount}，指長 {fingerLen} mm
+        </text>
+        <IsometricGroup originX={isoOriginX} originY={isoOriginY} scale={isoScale * 1.4} rotation={30}>
+          {boardBody}
+          {elements}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ maxWidth: "960px" }} className="bg-white">
+      <ThreeViewLayout
+        width={W}
+        height={H - 60}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={W}
+            joineryType="finger-joint"
+            joineryNameZh="指接（box joint）"
+            scale="1:1"
+          />
+        }
+      />
+      {/* 比例尺與 ScaleBar 放在標題欄上方 */}
+      <ScaleBar x={W - 220} y={H - 80} widthMm={Math.max(40, cw * 0.4)} pxPerMm={Math.min(2, 200 / Math.max(20, cw))} segments={4} label="mm" />
+    </svg>
+  );
+}
+/* === END finger-joint-detail === */
+
+/* === BEGIN dowel-detail (owner: agent-C, group: C) === */
 /* ============================================================
  * 圓棒榫 dowel
  *   兩件對接，鑽配對孔插入木釘。釘徑 = 板厚 1/3（最大 1/2），
  *   長 = 徑 × 1.5 + 1/16" 餘量。
  * ============================================================ */
-function DowelDetail(p: JoineryDetailParams) {
+function LegacyDowelDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tt = p.tenonThickness; // 釘徑
   const ct = p.childThickness ?? p.tenonThickness;
@@ -2696,6 +3097,324 @@ function DowelDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
+
+/**
+ * 教科書級重繪：木釘（dowel joint）
+ *
+ * 三視圖 + 等角圖 layout：
+ *   - 正視圖：兩件對接 + 中間木釘（剖面看孔深）
+ *   - 側視圖：板厚方向看孔位
+ *   - 俯視圖：圓孔陣列（A 件孔 vs B 件孔）
+ *   - 等角圖：圓柱木釘 + 板內圓孔
+ *
+ * 圓釘直徑 Ø = tt（既有慣例）；釘數 = max(2, floor(cw / (Ø*4)))
+ */
+function DowelDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tt = p.tenonThickness; // 釘徑 Ø
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? p.tenonWidth;
+
+  const ttSafe = Math.max(1, tt);
+  const dowelCount = Math.max(2, Math.floor(cw / (ttSafe * 4)));
+  // 每孔深 = (tl / 2) + 0.5mm 餘量（兩件平分）；母件厚必須 > 孔深 + 3mm
+  const holeDepth = Math.min(mt - 3, tl / 2 + 0.5);
+  const holeDepthSafe = Math.max(3, holeDepth);
+  // 釘間距 = cw / (dowelCount + 1)
+  const spacing = cw / (dowelCount + 1);
+
+  const W = 960;
+  const H = 720;
+
+  // ===== 正視圖（左上）：兩件對接 + 木釘 =====
+  const front = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 30;
+
+    const totalLen = mt * 2 + tl;
+    const sX = usableW / Math.max(1, totalLen + 30);
+    const sY = usableH / Math.max(1, ct + 50);
+    const s = Math.min(sX, sY) * 0.9;
+    const PX = (mm: number) => mm * s;
+
+    const oX = pad + 10;
+    const oY = pad + 30;
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（對接 + 木釘剖面）</text>
+
+        {/* A 件（左） */}
+        <rect x={oX} y={oY} width={PX(mt)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件（右） */}
+        <rect x={oX + PX(mt)} y={oY} width={PX(mt)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 接縫中軸（CenterLine） */}
+        <CenterLine x1={oX + PX(mt)} y1={oY - 10} x2={oX + PX(mt)} y2={oY + PX(ct) + 10} />
+
+        {/* 木釘（剖面圓 + 兩孔深虛線） */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const dy = oY + PX(spacing * (i + 1));
+          if (dy > oY + PX(ct) - PX(tt) / 2) return null;
+          return (
+            <g key={i}>
+              {/* 木釘 body：橫躺圓柱 */}
+              <rect
+                x={oX + PX(mt - holeDepthSafe)}
+                y={dy - PX(tt) / 2}
+                width={PX(holeDepthSafe * 2)}
+                height={PX(tt)}
+                fill={COLOR.MORTISE}
+                stroke={COLOR.OUTLINE}
+                strokeWidth={STROKE.OUTLINE}
+                rx={PX(tt) / 2}
+              />
+              {/* 孔輪廓虛線（A、B 件內） */}
+              <HiddenEdge x1={oX + PX(mt - holeDepthSafe)} y1={dy - PX(tt) / 2} x2={oX + PX(mt + holeDepthSafe)} y2={dy - PX(tt) / 2} />
+              <HiddenEdge x1={oX + PX(mt - holeDepthSafe)} y1={dy + PX(tt) / 2} x2={oX + PX(mt + holeDepthSafe)} y2={dy + PX(tt) / 2} />
+            </g>
+          );
+        })}
+
+        {/* 尺寸 */}
+        <DimLine x1={oX} y1={oY - 8} x2={oX + PX(mt)} y2={oY - 8} label={`A厚 ${mt}`} side="top" />
+        <DimLine x1={oX + PX(mt)} y1={oY - 8} x2={oX + PX(mt * 2)} y2={oY - 8} label={`B厚 ${mt}`} side="top" />
+        <DimLine x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(ct) + 8} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(ct) + 8} label={`釘長 ${tl}`} side="bottom" />
+        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + PX(ct)} label={`板寬 ${ct}`} side="left" />
+
+        {/* 剖面 A-A */}
+        <SectionMark x={oX + PX(mt) - 14} y={oY + PX(ct) + 30} label="A" direction="right" />
+        <SectionMark x={oX + PX(mt) + 14} y={oY + PX(ct) + 30} label="A" direction="left" />
+
+        {/* 木紋 */}
+        <GrainArrow x={oX} y={oY + PX(ct) + 22} length={Math.min(40, PX(mt) * 0.6)} angle={0} />
+      </g>
+    );
+  })();
+
+  // ===== 側視圖（右上）：板厚方向看孔位 =====
+  const side = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 30;
+
+    // 顯示 B 件斷面：寬 ct × 高 cw，內含 dowelCount 個圓孔
+    const sX = usableW / Math.max(1, ct + 30);
+    const sY = usableH / Math.max(1, cw + 30);
+    const s = Math.min(sX, sY) * 0.85;
+    const PX = (mm: number) => mm * s;
+    const oX = pad + 30;
+    const oY = pad + 24;
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（端面孔位）</text>
+        <defs>
+          <Hatching id="hatch-dowel-side" color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 板斷面（端視 = 寬 × 高） */}
+        <rect x={oX} y={oY} width={PX(ct)} height={PX(cw)} fill="url(#hatch-dowel-side)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX} y={oY} width={PX(ct)} height={PX(cw)} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 鑽孔陣列 */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const cy = oY + PX(spacing * (i + 1));
+          const cxC = oX + PX(ct / 2);
+          return (
+            <g key={i}>
+              <circle cx={cxC} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              {/* 孔中心十字 */}
+              <CenterLine x1={cxC - PX(tt) * 0.7} y1={cy} x2={cxC + PX(tt) * 0.7} y2={cy} />
+              <CenterLine x1={cxC} y1={cy - PX(tt) * 0.7} x2={cxC} y2={cy + PX(tt) * 0.7} />
+            </g>
+          );
+        })}
+
+        {/* dim 釘徑 */}
+        <DimLine x1={oX + PX(ct) + 8} y1={oY + PX(spacing) - PX(tt) / 2} x2={oX + PX(ct) + 8} y2={oY + PX(spacing) + PX(tt) / 2} label={`Ø ${tt}`} side="right" />
+        <DimLine x1={oX} y1={oY + PX(cw) + 8} x2={oX + PX(ct)} y2={oY + PX(cw) + 8} label={`板厚 ${ct}`} side="bottom" />
+        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + PX(cw)} label={`板寬 ${cw}`} side="left" />
+        {dowelCount >= 2 && (
+          <DimLine
+            x1={oX + PX(ct) + 28}
+            y1={oY + PX(spacing)}
+            x2={oX + PX(ct) + 28}
+            y2={oY + PX(spacing * 2)}
+            label={`間距 ${Math.round(spacing)}`}
+            side="right"
+          />
+        )}
+
+        <WarningCallout x={pad} y={innerH - 60} text={`孔位誤差 <= 0.3mm`} severity="warn" />
+      </g>
+    );
+  })();
+
+  // ===== 俯視圖（左下）：上方看 — 兩件對接帶白膠塗佈面 =====
+  const top = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 30;
+
+    const totalLen = mt * 2;
+    const sX = usableW / Math.max(1, totalLen + 30);
+    const sY = usableH / Math.max(1, cw + 30);
+    const s = Math.min(sX, sY) * 0.85;
+    const PX = (mm: number) => mm * s;
+    const oX = pad + 10;
+    const oY = pad + 24;
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（孔位 + 白膠塗佈面）</text>
+        {/* A 件俯視 */}
+        <rect x={oX} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件俯視 */}
+        <rect x={oX + PX(mt)} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 中縫白膠塗佈面 */}
+        <rect x={oX + PX(mt) - 2} y={oY} width={4} height={PX(cw)} fill={COLOR.SECTION_HATCH} fillOpacity={0.4} stroke="none" />
+        <text x={oX + PX(mt) + 30} y={oY - 4} fontSize={FONT.CALLOUT} fill={COLOR.SECTION_HATCH}>
+          白膠塗佈面（接縫全長）
+        </text>
+
+        {/* 圓孔（兩側對稱） */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const cy = oY + PX(spacing * (i + 1));
+          const cxA = oX + PX(mt - holeDepthSafe / 2);
+          const cxB = oX + PX(mt + holeDepthSafe / 2);
+          return (
+            <g key={i}>
+              <circle cx={cxA} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeDasharray={DASH.HIDDEN} />
+              <circle cx={cxB} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeDasharray={DASH.HIDDEN} />
+              <CenterLine x1={cxA - PX(tt)} y1={cy} x2={cxB + PX(tt)} y2={cy} />
+            </g>
+          );
+        })}
+
+        {/* dim 孔深兩側 */}
+        <DimLine
+          x1={oX + PX(mt - holeDepthSafe)}
+          y1={oY + PX(cw) + 8}
+          x2={oX + PX(mt)}
+          y2={oY + PX(cw) + 8}
+          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          side="bottom"
+        />
+        <DimLine
+          x1={oX + PX(mt)}
+          y1={oY + PX(cw) + 8}
+          x2={oX + PX(mt + holeDepthSafe)}
+          y2={oY + PX(cw) + 8}
+          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          side="bottom"
+        />
+
+        <text x={oX + PX(mt)} y={oY + PX(cw) + 32} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
+          {dowelCount} 釘 × Ø {tt} mm，間距 {Math.round(spacing)} mm
+        </text>
+      </g>
+    );
+  })();
+
+  // ===== 等角圖（右下）：3D 30° 木釘 + 板 =====
+  const iso = (() => {
+    const isoScale = Math.min(1.0, 90 / Math.max(1, mt));
+    const drawMt = mt;
+    const drawCt = ct;
+    const drawTt = tt;
+    const drawHd = holeDepthSafe;
+
+    return (
+      <g>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
+          {dowelCount} 釘陣列 · Ø {tt} · 釘長 {tl} (= 兩側孔深 {Math.round(drawHd)} ×2)
+        </text>
+        <IsometricGroup originX={170} originY={220} scale={isoScale * 1.4} rotation={30}>
+          {/* B 件本體（cube） */}
+          <g>
+            {/* 前面 */}
+            <polygon
+              points={`${0},${0} ${drawMt},${0} ${drawMt},${drawCt} ${0},${drawCt}`}
+              fill={COLOR.TENON}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={STROKE.OUTLINE}
+            />
+            {/* 上面 */}
+            <polygon
+              points={`${0},${0} ${drawMt},${0} ${drawMt - drawCt * 0.4},${-drawCt * 0.4} ${-drawCt * 0.4},${-drawCt * 0.4}`}
+              fill="#f2dba8"
+              stroke={COLOR.OUTLINE}
+              strokeWidth={STROKE.OUTLINE}
+            />
+            {/* 側面 */}
+            <polygon
+              points={`${drawMt},${0} ${drawMt - drawCt * 0.4},${-drawCt * 0.4} ${drawMt - drawCt * 0.4},${drawCt - drawCt * 0.4} ${drawMt},${drawCt}`}
+              fill="#d6b683"
+              stroke={COLOR.OUTLINE}
+              strokeWidth={STROKE.OUTLINE}
+            />
+          </g>
+          {/* 木釘 = 圓柱（用橢圓 + 矩形示意） */}
+          {Array.from({ length: dowelCount }).map((_, i) => {
+            const cy = (i + 1) * (drawCt / (dowelCount + 1));
+            return (
+              <g key={i}>
+                {/* 圓柱主體 */}
+                <rect
+                  x={drawMt - drawHd}
+                  y={cy - drawTt / 2}
+                  width={drawHd * 2 + drawCt * 0.2}
+                  height={drawTt}
+                  fill={COLOR.MORTISE}
+                  stroke={COLOR.OUTLINE}
+                  strokeWidth={STROKE.OUTLINE}
+                  rx={drawTt / 2}
+                />
+                {/* 端面圓（橢圓示意） */}
+                <ellipse cx={drawMt + drawHd + drawCt * 0.1} cy={cy} rx={drawTt * 0.25} ry={drawTt / 2} fill="#c89c5d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              </g>
+            );
+          })}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ maxWidth: "960px" }} className="bg-white">
+      <ThreeViewLayout
+        width={W}
+        height={H - 60}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={W}
+            joineryType="dowel"
+            joineryNameZh="木釘（dowel joint）"
+            scale="1:1"
+          />
+        }
+      />
+      <ScaleBar x={W - 220} y={H - 80} widthMm={Math.max(40, mt * 0.8)} pxPerMm={Math.min(2, 200 / Math.max(20, mt))} segments={4} label="mm" />
+    </svg>
+  );
+}
+/* === END dowel-detail === */
 
 /* ============================================================
  * 斜接餅乾榫 mitered-spline
@@ -2917,6 +3636,7 @@ function ScrewDetail(p: JoineryDetailParams) {
   );
 }
 
+/* === BEGIN stub-joint-detail (owner: agent-C, group: C) === */
 /**
  * Stub joint (整支卡榫 / housing joint)：牙條/橫撐不另做榫，整個端面（全斷面）
  * 卡進母件上挖的同尺寸寬深榫眼。常用於圓腳——圓側面難加工標準肩榫。
@@ -2926,7 +3646,7 @@ function ScrewDetail(p: JoineryDetailParams) {
  * - 母件榫眼斷面 = 公件全斷面（apronWidth × apronThickness）
  * - 圓腳時母件畫圓、榫眼是內接的長方形
  */
-function StubJointDetail(p: JoineryDetailParams) {
+function LegacyStubJointDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const cw = p.childWidth ?? p.tenonWidth;
   const ct = p.childThickness ?? p.tenonThickness;
@@ -3049,6 +3769,325 @@ function StubJointDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
+
+/**
+ * 教科書級重繪：整支卡榫（stub joint / housing）
+ *
+ * 三視圖 + 等角圖 layout：
+ *   - 正視圖：母件側面 + 榫眼開口 + 公件分解
+ *   - 側視圖：剖面顯示卡入深、無肩 vs 有肩對比
+ *   - 俯視圖：上視切面看母件+牙條的卡入位置
+ *   - 等角圖：3D 30° 母件（含圓腳特例）+ 牙條進入
+ *
+ * 強制：tl ≤ min(mt - 3, ct / 2)；圓腳 motherShape="round" 保留圓畫法
+ */
+function StubJointDetail(p: JoineryDetailParams) {
+  const tlRaw = p.tenonLength;
+  const cw = p.childWidth ?? p.tenonWidth;
+  const ct = p.childThickness ?? p.tenonThickness;
+  const mt = p.motherThickness;
+  const isRound = p.motherShape === "round";
+  // 強制 tl 安全上限：≤ min(mt-3, ct/2)
+  const tl = Math.max(2, Math.min(tlRaw, Math.min(mt - 3, ct / 2)));
+
+  const W = 960;
+  const H = 720;
+
+  // ===== 正視圖（左上）：母件側面 + 公件分解 =====
+  const front = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 20;
+
+    const sX = usableW / Math.max(1, mt + cw + 80);
+    const sY = usableH / Math.max(1, Math.max(cw, ct) * 2 + 60);
+    const s = Math.min(sX, sY) * 0.85;
+    const PX = (mm: number) => mm * s;
+
+    const oX = pad + 10;
+    const oY = pad + 24;
+
+    // 母件側面 = 寬 mt × 高 cw（顯示榫眼開口）
+    const motherW = PX(mt);
+    const motherH = PX(cw);
+    const mortiseW = PX(tl); // 榫眼深度 = tl
+    const mortiseH = PX(ct); // 榫眼寬度 = 公件厚
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（母件側面 + 公件分解）</text>
+
+        {/* 母件側面 */}
+        {isRound ? (
+          <ellipse cx={oX + motherW / 2} cy={oY + motherH / 2} rx={motherW / 2} ry={motherH / 2} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ) : (
+          <rect x={oX} y={oY} width={motherW} height={motherH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        )}
+        {/* 榫眼（從右側往內挖） */}
+        <rect
+          x={oX + motherW - mortiseW}
+          y={oY + (motherH - mortiseH) / 2}
+          width={mortiseW}
+          height={mortiseH}
+          fill="#3d2a14"
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 中心線 */}
+        <CenterLine x1={oX - 6} y1={oY + motherH / 2} x2={oX + motherW + 6} y2={oY + motherH / 2} />
+        <CenterLine x1={oX + motherW / 2} y1={oY - 6} x2={oX + motherW / 2} y2={oY + motherH + 6} />
+
+        {/* 公件 — 與母件分離畫在右側 */}
+        <g transform={`translate(${motherW + 50},0)`}>
+          <rect x={oX} y={oY + (motherH - mortiseH) / 2} width={PX(cw)} height={mortiseH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 強調：「整支端面 = 榫」用虛線標出將要插入部分 */}
+          <rect
+            x={oX}
+            y={oY + (motherH - mortiseH) / 2}
+            width={mortiseW}
+            height={mortiseH}
+            fill="none"
+            stroke={COLOR.SECTION_HATCH}
+            strokeWidth={0.8}
+            strokeDasharray={DASH.AUX}
+          />
+          <text x={oX + PX(cw) / 2} y={oY + motherH + 14} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
+            公件（牙條/橫撐）整支端面 = 榫，無肩
+          </text>
+        </g>
+
+        {/* 標籤 */}
+        <text x={oX + motherW / 2} y={oY + motherH + 14} fontSize={FONT.DIM} textAnchor="middle" fill="#666">
+          母件（{isRound ? "圓腳側面" : "方腳側面"}）
+        </text>
+
+        {/* 尺寸 */}
+        <DimLine x1={oX} y1={oY - 8} x2={oX + motherW} y2={oY - 8} label={`母件${isRound ? "直徑" : "寬"} ${mt}`} side="top" />
+        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + motherH} label={`${cw}`} side="left" />
+        <DimLine
+          x1={oX + motherW - mortiseW}
+          y1={oY + motherH + 30}
+          x2={oX + motherW}
+          y2={oY + motherH + 30}
+          label={`卡入深 ${Math.round(tl)}`}
+          side="bottom"
+        />
+
+        {/* 剖面 A-A */}
+        <SectionMark x={oX + motherW / 2 - 14} y={oY - 22} label="A" direction="right" />
+        <SectionMark x={oX + motherW / 2 + 14} y={oY - 22} label="A" direction="left" />
+
+        {/* 木紋 */}
+        <GrainArrow x={oX + motherW + 50 + oX} y={oY + motherH + 24} length={Math.min(60, PX(cw) * 0.5)} angle={0} />
+      </g>
+    );
+  })();
+
+  // ===== 側視圖（右上）：剖面 + 「無肩 vs 有肩」對比 =====
+  const side = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 20;
+
+    // 兩個並排的小圖：左 = 無肩（stub），右 = 有肩對比示意
+    const eachW = usableW / 2 - 10;
+    const sX = eachW / Math.max(1, tl + cw * 0.6);
+    const sY = (usableH - 40) / Math.max(1, ct + 40);
+    const s = Math.min(sX, sY) * 0.7;
+    const PX = (mm: number) => mm * s;
+
+    const drawDiagram = (oX: number, oY: number, hasShoulder: boolean, label: string, slug: string) => {
+      const motherW = PX(mt);
+      const apronLen = PX(cw * 0.6);
+      const tenonLen = PX(tl);
+      const tenonH = hasShoulder ? PX(ct * 0.6) : PX(ct);
+      const apronH = PX(ct);
+      const hatchId = `hatch-stub-${slug}`;
+      return (
+        <g key={slug}>
+          <defs>
+            <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+          </defs>
+          {/* 母件 */}
+          <rect x={oX} y={oY} width={motherW} height={apronH * 2} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <rect x={oX} y={oY} width={motherW} height={apronH * 2} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 榫眼 */}
+          <rect x={oX + motherW - tenonLen} y={oY + apronH - tenonH / 2} width={tenonLen} height={tenonH} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 公件主體 */}
+          <rect x={oX + motherW} y={oY + apronH - apronH / 2} width={apronLen} height={apronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 榫頭（卡入榫眼） */}
+          <rect x={oX + motherW - tenonLen} y={oY + apronH - tenonH / 2} width={tenonLen} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 標籤 */}
+          <text x={oX + motherW / 2 + apronLen / 2} y={oY - 6} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle" fill={hasShoulder ? COLOR.OUTLINE : COLOR.SECTION_HATCH}>
+            {label}
+          </text>
+          <text x={oX + motherW / 2 + apronLen / 2} y={oY + apronH * 2 + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill="#666">
+            {hasShoulder ? "有肩：榫頭縮小、肩面承力" : "無肩：整支端面 = 榫"}
+          </text>
+        </g>
+      );
+    };
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（剖面 A-A，並排對比「無肩 vs 有肩」）</text>
+        {drawDiagram(pad + 6, pad + 38, false, "無肩 stub", "noshoulder")}
+        {drawDiagram(pad + 6 + eachW + 20, pad + 38, true, "有肩參考", "withshoulder")}
+        <WarningCallout x={pad} y={innerH - 60} text={`卡入深 <= min(母厚-3, 板厚/2) = ${Math.round(tl)} mm`} severity="warn" />
+      </g>
+    );
+  })();
+
+  // ===== 俯視圖（左下）：上視切面 — 母件 + 牙條卡入位置 =====
+  const top = (() => {
+    const innerW = (W - 10) / 2;
+    const innerH = (H - 60 - 10) / 2;
+    const pad = 26;
+    const usableW = innerW - pad * 2;
+    const usableH = innerH - pad * 2 - 30;
+
+    const sX = usableW / Math.max(1, mt + cw + 30);
+    const sY = usableH / Math.max(1, Math.max(mt, ct) + 60);
+    const s = Math.min(sX, sY) * 0.9;
+    const PX = (mm: number) => mm * s;
+
+    const oX = pad + 10;
+    const oY = pad + 30;
+    const legSide = PX(mt);
+    const apronLen = PX(cw);
+    const tenonLen = PX(tl);
+    const tenonT = PX(ct);
+
+    const cx = oX + legSide / 2;
+    const cy = oY + legSide / 2;
+
+    return (
+      <g>
+        <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（上視切面）</text>
+        <defs>
+          <Hatching id="hatch-stub-top" color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 母件（圓 / 方） */}
+        {isRound ? (
+          <circle cx={cx} cy={cy} r={legSide / 2} fill="url(#hatch-stub-top)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ) : (
+          <rect x={oX} y={oY} width={legSide} height={legSide} fill="url(#hatch-stub-top)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        )}
+        {/* 榫眼開口（隱藏邊） */}
+        <HiddenEdge
+          d={`M ${oX + legSide - tenonLen} ${cy - tenonT / 2} h ${tenonLen} v ${tenonT} h ${-tenonLen} z`}
+        />
+        {/* 牙條本體 + 榫頭（連續一段） */}
+        <rect
+          x={oX + legSide - tenonLen}
+          y={cy - tenonT / 2}
+          width={tenonLen + apronLen}
+          height={tenonT}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 中心線（穿過母件） */}
+        <CenterLine x1={oX - 8} y1={cy} x2={oX + legSide + apronLen + 8} y2={cy} />
+        {isRound && <CenterLine x1={cx} y1={oY - 6} x2={cx} y2={oY + legSide + 6} />}
+
+        {/* 標籤 */}
+        <text x={cx} y={oY - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#5a3f1e" fontWeight="bold">
+          母件（{isRound ? "圓腳" : "方腳"}）
+        </text>
+        <text
+          x={oX + legSide + apronLen / 2}
+          y={cy - tenonT / 2 - 6}
+          fontSize={FONT.DIM}
+          textAnchor="middle"
+          fill="#8a6a3a"
+          fontWeight="bold"
+        >
+          整支牙條（無肩）
+        </text>
+
+        {/* 尺寸 */}
+        <DimLine x1={oX} y1={oY - 22} x2={oX + legSide} y2={oY - 22} label={`${mt}`} side="top" />
+        <DimLine x1={oX + legSide - tenonLen} y1={oY + legSide + 10} x2={oX + legSide} y2={oY + legSide + 10} label={`卡入 ${Math.round(tl)}`} side="bottom" />
+        <DimLine x1={oX + legSide + apronLen + 10} y1={cy - tenonT / 2} x2={oX + legSide + apronLen + 10} y2={cy + tenonT / 2} label={`板厚 ${ct}`} side="right" />
+      </g>
+    );
+  })();
+
+  // ===== 等角圖（右下）：3D 30° 母件 + 牙條卡入 =====
+  const iso = (() => {
+    const isoScale = Math.min(1.0, 90 / Math.max(1, mt));
+    const drawMt = mt;
+    const drawCt = ct;
+    const drawCw = cw * 0.6;
+    const drawTl = tl;
+    const depth = drawCt * 0.4; // 視覺深度
+
+    // 母件方/圓
+    const motherIso = isRound ? (
+      <g>
+        {/* 圓柱：正面圓 + 上方橢圓 + 側方矩形 */}
+        <ellipse cx={drawMt / 2} cy={drawMt / 2} rx={drawMt / 2} ry={drawMt / 2} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <ellipse cx={drawMt / 2 - depth / 2} cy={drawMt / 2 - depth / 2} rx={drawMt / 2} ry={drawMt / 2 * 0.3} fill="#a37c40" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+      </g>
+    ) : (
+      <g>
+        <rect x={0} y={0} width={drawMt} height={drawMt} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <polygon points={`${0},${0} ${drawMt},${0} ${drawMt - depth},${-depth} ${-depth},${-depth}`} fill="#a37c40" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <polygon points={`${drawMt},${0} ${drawMt - depth},${-depth} ${drawMt - depth},${drawMt - depth} ${drawMt},${drawMt}`} fill="#7c5a2c" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+      </g>
+    );
+
+    return (
+      <g>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
+          {isRound ? "圓腳" : "方腳"}：整支端面卡入榫眼，無肩
+        </text>
+        <IsometricGroup originX={170} originY={220} scale={isoScale * 1.5} rotation={30}>
+          {motherIso}
+          {/* 牙條（橫向往右伸出，部分插入母件） */}
+          <g transform={`translate(${drawMt - drawTl},${drawMt / 2 - drawCt / 2})`}>
+            <rect x={0} y={0} width={drawTl + drawCw} height={drawCt} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 上面 */}
+            <polygon points={`${0},${0} ${drawTl + drawCw},${0} ${drawTl + drawCw - depth},${-depth} ${-depth},${-depth}`} fill="#f2dba8" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 右側面 */}
+            <polygon points={`${drawTl + drawCw},${0} ${drawTl + drawCw - depth},${-depth} ${drawTl + drawCw - depth},${drawCt - depth} ${drawTl + drawCw},${drawCt}`} fill="#d6b683" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          </g>
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ maxWidth: "960px" }} className="bg-white">
+      <ThreeViewLayout
+        width={W}
+        height={H - 60}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={W}
+            joineryType="stub-joint"
+            joineryNameZh={`整支卡榫（housing joint，${isRound ? "圓腳" : "方腳"}）`}
+            scale="1:1"
+          />
+        }
+      />
+      <ScaleBar x={W - 220} y={H - 80} widthMm={Math.max(40, mt * 0.8)} pxPerMm={Math.min(2, 200 / Math.max(20, mt))} segments={4} label="mm" />
+    </svg>
+  );
+}
+/* === END stub-joint-detail === */
 
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
