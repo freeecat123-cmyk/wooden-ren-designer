@@ -305,7 +305,11 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // 頂部掛鉤：18mm 圓料盲榫接入立柱
-  const hookY = height - HOOK_TOP_INSET;
+  // §M1: column visible.thickness = columnHeight，origin.y=0；mortise origin.y
+  // 必須在 [0, columnHeight] 內。原本用 height-HOOK_TOP_INSET 會在
+  // footThickness < HOOK_TOP_INSET 時超出 columnHeight。clamp 到 column 頂端
+  // 以下保證落在範圍內。
+  const hookY = Math.min(height - HOOK_TOP_INSET, columnHeight - 1);
   const hooks: Part[] = [];
   // 靠牆模式：保留前 240°（4/6 圈）的掛鉤，跳過後方 120°
   const wallModeKept = (i: number, count: number): boolean => {

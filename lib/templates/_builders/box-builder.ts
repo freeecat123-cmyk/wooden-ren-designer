@@ -145,16 +145,18 @@ export function buildBox(spec: BoxBuilderSpec): BoxBuilderResult {
     origin: { x, y: botT, z: 0 },
     rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
     tenons: [],
+    // §M1: visible.length=innerW → mesh local X 軸；兩端面在 ±innerW/2。
+    // 角接合榫眼在兩端面 → origin.x，不是 origin.z。
     mortises: [
       {
-        origin: { x: 0, y: 0, z: -(innerW / 2 + MORTISE_OFFSET) },
+        origin: { x: -(innerW / 2 + MORTISE_OFFSET), y: 0, z: 0 },
         depth: wallT,
         length: cornerTenonW,
         width: cornerTenonT,
         through: cornerJoinery === "finger-joint" || cornerJoinery === "dovetail",
       },
       {
-        origin: { x: 0, y: 0, z: innerW / 2 + MORTISE_OFFSET },
+        origin: { x: innerW / 2 + MORTISE_OFFSET, y: 0, z: 0 },
         depth: wallT,
         length: cornerTenonW,
         width: cornerTenonT,

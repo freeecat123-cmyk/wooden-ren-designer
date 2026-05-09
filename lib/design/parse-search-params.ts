@@ -50,7 +50,7 @@ export function parseDesignSearchParams(
   const width = parseInt(spStr(sp, "width") ?? "") || entry.defaults.width;
   const height = parseInt(spStr(sp, "height") ?? "") || entry.defaults.height;
   const material =
-    (spStr(sp, "material") as MaterialId | undefined) ?? ("maple" as MaterialId);
+    (spStr(sp, "material") as MaterialId | undefined) ?? ("walnut" as MaterialId);
 
   const options: Record<string, string | number | boolean> = {};
   for (const spec of entry.optionSchema ?? []) {

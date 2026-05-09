@@ -1059,16 +1059,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           tenons: [],
           // 兩端各有燕尾榫眼接面板，背端有半搭接眼接後板
           // 燕尾深度 = 側板厚 → 通榫，through 標 true 才誠實
+          // §M1: length 軸 = mesh local X（visible.length=drawerInnerD），
+          // 端面在 ±drawerInnerD/2，所以兩端 origin 用 origin.x 表達。
           mortises: [
             {
-              origin: { x: 0, y: 0, z: -drawerInnerD / 2 - 1 },
+              origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
               depth: dovetailLen,
               length: boxHRow - 6,
               width: drawerFrontT - 2,
               through: true,
             },
             {
-              origin: { x: 0, y: 0, z: drawerInnerD / 2 + 1 },
+              origin: { x: drawerInnerD / 2 + 1, y: 0, z: 0 },
               depth: drawerSideT * 0.5,
               length: boxHRow - 8,
               width: drawerBackT,
@@ -1279,9 +1281,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
         ],
         // 內側面開鑲板/玻璃溝槽
+        // §M1: rail visible {length:innerOpenW, width:railW, thickness:frameT}，
+        // 後 X-rotation 後 mesh local Z = railW 軸 = 鉛直邊。groove 在「下緣」朝
+        // 門內（top rail 朝下面板）→ origin.z = -railW/2，origin.y 取 panelT 中心。
         mortises: [
           {
-            origin: { x: 0, y: -railW / 2, z: 0 },
+            origin: { x: 0, y: frameT / 2, z: -railW / 2 },
             depth: grooveDepth,
             length: innerOpenW - 4,
             width: panelT_door + 1,
@@ -1325,7 +1330,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         ],
         mortises: [
           {
-            origin: { x: 0, y: railW / 2, z: 0 },
+            // bottom rail：groove 朝上面板 → origin.z = +railW/2
+            origin: { x: 0, y: frameT / 2, z: railW / 2 },
             depth: grooveDepth,
             length: innerOpenW - 4,
             width: panelT_door + 1,
@@ -1354,12 +1360,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           // 上下端各一個榫眼接橫檔；內側長槽接鑲板
+          // §M1: stile visible {length:stileW, width:doorOuterH, thickness:frameT}，
+          // 後 X-rotation 後 mesh local Z = doorOuterH 軸 = 鉛直軸。
+          // 上下端 origin 用 origin.z = ±(doorOuterH/2 - railW/2)（不是 y）。
+          // depth 軸 = X（朝 stile 內邊鑽入）；length(railW-10) → Z, width(frameT-6) → Y。
           mortises: [
             {
               origin: {
                 x: side > 0 ? -stileW / 2 + 2 : stileW / 2 - 2,
-                y: doorOuterH / 2 - railW / 2,
-                z: 0,
+                y: frameT / 2,
+                z: doorOuterH / 2 - railW / 2,
               },
               depth: cornerTenonLen,
               length: railW - 10,
@@ -1369,8 +1379,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             {
               origin: {
                 x: side > 0 ? -stileW / 2 + 2 : stileW / 2 - 2,
-                y: -doorOuterH / 2 + railW / 2,
-                z: 0,
+                y: frameT / 2,
+                z: -doorOuterH / 2 + railW / 2,
               },
               depth: cornerTenonLen,
               length: railW - 10,
@@ -1378,9 +1388,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               through: false,
             },
             {
+              // 內側長槽：origin.z=0 中央、origin.y=panelT 中心、origin.x 在內邊
               origin: {
                 x: side > 0 ? -stileW / 2 + 2 : stileW / 2 - 2,
-                y: 0,
+                y: frameT / 2,
                 z: 0,
               },
               depth: grooveDepth,
@@ -1717,16 +1728,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           ],
           mortises: [],
         });
-        // 兩側板加 rod 母榫眼接吊衣桿（rotation z=π/2 後 part-local 轉了，但
-        // audit 只看 dim 不看 origin 對位，所以隨便塞個原點都行）
+        // 兩側板加 rod 母榫眼接吊衣桿（rotation z=π/2 後 mesh +X = 世界 +Y 鉛直）
+        // §M1: side panel visible {length:innerH, width:width, thickness:panelT}，
+        // 鉛直 = length 軸 = mesh local X。rod 在世界 Y=rodY，
+        // 對 side 而言相對 panel 底部 = rodY - panelT(side panel origin.y) - innerH/2 偏移。
+        // panel.origin.y = caseBottomY+panelT，length=innerH，故 mesh local x = rodY - (caseBottomY+panelT) - innerH/2
         const sidePanels = parts.filter(
           (p) => p.id === "side-left" || p.id === "side-right",
         );
         for (const sp of sidePanels) {
+          const sideIsLeft = sp.id === "side-left";
+          const rodLocalX = rodY - (caseBottomY + panelT) - innerH / 2;
           sp.mortises = [
             ...sp.mortises,
             {
-              origin: { x: 0, y: rodY, z: 0 },
+              origin: {
+                x: rodLocalX,
+                y: sideIsLeft ? 0 : panelT,
+                z: 0,
+              },
               depth: 8,
               length: rodD,
               width: rodD,

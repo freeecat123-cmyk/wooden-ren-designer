@@ -51,7 +51,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
   const length = parseInt(spStr("length") ?? "") || entry.defaults.length;
   const width = parseInt(spStr("width") ?? "") || entry.defaults.width;
   const height = parseInt(spStr("height") ?? "") || entry.defaults.height;
-  const material = (spStr("material") as MaterialId) ?? "maple";
+  const material = (spStr("material") as MaterialId) ?? "walnut";
 
   const options: Record<string, string | number | boolean> = {};
   for (const spec of entry.optionSchema ?? []) {

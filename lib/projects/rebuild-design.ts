@@ -24,7 +24,7 @@ export function rebuildDesignFromItem(
   if (![length, width, height].every((n) => Number.isFinite(n) && n > 0)) {
     return null;
   }
-  const material = (typeof p.material === "string" ? p.material : "maple") as MaterialId;
+  const material = (typeof p.material === "string" ? p.material : "walnut") as MaterialId;
   const spLike: Record<string, string> = {};
   for (const [k, v] of Object.entries(p)) {
     if (v == null) continue;

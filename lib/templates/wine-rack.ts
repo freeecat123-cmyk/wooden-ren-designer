@@ -111,12 +111,19 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   // 兩側板（內側鋸層板槽）
+  // §M1: side panel visible {length:depth, width:innerH, thickness:panelT}
+  // 鉛直方向 = mesh local Z（width 軸）。yMid 是世界鉛直，需轉成 mesh-local z：
+  // panel.origin.y = panelT，panel.length(=depth) 沿水平，width(=innerH) 沿鉛直。
+  // 但 part rotation {x:π/2, y:π/2} → mesh local Z 投到世界鉛直軸。
+  // local z = (yMid - panel.origin.y) - innerH/2 = yMid - panelT - innerH/2
+  // side-aware origin.y：LEFT(xSign=1, side at -halfOuterW+panelT/2)用 y=0；RIGHT 用 y=panelT。
   const shelfMortises = (xSign: -1 | 1) =>
     Array.from({ length: bt - 1 }, (_, idx) => {
       const row = idx + 1;
       const yMid = panelT + row * cellSize - panelT / 2;
+      const zLocal = yMid - panelT - innerH / 2;
       return {
-        origin: { x: xSign * (panelT / 2), y: yMid, z: 0 },
+        origin: { x: 0, y: xSign > 0 ? 0 : panelT, z: zLocal },
         depth: SHELF_TONGUE_LEN,
         length: depth - SHELF_TONGUE_THICKNESS_OFFSET,
         width: panelT,
