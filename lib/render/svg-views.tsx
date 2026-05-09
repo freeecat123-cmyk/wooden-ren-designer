@@ -549,9 +549,10 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const longDim = Math.max(Lm, Wm);
   const shortDim = Math.min(Lm, Wm);
 
-  // perpendicular 軸 shrink 1mm，讓 CSG cut 不貼齊 part 邊界，
-  // 角隅留 1mm 木料避免 z-fighting + 補不到的洞
-  const PERP_SHRINK = 1;
+  // mortise CSG cut 用全尺寸（不 shrink），讓 tenon mesh 0.5mm 縮量直接貼進 cut
+  // 內側，留 0.5mm clearance 避免 z-fighting。之前 mortise -1mm + tenon -0.5mm
+  // 不一致 → tenon 反而比 cut 大 0.5mm，從洞四周溢紅點。
+  const PERP_SHRINK = 0;
   if (depthAxis === "y") {
     const enterTop = m.origin.y > ly / 2;
     const cyL = m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
