@@ -82,8 +82,8 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
   // ─── Shaker（夏克）：宗教簡約主義 ─────────────────────────────────
   shaker: {
     id: "shaker",
-    nameZh: "Shaker（夏克）",
-    nameEn: "Shaker",
+    nameZh: "簡約細腳（Shaker / 北歐 / 斯堪地）",
+    nameEn: "Shaker / Mid-Century / Scandi",
     visualHint: "極簡、無裝飾、細料漸縮腳、櫻桃/楓木淺色、through-tenon 加楔片、椅背用 ladder（橫檔）",
     materials: ["maple", "ash", "walnut"],
     legShape: "tapered",
@@ -96,45 +96,6 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     seatProfile: "flat",
     defaultJoinery: "through-tenon",
     source: "books_furniture_styles.md §2",
-  },
-
-  // ─── Mid-Century Modern（北歐 / 丹麥）─────────────────────────────
-  midCentury: {
-    id: "midCentury",
-    nameZh: "Mid-Century（北歐）",
-    nameEn: "Mid-Century Modern",
-    visualHint: "外斜腳 5°、細料、柚木/胡桃木、Y 椅風直條椅背、座面微凹有機曲線",
-    materials: ["walnut", "teak", "white-oak"],
-    legShape: "splayed",
-    legSizeMm: 32, // 略細
-    legEdgeMm: 5,
-    topEdgeMm: 8,
-    edgeStyle: "rounded",
-    apronWidthMm: 55,
-    backStyle: "slats", // 直條，Wegner 風
-    seatProfile: "scooped", // Wegner shell chair 微凹
-    defaultJoinery: "blind-tenon",
-    splayAngleDeg: 5,
-    source: "books_furniture_styles.md §5（Wegner / Eames）",
-  },
-
-  // ─── Mission / Arts & Crafts（Stickley）───────────────────────────
-  mission: {
-    id: "mission",
-    nameZh: "Mission（美式工藝）",
-    nameEn: "Mission / Arts & Crafts",
-    visualHint: "白橡徑切 + through-tenon 加楔、粗腳 50mm 直線方料、寬牙條 80mm、椅背直條密集",
-    materials: ["white-oak"],
-    legShape: "box",
-    legSizeMm: 50, // 粗腳——Stickley 招牌
-    legEdgeMm: 0,
-    topEdgeMm: 3,
-    edgeStyle: "chamfered",
-    apronWidthMm: 80, // 寬牙條
-    backStyle: "slats", // Stickley 直條密集
-    seatProfile: "flat",
-    defaultJoinery: "through-tenon",
-    source: "books_furniture_styles.md §4（Stickley + Greene & Greene）",
   },
 
   // ─── 明式（中國傳統）─────────────────────────────────────────────
@@ -154,27 +115,6 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     seatProfile: "flat",
     defaultJoinery: "shouldered-tenon",
     source: "books_chinese_classics.md §1-§4",
-  },
-
-  // ─── Windsor（西方傳統椅匠）──────────────────────────────────────
-  windsor: {
-    id: "windsor",
-    nameZh: "Windsor（傳統椅匠）",
-    nameEn: "Windsor",
-    visualHint: "圓料外斜腳 10°、Windsor spindle 圓棒椅背、座板 saddle 挖型大圓邊、milk paint 著色",
-    materials: ["white-oak", "ash", "maple"],
-    legShape: "splayed",
-    legSizeMm: 28, // 圓料偏細（spindle 細料感）
-    legEdgeMm: 0,
-    topEdgeMm: 12, // 座板大圓邊（saddle）
-    edgeStyle: "rounded",
-    apronWidthMm: 0, // Windsor 沒牙條（直接腳上座板）
-    backStyle: "windsor", // 圓棒 spindle
-    seatProfile: "saddle", // Windsor 招牌座面
-    defaultJoinery: "blind-tenon",
-    splayAngleDeg: 10,
-    applicableTo: ["dining-chair", "round-stool", "bench"],
-    source: "books_chairmaking.md §3-§4（Galbert / Buchanan）",
   },
 
   // ─── 工業風 / Loft ───────────────────────────────────────────────
@@ -199,8 +139,8 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
   // ─── 日式禪風（和家具）─────────────────────────────────────────
   japanese: {
     id: "japanese",
-    nameZh: "日式禪風（和家具）",
-    nameEn: "Japanese / Wa-furniture",
+    nameZh: "日式禪風（和家具 / 侘寂）",
+    nameEn: "Japanese / Wa / Wabi-Sabi",
     visualHint: "檜木淺色、細料 35mm 方腳、極簡無椅背或低矮椅背、無顯著倒邊、藏榫",
     materials: ["taiwan-cypress", "douglas-fir", "ash"],
     legShape: "box",
@@ -215,31 +155,11 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     source: "books_japanese_techniques.md §6（宮大工仕口）",
   },
 
-  // ─── 斯堪地（Scandi / 純白系北歐）────────────────────────────────
-  // 跟 midCentury 區隔：更純白、無 splay、椅面不挖型，極致簡素
-  scandi: {
-    id: "scandi",
-    nameZh: "斯堪地（純白系北歐）",
-    nameEn: "Scandinavian",
-    visualHint: "白橡 / 樺木淺色、直細腳 30mm、素料無 splay、座面平、極細倒邊",
-    materials: ["white-oak", "ash", "maple"],
-    legShape: "tapered",
-    legSizeMm: 30,
-    legEdgeMm: 2,
-    topEdgeMm: 5,
-    edgeStyle: "rounded",
-    apronWidthMm: 50,
-    backStyle: "slats",
-    seatProfile: "flat",
-    defaultJoinery: "blind-tenon",
-    source: "books_furniture_styles.md §5（IKEA / Carl Hansen）",
-  },
-
   // ─── 美式農舍（Farmhouse）─────────────────────────────────────
   farmhouse: {
     id: "farmhouse",
-    nameZh: "美式農舍（Farmhouse）",
-    nameEn: "American Farmhouse",
+    nameZh: "美式手工（Farmhouse / Mission / Windsor）",
+    nameEn: "American Craft (Farmhouse / Mission / Windsor)",
     visualHint: "厚粗料 55mm 直方腳、松木 / 橡木深色、X 形下橫撐、寬牙條 85mm、座面平",
     materials: ["pine", "white-oak", "douglas-fir"],
     legShape: "box",
@@ -252,46 +172,6 @@ export const STYLE_PRESETS: Record<string, StylePreset> = {
     seatProfile: "flat",
     defaultJoinery: "shouldered-tenon",
     source: "books_furniture_styles.md §6（Country / Farmhouse）",
-  },
-
-  // ─── 侘寂（Wabi-Sabi）─────────────────────────────────────────
-  // 粗實、保留材質感、自然邊風格——粗料 + 大圓邊 + 樸素接合
-  wabiSabi: {
-    id: "wabiSabi",
-    nameZh: "侘寂（Wabi-Sabi）",
-    nameEn: "Wabi-Sabi",
-    visualHint: "粗實 50mm 直腳、檜木 / 胡桃自然色、大圓邊 15mm、藏榫、無裝飾、低重心",
-    materials: ["taiwan-cypress", "walnut", "douglas-fir"],
-    legShape: "box",
-    legSizeMm: 50,
-    legEdgeMm: 6,
-    topEdgeMm: 15,
-    edgeStyle: "rounded",
-    apronWidthMm: 70,
-    backStyle: "slats",
-    seatProfile: "flat",
-    defaultJoinery: "blind-tenon",
-    source: "books_japanese_techniques.md §7（侘寂美學）",
-  },
-
-  // ─── 包浩斯（Bauhaus）─────────────────────────────────────────
-  // 純幾何、無曲線、對比色、無倒邊
-  bauhaus: {
-    id: "bauhaus",
-    nameZh: "包浩斯（Bauhaus）",
-    nameEn: "Bauhaus",
-    visualHint: "純幾何、直角無倒邊、黑/白/原木對比、細直腳 32mm、無 splay、無椅背曲線",
-    materials: ["maple", "ash", "walnut"],
-    legShape: "box",
-    legSizeMm: 32,
-    legEdgeMm: 0,
-    topEdgeMm: 0,
-    edgeStyle: "chamfered",
-    apronWidthMm: 50,
-    backStyle: "slats",
-    seatProfile: "flat",
-    defaultJoinery: "blind-tenon",
-    source: "books_furniture_styles.md §7（Breuer / Mies）",
   },
 
   // ─── 古典歐式（Chippendale / 英式 18 世紀）─────────────────────
