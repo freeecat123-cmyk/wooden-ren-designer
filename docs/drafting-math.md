@@ -4181,3 +4181,117 @@ Windsor resultant + sightline (rake/splay 為角度):
 | 放樣 | Galbert 2015、Schwarz LAP 全套、王世襄《明式家具研究》1985、Odate 1984、大江新太郎《規矩術の基礎》、Roubo 1769（archive.org PDF） |
 
 
+
+
+---
+
+## §M. Mortise spec 慣例（mesh local，不是 post-rotation world）
+
+### M1. 座標系統
+
+`Part["mortises"][n]` 的 `origin` 跟 `length/width` 都是 **mesh local 座標**，
+**不是** template author 心中的「post-rotation 世界軸」。
+
+```
+origin.x ∈ [-visible.length/2, +visible.length/2]   (length 軸 = mesh local X)
+origin.y ∈ [0, visible.thickness]                    (thickness 軸 = mesh local Y, FROM-BOTTOM)
+origin.z ∈ [-visible.width/2, +visible.width/2]      (width 軸 = mesh local Z)
+```
+
+⚠️ **常見坑**：side panel 用 `rotation: { z: π/2 }` 把 length 軸轉到世界垂直方向。
+template author 想表達「shelf 在垂直 60% 高度」，會直覺寫
+`origin.y = 0.6 * innerH`。但 origin.y 的軸是 **mesh local Y**（panel
+thickness 18mm），不是後旋轉的世界垂直軸。寫 origin.y=240 (= 0.6 × 400)
+會超出 panel 範圍 → mortiseLocalBox 算 yToFace=222 → 仍判 depthAxis="y"
+→ CSG 切到不對的面 → 視覺洞 + 左右板不對稱（mesh +Y 對 LEFT panel = 外側、
+對 RIGHT panel = 內側 因 rotation 對稱性）。
+
+**正確寫法**：vertical 位置改用 `origin.x`（length 軸 = post-rotation 垂直），
+origin.y 用 0 或 panelT 對應 mesh -Y / +Y face：
+
+```ts
+// ❌ 錯：把後旋轉垂直位置塞進 origin.y
+mortises: shelfFractions.map((f) => ({
+  origin: { x: 0, y: f * innerH, z: 0 },  // ← origin.y 超出範圍
+  ...
+}))
+
+// ✅ 對：用 length 軸表達後旋轉垂直 + side-aware origin.y
+mortises: shelfFractions.map((f) => ({
+  origin: {
+    x: f * innerH - innerH / 2,         // 沿 length 軸的 fractional 位置
+    y: side < 0 ? 0 : panelT,           // side-aware：兩邊都對應 INNER face
+    z: 0,
+  },
+  ...
+}))
+```
+
+### M2. depthAxis 判定規則
+
+`mortiseLocalBox` 用「哪一面距離 origin 最近」決定深度軸：
+
+```
+yToFace = min(|origin.y|, |origin.y − ly|)
+xToFace = min(|origin.x − lx/2|, |origin.x + lx/2|)
+zToFace = min(|origin.z − lz/2|, |origin.z + lz/2|)
+depthAxis = 三者最小那個
+```
+
+**特例**：當 `origin.y === 0 || origin.y === ly`（from-bottom 慣例的「便利
+預設值」）+ X 或 Z 軸有 origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為入榫軸。
+這修正「template 把 origin.y=0 當作不在乎 Y 預設」但 mortiseLocalBox 誤判
+的場合。
+
+### M3. Mortise.length / .width 慣例
+
+依 `audit-joints.ts:33-35`：
+
+```
+mortise.depth ≈ tongue.length     (沿 depth 軸)
+mortise.length ≈ tongue.width      (cross-section 較長那條)
+mortise.width ≈ tongue.thickness   (cross-section 較短那條)
+```
+
+`mortiseLocalBox` 對 length / width 的軸別分配採「smart fit」：較長的維度
+放在「origin 較居中、空間較大」的軸，較短放在「origin 靠邊、空間較窄」的軸
+（避免大 dim 超出 part 邊界）。
+
+### M4. SHRINK 約定（z-fighting 防呆）
+
+| 對象 | shrink (mm/邊) | 來源 const | 目的 |
+|---|---|---|---|
+| Mortise CSG cut | 0 | `PERP_SHRINK` (svg-views.tsx:554) | 用全尺寸，留給 tenon 蓋 |
+| Tenon 3D mesh | 0.5 | `SHRINK_MM` (PerspectiveView.tsx:2224) | 比 cut 小 0.5mm，留 clearance |
+
+**關係不變量**：tenon ≤ mortise 才不會溢出。歷史上兩者不一致（mortise -1mm
++ tenon -0.5mm）讓 tenon 反而比 cut 大 → 紅色從洞四週溢出。
+
+### M5. 自動化 audit
+
+```bash
+npx tsx scripts/audit-mortise-spec.ts
+```
+
+掃全部 template 的 mortise.origin 是否在 part.visible 範圍內。CI 可加跑。
+runtime 也有 dev mode `console.warn`（mortiseLocalBox 入口）。
+
+### M6. Side-aware mortise origin
+
+對 `rotation: { z: π/2 }` 的旋轉 part（side-left / side-right），mesh local +Y
+對應到的世界軸**依 part 的世界 X 位置而異**：
+
+- LEFT panel (世界 X < 0)：mesh +Y → 世界 -X = OUTER face
+- RIGHT panel (世界 X > 0)：mesh +Y → 世界 -X = INNER face
+
+要兩邊 mortise 對稱（都在 INNER face）必須用 side-aware origin.y：
+- LEFT: `y: 0` (mesh -Y → 世界 +X = INNER for left)
+- RIGHT: `y: panelT` (mesh +Y → 世界 -X = INNER for right)
+
+### M7. 參考 commit
+
+| Commit | 內容 |
+|---|---|
+| `b5a5a40` | SHRINK 對齊（M4） |
+| `5e1c58f` | depthAxis canonical Y 修正（M2） |
+| `5434e41` | side panel shelf mortise side-aware（M6） |

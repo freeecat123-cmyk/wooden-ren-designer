@@ -515,10 +515,33 @@ function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
  *
  * 限制：對非軸對齊 mortise（例如圓腳上的 mortise）無法處理，等 Phase 4+。
  */
+/**
+ * Runtime spec validation：警告 mortise.origin 用了「post-rotation」慣例
+ * （origin.y > ly 或 < -1）這是常見坑。dev mode console.warn，prod 不喊。
+ */
+function warnInvalidMortiseSpec(partId: string, m: Part["mortises"][number], lx: number, ly: number, lz: number): void {
+  if (typeof window === "undefined" && process.env.NODE_ENV === "production") return;
+  const issues: string[] = [];
+  if (m.origin.y < -1 || m.origin.y > ly + 1) {
+    issues.push(`origin.y=${m.origin.y} 超出 part.thickness 範圍 [0, ${ly}]—可能誤把「post-rotation 高度」放在 mesh local Y 軸（應放 origin.x）`);
+  }
+  if (m.origin.x < -lx / 2 - 1 || m.origin.x > lx / 2 + 1) {
+    issues.push(`origin.x=${m.origin.x} 超出 part.length 範圍 [${-lx/2}, ${lx/2}]`);
+  }
+  if (m.origin.z < -lz / 2 - 1 || m.origin.z > lz / 2 + 1) {
+    issues.push(`origin.z=${m.origin.z} 超出 part.width 範圍 [${-lz/2}, ${lz/2}]`);
+  }
+  if (issues.length > 0 && typeof console !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.warn(`[mortise spec] ${partId}:`, issues.join("; "));
+  }
+}
+
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;
+  warnInvalidMortiseSpec(part.id, m, lx, ly, lz);
   // Y 是 from-bottom，shift 到 centered
   const oxC = m.origin.x;
   const oyC = m.origin.y - ly / 2;
