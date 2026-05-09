@@ -11,7 +11,7 @@ import { MATERIALS } from "@/lib/materials";
 import { worldExtents } from "@/lib/render/geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
-import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
+import { categorizePart, mortiseLocalBox, getMortiseEntry } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
@@ -1792,28 +1792,18 @@ export function PerspectiveView({
       const pcy = part.origin.y + yExt / 2;
       const pcz = part.origin.z;
       for (const m of part.mortises) {
-        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）
-        const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
-        const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
-        const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+        // 用共用 helper 推 depth-axis + sign（跟 mortiseLocalBox 同步）
+        const { axis: localAxis, sign: localSign } = getMortiseEntry(part, m);
         let lex = 0, ley = 0, lez = 0;
-        let localAxis: "x" | "y" | "z";
-        let localSign: 1 | -1;
-        if (yToFace <= xToFace && yToFace <= zToFace) {
-          localAxis = "y";
-          localSign = m.origin.y >= ly - 1 ? 1 : -1;
+        if (localAxis === "y") {
           lex = m.origin.x;
           ley = localSign === 1 ? ly / 2 : -ly / 2;
           lez = m.origin.z;
-        } else if (xToFace <= zToFace) {
-          localAxis = "x";
-          localSign = m.origin.x >= 0 ? 1 : -1;
+        } else if (localAxis === "x") {
           lex = localSign === 1 ? lx / 2 : -lx / 2;
           ley = m.origin.y - ly / 2;
           lez = m.origin.z;
         } else {
-          localAxis = "z";
-          localSign = m.origin.z >= 0 ? 1 : -1;
           lex = m.origin.x;
           ley = m.origin.y - ly / 2;
           lez = localSign === 1 ? lz / 2 : -lz / 2;
