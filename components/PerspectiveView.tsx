@@ -1742,6 +1742,7 @@ export function PerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
+  xrayMode = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1753,6 +1754,8 @@ export function PerspectiveView({
   /** 爆炸視圖：joineryMode 下 tenon 沿 position 方向往外偏 explodeMm（mm），
    *  視覺像榫頭從榫眼抽出來。0 = 無偏移（預設），> 0 拆得越開 */
   explodeMm?: number;
+  /** X-ray 透視模式：隱藏門 + 抽屜面板，看得到內部層板 / 後板 / 隔板 */
+  xrayMode?: boolean;
 }) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
@@ -1948,6 +1951,8 @@ export function PerspectiveView({
         {design.parts.map((part) => {
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
+          // X-ray 模式：跳過門 + 抽屜面板（讓內部層板/隔板/後板可見）
+          if (xrayMode && (category === "drawer" || category === "door")) return null;
           const tintedColor =
             category === "drawer"
               ? tintHex(baseColor, DRAWER_TINT, TINT_AMOUNT)

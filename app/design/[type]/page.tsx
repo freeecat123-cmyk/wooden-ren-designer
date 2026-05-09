@@ -23,6 +23,7 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
+import { XrayToggle } from "@/components/XrayToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
@@ -167,6 +168,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 用，3D PerspectiveView 把 overlap 的 parts 用紅色 wireframe 高亮並
   // console.warn 列表。給開發人員肉眼看 audit 結果用。
   const auditMode = sp.audit === "true" || sp.audit === "1";
+  const xrayMode = sp.xray === "true" || sp.xray === "1";
 
   // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
   // 視覺像榫頭從榫眼抽出。常用 20–40。
@@ -302,7 +304,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} />
+            <XrayToggle current={xrayMode} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
           </div>
         </div>
       </section>
