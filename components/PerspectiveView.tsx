@@ -1956,11 +1956,13 @@ export function PerspectiveView({
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
           if (xrayMode !== "off") {
-            const isDoor = category === "door" || /-door-\d+-slab$/.test(part.id);
-            // face mode：藏「面板」+「箱體前板」（露出抽屜內部凹槽）
-            const isDrawerFront = /-drawer-\d+-(face|front)$/.test(part.id);
-            const isDrawer = category === "drawer";
-            if (isDoor) return null;
+            const isDoor = category === "door" || /-door-\d+(-slab|-pull)?$/.test(part.id);
+            // face mode：藏「面板」+「箱體前板」+「面板把手」
+            const isDrawerFront = /-drawer-\d+-(face|front)(-pull)?$/.test(part.id);
+            const isDrawer = category === "drawer" || /-drawer-\d+/.test(part.id);
+            // pull 屬於門 / 抽屜的視覺，xray 一律藏
+            const isPull = /-pull$/.test(part.id);
+            if (isDoor || isPull) return null;
             if (xrayMode === "face" && isDrawerFront) return null;
             if (xrayMode === "full" && isDrawer) return null;
           }
