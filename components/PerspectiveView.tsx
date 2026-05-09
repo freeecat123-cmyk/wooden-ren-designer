@@ -2218,16 +2218,24 @@ export function PerspectiveView({
                     rotation={new Euler(rx, ry, rz, "ZYX")}
                     castShadow
                   >
-                    {useRoundTenon ? (
-                      <cylinderGeometry args={[
-                        Math.min(hx, hz) * SCALE,
-                        Math.min(hx, hz) * SCALE,
-                        hy * 2 * SCALE,
-                        24,
-                      ]} />
-                    ) : (
-                      <boxGeometry args={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]} />
-                    )}
+                    {(() => {
+                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
+                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
+                      const SHRINK_MM = 0.5;
+                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
+                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
+                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
+                      return useRoundTenon ? (
+                        <cylinderGeometry args={[
+                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                          sy,
+                          24,
+                        ]} />
+                      ) : (
+                        <boxGeometry args={[sx, sy, sz]} />
+                      );
+                    })()}
                     <meshStandardMaterial
                       color="#c0392b"
                       roughness={0.8}
