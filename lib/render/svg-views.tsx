@@ -539,23 +539,28 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const Lm = m.length;
   const Wm = m.width;
 
+  // Auto-fit Lm/Wm 到較合適的兩個垂直軸：
+  // 若 Lm 大於可分配軸的 part 範圍而 Wm 不會，自動 swap，避免 CSG 切超過 part
+  // 邊界（造成 through-hole 而非 blind pocket）。Audit 慣例：
+  // mortise.length=tongue.width(較長)、mortise.width=tongue.thickness(較短)
   if (depthAxis === "y") {
-    // 入口面 = 上面 or 下面；mortise 的 length × width 在 X-Z 面上
-    // 中心 Y：通孔置中；半通由入口位置 + depth/2 推
-    // enterTop 改用 "origin.y 在 part 上半邊"（origin.y > ly/2）判斷，
-    // 不再要求貼到頂面 1mm 內——template 寫 "origin.y = ly - depth/2"
-    // （mortise 中心離頂面 depth/2）這種正常寫法也要能正確識別為頂面進。
-    // 之前只看 ly-1 → 中央橫撐進牙板的 mortise（origin.y=15 in 22 厚牙板）
-    // 被誤判成底面進 → CSG 挖在外面 → 紅榫頭穿透外露。
     const enterTop = m.origin.y > ly / 2;
     const cyL = m.through
       ? 0
       : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
-    return { cx: oxC, cy: cyL, cz: ozC, hx: Lm / 2, hy: D / 2, hz: Wm / 2 };
+    // depthAxis=y 時 Lm→X、Wm→Z；若 Lm > lx 但 Wm < lx 自動 swap
+    const swap = Lm > lx + 1 && Wm <= lx + 1;
+    const useL = swap ? Wm : Lm;
+    const useW = swap ? Lm : Wm;
+    return { cx: oxC, cy: cyL, cz: ozC, hx: useL / 2, hy: D / 2, hz: useW / 2 };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
-    return { cx: cxL, cy: oyC, cz: ozC, hx: D / 2, hy: Lm / 2, hz: Wm / 2 };
+    // depthAxis=x 時 Lm→Y、Wm→Z；若 Lm > ly 但 Wm <= ly 自動 swap
+    const swap = Lm > ly + 1 && Wm <= ly + 1;
+    const useL = swap ? Wm : Lm;
+    const useW = swap ? Lm : Wm;
+    return { cx: cxL, cy: oyC, cz: ozC, hx: D / 2, hy: useL / 2, hz: useW / 2 };
   } else {
     // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg）。
     // 慣例：mortise.length 沿 part Y（順 leg 高），mortise.width 沿 part X。
