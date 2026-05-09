@@ -543,40 +543,36 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // 若 Lm 大於可分配軸的 part 範圍而 Wm 不會，自動 swap，避免 CSG 切超過 part
   // 邊界（造成 through-hole 而非 blind pocket）。Audit 慣例：
   // mortise.length=tongue.width(較長)、mortise.width=tongue.thickness(較短)
+  // Smart Lm/Wm 軸別分配：把較長的維度 (max) 放在「origin 較居中、空間較大」
+  // 的軸，較短的維度 (min) 放在「origin 靠邊、空間較窄」的軸。確保 CSG slot
+  // 完整在 part 內又能對應 tongue 真實方向。
+  const longDim = Math.max(Lm, Wm);
+  const shortDim = Math.min(Lm, Wm);
+
   if (depthAxis === "y") {
     const enterTop = m.origin.y > ly / 2;
-    const cyL = m.through
-      ? 0
-      : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
-    // depthAxis=y 時 Lm→X、Wm→Z；若 Lm > lx 但 Wm < lx 自動 swap
-    const swap = Lm > lx + 1 && Wm <= lx + 1;
-    const useL = swap ? Wm : Lm;
-    const useW = swap ? Lm : Wm;
-    // Clip cx 跟 cz 在 part 範圍內
-    const minX = -lx / 2 + useL / 2;
-    const maxX = lx / 2 - useL / 2;
-    const cxClipped = Math.max(minX, Math.min(maxX, oxC));
-    const minZ = -lz / 2 + useW / 2;
-    const maxZ = lz / 2 - useW / 2;
-    const czClipped = Math.max(minZ, Math.min(maxZ, ozC));
-    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useL / 2, hy: D / 2, hz: useW / 2 };
+    const cyL = m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
+    // 比 X / Z 軸對 origin 的「最近 face 距離」決定誰放 longDim
+    const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
+    const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
+    // 較大 face 距離 = 較居中 → 放 longDim；較小 = 較窄 → 放 shortDim
+    const longOnZ = zFace > xFace;
+    const useX = longOnZ ? shortDim : longDim;
+    const useZ = longOnZ ? longDim : shortDim;
+    const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
+    const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2 };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
-    // depthAxis=x 時 Lm→Y、Wm→Z；若 Lm > ly 但 Wm <= ly 自動 swap
-    const swap = Lm > ly + 1 && Wm <= ly + 1;
-    const useL = swap ? Wm : Lm;
-    const useW = swap ? Lm : Wm;
-    // Clip cy 讓 slot 留在 [-ly/2, ly/2] 內，避免 origin.y 用「從底 0」慣例
-    // 把 slot 推到 panel 範圍外（origin.y=0 → oyC=-ly/2 → slot 半邊出底面）
-    const minY = -ly / 2 + useL / 2;
-    const maxY = ly / 2 - useL / 2;
-    const cyClipped = Math.max(minY, Math.min(maxY, oyC));
-    // 同樣 clip cz
-    const minZ = -lz / 2 + useW / 2;
-    const maxZ = lz / 2 - useW / 2;
-    const czClipped = Math.max(minZ, Math.min(maxZ, ozC));
-    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useL / 2, hz: useW / 2 };
+    const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
+    const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
+    const longOnZ = zFace > yFace;
+    const useY = longOnZ ? shortDim : longDim;
+    const useZ = longOnZ ? longDim : shortDim;
+    const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
+    const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
+    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2 };
   } else {
     // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg）。
     // 慣例：mortise.length 沿 part Y（順 leg 高），mortise.width 沿 part X。
