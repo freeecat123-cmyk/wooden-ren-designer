@@ -10,6 +10,12 @@
  */
 
 import type { JoineryType } from "@/lib/types";
+import {
+  COLOR,
+  DimLine,
+  Hatching,
+  fitScale,
+} from "./draw-primitives";
 
 export interface JoineryDetailParams {
   /** mm — tenon protrusion length */
@@ -30,11 +36,12 @@ export interface JoineryDetailParams {
   material?: import("@/lib/types").MaterialId;
 }
 
-const COLOR_TENON = "#e6c89a";
-const COLOR_MORTISE = "#b08a4e";
-const COLOR_OUTLINE = "#222";
-const COLOR_DIM = "#0a4d8c";
-const COLOR_HIDDEN = "#b59062";
+// 顏色常數改為從 draw-primitives 引入後的本地別名（避免改 100+ 處 call site）。
+const COLOR_TENON = COLOR.TENON;
+const COLOR_MORTISE = COLOR.MORTISE;
+const COLOR_OUTLINE = COLOR.OUTLINE;
+const COLOR_DIM = COLOR.DIM;
+const COLOR_HIDDEN = COLOR.HIDDEN;
 
 /**
  * 燕尾榫斜度標準（per drafting-math.md §B2）：
@@ -52,76 +59,7 @@ function pickDovetailAngle(materialId?: import("@/lib/types").MaterialId): strin
 
 const PADDING = 30;
 
-function DimLine({
-  x1,
-  y1,
-  x2,
-  y2,
-  label,
-  side = "top",
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  label: string;
-  side?: "top" | "bottom" | "left" | "right";
-}) {
-  const tick = 4;
-  const dx = side === "left" ? -10 : side === "right" ? 10 : 0;
-  const dy = side === "top" ? -10 : side === "bottom" ? 10 : 0;
-  const lx1 = x1 + dx;
-  const ly1 = y1 + dy;
-  const lx2 = x2 + dx;
-  const ly2 = y2 + dy;
-  return (
-    <g stroke={COLOR_DIM} fill={COLOR_DIM} strokeWidth={0.5}>
-      <line x1={x1} y1={y1} x2={lx1} y2={ly1} strokeDasharray="2 2" />
-      <line x1={x2} y1={y2} x2={lx2} y2={ly2} strokeDasharray="2 2" />
-      <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} />
-      <line
-        x1={lx1 - tick * (side === "top" || side === "bottom" ? 0 : 1)}
-        y1={ly1 - tick * (side === "left" || side === "right" ? 0 : 1)}
-        x2={lx1 + tick * (side === "top" || side === "bottom" ? 0 : 1)}
-        y2={ly1 + tick * (side === "left" || side === "right" ? 0 : 1)}
-      />
-      <line
-        x1={lx2 - tick * (side === "top" || side === "bottom" ? 0 : 1)}
-        y1={ly2 - tick * (side === "left" || side === "right" ? 0 : 1)}
-        x2={lx2 + tick * (side === "top" || side === "bottom" ? 0 : 1)}
-        y2={ly2 + tick * (side === "left" || side === "right" ? 0 : 1)}
-      />
-      <text
-        x={(lx1 + lx2) / 2 + (side === "left" ? -4 : side === "right" ? 4 : 0)}
-        y={(ly1 + ly2) / 2 + (side === "bottom" ? 12 : side === "top" ? -4 : 3)}
-        fontSize={9}
-        textAnchor={side === "left" ? "end" : side === "right" ? "start" : "middle"}
-        stroke="none"
-      >
-        {label}
-      </text>
-    </g>
-  );
-}
-
-function Hatching({ id, color = "#8a6a3a" }: { id: string; color?: string }) {
-  return (
-    <pattern
-      id={id}
-      patternUnits="userSpaceOnUse"
-      width={4}
-      height={4}
-      patternTransform="rotate(45)"
-    >
-      <line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={0.6} />
-    </pattern>
-  );
-}
-
-/** Pick a unit scale so the biggest dimension fills ~maxPx pixels. */
-function fitScale(maxMm: number, maxPx: number) {
-  return maxPx / Math.max(1, maxMm);
-}
+// DimLine / Hatching / fitScale 已搬到 ./draw-primitives，這裡保留 import 即可。
 
 /* ============================================================
  * 通榫 — through-tenon
