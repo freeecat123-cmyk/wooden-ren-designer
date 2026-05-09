@@ -1190,11 +1190,17 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         ? -width / 2 + doorThick / 2
         : -width / 2 - doorThick / 2 - 1;
 
+    // 門板 Y 範圍：永遠在 zone 內留 4mm（上下各 2mm）。partition 由抽屜 face 的
+    // overlayBot 從上方覆蓋（drawer 那邊已縮成半個 partition + reveal），門 face
+    // 不需要額外向上延伸。
+    const doorYBase = doorZoneBottomY + outerGap;
+    const doorOuterHFull = doorZoneH - 4;
+
     for (let i = 0; i < cfg.count; i++) {
       const xCenter =
         zoneCx - totalSpan / 2 + i * (perDoorW + middleGap) + perDoorW / 2;
       const doorOuterW = perDoorW;
-      const doorOuterH = doorZoneH - 4;
+      const doorOuterH = doorOuterHFull;
       const innerOpenW = doorOuterW - 2 * stileW;
       const innerOpenH = doorOuterH - 2 * railW;
 
@@ -1215,7 +1221,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: doorZoneBottomY + 2,
+            y: doorYBase,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1238,7 +1244,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: doorZoneBottomY + doorOuterH - railW,
+          y: doorYBase + doorOuterH - railW,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1283,7 +1289,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
         origin: {
           x: xCenter,
-          y: doorZoneBottomY,
+          y: doorYBase,
           z: zFront,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1328,7 +1334,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter + (side * (doorOuterW / 2 - stileW / 2)),
-            y: doorZoneBottomY,
+            y: doorYBase,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1388,7 +1394,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: doorZoneBottomY + railW,
+            y: doorYBase + railW,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1442,7 +1448,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           origin: {
             x: xCenter,
-            y: doorZoneBottomY + railW - grooveDepth,
+            y: doorYBase + railW - grooveDepth,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -1633,18 +1639,21 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         const halfBoundary = Math.round(shelfT / 2 + 1);
         const isFirstZone = i === 0;
         const isTopZone = isLast;
-        const neighborBelowIsDoor =
-          !isFirstZone && zones[i - 1].type === "door";
-        const neighborAboveIsDoor =
-          !isTopZone && zones[i + 1].type === "door";
+        // 鄰 face zone（door 或 drawer 都會生面板）→ 共享 boundary 各覆蓋一半 +
+        // 留 4mm reveal；鄰非 face zone（shelves）→ 全延伸蓋住 boundary。
+        const isFaceZone = (t: string) => t === "door" || t === "drawer";
+        const neighborBelowIsFace =
+          !isFirstZone && isFaceZone(zones[i - 1].type);
+        const neighborAboveIsFace =
+          !isTopZone && isFaceZone(zones[i + 1].type);
         const extendBottom = isFirstZone
           ? doorOverlap
-          : neighborBelowIsDoor
+          : neighborBelowIsFace
             ? halfBoundary
             : doorOverlap;
         const extendTop = isTopZone
           ? doorOverlap
-          : neighborAboveIsDoor
+          : neighborAboveIsFace
             ? halfBoundary
             : doorOverlap;
         renderDoorZone({
