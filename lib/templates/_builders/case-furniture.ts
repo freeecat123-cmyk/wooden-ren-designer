@@ -1066,7 +1066,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             // 底板溝槽（只有入溝模式才有；釘底模式下緣直接釘 3mm 板）
             // 側板 rotation { x: π/2, y: π/2 } 後：local Z 變垂直軸 → 底端 = local +Z
             // 槽深 6mm，槽中心對齊底板中心（底板內凹 6mm，故 z = boxHRow/2 - 6 - drawerBottomT/2）
-            // cosmetic: true 讓一般 3D 也渲染（不只 joineryMode）— 入溝視覺證據
             ...(isSurfaceDrawerBottom
               ? []
               : [
@@ -1076,8 +1075,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                     length: drawerInnerD - 4,
                     width: drawerBottomT + 1,
                     through: false,
-                    cosmetic: true,
-                    shape: "rect" as const,
                   },
                 ]),
           ],
