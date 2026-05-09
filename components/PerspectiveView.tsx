@@ -2313,6 +2313,43 @@ export function PerspectiveView({
                 mortiseShapes={mortiseShapesArr}
               />
               {tenonMeshes}
+              {/* 直接補洞：盲榫 CSG cut 內部加木色 fill mesh，
+                  即使 tongue mesh 軸別錯位無法填滿 cut，木色 fill 從深處
+                  反向遮住。每個非穿透 mortise 加 1 片同色 mesh，幾乎不影響效能 */}
+              {joineryMode &&
+                mortisesToCsg.map((m, mi) => {
+                  if (m.through) return null;
+                  const lb = mortiseLocalBox(part, m);
+                  // fill mesh 各邊比 CSG cut 小 0.3mm，貼進 cut 內部
+                  const FILL_SHRINK_MM = 0.3;
+                  const sx = Math.max(0.05, lb.hx - FILL_SHRINK_MM) * 2 * SCALE;
+                  const sy = Math.max(0.05, lb.hy - FILL_SHRINK_MM) * 2 * SCALE;
+                  const sz = Math.max(0.05, lb.hz - FILL_SHRINK_MM) * 2 * SCALE;
+                  // 以 part-local 座標 → world，跟 part 同 rotation
+                  const wcx = (part.origin.x + lb.cx) * SCALE;
+                  const wcy = (part.origin.y + worldExtents(part).yExt / 2 + lb.cy) * SCALE;
+                  const wcz = (part.origin.z + lb.cz) * SCALE;
+                  // 注意：lb 是 part-local，需先 part rotation 才到 world
+                  const rxP = part.rotation?.x ?? 0;
+                  const ryP = part.rotation?.y ?? 0;
+                  const rzP = part.rotation?.z ?? 0;
+                  // 用 rotateXYZ 把 lb.cx/cy/cz 轉到 world delta
+                  const r = rotateXYZ(rxP, ryP, rzP, lb.cx, lb.cy, lb.cz);
+                  const wx2 = (part.origin.x + r.x) * SCALE;
+                  const wy2 = (part.origin.y + worldExtents(part).yExt / 2 + r.y) * SCALE;
+                  const wz2 = (part.origin.z + r.z) * SCALE;
+                  void wcx; void wcy; void wcz;
+                  return (
+                    <mesh
+                      key={`${part.id}-mortise-fill-${mi}`}
+                      position={[wx2, wy2, wz2]}
+                      rotation={new Euler(rxP, ryP, rzP, "ZYX")}
+                    >
+                      <boxGeometry args={[sx, sy, sz]} />
+                      <meshStandardMaterial color={color} roughness={0.7} />
+                    </mesh>
+                  );
+                })}
               {auditOverlay}
             </group>
           );
