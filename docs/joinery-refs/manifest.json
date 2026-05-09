@@ -1,0 +1,6661 @@
+{
+  "version": 1,
+  "generatedAt": "2026-05-08",
+  "sourceDir": "/Users/wengevaq989/Desktop/CLAUDE/joinery-batch/",
+  "items": [
+    {
+      "filename": "中式傳統榫接練習-包邊榫20241027 Model (1).jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/中式傳統榫接練習-包邊榫20241027 Model (1).jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD-練習",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "包邊榫"
+    },
+    {
+      "filename": "中式傳統榫接練習-包邊榫20241027 Model (1).pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/中式傳統榫接練習-包邊榫20241027 Model (1).pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD-練習",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "包邊榫"
+    },
+    {
+      "filename": "中式傳統榫接練習-插肩榫-20241027 Model (1).jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/中式傳統榫接練習-插肩榫-20241027 Model (1).jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD-練習",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "插肩榫"
+    },
+    {
+      "filename": "中式傳統榫接練習-插肩榫-20241027 Model (1).pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/中式傳統榫接練習-插肩榫-20241027 Model (1).pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD-練習",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "插肩榫"
+    },
+    {
+      "filename": "圓形圍板與腳足接合-14.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓形圍板與腳足接合-14.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓形圍板與腳足"
+    },
+    {
+      "filename": "圓形圍板與腳足接合-14.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓形圍板與腳足接合-14.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓形圍板與腳足"
+    },
+    {
+      "filename": "圓材丁字接合-圓包圓榫-1-09.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材丁字接合-圓包圓榫-1-09.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓包圓榫"
+    },
+    {
+      "filename": "圓材丁字接合-圓包圓榫-1-09.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材丁字接合-圓包圓榫-1-09.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓包圓榫"
+    },
+    {
+      "filename": "圓材丁字接合-圓包圓榫-2-10.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材丁字接合-圓包圓榫-2-10.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓包圓榫"
+    },
+    {
+      "filename": "圓材丁字接合-圓包圓榫-2-10.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材丁字接合-圓包圓榫-2-10.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓包圓榫"
+    },
+    {
+      "filename": "圓材角接合 - 夾頭燕尾榫-04.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 夾頭燕尾榫-04.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "夾頭燕尾榫"
+    },
+    {
+      "filename": "圓材角接合 - 夾頭燕尾榫-04.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 夾頭燕尾榫-04.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "夾頭燕尾榫"
+    },
+    {
+      "filename": "圓材角接合 - 夾頭燕尾榫-05.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 夾頭燕尾榫-05.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "夾頭燕尾榫"
+    },
+    {
+      "filename": "圓材角接合 - 夾頭燕尾榫-05.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 夾頭燕尾榫-05.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "夾頭燕尾榫"
+    },
+    {
+      "filename": "圓材角接合 - 烟袋鍋榫-06.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 烟袋鍋榫-06.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "烟袋鍋榫"
+    },
+    {
+      "filename": "圓材角接合 - 烟袋鍋榫-06.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 烟袋鍋榫-06.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "烟袋鍋榫"
+    },
+    {
+      "filename": "圓材角接合 - 烟袋鍋榫-07.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 烟袋鍋榫-07.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "烟袋鍋榫"
+    },
+    {
+      "filename": "圓材角接合 - 烟袋鍋榫-07.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓材角接合 - 烟袋鍋榫-07.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "烟袋鍋榫"
+    },
+    {
+      "filename": "圓角櫃門及腿和櫃帽結構-11.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓角櫃門及腿和櫃帽結構-11.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓角櫃結構"
+    },
+    {
+      "filename": "圓角櫃門及腿和櫃帽結構-11.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/圓角櫃門及腿和櫃帽結構-11.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "圓角櫃結構"
+    },
+    {
+      "filename": "抱肩榫接合-13.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/抱肩榫接合-13.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "抱肩榫"
+    },
+    {
+      "filename": "抱肩榫接合-13.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/抱肩榫接合-13.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "抱肩榫"
+    },
+    {
+      "filename": "方材角接合 - 揣踹榫-1-02.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合 - 揣踹榫-1-02.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "揣踹榫"
+    },
+    {
+      "filename": "方材角接合 - 揣踹榫-1-02.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合 - 揣踹榫-1-02.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "揣踹榫"
+    },
+    {
+      "filename": "方材角接合 - 揣踹榫-2-03.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合 - 揣踹榫-2-03.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "揣踹榫"
+    },
+    {
+      "filename": "方材角接合 - 揣踹榫-2-03.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合 - 揣踹榫-2-03.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "揣踹榫"
+    },
+    {
+      "filename": "方材角接合-走馬銷榫-01.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合-走馬銷榫-01.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "走馬銷"
+    },
+    {
+      "filename": "方材角接合-走馬銷榫-01.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方材角接合-走馬銷榫-01.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "走馬銷"
+    },
+    {
+      "filename": "方角材接合 - 插肩榫-08.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方角材接合 - 插肩榫-08.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "插肩榫"
+    },
+    {
+      "filename": "方角材接合 - 插肩榫-08.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/方角材接合 - 插肩榫-08.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "插肩榫"
+    },
+    {
+      "filename": "有束腰帶托泥圈椅座面與腳足接合-15.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/有束腰帶托泥圈椅座面與腳足接合-15.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "有束腰帶托泥圈椅"
+    },
+    {
+      "filename": "有束腰帶托泥圈椅座面與腳足接合-15.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/有束腰帶托泥圈椅座面與腳足接合-15.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "有束腰帶托泥圈椅"
+    },
+    {
+      "filename": "霸王棖接合-12.jpg",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/霸王棖接合-12.jpg",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "霸王棖"
+    },
+    {
+      "filename": "霸王棖接合-12.pdf",
+      "relativePath": "榫卯圖庫/中式傳統榫卯-黃俊傑繪拷貝/圖號整理後/霸王棖接合-12.pdf",
+      "category": "cad",
+      "subcategory": "中式傳統榫卯-CAD",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 1,
+      "layoutHints": [
+        "三視圖",
+        "等角圖",
+        "虛線隱線"
+      ],
+      "complexNote": "霸王棖"
+    },
+    {
+      "filename": "L形榫三向轉角接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/L形榫三向轉角接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三角塊轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/三角塊轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "不同方式的三向接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/不同方式的三向接.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半搭方榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/半搭方榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半搭方榫三向轉角接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/半搭方榫三向轉角接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單方榫三向轉角接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/單方榫三向轉角接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單方榫三向轉角接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/單方榫三向轉角接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單添榫三向轉角接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/單添榫三向轉角接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單添榫三向轉角接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/單添榫三向轉角接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單鳩尾三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/單鳩尾三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽方榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/嵌槽方榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "撐件三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/撐件三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "短榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/短榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "等缺方榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/等缺方榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "角塊三向轉角接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/角塊三向轉角接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷扣方榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/銷扣方榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙方榫三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/雙方榫三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙方榫三向轉角接合之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/雙方榫三向轉角接合之三.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙方榫三向轉角接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/三向轉角接合/雙方榫三向轉角接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "三向轉角接合",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "一字手把.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/一字手把.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "不同設計的滑槽門鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/不同設計的滑槽門鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "中間滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/中間滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "使用導引螺以固定於磚牆上之方法.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/使用導引螺以固定於磚牆上之方法.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "全蓋側板隱形活頁.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/全蓋側板隱形活頁.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "匙孔飾物或匙孔板.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/匙孔飾物或匙孔板.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "匣式鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/匣式鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "十字頭木螺釘.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/十字頭木螺釘.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半蓋側板隱形活頁.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/半蓋側板隱形活頁.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "各種常用的撐條.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/各種常用的撐條.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "各種釘圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/各種釘圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "各種釘頭與釘尖之型式.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/各種釘頭與釘尖之型式.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "四種不同型式的拉扣.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/四種不同型式的拉扣.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "圓柱形把手.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/圓柱形把手.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "多斗櫥櫃的連鎖裝製.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/多斗櫥櫃的連鎖裝製.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "大抽屜.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/大抽屜.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "大門滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/大門滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "實心頭腹節螺栓.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/實心頭腹節螺栓.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "導引蓋板.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/導引蓋板.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "常用的鉸鏈之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/常用的鉸鏈之一.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "常用的鉸鏈之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/常用的鉸鏈之二.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "底板滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/底板滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "底邊滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/底邊滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "彈璜頭腹節螺栓.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/彈璜頭腹節螺栓.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "彎角插銷活頁及結構圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/彎角插銷活頁及結構圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "愛克姆柱塞.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/愛克姆柱塞.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "折疊檯鎖與玻璃門鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/折疊檯鎖與玻璃門鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "插入式鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/插入式鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "插銷活頁及結構圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/插銷活頁及結構圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "普通式用定之尺寸及大小圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/普通式用定之尺寸及大小圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木螺釘之長度與規號圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/木螺釘之長度與規號圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木螺釘的一般型式.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/木螺釘的一般型式.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木製手把.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/木製手把.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "櫃門插銷.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/櫃門插銷.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "櫥櫃厚門用滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/櫥櫃厚門用滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "櫥櫃薄門用滑軌.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/櫥櫃薄門用滑軌.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "異形鉸鏈之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/異形鉸鏈之一.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "異形鉸鏈之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/異形鉸鏈之二.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "組合家具的係接件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/組合家具的係接件.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "組合櫃的嵌接配件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/組合櫃的嵌接配件.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "羅氏柱塞之安裝方法.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/羅氏柱塞之安裝方法.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "莫里安全螺栓.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/莫里安全螺栓.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "莫里嵌入螺栓.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/莫里嵌入螺栓.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "蝴蝶活頁及結構圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/蝴蝶活頁及結構圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "螺釘形號.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/螺釘形號.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "裂口活頁及結構圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/裂口活頁及結構圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "裝配吊桿的習平式門.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/裝配吊桿的習平式門.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "軸式鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/軸式鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "軸鉸鏈示意.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/軸鉸鏈示意.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "重力式吊桿.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/重力式吊桿.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鐵片固定配件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/鐵片固定配件.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鑲入式鎖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/鑲入式鎖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "門扣書架配件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/門扣書架配件.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "門鎖與抽屜鎖之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/門鎖與抽屜鎖之一.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "門鎖與抽屜鎖之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/門鎖與抽屜鎖之二.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "阿奴巴活頁及結構圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/阿奴巴活頁及結構圖.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雪佛隆配件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/雪佛隆配件.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "露出側板隱形活頁.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/露出側板隱形活頁.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "飾邊條之種類.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/飾邊條之種類.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "飾邊條之種類二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/五金配件接合/飾邊條之種類二.jpg",
+      "category": "sketch",
+      "subcategory": "五金配件接合",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三分之一接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/三分之一接.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "櫥窗的構架接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/櫥窗的構架接合.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "櫥窗的構架接合1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/櫥窗的構架接合1.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/銷接.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷接1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/銷接1.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷接2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/銷接2.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷接和鉸接件.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/銷接和鉸接件.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "銷接和鉸接件1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/其他接合設計/銷接和鉸接件1.jpg",
+      "category": "sketch",
+      "subcategory": "其他接合設計",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "合釘邊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/合釘邊接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "合釘邊接合1jpg.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/合釘邊接合1jpg.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "契片柳筍接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/契片柳筍接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/嵌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "抽屜板之舌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/抽屜板之舌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方全接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/方全接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "槽口搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/槽口搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直邊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/直邊接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直邊配合契片接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/直邊配合契片接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直邊配合鳩尾榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/直邊配合鳩尾榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/舌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鬆舌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/拼板接合/鬆舌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "拼板接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三向木釘接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/三向木釘接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "五金轉角塊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/五金轉角塊接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半切榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/半切榫接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半搭或丁形搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/半搭或丁形搭接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半鳩尾橫槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/半鳩尾橫槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "四角塊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/四角塊接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌接頭.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌接頭.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌槽接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌槽斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽邊接二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/嵌槽邊接二.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "平邊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/平邊接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "平面對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/平面對接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "平面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/平面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復合斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/復合斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "指形接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/指形接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜度口扣接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/斜度口扣接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘平面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/木釘平面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/木釘邊接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘邊面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/木釘邊面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "栓槽平面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/栓槽平面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "栓槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/栓槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "栓槽邊面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/栓槽邊面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/框架接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "楔片平面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/楔片平面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "楔面平面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/楔面平面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/橫搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "端搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/端搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "端搭斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/端搭斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "端面對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/端面對接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "簡單榫頭與榫洞接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/簡單榫頭與榫洞接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "簡易槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/簡易槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "縱槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/縱槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "背板嵌槽.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/背板嵌槽.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "膠塊接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/膠塊接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "轉角塊.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/轉角塊.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "邊搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/邊搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "邊面對頭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/邊面對頭接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "邊面斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/邊面斜接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "開口榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/開口榫.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/隱榫接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱橫槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/隱橫槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/鳩尾搭接.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾橫槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/鳩尾橫槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾止搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/接合種類/鳩尾止搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "接合種類",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "T字搭接附木釘.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/T字搭接附木釘.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫對接木釘加強.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/三缺榫對接木釘加強.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘三向轉角接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘三向轉角接合.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘對接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘對接2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘對接2.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘接合.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘斜接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘橫槽斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘橫槽斜接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘端接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘端接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "木釘邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/木釘邊接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止木釘對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/止木釘對接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/貫穿方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿木釘對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/木釘接合/貫穿木釘對接.jpg",
+      "category": "sketch",
+      "subcategory": "木釘接合",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "平搭對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/平搭對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方栓對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/方栓對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方栓對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/方栓對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/橫槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫槽對接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/橫槽對接之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫槽對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/橫槽對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止榫尾槽對接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止榫尾槽對接之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止榫尾槽對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止榫尾槽對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之七.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之七.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之三.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之五.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之五.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之六.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之六.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止橫槽對接之四.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止橫槽對接之四.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止羽板對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止羽板對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止鳩尾斜槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止鳩尾斜槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止鳩尾槽之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/止鳩尾槽之三.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "波形扣釘對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/波形扣釘對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "溝槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/溝槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "等缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/等缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽對接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/舌槽對接之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/舌槽對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽嵌槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/舌槽嵌槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "螺釘半槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/螺釘半槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "螺釘對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/螺釘對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿羽板對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/貫穿羽板對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾斜槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/貫穿鳩尾斜槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/貫穿鳩尾榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鞍座嵌槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/鞍座嵌槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/鳩尾榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾槽對接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/鳩尾槽對接之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾槽對接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/對接/鳩尾槽對接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "L形鳩尾扣件斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/L形鳩尾扣件斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "U形釘簡單斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/U形釘簡單斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "對稱舌槽斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/對稱舌槽斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "等缺單邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/等缺單邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "等缺雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/等缺雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾單邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/貫穿鳩尾單邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/貫穿鳩尾榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱鳩尾榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/隱鳩尾榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/鳩尾榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾鍵片斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/斜接/鳩尾鍵片斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三等缺榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/三等缺榫接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "五等缺榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/五等缺榫接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "搭鳩尾榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/搭鳩尾榫接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "搭鳩尾榫接之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/搭鳩尾榫接之三.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "搭鳩尾榫接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/搭鳩尾榫接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜等缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/斜等缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "對接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "短榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/短榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穩鳩尾榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/穩鳩尾榫接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿方榫接合之三.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿方榫接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合之五.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿方榫接合之五.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合之四.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿方榫接合之四.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿鳩尾榫接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿鳩尾榫接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/貫穿鳩尾榫接之二.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙短榫接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/榫接/雙短榫接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/榫接",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "S形舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/S形舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "V斜邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/V斜邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/半槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單V飾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/單V飾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單珠飾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/單珠飾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "對稱舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/對稱舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "底部方栓邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/底部方栓邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復榫加強板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/復榫加強板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復榫斜接板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/復榫斜接板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/復舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復鳩尾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/復鳩尾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜接板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/斜接板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/斜舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜面邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/斜面邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜面長短舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/斜面長短舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方栓多角斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/方栓多角斜接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方榫邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/方榫邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "暗槽螺釘邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/暗槽螺釘邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "screw",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "曲狀舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/曲狀舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止方栓邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/止方栓邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "波形舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/波形舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直槽加強板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/直槽加強板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "簡單邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/簡單邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽斜接板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/舌槽斜接板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/舌槽板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方栓邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/貫穿方栓邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "長短舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/長短舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱釘邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/隱釘邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙V飾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/雙V飾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙珠飾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/雙珠飾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙鳩尾栓木邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/雙鳩尾栓木邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾嵌槽加強板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/鳩尾嵌槽加強板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾槽加強板條邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/鳩尾槽加強板條邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾舌槽邊接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板材接合/邊接/鳩尾舌槽邊接.jpg",
+      "category": "sketch",
+      "subcategory": "板材接合/邊接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "邊接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構1.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構10.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構10.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構11.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構11.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構12.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構12.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構13.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構13.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構2.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構3.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構3.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構4.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構4.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構5.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構5.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構6.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構6.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構7.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構7.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構8.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構8.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "板類結構9.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/板類結構圖/板類結構9.jpg",
+      "category": "sketch",
+      "subcategory": "板類結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構1.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構2.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構3.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構3.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構4.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構4.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構5.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構5.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構6.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構6.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構7.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構7.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "框架結構8.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/框架結構圖/框架結構8.jpg",
+      "category": "sketch",
+      "subcategory": "框架結構圖",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/半接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/嵌接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/嵌槽.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/嵌槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜接配件插銷.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜接配件插銷.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "dowel",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜榫接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜角鳩尾接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜角鳩尾接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜面不規則榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜面不規則榫接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜面半接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜面半接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜面榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/斜面榫接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "暗柳筍.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/暗柳筍.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "柳筍配合舌槽接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/柳筍配合舌槽接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "柳筍配合被斜接的橫木框.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/柳筍配合被斜接的橫木框.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫向搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/橫向搭接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "橫向搭接二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/橫向搭接二.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "特殊鳩尾接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/特殊鳩尾接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "疏柳筍接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/疏柳筍接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "疏柳筍與斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/疏柳筍與斜接.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "通孔柳和槽筍.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/通孔柳和槽筍.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "通孔柳筍.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/通孔柳筍.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "通孔柳筍接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/通孔柳筍接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "通孔柳筍接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/通孔柳筍接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙柳筍.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/雙柳筍.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙鳩尾接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/雙鳩尾接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾不規則接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/榫接/鳩尾不規則接合.jpg",
+      "category": "sketch",
+      "subcategory": "榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體1.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體1.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體2.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體3.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體3.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體4.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體4.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體5.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體5.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體6.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體6.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體7.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體7.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體8.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體8.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "穀體9.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/穀體結構/穀體9.jpg",
+      "category": "sketch",
+      "subcategory": "穀體結構",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/三缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫對接復U形接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/三缺榫對接復U形接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫對接附V形接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/三缺榫對接附V形接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "五缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/五缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "側貼三缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/側貼三缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半搭對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/半搭對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單添榫雙榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/單添榫雙榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔隱單添雙榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/帶楔隱單添雙榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復栓單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/復栓單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/止單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止方榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/止方榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止隱單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/止隱單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "短榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/短榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "stub-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "端隱三缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/端隱三缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/貫穿單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/貫穿方榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿隱單添榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/貫穿隱單添榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "逆斜單添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/逆斜單添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鉤形搭對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/鉤形搭對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙添榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/雙添榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾三缺榫對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/鳩尾三缺榫對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾槽對接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/對接/鳩尾槽對接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/對接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "對接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "T字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/T字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "V字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/V字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "交叉端搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/交叉端搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "十字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/十字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "圓柱雙搭端接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/圓柱雙搭端接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔T字搭接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/帶楔T字搭接之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔T字搭接之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/帶楔T字搭接之三.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔T字搭接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/帶楔T字搭接之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔嵌搭端接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/帶楔嵌搭端接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔斜錐搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/帶楔斜錐搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "復斜錐搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/復斜錐搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "承口搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/承口搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜T字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/斜T字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜十字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/斜十字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜鳩尾搭接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/斜鳩尾搭接之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜鳩尾搭接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/斜鳩尾搭接之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止T字搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/止T字搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止鳩尾搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/止鳩尾搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "短榫端搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/短榫端搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鉤形搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鉤形搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾半槽搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾半槽搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾嵌槽端搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾嵌槽端搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾搭接之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾搭接之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾搭接之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾搭接之三.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾搭接之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾搭接之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾端搭接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/搭接/鳩尾端搭接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/搭接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": "half-lap",
+      "priority": 2,
+      "layoutHints": [
+        "搭接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫單邊協斜邊2.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/三缺榫單邊協斜邊2.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫單邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/三缺榫單邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三缺榫雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/三缺榫雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三角鍵片斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/三角鍵片斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "五缺榫雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/五缺榫雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "半搭單邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/半搭單邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單曲肩三缺榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/單曲肩三缺榫.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "單添榫雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/單添榫雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "四缺榫雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/四缺榫雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌板斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/嵌板斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/嵌槽斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方形鍵片斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/方形鍵片斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "榫中榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/榫中榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "簡單斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/簡單斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "角板斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/角板斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "角牽板斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/角牽板斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿榫單邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/貫穿榫單邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/貫穿榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱斜方榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/隱斜方榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "隱斜逆鳩尾斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/隱斜逆鳩尾斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙鳩尾鍵片斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/雙鳩尾鍵片斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾三缺雙邊斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/鳩尾三缺雙邊斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾槽塊方榫斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/鳩尾槽塊方榫斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾錐板斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/鳩尾錐板斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鳩尾鍵片斜接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/斜接/鳩尾鍵片斜接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/斜接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "斜接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "T字三缺榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/T字三缺榫.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "T字三缺榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/T字三缺榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "V字半槽搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/V字半槽搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "V形承口搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/V形承口搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "V形方榫搭接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/V形方榫搭接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "half-lap",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "搭接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三重榫接.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/三重榫接.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "切槽接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/切槽接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/嵌槽接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "嵌槽接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/嵌槽接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "tongue-and-groove",
+      "joineryTypeAlt": "mitered-spline",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔止方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔止方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔貫穿方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔貫穿方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔貫穿方榫接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔貫穿方榫接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔貫穿方榫接合之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔貫穿方榫接合之三.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔貫穿方榫接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔貫穿方榫接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "shouldered-tenon",
+      "joineryTypeAlt": "blind-tenon",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "帶楔貫穿鳩尾榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/帶楔貫穿鳩尾榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "dovetail",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜T字三缺榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜T字三缺榫.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜缺三缺榫之三.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜缺三缺榫之三.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之七.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之七.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之五.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之五.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之六.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之六.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "斜錐三缺榫之四.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/斜錐三缺榫之四.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "方榫十字接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/方榫十字接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "會合方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/會合方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止T字三缺榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止T字三缺榫.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止T字方栓接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止T字方栓接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "mitered-spline",
+      "joineryTypeAlt": "tongue-and-groove",
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止斜角三缺榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止斜角三缺榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止方榫接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止方榫接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "止露面方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/止露面方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直插止圓榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/直插止圓榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直插止方榫接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/直插止方榫接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "直插止方榫接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/直插止方榫接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "籬笆接合之一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/籬笆接合之一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "籬笆接合之二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/籬笆接合之二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿斜角三缺榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/貫穿斜角三缺榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/貫穿方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿雙方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/貫穿雙方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "貫穿露面方榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/貫穿露面方榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "through-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "階梯三缺榫.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/階梯三缺榫.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "階梯接合一.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/階梯接合一.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "階梯接合二.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/階梯接合二.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雙斜錐三缺榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/雙斜錐三缺榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "finger-joint",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "斜接",
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "齒榫接合.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/角材接合/榫接/齒榫接合.jpg",
+      "category": "sketch",
+      "subcategory": "角材接合/榫接",
+      "joineryType": "blind-tenon",
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "榫接"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三角櫥設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/三角櫥設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三角櫥設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/三角櫥設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "三角櫥設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/三角櫥設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "大書櫥設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/大書櫥設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "大書櫥設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/大書櫥設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "大書櫥設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/大書櫥設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書架設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書架設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書架設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書架設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書桌設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書桌設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書桌設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書桌設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書桌設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書桌設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書櫥設計圖 結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書櫥設計圖 結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書櫥設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書櫥設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "書櫥設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/書櫥設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "梳裝台設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/梳裝台設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "梳裝台設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/梳裝台設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "梳裝台設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/梳裝台設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "沙發設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/沙發設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "沙發設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/沙發設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "沙發設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/沙發設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "茶几設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/茶几設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "茶几設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/茶几設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "衣櫥設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/衣櫥設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "衣櫥設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/衣櫥設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "衣櫥設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/衣櫥設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "辦公桌設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/辦公桌設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "辦公桌設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/辦公桌設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "辦公桌設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/辦公桌設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "酒櫃設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/酒櫃設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "酒櫃設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/酒櫃設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "酒櫃設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/酒櫃設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雜誌設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/雜誌設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "雜誌設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/雜誌設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鞋櫥設計圖.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/鞋櫥設計圖.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鞋櫥設計圖三視.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/鞋櫥設計圖三視.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "鞋櫥設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/鞋櫥設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "餐椅設計圖材料.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/餐椅設計圖材料.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    },
+    {
+      "filename": "餐椅設計圖結構.jpg",
+      "relativePath": "榫卯圖庫/家具結構圖樣/開材料單圖樣/餐椅設計圖結構.jpg",
+      "category": "sketch",
+      "subcategory": "開材料單圖樣",
+      "joineryType": null,
+      "joineryTypeAlt": null,
+      "priority": 2,
+      "layoutHints": [
+        "等角圖"
+      ],
+      "complexNote": null
+    }
+  ],
+  "summary": {
+    "total": 498,
+    "byCategory": {
+      "cad": 34,
+      "sketch": 464
+    },
+    "byJoineryType": {
+      "through-tenon": 18,
+      "blind-tenon": 48,
+      "shouldered-tenon": 7,
+      "stub-joint": 17,
+      "half-lap": 35,
+      "dovetail": 52,
+      "finger-joint": 29,
+      "tongue-and-groove": 66,
+      "dowel": 23,
+      "mitered-spline": 14,
+      "pocket-hole": 0,
+      "screw": 56
+    },
+    "complexJoinery": [
+      "包邊榫",
+      "圓包圓榫",
+      "圓形圍板與腳足",
+      "圓角櫃結構",
+      "夾頭燕尾榫",
+      "抱肩榫",
+      "插肩榫",
+      "揣踹榫",
+      "有束腰帶托泥圈椅",
+      "烟袋鍋榫",
+      "走馬銷",
+      "霸王棖"
+    ]
+  }
+}
