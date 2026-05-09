@@ -70,9 +70,11 @@ function tintHex(baseHex: string, tintHex: string, amount: number): string {
 
 // 抽屜 / 門（夾板貼皮 / 鑲板 / 玻璃）統一暖橘色微染——
 // 跟櫃體結構區隔，一眼看出哪些零件是可動面板。
-const DRAWER_TINT = "#ff9a3d";
-const DOOR_TINT = "#ff9a3d";
-const TINT_AMOUNT = 0.32;
+// 抽屜：暖橙褐（略偏黃）；門：冷灰褐（略偏灰）。兩者都在木色系內，
+// 色差柔和不撞色但能分辨。
+const DRAWER_TINT = "#c89060";
+const DOOR_TINT = "#9b8068";
+const TINT_AMOUNT = 0.18;
 
 /**
  * 配對二元淺/深著色：
