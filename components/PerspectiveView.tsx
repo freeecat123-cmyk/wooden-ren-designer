@@ -2141,17 +2141,6 @@ export function PerspectiveView({
                   ? Math.min(t.length, bestMort.depth)
                   : t.length;
 
-                // Cross-axis 修正：start/end tenon 在 Z 軸轉 90° 的 part 上（如側板），
-                // 世界軸別跟母件 mortise 互換—tenon 的 width / thickness 對應的世界軸
-                // 跟非旋轉部件相反。渲染時對 W/T 互換填 mesh dim，讓 tenon 視覺貼合母件
-                // CSG 切口（不改 template 資料 / audit 邏輯）。
-                const isZRot90 =
-                  Math.abs(rzP - Math.PI / 2) < 0.01 &&
-                  Math.abs(rxP) < 0.01 &&
-                  Math.abs(ryP) < 0.01;
-                const Wm = isZRot90 ? T : W;
-                const Tm = isZRot90 ? W : T;
-
                 let lcx = 0, lcy = 0, lcz = 0;
                 let hx = 0, hy = 0, hz = 0;
                 // explode：tenon 沿 outward axis 多偏 explodeMm，視覺像榫頭從
@@ -2160,12 +2149,12 @@ export function PerspectiveView({
                 switch (t.position) {
                   case "start":
                     lcx = -lx / 2 - effLen / 2; lcy = oT; lcz = oW;
-                    hx = effLen / 2; hy = Tm / 2; hz = Wm / 2;
+                    hx = effLen / 2; hy = T / 2; hz = W / 2;
                     ex = -explodeMm;
                     break;
                   case "end":
                     lcx = lx / 2 + effLen / 2; lcy = oT; lcz = oW;
-                    hx = effLen / 2; hy = Tm / 2; hz = Wm / 2;
+                    hx = effLen / 2; hy = T / 2; hz = W / 2;
                     ex = explodeMm;
                     break;
                   case "top":
