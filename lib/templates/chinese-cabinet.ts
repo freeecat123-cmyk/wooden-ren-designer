@@ -91,18 +91,19 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { value: "round-cabinet", label: "圓角櫃（明式四大櫃形，側腳+噴面+木軸）" },
     { value: "wanli-cabinet", label: "万歷櫃（上敞下櫃 + 直櫺欄，書房經典）" },
   ], help: "選擇預設可一鍵套用層配置 + 形制 + 比例風格。會蓋過下方對應設定，但保留尺寸 / 細部" },
-  // 頂箱櫃 compound mode：上下兩段堆疊（明清四件櫃 / 頂豎櫃）
+  // 頂箱櫃 compound mode：UI 隱藏（用 dependsOn 永不滿足），改由 cabinetPreset
+  // 「頂箱櫃」自動觸發，避免兩處選項重複。internal 仍可用、URL ?compoundMode=topBox 也能用
   { group: "form", type: "select", key: "compoundMode", label: "形制", defaultValue: "single", choices: [
     { value: "single", label: "單段櫃（標準方角櫃）" },
     { value: "topBox", label: "頂箱櫃（上小下大兩段堆疊）" },
-  ], help: "頂箱櫃 = 明清主臥/廳堂主角，下櫃 + 上頂箱兩段，分件運輸。預設 = 單段" },
+  ], dependsOn: { key: "__hidden__", equals: true } },
   { group: "form", type: "number", key: "topBoxRatio", label: "頂箱佔總高比例", defaultValue: 0.3, min: 0.2, max: 0.45, step: 0.05, help: "頂箱高度佔總高的比例（0.25 偏低典雅、0.4 接近對半）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
   { group: "form", type: "number", key: "topBoxLayers", label: "頂箱層數", defaultValue: 1, min: 1, max: 2, step: 1, help: "頂箱內部層數（1=純對開門、2=門+小抽屜）", dependsOn: { key: "compoundMode", oneOf: ["topBox"] } },
-  // 圓角櫃形制：上窄下寬側腳 + 噴面 + 木軸門（明式四大櫃形之一）
+  // 圓角櫃形制：UI 隱藏，改由 cabinetPreset「圓角櫃」自動觸發
   { group: "form", type: "select", key: "cabinetCorner", label: "櫃角形制", defaultValue: "square", choices: [
     { value: "square", label: "方角櫃（直立柱、銅合頁、直角）" },
     { value: "round", label: "圓角櫃（側腳上窄下寬、噴面、木軸門）" },
-  ], help: "圓角櫃 = 明式四大櫃形之一，靠側腳（splay）+ 噴面（cap overhang）+ 木軸（無金屬合頁）三件套，比方角更早期文人雅" },
+  ], dependsOn: { key: "__hidden__", equals: true } },
   { group: "form", type: "number", key: "splayAngle", label: "側腳角度 (°)", defaultValue: 1.0, min: 0.3, max: 3.0, step: 0.1, unit: "°", help: "立柱從上往下外傾的角度。frame（門/側板/背板）已套 tapered shape 同步斜不留縫。0.5° 微噴 / 1° 標準 / 2° 明顯 / 3° 極限。", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   { group: "form", type: "number", key: "capOverhangExtra", label: "噴面額外外伸 (mm)", defaultValue: 15, min: 0, max: 40, step: 5, unit: "mm", help: "圓角櫃頂蓋比方角櫃多伸的部分（疊加在 topOverhang 上）", dependsOn: { key: "cabinetCorner", oneOf: ["round"] } },
   // 比例風格（一鍵切換明清整體比例）
