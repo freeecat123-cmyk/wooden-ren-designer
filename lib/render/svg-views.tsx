@@ -530,8 +530,18 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
 
   // 通孔（through）depth = 母件厚（沿 depth 軸的全長）
   // 深度軸 = 最靠近表面的軸
+  //
+  // Bug 修：origin.y=0 是 from-bottom 慣例的「便利預設值」，不該被當作真的
+  // Y face 入榫。當 origin.y 在 canonical 值（0 或 ly）+ X 或 Z 軸有 origin
+  // 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—template 真正想表
+  // 達的入榫方向。例：頂板側板榫眼 origin=(±halfL-9, 0, 0)，xToFace=9 才是
+  // 真正入榫面，不該因為 yToFace=0 而誤判 depthAxis="y" → CSG 切到頂板底面
+  // 整條 6×11×392mm 凹槽。
+  const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
   let depthAxis: "x" | "y" | "z";
-  if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
+  if (yIsCanonical && (xToFace <= ly / 2 || zToFace <= ly / 2)) {
+    depthAxis = xToFace <= zToFace ? "x" : "z";
+  } else if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
   else if (xToFace <= zToFace) depthAxis = "x";
   else depthAxis = "z";
 
