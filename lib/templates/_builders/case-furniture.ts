@@ -567,9 +567,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         },
       ],
       // 內側面挖層板/抽屜分隔板的榫眼（簡化為一個示意榫眼）
+      // side-aware origin.y：side panel rotation z=π/2 讓 mesh +Y → world -X
+      // 所以 LEFT 用 origin.y=0 (mesh -Y face → world +X = 內側) /
+      // RIGHT 用 origin.y=panelT (mesh +Y face → world -X = 內側)。兩邊
+      // mortise CSG 都切在 INNER face（朝櫃中心）= shelf tongue 真實入榫面。
+      // origin.x 用 fractional position 沿 length (innerH) 軸排
       mortises: [
         ...shelfFractions.map((f) => ({
-          origin: { x: 0, y: f * innerH, z: 0 },
+          origin: {
+            x: f * innerH - innerH / 2,
+            y: side < 0 ? 0 : panelT,
+            z: 0,
+          },
           depth: tenonLen,
           length: innerD - 10,
           width: shelfTongueT,
