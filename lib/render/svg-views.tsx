@@ -549,16 +549,17 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const longDim = Math.max(Lm, Wm);
   const shortDim = Math.min(Lm, Wm);
 
+  // perpendicular 軸 shrink 1mm，讓 CSG cut 不貼齊 part 邊界，
+  // 角隅留 1mm 木料避免 z-fighting + 補不到的洞
+  const PERP_SHRINK = 1;
   if (depthAxis === "y") {
     const enterTop = m.origin.y > ly / 2;
     const cyL = m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
-    // 比 X / Z 軸對 origin 的「最近 face 距離」決定誰放 longDim
     const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
-    // 較大 face 距離 = 較居中 → 放 longDim；較小 = 較窄 → 放 shortDim
     const longOnZ = zFace > xFace;
-    const useX = longOnZ ? shortDim : longDim;
-    const useZ = longOnZ ? longDim : shortDim;
+    const useX = Math.max(0.1, (longOnZ ? shortDim : longDim) - PERP_SHRINK * 2);
+    const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
     return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2 };
@@ -568,8 +569,8 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
     const longOnZ = zFace > yFace;
-    const useY = longOnZ ? shortDim : longDim;
-    const useZ = longOnZ ? longDim : shortDim;
+    const useY = Math.max(0.1, (longOnZ ? shortDim : longDim) - PERP_SHRINK * 2);
+    const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
     return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2 };
