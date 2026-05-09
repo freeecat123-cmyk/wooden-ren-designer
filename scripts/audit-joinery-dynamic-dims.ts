@@ -21,6 +21,33 @@ const ALLOWED_LITERALS = new Set<string>([
   "0", "—", "·", "↕", "⇕",
 ]);
 
+// 教學文字白名單（含中文+數字的說明性文字，非真正尺寸標註）
+// 這些 pattern 出現代表是教學註解（角度/比例/常用值/警示），放行
+const EDUCATIONAL_PATTERNS: RegExp[] = [
+  /ISO/i,                       // ISO 30° 等角圖
+  /等角/,                        // 等角圖（30° 軸測）
+  /軸測/,                        // 軸測投影
+  /建議/,                        // mm（建議 = 板厚 1/3）
+  /常用/,                        // 指厚常用 = 板厚 1/2
+  /標準/,                        // 標準角度：硬木 1:8
+  /漲縮/,                        // 1mm 漲縮餘量
+  /餘量/,                        // 餘量說明
+  /[×x]\s*\d+/,                 // × 2、x2、×1.5
+  /\d+\s*[×x]\s*\d+/,           // 徑×1.5
+  /1\s*[:：]\s*[68]/,           // 硬木 1:8、軟木 1:6
+  /1\s*[:：]\s*[12]/,           // 比例 1:1 / 1:2
+  /[1-9]\/[2-9]/,                // 1/2、1/3、2/3 分數
+  /\d+\.?\d*\s*[°]/,            // 角度（30°、7.1°、9.5°）
+  /R\s*\d+(\.\d+)?/,            // R0.5、R1 倒角
+  /≈/,                          // 約等於符號
+  /[±]\s*\d/,                   // ±0.3
+  /<\s*\d/,                     // < 0.3mm
+  /≤\s*\d/,                     // ≤ 0.5
+  /誤差/,                        // 位置誤差
+  /鎖死/,                        // 楔片鎖死
+  /分解/,                        // 等角圖（ISO，分解）
+];
+
 const ALLOWED_LINE_REGEX = /\/\/\s*@joinery-dim-allow/;
 
 interface Violation {
@@ -36,6 +63,10 @@ function isHardcodedDimLabel(value: string): boolean {
   if (!/[0-9]/.test(value)) return false;
   // Explicit allowlist (e.g. "1:2", "45°")
   if (ALLOWED_LITERALS.has(value.trim())) return false;
+  // 教學註解文字（含中文+教學關鍵字 pattern）→ 放行
+  for (const re of EDUCATIONAL_PATTERNS) {
+    if (re.test(value)) return false;
+  }
   // Otherwise: contains digits and not whitelisted → treat as hardcoded mm
   return true;
 }

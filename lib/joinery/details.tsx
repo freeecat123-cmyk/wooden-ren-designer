@@ -538,6 +538,9 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
 
       {/* 母件水平板（剖開到柱中軸，故板內中段見到榫頭） */}
       <rect x={fMx} y={fMy} width={fMw} height={fMh} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+      {/* 母件兩側剖面：紅斜線 hatching（剖到木頭實體部分） */}
+      <rect x={fMx} y={fMy} width={fTenonX - fMx} height={fMh} fill="url(#hatch-through-new)" stroke="none" />
+      <rect x={fTenonX + fTenonW} y={fMy} width={fMx + fMw - (fTenonX + fTenonW)} height={fMh} fill="url(#hatch-through-new)" stroke="none" />
       {/* 母件孔的兩條垂直邊（front view 見的是孔的寬 = tw） */}
       <line x1={fTenonX} y1={fMy} x2={fTenonX} y2={fMy + fMh} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
       <line x1={fTenonX + fTenonW} y1={fMy} x2={fTenonX + fTenonW} y2={fMy + fMh} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -1816,6 +1819,15 @@ function HalfLapDetail(p: JoineryDetailParams) {
         stroke={COLOR.OUTLINE}
         strokeWidth={STROKE.OUTLINE}
       />
+      {/* A 件未削區段剖面：紅斜線 hatching */}
+      <rect
+        x={frontA_x}
+        y={frontA_y}
+        width={lapStartX - frontA_x}
+        height={PX(mt)}
+        fill="url(#hatch-halflap)"
+        stroke="none"
+      />
       {/* B 件（同位置疊上：填上半搭區、實邊框＋外凸尾）*/}
       <rect
         x={lapStartX}
@@ -1942,13 +1954,13 @@ function HalfLapDetail(p: JoineryDetailParams) {
               );
             })()}
             <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件</text>
-            {/* B 件俯視 */}
-            <rect x={bx} y={by} width={bWide} height={Math.max(PX(tl) * 4, 120)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* B 件俯視 — 高度 clamp 防止超出 quadrant */}
+            <rect x={bx} y={by} width={bWide} height={Math.min(QH - by - 50, Math.max(PX(tl) * 4, 120))} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
             <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件</text>
             {/* 中心線 */}
             <CenterLine x1={ax - 10} y1={ay + aWide / 2} x2={ax + aLen + 10} y2={ay + aWide / 2} />
             {/* 尺寸：A 件總長 */}
-            <DimLine x1={ax} y1={ay - 18} x2={ax + aLen} y2={ay - 18} label={`A 長`} side="top" />
+            <DimLine x1={ax} y1={ay - 18} x2={ax + aLen} y2={ay - 18} label={`A 長 ${cw}`} side="top" />
           </>
         );
       })()}
@@ -2008,6 +2020,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
             joineryType="half-lap"
             joineryNameZh={`半搭榫（${lapFormZh}）`}
             scale="1:1"
+            drawingNumber={`HL-${ct}-${cw}-${mt}`}
           />
         }
       />
@@ -2263,6 +2276,10 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
           <>
             {/* 母件本體 */}
             <rect x={motherX} y={motherY} width={pieceLen} height={PX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 母件剖面：紅斜線 hatching（去除凹槽範圍） */}
+            <rect x={motherX} y={motherY} width={pieceLen - PX(grooveDepth)} height={PX(mt)} fill="url(#hatch-tg-new)" stroke="none" />
+            <rect x={motherX} y={motherY} width={pieceLen} height={Math.max(0, grooveY - motherY)} fill="url(#hatch-tg-new)" stroke="none" />
+            <rect x={motherX} y={grooveY + PX(tt)} width={pieceLen} height={Math.max(0, motherY + PX(mt) - (grooveY + PX(tt)))} fill="url(#hatch-tg-new)" stroke="none" />
             {/* 凹槽（白） */}
             <rect x={grooveX} y={grooveY} width={PX(grooveDepth)} height={PX(tt)} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
             {/* 公件本體 */}
@@ -2277,11 +2294,11 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
             {/* 剖面標記 A-A */}
             <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
             <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY + PX(mt) + 16} label="A" direction="up" />
-            {/* 尺寸：舌長 / 槽深 / 母厚 / 舌厚 / 舌肩厚 */}
-            <DimLine x1={tongueX} y1={tongueY + PX(tt) + 16} x2={tongueX + PX(tl)} y2={tongueY + PX(tt) + 16} label={`舌長 ${tl}`} side="bottom" />
-            <DimLine x1={grooveX} y1={grooveY - 6} x2={grooveX + PX(grooveDepth)} y2={grooveY - 6} label={`槽深 ${grooveDepth}`} side="top" />
+            {/* 尺寸：舌長 / 槽深 / 母厚 / 舌厚 / 舌肩厚（縱向錯開避免重疊） */}
+            <DimLine x1={tongueX} y1={tongueY + PX(tt) + 28} x2={tongueX + PX(tl)} y2={tongueY + PX(tt) + 28} label={`舌長 ${tl}`} side="bottom" />
+            <DimLine x1={grooveX} y1={grooveY - 18} x2={grooveX + PX(grooveDepth)} y2={grooveY - 18} label={`槽深 ${grooveDepth}`} side="top" />
             <DimLine x1={motherX - 14} y1={motherY} x2={motherX - 14} y2={motherY + PX(mt)} label={`母厚 ${mt}`} side="left" />
-            <DimLine x1={tongueX - 6} y1={tongueY} x2={tongueX - 6} y2={tongueY + PX(tt)} label={`舌厚 ${tt}`} side="left" />
+            <DimLine x1={tongueX - 18} y1={tongueY} x2={tongueX - 18} y2={tongueY + PX(tt)} label={`舌厚 ${tt}`} side="left" />
             {shoulderThickness > 0 && (
               <DimLine x1={childX + pieceLen + 14} y1={childY} x2={childX + pieceLen + 14} y2={childY + PX(shoulderThickness)} label={`舌肩 ${Math.round(shoulderThickness)}`} side="right" />
             )}
@@ -2333,11 +2350,13 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
       </text>
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
       {(() => {
-        const stripLen = QW - 80;
+        const stripLen = QW - 110;
         const stripH = Math.max(PX(mt), 24);
-        const startX = 40;
+        const startX = 60;
         const startY = 50;
         const strips = 3;
+        const totalWidthMm = strips * mt;
+        const boardLenMm = Math.round(stripLen / Math.max(s, 0.001));
         const groovePxLen = PX(grooveDepth);
         return (
           <>
@@ -2362,8 +2381,8 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
             {/* 木紋方向（每片同向） */}
             <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLen - 12)} angle={0} />
             {/* 尺寸：拼接寬 */}
-            <DimLine x1={startX - 14} y1={startY} x2={startX - 14} y2={startY + strips * stripH + (strips - 1) * 4} label={`拼板總寬`} side="left" />
-            <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4 + 14} x2={startX + stripLen} y2={startY + strips * stripH + (strips - 1) * 4 + 14} label={`板長`} side="bottom" />
+            <DimLine x1={startX - 14} y1={startY} x2={startX - 14} y2={startY + strips * stripH + (strips - 1) * 4} label={`拼板總寬 ${totalWidthMm}`} side="left" />
+            <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4 + 14} x2={startX + stripLen} y2={startY + strips * stripH + (strips - 1) * 4 + 14} label={`板長 ${boardLenMm}`} side="bottom" />
           </>
         );
       })()}
@@ -2424,6 +2443,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
             joineryType="tongue-and-groove"
             joineryNameZh="企口榫（舌槽接）"
             scale="1:1"
+            drawingNumber={`TG-${tt}-${tl}-${mt}`}
           />
         }
       />
@@ -3077,6 +3097,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
             joineryType="shouldered-tenon"
             joineryNameZh={noShoulder ? "帶肩榫（fallback：純通榫）" : "帶肩榫（雙肩防扭）"}
             scale="1:1"
+            drawingNumber={`ST-${tw}x${tt}-${cw}`}
           />
         }
       />
@@ -4280,9 +4301,11 @@ function FingerJointDetail(p: JoineryDetailParams) {
     const s = Math.min(sX, sY);
     const PX = (mm: number) => mm * s;
 
-    const aOX = pad;
+    // aOX 預留左側空間給 DimLine 標籤（mt/fingerLen 數字最大時不被截斷）
+    const dimLeftPad = Math.max(28, String(Math.max(mt, fingerLen)).length * 8 + 12);
+    const aOX = pad + dimLeftPad;
     const aOY = pad + 12;
-    const bOX = pad;
+    const bOX = pad + dimLeftPad;
     const bOY = aOY + PX(mt + fingerLen) + 36;
 
     // A 件：肩 + (指、凹)*N + 肩
@@ -4336,6 +4359,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（分解 A / B 兩件）</text>
         {/* A 件 */}
         <polygon points={buildAPoints(aOX, aOY)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -4407,6 +4431,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
     const oY = pad + 14;
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（L 型轉角斷面 A-A）</text>
         <defs>
           <Hatching id="hatch-finger-side" color={COLOR.SECTION_HATCH} />
@@ -4465,6 +4490,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（指齒交錯排列）</text>
         {/* A 件指齒（俯視 = 看到 N 個方齒突出） */}
         <g>
@@ -4584,6 +4610,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           指數 = floor({cw}/{tt}) = {fingerCount}，指長 {fingerLen} mm
@@ -4613,6 +4640,7 @@ function FingerJointDetail(p: JoineryDetailParams) {
             joineryType="finger-joint"
             joineryNameZh="指接（box joint）"
             scale="1:1"
+            drawingNumber={`FJ-${tt}-${cw}-N${fingerCount}`}
           />
         }
       />
@@ -4824,6 +4852,7 @@ function DowelDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（對接 + 木釘剖面）</text>
 
         {/* A 件（左） */}
@@ -4892,6 +4921,7 @@ function DowelDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（端面孔位）</text>
         <defs>
           <Hatching id="hatch-dowel-side" color={COLOR.SECTION_HATCH} />
@@ -4914,15 +4944,15 @@ function DowelDetail(p: JoineryDetailParams) {
           );
         })}
 
-        {/* dim 釘徑 */}
+        {/* dim 釘徑 / 板厚 / 板寬 / 間距（縱向錯開避免重疊） */}
         <DimLine x1={oX + PX(ct) + 8} y1={oY + PX(spacing) - PX(tt) / 2} x2={oX + PX(ct) + 8} y2={oY + PX(spacing) + PX(tt) / 2} label={`Ø ${tt}`} side="right" />
-        <DimLine x1={oX} y1={oY + PX(cw) + 8} x2={oX + PX(ct)} y2={oY + PX(cw) + 8} label={`板厚 ${ct}`} side="bottom" />
-        <DimLine x1={oX - 8} y1={oY} x2={oX - 8} y2={oY + PX(cw)} label={`板寬 ${cw}`} side="left" />
+        <DimLine x1={oX} y1={oY + PX(cw) + 20} x2={oX + PX(ct)} y2={oY + PX(cw) + 20} label={`板厚 ${ct}`} side="bottom" />
+        <DimLine x1={oX - 20} y1={oY} x2={oX - 20} y2={oY + PX(cw)} label={`板寬 ${cw}`} side="left" />
         {dowelCount >= 2 && (
           <DimLine
-            x1={oX + PX(ct) + 28}
+            x1={oX + PX(ct) + 48}
             y1={oY + PX(spacing)}
-            x2={oX + PX(ct) + 28}
+            x2={oX + PX(ct) + 48}
             y2={oY + PX(spacing * 2)}
             label={`間距 ${Math.round(spacing)}`}
             side="right"
@@ -4952,6 +4982,7 @@ function DowelDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（孔位 + 白膠塗佈面）</text>
         {/* A 件俯視 */}
         <rect x={oX} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -5013,6 +5044,7 @@ function DowelDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           {dowelCount} 釘陣列 · Ø {tt} · 釘長 {tl} (= 兩側孔深 {Math.round(drawHd)} ×2)
@@ -5085,6 +5117,7 @@ function DowelDetail(p: JoineryDetailParams) {
             joineryType="dowel"
             joineryNameZh="木釘（dowel joint）"
             scale="1:1"
+            drawingNumber={`DW-Ø${tt}xL${tl}-N${dowelCount}`}
           />
         }
       />
@@ -6665,6 +6698,7 @@ function StubJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>正視圖（母件側面 + 公件分解）</text>
 
         {/* 母件側面 */}
@@ -6782,6 +6816,7 @@ function StubJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>側視圖（剖面 A-A，並排對比「無肩 vs 有肩」）</text>
         {drawDiagram(pad + 6, pad + 38, false, "無肩 stub", "noshoulder")}
         {drawDiagram(pad + 6 + eachW + 20, pad + 38, true, "有肩參考", "withshoulder")}
@@ -6815,6 +6850,7 @@ function StubJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={innerW - 8} height={innerH - 28} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={pad} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>俯視圖（上視切面）</text>
         <defs>
           <Hatching id="hatch-stub-top" color={COLOR.SECTION_HATCH} />
@@ -6892,6 +6928,7 @@ function StubJointDetail(p: JoineryDetailParams) {
 
     return (
       <g>
+        <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
         <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           {isRound ? "圓腳" : "方腳"}：整支端面卡入榫眼，無肩
@@ -6928,6 +6965,7 @@ function StubJointDetail(p: JoineryDetailParams) {
             joineryType="stub-joint"
             joineryNameZh={`整支卡榫（housing joint，${isRound ? "圓腳" : "方腳"}）`}
             scale="1:1"
+            drawingNumber={`SJ-${cw}x${ct}-${mt}${isRound ? "-R" : ""}`}
           />
         }
       />
