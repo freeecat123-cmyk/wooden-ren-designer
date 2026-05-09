@@ -500,30 +500,37 @@ export function DimChain({
   return <g>{dims}</g>;
 }
 
-/** 等角投影 wrapper：30° 預設，套 SVG matrix transform 把子元素投到等角座標。 */
+/**
+ * 等角投影 wrapper（cabinet projection 容器）。
+ *
+ * 重要：本 wrapper 「不再」做 30° 旋轉矩陣（舊版 matrix(c·s, s·s, -c·s, s·s) 兩個基底
+ * y 分量都是正的，導致任何子矩形被映射成水平菱形，毫無 3D 立體感）。
+ *
+ * 新規範：
+ *   - children 自己負責 cabinet projection（手繪 front/top/side 三個面 polygon）
+ *   - wrapper 只做 translate + uniform scale（不旋轉）
+ *   - 約定：children 的 (+x, +y) 是螢幕座標（x 右、y 下），用 (-z) 假設 z 軸往內
+ *     後縮 30° 0.5 倍：dx = +cos30 * 0.5、dy = -sin30 * 0.5
+ *
+ * `rotation` prop 保留為 noop（向後相容、只接受 30/45 但不影響繪製）。
+ */
 export function IsometricGroup({
   children,
   originX,
   originY,
   scale = 1,
-  rotation = 30,
+  rotation: _rotation = 30,
 }: {
   children: ReactNode;
   originX: number;
   originY: number;
   scale?: number;
+  /** 已棄用：children 自己負責 30° cabinet projection */
   rotation?: 30 | 45;
 }): JSX.Element {
-  const rad = (rotation * Math.PI) / 180;
-  const c = Math.cos(rad);
-  const s = Math.sin(rad);
-  // matrix(a b c d e f) 對應 [a c e; b d f]：
-  //   x' = a*x + c*y + e
-  //   y' = b*x + d*y + f
+  void _rotation;
   return (
-    <g
-      transform={`matrix(${c * scale} ${s * scale} ${-c * scale} ${s * scale} ${originX} ${originY})`}
-    >
+    <g transform={`translate(${originX} ${originY}) scale(${scale})`}>
       {children}
     </g>
   );
