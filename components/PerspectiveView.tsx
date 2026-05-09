@@ -1742,7 +1742,7 @@ export function PerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
-  xrayMode = false,
+  xrayMode = "off",
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1754,8 +1754,11 @@ export function PerspectiveView({
   /** 爆炸視圖：joineryMode 下 tenon 沿 position 方向往外偏 explodeMm（mm），
    *  視覺像榫頭從榫眼抽出來。0 = 無偏移（預設），> 0 拆得越開 */
   explodeMm?: number;
-  /** X-ray 透視模式：隱藏門 + 抽屜面板，看得到內部層板 / 後板 / 隔板 */
-  xrayMode?: boolean;
+  /** X-ray 透視：
+   *  - "off"：顯示全部
+   *  - "face"：只藏面板（drawer-face + 全門）→ 看得到抽屜箱體 + 內部層板
+   *  - "full"：藏整個抽屜 + 全門 → 看得到櫃內全空（層板/隔板/後板）*/
+  xrayMode?: "off" | "face" | "full";
 }) {
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
@@ -1951,8 +1954,17 @@ export function PerspectiveView({
         {design.parts.map((part) => {
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
-          // X-ray 模式：跳過門 + 抽屜面板（讓內部層板/隔板/後板可見）
-          if (xrayMode && (category === "drawer" || category === "door")) return null;
+          // X-ray 模式過濾：
+          if (xrayMode !== "off") {
+            // face mode：只藏面板（drawer-face + 整個門 incl. slab/rail/stile/panel/glass）
+            // full mode：藏整個抽屜（face + 箱體 front/back/side/bottom）+ 整個門
+            const isDoor = category === "door" || /-door-\d+-slab$/.test(part.id);
+            const isDrawerFace = /-drawer-\d+-face$/.test(part.id);
+            const isDrawer = category === "drawer";
+            if (isDoor) return null;
+            if (xrayMode === "face" && isDrawerFace) return null;
+            if (xrayMode === "full" && isDrawer) return null;
+          }
           const tintedColor =
             category === "drawer"
               ? tintHex(baseColor, DRAWER_TINT, TINT_AMOUNT)

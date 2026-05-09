@@ -33,7 +33,7 @@ export function LazyPerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
-  xrayMode = false,
+  xrayMode = "off",
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
@@ -41,8 +41,8 @@ export function LazyPerspectiveView({
   auditMode?: boolean;
   /** 爆炸視圖：tenon 外偏 explodeMm，視覺像榫頭抽出（joineryMode 才有意義） */
   explodeMm?: number;
-  /** X-ray 透視：隱藏門 + 抽屜面板看內部 */
-  xrayMode?: boolean;
+  /** X-ray 透視：off / face（藏門+抽屜面板）/ full（藏整個抽屜+門） */
+  xrayMode?: "off" | "face" | "full";
 }) {
   return (
     <PerspectiveViewLazy

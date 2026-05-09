@@ -168,7 +168,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 用，3D PerspectiveView 把 overlap 的 parts 用紅色 wireframe 高亮並
   // console.warn 列表。給開發人員肉眼看 audit 結果用。
   const auditMode = sp.audit === "true" || sp.audit === "1";
-  const xrayMode = sp.xray === "true" || sp.xray === "1";
+  const xrayMode: "off" | "face" | "full" =
+    sp.xray === "full" ? "full" :
+    sp.xray === "face" || sp.xray === "true" || sp.xray === "1" ? "face" :
+    "off";
 
   // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
   // 視覺像榫頭從榫眼抽出。常用 20–40。
