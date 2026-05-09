@@ -515,32 +515,6 @@ function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
  *
  * 限制：對非軸對齊 mortise（例如圓腳上的 mortise）無法處理，等 Phase 4+。
  */
-/**
- * 共用 helper：依 mortise.origin 判 depthAxis (深度軸 = 最近 face) + sign
- * (從哪面入)。給 mortiseLocalBox 跟 PerspectiveView worldMortiseIndex 共用，
- * 避免兩處邏輯分歧 → tenon 配錯母榫的問題。
- */
-export function getMortiseEntry(
-  part: Part,
-  m: Part["mortises"][number],
-): { axis: "x" | "y" | "z"; sign: 1 | -1 } {
-  const lx = part.visible.length;
-  const ly = part.visible.thickness;
-  const lz = part.visible.width;
-  const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
-  const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
-  const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
-  let axis: "x" | "y" | "z";
-  if (yToFace <= xToFace && yToFace <= zToFace) axis = "y";
-  else if (xToFace <= zToFace) axis = "x";
-  else axis = "z";
-  let sign: 1 | -1;
-  if (axis === "y") sign = m.origin.y > ly / 2 ? 1 : -1;
-  else if (axis === "x") sign = m.origin.x >= 0 ? 1 : -1;
-  else sign = m.origin.z >= 0 ? 1 : -1;
-  return { axis, sign };
-}
-
 export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
@@ -550,7 +524,16 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const oyC = m.origin.y - ly / 2;
   const ozC = m.origin.z;
 
-  const { axis: depthAxis } = getMortiseEntry(part, m);
+  const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+  const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
+  const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+
+  // 通孔（through）depth = 母件厚（沿 depth 軸的全長）
+  // 深度軸 = 最靠近表面的軸
+  let depthAxis: "x" | "y" | "z";
+  if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
+  else if (xToFace <= zToFace) depthAxis = "x";
+  else depthAxis = "z";
 
   const D = m.depth;
   const Lm = m.length;
