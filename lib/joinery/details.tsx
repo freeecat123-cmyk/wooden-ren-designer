@@ -12,9 +12,22 @@
 import type { JoineryType } from "@/lib/types";
 import {
   COLOR,
+  STROKE,
+  FONT,
+  DASH,
   DimLine,
   Hatching,
   fitScale,
+  CenterLine,
+  SectionMark,
+  HiddenEdge,
+  GrainArrow,
+  ScaleBar,
+  TitleBlock,
+  DimChain,
+  IsometricGroup,
+  ThreeViewLayout,
+  WarningCallout,
 } from "./draw-primitives";
 
 export interface JoineryDetailParams {
@@ -896,10 +909,11 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   );
 }
 
+/* === BEGIN half-lap-detail (owner: agent-B, group: B) === */
 /* ============================================================
  * 半搭榫 — half-lap (two pieces each cut halfway and lapped)
  * ============================================================ */
-function HalfLapDetail(p: JoineryDetailParams) {
+function LegacyHalfLapDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const mt = p.motherThickness;
   const s = fitScale(Math.max(tl * 4, mt * 4), 160);
@@ -1057,10 +1071,260 @@ function HalfLapDetail(p: JoineryDetailParams) {
   );
 }
 
+/* ----------------------------------------------------------------
+ * 半搭榫 教科書級重繪（三視圖 + 等角圖 + 剖面 + 切刀位）
+ *   形態自動推：cw≈mt ⇒ 十字搭、相差大 ⇒ T 字搭、邊角 ⇒ L 字搭。
+ *   削厚 = ct/2、搭長 = tl，俯視畫切刀位置。
+ * ---------------------------------------------------------------- */
+function HalfLapDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? mt;
+  const cw = p.childWidth ?? mt * 4;
+
+  // 自動推搭接型態
+  const ratio = cw / Math.max(1, mt);
+  const lapForm: "cross" | "tee" | "ell" =
+    ratio < 0.6 ? "ell" : Math.abs(ratio - 1) < 0.35 ? "cross" : "tee";
+  const lapFormZh = lapForm === "cross" ? "十字搭" : lapForm === "tee" ? "T 字搭" : "L 字搭";
+
+  // 削厚（每件削一半）
+  const cutDepthA = mt / 2;       // A 件被削掉的厚度
+  const cutDepthB = ct / 2;       // B 件被削掉的厚度
+
+  // 視圖內部空間（依 ThreeViewLayout：(960-10)/2 = 475 寬，(660-10-50)/2 = 300 高）
+  const QW = 475;
+  const QH = 300;
+
+  // 用一致 scale：取最大 mm，留 padding
+  const maxMm = Math.max(tl * 5, mt * 4, cw + tl * 2);
+  const s = fitScale(maxMm, Math.min(QW, QH) - 80);
+  const PX = (mm: number) => mm * s;
+
+  // ===== 正視圖 (Front)：A 件水平、B 件交疊 =====
+  const frontPieceLen = Math.max(PX(tl) * 4, 200);
+  const frontA_x = (QW - frontPieceLen) / 2;
+  const frontA_y = QH / 2 - PX(mt) / 2;
+  const lapStartX = frontA_x + frontPieceLen - PX(tl); // 搭接區左緣
+  const lapEndX = frontA_x + frontPieceLen;
+  const front = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        正視圖（{lapFormZh}）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {/* A 件本體（被削去上半的搭區） */}
+      <path
+        d={`M${frontA_x} ${frontA_y} L${lapStartX} ${frontA_y} L${lapStartX} ${frontA_y + cutDepthA * s} L${lapEndX} ${frontA_y + cutDepthA * s} L${lapEndX} ${frontA_y + PX(mt)} L${frontA_x} ${frontA_y + PX(mt)} Z`}
+        fill={COLOR.MORTISE}
+        stroke={COLOR.OUTLINE}
+        strokeWidth={STROKE.OUTLINE}
+      />
+      {/* B 件（同位置疊上：填上半搭區、實邊框＋外凸尾）*/}
+      <rect
+        x={lapStartX}
+        y={frontA_y - PX(mt) + cutDepthA * s}
+        width={PX(tl)}
+        height={PX(mt) - cutDepthA * s + cutDepthB * s}
+        fill={COLOR.TENON}
+        stroke={COLOR.OUTLINE}
+        strokeWidth={STROKE.OUTLINE}
+      />
+      {/* 搭接接合線（隱藏邊：B 件下半在 A 件內部） */}
+      <HiddenEdge x1={lapStartX} y1={frontA_y + cutDepthA * s} x2={lapEndX} y2={frontA_y + cutDepthA * s} />
+      {/* 中心線：水平軸 */}
+      <CenterLine x1={frontA_x - 10} y1={frontA_y + PX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + PX(mt) / 2} />
+      {/* 木紋（A 件水平方向） */}
+      <GrainArrow x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, frontPieceLen / 3)} angle={0} />
+      {/* 剖面標記 A-A：在搭接中央切一刀 */}
+      <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y - 16} label="A" direction="down" />
+      <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y + PX(mt) + 16} label="A" direction="up" />
+      {/* 尺寸：搭長 tl */}
+      <DimLine
+        x1={lapStartX}
+        y1={frontA_y + PX(mt) + 22}
+        x2={lapEndX}
+        y2={frontA_y + PX(mt) + 22}
+        label={`搭長 ${tl}`}
+        side="bottom"
+      />
+      {/* 尺寸：板厚 mt */}
+      <DimLine
+        x1={frontA_x - 14}
+        y1={frontA_y}
+        x2={frontA_x - 14}
+        y2={frontA_y + PX(mt)}
+        label={`板厚 ${mt}`}
+        side="left"
+      />
+      {/* 削厚 */}
+      <DimLine
+        x1={lapEndX + 14}
+        y1={frontA_y - PX(mt) + cutDepthA * s}
+        x2={lapEndX + 14}
+        y2={frontA_y + cutDepthA * s}
+        label={`削厚 ${Math.round(cutDepthB)}`}
+        side="right"
+      />
+    </g>
+  );
+
+  // ===== 側視圖 (Side)：B 件穿過 A 件（從另一軸看） =====
+  // 對 cross：兩件等寬交叉；對 tee/ell：B 接到 A 邊
+  const sideA_h = PX(mt);
+  const sideB_w = PX(ct);
+  const side = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        側視圖（B 件斷面）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const aLen = PX(cw); // A 在側視圖的寬即 child 寬度
+        const aX = (QW - aLen) / 2;
+        const aY = QH / 2 - sideA_h / 2;
+        const bX = aX + aLen / 2 - sideB_w / 2;
+        const bTop = aY - PX(mt) * 0.6;
+        const bBottom = aY + sideA_h + PX(mt) * 0.6;
+        return (
+          <>
+            {/* A 件斷面（看成一條長矩形） */}
+            <rect x={aX} y={aY} width={aLen} height={sideA_h} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* B 件斷面（垂直穿過） */}
+            <rect x={bX} y={bTop} width={sideB_w} height={bBottom - bTop} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 搭接區：B 件在 A 件內被削去下半（虛線） */}
+            <HiddenEdge x1={bX} y1={aY + cutDepthA * s} x2={bX + sideB_w} y2={aY + cutDepthA * s} />
+            {/* 中心線：兩軸 */}
+            <CenterLine x1={aX - 10} y1={aY + sideA_h / 2} x2={aX + aLen + 10} y2={aY + sideA_h / 2} />
+            <CenterLine x1={bX + sideB_w / 2} y1={bTop - 10} x2={bX + sideB_w / 2} y2={bBottom + 10} />
+            {/* 木紋（B 件垂直方向） */}
+            <GrainArrow x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
+            {/* 尺寸：A 件寬 cw */}
+            <DimLine x1={aX} y1={aY + sideA_h + 22} x2={aX + aLen} y2={aY + sideA_h + 22} label={`板寬 ${cw}`} side="bottom" />
+            {/* 尺寸：B 件厚 ct */}
+            <DimLine x1={bX} y1={bTop - 14} x2={bX + sideB_w} y2={bTop - 14} label={`B 厚 ${ct}`} side="top" />
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 俯視圖 (Top)：A、B 各自（分解）+ 切刀位 =====
+  const top = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        俯視圖（分解 + 切刀位）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const tlPx = PX(tl);
+        const aWide = PX(cw);
+        const aLen = Math.max(PX(tl) * 4, 180);
+        const ax = (QW - aLen) / 2;
+        const ay = 40;
+        // B 件畫在下方
+        const bWide = PX(ct);
+        const bx = ax + aLen / 2 - bWide / 2;
+        const by = ay + aWide + 30;
+        return (
+          <>
+            {/* A 件俯視（被削去搭接區） */}
+            <rect x={ax} y={ay} width={aLen} height={aWide} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 切刀位：A 件搭接窗口（中央方框，依形態） */}
+            {(() => {
+              const slotW = lapForm === "cross" ? bWide : tlPx;
+              const slotH = lapForm === "cross" ? bWide : aWide;
+              const slotX = lapForm === "ell" ? ax + aLen - slotW : ax + aLen / 2 - slotW / 2;
+              const slotY = lapForm === "cross" || lapForm === "tee" ? ay + aWide / 2 - slotH / 2 : ay;
+              return (
+                <>
+                  <rect x={slotX} y={slotY} width={slotW} height={slotH} fill="white" stroke={COLOR.DIM_TICK} strokeDasharray={DASH.AUX} strokeWidth={0.7} />
+                  <text x={slotX + slotW / 2} y={slotY - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} textAnchor="middle">
+                    切刀位
+                  </text>
+                </>
+              );
+            })()}
+            <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件</text>
+            {/* B 件俯視 */}
+            <rect x={bx} y={by} width={bWide} height={Math.max(PX(tl) * 4, 120)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件</text>
+            {/* 中心線 */}
+            <CenterLine x1={ax - 10} y1={ay + aWide / 2} x2={ax + aLen + 10} y2={ay + aWide / 2} />
+            {/* 尺寸：A 件總長 */}
+            <DimLine x1={ax} y1={ay - 18} x2={ax + aLen} y2={ay - 18} label={`A 長`} side="top" />
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 等角圖 =====
+  const isoScale = Math.min(0.9, s * 0.55);
+  const iso = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        等角圖
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
+        {(() => {
+          const aLenMm = Math.max(tl * 4, cw + 20);
+          const bLenMm = Math.max(tl * 4, mt * 5);
+          // A 件水平條
+          return (
+            <>
+              <rect x={-aLenMm / 2} y={-mt / 2} width={aLenMm} height={mt} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* B 件交叉條 */}
+              <rect x={-ct / 2} y={-bLenMm / 2} width={ct} height={bLenMm} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 搭接窗口（白色 outline 顯示削區） */}
+              <rect x={-ct / 2} y={-mt / 2} width={ct} height={mt} fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1 / isoScale} strokeDasharray="3 2" />
+            </>
+          );
+        })()}
+      </IsometricGroup>
+      <WarningCallout x={20} y={QH - 30} text="兩件各削一半，咬合後總厚=板厚" />
+    </g>
+  );
+
+  return (
+    <svg
+      viewBox={`0 0 960 720`}
+      width="100%"
+      style={{ maxWidth: "960px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-halflap" color={COLOR.SECTION_HATCH} />
+      </defs>
+      <ThreeViewLayout
+        width={960}
+        height={660}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={960}
+            joineryType="half-lap"
+            joineryNameZh={`半搭榫（${lapFormZh}）`}
+            scale="1:1"
+          />
+        }
+      />
+    </svg>
+  );
+}
+/* === END half-lap-detail === */
+
+/* === BEGIN tongue-and-groove-detail (owner: agent-B, group: B) === */
 /* ============================================================
  * 企口榫 — tongue-and-groove (panel edge into grooved rail)
  * ============================================================ */
-function TongueAndGrooveDetail(p: JoineryDetailParams) {
+function LegacyTongueAndGrooveDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tt = p.tenonThickness;
   const mt = p.motherThickness;
@@ -1262,6 +1526,217 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
   );
 }
 
+/* ----------------------------------------------------------------
+ * 企口榫 教科書級重繪（三視圖 + 等角圖 + 多片拼接）
+ *   舌厚 tt 預設 = mt/3；槽深 = 舌長 + 1mm 漲縮餘量；
+ *   俯視畫多片拼接示意（3 片條板拼面板）。
+ * ---------------------------------------------------------------- */
+function TongueAndGrooveDetail(p: JoineryDetailParams) {
+  const mt = p.motherThickness;
+  const tt = p.tenonThickness ?? Math.max(3, Math.round(mt / 3));
+  const tl = p.tenonLength;
+  const ct = p.childThickness ?? tt;
+  // 槽深 = 舌長 + 1mm 漲縮餘量
+  const grooveDepth = tl + 1;
+  const shoulderThickness = Math.max(0, (mt - tt) / 2); // 舌肩留厚
+
+  const QW = 475;
+  const QH = 300;
+  const maxMm = Math.max(mt * 4, tl * 6, grooveDepth * 6);
+  const s = fitScale(maxMm, Math.min(QW, QH) - 80);
+  const PX = (mm: number) => mm * s;
+
+  // ===== 正視圖（端面剖面：母件凹槽 + 公件出舌橫向組合）=====
+  const front = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        正視圖（橫向斷面：母在左、公在右）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const pieceLen = Math.max(PX(mt) * 2.2, 90);
+        const motherX = (QW - pieceLen * 2 - 30) / 2;
+        const motherY = QH / 2 - PX(mt) / 2;
+        const childX = motherX + pieceLen + 30;
+        const childY = QH / 2 - PX(ct) / 2;
+        const grooveX = motherX + pieceLen - PX(grooveDepth);
+        const grooveY = motherY + PX(mt) / 2 - PX(tt) / 2;
+        const tongueX = childX;
+        const tongueY = childY + PX(ct) / 2 - PX(tt) / 2;
+        return (
+          <>
+            {/* 母件本體 */}
+            <rect x={motherX} y={motherY} width={pieceLen} height={PX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 凹槽（白） */}
+            <rect x={grooveX} y={grooveY} width={PX(grooveDepth)} height={PX(tt)} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 公件本體 */}
+            <rect x={childX + PX(tl)} y={childY} width={pieceLen - PX(tl)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 舌 */}
+            <rect x={tongueX} y={tongueY} width={PX(tl)} height={PX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 中心線（共用 centreline 顯示對齊） */}
+            <CenterLine x1={motherX - 10} y1={motherY + PX(mt) / 2} x2={childX + pieceLen + 10} y2={motherY + PX(mt) / 2} />
+            {/* 木紋 */}
+            <GrainArrow x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+            <GrainArrow x={childX + PX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+            {/* 剖面標記 A-A */}
+            <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
+            <SectionMark x={grooveX + PX(grooveDepth) / 2} y={motherY + PX(mt) + 16} label="A" direction="up" />
+            {/* 尺寸：舌長 / 槽深 / 母厚 / 舌厚 / 舌肩厚 */}
+            <DimLine x1={tongueX} y1={tongueY + PX(tt) + 16} x2={tongueX + PX(tl)} y2={tongueY + PX(tt) + 16} label={`舌長 ${tl}`} side="bottom" />
+            <DimLine x1={grooveX} y1={grooveY - 6} x2={grooveX + PX(grooveDepth)} y2={grooveY - 6} label={`槽深 ${grooveDepth}`} side="top" />
+            <DimLine x1={motherX - 14} y1={motherY} x2={motherX - 14} y2={motherY + PX(mt)} label={`母厚 ${mt}`} side="left" />
+            <DimLine x1={tongueX - 6} y1={tongueY} x2={tongueX - 6} y2={tongueY + PX(tt)} label={`舌厚 ${tt}`} side="left" />
+            {shoulderThickness > 0 && (
+              <DimLine x1={childX + pieceLen + 14} y1={childY} x2={childX + pieceLen + 14} y2={childY + PX(shoulderThickness)} label={`舌肩 ${Math.round(shoulderThickness)}`} side="right" />
+            )}
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 側視圖（順紋方向看：兩片板長向延伸）=====
+  const side = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        側視圖（順紋向）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const boardLen = QW - 60;
+        const motherY = 50;
+        const childY = motherY + PX(mt) + 24;
+        const motherX = 30;
+        const childX = 30;
+        return (
+          <>
+            <rect x={motherX} y={motherY} width={boardLen} height={PX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 槽：在 mother 右邊條形隱藏線 */}
+            <HiddenEdge x1={motherX} y1={motherY + PX(mt) / 2 - PX(tt) / 2} x2={motherX + boardLen} y2={motherY + PX(mt) / 2 - PX(tt) / 2} />
+            <HiddenEdge x1={motherX} y1={motherY + PX(mt) / 2 + PX(tt) / 2} x2={motherX + boardLen} y2={motherY + PX(mt) / 2 + PX(tt) / 2} />
+            <text x={motherX + boardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">母件（凹槽連續）</text>
+            <rect x={childX} y={childY} width={boardLen} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 舌：在 child 上邊小凸出（虛線俯瞰想像） */}
+            <HiddenEdge x1={childX} y1={childY + PX(ct) / 2 - PX(tt) / 2} x2={childX + boardLen} y2={childY + PX(ct) / 2 - PX(tt) / 2} />
+            <text x={childX + boardLen / 2} y={childY + PX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">公件（舌連續）</text>
+            <CenterLine x1={motherX - 10} y1={motherY + PX(mt) / 2} x2={motherX + boardLen + 10} y2={motherY + PX(mt) / 2} />
+            <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, boardLen - 10)} angle={0} />
+            <DimLine x1={motherX - 14} y1={motherY} x2={motherX - 14} y2={motherY + PX(mt)} label={`母厚 ${mt}`} side="left" />
+            <DimLine x1={childX - 14} y1={childY} x2={childX - 14} y2={childY + PX(ct)} label={`公厚 ${ct}`} side="left" />
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 俯視圖（多片拼接示意：3 片條板）=====
+  const top = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        俯視圖（多片拼接成面板）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const stripLen = QW - 80;
+        const stripH = Math.max(PX(mt), 24);
+        const startX = 40;
+        const startY = 50;
+        const strips = 3;
+        const groovePxLen = PX(grooveDepth);
+        return (
+          <>
+            {[0, 1, 2].map((i) => {
+              const y = startY + i * (stripH + 4);
+              const fill = i % 2 === 0 ? COLOR.MORTISE : COLOR.TENON;
+              return (
+                <g key={i}>
+                  <rect x={startX} y={y} width={stripLen} height={stripH} fill={fill} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                  {/* 接縫位置（隱藏舌槽輪廓） */}
+                  {i < strips - 1 && (
+                    <line x1={startX} y1={y + stripH} x2={startX + stripLen} y2={y + stripH} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                  )}
+                  {/* 顯示舌的長度（隱藏）：在右端寫一段虛線示意舌穿過 */}
+                  {i < strips - 1 && (
+                    <HiddenEdge x1={startX + stripLen - groovePxLen} y1={y + stripH} x2={startX + stripLen} y2={y + stripH} />
+                  )}
+                  <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">板 {i + 1}</text>
+                </g>
+              );
+            })}
+            {/* 木紋方向（每片同向） */}
+            <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLen - 12)} angle={0} />
+            {/* 尺寸：拼接寬 */}
+            <DimLine x1={startX - 14} y1={startY} x2={startX - 14} y2={startY + strips * stripH + (strips - 1) * 4} label={`拼板總寬`} side="left" />
+            <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4 + 14} x2={startX + stripLen} y2={startY + strips * stripH + (strips - 1) * 4 + 14} label={`板長`} side="bottom" />
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 等角圖 =====
+  const isoScale = Math.min(0.85, s * 0.55);
+  const iso = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        等角圖（兩片接合）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
+        {(() => {
+          const pieceLenMm = Math.max(mt * 3, tl * 5, 60);
+          // 母件
+          return (
+            <>
+              <rect x={-pieceLenMm} y={-mt / 2} width={pieceLenMm} height={mt} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 凹槽（白） */}
+              <rect x={-grooveDepth} y={-tt / 2} width={grooveDepth} height={tt} fill="white" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 公件本體 */}
+              <rect x={tl} y={-ct / 2} width={pieceLenMm} height={ct} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 舌 */}
+              <rect x={0} y={-tt / 2} width={tl} height={tt} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+            </>
+          );
+        })()}
+      </IsometricGroup>
+      <WarningCallout x={20} y={QH - 30} text={`凹槽深 = 舌長 + 1mm（漲縮餘量 ${grooveDepth}mm）`} />
+    </g>
+  );
+
+  return (
+    <svg
+      viewBox={`0 0 960 720`}
+      width="100%"
+      style={{ maxWidth: "960px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-tg-new" color={COLOR.SECTION_HATCH} />
+      </defs>
+      <ThreeViewLayout
+        width={960}
+        height={660}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={960}
+            joineryType="tongue-and-groove"
+            joineryNameZh="企口榫（舌槽接）"
+            scale="1:1"
+          />
+        }
+      />
+    </svg>
+  );
+}
+/* === END tongue-and-groove-detail === */
+
+/* === BEGIN shouldered-tenon-detail (owner: agent-B, group: B) === */
 /* ============================================================
  * 帶肩榫 (haunched / shouldered tenon) — apron-to-leg standard
  *
@@ -1279,7 +1754,7 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
  *     haunchHeight    = (cw - tw) / 2  (the gap between main tenon top and apron top)
  *     bottomShoulder  = (cw - tw) / 2  (symmetric)
  * ============================================================ */
-function ShoulderedTenonDetail(p: JoineryDetailParams) {
+function LegacyShoulderedTenonDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -1679,6 +2154,240 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
+
+/* ----------------------------------------------------------------
+ * 帶肩榫 教科書級重繪（三視圖 + 等角圖 + 端面剖面）
+ *
+ *   Layout：左上=正視（牙板側面端視）/ 右上=側視（牙板斷面 + 雙肩）
+ *           左下=俯視（裝合斷面：牙板入柱）/ 右下=等角圖
+ *           底部=標題欄
+ *
+ *   Fallback：cw ≤ tw 時退回純通榫並 callout 警示。
+ *   雙肩榫：肩寬 = (cw - tw) / 2，雙邊各標。
+ * ---------------------------------------------------------------- */
+function ShoulderedTenonDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+
+  // Fallback：公件斷面太窄無法做肩
+  const noShoulder = cw <= tw + 1; // 留 1mm tolerance
+  const shoulderW = noShoulder ? 0 : (cw - tw) / 2;
+  const haunchLen = Math.max(4, Math.round(tl / 3));
+
+  const QW = 475;
+  const QH = 300;
+  const maxMm = Math.max(cw + 60, mt * 3 + tl * 2, tw + tl * 2);
+  const s = fitScale(maxMm, Math.min(QW, QH) - 80);
+  const PX = (mm: number) => mm * s;
+
+  // ===== 正視圖：牙板從側面看（榫頭水平伸向右） =====
+  const front = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        正視圖（牙板側面：露榫頭）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const apronBodyLen = Math.max(PX(ct) * 5, 140);
+        const apronH = PX(cw);
+        const ax = (QW - apronBodyLen - PX(tl) - 60) / 2;
+        const ay = (QH - apronH) / 2 + 10;
+        const tenonY = ay + PX(shoulderW);
+        const tenonH = PX(tw);
+        const tenonX = ax + apronBodyLen;
+        const tenonRight = tenonX + PX(tl);
+        return (
+          <>
+            {/* 牙板本體 */}
+            <rect x={ax} y={ay} width={apronBodyLen} height={apronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 主榫 */}
+            <rect x={tenonX} y={tenonY} width={PX(tl)} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 肩線 (vertical at body→tenon transition) */}
+            <line x1={tenonX} y1={ay} x2={tenonX} y2={ay + apronH} stroke={COLOR.OUTLINE} strokeWidth={0.8} />
+            {/* 中心線 */}
+            <CenterLine x1={ax - 10} y1={ay + apronH / 2} x2={tenonRight + 10} y2={ay + apronH / 2} />
+            {/* 木紋 */}
+            <GrainArrow x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
+            {/* 剖面 A-A：在榫的中段切 */}
+            <SectionMark x={tenonX + PX(tl) / 2} y={ay - 18} label="A" direction="down" />
+            <SectionMark x={tenonX + PX(tl) / 2} y={ay + apronH + 18} label="A" direction="up" />
+            {/* 尺寸：榫長 / 榫寬 / 板寬 / 上下肩寬 */}
+            <DimLine x1={tenonX} y1={tenonY + tenonH + 18} x2={tenonRight} y2={tenonY + tenonH + 18} label={`榫長 ${tl}`} side="bottom" />
+            <DimLine x1={tenonRight + 14} y1={tenonY} x2={tenonRight + 14} y2={tenonY + tenonH} label={`榫寬 ${tw}`} side="right" />
+            <DimLine x1={ax - 14} y1={ay} x2={ax - 14} y2={ay + apronH} label={`板寬 ${cw}`} side="left" />
+            {!noShoulder && (
+              <>
+                <DimLine x1={tenonRight + 30} y1={ay} x2={tenonRight + 30} y2={tenonY} label={`上肩 ${Math.round(shoulderW)}`} side="right" />
+                <DimLine x1={tenonRight + 30} y1={tenonY + tenonH} x2={tenonRight + 30} y2={ay + apronH} label={`下肩 ${Math.round(shoulderW)}`} side="right" />
+              </>
+            )}
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 側視圖：牙板端面剖面（看到榫的厚度+雙肩） =====
+  const side = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        側視圖（牙板端面剖面）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        // 牙板斷面 = ct (寬，水平) × cw (高，垂直)；榫斷面在中央 = tt × tw
+        const xsCw = PX(ct);
+        const xsCh = PX(cw);
+        const xsX = (QW - xsCw) / 2;
+        const xsY = (QH - xsCh) / 2 + 10;
+        const tenonW = PX(tt);
+        const tenonH = PX(tw);
+        const tenonX = xsX + (xsCw - tenonW) / 2;
+        const tenonY = xsY + PX(shoulderW);
+        return (
+          <>
+            {/* 板斷面（虛線輪廓 + 紅斜線剖面）*/}
+            <rect x={xsX} y={xsY} width={xsCw} height={xsCh} fill="url(#hatch-shoulder-new)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 主榫斷面（公榫實心） */}
+            <rect x={tenonX} y={tenonY} width={tenonW} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 中心線 */}
+            <CenterLine x1={xsX - 8} y1={xsY + xsCh / 2} x2={xsX + xsCw + 8} y2={xsY + xsCh / 2} />
+            <CenterLine x1={xsX + xsCw / 2} y1={xsY - 8} x2={xsX + xsCw / 2} y2={xsY + xsCh + 8} />
+            {/* 木紋（垂直於頁面，標符號） */}
+            <text x={xsX + 4} y={xsY + 12} fontSize={FONT.CALLOUT} fill={COLOR.GRAIN}>⊙ 木紋</text>
+            {/* 尺寸 */}
+            <DimLine x1={xsX} y1={xsY + xsCh + 14} x2={xsX + xsCw} y2={xsY + xsCh + 14} label={`板厚 ${ct}`} side="bottom" />
+            <DimLine x1={tenonX} y1={tenonY - 6} x2={tenonX + tenonW} y2={tenonY - 6} label={`榫厚 ${tt}`} side="top" />
+            <DimLine x1={xsX - 14} y1={xsY} x2={xsX - 14} y2={xsY + xsCh} label={`板寬 ${cw}`} side="left" />
+            {!noShoulder && (
+              <>
+                <DimLine x1={xsX + xsCw + 14} y1={xsY} x2={xsX + xsCw + 14} y2={tenonY} label={`上肩 ${Math.round(shoulderW)}`} side="right" />
+                <DimLine x1={xsX + xsCw + 14} y1={tenonY + tenonH} x2={xsX + xsCw + 14} y2={xsY + xsCh} label={`下肩 ${Math.round(shoulderW)}`} side="right" />
+              </>
+            )}
+            {noShoulder && <WarningCallout x={xsX - 30} y={xsY + xsCh + 32} text="公件斷面太窄無法做帶肩，已轉純通榫" />}
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 俯視圖（裝合剖面：牙板入柱腳，從上面切一刀看） =====
+  const top = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        俯視圖（裝合剖面：牙板入柱）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {(() => {
+        const isRound = p.motherShape === "round";
+        const legW = PX(mt);
+        const legH = PX(mt);
+        const legX = QW / 2 - legW;
+        const legY = QH / 2 - legH / 2;
+        const tenonY = legY + legH / 2 - PX(tt) / 2;
+        const tenonX = legX + legW - PX(tl);
+        const apronY = legY + legH / 2 - PX(ct) / 2;
+        const apronX = legX + legW;
+        const apronLen = Math.max(PX(ct) * 5, 100);
+        return (
+          <>
+            {/* 柱腳（紅斜線剖面） */}
+            {isRound ? (
+              <circle cx={legX + legW / 2} cy={legY + legH / 2} r={legW / 2} fill="url(#hatch-shoulder-new)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            ) : (
+              <rect x={legX} y={legY} width={legW} height={legH} fill="url(#hatch-shoulder-new)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            )}
+            {/* 榫頭（藏入柱腳） */}
+            <rect x={tenonX} y={tenonY} width={PX(tl)} height={PX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 牙板 */}
+            <rect x={apronX} y={apronY} width={apronLen} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 肩面（垂直線：apron 端面接觸柱腳的線） */}
+            <line x1={apronX} y1={apronY - PX(shoulderW)} x2={apronX} y2={apronY + PX(ct) + PX(shoulderW)} stroke={COLOR.OUTLINE} strokeWidth={1.0} />
+            {/* 中心線 */}
+            <CenterLine x1={legX - 10} y1={legY + legH / 2} x2={apronX + apronLen + 10} y2={legY + legH / 2} />
+            {/* 隱藏線：榫尾在柱腳內 */}
+            <HiddenEdge x1={tenonX} y1={tenonY} x2={legX} y2={tenonY} />
+            <HiddenEdge x1={tenonX} y1={tenonY + PX(tt)} x2={legX} y2={tenonY + PX(tt)} />
+            {/* 尺寸 */}
+            <DimLine x1={tenonX} y1={tenonY + PX(tt) + 10} x2={tenonX + PX(tl)} y2={tenonY + PX(tt) + 10} label={`榫長 ${tl}`} side="bottom" />
+            <DimLine x1={legX} y1={legY - 14} x2={legX + legW} y2={legY - 14} label={`柱寬 ${mt}`} side="top" />
+            <text x={apronX + 4} y={apronY - PX(shoulderW) - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>← 肩面（承力）</text>
+          </>
+        );
+      })()}
+    </g>
+  );
+
+  // ===== 等角圖 =====
+  const isoScale = Math.min(0.85, s * 0.5);
+  const iso = (
+    <g>
+      <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
+        等角圖（柱腳 + 牙板帶肩榫）
+      </text>
+      <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      <IsometricGroup originX={QW / 2 - 30} originY={QH / 2 + 10} scale={isoScale}>
+        {(() => {
+          const apronLenMm = Math.max(ct * 4, cw + 20);
+          return (
+            <>
+              {/* 柱腳：方塊 */}
+              <rect x={-mt / 2} y={-mt} width={mt} height={mt * 2} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 榫眼（看不到的視窗）*/}
+              <rect x={-tt / 2} y={-tw / 2} width={tt} height={tw} fill="white" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} strokeDasharray="3 2" />
+              {/* 牙板（從柱腳右邊伸出） */}
+              <rect x={mt / 2} y={-cw / 2} width={apronLenMm} height={cw} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+              {/* 主榫（從牙板左端伸入柱腳）*/}
+              <rect x={mt / 2 - tl} y={-tw / 2} width={tl} height={tw} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
+            </>
+          );
+        })()}
+      </IsometricGroup>
+      {!noShoulder ? (
+        <WarningCallout x={20} y={QH - 30} text={`肩面為主要承力面（上下肩各 ${Math.round(shoulderW)}mm）`} />
+      ) : (
+        <WarningCallout x={20} y={QH - 30} text={`公件 ${cw}mm ≤ 榫寬 ${tw}mm，已退回純通榫`} />
+      )}
+    </g>
+  );
+
+  return (
+    <svg
+      viewBox={`0 0 960 720`}
+      width="100%"
+      style={{ maxWidth: "960px" }}
+      className="bg-white"
+    >
+      <defs>
+        <Hatching id="hatch-shoulder-new" color={COLOR.SECTION_HATCH} />
+      </defs>
+      <ThreeViewLayout
+        width={960}
+        height={660}
+        front={front}
+        side={side}
+        top={top}
+        iso={iso}
+        titleBlock={
+          <TitleBlock
+            x={0}
+            y={0}
+            width={960}
+            joineryType="shouldered-tenon"
+            joineryNameZh={noShoulder ? "帶肩榫（fallback：純通榫）" : "帶肩榫（雙肩防扭）"}
+            scale="1:1"
+          />
+        }
+      />
+    </svg>
+  );
+}
+/* === END shouldered-tenon-detail === */
 
 function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
   return (
