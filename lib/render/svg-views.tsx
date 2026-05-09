@@ -552,7 +552,14 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const swap = Lm > lx + 1 && Wm <= lx + 1;
     const useL = swap ? Wm : Lm;
     const useW = swap ? Lm : Wm;
-    return { cx: oxC, cy: cyL, cz: ozC, hx: useL / 2, hy: D / 2, hz: useW / 2 };
+    // Clip cx 跟 cz 在 part 範圍內
+    const minX = -lx / 2 + useL / 2;
+    const maxX = lx / 2 - useL / 2;
+    const cxClipped = Math.max(minX, Math.min(maxX, oxC));
+    const minZ = -lz / 2 + useW / 2;
+    const maxZ = lz / 2 - useW / 2;
+    const czClipped = Math.max(minZ, Math.min(maxZ, ozC));
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useL / 2, hy: D / 2, hz: useW / 2 };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
@@ -560,7 +567,16 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const swap = Lm > ly + 1 && Wm <= ly + 1;
     const useL = swap ? Wm : Lm;
     const useW = swap ? Lm : Wm;
-    return { cx: cxL, cy: oyC, cz: ozC, hx: D / 2, hy: useL / 2, hz: useW / 2 };
+    // Clip cy 讓 slot 留在 [-ly/2, ly/2] 內，避免 origin.y 用「從底 0」慣例
+    // 把 slot 推到 panel 範圍外（origin.y=0 → oyC=-ly/2 → slot 半邊出底面）
+    const minY = -ly / 2 + useL / 2;
+    const maxY = ly / 2 - useL / 2;
+    const cyClipped = Math.max(minY, Math.min(maxY, oyC));
+    // 同樣 clip cz
+    const minZ = -lz / 2 + useW / 2;
+    const maxZ = lz / 2 - useW / 2;
+    const czClipped = Math.max(minZ, Math.min(maxZ, ozC));
+    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useL / 2, hz: useW / 2 };
   } else {
     // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg）。
     // 慣例：mortise.length 沿 part Y（順 leg 高），mortise.width 沿 part X。
