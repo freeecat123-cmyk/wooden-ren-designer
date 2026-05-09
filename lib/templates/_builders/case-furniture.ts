@@ -439,13 +439,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // 頂板。rebated：底面開 stopped dado（離後緣 backRecess 處往前延伸 backT，深 6mm），
   // 槽不切到後緣保持外觀乾淨，背板 9mm 完整方形坐進槽內後緣陷 6mm。
+  // dado length = back panel length (innerW + 2*rebateDepth)，不延伸到外端
+  // 不然 corner 12mm 沒 back panel 蓋住會露洞。
   const topBottomDado: Part["mortises"] =
     backMode === "rebated"
       ? [
           {
             origin: { x: 0, y: 0, z: width / 2 - backRecess - backT / 2 },
             depth: rebateDepth,
-            length: length,
+            length: innerW + 2 * rebateDepth,
             width: backT,
             through: false,
             cosmetic: true,
