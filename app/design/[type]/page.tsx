@@ -679,11 +679,16 @@ function ParameterForm({
               細部設定
             </h3>
           </div>
-          <StylePresetButtons
-            optionSchema={optionSchema}
-            category={type as FurnitureCategory}
-            designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
-          />
+          {/* 中式方角櫃自有 9 個 cabinetPreset (書櫃/茶櫃/明式頂箱櫃...) +
+              比例風格 ming/qing 切換，跟通用「Shaker / 北歐 / 工業風」風格不
+              相容（中式不會套西式風格），隱藏避免 user 混淆。 */}
+          {type !== "chinese-cabinet" && (
+            <StylePresetButtons
+              optionSchema={optionSchema}
+              category={type as FurnitureCategory}
+              designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
+            />
+          )}
           <div className="mb-3 flex justify-end">
             <AIRefineButton
               optionSchema={optionSchema}
