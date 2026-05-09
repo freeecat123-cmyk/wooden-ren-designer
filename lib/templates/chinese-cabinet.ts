@@ -207,7 +207,7 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "layers", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
   { group: "layers", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
-  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度" },
+  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度（傳統明清家具講究緊密貼合，預設 1mm 視覺幾乎看不到）" },
   { group: "door", type: "select", key: "doorStyle", label: "門板樣式", defaultValue: "solid", choices: [
     { value: "solid", label: "整片實木板" },
     { value: "lattice-cross", label: "格扇門：田字格（橫直櫺）" },
