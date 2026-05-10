@@ -1999,6 +1999,10 @@ function HalfLapDetail(p: JoineryDetailParams) {
         等角圖
       </text>
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
+      {/* 2026-05-09 fix（木頭仁 review）：長軸轉 90° 變上下擺
+          做法：iso 內部模型空間維持原樣（避開 IsoCuboid w/h 內部語意不對稱問題），
+          外層 wrap rotate(-90, cx, cy)，文字 label 個別 rotate(90) 反轉回正向 */}
+      <g transform={`rotate(-90 ${QW / 2} ${QH / 2 + 10})`}>
       <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
           // Phase 4 (2026-05-09 V3 fix D1)：兩件各畫「L 形」立體（全厚段 + 半厚搭接段），
@@ -2009,6 +2013,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
           //   件 A 水平擺放，搭接區在 x ∈ [-lapHalf, +lapHalf]，y 削上半 → 厚度從 [0, mt] 變 [halfMt, mt]
           //   件 B 旋轉 90° 沿 z 軸俯視（即垂直擺放，搭接區同位置但削下半）
           //   爆炸：B 整體上移 explodeGap
+          //   ⟶ 外層 rotate(-90) 把整張圖在螢幕上轉成「長軸上下」
           const halfMt = mt / 2;
           const halfCt = ct / 2;
           const lapLen = Math.max(tl, mt * 1.4);  // 搭接區長度
@@ -2197,31 +2202,40 @@ function HalfLapDetail(p: JoineryDetailParams) {
                 );
               })()}
 
-              {/* ==================== 文字 label：標明削半厚 ==================== */}
+              {/* ==================== 文字 label：標明削半厚 ====================
+                  外層 rotate(-90) 後 label 會躺，要逐字 rotate(90 cx cy) 反轉回正向 */}
               {(() => {
                 const labA = isoProject(aLapX + lapLen / 2, halfMt - 2, -aDepth / 2);
-                const labB = isoProject(bLapX + lapLen / 2, halfCt + ct + 2, -bDepth / 2);
+                const ax = labA[0];
+                const ay = labA[1] - 2 / isoScale;
                 return (
-                  <g fontSize={9 / isoScale} fill={COLOR.SECTION_HATCH} textAnchor="middle">
-                    <text x={labA[0]} y={labA[1] - 2 / isoScale}>↑ A 件削上半 {Math.round(halfMt)}mm</text>
-                    <text x={labB[0]} y={labB[1] + 10 / isoScale + bYOffset / isoScale}>
-                      {/* 此 label 已在 g translate 之外，需要扣回 bYOffset */}
-                    </text>
-                  </g>
+                  <text
+                    x={ax}
+                    y={ay}
+                    fontSize={9 / isoScale}
+                    fill={COLOR.SECTION_HATCH}
+                    textAnchor="middle"
+                    transform={`rotate(90 ${ax} ${ay})`}
+                  >
+                    ← A 件削上半 {Math.round(halfMt)}mm
+                  </text>
                 );
               })()}
               {/* B 件 label（在 translate 外固定算） */}
               {(() => {
                 const labB = isoProject(bLapX + lapLen / 2, bYOffset + halfCt + 4, -bDepth / 2);
+                const bx = labB[0];
+                const by = labB[1];
                 return (
                   <text
-                    x={labB[0]}
-                    y={labB[1]}
+                    x={bx}
+                    y={by}
                     fontSize={9 / isoScale}
                     fill={COLOR.SECTION_HATCH}
                     textAnchor="middle"
+                    transform={`rotate(90 ${bx} ${by})`}
                   >
-                    ↓ B 件削下半 {Math.round(halfCt)}mm
+                    → B 件削下半 {Math.round(halfCt)}mm
                   </text>
                 );
               })()}
@@ -2229,6 +2243,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
           );
         })()}
       </IsometricGroup>
+      </g>
       <WarningCallout x={20} y={QH - 30} text={`兩件各削一半（A 上半 ${Math.round(mt/2)}mm + B 下半 ${Math.round(ct/2)}mm），咬合後總厚=板厚`} />
     </g>
   );
