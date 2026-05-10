@@ -38,6 +38,13 @@ import {
   ISO_STROKE,
   ISO_DASH,
   isoProject,
+  // Phase 4 unified visual spec (Wave 2a)
+  CANVAS,
+  QUADRANT,
+  unifiedFitScale,
+  placeInQuadrant,
+  safeDimSide,
+  MasterDetailLayout,
 } from "./draw-primitives";
 
 export interface JoineryDetailParams {
@@ -5551,7 +5558,8 @@ function LegacyDowelDetail(p: JoineryDetailParams) {
  *
  * 圓釘直徑 Ø = tt（既有慣例）；釘數 = max(2, floor(cw / (Ø*4)))
  */
-function DowelDetail(p: JoineryDetailParams) {
+/** Legacy V2（previous unified pre-MasterDetailLayout version, kept as escape hatch for Wave 2a try-water） */
+function LegacyV2DowelDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tt = p.tenonThickness; // 釘徑 Ø
   const mt = p.motherThickness;
@@ -5896,6 +5904,331 @@ function DowelDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
+
+/**
+ * DowelDetail（Wave 2a unified visual spec 版）—
+ * 用 MasterDetailLayout + unifiedFitScale + safeDimSide 重構。
+ * 4 quadrant 排列：Q1 正視 / Q2 側視 / Q3 俯視 / Q4 等角，
+ * 物件嚴格在 quadrant viewable area 內居中。
+ */
+function DowelDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tt = p.tenonThickness; // 釘徑 Ø
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? p.tenonWidth;
+
+  const ttSafe = Math.max(1, tt);
+  const dowelCount = Math.max(2, Math.floor(cw / (ttSafe * 4)));
+  // 每孔深 = (tl/2) + 0.5mm 餘量；母件厚必須 > 孔深 + 3mm
+  const holeDepth = Math.min(mt - 3, tl / 2 + 0.5);
+  const holeDepthSafe = Math.max(3, holeDepth);
+  const spacing = cw / (dowelCount + 1);
+
+  // ===== Q1 正視圖：兩件對接 + 木釘剖面 =====
+  const front = (() => {
+    const bbox = { w: mt * 2, h: ct };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件（左） */}
+        <rect x={oX} y={oY} width={PX(mt)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件（右） */}
+        <rect x={oX + PX(mt)} y={oY} width={PX(mt)} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 接縫中軸 */}
+        <CenterLine x1={oX + PX(mt)} y1={oY - 8} x2={oX + PX(mt)} y2={oY + PX(ct) + 8} />
+
+        {/* 木釘陣列（剖面：橫躺圓柱 + 兩孔虛線） */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const dy = oY + PX(spacing * (i + 1));
+          if (dy > oY + PX(ct) - PX(tt) / 2) return null;
+          return (
+            <g key={i}>
+              <rect
+                x={oX + PX(mt - holeDepthSafe)}
+                y={dy - PX(tt) / 2}
+                width={PX(holeDepthSafe * 2)}
+                height={PX(tt)}
+                fill={COLOR.MORTISE}
+                stroke={COLOR.OUTLINE}
+                strokeWidth={STROKE.OUTLINE}
+                rx={PX(tt) / 2}
+              />
+              <HiddenEdge x1={oX + PX(mt - holeDepthSafe)} y1={dy - PX(tt) / 2} x2={oX + PX(mt + holeDepthSafe)} y2={dy - PX(tt) / 2} />
+              <HiddenEdge x1={oX + PX(mt - holeDepthSafe)} y1={dy + PX(tt) / 2} x2={oX + PX(mt + holeDepthSafe)} y2={dy + PX(tt) / 2} />
+            </g>
+          );
+        })}
+
+        {/* 尺寸 */}
+        <DimLine
+          x1={oX} y1={oY} x2={oX + PX(mt)} y2={oY}
+          label={`A厚 ${mt}`}
+          side={safeDimSide("top", `A厚 ${mt}`, { x: oX + PX(mt) / 2, y: oY }, qBounds)}
+        />
+        <DimLine
+          x1={oX + PX(mt)} y1={oY} x2={oX + PX(mt * 2)} y2={oY}
+          label={`B厚 ${mt}`}
+          side={safeDimSide("top", `B厚 ${mt}`, { x: oX + PX(mt * 1.5), y: oY }, qBounds)}
+        />
+        <DimLine
+          x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(ct)} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(ct)}
+          label={`釘長 ${tl}`}
+          side={safeDimSide("bottom", `釘長 ${tl}`, { x: oX + PX(mt), y: oY + PX(ct) }, qBounds)}
+        />
+        <DimLine
+          x1={oX} y1={oY} x2={oX} y2={oY + PX(ct)}
+          label={`板寬 ${ct}`}
+          side={safeDimSide("left", `板寬 ${ct}`, { x: oX, y: oY + PX(ct) / 2 }, qBounds)}
+        />
+
+        {/* 剖面 A-A（在物件下方） */}
+        {oY + PX(ct) + 24 < QUADRANT.H - QUADRANT.HEADER_H && (
+          <>
+            <SectionMark x={oX + PX(mt) - 14} y={oY + PX(ct) + 22} label="A" direction="right" />
+            <SectionMark x={oX + PX(mt) + 14} y={oY + PX(ct) + 22} label="A" direction="left" />
+          </>
+        )}
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：板斷面 + 鑽孔陣列 =====
+  const side = (() => {
+    const bbox = { w: ct, h: cw };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <defs>
+          <Hatching id="hatch-dowel-side-v2" color={COLOR.SECTION_HATCH} />
+        </defs>
+        <rect x={oX} y={oY} width={PX(ct)} height={PX(cw)} fill="url(#hatch-dowel-side-v2)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX} y={oY} width={PX(ct)} height={PX(cw)} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 鑽孔 */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const cy = oY + PX(spacing * (i + 1));
+          const cxC = oX + PX(ct / 2);
+          return (
+            <g key={i}>
+              <circle cx={cxC} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <CenterLine x1={cxC - PX(tt) * 0.7} y1={cy} x2={cxC + PX(tt) * 0.7} y2={cy} />
+              <CenterLine x1={cxC} y1={cy - PX(tt) * 0.7} x2={cxC} y2={cy + PX(tt) * 0.7} />
+            </g>
+          );
+        })}
+
+        {/* dim */}
+        <DimLine
+          x1={oX} y1={oY + PX(cw)} x2={oX + PX(ct)} y2={oY + PX(cw)}
+          label={`板厚 ${ct}`}
+          side={safeDimSide("bottom", `板厚 ${ct}`, { x: oX + PX(ct) / 2, y: oY + PX(cw) }, qBounds)}
+        />
+        <DimLine
+          x1={oX} y1={oY} x2={oX} y2={oY + PX(cw)}
+          label={`板寬 ${cw}`}
+          side={safeDimSide("left", `板寬 ${cw}`, { x: oX, y: oY + PX(cw) / 2 }, qBounds)}
+        />
+        {dowelCount >= 2 && (
+          <DimLine
+            x1={oX + PX(ct)} y1={oY + PX(spacing)} x2={oX + PX(ct)} y2={oY + PX(spacing * 2)}
+            label={`間距 ${Math.round(spacing)}`}
+            side={safeDimSide("right", `間距 ${Math.round(spacing)}`, { x: oX + PX(ct), y: oY + PX(spacing * 1.5) }, qBounds)}
+          />
+        )}
+        <DimLine
+          x1={oX + PX(ct)} y1={oY + PX(spacing) - PX(tt) / 2} x2={oX + PX(ct)} y2={oY + PX(spacing) + PX(tt) / 2}
+          label={`Ø ${tt}`}
+          side={safeDimSide("right", `Ø ${tt}`, { x: oX + PX(ct), y: oY + PX(spacing) }, qBounds)}
+        />
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：兩件對接帶白膠塗佈面 =====
+  const top = (() => {
+    const bbox = { w: mt * 2, h: cw };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件俯視 */}
+        <rect x={oX} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件俯視 */}
+        <rect x={oX + PX(mt)} y={oY} width={PX(mt)} height={PX(cw)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 中縫白膠塗佈面 */}
+        <rect x={oX + PX(mt) - 2} y={oY} width={4} height={PX(cw)} fill={COLOR.SECTION_HATCH} fillOpacity={0.4} stroke="none" />
+
+        {/* 圓孔（兩側對稱） */}
+        {Array.from({ length: dowelCount }).map((_, i) => {
+          const cy = oY + PX(spacing * (i + 1));
+          const cxA = oX + PX(mt - holeDepthSafe / 2);
+          const cxB = oX + PX(mt + holeDepthSafe / 2);
+          return (
+            <g key={i}>
+              <circle cx={cxA} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeDasharray={DASH.HIDDEN} />
+              <circle cx={cxB} cy={cy} r={PX(tt) / 2} fill="white" stroke={COLOR.OUTLINE} strokeDasharray={DASH.HIDDEN} />
+              <CenterLine x1={cxA - PX(tt)} y1={cy} x2={cxB + PX(tt)} y2={cy} />
+            </g>
+          );
+        })}
+
+        {/* dim 孔深 */}
+        <DimLine
+          x1={oX + PX(mt - holeDepthSafe)} y1={oY + PX(cw)} x2={oX + PX(mt)} y2={oY + PX(cw)}
+          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          side={safeDimSide("bottom", `孔深 ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt - holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
+        />
+        <DimLine
+          x1={oX + PX(mt)} y1={oY + PX(cw)} x2={oX + PX(mt + holeDepthSafe)} y2={oY + PX(cw)}
+          label={`孔深 ${Math.round(holeDepthSafe)}`}
+          side={safeDimSide("bottom", `孔深 ${Math.round(holeDepthSafe)}`, { x: oX + PX(mt + holeDepthSafe / 2), y: oY + PX(cw) }, qBounds)}
+        />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：兩塊 IsoCuboid + 木釘陣列 =====
+  const iso = (() => {
+    // bbox 含深度方向（cw 為釘陣列分布長度）
+    const explodeGap = tl + 8;
+    const isoBbox = { w: mt * 2 + explodeGap, h: ct, d: mt * 0.8 };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = {
+      x: QUADRANT.W / 2,
+      y: (QUADRANT.H - QUADRANT.HEADER_H) / 2,
+    };
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x - (mt * 2 + explodeGap) * isoScale / 2} originY={center.y} scale={isoScale}>
+          {/* A 件（左板） */}
+          <IsoCuboid
+            x={0}
+            y={-ct / 2}
+            z={0}
+            w={mt}
+            h={ct}
+            d={mt * 0.8}
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)}
+          />
+          {/* B 件（右板，沿 +x explode） */}
+          <g transform={`translate(${mt + explodeGap} 0)`}>
+            <IsoCuboid
+              x={0}
+              y={-ct / 2}
+              z={0}
+              w={mt}
+              h={ct}
+              d={mt * 0.8}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)}
+            />
+          </g>
+          {/* 木釘陣列 */}
+          {Array.from({ length: dowelCount }).map((_, i) => {
+            const zOff = ((i + 1) * (mt * 0.8)) / (dowelCount + 1) - mt * 0.4;
+            return (
+              <g key={i}>
+                {/* 突出段（在 A 件外，可見） */}
+                <IsoCuboid
+                  x={mt - holeDepthSafe}
+                  y={-tt / 2}
+                  z={zOff - tt / 2}
+                  w={tl}
+                  h={tt}
+                  d={tt}
+                  fillFront={ISO_FILL.MORTISE_FRONT}
+                  fillTop={ISO_FILL.MORTISE_TOP}
+                  fillSide={ISO_FILL.MORTISE_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)}
+                  showHiddenBackEdges={false}
+                />
+                {/* 端面圓 */}
+                <IsoCylinder
+                  x={mt - holeDepthSafe + tl}
+                  y={0}
+                  z={zOff}
+                  radius={tt / 2}
+                  height={0.1}
+                  axis="z"
+                  fillCap={ISO_FILL.TENON_FRONT}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoScale)}
+                />
+                {/* 埋入 A 件段（虛線） */}
+                <IsoCuboid
+                  x={mt - holeDepthSafe - holeDepthSafe}
+                  y={-tt / 2}
+                  z={zOff - tt / 2}
+                  w={holeDepthSafe}
+                  h={tt}
+                  d={tt}
+                  fillFront="none"
+                  fillTop="none"
+                  fillSide="none"
+                  hidden={true}
+                  strokeWidth={ISO_STROKE.HIDDEN_DASHED / Math.max(0.4, isoScale)}
+                />
+              </g>
+            );
+          })}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  // sharedScale for TitleBlock 比例
+  const sharedScale = unifiedFitScale({ w: mt * 2, h: ct });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type="dowel"
+      joineryNameZh="木釘（dowel joint）"
+      drawingNumber={`DW-Ø${tt}xL${tl}-N${dowelCount}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `孔位誤差 <= 0.3mm`,
+        `${dowelCount} 釘 × Ø ${tt} mm，間距 ${Math.round(spacing)} mm`,
+      ]}
+    />
+  );
+}
 /* === END dowel-detail === */
 
 /* === BEGIN mitered-spline-detail (owner: agent-D, group: D) === */
@@ -5963,7 +6296,8 @@ function LegacyMiteredSplineDetail(p: JoineryDetailParams) {
  *   - 槽深 = 餅深 + 1mm（漲縮預留）
  *   - 45°00′ 切面誤差 ≤ 0.5° 才能無縫接合
  * ============================================================ */
-function MiteredSplineDetail(p: JoineryDetailParams) {
+/** Legacy V2（previous unified pre-MasterDetailLayout version, kept as escape hatch for Wave 2a try-water） */
+function LegacyV2MiteredSplineDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;        // 餅乾深 (mm)
   const tt = p.tenonThickness;     // 餅乾厚 (mm)
   const mt = p.motherThickness;    // 母件厚（同 ct，因兩件對等）
@@ -6403,6 +6737,373 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
         }
       />
     </svg>
+  );
+}
+
+/**
+ * MiteredSplineDetail（Wave 2a unified visual spec 版）—
+ * 解決 inspector 報告的 4 個問題：
+ *   1. 沒有 quadrant 4 等分 → 改用 MasterDetailLayout
+ *   2. 物件超 viewBox 28px → 用 unifiedFitScale + placeInQuadrant 嚴格 clamp
+ *   3. 等角圖溢出 → 改用同 helper 計算 IsometricGroup origin/scale
+ *   4. TitleBlock 被等角圖蓋過 → MasterDetailLayout 內部固定 TitleBlock 在 footer 區
+ */
+function MiteredSplineDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;        // 餅乾深 (mm)
+  const tt = p.tenonThickness;     // 餅乾厚 (mm)
+  const ct = p.childThickness ?? p.tenonThickness;
+  const ms = Math.max(tl + 1, 1);  // 槽深 = 餅深 + 1mm 漲縮預留
+
+  // ===== Q1 正視圖：L 型轉角組合 + 餅乾片隱藏線 =====
+  const front = (() => {
+    // 兩塊板各 80mm 長 + ct 厚，組成 L
+    const armLen = 80;
+    const bbox = { w: armLen + ct, h: armLen + ct };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const fT = PX(ct);
+    const fLenH = PX(armLen);
+    const fLenV = PX(armLen);
+    // 轉角錨點：A 件水平在頂部往右、B 件垂直在 oX..oX+fT 往下
+    const fCx = oX;
+    const fCy = oY + fT;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件（橫板，左端 45° 斜切） */}
+        <polygon
+          points={`${fCx + fT},${fCy - fT} ${fCx + fLenH},${fCy - fT} ${fCx + fLenH},${fCy} ${fCx},${fCy}`}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* B 件（豎板，上端 45° 斜切） */}
+        <polygon
+          points={`${fCx},${fCy} ${fCx + fT},${fCy} ${fCx + fT},${fCy + fLenV} ${fCx},${fCy + fLenV}`}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 45° 接縫對角線 */}
+        <line
+          x1={fCx}
+          y1={fCy - fT}
+          x2={fCx + fT}
+          y2={fCy}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 餅乾片橢圓輪廓（隱藏紅虛線，跨 -45° 接縫） */}
+        {(() => {
+          const midX = fCx + fT / 2;
+          const midY = fCy - fT / 2;
+          const ellipseRX = Math.max(6, Math.min(PX(tl), fT * 1.5));
+          const ellipseRY = Math.max(2, PX(tt) / 2);
+          const norm = 1 / Math.SQRT2;
+          const dpX = Math.min(PX(ms) * norm, fT * 0.8);
+          const dpY = Math.min(PX(ms) * norm, fT * 0.8);
+          return (
+            <g>
+              <ellipse
+                cx={midX}
+                cy={midY}
+                rx={ellipseRX}
+                ry={ellipseRY}
+                fill="none"
+                stroke={COLOR.DIM_TICK}
+                strokeWidth={1.6}
+                strokeDasharray="5 3"
+                transform={`rotate(-45 ${midX} ${midY})`}
+              />
+              {/* 槽深線：兩側對稱 */}
+              <line x1={midX} y1={midY} x2={midX + dpX} y2={midY - dpY} stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+              <line x1={midX} y1={midY} x2={midX - dpX} y2={midY + dpY} stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+            </g>
+          );
+        })()}
+
+        {/* 木紋方向 */}
+        <GrainArrow x={fCx + fT + 8} y={fCy - fT - 8} length={Math.max(20, fLenH - fT - 16)} angle={0} />
+        <GrainArrow x={fCx + fT + 8} y={fCy + 8} length={Math.max(20, fLenV - 16)} angle={90} />
+
+        {/* 尺寸：B 件厚 (左下) */}
+        <DimLine
+          x1={fCx} y1={fCy + fLenV} x2={fCx + fT} y2={fCy + fLenV}
+          label={`${ct}`}
+          side={safeDimSide("bottom", `${ct}`, { x: fCx + fT / 2, y: fCy + fLenV }, qBounds)}
+        />
+        {/* A 件厚 (右上) */}
+        <DimLine
+          x1={fCx + fLenH} y1={fCy - fT} x2={fCx + fLenH} y2={fCy}
+          label={`${ct}`}
+          side={safeDimSide("right", `${ct}`, { x: fCx + fLenH, y: fCy - fT / 2 }, qBounds)}
+        />
+
+        {/* 45° 標 */}
+        <text x={fCx + fT * 1.6} y={fCy - fT * 0.4} fontSize={FONT.DIM} fill={COLOR.DIM}>
+          45°
+        </text>
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：A-A 剖面 — 餅乾嵌入接縫 =====
+  const side = (() => {
+    const boardLen = 100;
+    const bbox = { w: boardLen, h: ct * 2 + 4 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sCx = place.x;
+    const sCy = place.y;
+    const sBoardLen = PX(boardLen);
+    const sBoardT = PX(ct);
+    const sBiscuitLen = Math.min(PX(tl * 2), sBoardLen * 0.6);
+    const sBiscuitT = PX(tt);
+    const hatchId = "hatch-ms-section-v2";
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 上板 */}
+        <rect
+          x={sCx} y={sCy}
+          width={sBoardLen} height={sBoardT}
+          fill={`url(#${hatchId})`}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 下板 */}
+        <rect
+          x={sCx} y={sCy + sBoardT + 2}
+          width={sBoardLen} height={sBoardT}
+          fill={`url(#${hatchId})`}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 接縫中線 */}
+        <CenterLine x1={sCx - 4} y1={sCy + sBoardT + 1} x2={sCx + sBoardLen + 4} y2={sCy + sBoardT + 1} />
+        {/* 餅乾片 */}
+        <ellipse
+          cx={sCx + sBoardLen / 2}
+          cy={sCy + sBoardT + 1}
+          rx={sBiscuitLen / 2}
+          ry={sBiscuitT / 2 + 2}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* 餅乾槽輪廓（隱藏線） */}
+        <HiddenEdge
+          d={`M ${sCx + sBoardLen / 2 - sBiscuitLen / 2},${sCy + sBoardT - PX(ms)} L ${sCx + sBoardLen / 2 + sBiscuitLen / 2},${sCy + sBoardT - PX(ms)}`}
+        />
+        <HiddenEdge
+          d={`M ${sCx + sBoardLen / 2 - sBiscuitLen / 2},${sCy + sBoardT + 2 + PX(ms)} L ${sCx + sBoardLen / 2 + sBiscuitLen / 2},${sCy + sBoardT + 2 + PX(ms)}`}
+        />
+
+        {/* 尺寸 */}
+        <DimLine
+          x1={sCx + sBoardLen / 2 - sBiscuitLen / 2} y1={sCy + sBoardT * 2 + 2}
+          x2={sCx + sBoardLen / 2 + sBiscuitLen / 2} y2={sCy + sBoardT * 2 + 2}
+          label={`餅長 ${tl * 2}`}
+          side={safeDimSide("bottom", `餅長 ${tl * 2}`, { x: sCx + sBoardLen / 2, y: sCy + sBoardT * 2 + 2 }, qBounds)}
+        />
+        <DimLine
+          x1={sCx + sBoardLen} y1={sCy + sBoardT - PX(ms)}
+          x2={sCx + sBoardLen} y2={sCy + sBoardT}
+          label={`槽深 ${ms}`}
+          side={safeDimSide("right", `槽深 ${ms}`, { x: sCx + sBoardLen, y: sCy + sBoardT - PX(ms) / 2 }, qBounds)}
+        />
+        <DimLine
+          x1={sCx} y1={sCy} x2={sCx} y2={sCy + sBoardT}
+          label={`${ct}`}
+          side={safeDimSide("left", `${ct}`, { x: sCx, y: sCy + sBoardT / 2 }, qBounds)}
+        />
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：拆開狀態，兩塊 45° 斜面對切 =====
+  const top = (() => {
+    const plateW = 70;
+    const gap = 30;
+    const totalW = plateW * 2 + ct * 2 + gap;
+    const bbox = { w: totalW, h: ct };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tCx = place.x;
+    const tCy = place.y;
+    const tPlateW = PX(plateW);
+    const tPlateH = PX(ct);
+    const tGap = PX(gap);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件（左）：橫板 + 右端 45° 斜切 */}
+        <polygon
+          points={`${tCx},${tCy} ${tCx + tPlateW},${tCy} ${tCx + tPlateW + tPlateH},${tCy + tPlateH} ${tCx},${tCy + tPlateH}`}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        {/* A 件斜面上的餅乾槽 */}
+        <ellipse
+          cx={tCx + tPlateW + tPlateH / 2}
+          cy={tCy + tPlateH / 2}
+          rx={Math.min(PX(tl), tPlateH * 0.4)}
+          ry={Math.min(PX(tt) / 2 + 1, tPlateH * 0.25)}
+          fill="white"
+          stroke={COLOR.OUTLINE}
+          strokeDasharray={DASH.HIDDEN}
+        />
+
+        {/* B 件（右）：橫板 + 左端 45° 斜切 */}
+        <polygon
+          points={`${tCx + tPlateW + tPlateH + tGap},${tCy + tPlateH} ${tCx + tPlateW + tPlateH + tGap + tPlateH},${tCy} ${tCx + tPlateW * 2 + tPlateH * 2 + tGap},${tCy} ${tCx + tPlateW * 2 + tPlateH * 2 + tGap},${tCy + tPlateH}`}
+          fill={COLOR.TENON}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        <ellipse
+          cx={tCx + tPlateW + tPlateH + tGap + tPlateH / 2}
+          cy={tCy + tPlateH / 2}
+          rx={Math.min(PX(tl), tPlateH * 0.4)}
+          ry={Math.min(PX(tt) / 2 + 1, tPlateH * 0.25)}
+          fill="white"
+          stroke={COLOR.OUTLINE}
+          strokeDasharray={DASH.HIDDEN}
+        />
+
+        {/* 餅乾片（落在中央 gap） */}
+        <ellipse
+          cx={tCx + tPlateW + tPlateH + tGap / 2}
+          cy={tCy + tPlateH / 2}
+          rx={Math.min(PX(tl), tGap * 0.45)}
+          ry={Math.min(PX(tt) / 2 + 2, tPlateH * 0.32)}
+          fill={COLOR.MORTISE}
+          stroke={COLOR.OUTLINE}
+          strokeWidth={STROKE.OUTLINE}
+        />
+        <text
+          x={tCx + tPlateW + tPlateH + tGap / 2}
+          y={tCy - 4}
+          fontSize={FONT.CALLOUT}
+          textAnchor="middle"
+          fill={COLOR.OUTLINE}
+        >
+          餅乾片
+        </text>
+
+        {/* 木紋方向（在 A 件下方） */}
+        <GrainArrow x={tCx + 4} y={tCy + tPlateH + 14} length={Math.max(20, tPlateW - 8)} angle={0} />
+
+        {/* 尺寸：板厚 */}
+        <DimLine
+          x1={tCx} y1={tCy} x2={tCx} y2={tCy + tPlateH}
+          label={`${ct}`}
+          side={safeDimSide("left", `${ct}`, { x: tCx, y: tCy + tPlateH / 2 }, qBounds)}
+        />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：30° L 型轉角 + 半透明餅乾 =====
+  const iso = (() => {
+    const armLen = 70;
+    const dep = 60;
+    // bbox：考慮 cabinet projection 後 x 方向 = armLen + dep*cos30、y 方向 = armLen + dep*sin30
+    const ANG = (30 * Math.PI) / 180;
+    const dxz = Math.cos(ANG) * 0.5;
+    const dyz = Math.sin(ANG) * 0.5;
+    const projW = armLen + dep * dxz + ct;
+    const projH = armLen + dep * dyz + ct;
+    const isoBbox = { w: projW, h: projH };
+    const s = unifiedFitScale(isoBbox, { targetUsage: 0.7 });
+    const PX = (mm: number) => mm * s;
+    const aLen = PX(armLen);
+    const bLen = PX(armLen);
+    const t = PX(ct);
+    const dEff = PX(dep);
+    // 整個 iso 物件 bbox（已 px）
+    const isoObjW = aLen + dEff * dxz + t;
+    const isoObjH = bLen + dEff * dyz + t;
+    const place = placeInQuadrant({ w: isoObjW, h: isoObjH });
+    // 轉角放在 (place.x, place.y + t + dEff*dyz)；A 件水平往右、B 件垂直往下
+    const cornerX = place.x;
+    const cornerY = place.y + t + dEff * dyz;
+
+    // path 用相對 corner 座標
+    const aFront = `M${0},${-t} L${aLen},${-t} L${aLen},${0} L${0},${0} Z`;
+    const aTop = `M${0},${-t} L${aLen},${-t} L${aLen + dEff * dxz},${-t - dEff * dyz} L${0 + dEff * dxz},${-t - dEff * dyz} Z`;
+    const aRight = `M${aLen},${-t} L${aLen + dEff * dxz},${-t - dEff * dyz} L${aLen + dEff * dxz},${0 - dEff * dyz} L${aLen},${0} Z`;
+    const bFront = `M${0},${0} L${t},${0} L${t},${bLen} L${0},${bLen} Z`;
+    const bTop = `M${0},${0} L${t},${0} L${t + dEff * dxz},${0 - dEff * dyz} L${0 + dEff * dxz},${0 - dEff * dyz} Z`;
+    const bRight = `M${t},${0} L${t + dEff * dxz},${0 - dEff * dyz} L${t + dEff * dxz},${bLen - dEff * dyz} L${t},${bLen} Z`;
+
+    return (
+      <g transform={`translate(${cornerX} ${cornerY})`}>
+        <g stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE}>
+          {/* A 件水平板 */}
+          <path d={aTop} fill="#e8d4a8" />
+          <path d={aRight} fill="#b88a4d" />
+          <path d={aFront} fill={COLOR.TENON} />
+          {/* B 件垂直板 */}
+          <path d={bTop} fill="#d8b988" />
+          <path d={bRight} fill="#b88a4d" />
+          <path d={bFront} fill={COLOR.MORTISE} fillOpacity={0.85} />
+          {/* 45° 接縫 */}
+          <line x1={0} y1={-t} x2={t} y2={0} stroke={COLOR.OUTLINE} />
+          {/* 隱藏餅乾示意 */}
+          <ellipse
+            cx={t / 2}
+            cy={-t / 2}
+            rx={Math.min(PX(tl) * 0.6, t * 1.2)}
+            ry={Math.min(PX(tt) * 0.4 + 2, t * 0.6)}
+            fill={COLOR.DIM}
+            fillOpacity={0.35}
+            stroke={COLOR.DIM}
+            strokeDasharray={DASH.HIDDEN}
+          />
+        </g>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: 80 + ct, h: 80 + ct });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type={p.material ? `mitered-spline · ${p.material}` : "mitered-spline"}
+      joineryNameZh="斜接餅乾榫"
+      drawingNumber={`MS-${ct}-${tl}-${tt}`}
+      scale={scaleStr}
+      drawnBy="wrd-modern-joinery"
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `45° 切面誤差 ≤ 0.5°`,
+        `槽深 ${ms}mm 留 1mm 漲縮`,
+        `餅厚 ${tt}mm · 餅深 ${tl}mm`,
+      ]}
+    />
   );
 }
 /* === END mitered-spline-detail === */

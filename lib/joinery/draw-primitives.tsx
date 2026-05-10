@@ -1453,3 +1453,329 @@ export function WarningCallout({
     </g>
   );
 }
+
+// =============================================================================
+// Phase 4 (2026-05-09)：統一視覺規範（unified-visual-spec.md）
+// 4 quadrant Master Layout + 統一 scale + safeDimSide
+// 12 個 detail 共用，先給 dowel + mitered-spline 試水（Wave 2a）
+// =============================================================================
+
+/** Canvas 標準尺寸（unified-visual-spec.md §A.3）。 */
+export const CANVAS = {
+  W: 960,
+  H: 720,
+  FOOTER_H: 50,
+  GAP: 10,
+} as const;
+
+/** 單個 quadrant 內部規格。 */
+export const QUADRANT = {
+  W: 475,            // (CANVAS.W - GAP) / 2 = (960-10)/2
+  H: 325,            // (CANVAS.H - FOOTER_H - GAP) / 2 = (720-50-10)/2
+  PADDING: 24,
+  HEADER_H: 22,
+  LABEL_RESERVE: 35,
+} as const;
+
+/** 4 個 quadrant 的左上角位置（第一角投影法）。 */
+export const QUADRANT_POS = {
+  Q1_FRONT: { x: 0, y: 0 },                                                  // 左上
+  Q2_SIDE: { x: QUADRANT.W + CANVAS.GAP, y: 0 },                             // 右上
+  Q3_TOP: { x: 0, y: QUADRANT.H + CANVAS.GAP },                              // 左下
+  Q4_ISO: { x: QUADRANT.W + CANVAS.GAP, y: QUADRANT.H + CANVAS.GAP },        // 右下
+  FOOTER: { x: 0, y: 2 * (QUADRANT.H + CANVAS.GAP) },                        // 底部 TitleBlock
+} as const;
+
+const TARGET_USAGE_RATIO = 0.85;
+const SCALE_MIN = 0.3;
+const SCALE_MAX = 3.0;
+
+/**
+ * 統一 scale 算法（spec §C.2）。
+ * 給 bbox（mm）算出 px/mm scale，讓物件 ≈ usable area × targetUsage。
+ */
+export function unifiedFitScale(
+  bboxMm: { w: number; h: number; d?: number },
+  quadrant: {
+    w?: number;
+    h?: number;
+    padding?: number;
+    labelReserve?: number;
+    headerH?: number;
+    targetUsage?: number;
+  } = {},
+): number {
+  const qw = quadrant.w ?? QUADRANT.W;
+  const qh = quadrant.h ?? QUADRANT.H;
+  const pad = quadrant.padding ?? QUADRANT.PADDING;
+  const label = quadrant.labelReserve ?? QUADRANT.LABEL_RESERVE;
+  const head = quadrant.headerH ?? QUADRANT.HEADER_H;
+  const usage = quadrant.targetUsage ?? TARGET_USAGE_RATIO;
+
+  const usableW = qw - 2 * pad - 2 * label;
+  const usableH = qh - head - 2 * pad - 2 * label;
+
+  // 取 max(w,h,d?) 確保等角圖深度也算進去
+  const bboxMaxW = Math.max(bboxMm.w, bboxMm.d ?? 0, 1);
+  const bboxMaxH = Math.max(bboxMm.h, bboxMm.d ?? 0, 1);
+
+  const scaleByW = (usableW * usage) / bboxMaxW;
+  const scaleByH = (usableH * usage) / bboxMaxH;
+  const scale = Math.min(scaleByW, scaleByH);
+
+  return Math.max(SCALE_MIN, Math.min(SCALE_MAX, scale));
+}
+
+/**
+ * Quadrant 中心座標（quadrant-local，給 caller 把物件擺中央用）。
+ * 不含 header offset；caller 在 MasterDetailLayout 已 translate header。
+ */
+export function quadrantCenter(
+  quadrant: {
+    w?: number;
+    h?: number;
+    headerH?: number;
+  } = {},
+): { x: number; y: number } {
+  const qw = quadrant.w ?? QUADRANT.W;
+  const qh = quadrant.h ?? QUADRANT.H;
+  const head = quadrant.headerH ?? QUADRANT.HEADER_H;
+  // header 已被外層 translate 掉，所以 viewable area = (0..qw, 0..qh-head)
+  return {
+    x: qw / 2,
+    y: (qh - head) / 2,
+  };
+}
+
+/**
+ * 物件擺放：給定物件 bbox（已 px），算出讓物件居中於 quadrant viewable area
+ * 的左上角座標。caller 用 PX-converted 後的 bbox 傳入。
+ */
+export function placeInQuadrant(
+  bboxPx: { w: number; h: number },
+  quadrant: {
+    w?: number;
+    h?: number;
+    headerH?: number;
+  } = {},
+): { x: number; y: number } {
+  const qw = quadrant.w ?? QUADRANT.W;
+  const qh = quadrant.h ?? QUADRANT.H;
+  const head = quadrant.headerH ?? QUADRANT.HEADER_H;
+  const usableH = qh - head;
+  return {
+    x: (qw - bboxPx.w) / 2,
+    y: (usableH - bboxPx.h) / 2,
+  };
+}
+
+/**
+ * 估算 label 像素寬（中文字 ≈ fontSize × 1.0、ASCII ≈ fontSize × 0.6）。
+ */
+function estimateLabelW(text: string, fontSize: number): number {
+  const cjkCount = (text.match(/[一-鿿]/g) ?? []).length;
+  const otherCount = text.length - cjkCount;
+  return cjkCount * fontSize + otherCount * fontSize * 0.6;
+}
+
+/**
+ * 防超出：給定原本想要的 side，若 label 會跑出 quadrant 邊界，自動翻到反向
+ * 或退一級找可行 side。所有座標在 quadrant-local（已扣 header offset）。
+ *
+ * 注意：當前 DimLine 內部偏移約 14px，這裡用同樣常數估算。
+ */
+export function safeDimSide(
+  rawSide: "top" | "bottom" | "left" | "right",
+  labelText: string,
+  pos: { x: number; y: number },
+  quadrantBounds: { x: number; y: number; w: number; h: number },
+  opts?: { fontSize?: number; safeMargin?: number },
+): "top" | "bottom" | "left" | "right" {
+  const fs = opts?.fontSize ?? FONT.DIM;
+  const margin = opts?.safeMargin ?? 8;
+  const labW = estimateLabelW(labelText, fs);
+  const labH = fs + 2;
+  const offset = 14; // DimLine 內部 dx/dy 加 tick 後的視覺偏移
+
+  const fitsAt = (side: "top" | "bottom" | "left" | "right"): boolean => {
+    let lx: number, ly: number;
+    switch (side) {
+      case "top":
+        lx = pos.x - labW / 2;
+        ly = pos.y - offset - labH;
+        break;
+      case "bottom":
+        lx = pos.x - labW / 2;
+        ly = pos.y + offset;
+        break;
+      case "left":
+        lx = pos.x - offset - labW;
+        ly = pos.y - labH / 2;
+        break;
+      case "right":
+        lx = pos.x + offset;
+        ly = pos.y - labH / 2;
+        break;
+    }
+    return (
+      lx >= quadrantBounds.x + margin &&
+      lx + labW <= quadrantBounds.x + quadrantBounds.w - margin &&
+      ly >= quadrantBounds.y + margin &&
+      ly + labH <= quadrantBounds.y + quadrantBounds.h - margin
+    );
+  };
+
+  if (fitsAt(rawSide)) return rawSide;
+
+  // 翻反向
+  const opposite: Record<typeof rawSide, "top" | "bottom" | "left" | "right"> = {
+    top: "bottom",
+    bottom: "top",
+    left: "right",
+    right: "left",
+  };
+  if (fitsAt(opposite[rawSide])) return opposite[rawSide];
+
+  // 退一級 — 4 個都試
+  const order: ("top" | "bottom" | "left" | "right")[] = ["top", "right", "bottom", "left"];
+  for (const s of order) {
+    if (s === rawSide || s === opposite[rawSide]) continue;
+    if (fitsAt(s)) return s;
+  }
+
+  // 全 fail：回 raw 並 warn
+  if (typeof console !== "undefined") {
+    console.warn(`[safeDimSide] label "${labelText}" overflows all sides; using raw=${rawSide}`);
+  }
+  return rawSide;
+}
+
+/**
+ * Quadrant 邊框 + header（標題列）。
+ * 永遠畫淺灰邊框（不再 debug-only），方便木工確認 4 quadrant 對齊。
+ */
+export function QuadrantFrame({ title }: { title: string }): JSX.Element {
+  return (
+    <g>
+      {/* 邊框 */}
+      <rect
+        x={0}
+        y={0}
+        width={QUADRANT.W}
+        height={QUADRANT.H}
+        fill="none"
+        stroke="#bbb"
+        strokeWidth={0.5}
+      />
+      {/* 標題底色 */}
+      <rect
+        x={0}
+        y={0}
+        width={QUADRANT.W}
+        height={QUADRANT.HEADER_H}
+        fill="#f4f4f4"
+        stroke="#bbb"
+        strokeWidth={0.5}
+      />
+      <text
+        x={QUADRANT.W / 2}
+        y={16}
+        fontSize={FONT.LABEL}
+        textAnchor="middle"
+        fontWeight="bold"
+        fill={COLOR.OUTLINE}
+      >
+        {title}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * MasterDetailLayout — 12 type 共用 layout。
+ * Caller 只需傳 4 個 view 的 ReactNode（quadrant-local 座標，0..QUADRANT.W、
+ * 0..QUADRANT.H - HEADER_H），其餘交給 master 處理。
+ */
+export interface MasterDetailLayoutProps {
+  type: string;
+  joineryNameZh: string;
+  drawingNumber: string;
+  frontView: ReactNode;
+  sideView: ReactNode;
+  topView: ReactNode;
+  isoView: ReactNode;
+  scale?: string;
+  drawnBy?: string;
+  warnings?: string[];
+}
+
+export function MasterDetailLayout({
+  type,
+  joineryNameZh,
+  drawingNumber,
+  frontView,
+  sideView,
+  topView,
+  isoView,
+  scale = "1:1",
+  drawnBy = "wrd-auto",
+  warnings = [],
+}: MasterDetailLayoutProps): JSX.Element {
+  return (
+    <svg
+      width={CANVAS.W}
+      height={CANVAS.H}
+      viewBox={`0 0 ${CANVAS.W} ${CANVAS.H}`}
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMid meet"
+      style={{ maxWidth: `${CANVAS.W}px`, background: "white" }}
+    >
+      {/* Q1 正視 */}
+      <g transform={`translate(${QUADRANT_POS.Q1_FRONT.x} ${QUADRANT_POS.Q1_FRONT.y})`}>
+        <QuadrantFrame title="正視圖 FRONT" />
+        <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>
+          {/* clipPath 防止物件溢出 quadrant */}
+          {frontView}
+        </g>
+      </g>
+
+      {/* Q2 側視 */}
+      <g transform={`translate(${QUADRANT_POS.Q2_SIDE.x} ${QUADRANT_POS.Q2_SIDE.y})`}>
+        <QuadrantFrame title="側視圖 SIDE" />
+        <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{sideView}</g>
+      </g>
+
+      {/* Q3 俯視 */}
+      <g transform={`translate(${QUADRANT_POS.Q3_TOP.x} ${QUADRANT_POS.Q3_TOP.y})`}>
+        <QuadrantFrame title="俯視圖 TOP" />
+        <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{topView}</g>
+      </g>
+
+      {/* Q4 等角 */}
+      <g transform={`translate(${QUADRANT_POS.Q4_ISO.x} ${QUADRANT_POS.Q4_ISO.y})`}>
+        <QuadrantFrame title="等角圖 AXONOMETRIC" />
+        <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{isoView}</g>
+      </g>
+
+      {/* Footer warnings + TitleBlock */}
+      {warnings.map((w, i) => (
+        <WarningCallout
+          key={`warn-${i}`}
+          x={QUADRANT_POS.FOOTER.x + 8 + (i % 2) * 320}
+          y={QUADRANT_POS.FOOTER.y - 18 + Math.floor(i / 2) * 16}
+          text={w}
+        />
+      ))}
+      <TitleBlock
+        x={QUADRANT_POS.FOOTER.x}
+        y={QUADRANT_POS.FOOTER.y}
+        width={CANVAS.W}
+        joineryType={type}
+        joineryNameZh={joineryNameZh}
+        scale={scale}
+        drawnBy={drawnBy}
+        drawingNumber={drawingNumber}
+      />
+    </svg>
+  );
+}
