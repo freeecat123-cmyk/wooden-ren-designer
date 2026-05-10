@@ -783,7 +783,6 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
               fillTop={ISO_FILL.TENON_TOP}
               fillSide={ISO_FILL.TENON_SIDE}
               strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
-              embeddedLength={mt}
             />
           ) : (
             <IsoCylinder
@@ -1590,7 +1589,6 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             fillTop={ISO_FILL.TENON_TOP}
             fillSide={ISO_FILL.TENON_SIDE}
             strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
-            embeddedLength={safeTl}
           />
         </g>
         {/* 拆解箭頭 */}
@@ -2732,7 +2730,6 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
                   fillTop={ISO_FILL.TENON_TOP}
                   fillSide={ISO_FILL.TENON_SIDE}
                   strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
-                  embeddedLength={tl}
                 />
               </g>
               {/* 拆解箭頭：舌頭 → 凹槽 */}
@@ -3452,7 +3449,6 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                   fillSide={ISO_FILL.TENON_SIDE}
                   strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
                   showShoulder={!noShoulder}
-                  embeddedLength={tl}
                 />
               </g>
               {/* 拆解箭頭：榫頭 → 榫眼 */}
