@@ -28,6 +28,15 @@ import {
   IsometricGroup,
   ThreeViewLayout,
   WarningCallout,
+  IsoCuboid,
+  IsoTenon,
+  IsoMortise,
+  IsoCylinder,
+  IsoExplode,
+  ISO,
+  ISO_FILL,
+  ISO_STROKE,
+  ISO_DASH,
 } from "./draw-primitives";
 
 export interface JoineryDetailParams {
@@ -691,111 +700,116 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
   );
 
   // ============================ ISO view ============================
-  // 30° 等角圖：分解圖 — 母件在上、公件在下，視覺上錯開
-  const iso = (
-    <g>
-      <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（ISO 30°）</text>
-      {(() => {
-        const ANG = (30 * Math.PI) / 180;
-        const dx = Math.cos(ANG);
-        const dy = -Math.sin(ANG);
-        const isoS = s * 0.7;
-        const oxM = QUAD_W / 2 - 30;
-        const oyM = 80;
-        const px = (mm: number) => mm * isoS;
-        // 母件 box
-        const mW = px(panelW * 0.6);
-        const mD = px(panelW * 0.5); // 縱深
-        const mH = px(mt);
-        // front face quad
-        const f0 = [oxM, oyM] as [number, number];
-        const f1 = [oxM + mW, oyM] as [number, number];
-        const f2 = [oxM + mW, oyM + mH] as [number, number];
-        const f3 = [oxM, oyM + mH] as [number, number];
-        // back offset
-        const bx = mD * dx;
-        const by = mD * dy;
-        const b0: [number, number] = [f0[0] + bx, f0[1] + by];
-        const b1: [number, number] = [f1[0] + bx, f1[1] + by];
-        // top face & right face
-        const topQuad = `${f0[0]},${f0[1]} ${f1[0]},${f1[1]} ${b1[0]},${b1[1]} ${b0[0]},${b0[1]}`;
-        const rightQuad = `${f1[0]},${f1[1]} ${f2[0]},${f2[1]} ${f2[0] + bx},${f2[1] + by} ${b1[0]},${b1[1]}`;
-        const frontQuad = `${f0[0]},${f0[1]} ${f1[0]},${f1[1]} ${f2[0]},${f2[1]} ${f3[0]},${f3[1]}`;
-        // 母件孔（畫在 top face 中央）
-        const holeCx = (f0[0] + f1[0]) / 2 + bx / 2;
-        const holeCy = (f0[1] + f1[1]) / 2 + by / 2;
-        const holeW = px(tw);
-        const holeD = px(tt);
-        const h0: [number, number] = [holeCx - holeW / 2, holeCy - holeD / 2];
-        const h1: [number, number] = [holeCx + holeW / 2, holeCy - holeD / 2];
-        const h2: [number, number] = [holeCx + holeW / 2, holeCy + holeD / 2];
-        const h3: [number, number] = [holeCx - holeW / 2, holeCy + holeD / 2];
-
-        // 公件柱（exploded 在母件下方、向左下偏一點）
-        const oxL = oxM + 30;
-        const oyL = oyM + mH + 60;
-        const lW = px(cw);
-        const lD = px(ct);
-        const lH = px(legBody * 0.7);
-        const tnW = px(tw);
-        const tnD = px(tt);
-        const tnH = px(tl);
-        // 柱主體頂面 quad
-        const lf0 = [oxL, oyL] as [number, number];
-        const lf1 = [oxL + lW, oyL] as [number, number];
-        const lbx = lD * dx;
-        const lby = lD * dy;
-        const lb0: [number, number] = [lf0[0] + lbx, lf0[1] + lby];
-        const lb1: [number, number] = [lf1[0] + lbx, lf1[1] + lby];
-        // 柱身 front face
-        const lfFront = `${lf0[0]},${lf0[1]} ${lf1[0]},${lf1[1]} ${lf1[0]},${lf1[1] + lH} ${lf0[0]},${lf0[1] + lH}`;
-        const lfRight = `${lf1[0]},${lf1[1]} ${lb1[0]},${lb1[1]} ${lb1[0]},${lb1[1] + lH} ${lf1[0]},${lf1[1] + lH}`;
-        // 柱頂面（榫肩面）= 大矩形扣榫頭，畫成淡色
-        const lfTop = `${lf0[0]},${lf0[1]} ${lf1[0]},${lf1[1]} ${lb1[0]},${lb1[1]} ${lb0[0]},${lb0[1]}`;
-        // 榫頭從柱頂面向上凸出 tnH
-        const tnCx = (lf0[0] + lf1[0]) / 2 + lbx / 2;
-        const tnCy = (lf0[1] + lf1[1]) / 2 + lby / 2;
-        const tnf0: [number, number] = [tnCx - tnW / 2, tnCy - tnD / 2];
-        const tnf1: [number, number] = [tnCx + tnW / 2, tnCy - tnD / 2];
-        const tnf2: [number, number] = [tnCx + tnW / 2, tnCy + tnD / 2];
-        const tnf3: [number, number] = [tnCx - tnW / 2, tnCy + tnD / 2];
-        // 榫頭 4 個面
-        const tnFront = `${tnf0[0]},${tnf0[1] - tnH} ${tnf1[0]},${tnf1[1] - tnH} ${tnf1[0]},${tnf1[1]} ${tnf0[0]},${tnf0[1]}`;
-        const tnRight = `${tnf1[0]},${tnf1[1] - tnH} ${tnf2[0]},${tnf2[1] - tnH} ${tnf2[0]},${tnf2[1]} ${tnf1[0]},${tnf1[1]}`;
-        const tnTop = `${tnf0[0]},${tnf0[1] - tnH} ${tnf1[0]},${tnf1[1] - tnH} ${tnf2[0]},${tnf2[1] - tnH} ${tnf3[0]},${tnf3[1] - tnH}`;
-
-        return (
-          <g>
-            {/* 母件 */}
-            <polygon points={topQuad} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={rightQuad} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={frontQuad} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 母件穿孔（top face 上的矩形 hole） */}
-            <polygon points={`${h0[0]},${h0[1]} ${h1[0]},${h1[1]} ${h2[0]},${h2[1]} ${h3[0]},${h3[1]}`} fill="#3d2a14" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 母件孔的隱藏邊（從底面看的孔） */}
-            <HiddenEdge d={`M${h0[0]} ${h0[1] + mH} L${h1[0]} ${h1[1] + mH} L${h2[0]} ${h2[1] + mH} L${h3[0]} ${h3[1] + mH} Z`} />
-
-            {/* 公件柱身 */}
-            <polygon points={lfTop} fill="#e8d4a8" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={lfRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={lfFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 榫頭凸出柱頂 */}
-            <polygon points={tnFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={tnRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={tnTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-
-            {/* 標註 */}
-            <text x={oxM + mW + bx + 6} y={oyM + by + 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>母件（板）</text>
-            <text x={oxL + lW + lbx + 6} y={oyL + lby + lH / 2} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>公件（柱）</text>
-            <text x={tnf1[0] + 6} y={tnf1[1] - tnH / 2} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>榫頭 {tw}×{tt}×{tl}</text>
-            {/* 拆解箭頭：榫對孔 */}
-            <line x1={holeCx} y1={holeCy + mH} x2={tnCx} y2={tnCy - tnH - 6} stroke={COLOR.DIM} strokeWidth={0.5} strokeDasharray="3 2" />
-          </g>
-        );
-      })()}
-    </g>
-  );
+  // Phase 3 (2026-05-09)：cabinet projection 用 helper 6 件套
+  // 母件（板）= IsoCuboid + IsoMortise（through=true）；公件（柱）= IsoCuboid + IsoTenon
+  // 用 IsoExplode 把公件向下拉開，加箭頭組裝向母件穿孔
+  const iso = (() => {
+    const isoS = s * 0.55;
+    // 母件（板）模型尺寸 (mm)：寬=panelW*0.55、厚=mt、深=panelW*0.45
+    const motherW = panelW * 0.55;
+    const motherH = mt;
+    const motherD = panelW * 0.45;
+    // 母件 origin（左下前角）— 排在 quadrant 上方
+    const oxM = QUAD_W / 2 - (motherW * isoS) / 2 - 20;
+    const oyM = 70;
+    // 公件（柱）模型尺寸 (mm)：寬=cw、高=legBody、深=ct
+    const childW = cw;
+    const childH = legBody;
+    const childD = ct;
+    // explode：公件在母件下方 60px
+    const explodeGap = 80;
+    const oxC = oxM + (motherW * isoS) / 2 - (childW * isoS) / 2 + 30 * isoS;
+    const oyC = oyM + (motherH * isoS) + explodeGap;
+    return (
+      <g>
+        <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（ISO 30° 拆解）</text>
+        {/* 母件（板） — 用 IsoCuboid 強制 3 面 + 後虛線 */}
+        <g transform={`translate(${oxM} ${oyM}) scale(${isoS})`}>
+          <IsoCuboid
+            x={0}
+            y={0}
+            z={0}
+            w={motherW}
+            h={motherH}
+            d={motherD}
+            fillFront={ISO_FILL.MORTISE_FRONT}
+            fillTop={ISO_FILL.MORTISE_TOP}
+            fillSide={ISO_FILL.MORTISE_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+          />
+          {/* 通榫 — 從頂面挖洞穿到底，看到內壁 + 背面虛線開口 */}
+          <IsoMortise
+            faceX={motherW / 2}
+            faceY={0}
+            faceZ={motherD / 2}
+            width={tw}
+            height={tt}
+            depth={mt}
+            faceNormal="+y"
+            through={true}
+            stroke={COLOR.OUTLINE}
+            strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoS}
+          />
+        </g>
+        {/* 公件（柱） — IsoCuboid 主體 + IsoTenon 從頂面凸出 */}
+        <g transform={`translate(${oxC} ${oyC}) scale(${isoS})`}>
+          <IsoCuboid
+            x={0}
+            y={0}
+            z={0}
+            w={childW}
+            h={childH}
+            d={childD}
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+          />
+          {/* 榫頭從柱頂面（y=0）向上凸出 tl */}
+          {!isRound ? (
+            <IsoTenon
+              baseX={childW / 2}
+              baseY={0}
+              baseZ={childD / 2}
+              width={tw}
+              thickness={tt}
+              length={tl}
+              direction="-y"
+              fillFront={ISO_FILL.TENON_FRONT}
+              fillTop={ISO_FILL.TENON_TOP}
+              fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+            />
+          ) : (
+            <IsoCylinder
+              x={childW / 2}
+              y={0}
+              z={childD / 2}
+              radius={dRound / 2}
+              height={tl}
+              axis="y"
+              fillCap={ISO_FILL.TENON_FRONT}
+              fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+            />
+          )}
+        </g>
+        {/* 拆解箭頭：榫頭頂端 → 母件孔（白色虛線） */}
+        <line
+          x1={oxC + (childW / 2 - 0) * isoS + (childD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE}
+          y1={oyC - (tl) * isoS}
+          x2={oxM + (motherW / 2) * isoS + (motherD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE}
+          y2={oyM + motherH * isoS + 4}
+          stroke={COLOR.DIM}
+          strokeWidth={0.8}
+          strokeDasharray="4 3"
+        />
+        <text x={oxM - 6} y={oyM - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE} textAnchor="start">母件（板）</text>
+        <text x={oxC - 6} y={oyC - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE} textAnchor="start">公件（柱）榫 {tw}×{tt}×{tl}</text>
+      </g>
+    );
+  })();
 
   return (
     <svg width={960} height={680} viewBox="0 0 960 680" className="bg-white">
@@ -1463,120 +1477,118 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   );
 
   // ============================ ISO view ============================
-  const iso = (
-    <g>
-      <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（ISO 30°，分解）</text>
-      {(() => {
-        const ANG = (30 * Math.PI) / 180;
-        const dx = Math.cos(ANG);
-        const dy = -Math.sin(ANG);
-        const isoS = s * 0.55;
-        const px = (mm: number) => mm * isoS;
-        const oxL = 50;
-        const oyL = 80;
-        // 母件柱 mt × mt × cw*2.5 (Y 方向高)
-        const mW = px(mt);
-        const mD = px(mt);
-        const mH = px(cw * 2.5);
-        // front
-        const lf0: [number, number] = [oxL, oyL];
-        const lf1: [number, number] = [oxL + mW, oyL];
-        const lf2: [number, number] = [oxL + mW, oyL + mH];
-        const lf3: [number, number] = [oxL, oyL + mH];
-        const dxv = mD * dx;
-        const dyv = mD * dy;
-        const lb0: [number, number] = [lf0[0] + dxv, lf0[1] + dyv];
-        const lb1: [number, number] = [lf1[0] + dxv, lf1[1] + dyv];
-        const lb2: [number, number] = [lf2[0] + dxv, lf2[1] + dyv];
-        // 母件三面
-        const mFront = `${lf0[0]},${lf0[1]} ${lf1[0]},${lf1[1]} ${lf2[0]},${lf2[1]} ${lf3[0]},${lf3[1]}`;
-        const mTop = `${lf0[0]},${lf0[1]} ${lf1[0]},${lf1[1]} ${lb1[0]},${lb1[1]} ${lb0[0]},${lb0[1]}`;
-        const mRight = `${lf1[0]},${lf1[1]} ${lf2[0]},${lf2[1]} ${lb2[0]},${lb2[1]} ${lb1[0]},${lb1[1]}`;
-        // 榫眼開口（在母件 right face 中央）
-        const moMidY = (lf1[1] + lf2[1]) / 2;
-        const moMidZ = mD / 2;
-        const moW = px(tt);
-        const moH = px(tw);
-        // right face 上的榫眼是個 4 邊形（在 right face 平面內）
-        const moCx = lf1[0] + dx * moMidZ;
-        const moCy = lf1[1] + dy * moMidZ + (moMidY - lf1[1]);
-        const mor = [
-          [moCx - moW / 2, moCy - moH / 2],
-          [moCx + moW / 2, moCy - moH / 2],
-          [moCx + moW / 2, moCy + moH / 2],
-          [moCx - moW / 2, moCy + moH / 2],
-        ];
-        // 公件（牙板）— 放在母件右邊空隙，向左指向榫眼
-        const oxA = oxL + mW + 80;
-        const oyA = oyL + mH / 2 - px(cw) / 2;
-        const aL = px(cw * 2.2); // 牙板長
-        const aH = px(cw); // 牙板高 = cw
-        const aD = px(ct); // 牙板厚 = ct
-        const af0: [number, number] = [oxA, oyA];
-        const af1: [number, number] = [oxA + aL, oyA];
-        const af2: [number, number] = [oxA + aL, oyA + aH];
-        const af3: [number, number] = [oxA, oyA + aH];
-        const adxv = aD * dx;
-        const adyv = aD * dy;
-        const ab0: [number, number] = [af0[0] + adxv, af0[1] + adyv];
-        const ab1: [number, number] = [af1[0] + adxv, af1[1] + adyv];
-        // 牙板 front + top + right
-        const aFront = `${af0[0]},${af0[1]} ${af1[0]},${af1[1]} ${af2[0]},${af2[1]} ${af3[0]},${af3[1]}`;
-        const aTop = `${af0[0]},${af0[1]} ${af1[0]},${af1[1]} ${ab1[0]},${ab1[1]} ${ab0[0]},${ab0[1]}`;
-        // 榫頭從牙板左端凸出 safeTl
-        const tnW = px(safeTl);
-        const tnH = px(tw);
-        const tnD = px(tt);
-        const tnX = oxA - tnW;
-        const tnY = oyA + (aH - tnH) / 2;
-        const tnf0: [number, number] = [tnX, tnY];
-        const tnf1: [number, number] = [tnX + tnW, tnY];
-        const tnf2: [number, number] = [tnX + tnW, tnY + tnH];
-        const tnf3: [number, number] = [tnX, tnY + tnH];
-        const tnDxv = tnD * dx;
-        const tnDyv = tnD * dy;
-        const tnb0: [number, number] = [tnf0[0] + tnDxv, tnf0[1] + tnDyv];
-        const tnb1: [number, number] = [tnf1[0] + tnDxv, tnf1[1] + tnDyv];
-        const tnb3: [number, number] = [tnf3[0] + tnDxv, tnf3[1] + tnDyv];
-        const tnFront = `${tnf0[0]},${tnf0[1]} ${tnf1[0]},${tnf1[1]} ${tnf2[0]},${tnf2[1]} ${tnf3[0]},${tnf3[1]}`;
-        const tnTop = `${tnf0[0]},${tnf0[1]} ${tnf1[0]},${tnf1[1]} ${tnb1[0]},${tnb1[1]} ${tnb0[0]},${tnb0[1]}`;
-        const tnLeft = `${tnf0[0]},${tnf0[1]} ${tnb0[0]},${tnb0[1]} ${tnb3[0]},${tnb3[1]} ${tnf3[0]},${tnf3[1]}`;
-
-        return (
-          <g>
-            {/* 母件 */}
-            {!isRound && <polygon points={mTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />}
-            {!isRound && <polygon points={mRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />}
-            {!isRound && <polygon points={mFront} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />}
-            {isRound && (
-              <ellipse cx={lf0[0] + mW / 2 + dxv / 2} cy={lf0[1] + dyv / 2} rx={mW / 2} ry={Math.abs(dyv) / 2 + 2} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            )}
-            {isRound && (
-              <rect x={lf0[0]} y={lf0[1]} width={mW} height={mH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            )}
-            {/* 榫眼開口（母件 right face 上的暗色凹陷） */}
-            <polygon points={mor.map((p) => p.join(",")).join(" ")} fill="#3d2a14" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-
-            {/* 牙板 + 榫頭 */}
-            <polygon points={aTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={aFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={tnLeft} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={tnTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            <polygon points={tnFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-
-            {/* 拆解箭頭：榫頭指向榫眼 */}
-            <line x1={tnX} y1={tnY + tnH / 2} x2={moCx + moW / 2} y2={moCy} stroke={COLOR.DIM} strokeWidth={0.5} strokeDasharray="3 2" />
-            <polygon points={`${moCx + moW / 2},${moCy} ${moCx + moW / 2 - 6},${moCy - 3} ${moCx + moW / 2 - 6},${moCy + 3}`} fill={COLOR.DIM} />
-
-            <text x={oxL + mW / 2} y={oyL + mH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>母件 {isRound ? "（圓腳）" : "（柱）"}</text>
-            <text x={oxA + aL / 2} y={oyA + aH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>公件（牙板/橫撐）</text>
-            <text x={tnX - 4} y={tnY - 4} fontSize={FONT.CALLOUT} textAnchor="end" fill={COLOR.OUTLINE}>榫頭 {tw}×{tt}×{safeTl}</text>
-          </g>
-        );
-      })()}
-    </g>
-  );
+  const iso = (() => {
+    // Phase 3 (2026-05-09)：cabinet projection 用 helper 6 件套
+    // 公母比例倒置 fix：母件柱寬一定 = mt（粗），公件牙板寬 = cw（細）
+    // 盲榫：IsoMortise(through=false) 內壁深色填充 + 4 條深度線
+    const isoS = s * 0.5;
+    // 母件（柱）模型尺寸：寬=mt、高=cw*2.5、深=mt
+    const motherW = mt;
+    const motherH = cw * 2.5;
+    const motherD = mt;
+    const oxM = 50;
+    const oyM = 80;
+    // 公件（牙板）模型：寬=cw（高度方向）、長=cw*2.0、深=ct
+    const childLen = cw * 2.0;
+    const childH = cw;
+    const childD = ct;
+    // 公件 explode 在母件右側（沿 +x 拉開）
+    const explodeGap = (motherW + safeTl + 30) * isoS + 20;
+    const oxC = oxM + motherW * isoS + explodeGap;
+    const oyC = oyM + (motherH - childH) / 2 * isoS;
+    return (
+      <g>
+        <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={QUAD_W / 2} y={20} fontSize={FONT.LABEL} textAnchor="middle" fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（ISO 30°，盲榫拆解）</text>
+        {/* 母件（柱）— 圓 or 方 */}
+        <g transform={`translate(${oxM} ${oyM}) scale(${isoS})`}>
+          {!isRound ? (
+            <IsoCuboid
+              x={0}
+              y={0}
+              z={0}
+              w={motherW}
+              h={motherH}
+              d={motherD}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+            />
+          ) : (
+            <IsoCylinder
+              x={motherW / 2}
+              y={0}
+              z={motherW / 2}
+              radius={motherW / 2}
+              height={motherH}
+              axis="y"
+              fillSide={ISO_FILL.MORTISE_FRONT}
+              fillCap={ISO_FILL.MORTISE_TOP}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+            />
+          )}
+          {/* 盲榫眼（在母件右面 +x） — 內壁深度線（凹陷感） */}
+          {!isRound && (
+            <IsoMortise
+              faceX={motherW}
+              faceY={motherH / 2}
+              faceZ={motherD / 2}
+              width={tt}
+              height={tw}
+              depth={safeTl}
+              faceNormal="+x"
+              through={false}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoS}
+            />
+          )}
+        </g>
+        {/* 公件（牙板）— IsoCuboid + IsoTenon 從左端凸出 */}
+        <g transform={`translate(${oxC} ${oyC}) scale(${isoS})`}>
+          <IsoCuboid
+            x={0}
+            y={0}
+            z={0}
+            w={childLen}
+            h={childH}
+            d={childD}
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+          />
+          {/* 榫頭從牙板左端 (-x) 凸出 */}
+          <IsoTenon
+            baseX={0}
+            baseY={childH / 2}
+            baseZ={childD / 2}
+            width={tw}
+            thickness={tt}
+            length={safeTl}
+            direction="-x"
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
+          />
+        </g>
+        {/* 拆解箭頭 */}
+        <line
+          x1={oxC - 4}
+          y1={oyC + (childH / 2) * isoS}
+          x2={oxM + motherW * isoS + 4}
+          y2={oyM + (motherH / 2) * isoS}
+          stroke={COLOR.DIM}
+          strokeWidth={0.8}
+          strokeDasharray="4 3"
+        />
+        <text x={oxM} y={oyM - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>母件 {isRound ? "（圓腳）" : "（方柱 {mt})"}</text>
+        <text x={oxC} y={oyC - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>公件（牙板/橫撐）</text>
+        <text x={oxC - 4} y={oyC + (childH + 12) * isoS + 8} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>盲榫 {tw}×{tt}×{safeTl}（榫底留 {Math.max(0, mt - safeTl)}mm）</text>
+      </g>
+    );
+  })();
 
   return (
     <svg width={960} height={680} viewBox="0 0 960 680" className="bg-white">
@@ -1977,39 +1989,80 @@ function HalfLapDetail(p: JoineryDetailParams) {
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
       <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
-          // Cabinet projection：(+x, +y) = 螢幕，z 往後 30°：dx=+cos30·0.5, dy=-sin30·0.5
-          const ANG = (30 * Math.PI) / 180;
-          const dxz = Math.cos(ANG) * 0.5;
-          const dyz = -Math.sin(ANG) * 0.5;
+          // Phase 3 (2026-05-09)：每件削半厚 + IsoExplode 上下分開
+          // A 件（下方水平條）：削掉「上」半厚 → 高 = mt/2，搭接區整段都只有下半
+          // B 件（上方水平條）：削掉「下」半厚 → 同理只有上半
+          // explode：B 在 A 上方 gap=mt*1.5
           const aLenMm = Math.max(tl * 4, cw + 20);
-          const bLenMm = Math.max(tl * 4, mt * 5);
-          // A 件（橫向條，半搭區是 [-ct/2, ct/2]）：上半厚（=mt/2）保留
-          const aHalfH = mt / 2;
-          // A 件畫成立體：橫條本體（高=mt/2，從 y=0 到 y=aHalfH），搭接區挖空
-          // 簡化：A 件畫一根長條（深度 = mt 當深），搭接區用刻槽方式
-          // front face（z=0）
-          const aFront = `M${-aLenMm / 2},${0} L${aLenMm / 2},${0} L${aLenMm / 2},${aHalfH} L${-aLenMm / 2},${aHalfH} Z`;
-          const aTop = `M${-aLenMm / 2},${0} L${aLenMm / 2},${0} L${aLenMm / 2 + mt * dxz},${mt * dyz} L${-aLenMm / 2 + mt * dxz},${mt * dyz} Z`;
-          const aRight = `M${aLenMm / 2},${0} L${aLenMm / 2 + mt * dxz},${mt * dyz} L${aLenMm / 2 + mt * dxz},${aHalfH + mt * dyz} L${aLenMm / 2},${aHalfH} Z`;
-
-          // B 件（縱向條，搭在 A 上方）：用 top 表示為下沉一半（B 削掉下半）
-          const bFront = `M${-ct / 2},${-bLenMm / 2} L${ct / 2},${-bLenMm / 2} L${ct / 2},${bLenMm / 2} L${-ct / 2},${bLenMm / 2} Z`;
-          const bTop = `M${-ct / 2},${-bLenMm / 2} L${ct / 2},${-bLenMm / 2} L${ct / 2 + mt * dxz},${-bLenMm / 2 + mt * dyz} L${-ct / 2 + mt * dxz},${-bLenMm / 2 + mt * dyz} Z`;
-          const bRight = `M${ct / 2},${-bLenMm / 2} L${ct / 2 + mt * dxz},${-bLenMm / 2 + mt * dyz} L${ct / 2 + mt * dxz},${bLenMm / 2 + mt * dyz} L${ct / 2},${bLenMm / 2} Z`;
-
+          const bLenMm = Math.max(tl * 4, cw + 20);
+          const halfMt = mt / 2;
+          const explodeGap = mt * 2;
+          // A 件 (origin x=-aLenMm/2, y=0, z=-mt/2)：寬=aLenMm, 高=halfMt (削上半), 深=mt
+          // B 件 (origin x=-bLenMm/2, y=-explodeGap-halfMt, z=-mt/2)：寬=bLenMm, 高=halfMt, 深=mt（旋 90 度沿 y 軸 → 垂直擺）
+          // 為簡化，B 件畫成跨 90° 的橫條（垂直）：寬 = mt, 高 = bLenMm, 深 = halfMt
           return (
-            <>
-              {/* A 件水平條 — front/top/right */}
-              <path d={aFront} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={aTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={aRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* B 件縱向條 — front/top/right */}
-              <path d={bFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={bTop} fill="#e8d4a8" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={bRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 搭接窗口（虛線示意刻槽位置） */}
-              <rect x={-ct / 2} y={-mt / 2} width={ct} height={mt} fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1 / isoScale} strokeDasharray="3 2" />
-            </>
+            <g>
+              {/* A 件：水平半條（保留下半 mt/2） */}
+              <IsoCuboid
+                x={-aLenMm / 2}
+                y={halfMt}
+                z={-mt / 2}
+                w={aLenMm}
+                h={halfMt}
+                d={mt}
+                fillFront={ISO_FILL.MORTISE_FRONT}
+                fillTop={ISO_FILL.MORTISE_TOP}
+                fillSide={ISO_FILL.MORTISE_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+              />
+              {/* A 件搭接區：被削掉的部分，畫一個虛線 ghost 顯示原本完整厚度 */}
+              <rect
+                x={-mt / 2}
+                y={0}
+                width={mt}
+                height={halfMt}
+                fill="none"
+                stroke={COLOR.HIDDEN}
+                strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                strokeDasharray={ISO_DASH.HIDDEN}
+              />
+              {/* B 件：水平半條搭在 A 上方（保留上半 mt/2） */}
+              <g transform={`translate(0 ${-explodeGap})`}>
+                <IsoCuboid
+                  x={-bLenMm / 2}
+                  y={0}
+                  z={-mt / 2}
+                  w={bLenMm}
+                  h={halfMt}
+                  d={mt}
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                />
+                {/* B 件削掉的搭接區 ghost */}
+                <rect
+                  x={-mt / 2}
+                  y={halfMt}
+                  width={mt}
+                  height={halfMt}
+                  fill="none"
+                  stroke={COLOR.HIDDEN}
+                  strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                  strokeDasharray={ISO_DASH.HIDDEN}
+                />
+              </g>
+              {/* 組裝箭頭（B → A 往下） */}
+              <line
+                x1={0}
+                y1={-explodeGap + halfMt + 2}
+                x2={0}
+                y2={-2}
+                stroke={COLOR.DIM}
+                strokeWidth={0.8 / isoScale}
+                strokeDasharray={ISO_DASH.ARROW}
+              />
+            </g>
           );
         })()}
       </IsometricGroup>
@@ -2421,42 +2474,83 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
       <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
-          // Cabinet projection
-          const ANG = (30 * Math.PI) / 180;
-          const dxz = Math.cos(ANG) * 0.5;
-          const dyz = -Math.sin(ANG) * 0.5;
-          const pieceLenMm = Math.max(mt * 3, tl * 5, 60);
-          const dep = mt; // 視覺深度（用板厚）
-          // 母件 — 從 x=[-pieceLenMm, 0]、y=[-mt/2, mt/2]，深度 dep
-          const mFront = `M${-pieceLenMm},${-mt / 2} L${0},${-mt / 2} L${0},${mt / 2} L${-pieceLenMm},${mt / 2} Z`;
-          const mTop = `M${-pieceLenMm},${-mt / 2} L${0},${-mt / 2} L${0 + dep * dxz},${-mt / 2 + dep * dyz} L${-pieceLenMm + dep * dxz},${-mt / 2 + dep * dyz} Z`;
-          const mRight = `M${0},${-mt / 2} L${0 + dep * dxz},${-mt / 2 + dep * dyz} L${0 + dep * dxz},${mt / 2 + dep * dyz} L${0},${mt / 2} Z`;
-          // 母件凹槽（在 right face 中央切一小段）
-          const grooveTopY = -tt / 2;
-          const grooveBotY = tt / 2;
-          // 公件本體（從 x=[tl, tl+pieceLenMm]）
-          const cFront = `M${tl},${-ct / 2} L${tl + pieceLenMm},${-ct / 2} L${tl + pieceLenMm},${ct / 2} L${tl},${ct / 2} Z`;
-          const cTop = `M${tl},${-ct / 2} L${tl + pieceLenMm},${-ct / 2} L${tl + pieceLenMm + dep * dxz},${-ct / 2 + dep * dyz} L${tl + dep * dxz},${-ct / 2 + dep * dyz} Z`;
-          const cRight = `M${tl + pieceLenMm},${-ct / 2} L${tl + pieceLenMm + dep * dxz},${-ct / 2 + dep * dyz} L${tl + pieceLenMm + dep * dxz},${ct / 2 + dep * dyz} L${tl + pieceLenMm},${ct / 2} Z`;
-          // 舌（公件突出榫舌）
-          const tFront = `M${0},${-tt / 2} L${tl},${-tt / 2} L${tl},${tt / 2} L${0},${tt / 2} Z`;
-          const tTop = `M${0},${-tt / 2} L${tl},${-tt / 2} L${tl + dep * dxz},${-tt / 2 + dep * dyz} L${0 + dep * dxz},${-tt / 2 + dep * dyz} Z`;
+          // Phase 3 (2026-05-09)：板放厚 + 舌頭加長 + 槽用 IsoMortise 內壁線
+          // 兩塊板拼寬（沿 z 深度方向），板厚 mt 是「高度」。
+          const pieceLenMm = Math.max(mt * 3, tl * 5, 80);
+          // 視覺：板的 depth（沿 z）= 80mm，板厚 mt 沿 y。長度沿 x。
+          const boardDepth = Math.max(80, pieceLenMm * 0.5);
+          // 母件（左板）：x=[-pieceLenMm, 0], y=[-mt/2, mt/2], z=[0, boardDepth]
+          // 公件（右板，含舌）：x=[tl, tl+pieceLenMm], y=[-mt/2, mt/2], z=[0, boardDepth]
+          // 舌頭：從公件左端 -x 凸出 tl 長，厚 tt（中央），深 boardDepth
+          const explodeGap = tl + 8;
           return (
-            <>
-              {/* 母件 */}
-              <path d={mTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={mRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={mFront} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 凹槽（白） — 在母件右面開口處 */}
-              <rect x={-grooveDepth} y={grooveTopY} width={grooveDepth} height={grooveBotY - grooveTopY} fill="white" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 公件本體 */}
-              <path d={cTop} fill="#e8d4a8" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={cRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={cFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 舌 */}
-              <path d={tTop} fill="#e8d4a8" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={tFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-            </>
+            <g>
+              {/* 母件（左板） */}
+              <IsoCuboid
+                x={-pieceLenMm}
+                y={-mt / 2}
+                z={0}
+                w={pieceLenMm}
+                h={mt}
+                d={boardDepth}
+                fillFront={ISO_FILL.MORTISE_FRONT}
+                fillTop={ISO_FILL.MORTISE_TOP}
+                fillSide={ISO_FILL.MORTISE_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+              />
+              {/* 母件凹槽（在右面 +x 開口） */}
+              <IsoMortise
+                faceX={0}
+                faceY={0}
+                faceZ={boardDepth / 2}
+                width={boardDepth}
+                height={tt}
+                depth={grooveDepth}
+                faceNormal="+x"
+                through={false}
+                stroke={COLOR.OUTLINE}
+                strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoScale}
+              />
+              {/* 公件（右板，explode 沿 +x） */}
+              <g transform={`translate(${explodeGap} 0)`}>
+                <IsoCuboid
+                  x={tl}
+                  y={-mt / 2}
+                  z={0}
+                  w={pieceLenMm}
+                  h={mt}
+                  d={boardDepth}
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                />
+                {/* 舌頭：從公件左端 -x 凸出 tl 長，寬=boardDepth、厚=tt */}
+                <IsoTenon
+                  baseX={tl}
+                  baseY={0}
+                  baseZ={boardDepth / 2}
+                  width={boardDepth}
+                  thickness={tt}
+                  length={tl}
+                  direction="-x"
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                />
+              </g>
+              {/* 拆解箭頭：舌頭 → 凹槽 */}
+              <line
+                x1={tl + explodeGap - 4}
+                y1={0}
+                x2={4}
+                y2={0}
+                stroke={COLOR.DIM}
+                strokeWidth={0.8 / isoScale}
+                strokeDasharray={ISO_DASH.ARROW}
+              />
+            </g>
           );
         })()}
       </IsometricGroup>
@@ -3095,47 +3189,78 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
       <IsometricGroup originX={QW / 2 - 30} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
-          // Cabinet projection
-          const ANG = (30 * Math.PI) / 180;
-          const dxz = Math.cos(ANG) * 0.5;
-          const dyz = -Math.sin(ANG) * 0.5;
+          // Phase 3 (2026-05-09)：柱腳完整 3 面 + IsoMortise 內壁 + IsoTenon showShoulder
           const apronLenMm = Math.max(ct * 4, cw + 20);
-          // 柱腳：高 mt*2、邊 mt、深 mt
-          const lx0 = -mt / 2, lx1 = mt / 2;
-          const ly0 = -mt, ly1 = mt;
-          const ld = mt;
-          const lFront = `M${lx0},${ly0} L${lx1},${ly0} L${lx1},${ly1} L${lx0},${ly1} Z`;
-          const lTop = `M${lx0},${ly0} L${lx1},${ly0} L${lx1 + ld * dxz},${ly0 + ld * dyz} L${lx0 + ld * dxz},${ly0 + ld * dyz} Z`;
-          const lRight = `M${lx1},${ly0} L${lx1 + ld * dxz},${ly0 + ld * dyz} L${lx1 + ld * dxz},${ly1 + ld * dyz} L${lx1},${ly1} Z`;
-          // 牙板：x∈[mt/2, mt/2+apronLenMm], y∈[-cw/2, cw/2], 深 ct
-          const ax0 = mt / 2, ax1 = mt / 2 + apronLenMm;
-          const ay0 = -cw / 2, ay1 = cw / 2;
-          const ad = ct;
-          const aFront = `M${ax0},${ay0} L${ax1},${ay0} L${ax1},${ay1} L${ax0},${ay1} Z`;
-          const aTop = `M${ax0},${ay0} L${ax1},${ay0} L${ax1 + ad * dxz},${ay0 + ad * dyz} L${ax0 + ad * dxz},${ay0 + ad * dyz} Z`;
-          const aRight = `M${ax1},${ay0} L${ax1 + ad * dxz},${ay0 + ad * dyz} L${ax1 + ad * dxz},${ay1 + ad * dyz} L${ax1},${ay1} Z`;
-          // 主榫頭：x∈[mt/2-tl, mt/2], y∈[-tw/2, tw/2], 深 tt
-          const tx0 = mt / 2 - tl, tx1 = mt / 2;
-          const ty0 = -tw / 2, ty1 = tw / 2;
-          const td = tt;
-          const tFront = `M${tx0},${ty0} L${tx1},${ty0} L${tx1},${ty1} L${tx0},${ty1} Z`;
-          const tTop = `M${tx0},${ty0} L${tx1},${ty0} L${tx1 + td * dxz},${ty0 + td * dyz} L${tx0 + td * dxz},${ty0 + td * dyz} Z`;
+          const explodeGap = tl + 10;
           return (
-            <>
-              {/* 柱腳 */}
-              <path d={lTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={lRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={lFront} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 榫眼（隱藏線示意）*/}
-              <rect x={-tt / 2} y={-tw / 2} width={tt} height={tw} fill="none" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} strokeDasharray="3 2" />
-              {/* 牙板 */}
-              <path d={aTop} fill="#e8d4a8" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={aRight} fill="#b88a4d" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={aFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              {/* 主榫 */}
-              <path d={tTop} fill="#d8b988" stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-              <path d={tFront} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={1 / isoScale} />
-            </>
+            <g>
+              {/* 柱腳：origin (-mt/2, -mt, -mt/2)，寬=mt 高=mt*2 深=mt */}
+              <IsoCuboid
+                x={-mt / 2}
+                y={-mt}
+                z={-mt / 2}
+                w={mt}
+                h={mt * 2}
+                d={mt}
+                fillFront={ISO_FILL.MORTISE_FRONT}
+                fillTop={ISO_FILL.MORTISE_TOP}
+                fillSide={ISO_FILL.MORTISE_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+              />
+              {/* 榫眼（柱腳右面 +x，盲榫深 tl） */}
+              <IsoMortise
+                faceX={mt / 2}
+                faceY={0}
+                faceZ={0}
+                width={tt}
+                height={tw}
+                depth={tl}
+                faceNormal="+x"
+                through={false}
+                stroke={COLOR.OUTLINE}
+                strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoScale}
+              />
+              {/* 牙板（含主榫 + 肩） — explode 在柱腳右側 */}
+              <g transform={`translate(${explodeGap * 1.5} 0)`}>
+                <IsoCuboid
+                  x={mt / 2}
+                  y={-cw / 2}
+                  z={-ct / 2}
+                  w={apronLenMm}
+                  h={cw}
+                  d={ct}
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                />
+                {/* 主榫頭 — 從牙板左端 -x 凸出 tl，寬=tw（中央）厚=tt */}
+                <IsoTenon
+                  baseX={mt / 2}
+                  baseY={0}
+                  baseZ={0}
+                  width={tw}
+                  thickness={tt}
+                  length={tl}
+                  direction="-x"
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                  showShoulder={!noShoulder}
+                />
+              </g>
+              {/* 拆解箭頭：榫頭 → 榫眼 */}
+              <line
+                x1={mt / 2 + explodeGap * 1.5 - 4}
+                y1={0}
+                x2={mt / 2 + 4}
+                y2={0}
+                stroke={COLOR.DIM}
+                strokeWidth={0.8 / isoScale}
+                strokeDasharray={ISO_DASH.ARROW}
+              />
+            </g>
           );
         })()}
       </IsometricGroup>
@@ -4635,143 +4760,107 @@ function FingerJointDetail(p: JoineryDetailParams) {
     );
   })();
 
-  // ===== 等角圖（右下）：3D 30° 視角單件指齒 =====
+  // ===== 等角圖（右下）：Phase 3 helper 6 件套，板深度恢復 + IsoTenon 強制 3 面 =====
   const isoOriginX = 200;
   const isoOriginY = 220;
   const iso = (() => {
-    // 為了簡化：在 IsometricGroup 內畫一個 finger-end 立體示意
-    // 用 mm-base 座標，IsometricGroup 會 30° 投影
     const isoScale = Math.min(1.1, 100 / Math.max(1, cw));
     const drawCw = cw;
     const drawCt = ct;
     const drawFL = fingerLen;
     const drawTT = tt;
-
-    const elements: ReturnType<typeof FingerIsoElement>[] = [];
-    function FingerIsoElement(idx: number) {
-      const x = shoulderEachMm + idx * drawTT;
-      // 每個 finger 是長方體：x..x+tt, y=0..fingerLen, z=0..ct
-      // 在 IsoGroup 內，children 的 (x,y) 已被 30° 旋轉變成 iso；ct 是「Z 深度」我們手畫成 +(-y, +y) offset
-      const zOff = drawCt * 0.4; // depth visually
-      return (
-        <g key={idx}>
-          {/* 前面 */}
-          <polygon
-            points={`${x},${0} ${x + drawTT},${0} ${x + drawTT},${drawFL} ${x},${drawFL}`}
-            fill={COLOR.TENON}
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-          {/* 上面（往後 zOff） */}
-          <polygon
-            points={`${x},${0} ${x + drawTT},${0} ${x + drawTT - zOff},${-zOff} ${x - zOff},${-zOff}`}
-            fill="#f2dba8"
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-          {/* 側面 */}
-          <polygon
-            points={`${x + drawTT},${0} ${x + drawTT - zOff},${-zOff} ${x + drawTT - zOff},${drawFL - zOff} ${x + drawTT},${drawFL}`}
-            fill="#d6b683"
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-        </g>
-      );
-    }
-    for (let i = 0; i < fingerCount; i++) elements.push(FingerIsoElement(i));
-
-    // A 件板身（在 A 指齒下方）
-    const boardBody = (
-      <g>
-        <polygon
-          points={`${0},${drawFL} ${drawCw},${drawFL} ${drawCw},${drawFL + 30} ${0},${drawFL + 30}`}
-          fill={COLOR.TENON}
-          stroke={COLOR.OUTLINE}
-          strokeWidth={STROKE.OUTLINE}
-        />
-        <polygon
-          points={`${drawCw},${drawFL} ${drawCw - drawCt * 0.4},${drawFL - drawCt * 0.4} ${drawCw - drawCt * 0.4},${drawFL + 30 - drawCt * 0.4} ${drawCw},${drawFL + 30}`}
-          fill="#d6b683"
-          stroke={COLOR.OUTLINE}
-          strokeWidth={STROKE.OUTLINE}
-        />
-      </g>
-    );
-
-    // === B 件（互補件，在 A 上方 explode 顯示，箭頭往下表示組裝方向） ===
-    // B 件指齒位置 = A 件的 pin 位置（i+0.5 偏移）
-    const bGapMm = 30; // exploded 間距
-    const bElements: ReturnType<typeof BFingerIsoElement>[] = [];
-    function BFingerIsoElement(idx: number) {
-      const x = shoulderEachMm + (idx + 0.5) * drawTT;
-      const yBase = -bGapMm; // B 在 A 上方
-      const yTip = yBase - drawFL; // B 指齒往「上」延伸（向下對接）
-      const zOff = drawCt * 0.4;
-      return (
-        <g key={`b-${idx}`}>
-          {/* 前面 */}
-          <polygon
-            points={`${x},${yBase} ${x + drawTT},${yBase} ${x + drawTT},${yTip} ${x},${yTip}`}
-            fill={COLOR.MORTISE}
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-          {/* 上面（往後 zOff） */}
-          <polygon
-            points={`${x},${yTip} ${x + drawTT},${yTip} ${x + drawTT - zOff},${yTip - zOff} ${x - zOff},${yTip - zOff}`}
-            fill="#c8a87a"
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-          {/* 側面 */}
-          <polygon
-            points={`${x + drawTT},${yBase} ${x + drawTT - zOff},${yBase - zOff} ${x + drawTT - zOff},${yTip - zOff} ${x + drawTT},${yTip}`}
-            fill="#a87f4d"
-            stroke={COLOR.OUTLINE}
-            strokeWidth={STROKE.OUTLINE}
-          />
-        </g>
-      );
-    }
-    for (let i = 0; i < fingerCount - 1; i++) bElements.push(BFingerIsoElement(i));
-
-    // B 件板身（在 B 指齒上方）
-    const bBoardBody = (
-      <g>
-        <polygon
-          points={`${0},${-bGapMm} ${drawCw},${-bGapMm} ${drawCw},${-bGapMm - 30} ${0},${-bGapMm - 30}`}
-          fill={COLOR.MORTISE}
-          stroke={COLOR.OUTLINE}
-          strokeWidth={STROKE.OUTLINE}
-        />
-        <polygon
-          points={`${drawCw},${-bGapMm} ${drawCw - drawCt * 0.4},${-bGapMm - drawCt * 0.4} ${drawCw - drawCt * 0.4},${-bGapMm - 30 - drawCt * 0.4} ${drawCw},${-bGapMm - 30}`}
-          fill="#a87f4d"
-          stroke={COLOR.OUTLINE}
-          strokeWidth={STROKE.OUTLINE}
-        />
-      </g>
-    );
+    const boardBackLen = 40; // 板身延伸長度（不含指齒）
+    const bGapMm = drawFL + 20;
 
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，A/B 兩件互補拆解）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
-          指數 = floor({cw}/{tt}) = {fingerCount}，指長 {fingerLen} mm（A/B 兩件互補咬合）
+          指數 = floor({cw}/{tt}) = {fingerCount}，指長 {fingerLen} mm
         </text>
-        <IsometricGroup originX={isoOriginX} originY={isoOriginY} scale={isoScale * 1.2} rotation={30}>
-          {boardBody}
-          {elements}
-          {bBoardBody}
-          {bElements}
-          {/* 組裝箭頭（B → A） */}
-          <line x1={drawCw / 2} y1={-bGapMm + 2} x2={drawCw / 2} y2={-2} stroke={COLOR.DIM} strokeWidth={1} strokeDasharray="3 2" />
-          <polygon points={`${drawCw / 2},${-2} ${drawCw / 2 - 3},${-8} ${drawCw / 2 + 3},${-8}`} fill={COLOR.DIM} />
+        <IsometricGroup originX={isoOriginX} originY={isoOriginY} scale={isoScale * 1.0} rotation={30}>
+          {/* A 件板身（指齒下方延伸） */}
+          <IsoCuboid
+            x={0}
+            y={drawFL}
+            z={0}
+            w={drawCw}
+            h={boardBackLen}
+            d={drawCt}
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+          />
+          {/* A 件 N 個指齒（向上 -y 凸出） */}
+          {Array.from({ length: fingerCount }).map((_, i) => {
+            const x = shoulderEachMm + i * drawTT;
+            return (
+              <IsoCuboid
+                key={`a-${i}`}
+                x={x}
+                y={0}
+                z={0}
+                w={drawTT}
+                h={drawFL}
+                d={drawCt}
+                fillFront={ISO_FILL.TENON_FRONT}
+                fillTop={ISO_FILL.TENON_TOP}
+                fillSide={ISO_FILL.TENON_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                showHiddenBackEdges={false}
+              />
+            );
+          })}
+          {/* B 件板身（在 A 上方 explode） */}
+          <g transform={`translate(0 ${-bGapMm - drawFL - boardBackLen})`}>
+            <IsoCuboid
+              x={0}
+              y={0}
+              z={0}
+              w={drawCw}
+              h={boardBackLen}
+              d={drawCt}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+            />
+            {/* B 件 N-1 個指齒（向下 +y 凸出） */}
+            {Array.from({ length: fingerCount - 1 }).map((_, i) => {
+              const x = shoulderEachMm + (i + 1) * drawTT - drawTT / 2 + drawTT / 2;
+              return (
+                <IsoCuboid
+                  key={`b-${i}`}
+                  x={shoulderEachMm + (i + 0.5) * drawTT + drawTT / 2 - drawTT / 2}
+                  y={boardBackLen}
+                  z={0}
+                  w={drawTT}
+                  h={drawFL}
+                  d={drawCt}
+                  fillFront={ISO_FILL.MORTISE_FRONT}
+                  fillTop={ISO_FILL.MORTISE_TOP}
+                  fillSide={ISO_FILL.MORTISE_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                  showHiddenBackEdges={false}
+                />
+              );
+            })}
+          </g>
+          {/* 組裝箭頭（B → A 往下） */}
+          <line
+            x1={drawCw / 2}
+            y1={-bGapMm + 2}
+            x2={drawCw / 2}
+            y2={-2}
+            stroke={COLOR.DIM}
+            strokeWidth={1 / isoScale}
+            strokeDasharray={ISO_DASH.ARROW}
+          />
         </IsometricGroup>
-        <text x={isoOriginX + 50} y={isoOriginY - 70} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>B 件</text>
-        <text x={isoOriginX + 50} y={isoOriginY + 50} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>A 件</text>
+        <text x={isoOriginX - 60} y={isoOriginY - 70} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>B 件</text>
+        <text x={isoOriginX - 60} y={isoOriginY + 50} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>A 件</text>
       </g>
     );
   })();
@@ -5187,64 +5276,99 @@ function DowelDetail(p: JoineryDetailParams) {
     );
   })();
 
-  // ===== 等角圖（右下）：3D 30° 木釘 + 板 =====
+  // ===== 等角圖（右下）：Phase 3 helper — 兩塊 IsoCuboid + IsoCylinder dowel =====
   const iso = (() => {
     const isoScale = Math.min(1.0, 90 / Math.max(1, mt));
     const drawMt = mt;
     const drawCt = ct;
     const drawTt = tt;
+    const drawTl = tl;
     const drawHd = holeDepthSafe;
+    const explodeGap = drawTl + 8;
 
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，木釘陣列拆解）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
           {dowelCount} 釘陣列 · Ø {tt} · 釘長 {tl} (= 兩側孔深 {Math.round(drawHd)} ×2)
         </text>
-        <IsometricGroup originX={170} originY={220} scale={isoScale * 1.4} rotation={30}>
-          {/* B 件本體（cube） */}
-          <g>
-            {/* 前面 */}
-            <polygon
-              points={`${0},${0} ${drawMt},${0} ${drawMt},${drawCt} ${0},${drawCt}`}
-              fill={COLOR.TENON}
-              stroke={COLOR.OUTLINE}
-              strokeWidth={STROKE.OUTLINE}
-            />
-            {/* 上面 */}
-            <polygon
-              points={`${0},${0} ${drawMt},${0} ${drawMt - drawCt * 0.4},${-drawCt * 0.4} ${-drawCt * 0.4},${-drawCt * 0.4}`}
-              fill="#f2dba8"
-              stroke={COLOR.OUTLINE}
-              strokeWidth={STROKE.OUTLINE}
-            />
-            {/* 側面 */}
-            <polygon
-              points={`${drawMt},${0} ${drawMt - drawCt * 0.4},${-drawCt * 0.4} ${drawMt - drawCt * 0.4},${drawCt - drawCt * 0.4} ${drawMt},${drawCt}`}
-              fill="#d6b683"
-              stroke={COLOR.OUTLINE}
-              strokeWidth={STROKE.OUTLINE}
+        <IsometricGroup originX={170} originY={220} scale={isoScale * 1.0} rotation={30}>
+          {/* A 件（左板） — IsoCuboid */}
+          <IsoCuboid
+            x={0}
+            y={-drawCt / 2}
+            z={0}
+            w={drawMt}
+            h={drawCt}
+            d={drawMt * 0.8}
+            fillFront={ISO_FILL.TENON_FRONT}
+            fillTop={ISO_FILL.TENON_TOP}
+            fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+          />
+          {/* B 件（右板，沿 +x explode） — IsoCuboid */}
+          <g transform={`translate(${(drawMt + explodeGap) * 1} 0)`}>
+            <IsoCuboid
+              x={0}
+              y={-drawCt / 2}
+              z={0}
+              w={drawMt}
+              h={drawCt}
+              d={drawMt * 0.8}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
             />
           </g>
-          {/* 木釘 = 圓柱（用橢圓 + 矩形示意） */}
+          {/* 木釘陣列（沿 z 排列在板厚中央，水平軸 = x 方向）
+              我們用 axis="z" 的圓柱沿 x 旋轉 → 改用一個 cuboid 退化（IsoCylinder.x axis 已退化為 cuboid）*/}
           {Array.from({ length: dowelCount }).map((_, i) => {
-            const cy = (i + 1) * (drawCt / (dowelCount + 1));
+            const zOff = ((i + 1) * (drawMt * 0.8) / (dowelCount + 1)) - drawMt * 0.4;
+            // 釘從 A 件右面 (x=drawMt-drawHd) 凸出 drawTl，axis 沿 +x
             return (
               <g key={i}>
-                {/* 圓柱主體 */}
-                <rect
+                {/* 突出段 (在 A 件外，可見) */}
+                <IsoCuboid
                   x={drawMt - drawHd}
-                  y={cy - drawTt / 2}
-                  width={drawHd * 2 + drawCt * 0.2}
-                  height={drawTt}
-                  fill={COLOR.MORTISE}
-                  stroke={COLOR.OUTLINE}
-                  strokeWidth={STROKE.OUTLINE}
-                  rx={drawTt / 2}
+                  y={-drawTt / 2}
+                  z={zOff - drawTt / 2}
+                  w={drawTl}
+                  h={drawTt}
+                  d={drawTt}
+                  fillFront={ISO_FILL.MORTISE_FRONT}
+                  fillTop={ISO_FILL.MORTISE_TOP}
+                  fillSide={ISO_FILL.MORTISE_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                  showHiddenBackEdges={false}
                 />
-                {/* 端面圓（橢圓示意） */}
-                <ellipse cx={drawMt + drawHd + drawCt * 0.1} cy={cy} rx={drawTt * 0.25} ry={drawTt / 2} fill="#c89c5d" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                {/* 端面 — 圓 (橢圓投影) */}
+                <IsoCylinder
+                  x={drawMt - drawHd + drawTl}
+                  y={0}
+                  z={zOff}
+                  radius={drawTt / 2}
+                  height={0.1}
+                  axis="z"
+                  fillCap={ISO_FILL.TENON_FRONT}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoScale}
+                />
+                {/* 埋入 A 件段 (虛線) */}
+                <IsoCuboid
+                  x={drawMt - drawHd - drawHd}
+                  y={-drawTt / 2}
+                  z={zOff - drawTt / 2}
+                  w={drawHd}
+                  h={drawTt}
+                  d={drawTt}
+                  fillFront="none"
+                  fillTop="none"
+                  fillSide="none"
+                  hidden={true}
+                  strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                />
               </g>
             );
           })}
@@ -6138,67 +6262,64 @@ function PocketHoleDetail(p: JoineryDetailParams) {
     </g>
   );
 
-  // ----- 等角圖 (iso)：T 字組裝 + 半透明顯示斜孔 -----
+  // ----- 等角圖 (iso)：Phase 3 — T 字組裝用 IsoCuboid 強制 3 面 + 斜孔虛線 -----
   const iso = (
     <IsometricGroup originX={210} originY={155} scale={1.05}>
       {(() => {
-        const ANG = (30 * Math.PI) / 180;
-        const dxz = Math.cos(ANG) * 0.5;
-        const dyz = -Math.sin(ANG) * 0.5;
-        // A 件水平板：x∈[-PX(60), PX(60)], y∈[-PX(ct), 0], 深 PX(60)
-        const aL = -PX(60), aR = PX(60), aTopY = -PX(ct), aBotY = 0;
-        const dep = PX(60);
-        const aFront = `M${aL},${aTopY} L${aR},${aTopY} L${aR},${aBotY} L${aL},${aBotY} Z`;
-        const aTop = `M${aL},${aTopY} L${aR},${aTopY} L${aR + dep * dxz},${aTopY + dep * dyz} L${aL + dep * dxz},${aTopY + dep * dyz} Z`;
-        const aRight = `M${aR},${aTopY} L${aR + dep * dxz},${aTopY + dep * dyz} L${aR + dep * dxz},${aBotY + dep * dyz} L${aR},${aBotY} Z`;
-        // B 件垂直板：x∈[-PX(mt)/2, PX(mt)/2], y∈[0, PX(80)], 深 dep
-        const bL = -PX(mt) / 2, bR = PX(mt) / 2, bTopY = 0, bBotY = PX(80);
-        const bFront = `M${bL},${bTopY} L${bR},${bTopY} L${bR},${bBotY} L${bL},${bBotY} Z`;
-        const bTop = `M${bL},${bTopY} L${bR},${bTopY} L${bR + dep * dxz},${bTopY + dep * dyz} L${bL + dep * dxz},${bTopY + dep * dyz} Z`;
-        const bRight = `M${bR},${bTopY} L${bR + dep * dxz},${bTopY + dep * dyz} L${bR + dep * dxz},${bBotY + dep * dyz} L${bR},${bBotY} Z`;
+        const aL = PX(60) * 2; // A 件長 120mm
+        const aD = PX(60); // A 件深 60mm
+        const bH = PX(80); // B 件高 80mm
+        const bD = aD; // B 件深 60mm
         return (
-          <>
-            <g stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE}>
-              {/* A 件 */}
-              <path d={aTop} fill="#e8d4a8" />
-              <path d={aRight} fill="#b88a4d" />
-              <path d={aFront} fill={COLOR.TENON} />
-              {/* B 件 */}
-              <path d={bTop} fill="#d8b988" />
-              <path d={bRight} fill="#b88a4d" />
-              <path d={bFront} fill={COLOR.MORTISE} fillOpacity={0.85} />
-              {/* 斜孔示意 */}
-              {[-1, 1].map((dir, i) => {
-                const ox = dir * PX(pitch / 2);
-                return (
-                  <g key={i}>
-                    <line
-                      x1={ox - 3}
-                      y1={0}
-                      x2={ox + dir * PX(8)}
-                      y2={PX(15)}
-                      stroke={COLOR.DIM}
-                      strokeWidth={1}
-                      strokeDasharray={DASH.HIDDEN}
-                    />
-                    <line
-                      x1={ox + 3}
-                      y1={0}
-                      x2={ox + dir * PX(8) + 5}
-                      y2={PX(15)}
-                      stroke={COLOR.DIM}
-                      strokeWidth={1}
-                      strokeDasharray={DASH.HIDDEN}
-                    />
-                  </g>
-                );
-              })}
-            </g>
+          <g>
+            {/* A 件水平板 */}
+            <IsoCuboid
+              x={-aL / 2}
+              y={-PX(ct)}
+              z={0}
+              w={aL}
+              h={PX(ct)}
+              d={aD}
+              fillFront={ISO_FILL.TENON_FRONT}
+              fillTop={ISO_FILL.TENON_TOP}
+              fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+            />
+            {/* B 件垂直板 */}
+            <IsoCuboid
+              x={-PX(mt) / 2}
+              y={0}
+              z={0}
+              w={PX(mt)}
+              h={bH}
+              d={bD}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+            />
+            {/* 斜孔虛線（15° 從 B 件側面斜入 A 件） */}
+            {[-1, 1].map((dir, i) => {
+              const ox = dir * PX(pitch / 2);
+              return (
+                <g key={i}>
+                  <line
+                    x1={ox}
+                    y1={PX(20)}
+                    x2={ox + dir * PX(15)}
+                    y2={-PX(ct) / 2}
+                    stroke={COLOR.HIDDEN}
+                    strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+                    strokeDasharray={ISO_DASH.HIDDEN}
+                  />
+                </g>
+              );
+            })}
             <text x={PX(70)} y={-PX(ct) - 8} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>
               {/* // @joinery-dim-allow */}
-              等角圖（30°）
+              等角圖（30°）— 斜孔 15°
             </text>
-          </>
+          </g>
         );
       })()}
     </IsometricGroup>
@@ -6668,56 +6789,62 @@ function ScrewDetail(p: JoineryDetailParams) {
     </g>
   );
 
-  // ----- 等角圖 (iso) -----
+  // ----- 等角圖 (iso)：Phase 3 — IsoCuboid 強制 3 面 + 螺絲虛線 -----
   const iso = (
     <IsometricGroup originX={210} originY={155} scale={1.05}>
       {(() => {
-        const ANG = (30 * Math.PI) / 180;
-        const dxz = Math.cos(ANG) * 0.5;
-        const dyz = -Math.sin(ANG) * 0.5;
-        // A 件水平板（上方）：x∈[-PX(60), PX(60)], y∈[-PX(ct), 0], 深 PX(60)
-        const aL = -PX(60), aR = PX(60), aTopY = -PX(ct), aBotY = 0;
-        const dep = PX(60);
-        const aFront = `M${aL},${aTopY} L${aR},${aTopY} L${aR},${aBotY} L${aL},${aBotY} Z`;
-        const aTop = `M${aL},${aTopY} L${aR},${aTopY} L${aR + dep * dxz},${aTopY + dep * dyz} L${aL + dep * dxz},${aTopY + dep * dyz} Z`;
-        const aRight = `M${aR},${aTopY} L${aR + dep * dxz},${aTopY + dep * dyz} L${aR + dep * dxz},${aBotY + dep * dyz} L${aR},${aBotY} Z`;
-        // B 件垂直板：x∈[-PX(mt)/2, PX(mt)/2], y∈[0, PX(70)], 深 dep
-        const bL = -PX(mt) / 2, bR = PX(mt) / 2, bTopY = 0, bBotY = PX(70);
-        const bFront = `M${bL},${bTopY} L${bR},${bTopY} L${bR},${bBotY} L${bL},${bBotY} Z`;
-        const bTop = `M${bL},${bTopY} L${bR},${bTopY} L${bR + dep * dxz},${bTopY + dep * dyz} L${bL + dep * dxz},${bTopY + dep * dyz} Z`;
-        const bRight = `M${bR},${bTopY} L${bR + dep * dxz},${bTopY + dep * dyz} L${bR + dep * dxz},${bBotY + dep * dyz} L${bR},${bBotY} Z`;
+        const aL = PX(60) * 2;
+        const aD = PX(60);
+        const bH = PX(70);
+        const bD = aD;
         return (
-          <>
-            <g stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE}>
-              {/* B 件 */}
-              <path d={bTop} fill="#d8b988" />
-              <path d={bRight} fill="#b88a4d" />
-              <path d={bFront} fill={COLOR.MORTISE} fillOpacity={0.85} />
-              {/* A 件 */}
-              <path d={aTop} fill="#e8d4a8" />
-              <path d={aRight} fill="#b88a4d" />
-              <path d={aFront} fill={COLOR.TENON} />
-              {/* 螺絲 + 埋頭孔 */}
-              {[-1, 1].map((dir, i) => (
-                <g key={i}>
-                  <line
-                    x1={dir * PX(40)}
-                    y1={-PX(ct) - 2}
-                    x2={dir * PX(40)}
-                    y2={PX(35)}
-                    stroke="#444"
-                    strokeWidth={1.4}
-                    strokeDasharray={DASH.HIDDEN}
-                  />
-                  <circle cx={dir * PX(40)} cy={-PX(ct) - 1} r={PX(csDia) / 2 + 0.5} fill="#555" />
-                </g>
-              ))}
-            </g>
+          <g>
+            {/* B 件垂直板（先畫，A 蓋在上面） */}
+            <IsoCuboid
+              x={-PX(mt) / 2}
+              y={0}
+              z={0}
+              w={PX(mt)}
+              h={bH}
+              d={bD}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+            />
+            {/* A 件水平板 */}
+            <IsoCuboid
+              x={-aL / 2}
+              y={-PX(ct)}
+              z={0}
+              w={aL}
+              h={PX(ct)}
+              d={aD}
+              fillFront={ISO_FILL.TENON_FRONT}
+              fillTop={ISO_FILL.TENON_TOP}
+              fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+            />
+            {/* 螺絲（從 A 件頂面斜直下） */}
+            {[-1, 1].map((dir, i) => (
+              <g key={i}>
+                <line
+                  x1={dir * PX(40)}
+                  y1={-PX(ct) - 2}
+                  x2={dir * PX(40)}
+                  y2={PX(35)}
+                  stroke="#444"
+                  strokeWidth={1.4}
+                  strokeDasharray={ISO_DASH.HIDDEN}
+                />
+                <circle cx={dir * PX(40)} cy={-PX(ct) - 1} r={PX(csDia) / 2 + 0.5} fill="#555" />
+              </g>
+            ))}
             <text x={PX(70)} y={-PX(ct) - 8} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>
               {/* // @joinery-dim-allow */}
-              等角圖（30°）
+              等角圖（30°）— 螺絲埋頭
             </text>
-          </>
+          </g>
         );
       })()}
     </IsometricGroup>
@@ -7135,47 +7262,94 @@ function StubJointDetail(p: JoineryDetailParams) {
     );
   })();
 
-  // ===== 等角圖（右下）：3D 30° 母件 + 牙條卡入 =====
+  // ===== 等角圖（右下）：Phase 3 — 母腳 IsoCuboid + 牙條 IsoCuboid 整支端面卡入（無肩） =====
   const iso = (() => {
-    const isoScale = Math.min(1.0, 90 / Math.max(1, mt));
-    const drawMt = mt;
-    const drawCt = ct;
-    const drawCw = cw * 0.6;
+    // 視覺空間統一用「最大尺寸基準」做 scale，避免薄板場景縮成一條線
+    const visMax = Math.max(mt * 4, cw + tl + 20, 80);
+    const isoScale = Math.min(1.6, 240 / visMax);
+    const drawMt = Math.max(mt, 12); // 太薄母件視覺 padding
+    const drawCt = Math.max(ct, 6);
+    const drawCw = cw;
     const drawTl = tl;
-    const depth = drawCt * 0.4; // 視覺深度
-
-    // 母件方/圓
-    const motherIso = isRound ? (
-      <g>
-        {/* 圓柱：正面圓 + 上方橢圓 + 側方矩形 */}
-        <ellipse cx={drawMt / 2} cy={drawMt / 2} rx={drawMt / 2} ry={drawMt / 2} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-        <ellipse cx={drawMt / 2 - depth / 2} cy={drawMt / 2 - depth / 2} rx={drawMt / 2} ry={drawMt / 2 * 0.3} fill="#a37c40" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      </g>
-    ) : (
-      <g>
-        <rect x={0} y={0} width={drawMt} height={drawMt} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-        <polygon points={`${0},${0} ${drawMt},${0} ${drawMt - depth},${-depth} ${-depth},${-depth}`} fill="#a37c40" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-        <polygon points={`${drawMt},${0} ${drawMt - depth},${-depth} ${drawMt - depth},${drawMt - depth} ${drawMt},${drawMt}`} fill="#7c5a2c" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      </g>
-    );
+    const motherH = Math.max(drawMt * 4, 60); // 母件視覺高度
+    const apronExt = drawCw * 1.6; // 牙條伸出母件外的長度
+    const explodeGap = drawTl + 14;
 
     return (
       <g>
         <rect x={4} y={20} width={467} height={302} fill="white" stroke="#999" strokeWidth={0.5} />
-        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測）</text>
+        <text x={20} y={14} fontSize={FONT.LABEL} fontWeight="bold" fill={COLOR.OUTLINE}>等角圖（30° 軸測，整支端面卡榫拆解）</text>
         <text x={20} y={28} fontSize={FONT.CALLOUT} fill="#888">
-          {isRound ? "圓腳" : "方腳"}：整支端面卡入榫眼，無肩
+          {isRound ? "圓腳" : "方腳"}：整支端面（無肩）卡入母件深 {Math.round(drawTl)}mm
         </text>
-        <IsometricGroup originX={170} originY={220} scale={isoScale * 1.5} rotation={30}>
-          {motherIso}
-          {/* 牙條（橫向往右伸出，部分插入母件） */}
-          <g transform={`translate(${drawMt - drawTl},${drawMt / 2 - drawCt / 2})`}>
-            <rect x={0} y={0} width={drawTl + drawCw} height={drawCt} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 上面 */}
-            <polygon points={`${0},${0} ${drawTl + drawCw},${0} ${drawTl + drawCw - depth},${-depth} ${-depth},${-depth}`} fill="#f2dba8" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 右側面 */}
-            <polygon points={`${drawTl + drawCw},${0} ${drawTl + drawCw - depth},${-depth} ${drawTl + drawCw - depth},${drawCt - depth} ${drawTl + drawCw},${drawCt}`} fill="#d6b683" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <IsometricGroup originX={120} originY={170} scale={isoScale * 1.0} rotation={30}>
+          {/* 母件（柱腳） */}
+          {!isRound ? (
+            <IsoCuboid
+              x={0}
+              y={0}
+              z={0}
+              w={drawMt}
+              h={motherH}
+              d={drawMt}
+              fillFront={ISO_FILL.MORTISE_FRONT}
+              fillTop={ISO_FILL.MORTISE_TOP}
+              fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+            />
+          ) : (
+            <IsoCylinder
+              x={drawMt / 2}
+              y={0}
+              z={drawMt / 2}
+              radius={drawMt / 2}
+              height={motherH}
+              axis="y"
+              fillSide={ISO_FILL.MORTISE_FRONT}
+              fillCap={ISO_FILL.MORTISE_TOP}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+            />
+          )}
+          {/* 母件榫眼（在右面 +x 上，深 = drawTl，寬 = drawCw、高 = drawCt — 整支斷面卡入） */}
+          {!isRound && (
+            <IsoMortise
+              faceX={drawMt}
+              faceY={motherH * 0.5}
+              faceZ={drawMt / 2}
+              width={drawCw}
+              height={drawCt}
+              depth={drawTl}
+              faceNormal="+x"
+              through={false}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoScale}
+            />
+          )}
+          {/* 牙條（整支，往 +x 拉開 explode） */}
+          <g transform={`translate(${drawMt + explodeGap} ${motherH * 0.5 - drawCt / 2})`}>
+            <IsoCuboid
+              x={0}
+              y={0}
+              z={drawMt / 2 - drawCw / 2}
+              w={apronExt + drawTl}
+              h={drawCt}
+              d={drawCw}
+              fillFront={ISO_FILL.TENON_FRONT}
+              fillTop={ISO_FILL.TENON_TOP}
+              fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+            />
           </g>
+          {/* 拆解箭頭：牙條左端 → 母件榫眼 */}
+          <line
+            x1={drawMt + explodeGap - 4}
+            y1={motherH * 0.5}
+            x2={drawMt + 4}
+            y2={motherH * 0.5}
+            stroke={COLOR.DIM}
+            strokeWidth={0.8 / isoScale}
+            strokeDasharray={ISO_DASH.ARROW}
+          />
         </IsometricGroup>
       </g>
     );

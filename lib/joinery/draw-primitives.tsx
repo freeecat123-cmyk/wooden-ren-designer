@@ -572,6 +572,770 @@ export function ThreeViewLayout({
   );
 }
 
+// =============================================================================
+// Phase 3 (2026-05-09)：Cabinet projection 等角圖 helper 6 件套
+// 依 docs/joinery-refs/iso-style-spec.md C 章 implement
+// 全部畫 3 面、必有 hidden edges、線型分層、公母三面色階
+// =============================================================================
+
+/** 等角投影常數（cabinet projection 30°）。 */
+export const ISO = {
+  ANGLE_DEG: 30,
+  ANGLE_RAD: Math.PI / 6,
+  DEPTH_SCALE: 0.7,
+  COS30: Math.cos(Math.PI / 6),
+  SIN30: Math.sin(Math.PI / 6),
+} as const;
+
+/** 等角圖三層 stroke 寬。 */
+export const ISO_STROKE = {
+  OUTLINE_VISIBLE: 1.4,
+  EDGE_INTERIOR: 0.8,
+  HIDDEN_DASHED: 0.6,
+  GRAIN_HINT: 0.4,
+  HATCH: 0.5,
+} as const;
+
+/** 等角圖虛線 pattern。 */
+export const ISO_DASH = {
+  HIDDEN: "4 3",
+  CENTER: "8 2 2 2",
+  ARROW: "5 3",
+} as const;
+
+/** 三面色階（公榫 / 母榫 各 3 面）。 */
+export const ISO_FILL = {
+  TENON_FRONT: "#e6c89a",
+  TENON_TOP: "#d9b889",
+  TENON_SIDE: "#c9a878",
+  MORTISE_FRONT: "#b08a4e",
+  MORTISE_TOP: "#9d7842",
+  MORTISE_SIDE: "#8a6936",
+  MORTISE_HOLE_INTERIOR: "#3a2a1c",
+  HATCH_SECTION: "#c8553d",
+} as const;
+
+/**
+ * Cabinet projection 純函式投影。
+ * (x, y) = 螢幕座標(SVG y 朝下), z = 深度(z+ 朝後)，z 軸 30° 右上斜 × DEPTH_SCALE
+ * 注意：本函式是「相對位移」，不含 origin。caller 需自己加 originX/originY。
+ */
+export function isoProject(
+  x: number,
+  y: number,
+  z: number,
+  opts?: { depthScale?: number; originX?: number; originY?: number },
+): [number, number] {
+  const depthScale = opts?.depthScale ?? ISO.DEPTH_SCALE;
+  const ox = opts?.originX ?? 0;
+  const oy = opts?.originY ?? 0;
+  const dx = z * depthScale * ISO.COS30;
+  const dy = -z * depthScale * ISO.SIN30;
+  return [ox + x + dx, oy + y + dy];
+}
+
+interface IsoCuboidProps {
+  /** 模型空間左下前角 (x, y, z)；y+ 朝下（已是螢幕慣例），z+ 朝後 */
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  h: number;
+  d: number;
+  fillFront?: string;
+  fillTop?: string;
+  fillSide?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  /** true → 全部用虛線 */
+  hidden?: boolean;
+  /** true → 畫背後 3 條看不到的邊（虛線） */
+  showHiddenBackEdges?: boolean;
+  /** depth scale 覆寫 */
+  depthScale?: number;
+  /** 額外平移（caller 已 transform 時可省略） */
+  originX?: number;
+  originY?: number;
+  opacity?: number;
+}
+
+/**
+ * 立方體（cabinet projection 三面）。
+ * 這是榫卯立體感根本：強制畫 front + top + right side 三面，避免「壓平 2D」。
+ */
+export function IsoCuboid({
+  x,
+  y,
+  z,
+  w,
+  h,
+  d,
+  fillFront = ISO_FILL.TENON_FRONT,
+  fillTop = ISO_FILL.TENON_TOP,
+  fillSide = ISO_FILL.TENON_SIDE,
+  stroke = "#222",
+  strokeWidth = ISO_STROKE.OUTLINE_VISIBLE,
+  hidden = false,
+  showHiddenBackEdges = true,
+  depthScale,
+  originX = 0,
+  originY = 0,
+  opacity = 1,
+}: IsoCuboidProps): JSX.Element {
+  const opt = { depthScale, originX, originY };
+  // 8 個頂點：f=front(z=z), b=back(z=z+d). 0=左下 1=右下 2=右上 3=左上 (y+ 朝下，所以「上」=y 較小)
+  const f0 = isoProject(x, y + h, z, opt);          // front 左下
+  const f1 = isoProject(x + w, y + h, z, opt);      // front 右下
+  const f2 = isoProject(x + w, y, z, opt);          // front 右上
+  const f3 = isoProject(x, y, z, opt);              // front 左上
+  const b0 = isoProject(x, y + h, z + d, opt);      // back 左下
+  const b1 = isoProject(x + w, y + h, z + d, opt);  // back 右下
+  const b2 = isoProject(x + w, y, z + d, opt);      // back 右上
+  const b3 = isoProject(x, y, z + d, opt);          // back 左上
+
+  const dash = hidden ? ISO_DASH.HIDDEN : undefined;
+  const front = `${f0[0]},${f0[1]} ${f1[0]},${f1[1]} ${f2[0]},${f2[1]} ${f3[0]},${f3[1]}`;
+  const top = `${f3[0]},${f3[1]} ${f2[0]},${f2[1]} ${b2[0]},${b2[1]} ${b3[0]},${b3[1]}`;
+  const side = `${f1[0]},${f1[1]} ${b1[0]},${b1[1]} ${b2[0]},${b2[1]} ${f2[0]},${f2[1]}`;
+
+  return (
+    <g opacity={opacity}>
+      {/* 三面 polygon — 順序：底層 top/side 先畫，front 最上 */}
+      <polygon
+        points={top}
+        fill={fillTop}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dash}
+      />
+      <polygon
+        points={side}
+        fill={fillSide}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dash}
+      />
+      <polygon
+        points={front}
+        fill={fillFront}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dash}
+      />
+      {/* hidden back edges：背後 3 條邊（左後立邊 + 後底邊 + 後左邊） */}
+      {showHiddenBackEdges && !hidden && (
+        <g
+          fill="none"
+          stroke={COLOR.HIDDEN}
+          strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+          strokeDasharray={ISO_DASH.HIDDEN}
+        >
+          <line x1={b0[0]} y1={b0[1]} x2={b1[0]} y2={b1[1]} />
+          <line x1={b0[0]} y1={b0[1]} x2={b3[0]} y2={b3[1]} />
+          <line x1={b0[0]} y1={b0[1]} x2={f0[0]} y2={f0[1]} />
+        </g>
+      )}
+    </g>
+  );
+}
+
+interface IsoCylinderProps {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  height: number;
+  axis: "x" | "y" | "z";
+  fillSide?: string;
+  fillCap?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  hidden?: boolean;
+  originX?: number;
+  originY?: number;
+  depthScale?: number;
+}
+
+/**
+ * 圓柱（dowel / 圓榫）— axis="z" 軸朝後最常見，畫 2 條母線 + 前後橢圓。
+ * 隱藏圓柱（埋入木釘）= 全虛線。
+ */
+export function IsoCylinder({
+  x,
+  y,
+  z,
+  radius,
+  height,
+  axis,
+  fillSide = ISO_FILL.MORTISE_FRONT,
+  fillCap = ISO_FILL.TENON_FRONT,
+  stroke = "#222",
+  strokeWidth = ISO_STROKE.OUTLINE_VISIBLE,
+  hidden = false,
+  originX = 0,
+  originY = 0,
+  depthScale,
+}: IsoCylinderProps): JSX.Element {
+  const opt = { depthScale, originX, originY };
+  const dash = hidden ? ISO_DASH.HIDDEN : undefined;
+  const sw = hidden ? ISO_STROKE.HIDDEN_DASHED : strokeWidth;
+  const strokeColor = hidden ? COLOR.HIDDEN : stroke;
+  const opacity = hidden ? 0.0 : 1.0;
+
+  if (axis === "z") {
+    // 圓柱軸沿深度 z，前面圓 (z=z)、後面圓 (z=z+height)
+    // 投影成橢圓：rx = radius, ry = radius * SIN30 * depthScale * 0.6 (視覺壓扁)
+    const ds = depthScale ?? ISO.DEPTH_SCALE;
+    const rx = radius;
+    const ry = radius * ISO.SIN30 * ds * 0.85 + 0.5;
+    const front = isoProject(x, y, z, opt);
+    const back = isoProject(x, y, z + height, opt);
+    return (
+      <g>
+        {/* 後圓（先畫底層） */}
+        <ellipse
+          cx={back[0]}
+          cy={back[1]}
+          rx={rx}
+          ry={ry}
+          fill={fillCap}
+          fillOpacity={opacity}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+        {/* 兩條母線（圓柱側面輪廓） */}
+        <line
+          x1={front[0] - rx}
+          y1={front[1]}
+          x2={back[0] - rx}
+          y2={back[1]}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+        <line
+          x1={front[0] + rx}
+          y1={front[1]}
+          x2={back[0] + rx}
+          y2={back[1]}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+        {/* 前圓 */}
+        <ellipse
+          cx={front[0]}
+          cy={front[1]}
+          rx={rx}
+          ry={ry}
+          fill={fillCap}
+          fillOpacity={opacity}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+      </g>
+    );
+  }
+  // axis === "y": 直立圓柱（少用）
+  if (axis === "y") {
+    const ds = depthScale ?? ISO.DEPTH_SCALE;
+    const rx = radius;
+    const ry = radius * ISO.SIN30 * ds * 0.85 + 0.5;
+    const top = isoProject(x, y, z, opt);
+    const bot = isoProject(x, y + height, z, opt);
+    return (
+      <g>
+        <ellipse
+          cx={bot[0]}
+          cy={bot[1]}
+          rx={rx}
+          ry={ry}
+          fill={fillSide}
+          fillOpacity={opacity}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+        <line x1={top[0] - rx} y1={top[1]} x2={bot[0] - rx} y2={bot[1]} stroke={strokeColor} strokeWidth={sw} strokeDasharray={dash} />
+        <line x1={top[0] + rx} y1={top[1]} x2={bot[0] + rx} y2={bot[1]} stroke={strokeColor} strokeWidth={sw} strokeDasharray={dash} />
+        <ellipse
+          cx={top[0]}
+          cy={top[1]}
+          rx={rx}
+          ry={ry}
+          fill={fillCap}
+          fillOpacity={opacity}
+          stroke={strokeColor}
+          strokeWidth={sw}
+          strokeDasharray={dash}
+        />
+      </g>
+    );
+  }
+  // axis === "x": 橫向圓柱（少用，先用 cuboid 退化）
+  return (
+    <IsoCuboid
+      x={x}
+      y={y - radius}
+      z={z - radius}
+      w={height}
+      h={radius * 2}
+      d={radius * 2}
+      fillFront={fillSide}
+      fillTop={fillCap}
+      fillSide={fillSide}
+      hidden={hidden}
+      depthScale={depthScale}
+      originX={originX}
+      originY={originY}
+    />
+  );
+}
+
+interface IsoTenonProps {
+  /** 母件表面上的榫頭根部「中心」(在母件表面) */
+  baseX: number;
+  baseY: number;
+  baseZ: number;
+  width: number;
+  thickness: number;
+  length: number;
+  /** 榫頭凸出方向（從母件表面向外） */
+  direction: "+x" | "-x" | "+y" | "-y" | "+z" | "-z";
+  shape?: "rect" | "round" | "dovetail";
+  dovetailAngleDeg?: number;
+  fillFront?: string;
+  fillTop?: string;
+  fillSide?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  showShoulder?: boolean;
+  originX?: number;
+  originY?: number;
+  depthScale?: number;
+}
+
+/**
+ * 凸出公榫（IsoCuboid 變體 + 強制三面 + 公榫色階）。
+ * 老師原則：必畫六邊形（3 面）不是單一矩形。
+ */
+export function IsoTenon({
+  baseX,
+  baseY,
+  baseZ,
+  width,
+  thickness,
+  length,
+  direction,
+  shape = "rect",
+  fillFront = ISO_FILL.TENON_FRONT,
+  fillTop = ISO_FILL.TENON_TOP,
+  fillSide = ISO_FILL.TENON_SIDE,
+  stroke = "#222",
+  strokeWidth = ISO_STROKE.OUTLINE_VISIBLE,
+  showShoulder = false,
+  originX = 0,
+  originY = 0,
+  depthScale,
+}: IsoTenonProps): JSX.Element {
+  const opt = { depthScale, originX, originY };
+  // direction 決定哪個軸是「長度」方向，其餘兩軸是「寬」「厚」
+  // 我們把模型空間：x=width, y=thickness（垂直）, z=depth
+  // 為簡化，IsoTenon 把 (baseX, baseY, baseZ) 當作 cuboid 中心軸線根部
+  let cx = baseX, cy = baseY, cz = baseZ;
+  let w = width, h = thickness, d = length;
+  // 預設 +z（榫頭朝後），即 length 沿 z；w 沿 x；h 沿 y
+  switch (direction) {
+    case "+z":
+      cx = baseX - width / 2;
+      cy = baseY - thickness / 2;
+      cz = baseZ;
+      w = width; h = thickness; d = length;
+      break;
+    case "-z":
+      cx = baseX - width / 2;
+      cy = baseY - thickness / 2;
+      cz = baseZ - length;
+      w = width; h = thickness; d = length;
+      break;
+    case "+x":
+      cx = baseX;
+      cy = baseY - thickness / 2;
+      cz = baseZ - width / 2;
+      w = length; h = thickness; d = width;
+      break;
+    case "-x":
+      cx = baseX - length;
+      cy = baseY - thickness / 2;
+      cz = baseZ - width / 2;
+      w = length; h = thickness; d = width;
+      break;
+    case "+y":
+      // 榫頭往下（y+），寬沿 x、厚沿 z
+      cx = baseX - width / 2;
+      cy = baseY;
+      cz = baseZ - thickness / 2;
+      w = width; h = length; d = thickness;
+      break;
+    case "-y":
+      cx = baseX - width / 2;
+      cy = baseY - length;
+      cz = baseZ - thickness / 2;
+      w = width; h = length; d = thickness;
+      break;
+  }
+
+  // dovetail 變體：用 polygon 自畫梯形 front face（先用 rect fallback）
+  if (shape === "dovetail") {
+    // dovetail 用 IsoCuboid 退化（精細版可後續加），保 3D 立體
+    return (
+      <IsoCuboid
+        x={cx}
+        y={cy}
+        z={cz}
+        w={w}
+        h={h}
+        d={d}
+        fillFront={fillFront}
+        fillTop={fillTop}
+        fillSide={fillSide}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        depthScale={depthScale}
+        originX={originX}
+        originY={originY}
+      />
+    );
+  }
+
+  return (
+    <g>
+      <IsoCuboid
+        x={cx}
+        y={cy}
+        z={cz}
+        w={w}
+        h={h}
+        d={d}
+        fillFront={fillFront}
+        fillTop={fillTop}
+        fillSide={fillSide}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        depthScale={depthScale}
+        originX={originX}
+        originY={originY}
+        showHiddenBackEdges={false}
+      />
+      {showShoulder && (
+        <line
+          // 肩線：榫頭根部畫一條粗線，凸顯承力面
+          x1={isoProject(cx, cy + h, cz, opt)[0]}
+          y1={isoProject(cx, cy + h, cz, opt)[1]}
+          x2={isoProject(cx + w, cy + h, cz, opt)[0]}
+          y2={isoProject(cx + w, cy + h, cz, opt)[1]}
+          stroke={COLOR.DIM_TICK}
+          strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+        />
+      )}
+      {/* shape hint：圓榫 → 在前端面畫一個小橢圓 */}
+      {shape === "round" && (() => {
+        const front = isoProject(cx + w / 2, cy + h / 2, cz, opt);
+        return (
+          <ellipse
+            cx={front[0]}
+            cy={front[1]}
+            rx={w / 2 * 0.8}
+            ry={h / 2 * 0.8}
+            fill={fillFront}
+            stroke={stroke}
+            strokeWidth={ISO_STROKE.EDGE_INTERIOR}
+          />
+        );
+      })()}
+    </g>
+  );
+}
+
+interface IsoMortiseProps {
+  /** 母件表面上的榫眼開口「中心」 */
+  faceX: number;
+  faceY: number;
+  faceZ: number;
+  width: number;
+  height: number;
+  depth: number;
+  /** 哪個面有洞（朝外的面法線） */
+  faceNormal: "+x" | "-x" | "+y" | "-y" | "+z" | "-z";
+  /** 通榫 vs 盲榫 */
+  through?: boolean;
+  shape?: "rect" | "round" | "dovetail";
+  interiorFill?: string;
+  drawBackOpening?: boolean;
+  /** 母件總厚度（用來判斷通榫底面位置） */
+  motherThickness?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  originX?: number;
+  originY?: number;
+  depthScale?: number;
+}
+
+/**
+ * 凹陷母榫（榫眼）— 必畫內壁深度線（凹陷感關鍵）。
+ * 老師慣例：不是純黑矩形，畫開口 + 內壁 + (通榫) 背面虛線。
+ */
+export function IsoMortise({
+  faceX,
+  faceY,
+  faceZ,
+  width,
+  height,
+  depth,
+  faceNormal,
+  through = false,
+  interiorFill = ISO_FILL.MORTISE_HOLE_INTERIOR,
+  stroke = "#222",
+  strokeWidth = ISO_STROKE.EDGE_INTERIOR,
+  originX = 0,
+  originY = 0,
+  depthScale,
+}: IsoMortiseProps): JSX.Element {
+  const opt = { depthScale, originX, originY };
+
+  // 簡化：只支援 ±x ±y ±z 的軸對齊面
+  // 開口「在面上」是個矩形 (width × height)
+  // depth 沿著 faceNormal 反向（凹進去）
+  let opening: [number, number][] = [];
+  let bottomOpening: [number, number][] = [];
+
+  // 計算開口 4 角 + 內凹底 4 角
+  // 約定：對於每個 faceNormal，width 與 height 是面內兩個正交方向
+  switch (faceNormal) {
+    case "+y": // 頂面開洞（看到頂面有個矩形凹）— width 沿 x, height 沿 z
+      opening = [
+        isoProject(faceX - width / 2, faceY, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY, faceZ + height / 2, opt),
+        isoProject(faceX - width / 2, faceY, faceZ + height / 2, opt),
+      ];
+      bottomOpening = [
+        isoProject(faceX - width / 2, faceY + depth, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY + depth, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY + depth, faceZ + height / 2, opt),
+        isoProject(faceX - width / 2, faceY + depth, faceZ + height / 2, opt),
+      ];
+      break;
+    case "-y": // 底面（少用）
+      opening = [
+        isoProject(faceX - width / 2, faceY, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY, faceZ + height / 2, opt),
+        isoProject(faceX - width / 2, faceY, faceZ + height / 2, opt),
+      ];
+      bottomOpening = [
+        isoProject(faceX - width / 2, faceY - depth, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY - depth, faceZ - height / 2, opt),
+        isoProject(faceX + width / 2, faceY - depth, faceZ + height / 2, opt),
+        isoProject(faceX - width / 2, faceY - depth, faceZ + height / 2, opt),
+      ];
+      break;
+    case "+z": // 後面（背面）— 少用
+    case "-z": { // 前面（正面）— width 沿 x, height 沿 y
+      opening = [
+        isoProject(faceX - width / 2, faceY - height / 2, faceZ, opt),
+        isoProject(faceX + width / 2, faceY - height / 2, faceZ, opt),
+        isoProject(faceX + width / 2, faceY + height / 2, faceZ, opt),
+        isoProject(faceX - width / 2, faceY + height / 2, faceZ, opt),
+      ];
+      const dz = faceNormal === "-z" ? depth : -depth;
+      bottomOpening = [
+        isoProject(faceX - width / 2, faceY - height / 2, faceZ + dz, opt),
+        isoProject(faceX + width / 2, faceY - height / 2, faceZ + dz, opt),
+        isoProject(faceX + width / 2, faceY + height / 2, faceZ + dz, opt),
+        isoProject(faceX - width / 2, faceY + height / 2, faceZ + dz, opt),
+      ];
+      break;
+    }
+    case "+x": // 右面（少用）
+    case "-x": { // 左面 — width 沿 z, height 沿 y
+      opening = [
+        isoProject(faceX, faceY - height / 2, faceZ - width / 2, opt),
+        isoProject(faceX, faceY - height / 2, faceZ + width / 2, opt),
+        isoProject(faceX, faceY + height / 2, faceZ + width / 2, opt),
+        isoProject(faceX, faceY + height / 2, faceZ - width / 2, opt),
+      ];
+      const dx = faceNormal === "-x" ? depth : -depth;
+      bottomOpening = [
+        isoProject(faceX + dx, faceY - height / 2, faceZ - width / 2, opt),
+        isoProject(faceX + dx, faceY - height / 2, faceZ + width / 2, opt),
+        isoProject(faceX + dx, faceY + height / 2, faceZ + width / 2, opt),
+        isoProject(faceX + dx, faceY + height / 2, faceZ - width / 2, opt),
+      ];
+      break;
+    }
+  }
+
+  const openPts = opening.map((p) => `${p[0]},${p[1]}`).join(" ");
+  const botPts = bottomOpening.map((p) => `${p[0]},${p[1]}`).join(" ");
+
+  return (
+    <g>
+      {/* 內壁（4 個梯形面）— 用 interiorFill 表示「進去後看不到底」 */}
+      {!through && (
+        <>
+          {/* 內凹深處的「底」— 畫深色矩形作為 bottom */}
+          <polygon
+            points={botPts}
+            fill={interiorFill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+          />
+          {/* 4 條內壁邊（從開口角到底角）— 凹陷感關鍵 */}
+          {opening.map((p, i) => {
+            const b = bottomOpening[i];
+            return (
+              <line
+                key={`wall-${i}`}
+                x1={p[0]}
+                y1={p[1]}
+                x2={b[0]}
+                y2={b[1]}
+                stroke={stroke}
+                strokeWidth={ISO_STROKE.EDGE_INTERIOR}
+              />
+            );
+          })}
+        </>
+      )}
+      {/* 通榫：背面開口用虛線（看穿透） */}
+      {through && (
+        <polygon
+          points={botPts}
+          fill="none"
+          stroke={COLOR.HIDDEN}
+          strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+          strokeDasharray={ISO_DASH.HIDDEN}
+        />
+      )}
+      {/* 開口本身（描深色實線） */}
+      <polygon
+        points={openPts}
+        fill={through ? interiorFill : "none"}
+        fillOpacity={through ? 0.85 : 0}
+        stroke={stroke}
+        strokeWidth={ISO_STROKE.OUTLINE_VISIBLE}
+      />
+      {/* 通榫額外：開口到背開口的 4 條虛線（穿透感） */}
+      {through &&
+        opening.map((p, i) => {
+          const b = bottomOpening[i];
+          return (
+            <line
+              key={`through-${i}`}
+              x1={p[0]}
+              y1={p[1]}
+              x2={b[0]}
+              y2={b[1]}
+              stroke={COLOR.HIDDEN}
+              strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+              strokeDasharray={ISO_DASH.HIDDEN}
+            />
+          );
+        })}
+    </g>
+  );
+}
+
+interface IsoExplodeProps {
+  pieceA: ReactNode;
+  pieceB: ReactNode;
+  /** 兩件分開距離（px in projected space） */
+  gap: number;
+  /** 沿哪個軸分開（screen 軸） */
+  axis: "x" | "y";
+  showArrow?: boolean;
+  arrowColor?: string;
+  labelA?: string;
+  labelB?: string;
+  /** B 件偏移錨點（畫箭頭起終點用） */
+  arrowFromX?: number;
+  arrowFromY?: number;
+  arrowToX?: number;
+  arrowToY?: number;
+}
+
+/**
+ * 拆解配對：把 pieceB 沿 axis 平移 +gap，可選畫一條虛線箭頭從 B 指向 A。
+ * pieceA / pieceB 都是 caller 已 project 完的 SVG group。
+ */
+export function IsoExplode({
+  pieceA,
+  pieceB,
+  gap,
+  axis,
+  showArrow = true,
+  arrowColor = "#0a4d8c",
+  labelA,
+  labelB,
+  arrowFromX,
+  arrowFromY,
+  arrowToX,
+  arrowToY,
+}: IsoExplodeProps): JSX.Element {
+  const tx = axis === "x" ? gap : 0;
+  const ty = axis === "y" ? gap : 0;
+  return (
+    <g>
+      {/* A 件原位 */}
+      <g>{pieceA}</g>
+      {labelA && (
+        <text x={4} y={-4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>
+          {labelA}
+        </text>
+      )}
+      {/* B 件平移 */}
+      <g transform={`translate(${tx} ${ty})`}>{pieceB}</g>
+      {labelB && (
+        <text x={tx + 4} y={ty - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE}>
+          {labelB}
+        </text>
+      )}
+      {/* 組裝箭頭：B → A */}
+      {showArrow &&
+        arrowFromX !== undefined &&
+        arrowFromY !== undefined &&
+        arrowToX !== undefined &&
+        arrowToY !== undefined && (
+          <g stroke={arrowColor} fill={arrowColor} strokeWidth={1}>
+            <line
+              x1={arrowFromX}
+              y1={arrowFromY}
+              x2={arrowToX}
+              y2={arrowToY}
+              strokeDasharray={ISO_DASH.ARROW}
+            />
+            {(() => {
+              const ang = Math.atan2(arrowToY - arrowFromY, arrowToX - arrowFromX);
+              const ah = 5;
+              const a1x = arrowToX - ah * Math.cos(ang - Math.PI / 6);
+              const a1y = arrowToY - ah * Math.sin(ang - Math.PI / 6);
+              const a2x = arrowToX - ah * Math.cos(ang + Math.PI / 6);
+              const a2y = arrowToY - ah * Math.sin(ang + Math.PI / 6);
+              return (
+                <polygon
+                  points={`${arrowToX},${arrowToY} ${a1x},${a1y} ${a2x},${a2y}`}
+                />
+              );
+            })()}
+          </g>
+        )}
+    </g>
+  );
+}
+
 /** 工法警示框：黃底紅框「注意 …」單行提示，不用 emoji。 */
 export function WarningCallout({
   x,
