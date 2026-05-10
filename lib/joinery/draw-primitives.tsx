@@ -1024,42 +1024,41 @@ export function IsoTenon({
   const visLen = length - e;
 
   // 依 direction 計算露出段 / 嵌入段的 bbox（cx,cy,cz,w,h,d）
-  // 慣例：root 在母件表面側（baseX/Y/Z），tip 朝 direction 指向方向。
-  // 「露出段」= 靠 tip 那 (length-e) 長度（凸出在外可見）= 實線實體
-  // 「嵌入段」= 靠 root 那 e 長度（被牙板擋住）= 虛線輪廓
+  // 慣例：root 在母件表面側，tip 朝 direction 指向方向。
+  // 「嵌入段」= 靠 tip 那 e 長度（藏在母件內）；「露出段」= 靠 root 那 (length-e) 長度。
   let visBox = { x: cx, y: cy, z: cz, w, h, d };
   let embBox = { x: cx, y: cy, z: cz, w, h, d };
   if (hasEmbedded) {
     switch (direction) {
       case "+z":
-        // root z=cz, tip z=cz+d；露出段在後（靠 tip）visLen，嵌入段在前（靠 root）e
-        visBox = { x: cx, y: cy, z: cz + e, w, h, d: visLen };
-        embBox = { x: cx, y: cy, z: cz, w, h, d: e };
-        break;
-      case "-z":
-        // root z=cz+d, tip z=cz；露出段在前（靠 tip）visLen，嵌入段在後（靠 root）e
+        // root z=cz, tip z=cz+d；露出段在前 (visLen)，嵌入段在後 (e)
         visBox = { x: cx, y: cy, z: cz, w, h, d: visLen };
         embBox = { x: cx, y: cy, z: cz + visLen, w, h, d: e };
         break;
-      case "+x":
-        // root x=cx, tip x=cx+w (w=length)；露出段在右（靠 tip）visLen，嵌入段在左（靠 root）e
-        visBox = { x: cx + e, y: cy, z: cz, w: visLen, h, d };
-        embBox = { x: cx, y: cy, z: cz, w: e, h, d };
+      case "-z":
+        // root z=cz+d, tip z=cz；露出段在後 (visLen)，嵌入段在前 (e)
+        visBox = { x: cx, y: cy, z: cz + e, w, h, d: visLen };
+        embBox = { x: cx, y: cy, z: cz, w, h, d: e };
         break;
-      case "-x":
-        // root x=cx+w, tip x=cx；露出段在左（靠 tip）visLen，嵌入段在右（靠 root）e
+      case "+x":
+        // root x=cx, tip x=cx+w (w=length)；露出段在左 (visLen)，嵌入段在右 (e)
         visBox = { x: cx, y: cy, z: cz, w: visLen, h, d };
         embBox = { x: cx + visLen, y: cy, z: cz, w: e, h, d };
         break;
-      case "+y":
-        // root y=cy, tip y=cy+h (h=length)；露出段在下（靠 tip）visLen，嵌入段在上（靠 root）e
-        visBox = { x: cx, y: cy + e, z: cz, w, h: visLen, d };
-        embBox = { x: cx, y: cy, z: cz, w, h: e, d };
+      case "-x":
+        // root x=cx+w, tip x=cx；露出段在右 (visLen)，嵌入段在左 (e)
+        visBox = { x: cx + e, y: cy, z: cz, w: visLen, h, d };
+        embBox = { x: cx, y: cy, z: cz, w: e, h, d };
         break;
-      case "-y":
-        // root y=cy+h, tip y=cy；露出段在上（靠 tip）visLen，嵌入段在下（靠 root）e
+      case "+y":
+        // root y=cy, tip y=cy+h (h=length)；露出段在上 (visLen)，嵌入段在下 (e)
         visBox = { x: cx, y: cy, z: cz, w, h: visLen, d };
         embBox = { x: cx, y: cy + visLen, z: cz, w, h: e, d };
+        break;
+      case "-y":
+        // root y=cy+h, tip y=cy；露出段在下 (visLen)，嵌入段在上 (e)
+        visBox = { x: cx, y: cy + e, z: cz, w, h: visLen, d };
+        embBox = { x: cx, y: cy, z: cz, w, h: e, d };
         break;
     }
   }
