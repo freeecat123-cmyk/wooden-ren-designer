@@ -37,6 +37,7 @@ import {
   ISO_FILL,
   ISO_STROKE,
   ISO_DASH,
+  isoProject,
 } from "./draw-primitives";
 
 export interface JoineryDetailParams {
@@ -705,21 +706,23 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
   // 用 IsoExplode 把公件向下拉開，加箭頭組裝向母件穿孔
   const iso = (() => {
     const isoS = s * 0.55;
-    // 母件（板）模型尺寸 (mm)：寬=panelW*0.55、厚=mt、深=panelW*0.45
+    // 母件（板/枋）模型尺寸 (mm)：寬=panelW*0.55、厚=mt、深=panelW*0.45
     const motherW = panelW * 0.55;
     const motherH = mt;
     const motherD = panelW * 0.45;
-    // 母件 origin（左下前角）— 排在 quadrant 上方
-    const oxM = QUAD_W / 2 - (motherW * isoS) / 2 - 20;
-    const oyM = 70;
     // 公件（柱）模型尺寸 (mm)：寬=cw、高=legBody、深=ct
     const childW = cw;
     const childH = legBody;
     const childD = ct;
-    // explode：公件在母件下方 60px
+    // V3 fix D3：spec F.1 老師慣例「柱左下 + 枋右上」（沿榫長方向分開）
+    // 母件（枋/板）→ 右上象限；公件（柱）→ 左下象限
     const explodeGap = 80;
-    const oxC = oxM + (motherW * isoS) / 2 - (childW * isoS) / 2 + 30 * isoS;
-    const oyC = oyM + (motherH * isoS) + explodeGap;
+    // 公件（柱）→ 左下：x 偏左、y 偏下
+    const oxC = QUAD_W / 2 - (childW * isoS) / 2 - 60;
+    const oyC = QUAD_H / 2 + 20;
+    // 母件（枋/板）→ 右上：x 偏右、y 偏上
+    const oxM = QUAD_W / 2 - (motherW * isoS) / 2 + 60;
+    const oyM = oyC - (motherH * isoS) - explodeGap;
     return (
       <g>
         <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -795,17 +798,26 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
             />
           )}
         </g>
-        {/* 拆解箭頭：榫頭頂端 → 母件孔（白色虛線） */}
-        <line
-          x1={oxC + (childW / 2 - 0) * isoS + (childD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE}
-          y1={oyC - (tl) * isoS}
-          x2={oxM + (motherW / 2) * isoS + (motherD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE}
-          y2={oyM + motherH * isoS + 4}
-          stroke={COLOR.DIM}
-          strokeWidth={0.8}
-          strokeDasharray="4 3"
-        />
-        <text x={oxM - 6} y={oyM - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE} textAnchor="start">母件（板）</text>
+        {/* 拆解箭頭：母件孔（右上）→ 公件榫頭頂端（左下），含三角箭頭 */}
+        {(() => {
+          const fromX = oxM + (motherW / 2) * isoS + (motherD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE;
+          const fromY = oyM + motherH * isoS + 4;
+          const toX = oxC + (childW / 2) * isoS + (childD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE;
+          const toY = oyC - tl * isoS - 2;
+          const ang = Math.atan2(toY - fromY, toX - fromX);
+          const ah = 6;
+          const a1x = toX - ah * Math.cos(ang - Math.PI / 6);
+          const a1y = toY - ah * Math.sin(ang - Math.PI / 6);
+          const a2x = toX - ah * Math.cos(ang + Math.PI / 6);
+          const a2y = toY - ah * Math.sin(ang + Math.PI / 6);
+          return (
+            <g stroke={COLOR.DIM} fill={COLOR.DIM}>
+              <line x1={fromX} y1={fromY} x2={toX} y2={toY} strokeWidth={0.9} strokeDasharray="4 3" />
+              <polygon points={`${toX},${toY} ${a1x},${a1y} ${a2x},${a2y}`} />
+            </g>
+          );
+        })()}
+        <text x={oxM - 6} y={oyM - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE} textAnchor="start">母件（枋/板）</text>
         <text x={oxC - 6} y={oyC - 4} fontSize={FONT.CALLOUT} fill={COLOR.OUTLINE} textAnchor="start">公件（柱）榫 {tw}×{tt}×{tl}</text>
       </g>
     );
@@ -1989,84 +2001,235 @@ function HalfLapDetail(p: JoineryDetailParams) {
       <rect x={4} y={20} width={QW - 8} height={QH - 28} fill="white" stroke={COLOR.OUTLINE} strokeWidth={0.4} />
       <IsometricGroup originX={QW / 2} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
-          // Phase 3 (2026-05-09)：每件削半厚 + IsoExplode 上下分開
-          // A 件（下方水平條）：削掉「上」半厚 → 高 = mt/2，搭接區整段都只有下半
-          // B 件（上方水平條）：削掉「下」半厚 → 同理只有上半
-          // explode：B 在 A 上方 gap=mt*1.5
-          const aLenMm = Math.max(tl * 4, cw + 20);
-          const bLenMm = Math.max(tl * 4, cw + 20);
+          // Phase 4 (2026-05-09 V3 fix D1)：兩件各畫「L 形」立體（全厚段 + 半厚搭接段），
+          // 並用紅色斜線 hatching 標出「被削掉的一半」+ 文字 label，人類能立刻看出「半搭」
+          //
+          // 模型空間座標：
+          //   x: 沿件 A 長軸（左右）；y: 厚度方向（上=負 y）；z: 深度方向
+          //   件 A 水平擺放，搭接區在 x ∈ [-lapHalf, +lapHalf]，y 削上半 → 厚度從 [0, mt] 變 [halfMt, mt]
+          //   件 B 旋轉 90° 沿 z 軸俯視（即垂直擺放，搭接區同位置但削下半）
+          //   爆炸：B 整體上移 explodeGap
           const halfMt = mt / 2;
-          const explodeGap = mt * 2;
-          // A 件 (origin x=-aLenMm/2, y=0, z=-mt/2)：寬=aLenMm, 高=halfMt (削上半), 深=mt
-          // B 件 (origin x=-bLenMm/2, y=-explodeGap-halfMt, z=-mt/2)：寬=bLenMm, 高=halfMt, 深=mt（旋 90 度沿 y 軸 → 垂直擺）
-          // 為簡化，B 件畫成跨 90° 的橫條（垂直）：寬 = mt, 高 = bLenMm, 深 = halfMt
+          const halfCt = ct / 2;
+          const lapLen = Math.max(tl, mt * 1.4);  // 搭接區長度
+          const tailLen = Math.max(mt * 2, lapLen * 1.2);  // 搭接外的延伸段
+          const aTotalLen = lapLen + tailLen;
+          const bTotalLen = lapLen + tailLen;
+          const explodeGap = mt * 2.4;
+          const aDepth = mt;  // 件 A 深度（z 方向）
+          const bDepth = ct;  // 件 B 深度
+
+          // 件 A（米色 / 母件色）：水平擺，左半全厚、右半（搭接區）只有下半厚（上半被削）
+          // x 從 -aTotalLen/2 到 +aTotalLen/2
+          // tail：x ∈ [-aTotalLen/2, -aTotalLen/2 + tailLen]，全厚 [0, mt]
+          // lap： x ∈ [-aTotalLen/2 + tailLen, +aTotalLen/2]，半厚 [halfMt, mt]
+          const aTailX = -aTotalLen / 2;
+          const aLapX = aTailX + tailLen;
+          // 件 B（柱色）：搭在 A 上方（爆炸位移後），方向相同（簡化視覺）
+          // tail 全厚 [0, ct]，lap 半厚 [0, halfCt]（保留上半，下半被削）
+          const bTailX = -bTotalLen / 2;
+          const bLapX = bTailX + tailLen;
+          const bYOffset = -explodeGap;
+
           return (
             <g>
-              {/* A 件：水平半條（保留下半 mt/2） */}
+              {/* ==================== 件 A（下件，米色） ==================== */}
+              {/* 全厚 tail 段 */}
               <IsoCuboid
-                x={-aLenMm / 2}
-                y={halfMt}
-                z={-mt / 2}
-                w={aLenMm}
-                h={halfMt}
-                d={mt}
+                x={aTailX}
+                y={0}
+                z={-aDepth / 2}
+                w={tailLen}
+                h={mt}
+                d={aDepth}
                 fillFront={ISO_FILL.MORTISE_FRONT}
                 fillTop={ISO_FILL.MORTISE_TOP}
                 fillSide={ISO_FILL.MORTISE_SIDE}
                 strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                showHiddenBackEdges={false}
               />
-              {/* A 件搭接區：被削掉的部分，畫一個虛線 ghost 顯示原本完整厚度 */}
-              <rect
-                x={-mt / 2}
-                y={0}
-                width={mt}
-                height={halfMt}
-                fill="none"
-                stroke={COLOR.HIDDEN}
-                strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
-                strokeDasharray={ISO_DASH.HIDDEN}
+              {/* 半厚 lap 段（下半保留 → y ∈ [halfMt, mt]） */}
+              <IsoCuboid
+                x={aLapX}
+                y={halfMt}
+                z={-aDepth / 2}
+                w={lapLen}
+                h={halfMt}
+                d={aDepth}
+                fillFront={ISO_FILL.MORTISE_FRONT}
+                fillTop={ISO_FILL.MORTISE_TOP}
+                fillSide={ISO_FILL.MORTISE_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                showHiddenBackEdges={false}
               />
-              {/* B 件：水平半條搭在 A 上方（保留上半 mt/2） */}
-              <g transform={`translate(0 ${-explodeGap})`}>
+              {/* 件 A 被削掉的上半（虛線 ghost + 紅斜線 hatching） */}
+              {(() => {
+                // ghost 是 cuboid 在 lap 區段、y ∈ [0, halfMt]
+                const g0 = isoProject(aLapX, 0, -aDepth / 2);
+                const g1 = isoProject(aLapX + lapLen, 0, -aDepth / 2);
+                const g2 = isoProject(aLapX + lapLen, halfMt, -aDepth / 2);
+                const g3 = isoProject(aLapX, halfMt, -aDepth / 2);
+                const g0b = isoProject(aLapX, 0, aDepth / 2);
+                const g1b = isoProject(aLapX + lapLen, 0, aDepth / 2);
+                const g2b = isoProject(aLapX + lapLen, halfMt, aDepth / 2);
+                const g3b = isoProject(aLapX, halfMt, aDepth / 2);
+                const front = `${g0[0]},${g0[1]} ${g1[0]},${g1[1]} ${g2[0]},${g2[1]} ${g3[0]},${g3[1]}`;
+                const top = `${g3[0]},${g3[1]} ${g2[0]},${g2[1]} ${g2b[0]},${g2b[1]} ${g3b[0]},${g3b[1]}`;
+                const side = `${g1[0]},${g1[1]} ${g1b[0]},${g1b[1]} ${g2b[0]},${g2b[1]} ${g2[0]},${g2[1]}`;
+                return (
+                  <g>
+                    <polygon
+                      points={front}
+                      fill="url(#hatch-halflap)"
+                      stroke={COLOR.HIDDEN}
+                      strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                      strokeDasharray={ISO_DASH.HIDDEN}
+                    />
+                    <polygon
+                      points={top}
+                      fill="none"
+                      stroke={COLOR.HIDDEN}
+                      strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                      strokeDasharray={ISO_DASH.HIDDEN}
+                    />
+                    <polygon
+                      points={side}
+                      fill="none"
+                      stroke={COLOR.HIDDEN}
+                      strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                      strokeDasharray={ISO_DASH.HIDDEN}
+                    />
+                  </g>
+                );
+              })()}
+
+              {/* ==================== 件 B（上件，公色，爆炸位移） ==================== */}
+              <g transform={`translate(0 ${bYOffset})`}>
+                {/* 全厚 tail 段 */}
                 <IsoCuboid
-                  x={-bLenMm / 2}
+                  x={bTailX}
                   y={0}
-                  z={-mt / 2}
-                  w={bLenMm}
-                  h={halfMt}
-                  d={mt}
+                  z={-bDepth / 2}
+                  w={tailLen}
+                  h={ct}
+                  d={bDepth}
                   fillFront={ISO_FILL.TENON_FRONT}
                   fillTop={ISO_FILL.TENON_TOP}
                   fillSide={ISO_FILL.TENON_SIDE}
                   strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                  showHiddenBackEdges={false}
                 />
-                {/* B 件削掉的搭接區 ghost */}
-                <rect
-                  x={-mt / 2}
-                  y={halfMt}
-                  width={mt}
-                  height={halfMt}
-                  fill="none"
-                  stroke={COLOR.HIDDEN}
-                  strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
-                  strokeDasharray={ISO_DASH.HIDDEN}
+                {/* 半厚 lap 段（上半保留 → y ∈ [0, halfCt]） */}
+                <IsoCuboid
+                  x={bLapX}
+                  y={0}
+                  z={-bDepth / 2}
+                  w={lapLen}
+                  h={halfCt}
+                  d={bDepth}
+                  fillFront={ISO_FILL.TENON_FRONT}
+                  fillTop={ISO_FILL.TENON_TOP}
+                  fillSide={ISO_FILL.TENON_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
+                  showHiddenBackEdges={false}
                 />
+                {/* 件 B 被削掉的下半（虛線 ghost + 紅斜線 hatching） */}
+                {(() => {
+                  const g0 = isoProject(bLapX, halfCt, -bDepth / 2);
+                  const g1 = isoProject(bLapX + lapLen, halfCt, -bDepth / 2);
+                  const g2 = isoProject(bLapX + lapLen, ct, -bDepth / 2);
+                  const g3 = isoProject(bLapX, ct, -bDepth / 2);
+                  const g2b = isoProject(bLapX + lapLen, ct, bDepth / 2);
+                  const g3b = isoProject(bLapX, ct, bDepth / 2);
+                  const g1b = isoProject(bLapX + lapLen, halfCt, bDepth / 2);
+                  const front = `${g0[0]},${g0[1]} ${g1[0]},${g1[1]} ${g2[0]},${g2[1]} ${g3[0]},${g3[1]}`;
+                  const bottom = `${g3[0]},${g3[1]} ${g2[0]},${g2[1]} ${g2b[0]},${g2b[1]} ${g3b[0]},${g3b[1]}`;
+                  const side = `${g1[0]},${g1[1]} ${g1b[0]},${g1b[1]} ${g2b[0]},${g2b[1]} ${g2[0]},${g2[1]}`;
+                  return (
+                    <g>
+                      <polygon
+                        points={front}
+                        fill="url(#hatch-halflap)"
+                        stroke={COLOR.HIDDEN}
+                        strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                        strokeDasharray={ISO_DASH.HIDDEN}
+                      />
+                      <polygon
+                        points={bottom}
+                        fill="none"
+                        stroke={COLOR.HIDDEN}
+                        strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                        strokeDasharray={ISO_DASH.HIDDEN}
+                      />
+                      <polygon
+                        points={side}
+                        fill="none"
+                        stroke={COLOR.HIDDEN}
+                        strokeWidth={ISO_STROKE.HIDDEN_DASHED / isoScale}
+                        strokeDasharray={ISO_DASH.HIDDEN}
+                      />
+                    </g>
+                  );
+                })()}
               </g>
-              {/* 組裝箭頭（B → A 往下） */}
-              <line
-                x1={0}
-                y1={-explodeGap + halfMt + 2}
-                x2={0}
-                y2={-2}
-                stroke={COLOR.DIM}
-                strokeWidth={0.8 / isoScale}
-                strokeDasharray={ISO_DASH.ARROW}
-              />
+
+              {/* ==================== 組裝箭頭（B → A 往下，搭接區中央） ==================== */}
+              {(() => {
+                const arrTop = isoProject(0, bYOffset + halfCt + 2, 0);
+                const arrBot = isoProject(0, -2, 0);
+                return (
+                  <g>
+                    <line
+                      x1={arrTop[0]}
+                      y1={arrTop[1]}
+                      x2={arrBot[0]}
+                      y2={arrBot[1]}
+                      stroke={COLOR.DIM}
+                      strokeWidth={1 / isoScale}
+                      strokeDasharray={ISO_DASH.ARROW}
+                    />
+                    {/* 箭頭三角 */}
+                    <polygon
+                      points={`${arrBot[0]},${arrBot[1]} ${arrBot[0] - 4 / isoScale},${arrBot[1] - 6 / isoScale} ${arrBot[0] + 4 / isoScale},${arrBot[1] - 6 / isoScale}`}
+                      fill={COLOR.DIM}
+                    />
+                  </g>
+                );
+              })()}
+
+              {/* ==================== 文字 label：標明削半厚 ==================== */}
+              {(() => {
+                const labA = isoProject(aLapX + lapLen / 2, halfMt - 2, -aDepth / 2);
+                const labB = isoProject(bLapX + lapLen / 2, halfCt + ct + 2, -bDepth / 2);
+                return (
+                  <g fontSize={9 / isoScale} fill={COLOR.SECTION_HATCH} textAnchor="middle">
+                    <text x={labA[0]} y={labA[1] - 2 / isoScale}>↑ A 件削上半 {Math.round(halfMt)}mm</text>
+                    <text x={labB[0]} y={labB[1] + 10 / isoScale + bYOffset / isoScale}>
+                      {/* 此 label 已在 g translate 之外，需要扣回 bYOffset */}
+                    </text>
+                  </g>
+                );
+              })()}
+              {/* B 件 label（在 translate 外固定算） */}
+              {(() => {
+                const labB = isoProject(bLapX + lapLen / 2, bYOffset + halfCt + 4, -bDepth / 2);
+                return (
+                  <text
+                    x={labB[0]}
+                    y={labB[1]}
+                    fontSize={9 / isoScale}
+                    fill={COLOR.SECTION_HATCH}
+                    textAnchor="middle"
+                  >
+                    ↓ B 件削下半 {Math.round(halfCt)}mm
+                  </text>
+                );
+              })()}
             </g>
           );
         })()}
       </IsometricGroup>
-      <WarningCallout x={20} y={QH - 30} text="兩件各削一半，咬合後總厚=板厚" />
+      <WarningCallout x={20} y={QH - 30} text={`兩件各削一半（A 上半 ${Math.round(mt/2)}mm + B 下半 ${Math.round(ct/2)}mm），咬合後總厚=板厚`} />
     </g>
   );
 
@@ -7263,17 +7426,20 @@ function StubJointDetail(p: JoineryDetailParams) {
   })();
 
   // ===== 等角圖（右下）：Phase 3 — 母腳 IsoCuboid + 牙條 IsoCuboid 整支端面卡入（無肩） =====
+  // V3 fix D2：薄板強制視覺加厚 ≥ 16mm（mm 標註保留原值）+ 強制 explode gap ≥ tl + max(ct,16)
+  // 避免「公件壓扁穿透母件」+「插入後狀態」的視覺缺陷
   const iso = (() => {
     // 視覺空間統一用「最大尺寸基準」做 scale，避免薄板場景縮成一條線
     const visMax = Math.max(mt * 4, cw + tl + 20, 80);
     const isoScale = Math.min(1.6, 240 / visMax);
-    const drawMt = Math.max(mt, 12); // 太薄母件視覺 padding
-    const drawCt = Math.max(ct, 6);
-    const drawCw = cw;
-    const drawTl = tl;
+    const drawMt = Math.max(mt, 18); // 太薄母件視覺 padding（≥18mm 看得出立體）
+    const drawCt = Math.max(ct, 16); // 太薄公件視覺 padding（≥16mm 不會壓成線）
+    const drawCw = Math.max(cw, 30); // 公件最小視覺寬度
+    const drawTl = Math.max(tl, 8);  // 卡入深度視覺最小值
     const motherH = Math.max(drawMt * 4, 60); // 母件視覺高度
     const apronExt = drawCw * 1.6; // 牙條伸出母件外的長度
-    const explodeGap = drawTl + 14;
+    // explode：強制公母分離 ≥ tl + 公件視覺厚 50%（spec E.4：「公母分離有空隙」）
+    const explodeGap = Math.max(drawTl + drawCt * 0.6 + 16, drawTl * 2.5);
 
     return (
       <g>
@@ -7340,17 +7506,35 @@ function StubJointDetail(p: JoineryDetailParams) {
               strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
             />
           </g>
-          {/* 拆解箭頭：牙條左端 → 母件榫眼 */}
-          <line
-            x1={drawMt + explodeGap - 4}
-            y1={motherH * 0.5}
-            x2={drawMt + 4}
-            y2={motherH * 0.5}
-            stroke={COLOR.DIM}
-            strokeWidth={0.8 / isoScale}
-            strokeDasharray={ISO_DASH.ARROW}
-          />
+          {/* 拆解箭頭：牙條左端 → 母件榫眼（含三角箭頭） */}
+          {(() => {
+            const fromX = drawMt + explodeGap - 4;
+            const toX = drawMt + 4;
+            const yMid = motherH * 0.5;
+            const ah = 5 / isoScale;
+            return (
+              <g stroke={COLOR.DIM} fill={COLOR.DIM}>
+                <line
+                  x1={fromX}
+                  y1={yMid}
+                  x2={toX}
+                  y2={yMid}
+                  strokeWidth={1 / isoScale}
+                  strokeDasharray={ISO_DASH.ARROW}
+                />
+                <polygon
+                  points={`${toX},${yMid} ${toX + ah},${yMid - ah * 0.6} ${toX + ah},${yMid + ah * 0.6}`}
+                />
+              </g>
+            );
+          })()}
         </IsometricGroup>
+        {/* 視覺加厚提示：若實際 ct/mt 小於繪圖加厚值，明確標註 */}
+        {(ct < drawCt || mt < drawMt) && (
+          <text x={20} y={310} fontSize={FONT.CALLOUT} fill="#888">
+            ＊薄板場景視覺加厚至 ≥{drawCt}mm（mm 標註以實際值 ct={ct}、mt={mt} 為準）
+          </text>
+        )}
       </g>
     );
   })();
