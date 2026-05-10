@@ -1542,13 +1542,13 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             />
           )}
           {/* 盲榫眼（在母件右面 +x） — 內壁深度線（凹陷感） */}
-          {/* faceNormal="+x" → IsoMortise width=z 軸（榫寬 tw）、height=y 軸（榫厚 tt） */}
+          {/* faceNormal="+x"：width 沿 z 軸（深度=榫厚 tt）、height 沿 y 軸（垂直=榫寬 tw） */}
           <IsoMortise
             faceX={motherW}
             faceY={motherH / 2}
             faceZ={motherD / 2}
-            width={tw}
-            height={tt}
+            width={tt}
+            height={tw}
             depth={safeTl}
             faceNormal="+x"
             through={false}
@@ -1576,13 +1576,13 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             fillSide={ISO_FILL.TENON_SIDE}
             strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoS}
           />
-          {/* 榫頭從牙板左端 (-x) 凸出 */}
+          {/* 榫頭從牙板左端 (-x) 凸出。direction=-x：width 沿 z（深度=榫厚 tt）、thickness 沿 y（垂直=榫寬 tw） */}
           <IsoTenon
             baseX={0}
             baseY={childH / 2}
             baseZ={childD / 2}
-            width={tw}
-            thickness={tt}
+            width={tt}
+            thickness={tw}
             length={safeTl}
             direction="-x"
             fillFront={ISO_FILL.TENON_FRONT}
@@ -3408,13 +3408,13 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                 </text>
               )}
               {/* 榫眼（柱腳右面 +x，盲榫深 tl） */}
-              {/* B: faceNormal="+x" → IsoMortise width=z 軸（榫寬 tw）、height=y 軸（榫厚 tt） */}
+              {/* faceNormal="+x"：width 沿 z 軸（深度=榫厚 tt）、height 沿 y 軸（垂直=榫寬 tw） */}
               <IsoMortise
                 faceX={mt / 2}
                 faceY={0}
                 faceZ={0}
-                width={tw}
-                height={tt}
+                width={tt}
+                height={tw}
                 depth={tl}
                 faceNormal="+x"
                 through={false}
@@ -3435,13 +3435,13 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                   fillSide={ISO_FILL.TENON_SIDE}
                   strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
                 />
-                {/* 主榫頭 — 從牙板左端 -x 凸出 tl，寬=tw（中央）厚=tt */}
+                {/* 主榫頭 — 從牙板左端 -x 凸出 tl。direction=-x：width 沿 z（深度=榫厚 tt）、thickness 沿 y（垂直=榫寬 tw） */}
                 <IsoTenon
                   baseX={mt / 2}
                   baseY={0}
                   baseZ={0}
-                  width={tw}
-                  thickness={tt}
+                  width={tt}
+                  thickness={tw}
                   length={tl}
                   direction="-x"
                   fillFront={ISO_FILL.TENON_FRONT}
