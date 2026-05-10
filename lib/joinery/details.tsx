@@ -1501,7 +1501,8 @@ function BlindTenonDetail(p: JoineryDetailParams) {
     const oxM = 50;
     const oyM = 80;
     // 公件（牙板）模型：寬=cw（高度方向）、長=cw*2.0、深=ct
-    const childLen = cw * 2.0;
+    // F: 強制 childLen 不小於 safeTl*4，防止 coat-rack 等小料 tenon 看不見
+    const childLen = Math.max(cw * 2.0, safeTl * 4);
     const childH = cw;
     const childD = ct;
     // 公件 explode 在母件右側（沿 +x 拉開）
@@ -1541,19 +1542,24 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             />
           )}
           {/* 盲榫眼（在母件右面 +x） — 內壁深度線（凹陷感） */}
-          {!isRound && (
-            <IsoMortise
-              faceX={motherW}
-              faceY={motherH / 2}
-              faceZ={motherD / 2}
-              width={tt}
-              height={tw}
-              depth={safeTl}
-              faceNormal="+x"
-              through={false}
-              stroke={COLOR.OUTLINE}
-              strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoS}
-            />
+          {/* faceNormal="+x" → IsoMortise width=z 軸（榫寬 tw）、height=y 軸（榫厚 tt） */}
+          <IsoMortise
+            faceX={motherW}
+            faceY={motherH / 2}
+            faceZ={motherD / 2}
+            width={tw}
+            height={tt}
+            depth={safeTl}
+            faceNormal="+x"
+            through={false}
+            stroke={COLOR.OUTLINE}
+            strokeWidth={ISO_STROKE.EDGE_INTERIOR / isoS}
+          />
+          {/* 圓腳：母件呈現為圓柱時，榫眼仍畫在 +x 面上（簡化為平面投影） */}
+          {isRound && (
+            <text x={motherW + 4} y={-8} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>
+              圓腳柱面挖榫眼（簡化平面顯示）
+            </text>
           )}
         </g>
         {/* 公件（牙板）— IsoCuboid + IsoTenon 從左端凸出 */}
@@ -1992,7 +1998,15 @@ function HalfLapDetail(p: JoineryDetailParams) {
   );
 
   // ===== 等角圖 =====
-  const isoScale = Math.min(0.9, s * 0.55);
+  // E: 強制最小 isoScale，nightstand (mt=14, ct=12, tl=7) 等案例 mm 太小時 iso 看不清
+  // 核心約束：搭接 iso 場景視覺寬度 ≥ 100px，反推 isoScale = 100 / aTotalLenMm
+  const _isoLapLenMm = Math.max(tl, mt * 1.4);
+  const _isoTailLenMm = Math.max(mt * 2, _isoLapLenMm * 1.2);
+  const _isoTotalLenMm = _isoLapLenMm + _isoTailLenMm;
+  const isoScale = Math.max(
+    Math.min(2.0, 100 / Math.max(1, _isoTotalLenMm)),
+    Math.min(0.9, s * 0.55),
+  );
   const iso = (
     <g>
       <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
@@ -3358,7 +3372,9 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
   );
 
   // ===== 等角圖 =====
-  const isoScale = Math.min(0.85, s * 0.5);
+  // F: 強制最小 isoScale 0.5，防止 nightstand 等案例細節太小看不清
+  const isoScale = Math.max(0.5, Math.min(0.85, s * 0.5));
+  const isRound = p.motherShape === "round";
   const iso = (
     <g>
       <text x={QW / 2} y={14} fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle">
@@ -3368,6 +3384,7 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
       <IsometricGroup originX={QW / 2 - 30} originY={QH / 2 + 10} scale={isoScale}>
         {(() => {
           // Phase 3 (2026-05-09)：柱腳完整 3 面 + IsoMortise 內壁 + IsoTenon showShoulder
+          // D: 圓腳 fallback：仍用 IsoCuboid 但 width=height=mt，並加 callout 註明簡化
           const apronLenMm = Math.max(ct * 4, cw + 20);
           const explodeGap = tl + 10;
           return (
@@ -3385,13 +3402,19 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                 fillSide={ISO_FILL.MORTISE_SIDE}
                 strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / isoScale}
               />
+              {isRound && (
+                <text x={-mt / 2} y={mt + 14} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>
+                  圓腳柱簡化為方柱顯示（直徑 = {mt}mm）
+                </text>
+              )}
               {/* 榫眼（柱腳右面 +x，盲榫深 tl） */}
+              {/* B: faceNormal="+x" → IsoMortise width=z 軸（榫寬 tw）、height=y 軸（榫厚 tt） */}
               <IsoMortise
                 faceX={mt / 2}
                 faceY={0}
                 faceZ={0}
-                width={tt}
-                height={tw}
+                width={tw}
+                height={tt}
                 depth={tl}
                 faceNormal="+x"
                 through={false}
