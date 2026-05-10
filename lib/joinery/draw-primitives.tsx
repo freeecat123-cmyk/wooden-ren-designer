@@ -1016,25 +1016,96 @@ export function IsoTenon({
     );
   }
 
+  // 若 embeddedLength > 0：把榫頭結構性切成「露出段（實體）+ 嵌入段（虛線輪廓）」
+  // 視覺意圖：榫頭從母件「長出來」，嵌入段不畫實體 polygon，只用虛線勾出輪廓，
+  // 讓人看穿母件看到榫頭內部形狀（取代舊的「4 條長軸虛線疊加」做法）。
+  const e = Math.max(0, Math.min(embeddedLength, length));
+  const hasEmbedded = e > 0;
+  const visLen = length - e;
+
+  // 依 direction 計算露出段 / 嵌入段的 bbox（cx,cy,cz,w,h,d）
+  // 慣例：root 在母件表面側，tip 朝 direction 指向方向。
+  // 「嵌入段」= 靠 tip 那 e 長度（藏在母件內）；「露出段」= 靠 root 那 (length-e) 長度。
+  let visBox = { x: cx, y: cy, z: cz, w, h, d };
+  let embBox = { x: cx, y: cy, z: cz, w, h, d };
+  if (hasEmbedded) {
+    switch (direction) {
+      case "+z":
+        // root z=cz, tip z=cz+d；露出段在前 (visLen)，嵌入段在後 (e)
+        visBox = { x: cx, y: cy, z: cz, w, h, d: visLen };
+        embBox = { x: cx, y: cy, z: cz + visLen, w, h, d: e };
+        break;
+      case "-z":
+        // root z=cz+d, tip z=cz；露出段在後 (visLen)，嵌入段在前 (e)
+        visBox = { x: cx, y: cy, z: cz + e, w, h, d: visLen };
+        embBox = { x: cx, y: cy, z: cz, w, h, d: e };
+        break;
+      case "+x":
+        // root x=cx, tip x=cx+w (w=length)；露出段在左 (visLen)，嵌入段在右 (e)
+        visBox = { x: cx, y: cy, z: cz, w: visLen, h, d };
+        embBox = { x: cx + visLen, y: cy, z: cz, w: e, h, d };
+        break;
+      case "-x":
+        // root x=cx+w, tip x=cx；露出段在右 (visLen)，嵌入段在左 (e)
+        visBox = { x: cx + e, y: cy, z: cz, w: visLen, h, d };
+        embBox = { x: cx, y: cy, z: cz, w: e, h, d };
+        break;
+      case "+y":
+        // root y=cy, tip y=cy+h (h=length)；露出段在上 (visLen)，嵌入段在下 (e)
+        visBox = { x: cx, y: cy, z: cz, w, h: visLen, d };
+        embBox = { x: cx, y: cy + visLen, z: cz, w, h: e, d };
+        break;
+      case "-y":
+        // root y=cy+h, tip y=cy；露出段在下 (visLen)，嵌入段在上 (e)
+        visBox = { x: cx, y: cy + e, z: cz, w, h: visLen, d };
+        embBox = { x: cx, y: cy, z: cz, w, h: e, d };
+        break;
+    }
+  }
+
   return (
     <g>
-      <IsoCuboid
-        x={cx}
-        y={cy}
-        z={cz}
-        w={w}
-        h={h}
-        d={d}
-        fillFront={fillFront}
-        fillTop={fillTop}
-        fillSide={fillSide}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        depthScale={depthScale}
-        originX={originX}
-        originY={originY}
-        showHiddenBackEdges={false}
-      />
+      {/* 露出段：完整 fill + 實線 outline（沒有 embeddedLength 時整段=露出段） */}
+      {visLen > 0 && (
+        <IsoCuboid
+          x={visBox.x}
+          y={visBox.y}
+          z={visBox.z}
+          w={visBox.w}
+          h={visBox.h}
+          d={visBox.d}
+          fillFront={fillFront}
+          fillTop={fillTop}
+          fillSide={fillSide}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          depthScale={depthScale}
+          originX={originX}
+          originY={originY}
+          showHiddenBackEdges={false}
+        />
+      )}
+      {/* 嵌入段：hidden=true → 虛線輪廓 + fill="none"（看穿母件看到榫頭形狀） */}
+      {hasEmbedded && (
+        <IsoCuboid
+          x={embBox.x}
+          y={embBox.y}
+          z={embBox.z}
+          w={embBox.w}
+          h={embBox.h}
+          d={embBox.d}
+          fillFront="none"
+          fillTop="none"
+          fillSide="none"
+          stroke={COLOR.HIDDEN}
+          strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+          hidden={true}
+          depthScale={depthScale}
+          originX={originX}
+          originY={originY}
+          showHiddenBackEdges={false}
+        />
+      )}
       {showShoulder && (
         <line
           // 肩線：榫頭根部畫一條粗線，凸顯承力面
@@ -1059,69 +1130,6 @@ export function IsoTenon({
             stroke={stroke}
             strokeWidth={ISO_STROKE.EDGE_INTERIOR}
           />
-        );
-      })()}
-      {/* 嵌入段：在根部 4 條長軸邊疊虛線，提示「這段藏在母件裡」 */}
-      {embeddedLength > 0 && (() => {
-        // cuboid bbox: (cx, cy, cz)..(cx+w, cy+h, cz+d)
-        // 對應 direction，找出「根部端」與「往榫尖延伸 embeddedLength」的兩個端點
-        // 並列出共享該長軸的 4 個角點 (穿過剩兩軸 0/max)
-        const e = Math.min(embeddedLength, length);
-        // 4 個 (a, b) ∈ {0, 1}^2 對應剩兩軸的 corner 選擇
-        const corners: Array<[number, number, number, number, number, number]> = [];
-        // 每個 corner 回傳 [x1,y1,z1, x2,y2,z2]，從 root 往 tip 走 e 距離
-        const push4 = (
-          fn: (a: 0 | 1, b: 0 | 1) => [number, number, number, number, number, number],
-        ) => {
-          ([[0, 0], [1, 0], [0, 1], [1, 1]] as Array<[0 | 1, 0 | 1]>).forEach(([a, b]) => {
-            corners.push(fn(a, b));
-          });
-        };
-        switch (direction) {
-          case "+z":
-            // root z = cz, tip z = cz+d；長軸沿 +z
-            push4((a, b) => [cx + a * w, cy + b * h, cz, cx + a * w, cy + b * h, cz + e]);
-            break;
-          case "-z":
-            // root z = cz+d (=baseZ), tip z = cz
-            push4((a, b) => [cx + a * w, cy + b * h, cz + d, cx + a * w, cy + b * h, cz + d - e]);
-            break;
-          case "+x":
-            // root x = cx (=baseX), tip x = cx+w (w=length here)
-            push4((a, b) => [cx, cy + a * h, cz + b * d, cx + e, cy + a * h, cz + b * d]);
-            break;
-          case "-x":
-            // root x = cx+w (=baseX), tip x = cx
-            push4((a, b) => [cx + w, cy + a * h, cz + b * d, cx + w - e, cy + a * h, cz + b * d]);
-            break;
-          case "+y":
-            // root y = cy (=baseY), tip y = cy+h (h=length here)
-            push4((a, b) => [cx + a * w, cy, cz + b * d, cx + a * w, cy + e, cz + b * d]);
-            break;
-          case "-y":
-            // root y = cy+h (=baseY), tip y = cy
-            push4((a, b) => [cx + a * w, cy + h, cz + b * d, cx + a * w, cy + h - e, cz + b * d]);
-            break;
-        }
-        return (
-          <g>
-            {corners.map(([x1, y1, z1, x2, y2, z2], i) => {
-              const p1 = isoProject(x1, y1, z1, opt);
-              const p2 = isoProject(x2, y2, z2, opt);
-              return (
-                <line
-                  key={i}
-                  x1={p1[0]}
-                  y1={p1[1]}
-                  x2={p2[0]}
-                  y2={p2[1]}
-                  stroke={COLOR.HIDDEN}
-                  strokeWidth={ISO_STROKE.HIDDEN_DASHED}
-                  strokeDasharray={ISO_DASH.HIDDEN}
-                />
-              );
-            })}
-          </g>
         );
       })()}
     </g>
