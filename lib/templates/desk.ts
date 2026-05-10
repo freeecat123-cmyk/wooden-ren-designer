@@ -59,7 +59,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "lShapeReturnLength", label: "延伸長度 (mm)", defaultValue: 800, min: 400, max: 1500, step: 50, dependsOn: { key: "lShape", notIn: ["none"] }, help: "L 形延伸的長度（沿深度方向）" },
   { group: "top", type: "number", key: "lShapeReturnDepth", label: "延伸深度 (mm)", defaultValue: 500, min: 300, max: 800, step: 25, dependsOn: { key: "lShape", notIn: ["none"] }, help: "L 形延伸的寬（深）" },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 20, min: 0, max: 300, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 
