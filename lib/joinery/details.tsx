@@ -1976,8 +1976,41 @@ function HalfLapDetail(p: JoineryDetailParams) {
         stroke={COLOR.OUTLINE}
         strokeWidth={STROKE.OUTLINE}
       />
-      {/* 搭接接合線（隱藏邊：B 件下半在 A 件內部） */}
-      <HiddenEdge x1={lapStartX} y1={frontA_y + cutDepthA * s} x2={lapEndX} y2={frontA_y + cutDepthA * s} />
+      {/* 搭接接合線（隱藏邊：B 件下半在 A 件內部） — 紅虛線醒目（A/B 介面被 B 遮住） */}
+      <line
+        x1={lapStartX}
+        y1={frontA_y + cutDepthA * s}
+        x2={lapEndX}
+        y2={frontA_y + cutDepthA * s}
+        stroke={COLOR.DIM_TICK}
+        strokeWidth={1.6}
+        strokeDasharray="5 3"
+        fill="none"
+      />
+      {/* B 件下緣藏在 A 件內：下緣 y = frontA_y + cutDepthB*s（搭區內被 A 遮的 B 件下緣） */}
+      {cutDepthB * s < PX(mt) && (
+        <line
+          x1={lapStartX}
+          y1={frontA_y + cutDepthB * s}
+          x2={lapEndX}
+          y2={frontA_y + cutDepthB * s}
+          stroke={COLOR.DIM_TICK}
+          strokeWidth={1.6}
+          strokeDasharray="5 3"
+          fill="none"
+        />
+      )}
+      {/* 隱藏線標籤 */}
+      <text
+        x={(lapStartX + lapEndX) / 2}
+        y={frontA_y + cutDepthA * s - 4}
+        fontSize={FONT.CALLOUT}
+        textAnchor="middle"
+        fill={COLOR.DIM_TICK}
+        fontWeight="bold"
+      >
+        搭接介面（隱藏）
+      </text>
       {/* 中心線：水平軸 */}
       <CenterLine x1={frontA_x - 10} y1={frontA_y + PX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + PX(mt) / 2} />
       {/* 木紋（A 件水平方向） */}
@@ -2699,13 +2732,55 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         return (
           <>
             <rect x={motherX} y={motherY} width={boardLen} height={PX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-            {/* 槽：在 mother 右邊條形隱藏線 */}
+            {/* 槽：在 mother 右邊條形隱藏線（淺示意） */}
             <HiddenEdge x1={motherX} y1={motherY + PX(mt) / 2 - PX(tt) / 2} x2={motherX + boardLen} y2={motherY + PX(mt) / 2 - PX(tt) / 2} />
             <HiddenEdge x1={motherX} y1={motherY + PX(mt) / 2 + PX(tt) / 2} x2={motherX + boardLen} y2={motherY + PX(mt) / 2 + PX(tt) / 2} />
+            {/* 凹槽紅虛線輪廓（深色母件內看不見的槽，舌厚 tt × 槽深 grooveDepth）— 醒目 */}
+            <rect
+              x={motherX + boardLen - PX(grooveDepth)}
+              y={motherY + PX(mt) / 2 - PX(tt) / 2}
+              width={PX(grooveDepth)}
+              height={PX(tt)}
+              fill="none"
+              stroke={COLOR.DIM_TICK}
+              strokeWidth={1.6}
+              strokeDasharray="5 3"
+            />
+            <text
+              x={motherX + boardLen - PX(grooveDepth) / 2}
+              y={motherY + PX(mt) / 2 - PX(tt) / 2 - 4}
+              fontSize={FONT.CALLOUT}
+              textAnchor="middle"
+              fill={COLOR.DIM_TICK}
+              fontWeight="bold"
+            >
+              凹槽（隱藏）
+            </text>
             <text x={motherX + boardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">母件（凹槽連續）</text>
             <rect x={childX} y={childY} width={boardLen} height={PX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
             {/* 舌：在 child 上邊小凸出（虛線俯瞰想像） */}
             <HiddenEdge x1={childX} y1={childY + PX(ct) / 2 - PX(tt) / 2} x2={childX + boardLen} y2={childY + PX(ct) / 2 - PX(tt) / 2} />
+            {/* 公件舌頭紅虛線輪廓（沿板長方向連續，舌厚 tt） — 醒目 */}
+            <rect
+              x={childX}
+              y={childY + PX(ct) / 2 - PX(tt) / 2}
+              width={boardLen}
+              height={PX(tt)}
+              fill="none"
+              stroke={COLOR.DIM_TICK}
+              strokeWidth={1.6}
+              strokeDasharray="5 3"
+            />
+            <text
+              x={childX + boardLen - 30}
+              y={childY + PX(ct) / 2 + PX(tt) / 2 + 12}
+              fontSize={FONT.CALLOUT}
+              textAnchor="middle"
+              fill={COLOR.DIM_TICK}
+              fontWeight="bold"
+            >
+              舌頭（隱藏）
+            </text>
             <text x={childX + boardLen / 2} y={childY + PX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">公件（舌連續）</text>
             <CenterLine x1={motherX - 10} y1={motherY + PX(mt) / 2} x2={motherX + boardLen + 10} y2={motherY + PX(mt) / 2} />
             <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, boardLen - 10)} angle={0} />
@@ -2738,21 +2813,56 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
             {[0, 1, 2].map((i) => {
               const y = startY + i * (stripH + 4);
               const fill = i % 2 === 0 ? COLOR.MORTISE : COLOR.TENON;
+              const seamY = y + stripH;
+              const halfTongue = PX(tl / 2);
               return (
                 <g key={i}>
                   <rect x={startX} y={y} width={stripLen} height={stripH} fill={fill} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
                   {/* 接縫位置（隱藏舌槽輪廓） */}
                   {i < strips - 1 && (
-                    <line x1={startX} y1={y + stripH} x2={startX + stripLen} y2={y + stripH} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                    <line x1={startX} y1={seamY} x2={startX + stripLen} y2={seamY} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
                   )}
                   {/* 顯示舌的長度（隱藏）：在右端寫一段虛線示意舌穿過 */}
                   {i < strips - 1 && (
-                    <HiddenEdge x1={startX + stripLen - groovePxLen} y1={y + stripH} x2={startX + stripLen} y2={y + stripH} />
+                    <HiddenEdge x1={startX + stripLen - groovePxLen} y1={seamY} x2={startX + stripLen} y2={seamY} />
+                  )}
+                  {/* 接縫上下 ±舌長/2 處紅虛線標示舌頭實際嵌入位置（橫貫整片板長） */}
+                  {i < strips - 1 && (
+                    <>
+                      <line
+                        x1={startX}
+                        y1={seamY - halfTongue}
+                        x2={startX + stripLen}
+                        y2={seamY - halfTongue}
+                        stroke={COLOR.DIM_TICK}
+                        strokeWidth={1.6}
+                        strokeDasharray="5 3"
+                      />
+                      <line
+                        x1={startX}
+                        y1={seamY + halfTongue}
+                        x2={startX + stripLen}
+                        y2={seamY + halfTongue}
+                        stroke={COLOR.DIM_TICK}
+                        strokeWidth={1.6}
+                        strokeDasharray="5 3"
+                      />
+                    </>
                   )}
                   <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">板 {i + 1}</text>
                 </g>
               );
             })}
+            {/* 標籤：紅虛線 = 舌頭嵌入範圍 */}
+            <text
+              x={startX + stripLen + 8}
+              y={startY + stripH + 4}
+              fontSize={FONT.CALLOUT}
+              fill={COLOR.DIM_TICK}
+              fontWeight="bold"
+            >
+              ← 舌頭嵌入位（隱藏）
+            </text>
             {/* 木紋方向（每片同向） */}
             <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLen - 12)} angle={0} />
             {/* 尺寸：拼接寬 */}
@@ -3365,6 +3475,79 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
             <rect x={tenonX} y={tenonY} width={PX(tl)} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
             {/* 肩線 (vertical at body→tenon transition) */}
             <line x1={tenonX} y1={ay} x2={tenonX} y2={ay + apronH} stroke={COLOR.OUTLINE} strokeWidth={0.8} />
+            {/* 組裝後榫頭藏入柱身（虛線輪廓 + 深度標示） */}
+            {(() => {
+              const colX = tenonRight + 18; // 柱身位置（在榫尾右側留間隔）
+              const colW = PX(mt);
+              const colH = Math.max(apronH * 1.4, PX(mt));
+              const colY = ay + apronH / 2 - colH / 2;
+              return (
+                <>
+                  {/* 柱身輪廓（淺示意，淡灰實線） */}
+                  <rect
+                    x={colX}
+                    y={colY}
+                    width={colW}
+                    height={colH}
+                    fill="#e8d8b8"
+                    stroke={COLOR.OUTLINE}
+                    strokeWidth={STROKE.OUTLINE}
+                    opacity={0.7}
+                  />
+                  {/* 榫頭藏入柱身的紅虛線輪廓（tw × tl，從柱身左緣往內 PX(tl)） */}
+                  <rect
+                    x={colX}
+                    y={tenonY}
+                    width={PX(tl)}
+                    height={tenonH}
+                    fill="none"
+                    stroke={COLOR.DIM_TICK}
+                    strokeWidth={1.6}
+                    strokeDasharray="5 3"
+                  />
+                  {/* 榫頭深度線（從柱身左緣到榫尾） */}
+                  <line
+                    x1={colX}
+                    y1={tenonY + tenonH / 2}
+                    x2={colX + PX(tl)}
+                    y2={tenonY + tenonH / 2}
+                    stroke={COLOR.DIM_TICK}
+                    strokeWidth={1.6}
+                    strokeDasharray="5 3"
+                  />
+                  {/* 拆解箭頭：榫尾 → 柱身左緣 */}
+                  <line
+                    x1={tenonRight + 2}
+                    y1={tenonY + tenonH / 2}
+                    x2={colX - 2}
+                    y2={tenonY + tenonH / 2}
+                    stroke={COLOR.DIM}
+                    strokeWidth={0.6}
+                    strokeDasharray="2 2"
+                  />
+                  {/* 標籤 */}
+                  <text
+                    x={colX + PX(tl) / 2}
+                    y={tenonY - 4}
+                    fontSize={FONT.CALLOUT}
+                    textAnchor="middle"
+                    fill={COLOR.DIM_TICK}
+                    fontWeight="bold"
+                  >
+                    榫頭（隱藏）
+                  </text>
+                  <text
+                    x={colX + colW / 2}
+                    y={colY + colH + 12}
+                    fontSize={FONT.CALLOUT}
+                    textAnchor="middle"
+                    fill="#666"
+                  >
+                    柱身
+                  </text>
+                </>
+              );
+            })()}
             {/* 中心線 */}
             <CenterLine x1={ax - 10} y1={ay + apronH / 2} x2={tenonRight + 10} y2={ay + apronH / 2} />
             {/* 木紋 */}
@@ -5835,13 +6018,71 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
         stroke={COLOR.OUTLINE}
         strokeWidth={STROKE.OUTLINE}
       />
-      {/* 餅乾片位置（隱藏線） */}
+      {/* 餅乾片位置（淺色隱藏線示意短邊） */}
       <HiddenEdge
         d={`M ${fCx + fT * 0.2},${fCy - fT * 0.8} L ${fCx + fT * 1.2},${fCy + fT * 0.2}`}
       />
       <HiddenEdge
         d={`M ${fCx - fT * 0.2},${fCy - fT * 1.2} L ${fCx + fT * 0.8},${fCy - fT * 0.2}`}
       />
+      {/* 餅乾片橢圓輪廓（藏在接縫內）— 紅虛線醒目 */}
+      {(() => {
+        const midX = fCx + fT / 2;
+        const midY = fCy - fT / 2;
+        const ellipseRX = Math.max(8, PX(tl)); // 半長軸 ≈ 餅深 tl px（橢圓半徑沿接縫方向）
+        const ellipseRY = Math.max(2, PX(tt) / 2); // 半短軸 = 餅厚 tt/2 px
+        // 槽深線：沿 45° 接縫法線方向（即接縫垂直方向），從接縫往兩側延伸 ms（槽深）
+        // 接縫方向 (-1, +1)/√2，法線方向 (1, 1)/√2
+        const norm = 1 / Math.SQRT2;
+        const dpX = PX(ms) * norm;
+        const dpY = PX(ms) * norm;
+        return (
+          <g>
+            {/* 餅乾片橢圓（沿 -45° 方向旋轉，跨接縫對角線） */}
+            <ellipse
+              cx={midX}
+              cy={midY}
+              rx={ellipseRX}
+              ry={ellipseRY}
+              fill="none"
+              stroke={COLOR.DIM_TICK}
+              strokeWidth={1.6}
+              strokeDasharray="5 3"
+              transform={`rotate(-45 ${midX} ${midY})`}
+            />
+            {/* 槽深線：A 件方向（接縫法線往右上） */}
+            <line
+              x1={midX}
+              y1={midY}
+              x2={midX + dpX}
+              y2={midY - dpY}
+              stroke={COLOR.DIM_TICK}
+              strokeWidth={1.6}
+              strokeDasharray="5 3"
+            />
+            {/* 槽深線：B 件方向（接縫法線往左下） */}
+            <line
+              x1={midX}
+              y1={midY}
+              x2={midX - dpX}
+              y2={midY + dpY}
+              stroke={COLOR.DIM_TICK}
+              strokeWidth={1.6}
+              strokeDasharray="5 3"
+            />
+            {/* 餅乾片標籤 */}
+            <text
+              x={midX + 22}
+              y={midY - 14}
+              fontSize={FONT.CALLOUT}
+              fill={COLOR.DIM_TICK}
+              fontWeight="bold"
+            >
+              餅乾片（隱藏）
+            </text>
+          </g>
+        );
+      })()}
 
       {/* 剖面標記 A-A：穿過接縫 */}
       <SectionMark x={fCx + fT * 0.5 + 14} y={fCy - fT * 0.5 - 14} label="A" direction="down" />
@@ -7388,6 +7629,38 @@ function StubJointDetail(p: JoineryDetailParams) {
           stroke={COLOR.OUTLINE}
           strokeWidth={STROKE.OUTLINE}
         />
+        {/* 卡槽輪廓（紅虛線醒目）— 凸顯藏在母件內的卡槽 */}
+        <rect
+          x={oX + motherW - mortiseW}
+          y={oY + (motherH - mortiseH) / 2}
+          width={mortiseW}
+          height={mortiseH}
+          fill="none"
+          stroke={COLOR.DIM_TICK}
+          strokeWidth={1.6}
+          strokeDasharray="5 3"
+        />
+        {/* 卡槽深度示意線（從母件左緣延伸到卡槽底，標示挖入深度方向） */}
+        <line
+          x1={oX + motherW - mortiseW}
+          y1={oY + motherH / 2}
+          x2={oX + motherW}
+          y2={oY + motherH / 2}
+          stroke={COLOR.DIM_TICK}
+          strokeWidth={1.6}
+          strokeDasharray="5 3"
+        />
+        {/* 卡槽標籤 */}
+        <text
+          x={oX + motherW - mortiseW / 2}
+          y={oY + (motherH - mortiseH) / 2 - 4}
+          fontSize={FONT.CALLOUT}
+          textAnchor="middle"
+          fill={COLOR.DIM_TICK}
+          fontWeight="bold"
+        >
+          卡槽（隱藏）
+        </text>
         {/* 中心線 */}
         <CenterLine x1={oX - 6} y1={oY + motherH / 2} x2={oX + motherW + 6} y2={oY + motherH / 2} />
         <CenterLine x1={oX + motherW / 2} y1={oY - 6} x2={oX + motherW / 2} y2={oY + motherH + 6} />
