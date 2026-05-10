@@ -915,6 +915,11 @@ interface IsoTenonProps {
   originX?: number;
   originY?: number;
   depthScale?: number;
+  /**
+   * 嵌入母件的 mm 長度（從根部往榫尖算）。> 0 時在根部 4 條長軸邊
+   * 疊一層虛線，視覺上提示「這段藏在母件裡」。預設 0=全段實線。
+   */
+  embeddedLength?: number;
 }
 
 /**
@@ -939,6 +944,7 @@ export function IsoTenon({
   originX = 0,
   originY = 0,
   depthScale,
+  embeddedLength = 0,
 }: IsoTenonProps): JSX.Element {
   const opt = { depthScale, originX, originY };
   // direction 決定哪個軸是「長度」方向，其餘兩軸是「寬」「厚」
@@ -1053,6 +1059,69 @@ export function IsoTenon({
             stroke={stroke}
             strokeWidth={ISO_STROKE.EDGE_INTERIOR}
           />
+        );
+      })()}
+      {/* 嵌入段：在根部 4 條長軸邊疊虛線，提示「這段藏在母件裡」 */}
+      {embeddedLength > 0 && (() => {
+        // cuboid bbox: (cx, cy, cz)..(cx+w, cy+h, cz+d)
+        // 對應 direction，找出「根部端」與「往榫尖延伸 embeddedLength」的兩個端點
+        // 並列出共享該長軸的 4 個角點 (穿過剩兩軸 0/max)
+        const e = Math.min(embeddedLength, length);
+        // 4 個 (a, b) ∈ {0, 1}^2 對應剩兩軸的 corner 選擇
+        const corners: Array<[number, number, number, number, number, number]> = [];
+        // 每個 corner 回傳 [x1,y1,z1, x2,y2,z2]，從 root 往 tip 走 e 距離
+        const push4 = (
+          fn: (a: 0 | 1, b: 0 | 1) => [number, number, number, number, number, number],
+        ) => {
+          ([[0, 0], [1, 0], [0, 1], [1, 1]] as Array<[0 | 1, 0 | 1]>).forEach(([a, b]) => {
+            corners.push(fn(a, b));
+          });
+        };
+        switch (direction) {
+          case "+z":
+            // root z = cz, tip z = cz+d；長軸沿 +z
+            push4((a, b) => [cx + a * w, cy + b * h, cz, cx + a * w, cy + b * h, cz + e]);
+            break;
+          case "-z":
+            // root z = cz+d (=baseZ), tip z = cz
+            push4((a, b) => [cx + a * w, cy + b * h, cz + d, cx + a * w, cy + b * h, cz + d - e]);
+            break;
+          case "+x":
+            // root x = cx (=baseX), tip x = cx+w (w=length here)
+            push4((a, b) => [cx, cy + a * h, cz + b * d, cx + e, cy + a * h, cz + b * d]);
+            break;
+          case "-x":
+            // root x = cx+w (=baseX), tip x = cx
+            push4((a, b) => [cx + w, cy + a * h, cz + b * d, cx + w - e, cy + a * h, cz + b * d]);
+            break;
+          case "+y":
+            // root y = cy (=baseY), tip y = cy+h (h=length here)
+            push4((a, b) => [cx + a * w, cy, cz + b * d, cx + a * w, cy + e, cz + b * d]);
+            break;
+          case "-y":
+            // root y = cy+h (=baseY), tip y = cy
+            push4((a, b) => [cx + a * w, cy + h, cz + b * d, cx + a * w, cy + h - e, cz + b * d]);
+            break;
+        }
+        return (
+          <g>
+            {corners.map(([x1, y1, z1, x2, y2, z2], i) => {
+              const p1 = isoProject(x1, y1, z1, opt);
+              const p2 = isoProject(x2, y2, z2, opt);
+              return (
+                <line
+                  key={i}
+                  x1={p1[0]}
+                  y1={p1[1]}
+                  x2={p2[0]}
+                  y2={p2[1]}
+                  stroke={COLOR.HIDDEN}
+                  strokeWidth={ISO_STROKE.HIDDEN_DASHED}
+                  strokeDasharray={ISO_DASH.HIDDEN}
+                />
+              );
+            })}
+          </g>
         );
       })()}
     </g>
