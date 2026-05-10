@@ -1334,6 +1334,12 @@ function BlindTenonDetail(p: JoineryDetailParams) {
   const fTenonW = PX(safeTl);
   const fTenonX = fLegX + fLegW - fTenonW;
 
+  // BOLD hidden-line styling — 母件深色填充上 COLOR.HIDDEN 太淺看不見
+  // 改用紅色（DIM_TICK）+ 加粗 1.6px + 較長 dash，確保在深棕母件上一眼可見
+  const HIDDEN_BOLD_COLOR = COLOR.DIM_TICK; // 醒目紅
+  const HIDDEN_BOLD_STROKE = 1.6;
+  const HIDDEN_BOLD_DASH = "5 3";
+
   const front = (
     <g>
       <rect x={5} y={5} width={QUAD_W - 10} height={QUAD_H - 10} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -1341,14 +1347,45 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
       {/* 母件柱（外輪廓實線） */}
       <rect x={fLegX} y={fLegY} width={fLegW} height={fLegH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      {/* 母件內部榫眼（虛線——盲孔） */}
-      <HiddenEdge x1={fTenonX} y1={fTenonY} x2={fTenonX + fTenonW} y2={fTenonY} />
-      <HiddenEdge x1={fTenonX} y1={fTenonY + fTenonH} x2={fTenonX + fTenonW} y2={fTenonY + fTenonH} />
-      <HiddenEdge x1={fTenonX} y1={fTenonY} x2={fTenonX} y2={fTenonY + fTenonH} />
+      {/* 母件內部榫眼 + 嵌入的公件榫頭 — 完整 4 邊紅虛線矩形（醒目） */}
+      <rect
+        x={fTenonX}
+        y={fTenonY}
+        width={fTenonW}
+        height={fTenonH}
+        fill="none"
+        stroke={HIDDEN_BOLD_COLOR}
+        strokeWidth={HIDDEN_BOLD_STROKE}
+        strokeDasharray={HIDDEN_BOLD_DASH}
+      />
       {/* 牙板 body（從柱右側水平延伸） */}
       <rect x={fApronX0} y={fApronY} width={fApronW} height={fApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
       {/* 肩線 */}
       <line x1={fApronX0} y1={fApronY} x2={fApronX0} y2={fApronY + fApronH} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+      {/* 牙板內部：公件榫頭根部延伸（藏在牙板下，shoulders 之間） — 兩條紅虛線水平 */}
+      {/* 從肩線延伸進牙板一小段，示意榫頭厚度 tw 的兩個邊界（牙板較寬，shoulder 包夾榫頭） */}
+      {fApronH > fTenonH + 4 && (
+        <>
+          <line
+            x1={fApronX0}
+            y1={fTenonY}
+            x2={fApronX0 + Math.min(fApronW * 0.4, PX(safeTl) * 1.2)}
+            y2={fTenonY}
+            stroke={HIDDEN_BOLD_COLOR}
+            strokeWidth={HIDDEN_BOLD_STROKE}
+            strokeDasharray={HIDDEN_BOLD_DASH}
+          />
+          <line
+            x1={fApronX0}
+            y1={fTenonY + fTenonH}
+            x2={fApronX0 + Math.min(fApronW * 0.4, PX(safeTl) * 1.2)}
+            y2={fTenonY + fTenonH}
+            stroke={HIDDEN_BOLD_COLOR}
+            strokeWidth={HIDDEN_BOLD_STROKE}
+            strokeDasharray={HIDDEN_BOLD_DASH}
+          />
+        </>
+      )}
 
       {/* 中心線 */}
       <CenterLine x1={fLegX - 10} y1={QUAD_H / 2} x2={fLegX + fLegW + fApronW + 10} y2={QUAD_H / 2} />
@@ -1357,6 +1394,11 @@ function BlindTenonDetail(p: JoineryDetailParams) {
       {/* 剖面標記 A-A（沿水平軸，過榫頭中心） */}
       <SectionMark x={fLegX - 14} y={QUAD_H / 2} label="A" direction="right" />
       <SectionMark x={fApronX0 + fApronW + 14} y={QUAD_H / 2} label="A" direction="left" />
+
+      {/* 榫眼/榫頭文字標註（指向虛線矩形） */}
+      <text x={fTenonX + fTenonW / 2} y={fTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+        榫眼/榫頭（隱藏）
+      </text>
 
       {/* 尺寸：榫眼長 tw（沿柱垂直），榫眼深 safeTl，留底厚 baseRest，母件厚 mt */}
       <DimLine x1={fLegX - 14} y1={fTenonY} x2={fLegX - 14} y2={fTenonY + fTenonH} label={`${tw}`} side="left" />
@@ -1379,16 +1421,18 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
   // ============================ SIDE view ============================
   // 視角：從側面看（沿牙板長軸方向看回去）；可見母件柱的另一面寬度 = mt（同正方腳時），與牙板厚度 ct
-  // 此視角看到的是榫眼開口的「短邊」 = tt
+  // 此視角看到的是榫眼開口的「短邊」 = tt（沿柱寬橫向）× tw（沿柱高縱向）
   const sLegW = PX(mt);
   const sLegH = Math.min(PX(cw * 3.5), QUAD_H - innerPad * 2);
   const sLegX = (QUAD_W - sLegW) / 2;
   const sLegY = (QUAD_H - sLegH) / 2;
   const sApronY = QUAD_H / 2 - PX(ct) / 2;
   const sApronH = PX(ct);
-  // 榫頭側視只看到 tt × ct 的端面（藏在柱內），用虛線
-  const sTenonW = PX(tt);
-  const sTenonX = QUAD_W / 2 - sTenonW / 2;
+  // 榫眼/榫頭側視藏在柱內：寬 = tt（橫向），高 = tw（縱向，沿柱高方向）
+  const sMortW = PX(tt);
+  const sMortH = PX(tw);
+  const sMortX = QUAD_W / 2 - sMortW / 2;
+  const sMortY = QUAD_H / 2 - sMortH / 2;
 
   const side = (
     <g>
@@ -1397,17 +1441,46 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
       {/* 母件柱 */}
       <rect x={sLegX} y={sLegY} width={sLegW} height={sLegH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
-      {/* 牙板（從柱中央穿出朝觀察者，這個視角看不到牙板長度——畫成 ct × cw 的端面虛線示意位置） */}
-      <HiddenEdge x1={sTenonX} y1={sApronY} x2={sTenonX + sTenonW} y2={sApronY} />
-      <HiddenEdge x1={sTenonX} y1={sApronY + sApronH} x2={sTenonX + sTenonW} y2={sApronY + sApronH} />
-      <HiddenEdge x1={sTenonX} y1={sApronY} x2={sTenonX} y2={sApronY + sApronH} />
-      <HiddenEdge x1={sTenonX + sTenonW} y1={sApronY} x2={sTenonX + sTenonW} y2={sApronY + sApronH} />
+
+      {/* 藏在柱內的榫眼/榫頭 — 完整 4 邊紅虛線矩形（tt 寬 × tw 高） */}
+      <rect
+        x={sMortX}
+        y={sMortY}
+        width={sMortW}
+        height={sMortH}
+        fill="none"
+        stroke={HIDDEN_BOLD_COLOR}
+        strokeWidth={HIDDEN_BOLD_STROKE}
+        strokeDasharray={HIDDEN_BOLD_DASH}
+      />
+
+      {/* 牙板端面位置示意（ct × cw 端面，藏在柱後方，較淺虛線） */}
+      <rect
+        x={QUAD_W / 2 - sMortW / 2 - PX(Math.max(0, ct - tt) / 2)}
+        y={sApronY}
+        width={Math.max(sMortW, PX(ct))}
+        height={sApronH}
+        fill="none"
+        stroke={COLOR.HIDDEN}
+        strokeWidth={0.6}
+        strokeDasharray="3 2"
+      />
 
       <CenterLine x1={sLegX - 10} y1={QUAD_H / 2} x2={sLegX + sLegW + 10} y2={QUAD_H / 2} />
       <CenterLine x1={sLegX + sLegW / 2} y1={sLegY - 10} x2={sLegX + sLegW / 2} y2={sLegY + sLegH + 10} />
 
-      {/* 尺寸：榫眼厚 tt + 板厚 ct + 母件寬 mt */}
-      <DimLine x1={sTenonX} y1={sLegY - 14} x2={sTenonX + sTenonW} y2={sLegY - 14} label={`${tt}`} side="top" />
+      {/* 榫眼/榫頭文字標註 */}
+      <text x={sMortX + sMortW / 2} y={sMortY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+        榫眼/榫頭（隱藏）
+      </text>
+      {/* 深度提示（側視看不到深度，用文字示意「榫眼往內延伸 safeTl mm」） */}
+      <text x={sMortX + sMortW / 2} y={sMortY + sMortH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR}>
+        ⊗ 向內延伸 {safeTl}mm
+      </text>
+
+      {/* 尺寸：榫眼厚 tt（橫向）+ 榫眼長 tw（縱向）+ 板厚 ct + 母件寬 mt */}
+      <DimLine x1={sMortX} y1={sLegY - 14} x2={sMortX + sMortW} y2={sLegY - 14} label={`${tt}`} side="top" />
+      <DimLine x1={sLegX - 14} y1={sMortY} x2={sLegX - 14} y2={sMortY + sMortH} label={`${tw}`} side="left" />
       <DimLine x1={sLegX + sLegW + 14} y1={sApronY} x2={sLegX + sLegW + 14} y2={sApronY + sApronH} label={`${ct}`} side="right" />
       <DimLine x1={sLegX} y1={sLegY + sLegH + 14} x2={sLegX + sLegW} y2={sLegY + sLegH + 14} label={`${mt}`} side="bottom" />
 
@@ -1475,6 +1548,39 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             <rect x={tTenonX} y={tTenonY} width={tTenonW} height={tTenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
             {/* 牙板 body 從柱右側水平延伸 */}
             <rect x={tApronX} y={tApronY} width={tApronLen} height={tApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            {/* 公件牙板實際寬度（cw）的隱藏輪廓 — 牙板上下兩側被柱遮住的部分用紅虛線示意 */}
+            {cw > ct && (() => {
+              const tApronFullH = Math.min(PX(cw), tLegSide); // 牙板實寬投影（限制在柱範圍內）
+              const tApronFullY = tCy - tApronFullH / 2;
+              return (
+                <>
+                  {/* 牙板實寬上邊界（在柱頂之下，被柱遮住） */}
+                  <line
+                    x1={tLegX}
+                    y1={tApronFullY}
+                    x2={tLegX + tLegSide}
+                    y2={tApronFullY}
+                    stroke={HIDDEN_BOLD_COLOR}
+                    strokeWidth={HIDDEN_BOLD_STROKE * 0.7}
+                    strokeDasharray={HIDDEN_BOLD_DASH}
+                  />
+                  {/* 牙板實寬下邊界 */}
+                  <line
+                    x1={tLegX}
+                    y1={tApronFullY + tApronFullH}
+                    x2={tLegX + tLegSide}
+                    y2={tApronFullY + tApronFullH}
+                    stroke={HIDDEN_BOLD_COLOR}
+                    strokeWidth={HIDDEN_BOLD_STROKE * 0.7}
+                    strokeDasharray={HIDDEN_BOLD_DASH}
+                  />
+                </>
+              );
+            })()}
+            {/* 榫眼底部標註（指向榫頭末端 = 榫眼最深處） */}
+            <text x={tTenonX - 4} y={tTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="end" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+              榫眼底
+            </text>
             {/* 中心線 */}
             <CenterLine x1={tLegX - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
             <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSide + 10} />
