@@ -4500,7 +4500,7 @@ function DovetailAxon3D({
       <text x={v4_OX + v4_W / 2} y={v4_yBody + Math.abs(v4_dyz) + 22} fontSize={9} textAnchor="middle" fill="#666">
         母件 face 形狀同前圖，加 {mt}mm 板厚（Z 軸後縮）
       </text>
-      <text x={v4_OX + v4_W / 2} y={v4_yBody + Math.abs(v4_dyz) + 36} fontSize={8} textAnchor="middle" fill="#999">
+      <text x={v4_OX + v4_W / 2} y={v4_yBody + Math.abs(v4_dyz) + 36} fontSize={FONT.CALLOUT} textAnchor="middle" fill="#666">
         參考：板厚 {mt}mm、板寬 {tw || "—"}mm、尾深 {tl}mm
       </text>
 
@@ -4531,7 +4531,7 @@ function DovetailAxon3D({
       <text x={v5_OX + (topLen + tt) / 2} y={v5_OY + sideH + tt + Math.abs(depth * DZ_Y) + 22} fontSize={9} textAnchor="middle" fill="#666">
         頂板尾頭貫穿側板（through DT），上面 + 右外面都看得到尾頭端面
       </text>
-      <text x={v5_OX + (topLen + tt) / 2} y={v5_OY + sideH + tt + Math.abs(depth * DZ_Y) + 36} fontSize={8} textAnchor="middle" fill="#999">
+      <text x={v5_OX + (topLen + tt) / 2} y={v5_OY + sideH + tt + Math.abs(depth * DZ_Y) + 36} fontSize={FONT.CALLOUT} textAnchor="middle" fill="#666">
         梯形 = 頂板長纖（tail）；斜紋區 = 側板從上看是 endgrain（pin）
       </text>
     </svg>
@@ -4546,7 +4546,7 @@ function DovetailAxon3D({
  *   - iso 區塊複用既有 DovetailAxon3D 的視覺幾何（包進 IsometricGroup wrapper）
  *   - 三視圖採 L 型轉角構圖：tail board（母件）+ pin board（公件）端面對端面
  */
-function DovetailDetail(p: JoineryDetailParams) {
+function LegacyV2DovetailDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;          // joint 總寬（沿板寬方向）
   const tt = p.tenonThickness;
@@ -4837,7 +4837,288 @@ function DovetailDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
-/* === END dovetail-detail === */
+/* === END dovetail-detail (legacy) === */
+
+/* === BEGIN dovetail-detail v2 (Wave 2b Group B) ===
+ * 鳩尾榫 dovetail — MasterDetailLayout + 統一 helper
+ * iso 用既有 DovetailAxon3D（不重寫 axon 邏輯，包進 nested svg）
+ * ============================================================ */
+function DovetailDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const ct = p.childThickness ?? tt;
+  const mt = p.motherThickness;
+  const cw = p.childWidth ?? tw;
+
+  const minSpacing = Math.max(tw * 1.5, 8);
+  const nTails = Math.max(2, Math.min(8, Math.floor(cw / minSpacing)));
+  const angleLabel = pickDovetailAngle(p.material);
+
+  // ===== Q1 正視圖：tail board face view =====
+  const front = (() => {
+    const bbox = { w: cw, h: mt + tl };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const fBoardX = place.x;
+    const fBoardY = place.y;
+    const fBoardW = PX(cw);
+    const fTailRowY0 = fBoardY;
+    const fTailRowY1 = fBoardY + PX(tl);
+    const fBodyY1 = fBoardY + objH;
+    const tailW = fBoardW / (nTails * 1.55);
+    const pinW = tailW * 0.55;
+    const halfP = pinW / 2;
+    const dtOffset = PX(tl) * 0.32;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    const buildTailFace = (xL: number, yEdge: number, yMid: number, yBody: number, totalW: number): Array<[number, number]> => {
+      const pts: Array<[number, number]> = [];
+      pts.push([xL, yBody]);
+      pts.push([xL, yMid]);
+      pts.push([xL + halfP + dtOffset, yMid]);
+      let tL = xL + halfP;
+      pts.push([tL, yEdge]);
+      for (let i = 0; i < nTails; i++) {
+        const tR = tL + tailW;
+        pts.push([tR, yEdge]);
+        if (i < nTails - 1) {
+          pts.push([tR - dtOffset, yMid]);
+          const nL = tR + pinW;
+          pts.push([nL + dtOffset, yMid]);
+          pts.push([nL, yEdge]);
+          tL = nL;
+        }
+      }
+      const lastTR = tL + tailW;
+      pts.push([lastTR - dtOffset, yMid]);
+      pts.push([xL + totalW, yMid]);
+      pts.push([xL + totalW, yBody]);
+      return pts;
+    };
+
+    const tailPoints = buildTailFace(fBoardX, fTailRowY0, fTailRowY1, fBodyY1, fBoardW);
+
+    return (
+      <g>
+        <polygon points={tailPoints.map((pt) => pt.join(",")).join(" ")}
+          fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 中心線 */}
+        <CenterLine x1={fBoardX - 6} y1={fTailRowY1 + (fBodyY1 - fTailRowY1) / 2} x2={fBoardX + fBoardW + 6} y2={fTailRowY1 + (fBodyY1 - fTailRowY1) / 2} />
+        <CenterLine x1={fBoardX + fBoardW / 2} y1={fBoardY - 8} x2={fBoardX + fBoardW / 2} y2={fBodyY1 + 8} />
+        {/* 剖面 A-A */}
+        <SectionMark x={fBoardX - 14} y={fTailRowY1} label="A" direction="right" />
+        <SectionMark x={fBoardX + fBoardW + 14} y={fTailRowY1} label="A" direction="left" />
+        {/* 尺寸 */}
+        <DimLine x1={fBoardX} y1={fBodyY1} x2={fBoardX + fBoardW} y2={fBodyY1}
+          label={`${cw}`}
+          side={safeDimSide("bottom", `${cw}`, { x: fBoardX + fBoardW / 2, y: fBodyY1 }, qBounds)} />
+        <DimLine x1={fBoardX} y1={fTailRowY0} x2={fBoardX} y2={fTailRowY1}
+          label={`${tl}`}
+          side={safeDimSide("left", `${tl}`, { x: fBoardX, y: (fTailRowY0 + fTailRowY1) / 2 }, qBounds)} />
+        <DimLine x1={fBoardX} y1={fTailRowY1} x2={fBoardX} y2={fBodyY1}
+          label={`${mt}`}
+          side={safeDimSide("left", `${mt}`, { x: fBoardX, y: (fTailRowY1 + fBodyY1) / 2 }, qBounds)} />
+        {/* 尾寬 */}
+        {(() => {
+          const t1L = fBoardX + halfP;
+          const t1R = t1L + tailW;
+          return (
+            <DimLine x1={t1L} y1={fTailRowY0} x2={t1R} y2={fTailRowY0}
+              label={`${Math.round(cw / (nTails * 1.55))}`}
+              side={safeDimSide("top", `${Math.round(cw / (nTails * 1.55))}`, { x: (t1L + t1R) / 2, y: fTailRowY0 }, qBounds)} />
+          );
+        })()}
+        <GrainArrow x={fBoardX + 8} y={fBodyY1 - 14} length={Math.min(60, fBoardW - 16)} angle={0} />
+        <text x={fBoardX + fBoardW / 2} y={fTailRowY1 - 6} fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM}>{angleLabel}</text>
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：pin board end-face cross-section =====
+  const side = (() => {
+    const bbox = { w: cw, h: ct };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sBoardX = place.x;
+    const sBoardY = place.y;
+    const sBoardW = PX(cw);
+    const sBoardH = PX(ct);
+    const tailW = sBoardW / (nTails * 1.55);
+    const pinW = tailW * 0.55;
+    const halfP = pinW / 2;
+    const sOffset = PX(tl) * 0.32;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* pin board 端面 */}
+        <rect x={sBoardX} y={sBoardY} width={sBoardW} height={sBoardH}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* nTails 個尾凹 */}
+        {Array.from({ length: nTails }).map((_, i) => {
+          const sx = sBoardX + halfP + i * (tailW + pinW);
+          const points = [
+            [sx, sBoardY],
+            [sx + tailW, sBoardY],
+            [sx + tailW - sOffset, sBoardY + sBoardH],
+            [sx + sOffset, sBoardY + sBoardH],
+          ];
+          return (
+            <polygon key={i} points={points.map((pt) => pt.join(",")).join(" ")}
+              fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          );
+        })}
+        <CenterLine x1={sBoardX - 6} y1={sBoardY + sBoardH / 2} x2={sBoardX + sBoardW + 6} y2={sBoardY + sBoardH / 2} />
+        <CenterLine x1={sBoardX + sBoardW / 2} y1={sBoardY - 10} x2={sBoardX + sBoardW / 2} y2={sBoardY + sBoardH + 10} />
+
+        <DimLine x1={sBoardX} y1={sBoardY + sBoardH} x2={sBoardX + sBoardW} y2={sBoardY + sBoardH}
+          label={`${cw}`}
+          side={safeDimSide("bottom", `${cw}`, { x: sBoardX + sBoardW / 2, y: sBoardY + sBoardH }, qBounds)} />
+        <DimLine x1={sBoardX + sBoardW} y1={sBoardY} x2={sBoardX + sBoardW} y2={sBoardY + sBoardH}
+          label={`${ct}`}
+          side={safeDimSide("right", `${ct}`, { x: sBoardX + sBoardW, y: sBoardY + sBoardH / 2 }, qBounds)} />
+
+        <text x={sBoardX + sBoardW / 2} y={sBoardY + sBoardH + 24}
+          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>{angleLabel}</text>
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：L 型轉角剖面 =====
+  const top = (() => {
+    const tBoardLenMm = cw * 0.9;
+    const bbox = { w: tBoardLenMm + ct, h: tBoardLenMm + tl };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tCx = place.x + PX(tBoardLenMm);
+    const tCy = place.y + PX(tl);
+    const tBoardLen = PX(tBoardLenMm);
+    const tTailDepth = PX(tl);
+    const tPinThk = PX(ct);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <defs>
+          <Hatching id="hatch-dt-v2" color="#7a5a2c" />
+        </defs>
+        {/* 水平 tail board */}
+        <rect x={tCx - tBoardLen} y={tCy - tTailDepth / 2}
+          width={tBoardLen} height={tTailDepth}
+          fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 垂直 pin board */}
+        <rect x={tCx - tPinThk / 2} y={tCy - tTailDepth / 2}
+          width={tPinThk} height={tBoardLen}
+          fill="url(#hatch-dt-v2)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 鳩尾交鎖區 */}
+        {(() => {
+          const interlockX0 = tCx - tPinThk / 2;
+          const interlockX1 = tCx + tPinThk / 2;
+          const interlockY0 = tCy - tTailDepth / 2;
+          const interlockY1 = tCy + tTailDepth / 2;
+          const slotH = (interlockY1 - interlockY0) / nTails;
+          const elements: React.ReactElement[] = [];
+          for (let i = 0; i < nTails; i++) {
+            const y0 = interlockY0 + slotH * i;
+            const y1 = y0 + slotH;
+            const off = slotH * 0.18;
+            const points = [
+              [interlockX0, y0],
+              [interlockX1, y0 + off],
+              [interlockX1, y1 - off],
+              [interlockX0, y1],
+            ];
+            elements.push(
+              <polygon key={i} points={points.map((pt) => pt.join(",")).join(" ")}
+                fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+            );
+          }
+          return <g>{elements}</g>;
+        })()}
+        <CenterLine x1={tCx - tBoardLen - 6} y1={tCy} x2={tCx + tPinThk / 2 + 6} y2={tCy} />
+        <CenterLine x1={tCx} y1={tCy - tTailDepth / 2 - 6} x2={tCx} y2={tCy + tBoardLen + 6} />
+
+        <DimLine x1={tCx - tBoardLen} y1={tCy - tTailDepth / 2} x2={tCx + tPinThk / 2} y2={tCy - tTailDepth / 2}
+          label={`${Math.round(cw * 0.9)}`}
+          side={safeDimSide("top", `${Math.round(cw * 0.9)}`, { x: tCx - tBoardLen / 2, y: tCy - tTailDepth / 2 }, qBounds)} />
+        <DimLine x1={tCx + tPinThk / 2} y1={tCy - tTailDepth / 2} x2={tCx + tPinThk / 2} y2={tCy + tTailDepth / 2}
+          label={`${tl}`}
+          side={safeDimSide("right", `${tl}`, { x: tCx + tPinThk / 2, y: tCy }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：DovetailAxon3D（既有元件，nested svg 包進 quadrant）=====
+  const isoClipId = `dovetail-iso-clip-v2-${Math.round(QUADRANT.W)}x${Math.round(QUADRANT.H)}`;
+  const iso = (() => {
+    const innerW = QUADRANT.W - 16;
+    const innerH = QUADRANT.H - QUADRANT.HEADER_H - 12;
+    return (
+      <g>
+        <defs>
+          <clipPath id={isoClipId}>
+            <rect x={8} y={6} width={innerW} height={innerH} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${isoClipId})`}>
+          <svg
+            x={8}
+            y={6}
+            width={innerW}
+            height={innerH}
+            viewBox="0 0 720 360"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <DovetailAxon3D
+              pieceLen={300}
+              pieceDepth={tl * 1.5}
+              bodyExt={tl * 1.5}
+              tailW={300 / (nTails * 1.55)}
+              pinW={(300 / (nTails * 1.55)) * 0.55}
+              halfPinW_top={((300 / (nTails * 1.55)) * 0.55) / 2}
+              N_TAILS={nTails}
+              mt={mt}
+              ct={ct}
+              tw={tw}
+              tl={tl}
+            />
+          </svg>
+        </g>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: cw, h: mt + tl });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type="dovetail"
+      joineryNameZh={`鳩尾榫（${nTails} 尾 + 兩端半銷，${angleLabel}）`}
+      drawingNumber={`DT-${nTails}T-${tw}x${tl}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `順紋切尾、橫紋切銷`,
+        `尾數 ${nTails} 個 + 兩端半銷，${angleLabel}`,
+      ]}
+    />
+  );
+}
+/* === END dovetail-detail v2 === */
 
 /* === BEGIN finger-joint-detail (owner: agent-C, group: C) === */
 /* ============================================================
@@ -4986,7 +5267,7 @@ function LegacyFingerJointDetail(p: JoineryDetailParams) {
  *
  * 指數 = floor(cw / tt)（剩餘均分到兩端肩）；指長 = mt（板厚相當）
  */
-function FingerJointDetail(p: JoineryDetailParams) {
+function LegacyV2FingerJointDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tt = p.tenonThickness;
   const mt = p.motherThickness;
@@ -5392,7 +5673,291 @@ function FingerJointDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
-/* === END finger-joint-detail === */
+/* === END finger-joint-detail (legacy) === */
+
+/* === BEGIN finger-joint-detail v2 (Wave 2b Group B) ===
+ * 指接榫 finger-joint — MasterDetailLayout + 統一 helper（unified-visual-spec）
+ * ============================================================ */
+function FingerJointDetail(p: JoineryDetailParams) {
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? p.tenonWidth;
+
+  const ttSafe = Math.max(1, tt);
+  const fingerCount = Math.max(3, Math.floor(cw / ttSafe));
+  const fingerLen = mt;
+  const fingersTotalMm = fingerCount * tt;
+  const shoulderTotalMm = Math.max(0, cw - fingersTotalMm);
+  const shoulderEachMm = shoulderTotalMm / 2;
+
+  // ===== Q1 正視圖：A / B 兩件分解（垂直堆疊）=====
+  const front = (() => {
+    // bbox：寬 = cw、高 = (mt+fingerLen)*2 + 38（兩件 + 中間 gap）
+    const gapMm = Math.max(20, mt * 1.2);
+    const bbox = { w: cw, h: (mt + fingerLen) * 2 + gapMm };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const aOX = place.x;
+    const aOY = place.y;
+    const bOX = aOX;
+    const bOY = aOY + PX(mt + fingerLen) + PX(gapMm);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    // A 件鋸齒輪廓（指齒朝上）
+    const buildAPoints = (oX: number, oY: number) => {
+      const pts: string[] = [`${oX},${oY + PX(fingerLen + mt)}`, `${oX},${oY + PX(fingerLen)}`];
+      let cx = oX + PX(shoulderEachMm);
+      pts.push(`${cx},${oY + PX(fingerLen)}`);
+      for (let i = 0; i < fingerCount; i++) {
+        pts.push(`${cx},${oY}`);
+        pts.push(`${cx + PX(tt)},${oY}`);
+        pts.push(`${cx + PX(tt)},${oY + PX(fingerLen)}`);
+        cx += PX(tt);
+        if (i < fingerCount - 1) {
+          pts.push(`${cx + PX(tt) * 0},${oY + PX(fingerLen)}`);
+        }
+      }
+      pts.push(`${oX + PX(cw)},${oY + PX(fingerLen)}`);
+      pts.push(`${oX + PX(cw)},${oY + PX(fingerLen + mt)}`);
+      return pts.join(" ");
+    };
+    // B 件互補鋸齒（指齒朝下）
+    const buildBPoints = (oX: number, oY: number) => {
+      const pts: string[] = [`${oX},${oY}`, `${oX},${oY + PX(mt)}`];
+      let cx = oX + PX(shoulderEachMm);
+      pts.push(`${cx},${oY + PX(mt)}`);
+      for (let i = 0; i < fingerCount; i++) {
+        if (i === 0) {
+          pts.push(`${cx + PX(tt)},${oY + PX(mt)}`);
+        } else {
+          pts.push(`${cx},${oY + PX(mt + fingerLen)}`);
+          pts.push(`${cx + PX(tt)},${oY + PX(mt + fingerLen)}`);
+          pts.push(`${cx + PX(tt)},${oY + PX(mt)}`);
+          pts.push(`${cx + PX(tt) * 2},${oY + PX(mt)}`);
+        }
+        cx += PX(tt) * (i === 0 ? 1 : 2);
+        if (cx >= oX + PX(cw - shoulderEachMm)) break;
+      }
+      pts.push(`${oX + PX(cw)},${oY + PX(mt)}`);
+      pts.push(`${oX + PX(cw)},${oY}`);
+      return pts.join(" ");
+    };
+
+    return (
+      <g>
+        {/* A 件（指齒朝上） */}
+        <polygon points={buildAPoints(aOX, aOY)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={aOX + PX(cw) / 2} y={aOY + PX(fingerLen + mt) + 14} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>
+          A 件（{fingerCount} 指）
+        </text>
+        {/* 板厚 + 指長 dim */}
+        <DimLine x1={aOX} y1={aOY} x2={aOX} y2={aOY + PX(fingerLen)}
+          label={`${fingerLen}`}
+          side={safeDimSide("left", `${fingerLen}`, { x: aOX, y: aOY + PX(fingerLen) / 2 }, qBounds)} />
+        <DimLine x1={aOX} y1={aOY + PX(fingerLen)} x2={aOX} y2={aOY + PX(fingerLen + mt)}
+          label={`${mt}`}
+          side={safeDimSide("left", `${mt}`, { x: aOX, y: aOY + PX(fingerLen + mt / 2) }, qBounds)} />
+        {/* 指寬（第一指） */}
+        <DimLine x1={aOX + PX(shoulderEachMm)} y1={aOY} x2={aOX + PX(shoulderEachMm + tt)} y2={aOY}
+          label={`${tt}`}
+          side={safeDimSide("top", `${tt}`, { x: aOX + PX(shoulderEachMm + tt / 2), y: aOY }, qBounds)} />
+        {/* 中心線 */}
+        <CenterLine x1={aOX + PX(cw) / 2} y1={aOY - 6} x2={aOX + PX(cw) / 2} y2={aOY + PX(fingerLen + mt) + 6} />
+
+        {/* B 件（指齒朝下） */}
+        <polygon points={buildBPoints(bOX, bOY)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={bOX + PX(cw) / 2} y={bOY + PX(mt + fingerLen) + 14} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>
+          B 件（互補指齒）
+        </text>
+        <CenterLine x1={bOX + PX(cw) / 2} y1={bOY - 6} x2={bOX + PX(cw) / 2} y2={bOY + PX(mt + fingerLen) + 6} />
+
+        {/* 木紋方向 */}
+        <GrainArrow x={aOX + 8} y={aOY + PX(fingerLen + mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+        <GrainArrow x={bOX + 8} y={bOY + PX(mt / 2)} length={Math.min(40, PX(cw) * 0.4)} angle={0} />
+
+        {/* 剖面 A-A */}
+        <SectionMark x={aOX + PX(cw) / 2 - 14} y={aOY - 14} label="A" direction="right" />
+        <SectionMark x={aOX + PX(cw) / 2 + 14} y={aOY - 14} label="A" direction="left" />
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：L 型轉角斷面 =====
+  const side = (() => {
+    const armLen = Math.max(80, mt * 4);
+    const bbox = { w: armLen + ct, h: armLen + ct };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+    const hatchId = "hatch-finger-side-v2";
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 水平件 A */}
+        <rect x={oX} y={oY} width={PX(armLen)} height={PX(ct)} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX} y={oY} width={PX(armLen)} height={PX(ct)} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 垂直件 B */}
+        <rect x={oX + PX(armLen)} y={oY} width={PX(ct)} height={PX(armLen)} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={oX + PX(armLen)} y={oY} width={PX(ct)} height={PX(armLen)} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+
+        {/* 指接縫虛線 */}
+        {Array.from({ length: fingerCount * 2 - 1 }).map((_, i) => {
+          const segH = PX(ct) / (fingerCount * 2);
+          const y = oY + segH * (i + 1);
+          return (
+            <HiddenEdge key={i} x1={oX + PX(armLen)} y1={y} x2={oX + PX(armLen) + PX(ct)} y2={y} />
+          );
+        })}
+
+        {/* dim */}
+        <DimLine x1={oX + PX(armLen) + PX(ct)} y1={oY} x2={oX + PX(armLen) + PX(ct)} y2={oY + PX(ct)}
+          label={`${ct}`}
+          side={safeDimSide("right", `${ct}`, { x: oX + PX(armLen) + PX(ct), y: oY + PX(ct) / 2 }, qBounds)} />
+        <DimLine x1={oX} y1={oY + PX(ct)} x2={oX + PX(armLen)} y2={oY + PX(ct)}
+          label={`${Math.round(armLen)}`}
+          side={safeDimSide("bottom", `${Math.round(armLen)}`, { x: oX + PX(armLen / 2), y: oY + PX(ct) }, qBounds)} />
+        <text x={oX + PX(armLen) / 2} y={oY + PX(ct) / 2 + 3} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>A 件（剖面）</text>
+        <text x={oX + PX(armLen) + PX(ct) / 2} y={oY + PX(armLen) + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>B 件</text>
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：上方俯瞰指齒交錯 =====
+  const top = (() => {
+    const bbox = { w: cw, h: ct * 2 + fingerLen * 2 + 30 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y + PX(fingerLen);
+    const rowH = PX(ct);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件本體 */}
+        <rect x={oX} y={oY} width={PX(cw)} height={rowH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 端肩 */}
+        {shoulderEachMm > 0 && (
+          <>
+            <rect x={oX} y={oY - PX(fingerLen)} width={PX(shoulderEachMm)} height={PX(fingerLen)} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+            <rect x={oX + PX(cw - shoulderEachMm)} y={oY - PX(fingerLen)} width={PX(shoulderEachMm)} height={PX(fingerLen)} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          </>
+        )}
+        {/* N 個 A 指齒往上凸 */}
+        {Array.from({ length: fingerCount }).map((_, i) => (
+          <rect key={i} x={oX + PX(shoulderEachMm + i * tt)} y={oY - PX(fingerLen)}
+            width={PX(tt)} height={PX(fingerLen)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ))}
+        <text x={oX + PX(cw) / 2} y={oY + rowH + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>A 件俯視</text>
+
+        {/* B 件 */}
+        <g transform={`translate(0,${PX(fingerLen) + rowH + 30})`}>
+          <rect x={oX} y={oY} width={PX(cw)} height={rowH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {Array.from({ length: fingerCount - 1 }).map((_, i) => (
+            <rect key={i}
+              x={oX + PX(shoulderEachMm + (i + 0.5) * tt + 0.5 * tt)}
+              y={oY - PX(fingerLen)}
+              width={PX(tt)} height={PX(fingerLen)}
+              fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          ))}
+          <text x={oX + PX(cw) / 2} y={oY + rowH + 12} fontSize={FONT.DIM} textAnchor="middle" fill={COLOR.OUTLINE}>B 件俯視（互補）</text>
+        </g>
+
+        {/* 板寬 dim */}
+        <DimLine x1={oX} y1={oY - PX(fingerLen)} x2={oX + PX(cw)} y2={oY - PX(fingerLen)}
+          label={`板寬 ${cw}`}
+          side={safeDimSide("top", `板寬 ${cw}`, { x: oX + PX(cw) / 2, y: oY - PX(fingerLen) }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：A/B 兩件互補拆解 =====
+  const iso = (() => {
+    const isoBbox = { w: cw + 40, h: fingerLen * 2 + mt * 2 + 60, d: ct };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+    const drawCw = cw;
+    const drawCt = ct;
+    const drawFL = fingerLen;
+    const drawTT = tt;
+    const boardBackLen = 40;
+    const bGapMm = drawFL + 20;
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x - (drawCw * isoScale) / 2} originY={center.y + 10} scale={isoScale} rotation={30}>
+          {/* A 件板身 */}
+          <IsoCuboid x={0} y={drawFL} z={0} w={drawCw} h={boardBackLen} d={drawCt}
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          {/* A 件 N 指齒 */}
+          {Array.from({ length: fingerCount }).map((_, i) => (
+            <IsoCuboid key={`a-${i}`}
+              x={shoulderEachMm + i * drawTT} y={0} z={0}
+              w={drawTT} h={drawFL} d={drawCt}
+              fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)}
+              showHiddenBackEdges={false} />
+          ))}
+          {/* B 件板身（上方 explode） */}
+          <g transform={`translate(0 ${-bGapMm - drawFL - boardBackLen})`}>
+            <IsoCuboid x={0} y={0} z={0} w={drawCw} h={boardBackLen} d={drawCt}
+              fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+            {Array.from({ length: fingerCount - 1 }).map((_, i) => (
+              <IsoCuboid key={`b-${i}`}
+                x={shoulderEachMm + (i + 0.5) * drawTT + drawTT / 2 - drawTT / 2}
+                y={boardBackLen} z={0}
+                w={drawTT} h={drawFL} d={drawCt}
+                fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+                strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)}
+                showHiddenBackEdges={false} />
+            ))}
+          </g>
+          {/* 組裝箭頭 */}
+          <line x1={drawCw / 2} y1={-bGapMm + 2} x2={drawCw / 2} y2={-2}
+            stroke={COLOR.DIM} strokeWidth={1 / Math.max(0.4, isoScale)} strokeDasharray={ISO_DASH.ARROW} />
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: cw, h: (mt + fingerLen) * 2 + Math.max(20, mt * 1.2) });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type="finger-joint"
+      joineryNameZh="指接（box joint）"
+      drawingNumber={`FJ-${tt}-${cw}-N${fingerCount}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `指數 = floor(${cw}/${tt}) = ${fingerCount}`,
+        `指齒尖角應磨 R0.5 防爆裂`,
+      ]}
+    />
+  );
+}
+/* === END finger-joint-detail v2 === */
 
 /* === BEGIN dowel-detail (owner: agent-C, group: C) === */
 /* ============================================================
@@ -7147,7 +7712,7 @@ function LegacyPocketHoleDetail(p: JoineryDetailParams) {
  *
  *   注：傳統中式無此工法，老師圖庫無 ref，純 wrd 自繪。
  * ============================================================ */
-function PocketHoleDetail(p: JoineryDetailParams) {
+function LegacyV2PocketHoleDetail(p: JoineryDetailParams) {
   const ct = p.childThickness ?? p.tenonThickness;   // A 件厚（鑽斜孔的板）
   const mt = p.motherThickness;                       // B 件厚（被鎖入的板）
   const screwLen = Math.round(ct / 2 + mt - 5);       // 螺絲長 (mm)
@@ -7603,7 +8168,260 @@ function PocketHoleDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
-/* === END pocket-hole-detail === */
+/* === END pocket-hole-detail (legacy) === */
+
+/* === BEGIN pocket-hole-detail v2 (Wave 2b Group B) ===
+ * 斜孔螺絲 pocket-hole — MasterDetailLayout + 統一 helper
+ * dead code（沒模板觸發），仍補完整 4 quadrant + TitleBlock
+ * ============================================================ */
+function PocketHoleDetail(p: JoineryDetailParams) {
+  const ct = p.childThickness ?? p.tenonThickness;
+  const mt = p.motherThickness;
+  const screwLen = Math.round(ct / 2 + mt - 5);
+  const holeDepth = Math.max(ct - 5, 1);
+  const edgeOffset = 25;
+  const pitch = 60;
+
+  // ===== Q1 正視圖：T 字組裝後從正面看 =====
+  const front = (() => {
+    const aLen = 150;
+    const bH = 120;
+    const bbox = { w: aLen, h: ct + bH };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const fCx = place.x;
+    const fCy = place.y + PX(ct);
+    const fAW = PX(aLen);
+    const fAT = PX(ct);
+    const fBW = PX(mt);
+    const fBH = PX(bH);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* A 件 */}
+        <rect x={fCx} y={fCy - fAT} width={fAW} height={fAT}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件 */}
+        <rect x={fCx + fAW / 2 - fBW / 2} y={fCy} width={fBW} height={fBH}
+          fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 兩個隱藏斜孔 */}
+        {[-1, 1].map((dir, i) => {
+          const cx0 = fCx + fAW / 2 + dir * PX(pitch / 2);
+          return (
+            <g key={i}>
+              <HiddenEdge d={`M ${cx0 - 3},${fCy} L ${cx0 + dir * PX(15)},${fCy + PX(20)}`} />
+              <HiddenEdge d={`M ${cx0 + 3},${fCy} L ${cx0 + dir * PX(15) + 4},${fCy + PX(20)}`} />
+            </g>
+          );
+        })}
+        {/* 剖面 A-A */}
+        <SectionMark x={fCx + fAW / 2 - PX(pitch / 2) - 22} y={fCy - fAT - 8} label="A" direction="down" />
+        <SectionMark x={fCx + fAW / 2 - PX(pitch / 2) - 22} y={fCy + fBH - 18} label="A" direction="up" />
+        <GrainArrow x={fCx + 8} y={fCy - fAT - 14} length={fAW - 16} angle={0} />
+        {/* dim */}
+        <DimLine
+          x1={fCx + fAW / 2 - PX(pitch / 2)} y1={fCy + fBH}
+          x2={fCx + fAW / 2 + PX(pitch / 2)} y2={fCy + fBH}
+          label={`孔距 ${pitch}`}
+          side={safeDimSide("bottom", `孔距 ${pitch}`, { x: fCx + fAW / 2, y: fCy + fBH }, qBounds)} />
+        <DimLine x1={fCx} y1={fCy - fAT} x2={fCx} y2={fCy}
+          label={`${ct}`}
+          side={safeDimSide("left", `${ct}`, { x: fCx, y: fCy - fAT / 2 }, qBounds)} />
+        <DimLine x1={fCx + fAW} y1={fCy} x2={fCx + fAW} y2={fCy + fBH}
+          label={`${mt}`}
+          side={safeDimSide("right", `${mt}`, { x: fCx + fAW, y: fCy + fBH / 2 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：A-A 剖面 — 15° 斜孔 + 螺絲穿入 =====
+  const side = (() => {
+    const aLen = 120;
+    const bH = 120;
+    const bbox = { w: aLen, h: ct + bH };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sCx = place.x;
+    const sCy = place.y;
+    const sAW = PX(aLen);
+    const sAT = PX(ct);
+    const sBT = PX(mt);
+    const sBH = PX(bH);
+    const hatchId = "hatch-ph-section-v2";
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+    const angle15 = (15 * Math.PI) / 180;
+    const holeStartX = sCx + sAW / 2 - PX(15);
+    const holeStartY = sCy + sAT;
+    const screwTipX = sCx + sAW / 2 + PX(8);
+    const screwTipY = sCy + sBH * 0.7;
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* A 件 */}
+        <rect x={sCx} y={sCy} width={sAW} height={sAT} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件 */}
+        <rect x={sCx + sAW / 2 - sBT / 2} y={sCy + sAT} width={sBT} height={sBH} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 15° 斜孔 */}
+        <line x1={holeStartX - 4} y1={holeStartY}
+          x2={holeStartX + Math.sin(angle15) * PX(holeDepth) - 2}
+          y2={holeStartY - Math.cos(angle15) * PX(holeDepth)}
+          stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={holeStartX + 8} y1={holeStartY}
+          x2={holeStartX + Math.sin(angle15) * PX(holeDepth) + 6}
+          y2={holeStartY - Math.cos(angle15) * PX(holeDepth)}
+          stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={holeStartX + Math.sin(angle15) * PX(holeDepth) - 2}
+          y1={holeStartY - Math.cos(angle15) * PX(holeDepth)}
+          x2={holeStartX + Math.sin(angle15) * PX(holeDepth) + 6}
+          y2={holeStartY - Math.cos(angle15) * PX(holeDepth)}
+          stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 螺絲：頭 + 桿 + 螺紋 */}
+        <g>
+          <rect x={holeStartX - 3} y={holeStartY - 4} width={10} height={6}
+            fill="#555" stroke={COLOR.OUTLINE} strokeWidth={0.5}
+            transform={`rotate(-15 ${holeStartX + 2} ${holeStartY - 1})`} />
+          <line x1={holeStartX + 2} y1={holeStartY - 1} x2={screwTipX} y2={screwTipY}
+            stroke="#666" strokeWidth={2.5} />
+          {Array.from({ length: 10 }).map((_, j) => {
+            const t = j / 9;
+            const tx = holeStartX + 2 + (screwTipX - holeStartX - 2) * t;
+            const ty = holeStartY - 1 + (screwTipY - holeStartY + 1) * t;
+            return (
+              <line key={j} x1={tx - 2.5} y1={ty - 2} x2={tx + 2.5} y2={ty + 2}
+                stroke="#444" strokeWidth={0.6} />
+            );
+          })}
+        </g>
+        <CenterLine x1={sCx + sAW / 2} y1={sCy - 6} x2={sCx + sAW / 2} y2={sCy + sAT + sBH + 6} />
+        <text x={holeStartX - 28} y={holeStartY + 14} fontSize={FONT.DIM} fill={COLOR.DIM}>15°00′</text>
+
+        <DimLine x1={sCx + sAW} y1={sCy} x2={sCx + sAW} y2={sCy + sAT}
+          label={`A=${ct}`}
+          side={safeDimSide("right", `A=${ct}`, { x: sCx + sAW, y: sCy + sAT / 2 }, qBounds)} />
+        <DimLine x1={sCx + sAW} y1={sCy + sAT} x2={sCx + sAW} y2={sCy + sAT + sBH}
+          label={`B=${mt}`}
+          side={safeDimSide("right", `B=${mt}`, { x: sCx + sAW, y: sCy + sAT + sBH / 2 }, qBounds)} />
+        <DimLine x1={sCx} y1={holeStartY - Math.cos(angle15) * PX(holeDepth)} x2={sCx} y2={holeStartY}
+          label={`孔深 ${holeDepth}`}
+          side={safeDimSide("left", `孔深 ${holeDepth}`, { x: sCx, y: holeStartY - Math.cos(angle15) * PX(holeDepth) / 2 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：A 件背面，露出兩個斜孔 =====
+  const top = (() => {
+    const bbox = { w: 160, h: 60 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tCx = place.x;
+    const tCy = place.y;
+    const tAW = PX(160);
+    const tAH = PX(60);
+    const tHoleR = Math.max(PX(4), 4);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <rect x={tCx} y={tCy} width={tAW} height={tAH}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 2 個橢圓斜孔 */}
+        {[-1, 1].map((dir, i) => {
+          const ox = tCx + tAW / 2 + dir * PX(pitch / 2);
+          const oy = tCy + tAH * 0.55;
+          return (
+            <g key={i}>
+              <ellipse cx={ox} cy={oy} rx={tHoleR * 1.6} ry={tHoleR * 0.9}
+                fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <ellipse cx={ox + 2} cy={oy - 1} rx={tHoleR * 0.8} ry={tHoleR * 0.5} fill="#444" />
+            </g>
+          );
+        })}
+        {/* B 件位置投影 */}
+        <CenterLine x1={tCx + tAW / 2} y1={tCy - 8} x2={tCx + tAW / 2} y2={tCy + tAH + 8} />
+        <HiddenEdge d={`M ${tCx + tAW / 2 - PX(mt / 2)},${tCy} L ${tCx + tAW / 2 - PX(mt / 2)},${tCy + tAH}`} />
+        <HiddenEdge d={`M ${tCx + tAW / 2 + PX(mt / 2)},${tCy} L ${tCx + tAW / 2 + PX(mt / 2)},${tCy + tAH}`} />
+        <GrainArrow x={tCx + 6} y={tCy + tAH + 18} length={tAW - 12} angle={0} />
+
+        <DimLine x1={tCx + tAW / 2 - PX(pitch / 2)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(pitch / 2)} y2={tCy + tAH}
+          label={`孔距 ${pitch}`}
+          side={safeDimSide("bottom", `孔距 ${pitch}`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
+        <DimLine x1={tCx + tAW / 2 - PX(pitch / 2)} y1={tCy} x2={tCx + tAW / 2 - PX(pitch / 2)} y2={tCy + tAH * 0.55}
+          label={`邊距 ${edgeOffset}`}
+          side={safeDimSide("left", `邊距 ${edgeOffset}`, { x: tCx + tAW / 2 - PX(pitch / 2), y: tCy + tAH * 0.275 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：T 字組裝 =====
+  const iso = (() => {
+    const aLenMm = 120;
+    const aDMm = 60;
+    const bHMm = 80;
+    const isoBbox = { w: aLenMm, h: bHMm + ct + 20, d: aDMm };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x} originY={center.y} scale={isoScale}>
+          {/* A 件水平板 */}
+          <IsoCuboid x={-aLenMm / 2} y={-ct} z={0} w={aLenMm} h={ct} d={aDMm}
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          {/* B 件垂直板 */}
+          <IsoCuboid x={-mt / 2} y={0} z={0} w={mt} h={bHMm} d={aDMm}
+            fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          {/* 斜孔虛線 */}
+          {[-1, 1].map((dir, i) => {
+            const ox = dir * (pitch / 2);
+            return (
+              <line key={i} x1={ox} y1={20} x2={ox + dir * 15} y2={-ct / 2}
+                stroke={COLOR.HIDDEN}
+                strokeWidth={ISO_STROKE.HIDDEN_DASHED / Math.max(0.4, isoScale)}
+                strokeDasharray={ISO_DASH.HIDDEN} />
+            );
+          })}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: 150, h: ct + 120 });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type="pocket-hole"
+      joineryNameZh="斜孔螺絲（口袋孔）"
+      drawingNumber={`PH-${ct}-${mt}-L${screwLen}`}
+      scale={scaleStr}
+      drawnBy="wrd-modern-joinery"
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `Kreg 標準 15° 斜孔（不可改角度）`,
+        `孔距 ${pitch}mm，邊距 ${edgeOffset}mm，螺絲長 ${screwLen}mm`,
+      ]}
+    />
+  );
+}
+/* === END pocket-hole-detail v2 === */
 
 /* === BEGIN screw-detail (owner: agent-D, group: D) === */
 /* ============================================================
@@ -7657,7 +8475,7 @@ function pickPilotHoleRule(materialId?: import("@/lib/types").MaterialId): {
  *
  *   注：傳統中式無此工法，老師圖庫無 ref，純 wrd 自繪。
  * ============================================================ */
-function ScrewDetail(p: JoineryDetailParams) {
+function LegacyV2ScrewDetail(p: JoineryDetailParams) {
   const tt = p.tenonThickness;                     // 螺桿徑示意 (mm)
   const tl = p.tenonLength;                        // 螺絲全長 (mm)
   const mt = p.motherThickness;                    // 母件 (B 件) 厚 mm
@@ -8128,7 +8946,259 @@ function ScrewDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
-/* === END screw-detail === */
+/* === END screw-detail (legacy) === */
+
+/* === BEGIN screw-detail v2 (Wave 2b Group B) ===
+ * 螺絲 + 白膠 screw — MasterDetailLayout + 統一 helper
+ * dead code（沒模板觸發），仍補完整 4 quadrant + TitleBlock
+ * ============================================================ */
+function ScrewDetail(p: JoineryDetailParams) {
+  const tt = p.tenonThickness;
+  const tl = p.tenonLength;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? p.tenonThickness;
+  const rule = pickPilotHoleRule(p.material);
+  const pilot = Math.max(Math.round(tt * rule.ratio), 1);
+  const csDepth = Math.max(Math.round(tt * 0.6), 2);
+  const csDia = Math.max(Math.round(tt * 1.8), pilot + 2);
+  const screwLen = tl > 0 ? tl : Math.max(ct + mt - 5, 8);
+
+  // ===== Q1 正視圖：A 平鎖入 B（螺絲 + 白膠）=====
+  const front = (() => {
+    const aLen = 140;
+    const bH = 110;
+    const bbox = { w: aLen, h: ct + bH };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const fCx = place.x;
+    const fCy = place.y;
+    const fAW = PX(aLen);
+    const fAT = PX(ct);
+    const fBT = PX(mt);
+    const fBH = PX(bH);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* B 件下方直板 */}
+        <rect x={fCx + fAW / 2 - fBT / 2} y={fCy + fAT} width={fBT} height={fBH}
+          fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* A 件上方橫板 */}
+        <rect x={fCx} y={fCy} width={fAW} height={fAT}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 兩個螺絲位置 */}
+        {[-1, 1].map((dir, i) => {
+          const cx0 = fCx + fAW / 2 + dir * PX(40);
+          return (
+            <g key={i}>
+              <polygon
+                points={`${cx0 - PX(csDia) / 2},${fCy} ${cx0 + PX(csDia) / 2},${fCy} ${cx0 + PX(pilot) / 2},${fCy + PX(csDepth)} ${cx0 - PX(pilot) / 2},${fCy + PX(csDepth)}`}
+                fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <ellipse cx={cx0} cy={fCy + 1} rx={PX(csDia) / 2 + 0.5} ry={1.5} fill="#555" />
+              <line x1={cx0} y1={fCy + PX(csDepth)} x2={cx0} y2={fCy + PX(screwLen)}
+                stroke="#666" strokeWidth={2} />
+              <CenterLine x1={cx0} y1={fCy - 6} x2={cx0} y2={fCy + PX(screwLen) + 6} />
+            </g>
+          );
+        })}
+        {/* 白膠縫 */}
+        <line x1={fCx} y1={fCy + fAT - 1} x2={fCx + fAW} y2={fCy + fAT - 1}
+          stroke="#e8a" strokeWidth={0.8} strokeDasharray="2 1" />
+        <text x={fCx + fAW + 4} y={fCy + fAT + 2} fontSize={FONT.CALLOUT} fill="#a36">白膠</text>
+
+        {/* 剖面 A-A */}
+        <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy - 10} label="A" direction="down" />
+        <SectionMark x={fCx + fAW / 2 - PX(40) - 18} y={fCy + fAT + fBH + 4} label="A" direction="up" />
+        <GrainArrow x={fCx + 8} y={fCy - 12} length={fAW - 16} angle={0} />
+
+        <DimLine x1={fCx} y1={fCy} x2={fCx} y2={fCy + fAT}
+          label={`${ct}`}
+          side={safeDimSide("left", `${ct}`, { x: fCx, y: fCy + fAT / 2 }, qBounds)} />
+        <DimLine x1={fCx + fAW} y1={fCy + fAT} x2={fCx + fAW} y2={fCy + fAT + fBH}
+          label={`${mt}`}
+          side={safeDimSide("right", `${mt}`, { x: fCx + fAW, y: fCy + fAT + fBH / 2 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：A-A 剖面 — 埋頭孔 + 先導孔 + 螺絲 + 白膠 =====
+  const side = (() => {
+    const aLen = 80;
+    const bH = 120;
+    const bbox = { w: aLen + 30, h: ct + bH };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(aLen);
+    const objH = PX(ct + bH);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sCx = place.x;
+    const sCy = place.y;
+    const sAW = PX(aLen);
+    const sAT = PX(ct);
+    const sBT = PX(mt);
+    const sBH = PX(bH);
+    const hatchId = "hatch-screw-section-v2";
+    const screwCx = sCx + sAW / 2;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* A 件 */}
+        <rect x={sCx} y={sCy} width={sAW} height={sAT} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* B 件 */}
+        <rect x={sCx + sAW / 2 - sBT / 2} y={sCy + sAT + 2} width={sBT} height={sBH} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 白膠層 */}
+        <rect x={sCx + sAW / 2 - sBT / 2} y={sCy + sAT} width={sBT} height={2} fill="#fbb" stroke="#c66" strokeWidth={0.5} />
+        {/* 埋頭孔 */}
+        <polygon
+          points={`${screwCx - PX(csDia) / 2},${sCy} ${screwCx + PX(csDia) / 2},${sCy} ${screwCx + PX(pilot) / 2},${sCy + PX(csDepth)} ${screwCx - PX(pilot) / 2},${sCy + PX(csDepth)}`}
+          fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 先導孔 */}
+        <rect x={screwCx - PX(pilot) / 2} y={sCy + PX(csDepth)}
+          width={PX(pilot)} height={Math.max(PX(ct) - PX(csDepth), 1)}
+          fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 先導孔（B 件，隱藏線）*/}
+        <HiddenEdge d={`M ${screwCx - PX(pilot) / 2},${sCy + sAT + 2} L ${screwCx - PX(pilot) / 2},${sCy + PX(screwLen)}`} />
+        <HiddenEdge d={`M ${screwCx + PX(pilot) / 2},${sCy + sAT + 2} L ${screwCx + PX(pilot) / 2},${sCy + PX(screwLen)}`} />
+        {/* 螺絲 */}
+        <g>
+          <rect x={screwCx - PX(csDia) / 2 + 1} y={sCy + 1}
+            width={PX(csDia) - 2} height={Math.max(PX(csDepth) - 1, 2)}
+            fill="#555" stroke={COLOR.OUTLINE} strokeWidth={0.5} />
+          <line x1={screwCx} y1={sCy + PX(csDepth)} x2={screwCx} y2={sCy + PX(screwLen)}
+            stroke="#444" strokeWidth={2.5} />
+          {Array.from({ length: 12 }).map((_, j) => {
+            const y = sCy + PX(csDepth) + 4 + j * 4;
+            if (y >= sCy + PX(screwLen) - 2) return null;
+            return (
+              <line key={j} x1={screwCx - 2.5} y1={y} x2={screwCx + 2.5} y2={y - 1.5}
+                stroke="#222" strokeWidth={0.5} />
+            );
+          })}
+        </g>
+        <CenterLine x1={screwCx} y1={sCy - 6} x2={screwCx} y2={sCy + PX(screwLen) + 8} />
+
+        <DimLine x1={sCx + sAW} y1={sCy} x2={sCx + sAW} y2={sCy + PX(csDepth)}
+          label={`埋頭 ${csDepth}`}
+          side={safeDimSide("right", `埋頭 ${csDepth}`, { x: sCx + sAW, y: sCy + PX(csDepth) / 2 }, qBounds)} />
+        <DimLine x1={sCx + sAW} y1={sCy + sAT + 2} x2={sCx + sAW} y2={sCy + PX(screwLen)}
+          label={`螺長 ${screwLen}`}
+          side={safeDimSide("right", `螺長 ${screwLen}`, { x: sCx + sAW, y: sCy + sAT + PX(screwLen / 2) }, qBounds)} />
+        <DimLine x1={sCx} y1={sCy + sAT + 2} x2={sCx} y2={sCy + sAT + sBH + 2}
+          label={`B=${mt}`}
+          side={safeDimSide("left", `B=${mt}`, { x: sCx, y: sCy + sAT + sBH / 2 }, qBounds)} />
+        <DimLine x1={screwCx - PX(pilot) / 2} y1={sCy + sAT + sBH} x2={screwCx + PX(pilot) / 2} y2={sCy + sAT + sBH}
+          label={`Ø${pilot}`}
+          side={safeDimSide("bottom", `Ø${pilot}`, { x: screwCx, y: sCy + sAT + sBH }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：A 件正面，露出 2 個埋頭孔 =====
+  const top = (() => {
+    const bbox = { w: 160, h: 60 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(160);
+    const objH = PX(60);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tCx = place.x;
+    const tCy = place.y;
+    const tAW = PX(160);
+    const tAH = PX(60);
+    const csR = Math.max(PX(csDia) / 2, 4);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <rect x={tCx} y={tCy} width={tAW} height={tAH}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {[-1, 1].map((dir, i) => {
+          const cx0 = tCx + tAW / 2 + dir * PX(40);
+          const cy0 = tCy + tAH / 2;
+          return (
+            <g key={i}>
+              <circle cx={cx0} cy={cy0} r={csR} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <circle cx={cx0} cy={cy0} r={Math.max(PX(pilot) / 2, 1.5)} fill="#444" />
+              <CenterLine x1={cx0} y1={cy0 - csR - 4} x2={cx0} y2={cy0 + csR + 4} />
+              <CenterLine x1={cx0 - csR - 4} y1={cy0} x2={cx0 + csR + 4} y2={cy0} />
+            </g>
+          );
+        })}
+        <HiddenEdge d={`M ${tCx + tAW / 2 - PX(mt) / 2},${tCy} L ${tCx + tAW / 2 - PX(mt) / 2},${tCy + tAH}`} />
+        <HiddenEdge d={`M ${tCx + tAW / 2 + PX(mt) / 2},${tCy} L ${tCx + tAW / 2 + PX(mt) / 2},${tCy + tAH}`} />
+        <GrainArrow x={tCx + 8} y={tCy + tAH + 18} length={tAW - 16} angle={0} />
+
+        <DimLine x1={tCx + tAW / 2 - PX(40)} y1={tCy + tAH} x2={tCx + tAW / 2 + PX(40)} y2={tCy + tAH}
+          label={`孔距 80`}
+          side={safeDimSide("bottom", `孔距 80`, { x: tCx + tAW / 2, y: tCy + tAH }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖：T 字組裝 =====
+  const iso = (() => {
+    const aLenMm = 120;
+    const aDMm = 60;
+    const bHMm = 70;
+    const isoBbox = { w: aLenMm, h: bHMm + ct + 20, d: aDMm };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x} originY={center.y} scale={isoScale}>
+          {/* B 件先畫 */}
+          <IsoCuboid x={-mt / 2} y={0} z={0} w={mt} h={bHMm} d={aDMm}
+            fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          {/* A 件 */}
+          <IsoCuboid x={-aLenMm / 2} y={-ct} z={0} w={aLenMm} h={ct} d={aDMm}
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          {/* 螺絲（從 A 頂面斜直下） */}
+          {[-1, 1].map((dir, i) => (
+            <g key={i}>
+              <line x1={dir * 40} y1={-ct - 2} x2={dir * 40} y2={35}
+                stroke="#444"
+                strokeWidth={1.4 / Math.max(0.4, isoScale)}
+                strokeDasharray={ISO_DASH.HIDDEN} />
+              <circle cx={dir * 40} cy={-ct - 1} r={csDia / 2 + 0.5} fill="#555" />
+            </g>
+          ))}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: 140, h: ct + 110 });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type={p.material ? `screw · ${p.material}` : "screw"}
+      joineryNameZh="螺絲 + 白膠"
+      drawingNumber={`SC-${ct}-${mt}-Ø${tt}-L${screwLen}`}
+      scale={scaleStr}
+      drawnBy="wrd-modern-joinery"
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `先導孔 = 螺桿徑 × ${rule.ratioLabel}（${rule.hardness}）= Ø${pilot}mm`,
+        `埋頭孔深 ≥ 螺頭高，可加木塞封口`,
+      ]}
+    />
+  );
+}
+/* === END screw-detail v2 === */
 
 /* === BEGIN stub-joint-detail (owner: agent-C, group: C) === */
 /**
@@ -8275,7 +9345,7 @@ function LegacyStubJointDetail(p: JoineryDetailParams) {
  *
  * 強制：tl ≤ min(mt - 3, ct / 2)；圓腳 motherShape="round" 保留圓畫法
  */
-function StubJointDetail(p: JoineryDetailParams) {
+function LegacyV2StubJointDetail(p: JoineryDetailParams) {
   const tlRaw = p.tenonLength;
   const cw = p.childWidth ?? p.tenonWidth;
   const ct = p.childThickness ?? p.tenonThickness;
@@ -8686,7 +9756,296 @@ function StubJointDetail(p: JoineryDetailParams) {
     </svg>
   );
 }
-/* === END stub-joint-detail === */
+/* === END stub-joint-detail (legacy) === */
+
+/* === BEGIN stub-joint-detail v2 (Wave 2b Group B) ===
+ * 整支卡榫 stub-joint — MasterDetailLayout + 統一 helper
+ * ============================================================ */
+function StubJointDetail(p: JoineryDetailParams) {
+  const tlRaw = p.tenonLength;
+  const cw = p.childWidth ?? p.tenonWidth;
+  const ct = p.childThickness ?? p.tenonThickness;
+  const mt = p.motherThickness;
+  const isRound = p.motherShape === "round";
+  const tl = Math.max(2, Math.min(tlRaw, Math.min(mt - 3, ct / 2)));
+
+  // ===== Q1 正視圖：母件側面 + 公件分解 =====
+  const front = (() => {
+    const apronExt = Math.max(cw, 60);
+    const gapMm = 20;
+    const bbox = { w: mt + gapMm + apronExt, h: cw };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const motherW = PX(mt);
+    const motherH = PX(cw);
+    const mortiseW = PX(tl);
+    const mortiseH = PX(ct);
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        {/* 母件側面 */}
+        {isRound ? (
+          <ellipse cx={oX + motherW / 2} cy={oY + motherH / 2} rx={motherW / 2} ry={motherH / 2}
+            fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ) : (
+          <rect x={oX} y={oY} width={motherW} height={motherH}
+            fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        )}
+        {/* 榫眼（從右側往內挖） */}
+        <rect x={oX + motherW - mortiseW} y={oY + (motherH - mortiseH) / 2}
+          width={mortiseW} height={mortiseH}
+          fill="#3d2a14" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 卡槽紅虛線醒目輪廓 */}
+        <g strokeWidth={1.6}>
+          <rect x={oX + motherW - mortiseW} y={oY + (motherH - mortiseH) / 2}
+            width={mortiseW} height={mortiseH} fill="none"
+            stroke={COLOR.DIM_TICK} strokeDasharray="5 3" />
+        </g>
+        {/* 中心線 */}
+        <CenterLine x1={oX - 6} y1={oY + motherH / 2} x2={oX + motherW + 6} y2={oY + motherH / 2} />
+        <CenterLine x1={oX + motherW / 2} y1={oY - 6} x2={oX + motherW / 2} y2={oY + motherH + 6} />
+
+        {/* 公件 — 分離畫在右側 */}
+        <g transform={`translate(${PX(mt + gapMm)},0)`}>
+          <rect x={oX} y={oY + (motherH - mortiseH) / 2}
+            width={PX(apronExt)} height={mortiseH}
+            fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          {/* 將要插入部分（虛線標示） */}
+          <rect x={oX} y={oY + (motherH - mortiseH) / 2}
+            width={mortiseW} height={mortiseH}
+            fill="none" stroke={COLOR.SECTION_HATCH} strokeWidth={0.8} strokeDasharray={DASH.AUX} />
+          <text x={oX + PX(apronExt) / 2} y={oY + motherH + 14}
+            fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>
+            公件（牙條）整支端面 = 榫
+          </text>
+        </g>
+
+        <text x={oX + motherW / 2} y={oY + motherH + 14}
+          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>
+          母件（{isRound ? "圓腳" : "方腳"}）
+        </text>
+
+        {/* 尺寸 */}
+        <DimLine x1={oX} y1={oY} x2={oX + motherW} y2={oY}
+          label={`${isRound ? "Ø" : ""}${mt}`}
+          side={safeDimSide("top", `${mt}`, { x: oX + motherW / 2, y: oY }, qBounds)} />
+        <DimLine x1={oX} y1={oY} x2={oX} y2={oY + motherH}
+          label={`${cw}`}
+          side={safeDimSide("left", `${cw}`, { x: oX, y: oY + motherH / 2 }, qBounds)} />
+        <DimLine x1={oX + motherW - mortiseW} y1={oY + motherH} x2={oX + motherW} y2={oY + motherH}
+          label={`卡入 ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `卡入 ${Math.round(tl)}`, { x: oX + motherW - mortiseW / 2, y: oY + motherH }, qBounds)} />
+
+        {/* 剖面 A-A */}
+        <SectionMark x={oX + motherW / 2 - 14} y={oY - 14} label="A" direction="right" />
+        <SectionMark x={oX + motherW / 2 + 14} y={oY - 14} label="A" direction="left" />
+      </g>
+    );
+  })();
+
+  // ===== Q2 側視圖：剖面 + 「無肩 vs 有肩」對比 =====
+  const side = (() => {
+    const drawW = mt + cw * 0.6;
+    const bbox = { w: drawW * 2 + 20, h: ct * 2 + 30 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const eachW = PX(drawW);
+    const oY = place.y;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    const drawDiagram = (oX: number, hasShoulder: boolean, label: string, slug: string) => {
+      const motherW = PX(mt);
+      const apronLen = PX(cw * 0.6);
+      const tenonLen = PX(tl);
+      const tenonH = hasShoulder ? PX(ct * 0.6) : PX(ct);
+      const apronH = PX(ct);
+      const hatchId = `hatch-stub-v2-${slug}`;
+      return (
+        <g key={slug}>
+          <defs>
+            <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+          </defs>
+          <rect x={oX} y={oY} width={motherW} height={apronH * 2} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <rect x={oX} y={oY} width={motherW} height={apronH * 2} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <rect x={oX + motherW - tenonLen} y={oY + apronH - tenonH / 2}
+            width={tenonLen} height={tenonH} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <rect x={oX + motherW} y={oY + apronH - apronH / 2}
+            width={apronLen} height={apronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <rect x={oX + motherW - tenonLen} y={oY + apronH - tenonH / 2}
+            width={tenonLen} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+          <text x={oX + motherW / 2 + apronLen / 2} y={oY - 6}
+            fontSize={FONT.LABEL} fontWeight="bold" textAnchor="middle"
+            fill={hasShoulder ? COLOR.OUTLINE : COLOR.SECTION_HATCH}>
+            {label}
+          </text>
+          <text x={oX + motherW / 2 + apronLen / 2} y={oY + apronH * 2 + 14}
+            fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.OUTLINE}>
+            {hasShoulder ? "有肩：肩面承力" : "無肩：整支端面"}
+          </text>
+        </g>
+      );
+    };
+
+    return (
+      <g>
+        {drawDiagram(place.x, false, "無肩 stub", "noshoulder")}
+        {drawDiagram(place.x + eachW + PX(20), true, "有肩參考", "withshoulder")}
+        {/* dim - 標明卡入深度 */}
+        <DimLine
+          x1={place.x + PX(mt - tl)} y1={oY + PX(ct * 2) + 12}
+          x2={place.x + PX(mt)} y2={oY + PX(ct * 2) + 12}
+          label={`卡入深 ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `卡入深 ${Math.round(tl)}`, { x: place.x + PX(mt - tl / 2), y: oY + PX(ct * 2) + 12 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q3 俯視圖：上視切面 — 母件 + 牙條卡入 =====
+  const top = (() => {
+    const apronShow = Math.max(cw, 50);
+    const bbox = { w: mt + apronShow + 10, h: Math.max(mt, ct) + 10 };
+    const s = unifiedFitScale(bbox);
+    const PX = (mm: number) => mm * s;
+    const objW = PX(bbox.w);
+    const objH = PX(bbox.h);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const oX = place.x;
+    const oY = place.y;
+    const legSide = PX(mt);
+    const apronLen = PX(apronShow);
+    const tenonLen = PX(tl);
+    const tenonT = PX(ct);
+    const cx = oX + legSide / 2;
+    const cy = oY + legSide / 2;
+    const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+    return (
+      <g>
+        <defs>
+          <Hatching id="hatch-stub-top-v2" color={COLOR.SECTION_HATCH} />
+        </defs>
+        {/* 母件 */}
+        {isRound ? (
+          <circle cx={cx} cy={cy} r={legSide / 2} fill="url(#hatch-stub-top-v2)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ) : (
+          <rect x={oX} y={oY} width={legSide} height={legSide} fill="url(#hatch-stub-top-v2)" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        )}
+        {/* 榫眼開口隱藏線 */}
+        <HiddenEdge d={`M ${oX + legSide - tenonLen} ${cy - tenonT / 2} h ${tenonLen} v ${tenonT} h ${-tenonLen} z`} />
+        {/* 牙條本體 + 榫頭 */}
+        <rect x={oX + legSide - tenonLen} y={cy - tenonT / 2}
+          width={tenonLen + apronLen} height={tenonT}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 中心線 */}
+        <CenterLine x1={oX - 8} y1={cy} x2={oX + legSide + apronLen + 8} y2={cy} />
+        {isRound && <CenterLine x1={cx} y1={oY - 6} x2={cx} y2={oY + legSide + 6} />}
+
+        {/* dim */}
+        <DimLine x1={oX} y1={oY} x2={oX + legSide} y2={oY}
+          label={`${mt}`}
+          side={safeDimSide("top", `${mt}`, { x: cx, y: oY }, qBounds)} />
+        <DimLine x1={oX + legSide - tenonLen} y1={oY + legSide} x2={oX + legSide} y2={oY + legSide}
+          label={`卡入 ${Math.round(tl)}`}
+          side={safeDimSide("bottom", `卡入 ${Math.round(tl)}`, { x: oX + legSide - tenonLen / 2, y: oY + legSide }, qBounds)} />
+        <DimLine x1={oX + legSide + apronLen} y1={cy - tenonT / 2} x2={oX + legSide + apronLen} y2={cy + tenonT / 2}
+          label={`${ct}`}
+          side={safeDimSide("right", `${ct}`, { x: oX + legSide + apronLen, y: cy }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== Q4 等角圖 =====
+  const iso = (() => {
+    const drawMt = Math.max(mt, 18);
+    const drawCt = Math.max(ct, 16);
+    const drawCw = Math.max(cw, 30);
+    const drawTl = Math.max(tl, 8);
+    const motherH = Math.max(drawMt * 4, 60);
+    const apronExt = drawCw * 1.6;
+    const explodeGap = Math.max(drawTl + drawCt * 0.6 + 16, drawTl * 2.5);
+
+    const isoBbox = { w: drawMt + explodeGap + apronExt + drawTl, h: motherH, d: drawMt };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x - (drawMt + explodeGap + apronExt) * isoScale / 2} originY={center.y + motherH * isoScale / 2} scale={isoScale} rotation={30}>
+          {/* 母件柱腳 */}
+          {!isRound ? (
+            <IsoCuboid x={0} y={0} z={0} w={drawMt} h={motherH} d={drawMt}
+              fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          ) : (
+            <IsoCylinder x={drawMt / 2} y={0} z={drawMt / 2}
+              radius={drawMt / 2} height={motherH} axis="y"
+              fillSide={ISO_FILL.MORTISE_FRONT} fillCap={ISO_FILL.MORTISE_TOP}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          )}
+          {/* 母件榫眼（方腳） */}
+          {!isRound && (
+            <IsoMortise faceX={drawMt} faceY={motherH * 0.5} faceZ={drawMt / 2}
+              width={drawCw} height={drawCt} depth={drawTl}
+              faceNormal="+x" through={false}
+              stroke={COLOR.OUTLINE}
+              strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoScale)} />
+          )}
+          {/* 牙條（往 +x explode） */}
+          <g transform={`translate(${drawMt + explodeGap} ${motherH * 0.5 - drawCt / 2})`}>
+            <IsoCuboid x={0} y={0} z={drawMt / 2 - drawCw / 2}
+              w={apronExt + drawTl} h={drawCt} d={drawCw}
+              fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoScale)} />
+          </g>
+          {/* 拆解箭頭 */}
+          {(() => {
+            const fromX = drawMt + explodeGap - 4;
+            const toX = drawMt + 4;
+            const yMid = motherH * 0.5;
+            const ah = 5 / Math.max(0.4, isoScale);
+            return (
+              <g stroke={COLOR.DIM} fill={COLOR.DIM}>
+                <line x1={fromX} y1={yMid} x2={toX} y2={yMid}
+                  strokeWidth={1 / Math.max(0.4, isoScale)} strokeDasharray={ISO_DASH.ARROW} />
+                <polygon points={`${toX},${yMid} ${toX + ah},${yMid - ah * 0.6} ${toX + ah},${yMid + ah * 0.6}`} />
+              </g>
+            );
+          })()}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const sharedScale = unifiedFitScale({ w: mt + 20 + Math.max(cw, 60), h: cw });
+  const scaleStr = sharedScale >= 1 ? `${Math.round(sharedScale)}:1` : `1:${Math.max(1, Math.round(1 / sharedScale))}`;
+
+  return (
+    <MasterDetailLayout
+      type="stub-joint"
+      joineryNameZh={`整支卡榫（housing joint，${isRound ? "圓腳" : "方腳"}）`}
+      drawingNumber={`SJ-${cw}x${ct}-${mt}${isRound ? "-R" : ""}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `卡入深 ≤ min(母厚-3, 板厚/2) = ${Math.round(tl)}mm`,
+        `${isRound ? "圓腳曲面：禁通榫，整支端面卡入" : "方腳：可選整支卡入或加肩"}`,
+      ]}
+    />
+  );
+}
+/* === END stub-joint-detail v2 === */
 
 const RENDERERS: Partial<
   Record<JoineryType, (p: JoineryDetailParams) => React.ReactElement>
