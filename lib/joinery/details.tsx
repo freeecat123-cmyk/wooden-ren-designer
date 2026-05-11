@@ -3990,14 +3990,24 @@ function ThroughTenonDetail(p: JoineryDetailParams) {
     const childW = cw;
     const childH = legBodyMm;
     const childD = ct;
-    const isoBbox = { w: motherW + childW, h: motherH + childH + 80, d: Math.max(motherD, childD) };
-    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    // Wave 4 fix P0：bbox.h 用 mm，render 也用 mm * isoS（不要混用 px 常數）
+    // 之前 bbox.h 用 mm 但 render 用 raw 80px → 兩者單位不一致導致 fitScale 算出來物件 <30%
+    const explodeGapMm = 60; // 拆解距離（mm）
+    const horizOffsetMm = 60; // 水平錯位（mm，左右各 30mm）
+    const isoBbox = {
+      w: Math.max(motherW, childW) + horizOffsetMm,
+      h: motherH + childH + explodeGapMm,
+      d: Math.max(motherD, childD),
+    };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.85 });
     const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
-    const explodeGap = 80;
-    const oxC = center.x - (childW * isoS) / 2 - 60;
-    const oyC = center.y + 20;
-    const oxM = center.x - (motherW * isoS) / 2 + 60;
-    const oyM = oyC - (motherH * isoS) - explodeGap;
+    const explodeGap = explodeGapMm * isoS;
+    const horizOffsetPx = (horizOffsetMm * isoS) / 2;
+    const totalH = motherH * isoS + explodeGap + childH * isoS;
+    const oyM = center.y - totalH / 2;
+    const oyC = oyM + motherH * isoS + explodeGap;
+    const oxM = center.x - (motherW * isoS) / 2 + horizOffsetPx;
+    const oxC = center.x - (childW * isoS) / 2 - horizOffsetPx;
 
     return (
       <g>
@@ -4279,12 +4289,20 @@ function BlindTenonDetail(p: JoineryDetailParams) {
     const childLen = Math.max(cw * 2.0, safeTl * 4);
     const childH = cw;
     const childD = ct;
-    const isoBbox = { w: motherW + childLen, h: motherH, d: Math.max(motherD, childD) };
-    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    // Wave 4 fix P0：bbox 必須含 explodeGap（mother + safeTl + 30mm 拆解距離），
+    // 並考慮深度向偏移（mother/child 在 isoProject 後會額外吃 depth）。
+    const explodeGapMm = motherW + safeTl + 30;
+    const isoBbox = {
+      w: motherW + childLen + explodeGapMm,
+      h: motherH,
+      d: Math.max(motherD, childD),
+    };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.7 });
     const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
-    const oxM = center.x - ((motherW + childLen) * isoS) / 2 - 20;
+    const totalW = (motherW + childLen + explodeGapMm) * isoS;
+    const oxM = center.x - totalW / 2;
     const oyM = center.y - (motherH * isoS) / 2;
-    const explodeGap = (motherW + safeTl + 30) * isoS + 20;
+    const explodeGap = explodeGapMm * isoS;
     const oxC = oxM + motherW * isoS + explodeGap;
     const oyC = oyM + ((motherH - childH) / 2) * isoS;
 
@@ -4449,20 +4467,32 @@ function HalfLapDetail(p: JoineryDetailParams) {
   })();
 
   // ===== TOP view =====
+  // Wave 4 fix P1：A/B 兩件共用 sharedBbox，B 件不再被縮成小條（< 15%）
+  // 半搭榫俯視圖：A 件水平、B 件垂直（cross/tee/ell 配置）
+  // B 件「寬」用 cw（同類板材，與 A 同寬），不用 ct（會變細條）
   const top = (() => {
-    const tBbox = { w: Math.max(tl * 4, cw), h: cw + mt * 3 };
-    const ts = unifiedFitScale(tBbox);
+    const aLenMm = Math.max(tl * 4, cw);
+    const bLenMm = Math.max(tl * 4, cw);
+    // B 件在俯視圖的橫向寬度應該與 A 件等寬（cross 配置慣例），ct 只代表厚度走深度方向
+    const bCrossWidthMm = Math.max(cw * 0.8, ct * 2); // 至少 ct*2 才不會變細
+    const gapMm = mt; // 兩件間隔（拆解距離）
+    const tBbox = {
+      w: Math.max(aLenMm, bCrossWidthMm),
+      h: cw + gapMm + bLenMm,
+    };
+    const ts = unifiedFitScale(tBbox, { targetUsage: 0.75 });
     const TPX = (mm: number) => mm * ts;
     const tlPx = TPX(tl);
     const aWide = TPX(cw);
-    const aLen = TPX(Math.max(tl * 4, cw));
-    const bWide = TPX(ct);
-    const objH = aWide + 30 + Math.max(tlPx * 4, 60);
-    const place = placeInQuadrant({ w: aLen, h: objH });
+    const aLen = TPX(aLenMm);
+    const bWide = TPX(bCrossWidthMm);
+    const bLen = TPX(bLenMm);
+    const objH = aWide + TPX(gapMm) + bLen;
+    const place = placeInQuadrant({ w: Math.max(aLen, bWide), h: objH });
     const ax = place.x;
     const ay = place.y;
     const bx = ax + aLen / 2 - bWide / 2;
-    const by = ay + aWide + 30;
+    const by = ay + aWide + TPX(gapMm);
 
     return (
       <g>
@@ -4482,7 +4512,7 @@ function HalfLapDetail(p: JoineryDetailParams) {
           );
         })()}
         <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件</text>
-        <rect x={bx} y={by} width={bWide} height={Math.min(QUADRANT.H - QUADRANT.HEADER_H - by - 30, Math.max(tlPx * 4, 80))}
+        <rect x={bx} y={by} width={bWide} height={bLen}
           fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件</text>
         <CenterLine x1={ax - 10} y1={ay + aWide / 2} x2={ax + aLen + 10} y2={ay + aWide / 2} />
@@ -4497,8 +4527,11 @@ function HalfLapDetail(p: JoineryDetailParams) {
     const _lapLenMm = Math.max(tl, mt * 1.4);
     const _tailLenMm = Math.max(mt * 2, _lapLenMm * 1.2);
     const _totalLenMm = _lapLenMm + _tailLenMm;
-    const isoBbox = { w: _totalLenMm, h: mt * 6, d: Math.max(mt, ct) };
-    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    // Wave 4 fix P0：rotate(-90) 後長軸變垂直，bbox 必須對應旋轉後的軸向。
+    // h = 長度方向（rotate 後垂直），w = 板厚 + explodeGap（rotate 後水平）。
+    // explodeGap = mt * 2.4，兩件各取 mt/ct 厚 → 短軸需求 ≈ mt + ct + 2.4*mt ≈ 4.5*mt，留餘裕 mt*6。
+    const isoBbox = { w: mt * 6, h: _totalLenMm, d: Math.max(mt, ct) };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.7 });
     const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
 
     return (
@@ -4697,10 +4730,21 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
         <rect x={motherX + actualBoardLen - SPX(grooveDepth)} y={motherY + SPX(mt) / 2 - SPX(tt) / 2}
           width={SPX(grooveDepth)} height={SPX(tt)}
           fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
-        <text x={motherX + actualBoardLen - SPX(grooveDepth) / 2} y={motherY + SPX(mt) / 2 - SPX(tt) / 2 - 4}
-          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
-          凹槽（隱藏）
-        </text>
+        {/* Wave 4 fix P2：凹槽（隱藏）label 中央錨點 clamp，避免觸右框邊 */}
+        {(() => {
+          const labelText = "凹槽（隱藏）";
+          const labelHalfW = labelText.length * FONT.CALLOUT * 0.55;
+          const rawX = motherX + actualBoardLen - SPX(grooveDepth) / 2;
+          const maxX = QUADRANT.W - labelHalfW - 6;
+          const minX = labelHalfW + 6;
+          const safeX = Math.max(minX, Math.min(maxX, rawX));
+          return (
+            <text x={safeX} y={motherY + SPX(mt) / 2 - SPX(tt) / 2 - 4}
+              fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
+              凹槽（隱藏）
+            </text>
+          );
+        })()}
         <text x={motherX + actualBoardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">母件（凹槽連續）</text>
         <rect x={childX} y={childY} width={actualBoardLen} height={SPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
         <HiddenEdge x1={childX} y1={childY + SPX(ct) / 2 - SPX(tt) / 2} x2={childX + actualBoardLen} y2={childY + SPX(ct) / 2 - SPX(tt) / 2} />
@@ -4779,8 +4823,14 @@ function TongueAndGrooveDetail(p: JoineryDetailParams) {
   const iso = (() => {
     const pieceLenMm = Math.max(mt * 3, tl * 5, 80);
     const boardDepth = Math.max(80, pieceLenMm * 0.5);
-    const isoBbox = { w: pieceLenMm * 2 + tl, h: mt + 20, d: boardDepth };
-    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    // Wave 4 fix P0：bbox 含 explodeGap（tl+8mm）讓 fitScale 算對 scale。
+    const explodeGapMm = tl + 8;
+    const isoBbox = {
+      w: pieceLenMm * 2 + tl + explodeGapMm,
+      h: mt + 20,
+      d: boardDepth,
+    };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.75 });
     const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
 
     return (
@@ -4905,10 +4955,21 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
                 textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
                 榫頭（隱藏）
               </text>
-              <text x={colX + colW / 2} y={colY + colH + 12} fontSize={FONT.CALLOUT}
-                textAnchor="middle" fill="#666">
-                柱身
-              </text>
+              {/* Wave 4 fix P2：柱身 label 中央錨點 + 估算 label 半寬，clamp 避免觸右框邊 */}
+              {(() => {
+                const labelText = "柱身";
+                const labelHalfW = labelText.length * FONT.CALLOUT * 0.55; // 中文字寬
+                const rawX = colX + colW / 2;
+                const minX = labelHalfW + 6;
+                const maxX = QUADRANT.W - labelHalfW - 6;
+                const safeX = Math.max(minX, Math.min(maxX, rawX));
+                return (
+                  <text x={safeX} y={colY + colH + 12} fontSize={FONT.CALLOUT}
+                    textAnchor="middle" fill="#666">
+                    柱身
+                  </text>
+                );
+              })()}
             </g>
           );
         })()}
@@ -7158,15 +7219,18 @@ function FingerJointDetail(p: JoineryDetailParams) {
 
   // ===== Q4 等角圖：A/B 兩件互補拆解 =====
   const iso = (() => {
-    const isoBbox = { w: cw + 40, h: fingerLen * 2 + mt * 2 + 60, d: ct };
-    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    // Wave 4 fix P0：bbox 必須含 explodeGap（bGapMm = drawFL + 20mm）+ 兩件 board + finger
+    // 實際 y 範圍 = bGapMm + 2*drawFL + 2*boardBackLen = (drawFL+20) + 2*drawFL + 80 = 3*drawFL + 100
+    const boardBackLen = 40;
+    const bGapMm = fingerLen + 20;
+    const totalHMm = bGapMm + 2 * fingerLen + 2 * boardBackLen;
+    const isoBbox = { w: cw + 40, h: totalHMm, d: ct };
+    const isoScale = unifiedFitScale(isoBbox, { targetUsage: 0.75 });
     const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
     const drawCw = cw;
     const drawCt = ct;
     const drawFL = fingerLen;
     const drawTT = tt;
-    const boardBackLen = 40;
-    const bGapMm = drawFL + 20;
 
     return (
       <g>
@@ -8868,7 +8932,8 @@ function MiteredSplineDetail(p: JoineryDetailParams) {
     const projW = armLen + dep * dxz + ct;
     const projH = armLen + dep * dyz + ct;
     const isoBbox = { w: projW, h: projH };
-    const s = unifiedFitScale(isoBbox, { targetUsage: 0.7 });
+    // Wave 4 fix P0：提高 targetUsage 0.7 → 0.85，讓 L 型轉角填滿 quadrant
+    const s = unifiedFitScale(isoBbox, { targetUsage: 0.85 });
     const PX = (mm: number) => mm * s;
     const aLen = PX(armLen);
     const bLen = PX(armLen);
