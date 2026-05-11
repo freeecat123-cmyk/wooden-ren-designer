@@ -9,6 +9,7 @@
  * tenon / mortise proportions match reality.
  */
 
+import { cloneElement, isValidElement, type ReactElement } from "react";
 import type { JoineryType } from "@/lib/types";
 import {
   COLOR,
@@ -11402,13 +11403,21 @@ const RENDERERS: Partial<
 export function JoineryDetail({
   type,
   params,
+  singleView,
 }: {
   type: JoineryType;
   params: JoineryDetailParams;
+  /** 只渲染單一視圖（front/side/top/iso），用於 ZoomableJoineryDetail 4 圖分開。 */
+  singleView?: "front" | "side" | "top" | "iso";
 }) {
   const renderer = RENDERERS[type];
-  if (renderer) return renderer(params);
-  return <GenericTenonDetail {...params} typeLabel={JOINERY_LABEL[type] ?? type} />;
+  const result = renderer
+    ? renderer(params)
+    : <GenericTenonDetail {...params} typeLabel={JOINERY_LABEL[type] ?? type} />;
+  if (singleView && isValidElement(result)) {
+    return cloneElement(result as ReactElement<{ singleView?: typeof singleView }>, { singleView });
+  }
+  return result;
 }
 
 export const JOINERY_LABEL: Record<JoineryType, string> = {

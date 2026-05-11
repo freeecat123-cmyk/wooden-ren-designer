@@ -1707,7 +1707,16 @@ export interface MasterDetailLayoutProps {
   scale?: string;
   drawnBy?: string;
   warnings?: string[];
+  /** 只渲染單一視圖（給 ZoomableJoineryDetail 拆 4 張獨立可點擊用）。 */
+  singleView?: "front" | "side" | "top" | "iso";
 }
+
+const SINGLE_VIEW_TITLE: Record<"front" | "side" | "top" | "iso", string> = {
+  front: "正視圖 FRONT",
+  side: "側視圖 SIDE",
+  top: "俯視圖 TOP",
+  iso: "等角圖 AXONOMETRIC",
+};
 
 export function MasterDetailLayout({
   type,
@@ -1720,7 +1729,25 @@ export function MasterDetailLayout({
   scale = "1:1",
   drawnBy = "wrd-auto",
   warnings = [],
+  singleView,
 }: MasterDetailLayoutProps): JSX.Element {
+  if (singleView) {
+    const viewMap = { front: frontView, side: sideView, top: topView, iso: isoView };
+    return (
+      <svg
+        width={QUADRANT.W}
+        height={QUADRANT.H}
+        viewBox={`0 0 ${QUADRANT.W} ${QUADRANT.H}`}
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ maxWidth: `${QUADRANT.W}px`, background: "white", display: "block", width: "100%", height: "auto" }}
+      >
+        <QuadrantFrame title={SINGLE_VIEW_TITLE[singleView]} />
+        <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{viewMap[singleView]}</g>
+      </svg>
+    );
+  }
+
   return (
     <svg
       width={CANVAS.W}
