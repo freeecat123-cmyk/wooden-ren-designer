@@ -109,19 +109,43 @@ export const openBookshelf: FurnitureTemplate = (input) => {
       });
     }
   }
-  // 頂端 cornice 飾條
+  // 頂端 cornice 飾條：前緣 + 兩側包邊（傳統線板 ogee 形）
   if (withLedderRail) {
+    const corniceH = 45;
+    const corniceD = 25;
+    const overhang = 15;
+    // 前緣橫條：長 = 全長 + 兩端 overhang，貼住頂面
     design.parts.push({
       id: "cornice-front",
-      nameZh: "頂端 cornice 飾條",
+      nameZh: "頂端 cornice 飾條（前）",
       material: input.material,
       grainDirection: "length",
-      visible: { length: input.length + 20, width: 30, thickness: 18 },
-      origin: { x: 0, y: input.height + 15, z: input.width / 2 + 10 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      visible: { length: input.length + 2 * overhang, width: corniceD, thickness: corniceH },
+      origin: {
+        x: 0,
+        y: input.height,
+        z: -input.width / 2 - corniceD / 2,
+      },
       tenons: [],
       mortises: [],
     });
+    // 左右側邊飾條：從前緣延伸到後緣 / 接 45° 斜角
+    for (const sx of [-1, 1]) {
+      design.parts.push({
+        id: `cornice-side-${sx < 0 ? "left" : "right"}`,
+        nameZh: `頂端 cornice 飾條（${sx < 0 ? "左" : "右"}）`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: corniceD, width: input.width, thickness: corniceH },
+        origin: {
+          x: sx * (input.length / 2 + overhang - corniceD / 2),
+          y: input.height,
+          z: 0,
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   applyStandardChecks(design, {
