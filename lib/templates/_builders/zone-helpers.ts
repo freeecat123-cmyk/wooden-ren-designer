@@ -71,6 +71,40 @@ export function doorMountLabel(mount: DoorMount): string {
 }
 
 /**
+ * 門框木條寬度 — 上下橫檔 + 左右豎梃同一寬度（傳統明清家具慣例）。
+ * 預設 60mm（中小櫃常見），可調 40-100mm 視門大小與風格。
+ */
+export const doorFrameRailWidthOption: OptionSpec = {
+  group: "door",
+  type: "number",
+  key: "doorFrameRailWidth",
+  label: "門框木條寬 (mm)",
+  defaultValue: 60,
+  min: 30,
+  max: 120,
+  step: 5,
+  unit: "mm",
+  help: "上下橫檔 + 左右豎梃的「寬度」。40-50 細框現代風、60 標準、80+ 古典厚重感",
+};
+
+/**
+ * 門框木條厚度 — 框料 Z 軸厚度（凸出櫃面深度）。
+ * 預設 22mm，可調 15-35mm。薄門配玻璃，厚門配傳統實木鑲板。
+ */
+export const doorFrameThicknessOption: OptionSpec = {
+  group: "door",
+  type: "number",
+  key: "doorFrameThickness",
+  label: "門框木條厚 (mm)",
+  defaultValue: 22,
+  min: 15,
+  max: 35,
+  step: 1,
+  unit: "mm",
+  help: "門框料的厚度（凸出櫃面深度）。15-18 薄門、22 標準、28+ 傳統厚重",
+};
+
+/**
  * 抽屜面板安裝方式（與門板同三模式，獨立設定）。
  * - overlay-6 全蓋：面板蓋滿櫃前框 + 抽屜間中柱（最常見現代裝潢風格）
  * - overlay-3 半蓋：面板蓋住框邊 9mm

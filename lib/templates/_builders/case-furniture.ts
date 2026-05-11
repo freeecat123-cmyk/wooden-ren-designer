@@ -41,6 +41,10 @@ export interface CaseFurnitureOpts {
    *  - "inset"     入柱：門埋進框內、與櫃面齊平。會把內部層板/抽屜深度
    *                自動縮 23mm（門厚 18 + 5mm 安全空隙），給門板留位置。 */
   doorMount?: "overlay-6" | "overlay-3" | "inset";
+  /** 門框木條寬（橫檔+豎梃同寬），預設 60mm */
+  doorFrameRailWidth?: number;
+  /** 門框木條厚（凸出櫃面深度），預設 22mm */
+  doorFrameThickness?: number;
   /** Drawer face mount style — 同三模式但獨立於門板控制：
    *  - "overlay-6" 全蓋：面板蓋滿框 + 抽屜間中柱
    *  - "overlay-3" 半蓋：面板蓋住框邊 9mm
@@ -1170,9 +1174,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const inColumn = cfg.colInnerW !== undefined;
     const zoneCx = cfg.xCenter ?? 0;
     const zoneW = cfg.colInnerW ?? innerW;
-    const stileW = 60; // 豎梃寬度
-    const railW = 60; // 橫檔寬度
-    const frameT = 22; // 框料厚度
+    // 門框木條寬度（橫檔+豎梃同寬，傳統明清家具慣例）+ 厚度，可透過 option 覆寫
+    const stileW = opts.doorFrameRailWidth ?? 60;
+    const railW = opts.doorFrameRailWidth ?? 60;
+    const frameT = opts.doorFrameThickness ?? 22;
     const slabT = 18; // 平板門厚
     const panelT_door = 12; // 木鑲板厚度（玻璃時不計）
     const cornerTenonLen = Math.round(stileW * 0.6);
