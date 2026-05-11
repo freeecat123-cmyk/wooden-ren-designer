@@ -269,7 +269,7 @@ export function makeZoneOptions(
     specs.push({ group: "zone-top", type: "number", key: "topHeight", label: "高度 (mm)", defaultValue: defaults.topHeight, min: 80, max: 1500, step: 10 });
   }
   specs.push(
-    { group: "zone-top", type: "number", key: "topCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
+    { group: "zone-top", type: "number", key: "topCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
     { group: "zone-top", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
     { group: "zone-top", type: "number", key: "topDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
   );
@@ -277,7 +277,7 @@ export function makeZoneOptions(
     specs.push(
       // 中層（自動填滿）
       { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
-      { group: "zone-mid", type: "number", key: "midCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
+      { group: "zone-mid", type: "number", key: "midCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
       { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "midType", equals: "drawer" } },
       { group: "zone-mid", type: "number", key: "midDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "midType", equals: "door" } },
     );
@@ -290,7 +290,7 @@ export function makeZoneOptions(
     specs.push({ group: "zone-bot", type: "number", key: "bottomHeight", label: "高度 (mm)", defaultValue: defaults.bottomHeight, min: 80, max: 1500, step: 10 });
   }
   specs.push(
-    { group: "zone-bot", type: "number", key: "bottomCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
+    { group: "zone-bot", type: "number", key: "bottomCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
     { group: "zone-bot", type: "number", key: "bottomCols", label: "抽屜列數（左右分）", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "bottomType", equals: "drawer" } },
     { group: "zone-bot", type: "number", key: "bottomDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "bottomType", equals: "door" } },
   );
