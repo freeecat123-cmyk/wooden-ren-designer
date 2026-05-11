@@ -44,7 +44,6 @@ export const openBookshelfOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "層板後緣加 8mm 擋條防書本掉到後面，無背板書櫃常用做法", wide: true },
   { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加 30mm 高線板飾條，書櫃古典感", wide: true },
 ];
 
@@ -60,7 +59,6 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
-  const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
   const withLedderRail = getOption<boolean>(input, opt(o, "withLedderRail"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
@@ -82,7 +80,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   // 頂端 cornice 飾條
