@@ -1176,6 +1176,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const slabT = 18; // 平板門厚
     const panelT_door = 12; // 木鑲板厚度（玻璃時不計）
     const cornerTenonLen = Math.round(stileW * 0.6);
+    // 門框榫卯尺寸（正規 cabinet door joinery）：
+    // 榫寬（沿 rail width 方向） = railW × 2/3 = 40mm，留 1/6 雙肩各 10mm
+    // 榫厚（沿 frameT 方向） = frameT / 3 ≈ 7mm，留約 1/3 雙肩各 7.5mm（防豎梃挖太空）
+    const doorTenonW = Math.round((railW * 2) / 3);
+    const doorTenonT = Math.round(frameT / 3);
     const grooveDepth = 8;
     const doorZoneH = cfg.height;
     const doorZoneBottomY = cfg.yStart;
@@ -1269,15 +1274,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             position: "start",
             type: "blind-tenon",
             length: cornerTenonLen,
-            width: railW - 10,
-            thickness: frameT - 6,
+            width: doorTenonW,
+            thickness: doorTenonT,
           },
           {
             position: "end",
             type: "blind-tenon",
             length: cornerTenonLen,
-            width: railW - 10,
-            thickness: frameT - 6,
+            width: doorTenonW,
+            thickness: doorTenonT,
           },
         ],
         // 內側面開鑲板/玻璃溝槽
@@ -1317,15 +1322,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             position: "start",
             type: "blind-tenon",
             length: cornerTenonLen,
-            width: railW - 10,
-            thickness: frameT - 6,
+            width: doorTenonW,
+            thickness: doorTenonT,
           },
           {
             position: "end",
             type: "blind-tenon",
             length: cornerTenonLen,
-            width: railW - 10,
-            thickness: frameT - 6,
+            width: doorTenonW,
+            thickness: doorTenonT,
           },
         ],
         mortises: [
@@ -1372,8 +1377,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 z: doorOuterH / 2 - railW / 2,
               },
               depth: cornerTenonLen,
-              length: railW - 10,
-              width: frameT - 6,
+              length: doorTenonW,
+              width: doorTenonT,
               through: false,
             },
             {
@@ -1383,8 +1388,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 z: -doorOuterH / 2 + railW / 2,
               },
               depth: cornerTenonLen,
-              length: railW - 10,
-              width: frameT - 6,
+              length: doorTenonW,
+              width: doorTenonT,
               through: false,
             },
             {
