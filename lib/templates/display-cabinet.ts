@@ -4,6 +4,7 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   backModeOption,
   doorMountLabel,
+  ANY_ZONE_IS_DOOR,
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
@@ -45,7 +46,7 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "glass", label: "玻璃門（強化玻璃）" },
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
-  ] },
+  ], dependsOn: ANY_ZONE_IS_DOOR },
   { group: "door", type: "select", key: "glassThickness", label: "玻璃厚度", defaultValue: "5", choices: [
     { value: "4", label: "4mm（小門 < 600mm 寬可用）" },
     { value: "5", label: "5mm（一般展示櫃標配）" },

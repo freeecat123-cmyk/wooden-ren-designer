@@ -4,6 +4,7 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   backModeOption,
   doorMountLabel,
+  ANY_ZONE_IS_DOOR,
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
@@ -43,7 +44,7 @@ export const nightstandOptions: OptionSpec[] = [
     { value: "wood", label: "木鑲板門" },
     { value: "slab", label: "夾板貼皮平板門" },
     { value: "glass", label: "玻璃門" },
-  ] },
+  ], dependsOn: ANY_ZONE_IS_DOOR },
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,

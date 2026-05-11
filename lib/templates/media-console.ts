@@ -4,6 +4,7 @@ import { caseFurniture, type CabinetZone, type CabinetColumn } from "./_builders
 import {
   backModeOption,
   doorMountLabel,
+  ANY_ZONE_IS_DOOR,
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
@@ -73,7 +74,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
-  ] },
+  ], dependsOn: ANY_ZONE_IS_DOOR },
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,

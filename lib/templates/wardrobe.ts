@@ -4,6 +4,7 @@ import { caseFurniture } from "./_builders/case-furniture";
 import {
   backModeOption,
   doorMountLabel,
+  ANY_ZONE_IS_DOOR,
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
@@ -46,7 +47,7 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "slab", label: "夾板貼皮平板門（裝潢常用，衣櫃首選）" },
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
-  ] },
+  ], dependsOn: ANY_ZONE_IS_DOOR },
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,

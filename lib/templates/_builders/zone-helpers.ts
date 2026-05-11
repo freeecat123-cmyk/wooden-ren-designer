@@ -16,6 +16,15 @@ const ANY_ZONE_IS_DRAWER = {
   ],
 };
 
+/** 任一 zone 類型 = door 時才顯示（門板相關選項共用）。 */
+export const ANY_ZONE_IS_DOOR = {
+  any: [
+    { key: "topType", equals: "door" },
+    { key: "midType", equals: "door" },
+    { key: "bottomType", equals: "door" },
+  ],
+};
+
 export const drawerSlideOption: OptionSpec = {
   group: "drawer",
   type: "checkbox",
@@ -60,6 +69,7 @@ export const doorMountOption: OptionSpec = {
     { value: "overlay-3", label: "蓋 3 分（半蓋，蓋住 9mm 框）— 半蓋西德鉸鏈" },
     { value: "inset", label: "入柱（門埋進框內、齊平櫃面）— 入柱西德鉸鏈" },
   ],
+  dependsOn: ANY_ZONE_IS_DOOR,
 };
 
 export type DoorMount = "overlay-3" | "overlay-6" | "inset";
@@ -95,6 +105,7 @@ export const doorFrameRailWidthOption: OptionSpec = {
   step: 5,
   unit: "mm",
   help: "上下橫檔 + 左右豎梃的「寬度」。40-50 細框現代風、60 標準、80+ 古典厚重感",
+  dependsOn: ANY_ZONE_IS_DOOR,
 };
 
 /**
@@ -112,6 +123,7 @@ export const doorFrameThicknessOption: OptionSpec = {
   step: 1,
   unit: "mm",
   help: "門框料的厚度（凸出櫃面深度）。15-18 薄門、22 標準、28+ 傳統厚重",
+  dependsOn: ANY_ZONE_IS_DOOR,
 };
 
 /**
