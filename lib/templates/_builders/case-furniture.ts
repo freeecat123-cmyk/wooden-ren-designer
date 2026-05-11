@@ -1025,14 +1025,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             position: "start",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: drawerBackHeight - 6,
+            width: boxHRow - 8,
             thickness: drawerBackT,
           },
           {
             position: "end",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: drawerBackHeight - 6,
+            width: boxHRow - 8,
             thickness: drawerBackT,
           },
         ],
@@ -1078,15 +1078,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               through: true,
             },
             {
-              // 後板入溝模式抬高：mortise 跟著後板中心 z 偏移
-              // 後板中心相對側板中心的偏移 = (drawerBackY + drawerBackHeight/2) - (yBase+boxYOffset+boxHRow/2)
-              origin: {
-                x: drawerInnerD / 2 + 1,
-                y: 0,
-                z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
-              },
+              origin: { x: drawerInnerD / 2 + 1, y: 0, z: 0 },
               depth: drawerSideT * 0.5,
-              length: drawerBackHeight - 6,
+              length: boxHRow - 8,
               width: drawerBackT,
               through: false,
             },
