@@ -227,7 +227,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 0,
       "withBookStop": false,
-      "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
     "round-stool": {
@@ -806,7 +805,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 50,
       "withBookStop": false,
-      "withAdjustableShelfPins": true,
       "withLedderRail": true
     },
     "wardrobe": {
@@ -1272,7 +1270,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 20,
       "withBookStop": true,
-      "withAdjustableShelfPins": true,
       "withLedderRail": false
     },
     "round-stool": {
@@ -1736,7 +1733,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottomCols": 1,
       "legHeight": 0,
       "withBookStop": false,
-      "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
     "round-stool": {
@@ -2265,7 +2261,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 5,
       "withBookStop": false,
-      "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
     "round-stool": {
@@ -2742,7 +2737,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "withBookStop": false,
-      "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
     "round-stool": {
@@ -3472,7 +3466,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "plinth",
       "legInset": 0,
       "withBookStop": false,
-      "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
     "round-stool": {

@@ -45,7 +45,6 @@ export const openBookshelfOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "層板後緣加 8mm 擋條防書本掉到後面，無背板書櫃常用做法", wide: true },
-  { group: "structure", type: "checkbox", key: "withAdjustableShelfPins", label: "可調層板釘孔陣列", defaultValue: false, help: "兩側板鑽 32mm 間距釘孔陣列，層板可任意上下調整。歐洲收納櫃標準", wide: true },
   { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加 30mm 高線板飾條，書櫃古典感", wide: true },
 ];
 
@@ -62,7 +61,6 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
-  const withAdjustableShelfPins = getOption<boolean>(input, opt(o, "withAdjustableShelfPins"));
   const withLedderRail = getOption<boolean>(input, opt(o, "withLedderRail"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
@@ -84,35 +82,9 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withAdjustableShelfPins ? "兩側板鑽 32mm 間距 ⌀5mm 釘孔陣列（European 32mm system，配 3-5mm 鋼/塑膠書釘），層板可任意調整。" : ""} ${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
-  // 可調層板釘孔陣列：兩側板鑽 ⌀5mm 釘孔（mortise 代表）
-  if (withAdjustableShelfPins) {
-    const pitch = 32;
-    const startY = 100;
-    const endY = input.height - 100;
-    const rowCount = Math.floor((endY - startY) / pitch);
-    for (const sideId of ["side-left", "side-right"]) {
-      const sidePart = design.parts.find((p) => p.id === sideId);
-      if (!sidePart) continue;
-      const newMortises = [...sidePart.mortises];
-      for (let r = 0; r < rowCount; r++) {
-        const y = startY + r * pitch;
-        // 兩排（前後）
-        for (const z of [-input.width / 2 + 40, input.width / 2 - 40]) {
-          newMortises.push({
-            origin: { x: 0, y, z },
-            depth: 12,
-            length: 5,
-            width: 5,
-            through: false,
-          });
-        }
-      }
-      sidePart.mortises = newMortises;
-    }
-  }
   // 頂端 cornice 飾條
   if (withLedderRail) {
     design.parts.push({
