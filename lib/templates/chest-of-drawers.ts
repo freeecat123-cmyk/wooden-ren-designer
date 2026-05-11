@@ -47,6 +47,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
+    { value: "round", label: "圓柱腳" },
+    { value: "round-tapered", label: "圓錐腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
@@ -112,7 +114,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),

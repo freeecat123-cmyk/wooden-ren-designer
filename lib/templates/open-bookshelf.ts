@@ -37,6 +37,8 @@ export const openBookshelfOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
+    { value: "round", label: "圓柱腳" },
+    { value: "round-tapered", label: "圓錐腳" },
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地（書櫃常見）" },
@@ -86,7 +88,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     backMode: resolveBackMode(input, o),
     legHeight,
     legSize,
-    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side",
+    legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
     notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${withBookStop ? "層板後緣加 8mm 擋條防書本掉落。" : ""} ${withWallAnchor ? "頂板背面預留 L 型固定片孔位，務必鎖牆防傾倒（高書櫃必做）。" : ""} ${withAdjustableShelfPins ? "兩側板鑽 32mm 間距 ⌀5mm 釘孔陣列（European 32mm system，配 3-5mm 鋼/塑膠書釘），層板可任意調整。" : ""} ${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
