@@ -1285,19 +1285,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             thickness: doorTenonT,
           },
         ],
-        // 內側面開鑲板/玻璃溝槽
-        // §M1: rail visible {length:innerOpenW, width:railW, thickness:frameT}，
-        // 後 X-rotation 後 mesh local Z = railW 軸 = 鉛直邊。groove 在「下緣」朝
-        // 門內（top rail 朝下面板）→ origin.z = -railW/2，origin.y 取 panelT 中心。
-        mortises: [
-          {
-            origin: { x: 0, y: frameT / 2, z: -railW / 2 },
-            depth: grooveDepth,
-            length: innerOpenW - 4,
-            width: panelT_door + 1,
-            through: false,
-          },
-        ],
+        // 鑲板溝槽 mortise 取消（panel 本體已含舌部，無對應公榫）
+        mortises: [],
       });
 
       // 下橫檔
@@ -1333,16 +1322,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             thickness: doorTenonT,
           },
         ],
-        mortises: [
-          {
-            // bottom rail：groove 朝上面板 → origin.z = +railW/2
-            origin: { x: 0, y: frameT / 2, z: railW / 2 },
-            depth: grooveDepth,
-            length: innerOpenW - 4,
-            width: panelT_door + 1,
-            through: false,
-          },
-        ],
+        // 鑲板溝槽 mortise 取消（panel 本體已含舌部，無對應公榫）
+        mortises: [],
       });
 
       // 左右豎梃 — 長度方向是垂直（width=doorOuterH），需要 X 軸旋轉站立
@@ -1392,18 +1373,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               width: doorTenonT,
               through: false,
             },
-            {
-              // 內側長槽：origin.z=0 中央、origin.y=panelT 中心、origin.x 在內邊
-              origin: {
-                x: side > 0 ? -stileW / 2 + 2 : stileW / 2 - 2,
-                y: frameT / 2,
-                z: 0,
-              },
-              depth: grooveDepth,
-              length: innerOpenH - 4,
-              width: panelT_door + 1,
-              through: false,
-            },
+            // 內側長槽 mortise 取消（panel 本體已含舌部，無對應公榫）
           ],
         });
       }
@@ -1412,55 +1382,27 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // butt-joint 慣例：鑲板尺寸 = 內部開窗（剛好夾在 rails/stiles 之間，不入溝）。
       // 榫接版本可加 tongue-and-groove；組裝版用木釘 / 螺絲固定到框料背面。
       if (doorType === "wood") {
+        // 整塊矩形鑲板，4 邊各往外伸 grooveDepth 進凹槽（不切角，整片板卡進框）
+        // 鑲板本體已涵蓋舌部 → 不再額外掛 tongue-and-groove tenons（避免渲染重複紅虛線）
+        const panelOuterW = innerOpenW + 2 * grooveDepth;
+        const panelOuterH = innerOpenH + 2 * grooveDepth;
         parts.push({
           id: `${idPrefix}-${i + 1}-panel`,
           nameZh: `${labelPrefix}${i + 1} 木鑲板`,
           material,
           grainDirection: "length",
           visible: {
-            length: innerOpenW,
-            width: innerOpenH,
+            length: panelOuterW,
+            width: panelOuterH,
             thickness: panelT_door,
           },
           origin: {
             x: xCenter,
-            y: doorYBase + railW,
+            y: doorYBase + railW - grooveDepth,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
-          tenons: [
-            // 鑲板四邊舌（tongue），dim 跟相鄰 stile/rail 的 groove mortise 對齊：
-            //   length = grooveDepth、width = innerOpen − 4（兩邊各退 2mm 肩）、
-            //   thickness = panelT_door + 1（slip-fit 公差由 CNC/手工調整）
-            {
-              position: "start",
-              type: "tongue-and-groove",
-              length: grooveDepth,
-              width: innerOpenH - 4,
-              thickness: panelT_door + 1,
-            },
-            {
-              position: "end",
-              type: "tongue-and-groove",
-              length: grooveDepth,
-              width: innerOpenH - 4,
-              thickness: panelT_door + 1,
-            },
-            {
-              position: "left",
-              type: "tongue-and-groove",
-              length: grooveDepth,
-              width: innerOpenW - 4,
-              thickness: panelT_door + 1,
-            },
-            {
-              position: "right",
-              type: "tongue-and-groove",
-              length: grooveDepth,
-              width: innerOpenW - 4,
-              thickness: panelT_door + 1,
-            },
-          ],
+          tenons: [],
           mortises: [],
         });
       }
@@ -1482,15 +1424,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
-          // 玻璃片 4 邊嵌入 stile/rail 的槽（dim 對齊 panel 木鑲板）
-          // audit 才能找到對應母榫；玻璃實作上沒榫頭只是滑入溝裡，這裡的
-          // tenon 是 dim metadata 不是真實榫頭
-          tenons: [
-            { position: "start", type: "tongue-and-groove", length: grooveDepth, width: innerOpenH - 4, thickness: 13 },
-            { position: "end",   type: "tongue-and-groove", length: grooveDepth, width: innerOpenH - 4, thickness: 13 },
-            { position: "left",  type: "tongue-and-groove", length: grooveDepth, width: innerOpenW - 4, thickness: 13 },
-            { position: "right", type: "tongue-and-groove", length: grooveDepth, width: innerOpenW - 4, thickness: 13 },
-          ],
+          // 玻璃片本體尺寸已含舌部（+2*grooveDepth），不再掛 tenon metadata
+          tenons: [],
           mortises: [],
           visual: "glass",
         });
