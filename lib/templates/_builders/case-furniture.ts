@@ -226,7 +226,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     // （見 face panel push 後的 J-pull 切口邏輯）
     if (pullStyle === "edge-bevel") return [];
     if (pullStyle === "knob") {
-      // 圓把手：30mm 直徑 × 25mm 長（往 -Z 凸出）
+      // 圓把手：30mm 直徑 × 25mm 長，軸朝前後（-Z 凸出，正面看是圓）
       const D = 30, L = 25;
       return [{
         id: `${idPrefix}-pull`,
@@ -234,10 +234,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         material,
         materialOverride: "plywood",
         grainDirection: "length",
-        // length=X 寬, thickness=Y 高（直徑 D），width=Z 凸出長 L
+        // X/Y 是直徑面 D，Z 是凸出長度 L；axis="z" 讓圓柱軸朝前後
         visible: { length: D, width: L, thickness: D },
         origin: { x: cx, y: cy - D / 2, z: zFaceFront - L / 2 - CLEAR },
-        shape: { kind: "round" },
+        shape: { kind: "round", axis: "z" },
         visual: "brass-antique",
         tenons: [],
         mortises: [],

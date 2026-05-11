@@ -209,7 +209,7 @@ export interface Part {
      *  3D 用 cylinder，俯視圓、前/側視矩形。Cut plan 以方料 D×D 計算。
      *  chamferMm > 0：頂面外緣倒角（圓凳座板用），3D 改用 lathe geometry，
      *  前/側視多兩個斜切角。 */
-    | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
+    | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
     /** Round tapered: 圓錐腳。bottomScale < 1 = 上粗下細；> 1 = 上細下粗。
      *  3D 用 cylinder(topR, bottomR, height)；前/側視梯形。 */
     | { kind: "round-tapered"; bottomScale: number }

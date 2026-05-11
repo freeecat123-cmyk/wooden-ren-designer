@@ -132,7 +132,7 @@ type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
+  | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
   | { kind: "lathe-turned" }
@@ -271,10 +271,18 @@ function Part({
     // CSG 才能挖洞（Phase 2 後續擴展）。座板上的方形 mortise 對圓腳 → 圓
     // 柱面挖出方洞，視覺正確。
     if (shape.kind === "round") {
-      const radius = size[0] / 2;
+      // axis: cylinder 中心軸對齊的世界軸；預設 "y"（站立圓柱）
+      // axis="z" 用於門把/旋鈕（軸朝前後，從正面看是圓）
+      // axis="x" 用於橫躺圓柱（軸朝左右）
+      const ax = shape.axis ?? "y";
+      const radius =
+        ax === "y" ? size[0] / 2 : ax === "x" ? size[1] / 2 : size[0] / 2;
+      const height = ax === "y" ? size[1] : ax === "x" ? size[0] : size[2];
       const chamfer = shape.chamferMm ?? 0;
+      const rotation: [number, number, number] =
+        ax === "x" ? [0, 0, Math.PI / 2] : ax === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
       if (chamfer > 0) {
-        const h = size[1];
+        const h = height;
         const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
         const innerR = Math.max(0.5, radius - cap);
         const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
@@ -294,9 +302,21 @@ function Part({
           }
         }
         points.push(new Vector2(0, h / 2));
-        return new LatheGeometry(points, 48);
+        const lathe = new LatheGeometry(points, 48);
+        if (rotation[0] || rotation[1] || rotation[2]) {
+          lathe.rotateX(rotation[0]);
+          lathe.rotateY(rotation[1]);
+          lathe.rotateZ(rotation[2]);
+        }
+        return lathe;
       }
-      return new CylinderGeometry(radius, radius, size[1], 48);
+      const cyl = new CylinderGeometry(radius, radius, height, 48);
+      if (rotation[0] || rotation[1] || rotation[2]) {
+        cyl.rotateX(rotation[0]);
+        cyl.rotateY(rotation[1]);
+        cyl.rotateZ(rotation[2]);
+      }
+      return cyl;
     }
     if (shape.kind === "round-tapered") {
       const topR = size[0] / 2;
