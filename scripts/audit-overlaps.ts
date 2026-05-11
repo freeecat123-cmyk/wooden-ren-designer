@@ -119,7 +119,7 @@ for (const entry of FURNITURE_CATALOG) {
     const allOverlaps = findOverlaps(design.parts);
     // butt-joint convention 允許椅背後仰時背柱底端 dip 進座板/後腳 AABB（物理必然，
     // overshoot 補縫 → bottom-back corner 必然下沉，視覺被遮蓋；2026-05-05）。
-    const buttJointFiltered = design.useButtJointConvention
+    const overlaps = design.useButtJointConvention
       ? allOverlaps.filter((o) => {
           const ids = [o.a, o.b].sort();
           if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
@@ -127,15 +127,6 @@ for (const entry of FURNITURE_CATALOG) {
           return true;
         })
       : allOverlaps;
-    // 門框+鑲板的合法 joinery overlap：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
-    // 是物理正確結構（frame & panel construction），audit 不該擋。
-    // 過濾 *-door-*-panel × *-door-*-{rail-top,rail-bottom,stile-left,stile-right}
-    const overlaps = buttJointFiltered.filter((o) => {
-      const ids = [o.a, o.b].sort();
-      const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
-      const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
-      return !((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0])));
-    });
     const examples = overlaps
       .slice(0, 3)
       .map(

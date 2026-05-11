@@ -1412,22 +1412,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // butt-joint 慣例：鑲板尺寸 = 內部開窗（剛好夾在 rails/stiles 之間，不入溝）。
       // 榫接版本可加 tongue-and-groove；組裝版用木釘 / 螺絲固定到框料背面。
       if (doorType === "wood") {
-        // 整塊矩形鑲板，4 邊各往外伸 grooveDepth 進凹槽（不切角，整片板卡進框）
-        const panelOuterW = innerOpenW + 2 * grooveDepth;
-        const panelOuterH = innerOpenH + 2 * grooveDepth;
         parts.push({
           id: `${idPrefix}-${i + 1}-panel`,
           nameZh: `${labelPrefix}${i + 1} 木鑲板`,
           material,
           grainDirection: "length",
           visible: {
-            length: panelOuterW,
-            width: panelOuterH,
+            length: innerOpenW,
+            width: innerOpenH,
             thickness: panelT_door,
           },
           origin: {
             x: xCenter,
-            y: doorYBase + railW - grooveDepth,
+            y: doorYBase + railW,
             z: zFront,
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
