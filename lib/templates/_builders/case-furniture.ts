@@ -1011,7 +1011,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         id: `${idPrefix}-${i + 1}-back`,
         nameZh: `${labelPrefix}${i + 1} 後板`,
         material,
-        materialOverride: "mdf",
         grainDirection: "length",
         visible: {
           length: drawerInnerW + 2 * drawerSideT,
@@ -1051,7 +1050,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
           nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
           material,
-          materialOverride: "mdf",
           grainDirection: "length",
           visible: {
             length: drawerInnerD,
