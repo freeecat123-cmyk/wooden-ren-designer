@@ -10,6 +10,7 @@ import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialList } from "@/lib/render/svg-views";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
+import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { MATERIALS } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
@@ -484,7 +485,7 @@ function JoinerySection({ design }: { design: FurnitureDesign }) {
             </p>
           </div>
           <p className="text-xs text-zinc-600 mb-3">{JOINERY_DESCRIPTION[u.type]}</p>
-          <JoineryDetail
+          <ZoomableJoineryDetail
             type={u.type}
             params={{
               tenonLength: u.tenon.length,
