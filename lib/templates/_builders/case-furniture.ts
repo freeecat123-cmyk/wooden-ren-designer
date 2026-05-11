@@ -71,7 +71,7 @@ export interface CaseFurnitureOpts {
   legSize?: number;
   /** Leg shape: box (default), tapered (narrows toward bottom), bracket (triangular foot),
    *  plinth (continuous base frame), panel-side (side panels extend to floor). */
-  legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side";
+  legShape?: "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered";
   /** Inset legs (or plinth) inward from case outer edge (mm, each side). */
   legInset?: number;
   /** If provided, overrides equal-spacing with custom shelf Y fractions (0..1 from bottom). */
@@ -399,7 +399,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const shape: Part["shape"] =
         legShape === "tapered"
           ? { kind: "tapered", bottomScale: 0.55 }
-          : undefined;
+          : legShape === "round"
+            ? { kind: "round" }
+            : legShape === "round-tapered"
+              ? { kind: "round-tapered", bottomScale: 0.55 }
+              : undefined;
       for (const sx of [-1, 1] as const) {
         for (const sz of [-1, 1] as const) {
           parts.push({
