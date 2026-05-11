@@ -33,6 +33,7 @@ import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
 import { AIRefineButton } from "@/components/design/AIRefineButton";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { HeightToSizeButton } from "@/components/design/HeightToSizeButton";
+import { ResetDefaultsButton } from "@/components/design/ResetDefaultsButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
@@ -624,7 +625,7 @@ function ParameterForm({
           </div>
         )}
       </fieldset>
-      <div className="mb-4 pb-3 border-b border-zinc-200">
+      <div className="mb-4 pb-3 border-b border-zinc-200 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
           整體尺寸
@@ -634,6 +635,7 @@ function ParameterForm({
             </span>
           )}
         </h3>
+        <ResetDefaultsButton />
       </div>
       <SizePresetButtons category={type as FurnitureCategory} />
       <HeightToSizeButton category={type as FurnitureCategory} />

@@ -6,6 +6,8 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { HeaderUser } from "@/components/auth/HeaderUser";
 import { StudentWelcomeModal } from "@/components/StudentWelcomeModal";
 import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
+import { SiteFooter } from "@/components/SiteFooter";
+import { BugReportFab } from "@/components/BugReportFab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -115,6 +117,8 @@ export default async function RootLayout({
             <HeaderUser />
           </div>
           {children}
+          <SiteFooter />
+          <BugReportFab />
           <StudentWelcomeModal />
         </AuthProvider>
       </body>
