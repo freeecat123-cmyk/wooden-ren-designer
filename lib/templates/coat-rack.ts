@@ -335,8 +335,9 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
         y: hookY,
         z: Math.sin(angle) * (columnSize / 2 + hookLength / 2),
       },
-      shape: { kind: "round" },
-      rotation: { x: Math.PI / 2, y: angle, z: 0 },
+      // axis="x" 圓柱沿 visible.length（local X）方向；Ry(-angle) 把長軸掃到 (cos a, 0, sin a) 徑向
+      shape: { kind: "round", axis: "x" },
+      rotation: { x: 0, y: -angle, z: 0 },
       tenons: [
         {
           position: "start",
@@ -379,8 +380,8 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
           y: row2Y,
           z: Math.sin(angle) * (columnSize / 2 + r2Length / 2),
         },
-        shape: { kind: "round" },
-        rotation: { x: Math.PI / 2, y: angle, z: 0 },
+        shape: { kind: "round", axis: "x" },
+        rotation: { x: 0, y: -angle, z: 0 },
         tenons: [
           {
             position: "start",

@@ -296,8 +296,9 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // rail Y 區間內腳的「最大」cross-section — 用來算 rail span，避免 tapered/inverted 任一方向腳寬都不會跟 rail 干涉
   const railLegSizeMax = Math.max(railLegSizeAtTop, railLegSizeAtBot, railLegSizeAtCenter);
   const sideRailInnerSpan = 2 * apronEdgeX - railLegSizeMax;
-  // headboard / footboard 也用同樣補償（連腳的 Z 軸）
-  const headLegSizeMax = railLegSizeMax;
+  // headboard / footboard 從地板 y=0 到頂端橫跨整個腳高，要考慮 y=0 的腳底寬（inverted 腳底較寬）
+  const headLegSizeAtFloor = legSize * legScaleAt(0, legHeight, bottomScale);
+  const headLegSizeMax = Math.max(railLegSizeMax, headLegSizeAtFloor);
 
   const sideRails: Part[] = [
     { id: "side-rail-left", nameZh: "左側板", sz: -1 },
@@ -366,7 +367,6 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   // 寬度 = 兩頭腳內面距離（butt joint），用 Z 軸跨
   // headboard 跨距用 sideRail Y 處的腳寬補償（headboard 主要進腳的高度區段就在 sideRail 附近）
   const headLegInnerSpan = 2 * apronEdgeZ - headLegSizeMax;
-  const headboardCenterY = headboardPlateHeight / 2;
   const headboardX = -apronEdgeX; // 頭端
   const headboard: Part = {
     id: "headboard",
@@ -374,7 +374,8 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     grainDirection: "length",
     visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
-    origin: { x: headboardX, y: headboardPlateHeight / 2, z: 0 },
+    // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
+    origin: { x: headboardX, y: 0, z: 0 },
     rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
     tenons: [
       // 兩端進頭腳側面：榫頭沿 Z 軸（頭板長度方向）
@@ -404,10 +405,6 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     ],
     mortises: [],
   };
-  // origin.y 算錯，重算：希望板的世界範圍 y ∈ [0, headboardPlateHeight]
-  // 旋轉 y=π/2：mesh local 軸對映：local X(length) → +Z, local Y(width) → +Y, local Z(thickness) → -X
-  // 所以 width 軸還是世界 Y，origin.y = visible.width/2 = headboardPlateHeight/2 對齊
-  headboard.origin = { x: headboardX, y: headboardPlateHeight / 2, z: 0 };
 
   // ---------- 床尾板（可選） ----------
   let footboard: Part | null = null;
@@ -419,7 +416,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: headLegInnerSpan, width: footPlateHeight, thickness: footboardThickness },
-      origin: { x: apronEdgeX, y: footPlateHeight / 2, z: 0 },
+      origin: { x: apronEdgeX, y: 0, z: 0 },
       rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
       tenons: [
         {
