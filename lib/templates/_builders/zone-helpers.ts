@@ -7,6 +7,15 @@ import type { CabinetZone } from "./case-furniture";
  * 三段式滑軌（ball bearing）安裝在櫃體側板 / 中柱與抽屜側板之間，
  * 業界標準左右各需 12.5mm 空隙。使用者勾選後所有抽屜總寬自動縮 25mm。
  */
+/** 任一 zone 類型 = drawer 時才顯示（抽屜相關選項共用）。 */
+const ANY_ZONE_IS_DRAWER = {
+  any: [
+    { key: "topType", equals: "drawer" },
+    { key: "midType", equals: "drawer" },
+    { key: "bottomType", equals: "drawer" },
+  ],
+};
+
 export const drawerSlideOption: OptionSpec = {
   group: "drawer",
   type: "checkbox",
@@ -20,6 +29,7 @@ export const drawerSlideOption: OptionSpec = {
     "箱體（5 件）向後縮 18mm（面板厚）藏在面板後；" +
     "箱體高比抽屜格縮 10mm（上下各 5mm 滑軌行程空隙）；" +
     "箱體距背板留 10mm 防撞。不勾選視為傳統木製側拉 / 無滑軌。",
+  dependsOn: ANY_ZONE_IS_DRAWER,
 };
 
 export const DRAWER_SLIDE_GAP_MM = 12.5;
@@ -121,6 +131,7 @@ export const drawerMountOption: OptionSpec = {
     { value: "overlay-3", label: "蓋 3 分（半蓋，面板蓋 9mm）" },
     { value: "inset", label: "入柱（面板埋進框內、齊平）" },
   ],
+  dependsOn: ANY_ZONE_IS_DRAWER,
 };
 
 export function resolveDrawerMount(
@@ -180,6 +191,7 @@ export const drawerBottomModeOption: OptionSpec = {
     { value: "surface", label: "釘底（3mm 夾板從下釘上）— 裝潢標準" },
     { value: "rebated", label: "入溝（6mm 嵌進四邊溝裡）— 榫卯家具" },
   ],
+  dependsOn: ANY_ZONE_IS_DRAWER,
 };
 
 export type DrawerBottomMode = "surface" | "rebated";

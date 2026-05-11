@@ -794,6 +794,7 @@ function evalDep(
   values: Record<string, string | number | boolean>,
 ): boolean {
   if (dep.all) return dep.all.every((d) => evalDep(d, values));
+  if (dep.any) return dep.any.some((d) => evalDep(d, values));
   if (!dep.key) return true;
   const v = values[dep.key];
   if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;

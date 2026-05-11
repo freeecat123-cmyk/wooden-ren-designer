@@ -387,6 +387,10 @@ export interface OptionDependency {
    *  withLowerStretchers + arrangement + 寬厚高等下橫撐相關所有選項）。
    *  指定 all 時，key/equals/notIn/oneOf 一律忽略。 */
   all?: OptionDependency[];
+  /** OR of multiple conditions — 任一條件成立即顯示（抽屜相關選項在 topType
+   *  或 midType 或 bottomType 任一 = drawer 時顯示）。
+   *  指定 any 時，key/equals/notIn/oneOf 一律忽略。 */
+  any?: OptionDependency[];
 }
 
 export type OptionSpec =
