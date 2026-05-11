@@ -8,7 +8,7 @@ export function SiteFooter() {
   const env = process.env.NEXT_PUBLIC_VERCEL_ENV ?? "local";
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-12 border-t border-zinc-200 bg-white/50 py-6 text-center text-xs text-zinc-500">
+    <footer className="no-print mt-12 border-t border-zinc-200 bg-white/50 py-6 text-center text-xs text-zinc-500">
       <div className="mx-auto max-w-7xl px-4">
         <div>
           © {year}{" "}

@@ -34,7 +34,7 @@ export function BugReportFab() {
   return (
     <>
       {open && (
-        <div className="fixed bottom-20 right-4 z-50 w-72 rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl">
+        <div className="no-print fixed bottom-20 right-4 z-50 w-72 rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl">
           <div className="text-sm font-semibold text-zinc-900">
             回報問題給木頭仁
           </div>
@@ -61,7 +61,7 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title="回報問題"
         aria-label="回報問題"
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-xl text-white shadow-lg hover:bg-zinc-700"
+        className="no-print fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-xl text-white shadow-lg hover:bg-zinc-700"
       >
         🐛
       </button>
