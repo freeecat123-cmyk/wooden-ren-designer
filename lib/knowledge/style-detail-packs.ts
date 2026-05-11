@@ -57,7 +57,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withGalleryRail": false,
       "withToeKick": false,
       "withCrownMolding": false,
-      "shelfPinSystem": "none",
       "backPanelMaterial": "plywood",
       "topType": "drawer",
       "topHeight": 250,
@@ -228,7 +227,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 0,
       "withBookStop": false,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
@@ -768,7 +766,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "pullStyle": "knob",
       "softClose": false,
       "drawerFaceStyle": "raised-panel",
-      "shelfPinSystem": "none",
       "withToeKick": false,
       "toeKickHeight": 80,
       "toeKickRecess": 30,
@@ -809,7 +806,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 50,
       "withBookStop": false,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": true,
       "withLedderRail": true
     },
@@ -1276,7 +1272,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 20,
       "withBookStop": true,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": true,
       "withLedderRail": false
     },
@@ -1741,7 +1736,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottomCols": 1,
       "legHeight": 0,
       "withBookStop": false,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
@@ -2109,7 +2103,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withGalleryRail": false,
       "withToeKick": false,
       "withCrownMolding": false,
-      "shelfPinSystem": "none",
       "backPanelMaterial": "solid",
       "topType": "drawer",
       "topHeight": 160,
@@ -2272,7 +2265,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "box",
       "legInset": 5,
       "withBookStop": false,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
@@ -2750,7 +2742,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "withBookStop": false,
-      "withWallAnchor": true,
       "withAdjustableShelfPins": false,
       "withLedderRail": false
     },
@@ -3481,7 +3472,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "plinth",
       "legInset": 0,
       "withBookStop": false,
-      "withWallAnchor": false,
       "withAdjustableShelfPins": false,
       "withLedderRail": false
     },

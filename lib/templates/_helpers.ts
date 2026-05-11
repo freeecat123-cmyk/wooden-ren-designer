@@ -531,36 +531,9 @@ export function backRakeNote(deg: number): string {
 
 /* ─────────────── 櫃類通用選項 helpers ─────────────── */
 
-/** 可調層板釘孔系統。
- *  - none: 不開孔，層板固定（最簡單但不可調）
- *  - eu-32mm: 歐式 32mm system，板側面整排 5mm 孔每 32mm 一個（業界標準）
- *  - diy-line: 上下兩排線狀打孔，每孔間距 20-25mm（DIY 常用，精度低但夠用）
- *  影響：notes + 層板固定方式說明；3D 不畫孔避免雜訊 */
 // 隱藏在 form 上的 sentinel dependsOn —— spec 還在 schema 裡（opt() 不會 throw），
 // 但 isVisible 永遠回 false（key "__hidden" 在 values 裡是 undefined ≠ "__yes"）。
 const HIDDEN_DEP = { key: "__hidden", equals: "__yes" } as const;
-
-export function shelfPinSystemOption(group: OptionGroup = "structure"): OptionSpec {
-  return {
-    group,
-    type: "select",
-    key: "shelfPinSystem",
-    label: "層板可調孔",
-    defaultValue: "eu-32mm",
-    choices: [
-      { value: "none", label: "固定層板（dado / 半榫接合）" },
-      { value: "eu-32mm", label: "歐式 32mm 系統（業界標準）" },
-      { value: "diy-line", label: "DIY 線狀孔（每 20-25mm）" },
-    ],
-    help: "可調層板靠側板上的 5mm 釘孔 + 金屬層板釘。32mm 系統需配 32mm 鑽孔模板",
-    dependsOn: HIDDEN_DEP,
-  };
-}
-
-// 已從 form 移除（圖紙不畫釘孔陣列），note 也清空避免誤導使用者。
-export function shelfPinSystemNote(_system: string): string {
-  return "";
-}
 
 /** 踢腳板（toe kick）—— 底部往內凹一段讓腳趾不撞櫃面，地櫃必備
  *  withToeKick = false 時 toeKickHeight/Recess 不生效 */

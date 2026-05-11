@@ -189,8 +189,6 @@ export interface CabinetStructureRules {
   height: number;
   /** 層板跨距（mm，通常 = 內寬） */
   shelfSpan?: number;
-  /** 是否預留牆面固定五金（只對高櫃有意義） */
-  hasWallAnchor?: boolean;
   /** 是否有抽屜（任何 zone / column 是 drawer 就 true） */
   hasDrawers?: boolean;
   /** 抽屜總數量 */
@@ -211,12 +209,6 @@ export function validateCabinetStructure(rules: CabinetStructureRules): string[]
   if (height > 1500 && panelThickness < 15) {
     warnings.push(
       `櫃高 ${height}mm 但板厚僅 ${panelThickness}mm，整體結構偏弱——建議加厚到 18mm。`,
-    );
-  }
-  if (height > 1500 && rules.hasWallAnchor === false) {
-    warnings.push(
-      `高櫃 ${height}mm 沒預留牆面固定五金——傾倒風險（小孩 / 地震時危險）。` +
-        `建議勾選「預留牆面固定」、用 L 型角鐵鎖到牆面 stud。`,
     );
   }
   if (rules.hasDrawers && (rules.drawerCount ?? 0) >= 3 && rules.hasDrawerSlide === false) {

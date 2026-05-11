@@ -19,8 +19,6 @@ import {
 } from "./_builders/zone-helpers";
 import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
-  shelfPinSystemOption,
-  shelfPinSystemNote,
   toeKickOptions,
   toeKickNote,
   crownMoldingOptions,
@@ -95,7 +93,6 @@ export const mediaConsoleOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
-  shelfPinSystemOption("structure"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("structure"),
@@ -149,7 +146,6 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
-  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
   const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
   const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
   const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
@@ -258,7 +254,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     pullStyle,
-    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${shelfPinSystemNote(shelfPinSystem)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${withSpeakerGrille ? "兩端側板加 200×400mm 喇叭網格槽（⌀5mm 孔陣列），藏式環繞音響。" : ""} ${withSoundBarShelf ? "頂面前緣下挖 80mm 深 × 全寬凹槽，放 SoundBar 不擋電視畫面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withVentSlots ? "後板開散熱孔陣列（6×40mm 條形孔，每排 4-6 個），擴大機等設備不會悶熱。" : ""} ${withSpeakerGrille ? "兩端側板加 200×400mm 喇叭網格槽（⌀5mm 孔陣列），藏式環繞音響。" : ""} ${withSoundBarShelf ? "頂面前緣下挖 80mm 深 × 全寬凹槽，放 SoundBar 不擋電視畫面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
   // SoundBar 凹槽：在頂板正面前緣加一條凹陷的「凹槽板」（thin top rail）形成槽
   // 簡化做法：在頂板 part 上鑿一個 mortise（看起來會像挖溝）

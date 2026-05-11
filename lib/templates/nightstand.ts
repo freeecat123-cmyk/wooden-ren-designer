@@ -21,8 +21,6 @@ import {
 } from "./_builders/zone-helpers";
 import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
-  shelfPinSystemOption,
-  shelfPinSystemNote,
   backPanelMaterialOption,
   backPanelMaterialNote,
   pullStyleOption,
@@ -62,7 +60,6 @@ export const nightstandOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
-  shelfPinSystemOption("structure"),
   backPanelMaterialOption("structure"),
   pullStyleOption("drawer"),
   softCloseOption("drawer"),
@@ -83,7 +80,6 @@ export const nightstand: FurnitureTemplate = (input) => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
-  const shelfPinSystem = getOption<string>(input, opt(o, "shelfPinSystem"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
@@ -128,7 +124,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${shelfPinSystemNote(shelfPinSystem)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
 
