@@ -500,7 +500,7 @@ function LegacyThroughTenonDetail(p: JoineryDetailParams) {
  * 圓腳 motherShape="round" → 母件畫圓（俯視）+ 公榫變圓榫（直徑 = min(tw,tt)）。
  * 配色保留 wrd 米黃棕；數字綁 props，不 hardcoded。
  */
-function ThroughTenonDetail(p: JoineryDetailParams) {
+function LegacyV2ThroughTenonDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -1300,7 +1300,7 @@ function LegacyBlindTenonDetail(p: JoineryDetailParams) {
  * 重點：tl 必 < mt（榫長不可超母厚）；本函式渲染前 clamp 並 WarningCallout。
  * 母件內部用 HiddenEdge 虛線示意未貫穿的榫眼底。
  */
-function BlindTenonDetail(p: JoineryDetailParams) {
+function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -1920,7 +1920,7 @@ function LegacyHalfLapDetail(p: JoineryDetailParams) {
  *   形態自動推：cw≈mt ⇒ 十字搭、相差大 ⇒ T 字搭、邊角 ⇒ L 字搭。
  *   削厚 = ct/2、搭長 = tl，俯視畫切刀位置。
  * ---------------------------------------------------------------- */
-function HalfLapDetail(p: JoineryDetailParams) {
+function LegacyV2HalfLapDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const mt = p.motherThickness;
   const ct = p.childThickness ?? mt;
@@ -2655,7 +2655,7 @@ function LegacyTongueAndGrooveDetail(p: JoineryDetailParams) {
  *   舌厚 tt 預設 = mt/3；槽深 = 舌長 + 1mm 漲縮餘量；
  *   俯視畫多片拼接示意（3 片條板拼面板）。
  * ---------------------------------------------------------------- */
-function TongueAndGrooveDetail(p: JoineryDetailParams) {
+function LegacyV2TongueAndGrooveDetail(p: JoineryDetailParams) {
   const mt = p.motherThickness;
   const tt = p.tenonThickness ?? Math.max(3, Math.round(mt / 3));
   const tl = p.tenonLength;
@@ -3439,7 +3439,7 @@ function LegacyShoulderedTenonDetail(p: JoineryDetailParams) {
  *   Fallback：cw ≤ tw 時退回純通榫並 callout 警示。
  *   雙肩榫：肩寬 = (cw - tw) / 2，雙邊各標。
  * ---------------------------------------------------------------- */
-function ShoulderedTenonDetail(p: JoineryDetailParams) {
+function LegacyV2ShoulderedTenonDetail(p: JoineryDetailParams) {
   const tl = p.tenonLength;
   const tw = p.tenonWidth;
   const tt = p.tenonThickness;
@@ -3806,6 +3806,1276 @@ function ShoulderedTenonDetail(p: JoineryDetailParams) {
   );
 }
 /* === END shouldered-tenon-detail === */
+
+/* === BEGIN through-tenon-detail v2 (Wave 2b Group A) === */
+function ThroughTenonDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+  const isRound = p.motherShape === "round";
+  const dRound = Math.min(tw, tt);
+
+  // 三視共用 bbox：母件水平板 panelW × mt + 公件柱身延伸
+  const panelWMm = cw * 4;
+  const legBodyMm = Math.max(ct * 3.5, mt * 1.2);
+  const sharedBbox = { w: panelWMm, h: mt + legBodyMm };
+  const s = unifiedFitScale(sharedBbox);
+  const PX = (mm: number) => mm * s;
+
+  const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+
+  const hatchId = "hatch-through-v2";
+
+  // ============================ FRONT view ============================
+  const front = (() => {
+    const objW = PX(panelWMm);
+    const objH = PX(mt + legBodyMm);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const fCx = place.x + objW / 2;
+    const fMx = place.x;
+    const fMy = place.y;
+    const fMw = objW;
+    const fMh = PX(mt);
+    const fLx = fCx - PX(cw) / 2;
+    const fTenonX = fCx - PX(tw) / 2;
+    const fTenonW = PX(tw);
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color="#7a5a2c" />
+        </defs>
+        <rect x={fMx} y={fMy} width={fMw} height={fMh} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={fMx} y={fMy} width={fTenonX - fMx} height={fMh} fill={`url(#${hatchId})`} stroke="none" />
+        <rect x={fTenonX + fTenonW} y={fMy} width={fMx + fMw - (fTenonX + fTenonW)} height={fMh} fill={`url(#${hatchId})`} stroke="none" />
+        <line x1={fTenonX} y1={fMy} x2={fTenonX} y2={fMy + fMh} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={fTenonX + fTenonW} y1={fMy} x2={fTenonX + fTenonW} y2={fMy + fMh} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={fLx} y={fMy + fMh} width={PX(cw)} height={PX(legBodyMm)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={fTenonX} y={fMy - PX(1)} width={fTenonW} height={fMh + PX(1)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {/* 楔片 */}
+        {(() => {
+          const w1 = fTenonX + fTenonW * 0.28;
+          const w2 = fTenonX + fTenonW * 0.72;
+          const top = fMy - PX(1);
+          const kerfBot = top + fMh * 0.6;
+          const wedgeBase = fTenonW * 0.12;
+          const wedgeH = 8;
+          return (
+            <g>
+              <HiddenEdge x1={w1} y1={top} x2={w1} y2={kerfBot} />
+              <HiddenEdge x1={w2} y1={top} x2={w2} y2={kerfBot} />
+              <polygon points={`${w1 - wedgeBase},${top - wedgeH} ${w1 + wedgeBase},${top - wedgeH} ${w1},${top}`} fill="#a85" stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+              <polygon points={`${w2 - wedgeBase},${top - wedgeH} ${w2 + wedgeBase},${top - wedgeH} ${w2},${top}`} fill="#a85" stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+            </g>
+          );
+        })()}
+        <CenterLine x1={fMx - 6} y1={fMy + fMh / 2} x2={fMx + fMw + 6} y2={fMy + fMh / 2} />
+        <CenterLine x1={fCx} y1={fMy - 12} x2={fCx} y2={fMy + fMh + PX(legBodyMm) + 6} />
+        <SectionMark x={fMx - 14} y={fMy + fMh / 2} label="A" direction="right" />
+        <SectionMark x={fMx + fMw + 14} y={fMy + fMh / 2} label="A" direction="left" />
+        <DimLine x1={fTenonX} y1={fMy} x2={fTenonX + fTenonW} y2={fMy} label={`${tw}`}
+          side={safeDimSide("top", `${tw}`, { x: fTenonX + fTenonW / 2, y: fMy }, qBounds)} />
+        <DimLine x1={fLx} y1={fMy + fMh + PX(legBodyMm)} x2={fLx + PX(cw)} y2={fMy + fMh + PX(legBodyMm)} label={`${cw}`}
+          side={safeDimSide("bottom", `${cw}`, { x: fLx + PX(cw) / 2, y: fMy + fMh + PX(legBodyMm) }, qBounds)} />
+        <DimLine x1={fMx + fMw} y1={fMy} x2={fMx + fMw} y2={fMy + fMh} label={`${mt}`}
+          side={safeDimSide("right", `${mt}`, { x: fMx + fMw, y: fMy + fMh / 2 }, qBounds)} />
+        <GrainArrow x={fMx + 8} y={fMy + fMh / 2 - 4} length={Math.min(60, fMw - 16)} angle={0} />
+        <GrainArrow x={fLx - 14} y={fMy + fMh + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
+      </g>
+    );
+  })();
+
+  // ============================ SIDE view ============================
+  const side = (() => {
+    const objW = PX(panelWMm);
+    const objH = PX(mt + legBodyMm);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sCx = place.x + objW / 2;
+    const sMx = place.x;
+    const sMy = place.y;
+    const sLx = sCx - PX(ct) / 2;
+    const sTenonX = sCx - PX(tt) / 2;
+    const sTenonW = PX(tt);
+
+    return (
+      <g>
+        <rect x={sMx} y={sMy} width={objW} height={PX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={sTenonX} y1={sMy} x2={sTenonX} y2={sMy + PX(mt)} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={sTenonX + sTenonW} y1={sMy} x2={sTenonX + sTenonW} y2={sMy + PX(mt)} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={sLx} y={sMy + PX(mt)} width={PX(ct)} height={PX(legBodyMm)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={sTenonX} y={sMy - PX(1)} width={sTenonW} height={PX(mt) + PX(1)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <CenterLine x1={sMx - 6} y1={sMy + PX(mt) / 2} x2={sMx + objW + 6} y2={sMy + PX(mt) / 2} />
+        <CenterLine x1={sCx} y1={sMy - 12} x2={sCx} y2={sMy + PX(mt) + PX(legBodyMm) + 6} />
+        <DimLine x1={sTenonX} y1={sMy} x2={sTenonX + sTenonW} y2={sMy} label={`${tt}`}
+          side={safeDimSide("top", `${tt}`, { x: sTenonX + sTenonW / 2, y: sMy }, qBounds)} />
+        <DimLine x1={sLx} y1={sMy + PX(mt) + PX(legBodyMm)} x2={sLx + PX(ct)} y2={sMy + PX(mt) + PX(legBodyMm)} label={`${ct}`}
+          side={safeDimSide("bottom", `${ct}`, { x: sLx + PX(ct) / 2, y: sMy + PX(mt) + PX(legBodyMm) }, qBounds)} />
+        <DimLine x1={sMx + objW} y1={sMy} x2={sMx + objW} y2={sMy + PX(mt)} label={`${mt}`}
+          side={safeDimSide("right", `${mt}`, { x: sMx + objW, y: sMy + PX(mt) / 2 }, qBounds)} />
+        <GrainArrow x={sMx + 8} y={sMy + PX(mt) / 2 - 4} length={Math.min(60, objW - 16)} angle={0} />
+        <GrainArrow x={sLx - 14} y={sMy + PX(mt) + 8} length={Math.min(50, PX(legBodyMm) - 16)} angle={90} />
+      </g>
+    );
+  })();
+
+  // ============================ TOP view ============================
+  const top = (() => {
+    const panelDMm = cw * 2.2;
+    const tBbox = { w: panelWMm, h: panelDMm };
+    const ts = unifiedFitScale(tBbox);
+    const TPX = (mm: number) => mm * ts;
+    const objW = TPX(panelWMm);
+    const objH = TPX(panelDMm);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tCx = place.x + objW / 2;
+    const tCy = place.y + objH / 2;
+
+    return (
+      <g>
+        {(() => {
+          if (isRound) {
+            const rOuter = TPX(cw) / 2;
+            const rTenon = TPX(dRound) / 2;
+            return (
+              <g>
+                <circle cx={tCx} cy={tCy} r={rOuter} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                <circle cx={tCx} cy={tCy} r={rTenon} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                <line x1={tCx - rTenon * 0.55} y1={tCy - rTenon} x2={tCx - rTenon * 0.55} y2={tCy + rTenon} stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+                <line x1={tCx + rTenon * 0.55} y1={tCy - rTenon} x2={tCx + rTenon * 0.55} y2={tCy + rTenon} stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+                <CenterLine x1={tCx - rOuter - 12} y1={tCy} x2={tCx + rOuter + 12} y2={tCy} />
+                <CenterLine x1={tCx} y1={tCy - rOuter - 12} x2={tCx} y2={tCy + rOuter + 12} />
+                <DimLine x1={tCx - rOuter} y1={tCy + rOuter} x2={tCx + rOuter} y2={tCy + rOuter} label={`Ø${cw}`}
+                  side={safeDimSide("bottom", `Ø${cw}`, { x: tCx, y: tCy + rOuter }, qBounds)} />
+                <DimLine x1={tCx - rTenon} y1={tCy - rOuter} x2={tCx + rTenon} y2={tCy - rOuter} label={`Ø${dRound}`}
+                  side={safeDimSide("top", `Ø${dRound}`, { x: tCx, y: tCy - rOuter }, qBounds)} />
+              </g>
+            );
+          }
+          const mx = place.x;
+          const my = place.y;
+          const lx = tCx - TPX(cw) / 2;
+          const ly = tCy - TPX(ct) / 2;
+          const ttx = tCx - TPX(tw) / 2;
+          const tty = tCy - TPX(tt) / 2;
+          return (
+            <g>
+              <rect x={mx} y={my} width={objW} height={objH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <rect x={lx} y={ly} width={TPX(cw)} height={TPX(ct)} fill="none" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} strokeDasharray={DASH.HIDDEN} />
+              <rect x={ttx} y={tty} width={TPX(tw)} height={TPX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <line x1={ttx + TPX(tw) * 0.28} y1={tty} x2={ttx + TPX(tw) * 0.28} y2={tty + TPX(tt)} stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+              <line x1={ttx + TPX(tw) * 0.72} y1={tty} x2={ttx + TPX(tw) * 0.72} y2={tty + TPX(tt)} stroke={COLOR.OUTLINE} strokeWidth={STROKE.HIDDEN} />
+              <CenterLine x1={mx - 6} y1={tCy} x2={mx + objW + 6} y2={tCy} />
+              <CenterLine x1={tCx} y1={my - 6} x2={tCx} y2={my + objH + 6} />
+              <DimLine x1={ttx} y1={my} x2={ttx + TPX(tw)} y2={my} label={`${tw}`}
+                side={safeDimSide("top", `${tw}`, { x: ttx + TPX(tw) / 2, y: my }, qBounds)} />
+              <DimLine x1={mx + objW} y1={tty} x2={mx + objW} y2={tty + TPX(tt)} label={`${tt}`}
+                side={safeDimSide("right", `${tt}`, { x: mx + objW, y: tty + TPX(tt) / 2 }, qBounds)} />
+              <DimLine x1={mx} y1={my + objH} x2={mx + objW} y2={my + objH} label={`${Math.round(panelWMm)}`}
+                side={safeDimSide("bottom", `${Math.round(panelWMm)}`, { x: mx + objW / 2, y: my + objH }, qBounds)} />
+            </g>
+          );
+        })()}
+      </g>
+    );
+  })();
+
+  // ============================ ISO view ============================
+  const iso = (() => {
+    const motherW = panelWMm * 0.55;
+    const motherH = mt;
+    const motherD = panelWMm * 0.45;
+    const childW = cw;
+    const childH = legBodyMm;
+    const childD = ct;
+    const isoBbox = { w: motherW + childW, h: motherH + childH + 80, d: Math.max(motherD, childD) };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.65 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+    const explodeGap = 80;
+    const oxC = center.x - (childW * isoS) / 2 - 60;
+    const oyC = center.y + 20;
+    const oxM = center.x - (motherW * isoS) / 2 + 60;
+    const oyM = oyC - (motherH * isoS) - explodeGap;
+
+    return (
+      <g>
+        <g transform={`translate(${oxM} ${oyM}) scale(${isoS})`}>
+          <IsoCuboid x={0} y={0} z={0} w={motherW} h={motherH} d={motherD}
+            fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          <IsoMortise faceX={motherW / 2} faceY={0} faceZ={motherD / 2}
+            width={tw} height={tt} depth={mt} faceNormal="+y" through={true}
+            stroke={COLOR.OUTLINE} strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoS)} />
+        </g>
+        <g transform={`translate(${oxC} ${oyC}) scale(${isoS})`}>
+          <IsoCuboid x={0} y={0} z={0} w={childW} h={childH} d={childD}
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          {!isRound ? (
+            <IsoTenon baseX={childW / 2} baseY={0} baseZ={childD / 2}
+              width={tw} thickness={tt} length={tl} direction="-y"
+              fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)}
+              embeddedLength={mt} />
+          ) : (
+            <IsoCylinder x={childW / 2} y={0} z={childD / 2}
+              radius={dRound / 2} height={tl} axis="y"
+              fillCap={ISO_FILL.TENON_FRONT} fillSide={ISO_FILL.TENON_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          )}
+        </g>
+        {/* 拆解箭頭 */}
+        {(() => {
+          const fromX = oxM + (motherW / 2) * isoS + (motherD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE;
+          const fromY = oyM + motherH * isoS + 4;
+          const toX = oxC + (childW / 2) * isoS + (childD / 2) * isoS * ISO.COS30 * ISO.DEPTH_SCALE;
+          const toY = oyC - tl * isoS - 2;
+          const ang = Math.atan2(toY - fromY, toX - fromX);
+          const ah = 6;
+          const a1x = toX - ah * Math.cos(ang - Math.PI / 6);
+          const a1y = toY - ah * Math.sin(ang - Math.PI / 6);
+          const a2x = toX - ah * Math.cos(ang + Math.PI / 6);
+          const a2y = toY - ah * Math.sin(ang + Math.PI / 6);
+          return (
+            <g stroke={COLOR.DIM} fill={COLOR.DIM}>
+              <line x1={fromX} y1={fromY} x2={toX} y2={toY} strokeWidth={STROKE.HIDDEN} strokeDasharray={ISO_DASH.HIDDEN} />
+              <polygon points={`${toX},${toY} ${a1x},${a1y} ${a2x},${a2y}`} />
+            </g>
+          );
+        })()}
+      </g>
+    );
+  })();
+
+  const scaleStr = s >= 1 ? `${Math.round(s)}:1` : `1:${Math.max(1, Math.round(1 / s))}`;
+
+  return (
+    <MasterDetailLayout
+      type="through-tenon"
+      joineryNameZh={isRound ? "通榫（圓榫變體）" : "通榫"}
+      drawingNumber={`TT-${tw}x${tt}x${tl}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `貫穿端應微凸 1mm 後修平`,
+        `楔片厚 ≈ ${Math.round(tw * 0.12)}mm`,
+      ]}
+    />
+  );
+}
+/* === END through-tenon-detail v2 === */
+
+/* === BEGIN blind-tenon-detail v2 (Wave 2b Group A) === */
+function BlindTenonDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+  const safeTl = Math.min(tl, Math.max(3, mt - 3));
+  const wasClamped = safeTl !== tl;
+  const baseRest = mt - safeTl;
+  const isRound = p.motherShape === "round";
+
+  const apronLenMm = Math.max(cw * 2.5, mt * 2);
+  const sharedBbox = { w: mt + apronLenMm, h: Math.max(cw * 3.5, mt * 1.5) };
+  const s = unifiedFitScale(sharedBbox);
+  const PX = (mm: number) => mm * s;
+
+  const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+  const HIDDEN_BOLD_COLOR = COLOR.DIM_TICK;
+  const HIDDEN_BOLD_STROKE = 1.6;
+  const HIDDEN_BOLD_DASH = "5 3";
+  const hatchId = "hatch-blind-v2";
+
+  // ============================ FRONT view ============================
+  const front = (() => {
+    const objW = PX(mt + apronLenMm);
+    const objH = PX(Math.min(cw * 3.5, sharedBbox.h));
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const fLegX = place.x + 4;
+    const fLegW = PX(mt);
+    const fLegH = objH;
+    const fLegY = place.y;
+    const fApronY = fLegY + fLegH / 2 - PX(cw) / 2;
+    const fApronH = PX(cw);
+    const fApronX0 = fLegX + fLegW;
+    const fApronW = PX(apronLenMm);
+    const fTenonY = fLegY + fLegH / 2 - PX(tw) / 2;
+    const fTenonH = PX(tw);
+    const fTenonW = PX(safeTl);
+    const fTenonX = fLegX + fLegW - fTenonW;
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color="#7a5a2c" />
+        </defs>
+        <rect x={fLegX} y={fLegY} width={fLegW} height={fLegH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={fTenonX} y={fTenonY} width={fTenonW} height={fTenonH}
+          fill="none" stroke={HIDDEN_BOLD_COLOR} strokeWidth={HIDDEN_BOLD_STROKE} strokeDasharray={HIDDEN_BOLD_DASH} />
+        <rect x={fApronX0} y={fApronY} width={fApronW} height={fApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={fApronX0} y1={fApronY} x2={fApronX0} y2={fApronY + fApronH} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {fApronH > fTenonH + 4 && (
+          <>
+            <line x1={fApronX0} y1={fTenonY} x2={fApronX0 + Math.min(fApronW * 0.4, PX(safeTl) * 1.2)} y2={fTenonY}
+              stroke={HIDDEN_BOLD_COLOR} strokeWidth={HIDDEN_BOLD_STROKE} strokeDasharray={HIDDEN_BOLD_DASH} />
+            <line x1={fApronX0} y1={fTenonY + fTenonH} x2={fApronX0 + Math.min(fApronW * 0.4, PX(safeTl) * 1.2)} y2={fTenonY + fTenonH}
+              stroke={HIDDEN_BOLD_COLOR} strokeWidth={HIDDEN_BOLD_STROKE} strokeDasharray={HIDDEN_BOLD_DASH} />
+          </>
+        )}
+        <CenterLine x1={fLegX - 10} y1={fLegY + fLegH / 2} x2={fApronX0 + fApronW + 10} y2={fLegY + fLegH / 2} />
+        <CenterLine x1={fLegX + fLegW / 2} y1={fLegY - 10} x2={fLegX + fLegW / 2} y2={fLegY + fLegH + 10} />
+        <SectionMark x={fLegX - 14} y={fLegY + fLegH / 2} label="A" direction="right" />
+        <SectionMark x={fApronX0 + fApronW + 14} y={fLegY + fLegH / 2} label="A" direction="left" />
+        <text x={fTenonX + fTenonW / 2} y={fTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+          榫眼/榫頭（隱藏）
+        </text>
+        <DimLine x1={fLegX} y1={fTenonY} x2={fLegX} y2={fTenonY + fTenonH} label={`${tw}`}
+          side={safeDimSide("left", `${tw}`, { x: fLegX, y: fTenonY + fTenonH / 2 }, qBounds)} />
+        <DimLine x1={fTenonX} y1={fLegY} x2={fLegX + fLegW} y2={fLegY} label={`${safeTl}`}
+          side={safeDimSide("top", `${safeTl}`, { x: (fTenonX + fLegX + fLegW) / 2, y: fLegY }, qBounds)} />
+        <DimLine x1={fLegX} y1={fLegY + fLegH} x2={fLegX + fLegW} y2={fLegY + fLegH} label={`${mt}`}
+          side={safeDimSide("bottom", `${mt}`, { x: fLegX + fLegW / 2, y: fLegY + fLegH }, qBounds)} />
+        <GrainArrow x={fLegX + fLegW / 2 - 10} y={fLegY + 8} length={Math.min(60, fLegH - 16)} angle={90} />
+        <GrainArrow x={fApronX0 + 8} y={fApronY - 10} length={Math.min(60, fApronW - 16)} angle={0} />
+      </g>
+    );
+  })();
+
+  // ============================ SIDE view ============================
+  const side = (() => {
+    const objW = PX(mt);
+    const objH = PX(Math.min(cw * 3.5, sharedBbox.h));
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const sLegX = place.x;
+    const sLegY = place.y;
+    const sLegW = objW;
+    const sLegH = objH;
+    const sMortW = PX(tt);
+    const sMortH = PX(tw);
+    const sMortX = sLegX + sLegW / 2 - sMortW / 2;
+    const sMortY = sLegY + sLegH / 2 - sMortH / 2;
+    const sApronY = sLegY + sLegH / 2 - PX(ct) / 2;
+    const sApronH = PX(ct);
+
+    return (
+      <g>
+        <rect x={sLegX} y={sLegY} width={sLegW} height={sLegH} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={sMortX} y={sMortY} width={sMortW} height={sMortH}
+          fill="none" stroke={HIDDEN_BOLD_COLOR} strokeWidth={HIDDEN_BOLD_STROKE} strokeDasharray={HIDDEN_BOLD_DASH} />
+        <rect x={sLegX + sLegW / 2 - sMortW / 2 - PX(Math.max(0, ct - tt) / 2)} y={sApronY}
+          width={Math.max(sMortW, PX(ct))} height={sApronH}
+          fill="none" stroke={COLOR.HIDDEN} strokeWidth={STROKE.HIDDEN} strokeDasharray="3 2" />
+        <CenterLine x1={sLegX - 10} y1={sLegY + sLegH / 2} x2={sLegX + sLegW + 10} y2={sLegY + sLegH / 2} />
+        <CenterLine x1={sLegX + sLegW / 2} y1={sLegY - 10} x2={sLegX + sLegW / 2} y2={sLegY + sLegH + 10} />
+        <text x={sMortX + sMortW / 2} y={sMortY - 4} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+          榫眼/榫頭（隱藏）
+        </text>
+        <text x={sMortX + sMortW / 2} y={sMortY + sMortH + 14} fontSize={FONT.CALLOUT} textAnchor="middle" fill={HIDDEN_BOLD_COLOR}>
+          ⊗ 向內延伸 {safeTl}mm
+        </text>
+        <DimLine x1={sMortX} y1={sLegY} x2={sMortX + sMortW} y2={sLegY} label={`${tt}`}
+          side={safeDimSide("top", `${tt}`, { x: sMortX + sMortW / 2, y: sLegY }, qBounds)} />
+        <DimLine x1={sLegX} y1={sMortY} x2={sLegX} y2={sMortY + sMortH} label={`${tw}`}
+          side={safeDimSide("left", `${tw}`, { x: sLegX, y: sMortY + sMortH / 2 }, qBounds)} />
+        <DimLine x1={sLegX + sLegW} y1={sApronY} x2={sLegX + sLegW} y2={sApronY + sApronH} label={`${ct}`}
+          side={safeDimSide("right", `${ct}`, { x: sLegX + sLegW, y: sApronY + sApronH / 2 }, qBounds)} />
+        <DimLine x1={sLegX} y1={sLegY + sLegH} x2={sLegX + sLegW} y2={sLegY + sLegH} label={`${mt}`}
+          side={safeDimSide("bottom", `${mt}`, { x: sLegX + sLegW / 2, y: sLegY + sLegH }, qBounds)} />
+        <GrainArrow x={sLegX + sLegW / 2 - 10} y={sLegY + 8} length={Math.min(60, sLegH - 16)} angle={90} />
+      </g>
+    );
+  })();
+
+  // ============================ TOP view ============================
+  const top = (() => {
+    const tBbox = { w: mt + apronLenMm, h: Math.max(mt, ct) };
+    const ts = unifiedFitScale(tBbox);
+    const TPX = (mm: number) => mm * ts;
+    const objW = TPX(tBbox.w);
+    const objH = TPX(mt);
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const tLegSide = TPX(mt);
+    const tLegX = place.x;
+    const tCy = place.y + objH / 2;
+    const tLegY = tCy - tLegSide / 2;
+    const tApronX = tLegX + tLegSide;
+    const tApronLen = TPX(apronLenMm);
+    const tApronH = TPX(ct);
+    const tApronY = tCy - tApronH / 2;
+    const tTenonW = TPX(safeTl);
+    const tTenonH = TPX(tt);
+    const tTenonX = tLegX + tLegSide - tTenonW;
+    const tTenonY = tCy - tTenonH / 2;
+
+    return (
+      <g>
+        {(() => {
+          if (isRound) {
+            const r = tLegSide / 2;
+            const cx = tLegX + r;
+            return (
+              <g>
+                <circle cx={cx} cy={tCy} r={r} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                <rect x={tTenonX} y={tTenonY} width={tTenonW} height={tTenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                <rect x={tApronX} y={tApronY} width={tApronLen} height={tApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+                <CenterLine x1={cx - r - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
+                <CenterLine x1={cx} y1={tCy - r - 10} x2={cx} y2={tCy + r + 10} />
+                <DimLine x1={cx - r} y1={tCy - r} x2={cx + r} y2={tCy - r} label={`Ø${mt}`}
+                  side={safeDimSide("top", `Ø${mt}`, { x: cx, y: tCy - r }, qBounds)} />
+                <DimLine x1={tTenonX} y1={tCy + r} x2={cx + r} y2={tCy + r} label={`${safeTl}`}
+                  side={safeDimSide("bottom", `${safeTl}`, { x: (tTenonX + cx + r) / 2, y: tCy + r }, qBounds)} />
+                <DimLine x1={tApronX + tApronLen} y1={tApronY} x2={tApronX + tApronLen} y2={tApronY + tApronH} label={`${ct}`}
+                  side={safeDimSide("right", `${ct}`, { x: tApronX + tApronLen, y: tApronY + tApronH / 2 }, qBounds)} />
+              </g>
+            );
+          }
+          const legPath =
+            `M${tLegX} ${tLegY} ` +
+            `L${tLegX + tLegSide} ${tLegY} ` +
+            `L${tLegX + tLegSide} ${tTenonY} ` +
+            `L${tTenonX} ${tTenonY} ` +
+            `L${tTenonX} ${tTenonY + tTenonH} ` +
+            `L${tLegX + tLegSide} ${tTenonY + tTenonH} ` +
+            `L${tLegX + tLegSide} ${tLegY + tLegSide} ` +
+            `L${tLegX} ${tLegY + tLegSide} Z`;
+          return (
+            <g>
+              <path d={legPath} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <rect x={tTenonX} y={tTenonY} width={tTenonW} height={tTenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <rect x={tApronX} y={tApronY} width={tApronLen} height={tApronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              <text x={tTenonX - 4} y={tTenonY - 4} fontSize={FONT.CALLOUT} textAnchor="end" fill={HIDDEN_BOLD_COLOR} fontWeight="bold">
+                榫眼底
+              </text>
+              <CenterLine x1={tLegX - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
+              <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSide + 10} />
+              <DimLine x1={tLegX} y1={tLegY} x2={tLegX + tLegSide} y2={tLegY} label={`${mt}`}
+                side={safeDimSide("top", `${mt}`, { x: tLegX + tLegSide / 2, y: tLegY }, qBounds)} />
+              <DimLine x1={tTenonX} y1={tLegY + tLegSide} x2={tLegX + tLegSide} y2={tLegY + tLegSide} label={`${safeTl}`}
+                side={safeDimSide("bottom", `${safeTl}`, { x: (tTenonX + tLegX + tLegSide) / 2, y: tLegY + tLegSide }, qBounds)} />
+              <DimLine x1={tApronX + tApronLen} y1={tApronY} x2={tApronX + tApronLen} y2={tApronY + tApronH} label={`${ct}`}
+                side={safeDimSide("right", `${ct}`, { x: tApronX + tApronLen, y: tApronY + tApronH / 2 }, qBounds)} />
+              <DimLine x1={tLegX} y1={tTenonY} x2={tLegX} y2={tTenonY + tTenonH} label={`${tt}`}
+                side={safeDimSide("left", `${tt}`, { x: tLegX, y: tTenonY + tTenonH / 2 }, qBounds)} />
+            </g>
+          );
+        })()}
+      </g>
+    );
+  })();
+
+  // ============================ ISO view ============================
+  const iso = (() => {
+    const motherW = mt;
+    const motherH = cw * 2.5;
+    const motherD = mt;
+    const childLen = Math.max(cw * 2.0, safeTl * 4);
+    const childH = cw;
+    const childD = ct;
+    const isoBbox = { w: motherW + childLen, h: motherH, d: Math.max(motherD, childD) };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+    const oxM = center.x - ((motherW + childLen) * isoS) / 2 - 20;
+    const oyM = center.y - (motherH * isoS) / 2;
+    const explodeGap = (motherW + safeTl + 30) * isoS + 20;
+    const oxC = oxM + motherW * isoS + explodeGap;
+    const oyC = oyM + ((motherH - childH) / 2) * isoS;
+
+    return (
+      <g>
+        <g transform={`translate(${oxM} ${oyM}) scale(${isoS})`}>
+          {!isRound ? (
+            <IsoCuboid x={0} y={0} z={0} w={motherW} h={motherH} d={motherD}
+              fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          ) : (
+            <IsoCylinder x={motherW / 2} y={0} z={motherW / 2}
+              radius={motherW / 2} height={motherH} axis="y"
+              fillSide={ISO_FILL.MORTISE_FRONT} fillCap={ISO_FILL.MORTISE_TOP}
+              strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          )}
+          <IsoMortise faceX={motherW} faceY={motherH / 2} faceZ={motherD / 2}
+            width={tt} height={tw} depth={safeTl} faceNormal="+x" through={false}
+            stroke={COLOR.OUTLINE} strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoS)} />
+        </g>
+        <g transform={`translate(${oxC} ${oyC}) scale(${isoS})`}>
+          <IsoCuboid x={0} y={0} z={0} w={childLen} h={childH} d={childD}
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+          <IsoTenon baseX={0} baseY={childH / 2} baseZ={childD / 2}
+            width={tt} thickness={tw} length={safeTl} direction="-x"
+            fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+            strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)}
+            embeddedLength={safeTl} />
+        </g>
+        <line x1={oxC - 4} y1={oyC + (childH / 2) * isoS}
+          x2={oxM + motherW * isoS + 4} y2={oyM + (motherH / 2) * isoS}
+          stroke={COLOR.DIM} strokeWidth={STROKE.DIM} strokeDasharray="4 3" />
+      </g>
+    );
+  })();
+
+  const scaleStr = s >= 1 ? `${Math.round(s)}:1` : `1:${Math.max(1, Math.round(1 / s))}`;
+
+  return (
+    <MasterDetailLayout
+      type="blind-tenon"
+      joineryNameZh={isRound ? "盲榫（圓腳變體）" : "半隱榫（盲榫）"}
+      drawingNumber={`BT-${tw}x${tt}x${safeTl}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={
+        wasClamped
+          ? [`榫長需 ≤ 母厚 - 3mm（已自動 clamp ${tl}→${safeTl}）`, `留底厚 ${baseRest}mm`]
+          : [`白膠須塗滿榫眼底面`, `留底厚 ≈ ${Math.round(baseRest)}mm`]
+      }
+    />
+  );
+}
+/* === END blind-tenon-detail v2 === */
+
+/* === BEGIN half-lap-detail v2 (Wave 2b Group A) === */
+function HalfLapDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? mt;
+  const cw = p.childWidth ?? mt * 4;
+
+  const ratio = cw / Math.max(1, mt);
+  const lapForm: "cross" | "tee" | "ell" =
+    ratio < 0.6 ? "ell" : Math.abs(ratio - 1) < 0.35 ? "cross" : "tee";
+  const lapFormZh = lapForm === "cross" ? "十字搭" : lapForm === "tee" ? "T 字搭" : "L 字搭";
+
+  const cutDepthA = mt / 2;
+  const cutDepthB = ct / 2;
+
+  const sharedBbox = { w: cw + tl * 2, h: Math.max(mt, tl) * 3 };
+  const s = unifiedFitScale(sharedBbox);
+  const PX = (mm: number) => mm * s;
+
+  const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+  const hatchId = "hatch-halflap-v2";
+
+  // ===== FRONT view =====
+  const front = (() => {
+    const frontPieceLenMm = Math.max(tl * 4, mt * 4);
+    const fBbox = { w: frontPieceLenMm, h: mt };
+    const fs = unifiedFitScale(fBbox);
+    const FPX = (mm: number) => mm * fs;
+    const objW = FPX(frontPieceLenMm);
+    const objH = FPX(mt);
+    const place = placeInQuadrant({ w: objW, h: objH * 2.5 });
+    const frontA_x = place.x;
+    const frontA_y = place.y + objH;
+    const lapStartX = frontA_x + objW - FPX(tl);
+    const lapEndX = frontA_x + objW;
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        <path
+          d={`M${frontA_x} ${frontA_y} L${lapStartX} ${frontA_y} L${lapStartX} ${frontA_y + cutDepthA * fs} L${lapEndX} ${frontA_y + cutDepthA * fs} L${lapEndX} ${frontA_y + FPX(mt)} L${frontA_x} ${frontA_y + FPX(mt)} Z`}
+          fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={frontA_x} y={frontA_y} width={lapStartX - frontA_x} height={FPX(mt)} fill={`url(#${hatchId})`} stroke="none" />
+        <rect x={lapStartX} y={frontA_y - FPX(mt) + cutDepthA * fs} width={FPX(tl)}
+          height={FPX(mt) - cutDepthA * fs + cutDepthB * fs}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={lapStartX} y1={frontA_y + cutDepthA * fs} x2={lapEndX} y2={frontA_y + cutDepthA * fs}
+          stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" fill="none" />
+        {cutDepthB * fs < FPX(mt) && (
+          <line x1={lapStartX} y1={frontA_y + cutDepthB * fs} x2={lapEndX} y2={frontA_y + cutDepthB * fs}
+            stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" fill="none" />
+        )}
+        <text x={(lapStartX + lapEndX) / 2} y={frontA_y + cutDepthA * fs - 4}
+          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
+          搭接介面（隱藏）
+        </text>
+        <CenterLine x1={frontA_x - 10} y1={frontA_y + FPX(mt) / 2} x2={lapEndX + 10} y2={frontA_y + FPX(mt) / 2} />
+        <GrainArrow x={frontA_x + 6} y={frontA_y - 12} length={Math.min(60, objW / 3)} angle={0} />
+        <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y - 16} label="A" direction="down" />
+        <SectionMark x={(lapStartX + lapEndX) / 2} y={frontA_y + FPX(mt) + 16} label="A" direction="up" />
+        <DimLine x1={lapStartX} y1={frontA_y + FPX(mt)} x2={lapEndX} y2={frontA_y + FPX(mt)} label={`搭長 ${tl}`}
+          side={safeDimSide("bottom", `搭長 ${tl}`, { x: (lapStartX + lapEndX) / 2, y: frontA_y + FPX(mt) }, qBounds)} />
+        <DimLine x1={frontA_x} y1={frontA_y} x2={frontA_x} y2={frontA_y + FPX(mt)} label={`板厚 ${mt}`}
+          side={safeDimSide("left", `板厚 ${mt}`, { x: frontA_x, y: frontA_y + FPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={lapEndX} y1={frontA_y - FPX(mt) + cutDepthA * fs} x2={lapEndX} y2={frontA_y + cutDepthA * fs}
+          label={`削厚 ${Math.round(cutDepthB)}`}
+          side={safeDimSide("right", `削厚 ${Math.round(cutDepthB)}`, { x: lapEndX, y: frontA_y - FPX(mt) / 2 + cutDepthA * fs }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== SIDE view =====
+  const side = (() => {
+    const sBbox = { w: cw, h: mt * 3 };
+    const ss = unifiedFitScale(sBbox);
+    const SPX = (mm: number) => mm * ss;
+    const aLen = SPX(cw);
+    const sideA_h = SPX(mt);
+    const sideB_w = SPX(ct);
+    const place = placeInQuadrant({ w: aLen, h: SPX(mt) * 3 });
+    const aX = place.x;
+    const aY = place.y + sideA_h;
+    const bX = aX + aLen / 2 - sideB_w / 2;
+    const bTop = aY - SPX(mt) * 0.6;
+    const bBottom = aY + sideA_h + SPX(mt) * 0.6;
+
+    return (
+      <g>
+        <rect x={aX} y={aY} width={aLen} height={sideA_h} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={bX} y={bTop} width={sideB_w} height={bBottom - bTop} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <HiddenEdge x1={bX} y1={aY + cutDepthA * ss} x2={bX + sideB_w} y2={aY + cutDepthA * ss} />
+        <CenterLine x1={aX - 10} y1={aY + sideA_h / 2} x2={aX + aLen + 10} y2={aY + sideA_h / 2} />
+        <CenterLine x1={bX + sideB_w / 2} y1={bTop - 10} x2={bX + sideB_w / 2} y2={bBottom + 10} />
+        <GrainArrow x={bX + sideB_w + 8} y={bTop + 4} length={Math.min(60, bBottom - bTop - 8)} angle={90} />
+        <DimLine x1={aX} y1={aY + sideA_h} x2={aX + aLen} y2={aY + sideA_h} label={`板寬 ${cw}`}
+          side={safeDimSide("bottom", `板寬 ${cw}`, { x: aX + aLen / 2, y: aY + sideA_h }, qBounds)} />
+        <DimLine x1={bX} y1={bTop} x2={bX + sideB_w} y2={bTop} label={`B 厚 ${ct}`}
+          side={safeDimSide("top", `B 厚 ${ct}`, { x: bX + sideB_w / 2, y: bTop }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== TOP view =====
+  const top = (() => {
+    const tBbox = { w: Math.max(tl * 4, cw), h: cw + mt * 3 };
+    const ts = unifiedFitScale(tBbox);
+    const TPX = (mm: number) => mm * ts;
+    const tlPx = TPX(tl);
+    const aWide = TPX(cw);
+    const aLen = TPX(Math.max(tl * 4, cw));
+    const bWide = TPX(ct);
+    const objH = aWide + 30 + Math.max(tlPx * 4, 60);
+    const place = placeInQuadrant({ w: aLen, h: objH });
+    const ax = place.x;
+    const ay = place.y;
+    const bx = ax + aLen / 2 - bWide / 2;
+    const by = ay + aWide + 30;
+
+    return (
+      <g>
+        <rect x={ax} y={ay} width={aLen} height={aWide} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {(() => {
+          const slotW = lapForm === "cross" ? bWide : tlPx;
+          const slotH = lapForm === "cross" ? bWide : aWide;
+          const slotX = lapForm === "ell" ? ax + aLen - slotW : ax + aLen / 2 - slotW / 2;
+          const slotY = lapForm === "cross" || lapForm === "tee" ? ay + aWide / 2 - slotH / 2 : ay;
+          return (
+            <g>
+              <rect x={slotX} y={slotY} width={slotW} height={slotH} fill="white" stroke={COLOR.DIM_TICK} strokeDasharray={DASH.AUX} strokeWidth={STROKE.HIDDEN} />
+              <text x={slotX + slotW / 2} y={slotY - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} textAnchor="middle">
+                切刀位
+              </text>
+            </g>
+          );
+        })()}
+        <text x={ax + aLen / 2} y={ay - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">A 件</text>
+        <rect x={bx} y={by} width={bWide} height={Math.min(QUADRANT.H - QUADRANT.HEADER_H - by - 30, Math.max(tlPx * 4, 80))}
+          fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <text x={bx + bWide / 2} y={by - 6} fontSize={FONT.DIM} textAnchor="middle" fill="#666">B 件</text>
+        <CenterLine x1={ax - 10} y1={ay + aWide / 2} x2={ax + aLen + 10} y2={ay + aWide / 2} />
+        <DimLine x1={ax} y1={ay} x2={ax + aLen} y2={ay} label={`A 長 ${cw}`}
+          side={safeDimSide("top", `A 長 ${cw}`, { x: ax + aLen / 2, y: ay }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== ISO view =====
+  const iso = (() => {
+    const _lapLenMm = Math.max(tl, mt * 1.4);
+    const _tailLenMm = Math.max(mt * 2, _lapLenMm * 1.2);
+    const _totalLenMm = _lapLenMm + _tailLenMm;
+    const isoBbox = { w: _totalLenMm, h: mt * 6, d: Math.max(mt, ct) };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+
+    return (
+      <g>
+        <g transform={`rotate(-90 ${center.x} ${center.y})`}>
+          <IsometricGroup originX={center.x} originY={center.y} scale={isoS}>
+            {(() => {
+              const halfMt = mt / 2;
+              const halfCt = ct / 2;
+              const lapLen = Math.max(tl, mt * 1.4);
+              const tailLen = Math.max(mt * 2, lapLen * 1.2);
+              const aTotalLen = lapLen + tailLen;
+              const bTotalLen = lapLen + tailLen;
+              const explodeGap = mt * 2.4;
+              const aDepth = mt;
+              const bDepth = ct;
+              const aTailX = -aTotalLen / 2;
+              const aLapX = aTailX + tailLen;
+              const bTailX = -bTotalLen / 2;
+              const bLapX = bTailX + tailLen;
+              const bYOffset = -explodeGap;
+
+              return (
+                <g>
+                  <IsoCuboid x={aTailX} y={0} z={-aDepth / 2}
+                    w={tailLen} h={mt} d={aDepth}
+                    fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} showHiddenBackEdges={false} />
+                  <IsoCuboid x={aLapX} y={halfMt} z={-aDepth / 2}
+                    w={lapLen} h={halfMt} d={aDepth}
+                    fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} showHiddenBackEdges={false} />
+                  {(() => {
+                    const g0 = isoProject(aLapX, 0, -aDepth / 2);
+                    const g1 = isoProject(aLapX + lapLen, 0, -aDepth / 2);
+                    const g2 = isoProject(aLapX + lapLen, halfMt, -aDepth / 2);
+                    const g3 = isoProject(aLapX, halfMt, -aDepth / 2);
+                    const g0b = isoProject(aLapX, 0, aDepth / 2);
+                    const g1b = isoProject(aLapX + lapLen, 0, aDepth / 2);
+                    const g2b = isoProject(aLapX + lapLen, halfMt, aDepth / 2);
+                    const g3b = isoProject(aLapX, halfMt, aDepth / 2);
+                    void g0b;
+                    const f = `${g0[0]},${g0[1]} ${g1[0]},${g1[1]} ${g2[0]},${g2[1]} ${g3[0]},${g3[1]}`;
+                    const t = `${g3[0]},${g3[1]} ${g2[0]},${g2[1]} ${g2b[0]},${g2b[1]} ${g3b[0]},${g3b[1]}`;
+                    const sd = `${g1[0]},${g1[1]} ${g1b[0]},${g1b[1]} ${g2b[0]},${g2b[1]} ${g2[0]},${g2[1]}`;
+                    return (
+                      <g>
+                        <polygon points={f} fill={`url(#${hatchId})`} stroke={COLOR.HIDDEN}
+                          strokeWidth={ISO_STROKE.HIDDEN_DASHED / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.HIDDEN} />
+                        <polygon points={t} fill="none" stroke={COLOR.HIDDEN}
+                          strokeWidth={ISO_STROKE.HIDDEN_DASHED / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.HIDDEN} />
+                        <polygon points={sd} fill="none" stroke={COLOR.HIDDEN}
+                          strokeWidth={ISO_STROKE.HIDDEN_DASHED / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.HIDDEN} />
+                      </g>
+                    );
+                  })()}
+                  <g transform={`translate(0 ${bYOffset})`}>
+                    <IsoCuboid x={bTailX} y={0} z={-bDepth / 2}
+                      w={tailLen} h={ct} d={bDepth}
+                      fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                      strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} showHiddenBackEdges={false} />
+                    <IsoCuboid x={bLapX} y={0} z={-bDepth / 2}
+                      w={lapLen} h={halfCt} d={bDepth}
+                      fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                      strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} showHiddenBackEdges={false} />
+                  </g>
+                  {(() => {
+                    const arrTop = isoProject(0, bYOffset + halfCt + 2, 0);
+                    const arrBot = isoProject(0, -2, 0);
+                    return (
+                      <g>
+                        <line x1={arrTop[0]} y1={arrTop[1]} x2={arrBot[0]} y2={arrBot[1]}
+                          stroke={COLOR.DIM} strokeWidth={STROKE.OUTLINE / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.ARROW} />
+                        <polygon points={`${arrBot[0]},${arrBot[1]} ${arrBot[0] - 4 / Math.max(0.4, isoS)},${arrBot[1] - 6 / Math.max(0.4, isoS)} ${arrBot[0] + 4 / Math.max(0.4, isoS)},${arrBot[1] - 6 / Math.max(0.4, isoS)}`} fill={COLOR.DIM} />
+                      </g>
+                    );
+                  })()}
+                  <g transform="translate(0 0)">
+                    {(() => { void aTotalLen; void bTotalLen; return null; })()}
+                  </g>
+                </g>
+              );
+            })()}
+          </IsometricGroup>
+        </g>
+      </g>
+    );
+  })();
+
+  const scaleStr = s >= 1 ? `${Math.round(s)}:1` : `1:${Math.max(1, Math.round(1 / s))}`;
+
+  return (
+    <MasterDetailLayout
+      type="half-lap"
+      joineryNameZh={`半搭榫（${lapFormZh}）`}
+      drawingNumber={`HL-${ct}-${cw}-${mt}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `兩件各削一半（A 上半 ${Math.round(mt / 2)}mm + B 下半 ${Math.round(ct / 2)}mm）`,
+        `咬合後總厚 = 板厚`,
+      ]}
+    />
+  );
+}
+/* === END half-lap-detail v2 === */
+
+/* === BEGIN tongue-and-groove-detail v2 (Wave 2b Group A) === */
+function TongueAndGrooveDetail(p: JoineryDetailParams) {
+  const mt = p.motherThickness;
+  const tt = p.tenonThickness ?? Math.max(3, Math.round(mt / 3));
+  const tl = p.tenonLength;
+  const ct = p.childThickness ?? tt;
+  const grooveDepth = tl + 1;
+  const shoulderThickness = Math.max(0, (mt - tt) / 2);
+
+  const sharedBbox = { w: mt * 5 + tl * 2, h: mt * 2 + tl };
+  const s = unifiedFitScale(sharedBbox);
+  const PX = (mm: number) => mm * s;
+
+  const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+  const hatchId = "hatch-tg-v2";
+
+  // ===== FRONT view =====
+  const front = (() => {
+    const pieceLenMm = mt * 2.2;
+    const fBbox = { w: pieceLenMm * 2 + 30 / s, h: mt };
+    const fs = unifiedFitScale(fBbox);
+    const FPX = (mm: number) => mm * fs;
+    const pieceLen = Math.max(FPX(pieceLenMm), 90);
+    const objW = pieceLen * 2 + 30;
+    const objH = FPX(mt);
+    const place = placeInQuadrant({ w: objW, h: objH * 2 });
+    const motherX = place.x;
+    const motherY = place.y + objH / 2;
+    const childX = motherX + pieceLen + 30;
+    const childY = motherY + FPX(mt) / 2 - FPX(ct) / 2;
+    const grooveX = motherX + pieceLen - FPX(grooveDepth);
+    const grooveY = motherY + FPX(mt) / 2 - FPX(tt) / 2;
+    const tongueX = childX;
+    const tongueY = childY + FPX(ct) / 2 - FPX(tt) / 2;
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        <rect x={motherX} y={motherY} width={pieceLen} height={FPX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={motherX} y={motherY} width={pieceLen - FPX(grooveDepth)} height={FPX(mt)} fill={`url(#${hatchId})`} stroke="none" />
+        <rect x={motherX} y={motherY} width={pieceLen} height={Math.max(0, grooveY - motherY)} fill={`url(#${hatchId})`} stroke="none" />
+        <rect x={motherX} y={grooveY + FPX(tt)} width={pieceLen} height={Math.max(0, motherY + FPX(mt) - (grooveY + FPX(tt)))} fill={`url(#${hatchId})`} stroke="none" />
+        <rect x={grooveX} y={grooveY} width={FPX(grooveDepth)} height={FPX(tt)} fill="white" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={childX + FPX(tl)} y={childY} width={pieceLen - FPX(tl)} height={FPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={tongueX} y={tongueY} width={FPX(tl)} height={FPX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <CenterLine x1={motherX - 10} y1={motherY + FPX(mt) / 2} x2={childX + pieceLen + 10} y2={motherY + FPX(mt) / 2} />
+        <GrainArrow x={motherX + 4} y={motherY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+        <GrainArrow x={childX + FPX(tl) + 4} y={childY - 12} length={Math.min(50, pieceLen / 2)} angle={0} />
+        <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY - 16} label="A" direction="down" />
+        <SectionMark x={grooveX + FPX(grooveDepth) / 2} y={motherY + FPX(mt) + 16} label="A" direction="up" />
+        <DimLine x1={tongueX} y1={tongueY + FPX(tt)} x2={tongueX + FPX(tl)} y2={tongueY + FPX(tt)} label={`舌長 ${tl}`}
+          side={safeDimSide("bottom", `舌長 ${tl}`, { x: tongueX + FPX(tl) / 2, y: tongueY + FPX(tt) }, qBounds)} />
+        <DimLine x1={grooveX} y1={grooveY} x2={grooveX + FPX(grooveDepth)} y2={grooveY} label={`槽深 ${grooveDepth}`}
+          side={safeDimSide("top", `槽深 ${grooveDepth}`, { x: grooveX + FPX(grooveDepth) / 2, y: grooveY }, qBounds)} />
+        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + FPX(mt)} label={`母厚 ${mt}`}
+          side={safeDimSide("left", `母厚 ${mt}`, { x: motherX, y: motherY + FPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={tongueX} y1={tongueY} x2={tongueX} y2={tongueY + FPX(tt)} label={`舌厚 ${tt}`}
+          side={safeDimSide("left", `舌厚 ${tt}`, { x: tongueX, y: tongueY + FPX(tt) / 2 }, qBounds)} />
+        {shoulderThickness > 0 && (
+          <DimLine x1={childX + pieceLen} y1={childY} x2={childX + pieceLen} y2={childY + FPX(shoulderThickness)} label={`舌肩 ${Math.round(shoulderThickness)}`}
+            side={safeDimSide("right", `舌肩 ${Math.round(shoulderThickness)}`, { x: childX + pieceLen, y: childY + FPX(shoulderThickness) / 2 }, qBounds)} />
+        )}
+      </g>
+    );
+  })();
+
+  // ===== SIDE view =====
+  const side = (() => {
+    const boardLen = QUADRANT.W - 60;
+    const sBbox = { w: boardLen / s, h: mt * 4 };
+    const ss = unifiedFitScale({ w: sBbox.w, h: sBbox.h });
+    const SPX = (mm: number) => mm * ss;
+    const motherY = 50;
+    const childY = motherY + SPX(mt) + 24;
+    const motherX = 30;
+    const childX = 30;
+    const actualBoardLen = QUADRANT.W - 60;
+
+    return (
+      <g>
+        <rect x={motherX} y={motherY} width={actualBoardLen} height={SPX(mt)} fill={COLOR.MORTISE} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <HiddenEdge x1={motherX} y1={motherY + SPX(mt) / 2 - SPX(tt) / 2} x2={motherX + actualBoardLen} y2={motherY + SPX(mt) / 2 - SPX(tt) / 2} />
+        <HiddenEdge x1={motherX} y1={motherY + SPX(mt) / 2 + SPX(tt) / 2} x2={motherX + actualBoardLen} y2={motherY + SPX(mt) / 2 + SPX(tt) / 2} />
+        <rect x={motherX + actualBoardLen - SPX(grooveDepth)} y={motherY + SPX(mt) / 2 - SPX(tt) / 2}
+          width={SPX(grooveDepth)} height={SPX(tt)}
+          fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+        <text x={motherX + actualBoardLen - SPX(grooveDepth) / 2} y={motherY + SPX(mt) / 2 - SPX(tt) / 2 - 4}
+          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
+          凹槽（隱藏）
+        </text>
+        <text x={motherX + actualBoardLen / 2} y={motherY - 4} fontSize={FONT.DIM} fill="#666" textAnchor="middle">母件（凹槽連續）</text>
+        <rect x={childX} y={childY} width={actualBoardLen} height={SPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <HiddenEdge x1={childX} y1={childY + SPX(ct) / 2 - SPX(tt) / 2} x2={childX + actualBoardLen} y2={childY + SPX(ct) / 2 - SPX(tt) / 2} />
+        <rect x={childX} y={childY + SPX(ct) / 2 - SPX(tt) / 2} width={actualBoardLen} height={SPX(tt)}
+          fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+        <text x={childX + actualBoardLen - 30} y={childY + SPX(ct) / 2 + SPX(tt) / 2 + 12}
+          fontSize={FONT.CALLOUT} textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
+          舌頭（隱藏）
+        </text>
+        <text x={childX + actualBoardLen / 2} y={childY + SPX(ct) + 14} fontSize={FONT.DIM} fill="#666" textAnchor="middle">公件（舌連續）</text>
+        <CenterLine x1={motherX - 10} y1={motherY + SPX(mt) / 2} x2={motherX + actualBoardLen + 10} y2={motherY + SPX(mt) / 2} />
+        <GrainArrow x={motherX + 4} y={motherY - 14} length={Math.min(80, actualBoardLen - 10)} angle={0} />
+        <DimLine x1={motherX} y1={motherY} x2={motherX} y2={motherY + SPX(mt)} label={`母厚 ${mt}`}
+          side={safeDimSide("left", `母厚 ${mt}`, { x: motherX, y: motherY + SPX(mt) / 2 }, qBounds)} />
+        <DimLine x1={childX} y1={childY} x2={childX} y2={childY + SPX(ct)} label={`公厚 ${ct}`}
+          side={safeDimSide("left", `公厚 ${ct}`, { x: childX, y: childY + SPX(ct) / 2 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== TOP view =====
+  const top = (() => {
+    const stripLenPx = QUADRANT.W - 110;
+    const stripH = Math.max(PX(mt), 24);
+    const startX = 60;
+    const startY = 40;
+    const strips = 3;
+    const totalWidthMm = strips * mt;
+    const boardLenMm = Math.round(stripLenPx / Math.max(s, 0.001));
+    const groovePxLen = PX(grooveDepth);
+
+    return (
+      <g>
+        {[0, 1, 2].map((i) => {
+          const y = startY + i * (stripH + 4);
+          const fill = i % 2 === 0 ? COLOR.MORTISE : COLOR.TENON;
+          const seamY = y + stripH;
+          const halfTongue = PX(tl / 2);
+          return (
+            <g key={i}>
+              <rect x={startX} y={y} width={stripLenPx} height={stripH} fill={fill} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              {i < strips - 1 && (
+                <line x1={startX} y1={seamY} x2={startX + stripLenPx} y2={seamY} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+              )}
+              {i < strips - 1 && (
+                <HiddenEdge x1={startX + stripLenPx - groovePxLen} y1={seamY} x2={startX + stripLenPx} y2={seamY} />
+              )}
+              {i < strips - 1 && (
+                <>
+                  <line x1={startX} y1={seamY - halfTongue} x2={startX + stripLenPx} y2={seamY - halfTongue}
+                    stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+                  <line x1={startX} y1={seamY + halfTongue} x2={startX + stripLenPx} y2={seamY + halfTongue}
+                    stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+                </>
+              )}
+              <text x={startX - 4} y={y + stripH / 2 + 3} fontSize={FONT.DIM} fill="#666" textAnchor="end">板 {i + 1}</text>
+            </g>
+          );
+        })}
+        <text x={startX + stripLenPx + 8} y={startY + stripH + 4}
+          fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK} fontWeight="bold">
+          ← 舌頭嵌入位（隱藏）
+        </text>
+        <GrainArrow x={startX + 8} y={startY - 12} length={Math.min(80, stripLenPx - 12)} angle={0} />
+        <DimLine x1={startX} y1={startY} x2={startX} y2={startY + strips * stripH + (strips - 1) * 4}
+          label={`拼板總寬 ${totalWidthMm}`}
+          side={safeDimSide("left", `拼板總寬 ${totalWidthMm}`, { x: startX, y: startY + (strips * stripH) / 2 }, qBounds)} />
+        <DimLine x1={startX} y1={startY + strips * stripH + (strips - 1) * 4} x2={startX + stripLenPx} y2={startY + strips * stripH + (strips - 1) * 4}
+          label={`板長 ${boardLenMm}`}
+          side={safeDimSide("bottom", `板長 ${boardLenMm}`, { x: startX + stripLenPx / 2, y: startY + strips * stripH + (strips - 1) * 4 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== ISO view =====
+  const iso = (() => {
+    const pieceLenMm = Math.max(mt * 3, tl * 5, 80);
+    const boardDepth = Math.max(80, pieceLenMm * 0.5);
+    const isoBbox = { w: pieceLenMm * 2 + tl, h: mt + 20, d: boardDepth };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x} originY={center.y + 10} scale={isoS}>
+          {(() => {
+            const explodeGap = tl + 8;
+            return (
+              <g>
+                <IsoCuboid x={-pieceLenMm} y={-mt / 2} z={0}
+                  w={pieceLenMm} h={mt} d={boardDepth}
+                  fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+                <IsoMortise faceX={0} faceY={0} faceZ={boardDepth / 2}
+                  width={boardDepth} height={tt} depth={grooveDepth} faceNormal="+x" through={false}
+                  stroke={COLOR.OUTLINE} strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoS)} />
+                <g transform={`translate(${explodeGap} 0)`}>
+                  <IsoCuboid x={tl} y={-mt / 2} z={0}
+                    w={pieceLenMm} h={mt} d={boardDepth}
+                    fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+                  <IsoTenon baseX={tl} baseY={0} baseZ={boardDepth / 2}
+                    width={boardDepth} thickness={tt} length={tl} direction="-x"
+                    fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} embeddedLength={tl} />
+                </g>
+                <line x1={tl + explodeGap - 4} y1={0} x2={4} y2={0}
+                  stroke={COLOR.DIM} strokeWidth={STROKE.OUTLINE / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.ARROW} />
+              </g>
+            );
+          })()}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const scaleStr = s >= 1 ? `${Math.round(s)}:1` : `1:${Math.max(1, Math.round(1 / s))}`;
+
+  return (
+    <MasterDetailLayout
+      type="tongue-and-groove"
+      joineryNameZh="企口榫（舌槽接）"
+      drawingNumber={`TG-${tt}-${tl}-${mt}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={[
+        `凹槽深 = 舌長 + 1mm（漲縮餘量 ${grooveDepth}mm）`,
+        `舌厚 ≈ 母厚 1/3 = ${tt}mm`,
+      ]}
+    />
+  );
+}
+/* === END tongue-and-groove-detail v2 === */
+
+/* === BEGIN shouldered-tenon-detail v2 (Wave 2b Group A) === */
+function ShoulderedTenonDetail(p: JoineryDetailParams) {
+  const tl = p.tenonLength;
+  const tw = p.tenonWidth;
+  const tt = p.tenonThickness;
+  const mt = p.motherThickness;
+  const ct = p.childThickness ?? tt;
+  const cw = p.childWidth ?? tw;
+  const isRound = p.motherShape === "round";
+
+  const noShoulder = cw <= tw + 1;
+  const shoulderW = noShoulder ? 0 : (cw - tw) / 2;
+  const haunchLen = Math.max(4, Math.round(tl / 3));
+  void haunchLen;
+
+  const sharedBbox = { w: cw * 2 + tl * 2 + mt * 1.5, h: cw + 40 };
+  const s = unifiedFitScale(sharedBbox);
+  const PX = (mm: number) => mm * s;
+
+  const qBounds = { x: 0, y: 0, w: QUADRANT.W, h: QUADRANT.H - QUADRANT.HEADER_H };
+  const hatchId = "hatch-shoulder-v2";
+
+  // ===== FRONT view =====
+  const front = (() => {
+    const apronBodyLenMm = Math.max(ct * 5, mt * 2);
+    const fBbox = { w: apronBodyLenMm + tl + mt + 30 / s, h: cw };
+    const fs = unifiedFitScale(fBbox);
+    const FPX = (mm: number) => mm * fs;
+    const apronBodyLen = Math.max(FPX(apronBodyLenMm), 100);
+    const apronH = FPX(cw);
+    const objW = apronBodyLen + FPX(tl) + FPX(mt) + 30;
+    const objH = Math.max(apronH * 1.4, FPX(mt));
+    const place = placeInQuadrant({ w: objW, h: objH });
+    const ax = place.x;
+    const ay = place.y + (objH - apronH) / 2;
+    const tenonY = ay + FPX(shoulderW);
+    const tenonH = FPX(tw);
+    const tenonX = ax + apronBodyLen;
+    const tenonRight = tenonX + FPX(tl);
+
+    return (
+      <g>
+        <defs>
+          <Hatching id={hatchId} color={COLOR.SECTION_HATCH} />
+        </defs>
+        <rect x={ax} y={ay} width={apronBodyLen} height={apronH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={tenonX} y={tenonY} width={FPX(tl)} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={tenonX} y1={ay} x2={tenonX} y2={ay + apronH} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        {(() => {
+          const colX = tenonRight + 18;
+          const colW = FPX(mt);
+          const colH = Math.max(apronH * 1.4, FPX(mt));
+          const colY = ay + apronH / 2 - colH / 2;
+          return (
+            <g>
+              <rect x={colX} y={colY} width={colW} height={colH}
+                fill="#e8d8b8" stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} opacity={0.7} />
+              <rect x={colX} y={tenonY} width={FPX(tl)} height={tenonH}
+                fill="none" stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+              <line x1={colX} y1={tenonY + tenonH / 2} x2={colX + FPX(tl)} y2={tenonY + tenonH / 2}
+                stroke={COLOR.DIM_TICK} strokeWidth={1.6} strokeDasharray="5 3" />
+              <line x1={tenonRight + 2} y1={tenonY + tenonH / 2} x2={colX - 2} y2={tenonY + tenonH / 2}
+                stroke={COLOR.DIM} strokeWidth={STROKE.HIDDEN} strokeDasharray="2 2" />
+              <text x={colX + FPX(tl) / 2} y={tenonY - 4} fontSize={FONT.CALLOUT}
+                textAnchor="middle" fill={COLOR.DIM_TICK} fontWeight="bold">
+                榫頭（隱藏）
+              </text>
+              <text x={colX + colW / 2} y={colY + colH + 12} fontSize={FONT.CALLOUT}
+                textAnchor="middle" fill="#666">
+                柱身
+              </text>
+            </g>
+          );
+        })()}
+        <CenterLine x1={ax - 10} y1={ay + apronH / 2} x2={tenonRight + 10} y2={ay + apronH / 2} />
+        <GrainArrow x={ax + 6} y={ay - 12} length={Math.min(70, apronBodyLen / 2)} angle={0} />
+        <SectionMark x={tenonX + FPX(tl) / 2} y={ay - 18} label="A" direction="down" />
+        <SectionMark x={tenonX + FPX(tl) / 2} y={ay + apronH + 18} label="A" direction="up" />
+        <DimLine x1={tenonX} y1={tenonY + tenonH} x2={tenonRight} y2={tenonY + tenonH} label={`榫長 ${tl}`}
+          side={safeDimSide("bottom", `榫長 ${tl}`, { x: tenonX + FPX(tl) / 2, y: tenonY + tenonH }, qBounds)} />
+        <DimLine x1={tenonRight} y1={tenonY} x2={tenonRight} y2={tenonY + tenonH} label={`榫寬 ${tw}`}
+          side={safeDimSide("right", `榫寬 ${tw}`, { x: tenonRight, y: tenonY + tenonH / 2 }, qBounds)} />
+        <DimLine x1={ax} y1={ay} x2={ax} y2={ay + apronH} label={`板寬 ${cw}`}
+          side={safeDimSide("left", `板寬 ${cw}`, { x: ax, y: ay + apronH / 2 }, qBounds)} />
+      </g>
+    );
+  })();
+
+  // ===== SIDE view =====
+  const side = (() => {
+    const sBbox = { w: ct * 3, h: cw + 20 };
+    const ss = unifiedFitScale(sBbox);
+    const SPX = (mm: number) => mm * ss;
+    const xsCw = SPX(ct);
+    const xsCh = SPX(cw);
+    const place = placeInQuadrant({ w: xsCw, h: xsCh });
+    const xsX = place.x;
+    const xsY = place.y;
+    const tenonW = SPX(tt);
+    const tenonH = SPX(tw);
+    const tenonX = xsX + (xsCw - tenonW) / 2;
+    const tenonY = xsY + SPX(shoulderW);
+
+    return (
+      <g>
+        <rect x={xsX} y={xsY} width={xsCw} height={xsCh} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={tenonX} y={tenonY} width={tenonW} height={tenonH} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <CenterLine x1={xsX - 8} y1={xsY + xsCh / 2} x2={xsX + xsCw + 8} y2={xsY + xsCh / 2} />
+        <CenterLine x1={xsX + xsCw / 2} y1={xsY - 8} x2={xsX + xsCw / 2} y2={xsY + xsCh + 8} />
+        <text x={xsX + 4} y={xsY + 12} fontSize={FONT.CALLOUT} fill={COLOR.GRAIN}>⊙ 木紋</text>
+        <DimLine x1={xsX} y1={xsY + xsCh} x2={xsX + xsCw} y2={xsY + xsCh} label={`板厚 ${ct}`}
+          side={safeDimSide("bottom", `板厚 ${ct}`, { x: xsX + xsCw / 2, y: xsY + xsCh }, qBounds)} />
+        <DimLine x1={tenonX} y1={tenonY} x2={tenonX + tenonW} y2={tenonY} label={`榫厚 ${tt}`}
+          side={safeDimSide("top", `榫厚 ${tt}`, { x: tenonX + tenonW / 2, y: tenonY }, qBounds)} />
+        <DimLine x1={xsX} y1={xsY} x2={xsX} y2={xsY + xsCh} label={`板寬 ${cw}`}
+          side={safeDimSide("left", `板寬 ${cw}`, { x: xsX, y: xsY + xsCh / 2 }, qBounds)} />
+        {!noShoulder && (
+          <>
+            <DimLine x1={xsX + xsCw} y1={xsY} x2={xsX + xsCw} y2={tenonY} label={`上肩 ${Math.round(shoulderW)}`}
+              side={safeDimSide("right", `上肩 ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (xsY + tenonY) / 2 }, qBounds)} />
+            <DimLine x1={xsX + xsCw} y1={tenonY + tenonH} x2={xsX + xsCw} y2={xsY + xsCh} label={`下肩 ${Math.round(shoulderW)}`}
+              side={safeDimSide("right", `下肩 ${Math.round(shoulderW)}`, { x: xsX + xsCw, y: (tenonY + tenonH + xsY + xsCh) / 2 }, qBounds)} />
+          </>
+        )}
+      </g>
+    );
+  })();
+
+  // ===== TOP view =====
+  const top = (() => {
+    const tBbox = { w: mt + ct * 5 + tl, h: mt };
+    const ts = unifiedFitScale(tBbox);
+    const TPX = (mm: number) => mm * ts;
+    const legW = TPX(mt);
+    const legH = TPX(mt);
+    const apronLen = Math.max(TPX(ct) * 5, 100);
+    const objW = legW + apronLen;
+    const place = placeInQuadrant({ w: objW, h: Math.max(legH, TPX(ct)) });
+    const legX = place.x;
+    const legY = place.y + (Math.max(legH, TPX(ct)) - legH) / 2;
+    const tenonY = legY + legH / 2 - TPX(tt) / 2;
+    const tenonX = legX + legW - TPX(tl);
+    const apronY = legY + legH / 2 - TPX(ct) / 2;
+    const apronX = legX + legW;
+
+    return (
+      <g>
+        {isRound ? (
+          <circle cx={legX + legW / 2} cy={legY + legH / 2} r={legW / 2}
+            fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        ) : (
+          <rect x={legX} y={legY} width={legW} height={legH}
+            fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        )}
+        <rect x={tenonX} y={tenonY} width={TPX(tl)} height={TPX(tt)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <rect x={apronX} y={apronY} width={apronLen} height={TPX(ct)} fill={COLOR.TENON} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <line x1={apronX} y1={apronY - TPX(shoulderW)} x2={apronX} y2={apronY + TPX(ct) + TPX(shoulderW)}
+          stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
+        <CenterLine x1={legX - 10} y1={legY + legH / 2} x2={apronX + apronLen + 10} y2={legY + legH / 2} />
+        <HiddenEdge x1={tenonX} y1={tenonY} x2={legX} y2={tenonY} />
+        <HiddenEdge x1={tenonX} y1={tenonY + TPX(tt)} x2={legX} y2={tenonY + TPX(tt)} />
+        <DimLine x1={tenonX} y1={tenonY + TPX(tt)} x2={tenonX + TPX(tl)} y2={tenonY + TPX(tt)} label={`榫長 ${tl}`}
+          side={safeDimSide("bottom", `榫長 ${tl}`, { x: tenonX + TPX(tl) / 2, y: tenonY + TPX(tt) }, qBounds)} />
+        <DimLine x1={legX} y1={legY} x2={legX + legW} y2={legY} label={`柱寬 ${mt}`}
+          side={safeDimSide("top", `柱寬 ${mt}`, { x: legX + legW / 2, y: legY }, qBounds)} />
+        <text x={apronX + 4} y={apronY - TPX(shoulderW) - 4} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>← 肩面（承力）</text>
+      </g>
+    );
+  })();
+
+  // ===== ISO view =====
+  const iso = (() => {
+    const apronLenMm = Math.max(ct * 4, cw + 20);
+    const isoBbox = { w: mt + apronLenMm + tl, h: Math.max(mt * 2, cw + 20), d: Math.max(mt, ct) };
+    const isoS = unifiedFitScale(isoBbox, { targetUsage: 0.6 });
+    const center = { x: QUADRANT.W / 2, y: (QUADRANT.H - QUADRANT.HEADER_H) / 2 };
+    const explodeGap = tl + 10;
+
+    return (
+      <g>
+        <IsometricGroup originX={center.x - 30} originY={center.y + 10} scale={isoS}>
+          {(() => {
+            return (
+              <g>
+                <IsoCuboid x={-mt / 2} y={-mt} z={-mt / 2}
+                  w={mt} h={mt * 2} d={mt}
+                  fillFront={ISO_FILL.MORTISE_FRONT} fillTop={ISO_FILL.MORTISE_TOP} fillSide={ISO_FILL.MORTISE_SIDE}
+                  strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+                {isRound && (
+                  <text x={-mt / 2} y={mt + 14} fontSize={FONT.CALLOUT} fill={COLOR.DIM_TICK}>
+                    圓腳柱簡化為方柱顯示（直徑 = {mt}mm）
+                  </text>
+                )}
+                <IsoMortise faceX={mt / 2} faceY={0} faceZ={0}
+                  width={tt} height={tw} depth={tl} faceNormal="+x" through={false}
+                  stroke={COLOR.OUTLINE} strokeWidth={ISO_STROKE.EDGE_INTERIOR / Math.max(0.4, isoS)} />
+                <g transform={`translate(${explodeGap * 1.5} 0)`}>
+                  <IsoCuboid x={mt / 2} y={-cw / 2} z={-ct / 2}
+                    w={apronLenMm} h={cw} d={ct}
+                    fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)} />
+                  <IsoTenon baseX={mt / 2} baseY={0} baseZ={0}
+                    width={tt} thickness={tw} length={tl} direction="-x"
+                    fillFront={ISO_FILL.TENON_FRONT} fillTop={ISO_FILL.TENON_TOP} fillSide={ISO_FILL.TENON_SIDE}
+                    strokeWidth={ISO_STROKE.OUTLINE_VISIBLE / Math.max(0.4, isoS)}
+                    showShoulder={!noShoulder} embeddedLength={tl} />
+                </g>
+                <line x1={mt / 2 + explodeGap * 1.5 - 4} y1={0} x2={mt / 2 + 4} y2={0}
+                  stroke={COLOR.DIM} strokeWidth={STROKE.OUTLINE / Math.max(0.4, isoS)} strokeDasharray={ISO_DASH.ARROW} />
+              </g>
+            );
+          })()}
+        </IsometricGroup>
+      </g>
+    );
+  })();
+
+  const scaleStr = s >= 1 ? `${Math.round(s)}:1` : `1:${Math.max(1, Math.round(1 / s))}`;
+
+  return (
+    <MasterDetailLayout
+      type="shouldered-tenon"
+      joineryNameZh={noShoulder ? "帶肩榫（fallback：純通榫）" : "帶肩榫（雙肩防扭）"}
+      drawingNumber={`ST-${tw}x${tt}-${cw}`}
+      scale={scaleStr}
+      frontView={front}
+      sideView={side}
+      topView={top}
+      isoView={iso}
+      warnings={
+        noShoulder
+          ? [`公件 ${cw}mm ≤ 榫寬 ${tw}mm，已退回純通榫`]
+          : [`肩面為主要承力面（上下肩各 ${Math.round(shoulderW)}mm）`, `榫頭 ${tw}×${tt}×${tl}mm`]
+      }
+    />
+  );
+}
+/* === END shouldered-tenon-detail v2 === */
 
 function GenericTenonDetail(p: JoineryDetailParams & { typeLabel: string }) {
   return (
