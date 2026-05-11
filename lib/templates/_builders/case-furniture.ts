@@ -1020,18 +1020,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: { x: xCenter, y: drawerBackY, z: zBack },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
+          // tenon.width 跟 drawerBackHeight 對齊（rebated 模式下後板抬高且變矮，
+          // 不能用 boxHRow-8 否則 mesh 凸出後板上下緣 6mm → 紅塊）
           {
             position: "start",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: boxHRow - 8,
+            width: drawerBackHeight - 4,
             thickness: drawerBackT,
           },
           {
             position: "end",
             type: "half-lap",
             length: drawerSideT * 0.5,
-            width: boxHRow - 8,
+            width: drawerBackHeight - 4,
             thickness: drawerBackT,
           },
         ],
@@ -1076,9 +1078,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               through: true,
             },
             {
-              origin: { x: drawerInnerD / 2 + 1, y: 0, z: 0 },
+              // 後板 mortise：length + z 同步 drawerBackHeight 跟 drawerBackY
+              //   surface 模式：後板 = boxHRow 全高，落地 → length=boxHRow-8, z=0
+              //   rebated 模式：後板矮 drawerBottomT+8，抬高 drawerBottomT+6 →
+              //                 length=drawerBackHeight-4, z=(drawerBottomT+6)/2
+              //   （側板 rotation {x:π/2, y:π/2} 後 local Z 變垂直軸）
+              origin: {
+                x: drawerInnerD / 2 + 1,
+                y: 0,
+                z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
+              },
               depth: drawerSideT * 0.5,
-              length: boxHRow - 8,
+              length: drawerBackHeight - 4,
               width: drawerBackT,
               through: false,
             },
@@ -1137,18 +1148,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         tenons: isSurfaceDrawerBottom
           ? []
           : [
+              // tongue.width 跟側板 cosmetic mortise length 對齊（drawerInnerD-4），
+              // 之前 +4 多 8mm → tongue 比槽長 8mm，前後緣戳出側板槽外 → 紅塊
               {
                 position: "start",
                 type: "tongue-and-groove",
                 length: 6,
-                width: drawerInnerD + 4,
+                width: drawerInnerD - 4,
                 thickness: drawerBottomT,
               },
               {
                 position: "end",
                 type: "tongue-and-groove",
                 length: 6,
-                width: drawerInnerD + 4,
+                width: drawerInnerD - 4,
                 thickness: drawerBottomT,
               },
               // 前緣 body 已直接延伸 6mm 進前板槽（visible.width 含 +6），無需 tongue

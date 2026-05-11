@@ -1812,14 +1812,36 @@ export function PerspectiveView({
       const pcy = part.origin.y + yExt / 2;
       const pcz = part.origin.z;
       for (const m of part.mortises) {
-        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）
+        // 跟 mortiseLocalBox 同樣的 depth-axis 推導（哪個面最近 = 入口面）。
+        // 重要：origin.y=0 或 origin.y=ly 是 from-bottom 慣例的「便利預設值」
+        // （側板/牙條 mortise template 常寫 y:0 表示「不指定 Y 入榫」），不該被
+        // 當作真的 Y face 入榫。當 origin.y 在 canonical 值 + X 或 Z 軸有
+        // origin 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—跟
+        // svg-views.tsx 的 mortiseLocalBox 邏輯保持一致，否則 tenon outAxis
+        // 配對全錯，drawer-bottom tenon 抓不到 side-panel mortise → 紅塊。
         const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
         const xToFace = Math.min(Math.abs(m.origin.x - lx / 2), Math.abs(m.origin.x + lx / 2));
         const zToFace = Math.min(Math.abs(m.origin.z - lz / 2), Math.abs(m.origin.z + lz / 2));
+        const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
         let lex = 0, ley = 0, lez = 0;
         let localAxis: "x" | "y" | "z";
         let localSign: 1 | -1;
-        if (yToFace <= xToFace && yToFace <= zToFace) {
+        if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+          // canonical Y 不是真深度軸 → 改選 X 或 Z（最靠近 face 的那個）
+          if (xToFace <= zToFace) {
+            localAxis = "x";
+            localSign = m.origin.x >= 0 ? 1 : -1;
+            lex = localSign === 1 ? lx / 2 : -lx / 2;
+            ley = m.origin.y - ly / 2;
+            lez = m.origin.z;
+          } else {
+            localAxis = "z";
+            localSign = m.origin.z >= 0 ? 1 : -1;
+            lex = m.origin.x;
+            ley = m.origin.y - ly / 2;
+            lez = localSign === 1 ? lz / 2 : -lz / 2;
+          }
+        } else if (yToFace <= xToFace && yToFace <= zToFace) {
           localAxis = "y";
           localSign = m.origin.y >= ly - 1 ? 1 : -1;
           lex = m.origin.x;
@@ -2152,12 +2174,24 @@ export function PerspectiveView({
                 else { outAxis = "z"; outSign = rOut.z >= 0 ? 1 : -1; }
 
                 // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
+                //
+                // Owner-family filter（避免抽屜 part 配到櫃體 part）：
+                //   抽屜 part id 慣例 `{prefix}drawer-{i+1}-{role}`，例：
+                //     `drawer-1-back`（單區）
+                //     `col1-drawer-1-back`（columns）
+                //     `z2-drawer-1-back`（zones）
+                //   如果 tenon owner id 含 `drawer-N-`，只跟同 `…drawer-N-`
+                //   前綴的 mortise 配對；不准跨抽屜也不准爬到櫃體 side panel。
+                //   其它（leg/apron/top/case-side）維持原 1-NN 行為。
+                const drawerMatch = part.id.match(/^(.*?drawer-\d+)-/);
+                const drawerFamily = drawerMatch ? drawerMatch[1] + "-" : null;
                 let bestMort: WorldMortise | null = null;
                 let bestDist = Infinity;
                 for (const mw of worldMortiseIndex) {
                   if (mw.partId === part.id) continue;
                   if (mw.axis !== outAxis) continue;
                   if (mw.sign === outSign) continue;
+                  if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
                   const dx = mw.entryX - wRootX;
                   const dy = mw.entryY - wRootY;
                   const dz = mw.entryZ - wRootZ;
