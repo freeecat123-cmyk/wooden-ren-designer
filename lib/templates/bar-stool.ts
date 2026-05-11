@@ -14,7 +14,7 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 export const barStoolOptions: OptionSpec[] = [
   // 吧檯椅排除「方錐漸縮（大幅下收）」——重心高、下收太多會頭重腳輕
   { group: "leg", type: "select", key: "legShape", label: "椅腳樣式", defaultValue: "box", choices: RECT_LEG_SHAPE_CHOICES.filter((c) => c.value !== "strong-taper") },
-  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, help: "正方腳預設值。若下方寬/厚另填則優先使用" },
+  { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 50, min: 20, max: 80, step: 1, help: "正方腳預設值。若下方寬/厚另填則優先使用。吧檯椅高 750mm 需 ≥ 50mm 才夠穩（比例 1:15）" },
   { group: "leg", type: "number", key: "legWidthOverride", label: "椅腳寬 X (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板長邊 X 的尺寸（可做扁腳）" },
   { group: "leg", type: "number", key: "legDepthOverride", label: "椅腳厚 Z (mm)", defaultValue: 0, min: 0, max: 120, step: 1, help: "0 = 用「椅腳粗」；填值 = 沿座板寬邊 Z 的尺寸" },
   { group: "leg", type: "number", key: "legInset", label: "椅腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "椅腳從座板邊緣往內縮的距離（每邊）" },

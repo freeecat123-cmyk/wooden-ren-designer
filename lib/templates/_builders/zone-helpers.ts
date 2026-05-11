@@ -30,7 +30,7 @@ export const drawerSlideOption: OptionSpec = {
   type: "checkbox",
   key: "useDrawerSlide",
   label: "三段式滑軌（左右各 12.5mm 五金縫）",
-  defaultValue: false,
+  defaultValue: true,
   wide: true, // 佔整行，full help 攤開放裡面
   help:
     "勾選後：抽屜箱體總寬縮 25mm 留給滑軌五金；" +
