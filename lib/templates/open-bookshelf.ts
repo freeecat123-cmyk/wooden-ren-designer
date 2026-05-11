@@ -102,7 +102,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         origin: {
           x: shelf.origin.x,
           y: shelf.origin.y + shelf.visible.thickness,
-          z: shelf.origin.z - shelf.visible.width / 2 + stopT / 2,
+          z: shelf.origin.z + shelf.visible.width / 2 - stopT / 2,
         },
         tenons: [],
         mortises: [],
