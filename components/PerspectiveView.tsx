@@ -2031,6 +2031,7 @@ export function PerspectiveView({
               kind: "round",
               chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
               chamferStyle: part.shape.chamferStyle,
+              axis: part.shape.axis,
             };
           } else if (part.shape?.kind === "round-tapered") {
             shape = { kind: "round-tapered", bottomScale: part.shape.bottomScale };
