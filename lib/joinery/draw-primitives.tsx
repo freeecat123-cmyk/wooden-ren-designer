@@ -1735,12 +1735,10 @@ export function MasterDetailLayout({
     const viewMap = { front: frontView, side: sideView, top: topView, iso: isoView };
     return (
       <svg
-        width={QUADRANT.W}
-        height={QUADRANT.H}
         viewBox={`0 0 ${QUADRANT.W} ${QUADRANT.H}`}
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid meet"
-        style={{ maxWidth: `${QUADRANT.W}px`, background: "white", display: "block", width: "100%", height: "auto" }}
+        style={{ background: "white", display: "block", width: "100%", height: "100%" }}
       >
         <QuadrantFrame title={SINGLE_VIEW_TITLE[singleView]} />
         <g transform={`translate(0 ${QUADRANT.HEADER_H})`}>{viewMap[singleView]}</g>

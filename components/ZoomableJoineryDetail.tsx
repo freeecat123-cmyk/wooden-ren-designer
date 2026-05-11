@@ -160,7 +160,9 @@ export function ZoomableJoineryDetail({
                 }}
                 className="flex items-center justify-center p-6"
               >
-                <JoineryDetail type={type} params={params} singleView={zoomed} />
+                <div className="w-full h-full flex items-center justify-center" style={{ aspectRatio: "475 / 325" }}>
+                  <JoineryDetail type={type} params={params} singleView={zoomed} />
+                </div>
               </div>
             </div>
           </div>
