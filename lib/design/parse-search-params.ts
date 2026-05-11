@@ -62,12 +62,12 @@ export function parseDesignSearchParams(
   for (const spec of entry.optionSchema ?? []) {
     const raw = spStr(sp, spec.key);
     // 榫接版預設改入溝（傳統榫卯做法）：backMode / drawerBottomMode 兩個 key 在
-    // joineryMode + user 未顯式選擇時，預設值改成 "rebated"。
+    // joineryMode 時 surface（釘背/釘底）強制升級為 rebated（入溝）。
+    // 使用者要在 joineryMode 用 surface 需手動選；其他值（none）正常 pass-through。
     if (
       joineryMode &&
-      raw === undefined &&
       (spec.key === "backMode" || spec.key === "drawerBottomMode") &&
-      spec.defaultValue === "surface"
+      (raw === undefined || raw === "surface")
     ) {
       options[spec.key] = "rebated";
       continue;
