@@ -75,14 +75,10 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 60,
       "legInset": 0,
       "topThickness": 40,
-      "topOverhang": 30,
       "seatEdge": 0,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "4",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "topPattern": "end-grain",
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "legEdge": 0,
       "legEdgeStyle": "chamfered",
@@ -103,11 +99,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 55,
       "legInset": 0,
       "topThickness": 35,
-      "topOverhang": 0,
       "seatEdge": 0,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "legEdge": 0,
       "legEdgeStyle": "chamfered",
@@ -143,41 +136,15 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": true,
       "withUnderShelf": false,
       "endSplat": "none",
-      "lowerStretcherHeight": 130,
-      "apronDropFromTop": 0
-    },
-    "square-stool": {
-      "legShape": "box",
-      "legSize": 55,
-      "legInset": 0,
-      "splayAngle": 1,
-      "legEdge": 0,
-      "legEdgeStyle": "chamfered",
-      "seatThickness": 35,
-      "seatEdge": 0,
-      "seatEdgeStyle": "chamfered",
-      "seatProfile": "flat",
-      "apronWidth": 80,
-      "apronThickness": 30,
-      "apronDropFromTop": 0,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "h-frame",
-      "lowerStretcherWidth": 60,
-      "lowerStretcherThickness": 25,
-      "stretcherEdge": 0,
-      "stretcherEdgeStyle": "chamfered",
-      "lowerStretcherHeight": 100
+      "lowerStretcherHeight": 130
     },
     "low-table": {
       "legShape": "box",
       "legSize": 55,
       "legInset": 0,
       "topThickness": 38,
-      "topOverhang": 30,
       "seatEdge": 0,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "dropLeaf": "none",
       "legEdge": 0,
@@ -187,19 +154,15 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 90,
       "apronOffset": 0,
       "withCenterStretcher": true,
-      "withLowerStretchers": true,
-      "centerInsert": "none",
-      "topPattern": "end-grain"
+      "withLowerStretchers": true
     },
     "side-table": {
       "legShape": "box",
       "legSize": 50,
       "legInset": 0,
       "topThickness": 30,
-      "topOverhang": 5,
       "seatEdge": 0,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "legEdge": 0,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
@@ -248,8 +211,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherFromGround": 150,
       "lowerStretcherStaggerMm": 25,
       "stretcherEdge": 0,
-      "stretcherEdgeStyle": "chamfered",
-      "lowerStretcherHeight": 150
+      "stretcherEdgeStyle": "chamfered"
     },
     "wardrobe": {
       "panelThickness": 25,
@@ -311,7 +273,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 25,
       "topType": "shelves",
-      "topHeight": 250,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "shelves",
@@ -365,7 +326,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "shelves",
-      "bottomHeight": 250,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "slab",
@@ -378,10 +338,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "box",
       "legInset": 0,
-      "drawerJoinery": "rabbet",
-      "drawerSlideType": "side-mount",
-      "withCableHole": true,
-      "withWirelessCharging": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
       "softClose": false
@@ -392,18 +348,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 35,
       "seatEdge": 0,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "4",
       "legEdge": 0,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
       "upperApronWidth": 70,
-      "shelfFloorOffset": 80,
       "hasLowerShelf": true,
-      "drawerCount": "0",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 35,
@@ -422,8 +373,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 60,
       "lowerStretcherThickness": 25,
-      "lowerStretcherFromGround": 80,
-      "topPattern": "straight"
+      "lowerStretcherFromGround": 80
     },
     "round-table": {
       "topThickness": 40,
@@ -468,8 +418,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 50,
       "topRailThickness": 28,
       "footrestWidth": 40,
-      "footrestThickness": 25,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 25
     },
     "pencil-holder": {
       "wallThickness": 14,
@@ -602,8 +551,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherWidth": 35,
       "lowerStretcherThickness": 18,
       "lowerStretcherFromGround": 100,
-      "lowerStretcherStaggerMm": 22,
-      "lowerStretcherHeight": 100
+      "lowerStretcherStaggerMm": 22
     },
     "bench": {
       "legShape": "tapered",
@@ -623,44 +571,17 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withUnderShelf": false,
       "endSplat": "high",
       "legInset": 0,
-      "lowerStretcherHeight": 0,
-      "apronDropFromTop": 8
-    },
-    "square-stool": {
-      "legShape": "tapered",
-      "legSize": 45,
-      "legInset": 0,
-      "splayAngle": 0,
-      "legEdge": 8,
-      "legEdgeStyle": "rounded",
-      "seatThickness": 32,
-      "seatEdge": 12,
-      "seatEdgeStyle": "rounded",
-      "seatProfile": "flat",
-      "apronWidth": 85,
-      "apronThickness": 22,
-      "apronDropFromTop": 8,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "h-frame",
-      "lowerStretcherWidth": 35,
-      "lowerStretcherThickness": 18,
-      "lowerStretcherHeight": 0,
-      "stretcherEdge": 5,
-      "stretcherEdgeStyle": "rounded"
+      "lowerStretcherHeight": 0
     },
     "dining-table": {
       "legShape": "tapered",
       "legSize": 70,
       "legInset": 30,
       "topThickness": 38,
-      "topOverhang": 60,
       "seatEdge": 15,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "topPattern": "book-match",
-      "withExtensionLeaf": true,
       "dropLeaf": "none",
       "legEdge": 8,
       "legEdgeStyle": "rounded",
@@ -679,8 +600,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 32,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "legEdge": 8,
       "legEdgeStyle": "rounded",
@@ -688,7 +607,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 100,
       "apronThickness": 28,
-      "topOverhang": 40,
       "withCenterStretcher": false,
       "withLowerStretchers": false,
       "drawerCount": 3,
@@ -708,8 +626,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 32,
       "seatEdge": 15,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "1",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "dropLeaf": "none",
       "legEdge": 8,
@@ -717,12 +633,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 80,
-      "topOverhang": 40,
       "withCenterStretcher": false,
       "withLowerStretchers": false,
-      "apronOffset": 10,
-      "centerInsert": "none",
-      "topPattern": "book-match"
+      "apronOffset": 10
     },
     "side-table": {
       "legShape": "tapered",
@@ -731,13 +644,11 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 28,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "1",
       "legEdge": 8,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 75,
-      "topOverhang": 25,
       "withLowerStretchers": false,
       "apronOffset": 10,
       "lowerStretcherHeight": 0
@@ -862,7 +773,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 22,
       "topType": "shelves",
-      "topHeight": 220,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -922,7 +832,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 2,
       "topCols": 1,
       "bottomType": "shelves",
-      "bottomHeight": 220,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "wood",
@@ -935,10 +844,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "bracket",
       "legInset": 15,
-      "drawerJoinery": "half-blind-dovetail",
-      "drawerSlideType": "wood-runner",
-      "withCableHole": false,
-      "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "cup",
       "softClose": false
@@ -949,18 +854,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 28,
       "seatEdge": 15,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "1",
       "legEdge": 8,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
       "upperApronWidth": 90,
-      "shelfFloorOffset": 100,
       "hasLowerShelf": false,
-      "drawerCount": "0",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 28,
@@ -969,7 +869,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "1",
       "withLazySusan": false,
       "legInset": 60,
       "legShape": "round-taper-down",
@@ -977,8 +876,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 80,
       "apronThickness": 25,
       "apronDropFromTop": 5,
-      "withLowerStretcher": false,
-      "topPattern": "concentric"
+      "withLowerStretcher": false
     },
     "round-table": {
       "topThickness": 32,
@@ -1028,8 +926,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "backReclineDeg": 4,
       "backPostFromEdge": 22,
       "footrestWidth": 35,
-      "footrestThickness": 22,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 22
     },
     "pencil-holder": {
       "wallThickness": 12,
@@ -1161,9 +1058,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "dining-table": {
       "topThickness": 28,
-      "topOverhang": 50,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "topPattern": "book-match",
       "legShape": "tapered",
       "legSize": 60,
@@ -1180,7 +1074,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 22,
       "apronOffset": 25,
-      "topOverhang": 40,
       "withCenterStretcher": false,
       "withLowerStretchers": false,
       "drawerCount": 1,
@@ -1198,41 +1091,22 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": false,
       "withLowerStretchers": false,
       "withUnderShelf": false,
-      "lowerStretcherHeight": 0,
-      "apronDropFromTop": 15
-    },
-    "square-stool": {
-      "legShape": "splayed",
-      "legSize": 30,
-      "splayAngle": 8,
-      "seatThickness": 22,
-      "apronWidth": 45,
-      "apronThickness": 18,
-      "apronDropFromTop": 15,
-      "withLowerStretcher": false,
       "lowerStretcherHeight": 0
     },
     "low-table": {
       "topThickness": 28,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "legShape": "tapered",
       "legSize": 42,
       "apronWidth": 55,
-      "topOverhang": 30,
       "withCenterStretcher": false,
-      "withLowerStretchers": false,
-      "centerInsert": "none",
-      "topPattern": "book-match"
+      "withLowerStretchers": false
     },
     "side-table": {
       "topThickness": 22,
       "legShape": "tapered",
       "legSize": 30,
       "apronWidth": 50,
-      "apronThickness": 18,
       "apronOffset": 12,
-      "topOverhang": 20,
       "withLowerStretchers": false
     },
     "open-bookshelf": {
@@ -1265,8 +1139,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 40,
       "apronThickness": 18,
       "apronDropFromTop": 25,
-      "withLowerStretcher": false,
-      "lowerStretcherHeight": 0
+      "withLowerStretcher": false
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -1328,7 +1201,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 18,
       "topType": "shelves",
-      "topHeight": 200,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -1384,7 +1256,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "drawer",
-      "bottomHeight": 200,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "slab",
@@ -1397,10 +1268,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "tapered",
       "legInset": 15,
-      "drawerJoinery": "half-blind-dovetail",
-      "drawerSlideType": "soft-close-side",
-      "withCableHole": true,
-      "withWirelessCharging": true,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
       "softClose": true
@@ -1411,18 +1278,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 25,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
       "legEdge": 5,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
       "upperApronWidth": 50,
-      "shelfFloorOffset": 80,
       "hasLowerShelf": false,
-      "drawerCount": "0",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 22,
@@ -1431,7 +1293,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "2",
       "withLazySusan": false,
       "legInset": 70,
       "legShape": "splayed-round-taper-down",
@@ -1439,8 +1300,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 40,
       "apronThickness": 16,
       "apronDropFromTop": 15,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "round-table": {
       "topThickness": 30,
@@ -1482,8 +1342,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 35,
       "topRailThickness": 22,
       "footrestWidth": 32,
-      "footrestThickness": 22,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 22
     },
     "pencil-holder": {
       "wallThickness": 8,
@@ -1613,12 +1472,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "dining-table": {
       "topThickness": 28,
-      "topOverhang": 30,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "topPattern": "straight",
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "apronWidth": 50,
       "apronThickness": 22,
@@ -1630,9 +1485,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "desk": {
       "topThickness": 25,
-      "topOverhang": 25,
-      "topPanelPieces": "2",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "apronWidth": 60,
       "apronThickness": 22,
@@ -1658,37 +1510,19 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "ladderRungs": 2,
       "ladderRailH": 50,
       "ladderRailT": 22,
-      "lowerStretcherHeight": 180,
-      "apronDropFromTop": 15
-    },
-    "square-stool": {
-      "seatThickness": 22,
-      "apronWidth": 50,
-      "apronThickness": 18,
-      "apronDropFromTop": 25,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "h-frame",
-      "lowerStretcherWidth": 35,
-      "lowerStretcherThickness": 18,
-      "lowerStretcherHeight": 150
+      "lowerStretcherHeight": 180
     },
     "low-table": {
       "topThickness": 25,
-      "topOverhang": 20,
-      "topPanelPieces": "2",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "dropLeaf": "none",
       "apronWidth": 50,
       "apronOffset": 10,
       "withCenterStretcher": false,
-      "withLowerStretchers": false,
-      "centerInsert": "none"
+      "withLowerStretchers": false
     },
     "side-table": {
       "topThickness": 22,
-      "topOverhang": 15,
-      "topPanelPieces": "1",
       "apronWidth": 55,
       "apronOffset": 5,
       "withLowerStretchers": false
@@ -1720,8 +1554,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 45,
       "apronThickness": 18,
       "apronDropFromTop": 25,
-      "withLowerStretcher": false,
-      "lowerStretcherHeight": 150
+      "withLowerStretcher": false
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -1783,7 +1616,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 18,
       "topType": "shelves",
-      "topHeight": 200,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -1839,7 +1671,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "shelves",
-      "bottomHeight": 300,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "wood",
@@ -1852,10 +1683,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "tapered",
       "legInset": 15,
-      "drawerJoinery": "half-blind-dovetail",
-      "drawerSlideType": "wood-runner",
-      "withCableHole": true,
-      "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
       "softClose": false
@@ -1866,18 +1693,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 22,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "legEdge": 1,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
       "upperApronWidth": 55,
-      "shelfFloorOffset": 100,
       "hasLowerShelf": true,
-      "drawerCount": "1",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 22,
@@ -1886,7 +1708,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "withLazySusan": false,
       "legInset": 70,
       "legShape": "shaker",
@@ -1894,8 +1715,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 45,
       "apronThickness": 18,
       "apronDropFromTop": 25,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "round-table": {
       "topThickness": 28,
@@ -1937,8 +1757,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 0,
       "topRailThickness": 22,
       "footrestWidth": 35,
-      "footrestThickness": 20,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 20
     },
     "pencil-holder": {
       "wallThickness": 8,
@@ -2085,14 +1904,10 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 45,
       "legInset": 20,
       "topThickness": 28,
-      "topOverhang": 30,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "topPattern": "straight",
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "legEdge": 1,
       "legEdgeStyle": "chamfered",
@@ -2109,11 +1924,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 38,
       "legInset": 15,
       "topThickness": 25,
-      "topOverhang": 20,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "legEdge": 1,
       "legEdgeStyle": "chamfered",
@@ -2149,26 +1961,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false,
       "withUnderShelf": false,
       "endSplat": "none",
-      "lowerStretcherHeight": 0,
-      "apronDropFromTop": 10
-    },
-    "square-stool": {
-      "legShape": "box",
-      "legSize": 32,
-      "legInset": 10,
-      "splayAngle": 1,
-      "legEdge": 1,
-      "legEdgeStyle": "chamfered",
-      "seatThickness": 25,
-      "seatEdge": 3,
-      "seatEdgeStyle": "chamfered",
-      "seatProfile": "flat",
-      "apronWidth": 45,
-      "apronThickness": 18,
-      "apronDropFromTop": 8,
-      "withLowerStretcher": false,
-      "stretcherEdge": 1,
-      "stretcherEdgeStyle": "chamfered",
       "lowerStretcherHeight": 0
     },
     "low-table": {
@@ -2176,11 +1968,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 45,
       "legInset": 25,
       "topThickness": 30,
-      "topOverhang": 40,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "dropLeaf": "none",
       "legEdge": 1,
@@ -2190,18 +1979,15 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 60,
       "apronOffset": 15,
       "withCenterStretcher": false,
-      "withLowerStretchers": false,
-      "centerInsert": "none"
+      "withLowerStretchers": false
     },
     "side-table": {
       "legShape": "box",
       "legSize": 32,
       "legInset": 12,
       "topThickness": 22,
-      "topOverhang": 15,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "legEdge": 1,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
@@ -2246,8 +2032,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronDropFromTop": 8,
       "withLowerStretcher": false,
       "stretcherEdge": 1,
-      "stretcherEdgeStyle": "rounded",
-      "lowerStretcherHeight": 0
+      "stretcherEdgeStyle": "rounded"
     },
     "wardrobe": {
       "panelThickness": 18,
@@ -2309,7 +2094,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 18,
       "topType": "shelves",
-      "topHeight": 200,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -2362,7 +2146,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "drawer",
-      "bottomHeight": 180,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "slab",
@@ -2375,10 +2158,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 30,
       "legShape": "box",
       "legInset": 8,
-      "drawerJoinery": "half-blind-dovetail",
-      "drawerSlideType": "wood-runner",
-      "withCableHole": false,
-      "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
       "softClose": true
@@ -2389,18 +2168,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 22,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "legEdge": 1,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
       "upperApronWidth": 50,
-      "shelfFloorOffset": 80,
       "hasLowerShelf": false,
-      "drawerCount": "0",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 22,
@@ -2409,7 +2183,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 1,
       "stretcherEdgeStyle": "chamfered",
-      "topPanelPieces": "2",
       "withLazySusan": false,
       "legInset": 90,
       "legShape": "box",
@@ -2417,8 +2190,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 45,
       "apronThickness": 18,
       "apronDropFromTop": 8,
-      "withLowerStretcher": false,
-      "topPattern": "straight"
+      "withLowerStretcher": false
     },
     "round-table": {
       "topThickness": 28,
@@ -2460,8 +2232,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 30,
       "topRailThickness": 18,
       "footrestWidth": 28,
-      "footrestThickness": 18,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 18
     },
     "pencil-holder": {
       "wallThickness": 6,
@@ -2590,12 +2361,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "dining-table": {
       "topThickness": 40,
-      "topOverhang": 50,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "topPattern": "straight",
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "apronWidth": 100,
       "apronThickness": 28,
@@ -2607,9 +2374,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "desk": {
       "topThickness": 32,
-      "topOverhang": 35,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "apronWidth": 90,
       "apronThickness": 28,
@@ -2639,38 +2403,20 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "slatBackInset": 0,
       "slatEndInset": 0,
       "topRailBendMm": 0,
-      "lowerStretcherHeight": 130,
-      "apronDropFromTop": 5
-    },
-    "square-stool": {
-      "seatThickness": 32,
-      "apronWidth": 70,
-      "apronThickness": 25,
-      "apronDropFromTop": 10,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "box",
-      "lowerStretcherWidth": 50,
-      "lowerStretcherThickness": 25,
-      "lowerStretcherHeight": 100
+      "lowerStretcherHeight": 130
     },
     "low-table": {
       "topThickness": 35,
-      "topOverhang": 30,
-      "topPanelPieces": "2",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "dropLeaf": "none",
       "apronWidth": 90,
       "apronOffset": 5,
       "withCenterStretcher": false,
       "withLowerStretchers": true,
-      "lowerStretcherHeight": 0,
-      "centerInsert": "none"
+      "lowerStretcherHeight": 0
     },
     "side-table": {
       "topThickness": 28,
-      "topOverhang": 0,
-      "topPanelPieces": "1",
       "apronWidth": 80,
       "apronOffset": 5,
       "withLowerStretchers": true,
@@ -2711,8 +2457,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 45,
       "lowerStretcherThickness": 22,
-      "lowerStretcherFromGround": 100,
-      "lowerStretcherHeight": 120
+      "lowerStretcherFromGround": 100
     },
     "wardrobe": {
       "panelThickness": 22,
@@ -2778,7 +2523,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 22,
       "topType": "shelves",
-      "topHeight": 220,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -2834,7 +2578,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
-      "bottomHeight": 320,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "wood",
@@ -2847,10 +2590,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "tapered",
       "legInset": 0,
-      "drawerJoinery": "half-blind-dovetail",
-      "drawerSlideType": "wood-runner",
-      "withCableHole": true,
-      "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "cup",
       "softClose": false
@@ -2861,18 +2600,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 30,
       "seatEdge": 3,
       "seatEdgeStyle": "chamfered",
-      "topPanelPieces": "3",
       "legEdge": 0,
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
       "upperApronWidth": 90,
-      "shelfFloorOffset": 80,
       "hasLowerShelf": true,
-      "drawerCount": "1",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 30,
@@ -2891,8 +2625,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretcher": true,
       "lowerStretcherWidth": 60,
       "lowerStretcherThickness": 25,
-      "lowerStretcherFromGround": 100,
-      "topPattern": "radial"
+      "lowerStretcherFromGround": 100
     },
     "round-table": {
       "topThickness": 35,
@@ -2940,8 +2673,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 50,
       "topRailThickness": 25,
       "footrestWidth": 40,
-      "footrestThickness": 22,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 22
     },
     "pencil-holder": {
       "wallThickness": 12,
@@ -3071,7 +2803,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherThickness": 18,
       "lowerStretcherFromGround": 130,
       "lowerStretcherStaggerMm": 25,
-      "lowerStretcherHeight": 130,
       "apronDropFromTop": 0
     },
     "bench": {
@@ -3102,44 +2833,17 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "windsorEndInset": 60,
       "windsorHeight": 380,
       "legInset": 0,
-      "lowerStretcherHeight": 150,
-      "apronDropFromTop": 0
-    },
-    "square-stool": {
-      "legShape": "splayed",
-      "legSize": 30,
-      "legInset": 30,
-      "splayAngle": 10,
-      "legEdge": 0,
-      "legEdgeStyle": "rounded",
-      "seatThickness": 40,
-      "seatEdge": 12,
-      "seatEdgeStyle": "rounded",
-      "seatProfile": "saddle",
-      "apronWidth": 35,
-      "apronThickness": 18,
-      "apronDropFromTop": 0,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "h-frame",
-      "lowerStretcherWidth": 28,
-      "lowerStretcherThickness": 18,
-      "lowerStretcherHeight": 130,
-      "stretcherEdge": 0,
-      "stretcherEdgeStyle": "rounded"
+      "lowerStretcherHeight": 150
     },
     "dining-table": {
       "legShape": "splayed",
       "legSize": 50,
       "legInset": 60,
       "topThickness": 45,
-      "topOverhang": 80,
       "seatEdge": 15,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "topPattern": "straight",
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "legEdge": 0,
       "legEdgeStyle": "rounded",
@@ -3161,8 +2865,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 38,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
-      "withBreadboardEnds": true,
       "liveEdge": false,
       "legEdge": 0,
       "legEdgeStyle": "rounded",
@@ -3170,7 +2872,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 50,
       "apronThickness": 22,
-      "topOverhang": 50,
       "withCenterStretcher": false,
       "withLowerStretchers": true,
       "drawerCount": 0,
@@ -3189,8 +2890,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 35,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "1",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "dropLeaf": "none",
       "legEdge": 0,
@@ -3198,12 +2897,10 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 0,
-      "topOverhang": 50,
       "withCenterStretcher": false,
       "withLowerStretchers": true,
       "apronOffset": 0,
-      "lowerStretcherHeight": 0,
-      "centerInsert": "none"
+      "lowerStretcherHeight": 0
     },
     "side-table": {
       "legShape": "tapered",
@@ -3212,13 +2909,11 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 30,
       "seatEdge": 10,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "1",
       "legEdge": 0,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "rounded",
       "apronWidth": 50,
-      "topOverhang": 30,
       "withLowerStretchers": true,
       "apronOffset": 5,
       "lowerStretcherHeight": 0
@@ -3250,8 +2945,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 35,
       "topRailThickness": 22,
       "footrestWidth": 28,
-      "footrestThickness": 22,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 22
     }
   },
   "ming": {
@@ -3315,12 +3009,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "dining-table": {
       "topThickness": 30,
-      "topOverhang": 30,
-      "topPanelPieces": "3",
-      "withBreadboardEnds": false,
       "topPattern": "straight",
       "liveEdge": false,
-      "withExtensionLeaf": false,
       "dropLeaf": "none",
       "legShape": "box",
       "legSize": 65,
@@ -3336,7 +3026,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 70,
       "apronWidth": 100,
       "apronThickness": 30,
-      "topOverhang": 0,
       "legInset": 50,
       "apronOffset": 15,
       "withCenterStretcher": false,
@@ -3357,28 +3046,10 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCenterStretcher": false,
       "withLowerStretchers": true,
       "withUnderShelf": false,
-      "lowerStretcherHeight": 250,
-      "apronDropFromTop": 20
-    },
-    "square-stool": {
-      "legShape": "splayed",
-      "legSize": 38,
-      "splayAngle": 2,
-      "seatThickness": 28,
-      "apronWidth": 70,
-      "apronThickness": 22,
-      "apronDropFromTop": 10,
-      "withLowerStretcher": true,
-      "lowerStretcherStyle": "x-cross",
-      "lowerStretcherWidth": 35,
-      "lowerStretcherThickness": 20,
-      "lowerStretcherHeight": 200
+      "lowerStretcherHeight": 250
     },
     "low-table": {
       "topThickness": 28,
-      "topOverhang": 20,
-      "topPanelPieces": "2",
-      "withBreadboardEnds": false,
       "liveEdge": false,
       "dropLeaf": "none",
       "legShape": "box",
@@ -3386,17 +3057,14 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 75,
       "apronOffset": 12,
       "withCenterStretcher": false,
-      "withLowerStretchers": false,
-      "centerInsert": "none"
+      "withLowerStretchers": false
     },
     "side-table": {
       "topThickness": 25,
       "legShape": "box",
       "legSize": 35,
       "apronWidth": 65,
-      "apronThickness": 22,
       "apronOffset": 10,
-      "topOverhang": 0,
       "withLowerStretchers": false
     },
     "open-bookshelf": {
@@ -3428,8 +3096,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 50,
       "apronThickness": 20,
       "apronDropFromTop": 20,
-      "withLowerStretcher": false,
-      "lowerStretcherHeight": 100
+      "withLowerStretcher": false
     },
     "wardrobe": {
       "panelThickness": 22,
@@ -3493,7 +3160,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     "shoe-cabinet": {
       "panelThickness": 22,
       "topType": "shelves",
-      "topHeight": 220,
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
@@ -3549,7 +3215,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topCount": 1,
       "topCols": 1,
       "bottomType": "door",
-      "bottomHeight": 320,
       "bottomCount": 1,
       "bottomCols": 1,
       "doorType": "wood",
@@ -3562,10 +3227,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "box",
       "legInset": 10,
-      "drawerJoinery": "through-dovetail",
-      "drawerSlideType": "wood-runner",
-      "withCableHole": false,
-      "withWirelessCharging": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
       "softClose": false
@@ -3576,18 +3237,13 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topThickness": 28,
       "seatEdge": 5,
       "seatEdgeStyle": "rounded",
-      "topPanelPieces": "2",
       "legEdge": 3,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 3,
       "stretcherEdgeStyle": "rounded",
       "upperApronWidth": 80,
-      "shelfFloorOffset": 100,
       "hasLowerShelf": false,
-      "drawerCount": "0",
-      "liftTop": false,
-      "liveEdge": false,
-      "withCoasterInsets": false
+      "liveEdge": false
     },
     "round-tea-table": {
       "topThickness": 28,
@@ -3596,7 +3252,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "rounded",
       "stretcherEdge": 3,
       "stretcherEdgeStyle": "rounded",
-      "topPanelPieces": "2",
       "withLazySusan": false,
       "legInset": 60,
       "legShape": "round-taper-down",
@@ -3604,8 +3259,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronWidth": 70,
       "apronThickness": 22,
       "apronDropFromTop": 8,
-      "withLowerStretcher": false,
-      "topPattern": "concentric"
+      "withLowerStretcher": false
     },
     "round-table": {
       "topThickness": 32,
@@ -3647,8 +3301,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "topRailHeight": 0,
       "topRailThickness": 22,
       "footrestWidth": 32,
-      "footrestThickness": 22,
-      "lowerStretcherHeight": 0
+      "footrestThickness": 22
     },
     "pencil-holder": {
       "wallThickness": 10,

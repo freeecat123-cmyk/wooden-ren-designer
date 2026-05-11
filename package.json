@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
-    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts",
+    "audit": "tsx scripts/audit-overlaps.ts && tsx scripts/audit-joints.ts && tsx scripts/audit-joinery-dynamic-dims.ts && tsx scripts/audit-pack-keys.ts",
     "audit:overlaps": "tsx scripts/audit-overlaps.ts",
     "audit:joints": "tsx scripts/audit-joints.ts",
     "audit:joinery-dims": "tsx scripts/audit-joinery-dynamic-dims.ts",
+    "audit:pack-keys": "tsx scripts/audit-pack-keys.ts",
     "prepare": "sh scripts/install-hooks.sh || true"
   },
   "dependencies": {
