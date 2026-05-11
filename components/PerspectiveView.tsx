@@ -1979,7 +1979,10 @@ export function PerspectiveView({
             // 抓任何 part id 含 -door (case-furniture: z1-door-1 / 中式櫃:
             // layer1-left-door / -door-raised / -door-inlay-* / -door-muntin-* 等)
             // 或 category=door。
-            const isDoor = category === "door" || /-door($|-)/.test(part.id);
+            // 門 part 的 ID 模式：{prefix}-door-{idx}-{...} 或 -door 結尾
+            // 但要排除門「內層板」（id 含 -door-inner-shelf-）— 那是櫃內收納板不是門
+            const isDoor = (category === "door" || /-door($|-)/.test(part.id))
+              && !/-door-inner-/.test(part.id);
             // face mode：藏「面板」+「箱體前板」+「面板把手」
             const isDrawerFront = /-drawer-\d+-(face|front)(-pull)?$/.test(part.id);
             const isDrawer = category === "drawer" || /-drawer-\d+/.test(part.id);
