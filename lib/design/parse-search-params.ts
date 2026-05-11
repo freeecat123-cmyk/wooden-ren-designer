@@ -52,16 +52,28 @@ export function parseDesignSearchParams(
   const material =
     (spStr(sp, "material") as MaterialId | undefined) ?? ("walnut" as MaterialId);
 
-  const options: Record<string, string | number | boolean> = {};
-  for (const spec of entry.optionSchema ?? []) {
-    options[spec.key] = parseOption(spec, spStr(sp, spec.key));
-  }
-
   const joineryRaw = spStr(sp, "joineryMode");
   const joineryMode =
     joineryRaw === "true" ||
     joineryRaw === "1" ||
     spStr(sp, "beginnerMode") === "false";
+
+  const options: Record<string, string | number | boolean> = {};
+  for (const spec of entry.optionSchema ?? []) {
+    const raw = spStr(sp, spec.key);
+    // 榫接版預設改入溝（傳統榫卯做法）：backMode / drawerBottomMode 兩個 key 在
+    // joineryMode + user 未顯式選擇時，預設值改成 "rebated"。
+    if (
+      joineryMode &&
+      raw === undefined &&
+      (spec.key === "backMode" || spec.key === "drawerBottomMode") &&
+      spec.defaultValue === "surface"
+    ) {
+      options[spec.key] = "rebated";
+      continue;
+    }
+    options[spec.key] = parseOption(spec, raw);
+  }
 
   const designerRaw = spStr(sp, "designerMode");
   const designerMode = designerRaw === "true" || designerRaw === "1";
