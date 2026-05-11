@@ -45,6 +45,7 @@ export const openBookshelfOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加 30mm 高線板飾條，書櫃古典感", wide: true },
+  { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "每片層板後緣加 8mm 高 × 12mm 厚實木條，書本不會掉到後面（無背板書櫃常用）", wide: true },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -60,6 +61,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const withLedderRail = getOption<boolean>(input, opt(o, "withLedderRail"));
+  const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -80,9 +82,33 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${withBookStop ? "每片層板後緣加 8×12mm 實木擋條，防書本掉到後面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
+  // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
+  if (withBookStop) {
+    const stopH = 8;
+    const stopT = 12;
+    const shelves = design.parts.filter(
+      (p) => /shelf-\d+$/.test(p.id) && !p.nameZh.includes("抽屜"),
+    );
+    for (const shelf of shelves) {
+      design.parts.push({
+        id: `${shelf.id}-bookstop`,
+        nameZh: `${shelf.nameZh}後緣擋條`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: shelf.visible.length, width: stopT, thickness: stopH },
+        origin: {
+          x: shelf.origin.x,
+          y: shelf.origin.y + shelf.visible.thickness,
+          z: shelf.origin.z - shelf.visible.width / 2 + stopT / 2,
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
   // 頂端 cornice 飾條
   if (withLedderRail) {
     design.parts.push({
