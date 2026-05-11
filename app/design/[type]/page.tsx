@@ -201,10 +201,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <AskMasterButton
+          {/* <AskMasterButton
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
-          />
+          /> */}
           <ShareDesignButton
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}

@@ -2328,7 +2328,7 @@ export function PerspectiveView({
           enableZoom
           enableRotate
           target={[0, (design.overall.thickness * SCALE) / 2, 0]}
-          minDistance={maxDim * 0.8}
+          minDistance={maxDim * 0.15}
           maxDistance={maxDim * 6}
           // 允許從底下往上看（到近乎正下方），只留極小的安全邊避免 gimbal-lock
           maxPolarAngle={Math.PI - 0.02}

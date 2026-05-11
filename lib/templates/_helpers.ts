@@ -649,7 +649,6 @@ export function backPanelMaterialOption(group: OptionGroup = "back"): OptionSpec
     choices: [
       { value: "plywood", label: "夾板（最常用，4mm 或 6mm）" },
       { value: "mdf", label: "中纖板 MDF（平整、易上漆）" },
-      { value: "hardboard", label: "硬紙板（最便宜，3mm）" },
       { value: "solid", label: "實木拼板（最貴、整體感最好）" },
     ],
     help: "結構強度差不多，但實木最有質感、夾板最 CP 值",
