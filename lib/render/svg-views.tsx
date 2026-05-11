@@ -562,7 +562,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // 整條 6×11×392mm 凹槽。
   const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
   let depthAxis: "x" | "y" | "z";
-  if (yIsCanonical && (xToFace <= ly / 2 || zToFace <= ly / 2)) {
+  if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
     depthAxis = xToFace <= zToFace ? "x" : "z";
   } else if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
   else if (xToFace <= zToFace) depthAxis = "x";
@@ -609,11 +609,20 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
     return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2 };
   } else {
-    // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg）。
-    // 慣例：mortise.length 沿 part Y（順 leg 高），mortise.width 沿 part X。
+    // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg），
+    // 或門橫檔內側面的鑲板槽（length 沿 rail 長度 = X 軸）。
+    // 比照 x/y 分支做 auto-fit：把 longDim 放在較居中的軸，shortDim 放在靠邊的軸，
+    // 並 clip 中心到 part 範圍內，避免 CSG 切穿 part 厚度。
     const enterFront = m.origin.z >= 0;
     const czL = enterFront ? +lz / 2 - D / 2 : -lz / 2 + D / 2;
-    return { cx: oxC, cy: oyC, cz: czL, hx: Wm / 2, hy: Lm / 2, hz: D / 2 };
+    const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
+    const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
+    const longOnX = xFace > yFace;
+    const useX = Math.max(0.1, (longOnX ? longDim : shortDim) - PERP_SHRINK * 2);
+    const useY = Math.max(0.1, (longOnX ? shortDim : longDim) - PERP_SHRINK * 2);
+    const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
+    const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
+    return { cx: cxClipped, cy: cyClipped, cz: czL, hx: useX / 2, hy: useY / 2, hz: D / 2 };
   }
 }
 
