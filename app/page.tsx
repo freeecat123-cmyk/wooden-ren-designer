@@ -282,12 +282,6 @@ export default async function Home({
             ))}
       </div>
 
-      <footer className="mt-20 pt-8 border-t border-zinc-200 text-sm text-zinc-500 flex flex-wrap justify-between gap-4">
-        <p>© 2026 木頭仁木匠學院</p>
-        <p className="text-xs">
-          v0.4 · {ready} 種家具範本 · 第一性原理分類重排
-        </p>
-      </footer>
     </main>
   );
 }
