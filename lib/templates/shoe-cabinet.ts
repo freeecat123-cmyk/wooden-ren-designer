@@ -69,7 +69,6 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("structure"),
-  { group: "structure", type: "checkbox", key: "tiltedShelf", label: "斜放層板（鞋頭朝下）", defaultValue: false, help: "層板向後傾斜 5-10°，鞋子放上去後鞋頭朝下、不會滑出。傳統鞋櫃常用做法", wide: true },
   { group: "structure", type: "checkbox", key: "withTopSeatCushion", label: "頂面加坐墊（穿鞋椅）", defaultValue: false, help: "頂面加 30mm 厚軟墊布套，玄關直接坐著穿鞋", wide: true },
   pullStyleOption("door"),
   softCloseOption("door"),
@@ -91,7 +90,6 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const tiltedShelf = getOption<boolean>(input, opt(o, "tiltedShelf"));
   const withTopSeatCushion = getOption<boolean>(input, opt(o, "withTopSeatCushion"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
@@ -132,7 +130,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${tiltedShelf ? "層板向後傾 8°，鞋頭朝下不易滑出（前緣加 8mm 擋條更保險）。" : ""} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${withTopSeatCushion ? "頂面加 30mm 厚海綿坐墊 + 布套（魔鬼氈固定），玄關穿鞋椅功能。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${withTopSeatCushion ? "頂面加 30mm 厚海綿坐墊 + 布套（魔鬼氈固定），玄關穿鞋椅功能。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
