@@ -60,6 +60,7 @@ export const deskOptions: OptionSpec[] = [
   { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...softCloseOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
@@ -220,8 +221,11 @@ export const desk: FurnitureTemplate = (input) => {
     const STRETCHER_T = 25;     // X / Z 方向短軸（厚）
     const STRETCHER_H = 40;     // Y 方向（高）
     const TENON = 8;            // mortise-tenon 視覺接合 penetration
-    const stretcherTopY = caseY; // 橫撐頂面貼櫃底
-    const stretcherY = stretcherTopY - STRETCHER_H;
+    const pedestalStretcherHeight = getOption<number>(input, opt(o, "pedestalStretcherHeight"));
+    // 0 = 自動貼櫃底；> 0 = 改成離地此高度（懸吊式櫃子）
+    const stretcherY = pedestalStretcherHeight > 0
+      ? pedestalStretcherHeight
+      : caseY - STRETCHER_H;
     // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
     // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
     const legCenterX = input.length / 2 - legSize / 2 - legInset;
@@ -238,19 +242,20 @@ export const desk: FurnitureTemplate = (input) => {
         mortises: [],
       });
     }
-    // 橫向橫撐：sideStretcher 內 X 面 = legCenterX - T/2，cross 端伸進 8mm
-    // cross 長 = 2 × (legCenterX - T/2 + TENON)
-    const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2 + TENON);
-    design.parts.push({
-      id: "desk-h-cross",
-      nameZh: "H 框橫向長橫撐",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
-      origin: { x: 0, y: stretcherY, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
+    // 橫向長橫撐：只在 drawerCount > 1 才需要（單抽櫃輕、左右兩條已夠）
+    if (drawerCount > 1) {
+      const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2 + TENON);
+      design.parts.push({
+        id: "desk-h-cross",
+        nameZh: "H 框橫向長橫撐",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
+        origin: { x: 0, y: stretcherY, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // 前飾遮腿板（modesty panel）
