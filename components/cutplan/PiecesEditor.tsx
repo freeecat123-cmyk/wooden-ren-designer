@@ -165,8 +165,8 @@ export function PiecesEditor({
       </header>
 
       {!collapsed && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto hidden md:block">
+          <table className="w-full text-sm min-w-[800px]">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
                 <th className="text-center px-2 py-2 w-10">#</th>
@@ -309,6 +309,122 @@ export function PiecesEditor({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {!collapsed && (
+        <div className="md:hidden divide-y divide-zinc-200">
+          {specs.map((s, idx) => {
+            const billableVal =
+              s.billable === "plywood" || s.billable === "mdf"
+                ? s.billable
+                : s.material;
+            const code = indexToCode(idx);
+            const isSheet = billableVal === "plywood" || billableVal === "mdf";
+            return (
+              <div key={s.id} className="p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center justify-center w-7 h-7 rounded border border-zinc-400 text-zinc-900 text-xs font-bold font-mono shrink-0"
+                    style={{ backgroundColor: colorForCode(code) }}
+                  >
+                    {code}
+                  </span>
+                  <input
+                    type="text"
+                    value={s.name}
+                    onChange={(e) => patchSpec(s.id, { name: e.target.value })}
+                    placeholder="名稱"
+                    className="flex-1 min-w-0 px-2 py-1.5 border border-zinc-200 rounded text-sm"
+                  />
+                  <button
+                    onClick={() => removeSpec(s.id)}
+                    className="px-2 py-1.5 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100 shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">材質</span>
+                  <select
+                    value={billableVal}
+                    onChange={(e) => setBillable(s.id, e.target.value)}
+                    className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm"
+                  >
+                    <optgroup label="實木">
+                      {MATERIAL_OPTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="板材">
+                      {SHEET_GOOD_OPTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="block">
+                    <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">長 (mm)</span>
+                    <input
+                      type="number"
+                      value={s.length}
+                      onChange={(e) => patchSpec(s.id, { length: Number(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">寬 (mm)</span>
+                    <input
+                      type="number"
+                      value={s.width}
+                      onChange={(e) => patchSpec(s.id, { width: Number(e.target.value) || 0 })}
+                      className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">厚 (mm)</span>
+                    <ThicknessSelect
+                      value={s.thickness}
+                      isSheet={isSheet}
+                      onChange={(t) => patchSpec(s.id, { thickness: t })}
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-700">
+                    <span>數量</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={s.quantity}
+                      onChange={(e) => patchSpec(s.id, { quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-14 px-2 py-1 border border-zinc-200 rounded text-sm text-right"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-xs text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={s.allowRotate}
+                      onChange={(e) => patchSpec(s.id, { allowRotate: e.target.checked })}
+                    />
+                    <span>允許 90° 旋轉</span>
+                  </label>
+                  <button
+                    onClick={() => splitSpec(s.id)}
+                    className="ml-auto text-xs text-indigo-600 hover:text-indigo-900"
+                  >
+                    ✂ 分割
+                  </button>
+                  <button
+                    onClick={() => duplicateSpec(s.id)}
+                    className="text-xs text-zinc-500 hover:text-zinc-900"
+                  >
+                    複製
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
