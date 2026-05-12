@@ -294,11 +294,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       }];
     }
     if (pullStyle === "ring-chinese") {
-      // 中式古銅吊環：圓盤面葉 Φ38×2mm + 圓環 Φ30×4mm 掛在底座下緣
-      const plateD = 38, plateT = 2;
-      const ringD = 30, ringT = 4;
-      // 環掛在底座下方：環中心在底座中心下方 plateD/4 處
-      const ringCy = cy - plateD / 4;
+      // 中式古銅吊環：圓盤面葉 + 圓環掛底座下緣
+      // 預設 Φ38 / Φ30，窄面板自動縮（max 60% face）
+      const plateD = Math.min(38, faceWidth * 0.6);
+      const plateT = 2;
+      const ringD = plateD * 0.8;
+      const ringT = 4;
+      // 環掛在底座下緣：環中心對齊底座下緣（上半圓重疊在底座範圍）
+      const ringCy = cy - plateD / 2;
       return [
         {
           id: `${idPrefix}-pull-plate`,
@@ -329,9 +332,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       ];
     }
     if (pullStyle === "drop-bail") {
-      // 古典吊環 Hepplewhite：矩形 backplate 76×60×2mm + 下吊 bail 60×22×3mm
-      const plateW = 76, plateH = 60, plateT = 2;
-      const bailW = 60, bailH = 22, bailT = 3;
+      // 古典吊環 Hepplewhite：矩形 backplate + 下吊 bail
+      // 預設 76×60，窄面板自動縮（max 50% face）
+      const plateW = Math.min(76, faceWidth * 0.5);
+      const plateH = Math.min(60, faceHeight * 0.7);
+      const plateT = 2;
+      const bailW = plateW * 0.8, bailH = 22, bailT = 3;
       // bail 從 backplate 上緣 1/3 處往下垂
       const bailCy = cy - plateH / 4;
       return [
@@ -362,12 +368,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       ];
     }
     if (pullStyle === "leather-strap") {
-      // 皮革拉帶：120×20×4mm，棕色（用 walnut 近似）
-      const sL = 120, sW = 20, sT = 4;
+      // 皮革拉帶：120×20×4mm，強制用 walnut 木色當棕皮代理
+      // material 蓋掉櫃體材，否則白橡櫃 → 白橡帶完全融進面板
+      const sL = Math.min(120, faceWidth * 0.7);
+      const sW = 20, sT = 4;
       return [{
         id: `${idPrefix}-pull`,
         nameZh: "皮革拉帶",
-        material,
+        material: "walnut",
         materialOverride: "plywood",
         grainDirection: "length",
         visible: { length: sL, width: sT, thickness: sW },
@@ -1357,6 +1365,29 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 表面用主木材色（貼皮），billing 走 plywood（夾板比實木便宜）。
       // 厚度 18mm 是裝潢界對櫃門的常用值。無框、無鑲板，1 件 / 扇。
       if (doorType === "slab") {
+        // edge-bevel / finger-pull 在門板挖 cosmetic mortise（同 drawer face 邏輯）
+        const slabPullMortises: Part["mortises"] =
+          pullStyle === "edge-bevel"
+            ? [{
+                origin: { x: 0, y: 0, z: -doorOuterH / 2 + 12.5 },
+                depth: 25,
+                length: doorOuterW - 8,
+                width: 25,
+                through: false,
+                cosmetic: true,
+                shape: "rect",
+              }]
+            : pullStyle === "finger-pull"
+              ? [{
+                  origin: { x: 0, y: 0, z: -doorOuterH / 2 + 14 },
+                  depth: 12,
+                  length: Math.min(80, doorOuterW - 20),
+                  width: 25,
+                  through: false,
+                  cosmetic: true,
+                  shape: "rect",
+                }]
+              : [];
         parts.push({
           id: `${idPrefix}-${i + 1}-slab`,
           nameZh: `${labelPrefix}${i + 1} 平板門（夾板貼皮）`,
@@ -1375,8 +1406,14 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           },
           rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
-          mortises: [],
+          mortises: slabPullMortises,
         });
+        // 把手：門前緣（z 軸往負前進方向，inset 跟 overlay 都是 zFront - slabT/2）
+        parts.push(...makePullParts(
+          `${idPrefix}-${i + 1}-slab`,
+          xCenter, doorYBase, doorOuterW, doorOuterH,
+          zFront - slabT / 2,
+        ));
         continue; // 跳過下面所有框料 / 鑲板邏輯
       }
 
@@ -1558,6 +1595,12 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           visual: "glass",
         });
       }
+      // 框門 / 玻璃門把手：鎖在門板正面（ring-chinese / drop-bail 中式或古典款專用）
+      parts.push(...makePullParts(
+        `${idPrefix}-${i + 1}-door`,
+        xCenter, doorYBase, doorOuterW, doorOuterH,
+        zFront - frameT / 2,
+      ));
     }
   };
 
