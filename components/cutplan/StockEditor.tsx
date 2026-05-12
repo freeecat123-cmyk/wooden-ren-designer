@@ -138,8 +138,8 @@ export function StockEditor({
       </header>
 
       {inventory.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto hidden md:block">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
                 <th className="text-left px-3 py-2 w-28">類別</th>
@@ -255,6 +255,89 @@ export function StockEditor({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {/* mobile：每筆庫存 card 化，欄位垂直堆疊不裁字 */}
+      {inventory.length > 0 && (
+        <div className="md:hidden divide-y divide-zinc-200">
+          {inventory.map((s, idx) => (
+            <div key={idx} className="p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">類別</span>
+                <select
+                  value={s.kind}
+                  onChange={(e) => {
+                    const kind = e.target.value as StockItem["kind"];
+                    if (kind === "solid") {
+                      patchRow(idx, { kind: "solid", material: s.material ?? "maple", length: 1818, width: 200, thickness: s.thickness || 0 });
+                    } else {
+                      patchRow(idx, { kind, material: undefined, length: 2400, width: 1200, thickness: 18 });
+                    }
+                  }}
+                  className="flex-1 px-2 py-1.5 border border-zinc-200 rounded text-sm"
+                >
+                  <option value="solid">實木</option>
+                  <option value="plywood">夾板</option>
+                  <option value="mdf">中纖板</option>
+                </select>
+                <button
+                  onClick={() => removeRow(idx)}
+                  className="px-2 py-1.5 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100 shrink-0"
+                  aria-label="刪除"
+                >
+                  ✕
+                </button>
+              </div>
+              {s.kind === "solid" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-zinc-400 w-10 shrink-0">材質</span>
+                  <select
+                    value={s.material ?? "maple"}
+                    onChange={(e) => patchRow(idx, { material: e.target.value as MaterialId })}
+                    className="flex-1 px-2 py-1.5 border border-zinc-200 rounded text-sm"
+                  >
+                    {Object.values(MATERIALS).map((m) => (
+                      <option key={m.id} value={m.id}>{m.nameZh}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <label className="block">
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">長 (mm)</span>
+                  <input
+                    type="number"
+                    value={s.length}
+                    onChange={(e) => patchRow(idx, { length: Number(e.target.value) || 0 })}
+                    className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm text-right"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">寬 (mm)</span>
+                  <input
+                    type="number"
+                    value={s.width}
+                    onChange={(e) => patchRow(idx, { width: Number(e.target.value) || 0 })}
+                    className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm text-right"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] font-semibold text-zinc-400 mb-0.5">支數</span>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="不限"
+                    value={s.count ?? ""}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      patchRow(idx, { count: e.target.value === "" || !Number.isFinite(n) || n <= 0 ? null : n });
+                    }}
+                    className="w-full px-2 py-1.5 border border-zinc-200 rounded text-sm text-right"
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
