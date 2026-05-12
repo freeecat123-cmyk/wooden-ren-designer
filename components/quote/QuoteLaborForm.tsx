@@ -181,8 +181,8 @@ export function QuoteLaborForm({
             hint="客戶砍到 25000 就填 → 毛利自動反算"
           />
           <NumField name="quantity" label="數量" value={defaults.quantity} min={LABOR_BOUNDS.quantity.min} max={LABOR_BOUNDS.quantity.max} step={LABOR_BOUNDS.quantity.step} />
-          <NumField name="discountRate" label="折扣率" value={defaults.discountRate} min={LABOR_BOUNDS.discountRate.min} max={LABOR_BOUNDS.discountRate.max} step={LABOR_BOUNDS.discountRate.step} decimal hint="0.05 = 95 折" />
-          <NumField name="depositRate" label="訂金比例" value={defaults.depositRate} min={LABOR_BOUNDS.depositRate.min} max={LABOR_BOUNDS.depositRate.max} step={LABOR_BOUNDS.depositRate.step} decimal hint="0.5 = 50%" />
+          <NumField name="discountRate" label="折扣率" value={defaults.discountRate} min={LABOR_BOUNDS.discountRate.min} max={LABOR_BOUNDS.discountRate.max} step={LABOR_BOUNDS.discountRate.step} percent hint="例：5% = 95 折" />
+          <NumField name="depositRate" label="訂金比例" value={defaults.depositRate} min={LABOR_BOUNDS.depositRate.min} max={LABOR_BOUNDS.depositRate.max} step={LABOR_BOUNDS.depositRate.step} percent />
         </div>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -256,8 +256,8 @@ export function QuoteLaborForm({
                 <NumField name="hardwareCost" label="五金 (NT$)" value={defaults.hardwareCost} min={LABOR_BOUNDS.hardwareCost.min} max={LABOR_BOUNDS.hardwareCost.max} step={LABOR_BOUNDS.hardwareCost.step} />
                 <NumField name="shippingCost" label="運費 (NT$)" value={defaults.shippingCost} min={LABOR_BOUNDS.shippingCost.min} max={LABOR_BOUNDS.shippingCost.max} step={LABOR_BOUNDS.shippingCost.step} />
                 <NumField name="installationCost" label="安裝費 (NT$)" value={defaults.installationCost} min={LABOR_BOUNDS.installationCost.min} max={LABOR_BOUNDS.installationCost.max} step={LABOR_BOUNDS.installationCost.step} />
-                <NumField name="marginRate" label="毛利率" value={defaults.marginRate} min={LABOR_BOUNDS.marginRate.min} max={LABOR_BOUNDS.marginRate.max} step={LABOR_BOUNDS.marginRate.step} decimal />
-                <NumField name="vatRate" label="營業稅率" value={defaults.vatRate} min={LABOR_BOUNDS.vatRate.min} max={LABOR_BOUNDS.vatRate.max} step={LABOR_BOUNDS.vatRate.step} decimal />
+                <NumField name="marginRate" label="毛利率" value={defaults.marginRate} min={LABOR_BOUNDS.marginRate.min} max={LABOR_BOUNDS.marginRate.max} step={LABOR_BOUNDS.marginRate.step} percent />
+                <NumField name="vatRate" label="營業稅率" value={defaults.vatRate} min={LABOR_BOUNDS.vatRate.min} max={LABOR_BOUNDS.vatRate.max} step={LABOR_BOUNDS.vatRate.step} percent />
               </div>
             </fieldset>
             <fieldset className="rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
@@ -276,8 +276,8 @@ export function QuoteLaborForm({
                   min={LABOR_BOUNDS.designerMarkupRate.min}
                   max={LABOR_BOUNDS.designerMarkupRate.max}
                   step={LABOR_BOUNDS.designerMarkupRate.step}
-                  decimal
-                  hint="0=關閉；0.30=加 30%；0.50=加 50%"
+                  percent
+                  hint="0=關閉；輸入 30 = 加 30%"
                 />
               </div>
             </fieldset>
@@ -298,6 +298,7 @@ function NumField({
   decimal,
   optional,
   hint,
+  percent,
 }: {
   name: string;
   label: string;
@@ -308,7 +309,13 @@ function NumField({
   decimal?: boolean;
   optional?: boolean;
   hint?: string;
+  /** percent 模式：value 是 0-1 fraction，UI 顯示 × 100 帶 % 後綴；submit
+   *  仍寫 fraction（hidden input） */
+  percent?: boolean;
 }) {
+  if (percent) {
+    return <PercentField name={name} label={label} value={value} min={min} max={max} step={step} hint={hint} />;
+  }
   const display = value == null ? "" : decimal ? value.toFixed(2) : String(value);
   return (
     <label className="flex flex-col text-xs">
@@ -324,6 +331,54 @@ function NumField({
         placeholder={optional ? "（不填 / 0＝併入主材）" : undefined}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
+      {hint && <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>}
+    </label>
+  );
+}
+
+function PercentField({
+  name,
+  label,
+  value,
+  min,
+  max,
+  step,
+  hint,
+}: {
+  name: string;
+  label: string;
+  value: number | null;
+  min: number;
+  max: number;
+  step: number;
+  hint?: string;
+}) {
+  // 內部維護 fraction state，UI 顯示 ×100 + %，hidden input 寫 fraction 給 form submit
+  const [frac, setFrac] = useState<number>(value ?? 0);
+  const displayPct = (frac * 100).toFixed(frac * 100 < 10 ? 1 : 0);
+  const minPct = min * 100;
+  const maxPct = max * 100;
+  const stepPct = Math.max(0.5, step * 100);
+  return (
+    <label className="flex flex-col text-xs">
+      <span className="text-zinc-600 mb-1">{label}</span>
+      <div className="relative">
+        <input
+          type="number"
+          defaultValue={displayPct}
+          min={minPct}
+          max={maxPct}
+          step={stepPct}
+          inputMode="decimal"
+          onChange={(e) => {
+            const pct = Number(e.target.value);
+            if (Number.isFinite(pct)) setFrac(pct / 100);
+          }}
+          className="border border-zinc-300 rounded px-2 pr-7 py-1.5 bg-white text-zinc-900 text-base w-full"
+        />
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none">%</span>
+      </div>
+      <input type="hidden" name={name} value={frac} />
       {hint && <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>}
     </label>
   );
