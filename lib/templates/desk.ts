@@ -22,6 +22,13 @@ import {
 } from "./_builders/zone-helpers";
 
 export const deskOptions: OptionSpec[] = [
+  // ───────────── ① 桌面 ─────────────
+  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
+  seatEdgeOption("top", 5),
+  seatEdgeStyleOption("top"),
+  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
+
+  // ───────────── ② 桌腳 ─────────────
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（方料下收）" },
@@ -32,35 +39,41 @@ export const deskOptions: OptionSpec[] = [
     { value: "splayed-round-tapered", label: "圓錐斜腳（圓料下收 + 外傾）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
-  { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
-  { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
+  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+
+  // ───────────── ③ 牙板 ─────────────
   { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "牙板連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
+
+  // ───────────── ④ 橫撐 ─────────────
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙板 + 無抽屜（抽屜佔中央位置）", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerCount", equals: 0 }] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
+  stretcherEdgeOption("stretcher", 1),
+  stretcherEdgeStyleOption("stretcher"),
   { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
   { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 0, min: 0, max: 20, step: 1, help: "0 = 自動依桌長算（每 150mm 一條）", dependsOn: { key: "withSlatRack", equals: true } },
   { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
   { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
+
+  // ───────────── ⑤ 懸吊抽屜櫃 ─────────────
   { group: "drawer", type: "number", key: "drawerCount", label: "懸吊抽屜數", defaultValue: 0, min: 0, max: 3, step: 1, help: "桌面下掛一組抽屜櫃（0 = 無）。沿用櫃類抽屜系統：含 5 件式抽屜箱、滑軌、把手等完整功能" },
   { group: "drawer", type: "select", key: "drawerSide", label: "抽屜位置", defaultValue: "right", choices: [
     { value: "left", label: "左側" },
     { value: "right", label: "右側" },
     { value: "center", label: "中央（窄型）" },
   ], dependsOn: { key: "drawerCount", notIn: [0] } },
-  // 跟櫃類同款的抽屜細節選項——desk 沒 zones 所以 dependsOn 改吃 drawerCount > 0
+  // 抽屜細部（同櫃類）—— 跟櫃類同款 helper 共用，desk 改用 drawerCount > 0
   { ...drawerMountOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...drawerBottomModeOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
+  // 抽屜櫃結構：接桌底方式 + 深度/間距 + H 框
   { group: "drawer", type: "select", key: "pedestalTopAttach", label: "櫃子接桌底方式", defaultValue: "single", choices: [
     { value: "single", label: "單邊側板延伸（傳統 pedestal desk）" },
     { value: "both", label: "兩側側板延伸（櫃子兩面都接桌底）" },
@@ -68,14 +81,13 @@ export const deskOptions: OptionSpec[] = [
     { value: "brass-pillars", label: "4 隻黃銅柱（現代極簡）" },
   ], dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮 (mm)", defaultValue: 80, min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
-  { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
-  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
   { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度 (mm)", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
+  { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
+
+  // ───────────── ⑥ 後飾遮腿板 ─────────────
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "後飾遮腿板（modesty panel）", defaultValue: false, help: "桌後加一片整片立板（高 350mm），遮住坐者下肢的後側；常見於辦公桌靠牆或自由站立場合。斜腳款不適用故隱藏", wide: true, dependsOn: { key: "legShape", notIn: ["splayed", "splayed-length", "splayed-width", "splayed-tapered", "splayed-round-tapered"] } },
-  { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 
 export const desk: FurnitureTemplate = (input) => {
