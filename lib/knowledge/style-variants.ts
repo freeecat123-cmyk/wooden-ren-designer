@@ -460,12 +460,17 @@ export function sampleStyleVariant(
     overlay.seatThickness = Math.round(baseParams.seatThickness * pickRangeFloat(pool.seatThicknessRatio, variantSeed, "seatThickness"));
   }
 
-  // 整體尺寸：用 category canonical 當錨點，**不用** URL current（baseSize）
-  // 避免連按變體 length × 1.05 × 1.05 ... 複利暴衝。canonical 沒查到才 fallback。
-  const anchor = getCanonicalSize(category) ?? baseSize;
-  if (pool.lengthRatio) overlay.length = Math.round(anchor.length * pickRangeFloat(pool.lengthRatio, variantSeed, "length"));
-  if (pool.widthRatio) overlay.width = Math.round(anchor.width * pickRangeFloat(pool.widthRatio, variantSeed, "width"));
-  if (pool.heightRatio) overlay.height = Math.round(anchor.height * pickRangeFloat(pool.heightRatio, variantSeed, "height"));
+  // 整體尺寸：variant 不再 override length/width/height
+  // 原因：使用者「業界常用」按鈕設過 2400×900，再按同風格進變體被 canonical
+  // 1500×850 × ratio 覆蓋會丟掉使用者選擇。整體尺寸尊重使用者，
+  // variant 只變 stylistic 細節（legSize / apronWidth / 結構 etc.）。
+  // void anchor & ratio pool to silence unused（如未來要恢復 size variant，
+  // 改成「user 沒明確設過才套」）
+  void getCanonicalSize;
+  void baseSize;
+  void pool.lengthRatio;
+  void pool.widthRatio;
+  void pool.heightRatio;
 
   return overlay;
 }
