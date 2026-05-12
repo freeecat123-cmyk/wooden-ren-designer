@@ -305,12 +305,9 @@ export const desk: FurnitureTemplate = (input) => {
     const splayOffsetX = isSplayedX ? splayMm * splayFrac : 0;
     const splayOffsetZ = isSplayedZ ? splayMm * splayFrac : 0;
     const legCenterX = input.length / 2 - legSize / 2 - legInset + splayOffsetX;
-    // 縱向橫撐沿 Z 跨前後腳；前腳外推 splayOffsetZ、後腳同樣 → 整體 Z 跨距 + 2×splayOffsetZ
-    // 圓腳：直接跨腳中心到腳中心（端面藏進圓柱半徑內）→ 額外 +legSize
-    const isRoundLegInH = legShape === "splayed-round-tapered";
-    const sideStretcherLen = isRoundLegInH
-      ? 2 * (innerLegEdgeZ + legSize / 2) + 2 * splayOffsetZ
-      : 2 * innerLegEdgeZ + 2 * TENON + 2 * splayOffsetZ;
+    // 縱向橫撐統一伸到腳中心 Z（不論方/錐/圓腳，端面都藏進腳輪廓內）
+    // = 2 × (top 腳中心 Z + splay 偏移 at stretcher Y)
+    const sideStretcherLen = 2 * (innerLegEdgeZ + legSize / 2 + splayOffsetZ);
     for (const sx of [-1, +1] as const) {
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
