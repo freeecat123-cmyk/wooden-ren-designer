@@ -51,6 +51,7 @@ export function MyDesignsClient() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (planLoading) return;
@@ -79,6 +80,30 @@ export function MyDesignsClient() {
       cancelled = true;
     };
   }, [planLoading, isLoggedIn, userId]);
+
+  const handleRename = async (row: DesignRow) => {
+    const current = row.name ?? "";
+    const next = window.prompt("設計新名稱", current);
+    if (next === null) return; // 取消
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === current) return;
+    setRenamingId(row.id);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("designs")
+        .update({ name: trimmed })
+        .eq("id", row.id);
+      if (error) throw error;
+      setRows((prev) =>
+        prev ? prev.map((r) => (r.id === row.id ? { ...r, name: trimmed } : r)) : prev,
+      );
+    } catch (e) {
+      window.alert(`改名失敗：${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setRenamingId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("確定刪除這件設計？此動作無法復原。")) return;
@@ -183,6 +208,14 @@ export function MyDesignsClient() {
                   >
                     重新編輯
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleRename(row)}
+                    disabled={renamingId === row.id}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-300 text-zinc-600 text-xs hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    {renamingId === row.id ? "改名中…" : "✏️ 改名"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(row.id)}
