@@ -344,12 +344,14 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const bottomScale = legBottomScale(legShape);
   const apronEdgeZ = width / 2 - legSize / 2 - legInset;
   const apronEdgeX = length / 2 - legSize / 2 - legInset;
-  // 外斜支援 3 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width（只沿 Z）
+  // 外斜支援 5 種：對角 splayed、單向 splayed-length（只沿 X）、splayed-width
+  // （只沿 Z）、splayed-tapered（雙軸+下收）、splayed-round-tapered（圓料雙軸+下收）
   // splayDx/splayDz 分別記錄該軸是否啟用外斜，給 apron 計算對應的位移和傾角
+  const isSplayedAllAxes = legShape === "splayed" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
   const splayDx =
-    legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+    isSplayedAllAxes || legShape === "splayed-length" ? splayMm : 0;
   const splayDz =
-    legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+    isSplayedAllAxes || legShape === "splayed-width" ? splayMm : 0;
   const isSplayed = splayDx > 0 || splayDz > 0;
   // 牙板上下緣：以「中軸 Y」算 splay 基準位移，讓牙板中軸跟腳中軸對齊。
   // top 邊縮、bot 邊放，bevelAngle 補償讓上下面切平（跟地面平行）。
