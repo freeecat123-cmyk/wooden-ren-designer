@@ -363,7 +363,21 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               🪚 裁切計算器
             </Link>
           </div>
-          <MaterialListWithSelection design={design} />
+          {/* desktop 雙欄：左清單 + 右側 sticky 3D；mobile 上下排 */}
+          <div className="lg:grid lg:grid-cols-[7fr_5fr] lg:gap-4">
+            <div className="lg:col-start-1 lg:row-start-1 min-w-0">
+              <MaterialListWithSelection design={design} />
+            </div>
+            <div className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4 lg:self-start lg:px-3 lg:py-3">
+              <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-zinc-200 text-[11px] font-semibold text-zinc-600 flex items-center gap-2">
+                  <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
+                  3D 預覽（同步高亮選中零件）
+                </div>
+                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+              </div>
+            </div>
+          </div>
         </div>
       </details>
       </SelectedPartProvider>
