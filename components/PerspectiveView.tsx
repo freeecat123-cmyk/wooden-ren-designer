@@ -427,7 +427,6 @@ function Part({
       <mesh position={position} rotation={rotation}>
         <boxGeometry args={size} />
         <meshPhysicalMaterial
-          key={`glass-${isSelected ? "sel" : "n"}-${isDimmed ? "dim" : "n"}`}
           color="#b8d9e8"
           roughness={0.05}
           transmission={0.9}
@@ -449,7 +448,6 @@ function Part({
       <mesh position={position} rotation={rotation}>
         {brassGeo ? <primitive object={brassGeo} attach="geometry" /> : <boxGeometry args={size} />}
         <meshStandardMaterial
-          key={`brass-${isSelected ? "sel" : "n"}-${isDimmed ? "dim" : "n"}`}
           color="#8a6a3a"
           roughness={0.35}
           metalness={0.85}
@@ -485,7 +483,6 @@ function Part({
         <boxGeometry args={size} />
       )}
       <meshStandardMaterial
-        key={`mat-${isSelected ? "sel" : "n"}-${isDimmed ? "dim" : "n"}`}
         color={color}
         roughness={0.55}
         metalness={0.05}
