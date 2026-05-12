@@ -686,6 +686,7 @@ function ParameterForm({
         <label className="flex flex-col text-xs">
           <span className="text-zinc-600 mb-1">木材</span>
           <select
+            key={`material-${defaults.material}`}
             name="material"
             defaultValue={defaults.material}
             className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
