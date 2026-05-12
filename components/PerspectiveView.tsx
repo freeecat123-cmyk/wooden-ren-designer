@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useMemo, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -1780,6 +1780,7 @@ export function PerspectiveView({
    *  - "full"：藏整個抽屜 + 全門 → 看得到櫃內全空（層板/隔板/後板）*/
   xrayMode?: "off" | "face" | "full";
 }) {
+  const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
   const maxDim = Math.max(
@@ -1914,7 +1915,9 @@ export function PerspectiveView({
   }, [auditMode, design]);
 
   return (
-    <div data-thumb="3d" className="w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
+    <div className="w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col">
+      <ViewPresetBar onSelect={setViewPreset} />
+      <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas
         shadows
         // frameloop="demand" → 只在互動時渲染，沒動的時候 0 fps。
@@ -2392,7 +2395,86 @@ export function PerspectiveView({
           maxPolarAngle={Math.PI - 0.02}
           minPolarAngle={0.02}
         />
+        <CameraController
+          preset={viewPreset}
+          maxDim={maxDim}
+          targetY={(design.overall.thickness * SCALE) / 2}
+          onApplied={() => setViewPreset(null)}
+        />
       </Canvas>
+      </div>
     </div>
   );
+}
+
+type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero";
+
+function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
+  const presets: { id: ViewPreset; label: string; title: string }[] = [
+    { id: "hero", label: "45°", title: "預設立體角度" },
+    { id: "front", label: "正", title: "正視圖" },
+    { id: "back", label: "背", title: "背視圖" },
+    { id: "left", label: "左", title: "左側視圖" },
+    { id: "right", label: "右", title: "右側視圖" },
+    { id: "top", label: "俯", title: "俯視圖" },
+    { id: "bottom", label: "仰", title: "仰視圖" },
+  ];
+  return (
+    <div className="flex gap-1 px-2 py-1 border-b border-zinc-200 bg-white/70 backdrop-blur-sm overflow-x-auto shrink-0">
+      <span className="shrink-0 px-1 text-[10px] text-zinc-500 self-center">視角</span>
+      {presets.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          title={p.title}
+          onClick={() => onSelect(p.id)}
+          className="shrink-0 px-2 py-0.5 text-[11px] font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CameraController({
+  preset,
+  maxDim,
+  targetY,
+  onApplied,
+}: {
+  preset: ViewPreset | null;
+  maxDim: number;
+  targetY: number;
+  onApplied: () => void;
+}) {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as {
+    target: { set: (x: number, y: number, z: number) => void };
+    update: () => void;
+  } | null;
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (!preset) return;
+    const d = maxDim * 2.3;
+    const POS: Record<ViewPreset, [number, number, number]> = {
+      hero:   [d * 0.55, targetY + d * 0.5, -d * 0.6],
+      front:  [0, targetY, -d],
+      back:   [0, targetY, d],
+      left:   [-d, targetY, 0.001],
+      right:  [d, targetY, 0.001],
+      // 0.001 偏移避免相機跟 up 軸完全平行的 gimbal-lock
+      top:    [0.001, targetY + d, 0.001],
+      bottom: [0.001, Math.max(-targetY * 0.5, -d * 0.4), 0.001],
+    };
+    const [x, y, z] = POS[preset];
+    camera.position.set(x, y, z);
+    if (controls) {
+      controls.target.set(0, targetY, 0);
+      controls.update();
+    }
+    invalidate();
+    onApplied();
+  }, [preset, camera, controls, invalidate, maxDim, targetY, onApplied]);
+  return null;
 }
