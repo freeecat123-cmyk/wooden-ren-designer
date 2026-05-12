@@ -50,20 +50,17 @@ export function ZoomableThreeViews({
             key={v.kind}
             type="button"
             onClick={() => switchView(v.kind)}
-            className="group relative h-56 sm:h-64 lg:h-72 border border-zinc-300 rounded overflow-hidden bg-white hover:border-zinc-900 hover:shadow-md transition-all cursor-zoom-in flex items-center justify-center"
+            className="group relative h-56 sm:h-64 lg:h-72 border border-zinc-300 rounded overflow-hidden bg-white hover:border-zinc-900 hover:shadow-md transition-all cursor-zoom-in flex items-center justify-center [&_svg_path]:[vector-effect:non-scaling-stroke] [&_svg_line]:[vector-effect:non-scaling-stroke] [&_svg_polyline]:[vector-effect:non-scaling-stroke] [&_svg_polygon]:[vector-effect:non-scaling-stroke] [&_svg_rect]:[vector-effect:non-scaling-stroke] [&_svg_circle]:[vector-effect:non-scaling-stroke]"
             aria-label={`放大${v.title}`}
           >
-            {/* SVG 放大 1.4× 補強細線視覺；hover 提示「點擊放大」覆蓋層 */}
-            <div className="absolute inset-0 flex items-center justify-center" style={{ transform: "scale(1.4)", transformOrigin: "center" }}>
-              <OrthoView
-                design={design}
-                view={v.kind}
-                title={v.title}
-                titleEn={v.titleEn}
-                className="bg-white w-full h-full"
-                joineryMode={joineryMode}
-              />
-            </div>
+            <OrthoView
+              design={design}
+              view={v.kind}
+              title={v.title}
+              titleEn={v.titleEn}
+              className="bg-white w-full h-full"
+              joineryMode={joineryMode}
+            />
             <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-900/70 text-white opacity-0 group-hover:opacity-100 transition-opacity">
               🔍 點擊放大
             </span>
