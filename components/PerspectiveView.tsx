@@ -1914,7 +1914,7 @@ export function PerspectiveView({
   }, [auditMode, design]);
 
   return (
-    <div className="w-full h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
+    <div className="w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200">
       <Canvas
         shadows
         // frameloop="demand" → 只在互動時渲染，沒動的時候 0 fps。

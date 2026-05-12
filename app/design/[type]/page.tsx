@@ -297,16 +297,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             lg:col-start-2 lg:row-start-1 lg:sticky lg:self-start
           "
         >
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden max-h-[40vh] lg:max-h-none flex flex-col">
-            <div className="px-4 py-1.5 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2 shrink-0">
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+            <div className="px-4 py-1.5 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
               <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
             <XrayToggle current={xrayMode} />
-            <div className="flex-1 min-h-0">
-              <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
-            </div>
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
           </div>
         </div>
 
