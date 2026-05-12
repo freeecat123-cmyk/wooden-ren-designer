@@ -6,13 +6,6 @@ const nextConfig: NextConfig = {
   // grant a new one to the second mount. Result: blank 透視圖 in dev.
   // Production builds don't double-mount, so this is dev-only.
   reactStrictMode: false,
-  // 家具縮圖 next/image 用 ?v=N cache-bust，需放行 query string
-  images: {
-    localPatterns: [
-      { pathname: "/thumbs/**", search: "" },
-      { pathname: "/thumbs/**", search: "?v=*" },
-    ],
-  },
   // 木工大師客服 bot 在 runtime 從 lib/wood-master/knowledge/*.md 讀知識，
   // Vercel 預設只 trace 程式碼引用到的檔案；明確列出讓部署帶上這 19 份 md。
   outputFileTracingIncludes: {

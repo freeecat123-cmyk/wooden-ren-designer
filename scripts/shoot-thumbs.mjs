@@ -9,7 +9,7 @@ import sharp from "sharp";
 import fs from "node:fs";
 
 const BASE = process.env.THUMBS_BASE_URL || "http://localhost:3000";
-const OUT_DIR = "public/thumbs";
+const OUT_DIR = "public/thumbs/v2";
 
 // 已實作的 28 個 category（跟 FURNITURE_CATALOG 同步）
 const CATEGORIES = [

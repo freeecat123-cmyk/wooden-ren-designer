@@ -349,7 +349,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
         {/* 右：縮圖（純 3D 渲染、4:3 對齊不裁邊） */}
         <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
           <Image
-            src={`/thumbs/${item.category}.webp?v=2`}
+            src={`/thumbs/v2/${item.category}.webp`}
             alt={`${item.nameZh} 3D 預覽`}
             fill
             sizes="(min-width: 640px) 128px, 112px"
