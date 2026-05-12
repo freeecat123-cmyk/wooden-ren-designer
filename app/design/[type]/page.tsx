@@ -112,8 +112,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     profile = data;
   }
   const isAdmin = isAdminEmail(user?.email, getServerAdminEmails());
+  // dev-only：playwright shoot-thumbs 腳本繞過 paywall 抓所有家具縮圖
+  const isThumbShoot =
+    process.env.NODE_ENV === "development" && sp._shoot === "1";
   if (
     !isAdmin &&
+    !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory)
   ) {
