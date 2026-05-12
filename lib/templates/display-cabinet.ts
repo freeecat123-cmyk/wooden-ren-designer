@@ -36,7 +36,7 @@ import {
 export const displayCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 20, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
-    topType: "shelves", topHeight: 400, topCount: 2,
+    topType: "door", topHeight: 400, topCount: 2,
     midType: "shelves", midCount: 3,
     bottomType: "door", bottomHeight: 500, bottomCount: 2,
   }),

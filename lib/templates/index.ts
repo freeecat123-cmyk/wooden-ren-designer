@@ -251,7 +251,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     description: "5 片實木組成的方盒，桌上文具收納入門款",
     difficulty: "beginner",
     template: pencilHolder,
-    defaults: { length: 80, width: 80, height: 110 },
+    defaults: { length: 80, width: 80, height: 170 },
     limits: { length: 200, width: 200, height: 250 },
     optionSchema: pencilHolderOptions,
   },
