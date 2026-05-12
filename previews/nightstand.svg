@@ -6,7 +6,7 @@
 <rect x="-20" y="-10" width="1270" height="1684" fill="#fafaf7"/>
 
 <text x="615" y="24" text-anchor="middle" font-size="22" font-weight="700" fill="#111" font-family="sans-serif">床頭櫃</text>
-<text x="615" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">450 × 380 × 600 mm · 台灣檜木 · 16 件零件</text>
+<text x="615" y="46" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">450 × 380 × 600 mm · 台灣檜木 · 22 件零件</text>
 <g transform="translate(0, 70)">
   <g transform="translate(315.0, 722.0)">
     <rect x="-307.0" y="-714.0" width="614.0" height="846.0" fill="none" stroke="#222" stroke-width="1"/>
@@ -20,22 +20,28 @@
   <line x1="-235.0" y1="-300.0" x2="235.0" y2="-300.0"/>
 </g>
     <rect x="-225.0" y="-600.0" width="450.0" height="600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-207.0" y="-582.0" width="414.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-205.0" y="-312.0" width="410.0" height="162.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<polygon points="-225.0,-120.0 -190.0,-120.0 -197.9,0.0 -217.1,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<polygon points="190.0,-120.0 225.0,-120.0 217.1,0.0 197.9,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-193.0" y="-153.0" width="386.0" height="6.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-207.0" y="-314.0" width="14.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="193.0" y="-314.0" width="14.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-225.0" y="-582.0" width="18.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="207.0" y="-582.0" width="18.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-207.0" y="-468.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-207.0" y="-318.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-205.0" y="-314.0" width="410.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<polygon points="-225.0,-120.0 -190.0,-120.0 -197.9,0.0 -217.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<polygon points="190.0,-120.0 225.0,-120.0 217.1,0.0 197.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
+    <rect x="-225.0" y="-600.0" width="450.0" height="500.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-205.0" y="-580.0" width="410.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<polygon points="190.0,-100.0 225.0,-100.0 217.1,0.0 197.9,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<polygon points="-225.0,-100.0 -190.0,-100.0 -197.9,0.0 -217.1,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="191.0" y="-580.0" width="14.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="-580.0" width="14.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="-434.0" width="410.0" height="3.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="-580.0" width="410.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<polygon points="190.0,-100.0 225.0,-100.0 217.1,0.0 197.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<polygon points="-225.0,-100.0 -190.0,-100.0 -197.9,0.0 -217.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-225.0" y="-600.0" width="450.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-225.0" y="-138.0" width="450.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-225.0" y="-118.0" width="450.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="207.0" y="-582.0" width="18.0" height="464.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-225.0" y="-582.0" width="18.0" height="464.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-207.0" y="-432.0" width="414.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-171.0" y="-370.0" width="342.0" height="216.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-163.0" y="-422.0" width="326.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-163.0" y="-162.0" width="326.0" height="60.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="163.0" y="-422.0" width="60.0" height="320.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-223.0" y="-422.0" width="60.0" height="320.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-223.0" y="-598.0" width="446.0" height="171.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-15.0" y="-527.5" width="30.0" height="30.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-225.0" y1="12.0" x2="-225.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
@@ -63,22 +69,28 @@
   <line x1="-200.0" y1="-300.0" x2="200.0" y2="-300.0"/>
 </g>
     <rect x="-190.0" y="-600.0" width="380.0" height="600.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-187.0" y="-582.0" width="374.0" height="444.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-185.5" y="-314.0" width="364.0" height="172.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<polygon points="-190.0,-120.0 -155.0,-120.0 -162.9,0.0 -182.1,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<polygon points="155.0,-120.0 190.0,-120.0 182.1,0.0 162.9,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-174.5" y="-153.0" width="342.0" height="6.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-189.0" y="-314.0" width="18.0" height="172.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="167.0" y="-312.0" width="12.0" height="162.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-187.0" y="-468.0" width="374.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="184.0" y="-582.0" width="6.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-187.0" y="-318.0" width="374.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-185.5" y="-314.0" width="364.0" height="172.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<polygon points="-190.0,-120.0 -155.0,-120.0 -162.9,0.0 -182.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<polygon points="155.0,-120.0 190.0,-120.0 182.1,0.0 162.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
+    <rect x="-190.0" y="-582.0" width="380.0" height="464.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-171.0" y="-580.0" width="344.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<polygon points="-190.0,-100.0 -155.0,-100.0 -162.9,0.0 -182.1,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<polygon points="155.0,-100.0 190.0,-100.0 182.1,0.0 162.9,0.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-213.0" y="-422.0" width="22.0" height="320.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-238.5" y="-527.5" width="25.0" height="30.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-213.0" y="-422.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-213.0" y="-162.0" width="22.0" height="60.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-208.0" y="-370.0" width="12.0" height="216.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-189.0" y="-580.0" width="18.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="173.0" y="-580.0" width="12.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-171.0" y="-580.0" width="344.0" height="146.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-187.5" y="-434.0" width="374.0" height="3.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-190.0" y="-432.0" width="380.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-213.0" y="-422.0" width="22.0" height="320.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-213.0" y="-598.0" width="22.0" height="171.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<polygon points="-190.0,-100.0 -155.0,-100.0 -162.9,0.0 -182.1,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<polygon points="155.0,-100.0 190.0,-100.0 182.1,0.0 162.9,0.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-190.0" y="-600.0" width="380.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-190.0" y="-138.0" width="380.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
-<rect x="-187.0" y="-582.0" width="374.0" height="444.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-190.0" y="-118.0" width="380.0" height="18.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-190.0" y="-582.0" width="380.0" height="464.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="190.0" y="-600.0" width="3.0" height="500.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-190.0" y1="12.0" x2="-190.0" y2="36.0" stroke-width="0.4" stroke="#666"/>
@@ -106,22 +118,28 @@
   <line x1="-235.0" y1="0.0" x2="235.0" y2="0.0"/>
 </g>
     <rect x="-225.0" y="-190.0" width="450.0" height="380.0" fill="none" stroke="#999" stroke-dasharray="3 3" stroke-width="0.5" opacity="0.8"/>
-    <rect x="-225.0" y="-190.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-225.0" y="155.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="190.0" y="-190.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+    <rect x="190.0" y="-190.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="190.0" y="155.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-225.0" y="-190.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-225.0" y="155.0" width="35.0" height="35.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
 <rect x="-225.0" y="-190.0" width="450.0" height="380.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-193.0" y="-174.5" width="386.0" height="342.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-205.0" y="167.0" width="410.0" height="12.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-163.0" y="-213.0" width="326.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-171.0" y="-208.0" width="342.0" height="12.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-163.0" y="-213.0" width="326.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="163.0" y="-213.0" width="60.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-213.0" width="60.0" height="22.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-207.0" y="-190.0" width="414.0" height="380.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="-187.5" width="410.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-15.0" y="-238.5" width="30.0" height="25.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-205.0" y="-189.0" width="410.0" height="18.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-207.0" y="-185.5" width="14.0" height="364.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="193.0" y="-185.5" width="14.0" height="364.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-207.0" y="-187.0" width="414.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-207.0" y="-187.0" width="414.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-225.0" y="-187.0" width="18.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="207.0" y="-187.0" width="18.0" height="374.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
-<rect x="-207.0" y="184.0" width="414.0" height="6.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="173.0" width="410.0" height="12.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="191.0" y="-171.0" width="14.0" height="344.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-205.0" y="-171.0" width="14.0" height="344.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="207.0" y="-190.0" width="18.0" height="380.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-225.0" y="-190.0" width="18.0" height="380.0" fill="none" stroke="#888" stroke-width="0.5" stroke-dasharray="4 3"/>
+<rect x="-223.0" y="-213.0" width="446.0" height="22.0" fill="none" stroke="#111" stroke-width="0.9"/>
 <rect x="-225.0" y="-190.0" width="450.0" height="380.0" fill="none" stroke="#111" stroke-width="0.9"/>
+<rect x="-225.0" y="190.0" width="450.0" height="3.0" fill="none" stroke="#111" stroke-width="0.9"/>
     
 <g stroke="#111" fill="#111" stroke-width="0.6" font-family="sans-serif">
   <line x1="-225.0" y1="202.0" x2="-225.0" y2="226.0" stroke-width="0.4" stroke="#666"/>
