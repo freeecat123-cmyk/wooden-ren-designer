@@ -133,7 +133,16 @@ export const desk: FurnitureTemplate = (input) => {
       ? Math.min(400, input.length * 0.4)
       : Math.min(450, innerW * 0.4);
     const caseH = Math.min(legHeight * 0.6, drawerCount * 130 + 30);
-    const caseD = Math.min(input.width - 60, 480);
+    // 牙板內間距（前後牙板背面之間 Z 軸空間）= input.width - 2*legInset
+    //   - legSize - apronThickness。再扣：
+    //   -10mm 前後安全 clearance、-50mm 抽屜面板 + 把手凸出
+    //   （overlay-6 face ~22mm + knob 凸 25mm + buffer 3）
+    const FACE_PROTRUSION = 50;
+    const apronInnerD = input.width - 2 * legInset - legSize - apronThickness - 10 - FACE_PROTRUSION;
+    const caseD = Math.min(apronInnerD, 480);
+    // pedestal 往 +Z 偏 FACE_PROTRUSION/2，把 face 凸出量讓給前牙板，保持
+    // pedestal 後緣跟後牙板對稱 5mm clearance
+    const caseZOffset = FACE_PROTRUSION / 2;
     const caseX = drawerSide === "center"
       ? 0
       : drawerSide === "left"
@@ -167,8 +176,8 @@ export const desk: FurnitureTemplate = (input) => {
       panelThickness: 15,
     });
 
-    // 平移所有 part：x += caseX、y += caseY、z 維持（caseFurniture 自身 0,0,0
-    // 為長/寬中心，y=0 為 case 底）
+    // 平移所有 part：x += caseX、y += caseY、z += caseZOffset
+    // caseFurniture 自身 0,0,0 為 X/Z 中心、y=0 為 case 底
     for (const p of pedestal.parts) {
       design.parts.push({
         ...p,
@@ -176,7 +185,7 @@ export const desk: FurnitureTemplate = (input) => {
         origin: {
           x: p.origin.x + caseX,
           y: p.origin.y + caseY,
-          z: p.origin.z,
+          z: p.origin.z + caseZOffset,
         },
       });
     }
