@@ -222,6 +222,8 @@ export const chineseCabinetOptions: OptionSpec[] = [
     { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
     { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
   ] } },
+  { group: "door", type: "number", key: "doorFrameRailWidth", label: "門框木條寬 (mm)", defaultValue: 18, min: 12, max: 40, step: 1, unit: "mm", help: "格扇/玻璃門櫺條斷面寬度。明清傳統 15-22mm，現代款可粗到 30+mm", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
+  { group: "door", type: "number", key: "doorFrameThickness", label: "門框木條厚 (mm)", defaultValue: 8, min: 5, max: 18, step: 1, unit: "mm", help: "櫺條凸貼門面的厚度。8mm 傳統淺刻、12+ 較立體", dependsOn: { key: "doorStyle", oneOf: ["lattice-cross", "lattice-lantern", "glass", "glass-lattice"] } },
   { group: "door", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
@@ -376,6 +378,8 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const panelInlayActive = panelInlay !== "none" && panelStyle === "flat";
   const doorGap = getOption<number>(input, opt(o, "doorGap"));
   const doorPullType = getOption<string>(input, opt(o, "doorPullType"));
+  const doorFrameRailWidth = getOption<number>(input, opt(o, "doorFrameRailWidth"));
+  const doorFrameThickness = getOption<number>(input, opt(o, "doorFrameThickness"));
   const doorStyleRaw = getOption<string>(input, opt(o, "doorStyle"));
   // preset 帶的 doorStyle 在 user 未主動選非 solid 時生效（user override solid 也算「主動選」）
   const presetDoorStyle = CABINET_PRESETS[cabinetPreset]?.doorStyle;
@@ -996,9 +1000,9 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const doorDzMm = isRoundCorner ? doorFrontZBot - doorFrontZTop : 0;
       // 兼容：muntin / hinge / pull 等附件用門中段 Z 對齊（這些部件不跟門 splay）
       const doorFrontZ = (doorFrontZTop + doorFrontZBot) / 2;
-      // 格扇櫺條尺寸（凸貼門面 5mm）
-      const muntinT = 8;        // 櫺條厚度（伸出門面）
-      const muntinW = 18;       // 櫺條寬度
+      // 格扇櫺條尺寸（凸貼門面）— 從 option 讀，user 可調傳統 vs 現代厚薄
+      const muntinT = doorFrameThickness;        // 櫺條厚度（伸出門面）
+      const muntinW = doorFrameRailWidth;        // 櫺條寬度
       const muntinFrontZ = doorFrontZ - doorThickness / 2 - muntinT / 2;  // 凸貼 -Z 面
       const isGlassDoor = doorStyle === "glass" || doorStyle === "glass-lattice";
       const hasOuterFrame = doorStyle === "lattice-cross" || doorStyle === "lattice-lantern" || isGlassDoor;
