@@ -1809,6 +1809,8 @@ export function PerspectiveView({
   selectedPartId?: string | null;
   /** 點擊零件時呼叫，傳回 part.id 給外部 context（雙向高亮：3D ↔ 零件清單） */
   onPartSelect?: (id: string) => void;
+  /** 緊湊模式：外層 wrapper 用 w-full h-full 跟著父容器（PIP 用），不用預設 40vh / 520px */
+  compactMode?: boolean;
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
@@ -1945,7 +1947,11 @@ export function PerspectiveView({
   }, [auditMode, design]);
 
   return (
-    <div className="w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col">
+    <div className={
+      compactMode
+        ? "w-full h-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
+        : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
+    }>
       <ViewPresetBar onSelect={setViewPreset} />
       <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas

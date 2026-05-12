@@ -35,6 +35,7 @@ export function LazyPerspectiveView({
   auditMode = false,
   explodeMm = 0,
   xrayMode = "off",
+  compactMode = false,
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
@@ -44,6 +45,8 @@ export function LazyPerspectiveView({
   explodeMm?: number;
   /** X-ray 透視：off / face（藏門+抽屜面板）/ full（藏整個抽屜+門） */
   xrayMode?: "off" | "face" | "full";
+  /** 緊湊模式：外層 wrapper 跟父容器（PIP 用） */
+  compactMode?: boolean;
 }) {
   const { selectedPartId, setSelectedPartId } = useSelectedPart();
   return (
@@ -56,6 +59,7 @@ export function LazyPerspectiveView({
       xrayMode={xrayMode}
       selectedPartId={selectedPartId}
       onPartSelect={setSelectedPartId}
+      compactMode={compactMode}
     />
   );
 }

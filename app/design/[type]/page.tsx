@@ -369,7 +369,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <MaterialListWithSelection design={design} />
           </div>
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} compactMode />
           </Material3dPip>
         </div>
       </details>
