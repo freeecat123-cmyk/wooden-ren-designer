@@ -220,7 +220,7 @@ export const desk: FurnitureTemplate = (input) => {
     const STRETCHER_T = 25;     // X / Z 方向短軸（厚）
     const STRETCHER_H = 40;     // Y 方向（高）
     const TENON = 8;            // mortise-tenon 視覺接合 penetration
-    const stretcherTopY = caseY - 5;
+    const stretcherTopY = caseY; // 橫撐頂面貼櫃底
     const stretcherY = stretcherTopY - STRETCHER_H;
     // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
     // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
