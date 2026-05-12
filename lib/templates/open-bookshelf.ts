@@ -59,6 +59,7 @@ export const openBookshelfOptions: OptionSpec[] = [
   ], dependsOn: { key: "withShelfReinforcement", equals: true } },
   { group: "structure", type: "number", key: "reinforcementHeight", label: "加固條高 (mm)", defaultValue: 30, min: 15, max: 60, step: 5, dependsOn: { key: "withShelfReinforcement", equals: true } },
   { group: "structure", type: "number", key: "reinforcementThickness", label: "加固條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, dependsOn: { key: "withShelfReinforcement", equals: true } },
+  { group: "structure", type: "number", key: "verticalDividerCount", label: "縱向分隔板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "0=無；1=中央 1 片切兩格；2=三等分；長書櫃放 1 片同時提供結構支撐" },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -84,6 +85,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const reinforcementPosition = getOption<string>(input, opt(o, "reinforcementPosition"));
   const reinforcementHeight = getOption<number>(input, opt(o, "reinforcementHeight"));
   const reinforcementThickness = getOption<number>(input, opt(o, "reinforcementThickness"));
+  const verticalDividerCount = getOption<number>(input, opt(o, "verticalDividerCount"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -104,7 +106,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${withShelfReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${withShelfReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${verticalDividerCount > 0 ? `每層加 ${verticalDividerCount} 片直立分隔板，把每格切成 ${verticalDividerCount + 1} 等份。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
@@ -206,6 +208,52 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         tenons: [],
         mortises: [],
       });
+    }
+  }
+  // 縱向分隔板：把書櫃內每一格切成 N+1 等份，每片分隔由「相鄰兩片水平板」之間
+  // 一段一段插入（避免穿模水平板）。每段獨立 part，沿 X 軸均分。
+  if (verticalDividerCount > 0) {
+    const allHoriz = design.parts.filter(
+      (p) =>
+        p.id === "top" || p.id === "bottom" ||
+        ((/shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id)) &&
+          !p.nameZh.includes("抽屜") &&
+          !p.id.endsWith("-bookstop") &&
+          !p.id.includes("-reinforce-")),
+    );
+    const sorted = [...allHoriz].sort((a, b) => a.origin.y - b.origin.y);
+    const dividerT = panelThickness;
+    // 用最常見 in-zone shelf 的 length / width / z 當作 X/Z 範圍基準
+    // (case top/bottom 跟 shelves 在 X/Z 上一致)
+    const refShelf = sorted.find((p) => /shelf-\d+$/.test(p.id)) ?? sorted[0];
+    const innerW = refShelf.visible.length;
+    const innerD = refShelf.visible.width;
+    const refZ = refShelf.origin.z;
+    const segCount = verticalDividerCount + 1;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const lower = sorted[i];
+      const upper = sorted[i + 1];
+      // 修剪兩端避免撞到 bookstop（從 lower 上方往內伸 bookStopHeight）
+      // 跟 cleat 加固條（從 upper 下方往內伸 reinforcementHeight）
+      const lowerHasStop = withBookStop && lower.id !== "bottom";
+      const upperHasReinforce = withShelfReinforcement && upper.id !== "top";
+      const segYBot = lower.origin.y + lower.visible.thickness + (lowerHasStop ? bookStopHeight : 0);
+      const segYTop = upper.origin.y - (upperHasReinforce ? reinforcementHeight : 0);
+      const segH = segYTop - segYBot;
+      if (segH < 50) continue;
+      for (let d = 0; d < verticalDividerCount; d++) {
+        const xCenter = -innerW / 2 + ((d + 1) * innerW) / segCount;
+        design.parts.push({
+          id: `vdivider-row${i + 1}-${d + 1}`,
+          nameZh: `第${i + 1}層直立分隔板 ${d + 1}`,
+          material: input.material,
+          grainDirection: "length",
+          visible: { length: dividerT, width: innerD, thickness: segH },
+          origin: { x: xCenter, y: segYBot, z: refZ },
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
   }
 
