@@ -696,21 +696,3 @@ export function pullStyleNote(style: string): string {
   return "";
 }
 
-/** 緩衝鉸鏈 / 滑軌建議（給有門 / 抽屜的櫃用） */
-export function softCloseOption(group: OptionGroup = "door"): OptionSpec {
-  return {
-    group,
-    type: "checkbox",
-    key: "softClose",
-    label: "緩衝關閉（soft-close）",
-    defaultValue: true,
-    wide: true,
-    dependsOn: HIDDEN_DEP,
-  };
-}
-
-export function softCloseNote(soft: boolean): string {
-  return soft
-    ? "所有鉸鏈 / 滑軌配緩衝版（Blum / Hettich / 國產均有），門 / 抽屜輕關時不撞響。"
-    : "鉸鏈 / 滑軌用一般版（無緩衝），可後續升級配件。";
-}

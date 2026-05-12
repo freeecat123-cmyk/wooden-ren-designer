@@ -50,7 +50,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 0,
       "drawerMount": "overlay",
       "pullStyle": "bar",
-      "softClose": false,
       "drawerFaceStyle": "flat",
       "withGalleryRail": false,
       "withToeKick": false,
@@ -238,7 +237,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withInteriorLed": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": false
     },
     "display-cabinet": {
       "panelThickness": 25,
@@ -266,7 +264,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "cross",
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": false
     },
     "shoe-cabinet": {
       "panelThickness": 25,
@@ -289,7 +286,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withTopSeatCushion": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": false
     },
     "media-console": {
       "panelThickness": 25,
@@ -315,7 +311,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSoundBarShelf": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": false
     },
     "nightstand": {
       "panelThickness": 18,
@@ -338,7 +333,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 0,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": false
     },
     "tea-table": {
       "legShape": "box",
@@ -662,7 +656,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerBottomMode": "rebated",
       "useDrawerSlide": false,
       "pullStyle": "knob",
-      "softClose": false,
       "drawerFaceStyle": "raised-panel",
       "withToeKick": false,
       "toeKickHeight": 80,
@@ -733,7 +726,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withBottomShoeRack": false,
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "display-cabinet": {
       "panelThickness": 22,
@@ -763,7 +755,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "crownProjection": 50,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "shoe-cabinet": {
       "panelThickness": 22,
@@ -787,7 +778,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 35,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "media-console": {
       "panelThickness": 22,
@@ -816,7 +806,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "nightstand": {
       "panelThickness": 22,
@@ -838,7 +827,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "bracket",
       "legInset": 15,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "tea-table": {
       "legShape": "tapered",
@@ -1158,7 +1146,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withInteriorLed": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": true
     },
     "display-cabinet": {
       "panelThickness": 18,
@@ -1186,7 +1173,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "none",
       "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "shoe-cabinet": {
       "panelThickness": 18,
@@ -1209,7 +1195,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withTopSeatCushion": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "media-console": {
       "panelThickness": 18,
@@ -1237,7 +1222,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSoundBarShelf": true,
       "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "nightstand": {
       "panelThickness": 18,
@@ -1260,7 +1244,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 15,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar",
-      "softClose": true
     },
     "tea-table": {
       "legShape": "tapered",
@@ -1571,7 +1554,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "display-cabinet": {
       "panelThickness": 18,
@@ -1599,7 +1581,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "none",
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "shoe-cabinet": {
       "panelThickness": 18,
@@ -1622,7 +1603,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withTopSeatCushion": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "media-console": {
       "panelThickness": 18,
@@ -1650,7 +1630,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "nightstand": {
       "panelThickness": 18,
@@ -1673,7 +1652,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 15,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "tea-table": {
       "legShape": "tapered",
@@ -1867,7 +1845,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 10,
       "drawerMount": "inset",
       "pullStyle": "finger-pull",
-      "softClose": false,
       "drawerFaceStyle": "inset",
       "withGalleryRail": false,
       "withToeKick": false,
@@ -2047,7 +2024,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "display-cabinet": {
       "panelThickness": 18,
@@ -2075,7 +2051,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "vertical-3",
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "shoe-cabinet": {
       "panelThickness": 18,
@@ -2098,7 +2073,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withTopSeatCushion": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "media-console": {
       "panelThickness": 18,
@@ -2123,7 +2097,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "nightstand": {
       "panelThickness": 18,
@@ -2146,7 +2119,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 8,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull",
-      "softClose": true
     },
     "tea-table": {
       "legShape": "box",
@@ -2470,7 +2442,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withBottomShoeRack": false,
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "display-cabinet": {
       "panelThickness": 22,
@@ -2499,7 +2470,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "shoe-cabinet": {
       "panelThickness": 22,
@@ -2521,7 +2491,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 0,
       "withTopSeatCushion": false,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "media-console": {
       "panelThickness": 22,
@@ -2548,7 +2517,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSpeakerGrille": false,
       "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "nightstand": {
       "panelThickness": 22,
@@ -2570,7 +2538,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 0,
       "backPanelMaterial": "solid",
-      "softClose": false
     },
     "tea-table": {
       "legShape": "box",
@@ -3102,7 +3069,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "display-cabinet": {
       "panelThickness": 22,
@@ -3131,7 +3097,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "doorMullion": "none",
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "shoe-cabinet": {
       "panelThickness": 22,
@@ -3154,7 +3119,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withTopSeatCushion": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "media-console": {
       "panelThickness": 22,
@@ -3182,7 +3146,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "nightstand": {
       "panelThickness": 22,
@@ -3205,7 +3168,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 10,
       "backPanelMaterial": "solid",
       "pullStyle": "knob",
-      "softClose": false
     },
     "tea-table": {
       "legShape": "box",

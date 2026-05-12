@@ -29,8 +29,6 @@ import {
   backPanelMaterialNote,
   pullStyleOption,
   pullStyleNote,
-  softCloseOption,
-  softCloseNote,
 } from "./_helpers";
 
 export const displayCabinetOptions: OptionSpec[] = [
@@ -80,7 +78,6 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "art-deco", label: "Art Deco 幾何（菱形/扇形）" },
   ], help: "玻璃門加木格分條（mullion），打破整片玻璃的單調，傳統感更強", dependsOn: { key: "doorType", equals: "glass" } },
   pullStyleOption("door"),
-  softCloseOption("door"),
 ];
 
 export const displayCabinet: FurnitureTemplate = (input) => {
@@ -102,7 +99,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const doorMullion = getOption<string>(input, opt(o, "doorMullion"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
-  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -138,7 +134,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? `；門用 ${glassThickness}mm 強化玻璃` : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? `；門用 ${glassThickness}mm 強化玻璃` : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   applyStandardChecks(design, {

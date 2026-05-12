@@ -29,8 +29,6 @@ import {
   backPanelMaterialNote,
   pullStyleOption,
   pullStyleNote,
-  softCloseOption,
-  softCloseNote,
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
@@ -72,7 +70,6 @@ export const wardrobeOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "withBottomShoeRack", label: "底部鞋格", defaultValue: false, help: "底部 200mm 加 2 層斜放層板做鞋櫃用", wide: true },
   { group: "structure", type: "checkbox", key: "withInteriorLed", label: "內部感應 LED", defaultValue: false, help: "頂部裝 LED 燈條，門開時自動感應點亮", wide: true },
   pullStyleOption("door"),
-  softCloseOption("door"),
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
@@ -95,7 +92,6 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const withBottomShoeRack = getOption<boolean>(input, opt(o, "withBottomShoeRack"));
   const withInteriorLed = getOption<boolean>(input, opt(o, "withInteriorLed"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
-  const softClose = getOption<boolean>(input, opt(o, "softClose"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
@@ -131,7 +127,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}（${doorMountLabel(doorMount)}）${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）、抽屜滑軌。${pullStyleNote(pullStyle)} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   // 頂部棉被櫃：水平隔板（Part）距頂端 350mm

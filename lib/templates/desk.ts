@@ -11,7 +11,6 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   pullStyleOption,
-  softCloseOption,
 } from "./_helpers";
 import {
   drawerBottomModeOption,
@@ -60,7 +59,6 @@ export const deskOptions: OptionSpec[] = [
   { ...drawerBottomModeOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
-  { ...softCloseOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
