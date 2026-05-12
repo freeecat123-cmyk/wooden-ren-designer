@@ -343,7 +343,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       </section>
 
       {/* 下半：施工備料（按需展開） */}
-      <details className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden" open>
+      <details className="mt-4 rounded-lg border border-zinc-200 bg-white" open>
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800 flex items-center gap-2">
             <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
