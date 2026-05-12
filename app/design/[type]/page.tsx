@@ -10,6 +10,7 @@ import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
+import { Material3dPip } from "@/components/Material3dPip";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
@@ -363,29 +364,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               🪚 裁切計算器
             </Link>
           </div>
-          {/* desktop 雙欄：左清單 + 右側 sticky 3D；mobile 上下排（3D sticky top） */}
-          <div className="lg:grid lg:grid-cols-[7fr_5fr] lg:gap-4">
-            <div className="
-              sticky top-0 z-10 -mx-1 px-1 pb-2 bg-white
-              lg:relative lg:top-4 lg:mx-0 lg:px-3 lg:py-3 lg:pb-3 lg:bg-transparent
-              lg:col-start-2 lg:row-start-1 lg:sticky lg:self-start
-            ">
-              <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden max-h-[42vh] lg:max-h-none flex flex-col">
-                <div className="px-3 py-1.5 border-b border-zinc-200 text-[11px] font-semibold text-zinc-600 flex items-center gap-2 shrink-0">
-                  <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
-                  3D 預覽（同步高亮選中零件）
-                </div>
-                <SceneThemeToggle current={sceneId} />
-                <XrayToggle current={xrayMode} />
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-start-1 lg:row-start-1 min-w-0">
-              <MaterialListWithSelection design={design} />
-            </div>
+          {/* 材料清單區：data-pip-area 觸發浮動 3D PIP */}
+          <div data-pip-area>
+            <MaterialListWithSelection design={design} />
           </div>
+          <Material3dPip>
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+          </Material3dPip>
         </div>
       </details>
       </SelectedPartProvider>
