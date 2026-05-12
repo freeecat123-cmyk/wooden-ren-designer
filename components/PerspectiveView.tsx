@@ -429,17 +429,23 @@ function Part({
   //  → 不會畫三角形對角線）
   const edgesGeometry = useMemo(() => {
     if (!wireframe) return null;
-    const baseGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    // EdgesGeometry 需要 indexed geometry 才能判斷共享邊；非 indexed 會把每個三角形
-    // 邊都當成 boundary → 對角線跑出來。先 mergeVertices 把共位點合併再抽邊。
-    // tolerance 0.05（mesh local 座標 ~ mm * SCALE = mm/100，0.05 = 0.5mm 的容差，
-    // 抓 CSG 輸出的 float 誤差跟相同位置但不同 attribute 的 vertex）。
-    // threshold 45° 過濾 CSG 切出小三角形之間的微 normal 差。
-    const merged = mergeVertices(baseGeo, 0.05);
-    const eg = new EdgesGeometry(merged, 45);
+    // 線框直接用 pre-CSG geometry（box / tapered / cylinder 原型），
+    // 不抽 csgGeometry 因 CSG 切出的小三角網狀沒有 clean shared edges
+    // → 對角線消不掉。線框是「結構輪廓」視圖，榫眼挖洞細節不需要顯示。
+    let baseGeo: BufferGeometry;
+    let createdLocally = false;
+    if (geometry) {
+      baseGeo = geometry;
+    } else {
+      baseGeo = new BoxGeometry(size[0], size[1], size[2]);
+      createdLocally = true;
+    }
+    const merged = mergeVertices(baseGeo, 0.001);
+    const eg = new EdgesGeometry(merged, 30);
     if (merged !== baseGeo) merged.dispose();
+    if (createdLocally) baseGeo.dispose();
     return eg;
-  }, [wireframe, csgGeometry, geometry, size]);
+  }, [wireframe, geometry, size]);
 
   // wireframe 模式：所有材質統一用 silhouette edges 渲染
   if (wireframe && edgesGeometry) {
