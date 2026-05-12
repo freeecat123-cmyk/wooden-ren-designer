@@ -11,6 +11,7 @@ import {
   addWorkdays,
 } from "@/lib/pricing/quote";
 import { MATERIAL_PRICE_PER_BDFT, formatTWD } from "@/lib/pricing/catalog";
+import { estimateWeight } from "@/lib/design/shipping";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CsvExportButton } from "@/components/CsvExportButton";
@@ -227,6 +228,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           </h1>
           <p className="mt-0.5 text-xs text-zinc-700">
             {length} × {width} × {height} mm · {MATERIALS[material].nameZh}
+            <span className="ml-1.5 text-zinc-600" title="實重 = 各部件 體積×木材密度 + 12% 包裝重">· 約 {estimateWeight(design)} kg</span>
             <span className="ml-2 text-zinc-600">#{quoteNo}</span>
           </p>
         </div>

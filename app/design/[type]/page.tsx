@@ -6,6 +6,7 @@ import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permis
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
+import { estimateWeight } from "@/lib/design/shipping";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
@@ -208,6 +209,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             <span className="font-mono text-zinc-700">· {length} × {width} × {height} mm</span>
             <span>· {MATERIALS[material].nameZh}</span>
             <span>· {design.parts.length} 件</span>
+            <span title="實重 = 各部件 體積×木材密度 + 12% 包裝重">· 約 {estimateWeight(design)} kg</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
