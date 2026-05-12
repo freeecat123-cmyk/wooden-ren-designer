@@ -307,10 +307,16 @@ export const desk: FurnitureTemplate = (input) => {
     const legCenterX = input.length / 2 - legSize / 2 - legInset + splayOffsetX;
     // 縱向橫撐沿 Z 跨前後腳；前腳外推 splayOffsetZ、後腳同樣 → 整體 Z 跨距 + 2×splayOffsetZ
     // 圓腳：直接跨腳中心到腳中心（端面藏進圓柱半徑內）→ 額外 +legSize
+    // 方錐：腳在 stretcher Y 因 taper 變窄，inner face 內縮 → 補 taper 差以維持 +8mm 真實 penetration
     const isRoundLegInH = legShape === "splayed-round-tapered";
+    const isTaperedLeg = legShape === "tapered" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
+    const bottomScale = isTaperedLeg ? 0.55 : 1;
+    const legScaleAtStretcher = 1 - (1 - bottomScale) * (1 - stretcherY / legHeight);
+    const halfLegSizeAtY = (legSize * legScaleAtStretcher) / 2;
+    const taperCompensation = legSize / 2 - halfLegSizeAtY; // 0 for box, > 0 for taper
     const sideStretcherLen = isRoundLegInH
       ? 2 * (innerLegEdgeZ + legSize / 2) + 2 * splayOffsetZ
-      : 2 * innerLegEdgeZ + 2 * TENON + 2 * splayOffsetZ;
+      : 2 * innerLegEdgeZ + 2 * TENON + 2 * splayOffsetZ + 2 * taperCompensation;
     for (const sx of [-1, +1] as const) {
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
