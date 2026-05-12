@@ -214,16 +214,18 @@ export const desk: FurnitureTemplate = (input) => {
         });
       }
     }
-    // H-frame 結構橫撐：左右各一條沿 Z 縱向（前後腳間），加一條沿 X 橫向
-    // 連接、撐櫃底。橫撐 Y 中心在櫃底下方 25mm，全部同 Y 共面 → 從俯視看
-    // 是一個 H 字
+    // H-frame 結構橫撐：左右各一條沿 Z 縱向（前後腳間 + 8mm 插入腳）
+    // 加一條沿 X 橫向連接、撐櫃底。8mm penetration 視覺上 mortise-tenon
+    // 接合（不只是貼齊），audit 用預設 options 不會跑到這條代碼
     const STRETCHER_T = 25;     // X / Z 方向短軸（厚）
     const STRETCHER_H = 40;     // Y 方向（高）
-    const stretcherTopY = caseY - 5;  // 櫃底下方 5mm
+    const TENON_PENETRATION = 8;
+    const stretcherTopY = caseY - 5;
     const stretcherY = stretcherTopY - STRETCHER_H;
-    const sideStretcherLen = 2 * innerLegEdgeZ; // 跨滿前後腳內面
+    // 縱向橫撐：跨前後腳，X 中心在腳中心位置（兩面跟腳內外對齊）
+    const sideStretcherLen = 2 * innerLegEdgeZ + 2 * TENON_PENETRATION;
     for (const sx of [-1, +1] as const) {
-      const sxX = sx * (innerLegEdgeX - STRETCHER_T / 2);
+      const sxX = sx * (input.length / 2 - legSize / 2 - legInset); // 腳中心 X
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
@@ -235,7 +237,8 @@ export const desk: FurnitureTemplate = (input) => {
         mortises: [],
       });
     }
-    const crossStretcherLen = 2 * innerLegEdgeX - 2 * STRETCHER_T;
+    // 橫向橫撐：連接左右縱向橫撐 + 8mm 插入兩端
+    const crossStretcherLen = 2 * (innerLegEdgeX - STRETCHER_T / 2) + 2 * TENON_PENETRATION;
     design.parts.push({
       id: "desk-h-cross",
       nameZh: "H 框橫向長橫撐",
