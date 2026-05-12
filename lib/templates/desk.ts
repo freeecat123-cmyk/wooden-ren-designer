@@ -39,9 +39,10 @@ export const deskOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5 },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2 },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "牙板連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
   { group: "stretcher", type: "checkbox", key: "withSlatRack", label: "下橫撐置物條", defaultValue: false, help: "前後下橫撐之間架格柵條，做置物層", dependsOn: { key: "withLowerStretchers", equals: true } },
@@ -63,7 +64,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
 ];
 
@@ -80,8 +81,13 @@ export const desk: FurnitureTemplate = (input) => {
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const withModestyPanel = getOption<boolean>(input, opt(o, "withModestyPanel"));
-  const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
-  const apronThickness = getOption<number>(input, opt(o, "apronThickness"));
+  const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
+  // withApron / apronThickness 已在下方 declare 用 raw → 0；此處先用同樣邏輯
+  // 但 withApron 變數還沒讀，先暫定後續會 reassign。為避免重複，直接讀。
+  const apronWidth = (getOption<boolean>(input, opt(o, "withApron")) ? apronWidthRaw : 0);
+  const apronThicknessRaw = getOption<number>(input, opt(o, "apronThickness"));
+  const withApron = getOption<boolean>(input, opt(o, "withApron"));
+  const apronThickness = withApron ? apronThicknessRaw : 0;
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withCenterStretcher = getOption<boolean>(input, opt(o, "withCenterStretcher"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
@@ -144,9 +150,11 @@ export const desk: FurnitureTemplate = (input) => {
     const PANEL_T = 15; // 跟 caseFurniture 的 panelThickness 一致
     const innerLegEdgeX = input.length / 2 - legSize - legInset;
     const innerLegEdgeZ = input.width / 2 - legSize - legInset;
+    // 有牙板：caseD 卡在前後牙板內面之間
+    // 無牙板：caseD 卡在前後腳內面之間
     const apronCenterZ = input.width / 2 - legSize / 2 - legInset;
     const apronInnerZ = apronCenterZ - apronThickness / 2;
-    const caseD = 2 * apronInnerZ;
+    const caseD = withApron ? 2 * apronInnerZ : 2 * innerLegEdgeZ;
     // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
     const caseX = drawerSide === "center"
       ? 0
