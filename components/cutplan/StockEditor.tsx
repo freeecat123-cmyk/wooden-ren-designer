@@ -138,22 +138,22 @@ export function StockEditor({
       </header>
 
       {inventory.length > 0 && (
-        <div className="overflow-x-auto hidden md:block">
-          <table className="w-full text-sm min-w-[640px]">
+        <div className="hidden md:block">
+          <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
-                <th className="text-left px-3 py-2 w-28">類別</th>
-                <th className="text-left px-3 py-2 w-28">材質</th>
-                <th className="text-right px-2 py-2 w-28">長 (mm)</th>
-                <th className="text-right px-2 py-2 w-28">寬 (mm)</th>
-                <th className="text-right px-2 py-2 w-20">支數</th>
-                <th className="px-2 py-2 w-12"></th>
+                <th className="text-left px-2 py-2 w-20">類別</th>
+                <th className="text-left px-2 py-2 w-24">材質</th>
+                <th className="text-right px-2 py-2 w-24">長 (mm)</th>
+                <th className="text-right px-2 py-2 w-24">寬 (mm)</th>
+                <th className="text-right px-2 py-2 w-16">支數</th>
+                <th className="px-1 py-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
               {inventory.map((s, idx) => (
                 <tr key={idx} className="border-t border-zinc-100">
-                  <td className="px-3 py-1">
+                  <td className="px-2 py-1">
                     <select
                       value={s.kind}
                       onChange={(e) => {
@@ -184,7 +184,7 @@ export function StockEditor({
                       <option value="mdf">中纖板</option>
                     </select>
                   </td>
-                  <td className="px-3 py-1">
+                  <td className="px-2 py-1">
                     {s.kind === "solid" ? (
                       <select
                         value={s.material ?? "maple"}
