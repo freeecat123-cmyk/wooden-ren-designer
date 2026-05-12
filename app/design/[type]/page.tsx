@@ -162,6 +162,25 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     if (parsed.height > limits.height) clampedDims.push({ dim: "高", from: parsed.height, to: limits.height });
   }
 
+  // 書桌特例：H 框離地高 server-side clamp 到櫃底以下，讓 form 顯示實際採用值
+  if (type === "desk") {
+    const drawerCount = Number(options.drawerCount ?? 0);
+    const reqStretcherY = Number(options.pedestalStretcherHeight ?? 0);
+    if (drawerCount > 0 && reqStretcherY > 0) {
+      const topThickness = Number(options.topThickness ?? 28);
+      const apronWidth = Number(options.apronWidth ?? 90);
+      const legHeight = height - topThickness;
+      const caseTopY = legHeight - apronWidth - 5;
+      const maxCaseH = caseTopY - 80;
+      const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
+      const caseY = caseTopY - caseH;
+      const STRETCHER_H = 40;
+      const maxStretcherY = caseY - STRETCHER_H;
+      if (reqStretcherY > maxStretcherY) {
+        options.pedestalStretcherHeight = maxStretcherY;
+      }
+    }
+  }
   const rawDesign = entry.template({ length, width, height, material, options });
   const design = joineryMode
     ? applyEdgeProtection(rawDesign)
