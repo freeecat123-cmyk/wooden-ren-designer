@@ -61,7 +61,8 @@ export const deskOptions: OptionSpec[] = [
   { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...softCloseOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
-  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
@@ -232,6 +233,8 @@ export const desk: FurnitureTemplate = (input) => {
     // H-frame 結構橫撐：左右各一條沿 Z 縱向（前後腳間 + 8mm 插入腳）
     // 加一條沿 X 橫向連接、撐櫃底。8mm penetration 視覺上 mortise-tenon
     // 接合（不只是貼齊），audit 用預設 options 不會跑到這條代碼
+    const withHFrame = getOption<boolean>(input, opt(o, "withHFrame"));
+    if (withHFrame) {
     const STRETCHER_T = 25;     // X / Z 方向短軸（厚）
     const STRETCHER_H = 40;     // Y 方向（高）
     const TENON = 8;            // mortise-tenon 視覺接合 penetration
@@ -278,6 +281,7 @@ export const desk: FurnitureTemplate = (input) => {
         mortises: [],
       });
     }
+    } // end withHFrame
   }
 
   // 前飾遮腿板（modesty panel）
