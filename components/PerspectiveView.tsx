@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
@@ -424,6 +424,29 @@ function Part({
     if (!geometry) baseGeo.dispose();
     return result;
   }, [geometry, mortiseBoxes, mortiseShapes, shape, size]);
+  // wireframeMode：抽出 silhouette edges（box=12 邊、tapered=12、圓柱=雙圈
+  //  + 接縫；用 EdgesGeometry 預設 1° 門檻只留相鄰面 normal 變化大的邊
+  //  → 不會畫三角形對角線）
+  const edgesGeometry = useMemo(() => {
+    if (!wireframe) return null;
+    const baseGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
+    const eg = new EdgesGeometry(baseGeo, 1);
+    return eg;
+  }, [wireframe, csgGeometry, geometry, size]);
+
+  // wireframe 模式：所有材質統一用 silhouette edges 渲染
+  if (wireframe && edgesGeometry) {
+    return (
+      <lineSegments position={position} rotation={rotation}>
+        <primitive attach="geometry" object={edgesGeometry} />
+        <lineBasicMaterial
+          color={isSelected ? HIGHLIGHT_EMISSIVE : isBrass ? "#8a6a3a" : "#3f3f46"}
+          transparent
+          opacity={isDimmed ? 0.25 : 1}
+        />
+      </lineSegments>
+    );
+  }
 
   if (isGlass) {
     return (
@@ -440,7 +463,6 @@ function Part({
           metalness={0}
           emissive={isSelected ? HIGHLIGHT_EMISSIVE : undefined}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
-          wireframe={wireframe}
         />
       </mesh>
     );
@@ -460,7 +482,6 @@ function Part({
           depthWrite={!isDimmed && !wireframe}
           emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
-          wireframe={wireframe}
         />
       </mesh>
     );
@@ -499,7 +520,6 @@ function Part({
         depthWrite={!isDimmed && !wireframe}
         emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
         emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
-        wireframe={wireframe}
       />
     </mesh>
   );
