@@ -291,10 +291,17 @@ export const desk: FurnitureTemplate = (input) => {
         `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
       ];
     }
-    // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
-    // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
-    const legCenterX = input.length / 2 - legSize / 2 - legInset;
-    const sideStretcherLen = 2 * innerLegEdgeZ + 2 * TENON;
+    // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
+    // 在 stretcher Y 高度處，腳已沿 X/Z 偏移 splayMm × (1 - stretcherY/legHeight)
+    const isSplayedX = legShape === "splayed" || legShape === "splayed-length";
+    const isSplayedZ = legShape === "splayed" || legShape === "splayed-width";
+    const splayMm = 40; // 跟 simple-table 同
+    const splayFrac = Math.max(0, 1 - stretcherY / legHeight);
+    const splayOffsetX = isSplayedX ? splayMm * splayFrac : 0;
+    const splayOffsetZ = isSplayedZ ? splayMm * splayFrac : 0;
+    const legCenterX = input.length / 2 - legSize / 2 - legInset + splayOffsetX;
+    // 縱向橫撐沿 Z 跨前後腳；前腳外推 splayOffsetZ、後腳同樣 → 整體 Z 跨距 + 2×splayOffsetZ
+    const sideStretcherLen = 2 * innerLegEdgeZ + 2 * TENON + 2 * splayOffsetZ;
     for (const sx of [-1, +1] as const) {
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
