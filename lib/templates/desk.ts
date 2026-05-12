@@ -231,6 +231,12 @@ export const desk: FurnitureTemplate = (input) => {
     const stretcherY = pedestalStretcherHeight > 0
       ? Math.min(pedestalStretcherHeight, maxStretcherY)
       : maxStretcherY;
+    if (pedestalStretcherHeight > maxStretcherY) {
+      design.warnings = [
+        ...(design.warnings ?? []),
+        `H 框離地高 ${pedestalStretcherHeight}mm 超過上限——已自動縮回 ${maxStretcherY}mm（不能高過櫃底）`,
+      ];
+    }
     // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
     // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
     const legCenterX = input.length / 2 - legSize / 2 - legInset;
