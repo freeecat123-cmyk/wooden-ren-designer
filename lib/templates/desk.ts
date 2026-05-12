@@ -225,10 +225,12 @@ export const desk: FurnitureTemplate = (input) => {
     const STRETCHER_H = 40;     // Y 方向（高）
     const TENON = 8;            // mortise-tenon 視覺接合 penetration
     const pedestalStretcherHeight = getOption<number>(input, opt(o, "pedestalStretcherHeight"));
-    // 0 = 自動貼櫃底；> 0 = 改成離地此高度（懸吊式櫃子）
+    // 0 = 自動貼櫃底；> 0 = 改成離地此高度。max clamp 到 caseY - STRETCHER_H
+    // 避免 stretcher 頂面超過櫃底（不然會撞櫃子）
+    const maxStretcherY = caseY - STRETCHER_H;
     const stretcherY = pedestalStretcherHeight > 0
-      ? pedestalStretcherHeight
-      : caseY - STRETCHER_H;
+      ? Math.min(pedestalStretcherHeight, maxStretcherY)
+      : maxStretcherY;
     // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
     // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
     const legCenterX = input.length / 2 - legSize / 2 - legInset;
