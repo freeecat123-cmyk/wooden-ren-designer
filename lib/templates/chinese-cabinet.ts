@@ -208,35 +208,53 @@ export const chineseCabinetOptions: OptionSpec[] = [
   { group: "layers", type: "number", key: "layer7HeightMm", label: "第 7 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [7, 8] } },
   { group: "layers", type: "number", key: "layer8HeightMm", label: "第 8 層高 (mm)", defaultValue: 0, min: 0, max: 800, step: 10, unit: "mm", dependsOn: { key: "layerCount", oneOf: [8] } },
   // 門細部
-  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度（傳統明清家具講究緊密貼合，預設 1mm 視覺幾乎看不到）" },
+  { group: "door", type: "number", key: "doorGap", label: "門中縫 (mm)", defaultValue: 1, min: 0, max: 8, step: 1, unit: "mm", help: "雙開門中央縫隙寬度（傳統明清家具講究緊密貼合，預設 1mm 視覺幾乎看不到）", dependsOn: { any: [
+    { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
+    { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
+  ] } },
   { group: "door", type: "select", key: "doorStyle", label: "門板樣式", defaultValue: "solid", choices: [
     { value: "solid", label: "整片實木板" },
     { value: "lattice-cross", label: "格扇門：田字格（橫直櫺）" },
     { value: "lattice-lantern", label: "格扇門：燈籠錦（米字斜櫺）" },
     { value: "glass", label: "玻璃門（木框 + 中央玻璃片）" },
     { value: "glass-lattice", label: "玻璃格扇門（田字格木櫺後襯玻璃）" },
-  ], help: "格扇門 = 明清書櫃/博古架靈魂；玻璃門 = 博古架/展示櫃常見" },
+  ], help: "格扇門 = 明清書櫃/博古架靈魂；玻璃門 = 博古架/展示櫃常見", dependsOn: { any: [
+    { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
+    { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
+  ] } },
   { group: "door", type: "select", key: "doorPullType", label: "門拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
     { value: "strip", label: "長條銅片" },
-  ], help: "銅件是中式櫃靈魂裝飾" },
-  // 抽屜細部
+  ], help: "銅件是中式櫃靈魂裝飾", dependsOn: { any: [
+    { key: "layer1Type", equals: "door" }, { key: "layer2Type", equals: "door" }, { key: "layer3Type", equals: "door" }, { key: "layer4Type", equals: "door" },
+    { key: "layer5Type", equals: "door" }, { key: "layer6Type", equals: "door" }, { key: "layer7Type", equals: "door" }, { key: "layer8Type", equals: "door" },
+  ] } },
+  // 抽屜細部（沒任一層是抽屜時整組隱藏）
   { group: "drawer", type: "select", key: "drawerSplit", label: "抽屜分格", defaultValue: "single", choices: [
     { value: "single", label: "單格" },
     { value: "double", label: "雙格（中央分隔）" },
     { value: "triple", label: "三格" },
-  ], help: "抽屜面分割線（多格抽屜常見）" },
+  ], help: "抽屜面分割線（多格抽屜常見）", dependsOn: { any: [
+    { key: "layer1Type", equals: "drawer" }, { key: "layer2Type", equals: "drawer" }, { key: "layer3Type", equals: "drawer" }, { key: "layer4Type", equals: "drawer" },
+    { key: "layer5Type", equals: "drawer" }, { key: "layer6Type", equals: "drawer" }, { key: "layer7Type", equals: "drawer" }, { key: "layer8Type", equals: "drawer" },
+  ] } },
   { group: "drawer", type: "select", key: "drawerPullType", label: "抽屜拉手", defaultValue: "round-brass", choices: [
     { value: "none", label: "無" },
     { value: "round-brass", label: "圓銅環" },
     { value: "strip", label: "長條銅片" },
-  ] },
+  ], dependsOn: { any: [
+    { key: "layer1Type", equals: "drawer" }, { key: "layer2Type", equals: "drawer" }, { key: "layer3Type", equals: "drawer" }, { key: "layer4Type", equals: "drawer" },
+    { key: "layer5Type", equals: "drawer" }, { key: "layer6Type", equals: "drawer" }, { key: "layer7Type", equals: "drawer" }, { key: "layer8Type", equals: "drawer" },
+  ] } },
   { group: "drawer", type: "select", key: "drawerInternalGrid", label: "抽屜內格", defaultValue: "none", choices: [
     { value: "none", label: "不分格（單格）" },
     { value: "divided-2", label: "縱向分隔（2 格）" },
     { value: "divided-4", label: "縱橫分隔（田字 4 格）" },
-  ], help: "抽屜盒內加分隔板，從上方俯視看得到（茶葉/茶罐/筆收納分裝）" },
+  ], help: "抽屜盒內加分隔板，從上方俯視看得到（茶葉/茶罐/筆收納分裝）", dependsOn: { any: [
+    { key: "layer1Type", equals: "drawer" }, { key: "layer2Type", equals: "drawer" }, { key: "layer3Type", equals: "drawer" }, { key: "layer4Type", equals: "drawer" },
+    { key: "layer5Type", equals: "drawer" }, { key: "layer6Type", equals: "drawer" }, { key: "layer7Type", equals: "drawer" }, { key: "layer8Type", equals: "drawer" },
+  ] } },
   { group: "layers", type: "select", key: "hiddenDrawerLayer", label: "暗抽層", defaultValue: "none", choices: [
     { value: "none", label: "無暗抽" },
     { value: "1", label: "第 1 層為暗抽" },
