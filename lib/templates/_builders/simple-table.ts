@@ -594,9 +594,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sSplayXTop = splayDx * sTopShift;
     const sSplayZTop = splayDz * sTopShift;
     // tapered 補償：下橫撐三條 Y 位置（中、上、下）各自的腳寬
-    const sLegSizeCenter = legSize * legScaleAt(sCenterY, legHeight, bottomScale);
-    const sLegSizeTop = legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
-    const sLegSizeBot = legSize * legScaleAt(stretcherY, legHeight, bottomScale);
+    // 圓腳：sLegSize 設 0 → 下橫撐端伸進腳中心藏接縫（同 apron 處理）
+    const sLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(sCenterY, legHeight, bottomScale);
+    const sLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
+    const sLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY, legHeight, bottomScale);
     const sInnerSpan = {
       x: 2 * apronEdgeX - sLegSizeCenter,
       z: 2 * apronEdgeZ - sLegSizeCenter,
