@@ -17,7 +17,14 @@ export function SiteFooter() {
           </a>{" "}
           · Wooden Ren Education Co., Ltd.
         </div>
-        <div className="mt-1 font-mono text-[10px] text-zinc-400">
+        <div className="mt-2 flex justify-center gap-4">
+          <a href="/terms" className="hover:underline">服務條款</a>
+          <span aria-hidden>·</span>
+          <a href="/privacy" className="hover:underline">隱私權政策</a>
+          <span aria-hidden>·</span>
+          <a href="mailto:wengbinren@gmail.com" className="hover:underline">聯絡我們</a>
+        </div>
+        <div className="mt-2 font-mono text-[10px] text-zinc-400">
           build {sha} · {env}
         </div>
       </div>
