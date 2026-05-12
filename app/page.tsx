@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
@@ -305,41 +306,58 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
           : "border-emerald-200 hover:border-emerald-400 hover:shadow-sm"
       }`}
     >
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
+      <div className="flex gap-3">
+        {/* 左：文字資訊 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
+              {paid && (
+                <span title="付費版才能進入" className="text-amber-600">🔒</span>
+              )}
+              {!paid && (
+                <span title="免費版可用" className="text-emerald-600">✨</span>
+              )}
+              {item.nameZh}
+            </h3>
+            <span
+              className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[item.difficulty]}`}
+            >
+              {DIFFICULTY_LABEL[item.difficulty]}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
+            {item.description}
+          </p>
+          <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
+            {item.defaults.length} × {item.defaults.width} × {item.defaults.height} mm
+          </p>
+          {!item.template && (
+            <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
+          )}
           {paid && (
-            <span title="付費版才能進入" className="text-amber-600">🔒</span>
+            <p className="mt-1 text-[10px] text-amber-700 font-medium">
+              需付費版（個人 / 專業）
+            </p>
           )}
           {!paid && (
-            <span title="免費版可用" className="text-emerald-600">✨</span>
+            <p className="mt-1 text-[10px] text-emerald-700 font-medium">
+              🆓 免費可用
+            </p>
           )}
-          {item.nameZh}
-        </h3>
-        <span
-          className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[item.difficulty]}`}
-        >
-          {DIFFICULTY_LABEL[item.difficulty]}
-        </span>
+        </div>
+
+        {/* 右：縮圖（從健檢截圖裁出右上 3D 區） */}
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden bg-zinc-100 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
+          <Image
+            src={`/thumbs/${item.category}.png`}
+            alt={`${item.nameZh} 3D 預覽`}
+            fill
+            sizes="(min-width: 640px) 96px, 80px"
+            quality={60}
+            style={{ objectFit: "cover", objectPosition: "92% 6%" }}
+          />
+        </div>
       </div>
-      <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
-        {item.description}
-      </p>
-      <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
-        {item.defaults.length} × {item.defaults.width} × {item.defaults.height} mm
-      </p>
-      {!item.template && (
-        <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
-      )}
-      {paid && (
-        <p className="mt-1 text-[10px] text-amber-700 font-medium">
-          需付費版（個人 / 專業）
-        </p>
-      )}
-      {!paid && (
-        <p className="mt-1 text-[10px] text-emerald-700 font-medium">
-          🆓 免費可用
-        </p>
-      )}
     </Link>
   );
 }
