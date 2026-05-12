@@ -44,8 +44,13 @@ export const openBookshelfOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加 30mm 高線板飾條，書櫃古典感", wide: true },
-  { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "每片層板後緣加 8mm 高 × 12mm 厚實木條，書本不會掉到後面（無背板書櫃常用）", wide: true },
+  { group: "structure", type: "checkbox", key: "withLedderRail", label: "頂端 cornice 飾條", defaultValue: false, help: "頂端加線板飾條，書櫃古典感", wide: true },
+  { group: "structure", type: "number", key: "corniceHeight", label: "cornice 高 (mm)", defaultValue: 30, min: 15, max: 80, step: 5, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "number", key: "corniceDepth", label: "cornice 厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "number", key: "corniceOverhang", label: "cornice 兩端外伸 (mm)", defaultValue: 15, min: 0, max: 60, step: 1, dependsOn: { key: "withLedderRail", equals: true } },
+  { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "每片層板後緣加實木條，書本不會掉到後面（無背板書櫃常用）", wide: true },
+  { group: "structure", type: "number", key: "bookStopHeight", label: "擋條高 (mm)", defaultValue: 8, min: 4, max: 30, step: 1, dependsOn: { key: "withBookStop", equals: true } },
+  { group: "structure", type: "number", key: "bookStopThickness", label: "擋條厚 (mm)", defaultValue: 12, min: 6, max: 25, step: 1, dependsOn: { key: "withBookStop", equals: true } },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -61,7 +66,12 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const withLedderRail = getOption<boolean>(input, opt(o, "withLedderRail"));
+  const corniceHeight = getOption<number>(input, opt(o, "corniceHeight"));
+  const corniceDepth = getOption<number>(input, opt(o, "corniceDepth"));
+  const corniceOverhang = getOption<number>(input, opt(o, "corniceOverhang"));
   const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
+  const bookStopHeight = getOption<number>(input, opt(o, "bookStopHeight"));
+  const bookStopThickness = getOption<number>(input, opt(o, "bookStopThickness"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -82,13 +92,13 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? "頂端加 30mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。" : ""} ${withBookStop ? "每片層板後緣加 8×12mm 實木擋條，防書本掉到後面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
   if (withBookStop) {
-    const stopH = 8;
-    const stopT = 12;
+    const stopH = bookStopHeight;
+    const stopT = bookStopThickness;
     const shelves = design.parts.filter(
       (p) => /shelf-\d+$/.test(p.id) && !p.nameZh.includes("抽屜"),
     );
@@ -111,9 +121,9 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   }
   // 頂端 cornice 飾條：前緣 + 兩側包邊（傳統線板 ogee 形）
   if (withLedderRail) {
-    const corniceH = 45;
-    const corniceD = 25;
-    const overhang = 15;
+    const corniceH = corniceHeight;
+    const corniceD = corniceDepth;
+    const overhang = corniceOverhang;
     // 前緣橫條：長 = 全長 + 兩端 overhang，貼住頂面
     design.parts.push({
       id: "cornice-front",
