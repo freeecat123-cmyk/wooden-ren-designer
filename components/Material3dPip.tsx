@@ -35,13 +35,13 @@ export function Material3dPip({ children }: { children: ReactNode }) {
     return () => obs.disconnect();
   }, []);
 
+  // desktop 用材料區內聯側欄不靠這個 PIP；只 mobile 跑（lg:hidden）
   if (!visible) return null;
   return (
     <div
       className="
-        fixed z-40
+        fixed z-40 lg:hidden
         top-0 inset-x-0 w-screen rounded-b-lg border-b border-x
-        lg:top-auto lg:inset-x-auto lg:right-4 lg:bottom-4 lg:w-80 lg:rounded-lg lg:border
         border-zinc-300 bg-white shadow-2xl overflow-hidden flex flex-col
       "
     >
@@ -49,7 +49,7 @@ export function Material3dPip({ children }: { children: ReactNode }) {
         <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
         3D 同步高亮
       </div>
-      <div className="h-[32vh] lg:h-auto lg:aspect-[4/3] flex-1 min-h-0">{children}</div>
+      <div className="h-[32vh] flex-1 min-h-0">{children}</div>
     </div>
   );
 }

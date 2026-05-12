@@ -364,10 +364,24 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               🪚 裁切計算器
             </Link>
           </div>
-          {/* 材料清單區：data-pip-area 觸發浮動 3D PIP */}
-          <div data-pip-area>
-            <MaterialListWithSelection design={design} />
+          {/* desktop 雙欄：左清單右 sticky 3D；mobile 單欄 + Material3dPip 浮窗 */}
+          <div className="lg:grid lg:grid-cols-[7fr_5fr] lg:gap-4">
+            <div data-pip-area className="lg:col-start-1 lg:row-start-1 min-w-0">
+              <MaterialListWithSelection design={design} />
+            </div>
+            <div className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4 lg:self-start lg:px-3 lg:py-3">
+              <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+                <div className="px-3 py-1.5 border-b border-zinc-200 text-[11px] font-semibold text-zinc-600 flex items-center gap-2">
+                  <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
+                  3D 預覽（同步高亮選中零件）
+                </div>
+                <SceneThemeToggle current={sceneId} />
+                <XrayToggle current={xrayMode} />
+                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+              </div>
+            </div>
           </div>
+          {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} compactMode />
           </Material3dPip>
