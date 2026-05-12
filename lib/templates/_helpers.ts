@@ -656,16 +656,12 @@ export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
       { value: "knob", label: "黃銅圓把手（knob，傳統）" },
       { value: "wood-knob", label: "木製旋削圓把手（蘑菇形，自家車床做）" },
       { value: "bar", label: "長條把手（bar handle，現代簡約）" },
-      { value: "cup", label: "杯型把手（cup pull，鄉村 / 古典款）" },
       { value: "ring-chinese", label: "中式古銅吊環（ring pull，明清櫃門 / 抽屜）" },
       { value: "drop-bail", label: "古典吊環（Hepplewhite bail pull，18 世紀英美款）" },
-      { value: "edge-bevel", label: "斜邊 J-pull（門上緣切 45° 當把手）" },
       { value: "finger-pull", label: "嵌入指槽（半月弧形挖洞，北歐 / 日式極簡）" },
-      { value: "leather-strap", label: "皮革拉帶（植鞣皮 + 黃銅螺絲，北歐 craft）" },
-      { value: "push-to-open", label: "推蓋式（無把手，Blum Tip-On 機構）" },
       { value: "none", label: "不裝（純展示用）" },
     ],
-    help: "把手樣式影響五金費用 + 工序，wood-knob 跟 finger-pull 純木無金屬，push-to-open 無外露五金",
+    help: "把手樣式影響五金費用 + 工序，wood-knob 跟 finger-pull 純木無金屬",
     // 任一 zone 類型是抽屜或門板時才顯示
     dependsOn: {
       any: [
@@ -688,20 +684,12 @@ export function pullStyleNote(style: string): string {
       return "車床旋削木製蘑菇形 knob（Φ35mm × 凸 28mm，自家車床做），與櫃體同材手感溫潤、無金屬五金費。";
     case "bar":
       return "抽屜 / 門板配長條把手（96/128/160mm 規格，NT$ 50-200/個），現代風常見。";
-    case "cup":
-      return "抽屜配杯型把手（cup pull，黃銅 / 鐵 NT$ 100-300/個），鄉村 / 古典風必配。";
     case "ring-chinese":
       return "中式古銅吊環（面葉 Φ38mm + 銅環 Φ30mm，凸出 21mm，黃銅古銅色 NT$ 150-400/組），明清櫃門 / 抽屜標配。";
     case "drop-bail":
       return "古典吊環（Hepplewhite bail pull，橢圓底座 76×60mm + 黃銅吊環垂 22mm，凸出 25mm，中心距 64mm，NT$ 200-500/組），18 世紀英美書桌 / 斗櫃標配。";
-    case "edge-bevel":
-      return "門上緣切 45° 斜邊當 J-pull 把手（手指扣住斜邊拉開），北歐設計常見。";
     case "finger-pull":
       return "面板挖半月弧形指槽 80×25×深 12mm，無外露五金，北歐 / 日式極簡。";
-    case "leather-strap":
-      return "植鞣皮帶 120×20×4mm，兩端 M4 黃銅螺絲鎖固，拱起 20mm，北歐 craft 風。";
-    case "push-to-open":
-      return "Blum Tip-On 推蓋機構（料號 956A1004），面板無外露五金，按壓彈開，極簡 / 隱藏式收納用。";
     case "none":
       return "不裝把手（純展示 / 客戶後續自選）。";
   }

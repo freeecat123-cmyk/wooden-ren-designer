@@ -218,17 +218,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     faceHeight: number,
     zFaceFront: number, // face 朝外那面的世界 z（往 -Z 方向延伸把手）
   ): Part[] => {
-    if (pullStyle === "none" || pullStyle === "push-to-open" ||
-        pullStyle === "finger-pull") {
+    if (pullStyle === "none" || pullStyle === "finger-pull") {
       return [];
     }
     const cx = faceX;
     const cy = faceY + faceHeight / 2;
     // 0.5mm clearance 避免跟面板 floating-point overlap
     const CLEAR = 0.5;
-    // edge-bevel 不在這裡產 part —由 caller 對 face panel 加 cosmetic mortise
-    // （見 face panel push 後的 J-pull 切口邏輯）
-    if (pullStyle === "edge-bevel") return [];
     if (pullStyle === "knob") {
       // 圓把手：30mm 直徑 × 25mm 長，軸朝前後（-Z 凸出，正面看是圓）
       const D = 30, L = 25;
@@ -272,22 +268,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         grainDirection: "length",
         visible: { length: barLen, width: 25, thickness: 14 },
         origin: { x: cx, y: cy - 7, z: zFaceFront - 12.5 - CLEAR },
-        visual: "brass-antique",
-        tenons: [],
-        mortises: [],
-      }];
-    }
-    if (pullStyle === "cup") {
-      // 杯型把手：cupLen × 25 高 × 25 凸出
-      const cupLen = Math.min(80, faceWidth * 0.4);
-      return [{
-        id: `${idPrefix}-pull`,
-        nameZh: "杯型把手",
-        material,
-        materialOverride: "plywood",
-        grainDirection: "length",
-        visible: { length: cupLen, width: 25, thickness: 25 },
-        origin: { x: cx, y: cy - 12.5, z: zFaceFront - 12.5 - CLEAR },
         visual: "brass-antique",
         tenons: [],
         mortises: [],
@@ -366,23 +346,6 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           mortises: [],
         },
       ];
-    }
-    if (pullStyle === "leather-strap") {
-      // 皮革拉帶：120×20×4mm，強制用 walnut 木色當棕皮代理
-      // material 蓋掉櫃體材，否則白橡櫃 → 白橡帶完全融進面板
-      const sL = Math.min(120, faceWidth * 0.7);
-      const sW = 20, sT = 4;
-      return [{
-        id: `${idPrefix}-pull`,
-        nameZh: "皮革拉帶",
-        material: "walnut",
-        materialOverride: "plywood",
-        grainDirection: "length",
-        visible: { length: sL, width: sT, thickness: sW },
-        origin: { x: cx, y: cy - sW / 2, z: zFaceFront - sT / 2 - CLEAR },
-        tenons: [],
-        mortises: [],
-      }];
     }
     return [];
   };
@@ -981,28 +944,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         //                       part-local Z(width=faceHeight) → world -Y(垂直)
         // 「面板前面」= part-local y=0 面、「面板頂端」= part-local z=-lz/2 處
         const faceJpullMortises: Part["mortises"] =
-          pullStyle === "edge-bevel"
+          pullStyle === "finger-pull"
             ? [{
-                origin: { x: 0, y: 0, z: -faceHeight / 2 + 12.5 },
-                depth: 25,
-                length: faceW - 8,
+                // 半月弧形指槽：80×25×深 12mm，靠頂緣置中
+                origin: { x: 0, y: 0, z: -faceHeight / 2 + 14 },
+                depth: 12,
+                length: 80,
                 width: 25,
                 through: false,
                 cosmetic: true,
                 shape: "rect",
               }]
-            : pullStyle === "finger-pull"
-              ? [{
-                  // 半月弧形指槽：80×25×深 12mm，靠頂緣置中
-                  origin: { x: 0, y: 0, z: -faceHeight / 2 + 14 },
-                  depth: 12,
-                  length: 80,
-                  width: 25,
-                  through: false,
-                  cosmetic: true,
-                  shape: "rect",
-                }]
-              : [];
+            : [];
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
@@ -1365,29 +1318,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       // 表面用主木材色（貼皮），billing 走 plywood（夾板比實木便宜）。
       // 厚度 18mm 是裝潢界對櫃門的常用值。無框、無鑲板，1 件 / 扇。
       if (doorType === "slab") {
-        // edge-bevel / finger-pull 在門板挖 cosmetic mortise（同 drawer face 邏輯）
+        // finger-pull 在門板挖 cosmetic mortise（同 drawer face 邏輯）
         const slabPullMortises: Part["mortises"] =
-          pullStyle === "edge-bevel"
+          pullStyle === "finger-pull"
             ? [{
-                origin: { x: 0, y: 0, z: -doorOuterH / 2 + 12.5 },
-                depth: 25,
-                length: doorOuterW - 8,
+                origin: { x: 0, y: 0, z: -doorOuterH / 2 + 14 },
+                depth: 12,
+                length: Math.min(80, doorOuterW - 20),
                 width: 25,
                 through: false,
                 cosmetic: true,
                 shape: "rect",
               }]
-            : pullStyle === "finger-pull"
-              ? [{
-                  origin: { x: 0, y: 0, z: -doorOuterH / 2 + 14 },
-                  depth: 12,
-                  length: Math.min(80, doorOuterW - 20),
-                  width: 25,
-                  through: false,
-                  cosmetic: true,
-                  shape: "rect",
-                }]
-              : [];
+            : [];
         parts.push({
           id: `${idPrefix}-${i + 1}-slab`,
           nameZh: `${labelPrefix}${i + 1} 平板門（夾板貼皮）`,

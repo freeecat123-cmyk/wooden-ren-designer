@@ -733,7 +733,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withBottomShoeRack": false,
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "display-cabinet": {
@@ -788,7 +787,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 35,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "media-console": {
@@ -818,7 +816,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "nightstand": {
@@ -841,7 +838,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "bracket",
       "legInset": 15,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "tea-table": {
@@ -2331,7 +2327,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "drawerMount": "inset",
       "drawerBottomMode": "rebated",
       "useDrawerSlide": false,
-      "pullStyle": "cup",
       "drawerFaceStyle": "flat",
       "backPanelMaterial": "solid",
       "withGalleryRail": true,
@@ -2475,7 +2470,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withBottomShoeRack": false,
       "withInteriorLed": false,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "display-cabinet": {
@@ -2505,7 +2499,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withCrownMolding": true,
       "crownProjection": 40,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "shoe-cabinet": {
@@ -2528,7 +2521,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legInset": 0,
       "withTopSeatCushion": false,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "media-console": {
@@ -2556,7 +2548,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withSpeakerGrille": false,
       "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "nightstand": {
@@ -2579,7 +2570,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legShape": "tapered",
       "legInset": 0,
       "backPanelMaterial": "solid",
-      "pullStyle": "cup",
       "softClose": false
     },
     "tea-table": {
