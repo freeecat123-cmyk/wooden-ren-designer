@@ -476,7 +476,8 @@ export function sampleStyleVariant(
 }
 
 /** 列出所有 pool 可能寫入的 key——給 getAllStyleManagedKeys 用，切風格時要清掉。
- *  含 length/width/height（這 3 個 top-level 不在 optionSchema 裡，特別處理）*/
+ *  length/width/height 已從 variant overlay 拿掉（尊重使用者業界常用選擇），
+ *  此處也不再列入 managed → 切風格時不會清掉使用者的尺寸 */
 export function getAllPoolKeys(): Set<string> {
   return new Set([
     "backStyle", "stretcherStyle", "legShape", "withArmrest",
@@ -487,7 +488,6 @@ export function getAllPoolKeys(): Set<string> {
     "backTopRailHeight", "lowerStretcherHeight",
     "legPenetratingTenon",
     "legSize", "apronWidth", "seatThickness",
-    "length", "width", "height",
   ]);
 }
 
