@@ -1974,7 +1974,9 @@ export function PerspectiveView({
           // Distance driven by the piece's LARGEST dimension so tall furniture
           // (wardrobe, open-bookshelf) doesn't get clipped top/bottom even
           // when its length/width is small.
-          position: [maxDim * 1.3, maxDim * 1.0, -maxDim * 1.45],
+          // distance ≈ sqrt(1.8² + 1.4² + 2.0²) ≈ 3.03 × maxDim
+          // → fov 38° 視野垂直容得下 ~2.08 × maxDim 物高，留 4% 邊距
+          position: [maxDim * 1.8, maxDim * 1.4, -maxDim * 2.0],
           fov: 38,
         }}
       >
