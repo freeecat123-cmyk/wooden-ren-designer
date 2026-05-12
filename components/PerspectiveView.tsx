@@ -2343,6 +2343,8 @@ export function PerspectiveView({
                     <meshStandardMaterial
                       color="#c0392b"
                       roughness={0.8}
+                      transparent={selectedPartId !== null && selectedPartId !== part.id}
+                      opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
                     />
                   </mesh>
                 );
@@ -2448,6 +2450,7 @@ export function PerspectiveView({
           targetY={(design.overall.thickness * SCALE) / 2}
           onApplied={() => setViewPreset(null)}
         />
+        <InvalidateOnDep dep={selectedPartId} />
       </Canvas>
       </div>
     </div>
@@ -2482,6 +2485,19 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
       ))}
     </div>
   );
+}
+
+/**
+ * frameloop="demand" 模式下，外部 prop / context 變化（如 selectedPartId）
+ * 不會自動觸發 re-render → 透明度 / emissive 改了畫面也不會更新。
+ * 此小元件 useEffect 監測 dep，變化時呼叫 invalidate() 強制下一幀重繪。
+ */
+function InvalidateOnDep({ dep }: { dep: unknown }) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    invalidate();
+  }, [dep, invalidate]);
+  return null;
 }
 
 function CameraController({
