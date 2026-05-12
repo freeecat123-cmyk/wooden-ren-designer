@@ -1763,6 +1763,8 @@ export function PerspectiveView({
   auditMode = false,
   explodeMm = 0,
   xrayMode = "off",
+  selectedPartId = null,
+  onPartSelect,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1779,6 +1781,10 @@ export function PerspectiveView({
    *  - "face"：只藏面板（drawer-face + 全門）→ 看得到抽屜箱體 + 內部層板
    *  - "full"：藏整個抽屜 + 全門 → 看得到櫃內全空（層板/隔板/後板）*/
   xrayMode?: "off" | "face" | "full";
+  /** 選中的零件 id（從外部 context 進來），對應 part.id 會多一層黃色 wireframe 高亮 */
+  selectedPartId?: string | null;
+  /** 點擊零件時呼叫，傳回 part.id 給外部 context（雙向高亮：3D ↔ 零件清單） */
+  onPartSelect?: (id: string) => void;
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
@@ -2310,6 +2316,27 @@ export function PerspectiveView({
               })
             : null;
 
+          // 選中高亮：黃色 wireframe overlay（比 audit 紅 wireframe 更亮、線粗一些）
+          const selectionOverlay = selectedPartId === part.id ? (
+            <mesh
+              position={[px, py, pz]}
+              rotation={new Euler(
+                part.rotation?.x ?? 0,
+                part.rotation?.y ?? 0,
+                part.rotation?.z ?? 0,
+                "ZYX",
+              )}
+            >
+              <boxGeometry
+                args={[
+                  part.visible.length * SCALE * 1.02,
+                  part.visible.thickness * SCALE * 1.02,
+                  part.visible.width * SCALE * 1.02,
+                ]}
+              />
+              <meshBasicMaterial color="#fbbf24" wireframe transparent opacity={0.9} />
+            </mesh>
+          ) : null;
           // Audit mode：overlap part 加紅色半透明 wireframe overlay box
           const auditOverlay = overlapIds.has(part.id) ? (
             <mesh
@@ -2355,7 +2382,10 @@ export function PerspectiveView({
               ? mortisesToCsg.map((m) => m.shape === "round" ? "round" : "rect")
               : undefined;
           return (
-            <group key={part.id}>
+            <group
+              key={part.id}
+              onClick={onPartSelect ? (e) => { e.stopPropagation(); onPartSelect(part.id); } : undefined}
+            >
               <Part
                 position={[px, py, pz]}
                 size={[
@@ -2379,6 +2409,7 @@ export function PerspectiveView({
               />
               {tenonMeshes}
               {auditOverlay}
+              {selectionOverlay}
             </group>
           );
         })}

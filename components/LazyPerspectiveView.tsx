@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { FurnitureDesign } from "@/lib/types";
+import { useSelectedPart } from "./SelectedPartContext";
 
 /**
  * 3D 透視圖懶載入 wrapper。
@@ -44,6 +45,7 @@ export function LazyPerspectiveView({
   /** X-ray 透視：off / face（藏門+抽屜面板）/ full（藏整個抽屜+門） */
   xrayMode?: "off" | "face" | "full";
 }) {
+  const { selectedPartId, setSelectedPartId } = useSelectedPart();
   return (
     <PerspectiveViewLazy
       design={design}
@@ -52,6 +54,8 @@ export function LazyPerspectiveView({
       auditMode={auditMode}
       explodeMm={explodeMm}
       xrayMode={xrayMode}
+      selectedPartId={selectedPartId}
+      onPartSelect={setSelectedPartId}
     />
   );
 }

@@ -8,7 +8,8 @@ import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
 import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
-import { MaterialList } from "@/lib/render/svg-views";
+import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
+import { SelectedPartProvider } from "@/components/SelectedPartContext";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
@@ -292,6 +293,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {/* 主視覺：
           desktop = 左參數右 3D（3D sticky top-4）
           mobile = 3D 黏頂端 sticky（高度 40vh），參數表單在下方捲動 */}
+      <SelectedPartProvider>
       <section className="lg:grid lg:grid-cols-[5fr_7fr] gap-4">
         {/* 3D 區塊：DOM 第一順位 → mobile 自動在上；desktop 用 grid 顯式放到右欄 row 1 */}
         <div
@@ -361,9 +363,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               🪚 裁切計算器
             </Link>
           </div>
-          <MaterialList design={design} />
+          <MaterialListWithSelection design={design} />
         </div>
       </details>
+      </SelectedPartProvider>
 
       <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">

@@ -1,3 +1,5 @@
+"use client";
+
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
@@ -2857,7 +2859,15 @@ export function categorizePart(id: string): PartCategory {
   return "misc";
 }
 
-export function MaterialList({ design }: { design: FurnitureDesign }) {
+export function MaterialList({
+  design,
+  selectedPartId,
+  onPartClick,
+}: {
+  design: FurnitureDesign;
+  selectedPartId?: string | null;
+  onPartClick?: (id: string) => void;
+}) {
   let totalBdft = 0;
   const bdftByMaterial = new Map<string, number>();
 
@@ -2994,8 +3004,17 @@ export function MaterialList({ design }: { design: FurnitureDesign }) {
                   cut.thickness,
                 );
                 const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
+                const isSelected = selectedPartId === part.id;
+                const interactive = !!onPartClick;
                 return (
-                  <tr key={part.id} className="border-b border-zinc-100">
+                  <tr
+                    key={part.id}
+                    data-part-id={part.id}
+                    onClick={interactive ? () => onPartClick!(part.id) : undefined}
+                    className={`border-b border-zinc-100 ${
+                      interactive ? "cursor-pointer hover:bg-amber-50" : ""
+                    } ${isSelected ? "bg-amber-100 ring-2 ring-amber-400" : ""}`}
+                  >
                     <td className="p-2 pl-3 relative">
                       <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar} opacity-50`} />
                       {part.nameZh}
