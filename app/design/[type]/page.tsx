@@ -374,6 +374,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
                   3D 預覽（同步高亮選中零件）
                 </div>
+                <SceneThemeToggle current={sceneId} />
+                <XrayToggle current={xrayMode} />
                 <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
               </div>
             </div>
