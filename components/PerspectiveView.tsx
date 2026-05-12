@@ -2457,15 +2457,19 @@ function CameraController({
   useEffect(() => {
     if (!preset) return;
     const d = maxDim * 2.3;
+    // 俯/仰用球面角 polar=±0.15 rad (~8.6°) 對齊 OrbitControls 的
+    // minPolarAngle=0.02 / maxPolarAngle=π-0.02 限制，距離仍維持 d。
+    const POLAR_OFFSET = 0.15;
+    const topX = d * Math.sin(POLAR_OFFSET);          // ≈ 1.55 (for d=10.35)
+    const topYFromTarget = d * Math.cos(POLAR_OFFSET); // ≈ d * 0.989
     const POS: Record<ViewPreset, [number, number, number]> = {
       hero:   [d * 0.55, targetY + d * 0.5, -d * 0.6],
       front:  [0, targetY, -d],
       back:   [0, targetY, d],
       left:   [-d, targetY, 0.001],
       right:  [d, targetY, 0.001],
-      // 0.001 偏移避免相機跟 up 軸完全平行的 gimbal-lock
-      top:    [0.001, targetY + d, 0.001],
-      bottom: [0.001, Math.max(-targetY * 0.5, -d * 0.4), 0.001],
+      top:    [topX, targetY + topYFromTarget, 0],
+      bottom: [topX, targetY - topYFromTarget, 0],
     };
     const [x, y, z] = POS[preset];
     camera.position.set(x, y, z);
