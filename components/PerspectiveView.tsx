@@ -432,9 +432,11 @@ function Part({
     const baseGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
     // EdgesGeometry 需要 indexed geometry 才能判斷共享邊；非 indexed 會把每個三角形
     // 邊都當成 boundary → 對角線跑出來。先 mergeVertices 把共位點合併再抽邊。
-    // threshold 30° 過濾掉 chamfered / rounded 表面的微小 normal 變化。
-    const merged = mergeVertices(baseGeo, 0.001);
-    const eg = new EdgesGeometry(merged, 30);
+    // tolerance 0.05（mesh local 座標 ~ mm * SCALE = mm/100，0.05 = 0.5mm 的容差，
+    // 抓 CSG 輸出的 float 誤差跟相同位置但不同 attribute 的 vertex）。
+    // threshold 45° 過濾 CSG 切出小三角形之間的微 normal 差。
+    const merged = mergeVertices(baseGeo, 0.05);
+    const eg = new EdgesGeometry(merged, 45);
     if (merged !== baseGeo) merged.dispose();
     return eg;
   }, [wireframe, csgGeometry, geometry, size]);
