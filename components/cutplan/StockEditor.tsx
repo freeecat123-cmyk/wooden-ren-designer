@@ -40,17 +40,19 @@ export function StockEditor({
   }
 
   const addRow = () => {
-    onChange([
-      ...inventory,
-      {
-        kind: "solid",
-        material: "maple",
-        thickness: 0,
-        length: 3000,
-        width: 200,
-        count: null,
-      },
-    ]);
+    // 有上一筆就 clone（只重設 count 為 null，省得使用者每次重選材質尺寸）
+    const last = inventory[inventory.length - 1];
+    const newRow: StockItem = last
+      ? { ...last, count: null }
+      : {
+          kind: "solid",
+          material: "maple",
+          thickness: 0,
+          length: 3000,
+          width: 200,
+          count: null,
+        };
+    onChange([...inventory, newRow]);
   };
 
   const quickAdd = (meta: {
