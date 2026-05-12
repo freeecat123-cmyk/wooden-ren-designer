@@ -451,8 +451,9 @@ function Part({
           color="#8a6a3a"
           roughness={0.35}
           metalness={0.85}
-          transparent={isDimmed}
+          transparent
           opacity={isDimmed ? DIM_OPACITY : 1}
+          depthWrite={!isDimmed}
           emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
         />
@@ -488,8 +489,9 @@ function Part({
         metalness={0.05}
         flatShading={useFlatShading}
         onBeforeCompile={woodCompile}
-        transparent={isDimmed}
+        transparent
         opacity={isDimmed ? DIM_OPACITY : 1}
+        depthWrite={!isDimmed}
         emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
         emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
       />
