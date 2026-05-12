@@ -682,7 +682,7 @@ const fmt = (n: number) => Math.round(n * 100) / 100;
 20. **CNC G-code（v3）** — 先 DXF（80% 解），再 jscut，最後自家 G-code（Clipper2）（見 P5）
 
 ### 裁切與曲線（新）
-21. **CutPlan v2** — Skyline → MaxRects-BSSF + kerf 設定 + grainLocked（見 R8）
+21. **CutPlan v2** — Skyline → MaxRects-BSSF + kerf 設定 + grainLocked ⚠️規劃中（見 R8）
 22. **邊緣導圓 + 線腳庫** — Three.js bevelEnabled + 5-8 個明西式線腳 preset（見 S10）
 23. ✅ **市售規格對齊** — commit `aa3948d` 2026-04-28（`lib/design/standards.ts` STANDARD_THICKNESSES_MM + collectThicknessHints + DesignChecks UI）
 
@@ -1103,7 +1103,7 @@ slant s = √((r₁ − r₂)² + h²)
 
 ### J8. wrd 元件分類建議
 ```ts
-type ComponentType = 'developable' | 'bent-laminated' | 'sculpted'
+type ComponentType = 'developable' | 'bent-laminated' | 'sculpted'  // ⚠️規劃中，code 尚未實作此分類
 ```
 - `developable` → 跑公式產 SVG，接 CutPlan
 - `bent-laminated` → 產**料表**（總長 = 弧長×(1+ε)、層數）而非展開圖
@@ -1127,13 +1127,13 @@ type ComponentType = 'developable' | 'bent-laminated' | 'sculpted'
 ### K2. Preset 自動帶入參數
 | 參數 | 蘇 | 京 | 廣 | 徽 | 晉 |
 |------|---|---|---|---|---|
-| `legThickness`（×高度） | 0.042 | 0.060 | 0.090 | 0.045 | 0.100 |
+| `postSize`（×高度，舊 `legThickness`） | 0.042 | 0.060 | 0.090 | 0.045 | 0.100 |
 | `apronT:W` | 1:3.2 | 1:2.2 | 1:1.8 | 1:3.0 | 1:1.5 |
-| `waistHeight`(mm) | 0-40 | 60-80 | 80-110 | 0-40 | 40-60 |
+| `hoofMm`（舊 `waistHeight`） | 0-40 | 60-80 | 80-110 | 0-40 | 40-60 |
 | `topThickness`(mm) | 25-30 | 32-38 | 38-45 | 28-32 | 40-50 |
 | `joinery.preferred` | 格肩/霸王棖 | 抱肩/粽角 | 走馬銷/明榫 | 燕尾/透榫 | 大進大出 |
-| `mouldingProfile` | 單線/皮條 | 雲紋/回紋 | 西洋捲草 | 兩柱香 | 平直起線 |
-| `footStyle` | 內翻馬蹄 | 雕雲頭馬蹄 | 鼓腿彭牙 | 內翻矮馬蹄 | 直方足 |
+| `mouldingProfile` ⚠️規劃中 | 單線/皮條 | 雲紋/回紋 | 西洋捲草 | 兩柱香 | 平直起線 |
+| `legShape`（舊 `footStyle`） | 內翻馬蹄 | 雕雲頭馬蹄 | 鼓腿彭牙 | 內翻矮馬蹄 | 直方足 |
 
 ### K3. UI 建議
 - 下拉選單只在「中式家具」模板顯示（per `feedback_dynamic_option_visibility`）
@@ -1714,7 +1714,7 @@ wrd 加參數：`kerfMm`（預設 3）、`trimMm`（預設 5）。
 ### R6. 紋理約束
 - 木芯板/夾板 face grain → `rotation = false`
 - MDF/塑合板無紋理 → `rotation = true` 多省 3-8%
-- 必須 piece metadata 掛 `grainLocked: boolean`
+- 必須 piece metadata 掛 `grainLocked: boolean` ⚠️規劃中
 
 ### R7. 切割順序（2-stage）
 1. Stage 1：水平/垂直主切（rip）→ 切成「條（strip）」
@@ -1725,7 +1725,7 @@ wrd 加參數：`kerfMm`（預設 3）、`trimMm`（預設 5）。
 **v2（1-2 週）**
 1. Skyline-BFD → **MaxRects-BSSF** offline，省料 +5-10%
 2. 加 `kerfMm` 設定（預設 3）
-3. 加 `grainLocked` per-part flag
+3. 加 `grainLocked` per-part flag ⚠️規劃中
 4. 餘料報告：每板剩餘可用面積（>100×100）
 
 **v3（1 個月）**
@@ -2060,7 +2060,7 @@ function checkChairStability(c) {
   const hChair = c.seatH * 0.55 + c.backH * 0.15;
   const hUser  = c.seatH + 200;
   const hTotal = (c.chairMass*hChair + c.userMass*hUser) / (c.chairMass + c.userMass);
-  const xBack  = 50 + (c.backTiltDeg - 5) * 8;
+  const xBack  = 50 + (c.backRake - 5) * 8;
   const dBack  = Math.max(a/2 - xBack, 0);
   const dFront = a/2 + xBack;
   const dSide  = b/2;
@@ -2085,7 +2085,7 @@ function checkChairStability(c) {
 
 ### V6. wrd 實作優先建議
 **最該先上**：θ_side（公式最簡，只用 b 和 seatH，不依賴椅背參數，覆蓋率最高）
-**唯一新欄位**：`backTiltDeg`（椅背傾角）
+**唯一新欄位**：`backRake`（椅背傾角）
 **不要做**：即時跑完整剛體模擬。靜態傾倒角夠用且 0 計算成本，每次拖滑桿都能算。
 
 ---
