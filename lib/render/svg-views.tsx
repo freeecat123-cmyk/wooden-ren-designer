@@ -2955,7 +2955,8 @@ export function MaterialList({
   const sortedCategories = CATEGORY_ORDER.filter((c) => byCategory.has(c));
 
   return (
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto">
+    <table className="w-full text-sm min-w-[760px]">
       <thead className="bg-zinc-100">
         <tr>
           <th className="text-left p-2">零件</th>
@@ -3133,5 +3134,6 @@ export function MaterialList({
         </tr>
       </tfoot>
     </table>
+    </div>
   );
 }
