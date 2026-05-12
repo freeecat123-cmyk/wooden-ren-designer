@@ -40,17 +40,16 @@ export function Material3dPip({ children }: { children: ReactNode }) {
     <div
       className="
         fixed z-40
-        right-2 top-2 w-44 sm:w-56
-        lg:right-4 lg:bottom-4 lg:top-auto lg:w-80
-        rounded-lg border border-zinc-300 bg-white shadow-2xl overflow-hidden
-        transition-opacity
+        top-0 left-0 right-0 w-full rounded-b-lg border-b border-x
+        lg:top-auto lg:left-auto lg:right-4 lg:bottom-4 lg:w-80 lg:rounded-lg lg:border
+        border-zinc-300 bg-white shadow-2xl overflow-hidden
       "
     >
       <div className="px-2 py-1 border-b border-zinc-200 text-[10px] font-semibold text-zinc-600 flex items-center gap-1.5">
         <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
         3D 同步高亮
       </div>
-      <div className="aspect-[4/3]">{children}</div>
+      <div className="h-[32vh] lg:h-auto lg:aspect-[4/3]">{children}</div>
     </div>
   );
 }
