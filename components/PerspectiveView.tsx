@@ -441,11 +441,17 @@ function Part({
       createdLocally = true;
     }
     const merged = mergeVertices(baseGeo, 0.001);
-    const eg = new EdgesGeometry(merged, 30);
+    // 圓料 cylinder 鄰面夾角 ~7.5° < 30°，threshold 30° 只剩 top/bot 圓環
+    // 沒側線視覺像消失。降 threshold 到 1° 讓 side facet 也算邊（cage look）
+    const isRound = shape?.kind === "round" || shape?.kind === "round-tapered"
+      || shape?.kind === "splayed-round-tapered" || shape?.kind === "shaker"
+      || shape?.kind === "lathe-turned";
+    const threshold = isRound ? 1 : 30;
+    const eg = new EdgesGeometry(merged, threshold);
     if (merged !== baseGeo) merged.dispose();
     if (createdLocally) baseGeo.dispose();
     return eg;
-  }, [wireframe, geometry, size]);
+  }, [wireframe, geometry, size, shape]);
 
   // wireframe 模式：所有材質統一用 silhouette edges 渲染
   if (wireframe && edgesGeometry) {
