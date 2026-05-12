@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkAndLogAIUsage } from "@/lib/ai-rate-limit";
 
 /**
  * 「📷 照片轉設計」端點。
@@ -102,6 +103,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "照片轉設計功能尚未配置 (缺 ANTHROPIC_API_KEY)" },
         { status: 503 },
+      );
+    }
+
+    const gate = await checkAndLogAIUsage("photo-to-params");
+    if (!gate.allowed) {
+      if (gate.reason === "unauthenticated") {
+        return NextResponse.json(
+          { error: "請先登入才能使用照片轉設計" },
+          { status: 401 },
+        );
+      }
+      return NextResponse.json(
+        {
+          error: `今日 AI 用量已達上限（${gate.used}/${gate.limit}），明日凌晨重置或升級方案`,
+          plan: gate.plan,
+          used: gate.used,
+          limit: gate.limit,
+        },
+        { status: 429 },
       );
     }
 
