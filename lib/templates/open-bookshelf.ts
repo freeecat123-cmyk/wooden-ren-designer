@@ -112,9 +112,11 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
+  // 縱向分隔板穿過時，擋條切成 N+1 段繞開分隔板（分隔板坐滿層板）
   if (withBookStop) {
     const stopH = bookStopHeight;
     const stopT = bookStopThickness;
+    const dividerT = panelThickness;
     // 涵蓋三類橫向板：1) 區內層板 z*-shelf-N  2) 區頂板 z*-boundary
     // 3) 案類 zone-boundary（drawer zone 內用，nameZh 含「抽屜」會被排掉）
     const shelves = design.parts.filter(
@@ -122,21 +124,42 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         (/shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id)) &&
         !p.nameZh.includes("抽屜"),
     );
+    // 分隔板 X 中心（跟下面 vdivider 計算同一個公式）
+    const divSegCount = verticalDividerCount + 1;
     for (const shelf of shelves) {
-      design.parts.push({
-        id: `${shelf.id}-bookstop`,
-        nameZh: `${shelf.nameZh}後緣擋條`,
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: shelf.visible.length, width: stopT, thickness: stopH },
-        origin: {
-          x: shelf.origin.x,
-          y: shelf.origin.y + shelf.visible.thickness,
-          z: shelf.origin.z + shelf.visible.width / 2 - stopT / 2,
-        },
-        tenons: [],
-        mortises: [],
-      });
+      const innerW = shelf.visible.length;
+      const divXs: number[] = [];
+      for (let d = 0; d < verticalDividerCount; d++) {
+        divXs.push(-innerW / 2 + ((d + 1) * innerW) / divSegCount);
+      }
+      // 切點配對：[stopLeft, divLeft0, divRight0, divLeft1, divRight1, ..., stopRight]
+      const cutPoints = [-innerW / 2];
+      for (const dx of divXs) {
+        cutPoints.push(dx - dividerT / 2, dx + dividerT / 2);
+      }
+      cutPoints.push(innerW / 2);
+      for (let s = 0; s < cutPoints.length / 2; s++) {
+        const segLeft = cutPoints[s * 2];
+        const segRight = cutPoints[s * 2 + 1];
+        const segLen = segRight - segLeft;
+        if (segLen < 1) continue;
+        const segCx = (segLeft + segRight) / 2;
+        const segIdSuffix = verticalDividerCount > 0 ? `-${s + 1}` : "";
+        design.parts.push({
+          id: `${shelf.id}-bookstop${segIdSuffix}`,
+          nameZh: `${shelf.nameZh}後緣擋條${verticalDividerCount > 0 ? ` ${s + 1}` : ""}`,
+          material: input.material,
+          grainDirection: "length",
+          visible: { length: segLen, width: stopT, thickness: stopH },
+          origin: {
+            x: shelf.origin.x + segCx,
+            y: shelf.origin.y + shelf.visible.thickness,
+            z: shelf.origin.z + shelf.visible.width / 2 - stopT / 2,
+          },
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
   }
   // 層板下方加固橫條：防長層板撓彎，後緣（隱藏）/ 前緣（仿英式書櫃面框）/ 雙條
@@ -235,12 +258,10 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     for (let i = 0; i < sorted.length - 1; i++) {
       const lower = sorted[i];
       const upper = sorted[i + 1];
-      // 修剪兩端避免撞到 bookstop（從 lower 上方往內伸 bookStopHeight）
-      // 跟 cleat 加固條（從 upper 下方往內伸 reinforcementHeight）
-      const lowerHasStop = withBookStop && lower.id !== "bottom";
-      const upperHasReinforce = effectiveReinforcement && upper.id !== "top";
-      const segYBot = lower.origin.y + lower.visible.thickness + (lowerHasStop ? bookStopHeight : 0);
-      const segYTop = upper.origin.y - (upperHasReinforce ? reinforcementHeight : 0);
+      // 分隔板坐滿層板（不修剪）——bookstop 已切成 N+1 段繞開分隔板。
+      // 加固條 (cleat) 在 vd>0 時自動 effectiveReinforcement=false 跳過，所以也不會撞。
+      const segYBot = lower.origin.y + lower.visible.thickness;
+      const segYTop = upper.origin.y;
       const segH = segYTop - segYBot;
       if (segH < 50) continue;
       for (let d = 0; d < verticalDividerCount; d++) {
