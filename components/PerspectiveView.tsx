@@ -430,7 +430,12 @@ function Part({
   const edgesGeometry = useMemo(() => {
     if (!wireframe) return null;
     const baseGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    const eg = new EdgesGeometry(baseGeo, 1);
+    // EdgesGeometry 需要 indexed geometry 才能判斷共享邊；非 indexed 會把每個三角形
+    // 邊都當成 boundary → 對角線跑出來。先 mergeVertices 把共位點合併再抽邊。
+    // threshold 30° 過濾掉 chamfered / rounded 表面的微小 normal 變化。
+    const merged = mergeVertices(baseGeo, 0.001);
+    const eg = new EdgesGeometry(merged, 30);
+    if (merged !== baseGeo) merged.dispose();
     return eg;
   }, [wireframe, csgGeometry, geometry, size]);
 
