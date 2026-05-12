@@ -99,8 +99,12 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   if (withBookStop) {
     const stopH = bookStopHeight;
     const stopT = bookStopThickness;
+    // 涵蓋三類橫向板：1) 區內層板 z*-shelf-N  2) 區頂板 z*-boundary
+    // 3) 案類 zone-boundary（drawer zone 內用，nameZh 含「抽屜」會被排掉）
     const shelves = design.parts.filter(
-      (p) => /shelf-\d+$/.test(p.id) && !p.nameZh.includes("抽屜"),
+      (p) =>
+        (/shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id)) &&
+        !p.nameZh.includes("抽屜"),
     );
     for (const shelf of shelves) {
       design.parts.push({
