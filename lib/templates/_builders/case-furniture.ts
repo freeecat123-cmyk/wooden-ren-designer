@@ -234,15 +234,29 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       const D = 30, L = 25;
       return [{
         id: `${idPrefix}-pull`,
-        nameZh: "圓把手",
+        nameZh: "黃銅圓把手",
         material,
         materialOverride: "plywood",
         grainDirection: "length",
-        // X/Y 是直徑面 D，Z 是凸出長度 L；axis="z" 讓圓柱軸朝前後
         visible: { length: D, width: L, thickness: D },
         origin: { x: cx, y: cy - D / 2, z: zFaceFront - L / 2 - CLEAR },
         shape: { kind: "round", axis: "z" },
         visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
+    if (pullStyle === "wood-knob") {
+      // 木製旋削圓把手：35mm 直徑 × 28mm 長，跟櫃體同材無 brass visual
+      const D = 35, L = 28;
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "木製圓把手",
+        material,
+        grainDirection: "length",
+        visible: { length: D, width: L, thickness: D },
+        origin: { x: cx, y: cy - D / 2, z: zFaceFront - L / 2 - CLEAR },
+        shape: { kind: "round", axis: "z" },
         tenons: [],
         mortises: [],
       }];
@@ -275,6 +289,89 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         visible: { length: cupLen, width: 25, thickness: 25 },
         origin: { x: cx, y: cy - 12.5, z: zFaceFront - 12.5 - CLEAR },
         visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
+    if (pullStyle === "ring-chinese") {
+      // 中式古銅吊環：圓盤面葉 Φ38×2mm + 圓環 Φ30×4mm 掛在底座下緣
+      const plateD = 38, plateT = 2;
+      const ringD = 30, ringT = 4;
+      // 環掛在底座下方：環中心在底座中心下方 plateD/4 處
+      const ringCy = cy - plateD / 4;
+      return [
+        {
+          id: `${idPrefix}-pull-plate`,
+          nameZh: "中式古銅吊環底座",
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: { length: plateD, width: plateT, thickness: plateD },
+          origin: { x: cx, y: cy - plateD / 2, z: zFaceFront - plateT / 2 - CLEAR },
+          shape: { kind: "round", axis: "z" },
+          visual: "brass-antique",
+          tenons: [],
+          mortises: [],
+        },
+        {
+          id: `${idPrefix}-pull-ring`,
+          nameZh: "中式古銅吊環",
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: { length: ringD, width: ringT, thickness: ringD },
+          origin: { x: cx, y: ringCy - ringD / 2, z: zFaceFront - plateT - ringT / 2 - CLEAR },
+          shape: { kind: "round", axis: "z" },
+          visual: "brass-antique",
+          tenons: [],
+          mortises: [],
+        },
+      ];
+    }
+    if (pullStyle === "drop-bail") {
+      // 古典吊環 Hepplewhite：矩形 backplate 76×60×2mm + 下吊 bail 60×22×3mm
+      const plateW = 76, plateH = 60, plateT = 2;
+      const bailW = 60, bailH = 22, bailT = 3;
+      // bail 從 backplate 上緣 1/3 處往下垂
+      const bailCy = cy - plateH / 4;
+      return [
+        {
+          id: `${idPrefix}-pull-plate`,
+          nameZh: "古典吊環底座",
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: { length: plateW, width: plateT, thickness: plateH },
+          origin: { x: cx, y: cy - plateH / 2, z: zFaceFront - plateT / 2 - CLEAR },
+          visual: "brass-antique",
+          tenons: [],
+          mortises: [],
+        },
+        {
+          id: `${idPrefix}-pull-bail`,
+          nameZh: "古典吊環",
+          material,
+          materialOverride: "plywood",
+          grainDirection: "length",
+          visible: { length: bailW, width: bailT, thickness: bailH },
+          origin: { x: cx, y: bailCy - bailH / 2, z: zFaceFront - plateT - bailT / 2 - CLEAR },
+          visual: "brass-antique",
+          tenons: [],
+          mortises: [],
+        },
+      ];
+    }
+    if (pullStyle === "leather-strap") {
+      // 皮革拉帶：120×20×4mm，棕色（用 walnut 近似）
+      const sL = 120, sW = 20, sT = 4;
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "皮革拉帶",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        visible: { length: sL, width: sT, thickness: sW },
+        origin: { x: cx, y: cy - sW / 2, z: zFaceFront - sT / 2 - CLEAR },
         tenons: [],
         mortises: [],
       }];
@@ -886,7 +983,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 cosmetic: true,
                 shape: "rect",
               }]
-            : [];
+            : pullStyle === "finger-pull"
+              ? [{
+                  // 半月弧形指槽：80×25×深 12mm，靠頂緣置中
+                  origin: { x: 0, y: 0, z: -faceHeight / 2 + 14 },
+                  depth: 12,
+                  length: 80,
+                  width: 25,
+                  through: false,
+                  cosmetic: true,
+                  shape: "rect",
+                }]
+              : [];
         parts.push({
           id: `${idPrefix}-${i + 1}-face`,
           nameZh: `${labelPrefix}${i + 1} 面板`,
