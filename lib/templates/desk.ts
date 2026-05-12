@@ -297,11 +297,13 @@ export const desk: FurnitureTemplate = (input) => {
       ];
     }
     // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
-    // 在 stretcher Y 高度處，腳已沿 X/Z 偏移 splayMm × (1 - stretcherY/legHeight)
+    // 用 stretcher 中央 Y 算 splay/taper，平均 stretcher 上下端跟腳的對齊誤差
+    // （避免拿 stretcher 底邊 Y 算 → 頂邊在較高 Y 處腳已內縮 → 頂邊穿出）
     const isSplayedX = legShape === "splayed" || legShape === "splayed-length" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const isSplayedZ = legShape === "splayed" || legShape === "splayed-width" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const splayMm = 40; // 跟 simple-table 同
-    const splayFrac = Math.max(0, 1 - stretcherY / legHeight);
+    const stretcherCenterY = stretcherY + 20; // stretcher height = 40, center = +20
+    const splayFrac = Math.max(0, 1 - stretcherCenterY / legHeight);
     const splayOffsetX = isSplayedX ? splayMm * splayFrac : 0;
     const splayOffsetZ = isSplayedZ ? splayMm * splayFrac : 0;
     const legCenterX = input.length / 2 - legSize / 2 - legInset + splayOffsetX;
@@ -313,7 +315,7 @@ export const desk: FurnitureTemplate = (input) => {
     const isRoundLegInH = legShape === "splayed-round-tapered";
     const isTaperedLeg = legShape === "tapered" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const bottomScale = isTaperedLeg ? 0.55 : 1;
-    const legScaleAtStretcher = 1 - (1 - bottomScale) * (1 - stretcherY / legHeight);
+    const legScaleAtStretcher = 1 - (1 - bottomScale) * (1 - stretcherCenterY / legHeight);
     const halfLegSizeAtY = (legSize * legScaleAtStretcher) / 2;
     const taperCompensation = legSize / 2 - halfLegSizeAtY; // 0 for box, > 0 for taper
     const sideStretcherLen = isRoundLegInH
