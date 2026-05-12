@@ -134,20 +134,21 @@ export const desk: FurnitureTemplate = (input) => {
       : Math.min(450, innerW * 0.4);
     // 櫃頂位置：牙板底下再扣 5mm clearance（讓最上面抽屜能打開不撞牙板）
     const caseTopY = legHeight - apronWidth - 5;
-    // 櫃身高度限制：caseTopY 到地板的距離 - 30mm 離地
-    const maxCaseH = caseTopY - 30;
+    // 櫃身高度限制：caseTopY 到地板的距離 - 80mm 離地（給 H-frame 留空間）
+    const maxCaseH = caseTopY - 80;
     const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
     const caseY = caseTopY - caseH;
-    // 櫃深：保留前後 30mm clearance（含面板凸出 22 + 把手 25 = 47），算寬鬆抓 60
-    const caseD = Math.min(input.width - 80, 480);
-    // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
-    const PANEL_T = 15; // 跟 caseFurniture 的 panelThickness 一致（下面用同值）
+    // 櫃深：跨滿前後腳內面（櫃子兩側板剛好貼前/後腳內面）
+    const PANEL_T = 15; // 跟 caseFurniture 的 panelThickness 一致
     const innerLegEdgeX = input.length / 2 - legSize - legInset;
+    const innerLegEdgeZ = input.width / 2 - legSize - legInset;
+    const caseD = 2 * innerLegEdgeZ;
+    // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
     const caseX = drawerSide === "center"
       ? 0
       : drawerSide === "left"
-      ? -(innerLegEdgeX - caseW / 2 - 1)
-      : (innerLegEdgeX - caseW / 2 - 1);
+      ? -(innerLegEdgeX - caseW / 2)
+      : (innerLegEdgeX - caseW / 2);
 
     // 抽屜模式 / 滑軌 / 把手等選項
     const drawerMount = resolveDrawerMount(input, o);
@@ -213,6 +214,38 @@ export const desk: FurnitureTemplate = (input) => {
         });
       }
     }
+    // H-frame 結構橫撐：左右各一條沿 Z 縱向（前後腳間），加一條沿 X 橫向
+    // 連接、撐櫃底。橫撐 Y 中心在櫃底下方 25mm，全部同 Y 共面 → 從俯視看
+    // 是一個 H 字
+    const STRETCHER_T = 25;     // X / Z 方向短軸（厚）
+    const STRETCHER_H = 40;     // Y 方向（高）
+    const stretcherTopY = caseY - 5;  // 櫃底下方 5mm
+    const stretcherY = stretcherTopY - STRETCHER_H;
+    const sideStretcherLen = 2 * innerLegEdgeZ; // 跨滿前後腳內面
+    for (const sx of [-1, +1] as const) {
+      const sxX = sx * (innerLegEdgeX - STRETCHER_T / 2);
+      design.parts.push({
+        id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
+        nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
+        material: input.material,
+        grainDirection: "width",  // 主軸沿 Z（width）
+        visible: { length: STRETCHER_T, width: sideStretcherLen, thickness: STRETCHER_H },
+        origin: { x: sxX, y: stretcherY, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    const crossStretcherLen = 2 * innerLegEdgeX - 2 * STRETCHER_T;
+    design.parts.push({
+      id: "desk-h-cross",
+      nameZh: "H 框橫向長橫撐",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
+      origin: { x: 0, y: stretcherY, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
   }
 
   // 前飾遮腿板（modesty panel）
