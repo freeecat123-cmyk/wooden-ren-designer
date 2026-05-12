@@ -55,11 +55,6 @@ export function BugReportFab() {
     }
   }
 
-  function openMailto() {
-    const { subject, body } = buildReport();
-    window.location.href = `mailto:wengbinren@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setOpen(false);
-  }
 
   return (
     <>
@@ -72,25 +67,17 @@ export function BugReportFab() {
             自動帶當前頁面 + 版本資訊。請描述你做了什麼步驟，最好附截圖。寄到{" "}
             <span className="font-mono text-zinc-800">wengbinren@gmail.com</span>
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              onClick={openGmailCompose}
-              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
-            >
-              用 Gmail 開
-            </button>
-            <button
-              onClick={openMailto}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50"
-            >
-              用內建信箱
-            </button>
-          </div>
+          <button
+            onClick={openGmailCompose}
+            className="mt-3 w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+          >
+            📧 用 Gmail 開新分頁
+          </button>
           <button
             onClick={copyToClipboard}
             className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-xs hover:bg-zinc-50"
           >
-            {copied ? "✓ 已複製，請貼到任何信箱" : "📋 複製內容到剪貼簿"}
+            {copied ? "✓ 已複製，請貼到任何信箱寄出" : "📋 複製內容到剪貼簿（不用 Gmail 用這個）"}
           </button>
           <button
             onClick={() => setOpen(false)}
