@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { checkAndLogAIUsage } from "@/lib/ai-rate-limit";
+import { aiFeaturesEnabled } from "@/lib/ai-features";
 
 /**
  * 「📷 照片轉設計」端點。
@@ -77,10 +78,13 @@ ${VALID_STYLES.join(", ")}
 5. 如果照片裡明顯不是家具或看不清楚，category 仍要回最接近的並把 confidence 設 low + warnings 說明`;
 
 export function GET() {
-  return NextResponse.json({ available: !!process.env.ANTHROPIC_API_KEY });
+  return NextResponse.json({ available: aiFeaturesEnabled() && !!process.env.ANTHROPIC_API_KEY });
 }
 
 export async function POST(req: NextRequest) {
+  if (!aiFeaturesEnabled()) {
+    return NextResponse.json({ error: "AI 功能已關閉（成本控制中）" }, { status: 503 });
+  }
   try {
     const body = (await req.json()) as { imageBase64: string; mediaType?: string };
     const { imageBase64, mediaType = "image/jpeg" } = body;

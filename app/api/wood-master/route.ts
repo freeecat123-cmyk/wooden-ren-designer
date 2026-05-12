@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { selectKnowledgeFiles } from "@/lib/wood-master/router";
 import { loadKnowledgeMany } from "@/lib/wood-master/loader";
 import { getRedis } from "@/lib/shorten/redis";
+import { aiFeaturesEnabled } from "@/lib/ai-features";
 
 /**
  * 木工大師客服 — 對外公開的 chat 端點。
@@ -85,7 +86,7 @@ async function checkRateLimit(ip: string): Promise<{ ok: boolean; remaining: num
 /** GET /api/wood-master — 健康檢查 + 今日剩餘次數 */
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
-  const available = !!process.env.ANTHROPIC_API_KEY;
+  const available = aiFeaturesEnabled() && !!process.env.ANTHROPIC_API_KEY;
   let remaining: number | null = null;
   try {
     const redis = getRedis();
@@ -105,6 +106,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!aiFeaturesEnabled()) {
+    return NextResponse.json(
+      { error: "AI 功能已關閉（成本控制中）" },
+      { status: 503 },
+    );
+  }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
