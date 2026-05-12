@@ -349,12 +349,12 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
         {/* 右：縮圖（從健檢截圖裁出右上 3D 區） */}
         <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden bg-zinc-100 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
           <Image
-            src={`/thumbs/${item.category}.png`}
+            src={`/thumbs/${item.category}.webp`}
             alt={`${item.nameZh} 3D 預覽`}
             fill
             sizes="(min-width: 640px) 96px, 80px"
-            quality={60}
-            style={{ objectFit: "cover", objectPosition: "92% 6%" }}
+            quality={80}
+            style={{ objectFit: "cover" }}
           />
         </div>
       </div>
