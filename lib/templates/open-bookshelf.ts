@@ -162,6 +162,15 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     const stopH = bookStopHeight;
     const stopT = bookStopThickness;
     const dividerT = panelThickness;
+    // 抽屜區 Y 範圍——此區頂端的 boundary 上方若還是抽屜則無分隔板，bookstop 不切
+    const drawerZoneRanges: Array<{ y0: number; y1: number }> = [];
+    {
+      let cursorY = legHeight + panelThickness;
+      for (const z of zones) {
+        if (z.type === "drawer") drawerZoneRanges.push({ y0: cursorY, y1: cursorY + z.heightMm });
+        cursorY += z.heightMm;
+      }
+    }
     // 涵蓋三類橫向板：1) 區內層板 z*-shelf-N  2) 區頂板 z*-boundary
     // 3) 案類 zone-boundary（drawer zone 內用，nameZh 含「抽屜」會被排掉）
     const shelves = design.parts.filter(
@@ -169,13 +178,24 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         (/shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id)) &&
         !p.nameZh.includes("抽屜"),
     );
+    // 找這片 shelf 上方鄰近的橫向板，判斷上方 compartment 是否在抽屜區
+    const allHorizSorted = [...design.parts]
+      .filter((p) => p.id === "top" || /shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id))
+      .sort((a, b) => a.origin.y - b.origin.y);
     // 分隔板 X 中心（跟下面 vdivider 計算同一個公式）
     const divSegCount = verticalDividerCount + 1;
     for (const shelf of shelves) {
+      // 上方 compartment 中心是否在抽屜區 → 該格無分隔板 → bookstop 不切
+      const above = allHorizSorted.find((h) => h.origin.y > shelf.origin.y + shelf.visible.thickness - 0.1);
+      const compCenterY = above
+        ? (shelf.origin.y + shelf.visible.thickness + above.origin.y) / 2
+        : shelf.origin.y + shelf.visible.thickness + 100;
+      const aboveIsDrawer = drawerZoneRanges.some((r) => compCenterY > r.y0 && compCenterY < r.y1);
+      const effectiveDivCount = aboveIsDrawer ? 0 : verticalDividerCount;
       const innerW = shelf.visible.length;
       const divXs: number[] = [];
-      for (let d = 0; d < verticalDividerCount; d++) {
-        divXs.push(-innerW / 2 + ((d + 1) * innerW) / divSegCount);
+      for (let d = 0; d < effectiveDivCount; d++) {
+        divXs.push(-innerW / 2 + ((d + 1) * innerW) / (effectiveDivCount + 1));
       }
       // 切點配對：[stopLeft, divLeft0, divRight0, divLeft1, divRight1, ..., stopRight]
       const cutPoints = [-innerW / 2];
@@ -189,10 +209,10 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         const segLen = segRight - segLeft;
         if (segLen < 1) continue;
         const segCx = (segLeft + segRight) / 2;
-        const segIdSuffix = verticalDividerCount > 0 ? `-${s + 1}` : "";
+        const segIdSuffix = effectiveDivCount > 0 ? `-${s + 1}` : "";
         design.parts.push({
           id: `${shelf.id}-bookstop${segIdSuffix}`,
-          nameZh: `${shelf.nameZh}後緣擋條${verticalDividerCount > 0 ? ` ${s + 1}` : ""}`,
+          nameZh: `${shelf.nameZh}後緣擋條${effectiveDivCount > 0 ? ` ${s + 1}` : ""}`,
           material: input.material,
           grainDirection: "length",
           visible: { length: segLen, width: stopT, thickness: stopH },
@@ -300,6 +320,15 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     const innerD = refShelf.visible.width;
     const refZ = refShelf.origin.z;
     const segCount = verticalDividerCount + 1;
+    // 抽屜區 Y 範圍——此區內已有 drawerCols 縱向分隔，外層分隔不要再插（會穿模抽屜）
+    const drawerZoneRanges: Array<{ y0: number; y1: number }> = [];
+    {
+      let cursorY = legHeight + panelThickness;
+      for (const z of zones) {
+        if (z.type === "drawer") drawerZoneRanges.push({ y0: cursorY, y1: cursorY + z.heightMm });
+        cursorY += z.heightMm;
+      }
+    }
     for (let i = 0; i < sorted.length - 1; i++) {
       const lower = sorted[i];
       const upper = sorted[i + 1];
@@ -309,6 +338,8 @@ export const openBookshelf: FurnitureTemplate = (input) => {
       const segYTop = upper.origin.y;
       const segH = segYTop - segYBot;
       if (segH < 50) continue;
+      const segCenterY = (segYBot + segYTop) / 2;
+      if (drawerZoneRanges.some((r) => segCenterY > r.y0 && segCenterY < r.y1)) continue;
       for (let d = 0; d < verticalDividerCount; d++) {
         const xCenter = -innerW / 2 + ((d + 1) * innerW) / segCount;
         design.parts.push({
