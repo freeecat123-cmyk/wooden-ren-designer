@@ -64,7 +64,7 @@ for (const entry of FURNITURE_CATALOG) {
   const bboxXMin = -o.length / 2;
   const bboxXMax = o.length / 2;
   const bboxYMin = 0;
-  const bboxYMax = o.height;
+  const bboxYMax = o.thickness;
   const bboxZMin = -o.width / 2;
   const bboxZMax = o.width / 2;
   for (const part of design.parts) {
