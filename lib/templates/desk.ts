@@ -62,6 +62,7 @@ export const deskOptions: OptionSpec[] = [
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...softCloseOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
@@ -139,8 +140,10 @@ export const desk: FurnitureTemplate = (input) => {
     const caseW = drawerSide === "center"
       ? Math.min(400, input.length * 0.4)
       : Math.min(450, innerW * 0.4);
-    // 櫃頂位置：牙板底下再扣 5mm clearance（讓最上面抽屜能打開不撞牙板）
-    const caseTopY = legHeight - apronWidth - 5;
+    // 櫃頂位置：有牙板時牙板底下再扣 5mm clearance；無牙板用 pedestalTopGap
+    const pedestalTopGap = getOption<number>(input, opt(o, "pedestalTopGap"));
+    const topGap = withApron ? apronWidth + 5 : pedestalTopGap;
+    const caseTopY = legHeight - topGap;
     // 櫃身高度限制：caseTopY 到地板的距離 - 80mm 離地（給 H-frame 留空間）
     const maxCaseH = caseTopY - 80;
     const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);

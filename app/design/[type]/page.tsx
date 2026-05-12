@@ -168,9 +168,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     const reqStretcherY = Number(options.pedestalStretcherHeight ?? 0);
     if (drawerCount > 0 && reqStretcherY > 0) {
       const topThickness = Number(options.topThickness ?? 28);
+      const withApron = options.withApron !== false;
       const apronWidth = Number(options.apronWidth ?? 90);
+      const pedestalTopGap = Number(options.pedestalTopGap ?? 5);
       const legHeight = height - topThickness;
-      const caseTopY = legHeight - apronWidth - 5;
+      const topGap = withApron ? apronWidth + 5 : pedestalTopGap;
+      const caseTopY = legHeight - topGap;
       const maxCaseH = caseTopY - 80;
       const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
       const caseY = caseTopY - caseH;
