@@ -9,8 +9,6 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
-  drawerSlideTypeOption,
-  drawerSlideTypeNote,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";

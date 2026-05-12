@@ -675,37 +675,6 @@ export function drawerJoineryNote(j: string): string {
 }
 
 /** 抽屜滑軌種類（select 版，跟 zone-helpers 的 useDrawerSlide checkbox 不衝突） */
-export function drawerSlideTypeOption(group: OptionGroup = "drawer"): OptionSpec {
-  return {
-    group,
-    type: "select",
-    key: "drawerSlideType",
-    label: "抽屜滑軌種類",
-    defaultValue: "soft-close-side",
-    choices: [
-      { value: "wood-runner", label: "木製滑軌（傳統，純木工）" },
-      { value: "side-mount", label: "側裝鋼珠滑軌（一般）" },
-      { value: "soft-close-side", label: "緩衝側裝滑軌（業界主流）" },
-      { value: "undermount", label: "底裝隱藏滑軌（高級櫃，看不到金屬）" },
-    ],
-    help: "底裝隱藏 > 緩衝側裝 > 一般側裝 > 木製。價格也是這個順序",
-  };
-}
-
-export function drawerSlideTypeNote(s: string): string {
-  switch (s) {
-    case "wood-runner":
-      return "抽屜用木製滑軌（純木工，無金屬），開合需上蠟維護。";
-    case "side-mount":
-      return "抽屜配側裝鋼珠滑軌（一般 350-450mm 規格），抽屜寬 -25mm 留間隙。";
-    case "soft-close-side":
-      return "抽屜配緩衝側裝滑軌（Blum / Hettich 等品牌），尺寸同一般側裝，多 NT$ 200/對。";
-    case "undermount":
-      return "抽屜配底裝隱藏滑軌（Blum Tandem / Movento），抽屜底要對應切槽，組裝較精細。";
-  }
-  return "";
-}
-
 /* ─────────────── 抽屜 / 門板把手樣式 ─────────────── */
 
 /** 抽屜把手 / 門板把手樣式選項，櫃類通用 */

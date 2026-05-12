@@ -23,8 +23,6 @@ import {
   backPanelMaterialNote,
   drawerJoineryOption,
   drawerJoineryNote,
-  drawerSlideTypeOption,
-  drawerSlideTypeNote,
   pullStyleOption,
   pullStyleNote,
   softCloseOption,
@@ -56,7 +54,6 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   drawerBottomModeOption,
   drawerSlideOption,
   drawerJoineryOption("drawer"),
-  drawerSlideTypeOption("drawer"),
   pullStyleOption("drawer"),
   softCloseOption("drawer"),
   ...toeKickOptions("structure"),
@@ -87,7 +84,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
-  const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const softClose = getOption<boolean>(input, opt(o, "softClose"));
   const drawerFaceStyle = getOption<string>(input, opt(o, "drawerFaceStyle"));
@@ -116,7 +112,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${drawerFaceStyle === "flat" ? "" : drawerFaceStyle === "shaker" ? "抽屜面板採夏克 5 件式 frame-and-panel（外框 60mm 寬、內凹平鑲板）。" : drawerFaceStyle === "inset" ? "抽屜面板嵌入式 inset（面板小於開口 3mm、四週留 reveal）。" : drawerFaceStyle === "overlay" ? "抽屜面板全蓋式 overlay（面板蓋住整個開口）。" : "抽屜面板凸版 raised-panel（外框 + 中央凸 6mm 雕花板）。"} ${withGalleryRail ? "頂面四週加 25mm 高 gallery 木條圍欄。" : ""}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${drawerJoineryNote(drawerJoinery)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${drawerFaceStyle === "flat" ? "" : drawerFaceStyle === "shaker" ? "抽屜面板採夏克 5 件式 frame-and-panel（外框 60mm 寬、內凹平鑲板）。" : drawerFaceStyle === "inset" ? "抽屜面板嵌入式 inset（面板小於開口 3mm、四週留 reveal）。" : drawerFaceStyle === "overlay" ? "抽屜面板全蓋式 overlay（面板蓋住整個開口）。" : "抽屜面板凸版 raised-panel（外框 + 中央凸 6mm 雕花板）。"} ${withGalleryRail ? "頂面四週加 25mm 高 gallery 木條圍欄。" : ""}`.trim(),
     warnings,
   });
   // 抽屜面板樣式：shaker → 5 件式 frame-and-panel
