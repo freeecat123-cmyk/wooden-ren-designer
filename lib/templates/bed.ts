@@ -64,6 +64,7 @@ interface BedPresetConfig {
   sideRailWidth?: number;
   mattressClearanceMm?: number;
   headboardHeight?: number;
+  headStyle?: string;
   withFootboard?: boolean;
   footboardHeight?: number;
   slatGapMm?: number;
@@ -71,21 +72,21 @@ interface BedPresetConfig {
 
 const BED_PRESETS: Record<string, BedPresetConfig> = {
   // 北歐簡約：細腳 tapered、低背、無床尾板
-  nordic: { legSize: 60, legShape: "tapered", sideRailWidth: 150, mattressClearanceMm: 220, headboardHeight: 700, withFootboard: false, slatGapMm: 80 },
+  nordic: { legSize: 60, legShape: "tapered", sideRailWidth: 150, mattressClearanceMm: 220, headboardHeight: 700, headStyle: "panel", withFootboard: false, slatGapMm: 80 },
   // 工業風：厚重 box leg、無床尾板
-  industrial: { legSize: 70, legShape: "box", sideRailWidth: 180, mattressClearanceMm: 280, headboardHeight: 600, withFootboard: false, slatGapMm: 90 },
+  industrial: { legSize: 70, legShape: "box", sideRailWidth: 180, mattressClearanceMm: 280, headboardHeight: 600, headStyle: "panel", withFootboard: false, slatGapMm: 90 },
   // 日式平床（榻榻米款）：低床、矮頭板
-  "japanese-platform": { legSize: 70, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 180, headboardHeight: 500, withFootboard: false, slatGapMm: 70 },
+  "japanese-platform": { legSize: 70, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 180, headboardHeight: 500, headStyle: "panel", withFootboard: false, slatGapMm: 70 },
   // 明式架子床（柱頭框先不做、headboard 加高）
-  "ming-canopy": { legSize: 90, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 320, headboardHeight: 1100, withFootboard: true, footboardHeight: 600, slatGapMm: 80 },
+  "ming-canopy": { legSize: 90, legShape: "box", sideRailWidth: 200, mattressClearanceMm: 320, headboardHeight: 1100, headStyle: "spindled", withFootboard: true, footboardHeight: 600, slatGapMm: 80 },
   // 黃花梨四柱床（高床、加長頭板、加床尾板）
-  "huanghuali-4post": { legSize: 100, legShape: "tapered", sideRailWidth: 220, mattressClearanceMm: 350, headboardHeight: 1300, withFootboard: true, footboardHeight: 700, slatGapMm: 80 },
+  "huanghuali-4post": { legSize: 100, legShape: "tapered", sideRailWidth: 220, mattressClearanceMm: 350, headboardHeight: 1300, headStyle: "panel-frame", withFootboard: true, footboardHeight: 700, slatGapMm: 80 },
   // 拔步床（明清頂級臥具，極高床+極高背）
-  "babu-alcove": { legSize: 110, legShape: "box", sideRailWidth: 240, mattressClearanceMm: 380, headboardHeight: 1400, withFootboard: true, footboardHeight: 800, slatGapMm: 80 },
+  "babu-alcove": { legSize: 110, legShape: "box", sideRailWidth: 240, mattressClearanceMm: 380, headboardHeight: 1400, headStyle: "panel-frame", withFootboard: true, footboardHeight: 800, slatGapMm: 80 },
   // 高腳掀床（儲物用、加高 sideRail）
-  "storage-lift": { legSize: 90, legShape: "box", sideRailWidth: 280, mattressClearanceMm: 420, headboardHeight: 800, withFootboard: false, slatGapMm: 90 },
+  "storage-lift": { legSize: 90, legShape: "box", sideRailWidth: 280, mattressClearanceMm: 420, headboardHeight: 800, headStyle: "panel", withFootboard: false, slatGapMm: 90 },
   // 兒童床（細腳、矮、加床尾欄當圍欄）
-  kids: { legSize: 60, legShape: "box", sideRailWidth: 160, mattressClearanceMm: 260, headboardHeight: 700, withFootboard: true, footboardHeight: 500, slatGapMm: 70 },
+  kids: { legSize: 60, legShape: "box", sideRailWidth: 160, mattressClearanceMm: 260, headboardHeight: 700, headStyle: "spindled", withFootboard: true, footboardHeight: 500, slatGapMm: 70 },
 };
 
 export const bedOptions: OptionSpec[] = [
@@ -111,8 +112,20 @@ export const bedOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
 
   // ---------- 床頭板 ----------
+  { group: "back", type: "select", key: "headStyle", label: "床頭樣式", defaultValue: "panel", choices: [
+    { value: "panel", label: "平實板（一片整板，最簡單）" },
+    { value: "spindled", label: "直柵欄（N 根直立木條，明式 / 兒童床）" },
+    { value: "panel-frame", label: "嵌板框（外框 + 中央嵌板，黃花梨 / 拔步床）" },
+    { value: "arched", label: "拱頂（板頂收弧，現代款）" },
+    { value: "slatted-horizontal", label: "橫板條（N 條橫木，斯堪地維亞）" },
+    { value: "tufted-look", label: "軟包仿木（板面分格仿軟包紋）" },
+    { value: "crested", label: "中央高冠（中段凸起，維多利亞）" },
+    { value: "fielded", label: "起線板（板心凸出有斜邊框）" },
+  ], help: "8 種床頭樣式。spindled / panel-frame 用多塊木料拼接，其他用單片板加 silhouette 變化。" },
   { group: "back", type: "number", key: "headboardHeight", label: "床頭板高 (mm)", defaultValue: 800, min: 400, max: 1500, step: 10, unit: "mm", help: "從地板到床頭板頂端的總高度。常見 700~1000；高背床 1100+" },
   { group: "back", type: "number", key: "headboardThickness", label: "床頭板厚 (mm)", defaultValue: 25, min: 18, max: 50, step: 1, unit: "mm" },
+  { group: "back", type: "number", key: "headSpindleCount", label: "直柵欄數", defaultValue: 7, min: 3, max: 15, step: 1, help: "spindled 樣式的直立木條數量", dependsOn: { key: "headStyle", equals: "spindled" } },
+  { group: "back", type: "number", key: "headSpindleSize", label: "直柵欄粗 (mm)", defaultValue: 30, min: 20, max: 60, step: 5, unit: "mm", help: "spindled 直立木條的粗細（方料）", dependsOn: { key: "headStyle", equals: "spindled" } },
 
   // ---------- 床尾板 ----------
   { group: "back", type: "checkbox", key: "withFootboard", label: "加床尾板", defaultValue: false, help: "傳統明式有，現代款常省略。勾選後尾端立板高 = 床尾板高" },
@@ -153,6 +166,10 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const headboardHeightRaw = getOption<number>(input, opt(o, "headboardHeight"));
   const headboardHeight = headboardHeightRaw === 800 && preset?.headboardHeight !== undefined ? preset.headboardHeight : headboardHeightRaw;
   const headboardThickness = getOption<number>(input, opt(o, "headboardThickness"));
+  const headStyleRaw = getOption<string>(input, opt(o, "headStyle"));
+  const headStyle = headStyleRaw === "panel" && preset?.headStyle ? preset.headStyle : headStyleRaw;
+  const headSpindleCount = getOption<number>(input, opt(o, "headSpindleCount"));
+  const headSpindleSize = getOption<number>(input, opt(o, "headSpindleSize"));
   const withFootboardRaw = getOption<boolean>(input, opt(o, "withFootboard"));
   const withFootboard = withFootboardRaw === false && preset?.withFootboard !== undefined ? preset.withFootboard : withFootboardRaw;
   const footboardHeightRaw = getOption<number>(input, opt(o, "footboardHeight"));
@@ -361,50 +378,136 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
 
   // ---------- 床頭板 ----------
   // 跨在頭端兩腳之間（Z 軸長度 = 兩頭腳內面距離）
-  // 板從地板到 headboardHeight 整片立板
-  // 注意：headboard 進腳的部分（從 side rail 上緣以下）有榫頭，上半部凸出腳
-  // 為簡化此版：headboard 是整片立板，從地板（y=0）到 headboardHeight，
-  // 寬度 = 兩頭腳內面距離（butt joint），用 Z 軸跨
-  // headboard 跨距用 sideRail Y 處的腳寬補償（headboard 主要進腳的高度區段就在 sideRail 附近）
+  // headStyle="panel" 整片立板；"spindled" 改頂底兩橫木 + N 直柵欄；其他 silhouette 變化共用 panel 結構
   const headLegInnerSpan = 2 * apronEdgeZ - headLegSizeMax;
   const headboardX = -apronEdgeX; // 頭端
-  const headboard: Part = {
-    id: "headboard",
-    nameZh: "床頭板",
-    material,
-    grainDirection: "length",
-    visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
-    // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
-    origin: { x: headboardX, y: 0, z: 0 },
-    rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
-    tenons: [
-      // 兩端進頭腳側面：榫頭沿 Z 軸（頭板長度方向）
-      // headboard 在腳的 sideRailCenterY 高度位置進腳（榫高 = headboardTenonStd.width）
-      // 但 headboard 整支從 0 到 headboardPlateHeight；榫頭在 part-local 哪裡？
-      // part-local: width 軸 = world Y（高度）, mesh 中心 Y = headboardPlateHeight/2
-      // 榫中心 Y（world）= sideRailCenterY = mattressClearance - sideRailWidth/2
-      // offsetWidth (mesh local) = sideRailCenterY - headboardPlateHeight/2
-      {
-        position: "start",
-        type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: headboardTenonLength,
-        width: headboardTenonStd.width,
-        thickness: headboardTenonStd.thickness,
-        shoulderOn: [...headboardTenonStd.shoulderOn],
-        offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
-      },
-      {
-        position: "end",
-        type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: headboardTenonLength,
-        width: headboardTenonStd.width,
-        thickness: headboardTenonStd.thickness,
-        shoulderOn: [...headboardTenonStd.shoulderOn],
-        offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
-      },
-    ],
-    mortises: [],
-  };
+
+  const headParts: Part[] = [];
+  if (headStyle === "spindled") {
+    // 頂橫木：在 headboardPlateHeight 頂端
+    const railH = 50; // 橫木高度
+    const railT = headboardThickness; // 橫木厚度
+    const baseY = mattressClearanceMm; // 直柵欄從床面起
+    const spindleSpan = headboardPlateHeight - baseY - railH; // 柵欄長度
+    headParts.push({
+      id: "head-top-rail",
+      nameZh: "頭頂橫木",
+      material,
+      grainDirection: "length",
+      visible: { length: headLegInnerSpan, width: railH, thickness: railT },
+      origin: { x: headboardX, y: headboardPlateHeight - railH, z: 0 },
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+    // 底橫木：在床面 baseY 上
+    headParts.push({
+      id: "head-bot-rail",
+      nameZh: "頭底橫木",
+      material,
+      grainDirection: "length",
+      visible: { length: headLegInnerSpan, width: railH, thickness: railT },
+      origin: { x: headboardX, y: baseY, z: 0 },
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
+    // N 直柵欄：均勻分佈在 headLegInnerSpan，沿 Z 軸 spaced
+    const N = Math.max(3, headSpindleCount);
+    const sSize = headSpindleSize;
+    const pitch = N > 1 ? (headLegInnerSpan - sSize) / (N - 1) : 0;
+    for (let i = 0; i < N; i++) {
+      const z = N === 1 ? 0 : -headLegInnerSpan / 2 + sSize / 2 + i * pitch;
+      headParts.push({
+        id: `head-spindle-${i + 1}`,
+        nameZh: `直柵欄 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: sSize, width: sSize, thickness: spindleSpan },
+        origin: { x: headboardX, y: baseY + railH, z },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  } else if (headStyle === "panel-frame") {
+    // 嵌板框：外框（4 條）+ 中央嵌板（薄）
+    const frameW = 80; // 外框邊寬
+    const frameT = headboardThickness;
+    const innerL = headLegInnerSpan - 2 * frameW;
+    const innerH = headboardPlateHeight - 2 * frameW;
+    const panelT = Math.max(12, headboardThickness - 8); // 嵌板薄
+    // 上下橫框
+    for (const [id, nameZh, y] of [
+      ["head-frame-top", "頭頂橫框", headboardPlateHeight - frameW] as const,
+      ["head-frame-bot", "頭底橫框", 0] as const,
+    ]) {
+      headParts.push({
+        id, nameZh, material, grainDirection: "length",
+        visible: { length: headLegInnerSpan, width: frameW, thickness: frameT },
+        origin: { x: headboardX, y, z: 0 },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    }
+    // 左右立框
+    for (const [id, nameZh, sz] of [
+      ["head-frame-left", "頭左立框", -1] as const,
+      ["head-frame-right", "頭右立框", 1] as const,
+    ]) {
+      headParts.push({
+        id, nameZh, material, grainDirection: "length",
+        visible: { length: frameW, width: innerH, thickness: frameT },
+        origin: { x: headboardX, y: frameW, z: sz * (headLegInnerSpan / 2 - frameW / 2) },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    }
+    // 中央嵌板（薄）
+    headParts.push({
+      id: "head-panel",
+      nameZh: "頭中央嵌板",
+      material,
+      grainDirection: "length",
+      visible: { length: innerL, width: innerH, thickness: panelT },
+      origin: { x: headboardX + (frameT - panelT) / 2, y: frameW, z: 0 },
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      tenons: [], mortises: [],
+    });
+  } else {
+    // 其他樣式：panel / arched / slatted-horizontal / tufted-look / crested / fielded
+    // 都共用單片整板結構（v1：silhouette 變化先寫在 notes，待 v2 加 shape 修飾）
+    headParts.push({
+      id: "headboard",
+      nameZh: "床頭板",
+      material,
+      grainDirection: "length",
+      visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
+      // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
+      origin: { x: headboardX, y: 0, z: 0 },
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+      tenons: [
+        {
+          position: "start",
+          type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: headboardTenonLength,
+          width: headboardTenonStd.width,
+          thickness: headboardTenonStd.thickness,
+          shoulderOn: [...headboardTenonStd.shoulderOn],
+          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+        },
+        {
+          position: "end",
+          type: headboardTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: headboardTenonLength,
+          width: headboardTenonStd.width,
+          thickness: headboardTenonStd.thickness,
+          shoulderOn: [...headboardTenonStd.shoulderOn],
+          offsetWidth: (mattressClearanceMm - sideRailWidth / 2) - headboardPlateHeight / 2,
+        },
+      ],
+      mortises: [],
+    });
+  }
 
   // ---------- 床尾板（可選） ----------
   let footboard: Part | null = null;
@@ -481,7 +584,7 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
     ...legs,
     ...sideRails,
     ...ledgers,
-    headboard,
+    ...headParts,
     ...(footboard ? [footboard] : []),
     ...slats,
   ];
