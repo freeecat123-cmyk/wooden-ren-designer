@@ -1789,6 +1789,7 @@ export function PerspectiveView({
   xrayMode = "off",
   selectedPartId = null,
   onPartSelect,
+  compactMode = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
