@@ -1,13 +1,32 @@
 import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { caseFurniture } from "./_builders/case-furniture";
-import { makeZoneOptions, resolveBackMode, resolveZones } from "./_builders/zone-helpers";
+import {
+  ANY_ZONE_IS_DRAWER,
+  drawerBottomModeOption,
+  drawerMountOption,
+  drawerSlideOption,
+  makeZoneOptions,
+  resolveBackMode,
+  resolveDrawerBottomMode,
+  resolveDrawerMount,
+  resolveDrawerSlideGap,
+  resolveZones,
+} from "./_builders/zone-helpers";
 import { applyStandardChecks, validateCabinetStructure, appendWarnings } from "./_validators";
 import {
   toeKickOptions,
   toeKickNote,
   crownMoldingOptions,
   crownMoldingNote,
+  drawerJoineryOption,
+  drawerJoineryNote,
+  drawerSlideTypeOption,
+  drawerSlideTypeNote,
+  pullStyleOption,
+  pullStyleNote,
+  softCloseOption,
+  softCloseNote,
 } from "./_helpers";
 
 export const openBookshelfOptions: OptionSpec[] = [
@@ -60,6 +79,21 @@ export const openBookshelfOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "reinforcementHeight", label: "加固條高 (mm)", defaultValue: 30, min: 15, max: 60, step: 5, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
   { group: "structure", type: "number", key: "reinforcementThickness", label: "加固條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, dependsOn: { all: [{ key: "withShelfReinforcement", equals: true }, { key: "verticalDividerCount", equals: 0 }] } },
   { group: "structure", type: "number", key: "verticalDividerCount", label: "縱向分隔板數", defaultValue: 0, min: 0, max: 3, step: 1, help: "0=無；1=中央 1 片切兩格；2=三等分；長書櫃放 1 片同時提供結構支撐（會自動取消加固條）" },
+  // 抽屜細節（任一 zone 設成抽屜時才顯示）
+  drawerMountOption,
+  drawerBottomModeOption,
+  drawerSlideOption,
+  drawerJoineryOption("drawer"),
+  drawerSlideTypeOption("drawer"),
+  pullStyleOption("drawer"),
+  softCloseOption("drawer"),
+  { group: "drawer", type: "select", key: "drawerFaceStyle", label: "抽屜面板樣式", defaultValue: "flat", choices: [
+    { value: "flat", label: "平板（slab，現代極簡）" },
+    { value: "shaker", label: "夏克框（5 件式 frame-and-panel）" },
+    { value: "inset", label: "嵌入式（面板小於開口、四週 reveal）" },
+    { value: "overlay", label: "全蓋式（面板蓋住整個開口）" },
+    { value: "raised-panel", label: "凸版（傳統雕花框 + 凸鑲板）" },
+  ], dependsOn: ANY_ZONE_IS_DRAWER },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -88,6 +122,13 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const verticalDividerCount = getOption<number>(input, opt(o, "verticalDividerCount"));
   // 縱向分隔板已提供結構支撐，此時加固條變多餘 → 自動關
   const effectiveReinforcement = withShelfReinforcement && verticalDividerCount === 0;
+  const drawerMount = resolveDrawerMount(input, o);
+  const drawerJoinery = getOption<string>(input, opt(o, "drawerJoinery"));
+  const drawerSlideType = getOption<string>(input, opt(o, "drawerSlideType"));
+  const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const softClose = getOption<boolean>(input, opt(o, "softClose"));
+  const drawerFaceStyle = getOption<string>(input, opt(o, "drawerFaceStyle"));
+  const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -108,7 +149,11 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${effectiveReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${verticalDividerCount > 0 ? `每層加 ${verticalDividerCount} 片直立分隔板，把每格切成 ${verticalDividerCount + 1} 等份。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    drawerMount,
+    drawerBottomMode: resolveDrawerBottomMode(input, o),
+    drawerSlideGap: resolveDrawerSlideGap(input, o),
+    pullStyle,
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${effectiveReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${verticalDividerCount > 0 ? `每層加 ${verticalDividerCount} 片直立分隔板，把每格切成 ${verticalDividerCount + 1} 等份。` : ""} ${drawerJoineryNote(drawerJoinery)} ${drawerSlideTypeNote(drawerSlideType)} ${pullStyleNote(pullStyle)} ${softCloseNote(softClose)} ${drawerFaceStyle === "flat" ? "" : drawerFaceStyle === "shaker" ? "抽屜面板採夏克 5 件式 frame-and-panel（外框 60mm 寬、內凹平鑲板）。" : drawerFaceStyle === "inset" ? "抽屜面板嵌入式 inset（面板小於開口 3mm、四週留 reveal）。" : drawerFaceStyle === "overlay" ? "抽屜面板全蓋式 overlay（面板蓋住整個開口）。" : "抽屜面板凸版 raised-panel（外框 + 中央凸 6mm 雕花板）。"} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
@@ -280,16 +325,95 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     }
   }
 
+  // 抽屜面板樣式：shaker → 5 件式 frame-and-panel
+  if (drawerFaceStyle === "shaker") {
+    const faceParts = design.parts.filter((p) => p.id.endsWith("-face"));
+    const railW = 60;
+    const panelInset = 8;
+    for (const face of faceParts) {
+      const fL = face.visible.length;
+      const fH = face.visible.width;
+      const fT = face.visible.thickness;
+      const idx = face.id;
+      design.parts = design.parts.filter((p) => p.id !== face.id);
+      const baseOrigin = face.origin;
+      const baseRot = face.rotation;
+      design.parts.push({
+        id: `${idx}-rail-top`,
+        nameZh: face.nameZh + " 上框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x, y: baseOrigin.y + fH / 2 - railW / 2, z: baseOrigin.z },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-rail-bottom`,
+        nameZh: face.nameZh + " 下框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x, y: baseOrigin.y - fH / 2 + railW / 2, z: baseOrigin.z },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-stile-left`,
+        nameZh: face.nameZh + " 左框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x - fL / 2 + railW / 2, y: baseOrigin.y, z: baseOrigin.z },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-stile-right`,
+        nameZh: face.nameZh + " 右框",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
+        origin: { x: baseOrigin.x + fL / 2 - railW / 2, y: baseOrigin.y, z: baseOrigin.z },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      design.parts.push({
+        id: `${idx}-panel`,
+        nameZh: face.nameZh + " 中央鑲板",
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: fL - 2 * railW, width: fH - 2 * railW, thickness: Math.max(8, fT - panelInset) },
+        origin: { x: baseOrigin.x, y: baseOrigin.y, z: baseOrigin.z + panelInset / 2 },
+        rotation: baseRot,
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
   applyStandardChecks(design, {
     minLength: 400, minWidth: 200, minHeight: 600,
     maxLength: 1500, maxWidth: 500, maxHeight: 2400,
   });
+  // 從 zones 累加實際抽屜總數（區段切換時跟著變）供結構檢查用
+  const actualDrawerCount = zones.reduce(
+    (sum, z) => sum + (z.type === "drawer" ? (z.count ?? 0) * (z.cols ?? 1) : 0),
+    0,
+  );
   appendWarnings(
     design,
     validateCabinetStructure({
       panelThickness,
       height: input.height,
       shelfSpan: input.length - 2 * panelThickness,
+      hasDrawers: actualDrawerCount > 0,
+      drawerCount: actualDrawerCount,
+      hasDrawerSlide: useDrawerSlide,
     }),
   );
   return design;

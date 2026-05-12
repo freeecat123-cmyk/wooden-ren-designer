@@ -8,7 +8,7 @@ import type { CabinetZone } from "./case-furniture";
  * 業界標準左右各需 12.5mm 空隙。使用者勾選後所有抽屜總寬自動縮 25mm。
  */
 /** 任一 zone 類型 = drawer 時才顯示（抽屜相關選項共用）。 */
-const ANY_ZONE_IS_DRAWER = {
+export const ANY_ZONE_IS_DRAWER = {
   any: [
     { key: "topType", equals: "drawer" },
     { key: "midType", equals: "drawer" },
