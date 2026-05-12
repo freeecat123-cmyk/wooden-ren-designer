@@ -9,52 +9,95 @@ import { useState } from "react";
  */
 export function BugReportFab() {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const sha =
     (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
 
-  function handleReport() {
+  function buildReport() {
     const url = typeof window !== "undefined" ? window.location.href : "";
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const subject = encodeURIComponent(`[家具設計器] 問題回報 (build ${sha})`);
-    const body = encodeURIComponent(
+    const subject = `[家具設計器] 問題回報 (build ${sha})`;
+    const body =
       `發生時間：${new Date().toLocaleString("zh-TW")}\n` +
-        `build：${sha}\n` +
-        `頁面：${url}\n` +
-        `瀏覽器：${ua}\n\n` +
-        `=== 請描述問題 ===\n` +
-        `（例如：我把椅子高度調到 500mm，3D 變空白）\n\n` +
-        `=== 截圖 ===\n` +
-        `（請直接貼到信件中）\n`,
-    );
-    window.location.href = `mailto:wengbinren@gmail.com?subject=${subject}&body=${body}`;
+      `build：${sha}\n` +
+      `頁面：${url}\n` +
+      `瀏覽器：${ua}\n\n` +
+      `=== 請描述問題 ===\n` +
+      `（例如：我把椅子高度調到 500mm，3D 變空白）\n\n` +
+      `=== 截圖 ===\n` +
+      `（請直接貼到信件中）\n`;
+    return { subject, body };
+  }
+
+  function openGmailCompose() {
+    const { subject, body } = buildReport();
+    // Gmail web compose 直連，不依賴本機 mail handler
+    const u = new URL("https://mail.google.com/mail/");
+    u.searchParams.set("view", "cm");
+    u.searchParams.set("fs", "1");
+    u.searchParams.set("to", "wengbinren@gmail.com");
+    u.searchParams.set("su", subject);
+    u.searchParams.set("body", body);
+    window.open(u.toString(), "_blank", "noopener");
+    setOpen(false);
+  }
+
+  async function copyToClipboard() {
+    const { subject, body } = buildReport();
+    const text = `寄至：wengbinren@gmail.com\n主旨：${subject}\n\n${body}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt("複製下方內容貼到任何信箱，寄到 wengbinren@gmail.com", text);
+    }
+  }
+
+  function openMailto() {
+    const { subject, body } = buildReport();
+    window.location.href = `mailto:wengbinren@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setOpen(false);
   }
 
   return (
     <>
       {open && (
-        <div className="no-print fixed bottom-20 right-4 z-50 w-72 rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl">
+        <div className="no-print fixed bottom-20 right-4 z-50 w-80 rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl">
           <div className="text-sm font-semibold text-zinc-900">
             回報問題給木頭仁
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-zinc-600">
-            按下會開啟 email，自動帶當前頁面 + 版本資訊。請描述你做了什麼步驟，最好附截圖。
+            自動帶當前頁面 + 版本資訊。請描述你做了什麼步驟，最好附截圖。寄到{" "}
+            <span className="font-mono text-zinc-800">wengbinren@gmail.com</span>
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
-              onClick={handleReport}
-              className="flex-1 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+              onClick={openGmailCompose}
+              className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
             >
-              寄信
+              用 Gmail 開
             </button>
             <button
-              onClick={() => setOpen(false)}
+              onClick={openMailto}
               className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50"
             >
-              取消
+              用內建信箱
             </button>
           </div>
+          <button
+            onClick={copyToClipboard}
+            className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-xs hover:bg-zinc-50"
+          >
+            {copied ? "✓ 已複製，請貼到任何信箱" : "📋 複製內容到剪貼簿"}
+          </button>
+          <button
+            onClick={() => setOpen(false)}
+            className="mt-2 w-full text-center text-xs text-zinc-500 hover:text-zinc-700"
+          >
+            取消
+          </button>
         </div>
       )}
       <button
