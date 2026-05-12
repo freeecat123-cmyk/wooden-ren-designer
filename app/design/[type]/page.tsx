@@ -311,7 +311,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </div>
             <SceneThemeToggle current={sceneId} />
             <XrayToggle current={xrayMode} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} noSync />
           </div>
         </div>
 
