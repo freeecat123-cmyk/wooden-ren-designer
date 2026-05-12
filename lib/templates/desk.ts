@@ -1,6 +1,7 @@
-import type { FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
+import type { FurnitureTemplate, OptionSpec } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { simpleTable } from "./_builders/simple-table";
+import { caseFurniture } from "./_builders/case-furniture";
 import { applyStandardChecks } from "./_validators";
 import {
   seatEdgeOption,
@@ -9,7 +10,17 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  pullStyleOption,
+  softCloseOption,
 } from "./_helpers";
+import {
+  drawerBottomModeOption,
+  drawerMountOption,
+  drawerSlideOption,
+  resolveDrawerBottomMode,
+  resolveDrawerMount,
+  resolveDrawerSlideGap,
+} from "./_builders/zone-helpers";
 
 export const deskOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
@@ -37,12 +48,18 @@ export const deskOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "slatCount", label: "置物條數量", defaultValue: 0, min: 0, max: 20, step: 1, help: "0 = 自動依桌長算（每 150mm 一條）", dependsOn: { key: "withSlatRack", equals: true } },
   { group: "stretcher", type: "number", key: "slatWidth", label: "置物條寬 (mm)", defaultValue: 35, min: 15, max: 100, step: 5, dependsOn: { key: "withSlatRack", equals: true } },
   { group: "stretcher", type: "number", key: "slatThickness", label: "置物條厚 (mm)", defaultValue: 18, min: 8, max: 40, step: 1, dependsOn: { key: "withSlatRack", equals: true } },
-  { group: "drawer", type: "number", key: "drawerCount", label: "懸吊抽屜數", defaultValue: 0, min: 0, max: 3, step: 1, help: "桌面下掛一組抽屜櫃（0 = 無）" },
+  { group: "drawer", type: "number", key: "drawerCount", label: "懸吊抽屜數", defaultValue: 0, min: 0, max: 3, step: 1, help: "桌面下掛一組抽屜櫃（0 = 無）。沿用櫃類抽屜系統：含 5 件式抽屜箱、滑軌、把手等完整功能" },
   { group: "drawer", type: "select", key: "drawerSide", label: "抽屜位置", defaultValue: "right", choices: [
     { value: "left", label: "左側" },
     { value: "right", label: "右側" },
     { value: "center", label: "中央（窄型）" },
   ], dependsOn: { key: "drawerCount", notIn: [0] } },
+  // 跟櫃類同款的抽屜細節選項——desk 沒 zones 所以 dependsOn 改吃 drawerCount > 0
+  { ...drawerMountOption, dependsOn: { key: "drawerCount", notIn: [0] } },
+  { ...drawerBottomModeOption, dependsOn: { key: "drawerCount", notIn: [0] } },
+  { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
+  { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
+  { ...softCloseOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "前飾遮腿板（modesty panel）", defaultValue: false, help: "面對客戶時遮住下肢；牙板下方加一片整片立板（高 300-400mm）。會議桌/客戶桌常見", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
@@ -111,68 +128,58 @@ export const desk: FurnitureTemplate = (input) => {
 
   if (drawerCount > 0) {
     const legHeight = input.height - topThickness;
-    // 內側可用空間 = 總長 - 兩端腳 - 兩端 legInset
     const innerW = input.length - 2 * legSize - 2 * legInset;
     const caseW = drawerSide === "center"
       ? Math.min(400, input.length * 0.4)
       : Math.min(450, innerW * 0.4);
-    const caseH = Math.min(legHeight * 0.55, drawerCount * 120 + 40);
-    const caseD = input.width - 40;
-    const caseY = legHeight - caseH;
-    const sideT = 15;
-    // caseX 要扣 legInset，case 才落在腳內側 20mm 處（不撞內縮的腳）
+    const caseH = Math.min(legHeight * 0.6, drawerCount * 130 + 30);
+    const caseD = Math.min(input.width - 60, 480);
     const caseX = drawerSide === "center"
       ? 0
       : drawerSide === "left"
       ? -(input.length / 2 - legSize - legInset - caseW / 2 - 20)
       : (input.length / 2 - legSize - legInset - caseW / 2 - 20);
+    // case 上緣貼桌底（legHeight = 桌底 Y），所以 case 自身 origin.y = legHeight - caseH
+    const caseY = legHeight - caseH;
 
-    const drawers: Part[] = [];
-    const slotH = caseH / drawerCount;
-    const frontT = 15;
-    // 抽屜面板 Z 位置：與牙板前面平齊（overlay drawer），不再卡在桌面前緣
-    // 牙板中心 Z = -(width/2 - legInset - legSize/2)，前面 = 中心 - apronThickness/2
-    const apronFrontZ = -(input.width / 2 - legInset - legSize / 2) - apronThickness / 2;
-    const drawerFaceZ = apronFrontZ - frontT / 2;
-    for (let i = 0; i < drawerCount; i++) {
-      drawers.push({
-        id: `desk-drawer-${i + 1}-front`,
-        nameZh: `懸吊抽屜${i + 1} 面板`,
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: caseW - 4, width: slotH - 4, thickness: frontT },
-        origin: { x: caseX, y: caseY + i * slotH + 2, z: drawerFaceZ },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
-        tenons: [],
-        mortises: [],
+    // 抽屜模式 / 滑軌 / 把手等選項
+    const drawerMount = resolveDrawerMount(input, o);
+    const drawerBottomMode = resolveDrawerBottomMode(input, o);
+    const drawerSlideGap = resolveDrawerSlideGap(input, o);
+    const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+
+    // 用 caseFurniture builder 蓋一個迷你抽屜櫃（無腳），再 translate 進 desk 座標
+    const pedestal = caseFurniture({
+      category: "nightstand", // 借用——只影響 nameZh 沒外洩
+      nameZh: "懸吊抽屜櫃",
+      length: caseW,
+      width: caseD,
+      height: caseH,
+      material: input.material,
+      shelfCount: 0,
+      zones: [{ type: "drawer", heightMm: caseH - 36, count: drawerCount, cols: 1 }],
+      legHeight: 0,
+      drawerMount,
+      drawerBottomMode,
+      drawerSlideGap,
+      pullStyle,
+      backMode: "surface",
+      panelThickness: 15,
+    });
+
+    // 平移所有 part：x += caseX、y += caseY、z 維持（caseFurniture 自身 0,0,0
+    // 為長/寬中心，y=0 為 case 底）
+    for (const p of pedestal.parts) {
+      design.parts.push({
+        ...p,
+        id: `desk-pedestal-${p.id}`,
+        origin: {
+          x: p.origin.x + caseX,
+          y: p.origin.y + caseY,
+          z: p.origin.z,
+        },
       });
     }
-
-    // 懸吊抽屜箱左右側板
-    const sides: Part[] = [-1, 1].map((s) => ({
-      id: `desk-drawer-side-${s < 0 ? "left" : "right"}`,
-      nameZh: `懸吊抽屜${s < 0 ? "左" : "右"}側板`,
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: caseD, width: caseH, thickness: sideT },
-      origin: { x: caseX + s * (caseW / 2 - sideT / 2), y: caseY, z: 0 },
-      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      tenons: [],
-      mortises: [],
-    }));
-
-    // 頂板（與桌面黏合）
-    design.parts.push({
-      id: "desk-drawer-top",
-      nameZh: "懸吊抽屜頂板",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: caseW, width: caseD, thickness: sideT },
-      origin: { x: caseX, y: caseY + caseH - sideT, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-    design.parts.push(...sides, ...drawers);
   }
 
   // 前飾遮腿板（modesty panel）
