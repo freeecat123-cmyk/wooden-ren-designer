@@ -1959,9 +1959,11 @@ export function PerspectiveView({
       <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas
         shadows
-        // frameloop="demand" → 只在互動時渲染，沒動的時候 0 fps。
-        // 避免 3D 畫面持續 60fps 搶 main thread，解決滾動卡頓。
-        frameloop="demand"
+        // frameloop="always" 確保 selectedPartId / dim opacity 變化即時反映
+        // （之前 demand 模式有 race condition：material prop 變更但 invalidate
+        //  時 GPU 還沒收到 → 透明效果失效）。代價：scroll 時 3D 持續渲染
+        //  約 30-60fps，比 demand 多吃一些 GPU 但保證視覺正確
+        frameloop="always"
         // dpr 上限 1.5 防止 Retina 螢幕 4× 像素做 shadow map。
         dpr={[1, 1.5]}
         // ACES Filmic tone mapping — 電影業界標準，給 PBR 材質正確的高光衰減
