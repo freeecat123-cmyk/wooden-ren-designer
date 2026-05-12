@@ -51,6 +51,14 @@ export const openBookshelfOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "withBookStop", label: "層板後緣加擋條", defaultValue: false, help: "每片層板後緣加實木條，書本不會掉到後面（無背板書櫃常用）", wide: true },
   { group: "structure", type: "number", key: "bookStopHeight", label: "擋條高 (mm)", defaultValue: 8, min: 4, max: 30, step: 1, dependsOn: { key: "withBookStop", equals: true } },
   { group: "structure", type: "number", key: "bookStopThickness", label: "擋條厚 (mm)", defaultValue: 12, min: 6, max: 25, step: 1, dependsOn: { key: "withBookStop", equals: true } },
+  { group: "structure", type: "checkbox", key: "withShelfReinforcement", label: "層板加固橫條（防撓）", defaultValue: false, help: "每片層板下方加實木支撐條，防長層板撓彎，書櫃寬度 >900mm 建議開", wide: true },
+  { group: "structure", type: "select", key: "reinforcementPosition", label: "加固條位置", defaultValue: "back", choices: [
+    { value: "back", label: "後緣（隱藏）" },
+    { value: "front", label: "前緣（外露 = 仿英式書櫃面框）" },
+    { value: "both", label: "前後雙條（最強）" },
+  ], dependsOn: { key: "withShelfReinforcement", equals: true } },
+  { group: "structure", type: "number", key: "reinforcementHeight", label: "加固條高 (mm)", defaultValue: 30, min: 15, max: 60, step: 5, dependsOn: { key: "withShelfReinforcement", equals: true } },
+  { group: "structure", type: "number", key: "reinforcementThickness", label: "加固條厚 (mm)", defaultValue: 18, min: 12, max: 25, step: 1, dependsOn: { key: "withShelfReinforcement", equals: true } },
 ];
 
 export const openBookshelf: FurnitureTemplate = (input) => {
@@ -72,6 +80,10 @@ export const openBookshelf: FurnitureTemplate = (input) => {
   const withBookStop = getOption<boolean>(input, opt(o, "withBookStop"));
   const bookStopHeight = getOption<number>(input, opt(o, "bookStopHeight"));
   const bookStopThickness = getOption<number>(input, opt(o, "bookStopThickness"));
+  const withShelfReinforcement = getOption<boolean>(input, opt(o, "withShelfReinforcement"));
+  const reinforcementPosition = getOption<string>(input, opt(o, "reinforcementPosition"));
+  const reinforcementHeight = getOption<number>(input, opt(o, "reinforcementHeight"));
+  const reinforcementThickness = getOption<number>(input, opt(o, "reinforcementThickness"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
@@ -92,7 +104,7 @@ export const openBookshelf: FurnitureTemplate = (input) => {
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
-    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
+    notes: `${notesLine}${legHeight > 0 ? `；加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${withLedderRail ? `頂端加 ${corniceHeight}mm 高 cornice 飾條（傳統線板 + 修邊機 ogee 刀）。` : ""} ${withBookStop ? `每片層板後緣加 ${bookStopHeight}×${bookStopThickness}mm 實木擋條，防書本掉到後面。` : ""} ${withShelfReinforcement ? `每片層板下方加 ${reinforcementHeight}×${reinforcementThickness}mm 加固條（${reinforcementPosition === "back" ? "後緣" : reinforcementPosition === "front" ? "前緣" : "前後雙條"}），防長層板撓彎。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
   // 層板後緣擋條：每片層板上方背側加實木條，書本不會掉到後面
@@ -121,6 +133,41 @@ export const openBookshelf: FurnitureTemplate = (input) => {
         tenons: [],
         mortises: [],
       });
+    }
+  }
+  // 層板下方加固橫條：防長層板撓彎，後緣（隱藏）/ 前緣（仿英式書櫃面框）/ 雙條
+  if (withShelfReinforcement) {
+    const reinH = reinforcementHeight;
+    const reinT = reinforcementThickness;
+    const reinShelves = design.parts.filter(
+      (p) =>
+        (/shelf-\d+$/.test(p.id) || /-?boundary$/.test(p.id)) &&
+        !p.nameZh.includes("抽屜"),
+    );
+    const positions: ("back" | "front")[] =
+      reinforcementPosition === "both" ? ["back", "front"]
+      : reinforcementPosition === "front" ? ["front"]
+      : ["back"];
+    for (const shelf of reinShelves) {
+      const halfW = shelf.visible.width / 2;
+      // 後緣往內 5mm 避背板（3-9mm 厚）；前緣往內 5mm 視覺收乾淨
+      for (const pos of positions) {
+        const dz = pos === "back" ? halfW - reinT / 2 - 5 : -halfW + reinT / 2 + 5;
+        design.parts.push({
+          id: `${shelf.id}-reinforce-${pos}`,
+          nameZh: `${shelf.nameZh}加固條（${pos === "back" ? "後" : "前"}）`,
+          material: input.material,
+          grainDirection: "length",
+          visible: { length: shelf.visible.length, width: reinT, thickness: reinH },
+          origin: {
+            x: shelf.origin.x,
+            y: shelf.origin.y - reinH,
+            z: shelf.origin.z + dz,
+          },
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
   }
   // 頂端 cornice 飾條：前緣 + 兩側包邊（傳統線板 ogee 形）
