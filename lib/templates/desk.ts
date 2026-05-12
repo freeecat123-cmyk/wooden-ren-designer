@@ -72,7 +72,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
   { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度 (mm)", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
-  { group: "apron", type: "checkbox", key: "withModestyPanel", label: "後飾遮腿板（modesty panel）", defaultValue: false, help: "桌後加一片整片立板（高 350mm），遮住坐者下肢的後側；常見於辦公桌靠牆或自由站立場合", wide: true },
+  { group: "apron", type: "checkbox", key: "withModestyPanel", label: "後飾遮腿板（modesty panel）", defaultValue: false, help: "桌後加一片整片立板（高 350mm），遮住坐者下肢的後側；常見於辦公桌靠牆或自由站立場合。斜腳款不適用故隱藏", wide: true, dependsOn: { key: "legShape", notIn: ["splayed", "splayed-length", "splayed-width", "splayed-tapered", "splayed-round-tapered"] } },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 700, step: 10, help: "設 0 = 自動", dependsOn: { key: "withLowerStretchers", equals: true } },
@@ -90,7 +90,10 @@ export const desk: FurnitureTemplate = (input) => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
-  const withModestyPanel = getOption<boolean>(input, opt(o, "withModestyPanel"));
+  const withModestyPanelRaw = getOption<boolean>(input, opt(o, "withModestyPanel"));
+  // 斜腳款 modesty 板會跟外傾腳幾何衝突，強制取消
+  const isAnySplayed = legShape === "splayed" || legShape === "splayed-length" || legShape === "splayed-width" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
+  const withModestyPanel = isAnySplayed ? false : withModestyPanelRaw;
   const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
   // withApron / apronThickness 已在下方 declare 用 raw → 0；此處先用同樣邏輯
   // 但 withApron 變數還沒讀，先暫定後續會 reassign。為避免重複，直接讀。
