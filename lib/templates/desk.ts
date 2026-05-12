@@ -361,16 +361,18 @@ export const desk: FurnitureTemplate = (input) => {
       : undefined;
     void TENON;
     for (const sx of [-1, +1] as const) {
-      // 用 length 做主軸（Z 方向）+ y=π/2 旋轉，apron-trapezoid 才能正確
-      // scale top/bot 端面隨腳斜
+      // Euler ZYX (x:π/2, y:π/2)：local X→world -Z（length 沿 Z 方向）、
+      // local +z→world -Y（trapezoid bot=stretcher 下緣，更長）、
+      // local -z→world +Y（trapezoid top=stretcher 上緣，更短）
+      // 端面就會跟腳斜面平行，下緣接到腳上、上緣斜切回避內收的腳
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
         material: input.material,
         grainDirection: "length",
-        visible: { length: sideStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
+        visible: { length: sideStretcherLen, width: STRETCHER_H, thickness: STRETCHER_T },
         origin: { x: sx * legCenterX, y: stretcherY, z: 0 },
-        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         shape: sideStretcherShape,
         tenons: [],
         mortises: [],
