@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
+/** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
+ *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset */
+const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode"];
 
 /**
  * 設計頁表單的 client-side 外殼。
@@ -23,6 +27,7 @@ export function DesignFormShell({
   className?: string;
 }) {
   const router = useRouter();
+  const sp = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -30,6 +35,11 @@ export function DesignFormShell({
     if (!formRef.current) return;
     const data = new FormData(formRef.current);
     const params = new URLSearchParams();
+    // 先保留非表單管的 URL 狀態（wf / xray / scene 等）
+    for (const k of PRESERVE_KEYS) {
+      const v = sp?.get(k);
+      if (v !== null && v !== undefined) params.set(k, v);
+    }
     for (const [k, v] of data.entries()) {
       params.set(k, v as string);
     }
@@ -46,7 +56,7 @@ export function DesignFormShell({
     // scroll: false 防止 Next.js 預設行為——router.replace 會把頁面捲回最上面，
     // 改參數時就會「跳掉看不到剛編輯的欄位」，嚴重影響操作。
     router.replace(`${action}?${params.toString()}`, { scroll: false });
-  }, [action, router]);
+  }, [action, router, sp]);
 
   const handleChange = useCallback(() => {
     clearTimeout(timerRef.current);
