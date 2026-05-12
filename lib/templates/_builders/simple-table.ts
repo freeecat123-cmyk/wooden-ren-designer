@@ -47,6 +47,8 @@ export interface SimpleTableOpts {
    *   splayed         = 斜腳（四角對角整支外傾）
    *   splayed-length  = 單向斜腳（只沿長邊外傾）
    *   splayed-width   = 單向斜腳（只沿寬邊外傾）
+   *   splayed-tapered = 方錐斜腳（方料 + 下收 + 整支外傾）
+   *   splayed-round-tapered = 圓錐斜腳（圓料 + 下收 + 整支外傾）
    *   hoof            = 馬蹄腳（底部外撇） */
   legShape?:
     | "box"
@@ -56,6 +58,8 @@ export interface SimpleTableOpts {
     | "splayed"
     | "splayed-length"
     | "splayed-width"
+    | "splayed-tapered"
+    | "splayed-round-tapered"
     | "hoof"
     | "shaker";
   /** Inset legs inward from outer edge (mm, each side). Top overhang is separate. */
@@ -266,6 +270,22 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     }
     if (legShape === "splayed-width") {
       return { kind: "splayed", dxMm: 0, dzMm: Math.sign(c.z) * splayMm, chamferMm: legChamferMm > 0 ? legChamferMm : undefined, chamferStyle: legChamferStyle };
+    }
+    if (legShape === "splayed-tapered") {
+      return {
+        kind: "splayed-tapered",
+        dxMm: Math.sign(c.x) * splayMm,
+        dzMm: Math.sign(c.z) * splayMm,
+        bottomScale: 0.55,
+      };
+    }
+    if (legShape === "splayed-round-tapered") {
+      return {
+        kind: "splayed-round-tapered",
+        dxMm: Math.sign(c.x) * splayMm,
+        dzMm: Math.sign(c.z) * splayMm,
+        bottomScale: 0.55,
+      };
     }
     if (legShape === "hoof") return { kind: "hoof", hoofMm, hoofScale: 1.35 };
     if (legShape === "shaker") return { kind: "shaker" };

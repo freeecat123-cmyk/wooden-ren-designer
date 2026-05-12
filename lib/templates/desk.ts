@@ -24,10 +24,12 @@ import {
 export const deskOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "桌腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
-    { value: "tapered", label: "錐形腳" },
-    { value: "splayed", label: "斜腳（四角對角外傾）" },
-    { value: "splayed-length", label: "斜腳（沿長邊單向外傾）" },
-    { value: "splayed-width", label: "斜腳（沿寬邊單向外傾）" },
+    { value: "tapered", label: "錐形腳（方料下收）" },
+    { value: "splayed", label: "方斜腳（四角對角外傾）" },
+    { value: "splayed-length", label: "方斜腳（沿長邊單向外傾）" },
+    { value: "splayed-width", label: "方斜腳（沿寬邊單向外傾）" },
+    { value: "splayed-tapered", label: "方錐斜腳（下收 + 外傾）" },
+    { value: "splayed-round-tapered", label: "圓錐斜腳（圓料下收 + 外傾）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
@@ -130,7 +132,7 @@ export const desk: FurnitureTemplate = (input) => {
     legInset,
     apronOffset,
     lowerStretcherHeight: lowerStretcherHeight > 0 ? lowerStretcherHeight : undefined,
-    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width",
+    legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered",
     seatEdge,
     seatEdgeStyle,
     legEdge,
@@ -293,8 +295,8 @@ export const desk: FurnitureTemplate = (input) => {
     }
     // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
     // 在 stretcher Y 高度處，腳已沿 X/Z 偏移 splayMm × (1 - stretcherY/legHeight)
-    const isSplayedX = legShape === "splayed" || legShape === "splayed-length";
-    const isSplayedZ = legShape === "splayed" || legShape === "splayed-width";
+    const isSplayedX = legShape === "splayed" || legShape === "splayed-length" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
+    const isSplayedZ = legShape === "splayed" || legShape === "splayed-width" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const splayMm = 40; // 跟 simple-table 同
     const splayFrac = Math.max(0, 1 - stretcherY / legHeight);
     const splayOffsetX = isSplayedX ? splayMm * splayFrac : 0;
