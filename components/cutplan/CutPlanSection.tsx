@@ -55,11 +55,7 @@ export function CutPlanSection({
         />
       )}
       {group.bins.length > 0 && (
-        <div
-          className={`grid gap-4 print:gap-2 ${
-            group.bins.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-          }`}
-        >
+        <div className="grid grid-cols-1 gap-4 print:gap-2">
           {group.bins.map((bin, i) => (
             <div key={i} className="print:break-inside-avoid">
               <SheetBinSvg
