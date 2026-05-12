@@ -139,11 +139,14 @@ export const desk: FurnitureTemplate = (input) => {
     const maxCaseH = caseTopY - 80;
     const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
     const caseY = caseTopY - caseH;
-    // 櫃深：跨滿前後腳內面（櫃子兩側板剛好貼前/後腳內面）
+    // 櫃深：剛好卡在前後牙板之間（caseD = 2 × 牙板內面 Z）
+    // 牙板中心 Z = ±(width/2 - legSize/2 - legInset)，牙板內面 = 中心 + thickness/2 朝中心
     const PANEL_T = 15; // 跟 caseFurniture 的 panelThickness 一致
     const innerLegEdgeX = input.length / 2 - legSize - legInset;
     const innerLegEdgeZ = input.width / 2 - legSize - legInset;
-    const caseD = 2 * innerLegEdgeZ;
+    const apronCenterZ = input.width / 2 - legSize / 2 - legInset;
+    const apronInnerZ = apronCenterZ - apronThickness / 2;
+    const caseD = 2 * apronInnerZ;
     // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
     const caseX = drawerSide === "center"
       ? 0
