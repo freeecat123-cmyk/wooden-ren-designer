@@ -642,39 +642,6 @@ export function backPanelMaterialNote(mat: string): string {
   return "";
 }
 
-/** 抽屜接合方式（chest / nightstand / media-console 用）*/
-export function drawerJoineryOption(group: OptionGroup = "drawer"): OptionSpec {
-  return {
-    group,
-    type: "select",
-    key: "drawerJoinery",
-    label: "抽屜箱接合",
-    defaultValue: "half-blind-dovetail",
-    choices: [
-      { value: "rabbet", label: "搭接 + 釘 / 螺絲（最簡單）" },
-      { value: "box-joint", label: "鎖盒榫（finger joint，CNC / 治具）" },
-      { value: "half-blind-dovetail", label: "半隱鳩尾（傳統，前面板看不到接合）" },
-      { value: "through-dovetail", label: "通透鳩尾（古典感，正面可見鳩尾）" },
-    ],
-    help: "從上到下 = 越來越費工，強度也越大。半隱鳩尾是商業家具標配",
-  };
-}
-
-export function drawerJoineryNote(j: string): string {
-  switch (j) {
-    case "rabbet":
-      return "抽屜箱用搭接（rabbet）+ 釘槍 / 細螺絲固定，最快，強度尚可。";
-    case "box-joint":
-      return "抽屜箱用鎖盒榫（finger joint），需治具或 CNC 切，前後等齒。";
-    case "half-blind-dovetail":
-      return "抽屜箱用半隱鳩尾（half-blind dovetail），前面板看不到接合線，業界標準。";
-    case "through-dovetail":
-      return "抽屜箱用通透鳩尾（through dovetail），古典感，前後都能看到鳩尾片，需高精度。";
-  }
-  return "";
-}
-
-/** 抽屜滑軌種類（select 版，跟 zone-helpers 的 useDrawerSlide checkbox 不衝突） */
 /* ─────────────── 抽屜 / 門板把手樣式 ─────────────── */
 
 /** 抽屜把手 / 門板把手樣式選項，櫃類通用 */
