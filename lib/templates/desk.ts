@@ -222,9 +222,9 @@ export const desk: FurnitureTemplate = (input) => {
     const TENON = 8;            // mortise-tenon 視覺接合 penetration
     const stretcherTopY = caseY - 5;
     const stretcherY = stretcherTopY - STRETCHER_H;
-    // 縱向橫撐：X 中心在「腳內面 - T/2」（外側 X 面貼齊腳內面，看得見）
+    // 縱向橫撐：X 中心在腳中心軸上（兩面跟腳內外面平齊，跟腳同X 範圍）
     // 長度跨前後腳內面 + 兩端各 8mm 插進腳裡（mortise-tenon）
-    const sideStretcherCenterX = innerLegEdgeX - STRETCHER_T / 2;
+    const legCenterX = input.length / 2 - legSize / 2 - legInset;
     const sideStretcherLen = 2 * innerLegEdgeZ + 2 * TENON;
     for (const sx of [-1, +1] as const) {
       design.parts.push({
@@ -233,15 +233,14 @@ export const desk: FurnitureTemplate = (input) => {
         material: input.material,
         grainDirection: "width",  // 主軸沿 Z（width）
         visible: { length: STRETCHER_T, width: sideStretcherLen, thickness: STRETCHER_H },
-        origin: { x: sx * sideStretcherCenterX, y: stretcherY, z: 0 },
+        origin: { x: sx * legCenterX, y: stretcherY, z: 0 },
         tenons: [],
         mortises: [],
       });
     }
-    // 橫向橫撐：兩端伸進兩側縱向橫撐 8mm
-    // sideStretcher 內 X 面 = sideStretcherCenterX - T/2 = innerLegEdgeX - T
-    // cross 端 = sideInner + TENON = innerLegEdgeX - T + 8
-    const crossStretcherLen = 2 * (innerLegEdgeX - STRETCHER_T + TENON);
+    // 橫向橫撐：sideStretcher 內 X 面 = legCenterX - T/2，cross 端伸進 8mm
+    // cross 長 = 2 × (legCenterX - T/2 + TENON)
+    const crossStretcherLen = 2 * (legCenterX - STRETCHER_T / 2 + TENON);
     design.parts.push({
       id: "desk-h-cross",
       nameZh: "H 框橫向長橫撐",
