@@ -320,15 +320,13 @@ export function CutPlanApp({
         </div>
       </div>
 
-      {/* 主視覺：左 sticky 庫存 ↔ 右即時排料圖 */}
-      <div className="grid lg:grid-cols-[minmax(600px,1fr)_2fr] gap-4 no-print">
-        <aside className="lg:sticky lg:top-4 self-start">
-          <StockEditor
-            specs={specs}
-            inventory={config.inventory}
-            onChange={(inv) => setConfig({ ...config, inventory: inv })}
-          />
-        </aside>
+      {/* 主視覺：庫存全寬置頂 ↔ 排料圖下方雙欄 */}
+      <div className="space-y-4 no-print">
+        <StockEditor
+          specs={specs}
+          inventory={config.inventory}
+          onChange={(inv) => setConfig({ ...config, inventory: inv })}
+        />
 
         <div>
           {stockEmpty ? (
