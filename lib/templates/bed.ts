@@ -473,9 +473,29 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
       tenons: [], mortises: [],
     });
+  } else if (headStyle === "slatted-horizontal") {
+    // 橫板條：N 條沿 Z 軸跨的水平木條（斯堪地維亞風）
+    const slatH = 80;
+    const gap = 10;
+    const baseY = mattressClearanceMm;
+    const span = headboardPlateHeight - baseY;
+    const N = Math.max(3, Math.floor(span / (slatH + gap)));
+    const totalH = N * slatH + (N - 1) * gap;
+    const startY = baseY + (span - totalH) / 2;
+    for (let i = 0; i < N; i++) {
+      headParts.push({
+        id: `head-hslat-${i + 1}`,
+        nameZh: `橫板條 ${i + 1}`,
+        material,
+        grainDirection: "length",
+        visible: { length: headLegInnerSpan, width: slatH, thickness: headboardThickness },
+        origin: { x: headboardX, y: startY + i * (slatH + gap), z: 0 },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    }
   } else {
-    // 其他樣式：panel / arched / slatted-horizontal / tufted-look / crested / fielded
-    // 都共用單片整板結構（v1：silhouette 變化先寫在 notes，待 v2 加 shape 修飾）
+    // panel / arched / tufted-look / crested / fielded：共用 base panel + 樣式裝飾
     headParts.push({
       id: "headboard",
       nameZh: "床頭板",
@@ -507,6 +527,88 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       ],
       mortises: [],
     });
+    // 樣式裝飾（在 base panel 上額外疊小件）
+    if (headStyle === "crested") {
+      // 中央高冠：板頂中央加凸出 part
+      headParts.push({
+        id: "head-crest",
+        nameZh: "中央高冠",
+        material,
+        grainDirection: "length",
+        visible: { length: headLegInnerSpan * 0.3, width: 80, thickness: headboardThickness },
+        origin: { x: headboardX, y: headboardPlateHeight, z: 0 },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    } else if (headStyle === "winged") {
+      // 兩翼：左右各延伸出立柱外的小板
+      const wingW = legSize * 1.8;
+      const wingH = headboardPlateHeight * 0.5;
+      const wingY = headboardPlateHeight - wingH;
+      for (const sz of [-1, 1] as const) {
+        headParts.push({
+          id: `head-wing-${sz < 0 ? "left" : "right"}`,
+          nameZh: `床頭${sz < 0 ? "左" : "右"}翼`,
+          material,
+          grainDirection: "length",
+          visible: { length: wingW, width: wingH, thickness: headboardThickness },
+          origin: { x: headboardX, y: wingY, z: sz * (headLegInnerSpan / 2 + wingW / 2) },
+          rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+          tenons: [], mortises: [],
+        });
+      }
+    } else if (headStyle === "arched") {
+      // 拱頂：板頂加一條較粗的橫木示意拱形（v1 用矩形近似，v2 可加 shape kind="arch"）
+      headParts.push({
+        id: "head-arch-top",
+        nameZh: "拱頂橫木",
+        material,
+        grainDirection: "length",
+        visible: { length: headLegInnerSpan * 0.85, width: 100, thickness: headboardThickness + 8 },
+        origin: { x: headboardX, y: headboardPlateHeight - 100, z: 0 },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    } else if (headStyle === "fielded") {
+      // 起線板：中央加凸出的內板（仿 raised-panel 雕線）
+      const innerW = headLegInnerSpan - 200;
+      const innerH = (headboardPlateHeight - mattressClearanceMm) - 80;
+      headParts.push({
+        id: "head-fielded-inner",
+        nameZh: "起線中央板",
+        material,
+        grainDirection: "length",
+        visible: { length: innerW, width: innerH, thickness: 12 },
+        origin: { x: headboardX + headboardThickness / 2 + 6, y: mattressClearanceMm + 40, z: 0 },
+        rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+        tenons: [], mortises: [],
+      });
+    } else if (headStyle === "tufted-look") {
+      // 軟包仿木：3×4 grid 圓凸（仿軟包扣）
+      const cols = 4, rows = 3;
+      const z0 = -headLegInnerSpan / 2 + 100;
+      const z1 = headLegInnerSpan / 2 - 100;
+      const y0 = mattressClearanceMm + 80;
+      const y1 = headboardPlateHeight - 80;
+      const dz = (z1 - z0) / (cols - 1);
+      const dy = (y1 - y0) / (rows - 1);
+      const buttonSize = 40;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          headParts.push({
+            id: `head-tuft-${r + 1}-${c + 1}`,
+            nameZh: `軟包扣 ${r + 1}-${c + 1}`,
+            material,
+            grainDirection: "length",
+            visible: { length: buttonSize, width: buttonSize, thickness: 10 },
+            origin: { x: headboardX + headboardThickness / 2 + 5, y: y0 + r * dy, z: z0 + c * dz },
+            rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
+            shape: { kind: "round", axis: "x" },
+            tenons: [], mortises: [],
+          });
+        }
+      }
+    }
   }
 
   // ---------- 床尾板（可選） ----------
