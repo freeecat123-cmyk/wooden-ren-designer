@@ -37,6 +37,7 @@ export function LazyPerspectiveView({
   xrayMode = "off",
   compactMode = false,
   noSync = false,
+  wireframeMode = false,
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
@@ -50,6 +51,8 @@ export function LazyPerspectiveView({
   compactMode?: boolean;
   /** 不同步 SelectedPartContext（頂端參數調整 3D 用，避免被零件 dim 干擾） */
   noSync?: boolean;
+  /** 線框模式：所有零件渲染骨架 */
+  wireframeMode?: boolean;
 }) {
   const ctx = useSelectedPart();
   const selectedPartId = noSync ? null : ctx.selectedPartId;
@@ -65,6 +68,7 @@ export function LazyPerspectiveView({
       selectedPartId={selectedPartId}
       onPartSelect={onPartSelect}
       compactMode={compactMode}
+      wireframeMode={wireframeMode}
     />
   );
 }

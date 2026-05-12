@@ -215,6 +215,7 @@ function Part({
   mortiseShapes,
   isSelected,
   isDimmed,
+  wireframe,
 }: {
   position: [number, number, number];
   size: [number, number, number];
@@ -233,6 +234,8 @@ function Part({
   isSelected?: boolean;
   /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
   isDimmed?: boolean;
+  /** 線框模式：所有 face 變骨架線 */
+  wireframe?: boolean;
 }) {
   // 高亮配色（選中：amber-400 emissive；變灰：opacity 0.18）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
@@ -437,6 +440,7 @@ function Part({
           metalness={0}
           emissive={isSelected ? HIGHLIGHT_EMISSIVE : undefined}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          wireframe={wireframe}
         />
       </mesh>
     );
@@ -453,9 +457,10 @@ function Part({
           metalness={0.85}
           transparent
           opacity={isDimmed ? DIM_OPACITY : 1}
-          depthWrite={!isDimmed}
+          depthWrite={!isDimmed && !wireframe}
           emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          wireframe={wireframe}
         />
       </mesh>
     );
@@ -491,9 +496,10 @@ function Part({
         onBeforeCompile={woodCompile}
         transparent
         opacity={isDimmed ? DIM_OPACITY : 1}
-        depthWrite={!isDimmed}
+        depthWrite={!isDimmed && !wireframe}
         emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
         emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+        wireframe={wireframe}
       />
     </mesh>
   );
@@ -1792,6 +1798,7 @@ export function PerspectiveView({
   selectedPartId = null,
   onPartSelect,
   compactMode = false,
+  wireframeMode = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1814,6 +1821,8 @@ export function PerspectiveView({
   onPartSelect?: (id: string) => void;
   /** 緊湊模式：外層 wrapper 用 w-full h-full 跟著父容器（PIP 用），不用預設 40vh / 520px */
   compactMode?: boolean;
+  /** 線框模式：所有零件渲染成骨架，看內部結構 */
+  wireframeMode?: boolean;
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
@@ -2429,6 +2438,7 @@ export function PerspectiveView({
                 mortiseShapes={mortiseShapesArr}
                 isSelected={isSelected}
                 isDimmed={isDimmed}
+                wireframe={wireframeMode}
               />
               {tenonMeshes}
               {auditOverlay}

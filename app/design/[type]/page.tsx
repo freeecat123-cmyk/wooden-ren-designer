@@ -27,6 +27,7 @@ import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { XrayToggle } from "@/components/XrayToggle";
+import { WireframeToggle } from "@/components/WireframeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
@@ -180,6 +181,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     sp.xray === "full" ? "full" :
     sp.xray === "face" || sp.xray === "true" || sp.xray === "1" ? "face" :
     "off";
+  const wireframeMode = sp.wf === "1" || sp.wf === "true";
 
   // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
   // 視覺像榫頭從榫眼抽出。常用 20–40。
@@ -311,7 +313,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </div>
             <SceneThemeToggle current={sceneId} />
             <XrayToggle current={xrayMode} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} noSync />
+            <WireframeToggle current={wireframeMode} />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} noSync />
           </div>
         </div>
 
