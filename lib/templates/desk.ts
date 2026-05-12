@@ -297,15 +297,20 @@ export const desk: FurnitureTemplate = (input) => {
       ];
     }
     // 縱向橫撐：X 中心在腳中心軸上 + 斜腳補償（splayed 系列腳底比頂位移）
-    // 用 stretcher 中央 Y 算 splay/taper，平均 stretcher 上下端跟腳的對齊誤差
-    // （避免拿 stretcher 底邊 Y 算 → 頂邊在較高 Y 處腳已內縮 → 頂邊穿出）
+    // 算 stretcher TOP / BOT / CENTER 三組 splay+taper，以 center 當基準長度，
+    // 用 apron-trapezoid shape 讓端面跟著腳角度切斜（比照 simple-table 下橫撐做法）
     const isSplayedX = legShape === "splayed" || legShape === "splayed-length" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const isSplayedZ = legShape === "splayed" || legShape === "splayed-width" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const splayMm = 40; // 跟 simple-table 同
-    const stretcherCenterY = stretcherY + 20; // stretcher height = 40, center = +20
-    const splayFrac = Math.max(0, 1 - stretcherCenterY / legHeight);
-    const splayOffsetX = isSplayedX ? splayMm * splayFrac : 0;
-    const splayOffsetZ = isSplayedZ ? splayMm * splayFrac : 0;
+    const stretcherTopY = stretcherY + 40; // STRETCHER_H = 40
+    const stretcherCenterY = stretcherY + 20;
+    const splayFracBot = Math.max(0, 1 - stretcherY / legHeight);
+    const splayFracTop = Math.max(0, 1 - stretcherTopY / legHeight);
+    const splayFracCenter = Math.max(0, 1 - stretcherCenterY / legHeight);
+    const splayOffsetX = isSplayedX ? splayMm * splayFracCenter : 0;
+    const splayOffsetZ = isSplayedZ ? splayMm * splayFracCenter : 0;
+    const splayOffsetZBot = isSplayedZ ? splayMm * splayFracBot : 0;
+    const splayOffsetZTop = isSplayedZ ? splayMm * splayFracTop : 0;
     const legCenterX = input.length / 2 - legSize / 2 - legInset + splayOffsetX;
     // 縱向橫撐沿 Z 跨前後腳；前腳外推 splayOffsetZ、後腳同樣 → 整體 Z 跨距 + 2×splayOffsetZ
     // 圓腳：直接跨腳中心到腳中心（端面藏進圓柱半徑內）→ 額外 +legSize
@@ -315,21 +320,46 @@ export const desk: FurnitureTemplate = (input) => {
     const isRoundLegInH = legShape === "splayed-round-tapered";
     const isTaperedLeg = legShape === "tapered" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered";
     const bottomScale = isTaperedLeg ? 0.55 : 1;
-    const legScaleAtStretcher = 1 - (1 - bottomScale) * (1 - stretcherCenterY / legHeight);
-    const halfLegSizeAtY = (legSize * legScaleAtStretcher) / 2;
-    const taperCompensation = legSize / 2 - halfLegSizeAtY; // 0 for box, > 0 for taper
-    const sideStretcherLen = isRoundLegInH
-      ? 2 * (innerLegEdgeZ + legSize / 2) + 2 * splayOffsetZ
-      : 2 * innerLegEdgeZ + 2 * splayOffsetZ + 2 * taperCompensation;
+    // 三條 Y 各自的腳寬（taper 影響）
+    const legScaleAtCenter = 1 - (1 - bottomScale) * (1 - stretcherCenterY / legHeight);
+    const legScaleAtBot = 1 - (1 - bottomScale) * (1 - stretcherY / legHeight);
+    const legScaleAtTop = 1 - (1 - bottomScale) * (1 - stretcherTopY / legHeight);
+    const halfLegCenter = (legSize * legScaleAtCenter) / 2;
+    const halfLegBot = (legSize * legScaleAtBot) / 2;
+    const halfLegTop = (legSize * legScaleAtTop) / 2;
+    const taperCompCenter = legSize / 2 - halfLegCenter;
+    const taperCompBot = legSize / 2 - halfLegBot;
+    const taperCompTop = legSize / 2 - halfLegTop;
+    // 三條 Y 各自的 stretcher 半長（以 inner face at that Y 為終點）
+    const halfLenCenter = isRoundLegInH
+      ? innerLegEdgeZ + legSize / 2 + splayOffsetZ
+      : innerLegEdgeZ + splayOffsetZ + taperCompCenter;
+    const halfLenBot = isRoundLegInH
+      ? innerLegEdgeZ + legSize / 2 + splayOffsetZBot
+      : innerLegEdgeZ + splayOffsetZBot + taperCompBot;
+    const halfLenTop = isRoundLegInH
+      ? innerLegEdgeZ + legSize / 2 + splayOffsetZTop
+      : innerLegEdgeZ + splayOffsetZTop + taperCompTop;
+    const sideStretcherLen = 2 * halfLenCenter;
+    // apron-trapezoid scale：top/bot 跟 center 的長度比
+    const trapTopScale = halfLenTop / halfLenCenter;
+    const trapBotScale = halfLenBot / halfLenCenter;
+    const sideStretcherShape = (Math.abs(trapTopScale - 1) > 0.001 || Math.abs(trapBotScale - 1) > 0.001)
+      ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
+      : undefined;
     void TENON;
     for (const sx of [-1, +1] as const) {
+      // 用 length 做主軸（Z 方向）+ y=π/2 旋轉，apron-trapezoid 才能正確
+      // scale top/bot 端面隨腳斜
       design.parts.push({
         id: `desk-h-side-${sx < 0 ? "left" : "right"}`,
         nameZh: `H 框${sx < 0 ? "左" : "右"}縱向橫撐`,
         material: input.material,
-        grainDirection: "width",  // 主軸沿 Z（width）
-        visible: { length: STRETCHER_T, width: sideStretcherLen, thickness: STRETCHER_H },
+        grainDirection: "length",
+        visible: { length: sideStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
         origin: { x: sx * legCenterX, y: stretcherY, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        shape: sideStretcherShape,
         tenons: [],
         mortises: [],
       });
