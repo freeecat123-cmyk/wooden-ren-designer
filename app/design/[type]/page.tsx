@@ -285,9 +285,33 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         <SuggestionsBox suggestions={design.suggestions} />
       )}
 
-      {/* 主視覺：左邊參數捲動 ↔ 右邊 3D + 三視圖 sticky 在右上 */}
-      <section className="grid lg:grid-cols-[5fr_7fr] gap-4">
-        <div>
+      {/* 主視覺：
+          desktop = 左參數右 3D（3D sticky top-4）
+          mobile = 3D 黏頂端 sticky（高度 40vh），參數表單在下方捲動 */}
+      <section className="lg:grid lg:grid-cols-[5fr_7fr] gap-4">
+        {/* 3D 區塊：DOM 第一順位 → mobile 自動在上；desktop 用 grid 顯式放到右欄 row 1 */}
+        <div
+          className="
+            sticky top-0 z-20 -mx-6 px-6 pb-2 bg-[#fafaf7]
+            lg:relative lg:top-4 lg:mx-0 lg:px-0 lg:pb-0 lg:bg-transparent
+            lg:col-start-2 lg:row-start-1 lg:sticky lg:self-start
+          "
+        >
+          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden max-h-[40vh] lg:max-h-none flex flex-col">
+            <div className="px-4 py-1.5 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2 shrink-0">
+              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+              透視圖（3D · 拖曳旋轉）
+            </div>
+            <SceneThemeToggle current={sceneId} />
+            <XrayToggle current={xrayMode} />
+            <div className="flex-1 min-h-0">
+              <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+            </div>
+          </div>
+        </div>
+
+        {/* 參數表單：DOM 第二順位 → mobile 在 3D 下方；desktop grid 顯式放到左欄 row 1 */}
+        <div className="mt-3 lg:mt-0 lg:col-start-1 lg:row-start-1">
           <ParameterForm
             type={type}
             defaults={{ length, width, height, material }}
@@ -298,20 +322,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             designerMode={designerMode}
             canUseDesignerMode={canUseDesignerMode}
           />
-        </div>
-
-        <div className="lg:sticky lg:top-4 self-start">
-          {/* 3D sticky 在右上：form 自己捲時實時看設計變化。
-              三視圖搬到 section 下方獨立顯示——不擋 3D 又有更寬空間（全寬比窄欄看清楚） */}
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-            <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
-              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
-              透視圖（3D · 拖曳旋轉）
-            </div>
-            <SceneThemeToggle current={sceneId} />
-            <XrayToggle current={xrayMode} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
-          </div>
         </div>
       </section>
 
