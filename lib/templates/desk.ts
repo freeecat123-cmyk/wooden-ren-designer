@@ -65,6 +65,7 @@ export const deskOptions: OptionSpec[] = [
     { value: "none", label: "不接桌底（純靠 H 框支撐）" },
     { value: "brass-pillars", label: "4 隻黃銅柱（現代極簡）" },
   ], dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "number", key: "brassPillarInset", label: "黃銅柱內縮 (mm)", defaultValue: 80, min: 0, max: 200, step: 5, help: "從櫃邊往內縮的距離（前後 + 左右都套用）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "pedestalTopAttach", equals: "brass-pillars" }] } },
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
@@ -215,8 +216,12 @@ export const desk: FurnitureTemplate = (input) => {
     const extensionH = extensionTopY - extensionBotY;
     if (extensionH > 0 && pedestalTopAttach !== "none") {
       if (pedestalTopAttach === "brass-pillars") {
-        // 4 隻黃銅圓柱在櫃 4 角，Φ20mm
+        // 4 隻黃銅圓柱，預設從櫃邊內縮 brassPillarInset（default 80mm）
         const PILLAR_D = 20;
+        const brassPillarInset = getOption<number>(input, opt(o, "brassPillarInset"));
+        // clamp 內縮不超過櫃半寬/半深 - 柱半徑（避免柱跑出櫃外）
+        const insetX = Math.min(brassPillarInset, caseW / 2 - PILLAR_D / 2);
+        const insetZ = Math.min(brassPillarInset, caseD / 2 - PILLAR_D / 2);
         for (const sx of [-1, +1] as const) {
           for (const sz of [-1, +1] as const) {
             design.parts.push({
@@ -227,9 +232,9 @@ export const desk: FurnitureTemplate = (input) => {
               grainDirection: "length",
               visible: { length: PILLAR_D, width: PILLAR_D, thickness: extensionH },
               origin: {
-                x: caseX + sx * (caseW / 2 - PILLAR_D / 2),
+                x: caseX + sx * (caseW / 2 - insetX),
                 y: extensionBotY,
-                z: sz * (caseD / 2 - PILLAR_D / 2),
+                z: sz * (caseD / 2 - insetZ),
               },
               shape: { kind: "round" },
               visual: "brass-antique",
