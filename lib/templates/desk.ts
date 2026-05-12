@@ -59,6 +59,12 @@ export const deskOptions: OptionSpec[] = [
   { ...drawerBottomModeOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...drawerSlideOption, dependsOn: { key: "drawerCount", notIn: [0] } },
   { ...pullStyleOption("drawer"), dependsOn: { key: "drawerCount", notIn: [0] } },
+  { group: "drawer", type: "select", key: "pedestalTopAttach", label: "櫃子接桌底方式", defaultValue: "single", choices: [
+    { value: "single", label: "單邊側板延伸（傳統 pedestal desk）" },
+    { value: "both", label: "兩側側板延伸（櫃子兩面都接桌底）" },
+    { value: "none", label: "不接桌底（純靠 H 框支撐）" },
+    { value: "brass-pillars", label: "4 隻黃銅柱（現代極簡）" },
+  ], dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
@@ -202,30 +208,57 @@ export const desk: FurnitureTemplate = (input) => {
         },
       });
     }
-    // 延伸側板：把櫃頂連到桌面底，取代另一隻腳的結構支撐角色
-    // - left/right pedestal：延伸的是「靠走道側」的側板（kneehole 那側）
-    // - center pedestal：兩側都延伸（跨距較窄無腳支撐）
+    // 櫃頂接桌底：4 種方式
+    const pedestalTopAttach = getOption<string>(input, opt(o, "pedestalTopAttach"));
     const extensionTopY = legHeight; // 連到桌底
-    const extensionBotY = caseTopY;  // 從櫃頂往上接
+    const extensionBotY = caseTopY;
     const extensionH = extensionTopY - extensionBotY;
-    if (extensionH > 0) {
-      const extensionSides: number[] = drawerSide === "center"
-        ? [-1, +1]
-        : drawerSide === "left"
-          ? [+1]   // 櫃在左、延伸右側板（朝走道）
-          : [-1];  // 櫃在右、延伸左側板（朝走道）
-      for (const sx of extensionSides) {
-        const extX = caseX + sx * (caseW / 2 - PANEL_T / 2);
-        design.parts.push({
-          id: `desk-pedestal-extension-${sx < 0 ? "left" : "right"}`,
-          nameZh: `懸吊櫃延伸側板（${sx < 0 ? "左" : "右"}）`,
-          material: input.material,
-          grainDirection: "length",
-          visible: { length: PANEL_T, width: caseD, thickness: extensionH },
-          origin: { x: extX, y: extensionBotY, z: 0 },
-          tenons: [],
-          mortises: [],
-        });
+    if (extensionH > 0 && pedestalTopAttach !== "none") {
+      if (pedestalTopAttach === "brass-pillars") {
+        // 4 隻黃銅圓柱在櫃 4 角，Φ20mm
+        const PILLAR_D = 20;
+        for (const sx of [-1, +1] as const) {
+          for (const sz of [-1, +1] as const) {
+            design.parts.push({
+              id: `desk-pedestal-pillar-${sx < 0 ? "L" : "R"}${sz < 0 ? "F" : "B"}`,
+              nameZh: `黃銅柱（${sx < 0 ? "左" : "右"}${sz < 0 ? "前" : "後"}）`,
+              material: input.material,
+              materialOverride: "plywood",
+              grainDirection: "length",
+              visible: { length: PILLAR_D, width: PILLAR_D, thickness: extensionH },
+              origin: {
+                x: caseX + sx * (caseW / 2 - PILLAR_D / 2),
+                y: extensionBotY,
+                z: sz * (caseD / 2 - PILLAR_D / 2),
+              },
+              shape: { kind: "round" },
+              visual: "brass-antique",
+              tenons: [],
+              mortises: [],
+            });
+          }
+        }
+      } else {
+        // 側板延伸：single / both，center pedestal 因無外側腳預設 both
+        const useBoth = pedestalTopAttach === "both" || drawerSide === "center";
+        const extensionSides: number[] = useBoth
+          ? [-1, +1]
+          : drawerSide === "left"
+            ? [+1]   // 櫃在左、延伸右側板（朝走道）
+            : [-1];  // 櫃在右、延伸左側板（朝走道）
+        for (const sx of extensionSides) {
+          const extX = caseX + sx * (caseW / 2 - PANEL_T / 2);
+          design.parts.push({
+            id: `desk-pedestal-extension-${sx < 0 ? "left" : "right"}`,
+            nameZh: `懸吊櫃延伸側板（${sx < 0 ? "左" : "右"}）`,
+            material: input.material,
+            grainDirection: "length",
+            visible: { length: PANEL_T, width: caseD, thickness: extensionH },
+            origin: { x: extX, y: extensionBotY, z: 0 },
+            tenons: [],
+            mortises: [],
+          });
+        }
       }
     }
     // H-frame 結構橫撐：左右各一條沿 Z 縱向（前後腳間 + 8mm 插入腳）
