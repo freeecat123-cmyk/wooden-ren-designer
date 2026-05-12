@@ -213,6 +213,8 @@ function Part({
   grainDirection,
   mortiseBoxes,
   mortiseShapes,
+  isSelected,
+  isDimmed,
 }: {
   position: [number, number, number];
   size: [number, number, number];
@@ -227,7 +229,15 @@ function Part({
   mortiseBoxes?: LocalBox[];
   /** 對應 mortiseBoxes 每個的形狀（"rect" | "round"）；undefined = 全 rect */
   mortiseShapes?: Array<"rect" | "round">;
+  /** 選中：本體 emissive 黃光，最強視覺提示 */
+  isSelected?: boolean;
+  /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
+  isDimmed?: boolean;
 }) {
+  // 高亮配色（選中：amber-400 emissive；變灰：opacity 0.18）
+  const HIGHLIGHT_EMISSIVE = "#fbbf24";
+  const HIGHLIGHT_INTENSITY = 0.55;
+  const DIM_OPACITY = 0.18;
   // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）
   const woodCompile = grainDirection === "width" ? woodCompileZ : woodCompileX;
   const geometry = useMemo(() => {
@@ -423,8 +433,10 @@ function Part({
           thickness={0.05}
           ior={1.45}
           transparent
-          opacity={0.25}
+          opacity={isDimmed ? 0.08 : 0.25}
           metalness={0}
+          emissive={isSelected ? HIGHLIGHT_EMISSIVE : undefined}
+          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
         />
       </mesh>
     );
@@ -435,7 +447,15 @@ function Part({
     return (
       <mesh position={position} rotation={rotation}>
         {brassGeo ? <primitive object={brassGeo} attach="geometry" /> : <boxGeometry args={size} />}
-        <meshStandardMaterial color="#8a6a3a" roughness={0.35} metalness={0.85} />
+        <meshStandardMaterial
+          color="#8a6a3a"
+          roughness={0.35}
+          metalness={0.85}
+          transparent={isDimmed}
+          opacity={isDimmed ? DIM_OPACITY : 1}
+          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
+          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+        />
       </mesh>
     );
   }
@@ -468,6 +488,10 @@ function Part({
         metalness={0.05}
         flatShading={useFlatShading}
         onBeforeCompile={woodCompile}
+        transparent={isDimmed}
+        opacity={isDimmed ? DIM_OPACITY : 1}
+        emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
+        emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
       />
     </mesh>
   );
@@ -2316,27 +2340,9 @@ export function PerspectiveView({
               })
             : null;
 
-          // 選中高亮：黃色 wireframe overlay（比 audit 紅 wireframe 更亮、線粗一些）
-          const selectionOverlay = selectedPartId === part.id ? (
-            <mesh
-              position={[px, py, pz]}
-              rotation={new Euler(
-                part.rotation?.x ?? 0,
-                part.rotation?.y ?? 0,
-                part.rotation?.z ?? 0,
-                "ZYX",
-              )}
-            >
-              <boxGeometry
-                args={[
-                  part.visible.length * SCALE * 1.02,
-                  part.visible.thickness * SCALE * 1.02,
-                  part.visible.width * SCALE * 1.02,
-                ]}
-              />
-              <meshBasicMaterial color="#fbbf24" wireframe transparent opacity={0.9} />
-            </mesh>
-          ) : null;
+          // 選中：本體 emissive 黃光；其他零件半透明變灰（聚焦選中件）
+          const isSelected = selectedPartId === part.id;
+          const isDimmed = selectedPartId !== null && !isSelected;
           // Audit mode：overlap part 加紅色半透明 wireframe overlay box
           const auditOverlay = overlapIds.has(part.id) ? (
             <mesh
@@ -2406,10 +2412,11 @@ export function PerspectiveView({
                 grainDirection={part.grainDirection}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}
+                isSelected={isSelected}
+                isDimmed={isDimmed}
               />
               {tenonMeshes}
               {auditOverlay}
-              {selectionOverlay}
             </group>
           );
         })}
