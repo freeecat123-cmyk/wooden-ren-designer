@@ -61,11 +61,25 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         return;
       }
 
-      const name = window.prompt("設計名稱（可空白）", defaultName) ?? defaultName;
+      // 算同類別流水號：user 已存的同 furniture_type 件數 + 1
+      const { count: typeCount } = await supabase
+        .from("designs")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("furniture_type", furnitureType);
+      const nextSerial = (typeCount ?? 0) + 1;
+      const padded = String(nextSerial).padStart(3, "0");
+      const suggestedName = `${defaultName} #${padded}`;
+      const name = window.prompt(
+        `設計名稱（流水號自動建議，可改）`,
+        suggestedName,
+      );
+      if (name === null) return; // 取消
+      const finalName = name.trim() || suggestedName;
       const { error: insertErr } = await supabase.from("designs").insert({
         user_id: userId,
         furniture_type: furnitureType,
-        name,
+        name: finalName,
         params,
       });
       if (insertErr) throw insertErr;
