@@ -69,7 +69,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "drawer", type: "checkbox", key: "withHFrame", label: "加 H 框結構橫撐", defaultValue: true, help: "櫃子下方加 H 形橫撐做結構支撐；現代懸吊櫃可關掉只靠側板掛在腳上", dependsOn: { key: "drawerCount", notIn: [0] } },
   { group: "drawer", type: "number", key: "pedestalStretcherHeight", label: "H 框橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, help: "0 = 自動貼櫃底；> 0 = 改放在離地此高度（櫃子變懸吊式）", dependsOn: { all: [{ key: "drawerCount", notIn: [0] }, { key: "withHFrame", equals: true }] } },
   { group: "drawer", type: "number", key: "pedestalTopGap", label: "櫃頂距桌底 (mm)", defaultValue: 5, min: 0, max: 200, step: 5, help: "無牙板時可調櫃頂到桌底的距離，預設 5mm 幾乎貼桌底", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
-  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度 (mm)", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 自動卡在前後腳內面之間；> 0 = 自訂深度（不超過桌子深度）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
+  { group: "drawer", type: "number", key: "pedestalDepth", label: "櫃子深度 (mm)", defaultValue: 0, min: 0, max: 1000, step: 10, help: "0 = 跟桌子同深；> 0 = 自訂深度（max 桌深）", dependsOn: { all: [{ key: "withApron", equals: false }, { key: "drawerCount", notIn: [0] }] } },
   { group: "apron", type: "checkbox", key: "withModestyPanel", label: "後飾遮腿板（modesty panel）", defaultValue: false, help: "桌後加一片整片立板（高 350mm），遮住坐者下肢的後側；常見於辦公桌靠牆或自由站立場合", wide: true },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
@@ -161,15 +161,13 @@ export const desk: FurnitureTemplate = (input) => {
     const innerLegEdgeX = input.length / 2 - legSize - legInset;
     const innerLegEdgeZ = input.width / 2 - legSize - legInset;
     // 有牙板：caseD 卡在前後牙板內面之間
-    // 無牙板：default 卡腳內面，user 可自訂 pedestalDepth (max 桌深)
+    // 無牙板：default 跟桌子同深，user 可自訂 pedestalDepth (max 桌深)
     const apronCenterZ = input.width / 2 - legSize / 2 - legInset;
     const apronInnerZ = apronCenterZ - apronThickness / 2;
     const pedestalDepthRaw = getOption<number>(input, opt(o, "pedestalDepth"));
     const caseD = withApron
       ? 2 * apronInnerZ
-      : (pedestalDepthRaw > 0
-        ? Math.min(pedestalDepthRaw, input.width)
-        : 2 * innerLegEdgeZ);
+      : Math.min(pedestalDepthRaw > 0 ? pedestalDepthRaw : input.width, input.width);
     // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
     const caseX = drawerSide === "center"
       ? 0
