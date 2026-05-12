@@ -132,24 +132,22 @@ export const desk: FurnitureTemplate = (input) => {
     const caseW = drawerSide === "center"
       ? Math.min(400, input.length * 0.4)
       : Math.min(450, innerW * 0.4);
-    const caseH = Math.min(legHeight * 0.6, drawerCount * 130 + 30);
-    // 牙板內間距（前後牙板背面之間 Z 軸空間）= input.width - 2*legInset
-    //   - legSize - apronThickness。再扣：
-    //   -10mm 前後安全 clearance、-50mm 抽屜面板 + 把手凸出
-    //   （overlay-6 face ~22mm + knob 凸 25mm + buffer 3）
-    const FACE_PROTRUSION = 50;
-    const apronInnerD = input.width - 2 * legInset - legSize - apronThickness - 10 - FACE_PROTRUSION;
-    const caseD = Math.min(apronInnerD, 480);
-    // pedestal 往 +Z 偏 FACE_PROTRUSION/2，把 face 凸出量讓給前牙板，保持
-    // pedestal 後緣跟後牙板對稱 5mm clearance
-    const caseZOffset = FACE_PROTRUSION / 2;
+    // 櫃頂位置：牙板底下再扣 5mm clearance（讓最上面抽屜能打開不撞牙板）
+    const caseTopY = legHeight - apronWidth - 5;
+    // 櫃身高度限制：caseTopY 到地板的距離 - 30mm 離地
+    const maxCaseH = caseTopY - 30;
+    const caseH = Math.min(maxCaseH, drawerCount * 130 + 30);
+    const caseY = caseTopY - caseH;
+    // 櫃深：保留前後 30mm clearance（含面板凸出 22 + 把手 25 = 47），算寬鬆抓 60
+    const caseD = Math.min(input.width - 80, 480);
+    // 櫃子貼到外側腳的內面（左/右側）；中央則不貼任何腳
+    const PANEL_T = 15; // 跟 caseFurniture 的 panelThickness 一致（下面用同值）
+    const innerLegEdgeX = input.length / 2 - legSize - legInset;
     const caseX = drawerSide === "center"
       ? 0
       : drawerSide === "left"
-      ? -(input.length / 2 - legSize - legInset - caseW / 2 - 20)
-      : (input.length / 2 - legSize - legInset - caseW / 2 - 20);
-    // case 上緣貼桌底（legHeight = 桌底 Y），所以 case 自身 origin.y = legHeight - caseH
-    const caseY = legHeight - caseH;
+      ? -(innerLegEdgeX - caseW / 2 - 1)
+      : (innerLegEdgeX - caseW / 2 - 1);
 
     // 抽屜模式 / 滑軌 / 把手等選項
     const drawerMount = resolveDrawerMount(input, o);
@@ -176,8 +174,8 @@ export const desk: FurnitureTemplate = (input) => {
       panelThickness: 15,
     });
 
-    // 平移所有 part：x += caseX、y += caseY、z += caseZOffset
-    // caseFurniture 自身 0,0,0 為 X/Z 中心、y=0 為 case 底
+    // 平移所有 part：x += caseX、y += caseY、z 不偏（面板向 -Z 凸出已在
+    // 牙板下方無衝突）。caseFurniture 自身 0,0,0 為 X/Z 中心、y=0 為 case 底
     for (const p of pedestal.parts) {
       design.parts.push({
         ...p,
@@ -185,9 +183,35 @@ export const desk: FurnitureTemplate = (input) => {
         origin: {
           x: p.origin.x + caseX,
           y: p.origin.y + caseY,
-          z: p.origin.z + caseZOffset,
+          z: p.origin.z,
         },
       });
+    }
+    // 延伸側板：把櫃頂連到桌面底，取代另一隻腳的結構支撐角色
+    // - left/right pedestal：延伸的是「靠走道側」的側板（kneehole 那側）
+    // - center pedestal：兩側都延伸（跨距較窄無腳支撐）
+    const extensionTopY = legHeight; // 連到桌底
+    const extensionBotY = caseTopY;  // 從櫃頂往上接
+    const extensionH = extensionTopY - extensionBotY;
+    if (extensionH > 0) {
+      const extensionSides: number[] = drawerSide === "center"
+        ? [-1, +1]
+        : drawerSide === "left"
+          ? [+1]   // 櫃在左、延伸右側板（朝走道）
+          : [-1];  // 櫃在右、延伸左側板（朝走道）
+      for (const sx of extensionSides) {
+        const extX = caseX + sx * (caseW / 2 - PANEL_T / 2);
+        design.parts.push({
+          id: `desk-pedestal-extension-${sx < 0 ? "left" : "right"}`,
+          nameZh: `懸吊櫃延伸側板（${sx < 0 ? "左" : "右"}）`,
+          material: input.material,
+          grainDirection: "length",
+          visible: { length: PANEL_T, width: caseD, thickness: extensionH },
+          origin: { x: extX, y: extensionBotY, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
     }
   }
 
