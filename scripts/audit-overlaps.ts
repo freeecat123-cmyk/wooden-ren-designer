@@ -50,6 +50,8 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "chinese-cabinet:box",
   "chinese-cabinet:inward-hoof",
   "chinese-cabinet:outward-hoof",
+  // 書桌圓錐斜腳：apron 端面延伸到圓腳中心藏接縫，apron × leg 結構性 overlap
+  "desk:splayed-round-tapered",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";

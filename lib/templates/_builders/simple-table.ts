@@ -368,9 +368,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const tiltX = splayDx > 0 ? Math.atan(splayDx / legHeight) : 0;
   const tiltZ = splayDz > 0 ? Math.atan(splayDz / legHeight) : 0;
   // tapered 補償：apron 三條 Y 位置（中、上、下）各自的腳寬
-  const apronLegSizeCenter = legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
-  const apronLegSizeTop = legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
-  const apronLegSizeBot = legSize * legScaleAt(apronY, legHeight, bottomScale);
+  // 圓腳（splayed-round-tapered）：apron 端面延伸到腳中心，藏進圓柱內 →
+  // 從外面看不到方圓接縫（apronLegSize 設 0 表示不縮回腳邊）
+  const isRoundLeg = legShape === "splayed-round-tapered";
+  const apronLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(apronCenterY, legHeight, bottomScale);
+  const apronLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(apronY + apronWidth, legHeight, bottomScale);
+  const apronLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(apronY, legHeight, bottomScale);
   const apronInnerSpan = {
     x: 2 * apronEdgeX - apronLegSizeCenter,
     z: 2 * apronEdgeZ - apronLegSizeCenter,
