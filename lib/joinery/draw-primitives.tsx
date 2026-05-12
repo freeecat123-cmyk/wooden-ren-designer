@@ -18,7 +18,7 @@ export const COLOR = {
   OUTLINE: "#222",         // 主輪廓
   DIM: "#0a4d8c",          // 老師藍尺寸線
   DIM_TICK: "#c0282d",     // 老師紅刻度
-  HIDDEN: "#b59062",       // 隱藏線
+  HIDDEN: "#c0282d",       // 隱藏線（紅，深色母件 fill 上才看得到，跟 BlindTenon BOLD 對齊）
   CENTER: "#666",          // 點劃線中心線
   SECTION_HATCH: "#c0282d",// 紅 45° 剖面 hatching
   GRAIN: "#8b6b3a",        // 木紋方向箭頭
@@ -27,7 +27,7 @@ export const COLOR = {
 /** 線寬（px）。 */
 export const STROKE = {
   OUTLINE: 1.0,
-  HIDDEN: 0.6,
+  HIDDEN: 1.4,
   CENTER: 0.5,
   DIM: 0.5,
   SECTION: 0.7,
@@ -43,7 +43,7 @@ export const FONT = {
 
 /** 線型 dasharray。 */
 export const DASH = {
-  HIDDEN: "3 2",
+  HIDDEN: "5 3",
   CENTER: "6 1.5 1 1.5",  // 點劃線
   DIM: "2 2",
   AUX: "3 3",
