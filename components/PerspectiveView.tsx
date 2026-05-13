@@ -2063,15 +2063,22 @@ export function PerspectiveView({
           color={lightHex}
         />
 
-        <Environment preset="apartment" />
-
-        <ContactShadows
-          position={[0, 0.001, 0]}
-          opacity={0.35}
-          blur={2}
-          far={maxDim * 2}
-          scale={maxDim * 3}
-        />
+        {/* compactMode（手機）：拿掉 Environment HDR（drei CDN 拉 300-500KB
+            HDR + 處理）+ ContactShadows，省 1-2 秒首次載入。
+            視覺差別：手機 canvas 220px 看不太出 reflection 細節，ambientLight
+            +directionalLight 已給足基本明暗。 */}
+        {!compactMode && (
+          <>
+            <Environment preset="apartment" />
+            <ContactShadows
+              position={[0, 0.001, 0]}
+              opacity={0.35}
+              blur={2}
+              far={maxDim * 2}
+              scale={maxDim * 3}
+            />
+          </>
+        )}
 
         {/* 場景主題地板：theme=natural 時不渲染，回到原本懸浮在 grid 上的視覺 */}
         {themeFloor && (
