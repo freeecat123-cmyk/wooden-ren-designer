@@ -172,7 +172,27 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
   // 單一 zone：所有 z1-shelf-N 都套用
   if (angledRackActive) {
-    const tiltRad = (angledRackTilt * Math.PI) / 180;
+    // 自動上限 tilt：傾斜後層板垂直跨度 (shelfD*sinθ + shelfT*cosθ) 撞鄰層
+    // 是「斜板超出框內」的元凶。留 2*panelT 隔離 → 保守用 cosθ≈1：
+    //   sinθ ≤ (layerH - 3*panelT) / shelfD
+    const shelfDApprox =
+      design.parts.find((p) => /-shelf-\d+$/.test(p.id))?.visible.width ?? input.width;
+    const layerH = innerH / zoneCount;
+    const maxSinT = Math.max(0, (layerH - 3 * panelThickness) / shelfDApprox);
+    const maxTiltRad = Math.asin(Math.min(1, maxSinT));
+    let tiltRad = (angledRackTilt * Math.PI) / 180;
+    if (maxTiltRad < 0.05) {
+      appendWarnings(design, [
+        `層板太密（${zoneCount} 層 × 板深 ${Math.round(shelfDApprox)}mm），任何斜度都會撞到相鄰層 / 頂底板，斜放本次不套用。建議減少層板數或加高櫃高。`,
+      ]);
+      tiltRad = 0;
+    } else if (tiltRad > maxTiltRad) {
+      const cappedDeg = Math.max(1, Math.floor((maxTiltRad * 180) / Math.PI));
+      appendWarnings(design, [
+        `斜放角度從 ${angledRackTilt}° 自動降到 ${cappedDeg}°（避免層板溢出鄰層 / 頂底板）。要更斜：減少層板數或加高櫃高。`,
+      ]);
+      tiltRad = maxTiltRad;
+    }
     const battenT = 20; // 止擋條截面深度（front-back）
     const battenH = 25; // 止擋條截面高度（vertical）
     const shelfIdsHit: string[] = [];
@@ -180,6 +200,8 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     for (const part of design.parts) {
       const isInternalShelf = /-shelf-\d+$/.test(part.id);
       if (!isInternalShelf) continue;
+      // tiltRad=0 表示自動 cap 後沒得斜（層板太密）→ skip 整片，但已 warn
+      if (tiltRad === 0) continue;
       // rake：負值讓前緣（-Z 方向）下沉
       part.rotation = { x: -tiltRad, y: 0, z: 0 };
       part.nameZh = part.nameZh.replace("層板", "斜放鞋板");
