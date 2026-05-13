@@ -143,6 +143,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     );
   }
 
+  const uiV2 = (Array.isArray(sp.ui) ? sp.ui[0] : sp.ui) === "v2";
+
   const parsed = parseDesignSearchParams(sp, entry);
   const { material, options, joineryMode } = parsed;
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
@@ -218,6 +220,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const printQuery = designParamsToQuery(parsed, entry);
 
   return (
+    <>
+    <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
       <Link href="/" className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 hover:underline">
         <span>←</span> 回家具列表
@@ -474,6 +478,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </details>
     </main>
+    </div>
+    {uiV2 && (
+      <div className="md:hidden">
+        <div className="p-4 text-center text-zinc-500">MobileShell placeholder — coming soon</div>
+      </div>
+    )}
+    </>
   );
 }
 
