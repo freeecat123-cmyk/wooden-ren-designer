@@ -242,14 +242,10 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   }
 
   const designUrl = `/design/${entry.category}`;
-  const baseQuoteParams = new URLSearchParams({
-    length: String(length),
-    width: String(width),
-    height: String(height),
-    material,
-  });
-  const quoteUrl = `${designUrl}/quote?${baseQuoteParams.toString()}`;
-  const cutPlanUrl = `${designUrl}/cut-plan?${baseQuoteParams.toString()}`;
+  // printQuery 已用 designParamsToQuery 序列化所有 optionValues（layoutMode / doorType / etc.）
+  // 舊 baseQuoteParams 只帶 4 個基本參數，會讓報價頁全部 fallback 預設值，金額錯誤。
+  const quoteUrl = `${designUrl}/quote?${printQuery.toString()}`;
+  const cutPlanUrl = `${designUrl}/cut-plan?${printQuery.toString()}`;
   const printUrl = `${quoteUrl}&print=1`;
   const lineShareText = `木頭仁設計：${entry.nameZh} ${length}×${width}×${height}mm`;
 
