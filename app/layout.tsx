@@ -113,7 +113,7 @@ export default async function RootLayout({
           {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
           <StudentExpiryNotice />
           {/* 全站固定右上角浮動的登入狀態 widget，不干擾既有 per-page header */}
-          <div className="fixed top-4 right-4 z-40">
+          <div className="hidden md:block fixed top-4 right-4 z-40">
             <HeaderUser />
           </div>
           {children}
