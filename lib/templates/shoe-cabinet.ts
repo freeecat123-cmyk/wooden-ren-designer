@@ -64,7 +64,6 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
   backPanelMaterialOption("structure"),
-  { group: "structure", type: "checkbox", key: "withTopSeatCushion", label: "頂面加坐墊（穿鞋椅）", defaultValue: false, help: "頂面加 30mm 厚軟墊布套，玄關直接坐著穿鞋", wide: true },
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。勾選後會自動把類型補成「開放層板」、數量補到 ≥ 2。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
@@ -81,7 +80,6 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const doorMount = resolveDoorMount(input, o);
   const drawerMount = resolveDrawerMount(input, o);
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const withTopSeatCushion = getOption<boolean>(input, opt(o, "withTopSeatCushion"));
   const angledRack = getOption<boolean>(input, opt(o, "angledRack"));
   const angledRackTilt = getOption<number>(input, opt(o, "angledRackTilt"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
@@ -160,7 +158,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${withTopSeatCushion ? "頂面加 30mm 厚海綿坐墊 + 布套（魔鬼氈固定），玄關穿鞋椅功能。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
@@ -178,20 +176,6 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       dp.mortises = newM;
     }
   }
-  // 頂面坐墊：加一片軟墊 Part（薄板代表）
-  if (withTopSeatCushion) {
-    design.parts.push({
-      id: "seat-cushion",
-      nameZh: "頂面坐墊",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: input.length - 20, width: input.width - 20, thickness: 30 },
-      origin: { x: 0, y: input.height + 15, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
   // 斜放鞋格：將收納區的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
   // 單一 zone：所有 z1-shelf-N 都套用
