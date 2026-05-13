@@ -2561,7 +2561,7 @@ export function OrthoView({
                   x={w / 2 + 140}
                   y1={-legHeight}
                   y2={drawAreaTop + h}
-                  label={`腳 ${Math.round(legHeight)}`}
+                  label={`腳 ${Math.round(legHeight)} mm`}
                 />
               )}
             </>
