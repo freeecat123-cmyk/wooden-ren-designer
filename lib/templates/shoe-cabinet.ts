@@ -34,9 +34,9 @@ import {
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
-    // 兩段式鞋櫃：上層開放單格（鑰匙小物，topCount=0=不分層避免高度 116mm 偏矮警告）
+    // 兩段式鞋櫃：上層開放層板（topCount=2 = 1 片內部層板，一勾斜放就看得到效果）
     // 下層門板藏鞋（bottomCount=2 = 3 格鞋區，每格 ~188mm 一般鞋夠用）；無中層
-    topType: "shelves", topHeight: 250, topCount: 0,
+    topType: "shelves", topHeight: 250, topCount: 2,
     midType: "none", midCount: 0,
     bottomType: "door", bottomHeight: 600, bottomCount: 2,
   }, false, { skipMid: true }),
