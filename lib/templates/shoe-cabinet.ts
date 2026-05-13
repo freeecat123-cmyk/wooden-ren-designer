@@ -37,7 +37,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "number", key: "topCount", label: "數量", defaultValue: 2, min: 1, max: 8, step: 1, help: "門板=扇數 / 抽屜=排數 / 開放層板=層數（1=空櫃、2=1 片中板、3=2 片中板…）" },
   { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
-  { group: "structure", type: "number", key: "topDoorShelves", label: "門內層板數", defaultValue: 1, min: 0, max: 6, step: 1, help: "門關起來時內藏的層板數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
+  { group: "structure", type: "number", key: "topDoorShelves", label: "門內層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "門關起來時內藏的層板數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
