@@ -70,9 +70,22 @@ export function DesignFormShell({
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLFormElement>) => {
     clearTimeout(timerRef.current);
-    // text/number inputs 等 blur 或 Enter 才送，避免打字到一半被 clamp 打斷
-    if (isInputFocused(e.target)) return;
-    // checkbox / select / radio 仍維持 short debounce
+    const target = e.target;
+    // 數字 input：區分 spinner ▲▼ 點擊 vs 鍵盤輸入。
+    // - 鍵盤輸入：InputEvent.inputType = "insertText" / "deleteContentBackward" 等
+    // - spinner 點擊：inputType 為 ""（empty string）
+    // 手打維持等 blur/Enter（避免「1500」打到「1」就被 clamp 到 min）；
+    // spinner 走 200ms debounce 立即送（連按也只送一次最終值）。
+    if (target instanceof HTMLInputElement && target.type === "number") {
+      const native = e.nativeEvent;
+      const isTyping = native instanceof InputEvent && native.inputType !== "";
+      if (isTyping) return;
+      timerRef.current = setTimeout(pushURL, 200);
+      return;
+    }
+    // text inputs 等 blur 或 Enter 才送
+    if (isInputFocused(target)) return;
+    // checkbox / select / radio 維持 short debounce
     timerRef.current = setTimeout(pushURL, 200);
   }, [pushURL]);
 
