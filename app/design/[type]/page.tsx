@@ -25,7 +25,6 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
-import { ShoeCabinetCoupling } from "@/components/design/ShoeCabinetCoupling";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { XrayToggle } from "@/components/XrayToggle";
@@ -650,7 +649,6 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      {type === "shoe-cabinet" && <ShoeCabinetCoupling />}
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />

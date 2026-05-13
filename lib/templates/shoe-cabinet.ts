@@ -89,14 +89,19 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
   let zoneCount = getOption<number>(input, opt(o, "topCount"));
   const zoneCols = getOption<number>(input, opt(o, "topCols"));
-  const doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
+  let doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
   const warnings: string[] = [];
-  // 斜放鞋格只在類型=shelves 時生效（option 已 dependsOn 隱藏其他情況）；
-  // 仍需補強「數量 < 2 = 空櫃沒層板可斜」→ 自動補到 2 並 warn
-  const angledRackActive = angledRack && zoneType === "shelves";
-  if (angledRackActive && zoneCount < 2) {
+  // 斜放鞋格：對開放層板 / 門內藏層板都生效（門板 + 斜板 = 玄關穿鞋櫃常見做法）。
+  // 抽屜不適用（抽屜沒有層板可斜）。
+  const angledRackActive =
+    angledRack && (zoneType === "shelves" || zoneType === "door");
+  if (angledRackActive && zoneType === "shelves" && zoneCount < 2) {
     warnings.push(`已套用斜放鞋格，自動將數量從 ${zoneCount} 補到 2（1 層 = 空櫃，沒有層板可斜放）。`);
     zoneCount = 2;
+  }
+  if (angledRackActive && zoneType === "door" && doorInnerShelves < 2) {
+    warnings.push(`已套用斜放鞋格，門內層板數從 ${doorInnerShelves} 補到 2（沒層板沒得斜）。`);
+    doorInnerShelves = 2;
   }
   const zones: CabinetZone[] = [
     {
@@ -177,13 +182,16 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     //   sinθ ≤ (layerH - 3*panelT) / shelfD
     const shelfDApprox =
       design.parts.find((p) => /-shelf-\d+$/.test(p.id))?.visible.width ?? input.width;
-    const layerH = innerH / zoneCount;
+    // shelves zone: layers = zoneCount；door zone（門內藏層板）: layers = doorInnerShelves + 1
+    const shelfLayerCount =
+      zoneType === "door" ? doorInnerShelves + 1 : zoneCount;
+    const layerH = innerH / shelfLayerCount;
     const maxSinT = Math.max(0, (layerH - 3 * panelThickness) / shelfDApprox);
     const maxTiltRad = Math.asin(Math.min(1, maxSinT));
     let tiltRad = (angledRackTilt * Math.PI) / 180;
     if (maxTiltRad < 0.05) {
       appendWarnings(design, [
-        `層板太密（${zoneCount} 層 × 板深 ${Math.round(shelfDApprox)}mm），任何斜度都會撞到相鄰層 / 頂底板，斜放本次不套用。建議減少層板數或加高櫃高。`,
+        `層板太密（${shelfLayerCount} 層 × 板深 ${Math.round(shelfDApprox)}mm），任何斜度都會撞到相鄰層 / 頂底板，斜放本次不套用。建議減少層板數或加高櫃高。`,
       ]);
       tiltRad = 0;
     } else if (tiltRad > maxTiltRad) {
