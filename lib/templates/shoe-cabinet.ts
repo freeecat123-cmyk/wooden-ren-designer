@@ -65,10 +65,17 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
-  ...toeKickOptions("structure"),
-  ...crownMoldingOptions("structure"),
+  ...toeKickOptions("structure", { hidden: false }),
+  ...crownMoldingOptions("structure", { hidden: false }),
   backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "withTopSeatCushion", label: "頂面加坐墊（穿鞋椅）", defaultValue: false, help: "頂面加 30mm 厚軟墊布套，玄關直接坐著穿鞋", wide: true },
+  { group: "structure", type: "select", key: "angledRack", label: "斜放鞋格區段", defaultValue: "none", choices: [
+    { value: "none", label: "不使用（一般水平層板）" },
+    { value: "top", label: "上層改斜放（適合常穿鞋一目了然）" },
+    { value: "bottom", label: "下層改斜放" },
+    { value: "all", label: "上下都改斜放" },
+  ], help: "傳統鞋櫃做法：層板前低後高，鞋頭外露好拿取。需要該區段「類型=開放層板」且層數 ≥ 2 才會生效。" },
+  { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", notIn: ["none"] } },
   pullStyleOption("door"),
 ];
 
@@ -89,6 +96,8 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const withTopSeatCushion = getOption<boolean>(input, opt(o, "withTopSeatCushion"));
+  const angledRack = getOption<string>(input, opt(o, "angledRack"));
+  const angledRackTilt = getOption<number>(input, opt(o, "angledRackTilt"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
@@ -157,6 +166,117 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       tenons: [],
       mortises: [],
     });
+  }
+
+  // 踢腳板：底部前緣加一條向後內凹的板，腳趾不撞櫃。需要 legHeight = 0
+  // （腳款若 plinth/panel-side 自身就有底，再加踢腳板會重複，故跳過）。
+  if (withToeKick && legHeight === 0 && legShape !== "plinth" && legShape !== "panel-side") {
+    const toeKickPlateT = 12; // 踢腳板厚度（plywood / pine 薄板皆可）
+    design.parts.push({
+      id: "toe-kick",
+      nameZh: "踢腳板",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length, width: toeKickPlateT, thickness: toeKickHeight },
+      // 沿前緣內凹 toeKickRecess mm，板厚 toeKickPlateT，置於離地 0 ~ toeKickHeight
+      origin: {
+        x: 0,
+        y: toeKickHeight / 2,
+        z: -input.width / 2 + toeKickRecess + toeKickPlateT / 2,
+      },
+      tenons: [],
+      mortises: [],
+    });
+  } else if (withToeKick && legHeight > 0) {
+    appendWarnings(design, [
+      `已勾選踢腳板但底座腳高 ${legHeight}mm > 0：踢腳板會與底座腳重複，請將底座腳高設為 0。`,
+    ]);
+  }
+
+  // 頂部冠飾線：頂面外圍加 4 條外伸線板（前/後/左/右）。截面 H 高 × 外伸 P 厚。
+  // 高度暫用 40mm（標準冠飾線常見尺寸），靠近 ogee/cove profile 視覺感
+  if (withCrownMolding) {
+    const crownH = 40;
+    const P = crownProjection;
+    const topY = input.height + crownH / 2;
+    const crownParts: Array<{
+      id: string;
+      nameZh: string;
+      length: number;
+      width: number;
+      x: number;
+      z: number;
+    }> = [
+      { id: "crown-front", nameZh: "冠飾線（前）", length: input.length + 2 * P, width: P, x: 0, z: -input.width / 2 - P / 2 },
+      { id: "crown-back", nameZh: "冠飾線（後）", length: input.length + 2 * P, width: P, x: 0, z: input.width / 2 + P / 2 },
+      { id: "crown-left", nameZh: "冠飾線（左）", length: P, width: input.width, x: -input.length / 2 - P / 2, z: 0 },
+      { id: "crown-right", nameZh: "冠飾線（右）", length: P, width: input.width, x: input.length / 2 + P / 2, z: 0 },
+    ];
+    for (const cp of crownParts) {
+      design.parts.push({
+        id: cp.id,
+        nameZh: cp.nameZh,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: cp.length, width: cp.width, thickness: crownH },
+        origin: { x: cp.x, y: topY, z: cp.z },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // 斜放鞋格：將指定 zone 的層板向前傾斜（rake = rotation.x），前緣下沉，
+  // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
+  // 鞋櫃 zones：z1 = 下層 (bottom)、z2 = 上層 (top)
+  if (angledRack !== "none") {
+    const tiltRad = (angledRackTilt * Math.PI) / 180;
+    const targetPrefixes =
+      angledRack === "all" ? ["z1", "z2"]
+      : angledRack === "top" ? ["z2"]
+      : angledRack === "bottom" ? ["z1"]
+      : [];
+    const battenT = 20; // 止擋條截面深度（front-back）
+    const battenH = 25; // 止擋條截面高度（vertical）
+    const shelfIdsHit: string[] = [];
+    const tiltedParts: typeof design.parts = [];
+    for (const part of design.parts) {
+      const inTarget = targetPrefixes.some((p) => part.id.startsWith(`${p}-`));
+      const isInternalShelf = /-shelf-\d+$/.test(part.id);
+      if (!inTarget || !isInternalShelf) continue;
+      // rake：負值讓前緣（-Z 方向）下沉
+      part.rotation = { x: -tiltRad, y: 0, z: 0 };
+      part.nameZh = part.nameZh.replace("層板", "斜放鞋板");
+      shelfIdsHit.push(part.id);
+      tiltedParts.push(part);
+    }
+    // 為每片斜板配一條前緣止擋條（綁在斜板前緣 + 同樣傾斜）
+    for (const shelf of tiltedParts) {
+      design.parts.push({
+        id: `${shelf.id}-stop`,
+        nameZh: `${shelf.nameZh} 止擋條`,
+        material: input.material,
+        grainDirection: "length",
+        visible: { length: shelf.visible.length, width: battenT, thickness: battenH },
+        // 沿層板局部座標：前緣 = -width/2 → 換算回世界座標需扣除斜板自身傾斜
+        // 簡化做法：止擋條也套同樣 rotation.x，origin 放在 shelf 前緣上方
+        origin: {
+          x: shelf.origin.x,
+          y: shelf.origin.y + shelf.visible.thickness / 2 + battenH / 2,
+          z: shelf.origin.z - shelf.visible.width / 2 + battenT / 2,
+        },
+        rotation: { x: -tiltRad, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    if (shelfIdsHit.length === 0) {
+      appendWarnings(design, [
+        `斜放鞋格已勾選但所選區段沒有層板可斜放：請將該區段「類型」設為「開放層板」且「數量 ≥ 2」。`,
+      ]);
+    } else {
+      design.notes = `${design.notes ?? ""} 斜放鞋格 ${angledRackTilt}°：${shelfIdsHit.length} 片層板前緣下沉，前緣加 ${battenT}×${battenH}mm 止擋條。`.trim();
+    }
   }
 
   applyStandardChecks(design, {

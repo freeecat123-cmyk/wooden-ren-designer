@@ -537,7 +537,9 @@ const HIDDEN_DEP = { key: "__hidden", equals: "__yes" } as const;
 
 /** 踢腳板（toe kick）—— 底部往內凹一段讓腳趾不撞櫃面，地櫃必備
  *  withToeKick = false 時 toeKickHeight/Recess 不生效 */
-export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
+export function toeKickOptions(group: OptionGroup = "structure", opts: { hidden?: boolean } = {}): OptionSpec[] {
+  const hide = opts.hidden ?? true;
+  const dep = hide ? HIDDEN_DEP : { key: "withToeKick", equals: true };
   return [
     {
       group,
@@ -545,9 +547,9 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       key: "withToeKick",
       label: "踢腳板（toe kick）",
       defaultValue: false,
-      help: "底部前緣內凹一段，腳趾不會撞櫃面",
+      help: "底部前緣內凹一段，腳趾不會撞櫃面；需要腳高 = 0 且腳款 ≠ 平台底座/側板延伸落地",
       wide: true,
-      dependsOn: HIDDEN_DEP,
+      dependsOn: hide ? HIDDEN_DEP : undefined,
     },
     {
       group,
@@ -558,7 +560,7 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       min: 50,
       max: 150,
       step: 10,
-      dependsOn: HIDDEN_DEP,
+      dependsOn: dep,
     },
     {
       group,
@@ -569,7 +571,7 @@ export function toeKickOptions(group: OptionGroup = "structure"): OptionSpec[] {
       min: 30,
       max: 100,
       step: 5,
-      dependsOn: HIDDEN_DEP,
+      dependsOn: dep,
     },
   ];
 }
@@ -581,7 +583,8 @@ export function toeKickNote(withToeKick: boolean, h: number, r: number): string 
 
 /** 冠飾線（crown molding）—— 頂部裝飾線條，傳統櫃常見
  *  影響 notes 與 3D（加一條沿頂部的薄條）。3D 渲染待加。 */
-export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpec[] {
+export function crownMoldingOptions(group: OptionGroup = "structure", opts: { hidden?: boolean } = {}): OptionSpec[] {
+  const hide = opts.hidden ?? true;
   return [
     {
       group,
@@ -589,8 +592,9 @@ export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpe
       key: "withCrownMolding",
       label: "頂部冠飾線",
       defaultValue: false,
+      help: "頂部加一圈外伸線板，傳統櫃常見裝飾",
       wide: true,
-      dependsOn: HIDDEN_DEP,
+      dependsOn: hide ? HIDDEN_DEP : undefined,
     },
     {
       group,
@@ -601,7 +605,7 @@ export function crownMoldingOptions(group: OptionGroup = "structure"): OptionSpe
       min: 15,
       max: 80,
       step: 5,
-      dependsOn: HIDDEN_DEP,
+      dependsOn: hide ? HIDDEN_DEP : { key: "withCrownMolding", equals: true },
     },
   ];
 }
