@@ -1862,7 +1862,7 @@ export function PerspectiveView({
   /** 選中的零件 id（從外部 context 進來），對應 part.id 會多一層黃色 wireframe 高亮 */
   selectedPartId?: string | null;
   /** 點擊零件時呼叫，傳回 part.id 給外部 context（雙向高亮：3D ↔ 零件清單） */
-  onPartSelect?: (id: string) => void;
+  onPartSelect?: (id: string | null) => void;
   /** 緊湊模式：外層 wrapper 用 w-full h-full 跟著父容器（PIP 用），不用預設 40vh / 520px */
   compactMode?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
@@ -2012,6 +2012,10 @@ export function PerspectiveView({
       <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas
         shadows
+        // 點到家具零件之外的空白處（場景空地、grid）→ 清掉 selectedPartId
+        // 不接 onClick 因為 OrbitControls 拖動結束會 fire click。
+        // onPointerMissed 是 R3F 提供：pointer up 沒打到任何 mesh 才 fire。
+        onPointerMissed={onPartSelect ? () => onPartSelect(null) : undefined}
         // frameloop="always" 確保 selectedPartId / dim opacity 變化即時反映
         // （之前 demand 模式有 race condition：material prop 變更但 invalidate
         //  時 GPU 還沒收到 → 透明效果失效）。代價：scroll 時 3D 持續渲染
