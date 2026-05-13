@@ -22,7 +22,9 @@ export function SiteFooter() {
           <span aria-hidden>·</span>
           <a href="/privacy" className="hover:underline">隱私權政策</a>
           <span aria-hidden>·</span>
-          <a href="mailto:wengbinren@gmail.com" className="hover:underline">聯絡我們</a>
+          <a href="/refund" className="hover:underline">退費政策</a>
+          <span aria-hidden>·</span>
+          <a href="/contact" className="hover:underline">聯絡我們</a>
         </div>
         <div className="mt-2 font-mono text-[10px] text-zinc-400">
           build {sha} · {env}
