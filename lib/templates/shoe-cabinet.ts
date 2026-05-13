@@ -42,6 +42,16 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
   { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
   { group: "structure", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空）。勾斜放鞋格時這裡 ≥ 1 才看得到斜板。", dependsOn: { key: "topType", equals: "door" } },
+  // 上層收納區（鞋櫃常見「下大門 + 上抽屜」配置）：高度 0 = 不加上層
+  { group: "structure", type: "number", key: "upperHeight", label: "上層高度 (mm)", defaultValue: 220, min: 0, max: 600, step: 10, help: "0=不加上層；建議 180~260mm 給薄抽屜或小物收納" },
+  { group: "structure", type: "select", key: "upperType", label: "上層類型", defaultValue: "drawer", choices: [
+    { value: "drawer", label: "抽屜" },
+    { value: "door", label: "門板" },
+    { value: "shelves", label: "開放層板" },
+  ], dependsOn: { key: "upperHeight", notIn: [0] } },
+  { group: "structure", type: "number", key: "upperCount", label: "上層 數量", defaultValue: 1, min: 1, max: 4, step: 1, help: "抽屜=排數 / 門=扇數 / 層板=層數", dependsOn: { key: "upperHeight", notIn: [0] } },
+  { group: "structure", type: "number", key: "upperCols", label: "上層 列數（左右分）", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "upperHeight", notIn: [0] }, { key: "upperType", equals: "drawer" }] } },
+  { group: "structure", type: "number", key: "upperDoorShelves", label: "上層 門後藏層板數", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "upperHeight", notIn: [0] }, { key: "upperType", equals: "door" }] } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
@@ -88,12 +98,23 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const angledRackTilt = getOption<number>(input, opt(o, "angledRackTilt"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
 
-  const innerH = input.height - legHeight - 2 * panelThickness;
-  // 單一收納區（不分上下層）：吃 topType/topCount/topCols/topDoorShelves
+  // 主（下）收納區：吃 topType/topCount/topCols/topDoorShelves
   const zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
   let zoneCount = getOption<number>(input, opt(o, "topCount"));
   const zoneCols = getOption<number>(input, opt(o, "topCols"));
   const doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
+  // 上層收納區：upperHeight=0 = 不加；> 0 才 build zone
+  const upperHeight = getOption<number>(input, opt(o, "upperHeight"));
+  const upperType = getOption<string>(input, opt(o, "upperType")) as CabinetZone["type"];
+  const upperCount = getOption<number>(input, opt(o, "upperCount"));
+  const upperCols = getOption<number>(input, opt(o, "upperCols"));
+  const upperDoorShelves = getOption<number>(input, opt(o, "upperDoorShelves"));
+  const hasUpper = upperHeight > 0;
+  // 雙 zone 時中間多一片 boundary 板（caseFurniture 自動加），佔 panelThickness 高
+  const innerHTotal = input.height - legHeight - 2 * panelThickness;
+  const mainHeight = hasUpper ? innerHTotal - upperHeight - panelThickness : innerHTotal;
+  // 後面 cap tilt 算 layerH 用「實際給 shelf 的那塊 zone 高」，不是整個 innerH
+  const innerH = mainHeight;
   const warnings: string[] = [];
   // 斜放鞋格：對開放層板 / 門內藏層板都生效（門板 + 斜板 = 玄關穿鞋櫃常見做法）。
   // 抽屜不適用（抽屜沒有層板可斜）。
@@ -108,26 +129,47 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   if (angledRackActive && zoneType === "door" && doorInnerShelves === 0) {
     warnings.push(`勾了斜放鞋格但「門後藏層板數」為 0 → 沒層板可斜。要看斜板請把「門後藏層板數」設 ≥ 1。`);
   }
+  // zones bottom-up: zones[0]=主（下）區，zones[1]=上層（hasUpper 才加）
   const zones: CabinetZone[] = [
     {
       type: zoneType,
-      heightMm: innerH,
+      heightMm: mainHeight,
       count: zoneCount,
       cols: zoneCols,
       doorInnerShelves,
     },
   ];
+  if (hasUpper) {
+    zones.push({
+      type: upperType,
+      heightMm: upperHeight,
+      count: upperCount,
+      cols: upperCols,
+      doorInnerShelves: upperDoorShelves,
+    });
+  }
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const typeLabel =
-    zoneType === "shelves"
-      ? `${zoneCount} 層開放層板（${Math.max(0, zoneCount - 1)} 片內部層板）`
-      : zoneType === "drawer"
-        ? `${zoneCount}×${zoneCols} 抽屜`
-        : zoneType === "door"
-          ? `${zoneCount} 扇${doorLabel}門${doorInnerShelves > 0 ? `（內藏 ${doorInnerShelves} 片層板）` : ""}`
+  const describeZone = (
+    t: CabinetZone["type"],
+    count: number,
+    cols: number,
+    innerShelves: number,
+  ) =>
+    t === "shelves"
+      ? `${count} 層開放層板（${Math.max(0, count - 1)} 片中板）`
+      : t === "drawer"
+        ? `${count}×${cols} 抽屜`
+        : t === "door"
+          ? `${count} 扇${doorLabel}門${innerShelves > 0 ? `（內藏 ${innerShelves} 片層板）` : ""}`
           : "空櫃";
-  const notesLine = `單格收納：${typeLabel}`;
+  const mainLabel = describeZone(zoneType, zoneCount, zoneCols, doorInnerShelves);
+  const upperLabel = hasUpper
+    ? describeZone(upperType, upperCount, upperCols, upperDoorShelves)
+    : "";
+  const notesLine = hasUpper
+    ? `下層：${mainLabel}；上層：${upperLabel}`
+    : `單格收納：${mainLabel}`;
 
   const design = caseFurniture({
     category: "shoe-cabinet",
