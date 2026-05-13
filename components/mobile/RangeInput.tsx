@@ -41,40 +41,8 @@ export function RangeInput({
   }, [editing]);
 
   return (
-    <div className="flex flex-col gap-1.5 text-sm" title={help}>
-      <div className="flex items-center justify-between">
-        <span className="text-zinc-700 font-medium">{label}</span>
-        {editing ? (
-          <input
-            ref={inputRef}
-            type="number"
-            name={name}
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            onChange={(e) => setValue(Number(e.target.value))}
-            onBlur={() => setEditing(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                setEditing(false);
-              }
-            }}
-            className="w-20 text-right border-b-2 border-violet-500 px-1 py-0.5 font-mono tabular-nums"
-            inputMode="numeric"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="min-h-[44px] min-w-[64px] px-3 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900"
-          >
-            {value}
-            <span className="text-zinc-500 text-xs ml-1">{unit}</span>
-          </button>
-        )}
-      </div>
+    <div className="flex items-center gap-3 text-sm" title={help}>
+      <span className="text-zinc-700 font-medium shrink-0 w-8">{label}</span>
       <input
         type="range"
         min={min}
@@ -82,8 +50,38 @@ export function RangeInput({
         step={step}
         value={value}
         onChange={(e) => setValue(Number(e.target.value))}
-        className="w-full accent-violet-600 h-6 cursor-grab"
+        className="flex-1 accent-violet-600 h-6 cursor-grab"
       />
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          name={name}
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          onChange={(e) => setValue(Number(e.target.value))}
+          onBlur={() => setEditing(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setEditing(false);
+            }
+          }}
+          className="w-16 text-right border-b-2 border-violet-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
+          inputMode="numeric"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="shrink-0 min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
+        >
+          {value}
+          <span className="text-zinc-500 ml-0.5">{unit}</span>
+        </button>
+      )}
       {!editing && (
         <input type="hidden" name={name} value={value} />
       )}

@@ -103,17 +103,17 @@ export function MobileShell(props: MobileShellProps) {
           <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
         </div>
 
-        <div className="rounded-lg bg-white p-4 border border-zinc-200 space-y-4">
-          <div className="grid grid-cols-1 gap-4">
+        <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
+          <div className="space-y-1.5">
             <RangeInput name="length" label="長" defaultValue={length} min={200} max={lMax} step={10} />
             <RangeInput name="width" label="寬" defaultValue={width} min={200} max={wMax} step={10} />
             <RangeInput name="height" label="高" defaultValue={height} min={200} max={hMax} step={10} />
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-700 font-medium">材料</span>
+            <label className="flex items-center gap-3 text-sm pt-1">
+              <span className="text-zinc-700 font-medium shrink-0 w-8">材料</span>
               <select
                 name="material"
                 defaultValue={material}
-                className="min-h-[44px] border border-zinc-300 rounded-md px-3 py-2 bg-white text-zinc-900 text-base"
+                className="flex-1 min-h-[36px] border border-zinc-300 rounded-md px-2 py-1 bg-white text-zinc-900 text-sm"
               >
                 {Object.entries(MATERIALS).map(([id, m]) => (
                   <option key={id} value={id}>{m.nameZh}</option>
