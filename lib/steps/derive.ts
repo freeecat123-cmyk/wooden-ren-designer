@@ -88,7 +88,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
 
   const hasDrawer = design.parts.some((p) => /(?:^|-)drawer/.test(p.id) && /front|side|back|bottom/.test(p.id));
   const hasDoor = design.parts.some((p) => /door|panel/.test(p.id));
-  const hasBack = design.parts.some((p) => p.id === "back-panel" || /^back-/.test(p.id));
+  const hasBack = design.parts.some((p) => p.id === "back-panel" || p.id === "back" || /^back-/.test(p.id));
   const hasShelves = design.parts.some((p) => /shelf|shelves/.test(p.id));
   const hasUpperApron = design.parts.some((p) => /apron|stretcher/.test(p.id));
   const isRoundTop = design.parts.some((p) => p.shape?.kind === "round" && /top|seat/.test(p.id));
@@ -656,6 +656,30 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
       "塗裝表面摸起來絲滑無顆粒、無漏塗區域",
     ].filter(Boolean),
   });
+
+  // ---------------------------------------------------------------------------
+  // Cabinet family sizeFactor — 工時隨長度線性放大
+  // baseline: length=1200mm → sizeFactor=1.0
+  // clamp [0.7, 2.5] 避免極端值
+  //
+  // 套用對象：切料、砂磨、膠合等隨尺寸增加的工序
+  // 不套用：裝門板(step-18)、裝抽屜(step-19) — 這兩步已按 zone 件數自然增加
+  // ---------------------------------------------------------------------------
+  if (family === "cabinet") {
+    const rawFactor = design.overall.length / 1200;
+    const sizeFactor = Math.min(2.5, Math.max(0.7, rawFactor));
+    // Step IDs that scale with cabinet size (cut + sand + glue + fit)
+    const cabinetScaledPhases: StepPhase[] = ["cut-stock", "sand", "glue", "fit"];
+    // Exclude door/drawer hardware fitting steps (they scale with zone count)
+    const excludedIds = new Set(["step-18-hinges", "step-19-drawer-slide"]);
+    for (const s of steps) {
+      if (!s.estimatedMinutes) continue;
+      if (excludedIds.has(s.id)) continue;
+      if (cabinetScaledPhases.includes(s.phase)) {
+        s.estimatedMinutes = Math.max(5, Math.round(s.estimatedMinutes * sizeFactor));
+      }
+    }
+  }
 
   // 小物件（accessory）整體工時調整。實做經驗：筆筒/書擋這種「真小物件」
   // 1-2 小時就能做完，跟櫃子用同一套估工時極不合理。分兩段套：
