@@ -2039,10 +2039,11 @@ export function PerspectiveView({
           // distance ≈ sqrt(1.8² + 1.4² + 2.0²) ≈ 3.03 × maxDim
           // → fov 38° 視野垂直容得下 ~2.08 × maxDim 物高，留 4% 邊距
           //
-          // compactMode（手機 220px 高 canvas）：距離 ×1.35，y 提高 1.6→1.9 讓
-          // 視線多斜俯，整件家具往上靠（zoom out + 上移）
+          // compactMode（手機 220px 高 canvas）：距離 ×1.1，比桌面略遠避免邊緣
+          // 切到，但保持家具夠大；target Y=thickness/3（在 OrbitControls 設）
+          // 讓家具中心點往畫面上方推一點
           position: compactMode
-            ? [maxDim * 2.4, maxDim * 1.9, -maxDim * 2.7]
+            ? [maxDim * 2.0, maxDim * 1.55, -maxDim * 2.2]
             : [maxDim * 1.8, maxDim * 1.4, -maxDim * 2.0],
           fov: 38,
         }}
