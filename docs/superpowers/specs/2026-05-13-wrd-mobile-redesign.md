@@ -46,7 +46,7 @@
 ### L1 · 主表單（無需點開）
 - 3D viewer（max 280px，可 swipe 三狀態：60px mini / 280px 預設 / 全螢幕）
 - 風格 chip 橫滑列（8 preset）
-- 長 × 寬 × 高（3 number inputs，inputmode=numeric）
+- 長 × 寬 × 高（雙模式 RangeInput — 滑桿 + 數字 chip，拖快速 / 點 chip 叫鍵盤精準）
 - 材料 dropdown
 - `💾 儲存` · `⚙ 進階設定`
 
@@ -109,17 +109,32 @@ URL 不變。同 URL 兩種 render，CSS 切換：
 - `components/mobile/AdvancedSheet.tsx` — L3 4-tab 全螢幕 sheet
 - `components/mobile/QuoteSheet.tsx` — 報價 sheet（包現有 quote 頁邏輯）
 - `components/mobile/CutPlanSheet.tsx` — 裁切 sheet
+- `components/mobile/RangeInput.tsx` — 雙模式滑桿 + 數字 chip（取代 number input）
 - `components/mobile/ViewerSizeToggle.tsx` — 3D 三狀態切換（phase 3）
 - `hooks/useKeyboardAware.ts` — visualViewport API 偵測鍵盤（phase 3）
+
+#### RangeInput 規範
+- 連續參數（長/寬/高/腳粗/牙板寬厚）：滑桿 + chip
+  - 長/寬/高 snap 10mm，接近 50/100 mm 整數自動吸附
+  - 腳粗 / 牙板 snap 2mm
+  - 角度 snap 0.5°
+- 整數參數（抽屜數/層數）：stepper ＋−
+- 離散選項（材料/風格/工法）：chip 橫滑列
+- boolean：switch toggle
+- 拖滑桿時 3D 跟著動（透過現有 URL state debounce 200ms）
+- 點 chip 叫鍵盤精準輸入（沿用 DesignFormShell blur/Enter 邏輯）
+- 長按滑桿顯示 min/max tooltip
+- 用 `react-aria` 的 `useSlider` 確保 accessibility（鍵盤箭頭、screen reader）
 
 ## 漸進切換 — Phase 1–4
 
 ### Phase 1 · MVP
 - 新建 MobileShell + StickyBottomBar + CollapsibleSection
+- 新建 RangeInput（雙模式滑桿 + chip），全 mobile 數值欄位用它
 - L0/L1/L2 落地，3D 固定 280px（不做 swipe）
 - L3 AdvancedSheet 4 tab
 - Feature flag `?ui=v2` opt-in
-- **驗收**：`/design/stool?ui=v2` 在 390×844 一頁可完成「看 3D / 改尺寸 / 看價 / 開進階」全流程
+- **驗收**：`/design/stool?ui=v2` 在 390×844 一頁可完成「看 3D / 拖滑桿改尺寸 / 看價 / 開進階」全流程，且全程不用打鍵盤就能調 50% 以上場景
 
 ### Phase 2 · 整合 quote / cut-plan sheet
 - QuoteSheet + CutPlanSheet 落地，從 L0 / L4 開
@@ -144,6 +159,8 @@ URL 不變。同 URL 兩種 render，CSS 切換：
 - [ ] 進階設定點開可改腳/牙板/榫卯，關閉回主表單
 - [ ] 觸控按鈕全部 ≥ 44px，字級全部 ≥ 12px
 - [ ] sticky bottom bar 一直顯示 NT$ 總價
+- [ ] **拖滑桿可改長/寬/高/腳粗，3D 即時跟著動**
+- [ ] **點 chip 開鍵盤可精準輸入**
 - [ ] desktop 版（≥ 768px）行為完全不變
 
 ### Phase 2 驗收
