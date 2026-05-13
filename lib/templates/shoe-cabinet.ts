@@ -273,20 +273,33 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       shelfIdsHit.push(part.id);
       tiltedParts.push(part);
     }
-    // 為每片斜板配一條前緣止擋條（綁在斜板前緣 + 同樣傾斜）
+    // 為每片斜板配一條前緣止擋條：跟斜板共平面 + 同樣 rotation。
+    // 在斜板局部座標：batten 中心在 (0, +t/2 + bh/2, -w/2 + bt/2)
+    //   = 「板的頂面、前緣往內 bt/2」 ← 止擋條坐在板上、前緣對齊
+    // 因為板有 rotation.x = -tiltRad，世界座標下這個偏移要也套同 rotation 才會
+    // 真的「黏在板上」。否則止擋條只是在原本水平位置，不會跟板一起傾斜。
+    const cosT = Math.cos(tiltRad);
+    const sinT = Math.sin(tiltRad);
     for (const shelf of tiltedParts) {
+      const yLocal = shelf.visible.thickness / 2 + battenH / 2;
+      const zLocal = -shelf.visible.width / 2 + battenT / 2;
+      // rotation.x = -tiltRad（前緣下沉）的歐拉旋轉公式：
+      //   y' = yLocal * cos − zLocal * sin（用 -tilt → cos 不變、sin 變號）
+      //   z' = −yLocal * sin + zLocal * cos
+      // 帶入 -tilt → y' = yLocal * cosT + zLocal * sinT, z' = -yLocal * sinT + zLocal * cosT
+      // 注意：tilt 為正值，rotation.x = -tiltRad
+      const dy = yLocal * cosT + zLocal * sinT;
+      const dz = -yLocal * sinT + zLocal * cosT;
       design.parts.push({
         id: `${shelf.id}-stop`,
         nameZh: `${shelf.nameZh} 止擋條`,
         material: input.material,
         grainDirection: "length",
         visible: { length: shelf.visible.length, width: battenT, thickness: battenH },
-        // 沿層板局部座標：前緣 = -width/2 → 換算回世界座標需扣除斜板自身傾斜
-        // 簡化做法：止擋條也套同樣 rotation.x，origin 放在 shelf 前緣上方
         origin: {
           x: shelf.origin.x,
-          y: shelf.origin.y + shelf.visible.thickness / 2 + battenH / 2,
-          z: shelf.origin.z - shelf.visible.width / 2 + battenT / 2,
+          y: shelf.origin.y + dy,
+          z: shelf.origin.z + dz,
         },
         rotation: { x: -tiltRad, y: 0, z: 0 },
         tenons: [],
