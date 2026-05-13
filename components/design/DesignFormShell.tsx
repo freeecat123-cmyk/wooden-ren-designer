@@ -58,10 +58,36 @@ export function DesignFormShell({
     router.replace(`${action}?${params.toString()}`, { scroll: false });
   }, [action, router, sp]);
 
-  const handleChange = useCallback(() => {
+  const isInputFocused = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    if (tag === "INPUT") {
+      const type = (target as HTMLInputElement).type;
+      return type === "number" || type === "text" || type === "email" || type === "tel" || type === "search";
+    }
+    return tag === "TEXTAREA";
+  };
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLFormElement>) => {
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(pushURL, 500);
+    // text/number inputs 等 blur 或 Enter 才送，避免打字到一半被 clamp 打斷
+    if (isInputFocused(e.target)) return;
+    // checkbox / select / radio 仍維持 short debounce
+    timerRef.current = setTimeout(pushURL, 200);
   }, [pushURL]);
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLFormElement>) => {
+    if (!isInputFocused(e.target)) return;
+    clearTimeout(timerRef.current);
+    pushURL();
+  }, [pushURL]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter" && isInputFocused(e.target)) {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    }
+  }, []);
 
   return (
     <form
@@ -69,6 +95,8 @@ export function DesignFormShell({
       method="get"
       action={action}
       onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       className={className}
     >
       {children}

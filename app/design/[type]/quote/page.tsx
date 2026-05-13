@@ -101,7 +101,13 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const length = parseInt(sp.length ?? "") || entry.defaults.length;
   const width = parseInt(sp.width ?? "") || entry.defaults.width;
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "walnut";
+  // validate against MATERIALS keys——URL 帶 ?material=oak 之類非 catalog id 不能直接吃，
+  // 不然下面 MATERIALS[material].nameZh 會 crash。
+  const rawMaterial = sp.material;
+  const material: MaterialId =
+    rawMaterial && rawMaterial in MATERIALS
+      ? (rawMaterial as MaterialId)
+      : ("walnut" as MaterialId);
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 

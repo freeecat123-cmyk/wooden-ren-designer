@@ -42,14 +42,16 @@ export interface BrandingData {
   paymentInstallments: Array<{ label: string; ratio: number }>;
 }
 
+// 預設值留空字串：多租戶 SaaS 下，避免把木頭仁本人的地址 / 聯絡資訊 leak 給其他用戶的客戶版報價。
+// 木頭仁自己用時請去 /settings 設定一次（會存 supabase user_branding，跨裝置同步）。
 export const DEFAULT_BRANDING: BrandingData = {
-  companyNameZh: "木頭仁木匠學院",
-  companyNameEn: "Wooden Ren Education Co., Ltd.",
-  tagline: "WOODEN REN · 木頭仁木匠學院",
-  address: "基隆市暖暖區東勢街 6-34 號 4 樓",
+  companyNameZh: "",
+  companyNameEn: "",
+  tagline: "",
+  address: "",
   phone: "",
   taxId: "",
-  contact: "木頭仁",
+  contact: "",
   email: "",
   logoDataUrl: "",
   publicBaseUrl: "",

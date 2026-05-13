@@ -76,19 +76,8 @@ export function PhotoToParamsButton() {
     }).catch(() => setAvailable(false));
   }, []);
 
-  if (!available) {
-    return (
-      <button
-        type="button"
-        disabled
-        title="本機未設 ANTHROPIC_API_KEY，請到 .env.local 加入後重啟 dev server，或上 production 試"
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-100 text-zinc-400 text-sm font-medium cursor-not-allowed"
-      >
-        📷 照片轉設計
-        <span className="text-[10px] opacity-70">（待設 API key）</span>
-      </button>
-    );
-  }
+  // 沒設 API key 不顯示按鈕——免得 user 第一眼看到「灰掉的功能」以為網站是半成品
+  if (!available) return null;
 
   const handleFile = async (file: File) => {
     setError(null);

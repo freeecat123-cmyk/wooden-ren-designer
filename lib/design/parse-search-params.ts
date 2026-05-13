@@ -1,4 +1,5 @@
 import type { FurnitureCatalogEntry } from "@/lib/templates";
+import { MATERIALS } from "@/lib/materials";
 import type { MaterialId, OptionSpec } from "@/lib/types";
 
 export type SpRecord = Record<string, string | string[] | undefined>;
@@ -49,8 +50,11 @@ export function parseDesignSearchParams(
   const length = parseInt(spStr(sp, "length") ?? "") || entry.defaults.length;
   const width = parseInt(spStr(sp, "width") ?? "") || entry.defaults.width;
   const height = parseInt(spStr(sp, "height") ?? "") || entry.defaults.height;
-  const material =
-    (spStr(sp, "material") as MaterialId | undefined) ?? ("walnut" as MaterialId);
+  const rawMaterial = spStr(sp, "material");
+  const material: MaterialId =
+    rawMaterial && rawMaterial in MATERIALS
+      ? (rawMaterial as MaterialId)
+      : ("walnut" as MaterialId);
 
   const joineryRaw = spStr(sp, "joineryMode");
   const joineryMode =

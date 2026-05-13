@@ -82,7 +82,7 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   const material = MATERIALS[design.primaryMaterial];
   const joineryUsages = extractJoineryUsages(design);
   const hasJoinery = joineryUsages.length > 0;
-  const isHardwood = material.hardness >= 5000;
+  const isHardwood = (material?.hardness ?? 0) >= 5000;
   const isLong = design.overall.length > 1200;
   const family = categoryFamily(design.category);
 

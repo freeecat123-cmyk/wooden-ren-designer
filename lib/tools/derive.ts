@@ -117,7 +117,7 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
     }
   }
 
-  const hardness = MATERIALS[design.primaryMaterial].hardness;
+  const hardness = MATERIALS[design.primaryMaterial]?.hardness ?? 0;
   if (hardness >= 5000) {
     add("chisel-hardwood", "required", "白橡等硬木需高硬度鑿刀，普通鑿刀易崩刃");
     add("sandpaper-coarse-60", "required", "硬木刨後需 60 番去除刨痕");
