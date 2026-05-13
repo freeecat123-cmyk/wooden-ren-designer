@@ -23,9 +23,14 @@ const VIEW_ORDER: ViewKind[] = ["front", "side", "top", "iso"];
 export function ZoomableJoineryDetail({
   type,
   params,
+  zModal = "z-50",
 }: {
   type: JoineryType;
   params: JoineryDetailParams;
+  /** Tailwind z-index class for the full-screen zoom modal. Default "z-50".
+   *  Pass "z-[70]" when rendering inside a z-50 sheet to ensure the modal
+   *  appears above the sheet (e.g. MobileShell AdvancedSheet). */
+  zModal?: string;
 }) {
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
@@ -81,7 +86,7 @@ export function ZoomableJoineryDetail({
 
       {zoomed && (
         <div
-          className="fixed inset-0 z-50 bg-zinc-900/90 flex flex-col items-center justify-center cursor-zoom-out"
+          className={`fixed inset-0 ${zModal} bg-zinc-900/90 flex flex-col items-center justify-center cursor-zoom-out`}
           onClick={() => setZoomed(null)}
           role="dialog"
           aria-modal="true"
