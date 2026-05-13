@@ -12,19 +12,19 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex flex-wrap justify-center items-center gap-1">
           <span>© {year}</span>
-          <a href="https://woodenren.com" className="inline-flex items-center min-h-[44px] px-1 underline-offset-2 hover:underline">
+          <a href="https://woodenren.com" className="inline-flex items-center max-md:min-h-[44px] px-1 underline-offset-2 hover:underline">
             木頭仁木匠學院
           </a>
           <span>· Wooden Ren Education Co., Ltd.</span>
         </div>
         <div className="mt-2 flex flex-wrap justify-center gap-1">
-          <a href="/terms" className="inline-flex items-center min-h-[44px] px-2 hover:underline">服務條款</a>
+          <a href="/terms" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">服務條款</a>
           <span aria-hidden className="self-center">·</span>
-          <a href="/privacy" className="inline-flex items-center min-h-[44px] px-2 hover:underline">隱私權政策</a>
+          <a href="/privacy" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">隱私權政策</a>
           <span aria-hidden className="self-center">·</span>
-          <a href="/refund" className="inline-flex items-center min-h-[44px] px-2 hover:underline">退費政策</a>
+          <a href="/refund" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">退費政策</a>
           <span aria-hidden className="self-center">·</span>
-          <a href="/contact" className="inline-flex items-center min-h-[44px] px-2 hover:underline">聯絡我們</a>
+          <a href="/contact" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">聯絡我們</a>
         </div>
         <div className="mt-2 font-mono text-xs text-zinc-400">
           build {sha} · {env}

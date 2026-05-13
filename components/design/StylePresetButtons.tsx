@@ -121,7 +121,7 @@ export function StylePresetButtons({
               key={p.id}
               type="button"
               onClick={() => apply(p.id)}
-              className={`min-h-[44px] px-3 py-1.5 rounded-md text-xs ring-1 transition ${
+              className={`max-md:min-h-[44px] px-3 py-1.5 rounded-md text-xs ring-1 transition ${
                 isActive
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
                   : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"

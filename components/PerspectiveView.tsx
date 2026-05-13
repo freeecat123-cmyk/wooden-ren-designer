@@ -2536,7 +2536,7 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
           type="button"
           title={p.title}
           onClick={() => onSelect(p.id)}
-          className="shrink-0 min-h-[44px] px-2 text-xs font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
+          className="shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
         >
           {p.label}
         </button>

@@ -101,7 +101,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         type="button"
         onClick={handleSave}
         disabled={busy}
-        className="min-h-[44px] px-3 py-1.5 bg-amber-700 text-white rounded text-xs hover:bg-amber-800 disabled:opacity-50"
+        className="max-md:min-h-[44px] px-3 py-1.5 bg-amber-700 text-white rounded text-xs hover:bg-amber-800 disabled:opacity-50"
         title={
           isLoggedIn
             ? `儲存到你的設計（${features.maxDesigns === Infinity ? "無上限" : `上限 ${features.maxDesigns} 件`}）`
