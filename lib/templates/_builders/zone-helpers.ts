@@ -7,12 +7,15 @@ import type { CabinetZone } from "./case-furniture";
  * 三段式滑軌（ball bearing）安裝在櫃體側板 / 中柱與抽屜側板之間，
  * 業界標準左右各需 12.5mm 空隙。使用者勾選後所有抽屜總寬自動縮 25mm。
  */
-/** 任一 zone 類型 = drawer 時才顯示（抽屜相關選項共用）。 */
+/** 任一 zone 類型 = drawer 時才顯示（抽屜相關選項共用）。
+ *  upperType 是 shoe-cabinet 的「上層」zone key（其他模板沒這 key，eval 時 v=undefined
+ *  自然不 match，安全）。 */
 export const ANY_ZONE_IS_DRAWER = {
   any: [
     { key: "topType", equals: "drawer" },
     { key: "midType", equals: "drawer" },
     { key: "bottomType", equals: "drawer" },
+    { key: "upperType", equals: "drawer" },
   ],
 };
 
@@ -22,6 +25,7 @@ export const ANY_ZONE_IS_DOOR = {
     { key: "topType", equals: "door" },
     { key: "midType", equals: "door" },
     { key: "bottomType", equals: "door" },
+    { key: "upperType", equals: "door" },
   ],
 };
 
