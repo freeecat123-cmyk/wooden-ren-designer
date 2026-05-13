@@ -92,6 +92,17 @@ export function ZoomableThreeViews({
           role="dialog"
           aria-modal="true"
         >
+          {/* 永遠浮在最上面的 X，避免 header 一排擠到看不見（手機 390px） */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setZoomed(null); }}
+            className="fixed top-3 right-3 z-[60] w-11 h-11 rounded-full bg-white/95 shadow-lg ring-1 ring-zinc-300 text-zinc-800 text-xl font-bold flex items-center justify-center hover:bg-white"
+            aria-label="關閉放大檢視"
+            title="關閉 (ESC)"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            ×
+          </button>
           <div
             className="relative bg-white shadow-2xl w-screen h-screen flex flex-col cursor-default"
             onClick={(e) => e.stopPropagation()}
