@@ -39,13 +39,14 @@ export function AdvancedSheet({
     scene: sceneContent,
   };
 
+  // 從 y=288 開始（TopBar 56 + 3D sticky 約 232），讓 3D 仍可見在上方
   return (
     <div
-      className="fixed inset-0 z-50 bg-white flex flex-col"
+      className="fixed top-[288px] left-0 right-0 bottom-0 z-50 bg-white flex flex-col border-t border-zinc-300 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       role="dialog"
       aria-label="進階設定"
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 min-h-[56px]">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 min-h-[48px]">
         <button
           type="button"
           onClick={onClose}

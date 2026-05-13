@@ -87,10 +87,10 @@ export function MobileShell(props: MobileShellProps) {
       />
 
       <DesignFormShell action={formAction} className="px-4 py-3 space-y-4">
-        {/* 3D viewer：sticky 釘在 TopBar (56px) 下，捲動時跟著看尺寸即時變化 */}
-        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-2 bg-zinc-50">
+        {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
+        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
-            <div style={{ height: 280 }}>
+            <div style={{ height: 220 }}>
               <LazyPerspectiveView design={design} />
             </div>
           </div>
