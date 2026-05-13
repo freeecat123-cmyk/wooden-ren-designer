@@ -723,6 +723,7 @@ export function OrthoView({
           x={frameX + 10}
           y={frameY + TITLE_BAR_H - 10}
           dx={70}
+          dy="14"
           fontSize={10}
           fill="#666"
           fontFamily="sans-serif"
@@ -2127,12 +2128,17 @@ export function OrthoView({
       />
 
       {/* vertical dimension on right side
-          桌椅類前/側視圖左側已有「座面 ${h}」/「桌面 ${h}」高度標，避免重複；
-          頂視圖跟櫃類沒有左側等價標籤，仍顯示總高
+          桌椅類（非 cabinet）前/側視圖左側有「桌下淨高 + 桌面厚」等價資訊，跳過；
+          頂視圖 + 所有櫃類（cabinet !== null）無左側等價總高標，必顯示
           Front/Side 投影 Y 軸 = 高（thickness）；Top 投影 Y 軸 = 深（width）*/}
       {(() => {
+        // 桌椅類（有主面但無底板 = 非櫃）才跳過右側總高標，因左側已有
+        // 「桌下淨高 + 桌面厚」等價資訊。
+        // 櫃類（cabinet 非 null）只有內高 / 腳高，師傅看不到整件家具
+        // 實際總高，必須保留此右側總高標線（解法 C）。
+        const dims0 = extractFurnitureDims(design);
         const hasFlatTopLeftLabel =
-          view !== "top" && extractFurnitureDims(design) !== null;
+          view !== "top" && dims0 !== null && dims0.cabinet === null;
         if (hasFlatTopLeftLabel) return null;
         return (
           <VerticalDimensionLine
@@ -2504,7 +2510,7 @@ export function OrthoView({
                   x={w / 2 + 140}
                   y1={sLegBottom}
                   y2={sFloor}
-                  label={`腳 ${Math.round(legHeight)}`}
+                  label={`腳 ${Math.round(legHeight)} mm`}
                 />
               )}
               {/* zone 高度鏈 — 左側堆疊 */}
@@ -2521,10 +2527,10 @@ export function OrthoView({
               {/* 板厚標註：頂板 + 底板（小字 + 引線） */}
               <g fontFamily="sans-serif" fill="#444" fontSize={10}>
                 <text x={w / 2 + 4} y={-topBottomY - panelT / 2 - 2} textAnchor="start">
-                  頂板 {panelT}
+                  頂板 {panelT} mm
                 </text>
                 <text x={w / 2 + 4} y={-bottomTopY + panelT / 2 + 8} textAnchor="start">
-                  底板 {panelT}
+                  底板 {panelT} mm
                 </text>
               </g>
             </>
@@ -2580,7 +2586,7 @@ export function OrthoView({
                 x={w / 2 + 96}
                 y1={-h / 2}
                 y2={-h / 2 + innerD}
-                label={`內深 ${Math.round(innerD)}`}
+                label={`內深 ${Math.round(innerD)} mm`}
               />
             </>
           );
