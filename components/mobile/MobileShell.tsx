@@ -218,11 +218,36 @@ export function MobileShell(props: MobileShellProps) {
           <MaterialListWithSelection design={design} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="工法 · 工序 · 工具">
-          <div className="space-y-4">
-            <BuildSteps design={design} />
-            <ToolList design={design} />
-          </div>
+        {joineryUsages.length > 0 && (
+          <CollapsibleSection title="工法（榫卯說明）" badge={`${joineryUsages.length} 處`}>
+            <div className="space-y-3">
+              {joineryUsages.map((u, i) => (
+                <div key={i} className="rounded-md border border-zinc-200 bg-white p-3">
+                  <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
+                    <h4 className="font-semibold text-sm text-zinc-900">
+                      {JOINERY_LABEL[u.type]}
+                      <span className="text-xs font-normal text-zinc-500 ml-1">
+                        · {u.partNameZh} ↔ {u.motherPartNames.length > 0 ? u.motherPartNames.join(" / ") : "母件"} · 共 {u.count} 處
+                      </span>
+                    </h4>
+                  </div>
+                  <p className="text-xs text-zinc-500 mb-2">
+                    榫頭 {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                  </p>
+                  <p className="text-xs text-zinc-700 leading-relaxed">{JOINERY_DESCRIPTION[u.type]}</p>
+                </div>
+              ))}
+              <p className="text-[11px] text-zinc-500">完整榫卯細節圖：⚙ 進階設定 → 榫接 tab</p>
+            </div>
+          </CollapsibleSection>
+        )}
+
+        <CollapsibleSection title="製作工序">
+          <BuildSteps design={design} />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="工具清單">
+          <ToolList design={design} />
         </CollapsibleSection>
       </DesignFormShell>
 
