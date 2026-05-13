@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
+import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
@@ -20,6 +22,7 @@ import { RangeInput } from "./RangeInput";
 import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
+import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -46,11 +49,36 @@ interface MobileShellProps {
   joineryMode?: boolean;
   designerMode?: boolean;
   canUseDesignerMode?: boolean;
+  /** 初始場景 ID（由 server 從 URL ?scene= 解析後傳入） */
+  sceneId?: SceneThemeId;
 }
 
 export function MobileShell(props: MobileShellProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
+
+  // 場景切換：URL ?scene= 控制，初始值由 server 傳入；
+  // 手機端用 client-side router.replace 讓 3D 立即反應（無需重新整理）。
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeSceneId, setActiveSceneId] = useState<SceneThemeId>(
+    props.sceneId ?? "natural",
+  );
+
+  const handleSceneSelect = (id: SceneThemeId) => {
+    setActiveSceneId(id);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (id === "natural") {
+      params.delete("scene");
+    } else {
+      params.set("scene", id);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname ?? ""}?${qs}` : (pathname ?? ""), { scroll: false });
+  };
+
+  const activeSceneTheme = SCENE_THEMES[activeSceneId];
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
@@ -108,7 +136,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
             </div>
           </div>
         </div>
@@ -119,6 +147,7 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
+          <SizePresetButtons category={entry.category} compact />
           <div className="space-y-1.5">
             <RangeInput name="length" label="長" defaultValue={length} min={200} max={lMax} step={10} />
             <RangeInput name="width" label="寬" defaultValue={width} min={200} max={wMax} step={10} />
@@ -252,8 +281,34 @@ export function MobileShell(props: MobileShellProps) {
           </DesignFormShell>
         }
         sceneContent={
-          <div className="space-y-4 text-sm text-zinc-700">
-            <p>場景 / 視角 / 線框設定：phase 2 整合（暫用 URL ?scene= ?wf=1 手動帶）。</p>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-zinc-500 mb-3">選擇擺放場景，3D 視圖即時更新背景與燈光氛圍</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {SCENE_THEME_LIST.map((t) => {
+                  const active = t.id === activeSceneId;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleSceneSelect(t.id)}
+                      className={`flex items-center gap-2 min-h-[52px] px-3 py-2 rounded-xl text-sm font-medium transition-colors border-2 ${
+                        active
+                          ? "border-violet-600 bg-violet-50 text-violet-900"
+                          : "border-zinc-200 bg-white text-zinc-700 active:bg-zinc-50"
+                      }`}
+                    >
+                      <span
+                        className="inline-block w-5 h-5 rounded-md border border-black/15 shrink-0"
+                        style={{ backgroundColor: t.swatch }}
+                      />
+                      <span>{t.nameZh}</span>
+                      {active && <span className="ml-auto text-violet-600 text-xs">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         }
       />
@@ -263,11 +318,52 @@ export function MobileShell(props: MobileShellProps) {
         onClose={() => setOverflowOpen(false)}
         cutPlanUrl={props.cutPlanUrl}
         printUrl={props.printUrl}
-        onShareLink={() => {
-          if (typeof navigator !== "undefined" && "clipboard" in navigator) {
-            navigator.clipboard.writeText(window.location.href);
-            alert("連結已複製");
+        onShareLink={async () => {
+          setOverflowOpen(false);
+          const path =
+            typeof window !== "undefined"
+              ? window.location.pathname + window.location.search
+              : "";
+          let shortUrl =
+            typeof window !== "undefined" ? window.location.href : "";
+          try {
+            const res = await fetch("/api/design/shorten", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ path }),
+            });
+            if (res.ok) {
+              const data: { code?: string } = await res.json();
+              if (data.code) {
+                shortUrl = `${window.location.origin}/q/${data.code}`;
+              }
+            }
+          } catch {
+            // network fail → fallback to long URL
           }
+          // 寫進 clipboard（先試，失敗不擋流程）
+          try {
+            await navigator.clipboard.writeText(shortUrl);
+          } catch {
+            // clipboard blocked on some browsers
+          }
+          // 優先用 Web Share API（iOS Safari 最順）
+          if (
+            typeof navigator !== "undefined" &&
+            "share" in navigator
+          ) {
+            try {
+              await (
+                navigator as Navigator & {
+                  share: (d: { title: string; url: string }) => Promise<void>;
+                }
+              ).share({ title: "木頭仁家具設計器", url: shortUrl });
+              return;
+            } catch {
+              // 使用者取消 → fallback 到 alert
+            }
+          }
+          alert(`短碼已複製：\n${shortUrl}`);
         }}
         onDownloadCsv={() => {
           alert("材料 CSV phase 2 整合");

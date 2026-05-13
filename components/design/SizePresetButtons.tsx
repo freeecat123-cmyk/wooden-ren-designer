@@ -11,7 +11,16 @@ import type { FurnitureCategory } from "@/lib/types";
  * 為什麼用 router.replace 而不是直接改 input：表單已經 onChange debounce 自動推 URL，
  * 改 input 還要 dispatch event 才會觸發，麻煩。直接改 URL params 最乾淨。
  */
-export function SizePresetButtons({ category }: { category: FurnitureCategory }) {
+interface SizePresetButtonsProps {
+  category: FurnitureCategory;
+  /**
+   * compact=true 用於手機版：減少 margin、縮字級，適合尺寸 card 內嵌。
+   * 不影響 desktop 預設視覺。
+   */
+  compact?: boolean;
+}
+
+export function SizePresetButtons({ category, compact }: SizePresetButtonsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presets = getSizePresets(category);
@@ -24,6 +33,25 @@ export function SizePresetButtons({ category }: { category: FurnitureCategory })
     params.set("height", String(h));
     router.replace(`?${params.toString()}`, { scroll: false });
   };
+
+  if (compact) {
+    // Mobile compact: horizontal scrollable chip strip, no label prefix, tighter sizing
+    return (
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-0.5 px-0.5">
+        {presets.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => handleClick(p.length, p.width, p.height)}
+            title={`${p.length}×${p.width}×${p.height} mm${p.hint ? " · " + p.hint : ""}`}
+            className="shrink-0 px-2.5 py-1 rounded text-[11px] bg-amber-50 text-amber-900 border border-amber-200 active:bg-amber-100 active:border-amber-300"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-3 flex flex-wrap gap-1.5 items-center">
