@@ -41,7 +41,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
   { group: "structure", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
   { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
-  { group: "structure", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空、勾斜放時自動補到 2）", dependsOn: { key: "topType", equals: "door" } },
+  { group: "structure", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空）。勾斜放鞋格時這裡 ≥ 1 才看得到斜板。", dependsOn: { key: "topType", equals: "door" } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
@@ -93,19 +93,20 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
   let zoneCount = getOption<number>(input, opt(o, "topCount"));
   const zoneCols = getOption<number>(input, opt(o, "topCols"));
-  let doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
+  const doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
   const warnings: string[] = [];
   // 斜放鞋格：對開放層板 / 門內藏層板都生效（門板 + 斜板 = 玄關穿鞋櫃常見做法）。
   // 抽屜不適用（抽屜沒有層板可斜）。
   const angledRackActive =
     angledRack && (zoneType === "shelves" || zoneType === "door");
+  // shelves 模式 count=1 = 空櫃沒層板可斜 → 補到 2（zoneCount 改 let）
   if (angledRackActive && zoneType === "shelves" && zoneCount < 2) {
     warnings.push(`已套用斜放鞋格，自動將數量從 ${zoneCount} 補到 2（1 層 = 空櫃，沒有層板可斜放）。`);
     zoneCount = 2;
   }
-  if (angledRackActive && zoneType === "door" && doorInnerShelves < 2) {
-    warnings.push(`已套用斜放鞋格，門內層板數從 ${doorInnerShelves} 補到 2（沒層板沒得斜）。`);
-    doorInnerShelves = 2;
+  // door 模式 doorInnerShelves=0 = 沒層板 → 尊重使用者選擇，斜放本次無作用，只 warn
+  if (angledRackActive && zoneType === "door" && doorInnerShelves === 0) {
+    warnings.push(`勾了斜放鞋格但「門後藏層板數」為 0 → 沒層板可斜。要看斜板請把「門後藏層板數」設 ≥ 1。`);
   }
   const zones: CabinetZone[] = [
     {
