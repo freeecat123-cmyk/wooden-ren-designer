@@ -7,6 +7,7 @@ import { StudentLoginHint } from "@/components/StudentLoginHint";
 import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { isPaidCategory } from "@/lib/permissions";
 import { CatalogSearch } from "@/components/CatalogSearch";
+import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
 
 interface SearchParams {
   view?: string;
@@ -158,6 +159,7 @@ export default async function Home({
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
+      <PerspectivePrefetch />
       <StudentLoginHint />
       <header className="mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">

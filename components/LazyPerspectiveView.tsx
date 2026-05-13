@@ -17,11 +17,12 @@ const PerspectiveViewLazy = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full aspect-[4/3] md:aspect-[16/10] rounded-lg border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center">
-        <div className="text-center text-zinc-400 text-sm">
-          <div className="inline-block h-8 w-8 rounded-full border-2 border-zinc-300 border-t-amber-500 animate-spin mb-3" />
-          <p>3D 透視圖載入中…</p>
-          <p className="text-xs mt-1">（首次載入約 1–2 秒，之後會快取）</p>
+      <div className="w-full h-full min-h-[180px] aspect-[4/3] md:aspect-[16/10] rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center relative overflow-hidden">
+        {/* shimmer */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.6s_infinite]" />
+        <div className="relative text-center text-zinc-500 text-sm select-none">
+          <div className="text-3xl mb-1">🪵</div>
+          <p className="text-xs">準備 3D 透視圖中</p>
         </div>
       </div>
     ),

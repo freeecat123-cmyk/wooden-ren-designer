@@ -2033,7 +2033,12 @@ export function PerspectiveView({
           // when its length/width is small.
           // distance ≈ sqrt(1.8² + 1.4² + 2.0²) ≈ 3.03 × maxDim
           // → fov 38° 視野垂直容得下 ~2.08 × maxDim 物高，留 4% 邊距
-          position: [maxDim * 1.8, maxDim * 1.4, -maxDim * 2.0],
+          //
+          // compactMode（手機 220px 高 canvas）：距離 ×1.35，y 提高 1.6→1.9 讓
+          // 視線多斜俯，整件家具往上靠（zoom out + 上移）
+          position: compactMode
+            ? [maxDim * 2.4, maxDim * 1.9, -maxDim * 2.7]
+            : [maxDim * 1.8, maxDim * 1.4, -maxDim * 2.0],
           fov: 38,
         }}
       >
@@ -2495,17 +2500,18 @@ export function PerspectiveView({
           enablePan
           enableZoom
           enableRotate
-          target={[0, (design.overall.thickness * SCALE) / 2, 0]}
+          // compactMode：target Y 下移到 thickness/3（原 thickness/2），讓家具
+          // 中心點往畫面上方推
+          target={[0, (design.overall.thickness * SCALE) / (compactMode ? 3 : 2), 0]}
           minDistance={maxDim * 0.15}
           maxDistance={maxDim * 6}
-          // 允許從底下往上看（到近乎正下方），只留極小的安全邊避免 gimbal-lock
           maxPolarAngle={Math.PI - 0.02}
           minPolarAngle={0.02}
         />
         <CameraController
           preset={viewPreset}
           maxDim={maxDim}
-          targetY={(design.overall.thickness * SCALE) / 2}
+          targetY={(design.overall.thickness * SCALE) / (compactMode ? 3 : 2)}
           onApplied={() => setViewPreset(null)}
         />
         <InvalidateOnDep dep={selectedPartId} />

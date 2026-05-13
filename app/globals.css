@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* LazyPerspectiveView 載入中的 shimmer 動畫 */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /*
  * 強制 light mode — 木工圖紙工具一律白底黑字才看得清楚。
  * 不偵測系統 dark mode（避免暗底文字消失問題）。
