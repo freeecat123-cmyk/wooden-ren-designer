@@ -2549,11 +2549,22 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
   const pathname = usePathname();
   const sp = useSearchParams();
   const wfOn = sp?.get("wf") === "1" || sp?.get("wf") === "true";
+  const xrayCur = sp?.get("xray") ?? "off";
 
   const toggleWf = () => {
     const params = new URLSearchParams(sp?.toString() ?? "");
     if (wfOn) params.delete("wf");
     else params.set("wf", "1");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
+  };
+
+  // 三段循環：off → face（只藏面板）→ full（藏整個抽屜+門） → off
+  const cycleXray = () => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    const next = xrayCur === "off" ? "face" : xrayCur === "face" ? "full" : "off";
+    if (next === "off") params.delete("xray");
+    else params.set("xray", next);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
   };
@@ -2592,6 +2603,18 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
         }`}
       >
         ⊞ 線框
+      </button>
+      <button
+        type="button"
+        title={`隱藏面板（${xrayCur === "off" ? "點切到只藏門/抽屜面板" : xrayCur === "face" ? "點切到藏整個抽屜+門" : "點關閉"}）`}
+        onClick={cycleXray}
+        className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+          xrayCur === "off"
+            ? "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            : "bg-amber-600 text-white ring-amber-700"
+        }`}
+      >
+        🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
       </button>
     </div>
   );
