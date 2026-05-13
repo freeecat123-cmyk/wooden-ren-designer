@@ -666,17 +666,26 @@ export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
       { value: "none", label: "不裝（純展示用）" },
     ],
     help: "把手樣式影響五金費用 + 工序，wood-knob 跟 finger-pull 純木無金屬",
-    // 任一 zone 類型是抽屜或門板時才顯示（upperType 是 shoe-cabinet 上層）
+    // 任一 zone 類型是抽屜或門板時才顯示
+    // upperType: shoe-cabinet 上層；leftType/rightType/centerType: 媒體櫃 h-2col/h-3col 欄
+    // layoutMode="v-2layer": 媒體櫃縱向 2 層（下層固定是抽屜）
     dependsOn: {
       any: [
         { key: "topType", equals: "drawer" },
         { key: "midType", equals: "drawer" },
         { key: "bottomType", equals: "drawer" },
         { key: "upperType", equals: "drawer" },
+        { key: "leftType", equals: "drawer" },
+        { key: "rightType", equals: "drawer" },
+        { key: "centerType", equals: "drawer" },
+        { key: "layoutMode", equals: "v-2layer" },
         { key: "topType", equals: "door" },
         { key: "midType", equals: "door" },
         { key: "bottomType", equals: "door" },
         { key: "upperType", equals: "door" },
+        { key: "leftType", equals: "door" },
+        { key: "rightType", equals: "door" },
+        { key: "centerType", equals: "door" },
       ],
     },
   };

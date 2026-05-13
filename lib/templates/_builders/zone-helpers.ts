@@ -9,23 +9,33 @@ import type { CabinetZone } from "./case-furniture";
  */
 /** 任一 zone 類型 = drawer 時才顯示（抽屜相關選項共用）。
  *  upperType 是 shoe-cabinet 的「上層」zone key（其他模板沒這 key，eval 時 v=undefined
- *  自然不 match，安全）。 */
+ *  自然不 match，安全）。
+ *  leftType/rightType/centerType 是媒體櫃 h-2col/h-3col 的欄 key。
+ *  layoutMode="v-2layer" 是媒體櫃縱向 2 層模式（下層固定是抽屜）。 */
 export const ANY_ZONE_IS_DRAWER = {
   any: [
     { key: "topType", equals: "drawer" },
     { key: "midType", equals: "drawer" },
     { key: "bottomType", equals: "drawer" },
     { key: "upperType", equals: "drawer" },
+    { key: "leftType", equals: "drawer" },
+    { key: "rightType", equals: "drawer" },
+    { key: "centerType", equals: "drawer" },
+    { key: "layoutMode", equals: "v-2layer" },
   ],
 };
 
-/** 任一 zone 類型 = door 時才顯示（門板相關選項共用）。 */
+/** 任一 zone 類型 = door 時才顯示（門板相關選項共用）。
+ *  leftType/rightType/centerType 是媒體櫃 h-2col/h-3col 的欄 key。 */
 export const ANY_ZONE_IS_DOOR = {
   any: [
     { key: "topType", equals: "door" },
     { key: "midType", equals: "door" },
     { key: "bottomType", equals: "door" },
     { key: "upperType", equals: "door" },
+    { key: "leftType", equals: "door" },
+    { key: "rightType", equals: "door" },
+    { key: "centerType", equals: "door" },
   ],
 };
 
