@@ -108,7 +108,7 @@ export function StylePresetButtons({
       <div className="text-xs text-zinc-700 font-medium mb-2 flex items-center gap-1.5">
         <span>🎭</span>
         <span>風格快速套用</span>
-        <span className="text-[10px] text-zinc-500 font-normal">
+        <span className="text-xs text-zinc-500 font-normal">
           （重複按同一風格＝產出該風格的隨機變體 #1 / #2 / ... 含結構＋尺寸）
         </span>
       </div>
@@ -121,7 +121,7 @@ export function StylePresetButtons({
               key={p.id}
               type="button"
               onClick={() => apply(p.id)}
-              className={`px-3 py-1.5 rounded-md text-xs ring-1 transition ${
+              className={`min-h-[44px] px-3 py-1.5 rounded-md text-xs ring-1 transition ${
                 isActive
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
                   : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"
@@ -135,10 +135,10 @@ export function StylePresetButtons({
       </div>
       {adapterNotes.length > 0 && (
         <div className="mt-2 px-2 py-1.5 rounded bg-white/60 ring-1 ring-violet-200">
-          <div className="text-[10px] text-violet-700 font-medium mb-0.5">
+          <div className="text-xs text-violet-700 font-medium mb-0.5">
             🔧 依當前尺寸 / 材質微調：
           </div>
-          <ul className="text-[10px] text-zinc-600 space-y-0.5 list-disc list-inside">
+          <ul className="text-xs text-zinc-600 space-y-0.5 list-disc list-inside">
             {adapterNotes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}

@@ -2529,14 +2529,14 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
   ];
   return (
     <div className="flex gap-1 px-2 py-1 border-b border-zinc-200 bg-white/70 backdrop-blur-sm overflow-x-auto shrink-0">
-      <span className="shrink-0 px-1 text-[10px] text-zinc-500 self-center">視角</span>
+      <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">視角</span>
       {presets.map((p) => (
         <button
           key={p.id}
           type="button"
           title={p.title}
           onClick={() => onSelect(p.id)}
-          className="shrink-0 px-2 py-0.5 text-[11px] font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
+          className="shrink-0 min-h-[44px] px-2 text-xs font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
         >
           {p.label}
         </button>

@@ -57,7 +57,7 @@ function UserDropdown({
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 ring-1 ring-zinc-200 shadow-sm hover:bg-amber-50 hover:ring-amber-300 transition"
+        className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 min-h-[44px] text-sm font-medium text-zinc-800 ring-1 ring-zinc-200 shadow-sm hover:bg-amber-50 hover:ring-amber-300 transition"
       >
         {avatar ? (
           // eslint-disable-next-line @next/next/no-img-element

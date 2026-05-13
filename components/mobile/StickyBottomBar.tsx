@@ -29,7 +29,7 @@ export function StickyBottomBar({
     );
   };
 
-  const formattedPrice = new Intl.NumberFormat("zh-TW").format(totalPrice);
+  const formattedPrice = new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 0 }).format(totalPrice);
 
   return (
     <div
@@ -38,11 +38,11 @@ export function StickyBottomBar({
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3 min-h-[72px]">
         <div className="flex flex-col">
-          <span className="text-[11px] text-zinc-500 uppercase tracking-wide">參考總價</span>
+          <span className="text-xs text-zinc-500 uppercase tracking-wide">參考總價</span>
           <span className="text-lg font-bold text-zinc-900 tabular-nums">
             NT$ {formattedPrice}
           </span>
-          <span className="text-[11px] text-zinc-500">約 {weight.toFixed(1)} kg</span>
+          <span className="text-xs text-zinc-500">約 {weight.toFixed(1)} kg</span>
         </div>
         <div className="flex gap-2">
           <Link
