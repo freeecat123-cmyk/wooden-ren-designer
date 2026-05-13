@@ -2579,43 +2579,47 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
     { id: "bottom", label: "仰", title: "仰視圖" },
   ];
   return (
-    <div className="flex gap-1 px-2 py-1 border-b border-zinc-200 bg-white/70 backdrop-blur-sm overflow-x-auto shrink-0">
-      <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">視角</span>
-      {presets.map((p) => (
+    <div className="relative shrink-0 border-b border-zinc-200">
+      <div className="flex gap-1 px-2 py-1 bg-white/70 backdrop-blur-sm overflow-x-auto">
+        <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">視角</span>
+        {presets.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            title={p.title}
+            onClick={() => onSelect(p.id)}
+            className="shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
+          >
+            {p.label}
+          </button>
+        ))}
         <button
-          key={p.id}
           type="button"
-          title={p.title}
-          onClick={() => onSelect(p.id)}
-          className="shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium text-zinc-700 bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900 rounded transition"
+          title="線框模式（顯示所有 edge / 內部結構）"
+          onClick={toggleWf}
+          className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+            wfOn
+              ? "bg-amber-600 text-white ring-amber-700"
+              : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+          }`}
         >
-          {p.label}
+          ⊞ 線框
         </button>
-      ))}
-      <button
-        type="button"
-        title="線框模式（顯示所有 edge / 內部結構）"
-        onClick={toggleWf}
-        className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
-          wfOn
-            ? "bg-amber-600 text-white ring-amber-700"
-            : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
-        }`}
-      >
-        ⊞ 線框
-      </button>
-      <button
-        type="button"
-        title={`隱藏面板（${xrayCur === "off" ? "點切到只藏門/抽屜面板" : xrayCur === "face" ? "點切到藏整個抽屜+門" : "點關閉"}）`}
-        onClick={cycleXray}
-        className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
-          xrayCur === "off"
-            ? "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
-            : "bg-amber-600 text-white ring-amber-700"
-        }`}
-      >
-        🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
-      </button>
+        <button
+          type="button"
+          title={`隱藏面板（${xrayCur === "off" ? "點切到只藏門/抽屜面板" : xrayCur === "face" ? "點切到藏整個抽屜+門" : "點關閉"}）`}
+          onClick={cycleXray}
+          className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+            xrayCur === "off"
+              ? "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+              : "bg-amber-600 text-white ring-amber-700"
+          }`}
+        >
+          🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
+        </button>
+      </div>
+      {/* 右側 fade mask 提示橫滑 */}
+      <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-6 bg-gradient-to-l from-white/70 to-transparent" />
     </div>
   );
 }
@@ -2655,17 +2659,18 @@ function CameraController({
     const d = maxDim * 2.3;
     // 俯/仰用球面角 polar=±0.15 rad (~8.6°) 對齊 OrbitControls 的
     // minPolarAngle=0.02 / maxPolarAngle=π-0.02 限制，距離仍維持 d。
-    const POLAR_OFFSET = 0.15;
-    const topX = d * Math.sin(POLAR_OFFSET);          // ≈ 1.55 (for d=10.35)
-    const topYFromTarget = d * Math.cos(POLAR_OFFSET); // ≈ d * 0.989
+    // 俯/仰視：camera 偏移放在 Z 軸（小量），X=0 → 世界 X 軸保持水平投影
+    // 若改用 X offset（原本 topX≠0, Z=0），從正上方看時 X 軸投影到畫面垂直方向
+    // 造成長方形家具長邊旋轉 90°。小 Z offset 避免 camera 與 up=(0,1,0) 完全共線。
+    const zOffset = d * 0.001;
     const POS: Record<ViewPreset, [number, number, number]> = {
       hero:   [d * 0.55, targetY + d * 0.5, -d * 0.6],
       front:  [0, targetY, -d],
       back:   [0, targetY, d],
       left:   [-d, targetY, 0.001],
       right:  [d, targetY, 0.001],
-      top:    [topX, targetY + topYFromTarget, 0],
-      bottom: [topX, targetY - topYFromTarget, 0],
+      top:    [0, targetY + d, zOffset],
+      bottom: [0, targetY - d, zOffset],
     };
     const [x, y, z] = POS[preset];
     camera.position.set(x, y, z);

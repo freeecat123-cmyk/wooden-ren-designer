@@ -108,28 +108,32 @@ export function StylePresetButtons({
 
   if (compact) {
     return (
-      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
-        {presets.map((p) => {
-          const isActive = currentStyle === p.id;
-          const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
-          // 截短：去掉括號裡英文翻譯
-          const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => apply(p.id)}
-              className={`shrink-0 min-h-[40px] px-3 py-1.5 rounded-full text-xs ring-1 transition whitespace-nowrap ${
-                isActive
-                  ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
-                  : "bg-white text-zinc-800 ring-zinc-300"
-              }`}
-              title={p.visualHint}
-            >
-              {STYLE_EMOJI[p.id] ?? "🪵"} {shortName}{variantLabel}
-            </button>
-          );
-        })}
+      <div className="relative">
+        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+          {presets.map((p) => {
+            const isActive = currentStyle === p.id;
+            const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
+            // 截短：去掉括號裡英文翻譯
+            const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => apply(p.id)}
+                className={`shrink-0 min-h-[40px] px-3 py-1.5 rounded-full text-xs ring-1 transition whitespace-nowrap ${
+                  isActive
+                    ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
+                    : "bg-white text-zinc-800 ring-zinc-300"
+                }`}
+                title={p.visualHint}
+              >
+                {STYLE_EMOJI[p.id] ?? "🪵"} {shortName}{variantLabel}
+              </button>
+            );
+          })}
+        </div>
+        {/* 右側 fade mask 提示橫滑 */}
+        <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent" />
       </div>
     );
   }
