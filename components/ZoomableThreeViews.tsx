@@ -92,14 +92,36 @@ export function ZoomableThreeViews({
           role="dialog"
           aria-modal="true"
         >
-          {/* 永遠浮在最上面的 X，避免 header 一排擠到看不見（手機 390px） */}
+          {/* 永遠浮在最上面：左側 3 視圖切換 chip + 右側 X，
+              手機 390px header 一排塞不下時也找得到、按得到。
+              用 -mt 把 safe-area inset 拉進來，瀏海下也露 */}
+          <div
+            className="fixed top-3 left-3 z-[60] flex gap-1 bg-white/95 rounded-full shadow-lg ring-1 ring-zinc-300 p-1"
+            onClick={(e) => e.stopPropagation()}
+            style={{ marginTop: "env(safe-area-inset-top)" }}
+          >
+            {(["front", "side", "top"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setZoomed(v)}
+                className={`min-h-[36px] min-w-[44px] px-3 py-1 rounded-full text-sm font-medium ${
+                  v === zoomed
+                    ? "bg-amber-500 text-white"
+                    : "text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                {VIEW_TITLES[v].zh}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoomed(null); }}
             className="fixed top-3 right-3 z-[60] w-11 h-11 rounded-full bg-white/95 shadow-lg ring-1 ring-zinc-300 text-zinc-800 text-xl font-bold flex items-center justify-center hover:bg-white"
             aria-label="關閉放大檢視"
             title="關閉 (ESC)"
-            style={{ paddingTop: "env(safe-area-inset-top)" }}
+            style={{ marginTop: "env(safe-area-inset-top)" }}
           >
             ×
           </button>
@@ -107,56 +129,29 @@ export function ZoomableThreeViews({
             className="relative bg-white shadow-2xl w-screen h-screen flex flex-col cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200">
-              <div className="text-sm font-semibold text-zinc-800">
-                {VIEW_TITLES[zoomed].zh} · {design.nameZh}
-              </div>
-              <div className="flex items-center gap-2">
-                {(["front", "side", "top"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setZoomed(v)}
-                    className={`px-2 py-1 text-xs rounded ${
-                      v === zoomed
-                        ? "bg-amber-500 text-white"
-                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                    }`}
-                  >
-                    {VIEW_TITLES[v].zh}
-                  </button>
-                ))}
-                <div className="ml-2 flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setScale((s) => Math.max(1, s - 0.25))}
-                    disabled={scale <= 1}
-                    className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                    title="縮小 (−)"
-                  >−</button>
-                  <button
-                    type="button"
-                    onClick={() => setScale(1)}
-                    className="px-1.5 h-6 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
-                    title="重設 (0)"
-                  >{Math.round(scale * 100)}%</button>
-                  <button
-                    type="button"
-                    onClick={() => setScale((s) => Math.min(4, s + 0.25))}
-                    disabled={scale >= 4}
-                    className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                    title="放大 (+)"
-                  >＋</button>
-                </div>
+            {/* 視圖切換 + X 移到上面 floating，只留 title + 縮放在 header 留白讓 SVG 多空間 */}
+            <div className="flex items-center justify-end px-4 py-2 border-b border-zinc-200">
+              <div className="flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
                 <button
                   type="button"
-                  onClick={() => setZoomed(null)}
-                  className="ml-2 w-7 h-7 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-base flex items-center justify-center"
-                  aria-label="關閉"
-                  title="關閉 (ESC)"
-                >
-                  ×
-                </button>
+                  onClick={() => setScale((s) => Math.max(1, s - 0.25))}
+                  disabled={scale <= 1}
+                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
+                  title="縮小 (−)"
+                >−</button>
+                <button
+                  type="button"
+                  onClick={() => setScale(1)}
+                  className="px-1.5 h-7 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
+                  title="重設 (0)"
+                >{Math.round(scale * 100)}%</button>
+                <button
+                  type="button"
+                  onClick={() => setScale((s) => Math.min(4, s + 0.25))}
+                  disabled={scale >= 4}
+                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
+                  title="放大 (+)"
+                >＋</button>
               </div>
             </div>
             <div
