@@ -64,8 +64,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
   backPanelMaterialOption("structure"),
-  { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。勾選後會自動把類型補成「開放層板」、數量補到 ≥ 2。", wide: true },
-  { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
+  { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true, dependsOn: { key: "topType", equals: "shelves" } },
+  { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { all: [{ key: "angledRack", equals: true }, { key: "topType", equals: "shelves" }] } },
   pullStyleOption("door"),
 ];
 
@@ -86,25 +86,17 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   // 單一收納區（不分上下層）：吃 topType/topCount/topCols/topDoorShelves
-  let zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
+  const zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
   let zoneCount = getOption<number>(input, opt(o, "topCount"));
   const zoneCols = getOption<number>(input, opt(o, "topCols"));
   const doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
   const warnings: string[] = [];
-  // 斜放鞋格自動補強：勾了斜放但類型不是 shelves / 數量 < 2 → 自動補正並 warn
-  if (angledRack) {
-    const fixes: string[] = [];
-    if (zoneType !== "shelves") {
-      fixes.push(`類型從「${zoneType === "door" ? "門板" : zoneType === "drawer" ? "抽屜" : "其他"}」改為「開放層板」`);
-      zoneType = "shelves";
-    }
-    if (zoneCount < 2) {
-      fixes.push(`數量補到 2（原 ${zoneCount}）`);
-      zoneCount = 2;
-    }
-    if (fixes.length > 0) {
-      warnings.push(`已套用斜放鞋格，自動${fixes.join("、")}。`);
-    }
+  // 斜放鞋格只在類型=shelves 時生效（option 已 dependsOn 隱藏其他情況）；
+  // 仍需補強「數量 < 2 = 空櫃沒層板可斜」→ 自動補到 2 並 warn
+  const angledRackActive = angledRack && zoneType === "shelves";
+  if (angledRackActive && zoneCount < 2) {
+    warnings.push(`已套用斜放鞋格，自動將數量從 ${zoneCount} 補到 2（1 層 = 空櫃，沒有層板可斜放）。`);
+    zoneCount = 2;
   }
   const zones: CabinetZone[] = [
     {
@@ -179,7 +171,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   // 斜放鞋格：將收納區的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
   // 單一 zone：所有 z1-shelf-N 都套用
-  if (angledRack) {
+  if (angledRackActive) {
     const tiltRad = (angledRackTilt * Math.PI) / 180;
     const battenT = 20; // 止擋條截面深度（front-back）
     const battenH = 25; // 止擋條截面高度（vertical）
