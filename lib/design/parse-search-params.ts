@@ -54,7 +54,7 @@ export function parseDesignSearchParams(
   const material: MaterialId =
     rawMaterial && rawMaterial in MATERIALS
       ? (rawMaterial as MaterialId)
-      : ("walnut" as MaterialId);
+      : ("pine" as MaterialId);
 
   const joineryRaw = spStr(sp, "joineryMode");
   const joineryMode =

@@ -61,7 +61,7 @@ export default async function QuotePrintPage({
   const length = parseInt(sp.length ?? "") || entry.defaults.length;
   const width = parseInt(sp.width ?? "") || entry.defaults.width;
   const height = parseInt(sp.height ?? "") || entry.defaults.height;
-  const material = (sp.material as MaterialId) ?? "walnut";
+  const material = (sp.material as MaterialId) ?? "pine";
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 

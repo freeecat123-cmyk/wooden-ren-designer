@@ -107,7 +107,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   const material: MaterialId =
     rawMaterial && rawMaterial in MATERIALS
       ? (rawMaterial as MaterialId)
-      : ("walnut" as MaterialId);
+      : ("pine" as MaterialId);
 
   const catalogPrimaryPrice = MATERIAL_PRICE_PER_BDFT[material] ?? 300;
 
