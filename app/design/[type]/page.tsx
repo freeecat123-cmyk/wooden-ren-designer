@@ -147,7 +147,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     );
   }
 
-  const uiV2 = (Array.isArray(sp.ui) ? sp.ui[0] : sp.ui) === "v2";
+  // 2026-05-13 全面上線：mobile shell 預設啟用。`?ui=v1` 留作逃生口
+  // （desktop ≥768px 永遠走舊版，由 md:hidden / hidden md:block CSS 控制，不靠這個 flag）
+  const uiV2 = (Array.isArray(sp.ui) ? sp.ui[0] : sp.ui) !== "v1";
 
   const parsed = parseDesignSearchParams(sp, entry);
   const { material, options, joineryMode } = parsed;
