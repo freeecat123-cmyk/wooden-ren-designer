@@ -96,11 +96,9 @@ export function MobileShell(props: MobileShellProps) {
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-3 border border-zinc-200">
-          <div className="text-xs text-zinc-500 mb-2">風格</div>
-          <div className="overflow-x-auto -mx-1 px-1">
-            <StylePresetButtons optionSchema={optionSchema} category={entry.category} />
-          </div>
+        <div className="rounded-lg bg-white px-3 py-2 border border-zinc-200">
+          <div className="text-[11px] text-zinc-500 mb-1.5">風格</div>
+          <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
         </div>
 
         <div className="rounded-lg bg-white p-4 border border-zinc-200 space-y-4">

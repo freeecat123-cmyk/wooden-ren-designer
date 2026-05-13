@@ -37,11 +37,14 @@ export function StylePresetButtons({
   optionSchema,
   category,
   designSize,
+  compact = false,
 }: {
   optionSchema: OptionSpec[];
   category?: FurnitureCategory;
   /** 當前家具尺寸，給 adapter 用來公式化調整（legSize 隨 size scale 等） */
   designSize?: { length: number; width: number; height: number };
+  /** compact=true：手機橫滑模式，去掉說明文字與 adapter notes */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -102,6 +105,34 @@ export function StylePresetButtons({
     // server props，導致表單不重新拿 optionValues（看起來像「按了沒反應」）
     router.refresh();
   };
+
+  if (compact) {
+    return (
+      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+        {presets.map((p) => {
+          const isActive = currentStyle === p.id;
+          const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
+          // 截短：去掉括號裡英文翻譯
+          const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => apply(p.id)}
+              className={`shrink-0 min-h-[40px] px-3 py-1.5 rounded-full text-xs ring-1 transition whitespace-nowrap ${
+                isActive
+                  ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
+                  : "bg-white text-zinc-800 ring-zinc-300"
+              }`}
+              title={p.visualHint}
+            >
+              {STYLE_EMOJI[p.id] ?? "🪵"} {shortName}{variantLabel}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-violet-50 to-sky-50 ring-1 ring-violet-200">
