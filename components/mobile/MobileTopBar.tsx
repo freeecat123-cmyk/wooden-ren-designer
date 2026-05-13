@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { HeaderUser } from "@/components/auth/HeaderUser";
 
 interface MobileTopBarProps {
   /** 家具中文名，如「方凳」 */
@@ -12,6 +11,11 @@ interface MobileTopBarProps {
   onOverflow: () => void;
 }
 
+/**
+ * 設計頁手機 TopBar。
+ * 帳號選單（HeaderUser）由 app/layout.tsx 全域 fixed top-4 right-4 提供，
+ * 此 TopBar 把 ⋯ 移到左側（next to ←），右側留白避開 fixed HeaderUser。
+ */
 export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps) {
   return (
     <div className="sticky top-0 z-20 bg-white border-b border-zinc-200">
@@ -23,7 +27,6 @@ export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps)
         >
           ←
         </Link>
-        <h1 className="text-base font-semibold text-zinc-900 truncate flex-1 text-center">{title}</h1>
         <button
           type="button"
           onClick={onOverflow}
@@ -33,10 +36,7 @@ export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps)
         >
           ⋯
         </button>
-        {/* 帳號選單：我的設計/專案/客戶/抬頭/訂閱/方案/後台/登出 */}
-        <div className="shrink-0">
-          <HeaderUser />
-        </div>
+        <h1 className="text-base font-semibold text-zinc-900 truncate flex-1 text-center pr-12">{title}</h1>
       </div>
     </div>
   );
