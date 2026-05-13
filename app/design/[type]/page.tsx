@@ -528,6 +528,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         printUrl={printUrl}
         lineShareText={lineShareText}
         formAction={designUrl}
+        wireframeMode={wireframeMode}
       />
     )}
     </>

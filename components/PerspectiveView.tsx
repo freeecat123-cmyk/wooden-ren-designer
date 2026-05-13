@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, MeshStandardMaterial, Shape, SRGBColorSpace, Vector2 } from "three";
@@ -2544,6 +2545,19 @@ export function PerspectiveView({
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero";
 
 function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const wfOn = sp?.get("wf") === "1" || sp?.get("wf") === "true";
+
+  const toggleWf = () => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    if (wfOn) params.delete("wf");
+    else params.set("wf", "1");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
+  };
+
   const presets: { id: ViewPreset; label: string; title: string }[] = [
     { id: "hero", label: "45°", title: "預設立體角度" },
     { id: "front", label: "正", title: "正視圖" },
@@ -2567,6 +2581,18 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
           {p.label}
         </button>
       ))}
+      <button
+        type="button"
+        title="線框模式（顯示所有 edge / 內部結構）"
+        onClick={toggleWf}
+        className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+          wfOn
+            ? "bg-amber-600 text-white ring-amber-700"
+            : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+        }`}
+      >
+        ⊞ 線框
+      </button>
     </div>
   );
 }

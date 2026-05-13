@@ -42,6 +42,7 @@ interface MobileShellProps {
   printUrl: string;
   lineShareText: string;
   formAction: string;
+  wireframeMode?: boolean;
 }
 
 export function MobileShell(props: MobileShellProps) {
@@ -93,7 +94,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} />
             </div>
           </div>
         </div>
