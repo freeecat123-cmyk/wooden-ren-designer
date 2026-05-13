@@ -112,11 +112,13 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const upperCols = getOption<number>(input, opt(o, "upperCols"));
   const upperDoorShelves = getOption<number>(input, opt(o, "upperDoorShelves"));
   const hasUpper = withUpperZone;
-  // 雙 zone 時中間多一片 boundary 板（caseFurniture 自動加），佔 panelThickness 高
+  // case-furniture stack 邏輯：zones[i].heightMm 已包含 boundary 板（非最上層
+  // 那 zone 的 heightMm = usableH + shelfT，shelfT 從 heightMm 頂部扣出當 boundary）。
+  // → 總和 sum(heightMm) = innerH，不要重複扣 boundary。
   const innerHTotal = input.height - legHeight - 2 * panelThickness;
-  const mainHeight = hasUpper ? innerHTotal - upperHeight - panelThickness : innerHTotal;
-  // 後面 cap tilt 算 layerH 用「實際給 shelf 的那塊 zone 高」，不是整個 innerH
-  const innerH = mainHeight;
+  const mainHeight = hasUpper ? innerHTotal - upperHeight : innerHTotal;
+  // tilt cap 算 layerH 用主 zone usable 高（扣掉內含的 boundary），不是整個 innerH
+  const innerH = hasUpper ? mainHeight - panelThickness : mainHeight;
   const warnings: string[] = [];
   // 斜放鞋格：對開放層板 / 門內藏層板都生效（門板 + 斜板 = 玄關穿鞋櫃常見做法）。
   // 抽屜不適用（抽屜沒有層板可斜）。
