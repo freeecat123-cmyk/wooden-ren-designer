@@ -18,7 +18,9 @@ export function toBeginnerMode(design: FurnitureDesign): FurnitureDesign {
   const parts: Part[] = design.parts.map((p) => ({
     ...p,
     tenons: [],
-    mortises: [],
+    // cosmetic mortise（指槽、無線充電孔、入溝槽等裝飾/功能性挖孔）即使在組裝版也要保留
+    // — 它們不是榫接，是產品設計的一部分
+    mortises: p.mortises.filter((m) => m.cosmetic),
   }));
 
   // 組裝版改名：鳩尾盒 → 木盒（鳩尾是榫接版本才有的稱呼）

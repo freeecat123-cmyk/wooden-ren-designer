@@ -11,14 +11,13 @@ import {
   drawerBottomModeOption,
   drawerMountOption,
   drawerSlideOption,
-  makeZoneOptions,
   resolveBackMode,
   resolveDoorMount,
   resolveDrawerBottomMode,
   resolveDrawerMount,
   resolveDrawerSlideGap,
-  resolveZones,
 } from "./_builders/zone-helpers";
+import type { CabinetZone } from "./_builders/case-furniture";
 import { applyStandardChecks, validateCabinetStructure, appendWarnings, appendSuggestion } from "./_validators";
 import {
   backPanelMaterialOption,
@@ -29,13 +28,16 @@ import {
 
 export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
-  ...makeZoneOptions({
-    // 兩段式鞋櫃：上層開放層板（topCount=2 = 1 片內部層板，一勾斜放就看得到效果）
-    // 下層門板藏鞋（bottomCount=2 = 3 格鞋區，每格 ~188mm 一般鞋夠用）；無中層
-    topType: "shelves", topHeight: 250, topCount: 2,
-    midType: "none", midCount: 0,
-    bottomType: "door", bottomHeight: 600, bottomCount: 2,
-  }, false, { skipMid: true }),
+  // 單一收納區（不分上下層）：類型 + 數量。topType/topCount 這個 key 名是
+  // 為了沿用既有 ANY_ZONE_IS_DOOR 條件 + 共用 door / drawer 子選項。
+  { group: "structure", type: "select", key: "topType", label: "類型", defaultValue: "door", choices: [
+    { value: "door", label: "門板（藏鞋）" },
+    { value: "shelves", label: "開放層板（直放 / 斜放鞋格）" },
+    { value: "drawer", label: "抽屜" },
+  ] },
+  { group: "structure", type: "number", key: "topCount", label: "數量", defaultValue: 2, min: 1, max: 8, step: 1, help: "門板=扇數 / 抽屜=排數 / 開放層板=層數（1=空櫃、2=1 片中板、3=2 片中板…）" },
+  { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
+  { group: "structure", type: "number", key: "topDoorShelves", label: "門內層板數", defaultValue: 1, min: 0, max: 6, step: 1, help: "門關起來時內藏的層板數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
@@ -63,13 +65,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
   drawerSlideOption,
   backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "withTopSeatCushion", label: "頂面加坐墊（穿鞋椅）", defaultValue: false, help: "頂面加 30mm 厚軟墊布套，玄關直接坐著穿鞋", wide: true },
-  { group: "structure", type: "select", key: "angledRack", label: "斜放鞋格區段", defaultValue: "none", choices: [
-    { value: "none", label: "不使用（一般水平層板）" },
-    { value: "top", label: "上層改斜放（適合常穿鞋一目了然）" },
-    { value: "bottom", label: "下層改斜放" },
-    { value: "all", label: "上下都改斜放" },
-  ], help: "傳統鞋櫃做法：層板前低後高，鞋頭外露好拿取。需要該區段「類型=開放層板」且層數 ≥ 2 才會生效。" },
-  { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", notIn: ["none"] } },
+  { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。勾選後會自動把類型補成「開放層板」、數量補到 ≥ 2。", wide: true },
+  { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
 ];
 
@@ -85,37 +82,52 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const drawerMount = resolveDrawerMount(input, o);
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const withTopSeatCushion = getOption<boolean>(input, opt(o, "withTopSeatCushion"));
-  const angledRack = getOption<string>(input, opt(o, "angledRack"));
+  const angledRack = getOption<boolean>(input, opt(o, "angledRack"));
   const angledRackTilt = getOption<number>(input, opt(o, "angledRackTilt"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
 
   const innerH = input.height - legHeight - 2 * panelThickness;
+  // 單一收納區（不分上下層）：吃 topType/topCount/topCols/topDoorShelves
+  let zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
+  let zoneCount = getOption<number>(input, opt(o, "topCount"));
+  const zoneCols = getOption<number>(input, opt(o, "topCols"));
+  const doorInnerShelves = getOption<number>(input, opt(o, "topDoorShelves"));
+  const warnings: string[] = [];
+  // 斜放鞋格自動補強：勾了斜放但類型不是 shelves / 數量 < 2 → 自動補正並 warn
+  if (angledRack) {
+    const fixes: string[] = [];
+    if (zoneType !== "shelves") {
+      fixes.push(`類型從「${zoneType === "door" ? "門板" : zoneType === "drawer" ? "抽屜" : "其他"}」改為「開放層板」`);
+      zoneType = "shelves";
+    }
+    if (zoneCount < 2) {
+      fixes.push(`數量補到 2（原 ${zoneCount}）`);
+      zoneCount = 2;
+    }
+    if (fixes.length > 0) {
+      warnings.push(`已套用斜放鞋格，自動${fixes.join("、")}。`);
+    }
+  }
+  const zones: CabinetZone[] = [
+    {
+      type: zoneType,
+      heightMm: innerH,
+      count: zoneCount,
+      cols: zoneCols,
+      doorInnerShelves,
+    },
+  ];
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const resolved = resolveZones(input, o, innerH, doorLabel);
-  const { zones, notesLine } = resolved;
-  let { warnings } = resolved;
-  // 斜放鞋格自動補強：選到的 zone 若非「shelves」或數量 < 2 就強制改 shelves count=2，
-  // 否則 zone 沒層板可斜，使用者體驗 = 勾了沒事發生。
-  // zones 順序：zones[0] = 下層 (z1), zones[1] = 上層 (z2)
-  if (angledRack !== "none" && zones.length >= 2) {
-    const autoFixZone = (z: typeof zones[number], label: string) => {
-      const fixes: string[] = [];
-      if (z.type !== "shelves") {
-        fixes.push(`類型從「${z.type === "door" ? "門板" : z.type === "drawer" ? "抽屜" : z.type === "hanging" ? "吊衣" : "空"}」改為「開放層板」`);
-        z.type = "shelves";
-      }
-      if ((z.count ?? 0) < 2) {
-        fixes.push(`數量補到 2（原 ${z.count ?? 0}）`);
-        z.count = 2;
-      }
-      if (fixes.length > 0) {
-        warnings = [...warnings, `${label}已套用斜放鞋格，自動${fixes.join("、")}。`];
-      }
-    };
-    if (angledRack === "all" || angledRack === "bottom") autoFixZone(zones[0], "下層");
-    if (angledRack === "all" || angledRack === "top") autoFixZone(zones[1], "上層");
-  }
+  const typeLabel =
+    zoneType === "shelves"
+      ? `${zoneCount} 層開放層板（${Math.max(0, zoneCount - 1)} 片內部層板）`
+      : zoneType === "drawer"
+        ? `${zoneCount}×${zoneCols} 抽屜`
+        : zoneType === "door"
+          ? `${zoneCount} 扇${doorLabel}門${doorInnerShelves > 0 ? `（內藏 ${doorInnerShelves} 片層板）` : ""}`
+          : "空櫃";
+  const notesLine = `單格收納：${typeLabel}`;
 
   const design = caseFurniture({
     category: "shoe-cabinet",
@@ -180,24 +192,18 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     });
   }
 
-  // 斜放鞋格：將指定 zone 的層板向前傾斜（rake = rotation.x），前緣下沉，
+  // 斜放鞋格：將收納區的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
-  // 鞋櫃 zones：z1 = 下層 (bottom)、z2 = 上層 (top)
-  if (angledRack !== "none") {
+  // 單一 zone：所有 z1-shelf-N 都套用
+  if (angledRack) {
     const tiltRad = (angledRackTilt * Math.PI) / 180;
-    const targetPrefixes =
-      angledRack === "all" ? ["z1", "z2"]
-      : angledRack === "top" ? ["z2"]
-      : angledRack === "bottom" ? ["z1"]
-      : [];
     const battenT = 20; // 止擋條截面深度（front-back）
     const battenH = 25; // 止擋條截面高度（vertical）
     const shelfIdsHit: string[] = [];
     const tiltedParts: typeof design.parts = [];
     for (const part of design.parts) {
-      const inTarget = targetPrefixes.some((p) => part.id.startsWith(`${p}-`));
       const isInternalShelf = /-shelf-\d+$/.test(part.id);
-      if (!inTarget || !isInternalShelf) continue;
+      if (!isInternalShelf) continue;
       // rake：負值讓前緣（-Z 方向）下沉
       part.rotation = { x: -tiltRad, y: 0, z: 0 };
       part.nameZh = part.nameZh.replace("層板", "斜放鞋板");
@@ -237,11 +243,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
         mortises: [],
       });
     }
-    if (shelfIdsHit.length === 0) {
-      appendWarnings(design, [
-        `斜放鞋格已勾選但所選區段沒有層板可斜放：請將該區段「類型」設為「開放層板」且「數量 ≥ 2」。`,
-      ]);
-    } else {
+    if (shelfIdsHit.length > 0) {
       design.notes = `${design.notes ?? ""} 斜放鞋格 ${angledRackTilt}°：${shelfIdsHit.length} 片層板前緣下沉，前緣加 ${battenT}×${battenH}mm 止擋條。`.trim();
     }
   }

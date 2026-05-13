@@ -72,7 +72,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "equal", label: "等高（現代款）" },
     { value: "ascending", label: "下大上小（傳統明清比例 1.4 : 1.2 : 1）" },
   ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
-  { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面 gallery 飾邊", defaultValue: false, help: "頂板四週加 25mm 高木條圍欄，避免擺放物品掉落、視覺更精緻", wide: true },
+  { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面 gallery 飾邊", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
@@ -195,17 +195,12 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       const baseOrigin = face.origin;
       const baseRot = face.rotation;
       const padX = Math.min(35, fL / 4);
-      let padYTop: number;
-      let padYBot: number;
-      if (pullStyle === "finger-pull") {
-        // 指槽距頂 14mm + 半寬 12.5mm + 5mm gap = 31.5mm；保險用 32
-        padYTop = Math.min(32, fH * 0.45);
-        padYBot = Math.max(8, Math.min(20, fH / 8));
-      } else {
-        const padY = Math.min(20, fH / 4);
-        padYTop = padY;
-        padYBot = padY;
-      }
+      // 對稱 padding：finger-pull 模式需要 ≥32mm 避開指槽，無 finger-pull 用 20mm
+      const padY = pullStyle === "finger-pull"
+        ? Math.min(32, fH / 3)
+        : Math.min(20, fH / 4);
+      const padYTop = padY;
+      const padYBot = padY;
       const panelLen = Math.max(20, fL - 2 * padX);
       const panelH = Math.max(20, fH - padYTop - padYBot);
       // origin.y = face 底 + padYBot（rotation x=π/2 把 visible.width=panelH 映成 world Y）
@@ -258,26 +253,24 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     }
   }
 
-  // 頂面 gallery 飾邊：4 條小木條圍欄
+  // 頂面 gallery 飾邊：左右後三條（前面不裝，避免擋住擺放/取物視線）
   if (withGalleryRail) {
     const railH = 25;
     const railT = 12;
     // 案頂 Y = input.height（caseFurniture 把頂板上緣對齊到這），gallery 條從這往上 25mm
     const yTop = input.height;
-    // front/back
-    for (const side of [-1, 1]) {
-      design.parts.push({
-        id: `gallery-${side > 0 ? "back" : "front"}`,
-        nameZh: `頂面 gallery ${side > 0 ? "後" : "前"}條`,
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: input.length, width: railH, thickness: railT },
-        origin: { x: 0, y: yTop, z: side * (input.width / 2 - railT / 2) },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
+    // back（只生後條，前面省略）
+    design.parts.push({
+      id: "gallery-back",
+      nameZh: "頂面 gallery 後條",
+      material: input.material,
+      grainDirection: "length",
+      visible: { length: input.length, width: railH, thickness: railT },
+      origin: { x: 0, y: yTop, z: input.width / 2 - railT / 2 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      tenons: [],
+      mortises: [],
+    });
     // left/right
     for (const side of [-1, 1]) {
       design.parts.push({
