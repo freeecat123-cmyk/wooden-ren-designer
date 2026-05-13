@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
+import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
+import { extractJoineryUsages } from "@/lib/joinery/extract";
+import { JOINERY_LABEL, JOINERY_DESCRIPTION } from "@/lib/joinery/details";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
@@ -111,6 +114,9 @@ export function MobileShell(props: MobileShellProps) {
   const visibleJoinerySpecs = joinerySpecs.filter(
     (s) => !s.dependsOn || evalDep(s.dependsOn, optionValues),
   );
+
+  // 榫接 tab：從 design 抽出所有榫卯使用情況（同桌面版 JoinerySection 邏輯）
+  const joineryUsages = extractJoineryUsages(design);
 
   // SaveDesignButton params
   const saveParams: Record<string, unknown> = {
@@ -265,20 +271,78 @@ export function MobileShell(props: MobileShellProps) {
           </DesignFormShell>
         }
         joineryContent={
-          <DesignFormShell action={formAction} className="space-y-4">
-            <HiddenStateInputs
-              length={length}
-              width={width}
-              height={height}
-              material={material}
-              optionValues={optionValues}
-              exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
-            />
-            {visibleJoinerySpecs.map((s) => (
-              <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
-            ))}
-            <p className="text-xs text-zinc-500 mt-4">榫卯細節圖：phase 2 整合。</p>
-          </DesignFormShell>
+          <div className="space-y-4">
+            {/* 榫接選項表單 */}
+            <DesignFormShell action={formAction} className="space-y-4">
+              <HiddenStateInputs
+                length={length}
+                width={width}
+                height={height}
+                material={material}
+                optionValues={optionValues}
+                exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
+              />
+              {visibleJoinerySpecs.length === 0 ? (
+                <div className="text-sm text-zinc-500">此家具無榫接選項</div>
+              ) : (
+                visibleJoinerySpecs.map((s) => (
+                  <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
+                ))
+              )}
+            </DesignFormShell>
+
+            {/* 榫卯細節圖：zModal="z-[70]" 讓放大 modal 蓋過 AdvancedSheet (z-50) */}
+            {joineryUsages.length === 0 ? (
+              <div className="text-sm text-zinc-500">
+                {props.joineryMode
+                  ? "此家具無可顯示的榫卯。"
+                  : "切換到「🪵 榫接版」可顯示榫卯細節圖。"}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide pt-1 border-t border-zinc-100">
+                  榫卯細節圖
+                </div>
+                {joineryUsages.map((u, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-zinc-200 bg-white p-3"
+                  >
+                    <div className="flex items-baseline justify-between flex-wrap gap-1 mb-1">
+                      <h3 className="text-sm font-semibold text-zinc-800">
+                        {JOINERY_LABEL[u.type]}{" "}
+                        <span className="text-xs font-normal text-zinc-500">
+                          · {u.partNameZh}
+                          {u.motherPartNames.length > 0
+                            ? ` ↔ ${u.motherPartNames.join(" / ")}`
+                            : " ↔ 母件"}
+                          {" "}· 共 {u.count} 處
+                        </span>
+                      </h3>
+                      <p className="text-[10px] text-zinc-400">
+                        {u.tenon.length} × {u.tenon.width} × {u.tenon.thickness} mm
+                      </p>
+                    </div>
+                    <p className="text-xs text-zinc-500 mb-2">{JOINERY_DESCRIPTION[u.type]}</p>
+                    <ZoomableJoineryDetail
+                      type={u.type}
+                      params={{
+                        tenonLength: u.tenon.length,
+                        tenonWidth: u.tenon.width,
+                        tenonThickness: u.tenon.thickness,
+                        motherThickness: u.estimatedMotherThickness,
+                        childThickness: u.childThickness,
+                        childWidth: u.childWidth,
+                        motherShape: u.motherShape,
+                        material: design.parts.find((p) => p.id === u.partId)?.material ?? design.parts[0]?.material,
+                      }}
+                      zModal="z-[70]"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         }
         sceneContent={
           <div className="space-y-4">

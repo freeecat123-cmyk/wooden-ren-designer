@@ -530,6 +530,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         joineryMode={joineryMode}
         designerMode={designerMode}
         canUseDesignerMode={canUseDesignerMode}
+        sceneId={sceneId}
       />
     )}
     </>
