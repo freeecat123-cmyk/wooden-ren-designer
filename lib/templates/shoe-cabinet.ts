@@ -35,9 +35,13 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "shelves", label: "開放層板（直放 / 斜放鞋格）" },
     { value: "drawer", label: "抽屜" },
   ] },
-  { group: "structure", type: "number", key: "topCount", label: "數量", defaultValue: 2, min: 1, max: 8, step: 1, help: "門板=扇數 / 抽屜=排數 / 開放層板=層數（1=空櫃、2=1 片中板、3=2 片中板…）" },
+  // 「數量」依類型拆 3 個 entry，label 隨類型變（避免跟「門內層板數」搞混）。
+  // 三個 entry 同 key=topCount，dependsOn 隔開，UI 只顯示符合當前類型的那個。
+  { group: "structure", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 8, step: 1, help: "雙開門=2、單門=1、多扇=3 以上", dependsOn: { key: "topType", equals: "door" } },
+  { group: "structure", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
+  { group: "structure", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
   { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
-  { group: "structure", type: "number", key: "topDoorShelves", label: "門內層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "門關起來時內藏的層板數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
+  { group: "structure", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空、勾斜放時自動補到 2）", dependsOn: { key: "topType", equals: "door" } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
