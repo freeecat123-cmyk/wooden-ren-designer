@@ -167,6 +167,14 @@ export function MobileShell(props: MobileShellProps) {
         onClose={() => setAdvancedOpen(false)}
         structureContent={
           <DesignFormShell action={formAction} className="space-y-4">
+            <HiddenStateInputs
+              length={length}
+              width={width}
+              height={height}
+              material={material}
+              optionValues={optionValues}
+              exceptKeys={structureSpecs.map((s) => s.key)}
+            />
             {structureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
@@ -178,6 +186,14 @@ export function MobileShell(props: MobileShellProps) {
         }
         styleContent={
           <DesignFormShell action={formAction} className="space-y-4">
+            <HiddenStateInputs
+              length={length}
+              width={width}
+              height={height}
+              material={material}
+              optionValues={optionValues}
+              exceptKeys={styleSpecs.map((s) => s.key)}
+            />
             {styleSpecs.map((s) => (
               <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
             ))}
@@ -185,6 +201,14 @@ export function MobileShell(props: MobileShellProps) {
         }
         joineryContent={
           <DesignFormShell action={formAction} className="space-y-4">
+            <HiddenStateInputs
+              length={length}
+              width={width}
+              height={height}
+              material={material}
+              optionValues={optionValues}
+              exceptKeys={joinerySpecs.map((s) => s.key)}
+            />
             {joinerySpecs.map((s) => (
               <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
             ))}
@@ -215,5 +239,42 @@ export function MobileShell(props: MobileShellProps) {
       />
     </div>
     </SelectedPartProvider>
+  );
+}
+
+/**
+ * 在 AdvancedSheet 內部 form 提交時，保留 main form 的所有 state：
+ * length/width/height/material + 不在當前 tab 的所有 optionSpec 值。
+ * 沒這個的話 sheet 改一個 slider，server 收不到 material → 退回預設胡桃木。
+ */
+function HiddenStateInputs({
+  length,
+  width,
+  height,
+  material,
+  optionValues,
+  exceptKeys,
+}: {
+  length: number;
+  width: number;
+  height: number;
+  material: MaterialId;
+  optionValues: Record<string, string | number | boolean>;
+  /** 當前 tab 內已有對應可見 input 的 key，不再 render hidden（避免重複） */
+  exceptKeys: string[];
+}) {
+  const exceptSet = new Set(exceptKeys);
+  return (
+    <>
+      <input type="hidden" name="length" value={length} />
+      <input type="hidden" name="width" value={width} />
+      <input type="hidden" name="height" value={height} />
+      <input type="hidden" name="material" value={material} />
+      {Object.entries(optionValues).map(([k, v]) =>
+        exceptSet.has(k) ? null : (
+          <input key={k} type="hidden" name={k} value={String(v)} />
+        ),
+      )}
+    </>
   );
 }
