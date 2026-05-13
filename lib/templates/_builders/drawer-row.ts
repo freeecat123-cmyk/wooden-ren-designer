@@ -22,11 +22,12 @@ export function makePullParts(
   faceWidth: number,
   faceHeight: number,
   zFaceFront: number, // face 朝外那面的世界 z（往 -Z 方向延伸把手）
+  pullX?: number, // 覆寫把手 x 位置（雙開門用，把手放內側豎梃；undefined = 走 faceX 中央）
 ): Part[] {
   if (pullStyle === "none" || pullStyle === "finger-pull") {
     return [];
   }
-  const cx = faceX;
+  const cx = pullX ?? faceX;
   const cy = faceY + faceHeight / 2;
   // 0.5mm clearance 避免跟面板 floating-point overlap
   const CLEAR = 0.5;

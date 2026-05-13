@@ -219,8 +219,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     faceWidth: number,
     faceHeight: number,
     zFaceFront: number,
+    pullX?: number,
   ): Part[] =>
-    makePullPartsShared(material, pullStyle, idPrefix, faceX, faceY, faceWidth, faceHeight, zFaceFront);
+    makePullPartsShared(material, pullStyle, idPrefix, faceX, faceY, faceWidth, faceHeight, zFaceFront, pullX);
   // 入柱模式：門埋進框內，門後方內藏的層板需縮短深度
   // 門厚 = slab 18mm；wood/glass 框料 22mm
   const insetDoorThick = doorType === "slab" ? 18 : 22;
@@ -943,10 +944,20 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         });
       }
       // 框門 / 玻璃門把手：鎖在門板正面（ring-chinese / drop-bail 中式或古典款專用）
+      // 雙開門：把手鎖在「內側豎梃中央」（兩扇相對的那條邊框，把手在中縫處）。
+      // 單門 / 3 扇以上：沒有明確「內外」概念，把手回到面板中央。
+      const innerStileOffset = doorOuterW / 2 - stileW / 2;
+      const pullX =
+        cfg.count === 2
+          ? i === 0
+            ? xCenter + innerStileOffset // 左門 → 把手在右側內框
+            : xCenter - innerStileOffset // 右門 → 把手在左側內框
+          : xCenter;
       parts.push(...makePullParts(
         `${idPrefix}-${i + 1}-door`,
         xCenter, doorYBase, doorOuterW, doorOuterH,
         zFront - frameT / 2,
+        pullX,
       ));
     }
   };
