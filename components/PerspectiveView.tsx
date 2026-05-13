@@ -2047,13 +2047,14 @@ export function PerspectiveView({
         }}
       >
         {/* SoftShadows 暫時移除——drei 注入的 shader 用了 unpackRGBAToDepth
-            在當前 Three.js 版本不存在，整個 fragment shader 編譯失敗 → 3D blank */}
-        <ambientLight intensity={0.45 * ambientMul} color={lightHex} />
+            在當前 Three.js 版本不存在，整個 fragment shader 編譯失敗 → 3D blank
+            compactMode 沒 Environment HDR 補光 → ambient + key + fill 全 ×1.7 */}
+        <ambientLight intensity={(compactMode ? 0.8 : 0.45) * ambientMul} color={lightHex} />
         <directionalLight
           position={[maxDim * 1.5, maxDim * 2, maxDim * 1.2]}
-          intensity={1.0 * ambientMul}
+          intensity={(compactMode ? 1.5 : 1.0) * ambientMul}
           color={lightHex}
-          castShadow
+          castShadow={!compactMode}
           shadow-mapSize={[1024, 1024]}
           shadow-camera-left={-maxDim * 2}
           shadow-camera-right={maxDim * 2}
@@ -2063,9 +2064,17 @@ export function PerspectiveView({
         />
         <directionalLight
           position={[-maxDim, maxDim, -maxDim]}
-          intensity={0.3 * ambientMul}
+          intensity={(compactMode ? 0.6 : 0.3) * ambientMul}
           color={lightHex}
         />
+        {/* compactMode：補一道從下方往上打的微光，模擬地板反彈光、避免桌底全黑 */}
+        {compactMode && (
+          <directionalLight
+            position={[0, -maxDim, maxDim]}
+            intensity={0.35 * ambientMul}
+            color={lightHex}
+          />
+        )}
 
         {/* compactMode（手機）：拿掉 Environment HDR（drei CDN 拉 300-500KB
             HDR + 處理）+ ContactShadows，省 1-2 秒首次載入。
