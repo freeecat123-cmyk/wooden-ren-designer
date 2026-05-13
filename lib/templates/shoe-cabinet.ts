@@ -103,7 +103,30 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const innerH = input.height - legHeight - 2 * panelThickness;
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
+  const resolved = resolveZones(input, o, innerH, doorLabel);
+  const { zones, notesLine } = resolved;
+  let { warnings } = resolved;
+  // 斜放鞋格自動補強：選到的 zone 若非「shelves」或數量 < 2 就強制改 shelves count=2，
+  // 否則 zone 沒層板可斜，使用者體驗 = 勾了沒事發生。
+  // zones 順序：zones[0] = 下層 (z1), zones[1] = 上層 (z2)
+  if (angledRack !== "none" && zones.length >= 2) {
+    const autoFixZone = (z: typeof zones[number], label: string) => {
+      const fixes: string[] = [];
+      if (z.type !== "shelves") {
+        fixes.push(`類型從「${z.type === "door" ? "門板" : z.type === "drawer" ? "抽屜" : z.type === "hanging" ? "吊衣" : "空"}」改為「開放層板」`);
+        z.type = "shelves";
+      }
+      if ((z.count ?? 0) < 2) {
+        fixes.push(`數量補到 2（原 ${z.count ?? 0}）`);
+        z.count = 2;
+      }
+      if (fixes.length > 0) {
+        warnings = [...warnings, `${label}已套用斜放鞋格，自動${fixes.join("、")}。`];
+      }
+    };
+    if (angledRack === "all" || angledRack === "bottom") autoFixZone(zones[0], "下層");
+    if (angledRack === "all" || angledRack === "top") autoFixZone(zones[1], "上層");
+  }
 
   const design = caseFurniture({
     category: "shoe-cabinet",
