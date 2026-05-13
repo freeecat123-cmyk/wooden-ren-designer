@@ -47,6 +47,10 @@ import {
   parseDesignSearchParams,
   designParamsToQuery,
 } from "@/lib/design/parse-search-params";
+import { MobileShell } from "@/components/mobile/MobileShell";
+import { calculateQuote } from "@/lib/pricing/quote";
+import { LABOR_DEFAULTS } from "@/lib/pricing/labor";
+import { MATERIAL_PRICE_PER_BDFT } from "@/lib/pricing/catalog";
 
 interface PageProps {
   params: Promise<{ type: string }>;
@@ -147,6 +151,20 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const parsed = parseDesignSearchParams(sp, entry);
   const { material, options, joineryMode } = parsed;
+
+  // shoe-cabinet 特例：「斜放鞋格」只在類型=開放層板時有意義。
+  // 使用者勾斜放但類型還是門/抽屜時，redirect 把 topType 一起補成 shelves，
+  // 讓 dropdown 跟 3D 同步（不會「勾了沒反應」）。
+  if (type === "shoe-cabinet" && options.angledRack === true && options.topType !== "shelves") {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      if (typeof v === "string") q.set(k, v);
+      else if (Array.isArray(v) && typeof v[0] === "string") q.set(k, v[0]);
+    }
+    q.set("topType", "shelves");
+    redirect(`/design/shoe-cabinet?${q.toString()}`);
+  }
+
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
@@ -218,6 +236,34 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   })();
 
   const printQuery = designParamsToQuery(parsed, entry);
+
+  // MobileShell 需要的 server 端計算
+  let mobileTotalPrice = 0;
+  let mobileWeight = 0;
+  if (uiV2) {
+    try {
+      const quote = calculateQuote(design, {
+        ...LABOR_DEFAULTS,
+        primaryMaterialPricePerBdft: MATERIAL_PRICE_PER_BDFT[material] ?? 300,
+      });
+      mobileTotalPrice = quote.total;
+    } catch (e) {
+      console.warn("[MobileShell] calculateQuote failed, falling back to 0", e);
+    }
+    mobileWeight = estimateWeight(design);
+  }
+
+  const designUrl = `/design/${entry.category}`;
+  const baseQuoteParams = new URLSearchParams({
+    length: String(length),
+    width: String(width),
+    height: String(height),
+    material,
+  });
+  const quoteUrl = `${designUrl}/quote?${baseQuoteParams.toString()}`;
+  const cutPlanUrl = `${designUrl}/cut-plan?${baseQuoteParams.toString()}`;
+  const printUrl = `${quoteUrl}&print=1`;
+  const lineShareText = `木頭仁設計：${entry.nameZh} ${length}×${width}×${height}mm`;
 
   return (
     <>
@@ -480,9 +526,23 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     </main>
     </div>
     {uiV2 && (
-      <div className="md:hidden">
-        <div className="p-4 text-center text-zinc-500">MobileShell placeholder — coming soon</div>
-      </div>
+      <MobileShell
+        entry={entry}
+        design={design}
+        length={length}
+        width={width}
+        height={height}
+        material={material}
+        optionValues={options}
+        totalPrice={mobileTotalPrice}
+        weight={mobileWeight}
+        designUrl={designUrl}
+        quoteUrl={quoteUrl}
+        cutPlanUrl={cutPlanUrl}
+        printUrl={printUrl}
+        lineShareText={lineShareText}
+        formAction={designUrl}
+      />
     )}
     </>
   );
