@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev",
     "build": "next build",
     "start": "next start",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
@@ -41,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.184.0",
+    "cross-env": "^10.1.0",
     "playwright": "^1.60.0",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",

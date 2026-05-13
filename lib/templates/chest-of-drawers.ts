@@ -28,12 +28,19 @@ import {
 export const chestOfDrawersOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   backModeOption,
+  // 上中下分層 zone 設定：ascending 模式下整組隱藏（攤平改用 ratio 自動分配）
   ...makeZoneOptions({
-    // 傳統斗櫃：三層都是抽屜（經典 6 抽）
     topType: "drawer", topHeight: 300, topCount: 2, topCols: 1,
     midType: "drawer", midCount: 2, midCols: 1,
     bottomType: "drawer", bottomHeight: 300, bottomCount: 2, bottomCols: 1,
-  }),
+  }).map((spec) => ({
+    ...spec,
+    dependsOn: spec.dependsOn
+      ? { all: [spec.dependsOn, { key: "drawerHeightStyle", notIn: ["ascending"] }] }
+      : { key: "drawerHeightStyle", notIn: ["ascending"] },
+  })),
+  // ascending 模式下顯示「總抽屜數」單一輸入
+  { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
@@ -45,7 +52,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
   ] , dependsOn: { key: "legHeight", notIn: [0] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
   drawerMountOption,
   drawerBottomModeOption,
   drawerSlideOption,
@@ -55,11 +62,16 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   backPanelMaterialOption("structure"),
   { group: "drawer", type: "select", key: "drawerFaceStyle", label: "抽屜面板樣式", defaultValue: "flat", choices: [
     { value: "flat", label: "平板（slab，現代極簡）" },
-    { value: "shaker", label: "夏克框（5 件式 frame-and-panel）" },
-    { value: "inset", label: "嵌入式（面板小於開口、四週 reveal）" },
-    { value: "overlay", label: "全蓋式（面板蓋住整個開口）" },
     { value: "raised-panel", label: "凸版（傳統雕花框 + 凸鑲板）" },
-  ] },
+  ], help: "面板雕刻樣式（跟「面板安裝方式」獨立——那個控制蓋門/入柱）" },
+  { group: "drawer", type: "select", key: "pullPosition", label: "把手位置", defaultValue: "center", choices: [
+    { value: "center", label: "中央 1 顆" },
+    { value: "dual", label: "左右各 1 顆（傳統斗櫃）" },
+  ], help: "傳統明清斗櫃多用左右兩顆對稱把手；現代款多中央 1 顆。對小抽屜（< 400mm）只生中央 1 顆無視此設定" },
+  { group: "drawer", type: "select", key: "drawerHeightStyle", label: "抽屜高度比例", defaultValue: "equal", choices: [
+    { value: "equal", label: "等高（現代款）" },
+    { value: "ascending", label: "下大上小（傳統明清比例 1.4 : 1.2 : 1）" },
+  ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
   { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面 gallery 飾邊", defaultValue: false, help: "頂板四週加 25mm 高木條圍欄，避免擺放物品掉落、視覺更精緻", wide: true },
 ];
 
@@ -78,11 +90,44 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const pullPosition = getOption<string>(input, opt(o, "pullPosition"));
   const drawerFaceStyle = getOption<string>(input, opt(o, "drawerFaceStyle"));
+  const drawerHeightStyle = getOption<string>(input, opt(o, "drawerHeightStyle"));
+  const ascendingDrawerCount = getOption<number>(input, opt(o, "ascendingDrawerCount"));
   const withGalleryRail = getOption<boolean>(input, opt(o, "withGalleryRail"));
+  // plinth / panel-side 本身就是底座 → 強制取消 toeKick 避免兩個底座疊
+  const legShapeIsBase = legShape === "plinth" || legShape === "panel-side";
+  const effectiveWithToeKick = legShapeIsBase ? false : withToeKick;
+  const baseConflictWarnings = (legShapeIsBase && withToeKick)
+    ? [`腳樣式選了「${legShape === "plinth" ? "平台底座" : "側板延伸落地"}」，本身就是底座 → toeKick 自動關閉避免重疊`]
+    : [];
 
   const innerH = input.height - legHeight - 2 * panelThickness;
-  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, "木");
+  const resolved = resolveZones(input, o, innerH, "木");
+  const { notesLine, warnings } = resolved;
+  let zones = resolved.zones;
+  // 傳統 ascending 比例：bottom > top，逐抽遞減（每抽都不一樣高）。
+  // 把原本 3 zone × N drawer 的設定攤平成 (totalDrawers) zone × 1 drawer，
+  // 每 zone 高度照 ratio 算 → caseFurniture 會在每 zone 邊界生 boundary 板。
+  // zones[] 順序：i=0 為最底層（最大），i=N-1 為最頂層（最小）。
+  if (drawerHeightStyle === "ascending") {
+    const totalDrawers = ascendingDrawerCount; // 直接用 ascendingDrawerCount，不再讀 zones
+    const cols = 1;
+    if (totalDrawers >= 2) {
+      // 線性插值：底層 1.4、頂層 0.8（傳統明清比例約 1.4 : 1）
+      const R_MAX = 1.4;
+      const R_MIN = 0.8;
+      const ratios: number[] = [];
+      for (let i = 0; i < totalDrawers; i++) {
+        const t = i / (totalDrawers - 1);
+        ratios.push(R_MAX - (R_MAX - R_MIN) * t);
+      }
+      const total = ratios.reduce((a, b) => a + b, 0);
+      const heights = ratios.map((r) => Math.round(innerH * r / total));
+      heights[0] += innerH - heights.reduce((a, b) => a + b, 0);
+      zones = heights.map((h) => ({ type: "drawer" as const, heightMm: h, count: 1, cols }));
+    }
+  }
 
   const design = caseFurniture({
     category: "chest-of-drawers",
@@ -104,78 +149,111 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
-    notes: `${notesLine}${legHeight > 0 ? `；底座加 ${legHeight}mm ${legShape} 腳${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。${pullStyleNote(pullStyle)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${drawerFaceStyle === "flat" ? "" : drawerFaceStyle === "shaker" ? "抽屜面板採夏克 5 件式 frame-and-panel（外框 60mm 寬、內凹平鑲板）。" : drawerFaceStyle === "inset" ? "抽屜面板嵌入式 inset（面板小於開口 3mm、四週留 reveal）。" : drawerFaceStyle === "overlay" ? "抽屜面板全蓋式 overlay（面板蓋住整個開口）。" : "抽屜面板凸版 raised-panel（外框 + 中央凸 6mm 雕花板）。"} ${withGalleryRail ? "頂面四週加 25mm 高 gallery 木條圍欄。" : ""}`.trim(),
+    notes: buildChestNotes({
+      notesLine,
+      legHeight, legShape, legInset,
+      pullStyle, pullPosition,
+      withToeKick: effectiveWithToeKick, toeKickHeight, toeKickRecess,
+      withCrownMolding, crownProjection,
+      backPanelMaterial,
+      drawerFaceStyle,
+      drawerHeightStyle,
+      withGalleryRail,
+    }),
     warnings,
   });
-  // 抽屜面板樣式：shaker → 5 件式 frame-and-panel
-  if (drawerFaceStyle === "shaker") {
-    const faceParts = design.parts.filter((p) => p.id.endsWith("-face"));
-    const railW = 60;
-    const panelInset = 8;
+  // 抽屜面板樣式：raised-panel → 在面板前面加一片凸出 6mm 的中央鑲板（雕花用）
+  // 注意 inset+無滑軌 模式下沒有獨立 -face，由 -front 兼任 → fallback 找 -front
+  if (drawerFaceStyle === "raised-panel") {
+    // 找 drawer face：preferred 是 -face；inset+無滑軌時由 -front 兼任。
+    // case-furniture 的 drawer idPrefix = "z{i+1}"（zone index），所以 ID 形如 "z1-1-front"
+    let faceParts = design.parts.filter((p) => p.id.endsWith("-face"));
+    if (faceParts.length === 0) {
+      faceParts = design.parts.filter((p) => /^z\d+-\d+-front$/.test(p.id));
+    }
+    // 邊框寬度：X / Y 不同，避免在矮抽屜上 Y 邊框吃掉整個面板
+    //   padX = 35mm（橫向比較有空間）
+    //   padY = min(20, fH/4)（短抽屜自動縮，避免凸板變負值）
+    //
+    // finger-pull + raised-panel 同開時：指槽位於 face 頂端下方 14mm，寬 25mm
+    // → 頂部 0~27mm 範圍是指槽佔用區。raised panel 頂緣必須 ≥ 32mm（留 5mm 空隙）
+    // 才不會覆蓋指槽。對小抽屜（fH<64mm），padY=fH/4 太小會把 raised panel 直接壓
+    // 到指槽上 → 指槽從 -Z 看被 raised panel 邊框擋住。
+    //
+    // 解法：finger-pull 時用「不對稱 padding」—— top padding 強制 ≥ 32，bottom
+    // padding 縮到 fH/8（最小 8），把 raised panel 整片下移避開指槽區。
+    //
+    // 另一個 bug：raised panel 後緣 z 跟 face 前緣 z **完全共面** → Three.js
+    // z-fighting，指槽凹陷邊緣的 normal 被 raised panel 的後緣壓掉、看起來像
+    // 沒挖。把 raised panel 整片再往 -Z 推 0.5mm（z_EPS）斷開共面。
+    const raisedPanelT = 6;
+    const Z_EPS = 0.5;
     for (const face of faceParts) {
       const fL = face.visible.length;
       const fH = face.visible.width;
       const fT = face.visible.thickness;
-      const idx = face.id;
-      // remove the slab face
-      design.parts = design.parts.filter((p) => p.id !== face.id);
       const baseOrigin = face.origin;
       const baseRot = face.rotation;
-      // top rail
+      const padX = Math.min(35, fL / 4);
+      let padYTop: number;
+      let padYBot: number;
+      if (pullStyle === "finger-pull") {
+        // 指槽距頂 14mm + 半寬 12.5mm + 5mm gap = 31.5mm；保險用 32
+        padYTop = Math.min(32, fH * 0.45);
+        padYBot = Math.max(8, Math.min(20, fH / 8));
+      } else {
+        const padY = Math.min(20, fH / 4);
+        padYTop = padY;
+        padYBot = padY;
+      }
+      const panelLen = Math.max(20, fL - 2 * padX);
+      const panelH = Math.max(20, fH - padYTop - padYBot);
+      // origin.y = face 底 + padYBot（rotation x=π/2 把 visible.width=panelH 映成 world Y）
       design.parts.push({
-        id: `${idx}-rail-top`,
-        nameZh: face.nameZh + " 上框",
+        id: `${face.id}-raised-panel`,
+        nameZh: face.nameZh + " 中央凸鑲板",
         material: input.material,
         grainDirection: "length",
-        visible: { length: fL, width: railW, thickness: fT },
-        origin: { x: baseOrigin.x, y: baseOrigin.y + fH / 2 - railW / 2, z: baseOrigin.z },
+        visible: { length: panelLen, width: panelH, thickness: raisedPanelT },
+        origin: { x: baseOrigin.x, y: baseOrigin.y + padYBot, z: baseOrigin.z - fT / 2 - raisedPanelT / 2 - Z_EPS },
         rotation: baseRot,
         tenons: [],
         mortises: [],
       });
+      // 把對應抽屜的所有 pull 也往前推 raisedPanelT，免得被凸鑲板擋住
+      // face.id 形如 "z1-1-face" 或 "z1-1-front"（inset 時）
+      // pull id 慣例 = `${faceIdWithFace}-pull` 或 `-pull-plate` 等
+      const facePullPrefix = face.id.endsWith("-face") ? face.id : face.id.replace(/-front$/, "-face");
+      const drawerPulls = design.parts.filter((p) => p.id.startsWith(`${facePullPrefix}-pull`));
+      for (const p of drawerPulls) {
+        p.origin = { ...p.origin, z: p.origin.z - raisedPanelT };
+      }
+    }
+  }
+
+  // 把手位置：dual = 左右各 1 顆。複製現有 pull part，左右各偏移 25% face 寬。
+  // 小面板（< 400mm）保持中央 1 顆（兩顆會擠在一起）。
+  if (pullPosition === "dual") {
+    const pulls = design.parts.filter((p) => p.id.includes("-pull") && !p.id.includes("pull-bail") && !p.id.includes("pull-ring"));
+    for (const pull of pulls) {
+      // 推回對應的 face 找 X 寬度
+      const faceId = pull.id.replace(/-pull(-plate)?$/, "").replace(/-face$/, "-face");
+      const face = design.parts.find((p) => p.id === faceId) || design.parts.find((p) => p.id === faceId.replace("-face", "-front"));
+      if (!face) continue;
+      const fW = face.visible.length;
+      if (fW < 400) continue; // 太窄不分裂
+      // 把目前 pull 偏向 -X (左)
+      const xL = pull.origin.x - fW * 0.25;
+      const xR = pull.origin.x + fW * 0.25;
+      pull.origin = { ...pull.origin, x: xL };
+      pull.id = pull.id + "-L";
+      pull.nameZh = (pull.nameZh ?? "把手") + "（左）";
+      // 複製右側
       design.parts.push({
-        id: `${idx}-rail-bottom`,
-        nameZh: face.nameZh + " 下框",
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: fL, width: railW, thickness: fT },
-        origin: { x: baseOrigin.x, y: baseOrigin.y - fH / 2 + railW / 2, z: baseOrigin.z },
-        rotation: baseRot,
-        tenons: [],
-        mortises: [],
-      });
-      design.parts.push({
-        id: `${idx}-stile-left`,
-        nameZh: face.nameZh + " 左框",
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
-        origin: { x: baseOrigin.x - fL / 2 + railW / 2, y: baseOrigin.y, z: baseOrigin.z },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-      design.parts.push({
-        id: `${idx}-stile-right`,
-        nameZh: face.nameZh + " 右框",
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: fH - 2 * railW, width: railW, thickness: fT },
-        origin: { x: baseOrigin.x + fL / 2 - railW / 2, y: baseOrigin.y, z: baseOrigin.z },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-      design.parts.push({
-        id: `${idx}-panel`,
-        nameZh: face.nameZh + " 中央鑲板",
-        material: input.material,
-        grainDirection: "length",
-        visible: { length: fL - 2 * railW, width: fH - 2 * railW, thickness: Math.max(8, fT - panelInset) },
-        origin: { x: baseOrigin.x, y: baseOrigin.y, z: baseOrigin.z + panelInset / 2 },
-        rotation: baseRot,
-        tenons: [],
-        mortises: [],
+        ...pull,
+        id: pull.id.replace(/-L$/, "-R"),
+        nameZh: (pull.nameZh ?? "").replace("（左）", "（右）"),
+        origin: { ...pull.origin, x: xR },
       });
     }
   }
@@ -184,7 +262,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   if (withGalleryRail) {
     const railH = 25;
     const railT = 12;
-    const yTop = input.height + railH / 2;
+    // 案頂 Y = input.height（caseFurniture 把頂板上緣對齊到這），gallery 條從這往上 25mm
+    const yTop = input.height;
     // front/back
     for (const side of [-1, 1]) {
       design.parts.push({
@@ -219,6 +298,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     minLength: 500, minWidth: 300, minHeight: 500,
     maxLength: 1300, maxWidth: 600, maxHeight: 1500,
   });
+  appendWarnings(design, baseConflictWarnings);
   const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
   // 從 zones 累加實際抽屜總數（count × cols），使用者把區段改成層板/門時數量會跟著變
   const actualDrawerCount = zones.reduce(
@@ -245,3 +325,34 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   }
   return design;
 };
+
+// 把超長 notes 字串拆成可讀 helper
+function buildChestNotes(cfg: {
+  notesLine: string;
+  legHeight: number; legShape: string; legInset: number;
+  pullStyle: string; pullPosition: string;
+  withToeKick: boolean; toeKickHeight: number; toeKickRecess: number;
+  withCrownMolding: boolean; crownProjection: number;
+  backPanelMaterial: string;
+  drawerFaceStyle: string;
+  drawerHeightStyle: string;
+  withGalleryRail: boolean;
+}): string {
+  const parts: string[] = [cfg.notesLine];
+  if (cfg.legHeight > 0) {
+    parts.push(`底座加 ${cfg.legHeight}mm ${cfg.legShape} 腳${cfg.legInset > 0 ? `（內縮 ${cfg.legInset}mm）` : ""}`);
+  }
+  if (cfg.pullStyle && cfg.pullStyle !== "none") {
+    parts.push(`${pullStyleNote(cfg.pullStyle)}${cfg.pullPosition === "dual" ? "（左右各 1 顆）" : ""}`);
+  }
+  const tk = toeKickNote(cfg.withToeKick, cfg.toeKickHeight, cfg.toeKickRecess);
+  if (tk) parts.push(tk);
+  const cm = crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection);
+  if (cm) parts.push(cm);
+  const bm = backPanelMaterialNote(cfg.backPanelMaterial);
+  if (bm) parts.push(bm);
+  if (cfg.drawerFaceStyle === "raised-panel") parts.push("抽屜面板採凸版（中央凸 6mm 雕花板）");
+  if (cfg.drawerHeightStyle === "ascending") parts.push("抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
+  if (cfg.withGalleryRail) parts.push("頂面加 25mm 高 gallery 圍欄");
+  return parts.filter(Boolean).join("；") + "。";
+}

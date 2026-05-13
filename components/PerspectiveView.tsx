@@ -515,10 +515,15 @@ function Part({
   // chamfered-edges / chamfered-top / splayed+chamfer 用 flatShading：
   // 每個 facet 自己的法線 → 八角斷面看得出來；不然 smooth shading 會把
   // 多 facet 平滑成連續曲面，看起來跟方料沒兩樣
+  //
+  // CSG 挖出的 cosmetic mortise（指槽 / 無線充電凹槽等）也需要 flatShading：
+  // 否則 smooth shading 會把凹槽邊緣 normal 插值平滑掉，看起來像沒挖一樣
+  const hasCosmeticCut = (mortiseBoxes?.length ?? 0) > 0;
   const useFlatShading =
     shape?.kind === "chamfered-edges" ||
     shape?.kind === "chamfered-top" ||
-    (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0);
+    (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
+    hasCosmeticCut;
   return (
     <mesh position={position} rotation={rotation} castShadow receiveShadow>
       {csgGeometry ? (

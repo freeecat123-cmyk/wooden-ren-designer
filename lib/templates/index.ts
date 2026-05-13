@@ -156,8 +156,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "desk",
-    nameZh: "書桌",
-    description: "工作書桌，含抽屜",
+    nameZh: "書桌/辦公桌",
+    description: "工作書桌 / 辦公桌，含抽屜",
     difficulty: "advanced",
     template: desk,
     defaults: { length: 1200, width: 600, height: 750 },

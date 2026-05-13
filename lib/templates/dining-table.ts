@@ -31,13 +31,6 @@ export const diningTableOptions: OptionSpec[] = [
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
-  { group: "top", type: "select", key: "topPattern", label: "桌面拼板花紋", defaultValue: "straight", choices: [
-    { value: "straight", label: "直拼（一般拼板）" },
-    { value: "herringbone", label: "人字拼（herringbone，45° 互鎖）" },
-    { value: "chevron", label: "魚骨拼（chevron，等高 45° 對接）" },
-    { value: "book-match", label: "對稱書配拼（book-matched，鏡像拼板）" },
-    { value: "end-grain", label: "端紋拼板（butcher block，砧板款）" },
-  ], help: "桌面板的拼接花紋。herringbone/chevron 需大量短料 + 精確角度切割，工時 +50%" },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
     { value: "one-side", label: "單側翻板（一端可延伸）" },
@@ -58,7 +51,7 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "centerStretcherWidth", label: "中央橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5, dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "number", key: "centerStretcherThickness", label: "中央橫撐厚 (mm)", defaultValue: 25, min: 12, max: 50, step: 1, dependsOn: { key: "withCenterStretcher" } },
   { group: "stretcher", type: "number", key: "centerStretcherDrop", label: "中央橫撐距牙板頂 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "0 = 跟牙板上緣切齊（預設）", dependsOn: { key: "withCenterStretcher" } },
-  { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐（明式結構）", defaultValue: false, dependsOn: { key: "legShape", notIn: ["trestle"] } },
+  { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false, dependsOn: { key: "legShape", notIn: ["trestle"] } },
   { group: "stretcher", type: "select", key: "lowerStretcherArrangement", label: "下橫撐排列", defaultValue: "box-frame", choices: [
     { value: "box-frame", label: "4 邊框（最穩，預設）" },
     { value: "h-frame", label: "H 形（左右 2 條 + 中央 1 條）" },
@@ -265,7 +258,6 @@ export const diningTable: FurnitureTemplate = (input) => {
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
-  const topPattern = getOption<string>(input, opt(o, "topPattern"));
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const design = simpleTable({
@@ -303,48 +295,8 @@ export const diningTable: FurnitureTemplate = (input) => {
     liveEdge,
     dropLeaf: dropLeaf as "none" | "one-side" | "two-sides",
     dropLeafWidth,
-    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}${topPattern === "herringbone" ? " 桌面採人字拼（herringbone）：短料 80×400mm 互相鎖合 45° 排列，工時 +50%。" : topPattern === "chevron" ? " 桌面採魚骨拼（chevron）：等高 45° 對接，視覺更有方向感、工時 +50%。" : topPattern === "book-match" ? " 桌面採對稱書配拼（book-matched）：中央剖板鏡像對拼，紋路成蝴蝶狀。" : topPattern === "end-grain" ? " 桌面採端紋拼板（butcher block）：木紋朝上、像砧板，不易刮痕、超耐磨。" : ""}`,
+    notes: `餐桌結構：桌腳 ${legSize}mm（${legShapeLabel(legShape)}）、牙板 ${apronWidth}×${apronThickness}mm、桌面 ${topThickness}mm 厚。${liveEdge ? " 桌面 live edge：保留原木樹皮邊，需用單片大板（>600mm 寬）或拼板後留外緣不修。" : ""}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5" 鋼製蝶式鉸鏈一對 / 端）。` : ""}`,
   });
-  // herringbone / chevron 桌面：把單一 top part 拆成多片斜向小料
-  if (topPattern === "herringbone" || topPattern === "chevron") {
-    const topPart = design.parts.find((p) => p.id === "top");
-    if (topPart) {
-      const topL = topPart.visible.length;
-      const topW = topPart.visible.width;
-      const topT = topPart.visible.thickness;
-      const topY = topPart.origin.y;
-      const plankW = 80;
-      const plankL = 400;
-      // 移除舊 top
-      design.parts = design.parts.filter((p) => p.id !== "top");
-      // 用 panelPieces 計概念：多片斜向小料，rotation Y = 45 / -45 度
-      const rows = Math.ceil(topW / (plankL * Math.SQRT1_2));
-      const cols = Math.ceil(topL / (plankL * Math.SQRT1_2));
-      let idx = 0;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const xOff = -topL / 2 + (c + 0.5) * (topL / cols);
-          const zOff = -topW / 2 + (r + 0.5) * (topW / rows);
-          // herringbone: 交替 ±45°；chevron: 同列正向、交錯列反向
-          const rotY = topPattern === "herringbone"
-            ? ((r + c) % 2 === 0 ? Math.PI / 4 : -Math.PI / 4)
-            : (r % 2 === 0 ? Math.PI / 4 : -Math.PI / 4);
-          design.parts.push({
-            id: `top-plank-${idx++}`,
-            nameZh: `桌面拼料 ${idx}`,
-            material: input.material,
-            grainDirection: "length",
-            visible: { length: plankL, width: plankW, thickness: topT },
-            origin: { x: xOff, y: topY, z: zOff },
-            rotation: { x: 0, y: rotY, z: 0 },
-            tenons: [],
-            mortises: [],
-          });
-        }
-      }
-    }
-  }
-
   // 下橫撐排列方式（box-frame 預設無動作）
   if (withLowerStretchers && lowerStretcherArrangement !== "box-frame") {
     applyLowerStretcherArrangement(design, lowerStretcherArrangement, {
@@ -370,7 +322,7 @@ export const diningTable: FurnitureTemplate = (input) => {
  * 下橫撐排列 post-process。simpleTable 預設出 4 條 box-frame，這函式根據
  * arrangement 過濾 / 新增零件 + 連帶處理 leg 上的孤兒 mortise。
  */
-function applyLowerStretcherArrangement(
+export function applyLowerStretcherArrangement(
   design: FurnitureDesign,
   arrangement: string,
   params: {
