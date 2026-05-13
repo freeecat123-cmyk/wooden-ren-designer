@@ -20,8 +20,13 @@ import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 
+// FurnitureCatalogEntry contains a `template` function that cannot be
+// serialised when passing from Server → Client Component. MobileShell
+// only needs the plain-data fields, so we Omit the function.
+type SerializableEntry = Omit<FurnitureCatalogEntry, "template">;
+
 interface MobileShellProps {
-  entry: FurnitureCatalogEntry;
+  entry: SerializableEntry;
   design: FurnitureDesign;
   length: number;
   width: number;

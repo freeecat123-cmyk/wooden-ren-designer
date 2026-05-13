@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 /** 非表單管的 URL 狀態 key（場景主題 / 顯示模式 / dev flag）——
  *  改 form 時要保留這些，否則 wireframe / xray / scene 會被 reset */
-const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode"];
+const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui"];
 
 /**
  * 設計頁表單的 client-side 外殼。

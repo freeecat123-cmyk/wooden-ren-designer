@@ -25,6 +25,7 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { ShoeCabinetCoupling } from "@/components/design/ShoeCabinetCoupling";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { XrayToggle } from "@/components/XrayToggle";
@@ -151,20 +152,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   const parsed = parseDesignSearchParams(sp, entry);
   const { material, options, joineryMode } = parsed;
-
-  // shoe-cabinet 特例：「斜放鞋格」只在類型=開放層板時有意義。
-  // 使用者勾斜放但類型還是門/抽屜時，redirect 把 topType 一起補成 shelves，
-  // 讓 dropdown 跟 3D 同步（不會「勾了沒反應」）。
-  if (type === "shoe-cabinet" && options.angledRack === true && options.topType !== "shelves") {
-    const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(sp)) {
-      if (typeof v === "string") q.set(k, v);
-      else if (Array.isArray(v) && typeof v[0] === "string") q.set(k, v[0]);
-    }
-    q.set("topType", "shelves");
-    redirect(`/design/shoe-cabinet?${q.toString()}`);
-  }
-
   // 設計師模式是專業版功能；未付費就算 URL 帶了 designerMode=true 也強制關掉，
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
@@ -527,7 +514,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     </div>
     {uiV2 && (
       <MobileShell
-        entry={entry}
+        entry={{ category: entry.category, nameZh: entry.nameZh, description: entry.description, difficulty: entry.difficulty, defaults: entry.defaults, limits: entry.limits, optionSchema: entry.optionSchema }}
         design={design}
         length={length}
         width={width}
@@ -663,6 +650,7 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
+      {type === "shoe-cabinet" && <ShoeCabinetCoupling />}
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
