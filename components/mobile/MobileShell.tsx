@@ -97,7 +97,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} />
             </div>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         <CollapsibleSection title="三視圖" badge="點圖放大">
-          <ZoomableThreeViews design={design} />
+          <ZoomableThreeViews design={design} joineryMode={props.joineryMode} />
         </CollapsibleSection>
 
         <CollapsibleSection title="材料清單" badge={`${design.parts.length} 件`}>
