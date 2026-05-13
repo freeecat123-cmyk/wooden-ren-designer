@@ -15,7 +15,7 @@ import { StickyBottomBar } from "./StickyBottomBar";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { AdvancedSheet } from "./AdvancedSheet";
 import { MobileOverflowMenu } from "./MobileOverflowMenu";
-import { MobileOptionField } from "./MobileOptionField";
+import { MobileOptionField, evalDep } from "./MobileOptionField";
 import { RangeInput } from "./RangeInput";
 import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
@@ -71,6 +71,17 @@ export function MobileShell(props: MobileShellProps) {
   );
   const structureSpecs = optionSchema.filter(
     (s) => !styleSpecs.includes(s) && !joinerySpecs.includes(s),
+  );
+
+  // 套 spec.dependsOn 過濾 —— 讓 AdvancedSheet 只顯示與當前選項相關的 spec
+  const visibleStructureSpecs = structureSpecs.filter(
+    (s) => !s.dependsOn || evalDep(s.dependsOn, optionValues),
+  );
+  const visibleStyleSpecs = styleSpecs.filter(
+    (s) => !s.dependsOn || evalDep(s.dependsOn, optionValues),
+  );
+  const visibleJoinerySpecs = joinerySpecs.filter(
+    (s) => !s.dependsOn || evalDep(s.dependsOn, optionValues),
   );
 
   // SaveDesignButton params
@@ -198,12 +209,12 @@ export function MobileShell(props: MobileShellProps) {
               height={height}
               material={material}
               optionValues={optionValues}
-              exceptKeys={structureSpecs.map((s) => s.key)}
+              exceptKeys={visibleStructureSpecs.map((s) => s.key)}
             />
-            {structureSpecs.length === 0 ? (
+            {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
-              structureSpecs.map((s) => (
+              visibleStructureSpecs.map((s) => (
                 <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
               ))
             )}
@@ -217,9 +228,9 @@ export function MobileShell(props: MobileShellProps) {
               height={height}
               material={material}
               optionValues={optionValues}
-              exceptKeys={styleSpecs.map((s) => s.key)}
+              exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            {styleSpecs.map((s) => (
+            {visibleStyleSpecs.map((s) => (
               <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
             ))}
           </DesignFormShell>
@@ -232,9 +243,9 @@ export function MobileShell(props: MobileShellProps) {
               height={height}
               material={material}
               optionValues={optionValues}
-              exceptKeys={joinerySpecs.map((s) => s.key)}
+              exceptKeys={visibleJoinerySpecs.map((s) => s.key)}
             />
-            {joinerySpecs.map((s) => (
+            {visibleJoinerySpecs.map((s) => (
               <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
             ))}
             <p className="text-xs text-zinc-500 mt-4">榫卯細節圖：phase 2 整合。</p>

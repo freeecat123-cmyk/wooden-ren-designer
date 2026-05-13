@@ -3,7 +3,7 @@
 import type { OptionSpec, OptionDependency } from "@/lib/types";
 import { RangeInput } from "./RangeInput";
 
-function evalDep(
+export function evalDep(
   dep: OptionDependency,
   values: Record<string, string | number | boolean>,
 ): boolean {
