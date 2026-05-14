@@ -1953,7 +1953,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         origin: { x: p.cx, y: slideYBottom, z: p.z },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [],
-        mortises: [],
+        mortises: [{
+          // 靠中縫側豎邊的垂直指拉槽（cosmetic）。idx 1=左片→右緣、idx 2=右片→左緣。
+          origin: { x: p.idx === 1 ? panelW / 2 - 15 : -(panelW / 2 - 15), y: 0, z: 0 },
+          depth: 10,
+          length: 20,
+          width: 600,
+          through: false,
+          cosmetic: true,
+          shape: "rect" as const,
+        }],
       });
     }
   }
