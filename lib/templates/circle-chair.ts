@@ -382,6 +382,64 @@ function buildArmRail(args: {
 }
 
 /**
+ * S 曲線三件：聯幫棍 ×2（side-spindle-l/r）+ 靠背板（back-splat）
+ *
+ * 聯幫棍：椅圈左右桿與座框側邊之間的彎棍。
+ *   P1 用 splayed-round-tapered（圓料外斜，dzMm 前傾位移近似弓形）。
+ *   ⚠️ splayed-round-tapered 是圓料 shape，length 必須 === width（直徑）。
+ *   計畫的 50×30 非正方，P1 簡化為 40×40 圓棍（~40mm 直徑，合理近似）。
+ *
+ * 靠背板：素獨板 S 形，下接後大邊、上接椅圈後段。
+ *   face-rounded + bendMm + bendAxis:"z"。
+ *   visible 慣例：length(X)=185 板寬、thickness(Y)=splatH 板高、width(Z)=40 板厚。
+ *   （計畫原文 width/thickness 互換，依 ⚠️ 警告 1 修正）
+ */
+function buildSCurveMembers(args: {
+  material: MaterialId;
+  seatWidth: number; seatDepth: number; seatHeight: number; ringHeight: number;
+}): Part[] {
+  const { material, seatWidth, seatDepth, seatHeight, ringHeight } = args;
+  const parts: Part[] = [];
+  // 椅圈底面 Y（與 buildArmRail 的 ringY 同步：ringHeight - RAIL_T, RAIL_T=36）
+  const RING_T = 36;
+  const ringY = ringHeight - RING_T;
+
+  // 聯幫棍 ×2：座框側邊 → 椅圈左右桿；P1 用斜圓料近似弓形
+  // splayed-round-tapered 要求 length === width（=圓料直徑），故 P1 取 40mm 正方
+  const SPINDLE_D = 40; // 聯幫棍直徑（mm），P1 簡化為正方斷面圓料
+  for (const sx of [-1, 1] as const) {
+    const spindleH = ringY - seatHeight;
+    parts.push({
+      id: sx < 0 ? "side-spindle-l" : "side-spindle-r",
+      nameZh: "聯幫棍",
+      material, grainDirection: "length",
+      // length(X)=直徑、width(Z)=直徑、thickness(Y)=棍高（geometry.ts:6 慣例）
+      visible: { length: SPINDLE_D, width: SPINDLE_D, thickness: spindleH },
+      origin: { x: sx * (seatWidth / 2 - 25), y: seatHeight, z: -seatDepth * 0.08 },
+      shape: { kind: "splayed-round-tapered", bottomScale: 1.1, dxMm: 0, dzMm: 38 },
+      tenons: [], mortises: [],
+    });
+  }
+
+  // 靠背板：素獨板 S 形，下接後大邊、上接椅圈後段
+  // visible 慣例：length(X)=板寬 185、thickness(Y)=板高 splatH、width(Z)=板厚 40
+  // （計畫原文 width/thickness 互換，依 ⚠️ 警告 1 修正）
+  const splatBottomY = seatHeight;
+  const splatH = ringY - splatBottomY;
+  parts.push({
+    id: "back-splat",
+    nameZh: "靠背板",
+    material, grainDirection: "length",
+    visible: { length: 185, thickness: splatH, width: 40 },
+    origin: { x: 0, y: splatBottomY, z: seatDepth / 2 - 20 },
+    rotation: { x: 0, y: 0, z: 0 },
+    shape: { kind: "face-rounded", cornerR: 12, bendMm: 32, bendAxis: "z" },
+    tenons: [], mortises: [],
+  });
+  return parts;
+}
+
+/**
  * 明式圈椅（circle-chair）— Phase 1 直線化框架版
  * input.length = 座寬、input.width = 座深、input.height = 椅圈總高
  * 預設 610 × 497 × 720mm（台南魯班學堂工作圖實尺）
@@ -407,6 +465,9 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   }));
   parts.push(...buildArmRail({
     material, seatWidth: input.length, seatDepth: input.width, ringHeight: input.height,
+  }));
+  parts.push(...buildSCurveMembers({
+    material, seatWidth: input.length, seatDepth: input.width, seatHeight, ringHeight: input.height,
   }));
 
   const design: FurnitureDesign = {
