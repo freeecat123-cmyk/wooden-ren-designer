@@ -73,7 +73,7 @@ export function makePullParts(
         nameZh: "長條把手",
         material,
         materialOverride: "plywood",
-        grainDirection: "thickness",
+        grainDirection: "length",
         visible: { length: 14, width: 25, thickness: barLen },
         origin: { x: cx, y: cy - barLen / 2, z: zFaceFront - 12.5 - CLEAR },
         visual: "brass-antique",

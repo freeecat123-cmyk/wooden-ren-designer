@@ -418,6 +418,8 @@ export type OptionSpec =
       help?: string;
       group?: OptionGroup;
       dependsOn?: OptionDependency;
+      /** 佔整行寬度（不擠 grid 欄位）— 適合 choices 較多或 label 較長的選項 */
+      wide?: boolean;
     }
   | {
       type: "checkbox";
