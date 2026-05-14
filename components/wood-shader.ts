@@ -109,7 +109,10 @@ function makeCompile(
       .replace("#include <common>", `#include <common>\nvarying vec3 vWoodLocalPos;`)
       .replace(
         "#include <fog_vertex>",
-        `#include <fog_vertex>\nvWoodLocalPos = position;`,
+        // position 是 three-units（1 unit = 100mm，見 PerspectiveView SCALE）；
+        // 本 shader 所有常數（pithY -220、ring 25mm、頻率…）都按 mm 寫，
+        // 所以這裡 ×100 轉成 mm，grain 幾何才會以正確尺度解析出來。
+        `#include <fog_vertex>\nvWoodLocalPos = position * 100.0;`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${HELPERS}`)
