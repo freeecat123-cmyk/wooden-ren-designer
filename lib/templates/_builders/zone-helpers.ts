@@ -321,13 +321,13 @@ export function makeZoneOptions(
   specs.push(
     { group: "zone-top", type: "number", key: "topCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.topCount, min: 1, max: 8, step: 1 },
     { group: "zone-top", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: defaults.topCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
-    { group: "zone-top", type: "number", key: "topDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
-    { group: "zone-top", type: "number", key: "topDoorDrawers", label: "門內抽屜數（門類型用）", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "topType", equals: "door" } },
-    { group: "zone-top", type: "number", key: "topDoorDrawerHeight", label: "門內每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "topType", equals: "door" }, { key: "topDoorDrawers", notIn: [0] }] } },
+    { group: "zone-top", type: "number", key: "topDoorShelves", label: "第1格 門內層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "topType", equals: "door" } },
+    { group: "zone-top", type: "number", key: "topDoorDrawers", label: "第1格 門內抽屜數", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "topType", equals: "door" } },
+    { group: "zone-top", type: "number", key: "topDoorDrawerHeight", label: "第1格 每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "topType", equals: "door" }, { key: "topDoorDrawers", notIn: [0] }] } },
     { group: "zone-top", type: "number", key: "topDoorCols", label: "門板橫向分隔數（門類型用）", defaultValue: 1, min: 1, max: 4, step: 1, help: "類型=門板 時，欄內切 N 個獨立子櫃。子欄 1 用上方 zone 層級設定，子欄 2/3/4 各自獨立", dependsOn: { key: "topType", equals: "door" } },
     ...(allowHanging ? [
-      { group: "zone-top" as const, type: "checkbox" as const, key: "topDoorHanging", label: "加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）。多欄門時子欄 2/3/4 各自獨立開關", dependsOn: { key: "topType", equals: "door" } },
-      { group: "zone-top" as const, type: "number" as const, key: "topDoorHangingHeight", label: "吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度；下方剩餘給門內層板", dependsOn: { all: [{ key: "topType", equals: "door" }, { key: "topDoorHanging", equals: true }] } },
+      { group: "zone-top" as const, type: "checkbox" as const, key: "topDoorHanging", label: "第1格 加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）。多欄門時子欄 2/3/4 各自獨立開關", dependsOn: { key: "topType", equals: "door" } },
+      { group: "zone-top" as const, type: "number" as const, key: "topDoorHangingHeight", label: "第1格 吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度；下方剩餘給門內層板", dependsOn: { all: [{ key: "topType", equals: "door" }, { key: "topDoorHanging", equals: true }] } },
     ] : []),
     ...makeDoorSubColOptions("top", "zone-top", allowHanging),
   );
@@ -337,13 +337,13 @@ export function makeZoneOptions(
       { group: "zone-mid", type: "select", key: "midType", label: "類型", defaultValue: defaults.midType, choices, help: "高度自動填滿剩餘空間" },
       { group: "zone-mid", type: "number", key: "midCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.midCount, min: 1, max: 8, step: 1 },
       { group: "zone-mid", type: "number", key: "midCols", label: "抽屜列數（左右分）", defaultValue: defaults.midCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "midType", equals: "drawer" } },
-      { group: "zone-mid", type: "number", key: "midDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "midType", equals: "door" } },
-      { group: "zone-mid", type: "number", key: "midDoorDrawers", label: "門內抽屜數（門類型用）", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "midType", equals: "door" } },
-      { group: "zone-mid", type: "number", key: "midDoorDrawerHeight", label: "門內每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "midType", equals: "door" }, { key: "midDoorDrawers", notIn: [0] }] } },
+      { group: "zone-mid", type: "number", key: "midDoorShelves", label: "第1格 門內層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "midType", equals: "door" } },
+      { group: "zone-mid", type: "number", key: "midDoorDrawers", label: "第1格 門內抽屜數", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "midType", equals: "door" } },
+      { group: "zone-mid", type: "number", key: "midDoorDrawerHeight", label: "第1格 每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "midType", equals: "door" }, { key: "midDoorDrawers", notIn: [0] }] } },
       { group: "zone-mid", type: "number", key: "midDoorCols", label: "門板橫向分隔數（門類型用）", defaultValue: 1, min: 1, max: 4, step: 1, help: "類型=門板 時，欄內切 N 個獨立子櫃。子欄 1 用上方 zone 層級設定，子欄 2/3/4 各自獨立", dependsOn: { key: "midType", equals: "door" } },
       ...(allowHanging ? [
-        { group: "zone-mid" as const, type: "checkbox" as const, key: "midDoorHanging", label: "加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）", dependsOn: { key: "midType", equals: "door" } },
-        { group: "zone-mid" as const, type: "number" as const, key: "midDoorHangingHeight", label: "吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度", dependsOn: { all: [{ key: "midType", equals: "door" }, { key: "midDoorHanging", equals: true }] } },
+        { group: "zone-mid" as const, type: "checkbox" as const, key: "midDoorHanging", label: "第1格 加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）", dependsOn: { key: "midType", equals: "door" } },
+        { group: "zone-mid" as const, type: "number" as const, key: "midDoorHangingHeight", label: "第1格 吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度", dependsOn: { all: [{ key: "midType", equals: "door" }, { key: "midDoorHanging", equals: true }] } },
       ] : []),
       ...makeDoorSubColOptions("mid", "zone-mid", allowHanging),
     );
@@ -358,13 +358,13 @@ export function makeZoneOptions(
   specs.push(
     { group: "zone-bot", type: "number", key: "bottomCount", label: "數量", help: "抽屜=排數 / 門板=扇數 / 開放層板=層數", defaultValue: defaults.bottomCount, min: 1, max: 8, step: 1 },
     { group: "zone-bot", type: "number", key: "bottomCols", label: "抽屜列數（左右分）", defaultValue: defaults.bottomCols ?? 1, min: 1, max: 4, step: 1, dependsOn: { key: "bottomType", equals: "drawer" } },
-    { group: "zone-bot", type: "number", key: "bottomDoorShelves", label: "門內層板數（門類型用）", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "bottomType", equals: "door" } },
-    { group: "zone-bot", type: "number", key: "bottomDoorDrawers", label: "門內抽屜數（門類型用）", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "bottomType", equals: "door" } },
-    { group: "zone-bot", type: "number", key: "bottomDoorDrawerHeight", label: "門內每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "bottomType", equals: "door" }, { key: "bottomDoorDrawers", notIn: [0] }] } },
+    { group: "zone-bot", type: "number", key: "bottomDoorShelves", label: "第1格 門內層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "類型=門板 時，門內藏的層板片數（0=全空）", dependsOn: { key: "bottomType", equals: "door" } },
+    { group: "zone-bot", type: "number", key: "bottomDoorDrawers", label: "第1格 門內抽屜數", defaultValue: 0, min: 0, max: 8, step: 1, help: "> 0 時用抽屜取代層板（均分剩餘空間，無水平分隔板）", dependsOn: { key: "bottomType", equals: "door" } },
+    { group: "zone-bot", type: "number", key: "bottomDoorDrawerHeight", label: "第1格 每抽屜高度 (mm)", defaultValue: 100, min: 80, max: 150, step: 5, help: "每個抽屜的高度，80–150mm 範圍。總抽屜區 = 抽屜數 × 此高度", dependsOn: { all: [{ key: "bottomType", equals: "door" }, { key: "bottomDoorDrawers", notIn: [0] }] } },
     { group: "zone-bot", type: "number", key: "bottomDoorCols", label: "門板橫向分隔數（門類型用）", defaultValue: 1, min: 1, max: 4, step: 1, help: "類型=門板 時，欄內切 N 個獨立子櫃。子欄 1 用上方 zone 層級設定，子欄 2/3/4 各自獨立", dependsOn: { key: "bottomType", equals: "door" } },
     ...(allowHanging ? [
-      { group: "zone-bot" as const, type: "checkbox" as const, key: "bottomDoorHanging", label: "加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）", dependsOn: { key: "bottomType", equals: "door" } },
-      { group: "zone-bot" as const, type: "number" as const, key: "bottomDoorHangingHeight", label: "吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度", dependsOn: { all: [{ key: "bottomType", equals: "door" }, { key: "bottomDoorHanging", equals: true }] } },
+      { group: "zone-bot" as const, type: "checkbox" as const, key: "bottomDoorHanging", label: "第1格 加吊衣桿", defaultValue: false, wide: true, help: "類型=門板 時，子欄 1 後加一根吊衣桿（衣櫃用）", dependsOn: { key: "bottomType", equals: "door" } },
+      { group: "zone-bot" as const, type: "number" as const, key: "bottomDoorHangingHeight", label: "第1格 吊衣空間高度 (mm)", defaultValue: 1200, min: 200, max: 2200, step: 50, help: "rod 距 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度", dependsOn: { all: [{ key: "bottomType", equals: "door" }, { key: "bottomDoorHanging", equals: true }] } },
     ] : []),
     ...makeDoorSubColOptions("bottom", "zone-bot", allowHanging),
   );
