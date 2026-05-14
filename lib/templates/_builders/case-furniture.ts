@@ -284,7 +284,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const insetClearance = 5; // 門背與層板之間的安全空隙
   const insetReducedDepth =
     doorMount === "inset" ? insetDoorThick + insetClearance : 0;
-  // 抽屜面板安裝方式（與門板獨立設定）
+  // 抽屜面板安裝方式（滑門模式強制 inset，否則跟隨 opts.drawerMount）
   const drawerMount = opts.slidingDoorMode ? "inset" : (opts.drawerMount ?? "overlay-6");
 
   const parts: Part[] = [];
@@ -708,6 +708,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       drawerMount: cfg.drawerMount ?? drawerMount,
       drawerBottomMode: opts.drawerBottomMode,
       drawerSlideGap: opts.drawerSlideGap,
+      // 滑門模式：抽屜藏在滑門後且把手會撞到後軌門片，強制不出把手
       pullStyle: cfg.pullStyle ?? (opts.slidingDoorMode ? "none" : pullStyle),
     }, parts);
   };
@@ -1530,6 +1531,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         const doorHasHanging = z.doorInnerHanging === true;
         const nDoorCols = Math.max(1, z.cols ?? 1);
         if (nDoorCols < 2) {
+          // 滑門模式：鉸鏈門扇由前方滑門取代，這裡跳過
           if (!opts.slidingDoorMode) {
             renderDoorZone({
               yStart, height: usableH,
@@ -1678,6 +1680,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               : ci === 0 ? "左" : ci === 1 && nDoorCols === 3 ? "中" : "右";
             const extL = ci === 0 ? doorOverlayCol : halfBoundaryCol;
             const extR = ci === nDoorCols - 1 ? doorOverlayCol : halfBoundaryCol;
+            // 滑門模式：同上，鉸鏈門扇由滑門取代
             if (!opts.slidingDoorMode) {
               renderDoorZone({
                 yStart, height: usableH,
@@ -1924,14 +1927,15 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
   // —— 推拉門模式：2 片前後錯開外掛滑門 ——
   if (opts.slidingDoorMode) {
-    const SLIDE_T = 18;                       // slab 滑門厚
+    const SLIDE_T = 18;                       // slab 滑門厚（同 renderDoorZone 內 slabT）
     const SLIDE_OVERLAP = 50;                 // 兩片中間重疊量
     const panelW = length / 2 + SLIDE_OVERLAP / 2;  // 每片寬（半寬 + 25）
     const slideH = caseHeight;                // 高 = 內部三層 + 上下板，蓋滿前緣
     const slideYBottom = caseBottomY;         // 底部對齊櫃體底
     // Z：櫃前緣 = -width/2，往前更負。後軌片貼櫃前緣外 3mm，前軌片再往前 21mm。
     const zBackPanel = -width / 2 - 3 - SLIDE_T / 2;          // 後軌（右片）
-    const zFrontPanel = zBackPanel - 21;                      // 前軌（左片）
+    const SLIDE_TRACK_SPACING = 21;           // 軌距 = 門厚 18 + 軌道槽 3mm 間隙
+    const zFrontPanel = zBackPanel - SLIDE_TRACK_SPACING;                      // 前軌（左片）
     const leftPanelCx = -length / 2 + panelW / 2;             // 左片置左
     const rightPanelCx = length / 2 - panelW / 2;             // 右片置右
     const slidingPanels: Array<{ idx: number; cx: number; z: number; nameZh: string }> = [
