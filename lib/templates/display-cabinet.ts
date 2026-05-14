@@ -258,7 +258,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `top-decor-post-front-${k + 1}`,
           nameZh: `頂部欄杆 前立柱 ${k + 1}`,
-          material: mat, grainDirection: "thickness",
+          material: mat, grainDirection: "length",
           visible: { length: postW, width: postT, thickness: postH },
           origin: { x: startXp + k * pitchP, y: yPostBase, z: frontZpost },
           tenons: [], mortises: [],
@@ -276,7 +276,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `top-decor-post-${side > 0 ? "right" : "left"}-${k + 1}`,
             nameZh: `頂部欄杆 ${side > 0 ? "右" : "左"}立柱 ${k + 1}`,
-            material: mat, grainDirection: "thickness",
+            material: mat, grainDirection: "length",
             visible: { length: postT, width: postW, thickness: postH },
             origin: { x: side * (L / 2 + proj - postT / 2), y: yPostBase, z: startZp + k * pitchP },
             tenons: [], mortises: [],

@@ -44,22 +44,40 @@ export function MobileOptionField({ spec, value, allValues }: MobileOptionFieldP
     const visibleChoices = spec.choices.filter(
       (c) => !c.dependsOn || (allValues && evalDep(c.dependsOn, allValues)),
     );
+    const currentValue = String(value);
+    // 若 server 給的 value 已被 dependsOn 過濾掉，保險起見預設選第一個可見項
+    const fallbackValue = visibleChoices.some((c) => c.value === currentValue)
+      ? currentValue
+      : visibleChoices[0]?.value ?? currentValue;
     return (
-      <label className="flex flex-col gap-1 text-sm" title={spec.help}>
-        <span className="text-zinc-700 font-medium">{spec.label}</span>
-        <select
-          name={spec.key}
-          defaultValue={String(value)}
-          className="min-h-[44px] border border-zinc-300 rounded-md px-3 py-2 bg-white text-zinc-900 text-base"
-        >
-          {visibleChoices.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+      <fieldset className="flex flex-col gap-1.5 text-sm" title={spec.help}>
+        <legend className="text-zinc-700 font-medium mb-1">{spec.label}</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {visibleChoices.map((c) => {
+            const checked = fallbackValue === c.value;
+            return (
+              <label
+                key={c.value}
+                className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs leading-snug min-h-[44px] flex items-center ring-1 transition ${
+                  checked
+                    ? "bg-amber-100 ring-amber-500 text-amber-900 font-semibold"
+                    : "bg-white ring-zinc-200 text-zinc-700 active:bg-amber-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={spec.key}
+                  value={c.value}
+                  defaultChecked={checked}
+                  className="sr-only"
+                />
+                {c.label}
+              </label>
+            );
+          })}
+        </div>
         {spec.help && <span className="text-xs text-zinc-500">{spec.help}</span>}
-      </label>
+      </fieldset>
     );
   }
   // checkbox / boolean
