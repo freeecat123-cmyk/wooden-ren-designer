@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -2417,7 +2417,7 @@ export function PerspectiveView({
                   part.shape?.kind === "splayed-round-tapered";
                 const useRoundTenon = isRoundLegPart && t.position === "top";
                 return (
-                  <React.Fragment key={`${part.id}-tenon-${ti}`}>
+                  <Fragment key={`${part.id}-tenon-${ti}`}>
                     <mesh
                       position={[wx, wy, wz]}
                       rotation={new Euler(rx, ry, rz, "ZYX")}
@@ -2464,7 +2464,7 @@ export function PerspectiveView({
                         shapeKind={undefined}
                       />
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 );
               })
             : null;
