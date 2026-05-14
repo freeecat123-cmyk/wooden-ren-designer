@@ -185,6 +185,12 @@ export interface RenderDrawerZoneCfg {
   colInnerW?: number;
   overlayBottom?: number;
   overlayTop?: number;
+  /** 抽屜面板 X 軸延伸（單側）。column 模式邊角=full overlay、鄰 face=halfBoundary。未傳走原本 inColumn 邏輯。 */
+  extendLeft?: number;
+  extendRight?: number;
+  /** 各排高度比例（fraction 陣列、總和需 = 1）。未傳走均分。長度需 = rows。
+   *  例：rows=2 + [0.4, 0.6] → 下排 = 40% 高、上排 = 60% 高（淺抽放遙控器、深抽放線材） */
+  rowHeights?: number[];
   // —— host 框架幾何（case 或 desk apron）——
   material: MaterialId;
   panelT: number;
@@ -245,14 +251,27 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   } = cfg;
   const zoneCx = cfg.xCenter ?? 0;
   const zoneW = cfg.colInnerW ?? innerW;
-  const drawerSlotH = zoneH / rows;
+  // 每排高度（mm）：cfg.rowHeights 是 fraction（總和=1）；未傳走均分。長度不對也 fallback 均分。
+  const rowFractions =
+    cfg.rowHeights && cfg.rowHeights.length === rows && Math.abs(cfg.rowHeights.reduce((a, b) => a + b, 0) - 1) < 1e-3
+      ? cfg.rowHeights
+      : Array.from({ length: rows }, () => 1 / rows);
+  const rowSlotH: number[] = rowFractions.map((f) => zoneH * f);
+  const rowSlotYBottom: number[] = [];
+  {
+    let acc = 0;
+    for (let r = 0; r < rows; r++) {
+      rowSlotYBottom.push(acc);
+      acc += rowSlotH[r];
+    }
+  }
   const drawerZoneBottomY = yStart;
   const drawerZoneTopY = yStart + zoneH;
 
   // —— 水平分隔板（case 用；desk apron 不需要） ——
   if (!skipCaseDividers) {
     for (let d = 0; d < rows - 1; d++) {
-      const dividerY = drawerZoneBottomY + (d + 1) * drawerSlotH;
+      const dividerY = drawerZoneBottomY + rowSlotYBottom[d + 1];
       parts.push({
         id: `${idPrefix}-divider-${d + 1}`,
         nameZh: `${labelPrefix}分隔板 ${d + 1}`,
@@ -309,22 +328,33 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const boxExtW = hasSlide ? drawerOuterW : drawerOuterW - 4;
   const drawerInnerW = boxExtW - 2 * drawerSideT;
   const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
-  const drawerH = drawerSlotH - shelfT - drawerGap * 2;
   const boxYOffset = hasSlide ? 5 - drawerGap : 0;
   const dovetailLen = drawerSideT;
   const inColumn = cfg.colInnerW !== undefined;
   const overlayBot = cfg.overlayBottom ?? drawerOverlay;
   const overlayTop = cfg.overlayTop ?? drawerOverlay;
+  const extendLeftDefault = inColumn ? panelT : (length - zoneW) / 2; // 非 inColumn = case 邊到 zone 邊
+  const extendLeft = cfg.extendLeft ?? (drawerMount === "overlay-6" ? extendLeftDefault : drawerOverlay);
+  const extendRight = cfg.extendRight ?? (drawerMount === "overlay-6" ? extendLeftDefault : drawerOverlay);
   const totalFaceW = isInsetDrawer
     ? 0
-    : drawerMount === "overlay-6"
-      ? (inColumn ? zoneW + 2 * panelT - 2 * drawerGap : length - 2 * drawerGap)
-      : zoneW + 2 * drawerOverlay - 2 * drawerGap;
+    : zoneW + extendLeft + extendRight - 2 * drawerGap;
+  const faceXShift = (extendRight - extendLeft) / 2;
   const totalFaceH = isInsetDrawer
     ? 0
     : zoneH + overlayTop + overlayBot - 2 * drawerGap;
   const perFaceW_ov = isInsetDrawer ? 0 : (totalFaceW - (cols - 1) * drawerGap) / cols;
-  const perFaceH_ov = isInsetDrawer ? 0 : (totalFaceH - (rows - 1) * drawerGap) / rows;
+  // per-row 面板高度：總面板區（扣掉 gap）依 rowFractions 分配
+  const faceContentH = Math.max(0, totalFaceH - (rows - 1) * drawerGap);
+  const rowFaceH: number[] = isInsetDrawer ? [] : rowFractions.map((f) => faceContentH * f);
+  const rowFaceYBottom: number[] = [];
+  if (!isInsetDrawer) {
+    let acc = 0;
+    for (let r = 0; r < rows; r++) {
+      rowFaceYBottom.push(acc);
+      acc += rowFaceH[r] + drawerGap;
+    }
+  }
 
   // 直立分隔板（中柱）
   if (cols > 1) {
@@ -338,11 +368,11 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         const segYBot =
           r === 0
             ? drawerZoneBottomY
-            : drawerZoneBottomY + r * drawerSlotH;
+            : drawerZoneBottomY + rowSlotYBottom[r];
         const segYTop =
           r === rows - 1
             ? drawerZoneBottomY + zoneH
-            : drawerZoneBottomY + (r + 1) * drawerSlotH - shelfT;
+            : drawerZoneBottomY + rowSlotYBottom[r + 1] - shelfT;
         const segH = segYTop - segYBot;
         if (segH <= 0) continue;
         parts.push({
@@ -364,8 +394,10 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     const i = row * cols + col;
     const isTopRowExpand = row === rows - 1 && dividerFrom !== "above";
     const expandTop = isTopRowExpand ? shelfT : 0;
-    const boxHRow = (hasSlide ? drawerSlotH - shelfT - 10 : drawerH) + expandTop;
-    const yBase = drawerZoneBottomY + row * drawerSlotH + drawerGap;
+    const slotHRow = rowSlotH[row];
+    const drawerHRow = slotHRow - shelfT - drawerGap * 2;
+    const boxHRow = (hasSlide ? slotHRow - shelfT - 10 : drawerHRow) + expandTop;
+    const yBase = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap;
     const xCenter =
       zoneCx -
       zoneW / 2 +
@@ -381,16 +413,16 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       let faceW: number, faceHeight: number, faceX: number, faceY: number;
       if (isInsetDrawer) {
         faceW = drawerSlotW - 2 * drawerGap;
-        faceHeight = drawerSlotH - shelfT - 2 * drawerGap + expandTop;
+        faceHeight = slotHRow - shelfT - 2 * drawerGap + expandTop;
         faceX = xCenter;
-        faceY = drawerZoneBottomY + row * drawerSlotH + drawerGap;
+        faceY = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap;
       } else {
         faceW = perFaceW_ov;
-        faceHeight = perFaceH_ov;
-        const blockStartX = zoneCx - totalFaceW / 2;
+        faceHeight = rowFaceH[row];
+        const blockStartX = zoneCx + faceXShift - totalFaceW / 2;
         const blockStartY = drawerZoneBottomY - overlayBot + drawerGap;
         faceX = blockStartX + col * (perFaceW_ov + drawerGap) + perFaceW_ov / 2;
-        faceY = blockStartY + row * (perFaceH_ov + drawerGap);
+        faceY = blockStartY + rowFaceYBottom[row];
       }
       const faceJpullMortises: Part["mortises"] =
         pullStyle === "finger-pull"

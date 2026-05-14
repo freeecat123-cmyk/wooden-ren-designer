@@ -26,16 +26,18 @@ export const ANY_ZONE_IS_DRAWER = {
 };
 
 /** 任一 zone 類型 = door 時才顯示（門板相關選項共用）。
- *  leftType/rightType/centerType 是媒體櫃 h-2col/h-3col 的欄 key。 */
+ *  leftType/rightType/centerType 是媒體櫃 h-2col/h-3col 的欄 key —— 縱向模式時
+ *  那三個欄位是隱藏的、但預設值仍可能是 "door"，必須由 layoutMode 把它們排除掉。
+ *  shoe-cabinet 的 upperType 沒有 layoutMode key，用 notIn 寬鬆條件讓它通過。 */
 export const ANY_ZONE_IS_DOOR = {
   any: [
     { key: "topType", equals: "door" },
     { key: "midType", equals: "door" },
     { key: "bottomType", equals: "door" },
-    { key: "upperType", equals: "door" },
-    { key: "leftType", equals: "door" },
-    { key: "rightType", equals: "door" },
-    { key: "centerType", equals: "door" },
+    { all: [{ key: "upperType", equals: "door" }, { key: "layoutMode", notIn: ["h-2col", "h-3col"] }] },
+    { all: [{ key: "leftType", equals: "door" }, { key: "layoutMode", oneOf: ["h-2col", "h-3col"] }] },
+    { all: [{ key: "rightType", equals: "door" }, { key: "layoutMode", oneOf: ["h-2col", "h-3col"] }] },
+    { all: [{ key: "centerType", equals: "door" }, { key: "layoutMode", equals: "h-3col" }] },
   ],
 };
 

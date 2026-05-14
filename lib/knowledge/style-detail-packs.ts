@@ -296,9 +296,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "box",
       "legInset": 0,
-      "cableHoles": "3",
-      "withSpeakerGrille": true,
-      "withSoundBarShelf": false,
       "backPanelMaterial": "plywood",
       "pullStyle": "bar"
     },
@@ -778,9 +775,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "bracket",
       "legInset": 15,
-      "cableHoles": "2",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
       "withCrownMolding": true,
       "crownProjection": 40,
       "backPanelMaterial": "solid"
@@ -1188,9 +1182,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "tapered",
       "legInset": 25,
-      "cableHoles": "2",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": true,
       "backPanelMaterial": "plywood",
       "pullStyle": "finger-pull"
     },
@@ -1586,9 +1577,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "tapered",
       "legInset": 20,
-      "cableHoles": "2",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },
@@ -2043,9 +2031,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 35,
       "legShape": "box",
       "legInset": 5,
-      "cableHoles": "2",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "finger-pull"
     },
@@ -2454,9 +2439,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "panel-side",
       "legInset": 0,
-      "cableHoles": "2",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
       "backPanelMaterial": "solid"
     },
     "nightstand": {
@@ -3068,9 +3050,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legSize": 50,
       "legShape": "plinth",
       "legInset": 0,
-      "cableHoles": "1",
-      "withSpeakerGrille": false,
-      "withSoundBarShelf": false,
       "backPanelMaterial": "solid",
       "pullStyle": "knob"
     },

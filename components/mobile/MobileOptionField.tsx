@@ -38,13 +38,36 @@ function isHeightKey(key: string): boolean {
   return true;
 }
 
+// 鎖定總高時參與分配內高的欄位（含鞋櫃的 upperHeight/lowerHeight）
+const LOCKED_ZONE_HEIGHT_KEYS = ["topHeight", "midHeight", "bottomHeight", "upperHeight", "lowerHeight"];
+
 export function MobileOptionField({ spec, value, allValues, overallHeight }: MobileOptionFieldProps) {
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
-    const cappedMax =
+    let cappedMax =
       overallHeight !== undefined && overallHeight > 0 && isHeightKey(spec.key)
         ? Math.min(rawMax, overallHeight)
         : rawMax;
+    // 鎖定總高時，區段高度上限要扣掉其他層 + 最低腳高 30 + 上下板 2×panelT
+    if (
+      allValues
+      && allValues.lockTotalHeight === true
+      && overallHeight !== undefined
+      && overallHeight > 0
+      && LOCKED_ZONE_HEIGHT_KEYS.includes(spec.key)
+    ) {
+      const MIN_LEG = 30;
+      const panelT = Number(allValues.panelThickness) || 18;
+      let otherSum = 0;
+      for (const k of LOCKED_ZONE_HEIGHT_KEYS) {
+        if (k === spec.key) continue;
+        const v = Number(allValues[k]);
+        if (Number.isFinite(v) && v > 0) otherSum += v;
+      }
+      const innerCap = overallHeight - MIN_LEG - 2 * panelT;
+      const dynamicMax = Math.max(spec.min ?? 80, innerCap - otherSum);
+      cappedMax = Math.min(cappedMax, dynamicMax);
+    }
     return (
       <RangeInput
         name={spec.key}
@@ -99,18 +122,55 @@ export function MobileOptionField({ spec, value, allValues, overallHeight }: Mob
     );
   }
   // checkbox / boolean
+  const showLegReadout =
+    spec.key === "lockTotalHeight"
+    && Boolean(value)
+    && allValues
+    && overallHeight !== undefined
+    && overallHeight > 0;
+  let legReadout: { leg: number; clamped: boolean } | null = null;
+  if (showLegReadout) {
+    const MIN_LEG = 30;
+    const panelT = Number(allValues!.panelThickness) || 18;
+    let zoneSum = 0;
+    for (const k of LOCKED_ZONE_HEIGHT_KEYS) {
+      const v = Number(allValues![k]);
+      if (Number.isFinite(v) && v > 0) zoneSum += v;
+    }
+    const raw = overallHeight! - zoneSum - 2 * panelT;
+    legReadout = { leg: Math.max(MIN_LEG, raw), clamped: raw < MIN_LEG };
+  }
   return (
-    <label
-      className="flex items-center justify-between gap-2 min-h-[44px] text-sm"
-      title={spec.help}
-    >
-      <span className="text-zinc-800 flex-1">{spec.label}</span>
-      <input
-        type="checkbox"
-        name={spec.key}
-        defaultChecked={Boolean(value)}
-        className="w-12 h-6 accent-violet-600"
-      />
-    </label>
+    <div className="flex flex-col gap-0.5">
+      <label
+        className="flex items-center justify-between gap-2 min-h-[44px] text-sm"
+        title={spec.help}
+      >
+        <span className="text-zinc-800 flex-1">{spec.label}</span>
+        <input
+          type="checkbox"
+          name={spec.key}
+          defaultChecked={Boolean(value)}
+          className="w-12 h-6 accent-violet-600"
+        />
+      </label>
+      {legReadout && (
+        <div
+          className={`flex items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm ring-1 ${
+            legReadout.clamped
+              ? "bg-red-50 ring-red-300 text-red-800"
+              : "bg-amber-50 ring-amber-200 text-amber-900"
+          }`}
+        >
+          <span className="font-medium">計算後腳高</span>
+          <span className="font-mono tabular-nums text-base">
+            {legReadout.leg}<span className="text-xs ml-0.5 opacity-70">mm</span>
+          </span>
+        </div>
+      )}
+      {legReadout?.clamped && (
+        <span className="text-xs text-red-600 pl-0.5">已夾到最低 30mm，請降低層高或加大總高</span>
+      )}
+    </div>
   );
 }

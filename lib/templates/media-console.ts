@@ -52,10 +52,24 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "door", label: "門板" },
   ], dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
   { group: "zone-top", type: "number", key: "upperCount", label: "上層數量（層數 / 門扇）", defaultValue: 2, min: 1, max: 8, step: 1, dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
+  // 縱向 1 層：橫向分欄（每欄同 upperType）。要不同類型請用 h-2col / h-3col。
+  { group: "zone-top", type: "select", key: "singleLayerCols", label: "橫向分欄（上層用）", defaultValue: "1", choices: [
+    { value: "1", label: "不分欄（整層連通）" },
+    { value: "2", label: "2 欄（中間 1 片直立分隔）" },
+    { value: "3", label: "3 欄（2 片直立分隔）" },
+  ], help: "縱向 1 層 = 整片分欄、可指定左右欄寬；縱向 2 層 = 上層分欄（均分）。要不同類型請改用橫向 2/3 欄模式。", dependsOn: { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] } },
+  { group: "zone-top", type: "number", key: "singleLayerLeftWidthMm", label: "左欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "右/中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", oneOf: ["2", "3"] }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
+  { group: "zone-top", type: "number", key: "singleLayerRightWidthMm", label: "右欄寬度 (mm)", defaultValue: 400, min: 100, max: 2000, step: 10, help: "中欄自動填滿剩餘", dependsOn: { all: [{ key: "singleLayerCols", equals: "3" }, { key: "layoutMode", oneOf: ["v-1layer", "v-2layer"] }] } },
   // 縱向 2 層：下層抽屜（zone-bot）—— 只在 v-2layer
   { group: "zone-bot", type: "number", key: "drawerRows", label: "下層抽屜排數", defaultValue: 1, min: 1, max: 3, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   { group: "zone-bot", type: "number", key: "drawerCols", label: "下層抽屜列數", defaultValue: 2, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   { group: "zone-bot", type: "number", key: "drawerHeight", label: "下層抽屜區高 (mm)", defaultValue: 180, min: 80, max: 500, step: 10, dependsOn: { key: "layoutMode", equals: "v-2layer" } },
+  { group: "zone-bot", type: "select", key: "drawerRowRatio", label: "抽屜分區比例（排數 ≥ 2 才生效）", defaultValue: "equal", choices: [
+    { value: "equal", label: "均分（預設）" },
+    { value: "shallow-deep", label: "上淺下深 2:3（淺抽放遙控器、深抽放線材）" },
+    { value: "deep-shallow", label: "上深下淺 3:2" },
+    { value: "shallow-mid-deep", label: "淺-中-深 2:3:4（3 排專用）" },
+  ], help: "rows=2 時用 2:3 / 3:2；rows=3 時用 2:3:4。rows=1 時忽略。", dependsOn: { key: "layoutMode", equals: "v-2layer" } },
   // 橫向 2/3 欄模式：每欄的類型 + 數量 + 寬度
   { group: "col-left", type: "select", key: "leftType", label: "類型", defaultValue: "door", choices: COL_TYPE_CHOICES, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
   { group: "col-left", type: "number", key: "leftCount", label: "數量（抽屜排 / 門扇 / 層數）", defaultValue: 1, min: 1, max: 6, step: 1, dependsOn: { key: "layoutMode", oneOf: ["h-2col", "h-3col"] } },
@@ -95,14 +109,6 @@ export const mediaConsoleOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("structure"),
-  { group: "structure", type: "select", key: "cableHoles", label: "後板線材孔", defaultValue: "2", choices: [
-    { value: "0", label: "無" },
-    { value: "1", label: "1 個（中央 80mm 圓孔）" },
-    { value: "2", label: "2 個（左右各一）" },
-    { value: "3", label: "3 個（每欄一個）" },
-  ], help: "電視 / AV 設備走線必備，每孔配黑色塑膠 grommet 圈" },
-  { group: "structure", type: "checkbox", key: "withSpeakerGrille", label: "兩側 speaker grille 槽", defaultValue: false, help: "兩端側板加 200×400mm 喇叭網格槽（5mm 孔陣列），藏式環繞音響", wide: true },
-  { group: "structure", type: "checkbox", key: "withSoundBarShelf", label: "頂面前緣 SoundBar 凹槽", defaultValue: false, help: "頂面前緣下挖 ~15mm 深 × 100mm 寬凹槽放 SoundBar，不擋電視螢幕視線", wide: true },
   pullStyleOption("door"),
   doorPullStyleOption("door"),
 ];
@@ -126,9 +132,23 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const layoutMode = getOption<string>(input, opt(o, "layoutMode"));
   const upperType = getOption<string>(input, opt(o, "upperType"));
   const upperCount = getOption<number>(input, opt(o, "upperCount"));
+  const singleLayerColsRaw = getOption<string>(input, opt(o, "singleLayerCols"));
+  const singleLayerCols = Math.max(1, Math.min(3, parseInt(String(singleLayerColsRaw ?? "1"), 10) || 1));
+  const singleLayerLeftWidthMm = getOption<number>(input, opt(o, "singleLayerLeftWidthMm"));
+  const singleLayerRightWidthMm = getOption<number>(input, opt(o, "singleLayerRightWidthMm"));
   const drawerRows = getOption<number>(input, opt(o, "drawerRows"));
   const drawerCols = getOption<number>(input, opt(o, "drawerCols"));
   const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
+  const drawerRowRatio = getOption<string>(input, opt(o, "drawerRowRatio"));
+  // 將 ratio 字串 + drawerRows 轉成 fraction 陣列；長度不符走 undefined（drawer-row 會 fallback 均分）
+  const drawerRowHeights: number[] | undefined = (() => {
+    if (drawerRows < 2) return undefined;
+    // rowHeights[0] = 最底排；label 用「上→下」描述，所以這裡反向寫
+    if (drawerRowRatio === "shallow-deep" && drawerRows === 2) return [3 / 5, 2 / 5]; // 上淺(2) 下深(3)
+    if (drawerRowRatio === "deep-shallow" && drawerRows === 2) return [2 / 5, 3 / 5]; // 上深(3) 下淺(2)
+    if (drawerRowRatio === "shallow-mid-deep" && drawerRows === 3) return [4 / 9, 3 / 9, 2 / 9]; // 上淺-中-下深
+    return undefined;
+  })();
   const leftType = getOption<string>(input, opt(o, "leftType")) as ColType;
   const leftCount = getOption<number>(input, opt(o, "leftCount"));
   const leftWidthMm = getOption<number>(input, opt(o, "leftWidthMm"));
@@ -150,10 +170,6 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const cableHolesRaw = getOption<string>(input, opt(o, "cableHoles"));
-  const cableHoles = Math.max(0, Math.min(3, parseInt(String(cableHolesRaw ?? "0"), 10) || 0));
-  const withSpeakerGrille = getOption<boolean>(input, opt(o, "withSpeakerGrille"));
-  const withSoundBarShelf = getOption<boolean>(input, opt(o, "withSoundBarShelf"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
@@ -165,7 +181,36 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   let noteParts: string[] = [];
 
   if (layoutMode === "v-1layer") {
-    if (upperType === "door") {
+    if (singleLayerCols >= 2) {
+      // 縱向 1 層 + 橫向分欄：可指定左/右欄寬度，其他欄自動填滿
+      const colSpec = (): CabinetColumn => upperType === "door"
+        ? { type: "door", count: upperCount }
+        : { type: "shelves", count: upperCount };
+      const innerW = input.length - 2 * panelThickness;
+      if (singleLayerCols === 2) {
+        const usableW = innerW - panelThickness;
+        const leftFrac = Math.min(0.8, Math.max(0.2, singleLayerLeftWidthMm / usableW));
+        // 反向渲染順序：cols[0]=右(無寬度=填滿)、cols[1]=左(指定寬度)
+        const right = { ...colSpec(), labelPrefix: "右" };
+        const left: CabinetColumn = { ...colSpec(), widthFrac: leftFrac, labelPrefix: "左" };
+        columns = [right, left];
+      } else {
+        const usableW = innerW - 2 * panelThickness;
+        const leftFrac = Math.min(0.45, Math.max(0.1, singleLayerLeftWidthMm / usableW));
+        const rightFrac = Math.min(0.45, Math.max(0.1, singleLayerRightWidthMm / usableW));
+        const right: CabinetColumn = { ...colSpec(), widthFrac: rightFrac, labelPrefix: "右" };
+        const mid = { ...colSpec(), labelPrefix: "中" };
+        const left: CabinetColumn = { ...colSpec(), widthFrac: leftFrac, labelPrefix: "左" };
+        columns = [right, mid, left];
+      }
+      const typeText = upperType === "door"
+        ? `每欄 ${upperCount} 扇${doorType === "glass" ? "玻璃" : doorType === "slab" ? "平板" : "木"}門`
+        : `每欄 ${upperCount} 層開放`;
+      const widthsText = singleLayerCols === 2
+        ? `左 ${singleLayerLeftWidthMm}mm / 右自動`
+        : `左 ${singleLayerLeftWidthMm}mm / 右 ${singleLayerRightWidthMm}mm / 中自動`;
+      noteParts.push(`1 層橫向 ${singleLayerCols} 欄（${widthsText}）：${typeText}`);
+    } else if (upperType === "door") {
       zones = [{ type: "door", heightMm: innerH, count: upperCount }];
       noteParts.push(`1 層 ${upperCount} 扇${doorType === "glass" ? "玻璃" : doorType === "slab" ? "平板" : "木"}門`);
     } else {
@@ -174,13 +219,38 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     }
   } else if (layoutMode === "v-2layer") {
     const upperH = Math.max(80, innerH - drawerHeight);
+    const upperColsN = singleLayerCols >= 2 ? singleLayerCols : 1;
+    // 計算上層欄寬比例（門板 / 開放層板共用：扣掉分隔板 panelT 後依使用者左/右欄寬切）
+    let upperColWidths: number[] | undefined;
+    let upperWidthsText = "";
+    if (upperColsN >= 2) {
+      const innerWtv = input.length - 2 * panelThickness;
+      if (upperColsN === 2) {
+        const usableW = innerWtv - panelThickness;
+        const leftFrac = Math.min(0.8, Math.max(0.2, singleLayerLeftWidthMm / usableW));
+        upperColWidths = [leftFrac, 1 - leftFrac];
+        upperWidthsText = `左 ${singleLayerLeftWidthMm}mm / 右自動`;
+      } else {
+        const usableW = innerWtv - 2 * panelThickness;
+        const leftFrac = Math.min(0.45, Math.max(0.1, singleLayerLeftWidthMm / usableW));
+        const rightFrac = Math.min(0.45, Math.max(0.1, singleLayerRightWidthMm / usableW));
+        upperColWidths = [leftFrac, Math.max(0.1, 1 - leftFrac - rightFrac), rightFrac];
+        upperWidthsText = `左 ${singleLayerLeftWidthMm}mm / 中自動 / 右 ${singleLayerRightWidthMm}mm`;
+      }
+    }
     zones = [
-      { type: "drawer", heightMm: drawerHeight, count: drawerRows, cols: drawerCols },
+      { type: "drawer", heightMm: drawerHeight, count: drawerRows, cols: drawerCols, rowHeights: drawerRowHeights },
       upperType === "door"
-        ? { type: "door", heightMm: upperH, count: upperCount }
-        : { type: "shelves", heightMm: upperH, count: upperCount },
+        ? { type: "door", heightMm: upperH, count: upperCount, cols: upperColsN, colWidths: upperColWidths }
+        : { type: "shelves", heightMm: upperH, count: upperCount, cols: upperColsN, colWidths: upperColWidths },
     ];
-    noteParts.push(`上層 ${upperType === "door" ? `${upperCount} 扇門` : `${upperCount} 層開放`} ${upperH}mm`);
+    const upperColsNote = upperColsN >= 2
+      ? `（橫向 ${upperColsN} 欄${upperWidthsText ? "，" + upperWidthsText : ""}）`
+      : "";
+    const upperKindLabel = upperType === "door"
+      ? `${upperCount} 扇門 / 欄${upperColsN >= 2 ? "" : ""}`
+      : `${upperCount} 層開放`;
+    noteParts.push(`上層 ${upperKindLabel}${upperColsNote} ${upperH}mm`);
     noteParts.push(`下層 ${drawerRows}×${drawerCols} 抽屜 ${drawerHeight}mm`);
   } else if (layoutMode === "h-2col") {
     // 2 欄：左欄寬度使用者設定，右欄自動填滿剩餘。
@@ -259,110 +329,11 @@ export const mediaConsole: FurnitureTemplate = (input) => {
       `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
       `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
       pullStyleNote(pullStyle),
-      cableHoles > 0 ? `後板開 ${cableHoles} 個圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : "",
-      withSpeakerGrille ? "兩端側板挖喇叭網格槽（外覆 ⌀5mm 孔陣列鋁網），藏式環繞音響。" : "",
-      withSoundBarShelf ? `頂面前緣下挖 ${Math.max(3, Math.min(15, panelThickness - 3))}mm 深 × 100mm 寬凹槽，放 SoundBar 不擋電視畫面。` : "",
       toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
       crownMoldingNote(withCrownMolding, crownProjection),
       backPanelMaterialNote(backPanelMaterial),
     ].filter((s) => s && s.trim()).join(" ").trim(),
   });
-  // SoundBar 凹槽：頂板前緣下挖一條長槽放 SoundBar，不擋電視畫面
-  // 頂板 part 本地座標：local x = length(X)、local y = panelT(Y)、local z = width(Z)
-  // 凹槽開在「頂板上表面」(local y = panelT)，往下挖 grooveDepth，避免穿透
-  if (withSoundBarShelf) {
-    const topPart = design.parts.find((p) => p.id === "top");
-    if (topPart) {
-      // 凹槽深度限制在板厚 - 3mm 以內（避免穿透頂板），最小 3mm
-      const grooveDepth = Math.max(3, Math.min(15, panelThickness - 3));
-      const grooveLen = Math.max(200, input.length - 200);
-      const grooveWidth = 100;
-      // 前緣 = world -Z；凹槽前緣離前邊緣 30mm 留邊框，中心向後偏移
-      const grooveCenterZ = -(input.width / 2) + 30 + grooveWidth / 2;
-      topPart.mortises = [
-        ...topPart.mortises,
-        {
-          origin: { x: 0, y: panelThickness, z: grooveCenterZ },
-          depth: grooveDepth,
-          length: grooveLen,
-          width: grooveWidth,
-          through: false,
-          cosmetic: true,
-        },
-      ];
-    }
-  }
-
-  // 後板線材孔：cableHoles 個 80mm 圓孔，水平等距分布、垂直置於板中央偏上
-  // 背板 visible {length:length, width:backT, thickness:caseHeight} (no rotation)
-  //   local x = length(X 水平、cabinet 長度)
-  //   local y = caseHeight(Y 鉛直，因為 thickness→Y)
-  //   local z = backT(Z 深度)
-  // backMode = "none" 時沒有背板，跳過。
-  const backModeResolved = resolveBackMode(input, mediaConsoleOptions);
-  if (cableHoles > 0 && backModeResolved !== "none") {
-    const backPart = design.parts.find((p) => p.id === "back");
-    if (backPart) {
-      const caseHeightForHoles = input.height - legHeight;
-      // 圓孔直徑：80mm 標準 grommet；若太擠就縮（最小 40mm）
-      const desiredD = 80;
-      const usableX = (input.length - 2 * panelThickness) * 0.85;
-      const minSpacing = desiredD * 1.5;
-      const fitDiameter =
-        cableHoles >= 2 && usableX / Math.max(1, cableHoles - 1) < minSpacing
-          ? Math.max(40, Math.floor((usableX / Math.max(1, cableHoles - 1)) / 1.5))
-          : desiredD;
-      const holeD = Math.min(desiredD, fitDiameter);
-      // 垂直位置：背板上 60%（電視 / AV 設備接線常見位置）
-      // 中心 local y = caseHeight*0.6 - caseHeight/2 = caseHeight*0.1
-      const holeY = caseHeightForHoles * 0.1;
-      const newHoles = [] as typeof backPart.mortises;
-      for (let i = 0; i < cableHoles; i++) {
-        const t = cableHoles === 1 ? 0.5 : i / (cableHoles - 1); // 0..1
-        const xPos = (t - 0.5) * usableX;
-        newHoles.push({
-          origin: { x: xPos, y: holeY, z: 0 },
-          depth: 20, // 穿透（背板 3 或 9mm 都夠）
-          length: holeD,
-          width: holeD,
-          through: true,
-          shape: "round" as const,
-          cosmetic: true,
-        });
-      }
-      backPart.mortises = [...backPart.mortises, ...newHoles];
-    }
-  }
-
-  // Speaker grille 槽：兩端側板挖長方形通孔，藏式環繞音響
-  // 側板 visible {length:innerH, width:width, thickness:panelT} + rotation z=π/2：
-  //   local x = innerH 軸（rotation 後 = 世界 Y 鉛直）→ 中心 x=0 = 櫃中央高度
-  //   local y = panelT 厚度方向（外側面：左側板 y=panelT、右側板 y=0）
-  //   local z = width 軸（櫃深方向）
-  if (withSpeakerGrille) {
-    const innerHForGrille = input.height - legHeight - 2 * panelThickness;
-    const grilleH = Math.min(400, Math.max(0, innerHForGrille - 100));
-    const grilleW = Math.min(200, Math.max(0, input.width - 100));
-    if (grilleH >= 100 && grilleW >= 60) {
-      for (const sideId of ["side-left", "side-right"]) {
-        const sidePart = design.parts.find((p) => p.id === sideId);
-        if (sidePart) {
-          const isLeft = sideId === "side-left";
-          sidePart.mortises = [
-            ...sidePart.mortises,
-            {
-              origin: { x: 0, y: isLeft ? panelThickness : 0, z: 0 },
-              depth: panelThickness,
-              length: grilleH,
-              width: grilleW,
-              through: true,
-              cosmetic: true,
-            },
-          ];
-        }
-      }
-    }
-  }
 
   applyStandardChecks(design, {
     minLength: 800, minWidth: 300, minHeight: 300,

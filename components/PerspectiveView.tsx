@@ -469,19 +469,20 @@ function Part({
   }
 
   if (isGlass) {
+    // 改用 standard material 半透明：transmission + opacity 雙重透明會讓背板/內部
+    // 在 transmission 渲染 pass 中被略過，玻璃看過去全穿。半透明 blend 走標準
+    // alpha 路徑，背板/層板正常出現在後面，玻璃只是淡藍色遮罩。
     return (
-      <mesh position={position} rotation={rotation}>
+      <mesh position={position} rotation={rotation} renderOrder={1}>
         <boxGeometry args={size} />
-        <meshPhysicalMaterial
+        <meshStandardMaterial
           color="#b8d9e8"
-          roughness={0.05}
-          transmission={0.9}
-          thickness={0.05}
-          ior={1.45}
-          transparent
-          opacity={isDimmed ? 0.08 : 0.25}
+          roughness={0.1}
           metalness={0}
-          emissive={isSelected ? HIGHLIGHT_EMISSIVE : undefined}
+          transparent
+          opacity={isDimmed ? 0.12 : 0.35}
+          depthWrite={false}
+          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
           emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
         />
       </mesh>

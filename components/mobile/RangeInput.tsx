@@ -40,6 +40,12 @@ export function RangeInput({
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
+  // max 從外部縮小（例如鎖定總高時其他層撐滿）→ 立即夾到上限，讓送出的值與顯示一致
+  useEffect(() => {
+    if (value > max) setValue(max);
+    else if (value < min) setValue(min);
+  }, [max, min, value]);
+
   return (
     <div className="flex items-center gap-3 text-sm" title={help}>
       <span className="text-zinc-700 font-medium shrink-0 w-8">{label}</span>

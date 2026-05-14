@@ -25,6 +25,7 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
+import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
@@ -825,6 +826,7 @@ function ParameterForm({
             optionSchema={optionSchema}
             optionValues={optionValues}
             joineryMode={joineryMode}
+            overallHeight={defaults.height}
           />
         </>
       )}
@@ -872,10 +874,12 @@ function GroupedOptionFields({
   optionSchema,
   optionValues,
   joineryMode,
+  overallHeight,
 }: {
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
+  overallHeight?: number;
 }) {
   // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
   const visibleSchema = optionSchema.filter(
@@ -924,7 +928,7 @@ function GroupedOptionFields({
                     key={`${spec.key}-${String(optionValues[spec.key])}`}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
-                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} />
+                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} />
                   </div>
                 );
               })}
@@ -940,10 +944,12 @@ function OptionField({
   spec,
   value,
   allValues,
+  overallHeight,
 }: {
   spec: OptionSpec;
   value: string | number | boolean;
   allValues?: Record<string, string | number | boolean>;
+  overallHeight?: number;
 }) {
   const choiceVisible = (
     dep: import("@/lib/types").OptionDependency | undefined,
@@ -952,21 +958,50 @@ function OptionField({
     return evalDep(dep, allValues);
   };
   if (spec.type === "number") {
+    // 鎖定總高時，區段高度 max 動態縮成「內高扣其他層」
+    const LOCKED_ZONE_KEYS = ["topHeight", "midHeight", "bottomHeight", "upperHeight", "lowerHeight"];
+    let effectiveMax = spec.max;
+    const locked = !!(allValues && allValues.lockTotalHeight === true);
+    const isLockedZone = locked && LOCKED_ZONE_KEYS.includes(spec.key) && overallHeight !== undefined && overallHeight > 0;
+    if (isLockedZone) {
+      const MIN_LEG = 30;
+      const panelT = Number(allValues!.panelThickness) || 18;
+      let otherSum = 0;
+      for (const k of LOCKED_ZONE_KEYS) {
+        if (k === spec.key) continue;
+        const v = Number(allValues![k]);
+        if (Number.isFinite(v) && v > 0) otherSum += v;
+      }
+      const innerCap = overallHeight! - MIN_LEG - 2 * panelT;
+      const dynamicMax = Math.max(spec.min ?? 80, innerCap - otherSum);
+      effectiveMax = Math.min(spec.max ?? 99999, dynamicMax);
+    }
     return (
       <label className="flex flex-col text-xs" title={spec.help}>
         <span className="text-zinc-700 mb-0.5 truncate">
           {spec.label}
           {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
         </span>
-        <input
-          type="number"
-          name={spec.key}
-          defaultValue={String(value)}
-          min={spec.min}
-          max={spec.max}
-          step={spec.step ?? 1}
-          className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
-        />
+        {isLockedZone ? (
+          <ClampedNumberInput
+            name={spec.key}
+            defaultValue={String(value)}
+            min={spec.min}
+            max={effectiveMax}
+            step={spec.step ?? 1}
+            className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+          />
+        ) : (
+          <input
+            type="number"
+            name={spec.key}
+            defaultValue={String(value)}
+            min={spec.min}
+            max={effectiveMax}
+            step={spec.step ?? 1}
+            className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+          />
+        )}
         {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
       </label>
     );
@@ -991,13 +1026,54 @@ function OptionField({
     );
   }
   // checkbox — auto-submit so conditional sub-options appear immediately on toggle
+  const showLegReadout =
+    spec.key === "lockTotalHeight"
+    && Boolean(value)
+    && allValues
+    && overallHeight !== undefined
+    && overallHeight > 0;
+  let legReadout: { leg: number; clamped: boolean } | null = null;
+  if (showLegReadout) {
+    const LOCKED_ZONE_KEYS = ["topHeight", "midHeight", "bottomHeight", "upperHeight", "lowerHeight"];
+    const MIN_LEG = 30;
+    const panelT = Number(allValues!.panelThickness) || 18;
+    let zoneSum = 0;
+    for (const k of LOCKED_ZONE_KEYS) {
+      const v = Number(allValues![k]);
+      if (Number.isFinite(v) && v > 0) zoneSum += v;
+    }
+    const raw = overallHeight! - zoneSum - 2 * panelT;
+    legReadout = { leg: Math.max(MIN_LEG, raw), clamped: raw < MIN_LEG };
+  }
   return (
-    <AutoSubmitCheckbox
-      name={spec.key}
-      defaultChecked={Boolean(value)}
-      label={spec.label}
-      help={spec.help}
-    />
+    <div className="flex flex-col gap-0.5">
+      <AutoSubmitCheckbox
+        name={spec.key}
+        defaultChecked={Boolean(value)}
+        label={spec.label}
+        help={spec.help}
+      />
+      {legReadout && (
+        <label className="flex flex-col text-xs">
+          <span className="text-zinc-700 mb-0.5 truncate">
+            計算後腳高
+            <span className="text-zinc-400 ml-1">·mm</span>
+          </span>
+          <div
+            className={`border rounded px-1.5 py-1 text-sm font-mono tabular-nums ${
+              legReadout.clamped
+                ? "bg-red-50 border-red-300 text-red-700"
+                : "bg-amber-50 border-amber-300 text-amber-900"
+            }`}
+          >
+            {legReadout.leg}
+          </div>
+          {legReadout.clamped && (
+            <span className="mt-0.5 text-[10px] text-red-600">已夾到最低 30mm，請降低層高或加大總高</span>
+          )}
+        </label>
+      )}
+    </div>
   );
 }
 
