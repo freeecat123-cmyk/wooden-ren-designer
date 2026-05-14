@@ -1,7 +1,7 @@
 import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
-import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption } from "./_helpers";
+import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
 
 export const circleChairOptions: OptionSpec[] = [
   // 基本尺寸（spec §8.1：只開座面高，其餘走 catalog defaults length/width/height）
@@ -121,11 +121,10 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   const { material } = input;
   const o = circleChairOptions;
   const seatHeight = getOption<number>(input, opt(o, "seatHeight"));
+  const seatChamferMm = parseSeatChamferMm(getOption<string>(input, opt(o, "seatEdge")));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
 
   const parts: Part[] = [];
-
-  const seatChamferMm = (() => { const v = getOption<number>(input, opt(o, "seatEdge")); return v > 0 ? v : 0; })();
-  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   parts.push(...buildSeatFrame({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
     seatChamferMm, seatEdgeStyle,
