@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Euler, CylinderGeometry, ConeGeometry, type BufferGeometry } from "three";
+import { useEffect, useMemo } from "react";
+import { Euler, CylinderGeometry, ConeGeometry, BufferGeometry } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Part } from "@/lib/types";
 
@@ -76,12 +76,12 @@ function buildDoubleArrowGeometry(length: number): BufferGeometry {
   shaft.dispose();
   headPos.dispose();
   headNeg.dispose();
-  return merged ?? shaft;
+  return merged ?? new BufferGeometry();
 }
 
 /** 把箭頭幾何（沿 +X）轉到目標 local 軸的旋轉。 */
 function localRotationForAxis(axis: "x" | "y" | "z"): Euler {
-  if (axis === "z") return new Euler(0, Math.PI / 2, 0); // +X → +Z
+  if (axis === "z") return new Euler(0, -Math.PI / 2, 0); // +X → +Z
   if (axis === "y") return new Euler(0, 0, Math.PI / 2); // +X → +Y
   return new Euler(0, 0, 0); // 已沿 +X
 }
@@ -108,6 +108,8 @@ export function GrainArrow({
     size,
   );
   const geometry = useMemo(() => buildDoubleArrowGeometry(length), [length]);
+  // useMemo 沒有 cleanup：length 變或卸載時 dispose 舊 geometry，避免 GPU 洩漏
+  useEffect(() => () => geometry.dispose(), [geometry]);
   const localRot = useMemo(() => localRotationForAxis(axis), [axis]);
 
   // 沿貼面法線往外浮一點點，避免 z-fighting
