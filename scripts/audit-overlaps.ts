@@ -140,7 +140,10 @@ for (const entry of FURNITURE_CATALOG) {
       if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
       const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
       const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
-      if ((isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) || (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]))) return false;
+      const slidingPairAllowed =
+        (isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) ||
+        (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]));
+      if (slidingPairAllowed) return false;
       return true;
     });
     const examples = overlaps

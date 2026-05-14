@@ -1933,7 +1933,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const slideH = caseHeight;                // 高 = 內部三層 + 上下板，蓋滿前緣
     const slideYBottom = caseBottomY;         // 底部對齊櫃體底
     // Z：櫃前緣 = -width/2，往前更負。後軌片貼櫃前緣外 3mm，前軌片再往前 21mm。
-    const zBackPanel = -width / 2 - 3 - SLIDE_T / 2;          // 後軌（右片）
+    const TRACK_GAP = 3;                      // 後軌門板貼近櫃前緣的間隙（mm），與軌道槽同值
+    const zBackPanel = -width / 2 - TRACK_GAP - SLIDE_T / 2;          // 後軌（右片）
     const SLIDE_TRACK_SPACING = 21;           // 軌距 = 門厚 18 + 軌道槽 3mm 間隙
     const zFrontPanel = zBackPanel - SLIDE_TRACK_SPACING;                      // 前軌（左片）
     const leftPanelCx = -length / 2 + panelW / 2;             // 左片置左
@@ -1968,8 +1969,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
     // 頂 / 底滑軌：兩條細長條，跨櫃體外寬，裝在櫃前緣
     const RAIL_H = 25;        // 滑軌條 Y 向高
-    const RAIL_D = 42;        // 滑軌條 Z 向深（涵蓋前後兩軌）
-    const railZ = -width / 2 - 3 - RAIL_D / 2;   // 貼櫃前緣外、涵蓋兩片門的 z 範圍
+    const RAIL_D = 42;        // 滑軌條 Z 向深（後軌 18+3 + 前軌 18 = 39mm，留 3mm 前緣餘量）
+    const railZ = -width / 2 - TRACK_GAP - RAIL_D / 2;   // 貼櫃前緣外、涵蓋兩片門的 z 範圍
     const railSpecs: Array<{ id: string; nameZh: string; y: number }> = [
       { id: "sliding-track-top", nameZh: "滑門頂滑軌", y: caseBottomY + caseHeight - RAIL_H },
       { id: "sliding-track-bottom", nameZh: "滑門底滑軌", y: caseBottomY },
@@ -1980,7 +1981,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         nameZh: r.nameZh,
         material,
         grainDirection: "length",
-        visible: { length: length, width: RAIL_H, thickness: RAIL_D },
+        visible: { length, width: RAIL_H, thickness: RAIL_D },
         origin: { x: 0, y: r.y, z: railZ },
         tenons: [],
         mortises: [],
