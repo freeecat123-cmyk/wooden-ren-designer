@@ -102,7 +102,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
     { value: "3", label: "3 個（每欄一個）" },
   ], help: "電視 / AV 設備走線必備，每孔配黑色塑膠 grommet 圈" },
   { group: "structure", type: "checkbox", key: "withSpeakerGrille", label: "兩側 speaker grille 槽", defaultValue: false, help: "兩端側板加 200×400mm 喇叭網格槽（5mm 孔陣列），藏式環繞音響", wide: true },
-  { group: "structure", type: "checkbox", key: "withSoundBarShelf", label: "頂面前緣 SoundBar 凹槽", defaultValue: false, help: "頂面前緣下挖 80mm 深凹槽放 SoundBar，不擋電視螢幕視線", wide: true },
+  { group: "structure", type: "checkbox", key: "withSoundBarShelf", label: "頂面前緣 SoundBar 凹槽", defaultValue: false, help: "頂面前緣下挖 ~15mm 深 × 100mm 寬凹槽放 SoundBar，不擋電視螢幕視線", wide: true },
   pullStyleOption("door"),
   doorPullStyleOption("door"),
 ];
@@ -150,7 +150,8 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const cableHoles = parseInt(getOption<string>(input, opt(o, "cableHoles"))) || 0;
+  const cableHolesRaw = getOption<string>(input, opt(o, "cableHoles"));
+  const cableHoles = Math.max(0, Math.min(3, parseInt(String(cableHolesRaw ?? "0"), 10) || 0));
   const withSpeakerGrille = getOption<boolean>(input, opt(o, "withSpeakerGrille"));
   const withSoundBarShelf = getOption<boolean>(input, opt(o, "withSoundBarShelf"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
@@ -253,43 +254,109 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     pullStyle,
     doorPullStyle,
-    notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withSpeakerGrille ? "兩端側板加 200×400mm 喇叭網格槽（⌀5mm 孔陣列），藏式環繞音響。" : ""} ${withSoundBarShelf ? "頂面前緣下挖 80mm 深 × 全寬凹槽，放 SoundBar 不擋電視畫面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: [
+      `電視櫃：${noteParts.join("；")}。`,
+      `門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。`,
+      `底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。`,
+      pullStyleNote(pullStyle),
+      cableHoles > 0 ? `後板開 ${cableHoles} 個圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : "",
+      withSpeakerGrille ? "兩端側板挖喇叭網格槽（外覆 ⌀5mm 孔陣列鋁網），藏式環繞音響。" : "",
+      withSoundBarShelf ? `頂面前緣下挖 ${Math.max(3, Math.min(15, panelThickness - 3))}mm 深 × 100mm 寬凹槽，放 SoundBar 不擋電視畫面。` : "",
+      toeKickNote(withToeKick, toeKickHeight, toeKickRecess),
+      crownMoldingNote(withCrownMolding, crownProjection),
+      backPanelMaterialNote(backPanelMaterial),
+    ].filter((s) => s && s.trim()).join(" ").trim(),
   });
-  // SoundBar 凹槽：在頂板正面前緣加一條凹陷的「凹槽板」（thin top rail）形成槽
-  // 簡化做法：在頂板 part 上鑿一個 mortise（看起來會像挖溝）
+  // SoundBar 凹槽：頂板前緣下挖一條長槽放 SoundBar，不擋電視畫面
+  // 頂板 part 本地座標：local x = length(X)、local y = panelT(Y)、local z = width(Z)
+  // 凹槽開在「頂板上表面」(local y = panelT)，往下挖 grooveDepth，避免穿透
   if (withSoundBarShelf) {
     const topPart = design.parts.find((p) => p.id === "top");
     if (topPart) {
-      // 凹槽深度限制在板厚 - 3mm 以內（避免穿透頂板）
-      const grooveDepth = Math.min(15, panelThickness - 3);
+      // 凹槽深度限制在板厚 - 3mm 以內（避免穿透頂板），最小 3mm
+      const grooveDepth = Math.max(3, Math.min(15, panelThickness - 3));
+      const grooveLen = Math.max(200, input.length - 200);
+      const grooveWidth = 100;
+      // 前緣 = world -Z；凹槽前緣離前邊緣 30mm 留邊框，中心向後偏移
+      const grooveCenterZ = -(input.width / 2) + 30 + grooveWidth / 2;
       topPart.mortises = [
         ...topPart.mortises,
         {
-          origin: { x: 0, y: 0, z: -(input.width / 2) + 50 },
+          origin: { x: 0, y: panelThickness, z: grooveCenterZ },
           depth: grooveDepth,
-          length: input.length - 200,
-          width: 100,
+          length: grooveLen,
+          width: grooveWidth,
           through: false,
+          cosmetic: true,
         },
       ];
     }
   }
 
-  // Speaker grille 槽：side panel 高度 - 200mm 留邊框，避免穿透頂底板
+  // 後板線材孔：cableHoles 個 80mm 圓孔，水平等距分布、垂直置於板中央偏上
+  // 背板 visible {length:length, width:backT, thickness:caseHeight} (no rotation)
+  //   local x = length(X 水平、cabinet 長度)
+  //   local y = caseHeight(Y 鉛直，因為 thickness→Y)
+  //   local z = backT(Z 深度)
+  // backMode = "none" 時沒有背板，跳過。
+  const backModeResolved = resolveBackMode(input, mediaConsoleOptions);
+  if (cableHoles > 0 && backModeResolved !== "none") {
+    const backPart = design.parts.find((p) => p.id === "back");
+    if (backPart) {
+      const caseHeightForHoles = input.height - legHeight;
+      // 圓孔直徑：80mm 標準 grommet；若太擠就縮（最小 40mm）
+      const desiredD = 80;
+      const usableX = (input.length - 2 * panelThickness) * 0.85;
+      const minSpacing = desiredD * 1.5;
+      const fitDiameter =
+        cableHoles >= 2 && usableX / Math.max(1, cableHoles - 1) < minSpacing
+          ? Math.max(40, Math.floor((usableX / Math.max(1, cableHoles - 1)) / 1.5))
+          : desiredD;
+      const holeD = Math.min(desiredD, fitDiameter);
+      // 垂直位置：背板上 60%（電視 / AV 設備接線常見位置）
+      // 中心 local y = caseHeight*0.6 - caseHeight/2 = caseHeight*0.1
+      const holeY = caseHeightForHoles * 0.1;
+      const newHoles = [] as typeof backPart.mortises;
+      for (let i = 0; i < cableHoles; i++) {
+        const t = cableHoles === 1 ? 0.5 : i / (cableHoles - 1); // 0..1
+        const xPos = (t - 0.5) * usableX;
+        newHoles.push({
+          origin: { x: xPos, y: holeY, z: 0 },
+          depth: 20, // 穿透（背板 3 或 9mm 都夠）
+          length: holeD,
+          width: holeD,
+          through: true,
+          shape: "round" as const,
+          cosmetic: true,
+        });
+      }
+      backPart.mortises = [...backPart.mortises, ...newHoles];
+    }
+  }
+
+  // Speaker grille 槽：兩端側板挖長方形通孔，藏式環繞音響
+  // 側板 visible {length:innerH, width:width, thickness:panelT} + rotation z=π/2：
+  //   local x = innerH 軸（rotation 後 = 世界 Y 鉛直）→ 中心 x=0 = 櫃中央高度
+  //   local y = panelT 厚度方向（外側面：左側板 y=panelT、右側板 y=0）
+  //   local z = width 軸（櫃深方向）
   if (withSpeakerGrille) {
-    const grilleH = Math.min(400, Math.max(0, input.height - 200));
-    if (grilleH >= 100) {
+    const innerHForGrille = input.height - legHeight - 2 * panelThickness;
+    const grilleH = Math.min(400, Math.max(0, innerHForGrille - 100));
+    const grilleW = Math.min(200, Math.max(0, input.width - 100));
+    if (grilleH >= 100 && grilleW >= 60) {
       for (const sideId of ["side-left", "side-right"]) {
         const sidePart = design.parts.find((p) => p.id === sideId);
         if (sidePart) {
+          const isLeft = sideId === "side-left";
           sidePart.mortises = [
             ...sidePart.mortises,
             {
-              origin: { x: 0, y: input.height / 2, z: 0 },
+              origin: { x: 0, y: isLeft ? panelThickness : 0, z: 0 },
               depth: panelThickness,
               length: grilleH,
-              width: Math.min(200, input.width - 100),
+              width: grilleW,
               through: true,
+              cosmetic: true,
             },
           ];
         }

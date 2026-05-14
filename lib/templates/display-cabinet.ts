@@ -147,7 +147,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${topDecor === "none" ? "" : `頂部加裝飾條（${topDecor === "flat-band" ? "平直線板 60mm" : topDecor === "stepped" ? "兩層階梯線板" : topDecor === "dentil" ? "齒狀古典線板" : "欄杆飾條"}），前+左+右三面包覆。`}`.trim(),
     warnings,
   });
   // 頂部裝飾條：前 + 左 + 右三面包覆（後方靠牆省略）
@@ -216,9 +216,12 @@ export const displayCabinet: FurnitureTemplate = (input) => {
       const pitch = toothW + gap;
       const frontZ = -W / 2 - proj + toothT / 2;
       const yToothBase = yTop + 35; // 站在底座上方
-      // 前排：盡量填滿 L+2*proj
-      const usableL = L + 2 * proj - 2 * toothW;
-      const nFront = Math.max(2, Math.floor(usableL / pitch) + 1);
+      // 前排：要避開側齒內緣（L=600~900 中尺寸下前末齒會跟側首齒撞 3~5mm）
+      // 前齒最外側中心 ≤ 側齒內緣 - toothW/2 - 2mm 餘量
+      const clearance = 2;
+      const sideInnerX = L / 2 + proj - toothT;
+      const frontMaxCenterX = Math.max(pitch / 2, sideInnerX - toothW / 2 - clearance);
+      const nFront = Math.max(2, Math.floor((2 * frontMaxCenterX) / pitch) + 1);
       const startX = -((nFront - 1) * pitch) / 2;
       for (let k = 0; k < nFront; k++) {
         design.parts.push({
@@ -262,8 +265,11 @@ export const displayCabinet: FurnitureTemplate = (input) => {
       const postW = 18, postT = 18, pitchP = 70;
       const yPostBase = yTop + baseH;
       const frontZpost = -W / 2 - proj + postT / 2;
-      const usableLp = L + 2 * proj - 2 * postW;
-      const nFrontPost = Math.max(2, Math.floor(usableLp / pitchP) + 1);
+      // 前立柱要避開側立柱內緣（L=600~900 中尺寸下會撞 4~6mm）
+      const clearanceP = 2;
+      const sideInnerXp = L / 2 + proj - postT;
+      const frontMaxCenterXp = Math.max(pitchP / 2, sideInnerXp - postW / 2 - clearanceP);
+      const nFrontPost = Math.max(2, Math.floor((2 * frontMaxCenterXp) / pitchP) + 1);
       const startXp = -((nFrontPost - 1) * pitchP) / 2;
       for (let k = 0; k < nFrontPost; k++) {
         design.parts.push({
