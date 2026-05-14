@@ -49,7 +49,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   }),
   // ascending 模式下顯示「總抽屜數」單一輸入
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { key: "lockTotalHeight", equals: false } },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -80,6 +80,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "equal", label: "等高（現代款）" },
     { value: "ascending", label: "下大上小（傳統明清比例 1.4 : 1.2 : 1）" },
   ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
+  { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：每層高度都使用者自設、總高扣掉後的餘量自動變成腳高（最少 30mm，太小會警告）。未勾起：腳高直接設定、中層自動吃剩（原本行為）", wide: true, dependsOn: { key: "drawerHeightStyle", notIn: ["ascending"] } },
+  { group: "zone-mid", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: { all: [{ key: "lockTotalHeight", equals: true }, { key: "drawerHeightStyle", notIn: ["ascending"] }] } },
   { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面圍欄", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
   { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
 ];
@@ -105,6 +107,8 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const ascendingDrawerCount = getOption<number>(input, opt(o, "ascendingDrawerCount"));
   const withGalleryRail = getOption<boolean>(input, opt(o, "withGalleryRail"));
   const galleryInset = getOption<number>(input, opt(o, "galleryInset"));
+  const lockTotalHeight = getOption<boolean>(input, opt(o, "lockTotalHeight"));
+  const midHeightExplicit = getOption<number>(input, opt(o, "midHeight"));
   // plinth / panel-side 本身就是底座 → 強制取消 toeKick 避免兩個底座疊
   const legShapeIsBase = legShape === "plinth" || legShape === "panel-side";
   const effectiveWithToeKick = legShapeIsBase ? false : withToeKick;
@@ -112,9 +116,31 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     ? [`腳樣式選了「${legShape === "plinth" ? "平台底座" : "側板延伸落地"}」，本身就是底座 → toeKick 自動關閉避免重疊`]
     : [];
 
-  const innerH = input.height - legHeight - 2 * panelThickness;
+  // 鎖定總高模式：每層自設高度、餘量自動算成腳高（最少 30mm）
+  // 解鎖模式（預設）：腳高直接設定、中層自動吃剩
+  const lockWarnings: string[] = [];
+  let effectiveLegHeight = legHeight;
+  let innerH: number;
+  if (lockTotalHeight && drawerHeightStyle !== "ascending") {
+    const topH = getOption<number>(input, opt(o, "topHeight"));
+    const botH = getOption<number>(input, opt(o, "bottomHeight"));
+    innerH = topH + midHeightExplicit + botH;
+    const computedLegH = input.height - innerH - 2 * panelThickness;
+    if (computedLegH < 30) {
+      lockWarnings.push(`鎖定總高：三層 (${topH}+${midHeightExplicit}+${botH}=${innerH}mm) + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高夾在最低 30mm。請降低層高或加大總高。`);
+      effectiveLegHeight = 30;
+    } else {
+      effectiveLegHeight = computedLegH;
+    }
+  } else {
+    innerH = input.height - legHeight - 2 * panelThickness;
+  }
   const resolved = resolveZones(input, o, innerH, "木");
   const { notesLine, warnings } = resolved;
+  // 鎖定模式時，把使用者設的 midHeight 蓋回去（resolveZones 用我們算的 innerH 算出的 midH 應該已經對齊）
+  if (lockTotalHeight && drawerHeightStyle !== "ascending") {
+    warnings.push(...lockWarnings);
+  }
   let zones = resolved.zones;
   // 傳統 ascending 比例：bottom > top，逐抽遞減（每抽都不一樣高）。
   // 把原本 3 zone × N drawer 的設定攤平成 (totalDrawers) zone × 1 drawer，
@@ -151,7 +177,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
-    legHeight,
+    legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
