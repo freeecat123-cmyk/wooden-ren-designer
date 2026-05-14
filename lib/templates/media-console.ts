@@ -27,6 +27,7 @@ import {
   backPanelMaterialNote,
   pullStyleOption,
   pullStyleNote,
+  doorPullStyleOption,
 } from "./_helpers";
 
 const COL_TYPE_CHOICES = [
@@ -103,6 +104,7 @@ export const mediaConsoleOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "withSpeakerGrille", label: "兩側 speaker grille 槽", defaultValue: false, help: "兩端側板加 200×400mm 喇叭網格槽（5mm 孔陣列），藏式環繞音響", wide: true },
   { group: "structure", type: "checkbox", key: "withSoundBarShelf", label: "頂面前緣 SoundBar 凹槽", defaultValue: false, help: "頂面前緣下挖 80mm 深凹槽放 SoundBar，不擋電視螢幕視線", wide: true },
   pullStyleOption("door"),
+  doorPullStyleOption("door"),
 ];
 
 type ColType = "none" | "drawer" | "door" | "shelves";
@@ -152,6 +154,8 @@ export const mediaConsole: FurnitureTemplate = (input) => {
   const withSpeakerGrille = getOption<boolean>(input, opt(o, "withSpeakerGrille"));
   const withSoundBarShelf = getOption<boolean>(input, opt(o, "withSoundBarShelf"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
+  const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
   const innerH = input.height - legHeight - 2 * panelThickness;
 
@@ -248,6 +252,7 @@ export const mediaConsole: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, mediaConsoleOptions),
     drawerSlideGap: resolveDrawerSlideGap(input, mediaConsoleOptions),
     pullStyle,
+    doorPullStyle,
     notes: `電視櫃：${noteParts.join("；")}。門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）。底座腳 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${cableHoles > 0 ? `後板開 ${cableHoles} 個 80mm 圓孔走線（環孔鋸 + 黑色 grommet 圈）。` : ""} ${withSpeakerGrille ? "兩端側板加 200×400mm 喇叭網格槽（⌀5mm 孔陣列），藏式環繞音響。" : ""} ${withSoundBarShelf ? "頂面前緣下挖 80mm 深 × 全寬凹槽，放 SoundBar 不擋電視畫面。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
   });
   // SoundBar 凹槽：在頂板正面前緣加一條凹陷的「凹槽板」（thin top rail）形成槽

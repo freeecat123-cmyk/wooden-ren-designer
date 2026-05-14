@@ -691,6 +691,39 @@ export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
   };
 }
 
+/** 門板把手樣式（獨立於抽屜把手）；"inherit" = 跟抽屜把手一樣 */
+export function doorPullStyleOption(group: OptionGroup = "door"): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "doorPullStyle",
+    label: "門板把手（獨立）",
+    defaultValue: "inherit",
+    choices: [
+      { value: "inherit", label: "↳ 跟抽屜把手一樣" },
+      { value: "knob", label: "● 黃銅圓把手" },
+      { value: "wood-knob", label: "🍄 木製旋削圓把手" },
+      { value: "bar", label: "▮ 長條把手（門板自動垂直）" },
+      { value: "ring-chinese", label: "◎ 中式古銅吊環" },
+      { value: "drop-bail", label: "⌒ 古典吊環（Hepplewhite）" },
+      { value: "finger-pull", label: "◡ 嵌入指槽" },
+      { value: "none", label: "✕ 不裝" },
+    ],
+    help: "門板把手樣式跟抽屜分開選；長條把手用在門板會自動轉成垂直方向",
+    dependsOn: {
+      any: [
+        { key: "topType", equals: "door" },
+        { key: "midType", equals: "door" },
+        { key: "bottomType", equals: "door" },
+        { key: "upperType", equals: "door" },
+        { key: "leftType", equals: "door" },
+        { key: "rightType", equals: "door" },
+        { key: "centerType", equals: "door" },
+      ],
+    },
+  };
+}
+
 export function pullStyleNote(style: string): string {
   switch (style) {
     case "knob":

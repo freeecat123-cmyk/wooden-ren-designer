@@ -24,6 +24,7 @@ import {
   backPanelMaterialNote,
   pullStyleOption,
   pullStyleNote,
+  doorPullStyleOption,
 } from "./_helpers";
 
 export const shoeCabinetOptions: OptionSpec[] = [
@@ -82,6 +83,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
+  doorPullStyleOption("door"),
 ];
 
 export const shoeCabinet: FurnitureTemplate = (input) => {
@@ -98,6 +100,8 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const angledRack = getOption<boolean>(input, opt(o, "angledRack"));
   const angledRackTilt = getOption<number>(input, opt(o, "angledRackTilt"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
+  const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
   // 主（下）收納區：吃 topType/topCount/topCols/topDoorShelves
   const zoneType = getOption<string>(input, opt(o, "topType")) as CabinetZone["type"];
@@ -206,6 +210,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
+    doorPullStyle,
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });

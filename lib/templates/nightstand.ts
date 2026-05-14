@@ -25,6 +25,7 @@ import {
   backPanelMaterialNote,
   pullStyleOption,
   pullStyleNote,
+  doorPullStyleOption,
 } from "./_helpers";
 
 export const nightstandOptions: OptionSpec[] = [
@@ -60,6 +61,7 @@ export const nightstandOptions: OptionSpec[] = [
   drawerSlideOption,
   backPanelMaterialOption("structure"),
   pullStyleOption("drawer"),
+  doorPullStyleOption("door"),
 ];
 
 /**
@@ -79,6 +81,8 @@ export const nightstand: FurnitureTemplate = (input) => {
   const drawerMount = resolveDrawerMount(input, o);
   const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
+  const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
+  const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
   const innerH = input.height - legHeight - 2 * panelThickness;
   const earlyWarnings: string[] = [];
@@ -120,6 +124,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
+    doorPullStyle,
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });

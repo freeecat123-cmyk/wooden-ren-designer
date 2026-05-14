@@ -84,6 +84,8 @@ export interface CaseFurnitureOpts {
   drawerSlideGap?: number;
   /** 抽屜/門板把手樣式：knob/bar/cup/finger-pull/push-to-open/edge-bevel/none */
   pullStyle?: string;
+  /** 門板把手樣式（獨立於抽屜）；undefined = 跟 pullStyle 一樣 */
+  doorPullStyle?: string;
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
   hangingArea?: { yStart: number; yEnd: number };
   /**
@@ -209,9 +211,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   // 不影響其他 zone 的層板/抽屜/分隔板（那些保持原本 innerD）
   const doorMount = opts.doorMount ?? "overlay-6";
   const pullStyle = opts.pullStyle ?? "none";
+  const doorPullStyle = opts.doorPullStyle ?? pullStyle;
 
   // 把手 helper：依 pullStyle 在 face 前方加一塊把手 part
   // makePullParts 已抽到 _builders/drawer-row.ts；這層包裝餵 closure 的 material/pullStyle
+  // idPrefix 帶 -door/-slab 時自動切到 doorPullStyle，否則用 pullStyle（抽屜）
   const makePullParts = (
     idPrefix: string,
     faceX: number,
@@ -220,8 +224,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     faceHeight: number,
     zFaceFront: number,
     pullX?: number,
-  ): Part[] =>
-    makePullPartsShared(material, pullStyle, idPrefix, faceX, faceY, faceWidth, faceHeight, zFaceFront, pullX);
+  ): Part[] => {
+    const isDoor = idPrefix.includes("-door") || idPrefix.includes("-slab");
+    const style = isDoor ? doorPullStyle : pullStyle;
+    return makePullPartsShared(material, style, idPrefix, faceX, faceY, faceWidth, faceHeight, zFaceFront, pullX);
+  };
   // 入柱模式：門埋進框內，門後方內藏的層板需縮短深度
   // 門厚 = slab 18mm；wood/glass 框料 22mm
   const insetDoorThick = doorType === "slab" ? 18 : 22;
@@ -725,7 +732,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       if (doorType === "slab") {
         // finger-pull 在門板挖 cosmetic mortise（同 drawer face 邏輯）
         const slabPullMortises: Part["mortises"] =
-          pullStyle === "finger-pull"
+          doorPullStyle === "finger-pull"
             ? [{
                 origin: { x: 0, y: 0, z: -doorOuterH / 2 + 14 },
                 depth: 12,

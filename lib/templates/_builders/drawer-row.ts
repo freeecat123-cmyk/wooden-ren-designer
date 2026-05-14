@@ -23,12 +23,15 @@ export function makePullParts(
   faceHeight: number,
   zFaceFront: number, // face 朝外那面的世界 z（往 -Z 方向延伸把手）
   pullX?: number, // 覆寫把手 x 位置（雙開門用，把手放內側豎梃；undefined = 走 faceX 中央）
+  orientation?: "horizontal" | "vertical", // 長條把手方向；undefined 走自動偵測（idPrefix 帶 door/slab → 垂直）
 ): Part[] {
   if (pullStyle === "none" || pullStyle === "finger-pull") {
     return [];
   }
   const cx = pullX ?? faceX;
   const cy = faceY + faceHeight / 2;
+  const isDoor = idPrefix.includes("-door") || idPrefix.includes("-slab");
+  const barVertical = orientation ? orientation === "vertical" : isDoor;
   // 0.5mm clearance 避免跟面板 floating-point overlap
   const CLEAR = 0.5;
   if (pullStyle === "knob") {
@@ -62,6 +65,22 @@ export function makePullParts(
     }];
   }
   if (pullStyle === "bar") {
+    if (barVertical) {
+      // 門板：長條垂直立著，長度依門高（25~35%）；把手 X 軸寬 14、Z 軸深 25
+      const barLen = Math.min(192, Math.max(96, faceHeight * 0.3));
+      return [{
+        id: `${idPrefix}-pull`,
+        nameZh: "長條把手",
+        material,
+        materialOverride: "plywood",
+        grainDirection: "thickness",
+        visible: { length: 14, width: 25, thickness: barLen },
+        origin: { x: cx, y: cy - barLen / 2, z: zFaceFront - 12.5 - CLEAR },
+        visual: "brass-antique",
+        tenons: [],
+        mortises: [],
+      }];
+    }
     const barLen = Math.min(128, Math.max(64, faceWidth * 0.5));
     return [{
       id: `${idPrefix}-pull`,
