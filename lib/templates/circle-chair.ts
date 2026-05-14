@@ -7,6 +7,8 @@ import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeSt
 const RAIL_W = 91;
 /** 腿中心離座框外緣的內縮量 */
 const LEG_INSET = 6;
+/** 橫飾棖斷面高（visible.thickness）— buildStretchers / buildCornerBraces 共用 */
+const DECOR_H = 48;
 
 /** 四腿的斷面尺寸與 X/Z 平面錨點位置（buildLegs / buildStretchers / 後續 sub-function 共用） */
 function legAnchors(seatWidth: number, seatDepth: number) {
@@ -187,7 +189,7 @@ function buildStretchers(args: {
 
   // 橫飾棖斷面：高 48mm（Y）× 深 21mm（Z or X）
   // 緊貼座框底面下方（座框底 y = seatHeight - RAIL_W），棖頂面在座框底，所以棖底面 y = seatHeight - RAIL_W - 48
-  const DECOR_H = 48, DECOR_T = 21;
+  const DECOR_T = 21;
   const decorY = seatHeight - RAIL_W - DECOR_H; // 棖底面 Y（part origin = 底部中心）
 
   // 橫撐跨距：face-to-face（腳外緣到腳外緣），避免棖端面進入腳 AABB。
@@ -474,8 +476,7 @@ function buildCornerBraces(args: {
   const parts: Part[] = [];
   const { FRONT_D, legXOff, legZFront } = legAnchors(seatWidth, seatDepth);
 
-  // 橫飾棖底面 Y（與 buildStretchers 的 decorY 同步）
-  const DECOR_H = 48;
+  // 橫飾棖底面 Y（與 buildStretchers 的 decorY 同步，DECOR_H 為模組常數）
   const decorY = seatHeight - RAIL_W - DECOR_H; // 橫飾棖底面 Y = part origin Y
 
   // ── 前腳角牙 ×2：前腳內側、貼座框前大邊底 ──────────────────────────────
