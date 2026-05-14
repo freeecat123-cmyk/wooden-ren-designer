@@ -757,10 +757,19 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           mortises: slabPullMortises,
         });
         // 把手：門前緣（z 軸往負前進方向，inset 跟 overlay 都是 zFront - slabT/2）
+        // 雙開門 → 把手靠近中縫（內側 40mm 處），跟玻璃/框門邏輯一致；單門/多門 → 居中
+        const slabPullInset = 40;
+        const slabPullX =
+          cfg.count === 2
+            ? i === 0
+              ? xCenter + (doorOuterW / 2 - slabPullInset)
+              : xCenter - (doorOuterW / 2 - slabPullInset)
+            : xCenter;
         parts.push(...makePullParts(
           `${idPrefix}-${i + 1}-slab`,
           xCenter, doorYBase, doorOuterW, doorOuterH,
           zFront - slabT / 2,
+          slabPullX,
         ));
         continue; // 跳過下面所有框料 / 鑲板邏輯
       }
