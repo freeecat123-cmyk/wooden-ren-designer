@@ -78,6 +78,15 @@ const DRAWER_TINT = "#c89060";
 const DOOR_TINT = "#9b8068";
 const TINT_AMOUNT = 0.18;
 
+/** part.visual 值不是木頭的 → 不畫木紋走向箭頭（玻璃/銅/布/金屬/鏡面）。 */
+const NON_WOOD_VISUALS = new Set<string>([
+  "glass",
+  "brass-antique",
+  "fabric",
+  "metal",
+  "mirror",
+]);
+
 /**
  * 配對二元淺/深著色：
  *   - 左/右 partId → 淺色（×1.08）
@@ -2519,7 +2528,7 @@ export function PerspectiveView({
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
               />
-              {showGrainArrows && part.visual !== "glass" && part.visual !== "brass-antique" && (
+              {showGrainArrows && !(part.visual && NON_WOOD_VISUALS.has(part.visual)) && (
                 <GrainArrow
                   position={[px, py, pz]}
                   rotation={new Euler(
