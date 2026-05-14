@@ -50,6 +50,7 @@ interface MobileShellProps {
   lineShareText: string;
   formAction: string;
   wireframeMode?: boolean;
+  showGrainArrows?: boolean;
   joineryMode?: boolean;
   designerMode?: boolean;
   canUseDesignerMode?: boolean;
@@ -150,7 +151,7 @@ export function MobileShell(props: MobileShellProps) {
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
             <div style={{ height: 220 }}>
-              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
+              <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} showGrainArrows={props.showGrainArrows} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
             </div>
           </div>
         </div>

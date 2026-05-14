@@ -529,6 +529,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lineShareText={lineShareText}
         formAction={designUrl}
         wireframeMode={wireframeMode}
+        showGrainArrows={showGrainArrows}
         joineryMode={joineryMode}
         designerMode={designerMode}
         canUseDesignerMode={canUseDesignerMode}
