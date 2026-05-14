@@ -290,6 +290,94 @@ function buildStretchers(args: {
   return parts;
 }
 
+function buildArmRail(args: {
+  material: MaterialId;
+  seatWidth: number; seatDepth: number; ringHeight: number;
+}): Part[] {
+  const { material, seatWidth, seatDepth, ringHeight } = args;
+  // 椅圈斷面：厚 36（垂直 → thickness）、寬 ~45–55（水平徑向 → width）
+  // visible 慣例（geometry.ts:6）：length→X、thickness→Y(高)、width→Z(深)
+  const RAIL_T = 36;
+  const ringY = ringHeight - RAIL_T;        // 椅圈底面 Y（椅圈頂 = ringHeight）
+
+  // 椅圈斷面寬（水平徑向，→ visible.width）
+  const W_BACK = 55, W_MID = 50, W_SIDE = 45;
+
+  // 馬蹄圈幾何鏈（5 段多邊近似）：
+  //   後段沿 X 在最後緣；左右桿沿 Z 在兩側；中桿 45° 斜接兩者。
+  //   45° 斜接需 |ΔX| = |ΔZ| = CORNER_D，故 backHalf 與 sideRearZ 由 CORNER_D 回推，
+  //   保證後段端點 (backHalf, backZ) 與左右桿後端 (sideX, sideRearZ) 用一條 45° 中桿接上。
+  const sideX = seatWidth / 2 - RAIL_T / 2 - 6;       // 左右桿中心 X（≈後腳 X）
+  const sideFrontZ = -seatDepth / 2 + 20;             // 左右桿前端 Z（扶手前端，略前出）
+  const backZ = seatDepth / 2 + 28;                   // 後段中心 Z（座框後緣外，後弧凸）
+  const CORNER_D = 110;                               // 45° 斜角段的 X/Z 投影邊長
+  const backHalf = sideX - CORNER_D;                  // 後段（未修肩）端點 X
+  const sideRearZ = backZ - CORNER_D;                 // 左右桿後端（未修肩）Z
+  // 接點：J_backmid =（backHalf, backZ）、J_midside =（sideX, sideRearZ）
+  // box 斷面零件在 135° 轉角無法做「斜接面對接」（端面與軸垂直、非斜接面）：
+  // 中心線對齊會在轉角互穿、單純縮料則留大縫整圈不順。經數值搜尋確認兩者不可兼得，
+  // 取「中心線在接點對齊」→ 視覺連續的馬蹄圈；轉角 box 互穿區即真實榫接咬合處。
+  // （arm-rail × arm-rail 轉角 overlap 為結構性接點，audit butt-joint filter 未涵蓋。）
+  // 後段：兩端到 ±backHalf，端面落在接點
+  const backLen = 2 * backHalf;
+  // 中桿：沿軸（J_backmid → J_midside）滿長，origin 落在兩接點中點
+  const midLen = Math.hypot(CORNER_D, CORNER_D);
+  const midOriginX = (backHalf + sideX) / 2;
+  const midOriginZ = (backZ + sideRearZ) / 2;
+  // 左右桿：後端到 sideRearZ、前端到 sideFrontZ
+  const sideLen = sideRearZ - sideFrontZ;
+  const sideMidZ = (sideRearZ + sideFrontZ) / 2;
+  const parts: Part[] = [];
+
+  // 後正中段（椅圈上靠桿）：沿 X、不旋轉、arch-bent 往 +Z 後凸
+  parts.push({
+    id: "arm-rail-back",
+    nameZh: "椅圈上靠桿",
+    material,
+    grainDirection: "length",
+    visible: { length: backLen, width: W_BACK, thickness: RAIL_T },
+    origin: { x: 0, y: ringY, z: backZ },
+    shape: { kind: "arch-bent", bendMm: 26 },
+    tenons: [],
+    mortises: [],
+  });
+
+  // 中桿 ×2（椅圈中桿）：繞 Y 斜置 ±45°，接「後段端點」到「左右桿後端」
+  // mid-r：local +X(length) → 世界 (+X,−Z)，故 rotY = +π/4；local +Z(bend) → 世界 (+X,+Z) 外凸
+  for (const sx of [-1, 1] as const) {
+    parts.push({
+      id: sx < 0 ? "arm-rail-mid-l" : "arm-rail-mid-r",
+      nameZh: "椅圈中桿",
+      material,
+      grainDirection: "length",
+      visible: { length: midLen, width: W_MID, thickness: RAIL_T },
+      origin: { x: sx * midOriginX, y: ringY, z: midOriginZ },
+      rotation: { x: 0, y: sx * Math.PI / 4, z: 0 },
+      shape: { kind: "arch-bent", bendMm: 14 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+
+  // 左右桿 ×2（椅圈左右桿，鱔魚頭扶手）：繞 Y 轉 ±90° 沿 Z 向前
+  // side-r：local +X(length) → 世界 −Z（往前），local +Z(bend) → 世界 +X（外撇）
+  for (const sx of [-1, 1] as const) {
+    parts.push({
+      id: sx < 0 ? "arm-rail-side-l" : "arm-rail-side-r",
+      nameZh: "椅圈左右桿",
+      material,
+      grainDirection: "length",
+      visible: { length: sideLen, width: W_SIDE, thickness: RAIL_T },
+      origin: { x: sx * sideX, y: ringY, z: sideMidZ },
+      rotation: { x: 0, y: sx * Math.PI / 2, z: 0 },
+      shape: { kind: "arch-bent", bendMm: 28 },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  return parts;
+}
+
 /**
  * 明式圈椅（circle-chair）— Phase 1 直線化框架版
  * input.length = 座寬、input.width = 座深、input.height = 椅圈總高
@@ -313,6 +401,9 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   }));
   parts.push(...buildStretchers({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
+  }));
+  parts.push(...buildArmRail({
+    material, seatWidth: input.length, seatDepth: input.width, ringHeight: input.height,
   }));
 
   const design: FurnitureDesign = {

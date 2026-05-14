@@ -128,6 +128,11 @@ for (const entry of FURNITURE_CATALOG) {
           // leg × seat-* 是傳統榫接穿框設計特徵，圓腳曲面強制盲榫，非幾何錯誤。
           // 覆蓋 seat-rail-front/back/left/right 及 seat-panel（一木連做腿穿座板 AABB）。
           if (ids[0].startsWith("leg-") && ids[1].startsWith("seat-")) return false;
+          // 圈椅椅圈 5 段在楔釘榫接點相接：box 段在 135° 轉角無法不重疊又不留縫，
+          // P1 多邊近似取「中線交於接點」確保整圈連續——arm-rail 段間 overlap 是結構接點非幾何錯。
+          if (ids[0].startsWith("arm-rail-") && ids[1].startsWith("arm-rail-")) return false;
+          // 圈椅後腿一木連做往上接椅圈：後腿即椅圈支撐柱，leg × arm-rail 是傳統榫接，非幾何錯。
+          if (ids[0].startsWith("arm-rail-") && ids[1].startsWith("leg-")) return false;
           if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
           if (ids[0].startsWith("back-")) return false;
           return true;
