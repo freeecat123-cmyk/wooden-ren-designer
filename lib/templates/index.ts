@@ -31,6 +31,7 @@ import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
 import { bed, bedOptions } from "./bed";
+import { circleChair, circleChairOptions } from "./circle-chair";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -173,6 +174,16 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 450, width: 450, height: 850 },
     limits: { length: 600, width: 650, height: 1100 },
     optionSchema: diningChairOptions,
+  },
+  {
+    category: "circle-chair",
+    nameZh: "明式圈椅",
+    description: "明式圈椅——5 段楔釘榫攢接椅圈、後腿一木連做、S 形靠背板。台南魯班學堂工作圖實作",
+    difficulty: "advanced",
+    template: circleChair,
+    defaults: { length: 610, width: 497, height: 720 },
+    limits: { length: 750, width: 600, height: 1150 },
+    optionSchema: circleChairOptions,
   },
   {
     category: "wardrobe",
