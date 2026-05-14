@@ -131,11 +131,17 @@ for (const entry of FURNITURE_CATALOG) {
       : allOverlaps;
     // 門框+鑲板的合法 joinery overlap：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
     // 是物理正確結構（frame & panel construction），audit 不該擋。
+    // 滑門面板 × 頂/底滑軌：面板邊緣嵌入滑軌槽（track groove），
+    // 是物理正確結構（sliding door track），audit 不該擋。
     const overlaps = buttJointFiltered.filter((o) => {
       const ids = [o.a, o.b].sort();
       const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
       const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
-      return !((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0])));
+      if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
+      const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
+      const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
+      if ((isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) || (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]))) return false;
+      return true;
     });
     const examples = overlaps
       .slice(0, 3)

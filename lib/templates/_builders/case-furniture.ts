@@ -1965,6 +1965,27 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         }],
       });
     }
+
+    // 頂 / 底滑軌：兩條細長條，跨櫃體外寬，裝在櫃前緣
+    const RAIL_H = 25;        // 滑軌條 Y 向高
+    const RAIL_D = 42;        // 滑軌條 Z 向深（涵蓋前後兩軌）
+    const railZ = -width / 2 - 3 - RAIL_D / 2;   // 貼櫃前緣外、涵蓋兩片門的 z 範圍
+    const railSpecs: Array<{ id: string; nameZh: string; y: number }> = [
+      { id: "sliding-track-top", nameZh: "滑門頂滑軌", y: caseBottomY + caseHeight - RAIL_H },
+      { id: "sliding-track-bottom", nameZh: "滑門底滑軌", y: caseBottomY },
+    ];
+    for (const r of railSpecs) {
+      parts.push({
+        id: r.id,
+        nameZh: r.nameZh,
+        material,
+        grainDirection: "length",
+        visible: { length: length, width: RAIL_H, thickness: RAIL_D },
+        origin: { x: 0, y: r.y, z: railZ },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // 吊衣桿（若指定 hangingArea）
