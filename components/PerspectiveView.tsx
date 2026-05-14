@@ -14,6 +14,7 @@ import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
+import { GrainArrow } from "@/components/GrainArrow";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
@@ -2518,6 +2519,24 @@ export function PerspectiveView({
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
               />
+              {showGrainArrows && part.visual !== "glass" && part.visual !== "brass-antique" && (
+                <GrainArrow
+                  position={[px, py, pz]}
+                  rotation={new Euler(
+                    part.rotation?.x ?? 0,
+                    part.rotation?.y ?? 0,
+                    part.rotation?.z ?? 0,
+                    "ZYX",
+                  )}
+                  size={[
+                    part.visible.length * SCALE,
+                    part.visible.thickness * SCALE,
+                    part.visible.width * SCALE,
+                  ]}
+                  grainDirection={part.grainDirection}
+                  shapeKind={shape?.kind}
+                />
+              )}
               {tenonMeshes}
               {auditOverlay}
             </group>
