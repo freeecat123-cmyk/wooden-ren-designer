@@ -1541,14 +1541,11 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           const shelvesAreaH = doorHasHanging ? usableH - hangingHeight : usableH;
           const shelvesAreaYStart = yStart;
           const innerDrawers = z.doorInnerDrawers ?? 0;
-          const innerDrawerH = Math.min(150, Math.max(80, z.doorInnerDrawerHeight ?? 100));
           if (innerDrawers > 0 && shelvesAreaH > 0) {
-            // 每抽屜固定 innerDrawerH 高、無分隔板；總抽屜區 = 抽屜數 × 高度，
-            // 超過 shelves 區可用高度就裁切（=該區滿格）
-            const drawerAreaH = Math.min(shelvesAreaH, innerDrawers * innerDrawerH);
+            // 抽屜均分整個門內可用高度（與 renderShelvesZone 一致），無分隔板。
             renderDrawerZone({
               yStart: shelvesAreaYStart,
-              height: drawerAreaH,
+              height: shelvesAreaH,
               rows: innerDrawers, cols: 1,
               idPrefix: `${idPrefix}-doordr`,
               labelPrefix: `${labelPrefix}門內抽屜`,
@@ -1684,11 +1681,10 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               : 0;
             const subShelvesAreaH = subHasHanging ? usableH - subHangingHeight : usableH;
             if (subDrawers > 0 && subShelvesAreaH > 0) {
-              const subDrawerH = Math.min(150, Math.max(80, subCfg.drawerHeight ?? (z.doorInnerDrawerHeight ?? 100)));
-              const subDrawerAreaH = Math.min(subShelvesAreaH, subDrawers * subDrawerH);
+              // 抽屜均分整個子欄門內可用高度（與 renderShelvesZone 一致），無分隔板。
               renderDrawerZone({
                 yStart,
-                height: subDrawerAreaH,
+                height: subShelvesAreaH,
                 rows: subDrawers, cols: 1,
                 idPrefix: `${idPrefix}-col${ci + 1}-doordr`,
                 labelPrefix: `${labelPrefix}${colLabel}欄門內抽屜`,
