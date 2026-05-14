@@ -31,29 +31,32 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   // 單一收納區（不分上下層）：類型 + 數量。topType/topCount 這個 key 名是
   // 為了沿用既有 ANY_ZONE_IS_DOOR 條件 + 共用 door / drawer 子選項。
-  { group: "structure", type: "select", key: "topType", label: "類型", defaultValue: "door", choices: [
+  // 分上下層 toggle：勾起 = 加上層；取消 = 整個櫃單一收納區（只剩下層 = 全櫃）
+  { group: "structure", type: "checkbox", key: "withUpperZone", label: "分上下層（上層+下層獨立配置）", defaultValue: true, wide: true, help: "勾起：上層放小物/抽屜、下層放鞋。取消：整個櫃內單一收納區（無上層）" },
+  // ── 上層：upper* 全屬 zone-top，手機 AdvancedSheet 會自動歸到「▲ 上層」section
+  { group: "zone-top", type: "number", key: "upperHeight", label: "上層高度 (mm)", defaultValue: 220, min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
+  { group: "zone-top", type: "select", key: "upperType", label: "上層類型", defaultValue: "drawer", choices: [
+    { value: "drawer", label: "抽屜" },
+    { value: "door", label: "門板" },
+    { value: "shelves", label: "開放層板" },
+  ], dependsOn: { key: "withUpperZone", equals: true } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 數量", defaultValue: 1, min: 1, max: 4, step: 1, help: "抽屜=排數 / 門=扇數 / 層板=層數", dependsOn: { key: "withUpperZone", equals: true } },
+  { group: "zone-top", type: "number", key: "upperCols", label: "上層 列數（左右分）", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
+  { group: "zone-top", type: "number", key: "upperDoorShelves", label: "上層 門後藏層板數", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
+  // ── 下層（主鞋櫃 / 單一收納區時就是整櫃）：top* 全屬 zone-bot
+  // topType/topCount 這個 key 名是為了沿用既有 ANY_ZONE_IS_DOOR 條件 + 共用 door / drawer 子選項。
+  { group: "zone-bot", type: "select", key: "topType", label: "類型", defaultValue: "door", choices: [
     { value: "door", label: "門板（藏鞋）" },
     { value: "shelves", label: "開放層板（直放 / 斜放鞋格）" },
     { value: "drawer", label: "抽屜" },
   ] },
   // 「數量」依類型拆 3 個 entry，label 隨類型變（避免跟「門內層板數」搞混）。
   // 三個 entry 同 key=topCount，dependsOn 隔開，UI 只顯示符合當前類型的那個。
-  { group: "structure", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 8, step: 1, help: "雙開門=2、單門=1、多扇=3 以上", dependsOn: { key: "topType", equals: "door" } },
-  { group: "structure", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
-  { group: "structure", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
-  { group: "structure", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
-  { group: "structure", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空）。勾斜放鞋格時這裡 ≥ 1 才看得到斜板。", dependsOn: { key: "topType", equals: "door" } },
-  // 分上下層：勾起 = 加一個上層收納區；取消 = 整個櫃就一個收納區
-  { group: "structure", type: "checkbox", key: "withUpperZone", label: "分上下層（上層+下層獨立配置）", defaultValue: true, wide: true, help: "勾起：上層放小物/抽屜、下層放鞋。取消：整個櫃內單一收納區（無上層）" },
-  { group: "structure", type: "number", key: "upperHeight", label: "上層高度 (mm)", defaultValue: 220, min: 80, max: 600, step: 10, help: "上層 zone 的垂直空間，建議 180~260mm 給薄抽屜或小物收納", dependsOn: { key: "withUpperZone", equals: true } },
-  { group: "structure", type: "select", key: "upperType", label: "上層類型", defaultValue: "drawer", choices: [
-    { value: "drawer", label: "抽屜" },
-    { value: "door", label: "門板" },
-    { value: "shelves", label: "開放層板" },
-  ], dependsOn: { key: "withUpperZone", equals: true } },
-  { group: "structure", type: "number", key: "upperCount", label: "上層 數量", defaultValue: 1, min: 1, max: 4, step: 1, help: "抽屜=排數 / 門=扇數 / 層板=層數", dependsOn: { key: "withUpperZone", equals: true } },
-  { group: "structure", type: "number", key: "upperCols", label: "上層 列數（左右分）", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
-  { group: "structure", type: "number", key: "upperDoorShelves", label: "上層 門後藏層板數", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
+  { group: "zone-bot", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 8, step: 1, help: "雙開門=2、單門=1、多扇=3 以上", dependsOn: { key: "topType", equals: "door" } },
+  { group: "zone-bot", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
+  { group: "zone-bot", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
+  { group: "zone-bot", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
+  { group: "zone-bot", type: "number", key: "topDoorShelves", label: "門後藏層板數", defaultValue: 0, min: 0, max: 6, step: 1, help: "關門時門板後面藏的層板（0=全空）。勾斜放鞋格時這裡 ≥ 1 才看得到斜板。", dependsOn: { key: "topType", equals: "door" } },
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "wood", choices: [
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "slab", label: "夾板貼皮平板門（裝潢常用）" },
