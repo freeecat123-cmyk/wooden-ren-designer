@@ -590,7 +590,7 @@ export function toeKickNote(withToeKick: boolean, h: number, r: number): string 
  * resolveLockedTotalHeight() 取得 innerH / effectiveLegHeight / warnings。
  * legHeight 欄位請另外加 dependsOn: { key: "lockTotalHeight", equals: false } 隱藏。
  */
-export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; notIn?: unknown[]; equals?: unknown }> } = {}): OptionSpec[] {
+export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; notIn?: Array<string | number | boolean>; equals?: string | number | boolean }> } = {}): OptionSpec[] {
   const lockDeps = opts.extraDeps && opts.extraDeps.length > 0 ? { all: opts.extraDeps } : undefined;
   const midDeps = opts.extraDeps && opts.extraDeps.length > 0
     ? { all: [{ key: "lockTotalHeight", equals: true }, ...opts.extraDeps] }

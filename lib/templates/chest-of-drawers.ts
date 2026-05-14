@@ -35,19 +35,19 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     topType: "drawer", topHeight: 300, topCount: 2, topCols: 1,
     midType: "drawer", midCount: 2, midCols: 1,
     bottomType: "drawer", bottomHeight: 300, bottomCount: 2, bottomCols: 1,
-  }).map((spec) => {
+  }).map((spec): OptionSpec => {
     // 斗櫃只有抽屜 + 開放層板，移除門板選項（門板櫃用其他範本：玻璃展示櫃、媒體櫃、衣櫃等）
-    const isZoneTypeSelect = spec.type === "select" && (spec.key === "topType" || spec.key === "midType" || spec.key === "bottomType");
-    const filteredChoices = isZoneTypeSelect && spec.choices
-      ? spec.choices.filter((c) => c.value !== "door")
-      : spec.choices;
-    return {
-      ...spec,
-      ...(isZoneTypeSelect ? { choices: filteredChoices } : {}),
-      dependsOn: spec.dependsOn
-        ? { all: [spec.dependsOn, { key: "drawerHeightStyle", notIn: ["ascending"] }] }
-        : { key: "drawerHeightStyle", notIn: ["ascending"] },
-    };
+    const dep = spec.dependsOn
+      ? { all: [spec.dependsOn, { key: "drawerHeightStyle", notIn: ["ascending"] }] }
+      : { key: "drawerHeightStyle", notIn: ["ascending"] };
+    if (spec.type === "select" && (spec.key === "topType" || spec.key === "midType" || spec.key === "bottomType")) {
+      return {
+        ...spec,
+        choices: spec.choices.filter((c) => c.value !== "door"),
+        dependsOn: dep,
+      };
+    }
+    return { ...spec, dependsOn: dep };
   }),
   // ascending 模式下顯示「總抽屜數」單一輸入
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
