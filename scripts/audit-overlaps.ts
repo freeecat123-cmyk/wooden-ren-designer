@@ -86,9 +86,24 @@ function legShapeChoices(entry: FurnitureCatalogEntry): string[] {
   return choices.map((c: { value: string | number | boolean }) => String(c.value));
 }
 
+/**
+ * 回傳需要額外跑的 boolean-flag 變體（variant label → option overrides）。
+ * 目前只有 wardrobe 的 slidingDoorMode=true 需要獨立跑一次（預設 false，
+ * 滑門幾何 + allowlist filter 否則永遠不被 audit 覆蓋）。
+ */
+function booleanFlagVariants(
+  entry: FurnitureCatalogEntry,
+): Array<{ variant: string; overrides: Record<string, string | number | boolean> }> {
+  if (entry.category === "wardrobe") {
+    return [{ variant: "sliding-door", overrides: { slidingDoorMode: true } }];
+  }
+  return [];
+}
+
 function buildDesign(
   entry: FurnitureCatalogEntry,
   legShapeOverride?: string,
+  extraOpts?: Record<string, string | number | boolean>,
 ): FurnitureDesign | null {
   if (!entry.template) return null;
   const opts = (entry.optionSchema ?? []).reduce<
@@ -99,6 +114,9 @@ function buildDesign(
   }, {});
   if (legShapeOverride && legShapeOverride !== "default") {
     opts.legShape = legShapeOverride;
+  }
+  if (extraOpts) {
+    Object.assign(opts, extraOpts);
   }
   return entry.template({
     length: entry.defaults.length,
@@ -162,6 +180,53 @@ for (const entry of FURNITURE_CATALOG) {
       expected:
         SHAPE_AWARE_VARIANTS.has(variant) ||
         SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`),
+      examples,
+    });
+  }
+
+  // 額外跑 boolean-flag 變體（如 wardrobe × slidingDoorMode=true）
+  for (const { variant: flagVariant, overrides } of booleanFlagVariants(entry)) {
+    const raw = buildDesign(entry, undefined, overrides);
+    if (!raw) continue;
+    const design = useJoinery ? raw : toBeginnerMode(raw);
+    const allOverlaps = findOverlaps(design.parts);
+    const buttJointFiltered = design.useButtJointConvention
+      ? allOverlaps.filter((o) => {
+          const ids = [o.a, o.b].sort();
+          if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
+          if (ids[0].startsWith("back-")) return false;
+          return true;
+        })
+      : allOverlaps;
+    const overlaps = buttJointFiltered.filter((o) => {
+      const ids = [o.a, o.b].sort();
+      const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
+      const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
+      if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
+      const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
+      const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
+      const slidingPairAllowed =
+        (isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) ||
+        (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]));
+      if (slidingPairAllowed) return false;
+      return true;
+    });
+    const examples = overlaps
+      .slice(0, 3)
+      .map(
+        (o) =>
+          `${o.a} × ${o.b} (${o.intersectionMm.x}×${o.intersectionMm.y}×${o.intersectionMm.z})`,
+      );
+    rows.push({
+      category: entry.category,
+      nameZh: entry.nameZh,
+      variant: flagVariant,
+      partsCount: design.parts.length,
+      overlapCount: overlaps.length,
+      flag: design.useButtJointConvention ? "✓" : "  ",
+      expected:
+        SHAPE_AWARE_VARIANTS.has(flagVariant) ||
+        SHAPE_AWARE_CASES.has(`${entry.category}:${flagVariant}`),
       examples,
     });
   }

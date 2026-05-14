@@ -1939,6 +1939,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const zFrontPanel = zBackPanel - SLIDE_TRACK_SPACING;                      // 前軌（左片）
     const leftPanelCx = -length / 2 + panelW / 2;             // 左片置左
     const rightPanelCx = length / 2 - panelW / 2;             // 右片置右
+    // 左片走前軌、右片走後軌（配對固定；指拉槽 idx 邏輯依賴此對應）
     const slidingPanels: Array<{ idx: number; cx: number; z: number; nameZh: string }> = [
       { idx: 1, cx: leftPanelCx, z: zFrontPanel, nameZh: "滑門（左／前軌）" },
       { idx: 2, cx: rightPanelCx, z: zBackPanel, nameZh: "滑門（右／後軌）" },
@@ -1969,7 +1970,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
 
     // 頂 / 底滑軌：兩條細長條，跨櫃體外寬，裝在櫃前緣
     const RAIL_H = 25;        // 滑軌條 Y 向高
-    const RAIL_D = 42;        // 滑軌條 Z 向深（後軌 18+3 + 前軌 18 = 39mm，留 3mm 前緣餘量）
+    const RAIL_D = 42;        // 滑軌條 Z 向深：涵蓋前後兩片滑門的 z 範圍 + 前緣餘量
     const railZ = -width / 2 - TRACK_GAP - RAIL_D / 2;   // 貼櫃前緣外、涵蓋兩片門的 z 範圍
     const railSpecs: Array<{ id: string; nameZh: string; y: number }> = [
       { id: "sliding-track-top", nameZh: "滑門頂滑軌", y: caseBottomY + caseHeight - RAIL_H },
