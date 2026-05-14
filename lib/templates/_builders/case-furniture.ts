@@ -708,7 +708,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       drawerMount: cfg.drawerMount ?? drawerMount,
       drawerBottomMode: opts.drawerBottomMode,
       drawerSlideGap: opts.drawerSlideGap,
-      pullStyle: cfg.pullStyle ?? pullStyle,
+      pullStyle: cfg.pullStyle ?? (opts.slidingDoorMode ? "none" : pullStyle),
     }, parts);
   };
 
@@ -1918,6 +1918,38 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         doorType,
         idPrefix: "door",
         labelPrefix: "門",
+      });
+    }
+  }
+
+  // —— 推拉門模式：2 片前後錯開外掛滑門 ——
+  if (opts.slidingDoorMode) {
+    const SLIDE_T = 18;                       // slab 滑門厚
+    const SLIDE_OVERLAP = 50;                 // 兩片中間重疊量
+    const panelW = length / 2 + SLIDE_OVERLAP / 2;  // 每片寬（半寬 + 25）
+    const slideH = caseHeight;                // 高 = 內部三層 + 上下板，蓋滿前緣
+    const slideYBottom = caseBottomY;         // 底部對齊櫃體底
+    // Z：櫃前緣 = -width/2，往前更負。後軌片貼櫃前緣外 3mm，前軌片再往前 21mm。
+    const zBackPanel = -width / 2 - 3 - SLIDE_T / 2;          // 後軌（右片）
+    const zFrontPanel = zBackPanel - 21;                      // 前軌（左片）
+    const leftPanelCx = -length / 2 + panelW / 2;             // 左片置左
+    const rightPanelCx = length / 2 - panelW / 2;             // 右片置右
+    const slidingPanels: Array<{ idx: number; cx: number; z: number; nameZh: string }> = [
+      { idx: 1, cx: leftPanelCx, z: zFrontPanel, nameZh: "滑門（左／前軌）" },
+      { idx: 2, cx: rightPanelCx, z: zBackPanel, nameZh: "滑門（右／後軌）" },
+    ];
+    for (const p of slidingPanels) {
+      parts.push({
+        id: `sliding-door-${p.idx}`,
+        nameZh: p.nameZh,
+        material,
+        materialOverride: "plywood",
+        grainDirection: "length",
+        visible: { length: panelW, width: slideH, thickness: SLIDE_T },
+        origin: { x: p.cx, y: slideYBottom, z: p.z },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
       });
     }
   }
