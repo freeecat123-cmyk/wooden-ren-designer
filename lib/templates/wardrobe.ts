@@ -35,6 +35,11 @@ import {
   resolveLockedTotalHeight,
 } from "./_helpers";
 
+// slidingDoorMode 打開時，只影響鉸鏈門扇的選項要隱藏
+const HINGED_DOOR_VISIBLE = {
+  all: [ANY_ZONE_IS_DOOR, { key: "slidingDoorMode", equals: false }],
+};
+
 export const wardrobeOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
@@ -47,10 +52,10 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "slab", label: "夾板貼皮平板門（裝潢常用，衣櫃首選）" },
     { value: "wood", label: "木鑲板門（框 + 鑲板）" },
     { value: "glass", label: "玻璃門（需配 5mm 強化玻璃）" },
-  ], dependsOn: ANY_ZONE_IS_DOOR },
-  doorMountOption,
-  doorFrameRailWidthOption,
-  doorFrameThicknessOption,
+  ], dependsOn: HINGED_DOOR_VISIBLE },
+  { ...doorMountOption, dependsOn: HINGED_DOOR_VISIBLE },
+  { ...doorFrameRailWidthOption, dependsOn: HINGED_DOOR_VISIBLE },
+  { ...doorFrameThicknessOption, dependsOn: HINGED_DOOR_VISIBLE },
   { group: "door", type: "checkbox", key: "slidingDoorMode", label: "推拉門模式（2 片外掛滑門）", defaultValue: false, wide: true, help: "打開後整櫃改 2 片前後錯開外掛滑門蓋滿上中下層；鉸鏈門扇自動取消、zone 抽屜自動入柱" },
   withLegsOption,
   backPanelPlywoodOption,
@@ -74,7 +79,7 @@ export const wardrobeOptions: OptionSpec[] = [
   ...crownMoldingOptions("structure"),
   ...lockTotalHeightOptions(),
   pullStyleOption("door"),
-  doorPullStyleOption("door"),
+  { ...doorPullStyleOption("door"), dependsOn: HINGED_DOOR_VISIBLE },
 ];
 
 export const wardrobe: FurnitureTemplate = (input) => {
