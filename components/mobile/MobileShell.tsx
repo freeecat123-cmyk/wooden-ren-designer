@@ -293,7 +293,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} />
+              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} />
             )}
           </DesignFormShell>
         }
@@ -307,7 +307,7 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} />
+            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} />
           </DesignFormShell>
         }
         joineryContent={
@@ -325,7 +325,7 @@ export function MobileShell(props: MobileShellProps) {
               {visibleJoinerySpecs.length === 0 ? (
                 <div className="text-sm text-zinc-500">此家具無榫接選項</div>
               ) : (
-                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} />
+                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} />
               )}
             </DesignFormShell>
 
@@ -483,9 +483,11 @@ export function MobileShell(props: MobileShellProps) {
 function GroupedSpecs({
   specs,
   optionValues,
+  overallHeight,
 }: {
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
+  overallHeight?: number;
 }) {
   const groups = groupSpecsByGroup(specs);
   return (
@@ -506,6 +508,7 @@ function GroupedSpecs({
                 spec={s}
                 value={optionValues[s.key]}
                 allValues={optionValues}
+                overallHeight={overallHeight}
               />
             ))}
           </div>

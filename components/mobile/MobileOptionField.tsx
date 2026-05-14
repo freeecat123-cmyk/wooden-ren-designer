@@ -23,10 +23,28 @@ interface MobileOptionFieldProps {
   spec: OptionSpec;
   value: string | number | boolean;
   allValues?: Record<string, string | number | boolean>;
+  /** 家具整體高度（mm）。傳入時，所有 *Height key 的滑桿 max 會被夾到 ≤ overallHeight，
+   *  避免使用者看到拉桿上限 1500 但家具總高才 800 的不合理情境。 */
+  overallHeight?: number;
 }
 
-export function MobileOptionField({ spec, value, allValues }: MobileOptionFieldProps) {
+/** key 看起來是「高度類」欄位嗎？用來決定是否要夾 overallHeight 上限。
+ *  排除 wallHeight / ceilingHeight 等明顯是「空間環境」非「家具部件」的 key。 */
+function isHeightKey(key: string): boolean {
+  const k = key.toLowerCase();
+  if (!k.includes("height")) return false;
+  if (k === "height") return false; // 家具總高本身
+  if (k.startsWith("wall") || k.startsWith("ceiling") || k.startsWith("room")) return false;
+  return true;
+}
+
+export function MobileOptionField({ spec, value, allValues, overallHeight }: MobileOptionFieldProps) {
   if (spec.type === "number") {
+    const rawMax = spec.max ?? 9999;
+    const cappedMax =
+      overallHeight !== undefined && overallHeight > 0 && isHeightKey(spec.key)
+        ? Math.min(rawMax, overallHeight)
+        : rawMax;
     return (
       <RangeInput
         name={spec.key}
@@ -34,7 +52,7 @@ export function MobileOptionField({ spec, value, allValues }: MobileOptionFieldP
         defaultValue={Number(value)}
         unit={spec.unit ?? ""}
         min={spec.min ?? 0}
-        max={spec.max ?? 9999}
+        max={cappedMax}
         step={spec.step ?? 1}
         help={spec.help}
       />
