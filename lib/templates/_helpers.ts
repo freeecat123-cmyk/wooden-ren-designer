@@ -625,17 +625,20 @@ export function resolveLockedTotalHeight(
   const topH = getOption<number>(input, opt(options, "topHeight")) ?? 0;
   const botH = getOption<number>(input, opt(options, "bottomHeight")) ?? 0;
   const midH = getOption<number>(input, opt(options, "midHeight")) ?? 0;
-  const innerH = topH + midH + botH;
-  const computedLegH = input.height - innerH - 2 * panelThickness;
+  const userInnerH = topH + midH + botH;
+  const computedLegH = input.height - userInnerH - 2 * panelThickness;
   const warnings: string[] = [];
-  let effectiveLegHeight = computedLegH;
-  if (computedLegH < 30) {
+  const MIN_LEG = 30;
+  if (computedLegH < MIN_LEG) {
+    // 三層加總超過容量 → 把腳壓到最低 30mm，innerH 縮到實際容量上限
+    // 讓 resolveZones 內建的按比例壓縮機制把 topH/botH 縮回適配範圍
+    const maxInnerH = Math.max(160, input.height - MIN_LEG - 2 * panelThickness);
     warnings.push(
-      `鎖定總高：三層 (${topH}+${midH}+${botH}=${innerH}mm) + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高夾在最低 30mm。請降低層高或加大總高。`,
+      `鎖定總高：三層 (${topH}+${midH}+${botH}=${userInnerH}mm) + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高壓到最低 30mm，三層按比例自動縮成 ${maxInnerH}mm。請降低層高或加大總高。`,
     );
-    effectiveLegHeight = 30;
+    return { innerH: maxInnerH, effectiveLegHeight: MIN_LEG, warnings };
   }
-  return { innerH, effectiveLegHeight, warnings };
+  return { innerH: userInnerH, effectiveLegHeight: computedLegH, warnings };
 }
 
 /** 冠飾線（crown molding）—— 頂部裝飾線條，傳統櫃常見
