@@ -424,14 +424,26 @@ function buildSCurveMembers(args: {
   // 靠背板：素獨板 S 形，下接後大邊、上接椅圈後段
   // visible 慣例：length(X)=板寬 185、thickness(Y)=板高 splatH、width(Z)=板厚 40
   // （計畫原文 width/thickness 互換，依 ⚠️ 警告 1 修正）
+  //
+  // 連接邏輯（origin.z）：
+  //   後大邊（seat-rail-back）RAIL_T_SEAT=39，origin.z = seatDepth/2 - 39/2 → Z 中心 ≈ 229mm
+  //   椅圈後段（arm-rail-back）W_BACK=55，origin.z = seatDepth/2 + 28 → Z 中心 ≈ 276.5mm
+  //   靠背板 width=40（Z±20），origin.z 取兩者中心的中點 → AABB 同時與兩者重疊。
+  //
+  // 連接邏輯（thickness/Y）：
+  //   splatH 加長 +15mm，讓靠背板頂端 Y 略高於椅圈後段底面（ringY），真正插進椅圈後段。
+  const RAIL_T_SEAT = 39;  // 後大邊板料厚（與 buildSeatFrame 同步）
+  const ARM_BACK_Z = seatDepth / 2 + 28;           // 椅圈後段 origin.z（與 buildArmRail backZ 同步）
+  const SEAT_BACK_Z = seatDepth / 2 - RAIL_T_SEAT / 2; // 後大邊 origin.z（與 buildSeatFrame 同步）
+  const splatZ = (SEAT_BACK_Z + ARM_BACK_Z) / 2;   // 兩 Z 中心的中點 → AABB overlap 兩者
   const splatBottomY = seatHeight;
-  const splatH = ringY - splatBottomY;
+  const splatH = ringY - splatBottomY + 15;         // +15mm：讓頂端插進椅圈後段（不再浮空相切）
   parts.push({
     id: "back-splat",
     nameZh: "靠背板",
     material, grainDirection: "length",
     visible: { length: 185, thickness: splatH, width: 40 },
-    origin: { x: 0, y: splatBottomY, z: seatDepth / 2 - 20 },
+    origin: { x: 0, y: splatBottomY, z: splatZ },
     rotation: { x: 0, y: 0, z: 0 },
     shape: { kind: "face-rounded", cornerR: 12, bendMm: 32, bendAxis: "z" },
     tenons: [], mortises: [],

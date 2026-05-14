@@ -133,6 +133,8 @@ for (const entry of FURNITURE_CATALOG) {
           if (ids[0].startsWith("arm-rail-") && ids[1].startsWith("arm-rail-")) return false;
           // 圈椅後腿一木連做往上接椅圈：後腿即椅圈支撐柱，leg × arm-rail 是傳統榫接，非幾何錯。
           if (ids[0].startsWith("arm-rail-") && ids[1].startsWith("leg-")) return false;
+          // 圈椅靠背板上端榫接進椅圈後段：傳統做法靠背板上端入椅圈，結構性 overlap 非幾何錯。
+          if (ids[0].startsWith("arm-rail-") && ids[1] === "back-splat") return false;
           if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
           if (ids[0].startsWith("back-")) return false;
           return true;
