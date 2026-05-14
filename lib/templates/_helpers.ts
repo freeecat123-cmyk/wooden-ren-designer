@@ -709,6 +709,39 @@ export function crownMoldingNote(withCrown: boolean, projection: number): string
   return `頂部冠飾線：${projection}mm 外伸（用 ogee / cove / chamfer profile 修邊機刀），上漆前先繞櫃黏貼。`;
 }
 
+/**
+ * 椅腳開關 — 預設安裝椅腳；關掉時整組椅腳欄位隱藏 + 強制 legHeight=0（櫃子貼地）。
+ * 用法：在 options 內 spread `withLegsOption`；body 內呼叫 `resolveLegHeight()`
+ * 取得實際 legHeight（withLegs=false → 0）。
+ * 各 leg 欄位的 dependsOn 不必改，因為 legHeight=0 後 legSize/legShape/legInset
+ * 既有 notIn:[0] 條件會自動把它們收掉；只要把 legHeight 欄位的 dependsOn 加上
+ * `{ key: "withLegs", equals: true }` 即可一起隱藏。
+ */
+export const withLegsOption: OptionSpec = {
+  group: "leg",
+  type: "checkbox",
+  key: "withLegs",
+  label: "🦿 安裝櫃腳（關掉 = 貼地）",
+  defaultValue: true,
+  wide: true,
+  help: "勾起：加底座櫃腳，可選腳高 / 腳粗 / 樣式 / 內縮；不勾：櫃子直接貼地（適合系統櫃風格）",
+};
+
+/** 取得實際 legHeight：withLegs=false → 0；其餘吃使用者設的 legHeight。 */
+export function resolveLegHeight(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): number {
+  const hasWithLegs = options.some((s) => s.key === "withLegs");
+  if (hasWithLegs) {
+    const withLegs = getOption<boolean>(input, opt(options, "withLegs"));
+    if (!withLegs) return 0;
+  }
+  const hasLegHeight = options.some((s) => s.key === "legHeight");
+  if (!hasLegHeight) return 0;
+  return getOption<number>(input, opt(options, "legHeight"));
+}
+
 /** 後板材質——影響材料單與裁切（背板按片計） */
 export function backPanelMaterialOption(group: OptionGroup = "back"): OptionSpec {
   return {
@@ -716,18 +749,34 @@ export function backPanelMaterialOption(group: OptionGroup = "back"): OptionSpec
     type: "select",
     key: "backPanelMaterial",
     label: "後板材質",
-    defaultValue: "plywood",
+    defaultValue: "inherit",
     choices: [
+      { value: "inherit", label: "↳ 跟主材料一樣" },
       { value: "plywood", label: "夾板（最常用，4mm 或 6mm）" },
       { value: "mdf", label: "中纖板 MDF（平整、易上漆）" },
       { value: "solid", label: "實木拼板（最貴、整體感最好）" },
     ],
-    help: "結構強度差不多，但實木最有質感、夾板最 CP 值",
+    help: "預設跟主材料同；要跟主材料不同時可獨立選 夾板 / MDF / 實木",
   };
 }
 
-export function backPanelMaterialNote(mat: string): string {
+/** 後板省料開關：勾起改用夾板（裝潢慣例最 CP 值），不勾則跟主材料同。 */
+export const backPanelPlywoodOption: OptionSpec = {
+  group: "structure",
+  type: "checkbox",
+  key: "backPanelPlywood",
+  label: "後板改用夾板（省料）",
+  defaultValue: false,
+  wide: true,
+  help: "勾起：後板計入夾板（4-6mm，省木材費）；不勾：後板跟主材料同（整體感最好）",
+};
+
+export function backPanelMaterialNote(mat: string, mainMaterialLabel?: string): string {
   switch (mat) {
+    case "inherit":
+      return mainMaterialLabel
+        ? `後板跟主材料同（${mainMaterialLabel}）實木拼板（>10mm），鑲入槽 + 浮動安裝（中間留縫吸收形變）。`
+        : "後板跟主材料同，實木拼板（>10mm），鑲入槽 + 浮動安裝。";
     case "plywood":
       return "後板用 4-6mm 夾板，鑲入側板後緣 dado 槽。";
     case "mdf":

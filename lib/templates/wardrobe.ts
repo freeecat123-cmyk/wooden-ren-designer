@@ -25,8 +25,9 @@ import {
   toeKickNote,
   crownMoldingOptions,
   crownMoldingNote,
-  backPanelMaterialOption,
-  backPanelMaterialNote,
+  withLegsOption,
+  backPanelPlywoodOption,
+  resolveLegHeight,
   pullStyleOption,
   pullStyleNote,
   doorPullStyleOption,
@@ -37,9 +38,9 @@ import {
 export const wardrobeOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "panelThickness", label: "板材厚 (mm)", defaultValue: 18, min: 9, max: 35, step: 1 },
   ...makeZoneOptions({
-    // 標準衣櫃：上層層板收納、中層吊衣、下層抽屜
+    // 標準衣櫃：上層層板收納、中層門板（門內掛衣）、下層抽屜
     topType: "shelves", topHeight: 300, topCount: 2,
-    midType: "hanging", midCount: 1,
+    midType: "door", midCount: 2,
     bottomType: "drawer", bottomHeight: 400, bottomCount: 2, bottomCols: 2,
   }, true),
   { group: "door", type: "select", key: "doorType", label: "門材質", defaultValue: "slab", choices: [
@@ -50,8 +51,10 @@ export const wardrobeOptions: OptionSpec[] = [
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
-  { group: "leg", type: "number", key: "legSize", label: "底座腳粗 (mm)", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { key: "legHeight", notIn: [0] }, help: "衣櫃高重，建議 50mm 以上" },
+  withLegsOption,
+  backPanelPlywoodOption,
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "底座腳粗 (mm)", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] }, help: "衣櫃高重，建議 50mm 以上" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -60,19 +63,15 @@ export const wardrobeOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
-  ] , dependsOn: { key: "legHeight", notIn: [0] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
   drawerSlideOption,
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("structure"),
   ...lockTotalHeightOptions(),
-  { group: "structure", type: "checkbox", key: "withTopCompartment", label: "頂部棉被櫃", defaultValue: false, help: "頂端 350mm 加水平隔板做獨立空間，放棉被/換季衣物", wide: true },
-  { group: "structure", type: "checkbox", key: "withBottomShoeRack", label: "底部鞋格", defaultValue: false, help: "底部 200mm 加 2 層斜放層板做鞋櫃用", wide: true },
-  { group: "structure", type: "checkbox", key: "withInteriorLed", label: "內部感應 LED", defaultValue: false, help: "頂部裝 LED 燈條，門開時自動感應點亮", wide: true },
   pullStyleOption("door"),
   doorPullStyleOption("door"),
 ];
@@ -81,7 +80,8 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const o = wardrobeOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
-  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legHeight = resolveLegHeight(input, o);
+  const backPanelPlywood = getOption<boolean>(input, opt(o, "backPanelPlywood"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -92,10 +92,6 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
-  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
-  const withTopCompartment = getOption<boolean>(input, opt(o, "withTopCompartment"));
-  const withBottomShoeRack = getOption<boolean>(input, opt(o, "withBottomShoeRack"));
-  const withInteriorLed = getOption<boolean>(input, opt(o, "withInteriorLed"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
@@ -132,6 +128,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
+    backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
@@ -144,69 +141,9 @@ export const wardrobe: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle)} ${withTopCompartment ? "頂部 350mm 棉被櫃（水平隔板 + 獨立小門）。" : ""} ${withBottomShoeRack ? "底部 200mm 鞋格（2 層 8° 斜放板）。" : ""} ${withInteriorLed ? "內部 LED 燈條（門開感應，3000K 暖光、12V/2A 電源、預埋線管）。" : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}（${doorMountLabel(doorMount)}）${effectiveLegHeight > 0 ? `；加 ${effectiveLegHeight}mm ${legShape} 底座${legInset > 0 ? `（內縮 ${legInset}mm）` : ""}` : ""}。需配吊衣桿、西德鉸鏈（${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${hasDrawers ? "、抽屜滑軌" : ""}。${pullStyleNote(pullStyle)} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)}`.trim(),
     warnings,
   });
-  // 頂部棉被櫃：水平隔板（Part）距頂端 350mm
-  // 若櫃內可用高度太小（< 棉被櫃 350 + 中下層最少 160），跳過避免幾何反向
-  const topCompartmentMinClearance = 350 + 160; // 棉被櫃 + 下方至少 160mm
-  const caseInnerTopY = input.height - panelThickness;
-  const caseInnerBottomY = effectiveLegHeight + panelThickness;
-  if (withTopCompartment && caseInnerTopY - caseInnerBottomY >= topCompartmentMinClearance) {
-    design.parts.push({
-      id: "top-compartment-divider",
-      nameZh: "頂部棉被櫃水平隔板",
-      material: input.material,
-      grainDirection: "length",
-      visible: {
-        length: input.length - 2 * panelThickness,
-        width: input.width - 2 * panelThickness,
-        thickness: panelThickness,
-      },
-      origin: { x: 0, y: caseInnerTopY - 350 - panelThickness, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  } else if (withTopCompartment) {
-    appendWarnings(design, [
-      `頂部棉被櫃需要至少 ${topCompartmentMinClearance}mm 內高（目前 ${caseInnerTopY - caseInnerBottomY}mm），已跳過。請加大櫃高。`,
-    ]);
-  }
-  // 底部鞋格：2 層斜板
-  if (withBottomShoeRack) {
-    for (let i = 0; i < 2; i++) {
-      design.parts.push({
-        id: `shoe-rack-${i + 1}`,
-        nameZh: `底部鞋格 ${i + 1}`,
-        material: input.material,
-        grainDirection: "length",
-        visible: {
-          length: input.length - 2 * panelThickness,
-          width: input.width - 2 * panelThickness - 20,
-          thickness: panelThickness - 4,
-        },
-        origin: { x: 0, y: effectiveLegHeight + 50 + i * 90, z: 0 },
-        rotation: { x: -8 * Math.PI / 180, y: 0, z: 0 }, // 8° 斜
-        tenons: [],
-        mortises: [],
-      });
-    }
-  }
-  // 內部 LED：頂端加細長條代表
-  if (withInteriorLed) {
-    design.parts.push({
-      id: "interior-led-strip",
-      nameZh: "內部 LED 燈條",
-      material: input.material,
-      grainDirection: "length",
-      visible: { length: input.length - 2 * panelThickness - 20, width: 12, thickness: 6 },
-      origin: { x: 0, y: input.height - panelThickness - 10, z: input.width / 2 - panelThickness - 8 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  }
-
   applyStandardChecks(design, {
     minLength: 600, minWidth: 400, minHeight: 1500,
     maxLength: 2400, maxWidth: 800, maxHeight: 2500,

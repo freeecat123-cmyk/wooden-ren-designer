@@ -19,8 +19,9 @@ import {
   toeKickNote,
   crownMoldingOptions,
   crownMoldingNote,
-  backPanelMaterialOption,
-  backPanelMaterialNote,
+  withLegsOption,
+  backPanelPlywoodOption,
+  resolveLegHeight,
   pullStyleOption,
   pullStyleNote,
   lockTotalHeightOptions,
@@ -51,8 +52,10 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   }),
   // ascending 模式下顯示「總抽屜數」單一輸入
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  withLegsOption,
+  backPanelPlywoodOption,
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { all: [{ key: "withLegs", equals: true }, { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（下方收窄）" },
@@ -61,15 +64,14 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座（連板）" },
     { value: "panel-side", label: "側板延伸落地（中間空心）" },
-  ] , dependsOn: { key: "legHeight", notIn: [0] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
+  ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }, { key: "legShape", notIn: ["plinth", "panel-side"] }] } },
   drawerMountOption,
   drawerBottomModeOption,
   drawerSlideOption,
   pullStyleOption("drawer"),
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("structure"),
   { group: "drawer", type: "select", key: "drawerFaceStyle", label: "抽屜面板樣式", defaultValue: "flat", choices: [
     { value: "flat", label: "平板（slab，現代極簡）" },
     { value: "raised-panel", label: "凸版（傳統雕花框 + 凸鑲板）" },
@@ -90,7 +92,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
 export const chestOfDrawers: FurnitureTemplate = (input) => {
   const o = chestOfDrawersOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
-  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legHeight = resolveLegHeight(input, o);
+  const backPanelPlywood = getOption<boolean>(input, opt(o, "backPanelPlywood"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -100,7 +103,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
-  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const pullPosition = getOption<string>(input, opt(o, "pullPosition"));
   const drawerFaceStyle = getOption<string>(input, opt(o, "drawerFaceStyle"));
@@ -157,6 +159,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
+    backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
@@ -171,7 +174,6 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
       pullStyle, pullPosition,
       withToeKick: effectiveWithToeKick, toeKickHeight, toeKickRecess,
       withCrownMolding, crownProjection,
-      backPanelMaterial,
       drawerFaceStyle,
       drawerHeightStyle,
       withGalleryRail,
@@ -360,7 +362,6 @@ function buildChestNotes(cfg: {
   pullStyle: string; pullPosition: string;
   withToeKick: boolean; toeKickHeight: number; toeKickRecess: number;
   withCrownMolding: boolean; crownProjection: number;
-  backPanelMaterial: string;
   drawerFaceStyle: string;
   drawerHeightStyle: string;
   withGalleryRail: boolean;
@@ -376,8 +377,6 @@ function buildChestNotes(cfg: {
   if (tk) parts.push(tk);
   const cm = crownMoldingNote(cfg.withCrownMolding, cfg.crownProjection);
   if (cm) parts.push(cm);
-  const bm = backPanelMaterialNote(cfg.backPanelMaterial);
-  if (bm) parts.push(bm);
   if (cfg.drawerFaceStyle === "raised-panel") parts.push("抽屜面板採凸版（中央凸 6mm 雕花板）");
   if (cfg.drawerHeightStyle === "ascending") parts.push("抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
   if (cfg.withGalleryRail) parts.push("頂面加 25mm 高圍欄");

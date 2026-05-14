@@ -26,6 +26,8 @@ interface MobileOptionFieldProps {
   /** 家具整體高度（mm）。傳入時，所有 *Height key 的滑桿 max 會被夾到 ≤ overallHeight，
    *  避免使用者看到拉桿上限 1500 但家具總高才 800 的不合理情境。 */
   overallHeight?: number;
+  /** 家具整體長度（mm）。給橫向欄寬欄位（leftWidthMm 等）動態夾 max 用。 */
+  overallLength?: number;
 }
 
 /** key 看起來是「高度類」欄位嗎？用來決定是否要夾 overallHeight 上限。
@@ -41,13 +43,68 @@ function isHeightKey(key: string): boolean {
 // 鎖定總高時參與分配內高的欄位（含鞋櫃的 upperHeight/lowerHeight）
 const LOCKED_ZONE_HEIGHT_KEYS = ["topHeight", "midHeight", "bottomHeight", "upperHeight", "lowerHeight"];
 
-export function MobileOptionField({ spec, value, allValues, overallHeight }: MobileOptionFieldProps) {
+// 橫向分欄寬度欄位：依 layoutMode + 其他欄寬動態夾 max
+const COLUMN_WIDTH_KEYS = ["leftWidthMm", "rightWidthMm", "singleLayerLeftWidthMm", "singleLayerRightWidthMm"];
+
+function computeColumnWidthMax(
+  key: string,
+  allValues: Record<string, string | number | boolean>,
+  overallLength: number,
+): number | null {
+  const MIN_COL = 80;
+  const panelT = Number(allValues.panelThickness) || 18;
+  const layoutMode = String(allValues.layoutMode ?? "");
+  const innerW = overallLength - 2 * panelT;
+  // 媒體櫃 h-2col：只用 leftWidthMm，右欄自動填滿
+  if (key === "leftWidthMm" && layoutMode === "h-2col") {
+    const usableW = innerW - panelT;
+    return Math.max(MIN_COL, usableW - MIN_COL);
+  }
+  // 媒體櫃 h-3col：left + right ≤ usableW - 80（中欄留 80）
+  if ((key === "leftWidthMm" || key === "rightWidthMm") && layoutMode === "h-3col") {
+    const usableW = innerW - 2 * panelT;
+    const otherKey = key === "leftWidthMm" ? "rightWidthMm" : "leftWidthMm";
+    const other = Math.max(MIN_COL, Number(allValues[otherKey]) || 0);
+    return Math.max(MIN_COL, usableW - other - MIN_COL);
+  }
+  // 縱向 1 層 / 2 層上層分欄
+  const singleCols = parseInt(String(allValues.singleLayerCols ?? "1"), 10) || 1;
+  const inVertical = layoutMode === "v-1layer" || layoutMode === "v-2layer";
+  if (key === "singleLayerLeftWidthMm" && inVertical && singleCols >= 2) {
+    if (singleCols === 2) {
+      const usableW = innerW - panelT;
+      return Math.max(MIN_COL, usableW - MIN_COL);
+    }
+    // singleCols === 3
+    const usableW = innerW - 2 * panelT;
+    const other = Math.max(MIN_COL, Number(allValues.singleLayerRightWidthMm) || 0);
+    return Math.max(MIN_COL, usableW - other - MIN_COL);
+  }
+  if (key === "singleLayerRightWidthMm" && inVertical && singleCols === 3) {
+    const usableW = innerW - 2 * panelT;
+    const other = Math.max(MIN_COL, Number(allValues.singleLayerLeftWidthMm) || 0);
+    return Math.max(MIN_COL, usableW - other - MIN_COL);
+  }
+  return null;
+}
+
+export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength }: MobileOptionFieldProps) {
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
     let cappedMax =
       overallHeight !== undefined && overallHeight > 0 && isHeightKey(spec.key)
         ? Math.min(rawMax, overallHeight)
         : rawMax;
+    // 橫向欄寬欄位：依 layoutMode + 其他欄寬動態夾 max
+    if (
+      allValues
+      && overallLength !== undefined
+      && overallLength > 0
+      && COLUMN_WIDTH_KEYS.includes(spec.key)
+    ) {
+      const w = computeColumnWidthMax(spec.key, allValues, overallLength);
+      if (w !== null) cappedMax = Math.min(cappedMax, w);
+    }
     // 鎖定總高時，區段高度上限要扣掉其他層 + 最低腳高 30 + 上下板 2×panelT
     if (
       allValues

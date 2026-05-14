@@ -827,6 +827,7 @@ function ParameterForm({
             optionValues={optionValues}
             joineryMode={joineryMode}
             overallHeight={defaults.height}
+            overallLength={defaults.length}
           />
         </>
       )}
@@ -875,11 +876,13 @@ function GroupedOptionFields({
   optionValues,
   joineryMode,
   overallHeight,
+  overallLength,
 }: {
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
   overallHeight?: number;
+  overallLength?: number;
 }) {
   // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
   const visibleSchema = optionSchema.filter(
@@ -928,7 +931,7 @@ function GroupedOptionFields({
                     key={`${spec.key}-${String(optionValues[spec.key])}`}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
-                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} />
+                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} />
                   </div>
                 );
               })}
@@ -945,11 +948,13 @@ function OptionField({
   value,
   allValues,
   overallHeight,
+  overallLength,
 }: {
   spec: OptionSpec;
   value: string | number | boolean;
   allValues?: Record<string, string | number | boolean>;
   overallHeight?: number;
+  overallLength?: number;
 }) {
   const choiceVisible = (
     dep: import("@/lib/types").OptionDependency | undefined,
@@ -960,6 +965,7 @@ function OptionField({
   if (spec.type === "number") {
     // 鎖定總高時，區段高度 max 動態縮成「內高扣其他層」
     const LOCKED_ZONE_KEYS = ["topHeight", "midHeight", "bottomHeight", "upperHeight", "lowerHeight"];
+    const COLUMN_WIDTH_KEYS = ["leftWidthMm", "rightWidthMm", "singleLayerLeftWidthMm", "singleLayerRightWidthMm"];
     let effectiveMax = spec.max;
     const locked = !!(allValues && allValues.lockTotalHeight === true);
     const isLockedZone = locked && LOCKED_ZONE_KEYS.includes(spec.key) && overallHeight !== undefined && overallHeight > 0;
@@ -976,13 +982,44 @@ function OptionField({
       const dynamicMax = Math.max(spec.min ?? 80, innerCap - otherSum);
       effectiveMax = Math.min(spec.max ?? 99999, dynamicMax);
     }
+    // 橫向欄寬欄位：依 layoutMode + 其他欄寬動態夾 max
+    const isColumnWidth = allValues && overallLength !== undefined && overallLength > 0 && COLUMN_WIDTH_KEYS.includes(spec.key);
+    if (isColumnWidth) {
+      const MIN_COL = 80;
+      const panelT = Number(allValues!.panelThickness) || 18;
+      const layoutMode = String(allValues!.layoutMode ?? "");
+      const innerW = overallLength! - 2 * panelT;
+      let wmax: number | null = null;
+      if (spec.key === "leftWidthMm" && layoutMode === "h-2col") {
+        wmax = Math.max(MIN_COL, innerW - panelT - MIN_COL);
+      } else if ((spec.key === "leftWidthMm" || spec.key === "rightWidthMm") && layoutMode === "h-3col") {
+        const otherKey = spec.key === "leftWidthMm" ? "rightWidthMm" : "leftWidthMm";
+        const other = Math.max(MIN_COL, Number(allValues![otherKey]) || 0);
+        wmax = Math.max(MIN_COL, innerW - 2 * panelT - other - MIN_COL);
+      } else {
+        const singleCols = parseInt(String(allValues!.singleLayerCols ?? "1"), 10) || 1;
+        const inVertical = layoutMode === "v-1layer" || layoutMode === "v-2layer";
+        if (spec.key === "singleLayerLeftWidthMm" && inVertical && singleCols >= 2) {
+          if (singleCols === 2) {
+            wmax = Math.max(MIN_COL, innerW - panelT - MIN_COL);
+          } else {
+            const other = Math.max(MIN_COL, Number(allValues!.singleLayerRightWidthMm) || 0);
+            wmax = Math.max(MIN_COL, innerW - 2 * panelT - other - MIN_COL);
+          }
+        } else if (spec.key === "singleLayerRightWidthMm" && inVertical && singleCols === 3) {
+          const other = Math.max(MIN_COL, Number(allValues!.singleLayerLeftWidthMm) || 0);
+          wmax = Math.max(MIN_COL, innerW - 2 * panelT - other - MIN_COL);
+        }
+      }
+      if (wmax !== null) effectiveMax = Math.min(effectiveMax ?? 99999, wmax);
+    }
     return (
       <label className="flex flex-col text-xs" title={spec.help}>
         <span className="text-zinc-700 mb-0.5 truncate">
           {spec.label}
           {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
         </span>
-        {isLockedZone ? (
+        {isLockedZone || isColumnWidth ? (
           <ClampedNumberInput
             name={spec.key}
             defaultValue={String(value)}

@@ -25,8 +25,9 @@ import {
   toeKickNote,
   crownMoldingOptions,
   crownMoldingNote,
-  backPanelMaterialOption,
-  backPanelMaterialNote,
+  withLegsOption,
+  backPanelPlywoodOption,
+  resolveLegHeight,
   pullStyleOption,
   pullStyleNote,
   doorPullStyleOption,
@@ -52,8 +53,10 @@ export const displayCabinetOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "0 = 貼地（系統櫃式）；70–80 = 沙發腳款（最常見展示櫃造型）。鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
-  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  withLegsOption,
+  backPanelPlywoodOption,
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "0 = 貼地（系統櫃式）；70–80 = 沙發腳款（最常見展示櫃造型）。鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
+  { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -62,12 +65,11 @@ export const displayCabinetOptions: OptionSpec[] = [
     { value: "bracket", label: "帶托腳牙" },
     { value: "plinth", label: "平台底座" },
     { value: "panel-side", label: "側板延伸落地" },
-  ] , dependsOn: { key: "legHeight", notIn: [0] } },
-  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
+  ] , dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   drawerSlideOption,
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
-  backPanelMaterialOption("structure"),
   ...lockTotalHeightOptions(),
   { group: "structure", type: "select", key: "topDecor", label: "頂部裝飾條樣式", defaultValue: "none", choices: [
     { value: "none", label: "無（極簡款）" },
@@ -91,7 +93,8 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const o = displayCabinetOptions;
   const panelThickness = getOption<number>(input, opt(o, "panelThickness"));
   const doorType = getOption<string>(input, opt(o, "doorType"));
-  const legHeight = getOption<number>(input, opt(o, "legHeight"));
+  const legHeight = resolveLegHeight(input, o);
+  const backPanelPlywood = getOption<boolean>(input, opt(o, "backPanelPlywood"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -102,7 +105,6 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const toeKickRecess = getOption<number>(input, opt(o, "toeKickRecess"));
   const withCrownMolding = getOption<boolean>(input, opt(o, "withCrownMolding"));
   const crownProjection = getOption<number>(input, opt(o, "crownProjection"));
-  const backPanelMaterial = getOption<string>(input, opt(o, "backPanelMaterial"));
   const doorMullion = getOption<string>(input, opt(o, "doorMullion"));
   const topDecor = getOption<string>(input, opt(o, "topDecor"));
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
@@ -135,6 +137,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness - 2,
     backMode: resolveBackMode(input, o),
+    backPanelMaterial: backPanelPlywood ? "plywood" : "inherit",
     legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
@@ -148,7 +151,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${backPanelMaterialNote(backPanelMaterial)} ${topDecor === "none" ? "" : `頂部加裝飾條（${topDecor === "flat-band" ? "平直線板 60mm" : topDecor === "stepped" ? "兩層階梯線板" : topDecor === "dentil" ? "齒狀古典線板" : "欄杆飾條"}），前+左+右三面包覆。`}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${doorType === "glass" ? "；門用 5mm 強化玻璃" : ""}${legInset > 0 ? `；腳內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${doorType === "glass" && doorMullion !== "none" ? `玻璃門加 ${doorMullion === "cross" ? "十字 4 格" : doorMullion === "vertical-3" ? "縱向 3 格" : doorMullion === "colonial" ? "Colonial 6 格" : "Art Deco 幾何"} 木格 mullion。` : ""} ${toeKickNote(withToeKick, toeKickHeight, toeKickRecess)} ${crownMoldingNote(withCrownMolding, crownProjection)} ${topDecor === "none" ? "" : `頂部加裝飾條（${topDecor === "flat-band" ? "平直線板 60mm" : topDecor === "stepped" ? "兩層階梯線板" : topDecor === "dentil" ? "齒狀古典線板" : "欄杆飾條"}），前+左+右三面包覆。`}`.trim(),
     warnings,
   });
   // 頂部裝飾條：前 + 左 + 右三面包覆（後方靠牆省略）

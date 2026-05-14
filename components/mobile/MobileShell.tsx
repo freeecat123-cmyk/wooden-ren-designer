@@ -293,7 +293,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} />
+              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
             )}
           </DesignFormShell>
         }
@@ -307,7 +307,7 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} />
+            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
           </DesignFormShell>
         }
         joineryContent={
@@ -325,7 +325,7 @@ export function MobileShell(props: MobileShellProps) {
               {visibleJoinerySpecs.length === 0 ? (
                 <div className="text-sm text-zinc-500">此家具無榫接選項</div>
               ) : (
-                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} />
+                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
               )}
             </DesignFormShell>
 
@@ -484,10 +484,12 @@ function GroupedSpecs({
   specs,
   optionValues,
   overallHeight,
+  overallLength,
 }: {
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   overallHeight?: number;
+  overallLength?: number;
 }) {
   const groups = groupSpecsByGroup(specs);
   return (
@@ -509,6 +511,7 @@ function GroupedSpecs({
                 value={optionValues[s.key]}
                 allValues={optionValues}
                 overallHeight={overallHeight}
+                overallLength={overallLength}
               />
             ))}
           </div>
