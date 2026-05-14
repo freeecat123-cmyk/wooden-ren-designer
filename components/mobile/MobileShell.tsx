@@ -138,6 +138,13 @@ export function MobileShell(props: MobileShellProps) {
       />
 
       <DesignFormShell action={formAction} className="px-4 py-3 space-y-4">
+        {/* 主表單在 sheet 之外，預設只有 length/width/height/material/joineryMode/designerMode
+            這些可見 input。改材料時 FormData 不含 optionValues（pullStyle 等都在 AdvancedSheet
+            內），導致 URL 重建時把把手樣式漏掉、server fallback 到 defaultValue。
+            這裡補 hidden inputs 帶上所有 optionValues，保證主表單任何欄位變動都保留全狀態。 */}
+        {Object.entries(optionValues).map(([k, v]) => (
+          <input key={`main-hidden-${k}`} type="hidden" name={k} value={String(v)} />
+        ))}
         {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
         <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
           <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
