@@ -127,108 +127,88 @@ function buildDesign(
   });
 }
 
+/**
+ * 對單一 design 跑完整 overlap pipeline，回傳一筆 Row。
+ *
+ * 包含：
+ *   1. beginnerMode strip（除非 --joinery）
+ *   2. AABB/Y-slice overlap 偵測（findOverlaps）
+ *   3. butt-joint convention 允許椅背後仰時背柱底端 dip 進座板/後腳 AABB
+ *      （物理必然，overshoot 補縫 → bottom-back corner 必然下沉，視覺被遮蓋；2026-05-05）
+ *   4. 門框+鑲板的合法 joinery overlap 過濾：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
+ *      是物理正確結構（frame & panel construction），audit 不該擋。
+ *      滑門面板 × 頂/底滑軌：面板邊緣嵌入滑軌槽（track groove），
+ *      是物理正確結構（sliding door track），audit 不該擋。
+ *   5. allowlist 查詢（SHAPE_AWARE_VARIANTS / SHAPE_AWARE_CASES）
+ *   6. Row 組裝
+ */
+function auditOneDesign(
+  entry: FurnitureCatalogEntry,
+  raw: FurnitureDesign,
+  variantLabel: string,
+): Row {
+  const design = useJoinery ? raw : toBeginnerMode(raw);
+  const allOverlaps = findOverlaps(design.parts);
+  const buttJointFiltered = design.useButtJointConvention
+    ? allOverlaps.filter((o) => {
+        const ids = [o.a, o.b].sort();
+        if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
+        if (ids[0].startsWith("back-")) return false;
+        return true;
+      })
+    : allOverlaps;
+  const overlaps = buttJointFiltered.filter((o) => {
+    const ids = [o.a, o.b].sort();
+    const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
+    const isFrame = (id: string) =>
+      /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
+    if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0])))
+      return false;
+    const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
+    const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
+    const slidingPairAllowed =
+      (isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) ||
+      (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]));
+    if (slidingPairAllowed) return false;
+    return true;
+  });
+  const examples = overlaps
+    .slice(0, 3)
+    .map(
+      (o) =>
+        `${o.a} × ${o.b} (${o.intersectionMm.x}×${o.intersectionMm.y}×${o.intersectionMm.z})`,
+    );
+  return {
+    category: entry.category,
+    nameZh: entry.nameZh,
+    variant: variantLabel,
+    partsCount: design.parts.length,
+    overlapCount: overlaps.length,
+    flag: design.useButtJointConvention ? "✓" : "  ",
+    expected:
+      SHAPE_AWARE_VARIANTS.has(variantLabel) ||
+      SHAPE_AWARE_CASES.has(`${entry.category}:${variantLabel}`),
+    examples,
+  };
+}
+
 const rows: Row[] = [];
 
 for (const entry of FURNITURE_CATALOG) {
   if (!entry.template) continue;
-  const variants = legShapeChoices(entry);
-  for (const variant of variants) {
+
+  // legShape 變體迴圈
+  for (const variant of legShapeChoices(entry)) {
     const raw = buildDesign(entry, variant);
     if (!raw) continue;
-    const design = useJoinery ? raw : toBeginnerMode(raw);
-    const allOverlaps = findOverlaps(design.parts);
-    // butt-joint convention 允許椅背後仰時背柱底端 dip 進座板/後腳 AABB（物理必然，
-    // overshoot 補縫 → bottom-back corner 必然下沉，視覺被遮蓋；2026-05-05）。
-    const buttJointFiltered = design.useButtJointConvention
-      ? allOverlaps.filter((o) => {
-          const ids = [o.a, o.b].sort();
-          if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
-          if (ids[0].startsWith("back-")) return false;
-          return true;
-        })
-      : allOverlaps;
-    // 門框+鑲板的合法 joinery overlap：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
-    // 是物理正確結構（frame & panel construction），audit 不該擋。
-    // 滑門面板 × 頂/底滑軌：面板邊緣嵌入滑軌槽（track groove），
-    // 是物理正確結構（sliding door track），audit 不該擋。
-    const overlaps = buttJointFiltered.filter((o) => {
-      const ids = [o.a, o.b].sort();
-      const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
-      const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
-      if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
-      const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
-      const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
-      const slidingPairAllowed =
-        (isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) ||
-        (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]));
-      if (slidingPairAllowed) return false;
-      return true;
-    });
-    const examples = overlaps
-      .slice(0, 3)
-      .map(
-        (o) =>
-          `${o.a} × ${o.b} (${o.intersectionMm.x}×${o.intersectionMm.y}×${o.intersectionMm.z})`,
-      );
-    rows.push({
-      category: entry.category,
-      nameZh: entry.nameZh,
-      variant,
-      partsCount: design.parts.length,
-      overlapCount: overlaps.length,
-      flag: design.useButtJointConvention ? "✓" : "  ",
-      expected:
-        SHAPE_AWARE_VARIANTS.has(variant) ||
-        SHAPE_AWARE_CASES.has(`${entry.category}:${variant}`),
-      examples,
-    });
+    rows.push(auditOneDesign(entry, raw, variant));
   }
 
   // 額外跑 boolean-flag 變體（如 wardrobe × slidingDoorMode=true）
   for (const { variant: flagVariant, overrides } of booleanFlagVariants(entry)) {
     const raw = buildDesign(entry, undefined, overrides);
     if (!raw) continue;
-    const design = useJoinery ? raw : toBeginnerMode(raw);
-    const allOverlaps = findOverlaps(design.parts);
-    const buttJointFiltered = design.useButtJointConvention
-      ? allOverlaps.filter((o) => {
-          const ids = [o.a, o.b].sort();
-          if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
-          if (ids[0].startsWith("back-")) return false;
-          return true;
-        })
-      : allOverlaps;
-    const overlaps = buttJointFiltered.filter((o) => {
-      const ids = [o.a, o.b].sort();
-      const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
-      const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
-      if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
-      const isSlidingDoor = (id: string) => /^sliding-door-\d+$/.test(id);
-      const isSlidingTrack = (id: string) => /^sliding-track-(top|bottom)$/.test(id);
-      const slidingPairAllowed =
-        (isSlidingDoor(ids[0]) && isSlidingTrack(ids[1])) ||
-        (isSlidingDoor(ids[1]) && isSlidingTrack(ids[0]));
-      if (slidingPairAllowed) return false;
-      return true;
-    });
-    const examples = overlaps
-      .slice(0, 3)
-      .map(
-        (o) =>
-          `${o.a} × ${o.b} (${o.intersectionMm.x}×${o.intersectionMm.y}×${o.intersectionMm.z})`,
-      );
-    rows.push({
-      category: entry.category,
-      nameZh: entry.nameZh,
-      variant: flagVariant,
-      partsCount: design.parts.length,
-      overlapCount: overlaps.length,
-      flag: design.useButtJointConvention ? "✓" : "  ",
-      expected:
-        SHAPE_AWARE_VARIANTS.has(flagVariant) ||
-        SHAPE_AWARE_CASES.has(`${entry.category}:${flagVariant}`),
-      examples,
-    });
+    rows.push(auditOneDesign(entry, raw, flagVariant));
   }
 }
 
