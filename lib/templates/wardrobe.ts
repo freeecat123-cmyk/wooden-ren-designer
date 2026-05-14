@@ -148,7 +148,11 @@ export const wardrobe: FurnitureTemplate = (input) => {
     warnings,
   });
   // 頂部棉被櫃：水平隔板（Part）距頂端 350mm
-  if (withTopCompartment) {
+  // 若櫃內可用高度太小（< 棉被櫃 350 + 中下層最少 160），跳過避免幾何反向
+  const topCompartmentMinClearance = 350 + 160; // 棉被櫃 + 下方至少 160mm
+  const caseInnerTopY = input.height - panelThickness;
+  const caseInnerBottomY = effectiveLegHeight + panelThickness;
+  if (withTopCompartment && caseInnerTopY - caseInnerBottomY >= topCompartmentMinClearance) {
     design.parts.push({
       id: "top-compartment-divider",
       nameZh: "頂部棉被櫃水平隔板",
@@ -159,10 +163,14 @@ export const wardrobe: FurnitureTemplate = (input) => {
         width: input.width - 2 * panelThickness,
         thickness: panelThickness,
       },
-      origin: { x: 0, y: input.height - 350, z: 0 },
+      origin: { x: 0, y: caseInnerTopY - 350 - panelThickness, z: 0 },
       tenons: [],
       mortises: [],
     });
+  } else if (withTopCompartment) {
+    appendWarnings(design, [
+      `頂部棉被櫃需要至少 ${topCompartmentMinClearance}mm 內高（目前 ${caseInnerTopY - caseInnerBottomY}mm），已跳過。請加大櫃高。`,
+    ]);
   }
   // 底部鞋格：2 層斜板
   if (withBottomShoeRack) {
@@ -177,7 +185,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
           width: input.width - 2 * panelThickness - 20,
           thickness: panelThickness - 4,
         },
-        origin: { x: 0, y: legHeight + 50 + i * 90, z: 0 },
+        origin: { x: 0, y: effectiveLegHeight + 50 + i * 90, z: 0 },
         rotation: { x: -8 * Math.PI / 180, y: 0, z: 0 }, // 8° 斜
         tenons: [],
         mortises: [],
