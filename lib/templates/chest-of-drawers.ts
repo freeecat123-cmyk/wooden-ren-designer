@@ -33,12 +33,20 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     topType: "drawer", topHeight: 300, topCount: 2, topCols: 1,
     midType: "drawer", midCount: 2, midCols: 1,
     bottomType: "drawer", bottomHeight: 300, bottomCount: 2, bottomCols: 1,
-  }).map((spec) => ({
-    ...spec,
-    dependsOn: spec.dependsOn
-      ? { all: [spec.dependsOn, { key: "drawerHeightStyle", notIn: ["ascending"] }] }
-      : { key: "drawerHeightStyle", notIn: ["ascending"] },
-  })),
+  }).map((spec) => {
+    // 斗櫃只有抽屜 + 開放層板，移除門板選項（門板櫃用其他範本：玻璃展示櫃、媒體櫃、衣櫃等）
+    const isZoneTypeSelect = spec.type === "select" && (spec.key === "topType" || spec.key === "midType" || spec.key === "bottomType");
+    const filteredChoices = isZoneTypeSelect && spec.choices
+      ? spec.choices.filter((c) => c.value !== "door")
+      : spec.choices;
+    return {
+      ...spec,
+      ...(isZoneTypeSelect ? { choices: filteredChoices } : {}),
+      dependsOn: spec.dependsOn
+        ? { all: [spec.dependsOn, { key: "drawerHeightStyle", notIn: ["ascending"] }] }
+        : { key: "drawerHeightStyle", notIn: ["ascending"] },
+    };
+  }),
   // ascending 模式下顯示「總抽屜數」單一輸入
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高" },
