@@ -426,7 +426,7 @@ function buildArmRail(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" 
  * 靠背板：素獨板 S 形，下接後大邊、上接椅圈後段。
  *   face-rounded + bendMm + bendAxis:"z"。
  *   visible 慣例：length(X)=185 板寬、thickness(Y)=splatH 板高、width(Z)=40 板厚。
- *   （計畫原文 width/thickness 互換，依 ⚠️ 警告 1 修正）
+ *   （注意：計畫圖原文 width/thickness 標注相反，此處已依 geometry.ts:6 慣例—length→X, thickness→Y, width→Z—修正）
  */
 function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight" | "ringHeight" | "sectionScale">): Part[] {
   const { material, seatWidth, seatDepth, seatHeight, ringHeight, sectionScale } = args;
@@ -458,7 +458,7 @@ function buildSCurveMembers(args: Pick<CircleChairBuildArgs, "material" | "seatW
 
   // 靠背板：素獨板 S 形，下接後大邊、上接椅圈後段
   // visible 慣例：length(X)=板寬 185、thickness(Y)=板高 splatH、width(Z)=板厚 40
-  // （計畫原文 width/thickness 互換，依 ⚠️ 警告 1 修正）
+  // （注意：計畫圖原文 width/thickness 標注相反，此處已依 geometry.ts:6 慣例—length→X, thickness→Y, width→Z—修正）
   //
   // 連接邏輯（origin.z）：
   //   後大邊（seat-rail-back）SEAT_BACK_Z = seatDepth/2 - RAIL_T_SEAT/2 → Z 中心 ≈ 229mm（seatFrameAnchors.seatBackZ）

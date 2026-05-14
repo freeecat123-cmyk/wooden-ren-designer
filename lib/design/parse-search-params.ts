@@ -58,9 +58,12 @@ export function parseDesignSearchParams(
 
   const joineryRaw = spStr(sp, "joineryMode");
   const joineryMode =
-    joineryRaw === "true" ||
-    joineryRaw === "1" ||
-    spStr(sp, "beginnerMode") === "false";
+    joineryRaw === "false" || joineryRaw === "0"
+      ? false
+      : joineryRaw === "true" ||
+        joineryRaw === "1" ||
+        spStr(sp, "beginnerMode") === "false" ||
+        (entry.defaultJoineryMode ?? false);
 
   const options: Record<string, string | number | boolean> = {};
   for (const spec of entry.optionSchema ?? []) {
