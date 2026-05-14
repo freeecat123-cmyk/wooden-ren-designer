@@ -194,19 +194,22 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     }
 
     if (topDecor === "stepped") {
-      // 下層 60mm 寬版，上層 35mm 窄版內縮 15mm
-      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", height: bandH, thick: trimT, yOffset: 0 });
-      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層", height: 35, thick: trimT, xInset: 15, zInset: 15, yOffset: bandH });
+      // 古典 cornice：下層窄、上層 cap 寬外伸（cap 蓋住下層、向外多伸 15mm）
+      // 下層：50mm 高，xInset=15、zInset=15（窄）→ 從櫃邊內縮 7mm
+      pushBand({ id: "top-decor-lower", nameZh: "頂部飾條 下層", height: 50, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      // 上層：30mm 高，無內縮（寬，外伸跟櫃同 proj=8）→ 比下層往外 15mm 突出
+      pushBand({ id: "top-decor-upper", nameZh: "頂部飾條 上層 cap", height: 30, thick: trimT, yOffset: 50 });
     }
 
     if (topDecor === "dentil") {
-      // 主飾條 60mm
-      pushBand({ id: "top-decor", nameZh: "頂部飾條", height: bandH, thick: trimT, yOffset: 0 });
-      // 齒：每齒 22mm 寬 × 18mm 高 × 14mm 厚，齒距 22mm（齒寬=齒距 1:1 = 古典 dentil 比例）
-      const toothW = 22, toothH = 18, toothT = 14, gap = 22;
+      // 古典 dentil cornice：底座（下）→ 齒列（中）→ 上層 cap（最上）
+      // 底座：35mm 窄板，xInset/zInset 15 → 比櫃邊內縮 7mm
+      pushBand({ id: "top-decor-base", nameZh: "齒飾 底座", height: 35, thick: trimT, xInset: 15, zInset: 15, yOffset: 0 });
+      // 齒列：每齒 22 × 25 × 14，齒寬=齒距 1:1 古典比例
+      const toothW = 22, toothH = 25, toothT = 14, gap = 22;
       const pitch = toothW + gap;
       const frontZ = -W / 2 - proj + toothT / 2;
-      const yToothBase = yTop + bandH; // 站在主飾條上方
+      const yToothBase = yTop + 35; // 站在底座上方
       // 前排：盡量填滿 L+2*proj
       const usableL = L + 2 * proj - 2 * toothW;
       const nFront = Math.max(2, Math.floor(usableL / pitch) + 1);
@@ -240,6 +243,8 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           });
         }
       }
+      // 上層 cap：壓在齒列頂上，無內縮（寬出，蓋住整圈齒）
+      pushBand({ id: "top-decor-cap", nameZh: "齒飾 上層 cap", height: 18, thick: trimT, yOffset: 35 + toothH });
     }
 
     if (topDecor === "balustrade") {
