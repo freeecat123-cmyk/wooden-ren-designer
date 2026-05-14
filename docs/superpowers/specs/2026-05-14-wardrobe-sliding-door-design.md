@@ -82,12 +82,11 @@ Z 軸慣例（−width/2 = 櫃前緣，往前 = 更負）：
 | 情況 | 行為 |
 |---|---|
 | zone 類型 = 門板 | 跳過鉸鏈門扇渲染：`renderDoorZone(...)` 那幾個 call 包進 `if (!slidingDoorMode)`。門內收納照舊——子欄分隔板 / 門內層板 / 門內抽屜 / 吊衣桿全部不變 |
-| zone 類型 = 抽屜 | drawerMount 強制 inset。作法：case-furniture.ts 頂部 `const drawerMount = slidingDoorMode ? "inset" : (opts.drawerMount ?? "overlay-6")`，一行讓所有抽屜路徑吃到 |
+| zone 類型 = 抽屜 | drawerMount 強制 inset；**把手強制 none**。作法：case-furniture.ts 頂部 `const drawerMount = slidingDoorMode ? "inset" : (opts.drawerMount ?? "overlay-6")`；本地 renderDrawerZone wrapper 的 pullStyle 改 `cfg.pullStyle ?? (opts.slidingDoorMode ? "none" : pullStyle)` |
 | zone 類型 = 層板 / 空區 | 不變 |
 | 門內抽屜 | 已經是 inset + 無把手（先前 commit `dc9a8c0` / `8f2645c`），不受影響 |
 
-**zone 抽屜把手**：保留（使用者只說「入柱」、沒說無把手；門內抽屜才是
-明確要求無把手的）。若之後使用者要 zone 抽屜也無把手再加。
+**zone 抽屜把手**：滑門模式下強制無把手。原本 spec 寫「保留」是當時標註的待確認假設；Task 5 手動 audit 發現入柱抽屜的凸出把手會穿進後軌滑門，且「抽屜藏在門後不需要把手」正是使用者自己對門內抽屜講過的原則——同理套用到 zone 抽屜。controller 於 2026-05-14 執行時核可此 deviation。
 
 ## §4 3D 與三視圖
 
