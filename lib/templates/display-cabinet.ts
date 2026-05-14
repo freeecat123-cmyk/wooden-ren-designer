@@ -154,26 +154,26 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     const trimT = 18;
     const bandH = 60;
 
+    // 直接以「世界軸尺寸」設 visible：length→X、thickness→Y(垂直)、width→Z，
+    // 不用旋轉。避免雙軸 rotation 在 ZYX Euler 下跟 worldExtents 對不上的渲染 bug。
     const pushBand = (params: {
       id: string; nameZh: string; height: number; thick: number;
       xInset?: number; zInset?: number; yOffset: number;
     }) => {
       const { id, nameZh, height, thick, xInset = 0, zInset = 0, yOffset } = params;
+      // 前條：X 軸長、Y 軸高 (height)、Z 軸薄 (thick)
       const frontZ = -W / 2 - proj + thick / 2 + zInset;
-      // 前條
       design.parts.push({
         id: `${id}-front`,
         nameZh: `${nameZh} 前條`,
         material: mat, grainDirection: "length",
-        visible: { length: L + 2 * proj - 2 * xInset, width: height, thickness: thick },
+        visible: { length: L + 2 * proj - 2 * xInset, width: thick, thickness: height },
         origin: { x: 0, y: yTop + yOffset, z: frontZ },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [], mortises: [],
       });
-      // 側條（左右）：前端切齊前條的內側（後面），後端到櫃體後緣（後方靠牆無需飾條）
+      // 側條（左右）：前端切齊前條後面、後端到櫃體後緣（後方靠牆免裝）
+      // X 軸薄 (thick)、Y 軸高 (height)、Z 軸長 (sideLen)
       for (const side of [-1, 1]) {
-        // 前端 Z = 前條的後面 = -W/2 - proj + thick + zInset
-        // 後端 Z = +W/2
         const sideFrontZ = -W / 2 - proj + thick + zInset;
         const sideBackZ = W / 2;
         const sideLen = sideBackZ - sideFrontZ;
@@ -181,10 +181,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `${id}-${side > 0 ? "right" : "left"}`,
           nameZh: `${nameZh} ${side > 0 ? "右" : "左"}條`,
-          material: mat, grainDirection: "length",
-          visible: { length: sideLen, width: height, thickness: thick },
+          material: mat, grainDirection: "width",
+          visible: { length: thick, width: sideLen, thickness: height },
           origin: { x: side * (L / 2 + proj - thick / 2 - xInset), y: yTop + yOffset, z: sideCenterZ },
-          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
           tenons: [], mortises: [],
         });
       }
@@ -217,9 +216,8 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           id: `top-decor-tooth-front-${k + 1}`,
           nameZh: `頂部齒飾 前 ${k + 1}`,
           material: mat, grainDirection: "length",
-          visible: { length: toothW, width: toothH, thickness: toothT },
+          visible: { length: toothW, width: toothT, thickness: toothH },
           origin: { x: startX + k * pitch, y: yToothBase, z: frontZ },
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [], mortises: [],
         });
       }
@@ -235,10 +233,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `top-decor-tooth-${side > 0 ? "right" : "left"}-${k + 1}`,
             nameZh: `頂部齒飾 ${side > 0 ? "右" : "左"} ${k + 1}`,
-            material: mat, grainDirection: "length",
-            visible: { length: toothW, width: toothH, thickness: toothT },
+            material: mat, grainDirection: "width",
+            visible: { length: toothT, width: toothW, thickness: toothH },
             origin: { x: side * (L / 2 + proj - toothT / 2), y: yToothBase, z: startZ + k * pitch },
-            rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
             tenons: [], mortises: [],
           });
         }
@@ -261,10 +258,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         design.parts.push({
           id: `top-decor-post-front-${k + 1}`,
           nameZh: `頂部欄杆 前立柱 ${k + 1}`,
-          material: mat, grainDirection: "length",
-          visible: { length: postW, width: postH, thickness: postT },
+          material: mat, grainDirection: "thickness",
+          visible: { length: postW, width: postT, thickness: postH },
           origin: { x: startXp + k * pitchP, y: yPostBase, z: frontZpost },
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [], mortises: [],
         });
       }
@@ -280,10 +276,9 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           design.parts.push({
             id: `top-decor-post-${side > 0 ? "right" : "left"}-${k + 1}`,
             nameZh: `頂部欄杆 ${side > 0 ? "右" : "左"}立柱 ${k + 1}`,
-            material: mat, grainDirection: "length",
-            visible: { length: postW, width: postH, thickness: postT },
+            material: mat, grainDirection: "thickness",
+            visible: { length: postT, width: postW, thickness: postH },
             origin: { x: side * (L / 2 + proj - postT / 2), y: yPostBase, z: startZp + k * pitchP },
-            rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
             tenons: [], mortises: [],
           });
         }
