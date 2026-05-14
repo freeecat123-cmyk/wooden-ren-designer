@@ -46,6 +46,8 @@ export interface CaseFurnitureOpts {
   doorFrameRailWidth?: number;
   /** 門框木條厚（凸出櫃面深度），預設 22mm */
   doorFrameThickness?: number;
+  /** 玻璃門木格分隔（mullion）樣式；只在 doorType==="glass" 生效 */
+  doorMullion?: "none" | "cross" | "vertical-3" | "colonial" | "art-deco";
   /** Drawer face mount style — 同三模式但獨立於門板控制：
    *  - "overlay-6" 全蓋：面板蓋滿框 + 抽屜間中柱
    *  - "overlay-3" 半蓋：面板蓋住框邊 9mm
@@ -958,6 +960,136 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           mortises: [],
           visual: "glass",
         });
+
+        // —— 玻璃門木格分隔（mullion） ——
+        // 木條面寬 22mm（沿垂直/水平方向），厚 frameT/2（沿 Z 軸，比門框淺一半），
+        // Z 位置略 proud 1mm 避免跟玻璃 z-fight。木格只在內開窗範圍內（innerOpenW×innerOpenH）。
+        const mullionMode = opts.doorMullion ?? "none";
+        if (mullionMode !== "none" && innerOpenW > 30 && innerOpenH > 30) {
+          const muleW = 22;          // 木條面寬
+          const muleT = Math.max(6, Math.round(frameT / 2)); // Z 軸厚（淺於門框）
+          const muleZ = zFront + 1;  // proud 1mm
+          const winCx = xCenter;
+          const winYBase = doorYBase + railW; // 內框底
+          const winYTop = winYBase + innerOpenH;
+          const winYMid = winYBase + innerOpenH / 2;
+          const mullionMat = material;
+
+          // 水平木格：跟 rail 同樣 X 軸旋轉，length 沿 X，width 沿垂直（=muleW），thickness 沿 Z
+          // origin.y 取「條的底邊 y」（rotation 後 width 軸往 +Y 延伸）
+          const pushHoriz = (idx: number, centerY: number) => {
+            parts.push({
+              id: `${idPrefix}-${i + 1}-mullion-${mullionMode}-${idx}`,
+              nameZh: `${labelPrefix}${i + 1} 木格 (${mullionMode}) ${idx}`,
+              material: mullionMat,
+              grainDirection: "length",
+              visible: { length: innerOpenW, width: muleW, thickness: muleT },
+              origin: { x: winCx, y: centerY - muleW / 2, z: muleZ },
+              rotation: { x: Math.PI / 2, y: 0, z: 0 },
+              tenons: [],
+              mortises: [],
+            });
+          };
+          // 垂直木格：跟 stile 同樣 X 軸旋轉，length 沿 X（=muleW），width 沿垂直（=innerOpenH），thickness 沿 Z
+          // origin.y = winYBase（width 軸往 +Y 延伸到 winYTop）
+          const pushVert = (idx: number, centerX: number) => {
+            parts.push({
+              id: `${idPrefix}-${i + 1}-mullion-${mullionMode}-${idx}`,
+              nameZh: `${labelPrefix}${i + 1} 木格 (${mullionMode}) ${idx}`,
+              material: mullionMat,
+              grainDirection: "length",
+              visible: { length: muleW, width: innerOpenH, thickness: muleT },
+              origin: { x: centerX, y: winYBase, z: muleZ },
+              rotation: { x: Math.PI / 2, y: 0, z: 0 },
+              tenons: [],
+              mortises: [],
+            });
+          };
+
+          if (mullionMode === "cross") {
+            // 1 條垂直（中央）+ 1 條水平（中央）→ 4 格
+            pushVert(1, winCx);
+            pushHoriz(2, winYMid);
+          } else if (mullionMode === "vertical-3") {
+            // 2 條垂直，把 X 分 3 等份（X = 1/3、2/3）
+            pushVert(1, winCx - innerOpenW / 6);
+            pushVert(2, winCx + innerOpenW / 6);
+          } else if (mullionMode === "colonial") {
+            // 1 條垂直 + 2 條水平（2 欄 × 3 列 = 6 格）
+            pushVert(1, winCx);
+            pushHoriz(2, winYBase + innerOpenH / 3);
+            pushHoriz(3, winYBase + (innerOpenH * 2) / 3);
+          } else if (mullionMode === "art-deco") {
+            // 「太陽輻射」造型：中央一個正方塊 + 4 個正交方向短木條伸到內框邊緣。
+            // 全用單軸 X 軸旋轉（同 rail/stile），避免雙軸 ZYX Euler 撞 worldExtents bug。
+            // 中央方塊：muleW × muleW，置於視窗中心
+            parts.push({
+              id: `${idPrefix}-${i + 1}-mullion-art-deco-center`,
+              nameZh: `${labelPrefix}${i + 1} 木格 (art-deco) 中心`,
+              material: mullionMat,
+              grainDirection: "length",
+              visible: { length: muleW, width: muleW, thickness: muleT },
+              origin: { x: winCx, y: winYMid - muleW / 2, z: muleZ },
+              rotation: { x: Math.PI / 2, y: 0, z: 0 },
+              tenons: [],
+              mortises: [],
+            });
+            // 垂直方向：上、下短木條（從中央方塊邊到內框上/下緣）
+            const halfV = innerOpenH / 2 - muleW / 2;
+            if (halfV > 5) {
+              // 下射：origin.y=winYBase，往上長 halfV
+              parts.push({
+                id: `${idPrefix}-${i + 1}-mullion-art-deco-down`,
+                nameZh: `${labelPrefix}${i + 1} 木格 (art-deco) 下射`,
+                material: mullionMat,
+                grainDirection: "length",
+                visible: { length: muleW, width: halfV, thickness: muleT },
+                origin: { x: winCx, y: winYBase, z: muleZ },
+                rotation: { x: Math.PI / 2, y: 0, z: 0 },
+                tenons: [],
+                mortises: [],
+              });
+              // 上射：origin.y=winYMid+muleW/2，往上長 halfV
+              parts.push({
+                id: `${idPrefix}-${i + 1}-mullion-art-deco-up`,
+                nameZh: `${labelPrefix}${i + 1} 木格 (art-deco) 上射`,
+                material: mullionMat,
+                grainDirection: "length",
+                visible: { length: muleW, width: halfV, thickness: muleT },
+                origin: { x: winCx, y: winYMid + muleW / 2, z: muleZ },
+                rotation: { x: Math.PI / 2, y: 0, z: 0 },
+                tenons: [],
+                mortises: [],
+              });
+            }
+            // 水平方向：左、右短木條
+            const halfH = innerOpenW / 2 - muleW / 2;
+            if (halfH > 5) {
+              parts.push({
+                id: `${idPrefix}-${i + 1}-mullion-art-deco-left`,
+                nameZh: `${labelPrefix}${i + 1} 木格 (art-deco) 左射`,
+                material: mullionMat,
+                grainDirection: "length",
+                visible: { length: halfH, width: muleW, thickness: muleT },
+                origin: { x: winCx - muleW / 2 - halfH / 2, y: winYMid - muleW / 2, z: muleZ },
+                rotation: { x: Math.PI / 2, y: 0, z: 0 },
+                tenons: [],
+                mortises: [],
+              });
+              parts.push({
+                id: `${idPrefix}-${i + 1}-mullion-art-deco-right`,
+                nameZh: `${labelPrefix}${i + 1} 木格 (art-deco) 右射`,
+                material: mullionMat,
+                grainDirection: "length",
+                visible: { length: halfH, width: muleW, thickness: muleT },
+                origin: { x: winCx + muleW / 2 + halfH / 2, y: winYMid - muleW / 2, z: muleZ },
+                rotation: { x: Math.PI / 2, y: 0, z: 0 },
+                tenons: [],
+                mortises: [],
+              });
+            }
+          }
+        }
       }
       // 框門 / 玻璃門把手：鎖在門板正面（ring-chinese / drop-bail 中式或古典款專用）
       // 雙開門：把手鎖在「內側豎梃中央」（兩扇相對的那條邊框，把手在中縫處）。

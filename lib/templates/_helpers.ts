@@ -608,6 +608,28 @@ export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; 
 }
 
 /**
+ * 鎖定總高底層計算：輸入 totalHeight + userInnerH + panelT，回傳是否超量、
+ * 夾住後的 effectiveLegHeight 跟 maxInnerH。各 template 自行決定怎麼把 innerH
+ * 分配到 zones（標準三段走 resolveLockedTotalHeight；鞋櫃 upper+main 兩段自行算）。
+ *
+ * MIN_LEG = 30：腳高最低 30mm，低於就視為超量 → effectiveLegHeight 夾 30，
+ *               maxInnerH 縮成 max(160, total - 30 - 2×panelT)。
+ */
+export function computeLockedLegHeight(
+  totalHeight: number,
+  userInnerH: number,
+  panelThickness: number,
+): { exceeded: boolean; effectiveLegHeight: number; maxInnerH: number; computedLegHeight: number } {
+  const MIN_LEG = 30;
+  const computedLegHeight = totalHeight - userInnerH - 2 * panelThickness;
+  if (computedLegHeight < MIN_LEG) {
+    const maxInnerH = Math.max(160, totalHeight - MIN_LEG - 2 * panelThickness);
+    return { exceeded: true, effectiveLegHeight: MIN_LEG, maxInnerH, computedLegHeight };
+  }
+  return { exceeded: false, effectiveLegHeight: computedLegHeight, maxInnerH: userInnerH, computedLegHeight };
+}
+
+/**
  * 鎖定總高的 innerH / legHeight 計算。
  * 解鎖：innerH = input.height - legHeight - 2 × panelT，legHeight 直接用使用者設的。
  * 鎖定：innerH = topH + midH + botH，legHeight = input.height - innerH - 2 × panelT（夾 ≥30）。
@@ -636,13 +658,11 @@ export function resolveLockedTotalHeight(
   const botH = hasBotH ? getOption<number>(input, opt(options, "bottomHeight")) : 0;
   const midH = skipMid ? 0 : (getOption<number>(input, opt(options, "midHeight")) ?? 0);
   const userInnerH = topH + midH + botH;
-  const computedLegH = input.height - userInnerH - 2 * panelThickness;
+  const { exceeded, effectiveLegHeight, maxInnerH } = computeLockedLegHeight(
+    input.height, userInnerH, panelThickness,
+  );
   const warnings: string[] = [];
-  const MIN_LEG = 30;
-  if (computedLegH < MIN_LEG) {
-    // 加總超過容量 → 把腳壓到最低 30mm，innerH 縮到實際容量上限
-    // 讓 resolveZones 內建的按比例壓縮機制把 topH/botH 縮回適配範圍
-    const maxInnerH = Math.max(160, input.height - MIN_LEG - 2 * panelThickness);
+  if (exceeded) {
     const sumLabel = skipMid
       ? `兩層 (${topH}+${botH}=${userInnerH}mm)`
       : `三層 (${topH}+${midH}+${botH}=${userInnerH}mm)`;
@@ -650,9 +670,9 @@ export function resolveLockedTotalHeight(
     warnings.push(
       `鎖定總高：${sumLabel} + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高壓到最低 30mm，${scaleLabel} ${maxInnerH}mm。請降低層高或加大總高。`,
     );
-    return { innerH: maxInnerH, effectiveLegHeight: MIN_LEG, warnings };
+    return { innerH: maxInnerH, effectiveLegHeight, warnings };
   }
-  return { innerH: userInnerH, effectiveLegHeight: computedLegH, warnings };
+  return { innerH: userInnerH, effectiveLegHeight, warnings };
 }
 
 /** 冠飾線（crown molding）—— 頂部裝飾線條，傳統櫃常見

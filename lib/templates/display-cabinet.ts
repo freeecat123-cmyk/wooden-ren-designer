@@ -142,6 +142,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     doorMount,
     doorFrameRailWidth: getOption<number>(input, opt(o, "doorFrameRailWidth")),
     doorFrameThickness: getOption<number>(input, opt(o, "doorFrameThickness")),
+    doorMullion: doorMullion as "none" | "cross" | "vertical-3" | "colonial" | "art-deco",
     drawerMount,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
