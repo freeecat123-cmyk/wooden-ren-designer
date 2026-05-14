@@ -51,7 +51,7 @@ export const chestOfDrawersOptions: OptionSpec[] = [
   }),
   // ascending 模式下顯示「總抽屜數」單一輸入
   { group: "zone-top", type: "number", key: "ascendingDrawerCount", label: "總抽屜數", defaultValue: 6, min: 3, max: 9, step: 1, help: "ascending 模式下整櫃只放抽屜，這裡設總數；每抽高度照 1.4 → 0.8 線性遞減自動分配", dependsOn: { key: "drawerHeightStyle", equals: "ascending" } },
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { key: "lockTotalHeight", equals: false } },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "設 0 則貼地，>0 則加 4 隻沙發腳；70–80 是最常見的家具底座高。鎖定總高時此欄位自動算、設定值會被忽略", dependsOn: { any: [{ key: "lockTotalHeight", equals: false }, { key: "drawerHeightStyle", equals: "ascending" }] } },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -182,10 +182,10 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   // 注意 inset+無滑軌 模式下沒有獨立 -face，由 -front 兼任 → fallback 找 -front
   if (drawerFaceStyle === "raised-panel") {
     // 找 drawer face：preferred 是 -face；inset+無滑軌時由 -front 兼任。
-    // case-furniture 的 drawer idPrefix = "z{i+1}"（zone index），所以 ID 形如 "z1-1-front"
-    let faceParts = design.parts.filter((p) => p.id.endsWith("-face"));
+    // case-furniture 的 drawer idPrefix = "z{i+1}-drawer"，所以 ID 形如 "z1-drawer-1-face" 或 "z1-drawer-1-front"
+    let faceParts = design.parts.filter((p) => /^z\d+-drawer-\d+-face$/.test(p.id));
     if (faceParts.length === 0) {
-      faceParts = design.parts.filter((p) => /^z\d+-\d+-front$/.test(p.id));
+      faceParts = design.parts.filter((p) => /^z\d+-drawer-\d+-front$/.test(p.id));
     }
     // 邊框寬度：X / Y 不同，避免在矮抽屜上 Y 邊框吃掉整個面板
     //   padX = 35mm（橫向比較有空間）
