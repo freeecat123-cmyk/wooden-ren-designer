@@ -29,7 +29,6 @@ import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
 import { ErgoHints } from "@/components/ErgoHints";
 import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
-import { GrainArrowToggle } from "@/components/GrainArrowToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
@@ -215,8 +214,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     sp.xray === "face" || sp.xray === "true" || sp.xray === "1" ? "face" :
     "off";
   const wireframeMode = sp.wf === "1" || sp.wf === "true";
-  // 木紋走向箭頭疊層：?grain=1 → 3D 每個木製零件疊雙向箭頭
-  const showGrainArrows = sp.grain === "1" || sp.grain === "true";
 
   // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
   // 視覺像榫頭從榫眼抽出。常用 20–40。
@@ -376,8 +373,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <GrainArrowToggle />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} showGrainArrows={showGrainArrows} noSync />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} noSync />
           </div>
         </div>
 
@@ -442,14 +438,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
-                <GrainArrowToggle />
-                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} showGrainArrows={showGrainArrows} />
+                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
               </div>
             </div>
           </div>
           {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} showGrainArrows={showGrainArrows} compactMode />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} compactMode />
           </Material3dPip>
         </div>
       </details>
@@ -532,7 +527,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         lineShareText={lineShareText}
         formAction={designUrl}
         wireframeMode={wireframeMode}
-        showGrainArrows={showGrainArrows}
         joineryMode={joineryMode}
         designerMode={designerMode}
         canUseDesignerMode={canUseDesignerMode}

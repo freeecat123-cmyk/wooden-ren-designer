@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -14,7 +14,6 @@ import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
 import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
-import { GrainArrow } from "@/components/GrainArrow";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
@@ -77,15 +76,6 @@ function tintHex(baseHex: string, tintHex: string, amount: number): string {
 const DRAWER_TINT = "#c89060";
 const DOOR_TINT = "#9b8068";
 const TINT_AMOUNT = 0.18;
-
-/** part.visual 值不是木頭的 → 不畫木紋走向箭頭（玻璃/銅/布/金屬/鏡面）。 */
-const NON_WOOD_VISUALS = new Set<string>([
-  "glass",
-  "brass-antique",
-  "fabric",
-  "metal",
-  "mirror",
-]);
 
 /**
  * 配對二元淺/深著色：
@@ -1858,7 +1848,6 @@ export function PerspectiveView({
   onPartSelect,
   compactMode = false,
   wireframeMode = false,
-  showGrainArrows = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1883,8 +1872,6 @@ export function PerspectiveView({
   compactMode?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
   wireframeMode?: boolean;
-  /** 木紋走向箭頭疊層：?grain=1 時每個木製零件疊一支雙向箭頭 */
-  showGrainArrows?: boolean;
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
@@ -2417,54 +2404,37 @@ export function PerspectiveView({
                   part.shape?.kind === "splayed-round-tapered";
                 const useRoundTenon = isRoundLegPart && t.position === "top";
                 return (
-                  <Fragment key={`${part.id}-tenon-${ti}`}>
-                    <mesh
-                      position={[wx, wy, wz]}
-                      rotation={new Euler(rx, ry, rz, "ZYX")}
-                      castShadow
-                    >
-                      {(() => {
-                        // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
-                        // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
-                        const SHRINK_MM = 0.5;
-                        const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
-                        const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
-                        const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
-                        return useRoundTenon ? (
-                          <cylinderGeometry args={[
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                            sy,
-                            24,
-                          ]} />
-                        ) : (
-                          <boxGeometry args={[sx, sy, sz]} />
-                        );
-                      })()}
-                      <meshStandardMaterial
-                        color="#c0392b"
-                        roughness={0.8}
-                        transparent={selectedPartId !== null && selectedPartId !== part.id}
-                        opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
-                      />
-                    </mesh>
-                    {showGrainArrows && !useRoundTenon && (
-                      // 榫頭木紋走向：沿榫頭長軸（§L P0-2）。
-                      // start/end → 長軸 X → "length"；left/right → 長軸 Z → "width"；
-                      // top/bottom → 長軸 Y（GrainArrow 方形件無 Y 模式）→ fallback "length"
-                      <GrainArrow
-                        position={[wx, wy, wz]}
-                        rotation={new Euler(rx, ry, rz, "ZYX")}
-                        size={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]}
-                        grainDirection={
-                          t.position === "left" || t.position === "right"
-                            ? "width"
-                            : "length"
-                        }
-                        shapeKind={undefined}
-                      />
-                    )}
-                  </Fragment>
+                  <mesh
+                    key={`${part.id}-tenon-${ti}`}
+                    position={[wx, wy, wz]}
+                    rotation={new Euler(rx, ry, rz, "ZYX")}
+                    castShadow
+                  >
+                    {(() => {
+                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
+                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
+                      const SHRINK_MM = 0.5;
+                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
+                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
+                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
+                      return useRoundTenon ? (
+                        <cylinderGeometry args={[
+                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                          sy,
+                          24,
+                        ]} />
+                      ) : (
+                        <boxGeometry args={[sx, sy, sz]} />
+                      );
+                    })()}
+                    <meshStandardMaterial
+                      color="#c0392b"
+                      roughness={0.8}
+                      transparent={selectedPartId !== null && selectedPartId !== part.id}
+                      opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
+                    />
+                  </mesh>
                 );
               })
             : null;
@@ -2545,24 +2515,6 @@ export function PerspectiveView({
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
               />
-              {showGrainArrows && !(part.visual && NON_WOOD_VISUALS.has(part.visual)) && (
-                <GrainArrow
-                  position={[px, py, pz]}
-                  rotation={new Euler(
-                    part.rotation?.x ?? 0,
-                    part.rotation?.y ?? 0,
-                    part.rotation?.z ?? 0,
-                    "ZYX",
-                  )}
-                  size={[
-                    part.visible.length * SCALE,
-                    part.visible.thickness * SCALE,
-                    part.visible.width * SCALE,
-                  ]}
-                  grainDirection={part.grainDirection}
-                  shapeKind={shape?.kind}
-                />
-              )}
               {tenonMeshes}
               {auditOverlay}
             </group>
