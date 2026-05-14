@@ -72,7 +72,8 @@ export const chestOfDrawersOptions: OptionSpec[] = [
     { value: "equal", label: "等高（現代款）" },
     { value: "ascending", label: "下大上小（傳統明清比例 1.4 : 1.2 : 1）" },
   ], help: "傳統斗櫃下層抽屜較深放衣物棉被、上層較淺放小件；現代款多等高" },
-  { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面 gallery 飾邊", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
+  { group: "structure", type: "checkbox", key: "withGalleryRail", label: "頂面圍欄", defaultValue: false, help: "頂板左/右/後加 25mm 高木條圍欄（前面不裝避免擋取物），擺放物品防掉落、視覺更精緻", wide: true },
+  { group: "structure", type: "number", key: "galleryInset", label: "圍欄內縮 (mm)", defaultValue: 0, min: 0, max: 80, step: 5, help: "圍欄從頂板邊緣向內縮的距離，0 = 切齊邊緣", dependsOn: { key: "withGalleryRail", equals: true } },
 ];
 
 export const chestOfDrawers: FurnitureTemplate = (input) => {
@@ -95,6 +96,7 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
   const drawerHeightStyle = getOption<string>(input, opt(o, "drawerHeightStyle"));
   const ascendingDrawerCount = getOption<number>(input, opt(o, "ascendingDrawerCount"));
   const withGalleryRail = getOption<boolean>(input, opt(o, "withGalleryRail"));
+  const galleryInset = getOption<number>(input, opt(o, "galleryInset"));
   // plinth / panel-side 本身就是底座 → 強制取消 toeKick 避免兩個底座疊
   const legShapeIsBase = legShape === "plinth" || legShape === "panel-side";
   const effectiveWithToeKick = legShapeIsBase ? false : withToeKick;
@@ -253,33 +255,37 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
     }
   }
 
-  // 頂面 gallery 飾邊：左右後三條（前面不裝，避免擋住擺放/取物視線）
+  // 頂面圍欄：左右後三條（前面不裝，避免擋住擺放/取物視線）
   if (withGalleryRail) {
     const railH = 25;
     const railT = 12;
-    // 案頂 Y = input.height（caseFurniture 把頂板上緣對齊到這），gallery 條從這往上 25mm
+    const inset = Math.max(0, galleryInset);
+    // 案頂 Y = input.height（caseFurniture 把頂板上緣對齊到這），圍欄從這往上 25mm
     const yTop = input.height;
-    // back（只生後條，前面省略）
+    // back：縮在兩條側條之間
+    const backLen = Math.max(50, input.length - 2 * inset - 2 * railT);
     design.parts.push({
       id: "gallery-back",
-      nameZh: "頂面 gallery 後條",
+      nameZh: "頂面圍欄 後條",
       material: input.material,
       grainDirection: "length",
-      visible: { length: input.length, width: railH, thickness: railT },
-      origin: { x: 0, y: yTop, z: input.width / 2 - railT / 2 },
+      visible: { length: backLen, width: railH, thickness: railT },
+      origin: { x: 0, y: yTop, z: input.width / 2 - railT / 2 - inset },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       tenons: [],
       mortises: [],
     });
-    // left/right
+    // left/right：前端切齊頂板前緣（前面開放），後端對齊後條外側面
+    const sideLen = Math.max(50, input.width - inset);
+    const sideCenterZ = -inset / 2;
     for (const side of [-1, 1]) {
       design.parts.push({
         id: `gallery-${side > 0 ? "right" : "left"}`,
-        nameZh: `頂面 gallery ${side > 0 ? "右" : "左"}條`,
+        nameZh: `頂面圍欄 ${side > 0 ? "右" : "左"}條`,
         material: input.material,
         grainDirection: "length",
-        visible: { length: input.width, width: railH, thickness: railT },
-        origin: { x: side * (input.length / 2 - railT / 2), y: yTop, z: 0 },
+        visible: { length: sideLen, width: railH, thickness: railT },
+        origin: { x: side * (input.length / 2 - railT / 2 - inset), y: yTop, z: sideCenterZ },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
@@ -346,6 +352,6 @@ function buildChestNotes(cfg: {
   if (bm) parts.push(bm);
   if (cfg.drawerFaceStyle === "raised-panel") parts.push("抽屜面板採凸版（中央凸 6mm 雕花板）");
   if (cfg.drawerHeightStyle === "ascending") parts.push("抽屜高度下大上小（傳統明清比例 1.4 : 1.2 : 1）");
-  if (cfg.withGalleryRail) parts.push("頂面加 25mm 高 gallery 圍欄");
+  if (cfg.withGalleryRail) parts.push("頂面加 25mm 高圍欄");
   return parts.filter(Boolean).join("；") + "。";
 }
