@@ -244,28 +244,42 @@ export const chestOfDrawers: FurnitureTemplate = (input) => {
 
   // 把手位置：dual = 左右各 1 顆。複製現有 pull part，左右各偏移 25% face 寬。
   // 小面板（< 400mm）保持中央 1 顆（兩顆會擠在一起）。
+  // drop-bail / ring-chinese 等多 part 把手要整組搬（plate+bail / plate+ring 共用 face）
+  // → 用 face-id 分組，整組左右偏移，避免 plate 分裂但 bail/ring 留中央。
   if (pullPosition === "dual") {
-    const pulls = design.parts.filter((p) => p.id.includes("-pull") && !p.id.includes("pull-bail") && !p.id.includes("pull-ring"));
-    for (const pull of pulls) {
-      // 推回對應的 face 找 X 寬度
-      const faceId = pull.id.replace(/-pull(-plate)?$/, "").replace(/-face$/, "-face");
-      const face = design.parts.find((p) => p.id === faceId) || design.parts.find((p) => p.id === faceId.replace("-face", "-front"));
+    const pullParts = design.parts.filter((p) => /-face-pull(-plate|-bail|-ring)?$/.test(p.id));
+    // 依 face id 分組
+    const groups = new Map<string, typeof pullParts>();
+    for (const p of pullParts) {
+      const faceId = p.id.replace(/-pull(-plate|-bail|-ring)?$/, "");
+      const arr = groups.get(faceId) ?? [];
+      arr.push(p);
+      groups.set(faceId, arr);
+    }
+    for (const [faceId, pulls] of groups) {
+      const face = design.parts.find((p) => p.id === faceId)
+        || design.parts.find((p) => p.id === faceId.replace(/-face$/, "-front"));
       if (!face) continue;
       const fW = face.visible.length;
       if (fW < 400) continue; // 太窄不分裂
-      // 把目前 pull 偏向 -X (左)
-      const xL = pull.origin.x - fW * 0.25;
-      const xR = pull.origin.x + fW * 0.25;
-      pull.origin = { ...pull.origin, x: xL };
-      pull.id = pull.id + "-L";
-      pull.nameZh = (pull.nameZh ?? "把手") + "（左）";
-      // 複製右側
-      design.parts.push({
-        ...pull,
-        id: pull.id.replace(/-L$/, "-R"),
-        nameZh: (pull.nameZh ?? "").replace("（左）", "（右）"),
-        origin: { ...pull.origin, x: xR },
-      });
+      const dx = fW * 0.25;
+      // 整組左移 dx；右側複製整組 +dx
+      const rightCopies: typeof pulls = [];
+      for (const pull of pulls) {
+        const origX = pull.origin.x;
+        const right: (typeof pull) = {
+          ...pull,
+          id: pull.id + "-R",
+          nameZh: (pull.nameZh ?? "把手") + "（右）",
+          origin: { ...pull.origin, x: origX + dx },
+        };
+        rightCopies.push(right);
+        // 修原 part 變左側
+        pull.origin = { ...pull.origin, x: origX - dx };
+        pull.id = pull.id + "-L";
+        pull.nameZh = (pull.nameZh ?? "把手") + "（左）";
+      }
+      design.parts.push(...rightCopies);
     }
   }
 
