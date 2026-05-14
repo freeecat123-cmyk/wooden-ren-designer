@@ -285,7 +285,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
   const insetReducedDepth =
     doorMount === "inset" ? insetDoorThick + insetClearance : 0;
   // 抽屜面板安裝方式（與門板獨立設定）
-  const drawerMount = opts.drawerMount ?? "overlay-6";
+  const drawerMount = opts.slidingDoorMode ? "inset" : (opts.drawerMount ?? "overlay-6");
 
   const parts: Part[] = [];
 
