@@ -30,6 +30,88 @@ export const circleChairOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
 ];
 
+function buildSeatFrame(args: {
+  material: import("@/lib/types").MaterialId;
+  seatWidth: number;   // input.length
+  seatDepth: number;   // input.width
+  seatHeight: number;
+  seatChamferMm: number;
+  seatEdgeStyle: string;
+}): Part[] {
+  const { material, seatWidth, seatDepth, seatHeight, seatChamferMm, seatEdgeStyle } = args;
+  // RAIL_W = 大邊/抹頭的可見高度（Y 方向）；RAIL_T = 厚度（Z/X 方向板料厚）
+  const RAIL_W = 91, RAIL_T = 39, PANEL_T = 15, BATTEN = 35;
+  // 大邊底面 Y：座框頂 = seatHeight，框高 = RAIL_W，所以底面 y = seatHeight - RAIL_W
+  const railBottomY = seatHeight - RAIL_W;
+  const parts: Part[] = [];
+
+  // 前後大邊（沿 X，無旋轉）
+  // visible: length(X) = 全寬 seatWidth；thickness(Y) = RAIL_W 高；width(Z) = RAIL_T 板料厚
+  // origin.z：以座框外緣對齊，Z 中心 = ±(seatDepth/2 - RAIL_T/2)
+  for (const sz of [-1, 1] as const) {
+    parts.push({
+      id: sz < 0 ? "seat-rail-front" : "seat-rail-back",
+      nameZh: sz < 0 ? "前大邊" : "後大邊",
+      material,
+      grainDirection: "length",
+      visible: { length: seatWidth, thickness: RAIL_W, width: RAIL_T },
+      origin: { x: 0, y: railBottomY, z: sz * (seatDepth / 2 - RAIL_T / 2) },
+      shape: { kind: "box" },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 左右抹頭（沿 Z，繞 Y 轉 90°）
+  // 抹頭插入大邊之間，淨長 = seatDepth - 2*RAIL_T
+  // visible: length(→Z after rot) = 淨跨距；thickness(Y) = RAIL_W；width(→X after rot) = RAIL_T
+  // origin.x：以座框外緣對齊，X 中心 = ±(seatWidth/2 - RAIL_T/2)
+  for (const sx of [-1, 1] as const) {
+    parts.push({
+      id: sx < 0 ? "seat-rail-left" : "seat-rail-right",
+      nameZh: sx < 0 ? "左抹頭" : "右抹頭",
+      material,
+      grainDirection: "length",
+      visible: { length: seatDepth - 2 * RAIL_T, thickness: RAIL_W, width: RAIL_T },
+      origin: { x: sx * (seatWidth / 2 - RAIL_T / 2), y: railBottomY, z: 0 },
+      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      shape: { kind: "box" },
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 座板（落在框內、頂面比座框頂低 6mm 模擬裝板槽）
+  // visible: length(X) 及 width(Z) 縮進框內 4mm；thickness(Y) = PANEL_T
+  parts.push({
+    id: "seat-panel",
+    nameZh: "座板",
+    material,
+    grainDirection: "length",
+    visible: { length: seatWidth - 2 * RAIL_T - 8, width: seatDepth - 2 * RAIL_T - 8, thickness: PANEL_T },
+    origin: { x: 0, y: seatHeight - 6 - PANEL_T, z: 0 },
+    panelPieces: 2,
+    shape: seatChamferMm > 0
+      ? { kind: "chamfered-top", chamferMm: seatChamferMm, style: seatEdgeStyle === "rounded" ? "rounded" : "chamfered" }
+      : { kind: "box" },
+    tenons: [],
+    mortises: [],
+  });
+  // 穿帶（座板下方、沿 Z 居中）
+  // 繞 Y 轉 90°：visible.length(→Z) = 抹頭淨跨距；thickness(Y) = BATTEN；width(→X) = BATTEN
+  parts.push({
+    id: "seat-thru-batten",
+    nameZh: "穿帶",
+    material,
+    grainDirection: "length",
+    visible: { length: seatDepth - 2 * RAIL_T, thickness: BATTEN, width: BATTEN },
+    origin: { x: 0, y: seatHeight - 6 - PANEL_T - BATTEN, z: 0 },
+    rotation: { x: 0, y: Math.PI / 2, z: 0 },
+    shape: { kind: "box" },
+    tenons: [],
+    mortises: [],
+  });
+  return parts;
+}
+
 /**
  * 明式圈椅（circle-chair）— Phase 1 直線化框架版
  * input.length = 座寬、input.width = 座深、input.height = 椅圈總高
@@ -42,18 +124,12 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   const parts: Part[] = [];
 
-  // STUB：先放一塊座板佔位，後續 task 換成完整零件
-  parts.push({
-    id: "seat-panel",
-    nameZh: "座板",
-    material,
-    grainDirection: "length",
-    visible: { length: 446, width: 332, thickness: 15 },
-    origin: { x: 0, y: seatHeight - 15, z: 0 },
-    shape: { kind: "box" },
-    tenons: [],
-    mortises: [],
-  });
+  const seatChamferMm = (() => { const v = getOption<number>(input, opt(o, "seatEdge")); return v > 0 ? v : 0; })();
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  parts.push(...buildSeatFrame({
+    material, seatWidth: input.length, seatDepth: input.width, seatHeight,
+    seatChamferMm, seatEdgeStyle,
+  }));
 
   const design: FurnitureDesign = {
     id: `circle-chair-${input.length}x${input.height}`,
