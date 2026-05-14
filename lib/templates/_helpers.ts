@@ -662,10 +662,9 @@ export function pullStyleOption(group: OptionGroup = "drawer"): OptionSpec {
       { value: "bar", label: "▬ 長條把手（bar handle，現代簡約）" },
       { value: "ring-chinese", label: "◎ 中式古銅吊環（ring pull，明清櫃門 / 抽屜）" },
       { value: "drop-bail", label: "⌒ 古典吊環（Hepplewhite bail pull，18 世紀英美款）" },
-      { value: "finger-pull", label: "◡ 嵌入指槽（半月弧形挖洞，北歐 / 日式極簡）" },
       { value: "none", label: "✕ 不裝（純展示用）" },
     ],
-    help: "把手樣式影響五金費用 + 工序，wood-knob 跟 finger-pull 純木無金屬",
+    help: "把手樣式影響五金費用 + 工序，wood-knob 純木無金屬",
     // 任一 zone 類型是抽屜或門板時才顯示
     // upperType: shoe-cabinet 上層；leftType/rightType/centerType: 媒體櫃 h-2col/h-3col 欄
     // layoutMode="v-2layer": 媒體櫃縱向 2 層（下層固定是抽屜）
@@ -706,7 +705,6 @@ export function doorPullStyleOption(group: OptionGroup = "door"): OptionSpec {
       { value: "bar", label: "▮ 長條把手（門板自動垂直）" },
       { value: "ring-chinese", label: "◎ 中式古銅吊環" },
       { value: "drop-bail", label: "⌒ 古典吊環（Hepplewhite）" },
-      { value: "finger-pull", label: "◡ 嵌入指槽" },
       { value: "none", label: "✕ 不裝" },
     ],
     help: "門板把手樣式跟抽屜分開選；長條把手用在門板會自動轉成垂直方向",
