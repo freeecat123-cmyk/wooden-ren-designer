@@ -307,7 +307,10 @@ function buildArmRail(args: {
   //   後段沿 X 在最後緣；左右桿沿 Z 在兩側；中桿 45° 斜接兩者。
   //   45° 斜接需 |ΔX| = |ΔZ| = CORNER_D，故 backHalf 與 sideRearZ 由 CORNER_D 回推，
   //   保證後段端點 (backHalf, backZ) 與左右桿後端 (sideX, sideRearZ) 用一條 45° 中桿接上。
-  const sideX = seatWidth / 2 - RAIL_T / 2 - 6;       // 左右桿中心 X（≈後腳 X）
+  // 椅圈左右桿中心 X。P1 直線化框架版用近似值（≈後腿中心，實差約 7mm）；
+  // 精確對齊後腿一木連做接點留 P2(BATT)/P3(swept-curve)。audit 的 arm-rail×leg
+  // clause 已放行此處結構性 overlap。
+  const sideX = seatWidth / 2 - RAIL_T / 2 - 6;
   const sideFrontZ = -seatDepth / 2 + 20;             // 左右桿前端 Z（扶手前端，略前出）
   const backZ = seatDepth / 2 + 28;                   // 後段中心 Z（座框後緣外，後弧凸）
   const CORNER_D = 110;                               // 45° 斜角段的 X/Z 投影邊長
@@ -337,7 +340,7 @@ function buildArmRail(args: {
     grainDirection: "length",
     visible: { length: backLen, width: W_BACK, thickness: RAIL_T },
     origin: { x: 0, y: ringY, z: backZ },
-    shape: { kind: "arch-bent", bendMm: 26 },
+    shape: { kind: "arch-bent", bendMm: 26 }, // 後段往 +Z 後凸的弧度（mm）
     tenons: [],
     mortises: [],
   });
@@ -353,7 +356,7 @@ function buildArmRail(args: {
       visible: { length: midLen, width: W_MID, thickness: RAIL_T },
       origin: { x: sx * midOriginX, y: ringY, z: midOriginZ },
       rotation: { x: 0, y: sx * Math.PI / 4, z: 0 },
-      shape: { kind: "arch-bent", bendMm: 14 },
+      shape: { kind: "arch-bent", bendMm: 14 }, // 中桿弧度較小（短段，連接後段與左右桿）
       tenons: [],
       mortises: [],
     });
@@ -370,7 +373,7 @@ function buildArmRail(args: {
       visible: { length: sideLen, width: W_SIDE, thickness: RAIL_T },
       origin: { x: sx * sideX, y: ringY, z: sideMidZ },
       rotation: { x: 0, y: sx * Math.PI / 2, z: 0 },
-      shape: { kind: "arch-bent", bendMm: 28 },
+      shape: { kind: "arch-bent", bendMm: 28 }, // 左右桿弧度（鱔魚頭往前外撇）
       tenons: [],
       mortises: [],
     });
