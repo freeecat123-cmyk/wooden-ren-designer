@@ -62,7 +62,9 @@ export const nightstandOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
   backPanelMaterialOption("structure"),
-  ...lockTotalHeightOptions(),
+  ...lockTotalHeightOptions({ skipMid: true }),
+  // 鎖定總高時要讓使用者也能設下層高度（非鎖定時下層自動填滿，不顯示此欄）
+  { group: "zone-bot", type: "number", key: "bottomHeight", label: "下層高度 (mm)", defaultValue: 280, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到；下層門櫃高度", dependsOn: { key: "lockTotalHeight", equals: true } },
   pullStyleOption("drawer"),
   doorPullStyleOption("door"),
 ];
@@ -87,8 +89,9 @@ export const nightstand: FurnitureTemplate = (input) => {
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
+  const lockTotalHeight = getOption<boolean>(input, opt(o, "lockTotalHeight"));
   const { innerH, effectiveLegHeight, warnings: lockWarnings } = resolveLockedTotalHeight(
-    input, o, panelThickness, legHeight,
+    input, o, panelThickness, legHeight, { skipMid: true },
   );
   const earlyWarnings: string[] = [];
   if (innerH < 200) {
@@ -98,7 +101,10 @@ export const nightstand: FurnitureTemplate = (input) => {
   }
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
-  const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
+  // 鎖定總高時下層高度由使用者設、上層自動吃剩；非鎖定時 bottomHeight 不該被 resolveZones 看到
+  // （options 內 bottomHeight 永遠存在以維持 schema 穩定，但用 dependsOn 控制 UI 顯示）
+  const zoneOptions = lockTotalHeight ? o : o.filter((s) => s.key !== "bottomHeight");
+  const { zones, notesLine, warnings } = resolveZones(input, zoneOptions, innerH, doorLabel);
   warnings.push(...lockWarnings);
 
   const design = caseFurniture({
@@ -131,7 +137,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${legHeight}mm（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}；腳高 ${effectiveLegHeight}mm${lockTotalHeight ? "（鎖定總高自動算）" : ""}（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}。${pullStyleNote(pullStyle)} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
 
