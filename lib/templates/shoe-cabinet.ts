@@ -133,16 +133,22 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   if (lockTotalHeight) {
     // 鎖定模式：上層 + 下層使用者明確設，腳吃餘量
     const upperSum = hasUpper ? upperHeight : 0;
-    innerHTotal = upperSum + lowerHeightExplicit;
-    mainHeight = lowerHeightExplicit;
-    const computedLegH = input.height - innerHTotal - 2 * panelThickness;
-    if (computedLegH < 30) {
+    const userInnerH = upperSum + lowerHeightExplicit;
+    const computedLegH = input.height - userInnerH - 2 * panelThickness;
+    const MIN_LEG = 30;
+    if (computedLegH < MIN_LEG) {
+      // 超量 → 腳夾 30，innerH 縮到容量上限，下層按比例縮
+      const maxInnerH = Math.max(160, input.height - MIN_LEG - 2 * panelThickness);
       lockWarnings.push(
-        `鎖定總高：${hasUpper ? `上層 ${upperHeight} + ` : ""}下層 ${lowerHeightExplicit} = ${innerHTotal}mm + 板厚 (2×${panelThickness}) 已超過總高 ${input.height}mm，腳高夾在最低 30mm。`,
+        `鎖定總高：${hasUpper ? `上層 ${upperHeight} + ` : ""}下層 ${lowerHeightExplicit} = ${userInnerH}mm + 板厚 (2×${panelThickness}) 已超過總高 ${input.height}mm，腳高夾 30mm，內高縮到 ${maxInnerH}mm，下層自動裁切。`,
       );
-      effectiveLegHeight = 30;
+      effectiveLegHeight = MIN_LEG;
+      innerHTotal = maxInnerH;
+      mainHeight = hasUpper ? Math.max(80, maxInnerH - upperHeight) : maxInnerH;
     } else {
       effectiveLegHeight = computedLegH;
+      innerHTotal = userInnerH;
+      mainHeight = lowerHeightExplicit;
     }
   } else {
     innerHTotal = input.height - legHeight - 2 * panelThickness;
