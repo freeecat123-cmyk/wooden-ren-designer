@@ -27,8 +27,6 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
-import { XrayToggle } from "@/components/XrayToggle";
-import { WireframeToggle } from "@/components/WireframeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
@@ -370,8 +368,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <XrayToggle current={xrayMode} />
-            <WireframeToggle current={wireframeMode} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} noSync />
           </div>
         </div>
@@ -437,7 +433,6 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
-                <XrayToggle current={xrayMode} />
                 <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
               </div>
             </div>

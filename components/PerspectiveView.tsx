@@ -2534,6 +2534,11 @@ export function PerspectiveView({
           preset={viewPreset}
           maxDim={maxDim}
           targetY={(design.overall.thickness * SCALE) / (compactMode ? 3 : 2)}
+          fitHalfExtents={[
+            (design.overall.length * SCALE) / 2,
+            (design.overall.thickness * SCALE) / 2,
+            (design.overall.width * SCALE) / 2,
+          ]}
           onApplied={() => setViewPreset(null)}
         />
         <InvalidateOnDep dep={selectedPartId} />
@@ -2543,7 +2548,7 @@ export function PerspectiveView({
   );
 }
 
-type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero";
+type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
 function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
   const router = useRouter();
@@ -2572,6 +2577,7 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
 
   const presets: { id: ViewPreset; label: string; title: string }[] = [
     { id: "hero", label: "45°", title: "預設立體角度" },
+    { id: "fit", label: "🔍 填滿", title: "縮放至家具充滿視窗（依實際長寬高 + 畫面比例）" },
     { id: "front", label: "正", title: "正視圖" },
     { id: "back", label: "背", title: "背視圖" },
     { id: "left", label: "左", title: "左側視圖" },
@@ -2642,14 +2648,17 @@ function CameraController({
   preset,
   maxDim,
   targetY,
+  fitHalfExtents,
   onApplied,
 }: {
   preset: ViewPreset | null;
   maxDim: number;
   targetY: number;
+  fitHalfExtents: [number, number, number];
   onApplied: () => void;
 }) {
   const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
   const controls = useThree((s) => s.controls) as {
     target: { set: (x: number, y: number, z: number) => void };
     update: () => void;
@@ -2657,6 +2666,31 @@ function CameraController({
   const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
     if (!preset) return;
+    if (preset === "fit") {
+      // Bounding-sphere fit：r = sqrt(hx² + hy² + hz²)
+      // halfFov = min(vertical, horizontal) — 寬扁家具靠橫向 FOV、瘦高家具靠縱向 FOV
+      // 套用 hero 方向（45° 斜上 + 略偏左後），保證家具填滿視窗
+      const [hx, hy, hz] = fitHalfExtents;
+      const r = Math.sqrt(hx * hx + hy * hy + hz * hz);
+      const fovDeg = (camera as { fov?: number }).fov ?? 38;
+      const halfV = (fovDeg * Math.PI) / 180 / 2;
+      const aspect = size.width > 0 && size.height > 0 ? size.width / size.height : 1;
+      const halfH = Math.atan(Math.tan(halfV) * aspect);
+      const halfFov = Math.min(halfV, halfH);
+      const d = (r / Math.sin(halfFov)) * 1.05;
+      // hero 方向 normalize：[0.55, 0.5, -0.6] / |.| = [0.576, 0.523, -0.628]
+      const dirX = 0.576;
+      const dirY = 0.523;
+      const dirZ = -0.628;
+      camera.position.set(dirX * d, targetY + dirY * d, dirZ * d);
+      if (controls) {
+        controls.target.set(0, targetY, 0);
+        controls.update();
+      }
+      invalidate();
+      onApplied();
+      return;
+    }
     const d = maxDim * 2.3;
     // 俯/仰用球面角 polar=±0.15 rad (~8.6°) 對齊 OrbitControls 的
     // minPolarAngle=0.02 / maxPolarAngle=π-0.02 限制，距離仍維持 d。
@@ -2664,7 +2698,7 @@ function CameraController({
     // 若改用 X offset（原本 topX≠0, Z=0），從正上方看時 X 軸投影到畫面垂直方向
     // 造成長方形家具長邊旋轉 90°。小 Z offset 避免 camera 與 up=(0,1,0) 完全共線。
     const zOffset = d * 0.001;
-    const POS: Record<ViewPreset, [number, number, number]> = {
+    const POS: Record<Exclude<ViewPreset, "fit">, [number, number, number]> = {
       hero:   [d * 0.55, targetY + d * 0.5, -d * 0.6],
       front:  [0, targetY, -d],
       back:   [0, targetY, d],
@@ -2681,6 +2715,6 @@ function CameraController({
     }
     invalidate();
     onApplied();
-  }, [preset, camera, controls, invalidate, maxDim, targetY, onApplied]);
+  }, [preset, camera, controls, invalidate, maxDim, targetY, fitHalfExtents, size, onApplied]);
   return null;
 }

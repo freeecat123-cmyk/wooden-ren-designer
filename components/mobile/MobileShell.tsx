@@ -215,6 +215,17 @@ export function MobileShell(props: MobileShellProps) {
         </CollapsibleSection>
 
         <CollapsibleSection title="材料清單" badge={`${design.parts.length} 件`}>
+          <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-2 text-[11px] text-zinc-500">
+            <span className="leading-snug">切料尺寸已含榫頭凸出長度</span>
+            <a
+              href={props.cutPlanUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 px-2.5 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
+            >
+              🪚 裁切計算器
+            </a>
+          </div>
           <MaterialListWithSelection design={design} />
         </CollapsibleSection>
 
