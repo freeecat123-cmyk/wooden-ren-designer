@@ -1,6 +1,6 @@
 import type { FurnitureDesign, FurnitureTemplate, MaterialId, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { applyStandardChecks } from "./_validators";
+import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
 import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
 
 /** 座框大邊/抹頭斷面高（visible.thickness） */
@@ -133,8 +133,9 @@ function buildLegs(args: {
   material: MaterialId;
   seatWidth: number; seatDepth: number; seatHeight: number;
   ringHeight: number;          // input.height（椅圈總高）
+  legScale: number;            // 截面倍率（只乘直徑 length/width，不乘高度 thickness 與 origin）
 }): Part[] {
-  const { material, seatWidth, seatDepth, seatHeight, ringHeight } = args;
+  const { material, seatWidth, seatDepth, seatHeight, ringHeight, legScale } = args;
   const { FRONT_D, REAR_D, legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
   // 鵝脖頂大約座面上 180mm 接椅圈前段（不依賴迴圈變數 sx，移至迴圈外）
   const frontLegTop = seatHeight + 180;
@@ -150,7 +151,8 @@ function buildLegs(args: {
       nameZh: `前${sx < 0 ? "左" : "右"}腳（含鵝脖）`,
       material,
       grainDirection: "length",
-      visible: { length: FRONT_D, width: FRONT_D, thickness: frontLegTop },
+      // legScale 只乘截面直徑（length/width），不乘腿高（thickness）與 origin
+      visible: { length: FRONT_D * legScale, width: FRONT_D * legScale, thickness: frontLegTop },
       origin: { x: sx * legXOff, y: 0, z: legZFront },
       shape: { kind: "round" }, // P1 直立圓料；鵝脖前彎留 P2/P3
       tenons: [],
@@ -166,7 +168,8 @@ function buildLegs(args: {
       nameZh: `後${sx < 0 ? "左" : "右"}腳`,
       material,
       grainDirection: "length",
-      visible: { length: REAR_D, width: REAR_D, thickness: ringHeight },
+      // legScale 只乘截面直徑（length/width），不乘腿高（thickness）與 origin
+      visible: { length: REAR_D * legScale, width: REAR_D * legScale, thickness: ringHeight },
       origin: { x: sx * legXOff, y: 0, z: legZRear },
       shape: { kind: "round" }, // P1 直立圓料；後傾曲線留 P2/P3
       tenons: [],
@@ -295,8 +298,9 @@ function buildStretchers(args: {
 function buildArmRail(args: {
   material: MaterialId;
   seatWidth: number; seatDepth: number; ringHeight: number;
+  sectionScale: number;        // 截面倍率（只乘水平截面寬 width，不乘垂直深 thickness 與 origin）
 }): Part[] {
-  const { material, seatWidth, seatDepth, ringHeight } = args;
+  const { material, seatWidth, seatDepth, ringHeight, sectionScale } = args;
   // 椅圈斷面：厚 36（垂直 → thickness）、寬 ~45–55（水平徑向 → width）
   // visible 慣例（geometry.ts:6）：length→X、thickness→Y(高)、width→Z(深)
   const RAIL_T = 36;
@@ -335,12 +339,13 @@ function buildArmRail(args: {
   const parts: Part[] = [];
 
   // 後正中段（椅圈上靠桿）：沿 X、不旋轉、arch-bent 往 +Z 後凸
+  // sectionScale 只乘水平截面寬（width），不乘垂直深（thickness=RAIL_T）與 origin
   parts.push({
     id: "arm-rail-back",
     nameZh: "椅圈上靠桿",
     material,
     grainDirection: "length",
-    visible: { length: backLen, width: W_BACK, thickness: RAIL_T },
+    visible: { length: backLen, width: W_BACK * sectionScale, thickness: RAIL_T },
     origin: { x: 0, y: ringY, z: backZ },
     shape: { kind: "arch-bent", bendMm: 26 }, // 後段往 +Z 後凸的弧度（mm）
     tenons: [],
@@ -349,13 +354,14 @@ function buildArmRail(args: {
 
   // 中桿 ×2（椅圈中桿）：繞 Y 斜置 ±45°，接「後段端點」到「左右桿後端」
   // mid-r：local +X(length) → 世界 (+X,−Z)，故 rotY = +π/4；local +Z(bend) → 世界 (+X,+Z) 外凸
+  // sectionScale 只乘 width，不乘 thickness 與 origin
   for (const sx of [-1, 1] as const) {
     parts.push({
       id: sx < 0 ? "arm-rail-mid-l" : "arm-rail-mid-r",
       nameZh: "椅圈中桿",
       material,
       grainDirection: "length",
-      visible: { length: midLen, width: W_MID, thickness: RAIL_T },
+      visible: { length: midLen, width: W_MID * sectionScale, thickness: RAIL_T },
       origin: { x: sx * midOriginX, y: ringY, z: midOriginZ },
       rotation: { x: 0, y: sx * Math.PI / 4, z: 0 },
       shape: { kind: "arch-bent", bendMm: 14 }, // 中桿弧度較小（短段，連接後段與左右桿）
@@ -366,13 +372,14 @@ function buildArmRail(args: {
 
   // 左右桿 ×2（椅圈左右桿，鱔魚頭扶手）：繞 Y 轉 ±90° 沿 Z 向前
   // side-r：local +X(length) → 世界 −Z（往前），local +Z(bend) → 世界 +X（外撇）
+  // sectionScale 只乘 width，不乘 thickness 與 origin
   for (const sx of [-1, 1] as const) {
     parts.push({
       id: sx < 0 ? "arm-rail-side-l" : "arm-rail-side-r",
       nameZh: "椅圈左右桿",
       material,
       grainDirection: "length",
-      visible: { length: sideLen, width: W_SIDE, thickness: RAIL_T },
+      visible: { length: sideLen, width: W_SIDE * sectionScale, thickness: RAIL_T },
       origin: { x: sx * sideX, y: ringY, z: sideMidZ },
       rotation: { x: 0, y: sx * Math.PI / 2, z: 0 },
       shape: { kind: "arch-bent", bendMm: 28 }, // 左右桿弧度（鱔魚頭往前外撇）
@@ -399,8 +406,9 @@ function buildArmRail(args: {
 function buildSCurveMembers(args: {
   material: MaterialId;
   seatWidth: number; seatDepth: number; seatHeight: number; ringHeight: number;
+  sectionScale: number;        // 截面倍率（只乘截面尺寸，不乘高度 thickness 與 origin）
 }): Part[] {
-  const { material, seatWidth, seatDepth, seatHeight, ringHeight } = args;
+  const { material, seatWidth, seatDepth, seatHeight, ringHeight, sectionScale } = args;
   const parts: Part[] = [];
   // 椅圈底面 Y（與 buildArmRail 的 ringY 同步：ringHeight - RAIL_T, RAIL_T=36）
   const RING_T = 36;
@@ -408,6 +416,7 @@ function buildSCurveMembers(args: {
 
   // 聯幫棍 ×2：座框側邊 → 椅圈左右桿；P1 用斜圓料近似弓形
   // splayed-round-tapered 要求 length === width（=圓料直徑），故 P1 取 40mm 正方
+  // sectionScale 只乘截面直徑（length/width），不乘棍高（thickness）與 origin
   const SPINDLE_D = 40; // 聯幫棍直徑（mm），P1 簡化為正方斷面圓料
   for (const sx of [-1, 1] as const) {
     const spindleH = ringY - seatHeight;
@@ -416,7 +425,8 @@ function buildSCurveMembers(args: {
       nameZh: "聯幫棍",
       material, grainDirection: "length",
       // length(X)=直徑、width(Z)=直徑、thickness(Y)=棍高（geometry.ts:6 慣例）
-      visible: { length: SPINDLE_D, width: SPINDLE_D, thickness: spindleH },
+      // sectionScale 乘截面（length/width），不乘高度（thickness）
+      visible: { length: SPINDLE_D * sectionScale, width: SPINDLE_D * sectionScale, thickness: spindleH },
       origin: { x: sx * (seatWidth / 2 - 25), y: seatHeight, z: -seatDepth * 0.08 },
       shape: { kind: "splayed-round-tapered", bottomScale: 1.1, dxMm: 0, dzMm: 38 },
       tenons: [], mortises: [],
@@ -434,6 +444,7 @@ function buildSCurveMembers(args: {
   //
   // 連接邏輯（thickness/Y）：
   //   splatH 加長 +15mm，讓靠背板頂端 Y 略高於椅圈後段底面（ringY），真正插進椅圈後段。
+  // sectionScale 只乘截面（length=板寬, width=板厚），不乘板高（thickness=splatH）與 origin
   const RAIL_T_SEAT = 39;  // 後大邊板料厚（與 buildSeatFrame 同步）
   const ARM_BACK_Z = seatDepth / 2 + 28;           // 椅圈後段 origin.z（與 buildArmRail backZ 同步）
   const SEAT_BACK_Z = seatDepth / 2 - RAIL_T_SEAT / 2; // 後大邊 origin.z（與 buildSeatFrame 同步）
@@ -444,7 +455,8 @@ function buildSCurveMembers(args: {
     id: "back-splat",
     nameZh: "靠背板",
     material, grainDirection: "length",
-    visible: { length: 185, thickness: splatH, width: 40 },
+    // sectionScale 乘板寬（length）與板厚（width），不乘板高（thickness）
+    visible: { length: 185 * sectionScale, thickness: splatH, width: 40 * sectionScale },
     origin: { x: 0, y: splatBottomY, z: splatZ },
     rotation: { x: 0, y: 0, z: 0 },
     shape: { kind: "face-rounded", cornerR: 12, bendMm: 32, bendAxis: "z" },
@@ -570,6 +582,19 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatChamferMm = parseSeatChamferMm(getOption<string>(input, opt(o, "seatEdge")));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
 
+  // 風格 preset（spec §8.2）：讀取三個教材選項
+  const stylePreset = getOption<string>(input, opt(o, "stylePreset"));
+  const footRailJoint = getOption<string>(input, opt(o, "footRailJoint"));
+  const seatCornerStructure = getOption<string>(input, opt(o, "seatCornerStructure"));
+
+  // preset → 截面倍率表（只改料的粗細，不改長度與位置）
+  const PRESET: Record<string, { sectionScale: number; legScale: number }> = {
+    "ming-plain":       { sectionScale: 1.0,  legScale: 1.0  },
+    "huanghuali-slim":  { sectionScale: 0.85, legScale: 0.88 },
+    "jichimu-stout":    { sectionScale: 1.15, legScale: 1.18 },
+  };
+  const preset = PRESET[stylePreset] ?? PRESET["ming-plain"];
+
   const parts: Part[] = [];
   parts.push(...buildSeatFrame({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
@@ -578,19 +603,37 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   parts.push(...buildLegs({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
     ringHeight: input.height,
+    legScale: preset.legScale,
   }));
   parts.push(...buildStretchers({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
   }));
   parts.push(...buildArmRail({
     material, seatWidth: input.length, seatDepth: input.width, ringHeight: input.height,
+    sectionScale: preset.sectionScale,
   }));
   parts.push(...buildSCurveMembers({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight, ringHeight: input.height,
+    sectionScale: preset.sectionScale,
   }));
   parts.push(...buildCornerBraces({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
   }));
+
+  // 管腳棖榫型說明（P1 只影響 notes，幾何不變）
+  const footRailJointNote = footRailJoint === "duck-bill"
+    ? "管腳棖用「鴨母嘴（斜口勾掛榫）」——斜口精度高，初學建議先練方榫。"
+    : "管腳棖用「椿榫（規矩方榫）」——結構牢靠、加工友善。";
+  // 椅盤轉角說明（P1 只影響 notes，幾何不變）
+  const seatCornerNote = seatCornerStructure === "structure-2"
+    ? "椅盤轉角採「第二種結構」——魯班學堂教材對照版本 B。"
+    : "椅盤轉角採「第一種結構」——魯班學堂教材對照版本 A。";
+  // 風格說明
+  const presetNote = stylePreset === "huanghuali-slim"
+    ? "黃花梨細秀款：椅圈截面收細（×0.85）、腿料收細（×0.88），展現明式纖秀風格。"
+    : stylePreset === "jichimu-stout"
+    ? "雞翅木壯實款：椅圈截面放大（×1.15）、腿料放大（×1.18），凸顯雞翅木厚實木紋。"
+    : "明式素圈椅工作圖原型（胡桃木，截面比例 1:1）。";
 
   const design: FurnitureDesign = {
     id: `circle-chair-${input.length}x${input.height}`,
@@ -601,8 +644,15 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `明式圈椅（Phase 1 框架版）座寬 ${input.length}mm × 座深 ${input.width}mm × 椅圈高 ${input.height}mm。`,
+    notes: [
+      `明式圈椅（Phase 1 框架版）座寬 ${input.length}mm × 座深 ${input.width}mm × 椅圈高 ${input.height}mm。`,
+      presetNote,
+      footRailJointNote,
+      seatCornerNote,
+    ].join(" "),
   };
+  const roundLegWarnings = validateRoundLegJoinery(design);
+  if (roundLegWarnings.length) design.warnings = [...(design.warnings ?? []), ...roundLegWarnings];
   applyStandardChecks(design, {
     minLength: 550, minWidth: 440, minHeight: 650,
     maxLength: 750, maxWidth: 600, maxHeight: 1150,
