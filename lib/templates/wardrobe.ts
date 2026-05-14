@@ -51,6 +51,7 @@ export const wardrobeOptions: OptionSpec[] = [
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
+  { group: "door", type: "checkbox", key: "slidingDoorMode", label: "推拉門模式（2 片外掛滑門）", defaultValue: false, wide: true, help: "打開後整櫃改 2 片前後錯開外掛滑門蓋滿上中下層；鉸鏈門扇自動取消、zone 抽屜自動入柱" },
   withLegsOption,
   backPanelPlywoodOption,
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "lockTotalHeight", equals: false }] } },
@@ -86,6 +87,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const doorMount = resolveDoorMount(input, o);
+  const slidingDoorMode = getOption<boolean>(input, opt(o, "slidingDoorMode"));
   const drawerMount = resolveDrawerMount(input, o);
   const withToeKick = getOption<boolean>(input, opt(o, "withToeKick"));
   const toeKickHeight = getOption<number>(input, opt(o, "toeKickHeight"));
@@ -137,6 +139,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     doorFrameRailWidth: getOption<number>(input, opt(o, "doorFrameRailWidth")),
     doorFrameThickness: getOption<number>(input, opt(o, "doorFrameThickness")),
     drawerMount,
+    slidingDoorMode,
     drawerBottomMode: resolveDrawerBottomMode(input, o),
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,

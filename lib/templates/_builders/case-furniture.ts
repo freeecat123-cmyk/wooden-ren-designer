@@ -93,6 +93,8 @@ export interface CaseFurnitureOpts {
   pullStyle?: string;
   /** 門板把手樣式（獨立於抽屜）；undefined = 跟 pullStyle 一樣 */
   doorPullStyle?: string;
+  /** 衣櫃推拉門模式：true 時整櫃改 2 片前後錯開外掛滑門，鉸鏈門扇取消、zone 抽屜強制 inset。 */
+  slidingDoorMode?: boolean;
   /** Horizontal area (y fraction range) reserved for a hanging rod. Used by wardrobe. */
   hangingArea?: { yStart: number; yEnd: number };
   /**
