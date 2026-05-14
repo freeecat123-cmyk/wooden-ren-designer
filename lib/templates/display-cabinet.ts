@@ -30,6 +30,8 @@ import {
   pullStyleOption,
   pullStyleNote,
   doorPullStyleOption,
+  lockTotalHeightOptions,
+  resolveLockedTotalHeight,
 } from "./_helpers";
 
 export const displayCabinetOptions: OptionSpec[] = [
@@ -50,7 +52,7 @@ export const displayCabinetOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "0 = 貼地（系統櫃式）；70–80 = 沙發腳款（最常見展示櫃造型）" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 70, min: 0, max: 400, step: 10, help: "0 = 貼地（系統櫃式）；70–80 = 沙發腳款（最常見展示櫃造型）。鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -66,6 +68,7 @@ export const displayCabinetOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("structure"),
+  ...lockTotalHeightOptions(),
   { group: "structure", type: "select", key: "topDecor", label: "頂部裝飾條樣式", defaultValue: "none", choices: [
     { value: "none", label: "無（極簡款）" },
     { value: "flat-band", label: "平直線板（一條 60mm 板繞頂緣）" },
@@ -106,10 +109,13 @@ export const displayCabinet: FurnitureTemplate = (input) => {
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
-  const innerH = input.height - legHeight - 2 * panelThickness;
+  const { innerH, effectiveLegHeight, warnings: lockWarnings } = resolveLockedTotalHeight(
+    input, o, panelThickness, legHeight,
+  );
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
+  warnings.push(...lockWarnings);
 
   const design = caseFurniture({
     category: "display-cabinet",
@@ -129,7 +135,7 @@ export const displayCabinet: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness - 2,
     backMode: resolveBackMode(input, o),
-    legHeight,
+    legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,

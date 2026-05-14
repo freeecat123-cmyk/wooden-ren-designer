@@ -26,6 +26,8 @@ import {
   pullStyleOption,
   pullStyleNote,
   doorPullStyleOption,
+  lockTotalHeightOptions,
+  resolveLockedTotalHeight,
 } from "./_helpers";
 
 export const nightstandOptions: OptionSpec[] = [
@@ -48,7 +50,7 @@ export const nightstandOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 100, min: 0, max: 300, step: 10, help: "100 在 600mm 床頭櫃比例最穩；120 偏細長" },
+  { group: "leg", type: "number", key: "legHeight", label: "椅腳高 (mm)", defaultValue: 100, min: 0, max: 300, step: 10, help: "100 在 600mm 床頭櫃比例最穩；120 偏細長。鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
   { group: "leg", type: "number", key: "legSize", label: "椅腳粗 (mm)", defaultValue: 35, min: 20, max: 100, step: 1, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "tapered", choices: [
     { value: "box", label: "直腳" },
@@ -60,6 +62,7 @@ export const nightstandOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
   backPanelMaterialOption("structure"),
+  ...lockTotalHeightOptions(),
   pullStyleOption("drawer"),
   doorPullStyleOption("door"),
 ];
@@ -84,16 +87,19 @@ export const nightstand: FurnitureTemplate = (input) => {
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
-  const innerH = input.height - legHeight - 2 * panelThickness;
+  const { innerH, effectiveLegHeight, warnings: lockWarnings } = resolveLockedTotalHeight(
+    input, o, panelThickness, legHeight,
+  );
   const earlyWarnings: string[] = [];
   if (innerH < 200) {
     earlyWarnings.push(
-      `內部淨高僅 ${innerH}mm 過小：總高 ${input.height} − 腳高 ${legHeight} − 上下板 ${2 * panelThickness} 後不夠塞抽屜+下層，請降腳高或調總高。`,
+      `內部淨高僅 ${innerH}mm 過小：總高 ${input.height} − 腳高 ${effectiveLegHeight} − 上下板 ${2 * panelThickness} 後不夠塞抽屜+下層，請降腳高或調總高。`,
     );
   }
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
+  warnings.push(...lockWarnings);
 
   const design = caseFurniture({
     category: "nightstand",
@@ -113,7 +119,7 @@ export const nightstand: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
-    legHeight,
+    legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "round" | "round-tapered",
     legInset,

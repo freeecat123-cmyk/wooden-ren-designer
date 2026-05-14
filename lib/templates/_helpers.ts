@@ -2,7 +2,8 @@
  * Shared geometry helpers used across furniture templates.
  */
 
-import type { Part, OptionSpec, OptionGroup } from "@/lib/types";
+import type { Part, OptionSpec, OptionGroup, FurnitureTemplateInput } from "@/lib/types";
+import { getOption, opt } from "@/lib/types";
 
 /**
  * Four corner positions (centered on origin) for a leg of given size.
@@ -579,6 +580,62 @@ export function toeKickOptions(group: OptionGroup = "structure", opts: { hidden?
 export function toeKickNote(withToeKick: boolean, h: number, r: number): string {
   if (!withToeKick) return "";
   return `底部踢腳板：高 ${h}mm × 內凹 ${r}mm，腳趾不撞櫃。`;
+}
+
+/**
+ * 鎖定總高 toggle + midHeight 欄位。櫃類通用。
+ * - 勾起鎖定總高：每層自設、餘量自動成為腳高（最少 30mm）
+ * - 解鎖（預設）：腳高直接設、中層自動吃剩
+ * 用法：在 options 內 spread `...lockTotalHeightOptions()`；body 內呼叫
+ * resolveLockedTotalHeight() 取得 innerH / effectiveLegHeight / warnings。
+ * legHeight 欄位請另外加 dependsOn: { key: "lockTotalHeight", equals: false } 隱藏。
+ */
+export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; notIn?: unknown[]; equals?: unknown }> } = {}): OptionSpec[] {
+  const lockDeps = opts.extraDeps && opts.extraDeps.length > 0 ? { all: opts.extraDeps } : undefined;
+  const midDeps = opts.extraDeps && opts.extraDeps.length > 0
+    ? { all: [{ key: "lockTotalHeight", equals: true }, ...opts.extraDeps] }
+    : { key: "lockTotalHeight", equals: true };
+  return [
+    { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：每層高度自設、總高扣三層後餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、中層自動吃剩（原本行為）", wide: true, dependsOn: lockDeps },
+    { group: "zone-mid", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: midDeps },
+  ];
+}
+
+/**
+ * 鎖定總高的 innerH / legHeight 計算。
+ * 解鎖：innerH = input.height - legHeight - 2 × panelT，legHeight 直接用使用者設的。
+ * 鎖定：innerH = topH + midH + botH，legHeight = input.height - innerH - 2 × panelT（夾 ≥30）。
+ */
+export function resolveLockedTotalHeight(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+  panelThickness: number,
+  legHeight: number,
+  opts: { active?: boolean } = {},
+): { innerH: number; effectiveLegHeight: number; warnings: string[] } {
+  const active = opts.active ?? true;
+  const lockTotalHeight = active && getOption<boolean>(input, opt(options, "lockTotalHeight"));
+  if (!lockTotalHeight) {
+    return {
+      innerH: input.height - legHeight - 2 * panelThickness,
+      effectiveLegHeight: legHeight,
+      warnings: [],
+    };
+  }
+  const topH = getOption<number>(input, opt(options, "topHeight")) ?? 0;
+  const botH = getOption<number>(input, opt(options, "bottomHeight")) ?? 0;
+  const midH = getOption<number>(input, opt(options, "midHeight")) ?? 0;
+  const innerH = topH + midH + botH;
+  const computedLegH = input.height - innerH - 2 * panelThickness;
+  const warnings: string[] = [];
+  let effectiveLegHeight = computedLegH;
+  if (computedLegH < 30) {
+    warnings.push(
+      `鎖定總高：三層 (${topH}+${midH}+${botH}=${innerH}mm) + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高夾在最低 30mm。請降低層高或加大總高。`,
+    );
+    effectiveLegHeight = 30;
+  }
+  return { innerH, effectiveLegHeight, warnings };
 }
 
 /** 冠飾線（crown molding）—— 頂部裝飾線條，傳統櫃常見

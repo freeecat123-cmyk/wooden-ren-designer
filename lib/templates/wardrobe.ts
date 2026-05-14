@@ -30,6 +30,8 @@ import {
   pullStyleOption,
   pullStyleNote,
   doorPullStyleOption,
+  lockTotalHeightOptions,
+  resolveLockedTotalHeight,
 } from "./_helpers";
 
 export const wardrobeOptions: OptionSpec[] = [
@@ -48,7 +50,7 @@ export const wardrobeOptions: OptionSpec[] = [
   doorMountOption,
   doorFrameRailWidthOption,
   doorFrameThicknessOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10 },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
   { group: "leg", type: "number", key: "legSize", label: "底座腳粗 (mm)", defaultValue: 50, min: 35, max: 120, step: 1, dependsOn: { key: "legHeight", notIn: [0] }, help: "衣櫃高重，建議 50mm 以上" },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "plinth", choices: [
     { value: "box", label: "直腳" },
@@ -67,6 +69,7 @@ export const wardrobeOptions: OptionSpec[] = [
   ...toeKickOptions("structure"),
   ...crownMoldingOptions("structure"),
   backPanelMaterialOption("structure"),
+  ...lockTotalHeightOptions(),
   { group: "structure", type: "checkbox", key: "withTopCompartment", label: "頂部棉被櫃", defaultValue: false, help: "頂端 350mm 加水平隔板做獨立空間，放棉被/換季衣物", wide: true },
   { group: "structure", type: "checkbox", key: "withBottomShoeRack", label: "底部鞋格", defaultValue: false, help: "底部 200mm 加 2 層斜放層板做鞋櫃用", wide: true },
   { group: "structure", type: "checkbox", key: "withInteriorLed", label: "內部感應 LED", defaultValue: false, help: "頂部裝 LED 燈條，門開時自動感應點亮", wide: true },
@@ -97,10 +100,13 @@ export const wardrobe: FurnitureTemplate = (input) => {
   const doorPullStyleRaw = getOption<string>(input, opt(o, "doorPullStyle"));
   const doorPullStyle = !doorPullStyleRaw || doorPullStyleRaw === "inherit" ? pullStyle : doorPullStyleRaw;
 
-  const innerH = input.height - legHeight - 2 * panelThickness;
+  const { innerH, effectiveLegHeight, warnings: lockWarnings } = resolveLockedTotalHeight(
+    input, o, panelThickness, legHeight,
+  );
   const doorLabel =
     doorType === "wood" ? "木" : doorType === "slab" ? "平板" : "玻璃";
   const { zones, notesLine, warnings } = resolveZones(input, o, innerH, doorLabel);
+  warnings.push(...lockWarnings);
 
   const design = caseFurniture({
     category: "wardrobe",
@@ -120,7 +126,7 @@ export const wardrobe: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
-    legHeight,
+    legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
