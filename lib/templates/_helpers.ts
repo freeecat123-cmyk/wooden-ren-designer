@@ -590,15 +590,21 @@ export function toeKickNote(withToeKick: boolean, h: number, r: number): string 
  * resolveLockedTotalHeight() 取得 innerH / effectiveLegHeight / warnings。
  * legHeight 欄位請另外加 dependsOn: { key: "lockTotalHeight", equals: false } 隱藏。
  */
-export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; notIn?: Array<string | number | boolean>; equals?: string | number | boolean }> } = {}): OptionSpec[] {
+export function lockTotalHeightOptions(opts: { extraDeps?: Array<{ key: string; notIn?: Array<string | number | boolean>; equals?: string | number | boolean }>; skipMid?: boolean } = {}): OptionSpec[] {
   const lockDeps = opts.extraDeps && opts.extraDeps.length > 0 ? { all: opts.extraDeps } : undefined;
-  const midDeps = opts.extraDeps && opts.extraDeps.length > 0
-    ? { all: [{ key: "lockTotalHeight", equals: true }, ...opts.extraDeps] }
-    : { key: "lockTotalHeight", equals: true };
-  return [
-    { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：每層高度自設、總高扣三層後餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、中層自動吃剩（原本行為）", wide: true, dependsOn: lockDeps },
-    { group: "zone-mid", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: midDeps },
+  const lockHelp = opts.skipMid
+    ? "勾起：上下兩層高度自設、總高扣兩層後餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、其中一層自動吃剩（原本行為）"
+    : "勾起：每層高度自設、總高扣三層後餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、中層自動吃剩（原本行為）";
+  const specs: OptionSpec[] = [
+    { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: lockHelp, wide: true, dependsOn: lockDeps },
   ];
+  if (!opts.skipMid) {
+    const midDeps = opts.extraDeps && opts.extraDeps.length > 0
+      ? { all: [{ key: "lockTotalHeight", equals: true }, ...opts.extraDeps] }
+      : { key: "lockTotalHeight", equals: true };
+    specs.push({ group: "zone-mid", type: "number", key: "midHeight", label: "中層高度 (mm)", defaultValue: 250, min: 80, max: 1500, step: 10, help: "只在鎖定總高時用到", dependsOn: midDeps });
+  }
+  return specs;
 }
 
 /**
@@ -611,9 +617,10 @@ export function resolveLockedTotalHeight(
   options: OptionSpec[],
   panelThickness: number,
   legHeight: number,
-  opts: { active?: boolean } = {},
+  opts: { active?: boolean; skipMid?: boolean } = {},
 ): { innerH: number; effectiveLegHeight: number; warnings: string[] } {
   const active = opts.active ?? true;
+  const skipMid = opts.skipMid ?? false;
   const lockTotalHeight = active && getOption<boolean>(input, opt(options, "lockTotalHeight"));
   if (!lockTotalHeight) {
     return {
@@ -622,19 +629,26 @@ export function resolveLockedTotalHeight(
       warnings: [],
     };
   }
-  const topH = getOption<number>(input, opt(options, "topHeight")) ?? 0;
-  const botH = getOption<number>(input, opt(options, "bottomHeight")) ?? 0;
-  const midH = getOption<number>(input, opt(options, "midHeight")) ?? 0;
+  // skipMid 兩段式櫃可能 schema 只有其中一個 height 欄位（autoFill 那邊沒）
+  const hasTopH = options.some((s) => s.key === "topHeight");
+  const hasBotH = options.some((s) => s.key === "bottomHeight");
+  const topH = hasTopH ? getOption<number>(input, opt(options, "topHeight")) : 0;
+  const botH = hasBotH ? getOption<number>(input, opt(options, "bottomHeight")) : 0;
+  const midH = skipMid ? 0 : (getOption<number>(input, opt(options, "midHeight")) ?? 0);
   const userInnerH = topH + midH + botH;
   const computedLegH = input.height - userInnerH - 2 * panelThickness;
   const warnings: string[] = [];
   const MIN_LEG = 30;
   if (computedLegH < MIN_LEG) {
-    // 三層加總超過容量 → 把腳壓到最低 30mm，innerH 縮到實際容量上限
+    // 加總超過容量 → 把腳壓到最低 30mm，innerH 縮到實際容量上限
     // 讓 resolveZones 內建的按比例壓縮機制把 topH/botH 縮回適配範圍
     const maxInnerH = Math.max(160, input.height - MIN_LEG - 2 * panelThickness);
+    const sumLabel = skipMid
+      ? `兩層 (${topH}+${botH}=${userInnerH}mm)`
+      : `三層 (${topH}+${midH}+${botH}=${userInnerH}mm)`;
+    const scaleLabel = skipMid ? "兩層按比例自動縮成" : "三層按比例自動縮成";
     warnings.push(
-      `鎖定總高：三層 (${topH}+${midH}+${botH}=${userInnerH}mm) + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高壓到最低 30mm，三層按比例自動縮成 ${maxInnerH}mm。請降低層高或加大總高。`,
+      `鎖定總高：${sumLabel} + 板厚 (2×${panelThickness}=${2 * panelThickness}mm) 已超過總高 ${input.height}mm，腳高壓到最低 30mm，${scaleLabel} ${maxInnerH}mm。請降低層高或加大總高。`,
     );
     return { innerH: maxInnerH, effectiveLegHeight: MIN_LEG, warnings };
   }
