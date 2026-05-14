@@ -1,4 +1,4 @@
-import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
+import type { FurnitureDesign, FurnitureTemplate, MaterialId, OptionSpec, Part } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
 import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
@@ -31,7 +31,7 @@ export const circleChairOptions: OptionSpec[] = [
 ];
 
 function buildSeatFrame(args: {
-  material: import("@/lib/types").MaterialId;
+  material: MaterialId;
   seatWidth: number;   // input.length
   seatDepth: number;   // input.width
   seatHeight: number;
@@ -113,7 +113,7 @@ function buildSeatFrame(args: {
 }
 
 function buildLegs(args: {
-  material: import("@/lib/types").MaterialId;
+  material: MaterialId;
   seatWidth: number; seatDepth: number; seatHeight: number;
   ringHeight: number;          // input.height（椅圈總高）
 }): Part[] {
@@ -123,12 +123,15 @@ function buildLegs(args: {
   const legXOff = seatWidth / 2 - FRONT_D / 2 - 6;
   const legZOffFront = -(seatDepth / 2 - FRONT_D / 2 - 6);
   const legZOffRear = seatDepth / 2 - REAR_D / 2 - 6;
+  // 鵝脖頂大約座面上 180mm 接椅圈前段（不依賴迴圈變數 sx，移至迴圈外）
+  const frontLegTop = seatHeight + 180;
   const parts: Part[] = [];
 
-  // 前腳（含鵝脖）：地面 → 鵝脖頂；P1 用 arch-bent，bendMm 負 = 往 -Z（前）彎
+  // P1 直線化框架版：前腳用直立圓料（round）。
+  // 鵝脖前彎曲線留 P2(BATT)/P3(swept-curve) 實作；arch-bent 沿 length 軸彎，
+  // 而腿的 length 只是直徑(50mm)、腿高在 thickness，所以 arch-bent 對腿高方向無效。
   // visible 慣例：length(X)=直徑、width(Z)=直徑、thickness(Y)=腿高；與 round-stool.ts:213 一致
   for (const sx of [-1, 1] as const) {
-    const frontLegTop = seatHeight + 180; // 鵝脖頂大約座面上 180mm 接椅圈前段
     parts.push({
       id: sx < 0 ? "leg-front-l" : "leg-front-r",
       nameZh: `前${sx < 0 ? "左" : "右"}腳（含鵝脖）`,
@@ -136,12 +139,13 @@ function buildLegs(args: {
       grainDirection: "length",
       visible: { length: FRONT_D, width: FRONT_D, thickness: frontLegTop },
       origin: { x: sx * legXOff, y: 0, z: legZOffFront },
-      shape: { kind: "arch-bent", bendMm: -28 }, // 上段往前彎模擬鵝脖
+      shape: { kind: "round" }, // P1 直立圓料；鵝脖前彎留 P2/P3
       tenons: [],
       mortises: [],
     });
   }
-  // 後腳（一木連做穿座盤接椅圈）：bendMm 正 = 往 +Z（後）彎
+  // P1 直線化框架版：後腳用直立圓料（round）。
+  // 後腿後傾曲線留 P2(BATT)/P3(swept-curve) 實作；理由同前腳，arch-bent 對垂直件腿高方向無效。
   // visible 慣例：length(X)=直徑、width(Z)=直徑、thickness(Y)=腿全高（地面到椅圈頂）
   for (const sx of [-1, 1] as const) {
     parts.push({
@@ -151,7 +155,7 @@ function buildLegs(args: {
       grainDirection: "length",
       visible: { length: REAR_D, width: REAR_D, thickness: ringHeight },
       origin: { x: sx * legXOff, y: 0, z: legZOffRear },
-      shape: { kind: "arch-bent", bendMm: 22 }, // 上段後傾
+      shape: { kind: "round" }, // P1 直立圓料；後傾曲線留 P2/P3
       tenons: [],
       mortises: [],
     });
