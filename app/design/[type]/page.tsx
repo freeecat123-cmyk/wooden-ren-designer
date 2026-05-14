@@ -28,6 +28,7 @@ import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ErgoHints } from "@/components/ErgoHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
+import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
@@ -836,66 +837,8 @@ function ParameterForm({
   );
 }
 
-const GROUP_META: Record<
-  string,
-  { label: string; icon: string; bar: string }
-> = {
-  preset:     { label: "配置預設",     icon: "⭐", bar: "bg-yellow-400"  },
-  form:       { label: "形制 / 比例",   icon: "🏛️", bar: "bg-stone-500"   },
-  structure:  { label: "櫃體結構 / 板材",icon: "🏗️", bar: "bg-stone-400"   },
-  top:        { label: "桌面 / 座板",   icon: "🪵", bar: "bg-sky-400"     },
-  panel:      { label: "板心 / 背板",   icon: "▣", bar: "bg-teal-500"    },
-  rail:       { label: "邊抹（框條）",  icon: "═", bar: "bg-amber-500"   },
-  // 三層櫃：上中下（從上到下排序）
-  "zone-top": { label: "上層",         icon: "▲", bar: "bg-sky-500"     },
-  "zone-mid": { label: "中層",         icon: "■", bar: "bg-sky-400"     },
-  "zone-bot": { label: "下層",         icon: "▼", bar: "bg-sky-300"     },
-  // 三欄櫃：左中右（由左到右排序）
-  "col-left":  { label: "左欄",        icon: "◀", bar: "bg-violet-500"  },
-  "col-mid":   { label: "中欄",        icon: "●", bar: "bg-violet-400"  },
-  "col-right": { label: "右欄",        icon: "▶", bar: "bg-violet-300"  },
-  layers:     { label: "分層配置",     icon: "▤", bar: "bg-indigo-400"  },
-  door:       { label: "門板",         icon: "▯", bar: "bg-fuchsia-400" },
-  drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
-  leg:        { label: "底座 / 桌椅腳",  icon: "🦵", bar: "bg-rose-400"    },
-  apron:      { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
-  skirt:      { label: "牙條 / 牙頭裝飾",icon: "〰", bar: "bg-orange-400" },
-  balustrade: { label: "敞格圍欄",     icon: "┃", bar: "bg-pink-400"    },
-  stretcher:  { label: "橫撐 / 連腳料",  icon: "║", bar: "bg-emerald-400" },
-  back:       { label: "椅背",         icon: "◧", bar: "bg-teal-400"    },
-  misc:       { label: "其他",         icon: "⚙", bar: "bg-zinc-400"    },
-};
-
-// 顯示順序：從「整體骨架」往「五金細節」走
-//  1. 結構（板厚、背板作法）— 影響全櫃
-//  2. 內容（zones / columns）— 櫃體內每區放什麼
-//  3. 門板、抽屜 — 內容區的五金細節
-//  4. 底座 — 高度、樣式
-//  5. 桌椅專用：top / apron / stretcher / back
-const GROUP_ORDER = [
-  "preset",       // 一鍵套配置
-  "form",         // 高階形制（明清比例 / 圓角櫃 / 頂箱櫃）
-  "structure",    // 櫃體結構
-  "zone-top",
-  "zone-mid",
-  "zone-bot",
-  "col-left",
-  "col-mid",
-  "col-right",
-  "leg",          // 立柱 / 桌椅腳
-  "top",          // 頂蓋 / 桌面
-  "panel",        // 板心 / 背板
-  "rail",         // 邊抹（框條）
-  "skirt",        // 牙條 + 牙頭 + 站牙 + 絛環
-  "balustrade",   // 敞格圍欄
-  "layers",       // 分層配置
-  "door",
-  "drawer",
-  "apron",
-  "stretcher",
-  "back",
-  "misc",
-];
+// GROUP_META / GROUP_ORDER 改抽到 lib/design/option-groups.ts 供手機 AdvancedSheet
+// 共用，避免兩邊各維護一份漂移。
 
 function isVisible(
   spec: OptionSpec,

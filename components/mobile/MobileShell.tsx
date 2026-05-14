@@ -26,6 +26,7 @@ import type { FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
+import { groupSpecsByGroup } from "@/lib/design/option-groups";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -292,9 +293,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
-              visibleStructureSpecs.map((s) => (
-                <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
-              ))
+              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} />
             )}
           </DesignFormShell>
         }
@@ -308,9 +307,7 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            {visibleStyleSpecs.map((s) => (
-              <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
-            ))}
+            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} />
           </DesignFormShell>
         }
         joineryContent={
@@ -328,9 +325,7 @@ export function MobileShell(props: MobileShellProps) {
               {visibleJoinerySpecs.length === 0 ? (
                 <div className="text-sm text-zinc-500">此家具無榫接選項</div>
               ) : (
-                visibleJoinerySpecs.map((s) => (
-                  <MobileOptionField key={s.key} spec={s} value={optionValues[s.key]} allValues={optionValues} />
-                ))
+                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} />
               )}
             </DesignFormShell>
 
@@ -478,6 +473,45 @@ export function MobileShell(props: MobileShellProps) {
       />
     </div>
     </SelectedPartProvider>
+  );
+}
+
+/**
+ * 把 visible spec list 依 spec.group 分群，渲染成「色條 + 中文 section 標題 + 該群選項」。
+ * 解決手機進階設定一連串選項看不出哪幾項屬於上層 / 中層 / 下層 / 抽屜 / 門板 的問題。
+ */
+function GroupedSpecs({
+  specs,
+  optionValues,
+}: {
+  specs: OptionSpec[];
+  optionValues: Record<string, string | number | boolean>;
+}) {
+  const groups = groupSpecsByGroup(specs);
+  return (
+    <>
+      {groups.map((g) => (
+        <section key={g.group} className="space-y-3">
+          <div className="flex items-center gap-2 pt-1">
+            <span className={`inline-block w-1 h-4 rounded-full ${g.meta.bar}`} />
+            <span className="text-sm font-semibold text-zinc-800">
+              <span className="mr-1">{g.meta.icon}</span>
+              {g.meta.label}
+            </span>
+          </div>
+          <div className="space-y-3 pl-3 border-l-2 border-zinc-100">
+            {g.specs.map((s) => (
+              <MobileOptionField
+                key={s.key}
+                spec={s}
+                value={optionValues[s.key]}
+                allValues={optionValues}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
   );
 }
 
