@@ -176,10 +176,14 @@ export const displayCabinet: FurnitureTemplate = (input) => {
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [], mortises: [],
       });
-      // 側條（左右）
+      // 側條（左右）：前端切齊前條的內側（後面），後端到櫃體後緣（後方靠牆無需飾條）
       for (const side of [-1, 1]) {
-        const sideLen = W + proj - thick - zInset;
-        const sideCenterZ = (proj - zInset) / 2 - thick / 2;
+        // 前端 Z = 前條的後面 = -W/2 - proj + thick + zInset
+        // 後端 Z = +W/2
+        const sideFrontZ = -W / 2 - proj + thick + zInset;
+        const sideBackZ = W / 2;
+        const sideLen = sideBackZ - sideFrontZ;
+        const sideCenterZ = (sideFrontZ + sideBackZ) / 2;
         design.parts.push({
           id: `${id}-${side > 0 ? "right" : "left"}`,
           nameZh: `${nameZh} ${side > 0 ? "右" : "左"}條`,
@@ -225,10 +229,13 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           tenons: [], mortises: [],
         });
       }
-      // 左右側齒
-      const usableW = W + proj - toothW - toothT;
-      const nSide = Math.max(2, Math.floor(usableW / pitch) + 1);
-      const startZ = -((nSide - 1) * pitch) / 2 + (proj - toothT) / 2 - toothT / 2;
+      // 左右側齒：分佈在「前齒後方」到「後緣」之間
+      const sideFrontZTooth = -W / 2 - proj + toothT;
+      const sideBackZTooth = W / 2;
+      const sideRangeTooth = sideBackZTooth - sideFrontZTooth;
+      const nSide = Math.max(2, Math.floor((sideRangeTooth - toothW) / pitch) + 1);
+      const sideCenterZTooth = (sideFrontZTooth + sideBackZTooth) / 2;
+      const startZ = sideCenterZTooth - ((nSide - 1) * pitch) / 2;
       for (const side of [-1, 1]) {
         for (let k = 0; k < nSide; k++) {
           design.parts.push({
@@ -267,9 +274,13 @@ export const displayCabinet: FurnitureTemplate = (input) => {
           tenons: [], mortises: [],
         });
       }
-      const usableWp = W + proj - postW - postT;
-      const nSidePost = Math.max(2, Math.floor(usableWp / pitchP) + 1);
-      const startZp = -((nSidePost - 1) * pitchP) / 2 + (proj - postT) / 2 - postT / 2;
+      // 左右側立柱：分佈在「前立柱後方」到「後緣」之間
+      const sideFrontZpost = -W / 2 - proj + postT;
+      const sideBackZpost = W / 2;
+      const sideRangePost = sideBackZpost - sideFrontZpost;
+      const nSidePost = Math.max(2, Math.floor((sideRangePost - postW) / pitchP) + 1);
+      const sideCenterZpost = (sideFrontZpost + sideBackZpost) / 2;
+      const startZp = sideCenterZpost - ((nSidePost - 1) * pitchP) / 2;
       for (const side of [-1, 1]) {
         for (let k = 0; k < nSidePost; k++) {
           design.parts.push({
