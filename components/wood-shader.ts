@@ -93,6 +93,8 @@ dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.08;
 //     振幅 0.16，與上面各擾動項同量級，不蓋掉年輪拱形的擬真感。
 float grainStreak = wd_fbm(vec2(gx * 0.13, wz * 0.006));
 dimming -= smoothstep(0.52, 0.78, grainStreak) * 0.16;
+// 夾住 dimming ≥ 0：多項相減最壞情況會 < 0，負值乘進去會把顏色反相
+dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }
 
