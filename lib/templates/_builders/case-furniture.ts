@@ -687,6 +687,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     skipCaseDividers?: boolean;
     /** 覆寫全域 drawerMount（門內抽屜固定 inset、不跟隨櫃體抽屜面板設定）。 */
     drawerMount?: "overlay-6" | "overlay-3" | "inset";
+    /** 覆寫全域 pullStyle（門內抽屜藏在門後、固定 "none" 不裝把手）。 */
+    pullStyle?: string;
   }) => {
     renderDrawerZoneShared({
       ...cfg,
@@ -704,7 +706,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       drawerMount: cfg.drawerMount ?? drawerMount,
       drawerBottomMode: opts.drawerBottomMode,
       drawerSlideGap: opts.drawerSlideGap,
-      pullStyle,
+      pullStyle: cfg.pullStyle ?? pullStyle,
     }, parts);
   };
 
@@ -1562,6 +1564,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                 overlayBottom: 0, overlayTop: 0,
                 skipCaseDividers: true,
                 drawerMount: "inset",
+                pullStyle: "none",
               });
             }
           } else if (innerShelves > 0 && shelvesAreaH > 0) {
@@ -1710,6 +1713,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
                   overlayBottom: 0, overlayTop: 0,
                   skipCaseDividers: true,
                   drawerMount: "inset",
+                  pullStyle: "none",
                 });
               }
             } else if (subShelvesCnt > 0 && subShelvesAreaH > 0) {
