@@ -252,10 +252,6 @@ export function PricingClient() {
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-900">
             🎓 學員專屬續用方案
           </h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            木匠學院 / Hahow 學員 2 年免費期結束後，依需求挑一個續用：
-            DIY 自家用選個人，接案/工作室選專業
-          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto">
           {STUDENT_PLANS.map((p) => (
