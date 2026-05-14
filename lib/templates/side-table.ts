@@ -46,9 +46,9 @@ export const sideTableOptions: OptionSpec[] = [
     { value: "none", label: "無滑軌（木製或直接配合，1mm/側 鬆配）" },
   ], help: "三段滑軌：抽屜兩側各留 12.5mm 給滑軌；無滑軌：兩側各留 1mm 鬆配", dependsOn: { key: "withDrawer", equals: true } },
   { group: "drawer", type: "select", key: "pullStyle", label: "抽屜把手", defaultValue: "knob", choices: [
-    { value: "knob", label: "圓把手（knob）" },
-    { value: "bar", label: "長條把手（bar）" },
-    { value: "none", label: "無把手" },
+    { value: "knob", label: "● 圓把手（knob）" },
+    { value: "bar", label: "▬ 長條把手（bar）" },
+    { value: "none", label: "✕ 無把手" },
   ], dependsOn: { key: "withDrawer", equals: true } },
 ];
 
