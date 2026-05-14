@@ -1530,14 +1530,16 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         const doorHasHanging = z.doorInnerHanging === true;
         const nDoorCols = Math.max(1, z.cols ?? 1);
         if (nDoorCols < 2) {
-          renderDoorZone({
-            yStart, height: usableH,
-            count: z.count ?? 2,
-            doorType: effectiveDoorType,
-            idPrefix: `${idPrefix}-door`,
-            labelPrefix: `${labelPrefix}門`,
-            extendBottom, extendTop,
-          });
+          if (!opts.slidingDoorMode) {
+            renderDoorZone({
+              yStart, height: usableH,
+              count: z.count ?? 2,
+              doorType: effectiveDoorType,
+              idPrefix: `${idPrefix}-door`,
+              labelPrefix: `${labelPrefix}門`,
+              extendBottom, extendTop,
+            });
+          }
           // 計算吊衣空間切分點：doorHasHanging 時 zone 上方留 hangingHeight 給掛衣，
           // 下方剩餘空間給 doorInnerShelves 或 doorInnerDrawers
           const hangingHeightRaw = z.doorInnerHangingHeight ?? 1200;
@@ -1676,16 +1678,18 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               : ci === 0 ? "左" : ci === 1 && nDoorCols === 3 ? "中" : "右";
             const extL = ci === 0 ? doorOverlayCol : halfBoundaryCol;
             const extR = ci === nDoorCols - 1 ? doorOverlayCol : halfBoundaryCol;
-            renderDoorZone({
-              yStart, height: usableH,
-              count: z.count ?? 1,
-              doorType: effectiveDoorType,
-              idPrefix: `${idPrefix}-col${ci + 1}-door`,
-              labelPrefix: `${labelPrefix}${colLabel}欄門`,
-              xCenter: colCx, colInnerW: colW,
-              extendLeft: extL, extendRight: extR,
-              extendBottom, extendTop,
-            });
+            if (!opts.slidingDoorMode) {
+              renderDoorZone({
+                yStart, height: usableH,
+                count: z.count ?? 1,
+                doorType: effectiveDoorType,
+                idPrefix: `${idPrefix}-col${ci + 1}-door`,
+                labelPrefix: `${labelPrefix}${colLabel}欄門`,
+                xCenter: colCx, colInnerW: colW,
+                extendLeft: extL, extendRight: extR,
+                extendBottom, extendTop,
+              });
+            }
             // 子欄獨立設定：subs[i] 沒有則 fallback 到 zone 層級
             const subCfg = subs[ci] ?? {};
             const subShelvesCnt = subCfg.shelves ?? innerShelves;
