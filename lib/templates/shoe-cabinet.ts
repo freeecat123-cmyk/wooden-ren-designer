@@ -84,7 +84,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   drawerSlideOption,
   backPanelMaterialOption("structure"),
   { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：上層 / 下層高度都明確設、總高扣掉後的餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、下層自動吃剩（原本行為）", wide: true },
-  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度 (mm)", defaultValue: 600, min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度", dependsOn: { key: "lockTotalHeight", equals: true } },
+  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度 (mm)", defaultValue: 600, min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度（不分上下層時 = 整個內部高度）。上層高度請用「上層高度」欄位設定", dependsOn: { key: "lockTotalHeight", equals: true } },
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
@@ -244,12 +244,20 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     drawerSlideGap: resolveDrawerSlideGap(input, o),
     pullStyle,
     doorPullStyle,
-    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${legHeight > 0 ? `；加 ${legHeight}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
+    notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""} ${backPanelMaterialNote(backPanelMaterial)}`.trim(),
     warnings,
   });
   // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
+  // 限定門相關 id（-door / -slab / -panel / -rail / -stile），不要誤抓抽屜面板（-face）
+  // 也排除門內藏層板 -door-inner-shelf-N
   if (doorType === "louvered") {
-    const doorParts = design.parts.filter((p) => p.id.includes("door") || p.id.endsWith("-face"));
+    const doorParts = design.parts.filter(
+      (p) =>
+        (p.id.includes("-door-") || p.id.endsWith("-door") || p.id.endsWith("-slab") || p.id.endsWith("-panel")) &&
+        !p.id.includes("-door-inner") &&
+        !/-rail-|-stile-/.test(p.id) &&
+        !p.id.endsWith("-glass"),
+    );
     for (const dp of doorParts) {
       const dH = dp.visible.width;
       const slatPitch = 23; // 8mm 葉片 + 15mm 間距
@@ -262,15 +270,18 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       dp.mortises = newM;
     }
   }
-  // 斜放鞋格：將收納區的層板向前傾斜（rake = rotation.x），前緣下沉，
+  // 斜放鞋格：將「主（下）收納區」的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。
-  // 單一 zone：所有 z1-shelf-N 都套用
+  // 主 zone id prefix = z1（shelves: z1-shelf-N；門內藏層板: z1-door-inner-shelf-N）
+  // 必須限定 z1-，否則 hasUpper + 上層 shelves/門內藏層板（z2-*）會被誤斜。
+  const isMainShelf = (id: string) =>
+    /^z1-shelf-\d+$/.test(id) || /^z1-door-inner-shelf-\d+$/.test(id);
   if (angledRackActive) {
     // 自動上限 tilt：傾斜後層板垂直跨度 (shelfD*sinθ + shelfT*cosθ) 撞鄰層
     // 是「斜板超出框內」的元凶。留 2*panelT 隔離 → 保守用 cosθ≈1：
     //   sinθ ≤ (layerH - 3*panelT) / shelfD
     const shelfDApprox =
-      design.parts.find((p) => /-shelf-\d+$/.test(p.id))?.visible.width ?? input.width;
+      design.parts.find((p) => isMainShelf(p.id))?.visible.width ?? input.width;
     // shelves zone: layers = zoneCount；door zone（門內藏層板）: layers = doorInnerShelves + 1
     const shelfLayerCount =
       zoneType === "door" ? doorInnerShelves + 1 : zoneCount;
@@ -295,8 +306,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     const shelfIdsHit: string[] = [];
     const tiltedParts: typeof design.parts = [];
     for (const part of design.parts) {
-      const isInternalShelf = /-shelf-\d+$/.test(part.id);
-      if (!isInternalShelf) continue;
+      if (!isMainShelf(part.id)) continue;
       // tiltRad=0 表示自動 cap 後沒得斜（層板太密）→ skip 整片，但已 warn
       if (tiltRad === 0) continue;
       // rake：負值讓前緣（-Z 方向）下沉
