@@ -159,8 +159,11 @@ export interface CabinetZone {
    *  兩側板加母榫眼。跟 doorInnerShelves 可共存：吊衣空間在 zone 上方、shelves 在下方。 */
   doorInnerHanging?: boolean;
   /** door 類型專用：門內裝抽屜。> 0 時門後方放這麼多排抽屜（取代 shelves）。
-   *  抽屜均分整個門內可用高度（與 doorInnerShelves 同邏輯），無水平分隔板。 */
+   *  抽屜均分區域，但區域高度 = 抽屜數 × doorInnerDrawerHeight。 */
   doorInnerDrawers?: number;
+  /** door 類型專用：門內每抽屜高度（mm）。預設 100，範圍 80-150。
+   *  總抽屜區高 = doorInnerDrawers × doorInnerDrawerHeight，超過可用空間時夾住。 */
+  doorInnerDrawerHeight?: number;
   /** door 類型專用：吊衣空間高度（mm）。doorInnerHanging=true 時生效；
    *  rod 在 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度。
    *  下方剩餘空間給 doorInnerShelves 用，並會加一片水平隔板做分界。 */
@@ -168,13 +171,14 @@ export interface CabinetZone {
   /** door 類型 + cols >= 2 時：每子欄獨立配置。長度需 = cols。
    *  未傳或對應索引為 undefined 走 zone 層級的 doorInnerShelves / Hanging / HangingHeight / Drawers。
    *  widthFrac 未指定的子欄會按剩餘空間平分。
-   *  drawers > 0 時取代 shelves（抽屜均分整個子欄門內可用高度、無分隔板）。 */
+   *  drawers > 0 時取代 shelves（每抽固定 80mm 高、無分隔板）。 */
   doorSubCols?: Array<{
     shelves?: number;
     hanging?: boolean;
     hangingHeight?: number;
     widthFrac?: number;
     drawers?: number;
+    drawerHeight?: number;
   }>;
   /** drawer 類型專用：各排高度比例（fraction 陣列、總和=1）。
    *  未傳走均分；長度需 = count。
@@ -1537,18 +1541,26 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           const shelvesAreaH = doorHasHanging ? usableH - hangingHeight : usableH;
           const shelvesAreaYStart = yStart;
           const innerDrawers = z.doorInnerDrawers ?? 0;
+          const innerDrawerH = Math.min(150, Math.max(80, z.doorInnerDrawerHeight ?? 100));
           if (innerDrawers > 0 && shelvesAreaH > 0) {
-            // 抽屜均分整個門內可用高度（與 renderShelvesZone 一致），無分隔板。
-            renderDrawerZone({
-              yStart: shelvesAreaYStart,
-              height: shelvesAreaH,
-              rows: innerDrawers, cols: 1,
-              idPrefix: `${idPrefix}-doordr`,
-              labelPrefix: `${labelPrefix}門內抽屜`,
-              dividerFrom: "none",
-              overlayBottom: 0, overlayTop: 0,
-              skipCaseDividers: true,
-            });
+            // 等距分散：每個抽屜固定 innerDrawerH 高、無分隔板，N+1 個等距空隙
+            // 夾在上下緣與抽屜之間（不補滿整格）。空間不足時 gap 夾為 0。
+            const innerDrawerGap = Math.max(
+              0,
+              (shelvesAreaH - innerDrawers * innerDrawerH) / (innerDrawers + 1),
+            );
+            for (let di = 0; di < innerDrawers; di++) {
+              renderDrawerZone({
+                yStart: shelvesAreaYStart + innerDrawerGap + di * (innerDrawerH + innerDrawerGap),
+                height: innerDrawerH,
+                rows: 1, cols: 1,
+                idPrefix: `${idPrefix}-doordr-d${di + 1}`,
+                labelPrefix: `${labelPrefix}門內抽屜`,
+                dividerFrom: "none",
+                overlayBottom: 0, overlayTop: 0,
+                skipCaseDividers: true,
+              });
+            }
           } else if (innerShelves > 0 && shelvesAreaH > 0) {
             renderShelvesZone({
               yStart: shelvesAreaYStart,
@@ -1677,18 +1689,25 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
               : 0;
             const subShelvesAreaH = subHasHanging ? usableH - subHangingHeight : usableH;
             if (subDrawers > 0 && subShelvesAreaH > 0) {
-              // 抽屜均分整個子欄門內可用高度（與 renderShelvesZone 一致），無分隔板。
-              renderDrawerZone({
-                yStart,
-                height: subShelvesAreaH,
-                rows: subDrawers, cols: 1,
-                idPrefix: `${idPrefix}-col${ci + 1}-doordr`,
-                labelPrefix: `${labelPrefix}${colLabel}欄門內抽屜`,
-                dividerFrom: "none",
-                xCenter: colCx, colInnerW: colW,
-                overlayBottom: 0, overlayTop: 0,
-                skipCaseDividers: true,
-              });
+              // 等距分散：每抽屜固定 subDrawerH 高，N+1 個等距空隙夾在中間（不補滿整格）。
+              const subDrawerH = Math.min(150, Math.max(80, subCfg.drawerHeight ?? (z.doorInnerDrawerHeight ?? 100)));
+              const subDrawerGap = Math.max(
+                0,
+                (subShelvesAreaH - subDrawers * subDrawerH) / (subDrawers + 1),
+              );
+              for (let di = 0; di < subDrawers; di++) {
+                renderDrawerZone({
+                  yStart: yStart + subDrawerGap + di * (subDrawerH + subDrawerGap),
+                  height: subDrawerH,
+                  rows: 1, cols: 1,
+                  idPrefix: `${idPrefix}-col${ci + 1}-doordr-d${di + 1}`,
+                  labelPrefix: `${labelPrefix}${colLabel}欄門內抽屜`,
+                  dividerFrom: "none",
+                  xCenter: colCx, colInnerW: colW,
+                  overlayBottom: 0, overlayTop: 0,
+                  skipCaseDividers: true,
+                });
+              }
             } else if (subShelvesCnt > 0 && subShelvesAreaH > 0) {
               renderShelvesZone({
                 yStart,
