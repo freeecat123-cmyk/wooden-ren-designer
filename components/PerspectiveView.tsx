@@ -834,11 +834,14 @@ function buildChamferedTopGeometry(
 
   // 一個 level 的 perimeter (X-Z 平面 4 角圓角矩形)，CCW 從 +Y 方向看（俯視）
   // 4 個角各 (cornerSegs+1) 點；無圓角時退回 4 角矩形
+  // ⚠ 每層點數必須一致（下方三角化寫死 K = perimeters[0].length）。
+  //   cornerSegs > 0 時一律走圓角迴圈——r 夾到 0（cornerR < chamferMm 時上倒角層會發生）
+  //   也只是讓該角的點塌縮到尖角，點數仍 = 4×(cornerSegs+1)，K 不會錯位。
   const perimeterAt = (inset: number): Array<[number, number]> => {
     const ax = Math.max(0, hx - inset);
     const az = Math.max(0, hz - inset);
     const r = Math.max(0, Math.min(baseR - inset, ax, az));
-    if (r <= 0 || cornerSegs === 0) {
+    if (cornerSegs === 0) {
       return [[-ax, -az], [+ax, -az], [+ax, +az], [-ax, +az]];
     }
     const pts: Array<[number, number]> = [];

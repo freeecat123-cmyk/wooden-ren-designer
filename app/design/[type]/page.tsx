@@ -27,6 +27,7 @@ import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
 import { ErgoHints } from "@/components/ErgoHints";
+import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
@@ -346,6 +347,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </div>
         </div>
       )}
+
+      <DeflectionHints parts={design.parts} />
 
       {design.suggestions && design.suggestions.length > 0 && (
         <SuggestionsBox suggestions={design.suggestions} />
