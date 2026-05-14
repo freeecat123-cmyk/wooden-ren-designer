@@ -214,6 +214,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     sp.xray === "face" || sp.xray === "true" || sp.xray === "1" ? "face" :
     "off";
   const wireframeMode = sp.wf === "1" || sp.wf === "true";
+  // 木紋走向箭頭疊層：?grain=1 → 3D 每個木製零件疊雙向箭頭
+  const showGrainArrows = sp.grain === "1" || sp.grain === "true";
 
   // 爆炸視圖：?explode=N（mm）— joineryMode 下 tenon 沿 outward axis 偏移，
   // 視覺像榫頭從榫眼抽出。常用 20–40。
@@ -373,7 +375,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} noSync />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} showGrainArrows={showGrainArrows} noSync />
           </div>
         </div>
 
@@ -438,13 +440,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
-                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} />
+                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} showGrainArrows={showGrainArrows} />
               </div>
             </div>
           </div>
           {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} compactMode />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} showGrainArrows={showGrainArrows} compactMode />
           </Material3dPip>
         </div>
       </details>

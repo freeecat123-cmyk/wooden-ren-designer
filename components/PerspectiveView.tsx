@@ -1848,6 +1848,7 @@ export function PerspectiveView({
   onPartSelect,
   compactMode = false,
   wireframeMode = false,
+  showGrainArrows = false,
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -1872,6 +1873,8 @@ export function PerspectiveView({
   compactMode?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
   wireframeMode?: boolean;
+  /** 木紋走向箭頭疊層：?grain=1 時每個木製零件疊一支雙向箭頭 */
+  showGrainArrows?: boolean;
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
