@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -2417,37 +2417,54 @@ export function PerspectiveView({
                   part.shape?.kind === "splayed-round-tapered";
                 const useRoundTenon = isRoundLegPart && t.position === "top";
                 return (
-                  <mesh
-                    key={`${part.id}-tenon-${ti}`}
-                    position={[wx, wy, wz]}
-                    rotation={new Euler(rx, ry, rz, "ZYX")}
-                    castShadow
-                  >
-                    {(() => {
-                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
-                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
-                      const SHRINK_MM = 0.5;
-                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
-                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
-                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
-                      return useRoundTenon ? (
-                        <cylinderGeometry args={[
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          sy,
-                          24,
-                        ]} />
-                      ) : (
-                        <boxGeometry args={[sx, sy, sz]} />
-                      );
-                    })()}
-                    <meshStandardMaterial
-                      color="#c0392b"
-                      roughness={0.8}
-                      transparent={selectedPartId !== null && selectedPartId !== part.id}
-                      opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
-                    />
-                  </mesh>
+                  <React.Fragment key={`${part.id}-tenon-${ti}`}>
+                    <mesh
+                      position={[wx, wy, wz]}
+                      rotation={new Euler(rx, ry, rz, "ZYX")}
+                      castShadow
+                    >
+                      {(() => {
+                        // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
+                        // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
+                        const SHRINK_MM = 0.5;
+                        const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
+                        const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
+                        const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
+                        return useRoundTenon ? (
+                          <cylinderGeometry args={[
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            sy,
+                            24,
+                          ]} />
+                        ) : (
+                          <boxGeometry args={[sx, sy, sz]} />
+                        );
+                      })()}
+                      <meshStandardMaterial
+                        color="#c0392b"
+                        roughness={0.8}
+                        transparent={selectedPartId !== null && selectedPartId !== part.id}
+                        opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
+                      />
+                    </mesh>
+                    {showGrainArrows && !useRoundTenon && (
+                      // 榫頭木紋走向：沿榫頭長軸（§L P0-2）。
+                      // start/end → 長軸 X → "length"；left/right → 長軸 Z → "width"；
+                      // top/bottom → 長軸 Y（GrainArrow 方形件無 Y 模式）→ fallback "length"
+                      <GrainArrow
+                        position={[wx, wy, wz]}
+                        rotation={new Euler(rx, ry, rz, "ZYX")}
+                        size={[hx * 2 * SCALE, hy * 2 * SCALE, hz * 2 * SCALE]}
+                        grainDirection={
+                          t.position === "left" || t.position === "right"
+                            ? "width"
+                            : "length"
+                        }
+                        shapeKind={undefined}
+                      />
+                    )}
+                  </React.Fragment>
                 );
               })
             : null;
