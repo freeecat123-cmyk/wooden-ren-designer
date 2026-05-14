@@ -88,6 +88,11 @@ dimming -= smoothstep(0.84, 0.93, pore) * 0.18;
 dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.18;
 // 10. 中尺度斑紋
 dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.08;
+// 11. 順紋方向條紋——沿 grain 軸（gx）高頻、跨 grain 軸（wz）近乎不變，
+//     視覺上是一條條順著纖維跑的細暗紋，讓木紋走向不靠年輪也看得出來。
+//     振幅 0.16，與上面各擾動項同量級，不蓋掉年輪拱形的擬真感。
+float grainStreak = wd_fbm(vec2(gx * 0.13, wz * 0.006));
+dimming -= smoothstep(0.52, 0.78, grainStreak) * 0.16;
 diffuseColor.rgb *= dimming;`;
 }
 
