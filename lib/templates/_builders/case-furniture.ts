@@ -159,11 +159,8 @@ export interface CabinetZone {
    *  兩側板加母榫眼。跟 doorInnerShelves 可共存：吊衣空間在 zone 上方、shelves 在下方。 */
   doorInnerHanging?: boolean;
   /** door 類型專用：門內裝抽屜。> 0 時門後方放這麼多排抽屜（取代 shelves）。
-   *  抽屜均分區域，但區域高度 = 抽屜數 × doorInnerDrawerHeight。 */
+   *  抽屜均分整個門內可用高度（與 doorInnerShelves 同邏輯），無水平分隔板。 */
   doorInnerDrawers?: number;
-  /** door 類型專用：門內每抽屜高度（mm）。預設 100，範圍 80-150。
-   *  總抽屜區高 = doorInnerDrawers × doorInnerDrawerHeight，超過可用空間時夾住。 */
-  doorInnerDrawerHeight?: number;
   /** door 類型專用：吊衣空間高度（mm）。doorInnerHanging=true 時生效；
    *  rod 在 zone 頂端 60mm，吊衣空間從頂端往下延伸這個高度。
    *  下方剩餘空間給 doorInnerShelves 用，並會加一片水平隔板做分界。 */
@@ -171,14 +168,13 @@ export interface CabinetZone {
   /** door 類型 + cols >= 2 時：每子欄獨立配置。長度需 = cols。
    *  未傳或對應索引為 undefined 走 zone 層級的 doorInnerShelves / Hanging / HangingHeight / Drawers。
    *  widthFrac 未指定的子欄會按剩餘空間平分。
-   *  drawers > 0 時取代 shelves（每抽固定 80mm 高、無分隔板）。 */
+   *  drawers > 0 時取代 shelves（抽屜均分整個子欄門內可用高度、無分隔板）。 */
   doorSubCols?: Array<{
     shelves?: number;
     hanging?: boolean;
     hangingHeight?: number;
     widthFrac?: number;
     drawers?: number;
-    drawerHeight?: number;
   }>;
   /** drawer 類型專用：各排高度比例（fraction 陣列、總和=1）。
    *  未傳走均分；長度需 = count。
