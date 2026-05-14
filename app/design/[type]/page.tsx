@@ -29,6 +29,7 @@ import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
 import { ErgoHints } from "@/components/ErgoHints";
 import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
+import { GrainArrowToggle } from "@/components/GrainArrowToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
@@ -375,6 +376,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
+            <GrainArrowToggle />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} showGrainArrows={showGrainArrows} noSync />
           </div>
         </div>
@@ -440,6 +442,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
+                <GrainArrowToggle />
                 <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} showGrainArrows={showGrainArrows} />
               </div>
             </div>
