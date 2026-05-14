@@ -171,8 +171,10 @@ function buildSeatFrame(args: Pick<CircleChairBuildArgs, "material" | "seatWidth
 function buildLegs(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" | "seatDepth" | "seatHeight" | "ringHeight" | "legScale">): Part[] {
   const { material, seatWidth, seatDepth, seatHeight, ringHeight, legScale } = args;
   const { FRONT_D, REAR_D, legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
-  // 鵝脖頂大約座面上 180mm 接椅圈前段（不依賴迴圈變數 sx，移至迴圈外）
-  const frontLegTop = seatHeight + 180;
+  // 前腳（鵝脖）一木連做：頂端必須抵達椅圈才能真正承托。
+  // frontLegTop = ringHeight → 前腳像後腳一樣貫穿到椅圈頂（椅圈 Y 範圍 ringHeight-RING_T..ringHeight）。
+  // （舊版 seatHeight+180 是憑空數字、比椅圈底面矮 24mm → 前腳浮空沒接到椅圈。）
+  const frontLegTop = ringHeight;
   const parts: Part[] = [];
 
   // P1 直線化框架版：前腳用直立圓料（round）。
@@ -331,36 +333,34 @@ function buildArmRail(args: Pick<CircleChairBuildArgs, "material" | "seatWidth" 
   // 椅圈斷面：厚 36（垂直 → thickness）、寬 ~45–55（水平徑向 → width）
   // visible 慣例（geometry.ts:6）：length→X、thickness→Y(高)、width→Z(深)
   const { RING_T, ringY, backZ } = armRingAnchors(seatDepth, ringHeight);
+  // 椅圈錨定支撐件：side rail 跑在後腿正上方、中-側轉角接點落在後腿頂，
+  // 椅圈才真正「掛」在腿上（舊版 sideX 自己算、跟後腿差 7mm 又靠 audit clause 蓋掉 → 浮空沒接上）。
+  const { legXOff, legZRear } = legAnchors(seatWidth, seatDepth);
 
   // 椅圈斷面寬（水平徑向，→ visible.width）
   const W_BACK = 55, W_MID = 50, W_SIDE = 45;
 
-  // 馬蹄圈幾何鏈（5 段多邊近似）：
-  //   後段沿 X 在最後緣；左右桿沿 Z 在兩側；中桿 45° 斜接兩者。
-  //   45° 斜接需 |ΔX| = |ΔZ| = CORNER_D，故 backHalf 與 sideRearZ 由 CORNER_D 回推，
-  //   保證後段端點 (backHalf, backZ) 與左右桿後端 (sideX, sideRearZ) 用一條 45° 中桿接上。
-  // 椅圈左右桿中心 X。P1 直線化框架版用近似值（≈後腿中心，實差約 7mm）；
-  // 精確對齊後腿一木連做接點留 P2(BATT)/P3(swept-curve)。audit 的 arm-rail×leg
-  // clause 已放行此處結構性 overlap。
-  const sideX = seatWidth / 2 - RING_T / 2 - 6;
-  const sideFrontZ = -seatDepth / 2 + 20;             // 左右桿前端 Z（扶手前端，略前出）
-  const CORNER_D = 110;                               // 45° 斜角段的 X/Z 投影邊長
-  const backHalf = sideX - CORNER_D;                  // 後段（未修肩）端點 X
-  const sideRearZ = backZ - CORNER_D;                 // 左右桿後端（未修肩）Z
-  // 接點：J_backmid =（backHalf, backZ）、J_midside =（sideX, sideRearZ）
-  // box 斷面零件在 135° 轉角無法做「斜接面對接」（端面與軸垂直、非斜接面）：
-  // 中心線對齊會在轉角互穿、單純縮料則留大縫整圈不順。經數值搜尋確認兩者不可兼得，
-  // 取「中心線在接點對齊」→ 視覺連續的馬蹄圈；轉角 box 互穿區即真實榫接咬合處。
-  // （arm-rail × arm-rail 轉角 overlap 為結構性接點，audit butt-joint filter 未涵蓋。）
-  // 後段：兩端到 ±backHalf，端面落在接點
-  const backLen = 2 * backHalf;
-  // 中桿：沿軸（J_backmid → J_midside）滿長，origin 落在兩接點中點
-  const midLen = Math.hypot(CORNER_D, CORNER_D);
+  // 馬蹄圈幾何鏈（5 段多邊近似），錨定 legAnchors：
+  //   側桿 X = 後腿中心 X（legXOff）；中-側轉角接點 J_midside =(legXOff, legZRear)= 後腿頂正上方；
+  //   後段沿 X 在最後緣 backZ；中桿 45° 斜接「後段端點 J_backmid」與「後腿頂 J_midside」。
+  const sideX = legXOff;                              // 椅圈側桿 X = 後腿中心 X（後腿一木連做接此）
+  const sideRearZ = legZRear;                         // 中-側轉角接點 Z = 後腿中心 Z
+  const sideFrontZ = -seatDepth / 2 + 20;             // 側桿前端 Z（扶手出頭，自由端）
+  const CORNER_D = backZ - sideRearZ;                 // 45° 斜角段 X/Z 投影邊長（後段 Z → 後腿 Z）
+  const backHalf = sideX - CORNER_D;                  // 後段端點 X（保中桿 45°）
+  // 接點：J_backmid=(backHalf, backZ)、J_midside=(sideX, sideRearZ)=後腿頂正上方。
+  // box 斷面在 135° 轉角無法「斜接面對接」——改讓相鄰段端部互相延伸 JOINT_OVERLAP、
+  // box 互穿填滿轉角（消 V 形縫；arm-rail×arm-rail 結構性 overlap 已由 audit clause 放行）。
+  const JOINT_OVERLAP = 32;
+  // 後段：兩端各延伸 JOINT_OVERLAP 越過 J_backmid
+  const backLen = 2 * backHalf + 2 * JOINT_OVERLAP;
+  // 中桿：J_backmid → J_midside 滿長 + 兩端各延伸 JOINT_OVERLAP；origin 落兩接點中點
+  const midLen = Math.hypot(CORNER_D, CORNER_D) + 2 * JOINT_OVERLAP;
   const midOriginX = (backHalf + sideX) / 2;
   const midOriginZ = (backZ + sideRearZ) / 2;
-  // 左右桿：後端到 sideRearZ、前端到 sideFrontZ
-  const sideLen = sideRearZ - sideFrontZ;
-  const sideMidZ = (sideRearZ + sideFrontZ) / 2;
+  // 側桿：後端越過 J_midside 延伸 JOINT_OVERLAP、前端維持自由端 sideFrontZ
+  const sideLen = (sideRearZ - sideFrontZ) + JOINT_OVERLAP;
+  const sideMidZ = (sideFrontZ + sideRearZ + JOINT_OVERLAP) / 2;
   const parts: Part[] = [];
 
   // 後正中段（椅圈上靠桿）：沿 X、不旋轉、arch-bent 往 +Z 後凸
