@@ -3,6 +3,21 @@ import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
 import { legEdgeOption, legEdgeStyleOption, stretcherEdgeOption, stretcherEdgeStyleOption, seatEdgeOption, seatEdgeStyleOption, parseSeatChamferMm } from "./_helpers";
 
+/** 座框大邊/抹頭斷面高（visible.thickness） */
+const RAIL_W = 91;
+/** 腿中心離座框外緣的內縮量 */
+const LEG_INSET = 6;
+
+/** 四腿的斷面尺寸與 X/Z 平面錨點位置（buildLegs / buildStretchers / 後續 sub-function 共用） */
+function legAnchors(seatWidth: number, seatDepth: number) {
+  const FRONT_D = 50;
+  const REAR_D = 36;
+  const legXOff = seatWidth / 2 - FRONT_D / 2 - LEG_INSET;
+  const legZFront = -(seatDepth / 2 - FRONT_D / 2 - LEG_INSET);
+  const legZRear = seatDepth / 2 - REAR_D / 2 - LEG_INSET;
+  return { FRONT_D, REAR_D, legXOff, legZFront, legZRear };
+}
+
 export const circleChairOptions: OptionSpec[] = [
   // 基本尺寸（spec §8.1：只開座面高，其餘走 catalog defaults length/width/height）
   { group: "top", type: "number", key: "seatHeight", label: "座面高 (mm)", defaultValue: 480, min: 420, max: 520, step: 5, unit: "mm", help: "地面到座板上緣（人體工學 §O）" },
@@ -39,8 +54,8 @@ function buildSeatFrame(args: {
   seatEdgeStyle: string;
 }): Part[] {
   const { material, seatWidth, seatDepth, seatHeight, seatChamferMm, seatEdgeStyle } = args;
-  // RAIL_W = 大邊/抹頭的可見高度（Y 方向）；RAIL_T = 厚度（Z/X 方向板料厚）
-  const RAIL_W = 91, RAIL_T = 39, PANEL_T = 15, BATTEN = 35;
+  // RAIL_W（模組常數 91）= 大邊/抹頭的可見高度（Y 方向）；RAIL_T = 厚度（Z/X 方向板料厚）
+  const RAIL_T = 39, PANEL_T = 15, BATTEN = 35;
   // 大邊底面 Y：座框頂 = seatHeight，框高 = RAIL_W，所以底面 y = seatHeight - RAIL_W
   const railBottomY = seatHeight - RAIL_W;
   const parts: Part[] = [];
@@ -118,11 +133,7 @@ function buildLegs(args: {
   ringHeight: number;          // input.height（椅圈總高）
 }): Part[] {
   const { material, seatWidth, seatDepth, seatHeight, ringHeight } = args;
-  const FRONT_D = 50, REAR_D = 36;
-  // 腿中心離座框：前腿在前緣、後腿在後緣，內縮一個腿半徑
-  const legXOff = seatWidth / 2 - FRONT_D / 2 - 6;
-  const legZOffFront = -(seatDepth / 2 - FRONT_D / 2 - 6);
-  const legZOffRear = seatDepth / 2 - REAR_D / 2 - 6;
+  const { FRONT_D, REAR_D, legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
   // 鵝脖頂大約座面上 180mm 接椅圈前段（不依賴迴圈變數 sx，移至迴圈外）
   const frontLegTop = seatHeight + 180;
   const parts: Part[] = [];
@@ -138,7 +149,7 @@ function buildLegs(args: {
       material,
       grainDirection: "length",
       visible: { length: FRONT_D, width: FRONT_D, thickness: frontLegTop },
-      origin: { x: sx * legXOff, y: 0, z: legZOffFront },
+      origin: { x: sx * legXOff, y: 0, z: legZFront },
       shape: { kind: "round" }, // P1 直立圓料；鵝脖前彎留 P2/P3
       tenons: [],
       mortises: [],
@@ -154,7 +165,7 @@ function buildLegs(args: {
       material,
       grainDirection: "length",
       visible: { length: REAR_D, width: REAR_D, thickness: ringHeight },
-      origin: { x: sx * legXOff, y: 0, z: legZOffRear },
+      origin: { x: sx * legXOff, y: 0, z: legZRear },
       shape: { kind: "round" }, // P1 直立圓料；後傾曲線留 P2/P3
       tenons: [],
       mortises: [],
@@ -170,18 +181,14 @@ function buildStretchers(args: {
   const { material, seatWidth, seatDepth, seatHeight } = args;
   const parts: Part[] = [];
 
-  // 腳中心內縮距（與 buildLegs 一致）
-  const FRONT_D = 50, REAR_D = 36;
-  // 前腳 z 座標：legZOffFront = -(seatDepth/2 - FRONT_D/2 - 6)
+  // 腳中心內縮距（與 buildLegs 共用 legAnchors helper）
   // 橫飾棖/管腳棖端面對腳中心，跨距 = 兩腳中心距
-  const legXOff = seatWidth / 2 - FRONT_D / 2 - 6;       // 左右腳 X 中心偏移
-  const legZFront = -(seatDepth / 2 - FRONT_D / 2 - 6);  // 前腳 Z 中心
-  const legZRear  =  seatDepth / 2 - REAR_D  / 2 - 6;    // 後腳 Z 中心
+  const { FRONT_D, REAR_D, legXOff, legZFront, legZRear } = legAnchors(seatWidth, seatDepth);
 
   // 橫飾棖斷面：高 48mm（Y）× 深 21mm（Z or X）
-  // 緊貼座框底面下方（座框底 y = seatHeight - 91），棖頂面在座框底，所以棖底面 y = seatHeight - 91 - 48
+  // 緊貼座框底面下方（座框底 y = seatHeight - RAIL_W），棖頂面在座框底，所以棖底面 y = seatHeight - RAIL_W - 48
   const DECOR_H = 48, DECOR_T = 21;
-  const decorY = seatHeight - 91 - DECOR_H; // 棖底面 Y（part origin = 底部中心）
+  const decorY = seatHeight - RAIL_W - DECOR_H; // 棖底面 Y（part origin = 底部中心）
 
   // 橫撐跨距：face-to-face（腳外緣到腳外緣），避免棖端面進入腳 AABB。
   // X 方向：左右均為前腳 FRONT_D=50，face-to-face = 2*legXOff - FRONT_D
