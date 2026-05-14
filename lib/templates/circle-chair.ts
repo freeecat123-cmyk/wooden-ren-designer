@@ -112,6 +112,53 @@ function buildSeatFrame(args: {
   return parts;
 }
 
+function buildLegs(args: {
+  material: import("@/lib/types").MaterialId;
+  seatWidth: number; seatDepth: number; seatHeight: number;
+  ringHeight: number;          // input.height（椅圈總高）
+}): Part[] {
+  const { material, seatWidth, seatDepth, seatHeight, ringHeight } = args;
+  const FRONT_D = 50, REAR_D = 36;
+  // 腿中心離座框：前腿在前緣、後腿在後緣，內縮一個腿半徑
+  const legXOff = seatWidth / 2 - FRONT_D / 2 - 6;
+  const legZOffFront = -(seatDepth / 2 - FRONT_D / 2 - 6);
+  const legZOffRear = seatDepth / 2 - REAR_D / 2 - 6;
+  const parts: Part[] = [];
+
+  // 前腳（含鵝脖）：地面 → 鵝脖頂；P1 用 arch-bent，bendMm 負 = 往 -Z（前）彎
+  // visible 慣例：length(X)=直徑、width(Z)=直徑、thickness(Y)=腿高；與 round-stool.ts:213 一致
+  for (const sx of [-1, 1] as const) {
+    const frontLegTop = seatHeight + 180; // 鵝脖頂大約座面上 180mm 接椅圈前段
+    parts.push({
+      id: sx < 0 ? "leg-front-l" : "leg-front-r",
+      nameZh: `前${sx < 0 ? "左" : "右"}腳（含鵝脖）`,
+      material,
+      grainDirection: "length",
+      visible: { length: FRONT_D, width: FRONT_D, thickness: frontLegTop },
+      origin: { x: sx * legXOff, y: 0, z: legZOffFront },
+      shape: { kind: "arch-bent", bendMm: -28 }, // 上段往前彎模擬鵝脖
+      tenons: [],
+      mortises: [],
+    });
+  }
+  // 後腳（一木連做穿座盤接椅圈）：bendMm 正 = 往 +Z（後）彎
+  // visible 慣例：length(X)=直徑、width(Z)=直徑、thickness(Y)=腿全高（地面到椅圈頂）
+  for (const sx of [-1, 1] as const) {
+    parts.push({
+      id: sx < 0 ? "leg-rear-l" : "leg-rear-r",
+      nameZh: `後${sx < 0 ? "左" : "右"}腳`,
+      material,
+      grainDirection: "length",
+      visible: { length: REAR_D, width: REAR_D, thickness: ringHeight },
+      origin: { x: sx * legXOff, y: 0, z: legZOffRear },
+      shape: { kind: "arch-bent", bendMm: 22 }, // 上段後傾
+      tenons: [],
+      mortises: [],
+    });
+  }
+  return parts;
+}
+
 /**
  * 明式圈椅（circle-chair）— Phase 1 直線化框架版
  * input.length = 座寬、input.width = 座深、input.height = 椅圈總高
@@ -128,6 +175,10 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   parts.push(...buildSeatFrame({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight,
     seatChamferMm, seatEdgeStyle,
+  }));
+  parts.push(...buildLegs({
+    material, seatWidth: input.length, seatDepth: input.width, seatHeight,
+    ringHeight: input.height,
   }));
 
   const design: FurnitureDesign = {

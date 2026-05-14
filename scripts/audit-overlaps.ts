@@ -52,6 +52,10 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "chinese-cabinet:outward-hoof",
   // 書桌圓錐斜腳：apron 端面延伸到圓腳中心藏接縫，apron × leg 結構性 overlap
   "desk:splayed-round-tapered",
+  // 明式圈椅一木連做：前/後腿整支從地面穿過座面框（大邊/抹頭）往上延，
+  // seat-rail × leg 是傳統榫接設計特徵（腿榫穿框），非幾何錯誤。
+  // 圓腳曲面強制盲榫，audit silhouette 用 AABB box 看到的是穿透但實際是榫接區。
+  "circle-chair:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
