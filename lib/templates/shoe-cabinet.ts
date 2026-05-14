@@ -69,7 +69,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   drawerMountOption,
   drawerBottomModeOption,
   backModeOption,
-  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: 80, min: 0, max: 400, step: 10, help: "鞋櫃底部通常抬高防潮。鎖定總高時自動算", dependsOn: { key: "lockTotalHeight", equals: false } },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳（方料）" },
@@ -83,6 +83,8 @@ export const shoeCabinetOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "legHeight", notIn: [0] } },
   drawerSlideOption,
   backPanelMaterialOption("structure"),
+  { group: "structure", type: "checkbox", key: "lockTotalHeight", label: "🔒 鎖定總高（餘量自動放腳）", defaultValue: false, help: "勾起：上層 / 下層高度都明確設、總高扣掉後的餘量自動成腳高（最少 30mm，太小會警告）。未勾：腳高直接設、下層自動吃剩（原本行為）", wide: true },
+  { group: "zone-bot", type: "number", key: "lowerHeight", label: "下層高度 (mm)", defaultValue: 600, min: 200, max: 1500, step: 10, help: "只在鎖定總高時用到；放鞋的主收納區高度", dependsOn: { key: "lockTotalHeight", equals: true } },
   { group: "structure", type: "checkbox", key: "angledRack", label: "斜放鞋格（前低後高、鞋頭外露）", defaultValue: false, help: "傳統鞋櫃做法：層板前緣下沉、鞋頭朝外好拿取，前緣加止擋條防滑。只在類型=開放層板時生效。", wide: true },
   { group: "structure", type: "number", key: "angledRackTilt", label: "斜放角度 (°)", defaultValue: 15, min: 5, max: 25, step: 1, help: "建議 10~18°；角度太大鞋子會滑、太小看不到鞋頭", dependsOn: { key: "angledRack", equals: true } },
   pullStyleOption("door"),
@@ -119,14 +121,36 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const upperCols = getOption<number>(input, opt(o, "upperCols"));
   const upperDoorShelves = getOption<number>(input, opt(o, "upperDoorShelves"));
   const hasUpper = withUpperZone;
+  const lockTotalHeight = getOption<boolean>(input, opt(o, "lockTotalHeight"));
+  const lowerHeightExplicit = getOption<number>(input, opt(o, "lowerHeight"));
   // case-furniture stack 邏輯：zones[i].heightMm 已包含 boundary 板（非最上層
   // 那 zone 的 heightMm = usableH + shelfT，shelfT 從 heightMm 頂部扣出當 boundary）。
   // → 總和 sum(heightMm) = innerH，不要重複扣 boundary。
-  const innerHTotal = input.height - legHeight - 2 * panelThickness;
-  const mainHeight = hasUpper ? innerHTotal - upperHeight : innerHTotal;
+  const lockWarnings: string[] = [];
+  let effectiveLegHeight = legHeight;
+  let innerHTotal: number;
+  let mainHeight: number;
+  if (lockTotalHeight) {
+    // 鎖定模式：上層 + 下層使用者明確設，腳吃餘量
+    const upperSum = hasUpper ? upperHeight : 0;
+    innerHTotal = upperSum + lowerHeightExplicit;
+    mainHeight = lowerHeightExplicit;
+    const computedLegH = input.height - innerHTotal - 2 * panelThickness;
+    if (computedLegH < 30) {
+      lockWarnings.push(
+        `鎖定總高：${hasUpper ? `上層 ${upperHeight} + ` : ""}下層 ${lowerHeightExplicit} = ${innerHTotal}mm + 板厚 (2×${panelThickness}) 已超過總高 ${input.height}mm，腳高夾在最低 30mm。`,
+      );
+      effectiveLegHeight = 30;
+    } else {
+      effectiveLegHeight = computedLegH;
+    }
+  } else {
+    innerHTotal = input.height - legHeight - 2 * panelThickness;
+    mainHeight = hasUpper ? innerHTotal - upperHeight : innerHTotal;
+  }
   // tilt cap 算 layerH 用主 zone usable 高（扣掉內含的 boundary），不是整個 innerH
   const innerH = hasUpper ? mainHeight - panelThickness : mainHeight;
-  const warnings: string[] = [];
+  const warnings: string[] = [...lockWarnings];
   // 斜放鞋格：對開放層板 / 門內藏層板都生效（門板 + 斜板 = 玄關穿鞋櫃常見做法）。
   // 抽屜不適用（抽屜沒有層板可斜）。
   const angledRackActive =
@@ -202,7 +226,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     panelThickness,
     shelfThickness: panelThickness,
     backMode: resolveBackMode(input, o),
-    legHeight,
+    legHeight: effectiveLegHeight,
     legSize,
     legShape: legShape as "box" | "tapered" | "bracket" | "plinth" | "panel-side" | "round" | "round-tapered",
     legInset,
