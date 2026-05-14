@@ -452,6 +452,112 @@ function buildSCurveMembers(args: {
 }
 
 /**
+ * 角牙 8 件（P1 box 佔位；終態 face-rounded 壼門/雲紋）
+ *
+ * visible 慣例（geometry.ts:6）：length→X、thickness→Y(高)、width→Z(深)
+ *
+ * 前腳角牙 ×2（rotY=0，板面在 XY 平面）：
+ *   length(X)=115（沿座寬方向）、thickness(Y)=55（板高）、width(Z)=10（薄片貼角，深度方向 10mm）
+ *
+ * 橫飾棖角牙 ×6：
+ *   前後 ×2（rotY=0，板面在 XY 平面）：
+ *     length(X)=76、thickness(Y)=60、width(Z)=10
+ *   左右側 ×4（rotY=±π/2，X←→Z swap after rot）：
+ *     local length(→Z_world)=76、thickness(Y)=60、width(→X_world)=10
+ *     → visible: { length: 76, thickness: 60, width: 10 }（同上，旋轉後 width=10 變世界 X 薄片方向）
+ */
+function buildCornerBraces(args: {
+  material: MaterialId;
+  seatWidth: number; seatDepth: number; seatHeight: number;
+}): Part[] {
+  const { material, seatWidth, seatDepth, seatHeight } = args;
+  const parts: Part[] = [];
+  const { FRONT_D, legXOff, legZFront } = legAnchors(seatWidth, seatDepth);
+
+  // 橫飾棖底面 Y（與 buildStretchers 的 decorY 同步）
+  const DECOR_H = 48;
+  const decorY = seatHeight - RAIL_W - DECOR_H; // 橫飾棖底面 Y = part origin Y
+
+  // ── 前腳角牙 ×2：前腳內側、貼座框前大邊底 ──────────────────────────────
+  // 擺在座框前緣（z ≈ legZFront）附近，X 緊靠前腳內側
+  // visible: length(X)=115、thickness(Y)=55、width(Z)=10（薄片方向 = Z）
+  for (const sx of [-1, 1] as const) {
+    // X 中心：腳中心內移 40mm（角牙橫跨腳內側到大邊接角）
+    const braceX = sx * (legXOff - 40);
+    // Y 底面：座框底 - RAIL_W 落在座框底，角牙頂接座框底（座框底 y = seatHeight - RAIL_W）
+    const braceY = seatHeight - RAIL_W - 55; // origin = 底面，55 = 角牙高（visible.thickness）
+    // Z 中心：前腳中心（legZFront）稍微內移 5mm（貼大邊後緣）
+    const braceZ = legZFront + 5;
+    parts.push({
+      id: sx < 0 ? "corner-brace-front-l" : "corner-brace-front-r",
+      nameZh: "前腳角牙",
+      material, grainDirection: "length",
+      // length(X)=115 沿座寬；thickness(Y)=55 板高；width(Z)=10 薄片貼角
+      visible: { length: 115, thickness: 55, width: 10 },
+      origin: { x: braceX, y: braceY, z: braceZ },
+      shape: { kind: "box" }, tenons: [], mortises: [],
+    });
+  }
+
+  // ── 橫飾棖角牙 ×6：貼橫飾棖與腿夾角 ────────────────────────────────────
+  // decorY = 橫飾棖底面 Y；角牙底面對齊橫飾棖底面
+  // 前 ×2（rotY=0）：visible length(X)=76、thickness(Y)=60、width(Z)=10（薄片方向 Z）
+  // 左右 ×4（rotY=±π/2）：swap X↔Z，visible length(→Z)=76、thickness(Y)=60、width(→X)=10（薄片方向 X_world）
+
+  // 前橫飾棖角牙（緊貼前腳 × 前橫飾棖下緣，rotY=0，各 2 件）
+  // 位置：掛在橫飾棖底面以下，頂面對齊橫飾棖底面 (decorY)，角牙向下展開
+  // Y_top = decorY，Y_bottom = decorY - 60；與前腳角牙 Y_bottom(seatHeight-RAIL_W-55) 不重疊
+  // Z 中心：比前腳角牙更靠前（legZFront - 12），讓兩角牙在 Z 向也清楚分離
+  for (const sx of [-1, 1] as const) {
+    // X 中心：腳中心內移 38mm（角牙約跨腳內側~棖端）
+    const braceX = sx * (legXOff - 38);
+    // Y 底面：decorY - 60（頂面 = decorY，掛在橫飾棖正下方）
+    const braceOriginY = decorY - 60;
+    // Z 中心：前腳中心稍往前（legZFront - 12），避免與 corner-brace-front Z 重疊
+    const braceZ = legZFront - 12;
+    parts.push({
+      id: `decor-brace-${sx < 0 ? 1 : 2}`,
+      nameZh: "橫飾棖角牙",
+      material, grainDirection: "length",
+      visible: { length: 76, thickness: 60, width: 10 },
+      origin: { x: braceX, y: braceOriginY, z: braceZ },
+      shape: { kind: "box" }, tenons: [], mortises: [],
+    });
+  }
+
+  // 左右側橫飾棖角牙（左右腳位，rotY=π/2，各 2 件）
+  // rotY=π/2 後 X↔Z swap：local length(76)→Z_world（棖長方向）、width(10)→X_world（薄片）
+  const { legXOff: xOff } = legAnchors(seatWidth, seatDepth);
+  // zMid：前後腳 Z 中點（與 buildStretchers zMid 同邏輯）
+  const { REAR_D, legZRear } = legAnchors(seatWidth, seatDepth);
+  const zMidFront = legZFront + FRONT_D / 2; // 前腳後緣 Z
+  const zMidRear  = legZRear  - REAR_D  / 2; // 後腳前緣 Z
+  const sideBraceZMid = (zMidFront + zMidRear) / 2; // 側棖中點 Z（與 buildStretchers zMid 近似）
+
+  let decorBraceIdx = 3; // decor-brace-3 ~ decor-brace-6
+  for (const sx of [-1, 1] as const) {       // 左(-1) / 右(+1)
+    for (const zOff of [-1, 1] as const) {   // 前(-1) / 後(+1) 各一
+      // Z 中心：側棖中點偏前或偏後（分置於側棖前後段附近的腳側夾角）
+      const braceZ = sideBraceZMid + zOff * (zMidRear - sideBraceZMid) * 0.5;
+      // X 中心：腳外緣（legXOff = 腳中心 X），薄片貼腳面，X 中心 = ±legXOff（腳中心）
+      const braceX = sx * xOff;
+      parts.push({
+        id: `decor-brace-${decorBraceIdx++}`,
+        nameZh: "橫飾棖角牙",
+        material, grainDirection: "length",
+        // rotY=π/2：local length(76)→Z_world；thickness(Y)=60；width(10)→X_world（薄片）
+        visible: { length: 76, thickness: 60, width: 10 },
+        origin: { x: braceX, y: decorY, z: braceZ },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 },
+        shape: { kind: "box" }, tenons: [], mortises: [],
+      });
+    }
+  }
+
+  return parts;
+}
+
+/**
  * 明式圈椅（circle-chair）— Phase 1 直線化框架版
  * input.length = 座寬、input.width = 座深、input.height = 椅圈總高
  * 預設 610 × 497 × 720mm（台南魯班學堂工作圖實尺）
@@ -480,6 +586,9 @@ export const circleChair: FurnitureTemplate = (input): FurnitureDesign => {
   }));
   parts.push(...buildSCurveMembers({
     material, seatWidth: input.length, seatDepth: input.width, seatHeight, ringHeight: input.height,
+  }));
+  parts.push(...buildCornerBraces({
+    material, seatWidth: input.length, seatDepth: input.width, seatHeight,
   }));
 
   const design: FurnitureDesign = {

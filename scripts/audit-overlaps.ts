@@ -135,6 +135,15 @@ for (const entry of FURNITURE_CATALOG) {
           if (ids[0].startsWith("arm-rail-") && ids[1].startsWith("leg-")) return false;
           // 圈椅靠背板上端榫接進椅圈後段：傳統做法靠背板上端入椅圈，結構性 overlap 非幾何錯。
           if (ids[0].startsWith("arm-rail-") && ids[1] === "back-splat") return false;
+          // 角牙（corner-brace-* / decor-brace-*）嵌在腿/棖/座框夾角內——結構性 overlap 非幾何錯。
+          // 注意：只放行「角牙 × 結構件」，不放行「角牙 × 角牙」（角牙互撞是位置 bug 要修）。
+          {
+            const braceA = ids[0].startsWith("corner-brace-") || ids[0].startsWith("decor-brace-");
+            const braceB = ids[1].startsWith("corner-brace-") || ids[1].startsWith("decor-brace-");
+            const motherA = ids[0].startsWith("leg-") || ids[0].startsWith("seat-rail-") || ids[0].startsWith("decor-rail-");
+            const motherB = ids[1].startsWith("leg-") || ids[1].startsWith("seat-rail-") || ids[1].startsWith("decor-rail-");
+            if ((braceA && motherB) || (braceB && motherA)) return false;
+          }
           if (ids[1] !== "seat" && !ids[1].startsWith("leg-")) return true;
           if (ids[0].startsWith("back-")) return false;
           return true;
