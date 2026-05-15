@@ -309,13 +309,20 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   // 斜接 (miter) / 指接 (finger-joint) 下料：短壁 (左/右) 也延伸到外角全長
   // （搭接 stub-joint 才是短壁夾在長壁之間 length=innerW）。
   // 壁的 Y / 高度交由 bottomAttach 決定（seated=坐底板上，inset-panel/flush-glued=全高），不在這裡覆寫。
+  //
+  // 壁外撇 + miter：壁傾斜後 top 在世界中比 bottom 多偏 wallH·tan(θ)，所以壁
+  // 的全長要延伸 2·wallH·tan(θ) 才能讓 top corner 對齊；bottom corner 會
+  // 互相重疊但在盒內看不到，視覺上 corner 是接齊的。
+  const splayExt = cornerJoinery === "miter" && wallSplayRad > 0
+    ? 2 * built.wallH * Math.tan(wallSplayRad)
+    : 0;
   if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
-        part.visible = { ...part.visible, length: outerL };
+        part.visible = { ...part.visible, length: outerL + splayExt };
         part.tenons = [];
       } else if (part.id === "wall-left" || part.id === "wall-right") {
-        part.visible = { ...part.visible, length: outerW };
+        part.visible = { ...part.visible, length: outerW + splayExt };
         part.tenons = [];
       }
     }
