@@ -75,12 +75,17 @@ export function DesignFormShell({
     // - 鍵盤輸入：InputEvent.inputType = "insertText" / "deleteContentBackward" 等
     // - spinner 點擊：inputType 為 ""（empty string）
     // 手打維持等 blur/Enter（避免「1500」打到「1」就被 clamp 到 min）；
-    // spinner 走 200ms debounce 立即送（連按也只送一次最終值）。
+    // spinner 走 600ms debounce——之前 200ms 卡在 macOS 「初始按下→
+    // auto-repeat 啟動」的 500ms 間隙：按住時 debounce 在第一次事件後
+    // 200ms 就 fire 一次 pushURL，URL 一變 input 因 key={defaults} 被
+    // remount，使用者的 hold 就「斷在舊 DOM」上、值會跳回較舊的中間值。
+    // 600ms 覆蓋掉那段間隙，按住期間連續事件會一直 reset debounce，只在
+    // 真正放開後才 push 最終值。
     if (target instanceof HTMLInputElement && target.type === "number") {
       const native = e.nativeEvent;
       const isTyping = native instanceof InputEvent && native.inputType !== "";
       if (isTyping) return;
-      timerRef.current = setTimeout(pushURL, 200);
+      timerRef.current = setTimeout(pushURL, 600);
       return;
     }
     // text inputs 等 blur 或 Enter 才送
