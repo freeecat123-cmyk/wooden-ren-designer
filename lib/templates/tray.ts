@@ -309,32 +309,32 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   // 斜接 (miter) / 指接 (finger-joint) 下料：短壁 (左/右) 也延伸到外角全長
   // （搭接 stub-joint 才是短壁夾在長壁之間 length=innerW）。
   // 壁的 Y / 高度交由 bottomAttach 決定（seated=坐底板上，inset-panel/flush-glued=全高），不在這裡覆寫。
-  // 壁外撇 + miter：top corner 在世界中比 bottom corner 多偏 wallH·tan(θ)，
-  // 壁全長 +2·wallH·tan(θ) 讓 top corner 對齊。bottom 會稍微凸 V 字，但
-  // top 接齊比較重要。完整解需要梯形壁（top 長 bottom 短）+ miter inset
-  // 合體 shape kind，是更大工程，先簡化版。
-  const splayExt = cornerJoinery === "miter" && wallSplayRad > 0
-    ? 2 * built.wallH * Math.tan(wallSplayRad)
-    : 0;
   if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
-        part.visible = { ...part.visible, length: outerL + splayExt };
+        part.visible = { ...part.visible, length: outerL };
         part.tenons = [];
       } else if (part.id === "wall-left" || part.id === "wall-right") {
-        part.visible = { ...part.visible, length: outerW + splayExt };
+        part.visible = { ...part.visible, length: outerW };
         part.tenons = [];
       }
     }
   }
   // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
+  // 壁外撇時用 topLengthScale 讓壁變梯形（top 長 bottom 短）讓 top corner
+  // 對齊；bottom 維持原長不會凸 V 字。
   if (cornerJoinery === "miter") {
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
       if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
       else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
       if (outerSide) {
-        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+        const wallLen = part.visible.length;
+        const topExt = wallSplayRad > 0
+          ? 2 * built.wallH * Math.tan(wallSplayRad)
+          : 0;
+        const topLengthScale = wallLen > 0 ? (wallLen + topExt) / wallLen : 1.0;
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide, topLengthScale };
       }
     }
   }
