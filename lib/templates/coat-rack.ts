@@ -521,5 +521,13 @@ export const coatRack: FurnitureTemplate = (input): FurnitureDesign => {
     extraWarnings.push(`底爪長 ${footLength}mm 對 ${height}mm 高度太短——容易倒。建議底爪長 ≥ 高度 / 7`);
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
+  // 邊緣倒角：只套到沒掛其他 shape 的零件（圓柱已是 round shape，不會被覆寫）
+  if (edgeChamfer > 0) {
+    for (const part of design.parts) {
+      if (!part.shape) {
+        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
+      }
+    }
+  }
   return design;
 };

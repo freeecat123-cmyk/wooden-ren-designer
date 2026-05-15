@@ -304,6 +304,15 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     });
   }
 
+  // 邊緣倒角：給沒掛其他 shape 的零件套 chamfered-edges
+  if (edgeChamfer > 0) {
+    for (const part of parts) {
+      if (!part.shape) {
+        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
+      }
+    }
+  }
+
   return {
     id: `wine-rack-${bw}x${bt}-${orientation}`,
     category: "wine-rack",

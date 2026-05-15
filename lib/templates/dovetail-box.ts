@@ -308,5 +308,13 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     extraWarnings.push(`壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`);
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
+  // 邊緣倒角：給沒掛其他 shape 的零件套 chamfered-edges
+  if (edgeChamfer > 0) {
+    for (const part of design.parts) {
+      if (!part.shape) {
+        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
+      }
+    }
+  }
   return design;
 };

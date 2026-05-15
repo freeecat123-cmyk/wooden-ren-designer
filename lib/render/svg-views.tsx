@@ -744,7 +744,21 @@ export function OrthoView({
       </g>
 
       {/* parts — line-art style: visible solid, hidden dashed */}
-      {sortPartsByDepth(design.parts, view).map((part) => {
+      {sortPartsByDepth(
+        joineryMode
+          ? design.parts.map((p) =>
+              p.joineryView
+                ? {
+                    ...p,
+                    shape: p.joineryView.shape ?? p.shape,
+                    visible: p.joineryView.visible ?? p.visible,
+                    origin: p.joineryView.origin ?? p.origin,
+                  }
+                : p,
+            )
+          : design.parts,
+        view,
+      ).map((part) => {
         // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
         // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界、跨件
         // 形變、apron-trapezoid scale）。用 ID 慣例直接標記內部結構件。
@@ -1358,7 +1372,11 @@ export function OrthoView({
             part.shape.kind !== "splayed-tapered" &&
             part.shape.kind !== "splayed-round-tapered" &&
             part.shape.kind !== "notched-corners" &&
+            part.shape.kind !== "mitered-ends" &&
+            part.shape.kind !== "finger-joint-ends" &&
             part.shape.kind !== "arch-bent" &&
+            part.shape.kind !== "right-triangle" &&
+            part.shape.kind !== "mitered-corner" &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
           );

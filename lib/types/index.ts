@@ -289,7 +289,49 @@ export interface Part {
     | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depthMm: number }
     /** 板狀零件正視面 4 角圓角（length×thickness 面，從正視/側視都看得到圓角）。
      *  Z 方向（width 軸）保持滿厚度不內縮，故適合薄板（例如靠背板 18mm 厚但要 R30 圓角）。 */
-    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
+    | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
+    /** 4 壁 45° 斜接：俯視時兩端切 45°，內緣比外緣短 2×insetEach。
+     *  applied 到筆筒 / 鳩尾盒 / 托盤 4 壁，cornerJoinery=miter 時用。
+     *  visible.length = 外緣長度（L），內緣 = L − 2×insetEach。
+     *  outerSide = "+y" 表 local +Y 邊為外緣（朝盒外）；"-y" 為反向。
+     *  insetEach 通常 = 壁厚 wallT；俯視 = 梯形 polygon，前/側視 = 矩形不變。*/
+    | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y" }
+    /** 4 壁指接（finger / box joint）：壁兩端沿高度方向（local Z = wallH）交錯凸齒/凹槽。
+     *  segmentCount = 沿 Z 切幾段（typical 5；奇數讓兩端都是齒，較強）。
+     *  phase 0 = local -Z 端起算第 1 段為齒；phase 1 = 第 1 段為槽。鄰壁 phase 相反。
+     *  fingerDepth = 齒凸出（= 鄰壁厚 T）。3D 為 X-Z 平面 comb polygon 沿 Y 擠出。
+     *  俯視 silhouette 為簡單矩形（top slice 內看不出來），前/側視可看到 comb。*/
+    | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+    /** 直角三角形板：沿最薄軸（thickness=Y）擠出的 right-triangle 板。
+     *  在 local X-Z 平面內切去一個對角的角，剩下三角形 cross-section。
+     *  corner = 直角所在的 local 角（X 軸符號 + Z 軸符號）。例如：
+     *    "-x+z" → 直角在 local (-hx, +hz) → 缺角在 (+hx, -hz)
+     *  用途：書擋 / 桌面下 L 角加固 / 任何需要直角三角形角撐的場合。 */
+    | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
+    /** 單邊 45° miter（mitered-corner）：沿 `axis` 的某一條 corner edge 削 45°，
+     *  cross-section 變為梯形或五邊形。用於兩塊板 45° 對接（書擋、相框、抽屜）。
+     *  - axis = corner edge 跑的軸方向
+     *  - corner = 在垂直 axis 的 2D 平面上，被削掉的角（先 a1 sign 後 a2 sign）：
+     *      axis=x → a1=Y, a2=Z
+     *      axis=y → a1=X, a2=Z
+     *      axis=z → a1=X, a2=Y
+     *  - depthMm = 從原角往兩鄰面各內縮多少（45° → 兩軸相等）；= 板厚時 cross-section 變梯形 */
+    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
+
+  /**
+   * 榫接版專用幾何覆寫：joineryMode 開啟時，渲染端會以此覆寫 part 的
+   * shape / visible / origin。用於需要「組裝版乾淨直角對接、榫接版露出 45° miter
+   * 或榫頭幾何」的場合。
+   *
+   * 例：書擋 45° miter——預設 part 用直角對接（背板 Y∈[panelT, backHeight]），
+   * joineryView.shape 加 mitered-corner、joineryView.visible 延伸到 Y=0、
+   * joineryView.origin 對應下移，露出 45° 斜切。
+   */
+  joineryView?: {
+    shape?: Part["shape"];
+    visible?: Dimensions;
+    origin?: { x: Millimeters; y: Millimeters; z: Millimeters };
+  };
 }
 
 export interface FurnitureDesign {

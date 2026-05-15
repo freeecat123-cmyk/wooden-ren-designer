@@ -130,7 +130,7 @@ export function ZoomableThreeViews({
             onClick={(e) => e.stopPropagation()}
           >
             {/* 視圖切換 + X 移到上面 floating，只留 title + 縮放在 header 留白讓 SVG 多空間 */}
-            <div className="flex items-center justify-end px-4 py-2 border-b border-zinc-200">
+            <div className="flex items-center justify-end pl-4 pr-16 py-2 border-b border-zinc-200">
               <div className="flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
                 <button
                   type="button"

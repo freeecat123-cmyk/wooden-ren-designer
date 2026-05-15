@@ -652,59 +652,61 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      <fieldset className="mb-5">
-        <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
-          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
-          工法選擇
-          <span className="text-[10px] font-normal text-zinc-400">— 影響材料單與接合工序</span>
-        </legend>
-        <div className="grid grid-cols-2 gap-2">
-          <label
-            className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
-              !joineryMode
-                ? "ring-emerald-500 bg-emerald-50"
-                : "ring-zinc-200 bg-white hover:ring-zinc-300"
-            }`}
-          >
-            <input
-              type="radio"
-              name="joineryMode"
-              value=""
-              defaultChecked={!joineryMode}
-              className="sr-only"
-            />
-            <div className="text-sm font-semibold text-emerald-900 flex items-center gap-1">
-              🔩 組裝版
-              <span className="text-[10px] font-normal text-emerald-700 ml-auto">推薦新手</span>
-            </div>
-            <div className="text-[11px] text-emerald-800 leading-relaxed">
-              螺絲 / 木釘 / DOMINO / 斜孔系統。施作快、強度約榫接版 60–70%，日常家具夠用。
-            </div>
-          </label>
-          <label
-            className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
-              joineryMode
-                ? "ring-amber-500 bg-amber-50"
-                : "ring-zinc-200 bg-white hover:ring-zinc-300"
-            }`}
-          >
-            <input
-              type="radio"
-              name="joineryMode"
-              value="true"
-              defaultChecked={joineryMode}
-              className="sr-only"
-            />
-            <div className="text-sm font-semibold text-amber-900 flex items-center gap-1">
-              🪵 榫接版
-              <span className="text-[10px] font-normal text-amber-700 ml-auto">傳統工法</span>
-            </div>
-            <div className="text-[11px] text-amber-800 leading-relaxed">
-              傳統榫卯接合，含榫頭榫眼細節圖、精緻工序。難度較高、做工較久。
-            </div>
-          </label>
-        </div>
-      </fieldset>
+      {type !== "pencil-holder" && (
+        <fieldset className="mb-5">
+          <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
+            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            工法選擇
+            <span className="text-[10px] font-normal text-zinc-400">— 影響材料單與接合工序</span>
+          </legend>
+          <div className="grid grid-cols-2 gap-2">
+            <label
+              className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+                !joineryMode
+                  ? "ring-emerald-500 bg-emerald-50"
+                  : "ring-zinc-200 bg-white hover:ring-zinc-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="joineryMode"
+                value=""
+                defaultChecked={!joineryMode}
+                className="sr-only"
+              />
+              <div className="text-sm font-semibold text-emerald-900 flex items-center gap-1">
+                🔩 組裝版
+                <span className="text-[10px] font-normal text-emerald-700 ml-auto">推薦新手</span>
+              </div>
+              <div className="text-[11px] text-emerald-800 leading-relaxed">
+                螺絲 / 木釘 / DOMINO / 斜孔系統。施作快、強度約榫接版 60–70%，日常家具夠用。
+              </div>
+            </label>
+            <label
+              className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+                joineryMode
+                  ? "ring-amber-500 bg-amber-50"
+                  : "ring-zinc-200 bg-white hover:ring-zinc-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="joineryMode"
+                value="true"
+                defaultChecked={joineryMode}
+                className="sr-only"
+              />
+              <div className="text-sm font-semibold text-amber-900 flex items-center gap-1">
+                🪵 榫接版
+                <span className="text-[10px] font-normal text-amber-700 ml-auto">傳統工法</span>
+              </div>
+              <div className="text-[11px] text-amber-800 leading-relaxed">
+                傳統榫卯接合，含榫頭榫眼細節圖、精緻工序。難度較高、做工較久。
+              </div>
+            </label>
+          </div>
+        </fieldset>
+      )}
       <fieldset className="mb-4 rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
         <legend className="text-xs text-amber-900 px-1.5 font-semibold">
           🎨 設計師模式（自由尺寸）

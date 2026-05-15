@@ -196,19 +196,23 @@ export function MobileShell(props: MobileShellProps) {
           </div>
         </div>
 
-        {/* 工法 + 設計師模式：核心 toggle，放主表單下方 */}
+        {/* 工法 + 設計師模式：核心 toggle，放主表單下方。pencil-holder 隱藏工法切換 */}
         <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
-          <div className="text-[11px] text-zinc-500">工法</div>
-          <div className="grid grid-cols-2 gap-2">
-            <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${!props.joineryMode ? "ring-emerald-500 bg-emerald-50 text-emerald-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
-              <input type="radio" name="joineryMode" value="" defaultChecked={!props.joineryMode} className="sr-only" />
-              🔩 組裝版
-            </label>
-            <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${props.joineryMode ? "ring-amber-500 bg-amber-50 text-amber-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
-              <input type="radio" name="joineryMode" value="true" defaultChecked={props.joineryMode} className="sr-only" />
-              🪵 榫接版
-            </label>
-          </div>
+          {entry.category !== "pencil-holder" && (
+            <>
+              <div className="text-[11px] text-zinc-500">工法</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${!props.joineryMode ? "ring-emerald-500 bg-emerald-50 text-emerald-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
+                  <input type="radio" name="joineryMode" value="" defaultChecked={!props.joineryMode} className="sr-only" />
+                  🔩 組裝版
+                </label>
+                <label className={`flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-sm font-semibold cursor-pointer ring-2 ${props.joineryMode ? "ring-amber-500 bg-amber-50 text-amber-900" : "ring-zinc-200 bg-white text-zinc-700"}`}>
+                  <input type="radio" name="joineryMode" value="true" defaultChecked={props.joineryMode} className="sr-only" />
+                  🪵 榫接版
+                </label>
+              </div>
+            </>
+          )}
           {props.canUseDesignerMode ? (
             <label className="flex items-center gap-2 min-h-[36px] px-1 pt-1 text-sm cursor-pointer border-t border-zinc-100">
               <input type="checkbox" name="designerMode" value="true" defaultChecked={props.designerMode} className="h-4 w-4 accent-amber-600" />

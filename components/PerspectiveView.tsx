@@ -148,7 +148,11 @@ type ShapeSpec =
   | { kind: "arch-bent"; bendMm: number; segments?: number }
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
-  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" };
+  | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
+  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y" }
+  | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+  | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
+  | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
 
 /**
  * 把母件的 base geometry 用 CSG 減掉每個 mortise 對應的方塊，produce 帶
@@ -409,6 +413,18 @@ function Part({
     if (shape.kind === "face-rounded") {
       return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
+    if (shape.kind === "mitered-ends") {
+      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide);
+    }
+    if (shape.kind === "finger-joint-ends") {
+      return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
+    }
+    if (shape.kind === "right-triangle") {
+      return buildRightTriangleGeometry(size, shape.corner);
+    }
+    if (shape.kind === "mitered-corner") {
+      return buildMiteredCornerGeometry(size, shape.axis, shape.corner, shape.depthMm, shape.chamferMm);
+    }
     return null;
   }, [size, shape]);
 
@@ -524,6 +540,10 @@ function Part({
   const useFlatShading =
     shape?.kind === "chamfered-edges" ||
     shape?.kind === "chamfered-top" ||
+    shape?.kind === "mitered-ends" ||
+    shape?.kind === "finger-joint-ends" ||
+    shape?.kind === "right-triangle" ||
+    shape?.kind === "mitered-corner" ||
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
     hasCosmeticCut;
   return (
@@ -1122,6 +1142,362 @@ function buildSplayedRoundTaperedGeometry(
  * 用 8-corner 多邊形 prism——上下兩面都是 8 邊形，4 條垂直邊連起來。
  * 用途：座下層板延伸到下橫撐齊平、跟腳柱重疊的角要切掉。
  */
+/**
+ * 4 壁 45° 斜接：梯形在 local X-Y 平面（length × thickness），沿 Z 軸（width=wallH）擠出。
+ * outerSide="+y" → local +Y 邊為外緣全長 L，-Y 邊為內緣 L−2×inset。
+ * outerSide="-y" → 反過來。前/右壁用 +y、後/左壁用 -y，4 壁拼起來 4 角 45° 對接。
+ */
+function buildMiteredEndsGeometry(
+  size: [number, number, number],
+  insetEach: number,
+  outerSide: "+y" | "-y" = "+y",
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const inset = Math.max(0, Math.min(insetEach, hx * 0.95));
+  if (inset <= 0) {
+    return new BoxGeometry(lx, ly, lz);
+  }
+  // ring 在 X-Y 平面，CW from +Z viewer（沿用 buildNotchedCornersGeometry winding 慣例）
+  // outerSide="+y"：outer 邊（全長 L）在 +hy，inner 邊（短）在 -hy
+  // outerSide="-y"：outer 邊在 -hy，inner 邊在 +hy
+  const ring: Array<[number, number]> = outerSide === "+y"
+    ? [
+        [+hx,          +hy],  // outer right
+        [-hx,          +hy],  // outer left
+        [-hx + inset,  -hy],  // inner left (recessed)
+        [+hx - inset,  -hy],  // inner right
+      ]
+    : [
+        [+hx - inset,  +hy],  // inner right (recessed)
+        [-hx + inset,  +hy],  // inner left
+        [-hx,          -hy],  // outer left
+        [+hx,          -hy],  // outer right
+      ];
+  const v: number[] = [];
+  for (const [x, y] of ring) v.push(x, y, -hz);
+  for (const [x, y] of ring) v.push(x, y, +hz);
+  const N = ring.length;
+  const idx: number[] = [];
+  // ring CW from +Z + extrude along Z 的 outward normal winding（已用 cross product
+  // 推導；切勿沿用 notched-corners 的 pattern—那是 extrude along Y 的版本，sign 不同）
+  for (let i = 0; i < N; i++) {
+    const a = i;
+    const b = (i + 1) % N;
+    const at = a + N;
+    const bt = b + N;
+    idx.push(a, b, bt, a, bt, at);
+  }
+  // 底蓋 z=-hz：outward = -Z → 反向 fan
+  for (let i = 1; i < N - 1; i++) idx.push(0, i + 1, i);
+  // 頂蓋 z=+hz：outward = +Z → 正向 fan
+  for (let i = 1; i < N - 1; i++) idx.push(N, N + i, N + i + 1);
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  // toNonIndexed → 每三角形獨立 vertex，computeVertexNormals 不會跨面平均
+  // 確保 flatShading 真正 flat（45° miter inner 邊內角不會被法向量插值成圓角）
+  const nonIndexed = g.toNonIndexed();
+  g.dispose();
+  nonIndexed.computeVertexNormals();
+  return nonIndexed;
+}
+
+/**
+ * 4 壁指接（finger / box joint）：polygon 在 local X-Z 平面（length × height），
+ * 沿 Y 軸（thickness）擠出全壁厚。Comb 沿 Z 軸交錯凸齒/凹槽，每段高 lz/segmentCount。
+ * phase=0：local -Z 起算第 1 段為齒（X 推到 ±hx）；phase=1：第 1 段為槽（X 內縮 fingerDepth）。
+ * Winding 同 buildNotchedCornersGeometry（也沿 Y 擠出，已驗證 outward）。
+ */
+function buildFingerJointEndsGeometry(
+  size: [number, number, number],
+  segmentCount: number,
+  phase: 0 | 1,
+  fingerDepth: number,
+  edgeChamferMm: number = 0,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const depth = Math.max(0, Math.min(fingerDepth, hx * 0.95));
+  const N = Math.max(2, Math.floor(segmentCount));
+  if (depth <= 0) return new BoxGeometry(lx, ly, lz);
+  // 注意：edgeChamferMm 留 API 給未來但目前不套——bevelEnabled 會把齒邊也倒圓
+  // 破壞接合外觀。要做 selective chamfer（只動世界頂緣不動齒邊）需手刻 geometry。
+  void edgeChamferMm;
+  const segH = lz / N;
+  const isFinger = (s: number) => ((s + phase) % 2) === 0;
+  const xRightAt = (s: number) => (isFinger(s) ? +hx : +hx - depth);
+  const xLeftAt = (s: number) => (isFinger(s) ? -hx : -hx + depth);
+  // 用 Three.js Shape + ExtrudeGeometry（earcut 三角化），手刻 fan tri 對凹形會破洞。
+  // Shape 在 X-Y 平面，CCW from +Z viewer 繞 polygon：bottom-right 起 → 右上 → 左上 → 左下 → close。
+  // 內部 X 軸對應 wall length，Shape Y 軸對應 wallH（heights）。擠出沿 +Z = thickness 方向。
+  const shape2D = new Shape();
+  shape2D.moveTo(xRightAt(0), -hz);
+  for (let s = 0; s < N; s++) {
+    const x = xRightAt(s);
+    const yTop = -hz + (s + 1) * segH;
+    shape2D.lineTo(x, yTop);
+    if (s < N - 1) {
+      const nx = xRightAt(s + 1);
+      if (nx !== x) shape2D.lineTo(nx, yTop);
+    }
+  }
+  shape2D.lineTo(xLeftAt(N - 1), +hz);
+  for (let s = N - 1; s >= 0; s--) {
+    const x = xLeftAt(s);
+    const yBot = -hz + s * segH;
+    shape2D.lineTo(x, yBot);
+    if (s > 0) {
+      const nx = xLeftAt(s - 1);
+      if (nx !== x) shape2D.lineTo(nx, yBot);
+    }
+  }
+  shape2D.closePath();
+  // ExtrudeGeometry: Shape (X, Y_height) 沿 +Z 擠出 depth=ly（= thickness）。
+  // 結果 3D 頂點：X=length, Y=wallH, Z=[0, ly]。
+  // Step 1: translate(0, 0, -hy) → Z 中心化 [-hy, +hy]
+  // Step 2: rotateX(+π/2) 把 Y↔Z 軸互換 → X=length, Y=±thickness, Z=±wallH（manual 幾何框架）
+  const extrude = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
+  extrude.translate(0, 0, -hy);
+  extrude.rotateX(Math.PI / 2);
+  return extrude;
+}
+
+/**
+ * 直角三角形板：local X-Z 平面內三角形 cross-section 沿 Y 軸擠出。
+ * corner = 直角所在角（X 軸 sign + Z 軸 sign）。三角形 3 個頂點：
+ *   - 直角頂點 A = (sx·hx, sz·hz)
+ *   - X 邊端點 B = (-sx·hx, sz·hz)
+ *   - Z 邊端點 C = (sx·hx, -sz·hz)
+ * 上下兩個三角面 + 3 個側面 quad；computeVertexNormals 給法向。
+ */
+function buildRightTriangleGeometry(
+  size: [number, number, number],
+  corner: "-x-z" | "-x+z" | "+x-z" | "+x+z",
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const sx = corner.startsWith("+x") ? +1 : -1;
+  const sz = corner.endsWith("+z") ? +1 : -1;
+  // 為了讓上面 (y=+hy) 的三角面 outward normal = +Y，三角形頂點順序需符合
+  // (zB-zA)(xC-xA) - (xB-xA)(zC-zA) > 0 → 推導出 sx*sz < 0 時用 (A, B, C)，
+  // sx*sz > 0 時用 (A, C, B)。
+  const swap = sx * sz > 0;
+  const A: [number, number] = [sx * hx, sz * hz];      // 直角
+  const Bx: [number, number] = [-sx * hx, sz * hz];    // X 邊另一端
+  const Cz: [number, number] = [sx * hx, -sz * hz];    // Z 邊另一端
+  const order: Array<[number, number]> = swap ? [A, Cz, Bx] : [A, Bx, Cz];
+
+  const v: number[] = [];
+  // bottom 3 verts (y = -hy)
+  for (const [x, z] of order) v.push(x, -hy, z);
+  // top 3 verts (y = +hy)
+  for (const [x, z] of order) v.push(x, +hy, z);
+
+  const idx: number[] = [];
+  // 頂面：(3,4,5) → 排好的 order 在 y=+hy 給 +Y outward normal
+  idx.push(3, 4, 5);
+  // 底面：反向 (0, 2, 1) 給 -Y outward normal
+  idx.push(0, 2, 1);
+  // 3 個側面 quad：沿底面 winding(0,2,1) 邊 0→2、2→1、1→0，
+  // 每個 quad outside-CCW = (a, a+3, b+3, b)，拆 2 三角 → outward normal 朝外。
+  const bottomEdges: Array<[number, number]> = [[0, 2], [2, 1], [1, 0]];
+  for (const [a, b] of bottomEdges) {
+    idx.push(a, a + 3, b + 3);
+    idx.push(a, b + 3, b);
+  }
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * 把 CCW 多邊形每個角倒成兩個點（沿兩鄰邊各內縮 chamferMm），總點數 N→2N。
+ * 用於 mitered-corner / 通用 prism 軸向邊 chamfer：cross-section 多邊形 chamfer 後
+ * 擠出，原本每個角的 1 條 axial edge 變成 1 條 chamfer 平面 + 兩條主邊夾角。
+ */
+function chamferPolygon(poly: Array<[number, number]>, chamferMm: number): Array<[number, number]> {
+  if (chamferMm <= 0 || poly.length < 3) return poly;
+  const result: Array<[number, number]> = [];
+  for (let i = 0; i < poly.length; i++) {
+    const prev = poly[(i - 1 + poly.length) % poly.length];
+    const curr = poly[i];
+    const next = poly[(i + 1) % poly.length];
+    const dxP = prev[0] - curr[0], dyP = prev[1] - curr[1];
+    const lP = Math.hypot(dxP, dyP);
+    const dxN = next[0] - curr[0], dyN = next[1] - curr[1];
+    const lN = Math.hypot(dxN, dyN);
+    if (lP === 0 || lN === 0) { result.push(curr); continue; }
+    const cP = Math.min(chamferMm, lP * 0.45);
+    const cN = Math.min(chamferMm, lN * 0.45);
+    // Pa: 沿往 prev 方向內縮 cP
+    result.push([curr[0] + dxP / lP * cP, curr[1] + dyP / lP * cP]);
+    // Pb: 沿往 next 方向內縮 cN
+    result.push([curr[0] + dxN / lN * cN, curr[1] + dyN / lN * cN]);
+  }
+  return result;
+}
+
+/**
+ * 帶 noChamfer 旗標的 chamfer：跳過接合處（miter 兩端），其他角倒兩個點。
+ */
+function chamferPolygonWithFlags(
+  poly: Array<{ p: [number, number]; noChamfer: boolean }>,
+  chamferMm: number,
+): Array<[number, number]> {
+  if (chamferMm <= 0 || poly.length < 3) return poly.map((v) => v.p);
+  const result: Array<[number, number]> = [];
+  for (let i = 0; i < poly.length; i++) {
+    const v = poly[i];
+    if (v.noChamfer) {
+      result.push(v.p);
+      continue;
+    }
+    const prev = poly[(i - 1 + poly.length) % poly.length].p;
+    const curr = v.p;
+    const next = poly[(i + 1) % poly.length].p;
+    const dxP = prev[0] - curr[0], dyP = prev[1] - curr[1];
+    const lP = Math.hypot(dxP, dyP);
+    const dxN = next[0] - curr[0], dyN = next[1] - curr[1];
+    const lN = Math.hypot(dxN, dyN);
+    if (lP === 0 || lN === 0) { result.push(curr); continue; }
+    const cP = Math.min(chamferMm, lP * 0.45);
+    const cN = Math.min(chamferMm, lN * 0.45);
+    result.push([curr[0] + dxP / lP * cP, curr[1] + dyP / lP * cP]);
+    result.push([curr[0] + dxN / lN * cN, curr[1] + dyN / lN * cN]);
+  }
+  return result;
+}
+
+/**
+ * 單邊 45° miter（mitered-corner）：沿 axis 方向擠出 pentagon / trapezoid cross-section。
+ * axis = corner edge 跑的軸（x/y/z）
+ * corner = 在垂直平面內被削掉的角（a1 sign 後 a2 sign）：
+ *   axis=x → (a1=Y, a2=Z); axis=y → (a1=X, a2=Z); axis=z → (a1=X, a2=Y)
+ * depthMm = 內縮深度。45° → 兩鄰面各內縮 depthMm。depthMm = 2*halfA1 或 2*halfA2 時退化為梯形（4 vertices）。
+ * chamferMm > 0 時，沿軸向邊（=多邊形角延伸出的長邊）倒 45° chamfer。
+ */
+function buildMiteredCornerGeometry(
+  size: [number, number, number],
+  axis: "x" | "y" | "z",
+  corner: "++" | "+-" | "-+" | "--",
+  depthMm: number,
+  chamferMm: number = 0,
+): BufferGeometry {
+  const half = [size[0] / 2, size[1] / 2, size[2] / 2];
+  const axisIdx = axis === "x" ? 0 : axis === "y" ? 1 : 2;
+  // a1Idx, a2Idx = perpendicular axes (natural: lower-then-higher index)
+  const a1Idx = axis === "x" ? 1 : 0;
+  const a2Idx = axis === "z" ? 1 : 2;
+  const halfEdge = half[axisIdx];
+  const halfA1 = half[a1Idx];
+  const halfA2 = half[a2Idx];
+  const s1 = corner[0] === "+" ? +1 : -1;
+  const s2 = corner[1] === "+" ? +1 : -1;
+  const d = Math.min(depthMm, 2 * halfA1, 2 * halfA2);
+
+  // 4 corners CCW in (a1, a2) plane (natural orientation: a1 right, a2 up).
+  // 順序：(--), (+-), (++), (-+)
+  const baseCorners: Array<[number, number, string]> = [
+    [-halfA1, -halfA2, "--"],
+    [+halfA1, -halfA2, "+-"],
+    [+halfA1, +halfA2, "++"],
+    [-halfA1, +halfA2, "-+"],
+  ];
+
+  // Replace cut corner with 2 inset points; dedupe coincident vertices.
+  // 每個 vertex 帶 noChamfer 旗標：true = 接合處（miter 兩端），不可倒角
+  const eps = 1e-6;
+  type PolyVertex = { p: [number, number]; noChamfer: boolean };
+  const polyCCW: PolyVertex[] = [];
+  const pushIfDistinct = (p: [number, number], noChamfer: boolean) => {
+    const last = polyCCW[polyCCW.length - 1];
+    if (last && Math.abs(last.p[0] - p[0]) < eps && Math.abs(last.p[1] - p[1]) < eps) {
+      // coincide → 合併，noChamfer 取 OR
+      last.noChamfer = last.noChamfer || noChamfer;
+      return;
+    }
+    polyCCW.push({ p, noChamfer });
+  };
+  for (const [a1, a2, key] of baseCorners) {
+    if (key === corner) {
+      const a1FacePoint: [number, number] = [s1 * halfA1, s2 * (halfA2 - d)];
+      const a2FacePoint: [number, number] = [s1 * (halfA1 - d), s2 * halfA2];
+      // miter 兩端 = noChamfer
+      if (s1 * s2 > 0) {
+        pushIfDistinct(a1FacePoint, true);
+        pushIfDistinct(a2FacePoint, true);
+      } else {
+        pushIfDistinct(a2FacePoint, true);
+        pushIfDistinct(a1FacePoint, true);
+      }
+    } else {
+      pushIfDistinct([a1, a2], false);
+    }
+  }
+  // 收尾去重：start ↔ end
+  if (polyCCW.length > 1) {
+    const f = polyCCW[0], l = polyCCW[polyCCW.length - 1];
+    if (Math.abs(f.p[0] - l.p[0]) < eps && Math.abs(f.p[1] - l.p[1]) < eps) {
+      f.noChamfer = f.noChamfer || l.noChamfer;
+      polyCCW.pop();
+    }
+  }
+
+  // axis=y 時 a1×a2 = X×Z = -Y → CCW in (a1, a2) 給的法向是 -Y，需反向才能讓 +halfEdge 面 outward = +axis
+  const polyOriented = axis === "y" ? polyCCW.slice().reverse() : polyCCW;
+  // 若給了 chamferMm，把多邊形每個角倒成兩個點（插入 1 條 chamfer 邊），
+  // 但跳過 noChamfer 點（miter 兩端要保留原始尖角，否則接合處被削出小縫）。
+  const poly: Array<[number, number]> =
+    chamferMm > 0
+      ? chamferPolygonWithFlags(polyOriented, chamferMm)
+      : polyOriented.map((v) => v.p);
+  const N = poly.length;
+
+  // Place (a1Val, a2Val) at edge level into 3D vertex.
+  const place = (a1Val: number, a2Val: number, edgeVal: number): [number, number, number] => {
+    const v: [number, number, number] = [0, 0, 0];
+    v[axisIdx] = edgeVal;
+    v[a1Idx] = a1Val;
+    v[a2Idx] = a2Val;
+    return v;
+  };
+
+  const v: number[] = [];
+  // bottom ring at edge = -halfEdge
+  for (const [a1, a2] of poly) v.push(...place(a1, a2, -halfEdge));
+  // top ring at edge = +halfEdge
+  for (const [a1, a2] of poly) v.push(...place(a1, a2, +halfEdge));
+
+  const idx: number[] = [];
+  // +axis 面（top, indices N..2N-1）：CCW from +axis = poly 順序（已校正）→ fan from N
+  for (let i = 1; i < N - 1; i++) idx.push(N, N + i, N + i + 1);
+  // -axis 面（bottom, indices 0..N-1）：CCW from -axis = poly 反向 → fan from 0 反向
+  for (let i = 1; i < N - 1; i++) idx.push(0, i + 1, i);
+  // 側面：每條 poly 邊 (i, next) 對應一個 quad (i, next, next+N, i+N)
+  // outward CCW from outside: (i, i+N, next+N, next) → 拆 (i, i+N, next+N) + (i, next+N, next)
+  for (let i = 0; i < N; i++) {
+    const next = (i + 1) % N;
+    idx.push(i, next, next + N);
+    idx.push(i, next + N, i + N);
+  }
+
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 function buildNotchedCornersGeometry(
   size: [number, number, number],
   notchL: number,
@@ -2123,7 +2499,17 @@ export function PerspectiveView({
           />
         )}
 
-        {design.parts.map((part) => {
+        {design.parts.map((partRaw) => {
+          // joineryView 覆寫：joineryMode 開啟時，部分 part 會用「榫接版專用幾何」
+          // （e.g. 書擋的 45° miter）；組裝版維持原本直角對接 / 簡潔形狀。
+          const part = joineryMode && partRaw.joineryView
+            ? {
+                ...partRaw,
+                shape: partRaw.joineryView.shape ?? partRaw.shape,
+                visible: partRaw.joineryView.visible ?? partRaw.visible,
+                origin: partRaw.joineryView.origin ?? partRaw.origin,
+              }
+            : partRaw;
           const baseColor = MATERIALS[part.material].color;
           const category = categorizePart(part.id);
           // X-ray 模式過濾：
@@ -2255,6 +2641,30 @@ export function PerspectiveView({
               bottomArchMm: (part.shape.bottomArchMm ?? 0) * SCALE,
               bendMm: (part.shape.bendMm ?? 0) * SCALE,
               bendAxis: part.shape.bendAxis ?? "z",
+            };
+          } else if (part.shape?.kind === "mitered-ends") {
+            shape = {
+              kind: "mitered-ends",
+              insetEach: part.shape.insetEach * SCALE,
+              outerSide: part.shape.outerSide,
+            };
+          } else if (part.shape?.kind === "finger-joint-ends") {
+            shape = {
+              kind: "finger-joint-ends",
+              segmentCount: part.shape.segmentCount,
+              phase: part.shape.phase,
+              fingerDepth: part.shape.fingerDepth * SCALE,
+              edgeChamferMm: part.shape.edgeChamferMm !== undefined ? part.shape.edgeChamferMm * SCALE : undefined,
+            };
+          } else if (part.shape?.kind === "right-triangle") {
+            shape = { kind: "right-triangle", corner: part.shape.corner };
+          } else if (part.shape?.kind === "mitered-corner") {
+            shape = {
+              kind: "mitered-corner",
+              axis: part.shape.axis,
+              corner: part.shape.corner,
+              depthMm: part.shape.depthMm * SCALE,
+              chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
             };
           }
           // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
@@ -2520,6 +2930,7 @@ export function PerspectiveView({
             </group>
           );
         })}
+
 
         <OrbitControls
           makeDefault

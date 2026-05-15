@@ -15,23 +15,18 @@ interface PencilHolderPresetConfig {
   cornerJoinery?: string;
   dividers?: number;
   crossDividers?: number;
-  edgeChamfer?: number;
-  withDrainHoles?: boolean;
-  topAngleDeg?: number;
 }
 const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
   // 一般筆筒：方筒整空
-  classic: { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 0, crossDividers: 0, edgeChamfer: 2 },
+  classic: { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 0, crossDividers: 0 },
   // 文具站：grid 6 格分裝剪刀/筆/刀片
-  "stationery-station": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 1, edgeChamfer: 2 },
+  "stationery-station": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 1 },
   // 化妝刷筒：深款 + 1 縱向 + 倒角圓潤
-  "makeup-brush": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0, edgeChamfer: 4 },
-  // 廚房料理工具筒：深 + 排水孔 + 厚壁
-  "kitchen-utensil": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 1, crossDividers: 1, edgeChamfer: 3, withDrainHoles: true },
+  "makeup-brush": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0 },
+  // 廚房料理工具筒：深 + 厚壁
+  "kitchen-utensil": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 1, crossDividers: 1 },
   // 木工專用：4 格分裝尺/筆/夾子 + 厚壁耐撞
-  "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2, edgeChamfer: 2 },
-  // 桌邊前傾款：頂緣斜切 15° 讓書桌前方好取筆
-  "tilted-desk": { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0, edgeChamfer: 2, topAngleDeg: 15 },
+  "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2 },
 };
 
 export const pencilHolderOptions: OptionSpec[] = [
@@ -45,12 +40,16 @@ export const pencilHolderOptions: OptionSpec[] = [
     { value: "classic", label: "一般筆筒（方筒整空）" },
     { value: "stationery-station", label: "文具站（grid 6 格分裝剪刀/筆/刀片）" },
     { value: "makeup-brush", label: "化妝刷筒（深款 + 縱向隔板 + 圓潤倒角）" },
-    { value: "kitchen-utensil", label: "廚房料理工具筒（厚壁 + 4 格 + 排水孔）" },
+    { value: "kitchen-utensil", label: "廚房料理工具筒（厚壁 + 4 格）" },
     { value: "woodworker-caddy", label: "木工專用（厚壁 + 9 格分裝尺/筆/夾子）" },
-    { value: "tilted-desk", label: "桌邊前傾款（頂緣斜切 15°）" },
   ], help: "一鍵套適合該情境的壁厚 / 隔板 / 接合 / 倒角組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
+  { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
+    { value: "seated", label: "底板坐地 + 壁圍上方（原本，膠合最簡單）" },
+    { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
+    { value: "flush-glued", label: "整塊黏上去（底板與外框齊邊）" },
+  ], help: "seated=底板比框內小一圈坐地、壁立其上；inset-panel=4 壁內側下緣開 5mm 槽、底板浮嵌（季節伸縮免裂）；flush-glued=底板整塊外緣齊邊、強力膠合。", wide: true },
   { group: "structure", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "stub-joint", choices: [
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
@@ -58,8 +57,10 @@ export const pencilHolderOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）" },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）" },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "外露邊緣倒角，2-3mm 手感佳；化妝刷筒可拉到 4-5mm" },
-  { group: "structure", type: "checkbox", key: "withDrainHoles", label: "底部排水孔", defaultValue: false, help: "底板鑽 4 個 ⌀5mm 排水孔，廚房料理工具筒 / 水彩筆筒適用", wide: true },
+  { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
+  { group: "structure", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
+  { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。" },
+  { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "僅 cornerJoinery=指接 時生效。0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。" },
 ];
 
 /**
@@ -84,12 +85,17 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
   const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
-  const edgeChamferRaw = getOption<number>(input, opt(o, "edgeChamfer"));
-  const edgeChamfer = edgeChamferRaw === 2 && preset?.edgeChamfer !== undefined ? preset.edgeChamfer : edgeChamferRaw;
-  const withDrainHolesRaw = getOption<boolean>(input, opt(o, "withDrainHoles"));
-  const withDrainHoles = withDrainHolesRaw === false && preset?.withDrainHoles !== undefined ? preset.withDrainHoles : withDrainHolesRaw;
   const bodyShape = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
-  void edgeChamfer; void withDrainHoles; // 旗標已套 preset，下游 builder/notes 需個別實作（v2 backlog）
+  const bottomAttach = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
+  // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
+  const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
+  const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
+  const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
+  const dividerThick = dividerThicknessRaw === 6
+    ? Math.max(3, Math.round(wallT / 2))
+    : dividerThicknessRaw;
+  // 指接段數：0 = 自動（依壁高奇數），1-30 = 手動指定
+  const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
 
   // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 圓底
   if (bodyShape === "hex" || bodyShape === "oct") {
@@ -130,31 +136,99 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     botT,
     material,
     cornerJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
-    bottomFit: "grooved",
+    bottomFit: bottomAttach === "flush-glued" ? "floating" : "grooved",
   });
 
-  // 斜接 (miter) / 指接 (finger-joint) 的下料規則：4 片壁都用「全外尺寸」下料。
-  // - 長 = outerL (前/後) 或 outerW (左/右)：兩端的接合在垂直邊（指接交錯/45° 斜切）
-  // - 寬 = outerH：底板用槽接嵌入牆內側下緣，牆從地板延伸到盒頂全高
-  // - 厚 = wallT：不變
-  // 只有搭接 (stub-joint) 才是 2 長 + 2 短 + 牆坐底板上 (wallH = outerH - botT) 的傳統佈料。
+  // 底板接法後處理 — 蓋掉 buildBox 預設幾何
+  const bottomPart = built.parts.find((p) => p.id === "bottom");
+  if (bottomPart) {
+    if (bottomAttach === "inset-panel") {
+      // 鑲板入溝：4 壁全高、底板浮嵌於壁內側 5mm 槽中，離地約 botT
+      const grooveDepth = 5;
+      const insetEach = Math.max(2, wallT - grooveDepth);
+      bottomPart.visible = {
+        length: outerL - 2 * insetEach,
+        width: outerW - 2 * insetEach,
+        thickness: botT,
+      };
+      bottomPart.origin = { x: 0, y: botT, z: 0 };
+      for (const part of built.parts) {
+        if (part.id.startsWith("wall-")) {
+          part.visible = { ...part.visible, width: outerH };
+          part.origin = { ...part.origin, y: 0 };
+        }
+      }
+    } else if (bottomAttach === "flush-glued") {
+      // 整塊膠合：底板外緣與框體齊
+      bottomPart.visible = { length: outerL, width: outerW, thickness: botT };
+      bottomPart.origin = { x: 0, y: 0, z: 0 };
+    }
+    // seated 不動，保留 buildBox 既有結果
+  }
+
+  // 斜接 (miter) / 指接 (finger-joint) 下料：短壁 (左/右) 也延伸到外角全長
+  // （搭接 stub-joint 才是短壁夾在長壁之間 length=innerW）。
+  // 壁的 Y / 高度交由 bottomAttach 決定（seated=坐底板上，inset-panel/flush-glued=全高），不在這裡覆寫。
   if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
-        part.visible = { ...part.visible, length: outerL, width: outerH };
-        part.origin = { ...part.origin, y: 0 };
+        part.visible = { ...part.visible, length: outerL };
         part.tenons = [];
       } else if (part.id === "wall-left" || part.id === "wall-right") {
-        part.visible = { ...part.visible, length: outerW, width: outerH };
-        part.origin = { ...part.origin, y: 0 };
+        part.visible = { ...part.visible, length: outerW };
         part.tenons = [];
       }
     }
   }
+  // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
+  if (cornerJoinery === "miter") {
+    for (const part of built.parts) {
+      let outerSide: "+y" | "-y" | null = null;
+      if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
+      else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
+      if (outerSide) {
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+      }
+    }
+  }
+
+  // finger-joint 4 壁掛 finger-joint-ends shape：comb 沿 wallH 方向交錯。
+  if (cornerJoinery === "finger-joint") {
+    let segmentCount: number;
+    if (fingerSegmentsOpt > 0) {
+      segmentCount = Math.max(2, Math.min(30, Math.floor(fingerSegmentsOpt)));
+    } else {
+      const totalH = outerH - botT;
+      segmentCount = Math.max(3, Math.round(totalH / (1.5 * wallT)));
+      if (segmentCount % 2 === 0) segmentCount += 1;
+      segmentCount = Math.min(13, segmentCount);
+    }
+    for (const part of built.parts) {
+      let phase: 0 | 1 | null = null;
+      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
+      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
+      if (phase !== null) {
+        part.shape = {
+          kind: "finger-joint-ends",
+          segmentCount,
+          phase,
+          fingerDepth: wallT,
+        };
+      }
+    }
+  }
+
+  // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
+  const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+  // 隔板嵌入壁時，隔板頂面會跟壁頂面 coplanar → z-fight。縮 1mm 防共平面。
+  const insetClearance = dividerInsetOpt > 0 ? 1 : 0;
+  const dividerHAuto = Math.max(1, outerH - bottomTopY - insetClearance);
+  const dividerH = dividerHeightOpt > 0
+    ? Math.max(1, Math.min(dividerHeightOpt, dividerHAuto))
+    : dividerHAuto;
 
   // 加內部直立隔板（縱向：沿 length 軸切，跟長邊垂直）
   const dividerParts: typeof built.parts = [];
-  const dividerThick = wallT - 2;
   if (dividers > 0) {
     const dividerSpacing = built.innerL / (dividers + 1);
     for (let i = 1; i <= dividers; i++) {
@@ -163,10 +237,10 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `縱向隔板 ${i}`,
         material,
         grainDirection: "length",
-        visible: { length: built.innerW, width: outerH - botT, thickness: dividerThick },
+        visible: { length: built.innerW + 2 * dividerInsetOpt, width: dividerH, thickness: dividerThick },
         origin: {
           x: -built.innerL / 2 + i * dividerSpacing,
-          y: botT,
+          y: bottomTopY,
           z: 0,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
@@ -184,10 +258,10 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `橫向隔板 ${i}`,
         material,
         grainDirection: "length",
-        visible: { length: built.innerL, width: outerH - botT, thickness: dividerThick },
+        visible: { length: built.innerL + 2 * dividerInsetOpt, width: dividerH, thickness: dividerThick },
         origin: {
           x: 0,
-          y: botT,
+          y: bottomTopY,
           z: -built.innerW / 2 + i * dividerSpacing,
         },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
@@ -206,7 +280,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板用槽接嵌入 4 壁內側下緣，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**坐地疊裝**（底板坐地、4 壁立其上膠合）"}，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];

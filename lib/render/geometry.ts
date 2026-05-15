@@ -70,6 +70,15 @@ export function projectPartSilhouette(
   // Tilt-z: 頂面 (y = +ly/2 → 旋轉前的局部頂端) 沿 Z 偏 topShiftMm
   // baseHeightMm 已在 visible.width 反映傾斜後的料長，不另外 scale。
   const tiltZ = part.shape?.kind === "tilt-z" ? part.shape.topShiftMm : 0;
+  // Mitered-ends: 兩端沿 X 軸 inset，但只在 inner Y 邊（不在 outer Y 邊）。
+  const mitered = part.shape?.kind === "mitered-ends" ? part.shape : null;
+  // Right-triangle: 在 local X-Z 平面切去對角缺角，sample 時跳過該 (exNorm, ezSamp) 對。
+  // corner = 直角位置；缺角 = 直角的對角（兩軸 sign 都反）。
+  const rightTri = part.shape?.kind === "right-triangle" ? part.shape : null;
+  const triMissExSign = rightTri ? (rightTri.corner.startsWith("+x") ? -1 : +1) : 0;
+  const triMissEzSign = rightTri ? (rightTri.corner.endsWith("+z") ? -1 : +1) : 0;
+  // Mitered-corner: 在 perpendicular axis 平面切去 45° 角；sample 時跳過該角 + 補上兩個 inset 點。
+  const miterCorner = part.shape?.kind === "mitered-corner" ? part.shape : null;
   // Round / round-tapered / lathe-turned / shaker：截面圓形，採樣 N 點而非 4 角
   const isRound = part.shape?.kind === "round" || part.shape?.kind === "round-tapered"
     || part.shape?.kind === "lathe-turned";
@@ -119,6 +128,13 @@ export function projectPartSilhouette(
         : [[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([yS, zS]) => [yS, zS] as [number, number])
           .filter(([yS]) => yS === ey);
       for (const [eySamp, ezSamp] of samples) {
+        // Right-triangle: 跳過缺角 (exNorm sign === triMissExSign && ezSamp sign === triMissEzSign)。
+        // 剩下 3 個 X-Z 角 → convex hull 給直角三角形 silhouette。
+        if (rightTri) {
+          const exSign = exNorm > 0 ? +1 : -1;
+          const ezSign = ezSamp > 0 ? +1 : -1;
+          if (exSign === triMissExSign && ezSign === triMissEzSign) continue;
+        }
         // 注意 isRound 時迴圈 ey 失效，但採樣已涵蓋整圈
         const eyEff = isRound ? eySamp : ey;
         // 底面 = ey > 0（local +Y 是底，因為 origin.y 是底，local Y 軸向 +Y 增加）
@@ -156,8 +172,18 @@ export function projectPartSilhouette(
         // 不過 tilt-z 多半搭 rotation 用，rotation 已轉好，這裡只需要直接位移。
         const tiltZdz = tiltZ * (ezSamp / 2);
 
+        // Mitered-ends inset：inner Y 邊兩端往內縮 insetEach
+        // visible.thickness 是 ly，所以 ey 軸 = thickness 軸
+        let miterInset = 0;
+        if (mitered) {
+          const outerEy = mitered.outerSide === "+y" ? +1 : -1;
+          // eyEff 對非 round 來說是 ey (±1)；inner = eyEff !== outerEy
+          if (eyEff * outerEy < 0) {
+            miterInset = exNorm > 0 ? -mitered.insetEach : +mitered.insetEach;
+          }
+        }
         const xLocal = (arch ? (lx * exNorm) / 2 : (exNorm * lx) / 2) * xScaleTaper * xScaleTrap
-          + splayDx;
+          + splayDx + miterInset;
         const yLocal = (eyEff * ly) / 2;
         // half-bevel: 只有頂面（ezSamp < 0）vertex 套 shear，底面不動
         const halfBevContribution = halfBev && ezSamp < 0 ? -yLocal * halfBevShear : 0;
@@ -165,6 +191,38 @@ export function projectPartSilhouette(
         const trapBevAdjust = trapHalfBevel && ezSamp > 0 ? yLocal * bevShear : 0;
         const zLocal = (ezSamp * lz) / 2 * zScaleTaper + archDz + tiltZdz - yLocal * bevShear
           + halfBevContribution + trapBevAdjust + splayDz;
+        // Mitered-corner：如果這個 sample 落在被削掉的角上，補兩個 inset 點代替原點。
+        if (miterCorner) {
+          const ax = miterCorner.axis;
+          const s1Cut = miterCorner.corner[0] === "+" ? +1 : -1;
+          const s2Cut = miterCorner.corner[1] === "+" ? +1 : -1;
+          const d = miterCorner.depthMm;
+          // 對 axis=x: cross-section in Y-Z; a1=ey, a2=ez. Check sign(eyEff)==s1Cut && sign(ezSamp)==s2Cut.
+          // 對 axis=y: cross-section in X-Z; a1=ex, a2=ez. Check sign(exNorm)==s1Cut && sign(ezSamp)==s2Cut.
+          // 對 axis=z: cross-section in X-Y; a1=ex, a2=ey. Check sign(exNorm)==s1Cut && sign(eyEff)==s2Cut.
+          let isCutCorner = false;
+          if (ax === "x") {
+            isCutCorner = (eyEff > 0 ? +1 : -1) === s1Cut && (ezSamp > 0 ? +1 : -1) === s2Cut;
+          } else if (ax === "y") {
+            isCutCorner = (exNorm > 0 ? +1 : -1) === s1Cut && (ezSamp > 0 ? +1 : -1) === s2Cut;
+          } else {
+            isCutCorner = (exNorm > 0 ? +1 : -1) === s1Cut && (eyEff > 0 ? +1 : -1) === s2Cut;
+          }
+          if (isCutCorner) {
+            // 改補兩個 inset 點：a1-extreme inset 一個、a2-extreme inset 一個
+            if (ax === "x") {
+              pushPoint(xLocal, s1Cut * (ly / 2 - d), s2Cut * lz / 2);
+              pushPoint(xLocal, s1Cut * ly / 2, s2Cut * (lz / 2 - d));
+            } else if (ax === "y") {
+              pushPoint(s1Cut * (lx / 2 - d), yLocal, s2Cut * lz / 2);
+              pushPoint(s1Cut * lx / 2, yLocal, s2Cut * (lz / 2 - d));
+            } else {
+              pushPoint(s1Cut * (lx / 2 - d), s2Cut * ly / 2, zLocal);
+              pushPoint(s1Cut * lx / 2, s2Cut * (ly / 2 - d), zLocal);
+            }
+            continue;
+          }
+        }
         pushPoint(xLocal, yLocal, zLocal);
       }
     }
@@ -670,6 +728,104 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
       back.push({ x: xc, y: yBack + dy });
     }
     return [...front, ...back.reverse()];
+  }
+
+  // 45° 斜接壁：交給 silhouette pipeline（已含 rotation + origin 投影），
+  // 才能正確處理 4 壁不同 rotation/outerSide 組合。
+  if (part.shape.kind === "mitered-ends") {
+    return projectPartSilhouette(part, view);
+  }
+
+  // 指接壁：在「length 軸落在 view r.w 或 r.h」的視角（=正視/側視一定有 2 壁）
+  // 畫 comb 多邊形：r.w/r.h 取 length 軸、segments 沿 height 軸（local Z → world Y）。
+  // 不符合的視角（length 軸是深度方向 → wall 邊看）就回 bbox 矩形。
+  if (part.shape.kind === "finger-joint-ends") {
+    const L = part.visible.length;
+    const eps = 0.5;
+    const N = Math.max(2, Math.floor(part.shape.segmentCount));
+    const phase = part.shape.phase;
+    const depth = part.shape.fingerDepth;
+    const isFinger = (s: number) => ((s + phase) % 2) === 0;
+    // s=0 = 最上方段（local -Z → world +Y top；reversed for "hw" axis）
+    let combAxis: "w" | "h" | null = null;
+    if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
+    else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
+    if (combAxis === null || view === "top") return box;
+    const pts: Array<{ x: number; y: number }> = [];
+    if (combAxis === "w") {
+      // length 軸水平 (r.w)、高度沿 r.h；s=0 = 頂部
+      const segH = r.h / N;
+      const d = Math.min(depth, r.w * 0.45);
+      const xR = (s: number) => isFinger(s) ? r.x + r.w : r.x + r.w - d;
+      const xL = (s: number) => isFinger(s) ? r.x : r.x + d;
+      const yTopOf = (s: number) => r.y + r.h - s * segH;
+      const yBotOf = (s: number) => r.y + r.h - (s + 1) * segH;
+      // 從 top-right 起 CCW
+      pts.push({ x: xR(0), y: yTopOf(0) });
+      pts.push({ x: xL(0), y: yTopOf(0) });
+      for (let s = 0; s < N; s++) {
+        pts.push({ x: xL(s), y: yBotOf(s) });
+        if (s < N - 1) {
+          const nx = xL(s + 1);
+          if (nx !== xL(s)) pts.push({ x: nx, y: yBotOf(s) });
+        }
+      }
+      pts.push({ x: xR(N - 1), y: yBotOf(N - 1) });
+      for (let s = N - 1; s >= 0; s--) {
+        pts.push({ x: xR(s), y: yTopOf(s) });
+        if (s > 0) {
+          const nx = xR(s - 1);
+          if (nx !== xR(s)) pts.push({ x: nx, y: yTopOf(s) });
+        }
+      }
+    } else {
+      // combAxis === "h"：length 軸垂直 (r.h)、寬度沿 r.w；s=0 對應頂端 r.y+r.h
+      const segW = r.h / N;
+      const d = Math.min(depth, r.w * 0.45);
+      const yT = (s: number) => isFinger(s) ? r.y + r.h : r.y + r.h - 0; // not used differently here
+      // Actually for "h" axis, comb 在 r.y / r.y+r.h 兩端、segments 沿 r.w
+      // 但 r.h 是 length 方向 → comb 在 height 軸兩端... 重想
+      // length 軸 = r.h → 壁長度沿 r.h；comb 在 r.h 兩端（top, bottom of view）
+      // segments 沿 r.w 切
+      const segWidth = r.w / N;
+      const yTopFinger = r.y + r.h;
+      const yTopGap = r.y + r.h - d;
+      const yBotFinger = r.y;
+      const yBotGap = r.y + d;
+      const yTAt = (s: number) => isFinger(s) ? yTopFinger : yTopGap;
+      const yBAt = (s: number) => isFinger(s) ? yBotFinger : yBotGap;
+      const xLeftOf = (s: number) => r.x + s * segWidth;
+      const xRightOf = (s: number) => r.x + (s + 1) * segWidth;
+      // CCW from top-right
+      pts.push({ x: xRightOf(N - 1), y: yTAt(N - 1) });
+      for (let s = N - 1; s >= 0; s--) {
+        pts.push({ x: xLeftOf(s), y: yTAt(s) });
+        if (s > 0) {
+          const ny = yTAt(s - 1);
+          if (ny !== yTAt(s)) pts.push({ x: xLeftOf(s), y: ny });
+        }
+      }
+      pts.push({ x: xLeftOf(0), y: yBAt(0) });
+      for (let s = 0; s < N; s++) {
+        pts.push({ x: xRightOf(s), y: yBAt(s) });
+        if (s < N - 1) {
+          const ny = yBAt(s + 1);
+          if (ny !== yBAt(s)) pts.push({ x: xRightOf(s), y: ny });
+        }
+      }
+    }
+    return pts;
+  }
+
+  // 直角三角形板：silhouette 已跳過缺角 → convex hull 給三角形/矩形 view
+  // 依旋轉與視角自動決定。
+  if (part.shape.kind === "right-triangle") {
+    return projectPartSilhouette(part, view);
+  }
+
+  // Mitered-corner：silhouette 已把缺角換成兩個 inset 點 → convex hull 給五邊形/梯形
+  if (part.shape.kind === "mitered-corner") {
+    return projectPartSilhouette(part, view);
   }
 
   // 4 角缺角板（座下層板避腳柱）：俯視畫 8 角多邊形，前/側視仍是矩形

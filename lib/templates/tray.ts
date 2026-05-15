@@ -246,5 +246,13 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     extraWarnings.push(`圍邊厚 ${wallT}mm 對 ${outerL}mm 長托盤太薄——端起時容易裂；建議加厚到 12mm`);
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
+  // 邊緣倒角：給沒掛其他 shape 的零件套 chamfered-edges
+  if (edgeChamfer > 0) {
+    for (const part of design.parts) {
+      if (!part.shape) {
+        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
+      }
+    }
+  }
   return design;
 };
