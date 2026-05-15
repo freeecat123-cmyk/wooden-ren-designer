@@ -66,6 +66,7 @@ A1 表的「(svg_x, svg_y) = (y, −z)」對應 code 是「(svg_x, svg_y) = (z, 
 | 競品分析 | `"競品\|wrd 定位"` | §AF |
 | 木工數位行銷 / SEO | `"SEO\|行銷\|關鍵字"` | §AH |
 | 室內平面圖 / 裝潢計價 | `"室內\|裝潢\|平面圖"` | §AI |
+| 複斜 miter / Hopper / 鬥盒 | `"複斜\|miter\|Hopper\|外撇\|splay"` | §AT |
 
 ---
 
