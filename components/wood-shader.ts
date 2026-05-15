@@ -81,17 +81,16 @@ float cathedralFade = smoothstep(0.5, 0.85, faceY);
 // 樹心比之前拉近 (-120 vs -220)、年輪比之前密 (8mm/圈 vs 25mm/圈)，
 // 才不會像神木年輪那樣稀疏。樹心拉近後 wz 在板邊超過 pithY 距離時
 // r 增長變線性 → 板的左右邊自然變成順紋，中間才有拱形（real lumber 樣）。
-// 1. 樹心位置：推回 -220mm（之前 -130 讓 pith 太近，arch 弧度太大每個拱
-//    都像漩渦看起來就是石頭紋）。pith 遠 = 弧度淺、拱形平緩 = 像真木板。
-//    sin 幅度也壓低避免 pith 沿 grain 劇烈擺動。
-float pithY = -220.0 + sin(gx * 0.0055) * 30.0 + sin(gx * 0.0023 + 1.1) * 18.0;
+// 1. 樹心位置在板下方，sin 幅度收小（之前 40+25 太大讓 pith 接近板面，
+//    rings 劇變看起來像亂波/石頭紋）
+float pithY = -130.0 + sin(gx * 0.005) * 22.0 + sin(gx * 0.0023 + 1.1) * 14.0;
 // 2. 真實 Euclidean ring 半徑：pithY 在下方時 sqrt(d²+wz²) 對 wz 拋物線 → 拱
 float r = sqrt((wy - pithY) * (wy - pithY) + wz * wz);
-// 3. 中頻 fbm 擾動振幅 4mm（ring 間距 15mm 的 1/4）：rings 不完美平行但
-//    保持乾淨弧線、不會被噪聲攪成石頭紋
-r += (wd_fbm(vec2(gx * 0.008, wz * 0.02)) - 0.5) * 4.0;
-// 4. 高頻細擾動振幅 0.8mm
-r += (wd_fbm(vec2(gx * 0.05, wz * 0.08)) - 0.5) * 0.8;
+// 3. 中頻 fbm 擾動振幅 3mm：之前 8mm 相對 ring 間距太大讓拱形變成亂波/
+//    石頭紋，收到 ring 間距 1/5 讓 rings 保持乾淨弧線但不完美平行
+r += (wd_fbm(vec2(gx * 0.008, wz * 0.02)) - 0.5) * 3.0;
+// 4. 高頻細擾動振幅 0.5mm
+r += (wd_fbm(vec2(gx * 0.05, wz * 0.08)) - 0.5) * 0.5;
 // 5. 主年輪：每 ~15mm 一圈（家具材合理密度）
 float ringPos = fract(r * 0.067);
 // 6. 冬材深色帶，振幅 0.40；薄邊上 fade 掉
