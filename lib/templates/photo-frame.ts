@@ -5,9 +5,10 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { autoTenonType, standardTenon } from "@/lib/joinery/standards";
 
-/** 背板裝入時相對玻璃的擴大量（每邊 mm，預留卡入裕度） */
-const BACK_PANEL_CLEARANCE = 4;
+/** 背板卡入裕度（rabbet 深度減此值 = 實際 overlap，每邊 mm）：1mm 留滑入餘量 */
+const BACK_PANEL_CLEARANCE = 1;
 /** 玻璃槽內縮量（讓玻璃不會從正面看到槽口） */
 const GLASS_FRAME_INSET = 2;
 
@@ -20,22 +21,12 @@ export const photoFrameOptions: OptionSpec[] = [
   { group: "structure", type: "select", key: "frameProfile", label: "邊框輪廓", defaultValue: "flat", choices: [
     { value: "flat", label: "平面（最簡單）" },
     { value: "chamfer-out", label: "外緣 45° 倒角" },
-    { value: "chamfer-in", label: "內緣斜面（朝照片方向斜下）" },
-    { value: "ogee", label: "古典 Ogee 線（雙曲線）" },
-    { value: "cove", label: "凹弧 Cove（內凹圓弧）" },
-  ], help: "邊框正面輪廓樣式。平面最簡單；其他需修邊機 + 對應曲線刀" },
-  { group: "structure", type: "select", key: "multiPhotoLayout", label: "多照片排列", defaultValue: "single", choices: [
-    { value: "single", label: "單張" },
-    { value: "horizontal-2", label: "橫排 2 張（共用中間隔板）" },
-    { value: "horizontal-3", label: "橫排 3 張" },
-    { value: "vertical-2", label: "直排 2 張" },
-    { value: "grid-4", label: "田字 4 格" },
-  ], help: "多照片組合相框，需在邊框內加 mullion（中央隔條），每格獨立放照片" },
-  { group: "structure", type: "select", key: "stand", label: "立架／吊掛", defaultValue: "easel", choices: [
-    { value: "easel", label: "立架（背面 V 型支撐板，立桌面）" },
-    { value: "wall-hung", label: "吊掛式（背面 D 形勾或鋸齒鈎）" },
-    { value: "both", label: "兩用（立架可摺收 + 吊掛勾）" },
-  ], help: "立架最常見，吊掛適合走廊牆面，兩用最彈性" },
+  ], help: "邊框正面輪廓樣式。平面最簡單；外緣倒角讓正面 4 條長邊都帶 45° 斜切" },
+  { group: "structure", type: "number", key: "chamferMm", label: "倒角大小 (mm)", defaultValue: 3, min: 1, max: 8, step: 1, unit: "mm", help: "僅外緣倒角模式生效" },
+  { group: "structure", type: "select", key: "cornerJoinery", label: "邊角形狀", defaultValue: "butt", choices: [
+    { value: "butt", label: "直角（方角對接，傳統）" },
+    { value: "miter", label: "45° 斜角（畫框風）" },
+  ], help: "邊角外觀。直角=4 個方角；45° 斜角=精緻畫框風。內部接合工法（盲榫 / spline）在榫接版才會看到" },
 ];
 
 /**
@@ -51,38 +42,48 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
   const glassT = getOption<number>(input, opt(o, "glassThickness"));
   const glassGrooveDepth = getOption<number>(input, opt(o, "glassGrooveDepth"));
   const frameProfile = getOption<string>(input, opt(o, "frameProfile"));
-  const multiPhotoLayout = getOption<string>(input, opt(o, "multiPhotoLayout"));
-  const stand = getOption<string>(input, opt(o, "stand"));
+  const chamferMm = getOption<number>(input, opt(o, "chamferMm"));
+  const cornerJoinery = getOption<string>(input, opt(o, "cornerJoinery"));
+  const useMiter = cornerJoinery === "miter";
 
   // 整框外尺寸 = 照片 + 兩側邊框
   const outerL = photoW + 2 * frameW;
   const outerW = photoH + 2 * frameW;
 
-  // 上下橫邊：完整 outerL
-  // 邊框 mitered-spline 接合：top/bottom 出公榫（spline 凸出）、left/right 開
-  // 母榫眼（spline 槽）。每邊 2 個（兩端），共 4 tenon + 4 mortise，audit 1:1 配對。
-  // spline 本體不獨立模型化（小 biscuit 木片，藏在槽裡看不見）；
-  // defaultJoinery: "mitered-spline" 已標明，joinery detail 渲染由 extract.ts 處理。
-  const splineL = frameT;  // spline 嵌進 frame 深度
-  const splineT = 4;        // spline 厚度
-  const splineW = frameW;   // spline 寬（嵌進 frame 可見深度）
+  // 4 個角用盲榫補強：left/right rail 上下各出一支盲榫進 top/bottom rail。
+  // 公件 = leftRail/rightRail；母件 = topRail/bottomRail。
+  // 用 standardTenon helper 算榫厚/寬（依木工標準 T/3、W-2×肩），
+  // 但長度覆寫——standardTenon 的 25mm 最小盲榫長度是給椅桌厚料訂的，
+  // 相框薄料用會吃掉太多母件強度。改用 50% 母厚（更典型的小件比例）。
+  const tenonType = autoTenonType(frameW);
+  const tenonSpecRaw = standardTenon({
+    type: tenonType,
+    childThickness: frameT,
+    childWidth: frameW,
+    motherThickness: frameW,
+  });
+  const tenonLengthOverride =
+    tenonType === "through-tenon"
+      ? frameW
+      : Math.max(8, Math.round(frameW * 0.5) - 2);
+  const tenonSpec = { ...tenonSpecRaw, length: tenonLengthOverride };
   const cornerTenon = (pos: "start" | "end"): Part["tenons"][number] => ({
     position: pos,
-    type: "mitered-spline",
-    length: splineL,
-    width: splineW,
-    thickness: splineT,
+    type: tenonType,
+    length: tenonSpec.length,
+    width: tenonSpec.width,
+    thickness: tenonSpec.thickness,
+    shoulderOn: tenonSpec.shoulderOn,
   });
-  const cornerMortise = (lx: number, atStart: boolean): Part["mortises"][number] => ({
-    origin: {
-      x: atStart ? -lx / 2 + splineL / 2 : +lx / 2 - splineL / 2,
-      y: frameT / 2,
-      z: 0,
-    },
-    depth: splineL,
-    length: splineW,
-    width: splineT,
-    through: false,
+  const cornerMortise = (
+    xWorld: number,
+    zLocal: number,
+  ): Part["mortises"][number] => ({
+    origin: { x: xWorld, y: frameT / 2, z: zLocal },
+    depth: tenonSpec.length,
+    length: tenonSpec.width,
+    width: tenonSpec.thickness,
+    through: tenonType === "through-tenon",
   });
 
   const topRail: Part = {
@@ -92,18 +93,28 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: outerL, width: frameW, thickness: frameT },
     origin: { x: 0, y: 0, z: outerW / 2 - frameW / 2 },
-    tenons: [cornerTenon("start"), cornerTenon("end")],
-    mortises: [],
+    tenons: [],
+    // miter 時 tenon 被斜切吃掉 → 也清掉 mortise；非 miter 用盲榫眼
+    mortises: useMiter ? [] : [
+      cornerMortise(-(outerL / 2 - frameW / 2), -frameW / 2),
+      cornerMortise(+(outerL / 2 - frameW / 2), -frameW / 2),
+    ],
   };
   const bottomRail: Part = {
     ...topRail,
     id: "frame-bottom",
     nameZh: "下邊框",
     origin: { x: 0, y: 0, z: -(outerW / 2 - frameW / 2) },
+    mortises: useMiter ? [] : [
+      cornerMortise(-(outerL / 2 - frameW / 2), +frameW / 2),
+      cornerMortise(+(outerL / 2 - frameW / 2), +frameW / 2),
+    ],
   };
 
-  // 左右立邊：扣掉上下邊厚度（45° 斜接後接觸線在外角）
-  const sideLen = outerW - 2 * frameW;
+  // 左右立邊：
+  // - 直角盲榫接：length = sideLen（夾在 top/bottom 之間），出榫穿入 top/bottom
+  // - 45° 斜接：length = outerW（延伸到外角全長），miter 切短內緣（per pencil-holder line 290-294）
+  const sideLen = useMiter ? outerW : outerW - 2 * frameW;
   const leftRail: Part = {
     id: "frame-left",
     nameZh: "左邊框",
@@ -112,32 +123,79 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: sideLen, width: frameW, thickness: frameT },
     origin: { x: -(outerL / 2 - frameW / 2), y: 0, z: 0 },
     rotation: { x: 0, y: Math.PI / 2, z: 0 },
-    tenons: [],
-    mortises: [cornerMortise(sideLen, true), cornerMortise(sideLen, false)],
+    // miter 時 tenon 會被斜切吃掉，改用 spline；非 miter 用標準盲榫
+    tenons: useMiter ? [] : [cornerTenon("start"), cornerTenon("end")],
+    mortises: [],
   };
   const rightRail: Part = {
     ...leftRail,
     id: "frame-right",
     nameZh: "右邊框",
     origin: { x: outerL / 2 - frameW / 2, y: 0, z: 0 },
+    // 跟 leftRail 一樣，但 tenons 內容相同（盲榫對稱）
   };
 
+  // 45° 斜接時，4 條 rail 兩端套 mitered-corner shape（bothEnds 同時切兩個對角 corner）。
+  // 切點在「內 a2 邊」（朝照片開口側），外緣保持滿長。
+  // topRail (no rotation): 外緣 = +Z，切 +- 與 -- (-a2 = inner)
+  // bottomRail (no rotation): 外緣 = -Z，切 ++ 與 -+ (+a2 = inner)
+  // leftRail (Ry π/2): 局部 +Z → world +X = 朝中心 (inner)，切 ++ 與 -+
+  // rightRail (Ry π/2): 局部 +Z → world +X = 外側，切 +- 與 -- (-a2 = inner)
+  // 45° 斜接：改用 pencil-holder 驗證過的 mitered-ends pattern
+  // visible 對調 width/thickness（local Y → 內外方向）+ rotation Rx(π/2)（左右再加 Ry π/2）
+  if (useMiter) {
+    topRail.visible = { length: outerL, width: frameT, thickness: frameW };
+    topRail.rotation = { x: Math.PI / 2, y: 0, z: 0 };
+    topRail.shape = { kind: "mitered-ends", insetEach: frameW, outerSide: "+y" };
+
+    bottomRail.visible = { length: outerL, width: frameT, thickness: frameW };
+    bottomRail.rotation = { x: Math.PI / 2, y: 0, z: 0 };
+    bottomRail.shape = { kind: "mitered-ends", insetEach: frameW, outerSide: "-y" };
+
+    leftRail.visible = { length: outerW, width: frameT, thickness: frameW };
+    leftRail.rotation = { x: Math.PI / 2, y: Math.PI / 2, z: 0 };
+    leftRail.shape = { kind: "mitered-ends", insetEach: frameW, outerSide: "-y" };
+
+    rightRail.visible = { length: outerW, width: frameT, thickness: frameW };
+    rightRail.rotation = { x: Math.PI / 2, y: Math.PI / 2, z: 0 };
+    rightRail.shape = { kind: "mitered-ends", insetEach: frameW, outerSide: "+y" };
+  }
+
+  // 邊框輪廓 chamfer-out：套 chamfered-edges（mitered-ends 不直接支援 chamfer，
+  // 但 4 條軸向長邊倒角獨立於 miter 端切，加在 mitered-ends 之上會被覆蓋——所以
+  // 只在直角模式套；miter 模式的倒角之後再做。）
+  if (frameProfile === "chamfer-out" && chamferMm > 0 && !useMiter) {
+    for (const rail of [topRail, bottomRail, leftRail, rightRail]) {
+      if (!rail.shape) {
+        rail.shape = { kind: "chamfered-edges", chamferMm };
+      }
+    }
+  }
+
   // 玻璃（visual: glass 不入材積、不出材料單）
+  // 跟背板一樣卡進邊框 rabbet 區，每邊 overlap = rabbet 深度 - 1mm 裕度。
+  // 三視圖正面/側面才看得到玻璃邊緣伸入邊框後方。
+  const glassOverlap = glassGrooveDepth - BACK_PANEL_CLEARANCE; // 預設 5mm
   const glass: Part = {
     id: "glass",
     nameZh: "玻璃",
     material,
     visual: "glass",
     grainDirection: "length",
-    visible: { length: photoW, width: photoH, thickness: glassT },
+    visible: { length: photoW + 2 * glassOverlap, width: photoH + 2 * glassOverlap, thickness: glassT },
     origin: { x: 0, y: frameT - glassGrooveDepth - glassT, z: 0 },
     tenons: [],
     mortises: [],
   };
 
-  // 背板（夾板）— butt-joint 慣例：尺寸 = 內部開窗，貼在邊框背面（不嵌入溝槽）
-  // 用螺絲 / 卡釘 / 旋轉扣固定到邊框背面。
-  void BACK_PANEL_CLEARANCE;
+  // 背板（夾板）— 從後方滑入邊框內側 rabbet，背面跟邊框底齊。
+  // 邊框 Y∈[0, frameT]：正面 y=frameT（玻璃在前內側 y=17-19）、背面 y=0。
+  // 背板尺寸 = 照片開口 + 兩側 rabbet 深度（glassGrooveDepth × 2），
+  // 邊緣卡入邊框內側的 rabbet 裡 → 三視圖正面/側面看得到背板延伸到邊框下方的虛線輪廓。
+  // 預留 BACK_PANEL_CLEARANCE 每邊 4mm 卡入裕度（避免太緊）。
+  const backPanelOverlap = glassGrooveDepth - BACK_PANEL_CLEARANCE;
+  const backPanelL = photoW + 2 * backPanelOverlap;
+  const backPanelW = photoH + 2 * backPanelOverlap;
   const backPanel: Part = {
     id: "back-panel",
     nameZh: "背板（夾板）",
@@ -145,11 +203,11 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     materialOverride: "plywood",
     grainDirection: "length",
     visible: {
-      length: photoW,
-      width: photoH,
+      length: backPanelL,
+      width: backPanelW,
       thickness: backT,
     },
-    origin: { x: 0, y: frameT, z: 0 },
+    origin: { x: 0, y: 0, z: 0 },
     tenons: [],
     mortises: [],
   };
@@ -162,75 +220,16 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     warnings.push(`邊框寬 ${frameW}mm 占照片邊長 > 30%，視覺比例失衡。建議邊框寬不超過照片短邊的 1/4`);
   }
 
-  // 多照片 mullion：在邊框正面凸出 3mm 木條（3D 才看得到、不跟 frame 表面齊平）
-  const mullions: Part[] = [];
-  if (multiPhotoLayout !== "single") {
-    const mullionW = 18;
-    const mullionThick = 6; // 凸出 frame 表面的厚度
-    const mullionY = frameT - 3; // 底面貼進 frame 內 3mm，頂面凸出 frame 3mm
-    if (multiPhotoLayout === "horizontal-2" || multiPhotoLayout === "horizontal-3") {
-      const cuts = multiPhotoLayout === "horizontal-2" ? 1 : 2;
-      const innerW = outerL - 2 * frameW;
-      const slotW = innerW / (cuts + 1);
-      for (let i = 0; i < cuts; i++) {
-        mullions.push({
-          id: `mullion-h-${i + 1}`,
-          nameZh: `橫排 mullion ${i + 1}`,
-          material,
-          grainDirection: "length",
-          visible: { length: outerW - 2 * frameW, width: mullionW, thickness: mullionThick },
-          origin: { x: -outerL / 2 + frameW + slotW * (i + 1), y: mullionY, z: 0 },
-          rotation: { x: 0, y: Math.PI / 2, z: 0 },
-          tenons: [],
-          mortises: [],
-        });
-      }
-    } else if (multiPhotoLayout === "vertical-2") {
-      mullions.push({
-        id: `mullion-v-1`,
-        nameZh: `直排 mullion`,
-        material,
-        grainDirection: "length",
-        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: mullionThick },
-        origin: { x: 0, y: mullionY, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    } else if (multiPhotoLayout === "grid-4") {
-      mullions.push({
-        id: `mullion-grid-h`,
-        nameZh: `田字 mullion 橫`,
-        material,
-        grainDirection: "length",
-        visible: { length: outerL - 2 * frameW, width: mullionW, thickness: mullionThick },
-        origin: { x: 0, y: mullionY, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-      mullions.push({
-        id: `mullion-grid-v`,
-        nameZh: `田字 mullion 縱`,
-        material,
-        grainDirection: "length",
-        visible: { length: outerW - 2 * frameW, width: mullionW, thickness: mullionThick },
-        origin: { x: 0, y: mullionY, z: 0 },
-        rotation: { x: 0, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
-  }
-
   return {
     id: `photo-frame-${photoW}x${photoH}`,
     category: "photo-frame",
     nameZh: "相框",
     overall: { length: outerL, width: outerW, thickness: frameT },
-    parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel, ...mullions],
+    parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
     useButtJointConvention: true,
     defaultJoinery: "mitered-spline",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面外緣 45° 倒角（修邊機 V 型刀）。` : frameProfile === "chamfer-in" ? `邊框正面內緣斜面下垂（修邊機 chamfer 刀）。` : frameProfile === "ogee" ? `邊框正面 Ogee 古典線型（修邊機 Ogee 線刀）。` : frameProfile === "cove" ? `邊框正面凹弧 Cove（修邊機 Cove 刀）。` : ""}${stand === "easel" ? ` 背面加 V 型立架（鉸鏈 + 摺收支撐板，立桌面用）。` : stand === "wall-hung" ? ` 背面加 D 形掛勾或鋸齒鈎（吊牆用）。` : ` 兩用：背面同時加可摺立架 + 掛勾。`}${multiPhotoLayout !== "single" ? ` 多照片排列：${multiPhotoLayout}（邊框內加 mullion 隔條、每格獨立鋸槽放照片）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
+    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };
