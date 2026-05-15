@@ -321,28 +321,125 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
   // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
-  // 複斜 miter（§AT1.1, n=4）：tilt = wallSplayRad；
-  //   Miter M = arctan(cos θ) → inset = wallT × cos θ（θ=0 退回 wallT，向後相容）
-  //   Bevel B = arcsin(sin θ / √2)
-  // tilt 寫進 shape 給 geometry 知道（zoomed 端面是複斜），
-  // 真正的整片牆繞底外緣傾倒由下方 rotation block 處理。
+  // wallSplay=0：原本 ring extrude 路徑（向後相容）。
+  // wallSplay>0：**反向法**——先用幾何公式算出 4 壁的 8 corner 在世界座標
+  //   （bottom 在 box outer 邊界、top 延伸 wallH·sin θ 到 corner edge 交點），
+  //   再 inverse-transform 回 part-local frame，bypass ring extrude 直接 build。
+  //   這樣 4 壁的 corner 在 3D 真實接合，不會有「應該對接但浮空」的縫。
   if (cornerJoinery === "miter") {
-    const tilt = wallSplayRad;
-    const bevel = tilt > 0 ? Math.asin(Math.sin(tilt) / Math.SQRT2) : 0;
-    const miterInsetCompound = wallT * Math.cos(tilt);
+    const theta = wallSplayRad;
+    const tan = Math.tan(theta);
+    const sin = Math.sin(theta);
+    const cos = Math.cos(theta);
+    // 反向法用的關鍵量（wallSplay > 0 才計算）
+    const wallTplus = theta > 0 ? wallT / cos : wallT;  // 內緣往內偏移（plan view）
+    const hShift = theta > 0 ? built.wallH * sin : 0;          // 頂端往外延伸量
+    const vTop = theta > 0 ? built.wallH * cos : built.wallH;  // 頂端世界 Y
+
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
-      if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
-      else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
-      if (outerSide) {
-        part.shape = {
-          kind: "mitered-ends",
-          insetEach: miterInsetCompound,
-          outerSide,
-          tiltAngle: tilt,
-          bevelAngle: bevel,
-        };
+      let wallId: "front" | "back" | "left" | "right" | null = null;
+      if (part.id === "wall-back") { wallId = "back"; outerSide = "+y"; }
+      else if (part.id === "wall-front") { wallId = "front"; outerSide = "-y"; }
+      else if (part.id === "wall-left") { wallId = "left"; outerSide = "-y"; }
+      else if (part.id === "wall-right") { wallId = "right"; outerSide = "+y"; }
+      if (!outerSide || !wallId) continue;
+
+      if (theta <= 0) {
+        // 直立壁——原 mitered-ends ring extrude 路徑
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+        continue;
       }
+
+      // 反向法：算 8 corner 在世界座標
+      const Lx = outerL, Lz = outerW;
+      const x0 = Lx / 2, z0 = Lz / 2;
+      // 世界座標 8 corner（順序：0..3=top, 4..7=bottom；
+      // 每組 4 點順序對應 ring layout：
+      //   outerSide="+y" → [outer-right, outer-left, inner-left, inner-right]
+      //   outerSide="-y" → [inner-right, inner-left, outer-left, outer-right]
+      let world: [number, number, number][];
+      if (wallId === "front") {
+        // outer face z=-z0, top tilts -Z
+        world = [
+          // 0..3 = TOP (高 vTop), order = [IR, IL, OL, OR] for "-y"
+          [+x0 - wallTplus + hShift, vTop, -z0 + wallTplus - hShift],  // IR_T
+          [-x0 + wallTplus - hShift, vTop, -z0 + wallTplus - hShift],  // IL_T
+          [-x0 - hShift,             vTop, -z0 - hShift],              // OL_T
+          [+x0 + hShift,             vTop, -z0 - hShift],              // OR_T
+          // 4..7 = BOTTOM (y=0), same order
+          [+x0 - wallTplus, 0, -z0 + wallTplus],  // IR_B
+          [-x0 + wallTplus, 0, -z0 + wallTplus],  // IL_B
+          [-x0, 0, -z0],                          // OL_B
+          [+x0, 0, -z0],                          // OR_B
+        ];
+      } else if (wallId === "back") {
+        // outer face z=+z0, top tilts +Z; outerSide="+y" → [OR, OL, IL, IR]
+        world = [
+          [+x0 + hShift,             vTop, +z0 + hShift],              // OR_T
+          [-x0 - hShift,             vTop, +z0 + hShift],              // OL_T
+          [-x0 + wallTplus - hShift, vTop, +z0 - wallTplus + hShift],  // IL_T
+          [+x0 - wallTplus + hShift, vTop, +z0 - wallTplus + hShift],  // IR_T
+          [+x0, 0, +z0],                          // OR_B
+          [-x0, 0, +z0],                          // OL_B
+          [-x0 + wallTplus, 0, +z0 - wallTplus],  // IL_B
+          [+x0 - wallTplus, 0, +z0 - wallTplus],  // IR_B
+        ];
+      } else if (wallId === "left") {
+        // outer face x=-x0, top tilts -X; outerSide="-y" → [IR, IL, OL, OR]
+        // 「length 軸」對 left 牆而言是 Z 軸（沿 box width）
+        // IR=後端內側、IL=前端內側、OL=前端外側、OR=後端外側
+        world = [
+          [-x0 + wallTplus - hShift, vTop, +z0 - wallTplus + hShift],  // IR_T (後內)
+          [-x0 + wallTplus - hShift, vTop, -z0 + wallTplus - hShift],  // IL_T (前內)
+          [-x0 - hShift,             vTop, -z0 - hShift],              // OL_T (前外)
+          [-x0 - hShift,             vTop, +z0 + hShift],              // OR_T (後外)
+          [-x0 + wallTplus, 0, +z0 - wallTplus],  // IR_B
+          [-x0 + wallTplus, 0, -z0 + wallTplus],  // IL_B
+          [-x0, 0, -z0],                          // OL_B
+          [-x0, 0, +z0],                          // OR_B
+        ];
+      } else {  // right
+        // outer face x=+x0, top tilts +X; outerSide="+y" → [OR, OL, IL, IR]
+        // OR=後端外側、OL=前端外側、IL=前端內側、IR=後端內側
+        world = [
+          [+x0 + hShift,             vTop, +z0 + hShift],              // OR_T
+          [+x0 + hShift,             vTop, -z0 - hShift],              // OL_T
+          [+x0 - wallTplus + hShift, vTop, -z0 + wallTplus - hShift],  // IL_T
+          [+x0 - wallTplus + hShift, vTop, +z0 - wallTplus + hShift],  // IR_T
+          [+x0, 0, +z0],                          // OR_B
+          [+x0, 0, -z0],                          // OL_B
+          [+x0 - wallTplus, 0, -z0 + wallTplus],  // IL_B
+          [+x0 - wallTplus, 0, +z0 - wallTplus],  // IR_B
+        ];
+      }
+
+      // Inverse-transform world → part-local。
+      // 牆 part 的 rotation：front/back = x:π/2；left/right = x:π/2, y:π/2。
+      // mesh world position = (origin.x, origin.y + yExt/2, origin.z)，yExt 經 worldExtents
+      // swap 後 = wallH（rotation x:π/2 把原 visible.width=wallH 換到 world Y 方向）。
+      const meshX = part.origin.x;
+      const meshY = part.origin.y + built.wallH / 2;
+      const meshZ = part.origin.z;
+      const isLR = wallId === "left" || wallId === "right";
+      const local: [number, number, number][] = world.map(([wx, wy, wz]) => {
+        if (isLR) {
+          // Rx(π/2) · Ry(π/2)：part-local (px,py,pz) → world (py, -pz, -px)
+          // Inverse：px = meshZ - wz, py = wx - meshX, pz = meshY - wy
+          return [meshZ - wz, wx - meshX, meshY - wy];
+        } else {
+          // Rx(π/2)：part-local (px,py,pz) → world (px, -pz, py)
+          // Inverse：px = wx - meshX, py = wz - meshZ, pz = meshY - wy
+          return [wx - meshX, wz - meshZ, meshY - wy];
+        }
+      });
+
+      part.shape = {
+        kind: "mitered-ends",
+        insetEach: wallT,
+        outerSide,
+        vertices: local,
+      };
     }
   }
 
@@ -375,29 +472,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 壁外撇（Phase 1：視覺）：rect bodyShape 才有意義。每片壁的 rotation 加一個
-  // 角度，讓 wall 繞自己的長軸傾斜，top 往外撇。Phase 1 不補償 origin，所以
-  // 整片壁繞 center 轉，底邊會稍微往外移、top 往外撇更多（總體仍是向外撇的效果）。
-  // 配合 miter corner 時，wall 的 local 端面 45° 切在傾斜的 frame 下變成複斜 miter。
-  // 符號約定（試到對為止）：
-  // - front wall（z 負）: outward = -Z → rotation x: +Δ
-  // - back wall（z 正）: outward = +Z → rotation x: -Δ
-  // - left/right wall 因為先 rotate y:π/2，wall 的長軸現在沿 world Z 跑，要動 rotation z
-  if (bodyShape === "rect" && wallSplayRad > 0) {
-    for (const part of built.parts) {
-      if (!part.rotation) continue;
-      // 全部 sign 翻過來：原本以為 +Δ 是 outward，實測是 inward
-      if (part.id === "wall-front") {
-        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) - wallSplayRad };
-      } else if (part.id === "wall-back") {
-        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
-      } else if (part.id === "wall-left") {
-        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) + wallSplayRad };
-      } else if (part.id === "wall-right") {
-        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
-      }
-    }
-  }
+  // wallSplay > 0 + cornerJoinery="miter" 時，反向法已把 tilt 包進 shape.vertices，
+  // 不需要再對 part.rotation 套外撇——保持原 box-builder 給的基本 rotation 即可。
+  // （miter 之外的 cornerJoinery 不支援 wallSplay。）
 
   // 托盤把手孔：rect bodyShape 才有意義（六/八角筒沒「短邊壁」這個概念）。
   // 兩個短邊壁（wall-left / wall-right）中央偏上挖穿透長條孔（cosmetic mortise

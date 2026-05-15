@@ -158,10 +158,9 @@ type ShapeSpec =
   | { kind: "mitered-ends";
       insetEach: number;
       outerSide: "+y" | "-y";
-      /** 複斜 miter 用：牆向外撇角度 θ in radians，預設 0（直立）。 */
       tiltAngle?: number;
-      /** 複斜 miter 用：鋸片傾角 B in radians，預設 0。 */
       bevelAngle?: number;
+      vertices?: [number, number, number][];
     }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
@@ -437,6 +436,9 @@ function Part({
       return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
     if (shape.kind === "mitered-ends") {
+      if (shape.vertices && shape.vertices.length === 8) {
+        return buildCompoundMiterFromVerts(shape.vertices);
+      }
       return buildMiteredEndsGeometry(
         size, shape.insetEach, shape.outerSide,
         shape.tiltAngle ?? 0, shape.bevelAngle ?? 0,
@@ -1172,6 +1174,36 @@ function buildSplayedRoundTaperedGeometry(
  * 用 8-corner 多邊形 prism——上下兩面都是 8 邊形，4 條垂直邊連起來。
  * 用途：座下層板延伸到下橫撐齊平、跟腳柱重疊的角要切掉。
  */
+/**
+ * 反向法複斜 miter：直接從 part-local 8 頂點構幾何，bypass ring extrude。
+ * Layout：index 0..3 = z=-hz（世界頂）、index 4..7 = z=+hz（世界底）。
+ * 同 mitered-ends 的 ring layout 慣例（outer/inner 順序）。
+ * 12 面 = 4 側面 quad × 2 三角 + 上下 cap fan × 2 三角。
+ * 用 toNonIndexed + flatShading 保留複斜 cut face 的硬邊。
+ */
+function buildCompoundMiterFromVerts(verts: [number, number, number][]): BufferGeometry {
+  const v: number[] = [];
+  for (const [x, y, z] of verts) v.push(x, y, z);
+  const N = 4;
+  const idx: number[] = [];
+  for (let i = 0; i < N; i++) {
+    const a = i;
+    const b = (i + 1) % N;
+    const at = a + N;
+    const bt = b + N;
+    idx.push(a, b, bt, a, bt, at);
+  }
+  for (let i = 1; i < N - 1; i++) idx.push(0, i + 1, i);
+  for (let i = 1; i < N - 1; i++) idx.push(N, N + i, N + i + 1);
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(v, 3));
+  g.setIndex(idx);
+  const nonIndexed = g.toNonIndexed();
+  g.dispose();
+  nonIndexed.computeVertexNormals();
+  return nonIndexed;
+}
+
 /**
  * 4 壁 45° 斜接：梯形在 local X-Y 平面（length × thickness），沿 Z 軸（width=wallH）擠出。
  * outerSide="+y" → local +Y 邊為外緣全長 L，-Y 邊為內緣 L−2×inset。
@@ -2730,6 +2762,9 @@ export function PerspectiveView({
               outerSide: part.shape.outerSide,
               tiltAngle: part.shape.tiltAngle,
               bevelAngle: part.shape.bevelAngle,
+              vertices: part.shape.vertices?.map(
+                ([x, y, z]) => [x * SCALE, y * SCALE, z * SCALE] as [number, number, number],
+              ),
             };
           } else if (part.shape?.kind === "finger-joint-ends") {
             shape = {

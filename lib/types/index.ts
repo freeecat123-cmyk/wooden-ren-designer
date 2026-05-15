@@ -302,6 +302,13 @@ export interface Part {
         tiltAngle?: number;
         /** 複斜 miter 用：鋸片傾角 B in radians，預設 0。複斜時頂端在 length 方向比底端內縮 wallH·tan(B)。 */
         bevelAngle?: number;
+        /** 反向法：直接提供 8 個 part-local 頂點（mm），bypass ring extrude。
+         *  Layout：index 0..3 = z=-hz（世界頂）4 個 verts、index 4..7 = z=+hz（世界底）4 個 verts。
+         *  ringTop/ring 的 ordering 慣例：outer right / outer left / inner left / inner right
+         *  （for outerSide="+y"）or inner right / inner left / outer left / outer right
+         *  （for outerSide="-y"）。複斜 miter 用——8 頂點 explicit 含 tilt+bevel，
+         *  不靠 ring extrude，corner 真實 3D 接合。 */
+        vertices?: [number, number, number][];
       }
     /** 4 壁指接（finger / box joint）：壁兩端沿高度方向（local Z = wallH）交錯凸齒/凹槽。
      *  segmentCount = 沿 Z 切幾段（typical 5；奇數讓兩端都是齒，較強）。
