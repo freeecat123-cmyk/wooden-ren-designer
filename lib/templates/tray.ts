@@ -337,12 +337,12 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     const theta = wallSplayRad;
     const sin = Math.sin(theta);
     const cos = Math.cos(theta);
-    // 反向法用的關鍵量（wallSplay > 0 才計算）。
-    // 修正：內緣在 plan view 的水平偏移是 wallT·cos θ（不是 wallT/cos θ）——
-    //   因為 wallT 是垂直於牆面的厚度方向，投影到水平面 = wallT·cos θ。
-    // 內緣底邊在世界 Y = wallT·sin θ（剛性傾斜後內面底邊抬高）。
-    const wallTh = theta > 0 ? wallT * cos : wallT;  // 內緣 plan view 水平偏移
-    const wallTv = theta > 0 ? wallT * sin : 0;      // 內緣相對外緣 Y 抬升
+    // 反向法的「切平」模型：牆的上下緣切水平、不留剛性傾斜的斜底斜頂。
+    // 內面平面方程：y·sin θ + (z + Lz/2)·cos θ = wallT（相對牆底坐標 y'）。
+    // 在 y' = 0（牆底）那層，內緣 z 內偏 wallT/cos θ = wallT·sec θ。
+    // 在 y' = vTop（牆頂）那層，內緣 z 內偏 wallT·sec θ − hShift。
+    // 兩條內緣都跟外緣（同 y 高度）平行 → 牆是「水平上下緣 + 傾斜內外面」slab。
+    const wallTsecθ = theta > 0 ? wallT / cos : wallT;  // 內緣水平偏移 (sec θ)
     // 牆實際高度：inset-panel 模式 tray.ts 把 visible.width 改成 outerH（含底板厚），
     // 其他模式維持 built.wallH（純牆高）。所以要從 part 自己讀 visible.width。
     // bottomAttach 模式：seated/flush-glued 時牆坐底板上（底 y=botT）；
@@ -371,38 +371,37 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       const partWallH = part.visible.width;
       const hShift = theta > 0 ? partWallH * sin : 0;
       const vTop = theta > 0 ? partWallH * cos : partWallH;
-      // 牆底世界 Y = wallBaseY（seated/flush-glued=botT、inset-panel=0）
-      // 內緣相對外緣：水平偏 wallTh、頂端因傾斜抬高 wallTv（剛性旋轉幾何結果）
-      const yOuterB = wallBaseY;                 // 外緣底 Y
-      const yOuterT = wallBaseY + vTop;          // 外緣頂 Y
-      const yInnerB = wallBaseY + wallTv;        // 內緣底 Y
-      const yInnerT = wallBaseY + vTop + wallTv; // 內緣頂 Y
+      // 切平模型：內外緣 Y 同高、各自 X/Z 水平偏移不同
+      const yB = wallBaseY;            // 底（內外緣同 Y）
+      const yT = wallBaseY + vTop;     // 頂（內外緣同 Y）
+      const xB = wallTsecθ;            // 內緣底水平偏移 (sec θ)
+      const xT = wallTsecθ - hShift;   // 內緣頂水平偏移 (sec θ - hShift)；θ 大時可為負 = 內頂比外頂還向外
       let world: [number, number, number][];
       if (wallId === "front") {
         // outer face z=-z0, top tilts -Z
         world = [
           // 0..3 = TOP, order = [IR, IL, OL, OR] for "-y"
-          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T
-          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T
-          [-x0 - hShift,          yOuterT, -z0 - hShift],            // OL_T
-          [+x0 + hShift,          yOuterT, -z0 - hShift],            // OR_T
+          [+x0 - xT, yT, -z0 + xT],  // IR_T
+          [-x0 + xT, yT, -z0 + xT],  // IL_T
+          [-x0 - hShift,          yT, -z0 - hShift],            // OL_T
+          [+x0 + hShift,          yT, -z0 - hShift],            // OR_T
           // 4..7 = BOTTOM
-          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
-          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IL_B
-          [-x0,          yOuterB, -z0],            // OL_B
-          [+x0,          yOuterB, -z0],            // OR_B
+          [+x0 - xB, yB, -z0 + xB],  // IR_B
+          [-x0 + xB, yB, -z0 + xB],  // IL_B
+          [-x0,          yB, -z0],            // OL_B
+          [+x0,          yB, -z0],            // OR_B
         ];
       } else if (wallId === "back") {
         // outer face z=+z0, top tilts +Z; outerSide="+y" → [OR, OL, IL, IR]
         world = [
-          [+x0 + hShift,          yOuterT, +z0 + hShift],            // OR_T
-          [-x0 - hShift,          yOuterT, +z0 + hShift],            // OL_T
-          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T
-          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T
-          [+x0,          yOuterB, +z0],            // OR_B
-          [-x0,          yOuterB, +z0],            // OL_B
-          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
-          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
+          [+x0 + hShift,          yT, +z0 + hShift],            // OR_T
+          [-x0 - hShift,          yT, +z0 + hShift],            // OL_T
+          [-x0 + xT, yT, +z0 - xT],  // IL_T
+          [+x0 - xT, yT, +z0 - xT],  // IR_T
+          [+x0,          yB, +z0],            // OR_B
+          [-x0,          yB, +z0],            // OL_B
+          [-x0 + xB, yB, +z0 - xB],  // IL_B
+          [+x0 - xB, yB, +z0 - xB],  // IR_B
         ];
       } else if (wallId === "left") {
         // outer face x=-x0, top tilts -X。
@@ -410,27 +409,27 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         // 所以 ring 的「right」index = world FRONT (-z)，「left」index = world BACK (+z)。
         // outerSide="-y" → [IR=front-inner, IL=back-inner, OL=back-outer, OR=front-outer]
         world = [
-          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
-          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
-          [-x0 - hShift,          yOuterT, +z0 + hShift],            // OL_T (後外)
-          [-x0 - hShift,          yOuterT, -z0 - hShift],            // OR_T (前外)
-          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IR_B
-          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
-          [-x0,          yOuterB, +z0],            // OL_B
-          [-x0,          yOuterB, -z0],            // OR_B
+          [-x0 + xT, yT, -z0 + xT],  // IR_T (前內)
+          [-x0 + xT, yT, +z0 - xT],  // IL_T (後內)
+          [-x0 - hShift,          yT, +z0 + hShift],            // OL_T (後外)
+          [-x0 - hShift,          yT, -z0 - hShift],            // OR_T (前外)
+          [-x0 + xB, yB, -z0 + xB],  // IR_B
+          [-x0 + xB, yB, +z0 - xB],  // IL_B
+          [-x0,          yB, +z0],            // OL_B
+          [-x0,          yB, -z0],            // OR_B
         ];
       } else {  // right
         // outer face x=+x0, top tilts +X; 同左壁分析。
         // outerSide="+y" → [OR=front-outer, OL=back-outer, IL=back-inner, IR=front-inner]
         world = [
-          [+x0 + hShift,          yOuterT, -z0 - hShift],            // OR_T (前外)
-          [+x0 + hShift,          yOuterT, +z0 + hShift],            // OL_T (後外)
-          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
-          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
-          [+x0,          yOuterB, -z0],            // OR_B
-          [+x0,          yOuterB, +z0],            // OL_B
-          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IL_B
-          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
+          [+x0 + hShift,          yT, -z0 - hShift],            // OR_T (前外)
+          [+x0 + hShift,          yT, +z0 + hShift],            // OL_T (後外)
+          [+x0 - xT, yT, +z0 - xT],  // IL_T (後內)
+          [+x0 - xT, yT, -z0 + xT],  // IR_T (前內)
+          [+x0,          yB, -z0],            // OR_B
+          [+x0,          yB, +z0],            // OL_B
+          [+x0 - xB, yB, +z0 - xB],  // IL_B
+          [+x0 - xB, yB, -z0 + xB],  // IR_B
         ];
       }
 
