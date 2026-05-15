@@ -332,8 +332,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const wallLen = part.visible.length;
         // 對稱梯形：top 加長、bottom 縮短同量，wall mid-height length 保持
         // wallLen 不變。bottom 縮短把底部 V 字凸切掉，cut 一路切到內角。
+        // 公式：壁繞 center 旋轉，top 外移 (wallH/2)·sin(θ) per side，
+        // 兩端合計 wallH·sin(θ)（不是 tan）。
         const ext = wallSplayRad > 0
-          ? built.wallH * Math.tan(wallSplayRad)
+          ? built.wallH * Math.sin(wallSplayRad)
           : 0;
         const topLengthScale = wallLen > 0 ? (wallLen + ext) / wallLen : 1.0;
         const bottomLengthScale = wallLen > 0 ? Math.max(0.1, (wallLen - ext) / wallLen) : 1.0;
