@@ -332,10 +332,13 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const wallLen = part.visible.length;
         // 對稱梯形：top 加長、bottom 縮短同量，wall mid-height length 保持
         // wallLen 不變。bottom 縮短把底部 V 字凸切掉，cut 一路切到內角。
-        // 公式：壁繞 center 旋轉，top 外移 (wallH/2)·sin(θ) per side，
-        // 兩端合計 wallH·sin(θ)（不是 tan）。
+        // 精確公式（牆繞 center 旋轉）：
+        //   per_side_ext = (wallH/2)·sin(θ) - (wallT/2)·(1-cos(θ))
+        //   wallH 項 = 牆高傾後 corner 外移；wallT 項 = 牆厚旋轉貢獻的反向偏移
+        //   兩側合計 = wallH·sin(θ) - wallT·(1-cos(θ))
+        // 之前只用 wallH·sin(θ) 漏算了 wallT 那項，corner 差 ~0.1mm。
         const ext = wallSplayRad > 0
-          ? built.wallH * Math.sin(wallSplayRad)
+          ? built.wallH * Math.sin(wallSplayRad) - wallT * (1 - Math.cos(wallSplayRad))
           : 0;
         const topLengthScale = wallLen > 0 ? (wallLen + ext) / wallLen : 1.0;
         const bottomLengthScale = wallLen > 0 ? Math.max(0.1, (wallLen - ext) / wallLen) : 1.0;
