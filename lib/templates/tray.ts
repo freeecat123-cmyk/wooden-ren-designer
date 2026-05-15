@@ -513,15 +513,20 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2
       // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z
       const handleZCenter = -(wallHeight / 2 - handleTopMarginOpt - handleH / 2);
-      // 外撇 θ 時牆是 sheared parallelepiped，part-local Y center 隨 z 線性平移：
-      //   slope = tan θ，方向跟 outerSide 反（"-y" outer 朝 -Y → 隨 z 減 → +tan θ）。
+      // 外撇 θ 時牆切平模型下，part-local Y center 隨 z 線性平移：
+      //   Y_center(z) = sign · [(wallTsec - wallT)/2 + tan θ · (z - zBot)]
+      //   sign：outerSide="-y" (wall-left) = +1；"+y" (wall-right) = -1
+      //   zBot = wallHeight/2（part-local z 從 +zBot 往 -zTop 走）
+      //   bottom offset (wallTsec-wallT)/2 = 內緣比 hy 多偏的量
+      //   （外撇 plan view 牆厚 wallT·sec θ > wallT）
       // 不補償的話手把孔會跑到牆外、看不到。
-      const handleYCenter = wallSplayRad > 0
-        ? handleZCenter * Math.tan(wallSplayRad) * (
-            cornerJoinery === "miter"
-              ? (part.id === "wall-left" ? +1 : -1)
-              : 0
-          )
+      const handleYCenter = (cornerJoinery === "miter" && wallSplayRad > 0)
+        ? (() => {
+            const sign = part.id === "wall-left" ? +1 : -1;
+            const wallTsecθ_local = wallT / Math.cos(wallSplayRad);
+            const zBot = wallHeight / 2;
+            return sign * ((wallTsecθ_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
+          })()
         : 0;
       // 依造型推 mortise：
       // - rect: 1 個矩形 mortise
