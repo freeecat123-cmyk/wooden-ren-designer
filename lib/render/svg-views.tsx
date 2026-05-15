@@ -565,7 +565,13 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // 整條 6×11×392mm 凹槽。
   const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
   let depthAxis: "x" | "y" | "z";
-  if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+  // cosmetic+through+rotX：外撇牆手把孔軸固定沿 part-local Y（牆厚方向）。
+  // 不能讓 mortiseLocalBox 的 yToFace/xToFace/zToFace 比較邏輯把 depthAxis
+  // 切到 "z"——origin.y 隨外撇 θ 增大會超過 zToFace（θ ~18°），結果 mortise
+  // box 方向反轉、marker 跑到天上。
+  if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
+    depthAxis = "y";
+  } else if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
     depthAxis = xToFace <= zToFace ? "x" : "z";
   } else if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
   else if (xToFace <= zToFace) depthAxis = "x";
