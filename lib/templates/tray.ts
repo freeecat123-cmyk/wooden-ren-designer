@@ -538,8 +538,13 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
         : 0;
-      // 外撇後牆 Y 寬度變 wallTsec > wallT；mortise depth 拉到 1.5× 確保 CSG 切穿
-      const handleDepth = wallSplayRad > 0 ? wallThick * 1.5 : wallThick;
+      // CSG cut box 是 part-local axis-aligned，但外撇牆 Y center 隨 z 線性平移
+      // tan θ。Handle Z 範圍 ±handleH/2 內，wall Y center 漂移 ±handleH·tan θ/2。
+      // 所以 mortise depth 要覆蓋：wallTsec（牆 plan 厚）+ handleH·tan θ（漂移範圍）。
+      // 不夠 → handle 上/下緣（wall Y 跟 cy 偏離最遠處）會殘留薄壁。
+      const handleDepth = wallSplayRad > 0
+        ? wallT / Math.cos(wallSplayRad) + handleH * Math.tan(wallSplayRad) + 2  // +2mm safety
+        : wallThick;
       // 依造型推 mortise：
       // - rect: 1 個矩形 mortise
       // - pill: 中段矩形 + 兩端圓形（CSG round mortise = 圓柱）
