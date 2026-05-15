@@ -514,13 +514,23 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2
       // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z
       const handleZCenter = -(wallHeight / 2 - handleTopMarginOpt - handleH / 2);
+      // 外撇 θ 時牆是 sheared parallelepiped，part-local Y center 隨 z 線性平移：
+      //   slope = tan θ，方向跟 outerSide 反（"-y" outer 朝 -Y → 隨 z 減 → +tan θ）。
+      // 不補償的話手把孔會跑到牆外、看不到。
+      const handleYCenter = wallSplayRad > 0
+        ? handleZCenter * Math.tan(wallSplayRad) * (
+            cornerJoinery === "miter"
+              ? (part.id === "wall-left" ? +1 : -1)
+              : 0
+          )
+        : 0;
       // 依造型推 mortise：
       // - rect: 1 個矩形 mortise
       // - pill: 中段矩形 + 兩端圓形（CSG round mortise = 圓柱）
       // - circle: 單一圓形 mortise
       if (handleShape === "rect") {
         part.mortises.push({
-          origin: { x: 0, y: 0, z: handleZCenter },
+          origin: { x: 0, y: handleYCenter, z: handleZCenter },
           depth: wallThick,
           length: handleW,
           width: handleH,
@@ -534,7 +544,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const rectLen = handleW - handleH;
         if (rectLen > 0) {
           part.mortises.push({
-            origin: { x: 0, y: 0, z: handleZCenter },
+            origin: { x: 0, y: handleYCenter, z: handleZCenter },
             depth: wallThick,
             length: rectLen,
             width: handleH,
@@ -546,7 +556,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const endOffset = Math.max(0, rectLen / 2);
         // 左端圓（CSG round = 圓柱沿 local Y 軸、radius = min(hx, hz)）
         part.mortises.push({
-          origin: { x: -endOffset, y: 0, z: handleZCenter },
+          origin: { x: -endOffset, y: handleYCenter, z: handleZCenter },
           depth: wallThick,
           length: handleH,
           width: handleH,
@@ -556,7 +566,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         });
         // 右端圓
         part.mortises.push({
-          origin: { x: endOffset, y: 0, z: handleZCenter },
+          origin: { x: endOffset, y: handleYCenter, z: handleZCenter },
           depth: wallThick,
           length: handleH,
           width: handleH,
@@ -568,7 +578,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         // 圓形：取較小邊為直徑
         const dia = Math.min(handleW, handleH);
         part.mortises.push({
-          origin: { x: 0, y: 0, z: handleZCenter },
+          origin: { x: 0, y: handleYCenter, z: handleZCenter },
           depth: wallThick,
           length: dia,
           width: dia,
