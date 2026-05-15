@@ -327,6 +327,16 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       }
     }
   }
+  // 外撇後 wall 斜面長 = 垂直高度 / cos θ。User 輸入的 outerH 是「組裝後垂直總高」，
+  // 木料下料的 wall.visible.width 要拉到 slope length 才正確（材料單 + 切料）。
+  // 後續 reverse-method 反向法 partWallH = part.visible.width，自動接上對的 vTop。
+  if (wallSplayRad > 0 && bodyShape === "rect" && cornerJoinery === "miter") {
+    const secθ = 1 / Math.cos(wallSplayRad);
+    for (const part of built.parts) {
+      if (!part.id.startsWith("wall-")) continue;
+      part.visible = { ...part.visible, width: part.visible.width * secθ };
+    }
+  }
   // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
   // wallSplay=0：原本 ring extrude 路徑（向後相容）。
   // wallSplay>0：**反向法**——先用幾何公式算出 4 壁的 8 corner 在世界座標
@@ -466,7 +476,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         ...part.joineryView,
         visible: {
           length: part.visible.length + 2 * hShift,
-          width: built.wallH,  // 牆斜面實際高（不是 vTop = wallH·cos θ）
+          width: part.visible.width,  // 已是 slope length（垂直高 / cos θ）
           thickness: wallT,
         },
       };
@@ -633,16 +643,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
   const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-  // 外撇 θ 時牆頂 world Y = wallBaseY + partWallH·cos θ。
-  // 注意：inset-panel 模式 tray.ts 把 wall.visible.width override 為 outerH（含底板厚），
-  // 其他模式維持 built.wallH（純牆高）。divider auto 高度要對齊真正的牆頂、
-  // 用 mode-dependent 的 partWallH（跟反向法 wall vertices 用同一個值）。
-  const wallBaseY_div = bottomAttach === "inset-panel" ? 0 : botT;
-  const partWallH_div = bottomAttach === "inset-panel" ? outerH : built.wallH;
-  const trayTopY = wallSplayRad > 0 && bodyShape === "rect" && cornerJoinery === "miter"
-    ? wallBaseY_div + partWallH_div * Math.cos(wallSplayRad)
-    : outerH;
-  const dividerHAuto = Math.max(1, trayTopY - bottomTopY);
+  // wall.visible.width 已預先乘 sec θ 變 slope length（line ~331），所以
+  // partWallH·cos θ 還原回原本的垂直高度。trayTopY 永遠 = outerH，
+  // 跟非外撇 case 同等公式。
+  const dividerHAuto = Math.max(1, outerH - bottomTopY);
   const dividerH = dividerHeightOpt > 0
     ? Math.max(1, Math.min(dividerHeightOpt, dividerHAuto))
     : dividerHAuto;
