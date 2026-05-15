@@ -71,6 +71,11 @@ export const trayOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "finger-joint" }] } },
   // 托盤把手：兩個短邊壁挖長條穿透孔，手指可穿過提起
   { group: "structure", type: "checkbox", key: "withHandle", label: "短邊壁挖把手孔", defaultValue: true, help: "兩個短邊壁中央偏上挖長條穿透孔，方便手指穿過提起托盤。" },
+  { group: "structure", type: "select", key: "handleShape", label: "把手孔造型", defaultValue: "pill", choices: [
+    { value: "rect", label: "矩形（直角，最簡單）" },
+    { value: "pill", label: "圓角長條（兩端半圓 + 中段矩形）" },
+    { value: "circle", label: "圓形（單一圓孔，較小手指洞）" },
+  ], dependsOn: { key: "withHandle", equals: true }, help: "圓角長條最常見、最不刮手；矩形最容易加工；圓形適合小托盤或刻意要圓孔效果。" },
   { group: "structure", type: "number", key: "handleWidth", label: "把手孔寬 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", help: "建議 80-120mm（容 3-4 隻手指）。會自動 clamp 到壁長 -40mm（兩側留 20mm 邊）。", dependsOn: { key: "withHandle", equals: true } },
   { group: "structure", type: "number", key: "handleHeight", label: "把手孔高 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, unit: "mm", help: "建議 20-30mm（手指穿過剛好）。", dependsOn: { key: "withHandle", equals: true } },
   { group: "structure", type: "number", key: "handleTopMargin", label: "把手距壁頂 (mm)", defaultValue: 10, min: 5, max: 30, step: 1, unit: "mm", help: "把手孔上緣距離壁頂的距離。", dependsOn: { key: "withHandle", equals: true } },
@@ -106,6 +111,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   // 托盤把手孔：兩個短邊壁中央偏上挖穿透長條孔
   const withHandle = getOption<boolean>(input, opt(o, "withHandle"));
+  const handleShape = getOption<string>(input, opt(o, "handleShape")) as "rect" | "pill" | "circle";
   const handleWidthOpt = getOption<number>(input, opt(o, "handleWidth"));
   const handleHeightOpt = getOption<number>(input, opt(o, "handleHeight"));
   const handleTopMarginOpt = getOption<number>(input, opt(o, "handleTopMargin"));
@@ -367,15 +373,69 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2
       // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z
       const handleZCenter = -(wallHeight / 2 - handleTopMarginOpt - handleH / 2);
-      part.mortises.push({
-        origin: { x: 0, y: 0, z: handleZCenter },
-        depth: wallThick,
-        length: handleW,
-        width: handleH,
-        through: true,
-        cosmetic: true,
-        shape: "rect",
-      });
+      // 依造型推 mortise：
+      // - rect: 1 個矩形 mortise
+      // - pill: 中段矩形 + 兩端圓形（CSG round mortise = 圓柱）
+      // - circle: 單一圓形 mortise
+      if (handleShape === "rect") {
+        part.mortises.push({
+          origin: { x: 0, y: 0, z: handleZCenter },
+          depth: wallThick,
+          length: handleW,
+          width: handleH,
+          through: true,
+          cosmetic: true,
+          shape: "rect",
+        });
+      } else if (handleShape === "pill") {
+        // 中段矩形寬度 = handleW - handleH（兩端各扣半個 handleH 給圓蓋）。
+        // 若 handleW <= handleH 退化成圓（沒有中段）。
+        const rectLen = handleW - handleH;
+        if (rectLen > 0) {
+          part.mortises.push({
+            origin: { x: 0, y: 0, z: handleZCenter },
+            depth: wallThick,
+            length: rectLen,
+            width: handleH,
+            through: true,
+            cosmetic: true,
+            shape: "rect",
+          });
+        }
+        const endOffset = Math.max(0, rectLen / 2);
+        // 左端圓（CSG round = 圓柱沿 local Y 軸、radius = min(hx, hz)）
+        part.mortises.push({
+          origin: { x: -endOffset, y: 0, z: handleZCenter },
+          depth: wallThick,
+          length: handleH,
+          width: handleH,
+          through: true,
+          cosmetic: true,
+          shape: "round",
+        });
+        // 右端圓
+        part.mortises.push({
+          origin: { x: endOffset, y: 0, z: handleZCenter },
+          depth: wallThick,
+          length: handleH,
+          width: handleH,
+          through: true,
+          cosmetic: true,
+          shape: "round",
+        });
+      } else if (handleShape === "circle") {
+        // 圓形：取較小邊為直徑
+        const dia = Math.min(handleW, handleH);
+        part.mortises.push({
+          origin: { x: 0, y: 0, z: handleZCenter },
+          depth: wallThick,
+          length: dia,
+          width: dia,
+          through: true,
+          cosmetic: true,
+          shape: "round",
+        });
+      }
     }
   }
 
