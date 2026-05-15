@@ -331,6 +331,64 @@ export function deriveBuildSteps(design: FurnitureDesign): BuildStep[] {
   }
 
   // ---------------------------------------------------------------------------
+  // 4a. 角接合（cornerJoinery）— 盒型家具（托盤/筆筒/鳩尾盒）用 shape-based 接合，
+  //     不靠 tenons/mortises 而是 finger-joint-ends / dovetail-ends shape 直接渲染。
+  //     joineryUsages 看不到→需獨立判斷加對應工序與工具。
+  // ---------------------------------------------------------------------------
+  const hasFingerJointEnds = design.parts.some((p) => p.shape?.kind === "finger-joint-ends");
+  const hasDovetailEnds = design.parts.some((p) => p.shape?.kind === "dovetail-ends");
+  if (hasFingerJointEnds) {
+    // 算段數 + 估時：每段約 4-6 分鐘鋸+鑿，4 角 × N 段
+    const fingerPart = design.parts.find((p) => p.shape?.kind === "finger-joint-ends");
+    const segs = (fingerPart?.shape?.kind === "finger-joint-ends") ? fingerPart.shape.segmentCount : 5;
+    steps.push({
+      id: "step-05-corner-finger-joint",
+      phase: "cut-joinery",
+      title: `鋸製指接（finger joint，4 角 × ${segs} 段）`,
+      description:
+        `4 壁兩端沿高度方向交錯凸齒/凹槽，互嵌膠合。**先做齒、後做槽，最後試插**。`
+        + `齒寬 = 壁高 / ${segs}；齒深 = 鄰壁厚。`,
+      toolIds: ["japanese-saw", "chisel-set-3-6-12", "router-table", "marking-gauge"],
+      estimatedMinutes: 4 * segs * 4,  // 4 段 × 4 角 × 4 分鐘
+      bullets: [
+        "用劃線規 / 小刀在壁兩端標出齒線（一律從基準面測量，避免累積誤差）",
+        "鋸線留在廢料側 0.3mm，鑿削修到正好——鋸過頭再修槽會留隙",
+        "鄰壁的齒/槽 phase 必須相反（一壁齒對齊另一壁槽），不然兩壁卡不進去",
+        "膠合前乾組試插——齒太緊鑿掉一點點、齒太鬆塞紙片墊",
+      ],
+      warnings: ["鋸切時夾板要平整壓住，鋸路偏 0.5mm 整段齒就鋸壞"],
+    });
+  }
+  if (hasDovetailEnds) {
+    const dovetailPart = design.parts.find((p) => p.shape?.kind === "dovetail-ends");
+    const segs = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.segmentCount : 5;
+    const angleDeg = (dovetailPart?.shape?.kind === "dovetail-ends") ? dovetailPart.shape.angleDeg : 10;
+    steps.push({
+      id: "step-05-corner-dovetail",
+      phase: "cut-joinery",
+      title: `鋸製鳩尾榫（dovetail，4 角 × ${segs} 段，${angleDeg}° 鳩尾角）`,
+      description:
+        `4 壁兩端交錯 pin / tail 梯形段、互鎖機械咬合（**不上膠都能拉緊**）。`
+        + `鳩尾角 ${angleDeg}°（硬木 7-9°、軟木 10-14°），段高 = 壁高 / ${segs}，`
+        + `兩端為半 pin 不破角。**先做尾後做榫**，配合度最高。`,
+      toolIds: ["dovetail-saw", "dovetail-marker", "chisel-set-3-6-12", "marking-gauge", "mallet"],
+      estimatedMinutes: 8 * segs * 4,  // 鳩尾比指接慢 ~2 倍：每段 ~8 分鐘 × 4 角
+      bullets: [
+        `用鳩尾劃線規 + ${angleDeg}° 角度尺先在尾板劃線（梯形：外寬內窄）`,
+        "鋸尾——鋸線留廢料側 0.3mm，沿斜線鋸下，到肩線停",
+        "「尾為母劃榫」：用做好的尾板對齊榫板端面、鉛筆轉描出榫線（最準確的配合）",
+        "鋸榫——同樣沿斜線鋸（榫的斜線跟尾相反：外窄內寬，互鎖）",
+        "鑿出兩端肩部餘料，先鑿一半翻面再鑿另一半（防底邊崩）",
+        "乾組試插——緊則微修肩、鬆則塞薄薄一片皮屑膠粉",
+      ],
+      warnings: [
+        "鳩尾角不能超過 14°——拉力雖然大但角度太斜，鋸尾時容易順木紋斷",
+        "硬木（橡木 / 山毛櫸）建議 7-8°；軟木（松 / 杉）建議 10-12°",
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // 4b. 組裝版：斜孔 / 木釘 / DOMINO（榫接版的對偶 phase）
   //     只有 design.defaultJoinery === "pocket-hole" 且沒榫卯時觸發
   // ---------------------------------------------------------------------------

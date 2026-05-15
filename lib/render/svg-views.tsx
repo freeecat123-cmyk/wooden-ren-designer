@@ -1386,6 +1386,7 @@ export function OrthoView({
             part.shape.kind !== "notched-corners" &&
             part.shape.kind !== "mitered-ends" &&
             part.shape.kind !== "finger-joint-ends" &&
+            part.shape.kind !== "dovetail-ends" &&
             part.shape.kind !== "regular-polygon" &&
             part.shape.kind !== "arch-bent" &&
             part.shape.kind !== "right-triangle" &&

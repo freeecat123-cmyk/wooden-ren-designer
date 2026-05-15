@@ -163,6 +163,7 @@ type ShapeSpec =
       vertices?: [number, number, number][];
     }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+  | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
   | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
@@ -450,6 +451,9 @@ function Part({
     if (shape.kind === "finger-joint-ends") {
       return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
     }
+    if (shape.kind === "dovetail-ends") {
+      return buildDovetailEndsGeometry(size, shape.segmentCount, shape.phase, shape.angleDeg, shape.pinDepth, shape.halfPin ?? true);
+    }
     if (shape.kind === "regular-polygon") {
       return buildRegularPolygonGeometry(size, shape.sides, shape.outerRadius, shape.angleOffsetDeg ?? (90 + 180 / shape.sides));
     }
@@ -576,6 +580,7 @@ function Part({
     shape?.kind === "chamfered-top" ||
     shape?.kind === "mitered-ends" ||
     shape?.kind === "finger-joint-ends" ||
+    shape?.kind === "dovetail-ends" ||
     shape?.kind === "regular-polygon" ||
     shape?.kind === "right-triangle" ||
     shape?.kind === "mitered-corner" ||
@@ -1377,6 +1382,147 @@ function buildFingerJointEndsGeometry(
   // 結果 3D 頂點：X=length, Y=wallH, Z=[0, ly]。
   // Step 1: translate(0, 0, -hy) → Z 中心化 [-hy, +hy]
   // Step 2: rotateX(+π/2) 把 Y↔Z 軸互換 → X=length, Y=±thickness, Z=±wallH（manual 幾何框架）
+  const extrude = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
+  extrude.translate(0, 0, -hy);
+  extrude.rotateX(Math.PI / 2);
+  return extrude;
+}
+
+/**
+ * 4 壁鳩尾榫接合 (dovetail joint)：仿 finger-joint，但段是梯形不是矩形。
+ *
+ * 形狀同 finger-joint：comb 沿 wallH 方向（Shape Y）N 段交錯，pin 段往 ±X 凸出
+ *   pinDepth；gap 段內縮。差異：pin 段不是直角矩形，而是「外寬內窄」梯形
+ *   （pin 朝外的 tip 邊比朝內的 base 邊長 2·slantY，slantY = pinDepth·tan(α)）。
+ *   gap 段同樣承接梯形邊，外窄內寬。視覺上 4 角從外面看就是鳩尾榫 trapezoid 互鎖。
+ *
+ * 對稱：phase 0 / 1 交錯，鄰壁 phase 相反 → 互嵌（一邊 pin 一邊 gap）。
+ * halfPin=true：第 0 / 最後段強制為 pin，且外邊界不收斜——傳統「兩端半 pin」做法，
+ *   不破角更穩。
+ *
+ * Shape2D 在 X-Y 平面，CCW from +Z viewer 走外輪廓：右邊 bot→top，左邊 top→bot 閉合。
+ * 沿用 finger-joint 的「ExtrudeGeometry 沿 +Z=ly 擠出 → translate -hy → rotateX +π/2」
+ * pipeline，extrude 後局部框架 X=length, Y=±thickness, Z=±wallH。
+ */
+function buildDovetailEndsGeometry(
+  size: [number, number, number],
+  segmentCount: number,
+  phase: 0 | 1,
+  angleDeg: number,
+  pinDepth: number,
+  halfPin: boolean = true,
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  const depth = Math.max(0, Math.min(pinDepth, hx * 0.95));
+  const N = Math.max(3, Math.floor(segmentCount));
+  if (depth <= 0) return new BoxGeometry(lx, ly, lz);
+  const segH = lz / N;
+  // 鳩尾角的 Y 方向收斜量：slantY = depth · tan(α)
+  // clamp 到 segH/2 避免相鄰 pin 的肩交疊（segH 太小或 angle 太大時）
+  const angleRad = (Math.max(1, Math.min(25, angleDeg)) * Math.PI) / 180;
+  const slantY = Math.min(segH * 0.45, depth * Math.tan(angleRad));
+
+  // halfPin=true：強制 s=0 與 s=N-1 為 pin（保護 corner 不破角）
+  const isPin = (s: number): boolean => {
+    if (halfPin && (s === 0 || s === N - 1)) return true;
+    return ((s + phase) % 2) === 0;
+  };
+
+  // 沿右邊 (X = +hx tip / +hx - depth base) 走 bot→top；左邊 (X = -hx tip / -hx + depth base) 走 top→bot 閉合
+  const xRTip = +hx;
+  const xRBase = +hx - depth;
+  const xLTip = -hx;
+  const xLBase = -hx + depth;
+
+  // 收集點到 array 然後 push 進 Shape；可去重相鄰相同點
+  const pts: Array<[number, number]> = [];
+  const push = (x: number, y: number) => {
+    const last = pts[pts.length - 1];
+    if (!last || Math.abs(last[0] - x) > 1e-6 || Math.abs(last[1] - y) > 1e-6) {
+      pts.push([x, y]);
+    }
+  };
+
+  // 右邊：sweep s=0..N-1，每段依 pin/gap 推不同邊形
+  for (let s = 0; s < N; s++) {
+    const yB = -hz + s * segH;
+    const yT = yB + segH;
+    const pin = isPin(s);
+    const isFirst = s === 0;
+    const isLast = s === N - 1;
+    if (pin) {
+      // halfPin 強制 s=0 / s=N-1：對應外邊界（yB for s=0、yT for s=N-1）不收斜
+      const hardBot = halfPin && isFirst;
+      const hardTop = halfPin && isLast;
+      // 1) 進入 segment 底邊：從前一段的終點 (Base, yB) 開始；若上一段也是 pin（連續 pin 不太合理但 halfPin 邊界可能），直接接續
+      // bottom corner sequence:
+      //   進 pin：(Base, yB) → (Tip, yB + slantY)  [斜] 除非 hardBot
+      if (hardBot) {
+        push(xRTip, yB);
+      } else {
+        push(xRBase, yB);
+        push(xRTip, yB + slantY);
+      }
+      // top corner sequence:
+      //   出 pin：(Tip, yT - slantY) → (Base, yT)  除非 hardTop
+      if (hardTop) {
+        push(xRTip, yT);
+      } else {
+        push(xRTip, yT - slantY);
+        push(xRBase, yT);
+      }
+    } else {
+      // gap：右邊在 Base，從 (Base, yB) 直到 (Base, yT)。
+      // 鄰 pin 的 slant 已經把 (Base, yB), (Tip, yB+slantY) 邊推進去——gap 只需把
+      // (Base, yT) push 進去即可。但 push 前若上一個是 (Base, yT_prev) = (Base, yB)
+      // 就由 dedup 自動處理。
+      push(xRBase, yB);
+      push(xRBase, yT);
+    }
+  }
+
+  // 左邊：sweep s=N-1..0（top→bot），對稱推（左邊 pin 凸出到 xLTip = -hx）
+  for (let s = N - 1; s >= 0; s--) {
+    const yB = -hz + s * segH;
+    const yT = yB + segH;
+    const pin = isPin(s);
+    const isFirst = s === 0;
+    const isLast = s === N - 1;
+    if (pin) {
+      const hardBot = halfPin && isFirst;
+      const hardTop = halfPin && isLast;
+      // 走 top→bot：先處理 top corner，再 bottom
+      if (hardTop) {
+        push(xLTip, yT);
+      } else {
+        push(xLBase, yT);
+        push(xLTip, yT - slantY);
+      }
+      if (hardBot) {
+        push(xLTip, yB);
+      } else {
+        push(xLTip, yB + slantY);
+        push(xLBase, yB);
+      }
+    } else {
+      // gap：左邊在 Base
+      push(xLBase, yT);
+      push(xLBase, yB);
+    }
+  }
+
+  // 構造 Shape
+  const shape2D = new Shape();
+  if (pts.length === 0) return new BoxGeometry(lx, ly, lz);
+  shape2D.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    shape2D.lineTo(pts[i][0], pts[i][1]);
+  }
+  shape2D.closePath();
+
   const extrude = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
   extrude.translate(0, 0, -hy);
   extrude.rotateX(Math.PI / 2);
@@ -2776,6 +2922,15 @@ export function PerspectiveView({
               phase: part.shape.phase,
               fingerDepth: part.shape.fingerDepth * SCALE,
               edgeChamferMm: part.shape.edgeChamferMm !== undefined ? part.shape.edgeChamferMm * SCALE : undefined,
+            };
+          } else if (part.shape?.kind === "dovetail-ends") {
+            shape = {
+              kind: "dovetail-ends",
+              segmentCount: part.shape.segmentCount,
+              phase: part.shape.phase,
+              angleDeg: part.shape.angleDeg,
+              pinDepth: part.shape.pinDepth * SCALE,
+              halfPin: part.shape.halfPin,
             };
           } else if (part.shape?.kind === "regular-polygon") {
             shape = {

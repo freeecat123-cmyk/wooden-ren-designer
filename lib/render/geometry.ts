@@ -841,6 +841,175 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     return pts;
   }
 
+  // 鳩尾榫壁：類似 finger-joint，但每段是梯形（pin 外寬內窄）。
+  // combAxis 判斷邏輯與 finger 一致；slantY = depth * tan(angle)；
+  // halfPin=true 時兩端段不收外邊界斜（防破角）。
+  if (part.shape.kind === "dovetail-ends") {
+    const L = part.visible.length;
+    const eps = 0.5;
+    const N = Math.max(3, Math.floor(part.shape.segmentCount));
+    const phase = part.shape.phase;
+    const depth = part.shape.pinDepth;
+    const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
+    const halfPin = part.shape.halfPin ?? true;
+    const isPin = (s: number) => (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phase) % 2) === 0;
+    let combAxis: "w" | "h" | null = null;
+    if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
+    else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
+    if (combAxis === null || view === "top") return box;
+    const pts: Array<{ x: number; y: number }> = [];
+    if (combAxis === "w") {
+      // length 軸 = r.w（水平），高度沿 r.h
+      const segH = r.h / N;
+      const d = Math.min(depth, r.w * 0.45);
+      const slantY = Math.min(segH * 0.45, d * Math.tan(angleRad));
+      // 各段邊界 y（s=0 段 = top 還是 bottom？跟 finger 一致：s=0 → top）
+      const yTopOf = (s: number) => r.y + r.h - s * segH;
+      const yBotOf = (s: number) => r.y + r.h - (s + 1) * segH;
+      // 右邊 X：xR_tip = r.x + r.w；xR_base = r.x + r.w - d
+      const xRTip = r.x + r.w;
+      const xRBase = r.x + r.w - d;
+      const xLTip = r.x;
+      const xLBase = r.x + d;
+      // 從右側 top（s=0）開始 CCW 走下到底（s=N-1）
+      const push = (x: number, y: number) => {
+        const last = pts[pts.length - 1];
+        if (!last || Math.abs(last.x - x) > 1e-3 || Math.abs(last.y - y) > 1e-3) {
+          pts.push({ x, y });
+        }
+      };
+      // 右側 top→bot：s = 0..N-1
+      for (let s = 0; s < N; s++) {
+        const yT = yTopOf(s);
+        const yB = yBotOf(s);
+        const pin = isPin(s);
+        const isFirst = s === 0;
+        const isLast = s === N - 1;
+        if (pin) {
+          const hardTop = halfPin && isFirst;
+          const hardBot = halfPin && isLast;
+          // top 邊
+          if (hardTop) {
+            push(xRTip, yT);
+          } else {
+            push(xRBase, yT);
+            push(xRTip, yT - slantY);
+          }
+          // bot 邊
+          if (hardBot) {
+            push(xRTip, yB);
+          } else {
+            push(xRTip, yB + slantY);
+            push(xRBase, yB);
+          }
+        } else {
+          push(xRBase, yT);
+          push(xRBase, yB);
+        }
+      }
+      // 左側 bot→top：s = N-1..0
+      for (let s = N - 1; s >= 0; s--) {
+        const yT = yTopOf(s);
+        const yB = yBotOf(s);
+        const pin = isPin(s);
+        const isFirst = s === 0;
+        const isLast = s === N - 1;
+        if (pin) {
+          const hardTop = halfPin && isFirst;
+          const hardBot = halfPin && isLast;
+          if (hardBot) {
+            push(xLTip, yB);
+          } else {
+            push(xLBase, yB);
+            push(xLTip, yB + slantY);
+          }
+          if (hardTop) {
+            push(xLTip, yT);
+          } else {
+            push(xLTip, yT - slantY);
+            push(xLBase, yT);
+          }
+        } else {
+          push(xLBase, yB);
+          push(xLBase, yT);
+        }
+      }
+    } else {
+      // combAxis === "h"：length 軸垂直 r.h；comb 在 r.y/r.y+r.h 兩端，segments 沿 r.w 切
+      const segW = r.w / N;
+      const d = Math.min(depth, r.h * 0.45);
+      const slantX = Math.min(segW * 0.45, d * Math.tan(angleRad));
+      const yTipTop = r.y + r.h;
+      const yBaseTop = r.y + r.h - d;
+      const yTipBot = r.y;
+      const yBaseBot = r.y + d;
+      const xLeftOf = (s: number) => r.x + s * segW;
+      const xRightOf = (s: number) => r.x + (s + 1) * segW;
+      const push = (x: number, y: number) => {
+        const last = pts[pts.length - 1];
+        if (!last || Math.abs(last.x - x) > 1e-3 || Math.abs(last.y - y) > 1e-3) {
+          pts.push({ x, y });
+        }
+      };
+      // top 邊 right→left s=N-1..0
+      for (let s = N - 1; s >= 0; s--) {
+        const xL = xLeftOf(s);
+        const xR = xRightOf(s);
+        const pin = isPin(s);
+        const isFirst = s === 0;
+        const isLast = s === N - 1;
+        if (pin) {
+          const hardR = halfPin && isLast;
+          const hardL = halfPin && isFirst;
+          // right→left 進 pin top
+          if (hardR) {
+            push(xR, yTipTop);
+          } else {
+            push(xR, yBaseTop);
+            push(xR - slantX, yTipTop);
+          }
+          if (hardL) {
+            push(xL, yTipTop);
+          } else {
+            push(xL + slantX, yTipTop);
+            push(xL, yBaseTop);
+          }
+        } else {
+          push(xR, yBaseTop);
+          push(xL, yBaseTop);
+        }
+      }
+      // bot 邊 left→right s=0..N-1
+      for (let s = 0; s < N; s++) {
+        const xL = xLeftOf(s);
+        const xR = xRightOf(s);
+        const pin = isPin(s);
+        const isFirst = s === 0;
+        const isLast = s === N - 1;
+        if (pin) {
+          const hardL = halfPin && isFirst;
+          const hardR = halfPin && isLast;
+          if (hardL) {
+            push(xL, yTipBot);
+          } else {
+            push(xL, yBaseBot);
+            push(xL + slantX, yTipBot);
+          }
+          if (hardR) {
+            push(xR, yTipBot);
+          } else {
+            push(xR - slantX, yTipBot);
+            push(xR, yBaseBot);
+          }
+        } else {
+          push(xL, yBaseBot);
+          push(xR, yBaseBot);
+        }
+      }
+    }
+    return pts;
+  }
+
   // 直角三角形板：silhouette 已跳過缺角 → convex hull 給三角形/矩形 view
   // 依旋轉與視角自動決定。
   if (part.shape.kind === "right-triangle") {

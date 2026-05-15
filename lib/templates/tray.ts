@@ -57,6 +57,7 @@ export const trayOptions: OptionSpec[] = [
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
+    { value: "dovetail", label: "鳩尾榫（dovetail，最強最美但難）" },
   ], dependsOn: { key: "bodyShape", equals: "rect" } },
   // 壁向外撇 + 複斜接合：壁向外傾角度 0 = 垂直（傳統盒）；> 0 = 壁外撇（shaker 風托盤）。
   // 配合 miter corner 自動成為「複斜 miter」——鋸床要設複合角度（角度公式見
@@ -73,6 +74,8 @@ export const trayOptions: OptionSpec[] = [
     { value: "cross", label: "十字（2 片穿過中心交叉）", dependsOn: { key: "bodyShape", equals: "oct" } },
   ], dependsOn: { key: "bodyShape", notIn: ["rect"] }, help: "六/八角筒專用。單片穿過盒中心；八角還可以選十字（六角因 wall 間距 60° 不對齊垂直，不支援）。" },
   { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "finger-joint" }] } },
+  { group: "structure", type: "number", key: "dovetailSegments", label: "鳩尾段數", defaultValue: 0, min: 0, max: 21, step: 1, help: "0=自動（依壁高自動算奇數），1-21 = 手動指定段數。包含 pin + tail 總段數；建議奇數（5/7/9/11），兩端為半 pin 較穩。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
+  { group: "structure", type: "number", key: "dovetailAngle", label: "鳩尾角度 (°)", defaultValue: 10, min: 5, max: 18, step: 1, unit: "°", help: "傳統 1:6 (約 9.5°，軟木) ~ 1:8 (約 7.1°，硬木)。角太小拉力不足、太大易斷。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
   // 托盤把手：兩個短邊壁挖長條穿透孔，手指可穿過提起
   { group: "structure", type: "checkbox", key: "withHandle", label: "短邊壁挖把手孔", defaultValue: true, help: "兩個短邊壁中央偏上挖長條穿透孔，方便手指穿過提起托盤。" },
   { group: "structure", type: "select", key: "handleShape", label: "把手孔造型", defaultValue: "pill", choices: [
@@ -102,7 +105,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const cornerJoinery = (cornerJoineryRaw === "stub-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
     | "stub-joint"
     | "finger-joint"
-    | "miter";
+    | "miter"
+    | "dovetail";
   const dividersRaw = getOption<number>(input, opt(o, "dividers"));
   const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
@@ -127,6 +131,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     : dividerThicknessRaw;
   // 指接段數：0 = 自動（依壁高奇數），1-30 = 手動指定
   const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
+  // 鳩尾段數：同上邏輯
+  const dovetailSegmentsOpt = getOption<number>(input, opt(o, "dovetailSegments"));
+  const dovetailAngleOpt = getOption<number>(input, opt(o, "dovetailAngle"));
 
   // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 多邊形底板
   if (bodyShape === "hex" || bodyShape === "oct") {
@@ -313,10 +320,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     // seated 不動，保留 buildBox 既有結果
   }
 
-  // 斜接 (miter) / 指接 (finger-joint) 下料：短壁 (左/右) 也延伸到外角全長
+  // 斜接 (miter) / 指接 (finger-joint) / 鳩尾 (dovetail) 下料：短壁 (左/右) 也延伸到外角全長
   // （搭接 stub-joint 才是短壁夾在長壁之間 length=innerW）。
   // 壁的 Y / 高度交由 bottomAttach 決定（seated=坐底板上，inset-panel/flush-glued=全高），不在這裡覆寫。
-  if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
+  if (cornerJoinery === "miter" || cornerJoinery === "finger-joint" || cornerJoinery === "dovetail") {
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
         part.visible = { ...part.visible, length: outerL };
@@ -507,6 +514,41 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           segmentCount,
           phase,
           fingerDepth: wallT,
+        };
+      }
+    }
+  }
+
+  // dovetail 4 壁掛 dovetail-ends shape：trapezoid 段沿 wallH 方向交錯。
+  // 仿 finger-joint，但段是「梯形」不是矩形（pin 為外窄內寬、tail 為外寬內窄，
+  // 對接後互鎖、有拉力承載 §B7）。pin/tail 數 = segmentCount，傳統段尺寸
+  // 約 1.5 ~ 2 倍壁厚；自動算公式跟 finger-joint 一致。
+  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number } | null = null;
+  if (cornerJoinery === "dovetail") {
+    let segmentCount: number;
+    if (dovetailSegmentsOpt > 0) {
+      segmentCount = Math.max(3, Math.min(21, Math.floor(dovetailSegmentsOpt)));
+    } else {
+      const totalH = outerH - botT;
+      segmentCount = Math.max(3, Math.round(totalH / (1.8 * wallT)));
+      if (segmentCount % 2 === 0) segmentCount += 1;
+      segmentCount = Math.min(11, segmentCount);
+    }
+    const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
+    const wallActualH = bottomAttach === "inset-panel" ? outerH : outerH - botT;
+    dovetailInfo = { segmentCount, segH: wallActualH / segmentCount, angleDeg };
+    for (const part of built.parts) {
+      let phase: 0 | 1 | null = null;
+      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
+      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
+      if (phase !== null) {
+        part.shape = {
+          kind: "dovetail-ends",
+          segmentCount,
+          phase,
+          angleDeg,
+          pinDepth: wallT,
+          halfPin: true,
         };
       }
     }
@@ -818,7 +860,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `托盤 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: `托盤 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : cornerJoinery === "dovetail" ? `**鳩尾榫**（dovetail，最強最美——梯形互鎖、純機械接合甚至不上膠都能拉緊）${dovetailInfo ? `；共 ${dovetailInfo.segmentCount} 段（pin/tail）、鳩尾角 ${dovetailInfo.angleDeg}°、每段高 ${dovetailInfo.segH.toFixed(1)}mm；兩端為半 pin 不破角` : ""}` : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
