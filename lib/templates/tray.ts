@@ -684,6 +684,19 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
+  // 鋸床複斜 miter 角度（§AT1.1，n=4）：外撇 θ > 0 + miter 才需要
+  if (cornerJoinery === "miter" && wallSplayRad > 0 && bodyShape === "rect") {
+    const n = 4;
+    const piOverN = Math.PI / n;
+    const M = Math.atan(Math.cos(wallSplayRad) * Math.tan(piOverN));
+    const B = Math.asin(Math.sin(wallSplayRad) * Math.cos(piOverN));
+    design.sawSettings = {
+      tiltDeg: wallSplayDeg,
+      sides: n,
+      miterDeg: +(M * 180 / Math.PI).toFixed(2),
+      bevelDeg: +(B * 180 / Math.PI).toFixed(2),
+    };
+  }
   // 結構檢查 + max bounds
   const warnings: string[] = [];
   if (outerL > 200 || outerW > 200 || outerH > 250) {

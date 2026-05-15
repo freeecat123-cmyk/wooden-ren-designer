@@ -21,6 +21,7 @@ const PHASE_COLOR: Record<StepPhase, string> = {
 export function BuildSteps({ design }: { design: FurnitureDesign }) {
   const steps = deriveBuildSteps(design);
   const totalHours = totalEstimatedHours(steps);
+  const saw = design.sawSettings;
 
   return (
     <div className="space-y-3">
@@ -28,6 +29,28 @@ export function BuildSteps({ design }: { design: FurnitureDesign }) {
         共 {steps.length} 個步驟，預估工時約 <strong>{totalHours} 小時</strong>
         （依個人熟練度可能差 ±50%）。
       </p>
+      {saw && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+          <div className="font-semibold text-amber-900 mb-1.5">
+            🪚 鋸床複斜角度（壁外撇 {saw.tiltDeg}°）
+          </div>
+          <div className="text-amber-800 space-y-1">
+            <div>
+              鋸盤水平轉角（Miter）：<strong className="font-mono">{saw.miterDeg}°</strong>
+            </div>
+            <div>
+              鋸片垂直傾角（Bevel）：<strong className="font-mono">{saw.bevelDeg}°</strong>
+            </div>
+            <div className="text-xs text-amber-700 mt-2">
+              4 片牆兩端依此設定切複斜角度，組裝才會 4 角密合。
+              木板平放鋸台、鋸盤轉 {saw.miterDeg}°、鋸片傾 {saw.bevelDeg}°，
+              兩端一起鋸。公式 §AT1.1（Hopper）：
+              M = arctan(cos θ · tan(180°/{saw.sides}))、
+              B = arcsin(sin θ · cos(180°/{saw.sides}))。
+            </div>
+          </div>
+        </div>
+      )}
       <ol className="space-y-3">
         {steps.map((step, i) => (
           <li

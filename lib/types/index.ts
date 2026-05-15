@@ -391,6 +391,15 @@ export interface FurnitureDesign {
     suggestedCategory: FurnitureCategory;
     presetParams: Record<string, string>;
   }>;
+  /** 鋸床複合角度設定（外撇 miter 接合用）—§AT1.1 公式：
+   *  Miter = arctan(cos θ × tan(180°/n))；Bevel = arcsin(sin θ × cos(180°/n))
+   *  木匠看到 BuildSteps 鋸切步驟時，能直接照這兩個角度設鋸床。 */
+  sawSettings?: {
+    tiltDeg: number;   // 牆外撇 θ
+    sides: number;     // n（方筒 4 / 六角 6 / 八角 8）
+    miterDeg: number;  // 鋸盤水平轉
+    bevelDeg: number;  // 鋸片垂直傾
+  };
 }
 
 export interface FurnitureTemplateInput {
