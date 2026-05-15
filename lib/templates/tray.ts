@@ -76,7 +76,7 @@ export const trayOptions: OptionSpec[] = [
     { value: "pill", label: "圓角長條（兩端半圓 + 中段矩形）" },
     { value: "circle", label: "圓形（單一圓孔，較小手指洞）" },
   ], dependsOn: { key: "withHandle", equals: true }, help: "圓角長條最常見、最不刮手；矩形最容易加工；圓形適合小托盤或刻意要圓孔效果。" },
-  { group: "structure", type: "number", key: "handleWidth", label: "把手孔寬 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", help: "建議 80-120mm（容 3-4 隻手指）。會自動 clamp 到壁長 -40mm（兩側留 20mm 邊）。", dependsOn: { key: "withHandle", equals: true } },
+  { group: "structure", type: "number", key: "handleWidth", label: "把手孔寬 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", help: "建議 80-120mm（容 3-4 隻手指）。會自動 clamp 到壁長 -40mm（兩側留 20mm 邊）。", dependsOn: { all: [{ key: "withHandle", equals: true }, { key: "handleShape", notIn: ["circle"] }] } },
   { group: "structure", type: "number", key: "handleHeight", label: "把手孔高 (mm)", defaultValue: 25, min: 15, max: 50, step: 1, unit: "mm", help: "建議 20-30mm（手指穿過剛好）。", dependsOn: { key: "withHandle", equals: true } },
   { group: "structure", type: "number", key: "handleTopMargin", label: "把手距壁頂 (mm)", defaultValue: 10, min: 5, max: 30, step: 1, unit: "mm", help: "把手孔上緣距離壁頂的距離。", dependsOn: { key: "withHandle", equals: true } },
 ];
