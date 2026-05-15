@@ -88,6 +88,13 @@ dimming -= smoothstep(0.84, 0.93, pore) * 0.18;
 dimming -= (wd_fbm(vec2(gx * 0.003, wz * 0.012)) - 0.5) * 0.18;
 // 10. 中尺度斑紋
 dimming -= (wd_fbm(vec2(gx * 0.02, wz * 0.05)) - 0.5) * 0.08;
+// 11. 順紋方向條紋——沿 grain 軸（gx）高頻、跨 grain 軸（wz）近乎不變，
+//     視覺上是一條條順著纖維跑的細暗紋，讓木紋走向不靠年輪也看得出來。
+//     振幅 0.16，與上面各擾動項同量級，不蓋掉年輪拱形的擬真感。
+float grainStreak = wd_fbm(vec2(gx * 0.13, wz * 0.006));
+dimming -= smoothstep(0.52, 0.78, grainStreak) * 0.16;
+// 夾住 dimming ≥ 0：多項相減最壞情況會 < 0，負值乘進去會把顏色反相
+dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }
 
@@ -102,7 +109,10 @@ function makeCompile(
       .replace("#include <common>", `#include <common>\nvarying vec3 vWoodLocalPos;`)
       .replace(
         "#include <fog_vertex>",
-        `#include <fog_vertex>\nvWoodLocalPos = position;`,
+        // position 是 three-units（1 unit = 100mm，見 PerspectiveView SCALE）；
+        // 本 shader 所有常數（pithY -220、ring 25mm、頻率…）都按 mm 寫，
+        // 所以這裡 ×100 轉成 mm，grain 幾何才會以正確尺度解析出來。
+        `#include <fog_vertex>\nvWoodLocalPos = position * 100.0;`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${HELPERS}`)
