@@ -330,8 +330,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
       if (outerSide) {
         const wallLen = part.visible.length;
+        // 壁繞 center 旋轉時 top 外移 (wallH/2)·sin(θ) → 單邊延伸 (wallH/2)·sin(θ)、
+        // 雙邊（壁兩端）總共 wallH·sin(θ)。之前用 2·wallH·tan(θ) 超過 2 倍。
         const topExt = wallSplayRad > 0
-          ? 2 * built.wallH * Math.tan(wallSplayRad)
+          ? built.wallH * Math.sin(wallSplayRad)
           : 0;
         const topLengthScale = wallLen > 0 ? (wallLen + topExt) / wallLen : 1.0;
         part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide, topLengthScale };
