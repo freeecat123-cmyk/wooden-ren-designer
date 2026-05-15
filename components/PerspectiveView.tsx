@@ -13,7 +13,13 @@ import { worldExtents } from "@/lib/render/geometry";
 import { findOverlaps } from "@/lib/geometry/overlap";
 import type { LocalBox } from "@/lib/render/svg-views";
 import { categorizePart, mortiseLocalBox } from "@/lib/render/svg-views";
-import { woodCompileX, woodCompileZ } from "@/components/wood-shader";
+import {
+  woodCompileXNarrow,
+  woodCompileXWide,
+  woodCompileZNarrow,
+  woodCompileZWide,
+  WIDE_BOARD_THRESHOLD_MM,
+} from "@/components/wood-shader";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
@@ -242,8 +248,17 @@ function Part({
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
   const HIGHLIGHT_INTENSITY = 0.55;
   const DIM_OPACITY = 0.18;
-  // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）
-  const woodCompile = grainDirection === "width" ? woodCompileZ : woodCompileX;
+  // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）。
+  // 依「跨紋方向尺寸」選 wide（山形紋）或 narrow（直紋）：寬板用 plain-sawn
+  // 山形紋、細條用 quartersawn 直紋——跟真實鋸木出來的長相一致。
+  // size 是 three-units（1 unit = 100mm），×100 換回 mm。
+  const crossGrainMm =
+    (grainDirection === "width" ? size[0] : size[2]) * 100;
+  const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
+  const woodCompile =
+    grainDirection === "width"
+      ? (isWide ? woodCompileZWide : woodCompileZNarrow)
+      : (isWide ? woodCompileXWide : woodCompileXNarrow);
   const geometry = useMemo(() => {
     if (!shape || shape.kind === "box") return null;
     if (shape.kind === "tapered") {
