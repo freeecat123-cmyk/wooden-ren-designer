@@ -30,7 +30,10 @@ const TRAY_PRESETS: Record<string, TrayPresetConfig> = {
 };
 
 export const trayOptions: OptionSpec[] = [
-  { group: "structure", type: "select", key: "bodyShape", label: "筒身形狀", defaultValue: "rect", choices: [
+  // 托盤永遠是方形——保留 schema 讓 getOption 回 "rect" 預設、其他 option 的
+  // dependsOn 仍能 evaluate；用 sentinel dependsOn 把選項本身從表單隱藏。
+  // 想之後讓托盤也有六/八角，把這條 dependsOn 拿掉即可。
+  { group: "structure", type: "select", key: "bodyShape", label: "筒身形狀", defaultValue: "rect", dependsOn: { key: "__tray_polygon_disabled__", equals: "true" }, choices: [
     { value: "rect", label: "方筒（4 壁，最簡單）" },
     { value: "hex", label: "六角筒（6 段拼接）" },
     { value: "oct", label: "八角筒（8 段拼接）" },
