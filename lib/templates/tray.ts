@@ -328,13 +328,16 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   //   這樣 4 壁的 corner 在 3D 真實接合，不會有「應該對接但浮空」的縫。
   if (cornerJoinery === "miter") {
     const theta = wallSplayRad;
-    const tan = Math.tan(theta);
     const sin = Math.sin(theta);
     const cos = Math.cos(theta);
-    // 反向法用的關鍵量（wallSplay > 0 才計算）
-    const wallTplus = theta > 0 ? wallT / cos : wallT;  // 內緣往內偏移（plan view）
+    // 反向法用的關鍵量（wallSplay > 0 才計算）。
+    // 修正：內緣在 plan view 的水平偏移是 wallT·cos θ（不是 wallT/cos θ）——
+    //   因為 wallT 是垂直於牆面的厚度方向，投影到水平面 = wallT·cos θ。
+    // 內緣底邊在世界 Y = wallT·sin θ（剛性傾斜後內面底邊抬高）。
+    const wallTh = theta > 0 ? wallT * cos : wallT;  // 內緣 plan view 水平偏移
+    const wallTv = theta > 0 ? wallT * sin : 0;      // 內緣相對外緣 Y 抬升
     const hShift = theta > 0 ? built.wallH * sin : 0;          // 頂端往外延伸量
-    const vTop = theta > 0 ? built.wallH * cos : built.wallH;  // 頂端世界 Y
+    const vTop = theta > 0 ? built.wallH * cos : built.wallH;  // 外緣頂在世界 Y
 
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
@@ -354,63 +357,59 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 反向法：算 8 corner 在世界座標
       const Lx = outerL, Lz = outerW;
       const x0 = Lx / 2, z0 = Lz / 2;
-      // 世界座標 8 corner（順序：0..3=top, 4..7=bottom；
-      // 每組 4 點順序對應 ring layout：
-      //   outerSide="+y" → [outer-right, outer-left, inner-left, inner-right]
-      //   outerSide="-y" → [inner-right, inner-left, outer-left, outer-right]
+      // 內緣相對外緣：水平偏 wallTh、頂端因傾斜抬高 wallTv（剛性旋轉幾何結果）
+      const yInnerB = wallTv;          // 內緣底 Y
+      const yInnerT = vTop + wallTv;   // 內緣頂 Y
       let world: [number, number, number][];
       if (wallId === "front") {
         // outer face z=-z0, top tilts -Z
         world = [
-          // 0..3 = TOP (高 vTop), order = [IR, IL, OL, OR] for "-y"
-          [+x0 - wallTplus + hShift, vTop, -z0 + wallTplus - hShift],  // IR_T
-          [-x0 + wallTplus - hShift, vTop, -z0 + wallTplus - hShift],  // IL_T
-          [-x0 - hShift,             vTop, -z0 - hShift],              // OL_T
-          [+x0 + hShift,             vTop, -z0 - hShift],              // OR_T
-          // 4..7 = BOTTOM (y=0), same order
-          [+x0 - wallTplus, 0, -z0 + wallTplus],  // IR_B
-          [-x0 + wallTplus, 0, -z0 + wallTplus],  // IL_B
-          [-x0, 0, -z0],                          // OL_B
-          [+x0, 0, -z0],                          // OR_B
+          // 0..3 = TOP, order = [IR, IL, OL, OR] for "-y"
+          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T
+          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T
+          [-x0 - hShift,          vTop,    -z0 - hShift],            // OL_T
+          [+x0 + hShift,          vTop,    -z0 - hShift],            // OR_T
+          // 4..7 = BOTTOM
+          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
+          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IL_B
+          [-x0,          0,       -z0],            // OL_B
+          [+x0,          0,       -z0],            // OR_B
         ];
       } else if (wallId === "back") {
         // outer face z=+z0, top tilts +Z; outerSide="+y" → [OR, OL, IL, IR]
         world = [
-          [+x0 + hShift,             vTop, +z0 + hShift],              // OR_T
-          [-x0 - hShift,             vTop, +z0 + hShift],              // OL_T
-          [-x0 + wallTplus - hShift, vTop, +z0 - wallTplus + hShift],  // IL_T
-          [+x0 - wallTplus + hShift, vTop, +z0 - wallTplus + hShift],  // IR_T
-          [+x0, 0, +z0],                          // OR_B
-          [-x0, 0, +z0],                          // OL_B
-          [-x0 + wallTplus, 0, +z0 - wallTplus],  // IL_B
-          [+x0 - wallTplus, 0, +z0 - wallTplus],  // IR_B
+          [+x0 + hShift,          vTop,    +z0 + hShift],            // OR_T
+          [-x0 - hShift,          vTop,    +z0 + hShift],            // OL_T
+          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T
+          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T
+          [+x0,          0,       +z0],            // OR_B
+          [-x0,          0,       +z0],            // OL_B
+          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
+          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
         ];
       } else if (wallId === "left") {
         // outer face x=-x0, top tilts -X; outerSide="-y" → [IR, IL, OL, OR]
-        // 「length 軸」對 left 牆而言是 Z 軸（沿 box width）
-        // IR=後端內側、IL=前端內側、OL=前端外側、OR=後端外側
         world = [
-          [-x0 + wallTplus - hShift, vTop, +z0 - wallTplus + hShift],  // IR_T (後內)
-          [-x0 + wallTplus - hShift, vTop, -z0 + wallTplus - hShift],  // IL_T (前內)
-          [-x0 - hShift,             vTop, -z0 - hShift],              // OL_T (前外)
-          [-x0 - hShift,             vTop, +z0 + hShift],              // OR_T (後外)
-          [-x0 + wallTplus, 0, +z0 - wallTplus],  // IR_B
-          [-x0 + wallTplus, 0, -z0 + wallTplus],  // IL_B
-          [-x0, 0, -z0],                          // OL_B
-          [-x0, 0, +z0],                          // OR_B
+          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T (後內)
+          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T (前內)
+          [-x0 - hShift,          vTop,    -z0 - hShift],            // OL_T (前外)
+          [-x0 - hShift,          vTop,    +z0 + hShift],            // OR_T (後外)
+          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IR_B
+          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IL_B
+          [-x0,          0,       -z0],            // OL_B
+          [-x0,          0,       +z0],            // OR_B
         ];
       } else {  // right
         // outer face x=+x0, top tilts +X; outerSide="+y" → [OR, OL, IL, IR]
-        // OR=後端外側、OL=前端外側、IL=前端內側、IR=後端內側
         world = [
-          [+x0 + hShift,             vTop, +z0 + hShift],              // OR_T
-          [+x0 + hShift,             vTop, -z0 - hShift],              // OL_T
-          [+x0 - wallTplus + hShift, vTop, -z0 + wallTplus - hShift],  // IL_T
-          [+x0 - wallTplus + hShift, vTop, +z0 - wallTplus + hShift],  // IR_T
-          [+x0, 0, +z0],                          // OR_B
-          [+x0, 0, -z0],                          // OL_B
-          [+x0 - wallTplus, 0, -z0 + wallTplus],  // IL_B
-          [+x0 - wallTplus, 0, +z0 - wallTplus],  // IR_B
+          [+x0 + hShift,          vTop,    +z0 + hShift],            // OR_T
+          [+x0 + hShift,          vTop,    -z0 - hShift],            // OL_T
+          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T
+          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T
+          [+x0,          0,       +z0],            // OR_B
+          [+x0,          0,       -z0],            // OL_B
+          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IL_B
+          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
         ];
       }
 
