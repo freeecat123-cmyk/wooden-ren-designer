@@ -370,17 +370,32 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   // - back wall（z 正）: outward = +Z → rotation x: -Δ
   // - left/right wall 因為先 rotate y:π/2，wall 的長軸現在沿 world Z 跑，要動 rotation z
   if (bodyShape === "rect" && wallSplayRad > 0) {
+    // 壁繞 center 旋轉時 bottom 會內縮+上抬，所以加 origin 補償讓 bottom
+    // 還是釘在底板邊緣（等效於繞底邊旋轉，Shaker 托盤實做法）。
+    // 補償量：
+    //   Δy = -(wallH/2)·(1-cos θ)   壁繞 center 轉、bottom 上移 (wallH/2)(1-cos θ)
+    //   Δ(outward) = -(wallH/2)·sin θ  bottom 內縮 (wallH/2)·sin θ；要把 origin 往外推回去
+    const hzCompY = -(built.wallH / 2) * (1 - Math.cos(wallSplayRad));
+    const hzCompOut = -(built.wallH / 2) * Math.sin(wallSplayRad);
     for (const part of built.parts) {
       if (!part.rotation) continue;
       // 全部 sign 翻過來：原本以為 +Δ 是 outward，實測是 inward
       if (part.id === "wall-front") {
         part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) - wallSplayRad };
+        // outward = -Z，所以 origin.z 往 -Z 推
+        part.origin = { ...part.origin, y: part.origin.y + hzCompY, z: part.origin.z + hzCompOut };
       } else if (part.id === "wall-back") {
         part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
+        // outward = +Z
+        part.origin = { ...part.origin, y: part.origin.y + hzCompY, z: part.origin.z - hzCompOut };
       } else if (part.id === "wall-left") {
         part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) + wallSplayRad };
+        // outward = -X
+        part.origin = { ...part.origin, x: part.origin.x + hzCompOut, y: part.origin.y + hzCompY };
       } else if (part.id === "wall-right") {
         part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
+        // outward = +X
+        part.origin = { ...part.origin, x: part.origin.x - hzCompOut, y: part.origin.y + hzCompY };
       }
     }
   }
