@@ -2116,11 +2116,13 @@ export function OrthoView({
                 if (r.w < 0.5 || r.h < 0.5) return null;
                 const cx = r.x + r.w / 2;
                 const cy = -(r.y + r.h) + r.h / 2;
-                // 外撇 cosmetic 孔（rotX≠0）：marker 套 SVG rotation 跟著牆斜，
-                // 不再是 axis-aligned 水平/垂直。SIDE/FRONT 視圖才看得到牆的斜度，
-                // TOP 視圖 tilt 軸朝外不顯示——一致套都不會誤導，TOP 視圖會自動退化
-                // 成微小旋轉（牆 plan 是水平的，視覺差別微小）。
-                const rotDeg = m.rotX ? (m.rotX * 180 / Math.PI) : 0;
+                // 外撇 cosmetic 孔（rotX≠0）：marker 在不同視圖該不該斜：
+                // - FRONT 視圖：LEFT/RIGHT 壁的 tilt 軸 ⊥ view direction，斜度可見 → 套
+                // - SIDE 視圖：LEFT/RIGHT 壁的 tilt 軸 ∥ view direction，視覺看不到 →
+                //              此時兩壁 marker 又重疊，硬套會疊成 X，所以不套
+                // - TOP 視圖：tilt 朝外、不顯示
+                // 符號：part-local rotX 經 mesh rotation 後在 FRONT 視圖呈現 -rotX 方向
+                const rotDeg = m.rotX && view === "front" ? (-m.rotX * 180 / Math.PI) : 0;
                 const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
                 if (m.shape === "round") {
                   return (
