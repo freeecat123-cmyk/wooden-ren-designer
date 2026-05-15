@@ -633,11 +633,14 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
   const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-  // 外撇 θ 時牆頂 world Y = wallBaseY + built.wallH·cos θ（不是 outerH，
-  // 因為 cos θ 後實際垂直高度比 outerH 小）。隔板高度自動填滿應該對齊這個。
+  // 外撇 θ 時牆頂 world Y = wallBaseY + partWallH·cos θ。
+  // 注意：inset-panel 模式 tray.ts 把 wall.visible.width override 為 outerH（含底板厚），
+  // 其他模式維持 built.wallH（純牆高）。divider auto 高度要對齊真正的牆頂、
+  // 用 mode-dependent 的 partWallH（跟反向法 wall vertices 用同一個值）。
   const wallBaseY_div = bottomAttach === "inset-panel" ? 0 : botT;
+  const partWallH_div = bottomAttach === "inset-panel" ? outerH : built.wallH;
   const trayTopY = wallSplayRad > 0 && bodyShape === "rect" && cornerJoinery === "miter"
-    ? wallBaseY_div + built.wallH * Math.cos(wallSplayRad)
+    ? wallBaseY_div + partWallH_div * Math.cos(wallSplayRad)
     : outerH;
   const dividerHAuto = Math.max(1, trayTopY - bottomTopY);
   const dividerH = dividerHeightOpt > 0
