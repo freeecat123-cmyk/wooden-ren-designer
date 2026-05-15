@@ -155,7 +155,7 @@ type ShapeSpec =
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
-  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y"; topLengthScale?: number }
+  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y"; topLengthScale?: number; bottomLengthScale?: number }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
@@ -430,7 +430,7 @@ function Part({
       return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
     if (shape.kind === "mitered-ends") {
-      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide, shape.topLengthScale ?? 1.0);
+      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide, shape.topLengthScale ?? 1.0, shape.bottomLengthScale ?? 1.0);
     }
     if (shape.kind === "finger-joint-ends") {
       return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
@@ -1172,6 +1172,7 @@ function buildMiteredEndsGeometry(
   insetEach: number,
   outerSide: "+y" | "-y" = "+y",
   topLengthScale: number = 1.0,
+  bottomLengthScale: number = 1.0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1203,8 +1204,8 @@ function buildMiteredEndsGeometry(
           [sx(+hx),               -hy],
         ];
   };
-  const ringTop = makeRing(topLengthScale); // z = -hz (geometry top)
-  const ringBot = makeRing(1.0);             // z = +hz (geometry bottom)
+  const ringTop = makeRing(topLengthScale);    // z = -hz (geometry top)
+  const ringBot = makeRing(bottomLengthScale); // z = +hz (geometry bottom)
   const ring = ringBot; // 保留變數名給下面 winding 用
   const v: number[] = [];
   for (const [x, y] of ringTop) v.push(x, y, -hz);
@@ -2706,6 +2707,7 @@ export function PerspectiveView({
               insetEach: part.shape.insetEach * SCALE,
               outerSide: part.shape.outerSide,
               topLengthScale: part.shape.topLengthScale,
+              bottomLengthScale: part.shape.bottomLengthScale,
             };
           } else if (part.shape?.kind === "finger-joint-ends") {
             shape = {

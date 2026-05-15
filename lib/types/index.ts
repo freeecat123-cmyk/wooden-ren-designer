@@ -295,7 +295,7 @@ export interface Part {
      *  visible.length = 外緣長度（L），內緣 = L − 2×insetEach。
      *  outerSide = "+y" 表 local +Y 邊為外緣（朝盒外）；"-y" 為反向。
      *  insetEach 通常 = 壁厚 wallT；俯視 = 梯形 polygon，前/側視 = 矩形不變。*/
-    | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y"; topLengthScale?: number }
+    | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y"; topLengthScale?: number; bottomLengthScale?: number }
     /** 4 壁指接（finger / box joint）：壁兩端沿高度方向（local Z = wallH）交錯凸齒/凹槽。
      *  segmentCount = 沿 Z 切幾段（typical 5；奇數讓兩端都是齒，較強）。
      *  phase 0 = local -Z 端起算第 1 段為齒；phase 1 = 第 1 段為槽。鄰壁 phase 相反。

@@ -330,11 +330,14 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
       if (outerSide) {
         const wallLen = part.visible.length;
-        const topExt = wallSplayRad > 0
-          ? 2 * built.wallH * Math.tan(wallSplayRad)
+        // 對稱梯形：top 加長、bottom 縮短同量，wall mid-height length 保持
+        // wallLen 不變。bottom 縮短把底部 V 字凸切掉，cut 一路切到內角。
+        const ext = wallSplayRad > 0
+          ? built.wallH * Math.tan(wallSplayRad)
           : 0;
-        const topLengthScale = wallLen > 0 ? (wallLen + topExt) / wallLen : 1.0;
-        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide, topLengthScale };
+        const topLengthScale = wallLen > 0 ? (wallLen + ext) / wallLen : 1.0;
+        const bottomLengthScale = wallLen > 0 ? Math.max(0.1, (wallLen - ext) / wallLen) : 1.0;
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide, topLengthScale, bottomLengthScale };
       }
     }
   }
