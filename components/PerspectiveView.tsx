@@ -1237,25 +1237,24 @@ function buildMiteredEndsGeometry(
       ];
   const v: number[] = [];
   // 世界底（z=+hz）用原 ring；世界頂（z=-hz）用 bevel+tilt 過的 ringTop
-  // 保持原 push 順序（第一組 -hz、第二組 +hz）讓 winding 不變；
-  // 只把資料 swap：part-local -hz = 世界頂 → 用 ringTop（bevel/tilt 過）；
-  //               part-local +hz = 世界底 → 用 ring（原始無修飾）。
-  for (const [x, y] of ringTop) v.push(x, y, -hz);
   for (const [x, y] of ring) v.push(x, y, +hz);
+  for (const [x, y] of ringTop) v.push(x, y, -hz);
   const N = ring.length;
   const idx: number[] = [];
-  // ring CW from +Z + extrude along Z 的 outward normal winding（原版驗證過）
+  // ring CCW from +Z + 第一組在 z=+hz、第二組在 z=-hz 的 outward winding。
+  // 跟原版（第一組在 -hz、第二組在 +hz）相比，extrude 方向 flip 了，所以
+  // 側面 quad 三角形對換、cap fan 也對換。
   for (let i = 0; i < N; i++) {
     const a = i;
     const b = (i + 1) % N;
     const at = a + N;
     const bt = b + N;
-    idx.push(a, b, bt, a, bt, at);
+    idx.push(a, bt, b, a, at, bt);
   }
-  // 底蓋 z=-hz：outward = -Z → 反向 fan
-  for (let i = 1; i < N - 1; i++) idx.push(0, i + 1, i);
-  // 頂蓋 z=+hz：outward = +Z → 正向 fan
-  for (let i = 1; i < N - 1; i++) idx.push(N, N + i, N + i + 1);
+  // 頂蓋 z=+hz (vertex 0..N-1)：outward = +Z → 正向 fan（CCW from +Z viewer）
+  for (let i = 1; i < N - 1; i++) idx.push(0, i, i + 1);
+  // 底蓋 z=-hz (vertex N..2N-1)：outward = -Z → 反向 fan
+  for (let i = 1; i < N - 1; i++) idx.push(N, N + i + 1, N + i);
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
