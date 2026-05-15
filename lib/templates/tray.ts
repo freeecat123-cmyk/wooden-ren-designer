@@ -375,29 +375,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 壁外撇（Phase 1：視覺）：rect bodyShape 才有意義。每片壁的 rotation 加一個
-  // 角度，讓 wall 繞自己的長軸傾斜，top 往外撇。Phase 1 不補償 origin，所以
-  // 整片壁繞 center 轉，底邊會稍微往外移、top 往外撇更多（總體仍是向外撇的效果）。
-  // 配合 miter corner 時，wall 的 local 端面 45° 切在傾斜的 frame 下變成複斜 miter。
-  // 符號約定（試到對為止）：
-  // - front wall（z 負）: outward = -Z → rotation x: +Δ
-  // - back wall（z 正）: outward = +Z → rotation x: -Δ
-  // - left/right wall 因為先 rotate y:π/2，wall 的長軸現在沿 world Z 跑，要動 rotation z
-  if (bodyShape === "rect" && wallSplayRad > 0) {
-    for (const part of built.parts) {
-      if (!part.rotation) continue;
-      // 全部 sign 翻過來：原本以為 +Δ 是 outward，實測是 inward
-      if (part.id === "wall-front") {
-        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) - wallSplayRad };
-      } else if (part.id === "wall-back") {
-        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
-      } else if (part.id === "wall-left") {
-        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) + wallSplayRad };
-      } else if (part.id === "wall-right") {
-        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
-      }
-    }
-  }
+  // 壁外撇：shape (mitered-ends) 內部 tiltAngle 包辦 Y shear，這裡不再對 part
+  // rotation 加角度（雙路徑會互打——shape 已把頂 ring 推到外側，rotation 再轉
+  // 一次就重複了）。box-builder 給的基本 rotation（wall-left/right 的 y:π/2）保留。
 
   // 托盤把手孔：rect bodyShape 才有意義（六/八角筒沒「短邊壁」這個概念）。
   // 兩個短邊壁（wall-left / wall-right）中央偏上挖穿透長條孔（cosmetic mortise

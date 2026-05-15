@@ -1184,11 +1184,14 @@ function buildMiteredEndsGeometry(
   tiltAngle: number = 0,
   bevelAngle: number = 0,
 ): BufferGeometry {
-  // tiltAngle 目前 geometry 本身不直接套（rotation 由 tray.ts 那邊處理），
-  // 收下參數是為了 caller API 對稱、未來若要 geometry 自體傾倒可從這裡擴。
-  // bevelAngle > 0：頂 ring（z=+hz）的外緣 length 方向內縮 lz·tan(B)，
-  // 視覺上 plan 看到端面是「下寬上窄」的梯形（複斜 miter cut 的真實樣）。
-  void tiltAngle;
+  // 經 part rotation x:π/2 後，part-local +Z（=+hz）對應世界「底」、
+  // -Z（=-hz）對應世界「頂」。所以：
+  // - 底 ring（z=+hz）= 原 ring（無 bevel/tilt）
+  // - 頂 ring（z=-hz）= ringTop（套 bevelInset + tiltShift）
+  // bevelAngle > 0：頂 ring 外緣 length 方向內縮 lz·tan(B)，視覺上端面是
+  // 「下寬上窄」的梯形（複斜 miter cut 的真實樣）。
+  // tiltAngle > 0：頂 ring 整體在 outerSide 方向 shear lz·tan(θ)，
+  // 內外緣同步推，視覺上牆向外撇 θ。
   const [lx, ly, lz] = size;
   const hx = lx / 2;
   const hy = ly / 2;
@@ -1197,7 +1200,7 @@ function buildMiteredEndsGeometry(
   if (inset <= 0) {
     return new BoxGeometry(lx, ly, lz);
   }
-  // ring 在 X-Y 平面，CW from +Z viewer（沿用 buildNotchedCornersGeometry winding 慣例）
+  // ring 在 X-Y 平面，CCW from +Z viewer
   // outerSide="+y"：outer 邊（全長 L）在 +hy，inner 邊（短）在 -hy
   // outerSide="-y"：outer 邊在 -hy，inner 邊在 +hy
   const ring: Array<[number, number]> = outerSide === "+y"
@@ -1213,40 +1216,45 @@ function buildMiteredEndsGeometry(
         [-hx,          -hy],  // outer left
         [+hx,          -hy],  // outer right
       ];
-  // bevel：頂端（+hz = 牆頂）外緣比底端內縮 lz·tan(bevelAngle)，
-  // 對應 inset 也是 lz·tan(bevelAngle)（用 tan M = cos θ 與 tan B 統一相減算）
+  // tilt shear：頂 ring 全 4 點 Y 統一加 sign * tiltShift（外推方向 = outerSide）
+  const tiltShift = tiltAngle > 0 ? lz * Math.tan(tiltAngle) : 0;
+  const tiltSign = outerSide === "+y" ? +1 : -1;
+  const tiltDy = tiltSign * tiltShift;
+  // bevel：頂 ring 外緣 length 方向內縮 lz·tan(bevelAngle)
   const bevelInset = bevelAngle > 0 ? lz * Math.tan(bevelAngle) : 0;
   const ringTop: Array<[number, number]> = outerSide === "+y"
     ? [
-        [+hx - bevelInset,                  +hy],
-        [-hx + bevelInset,                  +hy],
-        [-hx + bevelInset + inset,          -hy],
-        [+hx - bevelInset - inset,          -hy],
+        [+hx - bevelInset,                  +hy + tiltDy],
+        [-hx + bevelInset,                  +hy + tiltDy],
+        [-hx + bevelInset + inset,          -hy + tiltDy],
+        [+hx - bevelInset - inset,          -hy + tiltDy],
       ]
     : [
-        [+hx - bevelInset - inset,          +hy],
-        [-hx + bevelInset + inset,          +hy],
-        [-hx + bevelInset,                  -hy],
-        [+hx - bevelInset,                  -hy],
+        [+hx - bevelInset - inset,          +hy + tiltDy],
+        [-hx + bevelInset + inset,          +hy + tiltDy],
+        [-hx + bevelInset,                  -hy + tiltDy],
+        [+hx - bevelInset,                  -hy + tiltDy],
       ];
   const v: number[] = [];
-  for (const [x, y] of ring) v.push(x, y, -hz);
-  for (const [x, y] of ringTop) v.push(x, y, +hz);
+  // 世界底（z=+hz）用原 ring；世界頂（z=-hz）用 bevel+tilt 過的 ringTop
+  for (const [x, y] of ring) v.push(x, y, +hz);
+  for (const [x, y] of ringTop) v.push(x, y, -hz);
   const N = ring.length;
   const idx: number[] = [];
-  // ring CW from +Z + extrude along Z 的 outward normal winding（已用 cross product
-  // 推導；切勿沿用 notched-corners 的 pattern—那是 extrude along Y 的版本，sign 不同）
+  // ring CCW from +Z + 第一組在 z=+hz、第二組在 z=-hz 的 outward winding。
+  // 跟原版（第一組在 -hz、第二組在 +hz）相比，extrude 方向 flip 了，所以
+  // 側面 quad 三角形對換、cap fan 也對換。
   for (let i = 0; i < N; i++) {
     const a = i;
     const b = (i + 1) % N;
     const at = a + N;
     const bt = b + N;
-    idx.push(a, b, bt, a, bt, at);
+    idx.push(a, bt, b, a, at, bt);
   }
-  // 底蓋 z=-hz：outward = -Z → 反向 fan
-  for (let i = 1; i < N - 1; i++) idx.push(0, i + 1, i);
-  // 頂蓋 z=+hz：outward = +Z → 正向 fan
-  for (let i = 1; i < N - 1; i++) idx.push(N, N + i, N + i + 1);
+  // 頂蓋 z=+hz (vertex 0..N-1)：outward = +Z → 正向 fan（CCW from +Z viewer）
+  for (let i = 1; i < N - 1; i++) idx.push(0, i, i + 1);
+  // 底蓋 z=-hz (vertex N..2N-1)：outward = -Z → 反向 fan
+  for (let i = 1; i < N - 1; i++) idx.push(N, N + i + 1, N + i);
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(v, 3));
   g.setIndex(idx);
