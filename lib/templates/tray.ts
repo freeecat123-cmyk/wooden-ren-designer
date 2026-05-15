@@ -516,26 +516,27 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 外撇 θ 時牆切平模型下，part-local Y center 隨 z 線性平移：
       //   Y_center(z) = sign · [(wallTsec - wallT)/2 + tan θ · (z - zBot)]
       //   sign：outerSide="-y" (wall-left) = +1；"+y" (wall-right) = -1
-      //   zBot = wallHeight/2（part-local z 從 +zBot 往 -zTop 走）
-      //   bottom offset (wallTsec-wallT)/2 = 內緣比 hy 多偏的量
-      //   （外撇 plan view 牆厚 wallT·sec θ > wallT）
-      // 不補償的話手把孔會跑到牆外、看不到。
-      const handleYCenter = (cornerJoinery === "miter" && wallSplayRad > 0)
+      // 注意 mortise.origin.y 是 from-bottom 慣例（y=0 在牆底、y=ly 在頂），
+      // 要把 centered Y_center 加 wallThick/2 才符合慣例。
+      const handleYFromBottom = (cornerJoinery === "miter" && wallSplayRad > 0)
         ? (() => {
             const sign = part.id === "wall-left" ? +1 : -1;
             const wallTsecθ_local = wallT / Math.cos(wallSplayRad);
             const zBot = wallHeight / 2;
-            return sign * ((wallTsecθ_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
+            const yCenteredCoord = sign * ((wallTsecθ_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
+            return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
         : 0;
+      // 外撇後牆 Y 寬度變 wallTsec > wallT；mortise depth 拉到 1.5× 確保 CSG 切穿
+      const handleDepth = wallSplayRad > 0 ? wallThick * 1.5 : wallThick;
       // 依造型推 mortise：
       // - rect: 1 個矩形 mortise
       // - pill: 中段矩形 + 兩端圓形（CSG round mortise = 圓柱）
       // - circle: 單一圓形 mortise
       if (handleShape === "rect") {
         part.mortises.push({
-          origin: { x: 0, y: handleYCenter, z: handleZCenter },
-          depth: wallThick,
+          origin: { x: 0, y: handleYFromBottom, z: handleZCenter },
+          depth: handleDepth,
           length: handleW,
           width: handleH,
           through: true,
@@ -548,8 +549,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const rectLen = handleW - handleH;
         if (rectLen > 0) {
           part.mortises.push({
-            origin: { x: 0, y: handleYCenter, z: handleZCenter },
-            depth: wallThick,
+            origin: { x: 0, y: handleYFromBottom, z: handleZCenter },
+            depth: handleDepth,
             length: rectLen,
             width: handleH,
             through: true,
@@ -560,8 +561,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         const endOffset = Math.max(0, rectLen / 2);
         // 左端圓（CSG round = 圓柱沿 local Y 軸、radius = min(hx, hz)）
         part.mortises.push({
-          origin: { x: -endOffset, y: handleYCenter, z: handleZCenter },
-          depth: wallThick,
+          origin: { x: -endOffset, y: handleYFromBottom, z: handleZCenter },
+          depth: handleDepth,
           length: handleH,
           width: handleH,
           through: true,
@@ -570,8 +571,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         });
         // 右端圓
         part.mortises.push({
-          origin: { x: endOffset, y: handleYCenter, z: handleZCenter },
-          depth: wallThick,
+          origin: { x: endOffset, y: handleYFromBottom, z: handleZCenter },
+          depth: handleDepth,
           length: handleH,
           width: handleH,
           through: true,
@@ -582,8 +583,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         // 圓形：取較小邊為直徑
         const dia = Math.min(handleW, handleH);
         part.mortises.push({
-          origin: { x: 0, y: handleYCenter, z: handleZCenter },
-          depth: wallThick,
+          origin: { x: 0, y: handleYFromBottom, z: handleZCenter },
+          depth: handleDepth,
           length: dia,
           width: dia,
           through: true,

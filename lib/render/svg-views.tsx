@@ -590,7 +590,12 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   const PERP_SHRINK = 0;
   if (depthAxis === "y") {
     const enterTop = m.origin.y > ly / 2;
-    const cyL = m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2);
+    // cosmetic through mortise（如外撇托盤手把孔）：part 幾何在 part-local Y
+    // 偏離 AABB 中心（牆傾斜後實際 Y 位置不在 0），不能 override 為 cy=0、
+    // 要用 origin.y 給的中心。一般通榫維持 cy=0（標準對稱通孔）。
+    const cyL = m.cosmetic && m.through
+      ? oyC
+      : (m.through ? 0 : (enterTop ? +ly / 2 - D / 2 : -ly / 2 + D / 2));
     const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
     const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
     const longOnZ = zFace > xFace;
