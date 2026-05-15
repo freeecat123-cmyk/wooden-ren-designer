@@ -58,6 +58,10 @@ export const trayOptions: OptionSpec[] = [
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
   ], dependsOn: { key: "bodyShape", equals: "rect" } },
+  // 壁向外撇 + 複斜接合：壁向外傾角度 0 = 垂直（傳統盒）；> 0 = 壁外撇（shaker 風托盤）。
+  // 配合 miter corner 自動成為「複斜 miter」——鋸床要設複合角度（角度公式見
+  // docs/drafting-math.md §「複斜接合」）。
+  { group: "structure", type: "number", key: "wallSplay", label: "壁外撇角度 (°)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "°", help: "0 = 垂直壁；> 0 = 壁向外傾（shaker 托盤風）。miter 角接合時自動變複斜——鋸床鋸切角度會由公式計算。", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "__tray_cross_dividers_disabled__", equals: "true" } },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
@@ -110,6 +114,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   // 托盤把手孔：兩個短邊壁中央偏上挖穿透長條孔
+  const wallSplayDeg = getOption<number>(input, opt(o, "wallSplay"));
+  const wallSplayRad = (wallSplayDeg * Math.PI) / 180;
   const withHandle = getOption<boolean>(input, opt(o, "withHandle"));
   const handleShape = getOption<string>(input, opt(o, "handleShape")) as "rect" | "pill" | "circle";
   const handleWidthOpt = getOption<number>(input, opt(o, "handleWidth"));
@@ -351,6 +357,29 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           phase,
           fingerDepth: wallT,
         };
+      }
+    }
+  }
+
+  // 壁外撇（Phase 1：視覺）：rect bodyShape 才有意義。每片壁的 rotation 加一個
+  // 角度，讓 wall 繞自己的長軸傾斜，top 往外撇。Phase 1 不補償 origin，所以
+  // 整片壁繞 center 轉，底邊會稍微往外移、top 往外撇更多（總體仍是向外撇的效果）。
+  // 配合 miter corner 時，wall 的 local 端面 45° 切在傾斜的 frame 下變成複斜 miter。
+  // 符號約定（試到對為止）：
+  // - front wall（z 負）: outward = -Z → rotation x: +Δ
+  // - back wall（z 正）: outward = +Z → rotation x: -Δ
+  // - left/right wall 因為先 rotate y:π/2，wall 的長軸現在沿 world Z 跑，要動 rotation z
+  if (bodyShape === "rect" && wallSplayRad > 0) {
+    for (const part of built.parts) {
+      if (!part.rotation) continue;
+      if (part.id === "wall-front") {
+        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
+      } else if (part.id === "wall-back") {
+        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) - wallSplayRad };
+      } else if (part.id === "wall-left") {
+        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
+      } else if (part.id === "wall-right") {
+        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) + wallSplayRad };
       }
     }
   }
