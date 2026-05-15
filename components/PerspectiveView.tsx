@@ -155,7 +155,14 @@ type ShapeSpec =
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
-  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y" }
+  | { kind: "mitered-ends";
+      insetEach: number;
+      outerSide: "+y" | "-y";
+      /** 複斜 miter 用：牆向外撇角度 θ in radians，預設 0（直立）。 */
+      tiltAngle?: number;
+      /** 複斜 miter 用：鋸片傾角 B in radians，預設 0。 */
+      bevelAngle?: number;
+    }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
