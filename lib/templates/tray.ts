@@ -372,14 +372,15 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   if (bodyShape === "rect" && wallSplayRad > 0) {
     for (const part of built.parts) {
       if (!part.rotation) continue;
+      // 全部 sign 翻過來：原本以為 +Δ 是 outward，實測是 inward
       if (part.id === "wall-front") {
-        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
-      } else if (part.id === "wall-back") {
         part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) - wallSplayRad };
+      } else if (part.id === "wall-back") {
+        part.rotation = { ...part.rotation, x: (part.rotation.x ?? 0) + wallSplayRad };
       } else if (part.id === "wall-left") {
-        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
-      } else if (part.id === "wall-right") {
         part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) + wallSplayRad };
+      } else if (part.id === "wall-right") {
+        part.rotation = { ...part.rotation, z: (part.rotation.z ?? 0) - wallSplayRad };
       }
     }
   }
