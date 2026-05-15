@@ -736,6 +736,21 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     return projectPartSilhouette(part, view);
   }
 
+  // 正多邊形板：俯視 N 邊形 outline；前/側視 bbox 矩形
+  if (part.shape.kind === "regular-polygon" && view === "top") {
+    const N = Math.max(3, Math.floor(part.shape.sides));
+    const R = part.shape.outerRadius;
+    const angleOffset = ((part.shape.angleOffsetDeg ?? (90 + 180 / N)) * Math.PI) / 180;
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    const pts: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < N; i++) {
+      const ang = angleOffset + (i * 2 * Math.PI) / N;
+      pts.push({ x: cx - R * Math.cos(ang), y: cy + R * Math.sin(ang) });
+    }
+    return pts;
+  }
+
   // 指接壁：在「length 軸落在 view r.w 或 r.h」的視角（=正視/側視一定有 2 壁）
   // 畫 comb 多邊形：r.w/r.h 取 length 軸、segments 沿 height 軸（local Z → world Y）。
   // 不符合的視角（length 軸是深度方向 → wall 邊看）就回 bbox 矩形。

@@ -1374,6 +1374,7 @@ export function OrthoView({
             part.shape.kind !== "notched-corners" &&
             part.shape.kind !== "mitered-ends" &&
             part.shape.kind !== "finger-joint-ends" &&
+            part.shape.kind !== "regular-polygon" &&
             part.shape.kind !== "arch-bent" &&
             part.shape.kind !== "right-triangle" &&
             part.shape.kind !== "mitered-corner" &&
@@ -1461,14 +1462,18 @@ export function OrthoView({
               }
             }
           }
+          // 多邊形底板在俯視從外面是被壁體擋住 → 虛線（hidden line convention）
+          const isPolygonBottomTop = part.shape?.kind === "regular-polygon" && view === "top";
+          const effDash = isPolygonBottomTop ? "4 3" : dash;
+          const effStroke = isPolygonBottomTop ? "#444" : stroke;
           return (
             <g key={part.id}>
               <polygon
                 points={points}
                 fill="none"
-                stroke={stroke}
+                stroke={effStroke}
                 strokeWidth={sw}
-                strokeDasharray={dash}
+                strokeDasharray={effDash}
               />
               {extras}
             </g>
@@ -2092,6 +2097,9 @@ export function OrthoView({
       <g pointerEvents="none">
         {design.parts.map((part) => {
           if (part.visual === "glass") return null;
+          // polygon staves（wall-1, wall-2…）的 divider dado mortise 不畫橘色指示框
+          // CSG 還是會挖，只是 2D 不再加多餘虛線（隔板邊緣已經視覺上嵌入壁）
+          if (/^wall-\d+$/.test(part.id)) return null;
           const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0);
           if (cosmetic.length === 0) return null;
           return (
@@ -2917,7 +2925,17 @@ export function MaterialList({
     const isGlass = part.visual === "glass";
     const isBrass = part.visual === "brass-antique";
     const isHardware = isGlass || isBrass;
-    const volMm3 = cut.length * cut.width * cut.thickness;
+    // bdft 體積：bbox × thickness 是預設；對非方形截面（regular-polygon / round）改用實際面積。
+    // 注意：cut 尺寸仍維持 bbox（下料需要方板），只是 bdft 計算用實際截面積避免高估。
+    let crossSectionFactor = 1;
+    if (part.shape?.kind === "regular-polygon") {
+      const n = Math.max(3, part.shape.sides);
+      // 正多邊形面積 / bbox 面積。bbox = 2R × 2R = 4R²；polygon area = (n/2)R²sin(2π/n)
+      crossSectionFactor = (n / 8) * Math.sin((2 * Math.PI) / n);
+    } else if (part.shape?.kind === "round") {
+      crossSectionFactor = Math.PI / 4; // 圓 πR² / bbox 4R²
+    }
+    const volMm3 = cut.length * cut.width * cut.thickness * crossSectionFactor;
     // 五金件（玻璃/銅件）不算木材材積；不累計 totalBdft / bdftByMaterial
     const bdft = isHardware ? 0 : volMm3 / MM3_PER_BDFT;
     if (!isHardware) totalBdft += bdft;

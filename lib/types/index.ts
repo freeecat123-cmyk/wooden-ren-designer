@@ -302,6 +302,9 @@ export interface Part {
      *  fingerDepth = 齒凸出（= 鄰壁厚 T）。3D 為 X-Z 平面 comb polygon 沿 Y 擠出。
      *  俯視 silhouette 為簡單矩形（top slice 內看不出來），前/側視可看到 comb。*/
     | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+    /** 正多邊形板（六/八角筆筒底板、托盤底）：N 個邊均勻分布、沿 thickness 軸擠出。
+     *  outerRadius = 外接圓半徑；angleOffsetDeg 預設 90°+180°/N。 */
+    | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
     /** 直角三角形板：沿最薄軸（thickness=Y）擠出的 right-triangle 板。
      *  在 local X-Z 平面內切去一個對角的角，剩下三角形 cross-section。
      *  corner = 直角所在的 local 角（X 軸符號 + Z 軸符號）。例如：
@@ -316,7 +319,7 @@ export interface Part {
      *      axis=y → a1=X, a2=Z
      *      axis=z → a1=X, a2=Y
      *  - depthMm = 從原角往兩鄰面各內縮多少（45° → 兩軸相等）；= 板厚時 cross-section 變梯形 */
-    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
+    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number; bothEnds?: boolean };
 
   /**
    * 榫接版專用幾何覆寫：joineryMode 開啟時，渲染端會以此覆寫 part 的

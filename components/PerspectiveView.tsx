@@ -151,6 +151,7 @@ type ShapeSpec =
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
   | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y" }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+  | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
   | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
 
@@ -419,6 +420,9 @@ function Part({
     if (shape.kind === "finger-joint-ends") {
       return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
     }
+    if (shape.kind === "regular-polygon") {
+      return buildRegularPolygonGeometry(size, shape.sides, shape.outerRadius, shape.angleOffsetDeg ?? (90 + 180 / shape.sides));
+    }
     if (shape.kind === "right-triangle") {
       return buildRightTriangleGeometry(size, shape.corner);
     }
@@ -542,6 +546,7 @@ function Part({
     shape?.kind === "chamfered-top" ||
     shape?.kind === "mitered-ends" ||
     shape?.kind === "finger-joint-ends" ||
+    shape?.kind === "regular-polygon" ||
     shape?.kind === "right-triangle" ||
     shape?.kind === "mitered-corner" ||
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
@@ -1211,6 +1216,34 @@ function buildMiteredEndsGeometry(
  * phase=0：local -Z 起算第 1 段為齒（X 推到 ±hx）；phase=1：第 1 段為槽（X 內縮 fingerDepth）。
  * Winding 同 buildNotchedCornersGeometry（也沿 Y 擠出，已驗證 outward）。
  */
+/**
+ * 正多邊形板（六/八角筆筒底板）：N-gon 沿 thickness 軸（Y）擠出。
+ */
+function buildRegularPolygonGeometry(
+  size: [number, number, number],
+  sides: number,
+  outerRadius: number,
+  angleOffsetDeg: number,
+): BufferGeometry {
+  const [, ly] = size;
+  const hy = ly / 2;
+  const N = Math.max(3, Math.floor(sides));
+  const angleOffset = (angleOffsetDeg * Math.PI) / 180;
+  const shape2D = new Shape();
+  for (let i = 0; i < N; i++) {
+    const ang = angleOffset + (i * 2 * Math.PI) / N;
+    const x = outerRadius * Math.cos(ang);
+    const y = outerRadius * Math.sin(ang);
+    if (i === 0) shape2D.moveTo(x, y);
+    else shape2D.lineTo(x, y);
+  }
+  shape2D.closePath();
+  const extrude = new ExtrudeGeometry(shape2D, { depth: ly, bevelEnabled: false });
+  extrude.translate(0, 0, -hy);
+  extrude.rotateX(Math.PI / 2);
+  return extrude;
+}
+
 function buildFingerJointEndsGeometry(
   size: [number, number, number],
   segmentCount: number,
@@ -2655,6 +2688,13 @@ export function PerspectiveView({
               phase: part.shape.phase,
               fingerDepth: part.shape.fingerDepth * SCALE,
               edgeChamferMm: part.shape.edgeChamferMm !== undefined ? part.shape.edgeChamferMm * SCALE : undefined,
+            };
+          } else if (part.shape?.kind === "regular-polygon") {
+            shape = {
+              kind: "regular-polygon",
+              sides: part.shape.sides,
+              outerRadius: part.shape.outerRadius * SCALE,
+              angleOffsetDeg: part.shape.angleOffsetDeg,
             };
           } else if (part.shape?.kind === "right-triangle") {
             shape = { kind: "right-triangle", corner: part.shape.corner };

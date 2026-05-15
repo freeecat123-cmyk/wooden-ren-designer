@@ -40,11 +40,11 @@ export function RangeInput({
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
-  // max 從外部縮小（例如鎖定總高時其他層撐滿）→ 立即夾到上限，讓送出的值與顯示一致
+  // max 從外部縮小（例如鎖定總高時其他層撐滿）→ 立即夾到上限，讓送出的值與顯示一致。
+  // 用 functional setState 避免把 value 加進 deps，否則 setValue → effect 重跑 → 無限迴圈。
   useEffect(() => {
-    if (value > max) setValue(max);
-    else if (value < min) setValue(min);
-  }, [max, min, value]);
+    setValue((v) => (v > max ? max : v < min ? min : v));
+  }, [max, min]);
 
   return (
     <div className="flex items-center gap-3 text-sm" title={help}>
