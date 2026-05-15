@@ -459,6 +459,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         outerSide,
         vertices: local,
       };
+      // 切料尺寸：外撇牆頂端 length 比底端多 2·hShift（複斜 miter 的真實板形）。
+      // 木匠買的木料要照頂端長度買，不然底端鋸完 trapezoid 頂端不夠。
+      // 用 joineryView.visible 覆寫 cut dimensions，不動 visible（後者管組裝視覺）。
+      part.joineryView = {
+        ...part.joineryView,
+        visible: {
+          length: part.visible.length + 2 * hShift,
+          width: built.wallH,  // 牆斜面實際高（不是 vTop = wallH·cos θ）
+          thickness: wallT,
+        },
+      };
     }
   }
 
