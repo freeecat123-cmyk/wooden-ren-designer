@@ -155,7 +155,7 @@ type ShapeSpec =
   | { kind: "live-edge"; amplitudeMm: number }
   | { kind: "seat-scoop"; profile: "saddle" | "scooped" | "dished"; depth: number }
   | { kind: "face-rounded"; cornerR: number; topArchMm?: number; bottomArchMm?: number; bendMm?: number; bendAxis?: "z" | "y" }
-  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y"; topLengthScale?: number; bottomLengthScale?: number }
+  | { kind: "mitered-ends"; insetEach: number; outerSide: "+y" | "-y" }
   | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
@@ -430,7 +430,7 @@ function Part({
       return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
     if (shape.kind === "mitered-ends") {
-      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide, shape.topLengthScale ?? 1.0, shape.bottomLengthScale ?? 1.0);
+      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide);
     }
     if (shape.kind === "finger-joint-ends") {
       return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
@@ -1171,8 +1171,6 @@ function buildMiteredEndsGeometry(
   size: [number, number, number],
   insetEach: number,
   outerSide: "+y" | "-y" = "+y",
-  topLengthScale: number = 1.0,
-  bottomLengthScale: number = 1.0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1185,31 +1183,22 @@ function buildMiteredEndsGeometry(
   // ring 在 X-Y 平面，CW from +Z viewer（沿用 buildNotchedCornersGeometry winding 慣例）
   // outerSide="+y"：outer 邊（全長 L）在 +hy，inner 邊（短）在 -hy
   // outerSide="-y"：outer 邊在 -hy，inner 邊在 +hy
-  // topLengthScale > 1: 「z=-hz 那層」(geometry top, 對應 part 旋轉後的世界壁頂)
-  // 的 X 座標放大 topLengthScale 倍 → 壁呈梯形（top 長 bottom 短），用於
-  // 壁外撇時 top corner 對齊。inset 保持絕對 mm 值不縮放（miter 仍是 45°）。
-  const makeRing = (xScale: number): Array<[number, number]> => {
-    const sx = (v: number) => v * xScale;
-    return outerSide === "+y"
-      ? [
-          [sx(+hx),               +hy],
-          [sx(-hx),               +hy],
-          [sx(-hx) + inset,       -hy],
-          [sx(+hx) - inset,       -hy],
-        ]
-      : [
-          [sx(+hx) - inset,       +hy],
-          [sx(-hx) + inset,       +hy],
-          [sx(-hx),               -hy],
-          [sx(+hx),               -hy],
-        ];
-  };
-  const ringTop = makeRing(topLengthScale);    // z = -hz (geometry top)
-  const ringBot = makeRing(bottomLengthScale); // z = +hz (geometry bottom)
-  const ring = ringBot; // 保留變數名給下面 winding 用
+  const ring: Array<[number, number]> = outerSide === "+y"
+    ? [
+        [+hx,          +hy],  // outer right
+        [-hx,          +hy],  // outer left
+        [-hx + inset,  -hy],  // inner left (recessed)
+        [+hx - inset,  -hy],  // inner right
+      ]
+    : [
+        [+hx - inset,  +hy],  // inner right (recessed)
+        [-hx + inset,  +hy],  // inner left
+        [-hx,          -hy],  // outer left
+        [+hx,          -hy],  // outer right
+      ];
   const v: number[] = [];
-  for (const [x, y] of ringTop) v.push(x, y, -hz);
-  for (const [x, y] of ringBot) v.push(x, y, +hz);
+  for (const [x, y] of ring) v.push(x, y, -hz);
+  for (const [x, y] of ring) v.push(x, y, +hz);
   const N = ring.length;
   const idx: number[] = [];
   // ring CW from +Z + extrude along Z 的 outward normal winding（已用 cross product
@@ -2706,8 +2695,6 @@ export function PerspectiveView({
               kind: "mitered-ends",
               insetEach: part.shape.insetEach * SCALE,
               outerSide: part.shape.outerSide,
-              topLengthScale: part.shape.topLengthScale,
-              bottomLengthScale: part.shape.bottomLengthScale,
             };
           } else if (part.shape?.kind === "finger-joint-ends") {
             shape = {

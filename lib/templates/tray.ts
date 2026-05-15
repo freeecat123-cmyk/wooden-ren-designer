@@ -321,33 +321,13 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
   // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
-  // 壁外撇時用 topLengthScale 讓壁變梯形（top 長 bottom 短）讓 top corner
-  // 對齊；bottom 維持原長不會凸 V 字。
   if (cornerJoinery === "miter") {
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
       if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
       else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
       if (outerSide) {
-        const wallLen = part.visible.length;
-        // 真複斜 miter 精確公式（牆繞 center 旋轉）：
-        //   top ext = wallH·sin(θ) - wallT·(1-cos(θ))      ← 比 bot 少
-        //   bot ext = -(wallH·sin(θ) + wallT·(1-cos(θ)))   ← 比 top 多縮
-        //   inset_eff = wallT·cos(θ)                        ← 比 wallT 少
-        // 來源：兩壁 outer corner 在世界中重合 → topExt / botExt 公式（牆厚對
-        // 上下貢獻反向）；兩壁 inner corner 重合 → inset·cos(θ)。
-        const sinT = Math.sin(wallSplayRad);
-        const cosT = Math.cos(wallSplayRad);
-        const topExt = wallSplayRad > 0
-          ? built.wallH * sinT - wallT * (1 - cosT)
-          : 0;
-        const botExt = wallSplayRad > 0
-          ? built.wallH * sinT + wallT * (1 - cosT)
-          : 0;
-        const topLengthScale = wallLen > 0 ? (wallLen + topExt) / wallLen : 1.0;
-        const bottomLengthScale = wallLen > 0 ? Math.max(0.1, (wallLen - botExt) / wallLen) : 1.0;
-        const insetEach = wallSplayRad > 0 ? wallT * cosT : wallT;
-        part.shape = { kind: "mitered-ends", insetEach, outerSide, topLengthScale, bottomLengthScale };
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
       }
     }
   }
