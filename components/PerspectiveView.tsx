@@ -437,7 +437,10 @@ function Part({
       return buildFaceRoundedGeometry(size, shape.cornerR, shape.topArchMm ?? 0, shape.bottomArchMm ?? 0, shape.bendMm ?? 0, shape.bendAxis ?? "z");
     }
     if (shape.kind === "mitered-ends") {
-      return buildMiteredEndsGeometry(size, shape.insetEach, shape.outerSide);
+      return buildMiteredEndsGeometry(
+        size, shape.insetEach, shape.outerSide,
+        shape.tiltAngle ?? 0, shape.bevelAngle ?? 0,
+      );
     }
     if (shape.kind === "finger-joint-ends") {
       return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
@@ -1178,7 +1181,14 @@ function buildMiteredEndsGeometry(
   size: [number, number, number],
   insetEach: number,
   outerSide: "+y" | "-y" = "+y",
+  tiltAngle: number = 0,
+  bevelAngle: number = 0,
 ): BufferGeometry {
+  // tiltAngle 目前 geometry 本身不直接套（rotation 由 tray.ts 那邊處理），
+  // 收下參數是為了 caller API 對稱、未來若要 geometry 自體傾倒可從這裡擴。
+  // bevelAngle > 0：頂 ring（z=+hz）的外緣 length 方向內縮 lz·tan(B)，
+  // 視覺上 plan 看到端面是「下寬上窄」的梯形（複斜 miter cut 的真實樣）。
+  void tiltAngle;
   const [lx, ly, lz] = size;
   const hx = lx / 2;
   const hy = ly / 2;
@@ -1203,9 +1213,25 @@ function buildMiteredEndsGeometry(
         [-hx,          -hy],  // outer left
         [+hx,          -hy],  // outer right
       ];
+  // bevel：頂端（+hz = 牆頂）外緣比底端內縮 lz·tan(bevelAngle)，
+  // 對應 inset 也是 lz·tan(bevelAngle)（用 tan M = cos θ 與 tan B 統一相減算）
+  const bevelInset = bevelAngle > 0 ? lz * Math.tan(bevelAngle) : 0;
+  const ringTop: Array<[number, number]> = outerSide === "+y"
+    ? [
+        [+hx - bevelInset,                  +hy],
+        [-hx + bevelInset,                  +hy],
+        [-hx + bevelInset + inset,          -hy],
+        [+hx - bevelInset - inset,          -hy],
+      ]
+    : [
+        [+hx - bevelInset - inset,          +hy],
+        [-hx + bevelInset + inset,          +hy],
+        [-hx + bevelInset,                  -hy],
+        [+hx - bevelInset,                  -hy],
+      ];
   const v: number[] = [];
   for (const [x, y] of ring) v.push(x, y, -hz);
-  for (const [x, y] of ring) v.push(x, y, +hz);
+  for (const [x, y] of ringTop) v.push(x, y, +hz);
   const N = ring.length;
   const idx: number[] = [];
   // ring CW from +Z + extrude along Z 的 outward normal winding（已用 cross product
