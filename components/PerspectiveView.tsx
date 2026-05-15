@@ -1184,12 +1184,10 @@ function buildMiteredEndsGeometry(
   tiltAngle: number = 0,
   bevelAngle: number = 0,
 ): BufferGeometry {
-  // tiltAngle: rotation 由 tray.ts 套；shape 收下參數只是 API 對稱。
-  // bevelAngle > 0：part-local -hz（= 世界頂、經 rotation x:π/2 後）的外緣
-  // length 方向內縮 lz·tan(B)，視覺上端面 plan view 看到「下寬上窄」的
-  // 梯形（複斜 miter cut 的真實樣）。
-  // 注意：原版把 bevelInset 套到 z=+hz（= 世界底），會讓 V 縫出現在仰視角度
-  // 的牆底接縫處——swap 過來才對。
+  // tiltAngle 目前 geometry 本身不直接套（rotation 由 tray.ts 那邊處理），
+  // 收下參數是為了 caller API 對稱、未來若要 geometry 自體傾倒可從這裡擴。
+  // bevelAngle > 0：頂 ring（z=+hz）的外緣 length 方向內縮 lz·tan(B)，
+  // 視覺上 plan 看到端面是「下寬上窄」的梯形（複斜 miter cut 的真實樣）。
   void tiltAngle;
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1215,7 +1213,8 @@ function buildMiteredEndsGeometry(
         [-hx,          -hy],  // outer left
         [+hx,          -hy],  // outer right
       ];
-  // bevel：part-local -hz（世界頂）外緣比 +hz（世界底）內縮 lz·tan(bevelAngle)
+  // bevel：頂端（+hz = 牆頂）外緣比底端內縮 lz·tan(bevelAngle)，
+  // 對應 inset 也是 lz·tan(bevelAngle)（用 tan M = cos θ 與 tan B 統一相減算）
   const bevelInset = bevelAngle > 0 ? lz * Math.tan(bevelAngle) : 0;
   const ringTop: Array<[number, number]> = outerSide === "+y"
     ? [
@@ -1231,11 +1230,8 @@ function buildMiteredEndsGeometry(
         [+hx - bevelInset,                  -hy],
       ];
   const v: number[] = [];
-  // 第一組 push 到 z=-hz（世界頂）用 ringTop（含 bevelInset）；
-  // 第二組 push 到 z=+hz（世界底）用原 ring。
-  // 保持 push 順序不變、winding 完全不動，只 swap 哪個 ring 餵哪個 z。
-  for (const [x, y] of ringTop) v.push(x, y, -hz);
-  for (const [x, y] of ring) v.push(x, y, +hz);
+  for (const [x, y] of ring) v.push(x, y, -hz);
+  for (const [x, y] of ringTop) v.push(x, y, +hz);
   const N = ring.length;
   const idx: number[] = [];
   // ring CW from +Z + extrude along Z 的 outward normal winding（已用 cross product
