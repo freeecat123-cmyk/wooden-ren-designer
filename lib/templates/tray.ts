@@ -365,7 +365,8 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       const handleH = Math.min(handleHeightOpt, wallHeight - 2 * handleTopMarginOpt - 5);
       if (handleH < 10) continue; // 壁太矮畫不下
       // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2
-      const handleZCenter = wallHeight / 2 - handleTopMarginOpt - handleH / 2;
+      // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z
+      const handleZCenter = -(wallHeight / 2 - handleTopMarginOpt - handleH / 2);
       part.mortises.push({
         origin: { x: 0, y: 0, z: handleZCenter },
         depth: wallThick,
