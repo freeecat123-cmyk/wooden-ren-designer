@@ -545,17 +545,21 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         ? wallHeight * Math.cos(wallSplayRad)
         : wallHeight;
       const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMarginOpt - handleH / 2);
-      // 外撇 θ 時牆切平模型下，part-local Y center 隨 z 線性平移：
-      //   Y_center(z) = sign · [(wallTsec - wallT)/2 + tan θ · (z - zBot)]
+      // 外撇 θ 時切平模型，牆的 part-local Y center 隨 z 線性平移：
+      //   Y_center(z) = sign · [(wallTh - wallT)/2 + tan θ · (z - zBot)]
+      //   wallTh = wallT·cos θ（內緣 plan 偏移）—— 這條 offset 必須是「內 Y −
+      //   外 Y」的中點偏移，wallT·(cos θ − 1)/2 < 0。之前誤用 wallTsec
+      //   (=wallT·sec θ)，符號剛好相反、且 θ 大時 Y 跑超出牆很遠（marker
+      //   在 3 視圖會浮在牆外）。
       //   sign：outerSide="-y" (wall-left) = +1；"+y" (wall-right) = -1
       // 注意 mortise.origin.y 是 from-bottom 慣例（y=0 在牆底、y=ly 在頂），
       // 要把 centered Y_center 加 wallThick/2 才符合慣例。
       const handleYFromBottom = (cornerJoinery === "miter" && wallSplayRad > 0)
         ? (() => {
             const sign = part.id === "wall-left" ? +1 : -1;
-            const wallTsecθ_local = wallT / Math.cos(wallSplayRad);
+            const wallTh_local = wallT * Math.cos(wallSplayRad);
             const zBot = wallHeight / 2;
-            const yCenteredCoord = sign * ((wallTsecθ_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
+            const yCenteredCoord = sign * ((wallTh_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
             return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
         : 0;
