@@ -109,6 +109,15 @@ export function projectPartSilhouette(
     projected.push({ x: vx, y: vy });
   };
 
+  // 反向法外撇 miter：mitered-ends.vertices 直接給 8 個 part-local 點，
+  // 不走 bbox 角採樣（因為牆是 sheared parallelepiped、AABB 不準）。
+  if (mitered?.vertices && mitered.vertices.length === 8) {
+    for (const [xL, yL, zL] of mitered.vertices) {
+      pushPoint(xL, yL, zL);
+    }
+    return convexHull2D(projected);
+  }
+
   // 採樣每個 (ex, ey, ez) bbox 角，套 shape 修飾算實際 local 座標
   // 對 arch-bent 沿 ex 軸額外切 N 片
   const xSlices: number[] = arch
