@@ -285,7 +285,14 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     if (bottomAttach === "inset-panel") {
       // 鑲板入溝：4 壁全高、底板浮嵌於壁內側 5mm 槽中，離地約 botT
       const grooveDepth = 5;
-      const insetEach = Math.max(2, wallT - grooveDepth);
+      // 牆內面在底板高度（y=botT）那層的水平內偏移：
+      //   直壁時 = wallT
+      //   外撇 θ 時 = wallT·sec θ - botT·tan θ（壁內面平面解：
+      //   y·sin θ + (z+Lz/2)·cos θ = wallT，代 y=botT 得 z 偏移）
+      const wallInnerAtBottom = wallSplayRad > 0
+        ? wallT / Math.cos(wallSplayRad) - botT * Math.tan(wallSplayRad)
+        : wallT;
+      const insetEach = Math.max(2, wallInnerAtBottom - grooveDepth);
       bottomPart.visible = {
         length: outerL - 2 * insetEach,
         width: outerW - 2 * insetEach,
@@ -336,8 +343,11 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     // 內緣底邊在世界 Y = wallT·sin θ（剛性傾斜後內面底邊抬高）。
     const wallTh = theta > 0 ? wallT * cos : wallT;  // 內緣 plan view 水平偏移
     const wallTv = theta > 0 ? wallT * sin : 0;      // 內緣相對外緣 Y 抬升
-    const hShift = theta > 0 ? built.wallH * sin : 0;          // 頂端往外延伸量
-    const vTop = theta > 0 ? built.wallH * cos : built.wallH;  // 外緣頂在世界 Y
+    // 牆實際高度：inset-panel 模式 tray.ts 把 visible.width 改成 outerH（含底板厚），
+    // 其他模式維持 built.wallH（純牆高）。所以要從 part 自己讀 visible.width。
+    // bottomAttach 模式：seated/flush-glued 時牆坐底板上（底 y=botT）；
+    // inset-panel 時牆全高從地面起（底 y=0）。
+    const wallBaseY = bottomAttach === "inset-panel" ? 0 : botT;
 
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
@@ -357,9 +367,16 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // 反向法：算 8 corner 在世界座標
       const Lx = outerL, Lz = outerW;
       const x0 = Lx / 2, z0 = Lz / 2;
+      // 此 part 的實際牆高（inset-panel 是 outerH=含底板厚、其他模式是 wallH）
+      const partWallH = part.visible.width;
+      const hShift = theta > 0 ? partWallH * sin : 0;
+      const vTop = theta > 0 ? partWallH * cos : partWallH;
+      // 牆底世界 Y = wallBaseY（seated/flush-glued=botT、inset-panel=0）
       // 內緣相對外緣：水平偏 wallTh、頂端因傾斜抬高 wallTv（剛性旋轉幾何結果）
-      const yInnerB = wallTv;          // 內緣底 Y
-      const yInnerT = vTop + wallTv;   // 內緣頂 Y
+      const yOuterB = wallBaseY;                 // 外緣底 Y
+      const yOuterT = wallBaseY + vTop;          // 外緣頂 Y
+      const yInnerB = wallBaseY + wallTv;        // 內緣底 Y
+      const yInnerT = wallBaseY + vTop + wallTv; // 內緣頂 Y
       let world: [number, number, number][];
       if (wallId === "front") {
         // outer face z=-z0, top tilts -Z
@@ -367,23 +384,23 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           // 0..3 = TOP, order = [IR, IL, OL, OR] for "-y"
           [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T
           [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T
-          [-x0 - hShift,          vTop,    -z0 - hShift],            // OL_T
-          [+x0 + hShift,          vTop,    -z0 - hShift],            // OR_T
+          [-x0 - hShift,          yOuterT, -z0 - hShift],            // OL_T
+          [+x0 + hShift,          yOuterT, -z0 - hShift],            // OR_T
           // 4..7 = BOTTOM
           [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
           [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IL_B
-          [-x0,          0,       -z0],            // OL_B
-          [+x0,          0,       -z0],            // OR_B
+          [-x0,          yOuterB, -z0],            // OL_B
+          [+x0,          yOuterB, -z0],            // OR_B
         ];
       } else if (wallId === "back") {
         // outer face z=+z0, top tilts +Z; outerSide="+y" → [OR, OL, IL, IR]
         world = [
-          [+x0 + hShift,          vTop,    +z0 + hShift],            // OR_T
-          [-x0 - hShift,          vTop,    +z0 + hShift],            // OL_T
+          [+x0 + hShift,          yOuterT, +z0 + hShift],            // OR_T
+          [-x0 - hShift,          yOuterT, +z0 + hShift],            // OL_T
           [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T
           [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T
-          [+x0,          0,       +z0],            // OR_B
-          [-x0,          0,       +z0],            // OL_B
+          [+x0,          yOuterB, +z0],            // OR_B
+          [-x0,          yOuterB, +z0],            // OL_B
           [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
           [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
         ];
@@ -395,23 +412,23 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         world = [
           [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
           [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
-          [-x0 - hShift,          vTop,    +z0 + hShift],            // OL_T (後外)
-          [-x0 - hShift,          vTop,    -z0 - hShift],            // OR_T (前外)
+          [-x0 - hShift,          yOuterT, +z0 + hShift],            // OL_T (後外)
+          [-x0 - hShift,          yOuterT, -z0 - hShift],            // OR_T (前外)
           [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IR_B
           [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
-          [-x0,          0,       +z0],            // OL_B
-          [-x0,          0,       -z0],            // OR_B
+          [-x0,          yOuterB, +z0],            // OL_B
+          [-x0,          yOuterB, -z0],            // OR_B
         ];
       } else {  // right
         // outer face x=+x0, top tilts +X; 同左壁分析。
         // outerSide="+y" → [OR=front-outer, OL=back-outer, IL=back-inner, IR=front-inner]
         world = [
-          [+x0 + hShift,          vTop,    -z0 - hShift],            // OR_T (前外)
-          [+x0 + hShift,          vTop,    +z0 + hShift],            // OL_T (後外)
+          [+x0 + hShift,          yOuterT, -z0 - hShift],            // OR_T (前外)
+          [+x0 + hShift,          yOuterT, +z0 + hShift],            // OL_T (後外)
           [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
           [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
-          [+x0,          0,       -z0],            // OR_B
-          [+x0,          0,       +z0],            // OL_B
+          [+x0,          yOuterB, -z0],            // OR_B
+          [+x0,          yOuterB, +z0],            // OL_B
           [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IL_B
           [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
         ];
@@ -422,7 +439,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // mesh world position = (origin.x, origin.y + yExt/2, origin.z)，yExt 經 worldExtents
       // swap 後 = wallH（rotation x:π/2 把原 visible.width=wallH 換到 world Y 方向）。
       const meshX = part.origin.x;
-      const meshY = part.origin.y + built.wallH / 2;
+      const meshY = part.origin.y + partWallH / 2;
       const meshZ = part.origin.z;
       const isLR = wallId === "left" || wallId === "right";
       const local: [number, number, number][] = world.map(([wx, wy, wz]) => {
