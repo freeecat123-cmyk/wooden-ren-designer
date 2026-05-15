@@ -321,13 +321,27 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
   // miter 4 壁額外掛 mitered-ends shape，3D / 三視圖會把端面渲成 45° 斜切。
+  // 複斜 miter（§AT1.1, n=4）：tilt = wallSplayRad；
+  //   Miter M = arctan(cos θ) → inset = wallT × cos θ（θ=0 退回 wallT，向後相容）
+  //   Bevel B = arcsin(sin θ / √2)
+  // tilt 寫進 shape 給 geometry 知道（zoomed 端面是複斜），
+  // 真正的整片牆繞底外緣傾倒由下方 rotation block 處理。
   if (cornerJoinery === "miter") {
+    const tilt = wallSplayRad;
+    const bevel = tilt > 0 ? Math.asin(Math.sin(tilt) / Math.SQRT2) : 0;
+    const miterInsetCompound = wallT * Math.cos(tilt);
     for (const part of built.parts) {
       let outerSide: "+y" | "-y" | null = null;
       if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
       else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
       if (outerSide) {
-        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+        part.shape = {
+          kind: "mitered-ends",
+          insetEach: miterInsetCompound,
+          outerSide,
+          tiltAngle: tilt,
+          bevelAngle: bevel,
+        };
       }
     }
   }
