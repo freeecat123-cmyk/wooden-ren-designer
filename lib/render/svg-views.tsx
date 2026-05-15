@@ -2116,6 +2116,12 @@ export function OrthoView({
                 if (r.w < 0.5 || r.h < 0.5) return null;
                 const cx = r.x + r.w / 2;
                 const cy = -(r.y + r.h) + r.h / 2;
+                // 外撇 cosmetic 孔（rotX≠0）：marker 套 SVG rotation 跟著牆斜，
+                // 不再是 axis-aligned 水平/垂直。SIDE/FRONT 視圖才看得到牆的斜度，
+                // TOP 視圖 tilt 軸朝外不顯示——一致套都不會誤導，TOP 視圖會自動退化
+                // 成微小旋轉（牆 plan 是水平的，視覺差別微小）。
+                const rotDeg = m.rotX ? (m.rotX * 180 / Math.PI) : 0;
+                const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
                 if (m.shape === "round") {
                   return (
                     <circle
@@ -2127,6 +2133,7 @@ export function OrthoView({
                       stroke="#c97a2b"
                       strokeWidth={0.6}
                       strokeDasharray={m.through ? undefined : "2 1.5"}
+                      transform={transform}
                     />
                   );
                 }
@@ -2141,6 +2148,7 @@ export function OrthoView({
                     stroke="#c97a2b"
                     strokeWidth={0.6}
                     strokeDasharray={m.through ? undefined : "2 1.5"}
+                    transform={transform}
                   />
                 );
               })}
