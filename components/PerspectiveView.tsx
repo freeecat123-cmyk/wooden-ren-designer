@@ -2736,6 +2736,8 @@ export function PerspectiveView({
               kind: "mitered-ends",
               insetEach: part.shape.insetEach * SCALE,
               outerSide: part.shape.outerSide,
+              tiltAngle: part.shape.tiltAngle,
+              bevelAngle: part.shape.bevelAngle,
             };
           } else if (part.shape?.kind === "finger-joint-ends") {
             shape = {
