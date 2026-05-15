@@ -538,13 +538,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
         : 0;
-      // CSG cut box 是 part-local axis-aligned，但外撇牆 Y center 隨 z 線性平移
-      // tan θ。Handle Z 範圍 ±handleH/2 內，wall Y center 漂移 ±handleH·tan θ/2。
-      // 所以 mortise depth 要覆蓋：wallTsec（牆 plan 厚）+ handleH·tan θ（漂移範圍）。
-      // 不夠 → handle 上/下緣（wall Y 跟 cy 偏離最遠處）會殘留薄壁。
-      const handleDepth = wallSplayRad > 0
-        ? wallT / Math.cos(wallSplayRad) + handleH * Math.tan(wallSplayRad) + 2  // +2mm safety
-        : wallThick;
+      // 外撇牆 handle 用「板還平的時候挖孔、再傾斜板」模型：
+      //   cut Brush 繞 part-local X 軸轉 ±θ，孔軸跟牆面法線一致 → 孔上下緣斜
+      //   著跟著牆一起傾，不是 axis-aligned 水平上下緣。
+      // 旋轉後 depth = wallT 已足夠（孔軸 ⊥ 牆面，沿牆厚方向）。
+      const handleDepth = wallSplayRad > 0 ? wallThick + 0.5 : wallThick;
+      // rotX 符號：LEFT outerSide="-y" → -θ；RIGHT outerSide="+y" → +θ
+      // 驗算：(0,1,0) 經 rotX=-θ 繞 X 軸 → (0, cos θ, -sin θ)，這條線跟 LEFT
+      // 牆外面法線 (0, -cos θ, +sin θ) 同一條（symmetric for cylinder）✓
+      const handleRotX = wallSplayRad > 0
+        ? (part.id === "wall-left" ? -wallSplayRad : +wallSplayRad)
+        : 0;
       // 依造型推 mortise：
       // - rect: 1 個矩形 mortise
       // - pill: 中段矩形 + 兩端圓形（CSG round mortise = 圓柱）
@@ -558,6 +562,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           through: true,
           cosmetic: true,
           shape: "rect",
+          rotX: handleRotX,
         });
       } else if (handleShape === "pill") {
         // 中段矩形寬度 = handleW - handleH（兩端各扣半個 handleH 給圓蓋）。
@@ -572,6 +577,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             through: true,
             cosmetic: true,
             shape: "rect",
+          rotX: handleRotX,
           });
         }
         const endOffset = Math.max(0, rectLen / 2);
@@ -584,6 +590,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           through: true,
           cosmetic: true,
           shape: "round",
+          rotX: handleRotX,
         });
         // 右端圓
         part.mortises.push({
@@ -594,6 +601,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           through: true,
           cosmetic: true,
           shape: "round",
+          rotX: handleRotX,
         });
       } else if (handleShape === "circle") {
         // 圓形：取較小邊為直徑
@@ -606,6 +614,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           through: true,
           cosmetic: true,
           shape: "round",
+          rotX: handleRotX,
         });
       }
     }

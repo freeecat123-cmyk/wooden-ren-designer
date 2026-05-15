@@ -225,6 +225,7 @@ function partFill(part: Part) {
 export type LocalBox = {
   cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
   hx: number; hy: number; hz: number;     // half-extents
+  rotX?: number;                          // 額外繞 part-local X 軸旋轉（弧度）—外撇牆 cosmetic 孔用
 };
 
 /**
@@ -603,7 +604,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2 };
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;

@@ -211,6 +211,9 @@ function subtractMortisesFromGeometry(
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
+    // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
+    // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
+    if (m.rotX) cut.rotation.x = m.rotX;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
@@ -3014,6 +3017,7 @@ export function PerspectiveView({
                     hx: lb.hx * SCALE,
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
+                    rotX: lb.rotX,
                   };
                 })
               : undefined;

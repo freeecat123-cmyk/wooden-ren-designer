@@ -107,6 +107,12 @@ export interface Mortise {
    * 一般榫眼只在 joineryMode 才挖（避免破壞外觀），cosmetic=true 在正常 3D / 三視圖也要顯示。
    */
   cosmetic?: boolean;
+  /**
+   * 額外旋轉（弧度）—CSG cut box / cylinder 繞 part-local X 軸轉這個角度。
+   * 用途：外撇牆的 cosmetic 孔（如把手）要跟著牆面斜，不能 axis-aligned。
+   * 想像：板還平的時候挖孔（孔軸 ⊥ 板面），再傾斜板 → 孔軸跟板一起斜。
+   */
+  rotX?: number;
 }
 
 export type MaterialId =
