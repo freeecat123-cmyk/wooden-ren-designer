@@ -682,6 +682,116 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // 外撇牆 + miter 時，dividers 兩端要跟著 splayed 牆內面變梯形（底窄頂寬）。
+  // 反向法：算 8 個 world corner（依 wall 內面平面公式），inverse-transform 回
+  // part-local，piggyback mitered-ends.vertices path（同 walls 走法）。
+  // θ=0 維持原矩形（向後相容）；bodyShape !== "rect" 不走這條（沒 splayed 牆）；
+  // cornerJoinery !== "miter" 時牆本身就沒 splay 過（line 507），dividers 也不需動。
+  if (
+    bodyShape === "rect"
+    && cornerJoinery === "miter"
+    && wallSplayRad > 0
+    && dividerParts.length > 0
+  ) {
+    const theta = wallSplayRad;
+    const cos = Math.cos(theta);
+    const tan = Math.tan(theta);
+    const wallTsec = wallT / cos;
+    const wallBaseY = bottomAttach === "inset-panel" ? 0 : botT;
+    const Lx = outerL;
+    const Lz = outerW;
+    const thickHalf = dividerThick / 2;
+    const yBot = bottomTopY;
+    const yTop = bottomTopY + dividerH;
+
+    // 牆內面在世界 Y=y 那層的水平偏移（從 box outer 邊界算起，正值 = 向中心）
+    const innerOffsetAtY = (y: number) =>
+      wallTsec - (y - wallBaseY) * tan;
+
+    for (const div of dividerParts) {
+      const isLongitudinal = div.id.startsWith("divider-");
+      const isCross = div.id.startsWith("cross-divider-");
+      if (!isLongitudinal && !isCross) continue;
+
+      const meshX = div.origin.x;
+      const meshY = div.origin.y + dividerH / 2;
+      const meshZ = div.origin.z;
+
+      // 8 世界 corner：indices 0..3 = TOP（世界 Y 高），4..7 = BOTTOM（世界 Y 低）
+      // 配合 mitered-ends.vertices 慣例：part-local z=-hz 對應 TOP（後續 inverse 確認）。
+      let world: [number, number, number][];
+
+      if (isLongitudinal) {
+        // 縱向 divider：跑世界 Z 方向（前壁 -Z 到後壁 +Z），X = origin.x 兩側 ±thick/2。
+        // 兩端隨高度 y 線性變化（牆外撇 → 高處內面更外 → divider 更長）。
+        const offBot = innerOffsetAtY(yBot);    // 牆內面在 y_bot 時的水平偏移
+        const offTop = innerOffsetAtY(yTop);    // 在 y_top 時的水平偏移
+        const zFrontBot = -Lz / 2 + offBot - dividerInsetOpt;  // 前端 z（負）
+        const zBackBot  = +Lz / 2 - offBot + dividerInsetOpt;  // 後端 z（正）
+        const zFrontTop = -Lz / 2 + offTop - dividerInsetOpt;
+        const zBackTop  = +Lz / 2 - offTop + dividerInsetOpt;
+        // CW from above（從世界 +Y 俯視）：跟 walls 同手性
+        // TOP face：BR(+x,+z) → BL(-x,+z) → FL(-x,-z) → FR(+x,-z)
+        world = [
+          // 0..3 = TOP（世界 Y = yTop）
+          [meshX + thickHalf, yTop, zBackTop],   // BR_T
+          [meshX - thickHalf, yTop, zBackTop],   // BL_T
+          [meshX - thickHalf, yTop, zFrontTop],  // FL_T
+          [meshX + thickHalf, yTop, zFrontTop],  // FR_T
+          // 4..7 = BOTTOM（世界 Y = yBot）
+          [meshX + thickHalf, yBot, zBackBot],
+          [meshX - thickHalf, yBot, zBackBot],
+          [meshX - thickHalf, yBot, zFrontBot],
+          [meshX + thickHalf, yBot, zFrontBot],
+        ];
+      } else {
+        // 橫向 cross-divider：跑世界 X 方向（左壁 -X 到右壁 +X），Z = origin.z 兩側 ±thick/2。
+        const offBot = innerOffsetAtY(yBot);
+        const offTop = innerOffsetAtY(yTop);
+        const xLeftBot  = -Lx / 2 + offBot - dividerInsetOpt;
+        const xRightBot = +Lx / 2 - offBot + dividerInsetOpt;
+        const xLeftTop  = -Lx / 2 + offTop - dividerInsetOpt;
+        const xRightTop = +Lx / 2 - offTop + dividerInsetOpt;
+        // CW from above：兩個對應「前後」邊在 z = meshZ ± thickHalf
+        // TOP face：RB(+x,+z) → LB(-x,+z) → LF(-x,-z) → RF(+x,-z)
+        world = [
+          // 0..3 = TOP
+          [xRightTop, yTop, meshZ + thickHalf],  // RB_T
+          [xLeftTop,  yTop, meshZ + thickHalf],  // LB_T
+          [xLeftTop,  yTop, meshZ - thickHalf],  // LF_T
+          [xRightTop, yTop, meshZ - thickHalf],  // RF_T
+          // 4..7 = BOTTOM
+          [xRightBot, yBot, meshZ + thickHalf],
+          [xLeftBot,  yBot, meshZ + thickHalf],
+          [xLeftBot,  yBot, meshZ - thickHalf],
+          [xRightBot, yBot, meshZ - thickHalf],
+        ];
+      }
+
+      // Inverse-transform world → part-local。
+      // 縱向 divider rotation {x:π/2, y:π/2}：跟 wall-left/right 同款（isLR）。
+      //   part-local (px,py,pz) → world (py, -pz, -px)
+      //   inverse: px = meshZ - wz, py = wx - meshX, pz = meshY - wy
+      // 橫向 cross-divider rotation {x:π/2}：跟 wall-front/back 同款。
+      //   part-local (px,py,pz) → world (px, -pz, py)
+      //   inverse: px = wx - meshX, py = wz - meshZ, pz = meshY - wy
+      const local: [number, number, number][] = world.map(([wx, wy, wz]) => {
+        if (isLongitudinal) {
+          return [meshZ - wz, wx - meshX, meshY - wy];
+        } else {
+          return [wx - meshX, wz - meshZ, meshY - wy];
+        }
+      });
+
+      div.shape = {
+        kind: "mitered-ends",
+        insetEach: 0,
+        outerSide: "+y",
+        vertices: local,
+      };
+    }
+  }
+
   const design: FurnitureDesign = {
     id: `tray-${outerL}x${outerW}x${outerH}`,
     category: "tray",
