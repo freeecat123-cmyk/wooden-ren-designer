@@ -201,13 +201,30 @@ function subtractMortisesFromGeometry(
     const m = mortiseBoxes[i];
     if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
     const isRound = mortiseShapes?.[i] === "round";
+    // 外撇牆 cosmetic 孔（rotX≠0）：cut 沿 part-local X 軸轉 |rotX| 後，在
+    // z_part 切片時，y_cut 範圍會被 z_cut clipping 截斷 —— 「整段使用者指定的
+    // z_part 範圍 = handleH」要完整貫穿牆厚，需要 cut box 在 z 方向擴：
+    //   z_part 全覆蓋區寬度 = 2·(hz·cosθ − hy·sinθ) 必須 ≥ handleH = 2·hz_intended
+    //   推導：在 z_part = cz ± handleH/2 處要求 y_cut 全範圍 [−hy, +hy] 都
+    //         讓 |z_cut| ≤ hz
+    //   解得 hz_csg = (handleH/2 + hy·sin|θ|)/cos|θ| = (hz + hy·sin|θ|)/cos|θ|
+    // 不延伸的話：θ 大時 wall inner face 在 z_part 兩端會殘留沒切到的薄殼，
+    // 3D 看起來孔只有外側壓痕沒貫穿。
+    // 延伸後孔幾何「斜向 parallelepiped」尖端會超出 user 指定的 25mm 區，
+    // 但落在 handleTopMargin 給的空間內、不會切破牆頂緣。SVG marker 用原 hz
+    // （未延伸），仍顯示 user 指定的 25mm。
+    const csgHz = m.rotX
+      ? (m.hz + m.hy * Math.abs(Math.sin(m.rotX))) / Math.cos(Math.abs(m.rotX))
+      : m.hz;
     let cutGeo: BufferGeometry;
     if (isRound) {
       // 圓孔沿 part-local Y 軸（top mortise 慣例）—— radius = min(hx, hz)
+      // 圓孔不延伸 hz（圓直徑代表 handleH，延伸會把圓變橢圓）。圓 handle
+      // 端 (pill ends) 主要靠中間 rect 切的範圍補強，圓本身只 wallT 深可接受。
       const r = Math.min(m.hx, m.hz);
       cutGeo = new CylinderGeometry(r, r, 2 * m.hy, 24);
     } else {
-      cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * m.hz);
+      cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * csgHz);
     }
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);

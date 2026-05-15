@@ -587,21 +587,27 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
         ? wallHeight * Math.cos(wallSplayRad)
         : wallHeight;
       const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMarginOpt - handleH / 2);
-      // 外撇 θ 時切平模型，牆的 part-local Y center 隨 z 線性平移：
-      //   Y_center(z) = sign · [(wallTh - wallT)/2 + tan θ · (z - zBot)]
-      //   wallTh = wallT·cos θ（內緣 plan 偏移）—— 這條 offset 必須是「內 Y −
-      //   外 Y」的中點偏移，wallT·(cos θ − 1)/2 < 0。之前誤用 wallTsec
-      //   (=wallT·sec θ)，符號剛好相反、且 θ 大時 Y 跑超出牆很遠（marker
-      //   在 3 視圖會浮在牆外）。
+      // 外撇 θ 時切平模型，牆的 part-local Y center 隨 z 線性平移。
+      // 推導：mesh box 在 part-local 沿 Y 軸佔 [-wallT/2, +wallT/2]，但反向法的
+      // verts 把牆「向外平推」做出 splay：
+      //   - wall-LEFT 在 zBot 處：Y_outer=-wallT/2 (mesh box 下面)，
+      //     Y_inner=-wallT/2 + wallTsec (sec θ 推出去) → Y_center = (wallTsec - wallT)/2
+      //   - 同樣的 zBot Y_center 對 wall-RIGHT 是 -(wallTsec - wallT)/2 = (wallT - wallTsec)/2
+      //   - 從 zBot 沿 z 走，Y_center 線性平移 tan θ·(z - zBot)·sign
+      // 公式：Y_center(z) = sign · [(wallTsec - wallT)/2 + tan θ · (z - zBot)]
       //   sign：outerSide="-y" (wall-left) = +1；"+y" (wall-right) = -1
+      //   wallTsec = wallT / cos θ（內外緣 plan view 水平偏移；secθ > 1）
+      // ⚠️ 歷史坑：早期版用 wallTsec/2（沒減 wallT/2）→ Y 跑超出牆。
+      //   commit 64dace8 改 wallTh=wallT·cosθ → 符號相反、距離仍不對。
+      //   正確公式是「wallTsec 減 wallT」再除 2——secθ - 1 > 0 是 splay 推出去的淨增量。
       // 注意 mortise.origin.y 是 from-bottom 慣例（y=0 在牆底、y=ly 在頂），
       // 要把 centered Y_center 加 wallThick/2 才符合慣例。
       const handleYFromBottom = (cornerJoinery === "miter" && wallSplayRad > 0)
         ? (() => {
             const sign = part.id === "wall-left" ? +1 : -1;
-            const wallTh_local = wallT * Math.cos(wallSplayRad);
+            const wallTsec = wallT / Math.cos(wallSplayRad);
             const zBot = wallHeight / 2;
-            const yCenteredCoord = sign * ((wallTh_local - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
+            const yCenteredCoord = sign * ((wallTsec - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
             return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
         : 0;
