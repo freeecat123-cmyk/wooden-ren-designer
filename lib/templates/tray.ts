@@ -510,9 +510,20 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       if (handleW < 30) continue; // 壁太短畫不下，跳過
       const handleH = Math.min(handleHeightOpt, wallHeight - 2 * handleTopMarginOpt - 5);
       if (handleH < 10) continue; // 壁太矮畫不下
-      // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2
-      // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z
-      const handleZCenter = -(wallHeight / 2 - handleTopMarginOpt - handleH / 2);
+      // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2。
+      // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z。
+      // 外撇 θ 時 wall 頂在世界 Y = vTop = wallHeight·cos θ（不是 wallHeight），
+      // 直接用 partWallH/2 算 handleZCenter 會讓手把離 splay 後 wall 頂太近、
+      // 上面只剩 wallHeight·(1-cos θ) 的小縫。
+      // 改：handleZ_top = mesh_y - (visible_wall_top_world_Y - handleTopMargin)
+      //                = (origin.y + partWallH/2) - (origin.y + vTop - handleTopMargin)
+      //                = partWallH/2 - vTop + handleTopMargin
+      //                = -(vTop - partWallH/2 - handleTopMargin)
+      // handleZCenter = handleZ_top + handleH/2
+      const vTop_local = wallSplayRad > 0
+        ? wallHeight * Math.cos(wallSplayRad)
+        : wallHeight;
+      const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMarginOpt - handleH / 2);
       // 外撇 θ 時牆切平模型下，part-local Y center 隨 z 線性平移：
       //   Y_center(z) = sign · [(wallTsec - wallT)/2 + tan θ · (z - zBot)]
       //   sign：outerSide="-y" (wall-left) = +1；"+y" (wall-right) = -1
