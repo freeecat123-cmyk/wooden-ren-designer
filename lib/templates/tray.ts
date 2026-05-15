@@ -388,28 +388,32 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
           [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
         ];
       } else if (wallId === "left") {
-        // outer face x=-x0, top tilts -X; outerSide="-y" → [IR, IL, OL, OR]
+        // outer face x=-x0, top tilts -X。
+        // 左右壁有 rotation y:π/2 → part-local +X 對應 world -Z（前向）。
+        // 所以 ring 的「right」index = world FRONT (-z)，「left」index = world BACK (+z)。
+        // outerSide="-y" → [IR=front-inner, IL=back-inner, OL=back-outer, OR=front-outer]
         world = [
-          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T (後內)
-          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T (前內)
-          [-x0 - hShift,          vTop,    -z0 - hShift],            // OL_T (前外)
-          [-x0 - hShift,          vTop,    +z0 + hShift],            // OR_T (後外)
-          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IR_B
-          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IL_B
-          [-x0,          0,       -z0],            // OL_B
-          [-x0,          0,       +z0],            // OR_B
+          [-x0 + wallTh - hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
+          [-x0 + wallTh - hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
+          [-x0 - hShift,          vTop,    +z0 + hShift],            // OL_T (後外)
+          [-x0 - hShift,          vTop,    -z0 - hShift],            // OR_T (前外)
+          [-x0 + wallTh, yInnerB, -z0 + wallTh],  // IR_B
+          [-x0 + wallTh, yInnerB, +z0 - wallTh],  // IL_B
+          [-x0,          0,       +z0],            // OL_B
+          [-x0,          0,       -z0],            // OR_B
         ];
       } else {  // right
-        // outer face x=+x0, top tilts +X; outerSide="+y" → [OR, OL, IL, IR]
+        // outer face x=+x0, top tilts +X; 同左壁分析。
+        // outerSide="+y" → [OR=front-outer, OL=back-outer, IL=back-inner, IR=front-inner]
         world = [
-          [+x0 + hShift,          vTop,    +z0 + hShift],            // OR_T
-          [+x0 + hShift,          vTop,    -z0 - hShift],            // OL_T
-          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IL_T
-          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IR_T
-          [+x0,          0,       +z0],            // OR_B
-          [+x0,          0,       -z0],            // OL_B
-          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IL_B
-          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IR_B
+          [+x0 + hShift,          vTop,    -z0 - hShift],            // OR_T (前外)
+          [+x0 + hShift,          vTop,    +z0 + hShift],            // OL_T (後外)
+          [+x0 - wallTh + hShift, yInnerT, +z0 - wallTh + hShift],  // IL_T (後內)
+          [+x0 - wallTh + hShift, yInnerT, -z0 + wallTh - hShift],  // IR_T (前內)
+          [+x0,          0,       -z0],            // OR_B
+          [+x0,          0,       +z0],            // OL_B
+          [+x0 - wallTh, yInnerB, +z0 - wallTh],  // IL_B
+          [+x0 - wallTh, yInnerB, -z0 + wallTh],  // IR_B
         ];
       }
 
