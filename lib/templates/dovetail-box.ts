@@ -548,10 +548,31 @@ const polyDesign: FurnitureDesign = {
         shape: "rect",
         cosmetic: true,
       });
+      // 框體上切實際滑槽 cosmetic mortise + 壁延伸
+      // 槽位於壁內側面、lid Y 區、深 grooveDepth（5mm）、高 lidT+0.5、長 = 壁全長
+      // part-local Z 軸 = world -Y（rotation x=π/2 後）：
+      //   lid 世界 Y 中心 = outerH - lidT/2 - sinkMm
+      //   壁 mesh 世界 Y 中心 = botT + visible.width/2 = (botT + outerH)/2（延伸後）
+      //   local Z = -(lid_Y - 壁_mesh_Y) = (lidT + 2·sinkMm + botT - outerH)/2
+      const grooveLocalZ = (lidT + 2 * sinkMm + botT - outerH) / 2;
       for (const p of design.parts) {
-        if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
-          p.visible = { ...p.visible, width: p.visible.width + lidT };
-        }
+        if (p.id !== "wall-front" && p.id !== "wall-back" && p.id !== "wall-right") continue;
+        p.visible = { ...p.visible, width: p.visible.width + lidT };
+        // 內側面：wall-front 內面朝 +Z = +Y_local；wall-back / wall-right 內面 -Y_local
+        const innerSign = p.id === "wall-front" ? +1 : -1;
+        p.mortises.push({
+          origin: {
+            x: 0,
+            y: innerSign * (wallT / 2 - grooveDepth / 2),
+            z: grooveLocalZ,
+          },
+          depth: grooveDepth + 0.3,
+          length: p.visible.length,
+          width: lidT + 0.5,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
       // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
