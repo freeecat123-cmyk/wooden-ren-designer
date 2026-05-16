@@ -856,7 +856,8 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     // phase=0 (tail board，前後板)：trapezoid tip 比 base 寬 → 燕尾凸出在端頭
     // phase=1 (pin board，左右板)：trapezoid tip 比 base 窄 → 銷凸出在端頭
     // 兩者互嵌：tail 寬尾正好卡進 pin 之間的 gap。
-    const slantSign = phase === 0 ? -1 : +1;
+    // 4 壁視覺統一用 tail 樣子（端頭最寬），slant 固定 -1
+    const slantSign = -1;
     let combAxis: "w" | "h" | null = null;
     if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
     else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
