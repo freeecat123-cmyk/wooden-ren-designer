@@ -52,6 +52,11 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "chinese-cabinet:outward-hoof",
   // 書桌圓錐斜腳：apron 端面延伸到圓腳中心藏接縫，apron × leg 結構性 overlap
   "desk:splayed-round-tapered",
+  // 鳩尾盒：壁體間鳩尾齒互嵌、頂蓋邊條入槽——所有 overlap 都是 joint 結構性
+  // 重疊（CSG subtract 重疊規範、見 feedback_csg_overlap_over_analytical_fit）
+  "dovetail-box:default",
+  // 相框：back-panel 入立柱凹溝、frame × panel 結構性 overlap
+  "photo-frame:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";

@@ -40,6 +40,8 @@ import type {
 const EXPECTED_FAILS: ReadonlySet<FurnitureCategory> = new Set<FurnitureCategory>([
   "low-table",
   "dining-chair",
+  // dovetail-box: 鳩尾齒互嵌不是傳統 mortise/tenon 對位、audit 抓不到正確配對
+  "dovetail-box",
 ]);
 
 /**
