@@ -225,13 +225,17 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     const n = Number(raw);
     return Number.isFinite(n) && n > 0 ? Math.min(200, n) : 0;
   })();
-  // 掀蓋浮起：?lidLift=N（mm）— dovetail-box 才用，lid + plug + hinge 整組往上抬，
-  // 看 lid 底下結構（嵌入式凸唇 / 滑入式凸條 / 鉸鏈位置）。
+  // 掀蓋：?lidLift=N — dovetail-box 才用，看 lid 底下結構。
+  //   正值（1-300）：lid 垂直浮起 N mm
+  //   -1：lid 繞後緣 90° 翻開（鉸鏈式掀蓋）
+  //   0 / 缺省：蓋上
   const lidLiftMm = (() => {
     const raw = sp.lidLift;
     if (typeof raw !== "string") return 0;
     const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? Math.min(300, n) : 0;
+    if (!Number.isFinite(n)) return 0;
+    if (n < 0) return -1;  // open mode sentinel
+    return n > 0 ? Math.min(300, n) : 0;
   })();
 
   const printQuery = designParamsToQuery(parsed, entry);

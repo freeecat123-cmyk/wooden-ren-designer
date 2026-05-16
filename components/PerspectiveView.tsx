@@ -2949,13 +2949,42 @@ export function PerspectiveView({
           // 配對二元淺/深：左右淺、上下深，最多 2 色不亂
           const color = pairShadeByPartId(tintedColor, part.id);
           const { yExt } = worldExtents(part);
-          const px = part.origin.x * SCALE;
-          // 掀蓋浮起：lid / lid-plug / lid-hinge-* 整組往上抬 lidLiftMm
+          // 掀蓋：lid / lid-plug / lid-hinge-* 整組
+          //   lidLiftMm > 0 = 垂直浮起 N mm（lift 模式）
+          //   lidLiftMm < 0 = 繞後緣 90° 鉸鏈翻開（open 模式）
           const isLidGroup =
             part.id === "lid" || /^lid-(plug|hinge|cleat)/.test(part.id);
-          const liftMm = isLidGroup ? lidLiftMm : 0;
-          const py = (part.origin.y + yExt / 2 + liftMm) * SCALE;
-          const pz = part.origin.z * SCALE;
+          const lidOpenMode = isLidGroup && lidLiftMm < 0;
+          // 預設 px/py/pz：未掀 + lift mode 共用
+          const liftMm = isLidGroup && lidLiftMm > 0 ? lidLiftMm : 0;
+          let px = part.origin.x * SCALE;
+          let py = (part.origin.y + yExt / 2 + liftMm) * SCALE;
+          let pz = part.origin.z * SCALE;
+          // open mode：把 part center 繞後緣軸（X 軸通過 (0, lidBottomY_mm, +outerW/2)）轉 +π/2
+          // pivot Y 用 lid origin.y（= 壁頂層 outerH - lidT），pivot Z = +outerW/2。
+          let openRotation: Euler | null = null;
+          if (lidOpenMode) {
+            const lidRef = design.parts.find((p) => p.id === "lid");
+            const pivotY_mm = lidRef?.origin.y ?? part.origin.y;
+            const pivotZ_mm = design.overall.width / 2;
+            const cx_mm = part.origin.x;
+            const cy_mm = part.origin.y + yExt / 2;
+            const cz_mm = part.origin.z;
+            const rY = cy_mm - pivotY_mm;
+            const rZ = cz_mm - pivotZ_mm;
+            // Rx(+π/2)：new_y = -z, new_z = y
+            const newRY = -rZ;
+            const newRZ = rY;
+            px = cx_mm * SCALE;
+            py = (pivotY_mm + newRY) * SCALE;
+            pz = (pivotZ_mm + newRZ) * SCALE;
+            // 合成 rotation：openQuat ∘ partQuat
+            const openQuat = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+            const partQuat = new Quaternion().setFromEuler(
+              new Euler(part.rotation?.x ?? 0, part.rotation?.y ?? 0, part.rotation?.z ?? 0, "ZYX"),
+            );
+            openRotation = new Euler().setFromQuaternion(openQuat.multiply(partQuat), "ZYX");
+          }
           let shape: ShapeSpec | undefined;
           if (part.shape?.kind === "tapered") {
             shape = {
@@ -3351,7 +3380,7 @@ export function PerspectiveView({
                   part.visible.thickness * SCALE,
                   part.visible.width * SCALE,
                 ]}
-                rotation={new Euler(
+                rotation={openRotation ?? new Euler(
                   part.rotation?.x ?? 0,
                   part.rotation?.y ?? 0,
                   part.rotation?.z ?? 0,
@@ -3435,12 +3464,12 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
     router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
   };
 
-  // 四段循環：0（蓋上）→ 30（微抬）→ 80（高抬）→ 150（更高）→ 0
-  // 只 dovetail-box 顯示；用 lidLift URL param 控制
+  // 四段循環：蓋上 → 30 mm 微抬 → 80 mm 高抬 → -1（90° 掀開）→ 蓋上
+  // 只 dovetail-box 顯示；用 lidLift URL param 控制（負值 = 鉸鏈 90° 翻開）
   const cycleLidLift = () => {
     const params = new URLSearchParams(sp?.toString() ?? "");
-    const cur = lidLiftCur > 0 ? lidLiftCur : 0;
-    const next = cur === 0 ? 30 : cur === 30 ? 80 : cur === 80 ? 150 : 0;
+    const cur = lidLiftCur;
+    const next = cur === 0 ? 30 : cur === 30 ? 80 : cur === 80 ? -1 : 0;
     if (next === 0) params.delete("lidLift");
     else params.set("lidLift", String(next));
     const qs = params.toString();
@@ -3499,15 +3528,17 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
         {hasLid && (
           <button
             type="button"
-            title={`掀蓋浮起（看 lid 底下結構）：當前 ${lidLiftCur > 0 ? lidLiftCur + "mm" : "蓋上"}，點切下一檔`}
+            title={`掀蓋（看 lid 底下結構）：當前 ${
+              lidLiftCur < 0 ? "90° 翻開" : lidLiftCur > 0 ? lidLiftCur + "mm 浮起" : "蓋上"
+            }，點切下一檔`}
             onClick={cycleLidLift}
             className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
-              lidLiftCur > 0
+              lidLiftCur !== 0
                 ? "bg-amber-600 text-white ring-amber-700"
                 : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
             }`}
           >
-            📦 {lidLiftCur > 0 ? `掀 ${lidLiftCur}mm` : "掀蓋"}
+            📦 {lidLiftCur < 0 ? "90° 掀開" : lidLiftCur > 0 ? `浮 ${lidLiftCur}mm` : "掀蓋"}
           </button>
         )}
       </div>
