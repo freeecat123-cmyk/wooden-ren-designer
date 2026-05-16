@@ -997,46 +997,135 @@ function SplayedTrueLength({
 }
 
 /**
- * <DetailCallout> — Phase 3.5 簡化版 detail inset。
+ * <DetailCallout> — Phase 5 多 detail + corner placement 版。
  *
- * 為複雜榫卯 part 在 front view 拉一個 2× zoom detail：
- *   - 觸發條件：≥2 mortises OR 任一 tenon length ≥ 40mm
- *   - main view 圈出第 1 個符合的 feature（紅圈 + 「A」字）
- *   - 右下角 ~60×60 inset：border + 「詳圖 A 2:1」標題 + 該 feature 放大 2×
- *   - straight dash leader 連圈到 inset 角
+ * 為複雜榫卯 part 在 front view 拉最多 3 個 2× zoom detail inset：
+ *   - 觸發條件：≥2 mortises（全收）OR tenon length ≥ 40mm（填餘格）
+ *   - 每個 feature 在 main view 圈紅圈 + 字母（A/B/C）
+ *   - 每個 detail 用 corner-based collision avoidance：
+ *     優先序 BR → TR → BL → TL，避撞 grain arrow 保留區與已放 inset
+ *   - 50×50 inset：border + 「詳圖 X 2:1」 + 名稱 + 尺寸
+ *   - dash leader 從 feature 圓邊拉到 inset 最近角
  *
- * Phase 3.5 簡化：無 collision-free routing、無多 detail per part、無動態 scale
- * 切換、只 front view（其他 view 不加避免擠）。
+ * Phase 5 升級自 Phase 3.5（單一 detail / 固定右下）。
  *
  * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-3-5-design.md
+ *       (Phase 5 extension — multi-detail corner placement)
  */
-type DetailTarget = {
+interface DetailTarget {
   kind: "mortise" | "tenon";
   idx: number;
   localBox: ReturnType<typeof mortiseLocalBox>;
-};
+  label: string; // "A" | "B" | "C"
+}
 
-function findDetailTarget(part: Part): DetailTarget | null {
-  // Trigger: ≥2 mortises → pick first mortise
+function findDetailTargets(part: Part): DetailTarget[] {
+  const labels = ["A", "B", "C"];
+  const out: DetailTarget[] = [];
+
+  // 1st priority: 所有 mortises（最多 3）
   if ((part.mortises?.length ?? 0) >= 2) {
-    return {
-      kind: "mortise",
-      idx: 0,
-      localBox: mortiseLocalBox(part, part.mortises[0]),
-    };
+    for (let i = 0; i < part.mortises.length && out.length < 3; i++) {
+      out.push({
+        kind: "mortise",
+        idx: i,
+        localBox: mortiseLocalBox(part, part.mortises[i]),
+        label: labels[out.length],
+      });
+    }
   }
-  // Or: any tenon length ≥ 40mm → pick first such tenon
-  const deepTenon = (part.tenons ?? []).findIndex(
-    (t) => (t.length ?? 0) >= 40,
-  );
-  if (deepTenon >= 0) {
-    return {
-      kind: "tenon",
-      idx: deepTenon,
-      localBox: tenonLocalBox(part, part.tenons[deepTenon]),
-    };
+
+  // 2nd priority: 深 tenons (length ≥ 40mm) 填餘格
+  for (let i = 0; i < (part.tenons ?? []).length && out.length < 3; i++) {
+    const t = part.tenons[i];
+    if ((t.length ?? 0) >= 40) {
+      out.push({
+        kind: "tenon",
+        idx: i,
+        localBox: tenonLocalBox(part, t),
+        label: labels[out.length],
+      });
+    }
   }
-  return null;
+
+  return out;
+}
+
+type Corner = "TL" | "TR" | "BR" | "BL";
+// BR 優先（左下/右上次之，TL 留給 facing mark）
+const CORNER_PRIORITY: Corner[] = ["BR", "TR", "BL", "TL"];
+
+interface InsetPlacement {
+  corner: Corner;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+function placeInsets(
+  ctx: OrthoViewBoxCtx,
+  count: number,
+): InsetPlacement[] {
+  const W = 50;
+  const H = 50;
+  const pad = 6;
+  // GrainArrow 在右下角 ~40×40 px 保留區（避免 inset 蓋上去）
+  const grainReserve = {
+    x: ctx.vbX + ctx.vbW - 45,
+    y: ctx.vbY + ctx.vbH - 45,
+    w: 40,
+    h: 40,
+  };
+
+  const corners: Record<Corner, { x: number; y: number }> = {
+    TL: { x: ctx.vbX + pad, y: ctx.vbY + pad + 18 }, // 讓出 facing mark 區
+    TR: { x: ctx.vbX + ctx.vbW - W - pad, y: ctx.vbY + pad + 18 },
+    BR: {
+      x: ctx.vbX + ctx.vbW - W - pad,
+      y: ctx.vbY + ctx.vbH - H - pad - 30,
+    },
+    BL: { x: ctx.vbX + pad, y: ctx.vbY + ctx.vbH - H - pad - 30 },
+  };
+
+  const placed: InsetPlacement[] = [];
+
+  for (let i = 0; i < count; i++) {
+    for (const c of CORNER_PRIORITY) {
+      const pos = corners[c];
+      const candidate: InsetPlacement = {
+        corner: c,
+        x: pos.x,
+        y: pos.y,
+        w: W,
+        h: H,
+      };
+      // 避撞已放 inset
+      const overlapsPlaced = placed.some(
+        (p) =>
+          !(
+            candidate.x + candidate.w < p.x ||
+            candidate.x > p.x + p.w ||
+            candidate.y + candidate.h < p.y ||
+            candidate.y > p.y + p.h
+          ),
+      );
+      if (overlapsPlaced) continue;
+      // 避撞 grain arrow 保留區
+      const overlapsGrain = !(
+        candidate.x + candidate.w < grainReserve.x ||
+        candidate.x > grainReserve.x + grainReserve.w ||
+        candidate.y + candidate.h < grainReserve.y ||
+        candidate.y > grainReserve.y + grainReserve.h
+      );
+      if (overlapsGrain) continue;
+      placed.push(candidate);
+      break;
+    }
+    // 找不到 corner 就 skip（不渲染這個 detail）
+  }
+
+  return placed;
 }
 
 export function DetailCallout({
@@ -1049,137 +1138,150 @@ export function DetailCallout({
   view: PartView;
 }) {
   if (view !== "front") return null;
-  const target = findDetailTarget(part);
-  if (!target) return null;
+  const targets = findDetailTargets(part);
+  if (!targets.length) return null;
 
-  // Project all 8 corners of feature local box → SVG AABB
-  // LocalBox uses cx/cy/cz (center) + hx/hy/hz (half-extents)
-  const lb = target.localBox;
-  const corners: Array<{ x: number; y: number }> = [];
-  for (const sx of [-1, 1]) {
-    for (const sy of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        corners.push(
-          ctx.partLocalToSvg(
-            lb.cx + sx * lb.hx,
-            lb.cy + sy * lb.hy,
-            lb.cz + sz * lb.hz,
-          ),
-        );
+  const placements = placeInsets(ctx, targets.length);
+
+  // Project feature local box → SVG AABB → 中心 + 半徑
+  function projectFeature(lb: DetailTarget["localBox"]) {
+    const corners: Array<{ x: number; y: number }> = [];
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          corners.push(
+            ctx.partLocalToSvg(
+              lb.cx + sx * lb.hx,
+              lb.cy + sy * lb.hy,
+              lb.cz + sz * lb.hz,
+            ),
+          );
+        }
       }
     }
+    const xs = corners.map((c) => c.x);
+    const ys = corners.map((c) => c.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const fcx = (minX + maxX) / 2;
+    const fcy = (minY + maxY) / 2;
+    const r = Math.max((maxX - minX) / 2, (maxY - minY) / 2) * 1.3 + 1;
+    return { cx: fcx, cy: fcy, r };
   }
-  const xs = corners.map((c) => c.x);
-  const ys = corners.map((c) => c.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const featureCx = (minX + maxX) / 2;
-  const featureCy = (minY + maxY) / 2;
-  const featureR = Math.max((maxX - minX) / 2, (maxY - minY) / 2) * 1.3 + 1;
-
-  // Inset position: bottom-right of viewBox (留空間給 GrainArrow 在右下)
-  const insetSize = 60;
-  const insetPad = 6;
-  const insetX = ctx.vbX + ctx.vbW - insetSize - insetPad;
-  const insetY = ctx.vbY + ctx.vbH - insetSize - insetPad - 30;
-
-  const W = round1(target.kind === "mortise"
-    ? part.mortises[target.idx].width
-    : part.tenons[target.idx].width);
-  const L = round1(target.kind === "mortise"
-    ? part.mortises[target.idx].length
-    : part.tenons[target.idx].length);
-  const D = round1(target.kind === "mortise"
-    ? (part.mortises[target.idx].depth ?? 0)
-    : (part.tenons[target.idx].thickness ?? 0));
-
-  const targetName =
-    target.kind === "mortise"
-      ? `榫眼${target.idx + 1}`
-      : `榫頭${target.idx + 1}`;
-  const dimLabel =
-    target.kind === "mortise"
-      ? `${W}×${L} 深${D}`
-      : `${W}×${D} 長${L}`;
 
   return (
     <g className="detail-callout">
-      {/* Circle around feature on main view */}
-      <circle
-        cx={featureCx}
-        cy={featureCy}
-        r={featureR}
-        fill="none"
-        stroke="#dc2626"
-        strokeWidth={0.8}
-      />
-      <text
-        x={featureCx + featureR + 2}
-        y={featureCy - featureR + 4}
-        fontSize={7}
-        fill="#dc2626"
-        fontWeight="bold"
-      >
-        A
-      </text>
+      {targets.map((t, i) => {
+        const p = placements[i];
+        if (!p) return null; // 沒角落塞 → 不渲染
+        const feature = projectFeature(t.localBox);
 
-      {/* Straight leader from feature circle edge to inset top-left corner */}
-      <line
-        x1={featureCx + featureR * 0.7}
-        y1={featureCy - featureR * 0.7}
-        x2={insetX}
-        y2={insetY}
-        stroke="#dc2626"
-        strokeWidth={0.5}
-        strokeDasharray="3 1.5"
-      />
+        const m = t.kind === "mortise" ? part.mortises[t.idx] : part.tenons[t.idx];
+        const W = round1(m.width ?? 0);
+        const L = round1(m.length ?? 0);
+        // mortise: depth；tenon: thickness（斷面 T）
+        const D = round1(
+          t.kind === "mortise"
+            ? (part.mortises[t.idx].depth ?? 0)
+            : (part.tenons[t.idx].thickness ?? 0),
+        );
+        const targetName =
+          t.kind === "mortise" ? `榫眼${t.idx + 1}` : `榫頭${t.idx + 1}`;
+        const dimText =
+          t.kind === "mortise" ? `${W}×${L} 深${D}` : `${W}×${D} 長${L}`;
 
-      {/* Inset background */}
-      <rect
-        x={insetX}
-        y={insetY}
-        width={insetSize}
-        height={insetSize}
-        fill="white"
-        stroke="#dc2626"
-        strokeWidth={0.6}
-      />
+        // Leader: feature 圓邊朝 inset 中心方向 → inset 最近角
+        const insetCx = p.x + p.w / 2;
+        const insetCy = p.y + p.h / 2;
+        const dx = insetCx - feature.cx;
+        const dy = insetCy - feature.cy;
+        const dist = Math.hypot(dx, dy) || 1;
+        const lx1 = feature.cx + (dx / dist) * feature.r;
+        const ly1 = feature.cy + (dy / dist) * feature.r;
+        const fromLeft = lx1 < insetCx;
+        const fromTop = ly1 < insetCy;
+        const lx2 = fromLeft ? p.x : p.x + p.w;
+        const ly2 = fromTop ? p.y : p.y + p.h;
 
-      {/* Inset title */}
-      <text
-        x={insetX + 3}
-        y={insetY + 8}
-        fontSize={6}
-        fill="#dc2626"
-        fontWeight="bold"
-      >
-        詳圖 A 2:1
-      </text>
+        return (
+          <g key={i}>
+            {/* feature 圓圈 + 字母 */}
+            <circle
+              cx={feature.cx}
+              cy={feature.cy}
+              r={feature.r}
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth={0.8}
+            />
+            <text
+              x={feature.cx + feature.r + 2}
+              y={feature.cy - feature.r + 4}
+              fontSize={7}
+              fill="#dc2626"
+              fontWeight="bold"
+            >
+              {t.label}
+            </text>
 
-      {/* Inset content — text-only fallback (safer than transform math) */}
-      <text x={insetX + 4} y={insetY + 22} fontSize={6.5} fill="#374151">
-        {targetName}
-      </text>
-      <text
-        x={insetX + 4}
-        y={insetY + 33}
-        fontSize={6}
-        fill="#374151"
-        fontFamily="monospace"
-      >
-        {dimLabel}
-      </text>
-      <text
-        x={insetX + 4}
-        y={insetY + 44}
-        fontSize={5}
-        fill="#6b7280"
-        fontFamily="monospace"
-      >
-        mm
-      </text>
+            {/* leader */}
+            <line
+              x1={lx1}
+              y1={ly1}
+              x2={lx2}
+              y2={ly2}
+              stroke="#dc2626"
+              strokeWidth={0.5}
+              strokeDasharray="3 1.5"
+            />
+
+            {/* inset background */}
+            <rect
+              x={p.x}
+              y={p.y}
+              width={p.w}
+              height={p.h}
+              fill="white"
+              stroke="#dc2626"
+              strokeWidth={0.6}
+            />
+
+            {/* inset title */}
+            <text
+              x={p.x + 3}
+              y={p.y + 9}
+              fontSize={6}
+              fill="#dc2626"
+              fontWeight="bold"
+            >
+              {`詳圖 ${t.label} 2:1`}
+            </text>
+
+            {/* feature name + dims（text-only，避免幾何變換誤差） */}
+            <text
+              x={p.x + p.w / 2}
+              y={p.y + p.h / 2}
+              fontSize={6.5}
+              fill="#374151"
+              textAnchor="middle"
+            >
+              {targetName}
+            </text>
+            <text
+              x={p.x + p.w / 2}
+              y={p.y + p.h / 2 + 9}
+              fontSize={5.5}
+              fill="#374151"
+              textAnchor="middle"
+              fontFamily="monospace"
+            >
+              {dimText}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }
