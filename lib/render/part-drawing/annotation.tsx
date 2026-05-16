@@ -447,3 +447,97 @@ export function GrainArrow({
     </g>
   );
 }
+
+/**
+ * FacingMark — 面向記號（Phase 2 Task 5）
+ *
+ * 推論非對稱零件的「外/內/上/下」面，協助木匠決定哪面當外觀面（光面/打磨完整）。
+ *
+ * `inferFacing(part)` 啟發式：
+ * - X 軸：mortise.origin.x 偏向某側集中 → 對面為「外」（因為榫眼那側是組裝隱面）
+ * - Z 軸：同上以 mortise.origin.z 推論
+ * - Y 軸：tenon.position = "top" → 上 / "bottom" → 下
+ *   （Tenon 沒有 origin，用 position 軸別判斷）
+ * - 完全對稱 / 無線索 → null（不標）
+ *
+ * 顯示：左上角 9px 深橘 #7c2d12 字。只在能看到該軸的 view 顯示
+ * （X→front/top、Z→side/top、Y→front/side）。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §5
+ */
+type FacingHint = {
+  axis: "x" | "y" | "z";
+  positive: boolean;
+  label: "外" | "內" | "上" | "下";
+};
+
+export function inferFacing(part: Part): FacingHint | null {
+  const mortises = part.mortises ?? [];
+  const tenons = part.tenons ?? [];
+
+  // X / Z 軸：以 mortise.origin 群聚判斷
+  // origin.x / origin.z 是 part-centered（[-l/2, +l/2]）
+  let xPos = 0,
+    xNeg = 0;
+  let zPos = 0,
+    zNeg = 0;
+  for (const m of mortises) {
+    const x = m.origin?.x ?? 0;
+    const z = m.origin?.z ?? 0;
+    if (x > 1) xPos++;
+    else if (x < -1) xNeg++;
+    if (z > 1) zPos++;
+    else if (z < -1) zNeg++;
+  }
+
+  // 偏移 ≥ 2 才算明顯不對稱（避免單個 mortise 就觸發 noise）
+  if (xPos > xNeg + 1) return { axis: "x", positive: false, label: "外" };
+  if (xNeg > xPos + 1) return { axis: "x", positive: true, label: "外" };
+  if (zPos > zNeg + 1) return { axis: "z", positive: false, label: "外" };
+  if (zNeg > zPos + 1) return { axis: "z", positive: true, label: "外" };
+
+  // Y 軸（上/下）：Tenon 沒有 origin，改用 position 判斷
+  let yTop = 0,
+    yBot = 0;
+  for (const t of tenons) {
+    if (t.position === "top") yTop++;
+    else if (t.position === "bottom") yBot++;
+  }
+  if (yTop > yBot && yTop > 0) return { axis: "y", positive: true, label: "上" };
+  if (yBot > yTop && yBot > 0) return { axis: "y", positive: false, label: "下" };
+
+  return null;
+}
+
+export function FacingMark({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  const facing = inferFacing(part);
+  if (!facing) return null;
+
+  // 只在能看到該軸面的 view 顯示記號
+  //   X 軸面 → front（length 水平）/ top（length 水平）能看見
+  //   Z 軸面 → side（width 水平）/ top（width 垂直）能看見
+  //   Y 軸面（上/下）→ front / side 能看見；top 是俯視看不到上下面
+  const showOn =
+    (facing.axis === "x" && (view === "front" || view === "top")) ||
+    (facing.axis === "z" && (view === "side" || view === "top")) ||
+    (facing.axis === "y" && view !== "top");
+  if (!showOn) return null;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + 22;
+  return (
+    <g className="facing-mark">
+      <text x={x0} y={y0} fontSize={9} fill="#7c2d12" fontWeight="bold">
+        {facing.label}
+      </text>
+    </g>
+  );
+}

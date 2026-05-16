@@ -433,6 +433,38 @@ expect(
   `28-template smoke: ${crashCount} crash(es) (must be 0; rendered ${renderedCount} cards across ${templatesCovered} templates)`,
 );
 
+// ─── Test 10: FacingMark appears in ≥1 template (Phase 2 Task 5) ──────────
+// 對 28 模板每個 group 跑 PartDrawing，至少要有一張圖出現 facing-mark class。
+{
+  let facingFound = false;
+  let facingTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (let i = 0; i < groups.length; i++) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[i],
+          design,
+          index: i,
+        }),
+      );
+      if (html.includes("facing-mark")) {
+        facingFound = true;
+        facingTemplate = entry.category;
+        break;
+      }
+    }
+    if (facingFound) break;
+  }
+  expect(
+    facingFound,
+    `FacingMark: at least one part across 28 templates produces a FacingMark (matched in ${facingTemplate || "none"})`,
+  );
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
