@@ -55,15 +55,16 @@ export const dovetailBoxOptions: OptionSpec[] = [
   // === Structure 結構 ===
   { group: "structure", type: "select", key: "boxShape", label: "盒型", defaultValue: "rect", choices: [
     { value: "rect", label: "方形 / 長方形（4 鳩尾角，傳統）" },
+    { value: "hex", label: "六角盒（6 段斜接，禮品款）" },
     { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
-  ], help: "八角款用 stave 拼接 22.5° 邊接，鳩尾改 mitered-spline；不支援滑入式蓋" },
+  ], help: "六/八角款用 stave 拼接邊接（六角 60° / 八角 45° 內角），鳩尾改 mitered-spline；不支援滑入式蓋、把手孔、活動抽板" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "grooved", choices: [
     { value: "grooved", label: "鋸槽嵌入（底板比外壁小一圈，不上膠讓底板可熱漲冷縮）" },
     { value: "floating", label: "齊邊膠合（底板與外壁齊邊，整面塗膠）" },
     { value: "nailed", label: "底面釘合（底板從外面打釘 / 釘+膠，工具盒常見）" },
-  ], help: "影響底板尺寸 + 是否上膠 + 工序", dependsOn: { key: "boxShape", equals: "rect" } },
+  ], help: "影響底板尺寸 + 是否上膠 + 工序（六/八角款 grooved=底板邊緣卡進壁內側溝槽；nailed=底板嵌入壁內 wallT/2）" },
   { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "外露角倒角，1-2mm 微倒手感佳" },
 
   // === Joinery 角接合 ===
@@ -101,10 +102,15 @@ export const dovetailBoxOptions: OptionSpec[] = [
   { group: "handle", type: "number", key: "handleTopMargin", label: "把手距壁頂 (mm)", defaultValue: 15, min: 5, max: 50, step: 1, unit: "mm", help: "把手孔上緣距離壁頂的距離。", dependsOn: { key: "withHandle", equals: true } },
 
   // === Divider 內隔分格 ===
+  { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
+    { value: "none", label: "無隔板" },
+    { value: "single", label: "單片直徑（穿過中心）" },
+    { value: "cross", label: "十字（2 片穿過中心交叉）", dependsOn: { key: "boxShape", equals: "oct" } },
+  ], dependsOn: { key: "boxShape", notIn: ["rect"] }, help: "六/八角盒專用。單片穿過盒中心；八角還可以選十字（六角因壁間距 60° 不對齊垂直，不支援）。" },
   { group: "divider", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿長邊方向插入的縱向隔板（把盒內切成數欄）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, unit: "片", help: "沿短邊方向插入的橫向隔板（與縱向隔板交叉可分多格）", dependsOn: { key: "boxShape", equals: "rect" } },
-  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", dependsOn: { key: "boxShape", equals: "rect" } },
-  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（壁高 - 10mm 留蓋空間），>0 自訂高度（不可超過壁內高）", dependsOn: { key: "boxShape", equals: "rect" } },
+  { group: "divider", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 12, step: 1, unit: "mm", help: "rect 用縱/橫向隔板、六/八角用穿心隔板共用此厚度" },
+  { group: "divider", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "0 = 自動（壁高 - 10mm 留蓋空間），>0 自訂高度（不可超過壁內高）" },
   { group: "divider", type: "number", key: "dividerInset", label: "隔板入溝深度 (mm)", defaultValue: 3, min: 0, max: 8, step: 1, unit: "mm", help: "隔板兩端嵌入壁內側 dado 的深度（4 壁內面鋸槽嵌入，固定但可拆）", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "divider", type: "checkbox", key: "withInnerTray", label: "活動分隔抽板", defaultValue: false, help: "盒內加一片可拆活動隔板（30mm 高 × 6 格），首飾分類用；與固定隔板可共存", wide: true },
 
@@ -138,7 +144,8 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
-  const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "oct";
+  const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
+  const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   // 新增選項（v2）
   const dovetailSegmentsRaw = getOption<number>(input, opt(o, "dovetailSegments"));
   const dovetailSegments = dovetailSegmentsRaw === 5 && preset?.dovetailSegments !== undefined ? preset.dovetailSegments : dovetailSegmentsRaw;
@@ -165,47 +172,186 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   // 蓋板與壁同厚，方便共用同款料
   const lidT = withLid ? wallT : 0;
 
-  // 八角盒：跳過 buildBox 直接組多邊形 stave + 圓底盤 + (選用) 圓頂蓋
-  if (boxShape === "oct") {
+  // 六/八角盒：跳過 buildBox 直接組多邊形 stave（mitered-ends inset）
+  //            + regular-polygon 底板 + (選用) regular-polygon 頂蓋 + (選用) 穿心隔板
+  if (boxShape === "hex" || boxShape === "oct") {
+    const sides = boxShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
-    const staves = polygonStaves({ sides: 8, outerD, outerH, wallT, botT, material });
-    const innerD = outerD * Math.cos(Math.PI / 8) - 2 * wallT - 2;
+    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
+    const outerWallVertexR = outerD / 2;
+
+    // 底板裝法：dovetail-box 的 grooved / floating / nailed 對應 polygon 三套幾何
+    let stavesOuterH: number; // 傳給 polygonStaves，內部 wallH = stavesOuterH - botT
+    let stavesBaseY: number;
+    let bottomOriginY: number;
+    let bottomVertexR: number;
+    let bottomAttachDesc: string;
+    if (bottomAttach === "grooved") {
+      // 鋸槽嵌入：壁全高、底板邊緣卡進壁內側溝槽（5mm）
+      stavesOuterH = outerH + botT;
+      stavesBaseY = 0;
+      bottomOriginY = botT;
+      const grooveDepth = Math.min(5, wallT - 1);
+      const bottomApothem = (apothem - wallT) + grooveDepth;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+      bottomAttachDesc = `**鋸槽嵌入**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm，可熱漲冷縮）`;
+    } else if (bottomAttach === "floating") {
+      // 齊邊膠合：底板外緣與框體齊邊、整面塗膠
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      bottomVertexR = outerWallVertexR;
+      bottomAttachDesc = "**齊邊膠合**（底板外緣與框體齊邊，整面塗膠）";
+    } else { // nailed
+      // 底面釘合：底板嵌入壁內 wallT/2，從外面打釘 + 中央上膠
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      const seatOverlap = wallT / 2;
+      const bottomApothem = (apothem - wallT) + seatOverlap;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+      bottomAttachDesc = `**底面釘合**（底板嵌入壁內 ${seatOverlap}mm，從外面打釘 + 中央上膠）`;
+    }
+    const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
+    // 端面 mitre（角度 = π/N，相鄰兩壁總共 2π/N = 外角）
+    const miterInset = wallT * Math.tan(Math.PI / sides);
+    for (const stave of staves) {
+      stave.shape = { kind: "mitered-ends", insetEach: miterInset, outerSide: "+y" };
+    }
+
+    const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
-      nameZh: "八角底板",
+      nameZh: `${sides} 角底板`,
       material,
       grainDirection: "length",
-      visible: { length: innerD, width: innerD, thickness: botT },
-      origin: { x: 0, y: 0, z: 0 },
-      shape: { kind: "round" },
+      visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
+      origin: { x: 0, y: bottomOriginY, z: 0 },
+      shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
       tenons: [],
       mortises: [],
     };
-    const polyParts: Part[] = [polyBottom, ...staves];
+
+    // 穿心隔板（single / cross）；hex 不支援 cross（壁間距 60° 不對齊垂直）
+    const polygonDividerParts: Part[] = [];
+    const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle as string;
+    if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
+      const innerFlatR = apothem - wallT;
+      const polyDividerGroove = Math.min(5, wallT - 1);
+      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
+      const polyBottomTopY = bottomAttach === "grooved" ? 2 * botT : botT;
+      const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY - (withLid ? lidT : 0));
+      const polyDividerH = dividerHeightRaw > 0
+        ? Math.max(1, Math.min(dividerHeightRaw, polyDividerHAuto))
+        : polyDividerHAuto;
+      polygonDividerParts.push({
+        id: "divider-1",
+        nameZh: "穿心隔板 1（縱）",
+        material,
+        grainDirection: "length",
+        visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
+        origin: { x: 0, y: polyBottomTopY, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      if (polyDividerStyleStr === "cross") {
+        polygonDividerParts.push({
+          id: "divider-2",
+          nameZh: "穿心隔板 2（橫）",
+          material,
+          grainDirection: "length",
+          visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThickness },
+          origin: { x: 0, y: polyBottomTopY, z: 0 },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // CSG cosmetic mortise（4 / 8 壁加 dado 槽嵌入隔板）
+      const addStaveMortise = (staveIdx: number) => {
+        const stave = staves[staveIdx];
+        if (!stave) return;
+        stave.mortises.push({
+          origin: { x: 0, y: wallT, z: 0 },
+          depth: polyDividerGroove + 0.3,
+          length: polyDividerH + 0.5,
+          width: dividerThickness + 0.5,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+      };
+      addStaveMortise(0);
+      addStaveMortise(sides / 2);
+      if (polyDividerStyleStr === "cross") {
+        addStaveMortise(sides / 4);
+        addStaveMortise((3 * sides) / 4);
+      }
+    }
+    const polyDividerDesc = polyDividerStyleStr === "single"
+      ? "，內部 1 片穿心隔板分 2 區"
+      : polyDividerStyleStr === "cross"
+        ? "，內部十字隔板分 4 區"
+        : "";
+
+    const polyParts: Part[] = [polyBottom, ...staves, ...polygonDividerParts];
+
+    // 頂蓋：lift-off / hinged 兩款比較直觀；其他型式對 polygon 不適用
     if (withLid) {
       polyParts.push({
         id: "lid",
-        nameZh: "八角頂蓋",
+        nameZh: `${sides} 角頂蓋`,
         material,
         grainDirection: "length",
-        visible: { length: innerD, width: innerD, thickness: lidT },
+        visible: { length: bottomBbox, width: bottomBbox, thickness: lidT },
         origin: { x: 0, y: outerH - lidT, z: 0 },
-        shape: { kind: "round" },
+        shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
         tenons: [],
         mortises: [],
       });
     }
-    return {
-      id: `dovetail-box-oct-${outerD}x${outerH}`,
+
+    // 絨布內襯（polygon 簡化版：只貼底）
+    if (withFeltLining) {
+      const feltApothem = Math.max(1, apothem - wallT - 2);
+      const feltVertexR = feltApothem / Math.cos(Math.PI / sides);
+      polyParts.push({
+        id: "felt-bottom",
+        nameZh: "絨布內襯（底）",
+        material,
+        grainDirection: "length",
+        visible: { length: 2 * feltVertexR, width: 2 * feltVertexR, thickness: 1 },
+        origin: { x: 0, y: bottomOriginY + botT, z: 0 },
+        shape: { kind: "regular-polygon", sides, outerRadius: feltVertexR },
+        tenons: [],
+        mortises: [],
+        visual: "fabric",
+      });
+    }
+
+    const polyDesign: FurnitureDesign = {
+      id: `dovetail-box-${boxShape}-${outerD}x${outerH}`,
       category: "dovetail-box",
-      nameZh: "八角鳩尾盒",
+      nameZh: `${sides === 6 ? "六" : "八"}角鳩尾盒`,
       overall: { length: outerD, width: outerD, thickness: outerH },
       parts: polyParts,
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `八角鳩尾盒外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。8 段直立壁邊接 22.5° 斜切（45° 內角），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。${withLid ? "頂蓋圓盤從盒口蓋上。" : ""}${withFeltLining ? " 內側 8 壁 + 底貼絨布。" : ""}${edgeChamfer > 0 ? ` 外露邊倒 ${edgeChamfer}mm 防割手。` : ""}`,
+      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `加 ${sides === 6 ? "六" : "八"} 邊形頂蓋從盒口蓋上。` : ""}${withFeltLining ? " 內底貼絨布。" : ""}${edgeChamfer > 0 ? ` 外露邊倒 ${edgeChamfer}mm 防割手。` : ""}`,
     };
+
+    // polygon 也跑壁厚 / 尺寸合理性檢查
+    const polyWarnings: string[] = [];
+    if (outerD > 400 || outerH > 250) {
+      polyWarnings.push(`${sides === 6 ? "六" : "八"}角盒 ⌀${outerD}×${outerH}mm 超過合理範圍（max ⌀400×250mm）。再大就是收納箱級別`);
+    }
+    if (wallT < 10 && outerD > 250) {
+      polyWarnings.push(`壁厚 ${wallT}mm 對 ⌀${outerD}mm 太薄——多邊形斜接需要足夠端面承黏，建議加厚到 12mm 以上`);
+    }
+    if (polyWarnings.length) polyDesign.warnings = polyWarnings;
+    return polyDesign;
   }
 
   const built = buildBox({
