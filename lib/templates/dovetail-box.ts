@@ -523,14 +523,6 @@ const polyDesign: FurnitureDesign = {
           p.shape = { ...p.shape, topInsetMm: lidT };
         }
       }
-      // 短壁（left/right）木紋方向修正：buildBox 預設 "length"，但短壁 rotation
-      // x=π/2 y=π/2 讓 local X 軸實際視覺呈現為垂直方向。改成 "width" 讓木紋順著
-      // 壁長方向（水平），跟長壁一致。
-      for (const p of design.parts) {
-        if (p.id === "wall-left" || p.id === "wall-right") {
-          p.grainDirection = "width";
-        }
-      }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
       // + 凸唇從主蓋底面**往下伸入盒口**（凸唇在盒內側、壁頂下方）
