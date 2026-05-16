@@ -2122,51 +2122,120 @@ export function OrthoView({
           if (/^wall-\d+$/.test(part.id)) return null;
           const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0);
           if (cosmetic.length === 0) return null;
+          // Pill 偵測：rect mortise + 2 round mortise（at ±rect.length/2、同 cy/cz/rotX/depth）
+          // 視為單一 pill 路徑。否則 3 個獨立框 + outer/inner 雙輪廓 = 6 條線，使用者覺得亂。
+          type Entry =
+            | { kind: "pill"; rect: typeof cosmetic[number]; rounds: [typeof cosmetic[number], typeof cosmetic[number]] }
+            | { kind: "single"; m: typeof cosmetic[number] };
+          const entries: Entry[] = [];
+          const used = new Set<number>();
+          const eq = (a: number, b: number) => Math.abs(a - b) < 0.5;
+          for (let i = 0; i < cosmetic.length; i++) {
+            if (used.has(i)) continue;
+            const m = cosmetic[i];
+            if (m.shape === "rect") {
+              const offX = m.length / 2;
+              let li = -1, ri = -1;
+              for (let j = 0; j < cosmetic.length; j++) {
+                if (j === i || used.has(j)) continue;
+                const om = cosmetic[j];
+                if (om.shape !== "round") continue;
+                if (!eq(om.origin.y, m.origin.y) || !eq(om.origin.z, m.origin.z)) continue;
+                if ((om.rotX ?? 0) !== (m.rotX ?? 0)) continue;
+                if (eq(om.origin.x, m.origin.x - offX)) li = j;
+                else if (eq(om.origin.x, m.origin.x + offX)) ri = j;
+              }
+              if (li >= 0 && ri >= 0) {
+                entries.push({ kind: "pill", rect: m, rounds: [cosmetic[li], cosmetic[ri]] });
+                used.add(i); used.add(li); used.add(ri);
+                continue;
+              }
+            }
+            entries.push({ kind: "single", m });
+            used.add(i);
+          }
           return (
             <g key={`cosmetic-${part.id}`}>
-              {cosmetic.map((m, i) => {
+              {entries.flatMap((entry, i) => {
+                // 取得本 entry 用的 mortise 與 box（pill 用合成 box；single 用本身）
+                const m = entry.kind === "pill" ? entry.rect : entry.m;
                 const lb = mortiseLocalBox(part, m);
-                const r = projectFeatureRect(part, lb, view);
-                if (r.w < 0.5 || r.h < 0.5) return null;
+                let r: { x: number; y: number; w: number; h: number };
+                const isPill = entry.kind === "pill";
+                if (entry.kind === "pill") {
+                  // Pill 合成 box：x 半寬 = (handleW)/2 = rect.length/2 + round.length/2
+                  // 用 rect mortise 的 lb 做基底、改 hx
+                  const handleW = entry.rect.length + entry.rounds[0].length;
+                  const pillLb = { ...lb, hx: handleW / 2 };
+                  r = projectFeatureRect(part, pillLb, view);
+                } else {
+                  r = projectFeatureRect(part, lb, view);
+                }
+                if (r.w < 0.5 || r.h < 0.5) return [];
                 const cx = r.x + r.w / 2;
                 const cy = -(r.y + r.h) + r.h / 2;
-                // 外撇 cosmetic 孔（rotX≠0）：marker 在不同視圖該不該斜：
-                // - FRONT 視圖：LEFT/RIGHT 壁的 tilt 軸 ⊥ view direction，斜度可見 → 套
-                // - SIDE 視圖：LEFT/RIGHT 壁的 tilt 軸 ∥ view direction，視覺看不到 →
-                //              此時兩壁 marker 又重疊，硬套會疊成 X，所以不套
-                // - TOP 視圖：tilt 朝外、不顯示
-                // 符號：part-local rotX 經 mesh rotation 後在 FRONT 視圖呈現 -rotX 方向
                 const rotDeg = m.rotX && view === "front" ? (-m.rotX * 180 / Math.PI) : 0;
                 const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
-                if (m.shape === "round") {
+
+                // 斜壁通孔：side/top view 加內面虛線（外實內虛、wallT·tan θ 偏移）
+                const isThroughTilted = m.through && m.rotX !== undefined && m.rotX !== 0;
+                let innerDx = 0;
+                let innerDy = 0;
+                if (isThroughTilted && (view === "side" || view === "top")) {
+                  const wallT = 2 * lb.hy;
+                  const offsetMm = wallT * Math.tan(Math.abs(m.rotX!));
+                  const isLeft = /left/.test(part.id);
+                  const sign = isLeft ? +1 : -1;
+                  if (view === "side") innerDy = -offsetMm * sign;
+                  else if (view === "top") innerDx = -offsetMm * sign;
+                }
+
+                const stroke = "#c97a2b";
+                const strokeW = 0.6;
+                const dashedAttr = "2 1.5";
+
+                const node = (key: string, ox: number, oy: number, dashed: boolean) => {
+                  if (!isPill && m.shape === "round") {
+                    return (
+                      <circle
+                        key={key}
+                        cx={cx + ox}
+                        cy={cy + oy}
+                        r={Math.min(r.w, r.h) / 2}
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
+                        transform={transform}
+                      />
+                    );
+                  }
+                  // Pill 或 rect：rect (with rx for pill)
+                  const rx = isPill ? Math.min(r.w, r.h) / 2 : 0;
                   return (
-                    <circle
-                      key={`cm-${i}`}
-                      cx={cx}
-                      cy={cy}
-                      r={Math.min(r.w, r.h) / 2}
+                    <rect
+                      key={key}
+                      x={r.x + ox}
+                      y={-(r.y + r.h) + oy}
+                      width={r.w}
+                      height={r.h}
+                      rx={rx}
+                      ry={rx}
                       fill="none"
-                      stroke="#c97a2b"
-                      strokeWidth={0.6}
-                      strokeDasharray={m.through ? undefined : "2 1.5"}
+                      stroke={stroke}
+                      strokeWidth={strokeW}
+                      strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
                       transform={transform}
                     />
                   );
+                };
+
+                const outer = node(`cm-${i}`, 0, 0, !m.through);
+                if (!isThroughTilted || (view !== "side" && view !== "top")) {
+                  return [outer];
                 }
-                return (
-                  <rect
-                    key={`cm-${i}`}
-                    x={r.x}
-                    y={-(r.y + r.h)}
-                    width={r.w}
-                    height={r.h}
-                    fill="none"
-                    stroke="#c97a2b"
-                    strokeWidth={0.6}
-                    strokeDasharray={m.through ? undefined : "2 1.5"}
-                    transform={transform}
-                  />
-                );
+                const inner = node(`cm-${i}-inner`, innerDx, innerDy, true);
+                return [outer, inner];
               })}
             </g>
           );
