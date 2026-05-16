@@ -2177,22 +2177,38 @@ export function OrthoView({
                 const rotDeg = m.rotX && view === "front" ? (-m.rotX * 180 / Math.PI) : 0;
                 const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
 
-                // 斜壁通孔：side/top view 加內面虛線（外實內虛、wallT·tan θ 偏移）
+                // 斜壁通孔：side/top view 加內面虛線（外實內虛）。
+                // 外內偏移在 side view = 0（外/內面 cut 在同 SVG 位置、視覺上覆蓋同一處
+                // 用 solid+dashed 區分前後），foreshortening 才是 pill 在 view 真正高度。
+                // Pill 在 splayed 壁上 24mm 高，但 side view 看的是 24·cosθ ≈ 17mm（θ=45°）。
                 const isThroughTilted = m.through && m.rotX !== undefined && m.rotX !== 0;
-                let innerDx = 0;
-                let innerDy = 0;
-                if (isThroughTilted && (view === "side" || view === "top")) {
-                  const wallT = 2 * lb.hy;
-                  const offsetMm = wallT * Math.tan(Math.abs(m.rotX!));
-                  const isLeft = /left/.test(part.id);
-                  const sign = isLeft ? +1 : -1;
-                  if (view === "side") innerDy = -offsetMm * sign;
-                  else if (view === "top") innerDx = -offsetMm * sign;
+                const innerDx = 0;
+                const innerDy = 0;
+                // 在 side view 對 splayed 通孔的高度套 cosθ foreshortening。
+                // 用 SVG group transform 套 scaleY，中心 = pill 中心，避免位置位移。
+                let foreshortenScaleY = 1;
+                if (isThroughTilted && view === "side") {
+                  foreshortenScaleY = Math.cos(Math.abs(m.rotX!));
                 }
 
                 const stroke = "#c97a2b";
                 const strokeW = 0.6;
                 const dashedAttr = "2 1.5";
+
+                // foreshortening：對 splayed pill 在 side view 套 scaleY，繞 pill 中心
+                // 縮 cos θ 倍。SVG transform 合併 rotate（front view）+ scale。
+                const composeTransform = () => {
+                  const parts: string[] = [];
+                  if (rotDeg !== 0) parts.push(`rotate(${rotDeg.toFixed(2)} ${cx} ${cy})`);
+                  if (foreshortenScaleY !== 1) {
+                    // translate to center, scale, translate back（centered scale）
+                    parts.push(`translate(${cx} ${cy})`);
+                    parts.push(`scale(1 ${foreshortenScaleY.toFixed(4)})`);
+                    parts.push(`translate(${-cx} ${-cy})`);
+                  }
+                  return parts.length > 0 ? parts.join(" ") : undefined;
+                };
+                const tform = composeTransform();
 
                 const node = (key: string, ox: number, oy: number, dashed: boolean) => {
                   if (!isPill && m.shape === "round") {
@@ -2206,7 +2222,7 @@ export function OrthoView({
                         stroke={stroke}
                         strokeWidth={strokeW}
                         strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
-                        transform={transform}
+                        transform={tform}
                       />
                     );
                   }
@@ -2225,7 +2241,7 @@ export function OrthoView({
                       stroke={stroke}
                       strokeWidth={strokeW}
                       strokeDasharray={dashed ? dashedAttr : m.through ? undefined : dashedAttr}
-                      transform={transform}
+                      transform={tform}
                     />
                   );
                 };
