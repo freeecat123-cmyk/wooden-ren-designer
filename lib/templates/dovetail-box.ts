@@ -517,9 +517,17 @@ const polyDesign: FurnitureDesign = {
       };
       lidPart.nameZh = "盒蓋（滑入式 · 4 邊凸條入槽）";
       // 3 條 rim（前 / 後 / 右）置於 wall 頂面、lidT 高，繼承 wall 的 length / thickness / rotation
+      // 每條 rim 內側面切滑槽（cosmetic mortise，深 tongueDepth、高 lidT、長 ≈ rim 全長）
+      // lid tongue 卡進槽中
       for (const suffix of ["front", "back", "right"] as const) {
         const wall = design.parts.find((p) => p.id === `wall-${suffix}`);
         if (!wall) continue;
+        // 滑槽位於 rim 內側面（朝盒中心的 Y_local 方向）：
+        //   wall-front (z=-outerW/2) 內面朝 +Z = +Y_local → innerSign = +1
+        //   wall-back  (z=+outerW/2) 內面朝 -Z = -Y_local → innerSign = -1
+        //   wall-right (x=+outerL/2, Ry=π/2) 內面朝 -X = -Y_local → innerSign = -1
+        const innerSign = suffix === "front" ? +1 : -1;
+        const grooveY = innerSign * (wallT / 2 - tongueDepth / 2);
         design.parts.push({
           id: `wall-${suffix}-rim`,
           nameZh: `${suffix === "front" ? "前" : suffix === "back" ? "後" : "右"}壁上緣（滑槽框）`,
@@ -533,7 +541,17 @@ const polyDesign: FurnitureDesign = {
           origin: { ...wall.origin, y: outerH - lidT },
           rotation: wall.rotation ? { ...wall.rotation } : undefined,
           tenons: [],
-          mortises: [],
+          mortises: [
+            {
+              origin: { x: 0, y: grooveY, z: 0 },
+              depth: tongueDepth + 0.3,
+              length: wall.visible.length,
+              width: lidT + 0.5,
+              through: false,
+              shape: "rect",
+              cosmetic: true,
+            },
+          ],
         });
       }
     } else if (lidType === "rabbeted") {
