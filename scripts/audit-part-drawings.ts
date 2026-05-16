@@ -16,6 +16,8 @@ import type { MaterialId, OptionSpec } from "../lib/types";
 import {
   needsPartDrawing,
   filterDesignForIsolation,
+  hashPart,
+  groupPartsForDrawing,
 } from "../lib/render/part-drawing/grouping";
 
 let fail = 0;
@@ -143,6 +145,75 @@ console.log(
 expect(
   totalTriggered > 100 && totalTriggered < 500,
   `Total triggered parts: ${totalTriggered} (expected 100-500 per spec §1.2)`,
+);
+
+// ─── Test 4: identical parts collide, different parts diverge ──────────────
+const partA: any = {
+  ...dummyBox,
+  id: "leg-1",
+  tenons: [{ position: "top", offsetWidth: 10, length: 30, width: 12, depth: 25 }],
+};
+const partB: any = { ...partA, id: "leg-2" }; // same geometry, different id
+const partC: any = {
+  ...dummyBox,
+  id: "leg-3",
+  visible: { length: 200, width: 50, thickness: 10 },
+};
+
+expect(
+  hashPart(partA) === hashPart(partB),
+  "Identical geometry → same hash (id doesn't count)",
+);
+expect(
+  hashPart(partA) !== hashPart(partC),
+  "Different visible.length → different hash",
+);
+
+// ─── Test 5: mirror split ───────────────────────────────────────────────────
+const mirrorLeft: any = {
+  ...dummyBox,
+  id: "leg-fl",
+  mortises: [
+    { position: "top", offsetWidth: -10, length: 30, width: 12, depth: 25 },
+  ],
+};
+const mirrorRight: any = {
+  ...mirrorLeft,
+  id: "leg-fr",
+  mortises: [
+    { position: "top", offsetWidth: 10, length: 30, width: 12, depth: 25 },
+  ],
+};
+expect(
+  hashPart(mirrorLeft) !== hashPart(mirrorRight),
+  "Mirror pair → different hashes",
+);
+
+// ─── Test 6: grouping across templates produces reasonable count ───────────
+let totalGroups = 0;
+for (const entry of FURNITURE_CATALOG) {
+  if (!entry.template) continue;
+  const design = buildDesign(entry);
+  if (!design) continue;
+  const groups = groupPartsForDrawing(design);
+  for (const g of groups) {
+    expect(
+      g.parts.length >= 1,
+      `${entry.category}: group has ${g.parts.length} part(s)`,
+    );
+    expect(
+      g.count === g.parts.length,
+      `${entry.category}: count matches parts.length`,
+    );
+  }
+  totalGroups += groups.length;
+}
+console.log(
+  `\nstats: ${totalGroups} total groups across ${FURNITURE_CATALOG.length} templates`,
+);
+expect(
+  totalGroups > 50 && totalGroups < 250,
+  `Total groups across 28 templates: ${totalGroups} (expected 50-250)`,
 );
 
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
