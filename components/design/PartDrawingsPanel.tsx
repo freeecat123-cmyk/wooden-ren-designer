@@ -142,10 +142,11 @@ export function PartDrawingsPanel({ design }: Props) {
             <div className="p-4 overflow-auto">
               <div
                 style={
-                  zoomedView !== null
+                  zoomedView !== null && zoom > 1
                     ? {
-                        width: `${zoom * 100}%`,
-                        maxWidth: "none",
+                        transform: `scale(${zoom})`,
+                        transformOrigin: "top left",
+                        width: `${100 / zoom}%`,
                       }
                     : undefined
                 }
