@@ -218,6 +218,19 @@ function partFill(part: Part) {
   return MATERIALS[part.material].color;
 }
 
+/**
+ * OrthoView viewBox + projector context passed to `overlayContent` slot.
+ * 讓零件圖 overlay（T1 尺寸/T2 榫卯虛框/木紋箭頭等）能對齊 OrthoView 的 viewBox。
+ */
+export interface OrthoViewBoxCtx {
+  vbX: number;
+  vbY: number;
+  vbW: number;
+  vbH: number;
+  /** Convert part-local mm coords to SVG pixel coords for this view. */
+  partLocalToSvg(localX: number, localY: number, localZ: number): { x: number; y: number };
+}
+
 // ─── Joinery overlay (Phase 1.5) ────────────────────────────────────────────
 // 把 part-local AABB（tenon 或 mortise 的小箱）投影到 view 平面，回 bbox。
 // 採跟 projectPartSilhouette 相同的 Euler XYZ + bottom-origin 慣例：
@@ -650,6 +663,7 @@ export function OrthoView({
   joineryMode = false,
   isolatePartId,
   showDimensions = true,
+  overlayContent,
 }: ViewProps & {
   view: OrthoView;
   title: string;
@@ -663,6 +677,9 @@ export function OrthoView({
   /** 是否顯示尺寸標註層（dim lines / scale bar / 方位標記）。預設 true。
    *  PartDrawing 會傳 false 然後自己畫零件層級的標註。*/
   showDimensions?: boolean;
+  /** 零件圖 overlay slot：給定 viewBox 上下文，回 SVG 元素疊在最上層。
+   *  例如 T1 全長尺寸/T2 榫卯虛框/木紋箭頭等。*/
+  overlayContent?: (ctx: OrthoViewBoxCtx) => React.ReactNode;
 }) {
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
@@ -698,6 +715,23 @@ export function OrthoView({
   const frameY = vbY + 8;
   const frameW = vbW - 16;
   const frameH = vbH - 16;
+
+  // Build overlay ctx only when consumer asks — avoid projector overhead otherwise.
+  // 零件圖模式（isolatePartId 設）下，renderDesign.parts[0] 就是 recentered 的 part，
+  // 它的 makeProjector 直接吃 part-local mm 回到 SVG 座標。
+  // 整套模式下沒有單一 part，給 no-op projector 讓 caller 可選擇不依賴此欄位。
+  const overlayCtx: OrthoViewBoxCtx | null = overlayContent
+    ? {
+        vbX,
+        vbY,
+        vbW,
+        vbH,
+        partLocalToSvg:
+          isolatePartId && renderDesign.parts.length > 0
+            ? makeProjector(renderDesign.parts[0], view)
+            : (_x: number, _y: number, _z: number) => ({ x: 0, y: 0 }),
+      }
+    : null;
 
   return (
     <svg
@@ -2858,6 +2892,9 @@ export function OrthoView({
           })()}
         </g>
       )}
+
+      {/* Phase 2: overlay slot — caller-controlled SVG over OrthoView. */}
+      {overlayCtx && overlayContent && overlayContent(overlayCtx)}
     </svg>
   );
 }
