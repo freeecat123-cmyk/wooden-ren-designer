@@ -473,7 +473,7 @@ function tenonShoulderBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   }
 }
 
-function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
+export function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalBox {
   const lx = part.visible.length;
   const ly = part.visible.thickness;
   const lz = part.visible.width;

@@ -261,5 +261,76 @@ expect(
   }
 }
 
+// ─── Test 8: T2 label list appears for parts with mortises ────────────────
+{
+  // 用 stool（方凳）當主測—腳件帶 mortise+牙條帶 tenon
+  const entry = FURNITURE_CATALOG.find((e) => e.category === "stool");
+  if (!entry || !entry.template) {
+    console.log("⚠ stool entry not found — T2 label assertion skipped");
+  } else {
+    const design = buildDesign(entry);
+    if (!design) {
+      console.log("⚠ stool design not built — T2 skipped");
+    } else {
+      const groups = groupPartsForDrawing(design);
+      const groupWithMortise = groups.find(
+        (g) => g.representative.mortises.length > 0,
+      );
+      if (groupWithMortise) {
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: groupWithMortise,
+            design,
+            index: 0,
+          }),
+        );
+        expect(html.includes("榫眼"), "T2: 榫眼 label appears");
+        expect(html.includes("距底"), "T2: 距底 reference appears");
+      } else {
+        // Fallback: try any template with a mortise-bearing part
+        let found = false;
+        for (const e of FURNITURE_CATALOG) {
+          if (!e.template) continue;
+          const d = buildDesign(e);
+          if (!d) continue;
+          const gs = groupPartsForDrawing(d);
+          const g = gs.find((g) => g.representative.mortises.length > 0);
+          if (g) {
+            const html = renderPartDrawing(
+              React.createElement(PartDrawing, { group: g, design: d, index: 0 }),
+            );
+            expect(html.includes("榫眼"), `T2: 榫眼 label appears (${e.category})`);
+            expect(html.includes("距底"), `T2: 距底 reference appears (${e.category})`);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          console.log(
+            "⚠ no template surfaced a mortise-bearing group — T2 label assertion skipped",
+          );
+        }
+      }
+
+      // Also assert tenon-bearing group emits 榫頭 label
+      const groupWithTenon = groups.find(
+        (g) => g.representative.tenons.length > 0,
+      );
+      if (groupWithTenon) {
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: groupWithTenon,
+            design,
+            index: 0,
+          }),
+        );
+        expect(html.includes("榫頭"), "T2: 榫頭 label appears");
+      } else {
+        console.log("⚠ stool has no tenon group — 榫頭 assertion skipped");
+      }
+    }
+  }
+}
+
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
 process.exit(fail);

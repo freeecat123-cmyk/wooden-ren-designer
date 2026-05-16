@@ -12,7 +12,7 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
 import { OrthoView } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
-import { T1DimensionsRow } from "./annotation";
+import { T1DimensionsRow, T2LabelList } from "./annotation";
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -109,6 +109,9 @@ export function PartDrawing({
           <T1DimensionsRow part={part} view="side" />
         </div>
       </div>
+
+      {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
+      <T2LabelList part={part} />
 
       {/* Footer */}
       <div className="mt-2 text-[10px] text-zinc-600">
