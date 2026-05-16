@@ -118,6 +118,77 @@ export function projectPartSilhouette(
     return convexHull2D(projected);
   }
 
+  // === Phase 3 Task 6: silhouette gap 補 ===
+  // 7 種 shape 原本走 bbox 4-corner 採樣 → convex hull 給 AABB；零件圖正視/俯
+  // 視看起來像方塊，看不出形狀。改用 projectPartPolygon 既有 polygon 邏輯
+  // （已驗證的 shaker 6 點、notched-corners 12 點、finger-joint/dovetail comb、
+  // regular-polygon N-gon、chamfered-top / face-rounded 圓角）。delegate 不影
+  // 響 overlap.ts / y-slice.ts：那些 caller 只用 min/max 算 AABB，concave
+  // polygon 的 min/max 跟 AABB 一樣。
+  //
+  // 注意：dovetail-ends 已有 user 並行 tray dovetail WIP（projectPartPolygon
+  // 的 wall-left/right phase=1 合成 + projectPartPolygon comb 梯形 → 已測），
+  // 這裡單純 delegate 不會破壞那條路徑。
+  //
+  // face-rounded / chamfered-top: 3D-only 細節（圓角 / R5-R12）在零件圖視覺
+  // 影響極小（< 12mm），但 projectPartPolygon 已實作圓弧 polygon，照常 delegate。
+  if (
+    part.shape &&
+    (part.shape.kind === "shaker" ||
+      part.shape.kind === "notched-corners" ||
+      part.shape.kind === "finger-joint-ends" ||
+      part.shape.kind === "dovetail-ends" ||
+      part.shape.kind === "regular-polygon" ||
+      part.shape.kind === "chamfered-top" ||
+      part.shape.kind === "face-rounded")
+  ) {
+    return projectPartPolygon(part, view);
+  }
+
+  // live-edge：sin 噪聲沿 length 軸（local X）讓 ±Z 兩條長邊起伏；俯視會看到
+  // 波浪外緣，前/側視 silhouette 因為波在 Z 方向，front view 看不到、side view
+  // 看 Z 厚度範圍會被波幅撐大一點。
+  // top view = 32 段 wavy 多邊形 (~66 點)；其他 view = AABB（保留 sample loop
+  // 結果，因為波幅可能讓 worldExtents 略小於實際），用 box corner sample 也夠。
+  if (part.shape?.kind === "live-edge") {
+    const amp = part.shape.amplitudeMm ?? 12;
+    if (view === "top") {
+      const N = 32;
+      const hx = lx / 2;
+      const hy = ly / 2;
+      const hz = lz / 2;
+      // Matches buildLiveEdgeGeometry in PerspectiveView.tsx
+      const noise = (xLocal: number, phase: number) =>
+        amp * 0.6 * Math.sin((xLocal + phase) / (lx * 0.06)) +
+        amp * 0.3 * Math.sin((xLocal + phase * 1.7) / (lx * 0.035)) +
+        amp * 0.1 * Math.sin((xLocal + phase * 2.3) / (lx * 0.02));
+      const xs: number[] = [];
+      const zPosArr: number[] = [];
+      const zNegArr: number[] = [];
+      for (let i = 0; i <= N; i++) {
+        const xLocal = -hx + (lx * i) / N;
+        const t = i / N;
+        const taper = Math.sin(Math.PI * t);
+        xs.push(xLocal);
+        zPosArr.push(hz + noise(xLocal, 0) * taper);
+        zNegArr.push(-hz - noise(xLocal, Math.PI / 3) * taper);
+      }
+      // 走 +Z 邊（i=0..N）→ -Z 邊（i=N..0），閉合多邊形
+      for (let i = 0; i <= N; i++) {
+        pushPoint(xs[i], hy, zPosArr[i]);
+      }
+      for (let i = N; i >= 0; i--) {
+        pushPoint(xs[i], hy, zNegArr[i]);
+      }
+      return projected;
+    }
+    // front/side：波在 Z 方向。front 看 X-Y、Z 變化看不到 → AABB。
+    // side 看 Z-Y、Z 變化撐大 silhouette 範圍 → 加 ±amp 給 Z 邊。
+    // 落到下方 sample loop 即可（z ∈ [-lz/2, +lz/2]，amp 增量略小於 sample
+    // tolerance，跑 hull 出來等同 AABB；可接受）。
+    // 不 return，跌進下方主迴圈
+  }
+
   // 採樣每個 (ex, ey, ez) bbox 角，套 shape 修飾算實際 local 座標
   // 對 arch-bent 沿 ex 軸額外切 N 片
   const xSlices: number[] = arch

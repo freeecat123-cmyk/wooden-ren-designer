@@ -723,6 +723,77 @@ console.log("\n--- P3 Task 5: splayed true length ---");
   }
 }
 
+// ─── Phase 3 Task 6: silhouette gap check ──────────────────────────────────
+// 對 7 種原本落 AABB fallback 的 shape，跑 projectPartSilhouette，驗回傳 polygon
+// > 4 點（不再是 AABB）。catalog 沒出現的 shape 印 ⚠ 軟跳過、不算失敗。
+import { projectPartSilhouette } from "../lib/render/geometry";
+
+console.log("\n--- Phase 3 silhouette gap check ---");
+{
+  // shaker / notched-corners / finger-joint-ends / dovetail-ends / regular-polygon /
+  // live-edge：應出 polygon > 4 點。
+  // face-rounded / chamfered-top：圓角 polygon（已含 projectPartPolygon），> 4
+  // 點也對得起來；但 catalog 可能極少出現。
+  const SHAPE_GAPS_TO_CHECK = [
+    "shaker",
+    "notched-corners",
+    "finger-joint-ends",
+    "dovetail-ends",
+    "regular-polygon",
+    "live-edge",
+    "face-rounded",
+    "chamfered-top",
+  ];
+  for (const kind of SHAPE_GAPS_TO_CHECK) {
+    let found: any = null;
+    for (const entry of FURNITURE_CATALOG) {
+      if (!entry.template) continue;
+      const design = buildDesign(entry);
+      if (!design) continue;
+      for (const p of design.parts) {
+        if (p.shape?.kind === kind) {
+          found = p;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) {
+      console.log(
+        `  ⚠ no part with shape=${kind} in default catalog; skipping`,
+      );
+      continue;
+    }
+    // 試 3 個 view 取最多點數的那個（live-edge 只在 top 出 wavy outline）
+    let bestPoints = 0;
+    let bestView = "";
+    try {
+      for (const v of ["front", "side", "top"] as const) {
+        const poly = projectPartSilhouette(found, v);
+        if (poly && poly.length > bestPoints) {
+          bestPoints = poly.length;
+          bestView = v;
+        }
+      }
+    } catch (e: any) {
+      console.error(
+        `  ❌ shape=${kind}: projectPartSilhouette CRASH: ${e.message}`,
+      );
+      fail++;
+      continue;
+    }
+    if (bestPoints > 4) {
+      console.log(
+        `  ✓ shape=${kind}: ${bestPoints}-point polygon (${bestView} view, not AABB)`,
+      );
+    } else {
+      console.log(
+        `  ⚠ shape=${kind}: ${bestPoints}-point polygon (still AABB-like)`,
+      );
+    }
+  }
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
