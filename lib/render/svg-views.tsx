@@ -1482,6 +1482,54 @@ export function OrthoView({
               }
             }
           }
+          // dovetail-ends 端頭視圖（length 軸 ⊥ view direction）：pin 板（phase=1）
+          // 在端面看會有 N 個梯形 gap 形狀（= 對面 tail 的截面投影）：外側較寬
+          // 內側較窄。tail 板（phase=0）端面是直的（plain rect），不畫 overlay。
+          if (part.shape?.kind === "dovetail-ends" && view !== "top" && part.shape.phase === 1) {
+            const L = part.visible.length;
+            const r = projectPart(part, view);
+            const isEndFace = Math.abs(r.w - L) > 0.5 && Math.abs(r.h - L) > 0.5;
+            if (isEndFace) {
+              const N = Math.max(3, Math.floor(part.shape.segmentCount));
+              const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
+              const halfPin = part.shape.halfPin ?? true;
+              const phaseDt = part.shape.phase;
+              const isPinDt = (s: number) =>
+                (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phaseDt) % 2) === 0;
+              const isLeftWall = part.origin.x < 0;
+              const xOuter = isLeftWall ? r.x : r.x + r.w;
+              const xInner = isLeftWall ? r.x + r.w : r.x;
+              const useH = r.h > r.w;
+              if (useH) {
+                const segH = r.h / N;
+                const d = Math.min(part.shape.pinDepth, r.w * 0.45);
+                const slant = Math.min(segH * 0.45, d * Math.tan(angleRad));
+                for (let s = 0; s < N; s++) {
+                  if (isPinDt(s)) continue;
+                  const yT = r.y + r.h - s * segH;
+                  const yB = r.y + r.h - (s + 1) * segH;
+                  const slantTop = s === 0 ? 0 : slant;
+                  const slantBot = s === N - 1 ? 0 : slant;
+                  const polyPts = [
+                    [xOuter, yT + slantTop],
+                    [xInner, yT],
+                    [xInner, yB],
+                    [xOuter, yB - slantBot],
+                  ];
+                  extras.push(
+                    <polygon
+                      key={`${part.id}-gap-${s}`}
+                      points={polyPts.map((p) => `${p[0].toFixed(2)},${(-p[1]).toFixed(2)}`).join(" ")}
+                      fill="none"
+                      stroke={stroke}
+                      strokeWidth={sw}
+                      strokeDasharray={dash}
+                    />,
+                  );
+                }
+              }
+            }
+          }
           // 多邊形底板在俯視從外面是被壁體擋住 → 虛線（hidden line convention）
           const isPolygonBottomTop = part.shape?.kind === "regular-polygon" && view === "top";
           const effDash = isPolygonBottomTop ? "4 3" : dash;
