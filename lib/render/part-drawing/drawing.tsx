@@ -12,7 +12,13 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
 import { OrthoView } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
-import { T1DimensionsRow, T2LabelList } from "./annotation";
+import {
+  T1Dimensions,
+  T2Annotations,
+  T2LabelList,
+  GrainArrow,
+  FacingMark,
+} from "./annotation";
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -73,50 +79,70 @@ export function PartDrawing({
         </span>
       </div>
 
-      {/* 3 views grid + T1 整體尺寸（每張下方 text row，Phase 1）*/}
+      {/* 3 views grid，每張 OrthoView 內疊 T1 SVG overlay（Phase 2） */}
       <div className="grid grid-cols-3 gap-2">
-        <div>
-          <OrthoView
-            design={design}
-            view="front"
-            title="正視"
-            titleEn="FRONT"
-            isolatePartId={part.id}
-            showDimensions={false}
-          />
-          <T1DimensionsRow part={part} view="front" />
-        </div>
-        <div>
-          <OrthoView
-            design={design}
-            view="top"
-            title="俯視"
-            titleEn="TOP"
-            isolatePartId={part.id}
-            showDimensions={false}
-          />
-          <T1DimensionsRow part={part} view="top" />
-        </div>
-        <div>
-          <OrthoView
-            design={design}
-            view="side"
-            title="側視"
-            titleEn="SIDE"
-            isolatePartId={part.id}
-            showDimensions={false}
-          />
-          <T1DimensionsRow part={part} view="side" />
-        </div>
+        <OrthoView
+          design={design}
+          view="front"
+          title="正視"
+          titleEn="FRONT"
+          isolatePartId={part.id}
+          showDimensions={false}
+          overlayContent={(ctx) => (
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="front" />
+              <T2Annotations ctx={ctx} part={part} view="front" />
+              <GrainArrow ctx={ctx} part={part} view="front" />
+              <FacingMark ctx={ctx} part={part} view="front" />
+            </>
+          )}
+        />
+        <OrthoView
+          design={design}
+          view="top"
+          title="俯視"
+          titleEn="TOP"
+          isolatePartId={part.id}
+          showDimensions={false}
+          overlayContent={(ctx) => (
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="top" />
+              <T2Annotations ctx={ctx} part={part} view="top" />
+              <GrainArrow ctx={ctx} part={part} view="top" />
+              <FacingMark ctx={ctx} part={part} view="top" />
+            </>
+          )}
+        />
+        <OrthoView
+          design={design}
+          view="side"
+          title="側視"
+          titleEn="SIDE"
+          isolatePartId={part.id}
+          showDimensions={false}
+          overlayContent={(ctx) => (
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="side" />
+              <T2Annotations ctx={ctx} part={part} view="side" />
+              <GrainArrow ctx={ctx} part={part} view="side" />
+              <FacingMark ctx={ctx} part={part} view="side" />
+            </>
+          )}
+        />
       </div>
 
       {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
-      <T2LabelList part={part} />
+      <T2LabelList part={part} design={design} />
 
       {/* Footer */}
       <div className="mt-2 text-[10px] text-zinc-600">
         材料：{material?.nameZh ?? material?.nameEn ?? part.material}
       </div>
+      {design.useButtJointConvention !== false && (
+        <div className="mt-1 text-[8px] text-zinc-400 italic">
+          ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
+        </div>
+      )}
     </div>
   );
 }

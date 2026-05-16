@@ -243,7 +243,7 @@ expect(
         `PartDrawing renders 3 SVG views (got ${(html.match(/<svg/g) ?? []).length})`,
       );
       expect(html.includes("材料："), "PartDrawing renders 材料 footer");
-      // T1 dim row should appear: length value from representative part
+      // T1 dim overlay (Phase 2 SVG) should emit length value as <text> label
       const L = String(
         Math.round(groups[0].representative.visible.length * 10) / 10,
       );
@@ -251,11 +251,24 @@ expect(
         html.includes(L),
         `T1: rendered output mentions length ${L}`,
       );
-      // T1 row uses 長/寬/厚 prefix（react-dom 會插 <!-- --> 分隔 expression，
-      // 用單字元比對才穩）
+      // Phase 2: T1 走 SVG overlay，<text> 標籤含 長/寬/厚 prefix
       expect(
         html.includes("長") && html.includes("寬") && html.includes("厚"),
         "T1: rendered output uses 長/寬/厚 prefix",
+      );
+      // Phase 2: T1 overlay <g> 應掛 t1-dim-overlay class
+      expect(
+        html.includes("t1-dim-overlay"),
+        "T1: t1-dim-overlay SVG class present in output",
+      );
+      // Phase 2 Task 4: GrainArrow 應在每張 view 右下角輸出 順紋 字 + grain-arrow class
+      expect(
+        html.includes("順紋"),
+        "GrainArrow: 順紋 text present in output",
+      );
+      expect(
+        html.includes("grain-arrow"),
+        "GrainArrow: grain-arrow SVG class present in output",
       );
     }
   }
@@ -286,6 +299,16 @@ expect(
         );
         expect(html.includes("榫眼"), "T2: 榫眼 label appears");
         expect(html.includes("距底"), "T2: 距底 reference appears");
+        // Phase 2: T2 dashed-box overlay 應掛 t2-overlay class
+        expect(
+          html.includes("t2-overlay"),
+          "T2: t2-overlay SVG class present in output",
+        );
+        // Phase 2: mortise 用 stroke-dasharray="2 2" 細虛線
+        expect(
+          html.includes('stroke-dasharray="2 2"'),
+          "T2: mortise dashed box (dash 2 2) renders",
+        );
       } else {
         // Fallback: try any template with a mortise-bearing part
         let found = false;
@@ -325,6 +348,11 @@ expect(
           }),
         );
         expect(html.includes("榫頭"), "T2: 榫頭 label appears");
+        // Phase 2: tenon 用 stroke-dasharray="3 1.5"，跟 mortise 視覺區分
+        expect(
+          html.includes('stroke-dasharray="3 1.5"'),
+          "T2: tenon dashed box (dash 3 1.5) renders",
+        );
       } else {
         console.log("⚠ stool has no tenon group — 榫頭 assertion skipped");
       }
@@ -404,6 +432,123 @@ expect(
   crashCount === 0,
   `28-template smoke: ${crashCount} crash(es) (must be 0; rendered ${renderedCount} cards across ${templatesCovered} templates)`,
 );
+
+// ─── Test 10: FacingMark appears in ≥1 template (Phase 2 Task 5) ──────────
+// 對 28 模板每個 group 跑 PartDrawing，至少要有一張圖出現 facing-mark class。
+{
+  let facingFound = false;
+  let facingTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (let i = 0; i < groups.length; i++) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[i],
+          design,
+          index: i,
+        }),
+      );
+      if (html.includes("facing-mark")) {
+        facingFound = true;
+        facingTemplate = entry.category;
+        break;
+      }
+    }
+    if (facingFound) break;
+  }
+  expect(
+    facingFound,
+    `FacingMark: at least one part across 28 templates produces a FacingMark (matched in ${facingTemplate || "none"})`,
+  );
+}
+
+// ─── Test 11: ↔ pair suffix appears in ≥1 template (Phase 2 Task 6) ────────
+// 對 28 模板每個 group 跑 PartDrawing，至少要有一張圖在 T2 label list 內出現
+// 「↔ {otherPartId} 榫頭/榫眼N」配對後綴。
+{
+  let pairFound = false;
+  let pairTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (let i = 0; i < groups.length; i++) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[i],
+          design,
+          index: i,
+        }),
+      );
+      if (html.includes("↔")) {
+        pairFound = true;
+        pairTemplate = entry.category;
+        break;
+      }
+    }
+    if (pairFound) break;
+  }
+  expect(
+    pairFound,
+    `pair-id: at least one template produces ↔ pair suffix (matched in ${pairTemplate || "none"})`,
+  );
+}
+
+// ─── Phase 2 element smoke: 28-template element coverage ───────────────────
+// 統計 Phase 2 元素（T2 dashed box / GrainArrow / pair ID）在所有 28 模板每張
+// card 上的覆蓋率，並驗證關鍵下限：grain-arrow 必須每張都有、T2 box 必須 >50、
+// pair ID 必須 ≥1。crashes 必須為 0。
+console.log("\n--- Phase 2 element smoke (28 templates) ---");
+{
+  let p2t2 = 0,
+    p2grain = 0,
+    p2pair = 0;
+  let p2crashes = 0;
+  let totalCards = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          }),
+        );
+        if (!html || html.length < 200) {
+          p2crashes++;
+          continue;
+        }
+        if (html.includes("t2-overlay")) p2t2++;
+        if (html.includes("grain-arrow")) p2grain++;
+        if (html.includes("↔")) p2pair++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p2crashes++;
+    }
+  }
+  console.log(
+    `  P2 stats: total=${totalCards} t2-box=${p2t2} grain-arrow=${p2grain} pair=${p2pair} crashes=${p2crashes}`,
+  );
+  expect(p2crashes === 0, `Phase 2 smoke: ${p2crashes} crash(es)`);
+  expect(
+    p2grain === totalCards,
+    `Phase 2 grain-arrow on every card (${p2grain}/${totalCards})`,
+  );
+  expect(p2t2 > 50, `Phase 2 T2 box appears on >50 cards (${p2t2})`);
+  expect(p2pair > 0, `Phase 2 pair ID appears at least once (${p2pair})`);
+}
 
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
