@@ -1458,9 +1458,9 @@ function buildDovetailEndsGeometry(
   // phase=0 (tail board，前後板)：trapezoid tip 比 base 寬 → 燕尾凸出在端頭
   // phase=1 (pin board，左右板)：trapezoid tip 比 base 窄 → 銷凸出在端頭
   // 兩者互嵌：phase=0 tail 的寬尾正好卡進 phase=1 pin 之間的 gap。
-  // slantSign 控制 Y 方向偏移：-1 = tail（凸出 yB-slantY ~ yT+slantY），
-  // +1 = pin（內縮 yB+slantY ~ yT-slantY）。
-  const slantSign = phase === 0 ? -1 : +1;
+  // 4 壁視覺統一用 tail 樣子（端頭最寬），user 希望左右板吻合前後板。
+  // phase 仍決定哪些 segment 是 solid（透過 isPin 函式互嵌）；slant 固定 -1。
+  const slantSign = -1;
   const sY = slantSign * slantY;
 
   // 沿右邊 (X = +hx tip / +hx - depth base) 走 bot→top；左邊 (X = -hx tip / -hx + depth base) 走 top→bot 閉合
