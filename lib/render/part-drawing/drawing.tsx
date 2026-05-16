@@ -17,6 +17,7 @@ import {
   T2Annotations,
   T2LabelList,
   GrainArrow,
+  FacingMark,
 } from "./annotation";
 
 interface PartDrawingProps {
@@ -92,6 +93,7 @@ export function PartDrawing({
               <T1Dimensions ctx={ctx} part={part} view="front" />
               <T2Annotations ctx={ctx} part={part} view="front" />
               <GrainArrow ctx={ctx} part={part} view="front" />
+              <FacingMark ctx={ctx} part={part} view="front" />
             </>
           )}
         />
@@ -107,6 +109,7 @@ export function PartDrawing({
               <T1Dimensions ctx={ctx} part={part} view="top" />
               <T2Annotations ctx={ctx} part={part} view="top" />
               <GrainArrow ctx={ctx} part={part} view="top" />
+              <FacingMark ctx={ctx} part={part} view="top" />
             </>
           )}
         />
@@ -122,6 +125,7 @@ export function PartDrawing({
               <T1Dimensions ctx={ctx} part={part} view="side" />
               <T2Annotations ctx={ctx} part={part} view="side" />
               <GrainArrow ctx={ctx} part={part} view="side" />
+              <FacingMark ctx={ctx} part={part} view="side" />
             </>
           )}
         />
