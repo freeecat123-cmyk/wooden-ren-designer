@@ -243,6 +243,20 @@ expect(
         `PartDrawing renders 3 SVG views (got ${(html.match(/<svg/g) ?? []).length})`,
       );
       expect(html.includes("材料："), "PartDrawing renders 材料 footer");
+      // T1 dim row should appear: length value from representative part
+      const L = String(
+        Math.round(groups[0].representative.visible.length * 10) / 10,
+      );
+      expect(
+        html.includes(L),
+        `T1: rendered output mentions length ${L}`,
+      );
+      // T1 row uses 長/寬/厚 prefix（react-dom 會插 <!-- --> 分隔 expression，
+      // 用單字元比對才穩）
+      expect(
+        html.includes("長") && html.includes("寬") && html.includes("厚"),
+        "T1: rendered output uses 長/寬/厚 prefix",
+      );
     }
   }
 }

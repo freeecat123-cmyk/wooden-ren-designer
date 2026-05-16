@@ -2862,7 +2862,7 @@ export function OrthoView({
   );
 }
 
-function DimensionLine({
+export function DimensionLine({
   x1,
   x2,
   y,
@@ -2906,7 +2906,7 @@ function DimensionLine({
   );
 }
 
-function VerticalDimensionLine({
+export function VerticalDimensionLine({
   x,
   y1,
   y2,
