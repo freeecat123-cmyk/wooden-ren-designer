@@ -12,7 +12,7 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
 import { OrthoView } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
-import { T1Dimensions, T2LabelList } from "./annotation";
+import { T1Dimensions, T2Annotations, T2LabelList } from "./annotation";
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -83,7 +83,10 @@ export function PartDrawing({
           isolatePartId={part.id}
           showDimensions={false}
           overlayContent={(ctx) => (
-            <T1Dimensions ctx={ctx} part={part} view="front" />
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="front" />
+              <T2Annotations ctx={ctx} part={part} view="front" />
+            </>
           )}
         />
         <OrthoView
@@ -94,7 +97,10 @@ export function PartDrawing({
           isolatePartId={part.id}
           showDimensions={false}
           overlayContent={(ctx) => (
-            <T1Dimensions ctx={ctx} part={part} view="top" />
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="top" />
+              <T2Annotations ctx={ctx} part={part} view="top" />
+            </>
           )}
         />
         <OrthoView
@@ -105,7 +111,10 @@ export function PartDrawing({
           isolatePartId={part.id}
           showDimensions={false}
           overlayContent={(ctx) => (
-            <T1Dimensions ctx={ctx} part={part} view="side" />
+            <>
+              <T1Dimensions ctx={ctx} part={part} view="side" />
+              <T2Annotations ctx={ctx} part={part} view="side" />
+            </>
           )}
         />
       </div>

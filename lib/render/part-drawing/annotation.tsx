@@ -250,20 +250,97 @@ export function T2LabelList({ part }: { part: Part }) {
 }
 
 /**
- * T2 joinery feature bounding boxes (Phase 2 promotion candidate).
+ * T2 joinery feature dashed bounding boxes (Phase 2 activated).
  *
- * Renders thin-dashed rectangles inside each view to mark mortise/tenon
- * positions. Phase 1 用 <T1LabelList> 取代（純文字、無對位風險）。
- * Phase 2 會把 OrthoView 的 viewBox 計算外露出來，配合 projectFeatureRect
- * 在 view 內疊一層 SVG `<g>` 畫 dashed bbox + leader line 接到 T2LabelList。
+ * 在每張 OrthoView 內疊一層 SVG `<g>`，於 mortise/tenon 投影位置畫細虛 box：
+ *   - mortise: 虛線 `2 2` / `#666` / 0.6 mm（埋進母件，視覺上偏冷）
+ *   - tenon:   虛線 `3 1.5` / `#888` / 0.5 mm（凸出部分，視覺上更細）
+ * 兩種風格區分明確，木匠看圖時一眼分得出公榫 vs 母榫。
  *
- * Stub 目前回 null，留 prop signature 給 Phase 2 接手用。
+ * 投影方式：把 `mortiseLocalBox` / `tenonLocalBox` 的 8 個角用 ctx.partLocalToSvg
+ * 轉成 SVG 座標、取 AABB（part 有 rotation 時也能正確包到整個範圍）。
+ *
+ * 太小的 feature（< 0.5 mm × 0.5 mm 投影面積）略過避免製造噪點。
+ * Phase 3 會再加 leader line + 對應 T2LabelList 編號。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §2
  */
-export function T2Annotations(_props: {
+export function T2Annotations({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
   part: Part;
   view: PartView;
-  width: number;
-  height: number;
 }) {
-  return null;
+  const projectBoxRect = (box: {
+    cx: number; cy: number; cz: number;
+    hx: number; hy: number; hz: number;
+  }): { x: number; y: number; w: number; h: number } | null => {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          const p = ctx.partLocalToSvg(
+            box.cx + sx * box.hx,
+            box.cy + sy * box.hy,
+            box.cz + sz * box.hz,
+          );
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        }
+      }
+    }
+    const w = maxX - minX;
+    const h = maxY - minY;
+    if (w < 0.5 || h < 0.5) return null;
+    return { x: minX, y: minY, w, h };
+  };
+
+  const rects: React.ReactNode[] = [];
+
+  part.mortises.forEach((m, idx) => {
+    const lb = mortiseLocalBox(part, m);
+    const r = projectBoxRect(lb);
+    if (!r) return;
+    rects.push(
+      <rect
+        key={`m-${idx}-${view}`}
+        x={r.x}
+        y={r.y}
+        width={r.w}
+        height={r.h}
+        fill="none"
+        stroke="#666"
+        strokeWidth={0.6}
+        strokeDasharray="2 2"
+      />,
+    );
+  });
+
+  part.tenons.forEach((t, idx) => {
+    if (t.length <= 0) return;
+    const lb = tenonLocalBox(part, t);
+    const r = projectBoxRect(lb);
+    if (!r) return;
+    rects.push(
+      <rect
+        key={`t-${idx}-${view}`}
+        x={r.x}
+        y={r.y}
+        width={r.w}
+        height={r.h}
+        fill="none"
+        stroke="#888"
+        strokeWidth={0.5}
+        strokeDasharray="3 1.5"
+      />,
+    );
+  });
+
+  if (!rects.length) return null;
+  return <g className="t2-overlay">{rects}</g>;
 }
