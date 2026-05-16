@@ -537,24 +537,22 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
     const wallActualH = bottomAttach === "inset-panel" ? outerH : outerH - botT;
     dovetailInfo = { segmentCount, segH: wallActualH / segmentCount, angleDeg };
+    // 新做法（user 指示）：前後板照樣切 tail 凸齒（dovetail-ends shape），
+    // 左右板暫時當成完整 box（不切榫）。前後板 tail 跟左右板 box 物理上重疊
+    // 在角落、之後再透過 CSG 把重疊部分從左右板挖掉——比硬算 pin 形狀對齊
+    // tail 簡單可靠。
     for (const part of built.parts) {
-      let phase: 0 | 1 | null = null;
-      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
-      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
-      if (phase !== null) {
-        // halfPin 只給 tail 板（前後板，phase=0）：在 s=0/N-1 強制加 half-tail
-        // 保住端頭整塊不破角。Pin 板（左右板）關 halfPin、s=0/N-1 維持 gap，
-        // 正好讓 tail 板的 half-tail 嵌進來 → 雙板互嵌 5 段不重疊。
-        // 之前兩板都 halfPin=true → s=0/N-1 兩板都 pin、撞位置沒互嵌。
+      if (part.id === "wall-front" || part.id === "wall-back") {
         part.shape = {
           kind: "dovetail-ends",
           segmentCount,
-          phase,
+          phase: 0,
           angleDeg,
           pinDepth: wallT,
-          halfPin: phase === 0,
+          halfPin: true,
         };
       }
+      // wall-left/right：不設 shape（保持 default box）
     }
   }
 
