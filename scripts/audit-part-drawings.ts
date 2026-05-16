@@ -261,6 +261,15 @@ expect(
         html.includes("t1-dim-overlay"),
         "T1: t1-dim-overlay SVG class present in output",
       );
+      // Phase 2 Task 4: GrainArrow 應在每張 view 右下角輸出 順紋 字 + grain-arrow class
+      expect(
+        html.includes("順紋"),
+        "GrainArrow: 順紋 text present in output",
+      );
+      expect(
+        html.includes("grain-arrow"),
+        "GrainArrow: grain-arrow SVG class present in output",
+      );
     }
   }
 }

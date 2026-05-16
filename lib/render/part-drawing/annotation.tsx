@@ -344,3 +344,106 @@ export function T2Annotations({
   if (!rects.length) return null;
   return <g className="t2-overlay">{rects}</g>;
 }
+
+/**
+ * GrainArrow — 順紋方向小箭頭（Phase 2 Task 4）。
+ *
+ * 每張 OrthoView 右下角繪一個 14px 標記 + 「順紋」字（藍色 #1d4ed8）：
+ *   - horiz：水平箭頭 →（沿水平軸順紋）
+ *   - vert： 垂直箭頭 ↑（沿垂直軸順紋）
+ *   - into： ⊙ 圓圈+點（順紋指向紙面內側，無法在此 view 平面表示）
+ *
+ * Per view 對應（GrainDirection 只有 length | width）：
+ *   front: length→horiz / width→into
+ *   top:   length→horiz / width→vert
+ *   side:  length→into  / width→horiz
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §4
+ */
+type ArrowDir = "horiz" | "vert" | "into";
+
+function grainArrowDir(
+  grain: Part["grainDirection"],
+  view: PartView,
+): ArrowDir {
+  if (view === "front") return grain === "length" ? "horiz" : "into";
+  if (view === "top") return grain === "length" ? "horiz" : "vert";
+  // side
+  return grain === "width" ? "horiz" : "into";
+}
+
+export function GrainArrow({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  const dir = grainArrowDir(part.grainDirection, view);
+  const x0 = ctx.vbX + ctx.vbW - 38;
+  const y0 = ctx.vbY + ctx.vbH - 18;
+  const len = 14;
+
+  let glyph: React.ReactNode;
+  if (dir === "horiz") {
+    glyph = (
+      <g>
+        <line
+          x1={x0}
+          y1={y0 - 4}
+          x2={x0 + len}
+          y2={y0 - 4}
+          stroke="#1d4ed8"
+          strokeWidth={0.7}
+        />
+        <polygon
+          points={`${x0 + len},${y0 - 4} ${x0 + len - 3},${y0 - 6} ${x0 + len - 3},${y0 - 2}`}
+          fill="#1d4ed8"
+        />
+      </g>
+    );
+  } else if (dir === "vert") {
+    glyph = (
+      <g>
+        <line
+          x1={x0 + len / 2}
+          y1={y0}
+          x2={x0 + len / 2}
+          y2={y0 - len}
+          stroke="#1d4ed8"
+          strokeWidth={0.7}
+        />
+        <polygon
+          points={`${x0 + len / 2},${y0 - len} ${x0 + len / 2 - 2},${y0 - len + 3} ${x0 + len / 2 + 2},${y0 - len + 3}`}
+          fill="#1d4ed8"
+        />
+      </g>
+    );
+  } else {
+    // into the page
+    glyph = (
+      <g>
+        <circle
+          cx={x0 + len / 2}
+          cy={y0 - 4}
+          r={4}
+          fill="none"
+          stroke="#1d4ed8"
+          strokeWidth={0.7}
+        />
+        <circle cx={x0 + len / 2} cy={y0 - 4} r={1} fill="#1d4ed8" />
+      </g>
+    );
+  }
+
+  return (
+    <g className="grain-arrow">
+      {glyph}
+      <text x={x0} y={y0 + 8} fontSize={7} fill="#1d4ed8">
+        順紋
+      </text>
+    </g>
+  );
+}

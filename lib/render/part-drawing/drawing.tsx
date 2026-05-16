@@ -12,7 +12,12 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
 import { OrthoView } from "@/lib/render/svg-views";
 import { MATERIALS } from "@/lib/materials";
-import { T1Dimensions, T2Annotations, T2LabelList } from "./annotation";
+import {
+  T1Dimensions,
+  T2Annotations,
+  T2LabelList,
+  GrainArrow,
+} from "./annotation";
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -86,6 +91,7 @@ export function PartDrawing({
             <>
               <T1Dimensions ctx={ctx} part={part} view="front" />
               <T2Annotations ctx={ctx} part={part} view="front" />
+              <GrainArrow ctx={ctx} part={part} view="front" />
             </>
           )}
         />
@@ -100,6 +106,7 @@ export function PartDrawing({
             <>
               <T1Dimensions ctx={ctx} part={part} view="top" />
               <T2Annotations ctx={ctx} part={part} view="top" />
+              <GrainArrow ctx={ctx} part={part} view="top" />
             </>
           )}
         />
@@ -114,6 +121,7 @@ export function PartDrawing({
             <>
               <T1Dimensions ctx={ctx} part={part} view="side" />
               <T2Annotations ctx={ctx} part={part} view="side" />
+              <GrainArrow ctx={ctx} part={part} view="side" />
             </>
           )}
         />
