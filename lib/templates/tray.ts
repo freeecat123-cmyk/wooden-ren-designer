@@ -15,18 +15,58 @@ interface TrayPresetConfig {
   cornerJoinery?: string;
   dividers?: number;
   crossDividers?: number;
+  wallSplay?: number;
+  withHandle?: boolean;
+  handleShape?: string;
+  handleWidth?: number;
+  bottomAttach?: string;
 }
+// 2026-05-16 重做 preset：吃進新加的 wallSplay (Shaker)/dovetail/handle/
+// bottomAttach。涵蓋從簡單到傳統工法、淺到深、生活用具到工坊收納 6 種典型。
 const TRAY_PRESETS: Record<string, TrayPresetConfig> = {
-  // 一般托盤：方筒整空
-  classic: { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 0, crossDividers: 0 },
-  // 文具站：grid 6 格分裝剪刀/筆/刀片
-  "stationery-station": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 1 },
-  // 化妝刷筒：深款 + 1 縱向 + 倒角圓潤
-  "makeup-brush": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0 },
-  // 廚房料理工具筒：深 + 厚壁
-  "kitchen-utensil": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 1, crossDividers: 1 },
-  // 木工專用：4 格分裝尺/筆/夾子 + 厚壁耐撞
-  "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2 },
+  // Shaker 茶盤：外撇 15° + miter 複斜 + pill 把手，美式經典
+  "shaker-tea-tray": {
+    wallThickness: 8, bottomThickness: 8,
+    cornerJoinery: "miter", wallSplay: 15,
+    withHandle: true, handleShape: "pill",
+    dividers: 0, crossDividers: 0,
+  },
+  // 鳩尾餐盤：傳統工藝（dovetail + 鑲板入溝），無把手、純展示
+  "dovetail-classic": {
+    wallThickness: 10, bottomThickness: 10,
+    cornerJoinery: "dovetail",
+    bottomAttach: "inset-panel",
+    withHandle: false,
+    dividers: 0, crossDividers: 0,
+  },
+  // 文具分格盤：指接 + grid 9 格、無把手、桌面收納
+  "stationery-grid": {
+    wallThickness: 8, bottomThickness: 8,
+    cornerJoinery: "finger-joint",
+    withHandle: false,
+    dividers: 2, crossDividers: 2,
+  },
+  // 玄關零物盤：微外撇 5° + 短 pill 把手，鑰匙 / 零錢 / 手錶用
+  "catchall": {
+    wallThickness: 8, bottomThickness: 8,
+    cornerJoinery: "stub-joint", wallSplay: 5,
+    withHandle: true, handleShape: "pill", handleWidth: 80,
+    dividers: 0, crossDividers: 0,
+  },
+  // 廚房深筒：厚壁 12mm + finger-joint + 中央 1 隔板，鍋鏟攪拌器用
+  "kitchen-deep": {
+    wallThickness: 12, bottomThickness: 12,
+    cornerJoinery: "finger-joint",
+    withHandle: true, handleShape: "pill",
+    dividers: 1, crossDividers: 0,
+  },
+  // 木工工具箱：厚壁 + grid + 拉手
+  "woodworker-caddy": {
+    wallThickness: 12, bottomThickness: 12,
+    cornerJoinery: "finger-joint",
+    withHandle: true, handleShape: "pill",
+    dividers: 2, crossDividers: 2,
+  },
 };
 
 export const trayOptions: OptionSpec[] = [
@@ -40,12 +80,13 @@ export const trayOptions: OptionSpec[] = [
   ], help: "六/八角款用 stave 拼接（取 length/width 較小邊為直徑）；方筒以外不支援 dividers" },
   { group: "preset", type: "select", key: "useCase", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
-    { value: "classic", label: "一般托盤（方筒整空）" },
-    { value: "stationery-station", label: "文具站（grid 6 格分裝剪刀/筆/刀片）" },
-    { value: "makeup-brush", label: "化妝刷筒（深款 + 縱向隔板 + 圓潤倒角）" },
-    { value: "kitchen-utensil", label: "廚房料理工具筒（厚壁 + 4 格）" },
-    { value: "woodworker-caddy", label: "木工專用（厚壁 + 9 格分裝尺/筆/夾子）" },
-  ], help: "一鍵套適合該情境的壁厚 / 隔板 / 接合 / 倒角組合，user 後改不蓋。" },
+    { value: "shaker-tea-tray", label: "Shaker 茶盤（外撇 15° + miter 複斜 + pill 把手）" },
+    { value: "dovetail-classic", label: "鳩尾餐盤（傳統工藝 + 鑲板入溝、無把手）" },
+    { value: "stationery-grid", label: "文具分格盤（指接 + grid 9 格、無把手）" },
+    { value: "catchall", label: "玄關零物盤（微外撇 5° + 短 pill 把手）" },
+    { value: "kitchen-deep", label: "廚房深筒（厚壁 12mm + 1 隔板 + 把手）" },
+    { value: "woodworker-caddy", label: "木工工具箱（厚壁 + grid + 拉手）" },
+  ], help: "一鍵套適合該情境的壁厚 / 接合 / 外撇 / 把手 / 分隔組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
@@ -112,17 +153,23 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
   const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
   const bodyShape = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
-  const bottomAttach = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
+  const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach"));
+  const bottomAttach = (bottomAttachRaw === "seated" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
-  // 托盤把手孔：兩個短邊壁中央偏上挖穿透長條孔
-  const wallSplayDeg = getOption<number>(input, opt(o, "wallSplay"));
+  // 托盤把手孔：兩個短邊壁中央偏上挖穿透長條孔。preset 可覆寫，但只在 raw=default
+  // 時生效（user 手調後不蓋）。
+  const wallSplayRaw = getOption<number>(input, opt(o, "wallSplay"));
+  const wallSplayDeg = wallSplayRaw === 0 && preset?.wallSplay !== undefined ? preset.wallSplay : wallSplayRaw;
   const wallSplayRad = (wallSplayDeg * Math.PI) / 180;
-  const withHandle = getOption<boolean>(input, opt(o, "withHandle"));
-  const handleShape = getOption<string>(input, opt(o, "handleShape")) as "rect" | "pill" | "circle";
-  const handleWidthOpt = getOption<number>(input, opt(o, "handleWidth"));
+  const withHandleRaw = getOption<boolean>(input, opt(o, "withHandle"));
+  const withHandle = withHandleRaw === true && preset?.withHandle !== undefined ? preset.withHandle : withHandleRaw;
+  const handleShapeRaw = getOption<string>(input, opt(o, "handleShape"));
+  const handleShape = (handleShapeRaw === "pill" && preset?.handleShape ? preset.handleShape : handleShapeRaw) as "rect" | "pill" | "circle";
+  const handleWidthRaw = getOption<number>(input, opt(o, "handleWidth"));
+  const handleWidthOpt = handleWidthRaw === 100 && preset?.handleWidth !== undefined ? preset.handleWidth : handleWidthRaw;
   const handleHeightOpt = getOption<number>(input, opt(o, "handleHeight"));
   const handleTopMarginOpt = getOption<number>(input, opt(o, "handleTopMargin"));
   const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
