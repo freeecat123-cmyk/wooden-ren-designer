@@ -26,6 +26,8 @@ import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+type PartView = "front" | "top" | "side";
+
 interface PartDrawingProps {
   group: PartDrawingGroup;
   design: FurnitureDesign;
@@ -40,6 +42,10 @@ interface PartDrawingProps {
    * - "stack"：直排 3 列，每張視圖佔全寬，modal 大圖檢視用
    */
   viewLayout?: "row" | "stack";
+  /** 限定只渲染這一個 view（單視圖放大模式用）。 */
+  singleView?: PartView;
+  /** 設了之後每個 view 變 clickable、點擊 callback 傳該 view 名。 */
+  onViewClick?: (view: PartView) => void;
 }
 
 /**
@@ -65,6 +71,8 @@ export function PartDrawing({
   scaleDenom,
   className,
   viewLayout = "row",
+  singleView,
+  onViewClick,
 }: PartDrawingProps) {
   const part = group.representative;
   const scale = scaleDenom ?? pickScale(part);
@@ -99,68 +107,68 @@ export function PartDrawing({
         </span>
       </div>
 
-      {/* 3 views layout：row（橫排 3 列）或 stack（直排，modal 大圖用）。
-          stack 時每張 view 加大、便於肉眼讀尺寸 / 榫位。 */}
-      <div
-        className={
-          viewLayout === "stack"
-            ? "grid grid-cols-1 gap-4"
-            : "grid grid-cols-3 gap-2"
-        }
-      >
-        <OrthoView
-          design={design}
-          view="front"
-          title="正視"
-          titleEn="FRONT"
-          isolatePartId={part.id}
-          showDimensions={false}
-          overlayContent={(ctx) => (
-            <>
-              <T1Dimensions ctx={ctx} part={part} view="front" />
-              <T2Annotations ctx={ctx} part={part} view="front" />
-              <GrainArrow ctx={ctx} part={part} view="front" />
-              <FacingMark ctx={ctx} part={part} view="front" />
-              <ShapeSpecificAnnotation ctx={ctx} part={part} view="front" />
-              {/* DetailCallout disabled —— T2Annotations 已直接在 view 內加 leader+label */}
-            </>
-          )}
-        />
-        <OrthoView
-          design={design}
-          view="top"
-          title="俯視"
-          titleEn="TOP"
-          isolatePartId={part.id}
-          showDimensions={false}
-          overlayContent={(ctx) => (
-            <>
-              <T1Dimensions ctx={ctx} part={part} view="top" />
-              <T2Annotations ctx={ctx} part={part} view="top" />
-              <GrainArrow ctx={ctx} part={part} view="top" />
-              <FacingMark ctx={ctx} part={part} view="top" />
-              <ShapeSpecificAnnotation ctx={ctx} part={part} view="top" />
-            </>
-          )}
-        />
-        <OrthoView
-          design={design}
-          view="side"
-          title="側視"
-          titleEn="SIDE"
-          isolatePartId={part.id}
-          showDimensions={false}
-          overlayContent={(ctx) => (
-            <>
-              <T1Dimensions ctx={ctx} part={part} view="side" />
-              <T2Annotations ctx={ctx} part={part} view="side" />
-              <GrainArrow ctx={ctx} part={part} view="side" />
-              <FacingMark ctx={ctx} part={part} view="side" />
-              <ShapeSpecificAnnotation ctx={ctx} part={part} view="side" />
-            </>
-          )}
-        />
-      </div>
+      {/* 3 views layout：row / stack / singleView。 */}
+      {(() => {
+        const VIEWS: Array<{ view: PartView; title: string; titleEn: string }> = [
+          { view: "front", title: "正視", titleEn: "FRONT" },
+          { view: "top", title: "俯視", titleEn: "TOP" },
+          { view: "side", title: "側視", titleEn: "SIDE" },
+        ];
+        const filtered = singleView
+          ? VIEWS.filter((v) => v.view === singleView)
+          : VIEWS;
+        const gridClass = singleView
+          ? "grid grid-cols-1 gap-2"
+          : viewLayout === "stack"
+          ? "grid grid-cols-1 gap-4"
+          : "grid grid-cols-3 gap-2";
+        return (
+          <div className={gridClass}>
+            {filtered.map(({ view, title, titleEn }) => {
+              const orthoEl = (
+                <OrthoView
+                  design={design}
+                  view={view}
+                  title={title}
+                  titleEn={titleEn}
+                  isolatePartId={part.id}
+                  showDimensions={false}
+                  overlayContent={(ctx) => (
+                    <>
+                      <T1Dimensions ctx={ctx} part={part} view={view} />
+                      <T2Annotations ctx={ctx} part={part} view={view} />
+                      <GrainArrow ctx={ctx} part={part} view={view} />
+                      <FacingMark ctx={ctx} part={part} view={view} />
+                      <ShapeSpecificAnnotation
+                        ctx={ctx}
+                        part={part}
+                        view={view}
+                      />
+                    </>
+                  )}
+                />
+              );
+              if (onViewClick) {
+                return (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => onViewClick(view)}
+                    className="group relative block w-full text-left cursor-zoom-in"
+                    aria-label={`放大 ${title}`}
+                  >
+                    {orthoEl}
+                    <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-900/70 text-white opacity-0 group-hover:opacity-100 transition">
+                      🔍 放大
+                    </span>
+                  </button>
+                );
+              }
+              return <div key={view}>{orthoEl}</div>;
+            })}
+          </div>
+        );
+      })()}
 
       {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
       <T2LabelList part={part} design={design} />
