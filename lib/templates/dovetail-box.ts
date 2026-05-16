@@ -529,7 +529,25 @@ const polyDesign: FurnitureDesign = {
         thickness: lidT,
       };
       lidPart.origin = { ...lidPart.origin, x: -insetEach / 2, y: outerH - lidT - sinkMm };
-      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉 5mm）";
+      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉 5mm + 拉孔）";
+      // 抽蓋拉孔：lid 左緣（滑入側）30×15mm 圓角長條穿透孔，手指鉤起拉開
+      const pullLen = 30;
+      const pullWid = 15;
+      const pullMarginFromLeft = 15; // 距 lid 左緣 15mm（不破角）
+      const lidLocalLength = outerL - insetEach;
+      lidPart.mortises.push({
+        origin: {
+          x: -lidLocalLength / 2 + pullMarginFromLeft + pullLen / 2,
+          y: 0,
+          z: 0,
+        },
+        depth: lidT + 0.5,
+        length: pullLen,
+        width: pullWid,
+        through: true,
+        shape: "rect",
+        cosmetic: true,
+      });
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
