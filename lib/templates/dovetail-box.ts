@@ -449,16 +449,6 @@ const polyDesign: FurnitureDesign = {
               : cornerJoinery === "finger-joint" ? "（指接 phase 1）"
               : cornerJoinery === "miter" ? "（45° 斜接）"
               : "（搭接）";
-  // 左右板木紋方向：跟前後板對齊（4 壁從同一塊長板切出 → 前後板水平 + 左右板垂直
-  //   = 木紋連續、跟世界 X 軸平行）
-  // shortWall buildBox 預設 grainDirection="length" → 木紋沿 innerW = 世界 Z = 水平
-  //   前後 → 改 "width" → 木紋沿 wallH = 世界 -Y = 垂直
-  for (const p of built.parts) {
-    if (p.id === "wall-left" || p.id === "wall-right") {
-      p.grainDirection = "width";
-    }
-  }
-
   const nameMap: Record<string, string> = {
     "wall-front": `前壁${roleFM}`,
     "wall-back": `後壁${roleFM}`,
@@ -531,6 +521,14 @@ const polyDesign: FurnitureDesign = {
         // 把 shape 的 topInsetMm 設成 lidT，dovetail/finger comb 只在下方 wallH 區
         if (p.shape?.kind === "dovetail-ends" || p.shape?.kind === "finger-joint-ends") {
           p.shape = { ...p.shape, topInsetMm: lidT };
+        }
+      }
+      // 短壁（left/right）木紋方向修正：buildBox 預設 "length"，但短壁 rotation
+      // x=π/2 y=π/2 讓 local X 軸實際視覺呈現為垂直方向。改成 "width" 讓木紋順著
+      // 壁長方向（水平），跟長壁一致。
+      for (const p of design.parts) {
+        if (p.id === "wall-left" || p.id === "wall-right") {
+          p.grainDirection = "width";
         }
       }
     } else if (lidType === "rabbeted") {
