@@ -853,10 +853,12 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
     const halfPin = part.shape.halfPin ?? true;
     const isPin = (s: number) => (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phase) % 2) === 0;
-    // phase=0 (tail board，前後板)：trapezoid tip 比 base 寬 → 燕尾凸出在端頭
-    // phase=1 (pin board，左右板)：trapezoid tip 比 base 窄 → 銷凸出在端頭
-    // 兩者互嵌：tail 寬尾正好卡進 pin 之間的 gap。
-    const slantSign = phase === 0 ? -1 : +1;
+    // phase=0 (tail board，前後板)：tail trapezoid，top 上凸 bot 下凸 → 端頭最寬
+    // phase=1 (pin board，左右板)：pin face view 是 PARALLELOGRAM（外側較低內側
+    //   較高都是直線）；trapezoidal 鳩尾只在端頭視（thickness 方向）出現、face
+    //   view 不顯示
+    const topSlantSign = phase === 0 ? -1 : +1;  // tail top 朝外上凸 (-1·slantY 在 yT - 方向)
+    const botSlantSign = -1;                       // 兩者 bot 都朝外下凸
     let combAxis: "w" | "h" | null = null;
     if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
     else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
@@ -897,13 +899,13 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
             push(xRTip, yT);
           } else {
             push(xRBase, yT);
-            push(xRTip, yT - slantSign * slantY);
+            push(xRTip, yT - topSlantSign * slantY);
           }
           // bot 邊
           if (hardBot) {
             push(xRTip, yB);
           } else {
-            push(xRTip, yB + slantSign * slantY);
+            push(xRTip, yB + botSlantSign * slantY);
             push(xRBase, yB);
           }
         } else {
@@ -925,12 +927,12 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
             push(xLTip, yB);
           } else {
             push(xLBase, yB);
-            push(xLTip, yB + slantSign * slantY);
+            push(xLTip, yB + botSlantSign * slantY);
           }
           if (hardTop) {
             push(xLTip, yT);
           } else {
-            push(xLTip, yT - slantSign * slantY);
+            push(xLTip, yT - topSlantSign * slantY);
             push(xLBase, yT);
           }
         } else {
@@ -970,12 +972,12 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
             push(xR, yTipTop);
           } else {
             push(xR, yBaseTop);
-            push(xR - slantSign * slantX, yTipTop);
+            push(xR - topSlantSign * slantX, yTipTop);
           }
           if (hardL) {
             push(xL, yTipTop);
           } else {
-            push(xL + slantSign * slantX, yTipTop);
+            push(xL + topSlantSign * slantX, yTipTop);
             push(xL, yBaseTop);
           }
         } else {
@@ -997,12 +999,12 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
             push(xL, yTipBot);
           } else {
             push(xL, yBaseBot);
-            push(xL + slantSign * slantX, yTipBot);
+            push(xL + topSlantSign * slantX, yTipBot);
           }
           if (hardR) {
             push(xR, yTipBot);
           } else {
-            push(xR - slantSign * slantX, yTipBot);
+            push(xR - topSlantSign * slantX, yTipBot);
             push(xR, yBaseBot);
           }
         } else {

@@ -1455,13 +1455,14 @@ function buildDovetailEndsGeometry(
     return ((s + phase) % 2) === 0;
   };
 
-  // phase=0 (tail board，前後板)：trapezoid tip 比 base 寬 → 燕尾凸出在端頭
-  // phase=1 (pin board，左右板)：trapezoid tip 比 base 窄 → 銷凸出在端頭
-  // 兩者互嵌：phase=0 tail 的寬尾正好卡進 phase=1 pin 之間的 gap。
-  // slantSign 控制 Y 方向偏移：-1 = tail（凸出 yB-slantY ~ yT+slantY），
-  // +1 = pin（內縮 yB+slantY ~ yT-slantY）。
-  const slantSign = phase === 0 ? -1 : +1;
-  const sY = slantSign * slantY;
+  // phase=0 (tail board，前後板)：tail 是 trapezoid 端頭最寬（top 上凸 + bot 下凸）
+  //   tail face view 看：燕尾型寬端在外
+  // phase=1 (pin board，左右板)：pin 在 face view 是 PARALLELOGRAM、外側較低內側較高
+  //   都是直線（top 跟 bot 同方向往下斜）；trapezoidal 鳩尾型只在端頭視才出現
+  //   （在 thickness 方向、不在 height 方向）
+  // 兩者互嵌：tail 寬端正好卡進 pin 之間的 gap。
+  const topSlant = phase === 0 ? +slantY : -slantY;  // tail top 上凸；pin top 下斜
+  const botSlant = -slantY;                            // 兩者 bot 都下凸/下斜
 
   // 沿右邊 (X = +hx tip / +hx - depth base) 走 bot→top；左邊 (X = -hx tip / -hx + depth base) 走 top→bot 閉合
   const xRTip = +hx;
@@ -1491,19 +1492,19 @@ function buildDovetailEndsGeometry(
       const hardTop = halfPin && isLast;
       // 1) 進入 segment 底邊：從前一段的終點 (Base, yB) 開始；若上一段也是 pin（連續 pin 不太合理但 halfPin 邊界可能），直接接續
       // bottom corner sequence:
-      //   進 pin：(Base, yB) → (Tip, yB + sY)  [斜] 除非 hardBot
+      //   進 pin：(Base, yB) → (Tip, yB + botSlant)  [斜] 除非 hardBot
       if (hardBot) {
         push(xRTip, yB);
       } else {
         push(xRBase, yB);
-        push(xRTip, yB + sY);
+        push(xRTip, yB + botSlant);
       }
       // top corner sequence:
-      //   出 pin：(Tip, yT - sY) → (Base, yT)  除非 hardTop
+      //   出 pin：(Tip, yT + topSlant) → (Base, yT)  除非 hardTop
       if (hardTop) {
         push(xRTip, yT);
       } else {
-        push(xRTip, yT - sY);
+        push(xRTip, yT + topSlant);
         push(xRBase, yT);
       }
     } else {
@@ -1531,12 +1532,12 @@ function buildDovetailEndsGeometry(
         push(xLTip, yT);
       } else {
         push(xLBase, yT);
-        push(xLTip, yT - sY);
+        push(xLTip, yT + topSlant);
       }
       if (hardBot) {
         push(xLTip, yB);
       } else {
-        push(xLTip, yB + sY);
+        push(xLTip, yB + botSlant);
         push(xLBase, yB);
       }
     } else {
