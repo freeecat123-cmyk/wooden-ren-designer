@@ -23,6 +23,7 @@ import {
 } from "../lib/render/part-drawing/grouping";
 import { PartDrawing } from "../lib/render/part-drawing/drawing";
 import { PartDrawingsIndex } from "../components/print/PartDrawingsIndex";
+import { PrintTemplates } from "../components/print/PrintTemplates";
 
 let fail = 0;
 
@@ -996,6 +997,59 @@ console.log("\n--- P4 Task 1: index page renders ---");
     );
     expect(html.includes("P-01"), "P4 Task 1: P-NN sequence in table");
     expect(html.includes("工法"), "P4 Task 1: 工法 column header");
+  }
+}
+
+// ─── Phase 4 Task 4: PrintTemplates 1:1 樣板頁 ─────────────────────────────
+console.log("\n--- P4 Task 4: 1:1 樣板列印頁 ---");
+{
+  let tplFound = false;
+  let tplTemplate = "";
+  const CURVED = ["arch-bent", "lathe-turned", "hoof", "live-edge"];
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    if (
+      groups.some(
+        (g) => g.representative.shape && CURVED.includes(g.representative.shape.kind),
+      )
+    ) {
+      const html = renderPartDrawing(
+        React.createElement(PrintTemplates, { design } as any),
+      );
+      if (html.includes("樣板")) {
+        tplFound = true;
+        tplTemplate = entry.category;
+        break;
+      }
+    }
+  }
+  expect(
+    tplFound,
+    `P4 Task 4: 1:1 樣板 page renders for templates with curved parts (matched in ${tplTemplate || "none"})`,
+  );
+  // Soft check: no-curved design produces empty output
+  const boxEntry = FURNITURE_CATALOG.find((e: any) => e.category === "stool");
+  if (boxEntry && boxEntry.template) {
+    const design = buildDesign(boxEntry);
+    if (design) {
+      const groups = groupPartsForDrawing(design);
+      const hasCurved = groups.some(
+        (g) =>
+          g.representative.shape && CURVED.includes(g.representative.shape.kind),
+      );
+      if (!hasCurved) {
+        const html = renderPartDrawing(
+          React.createElement(PrintTemplates, { design } as any),
+        );
+        expect(
+          !html.includes("樣板"),
+          "P4 Task 4: no-curved design renders empty (stool box parts only)",
+        );
+      }
+    }
   }
 }
 
