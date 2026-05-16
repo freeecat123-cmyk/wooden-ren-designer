@@ -539,56 +539,196 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
-  // 每個 feature 的 box + 緊貼右側 label（不再 right column collected style）
-  // Box: 半透明填色 + 1.5px stroke 提高可見度
-  // Label: 緊貼 box 右側 3px、字級依 box 高度調整
+  // 工程圖風格：每個 feature 畫 dashed box + 名稱/尺寸 label + 真實 dim line（黃俊傑式）
+  // - DimensionLine: extension line + dim line + filled triangle arrows + label
+  // - 對稱件用「距中軸」、非對稱件用「距底/距邊」
+  // - 簡單 arrow: 在 line 端 draw small filled triangle
+  const drawArrow = (
+    cx: number,
+    cy: number,
+    dir: "left" | "right" | "up" | "down",
+    color: string,
+    key: string,
+  ) => {
+    const SZ = 2.5;
+    let pts: string;
+    if (dir === "left") pts = `${cx},${cy} ${cx + SZ},${cy - SZ} ${cx + SZ},${cy + SZ}`;
+    else if (dir === "right") pts = `${cx},${cy} ${cx - SZ},${cy - SZ} ${cx - SZ},${cy + SZ}`;
+    else if (dir === "up") pts = `${cx},${cy} ${cx - SZ},${cy + SZ} ${cx + SZ},${cy + SZ}`;
+    else pts = `${cx},${cy} ${cx - SZ},${cy - SZ} ${cx + SZ},${cy - SZ}`;
+    return <polygon key={key} points={pts} fill={color} />;
+  };
+
+  const hDim = (
+    x1: number,
+    x2: number,
+    y: number,
+    label: string,
+    color: string,
+    key: string,
+  ) => {
+    const lo = Math.min(x1, x2);
+    const hi = Math.max(x1, x2);
+    return (
+      <g key={key}>
+        <line x1={lo} y1={y} x2={hi} y2={y} stroke={color} strokeWidth={0.5} />
+        {drawArrow(lo, y, "left", color, `${key}-aL`)}
+        {drawArrow(hi, y, "right", color, `${key}-aR`)}
+        <text
+          x={(lo + hi) / 2}
+          y={y - 2}
+          fontSize={8}
+          fill={color}
+          textAnchor="middle"
+        >
+          {label}
+        </text>
+      </g>
+    );
+  };
+
+  const vDim = (
+    y1: number,
+    y2: number,
+    x: number,
+    label: string,
+    color: string,
+    key: string,
+  ) => {
+    const lo = Math.min(y1, y2);
+    const hi = Math.max(y1, y2);
+    return (
+      <g key={key}>
+        <line x1={x} y1={lo} x2={x} y2={hi} stroke={color} strokeWidth={0.5} />
+        {drawArrow(x, lo, "up", color, `${key}-aU`)}
+        {drawArrow(x, hi, "down", color, `${key}-aD`)}
+        <text
+          x={x - 2}
+          y={(lo + hi) / 2 + 3}
+          fontSize={8}
+          fill={color}
+          textAnchor="end"
+        >
+          {label}
+        </text>
+      </g>
+    );
+  };
+
+  // Part 中心軸在 SVG 的位置（用 partLocalToSvg(0, T/2, 0)）
+  const centerLocalY = part.visible.thickness / 2;
+  const partCenterSvg = ctx.partLocalToSvg(0, centerLocalY, 0);
+
   const elements: React.ReactNode[] = [];
   items.forEach((it) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
     const stroke = isMortise ? "#dc2626" : "#2563eb";
-    const fill = isMortise ? "rgba(220, 38, 38, 0.12)" : "rgba(37, 99, 235, 0.10)";
+    const fill = isMortise
+      ? "rgba(220, 38, 38, 0.12)"
+      : "rgba(37, 99, 235, 0.10)";
     const dash = isMortise ? "3 2" : "4 2";
 
-    // label 緊貼 box 右側
+    // 取得對應 feature 的 local box（重新計算用 cx/cz）
+    const feature = isMortise
+      ? part.mortises[it.idx]
+      : part.tenons[it.idx];
+    const lb = isMortise
+      ? mortiseLocalBox(part, feature as Mortise)
+      : tenonLocalBox(part, feature as Tenon);
+
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+
+    // 名稱 + 尺寸 label 緊貼 box 右側
     const lblX = box.x + box.w + 3;
     const lblY = box.y + 9;
 
-    elements.push(
-      <g key={`${it.kind}-${it.idx}`}>
-        <rect
-          x={box.x}
-          y={box.y}
-          width={box.w}
-          height={box.h}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={1.2}
-          strokeDasharray={dash}
-        />
-        <text x={lblX} y={lblY} fontSize={9} fill={stroke} fontWeight="bold">
-          {it.name}
-        </text>
-        <text
-          x={lblX}
-          y={lblY + 11}
-          fontSize={9}
-          fill="#1f2937"
-          fontFamily="monospace"
-        >
-          {it.dims}
-        </text>
-        <text
-          x={lblX}
-          y={lblY + 21}
-          fontSize={8}
-          fill="#6b7280"
-          fontFamily="monospace"
-        >
-          {it.baseline}
-        </text>
-      </g>,
-    );
+    const partEls: React.ReactNode[] = [
+      <rect
+        key={`${it.kind}-${it.idx}-box`}
+        x={box.x}
+        y={box.y}
+        width={box.w}
+        height={box.h}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={1.2}
+        strokeDasharray={dash}
+      />,
+      <text
+        key={`${it.kind}-${it.idx}-name`}
+        x={lblX}
+        y={lblY}
+        fontSize={9}
+        fill={stroke}
+        fontWeight="bold"
+      >
+        {it.name}
+      </text>,
+      <text
+        key={`${it.kind}-${it.idx}-dims`}
+        x={lblX}
+        y={lblY + 11}
+        fontSize={9}
+        fill="#1f2937"
+        fontFamily="monospace"
+      >
+        {it.dims}
+      </text>,
+    ];
+
+    // 工程 dim line：根據 view + 對稱性
+    if (view === "top" && isSymmetricPart) {
+      // 距中 X：水平 dim line 從 centerline 到 mortise center
+      const dxMm = round1(Math.abs(lb.cx));
+      const dzMm = round1(Math.abs(lb.cz));
+      // 放 dim line：X dim 在 mortise 上方 8px，Z dim 在 mortise 左側 8px
+      const xDimY =
+        box.y < partCenterSvg.y ? box.y - 8 : box.y + box.h + 8;
+      const zDimX =
+        box.x < partCenterSvg.x ? box.x - 8 : box.x + box.w + 8;
+      partEls.push(
+        hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
+      );
+      partEls.push(
+        vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
+      );
+    } else if (view !== "top") {
+      // front / side：垂直 dim 從 part 底邊到 mortise 中心（距底）
+      const distFromBot = round1(lb.cy + lb.hy);
+      // Part 底邊在 SVG 的位置：partLocalToSvg(0, 0, 0)
+      const partBottomSvg = ctx.partLocalToSvg(0, 0, 0);
+      // 垂直 dim line at 右側 of mortise
+      const zDimX = box.x + box.w + 12;
+      partEls.push(
+        vDim(
+          partBottomSvg.y,
+          cy,
+          zDimX,
+          String(distFromBot),
+          "#0ea5e9",
+          `${it.kind}-${it.idx}-ydim`,
+        ),
+      );
+      // 若對稱、也加 X 距中 dim line
+      if (isSymmetricPart) {
+        const dxMm = round1(Math.abs(lb.cx));
+        const xDimY = box.y - 8;
+        partEls.push(
+          hDim(
+            partCenterSvg.x,
+            cx,
+            xDimY,
+            String(dxMm),
+            "#0ea5e9",
+            `${it.kind}-${it.idx}-xdim`,
+          ),
+        );
+      }
+    }
+
+    elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
   });
 
   return <g className="t2-overlay">{elements}</g>;
