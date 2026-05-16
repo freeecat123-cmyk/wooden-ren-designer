@@ -60,7 +60,6 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
     { value: "flush-glued", label: "整塊膠合（底板與外框齊邊）" },
   ], help: "底板內縮=底板嵌入壁內、壁壓在底板邊緣膠合（最簡單）；鑲板入溝=4 壁內側開 5mm 槽、底板浮嵌（季節伸縮免裂）；整塊膠合=底板整塊外緣與框體齊邊、強力膠合。", wide: true },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "外露角倒角，1-2mm 微倒手感佳" },
 
   // === Joinery 角接合 ===
   { group: "joinery", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "dovetail", choices: [
@@ -115,7 +114,6 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
-  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   // 角接合方式：preset 可覆寫
@@ -292,7 +290,7 @@ const polyDesign: FurnitureDesign = {
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `加 ${sides === 6 ? "六" : "八"} 邊形頂蓋從盒口蓋上。` : ""}${edgeChamfer > 0 ? ` 外露邊倒 ${edgeChamfer}mm 防割手。` : ""}`,
+      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `加 ${sides === 6 ? "六" : "八"} 邊形頂蓋從盒口蓋上。` : ""}`,
     };
 
     // polygon 也跑壁厚 / 尺寸合理性檢查
@@ -501,7 +499,7 @@ const polyDesign: FurnitureDesign = {
           : lidType === "lift-off"
             ? "**整片活動蓋**（不固定，蓋內側加 4 條 cleat 卡入盒口防滑）"
             : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
-    }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}${joineryClosing}`,
+    }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
   };
   // 內部 jewelry 抽板（活動隔板）
   if (withInnerTray) {
