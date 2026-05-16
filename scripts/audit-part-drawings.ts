@@ -1200,5 +1200,45 @@ console.log("\n--- P3.5: detail callout ---");
   );
 }
 
+// ─── Phase 5: multi-detail callout (corner placement) ──────────────────────
+// 對 28 模板掃，找帶 ≥2 mortises 的 part；render 後 HTML 內必須出現 ≥2 個
+// 「詳圖 X」字樣（X ∈ {A, B, C}）—— 表示至少 2 個 detail inset 同時放下。
+console.log("\n--- P5: multi-detail callout ---");
+{
+  let multiDetailFound = false;
+  let multiDetailTemplate = "";
+  let multiDetailCount = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (const g of groups) {
+      const p = g.representative;
+      if ((p.mortises?.length ?? 0) < 2) continue;
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        } as any),
+      );
+      // 抓「詳圖 A」「詳圖 B」「詳圖 C」出現次數
+      const matches = html.match(/詳圖 [ABC]/g) ?? [];
+      if (matches.length >= 2) {
+        multiDetailFound = true;
+        multiDetailTemplate = entry.category;
+        multiDetailCount = matches.length;
+        break;
+      }
+    }
+    if (multiDetailFound) break;
+  }
+  expect(
+    multiDetailFound,
+    `P5: multi-detail callout (≥2 insets) renders for parts with ≥2 mortises (matched in ${multiDetailTemplate || "none"}, ${multiDetailCount} insets)`,
+  );
+}
+
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
 process.exit(fail);
