@@ -2925,13 +2925,15 @@ export function PerspectiveView({
             // 但要排除門「內層板」（id 含 -door-inner-shelf-）— 那是櫃內收納板不是門
             const isDoor = (category === "door" || /-door($|-)/.test(part.id))
               && !/-door-inner-/.test(part.id);
+            // 盒蓋（dovetail-box lid）跟門一樣 xray 一律藏
+            const isLid = part.id === "lid";
             // face mode：藏「面板」+「箱體前板」+「面板把手」
             const isDrawerFront = /-drawer-\d+-(face|front)(-pull)?$/.test(part.id);
             const isDrawer = category === "drawer" || /-drawer-\d+/.test(part.id);
             // pull / hinge 屬於門 / 抽屜的視覺配件，xray 一律藏
             const isPull = /-pull$/.test(part.id);
             const isHinge = /-hinge/.test(part.id);
-            if (isDoor || isPull || isHinge) return null;
+            if (isDoor || isLid || isPull || isHinge) return null;
             if (xrayMode === "face" && isDrawerFront) return null;
             if (xrayMode === "full" && isDrawer) return null;
           }
