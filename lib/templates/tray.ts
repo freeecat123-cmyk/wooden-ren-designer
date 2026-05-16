@@ -542,13 +542,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
       else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
       if (phase !== null) {
+        // halfPin 只給 tail 板（前後板，phase=0）：在 s=0/N-1 強制加 half-tail
+        // 保住端頭整塊不破角。Pin 板（左右板）關 halfPin、s=0/N-1 維持 gap，
+        // 正好讓 tail 板的 half-tail 嵌進來 → 雙板互嵌 5 段不重疊。
+        // 之前兩板都 halfPin=true → s=0/N-1 兩板都 pin、撞位置沒互嵌。
         part.shape = {
           kind: "dovetail-ends",
           segmentCount,
           phase,
           angleDeg,
           pinDepth: wallT,
-          halfPin: true,
+          halfPin: phase === 0,
         };
       }
     }
