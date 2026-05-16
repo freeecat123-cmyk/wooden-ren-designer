@@ -243,7 +243,8 @@ expect(
         (html.match(/<svg/g) ?? []).length === 4,
         `PartDrawing renders 3 ortho + 1 install-hint = 4 SVGs (got ${(html.match(/<svg/g) ?? []).length})`,
       );
-      expect(html.includes("材料："), "PartDrawing renders 材料 footer");
+      // Phase 2.5: title block 改 grid，材料 label 改成「材料 」(no colon)
+      expect(html.includes("材料 "), "PartDrawing renders 材料 in title block");
       // T1 dim overlay (Phase 2 SVG) should emit length value as <text> label
       const L = String(
         Math.round(groups[0].representative.visible.length * 10) / 10,
@@ -300,6 +301,10 @@ expect(
       // ─── Phase 2.5 Task 2: 成品 vs 毛料 ─────────────────────────────────
       expect(html.includes("毛料"), "P2.5 Task 2: 毛料 label appears");
       expect(html.includes("成品"), "P2.5 Task 2: 成品 label appears");
+      // ─── Phase 2.5 Task 3: title block 4-col grid ───────────────────────
+      expect(html.includes("編號"), "P2.5 Task 3: 編號 label in title block");
+      expect(html.includes("公差"), "P2.5 Task 3: 公差 label in title block");
+      expect(html.includes("±1mm"), "P2.5 Task 3: 公差 value ±1mm");
     }
   }
 }
