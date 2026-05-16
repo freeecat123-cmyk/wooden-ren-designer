@@ -710,6 +710,9 @@ export function ShapeSpecificAnnotation({
       return <ApronTrapezoidDualEdge ctx={ctx} part={part} view={view} />;
     case "hoof":
       return <HoofDirection ctx={ctx} part={part} view={view} />;
+    case "splayed-tapered":
+    case "splayed-round-tapered":
+      return <SplayedTrueLength ctx={ctx} part={part} view={view} />;
     default:
       return null;
   }
@@ -920,3 +923,62 @@ function HoofDirection({
   );
 }
 
+/**
+ * <SplayedTrueLength> — 外斜腳真實長度 + 端面斜角（Phase 3 Task 5）。
+ *
+ * `splayed-tapered` / `splayed-round-tapered`：整支腳沿 length 軸傾斜，
+ * 底面相對頂面在 part-local 偏移 (dxMm, dzMm)。
+ *
+ * front view 左下角標：
+ *   - 真長 = √(L² + dx² + dz²)
+ *   - 端面斜 = atan2(√(dx² + dz²), L) × 180/π （°）
+ *   - splayed-round-tapered 多標頂徑/底徑（visible.width × bottomScale）
+ *
+ * 視覺長度 visible.length 是 chord（直線距離），真長要含偏移量。
+ *
+ * Spec: …phase-3 §1.5
+ */
+function SplayedTrueLength({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  if (
+    part.shape?.kind !== "splayed-tapered" &&
+    part.shape?.kind !== "splayed-round-tapered"
+  ) {
+    return null;
+  }
+  const shape = part.shape;
+  const L = part.visible.length;
+  const dx = shape.dxMm ?? 0;
+  const dz = shape.dzMm ?? 0;
+  const realL = Math.sqrt(L * L + dx * dx + dz * dz);
+  const angleDeg =
+    (Math.atan2(Math.sqrt(dx * dx + dz * dz), L) * 180) / Math.PI;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + ctx.vbH - 30;
+
+  return (
+    <g className="splayed-true-length" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        真長 {round1(realL)}
+      </text>
+      <text x={x0} y={y0 + 10} fontSize={7} fill="#6b7280">
+        端面斜 {round1(angleDeg)}°
+      </text>
+      {shape.kind === "splayed-round-tapered" && (
+        <text x={x0} y={y0 + 20} fontSize={7} fill="#374151">
+          頂徑 {round1(part.visible.width)} / 底徑{" "}
+          {round1(part.visible.width * (shape.bottomScale ?? 1))}
+        </text>
+      )}
+    </g>
+  );
+}

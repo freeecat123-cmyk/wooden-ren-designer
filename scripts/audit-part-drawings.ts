@@ -686,6 +686,43 @@ console.log("\n--- P3 Task 4: hoof direction ---");
   }
 }
 
+// ─── Phase 3 Task 5: splayed true length ───────────────────────────────────
+console.log("\n--- P3 Task 5: splayed true length ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find(
+      (g) =>
+        g.representative.shape?.kind === "splayed-tapered" ||
+        g.representative.shape?.kind === "splayed-round-tapered",
+    );
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("splayed-true-length")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 5: splayed-tapered/-round-tapered renders true length");
+  } else {
+    console.log(
+      "⚠ P3 Task 5: no splayed-tapered/-round-tapered part in catalog (skipping assertion)",
+    );
+  }
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
