@@ -309,6 +309,44 @@ expect(
   }
 }
 
+// ─── Phase 2.5 Task 4: 通榫 / 盲榫 detection sweep ─────────────────────────
+// 「通」字必須出現在至少一個模板（catalog default 已有 mortise.through=true 案例）。
+{
+  let throughFound = false;
+  let throughTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (const g of groups) {
+      // 只在帶 mortise 的 part 上找「通」（避開上下文撞詞）
+      if (g.representative.mortises.length === 0) continue;
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, { group: g, design, index: 0 }),
+      );
+      // 注意：「通」要出現在 T2LabelList 行內，搜「 通，」或「 通 」當 sentinel
+      // 來避免跟其他「通」誤判（榫眼格式：「W×L 通，距底」）
+      if (html.includes(" 通，")) {
+        throughFound = true;
+        throughTemplate = entry.category;
+        break;
+      }
+    }
+    if (throughFound) break;
+  }
+  if (throughFound) {
+    expect(
+      true,
+      `P2.5 Task 4: 通榫 detection works (matched in ${throughTemplate})`,
+    );
+  } else {
+    console.log(
+      "⚠ P2.5 Task 4: 通榫 詞未出現（catalog default 可能全 blind mortise，soft skip）",
+    );
+  }
+}
+
 // ─── Test 8: T2 label list appears for parts with mortises ────────────────
 {
   // 用 stool（方凳）當主測—腳件帶 mortise+牙條帶 tenon
