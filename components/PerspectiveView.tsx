@@ -259,7 +259,6 @@ function Part({
   grainDirection,
   mortiseBoxes,
   mortiseShapes,
-  dovetailCuts,
   isSelected,
   isDimmed,
   wireframe,
@@ -277,10 +276,6 @@ function Part({
   mortiseBoxes?: LocalBox[];
   /** 對應 mortiseBoxes 每個的形狀（"rect" | "round"）；undefined = 全 rect */
   mortiseShapes?: Array<"rect" | "round">;
-  /** 鳩尾榫 CSG cutters：world-space Brush[]，會從本零件 base geo 減掉。
-   *  caller 必須對每個 brush 跑過 updateMatrixWorld()。
-   *  非空時：CSG 結果幾何直接在 world 座標，mesh 用 identity transform 渲染。 */
-  dovetailCuts?: Brush[];
   /** 選中：本體 emissive 黃光，最強視覺提示 */
   isSelected?: boolean;
   /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
@@ -508,40 +503,6 @@ function Part({
     if (!geometry) baseGeo.dispose();
     return result;
   }, [geometry, mortiseBoxes, mortiseShapes, shape, size]);
-
-  // 鳩尾榫 CSG：把 dovetailCuts 中每個 cutter Brush（world-space，caller 已 updateMatrixWorld）
-  // 從本零件 base / mortise-CSG'd geo 減掉。base brush 要先套上本 mesh 的 position
-  // + rotation 進 world 才能跟 cutter 對齊，最後結果幾何在 world 座標，外層 mesh
-  // 必須用 identity transform 渲染（見下方 dovetailCutGeometry 非空時的特例路徑）。
-  // deps 用 primitive：position/rotation 每 render 都是 new array / new Euler，
-  // 但實際數值穩定 → 拆成 6 個 number 防止 useMemo 每幀重做 CSG 害掉 invalidate
-  // 迴圈。
-  const px0 = position[0], py0 = position[1], pz0 = position[2];
-  const rx0 = rotation.x, ry0 = rotation.y, rz0 = rotation.z;
-  const dovetailCutGeometry = useMemo(() => {
-    if (!dovetailCuts || dovetailCuts.length === 0) return null;
-    const localGeo = csgGeometry ?? geometry ?? new BoxGeometry(size[0], size[1], size[2]);
-    const material = new MeshStandardMaterial();
-    const evaluator = new Evaluator();
-    evaluator.useGroups = false;
-    evaluator.attributes = ["position", "normal"];
-    const baseClean = localGeo.clone();
-    baseClean.deleteAttribute("uv");
-    if (!baseClean.attributes.normal) baseClean.computeVertexNormals();
-    let acc = new Brush(baseClean, material);
-    acc.position.set(px0, py0, pz0);
-    acc.rotation.set(rx0, ry0, rz0, "ZYX");
-    acc.updateMatrixWorld();
-    for (const cut of dovetailCuts) {
-      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-      acc.geometry.dispose();
-      acc = next;
-    }
-    // 若 localGeo 是新建的 BoxGeometry（沒進 useMemo cache），dispose
-    if (!csgGeometry && !geometry) localGeo.dispose();
-    return acc.geometry;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [csgGeometry, geometry, size[0], size[1], size[2], dovetailCuts, px0, py0, pz0, rx0, ry0, rz0]);
   // wireframeMode：抽出 silhouette edges（box=12 邊、tapered=12、圓柱=雙圈
   //  + 接縫；用 EdgesGeometry 預設 1° 門檻只留相鄰面 normal 變化大的邊
   //  → 不會畫三角形對角線）
@@ -638,7 +599,6 @@ function Part({
   // CSG 挖出的 cosmetic mortise（指槽 / 無線充電凹槽等）也需要 flatShading：
   // 否則 smooth shading 會把凹槽邊緣 normal 插值平滑掉，看起來像沒挖一樣
   const hasCosmeticCut = (mortiseBoxes?.length ?? 0) > 0;
-  const hasDovetailCut = (dovetailCuts?.length ?? 0) > 0;
   const useFlatShading =
     shape?.kind === "chamfered-edges" ||
     shape?.kind === "chamfered-top" ||
@@ -649,16 +609,10 @@ function Part({
     shape?.kind === "right-triangle" ||
     shape?.kind === "mitered-corner" ||
     (shape?.kind === "splayed" && (shape.chamferMm ?? 0) > 0) ||
-    hasCosmeticCut ||
-    hasDovetailCut;
-  // dovetailCutGeometry 已套 world transform，mesh 用 identity（雙重套會位置錯）
-  const meshPosition: [number, number, number] = hasDovetailCut ? [0, 0, 0] : position;
-  const meshRotation = hasDovetailCut ? new Euler(0, 0, 0) : rotation;
+    hasCosmeticCut;
   return (
-    <mesh position={meshPosition} rotation={meshRotation} castShadow receiveShadow>
-      {dovetailCutGeometry ? (
-        <primitive attach="geometry" object={dovetailCutGeometry} />
-      ) : csgGeometry ? (
+    <mesh position={position} rotation={rotation} castShadow receiveShadow>
+      {csgGeometry ? (
         <primitive attach="geometry" object={csgGeometry} />
       ) : geometry ? (
         <primitive attach="geometry" object={geometry} />
@@ -2723,51 +2677,6 @@ export function PerspectiveView({
     return ids;
   }, [auditMode, design]);
 
-  // 鳩尾榫 CSG cutters：把每個 dovetail-ends 板（tray 前後板）的幾何包成 Brush，
-  // 已套 world position + part rotation + updateMatrixWorld，等左右板 CSG 減掉。
-  //
-  // 設計：tray.ts 把 dovetail-ends shape 只掛在 wall-front/wall-back，左右板留
-  // 完整 box（不切榫）。本 useMemo 用前後板的 dovetail 幾何當 cutter，從左右板
-  // box 挖出對應的梯形 gap → 自動形成正確的 pin 形狀，不用硬算 trapezoid 對齊。
-  //
-  // brush 的 position/rotation 跟 Part 渲染前後板用的 [px, py, pz] / Euler ZYX
-  // 完全一致（都用 SCALE 過的單位），確保 CSG world 座標完全對齊。
-  const dovetailCutBrushes = useMemo<Brush[]>(() => {
-    const brushes: Brush[] = [];
-    const material = new MeshStandardMaterial();
-    for (const part of design.parts) {
-      if (part.shape?.kind !== "dovetail-ends") continue;
-      const sx = part.visible.length * SCALE;
-      const sy = part.visible.thickness * SCALE;
-      const sz = part.visible.width * SCALE;
-      const geo = buildDovetailEndsGeometry(
-        [sx, sy, sz],
-        part.shape.segmentCount,
-        part.shape.phase,
-        part.shape.angleDeg,
-        part.shape.pinDepth * SCALE,
-        part.shape.halfPin ?? true,
-      );
-      geo.deleteAttribute("uv");
-      if (!geo.attributes.normal) geo.computeVertexNormals();
-      const { yExt } = worldExtents(part);
-      const px = part.origin.x * SCALE;
-      const py = (part.origin.y + yExt / 2) * SCALE;
-      const pz = part.origin.z * SCALE;
-      const brush = new Brush(geo, material);
-      brush.position.set(px, py, pz);
-      brush.rotation.set(
-        part.rotation?.x ?? 0,
-        part.rotation?.y ?? 0,
-        part.rotation?.z ?? 0,
-        "ZYX",
-      );
-      brush.updateMatrixWorld();
-      brushes.push(brush);
-    }
-    return brushes;
-  }, [design.parts]);
-
   return (
     <div className={
       compactMode
@@ -3303,14 +3212,6 @@ export function PerspectiveView({
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => m.shape === "round" ? "round" : "rect")
               : undefined;
-          // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail brush，
-          // 自動形成正確的 pin gap 形狀，不必硬算梯形對齊。前後板有 dovetail-ends
-          // shape → dovetailCutBrushes 已備齊；只對 left/right 兩塊側板套用。
-          const partDovetailCuts: Brush[] | undefined =
-            dovetailCutBrushes.length > 0 &&
-            (part.id === "wall-left" || part.id === "wall-right")
-              ? dovetailCutBrushes
-              : undefined;
           return (
             <group
               key={part.id}
@@ -3336,7 +3237,6 @@ export function PerspectiveView({
                 grainDirection={part.grainDirection}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}
-                dovetailCuts={partDovetailCuts}
                 isSelected={isSelected}
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
