@@ -21,6 +21,9 @@ import {
   ShapeSpecificAnnotation,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
+import { rawStockSize } from "./raw-stock";
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -63,6 +66,7 @@ export function PartDrawing({
       ? ` ×${Math.min(group.count, 99)}${group.count > 99 ? "+" : ""}`
       : "";
   const material = MATERIALS[part.material];
+  const raw = rawStockSize(part);
 
   return (
     <div
@@ -146,6 +150,11 @@ export function PartDrawing({
       {/* Footer */}
       <div className="mt-2 text-[10px] text-zinc-600">
         材料：{material?.nameZh ?? material?.nameEn ?? part.material}
+      </div>
+      {/* Phase 2.5 Task 2: 成品 vs 毛料雙標 */}
+      <div className="mt-0.5 text-[9px] text-zinc-600 tabular-nums">
+        成品 {round1(part.visible.length)}×{round1(part.visible.width)}×
+        {round1(part.visible.thickness)}　|　毛料 {raw.L}×{raw.W}×{raw.T}
       </div>
       {design.useButtJointConvention !== false && (
         <div className="mt-1 text-[8px] text-zinc-400 italic">

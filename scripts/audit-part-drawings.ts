@@ -297,6 +297,9 @@ expect(
         html.includes("#dc2626") || html.toLowerCase().includes("dc2626"),
         "P2.5 Task 1: target part rendered in red",
       );
+      // ─── Phase 2.5 Task 2: 成品 vs 毛料 ─────────────────────────────────
+      expect(html.includes("毛料"), "P2.5 Task 2: 毛料 label appears");
+      expect(html.includes("成品"), "P2.5 Task 2: 成品 label appears");
     }
   }
 }
