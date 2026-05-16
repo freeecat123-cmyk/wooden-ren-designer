@@ -14,7 +14,7 @@
  */
 
 import React from "react";
-import type { Part } from "@/lib/types";
+import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
   VerticalDimensionLine,
@@ -178,7 +178,135 @@ export function T1DimensionsRow({
  *
  * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §3.3 / §3.4
  */
-export function T2LabelList({ part }: { part: Part }) {
+interface MatchResult {
+  partId: string;
+  kind: "mortise" | "tenon";
+  idx: number;
+}
+
+/**
+ * 算 feature 的世界座標中心（mm）。
+ *
+ * - Mortise: `part.origin + mortise.origin`（origin 直接是 part-local mm）
+ * - Tenon:   `part.origin + position-dependent offset`，沿端面外凸方向取
+ *   `+length/2` 大致對中（端面對端面的榫頭—榫眼大概會落在 part 表面附近 ±length/2 內）。
+ *   `offsetWidth/offsetThickness` 是斷面上的偏移，這裡也要納入。
+ *
+ * 注意：這只是一個粗略估算，目的是給 findMatchingFeature 比對「世界座標
+ * 相鄰」用。15mm 容差吸收 part rotation/visible.length≠center-distance 的誤差。
+ */
+function featureWorldCenter(
+  part: Part,
+  feature: Mortise | Tenon,
+  kind: "mortise" | "tenon",
+): { x: number; y: number; z: number } {
+  const px = part.origin?.x ?? 0;
+  const py = part.origin?.y ?? 0;
+  const pz = part.origin?.z ?? 0;
+  if (kind === "mortise") {
+    const m = feature as Mortise;
+    return {
+      x: px + (m.origin?.x ?? 0),
+      y: py + (m.origin?.y ?? 0),
+      z: pz + (m.origin?.z ?? 0),
+    };
+  }
+  const t = feature as Tenon;
+  const halfL = (part.visible.length ?? 0) / 2;
+  const halfW = (part.visible.width ?? 0) / 2;
+  const T = part.visible.thickness ?? 0;
+  const offW = t.offsetWidth ?? 0;
+  const offT = t.offsetThickness ?? 0;
+  switch (t.position) {
+    case "top":
+      return { x: px + offW, y: py + T, z: pz + offT };
+    case "bottom":
+      return { x: px + offW, y: py, z: pz + offT };
+    case "start":
+      return { x: px - halfL, y: py + offT, z: pz + offW };
+    case "end":
+      return { x: px + halfL, y: py + offT, z: pz + offW };
+    case "left":
+      return { x: px + offT, y: py + offW, z: pz - halfW };
+    case "right":
+      return { x: px + offT, y: py + offW, z: pz + halfW };
+    default:
+      return { x: px, y: py, z: pz };
+  }
+}
+
+/**
+ * 找另一件零件上跟本 feature 配對的 mortise↔tenon。啟發式：
+ * - 世界座標相鄰（中心距 < 15mm）
+ * - 尺寸大致一致（width/length 差 ≤ 50%）
+ *
+ * 找不到合理候選回 null。多個候選取最近的。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §6
+ */
+export function findMatchingFeature(
+  part: Part,
+  featureIdx: number,
+  featureKind: "mortise" | "tenon",
+  design: FurnitureDesign,
+): MatchResult | null {
+  const feature =
+    featureKind === "mortise"
+      ? part.mortises[featureIdx]
+      : part.tenons[featureIdx];
+  if (!feature) return null;
+
+  const fCenter = featureWorldCenter(part, feature, featureKind);
+  const targetKind: "mortise" | "tenon" =
+    featureKind === "mortise" ? "tenon" : "mortise";
+
+  // 自己 feature 的尺寸（用 width/length 做 sanity check）
+  const fW = feature.width ?? 0;
+  const fL =
+    featureKind === "mortise"
+      ? (feature as Mortise).length ?? 0
+      : (feature as Tenon).length ?? 0;
+
+  let best: { dist: number; result: MatchResult } | null = null;
+
+  for (const other of design.parts) {
+    if (other.id === part.id) continue;
+    const list: Array<Mortise | Tenon> =
+      targetKind === "mortise" ? other.mortises : other.tenons;
+    for (let i = 0; i < list.length; i++) {
+      const o = list[i];
+      const oCenter = featureWorldCenter(other, o, targetKind);
+      const dist = Math.hypot(
+        oCenter.x - fCenter.x,
+        oCenter.y - fCenter.y,
+        oCenter.z - fCenter.z,
+      );
+      if (dist > 15) continue;
+
+      // Size sanity: width / length within ~50%
+      const oW = o.width ?? 0;
+      const oL =
+        targetKind === "mortise"
+          ? (o as Mortise).length ?? 0
+          : (o as Tenon).length ?? 0;
+      if (fW && oW && Math.abs(fW - oW) / Math.max(fW, oW) > 0.5) continue;
+      if (fL && oL && Math.abs(fL - oL) / Math.max(fL, oL) > 0.5) continue;
+
+      if (best === null || dist < best.dist) {
+        best = { dist, result: { partId: other.id, kind: targetKind, idx: i } };
+      }
+    }
+  }
+  return best?.result ?? null;
+}
+
+export function T2LabelList({
+  part,
+  design,
+}: {
+  part: Part;
+  design?: FurnitureDesign;
+}) {
   const round1 = (n: number) => Math.round(n * 10) / 10;
   const ly = part.visible.thickness;
 
@@ -222,9 +350,15 @@ export function T2LabelList({ part }: { part: Part }) {
     const yFromBottom = round1(lb.cy + ly / 2);
     const face = mortiseFaceHint(m);
     const throughTag = m.through ? "通" : "";
-    lines.push(
-      `榫眼${idx + 1}（${face}${throughTag}）：${W}×${L} 深 ${D}，距底 ${yFromBottom}`,
-    );
+    let line = `榫眼${idx + 1}（${face}${throughTag}）：${W}×${L} 深 ${D}，距底 ${yFromBottom}`;
+    if (design) {
+      const match = findMatchingFeature(part, idx, "mortise", design);
+      if (match) {
+        const label = match.kind === "tenon" ? "榫頭" : "榫眼";
+        line += `　↔ ${match.partId} ${label}${match.idx + 1}`;
+      }
+    }
+    lines.push(line);
   });
 
   part.tenons.forEach((t, idx) => {
@@ -234,9 +368,15 @@ export function T2LabelList({ part }: { part: Part }) {
     const protrusion = round1(t.length);
     const lb = tenonLocalBox(part, t);
     const yFromBottom = round1(lb.cy + ly / 2);
-    lines.push(
-      `榫頭${idx + 1}（${t.position}）：${W}×${T} 長 ${protrusion}，距底 ${yFromBottom}`,
-    );
+    let line = `榫頭${idx + 1}（${t.position}）：${W}×${T} 長 ${protrusion}，距底 ${yFromBottom}`;
+    if (design) {
+      const match = findMatchingFeature(part, idx, "tenon", design);
+      if (match) {
+        const label = match.kind === "mortise" ? "榫眼" : "榫頭";
+        line += `　↔ ${match.partId} ${label}${match.idx + 1}`;
+      }
+    }
+    lines.push(line);
   });
 
   if (!lines.length) return null;
