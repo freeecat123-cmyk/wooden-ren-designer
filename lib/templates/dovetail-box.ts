@@ -585,10 +585,22 @@ const polyDesign: FurnitureDesign = {
           cosmetic: true,
         });
       }
-      // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
+      // 左壁延伸到 outerH（跟 F/B 等高）+ 切 through slot（lid Y 區）給 lid 滑入
+      // through 穿透 wall 厚度、寬 lidT+0.5（lid 厚度範圍 + 0.5 間隙）、長 = 壁全長
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
-        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm };
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width + lidT };
+        const meshCenterY = wallLeft.origin.y + wallLeft.visible.width / 2;
+        const slotLocalZ = meshCenterY - lidWorldYCenter;
+        wallLeft.mortises.push({
+          origin: { x: 0, y: wallT / 2, z: slotLocalZ },
+          depth: wallT + 0.5,
+          length: wallLeft.visible.length,
+          width: lidT + 0.5,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
