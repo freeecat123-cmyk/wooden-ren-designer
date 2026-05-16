@@ -571,8 +571,14 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       // clamp 把手寬到壁長 -40mm（兩側留 20mm 邊不破角）
       const handleW = Math.min(handleWidthOpt, wallLen - 40);
       if (handleW < 30) continue; // 壁太短畫不下，跳過
-      const handleH = Math.min(handleHeightOpt, wallHeight - 2 * handleTopMarginOpt - 5);
+      // 把手高度用 user 設定（不再 auto-clamp）。clamp margin 讓 handle 不溢出
+      // 壁底：max margin = wallH - handleH - 5（5mm 底邊安全距）。之前 handleH
+      // 跟 margin 連動 → margin + handleH/2 是常數、handleZCenter 凍結、user
+      // 拉 margin 看不到把手下移。
+      const handleH = Math.min(handleHeightOpt, wallHeight - 10);
       if (handleH < 10) continue; // 壁太矮畫不下
+      const maxTopMargin = Math.max(5, wallHeight - handleH - 5);
+      const handleTopMargin = Math.min(handleTopMarginOpt, maxTopMargin);
       // 把手孔中心 Z：距壁頂 handleTopMargin + handleH/2。
       // 短邊壁 rotation {x:π/2, y:π/2} 後 local -Z 朝世界上方，所以「靠壁頂」= 負 Z。
       // 外撇 θ 時 wall 頂在世界 Y = vTop = wallHeight·cos θ（不是 wallHeight），
@@ -589,7 +595,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       const vTop_local = (wallSplayRad > 0 && cornerJoinery === "miter")
         ? wallHeight * Math.cos(wallSplayRad)
         : wallHeight;
-      const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMarginOpt - handleH / 2);
+      const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMargin - handleH / 2);
       // 外撇 θ 時切平模型，牆的 part-local Y center 隨 z 線性平移。
       // 推導：mesh box 在 part-local 沿 Y 軸佔 [-wallT/2, +wallT/2]，但反向法的
       // verts 把牆「向外平推」做出 splay：
