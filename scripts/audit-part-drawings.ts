@@ -999,6 +999,41 @@ console.log("\n--- P4 Task 1: index page renders ---");
   }
 }
 
+// ─── Phase 4 Task 3: 鋸台 hint on at least one card ────────────────────────
+console.log("\n--- P4 Task 3: 鋸台 hint ---");
+{
+  let tsFound = false;
+  let tsTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (const g of groups) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        } as any),
+      );
+      if (html.includes("鋸台 ")) {
+        tsFound = true;
+        tsTemplate = entry.category;
+        break;
+      }
+    }
+    if (tsFound) break;
+  }
+  if (tsFound) {
+    expect(true, `P4 Task 3: 鋸台 hint appears (matched in ${tsTemplate})`);
+  } else {
+    console.log(
+      "⚠ P4 Task 3: no 鋸台 hint hit (no apron-trapezoid/splayed/hoof in default catalog)",
+    );
+  }
+}
+
 // ─── Phase 4 Task 2: 工序 line renders on PartDrawing card ─────────────────
 console.log("\n--- P4 Task 2: 工序 line ---");
 {

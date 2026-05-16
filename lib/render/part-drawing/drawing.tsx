@@ -22,7 +22,7 @@ import {
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
-import { inferProcessSteps } from "./process-steps";
+import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -69,6 +69,7 @@ export function PartDrawing({
   const material = MATERIALS[part.material];
   const raw = rawStockSize(part);
   const steps = inferProcessSteps(part);
+  const tableSaw = inferTableSawSetting(part);
 
   return (
     <div
@@ -191,6 +192,13 @@ export function PartDrawing({
           <span className="text-zinc-500">工序 </span>
           {steps.join(" → ")}
         </div>
+        {/* Phase 4 Task 3: 鋸台設定值（僅斜角件出現） */}
+        {tableSaw && (
+          <div className="text-[9px] text-amber-700 mt-0.5">
+            <span className="text-amber-500">鋸台 </span>
+            {tableSaw}
+          </div>
+        )}
       </div>
     </div>
   );
