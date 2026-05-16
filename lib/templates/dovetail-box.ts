@@ -505,10 +505,9 @@ const polyDesign: FurnitureDesign = {
     if (lidType === "sliding") {
       // 滑入式（跟底板「鋸槽嵌入」對偶）：
       // - lid 縮成 innerL+2g × innerW+2g（4 邊各 g mm tongue 卡進 4 壁內側上緣槽）
-      // - 壁本體不動（保有 wallH 區的角接合榫頭 / 指接 / 鳩尾）
-      // - 壁頂加 3 條 rim 滑槽框（lidT 高、跟壁同 footprint）—— 前 / 後 / 右
-      // - **左壁（短邊）不加 rim** → 上緣留缺口讓 lid 從短邊滑入
-      //   （傳統滑入式蓋從短邊進；榫頭 / 鳩尾錯開、不延伸到蓋區）
+      // - 前 / 後 / 右 三壁加高 lidT（壁體仍是單塊）；shape 上加 topInsetMm=lidT
+      //   讓榫頭 / 鳩尾 / 指接只在下方 wallH 區、不延伸到上面 lidT 蓋區
+      // - **左壁（短邊）保持原高** → 上緣留 lidT 缺口讓 lid 從短邊滑入
       const tongueDepth = Math.min(3, wallT * 0.4);
       lidPart.visible = {
         length: outerL - 2 * wallT + 2 * tongueDepth,
@@ -516,25 +515,13 @@ const polyDesign: FurnitureDesign = {
         thickness: lidT,
       };
       lidPart.nameZh = "盒蓋（滑入式 · 4 邊凸條入槽）";
-      // 3 條 rim（前 / 後 / 右）置於 wall 頂面、lidT 高，繼承 wall 的 length / thickness / rotation
-      for (const suffix of ["front", "back", "right"] as const) {
-        const wall = design.parts.find((p) => p.id === `wall-${suffix}`);
-        if (!wall) continue;
-        design.parts.push({
-          id: `wall-${suffix}-rim`,
-          nameZh: `${suffix === "front" ? "前" : suffix === "back" ? "後" : "右"}壁上緣（滑槽框）`,
-          material,
-          grainDirection: "length",
-          visible: {
-            length: wall.visible.length,
-            width: lidT,
-            thickness: wall.visible.thickness,
-          },
-          origin: { ...wall.origin, y: outerH - lidT },
-          rotation: wall.rotation ? { ...wall.rotation } : undefined,
-          tenons: [],
-          mortises: [],
-        });
+      for (const p of design.parts) {
+        if (p.id !== "wall-front" && p.id !== "wall-back" && p.id !== "wall-right") continue;
+        p.visible = { ...p.visible, width: p.visible.width + lidT };
+        // 把 shape 的 topInsetMm 設成 lidT，dovetail/finger comb 只在下方 wallH 區
+        if (p.shape?.kind === "dovetail-ends" || p.shape?.kind === "finger-joint-ends") {
+          p.shape = { ...p.shape, topInsetMm: lidT };
+        }
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）

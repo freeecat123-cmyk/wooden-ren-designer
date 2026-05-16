@@ -808,6 +808,7 @@ export function projectPartPolygon(
     const N = Math.max(2, Math.floor(part.shape.segmentCount));
     const phase = part.shape.phase;
     const depth = part.shape.fingerDepth;
+    const inset = Math.max(0, Math.min(part.shape.topInsetMm ?? 0, r.h - 1));
     const isFinger = (s: number) => ((s + phase) % 2) === 0;
     // s=0 = 最上方段（local -Z → world +Y top；reversed for "hw" axis）
     let combAxis: "w" | "h" | null = null;
@@ -817,15 +818,24 @@ export function projectPartPolygon(
     const pts: Array<{ x: number; y: number }> = [];
     if (combAxis === "w") {
       // length 軸水平 (r.w)、高度沿 r.h；s=0 = 頂部
-      const segH = r.h / N;
+      // inset > 0：上方 inset 區是 plain rect，comb 只在 [r.y, r.y + r.h - inset]
+      const segH = (r.h - inset) / N;
       const d = Math.min(depth, r.w * 0.45);
       const xR = (s: number) => isFinger(s) ? r.x + r.w : r.x + r.w - d;
       const xL = (s: number) => isFinger(s) ? r.x : r.x + d;
-      const yTopOf = (s: number) => r.y + r.h - s * segH;
-      const yBotOf = (s: number) => r.y + r.h - (s + 1) * segH;
-      // 從 top-right 起 CCW
-      pts.push({ x: xR(0), y: yTopOf(0) });
-      pts.push({ x: xL(0), y: yTopOf(0) });
+      const combTopY = r.y + r.h - inset;
+      const yTopOf = (s: number) => combTopY - s * segH;
+      const yBotOf = (s: number) => combTopY - (s + 1) * segH;
+      // 起點：inset > 0 從 plain top 右上開始
+      if (inset > 0) {
+        pts.push({ x: r.x + r.w, y: r.y + r.h });
+        pts.push({ x: r.x, y: r.y + r.h });
+        pts.push({ x: r.x, y: combTopY });
+        if (xL(0) !== r.x) pts.push({ x: xL(0), y: combTopY });
+      } else {
+        pts.push({ x: xR(0), y: yTopOf(0) });
+        pts.push({ x: xL(0), y: yTopOf(0) });
+      }
       for (let s = 0; s < N; s++) {
         pts.push({ x: xL(s), y: yBotOf(s) });
         if (s < N - 1) {
@@ -840,6 +850,9 @@ export function projectPartPolygon(
           const nx = xR(s - 1);
           if (nx !== xR(s)) pts.push({ x: nx, y: yTopOf(s) });
         }
+      }
+      if (inset > 0 && xR(0) !== r.x + r.w) {
+        pts.push({ x: r.x + r.w, y: combTopY });
       }
     } else {
       // combAxis === "h"：length 軸垂直 (r.h)、寬度沿 r.w；s=0 對應頂端 r.y+r.h
@@ -891,6 +904,7 @@ export function projectPartPolygon(
     const depth = part.shape.pinDepth;
     const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
     const halfPin = part.shape.halfPin ?? true;
+    const inset = Math.max(0, Math.min(part.shape.topInsetMm ?? 0, r.h - 1));
     const isPin = (s: number) => (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phase) % 2) === 0;
     // phase=0 (tail board，前後板)：face view 看是梯形（trapezoid tip 比 base 寬）
     // phase=1 (pin board，左右板)：面視看是**矩形**齒（slant=0）。鳩尾的斜角在
@@ -904,12 +918,14 @@ export function projectPartPolygon(
     const pts: Array<{ x: number; y: number }> = [];
     if (combAxis === "w") {
       // length 軸 = r.w（水平），高度沿 r.h
-      const segH = r.h / N;
+      // inset > 0：上方 inset 區是 plain rect、comb 只在 [r.y, r.y + r.h - inset]
+      const segH = (r.h - inset) / N;
       const d = Math.min(depth, r.w * 0.45);
       const slantY = Math.min(segH * 0.45, d * Math.tan(angleRad));
-      // 各段邊界 y（s=0 段 = top 還是 bottom？跟 finger 一致：s=0 → top）
-      const yTopOf = (s: number) => r.y + r.h - s * segH;
-      const yBotOf = (s: number) => r.y + r.h - (s + 1) * segH;
+      // 各段邊界 y：s=0 段 top 在 r.y + r.h - inset（comb 頂端）
+      const combTopY = r.y + r.h - inset;
+      const yTopOf = (s: number) => combTopY - s * segH;
+      const yBotOf = (s: number) => combTopY - (s + 1) * segH;
       // 右邊 X：xR_tip = r.x + r.w；xR_base = r.x + r.w - d
       const xRTip = r.x + r.w;
       const xRBase = r.x + r.w - d;
@@ -922,6 +938,10 @@ export function projectPartPolygon(
           pts.push({ x, y });
         }
       };
+      // inset > 0：右側 plain top 起點（先到板頂右上、右下回 combTopY 進右 sweep）
+      if (inset > 0) {
+        push(xRTip, r.y + r.h);
+      }
       // 右側 top→bot：s = 0..N-1
       for (let s = 0; s < N; s++) {
         const yT = yTopOf(s);
@@ -977,6 +997,10 @@ export function projectPartPolygon(
           push(xLBase, yB);
           push(xLBase, yT);
         }
+      }
+      // inset > 0：左 sweep 結束於 (xLTip, combTopY)，補 plain top 左上 (xLTip, r.y+r.h) 再 close
+      if (inset > 0) {
+        push(xLTip, r.y + r.h);
       }
     } else {
       // combAxis === "h"：length 軸垂直 r.h；comb 在 r.y/r.y+r.h 兩端，segments 沿 r.w 切

@@ -321,7 +321,7 @@ export interface Part {
      *  phase 0 = local -Z 端起算第 1 段為齒；phase 1 = 第 1 段為槽。鄰壁 phase 相反。
      *  fingerDepth = 齒凸出（= 鄰壁厚 T）。3D 為 X-Z 平面 comb polygon 沿 Y 擠出。
      *  俯視 silhouette 為簡單矩形（top slice 內看不出來），前/側視可看到 comb。*/
-    | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
+    | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number; topInsetMm?: number }
     /** 4 壁鳩尾榫（dovetail joint）：仿 finger-joint，但段是梯形 trapezoid 而非矩形。
      *  segmentCount = 沿 Z 切幾段（pin + tail 總數）。phase 0 / 1 對偶（鄰壁相反）。
      *  angleDeg = 鳩尾角（傳統 7-14°，14° 軟木、7° 硬木；§B7）。
@@ -331,7 +331,7 @@ export interface Part {
      *  Tail（拉力承載端）：local -X 方向頂視為梯形——「外寬內窄」（沿 length 軸內凹處兩側
      *  按 angleDeg 收斂）。Pin（被拉端）：local -X 方向頂視為「外窄內寬」梯形（互嵌）。
      *  視 phase 對偶決定段順序。*/
-    | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
+    | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean; topInsetMm?: number }
     /** 正多邊形板（六/八角筆筒底板、托盤底）：N 個邊均勻分布、沿 thickness 軸擠出。
      *  outerRadius = 外接圓半徑；angleOffsetDeg 預設 90°+180°/N。 */
     | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }

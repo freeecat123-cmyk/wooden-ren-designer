@@ -162,8 +162,8 @@ type ShapeSpec =
       bevelAngle?: number;
       vertices?: [number, number, number][];
     }
-  | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number }
-  | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
+  | { kind: "finger-joint-ends"; segmentCount: number; phase: 0 | 1; fingerDepth: number; edgeChamferMm?: number; topInsetMm?: number }
+  | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean; topInsetMm?: number }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
   | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
@@ -478,10 +478,10 @@ function Part({
       );
     }
     if (shape.kind === "finger-joint-ends") {
-      return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0);
+      return buildFingerJointEndsGeometry(size, shape.segmentCount, shape.phase, shape.fingerDepth, shape.edgeChamferMm ?? 0, shape.topInsetMm ?? 0);
     }
     if (shape.kind === "dovetail-ends") {
-      return buildDovetailEndsGeometry(size, shape.segmentCount, shape.phase, shape.angleDeg, shape.pinDepth, shape.halfPin ?? true);
+      return buildDovetailEndsGeometry(size, shape.segmentCount, shape.phase, shape.angleDeg, shape.pinDepth, shape.halfPin ?? true, shape.topInsetMm ?? 0);
     }
     if (shape.kind === "regular-polygon") {
       return buildRegularPolygonGeometry(size, shape.sides, shape.outerRadius, shape.angleOffsetDeg ?? (90 + 180 / shape.sides));
@@ -1415,6 +1415,7 @@ function buildFingerJointEndsGeometry(
   phase: 0 | 1,
   fingerDepth: number,
   edgeChamferMm: number = 0,
+  topInsetMm: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1426,7 +1427,10 @@ function buildFingerJointEndsGeometry(
   // 注意：edgeChamferMm 留 API 給未來但目前不套——bevelEnabled 會把齒邊也倒圓
   // 破壞接合外觀。要做 selective chamfer（只動世界頂緣不動齒邊）需手刻 geometry。
   void edgeChamferMm;
-  const segH = lz / N;
+  // topInsetMm > 0：comb 只在 [-hz, hz - inset] 區，上方 inset 區是 plain rect（與壁同寬）
+  const inset = Math.max(0, Math.min(topInsetMm, lz - 1));
+  const segH = (lz - inset) / N;
+  const yCombTop = -hz + N * segH;
   const isFinger = (s: number) => ((s + phase) % 2) === 0;
   const xRightAt = (s: number) => (isFinger(s) ? +hx : +hx - depth);
   const xLeftAt = (s: number) => (isFinger(s) ? -hx : -hx + depth);
@@ -1444,7 +1448,16 @@ function buildFingerJointEndsGeometry(
       if (nx !== x) shape2D.lineTo(nx, yTop);
     }
   }
-  shape2D.lineTo(xLeftAt(N - 1), +hz);
+  if (inset > 0) {
+    // 上方 inset 區：右上 → 板頂 → 左上 plain wall
+    if (xRightAt(N - 1) !== +hx) shape2D.lineTo(+hx, yCombTop);
+    shape2D.lineTo(+hx, +hz);
+    shape2D.lineTo(-hx, +hz);
+    shape2D.lineTo(-hx, yCombTop);
+    if (xLeftAt(N - 1) !== -hx) shape2D.lineTo(xLeftAt(N - 1), yCombTop);
+  } else {
+    shape2D.lineTo(xLeftAt(N - 1), +hz);
+  }
   for (let s = N - 1; s >= 0; s--) {
     const x = xLeftAt(s);
     const yBot = -hz + s * segH;
@@ -1488,6 +1501,7 @@ function buildDovetailEndsGeometry(
   angleDeg: number,
   pinDepth: number,
   halfPin: boolean = true,
+  topInsetMm: number = 0,
 ): BufferGeometry {
   const [lx, ly, lz] = size;
   const hx = lx / 2;
@@ -1496,7 +1510,10 @@ function buildDovetailEndsGeometry(
   const depth = Math.max(0, Math.min(pinDepth, hx * 0.95));
   const N = Math.max(3, Math.floor(segmentCount));
   if (depth <= 0) return new BoxGeometry(lx, ly, lz);
-  const segH = lz / N;
+  // topInsetMm > 0：dovetail comb 只在 [-hz, hz - inset] 區，上方 inset 區 plain
+  const inset = Math.max(0, Math.min(topInsetMm, lz - 1));
+  const segH = (lz - inset) / N;
+  const yCombTop = -hz + N * segH;
   // 鳩尾角的 Y 方向收斜量：slantY = depth · tan(α)
   // clamp 到 segH/2 避免相鄰 pin 的肩交疊（segH 太小或 angle 太大時）
   const angleRad = (Math.max(1, Math.min(25, angleDeg)) * Math.PI) / 180;
@@ -1567,6 +1584,14 @@ function buildDovetailEndsGeometry(
       push(xRBase, yB);
       push(xRBase, yT);
     }
+  }
+
+  // topInsetMm > 0：comb 頂端 yCombTop 之上加 plain top rectangle 連到板頂
+  if (inset > 0) {
+    push(xRTip, yCombTop);   // 確保右側到 +hx（halfPin 應已是）
+    push(xRTip, +hz);
+    push(xLTip, +hz);
+    push(xLTip, yCombTop);
   }
 
   // 左邊：sweep s=N-1..0（top→bot），對稱推（左邊 pin 凸出到 xLTip = -hx）
@@ -2763,6 +2788,7 @@ export function PerspectiveView({
         part.shape.angleDeg,
         part.shape.pinDepth * SCALE,
         part.shape.halfPin ?? true,
+        (part.shape.topInsetMm ?? 0) * SCALE,
       );
       geo.deleteAttribute("uv");
       if (!geo.attributes.normal) geo.computeVertexNormals();
@@ -3102,6 +3128,7 @@ export function PerspectiveView({
               phase: part.shape.phase,
               fingerDepth: part.shape.fingerDepth * SCALE,
               edgeChamferMm: part.shape.edgeChamferMm !== undefined ? part.shape.edgeChamferMm * SCALE : undefined,
+              topInsetMm: part.shape.topInsetMm !== undefined ? part.shape.topInsetMm * SCALE : undefined,
             };
           } else if (part.shape?.kind === "dovetail-ends") {
             shape = {
@@ -3111,6 +3138,7 @@ export function PerspectiveView({
               angleDeg: part.shape.angleDeg,
               pinDepth: part.shape.pinDepth * SCALE,
               halfPin: part.shape.halfPin,
+              topInsetMm: part.shape.topInsetMm !== undefined ? part.shape.topInsetMm * SCALE : undefined,
             };
           } else if (part.shape?.kind === "regular-polygon") {
             shape = {
