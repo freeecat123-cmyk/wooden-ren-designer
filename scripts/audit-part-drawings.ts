@@ -332,5 +332,85 @@ expect(
   }
 }
 
+// ─── Test 9: Comprehensive 28-template smoke (Phase 1 acceptance) ──────────
+// 對每個模板的每個 group 跑 <PartDrawing> renderToString，確認 zero crash。
+console.log("\n--- Comprehensive 28-template smoke ---");
+let crashCount = 0;
+let renderedCount = 0;
+let templatesCovered = 0;
+for (const entry of FURNITURE_CATALOG) {
+  if (!entry.template) continue;
+  templatesCovered++;
+  try {
+    const design = buildDesign(entry);
+    if (!design) {
+      console.log("  ⚠", entry.category, "design build returned null — skipped");
+      continue;
+    }
+    const groups = groupPartsForDrawing(design);
+    let templateCrash = false;
+    for (const g of groups) {
+      try {
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: 0,
+          }),
+        );
+        if (!html || html.length < 100) {
+          console.error(
+            "  ❌",
+            entry.category,
+            "group",
+            g.hash.slice(0, 12),
+            "tiny output:",
+            html.length,
+          );
+          crashCount++;
+          templateCrash = true;
+        } else {
+          renderedCount++;
+        }
+      } catch (e: any) {
+        console.error(
+          "  ❌",
+          entry.category,
+          "group",
+          g.hash.slice(0, 12),
+          "CRASH:",
+          e.message,
+        );
+        crashCount++;
+        templateCrash = true;
+      }
+    }
+    if (!templateCrash) {
+      console.log(
+        "  ✓",
+        entry.category,
+        `${groups.length} group(s) rendered`,
+      );
+    }
+  } catch (e: any) {
+    console.error("  ❌", entry.category, "build CRASH:", e.message);
+    crashCount++;
+  }
+}
+console.log(
+  `\nsmoke stats: ${templatesCovered} templates covered, ${renderedCount} <PartDrawing> cards rendered, ${crashCount} crash(es)`,
+);
+expect(
+  crashCount === 0,
+  `28-template smoke: ${crashCount} crash(es) (must be 0; rendered ${renderedCount} cards across ${templatesCovered} templates)`,
+);
+
+// ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
+// 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
+//   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
+//   [ ] 合併 ×N 數量 = 材料單同類 part 數量
+// 自動驗收：predicate / hash / grouping / isolation filter / 3-view layout /
+// T1 dim row / T2 label list / 28-template smoke — 上面 Tasks 1-9 全綠即可。
+
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
 process.exit(fail);
