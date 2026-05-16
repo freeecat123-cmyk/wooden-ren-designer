@@ -39,6 +39,7 @@ export function LazyPerspectiveView({
   compactMode = false,
   noSync = false,
   wireframeMode = false,
+  hidePartIds = [],
 }: {
   design: FurnitureDesign;
   sceneTheme?: import("@/lib/design/scene-themes").SceneTheme;
@@ -54,6 +55,8 @@ export function LazyPerspectiveView({
   noSync?: boolean;
   /** 線框模式：所有零件渲染骨架 */
   wireframeMode?: boolean;
+  /** Debug：?hide=wall-front,wall-back URL param 隱藏特定 part */
+  hidePartIds?: string[];
 }) {
   const ctx = useSelectedPart();
   const selectedPartId = noSync ? null : ctx.selectedPartId;
@@ -70,6 +73,7 @@ export function LazyPerspectiveView({
       onPartSelect={onPartSelect}
       compactMode={compactMode}
       wireframeMode={wireframeMode}
+      hidePartIds={hidePartIds}
     />
   );
 }

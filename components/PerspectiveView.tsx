@@ -2571,6 +2571,7 @@ export function PerspectiveView({
   onPartSelect,
   compactMode = false,
   wireframeMode = false,
+  hidePartIds = [],
 }: {
   design: FurnitureDesign;
   /** 場景環境主題（natural=現況，其他加地板+調光）*/
@@ -2595,6 +2596,8 @@ export function PerspectiveView({
   compactMode?: boolean;
   /** 線框模式：所有零件渲染成骨架，看內部結構 */
   wireframeMode?: boolean;
+  /** Debug：隱藏特定 part.id（用 URL ?hide=wall-front,wall-back 之類驗證 CSG/joint） */
+  hidePartIds?: string[];
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
@@ -2900,6 +2903,7 @@ export function PerspectiveView({
         )}
 
         {design.parts.map((partRaw) => {
+          if (hidePartIds.includes(partRaw.id)) return null;
           // joineryView 覆寫：joineryMode 開啟時，部分 part 會用「榫接版專用幾何」
           // （e.g. 書擋的 45° miter）；組裝版維持原本直角對接 / 簡潔形狀。
           const part = joineryMode && partRaw.joineryView
