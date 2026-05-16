@@ -19,6 +19,7 @@ import {
   GrainArrow,
   FacingMark,
   ShapeSpecificAnnotation,
+  DetailCallout,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
@@ -108,6 +109,7 @@ export function PartDrawing({
               <GrainArrow ctx={ctx} part={part} view="front" />
               <FacingMark ctx={ctx} part={part} view="front" />
               <ShapeSpecificAnnotation ctx={ctx} part={part} view="front" />
+              <DetailCallout ctx={ctx} part={part} view="front" />
             </>
           )}
         />
