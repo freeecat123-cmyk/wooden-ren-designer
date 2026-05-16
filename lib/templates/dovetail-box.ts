@@ -551,15 +551,16 @@ const polyDesign: FurnitureDesign = {
       });
       // 壁延伸 + 滑槽：
       // - wall-front / wall-back 延伸 lidT 到 outerH（蓋上方 5mm cap 在前後存在）
-      // - wall-left / wall-right 都只延伸 (lidT - sinkMm) 到 lid top
-      //   （兩短邊都降到 lid top，沒上 cap、視覺不擋蓋）
+      // - wall-left 只延伸 (lidT - sinkMm) 到 lid top = outerH - sinkMm
+      //   （沒上 cap、降到 lid top 讓蓋可以放進槽、視覺不擋蓋）
+      // - wall-right 延伸 lidT 到 outerH（同 F/B，slide-in 對面、有 groove）
       // groove Z 動態算：每壁 mesh center 不同 → grooveLocalZ = meshCenterY - lidCenterY
       // origin.y 用 from-bottom 慣例（0 = 一面、wallT = 另一面）
       const lidWorldYCenter = outerH - lidT / 2 - sinkMm;
       for (const p of design.parts) {
-        if (p.id === "wall-front" || p.id === "wall-back") {
+        if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
-        } else if (p.id === "wall-left" || p.id === "wall-right") {
+        } else if (p.id === "wall-left") {
           p.visible = { ...p.visible, width: p.visible.width + lidT - sinkMm };
         } else {
           continue;
