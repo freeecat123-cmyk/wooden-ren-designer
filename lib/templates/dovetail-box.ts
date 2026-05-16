@@ -30,15 +30,15 @@ interface BoxPresetConfig {
 }
 const DOVETAIL_BOX_PRESETS: Record<string, BoxPresetConfig> = {
   // 首飾盒：薄壁、鳩尾、絨布、磁吸、jewelry 抽板、十字內格
-  jewelry: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 7, dovetailAngle: 10, bottomAttach: "grooved", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, withInnerTray: true, dividers: 1, crossDividers: 2 },
+  jewelry: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 7, dovetailAngle: 10, bottomAttach: "seated", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, withInnerTray: true, dividers: 1, crossDividers: 2 },
   // 雪茄盒：較厚壁（保濕）、嵌入式蓋、絨布
-  cigar: { wallThickness: 15, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 8, bottomAttach: "grooved", lidType: "rabbeted", withFeltLining: true },
+  cigar: { wallThickness: 15, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 8, bottomAttach: "seated", lidType: "rabbeted", withFeltLining: true },
   // 茶葉盒：厚壁防潮、滑入式蓋、無內襯
-  tea: { wallThickness: 12, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "grooved", lidType: "sliding" },
+  tea: { wallThickness: 12, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "seated", lidType: "sliding" },
   // 手錶盒：薄壁、鉸鏈蓋、絨布、磁吸、橫向 3 隔（4 格放手錶）
-  watch: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "grooved", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, crossDividers: 3 },
+  watch: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "seated", lidType: "hinged", withFeltLining: true, withMagneticClosure: true, crossDividers: 3 },
   // 文件盒：厚壁、鉸鏈蓋、搬運把手（公文盒提把）
-  document: { wallThickness: 14, bottomThickness: 8, dovetailSegments: 7, dovetailAngle: 8, bottomAttach: "grooved", lidType: "hinged", withHandle: true, handleShape: "pill" },
+  document: { wallThickness: 14, bottomThickness: 8, dovetailSegments: 7, dovetailAngle: 8, bottomAttach: "seated", lidType: "hinged", withHandle: true, handleShape: "pill" },
 };
 
 export const dovetailBoxOptions: OptionSpec[] = [
@@ -60,11 +60,11 @@ export const dovetailBoxOptions: OptionSpec[] = [
   ], help: "六/八角款用 stave 拼接邊接（六角 60° / 八角 45° 內角），鳩尾改 mitered-spline；不支援滑入式蓋、把手孔、活動抽板" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
-  { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "grooved", choices: [
-    { value: "grooved", label: "鋸槽嵌入（底板比外壁小一圈，不上膠讓底板可熱漲冷縮）" },
-    { value: "floating", label: "齊邊膠合（底板與外壁齊邊，整面塗膠）" },
-    { value: "nailed", label: "底面釘合（底板從外面打釘 / 釘+膠，工具盒常見）" },
-  ], help: "影響底板尺寸 + 是否上膠 + 工序（六/八角款 grooved=底板邊緣卡進壁內側溝槽；nailed=底板嵌入壁內 wallT/2）" },
+  { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "seated", choices: [
+    { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
+    { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
+    { value: "flush-glued", label: "整塊膠合（底板與外框齊邊）" },
+  ], help: "底板內縮=底板嵌入壁內、壁壓在底板邊緣膠合（最簡單）；鑲板入溝=4 壁內側開 5mm 槽、底板浮嵌（季節伸縮免裂）；整塊膠合=底板整塊外緣與框體齊邊、強力膠合。", wide: true },
   { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "外露角倒角，1-2mm 微倒手感佳" },
 
   // === Joinery 角接合 ===
@@ -156,7 +156,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const dovetailAngleRaw = getOption<number>(input, opt(o, "dovetailAngle"));
   const dovetailAngleOpt = dovetailAngleRaw === 10 && preset?.dovetailAngle !== undefined ? preset.dovetailAngle : dovetailAngleRaw;
   const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach"));
-  const bottomAttach = (bottomAttachRaw === "grooved" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "grooved" | "floating" | "nailed";
+  const bottomAttach = (bottomAttachRaw === "seated" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
   const dividersRaw = getOption<number>(input, opt(o, "dividers"));
   const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
@@ -184,37 +184,37 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
     const outerWallVertexR = outerD / 2;
 
-    // 底板裝法：dovetail-box 的 grooved / floating / nailed 對應 polygon 三套幾何
+    // 底板裝法：托盤命名 seated / inset-panel / flush-glued 對應 polygon 三套幾何
     let stavesOuterH: number; // 傳給 polygonStaves，內部 wallH = stavesOuterH - botT
     let stavesBaseY: number;
     let bottomOriginY: number;
     let bottomVertexR: number;
     let bottomAttachDesc: string;
-    if (bottomAttach === "grooved") {
-      // 鋸槽嵌入：壁全高、底板邊緣卡進壁內側溝槽（5mm）
+    if (bottomAttach === "inset-panel") {
+      // 鑲板入溝：壁全高、底板邊緣卡進壁內側溝槽（5mm）
       stavesOuterH = outerH + botT;
       stavesBaseY = 0;
       bottomOriginY = botT;
       const grooveDepth = Math.min(5, wallT - 1);
       const bottomApothem = (apothem - wallT) + grooveDepth;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**鋸槽嵌入**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm，可熱漲冷縮）`;
-    } else if (bottomAttach === "floating") {
-      // 齊邊膠合：底板外緣與框體齊邊、整面塗膠
+      bottomAttachDesc = `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm，季節伸縮免裂）`;
+    } else if (bottomAttach === "flush-glued") {
+      // 整塊膠合：底板外緣與框體齊邊、整面塗膠
       stavesOuterH = outerH;
       stavesBaseY = botT;
       bottomOriginY = 0;
       bottomVertexR = outerWallVertexR;
-      bottomAttachDesc = "**齊邊膠合**（底板外緣與框體齊邊，整面塗膠）";
-    } else { // nailed
-      // 底面釘合：底板嵌入壁內 wallT/2，從外面打釘 + 中央上膠
+      bottomAttachDesc = "**整塊膠合**（底板外緣與框體齊邊，整面塗膠）";
+    } else { // seated
+      // 底板內縮：底板邊緣壓入壁內 wallT/2，N 段壁壓在底板邊緣膠合
       stavesOuterH = outerH;
       stavesBaseY = botT;
       bottomOriginY = 0;
       const seatOverlap = wallT / 2;
       const bottomApothem = (apothem - wallT) + seatOverlap;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**底面釘合**（底板嵌入壁內 ${seatOverlap}mm，從外面打釘 + 中央上膠）`;
+      bottomAttachDesc = `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，${sides} 段壁壓在底板邊緣膠合）`;
     }
     const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
     // 端面 mitre（角度 = π/N，相鄰兩壁總共 2π/N = 外角）
@@ -243,7 +243,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       const innerFlatR = apothem - wallT;
       const polyDividerGroove = Math.min(5, wallT - 1);
       const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
-      const polyBottomTopY = bottomAttach === "grooved" ? 2 * botT : botT;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY - (withLid ? lidT : 0));
       const polyDividerH = dividerHeightRaw > 0
         ? Math.max(1, Math.min(dividerHeightRaw, polyDividerHAuto))
@@ -368,10 +368,37 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     material,
     // miter 由 shape 自己畫斜切，buildBox 走 stub-joint base
     cornerJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
-    // bottomFit 對應 bottomAttach：grooved → 鋸槽嵌入；其餘（floating / nailed）→
-    // 底板與外壁齊邊，nailed 是上膠+釘合（builder 不分這兩種，靠 notes 區分）
-    bottomFit: bottomAttach === "grooved" ? "grooved" : "floating",
+    // bottomFit 對應 bottomAttach：flush-glued → floating（底板齊邊整面塗膠），
+    //                             else（seated / inset-panel） → grooved（buildBox 預設 inset）
+    bottomFit: bottomAttach === "flush-glued" ? "floating" : "grooved",
   });
+
+  // 底板裝法後處理（仿托盤）：蓋掉 buildBox 預設幾何
+  const bottomPart = built.parts.find((p) => p.id === "bottom");
+  if (bottomPart) {
+    if (bottomAttach === "inset-panel") {
+      // 鑲板入溝：4 壁全高（從 y=0 起到 outerH）、底板浮嵌於壁內側 5mm 槽中
+      const grooveDepth = 5;
+      const insetEach = Math.max(2, wallT - grooveDepth);
+      bottomPart.visible = {
+        length: outerL - 2 * insetEach,
+        width: outerW - 2 * insetEach,
+        thickness: botT,
+      };
+      bottomPart.origin = { x: 0, y: botT, z: 0 };
+      for (const part of built.parts) {
+        if (part.id.startsWith("wall-")) {
+          part.visible = { ...part.visible, width: outerH - (withLid ? lidT : 0) };
+          part.origin = { ...part.origin, y: 0 };
+        }
+      }
+    } else if (bottomAttach === "flush-glued") {
+      // 整塊膠合：底板外緣與框體齊
+      bottomPart.visible = { length: outerL, width: outerW, thickness: botT };
+      bottomPart.origin = { x: 0, y: 0, z: 0 };
+    }
+    // seated 不動，保留 buildBox 既有結果（底板嵌入壁內 + 壁立其上）
+  }
 
   // miter / finger-joint / dovetail：短壁也延伸到外角全長（搭接才夾在長壁之間）
   // 並清除 buildBox 預先產的榫頭，改由 shape 屬性表達榫接幾何
@@ -517,11 +544,11 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     useButtJointConvention: true,
     primaryMaterial: material,
     notes: `木盒 ${outerL}×${outerW}×${outerH}mm，${joineryDesc}${
-      bottomAttach === "grooved"
-        ? "底板槽接 4 壁內側下緣，不上膠（讓底板可熱漲冷縮）。"
-        : bottomAttach === "floating"
-          ? "底板與 4 壁齊邊膠合（整面塗膠，固定但不可拆）。"
-          : "底板齊邊，從外面打 4 邊釘合 + 中央上膠（傳統工具盒做法）。"
+      bottomAttach === "inset-panel"
+        ? "底板鑲板入溝：4 壁全高，內側鋸 5mm 槽、底板浮嵌（季節伸縮免裂，不上膠）。"
+        : bottomAttach === "flush-glued"
+          ? "底板與 4 壁齊邊整塊膠合（整面塗膠，固定但不可拆）。"
+          : "底板內縮：底板嵌入壁內、4 壁壓在底板邊緣膠合（最簡單）。"
     }${withLid ? `蓋子做${
       lidType === "sliding"
         ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
