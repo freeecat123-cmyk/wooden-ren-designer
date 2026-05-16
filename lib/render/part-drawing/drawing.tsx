@@ -18,6 +18,7 @@ import {
   T2LabelList,
   GrainArrow,
   FacingMark,
+  ShapeSpecificAnnotation,
 } from "./annotation";
 
 interface PartDrawingProps {
@@ -94,6 +95,7 @@ export function PartDrawing({
               <T2Annotations ctx={ctx} part={part} view="front" />
               <GrainArrow ctx={ctx} part={part} view="front" />
               <FacingMark ctx={ctx} part={part} view="front" />
+              <ShapeSpecificAnnotation ctx={ctx} part={part} view="front" />
             </>
           )}
         />
@@ -110,6 +112,7 @@ export function PartDrawing({
               <T2Annotations ctx={ctx} part={part} view="top" />
               <GrainArrow ctx={ctx} part={part} view="top" />
               <FacingMark ctx={ctx} part={part} view="top" />
+              <ShapeSpecificAnnotation ctx={ctx} part={part} view="top" />
             </>
           )}
         />
@@ -126,6 +129,7 @@ export function PartDrawing({
               <T2Annotations ctx={ctx} part={part} view="side" />
               <GrainArrow ctx={ctx} part={part} view="side" />
               <FacingMark ctx={ctx} part={part} view="side" />
+              <ShapeSpecificAnnotation ctx={ctx} part={part} view="side" />
             </>
           )}
         />
@@ -141,6 +145,15 @@ export function PartDrawing({
       {design.useButtJointConvention !== false && (
         <div className="mt-1 text-[8px] text-zinc-400 italic">
           ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
+        </div>
+      )}
+      {part.shape?.kind === "hoof" && (
+        <div className="mt-0.5 text-[8px] text-amber-700">
+          毛料厚建議 ≥{" "}
+          {Math.round(
+            part.visible.width * (part.shape.hoofScale ?? 1.4) * 10,
+          ) / 10}
+          mm
         </div>
       )}
     </div>

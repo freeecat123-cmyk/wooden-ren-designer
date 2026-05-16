@@ -1,6 +1,9 @@
 import React from "react";
 import type { FurnitureDesign } from "@/lib/types";
-import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
+import {
+  groupPartsForDrawing,
+  type PartDrawingGroup,
+} from "@/lib/render/part-drawing/grouping";
 import { PartDrawing } from "@/lib/render/part-drawing/drawing";
 
 interface Props {
@@ -8,9 +11,34 @@ interface Props {
 }
 
 /**
+ * Hard shapes whose annotations (lathe segment table / arch chord / apron
+ * trapezoid dual-edge / hoof direction / splayed true length) need the full
+ * row in print. These render with `col-span-2` so they consume an entire row
+ * of the 2-column grid instead of half.
+ *
+ * Spec: docs/superpowers/specs/2026-05-16-part-drawings-phase3-design.md §7
+ */
+const HARD_SHAPES = new Set<string>([
+  "lathe-turned",
+  "arch-bent",
+  "apron-trapezoid",
+  "hoof",
+  "splayed-tapered",
+  "splayed-round-tapered",
+]);
+
+function isHardPart(g: PartDrawingGroup): boolean {
+  const shape = g.representative.shape;
+  return !!(shape && HARD_SHAPES.has(shape.kind));
+}
+
+/**
  * Print page section: per-part shop drawings ("零件圖") in 2×2 grid.
  * Each card is `.print-keep` so it won't split across A4 page boundaries.
  * Hides entirely if no parts trigger the predicate (pure-box furniture).
+ *
+ * Hard-shape parts (HARD_SHAPES) take `col-span-2` so their richer
+ * annotations (Phase 3) get a full row; lighter parts stay 2-up.
  */
 export function PrintPartDrawings({ design }: Props) {
   const groups = groupPartsForDrawing(design);
@@ -28,7 +56,12 @@ export function PrintPartDrawings({ design }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         {groups.map((g, idx) => (
-          <PartDrawing key={g.hash} group={g} design={design} index={idx} />
+          <div
+            key={g.hash}
+            className={isHardPart(g) ? "col-span-2" : undefined}
+          >
+            <PartDrawing group={g} design={design} index={idx} />
+          </div>
         ))}
       </div>
     </section>

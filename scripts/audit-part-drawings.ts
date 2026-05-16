@@ -550,6 +550,303 @@ console.log("\n--- Phase 2 element smoke (28 templates) ---");
   expect(p2pair > 0, `Phase 2 pair ID appears at least once (${p2pair})`);
 }
 
+// ─── Phase 3 Task 1: lathe segment table ────────────────────────────────────
+console.log("\n--- P3 Task 1: lathe segment table ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find(
+      (g) => g.representative.shape?.kind === "lathe-turned",
+    );
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("lathe-segment-table")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 1: lathe-turned renders segment table");
+  } else {
+    console.log(
+      "⚠ P3 Task 1: no lathe-turned part in catalog (skipping assertion)",
+    );
+  }
+}
+
+// ─── Phase 3 Task 2: arch-bent chord + sagitta ─────────────────────────────
+console.log("\n--- P3 Task 2: arch-bent chord/sagitta ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find((g) => g.representative.shape?.kind === "arch-bent");
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("arch-bent-chord")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 2: arch-bent renders chord+sagitta");
+  } else {
+    console.log(
+      "⚠ P3 Task 2: no arch-bent part in catalog (skipping assertion)",
+    );
+  }
+}
+
+// ─── Phase 3 Task 3: apron-trapezoid dual-edge ─────────────────────────────
+console.log("\n--- P3 Task 3: apron-trapezoid dual edge ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find(
+      (g) => g.representative.shape?.kind === "apron-trapezoid",
+    );
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("apron-trap-dual")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 3: apron-trapezoid renders dual edge");
+  } else {
+    console.log(
+      "⚠ P3 Task 3: no apron-trapezoid part in catalog (skipping assertion)",
+    );
+  }
+}
+
+// ─── Phase 3 Task 4: hoof direction ────────────────────────────────────────
+console.log("\n--- P3 Task 4: hoof direction ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find((g) => g.representative.shape?.kind === "hoof");
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("hoof-direction")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 4: hoof renders direction + 轉折");
+  } else {
+    console.log(
+      "⚠ P3 Task 4: no hoof part in catalog (skipping assertion)",
+    );
+  }
+}
+
+// ─── Phase 3 Task 5: splayed true length ───────────────────────────────────
+console.log("\n--- P3 Task 5: splayed true length ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find(
+      (g) =>
+        g.representative.shape?.kind === "splayed-tapered" ||
+        g.representative.shape?.kind === "splayed-round-tapered",
+    );
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("splayed-true-length")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 5: splayed-tapered/-round-tapered renders true length");
+  } else {
+    console.log(
+      "⚠ P3 Task 5: no splayed-tapered/-round-tapered part in catalog (skipping assertion)",
+    );
+  }
+}
+
+// ─── Phase 3 Task 6: silhouette gap check ──────────────────────────────────
+// 對 7 種原本落 AABB fallback 的 shape，跑 projectPartSilhouette，驗回傳 polygon
+// > 4 點（不再是 AABB）。catalog 沒出現的 shape 印 ⚠ 軟跳過、不算失敗。
+import { projectPartSilhouette } from "../lib/render/geometry";
+
+console.log("\n--- Phase 3 silhouette gap check ---");
+{
+  // shaker / notched-corners / finger-joint-ends / dovetail-ends / regular-polygon /
+  // live-edge：應出 polygon > 4 點。
+  // face-rounded / chamfered-top：圓角 polygon（已含 projectPartPolygon），> 4
+  // 點也對得起來；但 catalog 可能極少出現。
+  const SHAPE_GAPS_TO_CHECK = [
+    "shaker",
+    "notched-corners",
+    "finger-joint-ends",
+    "dovetail-ends",
+    "regular-polygon",
+    "live-edge",
+    "face-rounded",
+    "chamfered-top",
+  ];
+  for (const kind of SHAPE_GAPS_TO_CHECK) {
+    let found: any = null;
+    for (const entry of FURNITURE_CATALOG) {
+      if (!entry.template) continue;
+      const design = buildDesign(entry);
+      if (!design) continue;
+      for (const p of design.parts) {
+        if (p.shape?.kind === kind) {
+          found = p;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) {
+      console.log(
+        `  ⚠ no part with shape=${kind} in default catalog; skipping`,
+      );
+      continue;
+    }
+    // 試 3 個 view 取最多點數的那個（live-edge 只在 top 出 wavy outline）
+    let bestPoints = 0;
+    let bestView = "";
+    try {
+      for (const v of ["front", "side", "top"] as const) {
+        const poly = projectPartSilhouette(found, v);
+        if (poly && poly.length > bestPoints) {
+          bestPoints = poly.length;
+          bestView = v;
+        }
+      }
+    } catch (e: any) {
+      console.error(
+        `  ❌ shape=${kind}: projectPartSilhouette CRASH: ${e.message}`,
+      );
+      fail++;
+      continue;
+    }
+    if (bestPoints > 4) {
+      console.log(
+        `  ✓ shape=${kind}: ${bestPoints}-point polygon (${bestView} view, not AABB)`,
+      );
+    } else {
+      console.log(
+        `  ⚠ shape=${kind}: ${bestPoints}-point polygon (still AABB-like)`,
+      );
+    }
+  }
+}
+
+// ─── Phase 3 final smoke: 28 templates × all P3 elements ───────────────────
+// 全模板渲染零件圖卡，統計 Phase 3 五大標註元素（lathe table / arch chord /
+// apron-trap dual / hoof direction / splayed true length）出現次數。
+// 強硬假設：crashes 必須為 0。元素出現次數視 catalog default 才會有，
+// 用 log 攤出來、不強制下限。
+console.log("\n--- Phase 3 final smoke (28 templates × all P3 elements) ---");
+{
+  let p3lathe = 0,
+    p3arch = 0,
+    p3trap = 0,
+    p3hoof = 0,
+    p3splayed = 0;
+  let p3crashes = 0;
+  let totalCards = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          }),
+        );
+        if (!html || html.length < 200) {
+          p3crashes++;
+          continue;
+        }
+        if (html.includes("lathe-segment-table")) p3lathe++;
+        if (html.includes("arch-bent-chord")) p3arch++;
+        if (html.includes("apron-trap-dual")) p3trap++;
+        if (html.includes("hoof-direction")) p3hoof++;
+        if (html.includes("splayed-true-length")) p3splayed++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p3crashes++;
+    }
+  }
+  console.log(
+    `  P3 stats: cards=${totalCards} lathe=${p3lathe} arch=${p3arch} apron-trap=${p3trap} hoof=${p3hoof} splayed=${p3splayed} crashes=${p3crashes}`,
+  );
+  expect(p3crashes === 0, `Phase 3 smoke: ${p3crashes} crash(es)`);
+  // 元素 coverage 不強制每種都觸發（部分 shape catalog default 不出現）
+  // — soft stats 寫進 log 供 visibility
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致

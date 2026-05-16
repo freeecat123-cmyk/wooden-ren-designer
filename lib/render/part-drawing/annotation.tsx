@@ -18,6 +18,7 @@ import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
   VerticalDimensionLine,
+  LATHE_SEG,
   mortiseLocalBox,
   tenonLocalBox,
   type OrthoViewBoxCtx,
@@ -678,6 +679,306 @@ export function FacingMark({
       <text x={x0} y={y0} fontSize={9} fill="#7c2d12" fontWeight="bold">
         {facing.label}
       </text>
+    </g>
+  );
+}
+
+/**
+ * <ShapeSpecificAnnotation> — 依 part.shape.kind 分派對應的特殊標註元件
+ *（Phase 3 Task 1+ 框架）。
+ *
+ * 不在 5 種 hard shape 內回 null（safe no-op）。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-3-design.md §1
+ */
+export function ShapeSpecificAnnotation({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (!part.shape) return null;
+  switch (part.shape.kind) {
+    case "lathe-turned":
+      return <LatheSegmentTable ctx={ctx} part={part} view={view} />;
+    case "arch-bent":
+      return <ArchBentChord ctx={ctx} part={part} view={view} />;
+    case "apron-trapezoid":
+      return <ApronTrapezoidDualEdge ctx={ctx} part={part} view={view} />;
+    case "hoof":
+      return <HoofDirection ctx={ctx} part={part} view={view} />;
+    case "splayed-tapered":
+    case "splayed-round-tapered":
+      return <SplayedTrueLength ctx={ctx} part={part} view={view} />;
+    default:
+      return null;
+  }
+}
+
+/**
+ * <LatheSegmentTable> — lathe-turned 段別表（side view 角落）。
+ *
+ * 讀 module 常數 LATHE_SEG（12 段 [topR, botR, hFrac]）。
+ *   Y(seg i) = Σ(hFrac[0..i]) × visible.length   // 累加從頂往下
+ *   R(seg i) = botR × visible.width / 2          // 半徑 = bot 比例 × fullR
+ *
+ * 字級 6px / 行高 9px / 等寬字、貼右邊 90px。
+ *
+ * Spec: …phase-3 §1.1
+ */
+function LatheSegmentTable({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "side") return null;
+  // round leg 系列用 width 當直徑、length 當高度
+  const fullR = part.visible.width / 2;
+  const length = part.visible.length;
+
+  let cumH = 0;
+  const rows = LATHE_SEG.map((seg, i) => {
+    const [, botR, hFrac] = seg;
+    cumH += hFrac;
+    return {
+      idx: i + 1,
+      y: Math.round(cumH * length * 10) / 10,
+      r: Math.round(botR * fullR * 10) / 10,
+    };
+  });
+
+  const x0 = ctx.vbX + ctx.vbW - 90;
+  const y0 = ctx.vbY + 24;
+  const lineH = 9;
+
+  return (
+    <g
+      className="lathe-segment-table"
+      style={{ fontSize: 6, fontFamily: "monospace" }}
+    >
+      <text x={x0} y={y0} fontWeight="bold">
+        段│Y│R
+      </text>
+      {rows.map((r, i) => (
+        <text key={i} x={x0} y={y0 + (i + 1) * lineH}>
+          {String(r.idx).padStart(2)}│{String(r.y).padStart(4)}│
+          {String(r.r).padStart(4)}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+/**
+ * <ArchBentChord> — arch-bent 弦長 + 矢高（front view 左下）。
+ *
+ * 木匠用「弦長 + 矢高」就能用繩子+尺放樣弧線（古法）。
+ *   弦長 = visible.length（直線端到端距離）
+ *   矢高 = shape.bendMm（垂直弦的最大彎度）
+ *
+ * 配「順弦切向木紋」小字提示走紋方向。
+ *
+ * Spec: …phase-3 §1.2
+ */
+function ArchBentChord({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  if (part.shape?.kind !== "arch-bent") return null;
+  const chord = part.visible.length;
+  const sagitta = part.shape.bendMm ?? 0;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + ctx.vbH - 40;
+
+  return (
+    <g className="arch-bent-chord" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        弦長 {round1(chord)}
+      </text>
+      <text x={x0} y={y0 + 10} fill="#374151">
+        矢高 {round1(sagitta)}
+      </text>
+      <text x={x0} y={y0 + 20} fontSize={6} fill="#6b7280">
+        （順弦切向木紋）
+      </text>
+    </g>
+  );
+}
+
+/**
+ * <ApronTrapezoidDualEdge> — apron-trapezoid 上下邊雙標 + 端面斜角。
+ *
+ * 牙條梯形（topLengthScale / bottomLengthScale）要木匠看清上邊跟下邊各多長，
+ * top view 左上角同時標兩條邊長，bevelAngle 非 0 時加端面斜角度°。
+ *
+ *   上邊長 = visible.length × topLengthScale
+ *   下邊長 = visible.length × bottomLengthScale
+ *   端面斜 = bevelAngle * 180/π （若 != 0）
+ *
+ * Spec: …phase-3 §1.3
+ */
+function ApronTrapezoidDualEdge({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "top") return null;
+  if (part.shape?.kind !== "apron-trapezoid") return null;
+  const shape = part.shape;
+  const L = part.visible.length;
+  const topL = L * (shape.topLengthScale ?? 1);
+  const botL = L * (shape.bottomLengthScale ?? 1);
+  const bevel = shape.bevelAngle ?? 0;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + 42;
+
+  return (
+    <g className="apron-trap-dual" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        上邊長 {round1(topL)}
+      </text>
+      <text x={x0} y={y0 + 10} fill="#374151">
+        下邊長 {round1(botL)}
+      </text>
+      {bevel !== 0 && (
+        <text x={x0} y={y0 + 20} fill="#374151">
+          端面斜 {round1((bevel * 180) / Math.PI)}°
+        </text>
+      )}
+    </g>
+  );
+}
+
+/**
+ * <HoofDirection> — 明式馬蹄腳方向 + 轉折 Y（Phase 3 Task 4）。
+ *
+ * `hoof` shape：`hoofMm` (馬蹄高)、`hoofScale` (外撇倍率)、
+ * `dirX`/`dirZ` ∈ {-1, 0, +1} 外撇方向。
+ *
+ * front + side view 角標：
+ *   - 「腳趾朝右/左/前/後」中文（不寫變數名）
+ *   - 「轉折 Y={hoofMm}」距底高度（從底往上量到 S 上半轉折點）
+ *
+ * 卡片底再加一行毛料厚建議（drawing.tsx）。
+ *
+ * Spec: …phase-3 §1.4
+ */
+function HoofDirection({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view === "top") return null;
+  if (part.shape?.kind !== "hoof") return null;
+  const shape = part.shape;
+
+  const dirX = shape.dirX ?? 0;
+  const dirZ = shape.dirZ ?? 0;
+  const hoofMm = shape.hoofMm ?? 0;
+
+  const dirParts: string[] = [];
+  if (dirX > 0) dirParts.push("右");
+  if (dirX < 0) dirParts.push("左");
+  if (dirZ > 0) dirParts.push("前");
+  if (dirZ < 0) dirParts.push("後");
+  const dirText = dirParts.length
+    ? `腳趾朝${dirParts.join("")}`
+    : "腳趾外撇";
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + 32;
+
+  return (
+    <g className="hoof-direction" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#7c2d12" fontWeight="bold">
+        {dirText}
+      </text>
+      <text x={x0} y={y0 + 10} fontSize={7} fill="#374151">
+        轉折 Y={round1(hoofMm)}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * <SplayedTrueLength> — 外斜腳真實長度 + 端面斜角（Phase 3 Task 5）。
+ *
+ * `splayed-tapered` / `splayed-round-tapered`：整支腳沿 length 軸傾斜，
+ * 底面相對頂面在 part-local 偏移 (dxMm, dzMm)。
+ *
+ * front view 左下角標：
+ *   - 真長 = √(L² + dx² + dz²)
+ *   - 端面斜 = atan2(√(dx² + dz²), L) × 180/π （°）
+ *   - splayed-round-tapered 多標頂徑/底徑（visible.width × bottomScale）
+ *
+ * 視覺長度 visible.length 是 chord（直線距離），真長要含偏移量。
+ *
+ * Spec: …phase-3 §1.5
+ */
+function SplayedTrueLength({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  if (
+    part.shape?.kind !== "splayed-tapered" &&
+    part.shape?.kind !== "splayed-round-tapered"
+  ) {
+    return null;
+  }
+  const shape = part.shape;
+  const L = part.visible.length;
+  const dx = shape.dxMm ?? 0;
+  const dz = shape.dzMm ?? 0;
+  const realL = Math.sqrt(L * L + dx * dx + dz * dz);
+  const angleDeg =
+    (Math.atan2(Math.sqrt(dx * dx + dz * dz), L) * 180) / Math.PI;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + ctx.vbH - 30;
+
+  return (
+    <g className="splayed-true-length" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        真長 {round1(realL)}
+      </text>
+      <text x={x0} y={y0 + 10} fontSize={7} fill="#6b7280">
+        端面斜 {round1(angleDeg)}°
+      </text>
+      {shape.kind === "splayed-round-tapered" && (
+        <text x={x0} y={y0 + 20} fontSize={7} fill="#374151">
+          頂徑 {round1(part.visible.width)} / 底徑{" "}
+          {round1(part.visible.width * (shape.bottomScale ?? 1))}
+        </text>
+      )}
     </g>
   );
 }
