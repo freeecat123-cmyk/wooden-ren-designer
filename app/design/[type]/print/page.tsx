@@ -18,6 +18,7 @@ import {
 } from "@/lib/joinery/details";
 import { PrintToolList } from "@/components/print/PrintToolList";
 import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
+import { PartDrawingsIndex } from "@/components/print/PartDrawingsIndex";
 import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
 import {
   deriveBuildSteps,
@@ -222,6 +223,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           </div>
         </section>
       )}
+
+      {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
+      <PartDrawingsIndex design={design} />
 
       {/* ================= Page N+: Part drawings (零件圖) ================= */}
       <PrintPartDrawings design={design} />

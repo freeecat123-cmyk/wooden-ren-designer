@@ -22,6 +22,7 @@ import {
   groupPartsForDrawing,
 } from "../lib/render/part-drawing/grouping";
 import { PartDrawing } from "../lib/render/part-drawing/drawing";
+import { PartDrawingsIndex } from "../components/print/PartDrawingsIndex";
 
 let fail = 0;
 
@@ -978,6 +979,24 @@ console.log("\n--- Phase 2.5 element smoke (28 templates) ---");
     p25title === totalCards25,
     `Phase 2.5 編號 label on every card (${p25title}/${totalCards25})`,
   );
+}
+
+// ─── Phase 4 Task 1: PartDrawingsIndex renders ─────────────────────────────
+console.log("\n--- P4 Task 1: index page renders ---");
+{
+  const entry = FURNITURE_CATALOG.find((e: any) => e.category === "stool")!;
+  const design = buildDesign(entry);
+  if (design) {
+    const html = renderPartDrawing(
+      React.createElement(PartDrawingsIndex, { design } as any),
+    );
+    expect(
+      html.includes("零件清單索引"),
+      "P4 Task 1: index page title appears",
+    );
+    expect(html.includes("P-01"), "P4 Task 1: P-NN sequence in table");
+    expect(html.includes("工法"), "P4 Task 1: 工法 column header");
+  }
 }
 
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
