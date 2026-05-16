@@ -7,10 +7,10 @@
  *   side view:  水平 = width（寬），  垂直 = thickness（厚）
  *
  * Phase 1：以 text row 形式輸出在每張 OrthoView 下方（穩、無對位風險）。
- * Phase 2 會把 <T1Dimensions> SVG 元件（已就緒）promote 成 OrthoView 內 overlay
- * 形式，畫真正的尺寸線 + 箭頭。
+ * Phase 2：T1Dimensions 升級成 SVG overlay，透過 OrthoView.overlayContent slot
+ * 注入；T1DimensionsRow 仍保留 export 作為印製預覽或 fallback 用。
  *
- * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §4.2 element 2
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §1
  */
 
 import React from "react";
@@ -20,6 +20,7 @@ import {
   VerticalDimensionLine,
   mortiseLocalBox,
   tenonLocalBox,
+  type OrthoViewBoxCtx,
 } from "@/lib/render/svg-views";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -45,48 +46,87 @@ export function getT1ForView(part: Part, view: PartView): {
   return { horiz, vert, horizLabel, vertLabel };
 }
 
-interface T1DimensionsProps {
-  part: Part;
-  view: PartView;
-  /** 視圖 mm 單位下的 bbox 範圍（OrthoView viewBox 等同 mm）。 */
-  bboxHalfW: number;
-  bboxTop: number;
-  bboxBottom: number;
-  /** dim line 距 bbox 邊的 offset（mm）。預設 28（OrthoView 慣例）。 */
-  offset?: number;
-  /** SVG defs 中 marker id（OrthoView 用 `arr-${view}`）。 */
-  arrowId: string;
-}
-
 /**
- * SVG overlay 形式（Phase 2 用）：直接放進 SVG `<g>`，需要外部 SVG 有對應 viewBox。
- * Phase 1 PartDrawing 不用此 SVG 形式，改用 <T1DimensionsRow> text-row。
+ * T1 整體尺寸 SVG overlay（Phase 2 啟用）。
+ *
+ * 透過 OrthoView 提供的 ctx.partLocalToSvg 把 part-local mm 轉成 SVG px，
+ * 再以 DimensionLine / VerticalDimensionLine 畫水平 + 垂直尺寸線。
+ *
+ * 端點取得（part-local 慣例：length=X、thickness=Y、width=Z）：
+ *   front view (vy=wy, vx=-wx)
+ *     horiz: localX = ±L/2 在 thickness 底面（localY=+T/2）
+ *     vert:  localY = ±T/2 在 length 左端 = localX=-L/2（SVG 右側，因 X 被負）
+ *   top view (vy=wz, vx=-wx)
+ *     horiz: localX = ±L/2 在 width 前緣（localZ=+W/2，SVG 較大 y）
+ *     vert:  localZ = ±W/2 在 length 左端 = localX=-L/2（SVG 右側）
+ *   side view (vy=wy, vx=wz)
+ *     horiz: localZ = ±W/2 在 thickness 底面（localY=+T/2）
+ *     vert:  localY = ±T/2 在 width 右端 = localZ=+W/2（SVG 右側）
+ *
+ * 尺寸線位置：水平線下方 +28（DimensionLine 內部 reach=26 預留），
+ * 垂直線右側 +28。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-2-design.md §1
  */
 export function T1Dimensions({
+  ctx,
   part,
   view,
-  bboxHalfW,
-  bboxTop,
-  bboxBottom,
-  offset = 28,
-  arrowId,
-}: T1DimensionsProps) {
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
   const { horiz, vert, horizLabel, vertLabel } = getT1ForView(part, view);
+  const L = part.visible.length;
+  const W = part.visible.width;
+  const T = part.visible.thickness;
+  const arrowId = `arr-${view}`;
+  const OFFSET = 28; // mm；DimensionLine reach=26 留 2mm CNS gap
+
+  let horizP1: { x: number; y: number };
+  let horizP2: { x: number; y: number };
+  let vertP1: { x: number; y: number };
+  let vertP2: { x: number; y: number };
+
+  if (view === "front") {
+    // 底面 = localY = +T/2（SVG 較大 y）
+    horizP1 = ctx.partLocalToSvg(-L / 2, +T / 2, 0);
+    horizP2 = ctx.partLocalToSvg(+L / 2, +T / 2, 0);
+    // 右側 = localX = -L/2（投影後 SVG 較大 x）
+    vertP1 = ctx.partLocalToSvg(-L / 2, -T / 2, 0);
+    vertP2 = ctx.partLocalToSvg(-L / 2, +T / 2, 0);
+  } else if (view === "top") {
+    horizP1 = ctx.partLocalToSvg(-L / 2, 0, +W / 2);
+    horizP2 = ctx.partLocalToSvg(+L / 2, 0, +W / 2);
+    vertP1 = ctx.partLocalToSvg(-L / 2, 0, -W / 2);
+    vertP2 = ctx.partLocalToSvg(-L / 2, 0, +W / 2);
+  } else {
+    // side
+    horizP1 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
+    horizP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
+    vertP1 = ctx.partLocalToSvg(0, -T / 2, +W / 2);
+    vertP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
+  }
+
+  const horizY = Math.max(horizP1.y, horizP2.y) + OFFSET;
+  const vertX = Math.max(vertP1.x, vertP2.x) + OFFSET;
+
   return (
-    <g className="t1-dims">
+    <g className="t1-dim-overlay">
       <DimensionLine
         arrowId={arrowId}
-        x1={-bboxHalfW}
-        x2={bboxHalfW}
-        y={bboxBottom + offset}
-        label={`${horizLabel} ${horiz} mm`}
+        x1={horizP1.x}
+        x2={horizP2.x}
+        y={horizY}
+        label={`${horizLabel} ${horiz}`}
       />
       <VerticalDimensionLine
         arrowId={arrowId}
-        x={bboxHalfW + offset}
-        y1={bboxTop}
-        y2={bboxBottom}
-        label={`${vertLabel} ${vert} mm`}
+        x={vertX}
+        y1={vertP1.y}
+        y2={vertP2.y}
+        label={`${vertLabel} ${vert}`}
       />
     </g>
   );
