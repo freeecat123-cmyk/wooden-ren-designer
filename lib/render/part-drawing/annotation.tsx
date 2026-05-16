@@ -341,6 +341,17 @@ export function T2LabelList({
     return m.origin.z >= 0 ? "前面" : "背面";
   };
 
+  /**
+   * Phase 2.5 Task 4：偵測通榫 vs 盲榫。
+   * 優先吃 `m.through` flag；fallback 用 depth ≥ 95% × thickness 的 heuristic
+   * （木匠視角：榫眼幾乎打穿就視為通榫）。
+   */
+  const isThroughMortise = (m: Part["mortises"][number]): boolean => {
+    if (m.through) return true;
+    const t = part.visible?.thickness ?? 0;
+    return t > 0 && (m.depth ?? 0) >= t * 0.95;
+  };
+
   const lines: string[] = [];
 
   part.mortises.forEach((m, idx) => {
@@ -350,8 +361,10 @@ export function T2LabelList({
     const lb = mortiseLocalBox(part, m);
     const yFromBottom = round1(lb.cy + ly / 2);
     const face = mortiseFaceHint(m);
-    const throughTag = m.through ? "通" : "";
-    let line = `榫眼${idx + 1}（${face}${throughTag}）：${W}×${L} 深 ${D}，距底 ${yFromBottom}`;
+    const through = isThroughMortise(m);
+    // Phase 2.5 Task 4：通榫 → 「W×L 通」；盲榫 → 「W×L 深 D」
+    const dimText = through ? `${W}×${L} 通` : `${W}×${L} 深 ${D}`;
+    let line = `榫眼${idx + 1}（${face}）：${dimText}，距底 ${yFromBottom}`;
     if (design) {
       const match = findMatchingFeature(part, idx, "mortise", design);
       if (match) {

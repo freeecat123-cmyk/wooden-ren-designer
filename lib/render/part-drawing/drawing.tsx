@@ -20,6 +20,10 @@ import {
   FacingMark,
   ShapeSpecificAnnotation,
 } from "./annotation";
+import { InstallHintMini } from "./install-hint";
+import { rawStockSize } from "./raw-stock";
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -62,15 +66,20 @@ export function PartDrawing({
       ? ` ×${Math.min(group.count, 99)}${group.count > 99 ? "+" : ""}`
       : "";
   const material = MATERIALS[part.material];
+  const raw = rawStockSize(part);
 
   return (
     <div
-      className={`print-keep border border-zinc-300 rounded p-3 bg-white ${
+      className={`print-keep relative border border-zinc-300 rounded p-3 bg-white ${
         className ?? ""
       }`}
     >
+      {/* Install hint mini — 整家具縮圖、target part 紅色（Phase 2.5 Task 1） */}
+      <div className="absolute top-2 right-2 z-10">
+        <InstallHintMini design={design} highlightPartId={part.id} />
+      </div>
       {/* Title bar */}
-      <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2">
+      <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2 pr-[88px]">
         <h3 className="font-semibold text-sm">
           {part.nameZh}
           {titleSuffix}
@@ -138,24 +147,44 @@ export function PartDrawing({
       {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
       <T2LabelList part={part} design={design} />
 
-      {/* Footer */}
-      <div className="mt-2 text-[10px] text-zinc-600">
-        材料：{material?.nameZh ?? material?.nameEn ?? part.material}
+      {/* Phase 2.5 Task 3: title block 底列 — 編號 / 材料 / 比例 / 公差 */}
+      <div className="border-t border-zinc-300 mt-2 pt-1 text-[9px] text-zinc-700 font-mono tabular-nums">
+        <div className="grid grid-cols-4 gap-1">
+          <div>
+            <span className="text-zinc-500">編號 </span>
+            {partNo}
+          </div>
+          <div>
+            <span className="text-zinc-500">材料 </span>
+            {material?.nameZh ?? material?.nameEn ?? part.material}
+          </div>
+          <div>
+            <span className="text-zinc-500">比例 </span>1:{scale}
+          </div>
+          <div>
+            <span className="text-zinc-500">公差 </span>±1mm
+          </div>
+        </div>
+        {/* Phase 2.5 Task 2: 成品 vs 毛料雙標 */}
+        <div className="text-zinc-500 mt-0.5">
+          成品 {round1(part.visible.length)}×{round1(part.visible.width)}×
+          {round1(part.visible.thickness)}　|　毛料 {raw.L}×{raw.W}×{raw.T}
+        </div>
+        {design.useButtJointConvention !== false && (
+          <div className="text-[8px] text-zinc-400 italic mt-0.5">
+            ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
+          </div>
+        )}
+        {part.shape?.kind === "hoof" && (
+          <div className="text-[8px] text-amber-700 mt-0.5">
+            毛料厚建議 ≥{" "}
+            {Math.round(
+              part.visible.width * (part.shape.hoofScale ?? 1.4) * 10,
+            ) / 10}
+            mm
+          </div>
+        )}
       </div>
-      {design.useButtJointConvention !== false && (
-        <div className="mt-1 text-[8px] text-zinc-400 italic">
-          ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
-        </div>
-      )}
-      {part.shape?.kind === "hoof" && (
-        <div className="mt-0.5 text-[8px] text-amber-700">
-          毛料厚建議 ≥{" "}
-          {Math.round(
-            part.visible.width * (part.shape.hoofScale ?? 1.4) * 10,
-          ) / 10}
-          mm
-        </div>
-      )}
     </div>
   );
 }
