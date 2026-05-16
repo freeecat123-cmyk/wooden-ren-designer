@@ -79,6 +79,7 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "hinged", label: "鉸鏈式（後壁裝小銅鉸鏈）" },
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
   ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
+  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）", dependsOn: { key: "withLid", equals: true } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -138,7 +139,9 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const dividerHeightRaw = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInset = getOption<number>(input, opt(o, "dividerInset"));
   // 蓋板與壁同厚，方便共用同款料
-  const lidT = withLid ? wallT : 0;
+  // 面板厚度：user 可獨立設定（0 = 跟壁厚一樣）
+  const lidThicknessOpt = getOption<number>(input, opt(o, "lidThickness"));
+  const lidT = withLid ? (lidThicknessOpt > 0 ? lidThicknessOpt : wallT) : 0;
 
   // 六/八角盒：跳過 buildBox 直接組多邊形 stave（mitered-ends inset）
   //            + regular-polygon 底板 + (選用) regular-polygon 頂蓋 + (選用) 穿心隔板
