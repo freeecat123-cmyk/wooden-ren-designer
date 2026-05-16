@@ -198,7 +198,7 @@ export function MobileShell(props: MobileShellProps) {
 
         {/* 工法 + 設計師模式：核心 toggle，放主表單下方。pencil-holder 隱藏工法切換 */}
         <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
-          {entry.category !== "pencil-holder" && (
+          {entry.category !== "pencil-holder" && entry.category !== "tray" && (
             <>
               <div className="text-[11px] text-zinc-500">工法</div>
               <div className="grid grid-cols-2 gap-2">

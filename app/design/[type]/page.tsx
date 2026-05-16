@@ -654,7 +654,7 @@ function ParameterForm({
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
-      {type !== "pencil-holder" && (
+      {type !== "pencil-holder" && type !== "tray" && (
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
