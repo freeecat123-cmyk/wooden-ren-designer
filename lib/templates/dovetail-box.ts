@@ -12,6 +12,7 @@ import { polygonStaves } from "./_builders/polygon-stave-builder";
 interface BoxPresetConfig {
   wallThickness?: number;
   bottomThickness?: number;
+  cornerJoinery?: string;
   dovetailStyle?: string;
   dovetailSegments?: number;
   dovetailAngle?: string;
@@ -68,17 +69,24 @@ export const dovetailBoxOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "edgeChamfer", label: "邊緣倒角 (mm)", defaultValue: 1, min: 0, max: 6, step: 1, unit: "mm", help: "外露角倒角，1-2mm 微倒手感佳" },
 
   // === Joinery 角接合 ===
+  { group: "joinery", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "dovetail", choices: [
+    { value: "stub-joint", label: "搭接（rabbet，最簡單，內側鋸槽再膠合）" },
+    { value: "finger-joint", label: "指接（finger joint，外露指狀，新手練習首選）" },
+    { value: "miter", label: "斜角拼（45°，最隱形但要對齊，膠合 + 細釘加固）" },
+    { value: "dovetail", label: "鳩尾（dovetail，傳統工藝，分通鳩尾 / 半隱 / 暗鳩尾三種）" },
+  ], help: "搭接 → 指接 → 鳩尾，加工難度由低到高。dovetail-box 模板核心是鳩尾，但其他三種也支援。", dependsOn: { key: "boxShape", equals: "rect" } },
   { group: "joinery", type: "select", key: "dovetailStyle", label: "鳩尾樣式", defaultValue: "through", choices: [
     { value: "through", label: "通鳩尾（through dovetail）—— 從外面看到指狀鳩尾紋" },
     { value: "half-blind", label: "半隱鳩尾（half-blind）—— 前面看不到，傳統抽屜做法" },
     { value: "secret-mitered", label: "暗鳩尾（secret mitered）—— 4 角看起來純斜接，鳩尾完全隱藏（最高難度）" },
-  ], dependsOn: { key: "boxShape", equals: "rect" } },
-  { group: "joinery", type: "number", key: "dovetailSegments", label: "鳩尾齒數（每角）", defaultValue: 5, min: 3, max: 11, step: 2, unit: "齒", help: "通常 3 / 5 / 7 / 9 / 11，奇數比較平衡（兩端對稱半齒）；小盒 3-5、中盒 5-7、大盒 7-11", dependsOn: { key: "boxShape", equals: "rect" } },
+  ], dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
+  { group: "joinery", type: "number", key: "dovetailSegments", label: "鳩尾齒數（每角）", defaultValue: 5, min: 3, max: 11, step: 2, unit: "齒", help: "通常 3 / 5 / 7 / 9 / 11，奇數比較平衡（兩端對稱半齒）；小盒 3-5、中盒 5-7、大盒 7-11", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
   { group: "joinery", type: "select", key: "dovetailAngle", label: "鳩尾傾角（tail:pin 比）", defaultValue: "1:7", choices: [
     { value: "1:6", label: "1:6（約 9.5°，軟木 / 視覺強）" },
     { value: "1:7", label: "1:7（約 8.1°，折衷，最常用）" },
     { value: "1:8", label: "1:8（約 7.1°，硬木 / 細緻）" },
-  ], help: "Lost Art Press 建議 7°-15° 都可；硬木用 1:8、軟木用 1:6、不確定用 1:7", dependsOn: { key: "boxShape", equals: "rect" } },
+  ], help: "Lost Art Press 建議 7°-15° 都可；硬木用 1:8、軟木用 1:6、不確定用 1:7", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "dovetail" }] } },
+  { group: "joinery", type: "number", key: "fingerSegments", label: "指接段數（每角）", defaultValue: 0, min: 0, max: 30, step: 1, help: "0=自動（依壁高自動算奇數），1-30=手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。", dependsOn: { all: [{ key: "boxShape", equals: "rect" }, { key: "cornerJoinery", equals: "finger-joint" }] } },
 
   // === Lid 盒蓋 ===
   { group: "lid", type: "checkbox", key: "withLid", label: "加蓋", defaultValue: true, help: "上方加滑入式或鉸鏈式蓋板" },
@@ -146,6 +154,14 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
+  // 角接合方式：preset 可覆寫
+  const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
+  const cornerJoinery = (cornerJoineryRaw === "dovetail" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
+    | "stub-joint"
+    | "finger-joint"
+    | "miter"
+    | "dovetail";
+  const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
   // 新增選項（v2）
   const dovetailSegmentsRaw = getOption<number>(input, opt(o, "dovetailSegments"));
   const dovetailSegments = dovetailSegmentsRaw === 5 && preset?.dovetailSegments !== undefined ? preset.dovetailSegments : dovetailSegmentsRaw;
@@ -362,14 +378,15 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     botT,
     lidT,
     material,
-    cornerJoinery: "dovetail",
+    // miter 由 shape 自己畫斜切，buildBox 走 stub-joint base
+    cornerJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     // bottomFit 對應 bottomAttach：grooved → 鋸槽嵌入；其餘（floating / nailed）→
     // 底板與外壁齊邊，nailed 是上膠+釘合（builder 不分這兩種，靠 notes 區分）
     bottomFit: bottomAttach === "grooved" ? "grooved" : "floating",
   });
 
   // 半隱鳩尾的 mortise 不貫穿
-  if (dovetailStyle === "half-blind") {
+  if (cornerJoinery === "dovetail" && dovetailStyle === "half-blind") {
     for (const p of built.parts) {
       if (p.id === "wall-left" || p.id === "wall-right") {
         for (const m of p.mortises) m.through = false;
@@ -377,12 +394,76 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 重新貼上鳩尾盒的中文零件名（box-builder 預設叫 前壁/後壁/左壁/右壁）
+  // miter / finger-joint：短壁 (左/右) 也延伸到外角全長（搭接才是夾在長壁之間）
+  // dovetail 由 buildBox 已處理（cornerJoinery=dovetail 走它自己的下料）
+  if (cornerJoinery === "miter" || cornerJoinery === "finger-joint") {
+    for (const part of built.parts) {
+      if (part.id === "wall-front" || part.id === "wall-back") {
+        part.visible = { ...part.visible, length: outerL };
+        part.tenons = [];
+      } else if (part.id === "wall-left" || part.id === "wall-right") {
+        part.visible = { ...part.visible, length: outerW };
+        part.tenons = [];
+      }
+    }
+  }
+
+  // miter 4 壁掛 mitered-ends shape：3D / 三視圖端面渲成 45° 斜切。
+  if (cornerJoinery === "miter") {
+    for (const part of built.parts) {
+      let outerSide: "+y" | "-y" | null = null;
+      if (part.id === "wall-back" || part.id === "wall-right") outerSide = "+y";
+      else if (part.id === "wall-front" || part.id === "wall-left") outerSide = "-y";
+      if (outerSide) {
+        part.shape = { kind: "mitered-ends", insetEach: wallT, outerSide };
+      }
+    }
+  }
+
+  // finger-joint 4 壁掛 finger-joint-ends shape：comb 沿 wallH 方向交錯。
+  let fingerJointInfo: { segmentCount: number; fingerW: number } | null = null;
+  if (cornerJoinery === "finger-joint") {
+    let segmentCount: number;
+    if (fingerSegmentsOpt > 0) {
+      segmentCount = Math.max(2, Math.min(30, Math.floor(fingerSegmentsOpt)));
+    } else {
+      const totalH = outerH - botT;
+      segmentCount = Math.max(3, Math.round(totalH / (1.5 * wallT)));
+      if (segmentCount % 2 === 0) segmentCount += 1;
+      segmentCount = Math.min(13, segmentCount);
+    }
+    const wallActualH = outerH - botT - (withLid ? lidT : 0);
+    fingerJointInfo = { segmentCount, fingerW: Math.max(1, wallActualH / segmentCount) };
+    for (const part of built.parts) {
+      let phase: 0 | 1 | null = null;
+      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
+      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
+      if (phase !== null) {
+        part.shape = {
+          kind: "finger-joint-ends",
+          segmentCount,
+          phase,
+          fingerDepth: wallT,
+        };
+      }
+    }
+  }
+
+  // 重新貼上中文零件名（box-builder 預設叫 前壁/後壁/左壁/右壁）
+  // 隨 cornerJoinery 帶上接合角色提示
+  const roleFM = cornerJoinery === "dovetail" ? "（鳩尾公）"
+              : cornerJoinery === "finger-joint" ? "（指接 phase 0）"
+              : cornerJoinery === "miter" ? "（45° 斜接）"
+              : "（搭接）";
+  const roleLR = cornerJoinery === "dovetail" ? "（鳩尾母）"
+              : cornerJoinery === "finger-joint" ? "（指接 phase 1）"
+              : cornerJoinery === "miter" ? "（45° 斜接）"
+              : "（搭接）";
   const nameMap: Record<string, string> = {
-    "wall-front": "前壁（鳩尾公）",
-    "wall-back": "後壁（鳩尾公）",
-    "wall-left": withHandle ? "左短壁（鳩尾母 + 把手孔）" : "左壁（鳩尾母）",
-    "wall-right": withHandle ? "右短壁（鳩尾母 + 把手孔）" : "右壁（鳩尾母）",
+    "wall-front": `前壁${roleFM}`,
+    "wall-back": `後壁${roleFM}`,
+    "wall-left": withHandle ? `左短壁${roleLR} + 把手孔` : `左壁${roleLR}`,
+    "wall-right": withHandle ? `右短壁${roleLR} + 把手孔` : `右壁${roleLR}`,
   };
   for (const p of built.parts) {
     if (nameMap[p.id]) p.nameZh = nameMap[p.id];
@@ -399,22 +480,36 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       }，距壁頂 ${handleTopMarginOpt}mm），手指穿過提起。`
     : "";
 
-  const design: FurnitureDesign = {
-    id: `dovetail-box-${outerL}x${outerW}x${outerH}`,
-    category: "dovetail-box",
-    nameZh: "鳩尾盒",
-    overall: { length: outerL, width: outerW, thickness: outerH },
-    parts: built.parts,
-    defaultJoinery: "dovetail",
-    useButtJointConvention: true,
-    primaryMaterial: material,
-    notes: `鳩尾盒 ${outerL}×${outerW}×${outerH}mm，${
-      dovetailStyle === "through"
+  // 接合文案：四套說法依 cornerJoinery 分支
+  const joineryDesc = cornerJoinery === "dovetail"
+    ? (dovetailStyle === "through"
         ? `**通鳩尾**接合（每角 ${dovetailSegments} 齒，傾角 ${dovetailAngle}），從盒外能看到指狀鳩尾紋路，傳統工藝展示款。`
         : dovetailStyle === "half-blind"
           ? `**半隱鳩尾**接合（每角 ${dovetailSegments} 齒，傾角 ${dovetailAngle}），從正面看不到鳩尾，盒身視覺乾淨——傳統抽屜做法。`
-          : `**暗鳩尾**接合（secret mitered dovetail，每角 ${dovetailSegments} 齒，傾角 ${dovetailAngle}），4 角看起來純斜接，鳩尾完全藏在內部，最高難度。`
-    }${
+          : `**暗鳩尾**接合（secret mitered dovetail，每角 ${dovetailSegments} 齒，傾角 ${dovetailAngle}），4 角看起來純斜接，鳩尾完全藏在內部，最高難度。`)
+    : cornerJoinery === "finger-joint"
+      ? `**指接**（finger joint，${fingerJointInfo ? `每角 ${fingerJointInfo.segmentCount} 段、每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}），外露指狀紋路，新手練習鳩尾前的最佳基本款。`
+      : cornerJoinery === "miter"
+        ? "**斜角拼**（45° 對接，最隱形但需鋸台或斜切片切精準對齊，膠合 + 細釘 / 餅乾榫加固）。"
+        : "**搭接**（rabbet，最簡單：長壁端面銑 wallT/2 深的槽，短壁端面留厚塊嵌入，膠合即可）。";
+  const joineryClosing = cornerJoinery === "dovetail"
+    ? "**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。"
+    : cornerJoinery === "finger-joint"
+      ? "**指接是鳩尾的入門練習**——熟練後可進階到鳩尾。"
+      : cornerJoinery === "miter"
+        ? "**斜角拼最考驗精度**——鋸切角度差 0.5° 就會留縫，建議用斜切片切。"
+        : "**搭接最快上手**——適合工具盒 / 收納箱等不講究外觀的用途。";
+
+  const design: FurnitureDesign = {
+    id: `dovetail-box-${outerL}x${outerW}x${outerH}`,
+    category: "dovetail-box",
+    nameZh: cornerJoinery === "dovetail" ? "鳩尾盒" : "木盒",
+    overall: { length: outerL, width: outerW, thickness: outerH },
+    parts: built.parts,
+    defaultJoinery: cornerJoinery === "miter" ? "mitered-spline" : cornerJoinery,
+    useButtJointConvention: true,
+    primaryMaterial: material,
+    notes: `木盒 ${outerL}×${outerW}×${outerH}mm，${joineryDesc}${
       bottomAttach === "grooved"
         ? "底板槽接 4 壁內側下緣，不上膠（讓底板可熱漲冷縮）。"
         : bottomAttach === "floating"
@@ -428,7 +523,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
           : lidType === "lift-off"
             ? "**整片活動蓋**（不固定，蓋內側加 4 條 cleat 卡入盒口防滑）"
             : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
-    }。` : ""}${handleDesc}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}**鳩尾盒是進階接合的入門練習**——先做這個再做抽屜，所有鳩尾技巧都會了。`,
+    }。` : ""}${handleDesc}${withFeltLining ? "內側 4 壁 + 底面貼絨布（B&Q / 美術社買 1mm 自黏絨布，剪好後黏入），珠寶 / 首飾盒必加。" : ""}${withMagneticClosure ? "蓋子前緣埋 2 個 6mm 釹磁鐵（鑽 6mm 圓孔嵌入 + AB 膠固定），蓋下時自動吸合。" : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${edgeChamfer > 0 ? ` 外露邊緣倒 ${edgeChamfer}mm 防割手 + 微倒美感。` : ""}${joineryClosing}`,
   };
   // 絨布內襯：4 壁 + 底面 5 片 visual-only part（給 BOM 計料用，不入材積）
   if (withFeltLining) {
@@ -582,17 +677,17 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   // max bounds + suggestions
   const extraWarnings: string[] = [];
   if (outerL > 400 || outerW > 300 || outerH > 250) {
-    extraWarnings.push(`鳩尾盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重 / 鳩尾要切很多齒`);
+    extraWarnings.push(`木盒 ${outerL}×${outerW}×${outerH}mm 超過合理範圍（max 400×300×250mm）。再大就是收納箱級別，工序很重`);
   }
-  if (wallT < 10 && outerL > 250) {
+  if (cornerJoinery === "dovetail" && wallT < 10 && outerL > 250) {
     extraWarnings.push(`壁厚 ${wallT}mm 對 ${outerL}mm 長盒太薄——鳩尾齒太細不好切，建議加厚到 12mm 以上`);
   }
   // 暗鳩尾要求板厚 ≥ 12mm（spec §2.3）
-  if (dovetailStyle === "secret-mitered" && wallT < 12) {
+  if (cornerJoinery === "dovetail" && dovetailStyle === "secret-mitered" && wallT < 12) {
     extraWarnings.push(`暗鳩尾要求壁厚 ≥ 12mm（外 mitre 層 + 內部 tail/pin 才有空間），目前 ${wallT}mm 不建議做`);
   }
   // 齒數對盒長的合理性
-  if (dovetailSegments >= 9 && outerH < 80) {
+  if (cornerJoinery === "dovetail" && dovetailSegments >= 9 && outerH < 80) {
     extraWarnings.push(`盒高 ${outerH}mm 配 ${dovetailSegments} 齒太密，每齒寬度不足；建議減到 5-7 齒`);
   }
   // 隔板高度檢查
