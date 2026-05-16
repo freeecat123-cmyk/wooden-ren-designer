@@ -21,9 +21,13 @@ interface Props {
   design: FurnitureDesign;
 }
 
+const ZOOM_LEVELS = [1, 2, 3, 5] as const;
+type ZoomLevel = (typeof ZOOM_LEVELS)[number];
+
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [zoom, setZoom] = useState<ZoomLevel>(2);
 
   if (!groups.length) return null;
 
@@ -79,22 +83,41 @@ export function PartDrawingsPanel({ design }: Props) {
               <h3 className="font-semibold text-sm">
                 零件圖 — {groups[openIdx].representative.nameZh}
               </h3>
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-[10px] text-zinc-500 mr-1">放大</span>
+                {ZOOM_LEVELS.map((z) => (
+                  <button
+                    key={z}
+                    type="button"
+                    onClick={() => setZoom(z)}
+                    className={`text-xs px-2 py-0.5 rounded border tabular-nums ${
+                      zoom === z
+                        ? "bg-amber-500 text-white border-amber-500"
+                        : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {z}×
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
-                className="text-zinc-500 hover:text-zinc-900 text-xl leading-none ml-auto"
+                className="text-zinc-500 hover:text-zinc-900 text-xl leading-none ml-2"
                 onClick={() => setOpenIdx(null)}
                 aria-label="關閉"
               >
                 ×
               </button>
             </div>
-            <div className="p-4">
-              <PartDrawing
-                group={groups[openIdx]}
-                design={design}
-                index={openIdx}
-                viewLayout="stack"
-              />
+            <div className="p-4 overflow-auto">
+              <div style={{ width: `${zoom * 100}%` }}>
+                <PartDrawing
+                  group={groups[openIdx]}
+                  design={design}
+                  index={openIdx}
+                  viewLayout="stack"
+                />
+              </div>
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
                   type="button"

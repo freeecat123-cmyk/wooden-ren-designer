@@ -503,11 +503,20 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
-  // 直排把標籤放右側列，leader 從 box 中心拉到 label。
-  // 多個 label 沿 Y 堆疊以免重疊。
-  const labelColX = ctx.vbX + ctx.vbW * 0.7;
-  const labelGap = 30;
-  let labelY = ctx.vbY + 30;
+  // 計算 part bbox in SVG 座標（用 8 角投影取 AABB），label 緊貼 part 右側或下方
+  // 不再用 viewBox 寬高 — 那會跑到很遠
+  let partMinX = Infinity, partMaxX = -Infinity;
+  let partMinY = Infinity, partMaxY = -Infinity;
+  for (const it of items) {
+    if (it.rect.x < partMinX) partMinX = it.rect.x;
+    if (it.rect.x + it.rect.w > partMaxX) partMaxX = it.rect.x + it.rect.w;
+    if (it.rect.y < partMinY) partMinY = it.rect.y;
+    if (it.rect.y + it.rect.h > partMaxY) partMaxY = it.rect.y + it.rect.h;
+  }
+  // label column 緊貼 part bbox 右邊 (8px gap)
+  const labelColX = partMaxX + 8;
+  let labelY = partMinY;
+  const labelGap = 22;
 
   const elements: React.ReactNode[] = [];
   items.forEach((it) => {
@@ -517,13 +526,12 @@ export function T2Annotations({
     const dash = isMortise ? "2 2" : "3 1.5";
 
     const lblX = labelColX;
-    const lblY = labelY;
+    const lblY = labelY + 8;
     const bcx = box.x + box.w / 2;
     const bcy = box.y + box.h / 2;
 
     elements.push(
       <g key={`${it.kind}-${it.idx}`}>
-        {/* dashed bbox on the part */}
         <rect
           x={box.x}
           y={box.y}
@@ -534,33 +542,22 @@ export function T2Annotations({
           strokeWidth={0.8}
           strokeDasharray={dash}
         />
-        {/* leader line from box → label */}
         <line
           x1={bcx}
           y1={bcy}
-          x2={lblX - 4}
-          y2={lblY - 4}
+          x2={lblX - 2}
+          y2={lblY - 3}
           stroke={stroke}
           strokeWidth={0.5}
           strokeDasharray="1.5 1.5"
         />
-        {/* label group (3 lines) */}
-        <text x={lblX} y={lblY} fontSize={11} fill={stroke} fontWeight="bold">
-          {it.name}
+        <text x={lblX} y={lblY} fontSize={8} fill={stroke} fontWeight="bold">
+          {it.name}　{it.dims}
         </text>
         <text
           x={lblX}
-          y={lblY + 12}
-          fontSize={10}
-          fill="#1f2937"
-          fontFamily="monospace"
-        >
-          {it.dims}
-        </text>
-        <text
-          x={lblX}
-          y={lblY + 23}
-          fontSize={9}
+          y={lblY + 10}
+          fontSize={7}
           fill="#6b7280"
           fontFamily="monospace"
         >
