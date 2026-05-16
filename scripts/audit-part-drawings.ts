@@ -290,6 +290,16 @@ expect(
         );
         expect(html.includes("榫眼"), "T2: 榫眼 label appears");
         expect(html.includes("距底"), "T2: 距底 reference appears");
+        // Phase 2: T2 dashed-box overlay 應掛 t2-overlay class
+        expect(
+          html.includes("t2-overlay"),
+          "T2: t2-overlay SVG class present in output",
+        );
+        // Phase 2: mortise 用 stroke-dasharray="2 2" 細虛線
+        expect(
+          html.includes('stroke-dasharray="2 2"'),
+          "T2: mortise dashed box (dash 2 2) renders",
+        );
       } else {
         // Fallback: try any template with a mortise-bearing part
         let found = false;
@@ -329,6 +339,11 @@ expect(
           }),
         );
         expect(html.includes("榫頭"), "T2: 榫頭 label appears");
+        // Phase 2: tenon 用 stroke-dasharray="3 1.5"，跟 mortise 視覺區分
+        expect(
+          html.includes('stroke-dasharray="3 1.5"'),
+          "T2: tenon dashed box (dash 3 1.5) renders",
+        );
       } else {
         console.log("⚠ stool has no tenon group — 榫頭 assertion skipped");
       }
