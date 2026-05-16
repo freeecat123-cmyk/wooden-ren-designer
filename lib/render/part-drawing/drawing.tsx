@@ -46,6 +46,12 @@ interface PartDrawingProps {
   singleView?: PartView;
   /** 設了之後每個 view 變 clickable、點擊 callback 傳該 view 名。 */
   onViewClick?: (view: PartView) => void;
+  /**
+   * 給 OrthoView 內的 SVG 用的 className。預設 undefined（OrthoView 用內建
+   * `bg-white w-full h-auto max-h-[70vh]`）。modal stack mode 傳
+   * `bg-white w-full h-auto` 去掉 max-h、讓扁平 part 保持真實 aspect。
+   */
+  orthoClassName?: string;
 }
 
 /**
@@ -73,6 +79,7 @@ export function PartDrawing({
   viewLayout = "row",
   singleView,
   onViewClick,
+  orthoClassName,
 }: PartDrawingProps) {
   const part = group.representative;
   const scale = scaleDenom ?? pickScale(part);
@@ -133,6 +140,7 @@ export function PartDrawing({
                   titleEn={titleEn}
                   isolatePartId={part.id}
                   showDimensions={false}
+                  className={orthoClassName}
                   overlayContent={(ctx) => (
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />

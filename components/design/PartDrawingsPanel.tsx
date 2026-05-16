@@ -160,6 +160,7 @@ export function PartDrawingsPanel({ design }: Props) {
                   onViewClick={
                     zoomedView ? undefined : (v) => setZoomedView(v)
                   }
+                  orthoClassName="bg-white w-full h-auto"
                 />
               </div>
               <div className="flex justify-between items-center mt-4 text-sm">

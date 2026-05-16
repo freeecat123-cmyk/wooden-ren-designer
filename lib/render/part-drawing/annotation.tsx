@@ -503,32 +503,20 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
-  // 計算 part bbox in SVG 座標（用 8 角投影取 AABB），label 緊貼 part 右側或下方
-  // 不再用 viewBox 寬高 — 那會跑到很遠
-  let partMinX = Infinity, partMaxX = -Infinity;
-  let partMinY = Infinity, partMaxY = -Infinity;
-  for (const it of items) {
-    if (it.rect.x < partMinX) partMinX = it.rect.x;
-    if (it.rect.x + it.rect.w > partMaxX) partMaxX = it.rect.x + it.rect.w;
-    if (it.rect.y < partMinY) partMinY = it.rect.y;
-    if (it.rect.y + it.rect.h > partMaxY) partMaxY = it.rect.y + it.rect.h;
-  }
-  // label column 緊貼 part bbox 右邊 (8px gap)
-  const labelColX = partMaxX + 8;
-  let labelY = partMinY;
-  const labelGap = 22;
-
+  // 每個 feature 的 box + 緊貼右側 label（不再 right column collected style）
+  // Box: 半透明填色 + 1.5px stroke 提高可見度
+  // Label: 緊貼 box 右側 3px、字級依 box 高度調整
   const elements: React.ReactNode[] = [];
   items.forEach((it) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
     const stroke = isMortise ? "#dc2626" : "#2563eb";
-    const dash = isMortise ? "2 2" : "3 1.5";
+    const fill = isMortise ? "rgba(220, 38, 38, 0.12)" : "rgba(37, 99, 235, 0.10)";
+    const dash = isMortise ? "3 2" : "4 2";
 
-    const lblX = labelColX;
-    const lblY = labelY + 8;
-    const bcx = box.x + box.w / 2;
-    const bcy = box.y + box.h / 2;
+    // label 緊貼 box 右側
+    const lblX = box.x + box.w + 3;
+    const lblY = box.y + 9;
 
     elements.push(
       <g key={`${it.kind}-${it.idx}`}>
@@ -537,27 +525,27 @@ export function T2Annotations({
           y={box.y}
           width={box.w}
           height={box.h}
-          fill="none"
+          fill={fill}
           stroke={stroke}
-          strokeWidth={0.8}
+          strokeWidth={1.2}
           strokeDasharray={dash}
         />
-        <line
-          x1={bcx}
-          y1={bcy}
-          x2={lblX - 2}
-          y2={lblY - 3}
-          stroke={stroke}
-          strokeWidth={0.5}
-          strokeDasharray="1.5 1.5"
-        />
-        <text x={lblX} y={lblY} fontSize={8} fill={stroke} fontWeight="bold">
-          {it.name}　{it.dims}
+        <text x={lblX} y={lblY} fontSize={9} fill={stroke} fontWeight="bold">
+          {it.name}
         </text>
         <text
           x={lblX}
-          y={lblY + 10}
-          fontSize={7}
+          y={lblY + 11}
+          fontSize={9}
+          fill="#1f2937"
+          fontFamily="monospace"
+        >
+          {it.dims}
+        </text>
+        <text
+          x={lblX}
+          y={lblY + 21}
+          fontSize={8}
           fill="#6b7280"
           fontFamily="monospace"
         >
@@ -565,7 +553,6 @@ export function T2Annotations({
         </text>
       </g>,
     );
-    labelY += labelGap;
   });
 
   return <g className="t2-overlay">{elements}</g>;
