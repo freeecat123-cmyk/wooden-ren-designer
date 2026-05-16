@@ -201,37 +201,37 @@ function subtractMortisesFromGeometry(
     const m = mortiseBoxes[i];
     if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
     const isRound = mortiseShapes?.[i] === "round";
-    // 外撇牆 cosmetic 孔（rotX≠0）：cut 沿 part-local X 軸轉 |rotX| 後，在
-    // z_part 切片時，y_cut 範圍會被 z_cut clipping 截斷 —— 「整段使用者指定的
-    // z_part 範圍 = handleH」要完整貫穿牆厚，需要 cut box 在 z 方向擴：
-    //   z_part 全覆蓋區寬度 = 2·(hz·cosθ − hy·sinθ) 必須 ≥ handleH = 2·hz_intended
-    //   推導：在 z_part = cz ± handleH/2 處要求 y_cut 全範圍 [−hy, +hy] 都
-    //         讓 |z_cut| ≤ hz
-    //   解得 hz_csg = (handleH/2 + hy·sin|θ|)/cos|θ| = (hz + hy·sin|θ|)/cos|θ|
-    // 不延伸的話：θ 大時 wall inner face 在 z_part 兩端會殘留沒切到的薄殼，
-    // 3D 看起來孔只有外側壓痕沒貫穿。
-    // 延伸後孔幾何「斜向 parallelepiped」尖端會超出 user 指定的 25mm 區，
-    // 但落在 handleTopMargin 給的空間內、不會切破牆頂緣。SVG marker 用原 hz
-    // （未延伸），仍顯示 user 指定的 25mm。
-    // 外撇牆 cosmetic 孔（rotX≠0）：cut Brush 繞 part-local X 軸轉後 z 邊緣會
-    // clip，rect/cylinder 都需要延伸 hz 補 slope-end，不然牆內側殘留薄殼。
-    // 兩者用同樣 csgHz 才能讓 pill (rect+2 circles) 在 z 方向對齊、不會
-    // 形成「rect 比 circle 高」的怪形狀。
-    // 公式：z_part 全覆蓋區 2·(hz·cos|θ| − hy·sin|θ|) ≥ 2·hz_user，解得
-    //   hz_csg = (hz + hy·sin|θ|)/cos|θ|
-    // 對 cylinder：高度 (沿 Y 軸) 不變、xz 平面半徑變橢圓 (max(hx, hz_csg))，
-    // 但 cylinder 是圓對稱、橢圓化視覺影響小。pill 端面在 wall plane 仍呈
-    // 「拉長橢圓」配合 rect，整體還是 pill 形狀。
-    const csgHz = m.rotX
-      ? (m.hz + m.hy * Math.abs(Math.sin(m.rotX))) / Math.cos(Math.abs(m.rotX))
-      : m.hz;
+    // 外撇牆 cosmetic 孔（rotX≠0）的 slice 幾何修正：
+    // Wall 在 part-local 是 parallelogram（mitered-ends vertices）；外面法線
+    // 在 y-z 平面斜 θ。cut Brush 繞 part-local X 軸轉 ±θ，cut Y 軸對齊牆法線。
+    //
+    // 問題：rotated BoxGeometry / CylinderGeometry 切到「牆外面」slice 處的
+    // 形狀跟使用者指定的 (handleW × handleH) 矩形 / 半徑 hz 圓**對不上**：
+    //   - Box slice z 半寬 = hz_cut / cos θ（cos 放大）
+    //   - Cyl slice 是橢圓（x 半徑 r，z 半徑 r/c），不是圓
+    //   - 兩者形狀差距使 pill 中段 rect 跟兩端 circle z 大小錯位
+    //
+    // 數學解（見 /tmp/slice-math.md）：
+    //   hy_ext  = m.hy / cosθ + m.hz · sinθ       （延伸 depth，避免 strip 1 截斷）
+    //   hz_scaled = m.hz · cosθ                    （壓縮 z，slice 後還原成 m.hz）
+    //   Box: BoxGeometry(2·hx, 2·hy_ext, 2·hz_scaled)
+    //   Cyl: CylinderGeometry(hz, hz, 2·hy_ext).scale(1, 1, cosθ)
+    //     （cross-section 預壓成 ellipse，rotation 後 slice 才是正圓 radius=hz）
+    //
+    // Slice 中心會在 z = hy_wall·tanθ（非 z=0），但 pill 三孔同 cz、同步偏移、仍對齊。
+    const absRot = m.rotX ? Math.abs(m.rotX) : 0;
+    const c = absRot ? Math.cos(absRot) : 1;
+    const s = absRot ? Math.sin(absRot) : 0;
+    const hyExt = absRot ? (m.hy / c + m.hz * s) : m.hy;
+    const hzScaled = absRot ? m.hz * c : m.hz;
     let cutGeo: BufferGeometry;
     if (isRound) {
-      // 圓孔：radius 用 csgHz 而不是原 hz（外撇延伸後跟 rect 端 z 對齊）
-      const r = Math.min(m.hx, csgHz);
-      cutGeo = new CylinderGeometry(r, r, 2 * m.hy, 24);
+      // 圓孔 cross-section 預壓 ellipse：x-radius m.hz、z-radius m.hz·c
+      // rotation 後 slice = 半徑 m.hz 正圓
+      cutGeo = new CylinderGeometry(m.hz, m.hz, 2 * hyExt, 24);
+      if (absRot) cutGeo.scale(1, 1, c);
     } else {
-      cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * csgHz);
+      cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
     }
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
