@@ -449,6 +449,16 @@ const polyDesign: FurnitureDesign = {
               : cornerJoinery === "finger-joint" ? "（指接 phase 1）"
               : cornerJoinery === "miter" ? "（45° 斜接）"
               : "（搭接）";
+  // 左右板木紋方向：跟前後板對齊（4 壁從同一塊長板切出 → 前後板水平 + 左右板垂直
+  //   = 木紋連續、跟世界 X 軸平行）
+  // shortWall buildBox 預設 grainDirection="length" → 木紋沿 innerW = 世界 Z = 水平
+  //   前後 → 改 "width" → 木紋沿 wallH = 世界 -Y = 垂直
+  for (const p of built.parts) {
+    if (p.id === "wall-left" || p.id === "wall-right") {
+      p.grainDirection = "width";
+    }
+  }
+
   const nameMap: Record<string, string> = {
     "wall-front": `前壁${roleFM}`,
     "wall-back": `後壁${roleFM}`,
