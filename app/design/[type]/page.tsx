@@ -43,6 +43,7 @@ import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
+import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
   parseDesignSearchParams,
@@ -418,6 +419,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <ZoomableThreeViews design={design} joineryMode={joineryMode} />
         </div>
       </section>
+
+      {/* 零件圖（Phase 1 Task 7）：榫接 / 非方料 零件出獨立工程圖卡，卡片 → modal */}
+      <PartDrawingsPanel design={design} />
 
       {/* 下半：施工備料（按需展開） */}
       <details className="mt-4 rounded-lg border border-zinc-200 bg-white" open>

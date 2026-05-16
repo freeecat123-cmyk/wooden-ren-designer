@@ -17,6 +17,7 @@ import {
   JOINERY_DESCRIPTION,
 } from "@/lib/joinery/details";
 import { PrintToolList } from "@/components/print/PrintToolList";
+import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
 import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
 import {
   deriveBuildSteps,
@@ -221,6 +222,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           </div>
         </section>
       )}
+
+      {/* ================= Page N+: Part drawings (零件圖) ================= */}
+      <PrintPartDrawings design={design} />
 
       {/* ================= Page N+: Tool list with QR ================= */}
       <section data-print-page className="px-10 py-12">
