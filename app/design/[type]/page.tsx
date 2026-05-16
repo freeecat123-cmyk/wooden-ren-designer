@@ -647,11 +647,19 @@ function ParameterForm({
   designerMode: boolean;
   canUseDesignerMode: boolean;
 }) {
+  // dovetail-box 預設一律榫接（鳩尾盒沒有「組裝版」概念，組裝版反而失去意義），
+  // 隱藏工法 toggle，並用 hidden input 強制送 joineryMode=true。
+  const hideJoineryToggle = type === "dovetail-box";
+
   return (
     <DesignFormShell
       action={`/design/${type}`}
       className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
     >
+      {hideJoineryToggle && (
+        <input type="hidden" name="joineryMode" value="true" />
+      )}
+      {!hideJoineryToggle && (
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
@@ -705,6 +713,7 @@ function ParameterForm({
           </label>
         </div>
       </fieldset>
+      )}
       <fieldset className="mb-4 rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
         <legend className="text-xs text-amber-900 px-1.5 font-semibold">
           🎨 設計師模式（自由尺寸）
