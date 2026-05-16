@@ -920,6 +920,66 @@ console.log("\n--- Phase 3 final smoke (28 templates × all P3 elements) ---");
   // — soft stats 寫進 log 供 visibility
 }
 
+// ─── Phase 2.5 final smoke: 28 templates × all P2.5 elements ───────────────
+// 全模板渲染，統計 Phase 2.5 四大標註元素（install-hint / 毛料 / 編號 title-block /
+// 通榫）出現次數。強硬假設：install-hint / 毛料 / 編號 必須 100% 覆蓋（每張卡都
+// 有）；通榫 catalog-dependent 不強制；crashes 必須 0。
+console.log("\n--- Phase 2.5 element smoke (28 templates) ---");
+{
+  let p25hint = 0,
+    p25raw = 0,
+    p25title = 0,
+    p25through = 0;
+  let p25crashes = 0;
+  let totalCards25 = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards25++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          }),
+        );
+        if (!html || html.length < 200) {
+          p25crashes++;
+          continue;
+        }
+        if (html.includes("install-hint-mini")) p25hint++;
+        if (html.includes("毛料")) p25raw++;
+        if (html.includes("編號")) p25title++;
+        if (html.includes(" 通，")) p25through++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p25crashes++;
+    }
+  }
+  console.log(
+    `  P2.5 stats: cards=${totalCards25} install-hint=${p25hint} raw=${p25raw} title=${p25title} through=${p25through} crashes=${p25crashes}`,
+  );
+  expect(p25crashes === 0, `Phase 2.5 smoke: ${p25crashes} crash(es)`);
+  expect(
+    p25hint === totalCards25,
+    `Phase 2.5 install-hint on every card (${p25hint}/${totalCards25})`,
+  );
+  expect(
+    p25raw === totalCards25,
+    `Phase 2.5 毛料 label on every card (${p25raw}/${totalCards25})`,
+  );
+  expect(
+    p25title === totalCards25,
+    `Phase 2.5 編號 label on every card (${p25title}/${totalCards25})`,
+  );
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
