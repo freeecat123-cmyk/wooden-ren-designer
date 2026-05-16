@@ -446,6 +446,10 @@ export type OptionGroup =
   | "rail"          // 邊抹（框條尺寸）
   | "skirt"         // 牙條 + 牙頭 + 站牙 + 絛環（框外裝飾）
   | "balustrade"    // 万歷櫃圍欄
+  // tray 第一性原理拆群：
+  | "joinery"       // 角接合方式 + 該接合方式相關子選項（fingerSegments / dovetailAngle / wallSplay）
+  | "divider"       // 內格分隔（縱橫向、厚度、高度、嵌入深度）
+  | "handle"        // 把手孔（造型、尺寸、距壁頂）
   | "layers"        // 分層配置
   // 三層櫃體：上中下
   | "zone-top"
