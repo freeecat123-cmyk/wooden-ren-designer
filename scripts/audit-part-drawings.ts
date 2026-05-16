@@ -794,6 +794,59 @@ console.log("\n--- Phase 3 silhouette gap check ---");
   }
 }
 
+// ─── Phase 3 final smoke: 28 templates × all P3 elements ───────────────────
+// 全模板渲染零件圖卡，統計 Phase 3 五大標註元素（lathe table / arch chord /
+// apron-trap dual / hoof direction / splayed true length）出現次數。
+// 強硬假設：crashes 必須為 0。元素出現次數視 catalog default 才會有，
+// 用 log 攤出來、不強制下限。
+console.log("\n--- Phase 3 final smoke (28 templates × all P3 elements) ---");
+{
+  let p3lathe = 0,
+    p3arch = 0,
+    p3trap = 0,
+    p3hoof = 0,
+    p3splayed = 0;
+  let p3crashes = 0;
+  let totalCards = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          }),
+        );
+        if (!html || html.length < 200) {
+          p3crashes++;
+          continue;
+        }
+        if (html.includes("lathe-segment-table")) p3lathe++;
+        if (html.includes("arch-bent-chord")) p3arch++;
+        if (html.includes("apron-trap-dual")) p3trap++;
+        if (html.includes("hoof-direction")) p3hoof++;
+        if (html.includes("splayed-true-length")) p3splayed++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p3crashes++;
+    }
+  }
+  console.log(
+    `  P3 stats: cards=${totalCards} lathe=${p3lathe} arch=${p3arch} apron-trap=${p3trap} hoof=${p3hoof} splayed=${p3splayed} crashes=${p3crashes}`,
+  );
+  expect(p3crashes === 0, `Phase 3 smoke: ${p3crashes} crash(es)`);
+  // 元素 coverage 不強制每種都觸發（部分 shape catalog default 不出現）
+  // — soft stats 寫進 log 供 visibility
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
