@@ -62,7 +62,7 @@ export const trayOptions: OptionSpec[] = [
   // 壁向外撇 + 複斜接合：壁向外傾角度 0 = 垂直（傳統盒）；> 0 = 壁外撇（shaker 風托盤）。
   // 配合 miter corner 自動成為「複斜 miter」——鋸床要設複合角度（角度公式見
   // docs/drafting-math.md §「複斜接合」）。
-  { group: "structure", type: "number", key: "wallSplay", label: "壁外撇角度 (°)", defaultValue: 0, min: 0, max: 45, step: 1, unit: "°", help: "0 = 垂直壁；> 0 = 壁向外傾（shaker 托盤風）。miter 角接合時自動變複斜——鋸床鋸切角度會由公式計算。15° 內最常見、30° 偏戲劇感、45° 接近碗狀。", dependsOn: { key: "bodyShape", equals: "rect" } },
+  { group: "structure", type: "number", key: "wallSplay", label: "壁外撇角度 (°)", defaultValue: 0, min: 0, max: 45, step: 1, unit: "°", help: "0 = 垂直壁；> 0 = 壁向外傾（shaker 托盤風）。miter 角接合時自動變複斜——鋸床鋸切角度會由公式計算。15° 內最常見、30° 偏戲劇感、45° 接近碗狀。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "miter" }] } },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
