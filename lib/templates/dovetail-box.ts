@@ -458,11 +458,17 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   // dovetail 4 壁掛 dovetail-ends shape：trapezoid 段沿 wallH 方向交錯。
   // 仿托盤：前後板切 tail 凸齒（dovetail-ends phase=0 halfPin），左右板維持
   // plain box，組裝後 CSG 把左右板跟 tail 重疊處挖掉（比硬算 pin 形狀對齊 tail 簡單可靠）。
-  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number } | null = null;
+  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number; bumped: boolean } | null = null;
   if (cornerJoinery === "dovetail") {
     let segmentCount: number;
+    let bumped = false;
     if (dovetailSegmentsOpt > 0) {
       segmentCount = Math.max(3, Math.min(21, Math.floor(dovetailSegmentsOpt)));
+      // phase=0 halfPin=true 要求奇數段（不然 s=N-2 s=N-1 兩個都是 pin → 渲染破口）
+      if (segmentCount % 2 === 0) {
+        segmentCount += 1;
+        bumped = true;
+      }
     } else {
       const totalH = outerH - botT;
       segmentCount = Math.max(3, Math.round(totalH / (1.8 * wallT)));
@@ -471,7 +477,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     }
     const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
     const wallActualH = outerH - botT - (withLid ? lidT : 0);
-    dovetailInfo = { segmentCount, segH: Math.max(1, wallActualH / segmentCount), angleDeg };
+    dovetailInfo = { segmentCount, segH: Math.max(1, wallActualH / segmentCount), angleDeg, bumped };
     for (const part of built.parts) {
       if (part.id === "wall-front" || part.id === "wall-back") {
         part.shape = {
@@ -719,6 +725,10 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   // 段數對盒高的合理性
   if (cornerJoinery === "dovetail" && dovetailInfo && dovetailInfo.segmentCount >= 9 && outerH < 80) {
     extraWarnings.push(`盒高 ${outerH}mm 配 ${dovetailInfo.segmentCount} 段太密，每段寬度不足；建議減到 5-7 段`);
+  }
+  // 鳩尾段數偶數 → bump 到奇數（phase=0 halfPin 渲染要求奇數）
+  if (cornerJoinery === "dovetail" && dovetailInfo?.bumped) {
+    extraWarnings.push(`鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`);
   }
   // 隔板高度檢查
   if (dividerHeightRaw > wallInnerH) {

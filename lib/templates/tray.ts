@@ -570,11 +570,17 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
   // 仿 finger-joint，但段是「梯形」不是矩形（pin 為外窄內寬、tail 為外寬內窄，
   // 對接後互鎖、有拉力承載 §B7）。pin/tail 數 = segmentCount，傳統段尺寸
   // 約 1.5 ~ 2 倍壁厚；自動算公式跟 finger-joint 一致。
-  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number } | null = null;
+  let dovetailInfo: { segmentCount: number; segH: number; angleDeg: number; bumped: boolean } | null = null;
   if (cornerJoinery === "dovetail") {
     let segmentCount: number;
+    let bumped = false;
     if (dovetailSegmentsOpt > 0) {
       segmentCount = Math.max(3, Math.min(21, Math.floor(dovetailSegmentsOpt)));
+      // phase=0 halfPin=true 要求奇數段（不然 s=N-2 / s=N-1 兩個都是 pin → 渲染破口）
+      if (segmentCount % 2 === 0) {
+        segmentCount += 1;
+        bumped = true;
+      }
     } else {
       const totalH = outerH - botT;
       segmentCount = Math.max(3, Math.round(totalH / (1.8 * wallT)));
@@ -583,7 +589,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     }
     const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
     const wallActualH = bottomAttach === "inset-panel" ? outerH : outerH - botT;
-    dovetailInfo = { segmentCount, segH: wallActualH / segmentCount, angleDeg };
+    dovetailInfo = { segmentCount, segH: wallActualH / segmentCount, angleDeg, bumped };
     // 新做法（user 指示）：前後板照樣切 tail 凸齒（dovetail-ends shape），
     // 左右板暫時當成完整 box（不切榫）。前後板 tail 跟左右板 box 物理上重疊
     // 在角落、之後再透過 CSG 把重疊部分從左右板挖掉——比硬算 pin 形狀對齊
@@ -957,6 +963,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       suggestedCategory: "dovetail-box",
       presetParams: { length: String(outerL), width: String(outerW), height: String(outerH), material },
     }];
+  }
+  // 鳩尾段數偶數 → bump 到奇數（phase=0 halfPin 渲染要求奇數）
+  if (cornerJoinery === "dovetail" && dovetailInfo?.bumped) {
+    warnings.push(`鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`);
   }
   if (warnings.length) design.warnings = [...(design.warnings ?? []), ...warnings];
   return design;
