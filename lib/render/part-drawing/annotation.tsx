@@ -454,25 +454,32 @@ export function T2Annotations({
     return { x: minX, y: minY, w, h };
   };
 
-  const rects: React.ReactNode[] = [];
+  type Item = {
+    kind: "m" | "t";
+    idx: number;
+    rect: { x: number; y: number; w: number; h: number };
+    name: string;
+    dims: string;
+    distFromBot: number;
+  };
+  const items: Item[] = [];
 
   part.mortises.forEach((m, idx) => {
     const lb = mortiseLocalBox(part, m);
     const r = projectBoxRect(lb);
     if (!r) return;
-    rects.push(
-      <rect
-        key={`m-${idx}-${view}`}
-        x={r.x}
-        y={r.y}
-        width={r.w}
-        height={r.h}
-        fill="none"
-        stroke="#666"
-        strokeWidth={0.6}
-        strokeDasharray="2 2"
-      />,
-    );
+    const W = round1(m.width ?? 0);
+    const L = round1(m.length ?? 0);
+    const D = round1(m.depth ?? 0);
+    const dist = round1((lb.cy ?? 0) + (lb.hy ?? 0));
+    items.push({
+      kind: "m",
+      idx,
+      rect: r,
+      name: `榫眼${idx + 1}`,
+      dims: `${W}×${L} 深${D}`,
+      distFromBot: dist,
+    });
   });
 
   part.tenons.forEach((t, idx) => {
@@ -480,23 +487,91 @@ export function T2Annotations({
     const lb = tenonLocalBox(part, t);
     const r = projectBoxRect(lb);
     if (!r) return;
-    rects.push(
-      <rect
-        key={`t-${idx}-${view}`}
-        x={r.x}
-        y={r.y}
-        width={r.w}
-        height={r.h}
-        fill="none"
-        stroke="#888"
-        strokeWidth={0.5}
-        strokeDasharray="3 1.5"
-      />,
-    );
+    const W = round1(t.width ?? 0);
+    const T = round1(t.thickness ?? 0);
+    const L = round1(t.length ?? 0);
+    const dist = round1((lb.cy ?? 0) + (lb.hy ?? 0));
+    items.push({
+      kind: "t",
+      idx,
+      rect: r,
+      name: `榫頭${idx + 1}`,
+      dims: `${W}×${T} 長${L}`,
+      distFromBot: dist,
+    });
   });
 
-  if (!rects.length) return null;
-  return <g className="t2-overlay">{rects}</g>;
+  if (!items.length) return null;
+
+  // 直排把標籤放右側列，leader 從 box 中心拉到 label。
+  // 多個 label 沿 Y 堆疊以免重疊。
+  const labelColX = ctx.vbX + ctx.vbW * 0.7;
+  const labelGap = 30;
+  let labelY = ctx.vbY + 30;
+
+  const elements: React.ReactNode[] = [];
+  items.forEach((it) => {
+    const box = it.rect;
+    const isMortise = it.kind === "m";
+    const stroke = isMortise ? "#dc2626" : "#2563eb";
+    const dash = isMortise ? "2 2" : "3 1.5";
+
+    const lblX = labelColX;
+    const lblY = labelY;
+    const bcx = box.x + box.w / 2;
+    const bcy = box.y + box.h / 2;
+
+    elements.push(
+      <g key={`${it.kind}-${it.idx}`}>
+        {/* dashed bbox on the part */}
+        <rect
+          x={box.x}
+          y={box.y}
+          width={box.w}
+          height={box.h}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={0.8}
+          strokeDasharray={dash}
+        />
+        {/* leader line from box → label */}
+        <line
+          x1={bcx}
+          y1={bcy}
+          x2={lblX - 4}
+          y2={lblY - 4}
+          stroke={stroke}
+          strokeWidth={0.5}
+          strokeDasharray="1.5 1.5"
+        />
+        {/* label group (3 lines) */}
+        <text x={lblX} y={lblY} fontSize={11} fill={stroke} fontWeight="bold">
+          {it.name}
+        </text>
+        <text
+          x={lblX}
+          y={lblY + 12}
+          fontSize={10}
+          fill="#1f2937"
+          fontFamily="monospace"
+        >
+          {it.dims}
+        </text>
+        <text
+          x={lblX}
+          y={lblY + 23}
+          fontSize={9}
+          fill="#6b7280"
+          fontFamily="monospace"
+        >
+          距底 {it.distFromBot}
+        </text>
+      </g>,
+    );
+    labelY += labelGap;
+  });
+
+  return <g className="t2-overlay">{elements}</g>;
 }
 
 /**

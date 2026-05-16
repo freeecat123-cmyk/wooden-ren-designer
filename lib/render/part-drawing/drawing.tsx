@@ -19,7 +19,6 @@ import {
   GrainArrow,
   FacingMark,
   ShapeSpecificAnnotation,
-  DetailCallout,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
@@ -35,6 +34,12 @@ interface PartDrawingProps {
   /** Override scale denominator; default auto. */
   scaleDenom?: number;
   className?: string;
+  /**
+   * 3 views layout：
+   * - "row"（default）：橫排 3 列，印製 2×2 grid 卡片用
+   * - "stack"：直排 3 列，每張視圖佔全寬，modal 大圖檢視用
+   */
+  viewLayout?: "row" | "stack";
 }
 
 /**
@@ -59,6 +64,7 @@ export function PartDrawing({
   index,
   scaleDenom,
   className,
+  viewLayout = "row",
 }: PartDrawingProps) {
   const part = group.representative;
   const scale = scaleDenom ?? pickScale(part);
@@ -93,8 +99,15 @@ export function PartDrawing({
         </span>
       </div>
 
-      {/* 3 views grid，每張 OrthoView 內疊 T1 SVG overlay（Phase 2） */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* 3 views layout：row（橫排 3 列）或 stack（直排，modal 大圖用）。
+          stack 時每張 view 加大、便於肉眼讀尺寸 / 榫位。 */}
+      <div
+        className={
+          viewLayout === "stack"
+            ? "grid grid-cols-1 gap-4"
+            : "grid grid-cols-3 gap-2"
+        }
+      >
         <OrthoView
           design={design}
           view="front"
@@ -109,7 +122,7 @@ export function PartDrawing({
               <GrainArrow ctx={ctx} part={part} view="front" />
               <FacingMark ctx={ctx} part={part} view="front" />
               <ShapeSpecificAnnotation ctx={ctx} part={part} view="front" />
-              <DetailCallout ctx={ctx} part={part} view="front" />
+              {/* DetailCallout disabled —— T2Annotations 已直接在 view 內加 leader+label */}
             </>
           )}
         />
