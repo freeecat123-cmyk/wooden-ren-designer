@@ -648,6 +648,8 @@ export function OrthoView({
   titleEn,
   className,
   joineryMode = false,
+  isolatePartId,
+  showDimensions = true,
 }: ViewProps & {
   view: OrthoView;
   title: string;
@@ -656,8 +658,23 @@ export function OrthoView({
   className?: string;
   /** 榫接模式：在三視圖上加畫公榫凸出（實線）+ 母榫（虛線）+ 肩寬虛線 */
   joineryMode?: boolean;
+  /** 零件圖：只渲染這個 part.id、把它 recenter 到原點。預設 undefined = 渲染整套。 */
+  isolatePartId?: string;
+  /** 是否顯示尺寸標註層（dim lines / scale bar / 方位標記）。預設 true。
+   *  PartDrawing 會傳 false 然後自己畫零件層級的標註。*/
+  showDimensions?: boolean;
 }) {
-  const { overall } = design;
+  // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
+  // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
+  const renderDesign = isolatePartId
+    ? {
+        ...design,
+        parts: design.parts
+          .filter((p) => p.id === isolatePartId)
+          .map((p) => ({ ...p, origin: { x: 0, y: 0, z: 0 } })),
+      }
+    : design;
+  const { overall } = renderDesign;
   const w = view === "side" ? overall.width : overall.length;
   const h = view === "top" ? overall.width : overall.thickness;
 
@@ -765,7 +782,7 @@ export function OrthoView({
       {/* parts — line-art style: visible solid, hidden dashed */}
       {sortPartsByDepth(
         joineryMode
-          ? design.parts.map((p) =>
+          ? renderDesign.parts.map((p) =>
               p.joineryView
                 ? {
                     ...p,
@@ -775,7 +792,7 @@ export function OrthoView({
                   }
                 : p,
             )
-          : design.parts,
+          : renderDesign.parts,
         view,
       ).map((part) => {
         // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
@@ -832,7 +849,7 @@ export function OrthoView({
         // 立柱永遠 visible（櫃體外輪廓骨架），不走 isPartHidden 的 4 立柱互相
         // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）。
         // 格扇門櫺條同理——凸貼浮雕不該被它附著的門 part contain 規則藏掉。
-        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, design.parts, view));
+        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view));
         const stroke = hidden ? "#444" : "#111";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
         const sw = hidden ? 0.7 : (isCornerPost ? 1.4 : 0.9);
@@ -1078,7 +1095,7 @@ export function OrthoView({
             }
             // HLE：在俯視找出 bow（arch-bent + rotation.x）作為遮蔽體，
             // 算出 bow 頂面 top-view footprint，spindle 在裡面的部分用虛線
-            const bowOccluder = design.parts.find(
+            const bowOccluder = renderDesign.parts.find(
               (q) =>
                 q.id !== part.id &&
                 q.shape?.kind === "arch-bent" &&
@@ -1307,7 +1324,7 @@ export function OrthoView({
           // back-post 不 clip 頂端（柱穿到 height）；back-top-rail / back-rung 不 clip
           if (view === "side" || view === "front") {
             if (part.id.startsWith("back-post-")) {
-              const seat = design.parts.find((p) => p.id === "seat");
+              const seat = renderDesign.parts.find((p) => p.id === "seat");
               if (seat) poly = clipPolygonAboveY(poly, seat.origin.y + seat.visible.thickness);
             } else if (
               part.id.startsWith("back-slat-") ||
@@ -1315,7 +1332,7 @@ export function OrthoView({
               part.id === "back-curved-splat" ||
               part.id.startsWith("back-spindle-")
             ) {
-              const topRail = design.parts.find((p) => p.id === "back-top-rail");
+              const topRail = renderDesign.parts.find((p) => p.id === "back-top-rail");
               if (topRail) poly = clipPolygonBelowY(poly, topRail.origin.y);
             }
           }
@@ -1388,7 +1405,7 @@ export function OrthoView({
           (!part.shape || part.shape.kind === "box") &&
           /^wall-(left|right)$/.test(part.id) &&
           view !== "top" &&
-          design.parts.some((p) => p.shape?.kind === "dovetail-ends");
+          renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends");
         const useShape =
           isDovetailPinBoard ||
           (!isFaceRoundedXTilt &&
@@ -1412,7 +1429,7 @@ export function OrthoView({
             !isFaceRoundedBent
           ));
         if (useShape) {
-          const poly = projectPartPolygon(part, view, design.parts);
+          const poly = projectPartPolygon(part, view, renderDesign.parts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
           // Splayed top view: also draw the shifted bottom footprint so you
@@ -1699,7 +1716,7 @@ export function OrthoView({
           { x: r.x + r.w, y: r.y + r.h },
           { x: r.x, y: r.y + r.h },
         ];
-        const isHiddenAt = makeHiddenChecker(part, design.parts, view);
+        const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
         // 立柱可見邊用粗線 1.4 突顯（俯視圖立柱方塊容易被層板矩形蓋過）
         const visibleSw = isCornerPost ? 1.4 : 0.9;
@@ -1744,7 +1761,7 @@ export function OrthoView({
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
            俯視看不到挖型不畫；曲線從矩形頂緣往下凹（最深點 = depthMm） */}
-      {view !== "top" && design.parts
+      {view !== "top" && renderDesign.parts
         .filter((p) => p.shape?.kind === "seat-scoop")
         .map((p) => {
           if (p.shape?.kind !== "seat-scoop") return null;
@@ -1822,7 +1839,7 @@ export function OrthoView({
         // polygon、不畫 splayed 2-slice。視覺乾淨，三視圖一致。
         return (
         <g pointerEvents="none">
-          {design.parts.map((part) => {
+          {renderDesign.parts.map((part) => {
             if (part.visual === "glass") return null;
             const elements: React.ReactNode[] = [];
             // tenon 凸出（公榫）—— 一律單 polygon，跟著公件 shape/rotation 變形
@@ -2173,7 +2190,7 @@ export function OrthoView({
 
       {/* Cosmetic mortise（無線充電凹槽、後板穿線孔等產品功能）—正常三視圖也要可見 */}
       <g pointerEvents="none">
-        {design.parts.map((part) => {
+        {renderDesign.parts.map((part) => {
           if (part.visual === "glass") return null;
           // polygon staves（wall-1, wall-2…）的 divider dado mortise 不畫橘色指示框
           // CSG 還是會挖，只是 2D 不再加多餘虛線（隔板邊緣已經視覺上嵌入壁）
@@ -2318,24 +2335,26 @@ export function OrthoView({
 
       {/* horizontal dimension below — 加方向 prefix 讓讀者一看就懂
           Front/Top 投影 X 軸 = 寬（length）；Side 投影 X 軸 = 深（width）*/}
-      <DimensionLine
-        arrowId={`arr-${view}`}
-        x1={-w / 2}
-        x2={w / 2}
-        y={drawAreaTop + h + 28}
-        label={`${view === "side" ? "深" : "寬"} ${w} mm`}
-      />
+      {showDimensions && (
+        <DimensionLine
+          arrowId={`arr-${view}`}
+          x1={-w / 2}
+          x2={w / 2}
+          y={drawAreaTop + h + 28}
+          label={`${view === "side" ? "深" : "寬"} ${w} mm`}
+        />
+      )}
 
       {/* vertical dimension on right side
           桌椅類（非 cabinet）前/側視圖左側有「桌下淨高 + 桌面厚」等價資訊，跳過；
           頂視圖 + 所有櫃類（cabinet !== null）無左側等價總高標，必顯示
           Front/Side 投影 Y 軸 = 高（thickness）；Top 投影 Y 軸 = 深（width）*/}
-      {(() => {
+      {showDimensions && (() => {
         // 桌椅類（有主面但無底板 = 非櫃）才跳過右側總高標，因左側已有
         // 「桌下淨高 + 桌面厚」等價資訊。
         // 櫃類（cabinet 非 null）只有內高 / 腳高，師傅看不到整件家具
         // 實際總高，必須保留此右側總高標線（解法 C）。
-        const dims0 = extractFurnitureDims(design);
+        const dims0 = extractFurnitureDims(renderDesign);
         const hasFlatTopLeftLabel =
           view !== "top" && dims0 !== null && dims0.cabinet === null;
         if (hasFlatTopLeftLabel) return null;
@@ -2351,8 +2370,8 @@ export function OrthoView({
       })()}
 
       {/* === 額外標線（內部尺寸 + zone 高度鏈 / 桌面厚 + 淨高 / 層板高度）=== */}
-      {(() => {
-        const dims = extractFurnitureDims(design);
+      {showDimensions && (() => {
+        const dims = extractFurnitureDims(renderDesign);
         if (!dims) return null;
         const {
           main,
@@ -2671,7 +2690,7 @@ export function OrthoView({
           const sFloor = drawAreaTop + h; // 螢幕地面 Y
           // 內寬：上方 dim line（畫在頂板下緣再往下一點，內側 W）
           // zone 高度鏈：從 bottomTopY 往上每片 boundary，左側堆疊
-          const boundaryYs = extractZoneBoundaryYs(design);
+          const boundaryYs = extractZoneBoundaryYs(renderDesign);
           const zoneSegments: { y1: number; y2: number; label: string }[] = [];
           let prevY = bottomTopY;
           for (const by of boundaryYs) {
@@ -2796,7 +2815,7 @@ export function OrthoView({
       {/* Orientation marker: the TOP view shows the furniture from above, so
           label which edge is the FRONT face (−Z in world) and which is BACK.
           Helps readers orient since top-view alone is ambiguous. */}
-      {view === "top" && (
+      {showDimensions && view === "top" && (
         <g fontFamily="sans-serif" fill="#666" fontSize={11}>
           <text
             x={0}
@@ -2817,26 +2836,28 @@ export function OrthoView({
 
       {/* 比例尺：100mm 參考棒（per drafting-math.md §A3）
           位於圖框左下角，給讀者一個視覺基準快速估其他尺寸 */}
-      <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
-        {(() => {
-          const sx = frameX + 14;
-          const sy = frameY + frameH - 14;
-          const barLen = 100; // mm in SVG units (since viewBox is mm-based)
-          return (
-            <>
-              {/* 主棒 */}
-              <line x1={sx} y1={sy} x2={sx + barLen} y2={sy} strokeWidth={0.6} />
-              {/* 兩端 + 中央 tick */}
-              <line x1={sx} y1={sy - 4} x2={sx} y2={sy + 4} strokeWidth={0.6} />
-              <line x1={sx + barLen / 2} y1={sy - 3} x2={sx + barLen / 2} y2={sy + 3} strokeWidth={0.4} />
-              <line x1={sx + barLen} y1={sy - 4} x2={sx + barLen} y2={sy + 4} strokeWidth={0.6} />
-              <text x={sx + barLen / 2} y={sy + 14} textAnchor="middle" fontSize={9} stroke="none" fill="#666">
-                100 mm
-              </text>
-            </>
-          );
-        })()}
-      </g>
+      {showDimensions && (
+        <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
+          {(() => {
+            const sx = frameX + 14;
+            const sy = frameY + frameH - 14;
+            const barLen = 100; // mm in SVG units (since viewBox is mm-based)
+            return (
+              <>
+                {/* 主棒 */}
+                <line x1={sx} y1={sy} x2={sx + barLen} y2={sy} strokeWidth={0.6} />
+                {/* 兩端 + 中央 tick */}
+                <line x1={sx} y1={sy - 4} x2={sx} y2={sy + 4} strokeWidth={0.6} />
+                <line x1={sx + barLen / 2} y1={sy - 3} x2={sx + barLen / 2} y2={sy + 3} strokeWidth={0.4} />
+                <line x1={sx + barLen} y1={sy - 4} x2={sx + barLen} y2={sy + 4} strokeWidth={0.6} />
+                <text x={sx + barLen / 2} y={sy + 14} textAnchor="middle" fontSize={9} stroke="none" fill="#666">
+                  100 mm
+                </text>
+              </>
+            );
+          })()}
+        </g>
+      )}
     </svg>
   );
 }
