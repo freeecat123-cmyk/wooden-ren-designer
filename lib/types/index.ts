@@ -450,6 +450,9 @@ export type OptionGroup =
   | "joinery"       // 角接合方式 + 該接合方式相關子選項（fingerSegments / dovetailAngle / wallSplay）
   | "divider"       // 內格分隔（縱橫向、厚度、高度、嵌入深度）
   | "handle"        // 把手孔（造型、尺寸、距壁頂）
+  // dovetail-box（木盒）拆群：
+  | "lid"           // 盒蓋（withLid / lidType / withMagneticClosure）
+  | "lining"        // 內襯（withFeltLining）
   | "layers"        // 分層配置
   // 三層櫃體：上中下
   | "zone-top"
