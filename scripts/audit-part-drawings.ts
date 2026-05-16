@@ -22,6 +22,8 @@ import {
   groupPartsForDrawing,
 } from "../lib/render/part-drawing/grouping";
 import { PartDrawing } from "../lib/render/part-drawing/drawing";
+import { PartDrawingsIndex } from "../components/print/PartDrawingsIndex";
+import { PrintTemplates } from "../components/print/PrintTemplates";
 
 let fail = 0;
 
@@ -977,6 +979,180 @@ console.log("\n--- Phase 2.5 element smoke (28 templates) ---");
   expect(
     p25title === totalCards25,
     `Phase 2.5 編號 label on every card (${p25title}/${totalCards25})`,
+  );
+}
+
+// ─── Phase 4 Task 1: PartDrawingsIndex renders ─────────────────────────────
+console.log("\n--- P4 Task 1: index page renders ---");
+{
+  const entry = FURNITURE_CATALOG.find((e: any) => e.category === "stool")!;
+  const design = buildDesign(entry);
+  if (design) {
+    const html = renderPartDrawing(
+      React.createElement(PartDrawingsIndex, { design } as any),
+    );
+    expect(
+      html.includes("零件清單索引"),
+      "P4 Task 1: index page title appears",
+    );
+    expect(html.includes("P-01"), "P4 Task 1: P-NN sequence in table");
+    expect(html.includes("工法"), "P4 Task 1: 工法 column header");
+  }
+}
+
+// ─── Phase 4 Task 4: PrintTemplates 1:1 樣板頁 ─────────────────────────────
+console.log("\n--- P4 Task 4: 1:1 樣板列印頁 ---");
+{
+  let tplFound = false;
+  let tplTemplate = "";
+  const CURVED = ["arch-bent", "lathe-turned", "hoof", "live-edge"];
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    if (
+      groups.some(
+        (g) => g.representative.shape && CURVED.includes(g.representative.shape.kind),
+      )
+    ) {
+      const html = renderPartDrawing(
+        React.createElement(PrintTemplates, { design } as any),
+      );
+      if (html.includes("樣板")) {
+        tplFound = true;
+        tplTemplate = entry.category;
+        break;
+      }
+    }
+  }
+  expect(
+    tplFound,
+    `P4 Task 4: 1:1 樣板 page renders for templates with curved parts (matched in ${tplTemplate || "none"})`,
+  );
+  // Soft check: no-curved design produces empty output
+  const boxEntry = FURNITURE_CATALOG.find((e: any) => e.category === "stool");
+  if (boxEntry && boxEntry.template) {
+    const design = buildDesign(boxEntry);
+    if (design) {
+      const groups = groupPartsForDrawing(design);
+      const hasCurved = groups.some(
+        (g) =>
+          g.representative.shape && CURVED.includes(g.representative.shape.kind),
+      );
+      if (!hasCurved) {
+        const html = renderPartDrawing(
+          React.createElement(PrintTemplates, { design } as any),
+        );
+        expect(
+          !html.includes("樣板"),
+          "P4 Task 4: no-curved design renders empty (stool box parts only)",
+        );
+      }
+    }
+  }
+}
+
+// ─── Phase 4 Task 3: 鋸台 hint on at least one card ────────────────────────
+console.log("\n--- P4 Task 3: 鋸台 hint ---");
+{
+  let tsFound = false;
+  let tsTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (const g of groups) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        } as any),
+      );
+      if (html.includes("鋸台 ")) {
+        tsFound = true;
+        tsTemplate = entry.category;
+        break;
+      }
+    }
+    if (tsFound) break;
+  }
+  if (tsFound) {
+    expect(true, `P4 Task 3: 鋸台 hint appears (matched in ${tsTemplate})`);
+  } else {
+    console.log(
+      "⚠ P4 Task 3: no 鋸台 hint hit (no apron-trapezoid/splayed/hoof in default catalog)",
+    );
+  }
+}
+
+// ─── Phase 4 Task 2: 工序 line renders on PartDrawing card ─────────────────
+console.log("\n--- P4 Task 2: 工序 line ---");
+{
+  const entry = FURNITURE_CATALOG.find((e: any) => e.category === "stool")!;
+  const design = buildDesign(entry);
+  if (design) {
+    const groups = groupPartsForDrawing(design);
+    if (groups.length > 0) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[0],
+          design,
+          index: 0,
+        } as any),
+      );
+      expect(html.includes("工序 "), "P4 Task 2: 工序 label appears");
+      expect(html.includes("→"), "P4 Task 2: 工序 chain has → separator");
+    }
+  }
+}
+
+// ─── Phase 4 final smoke: 28 templates × element coverage ─────────────────
+// 全模板渲染零件圖卡，統計 Phase 4 兩大標註元素（工序 / 鋸台）出現次數。
+// 強硬假設：工序 100% 每張、crashes=0；鋸台 catalog-dependent 不下限。
+console.log("\n--- Phase 4 element smoke (28 templates) ---");
+{
+  let p4steps = 0,
+    p4saw = 0;
+  let p4crashes = 0;
+  let totalCards4 = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards4++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          } as any),
+        );
+        if (!html || html.length < 200) {
+          p4crashes++;
+          continue;
+        }
+        if (html.includes("工序 ")) p4steps++;
+        if (html.includes("鋸台 ")) p4saw++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p4crashes++;
+    }
+  }
+  console.log(
+    `  P4 stats: cards=${totalCards4} 工序=${p4steps} 鋸台=${p4saw} crashes=${p4crashes}`,
+  );
+  expect(p4crashes === 0, `Phase 4 smoke: ${p4crashes} crash(es)`);
+  expect(
+    p4steps === totalCards4,
+    `Phase 4 工序 on every card (${p4steps}/${totalCards4})`,
   );
 }
 
