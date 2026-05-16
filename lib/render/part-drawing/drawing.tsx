@@ -132,7 +132,7 @@ export function PartDrawing({
       </div>
 
       {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
-      <T2LabelList part={part} />
+      <T2LabelList part={part} design={design} />
 
       {/* Footer */}
       <div className="mt-2 text-[10px] text-zinc-600">

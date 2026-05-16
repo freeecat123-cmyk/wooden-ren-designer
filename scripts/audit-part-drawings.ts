@@ -465,6 +465,39 @@ expect(
   );
 }
 
+// ─── Test 11: ↔ pair suffix appears in ≥1 template (Phase 2 Task 6) ────────
+// 對 28 模板每個 group 跑 PartDrawing，至少要有一張圖在 T2 label list 內出現
+// 「↔ {otherPartId} 榫頭/榫眼N」配對後綴。
+{
+  let pairFound = false;
+  let pairTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (let i = 0; i < groups.length; i++) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[i],
+          design,
+          index: i,
+        }),
+      );
+      if (html.includes("↔")) {
+        pairFound = true;
+        pairTemplate = entry.category;
+        break;
+      }
+    }
+    if (pairFound) break;
+  }
+  expect(
+    pairFound,
+    `pair-id: at least one template produces ↔ pair suffix (matched in ${pairTemplate || "none"})`,
+  );
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
