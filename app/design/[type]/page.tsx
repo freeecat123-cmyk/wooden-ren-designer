@@ -225,6 +225,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     const n = Number(raw);
     return Number.isFinite(n) && n > 0 ? Math.min(200, n) : 0;
   })();
+  // 掀蓋浮起：?lidLift=N（mm）— dovetail-box 才用，lid + plug + hinge 整組往上抬，
+  // 看 lid 底下結構（嵌入式凸唇 / 滑入式凸條 / 鉸鏈位置）。
+  const lidLiftMm = (() => {
+    const raw = sp.lidLift;
+    if (typeof raw !== "string") return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.min(300, n) : 0;
+  })();
 
   const printQuery = designParamsToQuery(parsed, entry);
 
@@ -375,7 +383,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               透視圖（3D · 拖曳旋轉）
             </div>
             <SceneThemeToggle current={sceneId} />
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
           </div>
         </div>
 
@@ -440,13 +448,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
-                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
+                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
               </div>
             </div>
           </div>
           {/* mobile only：scroll 進材料區出現頂端 banner */}
           <Material3dPip>
-            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} xrayMode={xrayMode} hidePartIds={hidePartIds} compactMode />
+            <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} compactMode />
           </Material3dPip>
         </div>
       </details>

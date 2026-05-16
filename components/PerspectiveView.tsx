@@ -2566,6 +2566,7 @@ export function PerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
+  lidLiftMm = 0,
   xrayMode = "off",
   selectedPartId = null,
   onPartSelect,
@@ -2580,6 +2581,8 @@ export function PerspectiveView({
   joineryMode?: boolean;
   /** Dev audit mode：?audit=true URL 啟用，overlap 的 parts 用紅色 wireframe 高亮 */
   auditMode?: boolean;
+  /** 掀蓋浮起：dovetail-box 才用，lid + plug + hinge 往上抬 lidLiftMm（mm） */
+  lidLiftMm?: number;
   /** 爆炸視圖：joineryMode 下 tenon 沿 position 方向往外偏 explodeMm（mm），
    *  視覺像榫頭從榫眼抽出來。0 = 無偏移（預設），> 0 拆得越開 */
   explodeMm?: number;
@@ -2792,7 +2795,7 @@ export function PerspectiveView({
         ? "w-full h-full overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
         : "w-full h-[40vh] min-h-[260px] lg:h-[520px] rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-gradient-to-b from-zinc-50 to-zinc-200 flex flex-col"
     }>
-      <ViewPresetBar onSelect={setViewPreset} />
+      <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
       <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas
         shadows
@@ -2947,7 +2950,11 @@ export function PerspectiveView({
           const color = pairShadeByPartId(tintedColor, part.id);
           const { yExt } = worldExtents(part);
           const px = part.origin.x * SCALE;
-          const py = (part.origin.y + yExt / 2) * SCALE;
+          // 掀蓋浮起：lid / lid-plug / lid-hinge-* 整組往上抬 lidLiftMm
+          const isLidGroup =
+            part.id === "lid" || /^lid-(plug|hinge|cleat)/.test(part.id);
+          const liftMm = isLidGroup ? lidLiftMm : 0;
+          const py = (part.origin.y + yExt / 2 + liftMm) * SCALE;
           const pz = part.origin.z * SCALE;
           let shape: ShapeSpec | undefined;
           if (part.shape?.kind === "tapered") {
@@ -3402,12 +3409,13 @@ export function PerspectiveView({
 
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
-function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
+function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset) => void; hasLid?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const wfOn = sp?.get("wf") === "1" || sp?.get("wf") === "true";
   const xrayCur = sp?.get("xray") ?? "off";
+  const lidLiftCur = Number(sp?.get("lidLift") ?? "0");
 
   const toggleWf = () => {
     const params = new URLSearchParams(sp?.toString() ?? "");
@@ -3423,6 +3431,18 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
     const next = xrayCur === "off" ? "face" : xrayCur === "face" ? "full" : "off";
     if (next === "off") params.delete("xray");
     else params.set("xray", next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
+  };
+
+  // 四段循環：0（蓋上）→ 30（微抬）→ 80（高抬）→ 150（更高）→ 0
+  // 只 dovetail-box 顯示；用 lidLift URL param 控制
+  const cycleLidLift = () => {
+    const params = new URLSearchParams(sp?.toString() ?? "");
+    const cur = lidLiftCur > 0 ? lidLiftCur : 0;
+    const next = cur === 0 ? 30 : cur === 30 ? 80 : cur === 80 ? 150 : 0;
+    if (next === 0) params.delete("lidLift");
+    else params.set("lidLift", String(next));
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : (pathname ?? "/"), { scroll: false });
   };
@@ -3476,6 +3496,20 @@ function ViewPresetBar({ onSelect }: { onSelect: (p: ViewPreset) => void }) {
         >
           🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
         </button>
+        {hasLid && (
+          <button
+            type="button"
+            title={`掀蓋浮起（看 lid 底下結構）：當前 ${lidLiftCur > 0 ? lidLiftCur + "mm" : "蓋上"}，點切下一檔`}
+            onClick={cycleLidLift}
+            className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
+              lidLiftCur > 0
+                ? "bg-amber-600 text-white ring-amber-700"
+                : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
+            }`}
+          >
+            📦 {lidLiftCur > 0 ? `掀 ${lidLiftCur}mm` : "掀蓋"}
+          </button>
+        )}
       </div>
       {/* 右側 fade mask 提示橫滑 */}
       <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-6 bg-gradient-to-l from-white/70 to-transparent" />

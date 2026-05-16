@@ -35,6 +35,7 @@ export function LazyPerspectiveView({
   joineryMode = false,
   auditMode = false,
   explodeMm = 0,
+  lidLiftMm = 0,
   xrayMode = "off",
   compactMode = false,
   noSync = false,
@@ -47,6 +48,8 @@ export function LazyPerspectiveView({
   auditMode?: boolean;
   /** 爆炸視圖：tenon 外偏 explodeMm，視覺像榫頭抽出（joineryMode 才有意義） */
   explodeMm?: number;
+  /** 掀蓋浮起：lid 整組（含 plug / hinge）往上抬 lidLiftMm，看 lid 底下結構 */
+  lidLiftMm?: number;
   /** X-ray 透視：off / face（藏門+抽屜面板）/ full（藏整個抽屜+門） */
   xrayMode?: "off" | "face" | "full";
   /** 緊湊模式：外層 wrapper 跟父容器（PIP 用） */
@@ -68,6 +71,7 @@ export function LazyPerspectiveView({
       joineryMode={joineryMode}
       auditMode={auditMode}
       explodeMm={explodeMm}
+      lidLiftMm={lidLiftMm}
       xrayMode={xrayMode}
       selectedPartId={selectedPartId}
       onPartSelect={onPartSelect}
