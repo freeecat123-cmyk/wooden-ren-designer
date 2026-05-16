@@ -520,12 +520,15 @@ const polyDesign: FurnitureDesign = {
       const grooveDepth = Math.min(5, wallT - 1);
       const insetEach = Math.max(2, wallT - grooveDepth);
       const sinkMm = 5; // lid 距箱頂緣的距離（跟底板槽深 5mm 對偶）
+      // lid 在 X 軸（length，從左壁滑入）：左邊延伸到外緣 -outerL/2 補上短壁缺口
+      // 右邊仍 inset 進槽（insetEach）
+      // → lid 長度 = outerL - insetEach（單側 inset），中心向左偏 insetEach/2
       lidPart.visible = {
-        length: outerL - 2 * insetEach,
+        length: outerL - insetEach,
         width: outerW - 2 * insetEach,
         thickness: lidT,
       };
-      lidPart.origin = { ...lidPart.origin, y: outerH - lidT - sinkMm };
+      lidPart.origin = { ...lidPart.origin, x: -insetEach / 2, y: outerH - lidT - sinkMm };
       lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉 5mm）";
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
