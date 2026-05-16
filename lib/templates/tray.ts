@@ -537,16 +537,15 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
     const angleDeg = Math.max(5, Math.min(18, dovetailAngleOpt));
     const wallActualH = bottomAttach === "inset-panel" ? outerH : outerH - botT;
     dovetailInfo = { segmentCount, segH: wallActualH / segmentCount, angleDeg };
-    // SWAP：wall-left/right 是 tail 板（端頭凸出鳩尾齒），wall-front/back 是
-    // pin 板（凹進去配合 tail）。User：「你不能直接看前後板的榫兩個榫之間空缺
-    // 什麼樣子 照著畫就好嗎」→ 那個空缺形狀就是 tail 凸出，應該在側板（wall-
-    // left/right）的端頭。halfPin 也跟著翻：tail 板（左右板）halfPin=true 保
-    // 端頭不破角；pin 板（前後板）halfPin=false 讓 tail 嵌進來。
     for (const part of built.parts) {
       let phase: 0 | 1 | null = null;
-      if (part.id === "wall-left" || part.id === "wall-right") phase = 0;  // tail board
-      else if (part.id === "wall-front" || part.id === "wall-back") phase = 1;  // pin board
+      if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
+      else if (part.id === "wall-left" || part.id === "wall-right") phase = 1;
       if (phase !== null) {
+        // halfPin 只給 tail 板（前後板，phase=0）：在 s=0/N-1 強制加 half-tail
+        // 保住端頭整塊不破角。Pin 板（左右板）關 halfPin、s=0/N-1 維持 gap，
+        // 正好讓 tail 板的 half-tail 嵌進來 → 雙板互嵌 5 段不重疊。
+        // 之前兩板都 halfPin=true → s=0/N-1 兩板都 pin、撞位置沒互嵌。
         part.shape = {
           kind: "dovetail-ends",
           segmentCount,
