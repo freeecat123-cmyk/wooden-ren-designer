@@ -505,8 +505,9 @@ const polyDesign: FurnitureDesign = {
     if (lidType === "sliding") {
       // 滑入式（跟底板「鋸槽嵌入」對偶）：
       // - lid 縮成 innerL+2g × innerW+2g（4 邊各 g mm tongue 卡進 4 壁內側上緣槽）
-      // - 後 / 左 / 右 三壁加高 lidT 包住 lid（壁頂跟 lid 頂齊）
-      // - **前壁不加高、保持原高度** → 上方留 lidT 缺口讓 lid 從前面滑入
+      // - 前 / 後 / 右 三壁加高 lidT 包住 lid（壁頂跟 lid 頂齊）
+      // - **左壁（短邊）不加高、保持原高度** → 上方留 lidT 缺口讓 lid 從短邊滑入
+      //   （傳統滑入式蓋一律從短邊進，不會從長邊）
       const tongueDepth = Math.min(3, wallT * 0.4);
       lidPart.visible = {
         length: outerL - 2 * wallT + 2 * tongueDepth,
@@ -515,10 +516,10 @@ const polyDesign: FurnitureDesign = {
       };
       lidPart.nameZh = "盒蓋（滑入式 · 4 邊凸條入槽）";
       for (const p of design.parts) {
-        if (p.id === "wall-back" || p.id === "wall-left" || p.id === "wall-right") {
+        if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
         }
-        // wall-front 保持原高，視覺上看到上緣缺口（lid 從這裡滑入）
+        // wall-left 保持原高，視覺上看到上緣缺口（lid 從這裡滑入）
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
