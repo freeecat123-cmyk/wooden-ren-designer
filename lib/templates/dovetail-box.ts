@@ -516,29 +516,30 @@ const polyDesign: FurnitureDesign = {
       //   兩段之間留 lidT 缺口 = 滑入口（lid 從這縫滑出）
       const grooveDepth = Math.min(5, wallT - 1);
       const insetEach = Math.max(2, wallT - grooveDepth);
+      const sinkMm = 5; // lid 距箱頂緣的距離（跟底板槽深 5mm 對偶）
       lidPart.visible = {
         length: outerL - 2 * insetEach,
         width: outerW - 2 * insetEach,
         thickness: lidT,
       };
-      lidPart.origin = { ...lidPart.origin, y: outerH - 2 * lidT };
-      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉）";
+      lidPart.origin = { ...lidPart.origin, y: outerH - lidT - sinkMm };
+      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉 5mm）";
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
         }
       }
-      // 左壁縮短 lidT + 加 cap
+      // 左壁縮短 sinkMm（頂在 lid 底） + 加 cap（厚 sinkMm，從 outerH-sinkMm 到 outerH）
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
-        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - lidT };
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm };
         design.parts.push({
           id: "wall-left-cap",
-          nameZh: "左壁上蓋（滑入口上方）",
+          nameZh: "左壁上蓋（滑入口上方 5mm）",
           material,
           grainDirection: wallLeft.grainDirection,
-          visible: { ...wallLeft.visible, width: lidT },
-          origin: { ...wallLeft.origin, y: outerH - lidT },
+          visible: { ...wallLeft.visible, width: sinkMm },
+          origin: { ...wallLeft.origin, y: outerH - sinkMm },
           rotation: wallLeft.rotation ? { ...wallLeft.rotation } : undefined,
           tenons: [],
           mortises: [],
