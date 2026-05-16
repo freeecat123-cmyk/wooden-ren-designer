@@ -1109,6 +1109,53 @@ console.log("\n--- P4 Task 2: 工序 line ---");
   }
 }
 
+// ─── Phase 4 final smoke: 28 templates × element coverage ─────────────────
+// 全模板渲染零件圖卡，統計 Phase 4 兩大標註元素（工序 / 鋸台）出現次數。
+// 強硬假設：工序 100% 每張、crashes=0；鋸台 catalog-dependent 不下限。
+console.log("\n--- Phase 4 element smoke (28 templates) ---");
+{
+  let p4steps = 0,
+    p4saw = 0;
+  let p4crashes = 0;
+  let totalCards4 = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards4++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          } as any),
+        );
+        if (!html || html.length < 200) {
+          p4crashes++;
+          continue;
+        }
+        if (html.includes("工序 ")) p4steps++;
+        if (html.includes("鋸台 ")) p4saw++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p4crashes++;
+    }
+  }
+  console.log(
+    `  P4 stats: cards=${totalCards4} 工序=${p4steps} 鋸台=${p4saw} crashes=${p4crashes}`,
+  );
+  expect(p4crashes === 0, `Phase 4 smoke: ${p4crashes} crash(es)`);
+  expect(
+    p4steps === totalCards4,
+    `Phase 4 工序 on every card (${p4steps}/${totalCards4})`,
+  );
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
