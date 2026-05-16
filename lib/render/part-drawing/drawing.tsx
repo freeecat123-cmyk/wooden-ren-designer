@@ -138,6 +138,11 @@ export function PartDrawing({
       <div className="mt-2 text-[10px] text-zinc-600">
         材料：{material?.nameZh ?? material?.nameEn ?? part.material}
       </div>
+      {design.useButtJointConvention !== false && (
+        <div className="mt-1 text-[8px] text-zinc-400 italic">
+          ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
+        </div>
+      )}
     </div>
   );
 }
