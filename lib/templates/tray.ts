@@ -615,11 +615,15 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       //   cut Brush 繞 part-local X 軸轉 ±θ，孔軸跟牆面法線一致 → 孔上下緣斜
       //   著跟著牆一起傾，不是 axis-aligned 水平上下緣。
       // 旋轉後 depth = wallT 已足夠（孔軸 ⊥ 牆面，沿牆厚方向）。
-      const handleDepth = wallSplayRad > 0 ? wallThick + 0.5 : wallThick;
+      // Splay 實際上只對 miter 接合套用（line 340 才掛 mitered-ends vertices），
+      // lap / finger-joint / dovetail 接合下 wall 仍是直立 box—handle rotX 跟
+      // depth 偏移都不該套，不然孔會無端變斜。檢查 cornerJoinery 後決定。
+      const wallIsSplayed = wallSplayRad > 0 && cornerJoinery === "miter";
+      const handleDepth = wallIsSplayed ? wallThick + 0.5 : wallThick;
       // rotX 符號：LEFT outerSide="-y" → -θ；RIGHT outerSide="+y" → +θ
       // 驗算：(0,1,0) 經 rotX=-θ 繞 X 軸 → (0, cos θ, -sin θ)，這條線跟 LEFT
       // 牆外面法線 (0, -cos θ, +sin θ) 同一條（symmetric for cylinder）✓
-      const handleRotX = wallSplayRad > 0
+      const handleRotX = wallIsSplayed
         ? (part.id === "wall-left" ? -wallSplayRad : +wallSplayRad)
         : 0;
       // 依造型推 mortise：
