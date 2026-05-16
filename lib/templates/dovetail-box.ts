@@ -532,21 +532,10 @@ const polyDesign: FurnitureDesign = {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
         }
       }
-      // 左壁縮短 sinkMm（頂在 lid 底） + 加 cap（厚 sinkMm，從 outerH-sinkMm 到 outerH）
+      // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
         wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm };
-        design.parts.push({
-          id: "wall-left-cap",
-          nameZh: "左壁上蓋（滑入口上方 5mm）",
-          material,
-          grainDirection: wallLeft.grainDirection,
-          visible: { ...wallLeft.visible, width: sinkMm },
-          origin: { ...wallLeft.origin, y: outerH - sinkMm },
-          rotation: wallLeft.rotation ? { ...wallLeft.rotation } : undefined,
-          tenons: [],
-          mortises: [],
-        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
