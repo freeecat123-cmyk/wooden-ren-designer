@@ -503,12 +503,17 @@ const polyDesign: FurnitureDesign = {
   const lidPart = design.parts.find((p) => p.id === "lid");
   if (withLid && lidPart) {
     if (lidType === "sliding") {
-      // 滑入式（跟底板 inset-panel 鑲板入溝對偶）：
-      // - lid 縮成 outerL-2·insetEach × outerW-2·insetEach（4 邊各藏 grooveDepth 進壁體）
-      // - lid 頂面齊 outerH，浮嵌在壁內側 grooveDepth mm 隱式槽（不切實體 mortise，
-      //   靠 lid 跟壁體 AABB 視覺重疊呈現）
-      // - 前 / 後 / 右 三壁延伸 lidT（壁體單塊覆蓋 lid 區、無 rim 接縫）
-      // - **左壁（短邊）保持原高** → 上緣留 lidT 缺口讓 lid 從短邊滑入
+      // 滑入式（跟底板 inset-panel 對偶 · 完整對偶版）：
+      // 底板：plate 在 y=botT~2·botT、距箱底 botT 厚的「下緣 cap」、4 壁全高
+      // 蓋板（鏡像）：lid 在 y=outerH-2·lidT ~ outerH-lidT、距箱頂 lidT 厚的「上緣 cap」
+      //
+      // 結構：
+      // - lid 縮成 outerL-2·insetEach × outerW-2·insetEach × lidT
+      // - lid 下沉 lidT：origin.y = outerH - 2·lidT（top 在 outerH - lidT）
+      // - 前 / 後 / 右 三壁延伸 lidT 到 outerH（壁體單塊涵蓋 lid 區 + 上 cap）
+      // - 左壁（短邊）縮短 lidT：頂面停在 outerH - 2·lidT（= lid 底）
+      //   + 加 wall-left-cap（outerH - lidT ~ outerH）= 上方 cap
+      //   兩段之間留 lidT 缺口 = 滑入口（lid 從這縫滑出）
       const grooveDepth = Math.min(5, wallT - 1);
       const insetEach = Math.max(2, wallT - grooveDepth);
       lidPart.visible = {
@@ -516,12 +521,28 @@ const polyDesign: FurnitureDesign = {
         width: outerW - 2 * insetEach,
         thickness: lidT,
       };
-      lidPart.origin = { ...lidPart.origin, y: outerH - lidT };
-      lidPart.nameZh = "盒蓋（滑入式 · 鑲板入溝）";
+      lidPart.origin = { ...lidPart.origin, y: outerH - 2 * lidT };
+      lidPart.nameZh = "盒蓋（滑入式 · 鑲板下沉）";
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back" || p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
         }
+      }
+      // 左壁縮短 lidT + 加 cap
+      const wallLeft = design.parts.find((p) => p.id === "wall-left");
+      if (wallLeft) {
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - lidT };
+        design.parts.push({
+          id: "wall-left-cap",
+          nameZh: "左壁上蓋（滑入口上方）",
+          material,
+          grainDirection: wallLeft.grainDirection,
+          visible: { ...wallLeft.visible, width: lidT },
+          origin: { ...wallLeft.origin, y: outerH - lidT },
+          rotation: wallLeft.rotation ? { ...wallLeft.rotation } : undefined,
+          tenons: [],
+          mortises: [],
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
