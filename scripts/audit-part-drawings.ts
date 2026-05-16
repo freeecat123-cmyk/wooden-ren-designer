@@ -238,9 +238,10 @@ expect(
       );
       expect(html.includes("比例"), "PartDrawing renders title bar with 比例");
       expect(html.includes("P-01"), "PartDrawing renders P-01 sequence");
+      // Phase 2.5: 3 ortho views + 1 install-hint mini = 4 SVGs
       expect(
-        (html.match(/<svg/g) ?? []).length === 3,
-        `PartDrawing renders 3 SVG views (got ${(html.match(/<svg/g) ?? []).length})`,
+        (html.match(/<svg/g) ?? []).length === 4,
+        `PartDrawing renders 3 ortho + 1 install-hint = 4 SVGs (got ${(html.match(/<svg/g) ?? []).length})`,
       );
       expect(html.includes("材料："), "PartDrawing renders 材料 footer");
       // T1 dim overlay (Phase 2 SVG) should emit length value as <text> label
@@ -269,6 +270,32 @@ expect(
       expect(
         html.includes("grain-arrow"),
         "GrainArrow: grain-arrow SVG class present in output",
+      );
+    }
+  }
+}
+
+// ─── Phase 2.5 Task 1: install hint mini renders + target in red ──────────
+{
+  const entry = FURNITURE_CATALOG.find((e: any) => e.category === "stool")!;
+  const design = buildDesign(entry);
+  if (design) {
+    const groups = groupPartsForDrawing(design);
+    if (groups.length > 0) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[0],
+          design,
+          index: 0,
+        }),
+      );
+      expect(
+        html.includes("install-hint-mini"),
+        "P2.5 Task 1: install-hint-mini SVG renders",
+      );
+      expect(
+        html.includes("#dc2626") || html.toLowerCase().includes("dc2626"),
+        "P2.5 Task 1: target part rendered in red",
       );
     }
   }
