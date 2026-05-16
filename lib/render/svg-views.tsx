@@ -2117,10 +2117,10 @@ export function OrthoView({
           if (cosmetic.length === 0) return null;
           return (
             <g key={`cosmetic-${part.id}`}>
-              {cosmetic.flatMap((m, i) => {
+              {cosmetic.map((m, i) => {
                 const lb = mortiseLocalBox(part, m);
                 const r = projectFeatureRect(part, lb, view);
-                if (r.w < 0.5 || r.h < 0.5) return [];
+                if (r.w < 0.5 || r.h < 0.5) return null;
                 const cx = r.x + r.w / 2;
                 const cy = -(r.y + r.h) + r.h / 2;
                 // 外撇 cosmetic 孔（rotX≠0）：marker 在不同視圖該不該斜：
@@ -2131,74 +2131,35 @@ export function OrthoView({
                 // 符號：part-local rotX 經 mesh rotation 後在 FRONT 視圖呈現 -rotX 方向
                 const rotDeg = m.rotX && view === "front" ? (-m.rotX * 180 / Math.PI) : 0;
                 const transform = rotDeg !== 0 ? `rotate(${rotDeg.toFixed(2)} ${cx} ${cy})` : undefined;
-                // 通孔 + rotX：斜壁通孔，外/內面在 part-local Z 偏移 wallT·tan(θ)。
-                // SIDE 視圖：偏移投影到垂直 SVG（壁高方向）
-                // TOP  視圖：偏移投影到水平 SVG（壁厚方向 → 看下去拉開的距離）
-                // 兩面用「外實線 + 內虛線」對比，孔不會看起來太大。
-                const isThroughTilted =
-                  m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0;
-                let innerDx = 0;
-                let innerDy = 0;
-                if (isThroughTilted && (view === "side" || view === "top")) {
-                  const wallT = 2 * lb.hy;
-                  const offsetMm = wallT * Math.tan(Math.abs(m.rotX!));
-                  // 符號：wall-left 跟 wall-right tilt 方向相反；SIDE/TOP view 投影方向不同。
-                  // 用 part.id + view 決定方向：先用簡單規則，依 playwright 驗證調整。
-                  const isLeft = /left/.test(part.id);
-                  const sign = isLeft ? +1 : -1;
-                  if (view === "side") {
-                    // SIDE view 看 wall-left/right 面，外面在 SVG 上 (高 z_part)、內面在下
-                    // 偏移 = 外 - 內，內輪廓相對外輪廓向下 (SVG 數學座標 = -y 方向)
-                    innerDy = -offsetMm * sign;
-                  } else if (view === "top") {
-                    // TOP view 看下去，外面在 SVG 外側（遠離筒中心）、內面在內側
-                    innerDx = -offsetMm * sign;
-                  }
-                }
-                const outerKey = `cm-${i}`;
-                const innerKey = `cm-${i}-inner`;
-                const shapeNode = (
-                  key: string,
-                  ox: number,
-                  oy: number,
-                  dashed: boolean,
-                ) => {
-                  if (m.shape === "round") {
-                    return (
-                      <circle
-                        key={key}
-                        cx={cx + ox}
-                        cy={cy + oy}
-                        r={Math.min(r.w, r.h) / 2}
-                        fill="none"
-                        stroke="#c97a2b"
-                        strokeWidth={0.6}
-                        strokeDasharray={dashed ? "2 1.5" : undefined}
-                        transform={transform}
-                      />
-                    );
-                  }
+                if (m.shape === "round") {
                   return (
-                    <rect
-                      key={key}
-                      x={r.x + ox}
-                      y={-(r.y + r.h) + oy}
-                      width={r.w}
-                      height={r.h}
+                    <circle
+                      key={`cm-${i}`}
+                      cx={cx}
+                      cy={cy}
+                      r={Math.min(r.w, r.h) / 2}
                       fill="none"
                       stroke="#c97a2b"
                       strokeWidth={0.6}
-                      strokeDasharray={dashed ? "2 1.5" : m.through ? undefined : "2 1.5"}
+                      strokeDasharray={m.through ? undefined : "2 1.5"}
                       transform={transform}
                     />
                   );
-                };
-                const outer = shapeNode(outerKey, 0, 0, !m.through);
-                if (!isThroughTilted || (view !== "side" && view !== "top")) {
-                  return [outer];
                 }
-                const inner = shapeNode(innerKey, innerDx, innerDy, true);
-                return [outer, inner];
+                return (
+                  <rect
+                    key={`cm-${i}`}
+                    x={r.x}
+                    y={-(r.y + r.h)}
+                    width={r.w}
+                    height={r.h}
+                    fill="none"
+                    stroke="#c97a2b"
+                    strokeWidth={0.6}
+                    strokeDasharray={m.through ? undefined : "2 1.5"}
+                    transform={transform}
+                  />
+                );
               })}
             </g>
           );
