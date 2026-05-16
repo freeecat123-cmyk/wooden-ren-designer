@@ -501,6 +501,107 @@ const polyDesign: FurnitureDesign = {
             : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
     }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
   };
+  // 蓋型差異化：sliding / rabbeted / hinged / lift-off 各做出特徵零件
+  // buildBox 給的 lid 是 outerL × outerW × lidT 純 box，依 lidType 改 lid + 加配件
+  const lidPart = design.parts.find((p) => p.id === "lid");
+  if (withLid && lidPart) {
+    if (lidType === "sliding") {
+      // 滑入式：lid 縮窄到 innerW + 2×3mm tongue（卡進左右壁內側槽）
+      const tongueDepth = Math.min(3, wallT * 0.4);
+      lidPart.visible = {
+        length: outerL,
+        width: outerW - 2 * wallT + 2 * tongueDepth,
+        thickness: lidT,
+      };
+      lidPart.nameZh = "盒蓋（滑入式 · 兩側凸條）";
+    } else if (lidType === "rabbeted") {
+      // 嵌入式：主蓋外伸（outerL×outerW）+ 下方加 inner plug 凸唇嵌入盒口
+      const plugT = Math.max(2, Math.min(4, lidT - 2));
+      const mainT = lidT - plugT;
+      // 主蓋頂面仍在 outerH，高度縮成 mainT
+      lidPart.visible = { length: outerL, width: outerW, thickness: mainT };
+      lidPart.origin = { ...lidPart.origin, y: outerH - mainT };
+      lidPart.nameZh = "盒蓋（嵌入式 · 主蓋）";
+      // 凸唇：吊在主蓋底面下方，剛好卡進盒口（內伸 wallT-1 確認對齊）
+      design.parts.push({
+        id: "lid-plug",
+        nameZh: "盒蓋凸唇（rabbet）",
+        material,
+        grainDirection: "length",
+        visible: {
+          length: Math.max(1, outerL - 2 * wallT - 1),
+          width: Math.max(1, outerW - 2 * wallT - 1),
+          thickness: plugT,
+        },
+        origin: { x: 0, y: outerH - lidT, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    } else if (lidType === "hinged") {
+      // 鉸鏈式：lid 不變 + 後緣 2 個小銅鉸鏈
+      lidPart.nameZh = "盒蓋（鉸鏈式）";
+      const hingeL = 25, hingeW = 8, hingeT = 3;
+      for (let i = 0; i < 2; i++) {
+        design.parts.push({
+          id: `lid-hinge-${i + 1}`,
+          nameZh: `小銅鉸鏈 ${i + 1}`,
+          material,
+          grainDirection: "length",
+          visible: { length: hingeL, width: hingeW, thickness: hingeT },
+          origin: {
+            x: (i === 0 ? -1 : 1) * (outerL * 0.25),
+            y: outerH - lidT - 1,
+            z: outerW / 2 - hingeW / 2 - 1,
+          },
+          tenons: [],
+          mortises: [],
+          visual: "metal",
+        });
+      }
+    } else if (lidType === "lift-off") {
+      // 整片活動：lid 不變 + 4 條 cleat 黏在蓋底，剛好嵌入盒口
+      lidPart.nameZh = "盒蓋（整片活動）";
+      const cleatT = 4, cleatW = 8, gap = 1;
+      const cleatY = outerH - lidT - cleatT;
+      const innerLDim = outerL - 2 * wallT - 2 * gap;
+      const innerWDim = outerW - 2 * wallT - 2 * gap;
+      // 前 / 後 cleat（沿 X 軸延伸）
+      for (const [suffix, z] of [
+        ["front", -(innerWDim / 2 - cleatW / 2)] as const,
+        ["back", innerWDim / 2 - cleatW / 2] as const,
+      ]) {
+        design.parts.push({
+          id: `lid-cleat-${suffix}`,
+          nameZh: `蓋內 cleat（${suffix === "front" ? "前" : "後"}）`,
+          material,
+          grainDirection: "length",
+          visible: { length: innerLDim, width: cleatW, thickness: cleatT },
+          origin: { x: 0, y: cleatY, z },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // 左 / 右 cleat（沿 Z 軸延伸，要 rotate 90°）
+      const sideLen = Math.max(1, innerWDim - 2 * cleatW);
+      for (const [suffix, x] of [
+        ["left", -(innerLDim / 2 - cleatW / 2)] as const,
+        ["right", innerLDim / 2 - cleatW / 2] as const,
+      ]) {
+        design.parts.push({
+          id: `lid-cleat-${suffix}`,
+          nameZh: `蓋內 cleat（${suffix === "left" ? "左" : "右"}）`,
+          material,
+          grainDirection: "length",
+          visible: { length: sideLen, width: cleatW, thickness: cleatT },
+          origin: { x, y: cleatY, z: 0 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    }
+  }
+
   // 內部 jewelry 抽板（活動隔板）
   if (withInnerTray) {
     const trayH = 30;
