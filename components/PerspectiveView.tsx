@@ -213,15 +213,22 @@ function subtractMortisesFromGeometry(
     // 延伸後孔幾何「斜向 parallelepiped」尖端會超出 user 指定的 25mm 區，
     // 但落在 handleTopMargin 給的空間內、不會切破牆頂緣。SVG marker 用原 hz
     // （未延伸），仍顯示 user 指定的 25mm。
+    // 外撇牆 cosmetic 孔（rotX≠0）：cut Brush 繞 part-local X 軸轉後 z 邊緣會
+    // clip，rect/cylinder 都需要延伸 hz 補 slope-end，不然牆內側殘留薄殼。
+    // 兩者用同樣 csgHz 才能讓 pill (rect+2 circles) 在 z 方向對齊、不會
+    // 形成「rect 比 circle 高」的怪形狀。
+    // 公式：z_part 全覆蓋區 2·(hz·cos|θ| − hy·sin|θ|) ≥ 2·hz_user，解得
+    //   hz_csg = (hz + hy·sin|θ|)/cos|θ|
+    // 對 cylinder：高度 (沿 Y 軸) 不變、xz 平面半徑變橢圓 (max(hx, hz_csg))，
+    // 但 cylinder 是圓對稱、橢圓化視覺影響小。pill 端面在 wall plane 仍呈
+    // 「拉長橢圓」配合 rect，整體還是 pill 形狀。
     const csgHz = m.rotX
       ? (m.hz + m.hy * Math.abs(Math.sin(m.rotX))) / Math.cos(Math.abs(m.rotX))
       : m.hz;
     let cutGeo: BufferGeometry;
     if (isRound) {
-      // 圓孔沿 part-local Y 軸（top mortise 慣例）—— radius = min(hx, hz)
-      // 圓孔不延伸 hz（圓直徑代表 handleH，延伸會把圓變橢圓）。圓 handle
-      // 端 (pill ends) 主要靠中間 rect 切的範圍補強，圓本身只 wallT 深可接受。
-      const r = Math.min(m.hx, m.hz);
+      // 圓孔：radius 用 csgHz 而不是原 hz（外撇延伸後跟 rect 端 z 對齊）
+      const r = Math.min(m.hx, csgHz);
       cutGeo = new CylinderGeometry(r, r, 2 * m.hy, 24);
     } else {
       cutGeo = new BoxGeometry(2 * m.hx, 2 * m.hy, 2 * csgHz);
