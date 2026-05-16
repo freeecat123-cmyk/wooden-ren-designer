@@ -602,6 +602,9 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       //   正確公式是「wallTsec 減 wallT」再除 2——secθ - 1 > 0 是 splay 推出去的淨增量。
       // 注意 mortise.origin.y 是 from-bottom 慣例（y=0 在牆底、y=ly 在頂），
       // 要把 centered Y_center 加 wallThick/2 才符合慣例。
+      // 非斜壁（lap/finger/dovetail 或 splay=0）：origin.y 置中於壁厚 = wallT/2，
+      // 對應 mortiseLocalBox 的 cyL = origin.y - ly/2 = 0（cut 對稱貫穿全壁厚）。
+      // 之前用 0 → cyL = -ly/2、cut Y range 只覆蓋下半壁 → 沒穿。
       const handleYFromBottom = (cornerJoinery === "miter" && wallSplayRad > 0)
         ? (() => {
             const sign = part.id === "wall-left" ? +1 : -1;
@@ -610,7 +613,7 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
             const yCenteredCoord = sign * ((wallTsec - wallT) / 2 + Math.tan(wallSplayRad) * (handleZCenter - zBot));
             return yCenteredCoord + wallThick / 2;  // 轉 centered → from-bottom
           })()
-        : 0;
+        : wallThick / 2;
       // 外撇牆 handle 用「板還平的時候挖孔、再傾斜板」模型：
       //   cut Brush 繞 part-local X 軸轉 ±θ，孔軸跟牆面法線一致 → 孔上下緣斜
       //   著跟著牆一起傾，不是 axis-aligned 水平上下緣。
