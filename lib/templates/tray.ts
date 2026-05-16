@@ -583,7 +583,10 @@ export const tray: FurnitureTemplate = (input): FurnitureDesign => {
       //                = partWallH/2 - vTop + handleTopMargin
       //                = -(vTop - partWallH/2 - handleTopMargin)
       // handleZCenter = handleZ_top + handleH/2
-      const vTop_local = wallSplayRad > 0
+      // Splay 實際上只對 miter 套用（line 340），lap/finger/dovetail 下 wall
+      // 是直立 box、wallHeight 沒 secθ 延伸 → vTop_local 也不該套 cosθ 收縮，
+      // 否則 handleZCenter 算錯位、把手浮到壁中。
+      const vTop_local = (wallSplayRad > 0 && cornerJoinery === "miter")
         ? wallHeight * Math.cos(wallSplayRad)
         : wallHeight;
       const handleZCenter = -(vTop_local - wallHeight / 2 - handleTopMarginOpt - handleH / 2);
