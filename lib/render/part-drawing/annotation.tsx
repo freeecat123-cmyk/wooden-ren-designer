@@ -706,6 +706,8 @@ export function ShapeSpecificAnnotation({
       return <LatheSegmentTable ctx={ctx} part={part} view={view} />;
     case "arch-bent":
       return <ArchBentChord ctx={ctx} part={part} view={view} />;
+    case "apron-trapezoid":
+      return <ApronTrapezoidDualEdge ctx={ctx} part={part} view={view} />;
     default:
       return null;
   }
@@ -808,6 +810,55 @@ function ArchBentChord({
       <text x={x0} y={y0 + 20} fontSize={6} fill="#6b7280">
         （順弦切向木紋）
       </text>
+    </g>
+  );
+}
+
+/**
+ * <ApronTrapezoidDualEdge> — apron-trapezoid 上下邊雙標 + 端面斜角。
+ *
+ * 牙條梯形（topLengthScale / bottomLengthScale）要木匠看清上邊跟下邊各多長，
+ * top view 左上角同時標兩條邊長，bevelAngle 非 0 時加端面斜角度°。
+ *
+ *   上邊長 = visible.length × topLengthScale
+ *   下邊長 = visible.length × bottomLengthScale
+ *   端面斜 = bevelAngle * 180/π （若 != 0）
+ *
+ * Spec: …phase-3 §1.3
+ */
+function ApronTrapezoidDualEdge({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "top") return null;
+  if (part.shape?.kind !== "apron-trapezoid") return null;
+  const shape = part.shape;
+  const L = part.visible.length;
+  const topL = L * (shape.topLengthScale ?? 1);
+  const botL = L * (shape.bottomLengthScale ?? 1);
+  const bevel = shape.bevelAngle ?? 0;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + 42;
+
+  return (
+    <g className="apron-trap-dual" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        上邊長 {round1(topL)}
+      </text>
+      <text x={x0} y={y0 + 10} fill="#374151">
+        下邊長 {round1(botL)}
+      </text>
+      {bevel !== 0 && (
+        <text x={x0} y={y0 + 20} fill="#374151">
+          端面斜 {round1((bevel * 180) / Math.PI)}°
+        </text>
+      )}
     </g>
   );
 }
