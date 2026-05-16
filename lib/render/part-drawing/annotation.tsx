@@ -704,6 +704,8 @@ export function ShapeSpecificAnnotation({
   switch (part.shape.kind) {
     case "lathe-turned":
       return <LatheSegmentTable ctx={ctx} part={part} view={view} />;
+    case "arch-bent":
+      return <ArchBentChord ctx={ctx} part={part} view={view} />;
     default:
       return null;
   }
@@ -763,6 +765,49 @@ function LatheSegmentTable({
           {String(r.r).padStart(4)}
         </text>
       ))}
+    </g>
+  );
+}
+
+/**
+ * <ArchBentChord> — arch-bent 弦長 + 矢高（front view 左下）。
+ *
+ * 木匠用「弦長 + 矢高」就能用繩子+尺放樣弧線（古法）。
+ *   弦長 = visible.length（直線端到端距離）
+ *   矢高 = shape.bendMm（垂直弦的最大彎度）
+ *
+ * 配「順弦切向木紋」小字提示走紋方向。
+ *
+ * Spec: …phase-3 §1.2
+ */
+function ArchBentChord({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  if (part.shape?.kind !== "arch-bent") return null;
+  const chord = part.visible.length;
+  const sagitta = part.shape.bendMm ?? 0;
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + ctx.vbH - 40;
+
+  return (
+    <g className="arch-bent-chord" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#374151">
+        弦長 {round1(chord)}
+      </text>
+      <text x={x0} y={y0 + 10} fill="#374151">
+        矢高 {round1(sagitta)}
+      </text>
+      <text x={x0} y={y0 + 20} fontSize={6} fill="#6b7280">
+        （順弦切向木紋）
+      </text>
     </g>
   );
 }
