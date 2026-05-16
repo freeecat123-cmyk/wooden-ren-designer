@@ -523,11 +523,11 @@ const polyDesign: FurnitureDesign = {
           p.shape = { ...p.shape, topInsetMm: lidT };
         }
       }
-      // 短壁（左/右）木紋轉向：grainDirection 從 "length" 改 "width"，
-      // 讓木紋紋路繞 local Y 軸轉 90°，跟長壁視覺一致
+      // 短壁（左/右）木紋轉向：加 grainAxisSwap=true，wood-shader 把 lp.x/lp.z
+      // 在 vertex 階段對調 → 木紋繞 local Y 軸旋 90° 取樣，跟長壁視覺一致
       for (const p of design.parts) {
         if (p.id === "wall-left" || p.id === "wall-right") {
-          p.grainDirection = "width";
+          p.grainAxisSwap = true;
         }
       }
     } else if (lidType === "rabbeted") {

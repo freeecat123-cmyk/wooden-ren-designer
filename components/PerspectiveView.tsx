@@ -18,6 +18,10 @@ import {
   woodCompileXWide,
   woodCompileZNarrow,
   woodCompileZWide,
+  woodCompileXNarrowSwap,
+  woodCompileXWideSwap,
+  woodCompileZNarrowSwap,
+  woodCompileZWideSwap,
   WIDE_BOARD_THRESHOLD_MM,
 } from "@/components/wood-shader";
 
@@ -257,6 +261,7 @@ function Part({
   isGlass,
   isBrass,
   grainDirection,
+  grainAxisSwap,
   mortiseBoxes,
   mortiseShapes,
   dovetailCuts,
@@ -272,6 +277,8 @@ function Part({
   isGlass?: boolean;
   isBrass?: boolean;
   grainDirection?: "length" | "width";
+  /** 木紋取樣軸對調：true 時 wood-shader 把 lp.x / lp.z 交換 → 木紋繞 local Y 軸旋 90° */
+  grainAxisSwap?: boolean;
   /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
    *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
   mortiseBoxes?: LocalBox[];
@@ -299,10 +306,13 @@ function Part({
   const crossGrainMm =
     (grainDirection === "width" ? size[0] : size[2]) * 100;
   const isWide = crossGrainMm >= WIDE_BOARD_THRESHOLD_MM;
-  const woodCompile =
-    grainDirection === "width"
-      ? (isWide ? woodCompileZWide : woodCompileZNarrow)
-      : (isWide ? woodCompileXWide : woodCompileXNarrow);
+  const woodCompile = grainAxisSwap
+    ? (grainDirection === "width"
+        ? (isWide ? woodCompileZWideSwap : woodCompileZNarrowSwap)
+        : (isWide ? woodCompileXWideSwap : woodCompileXNarrowSwap))
+    : (grainDirection === "width"
+        ? (isWide ? woodCompileZWide : woodCompileZNarrow)
+        : (isWide ? woodCompileXWide : woodCompileXNarrow));
   const geometry = useMemo(() => {
     if (!shape || shape.kind === "box") return null;
     if (shape.kind === "tapered") {
@@ -3419,6 +3429,7 @@ export function PerspectiveView({
                 isGlass={part.visual === "glass"}
                 isBrass={part.visual === "brass-antique"}
                 grainDirection={part.grainDirection}
+                grainAxisSwap={part.grainAxisSwap}
                 mortiseBoxes={mortiseBoxesScaled}
                 mortiseShapes={mortiseShapesArr}
                 dovetailCuts={partDovetailCuts}

@@ -137,6 +137,7 @@ function makeCompile(
   crossAxis: string,
   thinAxis: string,
   mode: GrainMode,
+  swapLpXZ: boolean = false,
 ) {
   const fragmentInjection = makeGrainFragment(grainAxis, crossAxis, thinAxis, mode);
   return (shader: WebGLProgramParametersWithUniforms) => {
@@ -152,7 +153,12 @@ function makeCompile(
         // vWoodLocalNormal = geometry-local normal，用來判斷現在這面是
         // 「廣面」（normal 沿 thin 軸 Y）還是「薄邊」（normal 沿 wz/gx），
         // 薄邊上要關掉 cathedral 拱避免出現橫向截斷條紋。
-        `#include <fog_vertex>\nvWoodLocalPos = position * 100.0;\nvWoodLocalNormal = normal;`,
+        // swapLpXZ：在 vertex 階段把 position 的 X / Z 軸互換，等於把整個
+        // 木紋取樣座標繞 local Y 軸旋 90°；給 dovetail-box 短壁這種 rotation
+        // 後紋路看起來方向不對的零件用。
+        swapLpXZ
+          ? `#include <fog_vertex>\nvWoodLocalPos = vec3(position.z, position.y, position.x) * 100.0;\nvWoodLocalNormal = normal;`
+          : `#include <fog_vertex>\nvWoodLocalPos = position * 100.0;\nvWoodLocalNormal = normal;`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${HELPERS}`)
@@ -171,3 +177,8 @@ export const woodCompileXWide = makeCompile("lp.x", "lp.z", "lp.y", "wide");
 export const woodCompileZNarrow = makeCompile("lp.z", "lp.x", "lp.y", "narrow");
 /** Grain 沿 local Z、cross = local X：grainDirection="width" 的寬板 */
 export const woodCompileZWide = makeCompile("lp.z", "lp.x", "lp.y", "wide");
+/** length grain + lp 軸 swap：木紋整體繞 local Y 軸旋 90° 取樣（4 個 swap 變體） */
+export const woodCompileXNarrowSwap = makeCompile("lp.x", "lp.z", "lp.y", "narrow", true);
+export const woodCompileXWideSwap = makeCompile("lp.x", "lp.z", "lp.y", "wide", true);
+export const woodCompileZNarrowSwap = makeCompile("lp.z", "lp.x", "lp.y", "narrow", true);
+export const woodCompileZWideSwap = makeCompile("lp.z", "lp.x", "lp.y", "wide", true);

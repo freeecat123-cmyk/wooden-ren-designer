@@ -142,6 +142,10 @@ export interface Part {
   nameZh: string;
   material: MaterialId;
   grainDirection: GrainDirection;
+  /** 木紋取樣軸對調：true 時 wood-shader 把 lp.x / lp.z 交換再算紋路，
+   *  等於把木紋繞 local Y 軸旋 90°。給 dovetail-box 短壁這種 rotation 後
+   *  視覺紋路方向不對的零件用。預設 false。 */
+  grainAxisSwap?: boolean;
 
   visible: Dimensions;
 
