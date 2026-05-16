@@ -708,6 +708,8 @@ export function ShapeSpecificAnnotation({
       return <ArchBentChord ctx={ctx} part={part} view={view} />;
     case "apron-trapezoid":
       return <ApronTrapezoidDualEdge ctx={ctx} part={part} view={view} />;
+    case "hoof":
+      return <HoofDirection ctx={ctx} part={part} view={view} />;
     default:
       return null;
   }
@@ -862,3 +864,59 @@ function ApronTrapezoidDualEdge({
     </g>
   );
 }
+
+/**
+ * <HoofDirection> — 明式馬蹄腳方向 + 轉折 Y（Phase 3 Task 4）。
+ *
+ * `hoof` shape：`hoofMm` (馬蹄高)、`hoofScale` (外撇倍率)、
+ * `dirX`/`dirZ` ∈ {-1, 0, +1} 外撇方向。
+ *
+ * front + side view 角標：
+ *   - 「腳趾朝右/左/前/後」中文（不寫變數名）
+ *   - 「轉折 Y={hoofMm}」距底高度（從底往上量到 S 上半轉折點）
+ *
+ * 卡片底再加一行毛料厚建議（drawing.tsx）。
+ *
+ * Spec: …phase-3 §1.4
+ */
+function HoofDirection({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view === "top") return null;
+  if (part.shape?.kind !== "hoof") return null;
+  const shape = part.shape;
+
+  const dirX = shape.dirX ?? 0;
+  const dirZ = shape.dirZ ?? 0;
+  const hoofMm = shape.hoofMm ?? 0;
+
+  const dirParts: string[] = [];
+  if (dirX > 0) dirParts.push("右");
+  if (dirX < 0) dirParts.push("左");
+  if (dirZ > 0) dirParts.push("前");
+  if (dirZ < 0) dirParts.push("後");
+  const dirText = dirParts.length
+    ? `腳趾朝${dirParts.join("")}`
+    : "腳趾外撇";
+
+  const x0 = ctx.vbX + 14;
+  const y0 = ctx.vbY + 32;
+
+  return (
+    <g className="hoof-direction" style={{ fontSize: 8 }}>
+      <text x={x0} y={y0} fill="#7c2d12" fontWeight="bold">
+        {dirText}
+      </text>
+      <text x={x0} y={y0 + 10} fontSize={7} fill="#374151">
+        轉折 Y={round1(hoofMm)}
+      </text>
+    </g>
+  );
+}
+

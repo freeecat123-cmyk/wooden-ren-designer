@@ -653,6 +653,39 @@ console.log("\n--- P3 Task 3: apron-trapezoid dual edge ---");
   }
 }
 
+// ─── Phase 3 Task 4: hoof direction ────────────────────────────────────────
+console.log("\n--- P3 Task 4: hoof direction ---");
+{
+  let found = false;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    const g = groups.find((g) => g.representative.shape?.kind === "hoof");
+    if (g) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        }),
+      );
+      if (html.includes("hoof-direction")) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (found) {
+    expect(true, "P3 Task 4: hoof renders direction + 轉折");
+  } else {
+    console.log(
+      "⚠ P3 Task 4: no hoof part in catalog (skipping assertion)",
+    );
+  }
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致

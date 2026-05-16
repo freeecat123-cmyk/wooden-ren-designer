@@ -147,6 +147,15 @@ export function PartDrawing({
           ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
         </div>
       )}
+      {part.shape?.kind === "hoof" && (
+        <div className="mt-0.5 text-[8px] text-amber-700">
+          毛料厚建議 ≥{" "}
+          {Math.round(
+            part.visible.width * (part.shape.hoofScale ?? 1.4) * 10,
+          ) / 10}
+          mm
+        </div>
+      )}
     </div>
   );
 }
