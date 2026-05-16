@@ -550,32 +550,36 @@ const polyDesign: FurnitureDesign = {
         cosmetic: true,
       });
       // 框體上切實際滑槽 cosmetic mortise + 壁延伸
-      // 槽位於壁內側面、lid Y 區、深 grooveDepth（5mm）、高 lidT、長 = 壁全長
-      // 軸對應：
-      //   part-local Y (thickness 軸, range [0, wallT] from-bottom) → world Z（after Rx(π/2)）
-      //   part-local Z (width 軸, centered) → world -Y
+      // 槽位於壁內側面、lid Y 區、深 grooveDepth（5mm）、高 lidT+0.5、長 = 壁全長
+      // part-local Z 軸 = world -Y（rotation x=π/2 後）：
       //   lid 世界 Y 中心 = outerH - lidT/2 - sinkMm
       //   壁 mesh 世界 Y 中心 = botT + visible.width/2 = (botT + outerH)/2（延伸後）
-      //   grooveLocalZ = -(lid_Y - 壁_mesh_Y) = (lidT + 2·sinkMm + botT - outerH)/2
-      const grooveLocalZ = (lidT + 2 * sinkMm + botT - outerH) / 2;
+      //   local Z = -(lid_Y - 壁_mesh_Y) = (lidT + 2·sinkMm + botT - outerH)/2
+      // 壁延伸 + 滑槽：
+      // - wall-front / wall-back 延伸 lidT 到 outerH（蓋上方 5mm cap 在前後存在）
+      // - wall-right 只延伸 (lidT - sinkMm) 到 lid top = outerH - sinkMm
+      //   （沒上 cap、降到 lid top 讓蓋可以放進槽、視覺不擋蓋）
+      // groove Z 動態算：每壁 mesh center 不同 → grooveLocalZ = meshCenterY - lidCenterY
+      // origin.y 用 from-bottom 慣例（0 = 一面、wallT = 另一面）
+      const lidWorldYCenter = outerH - lidT / 2 - sinkMm;
       for (const p of design.parts) {
-        if (p.id !== "wall-front" && p.id !== "wall-back" && p.id !== "wall-right") continue;
-        p.visible = { ...p.visible, width: p.visible.width + lidT };
-        // 內側面 from-bottom origin.y：
-        //   wall-front 內面朝 +Z 世界 = +Y_local face = origin.y 靠 wallT 端 = wallT - grooveDepth/2
-        //   wall-back / wall-right 內面 -Y_local face = origin.y 靠 0 端 = grooveDepth/2
-        const grooveOriginY = p.id === "wall-front"
-          ? wallT - grooveDepth / 2
-          : grooveDepth / 2;
+        if (p.id === "wall-front" || p.id === "wall-back") {
+          p.visible = { ...p.visible, width: p.visible.width + lidT };
+        } else if (p.id === "wall-right") {
+          p.visible = { ...p.visible, width: p.visible.width + lidT - sinkMm };
+        } else {
+          continue;
+        }
+        const meshCenterY = p.origin.y + p.visible.width / 2;
+        const grooveLocalZ = meshCenterY - lidWorldYCenter;
+        // 內側面 (from-bottom)：wall-front 內面 = +Y_local = ly；其餘 = -Y_local = 0
+        const innerFromBottom =
+          p.id === "wall-front" ? wallT - grooveDepth / 2 : grooveDepth / 2;
         p.mortises.push({
-          origin: {
-            x: 0,
-            y: grooveOriginY,
-            z: grooveLocalZ,
-          },
+          origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
           depth: grooveDepth + 0.3,
           length: p.visible.length,
-          width: lidT,
+          width: lidT + 0.5,
           through: false,
           shape: "rect",
           cosmetic: true,
