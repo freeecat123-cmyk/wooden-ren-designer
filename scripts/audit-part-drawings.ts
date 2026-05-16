@@ -11,6 +11,8 @@
  * Run: npx tsx scripts/audit-part-drawings.ts
  */
 
+import React from "react";
+import { renderToString as renderPartDrawing } from "react-dom/server";
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { MaterialId, OptionSpec } from "../lib/types";
 import {
@@ -19,6 +21,7 @@ import {
   hashPart,
   groupPartsForDrawing,
 } from "../lib/render/part-drawing/grouping";
+import { PartDrawing } from "../lib/render/part-drawing/drawing";
 
 let fail = 0;
 
@@ -215,6 +218,34 @@ expect(
   totalGroups > 50 && totalGroups < 250,
   `Total groups across 28 templates: ${totalGroups} (expected 50-250)`,
 );
+
+// ─── Test 7: <PartDrawing> renders 3-view layout without crash ─────────────
+{
+  const entry = FURNITURE_CATALOG.find((e) => e.category === "round-stool");
+  expect(!!entry, "round-stool entry found in FURNITURE_CATALOG");
+  if (entry && entry.template) {
+    const design = buildDesign(entry);
+    expect(!!design, "round-stool design built");
+    if (design) {
+      const groups = groupPartsForDrawing(design);
+      expect(groups.length > 0, "round-stool has at least 1 group");
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[0],
+          design,
+          index: 0,
+        }),
+      );
+      expect(html.includes("比例"), "PartDrawing renders title bar with 比例");
+      expect(html.includes("P-01"), "PartDrawing renders P-01 sequence");
+      expect(
+        (html.match(/<svg/g) ?? []).length === 3,
+        `PartDrawing renders 3 SVG views (got ${(html.match(/<svg/g) ?? []).length})`,
+      );
+      expect(html.includes("材料："), "PartDrawing renders 材料 footer");
+    }
+  }
+}
 
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
 process.exit(fail);
