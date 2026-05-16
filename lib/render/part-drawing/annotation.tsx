@@ -995,3 +995,191 @@ function SplayedTrueLength({
     </g>
   );
 }
+
+/**
+ * <DetailCallout> — Phase 3.5 簡化版 detail inset。
+ *
+ * 為複雜榫卯 part 在 front view 拉一個 2× zoom detail：
+ *   - 觸發條件：≥2 mortises OR 任一 tenon length ≥ 40mm
+ *   - main view 圈出第 1 個符合的 feature（紅圈 + 「A」字）
+ *   - 右下角 ~60×60 inset：border + 「詳圖 A 2:1」標題 + 該 feature 放大 2×
+ *   - straight dash leader 連圈到 inset 角
+ *
+ * Phase 3.5 簡化：無 collision-free routing、無多 detail per part、無動態 scale
+ * 切換、只 front view（其他 view 不加避免擠）。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-3-5-design.md
+ */
+type DetailTarget = {
+  kind: "mortise" | "tenon";
+  idx: number;
+  localBox: ReturnType<typeof mortiseLocalBox>;
+};
+
+function findDetailTarget(part: Part): DetailTarget | null {
+  // Trigger: ≥2 mortises → pick first mortise
+  if ((part.mortises?.length ?? 0) >= 2) {
+    return {
+      kind: "mortise",
+      idx: 0,
+      localBox: mortiseLocalBox(part, part.mortises[0]),
+    };
+  }
+  // Or: any tenon length ≥ 40mm → pick first such tenon
+  const deepTenon = (part.tenons ?? []).findIndex(
+    (t) => (t.length ?? 0) >= 40,
+  );
+  if (deepTenon >= 0) {
+    return {
+      kind: "tenon",
+      idx: deepTenon,
+      localBox: tenonLocalBox(part, part.tenons[deepTenon]),
+    };
+  }
+  return null;
+}
+
+export function DetailCallout({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  const target = findDetailTarget(part);
+  if (!target) return null;
+
+  // Project all 8 corners of feature local box → SVG AABB
+  // LocalBox uses cx/cy/cz (center) + hx/hy/hz (half-extents)
+  const lb = target.localBox;
+  const corners: Array<{ x: number; y: number }> = [];
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        corners.push(
+          ctx.partLocalToSvg(
+            lb.cx + sx * lb.hx,
+            lb.cy + sy * lb.hy,
+            lb.cz + sz * lb.hz,
+          ),
+        );
+      }
+    }
+  }
+  const xs = corners.map((c) => c.x);
+  const ys = corners.map((c) => c.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const featureCx = (minX + maxX) / 2;
+  const featureCy = (minY + maxY) / 2;
+  const featureR = Math.max((maxX - minX) / 2, (maxY - minY) / 2) * 1.3 + 1;
+
+  // Inset position: bottom-right of viewBox (留空間給 GrainArrow 在右下)
+  const insetSize = 60;
+  const insetPad = 6;
+  const insetX = ctx.vbX + ctx.vbW - insetSize - insetPad;
+  const insetY = ctx.vbY + ctx.vbH - insetSize - insetPad - 30;
+
+  const W = round1(target.kind === "mortise"
+    ? part.mortises[target.idx].width
+    : part.tenons[target.idx].width);
+  const L = round1(target.kind === "mortise"
+    ? part.mortises[target.idx].length
+    : part.tenons[target.idx].length);
+  const D = round1(target.kind === "mortise"
+    ? (part.mortises[target.idx].depth ?? 0)
+    : (part.tenons[target.idx].thickness ?? 0));
+
+  const targetName =
+    target.kind === "mortise"
+      ? `榫眼${target.idx + 1}`
+      : `榫頭${target.idx + 1}`;
+  const dimLabel =
+    target.kind === "mortise"
+      ? `${W}×${L} 深${D}`
+      : `${W}×${D} 長${L}`;
+
+  return (
+    <g className="detail-callout">
+      {/* Circle around feature on main view */}
+      <circle
+        cx={featureCx}
+        cy={featureCy}
+        r={featureR}
+        fill="none"
+        stroke="#dc2626"
+        strokeWidth={0.8}
+      />
+      <text
+        x={featureCx + featureR + 2}
+        y={featureCy - featureR + 4}
+        fontSize={7}
+        fill="#dc2626"
+        fontWeight="bold"
+      >
+        A
+      </text>
+
+      {/* Straight leader from feature circle edge to inset top-left corner */}
+      <line
+        x1={featureCx + featureR * 0.7}
+        y1={featureCy - featureR * 0.7}
+        x2={insetX}
+        y2={insetY}
+        stroke="#dc2626"
+        strokeWidth={0.5}
+        strokeDasharray="3 1.5"
+      />
+
+      {/* Inset background */}
+      <rect
+        x={insetX}
+        y={insetY}
+        width={insetSize}
+        height={insetSize}
+        fill="white"
+        stroke="#dc2626"
+        strokeWidth={0.6}
+      />
+
+      {/* Inset title */}
+      <text
+        x={insetX + 3}
+        y={insetY + 8}
+        fontSize={6}
+        fill="#dc2626"
+        fontWeight="bold"
+      >
+        詳圖 A 2:1
+      </text>
+
+      {/* Inset content — text-only fallback (safer than transform math) */}
+      <text x={insetX + 4} y={insetY + 22} fontSize={6.5} fill="#374151">
+        {targetName}
+      </text>
+      <text
+        x={insetX + 4}
+        y={insetY + 33}
+        fontSize={6}
+        fill="#374151"
+        fontFamily="monospace"
+      >
+        {dimLabel}
+      </text>
+      <text
+        x={insetX + 4}
+        y={insetY + 44}
+        fontSize={5}
+        fill="#6b7280"
+        fontFamily="monospace"
+      >
+        mm
+      </text>
+    </g>
+  );
+}

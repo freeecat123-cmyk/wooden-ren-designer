@@ -1163,5 +1163,42 @@ console.log("\n--- Phase 4 element smoke (28 templates) ---");
 // 自動驗收：predicate / hash / grouping / isolation filter / 3-view layout /
 // T1 dim row / T2 label list / 28-template smoke — 上面 Tasks 1-9 全綠即可。
 
+// ─── Phase 3.5: DetailCallout for complex joinery parts ────────────────────
+console.log("\n--- P3.5: detail callout ---");
+{
+  let detailFound = false;
+  let detailTemplate = "";
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    const design = buildDesign(entry);
+    if (!design) continue;
+    const groups = groupPartsForDrawing(design);
+    for (const g of groups) {
+      const p = g.representative;
+      const triggers =
+        (p.mortises?.length ?? 0) >= 2 ||
+        (p.tenons ?? []).some((t: any) => (t.length ?? 0) >= 40);
+      if (!triggers) continue;
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: g,
+          design,
+          index: 0,
+        } as any),
+      );
+      if (html.includes("detail-callout") && html.includes("詳圖 A")) {
+        detailFound = true;
+        detailTemplate = entry.category;
+        break;
+      }
+    }
+    if (detailFound) break;
+  }
+  expect(
+    detailFound,
+    `P3.5: detail callout renders for complex joinery parts (matched in ${detailTemplate || "none"})`,
+  );
+}
+
 console.log(`\n${fail === 0 ? "✅ all pass" : `❌ ${fail} failure(s)`}`);
 process.exit(fail);
