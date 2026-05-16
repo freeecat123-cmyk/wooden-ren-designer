@@ -892,10 +892,11 @@ export function projectPartPolygon(
     const angleRad = (Math.max(1, Math.min(25, part.shape.angleDeg)) * Math.PI) / 180;
     const halfPin = part.shape.halfPin ?? true;
     const isPin = (s: number) => (halfPin && (s === 0 || s === N - 1)) ? true : ((s + phase) % 2) === 0;
-    // phase=0 (tail board，前後板)：trapezoid tip 比 base 寬 → 燕尾凸出在端頭
-    // phase=1 (pin board，左右板)：trapezoid tip 比 base 窄 → 銷凸出在端頭
-    // 兩者互嵌：tail 寬尾正好卡進 pin 之間的 gap。
-    const slantSign = phase === 0 ? -1 : +1;
+    // phase=0 (tail board，前後板)：face view 看是梯形（trapezoid tip 比 base 寬）
+    // phase=1 (pin board，左右板)：面視看是**矩形**齒（slant=0）。鳩尾的斜角在
+    // thickness 方向（垂直於 pin 板面），face view 看不到，所以 pin 邊應該是
+    // 直線、不是斜線。3D CSG 自己把斜角從 tail 那邊挖出來。
+    const slantSign = phase === 0 ? -1 : 0;
     let combAxis: "w" | "h" | null = null;
     if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
     else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
