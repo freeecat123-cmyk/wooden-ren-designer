@@ -661,9 +661,16 @@ export function OrthoView({
   const w = view === "side" ? overall.width : overall.length;
   const h = view === "top" ? overall.width : overall.thickness;
 
-  const vbW = w + PADDING * 2;
+  // 正/側視圖共用同一 viewBox 寬（取 max(length, width)），讓兩張圖
+  // 同 mm 對到同 px。否則側視圖在同樣容器寬下會被放大、120mm 高看起來
+  // 比正視圖大一截。Top 視圖維持自己 vbW。
+  const vbContentW =
+    view === "front" || view === "side"
+      ? Math.max(overall.length, overall.width)
+      : w;
+  const vbW = vbContentW + PADDING * 2;
   const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
-  const vbX = -PADDING - w / 2;
+  const vbX = -PADDING - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
