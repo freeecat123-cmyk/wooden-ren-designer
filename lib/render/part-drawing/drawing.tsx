@@ -22,6 +22,7 @@ import {
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
+import { inferProcessSteps } from "./process-steps";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -67,6 +68,7 @@ export function PartDrawing({
       : "";
   const material = MATERIALS[part.material];
   const raw = rawStockSize(part);
+  const steps = inferProcessSteps(part);
 
   return (
     <div
@@ -184,6 +186,11 @@ export function PartDrawing({
             mm
           </div>
         )}
+        {/* Phase 4 Task 2: 加工順序建議 */}
+        <div className="text-[9px] text-zinc-700 mt-0.5">
+          <span className="text-zinc-500">工序 </span>
+          {steps.join(" → ")}
+        </div>
       </div>
     </div>
   );

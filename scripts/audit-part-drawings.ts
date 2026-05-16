@@ -999,6 +999,27 @@ console.log("\n--- P4 Task 1: index page renders ---");
   }
 }
 
+// ─── Phase 4 Task 2: 工序 line renders on PartDrawing card ─────────────────
+console.log("\n--- P4 Task 2: 工序 line ---");
+{
+  const entry = FURNITURE_CATALOG.find((e: any) => e.category === "stool")!;
+  const design = buildDesign(entry);
+  if (design) {
+    const groups = groupPartsForDrawing(design);
+    if (groups.length > 0) {
+      const html = renderPartDrawing(
+        React.createElement(PartDrawing, {
+          group: groups[0],
+          design,
+          index: 0,
+        } as any),
+      );
+      expect(html.includes("工序 "), "P4 Task 2: 工序 label appears");
+      expect(html.includes("→"), "P4 Task 2: 工序 chain has → separator");
+    }
+  }
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
