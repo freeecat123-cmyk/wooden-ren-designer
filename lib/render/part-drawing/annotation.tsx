@@ -460,9 +460,47 @@ export function T2Annotations({
     rect: { x: number; y: number; w: number; h: number };
     name: string;
     dims: string;
-    distFromBot: number;
+    /** 基準距：對稱件用「距中 X/Z」、其他用「距底 Y」（依當前 view 軸取捨）。 */
+    baseline: string;
   };
   const items: Item[] = [];
+
+  // 對稱件偵測：座板 / 椅面 / 圓桌面 等寬度方向對稱（mortise 在 X 軸或 Z 軸兩側）
+  // 偵測啟發式：mortises 存在 +X 跟 -X 兩側、或 +Z 跟 -Z 兩側 → 對稱件
+  const xs = part.mortises.map((m) => m.origin?.x ?? 0);
+  const zs = part.mortises.map((m) => m.origin?.z ?? 0);
+  const hasPlusX = xs.some((x) => x > 1);
+  const hasMinusX = xs.some((x) => x < -1);
+  const hasPlusZ = zs.some((z) => z > 1);
+  const hasMinusZ = zs.some((z) => z < -1);
+  const symmetricX = hasPlusX && hasMinusX;
+  const symmetricZ = hasPlusZ && hasMinusZ;
+  const isSymmetricPart = symmetricX || symmetricZ;
+
+  /** 依 view + 對稱性給出基準距字串。 */
+  const baselineFor = (
+    lb: { cx: number; cy: number; cz: number; hy: number },
+  ): string => {
+    const distFromBot = round1(lb.cy + lb.hy);
+    if (!isSymmetricPart) {
+      return `距底 ${distFromBot}`;
+    }
+    // 對稱件用 距中心軸
+    if (view === "top") {
+      // top view: 看 X×Z, 取 X 跟 Z 距中
+      const dx = round1(Math.abs(lb.cx));
+      const dz = round1(Math.abs(lb.cz));
+      return `距中 X${dx} Z${dz}`;
+    } else if (view === "front") {
+      // front view: 看 X×Y, X 軸距中 + 距底
+      const dx = round1(Math.abs(lb.cx));
+      return `距中 X${dx}　距底 ${distFromBot}`;
+    } else {
+      // side view: 看 Z×Y, Z 軸距中 + 距底
+      const dz = round1(Math.abs(lb.cz));
+      return `距中 Z${dz}　距底 ${distFromBot}`;
+    }
+  };
 
   part.mortises.forEach((m, idx) => {
     const lb = mortiseLocalBox(part, m);
@@ -471,14 +509,13 @@ export function T2Annotations({
     const W = round1(m.width ?? 0);
     const L = round1(m.length ?? 0);
     const D = round1(m.depth ?? 0);
-    const dist = round1((lb.cy ?? 0) + (lb.hy ?? 0));
     items.push({
       kind: "m",
       idx,
       rect: r,
       name: `榫眼${idx + 1}`,
       dims: `${W}×${L} 深${D}`,
-      distFromBot: dist,
+      baseline: baselineFor(lb),
     });
   });
 
@@ -490,14 +527,13 @@ export function T2Annotations({
     const W = round1(t.width ?? 0);
     const T = round1(t.thickness ?? 0);
     const L = round1(t.length ?? 0);
-    const dist = round1((lb.cy ?? 0) + (lb.hy ?? 0));
     items.push({
       kind: "t",
       idx,
       rect: r,
       name: `榫頭${idx + 1}`,
       dims: `${W}×${T} 長${L}`,
-      distFromBot: dist,
+      baseline: baselineFor(lb),
     });
   });
 
@@ -549,7 +585,7 @@ export function T2Annotations({
           fill="#6b7280"
           fontFamily="monospace"
         >
-          距底 {it.distFromBot}
+          {it.baseline}
         </text>
       </g>,
     );
