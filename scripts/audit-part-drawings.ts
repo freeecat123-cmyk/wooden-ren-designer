@@ -498,6 +498,58 @@ expect(
   );
 }
 
+// ─── Phase 2 element smoke: 28-template element coverage ───────────────────
+// 統計 Phase 2 元素（T2 dashed box / GrainArrow / pair ID）在所有 28 模板每張
+// card 上的覆蓋率，並驗證關鍵下限：grain-arrow 必須每張都有、T2 box 必須 >50、
+// pair ID 必須 ≥1。crashes 必須為 0。
+console.log("\n--- Phase 2 element smoke (28 templates) ---");
+{
+  let p2t2 = 0,
+    p2grain = 0,
+    p2pair = 0;
+  let p2crashes = 0;
+  let totalCards = 0;
+  for (const entry of FURNITURE_CATALOG) {
+    if (!entry.template) continue;
+    try {
+      const design = buildDesign(entry);
+      if (!design) continue;
+      const groups = groupPartsForDrawing(design);
+      for (let i = 0; i < groups.length; i++) {
+        totalCards++;
+        const g = groups[i];
+        const html = renderPartDrawing(
+          React.createElement(PartDrawing, {
+            group: g,
+            design,
+            index: i,
+          }),
+        );
+        if (!html || html.length < 200) {
+          p2crashes++;
+          continue;
+        }
+        if (html.includes("t2-overlay")) p2t2++;
+        if (html.includes("grain-arrow")) p2grain++;
+        if (html.includes("↔")) p2pair++;
+      }
+    } catch (e: any) {
+      console.error("  ❌", entry.category, "CRASH:", e.message);
+      p2crashes++;
+    }
+  }
+  console.log(
+    `  P2 stats: total=${totalCards} t2-box=${p2t2} grain-arrow=${p2grain} pair=${p2pair} crashes=${p2crashes}`,
+  );
+  expect(p2crashes === 0, `Phase 2 smoke: ${p2crashes} crash(es)`);
+  expect(
+    p2grain === totalCards,
+    `Phase 2 grain-arrow on every card (${p2grain}/${totalCards})`,
+  );
+  expect(p2t2 > 50, `Phase 2 T2 box appears on >50 cards (${p2t2})`);
+  expect(p2pair > 0, `Phase 2 pair ID appears at least once (${p2pair})`);
+}
+
 // ─── Phase 1 acceptance manual TODOs (per spec §11) ────────────────────────
 // 以下兩項屬人工驗收，audit script 無法自動代勞，留作 commit message 提醒：
 //   [ ] 隨抽 5 個 part 比對 visible.length 跟圖上 L 一致
