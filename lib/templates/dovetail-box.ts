@@ -77,7 +77,6 @@ export const dovetailBoxOptions: OptionSpec[] = [
   { group: "lid", type: "select", key: "lidType", label: "蓋子型式", defaultValue: "sliding", choices: [
     { value: "sliding", label: "滑入式（前後壁內側鋸槽，蓋從前滑入）" },
     { value: "hinged", label: "鉸鏈式（後壁裝小銅鉸鏈）" },
-    { value: "lift-off", label: "整片活動蓋（不固定，需用 cleat 卡入）" },
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
   ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
 
@@ -496,12 +495,10 @@ const polyDesign: FurnitureDesign = {
         ? "**滑入式**（蓋兩側下緣鋸凸條，前後壁內側上緣鋸對應槽，從前面滑入）"
         : lidType === "hinged"
           ? "**鉸鏈式**（後壁裝小銅鉸鏈一對，B&Q 有售 NT$ 50/對）"
-          : lidType === "lift-off"
-            ? "**整片活動蓋**（不固定，蓋內側加 4 條 cleat 卡入盒口防滑）"
-            : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝，蓋下扣盒口）"
+          : "**嵌入式**（蓋邊緣鋸 4 mm 搭接溝形成凸唇，蓋下扣盒口、凸唇伸入盒內登錄對位）"
     }。` : ""}${withInnerTray ? "盒內加一片可拆活動隔板（30mm 高 × 6 格 jewelry tray），底部加 4 個橡膠墊腳避免刮花底層。" : ""}${(dividers > 0 || crossDividers > 0) ? `盒內加${dividers > 0 ? ` ${dividers} 片縱向隔板` : ""}${dividers > 0 && crossDividers > 0 ? " +" : ""}${crossDividers > 0 ? ` ${crossDividers} 片橫向隔板` : ""}（厚 ${dividerThickness}mm，入溝深 ${dividerInset}mm，4 壁內側鋸 dado 嵌入）。` : ""}${joineryClosing}`,
   };
-  // 蓋型差異化：sliding / rabbeted / hinged / lift-off 各做出特徵零件
+  // 蓋型差異化：sliding / rabbeted / hinged 各做出特徵零件
   // buildBox 給的 lid 是 outerL × outerW × lidT 純 box，依 lidType 改 lid + 加配件
   const lidPart = design.parts.find((p) => p.id === "lid");
   if (withLid && lidPart) {
@@ -515,14 +512,15 @@ const polyDesign: FurnitureDesign = {
       };
       lidPart.nameZh = "盒蓋（滑入式 · 兩側凸條）";
     } else if (lidType === "rabbeted") {
-      // 嵌入式：主蓋外伸（outerL×outerW）+ 下方加 inner plug 凸唇嵌入盒口
+      // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
+      // + 凸唇從主蓋底面**往下伸入盒口**（凸唇在盒內側、壁頂下方）
       const plugT = Math.max(2, Math.min(4, lidT - 2));
       const mainT = lidT - plugT;
-      // 主蓋頂面仍在 outerH，高度縮成 mainT
+      // 主蓋底面 y = outerH - lidT（= 壁頂），頂面 y = outerH - lidT + mainT = outerH - plugT
       lidPart.visible = { length: outerL, width: outerW, thickness: mainT };
-      lidPart.origin = { ...lidPart.origin, y: outerH - mainT };
+      lidPart.origin = { ...lidPart.origin, y: outerH - lidT };
       lidPart.nameZh = "盒蓋（嵌入式 · 主蓋）";
-      // 凸唇：吊在主蓋底面下方，剛好卡進盒口（內伸 wallT-1 確認對齊）
+      // 凸唇：頂面跟壁頂齊（= 主蓋底面）、往盒內伸 plugT mm
       design.parts.push({
         id: "lid-plug",
         nameZh: "盒蓋凸唇（rabbet）",
@@ -533,7 +531,7 @@ const polyDesign: FurnitureDesign = {
           width: Math.max(1, outerW - 2 * wallT - 1),
           thickness: plugT,
         },
-        origin: { x: 0, y: outerH - lidT, z: 0 },
+        origin: { x: 0, y: outerH - lidT - plugT, z: 0 },
         tenons: [],
         mortises: [],
       });
@@ -556,47 +554,6 @@ const polyDesign: FurnitureDesign = {
           tenons: [],
           mortises: [],
           visual: "metal",
-        });
-      }
-    } else if (lidType === "lift-off") {
-      // 整片活動：lid 不變 + 4 條 cleat 黏在蓋底，剛好嵌入盒口
-      lidPart.nameZh = "盒蓋（整片活動）";
-      const cleatT = 4, cleatW = 8, gap = 1;
-      const cleatY = outerH - lidT - cleatT;
-      const innerLDim = outerL - 2 * wallT - 2 * gap;
-      const innerWDim = outerW - 2 * wallT - 2 * gap;
-      // 前 / 後 cleat（沿 X 軸延伸）
-      for (const [suffix, z] of [
-        ["front", -(innerWDim / 2 - cleatW / 2)] as const,
-        ["back", innerWDim / 2 - cleatW / 2] as const,
-      ]) {
-        design.parts.push({
-          id: `lid-cleat-${suffix}`,
-          nameZh: `蓋內 cleat（${suffix === "front" ? "前" : "後"}）`,
-          material,
-          grainDirection: "length",
-          visible: { length: innerLDim, width: cleatW, thickness: cleatT },
-          origin: { x: 0, y: cleatY, z },
-          tenons: [],
-          mortises: [],
-        });
-      }
-      // 左 / 右 cleat（沿 Z 軸延伸，要 rotate 90°）
-      const sideLen = Math.max(1, innerWDim - 2 * cleatW);
-      for (const [suffix, x] of [
-        ["left", -(innerLDim / 2 - cleatW / 2)] as const,
-        ["right", innerLDim / 2 - cleatW / 2] as const,
-      ]) {
-        design.parts.push({
-          id: `lid-cleat-${suffix}`,
-          nameZh: `蓋內 cleat（${suffix === "left" ? "左" : "右"}）`,
-          material,
-          grainDirection: "length",
-          visible: { length: sideLen, width: cleatW, thickness: cleatT },
-          origin: { x, y: cleatY, z: 0 },
-          rotation: { x: 0, y: Math.PI / 2, z: 0 },
-          tenons: [],
-          mortises: [],
         });
       }
     }
