@@ -1380,8 +1380,18 @@ export function OrthoView({
           Math.abs(part.rotation?.x ?? 0) > 0.01 &&
           Math.abs(part.rotation?.x ?? 0) < Math.PI / 2 - 0.01 &&
           view !== "top";
+        // tray 鳩尾榫 pin board synthesis：wall-left/right 沒 shape（3D 走 CSG
+        // 挖洞）但 design 有 tail board → projectPartPolygon 合成 phase=1
+        // dovetail-ends 出梯形 notch。view!=="top" 才畫（top view 從上方看
+        // tray，notch 在角落側壁、俯視看不到）。
+        const isDovetailPinBoard =
+          (!part.shape || part.shape.kind === "box") &&
+          /^wall-(left|right)$/.test(part.id) &&
+          view !== "top" &&
+          design.parts.some((p) => p.shape?.kind === "dovetail-ends");
         const useShape =
-          !isFaceRoundedXTilt &&
+          isDovetailPinBoard ||
+          (!isFaceRoundedXTilt &&
           part.shape &&
           part.shape.kind !== "box" &&
           (part.shape.kind !== "round" || (isRoundWithChamfer && view !== "top")) &&
@@ -1400,9 +1410,9 @@ export function OrthoView({
             part.shape.kind !== "mitered-corner" &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
-          );
+          ));
         if (useShape) {
-          const poly = projectPartPolygon(part, view);
+          const poly = projectPartPolygon(part, view, design.parts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
           // Splayed top view: also draw the shifted bottom footprint so you

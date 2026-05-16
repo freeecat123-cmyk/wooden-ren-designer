@@ -407,8 +407,19 @@ export function partDepth(part: Part, view: OrthoView) {
  * bottom-right, bottom-left) in *world* coords. For "tapered" parts, top
  * face uses visible width but bottom face is scaled. Y axis is world-up
  * (no flip) — caller flips for SVG.
+ *
+ * `allParts` (optional)：給跨 part 推理用。tray dovetail 接合下，前後板
+ * 掛 `dovetail-ends` shape (phase=0 tail)、左右板沒 shape（3D 走 CSG 挖洞）
+ * ——SVG 三視圖看不到鳩尾凹槽。這裡偵測「pin board 卻沒 shape」case，從
+ * 同 design 的 tail board 借 segmentCount/angleDeg/pinDepth/halfPin，合成
+ * phase=1 dovetail-ends shape 接到既有 comb 邏輯，跑出「外寬內窄」梯形
+ * notch 進 box（拼接後互嵌）。
  */
-export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: number; y: number }> {
+export function projectPartPolygon(
+  part: Part,
+  view: OrthoView,
+  allParts?: ReadonlyArray<Part>,
+): Array<{ x: number; y: number }> {
   const r = projectPart(part, view);
   // Default box polygon (rectangle, tracing CCW in world-Y-up coords).
   const box = [
@@ -417,6 +428,34 @@ export function projectPartPolygon(part: Part, view: OrthoView): Array<{ x: numb
     { x: r.x + r.w, y: r.y },       // bottom-right
     { x: r.x, y: r.y },             // bottom-left
   ];
+
+  // tray 鳩尾榫 pin board synthesis：偵測未掛 shape 的 wall-left/wall-right
+  // 但 design 有其他 part 掛 dovetail-ends，借參數做 phase=1 shape 接到下游
+  // comb 邏輯。phase=1 + 同 N/angle/depth/halfPin → pin tip 外窄、gap 段
+  // 內陷 = 外寬內窄梯形 notch，正好嵌進對面 tail 的「外寬內窄」tail tooth。
+  if (
+    (!part.shape || part.shape.kind === "box") &&
+    /^wall-(left|right)$/.test(part.id) &&
+    allParts
+  ) {
+    const donor = allParts.find(
+      (p) => p.shape?.kind === "dovetail-ends" && p.id !== part.id,
+    );
+    if (donor && donor.shape?.kind === "dovetail-ends") {
+      part = {
+        ...part,
+        shape: {
+          kind: "dovetail-ends",
+          segmentCount: donor.shape.segmentCount,
+          phase: 1,
+          angleDeg: donor.shape.angleDeg,
+          pinDepth: donor.shape.pinDepth,
+          halfPin: donor.shape.halfPin,
+        },
+      };
+    }
+  }
+
   if (!part.shape || part.shape.kind === "box") return box;
 
   // 帶頂緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視
