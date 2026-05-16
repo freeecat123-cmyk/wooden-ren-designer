@@ -219,6 +219,19 @@ function partFill(part: Part) {
 }
 
 /**
+ * lathe-turned 花瓶輪廓段表（前/側視 polygon 取樣用）。
+ * 每段 [topR, botR, hFrac]：topR/botR 是該段上下半徑相對 fullR 的比例，
+ * hFrac 是該段佔總高 fullH 的比例。從頂端往下累加。
+ * 同份資料供 svg-views 內部畫輪廓 & part-drawing 的 LatheSegmentTable 列段別表。
+ */
+export const LATHE_SEG: ReadonlyArray<readonly [number, number, number]> = [
+  [1.0, 1.0, 0.05], [1.0, 1.10, 0.04], [1.10, 1.0, 0.04],
+  [1.0, 0.55, 0.10], [0.55, 0.78, 0.18], [0.78, 0.55, 0.20],
+  [0.55, 0.50, 0.10], [0.50, 0.95, 0.10], [0.95, 0.85, 0.05],
+  [0.85, 0.95, 0.06], [0.95, 0.95, 0.05], [0.95, 0.80, 0.03],
+];
+
+/**
  * OrthoView viewBox + projector context passed to `overlayContent` slot.
  * 讓零件圖 overlay（T1 尺寸/T2 榫卯虛框/木紋箭頭等）能對齊 OrthoView 的 viewBox。
  */
@@ -1055,13 +1068,8 @@ export function OrthoView({
           );
         }
         // lathe-turned 前 / 側視畫花瓶階梯輪廓（segments 跟 PerspectiveView 那份同步）
+        // LATHE_SEG 提升到 module top（export 給 part-drawing 列段別表共用）
         if (part.shape?.kind === "lathe-turned" && view !== "top") {
-          const LATHE_SEG: Array<[number, number, number]> = [
-            [1.0, 1.0, 0.05], [1.0, 1.10, 0.04], [1.10, 1.0, 0.04],
-            [1.0, 0.55, 0.10], [0.55, 0.78, 0.18], [0.78, 0.55, 0.20],
-            [0.55, 0.50, 0.10], [0.50, 0.95, 0.10], [0.95, 0.85, 0.05],
-            [0.85, 0.95, 0.06], [0.95, 0.95, 0.05], [0.95, 0.80, 0.03],
-          ];
           const r = projectPart(part, view);
           const fullR = r.w / 2;
           const fullH = r.h;

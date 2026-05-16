@@ -18,6 +18,7 @@ import type { FurnitureDesign, Mortise, Part, Tenon } from "@/lib/types";
 import {
   DimensionLine,
   VerticalDimensionLine,
+  LATHE_SEG,
   mortiseLocalBox,
   tenonLocalBox,
   type OrthoViewBoxCtx,
@@ -678,6 +679,90 @@ export function FacingMark({
       <text x={x0} y={y0} fontSize={9} fill="#7c2d12" fontWeight="bold">
         {facing.label}
       </text>
+    </g>
+  );
+}
+
+/**
+ * <ShapeSpecificAnnotation> — 依 part.shape.kind 分派對應的特殊標註元件
+ *（Phase 3 Task 1+ 框架）。
+ *
+ * 不在 5 種 hard shape 內回 null（safe no-op）。
+ *
+ * Spec: docs/superpowers/specs/2026-05-17-part-drawings-phase-3-design.md §1
+ */
+export function ShapeSpecificAnnotation({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (!part.shape) return null;
+  switch (part.shape.kind) {
+    case "lathe-turned":
+      return <LatheSegmentTable ctx={ctx} part={part} view={view} />;
+    default:
+      return null;
+  }
+}
+
+/**
+ * <LatheSegmentTable> — lathe-turned 段別表（side view 角落）。
+ *
+ * 讀 module 常數 LATHE_SEG（12 段 [topR, botR, hFrac]）。
+ *   Y(seg i) = Σ(hFrac[0..i]) × visible.length   // 累加從頂往下
+ *   R(seg i) = botR × visible.width / 2          // 半徑 = bot 比例 × fullR
+ *
+ * 字級 6px / 行高 9px / 等寬字、貼右邊 90px。
+ *
+ * Spec: …phase-3 §1.1
+ */
+function LatheSegmentTable({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "side") return null;
+  // round leg 系列用 width 當直徑、length 當高度
+  const fullR = part.visible.width / 2;
+  const length = part.visible.length;
+
+  let cumH = 0;
+  const rows = LATHE_SEG.map((seg, i) => {
+    const [, botR, hFrac] = seg;
+    cumH += hFrac;
+    return {
+      idx: i + 1,
+      y: Math.round(cumH * length * 10) / 10,
+      r: Math.round(botR * fullR * 10) / 10,
+    };
+  });
+
+  const x0 = ctx.vbX + ctx.vbW - 90;
+  const y0 = ctx.vbY + 24;
+  const lineH = 9;
+
+  return (
+    <g
+      className="lathe-segment-table"
+      style={{ fontSize: 6, fontFamily: "monospace" }}
+    >
+      <text x={x0} y={y0} fontWeight="bold">
+        段│Y│R
+      </text>
+      {rows.map((r, i) => (
+        <text key={i} x={x0} y={y0 + (i + 1) * lineH}>
+          {String(r.idx).padStart(2)}│{String(r.y).padStart(4)}│
+          {String(r.r).padStart(4)}
+        </text>
+      ))}
     </g>
   );
 }
