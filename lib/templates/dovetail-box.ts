@@ -522,11 +522,13 @@ const polyDesign: FurnitureDesign = {
   }
 
   // 固定內隔板：縱向（沿 X 軸延伸，沿 Z 分布） + 橫向（沿 Z 軸延伸，沿 X 分布）
-  // 兩端嵌入 4 壁內側 dado 槽（深 dividerInset mm），高度可自訂或自動（壁高 - 10mm 留蓋空間）。
-  const wallInnerH = outerH - botT - (withLid ? lidT : 0);
-  // dividerHeight=0 自動 = 跟壁頂齊（隔板上緣與 4 壁上緣同高）
-  const autoDividerH = Math.max(1, wallInnerH);
-  const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, wallInnerH) : autoDividerH;
+  // 兩端嵌入 4 壁內側 dado 槽（深 dividerInset mm），高度可自訂或自動（跟壁頂齊）。
+  // origin.y = from-bottom 慣例 → 隔板底面 y 座標 = dividerBaseY（不能 + H/2）。
+  // inset-panel 模式：底板上緣在 2*botT；其他模式（seated / flush-glued）底板上緣在 botT。
+  const dividerBaseY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+  const wallTopY = outerH - (withLid ? lidT : 0);
+  const dividerMaxH = Math.max(1, wallTopY - dividerBaseY);
+  const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, dividerMaxH) : dividerMaxH;
   const innerLDim = outerL - 2 * wallT;
   const innerWDim = outerW - 2 * wallT;
   // 縱向隔板：沿 X 延伸（length = innerL + 2 * dividerInset，兩端伸進壁 dado），
@@ -541,7 +543,7 @@ const polyDesign: FurnitureDesign = {
         material,
         grainDirection: "length",
         visible: { length: divL, width: actualDividerH, thickness: dividerThickness },
-        origin: { x: 0, y: botT + actualDividerH / 2, z: zPos },
+        origin: { x: 0, y: dividerBaseY, z: zPos },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [],
         mortises: [],
@@ -559,7 +561,7 @@ const polyDesign: FurnitureDesign = {
         material,
         grainDirection: "length",
         visible: { length: divW, width: actualDividerH, thickness: dividerThickness },
-        origin: { x: xPos, y: botT + actualDividerH / 2, z: 0 },
+        origin: { x: xPos, y: dividerBaseY, z: 0 },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
@@ -585,8 +587,8 @@ const polyDesign: FurnitureDesign = {
     extraWarnings.push(`鳩尾段數 ${dovetailSegmentsOpt} 是偶數，已自動 +1 → ${dovetailInfo.segmentCount}（halfPin 兩端都是半 pin 要求奇數段才對稱）`);
   }
   // 隔板高度檢查
-  if (dividerHeightRaw > wallInnerH) {
-    extraWarnings.push(`隔板高度 ${dividerHeightRaw}mm 超過壁內高 ${wallInnerH}mm，已自動截到壁內高`);
+  if (dividerHeightRaw > dividerMaxH) {
+    extraWarnings.push(`隔板高度 ${dividerHeightRaw}mm 超過壁內可容空間 ${dividerMaxH}mm，已自動截到上限`);
   }
   if (extraWarnings.length) design.warnings = [...(design.warnings ?? []), ...extraWarnings];
   return design;
