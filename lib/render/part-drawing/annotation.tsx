@@ -983,13 +983,10 @@ export function T2Annotations({
       view === "top" ? "y" : view === "side" ? "x" : "z";
     let isVisibleFromView = false;
     if (isMortise) {
-      const m = feature as Mortise;
       const mortiseLb = lb as ReturnType<typeof mortiseEntryBox>;
-      if (mortiseLb.depthAxis === viewAxis) {
-        if (viewAxis === "y") isVisibleFromView = m.origin.y > part.visible.thickness / 2;
-        else if (viewAxis === "x") isVisibleFromView = m.origin.x > 0;
-        else isVisibleFromView = m.origin.z > 0;
-      }
+      // mortise 深度軸跟視圖軸一致 = 直接看進榫眼開口 → 實線（無論 origin 正負，
+      // isolation 零件圖兩面都算外觀可見）
+      isVisibleFromView = mortiseLb.depthAxis === viewAxis;
     } else {
       isVisibleFromView = true; // tenon 永遠實線
     }
