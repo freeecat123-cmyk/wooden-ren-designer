@@ -51,10 +51,12 @@ export interface CeilingInput {
   /** 角材截面厚(cm),預設 3.0 = 1 寸 */
   timberThicknessCm: number;
 
-  /** 矽酸鈣板長邊(cm),預設 180 = 6 尺 */
+  /** 矽酸鈣板長邊(cm),預設 180 */
   boardLongCm: number;
-  /** 矽酸鈣板短邊(cm),預設 90 = 3 尺 */
+  /** 矽酸鈣板短邊(cm),預設 90 */
   boardShortCm: number;
+  /** 板邊預留接縫(mm),預設 3 mm(業界規範 3-6 mm,9mm 板建議 3 mm) */
+  jointGapMm: number;
 
   /** 吊筋密度策略 */
   hangerDensity: HangerDensity;
@@ -142,8 +144,8 @@ export const DEFAULT_CEILING_INPUT: CeilingInput = {
   slabHeightCm: 280,
   ceilingHeightCm: 260,
 
-  mainSpacingCm: 90.9,
-  subSpacingCm: 36.36,
+  mainSpacingCm: 90,    // 公制裝潢實務(老派台尺 90.9 在 form 可改回)
+  subSpacingCm: 36,     // 公制裝潢實務(老派台尺 1.2 尺 = 36.36 可改回)
   alignmentBase: "center",
   subAlignmentBase: "middle",
   frameDoublesAsSupport: false,
@@ -153,6 +155,7 @@ export const DEFAULT_CEILING_INPUT: CeilingInput = {
 
   boardLongCm: 180,
   boardShortCm: 90,
+  jointGapMm: 3,        // 板邊接縫 3 mm(業界標準 3-6,9mm 板取 3)
 
   hangerDensity: "standard",
   hangerSpacingCm: 90,

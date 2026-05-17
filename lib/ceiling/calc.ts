@@ -419,14 +419,11 @@ function computeBoardLayout(input: CeilingInput, mainCentersCm: number[]): Board
   ).length;
   const cutCols = cols - fullCols;
 
-  // ────── 沿短邊列(板邊對齊副支 5×spacing) ──────
-  // 副支間距 36.36 cm × 5 = 181.8 cm ≈ 板長 180 cm,差 1.8 cm
-  // 板邊改放在副支多倍位置(板邊有副支撐,不懸空)
-  // 實際擺板長 180 cm,中間每片剩 1.8 cm 縫(矽利康/接縫帶填,跟長邊同邏輯)
-  const effectiveBoardLongCm =
-    Math.round(input.boardLongCm / input.subSpacingCm) * input.subSpacingCm;
-  const rows = Math.ceil(input.shortSideCm / effectiveBoardLongCm);
-  const fullRows = Math.floor(input.shortSideCm / effectiveBoardLongCm);
+  // ────── 沿短邊列 ──────
+  // 公制預設下板長 180 = 5 × 副支 36 = 完美對齊,板邊在 5n 副支中心,板間預留 jointGap
+  // 老派台尺(36.36)時 5×36.36 = 181.8 跟 180 差 1.8 cm,需多填料(form 內提醒)
+  const rows = Math.ceil(input.shortSideCm / input.boardLongCm);
+  const fullRows = Math.floor(input.shortSideCm / input.boardLongCm);
 
   const totalPositions = cols * rows;
   // 「全張」= 全寬欄 × 全長列(兩方向都不需裁切)

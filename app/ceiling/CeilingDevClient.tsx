@@ -116,6 +116,11 @@ export function CeilingDevClient() {
               onChange={(v) => update("boardLongCm", v)} />
             <NumberField label="板寬" suffix="cm" value={input.boardShortCm}
               onChange={(v) => update("boardShortCm", v)} />
+            <NumberField label="接縫" suffix="mm" value={input.jointGapMm}
+              onChange={(v) => update("jointGapMm", v)} step={1} />
+            <p className="text-[10px] text-zinc-500 leading-tight">
+              業界 3-6 mm;9 mm 板取 3 mm,環氧樹脂 / 接縫帶 / 批土收尾。
+            </p>
           </Section>
 
           <Section title="吊筋">
@@ -146,17 +151,20 @@ export function CeilingDevClient() {
               改任何輸入,圖即時重繪。「畫幾根 = 算幾根」:右下圖例 + 上方一致性檢查徽章。
             </p>
             <div className="mt-3 p-2 rounded bg-blue-50/60 border border-blue-200 text-[10px] text-blue-900 leading-relaxed">
-              <strong>📐 板邊與主支對齊說明:</strong>
-              藍色虛線 tick(上下房間外)= 板邊接縫位置,**剛好落在主支中心**(施工 step 5)。
+              <strong>📐 板邊接縫處理(業界規範 3-6 mm):</strong>
+              藍色虛線 tick(上下房間外)= 板邊位置,落在主支中心(施工 step 5)。
               <br />
-              <strong>0.9 cm 板縫:</strong>板寬 90 cm,主支中心距 90.9 cm,中間每片板擺進去剩
-              <strong> 0.9 cm 空隙</strong>,實務以 AB 膠 / 矽利康 / 接縫帶封填(本工具不另計矽利康量,
-              現場依師傅習慣抓 1 條 / 板)。
+              預設 <strong>3 mm 接縫</strong>(可調),板邊 → 環氧樹脂填縫 →
+              <strong> 48 mm 寬纖維接縫帶</strong>(玻纖網)貼上 → 批土平整 → 上漆 / 噴塗。
+              這流程不論縫多寬都必跑,**接縫帶是天花板防裂的關鍵**(矽酸鈣板熱脹冷縮 + 結構微振)。
               <br />
-              邊欄(寬度 &lt; 85 cm,超出 5 cm 容差)= 裁切板,材料表已標為「裁切」。
+              <strong>螺絲規範:</strong>距板邊 ≥ 15 mm 鎖,沿板邊每 20-30 cm 一支、中間 30 cm 一支。
               <br />
-              短邊方向(板長 180 cm)目前**不對齊副支中心**(副支間距 36.36 cm × 5 = 181.8 ≠ 180),
-              v2 可加副支對齊優化。
+              <strong>預設 90 / 36 公制間距 → 0 累積誤差。</strong>
+              改回老派 90.9 / 36.36 台尺(form 內可調)= 板會多 0.9 / 1.8 cm 累積縫,需多填料,
+              工具會以剩餘收邊形式回報。
+              <br />
+              邊欄(寬度 &lt; 85 cm)= 裁切板,材料表已標為「裁切」。
             </div>
           </div>
 

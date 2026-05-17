@@ -37,17 +37,17 @@ const CASES: TestCase[] = [
     expect: {
       hangerHeightCm: 20,
       pingShu: 4.84,
-      leftoverCm: 45.5,
+      leftoverCm: 50, // 500 − 5×90 (公制預設)
       mainPositionCount: 6,
       mainJoistLengthCm: 312.8,
       mainJoistTimberCount: 6,
       subJoistGroups: [
-        [87.3, 45], // 5 主支內 slot × 9 副支(公式 floor+1)
-        [19.2, 18], // 2 邊 slot × 9 副支
+        [86.4, 45], // 5 內 slot 寬 90,副支長 90−3.6 = 86.4 × 9 副支
+        [21.4, 18], // 2 邊 slot 寬 25(=leftover/2),副支長 25−3.6 = 21.4 × 9
       ],
       hangerCount: 24, // 6 主支 × 4 (standard, floor(312.8/90)+1=4)
-      boardFullCount: 5, // 5 全寬欄(90.9 cm,容差內)× 1 全長列
-      boardCutCount: 9, // 7 欄 × 2 列 − 5 = 9(2 邊欄裁切 × 2 列 + 5 全欄 × 1 短列)
+      boardFullCount: 5, // 5 全寬欄(90 = boardShort 0 縫)× 1 全長列
+      boardCutCount: 9, // 7 欄 × 2 列 − 5
     },
   },
   {
@@ -56,17 +56,17 @@ const CASES: TestCase[] = [
     expect: {
       hangerHeightCm: 20,
       pingShu: 4.84, // 16 / 3.305
-      leftoverCm: 36.4, // 400 − 4×90.9 = 36.4
-      mainPositionCount: 5, // floor(400/90.9)+1 = 5
+      leftoverCm: 40, // 400 − 4×90 (公制)
+      mainPositionCount: 5, // floor(400/90)+1 = 5
       mainJoistLengthCm: 392.8, // 400 − 2×3.6
       mainJoistTimberCount: 5,
       subJoistGroups: [
-        [87.3, 44], // 4 內 slot × 11 副支(floor(392.8/36.36)+1=11)
-        [14.6, 22], // 2 邊 slot × 11 副支
+        [86.4, 44], // 4 內 slot × 11 副支(floor(392.8/36)+1=11)
+        [16.4, 22], // 2 邊 slot 寬 20,副支 20−3.6 = 16.4 × 11
       ],
       hangerCount: 25, // 5 × 5 (floor(392.8/90)+1 = 5)
-      boardFullCount: 8, // 4 全寬欄 × 2 全長列(400/180 → fullRows=2)
-      boardCutCount: 10, // 6 欄 × 3 列 − 8 = 10
+      boardFullCount: 8, // 4 全寬欄 × 2 全長列
+      boardCutCount: 10, // 6 欄 × 3 列 − 8
     },
   },
   {
@@ -75,17 +75,17 @@ const CASES: TestCase[] = [
     expect: {
       hangerHeightCm: 20,
       pingShu: 4.84, // 800×200/10000/3.305
-      leftoverCm: 72.8, // 800 − 8×90.9 = 800 − 727.2 = 72.8
+      leftoverCm: 80, // 800 − 8×90 (公制)
       mainPositionCount: 9,
       mainJoistLengthCm: 192.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [87.3, 48], // 8 內 slot × 6 副支(floor(192.8/36.36)+1=6)
-        [32.8, 12], // 2 邊 slot × 6 副支
+        [86.4, 48], // 8 內 slot × 6 副支(floor(192.8/36)+1=6)
+        [36.4, 12], // 2 邊 slot 寬 40,副支 40−3.6 = 36.4 × 6
       ],
       hangerCount: 27, // 9 × 3 (floor(192.8/90)+1 = 3)
       boardFullCount: 8, // 8 全寬欄 × 1 全長列
-      boardCutCount: 12, // 10 欄 × 2 列 − 8 = 12
+      boardCutCount: 12, // 10 欄 × 2 列 − 8
     },
   },
   {
@@ -94,17 +94,17 @@ const CASES: TestCase[] = [
     expect: {
       hangerHeightCm: 20,
       pingShu: 14.52, // 48 / 3.305
-      leftoverCm: 72.8,
+      leftoverCm: 80,
       mainPositionCount: 9,
       mainJoistLengthCm: 592.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [87.3, 136], // 8 內 slot × 17 副支(floor(592.8/36.36)+1=17)
-        [32.8, 34], // 2 邊 slot × 17 副支
+        [86.4, 136], // 8 內 slot × 17 副支(floor(592.8/36)+1=17)
+        [36.4, 34], // 2 邊 slot × 17 副支
       ],
       hangerCount: 63, // 9 × 7 (floor(592.8/90)+1 = 7)
       boardFullCount: 24, // 8 全寬欄 × 3 全長列
-      boardCutCount: 16, // 10 欄 × 4 列 − 24 = 16
+      boardCutCount: 16, // 10 欄 × 4 列 − 24
     },
   },
 ];
