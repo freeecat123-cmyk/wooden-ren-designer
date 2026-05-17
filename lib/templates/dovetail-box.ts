@@ -506,14 +506,6 @@ const polyDesign: FurnitureDesign = {
   const lidPart = design.parts.find((p) => p.id === "lid");
   if (withLid && lidPart) {
     if (lidType === "sliding") {
-      // 滑入式移除 F/B → L/R dovetail CSG 連動：F/B 不掛 dovetail-ends shape，
-      // 沒有 tail 凸齒、L/R 也就不會被 CSG 切到。盒子四角變純 box joint 視覺，
-      // 但 L 改高 R 不會跟著動（user 反映「我叫你修左板右板跟著動」就是這條）。
-      for (const p of design.parts) {
-        if ((p.id === "wall-front" || p.id === "wall-back") && p.shape?.kind === "dovetail-ends") {
-          delete p.shape;
-        }
-      }
       // 滑入式（跟底板 inset-panel 對偶 · 完整對偶版）：
       // 底板：plate 在 y=botT~2·botT、距箱底 botT 厚的「下緣 cap」、4 壁全高
       // 蓋板（鏡像）：lid 在 y=outerH-2·lidT ~ outerH-lidT、距箱頂 lidT 厚的「上緣 cap」
