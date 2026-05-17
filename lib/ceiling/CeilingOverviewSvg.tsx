@@ -186,8 +186,9 @@ function renderSubJoists(
 
   for (let si = 0; si < trace.slots.length; si++) {
     const slot = trace.slots[si];
-    const xStart = x0 + slot.fromCm + tw / 2;
-    const xEnd = x0 + slot.toCm - tw / 2;
+    // BUG 3 fix:slot.from/to 已是 face 位置(Model B),不再 padding tw/2
+    const xStart = x0 + slot.fromCm;
+    const xEnd = x0 + slot.toCm;
     for (let i = 0; i < trace.subJoistYOffsetsCm.length; i++) {
       const yCenter = innerY0 + trace.subJoistYOffsetsCm[i];
       elements.push(

@@ -4326,13 +4326,20 @@ leftoverCm      = longSideCm − usedSpan       (剩餘收邊)
 ### §CE.2 主支位置(centerlines 沿長邊,單位 cm,從 0 = 左牆內側起算)
 
 ```
+// Issue 4 fix 2026-05-18 — firstCenter 必確保主支貼邊框內側不重疊
+halfTw = timberWidthCm / 2
+
 firstCenter = match alignmentBase:
-  "left"   → 0
-  "center" → leftoverCm / 2
-  "right"  → leftoverCm
+  "left"   → frameW + halfTw            // 主支貼左邊框內側
+  "center" → leftoverCm / 2             // 對稱
+  "right"  → (L − frameW − halfTw) − (n−1) × mainSpacing
+                                        // 主支貼右邊框內側,反推 first
 
 centers = [firstCenter + i × mainSpacingCm  for i in 0..nMainPositions−1]
 ```
+
+修正前 "left" 用 `firstCenter = 0` 把主支中心放在邊框 outside 位置(物理不可能,
+主支半在牆內);修正後 "left" 主支緊鄰邊框內側面。
 
 ### §CE.3 主支單支長度與下料根數
 
@@ -4368,15 +4375,29 @@ subPerSlot   = floor(shortInnerCm / subSpacingCm) + 1
                // 極大化覆蓋短邊內側,靠上/靠下模式對應邊不會空一截
 ```
 
-對每對相鄰 `supports[i]`、`supports[i+1]`:
+**Model B face-based(2026-05-18 修正):** slot.from/to 用「對接面」位置:
 
 ```
-slotWidthCm       = supports[i+1] − supports[i]
-subJoistLengthCm  = slotWidthCm − timberWidthCm
-                    // 對接 butt joint,扣兩側總共一條 timberWidth
-                    // (假設兩側角材寬都同 timberWidthCm)
-subJoistCount     = subPerSlot
+// Edge slot 0 — 左邊框內側面 → 第一支主支左面
+edgeSlot[0]: from = frameW,
+             to   = mainCenters[0] − tw/2
+             subJoistLength = to − from
+
+// Inner slot i — 主支[i] 右面 → 主支[i+1] 左面
+innerSlot[i]: from = mainCenters[i] + tw/2,
+              to   = mainCenters[i+1] − tw/2
+              subJoistLength = to − from = mainSpacing − tw
+
+// Edge slot last — 最後主支右面 → 右邊框內側面
+edgeSlot[last]: from = mainCenters[end] + tw/2,
+                to   = longSideCm − frameW
+                subJoistLength = to − from
+
+subJoistCount per slot = subPerSlot
 ```
+
+`slotWidthCm` 已直接 = 副支長度,不再扣 timberWidth。修正前(Model A)edge slot
+把 `0` / `longSideCm` 當邊框 center,subLength 多 tw/2 = 1.8 cm,**師傅切料會切長**。
 
 最後依 `round1(subJoistLengthCm)` 為 key 把所有 slot group by 合併成材料表。
 
@@ -4406,8 +4427,9 @@ yOffsets[i] = firstOffset + i × subSpacingCm   for i in 0..N-1
 hangerLengthCm = hangerHeightCm   (吊筋長度 = 板高 − 天花板高)
 
 if hangerDensity == "standard":
-   hangerPerMainJoist = floor(mainJoistLengthCm / hangerSpacingCm) + 1
-                        (兩端各一 + 中段每 hangerSpacingCm 補一)
+   hangerPerMainJoist = ceil(mainJoistLengthCm / hangerSpacingCm) + 1
+                        // BUG 1 fix 2026-05-18:floor+1 會讓實際間距 > user 設定
+                        // ceil+1 保證 N-1 個區段每段 ≤ hangerSpacing
 else // "minimal":
    hangerPerMainJoist = 2
 
@@ -4490,18 +4512,19 @@ frameTotalM  = frameTotalCm / 100
 
 ### §CE.10 驗證
 
-baseline 500×320(預設值,主支 90 / 副支 36 / 接縫 3mm)→ 跑 `npx tsx lib/ceiling/calc.test.ts`:
+baseline 500×320(預設值,板 90/180 + 縫 3mm + auto spacing → 主支 90.3 / 副支 36)
+→ 跑 `npx tsx lib/ceiling/calc.test.ts`:
 
 | 項目 | 值 |
 |---|---|
 | 吊筋高度 | 20 cm |
 | 房間面積 | 16 m² |
 | 坪數 | 4.84 坪 |
-| 剩餘收邊 | 50 cm |
+| 剩餘收邊 | 48.5 cm |
 | 主支 | 312.8 cm × 6 支 |
-| 副支(內 slot 寬 90) | 86.4 cm × 45 支 |
-| 副支(邊 slot 寬 25) | 21.4 cm × 18 支 |
-| 吊筋(standard) | 20 cm × 24 支 |
+| 副支(內 slot face-to-face 86.7) | 86.7 cm × 45 支 |
+| 副支(邊 slot face-to-face 18.85) | 18.8 cm × 18 支 |
+| 吊筋(standard,ceil+1) | 20 cm × 30 支(6×5) |
 | 矽酸鈣板整張 | 5 張 |
 | 矽酸鈣板裁切 | 9 張 |
 | 邊框 | 16.4 m |

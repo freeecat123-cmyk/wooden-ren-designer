@@ -43,10 +43,10 @@ const CASES: TestCase[] = [
       mainJoistLengthCm: 312.8,
       mainJoistTimberCount: 6,
       subJoistGroups: [
-        [86.7, 45], // 5 內 slot 寬 90.3,副支長 90.3−3.6 = 86.7 × 9
-        [20.7, 18], // 2 邊 slot 寬 24.25(=leftover/2),副支長 24.25−3.6 = 20.65→20.7 × 9
+        [86.7, 45], // 5 內 slot face-to-face 寬 86.7(主支右面到下一主支左面)× 9
+        [18.8, 18], // 2 邊 slot face-to-face 寬 18.85→18.8(邊框內側面 3.6 到主支左面 22.45)× 9
       ],
-      hangerCount: 24, // 6 主支 × 4 (floor(312.8/90)+1=4,hangerSpacing 不受自動間距影響)
+      hangerCount: 30, // 6 主支 × 5 (ceil(312.8/90)+1=5,間距 ≤ user 設的 90)
       boardFullCount: 5,
       boardCutCount: 9,
     },
@@ -63,9 +63,9 @@ const CASES: TestCase[] = [
       mainJoistTimberCount: 5,
       subJoistGroups: [
         [86.7, 44], // 4 內 slot × 11 副支
-        [15.8, 22], // edge 寬 19.4,副支 19.4−3.6 = 15.8 × 11
+        [14, 22],   // edge face-to-face 寬 14.0(3.6→17.6)× 11
       ],
-      hangerCount: 25, // 5 × 5
+      hangerCount: 30, // 5 × 6 (ceil(392.8/90)+1=6)
       boardFullCount: 8,
       boardCutCount: 10,
     },
@@ -82,9 +82,9 @@ const CASES: TestCase[] = [
       mainJoistTimberCount: 9,
       subJoistGroups: [
         [86.7, 48], // 8 內 slot × 6 副支
-        [35.2, 12], // edge 寬 38.8,副支 38.8−3.6 = 35.2 × 6
+        [33.4, 12], // edge face-to-face 寬 33.4(3.6→37.0)× 6
       ],
-      hangerCount: 27, // 9 × 3
+      hangerCount: 36, // 9 × 4 (ceil(192.8/90)+1=4)
       boardFullCount: 8,
       boardCutCount: 12,
     },
@@ -101,9 +101,9 @@ const CASES: TestCase[] = [
       mainJoistTimberCount: 9,
       subJoistGroups: [
         [86.7, 136], // 8 內 slot × 17 副支
-        [35.2, 34],  // edge × 17
+        [33.4, 34],  // edge face-to-face × 17
       ],
-      hangerCount: 63, // 9 × 7
+      hangerCount: 72, // 9 × 8 (ceil(592.8/90)+1=8)
       boardFullCount: 24,
       boardCutCount: 16,
     },

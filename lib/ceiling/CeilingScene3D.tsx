@@ -303,8 +303,9 @@ function SubJoistsLayer({
   // 若未來 > 500 改 InstancedMesh
   const items: Array<{ x: number; z: number; lengthX: number }> = [];
   for (const slot of trace.slots) {
-    const xStart = slot.fromCm + tw / 2;
-    const xEnd = slot.toCm - tw / 2;
+    // BUG 3 fix:slot.from/to 已是 face 位置(Model B),不再 padding tw/2
+    const xStart = slot.fromCm;
+    const xEnd = slot.toCm;
     if (xEnd <= xStart) continue;
     const xCenter = (xStart + xEnd) / 2;
     const lengthX = xEnd - xStart;
