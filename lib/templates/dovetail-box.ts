@@ -620,17 +620,22 @@ const polyDesign: FurnitureDesign = {
         }
         // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
         // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
-        // slot Y 範圍 = [fullT - sinkMm, fullT + 1] = [12, 18]、center = 15、D = 6
+        // slot 雙端各加 epsilon：上 2mm 超出 part top、下 0.3mm 進邊條（容忍邊條 11.7mm）
         const lidLenLocal = lidPart.visible.length;
         const lidWidLocal = lidPart.visible.width;
-        const cutEpsilon = 1;  // slot top 超出 part top 1mm 避免 z-fighting hairline
-        const cutD = sinkMm + cutEpsilon;
-        const cutCenterY = fullT - (sinkMm - cutEpsilon) / 2;  // (top + bottom) / 2 in from-bottom
+        const cutEpsilonTop = 2;
+        const cutEpsilonBottom = 0.3;
+        // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
+        const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
+        const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
+        // 更直接：center = (top + bottom) / 2 = (fullT + epsTop + fullT - sinkMm - epsBot) / 2
+        const cutCenterYDirect = (fullT + cutEpsilonTop + (fullT - sinkMm - cutEpsilonBottom)) / 2;
+        void cutCenterY;
         const zEdgeW = grooveDepth;
         const rightEdgeW = grooveDepth;
         // 前 Z 邊
         lidPart.mortises.push({
-          origin: { x: 0, y: cutCenterY, z: -(lidWidLocal - zEdgeW) / 2 },
+          origin: { x: 0, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
           depth: cutD,
           length: lidLenLocal,
           width: zEdgeW,
@@ -640,7 +645,7 @@ const polyDesign: FurnitureDesign = {
         });
         // 後 Z 邊
         lidPart.mortises.push({
-          origin: { x: 0, y: cutCenterY, z: (lidWidLocal - zEdgeW) / 2 },
+          origin: { x: 0, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
           depth: cutD,
           length: lidLenLocal,
           width: zEdgeW,
@@ -650,7 +655,7 @@ const polyDesign: FurnitureDesign = {
         });
         // 右 X 邊
         lidPart.mortises.push({
-          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterY, z: 0 },
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
           depth: cutD,
           length: rightEdgeW,
           width: lidWidLocal,
