@@ -56,7 +56,7 @@ export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
   const auto = computeAutoCalc(input);
   const layout = computeMainJoistLayout(input, auto);
   const supports = computeSupportPositions(input, layout);
-  const slots = computeSlots(input, supports);
+  const slots = computeSlots(input, supports, layout);
   const subLayout = computeSubJoistYLayout(input);
   const hangerPerMainJoist = computeHangerCountPerJoist(input, layout.mainJoistLengthCm);
   const boardCalc = computeBoardLayout(input, layout.mainJoistCentersCm);
@@ -218,10 +218,8 @@ function computeMainJoistLayout(
   const n = auto.mainPositionCount;
   // 第一支主支的中心位置(沿長邊,從牆內=0 起算)
   // 排版基準 → 決定剩餘收邊留哪側
-  const firstCenter = computeFirstCenterByAlignment(
-    auto.leftoverCm,
-    input.alignmentBase,
-  );
+  // 「靠左/靠右」會把主支貼邊框內側不重疊;「置中」保持對稱
+  const firstCenter = computeFirstCenterByAlignment(input, auto.leftoverCm, n);
   const centers: number[] = [];
   for (let i = 0; i < n; i++) {
     centers.push(firstCenter + i * input.mainSpacingCm);
@@ -232,24 +230,13 @@ function computeMainJoistLayout(
   const mainJoistLengthCm = input.shortSideCm - 2 * input.timberWidthCm;
 
   // 主支實際下料根數:
-  //   邊框兼支撐 = true → 與邊框重疊位置不下料(用邊框替代)
-  //   邊框兼支撐 = false → 全部下料
+  //   frameDoublesAsSupport = true → 邊框作為最外側 2 處支撐替代(BOM -2)
+  //   frameDoublesAsSupport = false → 全部下料
+  // BUG 2 fix 2026-05-18:之前用 overlap 偵測 + 強制 fallback 寫得繞,
+  // 實際行為就是 -2。改用直接 -2 表達語意清楚(behavior 不變)。
   let timberCount = n;
-  if (input.frameDoublesAsSupport) {
-    // 與兩端邊框重疊計算(容差 timberWidth/2 內視為重疊)
-    const tol = input.timberWidthCm / 2 + EPS;
-    let overlap = 0;
-    if (centers.length > 0 && Math.abs(centers[0] - 0) <= tol) overlap++;
-    if (
-      centers.length > 0 &&
-      Math.abs(centers[centers.length - 1] - input.longSideCm) <= tol
-    ) {
-      overlap++;
-    }
-    // 一般 frameDoublesAsSupport=true 預設視為兩端各有 1 處重疊(共 2)
-    // 若 alignment 沒讓主支貼邊框,還是視為前後各 1 處被邊框取代(用近似邏輯)
-    if (overlap === 0) overlap = Math.min(2, n);
-    timberCount = Math.max(0, n - overlap);
+  if (input.frameDoublesAsSupport && n >= 2) {
+    timberCount = n - 2;
   }
 
   return {
@@ -261,16 +248,23 @@ function computeMainJoistLayout(
 }
 
 function computeFirstCenterByAlignment(
+  input: CeilingInput,
   leftoverCm: number,
-  alignment: AlignmentBase,
+  n: number,
 ): number {
-  switch (alignment) {
+  // 主支 center 必須 ≥ frameW + tw/2(貼邊框內側不重疊)
+  const frameW = input.timberWidthCm;
+  const halfTw = input.timberWidthCm / 2;
+  switch (input.alignmentBase) {
     case "left":
-      return 0; // 第一主支貼左牆內(注意:0 = 邊框內側面位置)
+      // 第一支主支貼邊框內側 + 半角材避免重疊
+      return frameW + halfTw;
     case "center":
+      // 對稱:firstCenter = leftover/2,符合「房間中央」的視覺
       return leftoverCm / 2;
     case "right":
-      return leftoverCm;
+      // 最後一支主支貼右邊框內側,由 lastCenter 反推 firstCenter
+      return (input.longSideCm - frameW - halfTw) - (n - 1) * input.mainSpacingCm;
   }
 }
 
@@ -281,9 +275,12 @@ function computeSupportPositions(
   input: CeilingInput,
   layout: MainJoistLayout,
 ): number[] {
-  const positions = [0, ...layout.mainJoistCentersCm, input.longSideCm];
+  // Model B(BUG 3 fix 2026-05-18):端點用「邊框內側面」位置(= frameW)
+  // 而非「邊框外側」(=0)。讓 trace 顯示更接近實際幾何。
+  // 副支 slot 寬度由 computeSlots 用 face-aware 公式自算,不依賴此 array。
+  const frameW = input.timberWidthCm;
+  const positions = [frameW, ...layout.mainJoistCentersCm, input.longSideCm - frameW];
   positions.sort((a, b) => a - b);
-  // 去除距離 < EPS 的重複(主支恰落在邊框上時)
   const uniq: number[] = [];
   for (const p of positions) {
     if (uniq.length === 0 || p - uniq[uniq.length - 1] > EPS) {
@@ -306,32 +303,50 @@ interface SlotCalc {
 
 function computeSlots(
   input: CeilingInput,
-  supports: number[],
+  _supports: number[],
+  layout: MainJoistLayout,
 ): SlotCalc[] {
-  // 短邊內側距離 = 短邊 − 2 × 邊框寬
-  const shortInnerCm = input.shortSideCm - 2 * input.timberWidthCm;
-  // 每 slot 的副支數量 = floor(短邊內側距離 / 副支中心距) + 1
-  //   跟主支 §CE.2 同公式邏輯,確保「N 根 ≤ inner 空間」極大化,
-  //   靠上模式底部不會空一截、靠下模式頂部也不會空一截
+  // BUG 3 fix 2026-05-18 — Model B face-based:
+  //   slot.fromCm / toCm 都是「對接面」位置(邊框內側面 或 主支內側面)
+  //   slotWidthCm 直接 = 副支長度,不需再扣
+  //   修正前(Model A)edge slot 副支會多 1.8 cm(邊框 outside 當 support)
+  const frameW = input.timberWidthCm;
+  const halfTw = input.timberWidthCm / 2;
+  const shortInnerCm = input.shortSideCm - 2 * frameW;
   const subPerSlot = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm) + 1);
+  const mainCenters = layout.mainJoistCentersCm;
 
   const slots: SlotCalc[] = [];
-  for (let i = 0; i < supports.length - 1; i++) {
-    const fromCm = supports[i];
-    const toCm = supports[i + 1];
-    const slotWidthCm = toCm - fromCm;
-    // ASSUMPTION#2 副支長 = slot 寬 − 兩側角材寬合
-    // (兩側不論是邊框還是主支,寬度都用 timberWidthCm)
-    const subJoistLengthCm = slotWidthCm - input.timberWidthCm;
-    if (slotWidthCm < EPS || subJoistLengthCm < EPS) continue;
+  const pushSlot = (fromCm: number, toCm: number) => {
+    const w = toCm - fromCm;
+    if (w < EPS) return;
     slots.push({
       fromCm,
       toCm,
-      slotWidthCm,
-      subJoistLengthCm,
+      slotWidthCm: w,
+      subJoistLengthCm: w,
       subJoistCount: subPerSlot,
     });
+  };
+
+  if (mainCenters.length === 0) {
+    // 無主支 → 1 個 slot 從左邊框內側到右邊框內側
+    pushSlot(frameW, input.longSideCm - frameW);
+    return slots;
   }
+
+  // 第一 edge slot:左邊框內側 → 第一支主支左面
+  pushSlot(frameW, mainCenters[0] - halfTw);
+  // 中間 inner slots:主支[i] 右面 → 主支[i+1] 左面
+  for (let i = 0; i < mainCenters.length - 1; i++) {
+    pushSlot(mainCenters[i] + halfTw, mainCenters[i + 1] - halfTw);
+  }
+  // 最後 edge slot:最後主支右面 → 右邊框內側
+  pushSlot(
+    mainCenters[mainCenters.length - 1] + halfTw,
+    input.longSideCm - frameW,
+  );
+
   return slots;
 }
 
@@ -383,8 +398,11 @@ function computeHangerCountPerJoist(
     // 圖示版:每主支兩端各一
     return 2;
   }
-  // 業界標準:每主支沿線 floor(L / hangerSpacing) + 1
-  return Math.floor(mainJoistLengthCm / input.hangerSpacingCm) + 1;
+  // 業界標準:每主支沿線間距 ≤ hangerSpacing
+  //   N 支 = N-1 個區段,要 (L / (N-1)) ≤ hangerSpacing
+  //   → N ≥ ceil(L / hangerSpacing) + 1
+  // 公式 floor+1 會讓實際間距 > user 設定值(BUG 1 fix 2026-05-18)
+  return Math.ceil(mainJoistLengthCm / input.hangerSpacingCm) + 1;
 }
 
 // ─────────────────────────────────────────────────────────
