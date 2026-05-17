@@ -128,8 +128,6 @@ export function T1Dimensions({
   ];
   const partMinY = Math.min(...allCorners.map((p) => p.y));
   const partMaxX = Math.max(...allCorners.map((p) => p.x));
-  const horizY = partMinY - HORIZ_OFFSET;
-  const vertX = partMaxX + VERT_OFFSET;
 
   // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
   const grossCorners: { x: number; y: number }[] = [...allCorners];
@@ -154,6 +152,10 @@ export function T1Dimensions({
   const grossMaxX = Math.max(...grossCorners.map((p) => p.x));
   const grossMinY = Math.min(...grossCorners.map((p) => p.y));
   const grossMaxY = Math.max(...grossCorners.map((p) => p.y));
+  // T1 dim line 起點用 gross（含 tenon protrusion）邊緣，避免 dim 線/標籤
+  // 撞進榫頭凸出區（user 05-17 23:16：「30 應該往上拉到 6 18 6 上面」）
+  const horizY = grossMinY - HORIZ_OFFSET;
+  const vertX = grossMaxX + VERT_OFFSET;
   const partWidthSvg =
     Math.max(...allCorners.map((p) => p.x)) -
     Math.min(...allCorners.map((p) => p.x));
