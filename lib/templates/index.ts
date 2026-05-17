@@ -31,6 +31,7 @@ import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
 import { wineRack, wineRackOptions } from "./wine-rack";
 import { coatRack, coatRackOptions } from "./coat-rack";
 import { bed, bedOptions } from "./bed";
+import { circleChair, circleChairOptions } from "./circle-chair";
 
 export interface FurnitureCatalogEntry {
   category: FurnitureCategory;
@@ -41,6 +42,12 @@ export interface FurnitureCatalogEntry {
   defaults: { length: number; width: number; height: number };
   limits?: { length: number; width: number; height: number };
   optionSchema?: OptionSpec[];
+  /**
+   * 此家具的 joineryMode 是否預設為 true。
+   * undefined / 未設 = false（組裝版）。
+   * 用於圈椅等「不可能用螺絲組裝」的傳統榫卯家具；URL ?joineryMode=false 仍可強制切回。
+   */
+  defaultJoineryMode?: boolean;
 }
 
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
@@ -173,6 +180,17 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 450, width: 450, height: 850 },
     limits: { length: 600, width: 650, height: 1100 },
     optionSchema: diningChairOptions,
+  },
+  {
+    category: "circle-chair",
+    nameZh: "明式圈椅",
+    description: "明式圈椅——5 段楔釘榫攢接椅圈、後腿一木連做、S 形靠背板。台南魯班學堂工作圖實作",
+    difficulty: "advanced",
+    template: circleChair,
+    defaults: { length: 610, width: 497, height: 720 },
+    limits: { length: 750, width: 600, height: 1150 },
+    optionSchema: circleChairOptions,
+    defaultJoineryMode: true, // 圈椅全榫卯結構，預設即榫接模式（spec §8.4）
   },
   {
     category: "wardrobe",
