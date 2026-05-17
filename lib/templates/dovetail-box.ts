@@ -589,23 +589,6 @@ const polyDesign: FurnitureDesign = {
           shape: "rect",
           cosmetic: true,
         });
-        // 滑蓋進入口：F/B 在 wall-left 端（-X）切穿 cap+lid 區開口，讓 lid 從上方滑入
-        if (isLong) {
-          const entryWorldYCenter = outerH - (lidT + sinkMm) / 2;
-          p.mortises.push({
-            origin: {
-              x: (wallT - p.visible.length) / 2,
-              y: wallT / 2,
-              z: meshCenterY - entryWorldYCenter,
-            },
-            depth: wallT + 0.5,
-            length: wallT,
-            width: lidT + sinkMm,
-            through: true,
-            shape: "rect",
-            cosmetic: true,
-          });
-        }
       }
       // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
