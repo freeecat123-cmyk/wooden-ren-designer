@@ -1289,7 +1289,18 @@ export function T2Annotations({
       const shoulderTopStartY = topBoundary;
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
+      // segment 太小（<14 svg unit）→ label 移出 dim line 外側、加 leader 避擠
+      const TIGHT = 14;
+      const LABEL_OUT = 14;
       if (shoulderTop > TH) {
+        const segH = box.y - shoulderTopStartY;
+        const tight = segH < TIGHT;
+        const labelY = tight
+          ? shoulderTopStartY - 3
+          : (shoulderTopStartY + box.y) / 2 + 3;
+        const labelX = tight
+          ? lLabelX + (outerLeft ? -LABEL_OUT : LABEL_OUT)
+          : lLabelX;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1309,10 +1320,20 @@ export function T2Annotations({
               strokeWidth={0.3}
             />
             {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
+            {tight && (
+              <line
+                x1={lDimX}
+                y1={(shoulderTopStartY + box.y) / 2}
+                x2={labelX + (outerLeft ? 2 : -2)}
+                y2={labelY - 3}
+                stroke={stroke}
+                strokeWidth={0.3}
+              />
+            )}
             <text
-              x={lLabelX}
-              y={(shoulderTopStartY + box.y) / 2 + 3}
-              fontSize={7}
+              x={labelX}
+              y={labelY}
+              fontSize={6.5}
               fill={stroke}
               fontFamily="monospace"
               textAnchor={lLabelAnchor}
@@ -1323,6 +1344,14 @@ export function T2Annotations({
         );
       }
       if (shoulderBot > TH) {
+        const segH = partBottomY - (box.y + box.h);
+        const tight = segH < TIGHT;
+        const labelY = tight
+          ? partBottomY + 8
+          : (box.y + box.h + partBottomY) / 2 + 3;
+        const labelX = tight
+          ? lLabelX + (outerLeft ? -LABEL_OUT : LABEL_OUT)
+          : lLabelX;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shB`}>
             <line
@@ -1342,10 +1371,20 @@ export function T2Annotations({
               strokeWidth={0.3}
             />
             {inwardArrowsV(box.y + box.h, partBottomY, lDimX)}
+            {tight && (
+              <line
+                x1={lDimX}
+                y1={(box.y + box.h + partBottomY) / 2}
+                x2={labelX + (outerLeft ? 2 : -2)}
+                y2={labelY - 3}
+                stroke={stroke}
+                strokeWidth={0.3}
+              />
+            )}
             <text
-              x={lLabelX}
-              y={(box.y + box.h + partBottomY) / 2 + 3}
-              fontSize={7}
+              x={labelX}
+              y={labelY}
+              fontSize={6.5}
               fill={stroke}
               fontFamily="monospace"
               textAnchor={lLabelAnchor}
