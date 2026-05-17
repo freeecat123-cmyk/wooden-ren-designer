@@ -565,6 +565,8 @@ const polyDesign: FurnitureDesign = {
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
+        } else if (p.id === "wall-right") {
+          p.visible = { ...p.visible, width: p.visible.width + lidT };
         } else {
           continue;
         }
@@ -589,11 +591,10 @@ const polyDesign: FurnitureDesign = {
           cosmetic: true,
         });
       }
-      // 左右側壁皆縮短 sinkMm（頂在 lid 底）；側壁上方完全留空（無 cap）
-      // F/B 才有 cap + groove，lid 只在 F/B 兩槽裡滑
-      for (const sideId of ["wall-left", "wall-right"] as const) {
-        const w = design.parts.find((p) => p.id === sideId);
-        if (w) w.visible = { ...w.visible, width: w.visible.width - sinkMm };
+      // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
+      const wallLeft = design.parts.find((p) => p.id === "wall-left");
+      if (wallLeft) {
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm };
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
