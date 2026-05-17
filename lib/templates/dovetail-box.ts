@@ -663,6 +663,18 @@ const polyDesign: FurnitureDesign = {
           shape: "rect",
           cosmetic: true,
         });
+        // 左 X 邊（lid 滑入口端、wall-left 上方的延伸區）也要銑掉
+        // 凸起只能在框內 innerL × innerW，這段延伸 wallT 寬不在框內也不該凸起
+        const leftEdgeW = wallT;
+        lidPart.mortises.push({
+          origin: { x: -(lidLenLocal - leftEdgeW) / 2, y: cutCenterYDirect, z: 0 },
+          depth: cutD,
+          length: leftEdgeW,
+          width: lidWidLocal,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
