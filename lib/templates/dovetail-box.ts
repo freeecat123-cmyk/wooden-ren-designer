@@ -162,7 +162,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       stavesOuterH = outerH + botT;
       stavesBaseY = 0;
       bottomOriginY = botT;
-      const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const grooveDepth = Math.min(5, wallT - 1);
       const bottomApothem = (apothem - wallT) + grooveDepth;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
       bottomAttachDesc = `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm，季節伸縮免裂）`;
@@ -517,7 +517,7 @@ const polyDesign: FurnitureDesign = {
       // - 左壁（短邊）縮短 lidT：頂面停在 outerH - 2·lidT（= lid 底）
       //   + 加 wall-left-cap（outerH - lidT ~ outerH）= 上方 cap
       //   兩段之間留 lidT 缺口 = 滑入口（lid 從這縫滑出）
-      const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const grooveDepth = Math.min(5, wallT - 1);
       const insetEach = Math.max(2, wallT - grooveDepth);
       const sinkMm = 5; // lid 距箱頂緣的距離（跟底板槽深 5mm 對偶）
       // lid 在 X 軸（length，從左壁滑入）：左邊延伸到外緣 -outerL/2 補上短壁缺口
