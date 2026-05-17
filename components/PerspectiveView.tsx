@@ -2964,8 +2964,11 @@ export function PerspectiveView({
           // pivot Y 用 lid origin.y（= 壁頂層 outerH - lidT），pivot Z = +outerW/2。
           let openRotation: Euler | null = null;
           if (lidOpenMode) {
+            // pivot Y：lift-off 模式 = lid 牆底（= cutY）；其他蓋型 = lid origin.y
+            // 偵測 lift-off：存在 wall-*-lid 牆
+            const lidWall = design.parts.find((p) => /-lid$/.test(p.id) && /^wall-/.test(p.id));
             const lidRef = design.parts.find((p) => p.id === "lid");
-            const pivotY_mm = lidRef?.origin.y ?? part.origin.y;
+            const pivotY_mm = lidWall?.origin.y ?? lidRef?.origin.y ?? part.origin.y;
             const pivotZ_mm = design.overall.width / 2;
             const cx_mm = part.origin.x;
             const cy_mm = part.origin.y + yExt / 2;
