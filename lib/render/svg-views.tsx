@@ -733,13 +733,16 @@ export function OrthoView({
     view === "front" || view === "side"
       ? Math.max(overall.length, overall.width)
       : w;
-  const vbW = vbContentW + PADDING * 2;
-  const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
-  const vbX = -PADDING - vbContentW / 2;
+  // 零件圖模式（isolatePartId）：padding 縮成 60，讓 part 填滿視窗、放大時
+  // 視覺重心在 part 而非周圍空白（整套組裝視圖維持 220 給多 part dim 鏈用）
+  const effPadding = isolatePartId ? 60 : PADDING;
+  const vbW = vbContentW + effPadding * 2;
+  const vbH = h + effPadding * 2 + DIM_OFFSET + TITLE_BAR_H;
+  const vbX = -effPadding - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
-  const vbY = drawAreaTop - PADDING - TITLE_BAR_H;
+  const vbY = drawAreaTop - effPadding - TITLE_BAR_H;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
