@@ -22,14 +22,11 @@ interface Props {
 }
 
 type PartView = "front" | "top" | "side";
-const ZOOM_LEVELS = [1, 2, 3, 5, 8] as const;
-type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [zoomedView, setZoomedView] = useState<PartView | null>(null);
-  const [zoom, setZoom] = useState<ZoomLevel>(2);
 
   if (!groups.length) return null;
 
@@ -105,34 +102,12 @@ export function PartDrawingsPanel({ design }: Props) {
                   </span>
                 )}
               </h3>
-              {zoomedView !== null && (
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[10px] text-zinc-500 mr-1">放大</span>
-                  {ZOOM_LEVELS.map((z) => (
-                    <button
-                      key={z}
-                      type="button"
-                      onClick={() => setZoom(z)}
-                      className={`text-xs px-2 py-0.5 rounded border tabular-nums ${
-                        zoom === z
-                          ? "bg-amber-500 text-white border-amber-500"
-                          : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {z}×
-                    </button>
-                  ))}
-                </div>
-              )}
               <button
                 type="button"
-                className={`text-zinc-500 hover:text-zinc-900 text-xl leading-none ${
-                  zoomedView !== null ? "ml-2" : "ml-auto"
-                }`}
+                className="text-zinc-500 hover:text-zinc-900 text-xl leading-none ml-auto"
                 onClick={() => {
                   setOpenIdx(null);
                   setZoomedView(null);
-                  setZoom(2);
                 }}
                 aria-label="關閉"
               >
@@ -153,7 +128,6 @@ export function PartDrawingsPanel({ design }: Props) {
                   zoomedView ? undefined : (v) => setZoomedView(v)
                 }
                 orthoClassName="bg-white w-full h-auto"
-                zoom={zoomedView !== null ? zoom : 1}
               />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
