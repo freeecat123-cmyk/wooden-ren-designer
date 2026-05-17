@@ -2748,8 +2748,8 @@ export function PerspectiveView({
   // 上輪 (09c1097 → revert 191a5ac) 用 brush.position.set + rotation.set +
   // updateMatrixWorld 對齊，側板整個被挖空。本輪改 pre-transform geometry 避開
   // matrixWorld propagation 疑慮。
-  const dovetailCutBrushes = useMemo<Brush[]>(() => {
-    const brushes: Brush[] = [];
+  const dovetailCutBrushes = useMemo<{ brush: Brush; fromLid: boolean }[]>(() => {
+    const brushes: { brush: Brush; fromLid: boolean }[] = [];
     const material = new MeshStandardMaterial();
     for (const part of design.parts) {
       if (part.shape?.kind !== "dovetail-ends") continue;
@@ -2784,7 +2784,7 @@ export function PerspectiveView({
       geo.computeVertexNormals();
       const brush = new Brush(geo, material);
       brush.updateMatrixWorld();  // identity matrix
-      brushes.push(brush);
+      brushes.push({ brush, fromLid: /-lid$/.test(part.id) });
     }
     return brushes;
   }, [design.parts]);
@@ -3364,14 +3364,15 @@ export function PerspectiveView({
               ? mortisesToCsg.map((m) => m.shape === "round" ? "round" : "rect")
               : undefined;
           // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail
-          // brush，自動形成正確的 pin gap 形狀。前後板有 dovetail-ends shape →
-          // dovetailCutBrushes 已備齊；對 left/right 兩塊側板套用。
-          // lift-off 模式下蓋段側板 wall-left-lid / wall-right-lid 也要套
-          // （依 feedback_csg_overlap_over_analytical_fit：一邊凸出、另一邊 plain + CSG）
+          // brush。lift-off 蓋段側板 wall-*-lid 也要套——但只套同段 brush 避免
+          // Y=cutY 邊界跟另一段 brush 衝突造成 z-fighting。
+          const isBodySide = part.id === "wall-left" || part.id === "wall-right";
+          const isLidSide = part.id === "wall-left-lid" || part.id === "wall-right-lid";
           const partDovetailCuts: Brush[] | undefined =
-            dovetailCutBrushes.length > 0 &&
-            (part.id === "wall-left" || part.id === "wall-right" || part.id === "wall-left-lid" || part.id === "wall-right-lid")
+            dovetailCutBrushes.length > 0 && (isBodySide || isLidSide)
               ? dovetailCutBrushes
+                  .filter((b) => (isLidSide ? b.fromLid : !b.fromLid))
+                  .map((b) => b.brush)
               : undefined;
           return (
             <group
