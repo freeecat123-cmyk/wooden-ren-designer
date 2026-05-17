@@ -1164,9 +1164,11 @@ export function T2Annotations({
           : null;
 
       // W dim (horizontal) 緊貼 box 上/下邊；上面有 sibling 時強制畫到 box 下方
-      // 避免蓋到上面 mortise（user:「往下一點 不要蓋到榫孔」）
+      // 避免蓋到上面 mortise（user:「往下一點 不要蓋到榫孔」/「再往下移」）
+      // 有 sibling 在上方的 chain mortise 用較大 gap=24 拉開
       const wDimBelow = !!prevLSibling || !outerAbove;
-      const wDimY = wDimBelow ? box.y + box.h + GAP : box.y - GAP;
+      const wGap = prevLSibling ? 24 : GAP;
+      const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
       const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
