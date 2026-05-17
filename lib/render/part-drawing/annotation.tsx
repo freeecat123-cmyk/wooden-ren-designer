@@ -830,19 +830,9 @@ export function T2Annotations({
         />
       ),
       <text
-        key={`${it.kind}-${it.idx}-name`}
-        x={lblX}
-        y={lblY}
-        fontSize={9}
-        fill={stroke}
-        fontWeight="bold"
-      >
-        {it.name}
-      </text>,
-      <text
         key={`${it.kind}-${it.idx}-dims`}
         x={lblX}
-        y={lblY + 11}
+        y={lblY + 9}
         fontSize={9}
         fill="#1f2937"
         fontFamily="monospace"
@@ -867,38 +857,20 @@ export function T2Annotations({
       partEls.push(
         vDim(partCenterSvg.y, cy, zDimX, String(dzMm), "#0ea5e9", `${it.kind}-${it.idx}-zdim`),
       );
-    } else if (view !== "top") {
-      // front / side：垂直 dim 從 part 底邊到 mortise 中心（距底）
-      const distFromBot = round1(lb.cy + lb.hy);
-      // Part 底邊在 SVG 的位置：partLocalToSvg(0, 0, 0)
-      const partBottomSvg = ctx.partLocalToSvg(0, 0, 0);
-      // 垂直 dim line at 右側 of mortise
-      const zDimX = box.x + box.w + 12;
+    } else if (view !== "top" && isSymmetricPart) {
+      // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
+      const dxMm = round1(Math.abs(lb.cx));
+      const xDimY = box.y - 8;
       partEls.push(
-        vDim(
-          partBottomSvg.y,
-          cy,
-          zDimX,
-          String(distFromBot),
+        hDim(
+          partCenterSvg.x,
+          cx,
+          xDimY,
+          String(dxMm),
           "#0ea5e9",
-          `${it.kind}-${it.idx}-ydim`,
+          `${it.kind}-${it.idx}-xdim`,
         ),
       );
-      // 若對稱、也加 X 距中 dim line
-      if (isSymmetricPart) {
-        const dxMm = round1(Math.abs(lb.cx));
-        const xDimY = box.y - 8;
-        partEls.push(
-          hDim(
-            partCenterSvg.x,
-            cx,
-            xDimY,
-            String(dxMm),
-            "#0ea5e9",
-            `${it.kind}-${it.idx}-xdim`,
-          ),
-        );
-      }
     }
 
     elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
