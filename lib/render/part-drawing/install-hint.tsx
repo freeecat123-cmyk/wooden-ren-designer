@@ -80,10 +80,11 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
       {design.parts.map((p, i) => {
         const o = p.origin ?? { x: 0, y: 0, z: 0 };
         const ext = worldExtents(p);
+        // top view (X-Z 平面)：X 水平、Z 垂直
         const x = tx((o.x ?? 0) - ext.xExt / 2);
-        const y = ty((o.y ?? 0) + ext.yExt);
+        const y = ty((o.z ?? 0) + ext.zExt / 2);
         const w = ext.xExt * scale;
-        const h = ext.yExt * scale;
+        const h = ext.zExt * scale;
         const isTarget = p.id === highlightPartId;
         return (
           <rect
