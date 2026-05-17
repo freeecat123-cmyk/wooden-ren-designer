@@ -724,16 +724,18 @@ const polyDesign: FurnitureDesign = {
       // - 合頁 2 個鎖在「後壁切線」位置
       const liftOffAuto = Math.max(8, Math.round(outerH / 5));
       const liftOffH = liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : liftOffAuto;
-      const cutY = outerH - liftOffH;  // 切線 Y 位置（從底算）
+      const cutY = outerH - liftOffH;  // 切線 Y（從底算）
       const liftGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
 
-      // 1. lid 物件改成蓋段的「top 板」(inset-panel 風格、頂面齊 outerH、底面在 outerH - botT)
+      // 1. lid 物件改成 top 板（inset-panel 鏡像底板）：
+      //    底板 Y=[botT, 2·botT]（嵌進牆內、牆底有 botT 裙）
+      //    頂板 Y=[outerH-2·botT, outerH-botT]（嵌進牆內、牆頂有 botT cap）
       lidPart.visible = {
         length: outerL - 2 * wallT + 2 * liftGrooveDepth,
         width: outerW - 2 * wallT + 2 * liftGrooveDepth,
         thickness: botT,
       };
-      lidPart.origin = { x: 0, y: outerH - botT, z: 0 };
+      lidPart.origin = { x: 0, y: outerH - 2 * botT, z: 0 };
       lidPart.nameZh = "盒蓋頂板（鑲板入溝）";
       // 拉孔搬到 top 板中心（手指掀起用）
       const liftLidHole = lidPart.mortises[lidPart.mortises.length - 1];
@@ -742,33 +744,29 @@ const polyDesign: FurnitureDesign = {
         liftLidHole.depth = botT + 0.5;
       }
 
-      // 2. 4 牆切兩段：原 wall 改成「身段」、新增蓋段 wall
-      // 蓋段段數比例 = liftOffH / wallH（wallH = outerH - botT - lidT 從 builder）
-      // 身段段數比例 = (cutY - botT) / wallH
+      // 2. 4 牆切兩段：身段 Y=[0, cutY]、蓋段 Y=[cutY, outerH] — 各段內含自己的板裙/cap
+      // 段數比例依高度：身段 = totalSeg × bodyH/wallH、蓋段 = totalSeg × liftH/wallH
       const totalOriginalSegs = dovetailInfo?.segmentCount ?? (fingerJointInfo?.segmentCount ?? 0);
       const liftSegRaw = Math.max(1, Math.round(totalOriginalSegs * liftOffH / Math.max(1, outerH - botT - lidT)));
-      // 鳩尾要奇數
       const lidCornerSegs = cornerJoinery === "dovetail" && liftSegRaw % 2 === 0 ? liftSegRaw + 1 : liftSegRaw;
       const bodyCornerSegs = Math.max(1, totalOriginalSegs - lidCornerSegs);
 
-      // wallH 各段重算：身段 = cutY - botT、蓋段 = liftOffH - botT（蓋有 top 板占 botT 高）
-      const bodyWallH = cutY - botT;
-      const lidWallH = liftOffH - botT;
+      // 身段牆高 = cutY（從 Y=0 上來到切線、含底部 botT 板裙 + 內高）
+      // 蓋段牆高 = liftOffH（從切線上來到 outerH、含頂部 botT cap + 內高）
+      const bodyWallH = cutY;
+      const lidWallH = liftOffH;
 
       for (const wallId of ["wall-front", "wall-back", "wall-left", "wall-right"] as const) {
         const wall = design.parts.find((p) => p.id === wallId);
         if (!wall) continue;
-        const isLong = wallId === "wall-front" || wallId === "wall-back";
-        // 身段：改高度到 bodyWallH，origin.y 不變（=botT）
+        // 身段：改高度到 cutY、origin.y=0（從盒底起算、含底板裙）
         wall.visible = { ...wall.visible, width: bodyWallH };
+        wall.origin = { ...wall.origin, y: 0 };
         wall.nameZh = wall.nameZh.replace(/（[^）]*$/, "") + "（盒身段）";
-        // shape 段數改身段
-        if (wall.shape?.kind === "dovetail-ends") {
-          wall.shape = { ...wall.shape, segmentCount: bodyCornerSegs };
-        } else if (wall.shape?.kind === "finger-joint-ends") {
+        if (wall.shape?.kind === "dovetail-ends" || wall.shape?.kind === "finger-joint-ends") {
           wall.shape = { ...wall.shape, segmentCount: bodyCornerSegs };
         }
-        // 新增蓋段
+        // 新增蓋段：origin.y=cutY、高度=liftOffH
         const lidWallShape = wall.shape && (wall.shape.kind === "dovetail-ends" || wall.shape.kind === "finger-joint-ends" || wall.shape.kind === "mitered-ends")
           ? { ...wall.shape, ...(wall.shape.kind !== "mitered-ends" ? { segmentCount: lidCornerSegs } : {}) }
           : undefined;
@@ -780,13 +778,24 @@ const polyDesign: FurnitureDesign = {
           visible: { ...wall.visible, width: lidWallH },
           origin: { ...wall.origin, y: cutY },
           rotation: wall.rotation,
-          tenons: [],  // 角接合靠 shape 表達
+          tenons: [],
           mortises: [],
           ...(lidWallShape ? { shape: lidWallShape } : {}),
         });
       }
 
-      // 3. 合頁 2 個鎖在後壁切線位置
+      // 3. 底板強制 inset-panel 風格（user 想要「上下板都做等底版一樣」）
+      const bottomP = design.parts.find((p) => p.id === "bottom");
+      if (bottomP) {
+        bottomP.visible = {
+          length: outerL - 2 * wallT + 2 * liftGrooveDepth,
+          width: outerW - 2 * wallT + 2 * liftGrooveDepth,
+          thickness: botT,
+        };
+        bottomP.origin = { x: 0, y: botT, z: 0 };
+      }
+
+      // 4. 合頁 2 個鎖在後壁切線位置
       const hingeL = 25, hingeW = 8, hingeT = 3;
       for (let i = 0; i < 2; i++) {
         design.parts.push({
