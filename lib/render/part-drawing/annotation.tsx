@@ -769,17 +769,37 @@ export function T2Annotations({
     }
     const partEls: React.ReactNode[] = [
       mortiseIsRound ? (
-        <ellipse
-          key={`${it.kind}-${it.idx}-box`}
-          cx={box.x + box.w / 2}
-          cy={box.y + box.h / 2}
-          rx={box.w / 2}
-          ry={box.h / 2}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={1.2}
-          strokeDasharray={dash}
-        />
+        <g key={`${it.kind}-${it.idx}-box`}>
+          <ellipse
+            cx={box.x + box.w / 2}
+            cy={box.y + box.h / 2}
+            rx={box.w / 2}
+            ry={box.h / 2}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={1.2}
+            strokeDasharray={dash}
+          />
+          {/* 工程慣例：圓孔中心 long-dash-dot 十字線、延伸圓外 25% */}
+          <line
+            x1={box.x - box.w * 0.25}
+            x2={box.x + box.w * 1.25}
+            y1={box.y + box.h / 2}
+            y2={box.y + box.h / 2}
+            stroke={stroke}
+            strokeWidth={0.4}
+            strokeDasharray="4 1.5 0.5 1.5"
+          />
+          <line
+            x1={box.x + box.w / 2}
+            x2={box.x + box.w / 2}
+            y1={box.y - box.h * 0.25}
+            y2={box.y + box.h * 1.25}
+            stroke={stroke}
+            strokeWidth={0.4}
+            strokeDasharray="4 1.5 0.5 1.5"
+          />
+        </g>
       ) : (
         <rect
           key={`${it.kind}-${it.idx}-box`}
