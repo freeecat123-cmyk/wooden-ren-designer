@@ -20,6 +20,7 @@ import {
   FacingMark,
   ShapeSpecificAnnotation,
 } from "./annotation";
+import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
 import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 
@@ -98,8 +99,12 @@ export function PartDrawing({
         className ?? ""
       }`}
     >
+      {/* Install hint mini — 整家具縮圖、target part 紅色（Phase 2.5 Task 1） */}
+      <div className="absolute top-2 right-2 z-10">
+        <InstallHintMini design={design} highlightPartId={part.id} />
+      </div>
       {/* Title bar */}
-      <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2">
+      <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2 pr-[88px]">
         <h3 className="font-semibold text-sm">
           {part.nameZh}
           {titleSuffix}
