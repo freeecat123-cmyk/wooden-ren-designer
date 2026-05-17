@@ -419,10 +419,14 @@ function computeBoardLayout(input: CeilingInput, mainCentersCm: number[]): Board
   ).length;
   const cutCols = cols - fullCols;
 
-  // ────── 沿短邊列(無主支對齊,每板長一列) ──────
-  // 副支不在板邊位置(副支密度不等於板長),故板長方向只用 boardLongCm 切
-  const rows = Math.ceil(input.shortSideCm / input.boardLongCm);
-  const fullRows = Math.floor(input.shortSideCm / input.boardLongCm);
+  // ────── 沿短邊列(板邊對齊副支 5×spacing) ──────
+  // 副支間距 36.36 cm × 5 = 181.8 cm ≈ 板長 180 cm,差 1.8 cm
+  // 板邊改放在副支多倍位置(板邊有副支撐,不懸空)
+  // 實際擺板長 180 cm,中間每片剩 1.8 cm 縫(矽利康/接縫帶填,跟長邊同邏輯)
+  const effectiveBoardLongCm =
+    Math.round(input.boardLongCm / input.subSpacingCm) * input.subSpacingCm;
+  const rows = Math.ceil(input.shortSideCm / effectiveBoardLongCm);
+  const fullRows = Math.floor(input.shortSideCm / effectiveBoardLongCm);
 
   const totalPositions = cols * rows;
   // 「全張」= 全寬欄 × 全長列(兩方向都不需裁切)
