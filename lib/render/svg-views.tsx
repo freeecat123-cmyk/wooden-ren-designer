@@ -1794,8 +1794,9 @@ export function OrthoView({
         ];
         const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
-        // 立柱可見邊用粗線 1.4 突顯（俯視圖立柱方塊容易被層板矩形蓋過）
-        const visibleSw = isCornerPost ? 1.4 : 0.9;
+        // 立柱可見邊用粗線 1.4 突顯；零件圖模式（isolatePartId）也用 1.4
+        const visibleSw = isCornerPost || isolatePartId ? 1.4 : 0.9;
+        const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
           const a = corners[i];
           const b = corners[(i + 1) % 4];
@@ -1823,7 +1824,7 @@ export function OrthoView({
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke={seg.hidden ? "#444" : "#111"}
+                stroke={seg.hidden ? "#444" : visibleStroke}
                 strokeWidth={seg.hidden ? 0.7 : visibleSw}
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
                 strokeDashoffset={dashOffset}
