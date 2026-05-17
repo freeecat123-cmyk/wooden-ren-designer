@@ -7,7 +7,7 @@
  * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §4 / §5.1
  */
 
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import type { PartDrawingGroup } from "./grouping";
 import { OrthoView } from "@/lib/render/svg-views";
@@ -95,6 +95,15 @@ export function PartDrawing({
   // 以 preserveAspectRatio="meet" 自動填滿；outer container overflow-auto
   // 提供 scrollbar。比 transform: scale 乾淨（不會把 anti-aliased text 弄糊）
   const useExternalTitle = zoom > 1;
+  const scrollRefs = useRef<Array<HTMLDivElement | null>>([]);
+  useLayoutEffect(() => {
+    // zoom 變動時把每個 view 的 scroll 容器中央錨定（同 ZoomableThreeViews）
+    scrollRefs.current.forEach((el) => {
+      if (!el) return;
+      el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+      el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
+    });
+  }, [zoom, singleView, group.hash]);
   const zoomWrapStyle: React.CSSProperties | undefined =
     zoom > 1
       ? {
@@ -153,7 +162,7 @@ export function PartDrawing({
           : "grid grid-cols-3 gap-2";
         return (
           <div className={gridClass}>
-            {filtered.map(({ view, title, titleEn }) => {
+            {filtered.map(({ view, title, titleEn }, vIdx) => {
               const orthoEl = (
                 <OrthoView
                   design={design}
@@ -189,7 +198,12 @@ export function PartDrawing({
                       {titleEn}
                     </span>
                   </div>
-                  <div className="overflow-auto max-h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]">
+                  <div
+                    ref={(el) => {
+                      scrollRefs.current[vIdx] = el;
+                    }}
+                    className="overflow-auto max-h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]"
+                  >
                     <div style={zoomWrapStyle} className="flex items-center justify-center">
                       {orthoEl}
                     </div>
