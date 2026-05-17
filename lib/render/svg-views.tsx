@@ -934,7 +934,7 @@ export function OrthoView({
         const sw = hidden
           ? 0.7
           : isolatePartId
-            ? 1.2
+            ? 1.5
             : isCornerPost
               ? 1.4
               : 0.9;
@@ -1801,7 +1801,7 @@ export function OrthoView({
         const lines: React.ReactNode[] = [];
         // 立柱可見邊用粗線 1.4；零件圖模式（isolatePartId）下 0.9 在 1x 螢幕
         // 還是 sub-pixel anti-aliased 灰，提到 1.2 才穩定渲染 1 css px 純黑
-        const visibleSw = isolatePartId ? 1.2 : isCornerPost ? 1.4 : 0.9;
+        const visibleSw = isolatePartId ? 1.5 : isCornerPost ? 1.4 : 0.9;
         const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
           const a = corners[i];
