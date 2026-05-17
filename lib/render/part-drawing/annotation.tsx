@@ -85,7 +85,16 @@ export function T1Dimensions({
   const arrowId = `arr-${view}`;
   // T1 dim line 距 part 邊緣（水平用小、垂直保留大 — 垂直方向有 T2 shoulder
   // dim 跟榫頭 box 容易撞，故 vert 端離遠一點）
-  const HORIZ_OFFSET = 18;
+  // HORIZ_OFFSET 18 對「無 tenon 端面」OK，有 tenon 凸出時 W chain dim 會擠
+  // 上來，動態加 12 svg unit 給 W chain 跟箭頭預留空間
+  const hasVertTenon = part.tenons.some(
+    (t) =>
+      t.length > 0 &&
+      (view === "front" || view === "side"
+        ? t.position === "top" || t.position === "bottom"
+        : t.position === "left" || t.position === "right"),
+  );
+  const HORIZ_OFFSET = hasVertTenon ? 30 : 18;
   const VERT_OFFSET = 50;
   const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
