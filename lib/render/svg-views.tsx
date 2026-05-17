@@ -1017,8 +1017,8 @@ export function OrthoView({
               <polygon
                 points={fmt(frontFace)}
                 fill="none"
-                stroke="#111"
-                strokeWidth={0.9}
+                stroke={stroke}
+                strokeWidth={sw}
               />
             </g>
           );
@@ -1095,8 +1095,8 @@ export function OrthoView({
               <polygon
                 points={fmt(topFace)}
                 fill="none"
-                stroke="#111"
-                strokeWidth={0.9}
+                stroke={stroke}
+                strokeWidth={sw}
               />
             </g>
           );
@@ -1125,8 +1125,8 @@ export function OrthoView({
               key={part.id}
               points={polyPts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
               fill="none"
-              stroke="#111"
-              strokeWidth={0.9}
+              stroke={stroke}
+              strokeWidth={sw}
             />
           );
         }
@@ -1385,8 +1385,8 @@ export function OrthoView({
                 <polygon
                   points={endPts}
                   fill="none"
-                  stroke="#111"
-                  strokeWidth={0.5}
+                  stroke={stroke}
+                  strokeWidth={sw * 0.6}
                 />
               </g>
             );
