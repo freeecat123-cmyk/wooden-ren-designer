@@ -751,9 +751,18 @@ export function OrthoView({
         vbY,
         vbW,
         vbH,
+        // 注意：silhouette 渲染時用 -p.y 翻 Y（svg-views 內部慣例）。
+        // overlay (T1/T2/dim line) 為了跟 silhouette 對齊、也需要負 Y。
+        // 這裡的 partLocalToSvg wrap projector、output y 已翻好不用 caller 再處理。
         partLocalToSvg:
           isolatePartId && renderDesign.parts.length > 0
-            ? makeProjector(renderDesign.parts[0], view)
+            ? (() => {
+                const proj = makeProjector(renderDesign.parts[0], view);
+                return (x: number, y: number, z: number) => {
+                  const p = proj(x, y, z);
+                  return { x: p.x, y: -p.y };
+                };
+              })()
             : (_x: number, _y: number, _z: number) => ({ x: 0, y: 0 }),
       }
     : null;
