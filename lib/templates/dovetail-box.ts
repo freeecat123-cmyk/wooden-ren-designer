@@ -633,14 +633,11 @@ const polyDesign: FurnitureDesign = {
         void cutCenterY;
         const zEdgeW = grooveDepth;
         const rightEdgeW = grooveDepth;
-        // 前/後 Z 邊銑切 X 範圍縮 rightEdgeW，避免跟右 X 邊銑切重疊（CSG 非 manifold 殘留）
-        const frontBackLen = lidLenLocal - rightEdgeW;
-        const frontBackOriginX = -rightEdgeW / 2;
-        // 前 Z 邊（不含右邊區）
+        // 前 Z 邊
         lidPart.mortises.push({
-          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
+          origin: { x: 0, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
           depth: cutD,
-          length: frontBackLen,
+          length: lidLenLocal,
           width: zEdgeW,
           through: true,
           shape: "rect",
@@ -648,15 +645,15 @@ const polyDesign: FurnitureDesign = {
         });
         // 後 Z 邊
         lidPart.mortises.push({
-          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
+          origin: { x: 0, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
           depth: cutD,
-          length: frontBackLen,
+          length: lidLenLocal,
           width: zEdgeW,
           through: true,
           shape: "rect",
           cosmetic: true,
         });
-        // 右 X 邊（含背後/前面跟右邊的角落、覆蓋整個右邊條全 Z）
+        // 右 X 邊
         lidPart.mortises.push({
           origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
           depth: cutD,
