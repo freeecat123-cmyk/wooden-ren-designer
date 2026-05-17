@@ -2953,7 +2953,7 @@ export function PerspectiveView({
           //   lidLiftMm > 0 = 垂直浮起 N mm（lift 模式）
           //   lidLiftMm < 0 = 繞後緣 90° 鉸鏈翻開（open 模式）
           const isLidGroup =
-            part.id === "lid" || /^lid-(plug|hinge|cleat)/.test(part.id);
+            part.id === "lid" || /^lid-(plug|hinge|cleat|raised-center)/.test(part.id) || /-lid$/.test(part.id);
           const lidOpenMode = isLidGroup && lidLiftMm < 0;
           // 預設 px/py/pz：未掀 + lift mode 共用
           const liftMm = isLidGroup && lidLiftMm > 0 ? lidLiftMm : 0;
