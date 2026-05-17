@@ -3198,8 +3198,42 @@ export function MaterialList({
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   };
 
-  const rows = design.parts.map((part) => {
-    const cut = calculateCutDimensions(part);
+  // BOM 合併處理：parts.bomMergeWith=X 的子零件併進 X 的 row（不獨立顯示）
+  // 合併 stock = world AABB union（同一塊木料銑出多個次形體）
+  const mergeChildrenByParent = new Map<string, Part[]>();
+  const mergedChildIds = new Set<string>();
+  for (const p of design.parts) {
+    if (p.bomMergeWith) {
+      const list = mergeChildrenByParent.get(p.bomMergeWith) ?? [];
+      list.push(p);
+      mergeChildrenByParent.set(p.bomMergeWith, list);
+      mergedChildIds.add(p.id);
+    }
+  }
+  const worldBBox = (p: Part) => ({
+    xMin: p.origin.x - p.visible.length / 2,
+    xMax: p.origin.x + p.visible.length / 2,
+    yMin: p.origin.y,
+    yMax: p.origin.y + p.visible.thickness,
+    zMin: p.origin.z - p.visible.width / 2,
+    zMax: p.origin.z + p.visible.width / 2,
+  });
+
+  const rows = design.parts
+    .filter((p) => !mergedChildIds.has(p.id))
+    .map((part) => {
+    const children = mergeChildrenByParent.get(part.id) ?? [];
+    let cut: ReturnType<typeof calculateCutDimensions>;
+    if (children.length > 0) {
+      const all = [part, ...children];
+      const bboxes = all.map(worldBBox);
+      const stockL = Math.max(...bboxes.map((b) => b.xMax)) - Math.min(...bboxes.map((b) => b.xMin));
+      const stockT = Math.max(...bboxes.map((b) => b.yMax)) - Math.min(...bboxes.map((b) => b.yMin));
+      const stockW = Math.max(...bboxes.map((b) => b.zMax)) - Math.min(...bboxes.map((b) => b.zMin));
+      cut = { length: stockL, width: stockW, thickness: stockT };
+    } else {
+      cut = calculateCutDimensions(part);
+    }
     const isGlass = part.visual === "glass";
     const isBrass = part.visual === "brass-antique";
     const isHardware = isGlass || isBrass;
