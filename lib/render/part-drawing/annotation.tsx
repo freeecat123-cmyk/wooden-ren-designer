@@ -83,7 +83,10 @@ export function T1Dimensions({
   const W = part.visible.width;
   const T = part.visible.thickness;
   const arrowId = `arr-${view}`;
-  const OFFSET = 18; // SVG px；T1 dim line 距 part 邊緣（小要避免擠進材料、大會浪費版面）
+  // T1 dim line 距 part 邊緣（水平用小、垂直保留大 — 垂直方向有 T2 shoulder
+  // dim 跟榫頭 box 容易撞，故 vert 端離遠一點）
+  const HORIZ_OFFSET = 18;
+  const VERT_OFFSET = 50;
   const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
   let horizP1: { x: number; y: number };
@@ -125,8 +128,8 @@ export function T1Dimensions({
   ];
   const partMinY = Math.min(...allCorners.map((p) => p.y));
   const partMaxX = Math.max(...allCorners.map((p) => p.x));
-  const horizY = partMinY - OFFSET;
-  const vertX = partMaxX + OFFSET;
+  const horizY = partMinY - HORIZ_OFFSET;
+  const vertX = partMaxX + VERT_OFFSET;
 
   // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
   const grossCorners: { x: number; y: number }[] = [...allCorners];
