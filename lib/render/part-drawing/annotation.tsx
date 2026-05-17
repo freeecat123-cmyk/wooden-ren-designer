@@ -919,12 +919,7 @@ export function T2Annotations({
         view === "side" ? round1(2 * lb.hz) : round1(2 * lb.hx);
       const vMm =
         view === "top" ? round1(2 * lb.hz) : round1(2 * lb.hy);
-      const dMm =
-        view === "front"
-          ? round1(2 * lb.hz)
-          : view === "top"
-            ? round1(2 * lb.hy)
-            : round1(2 * lb.hx);
+      // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
       const outerAbove = box.y < partCenterSvg.y;
@@ -1040,18 +1035,6 @@ export function T2Annotations({
             {vMm}
           </text>
         </g>,
-        // 深 / 長 (into-page) 小字：放 box 內中央，避免擠 dim line
-        <text
-          key={`${it.kind}-${it.idx}-Ddim`}
-          x={box.x + box.w / 2}
-          y={box.y + box.h / 2 + 2.5}
-          fontSize={6.5}
-          fill={stroke}
-          fontFamily="monospace"
-          textAnchor="middle"
-        >
-          {isMortise ? `深${dMm}` : `長${dMm}`}
-        </text>,
       );
     }
 
