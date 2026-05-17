@@ -930,7 +930,14 @@ export function OrthoView({
           : (isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view)));
         const stroke = hidden ? "#444" : "#000";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
-        const sw = hidden ? 0.7 : isCornerPost ? 1.4 : 0.9;
+        // 零件圖（isolatePartId）下 0.9 在 1x 螢幕 sub-pixel 灰，1.2 才穩
+        const sw = hidden
+          ? 0.7
+          : isolatePartId
+            ? 1.2
+            : isCornerPost
+              ? 1.4
+              : 0.9;
         const dash = hidden ? "4 3" : undefined;
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
@@ -1792,8 +1799,9 @@ export function OrthoView({
         ];
         const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
-        // 立柱可見邊用粗線 1.4 突顯
-        const visibleSw = isCornerPost ? 1.4 : 0.9;
+        // 立柱可見邊用粗線 1.4；零件圖模式（isolatePartId）下 0.9 在 1x 螢幕
+        // 還是 sub-pixel anti-aliased 灰，提到 1.2 才穩定渲染 1 css px 純黑
+        const visibleSw = isolatePartId ? 1.2 : isCornerPost ? 1.4 : 0.9;
         const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
           const a = corners[i];
