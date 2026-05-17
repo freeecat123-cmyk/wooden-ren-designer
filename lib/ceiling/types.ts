@@ -35,10 +35,12 @@ export interface CeilingInput {
   /** 天花板高 = 完成後天花板到地面(cm) */
   ceilingHeightCm: number;
 
-  /** 主支中心距(cm),預設 90.9 = 3 尺 */
+  /** 主支中心距(cm),預設 90 cm(useAutoSpacing=false 時生效) */
   mainSpacingCm: number;
-  /** 副支中心距(cm),預設 36.36 = 1.2 尺(對齊矽酸鈣板寬度的均分) */
+  /** 副支中心距(cm),預設 36 cm(useAutoSpacing=false 時生效) */
   subSpacingCm: number;
+  /** 自動依板規 + 接縫算間距(true 時 mainSpacing/subSpacing 被覆寫) */
+  useAutoSpacing: boolean;
   /** 主支排版基準(沿長邊) */
   alignmentBase: AlignmentBase;
   /** 副支排版基準(沿短邊),預設 middle 對稱分配剩餘空間 */
@@ -144,8 +146,9 @@ export const DEFAULT_CEILING_INPUT: CeilingInput = {
   slabHeightCm: 280,
   ceilingHeightCm: 260,
 
-  mainSpacingCm: 90,    // 公制裝潢實務(老派台尺 90.9 在 form 可改回)
+  mainSpacingCm: 90,    // 公制裝潢實務(老派台尺 90.9 在 form 可改回,useAutoSpacing=false)
   subSpacingCm: 36,     // 公制裝潢實務(老派台尺 1.2 尺 = 36.36 可改回)
+  useAutoSpacing: true, // 預設依板規自動算間距(板規/接縫變動 → 間距跟著變)
   alignmentBase: "center",
   subAlignmentBase: "middle",
   frameDoublesAsSupport: false,

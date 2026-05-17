@@ -85,10 +85,22 @@ export function CeilingDevClient() {
           </Section>
 
           <Section title="主支排版">
-            <NumberField label="主支中心距" suffix="cm" value={input.mainSpacingCm}
-              onChange={(v) => update("mainSpacingCm", v)} step={0.1} />
-            <NumberField label="副支中心距" suffix="cm" value={input.subSpacingCm}
-              onChange={(v) => update("subSpacingCm", v)} step={0.1} />
+            <Checkbox label="🔒 依板規自動算間距" checked={input.useAutoSpacing}
+              onChange={(v) => update("useAutoSpacing", v)} />
+            <NumberField label="主支中心距" suffix="cm"
+              value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
+              onChange={(v) => update("mainSpacingCm", v)} step={0.1}
+              disabled={input.useAutoSpacing} />
+            <NumberField label="副支中心距" suffix="cm"
+              value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
+              onChange={(v) => update("subSpacingCm", v)} step={0.1}
+              disabled={input.useAutoSpacing} />
+            {input.useAutoSpacing && (
+              <p className="text-[10px] text-amber-700 leading-tight">
+                自動:主支 = 板寬 + 接縫 / 副支 = 板長 ÷ round(板長/36)。
+                改板規或接縫 → 間距自動跟著變。切手動可微調。
+              </p>
+            )}
             <ToggleGroup<AlignmentBase>
               label="主支排版(沿長邊)"
               value={input.alignmentBase}

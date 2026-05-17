@@ -37,17 +37,18 @@ const CASES: TestCase[] = [
     expect: {
       hangerHeightCm: 20,
       pingShu: 4.84,
-      leftoverCm: 50, // 500 − 5×90 (公制預設)
+      // 自動間距:mainSpacing = 90 + 0.3 = 90.3, subSpacing = 180/5 = 36
+      leftoverCm: 48.5, // 500 − 5×90.3
       mainPositionCount: 6,
       mainJoistLengthCm: 312.8,
       mainJoistTimberCount: 6,
       subJoistGroups: [
-        [86.4, 45], // 5 內 slot 寬 90,副支長 90−3.6 = 86.4 × 9 副支
-        [21.4, 18], // 2 邊 slot 寬 25(=leftover/2),副支長 25−3.6 = 21.4 × 9
+        [86.7, 45], // 5 內 slot 寬 90.3,副支長 90.3−3.6 = 86.7 × 9
+        [20.7, 18], // 2 邊 slot 寬 24.25(=leftover/2),副支長 24.25−3.6 = 20.65→20.7 × 9
       ],
-      hangerCount: 24, // 6 主支 × 4 (standard, floor(312.8/90)+1=4)
-      boardFullCount: 5, // 5 全寬欄(90 = boardShort 0 縫)× 1 全長列
-      boardCutCount: 9, // 7 欄 × 2 列 − 5
+      hangerCount: 24, // 6 主支 × 4 (floor(312.8/90)+1=4,hangerSpacing 不受自動間距影響)
+      boardFullCount: 5,
+      boardCutCount: 9,
     },
   },
   {
@@ -55,18 +56,18 @@ const CASES: TestCase[] = [
     input: { ...DEFAULT_CEILING_INPUT, longSideCm: 400, shortSideCm: 400 },
     expect: {
       hangerHeightCm: 20,
-      pingShu: 4.84, // 16 / 3.305
-      leftoverCm: 40, // 400 − 4×90 (公制)
-      mainPositionCount: 5, // floor(400/90)+1 = 5
-      mainJoistLengthCm: 392.8, // 400 − 2×3.6
+      pingShu: 4.84,
+      leftoverCm: 38.8, // 400 − 4×90.3
+      mainPositionCount: 5,
+      mainJoistLengthCm: 392.8,
       mainJoistTimberCount: 5,
       subJoistGroups: [
-        [86.4, 44], // 4 內 slot × 11 副支(floor(392.8/36)+1=11)
-        [16.4, 22], // 2 邊 slot 寬 20,副支 20−3.6 = 16.4 × 11
+        [86.7, 44], // 4 內 slot × 11 副支
+        [15.8, 22], // edge 寬 19.4,副支 19.4−3.6 = 15.8 × 11
       ],
-      hangerCount: 25, // 5 × 5 (floor(392.8/90)+1 = 5)
-      boardFullCount: 8, // 4 全寬欄 × 2 全長列
-      boardCutCount: 10, // 6 欄 × 3 列 − 8
+      hangerCount: 25, // 5 × 5
+      boardFullCount: 8,
+      boardCutCount: 10,
     },
   },
   {
@@ -74,18 +75,18 @@ const CASES: TestCase[] = [
     input: { ...DEFAULT_CEILING_INPUT, longSideCm: 800, shortSideCm: 200 },
     expect: {
       hangerHeightCm: 20,
-      pingShu: 4.84, // 800×200/10000/3.305
-      leftoverCm: 80, // 800 − 8×90 (公制)
+      pingShu: 4.84,
+      leftoverCm: 77.6, // 800 − 8×90.3
       mainPositionCount: 9,
       mainJoistLengthCm: 192.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [86.4, 48], // 8 內 slot × 6 副支(floor(192.8/36)+1=6)
-        [36.4, 12], // 2 邊 slot 寬 40,副支 40−3.6 = 36.4 × 6
+        [86.7, 48], // 8 內 slot × 6 副支
+        [35.2, 12], // edge 寬 38.8,副支 38.8−3.6 = 35.2 × 6
       ],
-      hangerCount: 27, // 9 × 3 (floor(192.8/90)+1 = 3)
-      boardFullCount: 8, // 8 全寬欄 × 1 全長列
-      boardCutCount: 12, // 10 欄 × 2 列 − 8
+      hangerCount: 27, // 9 × 3
+      boardFullCount: 8,
+      boardCutCount: 12,
     },
   },
   {
@@ -93,18 +94,18 @@ const CASES: TestCase[] = [
     input: { ...DEFAULT_CEILING_INPUT, longSideCm: 800, shortSideCm: 600 },
     expect: {
       hangerHeightCm: 20,
-      pingShu: 14.52, // 48 / 3.305
-      leftoverCm: 80,
+      pingShu: 14.52,
+      leftoverCm: 77.6,
       mainPositionCount: 9,
       mainJoistLengthCm: 592.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [86.4, 136], // 8 內 slot × 17 副支(floor(592.8/36)+1=17)
-        [36.4, 34], // 2 邊 slot × 17 副支
+        [86.7, 136], // 8 內 slot × 17 副支
+        [35.2, 34],  // edge × 17
       ],
-      hangerCount: 63, // 9 × 7 (floor(592.8/90)+1 = 7)
-      boardFullCount: 24, // 8 全寬欄 × 3 全長列
-      boardCutCount: 16, // 10 欄 × 4 列 − 24
+      hangerCount: 63, // 9 × 7
+      boardFullCount: 24,
+      boardCutCount: 16,
     },
   },
 ];

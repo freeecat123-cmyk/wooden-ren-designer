@@ -4474,6 +4474,12 @@ frameTotalM  = frameTotalCm / 100
 3. 矽酸鈣板長對齊短邊,板寬對齊長邊(板邊落主支中心)
 4. **預設公制間距**:主支 90 cm、副支 36 cm,跟板 90/180 完美對齊 0 累積縫
    (老派台尺 90.9 / 36.36 form 內可改回,會有 0.9 / 1.8 cm 累積縫)
+4.b **`useAutoSpacing` 預設 true** — 板規 / 接縫變,間距自動跟著算:
+    - `effectiveMainSpacing = boardShortCm + jointGapMm/10`
+      (板放間距裡 + 接縫,例:90 + 0.3 = 90.3 cm)
+    - `effectiveSubSpacing = boardLongCm / round(boardLongCm / 36)`
+      (板長均分目標 36 cm 鄰近,例:180/round(5)= 180/5 = 36 cm)
+    切手動模式可用 form 自填值(老派台尺或客製案場)
 5. **板邊預留接縫 `jointGapMm`(預設 3 mm,業界規範 3-6 mm)**;不論縫多寬皆需
    環氧樹脂填縫 + 48 mm 寬纖維接縫帶 + 批土收尾(防天花板熱脹冷縮 / 結構振動裂)
 6. 邊框吊筋未計(僅主支吊筋);邊框另有牆面固定 + 四角輔助

@@ -38,7 +38,21 @@ const EPS = 0.01; // cm, 浮點容差
 /**
  * 主入口:輸入 → 完整 BOM + 中間 trace
  */
-export function computeCeilingBom(input: CeilingInput): CeilingBom {
+export function computeCeilingBom(rawInput: CeilingInput): CeilingBom {
+  // 自動依板規算間距(若 useAutoSpacing=true):
+  //   mainSpacing = boardShortCm + jointGap (cm)  // 板放間距裡 + 接縫
+  //   subSpacing  = boardLongCm / round(boardLongCm / 36) // 板長均分,目標 ~36cm
+  // 否則用使用者 form 自填值。
+  const input: CeilingInput = rawInput.useAutoSpacing
+    ? {
+        ...rawInput,
+        mainSpacingCm: rawInput.boardShortCm + rawInput.jointGapMm / 10,
+        subSpacingCm:
+          rawInput.boardLongCm /
+          Math.max(1, Math.round(rawInput.boardLongCm / 36)),
+      }
+    : rawInput;
+
   const auto = computeAutoCalc(input);
   const layout = computeMainJoistLayout(input, auto);
   const supports = computeSupportPositions(input, layout);
