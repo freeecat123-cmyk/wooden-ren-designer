@@ -4379,6 +4379,26 @@ subJoistCount     = subPerSlot
 
 最後依 `round1(subJoistLengthCm)` 為 key 把所有 slot group by 合併成材料表。
 
+### §CE.5b 副支 Y 位置(沿短邊,套 subAlignmentBase)
+
+副支根數 N 算完後,N 根的 Y 中心位置依 `subAlignmentBase` 決定:
+
+```
+usedSpan   = (N − 1) × subSpacingCm
+leftoverCm = shortInnerCm − usedSpan
+
+firstOffset = match subAlignmentBase:
+  "top"    → 0
+  "middle" → leftoverCm / 2
+  "bottom" → leftoverCm
+
+yOffsets[i] = firstOffset + i × subSpacingCm   for i in 0..N-1
+```
+
+`yOffsets` 是相對 `innerY0`(= 邊框內側面)的距離。SVG 與 3D 直接從 `trace.subJoistYOffsetsCm` 讀,不再各自重算。
+
+跟主支 `alignmentBase`(沿長邊)對稱:`alignmentBase` 管長邊剩餘收邊,`subAlignmentBase` 管短邊剩餘空間。
+
 ### §CE.6 吊筋
 
 ```

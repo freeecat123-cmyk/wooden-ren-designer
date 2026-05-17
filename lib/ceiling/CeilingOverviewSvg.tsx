@@ -125,7 +125,7 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
       })}
 
       {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
-      {renderSubJoists(input, trace, x0, innerY0, innerY1, tw)}
+      {renderSubJoists(trace, x0, innerY0, tw)}
 
       {/* ────── 7. 尺寸標註 ────── */}
       {/* 長邊 — 頂部 */}
@@ -173,33 +173,22 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
 // 放 subJoistCount 根水平短矩形,沿短邊均分
 // ─────────────────────────────────────────────────────────
 function renderSubJoists(
-  input: { timberWidthCm: number; subSpacingCm: number; shortSideCm: number },
   trace: CeilingBom["trace"],
   x0: number,
   innerY0: number,
-  innerY1: number,
   tw: number,
 ) {
-  // 副支沿短邊方向均分,從 innerY0 起每 subSpacingCm 一根中心
-  // 每根副支的長度 = slotWidth − tw(對接兩側)
+  // 副支 Y 位置由 calc.ts trace 給(套 subAlignmentBase),SVG 不再自算
+  // 每根副支長度 = slotWidth − tw(對接兩側,calc.ts 已算進 BOM)
   const subThickness = Math.max(0.8, tw * 0.6); // 視覺細一點,跟主支區分
   const elements: React.ReactNode[] = [];
 
   for (let si = 0; si < trace.slots.length; si++) {
     const slot = trace.slots[si];
-    const slotLeftCm = slot.fromCm;
-    const slotRightCm = slot.toCm;
-    // 副支 x 範圍:slot 左 + tw/2 到 slot 右 − tw/2
-    const xStart = x0 + slotLeftCm + tw / 2;
-    const xEnd = x0 + slotRightCm - tw / 2;
-    // 副支 y 位置:從 innerY0 起每 subSpacingCm
-    for (let i = 0; i < slot.subJoistCount; i++) {
-      const cy = innerY0 + (i + 0.5) * input.subSpacingCm + (i * 0); // 中心位置
-      // 簡單均分:跨 innerY0..innerY1,留首尾半距
-      const usableH = innerY1 - innerY0;
-      const step = input.subSpacingCm;
-      const yCenter = innerY0 + step / 2 + i * step;
-      if (yCenter > innerY1 - subThickness / 2) break;
+    const xStart = x0 + slot.fromCm + tw / 2;
+    const xEnd = x0 + slot.toCm - tw / 2;
+    for (let i = 0; i < trace.subJoistYOffsetsCm.length; i++) {
+      const yCenter = innerY0 + trace.subJoistYOffsetsCm[i];
       elements.push(
         <rect
           key={`sub-${si}-${i}`}

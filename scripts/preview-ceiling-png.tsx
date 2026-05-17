@@ -13,12 +13,12 @@ import { computeCeilingBom } from "@/lib/ceiling/calc";
 import { DEFAULT_CEILING_INPUT } from "@/lib/ceiling/types";
 
 const cases = [
-  { slug: "01-baseline", name: "baseline 500×320 中置", input: { ...DEFAULT_CEILING_INPUT } },
-  { slug: "02-align-left", name: "靠左 500×320", input: { ...DEFAULT_CEILING_INPUT, alignmentBase: "left" as const } },
-  { slug: "03-align-right", name: "靠右 500×320", input: { ...DEFAULT_CEILING_INPUT, alignmentBase: "right" as const } },
-  { slug: "04-frame-doubles", name: "邊框兼支撐 500×320 中置", input: { ...DEFAULT_CEILING_INPUT, frameDoublesAsSupport: true } },
-  { slug: "05-square-400", name: "正方形 400×400", input: { ...DEFAULT_CEILING_INPUT, longSideCm: 400, shortSideCm: 400 } },
-  { slug: "06-corridor-800x200", name: "超長條 800×200", input: { ...DEFAULT_CEILING_INPUT, longSideCm: 800, shortSideCm: 200 } },
+  { slug: "01-baseline", name: "baseline 500×320 主中/副中", input: { ...DEFAULT_CEILING_INPUT } },
+  { slug: "02-align-left", name: "主靠左 / 副置中", input: { ...DEFAULT_CEILING_INPUT, alignmentBase: "left" as const } },
+  { slug: "03-align-right", name: "主靠右 / 副置中", input: { ...DEFAULT_CEILING_INPUT, alignmentBase: "right" as const } },
+  { slug: "04-sub-top", name: "副支靠上 / 主置中", input: { ...DEFAULT_CEILING_INPUT, subAlignmentBase: "top" as const } },
+  { slug: "05-sub-bottom", name: "副支靠下 / 主置中", input: { ...DEFAULT_CEILING_INPUT, subAlignmentBase: "bottom" as const } },
+  { slug: "06-frame-doubles", name: "邊框兼支撐 + 副置中", input: { ...DEFAULT_CEILING_INPUT, frameDoublesAsSupport: true } },
 ];
 
 (async () => {

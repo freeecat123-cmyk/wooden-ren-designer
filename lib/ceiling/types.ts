@@ -12,8 +12,11 @@
  *   矽酸鈣板 (board)      — 封下緣的板材,標準 90×180 cm(3×6 尺)
  */
 
-/** 排版基準:決定第一根主支起點位置、剩餘收邊留哪側 */
+/** 主支排版基準(沿長邊):決定第一根主支起點、剩餘收邊留哪側 */
 export type AlignmentBase = "left" | "center" | "right";
+
+/** 副支排版基準(沿短邊):決定第一根副支起點、剩餘空間留上 / 下 / 兩側 */
+export type SubAlignmentBase = "top" | "middle" | "bottom";
 
 /**
  * 吊筋密度策略(Q3 對話結論 → 做成 toggle):
@@ -36,8 +39,10 @@ export interface CeilingInput {
   mainSpacingCm: number;
   /** 副支中心距(cm),預設 36.36 = 1.2 尺(對齊矽酸鈣板寬度的均分) */
   subSpacingCm: number;
-  /** 排版基準 */
+  /** 主支排版基準(沿長邊) */
   alignmentBase: AlignmentBase;
+  /** 副支排版基準(沿短邊),預設 middle 對稱分配剩餘空間 */
+  subAlignmentBase: SubAlignmentBase;
   /** 邊框是否兼當第一/最後一根主支(=否時,主支與邊框內側對接,邊框不負重) */
   frameDoublesAsSupport: boolean;
 
@@ -123,6 +128,10 @@ export interface CeilingBom {
     boardCols: number;
     /** 矽酸鈣板「鋪法說明」for 驗證頁 */
     boardLayoutDescription: string;
+    /** 副支 Y 中心位置陣列(相對 innerY0,單位 cm),所有 slot 共用 */
+    subJoistYOffsetsCm: number[];
+    /** 副支剩餘空間(短邊內側 - (N-1)*spacing) */
+    subLeftoverCm: number;
   };
 }
 
@@ -136,6 +145,7 @@ export const DEFAULT_CEILING_INPUT: CeilingInput = {
   mainSpacingCm: 90.9,
   subSpacingCm: 36.36,
   alignmentBase: "center",
+  subAlignmentBase: "middle",
   frameDoublesAsSupport: false,
 
   timberWidthCm: 3.6,

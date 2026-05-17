@@ -30,6 +30,7 @@ import type {
   BomItem,
   CeilingBom,
   CeilingInput,
+  SubAlignmentBase,
 } from "./types";
 
 const EPS = 0.01; // cm, 浮點容差
@@ -42,6 +43,7 @@ export function computeCeilingBom(input: CeilingInput): CeilingBom {
   const layout = computeMainJoistLayout(input, auto);
   const supports = computeSupportPositions(input, layout);
   const slots = computeSlots(input, supports);
+  const subLayout = computeSubJoistYLayout(input);
   const hangerPerMainJoist = computeHangerCountPerJoist(input, layout.mainJoistLengthCm);
   const boardCalc = computeBoardLayout(input);
 
@@ -155,6 +157,8 @@ export function computeCeilingBom(input: CeilingInput): CeilingBom {
       boardRows: boardCalc.rows,
       boardCols: boardCalc.cols,
       boardLayoutDescription: boardCalc.description,
+      subJoistYOffsetsCm: subLayout.offsetsCm.map(round1),
+      subLeftoverCm: round1(subLayout.leftoverCm),
     },
   };
 }
@@ -314,6 +318,43 @@ function computeSlots(
     });
   }
   return slots;
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.5b 副支 Y 位置(沿短邊,套 subAlignmentBase)
+// ─────────────────────────────────────────────────────────
+interface SubJoistYLayout {
+  /** 副支中心 Y 偏移陣列,相對 innerY0(= 邊框內側)單位 cm */
+  offsetsCm: number[];
+  /** 短邊內側未被副支佔的剩餘空間 */
+  leftoverCm: number;
+}
+
+function computeSubJoistYLayout(input: CeilingInput): SubJoistYLayout {
+  // 短邊內側可用空間
+  const shortInnerCm = input.shortSideCm - 2 * input.timberWidthCm;
+  // 副支根數 = floor(short inner / 副支中心距)
+  const n = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm));
+  // 副支從第一根中心到最後一根中心的 span = (n-1) × spacing
+  const usedSpan = n > 0 ? (n - 1) * input.subSpacingCm : 0;
+  // 剩餘空間 = 短邊內側 − usedSpan
+  const leftoverCm = shortInnerCm - usedSpan;
+  // 第一根副支的 Y 偏移(從 innerY0 起算)依 subAlignmentBase 決定
+  const firstOffset = computeSubFirstOffset(leftoverCm, input.subAlignmentBase);
+
+  const offsetsCm: number[] = [];
+  for (let i = 0; i < n; i++) {
+    offsetsCm.push(firstOffset + i * input.subSpacingCm);
+  }
+  return { offsetsCm, leftoverCm };
+}
+
+function computeSubFirstOffset(leftoverCm: number, base: SubAlignmentBase): number {
+  switch (base) {
+    case "top":    return 0;
+    case "middle": return leftoverCm / 2;
+    case "bottom": return leftoverCm;
+  }
 }
 
 // ─────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import {
   type AlignmentBase,
   type CeilingInput,
   type HangerDensity,
+  type SubAlignmentBase,
 } from "@/lib/ceiling/types";
 import { bomToCsvRows, computeCeilingBom } from "@/lib/ceiling/calc";
 import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
@@ -77,7 +78,7 @@ export function CeilingDevClient() {
             <NumberField label="副支中心距" suffix="cm" value={input.subSpacingCm}
               onChange={(v) => update("subSpacingCm", v)} step={0.1} />
             <ToggleGroup<AlignmentBase>
-              label="排版基準"
+              label="主支排版(沿長邊)"
               value={input.alignmentBase}
               options={[
                 { value: "left", label: "靠左" },
@@ -85,6 +86,16 @@ export function CeilingDevClient() {
                 { value: "right", label: "靠右" },
               ]}
               onChange={(v) => update("alignmentBase", v)}
+            />
+            <ToggleGroup<SubAlignmentBase>
+              label="副支排版(沿短邊)"
+              value={input.subAlignmentBase}
+              options={[
+                { value: "top", label: "靠上" },
+                { value: "middle", label: "置中" },
+                { value: "bottom", label: "靠下" },
+              ]}
+              onChange={(v) => update("subAlignmentBase", v)}
             />
             <Checkbox label="邊框兼當支撐" checked={input.frameDoublesAsSupport}
               onChange={(v) => update("frameDoublesAsSupport", v)} />
