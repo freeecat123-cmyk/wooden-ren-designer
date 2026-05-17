@@ -846,7 +846,14 @@ const polyDesign: FurnitureDesign = {
   // 其他蓋型：頂上緣齊壁內頂 = outerH - lidT
   const slidingSinkMm = 5;
   const slidingClearance = lidType === "sliding" ? slidingSinkMm + 1 : 0;
-  const wallTopY = outerH - (withLid ? lidT + slidingClearance : 0);
+  // lift-off：隔板停在切線 cutY (= outerH - liftOffH)、跟 lidT 無關
+  // 其他蓋型：依 lidT + sliding 額外 clearance
+  const liftOffHForDivider = lidType === "lift-off"
+    ? (liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : Math.max(8, Math.round(outerH / 5)))
+    : 0;
+  const wallTopY = lidType === "lift-off"
+    ? outerH - liftOffHForDivider
+    : outerH - (withLid ? lidT + slidingClearance : 0);
   const dividerMaxH = Math.max(1, wallTopY - dividerBaseY);
   const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, dividerMaxH) : dividerMaxH;
   const innerLDim = outerL - 2 * wallT;
