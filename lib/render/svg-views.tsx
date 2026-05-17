@@ -926,12 +926,13 @@ export function OrthoView({
         const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view));
         const stroke = hidden ? "#444" : "#000";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
-        // 零件圖模式（isolatePartId）下 part 為主角、粗線加深輪廓
+        // 零件圖模式（isolatePartId）下 part 為主角、用 2.5 比立柱粗、不會被
+        // anti-aliasing 弱化成灰
         const sw = hidden
           ? 0.7
-          : isCornerPost
-            ? 1.4
-            : isolatePartId
+          : isolatePartId
+            ? 2.5
+            : isCornerPost
               ? 1.4
               : 0.9;
         const dash = hidden ? "4 3" : undefined;
@@ -1794,8 +1795,8 @@ export function OrthoView({
         ];
         const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
-        // 立柱可見邊用粗線 1.4 突顯；零件圖模式（isolatePartId）也用 1.4
-        const visibleSw = isCornerPost || isolatePartId ? 1.4 : 0.9;
+        // 立柱可見邊用粗線 1.4 突顯；零件圖模式（isolatePartId）用 2.5 加粗
+        const visibleSw = isolatePartId ? 2.5 : isCornerPost ? 1.4 : 0.9;
         const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
           const a = corners[i];
