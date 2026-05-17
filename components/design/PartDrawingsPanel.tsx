@@ -140,29 +140,21 @@ export function PartDrawingsPanel({ design }: Props) {
               </button>
             </div>
             <div className="p-4 overflow-auto">
-              <div
-                style={
-                  zoomedView !== null && zoom > 1
-                    ? {
-                        transform: `scale(${zoom})`,
-                        transformOrigin: "top left",
-                        width: `${100 / zoom}%`,
-                      }
-                    : undefined
+              {/* zoom 改交給 PartDrawing 內部處理：只縮 SVG drawing 本體、
+                  不縮卡片邊框 / 標題列 / 右上角 InstallHintMini / 底部 title block / T2 標註清單。
+                  外層不再 transform: scale，避免「正視/側視」「縮圖」一起放大。 */}
+              <PartDrawing
+                group={groups[openIdx]}
+                design={design}
+                index={openIdx}
+                viewLayout="stack"
+                singleView={zoomedView ?? undefined}
+                onViewClick={
+                  zoomedView ? undefined : (v) => setZoomedView(v)
                 }
-              >
-                <PartDrawing
-                  group={groups[openIdx]}
-                  design={design}
-                  index={openIdx}
-                  viewLayout="stack"
-                  singleView={zoomedView ?? undefined}
-                  onViewClick={
-                    zoomedView ? undefined : (v) => setZoomedView(v)
-                  }
-                  orthoClassName="bg-white w-full h-auto"
-                />
-              </div>
+                orthoClassName="bg-white w-full h-auto"
+                zoom={zoomedView !== null ? zoom : 1}
+              />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
                   type="button"
