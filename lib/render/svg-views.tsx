@@ -923,7 +923,11 @@ export function OrthoView({
         // 立柱永遠 visible（櫃體外輪廓骨架），不走 isPartHidden 的 4 立柱互相
         // contains 判斷（每個立柱投影都被其他立柱包住，會全部誤判 hidden）。
         // 格扇門櫺條同理——凸貼浮雕不該被它附著的門 part contain 規則藏掉。
-        const hidden = isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view));
+        // 零件圖模式（isolatePartId）：part 就是主角，不該套組裝視圖的
+        // interior/hidden 啟發式（e.g. apron-front 側視被 dir="front" 判 hidden）。
+        const hidden = isolatePartId
+          ? false
+          : (isInteriorInFront || isInteriorInSide || (!isCornerPost && !isDoorMuntin && isPartHidden(part, renderDesign.parts, view)));
         const stroke = hidden ? "#444" : "#000";
         // 立柱用粗線突顯（俯視圖立柱方塊容易被頂板/層板矩形蓋住）
         const sw = hidden ? 0.7 : isCornerPost ? 1.4 : 0.9;
