@@ -80,6 +80,10 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
   ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）", dependsOn: { key: "withLid", equals: true } },
+  { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
+    { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
+    { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
+  ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "sliding" }] } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -112,6 +116,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const withLid = getOption<boolean>(input, opt(o, "withLid"));
   const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
   const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
+  const slidingLidStyle = getOption<string>(input, opt(o, "slidingLidStyle"));
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
@@ -596,6 +601,72 @@ const polyDesign: FurnitureDesign = {
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
         wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
+      }
+      // v2 中央凸起：lid 加厚 sinkMm 到 fullT，4 邊銑掉 sinkMm 留邊條卡進槽
+      // - F/B 滑槽、壁延伸、cap 全部跟 v1 一樣不動
+      // - lid 整片厚料 17mm = lidT(12) + sinkMm(5)，origin.y 下移到 outerH-fullT
+      // - 4 邊銑掉頂 sinkMm 留邊條 lidT 厚卡進槽
+      // - 邊寬：前/後/右 = grooveDepth（槽深度，5mm）；左 = wallT（lid 延伸到 box outer 補滑入口）
+      if (slidingLidStyle === "raised-center") {
+        const fullT = lidT + sinkMm;
+        lidPart.visible = { ...lidPart.visible, thickness: fullT };
+        lidPart.origin = { ...lidPart.origin, y: outerH - fullT };
+        lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 拉孔深度自動穿透 fullT，y 中心改 fullT/2
+        const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
+        if (lidHole && lidHole.cosmetic && lidHole.through) {
+          lidHole.depth = fullT + 0.5;
+          lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
+        }
+        // 4 邊銑掉 top sinkMm（cosmetic blind cut，從頂面往下 sinkMm 深）
+        // depth = sinkMm 不加 tolerance（formula 強制 slot top = part top 不會越界）
+        const lidLenLocal = lidPart.visible.length;
+        const lidWidLocal = lidPart.visible.width;
+        const cutD = sinkMm;
+        const cutCenterY = fullT - sinkMm / 2;  // 從頂面往下、cy formula 會強制對齊
+        const zEdgeW = grooveDepth;  // 前/後邊條寬 = 槽深度
+        const leftEdgeW = wallT;     // 左邊 = lid 延伸到 box outer 補滑入口 wallT
+        const rightEdgeW = grooveDepth;  // 右邊條寬 = 槽深度
+        // 前 Z 邊（沿 X 方向全長、Z 寬 grooveDepth）
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterY, z: -(lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 後 Z 邊
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterY, z: (lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 左 X 邊（X 寬 wallT）
+        lidPart.mortises.push({
+          origin: { x: -(lidLenLocal - leftEdgeW) / 2, y: cutCenterY, z: 0 },
+          depth: cutD,
+          length: leftEdgeW,
+          width: lidWidLocal,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 右 X 邊（X 寬 grooveDepth）
+        lidPart.mortises.push({
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterY, z: 0 },
+          depth: cutD,
+          length: rightEdgeW,
+          width: lidWidLocal,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
