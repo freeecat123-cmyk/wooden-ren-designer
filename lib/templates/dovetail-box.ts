@@ -575,11 +575,12 @@ const polyDesign: FurnitureDesign = {
         // 內側面 (from-bottom)：wall-front 內面 = +Y_local = ly；其餘 = -Y_local = 0
         const innerFromBottom =
           p.id === "wall-front" ? wallT - grooveDepth / 2 : grooveDepth / 2;
-        // F/B 槽從 wall-left 內側面（沒槽）延伸到 wall-right 槽底（多進 grooveDepth）：
-        // 槽長 = visible.length - 2·wallT + grooveDepth，中心向 +X (wall-right) 偏 grooveDepth/2
+        // F/B 槽從 wall-left 外側面（lid 滑入口，-X 全開）延伸到 wall-right 槽底（+X 多進 grooveDepth）：
+        // X 範圍 = [-outerL/2, outerL/2 - wallT + grooveDepth]
+        // 槽長 = visible.length - wallT + grooveDepth、origin.x = (grooveDepth - wallT)/2
         const isLong = p.id === "wall-front" || p.id === "wall-back";
-        const grooveLen = isLong ? p.visible.length - 2 * wallT + grooveDepth : p.visible.length;
-        const grooveOriginX = isLong ? grooveDepth / 2 : 0;
+        const grooveLen = isLong ? p.visible.length - wallT + grooveDepth : p.visible.length;
+        const grooveOriginX = isLong ? (grooveDepth - wallT) / 2 : 0;
         p.mortises.push({
           origin: { x: grooveOriginX, y: innerFromBottom, z: grooveLocalZ },
           depth: grooveDepth + 0.3,
