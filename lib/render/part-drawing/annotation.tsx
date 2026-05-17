@@ -127,6 +127,44 @@ export function T1Dimensions({
   const horizY = partMinY - OFFSET;
   const vertX = partMaxX + OFFSET;
 
+  // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
+  const grossCorners: { x: number; y: number }[] = [...allCorners];
+  for (const t of part.tenons) {
+    if (t.length <= 0) continue;
+    const lb = tenonLocalBox(part, t);
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          grossCorners.push(
+            ctx.partLocalToSvg(
+              lb.cx + sx * lb.hx,
+              lb.cy + sy * lb.hy,
+              lb.cz + sz * lb.hz,
+            ),
+          );
+        }
+      }
+    }
+  }
+  const grossMinX = Math.min(...grossCorners.map((p) => p.x));
+  const grossMaxX = Math.max(...grossCorners.map((p) => p.x));
+  const grossMinY = Math.min(...grossCorners.map((p) => p.y));
+  const grossMaxY = Math.max(...grossCorners.map((p) => p.y));
+  const partWidthSvg =
+    Math.max(...allCorners.map((p) => p.x)) -
+    Math.min(...allCorners.map((p) => p.x));
+  const partHeightSvg =
+    Math.max(...allCorners.map((p) => p.y)) -
+    Math.min(...allCorners.map((p) => p.y));
+  const svgPerMmX =
+    horiz > 0.1 && partWidthSvg > 1 ? partWidthSvg / horiz : 1;
+  const svgPerMmY =
+    vert > 0.1 && partHeightSvg > 1 ? partHeightSvg / vert : 1;
+  const horizGross = round1((grossMaxX - grossMinX) / svgPerMmX);
+  const vertGross = round1((grossMaxY - grossMinY) / svgPerMmY);
+  const showHorizGross = horizGross - horiz > 0.5;
+  const showVertGross = vertGross - vert > 0.5;
+
   // 自己畫 dim line + extension（DimensionLine 預設 extension 朝上、不適合
   // 我們 dim line 在 part 上方的場景——應該朝 part 下方延伸）
   const sortedX = [horizP1.x, horizP2.x].sort((a, b) => a - b);
@@ -159,6 +197,49 @@ export function T1Dimensions({
         {`${horizLabel} ${horiz}`}
       </text>
 
+      {/* 連榫頭總長 dim：在水平 dim 上方再加一條，跨整個 gross bbox */}
+      {showHorizGross && (
+        <g>
+          <line
+            x1={grossMinX}
+            y1={horizY - 20 - 2}
+            x2={grossMinX}
+            y2={horizY - 2}
+            strokeWidth={0.25}
+            stroke="#888"
+          />
+          <line
+            x1={grossMaxX}
+            y1={horizY - 20 - 2}
+            x2={grossMaxX}
+            y2={horizY - 2}
+            strokeWidth={0.25}
+            stroke="#888"
+          />
+          <line
+            x1={grossMinX}
+            y1={horizY - 20}
+            x2={grossMaxX}
+            y2={horizY - 20}
+          />
+          <polygon
+            points={`${grossMinX},${horizY - 20} ${grossMinX + ARROW},${horizY - 20 - ARROW} ${grossMinX + ARROW},${horizY - 20 + ARROW}`}
+          />
+          <polygon
+            points={`${grossMaxX},${horizY - 20} ${grossMaxX - ARROW},${horizY - 20 - ARROW} ${grossMaxX - ARROW},${horizY - 20 + ARROW}`}
+          />
+          <text
+            x={(grossMinX + grossMaxX) / 2}
+            y={horizY - 20 - 4}
+            textAnchor="middle"
+            fontSize={11}
+            stroke="none"
+          >
+            {`含榫 ${horizGross}`}
+          </text>
+        </g>
+      )}
+
       {/* 垂直 dim line：dim line 在 part 右方、extension 從 dim line 往左拉到
           part edge 外側（留 2mm gap、不越過 part 邊）。 */}
       <line x1={vertX + 2} y1={vyLo} x2={vPartX + 2} y2={vyLo} strokeWidth={0.25} stroke="#888" />
@@ -169,6 +250,48 @@ export function T1Dimensions({
       <text x={vertX + 4} y={(vyLo + vyHi) / 2 + 4} fontSize={11} stroke="none">
         {`${vertLabel} ${vert}`}
       </text>
+
+      {/* 連榫頭總長 dim（垂直）：vertical dim 右方再加一條 */}
+      {showVertGross && (
+        <g>
+          <line
+            x1={vertX + 20 + 2}
+            y1={grossMinY}
+            x2={vertX + 2}
+            y2={grossMinY}
+            strokeWidth={0.25}
+            stroke="#888"
+          />
+          <line
+            x1={vertX + 20 + 2}
+            y1={grossMaxY}
+            x2={vertX + 2}
+            y2={grossMaxY}
+            strokeWidth={0.25}
+            stroke="#888"
+          />
+          <line
+            x1={vertX + 20}
+            y1={grossMinY}
+            x2={vertX + 20}
+            y2={grossMaxY}
+          />
+          <polygon
+            points={`${vertX + 20},${grossMinY} ${vertX + 20 - ARROW},${grossMinY + ARROW} ${vertX + 20 + ARROW},${grossMinY + ARROW}`}
+          />
+          <polygon
+            points={`${vertX + 20},${grossMaxY} ${vertX + 20 - ARROW},${grossMaxY - ARROW} ${vertX + 20 + ARROW},${grossMaxY - ARROW}`}
+          />
+          <text
+            x={vertX + 20 + 4}
+            y={(grossMinY + grossMaxY) / 2 + 4}
+            fontSize={11}
+            stroke="none"
+          >
+            {`含榫 ${vertGross}`}
+          </text>
+        </g>
+      )}
     </g>
   );
 }
@@ -1072,10 +1195,27 @@ export function T2Annotations({
       const mmPerSvgY =
         box.h > 1 && vMm > 0.1 ? vMm / box.h : 1;
 
-      const shoulderTop = round1((box.y - partTopY) * mmPerSvgY);
-      const shoulderBot = round1((partBottomY - (box.y + box.h)) * mmPerSvgY);
-      const shoulderLft = round1((box.x - partLeftX) * mmPerSvgX);
-      const shoulderRgt = round1((partRightX - (box.x + box.w)) * mmPerSvgX);
+      // feature 必須在 part body 那軸範圍內，才算 shoulder（榫頭凸出側不是
+      // shoulder、是 part 外）；2mm 容差吸收 SVG 投影誤差
+      const SLACK = 2;
+      const featureInsideX =
+        box.x >= partLeftX - SLACK &&
+        box.x + box.w <= partRightX + SLACK;
+      const featureInsideY =
+        box.y >= partTopY - SLACK &&
+        box.y + box.h <= partBottomY + SLACK;
+      const shoulderTop = featureInsideY
+        ? round1((box.y - partTopY) * mmPerSvgY)
+        : 0;
+      const shoulderBot = featureInsideY
+        ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
+        : 0;
+      const shoulderLft = featureInsideX
+        ? round1((box.x - partLeftX) * mmPerSvgX)
+        : 0;
+      const shoulderRgt = featureInsideX
+        ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
+        : 0;
       const TH = 2; // mm 門檻
 
       // L dim 線（vertical）上下延伸：partTop→box.y 和 box.y+box.h→partBottom
