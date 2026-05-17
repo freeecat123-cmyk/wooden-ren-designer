@@ -1215,12 +1215,55 @@ export function T2Annotations({
       const featureInsideY =
         box.y >= partTopY - SLACK &&
         box.y + box.h <= partBottomY + SLACK;
+
+      // 同軸 sibling 偵測：避免兩個 mortise/tenon 各畫自己的 shoulder 到 part
+      // 邊、視覺重疊。chain dim 慣例：用「上一個 sibling 邊→這個 feature 邊」
+      // 算 shoulderTop，「這個 feature 邊→下一個 sibling 邊」算 shoulderBot；
+      // 中間段 shoulderBot 跳過、由下一個 sibling 的 shoulderTop 補。
+      const COL_TOL = 5; // SVG px 容差
+      // L 軸 siblings：lDimX 同欄、垂直堆疊
+      const lSiblings = items
+        .map((other) => ({ other, lb: null as any }))
+        .filter(({ other }, i) => {
+          const otherFeature =
+            other.kind === "m"
+              ? part.mortises[other.idx]
+              : part.tenons[other.idx];
+          const otherLb =
+            other.kind === "m"
+              ? mortiseEntryBox(otherFeature as Mortise)
+              : tenonLocalBox(part, otherFeature as Tenon);
+          const otherR = projectBoxRect(otherLb);
+          if (!otherR) return false;
+          // 判定 same column：兩個 box 的水平 lDimX 應該幾乎一樣
+          return Math.abs(otherR.x - box.x) < COL_TOL;
+        })
+        .map((s, i) => ({
+          ...s,
+          r: items.find((o) => o === s.other)!.rect,
+        }))
+        .sort((a, b) => a.r.y - b.r.y);
+      const myLIdx = lSiblings.findIndex((s) => s.other === it);
+      const prevLSibling = myLIdx > 0 ? lSiblings[myLIdx - 1] : null;
+      const nextLSibling =
+        myLIdx >= 0 && myLIdx < lSiblings.length - 1
+          ? lSiblings[myLIdx + 1]
+          : null;
+
+      // top 邊界：前一個 sibling 的 bot edge（如果有），不然 partTopY
+      const topBoundary = prevLSibling
+        ? prevLSibling.r.y + prevLSibling.r.h
+        : partTopY;
+      // 中段 sibling 的 botShoulder 不畫（由 nextSibling 的 topShoulder 補）
+      const drawBotShoulder = !nextLSibling;
+
       const shoulderTop = featureInsideY
-        ? round1((box.y - partTopY) * mmPerSvgY)
+        ? round1((box.y - topBoundary) * mmPerSvgY)
         : 0;
-      const shoulderBot = featureInsideY
-        ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
-        : 0;
+      const shoulderBot =
+        featureInsideY && drawBotShoulder
+          ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
+          : 0;
       const shoulderLft = featureInsideX
         ? round1((box.x - partLeftX) * mmPerSvgX)
         : 0;
@@ -1228,14 +1271,16 @@ export function T2Annotations({
         ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
         : 0;
       const TH = 2; // mm 門檻
+      // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
+      const shoulderTopStartY = topBoundary;
 
-      // L dim 線（vertical）上下延伸：partTop→box.y 和 box.y+box.h→partBottom
+      // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
       if (shoulderTop > TH) {
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
               x1={lDimX}
-              y1={partTopY}
+              y1={shoulderTopStartY}
               x2={lDimX}
               y2={box.y}
               stroke={stroke}
@@ -1243,16 +1288,16 @@ export function T2Annotations({
             />
             <line
               x1={outerLeft ? partLeftX : partRightX}
-              y1={partTopY}
+              y1={shoulderTopStartY}
               x2={lDimX}
-              y2={partTopY}
+              y2={shoulderTopStartY}
               stroke={stroke}
               strokeWidth={0.3}
             />
-            {inwardArrowsV(partTopY, box.y, lDimX)}
+            {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
             <text
               x={lLabelX}
-              y={(partTopY + box.y) / 2 + 3}
+              y={(shoulderTopStartY + box.y) / 2 + 3}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
