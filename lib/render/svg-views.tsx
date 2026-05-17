@@ -828,17 +828,14 @@ export function OrthoView({
           fontFamily="sans-serif"
         >
           {title}
-        </text>
-        <text
-          x={frameX + 10}
-          y={frameY + TITLE_BAR_H - 10}
-          dx={70}
-          dy="14"
-          fontSize={10}
-          fill="#666"
-          fontFamily="sans-serif"
-        >
-          {titleEn}
+          <tspan
+            dx={8}
+            fontSize={10}
+            fontWeight="400"
+            fill="#666"
+          >
+            {titleEn}
+          </tspan>
         </text>
       </g>
 

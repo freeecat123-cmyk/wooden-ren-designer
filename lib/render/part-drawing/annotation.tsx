@@ -1626,7 +1626,9 @@ export function ShapeSpecificAnnotation({
     case "arch-bent":
       return <ArchBentChord ctx={ctx} part={part} view={view} />;
     case "apron-trapezoid":
-      return <ApronTrapezoidDualEdge ctx={ctx} part={part} view={view} />;
+      // 上邊長/下邊長 雙標移除——T1 dim 已標 part body length、taper 細微差
+      // 用 shape 視覺呈現即可，多印一行字反而噪音（user 05-17 22:28 要求）
+      return null;
     case "hoof":
       return <HoofDirection ctx={ctx} part={part} view={view} />;
     case "splayed-tapered":
