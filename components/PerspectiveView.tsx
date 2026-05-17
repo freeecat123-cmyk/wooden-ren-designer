@@ -3365,10 +3365,12 @@ export function PerspectiveView({
               : undefined;
           // 鳩尾榫 wall-left / wall-right：base box geo 減掉前後板 dovetail tail
           // brush，自動形成正確的 pin gap 形狀。前後板有 dovetail-ends shape →
-          // dovetailCutBrushes 已備齊；只對 left/right 兩塊側板套用。
+          // dovetailCutBrushes 已備齊；對 left/right 兩塊側板套用。
+          // lift-off 模式下蓋段側板 wall-left-lid / wall-right-lid 也要套
+          // （依 feedback_csg_overlap_over_analytical_fit：一邊凸出、另一邊 plain + CSG）
           const partDovetailCuts: Brush[] | undefined =
             dovetailCutBrushes.length > 0 &&
-            (part.id === "wall-left" || part.id === "wall-right")
+            (part.id === "wall-left" || part.id === "wall-right" || part.id === "wall-left-lid" || part.id === "wall-right-lid")
               ? dovetailCutBrushes
               : undefined;
           return (
