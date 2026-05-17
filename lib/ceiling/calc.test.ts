@@ -42,8 +42,8 @@ const CASES: TestCase[] = [
       mainJoistLengthCm: 312.8,
       mainJoistTimberCount: 6,
       subJoistGroups: [
-        [87.3, 40], // 5 主支內 slot × 8 副支
-        [19.2, 16], // 2 邊 slot × 8 副支
+        [87.3, 45], // 5 主支內 slot × 9 副支(公式 floor+1)
+        [19.2, 18], // 2 邊 slot × 9 副支
       ],
       hangerCount: 24, // 6 主支 × 4 (standard, floor(312.8/90)+1=4)
       boardFullCount: 5, // 5 全寬 × 1 全長
@@ -61,8 +61,8 @@ const CASES: TestCase[] = [
       mainJoistLengthCm: 392.8, // 400 − 2×3.6
       mainJoistTimberCount: 5,
       subJoistGroups: [
-        [87.3, 40], // 4 內 slot × 10 副支 (floor(392.8/36.36)=10)
-        [14.6, 20], // 2 邊 slot × 10 副支(slot width = 36.4/2 = 18.2,sub = 18.2−3.6 = 14.6)
+        [87.3, 44], // 4 內 slot × 11 副支(floor(392.8/36.36)+1=11)
+        [14.6, 22], // 2 邊 slot × 11 副支
       ],
       hangerCount: 25, // 5 × 5 (floor(392.8/90)+1 = 5)
       boardFullCount: 8, // 4 全寬欄 × 2 全長列(400/180 → fullRows=2)
@@ -80,8 +80,8 @@ const CASES: TestCase[] = [
       mainJoistLengthCm: 192.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [87.3, 40], // 8 內 slot × 5 副支 (floor(192.8/36.36)=5)
-        [32.8, 10], // 2 邊 slot × 5 副支(slot=72.8/2=36.4, sub=36.4-3.6=32.8)
+        [87.3, 48], // 8 內 slot × 6 副支(floor(192.8/36.36)+1=6)
+        [32.8, 12], // 2 邊 slot × 6 副支
       ],
       hangerCount: 27, // 9 × 3 (floor(192.8/90)+1 = 3)
       boardFullCount: 8, // 8 全寬欄 × 1 全長列
@@ -99,8 +99,8 @@ const CASES: TestCase[] = [
       mainJoistLengthCm: 592.8,
       mainJoistTimberCount: 9,
       subJoistGroups: [
-        [87.3, 128], // 8 內 slot × 16 副支(floor(592.8/36.36)=16)
-        [32.8, 32], // 2 邊 slot × 16 副支
+        [87.3, 136], // 8 內 slot × 17 副支(floor(592.8/36.36)+1=17)
+        [32.8, 34], // 2 邊 slot × 17 副支
       ],
       hangerCount: 63, // 9 × 7 (floor(592.8/90)+1 = 7)
       boardFullCount: 24, // 8 全寬欄 × 3 全長列

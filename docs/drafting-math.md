@@ -4363,8 +4363,9 @@ supports = sortUniq([0, ...centers, longSideCm])
 
 ```
 shortInnerCm = shortSideCm − 2 × timberWidthCm
-subPerSlot   = floor(shortInnerCm / subSpacingCm)
-               // ASSUMPTION:每 slot 同密度,首尾不另加
+subPerSlot   = floor(shortInnerCm / subSpacingCm) + 1
+               // 跟主支 §CE.2 同公式邏輯:N 根對應 N-1 個間距、
+               // 極大化覆蓋短邊內側,靠上/靠下模式對應邊不會空一截
 ```
 
 對每對相鄰 `supports[i]`、`supports[i+1]`:

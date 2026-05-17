@@ -296,9 +296,10 @@ function computeSlots(
 ): SlotCalc[] {
   // 短邊內側距離 = 短邊 − 2 × 邊框寬
   const shortInnerCm = input.shortSideCm - 2 * input.timberWidthCm;
-  // 每 slot 的副支數量 = floor(短邊內側距離 / 副支中心距)
-  // ASSUMPTION:每 slot 用同密度,首尾不另加(對齊圖示版)
-  const subPerSlot = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm));
+  // 每 slot 的副支數量 = floor(短邊內側距離 / 副支中心距) + 1
+  //   跟主支 §CE.2 同公式邏輯,確保「N 根 ≤ inner 空間」極大化,
+  //   靠上模式底部不會空一截、靠下模式頂部也不會空一截
+  const subPerSlot = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm) + 1);
 
   const slots: SlotCalc[] = [];
   for (let i = 0; i < supports.length - 1; i++) {
@@ -333,8 +334,8 @@ interface SubJoistYLayout {
 function computeSubJoistYLayout(input: CeilingInput): SubJoistYLayout {
   // 短邊內側可用空間
   const shortInnerCm = input.shortSideCm - 2 * input.timberWidthCm;
-  // 副支根數 = floor(short inner / 副支中心距)
-  const n = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm));
+  // 副支根數 = floor(short inner / 副支中心距) + 1 (跟 computeSlots 公式一致)
+  const n = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm) + 1);
   // 副支從第一根中心到最後一根中心的 span = (n-1) × spacing
   const usedSpan = n > 0 ? (n - 1) * input.subSpacingCm : 0;
   // 剩餘空間 = 短邊內側 − usedSpan
