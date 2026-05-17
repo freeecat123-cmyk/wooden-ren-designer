@@ -700,7 +700,13 @@ export function OrthoView({
     ? (() => {
         const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
-          .map((p) => ({ ...p, origin: { x: 0, y: 0, z: 0 } }));
+          .map((p) => ({
+            ...p,
+            origin: { x: 0, y: 0, z: 0 },
+            // 同時 reset rotation 到 0、讓零件圖回到 part-local 自然姿態
+            // （橫撐 rotation.y=π/2 在家具裡是橫躺、但零件圖要看 length 水平方）
+            rotation: { x: 0, y: 0, z: 0 },
+          }));
         if (!isolated.length) return design;
         const p = isolated[0];
         // 同步更新 overall 用 part 自己的尺寸——之前 OrthoView 用整套家具的

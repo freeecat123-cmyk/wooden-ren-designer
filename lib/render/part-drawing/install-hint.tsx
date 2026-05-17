@@ -25,21 +25,26 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
   const target = design.parts.find((p) => p.id === highlightPartId);
   if (!target) return null;
 
-  // 算整家具 bbox（front view = XY 平面）
-  // 用 worldExtents 才會考慮 part rotation（橫撐 rotation.y=π/2 → length 沿 Z 軸）
+  // 算整家具 bbox（top view = X-Z 平面，從上往下看）
+  // top view 對家具裝位最直觀：座板、4 腳、4 牙條、橫撐 全部 horizontal 投影
+  // 都能看清位置（不像 front view 側牙條被擠成小方塊）
   let minX = Infinity,
     maxX = -Infinity;
-  let minY = Infinity,
-    maxY = -Infinity;
+  let minZ = Infinity,
+    maxZ = -Infinity;
   for (const p of design.parts) {
     const o = p.origin ?? { x: 0, y: 0, z: 0 };
     const ext = worldExtents(p);
     const halfX = ext.xExt / 2;
+    const halfZ = ext.zExt / 2;
     minX = Math.min(minX, (o.x ?? 0) - halfX);
     maxX = Math.max(maxX, (o.x ?? 0) + halfX);
-    minY = Math.min(minY, o.y ?? 0);
-    maxY = Math.max(maxY, (o.y ?? 0) + ext.yExt);
+    minZ = Math.min(minZ, (o.z ?? 0) - halfZ);
+    maxZ = Math.max(maxZ, (o.z ?? 0) + halfZ);
   }
+  // 為了沿用後段 minY/maxY 變數名，這裡 alias Z → Y
+  const minY = minZ;
+  const maxY = maxZ;
   if (!isFinite(minX) || !isFinite(maxX) || maxX - minX < 1) return null;
   if (!isFinite(minY) || !isFinite(maxY) || maxY - minY < 1) return null;
 
