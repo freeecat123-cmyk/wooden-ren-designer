@@ -1235,10 +1235,16 @@ export function T2Annotations({
       // 算 shoulderTop，「這個 feature 邊→下一個 sibling 邊」算 shoulderBot；
       // 中間段 shoulderBot 跳過、由下一個 sibling 的 shoulderTop 補。
       const COL_TOL = 5; // SVG px 容差
-      // L 軸 siblings：lDimX 同欄、垂直堆疊
+      // 偵測 sibling 用 lDimX 而非 box.x（box.x 對 Z-face vs X-face mortise 偏移
+      // 不一樣、但兩條 chain 在 SVG 上落在同一 lDimX 列）
+      const computeLDimX = (otherR: { x: number; w: number }) => {
+        const otherOuterLeft = otherR.x < partCenterSvg.x;
+        return otherOuterLeft
+          ? Math.min(otherR.x, partLeftSvg) - GAP
+          : Math.max(otherR.x + otherR.w, partRightSvg) + GAP;
+      };
       const lSiblings = items
-        .map((other) => ({ other, lb: null as any }))
-        .filter(({ other }, i) => {
+        .filter((other) => {
           const otherFeature =
             other.kind === "m"
               ? part.mortises[other.idx]
@@ -1249,13 +1255,9 @@ export function T2Annotations({
               : tenonLocalBox(part, otherFeature as Tenon);
           const otherR = projectBoxRect(otherLb);
           if (!otherR) return false;
-          // 判定 same column：兩個 box 的水平 lDimX 應該幾乎一樣
-          return Math.abs(otherR.x - box.x) < COL_TOL;
+          return Math.abs(computeLDimX(otherR) - lDimX) < COL_TOL;
         })
-        .map((s, i) => ({
-          ...s,
-          r: items.find((o) => o === s.other)!.rect,
-        }))
+        .map((other) => ({ other, r: other.rect }))
         .sort((a, b) => a.r.y - b.r.y);
       const myLIdx = lSiblings.findIndex((s) => s.other === it);
       const prevLSibling = myLIdx > 0 ? lSiblings[myLIdx - 1] : null;
@@ -1290,14 +1292,15 @@ export function T2Annotations({
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
       // chain 中段（prevLSibling 存在）的 shoulderTop label 容易跟前 sibling 的
-      // W dim label 在同 X 列撞 → 外推 14 svg unit 避免重疊。第一個 sibling
-      // 的 shoulderTop（從 partTop 算）不外推。
+      // W dim label 在同 X 列撞 → 外推 14 svg unit + leader 線連回 dim 線中點，
+      // 讓使用者知道這數字屬於哪段。第一個 sibling 的 shoulderTop 不外推。
       if (shoulderTop > TH) {
         const isMidChain = !!prevLSibling;
         const TIGHT_OUT = 14;
         const shTLabelX = isMidChain
           ? lLabelX + (outerLeft ? -TIGHT_OUT : TIGHT_OUT)
           : lLabelX;
+        const segMidY = (shoulderTopStartY + box.y) / 2;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1317,9 +1320,19 @@ export function T2Annotations({
               strokeWidth={0.3}
             />
             {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
+            {isMidChain && (
+              <line
+                x1={lDimX}
+                y1={segMidY}
+                x2={shTLabelX + (outerLeft ? 2 : -2)}
+                y2={segMidY}
+                stroke={stroke}
+                strokeWidth={0.3}
+              />
+            )}
             <text
               x={shTLabelX}
-              y={(shoulderTopStartY + box.y) / 2 + 3}
+              y={segMidY + 3}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
