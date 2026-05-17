@@ -618,22 +618,23 @@ const polyDesign: FurnitureDesign = {
           lidHole.depth = fullT + 0.5;
           lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
         }
-        // 4 邊銑掉 top sinkMm（cosmetic blind cut，從頂面往下 sinkMm 深）
-        // depth = sinkMm 不加 tolerance（formula 強制 slot top = part top 不會越界）
+        // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
+        // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
+        // slot Y 範圍 = [fullT - sinkMm, fullT + 1] = [12, 18]、center = 15、D = 6
         const lidLenLocal = lidPart.visible.length;
         const lidWidLocal = lidPart.visible.width;
-        const cutD = sinkMm;
-        const cutCenterY = fullT - sinkMm / 2;  // 從頂面往下、cy formula 會強制對齊
-        const zEdgeW = grooveDepth;  // 前/後邊條寬 = 槽深度
-        const leftEdgeW = wallT;     // 左邊 = lid 延伸到 box outer 補滑入口 wallT
-        const rightEdgeW = grooveDepth;  // 右邊條寬 = 槽深度
-        // 前 Z 邊（沿 X 方向全長、Z 寬 grooveDepth）
+        const cutEpsilon = 1;  // slot top 超出 part top 1mm 避免 z-fighting hairline
+        const cutD = sinkMm + cutEpsilon;
+        const cutCenterY = fullT - (sinkMm - cutEpsilon) / 2;  // (top + bottom) / 2 in from-bottom
+        const zEdgeW = grooveDepth;
+        const rightEdgeW = grooveDepth;
+        // 前 Z 邊
         lidPart.mortises.push({
           origin: { x: 0, y: cutCenterY, z: -(lidWidLocal - zEdgeW) / 2 },
           depth: cutD,
           length: lidLenLocal,
           width: zEdgeW,
-          through: false,
+          through: true,
           shape: "rect",
           cosmetic: true,
         });
@@ -643,19 +644,17 @@ const polyDesign: FurnitureDesign = {
           depth: cutD,
           length: lidLenLocal,
           width: zEdgeW,
-          through: false,
+          through: true,
           shape: "rect",
           cosmetic: true,
         });
-        // 左 X 邊（lid 滑入口側，沒卡進任何槽）→ 不銑、讓它跟著中央一起拉高到 fullT
-        void leftEdgeW;  // 留變數宣告但不用
-        // 右 X 邊（X 寬 grooveDepth）
+        // 右 X 邊
         lidPart.mortises.push({
           origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterY, z: 0 },
           depth: cutD,
           length: rightEdgeW,
           width: lidWidLocal,
-          through: false,
+          through: true,
           shape: "rect",
           cosmetic: true,
         });
