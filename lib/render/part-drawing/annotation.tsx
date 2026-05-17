@@ -669,45 +669,59 @@ export function T2Annotations({
     const D = m.depth;
     const W = m.width;
     const L = m.length;
+    const longDim = Math.max(L, W);
+    const shortDim = Math.min(L, W);
+    // Auto-fit：把 longDim 放在「origin 較居中、空間較大」的軸（跟 mortiseLocalBox
+    // 一致，避免 3-view 跟 part-drawing 同 mortise 軸向反轉）
+
+    const oxC = m.origin.x;
+    const oyC = m.origin.y - ly / 2;
+    const ozC = m.origin.z;
 
     if (depthAxis === "y") {
-      // Y axis entry: 從上 or 下面進、cy 在 entry face 邊
       const enterTop = m.origin.y > ly / 2;
-      // entry face y in centered frame
       const entryY = enterTop ? +ly / 2 : -ly / 2;
-      // mortise extends inward by D
       const cyL = enterTop ? entryY - D / 2 : entryY + D / 2;
-      // 其他軸照 origin 位置（centered = origin - ly/2 only for y）
+      const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
+      const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
+      const longOnZ = zFace > xFace;
       return {
         cx: m.origin.x,
         cy: cyL,
         cz: m.origin.z,
-        hx: L / 2,
+        hx: (longOnZ ? shortDim : longDim) / 2,
         hy: D / 2,
-        hz: W / 2,
+        hz: (longOnZ ? longDim : shortDim) / 2,
         depthAxis: "y",
       };
     } else if (depthAxis === "x") {
       const enterRight = m.origin.x >= 0;
       const cxL = enterRight ? lx / 2 - D / 2 : -lx / 2 + D / 2;
+      const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
+      const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
+      const longOnZ = zFace > yFace;
       return {
         cx: cxL,
-        cy: m.origin.y - ly / 2,
+        cy: oyC,
         cz: m.origin.z,
         hx: D / 2,
-        hy: L / 2,
-        hz: W / 2,
+        hy: (longOnZ ? shortDim : longDim) / 2,
+        hz: (longOnZ ? longDim : shortDim) / 2,
         depthAxis: "x",
       };
     } else {
+      // depthAxis === "z"
       const enterFront = m.origin.z >= 0;
       const czL = enterFront ? lz / 2 - D / 2 : -lz / 2 + D / 2;
+      const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
+      const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
+      const longOnX = xFace > yFace;
       return {
         cx: m.origin.x,
-        cy: m.origin.y - ly / 2,
+        cy: oyC,
         cz: czL,
-        hx: L / 2,
-        hy: W / 2,
+        hx: (longOnX ? longDim : shortDim) / 2,
+        hy: (longOnX ? shortDim : longDim) / 2,
         hz: D / 2,
         depthAxis: "z",
       };
