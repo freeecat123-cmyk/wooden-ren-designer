@@ -566,12 +566,7 @@ const polyDesign: FurnitureDesign = {
       //   （沒上 cap、降到 lid top 讓蓋可以放進槽、視覺不擋蓋）
       // groove Z 動態算：每壁 mesh center 不同 → grooveLocalZ = meshCenterY - lidCenterY
       // origin.y 用 from-bottom 慣例（0 = 一面、wallT = 另一面）
-      // v2 raised-center: lid 整片 fullT 厚（17mm）、槽寬同 fullT+0.5、槽 Y 中心對齊 lid 中心
-      // v1 flat:           lid lidT 厚下沉 sinkMm、槽寬 lidT+0.5、槽 Y 中心在 lid 中心 (= outerH-lidT/2-sinkMm)
-      const effectiveLidT = slidingLidStyle === "raised-center" ? lidT + sinkMm : lidT;
-      const lidWorldYCenter = slidingLidStyle === "raised-center"
-        ? outerH - effectiveLidT / 2
-        : outerH - lidT / 2 - sinkMm;
+      const lidWorldYCenter = outerH - lidT / 2 - sinkMm;
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
@@ -595,7 +590,7 @@ const polyDesign: FurnitureDesign = {
           origin: { x: grooveOriginX, y: innerFromBottom, z: grooveLocalZ },
           depth: grooveDepth + 0.3,
           length: grooveLen,
-          width: effectiveLidT + 0.5,
+          width: lidT + 0.5,
           through: false,
           shape: "rect",
           cosmetic: true,
@@ -607,20 +602,70 @@ const polyDesign: FurnitureDesign = {
       if (wallLeft) {
         wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
       }
-      // v2 raised-center（方案 A）：lid 整片 fullT 厚（無削邊、無 CSG cuts）
-      // F/B 跟 wall-right 的槽寬已改成 fullT+0.5、Y 中心對齊 lid 中心 = outerH-fullT/2
-      // 整片 17mm lid 直接卡進加深的槽，從外面看就是一片均勻 17mm 厚平板蓋
+      // v2 中央凸起：lid 加厚 sinkMm 到 fullT，4 邊銑掉 sinkMm 留邊條卡進槽
+      // - F/B 滑槽、壁延伸、cap 全部跟 v1 一樣不動
+      // - lid 整片厚料 17mm = lidT(12) + sinkMm(5)，origin.y 下移到 outerH-fullT
+      // - 4 邊銑掉頂 sinkMm 留邊條 lidT 厚卡進槽
+      // - 邊寬：前/後/右 = grooveDepth（槽深度，5mm）；左 = wallT（lid 延伸到 box outer 補滑入口）
       if (slidingLidStyle === "raised-center") {
         const fullT = lidT + sinkMm;
         lidPart.visible = { ...lidPart.visible, thickness: fullT };
         lidPart.origin = { ...lidPart.origin, y: outerH - fullT };
-        lidPart.nameZh = "盒蓋（滑入式 · 整片厚料、頂面齊壁頂）";
-        // 拉孔深度自動穿透 fullT、y 中心改 fullT/2
+        lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 拉孔深度自動穿透 fullT，y 中心改 fullT/2
         const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
         if (lidHole && lidHole.cosmetic && lidHole.through) {
           lidHole.depth = fullT + 0.5;
           lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
         }
+        // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
+        // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
+        // slot 雙端各加 epsilon：上 2mm 超出 part top、下 0.3mm 進邊條（容忍邊條 11.7mm）
+        const lidLenLocal = lidPart.visible.length;
+        const lidWidLocal = lidPart.visible.width;
+        const cutEpsilonTop = 2;
+        const cutEpsilonBottom = 1;
+        // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
+        const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
+        const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
+        // 更直接：center = (top + bottom) / 2 = (fullT + epsTop + fullT - sinkMm - epsBot) / 2
+        const cutCenterYDirect = (fullT + cutEpsilonTop + (fullT - sinkMm - cutEpsilonBottom)) / 2;
+        void cutCenterY;
+        const zEdgeW = grooveDepth;
+        const rightEdgeW = grooveDepth;
+        // 前/後 Z 邊銑切 X 範圍縮 rightEdgeW，避免跟右 X 邊銑切重疊（CSG 非 manifold 殘留）
+        const frontBackLen = lidLenLocal - rightEdgeW;
+        const frontBackOriginX = -rightEdgeW / 2;
+        // 前 Z 邊（不含右邊區）
+        lidPart.mortises.push({
+          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: frontBackLen,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 後 Z 邊
+        lidPart.mortises.push({
+          origin: { x: frontBackOriginX, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: frontBackLen,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 右 X 邊（含背後/前面跟右邊的角落、覆蓋整個右邊條全 Z）
+        lidPart.mortises.push({
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
+          depth: cutD,
+          length: rightEdgeW,
+          width: lidWidLocal,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
