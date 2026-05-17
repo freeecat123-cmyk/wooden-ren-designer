@@ -83,7 +83,7 @@ export function T1Dimensions({
   const W = part.visible.width;
   const T = part.visible.thickness;
   const arrowId = `arr-${view}`;
-  const OFFSET = 28; // mm；DimensionLine reach=26 留 2mm CNS gap
+  const OFFSET = 50; // mm；放大避免 dim line 跑進材料
 
   let horizP1: { x: number; y: number };
   let horizP2: { x: number; y: number };
@@ -110,9 +110,22 @@ export function T1Dimensions({
     vertP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
   }
 
-  // 水平 dim line 放材料 *上方*（SVG y 較小）、垂直 dim line 放 *右側*（x 較大）
-  const horizY = Math.min(horizP1.y, horizP2.y) - OFFSET;
-  const vertX = Math.max(vertP1.x, vertP2.x) + OFFSET;
+  // 水平 dim line 放材料 *上方* — 抓 part 8 角投影最高 SVG y（最小值）再上推 OFFSET
+  // 之前用 max 2 個 horizP 端點 y 不夠保險（圓料/扁料 bbox 跟邊不一定一致）
+  const allCorners = [
+    ctx.partLocalToSvg(-L / 2, -T / 2, -W / 2),
+    ctx.partLocalToSvg(+L / 2, -T / 2, -W / 2),
+    ctx.partLocalToSvg(-L / 2, +T / 2, -W / 2),
+    ctx.partLocalToSvg(+L / 2, +T / 2, -W / 2),
+    ctx.partLocalToSvg(-L / 2, -T / 2, +W / 2),
+    ctx.partLocalToSvg(+L / 2, -T / 2, +W / 2),
+    ctx.partLocalToSvg(-L / 2, +T / 2, +W / 2),
+    ctx.partLocalToSvg(+L / 2, +T / 2, +W / 2),
+  ];
+  const partMinY = Math.min(...allCorners.map((p) => p.y));
+  const partMaxX = Math.max(...allCorners.map((p) => p.x));
+  const horizY = partMinY - OFFSET;
+  const vertX = partMaxX + OFFSET;
 
   return (
     <g className="t1-dim-overlay">
