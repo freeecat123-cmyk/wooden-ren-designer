@@ -624,7 +624,7 @@ const polyDesign: FurnitureDesign = {
         const lidLenLocal = lidPart.visible.length;
         const lidWidLocal = lidPart.visible.width;
         const cutEpsilonTop = 2;
-        const cutEpsilonBottom = 0.3;
+        const cutEpsilonBottom = 1;
         // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
         const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
         const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
