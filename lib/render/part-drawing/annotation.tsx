@@ -1314,22 +1314,14 @@ export function T2Annotations({
         : partTopY;
       // 中段 sibling 的 botShoulder 不畫（由 nextSibling 的 topShoulder 補）
       const drawBotShoulder = !nextLSibling;
-      // chain 多 sibling 時，首段 shoulderTop（→partTop）跟末段 shoulderBot
-      // （→partBot）容易拉超長線（>80 svg unit / 部位長腳 200+ mm）。
-      // 跳過這兩條超長 chain，由 T1 總長 + 相鄰 chain segments 推斷位置
-      // （user:「拉到底下太遠了」「應該往上面拉」）
-      const isFirstSibling = !prevLSibling;
-      const isLastSibling = !nextLSibling;
-      const hasMultipleSiblings = lSiblings.length > 1;
+      // shoulder 線太長（> 60 svg unit）直接跳過，不管有沒有 sibling。
+      // user:「拉到底下太遠了」「應該往上面拉」=> 把長線拿掉、相鄰 chain 保留。
       const LONG_CHAIN_TH = 60; // SVG px；超過視為「太長」
+      const isLastSibling = !nextLSibling;
       const skipFirstShoulderTop =
-        hasMultipleSiblings &&
-        isFirstSibling &&
-        box.y - topBoundary > LONG_CHAIN_TH;
+        !prevLSibling && box.y - topBoundary > LONG_CHAIN_TH;
       const skipLastShoulderBot =
-        hasMultipleSiblings &&
-        isLastSibling &&
-        partBottomY - (box.y + box.h) > LONG_CHAIN_TH;
+        isLastSibling && partBottomY - (box.y + box.h) > LONG_CHAIN_TH;
 
       const shoulderTop =
         featureInsideY && !skipFirstShoulderTop
