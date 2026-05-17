@@ -78,12 +78,14 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "sliding", label: "滑入式（前後壁內側鋸槽，蓋從前滑入）" },
     { value: "hinged", label: "鉸鏈式（後壁裝小銅鉸鏈）" },
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
+    { value: "lift-off", label: "掀蓋式（4 牆水平切兩段、上段為蓋、合頁鎖合）" },
   ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
     { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
     { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
   ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "sliding" }] } },
+  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高 (mm)", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "lift-off" }] } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -117,6 +119,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
   const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
   const slidingLidStyle = getOption<string>(input, opt(o, "slidingLidStyle"));
+  const liftOffLidHRaw = getOption<number>(input, opt(o, "liftOffLidH"));
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
@@ -706,6 +709,96 @@ const polyDesign: FurnitureDesign = {
             x: (i === 0 ? -1 : 1) * (outerL * 0.25),
             y: outerH - lidT - 1,
             z: outerW / 2 - hingeW / 2 - 1,
+          },
+          tenons: [],
+          mortises: [],
+          visual: "metal",
+        });
+      }
+    } else if (lidType === "lift-off") {
+      // 掀蓋式：4 牆水平切兩段、上段=蓋（含 top 板）、下段=身（含 bottom 板）、合頁鎖合
+      // - 切分位置 = outerH - liftOffH（從盒頂往下 liftOffH 切一刀）
+      // - top 板跟 bottom 板一樣 inset-panel 風格（4 牆內側上緣切 grooveDepth 槽接 top 板）
+      // - 4 牆上段（蓋段）跟下段（身段）共用 wallT / 角接合方式
+      // - 鳩尾段數依高度比例分配（同密度）
+      // - 合頁 2 個鎖在「後壁切線」位置
+      const liftOffAuto = Math.max(8, Math.round(outerH / 5));
+      const liftOffH = liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : liftOffAuto;
+      const cutY = outerH - liftOffH;  // 切線 Y 位置（從底算）
+      const liftGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+
+      // 1. lid 物件改成蓋段的「top 板」(inset-panel 風格、頂面齊 outerH、底面在 outerH - botT)
+      lidPart.visible = {
+        length: outerL - 2 * wallT + 2 * liftGrooveDepth,
+        width: outerW - 2 * wallT + 2 * liftGrooveDepth,
+        thickness: botT,
+      };
+      lidPart.origin = { x: 0, y: outerH - botT, z: 0 };
+      lidPart.nameZh = "盒蓋頂板（鑲板入溝）";
+      // 拉孔搬到 top 板中心（手指掀起用）
+      const liftLidHole = lidPart.mortises[lidPart.mortises.length - 1];
+      if (liftLidHole && liftLidHole.cosmetic && liftLidHole.through) {
+        liftLidHole.origin = { x: 0, y: botT / 2, z: 0 };
+        liftLidHole.depth = botT + 0.5;
+      }
+
+      // 2. 4 牆切兩段：原 wall 改成「身段」、新增蓋段 wall
+      // 蓋段段數比例 = liftOffH / wallH（wallH = outerH - botT - lidT 從 builder）
+      // 身段段數比例 = (cutY - botT) / wallH
+      const totalOriginalSegs = dovetailInfo?.segmentCount ?? (fingerJointInfo?.segmentCount ?? 0);
+      const liftSegRaw = Math.max(1, Math.round(totalOriginalSegs * liftOffH / Math.max(1, outerH - botT - lidT)));
+      // 鳩尾要奇數
+      const lidCornerSegs = cornerJoinery === "dovetail" && liftSegRaw % 2 === 0 ? liftSegRaw + 1 : liftSegRaw;
+      const bodyCornerSegs = Math.max(1, totalOriginalSegs - lidCornerSegs);
+
+      // wallH 各段重算：身段 = cutY - botT、蓋段 = liftOffH - botT（蓋有 top 板占 botT 高）
+      const bodyWallH = cutY - botT;
+      const lidWallH = liftOffH - botT;
+
+      for (const wallId of ["wall-front", "wall-back", "wall-left", "wall-right"] as const) {
+        const wall = design.parts.find((p) => p.id === wallId);
+        if (!wall) continue;
+        const isLong = wallId === "wall-front" || wallId === "wall-back";
+        // 身段：改高度到 bodyWallH，origin.y 不變（=botT）
+        wall.visible = { ...wall.visible, width: bodyWallH };
+        wall.nameZh = wall.nameZh.replace(/（[^）]*$/, "") + "（盒身段）";
+        // shape 段數改身段
+        if (wall.shape?.kind === "dovetail-ends") {
+          wall.shape = { ...wall.shape, segmentCount: bodyCornerSegs };
+        } else if (wall.shape?.kind === "finger-joint-ends") {
+          wall.shape = { ...wall.shape, segmentCount: bodyCornerSegs };
+        }
+        // 新增蓋段
+        const lidWallShape = wall.shape && (wall.shape.kind === "dovetail-ends" || wall.shape.kind === "finger-joint-ends" || wall.shape.kind === "mitered-ends")
+          ? { ...wall.shape, ...(wall.shape.kind !== "mitered-ends" ? { segmentCount: lidCornerSegs } : {}) }
+          : undefined;
+        design.parts.push({
+          id: wallId + "-lid",
+          nameZh: wall.nameZh.replace("盒身段", "蓋段"),
+          material: wall.material,
+          grainDirection: wall.grainDirection,
+          visible: { ...wall.visible, width: lidWallH },
+          origin: { ...wall.origin, y: cutY },
+          rotation: wall.rotation,
+          tenons: [],  // 角接合靠 shape 表達
+          mortises: [],
+          ...(lidWallShape ? { shape: lidWallShape } : {}),
+        });
+      }
+
+      // 3. 合頁 2 個鎖在後壁切線位置
+      const hingeL = 25, hingeW = 8, hingeT = 3;
+      for (let i = 0; i < 2; i++) {
+        design.parts.push({
+          id: `lid-hinge-${i + 1}`,
+          nameZh: `合頁 ${i + 1}（鎖蓋身切線、後壁）`,
+          material,
+          grainDirection: "length",
+          visible: { length: hingeL, width: hingeW, thickness: hingeT },
+          origin: {
+            x: (i === 0 ? -1 : 1) * (outerL * 0.25),
+            y: cutY - hingeT / 2,
+            z: outerW / 2 - wallT - hingeW / 2,
           },
           tenons: [],
           mortises: [],
