@@ -1049,10 +1049,14 @@ export function T2Annotations({
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
+      // 對 protrusion 榫頭：box 端跟 part 邊重合 → 用 part 邊當基準推 12px 出去
       const outerAbove = box.y < partCenterSvg.y;
       const outerLeft = box.x < partCenterSvg.x;
-      const wDimY = outerAbove ? box.y - 5 : box.y + box.h + 5;
-      const lDimX = outerLeft ? box.x - 5 : box.x + box.w + 5;
+      const GAP = 12; // SVG px；榫 dim 距 box / part 邊
+      // 抓 cornersY 算 partTopY / partBottomY 已在外層，重複計算 here 防 hoist 順序
+      // partBottomY 已在 partEls leader 段算出（line 798）；partTopY 後段才算（line 974）
+      const wDimY = outerAbove ? box.y - GAP : box.y + box.h + GAP;
+      const lDimX = outerLeft ? box.x - GAP : box.x + box.w + GAP;
       const wLabelY = outerAbove ? wDimY - 2 : wDimY + 7;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
