@@ -1331,12 +1331,19 @@ export function T2Annotations({
         featureInsideY && drawBotShoulder && !skipLastShoulderBot
           ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
           : 0;
-      const shoulderLft = featureInsideX
-        ? round1((box.x - partLeftX) * mmPerSvgX)
-        : 0;
-      const shoulderRgt = featureInsideX
-        ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
-        : 0;
+      // W chain shoulder：avg segment 小於 14 svg unit → 3 個 label 擠在同 Y
+      // 重疊，跳過 shoulder（只畫 box 本身的 W dim）
+      const partWSvg = partRightX - partLeftX;
+      const avgWSeg = partWSvg / 3;
+      const skipWShoulders = avgWSeg < 14;
+      const shoulderLft =
+        featureInsideX && !skipWShoulders
+          ? round1((box.x - partLeftX) * mmPerSvgX)
+          : 0;
+      const shoulderRgt =
+        featureInsideX && !skipWShoulders
+          ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
+          : 0;
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
       const shoulderTopStartY = topBoundary;
