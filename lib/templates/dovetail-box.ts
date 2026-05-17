@@ -797,25 +797,6 @@ const polyDesign: FurnitureDesign = {
         bottomP.origin = { x: 0, y: botT, z: 0 };
       }
 
-      // 4. 合頁 2 個鎖在後壁切線位置
-      const hingeL = 25, hingeW = 8, hingeT = 3;
-      for (let i = 0; i < 2; i++) {
-        design.parts.push({
-          id: `lid-hinge-${i + 1}`,
-          nameZh: `合頁 ${i + 1}（鎖蓋身切線、後壁）`,
-          material,
-          grainDirection: "length",
-          visible: { length: hingeL, width: hingeW, thickness: hingeT },
-          origin: {
-            x: (i === 0 ? -1 : 1) * (outerL * 0.25),
-            y: cutY - hingeT / 2,
-            z: outerW / 2 - wallT - hingeW / 2,
-          },
-          tenons: [],
-          mortises: [],
-          visual: "metal",
-        });
-      }
     }
   }
 
