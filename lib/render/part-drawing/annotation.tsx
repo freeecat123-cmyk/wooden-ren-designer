@@ -1036,6 +1036,182 @@ export function T2Annotations({
           </text>
         </g>,
       );
+
+      // 鏈式 dim：榫到 part 邊緣（user 要求標 shoulder/offset）
+      // 在 W/L dim 線上延伸，partEdge→box→box→partEdge 各段；段 < 2mm 跳過
+      const cornersXShoulder: number[] = [];
+      if (view === "front") {
+        cornersXShoulder.push(
+          ctx.partLocalToSvg(-L / 2, -T / 2, 0).x,
+          ctx.partLocalToSvg(+L / 2, -T / 2, 0).x,
+          ctx.partLocalToSvg(-L / 2, +T / 2, 0).x,
+          ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
+        );
+      } else if (view === "top") {
+        cornersXShoulder.push(
+          ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
+          ctx.partLocalToSvg(+L / 2, T / 2, -W / 2).x,
+          ctx.partLocalToSvg(-L / 2, T / 2, +W / 2).x,
+          ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
+        );
+      } else {
+        cornersXShoulder.push(
+          ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
+          ctx.partLocalToSvg(0, +T / 2, -W / 2).x,
+          ctx.partLocalToSvg(0, -T / 2, +W / 2).x,
+          ctx.partLocalToSvg(0, +T / 2, +W / 2).x,
+        );
+      }
+      const partLeftX = Math.min(...cornersXShoulder);
+      const partRightX = Math.max(...cornersXShoulder);
+      const partTopY = Math.min(...cornersY);
+
+      // mm/svg 比例：用 hMm/box.w fallback vMm/box.h
+      const mmPerSvgX =
+        box.w > 1 && hMm > 0.1 ? hMm / box.w : 1;
+      const mmPerSvgY =
+        box.h > 1 && vMm > 0.1 ? vMm / box.h : 1;
+
+      const shoulderTop = round1((box.y - partTopY) * mmPerSvgY);
+      const shoulderBot = round1((partBottomY - (box.y + box.h)) * mmPerSvgY);
+      const shoulderLft = round1((box.x - partLeftX) * mmPerSvgX);
+      const shoulderRgt = round1((partRightX - (box.x + box.w)) * mmPerSvgX);
+      const TH = 2; // mm 門檻
+
+      // L dim 線（vertical）上下延伸：partTop→box.y 和 box.y+box.h→partBottom
+      if (shoulderTop > TH) {
+        partEls.push(
+          <g key={`${it.kind}-${it.idx}-shT`}>
+            <line
+              x1={lDimX}
+              y1={partTopY}
+              x2={lDimX}
+              y2={box.y}
+              stroke={stroke}
+              strokeWidth={0.5}
+            />
+            <line
+              x1={outerLeft ? partLeftX : partRightX}
+              y1={partTopY}
+              x2={lDimX}
+              y2={partTopY}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+            {inwardArrowsV(partTopY, box.y, lDimX)}
+            <text
+              x={lLabelX}
+              y={(partTopY + box.y) / 2 + 3}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor={lLabelAnchor}
+            >
+              {shoulderTop}
+            </text>
+          </g>,
+        );
+      }
+      if (shoulderBot > TH) {
+        partEls.push(
+          <g key={`${it.kind}-${it.idx}-shB`}>
+            <line
+              x1={lDimX}
+              y1={box.y + box.h}
+              x2={lDimX}
+              y2={partBottomY}
+              stroke={stroke}
+              strokeWidth={0.5}
+            />
+            <line
+              x1={outerLeft ? partLeftX : partRightX}
+              y1={partBottomY}
+              x2={lDimX}
+              y2={partBottomY}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+            {inwardArrowsV(box.y + box.h, partBottomY, lDimX)}
+            <text
+              x={lLabelX}
+              y={(box.y + box.h + partBottomY) / 2 + 3}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor={lLabelAnchor}
+            >
+              {shoulderBot}
+            </text>
+          </g>,
+        );
+      }
+      // W dim 線（horizontal）左右延伸：partLeft→box.x 和 box.x+box.w→partRight
+      if (shoulderLft > TH) {
+        partEls.push(
+          <g key={`${it.kind}-${it.idx}-shL`}>
+            <line
+              x1={partLeftX}
+              y1={wDimY}
+              x2={box.x}
+              y2={wDimY}
+              stroke={stroke}
+              strokeWidth={0.5}
+            />
+            <line
+              x1={partLeftX}
+              y1={outerAbove ? partTopY : partBottomY}
+              x2={partLeftX}
+              y2={wDimY}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+            {inwardArrowsH(partLeftX, box.x, wDimY)}
+            <text
+              x={(partLeftX + box.x) / 2}
+              y={wLabelY}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor="middle"
+            >
+              {shoulderLft}
+            </text>
+          </g>,
+        );
+      }
+      if (shoulderRgt > TH) {
+        partEls.push(
+          <g key={`${it.kind}-${it.idx}-shR`}>
+            <line
+              x1={box.x + box.w}
+              y1={wDimY}
+              x2={partRightX}
+              y2={wDimY}
+              stroke={stroke}
+              strokeWidth={0.5}
+            />
+            <line
+              x1={partRightX}
+              y1={outerAbove ? partTopY : partBottomY}
+              x2={partRightX}
+              y2={wDimY}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+            {inwardArrowsH(box.x + box.w, partRightX, wDimY)}
+            <text
+              x={(box.x + box.w + partRightX) / 2}
+              y={wLabelY}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor="middle"
+            >
+              {shoulderRgt}
+            </text>
+          </g>,
+        );
+      }
     }
 
     // 工程 dim line：根據 view + 對稱性
