@@ -1163,11 +1163,17 @@ export function T2Annotations({
           ? lSiblings[myLIdx + 1]
           : null;
 
-      // W dim (horizontal) 緊貼 box 上/下邊；上面有 sibling 時強制畫到 box 下方
-      // 避免蓋到上面 mortise（user:「往下一點 不要蓋到榫孔」）
-      const wDimBelow = !!prevLSibling || !outerAbove;
-      const wDimY = wDimBelow ? box.y + box.h + GAP : box.y - GAP;
-      const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
+      // W dim (horizontal) 位置：chain 多 sibling 時所有 W dim 堆疊到 chain 最
+      // 上面（user:「12-6-12 往上移到上面牙條榫上方」）；按 myLIdx 往上 stagger
+      // 避免兩條重疊。chain 只 1 個 sibling → 維持貼 box 上邊（無覆蓋問題）。
+      const chainTopY =
+        lSiblings.length > 0 ? lSiblings[0].r.y : box.y;
+      const STAGGER = 10;
+      const wDimY =
+        lSiblings.length > 1
+          ? chainTopY - GAP - STAGGER * Math.max(0, myLIdx)
+          : box.y - GAP;
+      const wLabelY = wDimY - 2;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
 
