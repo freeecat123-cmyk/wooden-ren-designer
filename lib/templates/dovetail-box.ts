@@ -617,6 +617,8 @@ const polyDesign: FurnitureDesign = {
           grainDirection: "length",
           visible: { length: innerLDim, width: innerWDim, thickness: sinkMm },
           origin: { x: 0, y: outerH - sinkMm, z: 0 },
+          // BOM 合併到 lid：實際做法是「拿一塊 17mm 厚料銑邊條」=同一塊木頭
+          bomMergeWith: "lid",
           tenons: [],
           mortises: [
             {
@@ -630,7 +632,7 @@ const polyDesign: FurnitureDesign = {
             },
           ],
         });
-        lidPart.nameZh = "盒蓋（滑入式 · 邊條 + 中央凸起 raised panel）";
+        lidPart.nameZh = "盒蓋（滑入式 · 邊條 + 中央凸起 raised panel · 一塊厚料銑邊）";
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
