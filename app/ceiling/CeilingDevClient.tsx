@@ -19,6 +19,7 @@ import {
   type HangerDensity,
 } from "@/lib/ceiling/types";
 import { bomToCsvRows, computeCeilingBom } from "@/lib/ceiling/calc";
+import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
 
 export function CeilingDevClient() {
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
@@ -121,8 +122,20 @@ export function CeilingDevClient() {
           </Section>
         </aside>
 
-        {/* ────── 中央:自動算 + BOM ────── */}
+        {/* ────── 中央:SVG + 自動算 + BOM ────── */}
         <section>
+          {/* SVG 俯視排版圖(階段 2) */}
+          <div className="rounded-lg border border-zinc-200 bg-white p-3 mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-zinc-900">俯視排版圖(2D)</h2>
+              <ConsistencyBadge bom={bom} />
+            </div>
+            <CeilingOverviewSvg bom={bom} />
+            <p className="mt-2 text-[10px] text-zinc-500 leading-snug">
+              改任何輸入,圖即時重繪。「畫幾根 = 算幾根」:右下圖例 + 上方一致性檢查徽章。
+            </p>
+          </div>
+
           {/* 自動算 唯讀顯示 */}
           <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 mb-5">
             <h2 className="text-sm font-semibold text-amber-900 mb-3">自動算</h2>
@@ -337,6 +350,40 @@ function ToggleGroup<T extends string>({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ConsistencyBadge({ bom }: { bom: ReturnType<typeof computeCeilingBom> }) {
+  // SVG 畫的主支位置數
+  const svgMain = bom.trace.mainJoistCentersCm.length;
+  // BOM 列的下料主支根數(可能被邊框 absorb)
+  const bomMain = bom.trace.mainJoistTimberCount;
+  // SVG 畫的副支總數 = trace slots 加總
+  const svgSub = bom.trace.slots.reduce((sum, s) => sum + s.subJoistCount, 0);
+  // BOM 列的副支總數
+  const bomSub = bom.items
+    .filter((i) => i.category === "sub-joist")
+    .reduce((s, i) => s + i.count, 0);
+
+  const subOk = svgSub === bomSub;
+  // 主支:SVG 畫所有位置,BOM 列下料根數;差值應 = 被邊框 absorb 數
+  const expectedDiff = svgMain - bomMain;
+  const mainOk = expectedDiff === 0 || (bom.input.frameDoublesAsSupport && expectedDiff > 0);
+
+  const allOk = subOk && mainOk;
+  return (
+    <div
+      className={`text-[10px] px-2 py-1 rounded ring-1 tabular-nums ${
+        allOk
+          ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
+          : "bg-rose-50 text-rose-800 ring-rose-200"
+      }`}
+      title="SVG 渲染數 vs BOM 列數對照"
+    >
+      {allOk ? "✓" : "⚠"} 主支 SVG {svgMain} / BOM {bomMain}
+      {expectedDiff > 0 && bom.input.frameDoublesAsSupport ? `(邊框替代 ${expectedDiff})` : ""}
+      {" · "}副支 SVG {svgSub} / BOM {bomSub}
     </div>
   );
 }

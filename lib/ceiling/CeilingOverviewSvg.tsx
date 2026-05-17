@@ -1,0 +1,314 @@
+/**
+ * 階段 2 — 木作天花板骨架俯視 SVG
+ *
+ * 純元件,只吃 CeilingBom → 畫俯視排版圖。
+ *
+ * 視覺層級(由下到上):
+ *   1. 房間外框(虛線,zinc-300)
+ *   2. 矽酸鈣板分割線(虛線,slate-400)
+ *   3. 邊框角材(實心矩形,amber-700)
+ *   4. 主支角材(實心矩形,amber-600;若被邊框 absorb 則淡化)
+ *   5. 副支角材(實心細矩形,zinc-500)
+ *   6. 尺寸標註(amber-900 on top + left)
+ *
+ * 座標慣例:
+ *   - SVG units = cm(1:1)
+ *   - viewBox 含 PAD cm 邊距留給尺寸標註
+ *   - 房間 top-left at (PAD, PAD),長邊水平、短邊垂直
+ *   - 主支沿長邊方向排列,單支跨短邊方向(垂直線)
+ *   - 副支垂直主支(水平短線),夾在 supports[] 之間
+ *
+ * 「畫幾根 = 算幾根」:每組數量都對應 trace 裡的值,可肉眼比對。
+ */
+
+import type { CeilingBom } from "./types";
+
+const PAD_TOP = 50;     // cm,給上方長邊尺寸 + 主支間距 tick
+const PAD_LEFT = 60;    // cm,給左方短邊尺寸
+const PAD_RIGHT = 40;
+const PAD_BOTTOM = 40;
+
+export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
+  const { input, trace } = bom;
+  const L = input.longSideCm;
+  const S = input.shortSideCm;
+  const tw = input.timberWidthCm;
+
+  const viewW = L + PAD_LEFT + PAD_RIGHT;
+  const viewH = S + PAD_TOP + PAD_BOTTOM;
+
+  // SVG 內房間範圍
+  const x0 = PAD_LEFT;
+  const y0 = PAD_TOP;
+  const x1 = x0 + L;
+  const y1 = y0 + S;
+
+  // 邊框內側面位置(主支對接到這裡)
+  const innerY0 = y0 + tw;
+  const innerY1 = y1 - tw;
+
+  // 預先算「哪些主支被邊框 absorb」(僅 frameDoublesAsSupport=true 時)
+  const absorbed = new Set<number>();
+  if (input.frameDoublesAsSupport) {
+    const tol = tw / 2 + 0.01;
+    trace.mainJoistCentersCm.forEach((c, idx) => {
+      if (Math.abs(c - 0) <= tol || Math.abs(c - L) <= tol) absorbed.add(idx);
+    });
+    // 若 alignment 不貼邊框,仍視兩端為 absorb(對齊 calc.ts 邏輯)
+    if (absorbed.size === 0 && trace.mainJoistCentersCm.length >= 2) {
+      absorbed.add(0);
+      absorbed.add(trace.mainJoistCentersCm.length - 1);
+    }
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${viewW} ${viewH}`}
+      className="w-full h-auto bg-amber-50/30 rounded border border-zinc-200"
+      preserveAspectRatio="xMidYMid meet"
+      style={{ maxHeight: "70vh" }}
+    >
+      <defs>
+        {/* 矽酸鈣板斜紋(實心 hatch 替代填色,給整片區分視覺) */}
+        <pattern id="board-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="#fef3c7" opacity="0.35" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#fbbf24" strokeWidth="0.4" opacity="0.4" />
+        </pattern>
+      </defs>
+
+      {/* ────── 1. 房間範圍底色(矽酸鈣板覆蓋區) ────── */}
+      <rect x={x0} y={y0} width={L} height={S} fill="url(#board-hatch)" />
+
+      {/* ────── 2. 矽酸鈣板分割線(虛線) ────── */}
+      {renderBoardCutLines(input, x0, y0, x1, y1)}
+
+      {/* ────── 3. 房間外框(虛線,牆面) ────── */}
+      <rect
+        x={x0} y={y0} width={L} height={S}
+        fill="none" stroke="#71717a" strokeWidth={0.8}
+        strokeDasharray="3 2"
+      />
+
+      {/* ────── 4. 邊框角材(4 條實心矩形,沿牆內側) ────── */}
+      {/* 上邊框 */}
+      <rect x={x0} y={y0} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      {/* 下邊框 */}
+      <rect x={x0} y={y1 - tw} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      {/* 左邊框 */}
+      <rect x={x0} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      {/* 右邊框 */}
+      <rect x={x1 - tw} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+
+      {/* ────── 5. 主支角材(垂直矩形,跨短邊內側) ────── */}
+      {trace.mainJoistCentersCm.map((c, idx) => {
+        const cx = x0 + c;
+        const isAbsorbed = absorbed.has(idx);
+        return (
+          <g key={`main-${idx}`}>
+            <rect
+              x={cx - tw / 2}
+              y={innerY0}
+              width={tw}
+              height={innerY1 - innerY0}
+              fill={isAbsorbed ? "#d6d3d1" : "#d97706"}
+              stroke={isAbsorbed ? "#a8a29e" : "#92400e"}
+              strokeWidth={0.3}
+              opacity={isAbsorbed ? 0.5 : 1}
+            />
+            {/* 主支中心線小 tick(上方) */}
+            <line
+              x1={cx} y1={y0 - 4} x2={cx} y2={y0 - 1}
+              stroke="#a16207" strokeWidth={0.6}
+            />
+          </g>
+        );
+      })}
+
+      {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
+      {renderSubJoists(input, trace, x0, innerY0, innerY1, tw)}
+
+      {/* ────── 7. 尺寸標註 ────── */}
+      {/* 長邊 — 頂部 */}
+      <DimLine
+        x1={x0} y1={y0 - 24}
+        x2={x1} y2={y0 - 24}
+        label={`長邊 ${L} cm`}
+        color="#78350f"
+      />
+      {/* 短邊 — 左側 */}
+      <DimLineVertical
+        x1={x0 - 30} y1={y0}
+        x2={x0 - 30} y2={y1}
+        label={`短邊 ${S} cm`}
+        color="#78350f"
+      />
+
+      {/* 剩餘收邊提示(僅 alignment != center 時) */}
+      {bom.auto.leftoverCm > 1 && (
+        <text
+          x={x0 + (input.alignmentBase === "left" ? L - bom.auto.leftoverCm / 2 : input.alignmentBase === "right" ? bom.auto.leftoverCm / 2 : L / 2)}
+          y={y1 + 14}
+          fontSize={6}
+          fill="#9a3412"
+          textAnchor="middle"
+        >
+          剩餘收邊 {round1(bom.auto.leftoverCm)} cm
+          {input.alignmentBase === "center" ? "(置中分配)" : ""}
+        </text>
+      )}
+
+      {/* ────── 8. 圖例 ────── */}
+      <g transform={`translate(${PAD_LEFT}, ${y1 + 22})`}>
+        <LegendBox color="#a16207" label="邊框" x={0} />
+        <LegendBox color="#d97706" label="主支" x={50} />
+        <LegendBox color="#52525b" label="副支" x={100} />
+        <LegendDash color="#94a3b8" label="矽酸鈣板分割" x={150} />
+      </g>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 副支渲染:每 slot 在 supports[i] 和 supports[i+1] 之間
+// 放 subJoistCount 根水平短矩形,沿短邊均分
+// ─────────────────────────────────────────────────────────
+function renderSubJoists(
+  input: { timberWidthCm: number; subSpacingCm: number; shortSideCm: number },
+  trace: CeilingBom["trace"],
+  x0: number,
+  innerY0: number,
+  innerY1: number,
+  tw: number,
+) {
+  // 副支沿短邊方向均分,從 innerY0 起每 subSpacingCm 一根中心
+  // 每根副支的長度 = slotWidth − tw(對接兩側)
+  const subThickness = Math.max(0.8, tw * 0.6); // 視覺細一點,跟主支區分
+  const elements: React.ReactNode[] = [];
+
+  for (let si = 0; si < trace.slots.length; si++) {
+    const slot = trace.slots[si];
+    const slotLeftCm = slot.fromCm;
+    const slotRightCm = slot.toCm;
+    // 副支 x 範圍:slot 左 + tw/2 到 slot 右 − tw/2
+    const xStart = x0 + slotLeftCm + tw / 2;
+    const xEnd = x0 + slotRightCm - tw / 2;
+    // 副支 y 位置:從 innerY0 起每 subSpacingCm
+    for (let i = 0; i < slot.subJoistCount; i++) {
+      const cy = innerY0 + (i + 0.5) * input.subSpacingCm + (i * 0); // 中心位置
+      // 簡單均分:跨 innerY0..innerY1,留首尾半距
+      const usableH = innerY1 - innerY0;
+      const step = input.subSpacingCm;
+      const yCenter = innerY0 + step / 2 + i * step;
+      if (yCenter > innerY1 - subThickness / 2) break;
+      elements.push(
+        <rect
+          key={`sub-${si}-${i}`}
+          x={xStart}
+          y={yCenter - subThickness / 2}
+          width={xEnd - xStart}
+          height={subThickness}
+          fill="#71717a"
+          stroke="#3f3f46"
+          strokeWidth={0.2}
+        />,
+      );
+    }
+  }
+  return elements;
+}
+
+// ─────────────────────────────────────────────────────────
+// 矽酸鈣板分割線(虛線)
+// 沿長邊每 boardShort 一條垂直線、沿短邊每 boardLong 一條水平線
+// ─────────────────────────────────────────────────────────
+function renderBoardCutLines(
+  input: { boardLongCm: number; boardShortCm: number; longSideCm: number; shortSideCm: number },
+  x0: number, y0: number, x1: number, y1: number,
+) {
+  const lines: React.ReactNode[] = [];
+  let key = 0;
+  // 沿長邊方向的板邊(垂直線,間距 = boardShort)
+  for (let cx = input.boardShortCm; cx < input.longSideCm; cx += input.boardShortCm) {
+    lines.push(
+      <line key={`bv-${key++}`}
+        x1={x0 + cx} y1={y0} x2={x0 + cx} y2={y1}
+        stroke="#475569" strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85}
+      />,
+    );
+  }
+  // 沿短邊方向的板邊(水平線,間距 = boardLong)
+  for (let cy = input.boardLongCm; cy < input.shortSideCm; cy += input.boardLongCm) {
+    lines.push(
+      <line key={`bh-${key++}`}
+        x1={x0} y1={y0 + cy} x2={x1} y2={y0 + cy}
+        stroke="#475569" strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85}
+      />,
+    );
+  }
+  return lines;
+}
+
+// ─────────────────────────────────────────────────────────
+// 尺寸標註元件
+// ─────────────────────────────────────────────────────────
+function DimLine({
+  x1, y1, x2, y2, label, color,
+}: { x1: number; y1: number; x2: number; y2: number; label: string; color: string }) {
+  const mid = (x1 + x2) / 2;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={0.5} />
+      {/* 兩端短刻線 */}
+      <line x1={x1} y1={y1 - 4} x2={x1} y2={y1 + 4} stroke={color} strokeWidth={0.5} />
+      <line x1={x2} y1={y2 - 4} x2={x2} y2={y2 + 4} stroke={color} strokeWidth={0.5} />
+      {/* 兩端箭頭(三角) */}
+      <polygon points={`${x1},${y1} ${x1 + 4},${y1 - 1.5} ${x1 + 4},${y1 + 1.5}`} fill={color} />
+      <polygon points={`${x2},${y2} ${x2 - 4},${y2 - 1.5} ${x2 - 4},${y2 + 1.5}`} fill={color} />
+      <text x={mid} y={y1 - 4} fontSize={7} fill={color} textAnchor="middle" fontWeight="600">{label}</text>
+    </g>
+  );
+}
+
+function DimLineVertical({
+  x1, y1, x2, y2, label, color,
+}: { x1: number; y1: number; x2: number; y2: number; label: string; color: string }) {
+  const mid = (y1 + y2) / 2;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={0.5} />
+      <line x1={x1 - 4} y1={y1} x2={x1 + 4} y2={y1} stroke={color} strokeWidth={0.5} />
+      <line x1={x2 - 4} y1={y2} x2={x2 + 4} y2={y2} stroke={color} strokeWidth={0.5} />
+      <polygon points={`${x1},${y1} ${x1 - 1.5},${y1 + 4} ${x1 + 1.5},${y1 + 4}`} fill={color} />
+      <polygon points={`${x2},${y2} ${x2 - 1.5},${y2 - 4} ${x2 + 1.5},${y2 - 4}`} fill={color} />
+      <text
+        x={x1 - 4} y={mid}
+        fontSize={7} fill={color} textAnchor="middle" fontWeight="600"
+        transform={`rotate(-90 ${x1 - 4} ${mid})`}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function LegendBox({ color, label, x }: { color: string; label: string; x: number }) {
+  return (
+    <g transform={`translate(${x}, 0)`}>
+      <rect width={6} height={4} fill={color} stroke="#000" strokeWidth={0.15} />
+      <text x={8} y={3.5} fontSize={5} fill="#52525b">{label}</text>
+    </g>
+  );
+}
+
+function LegendDash({ color, label, x }: { color: string; label: string; x: number }) {
+  return (
+    <g transform={`translate(${x}, 0)`}>
+      <line x1={0} y1={2} x2={8} y2={2} stroke={color} strokeWidth={0.5} strokeDasharray="1.5 1.5" />
+      <text x={10} y={3.5} fontSize={5} fill="#52525b">{label}</text>
+    </g>
+  );
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
