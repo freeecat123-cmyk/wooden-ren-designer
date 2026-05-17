@@ -127,22 +127,45 @@ export function T1Dimensions({
   const horizY = partMinY - OFFSET;
   const vertX = partMaxX + OFFSET;
 
+  // 自己畫 dim line + extension（DimensionLine 預設 extension 朝上、不適合
+  // 我們 dim line 在 part 上方的場景——應該朝 part 下方延伸）
+  const sortedX = [horizP1.x, horizP2.x].sort((a, b) => a - b);
+  const hxLo = sortedX[0];
+  const hxHi = sortedX[1];
+  const hPartY = Math.min(horizP1.y, horizP2.y); // part edge SVG y（dim line 下方就是 part）
+  const sortedY = [vertP1.y, vertP2.y].sort((a, b) => a - b);
+  const vyLo = sortedY[0];
+  const vyHi = sortedY[1];
+  const vPartX = Math.max(vertP1.x, vertP2.x); // part edge SVG x（dim line 左邊就是 part）
+
+  const ARROW = 3;
   return (
-    <g className="t1-dim-overlay">
-      <DimensionLine
-        arrowId={arrowId}
-        x1={horizP1.x}
-        x2={horizP2.x}
-        y={horizY}
-        label={`${horizLabel} ${horiz}`}
-      />
-      <VerticalDimensionLine
-        arrowId={arrowId}
-        x={vertX}
-        y1={vertP1.y}
-        y2={vertP2.y}
-        label={`${vertLabel} ${vert}`}
-      />
+    <g
+      className="t1-dim-overlay"
+      stroke="#111"
+      fill="#111"
+      strokeWidth={0.4}
+      fontFamily="sans-serif"
+    >
+      {/* 水平 dim line：dim line 在 part 上方、extension 向下拉到 part 邊 */}
+      <line x1={hxLo} y1={horizY - 2} x2={hxLo} y2={hPartY + 2} strokeWidth={0.25} stroke="#888" />
+      <line x1={hxHi} y1={horizY - 2} x2={hxHi} y2={hPartY + 2} strokeWidth={0.25} stroke="#888" />
+      <line x1={hxLo} y1={horizY} x2={hxHi} y2={horizY} />
+      <polygon points={`${hxLo},${horizY} ${hxLo + ARROW},${horizY - ARROW} ${hxLo + ARROW},${horizY + ARROW}`} />
+      <polygon points={`${hxHi},${horizY} ${hxHi - ARROW},${horizY - ARROW} ${hxHi - ARROW},${horizY + ARROW}`} />
+      <text x={(hxLo + hxHi) / 2} y={horizY - 4} textAnchor="middle" fontSize={11} stroke="none">
+        {`${horizLabel} ${horiz}`}
+      </text>
+
+      {/* 垂直 dim line：dim line 在 part 右方、extension 向左拉到 part 邊 */}
+      <line x1={vertX + 2} y1={vyLo} x2={vPartX - 2} y2={vyLo} strokeWidth={0.25} stroke="#888" />
+      <line x1={vertX + 2} y1={vyHi} x2={vPartX - 2} y2={vyHi} strokeWidth={0.25} stroke="#888" />
+      <line x1={vertX} y1={vyLo} x2={vertX} y2={vyHi} />
+      <polygon points={`${vertX},${vyLo} ${vertX - ARROW},${vyLo + ARROW} ${vertX + ARROW},${vyLo + ARROW}`} />
+      <polygon points={`${vertX},${vyHi} ${vertX - ARROW},${vyHi - ARROW} ${vertX + ARROW},${vyHi - ARROW}`} />
+      <text x={vertX + 4} y={(vyLo + vyHi) / 2 + 4} fontSize={11} stroke="none">
+        {`${vertLabel} ${vert}`}
+      </text>
     </g>
   );
 }
