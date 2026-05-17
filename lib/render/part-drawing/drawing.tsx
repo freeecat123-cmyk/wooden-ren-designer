@@ -15,7 +15,6 @@ import { MATERIALS } from "@/lib/materials";
 import {
   T1Dimensions,
   T2Annotations,
-  T2LabelList,
   GrainArrow,
   FacingMark,
   ShapeSpecificAnnotation,
@@ -215,9 +214,6 @@ export function PartDrawing({
           </div>
         );
       })()}
-
-      {/* T2 榫卯標註：每件 mortise/tenon 一行 W×L 深 D，距底 X */}
-      <T2LabelList part={part} design={design} />
 
       {/* Phase 2.5 Task 3: title block 底列 — 編號 / 材料 / 比例 / 公差 */}
       <div className="border-t border-zinc-300 mt-2 pt-1 text-[9px] text-zinc-700 font-mono tabular-nums">
