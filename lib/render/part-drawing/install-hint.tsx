@@ -13,6 +13,7 @@
  */
 import React from "react";
 import type { FurnitureDesign } from "@/lib/types";
+import { worldExtents } from "@/lib/render/geometry";
 
 interface Props {
   design: FurnitureDesign;
@@ -25,18 +26,19 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
   if (!target) return null;
 
   // 算整家具 bbox（front view = XY 平面）
+  // 用 worldExtents 才會考慮 part rotation（橫撐 rotation.y=π/2 → length 沿 Z 軸）
   let minX = Infinity,
     maxX = -Infinity;
   let minY = Infinity,
     maxY = -Infinity;
   for (const p of design.parts) {
     const o = p.origin ?? { x: 0, y: 0, z: 0 };
-    const halfL = (p.visible?.length ?? 0) / 2;
-    const t = p.visible?.thickness ?? 0;
-    minX = Math.min(minX, (o.x ?? 0) - halfL);
-    maxX = Math.max(maxX, (o.x ?? 0) + halfL);
+    const ext = worldExtents(p);
+    const halfX = ext.xExt / 2;
+    minX = Math.min(minX, (o.x ?? 0) - halfX);
+    maxX = Math.max(maxX, (o.x ?? 0) + halfX);
     minY = Math.min(minY, o.y ?? 0);
-    maxY = Math.max(maxY, (o.y ?? 0) + t);
+    maxY = Math.max(maxY, (o.y ?? 0) + ext.yExt);
   }
   if (!isFinite(minX) || !isFinite(maxX) || maxX - minX < 1) return null;
   if (!isFinite(minY) || !isFinite(maxY) || maxY - minY < 1) return null;
@@ -72,12 +74,11 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
     >
       {design.parts.map((p, i) => {
         const o = p.origin ?? { x: 0, y: 0, z: 0 };
-        const halfL = (p.visible?.length ?? 0) / 2;
-        const t = p.visible?.thickness ?? 0;
-        const x = tx(o.x - halfL);
-        const y = ty(o.y + t);
-        const w = (p.visible?.length ?? 0) * scale;
-        const h = t * scale;
+        const ext = worldExtents(p);
+        const x = tx((o.x ?? 0) - ext.xExt / 2);
+        const y = ty((o.y ?? 0) + ext.yExt);
+        const w = ext.xExt * scale;
+        const h = ext.yExt * scale;
         const isTarget = p.id === highlightPartId;
         return (
           <rect
