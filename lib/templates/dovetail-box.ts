@@ -653,14 +653,13 @@ const polyDesign: FurnitureDesign = {
           shape: "rect",
           cosmetic: true,
         });
-        // 右 X 邊 — 用 through=false (blind cut) 避免 through+CSG 在右側 part 面留 hairline
-        // depth 加大確保切到底，edge 容忍 11mm（少 1mm 在卡槽 0.5mm 容差內、不影響滑動）
+        // 右 X 邊
         lidPart.mortises.push({
           origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
-          depth: sinkMm + 1,
+          depth: cutD,
           length: rightEdgeW,
           width: lidWidLocal,
-          through: false,
+          through: true,
           shape: "rect",
           cosmetic: true,
         });
