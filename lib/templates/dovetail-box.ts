@@ -53,7 +53,7 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "hex", label: "六角盒（6 段斜接，禮品款）" },
     { value: "oct", label: "八角盒（8 段斜接，禮品款）" },
   ], help: "六/八角款用 stave 拼接邊接（六角 60° / 八角 45° 內角），鳩尾改 mitered-spline；不支援滑入式蓋、活動抽板" },
-  { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 8, max: 25, step: 1, unit: "mm" },
+  { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 12, min: 5, max: 25, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板裝法", defaultValue: "seated", choices: [
     { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
