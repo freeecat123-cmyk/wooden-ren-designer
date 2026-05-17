@@ -669,13 +669,10 @@ const polyDesign: FurnitureDesign = {
   // origin.y = from-bottom 慣例 → 隔板底面 y 座標 = dividerBaseY（不能 + H/2）。
   // inset-panel 模式：底板上緣在 2*botT；其他模式（seated / flush-glued）底板上緣在 botT。
   const dividerBaseY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-  // 滑入式：隔板頂上緣要在「滑槽下緣 = lid 底」之下（讓 lid 順過）
-  // dado 端面伸進 F/B 壁 dividerInset mm，跟 lid 滑槽會交集；多下調 dividerInset
-  // 確保 dado 不冒進 lid 區
+  // 滑入式：隔板頂上緣齊「滑槽下緣 = lid 底 = outerH - lidT - sinkMm」
   // 其他蓋型：頂上緣齊壁內頂 = outerH - lidT
   const slidingSinkMm = 5;
-  const slidingExtraDrop = lidType === "sliding" ? slidingSinkMm + dividerInset : 0;
-  const wallTopY = outerH - (withLid ? lidT + slidingExtraDrop : 0);
+  const wallTopY = outerH - (withLid ? lidT + (lidType === "sliding" ? slidingSinkMm : 0) : 0);
   const dividerMaxH = Math.max(1, wallTopY - dividerBaseY);
   const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, dividerMaxH) : dividerMaxH;
   const innerLDim = outerL - 2 * wallT;
