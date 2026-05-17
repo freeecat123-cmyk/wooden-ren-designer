@@ -1167,7 +1167,7 @@ export function T2Annotations({
       // 避免蓋到上面 mortise（user:「往下一點 不要蓋到榫孔」/「再往下移」）
       // 有 sibling 在上方的 chain mortise 用較大 gap=24 拉開
       const wDimBelow = !!prevLSibling || !outerAbove;
-      const wGap = prevLSibling ? 24 : GAP;
+      const wGap = prevLSibling ? 40 : GAP;
       const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
       const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
