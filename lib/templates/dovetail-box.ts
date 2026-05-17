@@ -575,10 +575,14 @@ const polyDesign: FurnitureDesign = {
         // 內側面 (from-bottom)：wall-front 內面 = +Y_local = ly；其餘 = -Y_local = 0
         const innerFromBottom =
           p.id === "wall-front" ? wallT - grooveDepth / 2 : grooveDepth / 2;
+        // F/B 槽只跨「兩側壁內側面之間」(lid 實際停留範圍)：
+        // 槽長 = visible.length - 2·wallT、置中；兩端不切穿角接
+        const isLong = p.id === "wall-front" || p.id === "wall-back";
+        const grooveLen = isLong ? p.visible.length - 2 * wallT : p.visible.length;
         p.mortises.push({
           origin: { x: 0, y: innerFromBottom, z: grooveLocalZ },
           depth: grooveDepth + 0.3,
-          length: p.visible.length,
+          length: grooveLen,
           width: lidT + 0.5,
           through: false,
           shape: "rect",
