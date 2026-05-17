@@ -110,7 +110,8 @@ export function T1Dimensions({
     vertP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
   }
 
-  const horizY = Math.max(horizP1.y, horizP2.y) + OFFSET;
+  // 水平 dim line 放材料 *上方*（SVG y 較小）、垂直 dim line 放 *右側*（x 較大）
+  const horizY = Math.min(horizP1.y, horizP2.y) - OFFSET;
   const vertX = Math.max(vertP1.x, vertP2.x) + OFFSET;
 
   return (
