@@ -21,10 +21,22 @@ import {
 } from "@/lib/ceiling/types";
 import { bomToCsvRows, computeCeilingBom } from "@/lib/ceiling/calc";
 import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
+import { LazyCeilingScene3D } from "@/lib/ceiling/LazyCeilingScene3D";
+import type { LayerKey, ViewMode } from "@/lib/ceiling/CeilingScene3D";
 
 export function CeilingDevClient() {
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
   const bom = useMemo(() => computeCeilingBom(input), [input]);
+
+  // ────── 階段 3 3D 狀態 ──────
+  const [viewKind, setViewKind] = useState<"2d" | "3d">("2d");
+  const [view3D, setView3D] = useState<ViewMode>("iso");
+  const [explode, setExplode] = useState(0);
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>({
+    room: true, frame: true, main: true, sub: true, boards: true,
+  });
+  const toggleLayer = (k: LayerKey) =>
+    setLayers((prev) => ({ ...prev, [k]: !prev[k] }));
 
   function update<K extends keyof CeilingInput>(key: K, value: CeilingInput[K]) {
     setInput((prev) => ({ ...prev, [key]: value }));
@@ -140,13 +152,69 @@ export function CeilingDevClient() {
 
         {/* ────── 中央:SVG + 自動算 + BOM ────── */}
         <section>
-          {/* SVG 俯視排版圖(階段 2) */}
+          {/* 視圖切換 2D / 3D(階段 2 / 階段 3) */}
           <div className="rounded-lg border border-zinc-200 bg-white p-3 mb-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-zinc-900">俯視排版圖(2D)</h2>
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-semibold text-zinc-900">
+                  {viewKind === "2d" ? "俯視排版圖(2D)" : "3D 軸測 / 俯視"}
+                </h2>
+                <div className="inline-flex gap-1 p-0.5 bg-zinc-100 rounded text-[11px]">
+                  <button onClick={() => setViewKind("2d")}
+                    className={`px-2 py-1 rounded font-medium transition ${viewKind === "2d" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600"}`}>
+                    📐 2D
+                  </button>
+                  <button onClick={() => setViewKind("3d")}
+                    className={`px-2 py-1 rounded font-medium transition ${viewKind === "3d" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600"}`}>
+                    🧊 3D
+                  </button>
+                </div>
+              </div>
               <ConsistencyBadge bom={bom} />
             </div>
-            <CeilingOverviewSvg bom={bom} />
+
+            {/* 3D 控制列(只在 3D 模式顯示) */}
+            {viewKind === "3d" && (
+              <div className="mb-3 flex flex-wrap items-center gap-3 p-2 bg-zinc-50/60 rounded text-[11px]">
+                <div className="inline-flex gap-1 p-0.5 bg-zinc-200 rounded">
+                  <button onClick={() => setView3D("iso")}
+                    className={`px-2 py-0.5 rounded font-medium ${view3D === "iso" ? "bg-white shadow-sm" : "text-zinc-600"}`}>
+                    軸測
+                  </button>
+                  <button onClick={() => setView3D("top")}
+                    className={`px-2 py-0.5 rounded font-medium ${view3D === "top" ? "bg-white shadow-sm" : "text-zinc-600"}`}>
+                    俯視
+                  </button>
+                </div>
+                <label className="flex items-center gap-2">
+                  <span className="text-zinc-700">爆炸</span>
+                  <input type="range" min={0} max={1} step={0.01} value={explode}
+                    onChange={(e) => setExplode(Number(e.target.value))} className="w-24" />
+                  <span className="tabular-nums text-zinc-500 w-8">{(explode * 100).toFixed(0)}%</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-700">圖層</span>
+                  {[
+                    { k: "room" as const, label: "房間" },
+                    { k: "frame" as const, label: "邊框" },
+                    { k: "main" as const, label: "主支+吊筋" },
+                    { k: "sub" as const, label: "副支" },
+                    { k: "boards" as const, label: "矽酸鈣板" },
+                  ].map(({ k, label }) => (
+                    <button key={k} onClick={() => toggleLayer(k)}
+                      className={`px-2 py-0.5 rounded ring-1 ${layers[k] ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-zinc-100 text-zinc-400 ring-zinc-200"}`}>
+                      {layers[k] ? "👁" : "🚫"} {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {viewKind === "2d" ? (
+              <CeilingOverviewSvg bom={bom} />
+            ) : (
+              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} />
+            )}
             <p className="mt-2 text-[10px] text-zinc-500 leading-snug">
               改任何輸入,圖即時重繪。「畫幾根 = 算幾根」:右下圖例 + 上方一致性檢查徽章。
             </p>
