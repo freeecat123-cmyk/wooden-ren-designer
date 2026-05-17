@@ -1130,11 +1130,10 @@ export function T2Annotations({
 
       const outerAbove = box.y < partCenterSvg.y;
       const outerLeft = box.x < partCenterSvg.x;
-      const GAP = 12; // SVG px；榫 dim 距「max(box, partEdge)」推出去
-      // 取 part 邊跟 box 邊的最外側當參考（protrusion 用 box / interior 用 partEdge）
-      const wDimY = outerAbove
-        ? Math.min(box.y, partTopSvg) - GAP
-        : Math.max(box.y + box.h, partBottomY) + GAP;
+      const GAP = 12; // SVG px；榫 dim 距 box 邊
+      // W dim (horizontal) 緊貼 box 上/下邊（user:「12-6-12 要往上移到榫孔旁」）
+      // L dim 仍用 max(box, partEdge) 給 chain dim 上下延伸空間
+      const wDimY = outerAbove ? box.y - GAP : box.y + box.h + GAP;
       const lDimX = outerLeft
         ? Math.min(box.x, partLeftSvg) - GAP
         : Math.max(box.x + box.w, partRightSvg) + GAP;
