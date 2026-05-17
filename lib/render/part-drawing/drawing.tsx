@@ -131,7 +131,7 @@ export function PartDrawing({
       }`}
     >
       {/* Install hint mini — 整家具縮圖、target part 紅色（Phase 2.5 Task 1） */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 right-2 z-0">
         <InstallHintMini design={design} highlightPartId={part.id} />
       </div>
       {/* Title bar */}
