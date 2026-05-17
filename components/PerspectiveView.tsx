@@ -2766,6 +2766,11 @@ export function PerspectiveView({
       );
       geo.deleteAttribute("uv");
       if (!geo.attributes.normal) geo.computeVertexNormals();
+      // tail tip 在 X=±halfLength 跟側板外面 face 重合 → Z-fighting
+      // 沿 X 微放大讓 cut 超出側板外面 1mm（feedback_csg_overlap_over_analytical_fit）
+      const sxFull = part.visible.length;
+      const xScale = (sxFull + 2) / sxFull;
+      geo.scale(xScale, 1, 1);
       const { yExt } = worldExtents(part);
       const px = part.origin.x * SCALE;
       const py = (part.origin.y + yExt / 2) * SCALE;
