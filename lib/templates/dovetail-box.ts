@@ -726,22 +726,24 @@ const polyDesign: FurnitureDesign = {
       const liftOffH = liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : liftOffAuto;
       const cutY = outerH - liftOffH;  // 切線 Y（從底算）
       const liftGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      // 頂板厚度：lidThicknessOpt > 0 用 user 給的、否則跟底板同 botT
+      const topPanelT = lidThicknessOpt > 0 ? lidThicknessOpt : botT;
 
       // 1. lid 物件改成 top 板（inset-panel 鏡像底板）：
       //    底板 Y=[botT, 2·botT]（嵌進牆內、牆底有 botT 裙）
-      //    頂板 Y=[outerH-2·botT, outerH-botT]（嵌進牆內、牆頂有 botT cap）
+      //    頂板 Y=[outerH-2·topPanelT, outerH-topPanelT]（嵌進牆內、牆頂有 topPanelT cap）
       lidPart.visible = {
         length: outerL - 2 * wallT + 2 * liftGrooveDepth,
         width: outerW - 2 * wallT + 2 * liftGrooveDepth,
-        thickness: botT,
+        thickness: topPanelT,
       };
-      lidPart.origin = { x: 0, y: outerH - 2 * botT, z: 0 };
+      lidPart.origin = { x: 0, y: outerH - 2 * topPanelT, z: 0 };
       lidPart.nameZh = "盒蓋頂板（鑲板入溝）";
       // 拉孔搬到 top 板中心（手指掀起用）
       const liftLidHole = lidPart.mortises[lidPart.mortises.length - 1];
       if (liftLidHole && liftLidHole.cosmetic && liftLidHole.through) {
-        liftLidHole.origin = { x: 0, y: botT / 2, z: 0 };
-        liftLidHole.depth = botT + 0.5;
+        liftLidHole.origin = { x: 0, y: topPanelT / 2, z: 0 };
+        liftLidHole.depth = topPanelT + 0.5;
       }
 
       // 2. 4 牆切兩段：身段 Y=[0, cutY]、蓋段 Y=[cutY, outerH] — 各段內含自己的板裙/cap
