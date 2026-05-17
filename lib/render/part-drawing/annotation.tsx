@@ -882,40 +882,194 @@ export function T2Annotations({
           strokeDasharray={dash}
         />
       ),
-      // 短 leader：從 box 底邊中點拉到 label 上方
-      <line
-        key={`${it.kind}-${it.idx}-lead`}
-        x1={box.x + box.w / 2}
-        y1={box.y + box.h}
-        x2={lblX}
-        y2={lblY - 8}
-        stroke={stroke}
-        strokeWidth={0.4}
-        strokeDasharray="2 1.5"
-      />,
-      <text
-        key={`${it.kind}-${it.idx}-dims`}
-        x={lblX}
-        y={lblY}
-        fontSize={9}
-        fill="#1f2937"
-        fontFamily="monospace"
-        textAnchor="middle"
-      >
-        {it.dims}
-      </text>,
     ];
 
+    // 圓孔：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
+    // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
+    if (mortiseIsRound) {
+      partEls.push(
+        <line
+          key={`${it.kind}-${it.idx}-lead`}
+          x1={box.x + box.w / 2}
+          y1={box.y + box.h}
+          x2={lblX}
+          y2={lblY - 8}
+          stroke={stroke}
+          strokeWidth={0.4}
+          strokeDasharray="2 1.5"
+        />,
+        <text
+          key={`${it.kind}-${it.idx}-dims`}
+          x={lblX}
+          y={lblY}
+          fontSize={9}
+          fill="#1f2937"
+          fontFamily="monospace"
+          textAnchor="middle"
+        >
+          {it.dims}
+        </text>,
+      );
+    } else {
+      // 視圖軸 mapping：mortiseEntryBox / tenonLocalBox 都以 part-local 中心系
+      //   front: 水平=X, 垂直=Y, 深(into page)=Z
+      //   top:   水平=X, 垂直=Z, 深=Y
+      //   side:  水平=Z, 垂直=Y, 深=X
+      const hMm =
+        view === "side" ? round1(2 * lb.hz) : round1(2 * lb.hx);
+      const vMm =
+        view === "top" ? round1(2 * lb.hz) : round1(2 * lb.hy);
+      const dMm =
+        view === "front"
+          ? round1(2 * lb.hz)
+          : view === "top"
+            ? round1(2 * lb.hy)
+            : round1(2 * lb.hx);
+
+      // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
+      const outerAbove = box.y < partCenterSvg.y;
+      const outerLeft = box.x < partCenterSvg.x;
+      const wDimY = outerAbove ? box.y - 5 : box.y + box.h + 5;
+      const lDimX = outerLeft ? box.x - 5 : box.x + box.w + 5;
+      const wLabelY = outerAbove ? wDimY - 2 : wDimY + 7;
+      const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
+      const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
+
+      // 內向箭頭 dim line（box 兩端 tick → 中央 label）
+      const SZ = 2.2;
+      const inwardArrowsH = (lo: number, hi: number, y: number) => (
+        <>
+          <polygon
+            points={`${lo},${y} ${lo + SZ + 1},${y - SZ} ${lo + SZ + 1},${y + SZ}`}
+            fill={stroke}
+          />
+          <polygon
+            points={`${hi},${y} ${hi - SZ - 1},${y - SZ} ${hi - SZ - 1},${y + SZ}`}
+            fill={stroke}
+          />
+        </>
+      );
+      const inwardArrowsV = (lo: number, hi: number, x: number) => (
+        <>
+          <polygon
+            points={`${x},${lo} ${x - SZ},${lo + SZ + 1} ${x + SZ},${lo + SZ + 1}`}
+            fill={stroke}
+          />
+          <polygon
+            points={`${x},${hi} ${x - SZ},${hi - SZ - 1} ${x + SZ},${hi - SZ - 1}`}
+            fill={stroke}
+          />
+        </>
+      );
+
+      partEls.push(
+        // W (水平) dim line：跨 box 寬度
+        <g key={`${it.kind}-${it.idx}-Wdim`}>
+          <line
+            x1={box.x}
+            y1={wDimY}
+            x2={box.x + box.w}
+            y2={wDimY}
+            stroke={stroke}
+            strokeWidth={0.5}
+          />
+          {/* 短延伸線連 box 邊到 dim line */}
+          <line
+            x1={box.x}
+            y1={outerAbove ? box.y : box.y + box.h}
+            x2={box.x}
+            y2={wDimY}
+            stroke={stroke}
+            strokeWidth={0.3}
+          />
+          <line
+            x1={box.x + box.w}
+            y1={outerAbove ? box.y : box.y + box.h}
+            x2={box.x + box.w}
+            y2={wDimY}
+            stroke={stroke}
+            strokeWidth={0.3}
+          />
+          {inwardArrowsH(box.x, box.x + box.w, wDimY)}
+          <text
+            x={box.x + box.w / 2}
+            y={wLabelY}
+            fontSize={8}
+            fill={stroke}
+            fontFamily="monospace"
+            textAnchor="middle"
+          >
+            {hMm}
+          </text>
+        </g>,
+        // L (垂直) dim line：跨 box 高度
+        <g key={`${it.kind}-${it.idx}-Ldim`}>
+          <line
+            x1={lDimX}
+            y1={box.y}
+            x2={lDimX}
+            y2={box.y + box.h}
+            stroke={stroke}
+            strokeWidth={0.5}
+          />
+          <line
+            x1={outerLeft ? box.x : box.x + box.w}
+            y1={box.y}
+            x2={lDimX}
+            y2={box.y}
+            stroke={stroke}
+            strokeWidth={0.3}
+          />
+          <line
+            x1={outerLeft ? box.x : box.x + box.w}
+            y1={box.y + box.h}
+            x2={lDimX}
+            y2={box.y + box.h}
+            stroke={stroke}
+            strokeWidth={0.3}
+          />
+          {inwardArrowsV(box.y, box.y + box.h, lDimX)}
+          <text
+            x={lLabelX}
+            y={box.y + box.h / 2 + 3}
+            fontSize={8}
+            fill={stroke}
+            fontFamily="monospace"
+            textAnchor={lLabelAnchor}
+          >
+            {vMm}
+          </text>
+        </g>,
+        // 深 / 長 (into-page) 小字：放 box 內中央，避免擠 dim line
+        <text
+          key={`${it.kind}-${it.idx}-Ddim`}
+          x={box.x + box.w / 2}
+          y={box.y + box.h / 2 + 2.5}
+          fontSize={6.5}
+          fill={stroke}
+          fontFamily="monospace"
+          textAnchor="middle"
+        >
+          {isMortise ? `深${dMm}` : `長${dMm}`}
+        </text>,
+      );
+    }
+
     // 工程 dim line：根據 view + 對稱性
+    // 距中軸 dim 放在 W/L dim line 外側（mortiseIsRound 用原 8px、rect 用 18px 避撞）
+    const offCenter = mortiseIsRound ? 8 : 18;
     if (view === "top" && isSymmetricPart) {
       // 距中 X：水平 dim line 從 centerline 到 mortise center
       const dxMm = round1(Math.abs(lb.cx));
       const dzMm = round1(Math.abs(lb.cz));
-      // 放 dim line：X dim 在 mortise 上方 8px，Z dim 在 mortise 左側 8px
       const xDimY =
-        box.y < partCenterSvg.y ? box.y - 8 : box.y + box.h + 8;
+        box.y < partCenterSvg.y
+          ? box.y - offCenter
+          : box.y + box.h + offCenter;
       const zDimX =
-        box.x < partCenterSvg.x ? box.x - 8 : box.x + box.w + 8;
+        box.x < partCenterSvg.x
+          ? box.x - offCenter
+          : box.x + box.w + offCenter;
       partEls.push(
         hDim(partCenterSvg.x, cx, xDimY, String(dxMm), "#0ea5e9", `${it.kind}-${it.idx}-xdim`),
       );
@@ -925,7 +1079,7 @@ export function T2Annotations({
     } else if (view !== "top" && isSymmetricPart) {
       // front / side 對稱件：只畫 X / Z 距中軸 dim line（距底 dim 已砍）
       const dxMm = round1(Math.abs(lb.cx));
-      const xDimY = box.y - 8;
+      const xDimY = box.y - offCenter;
       partEls.push(
         hDim(
           partCenterSvg.x,
