@@ -80,10 +80,6 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
   ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）", dependsOn: { key: "withLid", equals: true } },
-  { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
-    { value: "flat", label: "平頂（lid 下沉、壁頂有 cap，傳統做法）" },
-    { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、cap 變一片平面）" },
-  ], help: "中央凸起 = 在 lid 中央加 innerL × innerW × sinkMm 的凸起、頂面跟壁頂 flush；工藝上拿厚料削邊條或兩片膠合", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "sliding" }] } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -116,7 +112,6 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const withLid = getOption<boolean>(input, opt(o, "withLid"));
   const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
   const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
-  const slidingLidStyle = getOption<string>(input, opt(o, "slidingLidStyle"));
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
   const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
@@ -601,36 +596,6 @@ const polyDesign: FurnitureDesign = {
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
         wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
-      }
-      // v2 中央凸起 raised-center：filling innerL × innerW × sinkMm 從 lid 頂到壁頂
-      // 拉孔同 X/Z 位置複製、through、深 sinkMm + 0.5，跟 lid 的拉孔對齊形成穿透孔
-      if (slidingLidStyle === "raised-center") {
-        const innerLDim = outerL - 2 * wallT;
-        const innerWDim = outerW - 2 * wallT;
-        // lid 拉孔世界 X = lidPart.origin.x + lid local x = -insetEach/2 + (-lidLocalLength/2 + 27)
-        //               = -outerL/2 + pullMarginFromLeft + pullDia/2
-        const pullHoleWorldX = -outerL / 2 + pullMarginFromLeft + pullDia / 2;
-        design.parts.push({
-          id: "lid-raised-center",
-          nameZh: "盒蓋中央凸起（raised panel · 跟壁頂齊平）",
-          material,
-          grainDirection: "length",
-          visible: { length: innerLDim, width: innerWDim, thickness: sinkMm },
-          origin: { x: 0, y: outerH - sinkMm, z: 0 },
-          tenons: [],
-          mortises: [
-            {
-              origin: { x: pullHoleWorldX, y: sinkMm / 2, z: 0 },
-              depth: sinkMm + 0.5,
-              length: pullDia,
-              width: pullDia,
-              through: true,
-              shape: "round",
-              cosmetic: true,
-            },
-          ],
-        });
-        lidPart.nameZh = "盒蓋（滑入式 · 邊條 + 中央凸起 raised panel）";
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
