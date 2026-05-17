@@ -609,30 +609,35 @@ const polyDesign: FurnitureDesign = {
       // - 邊寬：前/後/右 = grooveDepth（槽深度，5mm）；左 = wallT（lid 延伸到 box outer 補滑入口）
       if (slidingLidStyle === "raised-center") {
         const fullT = lidT + sinkMm;
-        lidPart.visible = { ...lidPart.visible, thickness: fullT };
-        lidPart.origin = { ...lidPart.origin, y: outerH - fullT };
+        // v2 改 lid X 範圍：不再延伸進 wall-right 槽，右面齊 wall-right 內側面（= innerL/2 = 113）
+        // → 右邊條沒突出、不需 cosmetic 銑切（避免 CSG hairline 在 part 外面）
+        // 左面維持齊 box outer -X face（lid 滑入口端不變）
+        const newLidLength = outerL - insetEach - grooveDepth;
+        const newOriginX = -insetEach / 2 - grooveDepth / 2;
+        lidPart.visible = { ...lidPart.visible, length: newLidLength, thickness: fullT };
+        lidPart.origin = { ...lidPart.origin, x: newOriginX, y: outerH - fullT };
         lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 拉孔同 world X 位置不變、local X 隨 lid 縮短重算
+        const pullHoleWorldX = -outerL / 2 + pullMarginFromLeft + pullDia / 2;
+        const newPullLocalX = pullHoleWorldX - newOriginX;
+        const lidHole2 = lidPart.mortises[lidPart.mortises.length - 1];
+        if (lidHole2 && lidHole2.cosmetic && lidHole2.through) {
+          lidHole2.origin = { ...lidHole2.origin, x: newPullLocalX };
+        }
         // 拉孔深度自動穿透 fullT，y 中心改 fullT/2
         const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
         if (lidHole && lidHole.cosmetic && lidHole.through) {
           lidHole.depth = fullT + 0.5;
           lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
         }
-        // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
-        // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
-        // slot 雙端各加 epsilon：上 2mm 超出 part top、下 0.3mm 進邊條（容忍邊條 11.7mm）
+        // 2 邊銑掉 top sinkMm（前/後 Z 邊）— 右邊不銑因 lid 右面已齊 wall-right 內面
         const lidLenLocal = lidPart.visible.length;
         const lidWidLocal = lidPart.visible.width;
         const cutEpsilonTop = 2;
         const cutEpsilonBottom = 0.3;
-        // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
         const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
-        const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
-        // 更直接：center = (top + bottom) / 2 = (fullT + epsTop + fullT - sinkMm - epsBot) / 2
         const cutCenterYDirect = (fullT + cutEpsilonTop + (fullT - sinkMm - cutEpsilonBottom)) / 2;
-        void cutCenterY;
         const zEdgeW = grooveDepth;
-        const rightEdgeW = grooveDepth;
         // 前 Z 邊
         lidPart.mortises.push({
           origin: { x: 0, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
@@ -649,16 +654,6 @@ const polyDesign: FurnitureDesign = {
           depth: cutD,
           length: lidLenLocal,
           width: zEdgeW,
-          through: true,
-          shape: "rect",
-          cosmetic: true,
-        });
-        // 右 X 邊
-        lidPart.mortises.push({
-          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
-          depth: cutD,
-          length: rightEdgeW,
-          width: lidWidLocal,
           through: true,
           shape: "rect",
           cosmetic: true,
