@@ -1289,7 +1289,15 @@ export function T2Annotations({
       const shoulderTopStartY = topBoundary;
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
+      // chain 中段（prevLSibling 存在）的 shoulderTop label 容易跟前 sibling 的
+      // W dim label 在同 X 列撞 → 外推 14 svg unit 避免重疊。第一個 sibling
+      // 的 shoulderTop（從 partTop 算）不外推。
       if (shoulderTop > TH) {
+        const isMidChain = !!prevLSibling;
+        const TIGHT_OUT = 14;
+        const shTLabelX = isMidChain
+          ? lLabelX + (outerLeft ? -TIGHT_OUT : TIGHT_OUT)
+          : lLabelX;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1310,7 +1318,7 @@ export function T2Annotations({
             />
             {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
             <text
-              x={lLabelX}
+              x={shTLabelX}
               y={(shoulderTopStartY + box.y) / 2 + 3}
               fontSize={7}
               fill={stroke}
