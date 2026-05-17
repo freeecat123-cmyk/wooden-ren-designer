@@ -52,6 +52,15 @@ interface PartDrawingProps {
    * `bg-white w-full h-auto` 去掉 max-h、讓扁平 part 保持真實 aspect。
    */
   orthoClassName?: string;
+  /**
+   * 視圖縮放（單一視圖放大模式用）。預設 1。> 1 時：
+   *  - 改在 SVG 外用 HTML 畫 view 標題（不被 scale 放大）
+   *  - 只對 OrthoView 包一層 transform:scale wrapper、不縮 chrome（卡片邊框、
+   *    title bar、底部 title block、InstallHintMini、T2 標註清單）
+   *  外層 zoom transform 改由本元件控制，避免 panel 整片 scale 把
+   *  「正視/側視」「右上角縮圖」「比例編號」等附屬元素也一起放大。
+   */
+  zoom?: number;
 }
 
 /**
@@ -80,7 +89,18 @@ export function PartDrawing({
   singleView,
   onViewClick,
   orthoClassName,
+  zoom = 1,
 }: PartDrawingProps) {
+  // zoom > 1 → 改用 HTML 畫 view 標題（不縮）、SVG 內 title bar 關掉
+  const useExternalTitle = zoom > 1;
+  const zoomWrapStyle: React.CSSProperties | undefined =
+    zoom > 1
+      ? {
+          transform: `scale(${zoom})`,
+          transformOrigin: "top left",
+          width: `${100 / zoom}%`,
+        }
+      : undefined;
   const part = group.representative;
   const scale = scaleDenom ?? pickScale(part);
   const partNo = `P-${String(index + 1).padStart(2, "0")}`;
@@ -141,6 +161,7 @@ export function PartDrawing({
                   isolatePartId={part.id}
                   showDimensions={false}
                   className={orthoClassName}
+                  noTitleInSvg={useExternalTitle}
                   overlayContent={(ctx) => (
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />
@@ -156,6 +177,23 @@ export function PartDrawing({
                   )}
                 />
               );
+              // zoom > 1 時把 OrthoView 包進 transform:scale wrapper、外面
+              // 另畫不縮放的 HTML view 標題；zoom=1 維持既有行為（標題在 SVG 內）
+              const viewBody = useExternalTitle ? (
+                <>
+                  <div className="text-sm font-semibold text-zinc-800 mb-1 border-b border-zinc-200 pb-1">
+                    {title}
+                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                      {titleEn}
+                    </span>
+                  </div>
+                  <div className="overflow-hidden">
+                    <div style={zoomWrapStyle}>{orthoEl}</div>
+                  </div>
+                </>
+              ) : (
+                orthoEl
+              );
               if (onViewClick) {
                 return (
                   <button
@@ -165,14 +203,14 @@ export function PartDrawing({
                     className="group relative block w-full text-left cursor-zoom-in"
                     aria-label={`放大 ${title}`}
                   >
-                    {orthoEl}
+                    {viewBody}
                     <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-900/70 text-white opacity-0 group-hover:opacity-100 transition">
                       🔍 放大
                     </span>
                   </button>
                 );
               }
-              return <div key={view}>{orthoEl}</div>;
+              return <div key={view}>{viewBody}</div>;
             })}
           </div>
         );

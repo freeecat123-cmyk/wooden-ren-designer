@@ -677,6 +677,7 @@ export function OrthoView({
   isolatePartId,
   showDimensions = true,
   overlayContent,
+  noTitleInSvg = false,
 }: ViewProps & {
   view: OrthoView;
   title: string;
@@ -693,6 +694,12 @@ export function OrthoView({
   /** 零件圖 overlay slot：給定 viewBox 上下文，回 SVG 元素疊在最上層。
    *  例如 T1 全長尺寸/T2 榫卯虛框/木紋箭頭等。*/
   overlayContent?: (ctx: OrthoViewBoxCtx) => React.ReactNode;
+  /**
+   * 不在 SVG 內畫 title bar（外框 + 標題列底線 + title/titleEn text）。
+   * 預設 false（保留既有行為）。PartDrawing zoom 模式設 true、自己用 HTML
+   * 在 SVG 外畫標題，避免 transform: scale(zoom) 把 SVG 內的標題字也一起放大。
+   */
+  noTitleInSvg?: boolean;
 }) {
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
@@ -733,13 +740,16 @@ export function OrthoView({
     view === "front" || view === "side"
       ? Math.max(overall.length, overall.width)
       : w;
+  // noTitleInSvg=true 時不保留 SVG 內 title bar 空間（PartDrawing zoom 模式
+  // 會在 SVG 外另畫 HTML 標題、避免 transform:scale 把標題字一起放大）
+  const reservedTitleH = noTitleInSvg ? 0 : TITLE_BAR_H;
   const vbW = vbContentW + PADDING * 2;
-  const vbH = h + PADDING * 2 + DIM_OFFSET + TITLE_BAR_H;
+  const vbH = h + PADDING * 2 + DIM_OFFSET + reservedTitleH;
   const vbX = -PADDING - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
-  const vbY = drawAreaTop - PADDING - TITLE_BAR_H;
+  const vbY = drawAreaTop - PADDING - reservedTitleH;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
@@ -798,46 +808,50 @@ export function OrthoView({
         </clipPath>
       </defs>
 
-      {/* outer frame */}
-      <rect
-        x={frameX}
-        y={frameY}
-        width={frameW}
-        height={frameH}
-        fill="none"
-        stroke="#222"
-        strokeWidth={1}
-      />
-
-      {/* title bar at top */}
-      <g>
-        <line
-          x1={frameX}
-          x2={frameX + frameW}
-          y1={frameY + TITLE_BAR_H}
-          y2={frameY + TITLE_BAR_H}
-          stroke="#222"
-          strokeWidth={0.6}
-        />
-        <text
-          x={frameX + 10}
-          y={frameY + TITLE_BAR_H - 10}
-          fontSize={13}
-          fontWeight="700"
-          fill="#111"
-          fontFamily="sans-serif"
-        >
-          {title}
-          <tspan
-            dx={8}
-            fontSize={10}
-            fontWeight="400"
-            fill="#666"
-          >
-            {titleEn}
-          </tspan>
-        </text>
-      </g>
+      {/* outer frame + title bar — 預設保留；noTitleInSvg=true（PartDrawing zoom 模式）
+          時整組跳過，由 caller 用 HTML 在 SVG 外畫標題，避免 transform:scale
+          連帶把這層 SVG 文字也一起放大 */}
+      {!noTitleInSvg && (
+        <>
+          <rect
+            x={frameX}
+            y={frameY}
+            width={frameW}
+            height={frameH}
+            fill="none"
+            stroke="#222"
+            strokeWidth={1}
+          />
+          <g>
+            <line
+              x1={frameX}
+              x2={frameX + frameW}
+              y1={frameY + TITLE_BAR_H}
+              y2={frameY + TITLE_BAR_H}
+              stroke="#222"
+              strokeWidth={0.6}
+            />
+            <text
+              x={frameX + 10}
+              y={frameY + TITLE_BAR_H - 10}
+              fontSize={13}
+              fontWeight="700"
+              fill="#111"
+              fontFamily="sans-serif"
+            >
+              {title}
+              <tspan
+                dx={8}
+                fontSize={10}
+                fontWeight="400"
+                fill="#666"
+              >
+                {titleEn}
+              </tspan>
+            </text>
+          </g>
+        </>
+      )}
 
       {/* center lines (dot-dash) */}
       <g stroke="#888" strokeWidth={0.5} strokeDasharray="8 2 2 2" opacity={0.7}>
