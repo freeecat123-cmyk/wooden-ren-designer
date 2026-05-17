@@ -602,35 +602,66 @@ const polyDesign: FurnitureDesign = {
       if (wallLeft) {
         wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
       }
-      // v2 中央凸起 raised-center：filling innerL × innerW × sinkMm 從 lid 頂到壁頂
-      // 拉孔同 X/Z 位置複製、through、深 sinkMm + 0.5，跟 lid 的拉孔對齊形成穿透孔
+      // v2 中央凸起 raised-center：lid 整塊用 lidT + sinkMm 厚料、四週上緣銑掉 sinkMm
+      // → 一片整料、邊條 lidT 厚（卡進 F/B 滑槽）、中央凸起 lidT+sinkMm 厚（頂跟壁頂齊平）
       if (slidingLidStyle === "raised-center") {
-        const innerLDim = outerL - 2 * wallT;
-        const innerWDim = outerW - 2 * wallT;
-        // lid 拉孔世界 X = lidPart.origin.x + lid local x = -insetEach/2 + (-lidLocalLength/2 + 27)
-        //               = -outerL/2 + pullMarginFromLeft + pullDia/2
-        const pullHoleWorldX = -outerL / 2 + pullMarginFromLeft + pullDia / 2;
-        design.parts.push({
-          id: "lid-raised-center",
-          nameZh: "盒蓋中央凸起（raised panel · 跟壁頂齊平）",
-          material,
-          grainDirection: "length",
-          visible: { length: innerLDim, width: innerWDim, thickness: sinkMm },
-          origin: { x: 0, y: outerH - sinkMm, z: 0 },
-          tenons: [],
-          mortises: [
-            {
-              origin: { x: pullHoleWorldX, y: sinkMm / 2, z: 0 },
-              depth: sinkMm + 0.5,
-              length: pullDia,
-              width: pullDia,
-              through: true,
-              shape: "round",
-              cosmetic: true,
-            },
-          ],
+        const fullT = lidT + sinkMm;
+        lidPart.visible = { ...lidPart.visible, thickness: fullT };
+        lidPart.origin = { ...lidPart.origin, y: outerH - fullT };  // bottom 不變 = 63
+        lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel）";
+        // 拉孔深度改成穿透 fullT（之前是 lidT）
+        const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
+        if (lidHole && lidHole.cosmetic && lidHole.through) {
+          lidHole.depth = fullT + 0.5;
+          lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
+        }
+        // 四週銑掉 top sinkMm（cosmetic blind cut，從頂面往下 sinkMm 深）
+        // edge 寬度：前後各 insetEach、左 wallT、右 insetEach
+        const lidLenLocal = lidPart.visible.length;
+        const lidWidLocal = lidPart.visible.width;
+        const leftEdgeW = wallT;       // lid -X 邊到 raised center -X 邊 = wallT
+        const rightEdgeW = insetEach;  // lid +X 邊到 raised center +X 邊 = insetEach
+        const zEdgeW = insetEach;      // 前後 Z 邊各 insetEach
+        const cutCenterY = fullT - sinkMm / 2;  // 從頂面往下切 sinkMm，中心在 fullT - sinkMm/2
+        // 前後 Z 邊（沿 X 方向全長、Z 各 insetEach 寬）
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterY, z: -(lidWidLocal - zEdgeW) / 2 },
+          depth: sinkMm + 0.5,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
         });
-        lidPart.nameZh = "盒蓋（滑入式 · 邊條 + 中央凸起 raised panel）";
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterY, z: (lidWidLocal - zEdgeW) / 2 },
+          depth: sinkMm + 0.5,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 左 X 邊（沿 Z 方向、X 寬 wallT）
+        lidPart.mortises.push({
+          origin: { x: -(lidLenLocal - leftEdgeW) / 2, y: cutCenterY, z: 0 },
+          depth: sinkMm + 0.5,
+          length: leftEdgeW,
+          width: lidWidLocal,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 右 X 邊（沿 Z 方向、X 寬 insetEach）
+        lidPart.mortises.push({
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterY, z: 0 },
+          depth: sinkMm + 0.5,
+          length: rightEdgeW,
+          width: lidWidLocal,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
