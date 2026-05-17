@@ -1339,12 +1339,19 @@ export function T2Annotations({
         featureInsideY && drawBotShoulder && !skipLastShoulderBot
           ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
           : 0;
-      const shoulderLft = featureInsideX
-        ? round1((box.x - partLeftX) * mmPerSvgX)
-        : 0;
-      const shoulderRgt = featureInsideX
-        ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
-        : 0;
+      // W 軸 shoulder：part body 太窄（< 60 svg unit）→ shoulder chain 跟著小、
+      // 視覺混亂，user 已用 T1 寬 dim 知道 part 總寬、不需畫。直接跳過。
+      const NARROW_W = 60; // SVG px
+      const partWSvg = partRightX - partLeftX;
+      const skipWShoulders = partWSvg < NARROW_W;
+      const shoulderLft =
+        featureInsideX && !skipWShoulders
+          ? round1((box.x - partLeftX) * mmPerSvgX)
+          : 0;
+      const shoulderRgt =
+        featureInsideX && !skipWShoulders
+          ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
+          : 0;
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
       const shoulderTopStartY = topBoundary;
