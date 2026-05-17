@@ -1131,13 +1131,43 @@ export function T2Annotations({
       const outerAbove = box.y < partCenterSvg.y;
       const outerLeft = box.x < partCenterSvg.x;
       const GAP = 12; // SVG px；榫 dim 距 box 邊
-      // W dim (horizontal) 緊貼 box 上/下邊（user:「12-6-12 要往上移到榫孔旁」）
-      // L dim 仍用 max(box, partEdge) 給 chain dim 上下延伸空間
-      const wDimY = outerAbove ? box.y - GAP : box.y + box.h + GAP;
-      const lDimX = outerLeft
-        ? Math.min(box.x, partLeftSvg) - GAP
-        : Math.max(box.x + box.w, partRightSvg) + GAP;
-      const wLabelY = outerAbove ? wDimY - 2 : wDimY + 7;
+      const computeLDimX = (otherR: { x: number; w: number }) => {
+        const otherOuterLeft = otherR.x < partCenterSvg.x;
+        return otherOuterLeft
+          ? Math.min(otherR.x, partLeftSvg) - GAP
+          : Math.max(otherR.x + otherR.w, partRightSvg) + GAP;
+      };
+      const lDimX = computeLDimX({ x: box.x, w: box.w });
+      // 預先偵測 lSiblings、prevLSibling、nextLSibling，給 wDimY 選方向參考
+      const COL_TOL = 5;
+      const lSiblings = items
+        .filter((other) => {
+          const otherFeature =
+            other.kind === "m"
+              ? part.mortises[other.idx]
+              : part.tenons[other.idx];
+          const otherLb =
+            other.kind === "m"
+              ? mortiseEntryBox(otherFeature as Mortise)
+              : tenonLocalBox(part, otherFeature as Tenon);
+          const otherR = projectBoxRect(otherLb);
+          if (!otherR) return false;
+          return Math.abs(computeLDimX(otherR) - lDimX) < COL_TOL;
+        })
+        .map((other) => ({ other, r: other.rect }))
+        .sort((a, b) => a.r.y - b.r.y);
+      const myLIdx = lSiblings.findIndex((s) => s.other === it);
+      const prevLSibling = myLIdx > 0 ? lSiblings[myLIdx - 1] : null;
+      const nextLSibling =
+        myLIdx >= 0 && myLIdx < lSiblings.length - 1
+          ? lSiblings[myLIdx + 1]
+          : null;
+
+      // W dim (horizontal) 緊貼 box 上/下邊；上面有 sibling 時強制畫到 box 下方
+      // 避免蓋到上面 mortise（user:「往下一點 不要蓋到榫孔」）
+      const wDimBelow = !!prevLSibling || !outerAbove;
+      const wDimY = wDimBelow ? box.y + box.h + GAP : box.y - GAP;
+      const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
 
@@ -1271,41 +1301,7 @@ export function T2Annotations({
         box.y >= partTopY - SLACK &&
         box.y + box.h <= partBottomY + SLACK;
 
-      // 同軸 sibling 偵測：避免兩個 mortise/tenon 各畫自己的 shoulder 到 part
-      // 邊、視覺重疊。chain dim 慣例：用「上一個 sibling 邊→這個 feature 邊」
-      // 算 shoulderTop，「這個 feature 邊→下一個 sibling 邊」算 shoulderBot；
-      // 中間段 shoulderBot 跳過、由下一個 sibling 的 shoulderTop 補。
-      const COL_TOL = 5; // SVG px 容差
-      // 偵測 sibling 用 lDimX 而非 box.x（box.x 對 Z-face vs X-face mortise 偏移
-      // 不一樣、但兩條 chain 在 SVG 上落在同一 lDimX 列）
-      const computeLDimX = (otherR: { x: number; w: number }) => {
-        const otherOuterLeft = otherR.x < partCenterSvg.x;
-        return otherOuterLeft
-          ? Math.min(otherR.x, partLeftSvg) - GAP
-          : Math.max(otherR.x + otherR.w, partRightSvg) + GAP;
-      };
-      const lSiblings = items
-        .filter((other) => {
-          const otherFeature =
-            other.kind === "m"
-              ? part.mortises[other.idx]
-              : part.tenons[other.idx];
-          const otherLb =
-            other.kind === "m"
-              ? mortiseEntryBox(otherFeature as Mortise)
-              : tenonLocalBox(part, otherFeature as Tenon);
-          const otherR = projectBoxRect(otherLb);
-          if (!otherR) return false;
-          return Math.abs(computeLDimX(otherR) - lDimX) < COL_TOL;
-        })
-        .map((other) => ({ other, r: other.rect }))
-        .sort((a, b) => a.r.y - b.r.y);
-      const myLIdx = lSiblings.findIndex((s) => s.other === it);
-      const prevLSibling = myLIdx > 0 ? lSiblings[myLIdx - 1] : null;
-      const nextLSibling =
-        myLIdx >= 0 && myLIdx < lSiblings.length - 1
-          ? lSiblings[myLIdx + 1]
-          : null;
+      // lSiblings / prevLSibling / nextLSibling 在 wDimY 計算前已提前算過
 
       // top 邊界：前一個 sibling 的 bot edge（如果有），不然 partTopY
       const topBoundary = prevLSibling
