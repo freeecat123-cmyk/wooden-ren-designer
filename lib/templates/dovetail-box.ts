@@ -583,9 +583,9 @@ const polyDesign: FurnitureDesign = {
         const grooveOriginX = isLong ? (grooveDepth - wallT) / 2 : 0;
         p.mortises.push({
           origin: { x: grooveOriginX, y: innerFromBottom, z: grooveLocalZ },
-          depth: grooveDepth + 0.3,
+          depth: grooveDepth + 1,
           length: grooveLen,
-          width: lidT + 0.5,
+          width: lidT + 1,
           through: false,
           shape: "rect",
           cosmetic: true,
