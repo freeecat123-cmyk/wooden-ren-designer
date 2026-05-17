@@ -90,14 +90,17 @@ export function PartDrawing({
   orthoClassName,
   zoom = 1,
 }: PartDrawingProps) {
-  // zoom > 1 → 改用 HTML 畫 view 標題（不縮）、SVG 內 title bar 關掉
+  // zoom > 1 → 改用 HTML 畫 view 標題（不縮）、SVG 內 title bar 關掉。
+  // 縮放機制參考 ZoomableThreeViews：用 width/height % 撐大 wrapper、SVG
+  // 以 preserveAspectRatio="meet" 自動填滿；outer container overflow-auto
+  // 提供 scrollbar。比 transform: scale 乾淨（不會把 anti-aliased text 弄糊）
   const useExternalTitle = zoom > 1;
   const zoomWrapStyle: React.CSSProperties | undefined =
     zoom > 1
       ? {
-          transform: `scale(${zoom})`,
-          transformOrigin: "top left",
-          width: `${100 / zoom}%`,
+          width: `${zoom * 100}%`,
+          height: `${zoom * 100}%`,
+          flexShrink: 0,
         }
       : undefined;
   const part = group.representative;
@@ -186,8 +189,10 @@ export function PartDrawing({
                       {titleEn}
                     </span>
                   </div>
-                  <div className="overflow-hidden">
-                    <div style={zoomWrapStyle}>{orthoEl}</div>
+                  <div className="overflow-auto max-h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]">
+                    <div style={zoomWrapStyle} className="flex items-center justify-center">
+                      {orthoEl}
+                    </div>
                   </div>
                 </>
               ) : (
