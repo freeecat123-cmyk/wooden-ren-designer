@@ -45,7 +45,7 @@ export function computeCeilingBom(input: CeilingInput): CeilingBom {
   const slots = computeSlots(input, supports);
   const subLayout = computeSubJoistYLayout(input);
   const hangerPerMainJoist = computeHangerCountPerJoist(input, layout.mainJoistLengthCm);
-  const boardCalc = computeBoardLayout(input);
+  const boardCalc = computeBoardLayout(input, layout.mainJoistCentersCm);
 
   const items: BomItem[] = [];
 
@@ -387,28 +387,54 @@ interface BoardCalc {
   description: string;
 }
 
-function computeBoardLayout(input: CeilingInput): BoardCalc {
+// 板寬「可塞入欄寬」的容差:|欄寬 − boardShortCm| ≤ FULL_WIDTH_TOL_CM 視為全張
+// (例:主支中心距 90.9,板寬 90,差 0.9 cm 在容差內 → 整片擺進去剩 0.9 cm 縫,
+//  打 AB 膠或矽利康填,算「全張」不算裁切)
+const FULL_WIDTH_TOL_CM = 5;
+
+function computeBoardLayout(input: CeilingInput, mainCentersCm: number[]): BoardCalc {
   // ASSUMPTION#3 板長 boardLongCm(180)對齊短邊方向, 板寬 boardShortCm(90)對齊長邊方向
-  // (理由:板邊落在主支中心線, 主支跨短邊, 主支間距 90.9 ≈ 板寬 90)
-  // ASSUMPTION#4 0.9 cm 板寬/間距差忽略
+  // 修正:板邊「落在主支中心線」(施工 step 5),沿長邊的欄寬不再是固定 boardShortCm,
+  //       改成「邊框外側 → 第一根主支中心 → 第二根主支中心 → ... → 邊框外側」的實際距離
 
-  // 沿長邊鋪 cols, 每板寬 boardShortCm
-  const cols = Math.ceil(input.longSideCm / input.boardShortCm);
-  const fullCols = Math.floor(input.longSideCm / input.boardShortCm);
+  // ────── 沿長邊欄寬(由主支中心切) ──────
+  const colWidthsCm: number[] = [];
+  if (mainCentersCm.length === 0) {
+    colWidthsCm.push(input.longSideCm);
+  } else {
+    // 第一欄:邊框外側 → 第一根主支中心
+    colWidthsCm.push(mainCentersCm[0]);
+    // 中間欄:相鄰主支中心之距(= mainSpacing,通常 = 90.9 cm)
+    for (let i = 1; i < mainCentersCm.length; i++) {
+      colWidthsCm.push(mainCentersCm[i] - mainCentersCm[i - 1]);
+    }
+    // 最後欄:最後主支中心 → 邊框外側
+    colWidthsCm.push(input.longSideCm - mainCentersCm[mainCentersCm.length - 1]);
+  }
 
-  // 沿短邊鋪 rows, 每板長 boardLongCm
+  const cols = colWidthsCm.length;
+  // 全寬欄 = 欄寬接近 boardShortCm(在容差內)
+  const fullCols = colWidthsCm.filter(
+    (w) => Math.abs(w - input.boardShortCm) <= FULL_WIDTH_TOL_CM,
+  ).length;
+  const cutCols = cols - fullCols;
+
+  // ────── 沿短邊列(無主支對齊,每板長一列) ──────
+  // 副支不在板邊位置(副支密度不等於板長),故板長方向只用 boardLongCm 切
   const rows = Math.ceil(input.shortSideCm / input.boardLongCm);
   const fullRows = Math.floor(input.shortSideCm / input.boardLongCm);
 
   const totalPositions = cols * rows;
-  // 「全張」= 兩個方向都剛好用整片(沒裁切)
+  // 「全張」= 全寬欄 × 全長列(兩方向都不需裁切)
   const fullCount = fullCols * fullRows;
-  // 「裁切」= 其餘位置(行或列不足整板)
+  // 「裁切」= 其餘
   const cutCount = totalPositions - fullCount;
 
+  const widthsLabel = colWidthsCm.map((w) => Math.round(w * 10) / 10).join(", ");
   const description =
-    `沿長邊 ${input.longSideCm} cm 鋪 ${cols} 欄(板寬 ${input.boardShortCm} cm,前 ${fullCols} 欄整, 末 ${cols - fullCols} 欄裁切)` +
-    `;沿短邊 ${input.shortSideCm} cm 鋪 ${rows} 列(板長 ${input.boardLongCm} cm,前 ${fullRows} 列整, 末 ${rows - fullRows} 列裁切)`;
+    `沿長邊欄寬(板邊落主支中心):[${widthsLabel}] cm — ${fullCols} 全寬欄 + ${cutCols} 邊裁切欄(板寬 ${input.boardShortCm} cm,容差 ${FULL_WIDTH_TOL_CM} cm)` +
+    `;沿短邊列:${rows} 列(${fullRows} 全長 + ${rows - fullRows} 短列,板長 ${input.boardLongCm} cm)` +
+    `;全寬欄與板寬差(若 < 1 cm 為矽利康/AB 膠縫)`;
 
   return {
     rows,

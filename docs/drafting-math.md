@@ -4418,18 +4418,44 @@ totalHangers = hangerPerMainJoist × mainJoistTimberCount
 
 ### §CE.7 矽酸鈣板鋪法
 
-ASSUMPTION:板長 `boardLongCm`(180)對齊**短邊方向**,板寬 `boardShortCm`(90)
-對齊**長邊方向**。理由:板邊「落在主支中心」(施工 step 5),主支間距 90.9 ≈ 板寬 90。
+**修正版**(2026-05-18):板邊**落在主支中心**(施工 step 5),不再用固定 90 cm
+切欄。沿長邊欄寬由 `mainJoistCentersCm` + 邊框外側決定。
 
 ```
-cols      = ceil(longSideCm / boardShortCm)   // 沿長邊欄數
-fullCols  = floor(longSideCm / boardShortCm)  // 整片欄數
-rows      = ceil(shortSideCm / boardLongCm)   // 沿短邊列數
-fullRows  = floor(shortSideCm / boardLongCm)  // 整片列數
+// 沿長邊欄寬(板邊落主支中心):
+colWidthsCm = [
+  mainCenters[0],                                  // 邊框外側 → 第一根主支
+  mainCenters[1] − mainCenters[0],                 // 主支間距 (≈90.9)
+  ...,
+  longSideCm − mainCenters[last]                   // 最後主支 → 邊框外側
+]
+cols       = colWidthsCm.length                   // = mainPositionCount + 1
+fullCols   = count(w | |w − boardShortCm| ≤ TOL)  // TOL = 5 cm
+cutCols    = cols − fullCols
+
+// 沿短邊(無主支對齊,每板長一列):
+rows       = ceil(shortSideCm / boardLongCm)
+fullRows   = floor(shortSideCm / boardLongCm)
 
 totalPositions = cols × rows
-boardFullCount = fullCols × fullRows           (兩方向都整片)
-boardCutCount  = totalPositions − boardFullCount   (任一方向需裁切)
+boardFullCount = fullCols × fullRows
+boardCutCount  = totalPositions − boardFullCount
+```
+
+**0.9 cm 板縫:** 板寬 90 cm < 主支間距 90.9 cm,中間欄板擺進去剩 0.9 cm 空隙,
+實務以 AB 膠 / 矽利康 / 接縫帶封填。本算料不另計矽利康用量,假設 1 條 / 板由師傅
+習慣抓量。
+
+**短邊未對副支:** 副支間距 36.36 cm × 5 = 181.8 ≠ 板長 180 cm。v1 短邊每 180 cm
+切列,不對齊副支。v2 可加副支對齊優化(取最近副支中心當板邊)。
+
+**baseline 500×320 中置驗算:**
+```
+mainCenters = [22.75, 113.65, 204.55, 295.45, 386.35, 477.25]
+colWidths   = [22.75, 90.9, 90.9, 90.9, 90.9, 90.9, 22.75]  // 7 欄
+fullCols    = 5(90.9 在容差內)/ cutCols = 2(22.75 太小)
+rows = 2, fullRows = 1
+totalPositions = 14, fullCount = 5 × 1 = 5, cutCount = 9
 ```
 
 ### §CE.8 邊框

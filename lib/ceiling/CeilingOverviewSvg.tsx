@@ -80,7 +80,7 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
       <rect x={x0} y={y0} width={L} height={S} fill="url(#board-hatch)" />
 
       {/* ────── 2. 矽酸鈣板分割線(虛線) ────── */}
-      {renderBoardCutLines(input, x0, y0, x1, y1)}
+      {renderBoardCutLines(input, trace, x0, y0, x1, y1)}
 
       {/* ────── 3. 房間外框(虛線,牆面) ────── */}
       <rect
@@ -162,7 +162,8 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
         <LegendBox color="#a16207" label="邊框" x={0} />
         <LegendBox color="#d97706" label="主支" x={50} />
         <LegendBox color="#52525b" label="副支" x={100} />
-        <LegendDash color="#94a3b8" label="矽酸鈣板分割" x={150} />
+        <LegendDash color="#1d4ed8" label="板邊(主支中心)" x={150} />
+        <LegendDash color="#475569" label="板邊(長向 180cm)" x={230} />
       </g>
     </svg>
   );
@@ -208,20 +209,34 @@ function renderSubJoists(
 
 // ─────────────────────────────────────────────────────────
 // 矽酸鈣板分割線(虛線)
-// 沿長邊每 boardShort 一條垂直線、沿短邊每 boardLong 一條水平線
+//   沿長邊方向板邊「落在主支中心」(施工 step 5)
+//   → 不再每 90 cm 切,改用 trace.mainJoistCentersCm 切欄
+//   → 因為跟主支位置重疊,改畫 above/below 房間外短 ticks,內部不畫(避免跟主支撞色)
+//
+//   沿短邊方向板邊每 boardLong (180) 一條(無主支對齊)
 // ─────────────────────────────────────────────────────────
 function renderBoardCutLines(
   input: { boardLongCm: number; boardShortCm: number; longSideCm: number; shortSideCm: number },
+  trace: CeilingBom["trace"],
   x0: number, y0: number, x1: number, y1: number,
 ) {
   const lines: React.ReactNode[] = [];
   let key = 0;
-  // 沿長邊方向的板邊(垂直線,間距 = boardShort)
-  for (let cx = input.boardShortCm; cx < input.longSideCm; cx += input.boardShortCm) {
+  // 沿長邊:在主支中心線上方/下方各畫一段藍色虛線 tick,標示「此處 = 板邊」
+  for (const c of trace.mainJoistCentersCm) {
+    const cx = x0 + c;
+    // 上方 tick
     lines.push(
-      <line key={`bv-${key++}`}
-        x1={x0 + cx} y1={y0} x2={x0 + cx} y2={y1}
-        stroke="#475569" strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85}
+      <line key={`bv-top-${key++}`}
+        x1={cx} y1={y0 - 12} x2={cx} y2={y0 - 1}
+        stroke="#1d4ed8" strokeWidth={0.7} strokeDasharray="2 1.5" opacity={0.9}
+      />,
+    );
+    // 下方 tick
+    lines.push(
+      <line key={`bv-bot-${key++}`}
+        x1={cx} y1={y1 + 1} x2={cx} y2={y1 + 12}
+        stroke="#1d4ed8" strokeWidth={0.7} strokeDasharray="2 1.5" opacity={0.9}
       />,
     );
   }

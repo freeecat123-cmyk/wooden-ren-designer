@@ -46,8 +46,8 @@ const CASES: TestCase[] = [
         [19.2, 18], // 2 邊 slot × 9 副支
       ],
       hangerCount: 24, // 6 主支 × 4 (standard, floor(312.8/90)+1=4)
-      boardFullCount: 5, // 5 全寬 × 1 全長
-      boardCutCount: 7, // 6×2 − 5
+      boardFullCount: 5, // 5 全寬欄(90.9 cm,容差內)× 1 全長列
+      boardCutCount: 9, // 7 欄 × 2 列 − 5 = 9(2 邊欄裁切 × 2 列 + 5 全欄 × 1 短列)
     },
   },
   {
@@ -66,7 +66,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 25, // 5 × 5 (floor(392.8/90)+1 = 5)
       boardFullCount: 8, // 4 全寬欄 × 2 全長列(400/180 → fullRows=2)
-      boardCutCount: 7, // 5 欄 × 3 列 − 8 = 7
+      boardCutCount: 10, // 6 欄 × 3 列 − 8 = 10
     },
   },
   {
@@ -85,7 +85,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 27, // 9 × 3 (floor(192.8/90)+1 = 3)
       boardFullCount: 8, // 8 全寬欄 × 1 全長列
-      boardCutCount: 10, // 9 欄 × 2 列 − 8 = 10
+      boardCutCount: 12, // 10 欄 × 2 列 − 8 = 12
     },
   },
   {
@@ -104,7 +104,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 63, // 9 × 7 (floor(592.8/90)+1 = 7)
       boardFullCount: 24, // 8 全寬欄 × 3 全長列
-      boardCutCount: 12, // 9 欄 × 4 列 − 24 = 12
+      boardCutCount: 16, // 10 欄 × 4 列 − 24 = 16
     },
   },
 ];

@@ -145,6 +145,19 @@ export function CeilingDevClient() {
             <p className="mt-2 text-[10px] text-zinc-500 leading-snug">
               改任何輸入,圖即時重繪。「畫幾根 = 算幾根」:右下圖例 + 上方一致性檢查徽章。
             </p>
+            <div className="mt-3 p-2 rounded bg-blue-50/60 border border-blue-200 text-[10px] text-blue-900 leading-relaxed">
+              <strong>📐 板邊與主支對齊說明:</strong>
+              藍色虛線 tick(上下房間外)= 板邊接縫位置,**剛好落在主支中心**(施工 step 5)。
+              <br />
+              <strong>0.9 cm 板縫:</strong>板寬 90 cm,主支中心距 90.9 cm,中間每片板擺進去剩
+              <strong> 0.9 cm 空隙</strong>,實務以 AB 膠 / 矽利康 / 接縫帶封填(本工具不另計矽利康量,
+              現場依師傅習慣抓 1 條 / 板)。
+              <br />
+              邊欄(寬度 &lt; 85 cm,超出 5 cm 容差)= 裁切板,材料表已標為「裁切」。
+              <br />
+              短邊方向(板長 180 cm)目前**不對齊副支中心**(副支間距 36.36 cm × 5 = 181.8 ≠ 180),
+              v2 可加副支對齊優化。
+            </div>
           </div>
 
           {/* 自動算 唯讀顯示 */}
