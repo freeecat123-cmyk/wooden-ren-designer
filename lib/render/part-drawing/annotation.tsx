@@ -83,7 +83,8 @@ export function T1Dimensions({
   const W = part.visible.width;
   const T = part.visible.thickness;
   const arrowId = `arr-${view}`;
-  const OFFSET = 50; // mm；放大避免 dim line 跑進材料
+  const OFFSET = 18; // SVG px；T1 dim line 距 part 邊緣（小要避免擠進材料、大會浪費版面）
+  const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
   let horizP1: { x: number; y: number };
   let horizP2: { x: number; y: number };
@@ -202,7 +203,7 @@ export function T1Dimensions({
         <g>
           <line
             x1={grossMinX}
-            y1={horizY - 20 - 2}
+            y1={horizY - GROSS_GAP - 2}
             x2={grossMinX}
             y2={horizY - 2}
             strokeWidth={0.25}
@@ -210,7 +211,7 @@ export function T1Dimensions({
           />
           <line
             x1={grossMaxX}
-            y1={horizY - 20 - 2}
+            y1={horizY - GROSS_GAP - 2}
             x2={grossMaxX}
             y2={horizY - 2}
             strokeWidth={0.25}
@@ -218,19 +219,19 @@ export function T1Dimensions({
           />
           <line
             x1={grossMinX}
-            y1={horizY - 20}
+            y1={horizY - GROSS_GAP}
             x2={grossMaxX}
-            y2={horizY - 20}
+            y2={horizY - GROSS_GAP}
           />
           <polygon
-            points={`${grossMinX},${horizY - 20} ${grossMinX + ARROW},${horizY - 20 - ARROW} ${grossMinX + ARROW},${horizY - 20 + ARROW}`}
+            points={`${grossMinX},${horizY - GROSS_GAP} ${grossMinX + ARROW},${horizY - GROSS_GAP - ARROW} ${grossMinX + ARROW},${horizY - GROSS_GAP + ARROW}`}
           />
           <polygon
-            points={`${grossMaxX},${horizY - 20} ${grossMaxX - ARROW},${horizY - 20 - ARROW} ${grossMaxX - ARROW},${horizY - 20 + ARROW}`}
+            points={`${grossMaxX},${horizY - GROSS_GAP} ${grossMaxX - ARROW},${horizY - GROSS_GAP - ARROW} ${grossMaxX - ARROW},${horizY - GROSS_GAP + ARROW}`}
           />
           <text
             x={(grossMinX + grossMaxX) / 2}
-            y={horizY - 20 - 4}
+            y={horizY - GROSS_GAP - 4}
             textAnchor="middle"
             fontSize={11}
             stroke="none"
@@ -255,7 +256,7 @@ export function T1Dimensions({
       {showVertGross && (
         <g>
           <line
-            x1={vertX + 20 + 2}
+            x1={vertX + GROSS_GAP + 2}
             y1={grossMinY}
             x2={vertX + 2}
             y2={grossMinY}
@@ -263,7 +264,7 @@ export function T1Dimensions({
             stroke="#888"
           />
           <line
-            x1={vertX + 20 + 2}
+            x1={vertX + GROSS_GAP + 2}
             y1={grossMaxY}
             x2={vertX + 2}
             y2={grossMaxY}
@@ -271,19 +272,19 @@ export function T1Dimensions({
             stroke="#888"
           />
           <line
-            x1={vertX + 20}
+            x1={vertX + GROSS_GAP}
             y1={grossMinY}
-            x2={vertX + 20}
+            x2={vertX + GROSS_GAP}
             y2={grossMaxY}
           />
           <polygon
-            points={`${vertX + 20},${grossMinY} ${vertX + 20 - ARROW},${grossMinY + ARROW} ${vertX + 20 + ARROW},${grossMinY + ARROW}`}
+            points={`${vertX + GROSS_GAP},${grossMinY} ${vertX + GROSS_GAP - ARROW},${grossMinY + ARROW} ${vertX + GROSS_GAP + ARROW},${grossMinY + ARROW}`}
           />
           <polygon
-            points={`${vertX + 20},${grossMaxY} ${vertX + 20 - ARROW},${grossMaxY - ARROW} ${vertX + 20 + ARROW},${grossMaxY - ARROW}`}
+            points={`${vertX + GROSS_GAP},${grossMaxY} ${vertX + GROSS_GAP - ARROW},${grossMaxY - ARROW} ${vertX + GROSS_GAP + ARROW},${grossMaxY - ARROW}`}
           />
           <text
-            x={vertX + 20 + 4}
+            x={vertX + GROSS_GAP + 4}
             y={(grossMinY + grossMaxY) / 2 + 4}
             fontSize={11}
             stroke="none"
