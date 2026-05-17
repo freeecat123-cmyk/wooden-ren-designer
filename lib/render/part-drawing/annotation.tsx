@@ -727,25 +727,38 @@ export function T2Annotations({
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
 
-    // 名稱 + 尺寸 label 位置：
-    // - 預設緊貼 box 右側、垂直貼齊 box 上緣
-    // - 若 box 太窄（< 30px 寬）label 改放 box 上方（避開 box body + 鄰居 box）
-    // - 對稱件 top view 4 角：依 mortise 在 part center 哪邊、label 往外側放
-    //   避免跑進 part 中央 dim line 區
-    const partCenterSvg2 = ctx.partLocalToSvg(0, part.visible.thickness / 2, 0);
-    const onLeft = box.x + box.w / 2 < partCenterSvg2.x;
-    const onTop = box.y + box.h / 2 < partCenterSvg2.y;
-    let lblX: number;
-    let lblY: number;
-    if (view === "top" && isSymmetricPart) {
-      // top view 對稱件：label 往外側放（左邊 mortise label 在左、右邊在右）
-      lblX = onLeft ? box.x - 60 : box.x + box.w + 3;
-      lblY = onTop ? box.y - 4 : box.y + box.h + 10;
+    // 尺寸 label 放在 part body 下方（不塞進材料裡）+ 短 leader 從 box 拉到 label
+    // 計算 part body 在 SVG 的最低點（下緣）+ 8px gap
+    const T = part.visible.thickness;
+    const W = part.visible.width;
+    const L = part.visible.length;
+    const cornersY: number[] = [];
+    if (view === "front") {
+      cornersY.push(
+        ctx.partLocalToSvg(-L / 2, -T / 2, 0).y,
+        ctx.partLocalToSvg(+L / 2, -T / 2, 0).y,
+        ctx.partLocalToSvg(-L / 2, +T / 2, 0).y,
+        ctx.partLocalToSvg(+L / 2, +T / 2, 0).y,
+      );
+    } else if (view === "top") {
+      cornersY.push(
+        ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).y,
+        ctx.partLocalToSvg(+L / 2, T / 2, -W / 2).y,
+        ctx.partLocalToSvg(-L / 2, T / 2, +W / 2).y,
+        ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).y,
+      );
     } else {
-      // 預設：label 在 box 右上角外側
-      lblX = box.x + box.w + 3;
-      lblY = box.y - 2;
+      cornersY.push(
+        ctx.partLocalToSvg(0, -T / 2, -W / 2).y,
+        ctx.partLocalToSvg(0, +T / 2, -W / 2).y,
+        ctx.partLocalToSvg(0, -T / 2, +W / 2).y,
+        ctx.partLocalToSvg(0, +T / 2, +W / 2).y,
+      );
     }
+    const partBottomY = Math.max(...cornersY);
+    // label 水平 X 對齊 box 中心、垂直在 part body 下方 + 10
+    const lblX = box.x + box.w / 2;
+    const lblY = partBottomY + 16;
 
     // 圓榫眼：只有看圓柱軸線方向才是圓、垂直方向看是矩形（圓柱側影）
     // 推 mortise 的 depth axis（從 origin 距哪面最近）+ 比對當前 view 的視軸：
@@ -829,13 +842,25 @@ export function T2Annotations({
           strokeDasharray={dash}
         />
       ),
+      // 短 leader：從 box 底邊中點拉到 label 上方
+      <line
+        key={`${it.kind}-${it.idx}-lead`}
+        x1={box.x + box.w / 2}
+        y1={box.y + box.h}
+        x2={lblX}
+        y2={lblY - 8}
+        stroke={stroke}
+        strokeWidth={0.4}
+        strokeDasharray="2 1.5"
+      />,
       <text
         key={`${it.kind}-${it.idx}-dims`}
         x={lblX}
-        y={lblY + 9}
+        y={lblY}
         fontSize={9}
         fill="#1f2937"
         fontFamily="monospace"
+        textAnchor="middle"
       >
         {it.dims}
       </text>,
