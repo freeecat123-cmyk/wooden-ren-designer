@@ -847,6 +847,13 @@ export function T2Annotations({
     });
   });
 
+  // 圓料 part 上的 tenon 視為圓榫（user:「這榫不是圓的嗎？」）
+  const isRoundPart =
+    part.shape?.kind === "round" ||
+    part.shape?.kind === "round-tapered" ||
+    part.shape?.kind === "splayed-round-tapered" ||
+    part.shape?.kind === "lathe-turned" ||
+    part.shape?.kind === "shaker";
   part.tenons.forEach((t, idx) => {
     if (t.length <= 0) return;
     const lb = tenonLocalBox(part, t);
@@ -855,12 +862,15 @@ export function T2Annotations({
     const W = round1(t.width ?? 0);
     const T = round1(t.thickness ?? 0);
     const L = round1(t.length ?? 0);
+    const tenonDims = isRoundPart
+      ? `Ø${W} 長${L}`
+      : `${W}×${T} 長${L}`;
     items.push({
       kind: "t",
       idx,
       rect: r,
       name: `榫頭${idx + 1}`,
-      dims: `${W}×${T} 長${L}`,
+      dims: tenonDims,
       baseline: baselineFor(lb),
     });
   });
@@ -1039,8 +1049,33 @@ export function T2Annotations({
         view === "top" ? "y" : view === "side" ? "x" : "z";
       mortiseIsRound = depthAxis === viewAxis;
     }
+    // 圓料 part 上的 tenon 也是圓的（user:「這榫不是圓的嗎？」）。檢查 part shape
+    // 是否屬於 round 家族 + tenon 從哪個軸凸出（position） vs 當前 view axis：
+    //   軸向一致 → 看圓圈、畫 ellipse；否則畫矩形（圓柱側影）
+    let tenonIsRound = false;
+    if (!isMortise) {
+      const t = part.tenons[it.idx] as Tenon;
+      const isRoundPart =
+        part.shape?.kind === "round" ||
+        part.shape?.kind === "round-tapered" ||
+        part.shape?.kind === "splayed-round-tapered" ||
+        part.shape?.kind === "lathe-turned" ||
+        part.shape?.kind === "shaker";
+      if (isRoundPart) {
+        const tenonAxis: "x" | "y" | "z" =
+          t.position === "top" || t.position === "bottom"
+            ? "y"
+            : t.position === "start" || t.position === "end"
+              ? "x"
+              : "z";
+        const viewAxis: "x" | "y" | "z" =
+          view === "top" ? "y" : view === "side" ? "x" : "z";
+        tenonIsRound = tenonAxis === viewAxis;
+      }
+    }
+    const isRoundFeature = mortiseIsRound || tenonIsRound;
     const partEls: React.ReactNode[] = [
-      mortiseIsRound ? (
+      isRoundFeature ? (
         <g key={`${it.kind}-${it.idx}-box`}>
           <ellipse
             cx={box.x + box.w / 2}
@@ -1087,9 +1122,9 @@ export function T2Annotations({
       ),
     ];
 
-    // 圓孔：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
+    // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
-    if (mortiseIsRound) {
+    if (isRoundFeature) {
       partEls.push(
         <line
           key={`${it.kind}-${it.idx}-lead`}
