@@ -591,10 +591,11 @@ const polyDesign: FurnitureDesign = {
           cosmetic: true,
         });
       }
-      // 左壁縮短 sinkMm（頂在 lid 底）；左壁上方完全留空（無 cap）讓 lid 從上方滑入
+      // 左壁（=正視圖右邊）縮短 sinkMm + 0.25mm（頂在 lid 底再低 0.25mm 避免 z-fighting）
+      // 左壁上方完全留空（無 cap）讓 lid 從上方滑入
       const wallLeft = design.parts.find((p) => p.id === "wall-left");
       if (wallLeft) {
-        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm };
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width - sinkMm - 0.25 };
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
