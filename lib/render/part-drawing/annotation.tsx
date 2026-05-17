@@ -965,7 +965,6 @@ export function T2Annotations({
     const fill = isMortise
       ? "rgba(220, 38, 38, 0.12)"
       : "rgba(37, 99, 235, 0.10)";
-    const dash = isMortise ? "3 2" : "4 2";
 
     // 取得對應 feature 的 local box（重新計算用 cx/cz）
     // mortise 用 mortiseEntryBox（從 entry face 量起、跟 visual 對齊）；
@@ -976,6 +975,31 @@ export function T2Annotations({
     const lb = isMortise
       ? mortiseEntryBox(feature as Mortise)
       : tenonLocalBox(part, feature as Tenon);
+
+    // HLE: 入榫面 / 榫頭凸出面對著鏡頭 → 實線（外觀看得到）；否則虛線（內藏）。
+    // (user:「上面的牙條榫應該是紅色實線」/「藍色榫頭線也應該是藍色實線」)
+    const viewAxis: "x" | "y" | "z" =
+      view === "top" ? "y" : view === "side" ? "x" : "z";
+    let isVisibleFromView = false;
+    if (isMortise) {
+      const m = feature as Mortise;
+      if (lb.depthAxis === viewAxis) {
+        // 入榫面跟視圖軸一致 → 看是否在 +face（朝鏡頭）
+        if (viewAxis === "y") isVisibleFromView = m.origin.y > part.visible.thickness / 2;
+        else if (viewAxis === "x") isVisibleFromView = m.origin.x > 0;
+        else isVisibleFromView = m.origin.z > 0;
+      }
+    } else {
+      const t = feature as Tenon;
+      // tenon position 對應凸出軸；凸出軸跟視圖軸一致 + 朝鏡頭那側 → visible
+      if (t.position === "top" && viewAxis === "y") isVisibleFromView = true;
+      else if (t.position === "bottom" && viewAxis === "y") isVisibleFromView = false;
+      else if (t.position === "end" && viewAxis === "x") isVisibleFromView = true;
+      else if (t.position === "start" && viewAxis === "x") isVisibleFromView = false;
+      else if (t.position === "right" && viewAxis === "z") isVisibleFromView = true;
+      else if (t.position === "left" && viewAxis === "z") isVisibleFromView = false;
+    }
+    const dash = isVisibleFromView ? undefined : (isMortise ? "3 2" : "4 2");
 
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
