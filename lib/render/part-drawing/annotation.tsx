@@ -1436,6 +1436,8 @@ export function T2Annotations({
         );
       }
       // W dim 線（horizontal）左右延伸：partLeft→box.x 和 box.x+box.w→partRight
+      // user:「我是說往下的延伸線」=>「partEdge 角→wDimY」那條垂直延伸不畫
+      // （長線視覺雜訊、shoulder 量 + arrow 已能傳達距邊資訊）
       if (shoulderLft > TH) {
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shL`}>
@@ -1446,14 +1448,6 @@ export function T2Annotations({
               y2={wDimY}
               stroke={stroke}
               strokeWidth={0.5}
-            />
-            <line
-              x1={partLeftX}
-              y1={outerAbove ? partTopY : partBottomY}
-              x2={partLeftX}
-              y2={wDimY}
-              stroke={stroke}
-              strokeWidth={0.3}
             />
             {inwardArrowsH(partLeftX, box.x, wDimY)}
             <text
@@ -1479,14 +1473,6 @@ export function T2Annotations({
               y2={wDimY}
               stroke={stroke}
               strokeWidth={0.5}
-            />
-            <line
-              x1={partRightX}
-              y1={outerAbove ? partTopY : partBottomY}
-              x2={partRightX}
-              y2={wDimY}
-              stroke={stroke}
-              strokeWidth={0.3}
             />
             {inwardArrowsH(box.x + box.w, partRightX, wDimY)}
             <text
