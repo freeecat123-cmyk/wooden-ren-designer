@@ -647,16 +647,8 @@ const polyDesign: FurnitureDesign = {
           shape: "rect",
           cosmetic: true,
         });
-        // 左 X 邊（X 寬 wallT）
-        lidPart.mortises.push({
-          origin: { x: -(lidLenLocal - leftEdgeW) / 2, y: cutCenterY, z: 0 },
-          depth: cutD,
-          length: leftEdgeW,
-          width: lidWidLocal,
-          through: false,
-          shape: "rect",
-          cosmetic: true,
-        });
+        // 左 X 邊（lid 滑入口側，沒卡進任何槽）→ 不銑、讓它跟著中央一起拉高到 fullT
+        void leftEdgeW;  // 留變數宣告但不用
         // 右 X 邊（X 寬 grooveDepth）
         lidPart.mortises.push({
           origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterY, z: 0 },
