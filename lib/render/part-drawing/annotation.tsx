@@ -983,7 +983,8 @@ export function T2Annotations({
     let isVisibleFromView = false;
     if (isMortise) {
       const m = feature as Mortise;
-      if (lb.depthAxis === viewAxis) {
+      const mortiseLb = lb as ReturnType<typeof mortiseEntryBox>;
+      if (mortiseLb.depthAxis === viewAxis) {
         // 入榫面跟視圖軸一致 → 看是否在 +face（朝鏡頭）
         if (viewAxis === "y") isVisibleFromView = m.origin.y > part.visible.thickness / 2;
         else if (viewAxis === "x") isVisibleFromView = m.origin.x > 0;
