@@ -624,6 +624,23 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
+  // 偵測「當前 view 部件太矮」：扁平 part 正/側視（如座板 350×25）label 塞不下、
+  // 字必擠重疊 → 跳過 SVG 內 label、依賴卡片下方 T2LabelList 顯示完整資訊
+  const partBodyHeightSvg = (() => {
+    const t = part.visible.thickness;
+    const w = part.visible.width;
+    const lo =
+      view === "top"
+        ? ctx.partLocalToSvg(0, t / 2, -w / 2).y
+        : ctx.partLocalToSvg(0, 0, 0).y;
+    const hi =
+      view === "top"
+        ? ctx.partLocalToSvg(0, t / 2, +w / 2).y
+        : ctx.partLocalToSvg(0, t, 0).y;
+    return Math.abs(hi - lo);
+  })();
+  const skipInViewLabels = partBodyHeightSvg < 80;
+
   // 工程圖風格：每個 feature 畫 dashed box + 名稱/尺寸 label + 真實 dim line（黃俊傑式）
   // - DimensionLine: extension line + dim line + filled triangle arrows + label
   // - 對稱件用「距中軸」、非對稱件用「距底/距邊」
@@ -829,27 +846,32 @@ export function T2Annotations({
           strokeDasharray={dash}
         />
       ),
-      <text
-        key={`${it.kind}-${it.idx}-name`}
-        x={lblX}
-        y={lblY}
-        fontSize={9}
-        fill={stroke}
-        fontWeight="bold"
-      >
-        {it.name}
-      </text>,
-      <text
-        key={`${it.kind}-${it.idx}-dims`}
-        x={lblX}
-        y={lblY + 11}
-        fontSize={9}
-        fill="#1f2937"
-        fontFamily="monospace"
-      >
-        {it.dims}
-      </text>,
     ];
+    // 太矮 part → 跳 SVG label、只畫 box + dim line（label 在 T2LabelList 顯示）
+    if (!skipInViewLabels) {
+      partEls.push(
+        <text
+          key={`${it.kind}-${it.idx}-name`}
+          x={lblX}
+          y={lblY}
+          fontSize={9}
+          fill={stroke}
+          fontWeight="bold"
+        >
+          {it.name}
+        </text>,
+        <text
+          key={`${it.kind}-${it.idx}-dims`}
+          x={lblX}
+          y={lblY + 11}
+          fontSize={9}
+          fill="#1f2937"
+          fontFamily="monospace"
+        >
+          {it.dims}
+        </text>,
+      );
+    }
 
     // 工程 dim line：根據 view + 對稱性
     if (view === "top" && isSymmetricPart) {
