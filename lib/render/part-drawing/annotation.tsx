@@ -30,6 +30,14 @@ export type PartView = "front" | "side" | "top";
 
 /**
  * 取得單一 view 在第三角法下的水平/垂直 mm 尺寸。
+ *
+ * 標籤語意（長/寬/厚）依「mm 大小排序」而非 Cartesian L/W/T：
+ *   - 最大 → 長
+ *   - 次大 → 寬
+ *   - 最小 → 厚
+ *
+ * 這樣腳（visible.thickness=425, length=35）「425 = 長」、板（length=100,
+ * thickness=10）「100 = 長」，跟木匠直覺一致。
  */
 export function getT1ForView(part: Part, view: PartView): {
   horiz: number;
@@ -42,9 +50,32 @@ export function getT1ForView(part: Part, view: PartView): {
   const T = round1(part.visible.thickness);
   const horiz = view === "side" ? W : L;
   const vert = view === "top" ? W : T;
-  const horizLabel = view === "side" ? "寬" : "長";
-  const vertLabel = view === "top" ? "寬" : "厚";
-  return { horiz, vert, horizLabel, vertLabel };
+  // 按 mm 大小排序給語意標籤
+  const sorted = (
+    [
+      { mm: L, axis: "L" as const },
+      { mm: W, axis: "W" as const },
+      { mm: T, axis: "T" as const },
+    ] as const
+  )
+    .slice()
+    .sort((a, b) => b.mm - a.mm);
+  const semanticLabel: Record<"L" | "W" | "T", string> = {
+    L: "",
+    W: "",
+    T: "",
+  };
+  semanticLabel[sorted[0].axis] = "長";
+  semanticLabel[sorted[1].axis] = "寬";
+  semanticLabel[sorted[2].axis] = "厚";
+  const horizAxis = view === "side" ? "W" : "L";
+  const vertAxis = view === "top" ? "W" : "T";
+  return {
+    horiz,
+    vert,
+    horizLabel: semanticLabel[horizAxis],
+    vertLabel: semanticLabel[vertAxis],
+  };
 }
 
 /**
