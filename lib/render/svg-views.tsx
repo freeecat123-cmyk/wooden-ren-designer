@@ -1766,20 +1766,21 @@ export function OrthoView({
           const ry = view === "top" ? -(r.y + r.h) : -r.y - r.h;
           const PERIOD = 7; // dasharray "4 3"
           const mod = (n: number) => ((n % PERIOD) + PERIOD) % PERIOD;
+          const vfx = isolatePartId ? "non-scaling-stroke" : undefined;
           return (
             <g key={part.id}>
               <line x1={r.x} y1={ry} x2={r.x + r.w} y2={ry}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(r.x)} fill="none" />
+                strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
               <line x1={r.x + r.w} y1={ry} x2={r.x + r.w} y2={ry + r.h}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" />
+                strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
               <line x1={r.x} y1={ry + r.h} x2={r.x + r.w} y2={ry + r.h}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(r.x)} fill="none" />
+                strokeDashoffset={mod(r.x)} fill="none" vectorEffect={vfx} />
               <line x1={r.x} y1={ry} x2={r.x} y2={ry + r.h}
                 stroke={stroke} strokeWidth={sw} strokeDasharray={dash}
-                strokeDashoffset={mod(ry)} fill="none" />
+                strokeDashoffset={mod(ry)} fill="none" vectorEffect={vfx} />
             </g>
           );
         }
@@ -1826,6 +1827,7 @@ export function OrthoView({
                 strokeDasharray={seg.hidden ? "4 3" : undefined}
                 strokeDashoffset={dashOffset}
                 fill="none"
+                vectorEffect={isolatePartId ? "non-scaling-stroke" : undefined}
               />,
             );
           });
