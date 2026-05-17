@@ -465,6 +465,88 @@ export function T2Annotations({
   };
   const items: Item[] = [];
 
+  /**
+   * Mortise entry-aligned box：偵測 entry face、box 從 entry face 往 part 內部
+   * 延伸 depth。傳回 part-local CENTERED frame 的 box，方便用 partLocalToSvg。
+   * 比 mortiseLocalBox 直觀——榫眼從哪面進、就從哪面開始畫。
+   */
+  function mortiseEntryBox(m: Mortise): {
+    cx: number; cy: number; cz: number;
+    hx: number; hy: number; hz: number;
+    depthAxis: "x" | "y" | "z";
+  } {
+    const lx = part.visible.length;
+    const ly = part.visible.thickness;
+    const lz = part.visible.width;
+    const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+    const xToFace = Math.min(
+      Math.abs(m.origin.x - lx / 2),
+      Math.abs(m.origin.x + lx / 2),
+    );
+    const zToFace = Math.min(
+      Math.abs(m.origin.z - lz / 2),
+      Math.abs(m.origin.z + lz / 2),
+    );
+    const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
+    let depthAxis: "x" | "y" | "z";
+    if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+      depthAxis = xToFace <= zToFace ? "x" : "z";
+    } else if (yToFace <= xToFace && yToFace <= zToFace) {
+      depthAxis = "y";
+    } else if (xToFace <= zToFace) {
+      depthAxis = "x";
+    } else {
+      depthAxis = "z";
+    }
+
+    const D = m.depth;
+    const W = m.width;
+    const L = m.length;
+
+    if (depthAxis === "y") {
+      // Y axis entry: 從上 or 下面進、cy 在 entry face 邊
+      const enterTop = m.origin.y > ly / 2;
+      // entry face y in centered frame
+      const entryY = enterTop ? +ly / 2 : -ly / 2;
+      // mortise extends inward by D
+      const cyL = enterTop ? entryY - D / 2 : entryY + D / 2;
+      // 其他軸照 origin 位置（centered = origin - ly/2 only for y）
+      return {
+        cx: m.origin.x,
+        cy: cyL,
+        cz: m.origin.z,
+        hx: L / 2,
+        hy: D / 2,
+        hz: W / 2,
+        depthAxis: "y",
+      };
+    } else if (depthAxis === "x") {
+      const enterRight = m.origin.x >= 0;
+      const cxL = enterRight ? lx / 2 - D / 2 : -lx / 2 + D / 2;
+      return {
+        cx: cxL,
+        cy: m.origin.y - ly / 2,
+        cz: m.origin.z,
+        hx: D / 2,
+        hy: L / 2,
+        hz: W / 2,
+        depthAxis: "x",
+      };
+    } else {
+      const enterFront = m.origin.z >= 0;
+      const czL = enterFront ? lz / 2 - D / 2 : -lz / 2 + D / 2;
+      return {
+        cx: m.origin.x,
+        cy: m.origin.y - ly / 2,
+        cz: czL,
+        hx: L / 2,
+        hy: W / 2,
+        hz: D / 2,
+        depthAxis: "z",
+      };
+    }
+  }
+
   // 對稱件偵測：座板 / 椅面 / 圓桌面 等寬度方向對稱（mortise 在 X 軸或 Z 軸兩側）
   // 偵測啟發式：mortises 存在 +X 跟 -X 兩側、或 +Z 跟 -Z 兩側 → 對稱件
   const xs = part.mortises.map((m) => m.origin?.x ?? 0);
@@ -503,7 +585,7 @@ export function T2Annotations({
   };
 
   part.mortises.forEach((m, idx) => {
-    const lb = mortiseLocalBox(part, m);
+    const lb = mortiseEntryBox(m);
     const r = projectBoxRect(lb);
     if (!r) return;
     const W = round1(m.width ?? 0);
@@ -630,11 +712,13 @@ export function T2Annotations({
     const dash = isMortise ? "3 2" : "4 2";
 
     // 取得對應 feature 的 local box（重新計算用 cx/cz）
+    // mortise 用 mortiseEntryBox（從 entry face 量起、跟 visual 對齊）；
+    // tenon 用 tenonLocalBox
     const feature = isMortise
       ? part.mortises[it.idx]
       : part.tenons[it.idx];
     const lb = isMortise
-      ? mortiseLocalBox(part, feature as Mortise)
+      ? mortiseEntryBox(feature as Mortise)
       : tenonLocalBox(part, feature as Tenon);
 
     const cx = box.x + box.w / 2;
@@ -644,11 +728,42 @@ export function T2Annotations({
     const lblX = box.x + box.w + 3;
     const lblY = box.y + 9;
 
-    // 圓榫眼偵測：data 上 m.shape === "round" 直接 render ellipse，
-    // 否則 fallback rect（傳統方榫）
-    const mortiseIsRound =
+    // 圓榫眼：只有看圓柱軸線方向才是圓、垂直方向看是矩形（圓柱側影）
+    // 推 mortise 的 depth axis（從 origin 距哪面最近）+ 比對當前 view 的視軸：
+    //   top view 看 -Y → view axis = "y"
+    //   front view 看 -Z → view axis = "z"
+    //   side view 看 X → view axis = "x"
+    const mortiseShapeIsRound =
       isMortise &&
       (part.mortises[it.idx] as Mortise).shape === "round";
+    let mortiseIsRound = false;
+    if (mortiseShapeIsRound && isMortise) {
+      const m = part.mortises[it.idx] as Mortise;
+      const ly = part.visible.thickness;
+      const yToFace = Math.min(Math.abs(m.origin.y), Math.abs(m.origin.y - ly));
+      const xToFace = Math.min(
+        Math.abs(m.origin.x - part.visible.length / 2),
+        Math.abs(m.origin.x + part.visible.length / 2),
+      );
+      const zToFace = Math.min(
+        Math.abs(m.origin.z - part.visible.width / 2),
+        Math.abs(m.origin.z + part.visible.width / 2),
+      );
+      const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
+      let depthAxis: "x" | "y" | "z";
+      if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+        depthAxis = xToFace <= zToFace ? "x" : "z";
+      } else if (yToFace <= xToFace && yToFace <= zToFace) {
+        depthAxis = "y";
+      } else if (xToFace <= zToFace) {
+        depthAxis = "x";
+      } else {
+        depthAxis = "z";
+      }
+      const viewAxis: "x" | "y" | "z" =
+        view === "top" ? "y" : view === "side" ? "x" : "z";
+      mortiseIsRound = depthAxis === viewAxis;
+    }
     const partEls: React.ReactNode[] = [
       mortiseIsRound ? (
         <ellipse
