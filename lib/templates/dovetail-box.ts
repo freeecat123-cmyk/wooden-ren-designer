@@ -669,7 +669,10 @@ const polyDesign: FurnitureDesign = {
   // origin.y = from-bottom 慣例 → 隔板底面 y 座標 = dividerBaseY（不能 + H/2）。
   // inset-panel 模式：底板上緣在 2*botT；其他模式（seated / flush-glued）底板上緣在 botT。
   const dividerBaseY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-  const wallTopY = outerH - (withLid ? lidT : 0);
+  // 滑入式：隔板頂上緣要齊「滑槽下緣 = lid 底 = outerH - lidT - sinkMm」（讓 lid 過得去）
+  // 其他蓋型：頂上緣齊壁內頂 = outerH - lidT
+  const slidingSinkMm = 5;
+  const wallTopY = outerH - (withLid ? lidT + (lidType === "sliding" ? slidingSinkMm : 0) : 0);
   const dividerMaxH = Math.max(1, wallTopY - dividerBaseY);
   const actualDividerH = dividerHeightRaw > 0 ? Math.min(dividerHeightRaw, dividerMaxH) : dividerMaxH;
   const innerLDim = outerL - 2 * wallT;
