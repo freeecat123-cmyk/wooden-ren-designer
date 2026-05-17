@@ -807,8 +807,28 @@ export function T2Annotations({
     }
   };
 
+  // 視圖軸 → 對應「面入」mortise 的 depthAxis
+  // user:「俯視尺寸圖太亂了」→ 細長腳的 top view 投影 30×30 小方塊把 4 個側面
+  // mortise 全擠進去。本視圖 cross-section < 50mm 時只渲染從這視圖軸方向進入
+  // 的 mortise（depthAxis === viewDepthAxis），其他面入的 mortise 留給對應視圖
+  const viewDepthAxis: "x" | "y" | "z" =
+    view === "top" ? "y" : view === "side" ? "x" : "z";
+  const crossSectionMm = (() => {
+    if (view === "top") return Math.max(part.visible.length, part.visible.width);
+    if (view === "side") return Math.max(part.visible.width, part.visible.thickness);
+    return Math.max(part.visible.length, part.visible.thickness);
+  })();
+  const crossOtherMm = (() => {
+    if (view === "top") return Math.min(part.visible.length, part.visible.width);
+    if (view === "side") return Math.min(part.visible.width, part.visible.thickness);
+    return Math.min(part.visible.length, part.visible.thickness);
+  })();
+  const isCrossViewTooSmall = crossSectionMm < 60 && crossOtherMm < 60;
   part.mortises.forEach((m, idx) => {
     const lb = mortiseEntryBox(m);
+    if (isCrossViewTooSmall && lb.depthAxis !== viewDepthAxis) {
+      return;
+    }
     const r = projectBoxRect(lb);
     if (!r) return;
     const W = round1(m.width ?? 0);
