@@ -619,9 +619,13 @@ const polyDesign: FurnitureDesign = {
         // edge 寬度：前後各 insetEach、左 wallT、右 insetEach
         const lidLenLocal = lidPart.visible.length;
         const lidWidLocal = lidPart.visible.width;
-        const leftEdgeW = wallT;       // lid -X 邊到 raised center -X 邊 = wallT
-        const rightEdgeW = insetEach;  // lid +X 邊到 raised center +X 邊 = insetEach
-        const zEdgeW = insetEach;      // 前後 Z 邊各 insetEach
+        // edge frame 寬度（lid 邊外延伸到 raised center 邊）：
+        // - 前後 Z 邊：(lidWid - innerW)/2 = wallT - insetEach = grooveDepth
+        // - 左 X 邊（lid -X face 到 raised -X face）= wallT（lid 延伸到 box outer -X 補滑入口）
+        // - 右 X 邊（raised +X face 到 lid +X face）= wallT - insetEach = grooveDepth
+        const leftEdgeW = wallT;
+        const rightEdgeW = grooveDepth;
+        const zEdgeW = grooveDepth;
         const cutCenterY = fullT - sinkMm / 2;  // 從頂面往下切 sinkMm，中心在 fullT - sinkMm/2
         // 前後 Z 邊（沿 X 方向全長、Z 各 insetEach 寬）
         lidPart.mortises.push({
