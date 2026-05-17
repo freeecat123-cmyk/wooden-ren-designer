@@ -1049,14 +1049,39 @@ export function T2Annotations({
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
-      // 對 protrusion 榫頭：box 端跟 part 邊重合 → 用 part 邊當基準推 12px 出去
+      // 計算 partTopY / partLeftX / partRightX 當參考（內部 tenon 也能離 part
+      // 邊有 GAP，不會擠在 part 內側 6/6/6 跟 part 邊重疊）
+      const cornersXForDim: number[] = [];
+      if (view === "front") {
+        cornersXForDim.push(
+          ctx.partLocalToSvg(-L / 2, -T / 2, 0).x,
+          ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
+        );
+      } else if (view === "top") {
+        cornersXForDim.push(
+          ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
+          ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
+        );
+      } else {
+        cornersXForDim.push(
+          ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
+          ctx.partLocalToSvg(0, +T / 2, +W / 2).x,
+        );
+      }
+      const partLeftSvg = Math.min(...cornersXForDim);
+      const partRightSvg = Math.max(...cornersXForDim);
+      const partTopSvg = Math.min(...cornersY);
+
       const outerAbove = box.y < partCenterSvg.y;
       const outerLeft = box.x < partCenterSvg.x;
-      const GAP = 12; // SVG px；榫 dim 距 box / part 邊
-      // 抓 cornersY 算 partTopY / partBottomY 已在外層，重複計算 here 防 hoist 順序
-      // partBottomY 已在 partEls leader 段算出（line 798）；partTopY 後段才算（line 974）
-      const wDimY = outerAbove ? box.y - GAP : box.y + box.h + GAP;
-      const lDimX = outerLeft ? box.x - GAP : box.x + box.w + GAP;
+      const GAP = 12; // SVG px；榫 dim 距「max(box, partEdge)」推出去
+      // 取 part 邊跟 box 邊的最外側當參考（protrusion 用 box / interior 用 partEdge）
+      const wDimY = outerAbove
+        ? Math.min(box.y, partTopSvg) - GAP
+        : Math.max(box.y + box.h, partBottomY) + GAP;
+      const lDimX = outerLeft
+        ? Math.min(box.x, partLeftSvg) - GAP
+        : Math.max(box.x + box.w, partRightSvg) + GAP;
       const wLabelY = outerAbove ? wDimY - 2 : wDimY + 7;
       const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
@@ -1170,32 +1195,10 @@ export function T2Annotations({
 
       // 鏈式 dim：榫到 part 邊緣（user 要求標 shoulder/offset）
       // 在 W/L dim 線上延伸，partEdge→box→box→partEdge 各段；段 < 2mm 跳過
-      const cornersXShoulder: number[] = [];
-      if (view === "front") {
-        cornersXShoulder.push(
-          ctx.partLocalToSvg(-L / 2, -T / 2, 0).x,
-          ctx.partLocalToSvg(+L / 2, -T / 2, 0).x,
-          ctx.partLocalToSvg(-L / 2, +T / 2, 0).x,
-          ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
-        );
-      } else if (view === "top") {
-        cornersXShoulder.push(
-          ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
-          ctx.partLocalToSvg(+L / 2, T / 2, -W / 2).x,
-          ctx.partLocalToSvg(-L / 2, T / 2, +W / 2).x,
-          ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
-        );
-      } else {
-        cornersXShoulder.push(
-          ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
-          ctx.partLocalToSvg(0, +T / 2, -W / 2).x,
-          ctx.partLocalToSvg(0, -T / 2, +W / 2).x,
-          ctx.partLocalToSvg(0, +T / 2, +W / 2).x,
-        );
-      }
-      const partLeftX = Math.min(...cornersXShoulder);
-      const partRightX = Math.max(...cornersXShoulder);
-      const partTopY = Math.min(...cornersY);
+      // 沿用上面已算出的 partLeftSvg / partRightSvg / partTopSvg
+      const partLeftX = partLeftSvg;
+      const partRightX = partRightSvg;
+      const partTopY = partTopSvg;
 
       // mm/svg 比例：用 hMm/box.w fallback vMm/box.h
       const mmPerSvgX =
