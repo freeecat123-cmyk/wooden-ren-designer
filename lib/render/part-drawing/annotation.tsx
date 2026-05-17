@@ -147,9 +147,11 @@ export function T1Dimensions({
       strokeWidth={0.4}
       fontFamily="sans-serif"
     >
-      {/* 水平 dim line：dim line 在 part 上方、extension 向下拉到 part 邊 */}
-      <line x1={hxLo} y1={horizY - 2} x2={hxLo} y2={hPartY + 2} strokeWidth={0.25} stroke="#888" />
-      <line x1={hxHi} y1={horizY - 2} x2={hxHi} y2={hPartY + 2} strokeWidth={0.25} stroke="#888" />
+      {/* 水平 dim line：dim line 在 part 上方、extension 從 dim line 往下拉到
+          part edge 外側（留 2mm gap、不越過 part 邊）。CNS：dim line 上方再
+          protrusion 2mm。 */}
+      <line x1={hxLo} y1={horizY - 2} x2={hxLo} y2={hPartY - 2} strokeWidth={0.25} stroke="#888" />
+      <line x1={hxHi} y1={horizY - 2} x2={hxHi} y2={hPartY - 2} strokeWidth={0.25} stroke="#888" />
       <line x1={hxLo} y1={horizY} x2={hxHi} y2={horizY} />
       <polygon points={`${hxLo},${horizY} ${hxLo + ARROW},${horizY - ARROW} ${hxLo + ARROW},${horizY + ARROW}`} />
       <polygon points={`${hxHi},${horizY} ${hxHi - ARROW},${horizY - ARROW} ${hxHi - ARROW},${horizY + ARROW}`} />
@@ -157,9 +159,10 @@ export function T1Dimensions({
         {`${horizLabel} ${horiz}`}
       </text>
 
-      {/* 垂直 dim line：dim line 在 part 右方、extension 向左拉到 part 邊 */}
-      <line x1={vertX + 2} y1={vyLo} x2={vPartX - 2} y2={vyLo} strokeWidth={0.25} stroke="#888" />
-      <line x1={vertX + 2} y1={vyHi} x2={vPartX - 2} y2={vyHi} strokeWidth={0.25} stroke="#888" />
+      {/* 垂直 dim line：dim line 在 part 右方、extension 從 dim line 往左拉到
+          part edge 外側（留 2mm gap、不越過 part 邊）。 */}
+      <line x1={vertX + 2} y1={vyLo} x2={vPartX + 2} y2={vyLo} strokeWidth={0.25} stroke="#888" />
+      <line x1={vertX + 2} y1={vyHi} x2={vPartX + 2} y2={vyHi} strokeWidth={0.25} stroke="#888" />
       <line x1={vertX} y1={vyLo} x2={vertX} y2={vyHi} />
       <polygon points={`${vertX},${vyLo} ${vertX - ARROW},${vyLo + ARROW} ${vertX + ARROW},${vyLo + ARROW}`} />
       <polygon points={`${vertX},${vyHi} ${vertX - ARROW},${vyHi - ARROW} ${vertX + ARROW},${vyHi - ARROW}`} />
