@@ -1,0 +1,407 @@
+/**
+ * 木作天花板骨架算料引擎(階段 1 純邏輯,無 UI 無 3D)
+ *
+ * 公式對照表(每段對應 §CE 章節,見 docs/drafting-math.md):
+ *   §CE.1  自動算    — 吊筋高度 / 房間面積 / 坪數
+ *   §CE.2  主支根數  — floor(長邊 / 中心距) + 1
+ *   §CE.3  排版基準  — 剩餘收邊分配
+ *   §CE.4  支撐排序  — 邊框 + 主支
+ *   §CE.5  副支分組  — 每 slot 各算長度與數量
+ *   §CE.6  吊筋     — standard / minimal 兩種密度
+ *   §CE.7  矽酸鈣板  — 90×180 鋪法 + 全/裁切分張數
+ *
+ * 設計假設(初版,用 // ASSUMPTION 標記,user 核對後鎖定):
+ *   1. 角材寬度全模型統一(邊框 / 主支 / 副支同 timberWidthCm)
+ *   2. 副支與兩端對接 = butt joint,長度 = slot 寬 − 兩側角材寬合(全寬)
+ *      (兩側若都是角材,扣 timberWidth × 1;若一側是邊框、一側是主支,同樣兩寬合扣)
+ *   3. 矽酸鈣板長(180)與主支方向(短邊)同向,板寬(90)沿長邊排
+ *   4. 板邊「落在主支中心」用近似:板寬 90 ≈ 主支中心距 90.9(差 0.9 cm 忽略)
+ *   5. 邊框吊筋未計(僅主支吊筋);邊框另有牆面固定 + 四角輔助吊筋,規格因案場
+ *      不同,不在 v1 範圍。Material 表加 note 提醒。
+ *   6. 吊筋 standard 模式:每主支沿長度 floor(L / hangerSpacing) + 1 支
+ *      (兩端各一 + 中段每 hangerSpacing 補一支)
+ *   7. 吊筋 minimal 模式:每主支固定 2 支(兩端各一)
+ *   8. 主支與邊框幾何「對接」(主支單支長 = 短邊 − 2 × 邊框寬,容入內側)
+ */
+
+import type {
+  AlignmentBase,
+  AutoCalc,
+  BomItem,
+  CeilingBom,
+  CeilingInput,
+} from "./types";
+
+const EPS = 0.01; // cm, 浮點容差
+
+/**
+ * 主入口:輸入 → 完整 BOM + 中間 trace
+ */
+export function computeCeilingBom(input: CeilingInput): CeilingBom {
+  const auto = computeAutoCalc(input);
+  const layout = computeMainJoistLayout(input, auto);
+  const supports = computeSupportPositions(input, layout);
+  const slots = computeSlots(input, supports);
+  const hangerPerMainJoist = computeHangerCountPerJoist(input, layout.mainJoistLengthCm);
+  const boardCalc = computeBoardLayout(input);
+
+  const items: BomItem[] = [];
+
+  // ────── 邊框 ──────
+  // §CE.4 邊框總長 = 周長 = 2 × (長 + 短)
+  const frameTotalCm = 2 * (input.longSideCm + input.shortSideCm);
+  items.push({
+    category: "frame",
+    nameZh: "邊框角材",
+    spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
+    totalLengthM: cmToM(frameTotalCm),
+    count: 1, // 視為一整套(總長表示)
+    note: `周長 = 2 × (${input.longSideCm} + ${input.shortSideCm}) = ${frameTotalCm} cm`,
+  });
+
+  // ────── 主支 ──────
+  if (layout.mainJoistTimberCount > 0) {
+    items.push({
+      category: "main-joist",
+      nameZh: "主支角材",
+      spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
+      unitLengthCm: round1(layout.mainJoistLengthCm),
+      count: layout.mainJoistTimberCount,
+      note: input.frameDoublesAsSupport
+        ? `主支位置 ${layout.mainPositionCount} 處,扣除與邊框重疊 ${layout.mainPositionCount - layout.mainJoistTimberCount} 處 = ${layout.mainJoistTimberCount} 支`
+        : `主支根數 = floor(${input.longSideCm} / ${input.mainSpacingCm}) + 1 = ${layout.mainPositionCount} 支`,
+    });
+  }
+
+  // ────── 副支(依長度分組) ──────
+  // §CE.5 把所有 slot 的副支按 「單支長度」 group by, 同長度合併成一行
+  const subGroups = new Map<number, { length: number; count: number }>();
+  for (const s of slots) {
+    if (s.subJoistCount <= 0) continue;
+    if (s.subJoistLengthCm <= 0) continue;
+    const key = round1(s.subJoistLengthCm);
+    const existing = subGroups.get(key);
+    if (existing) {
+      existing.count += s.subJoistCount;
+    } else {
+      subGroups.set(key, { length: key, count: s.subJoistCount });
+    }
+  }
+  // 依長度降冪輸出(長的在前)
+  const subRows = [...subGroups.values()].sort((a, b) => b.length - a.length);
+  for (const r of subRows) {
+    items.push({
+      category: "sub-joist",
+      nameZh: "副支角材",
+      spec: `${input.timberWidthCm}×${input.timberThicknessCm} cm`,
+      unitLengthCm: r.length,
+      count: r.count,
+    });
+  }
+
+  // ────── 吊筋 ──────
+  // §CE.6
+  const totalHangers = layout.mainJoistTimberCount * hangerPerMainJoist;
+  items.push({
+    category: "hanger",
+    nameZh: "吊筋",
+    spec: `長度 ${round1(auto.hangerHeightCm)} cm (=板高 − 天花板高)`,
+    unitLengthCm: round1(auto.hangerHeightCm),
+    count: totalHangers,
+    note:
+      input.hangerDensity === "standard"
+        ? `業界標準:每主支 floor(${round1(layout.mainJoistLengthCm)} / ${input.hangerSpacingCm}) + 1 = ${hangerPerMainJoist} 支 × ${layout.mainJoistTimberCount} 主支 = ${totalHangers} 支(邊框固定點另計)`
+        : `圖示版:每主支 2 支 × ${layout.mainJoistTimberCount} 主支 = ${totalHangers} 支(邊框固定點另計)`,
+  });
+
+  // ────── 矽酸鈣板 ──────
+  // §CE.7
+  if (boardCalc.fullCount > 0) {
+    items.push({
+      category: "board-full",
+      nameZh: "矽酸鈣板(整張)",
+      spec: `${input.boardShortCm}×${input.boardLongCm} cm`,
+      count: boardCalc.fullCount,
+      note: `${boardCalc.fullCols} 全寬欄 × ${boardCalc.fullRows} 全長列 = ${boardCalc.fullCount} 張`,
+    });
+  }
+  if (boardCalc.cutCount > 0) {
+    items.push({
+      category: "board-cut",
+      nameZh: "矽酸鈣板(裁切)",
+      spec: `${input.boardShortCm}×${input.boardLongCm} cm 剩料`,
+      count: boardCalc.cutCount,
+      note: `總位置 ${boardCalc.totalPositions} − 全張 ${boardCalc.fullCount} = ${boardCalc.cutCount} 張`,
+    });
+  }
+
+  return {
+    input,
+    auto,
+    items,
+    trace: {
+      mainJoistCentersCm: layout.mainJoistCentersCm.map(round1),
+      mainJoistTimberCount: layout.mainJoistTimberCount,
+      mainJoistLengthCm: round1(layout.mainJoistLengthCm),
+      supportPositionsCm: supports.map(round1),
+      slots: slots.map((s) => ({
+        fromCm: round1(s.fromCm),
+        toCm: round1(s.toCm),
+        slotWidthCm: round1(s.slotWidthCm),
+        subJoistLengthCm: round1(s.subJoistLengthCm),
+        subJoistCount: s.subJoistCount,
+      })),
+      hangerPerMainJoist,
+      boardRows: boardCalc.rows,
+      boardCols: boardCalc.cols,
+      boardLayoutDescription: boardCalc.description,
+    },
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.1 自動算
+// ─────────────────────────────────────────────────────────
+function computeAutoCalc(input: CeilingInput): AutoCalc {
+  // 吊筋高度 = 板高 − 天花板高
+  const hangerHeightCm = input.slabHeightCm - input.ceilingHeightCm;
+  // 房間面積(m²)= 長 × 短 / 10000
+  const roomAreaM2 = (input.longSideCm * input.shortSideCm) / 10000;
+  // 坪數 = 房間面積 / 3.305  (1 坪 = 3.305 m²)
+  const pingShu = roomAreaM2 / 3.305;
+  // 剩餘收邊 = 長邊 − 主支佔用 span
+  const nMainPositions = Math.floor(input.longSideCm / input.mainSpacingCm) + 1;
+  const usedSpan = (nMainPositions - 1) * input.mainSpacingCm;
+  const leftoverCm = input.longSideCm - usedSpan;
+
+  return {
+    hangerHeightCm,
+    roomAreaM2,
+    pingShu,
+    leftoverCm,
+    mainPositionCount: nMainPositions,
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.2 + §CE.3 主支根數與排版位置
+// ─────────────────────────────────────────────────────────
+interface MainJoistLayout {
+  mainPositionCount: number;
+  mainJoistCentersCm: number[];
+  mainJoistLengthCm: number;
+  mainJoistTimberCount: number;
+}
+
+function computeMainJoistLayout(
+  input: CeilingInput,
+  auto: AutoCalc,
+): MainJoistLayout {
+  const n = auto.mainPositionCount;
+  // 第一支主支的中心位置(沿長邊,從牆內=0 起算)
+  // 排版基準 → 決定剩餘收邊留哪側
+  const firstCenter = computeFirstCenterByAlignment(
+    auto.leftoverCm,
+    input.alignmentBase,
+  );
+  const centers: number[] = [];
+  for (let i = 0; i < n; i++) {
+    centers.push(firstCenter + i * input.mainSpacingCm);
+  }
+
+  // 主支單支長度 = 短邊 − 2 × 邊框寬(對接邊框內側)
+  // ASSUMPTION#1 邊框寬與角材寬同 timberWidthCm
+  const mainJoistLengthCm = input.shortSideCm - 2 * input.timberWidthCm;
+
+  // 主支實際下料根數:
+  //   邊框兼支撐 = true → 與邊框重疊位置不下料(用邊框替代)
+  //   邊框兼支撐 = false → 全部下料
+  let timberCount = n;
+  if (input.frameDoublesAsSupport) {
+    // 與兩端邊框重疊計算(容差 timberWidth/2 內視為重疊)
+    const tol = input.timberWidthCm / 2 + EPS;
+    let overlap = 0;
+    if (centers.length > 0 && Math.abs(centers[0] - 0) <= tol) overlap++;
+    if (
+      centers.length > 0 &&
+      Math.abs(centers[centers.length - 1] - input.longSideCm) <= tol
+    ) {
+      overlap++;
+    }
+    // 一般 frameDoublesAsSupport=true 預設視為兩端各有 1 處重疊(共 2)
+    // 若 alignment 沒讓主支貼邊框,還是視為前後各 1 處被邊框取代(用近似邏輯)
+    if (overlap === 0) overlap = Math.min(2, n);
+    timberCount = Math.max(0, n - overlap);
+  }
+
+  return {
+    mainPositionCount: n,
+    mainJoistCentersCm: centers,
+    mainJoistLengthCm,
+    mainJoistTimberCount: timberCount,
+  };
+}
+
+function computeFirstCenterByAlignment(
+  leftoverCm: number,
+  alignment: AlignmentBase,
+): number {
+  switch (alignment) {
+    case "left":
+      return 0; // 第一主支貼左牆內(注意:0 = 邊框內側面位置)
+    case "center":
+      return leftoverCm / 2;
+    case "right":
+      return leftoverCm;
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.4 支撐排序(邊框 + 主支去重排序)
+// ─────────────────────────────────────────────────────────
+function computeSupportPositions(
+  input: CeilingInput,
+  layout: MainJoistLayout,
+): number[] {
+  const positions = [0, ...layout.mainJoistCentersCm, input.longSideCm];
+  positions.sort((a, b) => a - b);
+  // 去除距離 < EPS 的重複(主支恰落在邊框上時)
+  const uniq: number[] = [];
+  for (const p of positions) {
+    if (uniq.length === 0 || p - uniq[uniq.length - 1] > EPS) {
+      uniq.push(p);
+    }
+  }
+  return uniq;
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.5 副支分 slot
+// ─────────────────────────────────────────────────────────
+interface SlotCalc {
+  fromCm: number;
+  toCm: number;
+  slotWidthCm: number;
+  subJoistLengthCm: number;
+  subJoistCount: number;
+}
+
+function computeSlots(
+  input: CeilingInput,
+  supports: number[],
+): SlotCalc[] {
+  // 短邊內側距離 = 短邊 − 2 × 邊框寬
+  const shortInnerCm = input.shortSideCm - 2 * input.timberWidthCm;
+  // 每 slot 的副支數量 = floor(短邊內側距離 / 副支中心距)
+  // ASSUMPTION:每 slot 用同密度,首尾不另加(對齊圖示版)
+  const subPerSlot = Math.max(0, Math.floor(shortInnerCm / input.subSpacingCm));
+
+  const slots: SlotCalc[] = [];
+  for (let i = 0; i < supports.length - 1; i++) {
+    const fromCm = supports[i];
+    const toCm = supports[i + 1];
+    const slotWidthCm = toCm - fromCm;
+    // ASSUMPTION#2 副支長 = slot 寬 − 兩側角材寬合
+    // (兩側不論是邊框還是主支,寬度都用 timberWidthCm)
+    const subJoistLengthCm = slotWidthCm - input.timberWidthCm;
+    if (slotWidthCm < EPS || subJoistLengthCm < EPS) continue;
+    slots.push({
+      fromCm,
+      toCm,
+      slotWidthCm,
+      subJoistLengthCm,
+      subJoistCount: subPerSlot,
+    });
+  }
+  return slots;
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.6 吊筋密度
+// ─────────────────────────────────────────────────────────
+function computeHangerCountPerJoist(
+  input: CeilingInput,
+  mainJoistLengthCm: number,
+): number {
+  if (input.hangerDensity === "minimal") {
+    // 圖示版:每主支兩端各一
+    return 2;
+  }
+  // 業界標準:每主支沿線 floor(L / hangerSpacing) + 1
+  return Math.floor(mainJoistLengthCm / input.hangerSpacingCm) + 1;
+}
+
+// ─────────────────────────────────────────────────────────
+// §CE.7 矽酸鈣板鋪法
+// ─────────────────────────────────────────────────────────
+interface BoardCalc {
+  rows: number;       // 沿短邊方向(板長 180 那一軸)
+  cols: number;       // 沿長邊方向(板寬 90 那一軸)
+  fullRows: number;
+  fullCols: number;
+  fullCount: number;
+  cutCount: number;
+  totalPositions: number;
+  description: string;
+}
+
+function computeBoardLayout(input: CeilingInput): BoardCalc {
+  // ASSUMPTION#3 板長 boardLongCm(180)對齊短邊方向, 板寬 boardShortCm(90)對齊長邊方向
+  // (理由:板邊落在主支中心線, 主支跨短邊, 主支間距 90.9 ≈ 板寬 90)
+  // ASSUMPTION#4 0.9 cm 板寬/間距差忽略
+
+  // 沿長邊鋪 cols, 每板寬 boardShortCm
+  const cols = Math.ceil(input.longSideCm / input.boardShortCm);
+  const fullCols = Math.floor(input.longSideCm / input.boardShortCm);
+
+  // 沿短邊鋪 rows, 每板長 boardLongCm
+  const rows = Math.ceil(input.shortSideCm / input.boardLongCm);
+  const fullRows = Math.floor(input.shortSideCm / input.boardLongCm);
+
+  const totalPositions = cols * rows;
+  // 「全張」= 兩個方向都剛好用整片(沒裁切)
+  const fullCount = fullCols * fullRows;
+  // 「裁切」= 其餘位置(行或列不足整板)
+  const cutCount = totalPositions - fullCount;
+
+  const description =
+    `沿長邊 ${input.longSideCm} cm 鋪 ${cols} 欄(板寬 ${input.boardShortCm} cm,前 ${fullCols} 欄整, 末 ${cols - fullCols} 欄裁切)` +
+    `;沿短邊 ${input.shortSideCm} cm 鋪 ${rows} 列(板長 ${input.boardLongCm} cm,前 ${fullRows} 列整, 末 ${rows - fullRows} 列裁切)`;
+
+  return {
+    rows,
+    cols,
+    fullRows,
+    fullCols,
+    fullCount,
+    cutCount,
+    totalPositions,
+    description,
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+// helpers
+// ─────────────────────────────────────────────────────────
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function cmToM(cm: number): number {
+  return Math.round(cm) / 100; // 1 位數小數(到 m)
+}
+
+/** 給 CSV 用:把 BOM 攤平成可讀文字 */
+export function bomToCsvRows(bom: CeilingBom): string[][] {
+  const header = ["類別", "名稱", "規格", "單支長度(cm)", "總長(m)", "數量", "備註"];
+  const rows = bom.items.map((it) => [
+    it.category,
+    it.nameZh,
+    it.spec,
+    it.unitLengthCm != null ? String(it.unitLengthCm) : "",
+    it.totalLengthM != null ? String(it.totalLengthM) : "",
+    String(it.count),
+    it.note ?? "",
+  ]);
+  return [header, ...rows];
+}

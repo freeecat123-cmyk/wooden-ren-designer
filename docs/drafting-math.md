@@ -4296,3 +4296,155 @@ runtime 也有 dev mode `console.warn`（mortiseLocalBox 入口）。
 | `b5a5a40` | SHRINK 對齊（M4） |
 | `5e1c58f` | depthAxis canonical Y 修正（M2） |
 | `5434e41` | side panel shelf mortise side-aware（M6） |
+
+
+---
+
+## §CE. 木作天花板骨架算料引擎
+
+階段 1 純算料引擎(無 UI、無 3D)。所有公式都在 `lib/ceiling/calc.ts`,
+這份文件是公式書面對照,改算料前先 grep 此節。
+
+### §CE.0 軸與單位慣例
+
+- 單位:**cm**(全模組,UI 與內部一致)
+- 長邊方向 = 沿房間長軸,主支沿此方向排列(每根主支間中心距 `mainSpacingCm`)
+- 短邊方向 = 沿房間短軸,主支單支跨此方向(主支長 = 短邊 − 2 × 邊框寬)
+- 副支垂直主支(=沿長邊方向),夾在主支之間
+
+### §CE.1 自動算
+
+```
+hangerHeightCm  = slabHeightCm − ceilingHeightCm
+roomAreaM2      = longSideCm × shortSideCm / 10000
+pingShu         = roomAreaM2 / 3.305         (1 坪 = 3.305 m²)
+nMainPositions  = floor(longSideCm / mainSpacingCm) + 1
+usedSpan        = (nMainPositions − 1) × mainSpacingCm
+leftoverCm      = longSideCm − usedSpan       (剩餘收邊)
+```
+
+### §CE.2 主支位置(centerlines 沿長邊,單位 cm,從 0 = 左牆內側起算)
+
+```
+firstCenter = match alignmentBase:
+  "left"   → 0
+  "center" → leftoverCm / 2
+  "right"  → leftoverCm
+
+centers = [firstCenter + i × mainSpacingCm  for i in 0..nMainPositions−1]
+```
+
+### §CE.3 主支單支長度與下料根數
+
+```
+mainJoistLengthCm = shortSideCm − 2 × timberWidthCm
+                                    (對接邊框內側,扣兩端邊框寬)
+
+if frameDoublesAsSupport == false:
+   mainJoistTimberCount = nMainPositions
+else:
+   // 與兩端邊框重疊處用邊框替代,不另下料
+   // 重疊定義:|center − 0| ≤ timberWidth/2 + EPS  OR  |center − longSide| 同樣
+   mainJoistTimberCount = nMainPositions − (重疊處數,通常 2)
+```
+
+### §CE.4 支撐排序(邊框 + 主支去重)
+
+```
+supports = sortUniq([0, ...centers, longSideCm])
+           // 容差 EPS = 0.01 cm
+```
+
+注意:`supports` 永遠包含 0 與 longSideCm(邊框內側),無論
+`frameDoublesAsSupport`,因為**副支必須兩端有東西可頂**,邊框就算不負重也是
+副支的對接面。
+
+### §CE.5 副支(依 slot 分組,同長度合併)
+
+```
+shortInnerCm = shortSideCm − 2 × timberWidthCm
+subPerSlot   = floor(shortInnerCm / subSpacingCm)
+               // ASSUMPTION:每 slot 同密度,首尾不另加
+```
+
+對每對相鄰 `supports[i]`、`supports[i+1]`:
+
+```
+slotWidthCm       = supports[i+1] − supports[i]
+subJoistLengthCm  = slotWidthCm − timberWidthCm
+                    // 對接 butt joint,扣兩側總共一條 timberWidth
+                    // (假設兩側角材寬都同 timberWidthCm)
+subJoistCount     = subPerSlot
+```
+
+最後依 `round1(subJoistLengthCm)` 為 key 把所有 slot group by 合併成材料表。
+
+### §CE.6 吊筋
+
+```
+hangerLengthCm = hangerHeightCm   (吊筋長度 = 板高 − 天花板高)
+
+if hangerDensity == "standard":
+   hangerPerMainJoist = floor(mainJoistLengthCm / hangerSpacingCm) + 1
+                        (兩端各一 + 中段每 hangerSpacingCm 補一)
+else // "minimal":
+   hangerPerMainJoist = 2
+
+totalHangers = hangerPerMainJoist × mainJoistTimberCount
+```
+
+**邊框吊筋未計**:邊框另有牆面釘固定 + 四角輔助吊筋,規格因案場不同,v1 不算。
+
+### §CE.7 矽酸鈣板鋪法
+
+ASSUMPTION:板長 `boardLongCm`(180)對齊**短邊方向**,板寬 `boardShortCm`(90)
+對齊**長邊方向**。理由:板邊「落在主支中心」(施工 step 5),主支間距 90.9 ≈ 板寬 90。
+
+```
+cols      = ceil(longSideCm / boardShortCm)   // 沿長邊欄數
+fullCols  = floor(longSideCm / boardShortCm)  // 整片欄數
+rows      = ceil(shortSideCm / boardLongCm)   // 沿短邊列數
+fullRows  = floor(shortSideCm / boardLongCm)  // 整片列數
+
+totalPositions = cols × rows
+boardFullCount = fullCols × fullRows           (兩方向都整片)
+boardCutCount  = totalPositions − boardFullCount   (任一方向需裁切)
+```
+
+### §CE.8 邊框
+
+```
+frameTotalCm = 2 × (longSideCm + shortSideCm)   (周長)
+frameTotalM  = frameTotalCm / 100
+```
+
+材料表用「總長 m」呈現,不切根數(現場依出貨長度自行切)。
+
+### §CE.9 階段 1 v1 假設清單(user 核對後鎖定)
+
+1. 角材寬度全模型統一(邊框 / 主支 / 副支同 `timberWidthCm`)
+2. 副支與兩端對接 = butt joint,長度 = slot 寬 − `timberWidthCm`
+3. 矽酸鈣板長對齊短邊,板寬對齊長邊(板邊落主支中心)
+4. 板寬 90 ≈ 主支中心距 90.9(差 0.9 cm 忽略)
+5. 邊框吊筋未計(僅主支吊筋);邊框另有牆面固定 + 四角輔助
+6. 吊筋 standard 模式:每主支 `floor(mainJoistLength / hangerSpacing) + 1`
+7. 吊筋 minimal 模式:每主支固定 2 支
+8. 主支單支長 = 短邊 − 2 × 邊框寬
+
+### §CE.10 驗證
+
+baseline 500×320(預設值)→ 跑 `npx tsx lib/ceiling/calc.test.ts` 應出:
+
+| 項目 | 值 |
+|---|---|
+| 吊筋高度 | 20 cm |
+| 房間面積 | 16 m² |
+| 坪數 | 4.84 坪 |
+| 剩餘收邊 | 45.5 cm |
+| 主支 | 312.8 cm × 6 支 |
+| 副支(內) | 87.3 cm × 40 支 |
+| 副支(邊) | 19.2 cm × 16 支 |
+| 吊筋(standard) | 20 cm × 24 支 |
+| 矽酸鈣板整張 | 5 張 |
+| 矽酸鈣板裁切 | 7 張 |
+| 邊框 | 16.4 m |
