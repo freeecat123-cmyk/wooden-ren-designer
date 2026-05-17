@@ -1289,15 +1289,7 @@ export function T2Annotations({
       const shoulderTopStartY = topBoundary;
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
-      // segment 太小（< 14 svg）label 往外側推 14 svg unit，免跟相鄰段 label 擠
-      const TIGHT_L = 14;
-      const TIGHT_OUT = 14;
       if (shoulderTop > TH) {
-        const segH = box.y - shoulderTopStartY;
-        const tight = segH < TIGHT_L;
-        const shTLabelX = tight
-          ? lLabelX + (outerLeft ? -TIGHT_OUT : TIGHT_OUT)
-          : lLabelX;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1318,7 +1310,7 @@ export function T2Annotations({
             />
             {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
             <text
-              x={shTLabelX}
+              x={lLabelX}
               y={(shoulderTopStartY + box.y) / 2 + 3}
               fontSize={7}
               fill={stroke}
@@ -1331,11 +1323,6 @@ export function T2Annotations({
         );
       }
       if (shoulderBot > TH) {
-        const segH = partBottomY - (box.y + box.h);
-        const tight = segH < TIGHT_L;
-        const shBLabelX = tight
-          ? lLabelX + (outerLeft ? -TIGHT_OUT : TIGHT_OUT)
-          : lLabelX;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shB`}>
             <line
@@ -1356,7 +1343,7 @@ export function T2Annotations({
             />
             {inwardArrowsV(box.y + box.h, partBottomY, lDimX)}
             <text
-              x={shBLabelX}
+              x={lLabelX}
               y={(box.y + box.h + partBottomY) / 2 + 3}
               fontSize={7}
               fill={stroke}
