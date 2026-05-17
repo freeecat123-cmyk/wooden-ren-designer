@@ -591,12 +591,15 @@ export function T2Annotations({
     const W = round1(m.width ?? 0);
     const L = round1(m.length ?? 0);
     const D = round1(m.depth ?? 0);
+    // 圓孔（mortise.shape === "round"）用 Ø 標、不寫 W×L
+    const isRound = m.shape === "round";
+    const dims = isRound ? `Ø${W} 深${D}` : `${W}×${L} 深${D}`;
     items.push({
       kind: "m",
       idx,
       rect: r,
       name: `榫眼${idx + 1}`,
-      dims: `${W}×${L} 深${D}`,
+      dims,
       baseline: baselineFor(lb),
     });
   });
