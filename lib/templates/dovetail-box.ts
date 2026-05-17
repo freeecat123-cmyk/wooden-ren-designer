@@ -565,7 +565,7 @@ const polyDesign: FurnitureDesign = {
       for (const p of design.parts) {
         if (p.id === "wall-front" || p.id === "wall-back") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
-        } else if (p.id === "wall-left") {
+        } else if (p.id === "wall-right") {
           p.visible = { ...p.visible, width: p.visible.width + lidT - sinkMm };
         } else {
           continue;
@@ -585,10 +585,10 @@ const polyDesign: FurnitureDesign = {
           cosmetic: true,
         });
       }
-      // 右壁延伸到 outerH（跟前後壁等高）；不開滑槽
-      const wallRight = design.parts.find((p) => p.id === "wall-right");
-      if (wallRight) {
-        wallRight.visible = { ...wallRight.visible, width: wallRight.visible.width + lidT };
+      // 左壁延伸到 outerH（跟前後壁等高）；不開滑槽
+      const wallLeft = design.parts.find((p) => p.id === "wall-left");
+      if (wallLeft) {
+        wallLeft.visible = { ...wallLeft.visible, width: wallLeft.visible.width + lidT };
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）
