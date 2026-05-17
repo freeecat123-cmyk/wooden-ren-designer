@@ -566,7 +566,7 @@ const polyDesign: FurnitureDesign = {
         if (p.id === "wall-front" || p.id === "wall-back") {
           p.visible = { ...p.visible, width: p.visible.width + lidT };
         } else if (p.id === "wall-right") {
-          p.visible = { ...p.visible, width: p.visible.width + lidT - sinkMm };
+          p.visible = { ...p.visible, width: p.visible.width + lidT };
         } else {
           continue;
         }
