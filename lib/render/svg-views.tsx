@@ -697,12 +697,24 @@ export function OrthoView({
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
   const renderDesign = isolatePartId
-    ? {
-        ...design,
-        parts: design.parts
+    ? (() => {
+        const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
-          .map((p) => ({ ...p, origin: { x: 0, y: 0, z: 0 } })),
-      }
+          .map((p) => ({ ...p, origin: { x: 0, y: 0, z: 0 } }));
+        if (!isolated.length) return design;
+        const p = isolated[0];
+        // 同步更新 overall 用 part 自己的尺寸——之前 OrthoView 用整套家具的
+        // overall 算 viewBox 導致扁平 part 縮中間留大白邊
+        return {
+          ...design,
+          parts: isolated,
+          overall: {
+            length: p.visible.length,
+            width: p.visible.width,
+            thickness: p.visible.thickness,
+          },
+        };
+      })()
     : design;
   const { overall } = renderDesign;
   const w = view === "side" ? overall.width : overall.length;

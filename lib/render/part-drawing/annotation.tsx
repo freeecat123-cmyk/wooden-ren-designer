@@ -644,18 +644,37 @@ export function T2Annotations({
     const lblX = box.x + box.w + 3;
     const lblY = box.y + 9;
 
+    // 圓榫眼偵測：data 上 m.shape === "round" 直接 render ellipse，
+    // 否則 fallback rect（傳統方榫）
+    const mortiseIsRound =
+      isMortise &&
+      (part.mortises[it.idx] as Mortise).shape === "round";
     const partEls: React.ReactNode[] = [
-      <rect
-        key={`${it.kind}-${it.idx}-box`}
-        x={box.x}
-        y={box.y}
-        width={box.w}
-        height={box.h}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={1.2}
-        strokeDasharray={dash}
-      />,
+      mortiseIsRound ? (
+        <ellipse
+          key={`${it.kind}-${it.idx}-box`}
+          cx={box.x + box.w / 2}
+          cy={box.y + box.h / 2}
+          rx={box.w / 2}
+          ry={box.h / 2}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeDasharray={dash}
+        />
+      ) : (
+        <rect
+          key={`${it.kind}-${it.idx}-box`}
+          x={box.x}
+          y={box.y}
+          width={box.w}
+          height={box.h}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeDasharray={dash}
+        />
+      ),
       <text
         key={`${it.kind}-${it.idx}-name`}
         x={lblX}
