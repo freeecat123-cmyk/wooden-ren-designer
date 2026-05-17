@@ -608,39 +608,61 @@ const polyDesign: FurnitureDesign = {
       // - 4 邊銑掉頂 sinkMm 留邊條 lidT 厚卡進槽
       // - 邊寬：前/後/右 = grooveDepth（槽深度，5mm）；左 = wallT（lid 延伸到 box outer 補滑入口）
       if (slidingLidStyle === "raised-center") {
-        // 2-part 乾淨幾何：lid 不動（lidT 厚邊條卡進 F/B 槽）
-        // + 中央凸起新 part `lid-raised-center` = innerL × innerW × sinkMm，origin.y=outerH-sinkMm
-        // 從 lid 頂 (=outerH-sinkMm) 拉到壁頂 (outerH)、跟前後左右 cap 平頂
-        // bomMergeWith="lid" 讓材料單合併成一條（17mm 厚 stock）
-        // 不在 left 邊：因為 lid 在 -X 有 wallT 延伸到 box outer，raised-center 也要對齊到 lid X 範圍
-        const innerWDim = outerW - 2 * wallT;
-        // raised-center 沿 X 跟 lid 一樣：從 -outerL/2 延伸到 +X 槽底
-        const raisedLen = outerL - insetEach;  // 跟 lid length 一樣
-        const raisedOriginX = -insetEach / 2;  // 跟 lid origin.x 一樣
-        const pullHoleWorldX = -outerL / 2 + pullMarginFromLeft + pullDia / 2;
-        const pullHoleLocalX = pullHoleWorldX - raisedOriginX;
-        design.parts.push({
-          id: "lid-raised-center",
-          nameZh: "盒蓋中央凸起（raised panel · 跟壁頂齊平）",
-          material,
-          grainDirection: "length",
-          visible: { length: raisedLen, width: innerWDim, thickness: sinkMm },
-          origin: { x: raisedOriginX, y: outerH - sinkMm, z: 0 },
-          bomMergeWith: "lid",
-          tenons: [],
-          mortises: [
-            {
-              origin: { x: pullHoleLocalX, y: sinkMm / 2, z: 0 },
-              depth: sinkMm + 0.5,
-              length: pullDia,
-              width: pullDia,
-              through: true,
-              shape: "round",
-              cosmetic: true,
-            },
-          ],
+        const fullT = lidT + sinkMm;
+        lidPart.visible = { ...lidPart.visible, thickness: fullT };
+        lidPart.origin = { ...lidPart.origin, y: outerH - fullT };
+        lidPart.nameZh = "盒蓋（滑入式 · 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 拉孔深度自動穿透 fullT，y 中心改 fullT/2
+        const lidHole = lidPart.mortises[lidPart.mortises.length - 1];
+        if (lidHole && lidHole.cosmetic && lidHole.through) {
+          lidHole.depth = fullT + 0.5;
+          lidHole.origin = { ...lidHole.origin, y: fullT / 2 };
+        }
+        // 3 邊銑掉 top sinkMm（cosmetic + through 把 slot top 推到 part 外）
+        // 用 through=true 走 oyC formula 路徑、slot 可以延伸到 part top 外避開 CSG hairline
+        // slot 雙端各加 epsilon：上 2mm 超出 part top、下 0.3mm 進邊條（容忍邊條 11.7mm）
+        const lidLenLocal = lidPart.visible.length;
+        const lidWidLocal = lidPart.visible.width;
+        const cutEpsilonTop = 2;
+        const cutEpsilonBottom = 0.3;
+        // slot from-bottom = [fullT - sinkMm - epsBot, fullT + epsTop] = [11.7, 19]
+        const cutD = sinkMm + cutEpsilonTop + cutEpsilonBottom;  // 7.3
+        const cutCenterY = fullT + (cutEpsilonTop - sinkMm - cutEpsilonBottom) / 2 + sinkMm / 2;  // 14.85
+        // 更直接：center = (top + bottom) / 2 = (fullT + epsTop + fullT - sinkMm - epsBot) / 2
+        const cutCenterYDirect = (fullT + cutEpsilonTop + (fullT - sinkMm - cutEpsilonBottom)) / 2;
+        void cutCenterY;
+        const zEdgeW = grooveDepth;
+        const rightEdgeW = grooveDepth;
+        // 前 Z 邊
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterYDirect, z: -(lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
         });
-        lidPart.nameZh = "盒蓋（滑入式 · 邊條 + 中央凸起 raised panel · 一塊厚料銑邊）";
+        // 後 Z 邊
+        lidPart.mortises.push({
+          origin: { x: 0, y: cutCenterYDirect, z: (lidWidLocal - zEdgeW) / 2 },
+          depth: cutD,
+          length: lidLenLocal,
+          width: zEdgeW,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
+        // 右 X 邊
+        lidPart.mortises.push({
+          origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
+          depth: cutD,
+          length: rightEdgeW,
+          width: lidWidLocal,
+          through: true,
+          shape: "rect",
+          cosmetic: true,
+        });
       }
     } else if (lidType === "rabbeted") {
       // 嵌入式：主蓋外伸 outerL×outerW 坐在壁頂（底面跟壁頂齊，無縫）

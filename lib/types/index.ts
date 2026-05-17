@@ -167,14 +167,6 @@ export interface Part {
   panelPieces?: number;
 
   /**
-   * BOM 合併目標 part id——標記這個零件是父零件的「同一塊木料銑出來」的次形體，
-   * 不該在材料單獨立一行。例：raised-panel 盒蓋的中央凸起 = 同一塊厚料銑邊條，
-   * 材料單該列父零件的合併 bbox（買 17mm 厚板）而不是分兩列。
-   * 3D / 工序 / overlap audit 還是當獨立 part 處理，只影響 BOM 顯示。
-   */
-  bomMergeWith?: string;
-
-  /**
    * 視覺渲染提示——影響 3D / 材料單 / 報價：
    * - "glass"：半透明玻璃，不計才、不進材料單、不進 CSV
    * - "brass-antique"：仿古銅金屬色（拉手/合頁面葉等五金件），不計才、不進
