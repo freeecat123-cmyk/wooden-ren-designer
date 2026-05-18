@@ -196,7 +196,7 @@ export function CeilingDevClient() {
             <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
             <span className="text-[11px] text-zinc-400">改任何值,圖與材料表即時重算</span>
           </div>
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-5">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* 排版 */}
             <ParamGroup icon="⇆" title="排版基準">
               <Toggle3 label="主支(沿長邊)" value={input.alignmentBase}
@@ -483,12 +483,14 @@ function SmallNum({
   label, value, onChange, step = 1, unit, disabled,
 }: { label: string; value: number; onChange: (v: number) => void; step?: number; unit?: string; disabled?: boolean }) {
   return (
-    <label className="flex items-center gap-2 text-xs">
-      <span className="text-zinc-600 w-20 shrink-0">{label}</span>
-      <input type="number" value={value} step={step} disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-stone-300 rounded-md tabular-nums disabled:bg-stone-100 disabled:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />
-      {unit && <span className="text-[10px] text-zinc-400 w-7">{unit}</span>}
+    <label className="block text-xs">
+      <span className="text-zinc-600 block mb-1">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <input type="number" value={value} step={step} disabled={disabled}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-stone-300 rounded-md tabular-nums disabled:bg-stone-100 disabled:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />
+        {unit && <span className="text-[10px] text-zinc-400 w-6 shrink-0">{unit}</span>}
+      </div>
     </label>
   );
 }
