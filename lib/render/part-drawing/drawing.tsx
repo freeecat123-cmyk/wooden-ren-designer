@@ -167,6 +167,20 @@ export function PartDrawing({
         return (
           <div className={gridClass}>
             {filtered.map(({ view, title, titleEn }, vIdx) => {
+              // Modal stack / single-view mode：強制 SVG `max-h-[80vh]` 讓
+              // 高 aspect 零件（長腳/桌腳 35×425）不會把 SVG 撐成 4000+ px 高、
+              // 整個 modal 只看得到 part 頂端 + 一片白邊。caller 傳的
+              // orthoClassName（如「bg-white w-full h-auto」沒 max-h）需要被
+              // 增強——append `max-h-[80vh]`，preserveAspectRatio 自動把 viewBox
+              // 縮進 viewport 高度內、part 置中、左右留白可接受（比 viewport
+              // 截掉 80% part 好）。row 模式不動 caller className。
+              const needViewportClamp =
+                (viewLayout === "stack" || singleView !== undefined) &&
+                orthoClassName !== undefined &&
+                !/max-h-/.test(orthoClassName);
+              const effectiveOrthoClassName = needViewportClamp
+                ? `${orthoClassName} max-h-[80vh]`
+                : orthoClassName;
               const orthoEl = (
                 <OrthoView
                   design={design}
@@ -175,7 +189,7 @@ export function PartDrawing({
                   titleEn={titleEn}
                   isolatePartId={part.id}
                   showDimensions={false}
-                  className={orthoClassName}
+                  className={effectiveOrthoClassName}
                   noTitleInSvg={useExternalTitle}
                   overlayContent={(ctx) => (
                     <>

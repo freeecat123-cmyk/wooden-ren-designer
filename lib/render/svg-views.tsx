@@ -779,13 +779,31 @@ export function OrthoView({
   // noTitleInSvg=true 時不保留 SVG 內 title bar 空間（PartDrawing zoom 模式
   // 會在 SVG 外另畫 HTML 標題、避免 transform:scale 把標題字一起放大）
   const reservedTitleH = noTitleInSvg ? 0 : TITLE_BAR_H;
-  const vbW = vbContentW + PADDING * 2;
-  const vbH = h + PADDING * 2 + DIM_OFFSET + reservedTitleH;
-  const vbX = -PADDING - vbContentW / 2;
+  // 零件圖（isolatePartId）：固定 PADDING=220 對「整套家具」是必要（容納
+  // 整片 dim chain + 工序文字 + zone 鏈），但對單一零件來說太誇張——一支
+  // 35×425mm 的腳套 220mm padding 後 viewBox 寬 475mm，腳只佔 7% 寬，
+  // 視覺上整片白邊配右下角小小的剪影（Inspector A 多家具回報）。
+  // 改用「跟 part 較大邊成比例 + T1 dim line 預留」的動態 padding：
+  //   - T1Dimensions 需 HORIZ_OFFSET 18-30 + VERT_OFFSET 50 + 文字寬約 30
+  //   - 取 max(64, 0.15 × part 較大邊)，上限 PADDING（220）保底
+  // 對 35mm 腳：max(64, 5.25) = 64mm 兩側、viewBox 寬 163mm、腳佔 21% 寬（OK）
+  // 對 1000mm 圓桌面：max(64, 150) = 150mm、viewBox 寬 1300mm、桌面佔 77%（OK）
+  const isolatePadding = isolatePartId
+    ? Math.min(
+        PADDING,
+        Math.max(64, 0.15 * Math.max(overall.length, overall.width, overall.thickness)),
+      )
+    : PADDING;
+  const isolateDimOffset = isolatePartId
+    ? Math.max(36, isolatePadding * 0.4)
+    : DIM_OFFSET;
+  const vbW = vbContentW + isolatePadding * 2;
+  const vbH = h + isolatePadding * 2 + isolateDimOffset + reservedTitleH;
+  const vbX = -isolatePadding - vbContentW / 2;
   // Top view parts project around y=0 (origin.z - zExt/2 ranges roughly -h/2..h/2);
   // front/side views use natural flipY so parts span y=-h..0.
   const drawAreaTop = view === "top" ? -h / 2 : -h;
-  const vbY = drawAreaTop - PADDING - reservedTitleH;
+  const vbY = drawAreaTop - isolatePadding - reservedTitleH;
 
   // Frame: enclose drawing + title bar + dim area
   const frameX = vbX + 8;
