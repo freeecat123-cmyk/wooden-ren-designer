@@ -3503,7 +3503,8 @@ export function PerspectiveView({
                   const maxCornerProj =
                     (Math.abs(cross1.dot(defaultWorld)) * h1 / SCALE +
                      Math.abs(cross2.dot(defaultWorld)) * h2 / SCALE);
-                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY - maxCornerProj) * SCALE;
+                  // worst corner 推到 parent face 外 0.05mm（不重疊 + 不留可見縫）
+                  const halfLenWorld = (Math.abs(effLen) / 2 - maxCornerProj - 0.05) * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
                   const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
 
