@@ -311,6 +311,39 @@ export function CeilingDevClient() {
                   <span className="text-[10px] text-zinc-400">cm</span>
                 </label>
               </div>
+              {/* 超 stock 段拼接警告 */}
+              {(() => {
+                const oversize = cuttingPlan.stocks.filter((s) => s.remainCm < -0.01);
+                if (oversize.length === 0) return null;
+                return (
+                  <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 p-3 sm:p-4">
+                    <h3 className="text-xs font-semibold text-rose-900 mb-2 flex items-center gap-1.5">
+                      ⚠ 超出 stock 長度,需拼接({oversize.length} 段)
+                    </h3>
+                    <ul className="text-[11px] text-rose-800 space-y-1 leading-relaxed">
+                      {oversize.map((s) => {
+                        const p = s.pieces[0];
+                        const overBy = Math.abs(s.remainCm);
+                        return (
+                          <li key={s.index} className="flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(p.category)}`}>
+                              {p.lengthCm}
+                            </span>
+                            <span>{p.label}</span>
+                            <span className="text-rose-600 font-mono">超 {r1(overBy)} cm</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="mt-2 text-[10px] text-rose-700 leading-relaxed">
+                      <strong>解法:</strong>
+                      (a) 改用更長 stock(現在 {stockLengthCm} cm,建議 ≥ {Math.ceil(Math.max(...oversize.map((s) => s.pieces[0].lengthCm)) / 10) * 10} cm)
+                      ;或 (b) 現場切兩段拼接(交接處放在邊框上強固)
+                    </p>
+                  </div>
+                );
+              })()}
+
               <div className="overflow-x-auto rounded-lg ring-1 ring-stone-200">
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
@@ -323,25 +356,32 @@ export function CeilingDevClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
-                    {cuttingPlan.stocks.map((s) => (
-                      <tr key={s.index} className="hover:bg-amber-50/30">
-                        <td className="px-3 py-2 font-mono text-zinc-700">#{s.index}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex flex-wrap gap-1">
-                            {s.pieces.map((p, j) => (
-                              <span key={j} className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(p.category)}`}>
-                                {p.lengthCm}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{r1(s.usedLengthCm)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-zinc-400">{r1(s.totalKerfCm)}</td>
-                        <td className={`px-3 py-2 text-right tabular-nums font-semibold ${s.remainCm < 0 ? "text-rose-700" : s.remainCm < 10 ? "text-emerald-700" : "text-amber-700"}`}>
-                          {r1(s.remainCm)}
-                        </td>
-                      </tr>
-                    ))}
+                    {cuttingPlan.stocks.map((s) => {
+                      const oversize = s.remainCm < -0.01;
+                      return (
+                        <tr key={s.index} className={oversize ? "bg-rose-50/50 hover:bg-rose-50" : "hover:bg-amber-50/30"}>
+                          <td className="px-3 py-2 font-mono text-zinc-700">
+                            #{s.index}
+                            {oversize && <span className="ml-1 text-[9px] text-rose-700">⚠</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {s.pieces.map((p, j) => (
+                                <span key={j} className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(p.category)}`}>
+                                  {p.lengthCm}
+                                </span>
+                              ))}
+                              {oversize && <span className="text-[10px] text-rose-700">需拼接</span>}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{r1(s.usedLengthCm)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-zinc-400">{r1(s.totalKerfCm)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums font-semibold ${s.remainCm < 0 ? "text-rose-700" : s.remainCm < 10 ? "text-emerald-700" : "text-amber-700"}`}>
+                            {r1(s.remainCm)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
