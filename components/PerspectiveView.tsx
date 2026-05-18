@@ -3477,39 +3477,24 @@ export function PerspectiveView({
                   // For left/right: long=Z → perp1=X (width), perp2=Y (thickness).
                   const halfPerp1 = isStartEnd ? hy : hx;
                   const halfPerp2 = isStartEnd ? hz : (isTopBottom ? hz : hy);
-                  const h1mm = Math.max(0.05, halfPerp1 - SHRINK_MM);
-                  const h2mm = Math.max(0.05, halfPerp2 - SHRINK_MM);
-                  const h1 = h1mm * SCALE;
-                  const h2 = h2mm * SCALE;
-
-                  // Cross-section corner extent along default outward direction.
-                  // For apron tenons (B ≠ N), cross2 lies in the compound miter
-                  // plane and necessarily has a non-zero component along the
-                  // default outward direction (= apron length in world). The
-                  // 4 root corners spread by h1*|cross1·defaultWorld| +
-                  // h2*|cross2·defaultWorld| in that direction — visible as
-                  // material poking out past the apron's end face. Bury the
-                  // root by exactly this amount so all corners are inside the
-                  // parent at the joint.
-                  const cornerExtentAlongDefault =
-                    h1mm * Math.abs(cross1.dot(defaultWorld)) +
-                    h2mm * Math.abs(cross2.dot(defaultWorld));
-                  const burySafety = 0.1;  // mm, extra to mask z-fight
-                  const totalBury = cornerExtentAlongDefault + burySafety;
+                  const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
+                  const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
 
                   // Body length: cut-plane normal is N, body direction is B.
                   // Tip face plane sits at depth effLen from root along N, so
                   //   L_body * (B · N) = effLen  → L_body = effLen / |B · N|
-                  // Add 2*totalBury to bury both ends.
+                  // Add 2*ROOT_BURY to bury both ends slightly (z-fight masking).
                   const bDotN = B.dot(N);
                   const denom = Math.max(0.1, Math.abs(bDotN));
-                  const Lworld = (Math.abs(effLen) / denom + 2 * totalBury) * SCALE;
+                  const Lworld = (Math.abs(effLen) / denom + 2 * ROOT_BURY) * SCALE;
 
-                  // Mesh origin sits at the nominal tenon center (wx,wy,wz).
-                  // Place ROOT face at -(effLen/2 + totalBury) along defaultWorld
-                  // so the corners' extreme points (which spread by
-                  // cornerExtentAlongDefault) end up at or inside the parent.
-                  const halfLenWorld = (Math.abs(effLen) / 2 + totalBury) * SCALE;
+                  // Mesh origin sits at the nominal tenon center (wx,wy,wz)
+                  // which was computed as position-default local center —
+                  // i.e. parent-face + (effLen/2) along defaultWorld.
+                  // Place ROOT at -(effLen/2 + bury)*defaultWorld so the root
+                  // face stays flush with the parent shoulder face. Then walk
+                  // tip = root + Lworld * B.
+                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY) * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
                   const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
 
