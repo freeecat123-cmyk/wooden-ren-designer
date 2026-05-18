@@ -569,16 +569,19 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = apronSplayDx > 0 && apronSplayDz > 0;
+    // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
+    //   axis="x" 牙條只受 apronSplayDx 影響、axis="z" 牙條只受 apronSplayDz 影響
+    // axis="x" 牙條: start at part-local -X → world -X (Rx(π/2) 不動 X)。cornerSx=-1 ✓
+    // axis="z" 牙條: start at part-local -X → world +Z (Rx(π/2) Ry(π/2) 後 -X→+Z)。cornerSz=+1（不是 -1）
+    const hasAxisSplay = (s.axis === "x" && apronSplayDx > 0) || (s.axis === "z" && apronSplayDz > 0);
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
       : null;
-    const tenonAxisEnd = isCompoundSplay
+    const tenonAxisEnd = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
       : null;
     // butt-joint 半長 = legEdge + splay − legSize@Y / 2
@@ -868,6 +871,18 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
     const buildLowerPart = (s: SideDef): Part => {
       const geom = s.axis === "x" ? lsGeomX : lsGeomZ;
+      // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
+      const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
+      const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+      const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+      const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+      const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+      const lsTenonAxisStart = hasAxisSplay
+        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
+        : null;
+      const lsTenonAxisEnd = hasAxisSplay
+        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
+        : null;
       const halfX_C = legEdgeX + geom.splayXc - geom.lwC / 2;
       const halfX_T = legEdgeX + geom.splayXt - geom.lwT / 2;
       const halfX_B = legEdgeX + geom.splayXb - geom.lwB / 2;
@@ -910,6 +925,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonW,
               thickness: lowerTenonThick,
               shoulderOn: [...lowerTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
+              ...(position === "start" && lsTenonAxisStart ? { axis: lsTenonAxisStart } : {}),
+              ...(position === "end" && lsTenonAxisEnd ? { axis: lsTenonAxisEnd } : {}),
             });
             return [mk("start"), mk("end")];
           }
@@ -926,6 +943,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             thickness: lowerTenonThick,
             shoulderOn,
             offsetWidth: -worldOffset,
+            ...(position === "start" && lsTenonAxisStart ? { axis: lsTenonAxisStart } : {}),
+            ...(position === "end" && lsTenonAxisEnd ? { axis: lsTenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         })(),
