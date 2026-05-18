@@ -471,17 +471,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const aprons: Part[] = !withApron ? [] : apronSides
     .filter((s) => !(opts.skipFrontApron && s.key === "front"))
     .map((s) => {
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    // axis-specific：單向斜也觸發 tenon axis（axis="x" 牙條只受 splayDx、axis="z" 只受 splayDz）
+    const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    // axis="z" 牙條 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    // axis="z" 牙條 end at part-local +X → world -Z
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
     const splayAngleDegLocal = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
-    const tenonAxisStart = isCompoundSplay
+    const tenonAxisStart = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngleDegLocal })
       : null;
-    const tenonAxisEnd = isCompoundSplay
+    const tenonAxisEnd = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngleDegLocal })
       : null;
     const bevelAngle = isSplayed
@@ -707,6 +709,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         ? (isUpperLs ? lowerUpperTenonOffset : lowerLowerTenonOffset)
         : 0;
       const lsShoulderOn: Array<"top" | "bottom" | "left" | "right"> = ["left", "right"];
+      // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
+      const lsHasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
+      const lsStartCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+      const lsStartCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+      const lsEndCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+      const lsEndCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+      const lsSplayAngleDegLocal = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
+      const lsTenonAxisStart = lsHasAxisSplay
+        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: lsStartCornerSx, cornerSz: lsStartCornerSz, splayAngleDeg: lsSplayAngleDegLocal })
+        : null;
+      const lsTenonAxisEnd = lsHasAxisSplay
+        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: lsEndCornerSx, cornerSz: lsEndCornerSz, splayAngleDeg: lsSplayAngleDegLocal })
+        : null;
       parts.push({
         id: s.key,
         nameZh: s.nameZh,
@@ -719,8 +734,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           : { x: Math.PI / 2 + (-s.sz) * tiltZ, y: 0, z: 0 },
         shape: lsShape,
         tenons: [
-          { position: "start", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset },
-          { position: "end", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset },
+          { position: "start", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset, ...(lsTenonAxisStart ? { axis: lsTenonAxisStart } : {}) },
+          { position: "end", type: lsTenonType, length: tenonLen, width: lsTenonH, thickness: tenonThick, shoulderOn: lsShoulderOn, offsetWidth: -lsWorldOffset, ...(lsTenonAxisEnd ? { axis: lsTenonAxisEnd } : {}) },
         ],
         mortises: [],
       });
