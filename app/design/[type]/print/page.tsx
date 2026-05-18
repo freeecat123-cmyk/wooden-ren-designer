@@ -19,6 +19,7 @@ import {
 import { PrintToolList } from "@/components/print/PrintToolList";
 import { PrintPartDrawings } from "@/components/print/PrintPartDrawings";
 import { PartDrawingsIndex } from "@/components/print/PartDrawingsIndex";
+import { isLocalhost } from "@/lib/dev-only";
 import { PrintTemplates } from "@/components/print/PrintTemplates";
 import { PrintAccessGate, PrintWatermarkLayer } from "@/components/PrintAccessGate";
 import {
@@ -225,11 +226,16 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         </section>
       )}
 
-      {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
-      <PartDrawingsIndex design={design} />
+      {/* 零件圖 / 索引：開發中，僅 localhost 顯示 */}
+      {(await isLocalhost()) && (
+        <>
+          {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
+          <PartDrawingsIndex design={design} />
 
-      {/* ================= Page N+: Part drawings (零件圖) ================= */}
-      <PrintPartDrawings design={design} />
+          {/* ================= Page N+: Part drawings (零件圖) ================= */}
+          <PrintPartDrawings design={design} />
+        </>
+      )}
 
       {/* ================= Page N+: 1:1 樣板列印頁 ================= */}
       <PrintTemplates design={design} />

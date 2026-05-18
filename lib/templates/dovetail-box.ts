@@ -747,11 +747,23 @@ const polyDesign: FurnitureDesign = {
       }
 
       // 2. 4 牆切兩段：身段 Y=[0, cutY]、蓋段 Y=[cutY, outerH] — 各段內含自己的板裙/cap
-      // 段數比例依高度：身段 = totalSeg × bodyH/wallH、蓋段 = totalSeg × liftH/wallH
+      // 身段保留使用者設定的段數（不縮減）、蓋段獨立按密度算最低值
+      // 之前用「總段數 × 比例」切，蓋段比例小（outerH/5）幾乎永遠 round 成 1，
+      // 不管使用者把鳩尾段數調 5/7/9/11 蓋段看不出差別、感覺「鳩尾段數對蓋段沒作用」。
+      // 而且 body = total - lid 沒做奇數 bump，dovetail 偶數段渲染會破口。
+      // 改成：身段＝使用者設定值（已奇數）、蓋段獨立算（dovetail 至少 3 奇 / finger 至少 2）。
       const totalOriginalSegs = dovetailInfo?.segmentCount ?? (fingerJointInfo?.segmentCount ?? 0);
-      const liftSegRaw = Math.max(1, Math.round(totalOriginalSegs * liftOffH / Math.max(1, outerH - botT - lidT)));
-      const lidCornerSegs = cornerJoinery === "dovetail" && liftSegRaw % 2 === 0 ? liftSegRaw + 1 : liftSegRaw;
-      const bodyCornerSegs = Math.max(1, totalOriginalSegs - lidCornerSegs);
+      const wallActualH = Math.max(1, outerH - botT - lidT);
+      const density = totalOriginalSegs / wallActualH;
+      const liftSegRaw = Math.max(1, Math.round(density * liftOffH));
+      let lidCornerSegs: number;
+      if (cornerJoinery === "dovetail") {
+        lidCornerSegs = Math.max(3, liftSegRaw);
+        if (lidCornerSegs % 2 === 0) lidCornerSegs += 1;
+      } else {
+        lidCornerSegs = Math.max(2, liftSegRaw);
+      }
+      const bodyCornerSegs = totalOriginalSegs;
 
       // 身段牆高 = cutY（從 Y=0 上來到切線、含底部 botT 板裙 + 內高）
       // 蓋段牆高 = liftOffH（從切線上來到 outerH、含頂部 botT cap + 內高）
