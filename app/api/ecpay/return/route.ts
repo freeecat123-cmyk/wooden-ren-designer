@@ -36,11 +36,26 @@ function parseEcpayDate(s: string | undefined): string | null {
 }
 
 /**
- * 判斷這筆是定期定額還是一次性付款。
- * 綠界定期定額回呼帶 PeriodType / PeriodAmount 欄位，一次性不會有。
+ * 從 checkout 時寫進 payments.raw_response 的 checkout_initiated 紀錄
+ * 撈出原本選的 period（"monthly" | "yearly"）。
+ *
+ * ⚠️ 不能依賴綠界回呼帶 PeriodType — 實測首期定期定額回呼跟一次性回呼欄位一樣
+ * （只有第 2 期以後走 PeriodReturnURL 才會帶 PeriodType / PeriodAmount / gwsr）。
  */
-function isPeriodicReturn(params: Record<string, string>): boolean {
-  return Boolean(params.PeriodType && params.PeriodAmount);
+async function lookupCheckoutPeriod(
+  admin: ReturnType<typeof createAdminClient>,
+  orderId: string,
+): Promise<"monthly" | "yearly"> {
+  const { data } = await admin
+    .from("payments")
+    .select("raw_response")
+    .filter("raw_response->>kind", "eq", "checkout_initiated")
+    .filter("raw_response->>orderId", "eq", orderId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const p = (data?.raw_response as { period?: string } | null)?.period;
+  return p === "yearly" ? "yearly" : "monthly";
 }
 
 export async function POST(req: NextRequest) {
@@ -92,7 +107,8 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  const periodic = isPeriodicReturn(params);
+  const billingPeriod = await lookupCheckoutPeriod(admin, orderId);
+  const periodic = billingPeriod === "monthly";
   // 月扣定期定額 → 給 31 天緩衝（綠界月扣會在 30 天時自動扣下一期）
   // 年付一次性 → 365 天
   const days = periodic ? 31 : 365;

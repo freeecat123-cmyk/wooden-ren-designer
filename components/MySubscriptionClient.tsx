@@ -166,7 +166,7 @@ function PaidPlanSection({
         到期日：{formatDate(expiresAt)}
       </p>
       <p className="text-sm text-zinc-500 mt-1">
-        狀態：{isCancelled ? "已取消（到期前仍可用）" : status}
+        狀態：{isCancelled ? "已取消（到期前仍可用）" : status === "active" ? "生效中（每月自動續扣）" : status}
       </p>
 
       {isActive && !isCancelled && (
