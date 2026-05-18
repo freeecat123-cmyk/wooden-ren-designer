@@ -352,10 +352,10 @@ export function CeilingDevClient() {
           <button onClick={() => setCutOpen(!cutOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">🪚 裁切計算(角材)</h2>
+              <h2 className="text-sm font-semibold text-zinc-900">🪚 裁料計算(角材)</h2>
               <span className="text-[11px] text-zinc-400">
-                共 {cuttingPlan.summary.stockCount} 支 stock · 利用率 {cuttingPlan.summary.utilizationPct}%
-                · 廢料 {cuttingPlan.summary.totalRemainM} m
+                共 {cuttingPlan.summary.stockCount} 支角材 · 利用率 {cuttingPlan.summary.utilizationPct}%
+                · 剩料 {cuttingPlan.summary.totalRemainM} m
               </span>
             </div>
             <span className="text-zinc-400 text-xs">{cutOpen ? "▲" : "▼"}</span>
@@ -364,7 +364,7 @@ export function CeilingDevClient() {
             <div className="p-5 space-y-4">
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">Stock 長度</span>
+                  <span className="text-zinc-600">原料一支長</span>
                   <input type="number" value={stockLengthCm} step={10}
                     onChange={(e) => setStockLengthCm(Number(e.target.value))}
                     className="w-20 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
@@ -372,19 +372,20 @@ export function CeilingDevClient() {
                   <span className="text-[10px] text-zinc-400">(360=12 尺、300=10 尺、600=20 尺)</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">鋸口 kerf</span>
+                  <span className="text-zinc-600">鋸路</span>
                   <input type="number" value={sawKerfCm} step={0.1}
                     onChange={(e) => setSawKerfCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-400">cm</span>
+                  <span className="text-[10px] text-zinc-400">(鋸條切一刀的損耗)</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <span className="text-zinc-600">拼接 overlap</span>
+                  <span className="text-zinc-600">接點搭接</span>
                   <input type="number" value={spliceOverlapCm} step={1}
                     onChange={(e) => setSpliceOverlapCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-400">cm</span>
-                  <span className="text-[10px] text-zinc-400">(超 stock 段自動切多段拼接 + overlap)</span>
+                  <span className="text-[10px] text-zinc-400">(超原料一支的長段自動切多段、接點疊長)</span>
                 </label>
               </div>
               {/* 拼接段資訊(自動切多段後顯示) */}
@@ -401,7 +402,7 @@ export function CeilingDevClient() {
                 return (
                   <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3 sm:p-4">
                     <h3 className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-1.5">
-                      🔗 超 stock 段自動切多段拼接({groups.size} 件 → {splicedPieces.length} 段,每接點 +{spliceOverlapCm} cm overlap)
+                      🔗 太長要分段接({groups.size} 件 → {splicedPieces.length} 段,每接點搭接 {spliceOverlapCm} cm)
                     </h3>
                     <ul className="text-[11px] text-amber-800 space-y-1 leading-relaxed">
                       {[...groups.entries()].map(([base, segs]) => (
@@ -418,7 +419,7 @@ export function CeilingDevClient() {
                       ))}
                     </ul>
                     <p className="mt-2 text-[10px] text-amber-700 leading-relaxed">
-                      實務:接點放在邊框上方強固(或鎖鐵片補強)。
+                      實務:接點放在邊框上強固(或鎖鐵片補強)。
                     </p>
                   </div>
                 );
@@ -428,11 +429,11 @@ export function CeilingDevClient() {
                 <table className="w-full text-xs">
                   <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="text-left px-3 py-2 font-semibold">Stock #</th>
+                      <th className="text-left px-3 py-2 font-semibold">第幾支</th>
                       <th className="text-left px-3 py-2 font-semibold">切法</th>
-                      <th className="text-right px-3 py-2 font-semibold">已切</th>
-                      <th className="text-right px-3 py-2 font-semibold">鋸</th>
-                      <th className="text-right px-3 py-2 font-semibold">剩</th>
+                      <th className="text-right px-3 py-2 font-semibold">已用</th>
+                      <th className="text-right px-3 py-2 font-semibold">鋸路</th>
+                      <th className="text-right px-3 py-2 font-semibold">剩料</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -451,7 +452,7 @@ export function CeilingDevClient() {
                                   {p.lengthCm}
                                 </span>
                               ))}
-                              {oversize && <span className="text-[10px] text-rose-700">需拼接</span>}
+                              {oversize && <span className="text-[10px] text-rose-700">要分段接</span>}
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums">{r1(s.usedLengthCm)}</td>
@@ -466,10 +467,10 @@ export function CeilingDevClient() {
                 </table>
               </div>
               <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500">
-                <span>採購 <strong className="text-zinc-900 text-base font-bold">{cuttingPlan.summary.stockCount}</strong> 支 {stockLengthCm} cm 角材</span>
-                <span>總料 <strong className="text-zinc-700">{cuttingPlan.summary.totalStockLengthM} m</strong></span>
+                <span>訂料 <strong className="text-zinc-900 text-base font-bold">{cuttingPlan.summary.stockCount}</strong> 支 {stockLengthCm} cm 角材</span>
+                <span>總長 <strong className="text-zinc-700">{cuttingPlan.summary.totalStockLengthM} m</strong></span>
                 <span>實用 <strong className="text-zinc-700">{cuttingPlan.summary.totalUsedM} m</strong></span>
-                <span>廢料 <strong className="text-rose-700">{cuttingPlan.summary.totalRemainM} m</strong></span>
+                <span>剩料 <strong className="text-rose-700">{cuttingPlan.summary.totalRemainM} m</strong></span>
                 <span>利用率 <strong className="text-amber-700">{cuttingPlan.summary.utilizationPct}%</strong></span>
               </div>
             </div>
