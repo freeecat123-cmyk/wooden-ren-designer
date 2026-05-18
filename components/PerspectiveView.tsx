@@ -3423,7 +3423,13 @@ export function PerspectiveView({
                   const halfLong  = (isLongX ? hx : (isLongY ? hy : hz));
                   const halfPerp1 = (isLongX ? hy : (isLongY ? hx : hx));
                   const halfPerp2 = (isLongX ? hz : (isLongY ? hz : hy));
-                  const hl = Math.max(0.05, halfLong - SHRINK_MM) * SCALE;
+                  // SHRINK only the cross-section (sides vs mortise walls — real
+                  // z-fight risk). The long-axis dims must reach exactly to the
+                  // parent shoulder face: shrinking them creates a visible gap
+                  // at the root. Tiny BURY pushes root 0.1mm into parent to
+                  // mask any z-fight at the root face itself.
+                  const ROOT_BURY = 0.1;  // mm
+                  const hl = (halfLong + ROOT_BURY) * SCALE;
                   const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
                   const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
                   // World-frame axis unit vector (the tenon's body direction).
