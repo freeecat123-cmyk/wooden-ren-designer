@@ -11,8 +11,10 @@ import { getEffectivePlan, type UserPlanProfile } from "@/lib/permissions";
 
 export type AIEndpoint = "photo-to-params" | "style-suggest";
 
+// 2026-05-18 AI 入口 UI 全砍（AIRefineButton / PhotoToParamsButton / AskMasterButton
+// 註解掉），endpoint 還活著但只給付費 user。free=0 把後門關掉、防 curl 繞 UI 用免費額度。
 const DAILY_LIMITS: Record<string, number> = {
-  free: 3,
+  free: 0,
   personal: 10,
   pro: 50,
   student: 50,

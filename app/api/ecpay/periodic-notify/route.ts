@@ -156,12 +156,35 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
+  // Race condition 防護：先 INSERT payment（UNIQUE on ecpay_trade_no 擋並發 dup）
+  // 只有 insert 成功才延長 subscription，避免兩個並發 webhook 各讀 expires_at
+  // 各自 +31d update（最後贏的 update value 一樣）但實際只應扣一次。
+  const paymentDate = parseEcpayDate(params.process_date) ?? new Date().toISOString();
+  const { error: payInsErr } = await admin.from("payments").insert({
+    user_id: sub.user_id,
+    subscription_id: sub.id,
+    amount,
+    status: "success",
+    ecpay_trade_no: tradeNo,
+    ecpay_payment_date: paymentDate,
+    raw_response: params as Record<string, unknown>,
+  });
+
+  if (payInsErr) {
+    // UNIQUE 衝突 = 重送、已處理過 → return OK 不延期
+    console.warn("[ecpay/periodic-notify] payment insert blocked（可能 replay）", {
+      orderId,
+      tradeNo,
+      error: payInsErr.message,
+    });
+    return new Response("1|OK");
+  }
+
   // 成功：延長 31 天（從現有到期日 + 31 天，不從 now，保證連續性）
   const baseDate = sub.expires_at
     ? new Date(sub.expires_at).getTime()
     : Date.now();
   const newExpiresAt = new Date(baseDate + 31 * 86_400_000).toISOString();
-  const paymentDate = parseEcpayDate(params.process_date) ?? new Date().toISOString();
 
   const { error: upSubErr } = await admin
     .from("subscriptions")
@@ -177,16 +200,6 @@ export async function POST(req: NextRequest) {
     })
     .eq("id", sub.user_id);
   if (upUserErr) console.error("[ecpay/periodic-notify] 更新 users 失敗", upUserErr);
-
-  await admin.from("payments").insert({
-    user_id: sub.user_id,
-    subscription_id: sub.id,
-    amount,
-    status: "success",
-    ecpay_trade_no: tradeNo,
-    ecpay_payment_date: paymentDate,
-    raw_response: params as Record<string, unknown>,
-  });
 
   // 寄月扣扣款成功 email
   try {
