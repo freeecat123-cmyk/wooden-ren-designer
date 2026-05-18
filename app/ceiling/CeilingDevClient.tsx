@@ -201,7 +201,7 @@ export function CeilingDevClient() {
     <div className="min-h-screen bg-gradient-to-b from-amber-50/40 via-stone-50 to-stone-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 print:hidden">
-        <div className="max-w-7xl mx-auto px-5 py-3 flex items-center gap-3 flex-wrap">
+        <div className="max-w-7xl mx-auto px-5 pr-16 lg:pr-5 py-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 mr-auto">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-amber-500/30">
               ▣
@@ -274,7 +274,7 @@ export function CeilingDevClient() {
       <main className="max-w-7xl mx-auto px-5 py-6">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-6 items-start">
           {/* ====== 視覺(mobile order-1 在最上、desktop order-2 在右、sticky)====== */}
-          <aside className="w-full order-1 lg:order-2 lg:sticky lg:top-[80px] lg:self-start mb-5 lg:mb-0 print:static print:mb-3 print-keep">
+          <aside className="w-full order-1 lg:order-2 sticky top-[60px] lg:top-[80px] z-20 lg:z-auto self-start mb-5 lg:mb-0 print:static print:mb-3 print-keep">
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
