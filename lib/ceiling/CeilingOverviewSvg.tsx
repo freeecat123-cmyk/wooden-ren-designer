@@ -34,12 +34,11 @@ export function CeilingOverviewSvg({
   bom,
   highlight = null,
   subLengthFilter = null,
-  boardKindFilter: _boardKindFilter = null,
+  boardKindFilter = null,
 }: {
   bom: CeilingBom;
   highlight?: HighlightCategory;
   subLengthFilter?: number | null;
-  /** v1 SVG 板 hatch 是整片,不細分 full/cut(僅接受 prop 避免 type 錯) */
   boardKindFilter?: "full" | "cut" | null;
 }) {
   const { input, trace } = bom;
@@ -92,10 +91,8 @@ export function CeilingOverviewSvg({
         </pattern>
       </defs>
 
-      {/* ────── 1. 房間範圍底色(矽酸鈣板覆蓋區) ────── */}
-      <g opacity={dim("board")}>
-        <rect x={x0} y={y0} width={L} height={S} fill="url(#board-hatch)" />
-      </g>
+      {/* ────── 1. 矽酸鈣板每片 rect(per-board,可分 整/裁 高亮) ────── */}
+      {renderBoardCells(input, trace.mainJoistCentersCm, x0, y0, dim("board"), boardKindFilter)}
 
       {/* ────── 2. 矽酸鈣板分割線(虛線) ────── */}
       <g opacity={dim("board")}>
@@ -231,6 +228,74 @@ function renderSubJoists(
     }
   }
   return elements;
+}
+
+// ─────────────────────────────────────────────────────────
+// 矽酸鈣板 per-cell rect:每片板獨立 rect,支援 boardKindFilter 分整/裁高亮
+// ─────────────────────────────────────────────────────────
+function renderBoardCells(
+  input: CeilingBom["input"],
+  mainCenters: number[],
+  x0: number,
+  y0: number,
+  baseOpacity: number,
+  boardKindFilter: "full" | "cut" | null,
+) {
+  const FULL_TOL_CM = 5;
+  const L = input.longSideCm;
+  const S = input.shortSideCm;
+
+  // X 欄邊:邊框外 → 各主支中心 → 邊框外
+  const colEdges: number[] = mainCenters.length === 0
+    ? [0, L]
+    : [0, ...mainCenters, L];
+
+  // Z 列邊:每 boardLong 切
+  const rowEdges: number[] = [0];
+  let z = input.boardLongCm;
+  while (z < S) {
+    rowEdges.push(z);
+    z += input.boardLongCm;
+  }
+  rowEdges.push(S);
+  const fullRowCount = Math.floor(input.shortSideCm / input.boardLongCm);
+
+  const cells: React.ReactNode[] = [];
+  let key = 0;
+  for (let ci = 0; ci < colEdges.length - 1; ci++) {
+    const xL = colEdges[ci];
+    const xR = colEdges[ci + 1];
+    const colW = xR - xL;
+    const colFull = Math.abs(colW - input.boardShortCm) <= FULL_TOL_CM;
+    for (let ri = 0; ri < rowEdges.length - 1; ri++) {
+      const zT = rowEdges[ri];
+      const zB = rowEdges[ri + 1];
+      const rowH = zB - zT;
+      const rowFull = ri < fullRowCount;
+      const isFullBoard = colFull && rowFull;
+      const matchesKind =
+        !boardKindFilter ||
+        (boardKindFilter === "full" && isFullBoard) ||
+        (boardKindFilter === "cut" && !isFullBoard);
+      const op = baseOpacity * (matchesKind ? 1 : 0.12);
+      // 整張板用 hatch 圖案,裁切板用實心淡色標示區分
+      cells.push(
+        <rect
+          key={`board-${key++}`}
+          x={x0 + xL}
+          y={y0 + zT}
+          width={colW}
+          height={rowH}
+          fill={isFullBoard ? "url(#board-hatch)" : "#fda4af33"}
+          stroke="#94a3b8"
+          strokeWidth={0.3}
+          strokeDasharray="2 1"
+          opacity={op}
+        />,
+      );
+    }
+  }
+  return cells;
 }
 
 // ─────────────────────────────────────────────────────────
