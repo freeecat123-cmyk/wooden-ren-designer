@@ -231,10 +231,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     _isSplayedAllAxesPre || _legShapePre === "splayed-width" ? _splayMmPre : 0;
   const _isSplayedPre = _splayDxPre > 0 || _splayDzPre > 0;
 
+  // category-aware part naming：bench 用「座板/凳腳」、其他桌類用「桌面板/桌腳」
+  const isBench = opts.category === "bench";
+  const topNameZh = isBench ? "座板" : "桌面板";
+  const legNameZh = isBench ? "凳腳" : "桌腳";
+
   // Top
   const topPanel: Part = {
     id: "top",
-    nameZh: "桌面板",
+    nameZh: topNameZh,
     material,
     grainDirection: "length",
     visible: { length: topLen, width: topWid, thickness: topThickness },
@@ -333,7 +338,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       : undefined;
     return ({
     id: `leg-${i + 1}`,
-    nameZh: `桌腳 ${i + 1}`,
+    nameZh: `${legNameZh} ${i + 1}`,
     material,
     grainDirection: "length",
     visible: { length: legSize, width: legSize, thickness: legHeight },
