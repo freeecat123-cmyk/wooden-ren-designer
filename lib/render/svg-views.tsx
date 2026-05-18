@@ -509,23 +509,44 @@ export function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalB
   // 不對稱榫接的中心偏移（drafting-math.md §A10.10）
   const oW = tenon.offsetWidth ?? 0;
   const oT = tenon.offsetThickness ?? 0;
+  let cx = 0, cy = 0, cz = 0, hx = 0, hy = 0, hz = 0;
   switch (tenon.position) {
     // start/end：length 沿 ±X，width 沿 Z，thickness 沿 Y
     case "start":
-      return { cx: -lx / 2 - L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+      cx = -lx / 2 - L / 2; cy = oT; cz = oW; hx = L / 2; hy = T / 2; hz = W / 2; break;
     case "end":
-      return { cx: +lx / 2 + L / 2, cy: oT, cz: oW, hx: L / 2, hy: T / 2, hz: W / 2 };
+      cx = +lx / 2 + L / 2; cy = oT; cz = oW; hx = L / 2; hy = T / 2; hz = W / 2; break;
     // top/bottom：length 沿 ±Y，width 沿 X，thickness 沿 Z
     case "top":
-      return { cx: oW, cy: +ly / 2 + L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+      cx = oW; cy = +ly / 2 + L / 2; cz = oT; hx = W / 2; hy = L / 2; hz = T / 2; break;
     case "bottom":
-      return { cx: oW, cy: -ly / 2 - L / 2, cz: oT, hx: W / 2, hy: L / 2, hz: T / 2 };
+      cx = oW; cy = -ly / 2 - L / 2; cz = oT; hx = W / 2; hy = L / 2; hz = T / 2; break;
     // left/right：length 沿 ±Z，width 沿 X，thickness 沿 Y
     case "left":
-      return { cx: oW, cy: oT, cz: -lz / 2 - L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+      cx = oW; cy = oT; cz = -lz / 2 - L / 2; hx = W / 2; hy = T / 2; hz = L / 2; break;
     case "right":
-      return { cx: oW, cy: oT, cz: +lz / 2 + L / 2, hx: W / 2, hy: T / 2, hz: L / 2 };
+      cx = oW; cy = oT; cz = +lz / 2 + L / 2; hx = W / 2; hy = T / 2; hz = L / 2; break;
   }
+  // Compound splay：axis override 讓榫頭沿任意 part-local 方向偏出（不只 ±X/±Y/±Z）。
+  // 撤掉 position-default 的半長位移，再沿 unit axis 重新位移半長。
+  // 斷面尺寸保留為 AABB 近似（≤12° 視覺可接受）。
+  if (tenon.axis) {
+    const m = Math.hypot(tenon.axis.x, tenon.axis.y, tenon.axis.z) || 1;
+    const u = { x: tenon.axis.x / m, y: tenon.axis.y / m, z: tenon.axis.z / m };
+    const halfLen = L / 2;
+    switch (tenon.position) {
+      case "start":  cx += halfLen; break;
+      case "end":    cx -= halfLen; break;
+      case "top":    cy -= halfLen; break;
+      case "bottom": cy += halfLen; break;
+      case "left":   cz += halfLen; break;
+      case "right":  cz -= halfLen; break;
+    }
+    cx += u.x * halfLen;
+    cy += u.y * halfLen;
+    cz += u.z * halfLen;
+  }
+  return { cx, cy, cz, hx, hy, hz };
 }
 
 /**
@@ -707,13 +728,28 @@ export function OrthoView({
     ? (() => {
         const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
-          .map((p) => ({
-            ...p,
-            origin: { x: 0, y: 0, z: 0 },
-            // 同時 reset rotation 到 0、讓零件圖回到 part-local 自然姿態
-            // （橫撐 rotation.y=π/2 在家具裡是橫躺、但零件圖要看 length 水平方）
-            rotation: { x: 0, y: 0, z: 0 },
-          }));
+          .map((p) => {
+            // splayed-* → 對應直胚 shape；零件圖畫直胚 + 榫位，斜度交給
+            // SplayedTrueLength 的「端面斜 X°」標註獨立呈現。
+            // 不轉的話剪影會斜（套 splay deform），但 mortise 紅框走 makeProjector
+            // 沒套 deform，會漂出腳外面（兩端用不同投影流程的歷史包袱）。
+            let nextShape = p.shape;
+            if (p.shape?.kind === "splayed-tapered") {
+              nextShape = { kind: "tapered", bottomScale: p.shape.bottomScale };
+            } else if (p.shape?.kind === "splayed-round-tapered") {
+              nextShape = { kind: "round-tapered", bottomScale: p.shape.bottomScale };
+            } else if (p.shape?.kind === "splayed") {
+              nextShape = undefined;
+            }
+            return {
+              ...p,
+              origin: { x: 0, y: 0, z: 0 },
+              // 同時 reset rotation 到 0、讓零件圖回到 part-local 自然姿態
+              // （橫撐 rotation.y=π/2 在家具裡是橫躺、但零件圖要看 length 水平方）
+              rotation: { x: 0, y: 0, z: 0 },
+              shape: nextShape,
+            };
+          });
         if (!isolated.length) return design;
         const p = isolated[0];
         // 同步更新 overall 用 part 自己的尺寸——之前 OrthoView 用整套家具的
