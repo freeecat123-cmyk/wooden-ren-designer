@@ -23,6 +23,12 @@ export const ECPAY_CREDIT_PERIOD_ACTION_URL =
     ? "https://payment.ecpay.com.tw/Cashier/CreditCardPeriodAction"
     : "https://payment-stage.ecpay.com.tw/Cashier/CreditCardPeriodAction";
 
+/** 信用卡單筆操作（請款 C / 退款 R / 取消 E / 放棄 N）— 用於 admin 退款 */
+export const ECPAY_CREDIT_DETAIL_DOACTION_URL =
+  ECPAY_ENV === "production"
+    ? "https://payment.ecpay.com.tw/CreditDetail/DoAction"
+    : "https://payment-stage.ecpay.com.tw/CreditDetail/DoAction";
+
 /** 後端組 callback URL 用的網域 */
 export function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;

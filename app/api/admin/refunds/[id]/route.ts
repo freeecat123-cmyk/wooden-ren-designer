@@ -21,6 +21,7 @@ import {
   refundApprovedEmail,
   refundRejectedEmail,
 } from "@/lib/email/templates/refund";
+import { requestRefund } from "@/lib/ecpay/refund";
 
 const VALID_STATUS = ["approved", "rejected", "refunded"] as const;
 
@@ -74,7 +75,7 @@ export async function PATCH(
   const { data: rr, error: selErr } = await svc
     .from("refund_requests")
     .select(
-      "id, user_id, amount_requested, status, users:user_id(email, plan)",
+      "id, user_id, payment_id, amount_requested, status, users:user_id(email, plan), payments:payment_id(ecpay_trade_no, raw_response)",
     )
     .eq("id", id)
     .single();
@@ -112,6 +113,48 @@ export async function PATCH(
 
   if (upErr) {
     return NextResponse.json({ error: upErr.message }, { status: 500 });
+  }
+
+  // approved → 自動呼叫綠界 refund API（成功則 mark refunded、失敗則保留 approved
+  // 等 admin 手動處理）
+  let ecpayRefund: { ok: boolean; rtnCode?: string; rtnMsg?: string; error?: string } | null = null;
+  if (body.status === "approved" && rr.payment_id) {
+    const paymentRow = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
+    const tradeNo = (paymentRow as { ecpay_trade_no?: string })?.ecpay_trade_no;
+    // 從 raw_response 撈 MerchantTradeNo（綠界 callback 回的）
+    const raw = (paymentRow as { raw_response?: Record<string, string> })
+      ?.raw_response;
+    const orderId = raw?.MerchantTradeNo;
+    if (tradeNo && orderId) {
+      ecpayRefund = await requestRefund({
+        merchantTradeNo: orderId,
+        tradeNo,
+        amount: rr.amount_requested,
+      });
+      if (ecpayRefund.ok) {
+        // 綠界退款成功 → mark refund_request + payments 為 refunded
+        await svc
+          .from("refund_requests")
+          .update({ status: "refunded" })
+          .eq("id", id);
+        await svc
+          .from("payments")
+          .update({ status: "refunded" })
+          .eq("id", rr.payment_id);
+      } else {
+        console.warn("[admin/refunds] 綠界退款失敗、保留 approved 狀態", {
+          refundId: id,
+          error: ecpayRefund.error,
+          rtnMsg: ecpayRefund.rtnMsg,
+        });
+      }
+    } else {
+      console.warn("[admin/refunds] 缺 tradeNo / orderId，跳過綠界退款 API", {
+        refundId: id,
+        hasTradeNo: !!tradeNo,
+        hasOrderId: !!orderId,
+      });
+    }
   }
 
   // approved + downgrade_user (default true) → 降回 free
@@ -158,7 +201,12 @@ export async function PATCH(
     status: body.status,
     user: userEmail,
     amount: rr.amount_requested,
+    ecpayRefund,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    ecpay_refund: ecpayRefund,
+    final_status: ecpayRefund?.ok ? "refunded" : body.status,
+  });
 }
