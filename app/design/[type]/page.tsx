@@ -35,14 +35,14 @@ import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
-import { AIRefineButton } from "@/components/design/AIRefineButton";
+// import { AIRefineButton } from "@/components/design/AIRefineButton";
 import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { HeightToSizeButton } from "@/components/design/HeightToSizeButton";
 import { ResetDefaultsButton } from "@/components/design/ResetDefaultsButton";
 import { SuggestionsBox } from "@/components/design/SuggestionsBox";
 import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
-import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
+// import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
 import { isLocalhost } from "@/lib/dev-only";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
@@ -294,7 +294,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             category={type as FurnitureCategory}
             defaults={{ length, width, height }}
           />
-          <PhotoToParamsButton />
+          {/* <PhotoToParamsButton /> */}
           <SaveDesignButton
             furnitureType={type}
             defaultName={`${entry.nameZh} ${length}×${width}×${height}`}
@@ -841,13 +841,13 @@ function ParameterForm({
               designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
             />
           )}
-          <div className="mb-3 flex justify-end">
+          {/* <div className="mb-3 flex justify-end">
             <AIRefineButton
               optionSchema={optionSchema}
               category={type as FurnitureCategory}
               designSize={{ length: defaults.length, width: defaults.width, height: defaults.height }}
             />
-          </div>
+          </div> */}
           <StyleMismatchWarning />
           <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields
