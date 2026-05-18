@@ -91,9 +91,13 @@ export function BugReportFab() {
         onClick={() => setOpen((v) => !v)}
         title="回報問題"
         aria-label="回報問題"
-        className="no-print fixed bottom-24 lg:bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-xl text-white shadow-lg hover:bg-zinc-700"
+        className="no-print fixed bottom-24 lg:bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-zinc-200 hover:bg-zinc-50 overflow-hidden"
       >
-        🐛
+        <img
+          src="/logo-mark.png"
+          alt="木頭仁"
+          className="h-9 w-9 object-contain"
+        />
       </button>
     </>
   );
