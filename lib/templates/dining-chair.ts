@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
+import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -303,6 +303,29 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 獨立的「背柱」零件 (back-post)，讓座板可以乾乾淨淨坐在 4 隻腳上面，
   // 不會跟後腳穿模。
   const legBaseHeight = seatHeight - seatThickness;
+  // 預先算 isCompoundSplayLegs 給 leg apron 母榫眼用（splayDx/Dz 完整定義在下方 apron 區）
+  const _isLengthSplayLegs = legShape === "splayed" || legShape === "splayed-length";
+  const _isWidthSplayLegs = legShape === "splayed" || legShape === "splayed-width";
+  const _splayDxForLegs = _isLengthSplayLegs ? splayMm : 0;
+  const _splayDzForLegs = _isWidthSplayLegs ? splayMm : 0;
+  const isCompoundSplayLegs = _splayDxForLegs > 0 && _splayDzForLegs > 0;
+  // 母榫眼軸向（compound splay）：與配對牙板公榫的世界軸向相反，朝腳內側開。
+  // 餐椅椅腳本身無 part rotation（後仰只動椅背部件），leg-local frame == world frame。
+  const computeLegMortiseAxes = (c: { x: number; z: number }) => {
+    if (!isCompoundSplayLegs) return { zFaceAxis: undefined, xFaceAxis: undefined };
+    const cornerSx = (c.x > 0 ? 1 : -1) as 1 | -1;
+    const cornerSz = (c.z > 0 ? 1 : -1) as 1 | -1;
+    const zApronTenonWorld = computeCompoundSplayNormal({
+      apronAxis: "z", cornerSx, cornerSz, splayAngleDeg: splayAngle,
+    });
+    const xApronTenonWorld = computeCompoundSplayNormal({
+      apronAxis: "x", cornerSx, cornerSz, splayAngleDeg: splayAngle,
+    });
+    return {
+      zFaceAxis: { x: -zApronTenonWorld.x, y: -zApronTenonWorld.y, z: -zApronTenonWorld.z },
+      xFaceAxis: { x: -xApronTenonWorld.x, y: -xApronTenonWorld.y, z: -xApronTenonWorld.z },
+    };
+  };
   // 一木連做：後腳延伸到座面上緣（過座板），跟背柱對接；前腳維持 legBaseHeight
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0;
@@ -341,6 +364,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const zCenterY = apronY + apronWidth / 2;
         const xCenterY = zCenterY - apronStaggerMm;
         const apronThrough = apronTenonType === "through-tenon";
+        const { zFaceAxis, xFaceAxis } = computeLegMortiseAxes(c);
         if (apronCanHalfStagger) {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
@@ -350,6 +374,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               length: apronUpperTenonH,
               width: apronTenonThick,
               through: apronThrough,
+              ...(zFaceAxis ? { axis: zFaceAxis } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫
             {
@@ -358,6 +383,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               length: apronLowerTenonH,
               width: apronTenonThick,
               through: apronThrough,
+              ...(xFaceAxis ? { axis: xFaceAxis } : {}),
             },
           ];
         }
@@ -368,6 +394,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
+            ...(zFaceAxis ? { axis: zFaceAxis } : {}),
           },
           {
             origin: { x: c.x > 0 ? -1 : 1, y: xCenterY, z: 0 },
@@ -375,6 +402,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
+            ...(xFaceAxis ? { axis: xFaceAxis } : {}),
           },
         ];
       })(),
@@ -569,6 +597,31 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // Compound splay only — 單軸 splay 已由 part.rotation 完整處理；4 角斜腳需另算
+    // 牙板兩端面的世界軸向法線（apron part-local frame）。
+    const isCompoundSplay = apronSplayDx > 0 && apronSplayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const tenonAxisStartWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const tenonAxisEndWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    // start 端公榫朝 part-local −axis；end 端朝 +axis。helper 回傳的法線在 cross-tilt
+    // 後的 part-local frame；只需把 start 側的 in-axis 分量翻號。
+    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
+      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
+    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
+    const endAxisLocal   = tenonAxisEndWorld;
     // butt-joint 半長 = legEdge + splay − legSize@Y / 2
     const halfX_C = apronLegEdgeX + geom.splayXc - geom.lwC / 2;
     const halfX_T = apronLegEdgeX + geom.splayXt - geom.lwT / 2;
@@ -616,6 +669,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
+            ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+            ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -634,6 +689,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
