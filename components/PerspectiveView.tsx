@@ -3435,34 +3435,21 @@ export function PerspectiveView({
                   // World-frame axis unit vector (the tenon's body direction).
                   const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
                   const ax = t.axis.x / tm, ay = t.axis.y / tm, az = t.axis.z / tm;
-                  // Project apron's natural cross-section axes onto the plane
-                  // perpendicular to t.axis (the compound miter plane = same
-                  // plane as the parent's shoulder face). This way the tenon's
-                  // root face is parallel to the apron's compound miter end
-                  // face (parallel to shoulder) AND cross-section dims align
-                  // with the apron's W/T directions as much as possible.
-                  //
-                  // For leg-top tenon (legs unrotated, partQ ≈ identity, t.axis
-                  // ≈ vertical-ish), naturalCross1 = X, c1World ≈ X, projection
-                  // onto plane ⊥ t.axis is ≈ X (only tiny adjustment). So this
-                  // change preserves leg-top tenon behavior within visual
-                  // tolerance, while fixing apron tenons (root face becomes
-                  // parallel to apron's compound miter end face).
-                  const partQS = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
-                  const naturalCross1 = isLongX ? new Vector3(0, 1, 0) :
-                                        isLongY ? new Vector3(1, 0, 0) :
-                                                  new Vector3(1, 0, 0);
-                  const naturalCross2 = isLongX ? new Vector3(0, 0, 1) :
-                                        isLongY ? new Vector3(0, 0, 1) :
-                                                  new Vector3(0, 1, 0);
-                  const c1World = naturalCross1.clone().applyQuaternion(partQS);
-                  const c2World = naturalCross2.clone().applyQuaternion(partQS);
-                  const tUnit = new Vector3(ax, ay, az);
-                  // Project onto plane perpendicular to tUnit
-                  const cross1 = c1World.clone().addScaledVector(tUnit, -c1World.dot(tUnit)).normalize();
-                  const cross2 = c2World.clone().addScaledVector(tUnit, -c2World.dot(tUnit)).normalize();
-                  // Re-orthogonalize cross2 against cross1 (Gram-Schmidt) so they're perpendicular
-                  cross2.addScaledVector(cross1, -cross2.dot(cross1)).normalize();
+                  // Cross-section axes in WORLD (the two axes perpendicular to
+                  // the parent's shoulder face). For a leg-top tenon, shoulder
+                  // is horizontal in world, so cross-section is the world XZ plane.
+                  // We pick perpendicular world axes orthogonal to the part's
+                  // "default" long-axis direction (i.e. the geomLongLocal axis
+                  // after partQ — for unrotated legs, that's still world Y).
+                  // Cross axes = world X and Z for top/bottom.
+                  // For other positions we'd need different cross axes; only top
+                  // is supported with t.axis right now (legs).
+                  const cross1 = isLongY ? new Vector3(1, 0, 0) :
+                                 isLongX ? new Vector3(0, 1, 0) :
+                                           new Vector3(1, 0, 0);
+                  const cross2 = isLongY ? new Vector3(0, 0, 1) :
+                                 isLongX ? new Vector3(0, 0, 1) :
+                                           new Vector3(0, 1, 0);
                   // Root face (parent-side, mesh-local) at "-halfLong" along the
                   // default outward direction. Since we are NOT rotating the
                   // mesh, "default outward" in mesh-local is the same as world

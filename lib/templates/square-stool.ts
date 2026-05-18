@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -344,21 +344,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
-    // Compound splay only — single-axis splay is fully carried by part.rotation.
-    // For 4-corner diagonal splay, the leg face the apron meets has an extra
-    // component that part rotation alone can't carry; helper returns world-frame
-    // tenon direction, attached as `axis` on each tenon end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
-    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
-      : null;
-    const tenonAxisEnd = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
-      : null;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
@@ -420,8 +405,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
-            ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-            ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -443,8 +426,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })(),

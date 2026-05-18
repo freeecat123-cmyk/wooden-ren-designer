@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -517,18 +517,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronCombinedSides.map((s) => {
     const apronB = s.axis === "x" ? apronBX : apronBZ;
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
-    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
-      : null;
-    const tenonAxisEnd = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
-      : null;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
     const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;
@@ -581,8 +569,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
-            ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-            ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -601,8 +587,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
@@ -613,18 +597,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const frCenterY = footrestHeight + footRestWidth / 2;
   const frB = buildSides(frCenterY, footRestWidth, "腳踏");
   const footRests: Part[] = frB.sides.map((s) => {
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
-    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const frTenonAxisStart = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
-      : null;
-    const frTenonAxisEnd = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
-      : null;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + frB.splayXc - frB.lwC / 2;
     const halfX_T = legEdgeX + frB.splayXt - frB.lwT / 2;
@@ -672,8 +644,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: frTenonW,
             thickness: frTenonThick,
             shoulderOn: [...frTenonStd.shoulderOn],
-            ...(position === "start" && frTenonAxisStart ? { axis: frTenonAxisStart } : {}),
-            ...(position === "end" && frTenonAxisEnd ? { axis: frTenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -691,8 +661,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: frTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && frTenonAxisStart ? { axis: frTenonAxisStart } : {}),
-          ...(position === "end" && frTenonAxisEnd ? { axis: frTenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
