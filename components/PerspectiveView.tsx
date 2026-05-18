@@ -3509,12 +3509,24 @@ export function PerspectiveView({
                   // 因為 root face 已經在 N⊥ plane（= 平行 miter plane）、
                   // rootCenter 落在 miter plane 上時、4 個角落都在 miter plane
                   // 跟 parent 材料貼齊不重疊（不需 maxCornerProj 補償）
+                  // rootCenter 放在 parent miter plane 上（不同 Z 高度位置不同）：
+                  // 推導：apron-trapezoid 端面 4 角在 (-topX, ±hy, -hz) 跟 (-botX, ±hy, +hz)
+                  // miter plane 方程 (in part-local): rootX = -lx*avgScale/2 - lx*(botS-topS)/(4*hz)*lcz
+                  //   - lcz=0 (中央): rootX = -lx*avgScale/2 ✓
+                  //   - lcz!=0 (offset)：考慮 Z 補償
+                  // rootCenter_local.x = mesh_origin_local.x + halfLenLocal (start 方向)
+                  //                    = lcx + halfLenLocal
+                  // halfLenLocal = rootX_target - lcx (for start: lcx = -lx/2 - effLen/2)
                   let halfLenLocal = Math.abs(effLen) / 2 + ROOT_BURY;
                   if (part.shape?.kind === "apron-trapezoid" && isStartEnd) {
                     const topS = part.shape.topLengthScale ?? 1;
                     const botS = part.shape.bottomLengthScale ?? 1;
                     const avgScale = (topS + botS) / 2;
-                    halfLenLocal = part.visible.length * (1 - avgScale) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                    const lxPart = part.visible.length;
+                    const hzPart = part.visible.width / 2;
+                    // 端面有 Z 傾斜 → 不同 Z 位置 (lcz) 的 miter X 位置不同
+                    const zCompensation = hzPart > 0 ? lxPart * (botS - topS) / (4 * hzPart) * lcz : 0;
+                    halfLenLocal = lxPart * (1 - avgScale) / 2 + Math.abs(effLen) / 2 - zCompensation + ROOT_BURY;
                   }
                   const halfLenWorld = halfLenLocal * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
