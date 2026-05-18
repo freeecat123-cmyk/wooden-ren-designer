@@ -2416,8 +2416,13 @@ export function OrthoView({
                 };
                 const tform = composeTransform();
 
+                // round 孔只在「軸正對視圖」時畫圓（投影矩形接近正方形）；
+                // 軸跟視圖平行時（投影成長細條）改畫 silhouette rect = 兩條長邊像
+                // 工程圖約定的「通孔上下緣」雙線
+                const rAspect = r.w > 0 && r.h > 0 ? Math.min(r.w, r.h) / Math.max(r.w, r.h) : 0;
+                const roundAsCircle = !isPill && m.shape === "round" && rAspect >= 0.7;
                 const node = (key: string, ox: number, oy: number, dashed: boolean) => {
-                  if (!isPill && m.shape === "round") {
+                  if (roundAsCircle) {
                     return (
                       <circle
                         key={key}
@@ -2432,7 +2437,7 @@ export function OrthoView({
                       />
                     );
                   }
-                  // Pill 或 rect：rect (with rx for pill)
+                  // Pill 或 rect 或 round-as-silhouette：rect (with rx for pill)
                   const rx = isPill ? Math.min(r.w, r.h) / 2 : 0;
                   return (
                     <rect

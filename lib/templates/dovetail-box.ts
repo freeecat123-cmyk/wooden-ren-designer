@@ -8,44 +8,52 @@ import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
 
-/** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合 */
+/** 使用情境 preset：一鍵套盒型最佳 wall/bottom + 預設選項組合
+ *  全部統一為「鑲板入溝底板 + 掀蓋式上下分離」style：
+ *  - 上下各 5mm cap/skirt，面板厚度可調但 cap/skirt 不變
+ *  - 蓋段壁高自動 = outerH/5、可調
+ *  - 季節伸縮免裂、視覺對稱 */
 interface BoxPresetConfig {
   wallThickness?: number;
   bottomThickness?: number;
   cornerJoinery?: string;
   dovetailSegments?: number;
   dovetailAngle?: number;
+  fingerSegments?: number;
   bottomAttach?: string;
   withLid?: boolean;
   lidType?: string;
+  lidThickness?: number;
+  /** 蓋段高佔 outerH 的比例（0.1 ~ 0.5）；填了會強制覆寫 liftOffLidH */
+  liftOffRatio?: number;
   withInnerTray?: boolean;
   dividers?: number;
   crossDividers?: number;
   dividerHeight?: number;
 }
 const DOVETAIL_BOX_PRESETS: Record<string, BoxPresetConfig> = {
-  // 首飾盒：薄壁、鳩尾、jewelry 抽板、十字內格
-  jewelry: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 7, dovetailAngle: 10, bottomAttach: "seated", lidType: "hinged", withInnerTray: true, dividers: 1, crossDividers: 2 },
-  // 雪茄盒：較厚壁（保濕）、嵌入式蓋
-  cigar: { wallThickness: 15, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 8, bottomAttach: "seated", lidType: "rabbeted" },
-  // 茶葉盒：厚壁防潮、滑入式蓋
-  tea: { wallThickness: 12, bottomThickness: 8, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "seated", lidType: "sliding" },
-  // 手錶盒：薄壁、鉸鏈蓋、橫向 3 隔（4 格放手錶）
-  watch: { wallThickness: 10, bottomThickness: 6, dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "seated", lidType: "hinged", crossDividers: 3 },
-  // 文件盒：厚壁、鉸鏈蓋
-  document: { wallThickness: 14, bottomThickness: 8, dovetailSegments: 7, dovetailAngle: 8, bottomAttach: "seated", lidType: "hinged" },
+  // 首飾盒：最薄壁 8mm、最密鳩尾 9 段 12°、薄頂板 4mm、低蓋 1/6、活動抽板 + 1縱2橫格
+  jewelry: { wallThickness: 8, bottomThickness: 5, cornerJoinery: "dovetail", dovetailSegments: 9, dovetailAngle: 12, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 4, liftOffRatio: 1 / 6, withInnerTray: true, dividers: 1, crossDividers: 2 },
+  // 手錶盒：薄壁 10mm、鳩尾 5 段、中蓋 1/5、橫向 3 隔（4 格放錶）
+  watch: { wallThickness: 10, bottomThickness: 6, cornerJoinery: "dovetail", dovetailSegments: 5, dovetailAngle: 10, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 6, liftOffRatio: 1 / 5, crossDividers: 3 },
+  // 雪茄盒：厚壁保濕 15mm、指接 7 段（密封性強）、低蓋 1/8、厚頂板 8mm
+  cigar: { wallThickness: 15, bottomThickness: 8, cornerJoinery: "finger-joint", fingerSegments: 7, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 8, liftOffRatio: 1 / 8 },
+  // 茶葉盒：中壁 12mm、鳩尾 5 段 8°（硬木 tight）、高蓋 1/3（深口取茶）、頂板 6mm
+  tea: { wallThickness: 12, bottomThickness: 8, cornerJoinery: "dovetail", dovetailSegments: 5, dovetailAngle: 8, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 6, liftOffRatio: 1 / 3 },
+  // 文件盒：最厚壁 16mm、指接 5 段大段距、低蓋 1/6、厚頂板 10mm
+  document: { wallThickness: 16, bottomThickness: 10, cornerJoinery: "finger-joint", fingerSegments: 5, bottomAttach: "inset-panel", lidType: "lift-off", lidThickness: 10, liftOffRatio: 1 / 6 },
 };
 
 export const dovetailBoxOptions: OptionSpec[] = [
   // === Preset 預設 ===
   { group: "preset", type: "select", key: "boxUse", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
-    { value: "jewelry", label: "首飾盒（薄壁+鳩尾+抽板+分格）" },
-    { value: "cigar", label: "雪茄盒（厚壁保濕+嵌入式蓋）" },
-    { value: "tea", label: "茶葉盒（厚壁+滑入式）" },
-    { value: "watch", label: "手錶盒（薄壁+鉸鏈+橫向 4 隔）" },
-    { value: "document", label: "文件盒（厚壁+鉸鏈）" },
-  ], help: "一鍵套適合該用途的壁厚 / 鳩尾 / 蓋型 / 分格組合，user 後改不蓋。" },
+    { value: "jewelry", label: "首飾盒（薄壁鳩尾+活動抽板+多格）" },
+    { value: "watch", label: "手錶盒（薄壁鳩尾+橫向 4 格）" },
+    { value: "cigar", label: "雪茄盒（厚壁鳩尾·保濕）" },
+    { value: "tea", label: "茶葉盒（中壁鳩尾·防潮）" },
+    { value: "document", label: "文件盒（厚壁指接·大件）" },
+  ], help: "一鍵套適合該用途的壁厚 / 角接合 / 分格組合。蓋型統一掀蓋式（上下分離 + 鑲入頂板）、底板鑲板入溝；user 後改不蓋。" },
 
   // === Structure 結構 ===
   { group: "structure", type: "select", key: "boxShape", label: "盒型", defaultValue: "rect", choices: [
@@ -79,13 +87,13 @@ export const dovetailBoxOptions: OptionSpec[] = [
     { value: "hinged", label: "鉸鏈式（後壁裝小銅鉸鏈）" },
     { value: "rabbeted", label: "嵌入式（蓋邊緣搭接，蓋扣到盒上）" },
     { value: "lift-off", label: "掀蓋式（4 牆水平切兩段、上段為蓋、合頁鎖合）" },
-  ], help: "影響蓋子做法 + 工序", dependsOn: { key: "withLid", equals: true } },
-  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）", dependsOn: { key: "withLid", equals: true } },
+  ], help: "影響蓋子做法 + 工序（六/八角盒不適用，蓋型由壁面斜角自動處理）", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }] } },
+  { group: "lid", type: "number", key: "lidThickness", label: "面板厚度 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, unit: "mm", help: "0 = 跟壁厚一樣；> 0 自訂面板厚度（滑入式 lid 常用比壁薄一點，例如壁 12mm + 面板 6-8mm）。六/八角盒鑲入式：面板上緣距盒頂固定 5mm，不隨厚度跑。", dependsOn: { key: "withLid", equals: true } },
   { group: "lid", type: "select", key: "slidingLidStyle", label: "滑蓋形狀", defaultValue: "flat", choices: [
     { value: "flat", label: "平頂（lid 下沉 sinkMm、壁頂有 cap）" },
     { value: "raised-center", label: "中央凸起（lid 中央拉到壁頂齊平、邊條維持卡槽厚）" },
-  ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "sliding" }] } },
-  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高 (mm)", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "lidType", equals: "lift-off" }] } },
+  ], help: "中央凸起 = 一片厚料 lidT+sinkMm，4 邊銑掉 sinkMm 留邊條 lidT 卡進槽；視覺上 lid 中央跟壁頂 flush", dependsOn: { all: [{ key: "withLid", equals: true }, { key: "boxShape", equals: "rect" }, { key: "lidType", equals: "sliding" }] } },
+  { group: "lid", type: "number", key: "liftOffLidH", label: "掀蓋段高 (mm)", defaultValue: 0, min: 0, max: 100, step: 1, unit: "mm", help: "盒蓋段高度（距盒頂切下來的高度）。0 = 自動 = outerH/5。範圍建議 outerH/6 ~ outerH/3。六/八角盒一律上下蓋分離、此選項共用。", dependsOn: { all: [{ key: "withLid", equals: true }, { any: [{ all: [{ key: "boxShape", equals: "rect" }, { key: "lidType", equals: "lift-off" }] }, { key: "boxShape", oneOf: ["hex", "oct"] }] }] } },
 
   // === Divider 內隔分格 ===
   { group: "divider", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
@@ -110,46 +118,53 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
   const o = dovetailBoxOptions;
   const boxUse = getOption<string>(input, opt(o, "boxUse"));
   const preset = DOVETAIL_BOX_PRESETS[boxUse];
-  // preset 只蓋仍是 default 的 option
+  // preset 是強制的——只要選了使用情境，preset 有定義的欄位一律覆寫使用者輸入
+  // （想自訂請選「自訂（不套 preset）」boxUse=custom）
   const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
-  const wallT = wallTRaw === 12 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const wallT = preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
   const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
-  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
-  const withLid = getOption<boolean>(input, opt(o, "withLid"));
+  const botT = preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
+  const withLid = preset?.withLid !== undefined ? preset.withLid : getOption<boolean>(input, opt(o, "withLid"));
   const lidTypeRaw = getOption<string>(input, opt(o, "lidType"));
-  const lidType = lidTypeRaw === "sliding" && preset?.lidType ? preset.lidType : lidTypeRaw;
+  const lidType = preset?.lidType ? preset.lidType : lidTypeRaw;
   const slidingLidStyle = getOption<string>(input, opt(o, "slidingLidStyle"));
   const liftOffLidHRaw = getOption<number>(input, opt(o, "liftOffLidH"));
   const withInnerTrayRaw = getOption<boolean>(input, opt(o, "withInnerTray"));
-  const withInnerTray = withInnerTrayRaw === false && preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
+  const withInnerTray = preset?.withInnerTray !== undefined ? preset.withInnerTray : withInnerTrayRaw;
   const boxShape = getOption<string>(input, opt(o, "boxShape")) as "rect" | "hex" | "oct";
   const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
-  // 角接合方式：preset 可覆寫
+  // 角接合方式：preset 強制覆寫
   const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
-  const cornerJoinery = (cornerJoineryRaw === "dovetail" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
+  const cornerJoinery = (preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
     | "stub-joint"
     | "finger-joint"
     | "miter"
     | "dovetail";
-  const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
+  const fingerSegmentsRaw = getOption<number>(input, opt(o, "fingerSegments"));
+  const fingerSegmentsOpt = preset?.fingerSegments !== undefined ? preset.fingerSegments : fingerSegmentsRaw;
   // 鳩尾段數 / 角度（托盤格式：0=自動算奇數、5-18° number）
   const dovetailSegmentsRaw = getOption<number>(input, opt(o, "dovetailSegments"));
-  const dovetailSegmentsOpt = dovetailSegmentsRaw === 0 && preset?.dovetailSegments !== undefined ? preset.dovetailSegments : dovetailSegmentsRaw;
+  const dovetailSegmentsOpt = preset?.dovetailSegments !== undefined ? preset.dovetailSegments : dovetailSegmentsRaw;
   const dovetailAngleRaw = getOption<number>(input, opt(o, "dovetailAngle"));
-  const dovetailAngleOpt = dovetailAngleRaw === 10 && preset?.dovetailAngle !== undefined ? preset.dovetailAngle : dovetailAngleRaw;
+  const dovetailAngleOpt = preset?.dovetailAngle !== undefined ? preset.dovetailAngle : dovetailAngleRaw;
   const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach"));
-  const bottomAttach = (bottomAttachRaw === "seated" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
+  const bottomAttach = (preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
   const dividersRaw = getOption<number>(input, opt(o, "dividers"));
-  const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
+  const dividers = preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
-  const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
+  const crossDividers = preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
   const dividerThickness = getOption<number>(input, opt(o, "dividerThickness"));
   const dividerHeightRaw = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInset = getOption<number>(input, opt(o, "dividerInset"));
   // 蓋板與壁同厚，方便共用同款料
-  // 面板厚度：user 可獨立設定（0 = 跟壁厚一樣）
-  const lidThicknessOpt = getOption<number>(input, opt(o, "lidThickness"));
+  // 面板厚度：user 可獨立設定（0 = 跟壁厚一樣）；preset 強制覆寫
+  const lidThicknessRaw = getOption<number>(input, opt(o, "lidThickness"));
+  const lidThicknessOpt = preset?.lidThickness !== undefined ? preset.lidThickness : lidThicknessRaw;
   const lidT = withLid ? (lidThicknessOpt > 0 ? lidThicknessOpt : wallT) : 0;
+  // 蓋段高比例：preset 強制覆寫 liftOffLidH（用 outerH × ratio 算出絕對高度）
+  const effectiveLiftOffH = preset?.liftOffRatio !== undefined
+    ? Math.max(8, Math.round(outerH * preset.liftOffRatio))
+    : liftOffLidHRaw;
 
   // 六/八角盒：跳過 buildBox 直接組多邊形 stave（mitered-ends inset）
   //            + regular-polygon 底板 + (選用) regular-polygon 頂蓋 + (選用) 穿心隔板
@@ -166,14 +181,16 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
     let bottomVertexR: number;
     let bottomAttachDesc: string;
     if (bottomAttach === "inset-panel") {
-      // 鑲板入溝：壁全高、底板邊緣卡進壁內側溝槽（5mm）
+      // 鑲板入溝：壁全高（Y=[0, outerH]）、底板邊緣卡進壁內側溝槽（5mm）、底板下緣距盒底固定 5mm（不隨厚度跑）
+      // 注意：polygonStaves wallH = stavesOuterH - botT，所以 stavesOuterH = outerH + botT
+      const polyBotSkirt = 5;
       stavesOuterH = outerH + botT;
       stavesBaseY = 0;
-      bottomOriginY = botT;
+      bottomOriginY = polyBotSkirt;
       const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
       const bottomApothem = (apothem - wallT) + grooveDepth;
       bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm，季節伸縮免裂）`;
+      bottomAttachDesc = `**鑲板入溝**（${sides} 壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm、底板下緣距盒底 ${polyBotSkirt}mm，季節伸縮免裂）`;
     } else if (bottomAttach === "flush-glued") {
       // 整塊膠合：底板外緣與框體齊邊、整面塗膠
       stavesOuterH = outerH;
@@ -198,6 +215,45 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       stave.shape = { kind: "mitered-ends", insetEach: miterInset, outerSide: "+y" };
     }
 
+    // 仿矩形 lift-off：壁水平切兩段、上段為蓋、底段為身。蓋段含頂板 + 5mm cap。
+    // liftOffH 預設 outerH/5；最低值含面板厚 + 5mm cap + 3mm 餘裕；
+    // 使用者可透過「掀蓋段高 (liftOffLidH)」option 自訂，0 = 自動。
+    const polyLidPanelT = withLid ? lidT : 0;
+    const polyLiftTopCapH = 5;
+    if (withLid) {
+      const polyLiftMin = Math.max(8, polyLidPanelT + polyLiftTopCapH + 3);
+      const polyLiftAuto = Math.max(polyLiftMin, Math.round(outerH / 5));
+      const polyLiftOffH = effectiveLiftOffH > 0
+        ? Math.max(polyLiftMin, Math.min(Math.floor(outerH / 2), effectiveLiftOffH))
+        : polyLiftAuto;
+      const polyCutY = outerH - polyLiftOffH;
+      const stavesBody: Part[] = [];
+      const stavesLid: Part[] = [];
+      for (const stave of staves) {
+        const baseY = stave.origin.y;
+        const topY = baseY + stave.visible.width;
+        // 身段：origin.y 不變、width = polyCutY - baseY
+        const bodyH = polyCutY - baseY;
+        stavesBody.push({
+          ...stave,
+          nameZh: stave.nameZh + "（盒身段）",
+          visible: { ...stave.visible, width: bodyH },
+        });
+        // 蓋段：origin.y = polyCutY、width = topY - polyCutY
+        const lidH = topY - polyCutY;
+        stavesLid.push({
+          ...stave,
+          id: stave.id + "-lid",
+          nameZh: stave.nameZh.replace("（盒身段）", "") + "（盒蓋段）",
+          visible: { ...stave.visible, width: lidH },
+          origin: { ...stave.origin, y: polyCutY },
+        });
+      }
+      // 用 push/pop 改造原 staves array：替換 body、新增 lid
+      staves.length = 0;
+      staves.push(...stavesBody, ...stavesLid);
+    }
+
     const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
@@ -218,7 +274,7 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
       const innerFlatR = apothem - wallT;
       const polyDividerGroove = Math.min(5, wallT - 1);
       const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
-      const polyBottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY - (withLid ? lidT : 0));
       const polyDividerH = dividerHeightRaw > 0
         ? Math.max(1, Math.min(dividerHeightRaw, polyDividerHAuto))
@@ -276,16 +332,21 @@ export const dovetailBox: FurnitureTemplate = (input): FurnitureDesign => {
 
     const polyParts: Part[] = [polyBottom, ...staves, ...polygonDividerParts];
 
-    // 頂蓋：lift-off / hinged 兩款比較直觀；其他型式對 polygon 不適用
+    // 頂蓋：仿 lift-off 風格鑲在框內——頂板邊緣卡進壁內側溝槽、上方留 5mm cap
     if (withLid) {
+      const topGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const topApothem = (apothem - wallT) + topGrooveDepth;
+      const topVertexR = topApothem / Math.cos(Math.PI / sides);
+      const topBbox = 2 * topVertexR;
+      const polyLiftTopCap = 5;
       polyParts.push({
         id: "lid",
-        nameZh: `${sides} 角頂蓋`,
+        nameZh: `${sides} 角頂板（鑲板入溝）`,
         material,
         grainDirection: "length",
-        visible: { length: bottomBbox, width: bottomBbox, thickness: lidT },
-        origin: { x: 0, y: outerH - lidT, z: 0 },
-        shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
+        visible: { length: topBbox, width: topBbox, thickness: lidT },
+        origin: { x: 0, y: outerH - polyLiftTopCap - lidT, z: 0 },
+        shape: { kind: "regular-polygon", sides, outerRadius: topVertexR },
         tenons: [],
         mortises: [],
       });
@@ -300,7 +361,7 @@ const polyDesign: FurnitureDesign = {
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `加 ${sides === 6 ? "六" : "八"} 邊形頂蓋從盒口蓋上。` : ""}`,
+      notes: `${sides === 6 ? "六" : "八"}角鳩尾盒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(180 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用 mitered-spline（斜接 + 木鴿尾鍵）加固——比方盒鳩尾更難切但視覺最美。底板採 ${bottomAttachDesc}${polyDividerDesc}。${withLid ? `上下蓋分離式：${sides} 段壁水平切成身段 + 蓋段，頂板鑲入壁內側溝槽、上緣距盒頂 5mm。` : ""}`,
     };
 
     // polygon 也跑壁厚 / 尺寸合理性檢查
@@ -335,14 +396,16 @@ const polyDesign: FurnitureDesign = {
   if (bottomPart) {
     if (bottomAttach === "inset-panel") {
       // 鑲板入溝：4 壁全高（從 y=0 起到 outerH）、底板浮嵌於壁內側 5mm 槽中
+      // 底板下緣距盒底固定 5mm（不隨厚度跑），對稱頂板 5mm cap
       const grooveDepth = 5;
+      const rectBotSkirt = 5;
       const insetEach = Math.max(2, wallT - grooveDepth);
       bottomPart.visible = {
         length: outerL - 2 * insetEach,
         width: outerW - 2 * insetEach,
         thickness: botT,
       };
-      bottomPart.origin = { x: 0, y: botT, z: 0 };
+      bottomPart.origin = { x: 0, y: rectBotSkirt, z: 0 };
       for (const part of built.parts) {
         if (part.id.startsWith("wall-")) {
           part.visible = { ...part.visible, width: outerH - (withLid ? lidT : 0) };
@@ -722,22 +785,28 @@ const polyDesign: FurnitureDesign = {
       // - 4 牆上段（蓋段）跟下段（身段）共用 wallT / 角接合方式
       // - 鳩尾段數依高度比例分配（同密度）
       // - 合頁 2 個鎖在「後壁切線」位置
-      const liftOffAuto = Math.max(8, Math.round(outerH / 5));
-      const liftOffH = liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : liftOffAuto;
-      const cutY = outerH - liftOffH;  // 切線 Y（從底算）
       const liftGrooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
-      // 頂板厚度：lidThicknessOpt > 0 用 user 給的、否則跟底板同 botT
-      const topPanelT = lidThicknessOpt > 0 ? lidThicknessOpt : botT;
+      // 頂板厚度：lidThicknessOpt > 0 用 user 給的、否則跟全域 lidT 同
+      // （= 上層 lidT 已經做了 wallT fallback，避免兩處 fallback 不一致導致
+      //   dovetailInfo wallActualH 估計跟實際 lid 厚度漂移）
+      const topPanelT = lidThicknessOpt > 0 ? lidThicknessOpt : lidT;
+      // 掀蓋段高至少 = topPanelT + liftTopCap + 3mm 餘裕，避免面板底面穿進身段
+      const liftTopCap = 5;
+      const liftOffMin = Math.max(8, topPanelT + liftTopCap + 3);
+      const liftOffAuto = Math.max(liftOffMin, Math.round(outerH / 5));
+      const liftOffH = effectiveLiftOffH > 0 ? Math.max(liftOffMin, Math.min(Math.floor(outerH / 2), effectiveLiftOffH)) : liftOffAuto;
+      const cutY = outerH - liftOffH;  // 切線 Y（從底算）
 
       // 1. lid 物件改成 top 板（inset-panel 鏡像底板）：
       //    底板 Y=[botT, 2·botT]（嵌進牆內、牆底有 botT 裙）
-      //    頂板 Y=[outerH-2·topPanelT, outerH-topPanelT]（嵌進牆內、牆頂有 topPanelT cap）
+      //    頂板上緣距牆頂固定 5mm（不隨面板厚度跑），面板厚 = topPanelT
+      //    → 頂板 Y=[outerH-5-topPanelT, outerH-5]、牆頂 cap = 5mm
       lidPart.visible = {
         length: outerL - 2 * wallT + 2 * liftGrooveDepth,
         width: outerW - 2 * wallT + 2 * liftGrooveDepth,
         thickness: topPanelT,
       };
-      lidPart.origin = { x: 0, y: outerH - 2 * topPanelT, z: 0 };
+      lidPart.origin = { x: 0, y: outerH - liftTopCap - topPanelT, z: 0 };
       lidPart.nameZh = "盒蓋頂板（鑲板入溝）";
       // 拉孔搬到 top 板中心（手指掀起用）
       const liftLidHole = lidPart.mortises[lidPart.mortises.length - 1];
@@ -747,23 +816,25 @@ const polyDesign: FurnitureDesign = {
       }
 
       // 2. 4 牆切兩段：身段 Y=[0, cutY]、蓋段 Y=[cutY, outerH] — 各段內含自己的板裙/cap
-      // 身段保留使用者設定的段數（不縮減）、蓋段獨立按密度算最低值
-      // 之前用「總段數 × 比例」切，蓋段比例小（outerH/5）幾乎永遠 round 成 1，
-      // 不管使用者把鳩尾段數調 5/7/9/11 蓋段看不出差別、感覺「鳩尾段數對蓋段沒作用」。
-      // 而且 body = total - lid 沒做奇數 bump，dovetail 偶數段渲染會破口。
-      // 改成：身段＝使用者設定值（已奇數）、蓋段獨立算（dovetail 至少 3 奇 / finger 至少 2）。
+      // 段數比例依高度：身段 = totalSeg × bodyH/wallH、蓋段 = totalSeg × liftH/wallH
+      // 蓋段比例小（outerH/5）容易 round 成 1 → 視覺上看不出鳩尾，給最低保底 3 奇 / 2 finger。
+      // body = total - lid 沒做奇數 bump，dovetail 偶數段渲染會破口，加上 odd-bump。
+      // 注意：body 不能直接吃 totalOriginalSegs（dovetailInfo 是按完整牆高算的，
+      // 套到較短的身段牆會讓 tail/pinDepth 比例失衡、CSG 切口在邊界漏細縫）。
       const totalOriginalSegs = dovetailInfo?.segmentCount ?? (fingerJointInfo?.segmentCount ?? 0);
-      const wallActualH = Math.max(1, outerH - botT - lidT);
-      const density = totalOriginalSegs / wallActualH;
-      const liftSegRaw = Math.max(1, Math.round(density * liftOffH));
+      const liftSegRaw = Math.max(1, Math.round(totalOriginalSegs * liftOffH / Math.max(1, outerH - botT - lidT)));
+      // dovetail / finger-joint 都要奇數段（dovetail 是 halfPin 對稱要求、
+      // finger-joint 是 phase 0/1 互鎖端點視覺對稱）
+      const needsOddSegs = cornerJoinery === "dovetail" || cornerJoinery === "finger-joint";
       let lidCornerSegs: number;
       if (cornerJoinery === "dovetail") {
         lidCornerSegs = Math.max(3, liftSegRaw);
-        if (lidCornerSegs % 2 === 0) lidCornerSegs += 1;
       } else {
         lidCornerSegs = Math.max(2, liftSegRaw);
       }
-      const bodyCornerSegs = totalOriginalSegs;
+      if (needsOddSegs && lidCornerSegs % 2 === 0) lidCornerSegs += 1;
+      let bodyCornerSegs = Math.max(1, totalOriginalSegs - lidCornerSegs);
+      if (needsOddSegs && bodyCornerSegs % 2 === 0) bodyCornerSegs += 1;
 
       // 身段牆高 = cutY（從 Y=0 上來到切線、含底部 botT 板裙 + 內高）
       // 蓋段牆高 = liftOffH（從切線上來到 outerH、含頂部 botT cap + 內高）
@@ -801,12 +872,14 @@ const polyDesign: FurnitureDesign = {
       // 3. 底板強制 inset-panel 風格（user 想要「上下板都做等底版一樣」）
       const bottomP = design.parts.find((p) => p.id === "bottom");
       if (bottomP) {
+        // 底板下緣距盒底固定 5mm（不隨厚度跑），對稱頂板 5mm cap
+        const liftBotSkirt = 5;
         bottomP.visible = {
           length: outerL - 2 * wallT + 2 * liftGrooveDepth,
           width: outerW - 2 * wallT + 2 * liftGrooveDepth,
           thickness: botT,
         };
-        bottomP.origin = { x: 0, y: botT, z: 0 };
+        bottomP.origin = { x: 0, y: liftBotSkirt, z: 0 };
       }
 
     }
@@ -836,7 +909,7 @@ const polyDesign: FurnitureDesign = {
   // 兩端嵌入 4 壁內側 dado 槽（深 dividerInset mm），高度可自訂或自動（跟壁頂齊）。
   // origin.y = from-bottom 慣例 → 隔板底面 y 座標 = dividerBaseY（不能 + H/2）。
   // inset-panel 模式：底板上緣在 2*botT；其他模式（seated / flush-glued）底板上緣在 botT。
-  const dividerBaseY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+  const dividerBaseY = bottomAttach === "inset-panel" ? 5 + botT : botT;
   // 滑入式：隔板頂上緣比「滑槽下緣 = lid 底」再低 1mm（讓 lid 順過、避免 z-fighting）
   // 其他蓋型：頂上緣齊壁內頂 = outerH - lidT
   const slidingSinkMm = 5;
@@ -844,7 +917,7 @@ const polyDesign: FurnitureDesign = {
   // lift-off：隔板停在切線 cutY (= outerH - liftOffH)、跟 lidT 無關
   // 其他蓋型：依 lidT + sliding 額外 clearance
   const liftOffHForDivider = lidType === "lift-off"
-    ? (liftOffLidHRaw > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), liftOffLidHRaw)) : Math.max(8, Math.round(outerH / 5)))
+    ? (effectiveLiftOffH > 0 ? Math.max(8, Math.min(Math.floor(outerH / 2), effectiveLiftOffH)) : Math.max(8, Math.round(outerH / 5)))
     : 0;
   const wallTopY = lidType === "lift-off"
     ? outerH - liftOffHForDivider
