@@ -4531,5 +4531,71 @@ baseline 500×320(預設值,板 90/180 + 縫 3mm + auto spacing → 主支 90.3 
 | 副支(邊 slot face-to-face 18.85) | 18.8 cm × 18 支 |
 | 吊筋(standard,ceil+1) | 20 cm × 30 支(6×5) |
 | 矽酸鈣板整張 | 5 張 |
-| 矽酸鈣板裁切 | 9 張 |
+| 矽酸鈣板裁切 | 7 張(2026-05-18 改 naive 估算,9→7) |
 | 邊框 | 16.4 m |
+
+### §CE.11 板數雙軌策略(2026-05-18)
+
+「**視覺**」vs「**採購**」分開算:
+- **視覺(SVG / 3D BoardsLayer)**:cells 按 mainCenters 切(板邊精準落主支中心,符合 spec)
+  → baseline 7 cols × 2 rows = 14 cells(5 整 + 9 細邊 rose 區分)
+- **採購(BOM count)**:naive 面積估算
+  - `cols = ceil(L / boardShortCm)`、`fullCols = floor(L / boardShortCm)`
+  - `rows = ceil(S / boardLongCm)`、`fullRows = floor(S / boardLongCm)`
+  - `fullCount = fullCols × fullRows`、`cutCount = cols × rows − fullCount`
+  - baseline = 5 整 + 7 裁 = 12 板(細邊條合併採購)
+
+**通則:** 算料工具的「視覺意義(師傅看哪邊有縫)」vs「採購意義(買幾張板)」可分流,
+不要硬讓一個數字兼顧兩種。
+
+### §CE.12 自動間距(useAutoSpacing,2026-05-18)
+
+`useAutoSpacing: true` 預設 → 改板規/接縫,主支/副支中心距自動換算:
+- `mainSpacing = boardShortCm + jointGapMm / 10`(板寬 + 接縫,板邊落主支中心)
+- `subSpacing = boardLongCm / round(boardLongCm / 36)`(板長均分到目標 ~36 cm)
+
+預設 90/180 + 3mm → main 90.3 / sub 36;改 60/120 → 60.3 / 40。
+切手動可用老派台尺 90.9 / 36.36。
+
+### §CE.13 簡化吊筋分布(2026-05-18)
+
+吊筋密度 = "minimal" 時,固定 2 支但**不貼牆**(邊框已接牆,貼牆沒結構意義):
+- 1 支 → 中心(1/2)
+- 2 支(簡化)→ 1/3、2/3(主支三等分)
+- 3+ 支(業界標準)→ ceil(L/spacing)+1,均分含端點
+
+baseline 簡化 = 6 主支 × 2 = 12 吊筋,各間 104.27 cm。
+
+### §CE.14 裁料計算器(`lib/ceiling/cutting.ts`)
+
+1D 裁料 FFD(First Fit Decreasing)+ 超 stock 自動拼接:
+- **預處理 splitLongPieces:** 超 `stockLengthCm` 的 piece 切 N=ceil(len/stock) 段,
+  前 N-1 段 = stockLength 全用,最後段 = remainder + (N-1) × spliceOverlapCm
+- spliceOverlapCm 預設 10 cm(實務交接放邊框上強固)
+- FFD 排入 stocks,記每根 stock 切法、kerf、剩料
+- 利用率 / 總料 / 廢料 / 訂料總 stock 數
+
+baseline 邊框 500 cm + stock 360 + overlap 10 → [360][150] 拼接,2 段。
+
+### §CE.15 燈具 / 開孔碰撞(`lib/ceiling/fixtures.ts`)
+
+燈具 = 圓(中心 x/z, 半徑 r),檢查 vs 主支/副支/邊框矩形:
+- 圓 vs rect closestPoint 距離法
+- penetration > 0 = 撞,回 collisions list 含 hitWith 描述
+- 5 種燈具預設半徑:LED 5 / 出風口 15 / 喇叭 8 / 灑水頭 3 / 其他 5
+
+### §CE.16 短碼分享(`app/api/ceiling/share/route.ts`)
+
+Upstash Redis 短碼分享:
+- POST { input: { input, fixtures, customer } } → { code }(8 字元 nanoid,base62 去易混)
+- GET ?code=xxx → { input }
+- 30 天 TTL(SHORT_TTL_SECONDS,跟 quote 短碼共用)
+- URL `/ceiling?c=CODE` 自動載入
+
+### §CE.17 階段 4 整合(2026-05-18 完工)
+
+- `lib/permissions.ts` 加 `canUseCeilingTool`(pro/student/lifetime=true、free/personal=false)
+- `app/ceiling/page.tsx` admin OR canUseCeilingTool 檢查,未通過導 `/pricing?upgrade=ceiling`
+- 5 步施工步驟 collapsible(spec 文字硬編)放公式對照前
+- `app/page.tsx` 加「🔨 木作工具」section 在 catalog 第一個位置(永遠在最上)
+- 列印 PDF:`BrandedHeader`(wrd 共用 LOGO) + 客戶 TO + 案場短碼 + 日期 + 3 欄簽收
