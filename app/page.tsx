@@ -161,28 +161,36 @@ export default async function Home({
       <PerspectivePrefetch />
       <StudentLoginHint />
       <header className="mb-12">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 mb-6">
           <Image
             src="/brand-logo.png"
             alt="木頭仁 木作藍圖"
-            width={64}
-            height={64}
-            className="rounded-xl shadow-sm ring-1 ring-zinc-200 shrink-0"
+            width={180}
+            height={180}
+            className="rounded-2xl shadow-md ring-1 ring-zinc-200 shrink-0 w-40 h-40 md:w-44 md:h-44"
             priority
           />
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            木頭仁木匠學院 · 木作藍圖 v0.5
+          <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              木頭仁木匠學院 · 木作藍圖 v0.5
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
+              從尺寸到圖紙,三秒鐘完成
+            </h1>
+            <p className="mt-3 max-w-2xl text-zinc-700 leading-relaxed">
+              做木工最花時間的從來不是動手——是先把圖畫對、料算準、工序排好。
+              這個工具把這三件事壓進 3 秒鐘。
+            </p>
+            <p className="mt-2 max-w-2xl text-zinc-600 leading-relaxed">
+              選一件家具、填長寬高,自動出 <strong className="text-zinc-900">3D 透視圖、
+              工程三視圖、榫卯細節、切料尺寸、工具清單、製作工序</strong>。
+              切料長度已內建台灣木匠慣例——榫頭凸出量、肩位距離、伸縮預留都幫你算好了,
+              拿著材料單就能直接進工坊開鋸。
+            </p>
           </div>
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
-          從尺寸到圖紙,三秒鐘完成
-        </h1>
-        <p className="mt-3 max-w-2xl text-zinc-600 leading-relaxed">
-          選一件家具、輸入寬深高,自動生成 3D 透視圖、工程三視圖、榫卯細節、切料尺寸、
-          工具清單與製作工序。所有尺寸以毫米為單位,切料長度已自動計算榫頭凸出量。
-        </p>
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
           <span>
             <strong className="text-zinc-900 font-semibold">{ready}</strong> 種家具範本
           </span>
