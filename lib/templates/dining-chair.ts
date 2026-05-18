@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -569,18 +569,6 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
 
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = apronSplayDx > 0 && apronSplayDz > 0;
-    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
-      : null;
-    const tenonAxisEnd = isCompoundSplay
-      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
-      : null;
     // butt-joint 半長 = legEdge + splay − legSize@Y / 2
     const halfX_C = apronLegEdgeX + geom.splayXc - geom.lwC / 2;
     const halfX_T = apronLegEdgeX + geom.splayXt - geom.lwT / 2;
@@ -628,8 +616,6 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
-            ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-            ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -648,8 +634,6 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })(),

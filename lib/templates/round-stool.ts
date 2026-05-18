@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundStoolOptions: OptionSpec[] = [
@@ -96,7 +96,6 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
   // 外斜：底部偏移總長 = legHeight × tan(angle)，方向沿腳對角線（45°）外推
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
-  const isCompoundSplay = splayDx > 0 && splayDz > 0;
   // 座板厚 ≤25mm 自動通榫（同 autoTenonType 規則）
   const legTopTenonType: "through-tenon" | "blind-tenon" =
     seatThickness <= 25 ? "through-tenon" : "blind-tenon";
@@ -359,17 +358,6 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronTopAtSeat = apronDropFromTop === 0;
     for (const s of sides) {
       const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
-      // Compound splay only — helper returns world-frame tenon direction per end.
-      const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-      const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-      const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-      const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-      const tenonAxisStart = isCompoundSplay
-        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
-        : null;
-      const tenonAxisEnd = isCompoundSplay
-        ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
-        : null;
       const rotation =
         s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
@@ -396,8 +384,6 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
-            ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-            ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -414,8 +400,6 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
-          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })();

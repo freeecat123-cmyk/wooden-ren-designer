@@ -3435,26 +3435,21 @@ export function PerspectiveView({
                   // World-frame axis unit vector (the tenon's body direction).
                   const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
                   const ax = t.axis.x / tm, ay = t.axis.y / tm, az = t.axis.z / tm;
-                  // Cross-section axes in WORLD: derive from the part's rotation
-                  // so they lie in the apron's end-face plane (perpendicular to
-                  // the protrusion direction) and match the apron's natural
-                  // cross-section orientation. For an unrotated leg this gives
-                  // world X/Z (same as before — no regression). For X/Z aprons
-                  // (which carry Rx/Ry rotations) this gives the apron's actual
-                  // W/T directions in world.
-                  const partQS = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
-                  let cross1: Vector3;
-                  let cross2: Vector3;
-                  if (isLongX) {
-                    cross1 = new Vector3(0, 1, 0).applyQuaternion(partQS);
-                    cross2 = new Vector3(0, 0, 1).applyQuaternion(partQS);
-                  } else if (isLongY) {
-                    cross1 = new Vector3(1, 0, 0).applyQuaternion(partQS);
-                    cross2 = new Vector3(0, 0, 1).applyQuaternion(partQS);
-                  } else {
-                    cross1 = new Vector3(1, 0, 0).applyQuaternion(partQS);
-                    cross2 = new Vector3(0, 1, 0).applyQuaternion(partQS);
-                  }
+                  // Cross-section axes in WORLD (the two axes perpendicular to
+                  // the parent's shoulder face). For a leg-top tenon, shoulder
+                  // is horizontal in world, so cross-section is the world XZ plane.
+                  // We pick perpendicular world axes orthogonal to the part's
+                  // "default" long-axis direction (i.e. the geomLongLocal axis
+                  // after partQ — for unrotated legs, that's still world Y).
+                  // Cross axes = world X and Z for top/bottom.
+                  // For other positions we'd need different cross axes; only top
+                  // is supported with t.axis right now (legs).
+                  const cross1 = isLongY ? new Vector3(1, 0, 0) :
+                                 isLongX ? new Vector3(0, 1, 0) :
+                                           new Vector3(1, 0, 0);
+                  const cross2 = isLongY ? new Vector3(0, 0, 1) :
+                                 isLongX ? new Vector3(0, 0, 1) :
+                                           new Vector3(0, 1, 0);
                   // Root face (parent-side, mesh-local) at "-halfLong" along the
                   // default outward direction. Since we are NOT rotating the
                   // mesh, "default outward" in mesh-local is the same as world
