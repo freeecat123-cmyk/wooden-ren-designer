@@ -901,21 +901,81 @@ export function OrthoView({
       </g>
 
       {/* parts — line-art style: visible solid, hidden dashed */}
-      {sortPartsByDepth(
-        joineryMode
-          ? renderDesign.parts.map((p) =>
-              p.joineryView
-                ? {
-                    ...p,
-                    shape: p.joineryView.shape ?? p.shape,
-                    visible: p.joineryView.visible ?? p.visible,
-                    origin: p.joineryView.origin ?? p.origin,
-                  }
-                : p,
-            )
-          : renderDesign.parts,
-        view,
-      ).map((part) => {
+      {(() => {
+        const sortedParts = sortPartsByDepth(
+          joineryMode
+            ? renderDesign.parts.map((p) =>
+                p.joineryView
+                  ? {
+                      ...p,
+                      shape: p.joineryView.shape ?? p.shape,
+                      visible: p.joineryView.visible ?? p.visible,
+                      origin: p.joineryView.origin ?? p.origin,
+                    }
+                  : p,
+              )
+            : renderDesign.parts,
+          view,
+        );
+
+        // 俯視 dot-cloud dedup（chinese-cabinet 等多層櫃體）：
+        // 多個 hidden part 在俯視疊在同 X-Z bbox（divider/back-panel/抽屜內板/
+        // 鉸鍊/把手），每件畫 4 條 dashed line → 100+ 條虛線重疊變 dot cloud。
+        // 規則：part 完全被 *另一個更大的 hidden part* contain 就跳過 outline
+        // 渲染。最外層 hidden 件（divider / drawer-front）保留；內層內裝（抽屜底/
+        // 側板/把手）跳過。可見件不受影響。
+        const skipOutlineInTopDotCloud = new Set<string>();
+        if (view === "top" && !isolatePartId) {
+          const hiddenParts: Array<{ id: string; r: { x: number; y: number; w: number; h: number } }> = [];
+          for (const p of sortedParts) {
+            const id = p.id;
+            const dir = id.match(/-(front|back|left|right)$/)?.[1] ?? null;
+            const isCornerPost = /^post-(front|back)-(left|right)$/.test(id);
+            const isDoorMuntin = /-door-muntin-/.test(id);
+            void dir;
+            if (isCornerPost || isDoorMuntin) continue;
+            // 用跟下游一樣的 hidden 判定（只 top view 的 isPartHidden 結果即可—isInteriorInTop 不存在）
+            const isHidden = isPartHidden(p, renderDesign.parts, view);
+            if (!isHidden) continue;
+            hiddenParts.push({ id, r: projectPart(p, view) });
+          }
+          // 用 AABB containment：若 a 完全包住 b 就把 b skip
+          const eps = 1;
+          for (let i = 0; i < hiddenParts.length; i++) {
+            const b = hiddenParts[i];
+            for (let j = 0; j < hiddenParts.length; j++) {
+              if (i === j) continue;
+              const a = hiddenParts[j];
+              // a 完全包 b 且不等於（避免相同 bbox 互殺）
+              const sameSize =
+                Math.abs(a.r.x - b.r.x) < eps &&
+                Math.abs(a.r.y - b.r.y) < eps &&
+                Math.abs(a.r.w - b.r.w) < eps &&
+                Math.abs(a.r.h - b.r.h) < eps;
+              if (sameSize) {
+                // 重複 bbox 的兩件，只留 ID 字典序較小的（穩定）
+                if (b.id > a.id) {
+                  skipOutlineInTopDotCloud.add(b.id);
+                  break;
+                }
+                continue;
+              }
+              const contains =
+                a.r.x <= b.r.x + eps &&
+                a.r.x + a.r.w >= b.r.x + b.r.w - eps &&
+                a.r.y <= b.r.y + eps &&
+                a.r.y + a.r.h >= b.r.y + b.r.h - eps;
+              if (contains) {
+                skipOutlineInTopDotCloud.add(b.id);
+                break;
+              }
+            }
+          }
+        }
+
+        return sortedParts.map((part) => {
+        // 俯視 dot-cloud dedup：part 完全被更大 hidden part contain 就跳過
+        if (skipOutlineInTopDotCloud.has(part.id)) return null;
         // Hidden line elimination 補強：isPartHidden 的 AABB containment 對某些
         // 情況失準（splayed 腳的 AABB 不含 shape 變形、apron tilt 邊界、跨件
         // 形變、apron-trapezoid scale）。用 ID 慣例直接標記內部結構件。
@@ -1923,7 +1983,8 @@ export function OrthoView({
           });
         }
         return <g key={part.id}>{lines}</g>;
-      })}
+      });
+      })()}
 
       {/* 座面挖型（saddle / scooped）— 前/側視疊一條虛線曲線顯示挖型輪廓
            俯視看不到挖型不畫；曲線從矩形頂緣往下凹（最深點 = depthMm） */}
