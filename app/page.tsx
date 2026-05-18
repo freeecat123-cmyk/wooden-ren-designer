@@ -74,19 +74,29 @@ const CATEGORY_CHIPS: Array<{
   { key: "tool", label: "工具" },
 ];
 
-const DIFFICULTY_DOT = {
-  beginner: "bg-emerald-500",
-  intermediate: "bg-amber-500",
+/**
+ * 組裝難度按主要榫接技法分(2026-05-18 取代主觀 difficulty):
+ * user 看到「鳩尾」就知道難不難,比抽象「進階」直觀。
+ */
+const JOINERY_DOT = {
+  screw: "bg-emerald-500",
+  tenon: "bg-amber-500",
   advanced: "bg-rose-500",
 } as const;
 
-const DIFFICULTY_LABEL = {
-  beginner: "入門",
-  intermediate: "中階",
-  advanced: "進階",
+const JOINERY_LABEL = {
+  screw: "螺絲",
+  tenon: "半榫",
+  advanced: "進階榫",
 } as const;
 
-const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+const JOINERY_FULL = {
+  screw: "螺絲 / 木釘 / 平接 — 新手可,1 天內完成",
+  tenon: "半榫 / 通榫 / 牙條榫 — 木工常見技法",
+  advanced: "鳩尾 / 角榫 / 曲面 — 進階木匠挑戰",
+} as const;
+
+const JOINERY_ORDER = { screw: 0, tenon: 1, advanced: 2 } as const;
 
 /** 開發中家具:卡片半透明、不可點、上覆「敬請期待」chip */
 const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
@@ -100,9 +110,9 @@ function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
   return entries.filter((e) => def.match!(e.category));
 }
 
-function sortByDifficulty(entries: FurnitureCatalogEntry[]) {
+function sortByJoinery(entries: FurnitureCatalogEntry[]) {
   return [...entries].sort(
-    (a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty],
+    (a, b) => JOINERY_ORDER[a.joineryClass] - JOINERY_ORDER[b.joineryClass],
   );
 }
 
@@ -115,7 +125,7 @@ export default async function Home({
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
 
-  const furniture = sortByDifficulty(filterByChip(FURNITURE_CATALOG, chip));
+  const furniture = sortByJoinery(filterByChip(FURNITURE_CATALOG, chip));
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
   const visibleCount =
@@ -191,14 +201,14 @@ export default async function Home({
           <span className="tabular-nums">{ready + 1}</span> 件
         </span>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />入門
+          <span className="flex items-center gap-1.5" title={JOINERY_FULL.screw}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />螺絲組
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />中階
+          <span className="flex items-center gap-1.5" title={JOINERY_FULL.tenon}>
+            <span className="w-2 h-2 rounded-full bg-amber-500" />半榫
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />進階
+          <span className="flex items-center gap-1.5" title={JOINERY_FULL.advanced}>
+            <span className="w-2 h-2 rounded-full bg-rose-500" />進階榫
           </span>
         </div>
         <span className="text-zinc-400">🔒 = 付費版才能進入</span>
@@ -257,7 +267,8 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const searchTokens = [item.nameZh, item.category, item.description]
     .filter(Boolean)
     .join(" ");
-  const dotClass = DIFFICULTY_DOT[item.difficulty];
+  const dotClass = JOINERY_DOT[item.joineryClass];
+  const techLabel = JOINERY_LABEL[item.joineryClass];
 
   // 開發中:不可點、灰遮罩 + 中央 chip
   if (inDevelopment) {
@@ -273,7 +284,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
           </span>
         </span>
         <CardThumb item={item} />
-        <CardFooter item={item} dotClass={dotClass} paid={paid} />
+        <CardFooter item={item} dotClass={dotClass} techLabel={techLabel} />
       </div>
     );
   }
@@ -282,7 +293,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
     <Link
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
-      title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
+      title={`${item.nameZh} · ${JOINERY_FULL[item.joineryClass]}${paid ? " · 付費版" : " · 免費"}`}
       className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:shadow-md transition"
     >
       {/* Top-right corner markers */}
@@ -292,7 +303,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
         </div>
       )}
       <CardThumb item={item} />
-      <CardFooter item={item} dotClass={dotClass} paid={paid} />
+      <CardFooter item={item} dotClass={dotClass} techLabel={techLabel} />
     </Link>
   );
 }
@@ -315,21 +326,21 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
 function CardFooter({
   item,
   dotClass,
-  paid,
+  techLabel,
 }: {
   item: FurnitureCatalogEntry;
   dotClass: string;
-  paid: boolean;
+  techLabel: string;
 }) {
   return (
-    <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex items-center justify-between border-t border-zinc-100 bg-white">
-      <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+    <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex flex-col justify-center gap-0.5 border-t border-zinc-100 bg-white">
+      <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate leading-tight">
         {item.nameZh}
       </span>
-      <span
-        className={`shrink-0 w-2.5 h-2.5 rounded-full ${dotClass}`}
-        title={DIFFICULTY_LABEL[item.difficulty]}
-      />
+      <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+        <span className={`shrink-0 w-2 h-2 rounded-full ${dotClass}`} />
+        {techLabel}
+      </span>
     </div>
   );
 }
