@@ -2230,9 +2230,9 @@ export function OrthoView({
                       if (lh > 0) {
                         // 世界中腳軸往上 = (-dx, +lh, -dz)；投到 screen：
                         //   front: screen X = -world X → screen Δx = +dx
-                        //   side:  screen X =  world Z → screen Δx = -dz
+                        //   side:  screen X = -world Z（前=右慣例）→ screen Δx = +dz
                         // screen Y = world Y 對 front/side 一致，axDy = lh/norm
-                        const projDx = view === "front" ? dx : view === "side" ? -dz : 0;
+                        const projDx = view === "front" ? dx : view === "side" ? dz : 0;
                         const norm = Math.sqrt(projDx * projDx + lh * lh);
                         axDx = projDx / norm;
                         axDy = lh / norm;

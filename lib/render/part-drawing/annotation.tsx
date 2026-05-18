@@ -91,9 +91,9 @@ export function getT1ForView(part: Part, view: PartView): {
  *   top view (vy=wz, vx=-wx)
  *     horiz: localX = ±L/2 在 width 前緣（localZ=+W/2，SVG 較大 y）
  *     vert:  localZ = ±W/2 在 length 左端 = localX=-L/2（SVG 右側）
- *   side view (vy=wy, vx=wz)
+ *   side view (vy=wy, vx=-wz) — 前=右慣例
  *     horiz: localZ = ±W/2 在 thickness 底面（localY=+T/2）
- *     vert:  localY = ±T/2 在 width 右端 = localZ=+W/2（SVG 右側）
+ *     vert:  localY = ±T/2 在 width 右端 = localZ=-W/2（SVG 較大 x = 前方）
  *
  * 尺寸線位置：水平線下方 +28（DimensionLine 內部 reach=26 預留），
  * 垂直線右側 +28。
@@ -147,11 +147,12 @@ export function T1Dimensions({
     vertP1 = ctx.partLocalToSvg(-L / 2, 0, -W / 2);
     vertP2 = ctx.partLocalToSvg(-L / 2, 0, +W / 2);
   } else {
-    // side
+    // side（前=右慣例：vx = -wz，localZ=-W/2 在 SVG +x 側）
     horizP1 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
     horizP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
-    vertP1 = ctx.partLocalToSvg(0, -T / 2, +W / 2);
-    vertP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
+    // 右側 = localZ = -W/2（SVG 較大 x）
+    vertP1 = ctx.partLocalToSvg(0, -T / 2, -W / 2);
+    vertP2 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
   }
 
   // 水平 dim line 放材料 *上方* — 抓 part 8 角投影最高 SVG y（最小值）再上推 OFFSET
