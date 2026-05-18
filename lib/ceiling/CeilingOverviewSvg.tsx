@@ -235,33 +235,33 @@ function renderSubJoists(
 // ─────────────────────────────────────────────────────────
 function renderBoardCells(
   input: CeilingBom["input"],
-  _mainCenters: number[],
+  mainCenters: number[],
   x0: number,
   y0: number,
   baseOpacity: number,
   boardKindFilter: "full" | "cut" | null,
 ) {
-  // naive grid:cols 每 boardShort cm 一格,rows 每 boardLong cm 一格
-  // 跟 calc.ts BOM 數一致
+  // 視覺:板邊對齊主支中心(per spec「中間板邊落主支中心」)
+  // 計算:整 / 裁 判斷用「欄寬接近 boardShortCm」容差(細邊欄判定 cut)
+  const FULL_TOL_CM = 5;
   const L = input.longSideCm;
   const S = input.shortSideCm;
-  const colEdges: number[] = [0];
-  let x = input.boardShortCm;
-  while (x < L) { colEdges.push(x); x += input.boardShortCm; }
-  colEdges.push(L);
+  const colEdges: number[] = mainCenters.length === 0
+    ? [0, L]
+    : [0, ...mainCenters, L];
   const rowEdges: number[] = [0];
   let z = input.boardLongCm;
   while (z < S) { rowEdges.push(z); z += input.boardLongCm; }
   rowEdges.push(S);
-  const fullColCount = Math.floor(L / input.boardShortCm);
-  const fullRowCount = Math.floor(S / input.boardLongCm);
+  const fullRowCount = Math.floor(input.shortSideCm / input.boardLongCm);
 
   const cells: React.ReactNode[] = [];
   let key = 0;
   for (let ci = 0; ci < colEdges.length - 1; ci++) {
     const xL = colEdges[ci];
     const xR = colEdges[ci + 1];
-    const colFull = ci < fullColCount;
+    const colW = xR - xL;
+    const colFull = Math.abs(colW - input.boardShortCm) <= FULL_TOL_CM;
     for (let ri = 0; ri < rowEdges.length - 1; ri++) {
       const zT = rowEdges[ri];
       const zB = rowEdges[ri + 1];
@@ -277,7 +277,7 @@ function renderBoardCells(
           key={`board-${key++}`}
           x={x0 + xL}
           y={y0 + zT}
-          width={xR - xL}
+          width={colW}
           height={zB - zT}
           fill={isFullBoard ? "url(#board-hatch)" : "#fda4af33"}
           stroke="#94a3b8"

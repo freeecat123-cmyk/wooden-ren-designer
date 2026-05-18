@@ -402,13 +402,11 @@ function BoardsLayer({
   opacity?: number;
   boardKindFilter?: "full" | "cut" | null;
 }) {
-  // naive grid 跟 calc.ts BOM 一致(2026-05-18 改)
-  void mainCenters; // 保留參數方便日後切回主支對齊
-  const colEdges: number[] = [0];
-  let x = input.boardShortCm;
-  while (x < L) { colEdges.push(x); x += input.boardShortCm; }
-  colEdges.push(L);
-  const fullColCount = Math.floor(L / input.boardShortCm);
+  // 視覺對齊主支中心(per spec「板邊落主支中心」),整 / 裁判定用容差
+  const FULL_TOL_CM = 5;
+  const colEdges: number[] = mainCenters.length === 0
+    ? [0, L]
+    : [0, ...mainCenters, L];
 
   const rowEdges: number[] = [0];
   let z = input.boardLongCm;
@@ -428,7 +426,7 @@ function BoardsLayer({
     const xR = colEdges[ci + 1];
     const colW = xR - xL - gap;
     if (colW <= 0) continue;
-    const colFull = ci < fullColCount;
+    const colFull = Math.abs((xR - xL) - input.boardShortCm) <= FULL_TOL_CM;
     for (let ri = 0; ri < rowEdges.length - 1; ri++) {
       const zT = rowEdges[ri];
       const zB = rowEdges[ri + 1];
