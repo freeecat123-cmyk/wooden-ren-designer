@@ -3331,40 +3331,38 @@ export function PerspectiveView({
                 const useRoundTenon = isRoundLegPart && t.position === "top";
 
                 // Compound splay: t.axis is WORLD-frame tenon direction.
-                // Build a standalone world-frame quaternion that rotates the
-                // box geometry's natural long axis (mesh-local +X/+Y/+Z per
-                // BoxGeometry args order) onto t.axis. Skip partQ composition
-                // entirely — the box's cross-section is symmetric enough that
-                // the world rotation alone gives the correct visual orient.
-                //
-                // For start/bottom/left positions the box's "positive long
-                // axis" points opposite the tenon's outward direction, so
-                // flip the target so we rotate +X (or +Y / +Z) onto the
-                // tenon's actual tip direction.
+                // Composition: meshQuat = extraQ_world * partQ
+                //   - partQ takes geometry from part-local to world (so the
+                //     box's cross-section ends up aligned with the part's
+                //     local W/T — tenon wide-face faces "up" relative to apron)
+                //   - extraQ_world then rotates the post-partQ long-axis
+                //     direction onto t.axis (world)
+                // This preserves cross-section orientation while pointing
+                // the long axis at the world-frame splayed tenon direction.
                 const meshQuat = (() => {
                   if (!t.axis) return null;
-                  const geomLongAxis: [number, number, number] =
+                  const partQ = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  // Box's natural long axis in part-local depends on tenon position.
+                  // For start/bottom/left, the tip points along the negative axis
+                  // so flip to get the actual outward direction.
+                  const geomLongLocal: [number, number, number] =
                     (t.position === "start" || t.position === "end")  ? [1, 0, 0] :
                     (t.position === "top" || t.position === "bottom") ? [0, 1, 0] :
                                                                          [0, 0, 1];
-                  const m = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
-                  const tx = t.axis.x / m, ty = t.axis.y / m, tz = t.axis.z / m;
                   const flip = (t.position === "start" || t.position === "bottom" || t.position === "left") ? -1 : 1;
-                  const targetX = tx * flip, targetY = ty * flip, targetZ = tz * flip;
-                  const dotL = geomLongAxis[0]*targetX + geomLongAxis[1]*targetY + geomLongAxis[2]*targetZ;
-                  if (dotL > 0.9999) return null; // already aligned
-                  const cx = geomLongAxis[1]*targetZ - geomLongAxis[2]*targetY;
-                  const cy = geomLongAxis[2]*targetX - geomLongAxis[0]*targetZ;
-                  const cz = geomLongAxis[0]*targetY - geomLongAxis[1]*targetX;
-                  const cmag = Math.hypot(cx, cy, cz) || 1;
-                  const angle = Math.acos(Math.max(-1, Math.min(1, dotL)));
-                  const s = Math.sin(angle / 2);
-                  return new Quaternion(
-                    (cx / cmag) * s,
-                    (cy / cmag) * s,
-                    (cz / cmag) * s,
-                    Math.cos(angle / 2),
+                  const geomLongLocalV = new Vector3(
+                    geomLongLocal[0] * flip,
+                    geomLongLocal[1] * flip,
+                    geomLongLocal[2] * flip,
                   );
+                  // After partQ, this is the world direction of the box's long axis.
+                  const geomLongWorld = geomLongLocalV.clone().applyQuaternion(partQ);
+                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const target = new Vector3(t.axis.x / tm, t.axis.y / tm, t.axis.z / tm);
+                  // extraQ_world rotates geomLongWorld onto target.
+                  const extraQ = new Quaternion().setFromUnitVectors(geomLongWorld, target);
+                  // Apply partQ first (cross-section aligned), then extraQ (tilt long axis).
+                  return extraQ.multiply(partQ);
                 })();
 
                 return (

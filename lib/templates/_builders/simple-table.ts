@@ -218,6 +218,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const topLen = length + 2 * topOverhang;
   const topWid = width + 2 * topOverhang;
 
+  // Lift splay axis flags so both topPanel mortises and legs can use them.
+  const _legShapePre = opts.legShape ?? "box";
+  const _splayMmPre = 40;
+  const _isSplayedAllAxesPre =
+    _legShapePre === "splayed" ||
+    _legShapePre === "splayed-tapered" ||
+    _legShapePre === "splayed-round-tapered";
+  const _splayDxPre =
+    _isSplayedAllAxesPre || _legShapePre === "splayed-length" ? _splayMmPre : 0;
+  const _splayDzPre =
+    _isSplayedAllAxesPre || _legShapePre === "splayed-width" ? _splayMmPre : 0;
+  const _isSplayedPre = _splayDxPre > 0 || _splayDzPre > 0;
+
   // Top
   const topPanel: Part = {
     id: "top",
@@ -234,14 +247,27 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle, legInset > 0 || topOverhang > 0)),
     panelPieces: opts.topPanelPieces,
     tenons: [],
-    mortises: cornerPts.map((c) => ({
-      // legInset=0：mortise 跟 tenon 一起朝中心偏（榫眼軸對齊榫頭）
-      origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
-      depth: legTopTenonLen,
-      length: legTopTenonW,
-      width: legTopTenonT,
-      through: legTopTenonType === "through-tenon",
-    })),
+    mortises: cornerPts.map((c) => {
+      // splay 時 mortise.axis = 腳 top 榫頭世界軸的反向（桌面孔朝下開向腳）
+      const mortiseAxis = _isSplayedPre
+        ? (() => {
+            const dx = c.x > 0 ? _splayDxPre : (c.x < 0 ? -_splayDxPre : 0);
+            const dz = c.z > 0 ? _splayDzPre : (c.z < 0 ? -_splayDzPre : 0);
+            const x = dx, y = -legHeight, z = dz;
+            const mag = Math.hypot(x, y, z) || 1;
+            return { x: x / mag, y: y / mag, z: z / mag };
+          })()
+        : undefined;
+      return {
+        // legInset=0：mortise 跟 tenon 一起朝中心偏（榫眼軸對齊榫頭）
+        origin: { x: c.x - Math.sign(c.x) * legTopInsetX, y: 0, z: c.z },
+        depth: legTopTenonLen,
+        length: legTopTenonW,
+        width: legTopTenonT,
+        through: legTopTenonType === "through-tenon",
+        ...(mortiseAxis ? { axis: mortiseAxis } : {}),
+      };
+    }),
   };
 
   // Legs
@@ -304,7 +330,18 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     if (legShape === "shaker") return { kind: "shaker" };
     return undefined;
   };
-  const legs: Part[] = cornerPts.map((c, i) => ({
+  const legs: Part[] = cornerPts.map((c, i) => {
+    // Splayed legs lean outward at bottom → top tenon tilts INTO seat opposite.
+    const legTopAxis = _isSplayedPre
+      ? (() => {
+          const dx = c.x > 0 ? _splayDxPre : (c.x < 0 ? -_splayDxPre : 0);
+          const dz = c.z > 0 ? _splayDzPre : (c.z < 0 ? -_splayDzPre : 0);
+          const x = -dx, y = legHeight, z = -dz;
+          const mag = Math.hypot(x, y, z) || 1;
+          return { x: x / mag, y: y / mag, z: z / mag };
+        })()
+      : undefined;
+    return ({
     id: `leg-${i + 1}`,
     nameZh: `桌腳 ${i + 1}`,
     material,
@@ -328,6 +365,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           return [...legTopStd.shoulderOn].filter((s) => s !== innerSide);
         })(),
         offsetWidth: -Math.sign(c.x) * legTopInsetX,
+        ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
     mortises: !withApron ? [] : (() => {
@@ -370,7 +408,8 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         },
       ];
     })(),
-  }));
+  });
+  });
 
   // Aprons (4 sides) — butt-joint 慣例：visible.length 兩端剛好頂在腳的內側
   // 面，組裝版渲染就是 final 幾何（不重疊、不留縫）。joinery 模式靠 tenon[]
