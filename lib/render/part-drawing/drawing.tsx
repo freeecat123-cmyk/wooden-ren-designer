@@ -29,6 +29,18 @@ import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+// 圓料家族：part shape 屬於圓族時 dim 用 Ø{直徑}×{長度}（跟 PartDrawingsPanel.tsx 對偶）
+const isRoundFamilyShape = (part: Part): boolean => {
+  const k = part.shape?.kind;
+  return (
+    k === "round" ||
+    k === "round-tapered" ||
+    k === "splayed-round-tapered" ||
+    k === "lathe-turned" ||
+    k === "shaker"
+  );
+};
+
 type PartView = "front" | "top" | "side";
 
 interface PartDrawingProps {
@@ -277,8 +289,13 @@ export function PartDrawing({
         </div>
         {/* Phase 2.5 Task 2: 成品 vs 毛料雙標 */}
         <div className="text-zinc-500 mt-0.5">
-          成品 {round1(part.visible.length)}×{round1(part.visible.width)}×
-          {round1(part.visible.thickness)}　|　毛料 {raw.L}×{raw.W}×{raw.T}
+          成品{" "}
+          {isRoundFamilyShape(part)
+            ? `Ø${round1(
+                Math.max(part.visible.width, part.visible.thickness),
+              )}×${round1(part.visible.length)}`
+            : `${round1(part.visible.length)}×${round1(part.visible.width)}×${round1(part.visible.thickness)}`}
+          　|　毛料 {raw.L}×{raw.W}×{raw.T}
         </div>
         {design.useButtJointConvention !== false && (
           <div className="text-[8px] text-zinc-400 italic mt-0.5">

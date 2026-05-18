@@ -13,7 +13,7 @@
  */
 
 import React, { useState } from "react";
-import type { FurnitureDesign } from "@/lib/types";
+import type { FurnitureDesign, Part } from "@/lib/types";
 import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
 import { PartDrawing } from "@/lib/render/part-drawing/drawing";
 
@@ -31,6 +31,27 @@ const fmt = (n: number): string => {
   const rounded = Math.round(n * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
+
+// 圓料家族：part.shape.kind 屬於圓族時，dim 用「Ø{直徑}×{長度}」不寫 L×W×T。
+// 規則對齊 `889a38c`（圓料 tenon ellipse）與 annotation.tsx 的 isRoundPart。
+function isRoundFamilyPart(part: Part): boolean {
+  const k = part.shape?.kind;
+  return (
+    k === "round" ||
+    k === "round-tapered" ||
+    k === "splayed-round-tapered" ||
+    k === "lathe-turned" ||
+    k === "shaker"
+  );
+}
+
+// 圓料 dim：visible.length = 長軸長；直徑取 width / thickness 較大者
+// （防 thickness=length 的橫躺圓料 edge case）。
+function roundPartDim(part: Part): string {
+  const len = part.visible.length;
+  const diameter = Math.max(part.visible.width, part.visible.thickness);
+  return `Ø${fmt(diameter)}×${fmt(len)}`;
+}
 
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
@@ -70,9 +91,11 @@ export function PartDrawingsPanel({ design }: Props) {
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">
                 P-{String(idx + 1).padStart(2, "0")} ·{" "}
-                {fmt(g.representative.visible.length)}×
-                {fmt(g.representative.visible.width)}×
-                {fmt(g.representative.visible.thickness)}
+                {isRoundFamilyPart(g.representative)
+                  ? roundPartDim(g.representative)
+                  : `${fmt(g.representative.visible.length)}×${fmt(
+                      g.representative.visible.width,
+                    )}×${fmt(g.representative.visible.thickness)}`}
               </div>
             </button>
           </li>
