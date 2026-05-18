@@ -18,13 +18,33 @@ import { categorizePart, type PartCategory } from "@/lib/render/svg-views";
  *   - 含榫頭（tenons.length > 0）
  *   - 含榫眼（mortises.length > 0）
  *   - 非方料造型（shape 存在且 kind !== "box"）
+ *   - joineryView 覆寫了非 box shape（bookend / photo-frame 等 45° miter 板）
+ *   - visual === "glass"（玻璃片獨立列以方便下料 / 玻璃廠採購）
+ *   - categorizePart 判定為主結構（case/divider/drawer/door/apron/seat）—
+ *     床板條 / 隔板 / 主板等都列出（純方料也要進零件圖，dedup ×N 顯示）
  *
- * 純方料 + 無榫 → 不出圖（材料單已涵蓋）。
+ * 不會出圖（材料單已涵蓋，零件圖只標獨立件）：
+ *   - leg / misc 類純方料且無榫無造型（例：吊衣桿、小五金、無接合的支撐塊）
+ *
+ * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §1.1
+ * + FX3 patch（2026-05-18）：主面板 / 隔板 / 玻璃補上
  */
 export function needsPartDrawing(part: Part): boolean {
   if (part.tenons.length > 0) return true;
   if (part.mortises.length > 0) return true;
   if (part.shape !== undefined && part.shape.kind !== "box") return true;
+  // joineryView shape：bookend base/back 等 45° miter 板（part.shape 是 box，但
+  // 榫接版有 mitered-corner shape）—— 零件圖該示意斜切細節。
+  const jvShape = part.joineryView?.shape;
+  if (jvShape !== undefined && jvShape.kind !== "box") return true;
+  // 玻璃片（display-cabinet / photo-frame）：3D 不計才但下料/玻璃廠採購要列。
+  if (part.visual === "glass") return true;
+  // 主結構分類：case（頂底側背板）、divider（層板 / 分隔板）、drawer / door /
+  // apron / seat（slat / 椅背板）——這些就算純方料無榫也要出圖。
+  const cat = categorizePart(part.id);
+  if (cat === "case" || cat === "divider" || cat === "drawer" || cat === "door" || cat === "apron" || cat === "seat") {
+    return true;
+  }
   return false;
 }
 
