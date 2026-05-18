@@ -38,6 +38,7 @@ export interface CuttingStock {
 export interface CuttingPlan {
   stockLengthCm: number;
   sawKerfCm: number;
+  spliceOverlapCm: number;
   /** 輸入的切割段(已展開,1 件 1 entry) */
   inputPieces: CuttingPiece[];
   /** stocks 排版結果 */
@@ -105,26 +106,62 @@ export function bomToCuttingPieces(bom: CeilingBom): CuttingPiece[] {
 }
 
 /**
+ * 拼接前處理:超 stock 段自動切多段拼接,每段間加 spliceOverlapCm 重疊
+ * (實務拼接需 ~10 cm 重疊放邊框上強固)。回傳新 piece 陣列,每段標 (拼 i/N)。
+ */
+export function splitLongPieces(
+  pieces: CuttingPiece[],
+  stockLengthCm: number,
+  spliceOverlapCm: number,
+): CuttingPiece[] {
+  const result: CuttingPiece[] = [];
+  for (const p of pieces) {
+    if (p.lengthCm <= stockLengthCm) {
+      result.push(p);
+      continue;
+    }
+    // 切法:前 N-1 段用 stockLength,最後一段 = 剩餘 + (N-1) × overlap
+    const N = Math.ceil(p.lengthCm / stockLengthCm);
+    for (let i = 0; i < N - 1; i++) {
+      result.push({
+        ...p,
+        label: `${p.label} (拼${i + 1}/${N})`,
+        lengthCm: stockLengthCm,
+      });
+    }
+    const remainder =
+      p.lengthCm - (N - 1) * stockLengthCm + (N - 1) * spliceOverlapCm;
+    result.push({
+      ...p,
+      label: `${p.label} (拼${N}/${N})`,
+      lengthCm: remainder,
+    });
+  }
+  return result;
+}
+
+/**
  * First Fit Decreasing 裝箱
  *
  * 處理流程:
+ *   0. 預處理:超 stock 段切多段拼接(spliceOverlapCm 預設 10 cm)
  *   1. 把所有 pieces 依長度降冪排序
  *   2. 對每件 piece,從現有 stocks 找第一個放得下的(含 kerf)
  *   3. 找不到 → 開新 stock
- *
- * 太長 piece(超過 stock)會單獨佔一支(實務:切兩段拼接,本算法簡化視為 1 stock)。
  */
 export function computeCuttingPlan(
   pieces: CuttingPiece[],
   stockLengthCm: number,
   sawKerfCm: number,
+  spliceOverlapCm: number = 10,
 ): CuttingPlan {
-  // 排序前先複製,避免動到原陣列
-  const sorted = [...pieces].sort((a, b) => b.lengthCm - a.lengthCm);
+  // 預處理拼接
+  const splitPieces = splitLongPieces(pieces, stockLengthCm, spliceOverlapCm);
+  const sorted = [...splitPieces].sort((a, b) => b.lengthCm - a.lengthCm);
   const stocks: CuttingStock[] = [];
 
   for (const piece of sorted) {
-    // 太長:直接開新 stock 放(會超出,設 remain = stock - piece(負值表示需拼接))
+    // 拼接後仍超 stock(極端 case,例如 spliceOverlap > stockLength):單獨放
     if (piece.lengthCm > stockLengthCm) {
       stocks.push({
         index: stocks.length + 1,
@@ -132,7 +169,7 @@ export function computeCuttingPlan(
         pieces: [piece],
         usedLengthCm: piece.lengthCm,
         totalKerfCm: 0,
-        remainCm: stockLengthCm - piece.lengthCm, // 負數
+        remainCm: stockLengthCm - piece.lengthCm,
       });
       continue;
     }
@@ -171,7 +208,8 @@ export function computeCuttingPlan(
   return {
     stockLengthCm,
     sawKerfCm,
-    inputPieces: pieces,
+    spliceOverlapCm,
+    inputPieces: splitPieces,
     stocks,
     summary: {
       stockCount: stocks.length,

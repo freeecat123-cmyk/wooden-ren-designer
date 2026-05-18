@@ -44,6 +44,7 @@ export function CeilingDevClient() {
   const [cutOpen, setCutOpen] = useState(true);
   const [stockLengthCm, setStockLengthCm] = useState(360); // 12 尺
   const [sawKerfCm, setSawKerfCm] = useState(0.3);
+  const [spliceOverlapCm, setSpliceOverlapCm] = useState(10); // 拼接重疊(實務每段交接 ~10 cm 放邊框上強固)
   // BOM → 視覺 高亮聯動。null = 無高亮(全顯)。
   const [highlight, setHighlight] = useState<Scene3DHighlight>(null);
   // 副支按長度分組高亮:同一 "sub" category 但不同長度(內 86.7 vs 邊 18.8)
@@ -84,8 +85,8 @@ export function CeilingDevClient() {
   const svgHighlight: HighlightCategory = highlight as HighlightCategory;
 
   const cuttingPlan = useMemo(
-    () => computeCuttingPlan(bomToCuttingPieces(bom), stockLengthCm, sawKerfCm),
-    [bom, stockLengthCm, sawKerfCm],
+    () => computeCuttingPlan(bomToCuttingPieces(bom), stockLengthCm, sawKerfCm, spliceOverlapCm),
+    [bom, stockLengthCm, sawKerfCm, spliceOverlapCm],
   );
 
   const toggleLayer = (k: LayerKey) =>
@@ -377,35 +378,47 @@ export function CeilingDevClient() {
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
                   <span className="text-[10px] text-zinc-400">cm</span>
                 </label>
+                <label className="flex items-center gap-2">
+                  <span className="text-zinc-600">拼接 overlap</span>
+                  <input type="number" value={spliceOverlapCm} step={1}
+                    onChange={(e) => setSpliceOverlapCm(Number(e.target.value))}
+                    className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
+                  <span className="text-[10px] text-zinc-400">cm</span>
+                  <span className="text-[10px] text-zinc-400">(超 stock 段自動切多段拼接 + overlap)</span>
+                </label>
               </div>
-              {/* 超 stock 段拼接警告 */}
+              {/* 拼接段資訊(自動切多段後顯示) */}
               {(() => {
-                const oversize = cuttingPlan.stocks.filter((s) => s.remainCm < -0.01);
-                if (oversize.length === 0) return null;
+                const splicedPieces = cuttingPlan.inputPieces.filter((p) => p.label.includes("(拼"));
+                if (splicedPieces.length === 0) return null;
+                // 抓出每組拼接(同 base label)
+                const groups = new Map<string, typeof splicedPieces>();
+                for (const p of splicedPieces) {
+                  const base = p.label.replace(/\s*\(拼\d+\/\d+\)/, "");
+                  if (!groups.has(base)) groups.set(base, []);
+                  groups.get(base)!.push(p);
+                }
                 return (
-                  <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 p-3 sm:p-4">
-                    <h3 className="text-xs font-semibold text-rose-900 mb-2 flex items-center gap-1.5">
-                      ⚠ 超出 stock 長度,需拼接({oversize.length} 段)
+                  <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3 sm:p-4">
+                    <h3 className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-1.5">
+                      🔗 超 stock 段自動切多段拼接({groups.size} 件 → {splicedPieces.length} 段,每接點 +{spliceOverlapCm} cm overlap)
                     </h3>
-                    <ul className="text-[11px] text-rose-800 space-y-1 leading-relaxed">
-                      {oversize.map((s) => {
-                        const p = s.pieces[0];
-                        const overBy = Math.abs(s.remainCm);
-                        return (
-                          <li key={s.index} className="flex items-center gap-2">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(p.category)}`}>
-                              {p.lengthCm}
+                    <ul className="text-[11px] text-amber-800 space-y-1 leading-relaxed">
+                      {[...groups.entries()].map(([base, segs]) => (
+                        <li key={base} className="flex items-center gap-2 flex-wrap">
+                          <span>{base}</span>
+                          <span className="text-amber-600">→</span>
+                          {segs.map((s, i) => (
+                            <span key={i} className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(s.category)}`}>
+                              {r1(s.lengthCm)}
                             </span>
-                            <span>{p.label}</span>
-                            <span className="text-rose-600 font-mono">超 {r1(overBy)} cm</span>
-                          </li>
-                        );
-                      })}
+                          ))}
+                          <span className="text-amber-600 font-mono">合 {r1(segs.reduce((s, p) => s + p.lengthCm, 0))} cm</span>
+                        </li>
+                      ))}
                     </ul>
-                    <p className="mt-2 text-[10px] text-rose-700 leading-relaxed">
-                      <strong>解法:</strong>
-                      (a) 改用更長 stock(現在 {stockLengthCm} cm,建議 ≥ {Math.ceil(Math.max(...oversize.map((s) => s.pieces[0].lengthCm)) / 10) * 10} cm)
-                      ;或 (b) 現場切兩段拼接(交接處放在邊框上強固)
+                    <p className="mt-2 text-[10px] text-amber-700 leading-relaxed">
+                      實務:接點放在邊框上方強固(或鎖鐵片補強)。
                     </p>
                   </div>
                 );
