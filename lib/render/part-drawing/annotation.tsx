@@ -1160,6 +1160,15 @@ export function T2Annotations({
     const mortiseShapeIsRound =
       isMortise &&
       (part.mortises[it.idx] as Mortise).shape === "round";
+    // 圓料 part 上的 mortise（例如圓腳上接牙條的 rect 榫眼）：opening 落在
+    // 曲面上，視覺一律畫橢圓，跟 `889a38c`（圓料 tenon ellipse）對偶。
+    const isRoundPartForMortise =
+      isMortise &&
+      (part.shape?.kind === "round" ||
+        part.shape?.kind === "round-tapered" ||
+        part.shape?.kind === "splayed-round-tapered" ||
+        part.shape?.kind === "lathe-turned" ||
+        part.shape?.kind === "shaker");
     let mortiseIsRound = false;
     if (mortiseShapeIsRound && isMortise) {
       const m = part.mortises[it.idx] as Mortise;
@@ -1187,6 +1196,9 @@ export function T2Annotations({
       const viewAxis: "x" | "y" | "z" =
         view === "top" ? "y" : view === "side" ? "x" : "z";
       mortiseIsRound = depthAxis === viewAxis;
+    } else if (isRoundPartForMortise) {
+      // 圓料 part 上的 rect mortise：opening 在曲面上一律橢圓。
+      mortiseIsRound = true;
     }
     // 圓料 part 上的 tenon 也是圓的（user:「這榫不是圓的嗎？」）。檢查 part shape
     // 是否屬於 round 家族 + tenon 從哪個軸凸出（position） vs 當前 view axis：
