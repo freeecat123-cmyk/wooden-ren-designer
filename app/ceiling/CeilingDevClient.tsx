@@ -344,6 +344,7 @@ export function CeilingDevClient() {
             <li><span className="text-amber-700 font-semibold">板邊接縫:</span> 預設 {input.jointGapMm} mm,環氧樹脂填縫 + 48 mm 接縫帶 + 批土收尾</li>
             <li><span className="text-amber-700 font-semibold">板邊對齊:</span> 中間板邊落主支中心(藍色 tick),周邊板邊落邊框外線</li>
             <li><span className="text-amber-700 font-semibold">螺絲:</span> 距板邊 ≥ 15 mm,沿板邊每 20-30 cm 一支</li>
+            <li><span className="text-amber-700 font-semibold">材料餘量:</span> 建議多訂 <strong>5-10% 餘料</strong>(現場切割損耗、量錯、板材瑕疵備用)</li>
           </ul>
         </section>
 
@@ -490,6 +491,17 @@ export function CeilingDevClient() {
         </section>
           </div>
         </div>
+
+        {/* ============ 免責 / 使用提醒(頁尾) ============ */}
+        <footer className="mt-8 mb-2 rounded-2xl bg-stone-100/60 border border-stone-200/80 p-4 sm:p-5 text-[11px] text-zinc-500 leading-relaxed">
+          <p className="font-semibold text-zinc-700 mb-1.5">⚠ 使用提醒</p>
+          <ul className="space-y-1 list-disc list-inside marker:text-zinc-400">
+            <li>本工具計算結果為 <strong>估算值</strong>,實際施工請依現場狀況(樓板高低、樑柱位置、管線走向)調整。</li>
+            <li>材料用量建議 <strong>多備 5-10% 餘量</strong>,涵蓋現場切割損耗、量錯、板材瑕疵備用。</li>
+            <li>結構承重、防火、防水、隔音等專業評估,請洽合格 <strong>結構技師 / 室內裝修專業技術人員</strong>。</li>
+            <li>使用本工具產生之施工結果造成之損失,本工具與木匠學院 <strong>概不負責</strong>。</li>
+          </ul>
+        </footer>
       </main>
     </div>
   );
