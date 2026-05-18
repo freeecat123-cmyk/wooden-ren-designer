@@ -51,6 +51,11 @@ type WorldMortise = {
   sign: 1 | -1;
   depth: number;
   through: boolean;
+  // World-space unit vector pointing OUT of the leg (opening direction).
+  // Negated copy of the rotated m.axis (since m.axis points INTO leg).
+  // Only set when the source Mortise carried an explicit axis override
+  // (compound splay). When null, fall back to dominant-axis legacy path.
+  axisUnit?: { x: number; y: number; z: number } | null;
 };
 
 /**
@@ -2694,6 +2699,17 @@ export function PerspectiveView({
         if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
         else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
         else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
+        // Compound splay: when the Mortise carries an explicit axis override
+        // (Vec3 in part-local frame, pointing INTO the leg), rotate it to world
+        // and negate so axisUnit = mortise OPENING direction (out of leg).
+        // This matches the tenon's outward direction for dot-product alignment.
+        const axisUnit = m.axis
+          ? (() => {
+              const r = rotateXYZ(rx, ry, rz, m.axis!.x, m.axis!.y, m.axis!.z);
+              const mag = Math.hypot(r.x, r.y, r.z) || 1;
+              return { x: -r.x / mag, y: -r.y / mag, z: -r.z / mag };
+            })()
+          : null;
         idx.push({
           partId: part.id,
           entryX: pcx + e.x,
@@ -2703,6 +2719,7 @@ export function PerspectiveView({
           sign: worldSign,
           depth: m.depth,
           through: m.through ?? false,
+          axisUnit,
         });
       }
     }
@@ -3172,6 +3189,14 @@ export function PerspectiveView({
                   case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
                   case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
                 }
+                // Compound splay: t.axis overrides the position-derived outward
+                // direction (still in part-local frame).
+                if (t.axis) {
+                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  lox = t.axis.x / tm;
+                  loy = t.axis.y / tm;
+                  loz = t.axis.z / tm;
+                }
                 const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
                 const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
                 const wRootX = part.origin.x + rRoot.x;
@@ -3183,6 +3208,11 @@ export function PerspectiveView({
                 if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = rOut.x >= 0 ? 1 : -1; }
                 else if (aY >= aZ) { outAxis = "y"; outSign = rOut.y >= 0 ? 1 : -1; }
                 else { outAxis = "z"; outSign = rOut.z >= 0 ? 1 : -1; }
+                // Unit outward in world for axis-aware mortise matching.
+                const outUnit = (() => {
+                  const m = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
+                  return { x: rOut.x / m, y: rOut.y / m, z: rOut.z / m };
+                })();
 
                 // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
                 //
@@ -3200,15 +3230,27 @@ export function PerspectiveView({
                 let bestDist = Infinity;
                 for (const mw of worldMortiseIndex) {
                   if (mw.partId === part.id) continue;
-                  if (mw.axis !== outAxis) continue;
-                  if (mw.sign === outSign) continue;
                   if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
+                  // Compound splay: when both sides expose unit axes, match by
+                  // dot-product alignment. mw.axisUnit is the mortise OPENING
+                  // direction (out of leg) and outUnit is the tenon outward
+                  // direction — they should align positively (near-parallel).
+                  if (mw.axisUnit && t.axis) {
+                    const dot =
+                      mw.axisUnit.x * outUnit.x +
+                      mw.axisUnit.y * outUnit.y +
+                      mw.axisUnit.z * outUnit.z;
+                    if (dot < 0.85) continue;
+                  } else {
+                    if (mw.axis !== outAxis) continue;
+                    if (mw.sign === outSign) continue;
+                  }
                   const dx = mw.entryX - wRootX;
                   const dy = mw.entryY - wRootY;
                   const dz = mw.entryZ - wRootZ;
                   const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                  // 50mm 容忍：parts 可能因斜腳 splay/錯位有些距離
-                  if (d < bestDist && d < 50) { bestDist = d; bestMort = mw; }
+                  // 60mm 容忍（compound splay 允許多一點偏差，原 50mm）
+                  if (d < bestDist && d < 60) { bestDist = d; bestMort = mw; }
                 }
 
                 // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
@@ -3253,6 +3295,36 @@ export function PerspectiveView({
                     ez = explodeMm;
                     break;
                 }
+                // Compound splay: recompute local center along t.axis from the
+                // position-derived face root (lrx, lry, lrz) so the box's long
+                // edge actually points toward the mortise. The explode offset
+                // is also re-aligned along the unit axis.
+                if (t.axis) {
+                  const am2 = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const ux = t.axis.x / am2, uy = t.axis.y / am2, uz = t.axis.z / am2;
+                  lcx = lrx + ux * (effLen / 2);
+                  lcy = lry + uy * (effLen / 2);
+                  lcz = lrz + uz * (effLen / 2);
+                  // explode magnitude derived from position-default outward sign
+                  const eMag = Math.hypot(ex, ey, ez);
+                  if (eMag > 0) {
+                    // position-default outward axis (matches Step-5 defaultLocal)
+                    const dlx =
+                      t.position === "start" ? -1 :
+                      t.position === "end"   ? +1 : 0;
+                    const dly =
+                      t.position === "top"    ? +1 :
+                      t.position === "bottom" ? -1 : 0;
+                    const dlz =
+                      t.position === "left"  ? -1 :
+                      t.position === "right" ? +1 : 0;
+                    const dotS = dlx * ux + dly * uy + dlz * uz;
+                    const eSign = dotS >= 0 ? 1 : -1;
+                    ex = ux * eMag * eSign;
+                    ey = uy * eMag * eSign;
+                    ez = uz * eMag * eSign;
+                  }
+                }
                 lcx += ex; lcy += ey; lcz += ez;
                 // 把 local center 經 part Euler XYZ 旋轉 → 加 part 中心 = world center
                 const rx = part.rotation?.x ?? 0;
@@ -3284,11 +3356,56 @@ export function PerspectiveView({
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
                 const useRoundTenon = isRoundLegPart && t.position === "top";
+
+                // Compound splay: rotate tenon mesh so its long axis aligns
+                // with t.axis. The mesh's default long axis is determined by
+                // t.position (start/end → ±X, top/bottom → ±Y, left/right → ±Z).
+                // We build a part-local quaternion that maps defaultLocal onto
+                // t.axis, then compose with the part's world rotation so the
+                // mesh ends up correctly oriented in world space.
+                const defaultLocal: [number, number, number] =
+                  t.position === "start"  ? [-1, 0, 0] :
+                  t.position === "end"    ? [+1, 0, 0] :
+                  t.position === "top"    ? [ 0, +1, 0] :
+                  t.position === "bottom" ? [ 0, -1, 0] :
+                  t.position === "left"   ? [ 0, 0, -1] :
+                                            [ 0, 0, +1];
+                let extraQ: Quaternion | null = null;
+                if (t.axis) {
+                  const am = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const tx = t.axis.x / am, ty = t.axis.y / am, tz = t.axis.z / am;
+                  const dotL = defaultLocal[0]*tx + defaultLocal[1]*ty + defaultLocal[2]*tz;
+                  if (dotL < 0.9999) {
+                    const cx = defaultLocal[1]*tz - defaultLocal[2]*ty;
+                    const cy = defaultLocal[2]*tx - defaultLocal[0]*tz;
+                    const cz = defaultLocal[0]*ty - defaultLocal[1]*tx;
+                    const cmag = Math.hypot(cx, cy, cz) || 1;
+                    const angle = Math.acos(Math.max(-1, Math.min(1, dotL)));
+                    const s = Math.sin(angle / 2);
+                    extraQ = new Quaternion(
+                      (cx / cmag) * s,
+                      (cy / cmag) * s,
+                      (cz / cmag) * s,
+                      Math.cos(angle / 2),
+                    );
+                  }
+                }
+                // Compose: world = partRotation * extraLocal. Apply extra in
+                // part-local frame first, then the part's Euler XYZ ("ZYX" order
+                // in three.js = intrinsic Rx→Ry→Rz, matching rotateXYZ above).
+                const meshQuat = (() => {
+                  if (!extraQ) return null;
+                  const partQ = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  return partQ.multiply(extraQ);
+                })();
+
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
                     position={[wx, wy, wz]}
-                    rotation={new Euler(rx, ry, rz, "ZYX")}
+                    {...(meshQuat
+                      ? { quaternion: meshQuat }
+                      : { rotation: new Euler(rx, ry, rz, "ZYX") })}
                     castShadow
                   >
                     {(() => {
