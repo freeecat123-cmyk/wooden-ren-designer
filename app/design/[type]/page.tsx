@@ -134,7 +134,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   ) {
     redirect(`/pricing?locked=${type}`);
   }
-  const canUseDesignerMode = isAdmin || getPlanFeatures(profile).canUseDesignerMode;
+  // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
+  // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
+  // 不小心讓非付費 user 繞過尺寸上限。
+  const planAllowsDesigner = getPlanFeatures(profile).canUseDesignerMode;
+  const canUseDesignerMode = isAdmin || planAllowsDesigner;
 
   if (!entry.template) {
     return (
@@ -160,9 +164,12 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // 避免被分享連結繞過上限檢查。
   const designerMode = canUseDesignerMode && parsed.designerMode;
   const optionSchema = entry.optionSchema ?? [];
-  // Server-side hard clamp：免費 / 個人版超過 entry.limits 直接縮回上限，
-  // 防止 ?length=800 之類的 URL 繞過。clampedDims 收集被縮的維度供 UI 顯示。
-  const limits = designerMode ? null : entry.limits ?? null;
+  // Server-side hard clamp:雙保險 — 不靠 canUseDesignerMode aggregate flag,
+  // 直接看 plan 權限 + admin。即使 UI 哪天把 toggle 露給 free user(或 designerMode
+  // 旗標被汙染),只要 plan 不允許就強制夾。admin 仍可繞 limit 方便測試。
+  const limits = (planAllowsDesigner || isAdmin) && parsed.designerMode
+    ? null
+    : entry.limits ?? null;
   const length = limits ? Math.min(parsed.length, limits.length) : parsed.length;
   const width = limits ? Math.min(parsed.width, limits.width) : parsed.width;
   const height = limits ? Math.min(parsed.height, limits.height) : parsed.height;
