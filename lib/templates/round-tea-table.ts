@@ -186,6 +186,9 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ],
   };
 
+  // Splay 補正：榫眼旋轉跟著 apron/stretcher cross-tilt
+  const _isSplayedLegPre = legShape.startsWith("splayed-");
+  const _apronTiltPre = _isSplayedLegPre ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
   // 4 隻腳
   const legs: Part[] = [-1, 1].flatMap((sx) =>
     [-1, 1].map((sz) => ({
@@ -224,7 +227,10 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           shoulderOn: ["top", "bottom", "left", "right"] as const,
         },
       ],
-      mortises: [
+      mortises: (() => {
+        const xFaceRotX = -sz * _apronTiltPre;
+        const zFaceRotZ = sx * _apronTiltPre;
+        return [
         // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
         {
           origin: {
@@ -236,6 +242,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
         },
         // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
         {
@@ -248,6 +255,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
         },
         // X-cross 模式：腳上不加軸對齊 mortise（對角榫頭做法手作端要自行決定，
         // 通常用 45° 盲榫或暗銷；3D 視覺仍接合，不影響材料單）
@@ -264,6 +272,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
                 length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
                 width: lsTenonThick,
                 through: lowerTenonType === "through-tenon",
+                ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
               },
               // Z 面（左右對, 上移）— 上半榫
               {
@@ -276,10 +285,12 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
                 length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
                 width: lsTenonThick,
                 through: lowerTenonType === "through-tenon",
+                ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
               },
             ]
           : []),
-      ],
+        ];
+      })(),
     })),
   );
 

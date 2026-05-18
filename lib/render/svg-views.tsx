@@ -252,6 +252,9 @@ export type LocalBox = {
   cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
   hx: number; hy: number; hz: number;     // half-extents
   rotX?: number;                          // 額外繞 part-local X 軸旋轉（弧度）—外撇牆 cosmetic 孔用
+  rotZ?: number;                          // 額外繞 part-local Z 軸旋轉（弧度）—splay 腳 Z-face 牙板榫眼用
+  /** Depth axis（x/y/z）— 用來判斷 rotX 是否「跨 depth 軸」需要 slice-math 補正 */
+  depthAxis?: "x" | "y" | "z";
 };
 
 /**
@@ -657,7 +660,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX };
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX, rotZ: m.rotZ, depthAxis: "y" };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
@@ -668,7 +671,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2 };
+    return { cx: cxL, cy: cyClipped, cz: czClipped, hx: D / 2, hy: useY / 2, hz: useZ / 2, rotX: m.rotX, rotZ: m.rotZ, depthAxis: "x" };
   } else {
     // depthAxis = z：垂直腳上的橫向 mortise（apron / stretcher 進入 leg），
     // 或門橫檔內側面的鑲板槽（length 沿 rail 長度 = X 軸）。
@@ -683,7 +686,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useY = Math.max(0.1, (longOnX ? shortDim : longDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const cyClipped = Math.max(-ly / 2 + useY / 2, Math.min(ly / 2 - useY / 2, oyC));
-    return { cx: cxClipped, cy: cyClipped, cz: czL, hx: useX / 2, hy: useY / 2, hz: D / 2 };
+    return { cx: cxClipped, cy: cyClipped, cz: czL, hx: useX / 2, hy: useY / 2, hz: D / 2, rotX: m.rotX, rotZ: m.rotZ, depthAxis: "z" };
   }
 }
 

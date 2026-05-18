@@ -224,7 +224,14 @@ function subtractMortisesFromGeometry(
     //     （cross-section 預壓成 ellipse，rotation 後 slice 才是正圓 radius=hz）
     //
     // Slice 中心會在 z = hy_wall·tanθ（非 z=0），但 pill 三孔同 cz、同步偏移、仍對齊。
-    const absRot = m.rotX ? Math.abs(m.rotX) : 0;
+    // Slice-math 補正只用在「rotation 軸 ⊥ depth 軸」的情況（外撇牆 cosmetic
+    // 孔：depthAxis=y、rotX 繞 X）。當 rotation 軸 = depth 軸（splay 腳 X-face
+    // 榫眼用 rotX、Z-face 用 rotZ）時，cut box 繞自己 depth 軸轉只是在 face
+    // 平面內旋轉矩形，不需要拉長 depth 或壓縮 perp。
+    const rotAxisPerpToDepth =
+      (m.rotX !== undefined && m.rotX !== 0 && m.depthAxis === "y") ||
+      (m.rotZ !== undefined && m.rotZ !== 0 && m.depthAxis === "y"); // 暫時只 Y-depth 需補正
+    const absRot = rotAxisPerpToDepth ? Math.abs(m.rotX ?? 0) : 0;
     const c = absRot ? Math.cos(absRot) : 1;
     const s = absRot ? Math.sin(absRot) : 0;
     const hyExt = absRot ? (m.hy / c + m.hz * s) : m.hy;
@@ -243,7 +250,10 @@ function subtractMortisesFromGeometry(
     cut.position.set(m.cx, m.cy, m.cz);
     // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
     // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
+    // Splay 腳 X-face 牙板榫眼：rotX 繞 X，旋轉 YZ face 矩形跟牙板 cross-tilt 對齊
     if (m.rotX) cut.rotation.x = m.rotX;
+    // Splay 腳 Z-face 牙板榫眼：rotZ 繞 Z，旋轉 XY face 矩形
+    if (m.rotZ) cut.rotation.z = m.rotZ;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
@@ -3616,6 +3626,8 @@ export function PerspectiveView({
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
                     rotX: lb.rotX,
+                    rotZ: lb.rotZ,
+                    depthAxis: lb.depthAxis,
                   };
                 })
               : undefined;

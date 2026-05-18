@@ -303,6 +303,13 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // 獨立的「背柱」零件 (back-post)，讓座板可以乾乾淨淨坐在 4 隻腳上面，
   // 不會跟後腳穿模。
   const legBaseHeight = seatHeight - seatThickness;
+  // Splay 補正：榫眼旋轉跟著 apron cross-tilt（避免 tenon 角戳出 axis-aligned 母榫）
+  const _isLengthSplayPre = legShape === "splayed" || legShape === "splayed-length";
+  const _isWidthSplayPre = legShape === "splayed" || legShape === "splayed-width";
+  const _splayDxPre = _isLengthSplayPre ? splayMm : 0;
+  const _splayDzPre = _isWidthSplayPre ? splayMm : 0;
+  const _apronXTiltPre = _splayDzPre > 0 && legBaseHeight > 0 ? Math.atan(_splayDzPre / legBaseHeight) : 0;
+  const _apronZTiltPre = _splayDxPre > 0 && legBaseHeight > 0 ? Math.atan(_splayDxPre / legBaseHeight) : 0;
   // 一木連做：後腳延伸到座面上緣（過座板），跟背柱對接；前腳維持 legBaseHeight
   const legs: Part[] = cornerPts.map((c, i) => {
     const isBack = c.z > 0;
@@ -341,6 +348,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const zCenterY = apronY + apronWidth / 2;
         const xCenterY = zCenterY - apronStaggerMm;
         const apronThrough = apronTenonType === "through-tenon";
+        const xFaceRotX = c.z === 0 ? 0 : -Math.sign(c.z) * _apronXTiltPre;
+        const zFaceRotZ = c.x === 0 ? 0 : Math.sign(c.x) * _apronZTiltPre;
         if (apronCanHalfStagger) {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
@@ -350,6 +359,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               length: apronUpperTenonH,
               width: apronTenonThick,
               through: apronThrough,
+              ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫
             {
@@ -358,6 +368,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
               length: apronLowerTenonH,
               width: apronTenonThick,
               through: apronThrough,
+              ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
             },
           ];
         }
@@ -368,6 +379,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
+            ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
           },
           {
             origin: { x: c.x > 0 ? -1 : 1, y: xCenterY, z: 0 },
@@ -375,6 +387,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
+            ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
           },
         ];
       })(),
@@ -930,6 +943,9 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
+      // Splay 補正：跟 apron 同樣的 sign convention
+      const lsXFaceRotX = cz === 0 ? 0 : -Math.sign(cz) * tiltZ;
+      const lsZFaceRotZ = cx === 0 ? 0 : Math.sign(cx) * tiltX;
       if (lowerCanHalfStagger) {
         if (needZFace) {
           leg.mortises.push({
@@ -938,6 +954,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerUpperTenonH,
             width: lowerTenonThick,
             through: lsThrough,
+            ...(lsZFaceRotZ !== 0 ? { rotZ: lsZFaceRotZ } : {}),
           });
         }
         if (needXFace) {
@@ -947,6 +964,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerLowerTenonH,
             width: lowerTenonThick,
             through: lsThrough,
+            ...(lsXFaceRotX !== 0 ? { rotX: lsXFaceRotX } : {}),
           });
         }
       } else {
@@ -957,6 +975,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerTenonW,
             width: lowerTenonThick,
             through: lsThrough,
+            ...(lsZFaceRotZ !== 0 ? { rotZ: lsZFaceRotZ } : {}),
           });
         }
         if (needXFace) {
@@ -966,6 +985,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             length: lowerTenonW,
             width: lowerTenonThick,
             through: lsThrough,
+            ...(lsXFaceRotX !== 0 ? { rotX: lsXFaceRotX } : {}),
           });
         }
       }

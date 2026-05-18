@@ -358,24 +358,34 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
-    mortises: !withApron ? [] : [
-      // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
-      {
-        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
-        depth: apronTenonLen,
-        length: apronHalfTenonH,
-        width: apronTenonThick,
-        through: apronTenonType === "through-tenon",
-      },
-      // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
-      {
-        origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
-        depth: apronTenonLen,
-        length: apronHalfTenonH,
-        width: apronTenonThick,
-        through: apronTenonType === "through-tenon",
-      },
-    ],
+    mortises: !withApron ? [] : (() => {
+      // Splay 補正：榫眼旋轉跟牙板 cross-tilt 對齊（避免 tenon 角戳出 axis-aligned 母榫）
+      // Sign convention 同 square-stool：rotX = -sign(c.z) * tiltZ；rotZ = sign(c.x) * tiltX
+      const apronXTilt = _splayDzPre > 0 && legHeight > 0 ? Math.atan(_splayDzPre / legHeight) : 0;
+      const apronZTilt = _splayDxPre > 0 && legHeight > 0 ? Math.atan(_splayDxPre / legHeight) : 0;
+      const xFaceRotX = c.z === 0 ? 0 : -Math.sign(c.z) * apronXTilt;
+      const zFaceRotZ = c.x === 0 ? 0 : Math.sign(c.x) * apronZTilt;
+      return [
+        // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
+        {
+          origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+          depth: apronTenonLen,
+          length: apronHalfTenonH,
+          width: apronTenonThick,
+          through: apronTenonType === "through-tenon",
+          ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
+        },
+        // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
+        {
+          origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
+          depth: apronTenonLen,
+          length: apronHalfTenonH,
+          width: apronTenonThick,
+          through: apronTenonType === "through-tenon",
+          ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
+        },
+      ];
+    })(),
   });
   });
 
@@ -718,6 +728,9 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
+      // Splay 補正：榫眼跟著下橫撐 cross-tilt 旋轉（同 apron pattern）
+      const lsXFaceRotX = cz === 0 ? 0 : -Math.sign(cz) * tiltZ;
+      const lsZFaceRotZ = cx === 0 ? 0 : Math.sign(cx) * tiltX;
       leg.mortises.push(
         {
           origin: { x: 0, y: lsCenterY + lowerUpperTenonOffset, z: cz > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
@@ -725,6 +738,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
           through: lsThrough,
+          ...(lsZFaceRotZ !== 0 ? { rotZ: lsZFaceRotZ } : {}),
         },
         {
           origin: { x: cx > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: lsCenterY + lowerLowerTenonOffset, z: 0 },
@@ -732,6 +746,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           length: lowerCanHalfStagger ? lowerHalfTenonH : tenonW,
           width: tenonThick,
           through: lsThrough,
+          ...(lsXFaceRotX !== 0 ? { rotX: lsXFaceRotX } : {}),
         },
       );
     }

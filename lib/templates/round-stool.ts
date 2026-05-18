@@ -204,6 +204,9 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     : 0;
   const lowerVisuallyStaggered = lowerStretcherStaggerMm > 0;
 
+  // Splay 補正：榫眼旋轉跟著 apron/stretcher cross-tilt（避免 tenon 角戳出 axis-aligned 母榫）
+  const _isSplayedLegPre = legShape.startsWith("splayed-");
+  const _apronTiltPre = _isSplayedLegPre ? computeSplayGeometry(legHeight, splayAngle).apronTilt : 0;
   const legs: Part[] = [-1, 1].flatMap((sx) =>
     [-1, 1].map((sz) => ({
       id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
@@ -250,7 +253,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 牙板：靜止 Z（左右）= 上半榫；移動 X（前後，下移）= 下半榫
       // 下橫撐：靜止 X（前後）= 下半榫；移動 Z（左右，上移）= 上半榫
       // 圓腳系列強制 blind（曲面不可穿）；only 方/方錐/splayed-tapered 才允許 through
-      mortises: [
+      mortises: (() => {
+        // 圓凳 4 角對角外斜：兩軸 tilt 相同 = apronTilt
+        const xFaceRotX = -sz * _apronTiltPre;
+        const zFaceRotZ = sx * _apronTiltPre;
+        return [
         ...(withApron
           ? [
               // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
@@ -264,6 +271,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
                 width: apronTenonThick,
                 through: apronTenonType === "through-tenon",
+                ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
               },
               // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
               {
@@ -276,6 +284,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
                 width: apronTenonThick,
                 through: apronTenonType === "through-tenon",
+                ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
               },
             ]
           : []),
@@ -292,6 +301,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
                 width: lsTenonThick,
                 through: lowerTenonType === "through-tenon",
+                ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
               },
               // Z 面（左/右對, 抬高 staggerMm）— 上半榫
               {
@@ -304,10 +314,12 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
                 length: lowerCanHalfStagger ? lowerHalfTenonH : lsTenonW,
                 width: lsTenonThick,
                 through: lowerTenonType === "through-tenon",
+                ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
               },
             ]
           : []),
-      ],
+        ];
+      })(),
     })),
   );
 
