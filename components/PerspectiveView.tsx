@@ -3528,9 +3528,16 @@ export function PerspectiveView({
                   >
                     {(() => {
                       const SHRINK_MM = 0.5;
-                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
-                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
-                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
+                      // Only shrink the CROSS-SECTION (real z-fight risk against
+                      // mortise walls). Keep the long axis at full effLen so the
+                      // root face sits flush with the parent's shoulder face —
+                      // shrinking it lifts the root by 0.5mm and shows as a gap.
+                      const isLongAxisX = (t.position === "start" || t.position === "end");
+                      const isLongAxisY = (t.position === "top" || t.position === "bottom");
+                      const isLongAxisZ = !isLongAxisX && !isLongAxisY;
+                      const sx = (isLongAxisX ? hx : Math.max(0.05, hx - SHRINK_MM)) * 2 * SCALE;
+                      const sy = (isLongAxisY ? hy : Math.max(0.05, hy - SHRINK_MM)) * 2 * SCALE;
+                      const sz = (isLongAxisZ ? hz : Math.max(0.05, hz - SHRINK_MM)) * 2 * SCALE;
                       if (useRoundTenon) {
                         return (
                           <cylinderGeometry args={[
