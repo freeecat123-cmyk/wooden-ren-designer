@@ -1846,9 +1846,20 @@ export function OrthoView({
         ];
         const isHiddenAt = makeHiddenChecker(part, renderDesign.parts, view);
         const lines: React.ReactNode[] = [];
+        // 主面板（座板 / 桌面）俯視 outline：viewBox 大（790×872）經 SVG scale ≈0.75
+        // 後 sw=0.9→0.67 css px 變 sub-pixel anti-aliased 灰，整個座板實線消失。
         // 立柱可見邊用粗線 1.4；零件圖模式（isolatePartId）下 0.9 在 1x 螢幕
         // 還是 sub-pixel anti-aliased 灰，提到 1.2 才穩定渲染 1 css px 純黑
-        const visibleSw = isolatePartId ? 1.5 : isCornerPost ? 1.4 : 0.9;
+        const isMainPanelTopView =
+          view === "top" &&
+          (part.id === "seat" || part.id === "top" || part.id === "table-top");
+        const visibleSw = isolatePartId
+          ? 1.5
+          : isCornerPost
+            ? 1.4
+            : isMainPanelTopView
+              ? 1.8
+              : 0.9;
         const visibleStroke = "#000";
         for (let i = 0; i < 4; i++) {
           const a = corners[i];
@@ -3330,11 +3341,11 @@ export function MaterialList({
   const sortedCategories = CATEGORY_ORDER.filter((c) => byCategory.has(c));
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-auto max-h-[70vh] md:max-h-none md:overflow-x-auto print:max-h-none print:overflow-visible">
     <table className="w-full text-sm min-w-[760px]">
-      <thead className="bg-zinc-100">
+      <thead className="bg-zinc-100 sticky top-0 z-20">
         <tr>
-          <th className="text-left p-2">零件</th>
+          <th className="text-left p-2 sticky left-0 z-30 bg-zinc-100">零件</th>
           <th className="text-left p-2">材質</th>
           <th className="text-right p-2">可見長 × 寬 × 厚 (mm)</th>
           <th className="text-right p-2">切料尺寸 (mm)</th>
@@ -3382,16 +3393,23 @@ export function MaterialList({
                 const piecesPrefix = pieces > 1 ? `${pieces} 片 × ` : "";
                 const isSelected = selectedPartId === part.id;
                 const interactive = !!onPartClick;
+                // sticky 第一欄需自帶 bg 避免下方 cell 從後面透出來；
+                // 跟 row 狀態同步：選中=amber-100、hover=amber-50、預設=white
+                const firstColBg = isSelected
+                  ? "bg-amber-100"
+                  : interactive
+                    ? "bg-white group-hover:bg-amber-50"
+                    : "bg-white";
                 return (
                   <tr
                     key={part.id}
                     data-part-id={part.id}
                     onClick={interactive ? () => onPartClick!(part.id) : undefined}
-                    className={`border-b border-zinc-100 ${
+                    className={`group border-b border-zinc-100 ${
                       interactive ? "cursor-pointer hover:bg-amber-50" : ""
                     } ${isSelected ? "bg-amber-100 ring-2 ring-amber-400" : ""}`}
                   >
-                    <td className="p-2 pl-3 relative">
+                    <td className={`p-2 pl-3 relative sticky left-0 z-10 ${firstColBg}`}>
                       <span className={`absolute left-0 top-0 bottom-0 w-1 ${color.bar} opacity-50`} />
                       {part.nameZh}
                       {pieces > 1 && (
