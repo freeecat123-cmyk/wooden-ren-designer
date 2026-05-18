@@ -106,6 +106,16 @@ function sortByDifficulty(entries: FurnitureCatalogEntry[]) {
   );
 }
 
+/** 全部 view 專用排序:免費 3 件置頂,其餘按難度。 */
+function sortAllFreeFirst(entries: FurnitureCatalogEntry[]) {
+  return [...entries].sort((a, b) => {
+    const aPaid = isPaidCategory(a.category) ? 1 : 0;
+    const bPaid = isPaidCategory(b.category) ? 1 : 0;
+    if (aPaid !== bPaid) return aPaid - bPaid; // 免費 (0) 在前
+    return DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
+  });
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -115,7 +125,10 @@ export default async function Home({
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
 
-  const furniture = sortByDifficulty(filterByChip(FURNITURE_CATALOG, chip));
+  const filtered = filterByChip(FURNITURE_CATALOG, chip);
+  const furniture = chip === "all"
+    ? sortAllFreeFirst(filtered)
+    : sortByDifficulty(filtered);
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
   const visibleCount =
