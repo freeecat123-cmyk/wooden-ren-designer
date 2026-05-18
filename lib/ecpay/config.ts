@@ -17,6 +17,12 @@ export const ECPAY_AIO_URL =
     ? "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5"
     : "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
 
+/** 信用卡定期定額終止/查詢的 Action URL */
+export const ECPAY_CREDIT_PERIOD_ACTION_URL =
+  ECPAY_ENV === "production"
+    ? "https://payment.ecpay.com.tw/Cashier/CreditCardPeriodAction"
+    : "https://payment-stage.ecpay.com.tw/Cashier/CreditCardPeriodAction";
+
 /** 後端組 callback URL 用的網域 */
 export function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
