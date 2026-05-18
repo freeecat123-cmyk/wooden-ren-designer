@@ -162,12 +162,13 @@ export default async function Home({
       <StudentLoginHint />
       <header className="mb-12">
         <div className="flex items-center gap-4 mb-4">
-          <img
+          <Image
             src="/brand-logo.png"
             alt="木頭仁 木作藍圖"
             width={64}
             height={64}
             className="rounded-xl shadow-sm ring-1 ring-zinc-200 shrink-0"
+            priority
           />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -272,8 +273,15 @@ export default async function Home({
                     需專業版(個人版以上)
                   </p>
                 </div>
-                <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-amber-100 to-amber-200 ring-1 ring-amber-200 group-hover:ring-amber-300 transition flex items-center justify-center text-5xl">
-                  ▣
+                <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-amber-50 to-amber-100 ring-1 ring-amber-200 group-hover:ring-amber-300 transition">
+                  <Image
+                    src="/thumbs/v2/ceiling.webp"
+                    alt="天花板骨架施工模擬器 3D 爆炸圖"
+                    fill
+                    sizes="(min-width: 640px) 128px, 112px"
+                    quality={80}
+                    style={{ objectFit: "contain" }}
+                  />
                 </div>
               </div>
             </Link>
