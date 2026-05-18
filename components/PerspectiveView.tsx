@@ -3503,8 +3503,18 @@ export function PerspectiveView({
                   const maxCornerProj =
                     (Math.abs(cross1.dot(defaultWorld)) * h1 / SCALE +
                      Math.abs(cross2.dot(defaultWorld)) * h2 / SCALE);
-                  // worst corner 推到 parent face 外 0.05mm（不重疊 + 不留可見縫）
-                  const halfLenWorld = (Math.abs(effLen) / 2 - maxCornerProj - 0.05) * SCALE;
+                  // apron-trapezoid 加額外 scale 突出量：若 parent 有 trapezoid shape、
+                  // 拿 top/bottomScale 算 max length offset（material 比 nominal end face 突）
+                  let trapExtra = 0;
+                  if (part.shape?.kind === "apron-trapezoid") {
+                    const topS = part.shape.topLengthScale ?? 1;
+                    const botS = part.shape.bottomLengthScale ?? 1;
+                    // 最遠端面位於 max(topS, botS) * lx / 2、距 nominal end face = (max - 1) * lx/2
+                    const maxScale = Math.max(topS, botS);
+                    trapExtra = Math.max(0, (maxScale - 1) * (part.visible.length / 2));
+                  }
+                  // worst corner 推到 parent 實際材料邊外 0.05mm
+                  const halfLenWorld = (Math.abs(effLen) / 2 - maxCornerProj - trapExtra - 0.05) * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
                   const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
 
