@@ -517,16 +517,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronCombinedSides.map((s) => {
     const apronB = s.axis === "x" ? apronBX : apronBZ;
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    // axis-specific：單向斜也觸發 tenon axis（axis="x" 牙條只受 splayDx、axis="z" 只受 splayDz）
+    const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    // axis="z" 牙條 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
+    // axis="z" 牙條 end at part-local +X → world -Z（Rx π/2 + Ry π/2 後）
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
       : null;
-    const tenonAxisEnd = isCompoundSplay
+    const tenonAxisEnd = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
       : null;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
@@ -613,16 +615,18 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const frCenterY = footrestHeight + footRestWidth / 2;
   const frB = buildSides(frCenterY, footRestWidth, "腳踏");
   const footRests: Part[] = frB.sides.map((s) => {
-    // Compound splay only — helper returns world-frame tenon direction per end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    // axis-specific：單向斜也觸發 tenon axis（axis="x" 腳踏只受 splayDx、axis="z" 只受 splayDz）
+    const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    // axis="z" 腳踏 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
-    const frTenonAxisStart = isCompoundSplay
+    // axis="z" 腳踏 end at part-local +X → world -Z（Rx π/2 + Ry π/2 後）
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const frTenonAxisStart = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
       : null;
-    const frTenonAxisEnd = isCompoundSplay
+    const frTenonAxisEnd = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
       : null;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
