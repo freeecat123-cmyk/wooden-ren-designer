@@ -9,7 +9,7 @@ import { CatalogSearch } from "@/components/CatalogSearch";
 import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
 
 interface SearchParams {
-  view?: string;
+  cat?: string;
 }
 
 export const metadata: Metadata = {
@@ -20,53 +20,37 @@ export const metadata: Metadata = {
 };
 
 /**
- * 首頁設計（第一性原理重排版）：
+ * 首頁 v3：視覺優先大圖網格（第一性原理）
  *
- * 使用者進來想知道的根本問題：
- *   1. 我想做哪「類」家具（桌？椅？櫃？）→ 按類別分組
- *   2. 我的程度能做嗎 → 難度色塊
- *   3. 尺寸大概多少 → 預設 W×D×H
- *   4. 一眼看出選哪個 → 卡片視覺簡化、不要花俏 hover
+ * 使用者進來 3 秒內想知道:
+ *   1. 我能做什麼 → 全圖列表一目瞭然
+ *   2. 看起來怎樣 → 3D 縮圖佔卡片 75%
+ *   3. 我會嗎 → 難度用單色 dot (綠/黃/紅) 自說自話
+ *   4. 我有資格 → 付費 🔒 角標,免費不標
  *
- * 19 件家具一字排列太雜亂，分 4 大類後使用者只要瀏覽自己關心的群組。
+ * 砍掉:依類別 vs 依程度 view toggle、卡片內 5 件 meta 雜訊、
+ * 分組 section 隔板、難度圖例說明字。
+ * 用頂部 chip 篩單一條件,搜尋走 CatalogSearch。
  */
 
-const DIFFICULTY_LABEL = {
-  beginner: "入門",
-  intermediate: "中階",
-  advanced: "進階",
-} as const;
+type CatKey = "all" | "seating" | "table" | "cabinet" | "accessories" | "tool";
 
-const DIFFICULTY_COLOR = {
-  beginner: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  intermediate: "bg-amber-100 text-amber-800 ring-amber-200",
-  advanced: "bg-rose-100 text-rose-800 ring-rose-200",
-} as const;
-
-interface CategoryGroup {
-  key: string;
-  emoji: string;
-  title: string;
-  description: string;
-  match: (c: FurnitureCategory) => boolean;
-}
-
-/** 4 大類分組規則。順序 = 主頁顯示順序 */
-const GROUPS: CategoryGroup[] = [
+const CATEGORY_CHIPS: Array<{
+  key: CatKey;
+  label: string;
+  match?: (c: FurnitureCategory) => boolean;
+}> = [
+  { key: "all", label: "全部" },
   {
     key: "seating",
-    emoji: "🪑",
-    title: "椅凳類",
-    description: "凳、椅、長凳——日常坐用家具",
+    label: "椅凳",
     match: (c) =>
       c === "stool" || c === "bench" || c === "dining-chair" ||
       c === "bar-stool" || c === "round-stool",
   },
   {
     key: "table",
-    emoji: "🪵",
-    title: "桌類",
-    description: "茶几、邊桌、餐桌、書桌——含圓桌系列",
+    label: "桌",
     match: (c) =>
       c === "tea-table" || c === "side-table" || c === "low-table" ||
       c === "dining-table" || c === "desk" ||
@@ -74,9 +58,7 @@ const GROUPS: CategoryGroup[] = [
   },
   {
     key: "cabinet",
-    emoji: "📦",
-    title: "櫃類",
-    description: "書櫃、斗櫃、鞋櫃、衣櫃、床頭櫃、電視櫃",
+    label: "櫃",
     match: (c) =>
       c === "open-bookshelf" || c === "chest-of-drawers" ||
       c === "shoe-cabinet" || c === "display-cabinet" ||
@@ -84,73 +66,44 @@ const GROUPS: CategoryGroup[] = [
   },
   {
     key: "accessories",
-    emoji: "🎁",
-    title: "小物件",
-    description: "筆筒、書擋、相框、托盤、盒子、紅酒架",
+    label: "小物",
     match: (c) =>
       c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
-  {
-    key: "other",
-    emoji: "🚧",
-    title: "開發中家具",
-    description: "規劃中、尚未開放——敬請期待",
-    match: () => true,
-  },
+  { key: "tool", label: "工具" },
 ];
+
+const DIFFICULTY_DOT = {
+  beginner: "bg-emerald-500",
+  intermediate: "bg-amber-500",
+  advanced: "bg-rose-500",
+} as const;
+
+const DIFFICULTY_LABEL = {
+  beginner: "入門",
+  intermediate: "中階",
+  advanced: "進階",
+} as const;
 
 const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
 
-/**
- * 開發中家具——卡片 disabled、上方覆蓋「敬請期待」遮罩。
- * 這些 category 不在 GROUPS 任一明確 match，會落到 fallback 「開發中家具」群組。
- */
+/** 開發中家具:卡片半透明、不可點、上覆「敬請期待」chip */
 const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
   "chinese-cabinet", "bed", "coat-rack",
 ]);
 
-function groupFurniture(entries: FurnitureCatalogEntry[]) {
-  const used = new Set<string>();
-  return GROUPS.map((g) => {
-    const items = entries
-      .filter((e) => {
-        if (used.has(e.category)) return false;
-        if (!g.match(e.category)) return false;
-        used.add(e.category);
-        return true;
-      })
-      .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]);
-    return { ...g, items };
-  }).filter((g) => g.items.length > 0);
+function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
+  if (chip === "all" || chip === "tool") return entries;
+  const def = CATEGORY_CHIPS.find((c) => c.key === chip);
+  if (!def?.match) return entries;
+  return entries.filter((e) => def.match!(e.category));
 }
 
-const DIFFICULTY_GROUPS = [
-  {
-    key: "beginner" as const,
-    emoji: "🌱",
-    title: "入門",
-    description: "簡單組裝、少榫卯——第一次拿木工工具就能做",
-  },
-  {
-    key: "intermediate" as const,
-    emoji: "🪚",
-    title: "中階",
-    description: "簡單榫接、細部修飾——上過幾次課的學員適合",
-  },
-  {
-    key: "advanced" as const,
-    emoji: "🛠️",
-    title: "進階",
-    description: "複雜榫卯、抽屜門板——進階木工挑戰",
-  },
-];
-
-function groupByDifficulty(entries: FurnitureCatalogEntry[]) {
-  return DIFFICULTY_GROUPS.map((g) => ({
-    ...g,
-    items: entries.filter((e) => e.difficulty === g.key),
-  })).filter((g) => g.items.length > 0);
+function sortByDifficulty(entries: FurnitureCatalogEntry[]) {
+  return [...entries].sort(
+    (a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty],
+  );
 }
 
 export default async function Home({
@@ -159,23 +112,29 @@ export default async function Home({
   searchParams?: Promise<SearchParams>;
 }) {
   const sp = (await searchParams) ?? {};
-  const view = sp.view === "level" ? "level" : "category";
+  const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
-  const grouped = groupFurniture(FURNITURE_CATALOG);
-  const groupedByLevel = groupByDifficulty(FURNITURE_CATALOG);
+
+  const furniture = sortByDifficulty(filterByChip(FURNITURE_CATALOG, chip));
+  const showTools = chip === "all" || chip === "tool";
+  const showFurniture = chip !== "tool";
+  const visibleCount =
+    (showFurniture ? furniture.length : 0) + (showTools ? 1 : 0);
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-12">
+    <main className="max-w-7xl mx-auto px-5 sm:px-6 py-10 sm:py-12">
       <PerspectivePrefetch />
       <StudentLoginHint />
-      <header className="mb-12">
-        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 mb-6">
+
+      {/* Hero */}
+      <header className="mb-8 sm:mb-10">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
           <Image
             src="/brand-logo.png"
             alt="木頭仁 木作藍圖"
             width={180}
             height={180}
-            className="rounded-2xl shadow-md ring-1 ring-zinc-200 shrink-0 w-40 h-40 md:w-44 md:h-44"
+            className="rounded-2xl shadow-md ring-1 ring-zinc-200 shrink-0 w-36 h-36 md:w-44 md:h-44"
             priority
           />
           <div className="flex-1 min-w-0">
@@ -190,278 +149,187 @@ export default async function Home({
               做木工最花時間的從來不是動手——是先把圖畫對、料算準、工序排好。
               這個工具把這三件事壓進 3 秒鐘。
             </p>
-            <p className="mt-2 max-w-2xl text-zinc-600 leading-relaxed">
-              選一件家具、填長寬高,自動出 <strong className="text-zinc-900">3D 透視圖、
-              工程三視圖、榫卯細節、切料尺寸、工具清單、製作工序</strong>。
-              切料長度已內建台灣木匠慣例——榫頭凸出量、肩位距離、伸縮預留都幫你算好了,
+            <p className="mt-2 max-w-2xl text-zinc-600 leading-relaxed text-sm">
+              選一件家具、填長寬高,自動出 3D 透視圖、工程三視圖、榫卯細節、
+              切料尺寸、工具清單與製作工序。切料長度已內建台灣木匠慣例,
               拿著材料單就能直接進工坊開鋸。
             </p>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-500">
-          <span>
-            <strong className="text-zinc-900 font-semibold">{ready}</strong> 種家具範本
-          </span>
-          <span>
-            <strong className="text-zinc-900 font-semibold">6</strong> 種木材
-          </span>
-          <span>
-            <strong className="text-zinc-900 font-semibold">10+</strong> 種榫卯結構
-          </span>
-          <span>
-            <strong className="text-zinc-900 font-semibold">{grouped.length}</strong> 大分類
-          </span>
-        </div>
-
-        {/* 難度色塊圖例（教使用者怎麼讀卡片） */}
-        <div className="mt-5 flex flex-wrap gap-2 text-xs">
-          <span className="text-zinc-500">難度標示：</span>
-          {(["beginner", "intermediate", "advanced"] as const).map((d) => (
-            <span
-              key={d}
-              className={`px-2 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[d]}`}
-            >
-              {DIFFICULTY_LABEL[d]}
-            </span>
-          ))}
-          <span className="text-zinc-500 ml-auto">點擊卡片進入設計器</span>
         </div>
       </header>
 
       <CatalogSearch />
 
-      {/* 視圖切換：依類別 vs 依難度 */}
-      <div className="mb-6 inline-flex gap-1 p-1 bg-zinc-100 rounded-lg text-sm">
-        <Link
-          href="/"
-          className={`px-3 py-1.5 rounded transition ${
-            view === "category"
-              ? "bg-white text-zinc-900 shadow-sm font-medium"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          📂 依類別
-        </Link>
-        <Link
-          href="/?view=level"
-          className={`px-3 py-1.5 rounded transition ${
-            view === "level"
-              ? "bg-white text-zinc-900 shadow-sm font-medium"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          🎯 依程度
-        </Link>
+      {/* 分類 chip row */}
+      <nav className="mt-5 mb-5 -mx-5 sm:mx-0 px-5 sm:px-0 overflow-x-auto scrollbar-hide">
+        <div className="inline-flex gap-1.5 min-w-max">
+          {CATEGORY_CHIPS.map((c) => {
+            const active = chip === c.key;
+            const href = c.key === "all" ? "/" : `/?cat=${c.key}`;
+            return (
+              <Link
+                key={c.key}
+                href={href}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition ${
+                  active
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                }`}
+              >
+                {c.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* 計數 + 圖例 */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500">
+        <span>
+          顯示 <strong className="text-zinc-900 font-semibold tabular-nums">{visibleCount}</strong>
+          {" / "}
+          <span className="tabular-nums">{ready + 1}</span> 件
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />入門
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />中階
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />進階
+          </span>
+        </div>
+        <span className="text-zinc-400">🔒 = 付費版才能進入</span>
       </div>
 
-      <div className="space-y-12">
-        {/* ▣ 木作工具 — 永遠排在最上面,不受視圖切換影響(階段 4) */}
-        <section>
-          <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
-            <span className="text-2xl leading-none" aria-hidden>🔨</span>
-            <h2 className="text-xl font-semibold text-zinc-800">木作工具</h2>
-            <span className="text-xs text-zinc-500 font-medium">裝潢 / 施工 專業工具</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <Link
-              href="/ceiling"
-              className="group block rounded-lg border bg-gradient-to-br from-amber-50 via-white to-stone-50 border-amber-200 hover:border-amber-400 hover:shadow-md transition p-4"
-            >
-              <div className="flex gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
-                      <span title="專業版以上" className="text-amber-600">🔒</span>
-                      天花板骨架施工模擬器
-                    </h3>
-                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 ring-1 ring-amber-200">
-                      Pro 工具
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
-                    輸入房間長 × 短 × 板高,自動算邊框 / 主支 / 副支 / 吊筋 / 矽酸鈣板用量
-                    與裁料,3D 軸測 + 爆炸 + 燈具碰撞檢查。
-                  </p>
-                  <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
-                    2D 俯視 · 3D 軸測 · 裁料計算
-                  </p>
-                  <p className="mt-1 text-[10px] text-amber-700 font-medium">
-                    需專業版(個人版以上)
-                  </p>
-                </div>
-                <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-amber-50 to-amber-100 ring-1 ring-amber-200 group-hover:ring-amber-300 transition">
-                  <Image
-                    src="/thumbs/v2/ceiling.webp"
-                    alt="天花板骨架施工模擬器 3D 爆炸圖"
-                    fill
-                    sizes="(min-width: 640px) 128px, 112px"
-                    quality={80}
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-              </div>
-            </Link>
-          </div>
-        </section>
-
-        {view === "level"
-          ? groupedByLevel.map((group) => (
-              <section key={group.key} id={group.key} data-catalog-group>
-                <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
-                  <span className="text-2xl leading-none" aria-hidden>
-                    {group.emoji}
-                  </span>
-                  <h2 className="text-xl font-semibold text-zinc-800">
-                    {group.title}
-                  </h2>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[group.key]}`}
-                  >
-                    {DIFFICULTY_LABEL[group.key]}
-                  </span>
-                  <span className="text-xs text-zinc-500 font-medium">
-                    {group.items.length} 件
-                  </span>
-                  <span className="text-sm text-zinc-500 ml-auto hidden sm:inline">
-                    {group.description}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {group.items.map((item) => (
-                    <FurnitureCard key={item.category} item={item} />
-                  ))}
-                </div>
-              </section>
-            ))
-          : grouped.map((group) => (
-              <section key={group.key} id={group.key} data-catalog-group>
-                <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
-                  <span className="text-2xl leading-none" aria-hidden>
-                    {group.emoji}
-                  </span>
-                  <h2 className="text-xl font-semibold text-zinc-800">
-                    {group.title}
-                  </h2>
-                  <span className="text-xs text-zinc-500 font-medium">
-                    {group.items.length} 件
-                  </span>
-                  <span className="text-sm text-zinc-500 ml-auto hidden sm:inline">
-                    {group.description}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {group.items.map((item) => (
-                    <FurnitureCard key={item.category} item={item} />
-                  ))}
-                </div>
-              </section>
-            ))}
+      {/* 大圖網格 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        {showTools && <CeilingToolCard />}
+        {showFurniture &&
+          furniture.map((item) => (
+            <FurnitureCard key={item.category} item={item} />
+          ))}
       </div>
-
     </main>
+  );
+}
+
+function CeilingToolCard() {
+  return (
+    <Link
+      href="/ceiling"
+      data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
+      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md transition"
+    >
+      {/* Top-right markers */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+        <span
+          title="專業工具"
+          className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-semibold shadow-sm"
+        >
+          PRO
+        </span>
+      </div>
+      <div className="absolute inset-x-0 top-0 h-[72%] flex items-center justify-center">
+        <Image
+          src="/thumbs/v2/ceiling.webp"
+          alt="天花板骨架 3D 爆炸圖"
+          width={240}
+          height={180}
+          quality={80}
+          style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
+        />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex items-center justify-between border-t border-amber-200/60 bg-white/70 backdrop-blur-sm">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          🔨 天花板骨架
+        </span>
+      </div>
+    </Link>
   );
 }
 
 function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const paid = isPaidCategory(item.category);
-  // localhost (npm run dev) 不鎖、可進去測；Vercel preview/production 才鎖
-  const inDevelopment =
-    DEVELOPMENT_CATEGORIES.has(item.category) &&
-    process.env.NODE_ENV !== "development";
-  const searchTokens = [
-    item.nameZh,
-    item.category,
-    item.description,
-  ]
+  const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
+  const searchTokens = [item.nameZh, item.category, item.description]
     .filter(Boolean)
     .join(" ");
-  // 開發中：渲染成 div 不可點，整張覆蓋半透明灰 + 中央「敬請期待」chip
+  const dotClass = DIFFICULTY_DOT[item.difficulty];
+
+  // 開發中:不可點、灰遮罩 + 中央 chip
   if (inDevelopment) {
     return (
       <div
         data-catalog-search={searchTokens}
         aria-disabled="true"
-        className="group relative block rounded-lg border border-zinc-200 bg-white p-4 opacity-60 cursor-not-allowed select-none"
+        className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-zinc-200 opacity-60 cursor-not-allowed select-none"
       >
-        <span className="absolute inset-0 z-10 flex items-start justify-center pt-3 pointer-events-none">
+        <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
           <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
             🚧 敬請期待
           </span>
         </span>
-        <CardBody item={item} paid={paid} />
+        <CardThumb item={item} />
+        <CardFooter item={item} dotClass={dotClass} paid={paid} />
       </div>
     );
   }
+
   return (
     <Link
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
-      className={`group block rounded-lg border bg-white p-4 transition ${
-        paid
-          ? "border-zinc-200 hover:border-amber-400 hover:shadow-sm"
-          : "border-emerald-200 hover:border-emerald-400 hover:shadow-sm"
-      }`}
+      title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
+      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:shadow-md transition"
     >
-      <CardBody item={item} paid={paid} />
+      {/* Top-right corner markers */}
+      {paid && (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/90 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title="付費版">🔒</span>
+        </div>
+      )}
+      <CardThumb item={item} />
+      <CardFooter item={item} dotClass={dotClass} paid={paid} />
     </Link>
   );
 }
 
-function CardBody({ item, paid }: { item: FurnitureCatalogEntry; paid: boolean }) {
+function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
   return (
-    <div className="flex gap-3">
-      {/* 左：文字資訊 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
-            {paid && (
-              <span title="付費版才能進入" className="text-amber-600">🔒</span>
-            )}
-            {!paid && (
-              <span title="免費版可用" className="text-emerald-600">✨</span>
-            )}
-            {item.nameZh}
-          </h3>
-          <span
-            className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[item.difficulty]}`}
-          >
-            {DIFFICULTY_LABEL[item.difficulty]}
-          </span>
-        </div>
-        <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
-          {item.description}
-        </p>
-        <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
-          {item.defaults.length} × {item.defaults.width} × {item.defaults.height} mm
-        </p>
-        {!item.template && (
-          <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
-        )}
-        {paid && (
-          <p className="mt-1 text-[10px] text-amber-700 font-medium">
-            需付費版（個人 / 專業）
-          </p>
-        )}
-        {!paid && (
-          <p className="mt-1 text-[10px] text-emerald-700 font-medium">
-            🆓 免費可用
-          </p>
-        )}
-      </div>
+    <div className="absolute inset-x-0 top-0 h-[72%] flex items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100">
+      <Image
+        src={`/thumbs/v2/${item.category}.webp`}
+        alt={`${item.nameZh} 3D 預覽`}
+        width={240}
+        height={180}
+        quality={80}
+        style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
+      />
+    </div>
+  );
+}
 
-      {/* 右：縮圖（純 3D 渲染、4:3 對齊不裁邊） */}
-      <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
-        <Image
-          src={`/thumbs/v2/${item.category}.webp`}
-          alt={`${item.nameZh} 3D 預覽`}
-          fill
-          sizes="(min-width: 640px) 128px, 112px"
-          quality={80}
-          style={{ objectFit: "contain" }}
-        />
-      </div>
+function CardFooter({
+  item,
+  dotClass,
+  paid,
+}: {
+  item: FurnitureCatalogEntry;
+  dotClass: string;
+  paid: boolean;
+}) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex items-center justify-between border-t border-zinc-100 bg-white">
+      <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+        {item.nameZh}
+      </span>
+      <span
+        className={`shrink-0 w-2.5 h-2.5 rounded-full ${dotClass}`}
+        title={DIFFICULTY_LABEL[item.difficulty]}
+      />
     </div>
   );
 }
