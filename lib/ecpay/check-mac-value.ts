@@ -30,7 +30,7 @@ export function calculateCheckMacValue(
   hashIv: string,
 ): string {
   const entries = Object.entries(params)
-    .filter(([k, v]) => k !== "CheckMacValue" && v !== undefined && v !== null && v !== "")
+    .filter(([k, v]) => k !== "CheckMacValue" && v !== undefined && v !== null)
     .sort(([a], [b]) =>
       a.toLowerCase().localeCompare(b.toLowerCase()),
     );
