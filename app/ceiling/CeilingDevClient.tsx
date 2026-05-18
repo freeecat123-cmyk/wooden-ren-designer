@@ -36,6 +36,15 @@ import {
   checkFixtureCollisions,
   makeDefaultFixture,
 } from "@/lib/ceiling/fixtures";
+import { BrandedHeader } from "@/components/branding/BrandedHeader";
+
+interface CustomerInfo {
+  name: string;
+  phone: string;
+  address: string;
+  notes: string;
+}
+const EMPTY_CUSTOMER: CustomerInfo = { name: "", phone: "", address: "", notes: "" };
 
 export function CeilingDevClient() {
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
@@ -57,6 +66,8 @@ export function CeilingDevClient() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [fixturesOpen, setFixturesOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [customer, setCustomer] = useState<CustomerInfo>(EMPTY_CUSTOMER);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const collisions = useMemo(() => checkFixtureCollisions(fixtures, bom), [fixtures, bom]);
   const addFixture = (kind: FixtureKind) =>
     setFixtures((prev) => [...prev, makeDefaultFixture(kind, input.longSideCm, input.shortSideCm, prev.length)]);
@@ -78,6 +89,7 @@ export function CeilingDevClient() {
         if (data.input) {
           setInput((prev) => ({ ...prev, ...data.input.input || data.input }));
           if (data.input.fixtures) setFixtures(data.input.fixtures);
+          if (data.input.customer) setCustomer(data.input.customer);
           setShareCode(code);
           setShareStatus("saved");
         } else {
@@ -94,7 +106,7 @@ export function CeilingDevClient() {
       const res = await fetch("/api/ceiling/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: { input, fixtures } }),
+        body: JSON.stringify({ input: { input, fixtures, customer } }),
       });
       const data = await res.json();
       if (!data.code) throw new Error(data.error || "no code");
@@ -227,12 +239,35 @@ export function CeilingDevClient() {
         </div>
       </header>
 
-      {/* 列印時頂部顯示的標題列(平常隱藏) */}
-      <div className="hidden print:block px-5 py-3 border-b border-stone-300">
-        <h1 className="text-lg font-bold text-zinc-900">木作天花板骨架施工模擬器</h1>
-        <p className="text-xs text-zinc-600 mt-1">
+      {/* 列印時頂部顯示的標題列 + 客戶 TO(平常隱藏) */}
+      <div className="hidden print:block px-5 pt-4 pb-2 border-b border-stone-300">
+        <div className="flex items-start justify-between gap-6">
+          <BrandedHeader />
+          <div className="text-right text-[11px] text-zinc-700">
+            <p className="font-bold text-sm text-zinc-900">天花板骨架材料採購清單</p>
+            <p className="mt-0.5">日期:{new Date().toLocaleDateString("zh-TW")}</p>
+            {shareCode && <p className="text-zinc-500 font-mono">案場 #{shareCode}</p>}
+          </div>
+        </div>
+        {(customer.name || customer.address || customer.phone) && (
+          <div className="mt-3 pt-2 border-t border-stone-200 grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="text-zinc-500">客戶:</span>
+              <span className="ml-1 font-semibold">{customer.name || "—"}</span>
+              {customer.phone && <span className="ml-3 text-zinc-700">{customer.phone}</span>}
+            </div>
+            <div className="text-right">
+              <span className="text-zinc-500">案場:</span>
+              <span className="ml-1 text-zinc-700">{customer.address || "—"}</span>
+            </div>
+            {customer.notes && (
+              <div className="col-span-2 text-zinc-600">備註:{customer.notes}</div>
+            )}
+          </div>
+        )}
+        <p className="text-[10px] text-zinc-500 mt-2">
           長 {input.longSideCm} × 短 {input.shortSideCm} × 板高 {input.slabHeightCm} × 天花板高 {input.ceilingHeightCm} cm
-          · {r2(bom.auto.pingShu)} 坪 · 木匠學院出品
+          · {r2(bom.auto.pingShu)} 坪
         </p>
       </div>
 
@@ -301,6 +336,57 @@ export function CeilingDevClient() {
               </div>
             </section>
 
+        {/* ============ 客戶資料(列印 PDF 帶入頂部) ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden print:hidden">
+          <button onClick={() => setCustomerOpen(!customerOpen)}
+            className="w-full px-5 py-3 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">📇 客戶資料</h2>
+              <span className="text-[11px] text-zinc-600">
+                {customer.name ? customer.name : "未填(列印不顯示)"}
+              </span>
+            </div>
+            <span className="text-zinc-400 text-xs">{customerOpen ? "▲" : "▼"}</span>
+          </button>
+          {customerOpen && (
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <label className="block">
+                <span className="text-zinc-600 block mb-1">客戶姓名</span>
+                <input type="text" value={customer.name}
+                  onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                  placeholder="王先生 / 林設計師"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block">
+                <span className="text-zinc-600 block mb-1">聯絡電話</span>
+                <input type="text" value={customer.phone}
+                  onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                  placeholder="09xx-xxx-xxx"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-zinc-600 block mb-1">案場地址</span>
+                <input type="text" value={customer.address}
+                  onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                  placeholder="台北市信義區 ___ 路 ___ 號"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-zinc-600 block mb-1">備註</span>
+                <textarea value={customer.notes}
+                  onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
+                  rows={2}
+                  placeholder="施作期 / 特別需求 / 收費對象..."
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500 resize-none" />
+              </label>
+              <p className="sm:col-span-2 text-[10px] text-zinc-500">
+                客戶資料只用於 PDF 列印 + 短碼分享(讓師傅/客戶確認案場)。
+                LOGO/公司資訊請去 <a href="/settings" className="text-amber-700 hover:underline">設定頁</a> 自訂。
+              </p>
+            </div>
+          )}
+        </section>
+
         {/* ============ 6 重點數字 ============ */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <Stat icon="◬" tone="amber" label="坪數" value={r2(bom.auto.pingShu)} unit="坪"
@@ -318,7 +404,7 @@ export function CeilingDevClient() {
         </section>
 
         {/* ============ 參數卡(全部可調) ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm">
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm print:hidden">
           <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
             <span className="text-[11px] text-zinc-600">改任何值,圖與材料表即時重算</span>
@@ -437,7 +523,7 @@ export function CeilingDevClient() {
         </section>
 
         {/* ============ 燈具 / 開孔 ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden print:hidden">
           <button onClick={() => setFixturesOpen(!fixturesOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2 flex-wrap">
@@ -529,7 +615,7 @@ export function CeilingDevClient() {
         </section>
 
         {/* ============ 裁切計算器 ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden print:hidden">
           <button onClick={() => setCutOpen(!cutOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
@@ -702,6 +788,24 @@ export function CeilingDevClient() {
           </button>
           {traceOpen && <TracePanel bom={bom} />}
         </section>
+          </div>
+        </div>
+
+        {/* 列印用簽收欄(平常隱藏) */}
+        <div className="hidden print:block mt-6 pt-4 border-t border-stone-300">
+          <div className="grid grid-cols-3 gap-4 text-[11px] text-zinc-700">
+            <div>
+              <p className="mb-8">師傅 / 木工:</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">簽名</div>
+            </div>
+            <div>
+              <p className="mb-8">客戶 / 業主:</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">簽名</div>
+            </div>
+            <div>
+              <p className="mb-8">日期:______ / ____ / ____</p>
+              <div className="border-t border-zinc-400 pt-1 text-center text-[10px] text-zinc-500">確認</div>
+            </div>
           </div>
         </div>
 
