@@ -34,7 +34,7 @@ export async function GET() {
     const { data, error } = await svc
       .from("users")
       .select(
-        "id, email, plan, subscription_status, student_activated_at, student_expires_at, created_at",
+        "id, email, plan, subscription_status, subscription_expires_at, student_activated_at, student_expires_at, created_at",
       )
       .order("created_at", { ascending: false });
 

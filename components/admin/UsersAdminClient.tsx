@@ -8,6 +8,7 @@ interface UserRow {
   email: string;
   plan: string;
   subscription_status: string | null;
+  subscription_expires_at?: string | null;
   student_activated_at: string | null;
   student_expires_at: string | null;
   created_at: string;
@@ -50,6 +51,7 @@ export function UsersAdminClient() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
 
   async function load() {
     setLoading(true);
@@ -155,6 +157,7 @@ export function UsersAdminClient() {
               <th className="text-left px-3 py-2 w-28">註冊日期</th>
               <th className="text-left px-3 py-2 w-28">學員啟用</th>
               <th className="text-left px-3 py-2 w-28">學員到期</th>
+              <th className="text-left px-3 py-2 w-20">動作</th>
             </tr>
           </thead>
           <tbody>
@@ -180,11 +183,20 @@ export function UsersAdminClient() {
                 <td className="px-3 py-2 text-xs font-mono">
                   {fmtDate(r.student_expires_at)}
                 </td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(r)}
+                    className="text-xs px-2 py-0.5 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                  >
+                    編輯
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && !loading && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-zinc-500 text-sm">
+                <td colSpan={7} className="px-3 py-8 text-center text-zinc-500 text-sm">
                   {rows.length === 0 ? "尚無註冊用戶" : "沒有符合條件的用戶"}
                 </td>
               </tr>
@@ -192,6 +204,185 @@ export function UsersAdminClient() {
           </tbody>
         </table>
       </div>
+
+      {editingUser && (
+        <EditPlanModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSaved={() => {
+            setEditingUser(null);
+            void load();
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+function EditPlanModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [plan, setPlan] = useState(user.plan);
+  const [status, setStatus] = useState(user.subscription_status ?? "active");
+  const [expires, setExpires] = useState<string>(
+    user.subscription_expires_at
+      ? new Date(user.subscription_expires_at).toISOString().slice(0, 10)
+      : "",
+  );
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    setErr(null);
+    try {
+      const body: Record<string, string | null> = { plan, reason };
+      // free / lifetime 自動清 expires_at（後端也會處理、前端統一顯示）
+      if (plan === "free" || plan === "lifetime") {
+        body.subscription_expires_at = null;
+        body.subscription_status = plan === "lifetime" ? "active" : "inactive";
+      } else {
+        body.subscription_status = status;
+        body.subscription_expires_at = expires
+          ? new Date(expires + "T23:59:59+08:00").toISOString()
+          : null;
+      }
+      const res = await fetch(`/api/admin/users/${user.id}/plan`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(typeof j.error === "string" ? j.error : `HTTP ${res.status}`);
+      }
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setQuickExpires(days: number) {
+    const d = new Date(Date.now() + days * 86_400_000);
+    setExpires(d.toISOString().slice(0, 10));
+  }
+
+  const noExpires = plan === "free" || plan === "lifetime";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg w-full max-w-md p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-semibold text-zinc-900 text-lg mb-3">
+          編輯方案
+        </h3>
+        <p className="text-xs text-zinc-500 mb-3 font-mono break-all">{user.email}</p>
+
+        <label className="block text-xs text-zinc-600 mb-1">方案</label>
+        <select
+          value={plan}
+          onChange={(e) => setPlan(e.target.value)}
+          className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-3"
+        >
+          <option value="free">免費版</option>
+          <option value="personal">個人版</option>
+          <option value="pro">專業版</option>
+          <option value="lifetime">終身版</option>
+          <option value="student">學員版</option>
+        </select>
+
+        {!noExpires && (
+          <>
+            <label className="block text-xs text-zinc-600 mb-1">訂閱狀態</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-3"
+            >
+              <option value="active">active</option>
+              <option value="cancelled">cancelled</option>
+              <option value="expired">expired</option>
+              <option value="inactive">inactive</option>
+            </select>
+
+            <label className="block text-xs text-zinc-600 mb-1">到期日</label>
+            <input
+              type="date"
+              value={expires}
+              onChange={(e) => setExpires(e.target.value)}
+              className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-2"
+            />
+            <div className="flex gap-1 mb-3 flex-wrap">
+              {[
+                { label: "+30 天", days: 30 },
+                { label: "+90 天", days: 90 },
+                { label: "+1 年", days: 365 },
+                { label: "+2 年", days: 730 },
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => setQuickExpires(opt.days)}
+                  className="text-xs px-2 py-0.5 rounded border border-zinc-300 bg-white hover:bg-zinc-50"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <label className="block text-xs text-zinc-600 mb-1">
+          原因（可選、僅 log）
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="例：手動退款、白名單朋友、學員年費續訂"
+          className="w-full border border-zinc-300 rounded px-2 py-1.5 text-sm mb-3"
+        />
+
+        {err && (
+          <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded p-2 mb-3">
+            {err}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm px-3 py-1.5 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+            disabled={saving}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="text-sm px-3 py-1.5 rounded bg-amber-500 text-white font-medium hover:bg-amber-600 disabled:opacity-50"
+          >
+            {saving ? "儲存中…" : "儲存"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
