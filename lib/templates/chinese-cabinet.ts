@@ -427,13 +427,20 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
   const layerHeightsRaw = userLayerHeightsMm.slice(0, layerCount);
 
   // 幾何規劃：4 立柱接地貫穿全高，牙條外掛在立柱底外側（傳統明式）
-  // 立柱：Y [0, height − topThickness]
+  // 立柱：Y [0, height − topThickness]（直柱 / 馬蹄足）
+  //       Y [skirtHeight, height − topThickness]（圓角櫃側腳 splay：立柱底端齊牙條頂面，
+  //       避免 splay shift 在 y=0 把立柱底角推出牙條下緣造成穿模；
+  //       splayMmGlobal / splayShiftAt 仍以 y=0 作參考錨點，讓 rail/skirt/panel
+  //       共用同一條 splay 斜線、跟立柱對齊不留縫）
   // 牙條：Y [0, skirtHeight]，跟立柱底外側共存
   // 上下抹：上抹底面 = postTopY − railWidth；下抹底面 = skirtHeight（牙條頂）
   // 內部空間 = 上下抹之間
   const postTopY = height - topThickness;
-  const postBottomY = 0;
+  // postHeight 保持全高（splayShiftAt 斜線參考錨點 = 地板 y=0）；
+  // 圓角櫃 splay 模式 postBottomY 抬到牙條頂、實際立柱長度為 postRenderHeight。
+  const postBottomY = isRoundCorner ? skirtHeight : 0;
   const postHeight = postTopY;
+  const postRenderHeight = postTopY - postBottomY;
   // 圓角櫃 splay：立柱底端外擴 splayMm。所有 frame / rail / 牙條 / 層板都按
   // 各自的 Y 高度算實際 X/Z 跨距，確保跟 splayed 立柱對齊不留縫。
   const splayMmGlobal = isRoundCorner
@@ -553,7 +560,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: `${fbLabel}${lrLabel}立柱`,
         material,
         grainDirection: "length",
-        visible: { length: postSize, width: postSize, thickness: postHeight },
+        visible: { length: postSize, width: postSize, thickness: postRenderHeight },
         origin: { x: sx * postX, y: postBottomY, z: sz * postZ },
         ...(postShape ? { shape: postShape } : {}),
         tenons: postExposedTenon,
