@@ -986,6 +986,30 @@ export function OrthoView({
               ? 1.4
               : 0.9;
         const dash = hidden ? "4 3" : undefined;
+        // 玻璃片（visual === "glass"）特例：玻璃 5mm 比門框 22mm 薄，4 條 outline
+        // 邊在 HLE 都會落在 frame 內判 hidden → 全部變灰虛線消失。改用工程圖
+        // 慣例「淡色矩形外框 + 45° 對角細線雙條」表明這是透明玻璃片。
+        if (part.visual === "glass") {
+          const r = projectPart(part, view);
+          // top view 看玻璃只看到 5mm 厚的細長條，視覺意義低 → 維持原 rendering
+          // （讓 HLE 跑、灰虛線無妨）。只有 front/side 才畫 hatching。
+          if (view === "front" || view === "side") {
+            const x1 = r.x, x2 = r.x + r.w;
+            const y1 = -(r.y + r.h), y2 = -r.y;
+            return (
+              <g key={part.id}>
+                {/* 外框：淡灰實線 */}
+                <rect x={x1} y={y1} width={r.w} height={r.h}
+                  fill="none" stroke="#9ca3af" strokeWidth={0.7} />
+                {/* 對角線 ×：左上 → 右下 + 右上 → 左下 */}
+                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke="#9ca3af" strokeWidth={0.4} opacity={0.6} />
+                <line x1={x2} y1={y1} x2={x1} y2={y2}
+                  stroke="#9ca3af" strokeWidth={0.4} opacity={0.6} />
+              </g>
+            );
+          }
+        }
         // arch-bent + rotation.x（傾斜彎弧料，例如 Windsor bow）正視特例：
         // 前面 vs 背面在 Y 軸偏移 lz·sin(rake)/2，分開畫前面實線、背面 HLE 分段
         if (
@@ -3340,8 +3364,11 @@ export function MaterialList({
   }
   const sortedCategories = CATEGORY_ORDER.filter((c) => byCategory.has(c));
 
+  // isolate 建立獨立 stacking context——避免內部 sticky thead / 第一欄 z-index
+  // 穿透到 MobileShell 上方的 sticky 3D viewer (z-10)。wrap 自己 z-auto 整塊
+  // 滑到 3D viewer 底下。
   return (
-    <div className="overflow-auto max-h-[70vh] md:max-h-none md:overflow-x-auto print:max-h-none print:overflow-visible">
+    <div className="isolate overflow-auto max-h-[70vh] md:max-h-none md:overflow-x-auto print:max-h-none print:overflow-visible">
     <table className="w-full text-sm min-w-[760px]">
       <thead className="bg-zinc-100 sticky top-0 z-20">
         <tr>
