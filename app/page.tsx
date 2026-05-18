@@ -86,21 +86,29 @@ const GROUPS: CategoryGroup[] = [
     key: "accessories",
     emoji: "🎁",
     title: "小物件",
-    description: "筆筒、書擋、相框、托盤、盒子、紅酒架、衣帽架",
+    description: "筆筒、書擋、相框、托盤、盒子、紅酒架",
     match: (c) =>
       c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
-      c === "tray" || c === "dovetail-box" || c === "wine-rack" || c === "coat-rack",
+      c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
   {
     key: "other",
-    emoji: "✨",
-    title: "其他",
-    description: "尚未分類的特殊家具",
+    emoji: "🚧",
+    title: "開發中家具",
+    description: "規劃中、尚未開放——敬請期待",
     match: () => true,
   },
 ];
 
 const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+
+/**
+ * 開發中家具——卡片 disabled、上方覆蓋「敬請期待」遮罩。
+ * 這些 category 不在 GROUPS 任一明確 match，會落到 fallback 「開發中家具」群組。
+ */
+const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
+  "chinese-cabinet", "bed", "coat-rack",
+]);
 
 function groupFurniture(entries: FurnitureCatalogEntry[]) {
   const used = new Set<string>();
@@ -358,6 +366,7 @@ export default async function Home({
 
 function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const paid = isPaidCategory(item.category);
+  const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
   const searchTokens = [
     item.nameZh,
     item.category,
@@ -365,6 +374,23 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   ]
     .filter(Boolean)
     .join(" ");
+  // 開發中：渲染成 div 不可點，整張覆蓋半透明灰 + 中央「敬請期待」chip
+  if (inDevelopment) {
+    return (
+      <div
+        data-catalog-search={searchTokens}
+        aria-disabled="true"
+        className="group relative block rounded-lg border border-zinc-200 bg-white p-4 opacity-60 cursor-not-allowed select-none"
+      >
+        <span className="absolute inset-0 z-10 flex items-start justify-center pt-3 pointer-events-none">
+          <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
+            🚧 敬請期待
+          </span>
+        </span>
+        <CardBody item={item} paid={paid} />
+      </div>
+    );
+  }
   return (
     <Link
       href={`/design/${item.category}`}
@@ -375,58 +401,64 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
           : "border-emerald-200 hover:border-emerald-400 hover:shadow-sm"
       }`}
     >
-      <div className="flex gap-3">
-        {/* 左：文字資訊 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
-              {paid && (
-                <span title="付費版才能進入" className="text-amber-600">🔒</span>
-              )}
-              {!paid && (
-                <span title="免費版可用" className="text-emerald-600">✨</span>
-              )}
-              {item.nameZh}
-            </h3>
-            <span
-              className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[item.difficulty]}`}
-            >
-              {DIFFICULTY_LABEL[item.difficulty]}
-            </span>
-          </div>
-          <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
-            {item.description}
-          </p>
-          <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
-            {item.defaults.length} × {item.defaults.width} × {item.defaults.height} mm
-          </p>
-          {!item.template && (
-            <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
-          )}
-          {paid && (
-            <p className="mt-1 text-[10px] text-amber-700 font-medium">
-              需付費版（個人 / 專業）
-            </p>
-          )}
-          {!paid && (
-            <p className="mt-1 text-[10px] text-emerald-700 font-medium">
-              🆓 免費可用
-            </p>
-          )}
-        </div>
-
-        {/* 右：縮圖（純 3D 渲染、4:3 對齊不裁邊） */}
-        <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
-          <Image
-            src={`/thumbs/v2/${item.category}.webp`}
-            alt={`${item.nameZh} 3D 預覽`}
-            fill
-            sizes="(min-width: 640px) 128px, 112px"
-            quality={80}
-            style={{ objectFit: "contain" }}
-          />
-        </div>
-      </div>
+      <CardBody item={item} paid={paid} />
     </Link>
+  );
+}
+
+function CardBody({ item, paid }: { item: FurnitureCatalogEntry; paid: boolean }) {
+  return (
+    <div className="flex gap-3">
+      {/* 左：文字資訊 */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
+            {paid && (
+              <span title="付費版才能進入" className="text-amber-600">🔒</span>
+            )}
+            {!paid && (
+              <span title="免費版可用" className="text-emerald-600">✨</span>
+            )}
+            {item.nameZh}
+          </h3>
+          <span
+            className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ring-1 ${DIFFICULTY_COLOR[item.difficulty]}`}
+          >
+            {DIFFICULTY_LABEL[item.difficulty]}
+          </span>
+        </div>
+        <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
+          {item.description}
+        </p>
+        <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
+          {item.defaults.length} × {item.defaults.width} × {item.defaults.height} mm
+        </p>
+        {!item.template && (
+          <p className="mt-1 text-[11px] text-amber-700">尚未實作</p>
+        )}
+        {paid && (
+          <p className="mt-1 text-[10px] text-amber-700 font-medium">
+            需付費版（個人 / 專業）
+          </p>
+        )}
+        {!paid && (
+          <p className="mt-1 text-[10px] text-emerald-700 font-medium">
+            🆓 免費可用
+          </p>
+        )}
+      </div>
+
+      {/* 右：縮圖（純 3D 渲染、4:3 對齊不裁邊） */}
+      <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-200 ring-1 ring-zinc-200 group-hover:ring-amber-300 transition">
+        <Image
+          src={`/thumbs/v2/${item.category}.webp`}
+          alt={`${item.nameZh} 3D 預覽`}
+          fill
+          sizes="(min-width: 640px) 128px, 112px"
+          quality={80}
+          style={{ objectFit: "contain" }}
+        />
+      </div>
+    </div>
   );
 }
