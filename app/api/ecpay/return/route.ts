@@ -1,17 +1,20 @@
 /**
  * POST /api/ecpay/return
- *   綠界 ReturnURL — server-to-server 付款結果通知。
+ *   綠界 ReturnURL — server-to-server 付款結果通知（一次性 + 定期定額首期共用）
  *
  * 收到後流程:
- *   1. 驗 CheckMacValue（HMAC SHA256），不過直接視為偽造
+ *   1. 驗 CheckMacValue
  *   2. 透過 MerchantTradeNo 撈回 placeholder subscription
  *   3. RtnCode === "1" 視為成功:
- *        - subscriptions.status = active, expires_at = now + 30 / 365 天（依金額判斷）
- *        - users.plan / subscription_status / subscription_expires_at 同步更新
+ *        - 定期定額（params 含 PeriodType）→ expires_at = now + 31 天，存 gwsr
+ *        - 一次性年付 → expires_at = now + 365 天
+ *        - users.plan / subscription_status / subscription_expires_at 更新
  *        - payments insert status=success
  *   4. RtnCode !== "1" 視為失敗:
  *        - payments insert status=failed（subscription 維持 expired）
  *   5. 一律回 "1|OK"（200）— 否則綠界會狂重送
+ *
+ *   月扣定期定額第 2 期以後走 /api/ecpay/periodic-notify
  */
 import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -32,9 +35,12 @@ function parseEcpayDate(s: string | undefined): string | null {
   ).toISOString();
 }
 
-/** 由金額反推週期：≥ 2000 視為年付，其餘月付。Phase 1 沒 lifetime 所以這樣就夠 */
-function detectPeriodFromAmount(amount: number): "monthly" | "yearly" {
-  return amount >= 2000 ? "yearly" : "monthly";
+/**
+ * 判斷這筆是定期定額還是一次性付款。
+ * 綠界定期定額回呼帶 PeriodType / PeriodAmount 欄位，一次性不會有。
+ */
+function isPeriodicReturn(params: Record<string, string>): boolean {
+  return Boolean(params.PeriodType && params.PeriodAmount);
 }
 
 export async function POST(req: NextRequest) {
@@ -86,8 +92,10 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  const period = detectPeriodFromAmount(amount);
-  const days = period === "yearly" ? 365 : 30;
+  const periodic = isPeriodicReturn(params);
+  // 月扣定期定額 → 給 31 天緩衝（綠界月扣會在 30 天時自動扣下一期）
+  // 年付一次性 → 365 天
+  const days = periodic ? 31 : 365;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + days * 86_400_000).toISOString();
   const paymentDate = parseEcpayDate(params.PaymentDate) ?? now.toISOString();
@@ -98,6 +106,7 @@ export async function POST(req: NextRequest) {
       status: "active",
       started_at: now.toISOString(),
       expires_at: expiresAt,
+      ecpay_periodic_no: periodic ? params.gwsr ?? null : null,
     })
     .eq("id", sub.id);
   if (upSubErr) console.error("[ecpay/return] 更新 subscription 失敗", upSubErr);

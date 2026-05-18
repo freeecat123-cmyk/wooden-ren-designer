@@ -98,17 +98,11 @@ export function MySubscriptionClient() {
         )}
 
         {!isStudent && (profile?.plan === "personal" || profile?.plan === "pro") && (
-          <div>
-            <h2 className="font-semibold text-zinc-900 mb-1">
-              {PLAN_LABEL[profile.plan]}
-            </h2>
-            <p className="text-sm text-zinc-600">
-              到期日：{formatDate(profile.subscription_expires_at)}
-            </p>
-            <p className="text-sm text-zinc-500 mt-1">
-              狀態：{profile.subscription_status}
-            </p>
-          </div>
+          <PaidPlanSection
+            planLabel={PLAN_LABEL[profile.plan]}
+            expiresAt={profile.subscription_expires_at}
+            status={profile.subscription_status}
+          />
         )}
 
         {!profile || profile.plan === "free" ? (
@@ -124,6 +118,85 @@ export function MySubscriptionClient() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+function PaidPlanSection({
+  planLabel,
+  expiresAt,
+  status,
+}: {
+  planLabel: string;
+  expiresAt: string | null;
+  status: string;
+}) {
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isActive = status === "active";
+  const isCancelled = status === "cancelled" || cancelled;
+
+  async function handleCancel() {
+    if (cancelling) return;
+    const ok = window.confirm(
+      "取消後將停止下個月自動扣款。\n目前到期日內方案仍可正常使用，到期後自動降為免費版。\n\n確定要取消訂閱嗎？",
+    );
+    if (!ok) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/cancel-subscription", { method: "POST" });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? `HTTP ${r.status}`);
+      }
+      setCancelled(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "取消失敗，請稍後再試");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="font-semibold text-zinc-900 mb-1">{planLabel}</h2>
+      <p className="text-sm text-zinc-600">
+        到期日：{formatDate(expiresAt)}
+      </p>
+      <p className="text-sm text-zinc-500 mt-1">
+        狀態：{isCancelled ? "已取消（到期前仍可用）" : status}
+      </p>
+
+      {isActive && !isCancelled && (
+        <div className="mt-5 pt-4 border-t border-zinc-200">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="text-xs text-zinc-500 hover:text-red-600 underline underline-offset-2 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {cancelling ? "取消中…" : "取消訂閱（停止下個月自動扣款）"}
+          </button>
+          {error && (
+            <p className="mt-2 text-xs text-red-600">⚠️ {error}</p>
+          )}
+        </div>
+      )}
+
+      {isCancelled && (
+        <div
+          className="mt-4 rounded-lg p-3 border"
+          style={{ background: "#fff8ee", borderColor: "#d4a574" }}
+        >
+          <p className="text-xs text-[#7c4f1a] leading-relaxed">
+            已停止自動扣款。{formatDate(expiresAt)} 之前仍可使用，之後自動降為免費版。
+            想恢復可隨時到 <Link href="/pricing" className="underline">/pricing</Link> 重新訂閱。
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 

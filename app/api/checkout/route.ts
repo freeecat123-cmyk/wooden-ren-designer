@@ -25,6 +25,7 @@ import {
 import {
   buildAioParams,
   buildAutoSubmitHtml,
+  buildPeriodicParams,
   generateOrderId,
   getAioUrl,
 } from "@/lib/ecpay/create-order";
@@ -117,13 +118,18 @@ export async function POST(req: NextRequest) {
     } as Record<string, unknown>,
   });
 
-  const params = buildAioParams({
+  // 月付走信用卡定期定額（每月自動扣）；年付走一次性付款
+  const orderInput = {
     orderId,
     amount,
     itemName,
     description: `${PLAN_NAME_ZH[plan]} ${periodLabel}訂閱`,
     email: user.email ?? undefined,
-  });
+  };
+  const params =
+    period === "monthly"
+      ? buildPeriodicParams({ ...orderInput, periodAmount: amount })
+      : buildAioParams(orderInput);
   const html = buildAutoSubmitHtml(getAioUrl(), params);
   return new Response(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },

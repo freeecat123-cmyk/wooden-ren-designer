@@ -1,8 +1,10 @@
 /**
- * 綠界 AioCheckOut 一次性付款 — 組參數、產生 auto-submit HTML、產生訂單編號
+ * 綠界 AioCheckOut 訂單組裝
  *
- * 月付 / 年付目前都走「一次性扣款」+ 我們自己算 expires_at（30 / 365 天）。
- * 定期定額（PeriodAmount/PeriodType/Frequency/ExecTimes）等綠界後台開通後再加。
+ * 月付 → 走信用卡定期定額（PeriodAmount/PeriodType=M/Frequency=1/ExecTimes=99）
+ * 年付 → 走一次性付款（一年扣一次）
+ *
+ * 兩種都用同一個 AioCheckOut endpoint，差別在 ChoosePayment + 是否帶 Period* 欄位。
  */
 import { calculateCheckMacValue } from "./check-mac-value";
 import {
@@ -54,6 +56,62 @@ export function buildAioParams(input: OneTimeOrderInput): Record<string, string>
   };
   if (input.email) params.Email = input.email;
 
+  params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
+  return params;
+}
+
+/**
+ * 信用卡定期定額（月扣）參數
+ *
+ * 限制：
+ *  - 只能用信用卡（ChoosePayment=Credit）
+ *  - PeriodAmount 必須跟 TotalAmount 相同（首期 = 每期金額）
+ *  - 同張卡 / 同商店 / 同金額不可同時存在多筆未終止的定期定額（重複會被綠界擋）
+ *  - 月扣金額限 NT$5 ~ NT$99,999
+ */
+export interface PeriodicOrderInput extends OneTimeOrderInput {
+  /** 每期扣款金額（NTD） */
+  periodAmount: number;
+}
+
+export function buildPeriodicParams(input: PeriodicOrderInput): Record<string, string> {
+  const baseUrl = getBaseUrl();
+  const params: Record<string, string> = {
+    MerchantID: ECPAY_MERCHANT_ID,
+    MerchantTradeNo: input.orderId,
+    MerchantTradeDate: formatTradeDate(new Date()),
+    PaymentType: "aio",
+    TotalAmount: String(input.amount),
+    TradeDesc: input.description.slice(0, 200),
+    ItemName: input.itemName.slice(0, 200),
+    ReturnURL: `${baseUrl}/api/ecpay/return`,
+    ClientBackURL: `${baseUrl}/my-subscription?paid=1`,
+    ChoosePayment: "Credit",
+    EncryptType: "1",
+
+    // 定期定額專屬欄位
+    PeriodAmount: String(input.periodAmount),
+    PeriodType: "M",
+    Frequency: "1",
+    ExecTimes: "99",
+    PeriodReturnURL: `${baseUrl}/api/ecpay/periodic-notify`,
+  };
+  if (input.email) params.Email = input.email;
+
+  params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
+  return params;
+}
+
+/** 終止信用卡定期定額（綠界 Action API） */
+export function buildPeriodicTerminateParams(
+  merchantTradeNo: string,
+): Record<string, string> {
+  const params: Record<string, string> = {
+    MerchantID: ECPAY_MERCHANT_ID,
+    MerchantTradeNo: merchantTradeNo,
+    Action: "Terminate",
+    TotalAmount: "0",
+  };
   params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
   return params;
 }
