@@ -162,7 +162,7 @@ export function CeilingDevClient() {
           <div className="w-full min-w-0 order-2 lg:order-1 space-y-5">
             {/* 4 大輸入 */}
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+              <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
                 <HeroInput icon="↔" label="長邊" value={input.longSideCm} suffix="cm"
                   onChange={(v) => update("longSideCm", v)} />
                 <HeroInput icon="↕" label="短邊" value={input.shortSideCm} suffix="cm"
@@ -175,7 +175,7 @@ export function CeilingDevClient() {
             </section>
 
         {/* ============ 6 重點數字 ============ */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <Stat icon="◬" tone="amber" label="坪數" value={r2(bom.auto.pingShu)} unit="坪"
             hint={`${r2(bom.auto.roomAreaM2)} m²`} />
           <Stat icon="▭" tone="stone" label="邊框" value={r1(bom.items[0].totalLengthM ?? 0)} unit="m"
@@ -196,7 +196,7 @@ export function CeilingDevClient() {
             <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
             <span className="text-[11px] text-zinc-400">改任何值,圖與材料表即時重算</span>
           </div>
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-5">
             {/* 排版 */}
             <ParamGroup icon="⇆" title="排版基準">
               <Toggle3 label="主支(沿長邊)" value={input.alignmentBase}
