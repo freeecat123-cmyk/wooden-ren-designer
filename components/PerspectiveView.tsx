@@ -3572,7 +3572,14 @@ export function PerspectiveView({
                     // side cross2 -1: 0,4,6 + 0,6,2
                     0, 4, 6,  0, 6, 2,
                   ]);
-                  return { positions, indices };
+                  // 計算 vertex normals（用 BufferGeometry.computeVertexNormals 一次性）
+                  const tmpGeo = new BufferGeometry();
+                  tmpGeo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+                  tmpGeo.setIndex(Array.from(indices));
+                  tmpGeo.computeVertexNormals();
+                  const normalAttr = tmpGeo.getAttribute("normal");
+                  const normals = new Float32Array(normalAttr.array);
+                  return { positions, indices, normals };
                 })() : null;
 
                 const meshPos: [number, number, number] = useShearedBox
@@ -3620,6 +3627,10 @@ export function PerspectiveView({
                             <bufferAttribute
                               attach="attributes-position"
                               args={[shearedGeom.positions, 3]}
+                            />
+                            <bufferAttribute
+                              attach="attributes-normal"
+                              args={[shearedGeom.normals, 3]}
                             />
                             <bufferAttribute
                               attach="index"
