@@ -33,9 +33,12 @@ export type HighlightCategory = "frame" | "main" | "sub" | "board" | null;
 export function CeilingOverviewSvg({
   bom,
   highlight = null,
+  subLengthFilter = null,
 }: {
   bom: CeilingBom;
   highlight?: HighlightCategory;
+  /** 副支高亮時,只亮特定長度(其他副支變淡) */
+  subLengthFilter?: number | null;
 }) {
   const { input, trace } = bom;
   // 高亮邏輯:有 highlight 時非匹配的 group 變淡
@@ -140,9 +143,7 @@ export function CeilingOverviewSvg({
       </g>
 
       {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
-      <g opacity={dim("sub")}>
-        {renderSubJoists(trace, x0, innerY0, tw)}
-      </g>
+      {renderSubJoists(trace, x0, innerY0, tw, dim("sub"), subLengthFilter)}
 
       {/* ────── 7. 尺寸標註 ────── */}
       {/* 長邊 — 頂部 */}
@@ -195,17 +196,21 @@ function renderSubJoists(
   x0: number,
   innerY0: number,
   tw: number,
+  baseOpacity: number,
+  subLengthFilter: number | null,
 ) {
-  // 副支 Y 位置由 calc.ts trace 給(套 subAlignmentBase),SVG 不再自算
-  // 每根副支長度 = slotWidth − tw(對接兩側,calc.ts 已算進 BOM)
-  const subThickness = Math.max(0.8, tw * 0.6); // 視覺細一點,跟主支區分
+  // 副支 Y 位置由 calc.ts trace 給,SVG 不再自算
+  const subThickness = Math.max(0.8, tw * 0.6);
   const elements: React.ReactNode[] = [];
 
   for (let si = 0; si < trace.slots.length; si++) {
     const slot = trace.slots[si];
-    // BUG 3 fix:slot.from/to 已是 face 位置(Model B),不再 padding tw/2
     const xStart = x0 + slot.fromCm;
     const xEnd = x0 + slot.toCm;
+    // 長度 filter:選了特定長度時,其他長度副支變淡(在 baseOpacity 基礎上再 × 0.12)
+    const matchesLengthFilter =
+      subLengthFilter == null || Math.abs(slot.subJoistLengthCm - subLengthFilter) < 0.5;
+    const op = baseOpacity * (matchesLengthFilter ? 1 : 0.12);
     for (let i = 0; i < trace.subJoistYOffsetsCm.length; i++) {
       const yCenter = innerY0 + trace.subJoistYOffsetsCm[i];
       elements.push(
@@ -218,6 +223,7 @@ function renderSubJoists(
           fill="#71717a"
           stroke="#3f3f46"
           strokeWidth={0.2}
+          opacity={op}
         />,
       );
     }

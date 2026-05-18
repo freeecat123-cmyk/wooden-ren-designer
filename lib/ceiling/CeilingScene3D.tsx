@@ -36,6 +36,8 @@ interface CeilingScene3DProps {
   explode: number;        // 0..1
   layers: Record<LayerKey, boolean>;
   highlight?: Scene3DHighlight;
+  /** 副支高亮時只亮特定長度,其他副支變淡 */
+  subLengthFilter?: number | null;
 }
 
 const EXPLODE_BASE_CM = 30; // 每層爆炸間距(乘上 explode 0..1)
@@ -51,7 +53,7 @@ const COLOR = {
   roomWall: "#cbd5e1",
 } as const;
 
-export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = null }: CeilingScene3DProps) {
+export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = null, subLengthFilter = null }: CeilingScene3DProps) {
   const { input, trace } = bom;
   const dimOp = (key: Exclude<Scene3DHighlight, null>) =>
     highlight && highlight !== key ? 0.12 : 1;
@@ -146,6 +148,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
             tt={tt}
             yCenter={yJoistCenter + explodeOffsets.sub}
             opacity={dimOp("sub")}
+            subLengthFilter={subLengthFilter}
           />
         )}
 
@@ -297,28 +300,28 @@ function MainJoistsLayer({
 // 副支 — 每 slot 內,沿 X 短段
 // ─────────────────────────────────────────────────────────
 function SubJoistsLayer({
-  trace, tw, tt, yCenter, opacity = 1,
+  trace, tw, tt, yCenter, opacity = 1, subLengthFilter = null,
 }: {
   trace: CeilingBom["trace"];
   tw: number;
   tt: number;
   yCenter: number;
   opacity?: number;
+  subLengthFilter?: number | null;
 }) {
-  // 用平鋪 mesh(總數 ~60-200,效能 OK)
-  // 若未來 > 500 改 InstancedMesh
-  const items: Array<{ x: number; z: number; lengthX: number }> = [];
+  const items: Array<{ x: number; z: number; lengthX: number; op: number }> = [];
   for (const slot of trace.slots) {
-    // BUG 3 fix:slot.from/to 已是 face 位置(Model B),不再 padding tw/2
     const xStart = slot.fromCm;
     const xEnd = slot.toCm;
     if (xEnd <= xStart) continue;
     const xCenter = (xStart + xEnd) / 2;
     const lengthX = xEnd - xStart;
+    const matchesLength =
+      subLengthFilter == null || Math.abs(slot.subJoistLengthCm - subLengthFilter) < 0.5;
+    const itemOpacity = opacity * (matchesLength ? 1 : 0.12);
     for (const yOff of trace.subJoistYOffsetsCm) {
-      // 副支 Z 中心 = innerY0 + yOff(innerY0 = frameW,在房間坐標)
       const zCenter = tw + yOff;
-      items.push({ x: xCenter, z: zCenter, lengthX });
+      items.push({ x: xCenter, z: zCenter, lengthX, op: itemOpacity });
     }
   }
   return (
@@ -326,7 +329,7 @@ function SubJoistsLayer({
       {items.map((it, i) => (
         <mesh key={i} position={[it.x, 0, it.z]}>
           <boxGeometry args={[it.lengthX, tt * 0.85, tw]} />
-          <meshStandardMaterial color={COLOR.sub} transparent opacity={opacity} />
+          <meshStandardMaterial color={COLOR.sub} transparent opacity={it.op} />
         </mesh>
       ))}
     </group>

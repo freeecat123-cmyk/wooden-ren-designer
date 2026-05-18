@@ -46,6 +46,8 @@ export function CeilingDevClient() {
   const [sawKerfCm, setSawKerfCm] = useState(0.3);
   // BOM → 視覺 高亮聯動。null = 無高亮(全顯)。
   const [highlight, setHighlight] = useState<Scene3DHighlight>(null);
+  // 副支按長度分組高亮:同一 "sub" category 但不同長度(內 86.7 vs 邊 18.8)
+  const [subLengthFilter, setSubLengthFilter] = useState<number | null>(null);
   const bomCategoryToHighlight = (c: string): Scene3DHighlight => {
     if (c === "frame") return "frame";
     if (c === "main-joist") return "main";
@@ -54,9 +56,19 @@ export function CeilingDevClient() {
     if (c === "board-full" || c === "board-cut") return "board";
     return null;
   };
-  const toggleHighlight = (cat: string) => {
+  const toggleHighlight = (cat: string, length?: number | null) => {
     const target = bomCategoryToHighlight(cat);
-    setHighlight((prev) => (prev === target ? null : target));
+    if (cat === "sub-joist" && length != null) {
+      // 副支:同長度第二次點 = 取消;不同長度 = 切換到新長度
+      if (highlight === "sub" && subLengthFilter === length) {
+        setHighlight(null); setSubLengthFilter(null);
+      } else {
+        setHighlight("sub"); setSubLengthFilter(length);
+      }
+    } else {
+      setHighlight((prev) => (prev === target ? null : target));
+      setSubLengthFilter(null);
+    }
   };
   // SVG 沒有 hanger 層,把 hanger 高亮映成 null(全亮)避免 SVG 全變暗
   const svgHighlight: HighlightCategory =
@@ -167,9 +179,9 @@ export function CeilingDevClient() {
           )}
           <div className="p-3 bg-gradient-to-br from-stone-50/40 via-transparent to-amber-50/20">
             {viewKind === "2d" ? (
-              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} />
+              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter} />
             ) : (
-              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} />
+              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} subLengthFilter={subLengthFilter} />
             )}
           </div>
             </section>
@@ -263,7 +275,7 @@ export function CeilingDevClient() {
             <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
             <span className="text-[11px] text-zinc-400">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
             {highlight && (
-              <button onClick={() => setHighlight(null)}
+              <button onClick={() => { setHighlight(null); setSubLengthFilter(null); }}
                 className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 transition">
                 清除高亮 ×
               </button>
@@ -284,11 +296,15 @@ export function CeilingDevClient() {
               <tbody className="divide-y divide-stone-100">
                 {bom.items.map((it, i) => {
                   const rowHigh = bomCategoryToHighlight(it.category);
-                  const isSelected = highlight !== null && rowHigh === highlight;
-                  const isOther = highlight !== null && rowHigh !== highlight;
+                  const isSub = it.category === "sub-joist";
+                  const isSelected = isSub
+                    ? highlight === "sub" && subLengthFilter === it.unitLengthCm
+                    : highlight !== null && rowHigh === highlight && !subLengthFilter;
+                  const anyHighlighted = highlight !== null;
+                  const isOther = anyHighlighted && !isSelected;
                   return (
                     <tr key={i}
-                      onClick={() => toggleHighlight(it.category)}
+                      onClick={() => toggleHighlight(it.category, isSub ? it.unitLengthCm : null)}
                       className={`cursor-pointer transition ${
                         isSelected ? "bg-amber-50 ring-1 ring-amber-300" :
                         isOther ? "opacity-40 hover:opacity-100" :
