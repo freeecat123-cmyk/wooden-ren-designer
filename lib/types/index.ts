@@ -60,6 +60,15 @@ export type TenonPosition =
   | "left"
   | "right";
 
+/** Unit vector in part-local frame. Used by Tenon.axis / Mortise.axis to override
+ *  the implicit position-derived direction (compound splay, see plan
+ *  2026-05-18-compound-splay-tenon-axis.md). */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export type GrainDirection = "length" | "width";
 
 export interface Dimensions {
@@ -92,6 +101,14 @@ export interface Tenon {
    */
   offsetWidth?: Millimeters;
   offsetThickness?: Millimeters;
+  /**
+   * Part-local unit vector the tenon extends along. Overrides the implicit
+   * direction derived from `position` (start→−x, end→+x, top→+y, bottom→−y,
+   * left→−z, right→+z). Used for compound splay where the tenon must point
+   * along the leg-face normal. Renderers that don't recognise this field
+   * fall back to position-only behaviour (fully backward compatible).
+   */
+  axis?: Vec3;
 }
 
 export interface Mortise {
@@ -113,6 +130,12 @@ export interface Mortise {
    * 想像：板還平的時候挖孔（孔軸 ⊥ 板面），再傾斜板 → 孔軸跟板一起斜。
    */
   rotX?: number;
+  /**
+   * Part-local unit vector the mortise opens along (entry → bottom of pocket).
+   * Should be the negative of the matching tenon's axis. Same backward-compat
+   * fallback as Tenon.axis.
+   */
+  axis?: Vec3;
 }
 
 export type MaterialId =
