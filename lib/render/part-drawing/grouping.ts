@@ -56,33 +56,69 @@ export function filterDesignForIsolation(
 }
 
 /**
- * Stable geometry hash. Identical hash → merge as ×N. Mirror parts get
- * different hashes (mortise/tenon X-position 或 origin.x 鏡像翻號就會差開）.
+ * Stable geometry hash. Identical hash → merge as ×N.
+ *
+ * **FX3 patch (2026-05-18)：鏡像件合併**——同尺寸 4 隻桌腳、左右對稱側板、12 條
+ * 床板，工匠手上拿到的圖一樣（只是 X 翻號裝），不該拆 P-02~P-05 浪費紙。
+ * 做法：tenon 的 offsetWidth/offsetThickness、mortise 的 origin.x/z、shape 內
+ * 的 dx/dz 類欄位都取絕對值 normalize，sign 翻號的 mirror pair 自然 hash 全等。
  *
  * 涵蓋欄位：
  *   - visible (L×W×T)
- *   - shape (kind + 全部參數，JSON serialize)
- *   - tenons (sorted by stringified signature)
- *   - mortises (sorted by stringified signature；含 origin.x/y/z 抓鏡像)
+ *   - shape (kind + 全部數值參數 abs-normalize)
+ *   - tenons (sorted；offsetWidth/Thickness 取絕對值)
+ *   - mortises (sorted；origin.x/z 取絕對值)
  *
  * 不考慮：part.id / nameZh / material / origin — 因為這些是「裝在哪」「叫什麼」
  * 而非「形狀本體」。原則：用同一張圖能照做出來的零件 hash 全等。
  *
- * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §2.1
+ * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §2.1（FX3 改）
  */
+function normalizeShape(shape: Part["shape"]): string {
+  if (!shape) return "box";
+  // 把 shape 內所有 sign-bearing 欄位取絕對值（dx/dz/corner sign 等）。
+  // shape.kind 跟其他離散參數保持原樣。
+  const SIGN_KEYS = new Set([
+    "dxMm", "dzMm",          // splayed / splayed-tapered
+    "x", "y", "z",            // legAxis 等向量
+  ]);
+  const norm: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(shape)) {
+    if (SIGN_KEYS.has(k) && typeof v === "number") {
+      norm[k] = Math.abs(v);
+    } else {
+      norm[k] = v;
+    }
+  }
+  return JSON.stringify(norm);
+}
+
+// FX3：normalize 鏡像對稱字面值——"left"/"right" 對 mirror pair 只是裝配方向差，
+// 圖面是同一張。"start"/"end" 對棒材是兩端但榫頭幾何同 → 也算 mirror。
+// 保留 "top"/"bottom" 因為這是垂直功能差（不是鏡像）。
+function mirrorNormSide(side: string): string {
+  if (side === "left" || side === "right") return "side";
+  if (side === "start" || side === "end") return "end";
+  return side;
+}
+
 export function hashPart(part: Part): string {
   const tenons = part.tenons
     .map((t: any) =>
       [
-        `T:${t.position ?? ""}`,
-        `w:${t.offsetWidth ?? 0}`,
-        `th:${t.offsetThickness ?? 0}`,
+        `T:${mirrorNormSide(t.position ?? "")}`,
+        // FX3：offsetWidth/Thickness 取絕對值——4 隻腳的 top tenon 只差 ±sign
+        // (legInset > 0 時 tenon 朝中心偏)，鏡像配對該合併。
+        `w:${Math.abs(t.offsetWidth ?? 0)}`,
+        `th:${Math.abs(t.offsetThickness ?? 0)}`,
         `L:${t.length ?? 0}`,
         `W:${t.width ?? 0}`,
         // tenons 的厚度欄位是 thickness（不是 depth）；test data 用 depth 也支援
         `D:${t.thickness ?? t.depth ?? 0}`,
         `ty:${t.type ?? ""}`,
-        `sh:${(t.shoulderOn ?? []).slice().sort().join(",")}`,
+        // shoulderOn 也要 normalize：mirror leg shoulderOn=[top,bottom,left] vs
+        // [top,bottom,right] 圖面同一張。
+        `sh:${(t.shoulderOn ?? []).map(mirrorNormSide).slice().sort().join(",")}`,
       ].join("|"),
     )
     .sort()
@@ -90,11 +126,13 @@ export function hashPart(part: Part): string {
   const mortises = part.mortises
     .map((m: any) =>
       [
-        `M:${m.position ?? ""}`,
-        // 真實 Mortise 有 origin.x/y/z；test data 用 offsetWidth 也支援
-        `ox:${m.origin?.x ?? m.offsetWidth ?? 0}`,
+        `M:${mirrorNormSide(m.position ?? "")}`,
+        // FX3：origin.x/z 取絕對值——legShape="box" 4 腳的 mortise.origin.x/z
+        // 只差 ±sign（c.x>0?-INSET:INSET），鏡像配對該合併到同一張圖。
+        // origin.y 不取絕對值（垂直高度不是鏡像，是真實位置差）。
+        `ox:${Math.abs(m.origin?.x ?? m.offsetWidth ?? 0)}`,
         `oy:${m.origin?.y ?? 0}`,
-        `oz:${m.origin?.z ?? m.offsetThickness ?? 0}`,
+        `oz:${Math.abs(m.origin?.z ?? m.offsetThickness ?? 0)}`,
         `L:${m.length ?? 0}`,
         `W:${m.width ?? 0}`,
         `D:${m.depth ?? 0}`,
@@ -108,7 +146,7 @@ export function hashPart(part: Part): string {
     `L:${part.visible.length}`,
     `W:${part.visible.width}`,
     `T:${part.visible.thickness}`,
-    `S:${part.shape ? JSON.stringify(part.shape) : "box"}`,
+    `S:${normalizeShape(part.shape)}`,
     `t:${tenons}`,
     `m:${mortises}`,
   ].join("/");
