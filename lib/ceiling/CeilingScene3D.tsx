@@ -38,6 +38,8 @@ interface CeilingScene3DProps {
   highlight?: Scene3DHighlight;
   /** 副支高亮時只亮特定長度,其他副支變淡 */
   subLengthFilter?: number | null;
+  /** 矽酸鈣板高亮時只亮整張或裁切,其他變淡 */
+  boardKindFilter?: "full" | "cut" | null;
 }
 
 const EXPLODE_BASE_CM = 30; // 每層爆炸間距(乘上 explode 0..1)
@@ -53,7 +55,7 @@ const COLOR = {
   roomWall: "#cbd5e1",
 } as const;
 
-export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = null, subLengthFilter = null }: CeilingScene3DProps) {
+export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = null, subLengthFilter = null, boardKindFilter = null }: CeilingScene3DProps) {
   const { input, trace } = bom;
   const dimOp = (key: Exclude<Scene3DHighlight, null>) =>
     highlight && highlight !== key ? 0.12 : 1;
@@ -117,6 +119,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
             yCenter={yBoardCenter - explodeOffsets.boards}
             boardThickness={boardThickness}
             opacity={dimOp("board")}
+            boardKindFilter={boardKindFilter}
           />
         )}
 
@@ -388,7 +391,7 @@ function HangersLayer({
 // 矽酸鈣板 — 依 mainCenters 切欄 + 每 boardLong 切列
 // ─────────────────────────────────────────────────────────
 function BoardsLayer({
-  L, S, input, mainCenters, yCenter, boardThickness, opacity = 1,
+  L, S, input, mainCenters, yCenter, boardThickness, opacity = 1, boardKindFilter = null,
 }: {
   L: number;
   S: number;
@@ -397,13 +400,15 @@ function BoardsLayer({
   yCenter: number;
   boardThickness: number;
   opacity?: number;
+  boardKindFilter?: "full" | "cut" | null;
 }) {
+  const FULL_TOL_CM = 5; // 同 calc.ts FULL_WIDTH_TOL_CM
   // X 欄寬:邊框外 → 各主支中心 → 邊框外
   const colEdges: number[] = mainCenters.length === 0
     ? [0, L]
     : [0, ...mainCenters, L];
 
-  // Z 列邊:每 boardLong 切,最後一列可能短
+  // Z 列邊
   const rowEdges: number[] = [];
   rowEdges.push(0);
   let z = input.boardLongCm;
@@ -412,8 +417,8 @@ function BoardsLayer({
     z += input.boardLongCm;
   }
   rowEdges.push(S);
+  const fullRowCount = Math.floor(input.shortSideCm / input.boardLongCm);
 
-  // jointGap mm → cm
   const gap = input.jointGapMm / 10;
 
   const boards: React.ReactNode[] = [];
@@ -423,18 +428,26 @@ function BoardsLayer({
     const xR = colEdges[ci + 1];
     const colW = xR - xL - gap;
     if (colW <= 0) continue;
+    const colFull = Math.abs((xR - xL) - input.boardShortCm) <= FULL_TOL_CM;
     for (let ri = 0; ri < rowEdges.length - 1; ri++) {
       const zT = rowEdges[ri];
       const zB = rowEdges[ri + 1];
       const rowH = zB - zT - gap;
       if (rowH <= 0) continue;
+      const rowFull = ri < fullRowCount;
+      const isFullBoard = colFull && rowFull;
+      // boardKindFilter:full = 只亮 isFullBoard=true,cut = 只亮 isFullBoard=false
+      const matchesKind =
+        !boardKindFilter ||
+        (boardKindFilter === "full" && isFullBoard) ||
+        (boardKindFilter === "cut" && !isFullBoard);
+      const boardOpacity = opacity * (matchesKind ? 1 : 0.12);
       const cx = xL + (xR - xL) / 2;
       const cz = zT + (zB - zT) / 2;
       boards.push(
         <mesh key={k++} position={[cx, yCenter, cz]}>
           <boxGeometry args={[colW, boardThickness, rowH]} />
-          <meshStandardMaterial color={COLOR.board} transparent opacity={opacity} />
-          {/* edges */}
+          <meshStandardMaterial color={COLOR.board} transparent opacity={boardOpacity} />
         </mesh>,
       );
     }

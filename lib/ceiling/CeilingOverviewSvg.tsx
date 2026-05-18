@@ -34,11 +34,13 @@ export function CeilingOverviewSvg({
   bom,
   highlight = null,
   subLengthFilter = null,
+  boardKindFilter: _boardKindFilter = null,
 }: {
   bom: CeilingBom;
   highlight?: HighlightCategory;
-  /** 副支高亮時,只亮特定長度(其他副支變淡) */
   subLengthFilter?: number | null;
+  /** v1 SVG 板 hatch 是整片,不細分 full/cut(僅接受 prop 避免 type 錯) */
+  boardKindFilter?: "full" | "cut" | null;
 }) {
   const { input, trace } = bom;
   // 高亮邏輯:有 highlight 時非匹配的 group 變淡
@@ -166,7 +168,7 @@ export function CeilingOverviewSvg({
         <text
           x={x0 + (input.alignmentBase === "left" ? L - bom.auto.leftoverCm / 2 : input.alignmentBase === "right" ? bom.auto.leftoverCm / 2 : L / 2)}
           y={y1 + 14}
-          fontSize={6}
+          fontSize={11}
           fill="#9a3412"
           textAnchor="middle"
         >
@@ -178,10 +180,10 @@ export function CeilingOverviewSvg({
       {/* ────── 8. 圖例 ────── */}
       <g transform={`translate(${PAD_LEFT}, ${y1 + 22})`}>
         <LegendBox color="#a16207" label="邊框" x={0} />
-        <LegendBox color="#d97706" label="主支" x={50} />
-        <LegendBox color="#52525b" label="副支" x={100} />
-        <LegendDash color="#1d4ed8" label="板邊(主支中心)" x={150} />
-        <LegendDash color="#475569" label="板邊(長向 180cm)" x={230} />
+        <LegendBox color="#d97706" label="主支" x={70} />
+        <LegendBox color="#52525b" label="副支" x={140} />
+        <LegendDash color="#1d4ed8" label="板邊·主支中心" x={210} />
+        <LegendDash color="#475569" label="板邊·長 180" x={360} />
       </g>
     </svg>
   );
@@ -292,7 +294,7 @@ function DimLine({
       {/* 兩端箭頭(三角) */}
       <polygon points={`${x1},${y1} ${x1 + 4},${y1 - 1.5} ${x1 + 4},${y1 + 1.5}`} fill={color} />
       <polygon points={`${x2},${y2} ${x2 - 4},${y2 - 1.5} ${x2 - 4},${y2 + 1.5}`} fill={color} />
-      <text x={mid} y={y1 - 4} fontSize={7} fill={color} textAnchor="middle" fontWeight="600">{label}</text>
+      <text x={mid} y={y1 - 4} fontSize={13} fill={color} textAnchor="middle" fontWeight="600">{label}</text>
     </g>
   );
 }
@@ -310,7 +312,7 @@ function DimLineVertical({
       <polygon points={`${x2},${y2} ${x2 - 1.5},${y2 - 4} ${x2 + 1.5},${y2 - 4}`} fill={color} />
       <text
         x={x1 - 4} y={mid}
-        fontSize={7} fill={color} textAnchor="middle" fontWeight="600"
+        fontSize={13} fill={color} textAnchor="middle" fontWeight="600"
         transform={`rotate(-90 ${x1 - 4} ${mid})`}
       >
         {label}
@@ -323,7 +325,7 @@ function LegendBox({ color, label, x }: { color: string; label: string; x: numbe
   return (
     <g transform={`translate(${x}, 0)`}>
       <rect width={6} height={4} fill={color} stroke="#000" strokeWidth={0.15} />
-      <text x={8} y={3.5} fontSize={5} fill="#52525b">{label}</text>
+      <text x={8} y={3.5} fontSize={9} fill="#52525b">{label}</text>
     </g>
   );
 }
@@ -332,7 +334,7 @@ function LegendDash({ color, label, x }: { color: string; label: string; x: numb
   return (
     <g transform={`translate(${x}, 0)`}>
       <line x1={0} y1={2} x2={8} y2={2} stroke={color} strokeWidth={0.5} strokeDasharray="1.5 1.5" />
-      <text x={10} y={3.5} fontSize={5} fill="#52525b">{label}</text>
+      <text x={10} y={3.5} fontSize={9} fill="#52525b">{label}</text>
     </g>
   );
 }

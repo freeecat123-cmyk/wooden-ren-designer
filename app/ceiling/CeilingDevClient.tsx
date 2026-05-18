@@ -48,6 +48,8 @@ export function CeilingDevClient() {
   const [highlight, setHighlight] = useState<Scene3DHighlight>(null);
   // 副支按長度分組高亮:同一 "sub" category 但不同長度(內 86.7 vs 邊 18.8)
   const [subLengthFilter, setSubLengthFilter] = useState<number | null>(null);
+  // 矽酸鈣板按 整/裁 分組高亮
+  const [boardKindFilter, setBoardKindFilter] = useState<"full" | "cut" | null>(null);
   const bomCategoryToHighlight = (c: string): Scene3DHighlight => {
     if (c === "frame") return "frame";
     if (c === "main-joist") return "main";
@@ -59,15 +61,23 @@ export function CeilingDevClient() {
   const toggleHighlight = (cat: string, length?: number | null) => {
     const target = bomCategoryToHighlight(cat);
     if (cat === "sub-joist" && length != null) {
-      // 副支:同長度第二次點 = 取消;不同長度 = 切換到新長度
+      // 副支:同長度第二次點 = 取消
       if (highlight === "sub" && subLengthFilter === length) {
         setHighlight(null); setSubLengthFilter(null);
       } else {
-        setHighlight("sub"); setSubLengthFilter(length);
+        setHighlight("sub"); setSubLengthFilter(length); setBoardKindFilter(null);
+      }
+    } else if (cat === "board-full" || cat === "board-cut") {
+      const kind = cat === "board-full" ? "full" : "cut";
+      if (highlight === "board" && boardKindFilter === kind) {
+        setHighlight(null); setBoardKindFilter(null);
+      } else {
+        setHighlight("board"); setBoardKindFilter(kind); setSubLengthFilter(null);
       }
     } else {
       setHighlight((prev) => (prev === target ? null : target));
       setSubLengthFilter(null);
+      setBoardKindFilter(null);
     }
   };
   // SVG 沒有 hanger 層,把 hanger 高亮映成 null(全亮)避免 SVG 全變暗
@@ -179,9 +189,9 @@ export function CeilingDevClient() {
           )}
           <div className="p-3 bg-gradient-to-br from-stone-50/40 via-transparent to-amber-50/20">
             {viewKind === "2d" ? (
-              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter} />
+              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter} boardKindFilter={boardKindFilter} />
             ) : (
-              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} subLengthFilter={subLengthFilter} />
+              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} subLengthFilter={subLengthFilter} boardKindFilter={boardKindFilter} />
             )}
           </div>
             </section>
@@ -275,7 +285,7 @@ export function CeilingDevClient() {
             <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
             <span className="text-[11px] text-zinc-400">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
             {highlight && (
-              <button onClick={() => { setHighlight(null); setSubLengthFilter(null); }}
+              <button onClick={() => { setHighlight(null); setSubLengthFilter(null); setBoardKindFilter(null); }}
                 className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 transition">
                 清除高亮 ×
               </button>
@@ -297,9 +307,12 @@ export function CeilingDevClient() {
                 {bom.items.map((it, i) => {
                   const rowHigh = bomCategoryToHighlight(it.category);
                   const isSub = it.category === "sub-joist";
+                  const isBoard = it.category === "board-full" || it.category === "board-cut";
                   const isSelected = isSub
                     ? highlight === "sub" && subLengthFilter === it.unitLengthCm
-                    : highlight !== null && rowHigh === highlight && !subLengthFilter;
+                    : isBoard
+                    ? highlight === "board" && boardKindFilter === (it.category === "board-full" ? "full" : "cut")
+                    : highlight !== null && rowHigh === highlight && !subLengthFilter && !boardKindFilter;
                   const anyHighlighted = highlight !== null;
                   const isOther = anyHighlighted && !isSelected;
                   return (
