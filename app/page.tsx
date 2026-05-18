@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
-import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { isPaidCategory } from "@/lib/permissions";
 import { CatalogSearch } from "@/components/CatalogSearch";
 import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
@@ -200,13 +199,6 @@ export default async function Home({
             </span>
           ))}
           <span className="text-zinc-500 ml-auto">點擊卡片進入設計器</span>
-        </div>
-        {/* 📷 照片轉設計：照片 → Claude vision → 自動跳到對應 design page 帶好參數 */}
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <PhotoToParamsButton />
-          <span className="text-xs text-zinc-500">
-            或上傳家具參考照，AI 自動辨識類別 + 估尺寸帶你進設計器
-          </span>
         </div>
       </header>
 
