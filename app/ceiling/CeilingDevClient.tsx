@@ -424,6 +424,32 @@ export function CeilingDevClient() {
           </div>
         </section>
 
+        {/* ============ 5 步施工步驟(spec 階段 4 硬編) ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-stone-100">
+            <h2 className="text-sm font-semibold text-zinc-900">📐 施工步驟</h2>
+          </div>
+          <ol className="divide-y divide-stone-100 text-sm">
+            {[
+              { n: 1, title: "牆面指定高度做邊框", desc: "靠牆邊緣為基準,角材往室內生成" },
+              { n: 2, title: "主支跨短邊平接", desc: "主支中心距等於矽酸鈣板寬度" },
+              { n: 3, title: "副支置入主支間", desc: "副支中心距一尺二,全部對齊" },
+              { n: 4, title: "確認框架水平", desc: "以天花板作完成面基準,固定吊筋" },
+              { n: 5, title: "封矽酸鈣板", desc: "中間板邊落在主支中心,周邊板邊落在邊框外線" },
+            ].map((step) => (
+              <li key={step.n} className="px-5 py-3 flex items-start gap-3 hover:bg-amber-50/30 transition">
+                <div className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-amber-500/30">
+                  {step.n}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-zinc-900">{step.title}</div>
+                  <div className="text-xs text-zinc-600 mt-0.5">{step.desc}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
         {/* ============ 施作提示 ============ */}
         <section className="rounded-2xl bg-gradient-to-br from-amber-50 via-white to-stone-50 ring-1 ring-amber-200/50 p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">💡 施作提示</h3>
