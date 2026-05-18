@@ -18,6 +18,7 @@ import {
   parseLegChamferMm,
   legBottomScale,
   legScaleAt,
+  computeCompoundSplayNormal,
 } from "./_helpers";
 import { applyStandardChecks, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -317,38 +318,54 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
   const headLegSizeAtFloor = legSize * legScaleAt(0, legHeight, bottomScale);
   const headLegSizeMax = Math.max(railLegSizeMax, headLegSizeAtFloor);
 
+  // splay tenon axis：side rail 是 axis="x"，splay 模式下端面跟著腳斜
+  // 沿用 stool/bench 同 convention（axis="x" 牙條不需反轉 cornerSx）
+  const splayDx = legShape === "splayed" || legShape === "splayed-length" ? splayMm : 0;
+  const splayDz = legShape === "splayed" || legShape === "splayed-width" ? splayMm : 0;
+  const railHasAxisSplay = splayDx > 0 || splayDz > 0;
+  const railSplayAngleDeg = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
   const sideRails: Part[] = [
-    { id: "side-rail-left", nameZh: "左側板", sz: -1 },
-    { id: "side-rail-right", nameZh: "右側板", sz: 1 },
-  ].map(({ id, nameZh, sz }): Part => ({
-    id,
-    nameZh,
-    material,
-    grainDirection: "length",
-    visible: { length: sideRailInnerSpan, width: sideRailWidth, thickness: sideRailThickness },
-    origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
-    rotation: { x: Math.PI / 2, y: 0, z: 0 },
-    shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
-    tenons: [
-      {
-        position: "start",
-        type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: sideRailTenonLength,
-        width: sideRailTenonStd.width,
-        thickness: sideRailTenonStd.thickness,
-        shoulderOn: [...sideRailTenonStd.shoulderOn],
-      },
-      {
-        position: "end",
-        type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: sideRailTenonLength,
-        width: sideRailTenonStd.width,
-        thickness: sideRailTenonStd.thickness,
-        shoulderOn: [...sideRailTenonStd.shoulderOn],
-      },
-    ],
-    mortises: [],
-  }));
+    { id: "side-rail-left", nameZh: "左側板", sz: -1 as -1 | 1 },
+    { id: "side-rail-right", nameZh: "右側板", sz: 1 as -1 | 1 },
+  ].map(({ id, nameZh, sz }): Part => {
+    const railTenonAxisStart = railHasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: "x", cornerSx: -1, cornerSz: sz, splayAngleDeg: railSplayAngleDeg })
+      : null;
+    const railTenonAxisEnd = railHasAxisSplay
+      ? computeCompoundSplayNormal({ apronAxis: "x", cornerSx: +1, cornerSz: sz, splayAngleDeg: railSplayAngleDeg })
+      : null;
+    return {
+      id,
+      nameZh,
+      material,
+      grainDirection: "length",
+      visible: { length: sideRailInnerSpan, width: sideRailWidth, thickness: sideRailThickness },
+      origin: { x: 0, y: sideRailY, z: sz * apronEdgeZ },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+      tenons: [
+        {
+          position: "start",
+          type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: sideRailTenonLength,
+          width: sideRailTenonStd.width,
+          thickness: sideRailTenonStd.thickness,
+          shoulderOn: [...sideRailTenonStd.shoulderOn],
+          ...(railTenonAxisStart ? { axis: railTenonAxisStart } : {}),
+        },
+        {
+          position: "end",
+          type: sideRailTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
+          length: sideRailTenonLength,
+          width: sideRailTenonStd.width,
+          thickness: sideRailTenonStd.thickness,
+          shoulderOn: [...sideRailTenonStd.shoulderOn],
+          ...(railTenonAxisEnd ? { axis: railTenonAxisEnd } : {}),
+        },
+      ],
+      mortises: [],
+    };
+  });
 
   // ---------- ledger strips（內側下緣，slats 擱上去） ----------
   // 黏在 side rail 內側下緣，slat 頂面 = side rail 頂面 = mattressClearance
