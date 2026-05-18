@@ -3494,7 +3494,16 @@ export function PerspectiveView({
                   // Place ROOT at -(effLen/2 + bury)*defaultWorld so the root
                   // face stays flush with the parent shoulder face. Then walk
                   // tip = root + Lworld * B.
-                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY) * SCALE;
+                  //
+                  // Tilted cross-section corner protrusion correction：
+                  // cross1/cross2 在 N⊥ plane，當 N ≠ defaultWorld 時、
+                  // cross 軸在 defaultWorld 方向有非零投影，角落會比 root center
+                  // 多伸 maxCornerProj 進 parent。把 root 往 defaultWorld 外推
+                  // maxCornerProj 補償。
+                  const maxCornerProj =
+                    (Math.abs(cross1.dot(defaultWorld)) * h1 / SCALE +
+                     Math.abs(cross2.dot(defaultWorld)) * h2 / SCALE);
+                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY - maxCornerProj) * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
                   const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
 
