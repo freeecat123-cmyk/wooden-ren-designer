@@ -1,0 +1,127 @@
+/**
+ * POST /api/ecpay/return
+ *   綠界 ReturnURL — server-to-server 付款結果通知。
+ *
+ * 收到後流程:
+ *   1. 驗 CheckMacValue（HMAC SHA256），不過直接視為偽造
+ *   2. 透過 MerchantTradeNo 撈回 placeholder subscription
+ *   3. RtnCode === "1" 視為成功:
+ *        - subscriptions.status = active, expires_at = now + 30 / 365 天（依金額判斷）
+ *        - users.plan / subscription_status / subscription_expires_at 同步更新
+ *        - payments insert status=success
+ *   4. RtnCode !== "1" 視為失敗:
+ *        - payments insert status=failed（subscription 維持 expired）
+ *   5. 一律回 "1|OK"（200）— 否則綠界會狂重送
+ */
+import { type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
+import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function parseEcpayDate(s: string | undefined): string | null {
+  if (!s) return null;
+  // 綠界格式 "yyyy/MM/dd HH:mm:ss"（台北時間）
+  const m = s.match(/^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  // 視為 UTC+8
+  return new Date(
+    `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+08:00`,
+  ).toISOString();
+}
+
+/** 由金額反推週期：≥ 2000 視為年付，其餘月付。Phase 1 沒 lifetime 所以這樣就夠 */
+function detectPeriodFromAmount(amount: number): "monthly" | "yearly" {
+  return amount >= 2000 ? "yearly" : "monthly";
+}
+
+export async function POST(req: NextRequest) {
+  const form = await req.formData();
+  const params: Record<string, string> = {};
+  form.forEach((v, k) => {
+    params[k] = String(v);
+  });
+
+  if (!verifyCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV)) {
+    console.error("[ecpay/return] CheckMacValue 驗證失敗", {
+      orderId: params.MerchantTradeNo,
+    });
+    return new Response("0|CheckMacValueInvalid", { status: 200 });
+  }
+
+  const orderId = params.MerchantTradeNo;
+  const rtnCode = params.RtnCode;
+  const tradeNo = params.TradeNo;
+  const amount = Number(params.TradeAmt ?? 0);
+
+  const admin = createAdminClient();
+  const { data: sub, error: subErr } = await admin
+    .from("subscriptions")
+    .select("id, user_id, plan, status")
+    .eq("ecpay_merchant_trade_no", orderId)
+    .single();
+
+  if (subErr || !sub) {
+    console.error("[ecpay/return] 找不到 subscription", { orderId, subErr });
+    return new Response("1|OK");
+  }
+
+  // 已處理過就不重複寫（綠界可能重送）
+  if (sub.status === "active") {
+    return new Response("1|OK");
+  }
+
+  if (rtnCode !== "1") {
+    await admin.from("payments").insert({
+      user_id: sub.user_id,
+      subscription_id: sub.id,
+      amount,
+      status: "failed",
+      ecpay_trade_no: tradeNo ?? null,
+      raw_response: params as Record<string, unknown>,
+    });
+    console.warn("[ecpay/return] 付款失敗", { orderId, rtnCode, msg: params.RtnMsg });
+    return new Response("1|OK");
+  }
+
+  const period = detectPeriodFromAmount(amount);
+  const days = period === "yearly" ? 365 : 30;
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + days * 86_400_000).toISOString();
+  const paymentDate = parseEcpayDate(params.PaymentDate) ?? now.toISOString();
+
+  const { error: upSubErr } = await admin
+    .from("subscriptions")
+    .update({
+      status: "active",
+      started_at: now.toISOString(),
+      expires_at: expiresAt,
+    })
+    .eq("id", sub.id);
+  if (upSubErr) console.error("[ecpay/return] 更新 subscription 失敗", upSubErr);
+
+  const { error: upUserErr } = await admin
+    .from("users")
+    .update({
+      plan: sub.plan,
+      subscription_status: "active",
+      subscription_expires_at: expiresAt,
+    })
+    .eq("id", sub.user_id);
+  if (upUserErr) console.error("[ecpay/return] 更新 users 失敗", upUserErr);
+
+  await admin.from("payments").insert({
+    user_id: sub.user_id,
+    subscription_id: sub.id,
+    amount,
+    status: "success",
+    ecpay_trade_no: tradeNo,
+    ecpay_payment_date: paymentDate,
+    raw_response: params as Record<string, unknown>,
+  });
+
+  console.log("[ecpay/return] 付款完成", { orderId, userId: sub.user_id, amount, expiresAt });
+  return new Response("1|OK");
+}

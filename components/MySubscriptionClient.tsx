@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { studentDaysRemaining, PLAN_LABEL } from "@/lib/permissions";
 
@@ -11,6 +12,19 @@ function formatDate(iso: string | null | undefined): string {
 
 export function MySubscriptionClient() {
   const { profile, plan, isLoading, isLoggedIn } = useUserPlan();
+  const [justPaid, setJustPaid] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("paid") === "1") {
+      setJustPaid(true);
+      // 拿掉 query 避免重整再顯示一次
+      const url = new URL(window.location.href);
+      url.searchParams.delete("paid");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -44,6 +58,20 @@ export function MySubscriptionClient() {
       <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 mt-3 mb-2">
         我的訂閱
       </h1>
+
+      {justPaid && (
+        <div
+          className="mb-4 rounded-lg p-4 border-2"
+          style={{ background: "#ecfdf5", borderColor: "#34d399" }}
+        >
+          <div className="font-semibold text-emerald-800 flex items-center gap-2">
+            ✅ 付款成功
+          </div>
+          <p className="text-sm text-emerald-700 mt-1 leading-relaxed">
+            綠界已收到款項，方案已生效。若以 ATM / 超商繳款，可能延遲幾分鐘才會升級——請重新整理或稍後再看。
+          </p>
+        </div>
+      )}
       <p className="text-sm text-zinc-500 mb-6">
         目前生效的方案：
         <strong className="text-zinc-900 ml-1">{PLAN_LABEL[plan]}</strong>
