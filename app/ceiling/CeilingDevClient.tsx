@@ -16,7 +16,7 @@
  *   ⚙ Settings drawer 只留進階(手動 spacing 值、裁切設定)
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_CEILING_INPUT,
   type AlignmentBase,
@@ -45,6 +45,58 @@ export function CeilingDevClient() {
   const [stockLengthCm, setStockLengthCm] = useState(360); // 12 尺
   const [sawKerfCm, setSawKerfCm] = useState(0.3);
   const [spliceOverlapCm, setSpliceOverlapCm] = useState(10); // 拼接重疊(實務每段交接 ~10 cm 放邊框上強固)
+  const [shareCode, setShareCode] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<"" | "loading" | "saved" | "copied">("");
+
+  // 載入短碼:?c=CODE
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("c");
+    if (!code) return;
+    setShareStatus("loading");
+    fetch(`/api/ceiling/share?code=${encodeURIComponent(code)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.input) {
+          setInput((prev) => ({ ...prev, ...data.input }));
+          setShareCode(code);
+          setShareStatus("saved");
+        } else {
+          setShareStatus("");
+          console.warn("ceiling share load failed:", data.error);
+        }
+      })
+      .catch((e) => { setShareStatus(""); console.warn(e); });
+  }, []);
+
+  async function shareCase() {
+    setShareStatus("loading");
+    try {
+      const res = await fetch("/api/ceiling/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+      const data = await res.json();
+      if (!data.code) throw new Error(data.error || "no code");
+      setShareCode(data.code);
+      const url = `${window.location.origin}/ceiling?c=${data.code}`;
+      await navigator.clipboard.writeText(url);
+      setShareStatus("copied");
+      // 加進 localStorage 近期案場
+      const recent: { code: string; long: number; short: number; ts: number }[] =
+        JSON.parse(localStorage.getItem("wrd-ceiling-recent") || "[]");
+      recent.unshift({ code: data.code, long: input.longSideCm, short: input.shortSideCm, ts: Date.now() });
+      localStorage.setItem("wrd-ceiling-recent", JSON.stringify(recent.slice(0, 10)));
+      setTimeout(() => setShareStatus("saved"), 2000);
+    } catch (e) {
+      console.warn(e);
+      setShareStatus("");
+      alert("分享失敗,請稍後重試(或檢查 Upstash 設定)");
+    }
+  }
+
   // BOM → 視覺 高亮聯動。null = 無高亮(全顯)。
   const [highlight, setHighlight] = useState<Scene3DHighlight>(null);
   // 副支按長度分組高亮:同一 "sub" category 但不同長度(內 86.7 vs 邊 18.8)
@@ -142,6 +194,10 @@ export function CeilingDevClient() {
               🧊 立體
             </button>
           </div>
+          <button onClick={shareCase} disabled={shareStatus === "loading"}
+            className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700 disabled:opacity-50">
+            {shareStatus === "loading" ? "..." : shareStatus === "copied" ? "✓ 連結已複製" : "🔗 分享"}
+          </button>
           <button onClick={downloadCsv}
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700">
             ⬇ CSV
