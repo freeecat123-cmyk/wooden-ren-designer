@@ -233,7 +233,7 @@ export function CeilingDevClient() {
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm">
           <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
-            <span className="text-[11px] text-zinc-400">改任何值,圖與材料表即時重算</span>
+            <span className="text-[11px] text-zinc-600">改任何值,圖與材料表即時重算</span>
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* 排版 */}
@@ -253,7 +253,7 @@ export function CeilingDevClient() {
               <SmallNum label="板長" value={input.boardLongCm} onChange={(v) => update("boardLongCm", v)} unit="cm" />
               <SmallNum label="板寬" value={input.boardShortCm} onChange={(v) => update("boardShortCm", v)} unit="cm" />
               <SmallNum label="接縫" value={input.jointGapMm} onChange={(v) => update("jointGapMm", v)} step={1} unit="mm" />
-              <p className="text-[10px] text-zinc-400 leading-snug">業界 3-6 mm,9 mm 板取 3 mm</p>
+              <p className="text-[10px] text-zinc-600 leading-snug">業界 3-6 mm,9 mm 板取 3 mm</p>
             </ParamGroup>
 
             {/* 角材 + 間距 */}
@@ -283,7 +283,7 @@ export function CeilingDevClient() {
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-stone-100 flex items-center gap-2 flex-wrap">
             <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
-            <span className="text-[11px] text-zinc-400">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
+            <span className="text-[11px] text-zinc-600">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
             {highlight && (
               <button onClick={() => { setHighlight(null); setSubLengthFilter(null); setBoardKindFilter(null); }}
                 className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 transition">
@@ -354,7 +354,7 @@ export function CeilingDevClient() {
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-zinc-900">🪚 裁料計算(角材)</h2>
-              <span className="text-[11px] text-zinc-400">
+              <span className="text-[11px] text-zinc-600">
                 共 {cuttingPlan.summary.stockCount} 支角材 · 利用率 {cuttingPlan.summary.utilizationPct}%
                 · 剩料 {cuttingPlan.summary.totalRemainM} m
               </span>
@@ -369,24 +369,24 @@ export function CeilingDevClient() {
                   <input type="number" value={stockLengthCm} step={10}
                     onChange={(e) => setStockLengthCm(Number(e.target.value))}
                     className="w-20 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
-                  <span className="text-[10px] text-zinc-400">cm</span>
-                  <span className="text-[10px] text-zinc-400">(360=12 尺、300=10 尺、600=20 尺)</span>
+                  <span className="text-[10px] text-zinc-600">cm</span>
+                  <span className="text-[10px] text-zinc-600">(360=12 尺、300=10 尺、600=20 尺)</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <span className="text-zinc-600">鋸路</span>
                   <input type="number" value={sawKerfCm} step={0.1}
                     onChange={(e) => setSawKerfCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
-                  <span className="text-[10px] text-zinc-400">cm</span>
-                  <span className="text-[10px] text-zinc-400">(鋸條切一刀的損耗)</span>
+                  <span className="text-[10px] text-zinc-600">cm</span>
+                  <span className="text-[10px] text-zinc-600">(鋸條切一刀的損耗)</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <span className="text-zinc-600">接點搭接</span>
                   <input type="number" value={spliceOverlapCm} step={1}
                     onChange={(e) => setSpliceOverlapCm(Number(e.target.value))}
                     className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
-                  <span className="text-[10px] text-zinc-400">cm</span>
-                  <span className="text-[10px] text-zinc-400">(超原料一支的長段自動切多段、接點疊長)</span>
+                  <span className="text-[10px] text-zinc-600">cm</span>
+                  <span className="text-[10px] text-zinc-600">(超原料一支的長段自動切多段、接點疊長)</span>
                 </label>
               </div>
               {/* 拼接段資訊(自動切多段後顯示) */}
@@ -483,7 +483,7 @@ export function CeilingDevClient() {
           <button onClick={() => setTraceOpen(!traceOpen)}
             className="w-full text-left px-5 py-3 rounded-2xl bg-white ring-1 ring-stone-200 hover:bg-stone-50 flex items-center justify-between text-sm transition">
             <span className="font-medium text-zinc-700 flex items-center gap-2">
-              🔬 公式對照 trace <span className="text-[10px] text-zinc-400 font-normal">admin debug</span>
+              🔬 公式對照 trace <span className="text-[10px] text-zinc-600 font-normal">admin debug</span>
             </span>
             <span className="text-zinc-400 text-xs">{traceOpen ? "▲" : "▼"}</span>
           </button>
@@ -519,7 +519,7 @@ function HeroInput({
       <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 uppercase tracking-wide font-semibold">
         <span className="text-amber-600 text-base leading-none">{icon}</span>
         {label}
-        {sub && <span className="text-[9px] text-zinc-400 font-normal normal-case">· {sub}</span>}
+        {sub && <span className="text-[10px] text-zinc-600 font-normal normal-case">· {sub}</span>}
       </div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <input
@@ -577,7 +577,7 @@ function SmallNum({
         <input type="number" value={value} step={step} disabled={disabled}
           onChange={(e) => onChange(Number(e.target.value))}
           className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-stone-300 rounded-md tabular-nums disabled:bg-stone-100 disabled:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />
-        {unit && <span className="text-[10px] text-zinc-400 w-6 shrink-0">{unit}</span>}
+        {unit && <span className="text-[10px] text-zinc-600 w-6 shrink-0">{unit}</span>}
       </div>
     </label>
   );
