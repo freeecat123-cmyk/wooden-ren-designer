@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, legBottomScale, legScaleAt } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -293,12 +293,40 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // 預先算 compound-splay 判定（splayDx/Dz 完整定義在更下方但這裡先重算給 leg 母榫用）
+  const _splayMmForLegs = Math.round(Math.tan((splayAngle * Math.PI) / 180) * seatY);
+  const _splayDxForLegs =
+    legShape === "splayed" || legShape === "splayed-length" ? _splayMmForLegs : 0;
+  const _splayDzForLegs =
+    legShape === "splayed" || legShape === "splayed-width" ? _splayMmForLegs : 0;
+  const isCompoundSplayLegs = _splayDxForLegs > 0 && _splayDzForLegs > 0;
+
   const legs: Part[] = cornerPts.map((c, i) => {
     // 所有椅腳統一只到 seatY；rail / slats / panel 的椅背支撐都由獨立垂直木處理
     // （之前 rail/slats 讓後腳延伸到 seatY+backHeight，配上 splayed 會造成
     //  後腳左右距離跟前腳不等距、正視也不重疊。改用獨立支撐木分離）
     const isBack = false;
     const legTotalH = seatY;
+    // Compound splay: 母榫 axis = 公榫 world axis 取負（朝腳內部開）。
+    // 吧檯椅腿無 part rotation，leg-local == world。
+    const cornerSx = (c.x > 0 ? 1 : -1) as 1 | -1;
+    const cornerSz = (c.z > 0 ? 1 : -1) as 1 | -1;
+    let zFaceApronAxis: { x: number; y: number; z: number } | undefined;
+    let xFaceApronAxis: { x: number; y: number; z: number } | undefined;
+    let zFaceFrAxis: { x: number; y: number; z: number } | undefined;
+    let xFaceFrAxis: { x: number; y: number; z: number } | undefined;
+    if (isCompoundSplayLegs) {
+      const zApronWorld = computeCompoundSplayNormal({
+        apronAxis: "z", cornerSx, cornerSz, splayAngleDeg: splayAngle,
+      });
+      const xApronWorld = computeCompoundSplayNormal({
+        apronAxis: "x", cornerSx, cornerSz, splayAngleDeg: splayAngle,
+      });
+      zFaceApronAxis = { x: -zApronWorld.x, y: -zApronWorld.y, z: -zApronWorld.z };
+      xFaceApronAxis = { x: -xApronWorld.x, y: -xApronWorld.y, z: -xApronWorld.z };
+      zFaceFrAxis = { x: -zApronWorld.x, y: -zApronWorld.y, z: -zApronWorld.z };
+      xFaceFrAxis = { x: -xApronWorld.x, y: -xApronWorld.y, z: -xApronWorld.z };
+    }
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `椅腳 ${i + 1}`,
@@ -340,6 +368,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronUpperTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(zFaceApronAxis ? { axis: zFaceApronAxis } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
         {
@@ -353,6 +382,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronLowerTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
+          ...(xFaceApronAxis ? { axis: xFaceApronAxis } : {}),
         },
         ]),
         // === 腳踏 ===
@@ -368,6 +398,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frUpperTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
+          ...(zFaceFrAxis ? { axis: zFaceFrAxis } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫
         {
@@ -380,6 +411,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frLowerTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
+          ...(xFaceFrAxis ? { axis: xFaceFrAxis } : {}),
         },
         // 背腳：椅背頂橫木的母榫眼
         ...(isBack
@@ -517,6 +549,29 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronCombinedSides.map((s) => {
     const apronB = s.axis === "x" ? apronBX : apronBZ;
+    // Compound splay only — single-axis splay 已由 part.rotation 處理
+    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const tenonAxisStartWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const tenonAxisEndWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    // start side: negate in-axis component (apron-local convention)
+    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
+      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
+    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
+    const endAxisLocal   = tenonAxisEndWorld;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
     const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;
@@ -569,6 +624,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
+            ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+            ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -587,6 +644,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
@@ -597,6 +656,28 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const frCenterY = footrestHeight + footRestWidth / 2;
   const frB = buildSides(frCenterY, footRestWidth, "腳踏");
   const footRests: Part[] = frB.sides.map((s) => {
+    // Compound splay tenon axis（同 apron 邏輯）
+    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const frTenonAxisStartWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const frTenonAxisEndWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const frNegateInAxis = (v: { x: number; y: number; z: number } | null) =>
+      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
+    const frStartAxisLocal = frNegateInAxis(frTenonAxisStartWorld);
+    const frEndAxisLocal   = frTenonAxisEndWorld;
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + frB.splayXc - frB.lwC / 2;
     const halfX_T = legEdgeX + frB.splayXt - frB.lwT / 2;
@@ -644,6 +725,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: frTenonW,
             thickness: frTenonThick,
             shoulderOn: [...frTenonStd.shoulderOn],
+            ...(position === "start" && frStartAxisLocal ? { axis: frStartAxisLocal } : {}),
+            ...(position === "end" && frEndAxisLocal ? { axis: frEndAxisLocal } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -661,6 +744,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: frTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(position === "start" && frStartAxisLocal ? { axis: frStartAxisLocal } : {}),
+          ...(position === "end" && frEndAxisLocal ? { axis: frEndAxisLocal } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
