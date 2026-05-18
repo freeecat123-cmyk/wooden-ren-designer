@@ -71,7 +71,7 @@ function UserDropdown({
             {name[0]?.toUpperCase()}
           </div>
         )}
-        <span className="max-w-[140px] truncate">{name}</span>
+        <span className="hidden md:inline max-w-[140px] truncate">{name}</span>
         <svg
           width="12"
           height="12"
