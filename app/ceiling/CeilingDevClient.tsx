@@ -1,17 +1,19 @@
 "use client";
 
 /**
- * /ceiling — v3 視覺豐富版(第一性原理 + 質感)
+ * /ceiling — v4 完整版
  *
- * 結構不變(輸入 → 視覺 → 結果),但加質感:
- *   - hero 標題 + 副標 + 漸層背景
- *   - 輸入卡:hover lift,大數字 tabular
- *   - 視覺:陰影 + 漸層 backdrop + 控制列
- *   - 排版 / 對齊 toggles 拉到視覺下方一行(可見)
- *   - 6 stats:每張卡有 icon + 色 accent,hover 浮起
- *   - BOM 預設展開,分組標題(邊框 / 主支 / 副支 / 吊筋 / 矽酸鈣板)+ icon
- *   - 公式 trace 摺起(admin debug)
- *   - 進階設定(板規/接縫/角材/吊筋) 收在 ⚙ drawer
+ * 結構:
+ *   Header (logo + 視圖切 + CSV + ⚙)
+ *   Hero 4 大輸入(長/短/板高/天花板高)
+ *   視覺(2D / 3D)
+ *   6 重點數字
+ *   參數卡(排版 + 板規 + 角材 + 吊筋 + 自動間距,grid 密集)
+ *   BOM 詳表(預設展開)
+ *   施作提示
+ *   裁切計算器(可摺)
+ *   公式 trace(admin)
+ *   ⚙ Settings drawer 只留進階(手動 spacing 值、裁切設定)
  */
 
 import { useMemo, useState } from "react";
@@ -26,6 +28,7 @@ import { bomToCsvRows, computeCeilingBom } from "@/lib/ceiling/calc";
 import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
 import { LazyCeilingScene3D } from "@/lib/ceiling/LazyCeilingScene3D";
 import type { LayerKey, ViewMode } from "@/lib/ceiling/CeilingScene3D";
+import { bomToCuttingPieces, computeCuttingPlan } from "@/lib/ceiling/cutting";
 
 export function CeilingDevClient() {
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
@@ -37,8 +40,15 @@ export function CeilingDevClient() {
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({
     room: true, frame: true, main: true, sub: true, boards: true,
   });
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [traceOpen, setTraceOpen] = useState(false);
+  const [cutOpen, setCutOpen] = useState(true);
+  const [stockLengthCm, setStockLengthCm] = useState(360); // 12 尺
+  const [sawKerfCm, setSawKerfCm] = useState(0.3);
+
+  const cuttingPlan = useMemo(
+    () => computeCuttingPlan(bomToCuttingPieces(bom), stockLengthCm, sawKerfCm),
+    [bom, stockLengthCm, sawKerfCm],
+  );
 
   const toggleLayer = (k: LayerKey) =>
     setLayers((prev) => ({ ...prev, [k]: !prev[k] }));
@@ -59,10 +69,7 @@ export function CeilingDevClient() {
     URL.revokeObjectURL(url);
   }
 
-  // 重點數字
   const subRows = bom.items.filter((i) => i.category === "sub-joist");
-  const subInner = subRows[0];
-  const subEdge = subRows[1];
   const hanger = bom.items.find((i) => i.category === "hanger");
   const boardFull = bom.items.find((i) => i.category === "board-full");
   const boardCut = bom.items.find((i) => i.category === "board-cut");
@@ -71,7 +78,7 @@ export function CeilingDevClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/40 via-stone-50 to-stone-50">
-      {/* ============ 頂部 ============ */}
+      {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-5 py-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 mr-auto">
@@ -82,7 +89,7 @@ export function CeilingDevClient() {
               <h1 className="text-sm font-semibold text-zinc-900 leading-tight">天花板骨架施工模擬器</h1>
               <p className="text-[10px] text-zinc-500 leading-tight flex items-center gap-1.5">
                 <span className="text-[9px] text-rose-700 bg-rose-50 ring-1 ring-rose-200 px-1.5 py-px rounded-full">admin</span>
-                木匠學院 · v0.3
+                木匠學院 · v0.4
               </p>
             </div>
           </div>
@@ -100,10 +107,6 @@ export function CeilingDevClient() {
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm shadow-amber-500/30 transition">
             ⬇ CSV
           </button>
-          <button onClick={() => setSettingsOpen(true)}
-            className="px-3 py-1.5 text-[12px] rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700">
-            ⚙ 設定
-          </button>
         </div>
       </header>
 
@@ -117,12 +120,12 @@ export function CeilingDevClient() {
               onChange={(v) => update("shortSideCm", v)} />
             <HeroInput icon="↥" label="板高" value={input.slabHeightCm} suffix="cm" sub="樓板到地"
               onChange={(v) => update("slabHeightCm", v)} />
-            <HeroInput icon="≡" label="天花板高" value={input.ceilingHeightCm} suffix="cm" sub="完成面到地"
+            <HeroInput icon="≡" label="天花板高" value={input.ceilingHeightCm} suffix="cm" sub="完成面"
               onChange={(v) => update("ceilingHeightCm", v)} />
           </div>
         </section>
 
-        {/* ============ 視覺 + 控制 ============ */}
+        {/* ============ 視覺 ============ */}
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
@@ -166,26 +169,6 @@ export function CeilingDevClient() {
           </div>
         </section>
 
-        {/* ============ 排版 / 對齊 quick toggles ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm p-3 sm:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
-            <ToggleRow icon="⇆" label="主支排版" subLabel="沿長邊"
-              value={input.alignmentBase}
-              opts={[["left", "靠左"], ["center", "置中"], ["right", "靠右"]]}
-              onChange={(v) => update("alignmentBase", v as AlignmentBase)} />
-            <ToggleRow icon="⇅" label="副支排版" subLabel="沿短邊,板邊有副支撐"
-              value={input.subAlignmentBase}
-              opts={[["top", "靠上"], ["middle", "置中"], ["bottom", "靠下"]]}
-              onChange={(v) => update("subAlignmentBase", v as SubAlignmentBase)} />
-            <label className="flex items-center gap-2 text-xs sm:self-end px-2 py-2 rounded-lg hover:bg-stone-50 cursor-pointer transition">
-              <input type="checkbox" checked={input.frameDoublesAsSupport}
-                onChange={(e) => update("frameDoublesAsSupport", e.target.checked)}
-                className="accent-amber-600 w-4 h-4" />
-              <span className="text-zinc-700">邊框兼當支撐 <span className="text-zinc-400">(BOM −2)</span></span>
-            </label>
-          </div>
-        </section>
-
         {/* ============ 6 重點數字 ============ */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Stat icon="◬" tone="amber" label="坪數" value={r2(bom.auto.pingShu)} unit="坪"
@@ -195,14 +178,64 @@ export function CeilingDevClient() {
           <Stat icon="┃" tone="amber" label="主支" value={bom.trace.mainJoistTimberCount} unit="支"
             hint={`${r1(bom.trace.mainJoistLengthCm)} cm`} />
           <Stat icon="━" tone="stone" label="副支" value={totalSub} unit="支"
-            hint={subInner && subEdge ? `${subInner.unitLengthCm}/${subEdge.unitLengthCm} cm` : `${subInner?.unitLengthCm ?? "—"} cm`} />
+            hint={subRows.length >= 2 ? `${subRows[0].unitLengthCm}/${subRows[1].unitLengthCm} cm` : `${subRows[0]?.unitLengthCm ?? "—"} cm`} />
           <Stat icon="|" tone="stone" label="吊筋" value={hanger?.count ?? 0} unit="支"
             hint={`長 ${r1(bom.auto.hangerHeightCm)} cm`} />
           <Stat icon="▦" tone="amber" label="矽酸鈣板" value={totalBoards} unit="張"
             hint={`${boardFull?.count ?? 0} 整 / ${boardCut?.count ?? 0} 裁`} />
         </section>
 
-        {/* ============ BOM 詳表 預設展開 ============ */}
+        {/* ============ 參數卡(全部可調) ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm">
+          <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-zinc-900">⚙ 參數</h2>
+            <span className="text-[11px] text-zinc-400">改任何值,圖與材料表即時重算</span>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* 排版 */}
+            <ParamGroup icon="⇆" title="排版基準">
+              <Toggle3 label="主支(沿長邊)" value={input.alignmentBase}
+                opts={[["left", "靠左"], ["center", "置中"], ["right", "靠右"]]}
+                onChange={(v) => update("alignmentBase", v as AlignmentBase)} />
+              <Toggle3 label="副支(沿短邊)" value={input.subAlignmentBase}
+                opts={[["top", "靠上"], ["middle", "置中"], ["bottom", "靠下"]]}
+                onChange={(v) => update("subAlignmentBase", v as SubAlignmentBase)} />
+              <Check label="邊框兼當支撐 (−2 主支)" checked={input.frameDoublesAsSupport}
+                onChange={(v) => update("frameDoublesAsSupport", v)} />
+            </ParamGroup>
+
+            {/* 矽酸鈣板 */}
+            <ParamGroup icon="🪵" title="矽酸鈣板">
+              <SmallNum label="板長" value={input.boardLongCm} onChange={(v) => update("boardLongCm", v)} unit="cm" />
+              <SmallNum label="板寬" value={input.boardShortCm} onChange={(v) => update("boardShortCm", v)} unit="cm" />
+              <SmallNum label="接縫" value={input.jointGapMm} onChange={(v) => update("jointGapMm", v)} step={1} unit="mm" />
+              <p className="text-[10px] text-zinc-400 leading-snug">業界 3-6 mm,9 mm 板取 3 mm</p>
+            </ParamGroup>
+
+            {/* 角材 + 間距 */}
+            <ParamGroup icon="📏" title="角材 + 間距">
+              <Check label="🔒 依板規自動算間距" checked={input.useAutoSpacing}
+                onChange={(v) => update("useAutoSpacing", v)} />
+              <SmallNum label="主支中心距" value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
+                onChange={(v) => update("mainSpacingCm", v)} step={0.1} disabled={input.useAutoSpacing} unit="cm" />
+              <SmallNum label="副支中心距" value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
+                onChange={(v) => update("subSpacingCm", v)} step={0.1} disabled={input.useAutoSpacing} unit="cm" />
+              <SmallNum label="角材寬" value={input.timberWidthCm} onChange={(v) => update("timberWidthCm", v)} step={0.1} unit="cm" />
+              <SmallNum label="角材厚" value={input.timberThicknessCm} onChange={(v) => update("timberThicknessCm", v)} step={0.1} unit="cm" />
+            </ParamGroup>
+
+            {/* 吊筋 */}
+            <ParamGroup icon="🪝" title="吊筋">
+              <Toggle3 label="密度" value={input.hangerDensity}
+                opts={[["standard", "業界標準"], ["minimal", "簡化"]]}
+                onChange={(v) => update("hangerDensity", v as HangerDensity)} />
+              <SmallNum label="中心距" value={input.hangerSpacingCm} onChange={(v) => update("hangerSpacingCm", v)} unit="cm"
+                disabled={input.hangerDensity === "minimal"} />
+            </ParamGroup>
+          </div>
+        </section>
+
+        {/* ============ BOM ============ */}
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-stone-100 flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
@@ -223,9 +256,7 @@ export function CeilingDevClient() {
               <tbody className="divide-y divide-stone-100">
                 {bom.items.map((it, i) => (
                   <tr key={i} className="hover:bg-amber-50/30 transition">
-                    <td className="px-4 py-2.5">
-                      <CategoryBadge category={it.category} />
-                    </td>
+                    <td className="px-4 py-2.5"><CategoryBadge category={it.category} /></td>
                     <td className="px-4 py-2.5 text-zinc-900 font-medium">{it.nameZh}</td>
                     <td className="px-4 py-2.5 text-zinc-600 text-xs">{it.spec}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : "—"}</td>
@@ -238,39 +269,113 @@ export function CeilingDevClient() {
           </div>
         </section>
 
-        {/* ============ 提示 - 接縫處理 ============ */}
+        {/* ============ 施作提示 ============ */}
         <section className="rounded-2xl bg-gradient-to-br from-amber-50 via-white to-stone-50 ring-1 ring-amber-200/50 p-4 sm:p-5">
-          <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
-            💡 施作提示
-          </h3>
+          <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">💡 施作提示</h3>
           <ul className="text-[12px] text-zinc-700 leading-relaxed space-y-1 list-none">
-            <li><span className="text-amber-600 font-semibold">板邊接縫:</span> 預設 {input.jointGapMm} mm,環氧樹脂填縫 + 48 mm 接縫帶 + 批土收尾(防熱脹冷縮 / 結構振動裂)</li>
-            <li><span className="text-amber-600 font-semibold">板邊對齊:</span> 中間板邊落主支中心(藍色虛線 tick),周邊板邊落邊框外線</li>
-            <li><span className="text-amber-600 font-semibold">螺絲:</span> 距板邊 ≥ 15 mm,沿板邊 20-30 cm 一支</li>
+            <li><span className="text-amber-700 font-semibold">板邊接縫:</span> 預設 {input.jointGapMm} mm,環氧樹脂填縫 + 48 mm 接縫帶 + 批土收尾</li>
+            <li><span className="text-amber-700 font-semibold">板邊對齊:</span> 中間板邊落主支中心(藍色 tick),周邊板邊落邊框外線</li>
+            <li><span className="text-amber-700 font-semibold">螺絲:</span> 距板邊 ≥ 15 mm,沿板邊每 20-30 cm 一支</li>
           </ul>
         </section>
 
-        {/* ============ 公式對照(admin) ============ */}
+        {/* ============ 裁切計算器 ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+          <button onClick={() => setCutOpen(!cutOpen)}
+            className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">🪚 裁切計算(角材)</h2>
+              <span className="text-[11px] text-zinc-400">
+                共 {cuttingPlan.summary.stockCount} 支 stock · 利用率 {cuttingPlan.summary.utilizationPct}%
+                · 廢料 {cuttingPlan.summary.totalRemainM} m
+              </span>
+            </div>
+            <span className="text-zinc-400 text-xs">{cutOpen ? "▲" : "▼"}</span>
+          </button>
+          {cutOpen && (
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <label className="flex items-center gap-2">
+                  <span className="text-zinc-600">Stock 長度</span>
+                  <input type="number" value={stockLengthCm} step={10}
+                    onChange={(e) => setStockLengthCm(Number(e.target.value))}
+                    className="w-20 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
+                  <span className="text-[10px] text-zinc-400">cm</span>
+                  <span className="text-[10px] text-zinc-400">(360=12 尺、300=10 尺、600=20 尺)</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <span className="text-zinc-600">鋸口 kerf</span>
+                  <input type="number" value={sawKerfCm} step={0.1}
+                    onChange={(e) => setSawKerfCm(Number(e.target.value))}
+                    className="w-16 px-2 py-1 border border-stone-300 rounded tabular-nums focus:outline-none focus:border-amber-500" />
+                  <span className="text-[10px] text-zinc-400">cm</span>
+                </label>
+              </div>
+              <div className="overflow-x-auto rounded-lg ring-1 ring-stone-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-semibold">Stock #</th>
+                      <th className="text-left px-3 py-2 font-semibold">切法</th>
+                      <th className="text-right px-3 py-2 font-semibold">已切</th>
+                      <th className="text-right px-3 py-2 font-semibold">鋸</th>
+                      <th className="text-right px-3 py-2 font-semibold">剩</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {cuttingPlan.stocks.map((s) => (
+                      <tr key={s.index} className="hover:bg-amber-50/30">
+                        <td className="px-3 py-2 font-mono text-zinc-700">#{s.index}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {s.pieces.map((p, j) => (
+                              <span key={j} className={`px-1.5 py-0.5 rounded text-[10px] ring-1 font-mono ${pieceTone(p.category)}`}>
+                                {p.lengthCm}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{r1(s.usedLengthCm)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-zinc-400">{r1(s.totalKerfCm)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums font-semibold ${s.remainCm < 0 ? "text-rose-700" : s.remainCm < 10 ? "text-emerald-700" : "text-amber-700"}`}>
+                          {r1(s.remainCm)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500">
+                <span>採購 <strong className="text-zinc-900 text-base font-bold">{cuttingPlan.summary.stockCount}</strong> 支 {stockLengthCm} cm 角材</span>
+                <span>總料 <strong className="text-zinc-700">{cuttingPlan.summary.totalStockLengthM} m</strong></span>
+                <span>實用 <strong className="text-zinc-700">{cuttingPlan.summary.totalUsedM} m</strong></span>
+                <span>廢料 <strong className="text-rose-700">{cuttingPlan.summary.totalRemainM} m</strong></span>
+                <span>利用率 <strong className="text-amber-700">{cuttingPlan.summary.utilizationPct}%</strong></span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ============ 公式 trace(admin) ============ */}
         <section>
           <button onClick={() => setTraceOpen(!traceOpen)}
             className="w-full text-left px-5 py-3 rounded-2xl bg-white ring-1 ring-stone-200 hover:bg-stone-50 flex items-center justify-between text-sm transition">
-            <span className="font-medium text-zinc-700 flex items-center gap-2">🔬 公式對照 trace <span className="text-[10px] text-zinc-400 font-normal">admin debug</span></span>
+            <span className="font-medium text-zinc-700 flex items-center gap-2">
+              🔬 公式對照 trace <span className="text-[10px] text-zinc-400 font-normal">admin debug</span>
+            </span>
             <span className="text-zinc-400 text-xs">{traceOpen ? "▲" : "▼"}</span>
           </button>
           {traceOpen && <TracePanel bom={bom} />}
         </section>
       </main>
-
-      {settingsOpen && (
-        <SettingsDrawer input={input} bom={bom} update={update} onClose={() => setSettingsOpen(false)} />
-      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────
-// HeroInput
+// 小元件
 // ─────────────────────────────────────────────────────────
+
 function HeroInput({
   icon, label, sub, value, suffix, onChange,
 }: { icon: string; label: string; sub?: string; value: number; suffix: string; onChange: (v: number) => void }) {
@@ -279,7 +384,7 @@ function HeroInput({
       <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 uppercase tracking-wide font-semibold">
         <span className="text-amber-600 text-base leading-none">{icon}</span>
         {label}
-        {sub && <span className="text-[9px] text-zinc-400 lowercase font-normal normal-case">· {sub}</span>}
+        {sub && <span className="text-[9px] text-zinc-400 font-normal normal-case">· {sub}</span>}
       </div>
       <div className="flex items-baseline gap-1.5 mt-1">
         <input
@@ -294,9 +399,6 @@ function HeroInput({
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// Stat
-// ─────────────────────────────────────────────────────────
 function Stat({
   icon, tone, label, value, unit, hint,
 }: { icon: string; tone: "amber" | "stone"; label: string; value: number | string; unit: string; hint?: string }) {
@@ -319,127 +421,10 @@ function Stat({
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// ToggleRow — 排版 toggle 主畫面版
-// ─────────────────────────────────────────────────────────
-function ToggleRow<T extends string>({
-  icon, label, subLabel, value, opts, onChange,
-}: { icon: string; label: string; subLabel?: string; value: T; opts: [T, string][]; onChange: (v: T) => void }) {
+function ParamGroup({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex items-center gap-1.5 text-[11px] text-zinc-600 font-medium mb-1.5">
-        <span className="text-amber-600">{icon}</span>
-        {label}
-        {subLabel && <span className="text-[10px] text-zinc-400 font-normal">· {subLabel}</span>}
-      </div>
-      <div className="inline-flex w-full gap-0.5 p-0.5 bg-stone-100 rounded-lg ring-1 ring-stone-200/50">
-        {opts.map(([v, lbl]) => (
-          <button key={v} type="button" onClick={() => onChange(v)}
-            className={`flex-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition ${
-              value === v
-                ? "bg-white text-zinc-900 shadow-sm ring-1 ring-stone-200"
-                : "text-zinc-500 hover:text-zinc-800"
-            }`}>
-            {lbl}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// CategoryBadge
-// ─────────────────────────────────────────────────────────
-function CategoryBadge({ category }: { category: string }) {
-  const map: Record<string, { label: string; tone: string }> = {
-    "frame":      { label: "邊框",   tone: "bg-amber-100 text-amber-900 ring-amber-200" },
-    "main-joist": { label: "主支",   tone: "bg-orange-100 text-orange-900 ring-orange-200" },
-    "sub-joist":  { label: "副支",   tone: "bg-stone-100 text-stone-700 ring-stone-200" },
-    "hanger":     { label: "吊筋",   tone: "bg-slate-100 text-slate-700 ring-slate-200" },
-    "board-full": { label: "板·整", tone: "bg-emerald-100 text-emerald-900 ring-emerald-200" },
-    "board-cut":  { label: "板·裁", tone: "bg-rose-100 text-rose-900 ring-rose-200" },
-  };
-  const info = map[category] ?? { label: category, tone: "bg-stone-100 text-stone-700 ring-stone-200" };
-  return (
-    <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${info.tone}`}>
-      {info.label}
-    </span>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// SettingsDrawer
-// ─────────────────────────────────────────────────────────
-function SettingsDrawer({
-  input, bom, update, onClose,
-}: {
-  input: CeilingInput;
-  bom: ReturnType<typeof computeCeilingBom>;
-  update: <K extends keyof CeilingInput>(key: K, value: CeilingInput[K]) => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40 animate-[fadeIn_150ms_ease-out]" onClick={onClose} />
-      <aside className="fixed right-0 top-0 bottom-0 w-full sm:w-[360px] bg-white shadow-2xl z-50 overflow-y-auto animate-[slideInRight_200ms_ease-out]">
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-stone-200 px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
-            <span className="text-amber-600">⚙</span> 進階設定
-          </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 text-2xl leading-none w-7 h-7 flex items-center justify-center rounded hover:bg-stone-100 transition">×</button>
-        </div>
-        <div className="p-5 space-y-5">
-          <Group icon="📏" title="角材規格">
-            <SmallNum label="截面寬" value={input.timberWidthCm} onChange={(v) => update("timberWidthCm", v)} step={0.1} unit="cm" />
-            <SmallNum label="截面厚" value={input.timberThicknessCm} onChange={(v) => update("timberThicknessCm", v)} step={0.1} unit="cm" />
-            <p className="text-[10px] text-zinc-400">預設 3.6 × 3.0 cm = 1.2" × 1"</p>
-          </Group>
-
-          <Group icon="🪵" title="矽酸鈣板">
-            <SmallNum label="板長" value={input.boardLongCm} onChange={(v) => update("boardLongCm", v)} unit="cm" />
-            <SmallNum label="板寬" value={input.boardShortCm} onChange={(v) => update("boardShortCm", v)} unit="cm" />
-            <SmallNum label="接縫" value={input.jointGapMm} onChange={(v) => update("jointGapMm", v)} step={1} unit="mm" />
-            <p className="text-[10px] text-amber-700 leading-snug">業界 3-6 mm,9 mm 板取 3 mm。</p>
-          </Group>
-
-          <Group icon="📐" title="角材間距">
-            <Check label="🔒 依板規 + 接縫自動算" checked={input.useAutoSpacing}
-              onChange={(v) => update("useAutoSpacing", v)} />
-            <SmallNum label="主支中心距" value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
-              onChange={(v) => update("mainSpacingCm", v)} step={0.1}
-              disabled={input.useAutoSpacing} unit="cm" />
-            <SmallNum label="副支中心距" value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
-              onChange={(v) => update("subSpacingCm", v)} step={0.1}
-              disabled={input.useAutoSpacing} unit="cm" />
-            {input.useAutoSpacing && (
-              <p className="text-[10px] text-amber-700 leading-snug">
-                主支 = 板寬 + 接縫;副支 = 板長 ÷ round(板長 / 36)。
-              </p>
-            )}
-          </Group>
-
-          <Group icon="🪝" title="吊筋">
-            <Toggle3 label="密度" value={input.hangerDensity}
-              opts={[["standard", "業界標準"], ["minimal", "簡化(僅兩端)"]]}
-              onChange={(v) => update("hangerDensity", v as HangerDensity)} />
-            <SmallNum label="中心距" value={input.hangerSpacingCm} onChange={(v) => update("hangerSpacingCm", v)} unit="cm"
-              disabled={input.hangerDensity === "minimal"} />
-          </Group>
-        </div>
-      </aside>
-      <style jsx>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-      `}</style>
-    </>
-  );
-}
-
-function Group({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
+    <div className="space-y-2">
+      <h3 className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold flex items-center gap-1.5">
         <span>{icon}</span>{title}
       </h3>
       <div className="space-y-2">{children}</div>
@@ -490,9 +475,33 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// TracePanel
-// ─────────────────────────────────────────────────────────
+function CategoryBadge({ category }: { category: string }) {
+  const map: Record<string, { label: string; tone: string }> = {
+    "frame":      { label: "邊框",   tone: "bg-amber-100 text-amber-900 ring-amber-200" },
+    "main-joist": { label: "主支",   tone: "bg-orange-100 text-orange-900 ring-orange-200" },
+    "sub-joist":  { label: "副支",   tone: "bg-stone-100 text-stone-700 ring-stone-200" },
+    "hanger":     { label: "吊筋",   tone: "bg-slate-100 text-slate-700 ring-slate-200" },
+    "board-full": { label: "板·整", tone: "bg-emerald-100 text-emerald-900 ring-emerald-200" },
+    "board-cut":  { label: "板·裁", tone: "bg-rose-100 text-rose-900 ring-rose-200" },
+  };
+  const info = map[category] ?? { label: category, tone: "bg-stone-100 text-stone-700 ring-stone-200" };
+  return (
+    <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ring-1 font-medium ${info.tone}`}>
+      {info.label}
+    </span>
+  );
+}
+
+function pieceTone(category: string): string {
+  switch (category) {
+    case "frame":      return "bg-amber-100 text-amber-900 ring-amber-200";
+    case "main-joist": return "bg-orange-100 text-orange-900 ring-orange-200";
+    case "sub-joist":  return "bg-stone-100 text-stone-700 ring-stone-200";
+    case "hanger":     return "bg-slate-100 text-slate-700 ring-slate-200";
+    default:           return "bg-stone-100 text-stone-700 ring-stone-200";
+  }
+}
+
 function TracePanel({ bom }: { bom: ReturnType<typeof computeCeilingBom> }) {
   return (
     <div className="mt-2 rounded-2xl bg-white ring-1 ring-stone-200 p-5 text-xs space-y-3">
@@ -533,9 +542,6 @@ function Row({ label, children, mono }: { label: string; children: React.ReactNo
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// helpers
-// ─────────────────────────────────────────────────────────
 function csvEscape(s: string): string {
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
     return '"' + s.replace(/"/g, '""') + '"';
