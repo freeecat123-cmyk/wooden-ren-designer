@@ -64,10 +64,10 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: baseWidth, width: backPanelH, thickness: panelT },
     origin: { x: -(baseDepth / 2 - panelT / 2), y: panelT, z: 0 },
-    // 單軸 Ry(π/2)：part-local +X(length=baseWidth) → world +Z（橫向跨）、
-    // +Y(width=backPanelH) 仍是世界 Y（垂直立板）、+Z(thickness=panelT) → world -X（薄厚朝後）。
-    // 雙軸 Rx(π/2)·Ry(π/2) 會把 height 軸映射成 -X 變平躺、silhouette L 型消失。
-    rotation: { x: 0, y: Math.PI / 2, z: 0 },
+    // 雙軸 Rx(π/2)·Ry(π/2)：把橫躺板（visible.width=backPanelH 沿 Z 軸）扶正
+    // → backPanelH 變世界 +Y（垂直立板）、baseWidth 變世界 Z、panelT 變世界 X。
+    // 形成書擋 L 型 silhouette。曾在 b8c84c4 改成單軸 Ry 變回平躺，已 revert。
+    rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
     tenons: [],
     mortises: [],
     joineryView: {
@@ -94,10 +94,9 @@ export const bookend: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: braceLeg, width: braceLeg, thickness: BRACE_THICKNESS },
-      // 直角三角形卡 base 上面 + back 前面的角落。
-      // length(X)→水平腳，沿 base 後緣往前；width(Y)→垂直腳，沿 back 前緣往上；
-      // thickness(Z)→側厚。對齊新單軸 back panel 的方向。
+      // 直角三角形卡 base 上面 + back 前面的角落，跟雙軸 back panel 對齊。
       origin: { x: -baseDepth / 2 + panelT + braceLeg / 2, y: panelT, z: 0 },
+      rotation: { x: Math.PI / 2, y: 0, z: 0 },
       shape: { kind: "right-triangle", corner: "-x+z" },
       tenons: [],
       mortises: [],
