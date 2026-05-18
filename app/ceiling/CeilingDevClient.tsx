@@ -80,9 +80,8 @@ export function CeilingDevClient() {
       setBoardKindFilter(null);
     }
   };
-  // SVG 沒有 hanger 層,把 hanger 高亮映成 null(全亮)避免 SVG 全變暗
-  const svgHighlight: HighlightCategory =
-    highlight === "hanger" ? null : (highlight as HighlightCategory);
+  // SVG 加了 hanger 俯視點(2026-05-18),hanger 高亮直接 pass through
+  const svgHighlight: HighlightCategory = highlight as HighlightCategory;
 
   const cuttingPlan = useMemo(
     () => computeCuttingPlan(bomToCuttingPieces(bom), stockLengthCm, sawKerfCm),

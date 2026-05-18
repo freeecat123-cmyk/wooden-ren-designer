@@ -28,7 +28,7 @@ const PAD_LEFT = 60;    // cm,給左方短邊尺寸
 const PAD_RIGHT = 40;
 const PAD_BOTTOM = 40;
 
-export type HighlightCategory = "frame" | "main" | "sub" | "board" | null;
+export type HighlightCategory = "frame" | "main" | "sub" | "board" | "hanger" | null;
 
 export function CeilingOverviewSvg({
   bom,
@@ -144,6 +144,9 @@ export function CeilingOverviewSvg({
       {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
       {renderSubJoists(trace, x0, innerY0, tw, dim("sub"), subLengthFilter)}
 
+      {/* ────── 6b. 吊筋俯視點(每主支沿 Z 軸 N 個小圓) ────── */}
+      {renderHangerDots(trace, x0, innerY0, innerY1, tw, dim("hanger"))}
+
       {/* ────── 7. 尺寸標註 ────── */}
       {/* 長邊 — 頂部 */}
       <DimLine
@@ -228,6 +231,43 @@ function renderSubJoists(
     }
   }
   return elements;
+}
+
+// ─────────────────────────────────────────────────────────
+// 吊筋俯視點:每主支沿 Z 軸 hangerPerJoist 個位置畫小黑圓
+// ─────────────────────────────────────────────────────────
+function renderHangerDots(
+  trace: CeilingBom["trace"],
+  x0: number,
+  innerY0: number,
+  innerY1: number,
+  tw: number,
+  baseOpacity: number,
+) {
+  const N = trace.hangerPerMainJoist;
+  if (N <= 0) return null;
+  const usableZ = innerY1 - innerY0;
+  // 跟 3D HangersLayer 同邏輯:1=中、2=1/3+2/3、3+=均分含端點
+  const positions: number[] = (() => {
+    if (N <= 1) return [innerY0 + usableZ / 2];
+    if (N === 2) return [innerY0 + usableZ / 3, innerY0 + (2 * usableZ) / 3];
+    const step = usableZ / (N - 1);
+    return Array.from({ length: N }, (_, i) => innerY0 + i * step);
+  })();
+  const dotR = Math.max(0.8, tw * 0.4);
+  const dots: React.ReactNode[] = [];
+  let k = 0;
+  for (const c of trace.mainJoistCentersCm) {
+    const cx = x0 + c;
+    for (const cy of positions) {
+      dots.push(
+        <circle key={`hd-${k++}`} cx={cx} cy={cy} r={dotR}
+          fill="#1e293b" stroke="#fff" strokeWidth={0.4}
+          opacity={baseOpacity} />,
+      );
+    }
+  }
+  return dots;
 }
 
 // ─────────────────────────────────────────────────────────
