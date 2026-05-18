@@ -58,6 +58,38 @@ export function computeSplayGeometry(legHeight: number, splayAngleDeg: number) {
 }
 
 /**
+ * For compound splay (4-corner diagonal external splay), compute the part-local
+ * unit normal of the leg's inner face an apron's end tenon should align with.
+ *
+ * Convention:
+ *   - apronAxis "x": apron lies along world X. Tenon at corner (sx, sz) points
+ *     toward +sx·X with a downward (−Y) component proportional to splay angle.
+ *   - apronAxis "z": symmetric in Z.
+ *   - cornerSz=0 (single-axis splayed-length) or cornerSx=0 (splayed-width)
+ *     degenerates: tenon stays in the apron-axis plane.
+ *
+ * The single-axis tilt already applied to the WHOLE part (`rotation.x` /
+ * `rotation.z` in square-stool.ts:351) carries the cross-direction lean; this
+ * normal is expressed in part-local frame AFTER that rotation.
+ */
+export function computeCompoundSplayNormal(args: {
+  apronAxis: "x" | "z";
+  cornerSx: -1 | 0 | 1;
+  cornerSz: -1 | 0 | 1;
+  splayAngleDeg: number;
+}): { x: number; y: number; z: number } {
+  const { apronAxis, cornerSx, cornerSz, splayAngleDeg } = args;
+  const a = splayAngleDeg * (Math.PI / 180);
+  if (apronAxis === "x") {
+    if (cornerSx === 0) return { x: 0, y: 0, z: 0 };
+    return { x: cornerSx * Math.cos(a), y: -Math.sin(a), z: 0 };
+  } else {
+    if (cornerSz === 0) return { x: 0, y: 0, z: 0 };
+    return { x: 0, y: -Math.sin(a), z: cornerSz * Math.cos(a) };
+  }
+}
+
+/**
  * Leg shape enum key → 中文標籤。所有家具模板共用一份。
  *
  * 原本散在 round-stool / round-tea-table / round-table / dining-table 各有一份。
