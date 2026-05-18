@@ -349,10 +349,12 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     // component that part rotation alone can't carry; helper returns world-frame
     // tenon direction, attached as `axis` on each tenon end.
     const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    // axis="x" 牙條: start at part-local -X → world -X (Rx(π/2) 不動 X)。cornerSx=-1 ✓
+    // axis="z" 牙條: start at part-local -X → world +Z (Rx(π/2) Ry(π/2) 後 -X→+Z)。cornerSz=+1（不是 -1）
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
-    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
     const tenonAxisStart = isCompoundSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
       : null;
