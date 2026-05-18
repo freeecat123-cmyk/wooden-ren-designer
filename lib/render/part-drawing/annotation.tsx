@@ -957,8 +957,132 @@ export function T2Annotations({
   const centerLocalY = part.visible.thickness / 2;
   const partCenterSvg = ctx.partLocalToSvg(0, centerLocalY, 0);
 
+  // ─────────────────────────────────────────────────────────────
+  // 重疊避撞 pre-pass：偵測哪些 items 共用同一條 W chain dim row
+  // （wDimY 接近 + chain x-span 重疊）→ 第 2+ 個 stagger 下推一行
+  // 同理偵測共用同一條 L chain dim column（lDimX 接近 + chain y-span 重疊）→
+  // stagger label 往外推一格
+  //
+  // 為什麼要做：對稱 mortise（左右兩個）box.y 一樣 → wDimY 一樣 → shoulderLft/
+  // shoulderRgt 標籤跟 W dim label 全擠在同一條水平線上，標籤撞字（user:
+  // 「nightstand 底板 438 438 / 415 415 / 202.5 202.5 一堆數字撞同位置」）
+  //
+  // 上方已存在的 lSiblings 偵測只處理 L 軸 chain（vertical），這裡補 W 軸。
+  // ─────────────────────────────────────────────────────────────
+
+  type DimRowMeta = {
+    wDimY: number;
+    wDimBelow: boolean;
+    lDimX: number;
+    wStagger: number; // 0=base, 1+ = 往下推 STAGGER_GAP * wStagger
+    lStagger: number; // 0=base, 1+ = 往外推 STAGGER_GAP * lStagger
+  };
+
+  const STAGGER_GAP = 14; // SVG px；同 row sibling 互推距離
+  const ROW_TOL = 6; // wDimY 容差，判同 row
+  const X_OVERLAP_TOL = 4; // x 範圍重疊閾值
+
+  // 第一步：先算每個 item 的 baseline wDimY / lDimX（不含 stagger）
+  // 為求準確，這裡複製 forEach 內部 wDimY/lDimX 邏輯（partLeftSvg / partRightSvg
+  // 也要算到，因為 lDimX 用得到）
+  const baselineMetas: DimRowMeta[] = items.map((it) => {
+    const box = it.rect;
+    // 重新算 partLeftSvg/partRightSvg 跟 forEach 內邏輯一致
+    const T = part.visible.thickness;
+    const W = part.visible.width;
+    const L = part.visible.length;
+    const cornersXForDim: number[] = [];
+    if (view === "front") {
+      cornersXForDim.push(
+        ctx.partLocalToSvg(-L / 2, -T / 2, 0).x,
+        ctx.partLocalToSvg(+L / 2, +T / 2, 0).x,
+      );
+    } else if (view === "top") {
+      cornersXForDim.push(
+        ctx.partLocalToSvg(-L / 2, T / 2, -W / 2).x,
+        ctx.partLocalToSvg(+L / 2, T / 2, +W / 2).x,
+      );
+    } else {
+      cornersXForDim.push(
+        ctx.partLocalToSvg(0, -T / 2, -W / 2).x,
+        ctx.partLocalToSvg(0, +T / 2, +W / 2).x,
+      );
+    }
+    const partLeftSvg = Math.min(...cornersXForDim);
+    const partRightSvg = Math.max(...cornersXForDim);
+    const outerAbove = box.y < partCenterSvg.y;
+    const GAP = 12;
+    const otherOuterLeft = box.x < partCenterSvg.x;
+    const lDimXBase = otherOuterLeft
+      ? Math.min(box.x, partLeftSvg) - GAP
+      : Math.max(box.x + box.w, partRightSvg) + GAP;
+    // wDimBelow：上方有任何 L sibling 時走 below；簡化判斷只用 outerAbove
+    // (上面真實邏輯也檢查 prevLSibling，會更積極選 below；這裡 baseline 用簡化版
+    //  夠精確分辨同 row、後面 stagger 再調整)
+    const wDimBelow = !outerAbove;
+    const wGap = GAP;
+    const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+    return { wDimY, wDimBelow, lDimX: lDimXBase, wStagger: 0, lStagger: 0 };
+  });
+
+  // 第二步：對每個 item 找「同 row 且實際 label 區域會撞」更早的 item
+  // 偵測規則：
+  //   wDimY 相近 (< ROW_TOL) 且兩個 box 「在水平上靠近」（mid-x 距離 < 一個
+  //   shoulder 段的寬度 ~80svg）→ shoulderRgt(prev) / shoulderLft(curr) 會撞中間
+  //   → 第 2+ 個 item 往下推一行
+  //
+  // 為什麼不直接每個同 row item 都 stagger：對稱件 mortise A/B 都在同 row、
+  // 中間 shoulder 段重疊 → 撞；但如果 box A 跟 box B 距離超遠（>200svg），
+  // shoulder 段不會撞，不該 stagger。避免之前 4f518b0「整 chain 重排」的問題。
+  const SHOULDER_PROX_SVG = 80; // 兩 box 距離 < 80svg 視為 shoulder 段會撞
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const box = it.rect;
+    const meta = baselineMetas[i];
+    let wRowCount = 0;
+    let lColCount = 0;
+    const myMidX = box.x + box.w / 2;
+    const myMidY = box.y + box.h / 2;
+    for (let j = 0; j < i; j++) {
+      const other = items[j];
+      const otherBox = other.rect;
+      const otherMeta = baselineMetas[j];
+      // 同 W row 偵測：wDimY 接近 + box 中心 x 距離 < SHOULDER_PROX → 撞
+      // 不論 box 是否 x-overlap、中間 shoulder 段都會塞同一條水平線
+      if (Math.abs(meta.wDimY - otherMeta.wDimY) < ROW_TOL) {
+        const otherMidX = otherBox.x + otherBox.w / 2;
+        // box 直接 x-overlap、或中心 x 太近 → 撞
+        const overlapsX =
+          box.x - X_OVERLAP_TOL <= otherBox.x + otherBox.w &&
+          box.x + box.w + X_OVERLAP_TOL >= otherBox.x;
+        const closeX = Math.abs(myMidX - otherMidX) < SHOULDER_PROX_SVG * 4;
+        // 對稱件（兩 mortise 鏡像）：myMid / otherMid 通常 200~300svg 遠、但中間
+        // shoulder 段都集中在 part 中央區（mid_partX 附近），仍會撞 → closeX 用
+        // 4x 寬鬆 threshold 抓得到
+        if (overlapsX || closeX) {
+          wRowCount++;
+        }
+      }
+      // 同 L col 偵測：lDimX 接近 + box 中心 y 距離 < SHOULDER_PROX → 撞
+      if (Math.abs(meta.lDimX - otherMeta.lDimX) < ROW_TOL) {
+        const otherMidY = otherBox.y + otherBox.h / 2;
+        const overlapsY =
+          box.y - X_OVERLAP_TOL <= otherBox.y + otherBox.h &&
+          box.y + box.h + X_OVERLAP_TOL >= otherBox.y;
+        const closeY = Math.abs(myMidY - otherMidY) < SHOULDER_PROX_SVG * 4;
+        // y 重疊已由 prevLSibling 路徑（chain shoulder + leader）處理，這裡
+        // 只對「box 在同 col 但 y 不 overlap、label 中央仍撞」的 case 動
+        if (!overlapsY && closeY) {
+          lColCount++;
+        }
+      }
+    }
+    meta.wStagger = wRowCount;
+    meta.lStagger = lColCount;
+  }
+
   const elements: React.ReactNode[] = [];
-  items.forEach((it) => {
+  items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
     const stroke = isMortise ? "#dc2626" : "#2563eb";
@@ -1238,9 +1362,20 @@ export function T2Annotations({
       // 有 sibling 在上方的 chain mortise 用較大 gap=24 拉開
       const wDimBelow = !!prevLSibling || !outerAbove;
       const wGap = prevLSibling ? 40 : GAP;
-      const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      // 多 mortise 同 row 撞：wStagger > 0 時往下推 STAGGER_GAP*wStagger
+      // 避免「438 438」「415 415」「202.5 202.5」這種多 mortise 標籤撞同一行
+      const myMeta = baselineMetas[itemIdx];
+      const wStaggerOffset = myMeta.wStagger * STAGGER_GAP;
+      const wDimYBase = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      const wDimY = wDimBelow
+        ? wDimYBase + wStaggerOffset
+        : wDimYBase - wStaggerOffset;
       const wLabelY = wDimBelow ? wDimY + 7 : wDimY - 2;
-      const lLabelX = outerLeft ? lDimX - 2 : lDimX + 2;
+      // L label 同 col 撞：lStagger > 0 時往外推 STAGGER_GAP*lStagger
+      const lStaggerOffset = myMeta.lStagger * STAGGER_GAP;
+      const lLabelX = outerLeft
+        ? lDimX - 2 - lStaggerOffset
+        : lDimX + 2 + lStaggerOffset;
       const lLabelAnchor: "start" | "end" = outerLeft ? "end" : "start";
 
       // 內向箭頭 dim line（box 兩端 tick → 中央 label）
