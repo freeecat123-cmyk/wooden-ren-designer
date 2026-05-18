@@ -125,8 +125,8 @@ export function CeilingDevClient() {
           </div>
         </section>
 
-        {/* ============ 視覺 ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+        {/* ============ 視覺(sticky,scroll 時黏在頂部) ============ */}
+        <section className="lg:sticky lg:top-[64px] lg:z-20 rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
               <div className="inline-flex gap-0.5 p-0.5 bg-white rounded-md ring-1 ring-stone-200">
