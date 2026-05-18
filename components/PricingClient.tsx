@@ -396,17 +396,34 @@ function PlanCardView({
         ))}
       </ul>
 
-      <button
-        type="button"
-        className={`mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-          plan.highlight
-            ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
-            : "bg-zinc-900 text-white hover:bg-zinc-700"
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        {plan.cta}
-      </button>
-      <p className="mt-2 text-[11px] text-zinc-400 text-center">付款功能即將開放</p>
+      {isFree ? (
+        <Link
+          href="/"
+          className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
+        >
+          {plan.cta}
+        </Link>
+      ) : (
+        <form method="POST" action="/api/checkout" className="mt-5">
+          <input type="hidden" name="plan" value={plan.id} />
+          <input type="hidden" name="period" value={period} />
+          <button
+            type="submit"
+            className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+              plan.highlight
+                ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
+                : "bg-zinc-900 text-white hover:bg-zinc-700"
+            }`}
+          >
+            {plan.cta}
+          </button>
+        </form>
+      )}
+      {!isFree && (
+        <p className="mt-2 text-[11px] text-zinc-500 text-center">
+          將跳轉綠界 ECPay 付款 · 信用卡 / ATM / 超商
+        </p>
+      )}
     </div>
   );
 }
