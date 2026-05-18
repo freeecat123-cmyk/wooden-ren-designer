@@ -2783,9 +2783,10 @@ export function PerspectiveView({
       geo.deleteAttribute("uv");
       if (!geo.attributes.normal) geo.computeVertexNormals();
       // tail tip 在 X=±halfLength 跟側板外面 face 重合 → Z-fighting
-      // 沿 X 微放大讓 cut 超出側板外面 1mm（feedback_csg_overlap_over_analytical_fit）
+      // 沿 X 微放大讓 cut 超出側板外面 0.2mm（feedback_csg_overlap_over_analytical_fit）
+      // 之前用 1mm 過大，cavity 比 tail 深 1mm，視覺上會看到 tail tip 後面亮色細縫。
       const sxFull = part.visible.length;
-      const xScale = (sxFull + 2) / sxFull;
+      const xScale = (sxFull + 0.4) / sxFull;
       geo.scale(xScale, 1, 1);
       const { yExt } = worldExtents(part);
       const px = part.origin.x * SCALE;
@@ -3339,12 +3340,15 @@ export function PerspectiveView({
                 //     direction onto t.axis (world)
                 // This preserves cross-section orientation while pointing
                 // the long axis at the world-frame splayed tenon direction.
+                // Compute meshQuat and the world-frame position shift needed
+                // so the tenon's ROOT (the face flush against the parent part)
+                // stays on the parent's exterior face after rotation. Without
+                // the shift the mesh would rotate about its center, lifting
+                // the root off the parent face by `(effLen/2) * (tAxis - geomLongWorld)`.
+                let posShift: { x: number; y: number; z: number } | null = null;
                 const meshQuat = (() => {
                   if (!t.axis) return null;
                   const partQ = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
-                  // Box's natural long axis in part-local depends on tenon position.
-                  // For start/bottom/left, the tip points along the negative axis
-                  // so flip to get the actual outward direction.
                   const geomLongLocal: [number, number, number] =
                     (t.position === "start" || t.position === "end")  ? [1, 0, 0] :
                     (t.position === "top" || t.position === "bottom") ? [0, 1, 0] :
@@ -3355,20 +3359,29 @@ export function PerspectiveView({
                     geomLongLocal[1] * flip,
                     geomLongLocal[2] * flip,
                   );
-                  // After partQ, this is the world direction of the box's long axis.
                   const geomLongWorld = geomLongLocalV.clone().applyQuaternion(partQ);
                   const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
                   const target = new Vector3(t.axis.x / tm, t.axis.y / tm, t.axis.z / tm);
-                  // extraQ_world rotates geomLongWorld onto target.
                   const extraQ = new Quaternion().setFromUnitVectors(geomLongWorld, target);
-                  // Apply partQ first (cross-section aligned), then extraQ (tilt long axis).
+                  // Root-anchor shift: position += (effLen/2) * (target - geomLongWorld)
+                  // in world frame. This keeps the tenon's root face on the parent
+                  // exterior face after the rotation.
+                  posShift = {
+                    x: (effLen / 2) * (target.x - geomLongWorld.x) * SCALE,
+                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE,
+                    z: (effLen / 2) * (target.z - geomLongWorld.z) * SCALE,
+                  };
                   return extraQ.multiply(partQ);
                 })();
+
+                const meshPos: [number, number, number] = posShift
+                  ? [wx + posShift.x, wy + posShift.y, wz + posShift.z]
+                  : [wx, wy, wz];
 
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
-                    position={[wx, wy, wz]}
+                    position={meshPos}
                     {...(meshQuat
                       ? { quaternion: meshQuat }
                       : { rotation: new Euler(rx, ry, rz, "ZYX") })}
