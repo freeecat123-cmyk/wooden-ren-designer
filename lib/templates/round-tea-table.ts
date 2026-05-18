@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
@@ -94,6 +94,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
   // 腳頂榫對圓桌面 radial 偏（X+Z 朝中心）— 圓桌面沒「端面」概念，4 隻腳一律保護
   const { splayMm, splayDx, splayDz } = computeSplayGeometry(legHeight, splayAngle);
+  // Compound splay = both x and z splay components > 0 (4-corner diagonal).
+  const isCompoundSplay = splayDx > 0 && splayDz > 0;
   // 套方凳榫卯規則
   const apronY0 = legHeight - apronWidth - apronDropFromTop;
   const apronYCenter0 = apronY0 + apronWidth / 2;
@@ -225,30 +227,52 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         },
       ],
       mortises: [
-        // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
-        {
-          origin: {
-            x: 0,
-            y: apronYCenter0 + apronUpperTenonOffset,
-            z: -sz * (legSize / 2),
-          },
-          depth: apronTenonLen,
-          length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
-          width: apronTenonThick,
-          through: apronTenonType === "through-tenon",
-        },
-        // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
-        {
-          origin: {
-            x: -sx * (legSize / 2),
-            y: apronYCenter0 + apronLowerTenonOffset - (apronVisuallyStaggered ? apronStaggerMm : 0),
-            z: 0,
-          },
-          depth: apronTenonLen,
-          length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
-          width: apronTenonThick,
-          through: apronTenonType === "through-tenon",
-        },
+        ...((() => {
+          // Compound splay: mortise opens INTO leg = -1 × matching apron tenon's world normal.
+          // Round-tea-table legs aren't rotated (origin only) so part-local == world.
+          const cSx = (sx > 0 ? 1 : -1) as 1 | -1;
+          const cSz = (sz > 0 ? 1 : -1) as 1 | -1;
+          const zApronTenonWorld = isCompoundSplay
+            ? computeCompoundSplayNormal({ apronAxis: "z", cornerSx: cSx, cornerSz: cSz, splayAngleDeg: splayAngle })
+            : null;
+          const xApronTenonWorld = isCompoundSplay
+            ? computeCompoundSplayNormal({ apronAxis: "x", cornerSx: cSx, cornerSz: cSz, splayAngleDeg: splayAngle })
+            : null;
+          const zFaceAxis = zApronTenonWorld
+            ? { x: -zApronTenonWorld.x, y: -zApronTenonWorld.y, z: -zApronTenonWorld.z }
+            : undefined;
+          const xFaceAxis = xApronTenonWorld
+            ? { x: -xApronTenonWorld.x, y: -xApronTenonWorld.y, z: -xApronTenonWorld.z }
+            : undefined;
+          return [
+            // Z 面（接 Z 軸 = 左右牙板, 靜止）— 上半榫
+            {
+              origin: {
+                x: 0,
+                y: apronYCenter0 + apronUpperTenonOffset,
+                z: -sz * (legSize / 2),
+              },
+              depth: apronTenonLen,
+              length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
+              width: apronTenonThick,
+              through: apronTenonType === "through-tenon",
+              ...(zFaceAxis ? { axis: zFaceAxis } : {}),
+            },
+            // X 面（接 X 軸 = 前後牙板, 下移）— 下半榫
+            {
+              origin: {
+                x: -sx * (legSize / 2),
+                y: apronYCenter0 + apronLowerTenonOffset - (apronVisuallyStaggered ? apronStaggerMm : 0),
+                z: 0,
+              },
+              depth: apronTenonLen,
+              length: apronCanHalfStagger ? apronHalfTenonH : apronTenonW,
+              width: apronTenonThick,
+              through: apronTenonType === "through-tenon",
+              ...(xFaceAxis ? { axis: xFaceAxis } : {}),
+            },
+          ];
+        })()),
         // X-cross 模式：腳上不加軸對齊 mortise（對角榫頭做法手作端要自行決定，
         // 通常用 45° 盲榫或暗銷；3D 視覺仍接合，不影響材料單）
         ...(withLowerStretcher && lowerStretcherStyle === "h-frame"
@@ -324,6 +348,27 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     const bevelAngle = isSplayed ? (s.axis === "x" ? -s.sz * tilt : -s.sx * tilt) : 0;
     const apronTopAtSeat = apronDropFromTop === 0;
     const useTopBevel = isSplayed && apronTopAtSeat;
+    // Compound splay only — single-axis splay is fully carried by part.rotation.
+    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const tenonAxisStartWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const tenonAxisEndWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
+          splayAngleDeg: splayAngle,
+        })
+      : null;
+    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
+      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
+    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
+    const endAxisLocal   = tenonAxisEndWorld;
     const partShape = hasTaper
       ? ({
           kind: "apron-trapezoid" as const,
@@ -346,6 +391,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonW,
           thickness: apronTenonThick,
           shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
+          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
         });
         return [mk("start"), mk("end")];
       }
@@ -362,6 +409,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: apronTenonThick,
         shoulderOn,
         offsetWidth: -worldOffset,
+        ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
+        ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
       });
       return [mk("start"), mk("end")];
     })();
