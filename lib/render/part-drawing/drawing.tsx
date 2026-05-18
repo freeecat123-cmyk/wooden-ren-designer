@@ -6,6 +6,7 @@
  *
  * Spec: docs/superpowers/specs/2026-05-16-part-drawings-design.md §4 / §5.1
  */
+"use client";
 
 import React, { useLayoutEffect, useRef } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
