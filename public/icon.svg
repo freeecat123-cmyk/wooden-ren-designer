@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" ry="96" fill="#8B4513"/>
-  <text x="256" y="340" font-family="'Noto Sans TC','PingFang TC',sans-serif" font-size="280" font-weight="900" text-anchor="middle" fill="#FAF6F0">木</text>
+  <!-- Blueprint navy background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="#1e3a5f"/>
+  <!-- Subtle grid hint (only visible at larger sizes) -->
+  <g stroke="#ffffff" stroke-width="3" opacity="0.18">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+  <!-- Isometric wood block: top diamond -->
+  <polygon points="256,140 410,220 256,300 102,220" fill="#fbbf24" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Left face -->
+  <polygon points="102,220 256,300 256,420 102,340" fill="#d97706" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Right face (darker) -->
+  <polygon points="410,220 256,300 256,420 410,340" fill="#b45309" stroke="#78350f" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Grain line hints on top face -->
+  <g stroke="#92400e" stroke-width="3" opacity="0.5" fill="none">
+    <path d="M 160 215 Q 256 200 352 215"/>
+    <path d="M 180 245 Q 256 232 332 245"/>
+  </g>
 </svg>
