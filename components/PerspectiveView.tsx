@@ -3522,7 +3522,11 @@ export function PerspectiveView({
                     const topS = part.shape.topLengthScale ?? 1;
                     const botS = part.shape.bottomLengthScale ?? 1;
                     const avgScale = (topS + botS) / 2;
-                    halfLenLocal = part.visible.length * (1 - avgScale) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                    const lxPart = part.visible.length;
+                    const hzPart = part.visible.width / 2;
+                    // 端面有 Z 傾斜 → 不同 Z 位置 (lcz) 的 miter X 位置不同
+                    const zCompensation = hzPart > 0 ? lxPart * (botS - topS) / (4 * hzPart) * lcz : 0;
+                    halfLenLocal = lxPart * (1 - avgScale) / 2 + Math.abs(effLen) / 2 - zCompensation + ROOT_BURY;
                   }
                   const halfLenWorld = halfLenLocal * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
