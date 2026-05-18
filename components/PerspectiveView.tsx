@@ -3364,11 +3364,43 @@ export function PerspectiveView({
                   const target = new Vector3(t.axis.x / tm, t.axis.y / tm, t.axis.z / tm);
                   const extraQ = new Quaternion().setFromUnitVectors(geomLongWorld, target);
                   // Root-anchor shift: position += (effLen/2) * (target - geomLongWorld)
-                  // in world frame. This keeps the tenon's root face on the parent
-                  // exterior face after the rotation.
+                  // in world frame. This keeps the tenon's root-face CENTER on the
+                  // parent's exterior face after rotation. But the rotated box's
+                  // bottom-face corners still spread ±(W/2*|perpY|) above/below
+                  // this center, leaving a visible wedge gap on one side and
+                  // overlap on the other.
+                  //
+                  // Second shift: push the mesh further along -target so the
+                  // HIGHEST root-face corner lands at the anchor plane. After
+                  // this, no part of the root face protrudes past the parent's
+                  // exterior; the diagonal cut sinks into the parent (hidden
+                  // in solid render, slightly visible in wireframe).
+                  const composed = extraQ.clone().multiply(partQ);
+                  const rootMesh = new Vector3(
+                    -hx * geomLongLocal[0] * flip,
+                    -hy * geomLongLocal[1] * flip,
+                    -hz * geomLongLocal[2] * flip,
+                  );
+                  // Cross-section half-extents along the two non-long axes.
+                  const isLongX = Math.abs(geomLongLocal[0]) > 0.5;
+                  const isLongY = Math.abs(geomLongLocal[1]) > 0.5;
+                  const halfA = isLongX ? hy : hx;
+                  const halfB = isLongY ? hz : (isLongX ? hz : hy);
+                  const perpAxisA = new Vector3(isLongX ? 0 : 1, isLongX ? 1 : 0, 0);
+                  const perpAxisB = new Vector3(isLongX || isLongY ? 0 : 1, 0, isLongX || isLongY ? 1 : 0);
+                  let maxCornerY = -Infinity;
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const cornerLocal = rootMesh.clone()
+                      .addScaledVector(perpAxisA, sa * halfA)
+                      .addScaledVector(perpAxisB, sb * halfB);
+                    const cornerWorld = cornerLocal.applyQuaternion(composed);
+                    if (cornerWorld.y > maxCornerY) maxCornerY = cornerWorld.y;
+                  }
+                  // posShift = root-anchor + sink (push down by max corner Y so
+                  // no corner protrudes above the anchor plane).
                   posShift = {
                     x: (effLen / 2) * (target.x - geomLongWorld.x) * SCALE,
-                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE,
+                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE - maxCornerY * SCALE,
                     z: (effLen / 2) * (target.z - geomLongWorld.z) * SCALE,
                   };
                   return extraQ.multiply(partQ);
