@@ -110,23 +110,11 @@ export function CeilingDevClient() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-5 py-6 space-y-5">
-        {/* ============ 4 大輸入 ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
-            <HeroInput icon="↔" label="長邊" value={input.longSideCm} suffix="cm"
-              onChange={(v) => update("longSideCm", v)} />
-            <HeroInput icon="↕" label="短邊" value={input.shortSideCm} suffix="cm"
-              onChange={(v) => update("shortSideCm", v)} />
-            <HeroInput icon="↥" label="板高" value={input.slabHeightCm} suffix="cm" sub="樓板到地"
-              onChange={(v) => update("slabHeightCm", v)} />
-            <HeroInput icon="≡" label="天花板高" value={input.ceilingHeightCm} suffix="cm" sub="完成面"
-              onChange={(v) => update("ceilingHeightCm", v)} />
-          </div>
-        </section>
-
-        {/* ============ 視覺(sticky,scroll 時黏在頂部) ============ */}
-        <section className="lg:sticky lg:top-[64px] lg:z-20 rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+      <main className="max-w-7xl mx-auto px-5 py-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-6 items-start">
+          {/* ====== 視覺(mobile order-1 在最上、desktop order-2 在右、sticky)====== */}
+          <aside className="w-full order-1 lg:order-2 lg:sticky lg:top-[80px] lg:self-start mb-5 lg:mb-0">
+            <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
               <div className="inline-flex gap-0.5 p-0.5 bg-white rounded-md ring-1 ring-stone-200">
@@ -167,7 +155,24 @@ export function CeilingDevClient() {
               <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} />
             )}
           </div>
-        </section>
+            </section>
+          </aside>
+
+          {/* ====== 左欄(mobile order-2 在視覺下方、desktop order-1 在左) ====== */}
+          <div className="w-full min-w-0 order-2 lg:order-1 space-y-5">
+            {/* 4 大輸入 */}
+            <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+                <HeroInput icon="↔" label="長邊" value={input.longSideCm} suffix="cm"
+                  onChange={(v) => update("longSideCm", v)} />
+                <HeroInput icon="↕" label="短邊" value={input.shortSideCm} suffix="cm"
+                  onChange={(v) => update("shortSideCm", v)} />
+                <HeroInput icon="↥" label="板高" value={input.slabHeightCm} suffix="cm" sub="樓板到地"
+                  onChange={(v) => update("slabHeightCm", v)} />
+                <HeroInput icon="≡" label="天花板高" value={input.ceilingHeightCm} suffix="cm" sub="完成面"
+                  onChange={(v) => update("ceilingHeightCm", v)} />
+              </div>
+            </section>
 
         {/* ============ 6 重點數字 ============ */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -407,6 +412,8 @@ export function CeilingDevClient() {
           </button>
           {traceOpen && <TracePanel bom={bom} />}
         </section>
+          </div>
+        </div>
       </main>
     </div>
   );
