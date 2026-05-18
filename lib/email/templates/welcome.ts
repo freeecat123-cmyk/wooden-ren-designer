@@ -5,6 +5,8 @@
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
+const LINE_OA_URL = "https://lin.ee/EaXGbJ1";
+
 function htmlShell(title: string, bodyHtml: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"/><title>${title}</title></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;margin:0;padding:24px;color:#1f2937">
@@ -37,7 +39,9 @@ export function welcomeEmail(input: { name?: string | null }): {
     `馬上開始：${SITE_URL}`,
     `看付費方案：${SITE_URL}/pricing`,
     ``,
-    `有問題回信給我（這封 email 直接回就到我這），或加 IG @wooden_ren。`,
+    `有問題聯絡：`,
+    `- 直接回信（這封 email 回我這）`,
+    `- LINE 官方帳號：${LINE_OA_URL}`,
     ``,
     `木頭仁`,
   ].join("\n");
@@ -53,11 +57,15 @@ export function welcomeEmail(input: { name?: string | null }): {
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
 免費版可以用 3 種入門家具（方凳、茶几、筆筒）。付費方案開放全部 28 種家具 + 進階功能。
 </p>
-<p>
-  <a href="${SITE_URL}" style="display:inline-block;background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">馬上開始 →</a>
-  <a href="${SITE_URL}/pricing" style="display:inline-block;background:#fff;color:#059669;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #059669">看付費方案</a>
+<p style="margin:20px 0">
+  <a href="${SITE_URL}" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">馬上開始 →</a>
+  <a href="${SITE_URL}/pricing" target="_blank" rel="noopener" style="display:inline-block;background:#fff;color:#059669;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #059669">看付費方案</a>
 </p>
-<p style="color:#6b7280;font-size:14px">有問題回信給我（直接回就到我這），或加 IG <a href="https://instagram.com/wooden_ren" style="color:#059669">@wooden_ren</a>。</p>
+<p style="color:#374151;font-size:14px;margin-top:24px"><strong>有問題聯絡：</strong></p>
+<ul style="padding-left:20px;line-height:1.8;color:#6b7280;font-size:14px">
+<li>直接回信（這封 email 回我這）</li>
+<li>LINE 官方帳號：<a href="${LINE_OA_URL}" target="_blank" rel="noopener" style="color:#059669">點此加好友</a></li>
+</ul>
 <p style="margin:0;color:#374151">木頭仁</p>`,
   );
   return { subject, text, html };
