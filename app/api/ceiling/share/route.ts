@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { customAlphabet } from "nanoid";
 import { getRedis, SHORT_TTL_SECONDS } from "@/lib/shorten/redis";
+import { checkIpRateLimit, getClientIp } from "@/lib/api/ip-rate-limit";
 
 const nanoid = customAlphabet(
   "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
@@ -8,6 +9,8 @@ const nanoid = customAlphabet(
 );
 
 const CEILING_KEY_PREFIX = "wrd:ceiling:";
+const MAX_PAYLOAD_BYTES = 16 * 1024; // 16KB 給 ceiling input
+const CEILING_SHARE_PER_DAY = 30;
 
 /**
  * POST /api/ceiling/share — body: { input: CeilingInput }
@@ -16,7 +19,16 @@ const CEILING_KEY_PREFIX = "wrd:ceiling:";
  * GET /api/ceiling/share?code=xxx — 讀短碼對應的 input(JSON)
  */
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rl = await checkIpRateLimit({
+    prefix: "share:ceiling",
+    ip: getClientIp(req),
+    perDay: CEILING_SHARE_PER_DAY,
+  });
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let input: unknown;
   try {
     const body = await req.json();
@@ -34,6 +46,12 @@ export async function POST(req: Request) {
   }
 
   const payload = JSON.stringify(input);
+  if (payload.length > MAX_PAYLOAD_BYTES) {
+    return NextResponse.json(
+      { error: "payload too large", max: MAX_PAYLOAD_BYTES },
+      { status: 413 },
+    );
+  }
   for (let i = 0; i < 3; i++) {
     const code = nanoid();
     const key = CEILING_KEY_PREFIX + code;

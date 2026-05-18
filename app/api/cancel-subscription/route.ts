@@ -70,9 +70,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ecpay_unreachable" }, { status: 502 });
   }
 
-  // 綠界回應格式：MerchantID=xxx&MerchantTradeNo=xxx&RtnCode=1&RtnMsg=...
-  // 不論成功失敗都把 DB 標 cancelled（避免綠界回應異常時使用者無法取消）
-  // 但記下 ecpay 回應以便除錯
+  // 綠界回應格式：urlencoded form，含 RtnCode（1=成功）
+  // 必須 RtnCode=1 才標 DB cancelled，否則綠界其實沒終止扣款、DB 卻顯示 cancelled
+  // → 下個月 periodic-notify 還會進來、users 被反 active
+  const ecpayParsed = new URLSearchParams(ecpayResponse);
+  const rtnCode = ecpayParsed.get("RtnCode");
+  const rtnMsg = ecpayParsed.get("RtnMsg") ?? "";
+
+  if (rtnCode !== "1") {
+    console.error("[cancel-subscription] 綠界 Terminate 失敗", {
+      userId: user.id,
+      orderId: sub.ecpay_merchant_trade_no,
+      rtnCode,
+      rtnMsg,
+      ecpayResponse,
+    });
+    return NextResponse.json(
+      { error: "ecpay_terminate_failed", rtnCode, rtnMsg },
+      { status: 502 },
+    );
+  }
+
   await admin
     .from("subscriptions")
     .update({ status: "cancelled" })
@@ -85,7 +103,8 @@ export async function POST(req: NextRequest) {
   console.log("[cancel-subscription] 已取消", {
     userId: user.id,
     orderId: sub.ecpay_merchant_trade_no,
-    ecpayResponse,
+    rtnCode,
+    rtnMsg,
   });
 
   return NextResponse.json({ ok: true });

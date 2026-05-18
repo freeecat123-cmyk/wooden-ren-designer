@@ -5,6 +5,7 @@
  *   - firstPaymentSuccessEmail：首次付款（綠界 /return webhook 觸發）
  *   - periodicChargeSuccessEmail：月扣每月成功扣款（綠界 /periodic-notify 觸發）
  */
+import { escapeHtml } from "../escape";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
@@ -70,7 +71,7 @@ export function firstPaymentSuccessEmail(input: PaymentInput): {
 <tr><td style="padding:8px 0;color:#6b7280">方案</td><td style="text-align:right;font-weight:600">${planLabel}（${periodLabel}）</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">金額</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">NT$ ${amount.toLocaleString()}</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">有效期</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">${formatDate(expiresAt)}</td></tr>
-${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${tradeNo}</td></tr>` : ""}
+${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${escapeHtml(tradeNo)}</td></tr>` : ""}
 </table>
 <p style="font-size:14px;color:#6b7280;margin-top:16px">
 ${
@@ -116,7 +117,7 @@ export function periodicChargeSuccessEmail(input: PaymentInput): {
 <tr><td style="padding:8px 0;color:#6b7280">方案</td><td style="text-align:right;font-weight:600">${planLabel}（月扣）</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">本期金額</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">NT$ ${amount.toLocaleString()}</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">本期有效到</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">${formatDate(expiresAt)}</td></tr>
-${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${tradeNo}</td></tr>` : ""}
+${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${escapeHtml(tradeNo)}</td></tr>` : ""}
 </table>
 <p style="font-size:13px;color:#6b7280;margin-top:16px">
 下個月會自動扣款，無需操作。<a href="${SITE_URL}/my/subscription" style="color:#059669">取消訂閱請至訂閱頁</a>。

@@ -1,6 +1,7 @@
 /**
  * 新註冊歡迎信。OAuth callback 偵測 user.welcome_email_sent_at IS NULL 時寄。
  */
+import { escapeHtml } from "../escape";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
@@ -23,10 +24,13 @@ export function welcomeEmail(input: { name?: string | null }): {
   text: string;
   html: string;
 } {
-  const greeting = input.name ? `${input.name}` : "你好";
+  // greeting 進 html 必 escape（Google 顯示名可塞 `<script>` 或釣魚連結）
+  // text 版本不需 escape（plain text 不會被 render）
+  const greetingText = input.name ? `${input.name}` : "你好";
+  const greetingHtml = escapeHtml(greetingText);
   const subject = "歡迎使用木頭仁 木作藍圖";
   const text = [
-    `${greeting}，`,
+    `${greetingText}，`,
     ``,
     `歡迎加入木頭仁家具工程圖。這是我自己做木工時用來：`,
     `- 快速產出家具尺寸 + 三視圖 + 工程圖`,
@@ -47,7 +51,7 @@ export function welcomeEmail(input: { name?: string | null }): {
   ].join("\n");
   const html = htmlShell(
     subject,
-    `<p>${greeting}，</p>
+    `<p>${greetingHtml}，</p>
 <p>歡迎加入<strong>木頭仁家具工程圖</strong>。這是我自己做木工時用來：</p>
 <ul style="padding-left:20px;line-height:1.7">
 <li>快速產出家具尺寸 + 三視圖 + 工程圖</li>

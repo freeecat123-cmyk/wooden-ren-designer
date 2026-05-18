@@ -21,11 +21,25 @@ import {
   refundReceivedToAdminEmail,
   refundReceivedToUserEmail,
 } from "@/lib/email/templates/refund";
+import { checkIpRateLimit, getClientIp } from "@/lib/api/ip-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // IP rate limit：3 件/IP/日，避免攻擊者註冊 N 個帳號 spam admin 信箱
+  const rl = await checkIpRateLimit({
+    prefix: "refund",
+    ip: getClientIp(req),
+    perDay: 3,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "rate_limited", message: "請求過於頻繁，請稍後再試" },
+      { status: 429 },
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -66,6 +80,7 @@ export async function POST(req: NextRequest) {
       .select("id, amount, user_id, status, ecpay_payment_date")
       .eq("id", body.paymentId)
       .eq("user_id", user.id)
+      .eq("status", "success")
       .single();
     payment = p;
   } else {

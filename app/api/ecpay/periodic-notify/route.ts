@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, expires_at, expected_amount")
+    .select("id, user_id, plan, status, expires_at, expected_amount")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -68,6 +68,30 @@ export async function POST(req: NextRequest) {
       orderId,
       subErr,
     });
+    return new Response("1|OK");
+  }
+
+  // 訂閱已 cancelled → 不要反 active（避免「取消後綠界仍扣款」被自動續扣）
+  // 仍記一筆 payment 供退款追蹤、但不延長 users.subscription_status
+  if (sub.status === "cancelled") {
+    console.warn("[ecpay/periodic-notify] 已取消的訂閱仍收到扣款通知，記錄但不續期", {
+      orderId,
+      userId: sub.user_id,
+      amount,
+    });
+    if (rtnCode === "1") {
+      await admin.from("payments").insert({
+        user_id: sub.user_id,
+        subscription_id: sub.id,
+        amount,
+        status: "success",
+        ecpay_trade_no: tradeNo,
+        raw_response: { ...params, _note: "post_cancel_charge" } as Record<
+          string,
+          unknown
+        >,
+      });
+    }
     return new Response("1|OK");
   }
 

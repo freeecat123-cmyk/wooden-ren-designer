@@ -6,6 +6,8 @@
  *   - 申請拒絕（給 user）
  */
 
+import { escapeHtml } from "../escape";
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
@@ -46,7 +48,7 @@ export function refundReceivedToUserEmail(input: {
 <p>我們已收到您的退費申請：</p>
 <table style="width:100%;border-collapse:collapse;margin-top:12px">
 <tr><td style="padding:8px 0;color:#6b7280">申請金額</td><td style="text-align:right;font-weight:600">NT$ ${amount.toLocaleString()}</td></tr>
-<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">原因</td><td style="text-align:right;border-top:1px solid #e5e7eb;font-size:14px">${reason}</td></tr>
+<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">原因</td><td style="text-align:right;border-top:1px solid #e5e7eb;font-size:14px">${escapeHtml(reason)}</td></tr>
 </table>
 <p style="margin-top:16px">我們會在 <strong>7 個工作日內</strong>審核並回覆。</p>
 <p style="font-size:14px;color:#6b7280">需要補充資訊請直接回信。</p>
@@ -75,9 +77,9 @@ export function refundReceivedToAdminEmail(input: {
     subject,
     `<p>新退費申請</p>
 <table style="width:100%;border-collapse:collapse;margin-top:12px">
-<tr><td style="padding:8px 0;color:#6b7280">User</td><td style="text-align:right;font-family:monospace">${userEmail}</td></tr>
+<tr><td style="padding:8px 0;color:#6b7280">User</td><td style="text-align:right;font-family:monospace">${escapeHtml(userEmail)}</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">金額</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">NT$ ${amount.toLocaleString()}</td></tr>
-<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">原因</td><td style="text-align:right;border-top:1px solid #e5e7eb;font-size:14px">${reason}</td></tr>
+<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">原因</td><td style="text-align:right;border-top:1px solid #e5e7eb;font-size:14px">${escapeHtml(reason)}</td></tr>
 </table>
 <p style="margin-top:16px"><a href="${SITE_URL}/admin/refunds" style="display:inline-block;background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">去 admin 審核 →</a></p>`,
   );
@@ -114,7 +116,7 @@ export function refundApprovedEmail(input: {
 <p style="background:#ecfdf5;border:2px solid #34d399;border-radius:8px;padding:12px;color:#065f46;font-weight:600">
 ✅ 退費申請已通過 — NT$ ${amount.toLocaleString()}
 </p>
-${adminNote ? `<p style="font-size:14px;color:#374151"><strong>處理說明：</strong>${adminNote}</p>` : ""}
+${adminNote ? `<p style="font-size:14px;color:#374151"><strong>處理說明：</strong>${escapeHtml(adminNote)}</p>` : ""}
 <p>綠界會依原付款管道（信用卡 / ATM）退回，款項到帳時間依各發卡銀行而定，通常為 <strong>3〜30 個工作日</strong>。</p>
 <p style="font-size:13px;color:#6b7280;background:#f9fafb;padding:10px;border-radius:6px">
 ※ 金流手續費（綠界 + 發卡銀行）屬第三方收取且不予退還，退費金額已扣除手續費。
@@ -148,7 +150,7 @@ export function refundRejectedEmail(input: {
 <p style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px;color:#991b1b">
 經審核後，您的退費申請（NT$ ${amount.toLocaleString()}）<strong>未能通過</strong>。
 </p>
-${adminNote ? `<p style="font-size:14px;color:#374151"><strong>說明：</strong>${adminNote}</p>` : ""}
+${adminNote ? `<p style="font-size:14px;color:#374151"><strong>說明：</strong>${escapeHtml(adminNote)}</p>` : ""}
 <p style="font-size:14px;color:#6b7280">如對審核結果有疑問，請直接回信此封 email 與我們討論。</p>`,
   );
   return { subject, text, html };
