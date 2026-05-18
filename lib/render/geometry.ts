@@ -104,7 +104,8 @@ export function projectPartSilhouette(
     const wz = z + part.origin.z;
     let vx: number, vy: number;
     if (view === "top") { vx = -wx; vy = wz; }
-    else if (view === "side") { vx = wz; vy = wy; }
+    // 側視（第三角法右側視圖）：前面 -Z → SVG +x；用 -wz 維持「前=右」慣例
+    else if (view === "side") { vx = -wz; vy = wy; }
     else { vx = -wx; vy = wy; }
     projected.push({ x: vx, y: vy });
   };
@@ -448,9 +449,11 @@ export function projectPart(part: Part, view: OrthoView) {
   const { x, y, z } = part.origin;
   const { xExt, yExt, zExt } = worldExtents(part);
   // Mirror X for front + top so they match the 3D camera convention
-  // (world +X appears on the screen LEFT). Side view is independent (uses Z).
+  // (world +X appears on the screen LEFT). Side view 第三角法右側視圖：
+  // viewer 在 +X 看 -X，前面（-Z）落在 SVG +x（右）→ SVG x = -wz、bbox
+  // span 從 -(z + zExt/2) 到 -(z - zExt/2)。
   if (view === "front") return { x: -x - xExt / 2, y, w: xExt, h: yExt };
-  if (view === "side") return { x: z - zExt / 2, y, w: zExt, h: yExt };
+  if (view === "side") return { x: -z - zExt / 2, y, w: zExt, h: yExt };
   return { x: -x - xExt / 2, y: z - zExt / 2, w: xExt, h: zExt };
 }
 
@@ -779,9 +782,9 @@ export function projectPartPolygon(
     const yBot = part.origin.y + (part.visible.width - baseH) / 2;
     const yTop = yBot + baseH;
     if (view === "side") {
-      // 投影 X = world Z；底面中心 z = origin.z - topShift/2，頂面 z = origin.z + topShift/2
-      const zBotCenter = part.origin.z - topShift / 2;
-      const zTopCenter = part.origin.z + topShift / 2;
+      // 投影 X = -world Z（前=右慣例）；底面中心 z = origin.z - topShift/2，頂面 z = origin.z + topShift/2
+      const zBotCenter = -(part.origin.z - topShift / 2);
+      const zTopCenter = -(part.origin.z + topShift / 2);
       return [
         { x: zTopCenter - slatT / 2, y: yTop },     // top-left
         { x: zTopCenter + slatT / 2, y: yTop },     // top-right
@@ -806,12 +809,13 @@ export function projectPartPolygon(
 
   // 弧形彎料（椅背頂橫木向後彎）側視：沿 worldX 看不到 length；silhouette =
   // 各段 X 的 cross-section union，等於把後緣（+Z 方向）整體外推 bendMm。
-  // 結果是寬度 = topRailT + bendMm 的長方形，前緣維持原位、後緣 +bendMm。
+  // 前=右慣例下，r.x 是後緣（SVG 左），r.x+r.w 是前緣（SVG 右）→ bend
+  // 把後緣再往 SVG 左（-bend）外推；前緣不動。
   if (part.shape.kind === "arch-bent" && view === "side") {
     const bend = part.shape.bendMm;
     if (Math.abs(bend) < 0.5) return box;
-    const xFront = r.x;
-    const xBack = r.x + r.w + bend;
+    const xBack = r.x - bend;
+    const xFront = r.x + r.w;
     const yBot = r.y;
     const yTop = r.y + r.h;
     return [
@@ -870,21 +874,27 @@ export function projectPartPolygon(
     return pts;
   }
 
-  // 指接壁：在「length 軸落在 view r.w 或 r.h」的視角（=正視/側視一定有 2 壁）
-  // 畫 comb 多邊形：r.w/r.h 取 length 軸、segments 沿 height 軸（local Z → world Y）。
-  // 不符合的視角（length 軸是深度方向 → wall 邊看）就回 bbox 矩形。
+  // 指接壁：在「broad face」視角（length × width 二軸都進 view，thickness 在
+  // 深度）才畫 comb；end-face / edge-face（含 thickness）回 bbox。
+  // - 安裝視圖：壁有 rotation.x=π/2 把 width 翻到 world Y → front view r.h=W
+  // - 零件圖（isolatePartId reset rotation=0）：top view 才看得到 broad face
+  //   → top r.h=W；以前 hardcode `view==="top" return box` 直接把零件圖的鳩尾
+  //   teeth 全切掉、變純矩形（BUG）
   if (part.shape.kind === "finger-joint-ends") {
     const L = part.visible.length;
+    const W = part.visible.width;
     const eps = 0.5;
     const N = Math.max(2, Math.floor(part.shape.segmentCount));
     const phase = part.shape.phase;
     const depth = part.shape.fingerDepth;
     const isFinger = (s: number) => ((s + phase) % 2) === 0;
     // s=0 = 最上方段（local -Z → world +Y top；reversed for "hw" axis）
+    // combAxis 要求另一軸 ≈ width；不是 width（多半 = thickness）就 reject
+    // → 該視角看 wall 邊緣/端面、teeth 不該在剪影出現
     let combAxis: "w" | "h" | null = null;
-    if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
-    else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
-    if (combAxis === null || view === "top") return box;
+    if (Math.abs(r.w - L) < eps && Math.abs(r.h - W) < eps) combAxis = "w";
+    else if (Math.abs(r.h - L) < eps && Math.abs(r.w - W) < eps) combAxis = "h";
+    if (combAxis === null) return box;
     const pts: Array<{ x: number; y: number }> = [];
     if (combAxis === "w") {
       // length 軸水平 (r.w)、高度沿 r.h；s=0 = 頂部
@@ -968,10 +978,15 @@ export function projectPartPolygon(
     // thickness 方向（垂直於 pin 板面），face view 看不到，所以 pin 邊應該是
     // 直線、不是斜線。3D CSG 自己把斜角從 tail 那邊挖出來。
     const slantSign = phase === 0 ? -1 : 0;
+    // combAxis 要求另一軸 ≈ width；不是 width（多半 = thickness）就 reject
+    // → 該視角看 wall 邊緣/端面、teeth 不該在剪影出現（同 finger-joint-ends 邏輯）
+    // 零件圖 isolatePartId reset rotation=0 後、broad face 在 top 視圖，不再
+    // hardcode `view==="top"` 切掉 polygon
+    const W = part.visible.width;
     let combAxis: "w" | "h" | null = null;
-    if (Math.abs(r.w - L) < eps && r.h > r.w * 0.1) combAxis = "w";
-    else if (Math.abs(r.h - L) < eps && r.w > r.h * 0.1) combAxis = "h";
-    if (combAxis === null || view === "top") return box;
+    if (Math.abs(r.w - L) < eps && Math.abs(r.h - W) < eps) combAxis = "w";
+    else if (Math.abs(r.h - L) < eps && Math.abs(r.w - W) < eps) combAxis = "h";
+    if (combAxis === null) return box;
     const pts: Array<{ x: number; y: number }> = [];
     if (combAxis === "w") {
       // length 軸 = r.w（水平），高度沿 r.h
@@ -1279,21 +1294,23 @@ export function projectPartPolygon(
     // 內部分隔線（區分端面與彎曲延伸）由 svg-views.tsx extras 額外畫出
     //   bendAxis="z"（靠背）→ z 軸（r.w 方向）多伸 |bendMm|
     //   bendAxis="y"（椅面）→ y 軸（r.h 方向）多伸 |bendMm|
+    // 前=右慣例：+Z（背）→ SVG -x，-Z（前）→ SVG +x，所以 +bend 把後緣
+    // 往 SVG -x 推；-bend 把前緣往 SVG +x 推。
     if (view !== bigFaceView) {
       if (view === "side" && bendMm !== 0) {
         if (bendAxis === "z") {
           return bendMm > 0
             ? [
-                { x: r.x, y: r.y + r.h },
-                { x: r.x + r.w + bendMm, y: r.y + r.h },
-                { x: r.x + r.w + bendMm, y: r.y },
-                { x: r.x, y: r.y },
-              ]
-            : [
-                { x: r.x + bendMm, y: r.y + r.h },
+                { x: r.x - bendMm, y: r.y + r.h },
                 { x: r.x + r.w, y: r.y + r.h },
                 { x: r.x + r.w, y: r.y },
-                { x: r.x + bendMm, y: r.y },
+                { x: r.x - bendMm, y: r.y },
+              ]
+            : [
+                { x: r.x, y: r.y + r.h },
+                { x: r.x + r.w - bendMm, y: r.y + r.h },
+                { x: r.x + r.w - bendMm, y: r.y },
+                { x: r.x, y: r.y },
               ];
         }
         return bendMm > 0

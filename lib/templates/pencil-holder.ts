@@ -336,6 +336,73 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 後處理：4 壁 part-local 軸映射修正
+  //
+  // box-builder 預設把「壁高（wallH）」放 visible.width、「壁厚（wallT）」放
+  // visible.thickness、再用 rotation.x=π/2 把 width 翻成世界 Y（垂直）、
+  // thickness 翻成世界 Z（深度）。組裝時三視圖 / 3D 都正確。
+  //
+  // 但「零件圖 modal（isolatePartId）」會把 rotation reset 成 (0,0,0)（讓橫撐
+  // 零件圖回到 part-local 自然姿態）→ 壁的 part-local Y=thickness=8mm 變垂直軸
+  // → FRONT view 渲染成 80×8 扁條，壁高 162mm 被當成深度軸藏在 Z。
+  //
+  // 修法：把壁高搬到 visible.thickness（part-local Y）、壁厚搬到 visible.width
+  // （part-local Z）、rotation 從 rx=π/2 移除（front/back rotation=0；left/right
+  // 只剩 ry=π/2 的水平轉向）。worldExtents 對等變換 → world span X/Y/Z 完全不變
+  // → 3D / 三視圖視覺不變。同步翻 tenon.width↔thickness、mortise origin 與
+  // length/width 對應新軸（depth 改沿 part-local Z = 壁厚 8mm 方向）。
+  // ──────────────────────────────────────────────────────────────────────────
+  for (const part of built.parts) {
+    const isLongWall = part.id === "wall-front" || part.id === "wall-back";
+    const isShortWall = part.id === "wall-left" || part.id === "wall-right";
+    if (!isLongWall && !isShortWall) continue;
+
+    const oldW = part.visible.width;       // 壁高 wallH
+    const oldT = part.visible.thickness;   // 壁厚 wallT
+    // visible：把壁高搬到 thickness、壁厚搬到 width
+    part.visible = { ...part.visible, width: oldT, thickness: oldW };
+    // rotation：移除 rx=π/2；short wall 留 ry=π/2 保持沿 outerW 方向擺位
+    part.rotation = isShortWall
+      ? { x: 0, y: Math.PI / 2, z: 0 }
+      : { x: 0, y: 0, z: 0 };
+
+    // tenons：start/end 慣例 = length 沿 X、width 沿 Z、thickness 沿 Y。
+    // 軸映射翻轉後 cornerTenonW（原沿 Z=壁高）改沿 Y=新 thickness 軸、
+    // cornerTenonT（原沿 Y=壁厚）改沿 Z=新 width 軸 → swap width↔thickness。
+    if (part.tenons.length > 0) {
+      part.tenons = part.tenons.map((t) => ({
+        ...t,
+        width: t.thickness,
+        thickness: t.width,
+      }));
+    }
+
+    // mortises：short wall 兩端的角榫孔。原 origin=(±halfL+offset, 0, 0) +
+    // depth=wallT、auto-fit depthAxis="x"（end face 入榫，pocket 沿 X 深 wallT）。
+    // 軸映射翻轉後 depthAxis 仍應為 "x"，但 y=0「canonical bottom」現在指向新
+    // 壁高=ly=wallH（162mm）的最底邊→變成壁底端面的怪位置；改 y=ly/2 mid-height
+    // 讓 cross-section 落在 part body 中央、auto-fit 走非-canonical 分支。
+    //
+    // length/width 也要 swap：tenon 翻 width↔thickness，audit 規則
+    // mortise.L=tenon.W / mortise.W=tenon.T，等價於 mortise 也 swap L↔W。
+    // 原 buildBox 寫 L=wallH（沿 Z）/ W=wallT（沿 Y），跟翻後 tenon 對不上 →
+    // swap 成 L=wallT / W=wallH 才匹配。
+    if (part.mortises.length > 0) {
+      const newLy = part.visible.thickness;  // = wallH（162mm，新的 part-local Y）
+      part.mortises = part.mortises.map((m) => ({
+        ...m,
+        length: m.width,
+        width: m.length,
+        origin: {
+          x: m.origin.x,    // ±halfL+1（end-X 訊號保留）
+          y: newLy / 2,     // mid-height（from-bottom 慣例，非 canonical）
+          z: 0,             // mid-Z（cross-section 沿 Y/Z auto-fit）
+        },
+      }));
+    }
+  }
+
   // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
   const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
   const dividerHAuto = Math.max(1, outerH - bottomTopY);

@@ -1,4 +1,4 @@
-import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part } from "@/lib/types";
+import type { FurnitureDesign, FurnitureTemplate, OptionSpec, Part, Tenon } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { applyStandardChecks } from "./_validators";
 
@@ -534,8 +534,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       const fbLabel = sz < 0 ? "前" : "後";
       const lrLabel = sx < 0 ? "左" : "右";
       // 上抹/下抹 Y 中心位置（rail 中心 Y）
+      // 注意：mortise.origin.y 慣例是「part-local from-bottom」，所以圓角櫃 splay
+      // 下 postBottomY=skirtHeight 時要扣掉。非圓角 postBottomY=0 直接用 world Y。
+      const yLocal = (worldY: number): number => worldY - postBottomY;
       const upperRailCY = postTopY - railWidth / 2;
       const lowerRailCY = skirtHeight + railWidth / 2;
+      // 牙條中心 Y（接立柱底部 4 面內側）
+      const skirtCY = skirtHeight / 2;
       // 馬蹄足朝向：outward = 朝外（dirX/Z = sx/sz）；inward = 朝中軸（-sx/-sz）
       const hoofDirSign: -1 | 1 = effectiveLegShape === "outward-hoof" ? 1 : -1;
       // 圓角櫃側腳：底端朝外位移 splayMm（上窄下寬），用 splayed shape
@@ -555,6 +560,30 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
               dirX: (sx * hoofDirSign) as -1 | 1,
               dirZ: (sz * hoofDirSign) as -1 | 1,
             };
+      // 牙條榫眼（沿立柱底部 X/Z 內面各 1 個——牙條從中央往兩立柱外掛接腳）
+      const skirtMortiseT = Math.max(6, Math.round(skirtThickness / 3));
+      const skirtMortiseW = Math.max(20, skirtHeight - 20);
+      const skirtMortises = (skirtHeight >= 30)
+        ? [
+            // 左/右牙條（沿 Z 延伸）進立柱 Z 內面
+            { origin: { x: 0, y: yLocal(skirtCY), z: -sz * postSize / 2 }, depth: tenonLen, length: skirtMortiseW, width: skirtMortiseT, through: false },
+            // 前/後牙條（沿 X 延伸）進立柱 X 內面
+            { origin: { x: -sx * postSize / 2, y: yLocal(skirtCY), z: 0 }, depth: tenonLen, length: skirtMortiseW, width: skirtMortiseT, through: false },
+          ]
+        : [];
+      // 內部分隔板（dividers）榫眼：每層之間水平 divider 接 4 立柱
+      // 每片 divider 在每根立柱上開 2 個榫眼（X 內面 + Z 內面）= 雙向銜接
+      const dividerMortises: Array<{ origin: { x: number; y: number; z: number }; depth: number; length: number; width: number; through: boolean }> = [];
+      for (let i = 0; i < layerCount - 1; i++) {
+        const dividerWorldY = layerBottomYs[i + 1] - railWidth / 2;
+        const dividerYLocal = yLocal(dividerWorldY);
+        // divider Y 必須落在 post 範圍內（圓角櫃 splay 下 postBottomY>0，dividerY<postBottomY 的就跳過）
+        if (dividerYLocal < 0 || dividerYLocal > postRenderHeight) continue;
+        // Z 內面（divider 沿 Z 軸的端面 → 進入立柱 Z 內面）
+        dividerMortises.push({ origin: { x: 0, y: dividerYLocal, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false });
+        // X 內面（divider 沿 X 軸的端面 → 進入立柱 X 內面）
+        dividerMortises.push({ origin: { x: -sx * postSize / 2, y: dividerYLocal, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false });
+      }
       parts.push({
         id: `post-${fbId}-${lrId}`,
         nameZh: `${fbLabel}${lrLabel}立柱`,
@@ -566,11 +595,15 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         tenons: postExposedTenon,
         mortises: [
           // 側面 rail 進立柱（Z 內面，朝對面立柱方向）
-          { origin: { x: 0, y: upperRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
-          { origin: { x: 0, y: lowerRailCY, z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: 0, y: yLocal(upperRailCY), z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: 0, y: yLocal(lowerRailCY), z: -sz * postSize / 2 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
           // 前/後 rail 進立柱（X 內面，朝對面立柱方向）
-          { origin: { x: -sx * postSize / 2, y: upperRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
-          { origin: { x: -sx * postSize / 2, y: lowerRailCY, z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: -sx * postSize / 2, y: yLocal(upperRailCY), z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          { origin: { x: -sx * postSize / 2, y: yLocal(lowerRailCY), z: 0 }, depth: tenonLen, length: tenonW, width: tenonT, through: false },
+          // 牙條進立柱（底部 X/Z 內面，明式抱肩榫接點）
+          ...skirtMortises,
+          // 內部水平分隔板（層板）進立柱（每層分界 X/Z 雙面）
+          ...dividerMortises,
         ],
       });
     }
@@ -1429,6 +1462,19 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
         ? { kind: "face-rounded", cornerR: 18, topArchMm: skirtHeight * 0.32, bottomArchMm: skirtHeight * 0.45 }
         : undefined;
 
+  // 牙條兩端公榫（接立柱 skirtMortises；尺寸對應上面 立柱 skirtMortise* 公式）
+  const skirtTenonW = Math.max(20, skirtHeight - 20);     // = skirtMortiseW
+  const skirtTenonT = Math.max(6, Math.round(skirtThickness / 3)); // = skirtMortiseT
+  const skirtBlindTenon = (pos: "start" | "end" | "left" | "right"): Tenon => ({
+    position: pos,
+    type: "blind-tenon",
+    length: tenonLen,
+    width: skirtTenonW,
+    thickness: skirtTenonT,
+  });
+  const skirtTenons: Tenon[] = skirtHeight >= 30
+    ? [skirtBlindTenon("start"), skirtBlindTenon("end")]
+    : [];
   // 前後牙條（沿 X 延伸）：X=長, Y=高, Z=厚
   for (const sz of [-1, 1] as const) {
     const fbId = sz < 0 ? "front" : "back";
@@ -1441,11 +1487,13 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: skirtSpanXatY, width: skirtThickness, thickness: skirtHeight },
       origin: { x: 0, y: 0, z: sz * skirtOffsetZ },
       ...(skirtShape ? { shape: skirtShape } : {}),
-      tenons: [],
+      tenons: skirtTenons,
       mortises: [],
     });
   }
   // 左右牙條（沿 Z 延伸）：X=厚, Y=高, Z=長（接到兩立柱內面）
+  // length=skirtThickness 跟註解「沿 Z 延伸」設計上矛盾，是既有 build；
+  // tenons 用 start/end audit 對 dim 就好，cut-length 慣例由 useButtJointConvention 處理。
   for (const sx of [-1, 1] as const) {
     const lrId = sx < 0 ? "left" : "right";
     const lrLabel = sx < 0 ? "左" : "右";
@@ -1457,7 +1505,7 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: skirtThickness, width: skirtSpanZatY, thickness: skirtHeight },
       origin: { x: sx * skirtOffsetX, y: 0, z: 0 },
       ...(skirtShape ? { shape: skirtShape } : {}),
-      tenons: [],
+      tenons: skirtTenons,
       mortises: [],
     });
   }

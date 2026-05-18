@@ -282,7 +282,12 @@ function makeProjector(part: Part, view: OrthoView) {
     const wy = y + yOffset;
     const wz = z + part.origin.z;
     if (view === "top") return { x: -wx, y: wz };
-    if (view === "side") return { x: wz, y: wy };
+    // 側視（從 +X 看 -X，第三角法右側視圖）：viewer 右手 = -Z = 家具前面，
+    // SVG x 增加方向 = 右邊 → 前面（-Z）映射到 SVG +x（右）→ 取 -wz。
+    // 之前用 +wz 等於把側視畫成「左側視」（從 -X 看 +X），跟 UI 排版
+    // [front][side][top] 第三角法右側位置不一致：把手在前面（-Z）卻
+    // 顯示在 SVG 左邊。本 commit 統一為「前=右」。
+    if (view === "side") return { x: -wz, y: wy };
     return { x: -wx, y: wy };
   };
 }
@@ -448,7 +453,8 @@ function projectFeaturePolygon(
     const wz = z + part.origin.z;
     let vx: number, vy: number;
     if (view === "top") { vx = -wx; vy = wz; }
-    else if (view === "side") { vx = wz; vy = wy; }
+    // 側視 = 右側視（從 +X 看 -X），前面（-Z）→ SVG 右（+x）→ 取 -wz
+    else if (view === "side") { vx = -wz; vy = wy; }
     else { vx = -wx; vy = wy; }
     return { x: vx, y: vy };
   };
@@ -1519,8 +1525,8 @@ export function OrthoView({
               const zL = (ez * lz) / 2;
               const wy = yL * cosRake - zL * sinRake + yOff;
               const wz = yL * sinRake + zL * cosRake + part.origin.z;
-              // side view: svg x = wz, svg y = -wy
-              return { x: wz, y: -wy };
+              // side view: svg x = -wz（前=右慣例）, svg y = -wy
+              return { x: -wz, y: -wy };
             });
             const endPts = endCorners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
             const poly = projectTiltedBoxSilhouette(part, view);
@@ -1628,13 +1634,17 @@ export function OrthoView({
           view !== "top";
         // tray 鳩尾榫 pin board synthesis：wall-left/right 沒 shape（3D 走 CSG
         // 挖洞）但 design 有 tail board → projectPartPolygon 合成 phase=1
-        // dovetail-ends 出梯形 notch。view!=="top" 才畫（top view 從上方看
-        // tray，notch 在角落側壁、俯視看不到）。
+        // dovetail-ends 出梯形 notch。
+        // projectPartPolygon 內 combAxis 偵測會自動 reject「該視角看不到 broad
+        // face」（含 thickness 的 end-face / edge-face）；不再 hardcode `view`
+        // 限制，讓零件圖（reset rotation）下 top 視圖也能 synthesise。
+        // 零件圖 isolation 模式只剩 1 個 part，本 part 沒 shape、找不到 donor
+        // → 也用 design.parts 找原始 donor（renderDesign.parts 被 filter 掉了）
         const isDovetailPinBoard =
           (!part.shape || part.shape.kind === "box") &&
           /^wall-(left|right)$/.test(part.id) &&
-          view !== "top" &&
-          renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends");
+          (renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends") ||
+            design.parts.some((p) => p.shape?.kind === "dovetail-ends"));
         const useShape =
           isDovetailPinBoard ||
           (!isFaceRoundedXTilt &&
@@ -1658,7 +1668,11 @@ export function OrthoView({
             !isFaceRoundedBent
           ));
         if (useShape) {
-          const poly = projectPartPolygon(part, view, renderDesign.parts);
+          // 零件圖 isolation 模式下，renderDesign.parts 只有 1 個 part、找不到
+          // dovetail-ends donor → 額外把 design.parts（原始 4 壁）餵進去，讓
+          // projectPartPolygon 借得到參數合成 pin board phase=1 shape。
+          const polyAllParts = isolatePartId ? design.parts : renderDesign.parts;
+          const poly = projectPartPolygon(part, view, polyAllParts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
           // Splayed top view: also draw the shifted bottom footprint so you
@@ -1841,7 +1855,8 @@ export function OrthoView({
             const wx = xL + ox;
             const wy = yR + oy;
             const wz = zR + oz;
-            if (view === "side") return { x: wz, y: wy };
+            // 側視前=右慣例：svg x = -wz
+            if (view === "side") return { x: -wz, y: wy };
             return { x: -wx, y: wy }; // front
           };
           let polyPts: Array<{ x: number; y: number }>;
@@ -2118,10 +2133,10 @@ export function OrthoView({
               // 腳頂中心 (世界): (ox, oy + lh, oz)
               const bx = ox + bottomDx, by = oy, bz = oz + bottomDz;
               const tx = ox, ty = oy + lh, tz = oz;
-              // 投影到視圖平面（用跟 makeProjector 相同的慣例：front/top 都 -wx）
+              // 投影到視圖平面（用跟 makeProjector 相同的慣例：front/top 都 -wx；側視 -wz）
               const proj = (wx: number, wy: number, wz: number) => {
                 if (view === "front") return { x: -wx, y: wy };
-                if (view === "side") return { x: wz, y: wy };
+                if (view === "side") return { x: -wz, y: wy };
                 return { x: -wx, y: wz };  // top view (won't use here)
               };
               const p1 = proj(bx, by, bz);
@@ -2868,9 +2883,12 @@ export function OrthoView({
                 }
                 const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
                 return [...seen.values()].map((c) => {
-                  // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm，標籤要再往右閃避
-                  // 不然會壓在彎弧凸出的 silhouette 上面（使用者 4.29 回報 bow 標籤蓋到圖）
-                  const archShift = view === "side" ? c.archBendMm : 0;
+                  // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
+                  // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
+                  // 右側標籤不再與 silhouette 重疊；archShift 取 0。
+                  // 若未來有 -Z（前）方向 bend，外推應為 |bendMm|（往左閃避）。
+                  const archShift = 0;
+                  void c.archBendMm;
                   return (
                     <text
                       key={`xp-thick-${c.id}`}
