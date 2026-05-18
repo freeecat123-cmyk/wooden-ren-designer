@@ -4421,6 +4421,11 @@ yOffsets[i] = firstOffset + i × subSpacingCm   for i in 0..N-1
 
 跟主支 `alignmentBase`(沿長邊)對稱:`alignmentBase` 管長邊剩餘收邊,`subAlignmentBase` 管短邊剩餘空間。
 
+**預設 `top` 而非 `middle`(2026-05-18 改):** 板長方向 180 cm 接縫位需要副支
+支撐(板邊不能懸空)。Top 對齊讓首副支貼邊框,板邊接縫位 ≈ 副支位置(差 ≤ 邊框寬
+3.6 cm,可接受)。Middle 對齊雖視覺對稱,但板邊離副支 12+ cm,結構上需補一根副支
+撐板邊。Top 是結構安全的合理預設。
+
 ### §CE.6 吊筋
 
 ```

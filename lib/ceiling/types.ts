@@ -150,7 +150,7 @@ export const DEFAULT_CEILING_INPUT: CeilingInput = {
   subSpacingCm: 36,     // 公制裝潢實務(老派台尺 1.2 尺 = 36.36 可改回)
   useAutoSpacing: true, // 預設依板規自動算間距(板規/接縫變動 → 間距跟著變)
   alignmentBase: "center",
-  subAlignmentBase: "middle",
+  subAlignmentBase: "top",   // 副支貼上邊框(板邊接縫位 ≈ 副支位置,板邊不懸空)
   frameDoublesAsSupport: false,
 
   timberWidthCm: 3.6,
