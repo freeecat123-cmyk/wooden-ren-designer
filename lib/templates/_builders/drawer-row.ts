@@ -29,8 +29,13 @@ export function makePullParts(
     return [];
   }
   const cx = pullX ?? faceX;
-  const cy = faceY + faceHeight / 2;
   const isDoor = idPrefix.includes("-door") || idPrefix.includes("-slab");
+  // §N4：門距底 2/3（向下伸手，符合站立握把高度）；抽屜走中央或上 1/3、預設中央。
+  // 距底 2/3 ≡ 距頂 1/3：通吃 wardrobe 1800mm 大門 (1200mm 把手) 跟 nightstand
+  // 400mm 小門 (267mm 把手) — 中央 200mm 太靠床沿、肘部會頂到。
+  const cy = isDoor
+    ? faceY + faceHeight * 2 / 3
+    : faceY + faceHeight / 2;
   const barVertical = orientation ? orientation === "vertical" : isDoor;
   // 0.5mm clearance 避免跟面板 floating-point overlap
   const CLEAR = 0.5;

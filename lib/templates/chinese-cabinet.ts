@@ -1209,10 +1209,10 @@ export const chineseCabinet: FurnitureTemplate = (input): FurnitureDesign => {
           }
           void hingeX;  // hingeX 保留供後續其他位置設計
         }
-        // 門拉手（朝中縫一側 30mm）
+        // 門拉手（朝中縫一側 30mm；§N4：門距底 2/3 = 門中央上方 1/6 處）
         if (doorPullType !== "none") {
           const pullX = sx * (doorGap / 2 + 30);
-          const pullY = layerCenterY;
+          const pullY = layerCenterY + doorHeight / 6;
           const pullZ = doorFrontZ - doorThickness / 2 - 4;  // 凸出門面 4mm
           if (doorPullType === "round-brass") {
             // 圓銅環：直徑 30mm 圓盤、高 8mm（凸出門面 4mm 在門外側）
