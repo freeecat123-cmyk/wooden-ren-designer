@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -471,6 +471,19 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const aprons: Part[] = !withApron ? [] : apronSides
     .filter((s) => !(opts.skipFrontApron && s.key === "front"))
     .map((s) => {
+    // Compound splay only — helper returns world-frame tenon direction per end.
+    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const splayAngleDegLocal = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
+    const tenonAxisStart = isCompoundSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngleDegLocal })
+      : null;
+    const tenonAxisEnd = isCompoundSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngleDegLocal })
+      : null;
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
@@ -537,6 +550,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(tenonAxisStart ? { axis: tenonAxisStart } : {}),
         },
         {
           position: "end" as const,
@@ -546,6 +560,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         },
       ],
       mortises: [],

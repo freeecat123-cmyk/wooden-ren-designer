@@ -3415,57 +3415,89 @@ export function PerspectiveView({
                 const useShearedBox = !!t.axis && !useRoundTenon;
                 const shearedGeom = useShearedBox && t.axis ? (() => {
                   const SHRINK_MM = 0.5;
-                  // Determine long-axis direction in part-local + the two perp
-                  // axes (cross-section axes).
-                  const isLongX = (t.position === "start" || t.position === "end");
-                  const isLongY = (t.position === "top" || t.position === "bottom");
-                  // half-extents (mm) along long axis vs the two cross axes
-                  const halfLong  = (isLongX ? hx : (isLongY ? hy : hz));
-                  const halfPerp1 = (isLongX ? hy : (isLongY ? hx : hx));
-                  const halfPerp2 = (isLongX ? hz : (isLongY ? hz : hy));
-                  // SHRINK only the cross-section (sides vs mortise walls — real
-                  // z-fight risk). The long-axis dims must reach exactly to the
-                  // parent shoulder face: shrinking them creates a visible gap
-                  // at the root. Tiny BURY pushes root 0.1mm into parent to
-                  // mask any z-fight at the root face itself.
-                  const ROOT_BURY = 0.1;  // mm
-                  const hl = (halfLong + ROOT_BURY) * SCALE;
+                  const ROOT_BURY = 0.1;  // mm, both ends
+                  // A tenon is a PARALLELEPIPED with two independent directions:
+                  //   B = body direction (along wood grain)
+                  //   N = end face normal (perpendicular to cut surface)
+                  // For leg-top tenon: B = t.axis (slanted), N = default outward
+                  //   (= world Y for unrotated legs) — leg lean, horizontal shoulder.
+                  // For apron tenon: B = apron length in world (partQ * default
+                  //   outward), N = t.axis (compound miter plane normal) —
+                  //   apron runs straight between corners, end faces are oblique.
+                  const isTopBottom = (t.position === "top" || t.position === "bottom");
+                  const isStartEnd  = (t.position === "start" || t.position === "end");
+
+                  // Default outward direction in part-local (the direction the
+                  // tenon protrudes naturally before t.axis override).
+                  const defaultLocal: [number, number, number] =
+                    t.position === "start"  ? [-1, 0, 0] :
+                    t.position === "end"    ? [+1, 0, 0] :
+                    t.position === "top"    ? [ 0, +1, 0] :
+                    t.position === "bottom" ? [ 0, -1, 0] :
+                    t.position === "left"   ? [ 0, 0, -1] :
+                                              [ 0, 0, +1];
+                  const partQS = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  const defaultWorld = new Vector3(...defaultLocal).applyQuaternion(partQS).normalize();
+                  const tUnit = new Vector3(t.axis.x, t.axis.y, t.axis.z).normalize();
+
+                  let B: Vector3;
+                  let N: Vector3;
+                  if (isTopBottom) {
+                    // Legs: body along t.axis, end face normal along default outward.
+                    B = tUnit.clone();
+                    N = defaultWorld.clone();
+                  } else {
+                    // Aprons/stretchers: body along apron length, end face normal
+                    // along t.axis (compound miter plane).
+                    B = defaultWorld.clone();
+                    N = tUnit.clone();
+                  }
+
+                  // Cross-section axes: the two part-local axes perpendicular to
+                  // the long axis, transformed to world via partQ, then projected
+                  // onto the plane perpendicular to N (Gram-Schmidt).
+                  const cross1Local =
+                    isStartEnd  ? new Vector3(0, 1, 0) :  // long=X → cross={Y,Z}
+                    isTopBottom ? new Vector3(1, 0, 0) :  // long=Y → cross={X,Z}
+                                  new Vector3(1, 0, 0);   // long=Z → cross={X,Y}
+                  const cross2Local =
+                    isStartEnd  ? new Vector3(0, 0, 1) :
+                    isTopBottom ? new Vector3(0, 0, 1) :
+                                  new Vector3(0, 1, 0);
+                  const c1World = cross1Local.applyQuaternion(partQS);
+                  const c2World = cross2Local.applyQuaternion(partQS);
+                  // Project onto plane ⊥ N
+                  const cross1 = c1World.clone().addScaledVector(N, -c1World.dot(N)).normalize();
+                  const cross2 = c2World.clone().addScaledVector(N, -c2World.dot(N));
+                  cross2.addScaledVector(cross1, -cross2.dot(cross1)).normalize();
+
+                  // Cross-section half-extents (mm).
+                  // For isStartEnd: long=X → perp1=Y (thickness), perp2=Z (width).
+                  // For isTopBottom: long=Y → perp1=X (width), perp2=Z (thickness).
+                  // For left/right: long=Z → perp1=X (width), perp2=Y (thickness).
+                  const halfPerp1 = isStartEnd ? hy : hx;
+                  const halfPerp2 = isStartEnd ? hz : (isTopBottom ? hz : hy);
                   const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
                   const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
-                  // World-frame axis unit vector (the tenon's body direction).
-                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
-                  const ax = t.axis.x / tm, ay = t.axis.y / tm, az = t.axis.z / tm;
-                  // Cross-section axes in WORLD (the two axes perpendicular to
-                  // the parent's shoulder face). For a leg-top tenon, shoulder
-                  // is horizontal in world, so cross-section is the world XZ plane.
-                  // We pick perpendicular world axes orthogonal to the part's
-                  // "default" long-axis direction (i.e. the geomLongLocal axis
-                  // after partQ — for unrotated legs, that's still world Y).
-                  // Cross axes = world X and Z for top/bottom.
-                  // For other positions we'd need different cross axes; only top
-                  // is supported with t.axis right now (legs).
-                  const cross1 = isLongY ? new Vector3(1, 0, 0) :
-                                 isLongX ? new Vector3(0, 1, 0) :
-                                           new Vector3(1, 0, 0);
-                  const cross2 = isLongY ? new Vector3(0, 0, 1) :
-                                 isLongX ? new Vector3(0, 0, 1) :
-                                           new Vector3(0, 1, 0);
-                  // Root face (parent-side, mesh-local) at "-halfLong" along the
-                  // default outward direction. Since we are NOT rotating the
-                  // mesh, "default outward" in mesh-local is the same as world
-                  // (we want the geometry pre-rotated). Place root at -halfLong
-                  // along the default outward, with cross-section dims h1 × h2.
-                  // For top: root at mesh-local Y = -halfLong; cross-section in XZ.
-                  // Tip = root + 2*halfLong * t.axis (world).
-                  const rootCenter = new Vector3(0, 0, 0);
-                  // Position root face center at mesh-local -halfLong along default-up.
-                  if (isLongY) rootCenter.y = -hl;
-                  if (isLongX) rootCenter.x = -hl;
-                  if (!isLongX && !isLongY) rootCenter.z = -hl;
-                  // Tip face center
-                  const tipShift = new Vector3(ax, ay, az).multiplyScalar(2 * hl);
-                  const tipCenter = rootCenter.clone().add(tipShift);
-                  // 4 root + 4 tip vertices
+
+                  // Body length: cut-plane normal is N, body direction is B.
+                  // Tip face plane sits at depth effLen from root along N, so
+                  //   L_body * (B · N) = effLen  → L_body = effLen / |B · N|
+                  // Add 2*ROOT_BURY to bury both ends slightly (z-fight masking).
+                  const bDotN = B.dot(N);
+                  const denom = Math.max(0.1, Math.abs(bDotN));
+                  const Lworld = (Math.abs(effLen) / denom + 2 * ROOT_BURY) * SCALE;
+
+                  // Mesh origin sits at the nominal tenon center (wx,wy,wz)
+                  // which was computed as position-default local center —
+                  // i.e. parent-face + (effLen/2) along defaultWorld.
+                  // Place ROOT at -(effLen/2 + bury)*defaultWorld so the root
+                  // face stays flush with the parent shoulder face. Then walk
+                  // tip = root + Lworld * B.
+                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY) * SCALE;
+                  const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
+                  const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
+
                   const corners: Vector3[] = [];
                   for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
                     const c = rootCenter.clone()
