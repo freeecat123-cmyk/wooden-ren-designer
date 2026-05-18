@@ -29,6 +29,13 @@ import { CeilingOverviewSvg, type HighlightCategory } from "@/lib/ceiling/Ceilin
 import { LazyCeilingScene3D } from "@/lib/ceiling/LazyCeilingScene3D";
 import type { LayerKey, ViewMode, Scene3DHighlight } from "@/lib/ceiling/CeilingScene3D";
 import { bomToCuttingPieces, computeCuttingPlan } from "@/lib/ceiling/cutting";
+import {
+  type Fixture,
+  type FixtureKind,
+  FIXTURE_KIND_LABEL,
+  checkFixtureCollisions,
+  makeDefaultFixture,
+} from "@/lib/ceiling/fixtures";
 
 export function CeilingDevClient() {
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
@@ -47,6 +54,15 @@ export function CeilingDevClient() {
   const [spliceOverlapCm, setSpliceOverlapCm] = useState(10); // 拼接重疊(實務每段交接 ~10 cm 放邊框上強固)
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState<"" | "loading" | "saved" | "copied">("");
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [fixturesOpen, setFixturesOpen] = useState(false);
+  const collisions = useMemo(() => checkFixtureCollisions(fixtures, bom), [fixtures, bom]);
+  const addFixture = (kind: FixtureKind) =>
+    setFixtures((prev) => [...prev, makeDefaultFixture(kind, input.longSideCm, input.shortSideCm, prev.length)]);
+  const updateFixture = (id: string, patch: Partial<Fixture>) =>
+    setFixtures((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  const removeFixture = (id: string) =>
+    setFixtures((prev) => prev.filter((f) => f.id !== id));
 
   // 載入短碼:?c=CODE
   useEffect(() => {
@@ -59,7 +75,8 @@ export function CeilingDevClient() {
       .then((r) => r.json())
       .then((data) => {
         if (data.input) {
-          setInput((prev) => ({ ...prev, ...data.input }));
+          setInput((prev) => ({ ...prev, ...data.input.input || data.input }));
+          if (data.input.fixtures) setFixtures(data.input.fixtures);
           setShareCode(code);
           setShareStatus("saved");
         } else {
@@ -76,7 +93,7 @@ export function CeilingDevClient() {
       const res = await fetch("/api/ceiling/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input: { input, fixtures } }),
       });
       const data = await res.json();
       if (!data.code) throw new Error(data.error || "no code");
@@ -258,7 +275,8 @@ export function CeilingDevClient() {
           )}
           <div className="p-3 bg-gradient-to-br from-stone-50/40 via-transparent to-amber-50/20">
             {viewKind === "2d" ? (
-              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter} boardKindFilter={boardKindFilter} />
+              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} subLengthFilter={subLengthFilter}
+                boardKindFilter={boardKindFilter} fixtures={fixtures} collisions={collisions} />
             ) : (
               <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} subLengthFilter={subLengthFilter} boardKindFilter={boardKindFilter} />
             )}
@@ -415,6 +433,98 @@ export function CeilingDevClient() {
             <li><span className="text-amber-700 font-semibold">螺絲:</span> 距板邊 ≥ 15 mm,沿板邊每 20-30 cm 一支</li>
             <li><span className="text-amber-700 font-semibold">材料餘量:</span> 建議多訂 <strong>5-10% 餘料</strong>(現場切割損耗、量錯、板材瑕疵備用)</li>
           </ul>
+        </section>
+
+        {/* ============ 燈具 / 開孔 ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+          <button onClick={() => setFixturesOpen(!fixturesOpen)}
+            className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-semibold text-zinc-900">🔦 燈具 / 開孔</h2>
+              <span className="text-[11px] text-zinc-600">
+                {fixtures.length} 個{collisions.length > 0 && (
+                  <span className="ml-2 text-rose-700 font-semibold">⚠ {collisions.length} 處撞主/副支</span>
+                )}
+              </span>
+            </div>
+            <span className="text-zinc-400 text-xs">{fixturesOpen ? "▲" : "▼"}</span>
+          </button>
+          {fixturesOpen && (
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {(["led", "vent", "speaker", "sprinkler", "other"] as FixtureKind[]).map((k) => (
+                  <button key={k} onClick={() => addFixture(k)}
+                    className="px-2.5 py-1 text-[11px] rounded-md bg-amber-50 ring-1 ring-amber-200 text-amber-900 hover:bg-amber-100 transition">
+                    + {FIXTURE_KIND_LABEL[k]}
+                  </button>
+                ))}
+              </div>
+              {fixtures.length === 0 ? (
+                <p className="text-[11px] text-zinc-500">點上方按鈕加開孔。位置 X(沿長邊)/ Z(沿短邊)從房間左上(0,0)起算 cm。</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg ring-1 ring-stone-200">
+                  <table className="w-full text-xs">
+                    <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
+                      <tr>
+                        <th className="text-left px-3 py-2">類別</th>
+                        <th className="text-left px-3 py-2">名稱</th>
+                        <th className="text-right px-3 py-2">X cm</th>
+                        <th className="text-right px-3 py-2">Z cm</th>
+                        <th className="text-right px-3 py-2">半徑 cm</th>
+                        <th className="text-right px-3 py-2">狀態</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {fixtures.map((f) => {
+                        const fCollisions = collisions.filter((c) => c.fixtureId === f.id);
+                        const ok = fCollisions.length === 0;
+                        return (
+                          <tr key={f.id} className={ok ? "" : "bg-rose-50/40"}>
+                            <td className="px-3 py-1.5 text-zinc-700">{FIXTURE_KIND_LABEL[f.kind]}</td>
+                            <td className="px-3 py-1.5">
+                              <input type="text" value={f.label} placeholder={FIXTURE_KIND_LABEL[f.kind]}
+                                onChange={(e) => updateFixture(f.id, { label: e.target.value })}
+                                className="w-24 px-2 py-1 border border-stone-300 rounded text-xs focus:outline-none focus:border-amber-500" />
+                            </td>
+                            <td className="px-3 py-1.5 text-right">
+                              <input type="number" value={f.xCm} step={1}
+                                onChange={(e) => updateFixture(f.id, { xCm: Number(e.target.value) })}
+                                className="w-16 px-2 py-1 border border-stone-300 rounded text-xs tabular-nums focus:outline-none focus:border-amber-500" />
+                            </td>
+                            <td className="px-3 py-1.5 text-right">
+                              <input type="number" value={f.zCm} step={1}
+                                onChange={(e) => updateFixture(f.id, { zCm: Number(e.target.value) })}
+                                className="w-16 px-2 py-1 border border-stone-300 rounded text-xs tabular-nums focus:outline-none focus:border-amber-500" />
+                            </td>
+                            <td className="px-3 py-1.5 text-right">
+                              <input type="number" value={f.rCm} step={0.5}
+                                onChange={(e) => updateFixture(f.id, { rCm: Number(e.target.value) })}
+                                className="w-14 px-2 py-1 border border-stone-300 rounded text-xs tabular-nums focus:outline-none focus:border-amber-500" />
+                            </td>
+                            <td className="px-3 py-1.5 text-right text-[10px]">
+                              {ok ? <span className="text-emerald-700">✓ OK</span>
+                                : <span className="text-rose-700">⚠ 撞 {fCollisions.map(c => c.hitWith).join(", ")}</span>}
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <button onClick={() => removeFixture(f.id)}
+                                className="text-rose-600 hover:text-rose-800 text-xs">✕</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {collisions.length > 0 && (
+                <div className="rounded-lg bg-rose-50 ring-1 ring-rose-200 p-3 text-[11px] text-rose-800">
+                  <strong>⚠ {collisions.length} 處碰撞 — 燈具會卡到主/副支。</strong>
+                  解法:挪燈具位置 / 改尺寸 / 改主支對齊基準(讓主支位置避開燈具)。
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ============ 裁切計算器 ============ */}

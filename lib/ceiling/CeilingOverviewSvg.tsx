@@ -22,6 +22,7 @@
  */
 
 import type { CeilingBom } from "./types";
+import type { Fixture, FixtureCollision } from "./fixtures";
 
 const PAD_TOP = 50;     // cm,給上方長邊尺寸 + 主支間距 tick
 const PAD_LEFT = 60;    // cm,給左方短邊尺寸
@@ -35,11 +36,15 @@ export function CeilingOverviewSvg({
   highlight = null,
   subLengthFilter = null,
   boardKindFilter = null,
+  fixtures = [],
+  collisions = [],
 }: {
   bom: CeilingBom;
   highlight?: HighlightCategory;
   subLengthFilter?: number | null;
   boardKindFilter?: "full" | "cut" | null;
+  fixtures?: Fixture[];
+  collisions?: FixtureCollision[];
 }) {
   const { input, trace } = bom;
   // 高亮邏輯:有 highlight 時非匹配的 group 變淡
@@ -146,6 +151,28 @@ export function CeilingOverviewSvg({
 
       {/* ────── 6b. 吊筋俯視點(每主支沿 Z 軸 N 個小圓) ────── */}
       {renderHangerDots(trace, x0, innerY0, innerY1, tw, dim("hanger"))}
+
+      {/* ────── 6c. 燈具 / 開孔(紅圓圈,碰撞變實心紅) ────── */}
+      {fixtures.map((f) => {
+        const isCollide = collisions.some((c) => c.fixtureId === f.id);
+        return (
+          <g key={f.id}>
+            <circle cx={x0 + f.xCm} cy={y0 + f.zCm} r={f.rCm}
+              fill={isCollide ? "#fda4af" : "none"}
+              stroke={isCollide ? "#be123c" : "#0891b2"}
+              strokeWidth={1.0}
+              opacity={isCollide ? 0.5 : 0.9}
+            />
+            <circle cx={x0 + f.xCm} cy={y0 + f.zCm} r={1.5}
+              fill={isCollide ? "#be123c" : "#0891b2"} />
+            <text x={x0 + f.xCm + f.rCm + 2} y={y0 + f.zCm + 3}
+              fontSize={8} fill={isCollide ? "#be123c" : "#155e75"}
+              fontWeight="600">
+              {f.label || ""}
+            </text>
+          </g>
+        );
+      })}
 
       {/* ────── 7. 尺寸標註 ────── */}
       {/* 長邊 — 頂部 */}
