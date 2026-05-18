@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isPaidUser } from "@/lib/userProfile";
+import { createClient } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
@@ -97,6 +99,18 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
+
+  // server-side paid gate：未登入導 /login、未付費導 /pricing
+  // 不能只靠 client-side QuoteAccessGate（DevTools 砍 blur class 就破）
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    const next = `/design/${type}/quote`;
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
+  if (!(await isPaidUser(user.id))) {
+    redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+  }
 
   const length = parseInt(sp.length ?? "") || entry.defaults.length;
   const width = parseInt(sp.width ?? "") || entry.defaults.width;

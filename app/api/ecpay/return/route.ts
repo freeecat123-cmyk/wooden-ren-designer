@@ -77,9 +77,31 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  // 已處理過就不重複寫（綠界可能重送）
+  // 已處理過就不重複寫（綠界可能重送）+ idempotency by tradeNo
+  // sub.status === active 還會被 sweep cron 改回 expired，replay 又會繞過 → 改用
+  // payments.ecpay_trade_no 唯一索引擋（DB 層級 dedup）。先 select 看有沒有。
   if (sub.status === "active") {
     return new Response("1|OK");
+  }
+  if (tradeNo) {
+    const { data: existing } = await admin
+      .from("payments")
+      .select("id")
+      .eq("ecpay_trade_no", tradeNo)
+      .eq("status", "success")
+      .maybeSingle();
+    if (existing) {
+      console.warn("[ecpay/return] replay attempt blocked", { orderId, tradeNo });
+      return new Response("1|OK");
+    }
+  }
+  // 驗 MerchantID 屬於本商家
+  if (params.MerchantID && params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+    console.error("[ecpay/return] MerchantID mismatch", {
+      got: params.MerchantID,
+      expected: process.env.ECPAY_MERCHANT_ID,
+    });
+    return new Response("0|MerchantIDInvalid", { status: 200 });
   }
 
   if (rtnCode !== "1") {
@@ -96,6 +118,22 @@ export async function POST(req: NextRequest) {
   }
 
   const periodic = isPeriodicReturn(params);
+
+  // 驗金額：callback amount 跟該 plan 預期金額一致才接受
+  const monthlyPrice = sub.plan === "personal" ? 390 : sub.plan === "pro" ? 890 : 0;
+  const yearlyPrice = sub.plan === "personal" ? 3900 : sub.plan === "pro" ? 8900 : 0;
+  const expectedAmount = periodic ? monthlyPrice : yearlyPrice;
+  if (expectedAmount && Number(amount) !== expectedAmount) {
+    console.error("[ecpay/return] amount mismatch", {
+      orderId,
+      got: amount,
+      expected: expectedAmount,
+      plan: sub.plan,
+      periodic,
+    });
+    return new Response("0|AmountMismatch", { status: 200 });
+  }
+
   // 月扣定期定額 → 給 31 天緩衝（綠界月扣會在 30 天時自動扣下一期）
   // 年付一次性 → 365 天
   const days = periodic ? 31 : 365;

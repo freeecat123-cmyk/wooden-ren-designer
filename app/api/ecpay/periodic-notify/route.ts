@@ -71,6 +71,47 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
+  // 驗 MerchantID 屬於本商家
+  if (params.MerchantID && params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+    console.error("[ecpay/periodic-notify] MerchantID mismatch", {
+      got: params.MerchantID,
+      expected: process.env.ECPAY_MERCHANT_ID,
+    });
+    return new Response("0|MerchantIDInvalid", { status: 200 });
+  }
+
+  // idempotency: 同 trade_no 已經成功處理過 → skip（webhook replay 防護）
+  if (rtnCode === "1" && tradeNo) {
+    const { data: existing } = await admin
+      .from("payments")
+      .select("id")
+      .eq("ecpay_trade_no", tradeNo)
+      .eq("status", "success")
+      .maybeSingle();
+    if (existing) {
+      console.warn("[ecpay/periodic-notify] replay attempt blocked", {
+        orderId,
+        tradeNo,
+      });
+      return new Response("1|OK");
+    }
+  }
+
+  // 驗金額：callback amount 必須等於該 plan 應扣月費（防 5 元測試 callback 替代真扣款）
+  if (rtnCode === "1") {
+    const expectedAmount =
+      sub.plan === "personal" ? 390 : sub.plan === "pro" ? 890 : 0;
+    if (expectedAmount && Number(amount) !== expectedAmount) {
+      console.error("[ecpay/periodic-notify] amount mismatch", {
+        orderId,
+        got: amount,
+        expected: expectedAmount,
+        plan: sub.plan,
+      });
+      return new Response("0|AmountMismatch", { status: 200 });
+    }
+  }
+
   // 失敗：記一筆 failed payment；若綠界明確標 cancel/stop 把 subscription 改 expired
   if (rtnCode !== "1") {
     await admin.from("payments").insert({
