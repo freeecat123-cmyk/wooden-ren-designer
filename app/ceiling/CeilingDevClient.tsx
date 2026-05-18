@@ -118,7 +118,7 @@ export function CeilingDevClient() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/40 via-stone-50 to-stone-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-30 print:hidden">
         <div className="max-w-7xl mx-auto px-5 py-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 mr-auto">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-amber-500/30">
@@ -143,16 +143,29 @@ export function CeilingDevClient() {
             </button>
           </div>
           <button onClick={downloadCsv}
-            className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm shadow-amber-500/30 transition">
+            className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-stone-200 hover:bg-stone-50 hover:border-stone-300 transition text-zinc-700">
             ⬇ CSV
+          </button>
+          <button onClick={() => { setViewKind("2d"); setTimeout(() => window.print(), 200); }}
+            className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm shadow-amber-500/30 transition">
+            🖨 列印
           </button>
         </div>
       </header>
 
+      {/* 列印時頂部顯示的標題列(平常隱藏) */}
+      <div className="hidden print:block px-5 py-3 border-b border-stone-300">
+        <h1 className="text-lg font-bold text-zinc-900">木作天花板骨架施工模擬器</h1>
+        <p className="text-xs text-zinc-600 mt-1">
+          長 {input.longSideCm} × 短 {input.shortSideCm} × 板高 {input.slabHeightCm} × 天花板高 {input.ceilingHeightCm} cm
+          · {r2(bom.auto.pingShu)} 坪 · 木匠學院出品
+        </p>
+      </div>
+
       <main className="max-w-7xl mx-auto px-5 py-6">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-6 items-start">
           {/* ====== 視覺(mobile order-1 在最上、desktop order-2 在右、sticky)====== */}
-          <aside className="w-full order-1 lg:order-2 lg:sticky lg:top-[80px] lg:self-start mb-5 lg:mb-0">
+          <aside className="w-full order-1 lg:order-2 lg:sticky lg:top-[80px] lg:self-start mb-5 lg:mb-0 print:static print:mb-3 print-keep">
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
@@ -479,7 +492,7 @@ export function CeilingDevClient() {
         </section>
 
         {/* ============ 公式 trace(admin) ============ */}
-        <section>
+        <section className="print:hidden">
           <button onClick={() => setTraceOpen(!traceOpen)}
             className="w-full text-left px-5 py-3 rounded-2xl bg-white ring-1 ring-stone-200 hover:bg-stone-50 flex items-center justify-between text-sm transition">
             <span className="font-medium text-zinc-700 flex items-center gap-2">
