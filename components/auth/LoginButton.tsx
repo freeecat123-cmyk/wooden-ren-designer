@@ -53,7 +53,7 @@ export function LoginButton({ className = "" }: { className?: string }) {
   );
 }
 
-function WebviewWarning({ app }: { app: string }) {
+export function WebviewWarning({ app }: { app: string }) {
   return (
     <div className="mb-3 rounded-md bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
       <div className="font-semibold mb-1">⚠️ 你正在 {app} 內建瀏覽器</div>
@@ -68,7 +68,7 @@ function WebviewWarning({ app }: { app: string }) {
   );
 }
 
-function MagicLinkForm() {
+export function MagicLinkForm() {
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +147,7 @@ function MagicLinkForm() {
   );
 }
 
-function GoogleButton({ disabledReason }: { disabledReason: string | null }) {
+export function GoogleButton({ disabledReason }: { disabledReason: string | null }) {
   const [loading, setLoading] = useState(false);
 
   async function signInWithGoogle() {
