@@ -57,6 +57,9 @@ const SHAPE_AWARE_CASES = new Set<string>([
   "dovetail-box:default",
   // 相框：back-panel 入立柱凹溝、frame × panel 結構性 overlap
   "photo-frame:default",
+  // 書擋：三角加固 brace 用 right-triangle shape 倚靠 back panel 立面、
+  // 物理上是「靠著」不是「穿進」，audit 用 brace bbox 偵測誤判結構 overlap
+  "bookend:default",
 ]);
 import { FURNITURE_CATALOG } from "../lib/templates";
 import type { FurnitureCatalogEntry } from "../lib/templates";
