@@ -44,6 +44,7 @@ import { AskMasterButton } from "@/components/design/AskMasterButton";
 import { ShareDesignButton } from "@/components/design/ShareDesignButton";
 import { PhotoToParamsButton } from "@/components/design/PhotoToParamsButton";
 import { PartDrawingsPanel } from "@/components/design/PartDrawingsPanel";
+import { isLocalhost } from "@/lib/dev-only";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import {
   parseDesignSearchParams,
@@ -423,8 +424,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {/* 零件圖（Phase 1 Task 7）：榫接 / 非方料 零件出獨立工程圖卡，卡片 → modal
           一律走榫接版（applyEdgeProtection），不吃 toBeginnerMode strip——零件圖
           是給師傅看的製作圖，組裝版 strip 會把腳 / 牙條的 tenon/mortise 砍掉，
-          導致 needsPartDrawing 全 false 只剩 shape 件出現。 */}
-      <PartDrawingsPanel design={applyEdgeProtection(rawDesign)} />
+          導致 needsPartDrawing 全 false 只剩 shape 件出現。
+          開發中，僅 localhost 顯示。 */}
+      {(await isLocalhost()) && <PartDrawingsPanel design={applyEdgeProtection(rawDesign)} />}
 
       {/* 下半：施工備料（按需展開） */}
       <details className="mt-4 rounded-lg border border-zinc-200 bg-white" open>

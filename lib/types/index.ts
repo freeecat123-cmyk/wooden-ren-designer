@@ -60,6 +60,21 @@ export type TenonPosition =
   | "left"
   | "right";
 
+/** Unit vector in WORLD frame. Used by Tenon.axis / Mortise.axis to override
+ *  the implicit position-derived direction (compound splay, see plan
+ *  2026-05-18-compound-splay-tenon-axis.md).
+ *
+ *  Tenon.axis = direction the tenon physically extends in world (out of the
+ *  child part, into the mating part). Mortise.axis = opening direction in
+ *  world (out of the mother part, toward the mating part) — anti-parallel to
+ *  the matching Tenon.axis. Renderers consume these directly without composing
+ *  with part rotation. */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export type GrainDirection = "length" | "width";
 
 export interface Dimensions {
@@ -92,6 +107,16 @@ export interface Tenon {
    */
   offsetWidth?: Millimeters;
   offsetThickness?: Millimeters;
+  /**
+   * WORLD-frame unit vector the tenon physically extends along (out of the
+   * child part, into the mother). Overrides the implicit direction derived
+   * from `position` (start→−x, end→+x, top→+y, bottom→−y, left→−z, right→+z).
+   * Used for compound splay where the tenon must point along the leg-face
+   * normal. Renderers apply this directly (no part-rotation composition) when
+   * orienting the tenon mesh / polygon. Falling back: renderers without
+   * axis-awareness use position only.
+   */
+  axis?: Vec3;
 }
 
 export interface Mortise {
@@ -113,6 +138,13 @@ export interface Mortise {
    * 想像：板還平的時候挖孔（孔軸 ⊥ 板面），再傾斜板 → 孔軸跟板一起斜。
    */
   rotX?: number;
+  /**
+   * WORLD-frame unit vector the mortise opens along (out of the mother part,
+   * toward the mating tenon). Anti-parallel to the matching Tenon.axis (which
+   * points the other way — into the mother). Same backward-compat fallback as
+   * Tenon.axis.
+   */
+  axis?: Vec3;
 }
 
 export type MaterialId =

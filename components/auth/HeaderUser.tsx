@@ -90,6 +90,13 @@ function UserDropdown({
             <div className="text-xs text-zinc-500 truncate">{user.email}</div>
           </div>
           <Link
+            href="/"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
+            onClick={() => setOpen(false)}
+          >
+            🪑 家具列表
+          </Link>
+          <Link
             href="/account/designs"
             className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
             onClick={() => setOpen(false)}

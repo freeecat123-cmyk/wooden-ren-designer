@@ -2380,3 +2380,95 @@ export function DetailCallout({
     </g>
   );
 }
+
+/**
+ * <CompoundMiterLabel> — 單一複斜切角度文字 primitive。
+ *
+ * 用於有 tilted axis 的公榫（compound splay，見 2026-05-18-compound-splay-tenon-axis）。
+ * side="start" → 文字靠左對齊；side="end" → 靠右對齊。
+ */
+export function CompoundMiterLabel({
+  x,
+  y,
+  primaryDeg,
+  secondaryDeg,
+  side,
+}: {
+  x: number;
+  y: number;
+  primaryDeg: number;
+  secondaryDeg: number;
+  side: "start" | "end";
+}) {
+  return (
+    <g transform={`translate(${x},${y})`} className="compound-miter-label">
+      <text
+        fontSize={6}
+        fill="#222"
+        textAnchor={side === "start" ? "start" : "end"}
+      >
+        {side === "start" ? "S" : "E"} 複斜切 α₁ {primaryDeg.toFixed(1)}° α₂{" "}
+        {secondaryDeg.toFixed(1)}°
+      </text>
+    </g>
+  );
+}
+
+/**
+ * <CompoundMiterAnnotation> — 在 front view 兩端標出 tilted-axis 公榫的複斜角。
+ *
+ * 對每個 `part.tenons` 中具有 `axis` 的榫頭（compound splay），分解 axis 成：
+ *   primary  = atan2(axis.y, |axis.x|)  寬面斜（length × width 平面）
+ *   secondary = atan2(axis.z, |axis.x|)  窄面斜（length × thickness 平面）
+ *
+ * 標籤位置以 part outline 端點（±L/2, ±T/2）轉 SVG，再上移 8px 留間距。
+ * start 在 SVG 右側（vx = -wx 翻轉）、end 在 SVG 左側。
+ */
+export function CompoundMiterAnnotation({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  if (!part.tenons || part.tenons.length === 0) return null;
+  const tilted = part.tenons.filter((t) => t.axis);
+  if (tilted.length === 0) return null;
+
+  const L = part.visible.length;
+  const T = part.visible.thickness;
+
+  return (
+    <g className="compound-miter-annotations">
+      {tilted.map((t, i) => {
+        const ax = t.axis!;
+        const primaryDeg = Math.abs(
+          (Math.atan2(ax.y, Math.abs(ax.x)) * 180) / Math.PI,
+        );
+        const secondaryDeg = Math.abs(
+          (Math.atan2(ax.z, Math.abs(ax.x)) * 180) / Math.PI,
+        );
+        const isEnd = t.position === "end";
+        const isStart = t.position === "start";
+        // 只處理沿 length 軸的榫頭（start/end）。其他位置 fallback skip。
+        if (!isEnd && !isStart) return null;
+        const localX = isEnd ? +L / 2 : -L / 2;
+        const top = ctx.partLocalToSvg(localX, -T / 2, 0);
+        const labelY = top.y - 6; // 距離輪廓頂緣 6px
+        return (
+          <CompoundMiterLabel
+            key={`${part.id}-miter-${t.position}-${i}`}
+            x={top.x}
+            y={labelY}
+            primaryDeg={primaryDeg}
+            secondaryDeg={secondaryDeg}
+            side={isEnd ? "end" : "start"}
+          />
+        );
+      })}
+    </g>
+  );
+}

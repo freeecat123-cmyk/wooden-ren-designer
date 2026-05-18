@@ -58,6 +58,43 @@ export function computeSplayGeometry(legHeight: number, splayAngleDeg: number) {
 }
 
 /**
+ * For compound splay (4-corner diagonal external splay), compute the
+ * WORLD-frame unit direction the apron's tenon at a given corner extends
+ * (out of apron, into leg).
+ *
+ * Convention:
+ *   - apronAxis "x": apron lies along world X. Tenon at corner (sx, sz) extends
+ *     toward sx·+X with an UPWARD (+Y) component proportional to splay angle.
+ *     Geometric reality: with positive splay the leg's top sits at the corner
+ *     and its bottom is further out, so the leg's inner face's outward normal
+ *     tilts DOWN; the tenon (opposite of that normal, pointing INTO the leg)
+ *     therefore tilts UP.
+ *   - apronAxis "z": symmetric in Z.
+ *   - cornerSz=0 (single-axis splayed-length) or cornerSx=0 (splayed-width)
+ *     degenerates: tenon stays in the apron-axis plane.
+ *
+ * Output is WORLD-frame. Renderers and templates consume it directly without
+ * composing with the apron's rotation. Templates may set the mortise.axis at
+ * the receiving leg = the negation of this vector (mortise OPENS the other way).
+ */
+export function computeCompoundSplayNormal(args: {
+  apronAxis: "x" | "z";
+  cornerSx: -1 | 0 | 1;
+  cornerSz: -1 | 0 | 1;
+  splayAngleDeg: number;
+}): { x: number; y: number; z: number } {
+  const { apronAxis, cornerSx, cornerSz, splayAngleDeg } = args;
+  const a = splayAngleDeg * (Math.PI / 180);
+  if (apronAxis === "x") {
+    if (cornerSx === 0) return { x: 0, y: 0, z: 0 };
+    return { x: cornerSx * Math.cos(a), y: Math.sin(a), z: 0 };
+  } else {
+    if (cornerSz === 0) return { x: 0, y: 0, z: 0 };
+    return { x: 0, y: Math.sin(a), z: cornerSz * Math.cos(a) };
+  }
+}
+
+/**
  * Leg shape enum key → 中文標籤。所有家具模板共用一份。
  *
  * 原本散在 round-stool / round-tea-table / round-table / dining-table 各有一份。

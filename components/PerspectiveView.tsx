@@ -51,6 +51,11 @@ type WorldMortise = {
   sign: 1 | -1;
   depth: number;
   through: boolean;
+  // World-space unit vector pointing OUT of the leg (opening direction).
+  // Negated copy of the rotated m.axis (since m.axis points INTO leg).
+  // Only set when the source Mortise carried an explicit axis override
+  // (compound splay). When null, fall back to dominant-axis legacy path.
+  axisUnit?: { x: number; y: number; z: number } | null;
 };
 
 /**
@@ -2694,6 +2699,16 @@ export function PerspectiveView({
         if (aX >= aY && aX >= aZ) { worldAxis = "x"; worldSign = a.x >= 0 ? 1 : -1; }
         else if (aY >= aZ) { worldAxis = "y"; worldSign = a.y >= 0 ? 1 : -1; }
         else { worldAxis = "z"; worldSign = a.z >= 0 ? 1 : -1; }
+        // Compound splay: Mortise.axis is now WORLD-frame opening direction
+        // (out of leg, toward apron). Consume directly — no part-rotation
+        // composition, no negation. The matching Tenon.axis (out of apron,
+        // into leg) is anti-parallel; dot-product check below uses < -0.85.
+        const axisUnit = m.axis
+          ? (() => {
+              const mag = Math.hypot(m.axis!.x, m.axis!.y, m.axis!.z) || 1;
+              return { x: m.axis!.x / mag, y: m.axis!.y / mag, z: m.axis!.z / mag };
+            })()
+          : null;
         idx.push({
           partId: part.id,
           entryX: pcx + e.x,
@@ -2703,6 +2718,7 @@ export function PerspectiveView({
           sign: worldSign,
           depth: m.depth,
           through: m.through ?? false,
+          axisUnit,
         });
       }
     }
@@ -2767,9 +2783,10 @@ export function PerspectiveView({
       geo.deleteAttribute("uv");
       if (!geo.attributes.normal) geo.computeVertexNormals();
       // tail tip 在 X=±halfLength 跟側板外面 face 重合 → Z-fighting
-      // 沿 X 微放大讓 cut 超出側板外面 1mm（feedback_csg_overlap_over_analytical_fit）
+      // 沿 X 微放大讓 cut 超出側板外面 0.2mm（feedback_csg_overlap_over_analytical_fit）
+      // 之前用 1mm 過大，cavity 比 tail 深 1mm，視覺上會看到 tail tip 後面亮色細縫。
       const sxFull = part.visible.length;
-      const xScale = (sxFull + 2) / sxFull;
+      const xScale = (sxFull + 0.4) / sxFull;
       geo.scale(xScale, 1, 1);
       const { yExt } = worldExtents(part);
       const px = part.origin.x * SCALE;
@@ -3172,17 +3189,29 @@ export function PerspectiveView({
                   case "left":   lrx = oW; lry = oT; lrz = -lz / 2; loz = -1; break;
                   case "right":  lrx = oW; lry = oT; lrz = +lz / 2; loz = +1; break;
                 }
+                // Compute root position in world (always via part rotation).
                 const rRoot = rotateXYZ(rxP, ryP, rzP, lrx, lry, lrz);
-                const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
                 const wRootX = part.origin.x + rRoot.x;
                 const wRootY = part.origin.y + worldExtents(part).yExt / 2 + rRoot.y;
                 const wRootZ = part.origin.z + rRoot.z;
-                const aX = Math.abs(rOut.x), aY = Math.abs(rOut.y), aZ = Math.abs(rOut.z);
+                // outUnit / outAxis: tenon outward direction in WORLD frame.
+                // - With t.axis present (compound splay): t.axis IS world; use directly.
+                // - Without t.axis: rotate position-default local outward through partQ.
+                let outUnit: { x: number; y: number; z: number };
+                if (t.axis) {
+                  const m = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  outUnit = { x: t.axis.x / m, y: t.axis.y / m, z: t.axis.z / m };
+                } else {
+                  const rOut = rotateXYZ(rxP, ryP, rzP, lox, loy, loz);
+                  const mag = Math.hypot(rOut.x, rOut.y, rOut.z) || 1;
+                  outUnit = { x: rOut.x / mag, y: rOut.y / mag, z: rOut.z / mag };
+                }
+                const aX = Math.abs(outUnit.x), aY = Math.abs(outUnit.y), aZ = Math.abs(outUnit.z);
                 let outAxis: "x" | "y" | "z";
                 let outSign: 1 | -1;
-                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = rOut.x >= 0 ? 1 : -1; }
-                else if (aY >= aZ) { outAxis = "y"; outSign = rOut.y >= 0 ? 1 : -1; }
-                else { outAxis = "z"; outSign = rOut.z >= 0 ? 1 : -1; }
+                if (aX >= aY && aX >= aZ) { outAxis = "x"; outSign = outUnit.x >= 0 ? 1 : -1; }
+                else if (aY >= aZ) { outAxis = "y"; outSign = outUnit.y >= 0 ? 1 : -1; }
+                else { outAxis = "z"; outSign = outUnit.z >= 0 ? 1 : -1; }
 
                 // tenon outward 跟 mortise opening 反向 → mortise.sign === -outSign
                 //
@@ -3200,15 +3229,27 @@ export function PerspectiveView({
                 let bestDist = Infinity;
                 for (const mw of worldMortiseIndex) {
                   if (mw.partId === part.id) continue;
-                  if (mw.axis !== outAxis) continue;
-                  if (mw.sign === outSign) continue;
                   if (drawerFamily && !mw.partId.startsWith(drawerFamily)) continue;
+                  // Compound splay: both sides are WORLD-frame unit vectors.
+                  // mw.axisUnit = mortise OPENING direction (out of leg toward apron).
+                  // outUnit    = tenon outward direction (out of apron into leg).
+                  // They point opposite each other → anti-parallel (dot ≈ -1).
+                  if (mw.axisUnit && t.axis) {
+                    const dot =
+                      mw.axisUnit.x * outUnit.x +
+                      mw.axisUnit.y * outUnit.y +
+                      mw.axisUnit.z * outUnit.z;
+                    if (dot > -0.85) continue;
+                  } else {
+                    if (mw.axis !== outAxis) continue;
+                    if (mw.sign === outSign) continue;
+                  }
                   const dx = mw.entryX - wRootX;
                   const dy = mw.entryY - wRootY;
                   const dz = mw.entryZ - wRootZ;
                   const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                  // 50mm 容忍：parts 可能因斜腳 splay/錯位有些距離
-                  if (d < bestDist && d < 50) { bestDist = d; bestMort = mw; }
+                  // 60mm 容忍（compound splay 允許多一點偏差，原 50mm）
+                  if (d < bestDist && d < 60) { bestDist = d; bestMort = mw; }
                 }
 
                 // 通榫不 clamp（要凸出母件背面）；其它都 clamp 到母件 mortise 深
@@ -3253,6 +3294,11 @@ export function PerspectiveView({
                     ez = explodeMm;
                     break;
                 }
+                // Note: with t.axis (compound splay), lcx/lcy/lcz remain at the
+                // position-default local center. The mesh quaternion below
+                // applies a WORLD-frame rotation that orients the box's long
+                // axis onto t.axis; the box stays centred at its nominal
+                // tenon position (visually approximate but acceptable).
                 lcx += ex; lcy += ey; lcz += ez;
                 // 把 local center 經 part Euler XYZ 旋轉 → 加 part 中心 = world center
                 const rx = part.rotation?.x ?? 0;
@@ -3284,30 +3330,271 @@ export function PerspectiveView({
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
                 const useRoundTenon = isRoundLegPart && t.position === "top";
+
+                // Compound splay: t.axis is WORLD-frame tenon direction.
+                // Composition: meshQuat = extraQ_world * partQ
+                //   - partQ takes geometry from part-local to world (so the
+                //     box's cross-section ends up aligned with the part's
+                //     local W/T — tenon wide-face faces "up" relative to apron)
+                //   - extraQ_world then rotates the post-partQ long-axis
+                //     direction onto t.axis (world)
+                // This preserves cross-section orientation while pointing
+                // the long axis at the world-frame splayed tenon direction.
+                // Compute meshQuat and the world-frame position shift needed
+                // so the tenon's ROOT (the face flush against the parent part)
+                // stays on the parent's exterior face after rotation. Without
+                // the shift the mesh would rotate about its center, lifting
+                // the root off the parent face by `(effLen/2) * (tAxis - geomLongWorld)`.
+                let posShift: { x: number; y: number; z: number } | null = null;
+                const meshQuat = (() => {
+                  if (!t.axis) return null;
+                  const partQ = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  const geomLongLocal: [number, number, number] =
+                    (t.position === "start" || t.position === "end")  ? [1, 0, 0] :
+                    (t.position === "top" || t.position === "bottom") ? [0, 1, 0] :
+                                                                         [0, 0, 1];
+                  const flip = (t.position === "start" || t.position === "bottom" || t.position === "left") ? -1 : 1;
+                  const geomLongLocalV = new Vector3(
+                    geomLongLocal[0] * flip,
+                    geomLongLocal[1] * flip,
+                    geomLongLocal[2] * flip,
+                  );
+                  const geomLongWorld = geomLongLocalV.clone().applyQuaternion(partQ);
+                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const target = new Vector3(t.axis.x / tm, t.axis.y / tm, t.axis.z / tm);
+                  const extraQ = new Quaternion().setFromUnitVectors(geomLongWorld, target);
+                  // Root-anchor shift: position += (effLen/2) * (target - geomLongWorld)
+                  // in world frame. This keeps the tenon's root-face CENTER on the
+                  // parent's exterior face after rotation. But the rotated box's
+                  // bottom-face corners still spread ±(W/2*|perpY|) above/below
+                  // this center, leaving a visible wedge gap on one side and
+                  // overlap on the other.
+                  //
+                  // Second shift: push the mesh further along -target so the
+                  // HIGHEST root-face corner lands at the anchor plane. After
+                  // this, no part of the root face protrudes past the parent's
+                  // exterior; the diagonal cut sinks into the parent (hidden
+                  // in solid render, slightly visible in wireframe).
+                  const composed = extraQ.clone().multiply(partQ);
+                  const rootMesh = new Vector3(
+                    -hx * geomLongLocal[0] * flip,
+                    -hy * geomLongLocal[1] * flip,
+                    -hz * geomLongLocal[2] * flip,
+                  );
+                  // Cross-section half-extents along the two non-long axes.
+                  const isLongX = Math.abs(geomLongLocal[0]) > 0.5;
+                  const isLongY = Math.abs(geomLongLocal[1]) > 0.5;
+                  const halfA = isLongX ? hy : hx;
+                  const halfB = isLongY ? hz : (isLongX ? hz : hy);
+                  const perpAxisA = new Vector3(isLongX ? 0 : 1, isLongX ? 1 : 0, 0);
+                  const perpAxisB = new Vector3(isLongX || isLongY ? 0 : 1, 0, isLongX || isLongY ? 1 : 0);
+                  let maxCornerY = -Infinity;
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const cornerLocal = rootMesh.clone()
+                      .addScaledVector(perpAxisA, sa * halfA)
+                      .addScaledVector(perpAxisB, sb * halfB);
+                    const cornerWorld = cornerLocal.applyQuaternion(composed);
+                    if (cornerWorld.y > maxCornerY) maxCornerY = cornerWorld.y;
+                  }
+                  // posShift = root-anchor + sink (push down by max corner Y so
+                  // no corner protrudes above the anchor plane).
+                  posShift = {
+                    x: (effLen / 2) * (target.x - geomLongWorld.x) * SCALE,
+                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE - maxCornerY * SCALE,
+                    z: (effLen / 2) * (target.z - geomLongWorld.z) * SCALE,
+                  };
+                  return extraQ.multiply(partQ);
+                })();
+
+                // When t.axis is present, render as a SHEARED BOX: root + tip
+                // cross-sections stay parallel to the parent's shoulder face
+                // (horizontal for a leg's top face), and the body slides along
+                // t.axis. This matches real woodworking (shoulder cut flat, tenon
+                // body angled to match leg's lean). The mesh uses NO quaternion;
+                // the shear is encoded directly in vertex positions.
+                const useShearedBox = !!t.axis && !useRoundTenon;
+                const shearedGeom = useShearedBox && t.axis ? (() => {
+                  const SHRINK_MM = 0.5;
+                  const ROOT_BURY = 0.1;  // mm, both ends
+                  // A tenon is a PARALLELEPIPED with two independent directions:
+                  //   B = body direction (along wood grain)
+                  //   N = end face normal (perpendicular to cut surface)
+                  // For leg-top tenon: B = t.axis (slanted), N = default outward
+                  //   (= world Y for unrotated legs) — leg lean, horizontal shoulder.
+                  // For apron tenon: B = apron length in world (partQ * default
+                  //   outward), N = t.axis (compound miter plane normal) —
+                  //   apron runs straight between corners, end faces are oblique.
+                  const isTopBottom = (t.position === "top" || t.position === "bottom");
+                  const isStartEnd  = (t.position === "start" || t.position === "end");
+
+                  // Default outward direction in part-local (the direction the
+                  // tenon protrudes naturally before t.axis override).
+                  const defaultLocal: [number, number, number] =
+                    t.position === "start"  ? [-1, 0, 0] :
+                    t.position === "end"    ? [+1, 0, 0] :
+                    t.position === "top"    ? [ 0, +1, 0] :
+                    t.position === "bottom" ? [ 0, -1, 0] :
+                    t.position === "left"   ? [ 0, 0, -1] :
+                                              [ 0, 0, +1];
+                  const partQS = new Quaternion().setFromEuler(new Euler(rx, ry, rz, "ZYX"));
+                  const defaultWorld = new Vector3(...defaultLocal).applyQuaternion(partQS).normalize();
+                  const tUnit = new Vector3(t.axis.x, t.axis.y, t.axis.z).normalize();
+
+                  let B: Vector3;
+                  let N: Vector3;
+                  if (isTopBottom) {
+                    // Legs: body along t.axis, end face normal along default outward.
+                    B = tUnit.clone();
+                    N = defaultWorld.clone();
+                  } else {
+                    // Aprons/stretchers: body along apron length, end face normal
+                    // along t.axis (compound miter plane).
+                    B = defaultWorld.clone();
+                    N = tUnit.clone();
+                  }
+
+                  // Cross-section axes: the two part-local axes perpendicular to
+                  // the long axis, transformed to world via partQ, then projected
+                  // onto the plane perpendicular to N (Gram-Schmidt).
+                  const cross1Local =
+                    isStartEnd  ? new Vector3(0, 1, 0) :  // long=X → cross={Y,Z}
+                    isTopBottom ? new Vector3(1, 0, 0) :  // long=Y → cross={X,Z}
+                                  new Vector3(1, 0, 0);   // long=Z → cross={X,Y}
+                  const cross2Local =
+                    isStartEnd  ? new Vector3(0, 0, 1) :
+                    isTopBottom ? new Vector3(0, 0, 1) :
+                                  new Vector3(0, 1, 0);
+                  const c1World = cross1Local.applyQuaternion(partQS);
+                  const c2World = cross2Local.applyQuaternion(partQS);
+                  // Project onto plane ⊥ N
+                  const cross1 = c1World.clone().addScaledVector(N, -c1World.dot(N)).normalize();
+                  const cross2 = c2World.clone().addScaledVector(N, -c2World.dot(N));
+                  cross2.addScaledVector(cross1, -cross2.dot(cross1)).normalize();
+
+                  // Cross-section half-extents (mm).
+                  // For isStartEnd: long=X → perp1=Y (thickness), perp2=Z (width).
+                  // For isTopBottom: long=Y → perp1=X (width), perp2=Z (thickness).
+                  // For left/right: long=Z → perp1=X (width), perp2=Y (thickness).
+                  const halfPerp1 = isStartEnd ? hy : hx;
+                  const halfPerp2 = isStartEnd ? hz : (isTopBottom ? hz : hy);
+                  const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
+                  const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
+
+                  // Body length: cut-plane normal is N, body direction is B.
+                  // Tip face plane sits at depth effLen from root along N, so
+                  //   L_body * (B · N) = effLen  → L_body = effLen / |B · N|
+                  // Add 2*ROOT_BURY to bury both ends slightly (z-fight masking).
+                  const bDotN = B.dot(N);
+                  const denom = Math.max(0.1, Math.abs(bDotN));
+                  const Lworld = (Math.abs(effLen) / denom + 2 * ROOT_BURY) * SCALE;
+
+                  // Mesh origin sits at the nominal tenon center (wx,wy,wz)
+                  // which was computed as position-default local center —
+                  // i.e. parent-face + (effLen/2) along defaultWorld.
+                  // Place ROOT at -(effLen/2 + bury)*defaultWorld so the root
+                  // face stays flush with the parent shoulder face. Then walk
+                  // tip = root + Lworld * B.
+                  const halfLenWorld = (Math.abs(effLen) / 2 + ROOT_BURY) * SCALE;
+                  const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
+                  const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
+
+                  const corners: Vector3[] = [];
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = rootCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = tipCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  // Flatten to Float32Array
+                  const positions = new Float32Array(corners.length * 3);
+                  corners.forEach((v, i) => { positions[i*3] = v.x; positions[i*3+1] = v.y; positions[i*3+2] = v.z; });
+                  // Indices: 6 faces, 2 triangles each = 12 triangles = 36 indices.
+                  // Corner layout (root then tip, both in cross1-cross2 quadrants):
+                  //   0: root (-1,-1)
+                  //   1: root (-1,+1)
+                  //   2: root (+1,-1)
+                  //   3: root (+1,+1)
+                  //   4: tip  (-1,-1)
+                  //   5: tip  (-1,+1)
+                  //   6: tip  (+1,-1)
+                  //   7: tip  (+1,+1)
+                  const indices = new Uint16Array([
+                    // root face (facing -longAxis): 0,2,3 + 0,3,1
+                    0, 2, 3,  0, 3, 1,
+                    // tip face (facing +longAxis): 4,5,7 + 4,7,6
+                    4, 5, 7,  4, 7, 6,
+                    // side cross1 +1: 2,6,7 + 2,7,3
+                    2, 6, 7,  2, 7, 3,
+                    // side cross1 -1: 0,1,5 + 0,5,4
+                    0, 1, 5,  0, 5, 4,
+                    // side cross2 +1: 1,3,7 + 1,7,5
+                    1, 3, 7,  1, 7, 5,
+                    // side cross2 -1: 0,4,6 + 0,6,2
+                    0, 4, 6,  0, 6, 2,
+                  ]);
+                  return { positions, indices };
+                })() : null;
+
+                const meshPos: [number, number, number] = useShearedBox
+                  ? [wx, wy, wz]                                       // sheared box uses bare wx/wy/wz (no rotation, geometry is pre-shaped)
+                  : (posShift
+                      ? [wx + posShift.x, wy + posShift.y, wz + posShift.z]
+                      : [wx, wy, wz]);
+
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
-                    position={[wx, wy, wz]}
-                    rotation={new Euler(rx, ry, rz, "ZYX")}
+                    position={meshPos}
+                    {...(useShearedBox
+                      ? {}                                              // sheared box: identity rotation (shear is in geometry)
+                      : meshQuat
+                        ? { quaternion: meshQuat }
+                        : { rotation: new Euler(rx, ry, rz, "ZYX") })}
                     castShadow
                   >
                     {(() => {
-                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
-                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
                       const SHRINK_MM = 0.5;
-                      const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
-                      const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
-                      const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
-                      return useRoundTenon ? (
-                        <cylinderGeometry args={[
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          sy,
-                          24,
-                        ]} />
-                      ) : (
-                        <boxGeometry args={[sx, sy, sz]} />
-                      );
+                      // Only shrink the CROSS-SECTION (real z-fight risk against
+                      // mortise walls). Keep the long axis at full effLen so the
+                      // root face sits flush with the parent's shoulder face —
+                      // shrinking it lifts the root by 0.5mm and shows as a gap.
+                      const isLongAxisX = (t.position === "start" || t.position === "end");
+                      const isLongAxisY = (t.position === "top" || t.position === "bottom");
+                      const isLongAxisZ = !isLongAxisX && !isLongAxisY;
+                      const sx = (isLongAxisX ? hx : Math.max(0.05, hx - SHRINK_MM)) * 2 * SCALE;
+                      const sy = (isLongAxisY ? hy : Math.max(0.05, hy - SHRINK_MM)) * 2 * SCALE;
+                      const sz = (isLongAxisZ ? hz : Math.max(0.05, hz - SHRINK_MM)) * 2 * SCALE;
+                      if (useRoundTenon) {
+                        return (
+                          <cylinderGeometry args={[
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            sy,
+                            24,
+                          ]} />
+                        );
+                      }
+                      if (shearedGeom) {
+                        return (
+                          <bufferGeometry>
+                            <bufferAttribute
+                              attach="attributes-position"
+                              args={[shearedGeom.positions, 3]}
+                            />
+                            <bufferAttribute
+                              attach="index"
+                              args={[shearedGeom.indices, 1]}
+                            />
+                          </bufferGeometry>
+                        );
+                      }
+                      return <boxGeometry args={[sx, sy, sz]} />;
                     })()}
                     <meshStandardMaterial
                       color="#c0392b"

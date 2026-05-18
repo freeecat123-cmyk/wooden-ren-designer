@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -159,6 +159,14 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     ? Math.max(0, Math.round((legSize - legTenonStd.width) / 2))
     : 0;
 
+  // 預計算 splay 數據（seatPanel 的 mortise.axis 跟 legs 共用）
+  const _splayMmForLegs = Math.round(Math.tan((splayAngle * Math.PI) / 180) * legHeight);
+  const _splayDxForLegs =
+    legShape === "splayed" || legShape === "splayed-length" ? _splayMmForLegs : 0;
+  const _splayDzForLegs =
+    legShape === "splayed" || legShape === "splayed-width" ? _splayMmForLegs : 0;
+  const _isSplayedForLegs = _splayDxForLegs > 0 || _splayDzForLegs > 0;
+
   const seatPanel: Part = {
     id: "seat",
     nameZh: "座板",
@@ -174,22 +182,50 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       // 座板四角榫眼：通榫（座板薄）或盲榫（座板厚 > 25），depth 跟 tenon length 同步
       // legInset=0 時 X 軸 origin 朝家具中心偏 legTopInsetX，mortise 內側貼腳內緣
       // 盲榫時 mortise 從座板下緣開挖（origin.y=0，從底進入），不穿頂
-      ...corners(length, width, legSize, legInset).map((c) => ({
-        origin: {
-          x: c.x - Math.sign(c.x) * legTopInsetX,
-          y: 0,
-          z: c.z,
-        },
-        depth: legTenonStd.length,
-        length: legTenonStd.width,
-        width: legTenonStd.thickness,
-        through: legTopTenonType === "through-tenon",
-      })),
+      // splay 時 mortise.axis = 腳 top 榫頭世界軸的反向（座板的孔朝下開向腳）
+      ...corners(length, width, legSize, legInset).map((c) => {
+        const mortiseAxis = _isSplayedForLegs
+          ? (() => {
+              const dx = c.x > 0 ? _splayDxForLegs : (c.x < 0 ? -_splayDxForLegs : 0);
+              const dz = c.z > 0 ? _splayDzForLegs : (c.z < 0 ? -_splayDzForLegs : 0);
+              // mortise axis = opposite of tenon axis = (dx, -legHeight, dz)
+              const x = dx, y = -legHeight, z = dz;
+              const mag = Math.hypot(x, y, z) || 1;
+              return { x: x / mag, y: y / mag, z: z / mag };
+            })()
+          : undefined;
+        return {
+          origin: {
+            x: c.x - Math.sign(c.x) * legTopInsetX,
+            y: 0,
+            z: c.z,
+          },
+          depth: legTenonStd.length,
+          length: legTenonStd.width,
+          width: legTenonStd.thickness,
+          through: legTopTenonType === "through-tenon",
+          ...(mortiseAxis ? { axis: mortiseAxis } : {}),
+        };
+      }),
     ],
   };
 
   // 4 隻凳腳
-  const legs: Part[] = corners(length, width, legSize, legInset).map((c, i) => ({
+  const legs: Part[] = corners(length, width, legSize, legInset).map((c, i) => {
+    // Top tenon enters seat upward; splayed legs lean outward at bottom, so
+    // tenon axis = opposite of leg's downward direction.
+    // leg downward (top→bottom) world = (sign(c.x)*splayDx, -legHeight, sign(c.z)*splayDz)
+    // top tenon axis (up into seat) = (-sign(c.x)*splayDx, +legHeight, -sign(c.z)*splayDz)
+    const legTopAxis = _isSplayedForLegs
+      ? (() => {
+          const dx = c.x > 0 ? _splayDxForLegs : (c.x < 0 ? -_splayDxForLegs : 0);
+          const dz = c.z > 0 ? _splayDzForLegs : (c.z < 0 ? -_splayDzForLegs : 0);
+          const x = -dx, y = legHeight, z = -dz;
+          const mag = Math.hypot(x, y, z) || 1;
+          return { x: x / mag, y: y / mag, z: z / mag };
+        })()
+      : undefined;
+    return ({
     id: `leg-${i + 1}`,
     nameZh: `凳腳 ${i + 1}`,
     material,
@@ -222,6 +258,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
         })(),
         offsetWidth: -Math.sign(c.x) * legTopInsetX,
+        ...(legTopAxis ? { axis: legTopAxis } : {}),
       },
     ],
     // 凳腳內側 2 面要挖橫撐的半榫眼（中段，距離地面 1/3 處）
@@ -239,7 +276,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
     }),
-  }));
+  });
+  });
 
   // 4 條橫撐（凳腳之間）—— butt-joint 慣例：visible.length 兩端剛好頂在
   // 腳的內側面，組裝版渲染就是 final 幾何（不重疊）。joinery 模式靠 tenon[]
@@ -306,6 +344,21 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
+    // Compound splay only — single-axis splay is fully carried by part.rotation.
+    // For 4-corner diagonal splay, the leg face the apron meets has an extra
+    // component that part rotation alone can't carry; helper returns world-frame
+    // tenon direction, attached as `axis` on each tenon end.
+    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+    const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+    const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+    const tenonAxisStart = isCompoundSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
+      : null;
+    const tenonAxisEnd = isCompoundSplay
+      ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
+      : null;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
@@ -367,6 +420,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
+            ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+            ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -388,6 +443,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(position === "start" && tenonAxisStart ? { axis: tenonAxisStart } : {}),
+          ...(position === "end" && tenonAxisEnd ? { axis: tenonAxisEnd } : {}),
         });
         return [mk("start"), mk("end")];
       })(),

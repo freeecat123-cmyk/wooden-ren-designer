@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * <PartDrawing> — single-part shop drawing card（Phase 1 Task 4）
  *
@@ -19,6 +21,7 @@ import {
   GrainArrow,
   FacingMark,
   ShapeSpecificAnnotation,
+  CompoundMiterAnnotation,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
@@ -181,6 +184,11 @@ export function PartDrawing({
                       <GrainArrow ctx={ctx} part={part} view={view} />
                       <FacingMark ctx={ctx} part={part} view={view} />
                       <ShapeSpecificAnnotation
+                        ctx={ctx}
+                        part={part}
+                        view={view}
+                      />
+                      <CompoundMiterAnnotation
                         ctx={ctx}
                         part={part}
                         view={view}
