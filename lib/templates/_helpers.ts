@@ -58,19 +58,24 @@ export function computeSplayGeometry(legHeight: number, splayAngleDeg: number) {
 }
 
 /**
- * For compound splay (4-corner diagonal external splay), compute the part-local
- * unit normal of the leg's inner face an apron's end tenon should align with.
+ * For compound splay (4-corner diagonal external splay), compute the
+ * WORLD-frame unit direction the apron's tenon at a given corner extends
+ * (out of apron, into leg).
  *
  * Convention:
- *   - apronAxis "x": apron lies along world X. Tenon at corner (sx, sz) points
- *     toward +sx·X with a downward (−Y) component proportional to splay angle.
+ *   - apronAxis "x": apron lies along world X. Tenon at corner (sx, sz) extends
+ *     toward sx·+X with an UPWARD (+Y) component proportional to splay angle.
+ *     Geometric reality: with positive splay the leg's top sits at the corner
+ *     and its bottom is further out, so the leg's inner face's outward normal
+ *     tilts DOWN; the tenon (opposite of that normal, pointing INTO the leg)
+ *     therefore tilts UP.
  *   - apronAxis "z": symmetric in Z.
  *   - cornerSz=0 (single-axis splayed-length) or cornerSx=0 (splayed-width)
  *     degenerates: tenon stays in the apron-axis plane.
  *
- * The single-axis tilt already applied to the WHOLE part (`rotation.x` /
- * `rotation.z` in square-stool.ts:351) carries the cross-direction lean; this
- * normal is expressed in part-local frame AFTER that rotation.
+ * Output is WORLD-frame. Renderers and templates consume it directly without
+ * composing with the apron's rotation. Templates may set the mortise.axis at
+ * the receiving leg = the negation of this vector (mortise OPENS the other way).
  */
 export function computeCompoundSplayNormal(args: {
   apronAxis: "x" | "z";
@@ -82,10 +87,10 @@ export function computeCompoundSplayNormal(args: {
   const a = splayAngleDeg * (Math.PI / 180);
   if (apronAxis === "x") {
     if (cornerSx === 0) return { x: 0, y: 0, z: 0 };
-    return { x: cornerSx * Math.cos(a), y: -Math.sin(a), z: 0 };
+    return { x: cornerSx * Math.cos(a), y: Math.sin(a), z: 0 };
   } else {
     if (cornerSz === 0) return { x: 0, y: 0, z: 0 };
-    return { x: 0, y: -Math.sin(a), z: cornerSz * Math.cos(a) };
+    return { x: 0, y: Math.sin(a), z: cornerSz * Math.cos(a) };
   }
 }
 

@@ -13,12 +13,12 @@ describe("computeCompoundSplayNormal", () => {
     expect(closeTo(n.z, 0)).toBe(true);
   });
 
-  it("tilts X-apron tenon along +X with downward Y component for compound splay", () => {
+  it("tilts X-apron tenon along +X with upward Y component for compound splay", () => {
     const n = computeCompoundSplayNormal({
       apronAxis: "x", cornerSx: +1, cornerSz: -1, splayAngleDeg: 8,
     });
     expect(n.x).toBeGreaterThan(0.95);
-    expect(n.y).toBeLessThan(0);
+    expect(n.y).toBeGreaterThan(0);
     expect(closeTo(n.z, 0, 1e-6)).toBe(true);
     const mag = Math.hypot(n.x, n.y, n.z);
     expect(closeTo(mag, 1, 1e-9)).toBe(true);
@@ -41,7 +41,7 @@ describe("computeCompoundSplayNormal", () => {
     });
     expect(closeTo(n.x, 0, 1e-6)).toBe(true);
     expect(n.z).toBeGreaterThan(0.95);
-    expect(n.y).toBeLessThan(0);
+    expect(n.y).toBeGreaterThan(0);
   });
 
   it("degenerates to single-axis when cornerSz=0", () => {
