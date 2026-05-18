@@ -65,13 +65,13 @@ export const teaTableOptions: OptionSpec[] = [
  *  - 4 × 桌腳（legs）
  *  - 4 × 上橫撐（upper aprons），桌面下方一圈
  *  - 4 × 下橫撐（lower stretchers），距地約 80mm
- *  - 1 × 下棚板（lower shelf），四邊出舌嵌入下橫撐凹槽
+ *  - N × 下棚條 slat（lower shelf slats），平鋪在下橫撐上面（自動依空間算根數）
  *
  * 接合（套方凳 square-stool 規則）：
  *  - 桌腳 ↔ 桌面：autoTenonType（≤25mm 通榫、>25mm 盲榫）
  *  - 上下橫撐 ↔ 桌腳：autoTenonType + legPenetratingTenon override
  *  - 半榫錯位：Z（左右）= 上半榫（保留 10mm 上肩）、X（前後）= 下半榫（無上下肩）
- *  - 下棚板 ↔ 下橫撐：四邊出舌+槽（tongue and groove）
+ *  - 下棚條 ↔ 下橫撐：rest-on（不開榫，靠重力 + slat 兩端被左右橫撐限位）
  */
 export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { length, width, height, material } = input;
@@ -101,7 +101,6 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
   const shelfThickness = 18;
-  const shelfTongueLen = 8;
 
   // ---- 榫卯標準（套自 square-stool / simple-table builder）----
   // 1) leg ↔ top：依自動規則（topThickness ≤ 25 → 通榫；> 25 → 盲榫深 2/3）
@@ -392,36 +391,50 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     legInset,
   });
 
-  // ----- 下棚板 -----
-  // 設計：棚板放在四向下橫撐的「上面」，跟 bench under-shelf 同概念（rest-on）。
-  // 棚板長/寬 = 橫撐 outer-to-outer 距離（橫撐外側面=length/2-legSize/2+thickness/2），
-  // 四角缺角 (notched-corners) 讓開腳柱位置。橫撐不開槽，棚板靠重力 + 木鞘卡住。
-  // 橫撐 outer face X = 腳中心 X + 橫撐厚/2，腳中心已含 legInset 偏移
+  // ----- 下棚板（slat 條板） -----
+  // 設計：棚板拆成多條 slat 平鋪在四向下橫撐的「上面」（rest-on），跟 bench under-shelf 同概念。
+  // slat 沿 length 軸（X）走、跨在前後（X 軸）兩支下橫撐上面；slats 在 Z 方向等距排列、
+  // 兩端 slat 緊貼左右（Z 軸）下橫撐內側（避腳）。三視圖看得到 slat 縫隙。
   const stretcherOuterX = length / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
   const stretcherOuterZ = width / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
-  const shelfLength = 2 * stretcherOuterX; // = length - legSize + lowerStretcherThickness
-  const shelfWidth = 2 * stretcherOuterZ;
-  // 缺角尺寸：腳的 X/Z 範圍跟棚板邊緣 overlap = (legSize + stretcherThickness)/2
-  const notchLen = (legSize + lowerStretcherThickness) / 2;
-  const notchWid = (legSize + lowerStretcherThickness) / 2;
-  // 棚板 Y = 橫撐頂面（origin.y 是棚板 bottom 在 world 的位置）
+  // slat 長度：跨到前後（X 軸）橫撐外側面 = 2 * stretcherOuterX
+  const slatLength = 2 * stretcherOuterX;
+  // slat 鋪設區間（Z 方向）：左右（Z 軸）橫撐之間的內側淨距
+  // 左右橫撐內側面 Z = stretcherOuterZ - lowerStretcherThickness
+  const slatInnerZSpan = 2 * (stretcherOuterZ - lowerStretcherThickness);
+  // slat 截面：寬 = 60mm（標準板條），高 = 18mm
+  const slatWidthMm = 60;
+  const slatGapMm = 10;
+  // 自動決定 slat 數量：(span + gap) / (slatWidth + gap)
+  const slatCount = Math.max(3, Math.round((slatInnerZSpan + slatGapMm) / (slatWidthMm + slatGapMm)));
+  // 重算實際 gap 讓 slats 兩端齊平左右橫撐內側
+  const actualGap = slatCount > 1
+    ? (slatInnerZSpan - slatCount * slatWidthMm) / (slatCount - 1)
+    : 0;
+  // 棚板 Y = 橫撐頂面（origin.y 是 slat bottom 在 world 的位置）
   const shelfY = stretcherFloorOffset + lowerStretcherWidth;
 
-  const lowerShelf: Part = {
-    id: "shelf",
-    nameZh: "下棚板",
-    material,
-    grainDirection: "length",
-    visible: {
-      length: shelfLength,
-      width: shelfWidth,
-      thickness: shelfThickness,
-    },
-    origin: { x: 0, y: shelfY, z: 0 },
-    shape: { kind: "notched-corners", notchLengthMm: notchLen, notchWidthMm: notchWid },
-    tenons: [],
-    mortises: [],
-  };
+  const slatParts: Part[] = [];
+  for (let i = 0; i < slatCount; i++) {
+    // slat 中心 Z：從 -slatInnerZSpan/2 + slatWidth/2 起、每步 (slatWidth + actualGap)
+    const slatZ = slatCount === 1
+      ? 0
+      : -slatInnerZSpan / 2 + slatWidthMm / 2 + i * (slatWidthMm + actualGap);
+    slatParts.push({
+      id: `shelf-slat-${i + 1}`,
+      nameZh: `下棚條 ${i + 1}`,
+      material,
+      grainDirection: "length",
+      visible: {
+        length: slatLength,
+        width: slatWidthMm,
+        thickness: shelfThickness,
+      },
+      origin: { x: 0, y: shelfY, z: slatZ },
+      tenons: [],
+      mortises: [],
+    });
+  }
 
   // 翻板（drop-leaf）：沿 length 軸 ±X 端延伸，蝶式鉸鏈接
   const dropLeafParts: Part[] = [];
@@ -452,14 +465,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       ...legs,
       ...upperAprons,
       ...lowerStretchers,
-      ...(hasLowerShelf ? [lowerShelf] : []),
+      ...(hasLowerShelf ? slatParts : []),
       ...dropLeafParts,
     ],
     defaultJoinery: "blind-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
     notes:
-      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板四邊出舌嵌入下橫撐長槽。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
+      `桌面與桌腳依母厚自動榫；上下橫撐與桌腳半榫錯位（Z 上半 / X 下半）；下棚板拆 ${slatCount} 條 slat 平鋪在下橫撐上面（不開榫，靠重力卡位）。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${dropLeaf !== "none" ? ` ${dropLeaf === "one-side" ? "單" : "雙"}側翻板（每片 ${dropLeafWidth}mm 寬，配 1.5\" 蝶式鉸鏈）。` : ""}${liveEdge ? " Live edge 原木邊（保留樹皮曲線）。" : ""}`,
   };
   // 拼板花紋（herringbone / chevron / book-match / end-grain）：3D 視覺化做法
   applyStandardChecks(design, {
