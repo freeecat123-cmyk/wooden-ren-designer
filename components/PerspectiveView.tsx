@@ -3406,36 +3406,150 @@ export function PerspectiveView({
                   return extraQ.multiply(partQ);
                 })();
 
-                const meshPos: [number, number, number] = posShift
-                  ? [wx + posShift.x, wy + posShift.y, wz + posShift.z]
-                  : [wx, wy, wz];
+                // When t.axis is present, render as a SHEARED BOX: root + tip
+                // cross-sections stay parallel to the parent's shoulder face
+                // (horizontal for a leg's top face), and the body slides along
+                // t.axis. This matches real woodworking (shoulder cut flat, tenon
+                // body angled to match leg's lean). The mesh uses NO quaternion;
+                // the shear is encoded directly in vertex positions.
+                const useShearedBox = !!t.axis && !useRoundTenon;
+                const shearedGeom = useShearedBox && t.axis ? (() => {
+                  const SHRINK_MM = 0.5;
+                  // Determine long-axis direction in part-local + the two perp
+                  // axes (cross-section axes).
+                  const isLongX = (t.position === "start" || t.position === "end");
+                  const isLongY = (t.position === "top" || t.position === "bottom");
+                  // half-extents (mm) along long axis vs the two cross axes
+                  const halfLong  = (isLongX ? hx : (isLongY ? hy : hz));
+                  const halfPerp1 = (isLongX ? hy : (isLongY ? hx : hx));
+                  const halfPerp2 = (isLongX ? hz : (isLongY ? hz : hy));
+                  const hl = Math.max(0.05, halfLong - SHRINK_MM) * SCALE;
+                  const h1 = Math.max(0.05, halfPerp1 - SHRINK_MM) * SCALE;
+                  const h2 = Math.max(0.05, halfPerp2 - SHRINK_MM) * SCALE;
+                  // World-frame axis unit vector (the tenon's body direction).
+                  const tm = Math.hypot(t.axis.x, t.axis.y, t.axis.z) || 1;
+                  const ax = t.axis.x / tm, ay = t.axis.y / tm, az = t.axis.z / tm;
+                  // Cross-section axes in WORLD (the two axes perpendicular to
+                  // the parent's shoulder face). For a leg-top tenon, shoulder
+                  // is horizontal in world, so cross-section is the world XZ plane.
+                  // We pick perpendicular world axes orthogonal to the part's
+                  // "default" long-axis direction (i.e. the geomLongLocal axis
+                  // after partQ — for unrotated legs, that's still world Y).
+                  // Cross axes = world X and Z for top/bottom.
+                  // For other positions we'd need different cross axes; only top
+                  // is supported with t.axis right now (legs).
+                  const cross1 = isLongY ? new Vector3(1, 0, 0) :
+                                 isLongX ? new Vector3(0, 1, 0) :
+                                           new Vector3(1, 0, 0);
+                  const cross2 = isLongY ? new Vector3(0, 0, 1) :
+                                 isLongX ? new Vector3(0, 0, 1) :
+                                           new Vector3(0, 1, 0);
+                  // Root face (parent-side, mesh-local) at "-halfLong" along the
+                  // default outward direction. Since we are NOT rotating the
+                  // mesh, "default outward" in mesh-local is the same as world
+                  // (we want the geometry pre-rotated). Place root at -halfLong
+                  // along the default outward, with cross-section dims h1 × h2.
+                  // For top: root at mesh-local Y = -halfLong; cross-section in XZ.
+                  // Tip = root + 2*halfLong * t.axis (world).
+                  const rootCenter = new Vector3(0, 0, 0);
+                  // Position root face center at mesh-local -halfLong along default-up.
+                  if (isLongY) rootCenter.y = -hl;
+                  if (isLongX) rootCenter.x = -hl;
+                  if (!isLongX && !isLongY) rootCenter.z = -hl;
+                  // Tip face center
+                  const tipShift = new Vector3(ax, ay, az).multiplyScalar(2 * hl);
+                  const tipCenter = rootCenter.clone().add(tipShift);
+                  // 4 root + 4 tip vertices
+                  const corners: Vector3[] = [];
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = rootCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+                    const c = tipCenter.clone()
+                      .addScaledVector(cross1, sa * h1)
+                      .addScaledVector(cross2, sb * h2);
+                    corners.push(c);
+                  }
+                  // Flatten to Float32Array
+                  const positions = new Float32Array(corners.length * 3);
+                  corners.forEach((v, i) => { positions[i*3] = v.x; positions[i*3+1] = v.y; positions[i*3+2] = v.z; });
+                  // Indices: 6 faces, 2 triangles each = 12 triangles = 36 indices.
+                  // Corner layout (root then tip, both in cross1-cross2 quadrants):
+                  //   0: root (-1,-1)
+                  //   1: root (-1,+1)
+                  //   2: root (+1,-1)
+                  //   3: root (+1,+1)
+                  //   4: tip  (-1,-1)
+                  //   5: tip  (-1,+1)
+                  //   6: tip  (+1,-1)
+                  //   7: tip  (+1,+1)
+                  const indices = new Uint16Array([
+                    // root face (facing -longAxis): 0,2,3 + 0,3,1
+                    0, 2, 3,  0, 3, 1,
+                    // tip face (facing +longAxis): 4,5,7 + 4,7,6
+                    4, 5, 7,  4, 7, 6,
+                    // side cross1 +1: 2,6,7 + 2,7,3
+                    2, 6, 7,  2, 7, 3,
+                    // side cross1 -1: 0,1,5 + 0,5,4
+                    0, 1, 5,  0, 5, 4,
+                    // side cross2 +1: 1,3,7 + 1,7,5
+                    1, 3, 7,  1, 7, 5,
+                    // side cross2 -1: 0,4,6 + 0,6,2
+                    0, 4, 6,  0, 6, 2,
+                  ]);
+                  return { positions, indices };
+                })() : null;
+
+                const meshPos: [number, number, number] = useShearedBox
+                  ? [wx, wy, wz]                                       // sheared box uses bare wx/wy/wz (no rotation, geometry is pre-shaped)
+                  : (posShift
+                      ? [wx + posShift.x, wy + posShift.y, wz + posShift.z]
+                      : [wx, wy, wz]);
 
                 return (
                   <mesh
                     key={`${part.id}-tenon-${ti}`}
                     position={meshPos}
-                    {...(meshQuat
-                      ? { quaternion: meshQuat }
-                      : { rotation: new Euler(rx, ry, rz, "ZYX") })}
+                    {...(useShearedBox
+                      ? {}                                              // sheared box: identity rotation (shear is in geometry)
+                      : meshQuat
+                        ? { quaternion: meshQuat }
+                        : { rotation: new Euler(rx, ry, rz, "ZYX") })}
                     castShadow
                   >
                     {(() => {
-                      // Shrink tenon mesh 0.5mm 各軸防 z-fighting：tenon 完全埋進 mortise CSG
-                      // 切口內，邊緣不貼齊母件外面，避免角隅閃出紅點
                       const SHRINK_MM = 0.5;
                       const sx = Math.max(0.05, hx - SHRINK_MM) * 2 * SCALE;
                       const sy = Math.max(0.05, hy - SHRINK_MM) * 2 * SCALE;
                       const sz = Math.max(0.05, hz - SHRINK_MM) * 2 * SCALE;
-                      return useRoundTenon ? (
-                        <cylinderGeometry args={[
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
-                          sy,
-                          24,
-                        ]} />
-                      ) : (
-                        <boxGeometry args={[sx, sy, sz]} />
-                      );
+                      if (useRoundTenon) {
+                        return (
+                          <cylinderGeometry args={[
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            Math.max(0.05, Math.min(hx, hz) - SHRINK_MM) * SCALE,
+                            sy,
+                            24,
+                          ]} />
+                        );
+                      }
+                      if (shearedGeom) {
+                        return (
+                          <bufferGeometry>
+                            <bufferAttribute
+                              attach="attributes-position"
+                              args={[shearedGeom.positions, 3]}
+                            />
+                            <bufferAttribute
+                              attach="index"
+                              args={[shearedGeom.indices, 1]}
+                            />
+                          </bufferGeometry>
+                        );
+                      }
+                      return <boxGeometry args={[sx, sy, sz]} />;
                     })()}
                     <meshStandardMaterial
                       color="#c0392b"
