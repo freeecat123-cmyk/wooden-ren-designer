@@ -672,10 +672,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           splayAngleDeg: splayAngle,
         })
       : null;
-    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
-      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
-    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
-    const endAxisLocal   = tenonAxisEndWorld;
+    // Helper output is WORLD-frame; consume directly.
     const partShape = hasTaper
       ? ({
           kind: "apron-trapezoid" as const,
@@ -698,8 +695,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
           width: apronTenonW,
           thickness: apronTenonThick,
           shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
-          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+          ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+          ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       }
@@ -716,8 +713,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
         thickness: apronTenonThick,
         shoulderOn,
         offsetWidth: -worldOffset,
-        ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-        ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+        ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+        ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
       });
       return [mk("start"), mk("end")];
     })();

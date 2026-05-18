@@ -567,11 +567,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           splayAngleDeg: splayAngle,
         })
       : null;
-    // start side: negate in-axis component (apron-local convention)
-    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
-      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
-    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
-    const endAxisLocal   = tenonAxisEndWorld;
+    // Helper output is WORLD-frame; consume directly.
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + apronB.splayXc - apronB.lwC / 2;
     const halfX_T = legEdgeX + apronB.splayXt - apronB.lwT / 2;
@@ -624,8 +620,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
-            ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-            ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+            ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+            ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -644,8 +640,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+          ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+          ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
@@ -674,10 +670,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           splayAngleDeg: splayAngle,
         })
       : null;
-    const frNegateInAxis = (v: { x: number; y: number; z: number } | null) =>
-      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
-    const frStartAxisLocal = frNegateInAxis(frTenonAxisStartWorld);
-    const frEndAxisLocal   = frTenonAxisEndWorld;
+    // Helper output is WORLD-frame; consume directly.
     // butt-joint 半長 = legEdge + splay − legW@Y / 2，trapezoid 上下 scale 用 top/bot
     const halfX_C = legEdgeX + frB.splayXc - frB.lwC / 2;
     const halfX_T = legEdgeX + frB.splayXt - frB.lwT / 2;
@@ -725,8 +718,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: frTenonW,
             thickness: frTenonThick,
             shoulderOn: [...frTenonStd.shoulderOn],
-            ...(position === "start" && frStartAxisLocal ? { axis: frStartAxisLocal } : {}),
-            ...(position === "end" && frEndAxisLocal ? { axis: frEndAxisLocal } : {}),
+            ...(position === "start" && frTenonAxisStartWorld ? { axis: frTenonAxisStartWorld } : {}),
+            ...(position === "end" && frTenonAxisEndWorld ? { axis: frTenonAxisEndWorld } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -744,8 +737,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: frTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && frStartAxisLocal ? { axis: frStartAxisLocal } : {}),
-          ...(position === "end" && frEndAxisLocal ? { axis: frEndAxisLocal } : {}),
+          ...(position === "start" && frTenonAxisStartWorld ? { axis: frTenonAxisStartWorld } : {}),
+          ...(position === "end" && frTenonAxisEndWorld ? { axis: frTenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       })(),

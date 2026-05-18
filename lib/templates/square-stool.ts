@@ -323,6 +323,10 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
     const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
     const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    // Helper returns WORLD-frame tenon direction. Each end calls with its own
+    // corner signs — start corner is at −axis side (cornerSx=−1 for x-apron,
+    // cornerSz=−1 for z-apron) → helper produces −cos·axis direction, matching
+    // the start tenon's outward direction in world. No further sign tweaks.
     const tenonAxisStartWorld = isCompoundSplay
       ? computeCompoundSplayNormal({
           apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
@@ -335,18 +339,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           splayAngleDeg: splayAngle,
         })
       : null;
-    // Tenon.axis is in part-LOCAL frame (apron-local). For start position the
-    // tenon points "outward" = part-local −axis direction; for end it points +axis.
-    // The helper returns part-local-AFTER-cross-tilt-rotation normals, which equal
-    // apron-local for the in-axis component (only Y component might need flip on
-    // start side because the apron's cross-tilt mirrors at the two ends).
-    // However since the apron rotation about its long axis is symmetric at both
-    // ends, the part-local Y component is the same sign. We just need to negate
-    // the in-axis component for the start side.
-    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
-      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
-    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
-    const endAxisLocal   = tenonAxisEndWorld;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
@@ -408,8 +400,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
-            ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-            ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+            ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+            ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -431,8 +423,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+          ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+          ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       })(),

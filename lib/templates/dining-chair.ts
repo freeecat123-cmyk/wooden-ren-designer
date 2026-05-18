@@ -616,12 +616,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           splayAngleDeg: splayAngle,
         })
       : null;
-    // start 端公榫朝 part-local −axis；end 端朝 +axis。helper 回傳的法線在 cross-tilt
-    // 後的 part-local frame；只需把 start 側的 in-axis 分量翻號。
-    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
-      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
-    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
-    const endAxisLocal   = tenonAxisEndWorld;
+    // helper 已回傳 WORLD 軸向，直接使用（cornerSx/cornerSz=−1 自動產生 start 側向量）
     // butt-joint 半長 = legEdge + splay − legSize@Y / 2
     const halfX_C = apronLegEdgeX + geom.splayXc - geom.lwC / 2;
     const halfX_T = apronLegEdgeX + geom.splayXt - geom.lwT / 2;
@@ -669,8 +664,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn] as Array<"top" | "bottom" | "left" | "right">,
-            ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-            ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+            ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+            ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -689,8 +684,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && startAxisLocal ? { axis: startAxisLocal } : {}),
-          ...(position === "end" && endAxisLocal ? { axis: endAxisLocal } : {}),
+          ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
+          ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
