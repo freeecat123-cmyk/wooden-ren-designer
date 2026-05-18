@@ -366,7 +366,10 @@ export default async function Home({
 
 function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const paid = isPaidCategory(item.category);
-  const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
+  // localhost (npm run dev) 不鎖、可進去測；Vercel preview/production 才鎖
+  const inDevelopment =
+    DEVELOPMENT_CATEGORIES.has(item.category) &&
+    process.env.NODE_ENV !== "development";
   const searchTokens = [
     item.nameZh,
     item.category,
