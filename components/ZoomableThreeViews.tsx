@@ -92,11 +92,11 @@ export function ZoomableThreeViews({
           role="dialog"
           aria-modal="true"
         >
-          {/* 永遠浮在最上面：左側 3 視圖切換 chip + 右側 X，
+          {/* 永遠浮在最上面：3 視圖切換 chip + 縮放整合成同一個 pill，
               手機 390px header 一排塞不下時也找得到、按得到。
               用 -mt 把 safe-area inset 拉進來，瀏海下也露 */}
           <div
-            className="fixed top-3 left-3 z-[60] flex gap-1 bg-white/95 rounded-full shadow-lg ring-1 ring-zinc-300 p-1"
+            className="fixed top-3 left-3 z-[60] flex items-center gap-1 bg-white/95 rounded-full shadow-lg ring-1 ring-zinc-300 p-1"
             onClick={(e) => e.stopPropagation()}
             style={{ marginTop: "env(safe-area-inset-top)" }}
           >
@@ -105,7 +105,7 @@ export function ZoomableThreeViews({
                 key={v}
                 type="button"
                 onClick={() => setZoomed(v)}
-                className={`min-h-[36px] min-w-[44px] px-3 py-1 rounded-full text-sm font-medium ${
+                className={`min-h-[32px] min-w-[40px] px-2.5 py-1 rounded-full text-xs font-medium ${
                   v === zoomed
                     ? "bg-amber-500 text-white"
                     : "text-zinc-700 hover:bg-zinc-100"
@@ -114,6 +114,27 @@ export function ZoomableThreeViews({
                 {VIEW_TITLES[v].zh}
               </button>
             ))}
+            <span className="w-px h-5 bg-zinc-300 mx-0.5" aria-hidden />
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.max(1, s - 0.25))}
+              disabled={scale <= 1}
+              className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
+              title="縮小 (−)"
+            >−</button>
+            <button
+              type="button"
+              onClick={() => setScale(1)}
+              className="min-h-[32px] px-1.5 rounded-full text-[11px] text-zinc-700 hover:bg-zinc-100 tabular-nums min-w-[42px]"
+              title="重設 (0)"
+            >{Math.round(scale * 100)}%</button>
+            <button
+              type="button"
+              onClick={() => setScale((s) => Math.min(4, s + 0.25))}
+              disabled={scale >= 4}
+              className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
+              title="放大 (+)"
+            >＋</button>
           </div>
           <button
             type="button"
@@ -129,31 +150,7 @@ export function ZoomableThreeViews({
             className="relative bg-white shadow-2xl w-screen h-screen flex flex-col cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 視圖切換 + X 移到上面 floating，只留 title + 縮放在 header 留白讓 SVG 多空間 */}
-            <div className="flex items-center justify-end pl-4 pr-16 py-2 border-b border-zinc-200">
-              <div className="flex items-center gap-1 bg-zinc-100 rounded px-1 py-0.5">
-                <button
-                  type="button"
-                  onClick={() => setScale((s) => Math.max(1, s - 0.25))}
-                  disabled={scale <= 1}
-                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                  title="縮小 (−)"
-                >−</button>
-                <button
-                  type="button"
-                  onClick={() => setScale(1)}
-                  className="px-1.5 h-7 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
-                  title="重設 (0)"
-                >{Math.round(scale * 100)}%</button>
-                <button
-                  type="button"
-                  onClick={() => setScale((s) => Math.min(4, s + 0.25))}
-                  disabled={scale >= 4}
-                  className="w-7 h-7 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                  title="放大 (+)"
-                >＋</button>
-              </div>
-            </div>
+            {/* 視圖切換 + 縮放 + X 都搬到上面 floating，header 整條移除讓 SVG 吃滿 viewport */}
             <div
               ref={scrollRef}
               className="flex-1 min-h-0 overflow-auto flex bg-zinc-50 [align-items:safe_center] [justify-content:safe_center]"
