@@ -25,6 +25,13 @@ type PartView = "front" | "top" | "side";
 const ZOOM_LEVELS = [1, 2, 3, 5, 8] as const;
 type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
+// 顯示用：mm 最多保留 1 位小數（feedback_ui_number_precision）。
+// 內部計算保持高精度，只在 render layer round。
+const fmt = (n: number): string => {
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
@@ -63,8 +70,9 @@ export function PartDrawingsPanel({ design }: Props) {
               </div>
               <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">
                 P-{String(idx + 1).padStart(2, "0")} ·{" "}
-                {g.representative.visible.length}×{g.representative.visible.width}×
-                {g.representative.visible.thickness}
+                {fmt(g.representative.visible.length)}×
+                {fmt(g.representative.visible.width)}×
+                {fmt(g.representative.visible.thickness)}
               </div>
             </button>
           </li>
