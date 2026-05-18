@@ -345,20 +345,20 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // Compound splay only — single-axis splay is fully carried by part.rotation.
-    // For 4-corner diagonal splay, the leg face the apron meets has an extra
-    // component that part rotation alone can't carry; helper returns world-frame
-    // tenon direction, attached as `axis` on each tenon end.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    // For 4-corner splay (compound 或 single)，apron 端面是斜的 → tenon 需要 axis
+    // 才能渲染成 sheared box、root 貼 miter。axis-specific：
+    //   axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
+    const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
     // axis="x" 牙條: start at part-local -X → world -X (Rx(π/2) 不動 X)。cornerSx=-1 ✓
     // axis="z" 牙條: start at part-local -X → world +Z (Rx(π/2) Ry(π/2) 後 -X→+Z)。cornerSz=+1（不是 -1）
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
     const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
     const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
     const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-    const tenonAxisStart = isCompoundSplay
+    const tenonAxisStart = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
       : null;
-    const tenonAxisEnd = isCompoundSplay
+    const tenonAxisEnd = hasAxisSplay
       ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
       : null;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
@@ -576,16 +576,16 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         { id: "ls-right", nameZh: "右下橫撐", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsZSplayX, z: 0 } },
       ];
       for (const s of sides) {
-        // compound-splay tenon axis（跟 apron 同 pattern：axis="z" 反轉 cornerSz）
-        const isCompoundSplay = splayDx > 0 && splayDz > 0;
+        // splay tenon axis（axis-specific：單向斜也觸發、axis="z" 反轉 cornerSz）
+        const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
         const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
         const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
         const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
         const endCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
-        const lsTenonAxisStart = isCompoundSplay
+        const lsTenonAxisStart = hasAxisSplay
           ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
           : null;
-        const lsTenonAxisEnd = isCompoundSplay
+        const lsTenonAxisEnd = hasAxisSplay
           ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
           : null;
         // 下橫撐：trapezoid 是腳幾何要求（兩端縮到腳寬避免縫），但不 bevel（上下都跟腳斜，自由邊）
