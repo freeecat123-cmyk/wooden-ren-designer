@@ -293,22 +293,12 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // Splay 補正：榫眼旋轉跟著 apron/footrest cross-tilt（避免 tenon 角戳出 axis-aligned 母榫）
-  const _isLengthSplayPre = legShape === "splayed" || legShape === "splayed-length";
-  const _isWidthSplayPre = legShape === "splayed" || legShape === "splayed-width";
-  const _splayDxPre = _isLengthSplayPre ? splayMm : 0;
-  const _splayDzPre = _isWidthSplayPre ? splayMm : 0;
-  const _apronXTiltPre = _splayDzPre > 0 && seatY > 0 ? Math.atan(_splayDzPre / seatY) : 0;
-  const _apronZTiltPre = _splayDxPre > 0 && seatY > 0 ? Math.atan(_splayDxPre / seatY) : 0;
-
   const legs: Part[] = cornerPts.map((c, i) => {
     // 所有椅腳統一只到 seatY；rail / slats / panel 的椅背支撐都由獨立垂直木處理
     // （之前 rail/slats 讓後腳延伸到 seatY+backHeight，配上 splayed 會造成
     //  後腳左右距離跟前腳不等距、正視也不重疊。改用獨立支撐木分離）
     const isBack = false;
     const legTotalH = seatY;
-    const xFaceRotX = c.z === 0 ? 0 : -Math.sign(c.z) * _apronXTiltPre;
-    const zFaceRotZ = c.x === 0 ? 0 : Math.sign(c.x) * _apronZTiltPre;
     return {
       id: `leg-${i + 1}`,
       nameZh: isBack ? `後椅腳 ${i + 1}` : `椅腳 ${i + 1}`,
@@ -350,7 +340,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronUpperTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
-          ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
         {
@@ -364,7 +353,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: apronCanHalfStagger ? apronLowerTenonH : apronTenonW,
           width: apronTenonThick,
           through: apronTenonType === "through-tenon",
-          ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
         },
         ]),
         // === 腳踏 ===
@@ -380,7 +368,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frUpperTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
-          ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
         },
         // X 面 mortise（接 X 軸 = 前後腳踏, 靜止）— 下榫
         {
@@ -393,7 +380,6 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           length: frCanHalfStagger ? frLowerTenonH : frTenonW,
           width: frTenonThick,
           through: frTenonType === "through-tenon",
-          ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
         },
         // 背腳：椅背頂橫木的母榫眼
         ...(isBack

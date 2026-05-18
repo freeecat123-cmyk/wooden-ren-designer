@@ -275,9 +275,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legHeight,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
-      // Splay 補正：榫眼跟著牙板 cross-tilt 旋轉，否則 tenon 角會戳出 axis-aligned 母榫眼
-      apronXTilt: _splayDzForLegs > 0 && legHeight > 0 ? Math.atan(_splayDzForLegs / legHeight) : 0,
-      apronZTilt: _splayDxForLegs > 0 && legHeight > 0 ? Math.atan(_splayDxForLegs / legHeight) : 0,
     }),
   });
   });
@@ -632,9 +629,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
-        // Splay 補正：跟 apron 同樣的 sign convention
-        const lsXFaceRotX = cz === 0 ? 0 : -Math.sign(cz) * tiltZ;
-        const lsZFaceRotZ = cx === 0 ? 0 : Math.sign(cx) * tiltX;
         if (lowerCanHalfStagger) {
           leg.mortises.push(
             // Z 面 mortise（接 Z 軸 = 左右下橫撐, 上移）— 上榫
@@ -644,7 +638,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerUpperTenonH,
               width: lowerTenonThick,
               through: lsThrough,
-              ...(lsZFaceRotZ !== 0 ? { rotZ: lsZFaceRotZ } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後下橫撐, 靜止）— 下榫
             {
@@ -653,7 +646,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerLowerTenonH,
               width: lowerTenonThick,
               through: lsThrough,
-              ...(lsXFaceRotX !== 0 ? { rotX: lsXFaceRotX } : {}),
             },
           );
         } else {
@@ -665,7 +657,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
-              ...(lsZFaceRotZ !== 0 ? { rotZ: lsZFaceRotZ } : {}),
             },
             // X 面 → 接 X 軸（前後）下橫撐
             {
@@ -674,7 +665,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
-              ...(lsXFaceRotX !== 0 ? { rotX: lsXFaceRotX } : {}),
             },
           );
         }
@@ -749,10 +739,6 @@ function legMortisesForApron(
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
-    /** Splay 補正：X-apron 的 cross-tilt（繞 X 軸），= atan(splayDz/legHeight) */
-    apronXTilt?: number;
-    /** Splay 補正：Z-apron 的 cross-tilt（繞 Z 軸），= atan(splayDx/legHeight) */
-    apronZTilt?: number;
   },
 ) {
   const {
@@ -762,17 +748,6 @@ function legMortisesForApron(
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
-  const apronXTilt = opts.apronXTilt ?? 0;
-  const apronZTilt = opts.apronZTilt ?? 0;
-  // Sign convention（從 square-stool.ts:391 推導）：
-  //   X-apron rotation.x = π/2 + (-s.sz) * tiltZ
-  //   front X-apron sz=-1，rotation.x = π/2 + tiltZ → 對應 leg at c.z<0
-  //   所以 leg X-face mortise rotX = -sign(c.z) * apronXTilt
-  //   Z-apron rotation.z = s.sx * tiltX
-  //   left Z-apron sx=-1，rotation.z = -tiltX → 對應 leg at c.x<0
-  //   所以 leg Z-face mortise rotZ = sign(c.x) * apronZTilt
-  const xFaceRotX = corner.z === 0 ? 0 : -Math.sign(corner.z) * apronXTilt;
-  const zFaceRotZ = corner.x === 0 ? 0 : Math.sign(corner.x) * apronZTilt;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
   // 視覺錯開時 X 向整支下移
@@ -786,7 +761,6 @@ function legMortisesForApron(
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
-      ...(zFaceRotZ !== 0 ? { rotZ: zFaceRotZ } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
@@ -795,7 +769,6 @@ function legMortisesForApron(
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
-      ...(xFaceRotX !== 0 ? { rotX: xFaceRotX } : {}),
     },
   ];
 }
