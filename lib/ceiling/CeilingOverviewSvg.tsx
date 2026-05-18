@@ -254,16 +254,23 @@ function renderHangerDots(
     const step = usableZ / (N - 1);
     return Array.from({ length: N }, (_, i) => innerY0 + i * step);
   })();
-  const dotR = Math.max(0.8, tw * 0.4);
+  const armLen = Math.max(2.5, tw * 1.0); // 十字半臂長
+  const sw = 0.8;
   const dots: React.ReactNode[] = [];
   let k = 0;
   for (const c of trace.mainJoistCentersCm) {
     const cx = x0 + c;
     for (const cy of positions) {
       dots.push(
-        <circle key={`hd-${k++}`} cx={cx} cy={cy} r={dotR}
-          fill="#1e293b" stroke="#fff" strokeWidth={0.4}
-          opacity={baseOpacity} />,
+        <g key={`hd-${k++}`} opacity={baseOpacity}>
+          {/* 白底圓盤墊在十字下,避免跟主支同色 */}
+          <circle cx={cx} cy={cy} r={armLen} fill="#fff" opacity={0.85} />
+          {/* + 十字 */}
+          <line x1={cx - armLen} y1={cy} x2={cx + armLen} y2={cy}
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round" />
+          <line x1={cx} y1={cy - armLen} x2={cx} y2={cy + armLen}
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round" />
+        </g>,
       );
     }
   }
