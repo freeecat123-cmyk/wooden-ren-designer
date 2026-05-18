@@ -16,7 +16,7 @@ function htmlShell(title: string, bodyHtml: string): string {
 <h1 style="font-size:20px;margin:0 0 16px;color:#0f172a">${title}</h1>
 ${bodyHtml}
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-<p style="font-size:12px;color:#9ca3af;margin:0">木頭仁工程圖工具 · <a href="${SITE_URL}" style="color:#9ca3af">${SITE_URL.replace(/^https?:\/\//, "")}</a></p>
+<p style="font-size:12px;color:#9ca3af;margin:0">木頭仁 木作藍圖 · <a href="${SITE_URL}" style="color:#9ca3af">${SITE_URL.replace(/^https?:\/\//, "")}</a></p>
 </div></body></html>`;
 }
 
@@ -38,7 +38,7 @@ export function refundReceivedToUserEmail(input: {
     ``,
     `查看申請狀態：${SITE_URL}/refund`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ].join("\n");
   const html = htmlShell(
     subject,
@@ -104,7 +104,7 @@ export function refundApprovedEmail(input: {
     "請注意金流手續費（綠界 + 發卡銀行）屬第三方收取且不予退還，",
     "退費金額已扣除手續費。",
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -138,7 +138,7 @@ export function refundRejectedEmail(input: {
     "",
     "如對審核結果有疑問，請直接回信此封 email 與我們討論。",
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ]
     .filter(Boolean)
     .join("\n");

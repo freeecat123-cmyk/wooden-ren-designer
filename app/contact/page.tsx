@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "聯絡我們 · 木頭仁工程圖生成器",
+  title: "聯絡我們 · 木頭仁 木作藍圖",
   description:
-    "木頭仁工程圖生成器（designer.woodenren.com）聯絡資訊 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+    "木頭仁 木作藍圖（designer.woodenren.com）聯絡資訊 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
 };
 
 export default function ContactPage() {

@@ -20,7 +20,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export const metadata = { title: "採購清單 · 木頭仁工程圖生成器" };
+export const metadata = { title: "採購清單 · 木頭仁 木作藍圖" };
 
 const ACCESSORY_SET = new Set([
   "pencil-holder",

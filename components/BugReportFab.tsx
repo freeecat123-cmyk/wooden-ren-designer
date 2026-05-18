@@ -17,7 +17,7 @@ export function BugReportFab() {
   function buildReport() {
     const url = typeof window !== "undefined" ? window.location.href : "";
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-    const subject = `[家具設計器] 問題回報 (build ${sha})`;
+    const subject = `[木作藍圖] 問題回報 (build ${sha})`;
     const body =
       `發生時間：${new Date().toLocaleString("zh-TW")}\n` +
       `build：${sha}\n` +

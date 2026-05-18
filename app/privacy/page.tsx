@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "隱私權政策 · 木頭仁工程圖生成器",
+  title: "隱私權政策 · 木頭仁 木作藍圖",
   description:
-    "木頭仁工程圖生成器（家具設計生成器）隱私權政策 — 我們蒐集什麼資料、做什麼用、怎麼保護。",
+    "木頭仁 木作藍圖（木作藍圖）隱私權政策 — 我們蒐集什麼資料、做什麼用、怎麼保護。",
 };
 
 export default function PrivacyPage() {

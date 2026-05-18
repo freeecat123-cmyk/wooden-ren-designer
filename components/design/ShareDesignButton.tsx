@@ -35,7 +35,7 @@ export function ShareDesignButton({
     const length = sp?.get("length") ?? defaults.length;
     const width = sp?.get("width") ?? defaults.width;
     const height = sp?.get("height") ?? defaults.height;
-    return `我用木頭仁家具設計器做了一張${name} ${length}×${width}×${height}mm`;
+    return `我用木頭仁 木作藍圖做了一張${name} ${length}×${width}×${height}mm`;
   };
 
   const handleClick = async () => {

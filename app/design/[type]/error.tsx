@@ -16,7 +16,7 @@ export default function DesignError({
 
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const subject = encodeURIComponent(`[家具設計器] 設計頁渲染錯誤 (build ${sha})`);
+  const subject = encodeURIComponent(`[木作藍圖] 設計頁渲染錯誤 (build ${sha})`);
   const body = encodeURIComponent(
     `發生時間：${new Date().toISOString()}\nbuild：${sha}\n設計連結：${url}\n錯誤訊息：${error.message}\ndigest：${error.digest ?? "n/a"}\n\n（請描述你剛剛做了什麼，例如：「我把腳高調到 500mm 就壞了」）`,
   );

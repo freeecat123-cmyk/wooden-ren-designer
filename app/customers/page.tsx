@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ProjectRow, ProjectItemRow } from "@/lib/projects/types";
 
 export const metadata = {
-  title: "客戶名單 · 木頭仁工程圖生成器",
+  title: "客戶名單 · 木頭仁 木作藍圖",
 };
 
 export interface CustomerSummary {

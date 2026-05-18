@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_URL = "https://wooden-ren-designer.vercel.app";
-const SITE_TITLE = "木頭仁家具設計生成器 · 自動產出工程圖紙";
+const SITE_TITLE = "木頭仁 木作藍圖 · 自動產出工程圖紙";
 const SITE_DESC =
   "輸入尺寸選木材，自動產出三視圖、透視圖、榫卯細節、材料單、工具清單、A4 PDF 工程圖紙。木頭仁木匠學院出品。";
 
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "zh_TW",
     url: SITE_URL,
-    siteName: "木頭仁工程圖生成器",
+    siteName: "木頭仁 木作藍圖",
     title: SITE_TITLE,
     description: SITE_DESC,
     images: [{ url: "/og.png", width: 1200, height: 630, alt: SITE_TITLE }],
@@ -89,8 +89,8 @@ export default async function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              name: "木頭仁工程圖生成器",
-              alternateName: "木頭仁家具設計生成器",
+              name: "木頭仁 木作藍圖",
+              alternateName: "木頭仁 木作藍圖",
               applicationCategory: "DesignApplication",
               operatingSystem: "Web",
               url: SITE_URL,

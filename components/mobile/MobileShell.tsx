@@ -463,7 +463,7 @@ export function MobileShell(props: MobileShellProps) {
                 navigator as Navigator & {
                   share: (d: { title: string; url: string }) => Promise<void>;
                 }
-              ).share({ title: "木頭仁家具設計器", url: shortUrl });
+              ).share({ title: "木頭仁 木作藍圖", url: shortUrl });
               return;
             } catch {
               // 使用者取消 → fallback 到 alert

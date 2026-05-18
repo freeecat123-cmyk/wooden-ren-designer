@@ -39,7 +39,7 @@ export function BrandedFooter() {
   const company = data.companyNameEn || "Wooden Ren Education Co., Ltd.";
   return (
     <footer className="mt-6 pt-3 border-t border-zinc-200 text-center text-[9px] text-zinc-500">
-      © 2026 {company} · 本報價單由家具設計生成器自動產出
+      © 2026 {company} · 本報價單由木作藍圖自動產出
     </footer>
   );
 }

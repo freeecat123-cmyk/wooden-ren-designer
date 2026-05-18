@@ -48,7 +48,7 @@ export function expiringSoonEmail(
     `年付或想換方案：${SITE_URL}/pricing`,
     `查看訂閱狀態：${SITE_URL}/my/subscription`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ].join("\n");
   const html = htmlShell(
     subject,
@@ -80,7 +80,7 @@ export function gracePeriodEmail(
     `立即續訂：${SITE_URL}/pricing`,
     `訂閱狀態：${SITE_URL}/my/subscription`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ].join("\n");
   const html = htmlShell(
     subject,
@@ -108,7 +108,7 @@ export function downgradedEmail(
     ``,
     `要恢復付費功能：${SITE_URL}/pricing`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ].join("\n");
   const html = htmlShell(
     subject,

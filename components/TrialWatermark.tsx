@@ -30,7 +30,7 @@ export function TrialWatermark({ text = "TRIAL VERSION" }: { text?: string }) {
  * 列印 PDF 時也保留（區別於對角線大字版）。
  */
 export function CornerWatermark({
-  label = "木頭仁工程圖生成器 — 試用版",
+  label = "木頭仁 木作藍圖 — 試用版",
 }: {
   label?: string;
 }) {

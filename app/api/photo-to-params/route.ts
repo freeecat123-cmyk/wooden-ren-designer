@@ -43,7 +43,7 @@ interface PhotoResponse {
   warnings?: string[];
 }
 
-const SYSTEM_PROMPT = `你是台灣 woodworking YouTuber 木頭仁的家具識別助手。使用者上傳一張家具照，你要回出可以丟進「木頭仁家具設計器」的 JSON 參數。
+const SYSTEM_PROMPT = `你是台灣 woodworking YouTuber 木頭仁 木作藍圖的家具識別助手。使用者上傳一張家具照，你要回出可以丟進「木頭仁 木作藍圖」的 JSON 參數。
 
 可選 category（必填，只能挑一個）：
 ${VALID_CATEGORIES.join(", ")}

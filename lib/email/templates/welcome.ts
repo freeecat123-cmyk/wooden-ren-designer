@@ -24,7 +24,7 @@ export function welcomeEmail(input: { name?: string | null }): {
   html: string;
 } {
   const greeting = input.name ? `${input.name}` : "你好";
-  const subject = "歡迎使用木頭仁工程圖工具";
+  const subject = "歡迎使用木頭仁 木作藍圖";
   const text = [
     `${greeting}，`,
     ``,

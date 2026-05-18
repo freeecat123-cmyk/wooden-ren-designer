@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "服務條款 · 木頭仁工程圖生成器",
+  title: "服務條款 · 木頭仁 木作藍圖",
   description:
-    "木頭仁工程圖生成器（家具設計生成器）服務條款 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+    "木頭仁 木作藍圖（木作藍圖）服務條款 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
 };
 
 export default function TermsPage() {

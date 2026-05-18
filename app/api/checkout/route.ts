@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   const basePlan = getBasePlan(plan);
   const periodLabel = period === "yearly" ? "年付" : "月付";
   const orderId = generateOrderId();
-  const itemName = `木頭仁工程圖${PLAN_NAME_ZH[plan]}(${periodLabel})`;
+  const itemName = `木頭仁 木作藍圖${PLAN_NAME_ZH[plan]}(${periodLabel})`;
 
   // 預先插入 subscription row 當 placeholder；status=expired，付款成功 webhook 改 active
   const { error: subErr } = await admin.from("subscriptions").insert({

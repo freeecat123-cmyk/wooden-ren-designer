@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { LoginPageClient } from "./LoginPageClient";
 
 export const metadata = {
-  title: "登入 ｜ 木頭仁工程圖",
-  description: "用 Google 或 Email 登入木頭仁家具設計工具",
+  title: "登入 ｜ 木頭仁 木作藍圖",
+  description: "用 Google 或 Email 登入木頭仁 木作藍圖",
 };
 
 export default async function LoginPage({
@@ -30,7 +30,7 @@ export default async function LoginPage({
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <Link href="/" className="inline-block">
-            <h1 className="text-2xl font-bold text-zinc-900">木頭仁工程圖</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">木頭仁 木作藍圖</h1>
           </Link>
           <p className="text-sm text-zinc-600 mt-2">
             登入後可儲存設計、生成報價、分享連結

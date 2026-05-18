@@ -1,7 +1,7 @@
 import { ProjectDetailClient } from "@/components/projects/ProjectDetailClient";
 
 export const metadata = {
-  title: "專案詳情 · 木頭仁工程圖生成器",
+  title: "專案詳情 · 木頭仁 木作藍圖",
 };
 
 export default async function ProjectDetailPage({

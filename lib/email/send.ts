@@ -3,7 +3,7 @@
  *
  * Env vars:
  *   RESEND_API_KEY  — Resend API key（在 https://resend.com/api-keys 拿）
- *   EMAIL_FROM      — 寄件人 email，如 "木頭仁工程圖 <noreply@designer.woodenren.com>"
+ *   EMAIL_FROM      — 寄件人 email，如 "木頭仁 木作藍圖 <noreply@designer.woodenren.com>"
  *                     （designer.woodenren.com 須在 Resend DNS verified）
  *
  * 沒設 RESEND_API_KEY 時 sendEmail 不會炸、會 log warn + return ok=false，
@@ -12,7 +12,7 @@
 import { Resend } from "resend";
 
 const FROM_DEFAULT =
-  process.env.EMAIL_FROM ?? "木頭仁工程圖 <noreply@designer.woodenren.com>";
+  process.env.EMAIL_FROM ?? "木頭仁 木作藍圖 <noreply@designer.woodenren.com>";
 
 let _client: Resend | null = null;
 function getClient(): Resend | null {

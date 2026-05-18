@@ -15,7 +15,7 @@ export default function GlobalError({
   }, [error]);
 
   const sha = (process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "dev";
-  const subject = encodeURIComponent(`[家具設計器] 系統錯誤回報 (build ${sha})`);
+  const subject = encodeURIComponent(`[木作藍圖] 系統錯誤回報 (build ${sha})`);
   const body = encodeURIComponent(
     `發生時間：${new Date().toISOString()}\nbuild：${sha}\n路徑：${typeof window !== "undefined" ? window.location.href : ""}\n錯誤訊息：${error.message}\ndigest：${error.digest ?? "n/a"}\n\n（請描述你剛剛做了什麼）`,
   );
@@ -25,7 +25,7 @@ export default function GlobalError({
       <div className="text-6xl">⚠️</div>
       <h1 className="mt-4 text-2xl font-semibold">系統發生錯誤</h1>
       <p className="mt-2 text-zinc-600">
-        家具設計器當機了。你可以重試，或回報這個問題給木頭仁。
+        木作藍圖當機了。你可以重試，或回報這個問題給木頭仁。
       </p>
       <div className="mt-3 rounded bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-500">
         {error.message || "Unknown error"}

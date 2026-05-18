@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { RefundClient } from "./RefundClient";
 
 export const metadata: Metadata = {
-  title: "退費政策 · 木頭仁工程圖生成器",
+  title: "退費政策 · 木頭仁 木作藍圖",
   description:
-    "木頭仁工程圖生成器（家具設計生成器）退費政策 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+    "木頭仁 木作藍圖（木作藍圖）退費政策 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
 };
 
 export default function RefundPage() {
@@ -16,7 +16,7 @@ export default function RefundPage() {
       <section className="mt-8 space-y-3">
         <h2 className="text-xl font-semibold">1. 服務性質</h2>
         <p>
-          本服務「木頭仁工程圖生成器（designer.woodenren.com）」屬於
+          本服務「木頭仁 木作藍圖（designer.woodenren.com）」屬於
           <strong>數位內容／線上軟體服務（SaaS）</strong>，依消費者保護法第 19 條第 2 項及行政院公告
           「通訊交易解除權合理例外情事適用準則」第 2 條第 5 款規定：
           「<em>非以有形媒介提供之數位內容或一經提供即為完成之線上服務，經消費者事先同意始提供</em>」者，

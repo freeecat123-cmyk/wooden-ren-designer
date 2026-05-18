@@ -57,7 +57,7 @@ export function firstPaymentSuccessEmail(input: PaymentInput): {
     `查看訂閱狀態：${SITE_URL}/my/subscription`,
     `開始使用：${SITE_URL}`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -105,7 +105,7 @@ export function periodicChargeSuccessEmail(input: PaymentInput): {
     "",
     `要取消請至：${SITE_URL}/my/subscription`,
     ``,
-    `木頭仁工程圖`,
+    `木頭仁 木作藍圖`,
   ]
     .filter(Boolean)
     .join("\n");

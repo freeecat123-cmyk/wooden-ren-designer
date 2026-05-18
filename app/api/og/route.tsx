@@ -46,7 +46,7 @@ export async function GET(req: Request) {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 56 }}>🪵</span>
           <span style={{ fontSize: 32, color: "#78350f", fontWeight: 600 }}>
-            木頭仁家具設計器
+            木頭仁 木作藍圖
           </span>
         </div>
 
