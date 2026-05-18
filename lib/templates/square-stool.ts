@@ -574,6 +574,18 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
         { id: "ls-right", nameZh: "右下橫撐", visibleLength: lsInnerSpan.z + 2 * lsZSplayZ, axis: "z" as const, sx: 1, sz: 0, origin: { x: apronEdgeX + lsZSplayX, z: 0 } },
       ];
       for (const s of sides) {
+        // compound-splay tenon axis 同 apron（world-frame、貼到 leg miter plane）
+        const isCompoundSplay = splayDx > 0 && splayDz > 0;
+        const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
+        const startCornerSz = (s.axis === "z" ? -1 : s.sz) as -1 | 0 | 1;
+        const endCornerSx = (s.axis === "x" ? +1 : s.sx) as -1 | 0 | 1;
+        const endCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
+        const lsTenonAxisStart = isCompoundSplay
+          ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz, splayAngleDeg: splayAngle })
+          : null;
+        const lsTenonAxisEnd = isCompoundSplay
+          ? computeCompoundSplayNormal({ apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz, splayAngleDeg: splayAngle })
+          : null;
         // 下橫撐：trapezoid 是腳幾何要求（兩端縮到腳寬避免縫），但不 bevel（上下都跟腳斜，自由邊）
         const hasShapeBend = splayDx > 0 || splayDz > 0 || bottomScale !== 1;
         const trapTopScale =
@@ -616,6 +628,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
                 width: lowerTenonW,
                 thickness: lowerTenonThick,
                 shoulderOn: [...lowerTenonStd.shoulderOn],
+                ...(position === "start" && lsTenonAxisStart ? { axis: lsTenonAxisStart } : {}),
+                ...(position === "end" && lsTenonAxisEnd ? { axis: lsTenonAxisEnd } : {}),
               });
               return [mk("start"), mk("end")];
             }
@@ -634,6 +648,8 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               thickness: lowerTenonThick,
               shoulderOn,
               offsetWidth: -worldOffset,
+              ...(position === "start" && lsTenonAxisStart ? { axis: lsTenonAxisStart } : {}),
+              ...(position === "end" && lsTenonAxisEnd ? { axis: lsTenonAxisEnd } : {}),
             });
             return [mk("start"), mk("end")];
           })(),
