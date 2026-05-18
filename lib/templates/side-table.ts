@@ -84,7 +84,7 @@ export const sideTable: FurnitureTemplate = (input) => {
   const pullStyle = getOption<string>(input, opt(o, "pullStyle"));
   const design = simpleTable({
     category: "side-table",
-    nameZh: "邊桌 / 床頭桌",
+    nameZh: "床邊桌",
     length: input.length,
     width: input.width,
     height: input.height,

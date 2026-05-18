@@ -8,8 +8,8 @@ import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCa
 const CATEGORY_NAME_ZH: Record<string, string> = {
   stool: "方凳",
   bench: "長凳",
-  "tea-table": "茶几",
-  "side-table": "邊桌 / 床頭櫃",
+  "tea-table": "邊桌",
+  "side-table": "床邊桌",
   "low-table": "矮桌",
   "open-bookshelf": "開放書櫃",
   "chest-of-drawers": "斗櫃",

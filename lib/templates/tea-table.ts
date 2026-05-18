@@ -458,7 +458,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const design: FurnitureDesign = {
     id: `tea-table-${length}x${width}x${height}`,
     category: "tea-table",
-    nameZh: "邊桌/床邊桌",
+    nameZh: "邊桌",
     overall: { length, width, thickness: height },
     parts: [
       topPanel,
