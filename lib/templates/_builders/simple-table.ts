@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -250,6 +250,16 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   // from the leg's position (c.x, c.z).
   const splayMm = 40; // bottom offset for splayed style — tune if needed
   const hoofMm = Math.max(30, Math.round(legHeight * 0.08)); // flare height
+  // Compound-splay info (lifted before legs so leg mortises can attach axis fields).
+  // Mirrors square-stool.ts:7cfec50. Single-axis splay (splayed-length /
+  // splayed-width) is fully handled by part.rotation — no axis emission.
+  // splayAngleDeg derived from splayMm + legHeight (atan); only used when both
+  // axes are active (4-corner diagonal splay).
+  const _isCompoundSplayLegs =
+    (legShape === "splayed" || legShape === "splayed-tapered" || legShape === "splayed-round-tapered");
+  const _compoundSplayAngleDeg = _isCompoundSplayLegs && legHeight > 0
+    ? Math.atan(splayMm / legHeight) * 180 / Math.PI
+    : undefined;
   // splayed 系列把 legEdge 帶入做組合（外斜腳同時帶倒角）
   const legChamferMm =
     typeof opts.legEdge === "number" ? opts.legEdge : Number(opts.legEdge ?? 0) || 0;
@@ -320,24 +330,46 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
         offsetWidth: -Math.sign(c.x) * legTopInsetX,
       },
     ],
-    mortises: !withApron ? [] : [
-      // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
-      {
-        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
-        depth: apronTenonLen,
-        length: apronHalfTenonH,
-        width: apronTenonThick,
-        through: apronTenonType === "through-tenon",
-      },
-      // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
-      {
-        origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
-        depth: apronTenonLen,
-        length: apronHalfTenonH,
-        width: apronTenonThick,
-        through: apronTenonType === "through-tenon",
-      },
-    ],
+    mortises: !withApron ? [] : (() => {
+      // Compound splay: mortise opens INTO leg = inverse of the matching
+      // apron tenon's world-frame normal. Simple-table legs aren't rotated
+      // about Y, so leg-local frame == world frame (same as square-stool).
+      // Single-axis splay path leaves axis undefined and behaves as before.
+      const cornerSx = (c.x > 0 ? 1 : -1) as 1 | -1;
+      const cornerSz = (c.z > 0 ? 1 : -1) as 1 | -1;
+      let zFaceAxis: { x: number; y: number; z: number } | undefined;
+      let xFaceAxis: { x: number; y: number; z: number } | undefined;
+      if (_compoundSplayAngleDeg !== undefined) {
+        const zApronTenonWorld = computeCompoundSplayNormal({
+          apronAxis: "z", cornerSx, cornerSz, splayAngleDeg: _compoundSplayAngleDeg,
+        });
+        const xApronTenonWorld = computeCompoundSplayNormal({
+          apronAxis: "x", cornerSx, cornerSz, splayAngleDeg: _compoundSplayAngleDeg,
+        });
+        zFaceAxis = { x: -zApronTenonWorld.x, y: -zApronTenonWorld.y, z: -zApronTenonWorld.z };
+        xFaceAxis = { x: -xApronTenonWorld.x, y: -xApronTenonWorld.y, z: -xApronTenonWorld.z };
+      }
+      return [
+        // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
+        {
+          origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+          depth: apronTenonLen,
+          length: apronHalfTenonH,
+          width: apronTenonThick,
+          through: apronTenonType === "through-tenon",
+          ...(zFaceAxis ? { axis: zFaceAxis } : {}),
+        },
+        // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
+        {
+          origin: { x: c.x > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET, y: apronY + apronWidth / 2 + apronLowerTenonOffset, z: 0 },
+          depth: apronTenonLen,
+          length: apronHalfTenonH,
+          width: apronTenonThick,
+          through: apronTenonType === "through-tenon",
+          ...(xFaceAxis ? { axis: xFaceAxis } : {}),
+        },
+      ];
+    })(),
   }));
 
   // Aprons (4 sides) — butt-joint 慣例：visible.length 兩端剛好頂在腳的內側
@@ -432,6 +464,34 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const aprons: Part[] = !withApron ? [] : apronSides
     .filter((s) => !(opts.skipFrontApron && s.key === "front"))
     .map((s) => {
+    // Compound splay only — single-axis splay (splayed-length / splayed-width)
+    // is fully handled by part.rotation. For 4-corner diagonal splay the leg
+    // face the apron meets has an extra component the rotation alone can't
+    // carry; computeCompoundSplayNormal returns the missing piece in world
+    // frame. Tenon.axis is part-LOCAL; for start position the in-axis
+    // component is mirrored (matches square-stool.ts:7cfec50).
+    const isCompoundSplay = splayDx > 0 && splayDz > 0;
+    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
+    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
+    const splayAngleDegLocal = legHeight > 0 ? Math.atan(splayMm / legHeight) * 180 / Math.PI : 0;
+    const tenonAxisStartWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
+          splayAngleDeg: splayAngleDegLocal,
+        })
+      : null;
+    const tenonAxisEndWorld = isCompoundSplay
+      ? computeCompoundSplayNormal({
+          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
+          splayAngleDeg: splayAngleDegLocal,
+        })
+      : null;
+    const negateInAxis = (v: { x: number; y: number; z: number } | null) =>
+      v ? (s.axis === "x" ? { x: -v.x, y: v.y, z: v.z } : { x: v.x, y: v.y, z: -v.z }) : null;
+    const startAxisLocal = negateInAxis(tenonAxisStartWorld);
+    const endAxisLocal   = tenonAxisEndWorld;
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
       : 0;
@@ -498,6 +558,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(startAxisLocal ? { axis: startAxisLocal } : {}),
         },
         {
           position: "end" as const,
@@ -507,6 +568,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
+          ...(endAxisLocal ? { axis: endAxisLocal } : {}),
         },
       ],
       mortises: [],
