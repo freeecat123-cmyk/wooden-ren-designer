@@ -221,24 +221,23 @@ function RoomBoundary({ L, S, slabHeight }: { L: number; S: number; slabHeight: 
 // 邊框 — 4 條角材,圍住房間 perimeter
 // ─────────────────────────────────────────────────────────
 function FrameLayer({ L, S, tw, tt, yCenter, opacity = 1 }: { L: number; S: number; tw: number; tt: number; yCenter: number; opacity?: number }) {
-  const transparent = opacity < 1;
   return (
     <group position={[0, yCenter, 0]}>
       <mesh position={[L / 2, 0, tw / 2]}>
         <boxGeometry args={[L, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
+        <meshStandardMaterial color={COLOR.frame} transparent opacity={opacity} />
       </mesh>
       <mesh position={[L / 2, 0, S - tw / 2]}>
         <boxGeometry args={[L, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
+        <meshStandardMaterial color={COLOR.frame} transparent opacity={opacity} />
       </mesh>
       <mesh position={[tw / 2, 0, S / 2]}>
         <boxGeometry args={[tw, tt, S]} />
-        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
+        <meshStandardMaterial color={COLOR.frame} transparent opacity={opacity} />
       </mesh>
       <mesh position={[L - tw / 2, 0, S / 2]}>
         <boxGeometry args={[tw, tt, S]} />
-        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
+        <meshStandardMaterial color={COLOR.frame} transparent opacity={opacity} />
       </mesh>
     </group>
   );
@@ -286,7 +285,7 @@ function MainJoistsLayer({
           <meshStandardMaterial
             color={absorbed.has(idx) ? "#d6d3d1" : COLOR.main}
             opacity={(absorbed.has(idx) ? 0.4 : 1) * opacity}
-            transparent={absorbed.has(idx) || opacity < 1}
+            transparent
           />
         </mesh>
       ))}
@@ -327,7 +326,7 @@ function SubJoistsLayer({
       {items.map((it, i) => (
         <mesh key={i} position={[it.x, 0, it.z]}>
           <boxGeometry args={[it.lengthX, tt * 0.85, tw]} />
-          <meshStandardMaterial color={COLOR.sub} transparent={opacity < 1} opacity={opacity} />
+          <meshStandardMaterial color={COLOR.sub} transparent opacity={opacity} />
         </mesh>
       ))}
     </group>
@@ -363,7 +362,7 @@ function HangersLayer({
           rods.push(
             <mesh key={`${ji}-mid`} position={[cx, yCenter, S / 2]}>
               <boxGeometry args={[rodCross, hangerH, rodCross]} />
-              <meshStandardMaterial color={COLOR.hanger} transparent={opacity < 1} opacity={opacity} />
+              <meshStandardMaterial color={COLOR.hanger} transparent opacity={opacity} />
             </mesh>,
           );
         } else {
@@ -373,7 +372,7 @@ function HangersLayer({
             rods.push(
               <mesh key={`${ji}-${i}`} position={[cx, yCenter, z]}>
                 <boxGeometry args={[rodCross, hangerH, rodCross]} />
-                <meshStandardMaterial color={COLOR.hanger} transparent={opacity < 1} opacity={opacity} />
+                <meshStandardMaterial color={COLOR.hanger} transparent opacity={opacity} />
               </mesh>,
             );
           }
@@ -433,7 +432,7 @@ function BoardsLayer({
       boards.push(
         <mesh key={k++} position={[cx, yCenter, cz]}>
           <boxGeometry args={[colW, boardThickness, rowH]} />
-          <meshStandardMaterial color={COLOR.board} transparent={opacity < 1} opacity={opacity} />
+          <meshStandardMaterial color={COLOR.board} transparent opacity={opacity} />
           {/* edges */}
         </mesh>,
       );
