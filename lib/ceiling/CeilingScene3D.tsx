@@ -402,15 +402,15 @@ function BoardsLayer({
   opacity?: number;
   boardKindFilter?: "full" | "cut" | null;
 }) {
-  const FULL_TOL_CM = 5; // 同 calc.ts FULL_WIDTH_TOL_CM
-  // X 欄寬:邊框外 → 各主支中心 → 邊框外
-  const colEdges: number[] = mainCenters.length === 0
-    ? [0, L]
-    : [0, ...mainCenters, L];
+  // naive grid 跟 calc.ts BOM 一致(2026-05-18 改)
+  void mainCenters; // 保留參數方便日後切回主支對齊
+  const colEdges: number[] = [0];
+  let x = input.boardShortCm;
+  while (x < L) { colEdges.push(x); x += input.boardShortCm; }
+  colEdges.push(L);
+  const fullColCount = Math.floor(L / input.boardShortCm);
 
-  // Z 列邊
-  const rowEdges: number[] = [];
-  rowEdges.push(0);
+  const rowEdges: number[] = [0];
   let z = input.boardLongCm;
   while (z < S) {
     rowEdges.push(z);
@@ -428,7 +428,7 @@ function BoardsLayer({
     const xR = colEdges[ci + 1];
     const colW = xR - xL - gap;
     if (colW <= 0) continue;
-    const colFull = Math.abs((xR - xL) - input.boardShortCm) <= FULL_TOL_CM;
+    const colFull = ci < fullColCount;
     for (let ri = 0; ri < rowEdges.length - 1; ri++) {
       const zT = rowEdges[ri];
       const zB = rowEdges[ri + 1];

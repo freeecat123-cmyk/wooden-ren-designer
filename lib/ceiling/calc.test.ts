@@ -48,7 +48,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 30, // 6 主支 × 5 (ceil(312.8/90)+1=5,間距 ≤ user 設的 90)
       boardFullCount: 5,
-      boardCutCount: 9,
+      boardCutCount: 7, // naive 6 cols × 2 rows − 5 = 7
     },
   },
   {
@@ -67,7 +67,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 30, // 5 × 6 (ceil(392.8/90)+1=6)
       boardFullCount: 8,
-      boardCutCount: 10,
+      boardCutCount: 7, // naive 5 cols × 3 rows − 8 = 7
     },
   },
   {
@@ -86,7 +86,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 36, // 9 × 4 (ceil(192.8/90)+1=4)
       boardFullCount: 8,
-      boardCutCount: 12,
+      boardCutCount: 10, // naive 9 cols × 2 rows − 8 = 10
     },
   },
   {
@@ -105,7 +105,7 @@ const CASES: TestCase[] = [
       ],
       hangerCount: 72, // 9 × 8 (ceil(592.8/90)+1=8)
       boardFullCount: 24,
-      boardCutCount: 16,
+      boardCutCount: 12, // naive 9 cols × 4 rows − 24 = 12
     },
   },
 ];

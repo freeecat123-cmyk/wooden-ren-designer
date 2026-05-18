@@ -424,50 +424,24 @@ interface BoardCalc {
 //  打 AB 膠或矽利康填,算「全張」不算裁切)
 const FULL_WIDTH_TOL_CM = 5;
 
-function computeBoardLayout(input: CeilingInput, mainCentersCm: number[]): BoardCalc {
-  // ASSUMPTION#3 板長 boardLongCm(180)對齊短邊方向, 板寬 boardShortCm(90)對齊長邊方向
-  // 修正:板邊「落在主支中心線」(施工 step 5),沿長邊的欄寬不再是固定 boardShortCm,
-  //       改成「邊框外側 → 第一根主支中心 → 第二根主支中心 → ... → 邊框外側」的實際距離
-
-  // ────── 沿長邊欄寬(由主支中心切) ──────
-  const colWidthsCm: number[] = [];
-  if (mainCentersCm.length === 0) {
-    colWidthsCm.push(input.longSideCm);
-  } else {
-    // 第一欄:邊框外側 → 第一根主支中心
-    colWidthsCm.push(mainCentersCm[0]);
-    // 中間欄:相鄰主支中心之距(= mainSpacing,通常 = 90.9 cm)
-    for (let i = 1; i < mainCentersCm.length; i++) {
-      colWidthsCm.push(mainCentersCm[i] - mainCentersCm[i - 1]);
-    }
-    // 最後欄:最後主支中心 → 邊框外側
-    colWidthsCm.push(input.longSideCm - mainCentersCm[mainCentersCm.length - 1]);
-  }
-
-  const cols = colWidthsCm.length;
-  // 全寬欄 = 欄寬接近 boardShortCm(在容差內)
-  const fullCols = colWidthsCm.filter(
-    (w) => Math.abs(w - input.boardShortCm) <= FULL_WIDTH_TOL_CM,
-  ).length;
-  const cutCols = cols - fullCols;
-
-  // ────── 沿短邊列 ──────
-  // 公制預設下板長 180 = 5 × 副支 36 = 完美對齊,板邊在 5n 副支中心,板間預留 jointGap
-  // 老派台尺(36.36)時 5×36.36 = 181.8 跟 180 差 1.8 cm,需多填料(form 內提醒)
+function computeBoardLayout(input: CeilingInput, _mainCentersCm: number[]): BoardCalc {
+  // 面積估算法(2026-05-18 修正):
+  // 之前按主支中心切欄,baseline 細邊欄 24.25 cm 被當獨立裁切板 → 5+9=14 板過多。
+  // 改 naive:cols=ceil(L/板寬), rows=ceil(S/板長), 全張=floor × floor。
+  // SVG 視覺仍可依主支對齊(藍 tick),BOM 用估算數,實務細條可從同板 cut。
+  const cols = Math.ceil(input.longSideCm / input.boardShortCm);
+  const fullCols = Math.floor(input.longSideCm / input.boardShortCm);
   const rows = Math.ceil(input.shortSideCm / input.boardLongCm);
   const fullRows = Math.floor(input.shortSideCm / input.boardLongCm);
 
   const totalPositions = cols * rows;
-  // 「全張」= 全寬欄 × 全長列(兩方向都不需裁切)
   const fullCount = fullCols * fullRows;
-  // 「裁切」= 其餘
   const cutCount = totalPositions - fullCount;
 
-  const widthsLabel = colWidthsCm.map((w) => Math.round(w * 10) / 10).join(", ");
   const description =
-    `沿長邊欄寬(板邊落主支中心):[${widthsLabel}] cm — ${fullCols} 全寬欄 + ${cutCols} 邊裁切欄(板寬 ${input.boardShortCm} cm,容差 ${FULL_WIDTH_TOL_CM} cm)` +
-    `;沿短邊列:${rows} 列(${fullRows} 全長 + ${rows - fullRows} 短列,板長 ${input.boardLongCm} cm)` +
-    `;全寬欄與板寬差(若 < 1 cm 為矽利康/AB 膠縫)`;
+    `沿長邊 ${input.longSideCm} cm 鋪 ${cols} 欄(板寬 ${input.boardShortCm} cm,${fullCols} 整 + ${cols - fullCols} 邊裁切)` +
+    `;沿短邊 ${input.shortSideCm} cm 鋪 ${rows} 列(板長 ${input.boardLongCm} cm,${fullRows} 整 + ${rows - fullRows} 短列)` +
+    `;細邊條可從同片板裁,實務 BOM 已合併估算`;
 
   return {
     rows,

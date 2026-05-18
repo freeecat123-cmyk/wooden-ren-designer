@@ -235,42 +235,36 @@ function renderSubJoists(
 // ─────────────────────────────────────────────────────────
 function renderBoardCells(
   input: CeilingBom["input"],
-  mainCenters: number[],
+  _mainCenters: number[],
   x0: number,
   y0: number,
   baseOpacity: number,
   boardKindFilter: "full" | "cut" | null,
 ) {
-  const FULL_TOL_CM = 5;
+  // naive grid:cols 每 boardShort cm 一格,rows 每 boardLong cm 一格
+  // 跟 calc.ts BOM 數一致
   const L = input.longSideCm;
   const S = input.shortSideCm;
-
-  // X 欄邊:邊框外 → 各主支中心 → 邊框外
-  const colEdges: number[] = mainCenters.length === 0
-    ? [0, L]
-    : [0, ...mainCenters, L];
-
-  // Z 列邊:每 boardLong 切
+  const colEdges: number[] = [0];
+  let x = input.boardShortCm;
+  while (x < L) { colEdges.push(x); x += input.boardShortCm; }
+  colEdges.push(L);
   const rowEdges: number[] = [0];
   let z = input.boardLongCm;
-  while (z < S) {
-    rowEdges.push(z);
-    z += input.boardLongCm;
-  }
+  while (z < S) { rowEdges.push(z); z += input.boardLongCm; }
   rowEdges.push(S);
-  const fullRowCount = Math.floor(input.shortSideCm / input.boardLongCm);
+  const fullColCount = Math.floor(L / input.boardShortCm);
+  const fullRowCount = Math.floor(S / input.boardLongCm);
 
   const cells: React.ReactNode[] = [];
   let key = 0;
   for (let ci = 0; ci < colEdges.length - 1; ci++) {
     const xL = colEdges[ci];
     const xR = colEdges[ci + 1];
-    const colW = xR - xL;
-    const colFull = Math.abs(colW - input.boardShortCm) <= FULL_TOL_CM;
+    const colFull = ci < fullColCount;
     for (let ri = 0; ri < rowEdges.length - 1; ri++) {
       const zT = rowEdges[ri];
       const zB = rowEdges[ri + 1];
-      const rowH = zB - zT;
       const rowFull = ri < fullRowCount;
       const isFullBoard = colFull && rowFull;
       const matchesKind =
@@ -278,14 +272,13 @@ function renderBoardCells(
         (boardKindFilter === "full" && isFullBoard) ||
         (boardKindFilter === "cut" && !isFullBoard);
       const op = baseOpacity * (matchesKind ? 1 : 0.12);
-      // 整張板用 hatch 圖案,裁切板用實心淡色標示區分
       cells.push(
         <rect
           key={`board-${key++}`}
           x={x0 + xL}
           y={y0 + zT}
-          width={colW}
-          height={rowH}
+          width={xR - xL}
+          height={zB - zT}
           fill={isFullBoard ? "url(#board-hatch)" : "#fda4af33"}
           stroke="#94a3b8"
           strokeWidth={0.3}
