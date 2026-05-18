@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, status")
+    .select("id, user_id, plan, status, expected_amount")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -95,9 +95,9 @@ export async function POST(req: NextRequest) {
       return new Response("1|OK");
     }
   }
-  // 驗 MerchantID 屬於本商家
-  if (params.MerchantID && params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
-    console.error("[ecpay/return] MerchantID mismatch", {
+  // 驗 MerchantID 屬於本商家（必要欄位、缺欄位也 reject 避免 short-circuit bypass）
+  if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+    console.error("[ecpay/return] MerchantID mismatch or missing", {
       got: params.MerchantID,
       expected: process.env.ECPAY_MERCHANT_ID,
     });
@@ -119,15 +119,14 @@ export async function POST(req: NextRequest) {
 
   const periodic = isPeriodicReturn(params);
 
-  // 驗金額：callback amount 跟該 plan 預期金額一致才接受
-  const monthlyPrice = sub.plan === "personal" ? 390 : sub.plan === "pro" ? 890 : 0;
-  const yearlyPrice = sub.plan === "personal" ? 3900 : sub.plan === "pro" ? 8900 : 0;
-  const expectedAmount = periodic ? monthlyPrice : yearlyPrice;
-  if (expectedAmount && Number(amount) !== expectedAmount) {
+  // 驗金額：用 checkout 時寫進 sub.expected_amount 直接比對
+  // （student tier 走 basePlan 不會被 hardcode price 表卡住）
+  // expected_amount 缺值 → reject（舊資料或攻擊）
+  if (!sub.expected_amount || Number(amount) !== sub.expected_amount) {
     console.error("[ecpay/return] amount mismatch", {
       orderId,
       got: amount,
-      expected: expectedAmount,
+      expected: sub.expected_amount,
       plan: sub.plan,
       periodic,
     });

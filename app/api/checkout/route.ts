@@ -90,7 +90,8 @@ export async function POST(req: NextRequest) {
   const orderId = generateOrderId();
   const itemName = `木頭仁 木作藍圖${PLAN_NAME_ZH[plan]}(${periodLabel})`;
 
-  // 預先插入 subscription row 當 placeholder；status=expired，付款成功 webhook 改 active
+  // 預先插入 subscription row 當 placeholder；status=expired，付款成功 webhook 改 active。
+  // expected_amount = 預期收款金額（跨 student tier 都正確），webhook 用這個比對防 tampering。
   const { error: subErr } = await admin.from("subscriptions").insert({
     user_id: user.id,
     plan: basePlan,
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
     started_at: new Date().toISOString(),
     expires_at: null,
     ecpay_merchant_trade_no: orderId,
+    expected_amount: amount,
   });
   if (subErr) {
     console.error("[checkout] insert subscription failed", subErr);

@@ -1,4 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
@@ -47,6 +49,17 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
 
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
+
+  // server-side paid gate：未登入導 /login、未付費導 /pricing
+  // 不能只靠 PrintAccessGate（DevTools 砍 blur 就破）
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/design/${type}/print`)}`);
+  }
+  if (!(await isPaidUser(user.id))) {
+    redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+  }
 
   const spStr = (k: string): string | undefined => {
     const v = sp[k];

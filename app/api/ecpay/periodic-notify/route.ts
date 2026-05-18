@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, expires_at")
+    .select("id, user_id, plan, expires_at, expected_amount")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -71,9 +71,9 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  // 驗 MerchantID 屬於本商家
-  if (params.MerchantID && params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
-    console.error("[ecpay/periodic-notify] MerchantID mismatch", {
+  // 驗 MerchantID 屬於本商家（必要欄位、缺欄位也 reject 避免 short-circuit bypass）
+  if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+    console.error("[ecpay/periodic-notify] MerchantID mismatch or missing", {
       got: params.MerchantID,
       expected: process.env.ECPAY_MERCHANT_ID,
     });
@@ -97,15 +97,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 驗金額：callback amount 必須等於該 plan 應扣月費（防 5 元測試 callback 替代真扣款）
+  // 驗金額：用 checkout 時寫進 sub.expected_amount 直接比對
+  // （student tier 走 basePlan 不會被 hardcode price 表卡住）
   if (rtnCode === "1") {
-    const expectedAmount =
-      sub.plan === "personal" ? 390 : sub.plan === "pro" ? 890 : 0;
-    if (expectedAmount && Number(amount) !== expectedAmount) {
+    if (!sub.expected_amount || Number(amount) !== sub.expected_amount) {
       console.error("[ecpay/periodic-notify] amount mismatch", {
         orderId,
         got: amount,
-        expected: expectedAmount,
+        expected: sub.expected_amount,
         plan: sub.plan,
       });
       return new Response("0|AmountMismatch", { status: 200 });

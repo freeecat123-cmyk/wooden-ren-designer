@@ -11,10 +11,26 @@ import { welcomeEmail } from "@/lib/email/templates/welcome";
  * 4. 首次登入（welcome_email_sent_at IS NULL）寄歡迎信
  * 5. 重導回原本要去的頁面（next 參數）或首頁
  */
+/**
+ * 限制 next= 只能是本站相對路徑（防 open redirect 釣魚）。
+ * 拒絕：
+ * - 非 / 開頭（next=evil.com）
+ * - // 開頭（next=//evil.com → 瀏覽器當成 https://evil.com）
+ * - /\ 反斜線變體（next=/\evil.com）
+ * - 含 protocol（next=javascript: 或 next=https://evil.com）
+ */
+function sanitizeNext(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/")) return "/";
+  if (raw.startsWith("//") || raw.startsWith("/\\")) return "/";
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(raw)) return "/"; // /javascript:... 之類
+  return raw;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const next = sanitizeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
@@ -134,8 +136,17 @@ export default async function QuotePrintPage({
   const customerEmail = sp.customerEmail ?? "";
   const DASH = "＿＿＿＿＿＿＿＿＿＿";
 
-  const viewMode: "customer" | "internal" =
-    sp.viewMode === "internal" ? "internal" : "customer";
+  // viewMode=internal 含成本拆解（毛利 / 工時 / 報廢率），只給付費 user 看。
+  // 客戶分享連結（/q/<code>）或匿名 curl 一律 force customer view，避免內部成本外洩。
+  const wantsInternal = sp.viewMode === "internal";
+  let viewMode: "customer" | "internal" = "customer";
+  if (wantsInternal) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && (await isPaidUser(user.id))) {
+      viewMode = "internal";
+    }
+  }
 
   const termNotes: string[] = [];
   if (sp.termIncludeShipping === "1") {
