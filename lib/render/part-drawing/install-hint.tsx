@@ -77,28 +77,49 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
         borderRadius: 4,
       }}
     >
+      {/* Pass 1: 所有 part 畫淡色 outline 當家具參考骨架（含 target，先打底） */}
       {design.parts.map((p, i) => {
         const o = p.origin ?? { x: 0, y: 0, z: 0 };
         const ext = worldExtents(p);
-        // top view (X-Z 平面)：X 水平、Z 垂直
         const x = tx((o.x ?? 0) - ext.xExt / 2);
         const y = ty((o.z ?? 0) + ext.zExt / 2);
         const w = ext.xExt * scale;
         const h = ext.zExt * scale;
-        const isTarget = p.id === highlightPartId;
         return (
           <rect
-            key={`${p.id}-${i}`}
+            key={`bg-${p.id}-${i}`}
             x={x}
             y={y}
             width={Math.max(w, 0.5)}
             height={Math.max(h, 0.5)}
-            fill={isTarget ? "#dc2626" : "none"}
-            stroke={isTarget ? "#991b1b" : "#9ca3af"}
-            strokeWidth={isTarget ? 1 : 0.4}
+            fill="none"
+            stroke="#6b7280"
+            strokeWidth={0.5}
           />
         );
       })}
+      {/* Pass 2: target part 用紅色半透明 fill + 紅 outline 蓋在最上層
+          —— 半透明確保大型 part（如背板/側板）不會把家具骨架完全遮掉 */}
+      {(() => {
+        const o = target.origin ?? { x: 0, y: 0, z: 0 };
+        const ext = worldExtents(target);
+        const x = tx((o.x ?? 0) - ext.xExt / 2);
+        const y = ty((o.z ?? 0) + ext.zExt / 2);
+        const w = ext.xExt * scale;
+        const h = ext.zExt * scale;
+        return (
+          <rect
+            x={x}
+            y={y}
+            width={Math.max(w, 0.5)}
+            height={Math.max(h, 0.5)}
+            fill="#dc2626"
+            fillOpacity={0.35}
+            stroke="#991b1b"
+            strokeWidth={1.2}
+          />
+        );
+      })()}
     </svg>
   );
 }
