@@ -521,10 +521,13 @@ export const bed: FurnitureTemplate = (input): FurnitureDesign => {
       visible: { length: headLegInnerSpan, width: headboardPlateHeight, thickness: headboardThickness },
       // origin.y = 板底（renderer 把 origin.y 當底部）；板從地板 0 到 headboardPlateHeight
       origin: { x: headboardX, y: 0, z: 0 },
-      // 單軸 Ry(π/2)：part-local +X(length) → world +Z（跨床寬）、+Y(width) 仍是世界 Y（垂直）、
-      // +Z(thickness) → world -X（薄厚朝 head 端）。雙軸 Rx(-π/2)Ry(-π/2) 會把 height
-      // 軸映射成 -X、變平躺、silhouette 投影失效（25mm 矮板）。
-      rotation: { x: 0, y: Math.PI / 2, z: 0 },
+      // 雙軸 Rx(-π/2) Ry(-π/2)：依 pushPoint 的 Rx→Ry→Rz 順序計算：
+      // - local +X(length=headLegInnerSpan) → world +Z（跨床寬）
+      // - local +Y(thickness=25) → world +X（朝 head 端薄厚）
+      // - local +Z(width=800) → world +Y（垂直）↑
+      // 跟 `36ada22` 訂的 origin.y=0(板底) + yExt=800 慣例搭配，板從地板立到 800mm。
+      // 單軸 Ry(π/2) 會把 width 留在 local +Z → world +X，板平躺 25mm 厚（前 `a06f6ad` 反例）。
+      rotation: { x: -Math.PI / 2, y: -Math.PI / 2, z: 0 },
       tenons: [
         {
           position: "start",
