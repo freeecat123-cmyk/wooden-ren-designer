@@ -322,7 +322,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響
-    const hasAxisSplay = (s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0);
+    // 必 gate isSplayed：splayAngle 預設 8°、即使 legShape=box splayDx/Dz 仍 > 0
+    const hasAxisSplay = isSplayed && ((s.axis === "x" && splayDx > 0) || (s.axis === "z" && splayDz > 0));
     // axis="z" 牙條 start at part-local -X → world +Z（Rx π/2 + Ry π/2 後）
     const startCornerSx = (s.axis === "x" ? -1 : s.sx) as -1 | 0 | 1;
     const startCornerSz = (s.axis === "z" ? +1 : s.sz) as -1 | 0 | 1;
