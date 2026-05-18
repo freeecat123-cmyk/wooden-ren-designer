@@ -29,7 +29,14 @@ export default async function LoginPage({
     <main className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-12 bg-zinc-50">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <Link href="/" className="inline-block">
+          <Link href="/" className="inline-flex flex-col items-center gap-3">
+            <img
+              src="/brand-logo.png"
+              alt="木頭仁 木作藍圖"
+              width={96}
+              height={96}
+              className="rounded-2xl shadow-sm ring-1 ring-zinc-200"
+            />
             <h1 className="text-2xl font-bold text-zinc-900">木頭仁 木作藍圖</h1>
           </Link>
           <p className="text-sm text-zinc-600 mt-2">

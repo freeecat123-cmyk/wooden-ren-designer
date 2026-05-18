@@ -161,11 +161,20 @@ export default async function Home({
       <PerspectivePrefetch />
       <StudentLoginHint />
       <header className="mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          木頭仁木匠學院 · 工程圖生成器 v0.4
+        <div className="flex items-center gap-4 mb-4">
+          <img
+            src="/brand-logo.png"
+            alt="木頭仁 木作藍圖"
+            width={64}
+            height={64}
+            className="rounded-xl shadow-sm ring-1 ring-zinc-200 shrink-0"
+          />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            木頭仁木匠學院 · 木作藍圖 v0.5
+          </div>
         </div>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-900">
+        <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
           從尺寸到圖紙,三秒鐘完成
         </h1>
         <p className="mt-3 max-w-2xl text-zinc-600 leading-relaxed">
