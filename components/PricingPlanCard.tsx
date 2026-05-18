@@ -184,8 +184,8 @@ export const STUDENT_PLANS: PlanCard[] = [
     name: "學員續用 · 個人",
     monthlyPrice: 219,
     yearlyPrice: 2190,
-    originalMonthly: 290,
-    originalYearly: 290 * 12,
+    originalMonthly: 390,
+    originalYearly: 390 * 12,
     audience: ["DIY 自家用的學員", "做完課程作品想繼續做家具", "不需要報價系統"],
     features: [
       { ok: true, text: "個人版全部功能" },

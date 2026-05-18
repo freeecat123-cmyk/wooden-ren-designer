@@ -118,7 +118,7 @@ export function AdminDashboardClient() {
             <StatCard
               label="付費 MRR 估算"
               value={`NT$ ${stats.mrrEstimate.toLocaleString()}`}
-              hint="個人 290 + 專業 890"
+              hint="個人 390 + 專業 890"
               accent
             />
             <StatCard

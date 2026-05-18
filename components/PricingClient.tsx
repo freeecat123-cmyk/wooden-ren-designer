@@ -58,14 +58,15 @@ const PLANS: PlanCard[] = [
   {
     id: "personal",
     name: "個人版",
-    monthlyPrice: 290,
-    yearlyPrice: 2900,
-    originalYearly: 290 * 12,
+    monthlyPrice: 390,
+    yearlyPrice: 3900,
+    originalYearly: 390 * 12,
     audience: ["DIY 木工玩家", "週末做家具的人", "自己家裡用的"],
     features: [
       { ok: true, text: "無限儲存設計" },
       { ok: true, text: "下載 PDF（無浮水印）" },
       { ok: true, text: "完整裁切計算器" },
+      { ok: true, text: "天花板骨架施工模擬器" },
       { ok: true, text: "全部範本 + 3D 預覽" },
       { ok: false, text: "客製家具報價系統" },
       { ok: false, text: "客戶資料管理" },

@@ -98,7 +98,7 @@ export default async function RootLayout({
               inLanguage: "zh-TW",
               offers: [
                 { "@type": "Offer", name: "免費試用", price: "0", priceCurrency: "TWD" },
-                { "@type": "Offer", name: "個人版", price: "290", priceCurrency: "TWD" },
+                { "@type": "Offer", name: "個人版", price: "390", priceCurrency: "TWD" },
                 { "@type": "Offer", name: "專業版", price: "890", priceCurrency: "TWD" },
               ],
               creator: {

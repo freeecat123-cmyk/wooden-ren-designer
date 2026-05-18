@@ -8,7 +8,7 @@ import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
  * 全部用 service-role client（繞 RLS 直接撈 count）。
  *
  * 估算 MRR：
- *   - personal：×290
+ *   - personal：×390
  *   - pro：×890
  *   - student（仍在期）：算成 0（學員免費）
  *   - lifetime：不入 MRR（一次性收入）
@@ -156,7 +156,7 @@ export async function GET() {
 
   // 估算 MRR（NTD）
   const PRICE_BY_PLAN: Record<string, number> = {
-    personal: 290,
+    personal: 390,
     pro: 890,
     // student / lifetime / free 都算 0
   };

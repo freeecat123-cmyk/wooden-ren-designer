@@ -14,7 +14,7 @@ interface PlanPriceRow {
 }
 
 export const PLAN_PRICES: Record<CheckoutPlan, PlanPriceRow> = {
-  personal: { monthly: 290, yearly: 2900, basePlan: "personal", studentOnly: false },
+  personal: { monthly: 390, yearly: 3900, basePlan: "personal", studentOnly: false },
   pro: { monthly: 890, yearly: 8900, basePlan: "pro", studentOnly: false },
   student_personal: { monthly: 219, yearly: 2190, basePlan: "personal", studentOnly: true },
   student_pro: { monthly: 690, yearly: 6900, basePlan: "pro", studentOnly: true },

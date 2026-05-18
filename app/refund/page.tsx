@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RefundClient } from "./RefundClient";
 
 export const metadata: Metadata = {
   title: "退費政策 · 木頭仁工程圖生成器",
@@ -75,6 +76,8 @@ export default function RefundPage() {
           <a className="underline" href="mailto:wengbinren@gmail.com">wengbinren@gmail.com</a>
         </p>
       </section>
+
+      <RefundClient />
     </main>
   );
 }
