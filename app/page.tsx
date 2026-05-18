@@ -212,48 +212,6 @@ export default async function Home({
 
       <CatalogSearch />
 
-      {/* ▣ 木作工具 — 非家具類別的專業工具(階段 4 加) */}
-      <section className="mb-10">
-        <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
-          <span className="text-2xl leading-none" aria-hidden>🔨</span>
-          <h2 className="text-xl font-semibold text-zinc-800">木作工具</h2>
-          <span className="text-xs text-zinc-500 font-medium">裝潢 / 施工 專業工具</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <Link
-            href="/ceiling"
-            className="group block rounded-lg border bg-gradient-to-br from-amber-50 via-white to-stone-50 border-amber-200 hover:border-amber-400 hover:shadow-md transition p-4"
-          >
-            <div className="flex gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
-                    <span title="專業版以上" className="text-amber-600">🔒</span>
-                    天花板骨架施工模擬器
-                  </h3>
-                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 ring-1 ring-amber-200">
-                    Pro 工具
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
-                  輸入房間長 × 短 × 板高,自動算邊框 / 主支 / 副支 / 吊筋 / 矽酸鈣板用量
-                  與裁料,3D 軸測 + 爆炸 + 燈具碰撞檢查。
-                </p>
-                <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
-                  2D 俯視 · 3D 軸測 · 裁料計算
-                </p>
-                <p className="mt-1 text-[10px] text-amber-700 font-medium">
-                  需專業版(個人版以上)
-                </p>
-              </div>
-              <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-amber-100 to-amber-200 ring-1 ring-amber-200 group-hover:ring-amber-300 transition flex items-center justify-center text-5xl">
-                ▣
-              </div>
-            </div>
-          </Link>
-        </div>
-      </section>
-
       {/* 視圖切換：依類別 vs 依難度 */}
       <div className="mb-6 inline-flex gap-1 p-1 bg-zinc-100 rounded-lg text-sm">
         <Link
@@ -279,6 +237,48 @@ export default async function Home({
       </div>
 
       <div className="space-y-12">
+        {/* ▣ 木作工具 — 永遠排在最上面,不受視圖切換影響(階段 4) */}
+        <section>
+          <div className="mb-5 flex items-baseline gap-3 flex-wrap pb-2 border-b border-zinc-200">
+            <span className="text-2xl leading-none" aria-hidden>🔨</span>
+            <h2 className="text-xl font-semibold text-zinc-800">木作工具</h2>
+            <span className="text-xs text-zinc-500 font-medium">裝潢 / 施工 專業工具</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Link
+              href="/ceiling"
+              className="group block rounded-lg border bg-gradient-to-br from-amber-50 via-white to-stone-50 border-amber-200 hover:border-amber-400 hover:shadow-md transition p-4"
+            >
+              <div className="flex gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <h3 className="text-base font-semibold text-zinc-900 group-hover:text-amber-900 flex items-center gap-1.5">
+                      <span title="專業版以上" className="text-amber-600">🔒</span>
+                      天花板骨架施工模擬器
+                    </h3>
+                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 ring-1 ring-amber-200">
+                      Pro 工具
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2 min-h-[2lh]">
+                    輸入房間長 × 短 × 板高,自動算邊框 / 主支 / 副支 / 吊筋 / 矽酸鈣板用量
+                    與裁料,3D 軸測 + 爆炸 + 燈具碰撞檢查。
+                  </p>
+                  <p className="mt-2 text-[11px] text-zinc-500 font-mono tabular-nums">
+                    2D 俯視 · 3D 軸測 · 裁料計算
+                  </p>
+                  <p className="mt-1 text-[10px] text-amber-700 font-medium">
+                    需專業版(個人版以上)
+                  </p>
+                </div>
+                <div className="relative w-28 sm:w-32 aspect-[4/3] shrink-0 rounded-md overflow-hidden bg-gradient-to-b from-amber-100 to-amber-200 ring-1 ring-amber-200 group-hover:ring-amber-300 transition flex items-center justify-center text-5xl">
+                  ▣
+                </div>
+              </div>
+            </Link>
+          </div>
+        </section>
+
         {view === "level"
           ? groupedByLevel.map((group) => (
               <section key={group.key} id={group.key} data-catalog-group>
