@@ -351,34 +351,32 @@ function HangersLayer({
   opacity?: number;
 }) {
   const rodCross = 1.5; // 吊筋截面 1.5×1.5 cm 視覺(實務 8-10 mm 螺絲棒,放大顯)
-  const innerZStart = tw; // 邊框內側
+  const innerZStart = tw;
   const innerZEnd = S - tw;
   const usableZ = innerZEnd - innerZStart;
+  // 吊筋 Z 位置策略:
+  //   1 支 → 中心
+  //   2 支(簡化模式)→ 1/3, 2/3(中段內側,不貼邊框)
+  //   3+ 支(業界標準)→ 均分含端點(配合多段,需 evenly)
+  const positions = (() => {
+    if (hangerPerJoist <= 1) return [innerZStart + usableZ / 2];
+    if (hangerPerJoist === 2) return [innerZStart + usableZ / 3, innerZStart + (2 * usableZ) / 3];
+    const step = usableZ / (hangerPerJoist - 1);
+    return Array.from({ length: hangerPerJoist }, (_, i) => innerZStart + i * step);
+  })();
+
   return (
     <group>
-      {mainCenters.map((cx, ji) => {
-        const rods: React.ReactNode[] = [];
-        if (hangerPerJoist <= 1) {
-          rods.push(
-            <mesh key={`${ji}-mid`} position={[cx, yCenter, S / 2]}>
+      {mainCenters.map((cx, ji) => (
+        <group key={ji}>
+          {positions.map((z, i) => (
+            <mesh key={`${ji}-${i}`} position={[cx, yCenter, z]}>
               <boxGeometry args={[rodCross, hangerH, rodCross]} />
               <meshStandardMaterial color={COLOR.hanger} transparent opacity={opacity} />
-            </mesh>,
-          );
-        } else {
-          const step = usableZ / (hangerPerJoist - 1);
-          for (let i = 0; i < hangerPerJoist; i++) {
-            const z = innerZStart + i * step;
-            rods.push(
-              <mesh key={`${ji}-${i}`} position={[cx, yCenter, z]}>
-                <boxGeometry args={[rodCross, hangerH, rodCross]} />
-                <meshStandardMaterial color={COLOR.hanger} transparent opacity={opacity} />
-              </mesh>,
-            );
-          }
-        }
-        return <group key={ji}>{rods}</group>;
-      })}
+            </mesh>
+          ))}
+        </group>
+      ))}
     </group>
   );
 }
