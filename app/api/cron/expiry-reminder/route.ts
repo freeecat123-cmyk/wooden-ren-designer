@@ -81,12 +81,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "db_error", detail: error.message }, { status: 500 });
   }
 
-  const stats = { soon: 0, grace: 0, downgraded: 0, skipped: 0, failed: 0 };
+  // 撈 user 對應的「最新 active 月扣 subscription」(ecpay_periodic_no 非 null)
+  // 月扣會自動扣款、不需提醒；如果寄「即將到期」反而會觸發退訂念頭。
+  const userIds = (candidates ?? []).map((u) => u.id);
+  const monthlySubUserIds = new Set<string>();
+  if (userIds.length) {
+    const { data: subs } = await admin
+      .from("subscriptions")
+      .select("user_id, ecpay_periodic_no, status")
+      .in("user_id", userIds)
+      .eq("status", "active")
+      .not("ecpay_periodic_no", "is", null);
+    for (const s of subs ?? []) {
+      if (s.user_id) monthlySubUserIds.add(s.user_id);
+    }
+  }
+
+  const stats = { soon: 0, grace: 0, downgraded: 0, skipped: 0, skippedMonthly: 0, failed: 0 };
 
   for (const u of (candidates ?? []) as UserRow[]) {
     if (!u.email || !u.subscription_expires_at) continue;
     const kind = classify(u.subscription_expires_at, now);
     if (kind === "none") continue;
+
+    // 月扣 active subscription + kind=soon → 跳過（會自動扣、不提醒避免觸發退訂）
+    // grace / downgraded 一定要寄（扣款失敗才會進 grace、user 必須知道）
+    if (kind === "soon" && monthlySubUserIds.has(u.id)) {
+      stats.skippedMonthly++;
+      continue;
+    }
 
     // dedup：5 天內寄過就跳過（避免 cron 每天炮轟）
     if (
