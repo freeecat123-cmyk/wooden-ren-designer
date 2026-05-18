@@ -512,8 +512,10 @@ export const bench: FurnitureTemplate = (input) => {
 
   if (withUnderShelf) {
     const shelfT = DEFAULT_SHELF_THICKNESS_MM;
-    const stretcherW = 40;
-    const stretcherT = 20; // 跟 simple-table opts.lowerStretcherThickness 預設一致
+    // 跟 simple-table opts.lowerStretcherWidth/Thickness 預設一致（30/18）
+    // 之前 hardcode 40/20 → shelf 算位高 10mm，視覺懸空、跟橫撐頂面有縫
+    const stretcherW = 30;
+    const stretcherT = 18;
     const stretcherY = lowerStretcherHeight > 0
       ? lowerStretcherHeight
       : Math.round((input.height - topThickness) * LOWER_STRETCHER_HEIGHT_RATIO);
