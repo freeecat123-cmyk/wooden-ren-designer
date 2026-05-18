@@ -20,6 +20,9 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+import { sendEmail } from "@/lib/email/send";
+import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success";
+import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -130,6 +133,32 @@ export async function POST(req: NextRequest) {
     ecpay_payment_date: paymentDate,
     raw_response: params as Record<string, unknown>,
   });
+
+  // 寄首次付款成功 email
+  try {
+    const { data: u } = await admin
+      .from("users")
+      .select("email")
+      .eq("id", sub.user_id)
+      .single();
+    if (u?.email) {
+      const payload = firstPaymentSuccessEmail({
+        planLabel: planLabelFromUserPlan(sub.plan),
+        amount,
+        expiresAt,
+        isMonthly: periodic,
+        tradeNo,
+      });
+      void sendEmail({
+        to: u.email,
+        subject: payload.subject,
+        text: payload.text,
+        html: payload.html,
+      });
+    }
+  } catch (e) {
+    console.warn("[ecpay/return] payment email error", e);
+  }
 
   console.log("[ecpay/return] 付款完成", { orderId, userId: sub.user_id, amount, expiresAt });
   return new Response("1|OK");

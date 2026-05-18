@@ -20,6 +20,9 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+import { sendEmail } from "@/lib/email/send";
+import { periodicChargeSuccessEmail } from "@/lib/email/templates/payment-success";
+import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,6 +123,32 @@ export async function POST(req: NextRequest) {
     ecpay_payment_date: paymentDate,
     raw_response: params as Record<string, unknown>,
   });
+
+  // 寄月扣扣款成功 email
+  try {
+    const { data: u } = await admin
+      .from("users")
+      .select("email")
+      .eq("id", sub.user_id)
+      .single();
+    if (u?.email) {
+      const payload = periodicChargeSuccessEmail({
+        planLabel: planLabelFromUserPlan(sub.plan),
+        amount,
+        expiresAt: newExpiresAt,
+        isMonthly: true,
+        tradeNo,
+      });
+      void sendEmail({
+        to: u.email,
+        subject: payload.subject,
+        text: payload.text,
+        html: payload.html,
+      });
+    }
+  } catch (e) {
+    console.warn("[ecpay/periodic-notify] payment email error", e);
+  }
 
   console.log("[ecpay/periodic-notify] 月扣成功", {
     orderId,
