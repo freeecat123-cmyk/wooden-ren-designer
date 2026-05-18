@@ -3500,11 +3500,23 @@ export function PerspectiveView({
                   // cross 軸在 defaultWorld 方向有非零投影，角落會比 root center
                   // 多伸 maxCornerProj 進 parent。把 root 往 defaultWorld 外推
                   // maxCornerProj 補償。
-                  const maxCornerProj =
-                    (Math.abs(cross1.dot(defaultWorld)) * h1 / SCALE +
-                     Math.abs(cross2.dot(defaultWorld)) * h2 / SCALE);
-                  // worst corner 推到 parent face 外 0.05mm（不重疊 + 不留可見縫）
-                  const halfLenWorld = (Math.abs(effLen) / 2 - maxCornerProj - 0.05) * SCALE;
+                  // rootCenter 放在 parent 實際肩面中心：
+                  // - apron-trapezoid：miter plane 中心 = -lx*avgScale/2 in part-local
+                  //   (avgScale = (topS+botS)/2)
+                  //   → halfLenLocal = lx*(1-avgScale)/2 + effLen/2
+                  // - 其他：parent 肩面就在 nominal end (-lx/2)
+                  //   → halfLenLocal = effLen/2
+                  // 因為 root face 已經在 N⊥ plane（= 平行 miter plane）、
+                  // rootCenter 落在 miter plane 上時、4 個角落都在 miter plane
+                  // 跟 parent 材料貼齊不重疊（不需 maxCornerProj 補償）
+                  let halfLenLocal = Math.abs(effLen) / 2 + ROOT_BURY;
+                  if (part.shape?.kind === "apron-trapezoid" && isStartEnd) {
+                    const topS = part.shape.topLengthScale ?? 1;
+                    const botS = part.shape.bottomLengthScale ?? 1;
+                    const avgScale = (topS + botS) / 2;
+                    halfLenLocal = part.visible.length * (1 - avgScale) / 2 + Math.abs(effLen) / 2 + ROOT_BURY;
+                  }
+                  const halfLenWorld = halfLenLocal * SCALE;
                   const rootCenter = defaultWorld.clone().multiplyScalar(-halfLenWorld);
                   const tipCenter  = rootCenter.clone().addScaledVector(B, Lworld);
 
