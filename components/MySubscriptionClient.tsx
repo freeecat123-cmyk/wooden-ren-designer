@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { studentDaysRemaining, PLAN_LABEL } from "@/lib/permissions";
+import {
+  GRACE_PERIOD_DAYS,
+  isExpiredPastGrace,
+  isExpiringSoon,
+  isInGracePeriod,
+} from "@/lib/pricing/expiry";
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "-";
@@ -159,6 +165,21 @@ function PaidPlanSection({
     }
   }
 
+  const expiringSoon = isExpiringSoon(expiresAt, 7);
+  const inGrace = isInGracePeriod(expiresAt);
+  const pastGrace = isExpiredPastGrace(expiresAt);
+  // grace 內剩餘天數
+  const expiresAtTime = expiresAt ? new Date(expiresAt).getTime() : null;
+  const graceEndTime = expiresAtTime
+    ? expiresAtTime + GRACE_PERIOD_DAYS * 86_400_000
+    : null;
+  const graceDaysLeft = graceEndTime
+    ? Math.max(0, Math.ceil((graceEndTime - Date.now()) / 86_400_000))
+    : null;
+  const daysUntilExpiry = expiresAtTime
+    ? Math.max(0, Math.ceil((expiresAtTime - Date.now()) / 86_400_000))
+    : null;
+
   return (
     <div>
       <h2 className="font-semibold text-zinc-900 mb-1">{planLabel}</h2>
@@ -168,6 +189,52 @@ function PaidPlanSection({
       <p className="text-sm text-zinc-500 mt-1">
         狀態：{isCancelled ? "已取消（到期前仍可用）" : status}
       </p>
+
+      {/* 7 天內到期黃色 reminder（未取消才顯示） */}
+      {expiringSoon && !isCancelled && (
+        <div
+          className="mt-4 rounded-lg p-3 border"
+          style={{ background: "#fefce8", borderColor: "#facc15" }}
+        >
+          <p className="text-xs text-[#854d0e] leading-relaxed">
+            ⏰ 還剩 {daysUntilExpiry} 天到期。月扣方案會自動續扣，無需操作；如果是
+            年付或想換方案，可以
+            <Link href="/pricing" className="underline ml-1">重新訂閱</Link>。
+          </p>
+        </div>
+      )}
+
+      {/* grace period 紅色急切 reminder */}
+      {inGrace && (
+        <div
+          className="mt-4 rounded-lg p-3 border-2"
+          style={{ background: "#fef2f2", borderColor: "#f87171" }}
+        >
+          <p className="text-sm text-[#991b1b] leading-relaxed font-medium">
+            ⚠️ 訂閱已到期 — 寬限期剩 {graceDaysLeft} 天
+          </p>
+          <p className="text-xs text-[#991b1b] mt-1 leading-relaxed">
+            付費功能仍可使用，請於 {graceDaysLeft} 天內續訂、否則自動降回免費版。
+            常見原因：信用卡到期、額度不足、銀行驗證失敗。
+            <Link href="/pricing" className="underline ml-1 font-semibold">立即續訂 →</Link>
+          </p>
+        </div>
+      )}
+
+      {/* 已過 grace、應已被 cron 降為 free — 出現代表 cron 還沒跑、或 cron 失敗 */}
+      {pastGrace && (
+        <div
+          className="mt-4 rounded-lg p-3 border-2"
+          style={{ background: "#f3f4f6", borderColor: "#9ca3af" }}
+        >
+          <p className="text-sm text-zinc-700 leading-relaxed">
+            訂閱已到期超過 {GRACE_PERIOD_DAYS} 天寬限期，系統會在下次掃描時自動
+            降為免費版。要恢復付費功能可至
+            <Link href="/pricing" className="underline ml-1 font-medium">/pricing</Link>
+            重新訂閱。
+          </p>
+        </div>
+      )}
 
       {isActive && !isCancelled && (
         <div className="mt-5 pt-4 border-t border-zinc-200">
