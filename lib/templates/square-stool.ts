@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -165,7 +165,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     legShape === "splayed" || legShape === "splayed-length" ? _splayMmForLegs : 0;
   const _splayDzForLegs =
     legShape === "splayed" || legShape === "splayed-width" ? _splayMmForLegs : 0;
-  const isCompoundSplayLegs = _splayDxForLegs > 0 && _splayDzForLegs > 0;
   const _isSplayedForLegs = _splayDxForLegs > 0 || _splayDzForLegs > 0;
 
   const seatPanel: Part = {
@@ -276,7 +275,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legHeight,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
-      compoundSplayAngleDeg: isCompoundSplayLegs ? splayAngle : undefined,
     }),
   });
   });
@@ -346,31 +344,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   ];
   const aprons: Part[] = !withApron ? [] : apronSides.map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
-    // Compound splay only — single-axis splay is fully handled by part.rotation
-    // (which tilts the whole apron about its perpendicular axis). For 4-corner
-    // diagonal splay, the leg face the apron meets has an additional component
-    // the part rotation alone can't carry; the helper returns this missing piece.
-    const isCompoundSplay = splayDx > 0 && splayDz > 0;
-    const startCornerSx = (s.axis === "x" ? -1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
-    const startCornerSz = (s.axis === "z" ? -1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
-    const endCornerSx   = (s.axis === "x" ? +1 : (s.sx as -1 | 0 | 1)) as -1 | 0 | 1;
-    const endCornerSz   = (s.axis === "z" ? +1 : (s.sz as -1 | 0 | 1)) as -1 | 0 | 1;
-    // Helper returns WORLD-frame tenon direction. Each end calls with its own
-    // corner signs — start corner is at −axis side (cornerSx=−1 for x-apron,
-    // cornerSz=−1 for z-apron) → helper produces −cos·axis direction, matching
-    // the start tenon's outward direction in world. No further sign tweaks.
-    const tenonAxisStartWorld = isCompoundSplay
-      ? computeCompoundSplayNormal({
-          apronAxis: s.axis, cornerSx: startCornerSx, cornerSz: startCornerSz,
-          splayAngleDeg: splayAngle,
-        })
-      : null;
-    const tenonAxisEndWorld = isCompoundSplay
-      ? computeCompoundSplayNormal({
-          apronAxis: s.axis, cornerSx: endCornerSx, cornerSz: endCornerSz,
-          splayAngleDeg: splayAngle,
-        })
-      : null;
     // x 軸牙板（前/後）補 tiltZ；z 軸牙板（左/右）補 tiltX
     const bevelAngle = isSplayed
       ? s.axis === "x" ? -s.sz * tiltZ : -s.sx * tiltX
@@ -432,8 +405,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
             width: apronTenonW,
             thickness: apronTenonThick,
             shoulderOn: [...apronTenonStd.shoulderOn],
-            ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
-            ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
           });
           return [mk("start"), mk("end")];
         }
@@ -455,8 +426,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           thickness: apronTenonThick,
           shoulderOn,
           offsetWidth: -worldOffset,
-          ...(position === "start" && tenonAxisStartWorld ? { axis: tenonAxisStartWorld } : {}),
-          ...(position === "end" && tenonAxisEndWorld ? { axis: tenonAxisEndWorld } : {}),
         });
         return [mk("start"), mk("end")];
       })(),
@@ -770,11 +739,6 @@ function legMortisesForApron(
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
-    /** When defined (compound splay), attach an `axis` field to each mortise so
-     * the mortise opens INTO the leg along the inverse of the matching apron
-     * tenon's world-frame normal. Square stool legs are upright (no part
-     * rotation) so part-local == world. */
-    compoundSplayAngleDeg?: number;
   },
 ) {
   const {
@@ -789,30 +753,6 @@ function legMortisesForApron(
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
-  // Compound splay: per-corner mortise axes (negate of matching tenon world axis).
-  // Z-face mortise pairs with the Z-axis apron at this corner.
-  //   - If c.x > 0 (right-side leg), the Z-apron's END tenon meets this leg.
-  //   - If c.x < 0 (left-side leg), the Z-apron's START tenon meets this leg.
-  // X-face mortise pairs with the X-axis apron at this corner.
-  //   - If c.z > 0 (back leg), X-apron's END tenon meets this leg.
-  //   - If c.z < 0 (front leg), X-apron's START tenon meets this leg.
-  // Square-stool legs aren't rotated → leg-local frame == world frame.
-  const angleDeg = opts.compoundSplayAngleDeg;
-  const cornerSx = (corner.x > 0 ? 1 : -1) as 1 | -1;
-  const cornerSz = (corner.z > 0 ? 1 : -1) as 1 | -1;
-  let zFaceAxis: { x: number; y: number; z: number } | undefined;
-  let xFaceAxis: { x: number; y: number; z: number } | undefined;
-  if (angleDeg !== undefined) {
-    const zApronTenonWorld = computeCompoundSplayNormal({
-      apronAxis: "z", cornerSx, cornerSz, splayAngleDeg: angleDeg,
-    });
-    const xApronTenonWorld = computeCompoundSplayNormal({
-      apronAxis: "x", cornerSx, cornerSz, splayAngleDeg: angleDeg,
-    });
-    // Mortise opens INTO leg = opposite direction of tenon
-    zFaceAxis = { x: -zApronTenonWorld.x, y: -zApronTenonWorld.y, z: -zApronTenonWorld.z };
-    xFaceAxis = { x: -xApronTenonWorld.x, y: -xApronTenonWorld.y, z: -xApronTenonWorld.z };
-  }
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
@@ -821,7 +761,6 @@ function legMortisesForApron(
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
-      ...(zFaceAxis ? { axis: zFaceAxis } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
@@ -830,7 +769,6 @@ function legMortisesForApron(
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
-      ...(xFaceAxis ? { axis: xFaceAxis } : {}),
     },
   ];
 }
