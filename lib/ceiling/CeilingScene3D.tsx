@@ -28,12 +28,14 @@ import type { CeilingBom } from "./types";
 
 export type LayerKey = "room" | "frame" | "main" | "sub" | "boards";
 export type ViewMode = "iso" | "top";
+export type Scene3DHighlight = "frame" | "main" | "sub" | "hanger" | "board" | null;
 
 interface CeilingScene3DProps {
   bom: CeilingBom;
   viewMode: ViewMode;
   explode: number;        // 0..1
   layers: Record<LayerKey, boolean>;
+  highlight?: Scene3DHighlight;
 }
 
 const EXPLODE_BASE_CM = 30; // 每層爆炸間距(乘上 explode 0..1)
@@ -49,8 +51,10 @@ const COLOR = {
   roomWall: "#cbd5e1",
 } as const;
 
-export function CeilingScene3D({ bom, viewMode, explode, layers }: CeilingScene3DProps) {
+export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = null }: CeilingScene3DProps) {
   const { input, trace } = bom;
+  const dimOp = (key: Exclude<Scene3DHighlight, null>) =>
+    highlight && highlight !== key ? 0.12 : 1;
   const L = input.longSideCm;
   const S = input.shortSideCm;
   const tw = input.timberWidthCm;     // 角材寬
@@ -110,12 +114,13 @@ export function CeilingScene3D({ bom, viewMode, explode, layers }: CeilingScene3
             mainCenters={trace.mainJoistCentersCm}
             yCenter={yBoardCenter - explodeOffsets.boards}
             boardThickness={boardThickness}
+            opacity={dimOp("board")}
           />
         )}
 
         {/* ────── 邊框角材 ────── */}
         {layers.frame && (
-          <FrameLayer L={L} S={S} tw={tw} tt={tt} yCenter={yJoistCenter + explodeOffsets.frame} />
+          <FrameLayer L={L} S={S} tw={tw} tt={tt} yCenter={yJoistCenter + explodeOffsets.frame} opacity={dimOp("frame")} />
         )}
 
         {/* ────── 主支角材 ────── */}
@@ -129,6 +134,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers }: CeilingScene3
             yCenter={yJoistCenter + explodeOffsets.main}
             frameDoublesAsSupport={input.frameDoublesAsSupport}
             L={L}
+            opacity={dimOp("main")}
           />
         )}
 
@@ -139,6 +145,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers }: CeilingScene3
             tw={tw}
             tt={tt}
             yCenter={yJoistCenter + explodeOffsets.sub}
+            opacity={dimOp("sub")}
           />
         )}
 
@@ -154,6 +161,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers }: CeilingScene3
             hangerH={hangerH}
             yBase={boardThickness + tt}
             yCenter={boardThickness + tt + hangerH / 2 + explodeOffsets.hanger}
+            opacity={dimOp("hanger")}
           />
         )}
       </group>
@@ -212,28 +220,25 @@ function RoomBoundary({ L, S, slabHeight }: { L: number; S: number; slabHeight: 
 // ─────────────────────────────────────────────────────────
 // 邊框 — 4 條角材,圍住房間 perimeter
 // ─────────────────────────────────────────────────────────
-function FrameLayer({ L, S, tw, tt, yCenter }: { L: number; S: number; tw: number; tt: number; yCenter: number }) {
+function FrameLayer({ L, S, tw, tt, yCenter, opacity = 1 }: { L: number; S: number; tw: number; tt: number; yCenter: number; opacity?: number }) {
+  const transparent = opacity < 1;
   return (
     <group position={[0, yCenter, 0]}>
-      {/* 上(Z=0)邊框 */}
       <mesh position={[L / 2, 0, tw / 2]}>
         <boxGeometry args={[L, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} />
+        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
       </mesh>
-      {/* 下(Z=S)邊框 */}
       <mesh position={[L / 2, 0, S - tw / 2]}>
         <boxGeometry args={[L, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} />
+        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
       </mesh>
-      {/* 左(X=0)邊框 */}
       <mesh position={[tw / 2, 0, S / 2]}>
         <boxGeometry args={[tw, tt, S]} />
-        <meshStandardMaterial color={COLOR.frame} />
+        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
       </mesh>
-      {/* 右(X=L)邊框 */}
       <mesh position={[L - tw / 2, 0, S / 2]}>
         <boxGeometry args={[tw, tt, S]} />
-        <meshStandardMaterial color={COLOR.frame} />
+        <meshStandardMaterial color={COLOR.frame} transparent={transparent} opacity={opacity} />
       </mesh>
     </group>
   );
@@ -243,7 +248,7 @@ function FrameLayer({ L, S, tw, tt, yCenter }: { L: number; S: number; tw: numbe
 // 主支 — 沿 X 排列,每根跨 Z(短邊內側)
 // ─────────────────────────────────────────────────────────
 function MainJoistsLayer({
-  mainCenters, mainJoistLength, S, tw, tt, yCenter, frameDoublesAsSupport, L,
+  mainCenters, mainJoistLength, S, tw, tt, yCenter, frameDoublesAsSupport, L, opacity = 1,
 }: {
   mainCenters: number[];
   mainJoistLength: number;
@@ -253,6 +258,7 @@ function MainJoistsLayer({
   yCenter: number;
   frameDoublesAsSupport: boolean;
   L: number;
+  opacity?: number;
 }) {
   // 算「被邊框 absorb」標記:跟 SVG 邏輯一致
   const absorbed = useMemo(() => {
@@ -279,8 +285,8 @@ function MainJoistsLayer({
           <boxGeometry args={[tw, tt, mainJoistLength]} />
           <meshStandardMaterial
             color={absorbed.has(idx) ? "#d6d3d1" : COLOR.main}
-            opacity={absorbed.has(idx) ? 0.4 : 1}
-            transparent={absorbed.has(idx)}
+            opacity={(absorbed.has(idx) ? 0.4 : 1) * opacity}
+            transparent={absorbed.has(idx) || opacity < 1}
           />
         </mesh>
       ))}
@@ -292,12 +298,13 @@ function MainJoistsLayer({
 // 副支 — 每 slot 內,沿 X 短段
 // ─────────────────────────────────────────────────────────
 function SubJoistsLayer({
-  trace, tw, tt, yCenter,
+  trace, tw, tt, yCenter, opacity = 1,
 }: {
   trace: CeilingBom["trace"];
   tw: number;
   tt: number;
   yCenter: number;
+  opacity?: number;
 }) {
   // 用平鋪 mesh(總數 ~60-200,效能 OK)
   // 若未來 > 500 改 InstancedMesh
@@ -320,7 +327,7 @@ function SubJoistsLayer({
       {items.map((it, i) => (
         <mesh key={i} position={[it.x, 0, it.z]}>
           <boxGeometry args={[it.lengthX, tt * 0.85, tw]} />
-          <meshStandardMaterial color={COLOR.sub} />
+          <meshStandardMaterial color={COLOR.sub} transparent={opacity < 1} opacity={opacity} />
         </mesh>
       ))}
     </group>
@@ -331,7 +338,7 @@ function SubJoistsLayer({
 // 吊筋 — 每主支沿線 N 支垂直棒(spec floor(L/spacing)+1)
 // ─────────────────────────────────────────────────────────
 function HangersLayer({
-  mainCenters, hangerPerJoist, mainJoistLength, S, tw, hangerH, yBase, yCenter,
+  mainCenters, hangerPerJoist, mainJoistLength, S, tw, hangerH, yBase, yCenter, opacity = 1,
 }: {
   mainCenters: number[];
   hangerPerJoist: number;
@@ -342,6 +349,7 @@ function HangersLayer({
   hangerH: number;
   yBase: number;
   yCenter: number;
+  opacity?: number;
 }) {
   const rodCross = 1.5; // 吊筋截面 1.5×1.5 cm 視覺(實務 8-10 mm 螺絲棒,放大顯)
   const innerZStart = tw; // 邊框內側
@@ -355,7 +363,7 @@ function HangersLayer({
           rods.push(
             <mesh key={`${ji}-mid`} position={[cx, yCenter, S / 2]}>
               <boxGeometry args={[rodCross, hangerH, rodCross]} />
-              <meshStandardMaterial color={COLOR.hanger} />
+              <meshStandardMaterial color={COLOR.hanger} transparent={opacity < 1} opacity={opacity} />
             </mesh>,
           );
         } else {
@@ -365,7 +373,7 @@ function HangersLayer({
             rods.push(
               <mesh key={`${ji}-${i}`} position={[cx, yCenter, z]}>
                 <boxGeometry args={[rodCross, hangerH, rodCross]} />
-                <meshStandardMaterial color={COLOR.hanger} />
+                <meshStandardMaterial color={COLOR.hanger} transparent={opacity < 1} opacity={opacity} />
               </mesh>,
             );
           }
@@ -380,7 +388,7 @@ function HangersLayer({
 // 矽酸鈣板 — 依 mainCenters 切欄 + 每 boardLong 切列
 // ─────────────────────────────────────────────────────────
 function BoardsLayer({
-  L, S, input, mainCenters, yCenter, boardThickness,
+  L, S, input, mainCenters, yCenter, boardThickness, opacity = 1,
 }: {
   L: number;
   S: number;
@@ -388,6 +396,7 @@ function BoardsLayer({
   mainCenters: number[];
   yCenter: number;
   boardThickness: number;
+  opacity?: number;
 }) {
   // X 欄寬:邊框外 → 各主支中心 → 邊框外
   const colEdges: number[] = mainCenters.length === 0
@@ -424,7 +433,7 @@ function BoardsLayer({
       boards.push(
         <mesh key={k++} position={[cx, yCenter, cz]}>
           <boxGeometry args={[colW, boardThickness, rowH]} />
-          <meshStandardMaterial color={COLOR.board} />
+          <meshStandardMaterial color={COLOR.board} transparent={opacity < 1} opacity={opacity} />
           {/* edges */}
         </mesh>,
       );

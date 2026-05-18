@@ -25,9 +25,9 @@ import {
   type SubAlignmentBase,
 } from "@/lib/ceiling/types";
 import { bomToCsvRows, computeCeilingBom } from "@/lib/ceiling/calc";
-import { CeilingOverviewSvg } from "@/lib/ceiling/CeilingOverviewSvg";
+import { CeilingOverviewSvg, type HighlightCategory } from "@/lib/ceiling/CeilingOverviewSvg";
 import { LazyCeilingScene3D } from "@/lib/ceiling/LazyCeilingScene3D";
-import type { LayerKey, ViewMode } from "@/lib/ceiling/CeilingScene3D";
+import type { LayerKey, ViewMode, Scene3DHighlight } from "@/lib/ceiling/CeilingScene3D";
 import { bomToCuttingPieces, computeCuttingPlan } from "@/lib/ceiling/cutting";
 
 export function CeilingDevClient() {
@@ -44,6 +44,23 @@ export function CeilingDevClient() {
   const [cutOpen, setCutOpen] = useState(true);
   const [stockLengthCm, setStockLengthCm] = useState(360); // 12 尺
   const [sawKerfCm, setSawKerfCm] = useState(0.3);
+  // BOM → 視覺 高亮聯動。null = 無高亮(全顯)。
+  const [highlight, setHighlight] = useState<Scene3DHighlight>(null);
+  const bomCategoryToHighlight = (c: string): Scene3DHighlight => {
+    if (c === "frame") return "frame";
+    if (c === "main-joist") return "main";
+    if (c === "sub-joist") return "sub";
+    if (c === "hanger") return "hanger";
+    if (c === "board-full" || c === "board-cut") return "board";
+    return null;
+  };
+  const toggleHighlight = (cat: string) => {
+    const target = bomCategoryToHighlight(cat);
+    setHighlight((prev) => (prev === target ? null : target));
+  };
+  // SVG 沒有 hanger 層,把 hanger 高亮映成 null(全亮)避免 SVG 全變暗
+  const svgHighlight: HighlightCategory =
+    highlight === "hanger" ? null : (highlight as HighlightCategory);
 
   const cuttingPlan = useMemo(
     () => computeCuttingPlan(bomToCuttingPieces(bom), stockLengthCm, sawKerfCm),
@@ -132,14 +149,14 @@ export function CeilingDevClient() {
               <div className="flex items-center gap-1 text-zinc-600">
                 <span>圖層</span>
                 {[
-                  { k: "room" as const, label: "房" },
-                  { k: "frame" as const, label: "邊" },
-                  { k: "main" as const, label: "主" },
-                  { k: "sub" as const, label: "副" },
-                  { k: "boards" as const, label: "板" },
+                  { k: "room" as const, label: "房間" },
+                  { k: "frame" as const, label: "邊框" },
+                  { k: "main" as const, label: "主支+吊筋" },
+                  { k: "sub" as const, label: "副支" },
+                  { k: "boards" as const, label: "矽酸鈣板" },
                 ].map(({ k, label }) => (
                   <button key={k} onClick={() => toggleLayer(k)}
-                    className={`w-7 h-7 rounded-md text-[11px] font-semibold transition ${
+                    className={`px-2 h-7 rounded-md text-[11px] font-medium transition ${
                       layers[k] ? "bg-amber-500 text-white shadow-sm shadow-amber-500/40" : "bg-stone-100 text-stone-400 hover:bg-stone-200"
                     }`}>
                     {label}
@@ -150,9 +167,9 @@ export function CeilingDevClient() {
           )}
           <div className="p-3 bg-gradient-to-br from-stone-50/40 via-transparent to-amber-50/20">
             {viewKind === "2d" ? (
-              <CeilingOverviewSvg bom={bom} />
+              <CeilingOverviewSvg bom={bom} highlight={svgHighlight} />
             ) : (
-              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} />
+              <LazyCeilingScene3D bom={bom} viewMode={view3D} explode={explode} layers={layers} highlight={highlight} />
             )}
           </div>
             </section>
@@ -242,9 +259,15 @@ export function CeilingDevClient() {
 
         {/* ============ BOM ============ */}
         <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-stone-100 flex items-center gap-2">
+          <div className="px-5 py-3.5 border-b border-stone-100 flex items-center gap-2 flex-wrap">
             <h2 className="text-sm font-semibold text-zinc-900">📋 材料清單</h2>
-            <span className="text-[11px] text-zinc-400">總計 {bom.items.length} 項</span>
+            <span className="text-[11px] text-zinc-400">總計 {bom.items.length} 項 · 點任一行高亮對應視覺</span>
+            {highlight && (
+              <button onClick={() => setHighlight(null)}
+                className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 transition">
+                清除高亮 ×
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -259,16 +282,27 @@ export function CeilingDevClient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {bom.items.map((it, i) => (
-                  <tr key={i} className="hover:bg-amber-50/30 transition">
-                    <td className="px-4 py-2.5"><CategoryBadge category={it.category} /></td>
-                    <td className="px-4 py-2.5 text-zinc-900 font-medium">{it.nameZh}</td>
-                    <td className="px-4 py-2.5 text-zinc-600 text-xs">{it.spec}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : "—"}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.totalLengthM != null ? `${it.totalLengthM} m` : "—"}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-bold text-amber-700">{it.count}</td>
-                  </tr>
-                ))}
+                {bom.items.map((it, i) => {
+                  const rowHigh = bomCategoryToHighlight(it.category);
+                  const isSelected = highlight !== null && rowHigh === highlight;
+                  const isOther = highlight !== null && rowHigh !== highlight;
+                  return (
+                    <tr key={i}
+                      onClick={() => toggleHighlight(it.category)}
+                      className={`cursor-pointer transition ${
+                        isSelected ? "bg-amber-50 ring-1 ring-amber-300" :
+                        isOther ? "opacity-40 hover:opacity-100" :
+                        "hover:bg-amber-50/30"
+                      }`}>
+                      <td className="px-4 py-2.5"><CategoryBadge category={it.category} /></td>
+                      <td className="px-4 py-2.5 text-zinc-900 font-medium">{it.nameZh}</td>
+                      <td className="px-4 py-2.5 text-zinc-600 text-xs">{it.spec}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.unitLengthCm != null ? `${it.unitLengthCm} cm` : "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-zinc-700">{it.totalLengthM != null ? `${it.totalLengthM} m` : "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-bold text-amber-700">{it.count}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

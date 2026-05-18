@@ -28,8 +28,19 @@ const PAD_LEFT = 60;    // cm,給左方短邊尺寸
 const PAD_RIGHT = 40;
 const PAD_BOTTOM = 40;
 
-export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
+export type HighlightCategory = "frame" | "main" | "sub" | "board" | null;
+
+export function CeilingOverviewSvg({
+  bom,
+  highlight = null,
+}: {
+  bom: CeilingBom;
+  highlight?: HighlightCategory;
+}) {
   const { input, trace } = bom;
+  // 高亮邏輯:有 highlight 時非匹配的 group 變淡
+  const dim = (key: Exclude<HighlightCategory, null>) =>
+    highlight && highlight !== key ? 0.12 : 1;
   const L = input.longSideCm;
   const S = input.shortSideCm;
   const tw = input.timberWidthCm;
@@ -77,10 +88,14 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
       </defs>
 
       {/* ────── 1. 房間範圍底色(矽酸鈣板覆蓋區) ────── */}
-      <rect x={x0} y={y0} width={L} height={S} fill="url(#board-hatch)" />
+      <g opacity={dim("board")}>
+        <rect x={x0} y={y0} width={L} height={S} fill="url(#board-hatch)" />
+      </g>
 
       {/* ────── 2. 矽酸鈣板分割線(虛線) ────── */}
-      {renderBoardCutLines(input, trace, x0, y0, x1, y1)}
+      <g opacity={dim("board")}>
+        {renderBoardCutLines(input, trace, x0, y0, x1, y1)}
+      </g>
 
       {/* ────── 3. 房間外框(虛線,牆面) ────── */}
       <rect
@@ -90,16 +105,15 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
       />
 
       {/* ────── 4. 邊框角材(4 條實心矩形,沿牆內側) ────── */}
-      {/* 上邊框 */}
-      <rect x={x0} y={y0} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
-      {/* 下邊框 */}
-      <rect x={x0} y={y1 - tw} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
-      {/* 左邊框 */}
-      <rect x={x0} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
-      {/* 右邊框 */}
-      <rect x={x1 - tw} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      <g opacity={dim("frame")}>
+        <rect x={x0} y={y0} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x0} y={y1 - tw} width={L} height={tw} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x0} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+        <rect x={x1 - tw} y={y0} width={tw} height={S} fill="#a16207" stroke="#78350f" strokeWidth={0.3} />
+      </g>
 
       {/* ────── 5. 主支角材(垂直矩形,跨短邊內側) ────── */}
+      <g opacity={dim("main")}>
       {trace.mainJoistCentersCm.map((c, idx) => {
         const cx = x0 + c;
         const isAbsorbed = absorbed.has(idx);
@@ -123,9 +137,12 @@ export function CeilingOverviewSvg({ bom }: { bom: CeilingBom }) {
           </g>
         );
       })}
+      </g>
 
       {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
-      {renderSubJoists(trace, x0, innerY0, tw)}
+      <g opacity={dim("sub")}>
+        {renderSubJoists(trace, x0, innerY0, tw)}
+      </g>
 
       {/* ────── 7. 尺寸標註 ────── */}
       {/* 長邊 — 頂部 */}
