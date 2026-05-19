@@ -499,7 +499,8 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
                 z: boxHRow / 2 - (6 + drawerBottomT / 2),
               },
               depth: 6,
-              length: drawerInnerW + 4,
+              // 跟底板 X length=drawerInnerW+12 對齊（前 +4 太短、底板 corner 撞前板實心區顯紅）
+              length: drawerInnerW + 12,
               width: drawerBottomT,
               through: false,
               cosmetic: true,
