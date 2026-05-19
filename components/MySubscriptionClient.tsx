@@ -259,7 +259,7 @@ function PaidPlanSection({
         >
           <p className="text-xs text-[#7c4f1a] leading-relaxed">
             已停止自動扣款。{formatDate(expiresAt)} 之前仍可使用，之後自動降為免費版。
-            想恢復可隨時到 <Link href="/pricing" className="underline">/pricing</Link> 重新訂閱。
+            想恢復可隨時到 <Link href="/pricing" className="underline">方案頁</Link>重新訂閱。
           </p>
         </div>
       )}
