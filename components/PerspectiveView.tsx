@@ -20,6 +20,7 @@ import {
   woodCompileZWide,
   WIDE_BOARD_THRESHOLD_MM,
 } from "@/components/wood-shader";
+import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 // Apply Euler XYZ (intrinsic Rx → Ry → Rz) to a local vector. Matches the
 // rotation order used inline below for tenon mesh placement and the order
@@ -266,6 +267,7 @@ function Part({
   mortiseShapes,
   dovetailCuts,
   isSelected,
+  isHovered,
   isDimmed,
   wireframe,
 }: {
@@ -288,14 +290,19 @@ function Part({
   dovetailCuts?: Brush[];
   /** 選中：本體 emissive 黃光，最強視覺提示 */
   isSelected?: boolean;
+  /** Hover（參數列 hover 觸發）：暗一點的 emissive 黃光，預覽提示 */
+  isHovered?: boolean;
   /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
   isDimmed?: boolean;
   /** 線框模式：所有 face 變骨架線 */
   wireframe?: boolean;
 }) {
-  // 高亮配色（選中：amber-400 emissive；變灰：opacity 0.18）
+  // 高亮配色（選中：amber-400 emissive 強；hover：同色但弱，預覽用）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
   const HIGHLIGHT_INTENSITY = 0.55;
+  const HOVER_INTENSITY = 0.4;
+  const isHighlighted = isSelected || isHovered;
+  const highlightIntensity = isSelected ? HIGHLIGHT_INTENSITY : (isHovered ? HOVER_INTENSITY : 0);
   const DIM_OPACITY = 0.18;
   // 木紋順著零件 grain 軸（length 沿 local X、width 沿 local Z）。
   // 依「跨紋方向尺寸」選 wide（山形紋）或 narrow（直紋）：寬板 plain-sawn
@@ -611,8 +618,8 @@ function Part({
           transparent
           opacity={isDimmed ? 0.12 : 0.35}
           depthWrite={false}
-          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+          emissiveIntensity={highlightIntensity}
         />
       </mesh>
     );
@@ -630,8 +637,8 @@ function Part({
           transparent
           opacity={isDimmed ? DIM_OPACITY : 1}
           depthWrite={!isDimmed && !wireframe}
-          emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-          emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+          emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+          emissiveIntensity={highlightIntensity}
         />
       </mesh>
     );
@@ -686,8 +693,8 @@ function Part({
         transparent
         opacity={isDimmed ? DIM_OPACITY : 1}
         depthWrite={!isDimmed && !wireframe}
-        emissive={isSelected ? HIGHLIGHT_EMISSIVE : "#000000"}
-        emissiveIntensity={isSelected ? HIGHLIGHT_INTENSITY : 0}
+        emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
+        emissiveIntensity={highlightIntensity}
       />
     </mesh>
   );
@@ -2608,6 +2615,9 @@ export function PerspectiveView({
   hidePartIds?: string[];
 }) {
   const [viewPreset, setViewPreset] = useState<ViewPreset | null>(null);
+  // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
+  // 沒 provider 也 fallback 空集合，hook 不會 throw
+  const { hoveredPartIds } = useHoveredParts();
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
   const maxDim = Math.max(
@@ -3655,6 +3665,8 @@ export function PerspectiveView({
           // 選中：本體 emissive 黃光；其他零件半透明變灰（聚焦選中件）
           const isSelected = selectedPartId === part.id;
           const isDimmed = selectedPartId !== null && !isSelected;
+          // Hover 預覽（Bot B）：context 命中即發弱光；不影響 dim 行為（hover 不該讓其他件變灰）
+          const isHovered = hoveredPartIds.has(part.id);
           // Audit mode：overlap part 加紅色半透明 wireframe overlay box
           const auditOverlay = overlapIds.has(part.id) ? (
             <mesh
@@ -3738,6 +3750,7 @@ export function PerspectiveView({
                 mortiseShapes={mortiseShapesArr}
                 dovetailCuts={partDovetailCuts}
                 isSelected={isSelected}
+                isHovered={isHovered}
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
               />

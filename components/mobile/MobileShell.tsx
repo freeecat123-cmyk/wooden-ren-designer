@@ -15,6 +15,7 @@ import { SizePresetButtons } from "@/components/design/SizePresetButtons";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { SaveDesignButton } from "@/components/SaveDesignButton";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
+import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
 import { MobileTopBar } from "./MobileTopBar";
 import { StickyBottomBar } from "./StickyBottomBar";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -131,6 +132,7 @@ export function MobileShell(props: MobileShellProps) {
 
   return (
     <SelectedPartProvider>
+    <HoveredPartsProvider>
     <div className="md:hidden min-h-screen bg-zinc-50 pb-24">
       <MobileTopBar
         title={entry.nameZh}
@@ -476,6 +478,7 @@ export function MobileShell(props: MobileShellProps) {
         }}
       />
     </div>
+    </HoveredPartsProvider>
     </SelectedPartProvider>
   );
 }
