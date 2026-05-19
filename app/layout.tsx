@@ -8,6 +8,7 @@ import { StudentWelcomeModal } from "@/components/StudentWelcomeModal";
 import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "木頭仁",
+    title: "木作藍圖",
     statusBarStyle: "default",
   },
   icons: {
@@ -62,7 +63,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#8B4513",
+  themeColor: "#1e3a5f",
 };
 
 export default async function RootLayout({
@@ -122,6 +123,7 @@ export default async function RootLayout({
           <SiteFooter />
           <BugReportFab />
           <StudentWelcomeModal />
+          <ServiceWorkerRegister />
         </AuthProvider>
       </body>
     </html>

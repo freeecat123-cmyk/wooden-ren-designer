@@ -1,14 +1,15 @@
 {
-  "name": "木頭仁工程圖生成器",
-  "short_name": "木頭仁",
-  "description": "從尺寸到圖紙，三秒完成 — 木頭仁木匠學院出品。",
+  "name": "木頭仁 木作藍圖",
+  "short_name": "木作藍圖",
+  "description": "從尺寸到圖紙,三秒鐘完成 — 木頭仁木匠學院出品的家具/木作工程圖生成器。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#FAF6F0",
-  "theme_color": "#8B4513",
+  "orientation": "any",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
   "lang": "zh-Hant",
+  "categories": ["productivity", "design", "utilities"],
   "icons": [
     {
       "src": "/icon.svg",
