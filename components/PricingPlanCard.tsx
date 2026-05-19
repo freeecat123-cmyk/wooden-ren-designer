@@ -225,7 +225,7 @@ export function PlanCardView({
         }
 
         // 升級 → 走 checkout(server 端會先 cancel 舊 sub)
-        const ctaText = isUpgrade ? "升級到此方案(送本期重疊)" : plan.cta;
+        const ctaText = isUpgrade ? "立刻升級" : plan.cta;
         return (
           <form method="POST" action="/api/checkout" className="mt-5">
             <input type="hidden" name="plan" value={plan.id} />
@@ -240,6 +240,11 @@ export function PlanCardView({
             >
               {ctaText}
             </button>
+            {isUpgrade && (
+              <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
+                你目前方案的剩餘天數仍可用,新方案會立刻啟用(等於這段時間兩個方案都生效)
+              </p>
+            )}
           </form>
         );
       })()}
