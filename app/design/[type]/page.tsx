@@ -11,6 +11,7 @@ import { AutoSubmitCheckbox } from "@/components/AutoSubmitCheckbox";
 import type { FurnitureCategory, FurnitureDesign, MaterialId, OptionDependency, OptionSpec } from "@/lib/types";
 import { MaterialListWithSelection } from "@/components/MaterialListWithSelection";
 import { SelectedPartProvider } from "@/components/SelectedPartContext";
+import { HoveredPartsProvider } from "@/components/HoveredPartsContext";
 import { Material3dPip } from "@/components/Material3dPip";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
@@ -381,6 +382,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           desktop = 左參數右 3D（3D sticky top-4）
           mobile = 3D 黏頂端 sticky（高度 40vh），參數表單在下方捲動 */}
       <SelectedPartProvider>
+      <HoveredPartsProvider>
       <section className="lg:grid lg:grid-cols-[5fr_7fr] gap-4">
         {/* 3D 區塊：DOM 第一順位 → mobile 自動在上；desktop 用 grid 顯式放到右欄 row 1 */}
         <div
@@ -478,6 +480,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </Material3dPip>
         </div>
       </details>
+      </HoveredPartsProvider>
       </SelectedPartProvider>
 
       <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
