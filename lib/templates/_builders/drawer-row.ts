@@ -669,24 +669,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           ? (zFront + zBack) / 2
           : (drawerBottomFrontEdgeZ + drawerBottomRearEdgeZ) / 2,
       },
-      tenons: isSurfaceDrawerBottom
-        ? []
-        : [
-            {
-              position: "start",
-              type: "tongue-and-groove",
-              length: 6,
-              width: drawerInnerD - 4,
-              thickness: drawerBottomT,
-            },
-            {
-              position: "end",
-              type: "tongue-and-groove",
-              length: 6,
-              width: drawerInnerD - 4,
-              thickness: drawerBottomT,
-            },
-          ],
+      // 入溝底板：body 已 +12（左右各 +6mm 卡到槽底）、無需 tenons 再外推；
+      // 加 tenons 反而會超出側板槽底 6mm 深、戳進實心側板（紅榫頭 bug）。
+      tenons: [],
       mortises: [],
     });
    }
