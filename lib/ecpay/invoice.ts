@@ -172,13 +172,23 @@ function buildIssueData(input: IssueInvoiceInput): Record<string, unknown> {
   };
 
   if (isCompany) {
-    return {
+    // 公司戶開立(統編):綠界對 Print="0" + CarrierType="" 的組合會 reject
+    // 「RtnCode=5000028 客戶資訊已填入統編,須請選擇載具類別」。
+    //
+    // 兩個正解:
+    //   1. Print="1" 列印紙本(需 CustomerAddr 寄送地址)
+    //   2. Print="0" + 綠界後台啟用「公司戶自動歸戶」(賣家手動設定)
+    //
+    // 走 1 較通用 — 公司戶會收到紙本發票郵寄到登記地址。CarrierType **完全不送**
+    // (不送 != 送空字串,綠界對「送空字串」會當成「user 想選但沒選好」抛 reject)。
+    const out: Record<string, unknown> = {
       ...base,
       CustomerIdentifier: pref.taxId,
       CustomerName: pref.title,
-      Print: "0", // 雲端發票（綠界仍會寄 email 跟給財政部）
-      CarrierType: "", // 統編 + 載具不可並存
+      Print: "1",
     };
+    if (pref.companyAddr) out.CustomerAddr = pref.companyAddr;
+    return out;
   }
 
   // 個人：載具優先順序 手機條碼 > 綠界會員載具 > 無

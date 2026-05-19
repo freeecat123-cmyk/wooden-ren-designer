@@ -52,6 +52,8 @@ export type InvoicePreference = {
   taxId?: string;
   /** 公司抬頭，type=company 必填 */
   title?: string;
+  /** 公司登記地址,公司戶紙本發票郵寄用(可選,缺省時綠界用 MerchantID 預設地址) */
+  companyAddr?: string;
   /** 載具類型：mobile=手機條碼 / member=綠界會員載具 */
   carrierType?: "mobile" | "member";
   /** 手機條碼（8 碼，格式 /XXX+XXX），carrierType=mobile 必填 */
