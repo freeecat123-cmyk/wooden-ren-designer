@@ -103,6 +103,14 @@ export async function PATCH(
   }
 
   const svc = getServiceSupabase();
+
+  // 先撈 before snapshot 寫進 admin_actions
+  const { data: before } = await svc
+    .from("users")
+    .select("id, email, plan, subscription_status, subscription_expires_at, student_expires_at")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await svc
     .from("users")
     .update(update)
@@ -113,6 +121,18 @@ export async function PATCH(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // 寫 audit log,失敗不擋(只 log)
+  const { error: auditErr } = await svc.from("admin_actions").insert({
+    actor_email: check.email,
+    action: "user_plan_change",
+    target_user_id: id,
+    target_email: data?.email ?? before?.email ?? null,
+    before_state: before ?? null,
+    after_state: data ?? null,
+    reason: body.reason ?? null,
+  });
+  if (auditErr) console.warn("[admin/users/plan] audit log failed", auditErr);
 
   console.log("[admin/users/plan] updated", {
     adminEmail: check.email,

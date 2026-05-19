@@ -219,6 +219,16 @@ export function UsersAdminClient() {
   );
 }
 
+interface AuditRow {
+  id: string;
+  actor_email: string;
+  action: string;
+  before_state: { plan?: string; subscription_status?: string } | null;
+  after_state: { plan?: string; subscription_status?: string } | null;
+  reason: string | null;
+  created_at: string;
+}
+
 function EditPlanModal({
   user,
   onClose,
@@ -238,6 +248,27 @@ function EditPlanModal({
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [audit, setAudit] = useState<AuditRow[] | null>(null);
+  const [auditLoading, setAuditLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/users/${user.id}/audit`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const j = (await res.json()) as { rows?: AuditRow[] };
+        if (!cancelled) setAudit(j.rows ?? []);
+      } catch {
+        if (!cancelled) setAudit([]);
+      } finally {
+        if (!cancelled) setAuditLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id]);
 
   async function handleSave() {
     if (saving) return;
@@ -363,6 +394,41 @@ function EditPlanModal({
             {err}
           </div>
         )}
+
+        {/* 修改歷史 — debug「user.plan 怎麼變的」 */}
+        <details className="mb-3 border border-zinc-200 rounded">
+          <summary className="text-xs cursor-pointer px-2 py-1.5 bg-zinc-50 text-zinc-700 hover:bg-zinc-100">
+            📜 修改歷史 {audit ? `(${audit.length} 筆)` : ""}
+          </summary>
+          <div className="p-2 max-h-48 overflow-y-auto text-[11px]">
+            {auditLoading && <p className="text-zinc-400">載入中…</p>}
+            {!auditLoading && audit && audit.length === 0 && (
+              <p className="text-zinc-400">沒有歷史紀錄(這個 user 之前沒被 admin 改過 plan)。</p>
+            )}
+            {!auditLoading && audit && audit.length > 0 && (
+              <ul className="space-y-1.5">
+                {audit.map((row) => {
+                  const before = row.before_state?.plan ?? "?";
+                  const after = row.after_state?.plan ?? "?";
+                  return (
+                    <li key={row.id} className="border-l-2 border-zinc-300 pl-2 py-0.5">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-mono text-zinc-800">
+                          {before} → <strong>{after}</strong>
+                        </span>
+                        <span className="text-zinc-500 tabular-nums">
+                          {row.created_at.slice(0, 16).replace("T", " ")}
+                        </span>
+                      </div>
+                      <div className="text-zinc-600">by {row.actor_email}</div>
+                      {row.reason && <div className="text-zinc-500 italic">「{row.reason}」</div>}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </details>
 
         <div className="flex justify-end gap-2">
           <button
