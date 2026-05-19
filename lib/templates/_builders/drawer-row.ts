@@ -660,22 +660,17 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       //   延伸區做 crenellated tail。z center 維持 sideZCenter（body 中段）。
       // - lap（搭接）：body 蓋滿前後板（drawerOuterD）、z center 推到 drawer
       //   外部中心、無 shape、前後板被夾在中間。
+      const sideLength = isDovetailJoint
+        ? drawerInnerD + 2 * dovetailPinDepth
+        : drawerOuterD;
       // 全搭接：側板蓋滿前後板（front 邊緣到 back 邊緣）
       const sideZCenterLap =
         (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
-      // 半搭接：side 必須夾在前 rabbet 底（zFront + drawerFrontT/2 - rabbet）跟
-      // 後板背面（zBack + drawerBackT/2）之間。
-      //   length = drawerOuterD - (drawerFrontT - rabbet) = drawerOuterD - halfLapShift
-      //   z center 從 sideZCenterLap 推 halfLapShift / 2（不是整個 halfLapShift）
-      // 前 commit 推 halfLapShift（=12）但 length 沒短 → 後緣超出後板 12mm 重疊。
+      // 半搭接：側板要躲進前板覆蓋的 2/3 內側。rabbet 從背面切 1/3、剩 2/3 的
+      // 前板材料覆蓋 → side z 要往後推 (drawerFrontT - rabbet) = 2/3 厚 = 12mm。
+      // 之前推 rabbet 深度（=1/3）太少、side 跟前板還會重疊 6mm（user 反映）。
       const halfLapSideShift = drawerFrontT - halfLapRabbetDepth;
-      const sideLengthHalfLap = drawerOuterD - halfLapSideShift;
-      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift / 2;
-      const sideLength = useHalfLap
-        ? sideLengthHalfLap
-        : isDovetailJoint
-          ? drawerInnerD + 2 * dovetailPinDepth
-          : drawerOuterD;
+      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift;
       const effectiveSideZCenter = useHalfLap
         ? sideZCenterHalfLap
         : isLapJoint
