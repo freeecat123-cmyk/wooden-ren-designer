@@ -17,14 +17,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { GRACE_PERIOD_DAYS, GRACE_PERIOD_MS } from "@/lib/pricing/expiry";
+import { timingSafeEqualStr } from "@/lib/security/timing-safe-equal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
-  if (!process.env.CRON_SECRET || auth !== expected) {
+  const auth = req.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret || !timingSafeEqualStr(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

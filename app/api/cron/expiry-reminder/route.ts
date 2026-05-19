@@ -21,6 +21,7 @@ import {
   downgradedEmail,
   planLabelFromUserPlan,
 } from "@/lib/email/templates/subscription-expiry";
+import { timingSafeEqualStr } from "@/lib/security/timing-safe-equal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,11 +53,9 @@ function classify(
 }
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (
-    !process.env.CRON_SECRET ||
-    auth !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  const auth = req.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret || !timingSafeEqualStr(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
