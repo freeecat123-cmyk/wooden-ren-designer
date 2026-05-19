@@ -801,7 +801,7 @@ function ParameterForm({
       </div>
       <SizePresetButtons category={type as FurnitureCategory} />
       <HeightToSizeButton category={type as FurnitureCategory} />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 items-end">
         {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
         <NumberInput
           key={`length-${defaults.length}`}
