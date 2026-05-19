@@ -237,11 +237,14 @@ export function resolveDrawerBottomMode(
  * - 3mm：薄夾板、釘底裝潢慣例、最輕
  * - 6mm：入溝家具標準、實用平衡
  * - 9mm：較厚、抽屜載重需求高（重物 / 大抽屜）
- * - 12mm：實木底板等級、需配 ≥18mm 抽屜側板（不然入溝會把側板挖空）
+ * - 12mm：實木底板等級
+ *
+ * 入溝槽深固定 6mm 不挖穿 14mm 側板（剩 8mm 壁），groove vertical extent
+ * 自動 = drawerBottomT + 1mm tolerance。
  *
  * 影響：drawer-row.ts 內 box 高度公式（front extra / back panel reduction
- * / side panel groove width）全部由 drawerBottomT 一個變數帶、改厚度時
- * 自動同步、不必另外調 drawer frame 高度。
+ * / side panel groove vertical extent）全部由 drawerBottomT 一個變數帶、
+ * 改厚度時自動同步、不必另外調 drawer frame 高度。
  */
 export const drawerBottomThicknessOption: OptionSpec = {
   group: "drawer",
@@ -253,7 +256,7 @@ export const drawerBottomThicknessOption: OptionSpec = {
     { value: "3", label: "3mm（薄夾板，最輕）" },
     { value: "6", label: "6mm（標準，入溝家具最常用）" },
     { value: "9", label: "9mm（加強，大抽屜或重物）" },
-    { value: "12", label: "12mm（實木底，需配 ≥18mm 側板）" },
+    { value: "12", label: "12mm（實木底，最重）" },
   ],
   dependsOn: ANY_ZONE_IS_DRAWER,
 };

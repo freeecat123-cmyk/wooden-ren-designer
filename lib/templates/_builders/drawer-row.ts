@@ -313,15 +313,14 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   }
 
   const drawerFrontT = 18;
+  const drawerSideT = 14;
   const drawerBackT = 12;
   const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
   const isSurfaceDrawerBottom = drawerBottomMode === "surface";
+  // 入溝槽深固定 6mm（吃進側板厚度），不管底板多厚都不會挖穿 14mm 側板。
+  // mortise.width = drawerBottomT + 1 是槽「在側板面上的高度」（讓底板厚度塞得進）
+  // 不是往側板厚度方向挖多深、跟側板厚度無關。
   const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
-  // 入溝底板 12mm 寬槽會把 14mm 側板挖到剩 1mm 壁——自動加厚側板
-  // （槽深固定 6mm 不變、槽寬 = drawerBottomT + 1）。每邊壁至少留 3mm。
-  const drawerSideT = isSurfaceDrawerBottom
-    ? 14
-    : Math.max(14, drawerBottomT + 7);
   const drawerGap = 2;
   const partitionT = cols > 1 ? panelT : 0;
   const totalPartitionW = (cols - 1) * partitionT;

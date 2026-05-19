@@ -62,7 +62,7 @@ export interface CaseFurnitureOpts {
    *  預設 "surface"。 */
   drawerBottomMode?: "surface" | "rebated";
   /** 抽屜底板厚度 mm（3/6/9/12）。釘底/入溝皆套用此厚度。
-   *  入溝 ≥9mm 會自動加厚側板（drawer-row 內處理）。 */
+   *  入溝槽深固定 6mm 不影響側板強度、底板厚度只決定槽的「垂直高度」。 */
   drawerBottomThickness?: number;
   /** 背板作法：
    *  - "surface" 表面釘背：薄板（預設 3mm 夾板）直接釘/鎖在櫃體背面，
