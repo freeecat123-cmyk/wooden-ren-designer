@@ -2555,8 +2555,7 @@ export function CompoundMiterLabel({
         fill="#222"
         textAnchor={side === "start" ? "start" : "end"}
       >
-        {side === "start" ? "S" : "E"} 複斜切 α₁ {primaryDeg.toFixed(1)}° α₂{" "}
-        {secondaryDeg.toFixed(1)}°
+        {side === "start" ? "起" : "尾"}端複斜切　寬面 {primaryDeg.toFixed(1)}°　窄面 {secondaryDeg.toFixed(1)}°
       </text>
     </g>
   );
