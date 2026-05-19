@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 interface PresetPoint {
   value: number;
@@ -51,8 +52,15 @@ export function RangeInput({
   dynamicMaxHint,
   partIds,
 }: RangeInputProps) {
-  // partIds 目前只作為 prop 通道；用一下避免 TS noUnused 警告
-  void partIds;
+  // Part anchor hover/focus → 3D 對應件 emissive 高亮
+  const { setHoveredPartIds } = useHoveredParts();
+  const hasAnchor = !!(partIds && partIds.length > 0);
+  const handleEnter = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(partIds!);
+  }, [hasAnchor, partIds, setHoveredPartIds]);
+  const handleLeave = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(null);
+  }, [hasAnchor, setHoveredPartIds]);
 
   const [value, setValue] = useState<number>(defaultValue);
   const [editing, setEditing] = useState(false);
@@ -115,7 +123,12 @@ export function RangeInput({
   };
 
   return (
-    <div className="text-sm" title={help}>
+    <div
+      className="text-sm"
+      title={help}
+      onPointerEnter={hasAnchor ? handleEnter : undefined}
+      onPointerLeave={hasAnchor ? handleLeave : undefined}
+    >
       <div className="flex items-center gap-3">
         <span className="text-zinc-700 font-medium shrink-0 w-16">{label}</span>
 
@@ -143,6 +156,8 @@ export function RangeInput({
             step={step}
             value={value}
             onChange={(e) => setValue(Number(e.target.value))}
+            onFocus={hasAnchor ? handleEnter : undefined}
+            onBlur={hasAnchor ? handleLeave : undefined}
             className="w-full accent-violet-600 h-6 cursor-grab"
           />
           {ticks && ticks.length > 0 && (

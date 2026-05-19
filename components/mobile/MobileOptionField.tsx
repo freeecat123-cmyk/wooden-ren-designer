@@ -2,6 +2,7 @@
 
 import type { OptionSpec, OptionDependency } from "@/lib/types";
 import { RangeInput } from "./RangeInput";
+import { resolvePartIds } from "@/lib/design/option-part-map";
 
 export function evalDep(
   dep: OptionDependency,
@@ -28,6 +29,8 @@ interface MobileOptionFieldProps {
   overallHeight?: number;
   /** 家具整體長度（mm）。給橫向欄寬欄位（leftWidthMm 等）動態夾 max 用。 */
   overallLength?: number;
+  /** 所有 3D part.id，用於把 spec.key 對應到部件 hover 高亮。 */
+  allPartIds?: string[];
 }
 
 /** key 看起來是「高度類」欄位嗎？用來決定是否要夾 overallHeight 上限。
@@ -88,7 +91,7 @@ function computeColumnWidthMax(
   return null;
 }
 
-export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength }: MobileOptionFieldProps) {
+export function MobileOptionField({ spec, value, allValues, overallHeight, overallLength, allPartIds }: MobileOptionFieldProps) {
   if (spec.type === "number") {
     const rawMax = spec.max ?? 9999;
     let cappedMax =
@@ -125,6 +128,9 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
       const dynamicMax = Math.max(spec.min ?? 80, innerCap - otherSum);
       cappedMax = Math.min(cappedMax, dynamicMax);
     }
+    const partIds = allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined;
+    const dynamicMaxHint =
+      cappedMax < rawMax ? `上限 ${cappedMax}（鎖總高）` : undefined;
     return (
       <RangeInput
         name={spec.key}
@@ -135,6 +141,8 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
         max={cappedMax}
         step={spec.step ?? 1}
         help={spec.help}
+        partIds={partIds}
+        dynamicMaxHint={dynamicMaxHint}
       />
     );
   }

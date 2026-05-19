@@ -27,6 +27,7 @@ import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
+import { resolvePartIds } from "@/lib/design/option-part-map";
 import { ErgoHints } from "@/components/ErgoHints";
 import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
@@ -413,6 +414,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             joineryMode={joineryMode}
             designerMode={designerMode}
             canUseDesignerMode={canUseDesignerMode}
+            allPartIds={design.parts.map((p) => p.id)}
           />
         </div>
       </section>
@@ -670,6 +672,7 @@ function ParameterForm({
   joineryMode,
   designerMode,
   canUseDesignerMode,
+  allPartIds,
 }: {
   type: string;
   defaults: { length: number; width: number; height: number; material: MaterialId };
@@ -679,6 +682,7 @@ function ParameterForm({
   joineryMode: boolean;
   designerMode: boolean;
   canUseDesignerMode: boolean;
+  allPartIds: string[];
 }) {
   return (
     <DesignFormShell
@@ -799,9 +803,31 @@ function ParameterForm({
       <HeightToSizeButton category={type as FurnitureCategory} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
-        <NumberInput key={`length-${defaults.length}`} name="length" label="寬 (mm)" defaultValue={defaults.length} max={limits?.length} />
-        <NumberInput key={`width-${defaults.width}`} name="width" label="深 (mm)" defaultValue={defaults.width} max={limits?.width} />
-        <NumberInput key={`height-${defaults.height}`} name="height" label="高 (mm)" defaultValue={defaults.height} max={limits?.height} />
+        <NumberInput
+          key={`length-${defaults.length}`}
+          name="length"
+          label="寬 (mm)"
+          defaultValue={defaults.length}
+          max={limits?.length}
+          partIds={resolvePartIds("length", allPartIds)}
+        />
+        <NumberInput
+          key={`width-${defaults.width}`}
+          name="width"
+          label="深 (mm)"
+          defaultValue={defaults.width}
+          max={limits?.width}
+          partIds={resolvePartIds("width", allPartIds)}
+        />
+        <NumberInput
+          key={`height-${defaults.height}`}
+          name="height"
+          label="高 (mm)"
+          defaultValue={defaults.height}
+          max={limits?.height}
+          partIds={resolvePartIds("height", allPartIds)}
+          presetPoints={getHeightPresetsForCategory(type)}
+        />
         <label className="flex flex-col text-xs">
           <span className="text-zinc-600 mb-1">木材</span>
           <select
@@ -866,6 +892,7 @@ function ParameterForm({
             joineryMode={joineryMode}
             overallHeight={defaults.height}
             overallLength={defaults.length}
+            allPartIds={allPartIds}
           />
         </>
       )}
@@ -915,12 +942,14 @@ function GroupedOptionFields({
   joineryMode,
   overallHeight,
   overallLength,
+  allPartIds,
 }: {
   optionSchema: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   joineryMode: boolean;
   overallHeight?: number;
   overallLength?: number;
+  allPartIds?: string[];
 }) {
   // legPenetratingTenon 只在榫接版有意義（組裝版根本不畫榫頭），組裝版隱藏避免混淆
   const visibleSchema = optionSchema.filter(
@@ -969,7 +998,7 @@ function GroupedOptionFields({
                     key={`${spec.key}-${String(optionValues[spec.key])}`}
                     className={isWide ? "col-span-2 md:col-span-3 lg:col-span-3" : ""}
                   >
-                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} />
+                    <OptionField spec={spec} value={optionValues[spec.key]} allValues={optionValues} overallHeight={overallHeight} overallLength={overallLength} allPartIds={allPartIds} />
                   </div>
                 );
               })}
@@ -987,12 +1016,14 @@ function OptionField({
   allValues,
   overallHeight,
   overallLength,
+  allPartIds,
 }: {
   spec: OptionSpec;
   value: string | number | boolean;
   allValues?: Record<string, string | number | boolean>;
   overallHeight?: number;
   overallLength?: number;
+  allPartIds?: string[];
 }) {
   const choiceVisible = (
     dep: import("@/lib/types").OptionDependency | undefined,
@@ -1065,16 +1096,23 @@ function OptionField({
             max={effectiveMax}
             step={spec.step ?? 1}
             className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+            partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
+            showPlusMinus
+            dynamicMaxHint={
+              effectiveMax !== spec.max
+                ? `上限 ${effectiveMax}${isLockedZone ? "（鎖總高）" : ""}`
+                : undefined
+            }
           />
         ) : (
-          <input
-            type="number"
+          <ClampedNumberInput
             name={spec.key}
             defaultValue={String(value)}
             min={spec.min}
             max={effectiveMax}
             step={spec.step ?? 1}
             className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+            partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
           />
         )}
         {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
@@ -1152,30 +1190,58 @@ function OptionField({
   );
 }
 
+/**
+ * family-aware 高度預設值（mm）。
+ * 只給「高」一個維度，避免桌機畫面塞太擠。
+ */
+function getHeightPresetsForCategory(type: string): { value: number; label: string }[] {
+  const t = type.toLowerCase();
+  if (t.includes("dining-table") || t.includes("desk") || t.includes("workbench")) {
+    return [{ value: 720, label: "餐桌" }, { value: 760, label: "工作" }];
+  }
+  if (t.includes("bar")) {
+    return [{ value: 1050, label: "吧台" }, { value: 750, label: "餐桌" }];
+  }
+  if (t.includes("chair") || t.includes("stool") || t.includes("bench")) {
+    return [{ value: 450, label: "餐椅" }, { value: 750, label: "吧凳" }];
+  }
+  if (t.includes("coffee-table") || t.includes("side-table") || t.includes("nightstand")) {
+    return [{ value: 420, label: "茶几" }, { value: 550, label: "床頭" }];
+  }
+  if (t.includes("bookcase") || t.includes("shelf") || t.includes("cabinet")) {
+    return [{ value: 1800, label: "高櫃" }, { value: 900, label: "矮櫃" }];
+  }
+  return [];
+}
+
 function NumberInput({
   name,
   label,
   defaultValue,
   max,
+  partIds,
+  presetPoints,
 }: {
   name: string;
   label: string;
   defaultValue: number;
   max?: number;
+  partIds?: string[];
+  presetPoints?: { value: number; label: string }[];
 }) {
   return (
     <label className="flex flex-col text-xs">
       <span className="text-zinc-600 mb-1">{label}{max ? ` · 上限 ${max}` : ""}</span>
-      <input
-        type="number"
+      <ClampedNumberInput
         name={name}
         defaultValue={defaultValue}
         min={20}
         max={max ?? 4000}
         step={5}
-        inputMode="numeric"
-        pattern="[0-9]*"
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+        partIds={partIds}
+        presetPoints={presetPoints}
+        showPlusMinus
       />
     </label>
   );

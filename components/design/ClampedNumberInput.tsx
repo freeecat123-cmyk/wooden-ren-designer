@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 interface PresetPoint {
   value: number;
@@ -46,8 +47,17 @@ export function ClampedNumberInput({
   partIds,
   ticks,
 }: Props) {
-  void partIds;
   void ticks;
+
+  // Part anchor hover/focus → 3D 對應件 emissive 高亮
+  const { setHoveredPartIds } = useHoveredParts();
+  const hasAnchor = !!(partIds && partIds.length > 0);
+  const handleEnter = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(partIds!);
+  }, [hasAnchor, partIds, setHoveredPartIds]);
+  const handleLeave = useCallback(() => {
+    if (hasAnchor) setHoveredPartIds(null);
+  }, [hasAnchor, setHoveredPartIds]);
 
   const [value, setValue] = useState<string>(String(defaultValue));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +121,7 @@ export function ClampedNumberInput({
     dynamicMaxHint ||
     label;
 
-  // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變
+  // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變（hover 接線除外）
   if (!hasExtras) {
     return (
       <input
@@ -119,12 +129,16 @@ export function ClampedNumberInput({
         name={name}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onFocus={hasAnchor ? handleEnter : undefined}
         onBlur={(e) => {
+          if (hasAnchor) handleLeave();
           const n = Number(e.target.value);
           if (!Number.isFinite(n)) return;
           if (max !== undefined && n > max) setValue(String(max));
           else if (min !== undefined && n < min) setValue(String(min));
         }}
+        onPointerEnter={hasAnchor ? handleEnter : undefined}
+        onPointerLeave={hasAnchor ? handleLeave : undefined}
         min={min}
         max={max}
         step={step}
@@ -134,7 +148,11 @@ export function ClampedNumberInput({
   }
 
   return (
-    <span className="inline-flex flex-col">
+    <span
+      className="inline-flex flex-col"
+      onPointerEnter={hasAnchor ? handleEnter : undefined}
+      onPointerLeave={hasAnchor ? handleLeave : undefined}
+    >
       <span className="inline-flex items-center gap-2">
         {label && (
           <span className="text-zinc-700 font-medium shrink-0 w-16 text-sm">
@@ -163,7 +181,9 @@ export function ClampedNumberInput({
           name={name}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onFocus={hasAnchor ? handleEnter : undefined}
           onBlur={(e) => {
+            if (hasAnchor) handleLeave();
             const n = Number(e.target.value);
             if (!Number.isFinite(n)) return;
             if (max !== undefined && n > max) setValue(String(max));
