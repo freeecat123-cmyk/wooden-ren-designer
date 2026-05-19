@@ -251,7 +251,9 @@ function CeilingToolCard() {
           alt="天花板骨架 3D 爆炸圖"
           width={240}
           height={180}
-          quality={80}
+          quality={75}
+          loading="lazy"
+          sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
           style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
         />
       </div>
@@ -318,7 +320,9 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
         alt={`${item.nameZh} 3D 預覽`}
         width={240}
         height={180}
-        quality={80}
+        quality={75}
+        loading="lazy"
+        sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
         style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
       />
     </div>
