@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
     expires_at: null,
     ecpay_merchant_trade_no: orderId,
     expected_amount: amount,
+    period,
   });
   if (subErr) {
     console.error("[checkout] insert subscription failed", subErr);

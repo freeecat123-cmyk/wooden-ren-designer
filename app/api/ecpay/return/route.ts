@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, status, expected_amount")
+    .select("id, user_id, plan, status, expected_amount, period")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -117,8 +117,6 @@ export async function POST(req: NextRequest) {
     return new Response("1|OK");
   }
 
-  const periodic = isPeriodicReturn(params);
-
   // 驗金額：用 checkout 時寫進 sub.expected_amount 直接比對
   // （student tier 走 basePlan 不會被 hardcode price 表卡住）
   // expected_amount 缺值 → reject（舊資料或攻擊）
@@ -128,13 +126,21 @@ export async function POST(req: NextRequest) {
       got: amount,
       expected: sub.expected_amount,
       plan: sub.plan,
-      periodic,
+      period: sub.period,
     });
     return new Response("0|AmountMismatch", { status: 200 });
   }
 
-  // 月扣定期定額 → 給 31 天緩衝（綠界月扣會在 30 天時自動扣下一期）
-  // 年付一次性 → 365 天
+  // 以 checkout 時寫的 sub.period 為準決定到期日 — 不從綠界回呼欄位反推。
+  // 為什麼：ReturnURL 對「一次性付款」與「定期定額首期」回的欄位是一樣的
+  // （都是普通信用卡欄位，不會帶 PeriodType），所以無法用回呼欄位區分；
+  // 第 2 期以後才會走 PeriodReturnURL 帶 PeriodType。
+  // 舊版用 isPeriodicReturn 判斷會把每一筆月付首期當成年付給 365 天，平台虧爆。
+  //
+  // sub.period 缺值 → fallback 用 isPeriodicReturn 為了相容 migration 之前的舊 row
+  const periodic =
+    sub.period === "monthly" ||
+    (!sub.period && isPeriodicReturn(params));
   const days = periodic ? 31 : 365;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + days * 86_400_000).toISOString();
