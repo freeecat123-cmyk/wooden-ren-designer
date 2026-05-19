@@ -605,10 +605,10 @@ export function projectPartPolygon(
     // bottom footprints (we draw the top, bottom handled by second polygon in
     // the renderer — keep it simple here: top silhouette only in top view).
     if (view === "top") return box;
-    // Front view flips the X axis (see projectPart), so negate dxMm offset
-    // so the parallelogram leans the right way on screen.
+    // Front view: svg x = -wx → 底偏 +dxMm（世界）= 螢幕 -dxMm
+    // Side view: 前=右慣例 svg x = -wz → 底偏 +dzMm（世界）= 螢幕 -dzMm
     const offset =
-      view === "front" ? -part.shape.dxMm : part.shape.dzMm;
+      view === "front" ? -part.shape.dxMm : -part.shape.dzMm;
     return [
       { x: r.x, y: r.y + r.h },
       { x: r.x + r.w, y: r.y + r.h },
@@ -655,8 +655,9 @@ export function projectPartPolygon(
   ) {
     if (view === "top") return box;
     const scale = part.shape.bottomScale;
+    // 同 splayed：side view 走「前=右」慣例 svg x = -wz → dzMm 要負號
     const offset =
-      view === "front" ? -part.shape.dxMm : part.shape.dzMm;
+      view === "front" ? -part.shape.dxMm : -part.shape.dzMm;
     const cx = (r.x + r.x + r.w) / 2;
     const halfTop = r.w / 2;
     const halfBot = halfTop * scale;
