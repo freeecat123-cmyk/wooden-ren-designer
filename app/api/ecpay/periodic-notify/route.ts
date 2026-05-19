@@ -23,6 +23,7 @@ import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
 import { sendEmail } from "@/lib/email/send";
 import { periodicChargeSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
+import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -160,15 +161,20 @@ export async function POST(req: NextRequest) {
   // 只有 insert 成功才延長 subscription，避免兩個並發 webhook 各讀 expires_at
   // 各自 +31d update（最後贏的 update value 一樣）但實際只應扣一次。
   const paymentDate = parseEcpayDate(params.process_date) ?? new Date().toISOString();
-  const { error: payInsErr } = await admin.from("payments").insert({
-    user_id: sub.user_id,
-    subscription_id: sub.id,
-    amount,
-    status: "success",
-    ecpay_trade_no: tradeNo,
-    ecpay_payment_date: paymentDate,
-    raw_response: params as Record<string, unknown>,
-  });
+  const { data: insertedPayment, error: payInsErr } = await admin
+    .from("payments")
+    .insert({
+      user_id: sub.user_id,
+      subscription_id: sub.id,
+      amount,
+      status: "success",
+      ecpay_trade_no: tradeNo,
+      ecpay_payment_date: paymentDate,
+      raw_response: params as Record<string, unknown>,
+      invoice_status: "pending",
+    })
+    .select("id")
+    .single();
 
   if (payInsErr) {
     // UNIQUE 衝突 = 重送、已處理過 → return OK 不延期
@@ -191,6 +197,20 @@ export async function POST(req: NextRequest) {
     .update({ expires_at: newExpiresAt })
     .eq("id", sub.id);
   if (upSubErr) console.error("[ecpay/periodic-notify] 更新 subscription 失敗", upSubErr);
+
+  // 開立月扣這期的 B2C 電子發票（失敗不擋 webhook）
+  if (insertedPayment?.id) {
+    try {
+      await issueInvoiceForPayment(admin, {
+        paymentId: insertedPayment.id,
+        userId: sub.user_id,
+        amount,
+        itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}月付訂閱（第 ${totalSuccessTimes} 期）`,
+      });
+    } catch (e) {
+      console.warn("[ecpay/periodic-notify] invoice 例外", e);
+    }
+  }
 
   const { error: upUserErr } = await admin
     .from("users")

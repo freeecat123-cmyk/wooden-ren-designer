@@ -23,6 +23,7 @@ import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
 import { sendEmail } from "@/lib/email/send";
 import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
+import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,15 +168,34 @@ export async function POST(req: NextRequest) {
     .eq("id", sub.user_id);
   if (upUserErr) console.error("[ecpay/return] 更新 users 失敗", upUserErr);
 
-  await admin.from("payments").insert({
-    user_id: sub.user_id,
-    subscription_id: sub.id,
-    amount,
-    status: "success",
-    ecpay_trade_no: tradeNo,
-    ecpay_payment_date: paymentDate,
-    raw_response: params as Record<string, unknown>,
-  });
+  const { data: insertedPayment } = await admin
+    .from("payments")
+    .insert({
+      user_id: sub.user_id,
+      subscription_id: sub.id,
+      amount,
+      status: "success",
+      ecpay_trade_no: tradeNo,
+      ecpay_payment_date: paymentDate,
+      raw_response: params as Record<string, unknown>,
+      invoice_status: "pending",
+    })
+    .select("id")
+    .single();
+
+  // 開立綠界 B2C 電子發票（失敗不擋 webhook，失敗的會被 invoice_status=failed 標出來）
+  if (insertedPayment?.id) {
+    try {
+      await issueInvoiceForPayment(admin, {
+        paymentId: insertedPayment.id,
+        userId: sub.user_id,
+        amount,
+        itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodic ? "月付" : "年付"}訂閱`,
+      });
+    } catch (e) {
+      console.warn("[ecpay/return] invoice 例外（已記錄 failed，不擋 webhook）", e);
+    }
+  }
 
   // 寄首次付款成功 email
   try {
