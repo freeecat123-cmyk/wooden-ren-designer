@@ -43,6 +43,20 @@ const STATUS_STYLE: Record<string, string> = {
   refunded: "bg-amber-100 text-amber-800 ring-amber-200",
 };
 
+const STATUS_ZH: Record<string, string> = {
+  success: "成功",
+  failed: "失敗",
+  refunded: "已退款",
+};
+
+const PLAN_ZH: Record<string, string> = {
+  free: "免費版",
+  personal: "個人版",
+  pro: "專業版",
+  lifetime: "終身版",
+  student: "學員版",
+};
+
 export function EcpayLogClient() {
   const [data, setData] = useState<ApiResp | null>(null);
   const [loading, setLoading] = useState(false);
@@ -92,7 +106,7 @@ export function EcpayLogClient() {
           </Link>
           <h1 className="text-2xl font-bold mt-1">綠界日誌</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            最近 100 筆 payments(ECPay callback 寫入)。raw_response 是綠界原始 callback,debug 用。
+            最近 100 筆付款紀錄(綠界自動回傳寫入)。「原始回應」是綠界丟過來的完整資料,除錯用。
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -101,10 +115,10 @@ export function EcpayLogClient() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-2 py-1.5 rounded border border-zinc-300 text-sm"
           >
-            <option value="">全部 status</option>
-            <option value="success">success</option>
-            <option value="failed">failed</option>
-            <option value="refunded">refunded</option>
+            <option value="">全部狀態</option>
+            <option value="success">成功</option>
+            <option value="failed">失敗</option>
+            <option value="refunded">已退款</option>
           </select>
           <button
             type="button"
@@ -132,23 +146,23 @@ export function EcpayLogClient() {
 
       <div className="overflow-x-auto bg-white rounded-lg border border-zinc-200">
         <table className="min-w-full text-xs">
-          <thead className="bg-zinc-50 text-zinc-600 text-[11px] uppercase tracking-wide">
+          <thead className="bg-zinc-50 text-zinc-600 text-[11px] tracking-wide">
             <tr>
               <th className="text-left px-3 py-2">時間</th>
-              <th className="text-left px-3 py-2">User</th>
-              <th className="text-left px-3 py-2">Plan</th>
+              <th className="text-left px-3 py-2">帳號</th>
+              <th className="text-left px-3 py-2">方案</th>
               <th className="text-right px-3 py-2">金額</th>
-              <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2">TradeNo</th>
+              <th className="text-left px-3 py-2">狀態</th>
+              <th className="text-left px-3 py-2">交易編號</th>
               <th className="text-left px-3 py-2">警示</th>
-              <th className="text-right px-3 py-2">Raw</th>
+              <th className="text-right px-3 py-2">明細</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {rows.length === 0 && !loading && (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-zinc-400">
-                  沒有資料
+                  目前還沒有付款紀錄
                 </td>
               </tr>
             )}
@@ -167,14 +181,17 @@ export function EcpayLogClient() {
                       {u?.email ?? <span className="text-zinc-400 font-mono">{p.user_id.slice(0, 8)}…</span>}
                     </td>
                     <td className="px-3 py-2 text-zinc-600">
-                      {sub?.plan ?? u?.plan ?? "—"}
+                      {(() => {
+                        const p2 = sub?.plan ?? u?.plan;
+                        return p2 ? (PLAN_ZH[p2] ?? p2) : "—";
+                      })()}
                     </td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums text-zinc-800">
                       {p.amount != null ? `NT$${p.amount}` : "—"}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded text-[11px] ring-1 ${STATUS_STYLE[p.status] ?? "bg-zinc-100 text-zinc-700 ring-zinc-200"}`}>
-                        {p.status}
+                        {STATUS_ZH[p.status] ?? p.status}
                       </span>
                     </td>
                     <td className="px-3 py-2 font-mono text-[11px] text-zinc-600">
@@ -182,7 +199,7 @@ export function EcpayLogClient() {
                     </td>
                     <td className="px-3 py-2">
                       {mismatch && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-800 ring-1 ring-red-200" title={`expected ${sub?.expected_amount} got ${p.amount}`}>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-800 ring-1 ring-red-200" title={`應收 NT$${sub?.expected_amount},實收 NT$${p.amount}`}>
                           ⚠ 金額不符
                         </span>
                       )}
@@ -202,13 +219,13 @@ export function EcpayLogClient() {
                       <td colSpan={8} className="px-3 py-3">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           <div>
-                            <div className="text-[11px] text-zinc-500 mb-1">Subscription</div>
+                            <div className="text-[11px] text-zinc-500 mb-1">訂閱資料</div>
                             <pre className="text-[11px] bg-white border border-zinc-200 rounded p-2 overflow-x-auto">
 {JSON.stringify(sub ?? null, null, 2)}
                             </pre>
                           </div>
                           <div>
-                            <div className="text-[11px] text-zinc-500 mb-1">ECPay raw_response</div>
+                            <div className="text-[11px] text-zinc-500 mb-1">綠界原始回應</div>
                             <pre className="text-[11px] bg-white border border-zinc-200 rounded p-2 overflow-x-auto">
 {JSON.stringify(p.raw_response ?? null, null, 2)}
                             </pre>
