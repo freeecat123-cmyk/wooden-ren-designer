@@ -586,22 +586,25 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       },
       origin: { x: xCenter, y: drawerBackY, z: zBack },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [
-        {
-          position: "start",
-          type: "half-lap",
-          length: drawerSideT * 0.5,
-          width: drawerBackHeight - 4,
-          thickness: drawerBackT,
-        },
-        {
-          position: "end",
-          type: "half-lap",
-          length: drawerSideT * 0.5,
-          width: drawerBackHeight - 4,
-          thickness: drawerBackT,
-        },
-      ],
+      // 半鳩尾模式：後板也變 CSG receiver（被側板鳩尾 teeth 切）、不需自己有 tenons
+      tenons: useHalfBlindDovetail
+        ? []
+        : [
+            {
+              position: "start",
+              type: "half-lap",
+              length: drawerSideT * 0.5,
+              width: drawerBackHeight - 4,
+              thickness: drawerBackT,
+            },
+            {
+              position: "end",
+              type: "half-lap",
+              length: drawerSideT * 0.5,
+              width: drawerBackHeight - 4,
+              thickness: drawerBackT,
+            },
+          ],
       mortises: [],
     });
 
@@ -622,8 +625,14 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
         material,
         grainDirection: "length",
+        // 半鳩尾：side panel body 延長 2×pinDepth 進前後板實體區、CSG 才有重疊可切。
+        // dovetail-ends 的 teeth 是「往 body X 邊緣 carve」、不會自動凸出 body，所以
+        // 必須先把 body 延伸進去、再讓 shape 在這個延伸區內做 crenellated 形狀。
+        // pin 區段 = 真.tail 進到前/後板厚度內、gap 區段 = 縮回原本 drawerInnerD 邊。
         visible: {
-          length: drawerInnerD,
+          length: useHalfBlindDovetail
+            ? drawerInnerD + 2 * halfBlindPinDepth
+            : drawerInnerD,
           width: boxHRow,
           thickness: drawerSideT,
         },
@@ -633,9 +642,6 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           z: sideZCenter,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        // 半鳩尾模式：側板自己變 tail carrier，shape.kind="dovetail-ends" 在
-        // part-local ±X 端（=前後端）出梯形 tail；pinDepth 控制凸出多少。
-        // CSG 在 PerspectiveView.tsx 用這個 shape 當 brush 去切前/後板。
         shape: useHalfBlindDovetail
           ? {
               kind: "dovetail-ends" as const,
@@ -648,27 +654,29 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           : undefined,
         tenons: [],
         mortises: [
-          // 半鳩尾不需要前端方榫眼（shape 已含 tail 凸出）；通鳩尾還是要
+          // 半鳩尾：前後 dovetail/half-lap mortises 都砍（CSG 從 shape 切、避免雙重切）
           ...(useHalfBlindDovetail
             ? []
-            : [{
-                origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
-                depth: dovetailLen,
-                length: boxHRow,
-                width: drawerFrontT - 2,
-                through: true,
-              } as const]),
-          {
-            origin: {
-              x: drawerInnerD / 2 + 1,
-              y: 0,
-              z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
-            },
-            depth: drawerSideT * 0.5,
-            length: drawerBackHeight - 4,
-            width: drawerBackT,
-            through: false,
-          },
+            : [
+                {
+                  origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
+                  depth: dovetailLen,
+                  length: boxHRow,
+                  width: drawerFrontT - 2,
+                  through: true,
+                } as const,
+                {
+                  origin: {
+                    x: drawerInnerD / 2 + 1,
+                    y: 0,
+                    z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
+                  },
+                  depth: drawerSideT * 0.5,
+                  length: drawerBackHeight - 4,
+                  width: drawerBackT,
+                  through: false,
+                } as const,
+              ]),
           ...(isSurfaceDrawerBottom
             ? []
             : [
