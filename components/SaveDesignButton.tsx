@@ -44,24 +44,8 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
 
     setBusy(true);
     try {
+      // 算同類別流水號做預設名稱(只 read,沒有 mutation,保留 client 查)
       const supabase = createClient();
-      // 先查目前已存的設計數
-      const { count, error: countErr } = await supabase
-        .from("designs")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if (countErr) throw countErr;
-
-      const max = features.maxDesigns;
-      if (count !== null && count >= max && max !== Infinity) {
-        setMsg({
-          kind: "warn",
-          text: `免費版只能儲存 ${max} 件設計（你已有 ${count} 件）。升級個人版可儲存無限件，去 /pricing 看看～`,
-        });
-        return;
-      }
-
-      // 算同類別流水號：user 已存的同 furniture_type 件數 + 1
       const { count: typeCount } = await supabase
         .from("designs")
         .select("*", { count: "exact", head: true })
@@ -76,13 +60,38 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
       );
       if (name === null) return; // 取消
       const finalName = name.trim() || suggestedName;
-      const { error: insertErr } = await supabase.from("designs").insert({
-        user_id: userId,
-        furniture_type: furnitureType,
-        name: finalName,
-        params,
+
+      // 改走 server API:plan / category / count 全部 server-side enforce,
+      // 不再 client 直 insert(audit #18 hardening,擋 DevTools 直插 wardrobe 等)
+      const res = await fetch("/api/designs/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ furnitureType, name: finalName, params }),
       });
-      if (insertErr) throw insertErr;
+      const json = (await res.json()) as { error?: string; message?: string; max?: number; count?: number };
+      if (!res.ok) {
+        if (json.error === "max_designs_reached") {
+          const max = json.max ?? features.maxDesigns;
+          const count = json.count ?? 0;
+          setMsg({
+            kind: "warn",
+            text: `免費版只能儲存 ${max} 件設計(你已有 ${count} 件)。升級個人版可儲存無限件,去 /pricing 看看～`,
+          });
+          return;
+        }
+        if (json.error === "plan_locked_category") {
+          setMsg({
+            kind: "warn",
+            text: json.message ?? "此家具範本需付費方案,去 /pricing 看看～",
+          });
+          return;
+        }
+        if (json.error === "unauthenticated") {
+          setMsg({ kind: "warn", text: "請先登入(session 可能過期)" });
+          return;
+        }
+        throw new Error(json.message ?? json.error ?? `HTTP ${res.status}`);
+      }
 
       setMsg({ kind: "ok", text: "✅ 已儲存到你的設計" });
     } catch (e) {
