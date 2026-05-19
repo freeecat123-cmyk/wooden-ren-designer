@@ -21,8 +21,8 @@ export const lowTableOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 45, min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 1 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },

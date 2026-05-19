@@ -28,8 +28,8 @@ export const diningTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   // 桌面 (top)
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 2 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊（保留樹皮邊）", defaultValue: false, help: "桌面長邊不切直、保留原木有機曲線。需用單片大板或拼板後留外緣不修", wide: true },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
     { value: "none", label: "無" },
@@ -416,6 +416,13 @@ export function applyLowerStretcherArrangement(
       const centerLen = lsRightInnerX - lsLeftInnerX;
       const centerThick = lsT;
       const centerWidth = lsW;
+      // 中央橫撐沿 X 軸（rotation x:π/2 y:0）跟前後下橫撐同軸，但前後 ls 已被
+       // 刪除——回頭從 ls-left/ls-right 借形（同 stretcherEdge chamfer 結果一致）。
+      // ls-left/right 受 stretcherEdge option 影響的形狀通常是 chamfered-edges，
+      // 直接複用、保留橫撐倒角在 h-frame 模式仍可見。
+      const lsCenterShape = lsLeft.shape?.kind === "chamfered-edges"
+        ? { ...lsLeft.shape }
+        : undefined;
       design.parts.push({
         id: "ls-center",
         nameZh: "中央下橫撐",
@@ -424,6 +431,7 @@ export function applyLowerStretcherArrangement(
         visible: { length: centerLen, width: centerWidth, thickness: centerThick },
         origin: { x: 0, y: stretcherY, z: 0 },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        shape: lsCenterShape,
         tenons: [
           { position: "start", type: "shouldered-tenon", length: 18, width: lsW - 8, thickness: Math.round(centerThick / 2) },
           { position: "end", type: "shouldered-tenon", length: 18, width: lsW - 8, thickness: Math.round(centerThick / 2) },

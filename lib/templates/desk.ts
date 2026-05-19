@@ -13,6 +13,7 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   pullStyleOption,
+  legEdgeShape,
 } from "./_helpers";
 import {
   drawerBottomModeOption,
@@ -26,8 +27,8 @@ import {
 export const deskOptions: OptionSpec[] = [
   // ───────────── ① 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
-  seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
 
   // ───────────── ② 桌腳 ─────────────
@@ -44,8 +45,9 @@ export const deskOptions: OptionSpec[] = [
   ] },
   { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 55, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
+  // shaker / splayed-round-tapered 是圓料、沒有 4 條長邊；只在方料/方錐/方斜腳顯示
+  legEdgeOption("leg", 1, { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
 
   // ───────────── ③ 牙板 ─────────────
   { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "牙板連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
@@ -418,7 +420,7 @@ export const desk: FurnitureTemplate = (input) => {
     const trapBotScale = halfLenBot / halfLenCenter;
     const sideStretcherShape = (Math.abs(trapTopScale - 1) > 0.001 || Math.abs(trapBotScale - 1) > 0.001)
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale }
-      : undefined;
+      : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
     void TENON;
     for (const sx of [-1, +1] as const) {
       // Euler ZYX (x:π/2, y:π/2)：local X→world -Z（length 沿 Z 方向）、
@@ -448,6 +450,7 @@ export const desk: FurnitureTemplate = (input) => {
         grainDirection: "length",
         visible: { length: crossStretcherLen, width: STRETCHER_T, thickness: STRETCHER_H },
         origin: { x: 0, y: stretcherY, z: 0 },
+        shape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
         tenons: [],
         mortises: [],
       });

@@ -12,8 +12,9 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 export const roundTeaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
+  // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示
+  legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered"] }),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },

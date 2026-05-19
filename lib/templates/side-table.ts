@@ -26,8 +26,9 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
   seatEdgeStyleOption("top"),
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
+  // shaker 是上方下圓料、4 條長邊不完整；只在 box / tapered / strong-taper 顯示
+  legEdgeOption("leg", 1, { key: "legShape", notIn: ["shaker"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", notIn: ["shaker"] }),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, dependsOn: { key: "withDrawer", equals: false } },

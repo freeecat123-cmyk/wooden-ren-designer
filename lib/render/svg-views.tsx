@@ -1677,6 +1677,11 @@ export function OrthoView({
             part.shape.kind !== "arch-bent" &&
             part.shape.kind !== "right-triangle" &&
             part.shape.kind !== "mitered-corner" &&
+            // chamfered-edges：腳 / 橫撐 4 條長邊倒角，在「沿最長軸看過去」
+            // 的視圖畫八邊形截面（geometry.ts projectPartPolygon §730 處理）；
+            // top view 對腳（最長軸=Y）正好是 cross-section view，必須走
+            // polygon path 才能畫八邊形，否則 fallback rect 沒倒角。
+            part.shape.kind !== "chamfered-edges" &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
           ));

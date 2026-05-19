@@ -323,7 +323,7 @@ export function seatEdgeOption(
     group,
     type: "number",
     key: "seatEdge",
-    label: "座板邊緣大小 (mm)",
+    label: "倒角尺寸 (mm)",
     defaultValue,
     min: 0,
     max: 30,
@@ -341,10 +341,10 @@ export function seatEdgeStyleOption(
     group,
     type: "select",
     key: "seatEdgeStyle",
-    label: "座板邊緣樣式",
+    label: "倒角樣式",
     defaultValue,
     choices: EDGE_STYLE_CHOICES,
-    help: "與「座板邊緣大小」搭配。0mm 時兩個都不影響",
+    help: "與「倒角尺寸」搭配。0mm 時兩個都不影響",
     dependsOn: { key: "seatEdge", notIn: [0] },
   };
 }
@@ -357,7 +357,7 @@ export function stretcherEdgeOption(
     group,
     type: "number",
     key: "stretcherEdge",
-    label: "橫撐邊緣大小 (mm)",
+    label: "倒角尺寸 (mm)",
     defaultValue,
     min: 0,
     max: 15,
@@ -375,7 +375,7 @@ export function stretcherEdgeStyleOption(
     group,
     type: "select",
     key: "stretcherEdgeStyle",
-    label: "橫撐邊緣樣式",
+    label: "倒角樣式",
     defaultValue,
     choices: EDGE_STYLE_CHOICES,
     dependsOn: { key: "stretcherEdge", notIn: [0] },
@@ -417,25 +417,34 @@ export function legEdgeShape(
 export function legEdgeOption(
   group: OptionGroup = "leg",
   defaultValue: number = 1,
+  dependsOn?: OptionSpec["dependsOn"],
 ): OptionSpec {
   return {
     group,
     type: "number",
     key: "legEdge",
-    label: "腳邊緣大小 (mm)",
+    label: "倒角尺寸 (mm)",
     defaultValue,
     min: 0,
     max: 20,
     step: 1,
     unit: "mm",
     help: "預設 1mm 微倒（防扎手）；3-5 細倒邊；8 起明顯八角斷面（明清風）。橫撐另外設定",
+    ...(dependsOn ? { dependsOn } : {}),
   };
 }
 
 export function legEdgeStyleOption(
   group: OptionGroup = "leg",
   defaultValue: string = "chamfered",
+  extraDependsOn?: OptionSpec["dependsOn"],
 ): OptionSpec {
+  // 預設只 gate legEdge=0；如果模板有額外 dependsOn（例如圓腳系列要隱藏），
+  // 用 `all` 把 legEdge!=0 跟 extraDependsOn 合起來。
+  const baseDep: NonNullable<OptionSpec["dependsOn"]> = { key: "legEdge", notIn: [0] };
+  const dependsOn = extraDependsOn
+    ? ({ all: [baseDep, extraDependsOn] } as OptionSpec["dependsOn"])
+    : baseDep;
   return {
     group,
     type: "select",
@@ -443,7 +452,7 @@ export function legEdgeStyleOption(
     label: "腳邊緣樣式",
     defaultValue,
     choices: EDGE_STYLE_CHOICES,
-    dependsOn: { key: "legEdge", notIn: [0] },
+    dependsOn,
   };
 }
 

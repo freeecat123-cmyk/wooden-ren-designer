@@ -309,8 +309,9 @@ function buildTrestleRoundTable(p: {
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
-  legEdgeOption("leg", 1),
-  legEdgeStyleOption("leg"),
+  // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
+  legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
+  legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
