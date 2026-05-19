@@ -794,10 +794,26 @@ export function OrthoView({
   //   - 取 max(64, 0.15 × part 較大邊)，上限 PADDING（220）保底
   // 對 35mm 腳：max(64, 5.25) = 64mm 兩側、viewBox 寬 163mm、腳佔 21% 寬（OK）
   // 對 1000mm 圓桌面：max(64, 150) = 150mm、viewBox 寬 1300mm、桌面佔 77%（OK）
+  // 頂端榫頭凸出量 — front/side view 看到「top tenon」沿 +Y 凸；top view 看到
+  // length/width 端面 tenon 沿 ±X/±Z 凸。padding 不夠的話 T1 dim chain（含榫
+  // 標籤）+ title bar 會撞在一起。
+  // front/side view：top tenon 朝畫面上方凸出，dim chain 會被推到 part top
+  // 之上 (tenon.length + HORIZ_OFFSET + label) 處。top view 不算這條，因為
+  // top view 看 L×W 平面，tenon 凸出方向是 ±X / ±Z（水平），不影響上邊距。
+  const maxTenonProtrusion = isolatePartId && renderDesign.parts[0] && view !== "top"
+    ? Math.max(
+        0,
+        ...renderDesign.parts[0].tenons
+          .filter((t) => t.position === "top")
+          .map((t) => t.length),
+      )
+    : 0;
+  // T1 dim chain 上推：HORIZ_OFFSET(30 有 tenon) + GROSS_GAP(14) + label 8 ≈ 52 buffer
+  const tenonTopBuffer = maxTenonProtrusion > 0 ? maxTenonProtrusion + 52 : 0;
   const isolatePadding = isolatePartId
     ? Math.min(
         PADDING,
-        Math.max(64, 0.15 * Math.max(overall.length, overall.width, overall.thickness)),
+        Math.max(64, 0.15 * Math.max(overall.length, overall.width, overall.thickness), tenonTopBuffer),
       )
     : PADDING;
   const isolateDimOffset = isolatePartId
