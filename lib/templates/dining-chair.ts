@@ -1083,6 +1083,20 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     const t = seatHx > 0 ? x / seatHx : 0;
     return seatBendMm * Math.max(0, 1 - t * t);
   };
+  // backRake>0 時椅背框繞 X 軸傾斜，slat/splat/rung/spindle 兩端對接 apron 或
+  // topRail/post，相對於本地 length（或 thickness）軸有 reclineRad 夾角 → 設 axis
+  // 讓 CompoundMiterAnnotation 自動標「複斜切 窄面 X°」
+  const _reclineRadBack = (backRake * Math.PI) / 180;
+  const _hasRakeBack = Math.abs(_reclineRadBack) > 1e-4;
+  const _cosRBack = Math.cos(_reclineRadBack);
+  const _sinRBack = Math.sin(_reclineRadBack);
+  // 沿 length 軸（X major）：start=-length, end=+length
+  const _axisStartLen = _hasRakeBack ? { x: -_cosRBack, y: 0, z: _sinRBack } : undefined;
+  const _axisEndLen = _hasRakeBack ? { x: _cosRBack, y: 0, z: -_sinRBack } : undefined;
+  // 沿 thickness 軸（Y major）：spindle top/bottom
+  const _axisTopThk = _hasRakeBack ? { x: 0, y: _cosRBack, z: -_sinRBack } : undefined;
+  const _axisBotThk = _hasRakeBack ? { x: 0, y: -_cosRBack, z: _sinRBack } : undefined;
+
   if (backStyle === "slats" && slatCount > 0) {
     const availableWidth = length - legW - 40 - backUsableLengthOffset;
     const slotPitch = availableWidth / (slatCount + 1);
@@ -1100,8 +1114,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
         rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
-          { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)) },
+          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
+          { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
         ],
         mortises: [],
       });
@@ -1126,8 +1140,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: 0, y, z: backZ },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick },
-          { position: "end", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick },
+          { position: "start", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
+          { position: "end", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
         ],
         mortises: [],
       });
@@ -1146,8 +1160,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: 0, y: backStartY - splatDip, z: backZ },
       rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)) },
-        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)) },
+        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
+        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
       ],
       mortises: [],
     });
@@ -1169,8 +1183,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: xCenter, y: backStartY - dip, z: backZ },
         shape: { kind: "round" },
         tenons: [
-          { position: "top", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6) },
-          { position: "bottom", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6) },
+          { position: "top", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6), ...(_axisTopThk ? { axis: _axisTopThk } : {}) },
+          { position: "bottom", type: "blind-tenon", length: 15, width: Math.round(spindleDia * 0.6), thickness: Math.round(spindleDia * 0.6), ...(_axisBotThk ? { axis: _axisBotThk } : {}) },
         ],
         mortises: [],
       });
@@ -1191,8 +1205,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 大面凹陷：thickness 才是薄軸，所以 bendAxis="y"；正值往背面凹、負值往前凸
       shape: { kind: "face-rounded", cornerR: 0, bendMm: curvedSplatBendMm, bendAxis: "y" },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
-        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)) },
+        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
+        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
       ],
       mortises: [],
     });
