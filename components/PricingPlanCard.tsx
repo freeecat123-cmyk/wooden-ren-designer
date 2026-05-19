@@ -47,6 +47,7 @@ export function PlanCardView({
   earlyBird = false,
   currentPlan = null,
   currentStatus = null,
+  currentPeriod = null,
 }: {
   plan: PlanCard;
   period: BillingPeriod;
@@ -55,6 +56,8 @@ export function PlanCardView({
   currentPlan?: string | null;
   /** users.subscription_status,用來判斷是不是 active 訂閱中 */
   currentStatus?: string | null;
+  /** user 當前訂閱的計費週期 monthly/yearly,用來判斷跨週期切換 */
+  currentPeriod?: BillingPeriod | null;
 }) {
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
@@ -188,12 +191,24 @@ export function PlanCardView({
         const isUpgrade = isActiveSub && cardT > curT;
         const isDowngrade = isActiveSub && cardT < curT;
 
-        // 已是這個方案 → 灰按鈕標示
+        // 已是這個方案 → 灰按鈕標示 (但若跨週期 monthly↔yearly 切,提示「換週期請先取消」)
         if (isCurrentTier) {
+          const samePeriod = currentPeriod && currentPeriod === period;
+          if (samePeriod || !currentPeriod) {
+            return (
+              <div className="mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
+                ✓ 你目前的方案
+              </div>
+            );
+          }
+          // 跨週期切換 (例:月扣 → 年扣) 需先取消
           return (
-            <div className="mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
-              ✓ 你目前的方案
-            </div>
+            <Link
+              href="/my-subscription"
+              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 transition-colors"
+            >
+              換成{period === "yearly" ? "年" : "月"}付請先取消當前
+            </Link>
           );
         }
 

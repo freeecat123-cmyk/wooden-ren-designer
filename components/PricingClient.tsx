@@ -98,9 +98,37 @@ const PLANS: PlanCard[] = [
 export function PricingClient() {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
-  const { profile } = useUserPlan();
+  const { profile, userId } = useUserPlan();
   const currentPlan = profile?.plan ?? null;
   const currentStatus = profile?.subscription_status ?? null;
+  const [currentPeriod, setCurrentPeriod] = useState<BillingPeriod | null>(null);
+
+  // 拉當前 active sub 的 period (monthly/yearly),給跨週期切換 UI 用
+  useEffect(() => {
+    if (!userId || currentStatus !== "active") {
+      setCurrentPeriod(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("period")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const p = (data as { period?: string } | null)?.period;
+      setCurrentPeriod(p === "yearly" || p === "monthly" ? (p as BillingPeriod) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, currentStatus]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -192,6 +220,7 @@ export function PricingClient() {
             earlyBird={p.id === "pro" && period === "monthly" && EARLY_BIRD.isActive()}
             currentPlan={currentPlan}
             currentStatus={currentStatus}
+            currentPeriod={currentPeriod}
           />
         ))}
       </div>
