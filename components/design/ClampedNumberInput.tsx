@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+interface PresetPoint {
+  value: number;
+  label: string;
+}
 
 interface Props {
   name: string;
@@ -9,14 +14,43 @@ interface Props {
   max?: number;
   step?: number;
   className?: string;
+  /** label（選填，用於 ±按鈕 aria 與保留版面） */
+  label?: string;
+  /** chip 旁邊的可點預設值 */
+  presetPoints?: PresetPoint[];
+  /** 桌面 ±按鈕（手機強制 false） */
+  showPlusMinus?: boolean;
+  /** 動態 max 提示小字 */
+  dynamicMaxHint?: string;
+  /** 給 Part anchor 用（這包只接通道） */
+  partIds?: string[];
+  /** 預留以求與 RangeInput 對齊（此元件無 slider，無作用） */
+  ticks?: number[];
 }
 
 /**
  * 桌面版「鎖定總高」用：max 從外部縮小時，把值立刻夾到上限並回寫表單，
  * 避免顯示值與實際渲染值不一致。
  */
-export function ClampedNumberInput({ name, defaultValue, min, max, step, className }: Props) {
+export function ClampedNumberInput({
+  name,
+  defaultValue,
+  min,
+  max,
+  step,
+  className,
+  label,
+  presetPoints,
+  showPlusMinus,
+  dynamicMaxHint,
+  partIds,
+  ticks,
+}: Props) {
+  void partIds;
+  void ticks;
+
   const [value, setValue] = useState<string>(String(defaultValue));
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const n = Number(value);
@@ -25,22 +59,162 @@ export function ClampedNumberInput({ name, defaultValue, min, max, step, classNa
     else if (min !== undefined && n < min) setValue(String(min));
   }, [max, min, value]);
 
+  const clamp = useCallback(
+    (n: number) => {
+      let r = n;
+      if (max !== undefined && r > max) r = max;
+      if (min !== undefined && r < min) r = min;
+      return r;
+    },
+    [min, max],
+  );
+
+  const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopRepeat = useCallback(() => {
+    if (repeatTimerRef.current) {
+      clearTimeout(repeatTimerRef.current);
+      repeatTimerRef.current = null;
+    }
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+  }, []);
+
+  const startRepeat = useCallback(
+    (delta: number) => {
+      setValue((v) => {
+        const n = Number(v);
+        return String(clamp((Number.isFinite(n) ? n : 0) + delta));
+      });
+      repeatTimerRef.current = setTimeout(() => {
+        repeatIntervalRef.current = setInterval(() => {
+          setValue((v) => {
+            const n = Number(v);
+            return String(clamp((Number.isFinite(n) ? n : 0) + delta));
+          });
+        }, 80);
+      }, 500);
+    },
+    [clamp],
+  );
+
+  useEffect(() => () => stopRepeat(), [stopRepeat]);
+
+  const stepDelta = step ?? 1;
+
+  const hasExtras =
+    showPlusMinus ||
+    (presetPoints && presetPoints.length > 0) ||
+    dynamicMaxHint ||
+    label;
+
+  // 沒有任何新 prop 時，保持原本「裸 input」輸出 100% 不變
+  if (!hasExtras) {
+    return (
+      <input
+        type="number"
+        name={name}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={(e) => {
+          const n = Number(e.target.value);
+          if (!Number.isFinite(n)) return;
+          if (max !== undefined && n > max) setValue(String(max));
+          else if (min !== undefined && n < min) setValue(String(min));
+        }}
+        min={min}
+        max={max}
+        step={step}
+        className={className}
+      />
+    );
+  }
+
   return (
-    <input
-      type="number"
-      name={name}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={(e) => {
-        const n = Number(e.target.value);
-        if (!Number.isFinite(n)) return;
-        if (max !== undefined && n > max) setValue(String(max));
-        else if (min !== undefined && n < min) setValue(String(min));
-      }}
-      min={min}
-      max={max}
-      step={step}
-      className={className}
-    />
+    <span className="inline-flex flex-col">
+      <span className="inline-flex items-center gap-2">
+        {label && (
+          <span className="text-zinc-700 font-medium shrink-0 w-16 text-sm">
+            {label}
+          </span>
+        )}
+
+        {showPlusMinus && (
+          <button
+            type="button"
+            aria-label="減"
+            onMouseDown={() => startRepeat(-stepDelta)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(-stepDelta)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+          >
+            −
+          </button>
+        )}
+
+        <input
+          ref={inputRef}
+          type="number"
+          name={name}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={(e) => {
+            const n = Number(e.target.value);
+            if (!Number.isFinite(n)) return;
+            if (max !== undefined && n > max) setValue(String(max));
+            else if (min !== undefined && n < min) setValue(String(min));
+          }}
+          min={min}
+          max={max}
+          step={step}
+          className={className}
+        />
+
+        {showPlusMinus && (
+          <button
+            type="button"
+            aria-label="加"
+            onMouseDown={() => startRepeat(stepDelta)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(stepDelta)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+          >
+            +
+          </button>
+        )}
+
+        {presetPoints && presetPoints.length > 0 && (
+          <span className="hidden md:inline-flex shrink-0 items-center gap-1">
+            {presetPoints.map((p) => (
+              <button
+                key={`${p.label}-${p.value}`}
+                type="button"
+                onClick={() => {
+                  setValue(String(clamp(p.value)));
+                  inputRef.current?.focus();
+                }}
+                className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
+              >
+                {p.label}
+                {p.value}
+              </button>
+            ))}
+          </span>
+        )}
+      </span>
+
+      {dynamicMaxHint && (
+        <span className="mt-1 text-[11px] text-zinc-500">
+          ⚠ {dynamicMaxHint}
+        </span>
+      )}
+    </span>
   );
 }

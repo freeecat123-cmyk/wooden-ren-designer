@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+
+interface PresetPoint {
+  value: number;
+  label: string;
+}
 
 interface RangeInputProps {
   /** form field name（給 DesignFormShell 抓） */
@@ -19,6 +24,16 @@ interface RangeInputProps {
   step?: number;
   /** help tooltip */
   help?: string;
+  /** 軌道下方刻度線位置（mm 值） */
+  ticks?: number[];
+  /** chip 旁邊的可點預設值 */
+  presetPoints?: PresetPoint[];
+  /** 桌面 ±按鈕（手機強制 false 不論傳什麼） */
+  showPlusMinus?: boolean;
+  /** 動態 max 提示小字 */
+  dynamicMaxHint?: string;
+  /** 給 Part anchor 用（這包只接通道、不接線） */
+  partIds?: string[];
 }
 
 export function RangeInput({
@@ -30,10 +45,19 @@ export function RangeInput({
   max,
   step = 1,
   help,
+  ticks,
+  presetPoints,
+  showPlusMinus,
+  dynamicMaxHint,
+  partIds,
 }: RangeInputProps) {
+  // partIds 目前只作為 prop 通道；用一下避免 TS noUnused 警告
+  void partIds;
+
   const [value, setValue] = useState<number>(defaultValue);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sliderRef = useRef<HTMLInputElement>(null);
 
   // editing 切換時自動 focus
   useEffect(() => {
@@ -41,7 +65,6 @@ export function RangeInput({
   }, [editing]);
 
   // max 從外部縮小（例如鎖定總高時其他層撐滿）→ 立即夾到上限，讓送出的值與顯示一致。
-  // 用 functional setState 避免把 value 加進 deps，否則 setValue → effect 重跑 → 無限迴圈。
   useEffect(() => {
     setValue((v) => (v > max ? max : v < min ? min : v));
   }, [max, min]);
@@ -51,50 +74,164 @@ export function RangeInput({
     setValue(defaultValue);
   }, [defaultValue]);
 
+  const clamp = useCallback(
+    (n: number) => (n > max ? max : n < min ? min : n),
+    [min, max],
+  );
+
+  // ±按鈕：點一下走一個 step，按住 500ms 後 80ms auto-repeat
+  const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopRepeat = useCallback(() => {
+    if (repeatTimerRef.current) {
+      clearTimeout(repeatTimerRef.current);
+      repeatTimerRef.current = null;
+    }
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+  }, []);
+
+  const startRepeat = useCallback(
+    (delta: number) => {
+      setValue((v) => clamp(v + delta));
+      repeatTimerRef.current = setTimeout(() => {
+        repeatIntervalRef.current = setInterval(() => {
+          setValue((v) => clamp(v + delta));
+        }, 80);
+      }, 500);
+    },
+    [clamp],
+  );
+
+  useEffect(() => () => stopRepeat(), [stopRepeat]);
+
+  const tickPercent = (mm: number) => {
+    if (max === min) return 0;
+    const pct = ((mm - min) / (max - min)) * 100;
+    return Math.max(0, Math.min(100, pct));
+  };
+
   return (
-    <div className="flex items-center gap-3 text-sm" title={help}>
-      <span className="text-zinc-700 font-medium shrink-0 w-8">{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        className="flex-1 accent-violet-600 h-6 cursor-grab"
-      />
-      {editing ? (
-        <input
-          ref={inputRef}
-          type="number"
-          name={name}
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={(e) => setValue(Number(e.target.value))}
-          onBlur={() => setEditing(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              setEditing(false);
-            }
-          }}
-          className="w-16 text-right border-b-2 border-violet-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
-          inputMode="numeric"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="shrink-0 min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
-        >
-          {value}
-          <span className="text-zinc-500 ml-0.5">{unit}</span>
-        </button>
-      )}
-      {!editing && (
-        <input type="hidden" name={name} value={value} />
+    <div className="text-sm" title={help}>
+      <div className="flex items-center gap-3">
+        <span className="text-zinc-700 font-medium shrink-0 w-16">{label}</span>
+
+        {showPlusMinus && (
+          <button
+            type="button"
+            aria-label="減"
+            onMouseDown={() => startRepeat(-step)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(-step)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+          >
+            −
+          </button>
+        )}
+
+        <div className="flex-1 flex flex-col">
+          <input
+            ref={sliderRef}
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => setValue(Number(e.target.value))}
+            className="w-full accent-violet-600 h-6 cursor-grab"
+          />
+          {ticks && ticks.length > 0 && (
+            <div className="relative h-2 -mt-1 pointer-events-none" aria-hidden="true">
+              {ticks
+                .filter((t) => t >= min && t <= max)
+                .map((t, i) => (
+                  <span
+                    key={`${t}-${i}`}
+                    className="absolute top-1 block w-px h-1 bg-zinc-300"
+                    style={{ left: `${tickPercent(t)}%` }}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+
+        {showPlusMinus && (
+          <button
+            type="button"
+            aria-label="加"
+            onMouseDown={() => startRepeat(step)}
+            onMouseUp={stopRepeat}
+            onMouseLeave={stopRepeat}
+            onTouchStart={() => startRepeat(step)}
+            onTouchEnd={stopRepeat}
+            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+          >
+            +
+          </button>
+        )}
+
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="number"
+            name={name}
+            value={value}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => setValue(Number(e.target.value))}
+            onBlur={() => setEditing(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                setEditing(false);
+              }
+            }}
+            className="w-16 text-right border-b-2 border-violet-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
+            inputMode="numeric"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="shrink-0 min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
+          >
+            {value}
+            <span className="text-zinc-500 ml-0.5">{unit}</span>
+          </button>
+        )}
+
+        {presetPoints && presetPoints.length > 0 && (
+          <div className="hidden md:flex shrink-0 items-center gap-1">
+            {presetPoints.map((p) => (
+              <button
+                key={`${p.label}-${p.value}`}
+                type="button"
+                onClick={() => {
+                  setValue(clamp(p.value));
+                  sliderRef.current?.focus();
+                }}
+                className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
+              >
+                {p.label}
+                {p.value}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!editing && <input type="hidden" name={name} value={value} />}
+      </div>
+
+      {dynamicMaxHint && (
+        <div className="mt-1 ml-[4.25rem] text-[11px] text-zinc-500">
+          ⚠ {dynamicMaxHint}
+        </div>
       )}
     </div>
   );
