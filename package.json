@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev",
+    "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev --webpack",
     "build": "next build",
     "start": "next start",
     "gen-style-pack": "tsx scripts/gen-style-pack.ts",
