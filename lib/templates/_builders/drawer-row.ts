@@ -347,6 +347,12 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   //                沒面板 → 半鳩尾（round(drawerFrontT*2/3) = 12）
   const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
   const useThroughDovetail = isDovetailJoint && hasFacePanel;
+  // 半搭接：搭接 + 入柱（無面板）→ 前板全寬蓋住側板、背面挖 2/3 深凹槽讓
+  // 側板嵌進。完全沒榫、沒 dovetail-ends shape、只用 cosmetic mortise 切出
+  // 視覺凹槽。side panel 長度跟全搭接一樣不變動。
+  const useHalfLap = isLapJoint && !hasFacePanel;
+  const useFullLap = isLapJoint && hasFacePanel;
+  const halfLapRabbetDepth = Math.round((drawerFrontT * 2) / 3);
   const dovetailPinDepth = useThroughDovetail
     ? drawerFrontT
     : useHalfBlindDovetail
@@ -541,6 +547,43 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
             },
           ]
         : [];
+    // 半搭接：前板背面在側板對應位置開 cosmetic rabbet（drawerSideT 寬 × 2/3 深）
+    // 讓側板嵌進。完全沒榫、無 dovetail-ends shape、只是視覺凹槽（cosmetic mortise）。
+    //
+    // origin.y 用 drawerFrontT - halfLapRabbetDepth/2 而不是 canonical drawerFrontT：
+    // mortiseLocalBox 對 canonical Y + 靠近 X face 會把 depthAxis 切到 X、變成從
+    // 側邊往內挖。改用中間值才會正確走 Y 深度（從背面往前面挖 2/3）。
+    const halfLapRabbetOriginY = drawerFrontT - halfLapRabbetDepth / 2;
+    const frontRabbetMortises: Part["mortises"] = useHalfLap
+      ? [
+          {
+            origin: {
+              x: -boxExtW / 2 + drawerSideT / 2,
+              y: halfLapRabbetOriginY,
+              z: 0,
+            },
+            depth: halfLapRabbetDepth,
+            length: drawerSideT,
+            width: boxHRow + frontExtraDown,
+            through: false,
+            cosmetic: true,
+            shape: "rect",
+          },
+          {
+            origin: {
+              x: +boxExtW / 2 - drawerSideT / 2,
+              y: halfLapRabbetOriginY,
+              z: 0,
+            },
+            depth: halfLapRabbetDepth,
+            length: drawerSideT,
+            width: boxHRow + frontExtraDown,
+            through: false,
+            cosmetic: true,
+            shape: "rect",
+          },
+        ]
+      : [];
     parts.push({
       id: `${idPrefix}-${i + 1}-front`,
       nameZh: hasFacePanel
@@ -548,10 +591,11 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         : `${labelPrefix}${i + 1} 面板`,
       material,
       grainDirection: "length",
-      // 前板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
-      // 跨外寬被側板 tail CSG 切（=boxExtW）。
+      // 前板長度依接合：
+      //  useFullLap（有面板+搭接）→ 夾在側板中間 drawerInnerW
+      //  其他（half-lap / dovetail）→ 全寬 boxExtW
       visible: {
-        length: isLapJoint ? drawerInnerW : boxExtW,
+        length: useFullLap ? drawerInnerW : boxExtW,
         width: boxHRow + frontExtraDown,
         thickness: drawerFrontT,
       },
@@ -559,7 +603,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
       // lap = butt joint 無榫；dovetail = CSG 從側板 shape 切、前板自己也無 tenons
       tenons: [],
-      mortises: frontGrooveMortises,
+      mortises: [...frontGrooveMortises, ...frontRabbetMortises],
     });
     if (!hasFacePanel) {
       parts.push(...makePullParts(
@@ -586,7 +630,8 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       // 後板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
       // 跨外寬被側板 tail CSG 切（=boxExtW = drawerInnerW + 2×drawerSideT）。
       visible: {
-        length: isLapJoint ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
+        // useFullLap → drawerInnerW 夾中間 / 其他 → 全寬
+        length: useFullLap ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
         width: drawerBackHeight,
         thickness: drawerBackT,
       },
