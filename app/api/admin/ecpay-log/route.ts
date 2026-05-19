@@ -37,6 +37,7 @@ interface PaymentRow {
   status: string;
   ecpay_trade_no: string | null;
   ecpay_payment_date: string | null;
+  invoice_status: string | null;
   raw_response: Record<string, unknown> | null;
   created_at: string;
 }
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
   const svc = getServiceSupabase();
   let q = svc
     .from("payments")
-    .select("id, user_id, subscription_id, amount, status, ecpay_trade_no, ecpay_payment_date, raw_response, created_at")
+    .select("id, user_id, subscription_id, amount, status, ecpay_trade_no, ecpay_payment_date, invoice_status, raw_response, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (statusFilter) q = q.eq("status", statusFilter);
