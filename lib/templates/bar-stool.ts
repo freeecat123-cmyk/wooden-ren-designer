@@ -788,10 +788,19 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
           origin: { x: sx * postX, y: postBottomY - (postH / 2) * (1 - Math.cos(reclineRad)), z: (postBottomBackZ - backPostDiameter / 2) + (postH / 2) * Math.sin(reclineRad) },
           rotation: reclineRad > 0 ? { x: reclineRad, y: 0, z: 0 } : undefined,
           shape: { kind: "round" },
-          tenons: [
-            { position: "bottom", type: "blind-tenon", length: 25, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
-            { position: "top", type: "blind-tenon", length: 20, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6) },
-          ],
+          tenons: (() => {
+            // backRecline > 0 → 圓柱向後傾，底榫進入水平座板 → 在 thickness×width 平面
+            // （側視窄面）斜 reclineRad；頂榫接 panel，panel 跟著傾沒相對角度但仍補上保險
+            const hasRake = Math.abs(reclineRad) > 1e-4;
+            const cosR = Math.cos(reclineRad);
+            const sinR = Math.sin(reclineRad);
+            const axisBot = hasRake ? { x: 0, y: -cosR, z: sinR } : undefined;
+            const axisTop = hasRake ? { x: 0, y: cosR, z: -sinR } : undefined;
+            return [
+              { position: "bottom" as const, type: "blind-tenon" as const, length: 25, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6), ...(axisBot ? { axis: axisBot } : {}) },
+              { position: "top" as const, type: "blind-tenon" as const, length: 20, width: Math.round(backPostDiameter * 0.6), thickness: Math.round(backPostDiameter * 0.6), ...(axisTop ? { axis: axisTop } : {}) },
+            ];
+          })(),
           mortises: [],
         });
       });
