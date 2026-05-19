@@ -246,6 +246,40 @@ export function resolveDrawerBottomMode(
  * / side panel groove vertical extent）全部由 drawerBottomT 一個變數帶、
  * 改厚度時自動同步、不必另外調 drawer frame 高度。
  */
+/**
+ * 抽屜箱體 4 角接合方式：
+ * - "lap" 搭接：左右側板蓋住前後板（butt joint、無榫頭、最簡單）
+ * - "dovetail" 鳩尾接合：自動依「有沒有外加面板」分流
+ *   - 有面板（滑軌 / overlay）→ 通鳩尾（tail 穿過前板、被面板蓋住）
+ *   - 沒面板（入柱+無滑軌）→ 半鳩尾（tail 只進前板 2/3、面板木紋完整）
+ *
+ * 同時影響「內框厚度」邏輯：
+ * - 有面板：4 片等厚 14mm（內框 = 簡單方盒）
+ * - 沒面板：前板 18mm（視覺面）/ 側板 14mm / 後板 14mm
+ */
+export const drawerBoxJoineryOption: OptionSpec = {
+  group: "drawer",
+  type: "select",
+  key: "drawerBoxJoinery",
+  label: "抽屜箱體接合",
+  defaultValue: "lap",
+  choices: [
+    { value: "lap", label: "搭接（側板蓋前後板，butt joint，簡單實用）" },
+    { value: "dovetail", label: "鳩尾接合（傳統榫卯，強度高、美觀）" },
+  ],
+  dependsOn: ANY_ZONE_IS_DRAWER,
+};
+
+export type DrawerBoxJoinery = "lap" | "dovetail";
+
+export function resolveDrawerBoxJoinery(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): DrawerBoxJoinery {
+  const v = getOption<string>(input, opt(options, "drawerBoxJoinery"));
+  return v === "dovetail" ? "dovetail" : "lap";
+}
+
 export const drawerBottomThicknessOption: OptionSpec = {
   group: "drawer",
   type: "select",

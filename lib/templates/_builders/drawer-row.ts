@@ -219,6 +219,9 @@ export interface RenderDrawerZoneCfg {
   /** 抽屜底板厚度 mm；3/6/9/12 任一。釘底 / 入溝皆套用此厚度。
    *  fallback：surface=3, rebated=6（跟舊行為一致）。 */
   drawerBottomThickness?: number;
+  /** 抽屜箱體 4 角接合：lap 搭接（側板蓋前後）/ dovetail 鳩尾（自動依面板判半/通）。
+   *  預設 "lap"。 */
+  drawerBoxJoinery?: "lap" | "dovetail";
   drawerSlideGap?: number;
   pullStyle: string;
   /** 跳過 case 風格的水平分隔板 / zone-boundary（給 desk 牙板抽屜用）。
@@ -312,15 +315,6 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     }
   }
 
-  const drawerFrontT = 18;
-  const drawerSideT = 14;
-  const drawerBackT = 12;
-  const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
-  const isSurfaceDrawerBottom = drawerBottomMode === "surface";
-  // 入溝槽深固定 6mm（吃進側板厚度），不管底板多厚都不會挖穿 14mm 側板。
-  // mortise.width = drawerBottomT + 1 是槽「在側板面上的高度」（讓底板厚度塞得進）
-  // 不是往側板厚度方向挖多深、跟側板厚度無關。
-  const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
   const drawerGap = 2;
   const partitionT = cols > 1 ? panelT : 0;
   const totalPartitionW = (cols - 1) * partitionT;
@@ -332,19 +326,38 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     drawerMount === "overlay-3" ? 9 :
     drawerMount === "overlay-6" ? panelT : 0;
   const hasFacePanel = hasSlide || !isInsetDrawer;
-  // 半鳩尾條件：!hasFacePanel = !hasSlide && isInsetDrawer = 「傳統入柱式抽屜
-  // 無滑軌、面板=前板」的場景。這時前板自己就是看得到的面板、要保持木紋完整、
-  // 不能讓榫頭從前面戳出來 → 用半鳩尾。
+  // 抽屜接合 + 內框厚度邏輯（依「有沒有外加面板」分流）：
   //
-  // 角色互換（跟 tray 通鳩尾相反）：
-  //   tray:  front/back板 = tail carrier (shape=dovetail-ends)、left/right=receiver
-  //   drawer 半鳩尾: side panel = tail carrier (shape=dovetail-ends)、front/back=receiver
+  //   hasFacePanel = true  → 外加面板蓋住前板 → 內框 4 片等厚 14mm
+  //                          鳩尾 = 通鳩尾（tail 穿過、面板蓋住不用藏）
+  //   hasFacePanel = false → 入柱+無滑軌、前板就是面板 → 不等厚 18/14/14
+  //                          鳩尾 = 半鳩尾（tail 只進前板 2/3、面板木紋完整）
   //
-  // pinDepth = drawerFrontT × 2/3 ≈ 12mm：tail 只進前板 12mm、面板外側剩 6mm
-  // 不切穿 → 半鳩尾標準作法。
-  const useHalfBlindDovetail = !hasFacePanel;
-  const halfBlindPinDepth = Math.round((drawerFrontT * 2) / 3);
-  // halfBlindSegmentCount 依 boxHRow 算，要在 row 迴圈內。
+  // 接合方式 user 可選（drawerBoxJoinery option）：
+  //   "lap" 搭接：側板蓋前後板、無榫頭（butt joint）
+  //   "dovetail" 鳩尾：依 hasFacePanel 自動分通/半
+  const drawerBoxJoinery = cfg.drawerBoxJoinery ?? "lap";
+  const isLapJoint = drawerBoxJoinery === "lap";
+  const isDovetailJoint = drawerBoxJoinery === "dovetail";
+  // 內框前板厚：有面板 14（跟側板等厚）/ 無面板 18（視覺面厚一點）
+  const drawerFrontT = hasFacePanel ? 14 : 18;
+  const drawerSideT = 14;
+  const drawerBackT = 14;
+  // 鳩尾 pinDepth：有面板 → 通鳩尾（=drawerFrontT 整個穿過）/
+  //                沒面板 → 半鳩尾（round(drawerFrontT*2/3) = 12）
+  const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
+  const useThroughDovetail = isDovetailJoint && hasFacePanel;
+  const dovetailPinDepth = useThroughDovetail
+    ? drawerFrontT
+    : useHalfBlindDovetail
+      ? Math.round((drawerFrontT * 2) / 3)
+      : 0;
+  const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
+  const isSurfaceDrawerBottom = drawerBottomMode === "surface";
+  // 入溝槽深固定 6mm（吃進側板厚度），不管底板多厚都不會挖穿 14mm 側板。
+  // mortise.width = drawerBottomT + 1 是槽「在側板面上的高度」（讓底板厚度塞得進）
+  // 不是往側板厚度方向挖多深、跟側板厚度無關。
+  const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
   const faceT = hasFacePanel ? drawerFacePanelT : 0;
   const faceTBoxOffset = isInsetDrawer && hasSlide ? drawerFacePanelT : 0;
   const backClearance = hasSlide ? 10 : 6;
@@ -352,6 +365,7 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const boxExtW = hasSlide ? drawerOuterW : drawerOuterW - 4;
   const drawerInnerW = boxExtW - 2 * drawerSideT;
   const drawerInnerD = innerD - faceTBoxOffset - drawerFrontT - drawerBackT - backClearance;
+  const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
   const boxYOffset = hasSlide ? 5 - drawerGap : 0;
   const dovetailLen = drawerSideT;
   const inColumn = cfg.colInnerW !== undefined;
@@ -528,33 +542,17 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         : `${labelPrefix}${i + 1} 面板`,
       material,
       grainDirection: "length",
+      // 前板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
+      // 跨外寬被側板 tail CSG 切（=boxExtW）。
       visible: {
-        length: boxExtW,
+        length: isLapJoint ? drawerInnerW : boxExtW,
         width: boxHRow + frontExtraDown,
         thickness: drawerFrontT,
       },
       origin: { x: xCenter, y: yBase + boxYOffset - frontExtraDown, z: zFront },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      // 半鳩尾模式：前板是 RECEIVER、CSG 從側板的 dovetail-ends 形狀切；
-      // 不再給前板自己 tenons（角色從「tail carrier」改成「pin/socket board」）。
-      tenons: useHalfBlindDovetail
-        ? []
-        : [
-            {
-              position: "start",
-              type: "dovetail",
-              length: dovetailLen,
-              width: boxHRow,
-              thickness: drawerFrontT - 2,
-            },
-            {
-              position: "end",
-              type: "dovetail",
-              length: dovetailLen,
-              width: boxHRow,
-              thickness: drawerFrontT - 2,
-            },
-          ],
+      // lap = butt joint 無榫；dovetail = CSG 從側板 shape 切、前板自己也無 tenons
+      tenons: [],
       mortises: frontGrooveMortises,
     });
     if (!hasFacePanel) {
@@ -579,32 +577,17 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       nameZh: `${labelPrefix}${i + 1} 後板`,
       material,
       grainDirection: "length",
+      // 後板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
+      // 跨外寬被側板 tail CSG 切（=boxExtW = drawerInnerW + 2×drawerSideT）。
       visible: {
-        length: drawerInnerW + 2 * drawerSideT,
+        length: isLapJoint ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
         width: drawerBackHeight,
         thickness: drawerBackT,
       },
       origin: { x: xCenter, y: drawerBackY, z: zBack },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      // 半鳩尾模式：後板也變 CSG receiver（被側板鳩尾 teeth 切）、不需自己有 tenons
-      tenons: useHalfBlindDovetail
-        ? []
-        : [
-            {
-              position: "start",
-              type: "half-lap",
-              length: drawerSideT * 0.5,
-              width: drawerBackHeight - 4,
-              thickness: drawerBackT,
-            },
-            {
-              position: "end",
-              type: "half-lap",
-              length: drawerSideT * 0.5,
-              width: drawerBackHeight - 4,
-              thickness: drawerBackT,
-            },
-          ],
+      // lap / dovetail 皆無 corner tenons（lap=butt、dovetail=CSG）
+      tenons: [],
       mortises: [],
     });
 
@@ -620,63 +603,46 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
         ? halfBlindSegmentCount + 1
         : halfBlindSegmentCount;
     for (const side of [-1, 1] as const) {
+      // side panel 依接合方式決定長度 + 位置：
+      // - dovetail（含半鳩尾）：body 延長 2×pinDepth 進前後板實體區、shape 在
+      //   延伸區做 crenellated tail。z center 維持 sideZCenter（body 中段）。
+      // - lap（搭接）：body 蓋滿前後板（drawerOuterD）、z center 推到 drawer
+      //   外部中心、無 shape、前後板被夾在中間。
+      const sideLength = isDovetailJoint
+        ? drawerInnerD + 2 * dovetailPinDepth
+        : drawerOuterD;
+      const sideZCenterLap =
+        (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
+      const effectiveSideZCenter = isLapJoint ? sideZCenterLap : sideZCenter;
       parts.push({
         id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
         nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
         material,
         grainDirection: "length",
-        // 半鳩尾：side panel body 延長 2×pinDepth 進前後板實體區、CSG 才有重疊可切。
-        // dovetail-ends 的 teeth 是「往 body X 邊緣 carve」、不會自動凸出 body，所以
-        // 必須先把 body 延伸進去、再讓 shape 在這個延伸區內做 crenellated 形狀。
-        // pin 區段 = 真.tail 進到前/後板厚度內、gap 區段 = 縮回原本 drawerInnerD 邊。
         visible: {
-          length: useHalfBlindDovetail
-            ? drawerInnerD + 2 * halfBlindPinDepth
-            : drawerInnerD,
+          length: sideLength,
           width: boxHRow,
           thickness: drawerSideT,
         },
         origin: {
           x: xCenter + side * (boxExtW / 2 - drawerSideT / 2),
           y: yBase + boxYOffset,
-          z: sideZCenter,
+          z: effectiveSideZCenter,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        shape: useHalfBlindDovetail
+        shape: isDovetailJoint
           ? {
               kind: "dovetail-ends" as const,
               segmentCount: dovetailSegCount,
               phase: 0 as const,
               angleDeg: 10,
-              pinDepth: halfBlindPinDepth,
+              pinDepth: dovetailPinDepth,
               halfPin: true,
             }
           : undefined,
         tenons: [],
+        // lap / dovetail 都無 corner mortise（lap=butt joint、dovetail=CSG 從 shape 切）
         mortises: [
-          // 半鳩尾：前後 dovetail/half-lap mortises 都砍（CSG 從 shape 切、避免雙重切）
-          ...(useHalfBlindDovetail
-            ? []
-            : [
-                {
-                  origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
-                  depth: dovetailLen,
-                  length: boxHRow,
-                  width: drawerFrontT - 2,
-                  through: true,
-                } as const,
-                {
-                  origin: {
-                    x: drawerInnerD / 2 + 1,
-                    y: 0,
-                    z: isSurfaceDrawerBottom ? 0 : (drawerBottomT + 6) / 2,
-                  },
-                  depth: drawerSideT * 0.5,
-                  length: drawerBackHeight - 4,
-                  width: drawerBackT,
-                  through: false,
-                } as const,
-              ]),
           ...(isSurfaceDrawerBottom
             ? []
             : [
@@ -694,7 +660,6 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       });
     }
 
-    const drawerOuterD = drawerInnerD + drawerFrontT + drawerBackT;
     const drawerBottomLengthRebated = drawerInnerD + drawerBackT + 6;
     const drawerBottomFrontEdgeZ = zFront + drawerFrontT / 2 - 6;
     const drawerBottomRearEdgeZ = zBack + drawerBackT / 2;

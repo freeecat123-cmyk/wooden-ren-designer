@@ -64,6 +64,8 @@ export interface CaseFurnitureOpts {
   /** 抽屜底板厚度 mm（3/6/9/12）。釘底/入溝皆套用此厚度。
    *  入溝槽深固定 6mm 不影響側板強度、底板厚度只決定槽的「垂直高度」。 */
   drawerBottomThickness?: number;
+  /** 抽屜箱體接合：lap 搭接（側板蓋前後）/ dovetail 鳩尾（自動依面板判半/通）。 */
+  drawerBoxJoinery?: "lap" | "dovetail";
   /** 背板作法：
    *  - "surface" 表面釘背：薄板（預設 3mm 夾板）直接釘/鎖在櫃體背面，
    *    尺寸 = 全外長 × 全外高（蓋過頂/底/側板背緣）。裝潢市場標準作法。
@@ -709,6 +711,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       drawerMount: cfg.drawerMount ?? drawerMount,
       drawerBottomMode: opts.drawerBottomMode,
       drawerBottomThickness: opts.drawerBottomThickness,
+      drawerBoxJoinery: opts.drawerBoxJoinery,
       drawerSlideGap: opts.drawerSlideGap,
       pullStyle: cfg.pullStyle ?? pullStyle,
     }, parts);
