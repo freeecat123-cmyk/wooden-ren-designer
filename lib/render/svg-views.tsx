@@ -533,25 +533,16 @@ export function tenonLocalBox(part: Part, tenon: Part["tenons"][number]): LocalB
     case "right":
       cx = oW; cy = oT; cz = +lz / 2 + L / 2; hx = W / 2; hy = T / 2; hz = L / 2; break;
   }
-  // Compound splay：axis override 讓榫頭沿任意 part-local 方向偏出（不只 ±X/±Y/±Z）。
-  // 撤掉 position-default 的半長位移，再沿 unit axis 重新位移半長。
-  // 斷面尺寸保留為 AABB 近似（≤12° 視覺可接受）。
-  if (tenon.axis) {
-    const m = Math.hypot(tenon.axis.x, tenon.axis.y, tenon.axis.z) || 1;
-    const u = { x: tenon.axis.x / m, y: tenon.axis.y / m, z: tenon.axis.z / m };
-    const halfLen = L / 2;
-    switch (tenon.position) {
-      case "start":  cx += halfLen; break;
-      case "end":    cx -= halfLen; break;
-      case "top":    cy -= halfLen; break;
-      case "bottom": cy += halfLen; break;
-      case "left":   cz += halfLen; break;
-      case "right":  cz -= halfLen; break;
-    }
-    cx += u.x * halfLen;
-    cy += u.y * halfLen;
-    cz += u.z * halfLen;
-  }
+  // 注意：tenon.axis 是「世界座標系」單位向量（由 computeCompoundSplayNormal
+  // 算的腳/牙板斜接法向），不是 part-local。早期版本（2af8c14）在這裡誤把
+  // axis 當 part-local 加到 cx/cy/cz：經過 part.rotation 後再次旋轉，產生
+  // 大幅錯位（左右牙板榫在正/側視變兩疊、位置鏡像到腳外側）。
+  //
+  // 修正：axis 只用在 CompoundMiterAnnotation 文字角度（α₁/α₂），不參與
+  // tenon body 的 part-local 位置；位置完全靠 position-default 的 cx/cy/cz +
+  // part.rotation 自然投影即可。PerspectiveView 也走同樣慣例（只用 axis 做
+  // 朝向 quaternion、不偏 local position），這樣 3D 與 2D 一致。
+  // ≤12° 範圍內視覺差距 AABB 可吸收。
   return { cx, cy, cz, hx, hy, hz };
 }
 

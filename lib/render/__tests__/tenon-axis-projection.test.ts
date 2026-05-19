@@ -20,7 +20,10 @@ describe("tenonLocalBox with axis override", () => {
     expect(box.cx).toBeGreaterThan(0); // end tenon centred at +length/2 along x
   });
 
-  it("offsets the box along the axis when axis is present", () => {
+  it("ignores axis for part-local position (axis is world-frame)", () => {
+    // Regression: 2af8c14 applied tenon.axis as part-local offset → bug
+    // (world-frame vector mis-applied caused tenon to drift after part.rotation).
+    // Fix: axis only affects orientation/annotation, never part-local position.
     const p = basePart();
     const tenonNoAxis = tenonLocalBox(p, {
       position: "end", type: "shouldered-tenon",
@@ -29,11 +32,11 @@ describe("tenonLocalBox with axis override", () => {
     const tenonTilted = tenonLocalBox(p, {
       position: "end", type: "shouldered-tenon",
       length: 20, width: 30, thickness: 12,
-      axis: { x: 0.9848, y: -0.1736, z: 0 }, // ~10° tilt downward
+      axis: { x: 0.9848, y: -0.1736, z: 0 },
     });
-    // Center moves slightly down (cy lower) and slightly back in x
-    expect(tenonTilted.cy).toBeLessThan(tenonNoAxis.cy);
-    expect(tenonTilted.cx).toBeLessThan(tenonNoAxis.cx);
-    expect(tenonTilted.cx).toBeGreaterThan(tenonNoAxis.cx * 0.9);
+    // 兩者 part-local box 應完全相同（axis 純用作標籤/orientation 資訊）
+    expect(tenonTilted.cx).toBe(tenonNoAxis.cx);
+    expect(tenonTilted.cy).toBe(tenonNoAxis.cy);
+    expect(tenonTilted.cz).toBe(tenonNoAxis.cz);
   });
 });
