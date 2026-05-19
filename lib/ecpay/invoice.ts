@@ -172,23 +172,20 @@ function buildIssueData(input: IssueInvoiceInput): Record<string, unknown> {
   };
 
   if (isCompany) {
-    // 公司戶開立(統編):綠界對 Print="0" + CarrierType="" 的組合會 reject
-    // 「RtnCode=5000028 客戶資訊已填入統編,須請選擇載具類別」。
+    // 公司戶開立(統編):已踩過坑(失敗 combination):
+    //   - Print="0" + CarrierType="" → 5000028「客戶資訊已填入統編,須選擇載具類別」
+    //   - Print="1" + 無 CarrierType + 無 CustomerAddr → 5000028
+    //   - Print="1" + 無 CarrierType + CustomerAddr → 5000028
     //
-    // 兩個正解:
-    //   1. Print="1" 列印紙本(需 CustomerAddr 寄送地址)
-    //   2. Print="0" + 綠界後台啟用「公司戶自動歸戶」(賣家手動設定)
-    //
-    // 走 1 較通用 — 公司戶會收到紙本發票郵寄到登記地址。CarrierType **完全不送**
-    // (不送 != 送空字串,綠界對「送空字串」會當成「user 想選但沒選好」抛 reject)。
-    const out: Record<string, unknown> = {
+    // 還沒試的:Print="0" + CarrierType="1"(綠界會員載具) — 讓綠界用會員載具歸戶
+    // 然後將該筆紀錄到統編下,符合 ECPay「統編必須有載具」的隱性需求。
+    return {
       ...base,
       CustomerIdentifier: pref.taxId,
       CustomerName: pref.title,
-      Print: "1",
+      Print: "0",
+      CarrierType: "1", // 綠界會員載具(統編戶歸戶內部走會員載具)
     };
-    if (pref.companyAddr) out.CustomerAddr = pref.companyAddr;
-    return out;
   }
 
   // 個人：載具優先順序 手機條碼 > 綠界會員載具 > 無
