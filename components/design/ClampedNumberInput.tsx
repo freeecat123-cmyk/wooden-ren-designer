@@ -156,11 +156,11 @@ export function ClampedNumberInput({
 
   return (
     <span
-      className="inline-flex flex-col"
+      className="flex flex-col w-full min-w-0"
       onPointerEnter={hasAnchor ? handleEnter : undefined}
       onPointerLeave={hasAnchor ? handleLeave : undefined}
     >
-      <span className="inline-flex items-center gap-2">
+      <span className="flex items-center gap-1 w-full min-w-0">
         {label && (
           <span className="text-zinc-700 font-medium shrink-0 w-16 text-sm">
             {label}
@@ -176,7 +176,7 @@ export function ClampedNumberInput({
             onMouseLeave={stopRepeat}
             onTouchStart={() => startRepeat(-stepDelta)}
             onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+            className="hidden md:flex shrink-0 w-7 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-base leading-none"
           >
             −
           </button>
@@ -199,7 +199,7 @@ export function ClampedNumberInput({
           min={min}
           max={max}
           step={step}
-          className={className}
+          className={`${className ?? ""} flex-1 min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`.trim()}
         />
 
         {showPlusMinus && (
@@ -211,7 +211,7 @@ export function ClampedNumberInput({
             onMouseLeave={stopRepeat}
             onTouchStart={() => startRepeat(stepDelta)}
             onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium"
+            className="hidden md:flex shrink-0 w-7 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-base leading-none"
           >
             +
           </button>
