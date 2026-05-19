@@ -107,8 +107,9 @@ export function WhitelistAdminClient() {
       if (!res.ok) throw new Error(json.error ?? "add failed");
       const upCount = (typeof json.upgradedCount === "number" ? json.upgradedCount : 0);
       const upEmails: string[] = Array.isArray(json.upgradedEmails) ? json.upgradedEmails as string[] : [];
+      const emailsSent = typeof json.emailsSent === "number" ? json.emailsSent : 0;
       const upMsg = upCount > 0
-        ? ` · 同步升級 ${upCount} 個已註冊 user 為 student(${upEmails.join(", ")})`
+        ? ` · 同步升級 ${upCount} 個已註冊 user 為 student(${upEmails.join(", ")})${emailsSent > 0 ? ` · 通知信已寄 ${emailsSent}/${upCount}` : ""}`
         : "";
       setFlash(`✅ 新增 ${json.added ?? 1} 筆${upMsg}`);
       setNewEmail("");
@@ -160,11 +161,16 @@ export function WhitelistAdminClient() {
       {
         const upCount = typeof json.upgradedCount === "number" ? json.upgradedCount : 0;
         const upEmails: string[] = Array.isArray(json.upgradedEmails) ? json.upgradedEmails as string[] : [];
+        const emailsSent = typeof json.emailsSent === "number" ? json.emailsSent : 0;
+        const emailsFailed = typeof json.emailsFailed === "number" ? json.emailsFailed : 0;
         const upMsg = upCount > 0
           ? ` · 同步升級 ${upCount} 個 free user 為 student${upCount <= 5 ? `(${upEmails.join(", ")})` : ""}`
           : "";
+        const mailMsg = upCount > 0
+          ? ` · 通知信 ${emailsSent}/${upCount} 已寄${emailsFailed > 0 ? `(${emailsFailed} 失敗)` : ""}`
+          : "";
         const errMsg = json.upgradeError ? `(升級失敗:${json.upgradeError})` : "";
-        setFlash(`✅ 匯入完成:${json.added ?? 0} 筆${upMsg}${errMsg}`);
+        setFlash(`✅ 匯入完成:${json.added ?? 0} 筆${upMsg}${mailMsg}${errMsg}`);
       }
       setCsvPreview(null);
       if (fileRef.current) fileRef.current.value = "";

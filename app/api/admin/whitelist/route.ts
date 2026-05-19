@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
+import { sendEmail } from "@/lib/email/send";
+import { studentEnrolledEmail } from "@/lib/email/templates/student-enrolled";
 
 interface AdminCheck {
   ok: boolean;
@@ -120,6 +122,8 @@ export async function POST(request: NextRequest) {
   const upgradedEmails = (candidates ?? []).map((u: { email: string }) => u.email);
 
   let upgradeError: string | null = null;
+  let emailsSent = 0;
+  let emailsFailed = 0;
   if (upgradedEmails.length > 0) {
     const { error: upErr } = await svc
       .from("users")
@@ -135,6 +139,19 @@ export async function POST(request: NextRequest) {
       console.error("[whitelist/upgrade] update failed", upErr, { upgradedEmails });
     } else {
       console.log("[whitelist/upgrade] auto-upgraded free→student", { count: upgradedEmails.length, upgradedEmails });
+
+      // 寄通知信 — Promise.allSettled 不擋整個 request,單封失敗只記 log
+      const sendResults = await Promise.allSettled(
+        upgradedEmails.map(async (email) => {
+          const tmpl = studentEnrolledEmail({ email, expiresAt: expires });
+          return sendEmail({ to: email, ...tmpl });
+        }),
+      );
+      for (const r of sendResults) {
+        if (r.status === "fulfilled" && r.value.ok) emailsSent += 1;
+        else emailsFailed += 1;
+      }
+      console.log("[whitelist/upgrade] notification emails", { sent: emailsSent, failed: emailsFailed });
     }
   }
 
@@ -144,6 +161,8 @@ export async function POST(request: NextRequest) {
     upgradedCount: upgradedEmails.length,
     upgradedEmails,
     upgradeError,
+    emailsSent,
+    emailsFailed,
   });
   } catch (e) {
     return serverError(e);
