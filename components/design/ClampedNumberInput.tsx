@@ -176,7 +176,7 @@ export function ClampedNumberInput({
             onMouseLeave={stopRepeat}
             onTouchStart={() => startRepeat(-stepDelta)}
             onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-7 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-base leading-none"
+            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
           >
             −
           </button>
@@ -199,7 +199,7 @@ export function ClampedNumberInput({
           min={min}
           max={max}
           step={step}
-          className={`${className ?? ""} flex-1 min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`.trim()}
+          className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`.trim()}
         />
 
         {showPlusMinus && (
@@ -211,7 +211,7 @@ export function ClampedNumberInput({
             onMouseLeave={stopRepeat}
             onTouchStart={() => startRepeat(stepDelta)}
             onTouchEnd={stopRepeat}
-            className="hidden md:flex shrink-0 w-7 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-base leading-none"
+            className="hidden md:flex shrink-0 w-6 h-9 items-center justify-center rounded-md bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold text-sm leading-none"
           >
             +
           </button>
