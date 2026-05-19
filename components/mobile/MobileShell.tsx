@@ -28,6 +28,7 @@ import type { FurnitureDesign, MaterialId, OptionSpec } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 import { SCENE_THEME_LIST, SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { groupSpecsByGroup } from "@/lib/design/option-groups";
+import { resolvePartIds } from "@/lib/design/option-part-map";
 
 // FurnitureCatalogEntry contains a `template` function that cannot be
 // serialised when passing from Server → Client Component. MobileShell
@@ -87,6 +88,19 @@ export function MobileShell(props: MobileShellProps) {
 
   const { entry, design, length, width, height, material, optionValues, formAction } = props;
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
+  const allPartIds: string[] = design.parts.map((p) => p.id);
+
+  // 以 step×10 為間距產出 ticks（min=200/max=3000/step=10 → 500mm 一條）
+  const makeTicks = (minV: number, maxV: number, step: number): number[] => {
+    const interval = step * 10;
+    if (interval <= 0 || maxV <= minV) return [];
+    const out: number[] = [];
+    const start = Math.ceil(minV / interval) * interval;
+    for (let t = start; t <= maxV; t += interval) {
+      if (t > minV && t < maxV) out.push(t);
+    }
+    return out;
+  };
 
   // limits: flat { length, width, height } — each is the max value; use 200 as min floor.
   const lMax = entry.limits?.length ?? 3000;
@@ -165,9 +179,36 @@ export function MobileShell(props: MobileShellProps) {
         <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
           <SizePresetButtons category={entry.category} compact />
           <div className="space-y-1.5">
-            <RangeInput name="length" label="長" defaultValue={length} min={200} max={lMax} step={10} />
-            <RangeInput name="width" label="寬" defaultValue={width} min={200} max={wMax} step={10} />
-            <RangeInput name="height" label="高" defaultValue={height} min={200} max={hMax} step={10} />
+            <RangeInput
+              name="length"
+              label="長"
+              defaultValue={length}
+              min={200}
+              max={lMax}
+              step={10}
+              ticks={makeTicks(200, lMax, 10)}
+              partIds={resolvePartIds("length", allPartIds)}
+            />
+            <RangeInput
+              name="width"
+              label="寬"
+              defaultValue={width}
+              min={200}
+              max={wMax}
+              step={10}
+              ticks={makeTicks(200, wMax, 10)}
+              partIds={resolvePartIds("width", allPartIds)}
+            />
+            <RangeInput
+              name="height"
+              label="高"
+              defaultValue={height}
+              min={200}
+              max={hMax}
+              step={10}
+              ticks={makeTicks(200, hMax, 10)}
+              partIds={resolvePartIds("height", allPartIds)}
+            />
             <label className="flex items-center gap-3 text-sm pt-1">
               <span className="text-zinc-700 font-medium shrink-0 w-8">材料</span>
               <select
@@ -299,7 +340,7 @@ export function MobileShell(props: MobileShellProps) {
             {visibleStructureSpecs.length === 0 ? (
               <div className="text-sm text-zinc-500">此家具無結構選項</div>
             ) : (
-              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+              <GroupedSpecs specs={visibleStructureSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
             )}
           </DesignFormShell>
         }
@@ -313,7 +354,7 @@ export function MobileShell(props: MobileShellProps) {
               optionValues={optionValues}
               exceptKeys={visibleStyleSpecs.map((s) => s.key)}
             />
-            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+            <GroupedSpecs specs={visibleStyleSpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
           </DesignFormShell>
         }
         joineryContent={
@@ -331,7 +372,7 @@ export function MobileShell(props: MobileShellProps) {
               {visibleJoinerySpecs.length === 0 ? (
                 <div className="text-sm text-zinc-500">此家具無榫接選項</div>
               ) : (
-                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} />
+                <GroupedSpecs specs={visibleJoinerySpecs} optionValues={optionValues} overallHeight={height} overallLength={length} allPartIds={allPartIds} />
               )}
             </DesignFormShell>
 
@@ -492,11 +533,13 @@ function GroupedSpecs({
   optionValues,
   overallHeight,
   overallLength,
+  allPartIds,
 }: {
   specs: OptionSpec[];
   optionValues: Record<string, string | number | boolean>;
   overallHeight?: number;
   overallLength?: number;
+  allPartIds?: string[];
 }) {
   const groups = groupSpecsByGroup(specs);
   return (
@@ -519,6 +562,7 @@ function GroupedSpecs({
                 allValues={optionValues}
                 overallHeight={overallHeight}
                 overallLength={overallLength}
+                allPartIds={allPartIds}
               />
             ))}
           </div>
