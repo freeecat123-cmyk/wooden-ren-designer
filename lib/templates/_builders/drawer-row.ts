@@ -434,12 +434,14 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     const expandTop = isTopRowExpand ? shelfT : 0;
     const slotHRow = rowSlotH[row];
     // 釘底底板 attach 在側板下緣（y = yBase - drawerBottomT）→ 抽屜總高
-    // = boxHRow + drawerBottomT，要從 slot 預算扣掉這段才不會超出櫃格。
+    // = boxHRow + drawerBottomT。要：
+    //   1. 從 slot 預算扣掉這段（縮 boxHRow）
+    //   2. 把 yBase 推高 drawerBottomT（不然底板會垂出 slot 底）
     // 入溝底板嵌在 box 內、不增加總高、不扣。
     const surfaceBottomReserve = isSurfaceDrawerBottom ? drawerBottomT : 0;
     const drawerHRow = slotHRow - shelfT - drawerGap * 2 - surfaceBottomReserve;
     const boxHRow = (hasSlide ? slotHRow - shelfT - 10 - surfaceBottomReserve : drawerHRow) + expandTop;
-    const yBase = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap;
+    const yBase = drawerZoneBottomY + rowSlotYBottom[row] + drawerGap + surfaceBottomReserve;
     const xCenter =
       zoneCx -
       zoneW / 2 +
