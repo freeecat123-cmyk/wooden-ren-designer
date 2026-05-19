@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/subscription-sweep",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/ecpay-reconciliation",
+      "schedule": "0 19 * * *"
     }
   ]
 }
