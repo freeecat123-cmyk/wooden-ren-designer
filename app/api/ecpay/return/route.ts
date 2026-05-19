@@ -25,6 +25,7 @@ import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success"
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
 import { requestRefund } from "@/lib/ecpay/refund";
+import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 import { calcProrateRefund } from "@/lib/pricing/prorate";
 
 export const runtime = "nodejs";
@@ -213,9 +214,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2. 升級退舊版 prorate
+      // 2. 升級流程後處理:cancel 舊定期定額 + 退舊版 prorate
+      //    cancel 延後到這裡才做(以前在 checkout 立刻取消,user 中途放棄會卡住沒新方案
+      //    又沒舊方案自動續)。現在 user 中途放棄 = 啥都沒變,個人版下次照樣自動扣。
       let upgradeRefundAmount = 0;
       if (sub.replaced_subscription_id) {
+        await cancelOldEcpayPeriodic(admin, sub.replaced_subscription_id);
         upgradeRefundAmount = await handleUpgradeRefund(admin, sub.replaced_subscription_id, sub.id);
       }
 
@@ -327,5 +331,48 @@ async function handleUpgradeRefund(
   } catch (e) {
     console.error("[ecpay/return/upgrade-refund] 例外", e);
     return 0;
+  }
+}
+
+/**
+ * 升級時取消舊定期定額。
+ * 在 webhook 成功才呼叫,避免 user 中途關掉刷卡頁卻已被取消舊訂閱的情況。
+ * 失敗只 log 不擋 webhook(新 sub 已啟用,雙扣風險低;真的雙扣 admin 手動處理)。
+ */
+async function cancelOldEcpayPeriodic(
+  admin: ReturnType<typeof createAdminClient>,
+  oldSubId: string,
+): Promise<void> {
+  try {
+    const { data: oldSub } = await admin
+      .from("subscriptions")
+      .select("id, ecpay_merchant_trade_no, status")
+      .eq("id", oldSubId)
+      .single();
+    if (!oldSub?.ecpay_merchant_trade_no) {
+      console.warn("[ecpay/return/cancel-old] 舊 sub 沒 merchant_trade_no", { oldSubId });
+      return;
+    }
+    if (oldSub.status === "cancelled" || oldSub.status === "expired") {
+      // 已是取消/過期狀態,綠界端應該也沒在跑了,skip
+      return;
+    }
+    const result = await terminateEcpayPeriodic(oldSub.ecpay_merchant_trade_no);
+    if (!result.ok) {
+      const benign =
+        result.rtnCode &&
+        (result.rtnMsg?.includes("不存在") || result.rtnMsg?.includes("已終止"));
+      if (!benign) {
+        console.error("[ecpay/return/cancel-old] terminate 失敗(雙扣風險!)", {
+          oldSubId,
+          result,
+        });
+        return;
+      }
+    }
+    await admin.from("subscriptions").update({ status: "cancelled" }).eq("id", oldSubId);
+    console.log("[ecpay/return/cancel-old] 舊 sub terminate + DB cancelled", { oldSubId });
+  } catch (e) {
+    console.error("[ecpay/return/cancel-old] 例外", e);
   }
 }

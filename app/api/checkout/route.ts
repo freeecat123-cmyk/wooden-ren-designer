@@ -31,7 +31,6 @@ import {
   getAioUrl,
 } from "@/lib/ecpay/create-order";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
-import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,54 +111,31 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    // relation === "upgrade":正當升級,繼續流程 → 先 cancel 舊
+    // relation === "upgrade":只「記錄」舊 sub id 進 replaced_subscription_id,
+    // 真正 cancel 舊定期定額延後到 webhook 收到新 sub 付款成功才做。
+    //
+    // 為什麼:之前在 checkout 立刻 cancel,如果 user 中途關掉綠界刷卡頁,
+    // 舊定期定額已被取消但新的沒成立 → 下次帳單日不會自動扣 → user 沒升級成 pro
+    // 又少了個人版自動續期。
+    //
+    // 改成延後 cancel 後:user 中途放棄 = 啥都沒變,個人版下次照樣自動扣。
+    // 風險:新 pro 付款成功到 webhook cancel 舊 sub 之間有短暫窗口同時兩個
+    // active,但 ECPay 不會在這 5-30 秒內又自動扣老 sub,實務上安全。
     if (relation === "upgrade") {
-      // 撈舊 sub 的 merchant_trade_no
       const { data: oldSub } = await admin
         .from("subscriptions")
-        .select("id, ecpay_merchant_trade_no")
+        .select("id")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-
-      if (oldSub?.ecpay_merchant_trade_no) {
-        // 月扣才需要 Terminate(年付一次性付完沒未來扣款)
-        const result = await terminateEcpayPeriodic(oldSub.ecpay_merchant_trade_no);
-        if (!result.ok) {
-          // Terminate 失敗 → 整個 abort,user 維持原方案(沒被雙扣)
-          // 月扣可能本就不是定期定額(一次性年付),綠界回 「訂單不存在」也算可接受
-          const benign =
-            result.rtnCode &&
-            (result.rtnMsg?.includes("不存在") || result.rtnMsg?.includes("已終止"));
-          if (!benign) {
-            console.error("[checkout/upgrade] cancel old sub failed", {
-              userId: user.id,
-              oldSubId: oldSub.id,
-              result,
-            });
-            return NextResponse.json(
-              {
-                error: "upgrade_cancel_failed",
-                message: "升級失敗:無法終止舊訂閱(綠界連線異常)。請稍後再試或寫信給木頭仁。",
-                detail: result,
-              },
-              { status: 502 },
-            );
-          }
-        }
-        // 標記 DB
-        await admin
-          .from("subscriptions")
-          .update({ status: "cancelled" })
-          .eq("id", oldSub.id);
-        replacedSubId = oldSub.id; // 寫進新 sub,webhook 收 pro 成功才退舊版 prorate
-        console.log("[checkout/upgrade] cancelled old sub", {
+      if (oldSub?.id) {
+        replacedSubId = oldSub.id;
+        console.log("[checkout/upgrade] marked old sub for deferred-cancel", {
           userId: user.id,
           oldPlan: currentPlan,
           newPlan: targetBasePlan,
-          orderId: oldSub.ecpay_merchant_trade_no,
           replacedSubId,
         });
       }
