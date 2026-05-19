@@ -221,6 +221,7 @@ export function PricingClient() {
             currentPlan={currentPlan}
             currentStatus={currentStatus}
             currentPeriod={currentPeriod}
+            currentExpiresAt={profile?.subscription_expires_at ?? null}
           />
         ))}
       </div>

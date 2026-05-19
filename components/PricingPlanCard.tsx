@@ -48,6 +48,7 @@ export function PlanCardView({
   currentPlan = null,
   currentStatus = null,
   currentPeriod = null,
+  currentExpiresAt = null,
 }: {
   plan: PlanCard;
   period: BillingPeriod;
@@ -58,6 +59,8 @@ export function PlanCardView({
   currentStatus?: string | null;
   /** user 當前訂閱的計費週期 monthly/yearly,用來判斷跨週期切換 */
   currentPeriod?: BillingPeriod | null;
+  /** users.subscription_expires_at (ISO),算升級贈送的剩餘天數用 */
+  currentExpiresAt?: string | null;
 }) {
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
@@ -225,7 +228,18 @@ export function PlanCardView({
         }
 
         // 升級 → 走 checkout(server 端會先 cancel 舊 sub)
-        const ctaText = isUpgrade ? "立刻升級" : plan.cta;
+        // 算剩餘天數:expires_at - 今天 (向下取整,minimum 0)
+        const remainingDays = (() => {
+          if (!isUpgrade || !currentExpiresAt) return 0;
+          const ms = new Date(currentExpiresAt).getTime() - Date.now();
+          if (Number.isNaN(ms) || ms <= 0) return 0;
+          return Math.floor(ms / 86400000);
+        })();
+        const ctaText = isUpgrade
+          ? remainingDays > 0
+            ? `立刻升級 · 贈 ${remainingDays} 天`
+            : "立刻升級"
+          : plan.cta;
         return (
           <form method="POST" action="/api/checkout" className="mt-5">
             <input type="hidden" name="plan" value={plan.id} />
@@ -240,9 +254,14 @@ export function PlanCardView({
             >
               {ctaText}
             </button>
-            {isUpgrade && (
+            {isUpgrade && remainingDays > 0 && (
               <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
-                你目前方案的剩餘天數仍可用,新方案會立刻啟用(等於這段時間兩個方案都生效)
+                你目前方案剩 {remainingDays} 天,這段期間新舊方案都生效
+              </p>
+            )}
+            {isUpgrade && remainingDays === 0 && (
+              <p className="mt-2 text-[11px] text-zinc-500 text-center leading-snug">
+                你目前方案剩餘天數仍可用,新方案立刻啟用
               </p>
             )}
           </form>
