@@ -57,10 +57,13 @@ export interface CaseFurnitureOpts {
   shelfThickness?: number;
   backThickness?: number;
   /** 抽屜底板作法：
-   *  - "surface" 釘底：3mm 夾板從下方釘在箱底，側/前/後板下緣不開溝。
-   *  - "rebated" 入溝：6mm 夾板四邊嵌進溝裡（傳統榫卯抽屜）。
+   *  - "surface" 釘底：夾板從下方釘在箱底，側/前/後板下緣不開溝。
+   *  - "rebated" 入溝：夾板四邊嵌進溝裡（傳統榫卯抽屜）。
    *  預設 "surface"。 */
   drawerBottomMode?: "surface" | "rebated";
+  /** 抽屜底板厚度 mm（3/6/9/12）。釘底/入溝皆套用此厚度。
+   *  入溝 ≥9mm 會自動加厚側板（drawer-row 內處理）。 */
+  drawerBottomThickness?: number;
   /** 背板作法：
    *  - "surface" 表面釘背：薄板（預設 3mm 夾板）直接釘/鎖在櫃體背面，
    *    尺寸 = 全外長 × 全外高（蓋過頂/底/側板背緣）。裝潢市場標準作法。
@@ -705,6 +708,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       drawerFacePanelT,
       drawerMount: cfg.drawerMount ?? drawerMount,
       drawerBottomMode: opts.drawerBottomMode,
+      drawerBottomThickness: opts.drawerBottomThickness,
       drawerSlideGap: opts.drawerSlideGap,
       pullStyle: cfg.pullStyle ?? pullStyle,
     }, parts);

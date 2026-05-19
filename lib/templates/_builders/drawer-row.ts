@@ -216,6 +216,9 @@ export interface RenderDrawerZoneCfg {
   drawerFacePanelT: number;
   drawerMount: DrawerMount;
   drawerBottomMode?: DrawerBottomMode;
+  /** 抽屜底板厚度 mm；3/6/9/12 任一。釘底 / 入溝皆套用此厚度。
+   *  fallback：surface=3, rebated=6（跟舊行為一致）。 */
+  drawerBottomThickness?: number;
   drawerSlideGap?: number;
   pullStyle: string;
   /** 跳過 case 風格的水平分隔板 / zone-boundary（給 desk 牙板抽屜用）。
@@ -310,11 +313,15 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   }
 
   const drawerFrontT = 18;
-  const drawerSideT = 14;
   const drawerBackT = 12;
   const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
   const isSurfaceDrawerBottom = drawerBottomMode === "surface";
-  const drawerBottomT = isSurfaceDrawerBottom ? 3 : 6;
+  const drawerBottomT = cfg.drawerBottomThickness ?? (isSurfaceDrawerBottom ? 3 : 6);
+  // 入溝底板 12mm 寬槽會把 14mm 側板挖到剩 1mm 壁——自動加厚側板
+  // （槽深固定 6mm 不變、槽寬 = drawerBottomT + 1）。每邊壁至少留 3mm。
+  const drawerSideT = isSurfaceDrawerBottom
+    ? 14
+    : Math.max(14, drawerBottomT + 7);
   const drawerGap = 2;
   const partitionT = cols > 1 ? panelT : 0;
   const totalPartitionW = (cols - 1) * partitionT;

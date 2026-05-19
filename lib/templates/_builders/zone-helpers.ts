@@ -216,8 +216,8 @@ export const drawerBottomModeOption: OptionSpec = {
   label: "抽屜底板作法",
   defaultValue: "surface",
   choices: [
-    { value: "surface", label: "釘底（3mm 夾板從下釘上）— 裝潢標準" },
-    { value: "rebated", label: "入溝（6mm 嵌進四邊溝裡）— 榫卯家具" },
+    { value: "surface", label: "釘底（夾板從下釘上）— 裝潢標準" },
+    { value: "rebated", label: "入溝（夾板嵌進四邊溝裡）— 榫卯家具" },
   ],
   dependsOn: ANY_ZONE_IS_DRAWER,
 };
@@ -230,6 +230,44 @@ export function resolveDrawerBottomMode(
 ): DrawerBottomMode {
   const v = getOption<string>(input, opt(options, "drawerBottomMode"));
   return v === "rebated" ? "rebated" : "surface";
+}
+
+/**
+ * 抽屜底板厚度（釘底 / 入溝皆可選）：
+ * - 3mm：薄夾板、釘底裝潢慣例、最輕
+ * - 6mm：入溝家具標準、實用平衡
+ * - 9mm：較厚、抽屜載重需求高（重物 / 大抽屜）
+ * - 12mm：實木底板等級、需配 ≥18mm 抽屜側板（不然入溝會把側板挖空）
+ *
+ * 影響：drawer-row.ts 內 box 高度公式（front extra / back panel reduction
+ * / side panel groove width）全部由 drawerBottomT 一個變數帶、改厚度時
+ * 自動同步、不必另外調 drawer frame 高度。
+ */
+export const drawerBottomThicknessOption: OptionSpec = {
+  group: "drawer",
+  type: "select",
+  key: "drawerBottomThickness",
+  label: "抽屜底板厚度",
+  defaultValue: "6",
+  choices: [
+    { value: "3", label: "3mm（薄夾板，最輕）" },
+    { value: "6", label: "6mm（標準，入溝家具最常用）" },
+    { value: "9", label: "9mm（加強，大抽屜或重物）" },
+    { value: "12", label: "12mm（實木底，需配 ≥18mm 側板）" },
+  ],
+  dependsOn: ANY_ZONE_IS_DRAWER,
+};
+
+export function resolveDrawerBottomThickness(
+  input: FurnitureTemplateInput,
+  options: OptionSpec[],
+): number {
+  const raw = getOption<string | number>(input, opt(options, "drawerBottomThickness"));
+  const n = typeof raw === "string" ? Number(raw) : raw;
+  // 容許舊 URL / 舊 design 沒帶這個 key（fallback 用模式對應的傳統值）
+  if (typeof n === "number" && [3, 6, 9, 12].includes(n)) return n;
+  const mode = getOption<string>(input, opt(options, "drawerBottomMode"));
+  return mode === "rebated" ? 6 : 3;
 }
 
 /** 每個 zone 可選的類型 */
