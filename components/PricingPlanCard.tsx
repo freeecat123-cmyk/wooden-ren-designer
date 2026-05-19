@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRef, useState } from "react";
+import { InvoicePreflightModal } from "./InvoicePreflightModal";
 
 export type BillingPeriod = "monthly" | "yearly";
 
@@ -75,6 +77,49 @@ export function PlanCardView({
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
   let belowPrice: React.ReactNode = null;
+
+  // 結帳前發票偏好攔截 — 沒設過就彈 modal,設完才真送 checkout form
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [hasInvoicePref, setHasInvoicePref] = useState<boolean | null>(null);
+  const [checkingPref, setCheckingPref] = useState(false);
+
+  async function handleCheckoutSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (checkingPref) return;
+    // 已知有設過 → 直接送
+    if (hasInvoicePref === true) {
+      formRef.current?.submit();
+      return;
+    }
+    setCheckingPref(true);
+    try {
+      const r = await fetch("/api/invoice-preference", { credentials: "include" });
+      if (r.ok) {
+        const j = await r.json();
+        if (j.preference) {
+          setHasInvoicePref(true);
+          formRef.current?.submit();
+          return;
+        }
+      }
+      // 沒設過 → 開 modal
+      setHasInvoicePref(false);
+      setInvoiceModalOpen(true);
+    } catch {
+      // 抓 preference 出包 → fallback 開 modal 讓 user 填,不要靜默繼續 (否則拿不到 invoice)
+      setInvoiceModalOpen(true);
+    } finally {
+      setCheckingPref(false);
+    }
+  }
+
+  function handleInvoiceSaved() {
+    setHasInvoicePref(true);
+    setInvoiceModalOpen(false);
+    // 等 state 更新完同步呼叫 form.submit() — 用 setTimeout 0 推到下個 tick
+    setTimeout(() => formRef.current?.submit(), 0);
+  }
 
   if (isFree) {
     priceLine = (
@@ -271,18 +316,25 @@ export function PlanCardView({
             ? "立刻升級"
             : plan.cta;
         return (
-          <form method="POST" action="/api/checkout" className="mt-5">
+          <form
+            ref={formRef}
+            method="POST"
+            action="/api/checkout"
+            className="mt-5"
+            onSubmit={handleCheckoutSubmit}
+          >
             <input type="hidden" name="plan" value={plan.id} />
             <input type="hidden" name="period" value={period} />
             <button
               type="submit"
+              disabled={checkingPref}
               className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
                 plan.highlight
                   ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
                   : "bg-zinc-900 text-white hover:bg-zinc-700"
-              }`}
+              } disabled:opacity-60`}
             >
-              {ctaText}
+              {checkingPref ? "確認中…" : ctaText}
             </button>
             {isUpgrade && refundCalc.state === "loaded" && refundCalc.refundAmount > 0 && (
               <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
@@ -307,6 +359,12 @@ export function PlanCardView({
           將跳轉綠界 ECPay 付款 · {period === "monthly" ? "信用卡(每月自動扣款)" : "信用卡 / ATM / 超商"}
         </p>
       )}
+
+      <InvoicePreflightModal
+        open={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        onSaved={handleInvoiceSaved}
+      />
     </div>
   );
 }
