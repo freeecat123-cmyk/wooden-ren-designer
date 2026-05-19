@@ -89,6 +89,12 @@ export function AdminDashboardClient() {
           >
             👥 白名單管理
           </Link>
+          <Link
+            href="/admin/ecpay"
+            className="px-3 py-1.5 rounded bg-amber-700 text-white text-sm hover:bg-amber-800"
+          >
+            💳 綠界日誌
+          </Link>
           <button
             type="button"
             onClick={load}
