@@ -66,48 +66,60 @@ export async function requestRefund(input: RefundInput): Promise<RefundResult> {
     return { ok: false, error: "invalid_amount" };
   }
 
+  // ECPay 退款依「請款狀態」分 3 種 Action,我們不知道交易在哪階段,
+  // 依序試:
+  //   N = 取消授權 (刷卡當天、未請款),最常見當日退費 — 對 23:47 刷、23:50 退這種 case
+  //   E = 放棄交易 (已請款但同日內)
+  //   R = 退款 (跨日已請款) — 最晚的階段
+  // 任何一個 ok 就回成功;全失敗回最後一次錯誤訊息給上層存 DB / 排查。
+  for (const action of ["N", "E", "R"] as const) {
+    const result = await tryRefundAction(input, action);
+    if (result.ok) {
+      console.log("[ecpay/refund] ✓ 成功", {
+        orderId: input.merchantTradeNo,
+        action,
+        amount: input.amount,
+      });
+      return result;
+    }
+    console.warn(`[ecpay/refund] Action=${action} 失敗,試下一個`, {
+      rtnCode: result.rtnCode,
+      rtnMsg: result.rtnMsg,
+    });
+  }
+  return {
+    ok: false,
+    error: "all_actions_failed",
+    rtnMsg: "N/E/R 三種退款方式 ECPay 全拒絕,請手動處理",
+  };
+}
+
+async function tryRefundAction(
+  input: RefundInput,
+  action: "N" | "E" | "R",
+): Promise<RefundResult> {
   const params: Record<string, string> = {
     MerchantID: ECPAY_MERCHANT_ID,
     MerchantTradeNo: input.merchantTradeNo,
     TradeNo: input.tradeNo,
-    Action: "R", // refund
+    Action: action,
     TotalAmount: String(input.amount),
   };
-  params.CheckMacValue = calculateCheckMacValue(
-    params,
-    ECPAY_HASH_KEY,
-    ECPAY_HASH_IV,
-  );
+  params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
 
   try {
     const formBody = new URLSearchParams(params).toString();
     const res = await fetch(ECPAY_CREDIT_DETAIL_DOACTION_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formBody,
     });
     const text = await res.text();
-    // 綠界回應格式：「1|請求成功」or「0|錯誤訊息」
-    // 也有「JSON」格式可選、但 default 是 string，這裡先收 string
     const [code, ...rest] = text.split("|");
     const msg = rest.join("|");
-    const ok = code === "1";
-
-    console.log("[ecpay/refund] response", {
-      orderId: input.merchantTradeNo,
-      tradeNo: input.tradeNo,
-      amount: input.amount,
-      rtnCode: code,
-      rtnMsg: msg,
-      httpStatus: res.status,
-    });
-
-    return { ok, rtnCode: code, rtnMsg: msg, raw: text };
+    return { ok: code === "1", rtnCode: code, rtnMsg: msg, raw: text };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[ecpay/refund] fetch error", msg);
     return { ok: false, error: msg };
   }
 }
