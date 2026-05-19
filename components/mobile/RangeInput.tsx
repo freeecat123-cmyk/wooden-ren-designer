@@ -46,6 +46,11 @@ export function RangeInput({
     setValue((v) => (v > max ? max : v < min ? min : v));
   }, [max, min]);
 
+  // defaultValue 變更時同步（切 preset / 切情境會改變 defaultValue prop）
+  useEffect(() => {
+    setValue(defaultValue);
+  }, [defaultValue]);
+
   return (
     <div className="flex items-center gap-3 text-sm" title={help}>
       <span className="text-zinc-700 font-medium shrink-0 w-8">{label}</span>

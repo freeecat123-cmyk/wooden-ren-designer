@@ -39,10 +39,11 @@ export function AdvancedSheet({
     scene: sceneContent,
   };
 
-  // 從 y=288 開始（TopBar 56 + 3D sticky 約 232），讓 3D 仍可見在上方
+  // 從 y=288 開始（TopBar 56 + 3D sticky 約 232），讓 3D 仍可見在上方。
+  // 用 min(288px, 40dvh)：短螢幕（landscape / 鍵盤彈出）時改用 40dvh 避免 sheet 被推出視窗。
   return (
     <div
-      className="fixed top-[288px] left-0 right-0 bottom-0 z-50 bg-white flex flex-col border-t border-zinc-300 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
+      className="fixed top-[min(288px,40dvh)] left-0 right-0 bottom-0 z-50 bg-white flex flex-col border-t border-zinc-300 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       role="dialog"
       aria-label="進階設定"
     >

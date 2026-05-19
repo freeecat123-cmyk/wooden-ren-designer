@@ -36,7 +36,7 @@ export const diningTableOptions: OptionSpec[] = [
     { value: "one-side", label: "單側翻板（一端可延伸）" },
     { value: "two-sides", label: "雙側翻板（兩端可延伸）" },
   ], help: "桌面兩端用蝶式鉸鏈加可摺疊延伸板，展開變大、收合變小。需配 1.5\" 鋼製蝶式鉸鏈" },
-  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬 (mm)", defaultValue: 250, min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
+  { group: "top", type: "number", key: "dropLeafWidth", label: "翻板寬 (mm)", defaultValue: 300, min: 150, max: 500, step: 25, dependsOn: { key: "dropLeaf", notIn: ["none"] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),

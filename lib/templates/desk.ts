@@ -105,7 +105,7 @@ export const deskOptions: OptionSpec[] = [
   // 牙板抽屜形式（apron）— 面板可微內縮做層次
   { group: "drawer", type: "number", key: "apronDrawerFrontInset", label: "抽屜面板內縮 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, help: "面板從牙板外面往內推幾 mm（0 = 跟牙板齊平；3~6 = 微凹陷有層次；max 15 因面板厚 18mm）", dependsOn: { key: "drawerStyle", equals: "apron" } },
   // 單抽情況：寬度可調 + 位置（左/中/右）；多抽預設等寬橫向併滿牙板
-  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬 (mm)", defaultValue: 400, min: 150, max: 1500, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
+  { group: "drawer", type: "number", key: "apronDrawerWidth", label: "牙板抽屜寬 (mm)", defaultValue: 400, min: 150, max: 800, step: 10, help: "單抽時可調寬度；預設 400mm（A4 紙橫向約 297mm 放得進去 + 邊距）；上限 800 適合大多桌寬", dependsOn: { all: [{ key: "drawerCount", equals: 1 }, { key: "drawerStyle", equals: "apron" }] } },
   { group: "drawer", type: "select", key: "apronDrawerPosition", label: "牙板抽屜位置", defaultValue: "center", choices: [
     { value: "left", label: "左側" },
     { value: "center", label: "中央" },
