@@ -146,8 +146,10 @@ export function PartDrawing({
         className ?? ""
       }`}
     >
-      {/* Install hint mini — 整家具縮圖、target part 紅色（Phase 2.5 Task 1） */}
-      <div className="absolute top-2 right-2 z-0">
+      {/* Install hint mini — 整家具縮圖、target part 紅色（Phase 2.5 Task 1）
+          z-20 保證蓋在 OrthoView SVG（normal flow + bg-white）之上，否則
+          高 aspect 零件的 SVG 會把右上角縮圖蓋掉一半（user 05-19 11:42 回報） */}
+      <div className="absolute top-2 right-2 z-20">
         <InstallHintMini design={design} highlightPartId={part.id} />
       </div>
       {/* Title bar */}
