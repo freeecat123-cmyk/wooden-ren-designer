@@ -527,14 +527,17 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           position: "start",
           type: "dovetail",
           length: dovetailLen,
-          width: boxHRow - 6,
+          // 鳩尾榫頭走滿側板高度（boxHRow）、不留 3mm 上下橋接：
+          // 之前 boxHRow-6 在側板端面留兩塊小階梯（user 看到「凹一層」）。
+          // 對應側板鳩尾榫眼 length 也同步改 boxHRow。
+          width: boxHRow,
           thickness: drawerFrontT - 2,
         },
         {
           position: "end",
           type: "dovetail",
           length: dovetailLen,
-          width: boxHRow - 6,
+          width: boxHRow,
           thickness: drawerFrontT - 2,
         },
       ],
@@ -612,7 +615,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           {
             origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
             depth: dovetailLen,
-            length: boxHRow - 6,
+            // 走滿側板高度（跟前板 dovetail tenon width=boxHRow 對齊）：
+            // 之前 boxHRow-6 留 3mm 上下橋接、端面看會有兩塊小階梯
+            length: boxHRow,
             width: drawerFrontT - 2,
             through: true,
           },
