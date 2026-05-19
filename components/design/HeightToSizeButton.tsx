@@ -33,7 +33,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
   if (!mapping) return null;
 
   const applyHeight = (cm: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     for (const m of mapping) {
       params.set(m.key, String(m.calc(cm)));
     }
