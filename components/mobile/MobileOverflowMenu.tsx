@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 interface MobileOverflowMenuProps {
   open: boolean;
@@ -61,6 +62,9 @@ export function MobileOverflowMenu({
               )}
             </li>
           ))}
+          <li>
+            <InstallAppButton onDone={onClose} />
+          </li>
         </ul>
       </div>
     </>

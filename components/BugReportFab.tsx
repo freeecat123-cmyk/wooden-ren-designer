@@ -32,14 +32,46 @@ export function BugReportFab() {
 
   function openGmailCompose() {
     const { subject, body } = buildReport();
-    // Gmail web compose 直連，不依賴本機 mail handler
-    const u = new URL("https://mail.google.com/mail/");
-    u.searchParams.set("view", "cm");
-    u.searchParams.set("fs", "1");
-    u.searchParams.set("to", "wengbinren@gmail.com");
-    u.searchParams.set("su", subject);
-    u.searchParams.set("body", body);
-    window.open(u.toString(), "_blank", "noopener");
+    const to = "wengbinren@gmail.com";
+
+    // Gmail web compose
+    const webUrl = new URL("https://mail.google.com/mail/");
+    webUrl.searchParams.set("view", "cm");
+    webUrl.searchParams.set("fs", "1");
+    webUrl.searchParams.set("to", to);
+    webUrl.searchParams.set("su", subject);
+    webUrl.searchParams.set("body", body);
+
+    // 手機優先嘗試 Gmail App（iOS: googlegmail://；Android 同 scheme 也支援）
+    const ua = navigator.userAgent;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+
+    if (isMobile) {
+      const appUrl =
+        `googlegmail://co?to=${encodeURIComponent(to)}` +
+        `&subject=${encodeURIComponent(subject)}` +
+        `&body=${encodeURIComponent(body)}`;
+
+      // 試開 App；若 1.5s 後分頁仍可見 → 沒裝 App → fallback 開網頁版
+      const start = Date.now();
+      const fallback = () => {
+        if (document.hidden) return; // App 已開啟，分頁進背景
+        if (Date.now() - start < 1400) return;
+        window.open(webUrl.toString(), "_blank", "noopener");
+      };
+      const timer = window.setTimeout(fallback, 1500);
+      const onHide = () => {
+        if (document.hidden) window.clearTimeout(timer);
+      };
+      document.addEventListener("visibilitychange", onHide, { once: true });
+
+      window.location.href = appUrl;
+      setOpen(false);
+      return;
+    }
+
+    // 桌面：直接開 Gmail web 新分頁
+    window.open(webUrl.toString(), "_blank", "noopener");
     setOpen(false);
   }
 
@@ -71,7 +103,7 @@ export function BugReportFab() {
             onClick={openGmailCompose}
             className="mt-3 w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
           >
-            📧 用 Gmail 開新分頁
+            📧 用 Gmail 寄出（手機優先開 App）
           </button>
           <button
             onClick={copyToClipboard}
