@@ -105,27 +105,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 把已註冊但 plan='free' 的同 email 升級為 student（補 2 年到期日）
+  // 把已註冊但 plan='free' 的同 email 升級為 student（補 2 年到期日）。
+  // 先 query 一次拿要被升的 email 清單(audit:silent upgrade 沒提示,admin 看不到誰被改了)
   const emails = records.map((r) => r.email);
   const now = new Date();
   const expires = new Date(now);
   expires.setFullYear(expires.getFullYear() + 2);
-  const { error: upErr } = await svc
+
+  const { data: candidates } = await svc
     .from("users")
-    .update({
-      plan: "student",
-      subscription_status: "active",
-      student_activated_at: now.toISOString(),
-      student_expires_at: expires.toISOString(),
-    })
+    .select("email")
     .in("email", emails)
     .eq("plan", "free");
-  // 升級失敗不致命（可能根本還沒註冊）—— 只記錄
+  const upgradedEmails = (candidates ?? []).map((u: { email: string }) => u.email);
+
+  let upgradeError: string | null = null;
+  if (upgradedEmails.length > 0) {
+    const { error: upErr } = await svc
+      .from("users")
+      .update({
+        plan: "student",
+        subscription_status: "active",
+        student_activated_at: now.toISOString(),
+        student_expires_at: expires.toISOString(),
+      })
+      .in("email", upgradedEmails);
+    upgradeError = upErr?.message ?? null;
+    if (upErr) {
+      console.error("[whitelist/upgrade] update failed", upErr, { upgradedEmails });
+    } else {
+      console.log("[whitelist/upgrade] auto-upgraded free→student", { count: upgradedEmails.length, upgradedEmails });
+    }
+  }
 
   return NextResponse.json({
     data,
     added: records.length,
-    upgradeError: upErr?.message ?? null,
+    upgradedCount: upgradedEmails.length,
+    upgradedEmails,
+    upgradeError,
   });
   } catch (e) {
     return serverError(e);

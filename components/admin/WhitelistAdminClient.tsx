@@ -105,7 +105,12 @@ export function WhitelistAdminClient() {
       });
       const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "add failed");
-      setFlash(`✅ 新增 ${json.added ?? 1} 筆`);
+      const upCount = (typeof json.upgradedCount === "number" ? json.upgradedCount : 0);
+      const upEmails: string[] = Array.isArray(json.upgradedEmails) ? json.upgradedEmails as string[] : [];
+      const upMsg = upCount > 0
+        ? ` · 同步升級 ${upCount} 個已註冊 user 為 student(${upEmails.join(", ")})`
+        : "";
+      setFlash(`✅ 新增 ${json.added ?? 1} 筆${upMsg}`);
       setNewEmail("");
       setNewNote("");
       await load();
@@ -152,11 +157,15 @@ export function WhitelistAdminClient() {
       });
       const json = await safeJson(res);
       if (!res.ok) throw new Error(json.error ?? "import failed");
-      setFlash(
-        `✅ 匯入完成：${json.added ?? 0} 筆${
-          json.upgradeError ? `（已註冊用戶升級失敗：${json.upgradeError}）` : ""
-        }`,
-      );
+      {
+        const upCount = typeof json.upgradedCount === "number" ? json.upgradedCount : 0;
+        const upEmails: string[] = Array.isArray(json.upgradedEmails) ? json.upgradedEmails as string[] : [];
+        const upMsg = upCount > 0
+          ? ` · 同步升級 ${upCount} 個 free user 為 student${upCount <= 5 ? `(${upEmails.join(", ")})` : ""}`
+          : "";
+        const errMsg = json.upgradeError ? `(升級失敗:${json.upgradeError})` : "";
+        setFlash(`✅ 匯入完成:${json.added ?? 0} 筆${upMsg}${errMsg}`);
+      }
       setCsvPreview(null);
       if (fileRef.current) fileRef.current.value = "";
       await load();
