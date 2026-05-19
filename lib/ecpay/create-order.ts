@@ -102,15 +102,26 @@ export function buildPeriodicParams(input: PeriodicOrderInput): Record<string, s
   return params;
 }
 
-/** 終止信用卡定期定額（綠界 Action API） */
+/**
+ * 終止信用卡定期定額（綠界 CreditCardPeriodAction Action=Cancel）
+ *
+ * ⚠️ 綠界 API 規格陷阱：
+ *   - Action 是 "Cancel" 不是 "Terminate"（"Terminate" 是綠界後台的中文「終止」UI label，
+ *     對應到 API 實際接受的 Action 值是 "Cancel"）
+ *   - 必填 TimeStamp（unix 秒），不是 TotalAmount
+ *   - 2026-05-19 試刷 WRMPC7413XD3NV 時舊版送 Terminate+TotalAmount=0 被綠界靜默拒絕
+ *     （RtnCode=10100140 + MerchantID/MerchantTradeNo 回空字串，代表 request 沒被解析）
+ *
+ * 來源：~/.claude/skills/ecpay/guides/01-payment-aio.md §定期定額管理
+ */
 export function buildPeriodicTerminateParams(
   merchantTradeNo: string,
 ): Record<string, string> {
   const params: Record<string, string> = {
     MerchantID: ECPAY_MERCHANT_ID,
     MerchantTradeNo: merchantTradeNo,
-    Action: "Terminate",
-    TotalAmount: "0",
+    Action: "Cancel",
+    TimeStamp: String(Math.floor(Date.now() / 1000)),
   };
   params.CheckMacValue = calculateCheckMacValue(params, ECPAY_HASH_KEY, ECPAY_HASH_IV);
   return params;
