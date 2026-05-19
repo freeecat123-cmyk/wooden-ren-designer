@@ -405,23 +405,37 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: isContinuous ? [] : [
         // 背柱底端進座板，與前腳頂端共用同一個座板榫眼 → dims 必須一致
         // legInset=0 且 backPostOffset=false（背柱跟後腳同 X）→ tenon 也朝中心偏
-        {
-          position: "bottom",
-          type: legTopTenonType === "through-tenon" ? "through-tenon" : "blind-tenon",
-          length: legTenonStd.length,
-          width: legTenonStd.width,
-          thickness: legTenonStd.thickness,
-          shoulderOn: (() => {
-            // backInsetFromEndMm > 0 → 背柱已退離端面，不需偏；legInset > 0 同理（此時 legTopInsetX=0）
-            const sharesEndFace = legTopInsetX > 0 && backInsetFromEndMm === 0;
-            if (!sharesEndFace || c.x === 0) return [...legTenonStd.shoulderOn];
-            const innerSide: "left" | "right" = c.x > 0 ? "left" : "right";
-            return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
-          })(),
-          offsetWidth: (legTopInsetX > 0 && backInsetFromEndMm === 0)
-            ? -Math.sign(c.x) * legTopInsetX
-            : 0,
-        },
+        // backRake > 0 → 後柱往後傾，底榫進入座板的角度需在 thickness×width
+        // 平面（α₂ 窄面/側視）斜 reclineRad
+        ((): NonNullable<Part["tenons"]>[number] => {
+          const reclineRad = (backRake * Math.PI) / 180;
+          const hasRake = Math.abs(reclineRad) > 1e-4;
+          const axis = hasRake
+            ? {
+                x: 0,
+                y: Math.cos(reclineRad),
+                z: -Math.sin(reclineRad),
+              }
+            : undefined;
+          return {
+            position: "bottom" as const,
+            type: legTopTenonType === "through-tenon" ? "through-tenon" : "blind-tenon" as const,
+            length: legTenonStd.length,
+            width: legTenonStd.width,
+            thickness: legTenonStd.thickness,
+            shoulderOn: (() => {
+              // backInsetFromEndMm > 0 → 背柱已退離端面，不需偏；legInset > 0 同理（此時 legTopInsetX=0）
+              const sharesEndFace = legTopInsetX > 0 && backInsetFromEndMm === 0;
+              if (!sharesEndFace || c.x === 0) return [...legTenonStd.shoulderOn];
+              const innerSide: "left" | "right" = c.x > 0 ? "left" : "right";
+              return [...legTenonStd.shoulderOn].filter((s) => s !== innerSide);
+            })(),
+            offsetWidth: (legTopInsetX > 0 && backInsetFromEndMm === 0)
+              ? -Math.sign(c.x) * legTopInsetX
+              : 0,
+            ...(axis ? { axis } : {}),
+          };
+        })(),
       ],
       mortises: [
         // 頂橫木的母榫眼

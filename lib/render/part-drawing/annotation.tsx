@@ -2541,13 +2541,26 @@ export function CompoundMiterLabel({
   primaryDeg,
   secondaryDeg,
   side,
+  endLabel,
 }: {
   x: number;
   y: number;
   primaryDeg: number;
   secondaryDeg: number;
   side: "start" | "end";
+  /** 自訂端面標籤（「起端」/「尾端」/「頂端」/「底端」），不傳則依 side 用「起/尾」 */
+  endLabel?: string;
 }) {
+  const hasPrimary = primaryDeg >= 0.5;
+  const hasSecondary = secondaryDeg >= 0.5;
+  if (!hasPrimary && !hasSecondary) return null;
+  const prefix = endLabel ?? (side === "start" ? "起端" : "尾端");
+  const text =
+    hasPrimary && hasSecondary
+      ? `${prefix}複斜切　寬面 ${primaryDeg.toFixed(1)}°　窄面 ${secondaryDeg.toFixed(1)}°`
+      : hasPrimary
+        ? `${prefix}單斜　寬面 ${primaryDeg.toFixed(1)}°`
+        : `${prefix}單斜　窄面 ${secondaryDeg.toFixed(1)}°`;
   return (
     <g transform={`translate(${x},${y})`} className="compound-miter-label">
       <text
@@ -2555,7 +2568,7 @@ export function CompoundMiterLabel({
         fill="#222"
         textAnchor={side === "start" ? "start" : "end"}
       >
-        {side === "start" ? "起" : "尾"}端複斜切　寬面 {primaryDeg.toFixed(1)}°　窄面 {secondaryDeg.toFixed(1)}°
+        {text}
       </text>
     </g>
   );
@@ -2592,32 +2605,58 @@ export function CompoundMiterAnnotation({
     <g className="compound-miter-annotations">
       {tilted.map((t, i) => {
         const ax = t.axis!;
-        const primaryDeg = Math.abs(
-          (Math.atan2(ax.y, Math.abs(ax.x)) * 180) / Math.PI,
-        );
-        const secondaryDeg = Math.abs(
-          (Math.atan2(ax.z, Math.abs(ax.x)) * 180) / Math.PI,
-        );
         const isEnd = t.position === "end";
         const isStart = t.position === "start";
-        // 只處理沿 length 軸的榫頭（start/end）。其他位置 fallback skip。
-        if (!isEnd && !isStart) return null;
-        const localX = isEnd ? +L / 2 : -L / 2;
-        // part-local +Y = 上、−Y = 下。經 partLocalToSvg flip 後：
-        //   localY = -T/2（part 底面）→ SVG y 較大（螢幕較下）
-        //   localY = +T/2（part 頂面）→ SVG y 較小（螢幕較上）
-        // 25 dim 與榫頭 W chain 標籤都在 part 底邊下方 ~14px。把複斜切標籤
-        // 再往下放 28px 避開現有標籤，落在底邊下空白處。
-        const bottom = ctx.partLocalToSvg(localX, -T / 2, 0);
-        const labelY = bottom.y + 28;
+        const isTop = t.position === "top";
+        const isBottom = t.position === "bottom";
+
+        let primaryDeg: number;
+        let secondaryDeg: number;
+        let labelX: number;
+        let labelY: number;
+        let side: "start" | "end";
+        let endLabel: string;
+
+        if (isEnd || isStart) {
+          // 沿 length 軸（X major）
+          primaryDeg = Math.abs((Math.atan2(ax.y, Math.abs(ax.x)) * 180) / Math.PI);
+          secondaryDeg = Math.abs((Math.atan2(ax.z, Math.abs(ax.x)) * 180) / Math.PI);
+          const localX = isEnd ? +L / 2 : -L / 2;
+          const bottom = ctx.partLocalToSvg(localX, -T / 2, 0);
+          labelX = bottom.x;
+          labelY = bottom.y + 28;
+          side = isEnd ? "end" : "start";
+          endLabel = isEnd ? "尾端" : "起端";
+        } else if (isTop || isBottom) {
+          // 沿 thickness 軸（Y major，垂直榫如後柱底榫）
+          primaryDeg = Math.abs((Math.atan2(ax.x, Math.abs(ax.y)) * 180) / Math.PI);
+          secondaryDeg = Math.abs((Math.atan2(ax.z, Math.abs(ax.y)) * 180) / Math.PI);
+          if (isTop) {
+            const topPt = ctx.partLocalToSvg(0, +T / 2, 0);
+            labelX = topPt.x + L * 0.4;
+            labelY = topPt.y - (t.length + 18);
+            side = "end";
+            endLabel = "頂端";
+          } else {
+            const botPt = ctx.partLocalToSvg(0, -T / 2, 0);
+            labelX = botPt.x + L * 0.4;
+            labelY = botPt.y + (t.length + 28);
+            side = "end";
+            endLabel = "底端";
+          }
+        } else {
+          return null;
+        }
+
         return (
           <CompoundMiterLabel
             key={`${part.id}-miter-${t.position}-${i}`}
-            x={bottom.x}
+            x={labelX}
             y={labelY}
             primaryDeg={primaryDeg}
             secondaryDeg={secondaryDeg}
-            side={isEnd ? "end" : "start"}
+            side={side}
+            endLabel={endLabel}
           />
         );
       })}
