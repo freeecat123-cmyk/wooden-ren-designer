@@ -172,19 +172,21 @@ function buildIssueData(input: IssueInvoiceInput): Record<string, unknown> {
   };
 
   if (isCompany) {
-    // 公司戶開立(統編):已踩過坑(失敗 combination):
-    //   - Print="0" + CarrierType="" → 5000028「客戶資訊已填入統編,須選擇載具類別」
-    //   - Print="1" + 無 CarrierType + 無 CustomerAddr → 5000028
-    //   - Print="1" + 無 CarrierType + CustomerAddr → 5000028
+    // ⭐ 公司戶 (B2C 統編戶) 正解 = Print="0" + CarrierType="1" 綠界會員載具 + CustomerIdentifier
     //
-    // 還沒試的:Print="0" + CarrierType="1"(綠界會員載具) — 讓綠界用會員載具歸戶
-    // 然後將該筆紀錄到統編下,符合 ECPay「統編必須有載具」的隱性需求。
+    // 雖然傳統知識說「公司戶不需載具」,但 ECPay B2C invoice API 實測 (2026-05-19):
+    //   - Print="0" + CarrierType="" → 5000028「客戶資訊已填入統編,須請選擇載具類別」
+    //   - Print="1" + 無 CarrierType + (有/無 CustomerAddr) → 也是 5000028
+    //   - Print="0" + CarrierType="1" → ✅ issued ✓
+    //
+    // 推測:綠界 B2C 必須走載具歸戶,公司戶就用「會員載具歸戶到統編下」這條路。
+    // 不要再嘗試其他 combination (踩過 3 次)。
     return {
       ...base,
       CustomerIdentifier: pref.taxId,
       CustomerName: pref.title,
       Print: "0",
-      CarrierType: "1", // 綠界會員載具(統編戶歸戶內部走會員載具)
+      CarrierType: "1",
     };
   }
 
