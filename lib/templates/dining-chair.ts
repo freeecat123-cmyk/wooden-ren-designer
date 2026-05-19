@@ -737,29 +737,41 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     // 連做模式背柱跟著 legInset 內縮，分離模式背柱獨立於 legInset，length / z 都要分開
     visible: { length: length - 2 * legW - (isContinuous ? 2 * legInset : 0) - 2 * backInsetFromEndMm, width: topRailThickness, thickness: topRailHeight },
     origin: { x: 0, y: topRailY, z: (isContinuous ? width / 2 - legD / 2 - legInset : width / 2 - legD / 2) - backInsetFromRearMm },
-    tenons: [
+    tenons: (() => {
       // 慣例（svg-views.tenonLocalBox start/end）：tenon.width 沿 Z（深度）、
       // tenon.thickness 沿 Y（垂直）。`topRailTenonW` 是用 topRailHeight-12 跟
       // legD-12 算的，bound 的是 Y 方向；`topRailTenonThick` 用 topRailThickness-12
       // 跟 legShortDim/3 算的，bound 的是 Z 方向。所以指派要反過來：
       // width←topRailTenonThick (Z)、thickness←topRailTenonW (Y)。
-      // 之前互換時 tenon Z=42 > rail Z=25 → mesh 本體比椅背還深，joineryMode
-      // 會看到紅榫頭從後柱前後面戳出來。
-      {
-        position: "start",
-        type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: apronTenonLen,
-        width: topRailTenonThick,
-        thickness: topRailTenonW,
-      },
-      {
-        position: "end",
-        type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon",
-        length: apronTenonLen,
-        width: topRailTenonThick,
-        thickness: topRailTenonW,
-      },
-    ],
+      //
+      // backRake > 0 時頂橫木兩端要接到向後傾斜 reclineRad 的後柱，tenon 需要
+      // 在 length×thickness 平面（α₂ 窄面）斜 reclineRad → 設 axis 讓 CompoundMiter
+      // 標籤自動顯示「起/尾端複斜切 寬面 0° 窄面 X°」。
+      const reclineRad = (backRake * Math.PI) / 180;
+      const hasRake = Math.abs(reclineRad) > 1e-4;
+      const cosR = Math.cos(reclineRad);
+      const sinR = Math.sin(reclineRad);
+      const axisStart = hasRake ? { x: -cosR, y: 0, z: sinR } : undefined;
+      const axisEnd = hasRake ? { x: cosR, y: 0, z: -sinR } : undefined;
+      return [
+        {
+          position: "start" as const,
+          type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon" as const,
+          length: apronTenonLen,
+          width: topRailTenonThick,
+          thickness: topRailTenonW,
+          ...(axisStart ? { axis: axisStart } : {}),
+        },
+        {
+          position: "end" as const,
+          type: apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon" as const,
+          length: apronTenonLen,
+          width: topRailTenonThick,
+          thickness: topRailTenonW,
+          ...(axisEnd ? { axis: axisEnd } : {}),
+        },
+      ];
+    })(),
     // 椅背頂橫木：下緣加 slat / splat 母榫眼。底面 = local Y=0
     mortises:
       backStyle === "slats" && slatXs.length > 0
