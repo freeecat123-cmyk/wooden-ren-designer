@@ -11,6 +11,8 @@ interface PaymentRow {
   status: string;
   ecpay_trade_no: string | null;
   ecpay_payment_date: string | null;
+  invoice_status: string | null;
+  invoice_error_message: string | null;
   raw_response: Record<string, unknown> | null;
   created_at: string;
 }
@@ -90,6 +92,28 @@ export function EcpayLogClient() {
   const failedCount = rows.filter((r) => r.status === "failed").length;
   const refundedCount = rows.filter((r) => r.status === "refunded").length;
 
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [retryResult, setRetryResult] = useState<{ id: string; msg: string; ok: boolean } | null>(null);
+  async function retryInvoice(paymentId: string) {
+    if (retryingId) return;
+    setRetryingId(paymentId);
+    setRetryResult(null);
+    try {
+      const r = await fetch(`/api/admin/payments/${paymentId}/retry-invoice`, { method: "POST" });
+      const j = await r.json();
+      if (r.ok) {
+        setRetryResult({ id: paymentId, ok: true, msg: `重試成功 invoice_status=${j.invoice_status ?? "?"}` });
+      } else {
+        setRetryResult({ id: paymentId, ok: false, msg: `重試失敗 ${j.error ?? "?"}: ${j.message ?? ""}` });
+      }
+      await load();
+    } catch (e) {
+      setRetryResult({ id: paymentId, ok: false, msg: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setRetryingId(null);
+    }
+  }
+
   // 偵測「金額不符」warning:expected_amount vs amount
   function amountMismatch(p: PaymentRow): boolean {
     const sub = p.subscription_id ? data?.subMap[p.subscription_id] : null;
@@ -143,6 +167,11 @@ export function EcpayLogClient() {
           {err}
         </div>
       )}
+      {retryResult && (
+        <div className={`mb-4 px-4 py-2 rounded text-sm ${retryResult.ok ? "bg-emerald-50 border border-emerald-200 text-emerald-800" : "bg-red-50 border border-red-200 text-red-700"}`}>
+          {retryResult.msg}
+        </div>
+      )}
 
       <div className="overflow-x-auto bg-white rounded-lg border border-zinc-200">
         <table className="min-w-full text-xs">
@@ -153,6 +182,7 @@ export function EcpayLogClient() {
               <th className="text-left px-3 py-2">方案</th>
               <th className="text-right px-3 py-2">金額</th>
               <th className="text-left px-3 py-2">狀態</th>
+              <th className="text-left px-3 py-2">發票</th>
               <th className="text-left px-3 py-2">交易編號</th>
               <th className="text-left px-3 py-2">警示</th>
               <th className="text-right px-3 py-2">明細</th>
@@ -161,7 +191,7 @@ export function EcpayLogClient() {
           <tbody className="divide-y divide-zinc-100">
             {rows.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-zinc-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-zinc-400">
                   目前還沒有付款紀錄
                 </td>
               </tr>
@@ -194,6 +224,13 @@ export function EcpayLogClient() {
                         {STATUS_ZH[p.status] ?? p.status}
                       </span>
                     </td>
+                    <td className="px-3 py-2">
+                      <InvoiceCell
+                        payment={p}
+                        retrying={retryingId === p.id}
+                        onRetry={() => retryInvoice(p.id)}
+                      />
+                    </td>
                     <td className="px-3 py-2 font-mono text-[11px] text-zinc-600">
                       {p.ecpay_trade_no ?? "—"}
                     </td>
@@ -216,7 +253,7 @@ export function EcpayLogClient() {
                   </tr>
                   {isExpanded && (
                     <tr key={`${p.id}-raw`} className="bg-zinc-50">
-                      <td colSpan={8} className="px-3 py-3">
+                      <td colSpan={9} className="px-3 py-3">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           <div>
                             <div className="text-[11px] text-zinc-500 mb-1">訂閱資料</div>
@@ -242,6 +279,60 @@ export function EcpayLogClient() {
       </div>
     </main>
   );
+}
+
+function InvoiceCell({
+  payment,
+  retrying,
+  onRetry,
+}: {
+  payment: PaymentRow;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  if (payment.status !== "success") return <span className="text-zinc-400 text-[11px]">—</span>;
+  const s = payment.invoice_status;
+  if (s === "issued") {
+    return <span className="text-[11px] text-emerald-700">✓ 已開立</span>;
+  }
+  if (s === "failed") {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className="text-[11px] text-red-700" title={payment.invoice_error_message ?? ""}>
+          ✗ 失敗
+        </span>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          {retrying ? "重試中…" : "重試"}
+        </button>
+        {payment.invoice_error_message && (
+          <div className="text-[10px] text-red-600 max-w-[160px] truncate" title={payment.invoice_error_message}>
+            {payment.invoice_error_message}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (s === "pending" || !s) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className="text-[11px] text-amber-700">⋯ 待開立</span>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          {retrying ? "重試中…" : "重試"}
+        </button>
+      </div>
+    );
+  }
+  return <span className="text-[11px] text-zinc-600">{s}</span>;
 }
 
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "emerald" | "red" | "amber" }) {

@@ -82,6 +82,7 @@ export async function issueInvoiceForPayment(
         invoiceNumber: result.invoiceNumber,
       });
     } else {
+      const errMsg = `RtnCode=${result.rtnCode ?? "?"} ${result.rtnMsg ?? ""}`.trim();
       console.error("[invoice] RtnCode != 1", {
         paymentId: input.paymentId,
         rtnCode: result.rtnCode,
@@ -92,19 +93,22 @@ export async function issueInvoiceForPayment(
         .update({
           invoice_relate_number: relateNumber,
           invoice_status: "failed",
+          invoice_error_message: errMsg,
         })
         .eq("id", input.paymentId);
     }
   } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
     console.error("[invoice] 開立發票例外", {
       paymentId: input.paymentId,
-      error: e instanceof Error ? e.message : String(e),
+      error: errMsg,
     });
     await admin
       .from("payments")
       .update({
         invoice_relate_number: relateNumber,
         invoice_status: "failed",
+        invoice_error_message: errMsg.slice(0, 500),
       })
       .eq("id", input.paymentId);
   }
