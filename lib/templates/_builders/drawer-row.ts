@@ -343,13 +343,27 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   const drawerFrontT = hasFacePanel ? 14 : 18;
   const drawerSideT = 14;
   const drawerBackT = 14;
-  // 鳩尾 pinDepth：有面板 → 通鳩尾（=drawerFrontT 整個穿過）/
-  //                沒面板 → 半鳩尾（round(drawerFrontT*2/3) = 12）
-  const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
+  // 4 種接合，依「有沒有面板」分流。共用 dovetail-ends shape + CSG 機制：
+  //
+  //                hasFacePanel ✓                hasFacePanel ✗
+  // dovetail：    通鳩尾                          半鳩尾
+  //                angleDeg=10、pinDepth=drawerFrontT(=14 全穿)
+  //                                                pinDepth=2/3×18=12
+  // lap：         全搭接                          半搭接
+  //                no shape、side 蓋 front/back   angleDeg=0、pinDepth=12
+  //                                                （矩形齒、整片側厚進前板 2/3）
   const useThroughDovetail = isDovetailJoint && hasFacePanel;
+  const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
+  const useFullLap = isLapJoint && hasFacePanel;
+  const useHalfLap = isLapJoint && !hasFacePanel;
+  // 有 shape（用 dovetail-ends 機制）：除了全搭接以外都用
+  const useDovetailEndsShape = !useFullLap;
+  // angleDeg：鳩尾系列=10° / 搭接系列=0°（矩形齒、視覺像 finger-joint 但用同邏輯）
+  const dovetailAngleDeg = isDovetailJoint ? 10 : 0;
+  // pinDepth：通鳩尾 整片穿 / 其他都是 round(drawerFrontT * 2/3)
   const dovetailPinDepth = useThroughDovetail
     ? drawerFrontT
-    : useHalfBlindDovetail
+    : useDovetailEndsShape
       ? Math.round((drawerFrontT * 2) / 3)
       : 0;
   const drawerBottomMode = cfg.drawerBottomMode ?? "surface";
@@ -551,7 +565,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       // 前板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
       // 跨外寬被側板 tail CSG 切（=boxExtW）。
       visible: {
-        length: isLapJoint ? drawerInnerW : boxExtW,
+        // useFullLap（hasFacePanel+lap）= 前板夾在側板中（drawerInnerW）
+        // 其他 3 模式都是前板全寬、被側板 CSG 切（boxExtW）
+        length: useFullLap ? drawerInnerW : boxExtW,
         width: boxHRow + frontExtraDown,
         thickness: drawerFrontT,
       },
@@ -586,7 +602,8 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       // 後板長度依接合：lap 搭接時被夾在側板中間（=drawerInnerW）、dovetail 時
       // 跨外寬被側板 tail CSG 切（=boxExtW = drawerInnerW + 2×drawerSideT）。
       visible: {
-        length: isLapJoint ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
+        // 同前板邏輯：全搭接夾中間、其他全寬
+        length: useFullLap ? drawerInnerW : drawerInnerW + 2 * drawerSideT,
         width: drawerBackHeight,
         thickness: drawerBackT,
       },
@@ -614,12 +631,14 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       //   延伸區做 crenellated tail。z center 維持 sideZCenter（body 中段）。
       // - lap（搭接）：body 蓋滿前後板（drawerOuterD）、z center 推到 drawer
       //   外部中心、無 shape、前後板被夾在中間。
-      const sideLength = isDovetailJoint
+      // side length：用 dovetail-ends shape 時延長 2×pinDepth 進前後板實體區、
+      // 全搭接（useFullLap）才用 drawerOuterD 蓋滿前後板。
+      const sideLength = useDovetailEndsShape
         ? drawerInnerD + 2 * dovetailPinDepth
         : drawerOuterD;
       const sideZCenterLap =
         (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
-      const effectiveSideZCenter = isLapJoint ? sideZCenterLap : sideZCenter;
+      const effectiveSideZCenter = useFullLap ? sideZCenterLap : sideZCenter;
       parts.push({
         id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
         nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
@@ -636,12 +655,13 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           z: effectiveSideZCenter,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        shape: isDovetailJoint
+        shape: useDovetailEndsShape
           ? {
               kind: "dovetail-ends" as const,
               segmentCount: dovetailSegCount,
               phase: 0 as const,
-              angleDeg: 10,
+              // 鳩尾系列 10°、搭接系列 0°（矩形齒、視覺像 finger-joint）
+              angleDeg: dovetailAngleDeg,
               pinDepth: dovetailPinDepth,
               halfPin: true,
             }
