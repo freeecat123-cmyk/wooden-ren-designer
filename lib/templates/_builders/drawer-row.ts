@@ -332,6 +332,19 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
     drawerMount === "overlay-3" ? 9 :
     drawerMount === "overlay-6" ? panelT : 0;
   const hasFacePanel = hasSlide || !isInsetDrawer;
+  // 半鳩尾條件：!hasFacePanel = !hasSlide && isInsetDrawer = 「傳統入柱式抽屜
+  // 無滑軌、面板=前板」的場景。這時前板自己就是看得到的面板、要保持木紋完整、
+  // 不能讓榫頭從前面戳出來 → 用半鳩尾。
+  //
+  // 角色互換（跟 tray 通鳩尾相反）：
+  //   tray:  front/back板 = tail carrier (shape=dovetail-ends)、left/right=receiver
+  //   drawer 半鳩尾: side panel = tail carrier (shape=dovetail-ends)、front/back=receiver
+  //
+  // pinDepth = drawerFrontT × 2/3 ≈ 12mm：tail 只進前板 12mm、面板外側剩 6mm
+  // 不切穿 → 半鳩尾標準作法。
+  const useHalfBlindDovetail = !hasFacePanel;
+  const halfBlindPinDepth = Math.round((drawerFrontT * 2) / 3);
+  // halfBlindSegmentCount 依 boxHRow 算，要在 row 迴圈內。
   const faceT = hasFacePanel ? drawerFacePanelT : 0;
   const faceTBoxOffset = isInsetDrawer && hasSlide ? drawerFacePanelT : 0;
   const backClearance = hasSlide ? 10 : 6;
@@ -522,25 +535,26 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       },
       origin: { x: xCenter, y: yBase + boxYOffset - frontExtraDown, z: zFront },
       rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [
-        {
-          position: "start",
-          type: "dovetail",
-          length: dovetailLen,
-          // 鳩尾榫頭走滿側板高度（boxHRow）、不留 3mm 上下橋接：
-          // 之前 boxHRow-6 在側板端面留兩塊小階梯（user 看到「凹一層」）。
-          // 對應側板鳩尾榫眼 length 也同步改 boxHRow。
-          width: boxHRow,
-          thickness: drawerFrontT - 2,
-        },
-        {
-          position: "end",
-          type: "dovetail",
-          length: dovetailLen,
-          width: boxHRow,
-          thickness: drawerFrontT - 2,
-        },
-      ],
+      // 半鳩尾模式：前板是 RECEIVER、CSG 從側板的 dovetail-ends 形狀切；
+      // 不再給前板自己 tenons（角色從「tail carrier」改成「pin/socket board」）。
+      tenons: useHalfBlindDovetail
+        ? []
+        : [
+            {
+              position: "start",
+              type: "dovetail",
+              length: dovetailLen,
+              width: boxHRow,
+              thickness: drawerFrontT - 2,
+            },
+            {
+              position: "end",
+              type: "dovetail",
+              length: dovetailLen,
+              width: boxHRow,
+              thickness: drawerFrontT - 2,
+            },
+          ],
       mortises: frontGrooveMortises,
     });
     if (!hasFacePanel) {
@@ -593,6 +607,15 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
 
     const sideZCenter =
       (zFront + drawerFrontT / 2 + zBack - drawerBackT / 2) / 2;
+    const halfBlindSegmentCount = Math.max(
+      3,
+      Math.min(11, Math.round(boxHRow / (1.8 * drawerSideT))),
+    );
+    // 半鳩尾段數要奇數（前後段都是 pin 才不破角）
+    const dovetailSegCount =
+      halfBlindSegmentCount % 2 === 0
+        ? halfBlindSegmentCount + 1
+        : halfBlindSegmentCount;
     for (const side of [-1, 1] as const) {
       parts.push({
         id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
@@ -610,17 +633,31 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
           z: sideZCenter,
         },
         rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        // 半鳩尾模式：側板自己變 tail carrier，shape.kind="dovetail-ends" 在
+        // part-local ±X 端（=前後端）出梯形 tail；pinDepth 控制凸出多少。
+        // CSG 在 PerspectiveView.tsx 用這個 shape 當 brush 去切前/後板。
+        shape: useHalfBlindDovetail
+          ? {
+              kind: "dovetail-ends" as const,
+              segmentCount: dovetailSegCount,
+              phase: 0 as const,
+              angleDeg: 10,
+              pinDepth: halfBlindPinDepth,
+              halfPin: true,
+            }
+          : undefined,
         tenons: [],
         mortises: [
-          {
-            origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
-            depth: dovetailLen,
-            // 走滿側板高度（跟前板 dovetail tenon width=boxHRow 對齊）：
-            // 之前 boxHRow-6 留 3mm 上下橋接、端面看會有兩塊小階梯
-            length: boxHRow,
-            width: drawerFrontT - 2,
-            through: true,
-          },
+          // 半鳩尾不需要前端方榫眼（shape 已含 tail 凸出）；通鳩尾還是要
+          ...(useHalfBlindDovetail
+            ? []
+            : [{
+                origin: { x: -drawerInnerD / 2 - 1, y: 0, z: 0 },
+                depth: dovetailLen,
+                length: boxHRow,
+                width: drawerFrontT - 2,
+                through: true,
+              } as const]),
           {
             origin: {
               x: drawerInnerD / 2 + 1,

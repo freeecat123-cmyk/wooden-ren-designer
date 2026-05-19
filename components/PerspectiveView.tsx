@@ -3717,8 +3717,12 @@ export function PerspectiveView({
           // Y=cutY 邊界跟另一段 brush 衝突造成 z-fighting。
           const isBodySide = part.id === "wall-left" || part.id === "wall-right";
           const isLidSide = part.id === "wall-left-lid" || part.id === "wall-right-lid";
+          // 抽屜半鳩尾：tail carrier 是側板（shape=dovetail-ends），receiver 是
+          // 前/後板。drawer-row.ts 生的 part id 格式 `${idPrefix}-${i+1}-(front|back)`，
+          // pattern 配 `-\d+-(front|back)$`、跨多 zone / 多 drawer 都對得到。
+          const isDrawerReceiver = /-\d+-(front|back)$/.test(part.id);
           const partDovetailCuts: Brush[] | undefined =
-            dovetailCutBrushes.length > 0 && (isBodySide || isLidSide)
+            dovetailCutBrushes.length > 0 && (isBodySide || isLidSide || isDrawerReceiver)
               ? dovetailCutBrushes
                   .filter((b) => (isLidSide ? b.fromLid : !b.fromLid))
                   .map((b) => b.brush)
