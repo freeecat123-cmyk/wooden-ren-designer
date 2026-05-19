@@ -113,6 +113,13 @@ export function ClampedNumberInput({
 
   useEffect(() => () => stopRepeat(), [stopRepeat]);
 
+  // unmount 時清掉 hover state，避免 ghost highlight
+  useEffect(() => {
+    return () => {
+      if (hasAnchor) setHoveredPartIds(null);
+    };
+  }, [hasAnchor, setHoveredPartIds]);
+
   const stepDelta = step ?? 1;
 
   const hasExtras =
@@ -217,8 +224,15 @@ export function ClampedNumberInput({
                 key={`${p.label}-${p.value}`}
                 type="button"
                 onClick={() => {
-                  setValue(String(clamp(p.value)));
-                  inputRef.current?.focus();
+                  const v = clamp(p.value);
+                  setValue(String(v));
+                  // 觸發原生 change 讓 form auto-submit 偵測得到（setValue 改 React state
+                  // 不會 fire DOM 事件）
+                  requestAnimationFrame(() => {
+                    inputRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                    inputRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                    inputRef.current?.focus();
+                  });
                 }}
                 className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
               >

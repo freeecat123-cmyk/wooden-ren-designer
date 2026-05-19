@@ -90,10 +90,14 @@ export function MobileShell(props: MobileShellProps) {
   const optionSchema: OptionSpec[] = entry.optionSchema ?? [];
   const allPartIds: string[] = design.parts.map((p) => p.id);
 
-  // 以 step×10 為間距產出 ticks（min=200/max=3000/step=10 → 500mm 一條）
+  // 目標 6~8 條 ticks。算出乾淨間距（100/200/250/500/1000mm 階梯），避免擠成一坨
   const makeTicks = (minV: number, maxV: number, step: number): number[] => {
-    const interval = step * 10;
-    if (interval <= 0 || maxV <= minV) return [];
+    const span = maxV - minV;
+    if (span <= 0) return [];
+    const targetCount = 7;
+    const rawInterval = span / targetCount;
+    const candidates = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000];
+    const interval = candidates.find((c) => c >= rawInterval) ?? Math.ceil(rawInterval / step) * step;
     const out: number[] = [];
     const start = Math.ceil(minV / interval) * interval;
     for (let t = start; t <= maxV; t += interval) {

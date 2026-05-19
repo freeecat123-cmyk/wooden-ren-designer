@@ -15,12 +15,12 @@ export interface PartAnchorEntry {
 }
 
 export const OPTION_PART_MAP: PartAnchorEntry[] = [
-  // 三軸主尺寸
-  { match: "length", partIdPatterns: [/^top/, /^seat/, /^panel-top/, /^bench-top/, /^apron-front/i, /^apron-back/i, /^stretcher-front/i, /^stretcher-back/i] },
-  { match: "width",  partIdPatterns: [/^top/, /^seat/, /^panel-top/, /^apron-left/i, /^apron-right/i, /^stretcher-left/i, /^stretcher-right/i] },
-  { match: "height", partIdPatterns: [/^leg-/, /^side-/, /^post-/, /^stile-/, /^back-post/] },
-  // 腳系列
-  { match: /^leg/i, partIdPatterns: [/^leg-/, /^post-(?!back)/, /^stile-/] },
+  // 三軸主尺寸 — 詞素匹配（含中段 -leg- / -top- 之類 trestle 系列）
+  { match: "length", partIdPatterns: [/(^|-)top($|-)/, /(^|-)seat($|-)/, /^panel-top/, /^bench-top/, /(^|-)apron-(front|back)/i, /(^|-)stretcher-(front|back)/i, /(^|-)rail($|-)/i] },
+  { match: "width",  partIdPatterns: [/(^|-)top($|-)/, /(^|-)seat($|-)/, /^panel-top/, /(^|-)apron-(left|right|side)/i, /(^|-)stretcher-(left|right|side)/i] },
+  { match: "height", partIdPatterns: [/(^|-)leg($|-)/, /(^|-)side-/, /(^|-)post($|-)/, /(^|-)stile($|-)/, /^back-post/, /(^|-)trestle/i] },
+  // 腳系列（含 trestle-*-leg）
+  { match: /^leg/i, partIdPatterns: [/(^|-)leg($|-)/, /^post-(?!back)/, /(^|-)stile($|-)/, /(^|-)trestle.*-leg/i] },
   // 牙板 / 圍裙
   { match: /apron/i, partIdPatterns: [/apron/i] },
   // 橫撐
@@ -31,13 +31,13 @@ export const OPTION_PART_MAP: PartAnchorEntry[] = [
   { match: /door/i, partIdPatterns: [/door/i] },
   // 椅背 / 後板
   { match: /back/i, partIdPatterns: [/^back/i, /^panel-back/i] },
-  // 座板 / 桌面
-  { match: /^(seat|top)/i, partIdPatterns: [/^seat/, /^top/, /^panel-top/, /^bench-top/] },
-  { match: /(topThick|topThickness|seatThick|seatThickness)/i, partIdPatterns: [/^seat/, /^top/, /^panel-top/] },
+  // 座板 / 桌面（含 cornice-top）
+  { match: /^(seat|top)/i, partIdPatterns: [/(^|-)seat($|-)/, /(^|-)top($|-)/, /^panel-top/, /^bench-top/, /(^|-)cornice/i] },
+  { match: /(topThick|topThickness|seatThick|seatThickness)/i, partIdPatterns: [/(^|-)seat($|-)/, /(^|-)top($|-)/, /^panel-top/] },
   // 層板 / 隔板
-  { match: /shelf|divider|partition/i, partIdPatterns: [/shelf/i, /divider/i, /partition/i] },
+  { match: /shelf|divider|partition/i, partIdPatterns: [/shelf/i, /divider/i, /partition/i, /(^|-)vdivider/i] },
   // 側板
-  { match: /side/i, partIdPatterns: [/^side-/, /^panel-side/i] },
+  { match: /side/i, partIdPatterns: [/(^|-)side($|-)/, /^panel-side/i] },
   // 把手 / 五金（不一定有對應 part，可能空回傳）
   { match: /handle|pull|knob|hardware/i, partIdPatterns: [/handle/i, /pull/i, /knob/i] },
   // 板材厚度（panel*Thickness）→ 幾乎所有面板

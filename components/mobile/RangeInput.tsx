@@ -116,6 +116,13 @@ export function RangeInput({
 
   useEffect(() => () => stopRepeat(), [stopRepeat]);
 
+  // unmount 時清掉 hover state，避免 ghost highlight（hover 中切 tab/關 sheet）
+  useEffect(() => {
+    return () => {
+      if (hasAnchor) setHoveredPartIds(null);
+    };
+  }, [hasAnchor, setHoveredPartIds]);
+
   const tickPercent = (mm: number) => {
     if (max === min) return 0;
     const pct = ((mm - min) / (max - min)) * 100;
@@ -228,8 +235,15 @@ export function RangeInput({
                 key={`${p.label}-${p.value}`}
                 type="button"
                 onClick={() => {
-                  setValue(clamp(p.value));
-                  sliderRef.current?.focus();
+                  const v = clamp(p.value);
+                  setValue(v);
+                  // 觸發 form 的 onChange 偵測 — slider 自身的 setter 改 hidden input
+                  // 不會 fire 原生事件，DesignFormShell 的 debounce auto-submit 收不到
+                  requestAnimationFrame(() => {
+                    sliderRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+                    sliderRef.current?.dispatchEvent(new Event("change", { bubbles: true }));
+                    sliderRef.current?.focus();
+                  });
                 }}
                 className="h-6 px-1.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] leading-none font-medium"
               >
