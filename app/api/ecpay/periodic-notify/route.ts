@@ -20,6 +20,7 @@ import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
+import { after } from "next/server";
 import { sendEmail } from "@/lib/email/send";
 import { periodicChargeSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
@@ -198,20 +199,6 @@ export async function POST(req: NextRequest) {
     .eq("id", sub.id);
   if (upSubErr) console.error("[ecpay/periodic-notify] 更新 subscription 失敗", upSubErr);
 
-  // 開立月扣這期的 B2C 電子發票（失敗不擋 webhook）
-  if (insertedPayment?.id) {
-    try {
-      await issueInvoiceForPayment(admin, {
-        paymentId: insertedPayment.id,
-        userId: sub.user_id,
-        amount,
-        itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}月付訂閱（第 ${totalSuccessTimes} 期）`,
-      });
-    } catch (e) {
-      console.warn("[ecpay/periodic-notify] invoice 例外", e);
-    }
-  }
-
   const { error: upUserErr } = await admin
     .from("users")
     .update({
@@ -221,37 +208,59 @@ export async function POST(req: NextRequest) {
     .eq("id", sub.user_id);
   if (upUserErr) console.error("[ecpay/periodic-notify] 更新 users 失敗", upUserErr);
 
-  // 寄月扣扣款成功 email
-  try {
-    const { data: u } = await admin
-      .from("users")
-      .select("email")
-      .eq("id", sub.user_id)
-      .single();
-    if (u?.email) {
-      const payload = periodicChargeSuccessEmail({
-        planLabel: planLabelFromUserPlan(sub.plan),
-        amount,
-        expiresAt: newExpiresAt,
-        isMonthly: true,
-        tradeNo,
-      });
-      void sendEmail({
-        to: u.email,
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-      });
-    }
-  } catch (e) {
-    console.warn("[ecpay/periodic-notify] payment email error", e);
-  }
-
-  console.log("[ecpay/periodic-notify] 月扣成功", {
+  console.log("[ecpay/periodic-notify] 月扣成功(核心 DB 完成,背景跑後處理)", {
     orderId,
     times: totalSuccessTimes,
     amount,
     newExpiresAt,
   });
+
+  // Hobby plan 10s timeout 不夠串著跑 invoice + email,改 after() 背景
+  after(async () => {
+    try {
+      // 1. 開立月扣這期 B2C 發票
+      if (insertedPayment?.id) {
+        try {
+          await issueInvoiceForPayment(admin, {
+            paymentId: insertedPayment.id,
+            userId: sub.user_id,
+            amount,
+            itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}月付訂閱(第 ${totalSuccessTimes} 期)`,
+          });
+        } catch (e) {
+          console.warn("[ecpay/periodic-notify:after] invoice 例外", e);
+        }
+      }
+      // 2. 寄月扣扣款成功 email
+      try {
+        const { data: u } = await admin
+          .from("users")
+          .select("email")
+          .eq("id", sub.user_id)
+          .single();
+        if (u?.email) {
+          const payload = periodicChargeSuccessEmail({
+            planLabel: planLabelFromUserPlan(sub.plan),
+            amount,
+            expiresAt: newExpiresAt,
+            isMonthly: true,
+            tradeNo,
+          });
+          await sendEmail({
+            to: u.email,
+            subject: payload.subject,
+            text: payload.text,
+            html: payload.html,
+          });
+        }
+      } catch (e) {
+        console.warn("[ecpay/periodic-notify:after] payment email error", e);
+      }
+      console.log("[ecpay/periodic-notify:after] 後處理完成", { orderId });
+    } catch (e) {
+      console.error("[ecpay/periodic-notify:after] 例外(已回 1|OK)", e);
+    }
+  });
+
   return new Response("1|OK");
 }

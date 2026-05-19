@@ -16,7 +16,7 @@
  *
  *   月扣定期定額第 2 期以後走 /api/ecpay/periodic-notify
  */
-import { type NextRequest } from "next/server";
+import { type NextRequest, after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
@@ -185,54 +185,74 @@ export async function POST(req: NextRequest) {
     .select("id")
     .single();
 
-  // 開立綠界 B2C 電子發票（失敗不擋 webhook，失敗的會被 invoice_status=failed 標出來）
-  if (insertedPayment?.id) {
+  console.log("[ecpay/return] 付款完成,核心 DB 更新已收尾,背景跑後處理", {
+    orderId,
+    userId: sub.user_id,
+    amount,
+    expiresAt,
+  });
+
+  // ──────────────────────────────────────────────
+  // 背景任務:invoice / refund / email
+  // Hobby plan 10s timeout 不夠串著跑 3 個外部 API,改用 Next.js after() 在
+  // response 送出後背景跑,Vercel 仍會等到任務完成才釋放 function 容器。
+  // ──────────────────────────────────────────────
+  after(async () => {
     try {
-      await issueInvoiceForPayment(admin, {
-        paymentId: insertedPayment.id,
-        userId: sub.user_id,
-        amount,
-        itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodic ? "月付" : "年付"}訂閱`,
-      });
+      // 1. 開立綠界 B2C 電子發票
+      if (insertedPayment?.id) {
+        try {
+          await issueInvoiceForPayment(admin, {
+            paymentId: insertedPayment.id,
+            userId: sub.user_id,
+            amount,
+            itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodic ? "月付" : "年付"}訂閱`,
+          });
+        } catch (e) {
+          console.warn("[ecpay/return:after] invoice 例外(已記錄 failed)", e);
+        }
+      }
+
+      // 2. 升級退舊版 prorate
+      let upgradeRefundAmount = 0;
+      if (sub.replaced_subscription_id) {
+        upgradeRefundAmount = await handleUpgradeRefund(admin, sub.replaced_subscription_id, sub.id);
+      }
+
+      // 3. 寄首次付款成功 email
+      try {
+        const { data: u } = await admin
+          .from("users")
+          .select("email")
+          .eq("id", sub.user_id)
+          .single();
+        if (u?.email) {
+          const payload = firstPaymentSuccessEmail({
+            planLabel: planLabelFromUserPlan(sub.plan),
+            amount,
+            expiresAt,
+            isMonthly: periodic,
+            tradeNo,
+            upgradeRefundAmount: upgradeRefundAmount > 0 ? upgradeRefundAmount : undefined,
+          });
+          await sendEmail({
+            to: u.email,
+            subject: payload.subject,
+            text: payload.text,
+            html: payload.html,
+          });
+        }
+      } catch (e) {
+        console.warn("[ecpay/return:after] payment email error", e);
+      }
+
+      console.log("[ecpay/return:after] 後處理完成", { orderId, upgradeRefundAmount });
     } catch (e) {
-      console.warn("[ecpay/return] invoice 例外（已記錄 failed，不擋 webhook）", e);
+      // after() 整段 catch fallback,任何 unexpected throw 都不影響已回的 1|OK
+      console.error("[ecpay/return:after] 例外(已回 1|OK 給綠界)", e);
     }
-  }
+  });
 
-  // 升級退舊版 prorate(replaced_subscription_id 有值 = upgrade scenario)
-  let upgradeRefundAmount = 0;
-  if (sub.replaced_subscription_id) {
-    upgradeRefundAmount = await handleUpgradeRefund(admin, sub.replaced_subscription_id, sub.id);
-  }
-
-  // 寄首次付款成功 email
-  try {
-    const { data: u } = await admin
-      .from("users")
-      .select("email")
-      .eq("id", sub.user_id)
-      .single();
-    if (u?.email) {
-      const payload = firstPaymentSuccessEmail({
-        planLabel: planLabelFromUserPlan(sub.plan),
-        amount,
-        expiresAt,
-        isMonthly: periodic,
-        tradeNo,
-        upgradeRefundAmount: upgradeRefundAmount > 0 ? upgradeRefundAmount : undefined,
-      });
-      void sendEmail({
-        to: u.email,
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-      });
-    }
-  } catch (e) {
-    console.warn("[ecpay/return] payment email error", e);
-  }
-
-  console.log("[ecpay/return] 付款完成", { orderId, userId: sub.user_id, amount, expiresAt, upgradeRefundAmount });
   return new Response("1|OK");
 }
 
