@@ -808,8 +808,9 @@ export function OrthoView({
           .map((t) => t.length),
       )
     : 0;
-  // T1 dim chain 上推：HORIZ_OFFSET(30 有 tenon) + GROSS_GAP(14) + label 8 ≈ 52 buffer
-  const tenonTopBuffer = maxTenonProtrusion > 0 ? maxTenonProtrusion + 52 : 0;
+  // T1 dim chain 上推：HORIZ_OFFSET(30) + GROSS_GAP(14) + text height(12) + 上箭頭
+  // facing mark(16) + safety(8) = 80。少於這個會跟 title bar 卡同一線。
+  const tenonTopBuffer = maxTenonProtrusion > 0 ? maxTenonProtrusion + 80 : 0;
   const isolatePadding = isolatePartId
     ? Math.min(
         PADDING,
