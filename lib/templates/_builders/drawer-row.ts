@@ -666,10 +666,11 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       // 全搭接：側板蓋滿前後板（front 邊緣到 back 邊緣）
       const sideZCenterLap =
         (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
-      // 半搭接：側板 z 往後推 rabbet 深度、讓 front 邊緣坐在 rabbet 底
-      //（不跟前板正面齊平、面板蓋住側板端）。back 邊緣會超出後板 rabbetDepth、
-      //  但後板在櫃內看不到、暫接受。
-      const sideZCenterHalfLap = sideZCenterLap + halfLapRabbetDepth;
+      // 半搭接：側板要躲進前板覆蓋的 2/3 內側。rabbet 從背面切 1/3、剩 2/3 的
+      // 前板材料覆蓋 → side z 要往後推 (drawerFrontT - rabbet) = 2/3 厚 = 12mm。
+      // 之前推 rabbet 深度（=1/3）太少、side 跟前板還會重疊 6mm（user 反映）。
+      const halfLapSideShift = drawerFrontT - halfLapRabbetDepth;
+      const sideZCenterHalfLap = sideZCenterLap + halfLapSideShift;
       const effectiveSideZCenter = useHalfLap
         ? sideZCenterHalfLap
         : isLapJoint
