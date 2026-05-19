@@ -29,9 +29,21 @@ export const ECPAY_CREDIT_DETAIL_DOACTION_URL =
     ? "https://payment.ecpay.com.tw/CreditDetail/DoAction"
     : "https://payment-stage.ecpay.com.tw/CreditDetail/DoAction";
 
-/** 後端組 callback URL 用的網域 */
+/**
+ * 後端組 callback URL 用的網域
+ *
+ * production 環境一定要明確設 NEXT_PUBLIC_SITE_URL（= https://designer.woodenren.com），
+ * 不能 fallback 到 VERCEL_URL — preview alias 會跟著每次 deploy 變動，
+ * 一旦變動，綠界記在使用者卡片上的 PeriodReturnURL 就會打到舊的 alias，
+ * 第 2 期之後月扣 webhook 全部噴 404，使用者被扣款但服務沒延期。
+ */
 export function getBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (ECPAY_ENV === "production") {
+    throw new Error(
+      "[ecpay] production 環境必須設定 NEXT_PUBLIC_SITE_URL（例：https://designer.woodenren.com），不可 fallback 到 VERCEL_URL",
+    );
+  }
   if (process.env.VERCEL_URL) {
     return process.env.VERCEL_URL.startsWith("http")
       ? process.env.VERCEL_URL
