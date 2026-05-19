@@ -301,7 +301,9 @@ export function PartDrawing({
         </div>
         {design.useButtJointConvention !== false && (
           <div className="text-[8px] text-zinc-400 italic mt-0.5">
-            ※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長
+            {part.shape?.kind === "dovetail-ends"
+              ? "※ visible.length = stock 裁切長（含兩端鳩尾 tail tip）"
+              : "※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長"}
           </div>
         )}
         {part.shape?.kind === "hoof" && (

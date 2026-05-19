@@ -290,8 +290,11 @@ export const drawerBottomThicknessOption: OptionSpec = {
     { value: "3", label: "3mm（薄夾板，最輕）" },
     { value: "6", label: "6mm（標準，入溝家具最常用）" },
     { value: "9", label: "9mm（加強，大抽屜或重物）" },
-    { value: "12", label: "12mm（實木底，最重）" },
+    { value: "12", label: "12mm（實木底，抽屜內部淨高會少 12mm）" },
   ],
+  help:
+    "釘底時底板裝在側板下方、會從抽屜外總高扣這厚度；入溝時底板嵌在側板槽內、" +
+    "抽屜內部淨高減少 (6 + 底板厚)mm。12mm 底配小抽屜（< 80mm 高）會吃掉內部空間。",
   dependsOn: ANY_ZONE_IS_DRAWER,
 };
 
