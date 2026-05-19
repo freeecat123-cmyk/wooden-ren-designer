@@ -347,12 +347,13 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
   //                沒面板 → 半鳩尾（round(drawerFrontT*2/3) = 12）
   const useHalfBlindDovetail = isDovetailJoint && !hasFacePanel;
   const useThroughDovetail = isDovetailJoint && hasFacePanel;
-  // 半搭接：搭接 + 入柱（無面板）→ 前板全寬蓋住側板、背面挖 2/3 深凹槽讓
-  // 側板嵌進。完全沒榫、沒 dovetail-ends shape、只用 cosmetic mortise 切出
-  // 視覺凹槽。side panel 長度跟全搭接一樣不變動。
+  // 半搭接：搭接 + 入柱（無面板）→ 前板全寬蓋住側板、背面挖 1/3 深凹槽讓
+  // 側板前緣嵌進。完全沒榫、沒 dovetail-ends shape、只用 cosmetic mortise 切凹槽。
+  // side panel 長度跟全搭接一樣 drawerOuterD、但 z 位置往後推 rabbetDepth、
+  // 讓 side 前緣坐在 rabbet 底（不再跟前板正面齊平、面板蓋住側板端）。
   const useHalfLap = isLapJoint && !hasFacePanel;
   const useFullLap = isLapJoint && hasFacePanel;
-  const halfLapRabbetDepth = Math.round((drawerFrontT * 2) / 3);
+  const halfLapRabbetDepth = Math.round(drawerFrontT / 3);
   const dovetailPinDepth = useThroughDovetail
     ? drawerFrontT
     : useHalfBlindDovetail
@@ -662,9 +663,18 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       const sideLength = isDovetailJoint
         ? drawerInnerD + 2 * dovetailPinDepth
         : drawerOuterD;
+      // 全搭接：側板蓋滿前後板（front 邊緣到 back 邊緣）
       const sideZCenterLap =
         (zFront - drawerFrontT / 2 + zBack + drawerBackT / 2) / 2;
-      const effectiveSideZCenter = isLapJoint ? sideZCenterLap : sideZCenter;
+      // 半搭接：側板 z 往後推 rabbet 深度、讓 front 邊緣坐在 rabbet 底
+      //（不跟前板正面齊平、面板蓋住側板端）。back 邊緣會超出後板 rabbetDepth、
+      //  但後板在櫃內看不到、暫接受。
+      const sideZCenterHalfLap = sideZCenterLap + halfLapRabbetDepth;
+      const effectiveSideZCenter = useHalfLap
+        ? sideZCenterHalfLap
+        : isLapJoint
+          ? sideZCenterLap
+          : sideZCenter;
       parts.push({
         id: `${idPrefix}-${i + 1}-side-${side < 0 ? "left" : "right"}`,
         nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}側板`,
