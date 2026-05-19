@@ -17,6 +17,13 @@ function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
+const SUB_STATUS_ZH: Record<string, string> = {
+  active: "使用中",
+  inactive: "未啟用",
+  cancelled: "已取消",
+  expired: "已到期",
+};
+
 export function MySubscriptionClient() {
   const { profile, plan, isLoading, isLoggedIn } = useUserPlan();
   const [justPaid, setJustPaid] = useState(false);
@@ -195,7 +202,7 @@ function PaidPlanSection({
         到期日：{formatDate(expiresAt)}
       </p>
       <p className="text-sm text-zinc-500 mt-1">
-        狀態：{isCancelled ? "已取消（到期前仍可用）" : status}
+        狀態:{isCancelled ? "已取消(到期前仍可用)" : (SUB_STATUS_ZH[status] ?? status)}
       </p>
 
       {/* 7 天內到期黃色 reminder（未取消才顯示） */}
