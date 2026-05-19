@@ -170,7 +170,7 @@ export function PlanCardView({
       )}
       {!isFree && (
         <p className="mt-2 text-[11px] text-zinc-500 text-center">
-          將跳轉綠界 ECPay 付款 · 信用卡 / ATM / 超商
+          將跳轉綠界 ECPay 付款 · {period === "monthly" ? "信用卡（每月自動扣款）" : "信用卡 / ATM / 超商"}
         </p>
       )}
     </div>
