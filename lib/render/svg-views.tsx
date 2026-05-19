@@ -1648,9 +1648,14 @@ export function OrthoView({
         // 限制，讓零件圖（reset rotation）下 top 視圖也能 synthesise。
         // 零件圖 isolation 模式只剩 1 個 part，本 part 沒 shape、找不到 donor
         // → 也用 design.parts 找原始 donor（renderDesign.parts 被 filter 掉了）
+        // tray 鳩尾接合：tail board = wall-front/back (有 shape)、pin board = wall-left/right
+        // drawer 鳩尾接合（半鳩尾 / 通鳩尾）：tail board = 側板 (-side-left/right，有 shape)、
+        //   pin board = 前/後板 (-N-front / -N-back，無 shape)。
+        // 兩種 case pin board 都需要 projectPartPolygon 合成梯形 notch。
         const isDovetailPinBoard =
           (!part.shape || part.shape.kind === "box") &&
-          /^wall-(left|right)$/.test(part.id) &&
+          (/^wall-(left|right)$/.test(part.id) ||
+            /-\d+-(front|back)$/.test(part.id)) &&
           (renderDesign.parts.some((p) => p.shape?.kind === "dovetail-ends") ||
             design.parts.some((p) => p.shape?.kind === "dovetail-ends"));
         const useShape =

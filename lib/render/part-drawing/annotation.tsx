@@ -565,6 +565,9 @@ export function T2LabelList({
   const lines: string[] = [];
 
   part.mortises.forEach((m, idx) => {
+    // cosmetic = 槽/孔/凹槽（指槽、底板入溝、無線充電孔、half-lap rabbet 等）
+    // 不是真榫眼、不要列成「榫眼1（XX 面）」誤導木匠以為要鑿榫眼
+    if (m.cosmetic) return;
     const W = round1(m.width);
     const L = round1(m.length);
     const D = round1(m.depth);
@@ -838,11 +841,13 @@ export function T2Annotations({
     // 圓孔（mortise.shape === "round"）用 Ø 標、不寫 W×L
     const isRound = m.shape === "round";
     const dims = isRound ? `Ø${W} 深${D}` : `${W}×${L} 深${D}`;
+    // cosmetic mortise = 凹槽（指槽/底板入溝/rabbet），不是真榫眼、label 用「凹槽」
+    const nameLabel = m.cosmetic ? `凹槽${idx + 1}` : `榫眼${idx + 1}`;
     items.push({
       kind: "m",
       idx,
       rect: r,
-      name: `榫眼${idx + 1}`,
+      name: nameLabel,
       dims,
       baseline: baselineFor(lb),
     });
@@ -1086,10 +1091,19 @@ export function T2Annotations({
   items.forEach((it, itemIdx) => {
     const box = it.rect;
     const isMortise = it.kind === "m";
-    const stroke = isMortise ? "#dc2626" : "#2563eb";
-    const fill = isMortise
-      ? "rgba(220, 38, 38, 0.12)"
-      : "rgba(37, 99, 235, 0.10)";
+    // cosmetic mortise（指槽 / 底板入溝 / half-lap rabbet 等凹槽）用橘色、
+    // 跟 svg-views 主視圖 c97a2b 同步、不要跟真榫眼/真榫頭混色。
+    const isCosmetic = isMortise && (part.mortises[it.idx] as Mortise).cosmetic;
+    const stroke = isCosmetic
+      ? "#c97a2b"
+      : isMortise
+        ? "#dc2626"
+        : "#2563eb";
+    const fill = isCosmetic
+      ? "rgba(201, 122, 43, 0.10)"
+      : isMortise
+        ? "rgba(220, 38, 38, 0.12)"
+        : "rgba(37, 99, 235, 0.10)";
 
     // 取得對應 feature 的 local box（重新計算用 cx/cz）
     // mortise 用 mortiseEntryBox（從 entry face 量起、跟 visual 對齊）；

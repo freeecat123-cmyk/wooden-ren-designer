@@ -503,13 +503,14 @@ export function projectPartPolygon(
     { x: r.x, y: r.y },             // bottom-left
   ];
 
-  // tray 鳩尾榫 pin board synthesis：偵測未掛 shape 的 wall-left/wall-right
-  // 但 design 有其他 part 掛 dovetail-ends，借參數做 phase=1 shape 接到下游
-  // comb 邏輯。phase=1 + 同 N/angle/depth/halfPin → pin tip 外窄、gap 段
-  // 內陷 = 外寬內窄梯形 notch，正好嵌進對面 tail 的「外寬內窄」tail tooth。
+  // 鳩尾接合 pin board synthesis：兩種 case 都需要 phase=1 梯形 notch:
+  //   tray:   tail board = wall-front/back（有 shape）、pin board = wall-left/right
+  //   drawer: tail board = -side-left/right（有 shape）、pin board = -N-front / -N-back
+  // 借 donor 的 N/angle/depth/halfPin → 對面 trapezoid notch 嵌進 tail tooth。
   if (
     (!part.shape || part.shape.kind === "box") &&
-    /^wall-(left|right)$/.test(part.id) &&
+    (/^wall-(left|right)$/.test(part.id) ||
+      /-\d+-(front|back)$/.test(part.id)) &&
     allParts
   ) {
     const donor = allParts.find(
