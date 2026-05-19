@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { InvoicePreferenceCard } from "@/components/InvoicePreferenceCard";
 import { studentDaysRemaining, PLAN_LABEL } from "@/lib/permissions";
 import {
   GRACE_PERIOD_DAYS,
@@ -123,6 +124,13 @@ export function MySubscriptionClient() {
           </div>
         ) : null}
       </div>
+
+      {/* 發票偏好設定（只有付費方案才顯示） */}
+      {!isStudent &&
+        profile &&
+        (profile.plan === "personal" || profile.plan === "pro" || profile.plan === "lifetime") && (
+          <InvoicePreferenceCard />
+        )}
     </main>
   );
 }
