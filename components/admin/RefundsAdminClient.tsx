@@ -43,9 +43,16 @@ function fmtDate(iso: string | null): string {
 
 export function RefundsAdminClient() {
   const [rows, setRows] = useState<RefundRow[]>([]);
+  const [allCounts, setAllCounts] = useState<Record<string, number>>({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    refunded: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [search, setSearch] = useState<string>("");
   const [reviewing, setReviewing] = useState<RefundRow | null>(null);
 
   async function load() {
@@ -58,6 +65,7 @@ export function RefundsAdminClient() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
       setRows((j.data ?? []) as RefundRow[]);
+      if (j.counts) setAllCounts(j.counts as Record<string, number>);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -70,7 +78,20 @@ export function RefundsAdminClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
-  const counts = useMemo(() => rows.length, [rows]);
+  const visibleRows = useMemo(() => {
+    if (!search.trim()) return rows;
+    const q = search.toLowerCase().trim();
+    return rows.filter((r) => {
+      const user = unwrapJoined(r.users);
+      const payment = unwrapJoined(r.payments);
+      return (
+        user?.email?.toLowerCase().includes(q) ||
+        payment?.ecpay_trade_no?.toLowerCase().includes(q) ||
+        r.reason.toLowerCase().includes(q)
+      );
+    });
+  }, [rows, search]);
+  const counts = visibleRows.length;
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-6">
@@ -80,7 +101,9 @@ export function RefundsAdminClient() {
             ← 後台儀表板
           </Link>
           <h1 className="text-2xl font-bold text-zinc-900 mt-1">退費審核</h1>
-          <p className="text-xs text-zinc-700 mt-1">當前 {counts} 筆</p>
+          <p className="text-xs text-zinc-700 mt-1">
+            目前顯示 {counts} 筆{search.trim() && `(已篩選自 ${rows.length} 筆)`}
+          </p>
         </div>
         <button
           type="button"
@@ -92,26 +115,56 @@ export function RefundsAdminClient() {
         </button>
       </header>
 
-      <div className="mb-3 flex items-center gap-1 flex-wrap">
-        {(["pending", "approved", "rejected", "refunded", "all"] as const).map(
-          (s) => {
-            const active = statusFilter === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatusFilter(s)}
-                className={`text-xs px-2.5 py-1 rounded border ${
-                  active
-                    ? "bg-zinc-900 text-white border-zinc-900"
-                    : "bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50"
-                }`}
-              >
-                {s === "all" ? "全部" : STATUS_LABEL[s] ?? s}
-              </button>
-            );
-          },
-        )}
+      {/* 統計卡:四個 status 各幾筆,點擊切篩選 */}
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        {(["pending", "approved", "rejected", "refunded"] as const).map((s) => {
+          const active = statusFilter === s;
+          const c = allCounts[s] ?? 0;
+          const tone =
+            s === "pending"
+              ? "text-amber-700"
+              : s === "approved"
+              ? "text-emerald-700"
+              : s === "rejected"
+              ? "text-rose-700"
+              : "text-sky-700";
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={`text-left rounded-lg border bg-white px-3 py-2 transition ${
+                active
+                  ? "border-zinc-900 ring-2 ring-zinc-900/10"
+                  : "border-zinc-200 hover:border-zinc-400"
+              }`}
+            >
+              <div className="text-[11px] text-zinc-500">{STATUS_LABEL[s]}</div>
+              <div className={`text-xl font-bold tabular-nums ${tone}`}>{c}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-3 flex items-center gap-2 flex-wrap">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="搜尋 email / 交易編號 / 退費理由"
+          className="flex-1 min-w-[200px] text-xs px-3 py-1.5 rounded border border-zinc-300 bg-white"
+        />
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={`text-xs px-2.5 py-1 rounded border ${
+            statusFilter === "all"
+              ? "bg-zinc-900 text-white border-zinc-900"
+              : "bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50"
+          }`}
+        >
+          全部
+        </button>
       </div>
 
       {error && (
@@ -121,7 +174,7 @@ export function RefundsAdminClient() {
       )}
 
       <ul className="space-y-3">
-        {rows.map((r) => {
+        {visibleRows.map((r) => {
           const user = unwrapJoined(r.users);
           const payment = unwrapJoined(r.payments);
           return (
@@ -131,11 +184,21 @@ export function RefundsAdminClient() {
             >
               <div className="flex justify-between items-baseline gap-3 flex-wrap mb-2">
                 <div>
-                  <div className="font-mono text-sm">{user?.email ?? "(no email)"}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">
-                    申請 {fmtDate(r.created_at)} · NT$ {r.amount_requested.toLocaleString()}
+                  <div className="font-mono text-sm">{user?.email ?? "(查無 email)"}</div>
+                  <div className="text-xs text-zinc-500 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span>申請於 {fmtDate(r.created_at)}</span>
+                    <span>·</span>
+                    <span>退費金額 NT$ {r.amount_requested.toLocaleString()}</span>
                     {payment?.amount && payment.amount !== r.amount_requested && (
-                      <span className="ml-1">（原付 NT$ {payment.amount.toLocaleString()}）</span>
+                      <span className="text-zinc-400">(原付 NT$ {payment.amount.toLocaleString()})</span>
+                    )}
+                    {payment?.ecpay_trade_no && (
+                      <>
+                        <span>·</span>
+                        <span className="font-mono text-[11px] text-zinc-600" title="綠界交易編號">
+                          🔗 {payment.ecpay_trade_no}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -152,7 +215,7 @@ export function RefundsAdminClient() {
               </p>
               {r.admin_note && (
                 <p className="text-xs text-zinc-600 mt-1">
-                  <strong>客服回覆：</strong>{r.admin_note}
+                  <strong>客服回覆:</strong>{r.admin_note}
                 </p>
               )}
               {(r.status === "pending" || r.status === "approved") && (
@@ -162,15 +225,17 @@ export function RefundsAdminClient() {
                     onClick={() => setReviewing(r)}
                     className="text-xs px-3 py-1 rounded bg-amber-600 text-white font-medium hover:bg-amber-700"
                   >
-                    {r.status === "pending" ? "審核" : "標記已退款"}
+                    {r.status === "pending" ? "審核此申請" : "標記已退款完成"}
                   </button>
                 </div>
               )}
             </li>
           );
         })}
-        {rows.length === 0 && !loading && (
-          <li className="text-center text-sm text-zinc-500 py-8">沒有資料</li>
+        {visibleRows.length === 0 && !loading && (
+          <li className="text-center text-sm text-zinc-500 py-8">
+            {search.trim() ? "找不到符合的退費申請" : "目前沒有退費申請"}
+          </li>
         )}
       </ul>
 
@@ -239,6 +304,43 @@ function ReviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-semibold text-zinc-900 text-lg mb-3">審核退費申請</h3>
+
+        {/* 此申請的背景資料,審核時一眼可見 */}
+        {(() => {
+          const user = unwrapJoined(row.users);
+          const payment = unwrapJoined(row.payments);
+          return (
+            <div className="mb-4 p-3 rounded border border-zinc-200 bg-zinc-50 text-xs space-y-1">
+              <div>
+                <span className="text-zinc-500">帳號:</span>{" "}
+                <span className="font-mono">{user?.email ?? "(查無)"}</span>
+                {user?.plan && (
+                  <span className="ml-2 text-zinc-500">方案 {user.plan}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-zinc-500">申請於:</span>{" "}
+                {fmtDate(row.created_at)} · <span className="text-zinc-500">金額</span>{" "}
+                <strong>NT$ {row.amount_requested.toLocaleString()}</strong>
+              </div>
+              {payment && (
+                <div>
+                  <span className="text-zinc-500">原付款:</span>{" "}
+                  {payment.amount != null && <>NT$ {payment.amount.toLocaleString()}</>}
+                  {payment.ecpay_trade_no && (
+                    <span className="ml-2 font-mono text-zinc-600">
+                      🔗 {payment.ecpay_trade_no}
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="pt-1 mt-1 border-t border-zinc-200">
+                <div className="text-zinc-500 mb-0.5">退費理由:</div>
+                <div className="whitespace-pre-wrap text-zinc-800">{row.reason}</div>
+              </div>
+            </div>
+          );
+        })()}
 
         <label className="block text-xs text-zinc-600 mb-1">決議</label>
         <select

@@ -45,5 +45,15 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ data });
+
+  // 統計每個 status 各幾筆,讓 admin 一眼看到「pending=N 件待處理」
+  const { data: countsData } = await svc
+    .from("refund_requests")
+    .select("status");
+  const counts: Record<string, number> = { pending: 0, approved: 0, rejected: 0, refunded: 0 };
+  for (const r of (countsData ?? []) as Array<{ status: string }>) {
+    if (r.status in counts) counts[r.status] += 1;
+  }
+
+  return NextResponse.json({ data, counts });
 }
