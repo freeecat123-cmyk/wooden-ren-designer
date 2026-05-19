@@ -843,7 +843,7 @@ function HeroInput({
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="text-3xl font-bold text-zinc-900 tabular-nums bg-transparent w-full focus:outline-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 group-hover:text-amber-900 transition"
+          className="text-3xl font-bold text-zinc-900 tabular-nums bg-transparent w-full focus:outline-none no-spinner group-hover:text-amber-900 transition"
         />
         <span className="text-xs text-zinc-400 font-medium">{suffix}</span>
       </div>

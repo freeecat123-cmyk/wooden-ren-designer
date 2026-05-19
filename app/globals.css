@@ -123,3 +123,15 @@ summary::-webkit-details-marker {
 summary {
   list-style: none;
 }
+
+/* number input 拿掉瀏覽器預設的上下箭頭（取代 Tailwind 4 arbitrary variant、
+   `[&::-webkit-inner-spin-button]:m-0` 在 Turbopack 會生成 BEL 控制字元炸 CSS parser）*/
+.no-spinner {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}

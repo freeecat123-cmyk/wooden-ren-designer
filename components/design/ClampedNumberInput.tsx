@@ -199,7 +199,7 @@ export function ClampedNumberInput({
           min={min}
           max={max}
           step={step}
-          className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`.trim()}
+          className={`${className ?? ""} flex-1 min-w-[3.5rem] w-full text-center tabular-nums no-spinner`.trim()}
         />
 
         {showPlusMinus && (
