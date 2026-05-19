@@ -2604,12 +2604,17 @@ export function CompoundMiterAnnotation({
         // 只處理沿 length 軸的榫頭（start/end）。其他位置 fallback skip。
         if (!isEnd && !isStart) return null;
         const localX = isEnd ? +L / 2 : -L / 2;
-        const top = ctx.partLocalToSvg(localX, -T / 2, 0);
-        const labelY = top.y - 6; // 距離輪廓頂緣 6px
+        // part-local +Y = 上、−Y = 下。經 partLocalToSvg flip 後：
+        //   localY = -T/2（part 底面）→ SVG y 較大（螢幕較下）
+        //   localY = +T/2（part 頂面）→ SVG y 較小（螢幕較上）
+        // 25 dim 與榫頭 W chain 標籤都在 part 底邊下方 ~14px。把複斜切標籤
+        // 再往下放 28px 避開現有標籤，落在底邊下空白處。
+        const bottom = ctx.partLocalToSvg(localX, -T / 2, 0);
+        const labelY = bottom.y + 28;
         return (
           <CompoundMiterLabel
             key={`${part.id}-miter-${t.position}-${i}`}
-            x={top.x}
+            x={bottom.x}
             y={labelY}
             primaryDeg={primaryDeg}
             secondaryDeg={secondaryDeg}
