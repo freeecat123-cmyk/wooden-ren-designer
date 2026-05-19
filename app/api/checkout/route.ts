@@ -16,6 +16,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
   PLAN_NAME_ZH,
   PLAN_PRICES,
+  comparePlanUpgrade,
   getBasePlan,
   getPlanPrice,
   isStudentOnly,
@@ -30,6 +31,7 @@ import {
   getAioUrl,
 } from "@/lib/ecpay/create-order";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
+import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,6 +72,96 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+
+  // ──────────────────────────────────────────────────────────────
+  // 升級/降級偵測:user 有 active sub 時不能直接買第二份(會被綠界雙扣)
+  // ──────────────────────────────────────────────────────────────
+  const { data: currentUser } = await admin
+    .from("users")
+    .select("plan, subscription_status")
+    .eq("id", user.id)
+    .single();
+  const currentPlan = currentUser?.plan as string | null;
+  const currentStatus = currentUser?.subscription_status as string | null;
+  const hasActivePaidSub =
+    currentStatus === "active" &&
+    currentPlan &&
+    currentPlan !== "free" &&
+    currentPlan !== "lifetime"; // lifetime 沒有定期定額,不會雙扣
+
+  const targetBasePlan = getBasePlan(plan);
+  const relation = comparePlanUpgrade(currentPlan, targetBasePlan);
+
+  if (hasActivePaidSub) {
+    if (relation === "same") {
+      return NextResponse.json(
+        {
+          error: "already_on_plan",
+          message: `你目前已經是${PLAN_NAME_ZH[plan]}訂閱中。要換 monthly/yearly 請先取消當前訂閱。`,
+        },
+        { status: 400 },
+      );
+    }
+    if (relation === "downgrade") {
+      return NextResponse.json(
+        {
+          error: "downgrade_not_supported",
+          message: "降級請先在「我的訂閱」取消當前方案,到期後再買新方案。",
+        },
+        { status: 400 },
+      );
+    }
+    // relation === "upgrade":正當升級,繼續流程 → 先 cancel 舊
+    if (relation === "upgrade") {
+      // 撈舊 sub 的 merchant_trade_no
+      const { data: oldSub } = await admin
+        .from("subscriptions")
+        .select("id, ecpay_merchant_trade_no")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (oldSub?.ecpay_merchant_trade_no) {
+        // 月扣才需要 Terminate(年付一次性付完沒未來扣款)
+        const result = await terminateEcpayPeriodic(oldSub.ecpay_merchant_trade_no);
+        if (!result.ok) {
+          // Terminate 失敗 → 整個 abort,user 維持原方案(沒被雙扣)
+          // 月扣可能本就不是定期定額(一次性年付),綠界回 「訂單不存在」也算可接受
+          const benign =
+            result.rtnCode &&
+            (result.rtnMsg?.includes("不存在") || result.rtnMsg?.includes("已終止"));
+          if (!benign) {
+            console.error("[checkout/upgrade] cancel old sub failed", {
+              userId: user.id,
+              oldSubId: oldSub.id,
+              result,
+            });
+            return NextResponse.json(
+              {
+                error: "upgrade_cancel_failed",
+                message: "升級失敗:無法終止舊訂閱(綠界連線異常)。請稍後再試或寫信給木頭仁。",
+                detail: result,
+              },
+              { status: 502 },
+            );
+          }
+        }
+        // 標記 DB
+        await admin
+          .from("subscriptions")
+          .update({ status: "cancelled" })
+          .eq("id", oldSub.id);
+        console.log("[checkout/upgrade] cancelled old sub", {
+          userId: user.id,
+          oldPlan: currentPlan,
+          newPlan: targetBasePlan,
+          orderId: oldSub.ecpay_merchant_trade_no,
+        });
+      }
+    }
+  }
 
   // 學員方案資格驗證
   if (isStudentOnly(plan)) {

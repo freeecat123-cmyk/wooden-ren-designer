@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { EarlyBirdBanner, EARLY_BIRD } from "./EarlyBirdBanner";
 import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCard";
+import { useUserPlan } from "@/hooks/useUserPlan";
 
 const CATEGORY_NAME_ZH: Record<string, string> = {
   stool: "方凳",
@@ -97,6 +98,9 @@ const PLANS: PlanCard[] = [
 export function PricingClient() {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+  const { profile } = useUserPlan();
+  const currentPlan = profile?.plan ?? null;
+  const currentStatus = profile?.subscription_status ?? null;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -186,6 +190,8 @@ export function PricingClient() {
             plan={p}
             period={period}
             earlyBird={p.id === "pro" && period === "monthly" && EARLY_BIRD.isActive()}
+            currentPlan={currentPlan}
+            currentStatus={currentStatus}
           />
         ))}
       </div>

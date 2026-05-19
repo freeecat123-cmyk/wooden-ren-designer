@@ -43,3 +43,42 @@ export function getBasePlan(plan: CheckoutPlan): "personal" | "pro" {
 export function isStudentOnly(plan: CheckoutPlan): boolean {
   return PLAN_PRICES[plan].studentOnly;
 }
+
+/**
+ * Plan tier 排序:數字越大越貴。用來判斷升/降級。
+ * free=0 < personal=1 < pro=2 < lifetime=3
+ * student 算 pro 級 (功能相同)
+ */
+const TIER: Record<string, number> = {
+  free: 0,
+  personal: 1,
+  student: 2,
+  pro: 2,
+  lifetime: 3,
+};
+
+export function getPlanTier(plan: string | null | undefined): number {
+  if (!plan) return 0;
+  return TIER[plan] ?? 0;
+}
+
+export type UpgradeRelation = "fresh" | "upgrade" | "same" | "downgrade";
+
+/**
+ * 比較 user 當前 plan 與目標 plan 的關係。
+ * - fresh: user 沒 active sub (free 或從沒訂過)
+ * - upgrade: 升級 (個人→專業 之類)
+ * - same: 同 tier (例如已經是 personal 月付,又買 personal 月付)
+ * - downgrade: 降級 (專業→個人)
+ */
+export function comparePlanUpgrade(
+  currentPlan: string | null | undefined,
+  targetBasePlan: "personal" | "pro",
+): UpgradeRelation {
+  const cur = getPlanTier(currentPlan);
+  const tgt = getPlanTier(targetBasePlan);
+  if (cur === 0) return "fresh";
+  if (cur < tgt) return "upgrade";
+  if (cur === tgt) return "same";
+  return "downgrade";
+}

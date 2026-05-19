@@ -25,14 +25,36 @@ export interface PlanCard {
   cta: string;
 }
 
+/**
+ * Plan tier 排序(跟 lib/pricing/plans.ts 的 TIER 保持一致)。
+ * Client component 不能 import server-side lib,複製一份簡單 lookup。
+ */
+const TIER: Record<string, number> = {
+  free: 0,
+  personal: 1,
+  student: 2,
+  pro: 2,
+  lifetime: 3,
+};
+function tier(p: string | null | undefined): number {
+  if (!p) return 0;
+  return TIER[p] ?? 0;
+}
+
 export function PlanCardView({
   plan,
   period,
   earlyBird = false,
+  currentPlan = null,
+  currentStatus = null,
 }: {
   plan: PlanCard;
   period: BillingPeriod;
   earlyBird?: boolean;
+  /** user 目前的 plan (free/personal/pro/student/lifetime),用來顯示「升級/降級/已是」狀態 */
+  currentPlan?: string | null;
+  /** users.subscription_status,用來判斷是不是 active 訂閱中 */
+  currentStatus?: string | null;
 }) {
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
@@ -145,32 +167,70 @@ export function PlanCardView({
         ))}
       </ul>
 
-      {isFree ? (
-        <Link
-          href="/"
-          className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
-        >
-          {plan.cta}
-        </Link>
-      ) : (
-        <form method="POST" action="/api/checkout" className="mt-5">
-          <input type="hidden" name="plan" value={plan.id} />
-          <input type="hidden" name="period" value={period} />
-          <button
-            type="submit"
-            className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-              plan.highlight
-                ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
-                : "bg-zinc-900 text-white hover:bg-zinc-700"
-            }`}
-          >
-            {plan.cta}
-          </button>
-        </form>
-      )}
+      {(() => {
+        if (isFree) {
+          return (
+            <Link
+              href="/"
+              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
+            >
+              {plan.cta}
+            </Link>
+          );
+        }
+
+        // 比對當前 plan 與這張卡的 plan
+        const cardBase = plan.id.startsWith("student_") ? plan.id.replace("student_", "") : plan.id;
+        const curT = tier(currentPlan);
+        const cardT = tier(cardBase);
+        const isActiveSub = currentStatus === "active" && curT > 0;
+        const isCurrentTier = isActiveSub && curT === cardT;
+        const isUpgrade = isActiveSub && cardT > curT;
+        const isDowngrade = isActiveSub && cardT < curT;
+
+        // 已是這個方案 → 灰按鈕標示
+        if (isCurrentTier) {
+          return (
+            <div className="mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
+              ✓ 你目前的方案
+            </div>
+          );
+        }
+
+        // 降級 → 不能直接買,引導去 /my-subscription
+        if (isDowngrade) {
+          return (
+            <Link
+              href="/my-subscription"
+              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 transition-colors"
+            >
+              降級請先取消當前訂閱
+            </Link>
+          );
+        }
+
+        // 升級 → 走 checkout(server 端會先 cancel 舊 sub)
+        const ctaText = isUpgrade ? "升級到此方案(送本期重疊)" : plan.cta;
+        return (
+          <form method="POST" action="/api/checkout" className="mt-5">
+            <input type="hidden" name="plan" value={plan.id} />
+            <input type="hidden" name="period" value={period} />
+            <button
+              type="submit"
+              className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+                plan.highlight
+                  ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
+                  : "bg-zinc-900 text-white hover:bg-zinc-700"
+              }`}
+            >
+              {ctaText}
+            </button>
+          </form>
+        );
+      })()}
       {!isFree && (
         <p className="mt-2 text-[11px] text-zinc-500 text-center">
-          將跳轉綠界 ECPay 付款 · {period === "monthly" ? "信用卡（每月自動扣款）" : "信用卡 / ATM / 超商"}
+          將跳轉綠界 ECPay 付款 · {period === "monthly" ? "信用卡(每月自動扣款)" : "信用卡 / ATM / 超商"}
         </p>
       )}
     </div>

@@ -10,11 +10,8 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { buildPeriodicTerminateParams } from "@/lib/ecpay/create-order";
-import {
-  ECPAY_CREDIT_PERIOD_ACTION_URL,
-  assertEcpayConfigured,
-} from "@/lib/ecpay/config";
+import { assertEcpayConfigured } from "@/lib/ecpay/config";
+import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,42 +51,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no_active_subscription" }, { status: 404 });
   }
 
-  // 呼叫綠界 Terminate API
-  const ecpayParams = buildPeriodicTerminateParams(sub.ecpay_merchant_trade_no);
-  const body = new URLSearchParams(ecpayParams).toString();
-  let ecpayResponse = "";
-  try {
-    const r = await fetch(ECPAY_CREDIT_PERIOD_ACTION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    ecpayResponse = await r.text();
-  } catch (e) {
-    console.error("[cancel-subscription] 呼叫綠界 Terminate 失敗", e);
-    return NextResponse.json({ error: "ecpay_unreachable" }, { status: 502 });
-  }
-
-  // 綠界回應格式：urlencoded form，含 RtnCode（1=成功）
-  // 必須 RtnCode=1 才標 DB cancelled，否則綠界其實沒終止扣款、DB 卻顯示 cancelled
-  // → 下個月 periodic-notify 還會進來、users 被反 active
-  const ecpayParsed = new URLSearchParams(ecpayResponse);
-  const rtnCode = ecpayParsed.get("RtnCode");
-  const rtnMsg = ecpayParsed.get("RtnMsg") ?? "";
-
-  if (rtnCode !== "1") {
-    console.error("[cancel-subscription] 綠界 Terminate 失敗", {
-      userId: user.id,
-      orderId: sub.ecpay_merchant_trade_no,
-      rtnCode,
-      rtnMsg,
-      ecpayResponse,
-    });
+  // 呼叫綠界 Terminate API。失敗 (含網路 / 綠界回 RtnCode != 1) 都 return 502,
+  // 不標 DB cancelled — 否則綠界其實沒終止、DB 卻顯示 cancelled,下個月 periodic-notify
+  // 還會進來把 user 反 active 害 user 再被扣款。
+  const result = await terminateEcpayPeriodic(sub.ecpay_merchant_trade_no);
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "ecpay_terminate_failed", rtnCode, rtnMsg },
+      { error: result.error, rtnCode: result.rtnCode, rtnMsg: result.rtnMsg },
       { status: 502 },
     );
   }
+  const rtnCode = result.rtnCode;
+  const rtnMsg = result.rtnMsg;
 
   await admin
     .from("subscriptions")
