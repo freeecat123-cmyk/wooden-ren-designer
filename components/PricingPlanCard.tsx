@@ -41,6 +41,16 @@ function tier(p: string | null | undefined): number {
   return TIER[p] ?? 0;
 }
 
+/**
+ * 舊方案每月 / 每年標準價,給升級退費計算用 (跟 lib/pricing/plans.ts 同步)。
+ * 不從 PLAN_PRICES 引,避免拉到 server lib 累贅。
+ */
+const PRICE_BY_PLAN: Record<string, { monthly: number; yearly: number }> = {
+  personal: { monthly: 390, yearly: 3900 },
+  pro: { monthly: 890, yearly: 8900 },
+  student: { monthly: 219, yearly: 2190 }, // 同 student_personal
+};
+
 export function PlanCardView({
   plan,
   period,
@@ -227,17 +237,26 @@ export function PlanCardView({
           );
         }
 
-        // 升級 → 走 checkout(server 端會先 cancel 舊 sub)
-        // 算剩餘天數:expires_at - 今天 (向下取整,minimum 0)
-        const remainingDays = (() => {
-          if (!isUpgrade || !currentExpiresAt) return 0;
+        // 升級 → 走 checkout(server 端會先 cancel 舊 sub,新付款成功 webhook 退舊版 prorate)
+        // 算剩餘天數 + prorate 退款金額 (跟 lib/pricing/prorate.ts 同公式,純 client 預覽)
+        const refundCalc = (() => {
+          if (!isUpgrade || !currentExpiresAt || !currentPlan || !currentPeriod) {
+            return { remainingDays: 0, refundAmount: 0 };
+          }
+          const priceRow = PRICE_BY_PLAN[currentPlan];
+          if (!priceRow) return { remainingDays: 0, refundAmount: 0 };
+          const paidAmount = priceRow[currentPeriod];
+          const totalDays = currentPeriod === "yearly" ? 365 : 30;
           const ms = new Date(currentExpiresAt).getTime() - Date.now();
-          if (Number.isNaN(ms) || ms <= 0) return 0;
-          return Math.floor(ms / 86400000);
+          if (Number.isNaN(ms) || ms <= 0) return { remainingDays: 0, refundAmount: 0 };
+          const remainingDays = Math.floor(ms / 86400000);
+          const raw = Math.floor((paidAmount * remainingDays) / totalDays);
+          const refundAmount = Math.max(0, Math.min(paidAmount, raw));
+          return { remainingDays, refundAmount };
         })();
         const ctaText = isUpgrade
-          ? remainingDays > 0
-            ? `立刻升級 · 贈 ${remainingDays} 天`
+          ? refundCalc.refundAmount > 0
+            ? `立刻升級 · 退舊版 NT$ ${refundCalc.refundAmount}`
             : "立刻升級"
           : plan.cta;
         return (
@@ -254,14 +273,14 @@ export function PlanCardView({
             >
               {ctaText}
             </button>
-            {isUpgrade && remainingDays > 0 && (
+            {isUpgrade && refundCalc.refundAmount > 0 && (
               <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
-                你目前方案剩 {remainingDays} 天,這段期間新舊方案都生效
+                舊方案剩 {refundCalc.remainingDays} 天未用,升級後自動退 <strong>NT$ {refundCalc.refundAmount}</strong> 回原信用卡(3-7 個工作日入帳)
               </p>
             )}
-            {isUpgrade && remainingDays === 0 && (
+            {isUpgrade && refundCalc.refundAmount === 0 && (
               <p className="mt-2 text-[11px] text-zinc-500 text-center leading-snug">
-                你目前方案剩餘天數仍可用,新方案立刻啟用
+                舊方案已無剩餘天數可退,新方案立刻啟用
               </p>
             )}
           </form>

@@ -24,6 +24,8 @@ import { sendEmail } from "@/lib/email/send";
 import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
+import { requestRefund } from "@/lib/ecpay/refund";
+import { calcProrateRefund } from "@/lib/pricing/prorate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, status, expected_amount, period")
+    .select("id, user_id, plan, status, expected_amount, period, replaced_subscription_id")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -197,6 +199,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 升級退舊版 prorate(replaced_subscription_id 有值 = upgrade scenario)
+  let upgradeRefundAmount = 0;
+  if (sub.replaced_subscription_id) {
+    upgradeRefundAmount = await handleUpgradeRefund(admin, sub.replaced_subscription_id, sub.id);
+  }
+
   // 寄首次付款成功 email
   try {
     const { data: u } = await admin
@@ -211,6 +219,7 @@ export async function POST(req: NextRequest) {
         expiresAt,
         isMonthly: periodic,
         tradeNo,
+        upgradeRefundAmount: upgradeRefundAmount > 0 ? upgradeRefundAmount : undefined,
       });
       void sendEmail({
         to: u.email,
@@ -223,6 +232,80 @@ export async function POST(req: NextRequest) {
     console.warn("[ecpay/return] payment email error", e);
   }
 
-  console.log("[ecpay/return] 付款完成", { orderId, userId: sub.user_id, amount, expiresAt });
+  console.log("[ecpay/return] 付款完成", { orderId, userId: sub.user_id, amount, expiresAt, upgradeRefundAmount });
   return new Response("1|OK");
+}
+
+/**
+ * 升級時退舊版 prorate。
+ * 撈舊 sub + 最近一筆 success payment,計算未使用比例,呼叫 ECPay AioChargeback。
+ * 失敗只 log 不擋 webhook (新 sub 已啟用,退款失敗 admin 手動處理即可)。
+ * 回傳實際退款金額,0 = 沒退/失敗。
+ */
+async function handleUpgradeRefund(
+  admin: ReturnType<typeof createAdminClient>,
+  oldSubId: string,
+  newSubId: string,
+): Promise<number> {
+  try {
+    const { data: oldSub } = await admin
+      .from("subscriptions")
+      .select("id, period, expires_at, ecpay_merchant_trade_no")
+      .eq("id", oldSubId)
+      .single();
+    if (!oldSub?.ecpay_merchant_trade_no) {
+      console.warn("[ecpay/return/upgrade-refund] old sub 找不到 merchant_trade_no", { oldSubId });
+      return 0;
+    }
+
+    const { data: oldPayment } = await admin
+      .from("payments")
+      .select("id, amount, ecpay_trade_no")
+      .eq("subscription_id", oldSubId)
+      .eq("status", "success")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!oldPayment?.ecpay_trade_no) {
+      console.warn("[ecpay/return/upgrade-refund] 舊 sub 沒 success payment 可退", { oldSubId });
+      return 0;
+    }
+
+    const refund = calcProrateRefund({
+      paidAmount: Number(oldPayment.amount ?? 0),
+      period: (oldSub.period as "monthly" | "yearly") ?? "monthly",
+      expiresAt: oldSub.expires_at,
+    });
+    if (refund.refundAmount <= 0) {
+      console.log("[ecpay/return/upgrade-refund] 沒未用天數,不退", { oldSubId, refund });
+      return 0;
+    }
+
+    const result = await requestRefund({
+      merchantTradeNo: oldSub.ecpay_merchant_trade_no,
+      tradeNo: oldPayment.ecpay_trade_no,
+      amount: refund.refundAmount,
+    });
+    if (!result.ok) {
+      console.error("[ecpay/return/upgrade-refund] AioChargeback 失敗", { oldSubId, refund, result });
+      return 0;
+    }
+
+    // 標記退款狀態(用 partial_refunded 避免跟「全退」混淆;Schema 沒有就 fallback refunded)
+    await admin
+      .from("payments")
+      .update({ status: "refunded" })
+      .eq("id", oldPayment.id);
+
+    console.log("[ecpay/return/upgrade-refund] 升級自動退款成功", {
+      oldSubId,
+      newSubId,
+      refundAmount: refund.refundAmount,
+      remainingDays: refund.remainingDays,
+    });
+    return refund.refundAmount;
+  } catch (e) {
+    console.error("[ecpay/return/upgrade-refund] 例外", e);
+    return 0;
+  }
 }

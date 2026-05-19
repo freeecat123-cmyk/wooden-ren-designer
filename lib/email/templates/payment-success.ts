@@ -33,6 +33,8 @@ interface PaymentInput {
   isMonthly: boolean;
   /** 綠界 trade_no（給 user 對帳用） */
   tradeNo?: string | null;
+  /** 升級時退舊版未用 prorate 的金額(NT$),0 / undefined 就不顯示 */
+  upgradeRefundAmount?: number;
 }
 
 export function firstPaymentSuccessEmail(input: PaymentInput): {
@@ -40,7 +42,8 @@ export function firstPaymentSuccessEmail(input: PaymentInput): {
   text: string;
   html: string;
 } {
-  const { planLabel, amount, expiresAt, isMonthly, tradeNo } = input;
+  const { planLabel, amount, expiresAt, isMonthly, tradeNo, upgradeRefundAmount } = input;
+  const hasRefund = (upgradeRefundAmount ?? 0) > 0;
   const periodLabel = isMonthly ? "月付" : "年付";
   const subject = `付款成功：${planLabel} ${periodLabel} ${amount} 元`;
   const text = [
@@ -50,6 +53,7 @@ export function firstPaymentSuccessEmail(input: PaymentInput): {
     `金額：NT$ ${amount}`,
     `有效期：到 ${formatDate(expiresAt)}`,
     tradeNo ? `綠界交易單號：${tradeNo}` : "",
+    hasRefund ? `\n升級舊版未使用部分已自動退款 NT$ ${upgradeRefundAmount} 回原信用卡(3-7 個工作日入帳)` : "",
     "",
     isMonthly
       ? "下個月會自動扣款，無需操作。要取消請至訂閱頁。"
@@ -73,6 +77,7 @@ export function firstPaymentSuccessEmail(input: PaymentInput): {
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">有效期</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">${formatDate(expiresAt)}</td></tr>
 ${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${escapeHtml(tradeNo)}</td></tr>` : ""}
 </table>
+${hasRefund ? `<p style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:12px;color:#9a3412;margin-top:16px;font-size:14px">💰 升級舊版未使用部分已自動退款 <strong>NT$ ${upgradeRefundAmount}</strong> 回原信用卡(3-7 個工作日入帳)</p>` : ""}
 <p style="font-size:14px;color:#6b7280;margin-top:16px">
 ${
   isMonthly

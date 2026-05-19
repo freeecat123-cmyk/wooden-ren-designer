@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
 
   const targetBasePlan = getBasePlan(plan);
   const relation = comparePlanUpgrade(currentPlan, targetBasePlan);
+  let replacedSubId: string | null = null; // 升級時記下被取代的舊 sub.id,寫進新 sub 給 webhook 退費用
 
   if (hasActivePaidSub) {
     if (relation === "same") {
@@ -153,11 +154,13 @@ export async function POST(req: NextRequest) {
           .from("subscriptions")
           .update({ status: "cancelled" })
           .eq("id", oldSub.id);
+        replacedSubId = oldSub.id; // 寫進新 sub,webhook 收 pro 成功才退舊版 prorate
         console.log("[checkout/upgrade] cancelled old sub", {
           userId: user.id,
           oldPlan: currentPlan,
           newPlan: targetBasePlan,
           orderId: oldSub.ecpay_merchant_trade_no,
+          replacedSubId,
         });
       }
     }
@@ -184,6 +187,7 @@ export async function POST(req: NextRequest) {
 
   // 預先插入 subscription row 當 placeholder；status=expired，付款成功 webhook 改 active。
   // expected_amount = 預期收款金額（跨 student tier 都正確），webhook 用這個比對防 tampering。
+  // replaced_subscription_id = 升級時設,webhook 收到付款成功後會自動退舊版未用部分 prorate
   const { error: subErr } = await admin.from("subscriptions").insert({
     user_id: user.id,
     plan: basePlan,
@@ -193,6 +197,7 @@ export async function POST(req: NextRequest) {
     ecpay_merchant_trade_no: orderId,
     expected_amount: amount,
     period,
+    replaced_subscription_id: replacedSubId,
   });
   if (subErr) {
     console.error("[checkout] insert subscription failed", subErr);
