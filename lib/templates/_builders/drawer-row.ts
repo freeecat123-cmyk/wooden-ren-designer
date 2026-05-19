@@ -657,7 +657,9 @@ export function renderDrawerZone(cfg: RenderDrawerZoneCfg, parts: Part[]): void 
       grainDirection: "length",
       visible: isSurfaceDrawerBottom
         ? { length: boxExtW, width: drawerOuterD, thickness: drawerBottomT }
-        : { length: drawerInnerW + 4, width: drawerBottomLengthRebated, thickness: drawerBottomT },
+        // 入溝：X 方向左右各 +6mm 進到側板槽底（跟 Z 方向 drawerBottomFrontEdgeZ
+        // 的 -6 慣例一致）。前 +4 = 左右各 +2 只 stick into 2mm、視覺上像「沒卡進去」
+        : { length: drawerInnerW + 12, width: drawerBottomLengthRebated, thickness: drawerBottomT },
       origin: {
         x: xCenter,
         y: isSurfaceDrawerBottom
