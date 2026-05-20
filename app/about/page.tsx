@@ -61,6 +61,23 @@ export default function AboutPage() {
         <p className="mt-3 text-xs text-zinc-500">
           免費版可試用 3 件家具範本，不需信用卡。
         </p>
+
+        {/* Hero 主視覺 — 真實 3D 渲染 */}
+        <div className="mt-10 sm:mt-12 rounded-2xl overflow-hidden ring-1 ring-zinc-200 shadow-lg bg-gradient-to-br from-zinc-50 to-zinc-100">
+          <Image
+            src="/about/hero-3d.png"
+            alt="木作藍圖 3D 預覽 — 電視櫃實際生成畫面"
+            width={1600}
+            height={900}
+            priority
+            quality={85}
+            sizes="(min-width: 1024px) 960px, 100vw"
+            style={{ width: "100%", height: "auto" }}
+          />
+        </div>
+        <p className="mt-3 text-xs text-zinc-500 text-center">
+          ↑ 實際操作畫面：電視櫃 1500×400×500mm，松木，自動產出 3D 透視
+        </p>
       </section>
 
       {/* ============ Thumb mosaic：26 件視覺證明 ============ */}
@@ -159,15 +176,45 @@ export default function AboutPage() {
         <p className="text-center text-zinc-600 mb-10">
           不只是設計圖，是一整套可以直接開工的施作包。
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <FeatureCard emoji="🪑" title="3D 透視圖" desc="即時 3D 預覽，可拖曳旋轉、放大檢視榫卯細節。" />
-          <FeatureCard emoji="📐" title="三視圖" desc="正面、側面、上視，含尺寸標註，符合工程製圖慣例。" />
+
+        {/* 主要 6 件含截圖 */}
+        <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
+          <ImageFeatureCard
+            src="/about/feat-threeview.png"
+            title="📐 工程三視圖"
+            desc="正視、側視、俯視圖，含完整尺寸標註——符合台灣木匠製圖慣例，印出來就能照做。"
+          />
+          <ImageFeatureCard
+            src="/about/feat-cutlist.png"
+            title="📋 切料清單"
+            desc="每塊料的長寬厚、編號、3D 對應位置一目瞭然，工坊裡邊裁邊勾，不會出錯。"
+          />
+          <ImageFeatureCard
+            src="/about/feat-cutplan-full.png"
+            title="🪵 排板裁切圖"
+            desc="自動算出最省料的排板方式並顯示利用率，連 5 米德製升級捲尺要從哪邊下刀都標好。"
+          />
+          <ImageFeatureCard
+            src="/about/feat-steps.png"
+            title="📑 製作工序"
+            desc={`完整 19 步工序、預估工時、選料注意事項、含水率、刨削方向——比自學書還細。`}
+          />
+          <ImageFeatureCard
+            src="/about/feat-quote.png"
+            title="💰 客製報價"
+            desc="家具報價、含稅金額、訂金尾款分配、付款分期、客戶資料表，接案直接列印當報價單。"
+          />
+          <ImageFeatureCard
+            src="/about/hero-3d.png"
+            title="🪑 3D 透視預覽"
+            desc="逼真木紋渲染，可拖曳旋轉檢視任何角度，把成品先看清楚再下鋸。"
+          />
+        </div>
+
+        {/* 補充 3 件 emoji-only */}
+        <div className="grid sm:grid-cols-3 gap-4">
           <FeatureCard emoji="🔩" title="榫卯細節" desc="通榫、盲榫、半榫位置自動計算，含公榫母榫對位圖。" />
-          <FeatureCard emoji="📋" title="切料清單" desc="每塊料的長寬厚、台才數，已內建台灣木匠慣例預留。" />
           <FeatureCard emoji="🛠️" title="工具清單" desc="這件家具會用到哪些工具，新手不用瞎買。" />
-          <FeatureCard emoji="📑" title="製作工序" desc="先做哪、後做哪、何時上膠夾合，按順序往下做就對。" />
-          <FeatureCard emoji="📄" title="A4 PDF 圖紙" desc="一鍵列印施工圖，工坊牆上一貼就能照做。" />
-          <FeatureCard emoji="💰" title="工時報價" desc="家具報價、人工估算、塗裝費，接案直接拿給客戶看。" />
           <FeatureCard emoji="🎲" title="STL 3D 輸出" desc="可在 SketchUp、3D 列印機開啟，做縮小模型先打樣。" />
         </div>
       </section>
@@ -343,93 +390,35 @@ function StepVisualCatalog() {
   );
 }
 
-/** Step 2 視覺：滑桿 + 3D 縮圖示意（SVG） */
+/** Step 2 視覺：實際設定面板 + 3D 預覽截圖 */
 function StepVisualSliders() {
   return (
-    <svg
-      viewBox="0 0 200 110"
-      className="w-full h-full p-3"
-      aria-hidden
-    >
-      {/* 三個滑桿 */}
-      {[20, 45, 70].map((y, i) => (
-        <g key={i}>
-          <rect x="14" y={y} width="80" height="3" rx="1.5" fill="#e4e4e7" />
-          <rect x="14" y={y} width={[55, 30, 65][i]} height="3" rx="1.5" fill="#b45309" />
-          <circle cx={14 + [55, 30, 65][i]} cy={y + 1.5} r="4" fill="#b45309" />
-          <text x="14" y={y - 4} fontSize="6" fill="#71717a" fontFamily="system-ui">
-            {["長", "寬", "高"][i]}
-          </text>
-        </g>
-      ))}
-      {/* 3D 凳子示意 */}
-      <g transform="translate(125 25)">
-        <polygon
-          points="0,15 50,0 60,5 10,20"
-          fill="#d6a87a"
-          stroke="#92400e"
-          strokeWidth="0.8"
-        />
-        <polygon
-          points="10,20 60,5 60,55 10,70"
-          fill="#a0784c"
-          stroke="#92400e"
-          strokeWidth="0.8"
-        />
-        <polygon
-          points="0,15 10,20 10,70 0,65"
-          fill="#7a5837"
-          stroke="#92400e"
-          strokeWidth="0.8"
-        />
-        {/* 腳 */}
-        <line x1="6" y1="65" x2="6" y2="78" stroke="#5c3e26" strokeWidth="2" />
-        <line x1="56" y1="55" x2="56" y2="68" stroke="#5c3e26" strokeWidth="2" />
-      </g>
-    </svg>
+    <Image
+      src="/about/step-design.png"
+      alt="設定面板拉滑桿、3D 即時更新"
+      width={600}
+      height={300}
+      quality={75}
+      loading="lazy"
+      sizes="(min-width:768px) 320px, 100vw"
+      style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+    />
   );
 }
 
-/** Step 3 視覺：A4 圖紙 + 三視圖示意（SVG） */
+/** Step 3 視覺：實際三視圖截圖 */
 function StepVisualPdf() {
   return (
-    <svg viewBox="0 0 200 110" className="w-full h-full p-3" aria-hidden>
-      {/* A4 紙 */}
-      <rect
-        x="10"
-        y="10"
-        width="180"
-        height="90"
-        rx="2"
-        fill="white"
-        stroke="#a1a1aa"
-        strokeWidth="0.6"
-      />
-      {/* 標題列 */}
-      <line x1="10" y1="22" x2="190" y2="22" stroke="#d4d4d8" strokeWidth="0.4" />
-      <rect x="14" y="14" width="40" height="4" fill="#71717a" />
-      {/* 三視圖：俯/正/側 */}
-      <rect x="18" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
-      <rect x="74" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
-      <rect x="130" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
-      {/* 凳子 silhouette in middle */}
-      <g transform="translate(82 38)">
-        <rect x="0" y="0" width="32" height="3" fill="#92400e" />
-        <line x1="4" y1="3" x2="4" y2="20" stroke="#92400e" strokeWidth="1.5" />
-        <line x1="28" y1="3" x2="28" y2="20" stroke="#92400e" strokeWidth="1.5" />
-        <line x1="4" y1="14" x2="28" y2="14" stroke="#92400e" strokeWidth="0.8" />
-      </g>
-      {/* 標註線 */}
-      <line x1="74" y1="68" x2="122" y2="68" stroke="#b45309" strokeWidth="0.4" />
-      <line x1="74" y1="66" x2="74" y2="70" stroke="#b45309" strokeWidth="0.4" />
-      <line x1="122" y1="66" x2="122" y2="70" stroke="#b45309" strokeWidth="0.4" />
-      <text x="92" y="76" fontSize="5" fill="#b45309" fontFamily="system-ui">350mm</text>
-      {/* 切料清單列 */}
-      <rect x="14" y="74" width="172" height="2" fill="#e4e4e7" />
-      <rect x="14" y="80" width="120" height="2" fill="#e4e4e7" />
-      <rect x="14" y="86" width="150" height="2" fill="#e4e4e7" />
-      <rect x="14" y="92" width="90" height="2" fill="#e4e4e7" />
-    </svg>
+    <Image
+      src="/about/feat-threeview.png"
+      alt="工程三視圖含尺寸標註"
+      width={600}
+      height={300}
+      quality={75}
+      loading="lazy"
+      sizes="(min-width:768px) 320px, 100vw"
+      style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }}
+    />
   );
 }
 
@@ -439,6 +428,37 @@ function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; des
       <div className="text-2xl mb-2">{emoji}</div>
       <h3 className="font-semibold text-zinc-900 mb-1 text-sm">{title}</h3>
       <p className="text-xs text-zinc-600 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function ImageFeatureCard({
+  src,
+  title,
+  desc,
+}: {
+  src: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="rounded-xl bg-white ring-1 ring-zinc-200 overflow-hidden hover:ring-amber-300 hover:shadow-md transition">
+      <div className="aspect-[16/9] bg-gradient-to-br from-zinc-50 to-zinc-100 overflow-hidden">
+        <Image
+          src={src}
+          alt={title}
+          width={800}
+          height={450}
+          quality={78}
+          loading="lazy"
+          sizes="(min-width:768px) 480px, 100vw"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </div>
+      <div className="p-5">
+        <h3 className="font-semibold text-zinc-900 mb-1.5">{title}</h3>
+        <p className="text-sm text-zinc-600 leading-relaxed">{desc}</p>
+      </div>
     </div>
   );
 }
