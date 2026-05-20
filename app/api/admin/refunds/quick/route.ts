@@ -17,7 +17,7 @@ import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { requestRefund, terminatePeriodicSubscription } from "@/lib/ecpay/refund";
-import { invalidInvoice } from "@/lib/ecpay/invoice";
+import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
 
 async function ensureAdmin(): Promise<{ ok: boolean; userId?: string; email?: string }> {
   try {
@@ -175,23 +175,27 @@ export async function POST(req: Request) {
     ecpayTerminate = await terminatePeriodicSubscription(subOrderId);
   }
 
-  let invoiceVoid: { ok: boolean; rtnCode?: number; rtnMsg?: string } | null = null;
+  // 撈 user.email 給折讓 notify(>24h 走 Allowance)
+  let userEmail: string | undefined;
   if (ecpayRefund.ok && invoiceNumber && invoiceIssuedAt) {
-    const ageMs = Date.now() - new Date(invoiceIssuedAt).getTime();
-    if (ageMs < 24 * 60 * 60 * 1000) {
-      const inv = await invalidInvoice({
-        invoiceNumber,
-        invoiceDate: new Date(invoiceIssuedAt).toISOString().slice(0, 10),
-        reason: "退款作廢",
-      });
-      invoiceVoid = { ok: inv.success, rtnCode: inv.rtnCode, rtnMsg: inv.rtnMsg };
-      if (inv.success) {
-        await svc
-          .from("payments")
-          .update({ invoice_status: "invalid" })
-          .eq("id", paymentId);
-      }
-    }
+    const { data: u } = await svc
+      .from("users")
+      .select("email")
+      .eq("id", payment.user_id)
+      .single();
+    userEmail = u?.email ?? undefined;
+  }
+
+  let invoiceResult: Awaited<ReturnType<typeof voidOrAllowanceAfterRefund>> | null = null;
+  if (ecpayRefund.ok && invoiceNumber && invoiceIssuedAt) {
+    invoiceResult = await voidOrAllowanceAfterRefund(svc, {
+      paymentId: paymentId!,
+      invoiceNumber,
+      invoiceIssuedAt,
+      refundAmount: payment.amount,
+      notifyEmail: userEmail,
+      invalidReason: "quick-refund 作廢",
+    });
   }
 
   // 4. 寫 DB
@@ -230,6 +234,6 @@ export async function POST(req: Request) {
     refund_request_id: refundReqId,
     ecpay_refund: ecpayRefund,
     ecpay_terminate: ecpayTerminate,
-    invoice_void: invoiceVoid,
+    invoice_result: invoiceResult,
   });
 }

@@ -510,24 +510,36 @@ function InvoiceCell({
       </span>
     );
   }
-  // refunded payment 沒同步作廢 → 顯示補作廢按鈕(退款 24h 內可用)
+  // refunded payment 沒同步作廢/折讓 → 顯示按鈕(24h 內自動 invalid、超過自動 Allowance)
   if (payment.status === "refunded" && s === "issued") {
     return (
       <div className="flex flex-col items-start gap-1">
-        <span className="text-[11px] text-amber-700">⚠ 已開立未作廢</span>
+        <span className="text-[11px] text-amber-700">⚠ 已開立未處理</span>
         <button
           type="button"
           onClick={onVoid}
           disabled={voiding}
           className="text-[10px] px-1.5 py-0.5 rounded bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+          title="24h 內自動作廢、超過自動開折讓單"
         >
-          {voiding ? "作廢中…" : "補作廢"}
+          {voiding ? "處理中…" : "補作廢/折讓"}
         </button>
       </div>
     );
   }
   if (s === "invalid") {
     return <span className="text-[11px] text-zinc-500">✗ 已作廢</span>;
+  }
+  if (s === "allowanced") {
+    const allowNo = (payment as unknown as Record<string, unknown>).allowance_number as string | null;
+    return (
+      <span
+        className="text-[11px] text-blue-700"
+        title={allowNo ? `折讓單號 ${allowNo}` : "已開立折讓單"}
+      >
+        ↩ 已折讓
+      </span>
+    );
   }
   if (payment.status !== "success") return <span className="text-zinc-400 text-[11px]">—</span>;
   if (s === "issued") {

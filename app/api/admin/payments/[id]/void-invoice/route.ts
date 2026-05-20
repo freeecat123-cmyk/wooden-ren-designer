@@ -1,12 +1,12 @@
 /**
  * POST /api/admin/payments/[id]/void-invoice
- *   admin 補作廢發票。
- *   用途:payment.status='refunded' 但 invoice_status 還是 'issued'(歷史資料、
- *        升級退舊修補前的洞)時,admin 在 /admin/ecpay 看板一鍵補作廢。
+ *   admin 補處理發票(退款後同步、歷史漏網)。
  *
  *   邏輯:
- *   - 24h 內 → 呼叫綠界 InvoiceInvalid + 更新 invoice_status='invalid'
- *   - 超過 24h → 回 422,讓 admin 知道要走 Allowance 折讓人工處理
+ *   - 24h 內 → 作廢 invalidInvoice + invoice_status='invalid'
+ *   - 超過 24h → 自動改開折讓單 Allowance + invoice_status='allowanced'
+ *
+ *   兩條都透過 voidOrAllowanceAfterRefund helper 處理,確保跟標準 refund 流程一致。
  */
 import { NextResponse } from "next/server";
 import {
@@ -14,7 +14,7 @@ import {
   createAdminClient,
 } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
-import { invalidInvoice } from "@/lib/ecpay/invoice";
+import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
 
 export const runtime = "nodejs";
 
@@ -36,7 +36,9 @@ export async function POST(
   const admin = createAdminClient();
   const { data: payment, error: payErr } = await admin
     .from("payments")
-    .select("id, invoice_number, invoice_issued_at, invoice_status, status")
+    .select(
+      "id, user_id, amount, invoice_number, invoice_issued_at, invoice_status, status",
+    )
     .eq("id", id)
     .single();
   if (payErr || !payment) {
@@ -48,47 +50,45 @@ export async function POST(
       { status: 400 },
     );
   }
-  if (payment.invoice_status === "invalid") {
+  if (payment.invoice_status === "invalid" || payment.invoice_status === "allowanced") {
     return NextResponse.json(
-      { error: "already_invalid" },
+      { error: "already_handled", current: payment.invoice_status },
       { status: 409 },
     );
   }
 
-  const ageMs = Date.now() - new Date(payment.invoice_issued_at).getTime();
-  const ageHours = ageMs / 3_600_000;
-  if (ageMs >= 24 * 60 * 60 * 1000) {
-    return NextResponse.json(
-      {
-        error: "exceed_24h",
-        ageHours,
-        hint: "超過 24h 不能作廢,需走 Allowance 折讓人工處理",
-      },
-      { status: 422 },
-    );
-  }
+  // 撈 user.email 給 Allowance notifyEmail 用
+  const { data: u } = await admin
+    .from("users")
+    .select("email")
+    .eq("id", payment.user_id)
+    .single();
 
-  const inv = await invalidInvoice({
+  const result = await voidOrAllowanceAfterRefund(admin, {
+    paymentId: payment.id,
     invoiceNumber: payment.invoice_number,
-    invoiceDate: new Date(payment.invoice_issued_at).toISOString().slice(0, 10),
-    reason: "admin 補作廢(退款後同步)",
+    invoiceIssuedAt: payment.invoice_issued_at,
+    refundAmount: payment.amount,
+    notifyEmail: u?.email ?? undefined,
+    invalidReason: "admin 補作廢(退款後同步)",
   });
 
-  if (!inv.success) {
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "invoice_invalid_failed", rtnCode: inv.rtnCode, rtnMsg: inv.rtnMsg },
+      {
+        error: result.mode === "skipped" ? "skipped" : `${result.mode}_failed`,
+        ...result,
+      },
       { status: 500 },
     );
   }
 
-  await admin
-    .from("payments")
-    .update({ invoice_status: "invalid" })
-    .eq("id", id);
-
   return NextResponse.json({
     ok: true,
+    mode: result.mode,
     invoice_number: payment.invoice_number,
-    rtnMsg: inv.rtnMsg,
+    allowance_number: result.allowanceNumber,
+    age_hours: result.ageHours,
+    rtnMsg: result.rtnMsg,
   });
 }

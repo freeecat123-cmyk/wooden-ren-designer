@@ -24,7 +24,7 @@ import { sendEmail } from "@/lib/email/send";
 import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
-import { invalidInvoice } from "@/lib/ecpay/invoice";
+import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
 import { requestRefund } from "@/lib/ecpay/refund";
 import { terminateEcpayPeriodic } from "@/lib/ecpay/terminate";
 import { calcProrateRefund } from "@/lib/pricing/prorate";
@@ -302,7 +302,7 @@ async function handleUpgradeRefund(
     // 避免並發 webhook 跑進來重複退款(雙退)。
     const { data: oldPayment } = await admin
       .from("payments")
-      .select("id, amount, ecpay_trade_no, invoice_number, invoice_issued_at, status")
+      .select("id, amount, ecpay_trade_no, invoice_number, invoice_issued_at, status, user_id")
       .eq("subscription_id", oldSubId)
       .in("status", ["success", "refunded"])
       .order("created_at", { ascending: false })
@@ -340,38 +340,31 @@ async function handleUpgradeRefund(
       return 0;
     }
 
-    // 退款成功 → 24h 內作廢發票(超過 24h 留給後續 Allowance 折讓)
-    //   為什麼一定要作廢:NT$390 已退但發票還有效 = 財政部看你開了發票卻沒收錢,差額會被當逃漏稅
-    //   失敗只 log,不擋退款流程(發票作廢失敗 admin 可後續手動處理)
+    // 退款成功 → 處理發票:24h 內作廢、超過 24h 走折讓 Allowance。
+    //   為什麼一定要處理:已退款但發票還有效 = 財政部看你開了發票卻沒收錢,差額會被當逃漏稅
+    //   失敗只 log,不擋退款流程(發票事後 admin 可手動補作廢/補折讓)
     if (oldPayment.invoice_number && oldPayment.invoice_issued_at) {
-      const ageMs = Date.now() - new Date(oldPayment.invoice_issued_at).getTime();
-      if (ageMs < 24 * 60 * 60 * 1000) {
-        const inv = await invalidInvoice({
-          invoiceNumber: oldPayment.invoice_number,
-          invoiceDate: new Date(oldPayment.invoice_issued_at).toISOString().slice(0, 10),
-          reason: "升級自動退款作廢",
-        });
-        if (inv.success) {
-          await admin
-            .from("payments")
-            .update({ invoice_status: "invalid" })
-            .eq("id", oldPayment.id);
-          console.log("[ecpay/return/upgrade-refund] 發票作廢成功", {
-            invoiceNumber: oldPayment.invoice_number,
-          });
-        } else {
-          console.error("[ecpay/return/upgrade-refund] 發票作廢失敗", {
-            invoiceNumber: oldPayment.invoice_number,
-            rtnCode: inv.rtnCode,
-            rtnMsg: inv.rtnMsg,
-          });
-        }
-      } else {
-        console.warn("[ecpay/return/upgrade-refund] 發票超過 24h 不能作廢,需手動折讓", {
-          invoiceNumber: oldPayment.invoice_number,
-          ageHours: ageMs / 3_600_000,
-        });
-      }
+      const { data: u } = await admin
+        .from("users")
+        .select("email")
+        .eq("id", oldPayment.user_id)
+        .maybeSingle();
+      const r = await voidOrAllowanceAfterRefund(admin, {
+        paymentId: oldPayment.id,
+        invoiceNumber: oldPayment.invoice_number,
+        invoiceIssuedAt: oldPayment.invoice_issued_at,
+        refundAmount: refund.refundAmount,
+        notifyEmail: u?.email ?? undefined,
+        invalidReason: "升級自動退款作廢",
+      });
+      console.log("[ecpay/return/upgrade-refund] 發票處理結果", {
+        invoiceNumber: oldPayment.invoice_number,
+        mode: r.mode,
+        ok: r.ok,
+        ageHours: r.ageHours.toFixed(2),
+        allowanceNumber: r.allowanceNumber,
+        rtnMsg: r.rtnMsg,
+      });
     }
 
     // 標記退款狀態
