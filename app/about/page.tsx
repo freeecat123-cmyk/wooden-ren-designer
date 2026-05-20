@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { FURNITURE_CATALOG } from "@/lib/templates";
-
 export const metadata: Metadata = {
   title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
   description:
     "木頭仁木匠學院出品。超過 25 種家具範本，輸入長寬高自動產出三視圖、透視圖、榫卯細節、材料單、工序、A4 PDF 工程圖紙。給 DIY 木工愛好者、木匠師傅、設計接案、學員用。",
   alternates: { canonical: "/about" },
 };
-
-const READY_COUNT = FURNITURE_CATALOG.filter((f) => f.template).length;
 
 /** 裝潢專區 — 7 件最常用櫃體 + 第 8 格放「持續新增中」（直接連到 /design/[slug]） */
 const INTERIOR_CABINETS: Array<{ slug: string; nameZh: string }> = [
