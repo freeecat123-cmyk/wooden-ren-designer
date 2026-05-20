@@ -4,6 +4,8 @@
  */
 import type { FurnitureDesign } from "@/lib/types";
 import { analyzeMinThickness } from "./export-checks";
+import { validateGeometry, validateGroup } from "./export-checks";
+import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial } from "three";
 
 let failed = 0;
 function check(name: string, cond: boolean) {
@@ -34,6 +36,42 @@ check("跳過 visual 五金件（玻璃不算）", analyzeMinThickness(fakeDesig
 
 const empty = { parts: [] } as unknown as FurnitureDesign;
 check("空零件回 Infinity", analyzeMinThickness(empty, 1).thinnestMm === Infinity);
+
+// --- validateGeometry ---
+// 封閉方塊（原生 BoxGeometry 角點頂點是分開的，validateGeometry 內部會先 mergeVertices）
+const boxV = validateGeometry(new BoxGeometry(10, 10, 10));
+check("BoxGeometry 是水密流形", boxV.ok && boxV.nonManifoldEdges === 0 && boxV.nanVertices === 0);
+
+// 單一開放三角面 → 3 條邊各只被 1 面共用 → 3 條非流形邊
+const openTri = new BufferGeometry();
+openTri.setAttribute("position", new Float32BufferAttribute([0, 0, 0, 10, 0, 0, 0, 10, 0], 3));
+const triV = validateGeometry(openTri);
+check("開放三角面有 3 條非流形邊", triV.nonManifoldEdges === 3 && !triV.ok);
+
+// NaN 頂點
+const nanGeo = new BufferGeometry();
+nanGeo.setAttribute("position", new Float32BufferAttribute([0, 0, 0, NaN, 0, 0, 0, 10, 0], 3));
+check("偵測到 NaN 頂點", validateGeometry(nanGeo).nanVertices >= 1);
+
+// --- validateGroup ---
+const goodGroup = new Group();
+const m = new MeshBasicMaterial();
+const okMesh = new Mesh(new BoxGeometry(5, 5, 5), m);
+okMesh.name = "好零件";
+goodGroup.add(okMesh);
+check("validateGroup：全封閉零件 ok", validateGroup(goodGroup).ok);
+
+const badGroup = new Group();
+const badTri = new BufferGeometry();
+badTri.setAttribute("position", new Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 1, 0], 3));
+const badMesh = new Mesh(badTri, m);
+badMesh.name = "破面零件";
+badGroup.add(badMesh);
+const badResult = validateGroup(badGroup);
+check(
+  "validateGroup：破面零件回報 badParts",
+  !badResult.ok && badResult.badParts.length === 1 && badResult.badParts[0].partName === "破面零件",
+);
 
 // --- 收尾 ---
 if (failed > 0) {
