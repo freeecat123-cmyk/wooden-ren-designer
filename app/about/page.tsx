@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { Fragment } from "react";
 export const metadata: Metadata = {
   title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
   description:
@@ -82,20 +83,10 @@ export default function AboutPage() {
           </Link>
         </div>
         {/* Hero 主視覺 — 真實 3D 渲染 */}
-        <div className="mt-10 sm:mt-12 rounded-2xl overflow-hidden ring-1 ring-zinc-200 shadow-lg bg-gradient-to-br from-zinc-50 to-zinc-100">
-          <Image
-            src="/about-assets/hero-3d.png"
-            alt="木作藍圖 3D 預覽 — 電視櫃實際生成畫面"
-            width={1600}
-            height={900}
-            priority
-            quality={85}
-            sizes="(min-width: 1024px) 960px, 100vw"
-            style={{ width: "100%", height: "auto" }}
-          />
-        </div>
+        {/* Hero 三聯主視覺 — 一個輸入 → 三種輸出 */}
+        <HeroTriptych />
         <p className="mt-3 text-xs text-zinc-500 text-center">
-          ↑ 實際操作畫面：電視櫃 1500×400×500mm，松木，自動產出 3D 透視
+          ↑ 同一件家具，三秒鐘同步產出 3D 透視 · 工程三視圖 · 切料清單
         </p>
       </section>
 
@@ -514,6 +505,131 @@ export default function AboutPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Hero 三聯主視覺：一個輸入 → 三種輸出
+ *   左：3D 透視（同一張原素材，最大張）
+ *   中：工程三視圖
+ *   右：切料清單
+ * 桌面三欄並列、箭頭連接；手機改三段垂直 + ↓ 箭頭。
+ * 各 panel hover 微浮起 + amber ring 強調。
+ */
+function HeroTriptych() {
+  const panels = [
+    {
+      src: "/about-assets/hero-3d.png",
+      alt: "3D 透視 — 胡桃色電視櫃實際生成畫面",
+      label: "① 3D 透視",
+      sub: "拖曳旋轉、看清榫卯",
+    },
+    {
+      src: "/about-assets/feat-threeview.png",
+      alt: "工程三視圖含尺寸標註",
+      label: "② 工程三視圖",
+      sub: "正/側/俯，全尺寸標註",
+    },
+    {
+      src: "/about-assets/feat-cutlist.png",
+      alt: "切料清單與排板",
+      label: "③ 切料清單",
+      sub: "編號 + 長寬厚，直接開鋸",
+    },
+  ];
+
+  return (
+    <div className="mt-10 sm:mt-12">
+      {/* 流程標籤：輸入 → 同步生成三件 */}
+      <div className="mb-4 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-zinc-600">
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-zinc-900 text-white font-semibold">
+          <span aria-hidden>📏</span> 一次輸入長寬高
+        </span>
+        <span aria-hidden className="text-amber-700 font-bold">→</span>
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-700 text-white font-semibold">
+          <span aria-hidden>⚡</span> 3 秒同步生成
+        </span>
+      </div>
+
+      {/* 三聯 grid：桌面 3 欄、手機垂直堆疊 */}
+      <div className="grid md:grid-cols-[1.4fr_auto_1fr_auto_1fr] gap-3 sm:gap-4 items-center">
+        {panels.map((p, i) => {
+          const isLast = i === panels.length - 1;
+          return (
+            <Fragment key={p.src}>
+              <HeroPanel {...p} primary={i === 0} />
+              {!isLast && (
+                <span
+                  aria-hidden
+                  className="hidden md:flex justify-center text-amber-700 text-2xl font-bold"
+                >
+                  →
+                </span>
+              )}
+              {!isLast && (
+                <span
+                  aria-hidden
+                  className="md:hidden flex justify-center text-amber-700 text-2xl font-bold py-1"
+                >
+                  ↓
+                </span>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HeroPanel({
+  src,
+  alt,
+  label,
+  sub,
+  primary,
+}: {
+  src: string;
+  alt: string;
+  label: string;
+  sub: string;
+  primary: boolean;
+}) {
+  return (
+    <div
+      className={`group rounded-xl overflow-hidden ring-1 transition hover:-translate-y-1 hover:shadow-lg ${
+        primary
+          ? "bg-gradient-to-br from-amber-50 to-stone-100 ring-amber-300 shadow-md"
+          : "bg-white ring-zinc-200 shadow-sm hover:ring-amber-300"
+      }`}
+    >
+      <div className="aspect-[4/3] bg-gradient-to-br from-zinc-50 to-zinc-100 overflow-hidden">
+        <Image
+          src={src}
+          alt={alt}
+          width={800}
+          height={600}
+          priority={primary}
+          quality={primary ? 88 : 80}
+          sizes={
+            primary
+              ? "(min-width:1024px) 480px, 100vw"
+              : "(min-width:1024px) 320px, 100vw"
+          }
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </div>
+      <div className="px-3 py-2.5 sm:px-4 sm:py-3 text-center">
+        <div
+          className={`text-sm sm:text-base font-bold ${
+            primary ? "text-amber-900" : "text-zinc-900"
+          }`}
+        >
+          {label}
+        </div>
+        <div className="text-[11px] sm:text-xs text-zinc-600 mt-0.5">{sub}</div>
+      </div>
+    </div>
   );
 }
 
