@@ -49,6 +49,7 @@ export type JoineryType =
   | "tongue-and-groove"
   | "dowel"
   | "mitered-spline"
+  | "mitered"
   | "pocket-hole"
   | "screw";
 

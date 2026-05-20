@@ -227,9 +227,9 @@ export const photoFrame: FurnitureTemplate = (input): FurnitureDesign => {
     overall: { length: outerL, width: outerW, thickness: frameT },
     parts: [topRail, bottomRail, leftRail, rightRail, glass, backPanel],
     useButtJointConvention: true,
-    defaultJoinery: "mitered-spline",
+    defaultJoinery: useMiter ? "mitered" : "blind-tenon",
     primaryMaterial: material,
     warnings: warnings.length > 0 ? warnings : undefined,
-    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。4 角 45° 斜接 + 插花榫片（spline）補強——純斜接膠合強度不夠。${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
+    notes: `相框（裝 ${photoW}×${photoH}mm 照片），外尺寸 ${outerL}×${outerW}×${frameT}mm。4 條邊框內側鋸 ${glassGrooveDepth}×${glassT + backT + 2}mm 凹槽放玻璃 + 背板（從後方滑入）。${useMiter ? "4 角 45° 斜接 + 膠合（夾具夾緊靜置 24 小時）；想要更強可在 4 角另加 spline 木片或對角木釘加固——目前材料單未含 spline，需自行裁切。" : "4 角 90° 對接 + 隱榫補強。"}${frameProfile === "chamfer-out" ? `邊框正面 4 條長邊各倒 ${chamferMm}mm × 45°（修邊機 V 型刀或砂帶機）。` : ""} **玻璃自備**：到玻璃行裁 ${photoW}×${photoH}mm × ${glassT}mm 厚透明玻璃；玻璃槽內縮 ${GLASS_FRAME_INSET}mm 確保正面看不到槽口。`,
   };
 };
