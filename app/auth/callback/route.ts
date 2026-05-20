@@ -32,11 +32,14 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = sanitizeNext(searchParams.get("next"));
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      // 偵測是否新註冊：users.welcome_email_sent_at IS NULL → 寄歡迎信
+  if (!code) {
+    return NextResponse.redirect(`${origin}/auth/error?reason=missing`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (!error) {
+    // 偵測是否新註冊：users.welcome_email_sent_at IS NULL → 寄歡迎信
       // （非 await 給 user redirect，避免 email 延遲卡住跳轉）
       try {
         const {
@@ -77,9 +80,15 @@ export async function GET(request: Request) {
       if (isLocalEnv) return NextResponse.redirect(`${origin}${next}`);
       if (forwardedHost) return NextResponse.redirect(`https://${forwardedHost}${next}`);
       return NextResponse.redirect(`${origin}${next}`);
-    }
   }
 
-  // 失敗時導到錯誤頁（先導回首頁，未來可加 /auth/error）
-  return NextResponse.redirect(`${origin}/?auth_error=1`);
+  // 失敗：判斷 Supabase 錯誤類別，給對應 reason 讓錯誤頁顯示合適文案
+  const msg = error?.message?.toLowerCase() ?? "";
+  const reason =
+    msg.includes("expired") || msg.includes("invalid")
+      ? "expired"
+      : msg.includes("used") || msg.includes("already")
+      ? "used"
+      : "unknown";
+  return NextResponse.redirect(`${origin}/auth/error?reason=${reason}`);
 }
