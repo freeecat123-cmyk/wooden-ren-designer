@@ -153,7 +153,7 @@ export function clipRectToPolygon(rect: Rect, poly: RoomPolygon): ClipResult {
   const rectArea = rect.w * rect.h;
   return {
     usedAreaCm2,
-    fullyInside: usedAreaCm2 > rectArea - EPS,
+    fullyInside: rectArea > EPS && usedAreaCm2 > rectArea - EPS,
   };
 }
 
