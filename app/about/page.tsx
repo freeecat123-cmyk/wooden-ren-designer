@@ -12,6 +12,22 @@ export const metadata: Metadata = {
 
 const READY_COUNT = FURNITURE_CATALOG.filter((f) => f.template).length;
 
+/** Hero 下方 thumb mosaic 用 — 挑視覺好認的 12 件，類別均衡 */
+const MOSAIC_THUMBS = [
+  "stool",
+  "dining-chair",
+  "tea-table",
+  "desk",
+  "open-bookshelf",
+  "shoe-cabinet",
+  "wardrobe",
+  "wine-rack",
+  "pencil-holder",
+  "dovetail-box",
+  "bookend",
+  "tray",
+];
+
 export default function AboutPage() {
   return (
     <main className="max-w-5xl mx-auto px-5 sm:px-6 py-10 sm:py-14">
@@ -44,6 +60,35 @@ export default function AboutPage() {
         </div>
         <p className="mt-3 text-xs text-zinc-500">
           免費版可試用 3 件家具範本，不需信用卡。
+        </p>
+      </section>
+
+      {/* ============ Thumb mosaic：26 件視覺證明 ============ */}
+      <section className="mt-16 sm:mt-20">
+        <p className="text-center text-zinc-600 mb-6 text-sm sm:text-base">
+          目前內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本，
+          從筆筒到衣櫃，都能直接拖滑桿改尺寸——
+        </p>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
+          {MOSAIC_THUMBS.map((slug) => (
+            <div
+              key={slug}
+              className="aspect-square rounded-lg bg-gradient-to-br from-zinc-50 to-zinc-100 ring-1 ring-zinc-200 flex items-center justify-center p-2"
+            >
+              <Image
+                src={`/thumbs/v2/${slug}.webp`}
+                alt=""
+                width={120}
+                height={120}
+                quality={70}
+                loading="lazy"
+                style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "100%" }}
+              />
+            </div>
+          ))}
+        </div>
+        <p className="text-center text-zinc-500 text-xs mt-4">
+          這只是其中 12 件，<Link href="/" className="underline hover:text-zinc-900">看全部 {READY_COUNT} 種</Link>
         </p>
       </section>
 
@@ -89,16 +134,19 @@ export default function AboutPage() {
             no="1"
             title="選範本"
             desc={`從 ${READY_COUNT} 種家具範本選一件。方凳、餐椅、書桌、衣櫃、紅酒架、筆筒…從入門到進階都有。`}
+            visual={<StepVisualCatalog />}
           />
           <StepCard
             no="2"
             title="填尺寸"
             desc="長寬高、木材厚度、榫卯類型，拖滑桿即時看到 3D 模型變形。"
+            visual={<StepVisualSliders />}
           />
           <StepCard
             no="3"
             title="拿圖紙進工坊"
             desc="A4 PDF 工程圖紙、切料尺寸表、工具清單、製作工序——印出來就能動鋸。"
+            visual={<StepVisualPdf />}
           />
         </div>
       </section>
@@ -243,15 +291,145 @@ function PainPoint({ emoji, title, desc }: { emoji: string; title: string; desc:
   );
 }
 
-function StepCard({ no, title, desc }: { no: string; title: string; desc: string }) {
+function StepCard({
+  no,
+  title,
+  desc,
+  visual,
+}: {
+  no: string;
+  title: string;
+  desc: string;
+  visual?: React.ReactNode;
+}) {
   return (
     <div className="relative rounded-xl bg-white ring-1 ring-zinc-200 p-6 sm:p-7 hover:ring-amber-300 hover:shadow-md transition">
       <div className="absolute -top-4 left-6 w-9 h-9 rounded-full bg-amber-700 text-white font-bold text-lg flex items-center justify-center shadow">
         {no}
       </div>
-      <h3 className="mt-3 text-lg font-semibold text-zinc-900">{title}</h3>
+      {visual && (
+        <div className="mt-2 mb-4 h-32 rounded-lg bg-gradient-to-br from-zinc-50 to-zinc-100 ring-1 ring-zinc-200/60 overflow-hidden flex items-center justify-center">
+          {visual}
+        </div>
+      )}
+      <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
       <p className="mt-2 text-sm text-zinc-700 leading-relaxed">{desc}</p>
     </div>
+  );
+}
+
+/** Step 1 視覺：四個家具縮圖 2×2 */
+function StepVisualCatalog() {
+  const thumbs = ["stool", "tea-table", "open-bookshelf", "pencil-holder"];
+  return (
+    <div className="grid grid-cols-2 gap-1.5 p-2 w-full h-full">
+      {thumbs.map((s) => (
+        <div
+          key={s}
+          className="rounded bg-white ring-1 ring-zinc-200 flex items-center justify-center p-1"
+        >
+          <Image
+            src={`/thumbs/v2/${s}.webp`}
+            alt=""
+            width={56}
+            height={56}
+            quality={70}
+            loading="lazy"
+            style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "100%" }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Step 2 視覺：滑桿 + 3D 縮圖示意（SVG） */
+function StepVisualSliders() {
+  return (
+    <svg
+      viewBox="0 0 200 110"
+      className="w-full h-full p-3"
+      aria-hidden
+    >
+      {/* 三個滑桿 */}
+      {[20, 45, 70].map((y, i) => (
+        <g key={i}>
+          <rect x="14" y={y} width="80" height="3" rx="1.5" fill="#e4e4e7" />
+          <rect x="14" y={y} width={[55, 30, 65][i]} height="3" rx="1.5" fill="#b45309" />
+          <circle cx={14 + [55, 30, 65][i]} cy={y + 1.5} r="4" fill="#b45309" />
+          <text x="14" y={y - 4} fontSize="6" fill="#71717a" fontFamily="system-ui">
+            {["長", "寬", "高"][i]}
+          </text>
+        </g>
+      ))}
+      {/* 3D 凳子示意 */}
+      <g transform="translate(125 25)">
+        <polygon
+          points="0,15 50,0 60,5 10,20"
+          fill="#d6a87a"
+          stroke="#92400e"
+          strokeWidth="0.8"
+        />
+        <polygon
+          points="10,20 60,5 60,55 10,70"
+          fill="#a0784c"
+          stroke="#92400e"
+          strokeWidth="0.8"
+        />
+        <polygon
+          points="0,15 10,20 10,70 0,65"
+          fill="#7a5837"
+          stroke="#92400e"
+          strokeWidth="0.8"
+        />
+        {/* 腳 */}
+        <line x1="6" y1="65" x2="6" y2="78" stroke="#5c3e26" strokeWidth="2" />
+        <line x1="56" y1="55" x2="56" y2="68" stroke="#5c3e26" strokeWidth="2" />
+      </g>
+    </svg>
+  );
+}
+
+/** Step 3 視覺：A4 圖紙 + 三視圖示意（SVG） */
+function StepVisualPdf() {
+  return (
+    <svg viewBox="0 0 200 110" className="w-full h-full p-3" aria-hidden>
+      {/* A4 紙 */}
+      <rect
+        x="10"
+        y="10"
+        width="180"
+        height="90"
+        rx="2"
+        fill="white"
+        stroke="#a1a1aa"
+        strokeWidth="0.6"
+      />
+      {/* 標題列 */}
+      <line x1="10" y1="22" x2="190" y2="22" stroke="#d4d4d8" strokeWidth="0.4" />
+      <rect x="14" y="14" width="40" height="4" fill="#71717a" />
+      {/* 三視圖：俯/正/側 */}
+      <rect x="18" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
+      <rect x="74" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
+      <rect x="130" y="30" width="48" height="32" fill="none" stroke="#52525b" strokeWidth="0.6" />
+      {/* 凳子 silhouette in middle */}
+      <g transform="translate(82 38)">
+        <rect x="0" y="0" width="32" height="3" fill="#92400e" />
+        <line x1="4" y1="3" x2="4" y2="20" stroke="#92400e" strokeWidth="1.5" />
+        <line x1="28" y1="3" x2="28" y2="20" stroke="#92400e" strokeWidth="1.5" />
+        <line x1="4" y1="14" x2="28" y2="14" stroke="#92400e" strokeWidth="0.8" />
+      </g>
+      {/* 標註線 */}
+      <line x1="74" y1="68" x2="122" y2="68" stroke="#b45309" strokeWidth="0.4" />
+      <line x1="74" y1="66" x2="74" y2="70" stroke="#b45309" strokeWidth="0.4" />
+      <line x1="122" y1="66" x2="122" y2="70" stroke="#b45309" strokeWidth="0.4" />
+      <text x="92" y="76" fontSize="5" fill="#b45309" fontFamily="system-ui">350mm</text>
+      {/* 切料清單列 */}
+      <rect x="14" y="74" width="172" height="2" fill="#e4e4e7" />
+      <rect x="14" y="80" width="120" height="2" fill="#e4e4e7" />
+      <rect x="14" y="86" width="150" height="2" fill="#e4e4e7" />
+      <rect x="14" y="92" width="90" height="2" fill="#e4e4e7" />
+    </svg>
   );
 }
 
