@@ -16,14 +16,15 @@ export function SceneThemeToggle({ current }: { current: SceneThemeId }) {
   const searchParams = useSearchParams();
 
   const onSelect = (id: SceneThemeId) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (id === "natural") {
       params.delete("scene");
     } else {
       params.set("scene", id);
     }
     const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    const path = pathname ?? "/";
+    router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
   };
 
   return (

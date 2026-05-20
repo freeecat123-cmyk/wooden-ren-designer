@@ -32,7 +32,7 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
   if (presets.length === 0) return null;
 
   const handleClick = (l: number, w: number, h: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("length", String(l));
     params.set("width", String(w));
     params.set("height", String(h));
