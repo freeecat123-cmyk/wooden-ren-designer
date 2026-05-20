@@ -4,7 +4,7 @@ import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "r
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, Matrix4, MeshStandardMaterial, Quaternion, Shape, SRGBColorSpace, Vector2, Vector3 } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, ExtrudeGeometry, Float32BufferAttribute, LatheGeometry, Matrix4, MeshStandardMaterial, Quaternion, Shape, SRGBColorSpace, Vector2, Vector3, VSMShadowMap } from "three";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
@@ -2879,7 +2879,11 @@ export function PerspectiveView({
       <ViewPresetBar onSelect={setViewPreset} hasLid={design.parts.some((p) => p.id === "lid")} />
       <div data-thumb="3d" className="flex-1 min-h-0 relative">
       <Canvas
-        shadows
+        // VSMShadowMap (variance) 取代預設 PCFSoftShadowMap—— PCFSoftShadowMap
+        // 在 Three.js r170+ 已 deprecated 並 fallback 到硬陰影 PCFShadowMap，
+        // console 每張 3D 載入時刷 11+ 條 warning 像出包。VSM 是新版軟陰影方案，
+        // 視覺效果接近原本，且不再有 deprecation 警告。
+        shadows={{ type: VSMShadowMap }}
         // 點到家具零件之外的空白處（場景空地、grid）→ 清掉 selectedPartId
         // 不接 onClick 因為 OrbitControls 拖動結束會 fire click。
         // onPointerMissed 是 R3F 提供：pointer up 沒打到任何 mesh 才 fire。
