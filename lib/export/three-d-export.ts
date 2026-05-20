@@ -7,6 +7,7 @@ import type { FurnitureDesign, Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
 import { type ShapeSpec, buildShapeGeometry } from "@/lib/render/part-geometry";
 import { validateGroup, type GroupValidation } from "./export-checks";
+import { buildFlatLayoutGroup } from "./flat-layout";
 
 // 預設 10:1 縮小（model 1mm = 實際 10mm）—— 適合家用 3D 列印機印
 // 一張 200×200mm 床的方凳實體 400mm 高 → 模型 40mm。
@@ -304,6 +305,19 @@ export function downloadSTL(design: FurnitureDesign, scale: number = DEFAULT_SCA
   const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([buffer], { type: "model/stl" });
   triggerDownload(blob, `${safeStem(design, scale)}.stl`);
+}
+
+/**
+ * 匯出「攤平排版」STL——所有零件攤平躺平、互不重疊排在虛擬列印床上，
+ * 適合直接送切片器免支撐列印。與 downloadSTL（組裝姿態）並存。
+ */
+export function downloadFlatLayoutSTL(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
+  const group = buildFlatLayoutGroup(design, scale);
+  warnIfInvalid(group);
+  const data = new STLExporter().parse(group, { binary: true }) as DataView;
+  const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const blob = new Blob([buffer], { type: "model/stl" });
+  triggerDownload(blob, `${safeStem(design, scale)}_flat.stl`);
 }
 
 export function downloadOBJ(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { FurnitureDesign } from "@/lib/types";
-import { downloadSTL, downloadOBJ, validateDesignExport } from "@/lib/export/three-d-export";
+import { downloadSTL, downloadOBJ, downloadFlatLayoutSTL, validateDesignExport } from "@/lib/export/three-d-export";
 import { analyzeMinThickness, MIN_PRINTABLE_MM } from "@/lib/export/export-checks";
 
 interface Props {
@@ -62,6 +62,14 @@ export function ThreeDExportButton({ design }: Props) {
           title="SketchUp / Blender / 通用 3D 軟體"
         >
           📐 OBJ
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadFlatLayoutSTL(design, scale)}
+          className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
+          title="所有零件攤平排開、免支撐——適合直接送切片器列印"
+        >
+          🛏️ 攤平 STL
         </button>
       </div>
       {tooThin && (
