@@ -123,6 +123,21 @@ async function tryRefundAction(
       body: formBody,
     });
     const text = await res.text();
+    // ECPay 正常回 "code|msg" 純文字。
+    // 異常 (e.g. server 500、無此 TradeNo) 會回完整 HTML 錯誤頁,
+    // 不能套 split("|") 否則 UI 看到空 rtnCode 很難 debug。
+    const isHtml =
+      res.headers.get("content-type")?.toLowerCase().includes("html") ||
+      text.trimStart().startsWith("<");
+    if (isHtml || !res.ok) {
+      const snippet = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+      return {
+        ok: false,
+        rtnCode: `HTTP_${res.status}`,
+        rtnMsg: `綠界回應異常 (${res.status}): ${snippet || "empty body"}`,
+        raw: text.slice(0, 500),
+      };
+    }
     const [code, ...rest] = text.split("|");
     const msg = rest.join("|");
     return { ok: code === "1", rtnCode: code, rtnMsg: msg, raw: text };
