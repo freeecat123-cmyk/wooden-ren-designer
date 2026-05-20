@@ -846,7 +846,7 @@ function ParameterForm({
             ))}
           </select>
         </label>
-        <HeightPresetChips presets={getHeightPresetsForCategory(type)} />
+        <HeightPresetChips presets={getHeightPresetsForCategory(type)} maxHeight={limits?.height} />
       </div>
 
       {/* 木材立體屬性面板：6 軸雷達圖 + 文化定位 + CITES/油性警示 */}
