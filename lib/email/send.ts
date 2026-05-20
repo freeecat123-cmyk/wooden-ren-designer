@@ -37,6 +37,19 @@ export interface SendEmailResult {
   error?: string;
 }
 
+// 可重試的 Resend 錯誤碼——速率/伺服器暫時性問題。其他（quota_exceeded /
+// validation_error 等）retry 也救不了，直接放棄。
+const RETRY_ERROR_NAMES = new Set([
+  "rate_limit_exceeded",
+  "internal_server_error",
+  "application_error",
+]);
+const MAX_RETRIES = 3;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   const client = getClient();
   if (!client) {
@@ -46,21 +59,46 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
     });
     return { ok: false, error: "email_disabled" };
   }
-  try {
-    const { data, error } = await client.emails.send({
-      from: opts.from ?? FROM_DEFAULT,
-      to: [opts.to],
-      subject: opts.subject,
-      text: opts.text,
-      html: opts.html,
-    });
-    if (error) {
-      console.error("[email] resend send error", error);
-      return { ok: false, error: error.message };
+
+  // Exponential backoff retry：第 1 次失敗 wait 500ms、第 2 次 1500ms、第 3 次 4500ms。
+  // 突發 burst 撞 Resend 2-10 req/s 速率上限時自動補救，使用者不會掉信。
+  let lastError: string = "unknown";
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const { data, error } = await client.emails.send({
+        from: opts.from ?? FROM_DEFAULT,
+        to: [opts.to],
+        subject: opts.subject,
+        text: opts.text,
+        html: opts.html,
+      });
+      if (!error) {
+        if (attempt > 0) {
+          console.log("[email] retry 成功", { to: opts.to, attempt });
+        }
+        return { ok: true, id: data?.id };
+      }
+      lastError = error.message;
+      const retryable =
+        "name" in error && typeof error.name === "string" && RETRY_ERROR_NAMES.has(error.name);
+      if (!retryable || attempt === MAX_RETRIES - 1) {
+        console.error("[email] resend send error", { name: (error as { name?: string }).name, message: error.message, attempt });
+        return { ok: false, error: error.message };
+      }
+      const backoffMs = 500 * Math.pow(3, attempt);
+      console.warn("[email] resend 暫時失敗,稍後 retry", { name: (error as { name?: string }).name, attempt, backoffMs });
+      await sleep(backoffMs);
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "unknown";
+      // 網路 throw（fetch 失敗等）— 也算暫時性,backoff retry
+      if (attempt === MAX_RETRIES - 1) {
+        console.error("[email] sendEmail exception", e);
+        return { ok: false, error: lastError };
+      }
+      const backoffMs = 500 * Math.pow(3, attempt);
+      console.warn("[email] sendEmail throw,稍後 retry", { attempt, backoffMs, err: lastError });
+      await sleep(backoffMs);
     }
-    return { ok: true, id: data?.id };
-  } catch (e) {
-    console.error("[email] sendEmail exception", e);
-    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
+  return { ok: false, error: lastError };
 }
