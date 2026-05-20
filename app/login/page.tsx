@@ -47,7 +47,7 @@ export default async function LoginPage({
           <LoginPageClient next={next} />
         </div>
         <p className="text-center text-xs text-zinc-500 mt-6">
-          首次使用 = 自動註冊。沒密碼、用 Google 或 Email magic link 登入。
+          首次使用 = 自動註冊。不用設密碼，用 Google 帳號或 Email 收信件登入。
           <br />
           需要協助？
           <a

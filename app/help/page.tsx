@@ -27,15 +27,15 @@ const SECTIONS: Array<{ title: string; emoji: string; items: QA[] }> = [
           <>
             Line / FB / IG 內建瀏覽器不支援 Google 登入。請按右上角「⋯」選「<strong>用瀏覽器開啟</strong>」，或複製連結貼到 Chrome / Safari 再點。
             <br />
-            或直接用 <strong>Magic Link</strong>：登入頁輸入 email，10 分鐘內到信箱點連結即可，不需 Google。
+            或直接用 <strong>Email 登入信</strong>：登入頁輸入 email，10 分鐘內到信箱點連結即可，不需 Google 帳號。
           </>
         ),
       },
       {
-        q: "Magic Link 點了顯示「連結已過期」",
+        q: "Email 登入信點了顯示「連結已過期」",
         a: (
           <>
-            Magic Link 只有 1 小時效期，過期請回 <Link href="/login" className="underline">登入頁</Link> 重新請求新連結。請<strong>不要把連結轉貼給別人</strong>（只能本人點一次）。
+            Email 登入連結只有 <strong>1 小時</strong>效期，過期請回 <Link href="/login" className="underline">登入頁</Link> 重新請求一封新的。請<strong>不要把連結轉貼給別人</strong>（只能本人點一次）。
           </>
         ),
       },

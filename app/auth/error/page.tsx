@@ -8,7 +8,7 @@ export const metadata = {
 const REASONS: Record<string, { title: string; body: string; hint?: string }> = {
   expired: {
     title: "登入連結已失效",
-    body: "你點的這個 Magic Link 已經過期或被使用過了。",
+    body: "你點的這封 Email 登入連結已經過期或被使用過了。",
     hint: "為了安全，登入連結通常 10 分鐘內有效，且只能使用一次。",
   },
   used: {
