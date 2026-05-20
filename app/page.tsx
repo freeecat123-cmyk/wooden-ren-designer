@@ -148,8 +148,12 @@ export default async function Home({
     : sortByDifficulty(filtered);
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
+  // 地板模擬器:開發中,只在「開發中」分頁露出預告卡
+  const showFloorTool = chip === "dev";
   const visibleCount =
-    (showFurniture ? furniture.length : 0) + (showTools ? 1 : 0);
+    (showFurniture ? furniture.length : 0) +
+    (showTools ? 1 : 0) +
+    (showFloorTool ? 1 : 0);
 
   return (
     <main className="max-w-7xl mx-auto px-5 sm:px-6 py-8 sm:py-12">
@@ -263,6 +267,7 @@ export default async function Home({
       {/* 大圖網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {showTools && <CeilingToolCard />}
+        {showFloorTool && <FloorToolCard />}
         {showFurniture &&
           furniture.map((item) => (
             <FurnitureCard key={item.category} item={item} />
@@ -310,6 +315,50 @@ function CeilingToolCard() {
         </span>
       </div>
     </Link>
+  );
+}
+
+/** 地板施工模擬器:開發中預告卡(灰底、不可點、🚧 敬請期待) */
+function FloorToolCard() {
+  return (
+    <div
+      data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 floor"
+      aria-disabled="true"
+      title="地板施工模擬器 · 開發中"
+      className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-65 cursor-not-allowed select-none"
+    >
+      <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+        <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
+          🚧 敬請期待
+        </span>
+      </span>
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-100">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%]" aria-hidden>
+          {[0, 1, 2, 3, 4].map((r) => (
+            <g key={r}>
+              {[-1, 0, 1, 2, 3].map((c) => (
+                <rect
+                  key={c}
+                  x={c * 44 + (r % 2) * 22}
+                  y={8 + r * 22}
+                  width={42}
+                  height={20}
+                  rx={2}
+                  fill="#e7d8ae"
+                  stroke="#bd9955"
+                  strokeWidth={1.2}
+                />
+              ))}
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between border-t border-stone-200 bg-stone-100">
+        <span className="text-sm font-semibold text-zinc-700 truncate">
+          🪵 地板施工模擬器
+        </span>
+      </div>
+    </div>
   );
 }
 
