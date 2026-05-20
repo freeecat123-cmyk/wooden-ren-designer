@@ -6,7 +6,7 @@ import { FURNITURE_CATALOG } from "@/lib/templates";
 export const metadata: Metadata = {
   title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
   description:
-    "木頭仁木匠學院出品。26 種家具範本，輸入長寬高自動產出三視圖、透視圖、榫卯細節、材料單、工序、A4 PDF 工程圖紙。給 DIY 木工愛好者、木匠師傅、設計接案、學員用。",
+    "木頭仁木匠學院出品。超過 25 種家具範本，輸入長寬高自動產出三視圖、透視圖、榫卯細節、材料單、工序、A4 PDF 工程圖紙。給 DIY 木工愛好者、木匠師傅、設計接案、學員用。",
   alternates: { canonical: "/about" },
 };
 
@@ -67,7 +67,7 @@ export default function AboutPage() {
           <span>木匠學院出品</span>
           <span className="text-zinc-300">·</span>
           <span>
-            內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本
+            內建 <strong className="text-zinc-900">超過 25 種</strong>家具範本
           </span>
         </div>
 
@@ -106,7 +106,7 @@ export default function AboutPage() {
       {/* ============ Thumb mosaic：26 件視覺證明 ============ */}
       <section className="mt-16 sm:mt-20">
         <p className="text-center text-zinc-600 mb-6 text-sm sm:text-base">
-          目前內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本，
+          目前內建 <strong className="text-zinc-900">超過 25 種</strong>家具範本，
           從筆筒到衣櫃，都能直接拖滑桿改尺寸——
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
@@ -128,7 +128,7 @@ export default function AboutPage() {
           ))}
         </div>
         <p className="text-center text-zinc-500 text-xs mt-4">
-          這只是其中 12 件，<Link href="/" className="underline hover:text-zinc-900">看全部 {READY_COUNT} 種</Link>
+          這只是其中 12 件，<Link href="/" className="underline hover:text-zinc-900">看完整圖庫</Link>
         </p>
       </section>
 
@@ -173,7 +173,7 @@ export default function AboutPage() {
           <StepCard
             no="1"
             title="選範本"
-            desc={`從 ${READY_COUNT} 種家具範本選一件。方凳、餐椅、書桌、衣櫃、紅酒架、筆筒…從入門到進階都有。`}
+            desc="從超過 25 種家具範本選一件。方凳、餐椅、書桌、衣櫃、紅酒架、筆筒…從入門到進階都有。"
             visual={<StepVisualCatalog />}
           />
           <StepCard
@@ -453,7 +453,7 @@ export default function AboutPage() {
             price="$390"
             unit="/月"
             features={[
-              `${READY_COUNT} 件家具全開`,
+              "全部家具範本解鎖",
               "雲端儲存設計 / 多裝置同步",
               "PDF / STL 輸出",
             ]}
