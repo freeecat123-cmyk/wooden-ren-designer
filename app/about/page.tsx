@@ -41,14 +41,17 @@ export default function AboutPage() {
     <main className="max-w-5xl mx-auto px-5 sm:px-6 py-10 sm:py-14">
       {/* ============ Hero ============ */}
       <section className="text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium mb-5">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          木頭仁木匠學院 · 木作藍圖
-        </div>
+        <Image
+          src="/brand-logo-text.png"
+          alt="木頭仁 木作藍圖"
+          width={1254}
+          height={1254}
+          className="mx-auto mb-7 sm:mb-9 rounded-3xl shadow-lg w-44 h-44 sm:w-56 sm:h-56"
+          priority
+        />
         <h1 className="font-serif-tc text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
-          我做木工二十年，<br className="sm:hidden" />
-          最不想再花的，<br className="hidden sm:inline" />
-          是畫圖跟算料的那兩個晚上。
+          畫圖算料的時間<br />
+          交給工具
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-lg text-zinc-700 leading-relaxed">
           選一件家具、填長寬高，<strong className="text-zinc-900">3 秒鐘</strong>

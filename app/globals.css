@@ -12,12 +12,12 @@
  */
 :root {
   color-scheme: light;
-  /* 暖米色基底 — 對齊木匠學院 woodenrenclass.com 的工坊質感，
-     比純白多一層溫度，不至於過深影響閱讀。 */
-  --background: #fbf6ed;
-  --foreground: #1a1a1a;
-  /* 品牌暖色 accent（深胡桃色）— 給 hover/active/border 點綴用 */
-  --accent: #8b5e34;
+  /* 米白基底 — 對齊木匠學院 woodenrenclass.com 工坊暖調，
+     低彩度的暖金棕（舊金／黃銅調，非螢光黃），不過深影響閱讀。 */
+  --background: #e7d8ae;
+  --foreground: #2a2420;
+  /* 品牌 accent — 木匠學院招牌金棕色 */
+  --accent: #bd9955;
 }
 
 @theme inline {
@@ -26,6 +26,20 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-serif-tc);
+
+  /* 全站暖色重映射 — amber-* 色階一律改成木匠學院金棕 (#BD9955)。
+     全站 ~500 處 hardcoded bg/text/border-amber-* 自動套用，免逐檔改。 */
+  --color-amber-50: #fdf8ec;
+  --color-amber-100: #f9eed0;
+  --color-amber-200: #efdaa6;
+  --color-amber-300: #e1c485;
+  --color-amber-400: #cfa962;
+  --color-amber-500: #c39d58;
+  --color-amber-600: #bd9955;
+  --color-amber-700: #9e7b41;
+  --color-amber-800: #765a30;
+  --color-amber-900: #493921;
+  --color-amber-950: #2b2013;
 }
 
 /* 中文標題質感字體：明朝體（Noto Serif TC）— 給 h1 / hero 標題用。
@@ -43,13 +57,15 @@ html {
 
 body {
   background: var(--background);
-  /* 紙質感微噪點：對齊木匠學院的工坊質感而非平白介面。
-     用 inline SVG fractal noise，CSS-only、不需多載資源、不影響 Lighthouse。
-     opacity 0.4 + 4% alpha = 幾乎察覺不到，但會「感覺有層次」。 */
+  /* 木紋質感：對齊木匠學院的工坊調性。
+     用 inline SVG turbulence，各向異性 baseFrequency（X 低頻拉長、Y 高頻密集）
+     模擬橫向木紋條痕。CSS-only、不需多載資源、不影響 Lighthouse。
+     疊兩層：主木紋條痕 + 細噪點碎屑感，alpha 控在白卡片外才看得到的程度。 */
   background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.4 0 0 0 0 0.2 0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-repeat: repeat;
-  background-size: 200px 200px;
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='760' height='760'><filter id='w'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.07' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.44 0 0 0 0 0.31 0 0 0 0 0.16 0 0 0 0.13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23w)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat, repeat;
+  background-size: 760px 760px, 200px 200px;
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Noto Sans TC", "PingFang TC",
     "Microsoft JhengHei", system-ui, sans-serif;
