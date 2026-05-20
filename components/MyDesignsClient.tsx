@@ -89,12 +89,14 @@ export function MyDesignsClient() {
     if (!trimmed || trimmed === current) return;
     setRenamingId(row.id);
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("designs")
-        .update({ name: trimmed })
-        .eq("id", row.id);
-      if (error) throw error;
+      // 走 server API 雙保險：RLS + server-side user.id 比對，未來新增 audit log 也集中在這
+      const res = await fetch(`/api/designs/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? data.error ?? "改名失敗");
       setRows((prev) =>
         prev ? prev.map((r) => (r.id === row.id ? { ...r, name: trimmed } : r)) : prev,
       );
@@ -109,9 +111,9 @@ export function MyDesignsClient() {
     if (!window.confirm("確定刪除這件設計？此動作無法復原。")) return;
     setDeletingId(id);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("designs").delete().eq("id", id);
-      if (error) throw error;
+      const res = await fetch(`/api/designs/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? data.error ?? "刪除失敗");
       setRows((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
     } catch (e) {
       window.alert(`刪除失敗：${e instanceof Error ? e.message : String(e)}`);
