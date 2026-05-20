@@ -33,7 +33,7 @@ export const metadata: Metadata = {
  * 用頂部 chip 篩單一條件,搜尋走 CatalogSearch。
  */
 
-type CatKey = "all" | "seating" | "table" | "cabinet" | "accessories" | "tool";
+type CatKey = "all" | "seating" | "table" | "cabinet" | "accessories" | "tool" | "dev";
 
 const CATEGORY_CHIPS: Array<{
   key: CatKey;
@@ -72,6 +72,11 @@ const CATEGORY_CHIPS: Array<{
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
   { key: "tool", label: "工具" },
+  {
+    key: "dev",
+    label: "開發中",
+    match: (c) => DEVELOPMENT_CATEGORIES.has(c),
+  },
 ];
 
 const DIFFICULTY_DOT = {
@@ -94,10 +99,15 @@ const DEVELOPMENT_CATEGORIES = new Set<FurnitureCategory>([
 ]);
 
 function filterByChip(entries: FurnitureCatalogEntry[], chip: CatKey) {
-  if (chip === "all" || chip === "tool") return entries;
+  if (chip === "dev") {
+    return entries.filter((e) => DEVELOPMENT_CATEGORIES.has(e.category));
+  }
+  // 非「開發中」分頁一律排除開發中項目（含「全部」、各家具分類、工具）
+  const ready = entries.filter((e) => !DEVELOPMENT_CATEGORIES.has(e.category));
+  if (chip === "all" || chip === "tool") return ready;
   const def = CATEGORY_CHIPS.find((c) => c.key === chip);
-  if (!def?.match) return entries;
-  return entries.filter((e) => def.match!(e.category));
+  if (!def?.match) return ready;
+  return ready.filter((e) => def.match!(e.category));
 }
 
 function sortByDifficulty(entries: FurnitureCatalogEntry[]) {
