@@ -40,6 +40,7 @@ export function AIRefineButton({
   const [intent, setIntent] = useState("");
   const [result, setResult] = useState<SuggestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorUpgrade, setErrorUpgrade] = useState<{ url: string; label: string } | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
 
   const styleId = sp?.get("style");
@@ -74,6 +75,7 @@ export function AIRefineButton({
   const askAI = async () => {
     setLoading(true);
     setError(null);
+    setErrorUpgrade(null);
     setResult(null);
     try {
       // 收當前 URL 內 user 改過的所有參數（只收 optionSchema 的 key）
@@ -98,11 +100,13 @@ export function AIRefineButton({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "AI 服務錯誤");
+        if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? "看方案 →" });
         return;
       }
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "網路錯誤");
+      setErrorUpgrade(null);
     } finally {
       setLoading(false);
     }
@@ -186,7 +190,15 @@ export function AIRefineButton({
 
               {error && (
                 <div className="text-xs text-rose-700 bg-rose-50 ring-1 ring-rose-200 rounded p-2">
-                  ❌ {error}
+                  <div>❌ {error}</div>
+                  {errorUpgrade && (
+                    <a
+                      href={errorUpgrade.url}
+                      className="mt-1 inline-block font-semibold underline hover:text-rose-900"
+                    >
+                      {errorUpgrade.label}
+                    </a>
+                  )}
                 </div>
               )}
 

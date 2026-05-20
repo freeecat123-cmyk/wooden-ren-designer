@@ -114,10 +114,12 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(
         {
-          error: `今日 AI 用量已達上限（${gate.used}/${gate.limit}），明日凌晨重置或升級方案`,
+          error: `今日 AI 用量已達上限（${gate.used}/${gate.limit}），明日凌晨重置`,
           plan: gate.plan,
           used: gate.used,
           limit: gate.limit,
+          upgradeUrl: "/pricing",
+          upgradeLabel: "升級方案 →",
         },
         { status: 429 },
       );

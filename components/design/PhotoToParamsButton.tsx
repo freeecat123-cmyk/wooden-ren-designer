@@ -64,6 +64,7 @@ export function PhotoToParamsButton() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PhotoResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorUpgrade, setErrorUpgrade] = useState<{ url: string; label: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/photo-to-params").then(async (r) => {
@@ -80,7 +81,7 @@ export function PhotoToParamsButton() {
   if (!available) return null;
 
   const handleFile = async (file: File) => {
-    setError(null);
+    setError(null); setErrorUpgrade(null);
     setResult(null);
     setLoading(true);
     try {
@@ -94,7 +95,10 @@ export function PhotoToParamsButton() {
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "辨識失敗");
+      if (!res.ok) {
+        if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? "看方案 →" });
+        throw new Error(data.error ?? "辨識失敗");
+      }
       setResult(data as PhotoResponse);
     } catch (e) {
       setError(e instanceof Error ? e.message : "未知錯誤");
@@ -124,7 +128,7 @@ export function PhotoToParamsButton() {
     setOpen(false);
     setResult(null);
     setPreview(null);
-    setError(null);
+    setError(null); setErrorUpgrade(null);
   };
 
   return (
@@ -191,7 +195,15 @@ export function PhotoToParamsButton() {
 
             {error && (
               <div className="rounded-md bg-red-50 border border-red-200 text-red-800 text-xs p-3 mb-2">
-                ⚠️ {error}
+                <div>⚠️ {error}</div>
+                {errorUpgrade && (
+                  <a
+                    href={errorUpgrade.url}
+                    className="mt-1 inline-block font-semibold underline hover:text-red-900"
+                  >
+                    {errorUpgrade.label}
+                  </a>
+                )}
               </div>
             )}
 
@@ -241,7 +253,7 @@ export function PhotoToParamsButton() {
                     onClick={() => {
                       setResult(null);
                       setPreview(null);
-                      setError(null);
+                      setError(null); setErrorUpgrade(null);
                     }}
                     className="px-3 py-2 rounded border border-zinc-300 text-xs hover:bg-zinc-50"
                   >
