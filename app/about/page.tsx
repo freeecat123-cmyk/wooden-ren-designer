@@ -147,7 +147,8 @@ export default function AboutPage() {
           />
         </div>
         <p className="mt-10 text-center text-lg text-amber-800 font-semibold">
-          木作藍圖把這三件事壓進 3 秒鐘。
+          木作藍圖把這三件事壓進 3 秒鐘 ——<br className="sm:hidden" />
+          省下的兩個晚上，夠你多接一張單。
         </p>
       </section>
 
@@ -325,7 +326,7 @@ export default function AboutPage() {
           <PersonaCard
             emoji="👷"
             title="木匠師傅 / 接案"
-            desc="客戶來問「做一個這樣的櫃子要多少」，5 分鐘出設計+報價+工序，回得比同行快。"
+            desc="客戶 LINE 問「做一個這樣的櫃子多少」，5 分鐘出設計 + 報價 + 工序——回得比同行快，單就是你的。算料一次到位，也不會多訂虧本。"
           />
           <PersonaCard
             emoji="🔨"
@@ -421,7 +422,8 @@ export default function AboutPage() {
         </h2>
         <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed text-center">
           月付 NT$390 起，年付直接省兩個月。<br className="sm:hidden" />
-          一張凳子的設計圖，省下的時間就回本。
+          接案多接一張單、或算錯一次料 ——<br className="sm:hidden" />
+          訂閱費早就回本。
         </p>
 
         {/* 三方案 mini cards */}
