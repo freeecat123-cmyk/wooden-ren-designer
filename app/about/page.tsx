@@ -48,7 +48,7 @@ export default function AboutPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
           木頭仁木匠學院 · 木作藍圖
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="font-serif-tc text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
           我做木工二十年，<br className="sm:hidden" />
           最不想再花的，<br className="hidden sm:inline" />
           是畫圖那兩小時。
@@ -85,18 +85,6 @@ export default function AboutPage() {
             看付費方案
           </Link>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs text-zinc-600">
-          <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span> 免費版不用信用卡
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span> 付費版 7 天可退費
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span> 隨時可取消訂閱
-          </span>
-        </div>
-
         {/* Hero 主視覺 — 真實 3D 渲染 */}
         <div className="mt-10 sm:mt-12 rounded-2xl overflow-hidden ring-1 ring-zinc-200 shadow-lg bg-gradient-to-br from-zinc-50 to-zinc-100">
           <Image
@@ -151,7 +139,7 @@ export default function AboutPage() {
 
       {/* ============ 痛點 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
           做木工最花時間的，從來不是動手。
         </h2>
         <p className="mt-4 max-w-2xl mx-auto text-zinc-700 leading-relaxed text-center">
@@ -183,7 +171,7 @@ export default function AboutPage() {
 
       {/* ============ 三步驟 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
           三步驟，從零到工坊
         </h2>
         <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
@@ -210,7 +198,7 @@ export default function AboutPage() {
 
       {/* ============ 能做什麼 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
           每一件家具都附這些
         </h2>
         <p className="text-center text-zinc-600 mb-10">
@@ -265,7 +253,7 @@ export default function AboutPage() {
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-700 text-white text-xs font-semibold mb-4">
           🔨 裝潢專區
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
           量房一次、清單一次列印
         </h2>
         <p className="text-zinc-700 leading-relaxed mb-8 max-w-2xl">
@@ -386,7 +374,7 @@ export default function AboutPage() {
 
       {/* ============ 適合誰 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
           給這五種人用
         </h2>
         <div className="grid sm:grid-cols-2 gap-5">
@@ -429,7 +417,7 @@ export default function AboutPage() {
             className="rounded-2xl shadow-md ring-1 ring-amber-200 shrink-0"
           />
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900">
+            <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900">
               我是木頭仁
             </h2>
             <p className="mt-4 text-zinc-800 leading-relaxed text-lg">
@@ -489,7 +477,7 @@ export default function AboutPage() {
 
       {/* ============ 方案 CTA ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
           先免費試，需要再升級
         </h2>
         <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed text-center">
