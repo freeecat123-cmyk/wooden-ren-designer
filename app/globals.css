@@ -12,8 +12,12 @@
  */
 :root {
   color-scheme: light;
-  --background: #fafaf7;
+  /* 暖米色基底 — 對齊木匠學院 woodenrenclass.com 的工坊質感，
+     比純白多一層溫度，不至於過深影響閱讀。 */
+  --background: #fbf6ed;
   --foreground: #1a1a1a;
+  /* 品牌暖色 accent（深胡桃色）— 給 hover/active/border 點綴用 */
+  --accent: #8b5e34;
 }
 
 @theme inline {
@@ -30,6 +34,13 @@ html {
 
 body {
   background: var(--background);
+  /* 紙質感微噪點：對齊木匠學院的工坊質感而非平白介面。
+     用 inline SVG fractal noise，CSS-only、不需多載資源、不影響 Lighthouse。
+     opacity 0.4 + 4% alpha = 幾乎察覺不到，但會「感覺有層次」。 */
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.4 0 0 0 0 0.2 0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat;
+  background-size: 200px 200px;
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Noto Sans TC", "PingFang TC",
     "Microsoft JhengHei", system-ui, sans-serif;
@@ -56,6 +67,7 @@ body {
     min-height: 0 !important;
     display: block !important;
     background: #ffffff !important;
+    background-image: none !important;
     color: #111 !important;
   }
   .no-print {
