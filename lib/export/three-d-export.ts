@@ -1,6 +1,6 @@
 "use client";
 
-import { BoxGeometry, Euler, Group, Mesh, MeshBasicMaterial } from "three";
+import { BoxGeometry, BufferGeometry, Euler, Group, Mesh, MeshBasicMaterial } from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { OBJExporter } from "three/examples/jsm/exporters/OBJExporter.js";
 import type { FurnitureDesign, Part } from "@/lib/types";
@@ -194,6 +194,21 @@ function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
   return null;
 }
 
+/**
+ * 把單一零件轉成匯出用 geometry（mm 單位）：有對應 shape 走 buildShapeGeometry，
+ * 否則 fallback 方塊。組裝匯出與攤平匯出共用，確保兩者幾何一致。
+ */
+export function partExportGeometry(part: Part): BufferGeometry {
+  const sizeMm: [number, number, number] = [
+    part.visible.length,
+    part.visible.thickness,
+    part.visible.width,
+  ];
+  const spec = toShapeSpec(part.shape);
+  const shapeGeom = spec ? buildShapeGeometry(spec, sizeMm) : null;
+  return shapeGeom ?? new BoxGeometry(sizeMm[0], sizeMm[1], sizeMm[2]);
+}
+
 // 簡化版：每件 part 用 part.shape 對應的幾何（方塊件走 BoxGeometry）。
 // - 形狀建模與 3D 預覽共用 lib/render/part-geometry.ts 的 buildShapeGeometry，
 //   斜度（tapered/splayed/hoof…）/弧度（round/lathe-turned/arch-bent…）件
@@ -211,15 +226,7 @@ function buildGroup(design: FurnitureDesign, scale: number): Group {
   for (const part of design.parts) {
     if (part.visual) continue;
     const p: Part = part;
-    // size 走 mm（buildShapeGeometry 單位由 caller 決定，匯出器一律 mm）
-    const sizeMm: [number, number, number] = [
-      p.visible.length,
-      p.visible.thickness,
-      p.visible.width,
-    ];
-    const spec = toShapeSpec(p.shape);
-    const shapeGeom = spec ? buildShapeGeometry(spec, sizeMm) : null;
-    const geom = shapeGeom ?? new BoxGeometry(sizeMm[0], sizeMm[1], sizeMm[2]);
+    const geom = partExportGeometry(p);
     const mesh = new Mesh(geom, mat);
     mesh.name = p.nameZh || p.id;
     const { yExt } = worldExtents(p);
