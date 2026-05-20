@@ -3,7 +3,11 @@
  * 跑法：npx tsx lib/export/three-mf.test.ts
  */
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from "three";
-import { groupToModelXml } from "./three-mf";
+import { groupToModelXml, buildThreeMfZip } from "./three-mf";
+import { mkdtempSync, writeFileSync, readFileSync } from "fs";
+import { execSync } from "child_process";
+import { tmpdir } from "os";
+import { join } from "path";
 
 let failed = 0;
 function check(name: string, cond: boolean) {
@@ -35,6 +39,26 @@ m2.name = 'A&B<C>';
 g2.add(m2);
 const xml2 = groupToModelXml(g2);
 check("零件名 XML 跳脫", xml2.includes("A&amp;B&lt;C&gt;") && !xml2.includes("A&B<C>"));
+
+// --- buildThreeMfZip ---
+const mf = buildThreeMfZip("<model>test</model>");
+check("3MF 以 PK 開頭", mf[0] === 0x50 && mf[1] === 0x4b);
+
+const dir = mkdtempSync(join(tmpdir(), "threemf-"));
+writeFileSync(join(dir, "m.3mf"), mf);
+execSync(`unzip -o m.3mf`, { cwd: dir, stdio: "pipe" });
+check(
+  "3MF 含 [Content_Types].xml",
+  readFileSync(join(dir, "[Content_Types].xml"), "utf8").includes("3dmodel"),
+);
+check(
+  "3MF 含 _rels/.rels",
+  readFileSync(join(dir, "_rels/.rels"), "utf8").includes("Relationship"),
+);
+check(
+  "3MF 含 3D/3dmodel.model 且為傳入的 XML",
+  readFileSync(join(dir, "3D/3dmodel.model"), "utf8") === "<model>test</model>",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} 個測試失敗`);

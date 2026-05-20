@@ -1,4 +1,5 @@
 import { BufferGeometry, Group, Mesh } from "three";
+import { zipStore } from "./zip-store";
 
 function xmlEscape(s: string): string {
   return s
@@ -65,4 +66,30 @@ export function groupToModelXml(group: Group): string {
     `<resources>${objects.join("")}</resources>` +
     `<build>${items.join("")}</build></model>`
   );
+}
+
+const CONTENT_TYPES_XML =
+  `<?xml version="1.0" encoding="UTF-8"?>` +
+  `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+  `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+  `<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>` +
+  `</Types>`;
+
+const RELS_XML =
+  `<?xml version="1.0" encoding="UTF-8"?>` +
+  `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+  `<Relationship Target="/3D/3dmodel.model" Id="rel0" ` +
+  `Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>` +
+  `</Relationships>`;
+
+/**
+ * 把 3dmodel.model XML 打包成完整 3MF（OPC ZIP）位元組。
+ */
+export function buildThreeMfZip(modelXml: string): Uint8Array {
+  const enc = new TextEncoder();
+  return zipStore({
+    "[Content_Types].xml": enc.encode(CONTENT_TYPES_XML),
+    "_rels/.rels": enc.encode(RELS_XML),
+    "3D/3dmodel.model": enc.encode(modelXml),
+  });
 }
