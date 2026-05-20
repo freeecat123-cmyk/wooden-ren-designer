@@ -139,46 +139,35 @@ export function StylePresetButtons({
   }
 
   return (
-    <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-violet-50 to-sky-50 ring-1 ring-violet-200">
-      <div className="text-xs text-zinc-700 font-medium mb-2 flex items-center gap-1.5">
-        <span>🎭</span>
-        <span>風格快速套用</span>
-        <span className="text-xs text-zinc-500 font-normal">
-          （重複按同一風格＝產出該風格的隨機變體 #1 / #2 / ... 含結構＋尺寸）
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2">
+    <div className="mb-3">
+      <div className="flex flex-wrap gap-1.5">
         {presets.map((p) => {
           const isActive = currentStyle === p.id;
           const variantLabel = isActive && currentVariant > 0 ? ` #${currentVariant}` : "";
+          const shortName = p.nameZh.replace(/\s*[（(].*?[)）]\s*/g, "").trim();
           return (
             <button
               key={p.id}
               type="button"
               onClick={() => apply(p.id)}
-              className={`max-md:min-h-[44px] px-3 py-1.5 rounded-md text-xs ring-1 transition ${
+              className={`max-md:min-h-[40px] px-2.5 py-1 rounded-md text-xs ring-1 transition ${
                 isActive
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
-                  : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-100 hover:ring-violet-400"
+                  : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-50 hover:ring-violet-400"
               }`}
-              title={`${p.visualHint}${isActive ? `\n\n再按下產出 #${currentVariant + 1}（隨機變體，無上限）` : ""}\n\n來源：${p.source}`}
+              title={`${p.visualHint}${isActive ? `\n再按產出 #${currentVariant + 1} 變體` : ""}`}
             >
-              {STYLE_EMOJI[p.id] ?? "🪵"} {p.nameZh}{variantLabel}
+              {STYLE_EMOJI[p.id] ?? "🪵"} {shortName}{variantLabel}
             </button>
           );
         })}
       </div>
       {adapterNotes.length > 0 && (
-        <div className="mt-2 px-2 py-1.5 rounded bg-white/60 ring-1 ring-violet-200">
-          <div className="text-xs text-violet-700 font-medium mb-0.5">
-            🔧 依當前尺寸 / 材質微調：
-          </div>
-          <ul className="text-xs text-zinc-600 space-y-0.5 list-disc list-inside">
-            {adapterNotes.map((n, i) => (
-              <li key={i}>{n}</li>
-            ))}
-          </ul>
-        </div>
+        <ul className="mt-1.5 text-[11px] text-zinc-500 leading-tight space-y-0.5">
+          {adapterNotes.map((n, i) => (
+            <li key={i}>· {n}</li>
+          ))}
+        </ul>
       )}
     </div>
   );

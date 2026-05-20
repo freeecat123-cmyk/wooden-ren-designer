@@ -28,6 +28,7 @@ import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
+import { HeightPresetChips } from "@/components/design/HeightPresetChips";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 import { ErgoHints } from "@/components/ErgoHints";
 import { DeflectionHints } from "@/components/DeflectionHints";
@@ -803,12 +804,12 @@ function ParameterForm({
       </div>
       <SizePresetButtons category={type as FurnitureCategory} />
       <HeightToSizeButton category={type as FurnitureCategory} />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 items-end">
+      <div className="grid grid-cols-3 gap-2 mb-3 items-end">
         {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
         <NumberInput
           key={`length-${defaults.length}`}
           name="length"
-          label="寬 (mm)"
+          label="寬"
           defaultValue={defaults.length}
           max={limits?.length}
           partIds={resolvePartIds("length", allPartIds)}
@@ -816,7 +817,7 @@ function ParameterForm({
         <NumberInput
           key={`width-${defaults.width}`}
           name="width"
-          label="深 (mm)"
+          label="深"
           defaultValue={defaults.width}
           max={limits?.width}
           partIds={resolvePartIds("width", allPartIds)}
@@ -824,19 +825,20 @@ function ParameterForm({
         <NumberInput
           key={`height-${defaults.height}`}
           name="height"
-          label="高 (mm)"
+          label="高"
           defaultValue={defaults.height}
           max={limits?.height}
           partIds={resolvePartIds("height", allPartIds)}
-          presetPoints={getHeightPresetsForCategory(type)}
         />
-        <label className="flex flex-col text-xs">
-          <span className="text-zinc-600 mb-1">木材</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
+        <label className="flex items-center gap-1.5 shrink-0">
+          <span className="text-zinc-600">木材</span>
           <select
             key={`material-${defaults.material}`}
             name="material"
             defaultValue={defaults.material}
-            className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+            className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
           >
             {Object.values(MATERIALS).map((m) => (
               <option key={m.id} value={m.id}>
@@ -845,6 +847,7 @@ function ParameterForm({
             ))}
           </select>
         </label>
+        <HeightPresetChips presets={getHeightPresetsForCategory(type)} />
       </div>
 
       {/* 木材立體屬性面板：6 軸雷達圖 + 文化定位 + CITES/油性警示 */}
@@ -1233,7 +1236,10 @@ function NumberInput({
 }) {
   return (
     <label className="flex flex-col text-xs">
-      <span className="text-zinc-600 mb-1">{label}{max ? ` · 上限 ${max}` : ""}</span>
+      <span className="text-zinc-600 mb-1 truncate" title={max ? `上限 ${max} mm` : undefined}>
+        {label}<span className="text-zinc-400 font-normal ml-0.5">mm</span>
+        {max && <span className="text-zinc-400 font-normal ml-1">≤{max}</span>}
+      </span>
       <ClampedNumberInput
         name={name}
         defaultValue={defaultValue}
