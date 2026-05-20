@@ -139,6 +139,20 @@ function UserDropdown({
           >
             💰 方案
           </Link>
+          <Link
+            href="/about"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50 border-t border-zinc-100"
+            onClick={() => setOpen(false)}
+          >
+            ℹ️ 關於本站
+          </Link>
+          <Link
+            href="/help"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50"
+            onClick={() => setOpen(false)}
+          >
+            ❓ 常見問題
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
