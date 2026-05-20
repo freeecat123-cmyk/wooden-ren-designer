@@ -443,8 +443,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {(await isLocalhost()) && <PartDrawingsPanel design={applyEdgeProtection(rawDesign)} />}
 
       {/* 下半：施工備料（按需展開） */}
-      <details className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden" open>
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
+      {/* 注意：此 details 不能用 overflow-hidden —— 內含 sticky 3D，
+          overflow!=visible 的祖先會讓 position:sticky 失效。圓角靠 summary
+          的 rounded-t + 材料單欄的 rounded-b 各自處理。 */}
+      <details className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5" open>
+        <summary className="cursor-pointer list-none rounded-t-2xl px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
             🪵 材料單
@@ -465,17 +468,20 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           </div>
           {/* desktop 雙欄：左清單右 sticky 3D；mobile 單欄 + Material3dPip 浮窗 */}
           <div className="lg:grid lg:grid-cols-[7fr_5fr] lg:gap-4">
-            <div data-pip-area className="lg:col-start-1 lg:row-start-1 min-w-0">
+            <div data-pip-area className="lg:col-start-1 lg:row-start-1 min-w-0 rounded-b-2xl overflow-hidden">
               <MaterialListWithSelection design={design} />
             </div>
-            <div className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4 lg:self-start lg:px-3 lg:py-3">
-              <div className="rounded-xl border border-amber-200/70 bg-white shadow-sm overflow-hidden">
-                <div className="px-3 py-2 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-[11px] font-semibold text-zinc-700 flex items-center gap-2">
-                  <span className="w-1 h-3.5 bg-amber-500 rounded-full" />
-                  3D 預覽（同步高亮選中零件）
+            {/* 外層 grid 格子撐滿（= 材料單高度），內層 sticky wrapper 才黏得住整段捲動 */}
+            <div className="hidden lg:block lg:col-start-2 lg:row-start-1">
+              <div className="lg:sticky lg:top-4 lg:px-3 lg:py-3">
+                <div className="rounded-xl border border-amber-200/70 bg-white shadow-sm overflow-hidden">
+                  <div className="px-3 py-2 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-[11px] font-semibold text-zinc-700 flex items-center gap-2">
+                    <span className="w-1 h-3.5 bg-amber-500 rounded-full" />
+                    3D 預覽（同步高亮選中零件）
+                  </div>
+                  <SceneThemeToggle current={sceneId} />
+                  <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
                 </div>
-                <SceneThemeToggle current={sceneId} />
-                <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} hidePartIds={hidePartIds} />
               </div>
             </div>
           </div>

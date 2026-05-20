@@ -263,11 +263,8 @@ export default function AboutPage() {
           從天花板到收納櫃，輸入空間尺寸就出整套清單。
         </p>
 
-        {/* 主打：天花板骨架 寬卡 */}
-        <Link
-          href="/ceiling"
-          className="group block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md p-6 sm:p-8 transition mb-6"
-        >
+        {/* 主打：天花板骨架 寬卡（專業版功能、純展示不可點） */}
+        <div className="block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 p-6 sm:p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl bg-white ring-1 ring-amber-200 flex items-center justify-center p-3 shrink-0">
               <Image
@@ -283,7 +280,7 @@ export default function AboutPage() {
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-1.5 mb-2">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold">
-                  PRO
+                  專業版
                 </span>
                 <span className="text-xs text-amber-800 font-medium">已上線</span>
               </div>
@@ -295,12 +292,9 @@ export default function AboutPage() {
                 算出每根料長度、矽酸鈣板切幾片、釘子幾顆、整套用料與工時——
                 清單列印帶到工地，不再現場拿筆算到頭暈。
               </p>
-              <p className="mt-3 text-xs text-amber-700 font-medium group-hover:underline">
-                看天花板計算器 →
-              </p>
             </div>
           </div>
-        </Link>
+        </div>
 
         {/* 7 件裝潢櫃體 */}
         <h3 className="font-bold text-zinc-900 text-lg mb-3">
@@ -308,11 +302,10 @@ export default function AboutPage() {
         </h3>
         <div className="grid grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3 mb-2">
           {INTERIOR_CABINETS.map((c) => (
-            <Link
+            <div
               key={c.slug}
-              href={`/design/${c.slug}`}
               title={c.nameZh}
-              className="group block aspect-square rounded-lg bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:shadow-sm transition flex items-center justify-center p-2"
+              className="block aspect-square rounded-lg bg-white ring-1 ring-zinc-200 flex items-center justify-center p-2"
             >
               <Image
                 src={`/thumbs/v2/${c.slug}.webp`}
@@ -323,7 +316,7 @@ export default function AboutPage() {
                 loading="lazy"
                 style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "100%" }}
               />
-            </Link>
+            </div>
           ))}
         </div>
         <p className="text-xs text-zinc-500">

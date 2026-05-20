@@ -661,13 +661,12 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     const sSplayZTop = splayDz * sTopShift;
     // tapered 補償：下橫撐三條 Y 位置（中、上、下）各自的腳寬
     // 圓腳：sLegSize 設 0 → 下橫撐端伸進腳中心藏接縫（同 apron 處理）
-    // 端面插進 leg 2mm，避免 stretcher 端面跟 leg inner face Z 完全重合造成
-    // z-fighting / 視覺空隙（splay-tapered 腳尤其明顯）。Tenon 已埋在 leg 裡，
-    // 視覺上多 2mm 不會穿透腳的外面（leg 在 stretcher Y 處厚度 > 4mm）。
-    const STRETCHER_PEN = 2;
-    const sLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(sCenterY, legHeight, bottomScale) - 2 * STRETCHER_PEN;
-    const sLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale) - 2 * STRETCHER_PEN;
-    const sLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY, legHeight, bottomScale) - 2 * STRETCHER_PEN;
+    // visible.length 一律算到腳內面（leg-inner-to-leg-inner），與 apron 同慣例
+    // (§A10 butt-joint)。3D 防 z-fighting 的插入量屬渲染細節、不烤進 visible.length，
+    // 否則三視圖會把橫撐實體畫進腳裡。
+    const sLegSizeCenter = isRoundLeg ? 0 : legSize * legScaleAt(sCenterY, legHeight, bottomScale);
+    const sLegSizeTop = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY + stretcherWidth, legHeight, bottomScale);
+    const sLegSizeBot = isRoundLeg ? 0 : legSize * legScaleAt(stretcherY, legHeight, bottomScale);
     const sInnerSpan = {
       x: 2 * apronEdgeX - sLegSizeCenter,
       z: 2 * apronEdgeZ - sLegSizeCenter,
