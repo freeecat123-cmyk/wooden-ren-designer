@@ -33,6 +33,8 @@ interface RangeInputProps {
   showPlusMinus?: boolean;
   /** 動態 max 提示小字 */
   dynamicMaxHint?: string;
+  /** 在數值右下方標出可調範圍（min–max），給整體尺寸欄位用 */
+  showRange?: boolean;
   /** 給 Part anchor 用（這包只接通道、不接線） */
   partIds?: string[];
 }
@@ -50,6 +52,7 @@ export function RangeInput({
   presetPoints,
   showPlusMinus,
   dynamicMaxHint,
+  showRange,
   partIds,
 }: RangeInputProps) {
   // Part anchor hover/focus → 3D 對應件 emissive 高亮
@@ -197,36 +200,43 @@ export function RangeInput({
           </button>
         )}
 
-        {editing ? (
-          <input
-            ref={inputRef}
-            type="number"
-            name={name}
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            onChange={(e) => setValue(Number(e.target.value))}
-            onBlur={() => setEditing(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                setEditing(false);
-              }
-            }}
-            className="w-16 text-right border-b-2 border-amber-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
-            inputMode="numeric"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="shrink-0 min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
-          >
-            {value}
-            <span className="text-zinc-500 ml-0.5">{unit}</span>
-          </button>
-        )}
+        <div className="shrink-0 flex flex-col items-end gap-0.5">
+          {editing ? (
+            <input
+              ref={inputRef}
+              type="number"
+              name={name}
+              value={value}
+              min={min}
+              max={max}
+              step={step}
+              onChange={(e) => setValue(Number(e.target.value))}
+              onBlur={() => setEditing(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setEditing(false);
+                }
+              }}
+              className="w-16 text-right border-b-2 border-amber-500 px-1 py-0.5 font-mono tabular-nums"
+              inputMode="numeric"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="min-h-[36px] min-w-[64px] px-2 py-1 rounded-md bg-zinc-100 hover:bg-zinc-200 font-mono tabular-nums text-zinc-900 text-xs"
+            >
+              {value}
+              <span className="text-zinc-500 ml-0.5">{unit}</span>
+            </button>
+          )}
+          {showRange && (
+            <span className="text-[10px] leading-none text-zinc-400 tabular-nums pr-0.5">
+              {min}–{max}
+            </span>
+          )}
+        </div>
 
         {presetPoints && presetPoints.length > 0 && (
           <div className="hidden md:flex shrink-0 items-center gap-1">

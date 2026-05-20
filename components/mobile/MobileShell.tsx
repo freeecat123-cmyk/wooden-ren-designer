@@ -106,10 +106,15 @@ export function MobileShell(props: MobileShellProps) {
     return out;
   };
 
-  // limits: flat { length, width, height } — each is the max value; use 200 as min floor.
+  // limits: flat { length, width, height } — each is the max value.
   const lMax = entry.limits?.length ?? 3000;
   const wMax = entry.limits?.width ?? 3000;
   const hMax = entry.limits?.height ?? 3000;
+  // 滑桿下限：跟桌面版一樣 20mm 地板，但若當前值更小（筆筒 80、相框厚 18 等小物件）
+  // 就降到該值，否則 RangeInput 會把值 clamp 上去（min===max 還會整條拉不動）。
+  const lMin = Math.min(20, length);
+  const wMin = Math.min(20, width);
+  const hMin = Math.min(20, height);
 
   // 分流 spec 到 4 tab。先匹配美學 / 榫接，剩下的全進「結構」當 catch-all（避免漏選項）。
   const inGroup = (s: OptionSpec, keywords: string[]) =>
@@ -187,30 +192,33 @@ export function MobileShell(props: MobileShellProps) {
               name="length"
               label="長"
               defaultValue={length}
-              min={200}
+              min={lMin}
               max={lMax}
               step={10}
-              ticks={makeTicks(200, lMax, 10)}
+              ticks={makeTicks(lMin, lMax, 10)}
+              showRange
               partIds={resolvePartIds("length", allPartIds)}
             />
             <RangeInput
               name="width"
               label="寬"
               defaultValue={width}
-              min={200}
+              min={wMin}
               max={wMax}
               step={10}
-              ticks={makeTicks(200, wMax, 10)}
+              ticks={makeTicks(wMin, wMax, 10)}
+              showRange
               partIds={resolvePartIds("width", allPartIds)}
             />
             <RangeInput
               name="height"
               label="高"
               defaultValue={height}
-              min={200}
+              min={hMin}
               max={hMax}
               step={10}
-              ticks={makeTicks(200, hMax, 10)}
+              ticks={makeTicks(hMin, hMax, 10)}
+              showRange
               partIds={resolvePartIds("height", allPartIds)}
             />
             <label className="flex items-center gap-3 text-sm pt-1">

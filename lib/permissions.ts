@@ -39,6 +39,8 @@ export interface PlanFeatures {
   canUseDesignerMode: boolean;
   /** 木作天花板骨架施工模擬器(/ceiling) */
   canUseCeilingTool: boolean;
+  /** 地板施工模擬器(/floor) */
+  canUseFloorTool: boolean;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -51,6 +53,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canManageCustomers: false,
     canUseDesignerMode: false,
     canUseCeilingTool: false,
+    canUseFloorTool: false,
   },
   personal: {
     maxDesigns: Infinity,
@@ -61,6 +64,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canManageCustomers: false,
     canUseDesignerMode: false,
     canUseCeilingTool: false,
+    canUseFloorTool: false,
   },
   pro: {
     maxDesigns: Infinity,
@@ -71,6 +75,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canManageCustomers: true,
     canUseDesignerMode: true,
     canUseCeilingTool: true,
+    canUseFloorTool: true,
   },
   student: {
     maxDesigns: Infinity,
@@ -81,6 +86,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canManageCustomers: true,
     canUseDesignerMode: true,
     canUseCeilingTool: true,
+    canUseFloorTool: true,
   },
   lifetime: {
     maxDesigns: Infinity,
@@ -91,6 +97,7 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canManageCustomers: true,
     canUseDesignerMode: true,
     canUseCeilingTool: true,
+    canUseFloorTool: true,
   },
 };
 
