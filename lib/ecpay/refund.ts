@@ -44,6 +44,10 @@ export interface RefundResult {
   raw?: string;
   /** 失敗時的 error reason */
   error?: string;
+  /** 成功時的 ECPay Action (N=取消授權 / E=放棄交易 / R=退款),失敗時為最後試的 action */
+  action?: "N" | "E" | "R";
+  /** N/E/R 三輪嘗試的完整紀錄、debug 用 */
+  attempts?: Array<{ action: "N" | "E" | "R"; ok: boolean; rtnCode?: string; rtnMsg?: string }>;
 }
 
 /**
@@ -72,15 +76,17 @@ export async function requestRefund(input: RefundInput): Promise<RefundResult> {
   //   E = 放棄交易 (已請款但同日內)
   //   R = 退款 (跨日已請款) — 最晚的階段
   // 任何一個 ok 就回成功;全失敗回最後一次錯誤訊息給上層存 DB / 排查。
+  const attempts: NonNullable<RefundResult["attempts"]> = [];
   for (const action of ["N", "E", "R"] as const) {
     const result = await tryRefundAction(input, action);
+    attempts.push({ action, ok: result.ok, rtnCode: result.rtnCode, rtnMsg: result.rtnMsg });
     if (result.ok) {
       console.log("[ecpay/refund] ✓ 成功", {
         orderId: input.merchantTradeNo,
         action,
         amount: input.amount,
       });
-      return result;
+      return { ...result, action, attempts };
     }
     console.warn(`[ecpay/refund] Action=${action} 失敗,試下一個`, {
       rtnCode: result.rtnCode,
@@ -91,6 +97,8 @@ export async function requestRefund(input: RefundInput): Promise<RefundResult> {
     ok: false,
     error: "all_actions_failed",
     rtnMsg: "N/E/R 三種退款方式 ECPay 全拒絕,請手動處理",
+    action: "R",
+    attempts,
   };
 }
 
