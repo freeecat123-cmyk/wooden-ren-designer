@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -52,8 +52,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
 
   // server-side paid gate：未登入導 /login、未付費導 /pricing
   // 不能只靠 PrintAccessGate（DevTools 砍 blur 就破）
+  // session 取自 cookie（middleware 已驗 JWT），無 HTTP roundtrip
+  const user = await getSessionUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(`/design/${type}/print`)}`);
   }

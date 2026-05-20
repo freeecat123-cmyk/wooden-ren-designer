@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -111,10 +111,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
   // 付費門檻：免費版只能進 FREE_UNLOCKED_CATEGORIES，其他導去 /pricing；
   // 同時拉一次 profile 給「設計師模式」門檻用，避免重複查詢。
+  // 唯讀 SSR 頁面用 getSession（無 HTTP），middleware 已每個 request 驗 JWT。
+  const user = await getSessionUser();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   let profile = null;
   if (user) {
     const { data } = await supabase

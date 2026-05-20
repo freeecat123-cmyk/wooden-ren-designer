@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isPaidUser } from "@/lib/userProfile";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
@@ -102,8 +102,9 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
 
   // server-side paid gate：未登入導 /login、未付費導 /pricing
   // 不能只靠 client-side QuoteAccessGate（DevTools 砍 blur class 就破）
+  // session 取自 cookie（middleware 已驗 JWT），免 HTTP roundtrip。
+  const user = await getSessionUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     const next = `/design/${type}/quote`;
     redirect(`/login?next=${encodeURIComponent(next)}`);

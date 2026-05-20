@@ -1,5 +1,5 @@
 import { ProjectsClient } from "@/components/projects/ProjectsClient";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import type { ProjectRow } from "@/lib/projects/types";
 
 export const metadata = {
@@ -7,10 +7,9 @@ export const metadata = {
 };
 
 export default async function ProjectsPage() {
+  // session 取自 cookie（middleware 已驗 JWT），無 HTTP roundtrip
+  const user = await getSessionUser();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   let initialRows: ProjectRow[] | null = null;
   if (user) {

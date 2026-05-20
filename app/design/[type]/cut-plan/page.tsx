@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate } from "@/lib/templates";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
@@ -30,9 +30,9 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
 
-  // server-side paid gate
+  // server-side paid gate — session 取自 cookie（middleware 已驗 JWT），無 HTTP
+  const user = await getSessionUser();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(`/design/${type}/cut-plan`)}`);
   }

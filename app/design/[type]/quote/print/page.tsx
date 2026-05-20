@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/server";
 import { isPaidUser } from "@/lib/userProfile";
 import { getTemplate } from "@/lib/templates";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
@@ -141,8 +141,7 @@ export default async function QuotePrintPage({
   const wantsInternal = sp.viewMode === "internal";
   let viewMode: "customer" | "internal" = "customer";
   if (wantsInternal) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getSessionUser();
     if (user && (await isPaidUser(user.id))) {
       viewMode = "internal";
     }
