@@ -19,6 +19,9 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
   const [msg, setMsg] = useState<{ kind: "ok" | "warn" | "err"; text: string } | null>(
     null,
   );
+  // 未登入 click 時跳這個 modal,比 inline text 更醒目。
+  // 客服 case #11「我儲存的設計不見了」根因往往是未登入就按存,文字 hint 太弱看不到。
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   if (isLoading) {
     return (
@@ -35,10 +38,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
   const handleSave = async () => {
     setMsg(null);
     if (!isLoggedIn || !userId) {
-      setMsg({
-        kind: "warn",
-        text: "請先登入才能儲存設計（右上角點「使用 Google 登入」）",
-      });
+      setShowLoginPrompt(true);
       return;
     }
 
@@ -114,10 +114,14 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         title={
           isLoggedIn
             ? `儲存到你的設計（${features.maxDesigns === Infinity ? "無上限" : `上限 ${features.maxDesigns} 件`}）`
-            : "請先登入"
+            : "登入後才能儲存到雲端跨裝置同步"
         }
       >
-        {busy ? "儲存中…" : "💾 儲存設計"}
+        {busy
+          ? "儲存中…"
+          : isLoggedIn
+            ? "💾 儲存設計"
+            : "🔒 登入後儲存"}
       </button>
       {msg && (
         <p
@@ -131,6 +135,47 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         >
           {msg.text}
         </p>
+      )}
+
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
+          onClick={() => setShowLoginPrompt(false)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-zinc-900 text-lg mb-2">先登入才能儲存設計</h3>
+            <p className="text-sm text-zinc-700 leading-6 mb-4">
+              雲端儲存設計需要登入帳號，登入後可以：
+            </p>
+            <ul className="text-sm text-zinc-700 space-y-1.5 mb-4 pl-5 list-disc">
+              <li>跨裝置同步（手機、平板、電腦都能看到）</li>
+              <li>建立<strong>「我的設計」</strong>清單方便管理</li>
+              <li>分享連結給客戶看設計</li>
+            </ul>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 leading-5 mb-4">
+              ⚠️ 不登入直接離開頁面 = 你剛調的參數就消失了
+              （除非加到瀏覽器書籤把網址留著）。
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLoginPrompt(false)}
+                className="text-sm px-3 py-1.5 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+              >
+                先不要
+              </button>
+              <a
+                href={`/login?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")}`}
+                className="inline-flex items-center text-sm px-4 py-1.5 rounded bg-amber-700 text-white font-medium hover:bg-amber-800"
+              >
+                現在登入 →
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
