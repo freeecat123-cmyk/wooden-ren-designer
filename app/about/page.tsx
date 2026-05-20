@@ -80,7 +80,7 @@ export default function AboutPage() {
           </Link>
           <Link
             href="/pricing"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-zinc-900 font-semibold ring-1 ring-zinc-300 hover:bg-zinc-50"
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-zinc-900 font-semibold ring-1 ring-stone-300 hover:bg-amber-50 hover:ring-amber-500 transition"
           >
             看付費方案
           </Link>
@@ -105,12 +105,9 @@ export default function AboutPage() {
 
       {/* ============ Thumb mosaic：26 件視覺證明 ============ */}
       <section className="mt-16 sm:mt-20">
-        <p className="text-center text-zinc-600 mb-2 text-sm sm:text-base">
+        <p className="text-center text-zinc-600 mb-6 text-sm sm:text-base">
           目前內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本，
           從筆筒到衣櫃，都能直接拖滑桿改尺寸——
-        </p>
-        <p className="text-center text-amber-700 mb-6 text-xs sm:text-sm font-medium">
-          📦 圖庫每月持續新增中，學員投票決定下一個做什麼
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
           {MOSAIC_THUMBS.map((slug) => (
@@ -132,8 +129,6 @@ export default function AboutPage() {
         </div>
         <p className="text-center text-zinc-500 text-xs mt-4">
           這只是其中 12 件，<Link href="/" className="underline hover:text-zinc-900">看全部 {READY_COUNT} 種</Link>
-          {" · "}
-          <Link href="/contact" className="underline hover:text-zinc-900">想看哪個下個月做？跟我說</Link>
         </p>
       </section>
 
@@ -300,12 +295,11 @@ export default function AboutPage() {
           </div>
         </Link>
 
-        {/* 7 件裝潢櫃體 + 持續新增磚 */}
+        {/* 7 件裝潢櫃體 */}
         <h3 className="font-bold text-zinc-900 text-lg mb-3">
-          裝潢櫃體一條龍 — {INTERIOR_CABINETS.length} 種常用櫃自動產圖紙、
-          <span className="text-amber-700">每月持續新增</span>
+          裝潢櫃體一條龍 — {INTERIOR_CABINETS.length} 種常用櫃自動產圖紙 + 切料單
         </h3>
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-2">
+        <div className="grid grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3 mb-2">
           {INTERIOR_CABINETS.map((c) => (
             <Link
               key={c.slug}
@@ -324,52 +318,10 @@ export default function AboutPage() {
               />
             </Link>
           ))}
-          {/* 第 8 格：持續新增中（管理「種類會繼續長」期待） */}
-          <Link
-            href="/"
-            title="持續新增中"
-            className="group block aspect-square rounded-lg bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-dashed ring-amber-300 hover:ring-solid hover:ring-amber-500 hover:shadow-sm transition flex flex-col items-center justify-center text-center p-2"
-          >
-            <span className="text-2xl text-amber-700 leading-none mb-1">＋</span>
-            <span className="text-[10px] sm:text-xs text-amber-800 font-semibold leading-tight">
-              每月<br />新增
-            </span>
-          </Link>
         </div>
-        <p className="text-xs text-zinc-500 mb-8">
+        <p className="text-xs text-zinc-500">
           {INTERIOR_CABINETS.map((c) => c.nameZh).join(" · ")}
-          {" · 新範本每月上架"}
         </p>
-
-        {/* 即將推出 */}
-        <div className="rounded-xl bg-zinc-50 ring-1 ring-zinc-200 p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 font-semibold">
-              即將推出
-            </span>
-            <span className="text-xs text-zinc-500">裝潢專屬計算器 v1.1 規劃中</span>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-3 sm:gap-5">
-            <ComingSoonItem
-              emoji="🧱"
-              title="木作隔間牆"
-              desc="輸入長寬高、開門位置，自動配 2×4 骨架 + 矽酸鈣板用量。"
-            />
-            <ComingSoonItem
-              emoji="🪵"
-              title="木地板估料"
-              desc="坪數 → 海島型 / 超耐磨木地板片數 + 損耗 + 收邊條長度。"
-            />
-            <ComingSoonItem
-              emoji="📏"
-              title="線板 / 踢腳板"
-              desc="量周長 → 線板用幾支、轉角處理、釘距建議。"
-            />
-          </div>
-          <p className="mt-4 text-xs text-zinc-500">
-            想要哪個先做？<Link href="/contact" className="text-amber-700 underline hover:text-amber-900">告訴我們你最常用的</Link>
-          </p>
-        </div>
       </section>
 
       {/* ============ 適合誰 ============ */}
@@ -608,17 +560,6 @@ function MiniPlanCard({
   );
 }
 
-function ComingSoonItem({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
-  return (
-    <div className="rounded-lg bg-white ring-1 ring-zinc-200 p-4">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-xl">{emoji}</span>
-        <h4 className="font-semibold text-zinc-900 text-sm">{title}</h4>
-      </div>
-      <p className="text-xs text-zinc-600 leading-relaxed">{desc}</p>
-    </div>
-  );
-}
 
 function PainPoint({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
