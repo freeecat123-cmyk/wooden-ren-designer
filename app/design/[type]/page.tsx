@@ -16,6 +16,7 @@ import { Material3dPip } from "@/components/Material3dPip";
 import { ZoomableThreeViews } from "@/components/ZoomableThreeViews";
 import { ZoomableJoineryDetail } from "@/components/ZoomableJoineryDetail";
 import { LazyPerspectiveView } from "@/components/LazyPerspectiveView";
+import { ThreeDExportButton } from "@/components/ThreeDExportButton";
 import { MATERIALS } from "@/lib/materials";
 import { extractJoineryUsages } from "@/lib/joinery/extract";
 import {
@@ -400,6 +401,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </div>
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
+            <ThreeDExportButton design={design} />
           </div>
         </div>
 
