@@ -5,18 +5,204 @@ import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { OBJExporter } from "three/examples/jsm/exporters/OBJExporter.js";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
+import { type ShapeSpec, buildShapeGeometry } from "@/lib/render/part-geometry";
 
 // 預設 10:1 縮小（model 1mm = 實際 10mm）—— 適合家用 3D 列印機印
 // 一張 200×200mm 床的方凳實體 400mm 高 → 模型 40mm。
 const DEFAULT_SCALE = 0.1;
 
-// 簡化版：每件 part 用 visible 尺寸做一個 box。
+/**
+ * 把 `part.shape`（Part["shape"]，mm 單位）對應成 part-geometry 的 ShapeSpec。
+ *
+ * PerspectiveView 的對應邏輯把 chamferMm / dxMm / dzMm 等乘了 SCALE（three-units）；
+ * 匯出器整條 pipeline 走 mm，所以這裡等價於 SCALE=1——所有 mm 欄位直接帶過、
+ * 不乘倍率。size 也用 mm（[visible.length, visible.thickness, visible.width]）。
+ *
+ * 對應不到（box / tilt-z / 無 shape）回傳 null → caller fallback 方塊。
+ */
+function toShapeSpec(shape: Part["shape"]): ShapeSpec | null {
+  if (!shape) return null;
+  if (shape.kind === "tapered") {
+    return {
+      kind: "tapered",
+      bottomScale: shape.bottomScale,
+      chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
+      chamferStyle: shape.chamferStyle,
+    };
+  }
+  if (shape.kind === "splayed") {
+    return {
+      kind: "splayed",
+      dx: shape.dxMm,
+      dz: shape.dzMm,
+      chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
+      chamferStyle: shape.chamferStyle,
+    };
+  }
+  if (shape.kind === "hoof") {
+    return {
+      kind: "hoof",
+      hoofHeight: shape.hoofMm,
+      hoofScale: shape.hoofScale,
+      dirX: shape.dirX ?? 0,
+      dirZ: shape.dirZ ?? 0,
+    };
+  }
+  if (shape.kind === "round") {
+    return {
+      kind: "round",
+      chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
+      chamferStyle: shape.chamferStyle,
+      axis: shape.axis,
+    };
+  }
+  if (shape.kind === "round-tapered") {
+    return { kind: "round-tapered", bottomScale: shape.bottomScale };
+  }
+  if (shape.kind === "shaker") {
+    return {
+      kind: "shaker",
+      squareFrac: shape.squareFrac,
+      bottomScale: shape.bottomScale,
+    };
+  }
+  if (shape.kind === "lathe-turned") {
+    return { kind: "lathe-turned" };
+  }
+  if (shape.kind === "splayed-tapered") {
+    return {
+      kind: "splayed-tapered",
+      bottomScale: shape.bottomScale,
+      dx: shape.dxMm,
+      dz: shape.dzMm,
+    };
+  }
+  if (shape.kind === "splayed-round-tapered") {
+    return {
+      kind: "splayed-round-tapered",
+      bottomScale: shape.bottomScale,
+      dx: shape.dxMm,
+      dz: shape.dzMm,
+    };
+  }
+  if (shape.kind === "apron-trapezoid") {
+    return {
+      kind: "apron-trapezoid",
+      bevelAngle: shape.bevelAngle,
+      topLengthScale: shape.topLengthScale,
+      bottomLengthScale: shape.bottomLengthScale,
+      bevelMode: shape.bevelMode,
+    };
+  }
+  if (shape.kind === "apron-beveled") {
+    return { kind: "apron-beveled", bevelAngle: shape.bevelAngle };
+  }
+  if (shape.kind === "apron-half-beveled") {
+    return { kind: "apron-half-beveled", bevelAngle: shape.bevelAngle };
+  }
+  if (shape.kind === "chamfered-top") {
+    return {
+      kind: "chamfered-top",
+      chamferMm: shape.chamferMm,
+      bottomChamferMm: shape.bottomChamferMm ? shape.bottomChamferMm : undefined,
+      style: shape.style,
+      cornerR: shape.cornerR ? shape.cornerR : undefined,
+    };
+  }
+  if (shape.kind === "chamfered-edges") {
+    return { kind: "chamfered-edges", chamferMm: shape.chamferMm, style: shape.style };
+  }
+  if (shape.kind === "notched-corners") {
+    return {
+      kind: "notched-corners",
+      notchLengthMm: shape.notchLengthMm,
+      notchWidthMm: shape.notchWidthMm,
+    };
+  }
+  if (shape.kind === "arch-bent") {
+    return { kind: "arch-bent", bendMm: shape.bendMm, segments: shape.segments };
+  }
+  if (shape.kind === "live-edge") {
+    return { kind: "live-edge", amplitudeMm: shape.amplitudeMm ?? 12 };
+  }
+  if (shape.kind === "seat-scoop") {
+    return { kind: "seat-scoop", profile: shape.profile, depth: shape.depthMm };
+  }
+  if (shape.kind === "face-rounded") {
+    return {
+      kind: "face-rounded",
+      cornerR: shape.cornerR,
+      topArchMm: shape.topArchMm ?? 0,
+      bottomArchMm: shape.bottomArchMm ?? 0,
+      bendMm: shape.bendMm ?? 0,
+      bendAxis: shape.bendAxis ?? "z",
+    };
+  }
+  if (shape.kind === "mitered-ends") {
+    return {
+      kind: "mitered-ends",
+      insetEach: shape.insetEach,
+      outerSide: shape.outerSide,
+      tiltAngle: shape.tiltAngle,
+      bevelAngle: shape.bevelAngle,
+      vertices: shape.vertices?.map(
+        ([x, y, z]) => [x, y, z] as [number, number, number],
+      ),
+    };
+  }
+  if (shape.kind === "finger-joint-ends") {
+    return {
+      kind: "finger-joint-ends",
+      segmentCount: shape.segmentCount,
+      phase: shape.phase,
+      fingerDepth: shape.fingerDepth,
+      edgeChamferMm: shape.edgeChamferMm,
+    };
+  }
+  if (shape.kind === "dovetail-ends") {
+    return {
+      kind: "dovetail-ends",
+      segmentCount: shape.segmentCount,
+      phase: shape.phase,
+      angleDeg: shape.angleDeg,
+      pinDepth: shape.pinDepth,
+      halfPin: shape.halfPin,
+    };
+  }
+  if (shape.kind === "regular-polygon") {
+    return {
+      kind: "regular-polygon",
+      sides: shape.sides,
+      outerRadius: shape.outerRadius,
+      angleOffsetDeg: shape.angleOffsetDeg,
+    };
+  }
+  if (shape.kind === "right-triangle") {
+    return { kind: "right-triangle", corner: shape.corner };
+  }
+  if (shape.kind === "mitered-corner") {
+    return {
+      kind: "mitered-corner",
+      axis: shape.axis,
+      corner: shape.corner,
+      depthMm: shape.depthMm,
+      chamferMm: shape.chamferMm ? shape.chamferMm : undefined,
+    };
+  }
+  // box / tilt-z / 未知 → 走方塊 fallback
+  return null;
+}
+
+// 簡化版：每件 part 用 part.shape 對應的幾何（方塊件走 BoxGeometry）。
+// - 形狀建模與 3D 預覽共用 lib/render/part-geometry.ts 的 buildShapeGeometry，
+//   斜度（tapered/splayed/hoof…）/弧度（round/lathe-turned/arch-bent…）件
+//   匯出後形狀正確、不再變方塊。
 // - origin 慣例：Y 軸 origin 在 part 底面 → 套 +yExt/2 補回中心
 // - rotation：Euler ZYX（與 PerspectiveView 一致）
 // - 三視圖 Y up（three.js native）→ 套 group.rotation.x = -90° 換成 Z up
 //   讓 slicer / SketchUp 匯入時直接站立、不用使用者再 rotate。
-// - 略過 visual 五金件（玻璃/金屬/絨布等）；榫頭凸出、倒角、tapered
-//   等 shape variant 一律走盒體。
+// - 略過 visual 五金件（玻璃/金屬/絨布等）。
+// - 簡化：不匯出榫頭凸出 / 榫眼 CSG 挖洞。
 function buildGroup(design: FurnitureDesign, scale: number): Group {
   const root = new Group();
   const mat = new MeshBasicMaterial();
@@ -24,7 +210,15 @@ function buildGroup(design: FurnitureDesign, scale: number): Group {
   for (const part of design.parts) {
     if (part.visual) continue;
     const p: Part = part;
-    const geom = new BoxGeometry(p.visible.length, p.visible.thickness, p.visible.width);
+    // size 走 mm（buildShapeGeometry 單位由 caller 決定，匯出器一律 mm）
+    const sizeMm: [number, number, number] = [
+      p.visible.length,
+      p.visible.thickness,
+      p.visible.width,
+    ];
+    const spec = toShapeSpec(p.shape);
+    const shapeGeom = spec ? buildShapeGeometry(spec, sizeMm) : null;
+    const geom = shapeGeom ?? new BoxGeometry(sizeMm[0], sizeMm[1], sizeMm[2]);
     const mesh = new Mesh(geom, mat);
     mesh.name = p.nameZh || p.id;
     const { yExt } = worldExtents(p);
@@ -81,3 +275,6 @@ export function downloadOBJ(design: FurnitureDesign, scale: number = DEFAULT_SCA
   const blob = new Blob([data], { type: "model/obj" });
   triggerDownload(blob, `${safeStem(design, scale)}.obj`);
 }
+
+// 測試 / 驗證用：取得未縮放的零件 Group（mm 單位、Z-up）。
+export { buildGroup };
