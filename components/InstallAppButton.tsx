@@ -30,9 +30,17 @@ export function InstallAppButton({ className, onDone }: Props) {
       return;
     }
 
+    // iPadOS 13+ 預設 UA 變成 "Macintosh",要靠 maxTouchPoints 才抓得到。
+    // 舊規則 /iPad|iPhone|iPod/ 只能抓 iPhone 跟 iPodTouch + iPad 9.x 以下。
     const ua = window.navigator.userAgent;
-    const iOSLike = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
-    setIsIOS(iOSLike);
+    const isLegacyIOS =
+      /iPad|iPhone|iPod/.test(ua) &&
+      !(window as unknown as { MSStream?: unknown }).MSStream;
+    const isIPadOS =
+      /Macintosh/.test(ua) &&
+      typeof window.navigator.maxTouchPoints === "number" &&
+      window.navigator.maxTouchPoints > 1;
+    setIsIOS(isLegacyIOS || isIPadOS);
 
     const onPrompt = (e: Event) => {
       e.preventDefault();

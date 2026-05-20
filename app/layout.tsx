@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Serif_TC } from "next/font/google";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -9,6 +9,7 @@ import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BugReportFab } from "@/components/BugReportFab";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { IOSInstallBanner } from "@/components/IOSInstallBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,16 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// 中文標題用 serif — 對齊木匠學院的工坊質感
+// preload + display:swap 確保 LCP 不受影響
+const notoSerifTC = Noto_Serif_TC({
+  variable: "--font-serif-tc",
+  weight: ["400", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  preload: false, // 中文檔大，不 preload，等實際需要再載
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
@@ -80,7 +91,7 @@ export default async function RootLayout({
   return (
     <html
       lang="zh-Hant"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSerifTC.variable} antialiased`}
       style={{ colorScheme: "light" }}
     >
       <body className="bg-[#fafaf7] text-zinc-900">
@@ -124,6 +135,7 @@ export default async function RootLayout({
           <BugReportFab />
           <StudentWelcomeModal />
           <ServiceWorkerRegister />
+          <IOSInstallBanner />
         </AuthProvider>
       </body>
     </html>
