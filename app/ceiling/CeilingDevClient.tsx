@@ -37,6 +37,7 @@ import {
   makeDefaultFixture,
 } from "@/lib/ceiling/fixtures";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
+import { CeilingRangeInput } from "./CeilingRangeInput";
 
 interface CustomerInfo {
   name: string;
@@ -322,17 +323,21 @@ export function CeilingDevClient() {
 
           {/* ====== 左欄(mobile order-2 在視覺下方、desktop order-1 在左) ====== */}
           <div className="w-full min-w-0 order-2 lg:order-1 space-y-5">
-            {/* 4 大輸入 */}
+            {/* 4 大輸入 — 房間尺寸 */}
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
-                <HeroInput icon="↔" label="長邊" value={input.longSideCm} suffix="cm"
-                  onChange={(v) => update("longSideCm", v)} />
-                <HeroInput icon="↕" label="短邊" value={input.shortSideCm} suffix="cm"
-                  onChange={(v) => update("shortSideCm", v)} />
-                <HeroInput icon="↥" label="板高" value={input.slabHeightCm} suffix="cm" sub="樓板到地"
-                  onChange={(v) => update("slabHeightCm", v)} />
-                <HeroInput icon="≡" label="天花板高" value={input.ceilingHeightCm} suffix="cm" sub="完成面"
-                  onChange={(v) => update("ceilingHeightCm", v)} />
+              <div className="px-5 py-3 border-b border-stone-100 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-zinc-900">📐 房間尺寸</h2>
+                <span className="text-[11px] text-zinc-600">拖拉條調整,圖與材料表即時重算</span>
+              </div>
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <CeilingRangeInput icon="↔" label="長邊" value={input.longSideCm} unit="cm"
+                  min={100} max={1500} step={5} onChange={(v) => update("longSideCm", v)} />
+                <CeilingRangeInput icon="↕" label="短邊" value={input.shortSideCm} unit="cm"
+                  min={100} max={1200} step={5} onChange={(v) => update("shortSideCm", v)} />
+                <CeilingRangeInput icon="↥" label="板高" sub="樓板到地" value={input.slabHeightCm} unit="cm"
+                  min={200} max={400} step={1} onChange={(v) => update("slabHeightCm", v)} />
+                <CeilingRangeInput icon="≡" label="天花板高" sub="完成面" value={input.ceilingHeightCm} unit="cm"
+                  min={180} max={380} step={1} onChange={(v) => update("ceilingHeightCm", v)} />
               </div>
             </section>
 
@@ -424,9 +429,12 @@ export function CeilingDevClient() {
 
             {/* 矽酸鈣板 */}
             <ParamGroup icon="🪵" title="矽酸鈣板">
-              <SmallNum label="板長" value={input.boardLongCm} onChange={(v) => update("boardLongCm", v)} unit="cm" />
-              <SmallNum label="板寬" value={input.boardShortCm} onChange={(v) => update("boardShortCm", v)} unit="cm" />
-              <SmallNum label="接縫" value={input.jointGapMm} onChange={(v) => update("jointGapMm", v)} step={1} unit="mm" />
+              <CeilingRangeInput label="板長" value={input.boardLongCm} unit="cm"
+                min={60} max={300} step={10} onChange={(v) => update("boardLongCm", v)} />
+              <CeilingRangeInput label="板寬" value={input.boardShortCm} unit="cm"
+                min={45} max={150} step={5} onChange={(v) => update("boardShortCm", v)} />
+              <CeilingRangeInput label="接縫" value={input.jointGapMm} unit="mm"
+                min={0} max={10} step={1} onChange={(v) => update("jointGapMm", v)} />
               <p className="text-[10px] text-zinc-600 leading-snug">業界 3-6 mm,9 mm 板取 3 mm</p>
             </ParamGroup>
 
@@ -434,12 +442,20 @@ export function CeilingDevClient() {
             <ParamGroup icon="📏" title="角材 + 間距">
               <Check label="🔒 依板規自動算間距" checked={input.useAutoSpacing}
                 onChange={(v) => update("useAutoSpacing", v)} />
-              <SmallNum label="主支中心距" value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
-                onChange={(v) => update("mainSpacingCm", v)} step={0.1} disabled={input.useAutoSpacing} unit="cm" />
-              <SmallNum label="副支中心距" value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
-                onChange={(v) => update("subSpacingCm", v)} step={0.1} disabled={input.useAutoSpacing} unit="cm" />
-              <SmallNum label="角材寬" value={input.timberWidthCm} onChange={(v) => update("timberWidthCm", v)} step={0.1} unit="cm" />
-              <SmallNum label="角材厚" value={input.timberThicknessCm} onChange={(v) => update("timberThicknessCm", v)} step={0.1} unit="cm" />
+              <CeilingRangeInput label="主支中心距" unit="cm"
+                value={input.useAutoSpacing ? bom.input.mainSpacingCm : input.mainSpacingCm}
+                min={30} max={120} step={0.1} disabled={input.useAutoSpacing}
+                help={input.useAutoSpacing ? "已鎖定:依板規自動算。取消上方勾選即可手動拖拉" : undefined}
+                onChange={(v) => update("mainSpacingCm", v)} />
+              <CeilingRangeInput label="副支中心距" unit="cm"
+                value={input.useAutoSpacing ? bom.input.subSpacingCm : input.subSpacingCm}
+                min={20} max={60} step={0.1} disabled={input.useAutoSpacing}
+                help={input.useAutoSpacing ? "已鎖定:依板規自動算。取消上方勾選即可手動拖拉" : undefined}
+                onChange={(v) => update("subSpacingCm", v)} />
+              <CeilingRangeInput label="角材寬" value={input.timberWidthCm} unit="cm"
+                min={2} max={6} step={0.1} onChange={(v) => update("timberWidthCm", v)} />
+              <CeilingRangeInput label="角材厚" value={input.timberThicknessCm} unit="cm"
+                min={2} max={6} step={0.1} onChange={(v) => update("timberThicknessCm", v)} />
             </ParamGroup>
 
             {/* 吊筋 */}
@@ -447,8 +463,10 @@ export function CeilingDevClient() {
               <Toggle3 label="密度" value={input.hangerDensity}
                 opts={[["standard", "業界標準"], ["minimal", "簡化"]]}
                 onChange={(v) => update("hangerDensity", v as HangerDensity)} />
-              <SmallNum label="中心距" value={input.hangerSpacingCm} onChange={(v) => update("hangerSpacingCm", v)} unit="cm"
-                disabled={input.hangerDensity === "minimal"} />
+              <CeilingRangeInput label="中心距" value={input.hangerSpacingCm} unit="cm"
+                min={45} max={150} step={5} disabled={input.hangerDensity === "minimal"}
+                help={input.hangerDensity === "minimal" ? "簡化模式下不適用(每根主支只在兩端各一支)" : undefined}
+                onChange={(v) => update("hangerSpacingCm", v)} />
             </ParamGroup>
           </div>
         </section>
@@ -828,29 +846,6 @@ export function CeilingDevClient() {
 // 小元件
 // ─────────────────────────────────────────────────────────
 
-function HeroInput({
-  icon, label, sub, value, suffix, onChange,
-}: { icon: string; label: string; sub?: string; value: number; suffix: string; onChange: (v: number) => void }) {
-  return (
-    <label className="group block px-5 py-4 hover:bg-amber-50/40 transition cursor-pointer">
-      <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 uppercase tracking-wide font-semibold">
-        <span className="text-amber-600 text-base leading-none">{icon}</span>
-        {label}
-        {sub && <span className="text-[10px] text-zinc-600 font-normal normal-case">· {sub}</span>}
-      </div>
-      <div className="flex items-baseline gap-1.5 mt-1">
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="text-3xl font-bold text-zinc-900 tabular-nums bg-transparent w-full focus:outline-none no-spinner group-hover:text-amber-900 transition"
-        />
-        <span className="text-xs text-zinc-400 font-medium">{suffix}</span>
-      </div>
-    </label>
-  );
-}
-
 function Stat({
   icon, tone, label, value, unit, hint,
 }: { icon: string; tone: "amber" | "stone"; label: string; value: number | string; unit: string; hint?: string }) {
@@ -879,24 +874,8 @@ function ParamGroup({ icon, title, children }: { icon: string; title: string; ch
       <h3 className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold flex items-center gap-1.5">
         <span>{icon}</span>{title}
       </h3>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-3">{children}</div>
     </div>
-  );
-}
-
-function SmallNum({
-  label, value, onChange, step = 1, unit, disabled,
-}: { label: string; value: number; onChange: (v: number) => void; step?: number; unit?: string; disabled?: boolean }) {
-  return (
-    <label className="block text-xs">
-      <span className="text-zinc-600 block mb-1">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <input type="number" value={value} step={step} disabled={disabled}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-stone-300 rounded-md tabular-nums disabled:bg-stone-100 disabled:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />
-        {unit && <span className="text-[10px] text-zinc-600 w-6 shrink-0">{unit}</span>}
-      </div>
-    </label>
   );
 }
 
