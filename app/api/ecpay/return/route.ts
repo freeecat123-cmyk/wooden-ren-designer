@@ -231,6 +231,14 @@ export async function POST(req: NextRequest) {
         upgradeRefundAmount = await handleUpgradeRefund(admin, sub.replaced_subscription_id, sub.id);
       }
 
+      // 2.5 防禦性掃描:同 user 還有其他 active sub(歷史漏網、checkout 只取最新一筆
+      //     當 replaced_subscription_id 的邊角 case)→ 一筆筆 terminate + 標 cancelled
+      try {
+        await sweepOtherActiveSubs(admin, sub.user_id, sub.id);
+      } catch (e) {
+        console.error("[ecpay/return:after] sweepOtherActiveSubs 例外", e);
+      }
+
       // 3. 寄首次付款成功 email
       try {
         const { data: u } = await admin
@@ -425,5 +433,57 @@ async function cancelOldEcpayPeriodic(
     console.log("[ecpay/return/cancel-old] 舊 sub terminate + DB cancelled", { oldSubId });
   } catch (e) {
     console.error("[ecpay/return/cancel-old] 例外", e);
+  }
+}
+
+/**
+ * 防禦性掃描:除了 replaced_subscription_id 指定的舊 sub 外,如果同 user 還有
+ * 其他 active sub(歷史漏網、checkout 只取最新一筆當 replaced 的邊角 case),
+ * 逐筆 terminate ECPay + 標 cancelled。
+ *
+ * 失敗只 log 不擋 webhook(新 sub 已啟用,sweep 失敗 admin 可後續手動處理)。
+ */
+async function sweepOtherActiveSubs(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  newSubId: string,
+): Promise<void> {
+  const { data: others, error } = await admin
+    .from("subscriptions")
+    .select("id, ecpay_merchant_trade_no")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .neq("id", newSubId);
+  if (error) {
+    console.error("[ecpay/return/sweep] 撈其他 active 失敗", error);
+    return;
+  }
+  if (!others || others.length === 0) return;
+
+  console.warn("[ecpay/return/sweep] 發現其他 active sub(歷史漏網),清理中", {
+    userId,
+    count: others.length,
+    ids: others.map((o) => o.id),
+  });
+
+  for (const old of others) {
+    if (old.ecpay_merchant_trade_no) {
+      const r = await terminateEcpayPeriodic(old.ecpay_merchant_trade_no);
+      if (!r.ok) {
+        const benign =
+          r.rtnMsg?.includes("不存在") || r.rtnMsg?.includes("已終止");
+        if (!benign) {
+          console.error("[ecpay/return/sweep] terminate 失敗", {
+            subId: old.id,
+            r,
+          });
+          // 即使 terminate 失敗仍標 DB cancelled,避免下次 sweep 又掃到
+        }
+      }
+    }
+    await admin
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("id", old.id);
   }
 }

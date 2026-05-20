@@ -33,41 +33,62 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  // 找這個使用者目前 active 的 subscription（最後一筆有 merchant_trade_no 的）
-  const { data: sub, error: subErr } = await admin
+  // 撈該 user 全部 active subs(可能歷史邊角 case 有 >1 筆),每筆都終止 + 標 cancelled。
+  // 之前只取 .limit(1) 的最新一筆,留下 zombie active。
+  const { data: subs, error: subErr } = await admin
     .from("subscriptions")
     .select("id, ecpay_merchant_trade_no, status")
     .eq("user_id", user.id)
     .eq("status", "active")
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("started_at", { ascending: false });
 
   if (subErr) {
     console.error("[cancel-subscription] 撈 subscription 失敗", subErr);
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
-  if (!sub || !sub.ecpay_merchant_trade_no) {
+  if (!subs || subs.length === 0) {
     return NextResponse.json({ error: "no_active_subscription" }, { status: 404 });
   }
 
-  // 呼叫綠界 Terminate API。失敗 (含網路 / 綠界回 RtnCode != 1) 都 return 502,
-  // 不標 DB cancelled — 否則綠界其實沒終止、DB 卻顯示 cancelled,下個月 periodic-notify
-  // 還會進來把 user 反 active 害 user 再被扣款。
-  const result = await terminateEcpayPeriodic(sub.ecpay_merchant_trade_no);
-  if (!result.ok) {
-    return NextResponse.json(
-      { error: result.error, rtnCode: result.rtnCode, rtnMsg: result.rtnMsg },
-      { status: 502 },
-    );
+  // 逐筆呼叫綠界 Terminate;任何一筆失敗就 502 不動 DB(避免 DB cancelled 但綠界
+  // 還在自動扣)。已成功 terminate 的不回滾(綠界端終止無法撤回,反正也對使用者有利)。
+  const results: Array<{ subId: string; orderId: string | null; ok: boolean; rtnCode?: string; rtnMsg?: string }> = [];
+  for (const sub of subs) {
+    if (!sub.ecpay_merchant_trade_no) {
+      // 沒 merchant_trade_no 的(theoretically shouldn't happen for active sub)→ 跳過 ECPay,只標 DB
+      await admin.from("subscriptions").update({ status: "cancelled" }).eq("id", sub.id);
+      results.push({ subId: sub.id, orderId: null, ok: true });
+      continue;
+    }
+    const r = await terminateEcpayPeriodic(sub.ecpay_merchant_trade_no);
+    const benign =
+      r.rtnMsg?.includes("不存在") || r.rtnMsg?.includes("已終止");
+    if (!r.ok && !benign) {
+      return NextResponse.json(
+        {
+          error: r.error ?? "terminate_failed",
+          rtnCode: r.rtnCode,
+          rtnMsg: r.rtnMsg,
+          subId: sub.id,
+          orderId: sub.ecpay_merchant_trade_no,
+          partial_results: results,
+        },
+        { status: 502 },
+      );
+    }
+    await admin
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("id", sub.id);
+    results.push({
+      subId: sub.id,
+      orderId: sub.ecpay_merchant_trade_no,
+      ok: true,
+      rtnCode: r.rtnCode ?? undefined,
+      rtnMsg: r.rtnMsg ?? undefined,
+    });
   }
-  const rtnCode = result.rtnCode;
-  const rtnMsg = result.rtnMsg;
 
-  await admin
-    .from("subscriptions")
-    .update({ status: "cancelled" })
-    .eq("id", sub.id);
   await admin
     .from("users")
     .update({ subscription_status: "cancelled" })
@@ -75,10 +96,9 @@ export async function POST(req: NextRequest) {
 
   console.log("[cancel-subscription] 已取消", {
     userId: user.id,
-    orderId: sub.ecpay_merchant_trade_no,
-    rtnCode,
-    rtnMsg,
+    count: results.length,
+    results,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, cancelled_count: results.length, results });
 }
