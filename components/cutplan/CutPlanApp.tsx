@@ -320,6 +320,30 @@ export function CutPlanApp({
         </div>
       </div>
 
+      {/* 破版警示：跨 group 彙整所有排不下的零件，明顯紅框防漏單 */}
+      {totalUnplaced > 0 && (
+        <div className="no-print rounded-lg border-2 border-red-300 bg-red-50 p-3">
+          <div className="text-sm font-semibold text-red-900 mb-1.5 flex items-center gap-1.5">
+            <span>⚠️</span>
+            <span>以下 {totalUnplaced} 件零件超過原料板尺寸，無法排版</span>
+          </div>
+          <p className="text-[11px] text-red-700 mb-2 leading-relaxed">
+            請加大「原料庫存」尺寸、改用更大張板，或在零件清單把這幾件用 ✂ 拆成兩塊。
+            否則照單去料行會缺料。
+          </p>
+          <ul className="text-xs text-red-900 space-y-0.5">
+            {plan.groups.flatMap((g, gi) =>
+              g.unplaced.map((p, pi) => (
+                <li key={`unp-${gi}-${pi}-${p.partId}`} className="font-mono">
+                  · {p.partNameZh}　{p.length} × {p.width} × {p.thickness} mm
+                  <span className="text-red-600 ml-1">（{g.kind === "solid" ? "實木" : g.kind === "plywood" ? "夾板" : "中纖板"}）</span>
+                </li>
+              )),
+            )}
+          </ul>
+        </div>
+      )}
+
       {/* 主視覺：庫存全寬置頂 ↔ 排料圖下方雙欄 */}
       <div className="space-y-4 no-print">
         <StockEditor
