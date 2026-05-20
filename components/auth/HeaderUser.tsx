@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import { LoginButton } from "./LoginButton";
 import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 /**
  * 頁首右上角浮動的登入狀態 widget。
@@ -147,6 +148,10 @@ function UserDropdown({
               🛠 後台儀表板
             </Link>
           )}
+          <InstallAppButton
+            onDone={() => setOpen(false)}
+            className="block w-full text-left px-4 py-2 text-sm text-zinc-700 hover:bg-amber-50 border-t border-zinc-100"
+          />
           <button
             type="button"
             onClick={signOut}
