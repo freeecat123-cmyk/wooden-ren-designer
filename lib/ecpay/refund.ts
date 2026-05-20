@@ -248,9 +248,29 @@ export async function queryPeriodicStatus(
         json[k] = v;
       });
     }
+    // 綠界 QueryCreditCardPeriodInfo 回的欄位是 ExecStatus (不是 Status):
+    //   "0" = 已終止 / "1" = 執行中 / "2" = 已完成
+    // 把它 normalize 成中文 status 字串,對齊呼叫端 cron 既有的判斷 'q.status === "終止"'
+    const execStatus =
+      typeof json.ExecStatus === "string"
+        ? json.ExecStatus
+        : json.ExecStatus != null
+          ? String(json.ExecStatus)
+          : undefined;
+    const statusFromExec =
+      execStatus === "0"
+        ? "終止"
+        : execStatus === "1"
+          ? "執行中"
+          : execStatus === "2"
+            ? "已完成"
+            : undefined;
+    // 雙保險:有 Status 欄位先用(萬一不同沙箱/版本),否則用 ExecStatus mapping
+    const status =
+      (typeof json.Status === "string" ? json.Status : undefined) ?? statusFromExec;
     return {
       ok: true,
-      status: typeof json.Status === "string" ? json.Status : undefined,
+      status,
       totalSuccessTimes:
         typeof json.TotalSuccessTimes === "number"
           ? json.TotalSuccessTimes
