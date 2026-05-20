@@ -6,6 +6,7 @@ import { OBJExporter } from "three/examples/jsm/exporters/OBJExporter.js";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
 import { type ShapeSpec, buildShapeGeometry } from "@/lib/render/part-geometry";
+import { validateGroup, type GroupValidation } from "./export-checks";
 
 // 預設 10:1 縮小（model 1mm = 實際 10mm）—— 適合家用 3D 列印機印
 // 一張 200×200mm 床的方凳實體 400mm 高 → 模型 40mm。
@@ -236,6 +237,26 @@ function buildGroup(design: FurnitureDesign, scale: number): Group {
   return root;
 }
 
+/**
+ * 建出零件 Group 並跑幾何自檢——給 UI 事前顯示「破面零件」提示用。
+ * 流形性與比例無關，固定用 scale=1 建。
+ */
+export function validateDesignExport(design: FurnitureDesign): GroupValidation {
+  return validateGroup(buildGroup(design, 1));
+}
+
+/** 匯出時對 group 跑自檢，有問題的零件印 console 警告（非阻擋）。 */
+function warnIfInvalid(group: Group) {
+  const v = validateGroup(group);
+  if (v.ok) return;
+  for (const p of v.badParts) {
+    console.warn(
+      `[3D 匯出] 零件「${p.partName}」幾何異常：` +
+        `NaN 頂點 ${p.nanVertices}、退化面 ${p.degenerateTris}、非流形邊 ${p.nonManifoldEdges}`,
+    );
+  }
+}
+
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -263,6 +284,7 @@ function safeStem(design: FurnitureDesign, scale: number) {
 
 export function downloadSTL(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
   const group = buildGroup(design, scale);
+  warnIfInvalid(group);
   const data = new STLExporter().parse(group, { binary: true }) as DataView;
   const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([buffer], { type: "model/stl" });
@@ -271,6 +293,7 @@ export function downloadSTL(design: FurnitureDesign, scale: number = DEFAULT_SCA
 
 export function downloadOBJ(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
   const group = buildGroup(design, scale);
+  warnIfInvalid(group);
   const data = new OBJExporter().parse(group);
   const blob = new Blob([data], { type: "model/obj" });
   triggerDownload(blob, `${safeStem(design, scale)}.obj`);
