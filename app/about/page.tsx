@@ -433,8 +433,8 @@ export default function AboutPage() {
           先免費試，需要再升級
         </h2>
         <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed text-center">
-          月付試試看，覺得不對立刻取消。<br className="sm:hidden" />
-          年付有 2 個月優惠，划算。
+          月付 NT$390 起，年付直接省兩個月。<br className="sm:hidden" />
+          一張凳子的設計圖，省下的時間就回本。
         </p>
 
         {/* 三方案 mini cards */}
