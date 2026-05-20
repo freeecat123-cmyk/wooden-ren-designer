@@ -68,6 +68,26 @@ export function WebviewWarning({ app }: { app: string }) {
   );
 }
 
+// 把 Supabase 英文錯誤訊息轉成繁體中文，避免木工使用者看到 "Email rate limit
+// exceeded" 之類訊息困惑。沒對到的回 fallback「請稍後再試」+ 原訊息供 debug。
+function zhAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("rate limit") || m.includes("too many")) return "太多次嘗試了，請 60 秒後再試。";
+  if (m.includes("invalid email") || m.includes("invalid format") || m.includes("invalid address")) {
+    return "Email 格式不正確，請確認後再試。";
+  }
+  if (m.includes("not found") || m.includes("no user")) {
+    return "找不到這個帳號。首次使用直接送出即可自動註冊。";
+  }
+  if (m.includes("user not allowed") || m.includes("signup disabled")) {
+    return "目前未開放註冊，請聯絡客服。";
+  }
+  if (m.includes("network") || m.includes("fetch") || m.includes("timeout")) {
+    return "網路連線不穩，請重試一次。";
+  }
+  return `寄送失敗，請稍後再試（${msg}）`;
+}
+
 export function MagicLinkForm() {
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
@@ -89,7 +109,7 @@ export function MagicLinkForm() {
     });
     if (error) {
       setMode("error");
-      setError(error.message);
+      setError(zhAuthError(error.message));
     } else {
       setMode("sent");
     }
@@ -138,7 +158,7 @@ export function MagicLinkForm() {
         {mode === "sending" ? "寄送中…" : "送出登入連結 →"}
       </button>
       {error && (
-        <div className="text-xs text-rose-700">寄送失敗：{error}</div>
+        <div className="text-xs text-rose-700">{error}</div>
       )}
       <p className="text-[11px] text-zinc-400 leading-relaxed">
         首次使用 = 自動註冊。點信內按鈕後登入完成，無需密碼。
