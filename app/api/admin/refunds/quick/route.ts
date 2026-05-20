@@ -66,17 +66,19 @@ export async function POST(req: Request) {
     if (!u) {
       return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
+    // 排除 SIM* 模擬付款(simulate-periodic 工具產的、不存在綠界系統、無法真的退款)
     const { data: p } = await svc
       .from("payments")
       .select("id")
       .eq("user_id", u.id)
       .eq("status", "success")
+      .not("ecpay_trade_no", "ilike", "SIM%")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!p) {
       return NextResponse.json(
-        { error: "no_success_payment_for_user" },
+        { error: "no_success_payment_for_user", hint: "可能該帳號只有模擬付款(SIM*)、沒有真實成功扣款可退" },
         { status: 404 },
       );
     }
@@ -113,6 +115,18 @@ export async function POST(req: Request) {
   if (!tradeNo || !orderId) {
     return NextResponse.json(
       { error: "missing_trade_info", tradeNo, orderId },
+      { status: 400 },
+    );
+  }
+
+  // 防呆:直接指定 payment_id 也可能誤點到 SIM*
+  if (tradeNo.startsWith("SIM")) {
+    return NextResponse.json(
+      {
+        error: "sim_payment_cannot_refund",
+        hint: "此為 simulate-periodic 工具產的模擬付款(SIM*),不存在綠界系統、無法真的退款。請直接 SQL 砍掉這筆 payment + refund_request。",
+        tradeNo,
+      },
       { status: 400 },
     );
   }

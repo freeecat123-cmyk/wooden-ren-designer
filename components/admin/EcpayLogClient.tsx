@@ -498,6 +498,18 @@ function InvoiceCell({
       </span>
     );
   }
+  // simulate-periodic 工具產的模擬付款(SIM* TradeNo,綠界無此交易,不能真的退款)
+  const isSimPeriodic =
+    payment.raw_response &&
+    typeof payment.raw_response === "object" &&
+    (payment.raw_response as Record<string, unknown>)._note === "sim_periodic";
+  if (isSimPeriodic) {
+    return (
+      <span className="text-[11px] text-purple-600" title="admin 模擬月扣產生的測試付款,綠界無此交易,無法真的退款">
+        🧪 模擬付款
+      </span>
+    );
+  }
   // refunded payment 沒同步作廢 → 顯示補作廢按鈕(退款 24h 內可用)
   if (payment.status === "refunded" && s === "issued") {
     return (

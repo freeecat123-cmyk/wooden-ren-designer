@@ -157,11 +157,23 @@ export async function POST(req: Request) {
     .single();
   const { data: newestPayment } = await admin
     .from("payments")
-    .select("id, status, amount, ecpay_trade_no, invoice_status, created_at")
+    .select("id, status, amount, ecpay_trade_no, invoice_status, created_at, raw_response")
     .eq("subscription_id", sub.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // 標記剛產生的這筆是模擬付款,讓 UI / quick refund 可以辨識
+  if (newestPayment && (newestPayment.ecpay_trade_no as string | null)?.startsWith("SIM")) {
+    const existingRaw =
+      (newestPayment.raw_response as Record<string, unknown> | null) ?? {};
+    await admin
+      .from("payments")
+      .update({
+        raw_response: { ...existingRaw, _note: "sim_periodic", _sim_at: new Date().toISOString() },
+      })
+      .eq("id", newestPayment.id);
+  }
 
   return NextResponse.json({
     ok: true,
