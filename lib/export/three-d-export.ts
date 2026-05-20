@@ -242,7 +242,15 @@ function buildGroup(design: FurnitureDesign, scale: number): Group {
  * 流形性與比例無關，固定用 scale=1 建。
  */
 export function validateDesignExport(design: FurnitureDesign): GroupValidation {
-  return validateGroup(buildGroup(design, 1));
+  const group = buildGroup(design, 1);
+  const result = validateGroup(group);
+  // 自檢用的 group 是暫時的——驗完即釋放各零件 geometry，避免 UI 每次
+  // 改設計都在 useMemo 裡建一份不回收。
+  group.traverse((obj) => {
+    const mesh = obj as Mesh;
+    if (mesh.isMesh) mesh.geometry.dispose();
+  });
+  return result;
 }
 
 /** 匯出時對 group 跑自檢，有問題的零件印 console 警告（非阻擋）。 */
