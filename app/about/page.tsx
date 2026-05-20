@@ -374,7 +374,7 @@ export default function AboutPage() {
             </h2>
             <p className="mt-4 text-zinc-800 leading-relaxed text-lg">
               YouTube <strong>二十萬人</strong>看我做木工，
-              木匠學院教過<strong>上千個學員</strong>。
+              木匠學院線上+實體教過<strong>六百多位學員</strong>。
             </p>
             <p className="mt-3 text-zinc-800 leading-relaxed">
               這十年我最常被問的就是——
