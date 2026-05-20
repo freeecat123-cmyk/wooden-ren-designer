@@ -29,6 +29,9 @@ const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
   "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2 },
 };
 
+/** 鑲板入溝模式：底板下緣離框底（壁底）的固定抬高量 (mm) */
+const INSET_PANEL_LIFT = 6;
+
 export const pencilHolderOptions: OptionSpec[] = [
   { group: "structure", type: "select", key: "bodyShape", label: "筒身形狀", defaultValue: "rect", choices: [
     { value: "rect", label: "方筒（4 壁，最簡單）" },
@@ -120,7 +123,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     if (bottomAttach === "inset-panel") {
       stavesOuterH = outerH + botT;  // 內部 wallH = outerH（全高）
       stavesBaseY = 0;
-      bottomOriginY = botT;
+      bottomOriginY = INSET_PANEL_LIFT;
       // 5mm 卡進壁內側溝槽（沿用 box-builder 慣例 grooveDepth=5）
       const grooveDepth = Math.min(5, wallT - 1);
       const bottomApothem = (apothem - wallT) + grooveDepth;
@@ -170,7 +173,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       // 固定 5mm dado 槽（沿用 box-builder 慣例），延伸進壁內側並 CSG 挖出可見溝槽
       const polyDividerGroove = Math.min(5, wallT - 1);
       const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
-      const polyBottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? INSET_PANEL_LIFT + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
       const polyDividerH = dividerHeightOpt > 0
         ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
@@ -266,7 +269,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         width: outerW - 2 * insetEach,
         thickness: botT,
       };
-      bottomPart.origin = { x: 0, y: botT, z: 0 };
+      bottomPart.origin = { x: 0, y: INSET_PANEL_LIFT, z: 0 };
       for (const part of built.parts) {
         if (part.id.startsWith("wall-")) {
           part.visible = { ...part.visible, width: outerH };
@@ -403,8 +406,8 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
-  const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+  // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 INSET_PANEL_LIFT，其餘走 buildBox 既定
+  const bottomTopY = bottomAttach === "inset-panel" ? INSET_PANEL_LIFT + botT : botT;
   const dividerHAuto = Math.max(1, outerH - bottomTopY);
   const dividerH = dividerHeightOpt > 0
     ? Math.max(1, Math.min(dividerHeightOpt, dividerHAuto))
