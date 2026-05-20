@@ -6,7 +6,7 @@ import { OBJExporter } from "three/examples/jsm/exporters/OBJExporter.js";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
 import { type ShapeSpec, buildShapeGeometry } from "@/lib/render/part-geometry";
-import { validateGroup, type GroupValidation } from "./export-checks";
+import { validateGroup, MIN_PRINTABLE_MM, type GroupValidation } from "./export-checks";
 import { buildFlatLayoutGroup } from "./flat-layout";
 import { groupToModelXml, buildThreeMfZip } from "./three-mf";
 
@@ -211,6 +211,29 @@ export function partExportGeometry(part: Part): BufferGeometry {
   return shapeGeom ?? new BoxGeometry(sizeMm[0], sizeMm[1], sizeMm[2]);
 }
 
+/**
+ * 太薄件自動加厚——逐軸檢查，某維度「縮放後」< MIN_PRINTABLE_MM（噴嘴 2 倍）就把
+ * 該軸放大到剛好達標。例：背板 3mm 在 1:10 → 0.3mm，會被撐到 0.8mm 才印得出來。
+ * 代價：加厚的件比例略失真，但「印得出來」優先。就地修改 geom。
+ */
+export function thickenForPrint(geom: BufferGeometry, scale: number) {
+  if (scale <= 0) return;
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox;
+  if (!bb) return;
+  const size = [bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z];
+  const minMm = MIN_PRINTABLE_MM / scale; // 縮放前需要的最小 mm
+  const f: [number, number, number] = [1, 1, 1];
+  let need = false;
+  for (let i = 0; i < 3; i++) {
+    if (size[i] > 1e-6 && size[i] < minMm) {
+      f[i] = minMm / size[i];
+      need = true;
+    }
+  }
+  if (need) geom.scale(f[0], f[1], f[2]);
+}
+
 // 簡化版：每件 part 用 part.shape 對應的幾何（方塊件走 BoxGeometry）。
 // - 形狀建模與 3D 預覽共用 lib/render/part-geometry.ts 的 buildShapeGeometry，
 //   斜度（tapered/splayed/hoof…）/弧度（round/lathe-turned/arch-bent…）件
@@ -219,16 +242,17 @@ export function partExportGeometry(part: Part): BufferGeometry {
 // - rotation：Euler ZYX（與 PerspectiveView 一致）
 // - 三視圖 Y up（three.js native）→ 套 group.rotation.x = -90° 換成 Z up
 //   讓 slicer / SketchUp 匯入時直接站立、不用使用者再 rotate。
-// - 略過 visual 五金件（玻璃/金屬/絨布等）。
+// - 所有零件都匯出（含五金：把手/玻璃等 visual 件）。
+// - 太薄件（縮放後 < 0.8mm）自動加厚到可印厚度。
 // - 簡化：不匯出榫頭凸出 / 榫眼 CSG 挖洞。
 function buildGroup(design: FurnitureDesign, scale: number): Group {
   const root = new Group();
   const mat = new MeshBasicMaterial();
 
   for (const part of design.parts) {
-    if (part.visual) continue;
     const p: Part = part;
     const geom = partExportGeometry(p);
+    thickenForPrint(geom, scale);
     const mesh = new Mesh(geom, mat);
     mesh.name = p.nameZh || p.id;
     const { yExt } = worldExtents(p);

@@ -63,7 +63,7 @@ const meshes: Mesh[] = [];
 group.traverse((o) => {
   if ((o as Mesh).isMesh) meshes.push(o as Mesh);
 });
-check("攤平 group 跳過 visual 件、剩 2 件", meshes.length === 2);
+check("攤平 group 含所有件（五金 visual 件也匯出）、共 3 件", meshes.length === 3);
 
 // 兩件世界 AABB 不重疊（group 已套 Z-up 旋轉 + scale=1）
 group.updateMatrixWorld(true);

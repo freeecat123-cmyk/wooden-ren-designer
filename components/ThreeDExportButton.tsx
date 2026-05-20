@@ -83,7 +83,7 @@ export function ThreeDExportButton({ design }: Props) {
       {tooThin && (
         <p className="text-amber-700">
           ⚠️ 最薄件 {minThk.thinnestMm.toFixed(1)}mm（{minThk.partName}），
-          一般 3D 印表機印不出來，建議改用更大的比例。
+          匯出時會自動加厚到 {MIN_PRINTABLE_MM}mm 才印得出來；要精準比例請改用更大比例。
         </p>
       )}
       {!validation.ok && (
