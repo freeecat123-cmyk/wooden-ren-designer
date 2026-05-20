@@ -77,17 +77,32 @@ export const TOOL_CATALOG: Record<string, Tool> = {
   // ----- 鋸 -----
   "japanese-saw": {
     id: "japanese-saw",
-    nameZh: "日式雙刃鋸（橫切+縱切）",
+    nameZh: "Temple Tool 180mm 雙刃鋸（縱切+橫切兩用，日本鋼材）",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%A4%BE%E8%83%8C%E9%8B%B8-%E6%9C%A8%E5%B7%A5%E9%8B%B8-%E6%A9%AB%E6%96%B7%E9%9D%A2%E9%8B%B8-%E9%9B%99%E9%9D%A2%E9%8B%B8-%E6%9C%A8%E6%9D%BF%E5%88%87%E5%89%B2%E9%96%8B%E6%A6%AB%E9%8B%B8-%E7%A1%AC%E6%9C%A8%E9%8B%B8-%E6%89%8B%E5%B7%A5%E9%8B%B8-%E5%88%80%E9%8B%B8%E6%97%A5%E5%BC%8F%E5%B7%A5%E5%85%B7",
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-180mm-%E9%9B%99%E5%88%83%E9%8B%B8-%E6%97%A5%E5%BC%8F%E6%89%8B%E9%8B%B8-%E7%B8%B1%E5%88%87-%E6%A9%AB%E5%88%87%E5%85%A9%E7%94%A8-%E9%9B%99%E9%9D%A2%E9%8B%B8-%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E9%9D%88%E5%B7%A7%E5%9E%8B-%E7%B2%BE%E5%AF%86%E6%9C%A8%E4%BD%9C",
   },
   "dovetail-saw": {
     id: "dovetail-saw",
-    nameZh: "岡田 Z-Saw 07055 導突鋸（硬木專用）",
+    nameZh: "Temple Tool 240mm 縱切導付鋸（日式夾背鋸，燕尾榫專用）",
     category: "saw",
     shopUrl:
-      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%97%A5%E6%9C%AC%E5%B2%A1%E7%94%B0-z%E7%89%8C-%E8%86%A0%E6%9F%84%E5%B0%8E%E7%AA%81%E9%8B%B8-%E7%A1%AC%E6%9C%A8%E5%B0%88%E7%94%A8-150-%E5%A4%BE%E8%83%8C%E9%8B%B8-%E6%A6%AB%E9%A0%AD%E9%8B%B8-%E6%97%A5%E6%9C%AC%E8%A3%BD%E9%80%A0-z-saw-no-07055-%E8%B6%85%E8%96%84%E5%88%83",
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-240mm-%E7%B8%B1%E5%88%87%E5%B0%8E%E4%BB%98%E9%8B%B8-%E6%97%A5%E5%BC%8F%E5%A4%BE%E8%83%8C%E9%8B%B8-%E7%87%95%E5%B0%BE%E6%A6%AB%E5%B0%88%E7%94%A8-%E6%9C%A8%E5%B7%A5%E9%8B%B8-%E6%A5%B5%E7%B4%B0%E9%BD%92%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E5%A4%BE%E8%83%8C%E9%8B%B8",
+  },
+  "all-purpose-saw": {
+    id: "all-purpose-saw",
+    nameZh: "Temple Tool 150mm 全能導付鋸（日式夾背鋸，泛用型極細齒）",
+    category: "saw",
+    shopUrl:
+      "https://woodenren.easy.co/products/%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-150mm-%E5%85%A8%E8%83%BD%E5%B0%8E%E4%BB%98%E9%8B%B8-%E6%97%A5%E5%BC%8F%E5%A4%BE%E8%83%8C%E9%8B%B8-%E6%B3%9B%E7%94%A8%E5%9E%8B%E6%A5%B5%E7%B4%B0%E9%BD%92-%E5%AE%B6%E5%85%B7%E5%B8%AB%E9%96%8B%E7%99%BC-%E6%97%A5%E6%9C%AC%E9%8B%BC%E6%9D%90-%E7%B2%BE%E5%AF%86%E6%A6%AB%E6%8E%A5-%E5%BE%AE%E5%9E%8B",
+  },
+  "flush-cut-saw": {
+    id: "flush-cut-saw",
+    nameZh: "Temple Tool 150mm 齊平剪切鋸（日式釘引鋸，無撥齒不傷木面）",
+    category: "saw",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-temple-tool-150mm-%E9%BD%8A%E5%B9%B3%E5%89%AA%E5%88%87%E9%8B%B8-%E6%97%A5%E5%BC%8F%E6%89%8B%E5%B7%A5%E9%87%98%E5%BC%95%E9%8B%B8-%E7%84%A1%E6%92%A5%E9%BD%92%E8%A8%AD%E8%A8%88-%E5%AE%B6%E5%85%B7%E5%B8%AB%E9%96%8B%E7%99%BC-%E4%B8%8D%E5%82%B7%E6%9C%A8%E9%9D%A2-%E6%A5%B5%E8%96%84%E5%BD%88%E6%80%A7%E9%8B%B8",
+    notes: "無撥齒設計，鋸身可貼平木面切除突出榫頭/木釘而不刮傷表面",
   },
 
   // ----- 刨 -----

@@ -31,16 +31,20 @@ const JOINERY_TOOLS: Record<
   "through-tenon": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "鑿通榫榫眼與整修榫頭" },
     { id: "japanese-saw", priority: "required", reason: "切榫頰與肩線" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切榫頰與肩線" },
+    { id: "flush-cut-saw", priority: "recommended", reason: "組裝後切平突出的通榫榫頭，不傷木面" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
   ],
   "blind-tenon": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "鑿半榫榫眼" },
     { id: "japanese-saw", priority: "required", reason: "切榫頰與肩線" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切榫頰與肩線" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
   ],
   "shouldered-tenon": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "整修肩榫" },
     { id: "japanese-saw", priority: "required", reason: "切肩線" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切肩線" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
   ],
   "stub-joint": [
@@ -50,15 +54,18 @@ const JOINERY_TOOLS: Record<
   ],
   "half-lap": [
     { id: "japanese-saw", priority: "required", reason: "切搭接深度" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切搭接" },
     { id: "chisel-set-3-6-12", priority: "required", reason: "整平搭接面" },
   ],
   dovetail: [
     { id: "dovetail-saw", priority: "required", reason: "切鳩尾的細齒鋸" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，極細齒亦可切鳩尾" },
     { id: "dovetail-marker", priority: "required", reason: "1:6 / 1:8 角度劃線" },
     { id: "chisel-set-3-6-12", priority: "required", reason: "清除鳩尾廢料" },
   ],
   "finger-joint": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "整修指接" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，手工切指接" },
     { id: "router-table", priority: "recommended", reason: "用銑床批量切指" },
   ],
   "tongue-and-groove": [
@@ -69,13 +76,16 @@ const JOINERY_TOOLS: Record<
     { id: "dowel-jig", priority: "required", reason: "確保木釘對齊" },
     { id: "drill", priority: "required", reason: "鑽木釘孔" },
     { id: "drill-bits", priority: "required", reason: "搭配電鑽使用" },
+    { id: "flush-cut-saw", priority: "recommended", reason: "組裝後切平突出的木釘，不傷木面" },
   ],
   "mitered-spline": [
     { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切 45° 角" },
     { id: "groove-blade", priority: "recommended", reason: "切片榫溝（修邊機 + 開槽直刀）" },
   ],
   mitered: [
     { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
+    { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切 45° 角" },
     { id: "miter-box", priority: "recommended", reason: "斜切箱輔助角度，比目測精準" },
   ],
   "pocket-hole": [
