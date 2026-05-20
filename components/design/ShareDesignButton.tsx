@@ -66,7 +66,7 @@ export function ShareDesignButton({
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-white text-zinc-800 ring-1 ring-zinc-300 hover:bg-sky-50 hover:ring-sky-400 transition"
+      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white text-zinc-800 ring-1 ring-amber-200 shadow-sm hover:bg-amber-50 hover:ring-amber-400 hover:shadow transition-all"
       title="複製當前設計連結，貼到 FB / IG / LINE 會自動帶預覽圖"
     >
       <span>🔗</span>

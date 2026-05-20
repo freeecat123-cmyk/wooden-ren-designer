@@ -169,41 +169,58 @@ export function PlanCardView({
 
   return (
     <div
-      className={`relative rounded-xl border-2 bg-white p-5 sm:p-6 flex flex-col ${
-        plan.highlight ? "border-[#8b4513] shadow-lg" : "border-zinc-200"
+      className={`relative rounded-2xl bg-white p-6 sm:p-7 flex flex-col transition-shadow ${
+        plan.highlight
+          ? "ring-2 ring-amber-700 shadow-xl shadow-amber-900/10 md:-mt-3 md:mb-3"
+          : "ring-1 ring-amber-900/10 shadow-md shadow-amber-900/5 hover:shadow-lg"
       }`}
     >
       {plan.highlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#8b4513] text-white text-xs font-semibold">
-          ★ 推薦
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-amber-700 text-white text-xs font-bold shadow-md whitespace-nowrap">
+          ★ 最受歡迎
         </div>
       )}
 
-      <h2 className="text-lg sm:text-xl font-bold text-zinc-900">{plan.name}</h2>
-      <div className="mt-2 flex items-baseline gap-1 flex-wrap">{priceLine}</div>
+      <h2 className="font-serif-tc text-xl sm:text-2xl font-bold text-amber-950">
+        {plan.name}
+      </h2>
+      <div className="mt-3 flex items-baseline gap-1.5 flex-wrap">{priceLine}</div>
       {belowPrice}
       {plan.studentOnly && (
-        <p className="mt-1 text-xs text-amber-700 font-medium">🎓 限木匠學院學員</p>
+        <p className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 font-medium">
+          🎓 限木匠學院學員
+        </p>
       )}
 
-      <ul className="mt-3 text-xs text-zinc-600 space-y-0.5">
+      <ul className="mt-3.5 text-xs text-zinc-500 space-y-1">
         {plan.audience.map((a) => (
-          <li key={a}>· {a}</li>
+          <li key={a} className="flex items-start gap-1.5">
+            <span className="text-amber-600/70">·</span>
+            <span>{a}</span>
+          </li>
         ))}
       </ul>
 
-      <hr className="my-4 border-zinc-200" />
+      <hr className="my-5 border-amber-900/10" />
 
-      <ul className="flex-1 space-y-2 text-sm">
+      <ul className="flex-1 space-y-2.5 text-sm">
         {plan.features.map((f, i) => (
           <li
             key={i}
-            className={`flex items-start gap-2 ${
-              f.ok ? "text-zinc-700" : "text-zinc-400 line-through"
+            className={`flex items-start gap-2.5 ${
+              f.ok ? "text-zinc-700" : "text-zinc-400"
             }`}
           >
-            <span className="mt-0.5 leading-none">{f.ok ? "✓" : "✗"}</span>
-            <span>{f.text}</span>
+            <span
+              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                f.ok
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-zinc-100 text-zinc-400"
+              }`}
+            >
+              {f.ok ? "✓" : "✕"}
+            </span>
+            <span className={f.ok ? "" : "line-through"}>{f.text}</span>
           </li>
         ))}
       </ul>
@@ -213,7 +230,7 @@ export function PlanCardView({
           return (
             <Link
               href="/"
-              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
+              className="mt-6 w-full inline-block text-center px-4 py-3 rounded-xl font-semibold text-sm bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200 hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
               {plan.cta}
             </Link>
@@ -234,7 +251,7 @@ export function PlanCardView({
           const samePeriod = currentPeriod && currentPeriod === period;
           if (samePeriod || !currentPeriod) {
             return (
-              <div className="mt-5 w-full px-4 py-2.5 rounded-lg font-medium text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
+              <div className="mt-6 w-full px-4 py-3 rounded-xl font-semibold text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
                 ✓ 你目前的方案
               </div>
             );
@@ -243,7 +260,7 @@ export function PlanCardView({
           return (
             <Link
               href="/my-subscription"
-              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 transition-colors"
+              className="mt-6 w-full inline-block text-center px-4 py-3 rounded-xl font-semibold text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
               換成{period === "yearly" ? "年" : "月"}付請先取消當前
             </Link>
@@ -255,7 +272,7 @@ export function PlanCardView({
           return (
             <Link
               href="/my-subscription"
-              className="mt-5 w-full inline-block text-center px-4 py-2.5 rounded-lg font-medium text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 transition-colors"
+              className="mt-6 w-full inline-block text-center px-4 py-3 rounded-xl font-semibold text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
               降級請先取消當前訂閱
             </Link>
@@ -300,7 +317,7 @@ export function PlanCardView({
             ref={formRef}
             method="POST"
             action="/api/checkout"
-            className="mt-5"
+            className="mt-6"
             onSubmit={handleCheckoutSubmit}
           >
             <input type="hidden" name="plan" value={plan.id} />
@@ -308,10 +325,10 @@ export function PlanCardView({
             <button
               type="submit"
               disabled={checkingPref}
-              className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+              className={`w-full px-4 py-3 rounded-xl font-semibold text-sm shadow-sm transition-all active:scale-[0.99] ${
                 plan.highlight
-                  ? "bg-[#8b4513] text-white hover:bg-[#6f370f]"
-                  : "bg-zinc-900 text-white hover:bg-zinc-700"
+                  ? "bg-amber-700 text-white hover:bg-amber-800 hover:shadow-md"
+                  : "bg-amber-900 text-white hover:bg-amber-800 hover:shadow"
               } disabled:opacity-60`}
             >
               {checkingPref ? "確認中…" : ctaText}

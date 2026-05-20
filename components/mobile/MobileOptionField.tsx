@@ -216,7 +216,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
           type="checkbox"
           name={spec.key}
           defaultChecked={Boolean(value)}
-          className="w-12 h-6 accent-violet-600"
+          className="w-12 h-6 accent-amber-600"
         />
       </label>
       {legReadout && (

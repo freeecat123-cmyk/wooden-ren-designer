@@ -151,7 +151,7 @@ export function MobileShell(props: MobileShellProps) {
   return (
     <SelectedPartProvider>
     <HoveredPartsProvider>
-    <div className="md:hidden min-h-screen bg-zinc-50 pb-24">
+    <div className="md:hidden min-h-screen pb-24">
       <MobileTopBar
         title={entry.nameZh}
         backHref="/"
@@ -167,20 +167,20 @@ export function MobileShell(props: MobileShellProps) {
           <input key={`main-hidden-${k}`} type="hidden" name={k} value={String(v)} />
         ))}
         {/* 3D viewer：sticky 釘在 TopBar (56px) 下；3D + TopBar 合計約 1/3 viewport */}
-        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1 bg-zinc-50">
-          <div className="rounded-lg overflow-hidden border border-zinc-200 bg-white">
+        <div className="sticky top-[56px] z-10 -mx-4 px-4 py-1">
+          <div className="rounded-xl overflow-hidden ring-1 ring-amber-900/10 bg-white shadow-sm">
             <div style={{ height: 220 }}>
               <LazyPerspectiveView design={design} compactMode wireframeMode={props.wireframeMode} joineryMode={props.joineryMode} sceneTheme={activeSceneTheme} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg bg-white px-3 py-2 border border-zinc-200">
-          <div className="text-[11px] text-zinc-500 mb-1.5">風格</div>
+        <div className="rounded-xl bg-white px-3 py-2.5 ring-1 ring-amber-900/10 shadow-sm">
+          <div className="text-[11px] font-semibold text-zinc-500 mb-1.5">風格</div>
           <StylePresetButtons optionSchema={optionSchema} category={entry.category} compact />
         </div>
 
-        <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
+        <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
           <SizePresetButtons category={entry.category} limits={entry.limits} compact />
           <div className="space-y-1.5">
             <RangeInput
@@ -236,7 +236,7 @@ export function MobileShell(props: MobileShellProps) {
             <button
               type="button"
               onClick={() => setAdvancedOpen(true)}
-              className="min-h-[44px] rounded-md bg-zinc-800 hover:bg-zinc-900 text-white text-sm font-semibold"
+              className="min-h-[44px] rounded-xl bg-amber-900 hover:bg-amber-800 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
             >
               ⚙ 進階設定
             </button>
@@ -244,7 +244,7 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         {/* 工法 + 設計師模式：核心 toggle，放主表單下方。pencil-holder 隱藏工法切換 */}
-        <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
+        <div className="rounded-xl bg-white p-3 ring-1 ring-amber-900/10 shadow-sm space-y-2">
           {entry.category !== "pencil-holder" && entry.category !== "tray" && entry.category !== "dovetail-box" && (
             <>
               <div className="text-[11px] text-zinc-500">工法</div>
@@ -447,7 +447,7 @@ export function MobileShell(props: MobileShellProps) {
                       onClick={() => handleSceneSelect(t.id)}
                       className={`flex items-center gap-2 min-h-[52px] px-3 py-2 rounded-xl text-sm font-medium transition-colors border-2 ${
                         active
-                          ? "border-violet-600 bg-violet-50 text-violet-900"
+                          ? "border-amber-600 bg-amber-50 text-amber-900"
                           : "border-zinc-200 bg-white text-zinc-700 active:bg-zinc-50"
                       }`}
                     >
@@ -456,7 +456,7 @@ export function MobileShell(props: MobileShellProps) {
                         style={{ backgroundColor: t.swatch }}
                       />
                       <span>{t.nameZh}</span>
-                      {active && <span className="ml-auto text-violet-600 text-xs">✓</span>}
+                      {active && <span className="ml-auto text-amber-600 text-xs">✓</span>}
                     </button>
                   );
                 })}

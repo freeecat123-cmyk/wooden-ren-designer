@@ -139,16 +139,13 @@ export function PricingClient() {
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {lockedCategory && (
-        <div
-          className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-xl border-2 flex items-start gap-3"
-          style={{ background: "#fff8ee", borderColor: "#d4a574" }}
-        >
+        <div className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-2xl bg-amber-50 ring-1 ring-amber-400/60 shadow-sm flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔒</span>
           <div className="flex-1 text-sm leading-relaxed">
-            <p className="font-semibold text-[#5a3812]">
+            <p className="font-semibold text-amber-950">
               「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」是付費版才能用的家具範本
             </p>
-            <p className="mt-1 text-[#7c4f1a]">
+            <p className="mt-1 text-amber-800">
               免費版只開放 3 種入門款（方凳、茶几、筆筒），其他 16 種要升級個人版以上。
               下方挑一個適合你的方案就能解鎖。
             </p>
@@ -159,11 +156,11 @@ export function PricingClient() {
       <div className="text-center mb-8">
         <Link
           href="/"
-          className="inline-block text-sm text-zinc-500 hover:text-zinc-700 mb-4"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-amber-800 mb-5 transition-colors"
         >
           ← 回家具列表
         </Link>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900">
+        <h1 className="font-serif-tc text-3xl sm:text-4xl font-bold tracking-tight text-amber-950">
           選一個適合你的方案
         </h1>
         <p className="mt-3 text-zinc-600 text-sm sm:text-base">
@@ -173,14 +170,14 @@ export function PricingClient() {
 
       {/* 月付 / 年付 toggle */}
       <div className="flex justify-center mb-8 sm:mb-10">
-        <div className="inline-flex rounded-full border border-zinc-300 bg-white p-1 shadow-sm">
+        <div className="inline-flex rounded-full ring-1 ring-amber-900/15 bg-white p-1 shadow-sm">
           <button
             type="button"
             onClick={() => setPeriod("monthly")}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               period === "monthly"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-amber-800 text-white shadow-sm"
+                : "text-zinc-600 hover:text-amber-800"
             }`}
           >
             月付
@@ -188,17 +185,17 @@ export function PricingClient() {
           <button
             type="button"
             onClick={() => setPeriod("yearly")}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${
               period === "yearly"
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "bg-amber-800 text-white shadow-sm"
+                : "text-zinc-600 hover:text-amber-800"
             }`}
           >
             年付
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                 period === "yearly"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-emerald-400 text-emerald-950"
                   : "bg-emerald-100 text-emerald-700"
               }`}
             >
@@ -208,7 +205,7 @@ export function PricingClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-start">
         {PLANS.map((p) => (
           <PlanCardView
             key={p.id}
@@ -222,12 +219,14 @@ export function PricingClient() {
         ))}
       </div>
 
-      <div className="mt-12 text-center text-xs text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-        <p>
+      <div className="mt-12 max-w-2xl mx-auto rounded-2xl bg-amber-50/80 ring-1 ring-amber-900/10 px-6 py-5 text-center text-xs text-zinc-600 leading-relaxed">
+        <p className="flex items-center justify-center gap-1.5">
+          <span aria-hidden>🔄</span>
           所有方案皆可隨時升降級。月費／年費方案到期未續訂自動降為免費版
           （你的設計、客戶資料保留 90 天）。
         </p>
-        <p className="mt-2">
+        <p className="mt-2 flex items-center justify-center gap-1.5">
+          <span aria-hidden>💡</span>
           年付 = 月費 × 10（省 2 個月），一年只付一次比較單純。
         </p>
       </div>

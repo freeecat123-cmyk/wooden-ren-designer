@@ -18,11 +18,11 @@ interface MobileTopBarProps {
  */
 export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps) {
   return (
-    <div className="sticky top-0 z-20 bg-white border-b border-zinc-200">
+    <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-amber-900/10 shadow-sm">
       <div className="flex items-center gap-1 min-h-[56px] px-2">
         <Link
           href={backHref}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-zinc-700 hover:text-zinc-900 shrink-0"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg text-zinc-600 hover:text-amber-800 hover:bg-amber-50 active:scale-95 transition shrink-0"
           aria-label="返回"
         >
           ←
@@ -30,13 +30,15 @@ export function MobileTopBar({ title, backHref, onOverflow }: MobileTopBarProps)
         <button
           type="button"
           onClick={onOverflow}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-zinc-700 hover:text-zinc-900 shrink-0"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg text-zinc-600 hover:text-amber-800 hover:bg-amber-50 active:scale-95 transition shrink-0"
           aria-label="更多動作"
           title="本頁更多動作（裁切單 / CSV / 列印）"
         >
           ⋯
         </button>
-        <h1 className="text-base font-semibold text-zinc-900 truncate flex-1 text-center pr-12">{title}</h1>
+        <h1 className="font-serif-tc text-base font-bold text-amber-950 truncate flex-1 text-center pr-12">
+          {title}
+        </h1>
       </div>
     </div>
   );

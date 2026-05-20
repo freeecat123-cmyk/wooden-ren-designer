@@ -79,16 +79,23 @@ const CATEGORY_CHIPS: Array<{
   },
 ];
 
-const DIFFICULTY_DOT = {
-  beginner: "bg-emerald-500",
-  intermediate: "bg-amber-500",
-  advanced: "bg-rose-500",
-} as const;
-
 const DIFFICULTY_LABEL = {
   beginner: "入門",
   intermediate: "中階",
   advanced: "進階",
+} as const;
+
+/** 難度膠囊樣式：有底色 + 文字，看得懂、不是裸色點 */
+const DIFFICULTY_PILL = {
+  beginner: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  intermediate: "bg-amber-100 text-amber-800 ring-amber-300",
+  advanced: "bg-rose-100 text-rose-800 ring-rose-200",
+} as const;
+
+const DIFFICULTY_DOT = {
+  beginner: "bg-emerald-500",
+  intermediate: "bg-amber-500",
+  advanced: "bg-rose-500",
 } as const;
 
 const DIFFICULTY_ORDER = { beginner: 0, intermediate: 1, advanced: 2 } as const;
@@ -145,90 +152,116 @@ export default async function Home({
     (showFurniture ? furniture.length : 0) + (showTools ? 1 : 0);
 
   return (
-    <main className="max-w-7xl mx-auto px-5 sm:px-6 py-10 sm:py-12">
+    <main className="max-w-7xl mx-auto px-5 sm:px-6 py-8 sm:py-12">
       <PerspectivePrefetch />
       <StudentLoginHint />
 
-      {/* Hero */}
-      <header className="mb-8 sm:mb-10">
-        <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-          <Image
-            src="/brand-logo.png"
-            alt="木頭仁 木作藍圖"
-            width={180}
-            height={180}
-            className="rounded-2xl shadow-md ring-1 ring-zinc-200 shrink-0 w-36 h-36 md:w-44 md:h-44"
-            priority
+      {/* ============ Hero ============ */}
+      <header className="mb-9 sm:mb-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-white to-stone-100 ring-1 ring-amber-200/70 shadow-sm px-6 py-8 sm:px-10 sm:py-10">
+          {/* 角落裝飾光暈 */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-amber-200/40 blur-3xl"
           />
-          <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 ring-1 ring-amber-200 text-amber-800 text-xs font-medium mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              木頭仁木匠學院 · 木作藍圖 v0.5
+          <div className="relative flex flex-col md:flex-row md:items-center gap-7 md:gap-10">
+            <Image
+              src="/brand-logo.png"
+              alt="木頭仁 木作藍圖"
+              width={192}
+              height={192}
+              className="rounded-2xl shadow-lg ring-1 ring-amber-200 shrink-0 w-32 h-32 md:w-44 md:h-44"
+              priority
+            />
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white ring-1 ring-amber-300 text-amber-800 text-xs font-semibold mb-4 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                木頭仁木匠學院 · 木作藍圖 v0.5
+              </div>
+              <h1 className="font-serif-tc text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight text-zinc-900 leading-[1.15]">
+                從尺寸到圖紙
+                <span className="text-amber-700">,三秒鐘完成</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-zinc-700 leading-relaxed">
+                做木工最花時間的從來不是動手——是先把圖畫對、料算準、工序排好。
+                這個工具把這三件事壓進 3 秒鐘。
+              </p>
+              {/* 三件輸出小標 */}
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-zinc-700">
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>3D 透視圖
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>工程三視圖 + 榫卯細節
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="text-amber-700">▸</span>切料尺寸 · 工具 · 工序
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-zinc-500 leading-relaxed">
+                切料長度已內建台灣木匠慣例,拿著材料單就能直接進工坊開鋸。
+              </p>
             </div>
-            <h1 className="font-serif-tc text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
-              從尺寸到圖紙,三秒鐘完成
-            </h1>
-            <p className="mt-3 max-w-2xl text-zinc-700 leading-relaxed">
-              做木工最花時間的從來不是動手——是先把圖畫對、料算準、工序排好。
-              這個工具把這三件事壓進 3 秒鐘。
-            </p>
-            <p className="mt-2 max-w-2xl text-zinc-600 leading-relaxed text-sm">
-              選一件家具、填長寬高,自動出 3D 透視圖、工程三視圖、榫卯細節、
-              切料尺寸、工具清單與製作工序。切料長度已內建台灣木匠慣例,
-              拿著材料單就能直接進工坊開鋸。
-            </p>
           </div>
         </div>
       </header>
 
-      <CatalogSearch />
+      {/* 搜尋 + 分類:同一塊操作區 */}
+      <div className="mb-6">
+        <CatalogSearch />
 
-      {/* 分類 chip row */}
-      <nav className="mt-5 mb-5 -mx-5 sm:mx-0 px-5 sm:px-0 overflow-x-auto scrollbar-hide">
-        <div className="inline-flex gap-1.5 min-w-max">
-          {CATEGORY_CHIPS.map((c) => {
-            const active = chip === c.key;
-            const href = c.key === "all" ? "/" : `/?cat=${c.key}`;
-            return (
-              <Link
-                key={c.key}
-                href={href}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition ${
-                  active
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                }`}
-              >
-                {c.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+        {/* 分類 chip row */}
+        <nav className="mt-4 -mx-5 sm:mx-0 px-5 sm:px-0 overflow-x-auto scrollbar-hide">
+          <div className="inline-flex gap-2 min-w-max">
+            {CATEGORY_CHIPS.map((c) => {
+              const active = chip === c.key;
+              const href = c.key === "all" ? "/" : `/?cat=${c.key}`;
+              return (
+                <Link
+                  key={c.key}
+                  href={href}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    active
+                      ? "bg-amber-700 text-white shadow-md shadow-amber-700/20 ring-1 ring-amber-700"
+                      : "bg-white text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-400 hover:text-amber-800 hover:-translate-y-0.5"
+                  }`}
+                >
+                  {c.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
 
-      {/* 計數 + 圖例 */}
-      <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500">
-        <span>
-          顯示 <strong className="text-zinc-900 font-semibold tabular-nums">{visibleCount}</strong>
-          {" / "}
-          <span className="tabular-nums">{ready + 1}</span> 件
+      {/* 計數 + 難度圖例（文字膠囊,看得懂） */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+        <span className="text-sm text-zinc-600">
+          顯示{" "}
+          <strong className="text-amber-800 font-bold tabular-nums text-base">
+            {visibleCount}
+          </strong>
+          <span className="text-zinc-400"> / {ready + 1}</span> 件
         </span>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />入門
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />中階
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />進階
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-zinc-400 font-medium">難度</span>
+          {(["beginner", "intermediate", "advanced"] as const).map((d) => (
+            <span
+              key={d}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ring-1 ${DIFFICULTY_PILL[d]}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${DIFFICULTY_DOT[d]}`} />
+              {DIFFICULTY_LABEL[d]}
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white ring-1 ring-stone-300 text-zinc-600 font-medium">
+            🔒 付費版
           </span>
         </div>
-        <span className="text-zinc-400">🔒 = 付費版才能進入</span>
       </div>
 
       {/* 大圖網格 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {showTools && <CeilingToolCard />}
         {showFurniture &&
           furniture.map((item) => (
@@ -244,18 +277,18 @@ function CeilingToolCard() {
     <Link
       href="/ceiling"
       data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
-      className="group relative block overflow-hidden rounded-xl ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md transition"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
       {/* Top-right markers */}
       <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
         <span
           title="專業版工具"
-          className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-semibold shadow-sm"
+          className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold shadow-sm tracking-wide"
         >
           專業版
         </span>
       </div>
-      <div className="relative aspect-square flex items-center justify-center bg-white">
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
         <Image
           src="/thumbs/v2/ceiling.webp"
           alt="天花板骨架 3D 爆炸圖"
@@ -264,12 +297,16 @@ function CeilingToolCard() {
           quality={75}
           loading="lazy"
           sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
+          className="transition-transform duration-300 ease-out group-hover:scale-[1.06]"
           style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
         />
       </div>
       <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
         <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🔨 天花板骨架
+        </span>
+        <span className="shrink-0 text-[11px] font-semibold text-amber-700 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+          開啟 →
         </span>
       </div>
     </Link>
@@ -282,7 +319,6 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
   const searchTokens = [item.nameZh, item.category, item.description]
     .filter(Boolean)
     .join(" ");
-  const dotClass = DIFFICULTY_DOT[item.difficulty];
 
   // 開發中:不可點、灰遮罩 + 中央 chip
   if (inDevelopment) {
@@ -290,7 +326,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       <div
         data-catalog-search={searchTokens}
         aria-disabled="true"
-        className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-60 cursor-not-allowed select-none"
+        className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-65 cursor-not-allowed select-none"
       >
         <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
           <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
@@ -298,7 +334,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
           </span>
         </span>
         <CardThumb item={item} />
-        <CardFooter item={item} dotClass={dotClass} paid={paid} />
+        <CardFooter item={item} paid={paid} />
       </div>
     );
   }
@@ -308,23 +344,23 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
       title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
-      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 hover:ring-amber-500 hover:shadow-md transition"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
       {/* Top-right corner markers */}
       {paid && (
-        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/90 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
           <span className="text-amber-600 text-xs" title="付費版">🔒</span>
         </div>
       )}
       <CardThumb item={item} />
-      <CardFooter item={item} dotClass={dotClass} paid={paid} />
+      <CardFooter item={item} paid={paid} />
     </Link>
   );
 }
 
 function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
   return (
-    <div className="relative aspect-square flex items-center justify-center bg-white">
+    <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
       <Image
         src={`/thumbs/v2/${item.category}.webp`}
         alt={`${item.nameZh} 3D 預覽`}
@@ -333,6 +369,7 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
         quality={75}
         loading="lazy"
         sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
+        className="transition-transform duration-300 ease-out group-hover:scale-[1.06]"
         style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
       />
     </div>
@@ -341,22 +378,22 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
 
 function CardFooter({
   item,
-  dotClass,
   paid,
 }: {
   item: FurnitureCatalogEntry;
-  dotClass: string;
   paid: boolean;
 }) {
   return (
-    <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
+    <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
       <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
         {item.nameZh}
       </span>
       <span
-        className={`shrink-0 w-2.5 h-2.5 rounded-full ${dotClass}`}
-        title={DIFFICULTY_LABEL[item.difficulty]}
-      />
+        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL[item.difficulty]}`}
+        title={`難度:${DIFFICULTY_LABEL[item.difficulty]}`}
+      >
+        {DIFFICULTY_LABEL[item.difficulty]}
+      </span>
     </div>
   );
 }

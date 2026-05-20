@@ -214,35 +214,57 @@ const SECTIONS: Array<{ title: string; emoji: string; items: QA[] }> = [
 export default function HelpPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 leading-relaxed text-zinc-800">
-      <h1 className="text-3xl font-bold tracking-tight">常見問題</h1>
-      <p className="mt-2 text-sm text-zinc-500">
-        找不到答案？直接聯絡客服：
-        <a className="underline mx-1" href={`mailto:${SUPPORT_EMAIL}`}>
-          {SUPPORT_EMAIL}
-        </a>
-        或加
-        <a className="underline mx-1" href={LINE_OA_URL} target="_blank" rel="noopener">
-          LINE 官方帳號
-        </a>
-      </p>
+      <header className="rounded-2xl bg-white ring-1 ring-amber-900/10 shadow-sm px-6 py-7">
+        <h1 className="font-serif-tc text-3xl font-bold tracking-tight text-amber-950">
+          常見問題
+        </h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          找不到答案？直接聯絡客服：
+          <a
+            className="text-amber-800 font-medium hover:underline mx-1"
+            href={`mailto:${SUPPORT_EMAIL}`}
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          或加
+          <a
+            className="text-emerald-700 font-medium hover:underline mx-1"
+            href={LINE_OA_URL}
+            target="_blank"
+            rel="noopener"
+          >
+            LINE 官方帳號
+          </a>
+        </p>
+      </header>
 
       {SECTIONS.map((sec) => (
         <section key={sec.title} className="mt-10">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <span aria-hidden>{sec.emoji}</span>
+          <h2 className="font-serif-tc text-xl font-bold text-amber-950 flex items-center gap-2">
+            <span
+              aria-hidden
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-base"
+            >
+              {sec.emoji}
+            </span>
             <span>{sec.title}</span>
           </h2>
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-3">
             {sec.items.map((item) => (
               <details
                 key={item.q}
-                className="rounded-lg border border-zinc-200 bg-white overflow-hidden"
+                className="group rounded-xl ring-1 ring-amber-900/10 bg-white overflow-hidden transition-shadow hover:shadow-sm open:shadow-sm"
               >
-                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50 flex items-center justify-between">
+                <summary className="cursor-pointer list-none px-4 py-3.5 text-sm font-semibold text-zinc-800 hover:bg-amber-50/70 flex items-center justify-between gap-3 transition-colors">
                   <span>{item.q}</span>
-                  <span className="text-zinc-400 text-xs ml-2 shrink-0">展開</span>
+                  <span
+                    aria-hidden
+                    className="text-amber-700 shrink-0 transition-transform group-open:rotate-180"
+                  >
+                    ▾
+                  </span>
                 </summary>
-                <div className="border-t border-zinc-200 px-4 py-3 text-sm text-zinc-700 leading-7 bg-zinc-50/50">
+                <div className="border-t border-amber-900/10 px-4 py-3.5 text-sm text-zinc-700 leading-7 bg-amber-50/40">
                   {item.a}
                 </div>
               </details>
@@ -251,15 +273,17 @@ export default function HelpPage() {
         </section>
       ))}
 
-      <section className="mt-12 rounded-xl bg-amber-50 border border-amber-200 p-5">
-        <h2 className="text-base font-semibold text-amber-900">還是沒解決？</h2>
-        <p className="text-sm text-amber-900 mt-2">
+      <section className="mt-12 rounded-2xl bg-amber-100/70 ring-1 ring-amber-400/40 p-6">
+        <h2 className="font-serif-tc text-lg font-bold text-amber-950">
+          還是沒解決？
+        </h2>
+        <p className="text-sm text-amber-900 mt-2 leading-relaxed">
           直接寫信給我們，附上你的註冊 email + 出問題的螢幕截圖，3 個工作天內回覆。
         </p>
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+        <div className="mt-4 flex flex-wrap gap-2.5 text-sm">
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-white font-medium hover:bg-amber-700"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-700 px-4 py-2 text-white font-semibold shadow-sm hover:bg-amber-800 hover:shadow active:scale-[0.98] transition-all"
           >
             ✉️ Email 客服
           </a>
@@ -267,23 +291,23 @@ export default function HelpPage() {
             href={LINE_OA_URL}
             target="_blank"
             rel="noopener"
-            className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-amber-800 font-medium border border-amber-300 hover:bg-amber-100"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-amber-800 font-semibold ring-1 ring-amber-300 hover:bg-amber-50 active:scale-[0.98] transition-all"
           >
             💬 LINE 官方帳號
           </a>
         </div>
       </section>
 
-      <p className="mt-8 text-xs text-zinc-400">
+      <p className="mt-8 text-xs text-zinc-500 text-center">
         本站連結：
-        <Link href="/" className="underline mx-1">首頁</Link>·
-        <Link href="/pricing" className="underline mx-1">方案</Link>·
-        <Link href="/my-subscription" className="underline mx-1">我的訂閱</Link>·
-        <Link href="/refund" className="underline mx-1">退費</Link>·
-        <Link href="/privacy" className="underline mx-1">隱私權</Link>·
-        <Link href="/terms" className="underline mx-1">使用條款</Link>
+        <Link href="/" className="text-amber-800 hover:underline mx-1">首頁</Link>·
+        <Link href="/pricing" className="text-amber-800 hover:underline mx-1">方案</Link>·
+        <Link href="/my-subscription" className="text-amber-800 hover:underline mx-1">我的訂閱</Link>·
+        <Link href="/refund" className="text-amber-800 hover:underline mx-1">退費</Link>·
+        <Link href="/privacy" className="text-amber-800 hover:underline mx-1">隱私權</Link>·
+        <Link href="/terms" className="text-amber-800 hover:underline mx-1">使用條款</Link>
       </p>
-      <p className="mt-2 text-xs text-zinc-400">
+      <p className="mt-2 text-xs text-zinc-400 text-center">
         {SITE_URL.replace(/^https?:\/\//, "")}
       </p>
     </main>

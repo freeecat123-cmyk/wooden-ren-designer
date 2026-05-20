@@ -280,19 +280,19 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     <>
     <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 hover:underline">
-        <span>←</span> 回家具列表
+      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
+        <span className="transition-transform group-hover:-translate-x-0.5">←</span> 回家具列表
       </Link>
 
-      <header className="mt-2 mb-4 flex items-baseline justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
-          <p className="mt-0.5 text-xs text-zinc-500 flex flex-wrap items-center gap-2">
+      <header className="mt-3 mb-5 rounded-2xl border border-amber-200/70 bg-white/80 shadow-sm shadow-amber-900/5 px-5 py-4 flex items-center justify-between flex-wrap gap-4">
+        <div className="min-w-0">
+          <h1 className="font-serif-tc text-[1.7rem] leading-tight font-bold tracking-tight text-zinc-900">{entry.nameZh}</h1>
+          <p className="mt-1.5 text-xs text-zinc-500 flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span>{entry.description}</span>
-            <span className="font-mono text-zinc-700">· {length} × {width} × {height} mm</span>
-            <span>· {MATERIALS[material].nameZh}</span>
-            <span>· {design.parts.length} 件</span>
-            <span title="實重 = 各部件 體積×木材密度 + 12% 包裝重">· 約 {estimateWeight(design)} kg</span>
+            <span className="inline-flex items-center rounded-md bg-amber-100/70 px-1.5 py-0.5 font-mono text-[11px] text-amber-900">{length} × {width} × {height} mm</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{MATERIALS[material].nameZh}</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">{design.parts.length} 件</span>
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600" title="實重 = 各部件 體積×木材密度 + 12% 包裝重">約 {estimateWeight(design)} kg</span>
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -320,14 +320,14 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <Link
             href={`/design/${type}/quote?${printQuery.toString()}`}
             target="_blank"
-            className="px-3 py-1.5 bg-emerald-700 text-white rounded text-xs hover:bg-emerald-800"
+            className="inline-flex items-center gap-1 px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-emerald-900/20 hover:bg-emerald-800 hover:shadow-md transition-all"
           >
             💰 產生報價
           </Link>
           <Link
             href={`/design/${type}/print?${printQuery.toString()}`}
             target="_blank"
-            className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700 transition"
+            className="inline-flex items-center gap-1 px-3.5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-medium shadow-sm shadow-black/20 hover:bg-zinc-700 hover:shadow-md transition-all"
           >
             🖨️ 列印 / PDF
           </Link>
@@ -394,10 +394,11 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             lg:col-start-2 lg:row-start-1 lg:sticky lg:self-start
           "
         >
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-            <div className="px-4 py-1.5 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
-              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
-              透視圖（3D · 拖曳旋轉）
+          <div className="rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-1 h-4 bg-amber-500 rounded-full" />
+              透視圖
+              <span className="text-[10px] font-normal text-zinc-400">3D · 拖曳旋轉、滾輪縮放</span>
             </div>
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
@@ -421,9 +422,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
-          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+      <section className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
+          <span className="w-1 h-4 bg-amber-500 rounded-full" />
           工程三視圖
           <span className="ml-auto text-[10px] font-normal text-zinc-400">
             標示為組裝後肩到肩可見尺寸
@@ -442,22 +443,22 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {(await isLocalhost()) && <PartDrawingsPanel design={applyEdgeProtection(rawDesign)} />}
 
       {/* 下半：施工備料（按需展開） */}
-      <details className="mt-4 rounded-lg border border-zinc-200 bg-white" open>
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
-          <span className="font-medium text-zinc-800 flex items-center gap-2">
-            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+      <details className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden" open>
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
+          <span className="font-semibold text-zinc-800 flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
             🪵 材料單
             <span className="text-[10px] font-normal text-zinc-400">{design.parts.length} 件 · 切料尺寸已含榫頭</span>
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
-        <div className="border-t border-zinc-200">
-          <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between text-[11px] text-zinc-500">
+        <div className="border-t border-amber-100">
+          <div className="px-4 py-2.5 bg-amber-50/40 border-b border-amber-100 flex items-center justify-between text-[11px] text-zinc-500">
             <span>切料尺寸已含榫頭凸出長度。母榫（凹）不影響零件外形尺寸。</span>
             <Link
               href={`/design/${type}/cut-plan?${printQuery.toString()}`}
               target="_blank"
-              className="px-2.5 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 text-white rounded-lg text-[11px] font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-700 hover:shadow-md transition-all"
             >
               🪚 裁切計算器
             </Link>
@@ -468,9 +469,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <MaterialListWithSelection design={design} />
             </div>
             <div className="hidden lg:block lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4 lg:self-start lg:px-3 lg:py-3">
-              <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-                <div className="px-3 py-1.5 border-b border-zinc-200 text-[11px] font-semibold text-zinc-600 flex items-center gap-2">
-                  <span className="w-0.5 h-3 bg-amber-500 rounded-full" />
+              <div className="rounded-xl border border-amber-200/70 bg-white shadow-sm overflow-hidden">
+                <div className="px-3 py-2 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-[11px] font-semibold text-zinc-700 flex items-center gap-2">
+                  <span className="w-1 h-3.5 bg-amber-500 rounded-full" />
                   3D 預覽（同步高亮選中零件）
                 </div>
                 <SceneThemeToggle current={sceneId} />
@@ -487,15 +488,15 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       </HoveredPartsProvider>
       </SelectedPartProvider>
 
-      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
-          <span className="font-medium text-zinc-800 flex items-center gap-2">
-            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
+          <span className="font-semibold text-zinc-800 flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
             {joineryMode ? "🪚 榫卯細節圖" : "🔩 組裝接合說明"}
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
-        <div className="border-t border-zinc-200 p-4">
+        <div className="border-t border-amber-100 p-4">
           {joineryMode ? (
             <JoinerySection design={design} />
           ) : (
@@ -519,28 +520,28 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </details>
 
-      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
-          <span className="font-medium text-zinc-800 flex items-center gap-2">
-            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
+          <span className="font-semibold text-zinc-800 flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
             🛠️ 工具清單
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
-        <div className="border-t border-zinc-200 p-4">
+        <div className="border-t border-amber-100 p-4">
           <ToolList design={design} />
         </div>
       </details>
 
-      <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
-          <span className="font-medium text-zinc-800 flex items-center gap-2">
-            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
+          <span className="font-semibold text-zinc-800 flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
             📋 製作工序
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-[11px] text-zinc-400 group-open/d:rotate-180 transition-transform">▾</span>
         </summary>
-        <div className="border-t border-zinc-200 p-4">
+        <div className="border-t border-amber-100 p-4">
           <BuildSteps design={design} />
         </div>
       </details>
@@ -689,21 +690,21 @@ function ParameterForm({
   return (
     <DesignFormShell
       action={`/design/${type}`}
-      className="p-5 bg-stone-50/80 rounded-lg ring-1 ring-stone-300"
+      className="p-5 rounded-2xl border border-amber-200/70 bg-amber-50/50 shadow-md shadow-amber-900/5"
     >
       {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
         <fieldset className="mb-5">
           <legend className="mb-2 text-sm font-semibold text-zinc-800 flex items-center gap-2">
-            <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
             工法選擇
             <span className="text-[10px] font-normal text-zinc-400">— 影響材料單與接合工序</span>
           </legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             <label
-              className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+              className={`flex flex-col gap-1 p-3 rounded-xl cursor-pointer ring-2 transition-all ${
                 !joineryMode
-                  ? "ring-emerald-500 bg-emerald-50"
-                  : "ring-zinc-200 bg-white hover:ring-zinc-300"
+                  ? "ring-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-900/10"
+                  : "ring-zinc-200 bg-white hover:ring-emerald-300 hover:bg-emerald-50/40"
               }`}
             >
               <input
@@ -722,10 +723,10 @@ function ParameterForm({
               </div>
             </label>
             <label
-              className={`flex flex-col gap-1 p-3 rounded-lg cursor-pointer ring-2 transition ${
+              className={`flex flex-col gap-1 p-3 rounded-xl cursor-pointer ring-2 transition-all ${
                 joineryMode
-                  ? "ring-amber-500 bg-amber-50"
-                  : "ring-zinc-200 bg-white hover:ring-zinc-300"
+                  ? "ring-amber-500 bg-amber-100/70 shadow-sm shadow-amber-900/10"
+                  : "ring-zinc-200 bg-white hover:ring-amber-300 hover:bg-amber-50/50"
               }`}
             >
               <input
@@ -746,8 +747,8 @@ function ParameterForm({
           </div>
         </fieldset>
       )}
-      <fieldset className="mb-4 rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
-        <legend className="text-xs text-amber-900 px-1.5 font-semibold">
+      <fieldset className="mb-5 rounded-xl border border-amber-300/70 bg-white/70 p-3.5 shadow-sm shadow-amber-900/5">
+        <legend className="text-xs text-amber-900 px-2 font-semibold bg-amber-100 rounded-md py-0.5">
           🎨 設計師模式（自由尺寸）
         </legend>
         {canUseDesignerMode ? (
@@ -789,9 +790,9 @@ function ParameterForm({
           </div>
         )}
       </fieldset>
-      <div className="mb-4 pb-3 border-b border-zinc-200 flex items-center justify-between gap-2">
+      <div className="mb-4 pb-3 border-b border-amber-200/60 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
-          <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+          <span className="w-1 h-4 bg-amber-500 rounded-full" />
           整體尺寸
           {designerMode && (
             <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
@@ -832,12 +833,12 @@ function ParameterForm({
       </div>
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
         <label className="flex items-center gap-1.5 shrink-0">
-          <span className="text-zinc-600">木材</span>
+          <span className="text-zinc-600 font-medium">木材</span>
           <select
             key={`material-${defaults.material}`}
             name="material"
             defaultValue={defaults.material}
-            className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm"
+            className="border border-amber-300 rounded-lg px-2.5 py-1.5 bg-white text-zinc-900 text-sm shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
           >
             {Object.values(MATERIALS).map((m) => (
               <option key={m.id} value={m.id}>
@@ -865,9 +866,9 @@ function ParameterForm({
 
       {optionSchema.length > 0 && (
         <>
-          <div className="mb-3 pb-2 border-b border-zinc-200">
+          <div className="mb-3 pb-2 border-b border-amber-200/60">
             <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
-              <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+              <span className="w-1 h-4 bg-amber-500 rounded-full" />
               細部設定
             </h3>
           </div>
@@ -901,8 +902,11 @@ function ParameterForm({
         </>
       )}
 
-      <p className="text-[11px] text-zinc-500 flex items-center gap-2">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+      <p className="mt-1 text-[11px] text-zinc-500 flex items-center gap-2 rounded-lg bg-emerald-50/70 ring-1 ring-emerald-200/70 px-3 py-2">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
         改參數 0.5 秒後自動更新設計
       </p>
     </DesignFormShell>
@@ -969,7 +973,7 @@ function GroupedOptionFields({
     Array.from(grouped.keys()).filter((k) => !GROUP_ORDER.includes(k)),
   );
   return (
-    <div className="mb-4 rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
+    <div className="mb-4 rounded-xl border border-amber-200/60 bg-white shadow-sm divide-y divide-amber-100/70 overflow-hidden">
       {keysInOrder.map((g) => {
         const meta = GROUP_META[g] ?? GROUP_META.misc;
         const specs = grouped.get(g)!;
@@ -979,7 +983,7 @@ function GroupedOptionFields({
             open
             className="group"
           >
-            <summary className="flex items-center gap-1.5 px-2.5 py-1 cursor-pointer list-none hover:bg-zinc-50 select-none">
+            <summary className="flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer list-none hover:bg-amber-50/60 transition-colors select-none">
               <span className={`w-1 h-3.5 rounded-full ${meta.bar}`} />
               <span className="text-xs font-semibold text-zinc-800">
                 {meta.label}
@@ -1099,7 +1103,7 @@ function OptionField({
             min={spec.min}
             max={effectiveMax}
             step={spec.step ?? 1}
-            className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+            className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
             showPlusMinus
             dynamicMaxHint={
@@ -1115,7 +1119,7 @@ function OptionField({
             min={spec.min}
             max={effectiveMax}
             step={spec.step ?? 1}
-            className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+            className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
           />
         )}
@@ -1130,7 +1134,7 @@ function OptionField({
         <select
           name={spec.key}
           defaultValue={String(value)}
-          className="border border-zinc-300 rounded px-1.5 py-1 bg-white text-zinc-900 text-sm"
+          className="border border-zinc-300 rounded-md px-1.5 py-1 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
         >
           {spec.choices.filter((c) => choiceVisible(c.dependsOn)).map((c) => (
             <option key={c.value} value={c.value}>
@@ -1245,7 +1249,7 @@ function NumberInput({
         min={20}
         max={max ?? 4000}
         step={10}
-        className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
+        className="border border-zinc-300 rounded-md px-2 py-1.5 bg-white text-zinc-900 text-base focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
         partIds={partIds}
         presetPoints={presetPoints}
         showPlusMinus

@@ -31,7 +31,7 @@ export function ResetDefaultsButton() {
       type="button"
       onClick={handleReset}
       title="清空所有調整、回到模板預設值"
-      className="text-[11px] px-2.5 py-1 rounded border border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+      className="text-[11px] px-2.5 py-1 rounded-md border border-amber-200 bg-white text-zinc-600 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 transition-colors"
     >
       ↺ 重設預設
     </button>

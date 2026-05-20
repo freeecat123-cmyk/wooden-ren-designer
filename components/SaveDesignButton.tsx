@@ -28,7 +28,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
       <button
         type="button"
         disabled
-        className="px-3 py-1.5 bg-zinc-200 text-zinc-500 rounded text-xs cursor-wait"
+        className="px-3.5 py-2 bg-zinc-200 text-zinc-500 rounded-lg text-xs cursor-wait"
       >
         💾 載入中…
       </button>
@@ -110,7 +110,7 @@ export function SaveDesignButton({ furnitureType, defaultName, params }: Props) 
         type="button"
         onClick={handleSave}
         disabled={busy}
-        className="max-md:min-h-[44px] px-3 py-1.5 bg-amber-700 text-white rounded text-xs hover:bg-amber-800 disabled:opacity-50"
+        className="max-md:min-h-[44px] inline-flex items-center gap-1 px-3.5 py-2 bg-amber-700 text-white rounded-lg text-xs font-medium shadow-sm shadow-amber-900/20 hover:bg-amber-800 hover:shadow-md transition-all disabled:opacity-50"
         title={
           isLoggedIn
             ? `儲存到你的設計（${features.maxDesigns === Infinity ? "無上限" : `上限 ${features.maxDesigns} 件`}）`

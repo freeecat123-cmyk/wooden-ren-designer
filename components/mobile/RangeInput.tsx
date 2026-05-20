@@ -165,7 +165,7 @@ export function RangeInput({
             onChange={(e) => setValue(Number(e.target.value))}
             onFocus={hasAnchor ? handleEnter : undefined}
             onBlur={hasAnchor ? handleLeave : undefined}
-            className="w-full accent-violet-600 h-6 cursor-grab"
+            className="w-full accent-amber-600 h-6 cursor-grab"
           />
           {ticks && ticks.length > 0 && (
             <div className="relative h-2 -mt-1 pointer-events-none" aria-hidden="true">
@@ -214,7 +214,7 @@ export function RangeInput({
                 setEditing(false);
               }
             }}
-            className="w-16 text-right border-b-2 border-violet-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
+            className="w-16 text-right border-b-2 border-amber-500 px-1 py-0.5 font-mono tabular-nums shrink-0"
             inputMode="numeric"
           />
         ) : (

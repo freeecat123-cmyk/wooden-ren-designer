@@ -30,13 +30,13 @@ export function LoginButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        className={`inline-flex items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-800 transition ${className}`}
+        className={`inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-amber-900/10 hover:bg-amber-800 hover:shadow-md active:scale-[0.98] transition ${className}`}
       >
         登入 / 註冊
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white ring-1 ring-zinc-200 shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white ring-1 ring-amber-900/10 shadow-xl overflow-hidden z-50">
           <div className="p-4">
             {webviewApp && <WebviewWarning app={webviewApp} />}
             <MagicLinkForm />
@@ -55,7 +55,7 @@ export function LoginButton({ className = "" }: { className?: string }) {
 
 export function WebviewWarning({ app }: { app: string }) {
   return (
-    <div className="mb-3 rounded-md bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
+    <div className="mb-3 rounded-xl bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900">
       <div className="font-semibold mb-1">⚠️ 你正在 {app} 內建瀏覽器</div>
       <div className="leading-relaxed">
         Google 登入無法使用。建議：
@@ -117,7 +117,7 @@ export function MagicLinkForm() {
 
   if (mode === "sent") {
     return (
-      <div className="rounded-md bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-900">
+      <div className="rounded-xl bg-emerald-50 border border-emerald-300 p-3 text-sm text-emerald-900">
         <div className="font-semibold mb-1">✅ 登入連結已寄出</div>
         <div className="text-xs leading-relaxed">
           請到 <b>{email}</b> 收信，點信內按鈕完成登入（10 分鐘內有效）。
@@ -148,12 +148,12 @@ export function MagicLinkForm() {
         autoComplete="email"
         required
         disabled={mode === "sending"}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-zinc-100"
+        className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-zinc-100"
       />
       <button
         type="submit"
         disabled={mode === "sending"}
-        className="w-full rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60 transition"
+        className="w-full rounded-lg bg-amber-700 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 hover:shadow active:scale-[0.99] disabled:opacity-60 transition"
       >
         {mode === "sending" ? "寄送中…" : "送出登入連結 →"}
       </button>
@@ -194,7 +194,7 @@ export function GoogleButton({ disabledReason }: { disabledReason: string | null
         onClick={signInWithGoogle}
         disabled={loading || !!disabledReason}
         title={disabledReason ?? undefined}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-300 shadow-sm hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-zinc-800 ring-1 ring-zinc-300 shadow-sm hover:bg-zinc-50 hover:ring-zinc-400 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         <GoogleLogo />
         <span>{loading ? "跳轉中…" : "使用 Google 登入"}</span>

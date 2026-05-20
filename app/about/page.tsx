@@ -40,47 +40,60 @@ export default function AboutPage() {
   return (
     <main className="max-w-5xl mx-auto px-5 sm:px-6 py-10 sm:py-14">
       {/* ============ Hero ============ */}
-      <section className="text-center">
+      <section className="relative text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-0 w-[34rem] max-w-full h-72 rounded-full bg-amber-200/35 blur-3xl"
+        />
         <Image
           src="/brand-logo-text.png"
           alt="木頭仁 木作藍圖"
           width={1254}
           height={1254}
-          className="mx-auto mb-7 sm:mb-9 rounded-3xl shadow-lg w-44 h-44 sm:w-56 sm:h-56"
+          className="relative mx-auto mb-7 sm:mb-9 rounded-3xl shadow-xl ring-1 ring-amber-200/60 w-40 h-40 sm:w-56 sm:h-56"
           priority
         />
-        <h1 className="font-serif-tc text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
+        <div className="relative inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white ring-1 ring-amber-300 text-amber-800 text-xs font-semibold mb-5 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          木頭仁木匠學院出品
+        </div>
+        <h1 className="relative font-serif-tc text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-[1.18]">
           畫圖算料的時間<br />
-          交給工具
+          <span className="text-amber-700">交給工具</span>
         </h1>
-        <p className="mt-5 max-w-2xl mx-auto text-lg text-zinc-700 leading-relaxed">
+        <p className="relative mt-5 max-w-2xl mx-auto text-lg text-zinc-700 leading-relaxed">
           選一件家具、填長寬高，<strong className="text-zinc-900">3 秒鐘</strong>
           自動產出 3D 透視圖、工程三視圖、榫卯細節、材料單、工序與 A4 PDF 工程圖紙。
         </p>
 
         {/* Social proof bar */}
-        <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-zinc-600 border-y border-zinc-200 py-3 px-5">
-          <span>
-            <strong className="text-zinc-900">20 萬訂閱</strong> 木頭仁推出
+        <div className="relative mt-7 inline-flex flex-wrap items-center justify-center gap-x-6 gap-y-2 rounded-2xl bg-white/70 ring-1 ring-amber-200 py-3.5 px-7 shadow-sm text-sm text-zinc-600">
+          <span className="inline-flex items-baseline gap-1.5">
+            <strong className="font-serif-tc text-xl text-amber-800">20 萬</strong>
+            <span>YouTube 訂閱</span>
           </span>
-          <span className="text-zinc-300">·</span>
-          <span>木匠學院出品</span>
-          <span className="text-zinc-300">·</span>
-          <span>
-            內建 <strong className="text-zinc-900">超過 25 種</strong>家具範本
+          <span aria-hidden className="w-px h-5 bg-amber-200" />
+          <span className="inline-flex items-baseline gap-1.5">
+            <strong className="font-serif-tc text-xl text-amber-800">600+</strong>
+            <span>學員教過</span>
+          </span>
+          <span aria-hidden className="w-px h-5 bg-amber-200" />
+          <span className="inline-flex items-baseline gap-1.5">
+            <strong className="font-serif-tc text-xl text-amber-800">25+</strong>
+            <span>家具範本</span>
           </span>
         </div>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <div className="relative mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold hover:bg-amber-800 shadow-sm"
+            className="inline-flex items-center px-7 py-3 rounded-xl bg-amber-700 text-white font-semibold shadow-md shadow-amber-700/25 transition-all duration-200 hover:bg-amber-800 hover:-translate-y-0.5 hover:shadow-lg"
           >
             開始設計（免費試用）→
           </Link>
           <Link
             href="/pricing"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-zinc-900 font-semibold ring-1 ring-stone-300 hover:bg-amber-50 hover:ring-amber-500 transition"
+            className="inline-flex items-center px-7 py-3 rounded-xl bg-white text-zinc-900 font-semibold ring-1 ring-stone-300 transition-all duration-200 hover:bg-amber-50 hover:ring-amber-500 hover:-translate-y-0.5"
           >
             看付費方案
           </Link>
@@ -124,7 +137,8 @@ export default function AboutPage() {
 
       {/* ============ 痛點 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
+        <Eyebrow>為什麼做這個工具</Eyebrow>
+        <h2 className="mt-4 font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
           做木工最花時間的，從來不是動手。
         </h2>
         <p className="mt-4 max-w-2xl mx-auto text-zinc-700 leading-relaxed text-center">
@@ -157,7 +171,8 @@ export default function AboutPage() {
 
       {/* ============ 三步驟 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
+        <Eyebrow>怎麼用</Eyebrow>
+        <h2 className="mt-4 font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
           三步驟，從零到工坊
         </h2>
         <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
@@ -184,7 +199,8 @@ export default function AboutPage() {
 
       {/* ============ 能做什麼 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
+        <Eyebrow>產出內容</Eyebrow>
+        <h2 className="mt-4 font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-3">
           每一件家具都附這些
         </h2>
         <p className="text-center text-zinc-600 mb-10">
@@ -317,7 +333,8 @@ export default function AboutPage() {
 
       {/* ============ 適合誰 ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
+        <Eyebrow>適合誰</Eyebrow>
+        <h2 className="mt-4 font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
           給這五種人用
         </h2>
         <div className="grid sm:grid-cols-2 gap-5">
@@ -420,7 +437,8 @@ export default function AboutPage() {
 
       {/* ============ 方案 CTA ============ */}
       <section className="mt-20 sm:mt-24">
-        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
+        <Eyebrow>方案</Eyebrow>
+        <h2 className="mt-4 font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
           先免費試，需要再升級
         </h2>
         <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed text-center">
@@ -657,21 +675,21 @@ function MiniPlanCard({
 }) {
   return (
     <div
-      className={`relative rounded-2xl p-6 transition ${
+      className={`relative rounded-2xl p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 ${
         highlight
-          ? "bg-amber-50 ring-2 ring-amber-500 shadow-md"
-          : "bg-white ring-1 ring-zinc-200 hover:ring-amber-300"
+          ? "bg-amber-50 ring-2 ring-amber-500 shadow-md hover:shadow-lg"
+          : "bg-white ring-1 ring-stone-200 hover:ring-amber-300 hover:shadow-md"
       }`}
     >
       {highlight && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-700 text-white text-xs font-semibold whitespace-nowrap">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-700 text-white text-xs font-semibold whitespace-nowrap shadow-sm">
           最多人選
         </span>
       )}
       <div className="text-center">
         <h3 className="font-semibold text-zinc-900 text-lg">{name}</h3>
         <div className="mt-3 flex items-baseline justify-center">
-          <span className="text-3xl font-bold text-zinc-900">{price}</span>
+          <span className="font-serif-tc text-4xl font-bold text-amber-800">{price}</span>
           <span className="ml-1 text-sm text-zinc-500">{unit}</span>
         </div>
       </div>
@@ -698,10 +716,30 @@ function MiniPlanCard({
 }
 
 
+/** section 小標籤 — 木刻感的 eyebrow，置中或靠左 */
+function Eyebrow({
+  children,
+  align = "center",
+}: {
+  children: React.ReactNode;
+  align?: "center" | "left";
+}) {
+  return (
+    <div className={align === "center" ? "text-center" : ""}>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-800 text-xs font-semibold tracking-wide">
+        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        {children}
+      </span>
+    </div>
+  );
+}
+
 function PainPoint({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <div className="rounded-xl bg-white ring-1 ring-zinc-200 p-5">
-      <div className="text-3xl mb-2">{emoji}</div>
+    <div className="group rounded-xl bg-white ring-1 ring-stone-200 shadow-sm p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:ring-amber-300">
+      <div className="w-12 h-12 rounded-xl bg-amber-50 ring-1 ring-amber-200 flex items-center justify-center text-2xl mb-3">
+        {emoji}
+      </div>
       <h3 className="font-semibold text-zinc-900 mb-1">{title}</h3>
       <p className="text-sm text-zinc-600 leading-relaxed">{desc}</p>
     </div>
@@ -720,16 +758,18 @@ function StepCard({
   visual?: React.ReactNode;
 }) {
   return (
-    <div className="relative rounded-xl bg-white ring-1 ring-zinc-200 p-6 sm:p-7 hover:ring-amber-300 hover:shadow-md transition">
-      <div className="absolute -top-4 left-6 w-9 h-9 rounded-full bg-amber-700 text-white font-bold text-lg flex items-center justify-center shadow">
+    <div className="group relative rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm p-6 sm:p-7 transition-all duration-200 hover:-translate-y-1 hover:ring-amber-300 hover:shadow-lg">
+      <div className="absolute -top-4 left-6 w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 text-white font-serif-tc font-bold text-lg flex items-center justify-center shadow-md ring-2 ring-white">
         {no}
       </div>
       {visual && (
-        <div className="mt-2 mb-4 h-32 rounded-lg bg-gradient-to-br from-zinc-50 to-zinc-100 ring-1 ring-zinc-200/60 overflow-hidden flex items-center justify-center">
+        <div className="mt-3 mb-4 h-32 rounded-lg bg-gradient-to-br from-zinc-50 to-zinc-100 ring-1 ring-zinc-200/60 overflow-hidden flex items-center justify-center">
           {visual}
         </div>
       )}
-      <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
+      <h3 className="text-lg font-semibold text-zinc-900 group-hover:text-amber-900 transition-colors">
+        {title}
+      </h3>
       <p className="mt-2 text-sm text-zinc-700 leading-relaxed">{desc}</p>
     </div>
   );
@@ -794,8 +834,10 @@ function StepVisualPdf() {
 
 function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <div className="rounded-xl bg-white ring-1 ring-zinc-200 p-5 hover:ring-amber-300 transition">
-      <div className="text-2xl mb-2">{emoji}</div>
+    <div className="group rounded-xl bg-amber-50/60 ring-1 ring-amber-200 p-5 transition-all duration-200 hover:-translate-y-1 hover:bg-white hover:ring-amber-300 hover:shadow-md">
+      <div className="w-10 h-10 rounded-lg bg-white ring-1 ring-amber-200 flex items-center justify-center text-xl mb-2.5">
+        {emoji}
+      </div>
       <h3 className="font-semibold text-zinc-900 mb-1 text-sm">{title}</h3>
       <p className="text-xs text-zinc-600 leading-relaxed">{desc}</p>
     </div>
@@ -812,7 +854,7 @@ function ImageFeatureCard({
   desc: string;
 }) {
   return (
-    <div className="rounded-xl bg-white ring-1 ring-zinc-200 overflow-hidden hover:ring-amber-300 hover:shadow-md transition">
+    <div className="group rounded-xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:ring-amber-400 hover:shadow-lg">
       <div className="aspect-[16/9] bg-gradient-to-br from-zinc-50 to-zinc-100 overflow-hidden">
         <Image
           src={src}
@@ -822,11 +864,14 @@ function ImageFeatureCard({
           quality={78}
           loading="lazy"
           sizes="(min-width:768px) 480px, 100vw"
+          className="transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
       <div className="p-5">
-        <h3 className="font-semibold text-zinc-900 mb-1.5">{title}</h3>
+        <h3 className="font-semibold text-zinc-900 mb-1.5 group-hover:text-amber-900 transition-colors">
+          {title}
+        </h3>
         <p className="text-sm text-zinc-600 leading-relaxed">{desc}</p>
       </div>
     </div>
@@ -835,9 +880,11 @@ function ImageFeatureCard({
 
 function PersonaCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <div className="rounded-xl bg-white ring-1 ring-zinc-200 p-6 hover:ring-amber-300 transition">
+    <div className="group rounded-xl bg-white ring-1 ring-stone-200 shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:ring-amber-300 hover:shadow-md">
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-3xl">{emoji}</span>
+        <span className="w-12 h-12 rounded-xl bg-amber-50 ring-1 ring-amber-200 flex items-center justify-center text-2xl shrink-0">
+          {emoji}
+        </span>
         <h3 className="font-semibold text-zinc-900 text-lg">{title}</h3>
       </div>
       <p className="text-sm text-zinc-700 leading-relaxed">{desc}</p>

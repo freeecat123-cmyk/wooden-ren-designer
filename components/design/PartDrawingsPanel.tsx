@@ -62,9 +62,9 @@ export function PartDrawingsPanel({ design }: Props) {
   if (!groups.length) return null;
 
   return (
-    <section className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden">
-      <div className="px-4 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-2">
-        <span className="w-0.5 h-4 bg-amber-500 rounded-full" />
+    <section className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
+        <span className="w-1 h-4 bg-amber-500 rounded-full" />
         零件圖
         <span className="ml-auto text-[10px] font-normal text-zinc-400">
           共 {groups.length} 件（合併同形）
@@ -77,7 +77,7 @@ export function PartDrawingsPanel({ design }: Props) {
           <li key={g.hash}>
             <button
               type="button"
-              className="w-full text-left border border-zinc-300 rounded p-2 hover:bg-zinc-50 transition"
+              className="w-full text-left border border-zinc-200 rounded-xl p-2.5 hover:border-amber-300 hover:bg-amber-50/50 hover:shadow-sm transition-all"
               onClick={() => setOpenIdx(idx)}
             >
               <div className="text-sm font-semibold text-zinc-900">

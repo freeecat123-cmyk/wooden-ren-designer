@@ -33,28 +33,28 @@ export function StickyBottomBar({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-zinc-200 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-amber-900/10 shadow-[0_-3px_14px_rgba(120,80,20,0.12)]"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3 min-h-[72px]">
         <div className="flex flex-col">
-          <span className="text-xs text-zinc-500 uppercase tracking-wide">參考總價</span>
-          <span className="text-lg font-bold text-zinc-900 tabular-nums">
+          <span className="text-[11px] text-zinc-500 tracking-wide">參考總價</span>
+          <span className="text-xl font-bold text-amber-900 tabular-nums leading-tight">
             NT$ {formattedPrice}
           </span>
-          <span className="text-xs text-zinc-500">約 {weight.toFixed(1)} kg</span>
+          <span className="text-[11px] text-zinc-500">約 {weight.toFixed(1)} kg</span>
         </div>
         <div className="flex gap-2">
           <Link
             href={quoteUrl}
-            className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-md bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold"
+            className="inline-flex items-center justify-center min-h-[46px] px-4 rounded-xl bg-amber-700 hover:bg-amber-800 active:scale-[0.97] text-white text-sm font-semibold shadow-sm transition-all"
           >
             💰 報價
           </Link>
           <button
             type="button"
             onClick={handleLineShare}
-            className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-semibold"
+            className="inline-flex items-center justify-center min-h-[46px] px-4 rounded-xl bg-green-600 hover:bg-green-700 active:scale-[0.97] text-white text-sm font-semibold shadow-sm transition-all"
           >
             📲 LINE
           </button>

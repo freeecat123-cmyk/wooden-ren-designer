@@ -27,8 +27,8 @@ export function SceneThemeToggle({ current }: { current: SceneThemeId }) {
   };
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 bg-zinc-50/50">
-      <span className="text-[11px] text-zinc-600 mr-1.5">場景</span>
+    <div className="flex items-center gap-1 px-3 py-2 border-b border-amber-100 bg-amber-50/40">
+      <span className="text-[11px] font-medium text-zinc-600 mr-1.5">場景</span>
       {SCENE_THEME_LIST.map((t) => {
         const active = t.id === current;
         return (
@@ -37,10 +37,10 @@ export function SceneThemeToggle({ current }: { current: SceneThemeId }) {
             type="button"
             onClick={() => onSelect(t.id)}
             title={t.nameZh}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] transition-colors ${
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-all ${
               active
-                ? "bg-zinc-900 text-white"
-                : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
+                ? "bg-amber-600 text-white shadow-sm shadow-amber-900/20"
+                : "bg-white text-zinc-700 border border-zinc-200 hover:border-amber-300 hover:bg-amber-50"
             }`}
           >
             <span

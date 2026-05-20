@@ -31,12 +31,12 @@ export function ThreeDExportButton({ design }: Props) {
   const scale = SCALES[scaleIdx].value;
 
   return (
-    <div className="px-4 py-2 border-t border-zinc-200 bg-zinc-50 flex flex-wrap items-center gap-2 text-[11px]">
-      <span className="text-zinc-500">3D 列印檔（簡化盒體）</span>
+    <div className="px-4 py-2.5 border-t border-amber-100 bg-amber-50/40 flex flex-wrap items-center gap-2 text-[11px]">
+      <span className="text-zinc-500 font-medium">3D 列印檔（簡化盒體）</span>
       <select
         value={scaleIdx}
         onChange={(e) => setScaleIdx(Number(e.target.value))}
-        className="px-2 py-1 border border-zinc-300 rounded bg-white text-zinc-700"
+        className="px-2 py-1 border border-zinc-300 rounded-md bg-white text-zinc-700 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
         title="輸出比例。1:10 預設適合家用 3D 列印"
       >
         {SCALES.map((s, i) => (
@@ -46,7 +46,7 @@ export function ThreeDExportButton({ design }: Props) {
       <button
         type="button"
         onClick={() => downloadSTL(design, scale)}
-        className="px-2 py-1 border border-zinc-300 rounded bg-white hover:bg-zinc-100 text-zinc-700"
+        className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
         title="3D 列印 / 切片器（Cura、PrusaSlicer）"
       >
         🖨️ STL
@@ -55,7 +55,7 @@ export function ThreeDExportButton({ design }: Props) {
         <button
           type="button"
           onClick={() => downloadOBJ(design, scale)}
-          className="px-2 py-1 border border-zinc-300 rounded bg-white hover:bg-zinc-100 text-zinc-700"
+          className="px-2.5 py-1 border border-zinc-300 rounded-md bg-white hover:border-amber-300 hover:bg-amber-50 text-zinc-700 transition-colors"
           title="SketchUp / Blender / 通用 3D 軟體（dev only — shape kind 細節尚未完整）"
         >
           📐 OBJ
