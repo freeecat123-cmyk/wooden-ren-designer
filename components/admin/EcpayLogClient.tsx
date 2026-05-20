@@ -101,6 +101,30 @@ export function EcpayLogClient() {
   const [simResult, setSimResult] = useState<string | null>(null);
   const [reconBusy, setReconBusy] = useState(false);
   const [reconResult, setReconResult] = useState<string | null>(null);
+  const [queryOrderId, setQueryOrderId] = useState("");
+  const [queryBusy, setQueryBusy] = useState(false);
+  const [queryResult, setQueryResult] = useState<string | null>(null);
+  async function queryPeriodic() {
+    if (!queryOrderId.trim()) {
+      setQueryResult("請輸入 merchant_trade_no");
+      return;
+    }
+    setQueryBusy(true);
+    setQueryResult("查詢中…");
+    try {
+      const r = await fetch("/api/admin/ecpay/query-periodic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchant_trade_no: queryOrderId.trim() }),
+      });
+      const j = await r.json();
+      setQueryResult(JSON.stringify(j, null, 2));
+    } catch (e) {
+      setQueryResult(`❌ ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setQueryBusy(false);
+    }
+  }
   async function runReconciliation() {
     if (!confirm("立即觸發對帳 cron?\n(查綠界每筆 active monthly sub 狀態,終止的同步 DB)")) return;
     setReconBusy(true);
@@ -305,6 +329,33 @@ export function EcpayLogClient() {
           {simResult && (
             <pre className="mt-2 text-[11px] font-mono whitespace-pre-wrap text-indigo-950 bg-white border border-indigo-200 rounded p-2">
               {simResult}
+            </pre>
+          )}
+          <hr className="my-3 border-indigo-200" />
+          <p className="text-[11px] text-indigo-800 mb-2">
+            🔍 查綠界定期定額 raw 狀態(對帳 cron 抓不到時診斷用)
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={queryOrderId}
+              onChange={(e) => setQueryOrderId(e.target.value)}
+              placeholder="merchant_trade_no (e.g. WRMPCT883KFJXN)"
+              className="flex-1 min-w-[260px] text-xs px-3 py-1.5 rounded border border-indigo-300 bg-white font-mono"
+              disabled={queryBusy}
+            />
+            <button
+              type="button"
+              onClick={queryPeriodic}
+              disabled={queryBusy}
+              className="text-xs px-3 py-1.5 rounded bg-zinc-700 text-white hover:bg-zinc-800 disabled:opacity-50"
+            >
+              {queryBusy ? "查詢中…" : "查綠界狀態"}
+            </button>
+          </div>
+          {queryResult && (
+            <pre className="mt-2 text-[11px] font-mono whitespace-pre-wrap text-zinc-900 bg-white border border-zinc-200 rounded p-2 max-h-[300px] overflow-auto">
+              {queryResult}
             </pre>
           )}
         </div>
