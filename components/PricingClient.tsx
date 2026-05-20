@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { EarlyBirdBanner, EARLY_BIRD } from "./EarlyBirdBanner";
 import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCard";
 import { useUserPlan } from "@/hooks/useUserPlan";
 
@@ -139,8 +138,6 @@ export function PricingClient() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      <EarlyBirdBanner />
-
       {lockedCategory && (
         <div
           className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-xl border-2 flex items-start gap-3"
@@ -217,7 +214,6 @@ export function PricingClient() {
             key={p.id}
             plan={p}
             period={period}
-            earlyBird={p.id === "pro" && period === "monthly" && EARLY_BIRD.isActive()}
             currentPlan={currentPlan}
             currentStatus={currentStatus}
             currentPeriod={currentPeriod}

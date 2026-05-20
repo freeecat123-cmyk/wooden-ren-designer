@@ -56,7 +56,6 @@ const PRICE_BY_PLAN: Record<string, { monthly: number; yearly: number }> = {
 export function PlanCardView({
   plan,
   period,
-  earlyBird = false,
   currentPlan = null,
   currentStatus = null,
   currentPeriod = null,
@@ -64,7 +63,6 @@ export function PlanCardView({
 }: {
   plan: PlanCard;
   period: BillingPeriod;
-  earlyBird?: boolean;
   /** user 目前的 plan (free/personal/pro/student/lifetime),用來顯示「升級/降級/已是」狀態 */
   currentPlan?: string | null;
   /** users.subscription_status,用來判斷是不是 active 訂閱中 */
@@ -151,24 +149,6 @@ export function PlanCardView({
         {plan.originalYearly &&
           plan.originalYearly > plan.yearlyPrice &&
           `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
-      </p>
-    );
-  } else if (earlyBird) {
-    const earlyPrice = Math.round(plan.monthlyPrice / 2);
-    priceLine = (
-      <>
-        <span className="text-2xl sm:text-3xl font-bold text-[#c0651e]">
-          NT$ {earlyPrice.toLocaleString()}
-        </span>
-        <span className="text-sm text-zinc-400 line-through">
-          NT$ {plan.monthlyPrice.toLocaleString()}
-        </span>
-        <span className="text-sm text-zinc-500">/ 月</span>
-      </>
-    );
-    belowPrice = (
-      <p className="mt-1 text-xs text-[#c0651e] font-semibold">
-        🔥 早鳥半價 · 首 3 個月，第 4 個月起 NT$ {plan.monthlyPrice}/月
       </p>
     );
   } else {
