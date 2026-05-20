@@ -315,6 +315,11 @@ function Part({
     grainDirection === "width"
       ? (isWide ? woodCompileZWide : woodCompileZNarrow)
       : (isWide ? woodCompileXWide : woodCompileXNarrow);
+  // useMemo deps：size 是 [a,b,c] array、shape 是 object——父元件每 render
+  // 都建新 reference 害 useMemo 永遠 invalidate。改 primitive + shape JSON
+  // 後 box 件 fast-path 不變，異形件每次拖滑桿省一次 geometry 重建（50-200ms）。
+  const sx = size[0], sy = size[1], sz = size[2];
+  const shapeKey = shape ? JSON.stringify(shape) : "";
   const geometry = useMemo(() => {
     if (!shape || shape.kind === "box") return null;
     if (shape.kind === "tapered") {
@@ -505,7 +510,8 @@ function Part({
       return buildMiteredCornerGeometry(size, shape.axis, shape.corner, shape.depthMm, shape.chamferMm);
     }
     return null;
-  }, [size, shape]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sx, sy, sz, shapeKey]);
 
   // joineryMode CSG：把每個 mortise 從 base geo 挖掉。base geo 為 null 時
   // 用預設 box 當底建 brush；多 mesh shape（lathe-turned / shaker）跟自由曲面
@@ -519,7 +525,8 @@ function Part({
     // 若 baseGeo 是新建的 BoxGeometry（不是 useMemo cache 的 geometry），dispose
     if (!geometry) baseGeo.dispose();
     return result;
-  }, [geometry, mortiseBoxes, mortiseShapes, shape, size]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometry, mortiseBoxes, mortiseShapes, shapeKey, sx, sy, sz]);
 
   // 鳩尾榫 CSG：把 dovetailCuts 中每個 cutter Brush 從本零件 base geo 減掉。
   // 上輪 (09c1097) 用 Brush.position.set + rotation.set + updateMatrixWorld 對齊
@@ -588,7 +595,8 @@ function Part({
     if (merged !== baseGeo) merged.dispose();
     if (createdLocally) baseGeo.dispose();
     return eg;
-  }, [wireframe, geometry, size, shape]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wireframe, geometry, sx, sy, sz, shapeKey]);
 
   // wireframe 模式：所有材質統一用 silhouette edges 渲染
   if (wireframe && edgesGeometry) {
