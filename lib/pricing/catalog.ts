@@ -12,6 +12,14 @@ import type { BillableMaterial, MaterialId, SheetGood } from "@/lib/types";
  */
 export const MM3_PER_BDFT = 25.4 * 25.4 * 25.4 * 144; // ≈ 2,359,737
 
+/**
+ * 板材標準張：4×8 呎 = 2440×1220mm，標準厚 18mm。
+ * 用於 plywood / mdf 計價時 ceil 成「整張」——市場板材整張賣，
+ * 半張也付全張錢。背板/抽屜底實際用 0.4 張、結帳要算 1 整張。
+ */
+export const SHEET_DIM_MM = { length: 2440, width: 1220, refThickness: 18 } as const;
+export const SHEET_AREA_MM2 = SHEET_DIM_MM.length * SHEET_DIM_MM.width; // 2,976,800
+
 export const MATERIAL_PRICE_PER_BDFT: Record<MaterialId, number> = {
   "taiwan-cypress": 1000,
   walnut: 250,

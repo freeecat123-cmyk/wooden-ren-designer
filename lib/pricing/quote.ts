@@ -89,6 +89,7 @@ export function computeChamferLaborHours(design: FurnitureDesign): {
 import {
   MATERIAL_PRICE_PER_BDFT,
   MM3_PER_BDFT,
+  SHEET_AREA_MM2,
   SHEET_GOOD_LABEL,
   effectiveBillableMaterial,
 } from "./catalog";
@@ -203,7 +204,17 @@ export function calculateQuote(
   // 1. 按計價材料分組加總材積
   // 使用者若把夾板/中纖板單價清空（null），該類零件併回主材一起計
   // 視覺裝飾（玻璃）不計入木料成本
+  //
+  // 板材（plywood/mdf）特別處理：實際市場整張賣（2440×1220 標準張），
+  // 半張也付全張錢。在這裡我們依「(板材, 厚度)」分組加總「面積」，
+  // 之後 ceil(面積 / 整張面積) 算實際要買幾張、billedBdft 用實際厚度計。
   const volumeByMaterial = new Map<BillableMaterial, number>();
+  // key: `${mat}-${thicknessMm}`；只放 plywood/mdf 用
+  const sheetAreaByGroup = new Map<string, {
+    mat: "plywood" | "mdf";
+    thickness: number;
+    totalAreaMm2: number;
+  }>();
   for (const part of design.parts) {
     if (part.visual !== undefined) continue;
     const cut = calculateCutDimensions(part);
@@ -214,7 +225,14 @@ export function calculateQuote(
     } else if (mat === "mdf" && opts.mdfPricePerBdft == null) {
       mat = design.primaryMaterial;
     }
-    volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
+    if (mat === "plywood" || mat === "mdf") {
+      const key = `${mat}-${cut.thickness}`;
+      const cur = sheetAreaByGroup.get(key) ?? { mat, thickness: cut.thickness, totalAreaMm2: 0 };
+      cur.totalAreaMm2 += cut.length * cut.width;
+      sheetAreaByGroup.set(key, cur);
+    } else {
+      volumeByMaterial.set(mat, (volumeByMaterial.get(mat) ?? 0) + vol);
+    }
   }
 
   const materialLines: QuoteLineItem[] = [];
@@ -229,39 +247,56 @@ export function calculateQuote(
     return aSheet - bSheet;
   });
 
+  // 1a. 實木：按 bdft 線性計價（鋸下來剩料還能用）
   for (const [mat, volMm3] of sortedEntries) {
     const wasteRate = wasteRateFor(design.category);
     const withWaste = volMm3 * (1 + wasteRate);
     const bdft = withWaste / MM3_PER_BDFT;
 
-    // 單價優先順序：使用者輸入 > catalog 預設
-    // （null 的情況在前面 volumeByMaterial 建立階段已併回主材，這裡不會再看到）
     let unitPrice: number;
-    if (mat === "plywood") {
-      unitPrice = opts.plywoodPricePerBdft ?? 0;
-    } else if (mat === "mdf") {
-      unitPrice = opts.mdfPricePerBdft ?? 0;
-    } else if (mat === design.primaryMaterial) {
+    if (mat === design.primaryMaterial) {
       unitPrice = opts.primaryMaterialPricePerBdft;
-    } else {
-      // 極少情況：零件標了另一種實木（目前沒有 template 會這樣）
+    } else if (mat !== "plywood" && mat !== "mdf") {
+      // 板材已在 1b 用整張計價路徑分流，這裡只剩實木 MaterialId
       unitPrice = MATERIAL_PRICE_PER_BDFT[mat] ?? 2000;
+    } else {
+      // 邏輯上不應該到這（板材在 sheetAreaByGroup 處理），保險回 0
+      unitPrice = 0;
     }
 
     const amount = bdft * unitPrice;
-    const suffix =
-      mat === design.primaryMaterial
-        ? "（主材）"
-        : mat === "plywood" || mat === "mdf"
-        ? "（板材）"
-        : "";
+    const suffix = mat === design.primaryMaterial ? "（主材）" : "";
     materialLines.push({
       label: `材料｜${materialLabel(mat)}${suffix}`,
-      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(wasteRateFor(design.category) * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
+      detail: `${bdft.toFixed(2)} 板才（含 ${Math.round(wasteRate * 100)}% 切料損耗）× NT$${unitPrice}/板才`,
       amount,
     });
     materialCost += amount;
     totalVolumeMm3 += withWaste;
+    totalBdft += bdft;
+  }
+
+  // 1b. 板材：按整張計價（市場整張賣，半張也付全張錢）
+  for (const { mat, thickness, totalAreaMm2 } of sheetAreaByGroup.values()) {
+    const wasteRate = wasteRateFor(design.category);
+    // 板材切料損耗 → 換算成「需要的面積」，再 ceil 成整張
+    const areaWithWaste = totalAreaMm2 * (1 + wasteRate);
+    const sheetsNeeded = Math.ceil(areaWithWaste / SHEET_AREA_MM2);
+    const billedVolumeMm3 = sheetsNeeded * SHEET_AREA_MM2 * thickness;
+    const bdft = billedVolumeMm3 / MM3_PER_BDFT;
+
+    const unitPrice = mat === "plywood"
+      ? (opts.plywoodPricePerBdft ?? 0)
+      : (opts.mdfPricePerBdft ?? 0);
+    const amount = bdft * unitPrice;
+
+    materialLines.push({
+      label: `材料｜${materialLabel(mat)}（板材，${thickness}mm）`,
+      detail: `${sheetsNeeded} 張 ${thickness}mm × 2440×1220mm（實用 ${(totalAreaMm2 / 1e6).toFixed(2)} m² + ${Math.round(wasteRate * 100)}% 切料損耗 → ceil 成整張）× NT$${unitPrice}/板才`,
+      amount,
+    });
+    materialCost += amount;
+    totalVolumeMm3 += billedVolumeMm3;
     totalBdft += bdft;
   }
 
