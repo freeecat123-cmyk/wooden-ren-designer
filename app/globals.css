@@ -25,6 +25,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif-tc);
+}
+
+/* 中文標題質感字體：明朝體（Noto Serif TC）— 給 h1 / hero 標題用。
+   小字 / 標籤 / 內文仍用 sans，避免閱讀疲勞。 */
+.font-serif-tc {
+  font-family: var(--font-serif-tc), "Noto Serif TC", "Source Han Serif TC",
+    "PingFang TC", serif;
+  letter-spacing: 0.02em;
 }
 
 html {

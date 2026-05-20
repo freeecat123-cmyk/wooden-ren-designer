@@ -689,7 +689,7 @@ function ParameterForm({
   return (
     <DesignFormShell
       action={`/design/${type}`}
-      className="p-5 bg-zinc-50 rounded-lg ring-1 ring-zinc-200"
+      className="p-5 bg-stone-50/80 rounded-lg ring-1 ring-stone-300"
     >
       {type !== "pencil-holder" && type !== "tray" && type !== "dovetail-box" && (
         <fieldset className="mb-5">

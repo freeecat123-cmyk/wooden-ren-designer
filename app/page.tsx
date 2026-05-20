@@ -165,7 +165,7 @@ export default async function Home({
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               木頭仁木匠學院 · 木作藍圖 v0.5
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
+            <h1 className="font-serif-tc text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 leading-tight">
               從尺寸到圖紙,三秒鐘完成
             </h1>
             <p className="mt-3 max-w-2xl text-zinc-700 leading-relaxed">
@@ -290,7 +290,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       <div
         data-catalog-search={searchTokens}
         aria-disabled="true"
-        className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-zinc-200 opacity-60 cursor-not-allowed select-none"
+        className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-60 cursor-not-allowed select-none"
       >
         <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
           <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
@@ -308,7 +308,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
       title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
-      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:shadow-md transition"
+      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 hover:ring-amber-500 hover:shadow-md transition"
     >
       {/* Top-right corner markers */}
       {paid && (
