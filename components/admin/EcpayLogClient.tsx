@@ -398,6 +398,19 @@ function InvoiceCell({
   onVoid: () => void;
 }) {
   const s = payment.invoice_status;
+  // 取消後綠界誤扣的 payment(periodic-notify 在 cancelled 分支只記 row 不開發票)
+  //   identify via raw_response._note
+  const isPostCancelCharge =
+    payment.raw_response &&
+    typeof payment.raw_response === "object" &&
+    (payment.raw_response as Record<string, unknown>)._note === "post_cancel_charge";
+  if (isPostCancelCharge) {
+    return (
+      <span className="text-[11px] text-zinc-500" title="cancelled 後的扣款,刻意不開發票">
+        ⏭ 已取消後扣款
+      </span>
+    );
+  }
   // refunded payment 沒同步作廢 → 顯示補作廢按鈕(退款 24h 內可用)
   if (payment.status === "refunded" && s === "issued") {
     return (
