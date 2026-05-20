@@ -65,7 +65,7 @@ export default function AboutPage() {
         {/* Hero 主視覺 — 真實 3D 渲染 */}
         <div className="mt-10 sm:mt-12 rounded-2xl overflow-hidden ring-1 ring-zinc-200 shadow-lg bg-gradient-to-br from-zinc-50 to-zinc-100">
           <Image
-            src="/about/hero-3d.png"
+            src="/about-assets/hero-3d.png"
             alt="木作藍圖 3D 預覽 — 電視櫃實際生成畫面"
             width={1600}
             height={900}
@@ -180,32 +180,32 @@ export default function AboutPage() {
         {/* 主要 6 件含截圖 */}
         <div className="grid md:grid-cols-2 gap-5 sm:gap-6 mb-6">
           <ImageFeatureCard
-            src="/about/feat-threeview.png"
+            src="/about-assets/feat-threeview.png"
             title="📐 工程三視圖"
             desc="正視、側視、俯視圖，含完整尺寸標註——符合台灣木匠製圖慣例，印出來就能照做。"
           />
           <ImageFeatureCard
-            src="/about/feat-cutlist.png"
+            src="/about-assets/feat-cutlist.png"
             title="📋 切料清單"
             desc="每塊料的長寬厚、編號、3D 對應位置一目瞭然，工坊裡邊裁邊勾，不會出錯。"
           />
           <ImageFeatureCard
-            src="/about/feat-cutplan-full.png"
+            src="/about-assets/feat-cutplan-full.png"
             title="🪵 排板裁切圖"
             desc="自動算出最省料的排板方式並顯示利用率，連 5 米德製升級捲尺要從哪邊下刀都標好。"
           />
           <ImageFeatureCard
-            src="/about/feat-steps.png"
+            src="/about-assets/feat-steps.png"
             title="📑 製作工序"
             desc={`完整 19 步工序、預估工時、選料注意事項、含水率、刨削方向——比自學書還細。`}
           />
           <ImageFeatureCard
-            src="/about/feat-quote.png"
+            src="/about-assets/feat-quote.png"
             title="💰 客製報價"
             desc="家具報價、含稅金額、訂金尾款分配、付款分期、客戶資料表，接案直接列印當報價單。"
           />
           <ImageFeatureCard
-            src="/about/hero-3d.png"
+            src="/about-assets/hero-3d.png"
             title="🪑 3D 透視預覽"
             desc="逼真木紋渲染，可拖曳旋轉檢視任何角度，把成品先看清楚再下鋸。"
           />
@@ -394,7 +394,7 @@ function StepVisualCatalog() {
 function StepVisualSliders() {
   return (
     <Image
-      src="/about/step-design.png"
+      src="/about-assets/step-design.png"
       alt="設定面板拉滑桿、3D 即時更新"
       width={600}
       height={300}
@@ -410,7 +410,7 @@ function StepVisualSliders() {
 function StepVisualPdf() {
   return (
     <Image
-      src="/about/feat-threeview.png"
+      src="/about-assets/feat-threeview.png"
       alt="工程三視圖含尺寸標註"
       width={600}
       height={300}
