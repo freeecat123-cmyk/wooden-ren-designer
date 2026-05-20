@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 const READY_COUNT = FURNITURE_CATALOG.filter((f) => f.template).length;
 
-/** 裝潢專區 — 8 件最常用櫃體（直接連到 /design/[slug]） */
+/** 裝潢專區 — 7 件最常用櫃體 + 第 8 格放「持續新增中」（直接連到 /design/[slug]） */
 const INTERIOR_CABINETS: Array<{ slug: string; nameZh: string }> = [
   { slug: "wardrobe", nameZh: "衣櫃" },
   { slug: "shoe-cabinet", nameZh: "鞋櫃" },
@@ -21,7 +21,6 @@ const INTERIOR_CABINETS: Array<{ slug: string; nameZh: string }> = [
   { slug: "display-cabinet", nameZh: "展示櫃" },
   { slug: "nightstand", nameZh: "床頭櫃" },
   { slug: "chest-of-drawers", nameZh: "斗櫃" },
-  { slug: "chinese-cabinet", nameZh: "中式方角櫃" },
 ];
 
 /** Hero 下方 thumb mosaic 用 — 挑視覺好認的 12 件，類別均衡 */
@@ -118,9 +117,12 @@ export default function AboutPage() {
 
       {/* ============ Thumb mosaic：26 件視覺證明 ============ */}
       <section className="mt-16 sm:mt-20">
-        <p className="text-center text-zinc-600 mb-6 text-sm sm:text-base">
+        <p className="text-center text-zinc-600 mb-2 text-sm sm:text-base">
           目前內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本，
           從筆筒到衣櫃，都能直接拖滑桿改尺寸——
+        </p>
+        <p className="text-center text-amber-700 mb-6 text-xs sm:text-sm font-medium">
+          📦 圖庫每月持續新增中，學員投票決定下一個做什麼
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
           {MOSAIC_THUMBS.map((slug) => (
@@ -142,6 +144,8 @@ export default function AboutPage() {
         </div>
         <p className="text-center text-zinc-500 text-xs mt-4">
           這只是其中 12 件，<Link href="/" className="underline hover:text-zinc-900">看全部 {READY_COUNT} 種</Link>
+          {" · "}
+          <Link href="/contact" className="underline hover:text-zinc-900">想看哪個下個月做？跟我說</Link>
         </p>
       </section>
 
@@ -308,9 +312,10 @@ export default function AboutPage() {
           </div>
         </Link>
 
-        {/* 8 件裝潢櫃體 */}
+        {/* 7 件裝潢櫃體 + 持續新增磚 */}
         <h3 className="font-bold text-zinc-900 text-lg mb-3">
-          裝潢櫃體一條龍 — 8 種常用櫃自動產圖紙 + 切料單
+          裝潢櫃體一條龍 — {INTERIOR_CABINETS.length} 種常用櫃自動產圖紙、
+          <span className="text-amber-700">每月持續新增</span>
         </h3>
         <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-2">
           {INTERIOR_CABINETS.map((c) => (
@@ -331,9 +336,21 @@ export default function AboutPage() {
               />
             </Link>
           ))}
+          {/* 第 8 格：持續新增中（管理「種類會繼續長」期待） */}
+          <Link
+            href="/"
+            title="持續新增中"
+            className="group block aspect-square rounded-lg bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-dashed ring-amber-300 hover:ring-solid hover:ring-amber-500 hover:shadow-sm transition flex flex-col items-center justify-center text-center p-2"
+          >
+            <span className="text-2xl text-amber-700 leading-none mb-1">＋</span>
+            <span className="text-[10px] sm:text-xs text-amber-800 font-semibold leading-tight">
+              每月<br />新增
+            </span>
+          </Link>
         </div>
         <p className="text-xs text-zinc-500 mb-8">
           {INTERIOR_CABINETS.map((c) => c.nameZh).join(" · ")}
+          {" · 新範本每月上架"}
         </p>
 
         {/* 即將推出 */}
