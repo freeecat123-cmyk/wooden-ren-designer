@@ -428,22 +428,42 @@ export default function AboutPage() {
               木作藍圖就是我把那些「<strong>怎麼抓</strong>」寫成的工具。
               家具尺寸慣例、榫卯規則、工序邏輯——每一條背後都有實際做過、被學員問到爛的經驗。
             </p>
-            <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start">
+            <div className="mt-5 flex flex-wrap gap-2 justify-center md:justify-start">
               <a
                 href="https://www.youtube.com/@WoodenRen"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+                aria-label="木頭仁 YouTube 頻道"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
               >
-                YouTube 頻道 →
+                <span aria-hidden>▶</span> YouTube
+              </a>
+              <a
+                href="https://www.facebook.com/woodenren99/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="木頭仁 Facebook 粉絲團"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+              >
+                <span aria-hidden className="font-bold">f</span> Facebook
+              </a>
+              <a
+                href="https://www.instagram.com/wooden_ren/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="木頭仁 Instagram"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 hover:opacity-90"
+              >
+                <span aria-hidden>📷</span> Instagram
               </a>
               <a
                 href="https://woodenrenclass.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-white text-zinc-900 text-sm font-semibold ring-1 ring-zinc-300 hover:bg-zinc-50"
+                aria-label="木匠學院"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-zinc-900 text-sm font-semibold ring-1 ring-zinc-300 hover:bg-zinc-50"
               >
-                木匠學院 →
+                <span aria-hidden>🎓</span> 木匠學院
               </a>
             </div>
           </div>
