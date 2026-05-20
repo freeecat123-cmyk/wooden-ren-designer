@@ -8,15 +8,22 @@ interface Props {
   design: FurnitureDesign;
 }
 
-// 1:10 是預設值——家用 3D 列印機 200mm 床能放整件方凳/椅。
+// 預設 1:10——家用 3D 列印機 200mm 床能放整件方凳/椅。
 // 1:1 給 SketchUp 或工業列印機用。
 const SCALES: Array<{ label: string; value: number }> = [
-  { label: "1:10 模型", value: 0.1 },
   { label: "1:1 原寸", value: 1 },
+  { label: "1:2", value: 0.5 },
+  { label: "1:5", value: 0.2 },
+  { label: "1:10 模型", value: 0.1 },
+  { label: "1:20", value: 0.05 },
+  { label: "1:25", value: 0.04 },
+  { label: "1:50", value: 0.02 },
+  { label: "1:100", value: 0.01 },
 ];
+const DEFAULT_IDX = 3;
 
 export function ThreeDExportButton({ design }: Props) {
-  const [scaleIdx, setScaleIdx] = useState(0);
+  const [scaleIdx, setScaleIdx] = useState(DEFAULT_IDX);
   const scale = SCALES[scaleIdx].value;
 
   return (
