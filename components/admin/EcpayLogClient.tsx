@@ -99,6 +99,28 @@ export function EcpayLogClient() {
   const [simSuccess, setSimSuccess] = useState(true);
   const [simBusy, setSimBusy] = useState(false);
   const [simResult, setSimResult] = useState<string | null>(null);
+  const [reconBusy, setReconBusy] = useState(false);
+  const [reconResult, setReconResult] = useState<string | null>(null);
+  async function runReconciliation() {
+    if (!confirm("立即觸發對帳 cron?\n(查綠界每筆 active monthly sub 狀態,終止的同步 DB)")) return;
+    setReconBusy(true);
+    setReconResult("執行中…");
+    try {
+      const r = await fetch("/api/admin/run-reconciliation", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok) {
+        setReconResult(`❌ ${j.error ?? `HTTP ${r.status}`} ${j.detail ?? j.hint ?? ""}`);
+      } else {
+        const res = j.result ?? {};
+        setReconResult(`✓ 檢查 ${res.checked ?? 0} 筆 / 同步 ${res.synced ?? 0} 筆 / 錯誤 ${res.errors ?? 0}${res.drifted?.length ? "\n漂移訂單: " + res.drifted.join(", ") : ""}`);
+      }
+      await load();
+    } catch (e) {
+      setReconResult(`❌ ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setReconBusy(false);
+    }
+  }
   async function simulatePeriodic() {
     if (!simSubId.trim()) {
       setSimResult("請輸入 subscription_id");
@@ -202,6 +224,15 @@ export function EcpayLogClient() {
           </select>
           <button
             type="button"
+            onClick={runReconciliation}
+            disabled={reconBusy}
+            className="px-3 py-1.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-900 text-sm hover:bg-emerald-100 disabled:opacity-50"
+            title="對帳:抓所有 active monthly sub,查綠界狀態,終止的同步 DB"
+          >
+            🔃 {reconBusy ? "對帳中…" : "立即對帳"}
+          </button>
+          <button
+            type="button"
             onClick={load}
             disabled={loading}
             className="px-3 py-1.5 rounded border border-zinc-300 text-sm hover:bg-zinc-50 disabled:opacity-50"
@@ -227,6 +258,11 @@ export function EcpayLogClient() {
         <div className={`mb-4 px-4 py-2 rounded text-sm ${retryResult.ok ? "bg-emerald-50 border border-emerald-200 text-emerald-800" : "bg-red-50 border border-red-200 text-red-700"}`}>
           {retryResult.msg}
         </div>
+      )}
+      {reconResult && (
+        <pre className="mb-4 px-4 py-2 rounded text-xs font-mono whitespace-pre-wrap bg-emerald-50 border border-emerald-200 text-emerald-900">
+          {reconResult}
+        </pre>
       )}
 
       {/* 模擬月扣下期 webhook(dev/test 用) */}
