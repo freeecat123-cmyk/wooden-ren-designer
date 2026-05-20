@@ -322,7 +322,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "tongue-and-groove",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${CELL_CLEARANCE}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${cellClearance}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       mountStyle === "wall-mount"
         ? "已加背面吊掛條，鎖到牆內龍骨上即可。"
         : mountStyle === "stackable"
