@@ -48,7 +48,7 @@ export default function AboutPage() {
         <h1 className="font-serif-tc text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
           我做木工二十年，<br className="sm:hidden" />
           最不想再花的，<br className="hidden sm:inline" />
-          是畫圖那兩小時。
+          是畫圖跟算料的那兩個晚上。
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-lg text-zinc-700 leading-relaxed">
           選一件家具、填長寬高，<strong className="text-zinc-900">3 秒鐘</strong>
