@@ -50,6 +50,7 @@ const JOINERY_CUT_TOOLS: Record<JoineryType, string[]> = {
   "tongue-and-groove": ["groove-plane", "groove-blade"],
   dowel: ["dowel-jig", "drill", "drill-bits"],
   "mitered-spline": ["japanese-saw", "groove-blade"],
+  mitered: ["japanese-saw", "miter-box"],
   "pocket-hole": ["pocket-hole-jig", "drill", "drill-bits"],
   screw: ["drill", "drill-bits"],
 };

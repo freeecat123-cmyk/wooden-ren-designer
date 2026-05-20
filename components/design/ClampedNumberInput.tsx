@@ -62,12 +62,19 @@ export function ClampedNumberInput({
   const [value, setValue] = useState<string>(String(defaultValue));
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // 只在 max 從外部縮小時把值拉回（「鎖總高」場景）。
+  // 不要 react 到 value 自己變化、也不要在這裡 enforce min ——
+  // 否則使用者打「2」想接著打「2400」時，2 < min 20 會立刻跳成 20、
+  // 接下來 user 打「4」變成「204」、再「0」變「2040」、再「0」變「20400」
+  // 然後又被夾到 max。整個輸入流被毀。min 改成只在 onBlur 時 clamp。
   useEffect(() => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return;
-    if (max !== undefined && n > max) setValue(String(max));
-    else if (min !== undefined && n < min) setValue(String(min));
-  }, [max, min, value]);
+    if (max === undefined) return;
+    setValue((prev) => {
+      const n = Number(prev);
+      if (!Number.isFinite(n)) return prev;
+      return n > max ? String(max) : prev;
+    });
+  }, [max]);
 
   const clamp = useCallback(
     (n: number) => {
