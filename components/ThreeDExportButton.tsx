@@ -22,18 +22,22 @@ const SCALES: Array<{ label: string; value: number }> = [
 ];
 const DEFAULT_IDX = 3;
 
+// OBJ 給 SketchUp/Blender 用，但目前 export 是退化盒體（無 tapered/round/chamfered 等
+// shape kind）→ 對 CAD 使用者誤導大。等補完 shape kind 完整 geometry 再上正式版。
+const SHOW_OBJ = process.env.NODE_ENV !== "production";
+
 export function ThreeDExportButton({ design }: Props) {
   const [scaleIdx, setScaleIdx] = useState(DEFAULT_IDX);
   const scale = SCALES[scaleIdx].value;
 
   return (
     <div className="px-4 py-2 border-t border-zinc-200 bg-zinc-50 flex flex-wrap items-center gap-2 text-[11px]">
-      <span className="text-zinc-500">工程檔輸出（簡化盒體）</span>
+      <span className="text-zinc-500">3D 列印檔（簡化盒體）</span>
       <select
         value={scaleIdx}
         onChange={(e) => setScaleIdx(Number(e.target.value))}
         className="px-2 py-1 border border-zinc-300 rounded bg-white text-zinc-700"
-        title="輸出比例。1:10 預設適合家用 3D 列印；1:1 給 SketchUp / 工業列印"
+        title="輸出比例。1:10 預設適合家用 3D 列印"
       >
         {SCALES.map((s, i) => (
           <option key={s.value} value={i}>{s.label}</option>
@@ -47,14 +51,16 @@ export function ThreeDExportButton({ design }: Props) {
       >
         🖨️ STL
       </button>
-      <button
-        type="button"
-        onClick={() => downloadOBJ(design, scale)}
-        className="px-2 py-1 border border-zinc-300 rounded bg-white hover:bg-zinc-100 text-zinc-700"
-        title="SketchUp / Blender / 通用 3D 軟體"
-      >
-        📐 OBJ
-      </button>
+      {SHOW_OBJ && (
+        <button
+          type="button"
+          onClick={() => downloadOBJ(design, scale)}
+          className="px-2 py-1 border border-zinc-300 rounded bg-white hover:bg-zinc-100 text-zinc-700"
+          title="SketchUp / Blender / 通用 3D 軟體（dev only — shape kind 細節尚未完整）"
+        >
+          📐 OBJ
+        </button>
+      )}
     </div>
   );
 }

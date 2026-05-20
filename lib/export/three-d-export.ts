@@ -60,19 +60,24 @@ function suffix(scale: number) {
   return `1-${ratio}`;
 }
 
+// 中文檔名在 Mac/某些 slicer/雲端服務上會被轉碼成亂碼或被拒；
+// 改用 category（"stool"/"dining-table" 等 ASCII id）保證跨平台相容。
+function safeStem(design: FurnitureDesign, scale: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `${design.category}_${suffix(scale)}_${today}`;
+}
+
 export function downloadSTL(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
   const group = buildGroup(design, scale);
   const data = new STLExporter().parse(group, { binary: true }) as DataView;
   const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([buffer], { type: "model/stl" });
-  const today = new Date().toISOString().slice(0, 10);
-  triggerDownload(blob, `${design.nameZh}_${suffix(scale)}_${today}.stl`);
+  triggerDownload(blob, `${safeStem(design, scale)}.stl`);
 }
 
 export function downloadOBJ(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
   const group = buildGroup(design, scale);
   const data = new OBJExporter().parse(group);
   const blob = new Blob([data], { type: "model/obj" });
-  const today = new Date().toISOString().slice(0, 10);
-  triggerDownload(blob, `${design.nameZh}_${suffix(scale)}_${today}.obj`);
+  triggerDownload(blob, `${safeStem(design, scale)}.obj`);
 }
