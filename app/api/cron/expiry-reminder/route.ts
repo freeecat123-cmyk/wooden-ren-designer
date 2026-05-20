@@ -28,6 +28,18 @@ export const dynamic = "force-dynamic";
 
 const REMINDER_DEDUP_MS = 5 * 86_400_000; // 5 天內不重寄
 
+// Per-invocation 限額：超過 200 個今天先寄這些,沒寄到的明天 cron 會繼續處理
+// （因為他們的 last_expiry_reminder_at 仍是 NULL/舊值,dedup 不擋）。
+// 200 × 150ms sleep ≈ 30 秒,Vercel Pro 60s timeout 內安全。
+const MAX_PER_RUN = 200;
+// Resend Pro plan 速率限 10 req/s,留半條 buffer → 5 req/s = 200ms 間隔。
+// 150ms 比較積極（~6.7 req/s）有 retry 兜底,不會炸。
+const SEND_INTERVAL_MS = 150;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 interface UserRow {
   id: string;
   email: string | null;
@@ -65,6 +77,9 @@ export async function GET(req: NextRequest) {
   const lowerBound = new Date(now - (GRACE_PERIOD_MS + 86_400_000)).toISOString();
   const upperBound = new Date(now + 7 * 86_400_000).toISOString();
 
+  // order by expires_at asc:最急（已 grace / soon 到期）排前,
+  // 避免 burst limit 影響真正需要看到信的人。limit 給多一些(MAX_PER_RUN × 2),
+  // 因為後段 dedup / monthly skip 會砍掉一些,實際送 ≤ MAX_PER_RUN。
   const { data: candidates, error } = await admin
     .from("users")
     .select(
@@ -73,7 +88,9 @@ export async function GET(req: NextRequest) {
     .not("plan", "in", "(free,lifetime)")
     .not("email", "is", null)
     .gte("subscription_expires_at", lowerBound)
-    .lte("subscription_expires_at", upperBound);
+    .lte("subscription_expires_at", upperBound)
+    .order("subscription_expires_at", { ascending: true })
+    .limit(MAX_PER_RUN * 2);
 
   if (error) {
     console.error("[cron/expiry-reminder] select failed", error);
@@ -96,9 +113,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const stats = { soon: 0, grace: 0, downgraded: 0, skipped: 0, skippedMonthly: 0, failed: 0 };
+  const stats = { soon: 0, grace: 0, downgraded: 0, skipped: 0, skippedMonthly: 0, failed: 0, capped: 0 };
+  let sentThisRun = 0;
 
   for (const u of (candidates ?? []) as UserRow[]) {
+    // 達 per-run 上限 → 剩下的明天 cron 接手（last_expiry_reminder_at 仍 NULL/舊
+    // 不會被 dedup 擋）
+    if (sentThisRun >= MAX_PER_RUN) {
+      stats.capped++;
+      continue;
+    }
     if (!u.email || !u.subscription_expires_at) continue;
     const kind = classify(u.subscription_expires_at, now);
     if (kind === "none") continue;
@@ -177,6 +201,10 @@ export async function GET(req: NextRequest) {
         kind,
       });
     }
+    sentThisRun++;
+    // 速率限：每送一封 sleep 150ms,避免 Resend 速率超標觸發 retry。
+    // 失敗的也算一次,因為 sendEmail 內部 retry 已用了時間,sleep 一樣節流。
+    await sleep(SEND_INTERVAL_MS);
   }
 
   console.log("[cron/expiry-reminder] done", stats);

@@ -10,6 +10,7 @@
  * dev 環境可以直接寫 log（避免 cron job 因 email 失敗整個炸掉）。
  */
 import { Resend } from "resend";
+import { createAdminClient } from "@/lib/supabase/server";
 
 const FROM_DEFAULT =
   process.env.EMAIL_FROM ?? "木頭仁 木作藍圖 <noreply@designer.woodenren.com>";
@@ -50,6 +51,41 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// retry 全失敗後丟進 email_queue,給 admin 手動撈出來 replay。
+// failure_kind 分流：rate_limit / quota / validation / network / unknown
+// 用來判斷哪些可以隔天 replay、哪些是永久 fail 不用浪費 quota。
+async function enqueueFailedEmail(
+  opts: SendEmailOptions,
+  failureKind: string,
+  error: string,
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.from("email_queue").insert({
+      to_email: opts.to,
+      subject: opts.subject,
+      text_body: opts.text,
+      html_body: opts.html,
+      from_email: opts.from ?? null,
+      failure_kind: failureKind,
+      error: error.slice(0, 1000),
+    });
+  } catch (e) {
+    // queue 寫入失敗最後一道防線：記 log,不再傳染（已 retry 過,quota 也滿了,
+    // 此時連 DB 都掛掉的話也只能放棄）
+    console.error("[email] email_queue insert failed", e);
+  }
+}
+
+function classifyFailure(name: string | undefined): string {
+  if (!name) return "unknown";
+  if (name === "rate_limit_exceeded") return "rate_limit";
+  if (name === "daily_quota_exceeded" || name === "monthly_quota_exceeded") return "quota";
+  if (name === "internal_server_error" || name === "application_error") return "transient";
+  if (name.startsWith("invalid_") || name === "validation_error") return "validation";
+  return "unknown";
+}
+
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   const client = getClient();
   if (!client) {
@@ -82,7 +118,13 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       const retryable =
         "name" in error && typeof error.name === "string" && RETRY_ERROR_NAMES.has(error.name);
       if (!retryable || attempt === MAX_RETRIES - 1) {
-        console.error("[email] resend send error", { name: (error as { name?: string }).name, message: error.message, attempt });
+        const errName = (error as { name?: string }).name;
+        console.error("[email] resend send error", { name: errName, message: error.message, attempt });
+        // validation_error 寫進 queue 也沒用(永遠 replay 不出來),其他都寫
+        const failureKind = classifyFailure(errName);
+        if (failureKind !== "validation") {
+          await enqueueFailedEmail(opts, failureKind, error.message);
+        }
         return { ok: false, error: error.message };
       }
       const backoffMs = 500 * Math.pow(3, attempt);
@@ -93,6 +135,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       // 網路 throw（fetch 失敗等）— 也算暫時性,backoff retry
       if (attempt === MAX_RETRIES - 1) {
         console.error("[email] sendEmail exception", e);
+        await enqueueFailedEmail(opts, "network", lastError);
         return { ok: false, error: lastError };
       }
       const backoffMs = 500 * Math.pow(3, attempt);
