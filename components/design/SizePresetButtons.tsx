@@ -13,6 +13,8 @@ import type { FurnitureCategory } from "@/lib/types";
  */
 interface SizePresetButtonsProps {
   category: FurnitureCategory;
+  /** 該家具的 limits；任一維超過上限的 preset 不顯示，避免按了被 server clamp */
+  limits?: { length: number; width: number; height: number };
   /**
    * compact=true 用於手機版：減少 margin、縮字級，適合尺寸 card 內嵌。
    * 不影響 desktop 預設視覺。
@@ -20,10 +22,13 @@ interface SizePresetButtonsProps {
   compact?: boolean;
 }
 
-export function SizePresetButtons({ category, compact }: SizePresetButtonsProps) {
+export function SizePresetButtons({ category, limits, compact }: SizePresetButtonsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const presets = getSizePresets(category);
+  const allPresets = getSizePresets(category);
+  const presets = limits
+    ? allPresets.filter((p) => p.length <= limits.length && p.width <= limits.width && p.height <= limits.height)
+    : allPresets;
   if (presets.length === 0) return null;
 
   const handleClick = (l: number, w: number, h: number) => {

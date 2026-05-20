@@ -801,7 +801,7 @@ function ParameterForm({
         </h3>
         <ResetDefaultsButton />
       </div>
-      <SizePresetButtons category={type as FurnitureCategory} />
+      <SizePresetButtons category={type as FurnitureCategory} limits={limits} />
       <HeightToSizeButton category={type as FurnitureCategory} />
       <div className="grid grid-cols-3 gap-2 mb-3 items-end">
         {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}

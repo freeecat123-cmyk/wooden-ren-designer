@@ -181,7 +181,7 @@ export function MobileShell(props: MobileShellProps) {
         </div>
 
         <div className="rounded-lg bg-white p-3 border border-zinc-200 space-y-2">
-          <SizePresetButtons category={entry.category} compact />
+          <SizePresetButtons category={entry.category} limits={entry.limits} compact />
           <div className="space-y-1.5">
             <RangeInput
               name="length"

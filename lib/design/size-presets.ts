@@ -39,7 +39,7 @@ export const SIZE_PRESETS: Partial<Record<FurnitureCategory, SizePreset[]>> = {
   ],
   "side-table": [
     { label: "床邊", length: 450, width: 400, height: 600 },
-    { label: "沙發旁", length: 500, width: 500, height: 550 },
+    { label: "沙發旁", length: 500, width: 400, height: 550 },
   ],
   bench: [
     { label: "玄關穿鞋", length: 1000, width: 350, height: 450 },
