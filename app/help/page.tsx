@@ -173,15 +173,37 @@ const SECTIONS: Array<{ title: string; emoji: string; items: QA[] }> = [
     emoji: "↩️",
     items: [
       {
-        q: "怎麼申請退費？",
+        q: "可以退費嗎？",
         a: (
           <>
-            到 <Link href="/refund" className="underline">退費申請頁</Link> 填表（或直接 email 客服）說明原因。依消保法 7 天鑑賞期：
+            木作藍圖屬於 <strong>數位虛擬商品</strong>，依《通訊交易解除權合理例外情事適用準則》第 5 條，
+            付款完成後 <strong>原則上恕不退費</strong>（你在結帳時也勾選了「同意拋棄七日鑑賞期」）。
+            <br /><br />
+            但以下情形可來信申請<strong>個案處理</strong>：
             <ul className="ml-5 list-disc space-y-1 mt-2">
-              <li>7 天內全額退費</li>
-              <li>超過 7 天按未用比例退（prorate）</li>
+              <li>系統重大瑕疵導致<strong>無法使用</strong>（且我們無法 7 個工作天內修復）</li>
+              <li>因本公司主動終止服務，導致已付費期間未使用之部分</li>
+              <li>其他符合消保法強制規定的情形</li>
             </ul>
-            審核通過後 3-7 個工作天退回原刷卡帳戶。
+            <p className="mt-3">
+              詳細條款看 <Link href="/refund" className="underline">退費政策頁</Link>。
+              申請方式：email 寄到 {" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
+              {" "}主旨「退費申請 - 註冊 Email」，附訂單編號、付款日期、退費原因。
+            </p>
+          </>
+        ),
+      },
+      {
+        q: "怎樣避免後悔？",
+        a: (
+          <>
+            既然原則上不退費，建議：
+            <ul className="ml-5 list-disc space-y-1 mt-2">
+              <li>先用<strong>免費版</strong>試做 3 件家具範本，確認用得順手再升級</li>
+              <li>不確定要月扣還年扣的話，<strong>先月扣 NT$390</strong> 試一個月，覺得 OK 再轉年付</li>
+              <li>月扣可<Link href="/my-subscription" className="underline">隨時取消</Link>，當期權限保留到到期日</li>
+            </ul>
           </>
         ),
       },

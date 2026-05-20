@@ -481,10 +481,10 @@ export default function AboutPage() {
             <span className="text-emerald-600">✓</span> 免費版不用信用卡
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span> 付費版 7 天內可退費
+            <span className="text-emerald-600">✓</span> 月扣可隨時取消
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span> 隨時可取消訂閱
+            <span className="text-emerald-600">✓</span> 取消後當期權限保留到到期
           </span>
           <span className="inline-flex items-center gap-1">
             <span className="text-emerald-600">✓</span> 年付 = 月付 × 10
