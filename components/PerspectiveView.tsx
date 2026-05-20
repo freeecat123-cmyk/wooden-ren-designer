@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -43,6 +43,25 @@ function rotateXYZ(
   const y3 = x * sinZ + y * cosZ;
   x = x3; y = y3;
   return { x, y, z };
+}
+
+/**
+ * 包住 <Environment> HDR 載入 — drei CDN 抖動時 (Could not load lebombo_1k.hdr)
+ * 不該讓整個 3D 場景炸到外層 error boundary 跳「設計參數渲染失敗」。
+ * HDR 掛了就 silently 拿掉，其他 ambient + directional light 仍給足基本明暗。
+ */
+class HDRBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: Error) {
+    // dev 看到一次就好，prod silently 失敗
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[HDRBoundary] HDR env failed, dropping:", err.message);
+    }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 type WorldMortise = {
@@ -2932,7 +2951,9 @@ export function PerspectiveView({
             +directionalLight 已給足基本明暗。 */}
         {!compactMode && (
           <>
-            <Environment preset="apartment" />
+            <HDRBoundary>
+              <Environment preset="apartment" />
+            </HDRBoundary>
             <ContactShadows
               position={[0, 0.001, 0]}
               opacity={0.35}
