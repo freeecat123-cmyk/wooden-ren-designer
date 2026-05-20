@@ -94,6 +94,29 @@ export function EcpayLogClient() {
 
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [retryResult, setRetryResult] = useState<{ id: string; msg: string; ok: boolean } | null>(null);
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  async function voidInvoice(paymentId: string) {
+    if (voidingId) return;
+    if (!confirm("確定要作廢這張發票?(只限退款後同步、24h 內可用)")) return;
+    setVoidingId(paymentId);
+    setRetryResult(null);
+    try {
+      const r = await fetch(`/api/admin/payments/${paymentId}/void-invoice`, { method: "POST" });
+      const j = await r.json();
+      if (r.ok) {
+        setRetryResult({ id: paymentId, ok: true, msg: `作廢成功 ${j.invoice_number ?? ""}` });
+      } else if (j.error === "exceed_24h") {
+        setRetryResult({ id: paymentId, ok: false, msg: `超過 24h (${Math.round(j.ageHours)}h),需走 Allowance 折讓人工處理` });
+      } else {
+        setRetryResult({ id: paymentId, ok: false, msg: `作廢失敗 ${j.error ?? "?"}: ${j.rtnMsg ?? ""}` });
+      }
+      await load();
+    } catch (e) {
+      setRetryResult({ id: paymentId, ok: false, msg: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setVoidingId(null);
+    }
+  }
   async function retryInvoice(paymentId: string) {
     if (retryingId) return;
     setRetryingId(paymentId);
@@ -228,7 +251,9 @@ export function EcpayLogClient() {
                       <InvoiceCell
                         payment={p}
                         retrying={retryingId === p.id}
+                        voiding={voidingId === p.id}
                         onRetry={() => retryInvoice(p.id)}
+                        onVoid={() => voidInvoice(p.id)}
                       />
                     </td>
                     <td className="px-3 py-2 font-mono text-[11px] text-zinc-600">
@@ -284,14 +309,37 @@ export function EcpayLogClient() {
 function InvoiceCell({
   payment,
   retrying,
+  voiding,
   onRetry,
+  onVoid,
 }: {
   payment: PaymentRow;
   retrying: boolean;
+  voiding: boolean;
   onRetry: () => void;
+  onVoid: () => void;
 }) {
-  if (payment.status !== "success") return <span className="text-zinc-400 text-[11px]">—</span>;
   const s = payment.invoice_status;
+  // refunded payment 沒同步作廢 → 顯示補作廢按鈕(退款 24h 內可用)
+  if (payment.status === "refunded" && s === "issued") {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className="text-[11px] text-amber-700">⚠ 已開立未作廢</span>
+        <button
+          type="button"
+          onClick={onVoid}
+          disabled={voiding}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+        >
+          {voiding ? "作廢中…" : "補作廢"}
+        </button>
+      </div>
+    );
+  }
+  if (s === "invalid") {
+    return <span className="text-[11px] text-zinc-500">✗ 已作廢</span>;
+  }
+  if (payment.status !== "success") return <span className="text-zinc-400 text-[11px]">—</span>;
   if (s === "issued") {
     return <span className="text-[11px] text-emerald-700">✓ 已開立</span>;
   }
