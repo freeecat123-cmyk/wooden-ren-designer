@@ -173,6 +173,26 @@ export async function POST(req: Request) {
         raw_response: { ...existingRaw, _note: "sim_periodic", _sim_at: new Date().toISOString() },
       })
       .eq("id", newestPayment.id);
+
+    // 重要:模擬扣款絕對不能真的延長使用者權限。
+    // periodic-notify 收到 webhook 會把 sub.expires_at +31,
+    // 跑 N 次模擬 → 使用者多賺 N 個月權限。所以這裡 restore 回 before snapshot。
+    if (subAfter?.expires_at !== before.sub_expires_at) {
+      await admin
+        .from("subscriptions")
+        .update({ expires_at: before.sub_expires_at, status: before.sub_status })
+        .eq("id", sub.id);
+      // 同步 user.subscription_expires_at,避免 webhook 寫過去後 user 表還在新值
+      await admin
+        .from("users")
+        .update({ subscription_expires_at: before.sub_expires_at })
+        .eq("id", sub.user_id);
+      console.log("[simulate-periodic] restored expires_at after sim", {
+        subId: sub.id,
+        from: subAfter?.expires_at,
+        to: before.sub_expires_at,
+      });
+    }
   }
 
   return NextResponse.json({
