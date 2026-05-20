@@ -23,16 +23,22 @@ export function FloorCanvasEditor({
   room,
   onChange,
   gridCm = 10,
-  width = 520,
+  width = 460,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const bb = boundingBox(room);
   const pad = 24;
-  const span = Math.max(bb.maxX - bb.minX, bb.maxY - bb.minY, 100);
-  const scale = (width - pad * 2) / span;
-  const height = width;
+  // 真.比例渲染:固定 cm→px 尺度 → 改寬只動寬、改深只動深,房間維持真實比例。
+  // 房間任一軸超過 REF_CM 才整體縮小以塞進畫布(避免溢出)。
+  const REF_CM = 700;
+  const extX = Math.max(bb.maxX - bb.minX, 1);
+  const extY = Math.max(bb.maxY - bb.minY, 1);
+  const inner = width - pad * 2;
+  const scale = Math.min(inner / REF_CM, inner / Math.max(extX, extY));
+  const svgW = extX * scale + pad * 2;
+  const svgH = extY * scale + pad * 2;
   const tx = (x: number) => (x - bb.minX) * scale + pad;
   const ty = (y: number) => (y - bb.minY) * scale + pad;
   const snap = (v: number) => Math.round(v / gridCm) * gridCm;
@@ -69,21 +75,24 @@ export function FloorCanvasEditor({
   return (
     <svg
       ref={svgRef}
-      width={width}
-      height={height}
+      width={svgW}
+      height={svgH}
       className="touch-none rounded border border-zinc-200 bg-white"
       onPointerMove={handleMove}
       onPointerUp={() => setDragIdx(null)}
       onPointerLeave={() => setDragIdx(null)}
     >
       {/* 格線 */}
-      {Array.from({ length: Math.ceil(span / gridCm) + 1 }).map((_, i) => {
-        const c = bb.minX + i * gridCm;
+      {Array.from({ length: Math.floor(extX / gridCm) + 1 }).map((_, i) => {
+        const x = tx(bb.minX + i * gridCm);
         return (
-          <g key={i}>
-            <line x1={tx(c)} y1={pad} x2={tx(c)} y2={height - pad} stroke="#eee" />
-            <line x1={pad} y1={ty(c)} x2={width - pad} y2={ty(c)} stroke="#eee" />
-          </g>
+          <line key={`v${i}`} x1={x} y1={pad} x2={x} y2={svgH - pad} stroke="#eee" />
+        );
+      })}
+      {Array.from({ length: Math.floor(extY / gridCm) + 1 }).map((_, i) => {
+        const y = ty(bb.minY + i * gridCm);
+        return (
+          <line key={`h${i}`} x1={pad} y1={y} x2={svgW - pad} y2={y} stroke="#eee" />
         );
       })}
       {/* 房間外框 */}

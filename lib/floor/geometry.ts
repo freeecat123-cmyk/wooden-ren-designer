@@ -50,6 +50,29 @@ export function boundingBox(poly: RoomPolygon): BBox {
   };
 }
 
+/**
+ * 把多邊形等比縮放到指定外框尺寸(總寬 × 總深)。
+ * 軸對齊縮放 → 水平邊仍水平、垂直邊仍垂直,正交不變量保留。
+ * 當前外框某軸長度為 0 時該軸不縮放(避免除零)。
+ */
+export function scalePolygonToBBox(
+  poly: RoomPolygon,
+  targetW: number,
+  targetD: number,
+): RoomPolygon {
+  const bb = boundingBox(poly);
+  const curW = bb.maxX - bb.minX;
+  const curD = bb.maxY - bb.minY;
+  const sx = curW > EPS ? targetW / curW : 1;
+  const sy = curD > EPS ? targetD / curD : 1;
+  return {
+    vertices: poly.vertices.map((p) => ({
+      x: bb.minX + (p.x - bb.minX) * sx,
+      y: bb.minY + (p.y - bb.minY) * sy,
+    })),
+  };
+}
+
 /** 射線法:點是否在多邊形內(邊界視為內) */
 export function pointInPolygon(pt: Point, poly: RoomPolygon): boolean {
   const v = poly.vertices;

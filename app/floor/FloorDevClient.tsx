@@ -8,8 +8,10 @@ import { useMemo, useState } from "react";
 import { computeFloorBom } from "@/lib/floor/calc";
 import { DEFAULT_FLOOR_INPUT, type FloorInput, type RoomPolygon } from "@/lib/floor/types";
 import { SHAPE_PRESETS, getPreset, type ShapePreset } from "@/lib/floor/presets";
+import { boundingBox, scalePolygonToBBox } from "@/lib/floor/geometry";
 import { FloorOverviewSvg } from "@/lib/floor/FloorOverviewSvg";
 import { FloorCanvasEditor } from "./FloorCanvasEditor";
+import { FloorRangeInput } from "./FloorRangeInput";
 
 export function FloorDevClient() {
   const [input, setInput] = useState<FloorInput>(DEFAULT_FLOOR_INPUT);
@@ -18,6 +20,10 @@ export function FloorDevClient() {
   const set = <K extends keyof FloorInput>(k: K, v: FloorInput[K]) =>
     setInput((p) => ({ ...p, [k]: v }));
   const setRoom = (room: RoomPolygon) => setInput((p) => ({ ...p, room }));
+
+  const roomBox = boundingBox(input.room);
+  const roomW = roomBox.maxX - roomBox.minX;
+  const roomD = roomBox.maxY - roomBox.minY;
 
   return (
     <main className="mx-auto max-w-5xl p-6">
@@ -41,18 +47,44 @@ export function FloorDevClient() {
               </button>
             ))}
           </div>
+          <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-2">
+            <FloorRangeInput
+              label="總寬"
+              unit="cm"
+              value={Math.round(roomW)}
+              min={100}
+              max={1500}
+              step={10}
+              onChange={(v) => setRoom(scalePolygonToBBox(input.room, v, roomD))}
+            />
+            <FloorRangeInput
+              label="總深"
+              unit="cm"
+              value={Math.round(roomD)}
+              min={100}
+              max={1500}
+              step={10}
+              onChange={(v) => setRoom(scalePolygonToBBox(input.room, roomW, v))}
+            />
+          </div>
           <FloorCanvasEditor room={input.room} onChange={setRoom} />
+          <p className="mt-2 text-xs text-zinc-400">
+            拉桿或打字設定房間外框,L/T 型缺口比例隨之等比;拖角點可微調細部。
+          </p>
         </section>
 
         {/* 右:設定 + 預覽 */}
         <section>
           <h2 className="mb-2 text-sm font-semibold">排版設定</h2>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <NumField label="地板片長 (cm)" value={input.plankLengthCm}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <FloorRangeInput label="地板片長" unit="cm" value={input.plankLengthCm}
+              min={30} max={250} step={1}
               onChange={(v) => set("plankLengthCm", v)} />
-            <NumField label="地板片寬 (cm)" value={input.plankWidthCm}
+            <FloorRangeInput label="地板片寬" unit="cm" value={input.plankWidthCm}
+              min={5} max={40} step={0.5}
               onChange={(v) => set("plankWidthCm", v)} />
-            <NumField label="伸縮縫 (mm)" value={input.expansionGapMm}
+            <FloorRangeInput label="伸縮縫" unit="mm" value={input.expansionGapMm}
+              min={0} max={20} step={1}
               onChange={(v) => set("expansionGapMm", v)} />
             <SelField label="鋪設方向" value={input.direction}
               opts={[["long-axis", "沿長邊"], ["short-axis", "沿短邊"]]}
@@ -67,12 +99,9 @@ export function FloorDevClient() {
           <div className="mt-3">
             <FloorOverviewSvg bom={bom} width={420} />
           </div>
-        </section>
-      </div>
 
-      {/* BOM */}
-      <section className="mt-6">
-        <h2 className="mb-2 text-sm font-semibold">材料清單</h2>
+          {/* 材料清單 */}
+          <h2 className="mb-2 mt-5 text-sm font-semibold">材料清單</h2>
         <p className="text-sm text-zinc-600">
           房間 {bom.auto.roomAreaM2.toFixed(1)} m² / {bom.auto.pingShu.toFixed(1)} 坪 ·
           周長 {bom.auto.perimeterM.toFixed(1)} m
@@ -111,30 +140,9 @@ export function FloorDevClient() {
             </ul>
           </details>
         )}
-      </section>
+        </section>
+      </div>
     </main>
-  );
-}
-
-function NumField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-zinc-500">{label}</span>
-      <input
-        type="number"
-        className="rounded border border-zinc-300 px-2 py-1"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
-      />
-    </label>
   );
 }
 

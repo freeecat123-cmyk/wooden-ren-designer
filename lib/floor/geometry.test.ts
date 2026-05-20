@@ -9,6 +9,7 @@ import {
   pointInPolygon,
   insetPolygon,
   clipRectToPolygon,
+  scalePolygonToBBox,
 } from "./geometry";
 import type { RoomPolygon } from "./types";
 
@@ -66,6 +67,24 @@ assert(approx(polygonArea(inset), 380 * 280), "inset 面積 380*280");
 // L 型 inset 10cm 仍為 6 頂點正交多邊形
 const lInset = insetPolygon(lshape, 10);
 assert(lInset.vertices.length === 6, "L inset 仍 6 頂點");
+
+// 縮放到指定外框:矩形 400×300 → 800×600
+const scaledRect = scalePolygonToBBox(rect, 800, 600);
+const sbb = boundingBox(scaledRect);
+assert(
+  approx(sbb.maxX - sbb.minX, 800) && approx(sbb.maxY - sbb.minY, 600),
+  "scale rect → 800×600 外框",
+);
+assert(approx(polygonArea(scaledRect), 480000), "scale rect 面積 800*600");
+
+// L 型縮放:外框變 800×600,挖空比例維持(原右下挖 200×150 = 半寬半高)
+const scaledL = scalePolygonToBBox(lshape, 800, 600);
+assert(scaledL.vertices.length === 6, "scale L 仍 6 頂點");
+assert(approx(polygonArea(scaledL), 90000 * 4), "scale L 面積等比 ×4");
+assert(
+  approx(scaledL.vertices[3].x, 400) && approx(scaledL.vertices[3].y, 300),
+  "scale L 內凹點仍在半寬半高",
+);
 
 // 矩形 ∩ 多邊形裁切
 const fully = clipRectToPolygon({ x: 50, y: 50, w: 100, h: 50 }, rect);
