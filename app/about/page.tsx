@@ -12,6 +12,18 @@ export const metadata: Metadata = {
 
 const READY_COUNT = FURNITURE_CATALOG.filter((f) => f.template).length;
 
+/** 裝潢專區 — 8 件最常用櫃體（直接連到 /design/[slug]） */
+const INTERIOR_CABINETS: Array<{ slug: string; nameZh: string }> = [
+  { slug: "wardrobe", nameZh: "衣櫃" },
+  { slug: "shoe-cabinet", nameZh: "鞋櫃" },
+  { slug: "media-console", nameZh: "電視櫃" },
+  { slug: "open-bookshelf", nameZh: "書櫃" },
+  { slug: "display-cabinet", nameZh: "展示櫃" },
+  { slug: "nightstand", nameZh: "床頭櫃" },
+  { slug: "chest-of-drawers", nameZh: "斗櫃" },
+  { slug: "chinese-cabinet", nameZh: "中式方角櫃" },
+];
+
 /** Hero 下方 thumb mosaic 用 — 挑視覺好認的 12 件，類別均衡 */
 const MOSAIC_THUMBS = [
   "stool",
@@ -242,10 +254,25 @@ export default function AboutPage() {
           <FeatureCard emoji="🎲" title="STL 3D 輸出" desc="可在 SketchUp、3D 列印機開啟，做縮小模型先打樣。" />
         </div>
 
-        {/* 裝潢專用：天花板骨架 — 獨立一張寬卡突出 */}
+      </section>
+
+      {/* ============ 裝潢專區 ============ */}
+      <section className="mt-20 sm:mt-24">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-700 text-white text-xs font-semibold mb-4">
+          🔨 裝潢專區
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-3">
+          量房一次、清單一次列印
+        </h2>
+        <p className="text-zinc-700 leading-relaxed mb-8 max-w-2xl">
+          裝潢師傅最常燒時間的不是釘工——是現場拿筆估料、回家畫圖、隔天還要二次跑工地補料。
+          一條龍工具：從天花板、櫃體到地板，輸入空間尺寸就出整套清單。
+        </p>
+
+        {/* 主打：天花板骨架 寬卡 */}
         <Link
           href="/ceiling"
-          className="group block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md p-6 sm:p-8 transition"
+          className="group block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md p-6 sm:p-8 transition mb-6"
         >
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl bg-white ring-1 ring-amber-200 flex items-center justify-center p-3 shrink-0">
@@ -264,16 +291,15 @@ export default function AboutPage() {
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold">
                   PRO
                 </span>
-                <span className="text-xs text-amber-800 font-medium">裝潢專用</span>
+                <span className="text-xs text-amber-800 font-medium">已上線</span>
               </div>
               <h3 className="font-bold text-zinc-900 text-xl mb-2">
-                🔨 天花板骨架計算
+                🪜 天花板骨架計算
               </h3>
               <p className="text-zinc-700 leading-relaxed text-sm sm:text-base">
-                量好房型輸入長寬高，自動配主骨 / 副骨 / 支撐桿，
-                算出每根料的長度、矽酸鈣板要切幾片、釘子幾顆、
-                估出整套用料與工時——
-                整套清單列印帶到工地，不再現場拿筆算到頭暈。
+                量好房型輸入長寬高，自動配主骨 / 副骨 / 吊筋，
+                算出每根料長度、矽酸鈣板切幾片、釘子幾顆、整套用料與工時——
+                清單列印帶到工地，不再現場拿筆算到頭暈。
               </p>
               <p className="mt-3 text-xs text-amber-700 font-medium group-hover:underline">
                 看天花板計算器 →
@@ -281,6 +307,64 @@ export default function AboutPage() {
             </div>
           </div>
         </Link>
+
+        {/* 8 件裝潢櫃體 */}
+        <h3 className="font-bold text-zinc-900 text-lg mb-3">
+          裝潢櫃體一條龍 — 8 種常用櫃自動產圖紙 + 切料單
+        </h3>
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-2">
+          {INTERIOR_CABINETS.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/design/${c.slug}`}
+              title={c.nameZh}
+              className="group block aspect-square rounded-lg bg-white ring-1 ring-zinc-200 hover:ring-amber-400 hover:shadow-sm transition flex items-center justify-center p-2"
+            >
+              <Image
+                src={`/thumbs/v2/${c.slug}.webp`}
+                alt={c.nameZh}
+                width={120}
+                height={120}
+                quality={70}
+                loading="lazy"
+                style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "100%" }}
+              />
+            </Link>
+          ))}
+        </div>
+        <p className="text-xs text-zinc-500 mb-8">
+          {INTERIOR_CABINETS.map((c) => c.nameZh).join(" · ")}
+        </p>
+
+        {/* 即將推出 */}
+        <div className="rounded-xl bg-zinc-50 ring-1 ring-zinc-200 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 font-semibold">
+              即將推出
+            </span>
+            <span className="text-xs text-zinc-500">裝潢專屬計算器 v1.1 規劃中</span>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 sm:gap-5">
+            <ComingSoonItem
+              emoji="🧱"
+              title="木作隔間牆"
+              desc="輸入長寬高、開門位置，自動配 2×4 骨架 + 矽酸鈣板用量。"
+            />
+            <ComingSoonItem
+              emoji="🪵"
+              title="木地板估料"
+              desc="坪數 → 海島型 / 超耐磨木地板片數 + 損耗 + 收邊條長度。"
+            />
+            <ComingSoonItem
+              emoji="📏"
+              title="線板 / 踢腳板"
+              desc="量周長 → 線板用幾支、轉角處理、釘距建議。"
+            />
+          </div>
+          <p className="mt-4 text-xs text-zinc-500">
+            想要哪個先做？<Link href="/contact" className="text-amber-700 underline hover:text-amber-900">告訴我們你最常用的</Link>
+          </p>
+        </div>
       </section>
 
       {/* ============ 適合誰 ============ */}
@@ -495,6 +579,18 @@ function MiniPlanCard({
       >
         {cta}
       </Link>
+    </div>
+  );
+}
+
+function ComingSoonItem({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+  return (
+    <div className="rounded-lg bg-white ring-1 ring-zinc-200 p-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-xl">{emoji}</span>
+        <h4 className="font-semibold text-zinc-900 text-sm">{title}</h4>
+      </div>
+      <p className="text-xs text-zinc-600 leading-relaxed">{desc}</p>
     </div>
   );
 }
