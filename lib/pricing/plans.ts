@@ -31,9 +31,9 @@ export function getPlanPrice(plan: CheckoutPlan, period: BillingPeriod): number 
   return PLAN_PRICES[plan][period];
 }
 
-/** 一次性付款的有效天數（month=30, year=365；定期定額 Phase 2 再加） */
+/** 訂閱有效天數(monthly=31 對齊 webhook 設 expires_at;yearly=365) */
 export function getPeriodDays(period: BillingPeriod): number {
-  return period === "yearly" ? 365 : 30;
+  return period === "yearly" ? 365 : 31;
 }
 
 export function getBasePlan(plan: CheckoutPlan): "personal" | "pro" {

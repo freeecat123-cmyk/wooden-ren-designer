@@ -14,7 +14,10 @@
 import type { BillingPeriod } from "./plans";
 
 export function periodDays(period: BillingPeriod): number {
-  return period === "yearly" ? 365 : 30;
+  // monthly=31 對齊 webhook 設 expires_at = +31 天的邏輯(commit a5c2262 刻意送一天)。
+  // 不對齊會造成「付完 24h 內升級永遠全退」:
+  //   raw = paidAmount × 31 / 30 > paidAmount → min() clip 回 paidAmount → 全退
+  return period === "yearly" ? 365 : 31;
 }
 
 export interface ProrateInput {
