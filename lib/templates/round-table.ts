@@ -143,7 +143,7 @@ function buildPedestalRoundTable(p: {
     primaryMaterial: material as "maple",
     useButtJointConvention: true,
     warnings: warnings.length ? warnings : undefined,
-    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}`,
+    notes: `獨柱圓餐桌：中央 ${columnSize}mm 粗柱 + 4 隻 ${footLength}mm 長底爪。柱粗 = legSize × 2.5（${legSize}→${columnSize}）才有支撐感。柱頂用 ${topCleatSize}mm 連接板**膠合 + 8 顆螺絲**鎖到桌面下方（圓桌面木紋輻射，禁止用榫以免季節脹縮裂）。底爪用帶肩榫接入柱面 4 個方向。${diameter >= 1100 ? "1100mm 以上直徑桌面建議用 2 支柱（trestle）以避免桌面過重壓垮單柱接合。" : ""}${topPanelPiecingHint(diameter)}`,
   };
 }
 
@@ -302,7 +302,7 @@ function buildTrestleRoundTable(p: {
     defaultJoinery: "shouldered-tenon",
     primaryMaterial: material as "maple",
     warnings: trestleWarnings.length ? trestleWarnings : undefined,
-    notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。`,
+    notes: `端梁圓餐桌：兩端梁框（前/後 各 2 腳 + 頂橫木 + 底足）+ 中央連接橫木。腳粗 ${trestleLegSize}mm（base × 1.3）。每框長 ${frameRailLen}mm，框間距 ${2 * frameZ}mm。建議圓桌 ≥ 1000mm 直徑才用此結構，小桌會看起來框比桌面還大。${topPanelPiecingHint(diameter)}`,
   };
 }
 
@@ -356,6 +356,17 @@ export const roundTableOptions: OptionSpec[] = [
  * 尺寸：input.length = 直徑，預設 1000×1000×750mm（100cm 直徑、75cm 桌高）
  * 桌面 >= 900mm 通常需 4-5 片實木拼板（避免單片過寬翹曲）。
  */
+/**
+ * 圓桌面拼板提示：直徑 ≥ 600mm 提醒木工分片拼板。
+ * 市場很難買到 > 300mm 寬的整片實木，硬訂單片寬料會嚴重翹曲。
+ * 規則：每片寬度約 250~300mm，計算需要幾片。
+ */
+function topPanelPiecingHint(diameter: number): string {
+  if (diameter < 600) return "";
+  const pieces = Math.ceil(diameter / 280);
+  return ` ⚠️ 桌面直徑 ${diameter}mm，建議分 ${pieces} 片實木拼板膠合（每片寬度約 ${Math.ceil(diameter / pieces)}mm，避免單片寬度過大翹曲）。`;
+}
+
 export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const { height, material } = input;
   const diameter = input.length;
@@ -827,7 +838,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}`.trim(),
+    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter)}`.trim(),
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
