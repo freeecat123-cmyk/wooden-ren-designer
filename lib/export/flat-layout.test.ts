@@ -2,7 +2,8 @@
  * lib/export/flat-layout.ts 驗證腳本
  * 跑法：npx tsx lib/export/flat-layout.test.ts
  */
-import { packShelves } from "./flat-layout";
+import { packShelves, orientFlat } from "./flat-layout";
+import { BoxGeometry } from "three";
 
 let failed = 0;
 function check(name: string, cond: boolean) {
@@ -32,6 +33,19 @@ check("第 3 件換列 x=50 z=85", p[2].x === 50 && p[2].z === 85);
 const p2 = packShelves([{ w: 200, d: 30 }, { w: 40, d: 30 }], 250, 10);
 check("回傳對應輸入順序、件數一致", p2.length === 2);
 check("窄件與寬件不重疊（x 不同）", p2[0].x !== p2[1].x);
+
+// --- orientFlat ---
+// 方塊 300×18×200（X×Y×Z）：Y 最小（18）→ 已攤平、不轉
+const d1 = orientFlat(new BoxGeometry(300, 18, 200));
+check("Y 最薄→不轉，footprint 300×200 高 18", d1.footprintX === 300 && d1.footprintZ === 200 && d1.height === 18);
+
+// 方塊 400×35×20：Z 最小（20）→ 繞 X 轉，Z→Y
+const d2 = orientFlat(new BoxGeometry(400, 35, 20));
+check("Z 最薄→轉平，footprint 400×35 高 20", d2.footprintX === 400 && d2.footprintZ === 35 && d2.height === 20);
+
+// 方塊 35×400×35：X 最小（與 Z 並列，取 X）→ 繞 Z 轉，X→Y
+const d3 = orientFlat(new BoxGeometry(35, 400, 35));
+check("長軸在 Y→轉平，高度=35（最薄）", d3.height === 35 && Math.max(d3.footprintX, d3.footprintZ) === 400);
 
 // --- 收尾 ---
 if (failed > 0) {

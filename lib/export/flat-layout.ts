@@ -54,3 +54,41 @@ export function packShelves(
   }
   return pos;
 }
+
+export interface FlatDims {
+  /** 攤平後 footprint X 長度（mm） */
+  footprintX: number;
+  /** 攤平後 footprint Z 長度（mm） */
+  footprintZ: number;
+  /** 攤平後高度＝最薄維度，沿 Y（mm） */
+  height: number;
+}
+
+/**
+ * 把零件 geometry 就地旋轉成「最薄維度沿 Y 軸（朝上）」的攤平姿態。
+ * 旋轉一律 90° 的整數倍。回傳攤平後的 XZ footprint 與高度。
+ *
+ * 注意：忽略零件在家具裡的裝配 rotation——攤平是製造姿態，只看 geometry 本身。
+ */
+export function orientFlat(geom: BufferGeometry): FlatDims {
+  geom.computeBoundingBox();
+  const bb = geom.boundingBox!;
+  const sx = bb.max.x - bb.min.x;
+  const sy = bb.max.y - bb.min.y;
+  const sz = bb.max.z - bb.min.z;
+  if (sx <= sy && sx <= sz) {
+    // X 最薄 → 繞 Z 轉 +90°：+X 軸轉到 +Y
+    geom.rotateZ(Math.PI / 2);
+  } else if (sz <= sy && sz <= sx) {
+    // Z 最薄 → 繞 X 轉 -90°：+Z 軸轉到 +Y
+    geom.rotateX(-Math.PI / 2);
+  }
+  // Y 最薄 → 已是攤平姿態，不旋轉
+  geom.computeBoundingBox();
+  const b = geom.boundingBox!;
+  return {
+    footprintX: b.max.x - b.min.x,
+    footprintZ: b.max.z - b.min.z,
+    height: b.max.y - b.min.y,
+  };
+}
