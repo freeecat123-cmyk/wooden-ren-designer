@@ -33,28 +33,43 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 公司戶結帳前的二次確認：統編 / 抬頭 寫錯客服處理痛苦（24h 內可作廢重開,
+  // 超過要走折讓單）。先驗 → 跳確認頁 → 用戶看清楚再 confirm → 才真存。
+  const [confirmStep, setConfirmStep] = useState(false);
 
   if (!open) return null;
 
-  async function handleSave() {
+  function validate(): boolean {
     setError(null);
-    // 前端 validation
     if (type === "company") {
       if (!TAX_ID_REGEX.test(taxId)) {
         setError("統編需要 8 碼數字");
-        return;
+        return false;
       }
       if (!title.trim() || title.length > 60) {
         setError("公司抬頭必填(最多 60 字)");
-        return;
+        return false;
       }
     } else if (carrierType === "mobile") {
       if (!MOBILE_CARRIER_REGEX.test(carrierNum)) {
         setError("手機條碼格式錯,格式: / 開頭 + 7 碼大寫字母數字");
-        return;
+        return false;
       }
     }
+    return true;
+  }
 
+  function handlePrimary() {
+    if (!validate()) return;
+    // 公司戶要二次確認；個人戶直接存
+    if (type === "company" && !confirmStep) {
+      setConfirmStep(true);
+      return;
+    }
+    void doSave();
+  }
+
+  async function doSave() {
     setSaving(true);
     try {
       const body: Record<string, string> = { type };
@@ -92,12 +107,31 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-semibold text-zinc-900 text-lg mb-1">先選發票類型</h3>
+        <h3 className="font-semibold text-zinc-900 text-lg mb-1">
+          {confirmStep ? "確認公司發票資料" : "先選發票類型"}
+        </h3>
         <p className="text-xs text-zinc-500 mb-4">
-          付款完成後會自動開立電子發票寄到你的 email。設定後下次刷卡會自動套用,不會再問。
+          {confirmStep
+            ? "發票一旦開立,24 小時內可作廢重開,超過要走折讓單。請確認以下無誤再送出。"
+            : "付款完成後會自動開立電子發票寄到你的 email。設定後下次刷卡會自動套用,不會再問。"}
         </p>
 
-        {/* type 切換 */}
+        {confirmStep && (
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-4 space-y-2">
+            <div className="flex items-baseline gap-3">
+              <span className="text-xs text-zinc-600 w-16 shrink-0">統一編號</span>
+              <span className="font-mono text-lg font-semibold text-zinc-900 tabular-nums">{taxId}</span>
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-xs text-zinc-600 w-16 shrink-0">公司抬頭</span>
+              <span className="text-sm font-medium text-zinc-900 break-all">{title}</span>
+            </div>
+          </div>
+        )}
+
+        {/* type 切換 — confirm step 把編輯區藏起來,避免使用者改完忘了再 validate */}
+        {!confirmStep && (
+        <>
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             type="button"
@@ -194,6 +228,8 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
             />
           </>
         )}
+        </>
+        )}
 
         {error && (
           <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded p-2 mb-3">
@@ -204,19 +240,25 @@ export function InvoicePreflightModal({ open, onClose, onSaved }: Props) {
         <div className="flex justify-end gap-2 mt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={confirmStep ? () => setConfirmStep(false) : onClose}
             disabled={saving}
             className="text-sm px-3 py-1.5 rounded border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
           >
-            取消
+            {confirmStep ? "← 改一下" : "取消"}
           </button>
           <button
             type="button"
-            onClick={handleSave}
+            onClick={handlePrimary}
             disabled={saving}
             className="text-sm px-4 py-1.5 rounded bg-zinc-900 text-white font-medium hover:bg-zinc-700 disabled:opacity-50"
           >
-            {saving ? "儲存中…" : "存好 · 去結帳"}
+            {saving
+              ? "儲存中…"
+              : confirmStep
+                ? "✓ 沒問題,送出"
+                : type === "company"
+                  ? "下一步 → 確認"
+                  : "存好 · 去結帳"}
           </button>
         </div>
       </div>
