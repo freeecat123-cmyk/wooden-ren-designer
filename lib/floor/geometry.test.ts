@@ -2,12 +2,13 @@
  * geometry 自我斷言腳本 — 跑法:npx tsx lib/floor/geometry.test.ts
  * 全綠印 "✅ geometry: N passed";任何 assert 失敗 throw。
  */
-// insetPolygon / clipRectToPolygon will be restored in Task 3
 import {
   polygonArea,
   polygonPerimeter,
   boundingBox,
   pointInPolygon,
+  insetPolygon,
+  clipRectToPolygon,
 } from "./geometry";
 import type { RoomPolygon } from "./types";
 
@@ -51,5 +52,35 @@ assert(bb.minX === 0 && bb.minY === 0 && bb.maxX === 400 && bb.maxY === 300, "L 
 assert(pointInPolygon({ x: 100, y: 100 }, lshape), "L 內部點");
 assert(!pointInPolygon({ x: 300, y: 250 }, lshape), "L 挖空區點在外");
 assert(!pointInPolygon({ x: 500, y: 100 }, lshape), "L 外部點");
+
+// 向內 offset:矩形縮 10cm → 380×280
+const inset = insetPolygon(rect, 10);
+const ibb = boundingBox(inset);
+assert(
+  approx(ibb.minX, 10) && approx(ibb.minY, 10) &&
+    approx(ibb.maxX, 390) && approx(ibb.maxY, 290),
+  "rect inset 10cm",
+);
+assert(approx(polygonArea(inset), 380 * 280), "inset 面積 380*280");
+
+// L 型 inset 10cm 仍為 6 頂點正交多邊形
+const lInset = insetPolygon(lshape, 10);
+assert(lInset.vertices.length === 6, "L inset 仍 6 頂點");
+
+// 矩形 ∩ 多邊形裁切
+const fully = clipRectToPolygon({ x: 50, y: 50, w: 100, h: 50 }, rect);
+assert(approx(fully.usedAreaCm2, 5000), "完全在內 area=5000");
+assert(fully.fullyInside, "完全在內 fullyInside=true");
+
+const partial = clipRectToPolygon({ x: 350, y: 50, w: 100, h: 50 }, rect);
+assert(approx(partial.usedAreaCm2, 50 * 50), "部分在內 area=2500");
+assert(!partial.fullyInside && partial.usedAreaCm2 > 0, "部分在內");
+
+const outside = clipRectToPolygon({ x: 500, y: 50, w: 100, h: 50 }, rect);
+assert(approx(outside.usedAreaCm2, 0), "完全在外 area=0");
+
+// L 型挖空區的矩形被裁掉
+const inHole = clipRectToPolygon({ x: 250, y: 200, w: 100, h: 50 }, lshape);
+assert(approx(inHole.usedAreaCm2, 0), "L 挖空區內矩形 area=0");
 
 console.log(`✅ geometry: ${passed} passed`);

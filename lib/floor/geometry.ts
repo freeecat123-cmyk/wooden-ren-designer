@@ -65,4 +65,107 @@ export function pointInPolygon(pt: Point, poly: RoomPolygon): boolean {
   return inside;
 }
 
-// insetPolygon / clipRectToPolygon 在 Task 3 補上。
+/** 軸對齊矩形 */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * 正交多邊形向內 offset:每條邊往內部法線方向平移 gap。
+ * 每個頂點是「一條水平邊」與「一條垂直邊」的交點,
+ * offset 後新頂點 = 垂直邊提供 x、水平邊提供 y。
+ */
+export function insetPolygon(poly: RoomPolygon, gap: number): RoomPolygon {
+  const v = poly.vertices;
+  const n = v.length;
+  // 每條邊 i 連接 v[i] → v[i+1]
+  // 內部法線:取邊中點往候選法線方向走一小步,測 pointInPolygon
+  const offsetEdges: { p1: Point; p2: Point }[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = v[i];
+    const b = v[(i + 1) % n];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    // 兩個垂直方向
+    const nx = -dy / len;
+    const ny = dx / len;
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const probe = { x: mid.x + nx * 0.5, y: mid.y + ny * 0.5 };
+    const sign = pointInPolygon(probe, poly) ? 1 : -1;
+    offsetEdges.push({
+      p1: { x: a.x + nx * gap * sign, y: a.y + ny * gap * sign },
+      p2: { x: b.x + nx * gap * sign, y: b.y + ny * gap * sign },
+    });
+  }
+  // 新頂點 i = offsetEdges[i-1] 與 offsetEdges[i] 的交點(都是軸對齊線)
+  const out: Point[] = [];
+  for (let i = 0; i < n; i++) {
+    const prev = offsetEdges[(i - 1 + n) % n];
+    const cur = offsetEdges[i];
+    // prev 與 cur 一條水平一條垂直 → 交點 = 垂直線的 x + 水平線的 y
+    const prevHoriz = Math.abs(prev.p1.y - prev.p2.y) < EPS;
+    const x = prevHoriz ? cur.p1.x : prev.p1.x;
+    const y = prevHoriz ? prev.p1.y : cur.p1.y;
+    out.push({ x, y });
+  }
+  return { vertices: out };
+}
+
+interface ClipResult {
+  usedAreaCm2: number;
+  fullyInside: boolean;
+}
+
+/**
+ * 矩形 ∩ 多邊形:Sutherland-Hodgman,以矩形 4 邊為裁切窗,裁切多邊形。
+ * 回傳交集面積與是否「矩形完全落在多邊形內」。
+ */
+export function clipRectToPolygon(rect: Rect, poly: RoomPolygon): ClipResult {
+  const clipEdges = [
+    { inside: (p: Point) => p.x >= rect.x - EPS, isect: clipX(rect.x) },
+    { inside: (p: Point) => p.x <= rect.x + rect.w + EPS, isect: clipX(rect.x + rect.w) },
+    { inside: (p: Point) => p.y >= rect.y - EPS, isect: clipY(rect.y) },
+    { inside: (p: Point) => p.y <= rect.y + rect.h + EPS, isect: clipY(rect.y + rect.h) },
+  ];
+  let pts: Point[] = poly.vertices.slice();
+  for (const e of clipEdges) {
+    const out: Point[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const cur = pts[i];
+      const prev = pts[(i - 1 + pts.length) % pts.length];
+      const curIn = e.inside(cur);
+      const prevIn = e.inside(prev);
+      if (curIn) {
+        if (!prevIn) out.push(e.isect(prev, cur));
+        out.push(cur);
+      } else if (prevIn) {
+        out.push(e.isect(prev, cur));
+      }
+    }
+    pts = out;
+    if (pts.length === 0) break;
+  }
+  const usedAreaCm2 = pts.length >= 3 ? polygonArea({ vertices: pts }) : 0;
+  const rectArea = rect.w * rect.h;
+  return {
+    usedAreaCm2,
+    fullyInside: usedAreaCm2 > rectArea - EPS,
+  };
+}
+
+function clipX(xLine: number) {
+  return (a: Point, b: Point): Point => {
+    const t = (xLine - a.x) / (b.x - a.x);
+    return { x: xLine, y: a.y + t * (b.y - a.y) };
+  };
+}
+function clipY(yLine: number) {
+  return (a: Point, b: Point): Point => {
+    const t = (yLine - a.y) / (b.y - a.y);
+    return { x: a.x + t * (b.x - a.x), y: yLine };
+  };
+}
