@@ -1244,7 +1244,7 @@ function NumberInput({
         defaultValue={defaultValue}
         min={20}
         max={max ?? 4000}
-        step={5}
+        step={10}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
         partIds={partIds}
         presetPoints={presetPoints}
