@@ -153,6 +153,29 @@ where p.invoice_status = 'issued'
 order by p.invoice_issued_at desc;
 ```
 
+```sql
+-- 查近 30 天所有折讓單（跨 24h 退費走這條）
+select u.email, p.invoice_number, p.allowance_number,
+       p.allowance_amount, p.allowance_issued_at
+from public.payments p
+join public.users u on u.id = p.user_id
+where p.invoice_status = 'allowanced'
+  and p.allowance_issued_at >= now() - interval '30 days'
+order by p.allowance_issued_at desc;
+```
+
+```sql
+-- 找作廢 / 折讓都失敗的退款（人工處理 queue）
+select u.email, p.invoice_number, p.invoice_status, p.invoice_issued_at,
+       p.status as payment_status, p.created_at
+from public.payments p
+join public.users u on u.id = p.user_id
+where p.status = 'refunded'
+  and p.invoice_status not in ('invalid', 'allowanced')
+  and p.invoice_number is not null
+order by p.created_at desc;
+```
+
 ---
 
 ## 6. 退費追蹤

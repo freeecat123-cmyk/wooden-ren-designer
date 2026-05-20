@@ -256,4 +256,82 @@ export async function invalidInvoice(
   return { success: res.RtnCode === 1, rtnCode: res.RtnCode, rtnMsg: res.RtnMsg };
 }
 
-// 折讓 Allowance 留待 Step 5 實作（須等退款流程串完才有意義）
+// ─────────────────────────────────────────────────────────────────────
+// Allowance（折讓）— 跨 24h 退款用，作廢做不到時走這條
+//
+// 重要：這支是 /B2CInvoice/Allowance「一般折讓」，買方不需確認立刻生效。
+// 另有 /B2CInvoice/AllowanceByCollegiate「通知折讓」買方要 72h 內確認，
+// 回傳欄位不同（IA_TempDate / IA_TempExpireDate）—— 不要串錯。
+//
+// 規格來源：developers.ecpay.com.tw B2C V3 spec
+//   - AllowanceAmount 必須 = Σ Items.ItemAmount（差 1 元就 reject）
+//   - ItemTaxType 必須跟原發票一致；純應稅可省略，混合稅率必填
+//   - 個人戶 CustomerName 可空；公司戶建議帶（折讓單抬頭）
+// ─────────────────────────────────────────────────────────────────────
+
+export interface AllowanceInvoiceInput {
+  /** 原發票號碼（payments.invoice_number） */
+  invoiceNumber: string;
+  /** 原發票開立日 ISO YYYY-MM-DD */
+  invoiceDate: string;
+  /** 折讓品名（會印在折讓單上，通常用原 itemName + 「退費」） */
+  itemName: string;
+  /** 折讓金額（含稅、NT$ 整數）。部分退款時 < 原發票金額 */
+  amount: number;
+  /** 通知 email（買方收折讓通知） */
+  notifyEmail: string;
+  /** 公司戶帶公司名；個人戶可空 */
+  customerName?: string;
+}
+
+interface AllowanceResponse {
+  RtnCode: number;
+  RtnMsg: string;
+  IA_Allow_No?: string;
+  IA_Invoice_No?: string;
+  IA_Date?: string;
+  IA_Remain_Allowance_Amt?: number;
+}
+
+export interface AllowanceInvoiceResult {
+  success: boolean;
+  allowanceNumber?: string;
+  /** 折讓開立時間 yyyy-MM-dd HH:mm:ss */
+  allowanceDate?: string;
+  /** 該發票剩餘可折讓額（折讓後） */
+  remainAmount?: number;
+  rtnCode: number;
+  rtnMsg: string;
+}
+
+export async function allowanceInvoice(
+  input: AllowanceInvoiceInput,
+): Promise<AllowanceInvoiceResult> {
+  const res = await postInvoice<AllowanceResponse>("/B2CInvoice/Allowance", {
+    InvoiceNo: input.invoiceNumber,
+    InvoiceDate: input.invoiceDate,
+    AllowanceNotify: "E", // 只發 email 通知（我們沒 SMS）
+    CustomerName: input.customerName ?? "",
+    NotifyMail: input.notifyEmail,
+    AllowanceAmount: input.amount,
+    Items: [
+      {
+        ItemSeq: 1,
+        ItemName: input.itemName,
+        ItemCount: 1,
+        ItemWord: "次",
+        ItemPrice: input.amount,
+        ItemTaxType: "1", // 應稅（與 Issue 時一致）
+        ItemAmount: input.amount,
+      },
+    ],
+  });
+  return {
+    success: res.RtnCode === 1,
+    allowanceNumber: res.IA_Allow_No,
+    allowanceDate: res.IA_Date,
+    remainAmount: res.IA_Remain_Allowance_Amt,
+    rtnCode: res.RtnCode,
+    rtnMsg: res.RtnMsg,
+  };
+}

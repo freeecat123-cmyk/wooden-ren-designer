@@ -22,7 +22,7 @@ import {
   refundRejectedEmail,
 } from "@/lib/email/templates/refund";
 import { requestRefund, terminatePeriodicSubscription } from "@/lib/ecpay/refund";
-import { invalidInvoice } from "@/lib/ecpay/invoice";
+import { allowanceInvoice, invalidInvoice } from "@/lib/ecpay/invoice";
 
 const VALID_STATUS = ["approved", "rejected", "refunded"] as const;
 
@@ -99,6 +99,22 @@ export async function PATCH(
   const userRow = Array.isArray(rr.users) ? rr.users[0] : rr.users;
   const userEmail = (userRow as { email?: string })?.email;
 
+  // 折讓單寄送 + 公司戶名 — 從 users.invoice_preference 撈
+  const { data: userPref } = await svc
+    .from("users")
+    .select("invoice_preference")
+    .eq("id", rr.user_id)
+    .single();
+  const pref =
+    (userPref?.invoice_preference as {
+      type?: string;
+      title?: string;
+      email?: string;
+    } | null) ?? null;
+  const allowanceCustomerName =
+    pref?.type === "company" ? (pref.title ?? "") : "";
+  const allowanceNotifyMail = pref?.email || userEmail || "";
+
   // 更新 refund_request
   const update: Record<string, string | null | Date> = {
     status: body.status,
@@ -124,6 +140,13 @@ export async function PATCH(
   let ecpayRefund: { ok: boolean; rtnCode?: string; rtnMsg?: string; error?: string } | null = null;
   let ecpayTerminate: { ok: boolean; rtnCode?: string; rtnMsg?: string; error?: string } | null = null;
   let invoiceVoid: { ok: boolean; rtnCode?: number; rtnMsg?: string } | null = null;
+  let invoiceAllowance: {
+    ok: boolean;
+    rtnCode?: number;
+    rtnMsg?: string;
+    allowanceNumber?: string;
+    remainAmount?: number;
+  } | null = null;
 
   if (body.status === "approved" && rr.payment_id) {
     const paymentRow = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
@@ -183,11 +206,62 @@ export async function PATCH(
             });
           }
         } else {
-          // 超過 24h 不能作廢，後續要人工走 Allowance 折讓
-          console.warn("[admin/refunds] 發票超過 24h 不能作廢，需手動折讓", {
-            invoiceNumber,
-            ageHours: ageMs / 3_600_000,
-          });
+          // 超過 24h 不能作廢 → 走折讓 Allowance（一般折讓，買方不需確認）
+          // 折讓金額 = 用戶申請退費金額（不是原發票金額；支援部分退款）
+          if (!allowanceNotifyMail) {
+            console.error("[admin/refunds] 無 notify email,跳過 Allowance", {
+              invoiceNumber,
+              refundId: id,
+            });
+          } else {
+            try {
+              const allow = await allowanceInvoice({
+                invoiceNumber,
+                invoiceDate: new Date(invoiceIssuedAt)
+                  .toISOString()
+                  .slice(0, 10),
+                itemName: "木作藍圖訂閱退費折讓",
+                amount: rr.amount_requested,
+                notifyEmail: allowanceNotifyMail,
+                customerName: allowanceCustomerName,
+              });
+              invoiceAllowance = {
+                ok: allow.success,
+                rtnCode: allow.rtnCode,
+                rtnMsg: allow.rtnMsg,
+                allowanceNumber: allow.allowanceNumber,
+                remainAmount: allow.remainAmount,
+              };
+              if (allow.success && allow.allowanceNumber) {
+                await svc
+                  .from("payments")
+                  .update({
+                    invoice_status: "allowanced",
+                    allowance_number: allow.allowanceNumber,
+                    allowance_issued_at: allow.allowanceDate
+                      ? new Date(allow.allowanceDate).toISOString()
+                      : new Date().toISOString(),
+                    allowance_amount: rr.amount_requested,
+                  })
+                  .eq("id", rr.payment_id);
+              } else {
+                console.error("[admin/refunds] 折讓開立失敗", {
+                  invoiceNumber,
+                  rtnCode: allow.rtnCode,
+                  rtnMsg: allow.rtnMsg,
+                });
+              }
+            } catch (e) {
+              console.error("[admin/refunds] 折讓 API exception", {
+                invoiceNumber,
+                error: e instanceof Error ? e.message : String(e),
+              });
+              invoiceAllowance = {
+                ok: false,
+                rtnMsg: e instanceof Error ? e.message : String(e),
+              };
+            }
+          }
         }
       }
 
@@ -269,6 +343,7 @@ export async function PATCH(
     ecpay_refund: ecpayRefund,
     ecpay_terminate: ecpayTerminate,
     invoice_void: invoiceVoid,
+    invoice_allowance: invoiceAllowance,
     final_status: ecpayRefund?.ok ? "refunded" : body.status,
   });
 }
