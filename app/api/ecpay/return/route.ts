@@ -198,21 +198,28 @@ export async function POST(req: NextRequest) {
   // 背景任務:invoice / refund / email
   // Hobby plan 10s timeout 不夠串著跑 3 個外部 API,改用 Next.js after() 在
   // response 送出後背景跑,Vercel 仍會等到任務完成才釋放 function 容器。
+  //
+  // Idempotency anchor:整段以 `insertedPayment?.id` 為閘——payments.ecpay_trade_no
+  // 有 UNIQUE 索引,並發兩個 webhook 只有一個 insert 成功,另一個拿到 null。
+  // 用這個當錨點 invoice / refund / email 都只跑一次。
   // ──────────────────────────────────────────────
   after(async () => {
+    if (!insertedPayment?.id) {
+      // race: 另一個並發 webhook 已 insert 過 payment,本次只是 ECPay 重送
+      console.log("[ecpay/return:after] payment 已存在,跳過後處理", { orderId, tradeNo });
+      return;
+    }
     try {
       // 1. 開立綠界 B2C 電子發票
-      if (insertedPayment?.id) {
-        try {
-          await issueInvoiceForPayment(admin, {
-            paymentId: insertedPayment.id,
-            userId: sub.user_id,
-            amount,
-            itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodic ? "月付" : "年付"}訂閱`,
-          });
-        } catch (e) {
-          console.warn("[ecpay/return:after] invoice 例外(已記錄 failed)", e);
-        }
+      try {
+        await issueInvoiceForPayment(admin, {
+          paymentId: insertedPayment.id,
+          userId: sub.user_id,
+          amount,
+          itemName: `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodic ? "月付" : "年付"}訂閱`,
+        });
+      } catch (e) {
+        console.warn("[ecpay/return:after] invoice 例外(已記錄 failed)", e);
       }
 
       // 2. 升級流程後處理:cancel 舊定期定額 + 退舊版 prorate
@@ -283,16 +290,25 @@ async function handleUpgradeRefund(
       return 0;
     }
 
+    // 撈 success 或 refunded 狀態的 payment——refunded 也要撈到,才能判斷是否已退過
+    // 避免並發 webhook 跑進來重複退款(雙退)。
     const { data: oldPayment } = await admin
       .from("payments")
-      .select("id, amount, ecpay_trade_no, invoice_number, invoice_issued_at")
+      .select("id, amount, ecpay_trade_no, invoice_number, invoice_issued_at, status")
       .eq("subscription_id", oldSubId)
-      .eq("status", "success")
+      .in("status", ["success", "refunded"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!oldPayment?.ecpay_trade_no) {
       console.warn("[ecpay/return/upgrade-refund] 舊 sub 沒 success payment 可退", { oldSubId });
+      return 0;
+    }
+    if (oldPayment.status === "refunded") {
+      console.log("[ecpay/return/upgrade-refund] 舊 payment 已退過,跳過(防雙退)", {
+        oldSubId,
+        oldPaymentId: oldPayment.id,
+      });
       return 0;
     }
 
