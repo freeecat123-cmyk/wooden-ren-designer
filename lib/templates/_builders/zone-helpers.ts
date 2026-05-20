@@ -285,11 +285,11 @@ export const drawerBottomThicknessOption: OptionSpec = {
   type: "select",
   key: "drawerBottomThickness",
   label: "抽屜底板厚度",
-  defaultValue: "6",
+  defaultValue: "9",
   choices: [
-    { value: "3", label: "3mm（薄夾板，最輕）" },
-    { value: "6", label: "6mm（標準，入溝家具最常用）" },
-    { value: "9", label: "9mm（加強，大抽屜或重物）" },
+    { value: "3", label: "3mm（薄夾板，最輕，僅小抽屜 < 300mm 寬）" },
+    { value: "6", label: "6mm（小抽屜或入溝家具）" },
+    { value: "9", label: "9mm（標準，一般斗櫃 / 衣櫃皆適用）" },
     { value: "12", label: "12mm（實木底，抽屜內部淨高會少 12mm）" },
   ],
   help:
