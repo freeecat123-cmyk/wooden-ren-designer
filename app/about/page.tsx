@@ -253,7 +253,7 @@ export default function AboutPage() {
         </h2>
         <p className="text-zinc-700 leading-relaxed mb-8 max-w-2xl">
           裝潢師傅最常燒時間的不是釘工——是現場拿筆估料、回家畫圖、隔天還要二次跑工地補料。
-          一條龍工具：從天花板、櫃體到地板，輸入空間尺寸就出整套清單。
+          從天花板到收納櫃，輸入空間尺寸就出整套清單。
         </p>
 
         {/* 主打：天花板骨架 寬卡 */}
