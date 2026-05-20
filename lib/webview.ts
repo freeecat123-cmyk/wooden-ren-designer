@@ -14,6 +14,12 @@ const WEBVIEW_PATTERNS = [
   /\bTwitter\b/i,
   /\bMicroMessenger\b/i, // WeChat
   /\bKAKAOTALK\b/i,
+  /\bmusical_ly\b/i, // TikTok (UA 用舊 app name musical.ly)
+  /\bBytedanceWebview\b/i, // TikTok / Bytedance app shell
+  /\bTikTok\b/i,
+  /\bBarcelona\b/i, // Threads (Meta，code name)
+  /\bPinterest\b/i,
+  /\bLinkedInApp\b/i,
 ];
 
 export function isInAppBrowser(ua: string | undefined = typeof navigator !== "undefined" ? navigator.userAgent : ""): boolean {
@@ -33,5 +39,9 @@ export function detectWebviewApp(ua: string = typeof navigator !== "undefined" ?
   if (/\bKAKAOTALK\b/i.test(ua)) return "Kakao";
   if (/\bWhatsApp\b/i.test(ua)) return "WhatsApp";
   if (/\bTwitter\b/i.test(ua)) return "Twitter";
+  if (/\b(musical_ly|TikTok|BytedanceWebview)\b/i.test(ua)) return "TikTok";
+  if (/\bBarcelona\b/i.test(ua)) return "Threads";
+  if (/\bPinterest\b/i.test(ua)) return "Pinterest";
+  if (/\bLinkedInApp\b/i.test(ua)) return "LinkedIn";
   return null;
 }
