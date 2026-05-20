@@ -3282,19 +3282,12 @@ export function CompactThreeViews({ design }: { design: FurnitureDesign }) {
   );
 }
 
-/**
- * 零件分類——用 id 前綴判斷屬於哪個結構分組，方便材料單視覺切分。
- * 順序即為顯示順序。
- */
-export type PartCategory =
-  | "case"       // 櫃體結構：頂底板、側板、背板
-  | "divider"    // 層板 / 分隔板 / 中柱
-  | "drawer"     // 抽屜組件
-  | "door"       // 門組件
-  | "apron"      // 牙板 / 橫撐（桌椅）
-  | "seat"       // 座板 / 椅背板（椅）
-  | "leg"        // 椅腳 / 桌腳 / 底座
-  | "misc";
+// 零件分類——用 id 前綴判斷屬於哪個結構分組，方便材料單視覺切分。
+// 邏輯在 lib/render/categorize-part.ts（server-safe），這裡只做 re-export。
+import { categorizePart } from "./categorize-part";
+import type { PartCategory } from "./categorize-part";
+export { categorizePart };
+export type { PartCategory };
 
 const CATEGORY_ORDER: PartCategory[] = [
   "case", "divider", "drawer", "door", "apron", "seat", "leg", "misc",
@@ -3326,53 +3319,6 @@ const CATEGORY_COLOR: Record<
   leg:     { bar: "bg-sky-500",     head: "bg-sky-50",     text: "text-sky-900"     },
   misc:    { bar: "bg-zinc-400",    head: "bg-zinc-50",    text: "text-zinc-700"    },
 };
-
-export function categorizePart(id: string): PartCategory {
-  // 抽屜組件：z*-drawer-N-face / front / back / side / bottom
-  if (/^z?\d*-?drawer-?\d*-(face|front|back|side|bottom)/.test(id))
-    return "drawer";
-  if (/drawer-col-partition/.test(id)) return "divider";
-  // 門組件
-  if (/-door-.*-(rail|stile|panel|glass)/.test(id)) return "door";
-  // 櫃體主結構
-  if (id === "top" || id === "bottom" || id === "back") return "case";
-  if (/^side-(left|right)$/.test(id)) return "case";
-  // 分隔板 / 層板 / zone boundary / col partition
-  if (
-    /^shelf-/.test(id) ||
-    /-shelf-/.test(id) ||
-    /-divider-/.test(id) ||
-    /-boundary/.test(id) ||
-    /^col-partition/.test(id) ||
-    /col-partition-/.test(id)
-  )
-    return "divider";
-  // 牙板 / 橫撐
-  if (
-    /^apron/.test(id) ||
-    /^stretcher/.test(id) ||
-    /^ls-/.test(id) ||
-    id === "center-stretcher" ||
-    id === "back-rail" ||
-    id === "back-top-rail"
-  )
-    return "apron";
-  // 座板 / 椅背
-  if (id === "seat" || /^seat-/.test(id)) return "seat";
-  if (/^back-slat/.test(id) || /^back-splat/.test(id) || /^splat/.test(id))
-    return "seat";
-  if (/^slat/.test(id) || /^rung/.test(id)) return "seat";
-  // 腳類 / 托腳牙 / 底座
-  if (
-    /^leg-/.test(id) ||
-    /^bracket-/.test(id) ||
-    /^plinth/.test(id) ||
-    /^side-extension/.test(id)
-  )
-    return "leg";
-  // 其他（吊衣桿、特殊件）
-  return "misc";
-}
 
 export function MaterialList({
   design,

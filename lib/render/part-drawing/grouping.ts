@@ -9,7 +9,7 @@
  */
 
 import type { Part, FurnitureDesign } from "@/lib/types";
-import { categorizePart, type PartCategory } from "@/lib/render/svg-views";
+import { categorizePart, type PartCategory } from "@/lib/render/categorize-part";
 
 /**
  * 一個零件是否需要獨立的製造圖（shop drawing）。
