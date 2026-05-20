@@ -82,6 +82,17 @@ export function ClampedNumberInput({
   const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const fireNativeChange = useCallback(() => {
+    // ± 按鈕只改 React state，DOM 值是 React 自己 render 進去的，
+    // React 的 _valueTracker 認為「值沒變」所以 dispatch 的 input event
+    // 不會 fire React synthetic onChange → form 收不到 → URL 不 push。
+    // 解法：把 _valueTracker 重置成空，這樣 React 比對時會視為「值有變」。
+    const el = inputRef.current as (HTMLInputElement & { _valueTracker?: { setValue: (v: string) => void } }) | null;
+    if (!el) return;
+    el._valueTracker?.setValue("");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, []);
+
   const stopRepeat = useCallback(() => {
     if (repeatTimerRef.current) {
       clearTimeout(repeatTimerRef.current);
@@ -91,7 +102,9 @@ export function ClampedNumberInput({
       clearInterval(repeatIntervalRef.current);
       repeatIntervalRef.current = null;
     }
-  }, []);
+    // 放開後在下一個 frame 觸發（等 setValue 的 re-render 把 input.value 寫進 DOM）
+    requestAnimationFrame(fireNativeChange);
+  }, [fireNativeChange]);
 
   const startRepeat = useCallback(
     (delta: number) => {
