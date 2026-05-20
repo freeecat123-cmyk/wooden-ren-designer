@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "already_on_plan",
-          message: `你目前已經是${PLAN_NAME_ZH[plan]}訂閱中。要換 monthly/yearly 請先取消當前訂閱。`,
+          message: `你目前已經是${PLAN_NAME_ZH[plan]}訂閱中。若要切換月付 / 年付,請先到「我的訂閱」點取消(本期權限保留到到期日),等本期到期變回免費後再重新購買。`,
         },
         { status: 400 },
       );
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "downgrade_not_supported",
-          message: "降級請先在「我的訂閱」取消當前方案,到期後再買新方案。",
+          message: "降級請先到「我的訂閱」點取消(本期權限保留到到期日),等本期到期變回免費後再購買新方案。",
         },
         { status: 400 },
       );
