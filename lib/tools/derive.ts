@@ -74,6 +74,10 @@ const JOINERY_TOOLS: Record<
     { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
     { id: "groove-blade", priority: "recommended", reason: "切片榫溝（修邊機 + 開槽直刀）" },
   ],
+  mitered: [
+    { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
+    { id: "miter-box", priority: "recommended", reason: "斜切箱輔助角度，比目測精準" },
+  ],
   "pocket-hole": [
     { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔" },
     { id: "drill", priority: "required", reason: "鑽孔" },
