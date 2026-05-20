@@ -496,6 +496,26 @@ export default function AboutPage() {
           {" · "}
           或<Link href="/contact" className="underline hover:text-zinc-900">聯絡我們</Link>
         </p>
+
+        {/* 問題回報指引 */}
+        <div className="mt-8 max-w-xl mx-auto rounded-xl bg-amber-50 ring-1 ring-amber-200 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="shrink-0 w-12 h-12 rounded-full bg-white ring-1 ring-amber-300 shadow-sm flex items-center justify-center">
+              <Image
+                src="/logo-mark.png"
+                alt="木頭仁圖示"
+                width={36}
+                height={36}
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+            <p className="text-sm text-zinc-800 leading-relaxed">
+              用到 bug 或卡關？點頁面<strong>右下角的木頭仁圖示</strong>
+              <span className="text-zinc-500"> (像左邊這個) </span>
+              直接回報，會自動帶上當前頁面跟瀏覽器資訊，我看到信就知道怎麼修。
+            </p>
+          </div>
+        </div>
       </section>
     </main>
   );
