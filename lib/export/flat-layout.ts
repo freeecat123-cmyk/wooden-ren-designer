@@ -92,3 +92,53 @@ export function orientFlat(geom: BufferGeometry): FlatDims {
     height: b.max.y - b.min.y,
   };
 }
+
+/**
+ * 建出「攤平排版」的零件 Group——每件攤平躺平、shelf packing 排在虛擬列印床上，
+ * 全部底面坐 Z=0。供 downloadFlatLayoutSTL 匯出單一 STL 用。
+ *
+ * 與 buildGroup（組裝姿態）並存、互不影響。
+ */
+export function buildFlatLayoutGroup(
+  design: FurnitureDesign,
+  scale: number,
+): Group {
+  const root = new Group();
+  const mat = new MeshBasicMaterial();
+
+  // 1) 每件建幾何 + 攤平姿態
+  const entries: Array<{ geom: BufferGeometry; dims: FlatDims; name: string }> = [];
+  for (const part of design.parts) {
+    if (part.visual) continue;
+    const geom = partExportGeometry(part);
+    const dims = orientFlat(geom);
+    entries.push({ geom, dims, name: part.nameZh || part.id });
+  }
+
+  // 2) shelf packing
+  const positions = packShelves(
+    entries.map((e) => ({ w: e.dims.footprintX, d: e.dims.footprintZ })),
+    LAYOUT_BED_MM,
+    LAYOUT_GAP_MM,
+  );
+
+  // 3) 擺放：每件中心對齊排版座標、底面坐 Y=0
+  for (let i = 0; i < entries.length; i++) {
+    const { geom, name } = entries[i];
+    geom.computeBoundingBox();
+    const bb = geom.boundingBox!;
+    const cx = (bb.min.x + bb.max.x) / 2;
+    const cz = (bb.min.z + bb.max.z) / 2;
+    const mesh = new Mesh(geom, mat);
+    mesh.name = name;
+    mesh.position.set(positions[i].x - cx, -bb.min.y, positions[i].z - cz);
+    root.add(mesh);
+  }
+
+  // Y up → Z up：用 +90°（local +Y → world +Z），讓攤平件坐在列印床上方
+  // （Z≥0）。buildGroup 的組裝姿態用 -90°，攤平要的是「躺在床上」故相反。
+  root.rotation.x = Math.PI / 2;
+  root.scale.setScalar(scale);
+  root.updateMatrixWorld(true);
+  return root;
+}

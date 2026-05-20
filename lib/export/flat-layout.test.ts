@@ -2,8 +2,9 @@
  * lib/export/flat-layout.ts 驗證腳本
  * 跑法：npx tsx lib/export/flat-layout.test.ts
  */
-import { packShelves, orientFlat } from "./flat-layout";
-import { BoxGeometry } from "three";
+import { packShelves, orientFlat, buildFlatLayoutGroup } from "./flat-layout";
+import { BoxGeometry, Box3, Mesh } from "three";
+import type { FurnitureDesign } from "@/lib/types";
 
 let failed = 0;
 function check(name: string, cond: boolean) {
@@ -46,6 +47,38 @@ check("Z 最薄→轉平，footprint 400×35 高 20", d2.footprintX === 400 && d
 // 方塊 35×400×35：X 最小（與 Z 並列，取 X）→ 繞 Z 轉，X→Y
 const d3 = orientFlat(new BoxGeometry(35, 400, 35));
 check("長軸在 Y→轉平，高度=35（最薄）", d3.height === 35 && Math.max(d3.footprintX, d3.footprintZ) === 400);
+
+// --- buildFlatLayoutGroup ---
+const flatDesign = {
+  category: "stool",
+  parts: [
+    { id: "a", nameZh: "板A", visible: { length: 200, width: 150, thickness: 18 } },
+    { id: "b", nameZh: "板B", visible: { length: 200, width: 150, thickness: 18 } },
+    { id: "glass", nameZh: "玻璃", visual: true, visible: { length: 10, width: 10, thickness: 2 } },
+  ],
+} as unknown as FurnitureDesign;
+
+const group = buildFlatLayoutGroup(flatDesign, 1);
+const meshes: Mesh[] = [];
+group.traverse((o) => {
+  if ((o as Mesh).isMesh) meshes.push(o as Mesh);
+});
+check("攤平 group 跳過 visual 件、剩 2 件", meshes.length === 2);
+
+// 兩件世界 AABB 不重疊（group 已套 Z-up 旋轉 + scale=1）
+group.updateMatrixWorld(true);
+const box0 = new Box3().setFromObject(meshes[0]);
+const box1 = new Box3().setFromObject(meshes[1]);
+const overlap =
+  box0.max.x > box1.min.x + 1e-6 &&
+  box1.max.x > box0.min.x + 1e-6 &&
+  box0.max.y > box1.min.y + 1e-6 &&
+  box1.max.y > box0.min.y + 1e-6;
+check("兩件攤平後互不重疊", !overlap);
+
+// 攤平後所有件坐在床面（Z-up 後最低點 z ≈ 0）
+const minZ = Math.min(box0.min.z, box1.min.z);
+check("零件底面坐列印床 z≈0", Math.abs(minZ) < 1e-3);
 
 // --- 收尾 ---
 if (failed > 0) {
