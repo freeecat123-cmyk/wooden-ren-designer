@@ -18,6 +18,8 @@ export function SiteFooter() {
           <span>· Wooden Ren Education Co., Ltd.</span>
         </div>
         <div className="mt-2 flex flex-wrap justify-center gap-1">
+          <a href="/help" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">常見問題</a>
+          <span aria-hidden className="self-center">·</span>
           <a href="/terms" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">服務條款</a>
           <span aria-hidden className="self-center">·</span>
           <a href="/privacy" className="inline-flex items-center max-md:min-h-[44px] px-2 hover:underline">隱私權政策</a>
