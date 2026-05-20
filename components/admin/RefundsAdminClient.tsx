@@ -55,33 +55,44 @@ export function RefundsAdminClient() {
   const [search, setSearch] = useState<string>("");
   const [reviewing, setReviewing] = useState<RefundRow | null>(null);
   const [quickEmail, setQuickEmail] = useState("");
+  const [quickPaymentId, setQuickPaymentId] = useState("");
   const [quickBusy, setQuickBusy] = useState(false);
   const [quickResult, setQuickResult] = useState<string | null>(null);
 
   async function runQuickRefund() {
-    if (!quickEmail.trim()) {
-      setQuickResult("請輸入 email");
+    const usePid = quickPaymentId.trim().length > 0;
+    const target = usePid ? `payment ${quickPaymentId.trim().slice(0, 8)}…` : quickEmail.trim();
+    if (!usePid && !quickEmail.trim()) {
+      setQuickResult("請輸入 email 或 payment_id");
       return;
     }
-    if (!confirm(`一鍵退費給 ${quickEmail}?(實際送綠界退款 + 降權 free)`)) return;
+    if (!confirm(`一鍵退費 ${target}?(實際送綠界退款 + 降權 free)`)) return;
     setQuickBusy(true);
     setQuickResult("處理中…");
     try {
       const res = await fetch("/api/admin/refunds/quick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_email: quickEmail.trim() }),
+        body: JSON.stringify(
+          usePid
+            ? { payment_id: quickPaymentId.trim() }
+            : { user_email: quickEmail.trim() },
+        ),
       });
       const j = await res.json();
       if (!res.ok) {
-        setQuickResult(`❌ ${j.error ?? `HTTP ${res.status}`}`);
+        setQuickResult(`❌ ${j.error ?? `HTTP ${res.status}`} ${j.hint ? "\n" + j.hint : ""}`);
       } else {
         const r = j.ecpay_refund ?? {};
+        const inv = j.invoice_result ?? {};
         const summary = `✓ ${r.ok ? "退款成功" : "退款失敗"} | Action=${r.action ?? "?"} | rtnCode=${r.rtnCode ?? "—"} | rtnMsg=${r.rtnMsg ?? "—"}`;
         const attemptsLine = Array.isArray(r.attempts)
           ? "\n嘗試: " + r.attempts.map((a: { action: string; ok: boolean; rtnCode?: string; rtnMsg?: string }) => `${a.action}=${a.ok ? "✓" : "✗"}(${a.rtnMsg ?? a.rtnCode ?? "?"})`).join(" → ")
           : "";
-        setQuickResult(summary + attemptsLine);
+        const invoiceLine = inv.mode
+          ? `\n📄 發票: ${inv.mode === "voided" ? "已作廢" : inv.mode === "allowanced" ? "已折讓" : "跳過"} ${inv.ok ? "✓" : "✗"} (${inv.ageHours?.toFixed(1)}h)${inv.allowanceNumber ? " 折讓號 " + inv.allowanceNumber : ""}${inv.rtnMsg ? " — " + inv.rtnMsg : ""}`
+          : "";
+        setQuickResult(summary + attemptsLine + invoiceLine);
         void load();
       }
     } catch (e) {
@@ -185,15 +196,24 @@ export function RefundsAdminClient() {
       {/* 一鍵代開退費(測試 N→E→R fallback 用) */}
       <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
         <div className="text-[11px] font-semibold text-amber-900 mb-2">
-          🧪 一鍵代開退費(測試用) — 撈該 email 最新 success 的 payment、直接送綠界退款
+          🧪 一鍵代開退費(測試用) — 兩擇一:輸入 email 撈最新 success / 或直接貼 payment_id 鎖定特定筆
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="email"
             value={quickEmail}
             onChange={(e) => setQuickEmail(e.target.value)}
-            placeholder="user email"
-            className="flex-1 min-w-[200px] text-xs px-3 py-1.5 rounded border border-amber-300 bg-white"
+            placeholder="user email (auto pick latest success)"
+            className="flex-1 min-w-[180px] text-xs px-3 py-1.5 rounded border border-amber-300 bg-white"
+            disabled={quickBusy || quickPaymentId.trim().length > 0}
+          />
+          <span className="text-[11px] text-amber-700">或</span>
+          <input
+            type="text"
+            value={quickPaymentId}
+            onChange={(e) => setQuickPaymentId(e.target.value)}
+            placeholder="payment_id (UUID, 鎖定特定筆)"
+            className="flex-1 min-w-[200px] text-xs px-3 py-1.5 rounded border border-amber-300 bg-white font-mono"
             disabled={quickBusy}
           />
           <button

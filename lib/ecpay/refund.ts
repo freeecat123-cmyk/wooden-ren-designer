@@ -123,18 +123,28 @@ async function tryRefundAction(
       body: formBody,
     });
     const text = await res.text();
-    // ECPay 正常回 "code|msg" 純文字。
-    // 異常 (e.g. server 500、無此 TradeNo) 會回完整 HTML 錯誤頁,
-    // 不能套 split("|") 否則 UI 看到空 rtnCode 很難 debug。
+    // ECPay DoAction 回應有 3 種:
+    //   (1) 正常 "1|交易成功" 或 "0|錯誤訊息" — 純文字管道符切
+    //   (2) form-encoded "MerchantID=xxx&...&RtnCode=10000002&RtnMsg=更新失敗.(error_nopay)"
+    //       — 部分錯誤路徑(已退、無此交易) 走這條
+    //   (3) HTML 錯誤頁 (HTTP 500, 綠界 server 異常) — 完整 <!DOCTYPE html>...
+    // 先抽 RtnCode= 試 (能 cover 1、2),最後才當 HTML/500 處理
+    const stripped = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const rtnCodeMatch = stripped.match(/RtnCode=([0-9]+)/);
+    const rtnMsgMatch = stripped.match(/RtnMsg=([^&]+)/);
+    if (rtnCodeMatch) {
+      const code = rtnCodeMatch[1];
+      const msg = rtnMsgMatch ? decodeURIComponent(rtnMsgMatch[1].replace(/\+/g, " ")) : "";
+      return { ok: code === "1", rtnCode: code, rtnMsg: msg, raw: text.slice(0, 500) };
+    }
     const isHtml =
       res.headers.get("content-type")?.toLowerCase().includes("html") ||
       text.trimStart().startsWith("<");
     if (isHtml || !res.ok) {
-      const snippet = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
       return {
         ok: false,
         rtnCode: `HTTP_${res.status}`,
-        rtnMsg: `綠界回應異常 (${res.status}): ${snippet || "empty body"}`,
+        rtnMsg: `綠界回應異常 (${res.status}): ${stripped.slice(0, 200) || "empty body"}`,
         raw: text.slice(0, 500),
       };
     }
