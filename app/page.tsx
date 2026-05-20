@@ -244,18 +244,18 @@ function CeilingToolCard() {
     <Link
       href="/ceiling"
       data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
-      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md transition"
+      className="group relative block overflow-hidden rounded-xl ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md transition"
     >
       {/* Top-right markers */}
       <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
         <span
-          title="專業工具"
+          title="專業版工具"
           className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-semibold shadow-sm"
         >
-          PRO
+          專業版
         </span>
       </div>
-      <div className="absolute inset-x-0 top-0 h-[72%] flex items-center justify-center">
+      <div className="relative aspect-square flex items-center justify-center bg-white">
         <Image
           src="/thumbs/v2/ceiling.webp"
           alt="天花板骨架 3D 爆炸圖"
@@ -264,10 +264,10 @@ function CeilingToolCard() {
           quality={75}
           loading="lazy"
           sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
-          style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
+          style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
         />
       </div>
-      <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex items-center justify-between border-t border-amber-200/60 bg-white/70 backdrop-blur-sm">
+      <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
         <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🔨 天花板骨架
         </span>
@@ -290,7 +290,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       <div
         data-catalog-search={searchTokens}
         aria-disabled="true"
-        className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-60 cursor-not-allowed select-none"
+        className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-60 cursor-not-allowed select-none"
       >
         <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
           <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
@@ -308,7 +308,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
       title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
-      className="group relative block aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 hover:ring-amber-500 hover:shadow-md transition"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 hover:ring-amber-500 hover:shadow-md transition"
     >
       {/* Top-right corner markers */}
       {paid && (
@@ -324,7 +324,7 @@ function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
 
 function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
   return (
-    <div className="absolute inset-x-0 top-0 h-[72%] flex items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100">
+    <div className="relative aspect-square flex items-center justify-center bg-white">
       <Image
         src={`/thumbs/v2/${item.category}.webp`}
         alt={`${item.nameZh} 3D 預覽`}
@@ -333,7 +333,7 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
         quality={75}
         loading="lazy"
         sizes="(min-width:1024px) 240px, (min-width:768px) 25vw, (min-width:640px) 33vw, 50vw"
-        style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "85%" }}
+        style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
       />
     </div>
   );
@@ -349,7 +349,7 @@ function CardFooter({
   paid: boolean;
 }) {
   return (
-    <div className="absolute inset-x-0 bottom-0 h-[28%] px-3 py-2 flex items-center justify-between border-t border-zinc-100 bg-white">
+    <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
       <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
         {item.nameZh}
       </span>
