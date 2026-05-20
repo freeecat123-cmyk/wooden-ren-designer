@@ -95,6 +95,39 @@ export function EcpayLogClient() {
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [retryResult, setRetryResult] = useState<{ id: string; msg: string; ok: boolean } | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [simSubId, setSimSubId] = useState("");
+  const [simSuccess, setSimSuccess] = useState(true);
+  const [simBusy, setSimBusy] = useState(false);
+  const [simResult, setSimResult] = useState<string | null>(null);
+  async function simulatePeriodic() {
+    if (!simSubId.trim()) {
+      setSimResult("請輸入 subscription_id");
+      return;
+    }
+    if (!confirm(`模擬綠界月扣 webhook(${simSuccess ? "成功" : "失敗"})打 sub=${simSubId}?`)) return;
+    setSimBusy(true);
+    setSimResult("呼叫中…");
+    try {
+      const r = await fetch("/api/admin/ecpay/simulate-periodic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription_id: simSubId.trim(), success: simSuccess }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        setSimResult(`❌ ${j.error ?? `HTTP ${r.status}`} ${j.detail ?? j.hint ?? ""}`);
+      } else {
+        const beforeAfter = `\n  expires_at: ${j.before?.sub_expires_at?.slice(0,10) ?? "—"} → ${j.after?.sub_expires_at?.slice(0,10) ?? "—"}\n  status: ${j.before?.sub_status} → ${j.after?.sub_status}`;
+        const pay = j.newest_payment ? `\n  最新 payment: ${j.newest_payment.amount} ${j.newest_payment.status} ${j.newest_payment.ecpay_trade_no ?? ""}` : "";
+        setSimResult(`✓ webhook ${j.webhook_response?.status} ${j.webhook_response?.body}${beforeAfter}${pay}`);
+      }
+      await load();
+    } catch (e) {
+      setSimResult(`❌ ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSimBusy(false);
+    }
+  }
   async function voidInvoice(paymentId: string) {
     if (voidingId) return;
     if (!confirm("確定要作廢這張發票?(只限退款後同步、24h 內可用)")) return;
@@ -195,6 +228,51 @@ export function EcpayLogClient() {
           {retryResult.msg}
         </div>
       )}
+
+      {/* 模擬月扣下期 webhook(dev/test 用) */}
+      <details className="mb-4 rounded-lg border border-indigo-300 bg-indigo-50">
+        <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-semibold text-indigo-900">
+          🧪 模擬月扣下期 webhook(periodic-notify 測試)
+        </summary>
+        <div className="px-3 pb-3">
+          <p className="text-[11px] text-indigo-800 mb-2">
+            輸入 monthly 訂閱的 subscription.id → 系統會用正確 CheckMacValue 自打 /api/ecpay/periodic-notify。
+            測試:expires_at +31 天 / 寫 payment / 開發票 / 寄信。<strong>不會真扣錢</strong>。
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={simSubId}
+              onChange={(e) => setSimSubId(e.target.value)}
+              placeholder="subscription_id (uuid)"
+              className="flex-1 min-w-[260px] text-xs px-3 py-1.5 rounded border border-indigo-300 bg-white font-mono"
+              disabled={simBusy}
+            />
+            <label className="text-[11px] flex items-center gap-1 text-indigo-900">
+              <input
+                type="checkbox"
+                checked={simSuccess}
+                onChange={(e) => setSimSuccess(e.target.checked)}
+                disabled={simBusy}
+              />
+              成功扣款(取消勾選 = 模擬失敗)
+            </label>
+            <button
+              type="button"
+              onClick={simulatePeriodic}
+              disabled={simBusy}
+              className="text-xs px-3 py-1.5 rounded bg-indigo-700 text-white hover:bg-indigo-800 disabled:opacity-50"
+            >
+              {simBusy ? "呼叫中…" : "模擬下期"}
+            </button>
+          </div>
+          {simResult && (
+            <pre className="mt-2 text-[11px] font-mono whitespace-pre-wrap text-indigo-950 bg-white border border-indigo-200 rounded p-2">
+              {simResult}
+            </pre>
+          )}
+        </div>
+      </details>
 
       <div className="overflow-x-auto bg-white rounded-lg border border-zinc-200">
         <table className="min-w-full text-xs">
