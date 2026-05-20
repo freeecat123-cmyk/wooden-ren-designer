@@ -43,6 +43,11 @@ export function welcomeEmail(input: { name?: string | null }): {
     `馬上開始：${SITE_URL}`,
     `看付費方案：${SITE_URL}/pricing`,
     ``,
+    `📌 訂閱小提醒：`,
+    `- 月扣方案會自動續扣（每 30 天一次），到期前要主動取消才會停。`,
+    `- 想停扣請到 ${SITE_URL}/my-subscription 按「取消訂閱」（仍可用到本期末）。`,
+    `- 年付不會自動續，到期前 7 天會收提醒信。`,
+    ``,
     `有問題聯絡：`,
     `- 直接回信（這封 email 回我這）`,
     `- LINE 官方帳號：${LINE_OA_URL}`,
@@ -61,6 +66,14 @@ export function welcomeEmail(input: { name?: string | null }): {
 <p style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;color:#166534;font-size:14px">
 免費版可以用 3 種入門家具（方凳、茶几、筆筒）。付費方案開放全部 28 種家具 + 進階功能。
 </p>
+<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px;color:#92400e;font-size:14px;margin-top:12px">
+<p style="margin:0 0 8px;font-weight:600">📌 訂閱小提醒</p>
+<ul style="padding-left:20px;line-height:1.7;margin:0">
+<li><strong>月扣方案會自動續扣</strong>（每 30 天一次），到期前要主動取消才會停。</li>
+<li>想停扣請到 <a href="${SITE_URL}/my-subscription" style="color:#92400e;text-decoration:underline">我的訂閱</a> 按「取消訂閱」（仍可用到本期末）。</li>
+<li>年付不會自動續，到期前 7 天會收提醒信。</li>
+</ul>
+</div>
 <p style="margin:20px 0">
   <a href="${SITE_URL}" target="_blank" rel="noopener" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px">馬上開始 →</a>
   <a href="${SITE_URL}/pricing" target="_blank" rel="noopener" style="display:inline-block;background:#fff;color:#059669;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;border:1px solid #059669">看付費方案</a>
