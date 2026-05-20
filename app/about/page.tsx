@@ -38,12 +38,28 @@ export default function AboutPage() {
           木頭仁木匠學院 · 木作藍圖
         </div>
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-tight">
-          從尺寸到圖紙，三秒鐘完成。
+          我做木工二十年，<br className="sm:hidden" />
+          最不想再花的，<br className="hidden sm:inline" />
+          是畫圖那兩小時。
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-lg text-zinc-700 leading-relaxed">
-          選一件家具，填長寬高，自動產出 3D 透視圖、工程三視圖、榫卯細節、
-          材料單、工序與 A4 PDF 工程圖紙。
+          選一件家具、填長寬高，<strong className="text-zinc-900">3 秒鐘</strong>
+          自動產出 3D 透視圖、工程三視圖、榫卯細節、材料單、工序與 A4 PDF 工程圖紙。
         </p>
+
+        {/* Social proof bar */}
+        <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-zinc-600 border-y border-zinc-200 py-3 px-5">
+          <span>
+            <strong className="text-zinc-900">20 萬訂閱</strong> 木頭仁推出
+          </span>
+          <span className="text-zinc-300">·</span>
+          <span>木匠學院出品</span>
+          <span className="text-zinc-300">·</span>
+          <span>
+            內建 <strong className="text-zinc-900">{READY_COUNT}</strong> 種家具範本
+          </span>
+        </div>
+
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href="/"
@@ -58,9 +74,17 @@ export default function AboutPage() {
             看付費方案
           </Link>
         </div>
-        <p className="mt-3 text-xs text-zinc-500">
-          免費版可試用 3 件家具範本，不需信用卡。
-        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs text-zinc-600">
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 免費版不用信用卡
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 付費版 7 天可退費
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 隨時可取消訂閱
+          </span>
+        </div>
 
         {/* Hero 主視覺 — 真實 3D 渲染 */}
         <div className="mt-10 sm:mt-12 rounded-2xl overflow-hidden ring-1 ring-zinc-200 shadow-lg bg-gradient-to-br from-zinc-50 to-zinc-100">
@@ -260,18 +284,20 @@ export default function AboutPage() {
           />
           <div className="flex-1 text-center md:text-left">
             <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900">
-              木頭仁 是誰
+              我是木頭仁
             </h2>
-            <p className="mt-4 text-zinc-800 leading-relaxed">
-              台灣木工 YouTuber「<strong>木頭仁 Wooden Ren</strong>」，
-              YouTube 頻道約 <strong>20 萬訂閱</strong>，
-              專注木工教學與工具評測超過十年。
-              旗下「<strong>木頭仁木匠學院</strong>」開設線上線下木工課程，
-              學員遍及全台灣。
+            <p className="mt-4 text-zinc-800 leading-relaxed text-lg">
+              YouTube <strong>二十萬人</strong>看我做木工，
+              木匠學院教過<strong>上千個學員</strong>。
             </p>
-            <p className="mt-3 text-zinc-700 leading-relaxed text-sm">
-              木作藍圖是把多年教學累積的「家具尺寸慣例 / 榫卯規則 / 工序邏輯」
-              寫成的工具——每一條規則背後都有實際做過的木工經驗。
+            <p className="mt-3 text-zinc-800 leading-relaxed">
+              這十年我最常被問的就是——
+              <br />
+              <span className="text-amber-900 italic">「仁哥，這個尺寸要怎麼抓？」</span>
+            </p>
+            <p className="mt-3 text-zinc-700 leading-relaxed">
+              木作藍圖就是我把那些「<strong>怎麼抓</strong>」寫成的工具。
+              家具尺寸慣例、榫卯規則、工序邏輯——每一條背後都有實際做過、被學員問到爛的經驗。
             </p>
             <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start">
               <a
@@ -296,35 +322,135 @@ export default function AboutPage() {
       </section>
 
       {/* ============ 方案 CTA ============ */}
-      <section className="mt-20 sm:mt-24 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          從免費開始，需要再升級
+      <section className="mt-20 sm:mt-24">
+        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center">
+          先免費試，需要再升級
         </h2>
-        <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed">
-          免費版可試用 3 件家具範本不限次數。
-          想用完整 {READY_COUNT} 件、開放儲存設計、進階家具（衣櫃、餐桌…），再升級個人版或專業版。
+        <p className="mt-4 max-w-xl mx-auto text-zinc-700 leading-relaxed text-center">
+          月付試試看，覺得不對立刻取消。<br className="sm:hidden" />
+          年付有 2 個月優惠，划算。
         </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold hover:bg-amber-800 shadow-sm"
-          >
-            立刻開始設計 →
-          </Link>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-zinc-900 font-semibold ring-1 ring-zinc-300 hover:bg-zinc-50"
-          >
-            看方案與價格
-          </Link>
+
+        {/* 三方案 mini cards */}
+        <div className="mt-10 grid md:grid-cols-3 gap-4 sm:gap-5 max-w-4xl mx-auto">
+          <MiniPlanCard
+            name="免費版"
+            price="$0"
+            unit=""
+            features={["3 件範本不限次", "3D 預覽 + 三視圖", "材料單 + 工序"]}
+            cta="開始試做"
+            ctaHref="/"
+            highlight={false}
+          />
+          <MiniPlanCard
+            name="個人版"
+            price="$390"
+            unit="/月"
+            features={[
+              `${READY_COUNT} 件家具全開`,
+              "雲端儲存設計 / 多裝置同步",
+              "PDF / STL 輸出",
+            ]}
+            cta="升級個人版"
+            ctaHref="/pricing"
+            highlight
+          />
+          <MiniPlanCard
+            name="專業版"
+            price="$890"
+            unit="/月"
+            features={[
+              "個人版全部內容",
+              "客製報價 + 客戶資料管理",
+              "天花板骨架等接案工具",
+            ]}
+            cta="升級專業版"
+            ctaHref="/pricing"
+            highlight={false}
+          />
         </div>
-        <p className="mt-6 text-xs text-zinc-500">
+
+        <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs text-zinc-600">
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 免費版不用信用卡
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 付費版 7 天內可退費
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 隨時可取消訂閱
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span> 年付 = 月付 × 10
+          </span>
+        </div>
+
+        <p className="mt-6 text-xs text-zinc-500 text-center">
           有問題？看 <Link href="/help" className="underline hover:text-zinc-900">常見問題</Link>
           {" · "}
           或<Link href="/contact" className="underline hover:text-zinc-900">聯絡我們</Link>
         </p>
       </section>
     </main>
+  );
+}
+
+function MiniPlanCard({
+  name,
+  price,
+  unit,
+  features,
+  cta,
+  ctaHref,
+  highlight,
+}: {
+  name: string;
+  price: string;
+  unit: string;
+  features: string[];
+  cta: string;
+  ctaHref: string;
+  highlight: boolean;
+}) {
+  return (
+    <div
+      className={`relative rounded-2xl p-6 transition ${
+        highlight
+          ? "bg-amber-50 ring-2 ring-amber-500 shadow-md"
+          : "bg-white ring-1 ring-zinc-200 hover:ring-amber-300"
+      }`}
+    >
+      {highlight && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-700 text-white text-xs font-semibold whitespace-nowrap">
+          最多人選
+        </span>
+      )}
+      <div className="text-center">
+        <h3 className="font-semibold text-zinc-900 text-lg">{name}</h3>
+        <div className="mt-3 flex items-baseline justify-center">
+          <span className="text-3xl font-bold text-zinc-900">{price}</span>
+          <span className="ml-1 text-sm text-zinc-500">{unit}</span>
+        </div>
+      </div>
+      <ul className="mt-5 space-y-2 text-sm text-zinc-700">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span className="text-emerald-600 mt-0.5">✓</span>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href={ctaHref}
+        className={`mt-6 block text-center py-2.5 rounded-lg font-semibold text-sm transition ${
+          highlight
+            ? "bg-amber-700 text-white hover:bg-amber-800 shadow-sm"
+            : "bg-zinc-900 text-white hover:bg-zinc-800"
+        }`}
+      >
+        {cta}
+      </Link>
+    </div>
   );
 }
 
