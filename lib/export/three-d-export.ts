@@ -8,6 +8,7 @@ import { worldExtents } from "@/lib/render/geometry";
 import { type ShapeSpec, buildShapeGeometry } from "@/lib/render/part-geometry";
 import { validateGroup, type GroupValidation } from "./export-checks";
 import { buildFlatLayoutGroup } from "./flat-layout";
+import { groupToModelXml, buildThreeMfZip } from "./three-mf";
 
 // 預設 10:1 縮小（model 1mm = 實際 10mm）—— 適合家用 3D 列印機印
 // 一張 200×200mm 床的方凳實體 400mm 高 → 模型 40mm。
@@ -326,6 +327,19 @@ export function downloadOBJ(design: FurnitureDesign, scale: number = DEFAULT_SCA
   const data = new OBJExporter().parse(group);
   const blob = new Blob([data], { type: "model/obj" });
   triggerDownload(blob, `${safeStem(design, scale)}.obj`);
+}
+
+/**
+ * 匯出 3MF——切片器（Bambu / Prusa / Cura）偏好的格式，內含單位（mm）、
+ * 多物件、零件中文名。組裝姿態。與 STL/OBJ 並存。
+ */
+export function download3MF(design: FurnitureDesign, scale: number = DEFAULT_SCALE) {
+  const group = buildGroup(design, scale);
+  warnIfInvalid(group);
+  const xml = groupToModelXml(group);
+  const zip = buildThreeMfZip(xml);
+  const blob = new Blob([zip as BlobPart], { type: "model/3mf" });
+  triggerDownload(blob, `${safeStem(design, scale)}.3mf`);
 }
 
 // 測試 / 驗證用：取得未縮放的零件 Group（mm 單位、Z-up）。
