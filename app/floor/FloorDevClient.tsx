@@ -94,10 +94,23 @@ export function FloorDevClient() {
           </tbody>
         </table>
         <p className="mt-2 text-xs text-zinc-400">
-          整片 {bom.trace.fullPlankCount} + 裁切 {bom.trace.cutPlankCount} ={" "}
+          整片 {bom.trace.fullPlankCount} + 裁切{" "}
+          {bom.trace.cutPieceCount} 片(餘料優化後用新料 {bom.trace.cutPlankCount} 片)={" "}
           {bom.trace.totalPlankCount} 片 · {bom.trace.plankRows} 排 · 損耗{" "}
           {bom.trace.wastePercent.toFixed(1)}%
         </p>
+        {bom.trace.offcutReuseLog.length > 0 && (
+          <details className="mt-1 text-xs text-zinc-400">
+            <summary className="cursor-pointer">
+              餘料再利用明細({bom.trace.offcutReuseLog.length} 筆)
+            </summary>
+            <ul className="mt-1 space-y-0.5 pl-4">
+              {bom.trace.offcutReuseLog.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </details>
+        )}
       </section>
     </main>
   );

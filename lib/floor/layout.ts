@@ -28,7 +28,14 @@ function staggerOffset(row: number, mode: FloorInput["stagger"], plankLen: numbe
 }
 
 export function computeFloorLayout(input: FloorInput): FloorLayout {
-  const gapCm = input.expansionGapMm / 10;
+  // 伸縮縫夾到安全範圍:超過房間半邊長會讓 insetPolygon 翻面 → BOM 失真
+  const roomBb = boundingBox(input.room);
+  const maxGapCm =
+    Math.min(roomBb.maxX - roomBb.minX, roomBb.maxY - roomBb.minY) / 2 - 1;
+  const gapCm = Math.min(
+    Math.max(input.expansionGapMm / 10, 0),
+    Math.max(maxGapCm, 0),
+  );
   const layableRegion: RoomPolygon =
     gapCm > 0 ? insetPolygon(input.room, gapCm) : input.room;
   const bb = boundingBox(layableRegion);

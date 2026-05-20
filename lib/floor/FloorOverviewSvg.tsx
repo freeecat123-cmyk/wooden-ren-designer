@@ -17,7 +17,7 @@ export function FloorOverviewSvg({ bom, width = 520 }: Props) {
   const pad = 16;
   const roomW = bb.maxX - bb.minX;
   const roomH = bb.maxY - bb.minY;
-  const scale = (width - pad * 2) / roomW;
+  const scale = (width - pad * 2) / Math.max(roomW, 1);
   const height = roomH * scale + pad * 2;
   const tx = (x: number) => (x - bb.minX) * scale + pad;
   const ty = (y: number) => (y - bb.minY) * scale + pad;
