@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
@@ -254,7 +254,55 @@ function subtractMortisesFromGeometry(
   return acc.geometry;
 }
 
-function Part({
+type PartProps = {
+  position: [number, number, number];
+  size: [number, number, number];
+  rotation: Euler;
+  color: string;
+  shape?: ShapeSpec;
+  isGlass?: boolean;
+  isBrass?: boolean;
+  grainDirection?: "length" | "width";
+  mortiseBoxes?: LocalBox[];
+  mortiseShapes?: Array<"rect" | "round">;
+  dovetailCuts?: Brush[];
+  isSelected?: boolean;
+  isHovered?: boolean;
+  isDimmed?: boolean;
+  wireframe?: boolean;
+};
+
+// React.memo 比較器：父元件 render 時 size/position/rotation 都是新 array
+// reference；不寫自訂 equality React 預設 shallow compare 永遠 fail，memo
+// 等於沒掛。把 array/Euler/shape 改成元素比較，跳過 hover / select 等
+// 只動 1 件家具的場景（其他 29 件可以完全跳 render）。
+function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
+  if (a.color !== b.color) return false;
+  if (a.isGlass !== b.isGlass || a.isBrass !== b.isBrass) return false;
+  if (a.grainDirection !== b.grainDirection) return false;
+  if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
+  if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
+  if (a.position[0] !== b.position[0] || a.position[1] !== b.position[1] || a.position[2] !== b.position[2]) return false;
+  if (a.size[0] !== b.size[0] || a.size[1] !== b.size[1] || a.size[2] !== b.size[2]) return false;
+  if (a.rotation.x !== b.rotation.x || a.rotation.y !== b.rotation.y || a.rotation.z !== b.rotation.z) return false;
+  // shape: 小物件 JSON 比較（kind + 數個 number 欄位，<200 bytes，~5μs）
+  const sa = a.shape ? JSON.stringify(a.shape) : "";
+  const sb = b.shape ? JSON.stringify(b.shape) : "";
+  if (sa !== sb) return false;
+  // mortiseBoxes / mortiseShapes / dovetailCuts: 長度 + element ref 比較
+  const ma = a.mortiseBoxes, mb = b.mortiseBoxes;
+  if ((ma?.length ?? 0) !== (mb?.length ?? 0)) return false;
+  if (ma && mb) for (let i = 0; i < ma.length; i++) if (ma[i] !== mb[i]) return false;
+  const msa = a.mortiseShapes, msb = b.mortiseShapes;
+  if ((msa?.length ?? 0) !== (msb?.length ?? 0)) return false;
+  if (msa && msb) for (let i = 0; i < msa.length; i++) if (msa[i] !== msb[i]) return false;
+  const da = a.dovetailCuts, db = b.dovetailCuts;
+  if ((da?.length ?? 0) !== (db?.length ?? 0)) return false;
+  if (da && db) for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return false;
+  return true;
+}
+
+const Part = memo(function PartInner({
   position,
   size,
   rotation,
@@ -270,33 +318,7 @@ function Part({
   isHovered,
   isDimmed,
   wireframe,
-}: {
-  position: [number, number, number];
-  size: [number, number, number];
-  rotation: Euler;
-  color: string;
-  shape?: ShapeSpec;
-  isGlass?: boolean;
-  isBrass?: boolean;
-  grainDirection?: "length" | "width";
-  /** joineryMode：母件 mortise 的 SCALE 過 LocalBox（caller 已乘 SCALE）。
-   *  傳 undefined / [] 表示不做 CSG，走原本 plain mesh 路徑。 */
-  mortiseBoxes?: LocalBox[];
-  /** 對應 mortiseBoxes 每個的形狀（"rect" | "round"）；undefined = 全 rect */
-  mortiseShapes?: Array<"rect" | "round">;
-  /** 鳩尾榫 CSG cutters：world-space Brush[]，geometry 已 pre-transform 到 world、
-   *  brush 用 identity matrix。本零件 base geo 也會 pre-transform 到 world、跑
-   *  SUBTRACTION 後結果幾何在 world 座標，外層 mesh 必須用 identity transform。 */
-  dovetailCuts?: Brush[];
-  /** 選中：本體 emissive 黃光，最強視覺提示 */
-  isSelected?: boolean;
-  /** Hover（參數列 hover 觸發）：暗一點的 emissive 黃光，預覽提示 */
-  isHovered?: boolean;
-  /** 其他零件被選中時：本體變半透明灰，讓選中零件凸出 */
-  isDimmed?: boolean;
-  /** 線框模式：所有 face 變骨架線 */
-  wireframe?: boolean;
-}) {
+}: PartProps) {
   // 高亮配色（選中：amber-400 emissive 強；hover：同色但弱，預覽用）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
   const HIGHLIGHT_INTENSITY = 0.55;
@@ -706,7 +728,7 @@ function Part({
       />
     </mesh>
   );
-}
+}, arePartPropsEqual);
 
 /**
  * Truncated pyramid: top face is full size (length × width), bottom face is
