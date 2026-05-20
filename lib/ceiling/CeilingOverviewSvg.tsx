@@ -149,8 +149,8 @@ export function CeilingOverviewSvg({
       {/* ────── 6. 副支角材(水平矩形,夾在 supports 之間) ────── */}
       {renderSubJoists(trace, x0, innerY0, tw, dim("sub"), subLengthFilter)}
 
-      {/* ────── 6b. 吊筋俯視點(每主支沿 Z 軸 N 個小圓) ────── */}
-      {renderHangerDots(trace, x0, innerY0, innerY1, tw, dim("hanger"))}
+      {/* ────── 6b. 吊筋俯視點(每主支沿 Z 軸 N 個粗體十字) ────── */}
+      {renderHangerDots(trace, x0, innerY0, innerY1, tw, viewW, dim("hanger"))}
 
       {/* ────── 6c. 燈具 / 開孔(紅圓圈,碰撞變實心紅) ────── */}
       {fixtures.map((f) => {
@@ -261,7 +261,7 @@ function renderSubJoists(
 }
 
 // ─────────────────────────────────────────────────────────
-// 吊筋俯視點:每主支沿 Z 軸 hangerPerJoist 個位置畫小黑圓
+// 吊筋俯視點:每主支沿 Z 軸 hangerPerJoist 個位置畫粗體十字
 // ─────────────────────────────────────────────────────────
 function renderHangerDots(
   trace: CeilingBom["trace"],
@@ -269,6 +269,7 @@ function renderHangerDots(
   innerY0: number,
   innerY1: number,
   tw: number,
+  viewW: number,
   baseOpacity: number,
 ) {
   const N = trace.hangerPerMainJoist;
@@ -281,8 +282,9 @@ function renderHangerDots(
     const step = usableZ / (N - 1);
     return Array.from({ length: N }, (_, i) => innerY0 + i * step);
   })();
-  const armLen = Math.max(2.5, tw * 1.0); // 十字半臂長
-  const sw = 0.8;
+  // 十字半臂:取 max(角材寬比例, 圖寬比例)→ 不論房間多大,螢幕視覺大小一致
+  const armLen = Math.max(tw * 1.4, viewW * 0.014);
+  const sw = 2.4; // 螢幕像素粗細(配 non-scaling-stroke,手機縮圖也不會變細)
   const dots: React.ReactNode[] = [];
   let k = 0;
   for (const c of trace.mainJoistCentersCm) {
@@ -290,13 +292,15 @@ function renderHangerDots(
     for (const cy of positions) {
       dots.push(
         <g key={`hd-${k++}`} opacity={baseOpacity}>
-          {/* 白底圓盤墊在十字下,避免跟主支同色 */}
-          <circle cx={cx} cy={cy} r={armLen} fill="#fff" opacity={0.85} />
-          {/* + 十字 */}
+          {/* 白底圓盤墊在十字下,留白邊讓十字在密圖上更清楚 */}
+          <circle cx={cx} cy={cy} r={armLen * 1.2} fill="#fff" opacity={0.92} />
+          {/* 粗體 + 十字(non-scaling-stroke:縮圖仍維持粗細) */}
           <line x1={cx - armLen} y1={cy} x2={cx + armLen} y2={cy}
-            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round" />
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round"
+            vectorEffect="non-scaling-stroke" />
           <line x1={cx} y1={cy - armLen} x2={cx} y2={cy + armLen}
-            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round" />
+            stroke="#0f172a" strokeWidth={sw} strokeLinecap="round"
+            vectorEffect="non-scaling-stroke" />
         </g>,
       );
     }
