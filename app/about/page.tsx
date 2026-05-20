@@ -236,17 +236,57 @@ export default function AboutPage() {
         </div>
 
         {/* 補充 3 件 emoji-only */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4 mb-6">
           <FeatureCard emoji="🔩" title="榫卯細節" desc="通榫、盲榫、半榫位置自動計算，含公榫母榫對位圖。" />
           <FeatureCard emoji="🛠️" title="工具清單" desc="這件家具會用到哪些工具，新手不用瞎買。" />
           <FeatureCard emoji="🎲" title="STL 3D 輸出" desc="可在 SketchUp、3D 列印機開啟，做縮小模型先打樣。" />
         </div>
+
+        {/* 裝潢專用：天花板骨架 — 獨立一張寬卡突出 */}
+        <Link
+          href="/ceiling"
+          className="group block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 hover:ring-amber-400 hover:shadow-md p-6 sm:p-8 transition"
+        >
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl bg-white ring-1 ring-amber-200 flex items-center justify-center p-3 shrink-0">
+              <Image
+                src="/thumbs/v2/ceiling.webp"
+                alt="天花板骨架 3D 爆炸圖"
+                width={160}
+                height={160}
+                quality={75}
+                loading="lazy"
+                style={{ objectFit: "contain", maxHeight: "100%", maxWidth: "100%" }}
+              />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-1.5 mb-2">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold">
+                  PRO
+                </span>
+                <span className="text-xs text-amber-800 font-medium">裝潢專用</span>
+              </div>
+              <h3 className="font-bold text-zinc-900 text-xl mb-2">
+                🔨 天花板骨架計算
+              </h3>
+              <p className="text-zinc-700 leading-relaxed text-sm sm:text-base">
+                量好房型輸入長寬高，自動配主骨 / 副骨 / 支撐桿，
+                算出每根料的長度、矽酸鈣板要切幾片、釘子幾顆、
+                估出整套用料與工時——
+                整套清單列印帶到工地，不再現場拿筆算到頭暈。
+              </p>
+              <p className="mt-3 text-xs text-amber-700 font-medium group-hover:underline">
+                看天花板計算器 →
+              </p>
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* ============ 適合誰 ============ */}
       <section className="mt-20 sm:mt-24">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-12">
-          給這四種人用
+          給這五種人用
         </h2>
         <div className="grid sm:grid-cols-2 gap-5">
           <PersonaCard
@@ -258,6 +298,11 @@ export default function AboutPage() {
             emoji="👷"
             title="木匠師傅 / 接案"
             desc="客戶來問「做一個這樣的櫃子要多少」，5 分鐘出設計+報價+工序，回得比同行快。"
+          />
+          <PersonaCard
+            emoji="🔨"
+            title="裝潢師傅 / 室內裝修"
+            desc="量好房型、輸入長寬高，天花板骨架（主骨/副骨/支撐）自動算料、矽酸鈣板用幾片、釘子幾顆，整套清單列印帶到工地。"
           />
           <PersonaCard
             emoji="🎨"
