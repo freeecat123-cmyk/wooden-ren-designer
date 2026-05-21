@@ -393,7 +393,27 @@ const Part = memo(function PartInner({
     const isRound = shape?.kind === "round" || shape?.kind === "round-tapered"
       || shape?.kind === "splayed-round-tapered" || shape?.kind === "shaker"
       || shape?.kind === "lathe-turned";
-    const threshold = isRound ? 1 : 30;
+    // 圓角倒角（chamfered-top / chamfered-edges / tapered / splayed 等
+    // 帶 rounded chamfer 拼 4 段約 22.5°）也低於 30° → threshold 30 會把座板/腳
+    // 整圈圓角邊濾光，線框看起來缺輪廓。
+    // arch-bent / face-rounded / live-edge / seat-scoop 等弧面類同樣降門檻。
+    const hasRoundedChamfer =
+      (shape?.kind === "chamfered-top" ||
+        shape?.kind === "chamfered-edges") &&
+      shape.style === "rounded";
+    const hasSplayedRoundedChamfer =
+      (shape?.kind === "splayed" ||
+        shape?.kind === "tapered" ||
+        shape?.kind === "splayed-tapered") &&
+      (shape as { chamferStyle?: string }).chamferStyle === "rounded";
+    const hasRoundedFacets =
+      hasRoundedChamfer ||
+      hasSplayedRoundedChamfer ||
+      shape?.kind === "arch-bent" ||
+      shape?.kind === "face-rounded" ||
+      shape?.kind === "live-edge" ||
+      shape?.kind === "seat-scoop";
+    const threshold = isRound ? 1 : hasRoundedFacets ? 15 : 30;
     const eg = new EdgesGeometry(merged, threshold);
     if (merged !== baseGeo) merged.dispose();
     if (createdLocally) baseGeo.dispose();
@@ -1285,7 +1305,8 @@ export function PerspectiveView({
                   part.shape?.kind === "round-tapered" ||
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
-                const useRoundTenon = isRoundLegPart && t.position === "top";
+                const useRoundTenon =
+                  isRoundLegPart && (t.position === "top" || t.position === "bottom");
 
                 // Compound splay: t.axis is WORLD-frame tenon direction.
                 // Composition: meshQuat = extraQ_world * partQ

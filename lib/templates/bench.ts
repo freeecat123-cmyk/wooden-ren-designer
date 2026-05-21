@@ -188,6 +188,11 @@ export const bench: FurnitureTemplate = (input) => {
       const slatW = slatSize;
       const slatT = slatSize;
       const slatHeight = splatHeight - topRailH;
+      // 直料盲榫：底端入座板、頂端入頂橫木；shoulder 各留 6mm
+      const slatTenonDia = Math.max(6, slatSize - 6);
+      const slatTenonLen = 18;
+      const slatSeatMortises: Array<{ x: number; z: number }> = [];
+      const slatTopMortises: Array<{ x: number; z: number }> = [];
       // 直料兩端往內縮 slatEndInset，剩下空間平均分配 N 條直料
       // 頂橫木維持跨整條長邊（input.length）不縮
       const slatSpan = Math.max(slatN * slatW, input.length - 2 * slatEndInset);
@@ -222,12 +227,40 @@ export const bench: FurnitureTemplate = (input) => {
           shape: dzAtTop > 0
             ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
             : undefined,
-          tenons: [],
+          tenons: [
+            {
+              position: "start",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonDia,
+              thickness: slatTenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+            {
+              position: "end",
+              type: "blind-tenon",
+              length: slatTenonLen,
+              width: slatTenonDia,
+              thickness: slatTenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+            },
+          ],
           mortises: [],
         });
+        // 累積座板 + 頂橫木 mortise（依直料 X 位置）
+        slatSeatMortises.push({ x, z: slatZ });
+        slatTopMortises.push({ x, z: slatZ + dzAtTop });
       }
       // 頂橫木：不旋轉，讓 local Z = 深度方向，arch-bent 才能在世界 Z 方向彎
       // local X=長 (世界 X)、local Y=高度 (世界 Y, thickness 借當高)、local Z=深度 (世界 Z, width 借當深)
+      // 頂橫木 mortises = 直料頂端入榫位（local：x = world x；y = 0 底面入榫；z = world z 偏移 - origin.z）
+      const topRailMortises = slatTopMortises.map((m) => ({
+        origin: { x: m.x, y: 0, z: m.z - railZ },
+        depth: slatTenonLen,
+        length: slatTenonDia,
+        width: slatTenonDia,
+        through: false as const,
+      }));
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木",
@@ -237,8 +270,21 @@ export const bench: FurnitureTemplate = (input) => {
         origin: { x: 0, y: seatTop + slatHeight, z: railZ },
         shape: topRailBendMm > 0 ? { kind: "arch-bent" as const, bendMm: topRailBendMm } : undefined,
         tenons: [],
-        mortises: [],
+        mortises: topRailMortises,
       });
+      // 座板加直料盲榫眼
+      const topPartSlat = design.parts.find((p) => p.id === "top");
+      if (topPartSlat) {
+        for (const m of slatSeatMortises) {
+          topPartSlat.mortises.push({
+            origin: { x: m.x, y: topThickness, z: m.z },
+            depth: slatTenonLen,
+            length: slatTenonDia,
+            width: slatTenonDia,
+            through: false,
+          });
+        }
+      }
     } else if (endSplat === "ladder") {
       // 橫格條：N 條（1~3）水平橫料 + 2 條後背立柱接座板
       // 結構：立柱靠最後（背面齊座板背緣），橫木掛在立柱「前面」→ 從正視圖看
@@ -447,6 +493,22 @@ export const bench: FurnitureTemplate = (input) => {
       const bowCenterDz = -(topRailH / 2) * sinRake;
 
       const tanRake = sinRake / Math.max(0.0001, cosRake);
+      // 椅背圓料底端 round-tenon 入座板（直徑 = 圓料 − 4mm、深 18mm，
+      // 留 4mm 肩、≤25mm 通榫規則對純圓料不適用，固定盲榫）。
+      // 邊柱用 stumpD−6mm 留更大肩。
+      const seatMortises: Array<{
+        x: number;
+        z: number;
+        tenonDia: number;
+        tenonLen: number;
+      }> = [];
+      // 椅背圓料頂端 round-tenon 入頂橫木（bow）；深度比底端小（bow 厚度只有
+      // topRailH 約 45mm，盲榫 12mm）。
+      const bowMortises: Array<{
+        x: number;
+        tenonDia: number;
+        tenonLen: number;
+      }> = [];
       const buildVerticalRound = (
         x: number,
         diameter: number,
@@ -467,6 +529,11 @@ export const bench: FurnitureTemplate = (input) => {
         if (partHActual <= 0) return;
         const dzShape = zBottom - zTop;
         const useSplay = Math.abs(dzShape) > 0.5;
+        const tenonShoulder = kind === "post" ? 6 : 4;
+        const tenonDia = Math.max(6, diameter - tenonShoulder);
+        const tenonLen = kind === "post" ? 22 : 18;
+        // 頂端入 bow：bow 厚度 topRailH，盲榫深 12mm（不超過 bow 厚的一半，避免穿透）
+        const topTenonLen = Math.min(12, Math.floor(topRailH * 0.4));
         design.parts.push({
           id: `back-${idSuffix}`,
           nameZh,
@@ -477,9 +544,41 @@ export const bench: FurnitureTemplate = (input) => {
           shape: useSplay
             ? { kind: "splayed-round-tapered" as const, bottomScale: 1, dxMm: 0, dzMm: dzShape }
             : { kind: "round" as const },
-          tenons: [],
+          tenons: [
+            {
+              position: "bottom",
+              type: "blind-tenon",
+              length: tenonLen,
+              width: tenonDia,
+              thickness: tenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+              // splayed-round-tapered：頂面在 part-local 原點、底面被 dzMm 偏移。
+              // "bottom" tenon 預設 lcz=0 會落到頂面 X/Z（離底面 dzShape 在空中），
+              // 用 offsetThickness 帶上 dzShape 把 tenon 推到底面位置。
+              offsetThickness: useSplay ? dzShape : 0,
+              // 椅背圓料是斜的（bow 後彎讓 top 比 bottom 更 +Z），底端榫頭應該
+              // 跟圓料本身平行進入座板，不能垂直。axis = 圓料從 top→bottom 方向
+              // 在世界座標系（= 從 bottom face 朝外延伸的方向）。
+              ...(useSplay
+                ? { axis: { x: 0, y: -partHActual, z: dzShape } }
+                : {}),
+            },
+            {
+              position: "top",
+              type: "blind-tenon",
+              length: topTenonLen,
+              width: tenonDia,
+              thickness: tenonDia,
+              shoulderOn: ["top", "bottom", "left", "right"],
+              // 頂面位於 part-local 原點，不需 offsetThickness
+            },
+          ],
           mortises: [],
         });
+        // 底端入座板 → 累積 mortise 給座板（origin.z = 圓料底端 z）
+        seatMortises.push({ x, z: zBottom, tenonDia, tenonLen });
+        // 頂端入 bow → 累積 mortise 給 bow（X = 圓料 X 位置）
+        bowMortises.push({ x, tenonDia, tenonLen: topTenonLen });
       };
 
       // 兩側邊柱 (stump posts)：邊柱「外緣」距座板端面 = endInset
@@ -503,6 +602,14 @@ export const bench: FurnitureTemplate = (input) => {
       // bow 跟圓料同步：位置 +rakeMm，cross-section 旋轉 rakeRad
       // 圓料 TOP 已在 buildVerticalRound 補上 bow 旋轉後中軸線的 Y/Z 偏移
       const railZ = halfW - topRailT / 2 - backInset + rakeMm;
+      // bow 底面 (part-local y=0) 對應每根椅背圓料 X 位置的 round mortise
+      const bowMortisesList = bowMortises.map((m) => ({
+        origin: { x: m.x, y: 0, z: 0 },
+        depth: m.tenonLen,
+        length: m.tenonDia,
+        width: m.tenonDia,
+        through: false as const,
+      }));
       design.parts.push({
         id: "back-top-rail",
         nameZh: "椅背頂橫木 (bow 彎弧)",
@@ -513,8 +620,23 @@ export const bench: FurnitureTemplate = (input) => {
         rotation: rakeRad > 0 ? { x: rakeRad, y: 0, z: 0 } : undefined,
         shape: bowBendMm > 0 ? { kind: "arch-bent" as const, bendMm: bowBendMm } : undefined,
         tenons: [],
-        mortises: [],
+        mortises: bowMortisesList,
       });
+      // 座板加椅背圓料盲榫眼（每根 spindle/post 在底端入座板的孔位）
+      // top part 軸：local Y 從 0 (世界 legHeight) 到 topThickness (世界 seatTop)
+      // mortise origin.y = topThickness (頂面) → 往下挖 tenonLen
+      const topPart = design.parts.find((p) => p.id === "top");
+      if (topPart) {
+        for (const m of seatMortises) {
+          topPart.mortises.push({
+            origin: { x: m.x, y: topThickness, z: m.z },
+            depth: m.tenonLen,
+            length: m.tenonDia,
+            width: m.tenonDia,
+            through: false,
+          });
+        }
+      }
     }
   }
 
