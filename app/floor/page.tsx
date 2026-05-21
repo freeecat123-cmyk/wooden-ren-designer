@@ -1,9 +1,8 @@
 /**
  * /floor — 地板施工模擬器
  *
- * 階段 1(目前):純算料引擎驗證頁,只限 admin 看。
- *   非 admin 進來 → 導 /pricing?upgrade=floor
- *   階段 4 才會接 canUseFloorTool 對外開放。
+ * admin 永遠可進;其他人依 canUseFloorTool 權限(個人版以上開放),
+ * 無權限 → 導 /pricing?upgrade=floor。
  */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";

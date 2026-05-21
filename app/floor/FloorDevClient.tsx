@@ -73,7 +73,7 @@ export function FloorDevClient() {
     <main className="mx-auto max-w-6xl p-6">
       <h1 className="text-xl font-bold">地板施工模擬器</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        超耐磨/海島型木地板平鋪 · 階段 1 驗證頁(admin 限定)
+        超耐磨/海島型木地板 · 直鋪與人字拼排版算料、材料估價
       </p>
 
       <div className="mt-4 grid gap-6 md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">

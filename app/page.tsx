@@ -148,12 +148,8 @@ export default async function Home({
     : sortByDifficulty(filtered);
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
-  // 地板模擬器:開發中,只在「開發中」分頁露出預告卡
-  const showFloorTool = chip === "dev";
   const visibleCount =
-    (showFurniture ? furniture.length : 0) +
-    (showTools ? 1 : 0) +
-    (showFloorTool ? 1 : 0);
+    (showFurniture ? furniture.length : 0) + (showTools ? 2 : 0);
 
   return (
     <main className="max-w-7xl mx-auto px-5 sm:px-6 py-8 sm:py-12">
@@ -267,7 +263,7 @@ export default async function Home({
       {/* 大圖網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {showTools && <CeilingToolCard />}
-        {showFloorTool && <FloorToolCard />}
+        {showTools && <FloorToolCard />}
         {showFurniture &&
           furniture.map((item) => (
             <FurnitureCard key={item.category} item={item} />
@@ -318,22 +314,24 @@ function CeilingToolCard() {
   );
 }
 
-/** 地板施工模擬器:開發中預告卡(灰底、不可點、🚧 敬請期待) */
+/** 地板施工模擬器:個人版工具卡(可點,導 /floor) */
 function FloorToolCard() {
   return (
-    <div
-      data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 floor"
-      aria-disabled="true"
-      title="地板施工模擬器 · 開發中"
-      className="group relative block overflow-hidden rounded-xl bg-stone-50 ring-1 ring-stone-300 opacity-65 cursor-not-allowed select-none"
+    <Link
+      href="/floor"
+      data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 人字拼 估價 floor"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
-      <span className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-        <span className="px-2.5 py-1 rounded-full bg-zinc-900/85 text-white text-xs font-semibold tracking-wide shadow">
-          🚧 敬請期待
+      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+        <span
+          title="個人版工具"
+          className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold shadow-sm tracking-wide"
+        >
+          個人版
         </span>
-      </span>
-      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-100">
-        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%]" aria-hidden>
+      </div>
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
           {[0, 1, 2, 3, 4].map((r) => (
             <g key={r}>
               {[-1, 0, 1, 2, 3].map((c) => (
@@ -353,12 +351,15 @@ function FloorToolCard() {
           ))}
         </svg>
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between border-t border-stone-200 bg-stone-100">
-        <span className="text-sm font-semibold text-zinc-700 truncate">
+      <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🪵 地板施工模擬器
         </span>
+        <span className="shrink-0 text-[11px] font-semibold text-amber-700 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+          開啟 →
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
