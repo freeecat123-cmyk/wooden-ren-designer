@@ -200,11 +200,8 @@ export const bench: FurnitureTemplate = (input) => {
       // 直料 origin.z 從 backZ 往前推 slatBackInset，但 backZ 算法用了 splatThick/2，
       // 直料截面是 slatT 不是 splatThick，要校正：直料背面齊平座板背緣 - slatBackInset
       // → origin.z = halfW - slatT/2 - slatBackInset
-      // 頂橫木中軸 Z（slat 中軸跟此對齊，讓榫頭落在 rail 下緣中心軸上）
+      const slatZ = halfW - slatT / 2 - slatBackInset;
       const railZ = halfW - topRailT / 2 - slatBackInset;
-      // 直料中軸對齊頂橫木中軸（原本是後緣對齊座板後緣 → 中軸差 2.5mm，
-      // 在 rail 上的榫眼會偏後緣不在 rail 中心）
-      const slatZ = railZ;
       for (let i = 0; i < slatN; i++) {
         const x = -slatSpan / 2 + slatW / 2 + i * (slatW + slatGap);
         // 頂橫木在這個 X 位置的後彎量
@@ -212,20 +209,21 @@ export const bench: FurnitureTemplate = (input) => {
         const dzAtTop = topRailBendMm > 0
           ? topRailBendMm * Math.max(0, 1 - tBend * tBend)
           : 0;
-        // 直料用 tilt-z shape 做斜邊平行六面體（top/bot 水平、側邊跟著 tilt 斜）：
-        // 底面在 world Y=seatTop（水平、貼座板上面），頂面在 world Y=seatTop+slatHeight
-        // （水平、貼 bow rail 下面）；側邊隨 dzAtTop 沿 Z 軸向後斜。這樣 slat 落
-        // 在座板上不會有「三角形缺口」（rotation tilt 會讓底面斜、跟水平座板留縫）。
+        // 直料底部接座板 (slatX, seatTop, slatZ)、頂部接彎頂橫木 (..., seatTop+slatHeight, slatZ+dz)
+        // 整支向後傾斜 θ = atan(dz / slatHeight)，料長除 cos(θ) 補償
+        const tilt = dzAtTop > 0 ? Math.atan(dzAtTop / slatHeight) : 0;
+        const tiltedHeight = slatHeight / Math.cos(tilt);
+        // PerspectiveView py = (origin.y + yExt/2) → 調 origin 讓料中軸中點落在 (slatX, seatTop+slatHeight/2, slatZ+dz/2)
+        const originY = seatTop + (slatHeight - tiltedHeight) / 2;
+        const originZ = slatZ + dzAtTop / 2;
         design.parts.push({
           id: `back-slat-${i + 1}`,
           nameZh: `椅背直料 ${i + 1}`,
           material: mat,
           grainDirection: "length",
-          visible: { length: slatW, width: slatHeight, thickness: slatT },
-          origin: { x, y: seatTop, z: slatZ },
-          // rotation x=π/2 把 part-local Z（slatHeight）轉到世界 Y（垂直）。
-          // 不加 tilt：tilt 用 shape 做（保留水平面、SVG silhouette 也對）。
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          visible: { length: slatW, width: tiltedHeight, thickness: slatT },
+          origin: { x, y: originY, z: originZ },
+          rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
           shape: dzAtTop > 0
             ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
             : undefined,

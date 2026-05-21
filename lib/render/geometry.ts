@@ -805,22 +805,8 @@ export function projectPartPolygon(
         { x: xCenter - halfL, y: yBot },
       ];
     }
-    // top view：tilt-z slat 的 cross-section（20×20）在底部沿 Z 偏移到頂部
-    // 偏 topShiftMm。default box 用 AABB 把整個 Z 跨距畫進去（20×(20+topShiftMm)），
-    // 視覺上像被拉長 90°。改畫底面 cross-section（slat 接座板的位置），俯視只看
-    // slat 落在座板的孔位、不再被 tilt 拉長。
-    const xCenter = -part.origin.x;
-    const halfL = part.visible.length / 2;
-    // 底面 z 中心 = origin.z - topShift/2（slat originZ 是中軸、+topShift/2 推到頂面）
-    // 俯視 y = -world Z（top view r.y = z - zExt/2 慣例），底面 z = origin.z - topShift/2
-    const zBotCenter = part.origin.z - topShift / 2;
-    const halfT = slatT / 2;
-    return [
-      { x: xCenter - halfL, y: zBotCenter + halfT },  // back (Z+)
-      { x: xCenter + halfL, y: zBotCenter + halfT },
-      { x: xCenter + halfL, y: zBotCenter - halfT },  // front (Z-)
-      { x: xCenter - halfL, y: zBotCenter - halfT },
-    ];
+    // top view 沿用 box
+    return box;
   }
 
   // 弧形彎料（椅背頂橫木向後彎）側視：沿 worldX 看不到 length；silhouette =
