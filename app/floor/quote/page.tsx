@@ -24,7 +24,7 @@ export default async function FloorQuotePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login?next=/floor");
+  if (!user) redirect(`/login?next=${encodeURIComponent("/floor/quote")}`);
 
   // admin 永遠可進，其他人依 canUseFloorTool permission
   if (!isAdminEmail(user.email, getServerAdminEmails())) {
