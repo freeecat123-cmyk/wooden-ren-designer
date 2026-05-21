@@ -268,6 +268,9 @@ export interface Part {
      *  整支沿 Y 軸切若干段，每段是不同半徑的圓柱，視覺上像車床車出來的腳。
      *  半徑全部以 legSize/2 為基準，每段相對縮放 + 高度比例。 */
     | { kind: "lathe-turned" }
+    /** Tilt-z 斜邊平行六面體：top/bot 兩個水平面保持平，側邊沿 Z 軸由底部 0 → 頂部 topShiftMm 線性偏移。
+     *  用於 bench bow-rail 直料：頂部跟著彎頂橫木向後偏，但接座板那個面要水平不傾斜。 */
+    | { kind: "tilt-z"; topShiftMm: number; baseHeightMm: number }
     /** Splayed tapered: 外斜方錐腳——方料漸縮 + 整支外傾（底部偏移 dxMm/dzMm）。
      *  bottomScale < 1 上粗下細；> 1 上細下粗（搭配外斜常見：上細下粗 + splay = 倒角桶腳） */
     | { kind: "splayed-tapered"; bottomScale: number; dxMm: number; dzMm: number }

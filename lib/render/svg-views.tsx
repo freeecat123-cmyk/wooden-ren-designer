@@ -1734,6 +1734,9 @@ function OrthoViewImpl({
             // top view 對腳（最長軸=Y）正好是 cross-section view，必須走
             // polygon path 才能畫八邊形，否則 fallback rect 沒倒角。
             part.shape.kind !== "chamfered-edges" &&
+            // tilt-z：椅背直料 top view 用底面 cross-section 不要被 tilt Z 拉長
+            // 成 (20+topShift) tall rect；projectPartPolygon 有專屬 tilt-z 分支
+            part.shape.kind !== "tilt-z" &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
           ));
