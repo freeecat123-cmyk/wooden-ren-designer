@@ -1734,6 +1734,9 @@ function OrthoViewImpl({
             // top view 對腳（最長軸=Y）正好是 cross-section view，必須走
             // polygon path 才能畫八邊形，否則 fallback rect 沒倒角。
             part.shape.kind !== "chamfered-edges" &&
+            // tilt-z：椅背直料 top view 用底面 cross-section 不要被 tilt Z 拉長
+            // 成 (20+topShift) tall rect；projectPartPolygon 有專屬 tilt-z 分支
+            part.shape.kind !== "tilt-z" &&
             !isTaperedWithChamfer &&
             !isFaceRoundedBent
           ));
@@ -3228,14 +3231,10 @@ function OrthoViewImpl({
         </g>
       )}
 
-      {/* 整片門 / 整支抽屜 / 層板 / 分隔板 inline 尺寸標籤（cabinet only）
-          - front view：門面板 / 抽屜面板 / 層板 / 分隔板的外框 W×H×T（最大兩維+板厚）
-          - side view：層板 / 分隔板 / 抽屜 / 門的深度 D（從側面才看得到的尺寸）
-          - top view 層板會被頂板蓋住，不標。
-          只顯示「整件」尺寸（length/width/thickness 取最大兩個 = 板厚自動排除），
-          要的是整片門框 / 整支抽屜的外框尺寸，不是切料表。
-          相同尺寸自動 dedup → 同層多片只標 1 次 + "×N"。 */}
-      {showDimensions && !isolatePartId && (() => {
+      {/* 抽屜板 / 分隔板 / 層板 / 門板 inline 尺寸標籤 2026-05-21 移除：
+          木頭仁回饋圖面中段那一坨「抽屜板 W×H×T ×N / 分隔板 深 D ×N」沒人在看，
+          切料表已經把所有零件尺寸列完，三視圖只留外框 + 內部高度鏈即可。 */}
+      {false && showDimensions && !isolatePartId && (() => {
         const dims = extractFurnitureDims(renderDesign);
         if (!dims || !dims.cabinet) return null;
         if (view === "top") return null;
