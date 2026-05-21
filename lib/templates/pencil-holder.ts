@@ -171,7 +171,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       const polyDividerH = dividerHeightOpt > 0
         ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
         : polyDividerHAuto;
-      // divider-1：length 沿世界 X、width 沿世界 Y 垂直
+      // divider-1：length 沿世界 Z（對齊 staves 0 / sides/2 的 ±Z 壁）、width 沿世界 Y 垂直
       polygonDividerParts.push({
         id: "divider-1",
         nameZh: "穿心隔板 1（縱）",
@@ -179,12 +179,12 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
         origin: { x: 0, y: polyBottomTopY, z: 0 },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
         tenons: [],
         mortises: [],
       });
       if (polyDividerStyleStr === "cross") {
-        // divider-2：length 沿世界 Z（垂直 X 軸的水平方向）、width 沿世界 Y 垂直
+        // divider-2：length 沿世界 X（對齊 staves sides/4 / 3·sides/4 的 ±X 壁）、width 沿世界 Y 垂直
         polygonDividerParts.push({
           id: "divider-2",
           nameZh: "穿心隔板 2（橫）",
@@ -192,7 +192,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
           grainDirection: "length",
           visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
           origin: { x: 0, y: polyBottomTopY, z: 0 },
-          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
           tenons: [],
           mortises: [],
         });
