@@ -1474,18 +1474,19 @@ function OrthoViewImpl({
             // 4 corner 各自帶 top/bot scale → 看出兩端錯位（user 2026-05-21 回報
             // 「四腳外斜的牙板 top view 應該是單斜你畫成直的」）。
             if (isolatePartId && trap) {
-              const halfTop = (lx / 2) * trap.topLengthScale;
-              const halfBot = (lx / 2) * trap.bottomLengthScale;
-              // 同 splayed-tapered top view (line 1601 headY=-(r.y+r.h)) 慣例：
-              // 接座面（3D 高 Y、短邊）放畫面上方、接地面（長邊）放畫面下方。
-              // fmt 會 `(-p.y)`，所以接座面要給 `y = +lz/2`、fmt 後 = -lz/2 = 畫面上方。
-              // user 2026-05-21 回報「正視圖牙板擺這樣、零件圖卻轉了 180 度」
-              // 前/後/左/右牙板 + 上/下橫撐 isolation 後 part-local frame 一致，
-              // 這個 patch 涵蓋所有受影響的件。
+              // 物理上：visible.length 是 apron center Y 的長度，tenon 從 ±lx/2 端
+              // 面凸出。topLengthScale/bottomLengthScale 是相對 center 的比例。
+              // 之前直接套 ±lx/2 * scale 會讓 top corner 在 ±lx/2 × 0.97 = 比 tenon
+              // 內側位置（±lx/2）短 3mm → top edge 跟 tenon 之間有三角形缺口；
+              // bot corner 則凸過 tenon。改成把 body top 對齊 tenon 端面（±lx/2），
+              // bottom 用相對比例延伸（physical：splay 是底面往外開、頂面接腳）。
+              const ratio = trap.bottomLengthScale / trap.topLengthScale;
+              const halfTop = lx / 2;                  // 接座面 = tenon 端面 X 位置
+              const halfBot = (lx / 2) * ratio;        // 接地面相對 top 的展開比例
               const corners = [
-                { x: -halfTop, y: +lz / 2 }, // 接座面左（畫面上方）
+                { x: -halfTop, y: +lz / 2 }, // 接座面左（畫面上方，跟 tenon 左內側對齊）
                 { x: +halfTop, y: +lz / 2 }, // 接座面右
-                { x: +halfBot, y: -lz / 2 }, // 接地面右（畫面下方）
+                { x: +halfBot, y: -lz / 2 }, // 接地面右（畫面下方，往外延伸）
                 { x: -halfBot, y: -lz / 2 }, // 接地面左
               ];
               const pts = corners
