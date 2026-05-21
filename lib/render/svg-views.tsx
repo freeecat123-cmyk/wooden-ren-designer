@@ -113,7 +113,7 @@ function extractFurnitureDims(design: FurnitureDesign) {
   // 橫向構件：牙板 / 橫撐 / 椅背料 / footrest 等（Y 位置 = origin.y, yExt 用 worldExtents）
   const crossPieces = design.parts
     .filter((p) =>
-      /^(apron|ls-|stretcher|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
+      /^(apron|upper-apron|ls-|stretcher|lower-stretcher|back-rail|back-top-rail|back-splat|footrest|center-stretcher)/.test(
         p.id,
       ),
     )
@@ -3012,14 +3012,14 @@ function OrthoViewImpl({
                 return [...seenLen.values()].map((c) => {
                   const halfL = c.cutLengthMm / 2;
                   const yLine = -c.bottomY + 12;
-                  const showAngle = c.cutAngleDeg > 0.1;
+                  const showAngle = c.cutAngleDeg > 0.05;
                   return (
                     <g key={`xp-len-${c.id}`} stroke="#a55" fill="#a55" strokeWidth={0.5} fontFamily="sans-serif">
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(c.nameZh)} L{Math.round(c.cutLengthMm)}
-                        {showAngle ? ` ∠${c.cutAngleDeg.toFixed(1)}°` : ""}
+                        {bare(c.nameZh)} 淨長 {Math.round(c.cutLengthMm)}
+                        {showAngle ? ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°` : ""}
                       </text>
                     </g>
                   );
