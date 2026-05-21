@@ -1,6 +1,6 @@
 import type { CeilingBom } from "./types";
 import type { EngineeringQuoteInput, EngLineItem } from "../engineering-quote/types";
-import { ENGINEERING_QUOTE_DEFAULTS } from "../engineering-quote/defaults";
+import type { ENGINEERING_QUOTE_DEFAULTS } from "../engineering-quote/defaults";
 
 type EngOpts = typeof ENGINEERING_QUOTE_DEFAULTS;
 

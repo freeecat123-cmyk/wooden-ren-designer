@@ -47,6 +47,10 @@ function assert(cond: boolean, msg: string) {
     input.materialLines[0].detail !== undefined,
     "材料行 detail 附 BOM 數量摘要",
   );
+  assert(
+    input.materialLines[0].unpriced !== true,
+    "天花板有材料價 → 材料行非 unpriced",
+  );
 }
 
 console.log(`✅ adapters: ${passed} passed`);
