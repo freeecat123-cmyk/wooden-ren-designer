@@ -158,9 +158,11 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "legEdgeStyle": "chamfered",
       "stretcherEdge": 0,
       "stretcherEdgeStyle": "chamfered",
-      "apronWidth": 70,
+      "apronWidth": 0,
       "apronOffset": 0,
-      "withLowerStretchers": true
+      "withLowerStretchers": false,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 25,
@@ -592,19 +594,24 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
     },
     "side-table": {
       "legShape": "tapered",
-      "legSize": 40,
+      "legSize": 45,
       "legInset": 15,
-      "topThickness": 28,
+      "topThickness": 30,
       "seatEdge": 12,
       "seatEdgeStyle": "rounded",
       "legEdge": 8,
       "legEdgeStyle": "rounded",
       "stretcherEdge": 5,
       "stretcherEdgeStyle": "rounded",
-      "apronWidth": 75,
-      "withLowerStretchers": false,
+      "apronWidth": 90,
       "apronOffset": 10,
-      "lowerStretcherHeight": 0
+      "withLowerStretchers": false,
+      "lowerStretcherHeight": 0,
+      "withDrawer": true,
+      "drawerHeight": 140,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": false
     },
     "chest-of-drawers": {
       "panelThickness": 22,
@@ -1386,10 +1393,24 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false
     },
     "side-table": {
+      "legShape": "tapered",
+      "legSize": 30,
+      "legInset": 0,
       "topThickness": 22,
-      "apronWidth": 55,
+      "seatEdge": 3,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 1,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 1,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 50,
       "apronOffset": 5,
-      "withLowerStretchers": false
+      "withLowerStretchers": true,
+      "withDrawer": true,
+      "drawerHeight": 110,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": true
     },
     "open-bookshelf": {
       "panelThickness": 18,
@@ -1816,7 +1837,9 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "stretcherEdgeStyle": "chamfered",
       "apronWidth": 40,
       "apronOffset": 10,
-      "withLowerStretchers": false
+      "withLowerStretchers": false,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 18,
@@ -2196,11 +2219,25 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "lowerStretcherHeight": 0
     },
     "side-table": {
-      "topThickness": 28,
-      "apronWidth": 80,
+      "legShape": "box",
+      "legSize": 55,
+      "legInset": 0,
+      "topThickness": 35,
+      "seatEdge": 5,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 0,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 0,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 85,
       "apronOffset": 5,
       "withLowerStretchers": true,
-      "lowerStretcherHeight": 0
+      "lowerStretcherHeight": 100,
+      "withDrawer": true,
+      "drawerHeight": 130,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": true
     },
     "open-bookshelf": {
       "panelThickness": 22,
@@ -2790,12 +2827,22 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false
     },
     "side-table": {
-      "topThickness": 25,
-      "legShape": "box",
-      "legSize": 35,
+      "legShape": "tapered",
+      "legSize": 38,
+      "legInset": 30,
+      "topThickness": 28,
+      "seatEdge": 5,
+      "seatEdgeStyle": "rounded",
+      "legEdge": 3,
+      "legEdgeStyle": "rounded",
+      "stretcherEdge": 3,
+      "stretcherEdgeStyle": "rounded",
       "apronWidth": 65,
-      "apronOffset": 10,
-      "withLowerStretchers": false
+      "apronOffset": 0,
+      "withLowerStretchers": true,
+      "lowerStretcherHeight": 120,
+      "withDrawer": false,
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 22,
@@ -3059,6 +3106,31 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withHatRail": false,
       "withFloorTray": false,
       "edgeChamfer": 2
+    }
+  },
+  // ─── farmhouse（美式手工 Farmhouse / Mission / Windsor 變體） ───────
+  // 別名收斂用：點「美式手工」button 直接套這套（mission 變體當基底）
+  "farmhouse": {
+    "side-table": {
+      "legShape": "box",
+      "legSize": 55,
+      "legInset": 0,
+      "topThickness": 35,
+      "seatEdge": 5,
+      "seatEdgeStyle": "chamfered",
+      "legEdge": 0,
+      "legEdgeStyle": "chamfered",
+      "stretcherEdge": 0,
+      "stretcherEdgeStyle": "chamfered",
+      "apronWidth": 85,
+      "apronOffset": 5,
+      "withLowerStretchers": true,
+      "lowerStretcherHeight": 100,
+      "withDrawer": true,
+      "drawerHeight": 130,
+      "drawerSlideType": "none",
+      "pullStyle": "knob",
+      "legPenetratingTenon": true
     }
   }
 };
