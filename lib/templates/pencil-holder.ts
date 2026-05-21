@@ -101,15 +101,40 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   if (bodyShape === "hex" || bodyShape === "oct") {
     const sides = bodyShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
-    const staves = polygonStaves({ sides, outerD, outerH, wallT, botT, material });
-    // 底板用 regular-polygon shape，邊形對齊內壁：
-    //   apothem = outerD/2 * cos(π/sides)（外壁 apothem）
-    //   bottomApothem = (apothem - wallT) + wallT/2  （內壁 apothem + 半壁厚 seatOverlap）
-    //   bottomVertexR = bottomApothem / cos(π/sides) （頂點圓半徑）
-    // 這樣底板邊緣壓入 wallT/2 進壁內、頂點貼合內壁 corner，視覺正確不溢出
-    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
-    const bottomApothem = (apothem - wallT) + wallT / 2;
-    const bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);  // 外壁 apothem
+    const outerWallVertexR = outerD / 2;
+
+    // 底板裝法（跟 dovetail-box / tray 同一套）：
+    //   seated      = 底板邊緣壓入壁內 wallT/2、N 壁壓在底板邊緣膠合
+    //   inset-panel = 4 壁全高、底板邊緣卡進壁內側 5mm 溝、底板下緣距盒底 5mm
+    //   flush-glued = 底板外緣與壁外緣齊邊、整面塗膠
+    let stavesOuterH: number;
+    let stavesBaseY: number;
+    let bottomOriginY: number;
+    let bottomVertexR: number;
+    if (bottomAttach === "inset-panel") {
+      const polyBotSkirt = 5;
+      stavesOuterH = outerH + botT;
+      stavesBaseY = 0;
+      bottomOriginY = polyBotSkirt;
+      const grooveDepth = Math.max(1, Math.min(5, Math.floor(wallT / 2)));
+      const bottomApothem = (apothem - wallT) + grooveDepth;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+    } else if (bottomAttach === "flush-glued") {
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      bottomVertexR = outerWallVertexR;
+    } else { // seated
+      stavesOuterH = outerH;
+      stavesBaseY = botT;
+      bottomOriginY = 0;
+      const seatOverlap = wallT / 2;
+      const bottomApothem = (apothem - wallT) + seatOverlap;
+      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+    }
+
+    const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
     const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
@@ -117,7 +142,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
-      origin: { x: 0, y: 0, z: 0 },
+      origin: { x: 0, y: bottomOriginY, z: 0 },
       shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
       tenons: [],
       mortises: [],
