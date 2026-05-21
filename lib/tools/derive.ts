@@ -90,22 +90,27 @@ const JOINERY_TOOLS: Record<
     { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切 45° 角" },
     { id: "groove-blade", priority: "recommended", reason: "切片榫溝（修邊機 + 開槽直刀）" },
+    { id: "magnetic-saw-guide", priority: "recommended", reason: "磁吸 45° 導引塊，手鋸切角不歪斜" },
   ],
   mitered: [
     { id: "japanese-saw", priority: "required", reason: "精準 45° 切角" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切 45° 角" },
     { id: "miter-box", priority: "recommended", reason: "斜切箱輔助角度，比目測精準" },
+    { id: "magnetic-saw-guide", priority: "recommended", reason: "磁吸 45° 導引塊，手鋸切角不歪斜" },
   ],
   "pocket-hole": [
     { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔" },
     { id: "drill", priority: "required", reason: "鑽孔" },
     { id: "drill-bits", priority: "required", reason: "斜孔專用階梯鑽頭" },
     { id: "tenz-screw-set", priority: "recommended", reason: "TENZ 星型螺絲省力不咬合，斜孔鎖固專用" },
+    { id: "countersink-bit", priority: "recommended", reason: "螺絲頭埋進木面不外露，正面更光潔" },
   ],
   screw: [
     { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
     { id: "drill-bits", priority: "required", reason: "搭配電鑽" },
     { id: "tenz-screw-set", priority: "recommended", reason: "TENZ 星型螺絲省力不咬合" },
+    { id: "countersink-bit", priority: "recommended", reason: "螺絲頭埋進木面不外露" },
+    { id: "hand-drill-brace", priority: "optional", reason: "手搖鑽手動鎖固，無電源也能裝" },
   ],
 };
 
@@ -181,9 +186,14 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
   }
 
   // ----- 衍生推薦（依目前已選工具反推） -----
+  // 全家具通用建議——marking / glue / clamp / 保護面板類，無條件帶
+  add("marking-knife", "recommended", "SK5 雙刃劃線刀，比鉛筆精準十倍，榫接對位專用");
+  add("masking-tape-low-tack", "recommended", "弱黏紙膠帶，膠合防溢膠、塗裝遮邊、面板保護萬用");
+  add("quick-bench-vise", "recommended", "快速虎鉗，鑿榫／鋸切時鎖緊零件比 F 夾穩");
   // pva-glue 一定在 ALWAYS_REQUIRED → 任何家具都會帶到，所以 glue-tray-set
   // 也跟著建議
   add("glue-tray-set", "recommended", "矽膠托盤＋滾筒刷，膠水乾掉一撕即淨，比紙杯衛生");
+  add("silicone-glue-box", "recommended", "矽膠膠水盒，膠水可儲存重複用，比拋棄式環保");
   // 用到刃口工具 → 推薦磨刀器（鑿刀／鉋刀都需要定期定角開刃）
   if (SHARPENABLE_IDS.some((id) => map.has(id))) {
     add("sharpening-jig", "recommended", "鑿刀／鉋刀定角開刃，搭配磨刀石使用");

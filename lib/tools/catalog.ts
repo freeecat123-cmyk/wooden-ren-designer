@@ -277,4 +277,62 @@ export const TOOL_CATALOG: Record<string, Tool> = {
       "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%BE%9C%E7%94%B2%E7%B4%8B%E9%9B%95%E5%88%BB%E5%BA%95%E5%BA%A7-%E5%9C%93%E5%BC%A7%E9%9B%95%E5%88%BB%E5%BA%A7-%E4%BF%AE%E9%82%8A%E6%A9%9F%E5%BA%A7-%E8%B7%AF%E9%81%94%E5%BA%A7-%E9%9B%95%E5%88%BB%E5%BA%A7",
     notes: "修邊機加裝這個底座做圓弧／龜甲紋雕刻；裝飾性家具加分項",
   },
+
+  // ----- 木頭仁賣場新增第二批（2026-05-21）-----
+  "masking-tape-low-tack": {
+    id: "masking-tape-low-tack",
+    nameZh: "弱黏款紙膠帶（不剝面板 / 不留膠）",
+    category: "marking",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%B4%99%E8%86%A0%E5%B8%B6%E5%BC%B1%E9%BB%8F%E6%AC%BE-%E6%9C%A8%E5%B7%A5%E6%A8%99%E8%A8%98%E9%BB%8F%E5%90%88-%E7%89%86%E5%A3%81%E4%B8%8D%E5%89%9D%E8%90%BD%E5%92%8C%E7%B4%99%E8%86%A0%E5%B8%B6",
+    notes: "切割／塗裝防溢膠線、膠合定位、面板保護萬用；弱黏不撕掉表面",
+  },
+  "quick-bench-vise": {
+    id: "quick-bench-vise",
+    nameZh: "快速木工虎鉗 SKC-301（快拆桌鉗）",
+    category: "clamp",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%BF%AB%E9%80%9F%E6%9C%A8%E5%B7%A5%E8%99%8E%E9%89%97-skc-301-%E6%9C%A8%E5%B7%A5%E5%A4%BE-%E5%BF%AB%E9%80%9F%E8%99%8E%E9%89%97-%E6%9C%A8%E5%B7%A5%E6%A1%8C%E9%89%97",
+    notes: "桌面快拆虎鉗，鑿榫／鋸切時鎖緊零件用；比 F 夾穩定",
+  },
+  "hand-drill-brace": {
+    id: "hand-drill-brace",
+    nameZh: "手搖鑽（三爪手鑽）",
+    category: "power",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%89%8B%E6%90%96%E9%91%BD-%E4%B8%89%E7%88%AA-%E6%9C%A8%E5%B7%A5%E9%91%BD-%E6%89%8B%E6%90%96%E8%B5%B7%E5%AD%90-%E6%89%8B%E9%91%BD",
+    notes: "手動鑽孔，職人手感款；無電源也能鑽、鎖螺絲不傷面板",
+  },
+  "magnetic-saw-guide": {
+    id: "magnetic-saw-guide",
+    nameZh: "磁切切割輔具 90/45 度（手鋸神器）",
+    category: "marking",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%A3%81%E5%88%87%E5%88%87%E5%89%B2%E8%BC%94%E5%85%B790%E5%BA%A6-45%E5%BA%A6-%E6%89%8B%E9%8B%B8%E7%A5%9E%E5%99%A8-%E7%B2%BE%E6%BA%96%E5%88%87%E5%89%B2%E7%9B%B4%E8%A7%92-45%E5%BA%A6%E8%A7%92-%E5%88%87%E5%89%B2%E9%9D%A0%E5%B1%B1-%E6%89%8B%E5%B7%A5%E7%A5%9E%E5%99%A8-%E7%A3%81%E5%90%B8",
+    notes: "磁吸式手鋸導引塊，90/45 度切割不歪斜；斜接、畫框、切肩線必備",
+  },
+  "silicone-glue-box": {
+    id: "silicone-glue-box",
+    nameZh: "矽膠膠水盒＋矽膠刷（可水洗）",
+    category: "glue",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%9F%BD%E8%86%A0%E7%9B%92%E7%9F%BD%E8%86%A0%E5%88%B7-%E5%A1%97%E8%86%A0%E5%AE%B9%E5%99%A8-%E8%86%A0%E6%B0%B4%E5%84%B2%E5%AD%98%E7%9B%92-%E6%9C%A8%E5%B7%A5%E8%86%A0%E5%88%B7-%E5%8F%AF%E6%B0%B4%E6%B4%97-%E9%98%B2%E4%B9%BE%E5%9B%BA-%E5%B0%8F%E5%9E%8B%E5%88%B7%E8%86%A0%E5%B7%A5%E5%85%B7-%E5%A1%97%E5%88%B7%E5%B7%A5%E5%85%B7-diy%E6%9C%A8%E5%B7%A5-%E5%B0%88%E6%A5%AD%E7%B4%9A",
+    notes: "膠水儲存＋塗布二合一，可水洗重複用，比拋棄式紙杯／海綿環保",
+  },
+  "marking-knife": {
+    id: "marking-knife",
+    nameZh: "劃線刀（SK5 雙刃手工雕刻刀）",
+    category: "marking",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%8A%83%E7%B7%9A%E5%88%80-%E9%9B%99%E5%88%83-%E6%89%8B%E5%B7%A5%E9%9B%95%E5%88%BB%E5%88%80-sk5-%E6%9C%A8%E9%9B%95%E5%88%80%E6%AB%B8%E6%9C%A8%E6%89%8B%E6%9F%84-%E8%96%84%E5%88%83-%E9%9B%95%E8%8A%B1%E6%9C%A8%E9%A0%AD%E6%A4%B4%E6%9C%A8-%E8%BB%9F%E6%9C%A8%E4%BF%AE%E9%82%8A-%E5%89%8A%E5%88%80",
+    notes: "比鉛筆精準十倍；切斷木纖維留下明顯刻線，榫接對位專用",
+  },
+  "countersink-bit": {
+    id: "countersink-bit",
+    nameZh: "半自動沉孔鑽（不傷面板螺絲埋頭鑽）",
+    category: "power",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%96%B0%E6%AC%BE%E5%8D%8A%E8%87%AA%E5%8B%95%E6%B2%89%E5%AD%94%E9%91%BD-%E4%B8%8D%E5%82%B7%E9%9D%A2%E6%9D%BF%E7%B2%BE%E6%BA%96%E9%99%90%E4%BD%8D-%E6%9C%A8%E5%B7%A5%E6%B2%89%E9%A0%AD%E9%91%BD-%E8%9E%BA%E7%B5%B2%E5%9F%8B%E9%A0%AD%E9%91%BD-%E9%8C%90%E5%AD%94%E9%91%BD%E5%A5%97%E8%A3%9D-%E9%9A%8E%E6%A2%AF%E9%91%BD%E5%A5%97%E8%A3%9D-%E5%B0%88%E6%A5%AD%E4%BA%94%E9%87%91%E5%B7%A5%E5%85%B7-%E8%BC%95%E9%AC%86%E6%8B%86%E8%A3%9D%E4%B8%8D%E7%95%99%E7%97%95",
+    notes: "螺絲頭埋進木面不外露，正面光潔；pocket-hole 進階版",
+  },
 };
