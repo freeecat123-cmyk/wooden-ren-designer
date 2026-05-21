@@ -135,6 +135,11 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
 
     const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
+    // 端面 mitre（角度 = π/N，相鄰兩壁外角 = 2π/N）；不切 stave 會像現在重疊兩塊
+    const miterInset = wallT * Math.tan(Math.PI / sides);
+    for (const stave of staves) {
+      stave.shape = { kind: "mitered-ends", insetEach: miterInset, outerSide: "+y" };
+    }
     const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
