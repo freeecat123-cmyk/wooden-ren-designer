@@ -726,15 +726,17 @@ export function OrthoView({
         const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
           .map((p) => {
-            // splayed-* → 對應直胚 shape；零件圖畫直胚 + 榫位，斜度交給
-            // SplayedTrueLength 的「端面斜 X°」標註獨立呈現。
-            // 不轉的話剪影會斜（套 splay deform），但 mortise 紅框走 makeProjector
-            // 沒套 deform，會漂出腳外面（兩端用不同投影流程的歷史包袱）。
+            // splayed-* → 把 splay 偏移 dx/dz 清零、但保留 kind。
+            // 之前是替換成「直胚 tapered/round-tapered」，但這樣 splayed-tapered
+            // 自己的 top view 雙 rect（head 實線 + foot 虛線 + 4 對角線）渲染
+            // 邏輯就吃不到，零件圖 top view 只剩純頭部矩形看不出 taper 收縮。
+            // 改成保留 kind + 清掉 dxMm/dzMm，splayed-* 的渲染分支自然會把
+            // foot 畫在 head 正下方（dx=dz=0），呈現完整 taper 收縮資訊。
             let nextShape = p.shape;
             if (p.shape?.kind === "splayed-tapered") {
-              nextShape = { kind: "tapered", bottomScale: p.shape.bottomScale };
+              nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed-round-tapered") {
-              nextShape = { kind: "round-tapered", bottomScale: p.shape.bottomScale };
+              nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed") {
               nextShape = undefined;
             }
@@ -1441,6 +1443,10 @@ export function OrthoView({
         const isTiltedBox = boxLikeShape && hasNonQuarterRotation(part);
         const isApronTrapezoid = part.shape?.kind === "apron-trapezoid";
         const isApronBeveled = part.shape?.kind === "apron-beveled";
+        // apron-half-beveled 之前漏掉 silhouette gate，掉到 useShape →
+        // projectPartPolygon 對該 shape 沒分支 → 回 fallback box，三視圖全變
+        // 純矩形看不出單側 bevel。projectTiltedBoxSilhouette 已支援，補進來。
+        const isApronHalfBeveled = part.shape?.kind === "apron-half-beveled";
         const isArchBentSideFront =
           part.shape?.kind === "arch-bent" && view !== "top";
         const isTiltZ = part.shape?.kind === "tilt-z" && view !== "top";
@@ -1448,6 +1454,7 @@ export function OrthoView({
           isTiltedBox ||
           isApronTrapezoid ||
           isApronBeveled ||
+          isApronHalfBeveled ||
           isArchBentSideFront ||
           isTiltZ
         ) {
@@ -1460,6 +1467,37 @@ export function OrthoView({
             const trap = isApronTrapezoid && part.shape?.kind === "apron-trapezoid" ? part.shape : null;
             const bev = isApronBeveled && part.shape?.kind === "apron-beveled" ? part.shape : null;
             const bevShear = bev ? Math.tan(bev.bevelAngle) : 0;
+            // 零件圖（isolatePartId）apron-trapezoid 專屬：rotation 已 reset，
+            // 原本的 topCorners/botCorners 雙 polygon 在 rotation=0 下會塌成
+            // 兩條水平線（4 corners 共用同 y）。改畫單一閉合梯形 outline，
+            // 4 corner 各自帶 top/bot scale → 看出兩端錯位（user 2026-05-21 回報
+            // 「四腳外斜的牙板 top view 應該是單斜你畫成直的」）。
+            if (isolatePartId && trap) {
+              const halfTop = (lx / 2) * trap.topLengthScale;
+              const halfBot = (lx / 2) * trap.bottomLengthScale;
+              // svg y = -world z；top face zl=-lz/2 → svg y=+lz/2（畫面下方）
+              // bot face zl=+lz/2 → svg y=-lz/2（畫面上方）。但 top view 慣例
+              // 「接座那面」放上方，所以反過來：top→畫面上、bot→畫面下。
+              const corners = [
+                { x: -halfTop, y: -lz / 2 }, // 接座面左
+                { x: +halfTop, y: -lz / 2 }, // 接座面右
+                { x: +halfBot, y: +lz / 2 }, // 接地面右
+                { x: -halfBot, y: +lz / 2 }, // 接地面左
+              ];
+              const pts = corners
+                .map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`)
+                .join(" ");
+              return (
+                <polygon
+                  key={part.id}
+                  points={pts}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={sw}
+                  strokeDasharray={dash}
+                />
+              );
+            }
             const proj = (xl: number, yl: number, zl: number) => {
               // 梯形：x 依 z 端的 scale 縮放
               const xScale = trap
@@ -1501,10 +1539,12 @@ export function OrthoView({
             ];
             const fmt = (pts: typeof topCorners) =>
               pts.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
-            // 傾斜橫撐俯視：被座板蓋著 → top/bot 兩面都用虛線（不做 HLE 分段，避免短實線）
+            // 傾斜橫撐俯視：top（接座面）實線、bot（接地面）虛線，跟 splayed-tapered
+            // top view 同 convention，視覺上看得出哪面是頂哪面是底（user 2026-05-21
+            // 回報 apron-beveled top view 兩條虛線重疊分不出 top/bot）。
             return (
               <g key={part.id}>
-                <polygon points={fmt(topCorners)} fill="none" stroke="#888" strokeWidth={0.5} strokeDasharray="4 3" />
+                <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} />
                 <polygon points={fmt(botCorners)} fill="none" stroke="#888" strokeWidth={0.4} strokeDasharray="3 3" />
               </g>
             );
