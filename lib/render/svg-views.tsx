@@ -3219,11 +3219,10 @@ function OrthoViewImpl({
       )}
 
       {/* 整片門 / 整支抽屜 / 層板 inline 尺寸標籤（cabinet only）
-          ─ front view：每片門面板（id 含 -panel） + 每支抽屜面板（id 含 -face/-front）
-          ─ top view：每片層板（divider 類，id 含 shelf）
-          ─ side view：略過避免跟左側 dim chain 重疊
-          只顯示「整件」尺寸（取 length/width/thickness 三者最大兩個），木頭仁要的
-          是整片門框 / 整支抽屜的外框，不是切料表。 */}
+          全部標在 front view：門面板 / 抽屜面板 / 層板都從正面看才看得到外框；
+          top view 層板會被頂板蓋住、side view 跟左側 dim chain 撞。
+          只顯示「整件」尺寸（length/width/thickness 取最大兩個 = 板厚自動排除），
+          要的是整片門框 / 整支抽屜的外框尺寸，不是切料表。 */}
       {showDimensions && !isolatePartId && (() => {
         const dims = extractFurnitureDims(renderDesign);
         if (!dims || !dims.cabinet) return null;
@@ -3247,34 +3246,33 @@ function OrthoViewImpl({
           return [Math.round(dimsArr[0]), Math.round(dimsArr[1])];
         };
 
+        // 直接用 id pattern 判斷，不走 categorizePart（後者有 ^ anchor，
+        // 真實櫃類 id 帶前綴如 chest-of-drawers-drawer-1-face 永遠不命中）
         for (const part of renderDesign.parts) {
-          const cat = categorizePart(part.id);
           if (view === "front") {
-            // 門：選每片門的「panel」當代表（chinese-cabinet 門框拆細，光挑 panel 一片）；
-            // 簡易門 id 結尾 -door 直接算
-            const isDoorPanel =
-              cat === "door" &&
-              (/-panel$/.test(part.id) || /-door$/.test(part.id));
-            if (isDoorPanel) {
+            // 門面板：id 結尾 panel（-door-N-panel / 含 panel 段）
+            const isDoorPanel = /-door(-\d+)?-panel$/.test(part.id);
+            // 簡易門（部分 cabinet 用單片門 part 直接 id 是 *-door 或 door-N）
+            const isSimpleDoor = /(^|-)door(-\d+)?$/.test(part.id);
+            if (isDoorPanel || isSimpleDoor) {
               const [w, h] = pickWH(part);
               const c = projectCenter(part);
               tags.push({ label: "門", w, h, cx: c.x, cy: c.y });
               continue;
             }
-            // 抽屜面板（drawer-face / drawer-front）
+            // 抽屜面板：id 結尾 face 或 front，且 id 含 drawer 段
             const isDrawerFront =
-              cat === "drawer" && /-(face|front)$/.test(part.id);
+              /drawer/.test(part.id) && /-(face|front)$/.test(part.id);
             if (isDrawerFront) {
               const [w, h] = pickWH(part);
               const c = projectCenter(part);
               tags.push({ label: "抽屜", w, h, cx: c.x, cy: c.y });
               continue;
             }
-          } else if (view === "top") {
-            // 層板（shelf-* 或 *-shelf-*）
+            // 層板：櫃類層板從上面被頂板蓋住，所以放 front view 標——層板在
+            // 正視圖會被當「水平線」露出來，把標籤放在它的 Y 位置
             const isShelf =
-              cat === "divider" &&
-              (/^shelf-/.test(part.id) || /-shelf-/.test(part.id));
+              /(^|-)shelf(-\d+)?$/.test(part.id) || /-shelf-/.test(part.id);
             if (isShelf) {
               const [w, h] = pickWH(part);
               const c = projectCenter(part);
