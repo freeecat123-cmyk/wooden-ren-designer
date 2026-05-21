@@ -3218,6 +3218,94 @@ function OrthoViewImpl({
         </g>
       )}
 
+      {/* 整片門 / 整支抽屜 / 層板 inline 尺寸標籤（cabinet only）
+          ─ front view：每片門面板（id 含 -panel） + 每支抽屜面板（id 含 -face/-front）
+          ─ top view：每片層板（divider 類，id 含 shelf）
+          ─ side view：略過避免跟左側 dim chain 重疊
+          只顯示「整件」尺寸（取 length/width/thickness 三者最大兩個），木頭仁要的
+          是整片門框 / 整支抽屜的外框，不是切料表。 */}
+      {showDimensions && !isolatePartId && (() => {
+        const dims = extractFurnitureDims(renderDesign);
+        if (!dims || !dims.cabinet) return null;
+        if (view === "side") return null;
+
+        type Tag = { label: string; w: number; h: number; cx: number; cy: number };
+        const tags: Tag[] = [];
+
+        const projectCenter = (part: Part) => {
+          const proj = makeProjector(part, view);
+          const p = proj(0, 0, 0);
+          return { x: p.x, y: -p.y };
+        };
+
+        const pickWH = (part: Part): [number, number] => {
+          const dimsArr = [
+            part.visible.length,
+            part.visible.width,
+            part.visible.thickness,
+          ].sort((a, b) => b - a);
+          return [Math.round(dimsArr[0]), Math.round(dimsArr[1])];
+        };
+
+        for (const part of renderDesign.parts) {
+          const cat = categorizePart(part.id);
+          if (view === "front") {
+            // 門：選每片門的「panel」當代表（chinese-cabinet 門框拆細，光挑 panel 一片）；
+            // 簡易門 id 結尾 -door 直接算
+            const isDoorPanel =
+              cat === "door" &&
+              (/-panel$/.test(part.id) || /-door$/.test(part.id));
+            if (isDoorPanel) {
+              const [w, h] = pickWH(part);
+              const c = projectCenter(part);
+              tags.push({ label: "門", w, h, cx: c.x, cy: c.y });
+              continue;
+            }
+            // 抽屜面板（drawer-face / drawer-front）
+            const isDrawerFront =
+              cat === "drawer" && /-(face|front)$/.test(part.id);
+            if (isDrawerFront) {
+              const [w, h] = pickWH(part);
+              const c = projectCenter(part);
+              tags.push({ label: "抽屜", w, h, cx: c.x, cy: c.y });
+              continue;
+            }
+          } else if (view === "top") {
+            // 層板（shelf-* 或 *-shelf-*）
+            const isShelf =
+              cat === "divider" &&
+              (/^shelf-/.test(part.id) || /-shelf-/.test(part.id));
+            if (isShelf) {
+              const [w, h] = pickWH(part);
+              const c = projectCenter(part);
+              tags.push({ label: "層板", w, h, cx: c.x, cy: c.y });
+            }
+          }
+        }
+
+        if (tags.length === 0) return null;
+        return (
+          <g>
+            {tags.map((t, i) => (
+              <text
+                key={`inline-dim-${view}-${i}`}
+                x={t.cx}
+                y={t.cy}
+                fontSize={11}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#0369a1"
+                stroke="white"
+                strokeWidth={3}
+                paintOrder="stroke"
+              >
+                {`${t.label} ${t.w}×${t.h}`}
+              </text>
+            ))}
+          </g>
+        );
+      })()}
+
       {/* Phase 2: overlay slot — caller-controlled SVG over OrthoView. */}
       {overlayCtx && overlayContent && overlayContent(overlayCtx)}
     </svg>
