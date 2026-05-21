@@ -180,7 +180,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: 0, y: legHeight, z: 0 },
     shape: seatBendMm > 0
       ? { kind: "face-rounded" as const, cornerR: 0, bendMm: -seatBendMm, bendAxis: "y" as const }
-      : seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0),
+      : seatScoopShape(seatProfile) ?? seatEdgeShape(seatEdge, seatEdgeStyle, legInset > 0 ? seatEdge : 0),
     tenons: [],
     mortises: [
       // 座板四角榫眼：通榫（座板薄）或盲榫（座板厚 > 25），depth 跟 tenon length 同步

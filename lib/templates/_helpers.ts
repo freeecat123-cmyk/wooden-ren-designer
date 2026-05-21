@@ -411,6 +411,28 @@ export function seatEdgeStyleOption(
   };
 }
 
+/** 下緣倒角尺寸選項：座板 / 桌面「下緣」獨立倒角量。
+ *  跟上緣 seatEdgeOption 並列；倒角樣式共用 seatEdgeStyle。
+ *  template 應加 dependsOn { key:"legInset", notIn:[0] }——腳齊邊時牙條貼邊、
+ *  下緣倒角會切到接合區，故只在腳內縮時開放。實際值由 template 夾限到 legInset。 */
+export function seatEdgeBottomOption(
+  group: OptionGroup = "top",
+  defaultValue: number = 0,
+): OptionSpec {
+  return {
+    group,
+    type: "number",
+    key: "seatEdgeBottom",
+    label: "下緣倒角尺寸 (mm)",
+    defaultValue,
+    min: 0,
+    max: 30,
+    step: 1,
+    unit: "mm",
+    help: "座板／桌面「下緣」的倒角量。腳內縮後下緣外露才可調；倒角量會自動限制在腳內縮量內，不會切到牙條。樣式跟上緣共用",
+  };
+}
+
 export function stretcherEdgeOption(
   group: OptionGroup = "stretcher",
   defaultValue: number = 1,
@@ -488,18 +510,19 @@ export function apronEdgeNote(apronEdge: string | number, style: string = "chamf
 
 /** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。
  *  style="rounded" 用多段 chamfer 拼近似圓角，"chamfered"（默認）用單段 45°。
- *  bothSides=true 時底面也倒角（腳內縮時座板下緣外露才用得到）。 */
+ *  bottomV 給下緣倒角 mm 值（0/undefined = 下緣不倒）。上下任一 > 0 就回 chamfered-top。 */
 export function seatEdgeShape(
   v: string | number | undefined,
   style?: string,
-  bothSides?: boolean,
+  bottomV?: string | number,
 ): { kind: "chamfered-top"; chamferMm: number; bottomChamferMm?: number; style?: "chamfered" | "rounded" } | undefined {
   const mm = parseSeatChamferMm(v);
-  if (mm <= 0) return undefined;
+  const bottomMm = parseSeatChamferMm(bottomV);
+  if (mm <= 0 && bottomMm <= 0) return undefined;
   return {
     kind: "chamfered-top",
     chamferMm: mm,
-    bottomChamferMm: bothSides ? mm : undefined,
+    bottomChamferMm: bottomMm > 0 ? bottomMm : undefined,
     style: style === "rounded" ? "rounded" : "chamfered",
   };
 }
