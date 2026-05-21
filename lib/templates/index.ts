@@ -19,7 +19,7 @@ import { diningChair, diningChairOptions } from "./dining-chair";
 import { wardrobe, wardrobeOptions } from "./wardrobe";
 import { barStool, barStoolOptions } from "./bar-stool";
 import { mediaConsole, mediaConsoleOptions } from "./media-console";
-import { nightstand, nightstandOptions } from "./nightstand";
+import { nightstand, nightstandOptions, applyNightstandPresets } from "./nightstand";
 import { roundStool, roundStoolOptions } from "./round-stool";
 import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
 import { roundTable, roundTableOptions } from "./round-table";
@@ -218,6 +218,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 450, width: 380, height: 600 },
     limits: { length: 600, width: 500, height: 800 },
     optionSchema: nightstandOptions,
+    applyPresets: applyNightstandPresets,
   },
   {
     category: "round-stool",
