@@ -96,10 +96,21 @@ export interface Rect {
   h: number;
 }
 
+/** 兩條直線(各由兩點定義)的交點;平行時退化回傳 b1。 */
+function lineIntersect(a1: Point, a2: Point, b1: Point, b2: Point): Point {
+  const d1x = a2.x - a1.x;
+  const d1y = a2.y - a1.y;
+  const d2x = b2.x - b1.x;
+  const d2y = b2.y - b1.y;
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < EPS) return { x: b1.x, y: b1.y };
+  const t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / denom;
+  return { x: a1.x + t * d1x, y: a1.y + t * d1y };
+}
+
 /**
- * 正交多邊形向內 offset:每條邊往內部法線方向平移 gap。
- * 每個頂點是「一條水平邊」與「一條垂直邊」的交點,
- * offset 後新頂點 = 垂直邊提供 x、水平邊提供 y。
+ * 多邊形向內 offset:每條邊往內部法線方向平移 gap,
+ * 相鄰兩條 offset 邊以直線交點求新頂點 —— 正交邊與斜邊(如六角型)皆適用。
  */
 export function insetPolygon(poly: RoomPolygon, gap: number): RoomPolygon {
   const v = poly.vertices;
@@ -124,23 +135,21 @@ export function insetPolygon(poly: RoomPolygon, gap: number): RoomPolygon {
       p2: { x: b.x + nx * gap * sign, y: b.y + ny * gap * sign },
     });
   }
-  // 新頂點 i = offsetEdges[i-1] 與 offsetEdges[i] 的交點(都是軸對齊線)
+  // 新頂點 i = offsetEdges[i-1] 與 offsetEdges[i] 的直線交點
   const out: Point[] = [];
   for (let i = 0; i < n; i++) {
     const prev = offsetEdges[(i - 1 + n) % n];
     const cur = offsetEdges[i];
-    // prev 與 cur 一條水平一條垂直 → 交點 = 垂直線的 x + 水平線的 y
-    const prevHoriz = Math.abs(prev.p1.y - prev.p2.y) < EPS;
-    const x = prevHoriz ? cur.p1.x : prev.p1.x;
-    const y = prevHoriz ? prev.p1.y : cur.p1.y;
-    out.push({ x, y });
+    out.push(lineIntersect(prev.p1, prev.p2, cur.p1, cur.p2));
   }
   return { vertices: out };
 }
 
-interface ClipResult {
+export interface ClipResult {
   usedAreaCm2: number;
   fullyInside: boolean;
+  /** 裁切後落在房間內的多邊形(繪製用);完全在外時為空陣列 */
+  clipped: Point[];
 }
 
 /**
@@ -177,7 +186,65 @@ export function clipRectToPolygon(rect: Rect, poly: RoomPolygon): ClipResult {
   return {
     usedAreaCm2,
     fullyInside: rectArea > EPS && usedAreaCm2 > rectArea - EPS,
+    clipped: pts,
   };
+}
+
+/**
+ * 凸多邊形(裁切窗)∩ 房間多邊形:Sutherland-Hodgman,以裁切窗每條邊為裁切線。
+ * 用於人字拼:板是旋轉後的凸四邊形,不能用軸對齊的 clipRectToPolygon。
+ * clipWindow 頂點需依序(順/逆時針皆可,內側方向以窗形心判定)。
+ */
+export function clipConvexToPolygon(
+  clipWindow: Point[],
+  poly: RoomPolygon,
+): ClipResult {
+  const m = clipWindow.length;
+  const cx = clipWindow.reduce((s, p) => s + p.x, 0) / m;
+  const cy = clipWindow.reduce((s, p) => s + p.y, 0) / m;
+  let pts: Point[] = poly.vertices.slice();
+  for (let e = 0; e < m && pts.length > 0; e++) {
+    const a = clipWindow[e];
+    const b = clipWindow[(e + 1) % m];
+    // 點對「邊 a→b」的有號側值;與形心同號為內側
+    const side = (p: Point) =>
+      (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+    const inSign = side({ x: cx, y: cy }) >= 0 ? 1 : -1;
+    const inside = (p: Point) => side(p) * inSign >= -EPS;
+    const out: Point[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const cur = pts[i];
+      const prev = pts[(i - 1 + pts.length) % pts.length];
+      const curIn = inside(cur);
+      const prevIn = inside(prev);
+      if (curIn) {
+        if (!prevIn) out.push(lineSegSideIsect(prev, cur, side));
+        out.push(cur);
+      } else if (prevIn) {
+        out.push(lineSegSideIsect(prev, cur, side));
+      }
+    }
+    pts = out;
+  }
+  const usedAreaCm2 = pts.length >= 3 ? polygonArea({ vertices: pts }) : 0;
+  const windowArea = polygonArea({ vertices: clipWindow });
+  return {
+    usedAreaCm2,
+    fullyInside: windowArea > EPS && usedAreaCm2 > windowArea - EPS,
+    clipped: pts,
+  };
+}
+
+/** 線段 p1→p2 與「side 函式為 0」的那條直線的交點 */
+function lineSegSideIsect(
+  p1: Point,
+  p2: Point,
+  side: (p: Point) => number,
+): Point {
+  const s1 = side(p1);
+  const s2 = side(p2);
+  const t = Math.abs(s1 - s2) < EPS ? 0 : s1 / (s1 - s2);
+  return { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) };
 }
 
 function clipX(xLine: number) {

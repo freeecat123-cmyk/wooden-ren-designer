@@ -14,6 +14,7 @@
  */
 import type { FloorInput, FloorLayout, PlacedPlank, RoomPolygon } from "./types";
 import { boundingBox, clipRectToPolygon, insetPolygon } from "./geometry";
+import { computeHerringboneLayout } from "./herringbone";
 
 const EPS = 0.001;
 
@@ -28,6 +29,9 @@ function staggerOffset(row: number, mode: FloorInput["stagger"], plankLen: numbe
 }
 
 export function computeFloorLayout(input: FloorInput): FloorLayout {
+  // 人字拼走獨立排版引擎
+  if (input.pattern === "herringbone") return computeHerringboneLayout(input);
+
   // 伸縮縫夾到安全範圍:超過房間半邊長會讓 insetPolygon 翻面 → BOM 失真
   const roomBb = boundingBox(input.room);
   const maxGapCm =

@@ -39,19 +39,34 @@ export function FloorOverviewSvg({ bom, width = 520 }: Props) {
 
   return (
     <svg width={width} height={height} className="rounded border border-zinc-200">
-      {/* 地板片 */}
-      {bom.layout.planks.map((p, i) => (
-        <rect
-          key={i}
-          x={tx(p.x)}
-          y={ty(p.y)}
-          width={(runAlongX ? p.lengthCm : p.widthCm) * scale}
-          height={(runAlongX ? p.widthCm : p.lengthCm) * scale}
-          fill={p.kind === "full" ? "#e7d8ae" : "#f3d9d4"}
-          stroke={p.kind === "full" ? "#bd9955" : "#c0392b"}
-          strokeWidth={0.6}
-        />
-      ))}
+      {/* 地板片(人字拼為旋轉四邊形,直鋪為軸對齊矩形) */}
+      {bom.layout.planks.map((p, i) => {
+        const fill = p.kind === "full" ? "#e7d8ae" : "#f3d9d4";
+        const stroke = p.kind === "full" ? "#bd9955" : "#c0392b";
+        if (p.shape) {
+          return (
+            <polygon
+              key={i}
+              points={p.shape.map((q) => `${tx(q.x)},${ty(q.y)}`).join(" ")}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={0.6}
+            />
+          );
+        }
+        return (
+          <rect
+            key={i}
+            x={tx(p.x)}
+            y={ty(p.y)}
+            width={(runAlongX ? p.lengthCm : p.widthCm) * scale}
+            height={(runAlongX ? p.widthCm : p.lengthCm) * scale}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={0.6}
+          />
+        );
+      })}
       {/* 可鋪區域虛線 */}
       <path
         d={layablePath}

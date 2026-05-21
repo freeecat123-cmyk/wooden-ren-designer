@@ -20,6 +20,9 @@ export interface RoomPolygon {
 /** 鋪設方向:沿 bbox 長軸 / 短軸 */
 export type FloorDirection = "long-axis" | "short-axis";
 
+/** 鋪設樣式:直鋪錯縫 / 人字拼 */
+export type FloorPattern = "straight" | "herringbone";
+
 /** 錯縫策略 */
 export type StaggerMode = "half" | "third" | "random";
 
@@ -34,6 +37,8 @@ export type SkirtingType = "skirting" | "trim" | "none";
 
 export interface FloorInput {
   room: RoomPolygon;
+  /** 鋪設樣式:直鋪 / 人字拼 */
+  pattern: FloorPattern;
   /** 地板片長(cm) */
   plankLengthCm: number;
   /** 地板片寬(cm) */
@@ -65,6 +70,8 @@ export interface PlacedPlank {
   usedAreaCm2: number;
   /** cut 片裁切後的有效長度(cm)= usedAreaCm2 / widthCm;full 片 = lengthCm */
   effectiveLengthCm: number;
+  /** 繪製用多邊形:裁切後落在房間內的可見形狀(人字拼用,3–7 頂點);直鋪片不帶 */
+  shape?: Point[];
 }
 
 export interface FloorLayout {
@@ -121,6 +128,7 @@ export const DEFAULT_FLOOR_INPUT: FloorInput = {
       { x: 0, y: 300 },
     ],
   },
+  pattern: "straight",
   plankLengthCm: 120,
   plankWidthCm: 19,
   direction: "long-axis",
