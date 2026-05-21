@@ -1307,12 +1307,44 @@ function OrthoViewImpl({
             />
           );
         }
+        // 圓料軸別感知（2026-05-21）：knob 把手 axis="z"（往前突出的橫圓柱），
+        // 從正視才看得到端面圓；俯視看到的是側面 = 矩形。
+        // legs / 圓盤腳 axis="y"（垂直圓柱），俯視才是圓。
+        // axis="x"（極少見的橫向圓料）side view 才是圓。
+        const roundAxis = part.shape?.kind === "round" ? (part.shape.axis ?? "y") : "y";
+        const roundCircleView: "front" | "side" | "top" =
+          roundAxis === "z" ? "front" :
+          roundAxis === "x" ? "side" :
+          "top";
+        // round axis="z"/"x"：用對應視角畫圓；其他視角 fall-through 走預設矩形。
+        if (
+          part.shape?.kind === "round" &&
+          (roundAxis === "z" || roundAxis === "x") &&
+          view === roundCircleView
+        ) {
+          const r = projectPart(part, view);
+          const cx = r.x + r.w / 2;
+          const cy = view === "top" ? -(r.y + r.h / 2) : -(r.y + r.h / 2);
+          const radius = Math.min(r.w, r.h) / 2;
+          return (
+            <circle
+              key={part.id}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={sw}
+            />
+          );
+        }
         // 圓盤 / 圓柱腳俯視畫圓；前/側視維持矩形（圓盤側面 = 直徑 × 厚）
         if (
           (part.shape?.kind === "round" ||
             part.shape?.kind === "round-tapered" ||
             part.shape?.kind === "splayed-round-tapered" ||
             part.shape?.kind === "lathe-turned") &&
+          (part.shape.kind !== "round" || roundAxis === "y") &&
           view === "top"
         ) {
           const r = projectPart(part, view);
