@@ -228,8 +228,11 @@ export const bench: FurnitureTemplate = (input) => {
             ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
             : undefined,
           tenons: [
+            // slat rotation x=π/2 後 part-local ±Z → 世界 ∓Y：
+            //   "left"  (cz=-lz/2-L/2) → 世界 +Y = slat 頂端 → 接 bow rail
+            //   "right" (cz=+lz/2+L/2) → 世界 -Y = slat 底端 → 接座板
             {
-              position: "start",
+              position: "left",
               type: "blind-tenon",
               length: slatTenonLen,
               width: slatTenonDia,
@@ -237,7 +240,7 @@ export const bench: FurnitureTemplate = (input) => {
               shoulderOn: ["top", "bottom", "left", "right"],
             },
             {
-              position: "end",
+              position: "right",
               type: "blind-tenon",
               length: slatTenonLen,
               width: slatTenonDia,
