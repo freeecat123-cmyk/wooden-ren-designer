@@ -881,6 +881,23 @@ export function T2Annotations({
     });
   });
 
+  // 投影去重：例如 apron 兩端 tenon 在 side view 都投到同一塊 rect，
+  // 兩個榫頭的 chain dim 會疊出「43|42」「43|42」兩條一模一樣的尺寸
+  // （user 2026-05-21 回報）。同 kind + 同 projected rect + 同 dims 視為
+  // 同一張視覺特徵，保留第一個就好。
+  {
+    const seen = new Set<string>();
+    const unique: Item[] = [];
+    for (const it of items) {
+      const key = `${it.kind}|${Math.round(it.rect.x)}|${Math.round(it.rect.y)}|${Math.round(it.rect.w)}|${Math.round(it.rect.h)}|${it.dims}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(it);
+    }
+    items.length = 0;
+    items.push(...unique);
+  }
+
   if (!items.length) return null;
 
   // 工程圖風格：每個 feature 畫 dashed box + 名稱/尺寸 label + 真實 dim line（黃俊傑式）
