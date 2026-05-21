@@ -557,8 +557,7 @@ export const bench: FurnitureTemplate = (input) => {
               // 用 offsetThickness 帶上 dzShape 把 tenon 推到底面位置。
               offsetThickness: useSplay ? dzShape : 0,
               // 椅背圓料是斜的（bow 後彎讓 top 比 bottom 更 +Z），底端榫頭應該
-              // 跟圓料本身平行進入座板，不能垂直。axis = 圓料從 top→bottom 方向
-              // 在世界座標系（= 從 bottom face 朝外延伸的方向）。
+              // 跟圓料本身平行進入座板。axis = 從 top→bottom 在世界座標系。
               ...(useSplay
                 ? { axis: { x: 0, y: -partHActual, z: dzShape } }
                 : {}),

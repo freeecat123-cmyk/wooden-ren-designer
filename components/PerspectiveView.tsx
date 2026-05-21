@@ -1373,11 +1373,17 @@ export function PerspectiveView({
                     const cornerWorld = cornerLocal.applyQuaternion(composed);
                     if (cornerWorld.y > maxCornerY) maxCornerY = cornerWorld.y;
                   }
-                  // posShift = root-anchor + sink (push down by max corner Y so
-                  // no corner protrudes above the anchor plane).
+                  // sink = excess protrusion above root face CENTER after rotation
+                  // （不能直接扣 maxCornerY，那會把 mesh 整個下推 hy*cosα ≈ 8mm，
+                  //  讓 tenon 整體跟 parent 分離）。應只扣 maxCornerY −
+                  //  rootCenterY_after_rot（≈ 0.7mm，僅角的凸出量），把 corner
+                  //  剛好壓到 anchor、root 中心仍貼 anchor。
+                  const rootCenterRotated = rootMesh.clone().applyQuaternion(composed);
+                  const sinkY = Math.max(0, maxCornerY - rootCenterRotated.y);
+                  // posShift = root-anchor + sink
                   posShift = {
                     x: (effLen / 2) * (target.x - geomLongWorld.x) * SCALE,
-                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE - maxCornerY * SCALE,
+                    y: (effLen / 2) * (target.y - geomLongWorld.y) * SCALE - sinkY * SCALE,
                     z: (effLen / 2) * (target.z - geomLongWorld.z) * SCALE,
                   };
                   return extraQ.multiply(partQ);
