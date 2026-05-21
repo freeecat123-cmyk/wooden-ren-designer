@@ -58,3 +58,41 @@ export function optimizeOffcuts(
   }
   return { cutPlankCount, reuseLog };
 }
+
+/**
+ * 人字拼斜切餘料配對(2D)
+ *
+ * 人字拼的裁切片是斜切的三角/平行四邊形,餘料不是乾淨長條,不能套 1D 模型。
+ * 物理約束:一道直切 = 2 片 → 每塊新板最多供 2 片裁切片,且兩片用料面積和
+ * 必須 ≤ 整片面積(互補斜切才能共板)。比純面積打包嚴謹,不會高估再利用。
+ *
+ * FFD:大片先排,塞進「還有空位(<2 片)且面積夠」的既有板,否則開新板。
+ *
+ * @param usedAreas 每片裁切片實際用到的面積(cm²)
+ * @param plankAreaCm2 整片地板面積 = 片長 × 片寬
+ */
+export function pairHerringboneOffcuts(
+  usedAreas: number[],
+  plankAreaCm2: number,
+): CuttingResult {
+  const items = [...usedAreas].sort((a, b) => b - a);
+  const bins: { used: number; count: number }[] = [];
+  for (const area of items) {
+    let placed = false;
+    for (const bin of bins) {
+      if (bin.count < 2 && bin.used + area <= plankAreaCm2 + 0.001) {
+        bin.used += area;
+        bin.count++;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) bins.push({ used: area, count: 1 });
+  }
+  const paired = bins.filter((b) => b.count === 2).length;
+  const reuseLog =
+    paired > 0
+      ? [`${paired} 塊板由兩片互補斜切共用(人字拼斜切餘料配對)`]
+      : [];
+  return { cutPlankCount: bins.length, reuseLog };
+}

@@ -15,7 +15,7 @@
 import type { FloorBom, FloorBomItem, FloorInput } from "./types";
 import { polygonArea, polygonPerimeter } from "./geometry";
 import { computeFloorLayout } from "./layout";
-import { optimizeOffcuts } from "./cutting";
+import { optimizeOffcuts, pairHerringboneOffcuts } from "./cutting";
 
 const EMPIRICAL_WASTE = 0.1;
 
@@ -27,9 +27,18 @@ export function computeFloorBom(input: FloorInput): FloorBom {
   const fullPlankCount = fullPlanks.length;
   const cutPieceCount = cutPlanks.length;
 
-  const cutResult = input.reuseOffcuts
-    ? optimizeOffcuts(cutPlanks.map((p) => p.effectiveLengthCm), input.plankLengthCm)
-    : { cutPlankCount: cutPieceCount, reuseLog: [] as string[] };
+  const noReuse = { cutPlankCount: cutPieceCount, reuseLog: [] as string[] };
+  const cutResult = !input.reuseOffcuts
+    ? noReuse
+    : input.pattern === "herringbone"
+      ? pairHerringboneOffcuts(
+          cutPlanks.map((p) => p.usedAreaCm2),
+          input.plankLengthCm * input.plankWidthCm,
+        )
+      : optimizeOffcuts(
+          cutPlanks.map((p) => p.effectiveLengthCm),
+          input.plankLengthCm,
+        );
   const cutPlankCount = cutResult.cutPlankCount;
   const totalPlankCount = fullPlankCount + cutPlankCount;
 
