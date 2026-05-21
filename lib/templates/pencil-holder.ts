@@ -10,23 +10,53 @@ import { polygonStaves } from "./_builders/polygon-stave-builder";
 
 /** 使用情境 preset */
 interface PencilHolderPresetConfig {
+  bodyShape?: "rect" | "hex" | "oct";
   wallThickness?: number;
   bottomThickness?: number;
+  bottomAttach?: "seated" | "inset-panel" | "flush-glued";
   cornerJoinery?: string;
   dividers?: number;
   crossDividers?: number;
+  dividerInset?: number;
+  polygonDividerStyle?: "none" | "single" | "cross";
 }
 const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
-  // 一般筆筒：方筒整空
-  classic: { wallThickness: 8, bottomThickness: 8, cornerJoinery: "stub-joint", dividers: 0, crossDividers: 0 },
-  // 文具站：grid 6 格分裝剪刀/筆/刀片
-  "stationery-station": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 1 },
-  // 化妝刷筒：深款 + 1 縱向 + 倒角圓潤
-  "makeup-brush": { wallThickness: 10, bottomThickness: 10, cornerJoinery: "stub-joint", dividers: 1, crossDividers: 0 },
-  // 廚房料理工具筒：深 + 厚壁
-  "kitchen-utensil": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 1, crossDividers: 1 },
-  // 木工專用：4 格分裝尺/筆/夾子 + 厚壁耐撞
-  "woodworker-caddy": { wallThickness: 12, bottomThickness: 12, cornerJoinery: "finger-joint", dividers: 2, crossDividers: 2 },
+  // 1. 簡約方筒：入門款，純筒整空，搭接最快上手
+  classic: {
+    bodyShape: "rect", wallThickness: 8, bottomThickness: 8,
+    bottomAttach: "seated", cornerJoinery: "stub-joint",
+    dividers: 0, crossDividers: 0, dividerInset: 0,
+  },
+  // 2. 文具 grid 站：6 格分剪刀/筆/刀片，指接 + dado 嵌入隔板（pro 視覺）
+  "stationery-grid": {
+    bodyShape: "rect", wallThickness: 10, bottomThickness: 10,
+    bottomAttach: "seated", cornerJoinery: "finger-joint",
+    dividers: 2, crossDividers: 1, dividerInset: 3,
+  },
+  // 3. 化妝刷筒：深方筒 + 1 縱向隔板分前後區
+  "makeup-brush": {
+    bodyShape: "rect", wallThickness: 10, bottomThickness: 10,
+    bottomAttach: "seated", cornerJoinery: "stub-joint",
+    dividers: 1, crossDividers: 0, dividerInset: 0,
+  },
+  // 4. 木工工具盒：9 格分裝尺/筆/夾子，厚壁鑲板入溝防變形
+  "woodworker-caddy": {
+    bodyShape: "rect", wallThickness: 12, bottomThickness: 12,
+    bottomAttach: "inset-panel", cornerJoinery: "finger-joint",
+    dividers: 2, crossDividers: 2, dividerInset: 3,
+  },
+  // 5. 六角茶葉筒：hex + 鑲板入溝、整空整面、季節伸縮免裂
+  "hex-tea-canister": {
+    bodyShape: "hex", wallThickness: 10, bottomThickness: 10,
+    bottomAttach: "inset-panel", cornerJoinery: "stub-joint",
+    polygonDividerStyle: "none", dividerInset: 0,
+  },
+  // 6. 八角十字筒：oct + 十字穿心、整塊膠合底齊邊
+  "oct-crossed": {
+    bodyShape: "oct", wallThickness: 10, bottomThickness: 10,
+    bottomAttach: "flush-glued", cornerJoinery: "stub-joint",
+    polygonDividerStyle: "cross", dividerInset: 3,
+  },
 };
 
 export const pencilHolderOptions: OptionSpec[] = [
@@ -37,12 +67,13 @@ export const pencilHolderOptions: OptionSpec[] = [
   ], help: "六/八角款用 stave 拼接（取 length/width 較小邊為直徑）；方筒以外不支援 dividers" },
   { group: "preset", type: "select", key: "useCase", label: "使用情境預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂（不套 preset）" },
-    { value: "classic", label: "一般筆筒（方筒整空）" },
-    { value: "stationery-station", label: "文具站（grid 6 格分裝剪刀/筆/刀片）" },
-    { value: "makeup-brush", label: "化妝刷筒（深款 + 縱向隔板 + 圓潤倒角）" },
-    { value: "kitchen-utensil", label: "廚房料理工具筒（厚壁 + 4 格）" },
-    { value: "woodworker-caddy", label: "木工專用（厚壁 + 9 格分裝尺/筆/夾子）" },
-  ], help: "一鍵套適合該情境的壁厚 / 隔板 / 接合 / 倒角組合，user 後改不蓋。" },
+    { value: "classic", label: "簡約方筒（搭接整空，入門款）" },
+    { value: "stationery-grid", label: "文具 grid 站（方筒 + 指接 + 6 格 + dado）" },
+    { value: "makeup-brush", label: "化妝刷筒（方筒 + 1 縱向隔板）" },
+    { value: "woodworker-caddy", label: "木工工具盒（方筒 + 9 格 + 鑲板入溝）" },
+    { value: "hex-tea-canister", label: "六角茶葉筒（hex + 鑲板入溝整空）" },
+    { value: "oct-crossed", label: "八角十字筒（oct + 十字穿心 + 齊邊膠合）" },
+  ], help: "一鍵套適合該情境的形狀 / 接合 / 底板裝法 / 隔板組合，user 後改不蓋。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
@@ -90,12 +121,17 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
   const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
-  const bodyShape = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
-  const bottomAttach = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
-  const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
+  const bodyShapeRaw = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
+  const bodyShape = (bodyShapeRaw === "rect" && preset?.bodyShape ? preset.bodyShape : bodyShapeRaw) as "rect" | "hex" | "oct";
+  const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
+  const bottomAttach = (bottomAttachRaw === "seated" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
+  const polygonDividerStyleRaw = getOption<string>(input, opt(o, "polygonDividerStyle"));
+  const polygonDividerStyle = (polygonDividerStyleRaw === "none" && preset?.polygonDividerStyle ? preset.polygonDividerStyle : polygonDividerStyleRaw);
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
-  const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
+  const dividerInsetRaw = getOption<number>(input, opt(o, "dividerInset"));
+  const dividerInsetPreset = dividerInsetRaw === 0 && preset?.dividerInset !== undefined ? preset.dividerInset : dividerInsetRaw;
+  const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, dividerInsetPreset));
   const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
   const dividerThick = dividerThicknessRaw === 6
     ? Math.max(3, Math.round(wallT / 2))
