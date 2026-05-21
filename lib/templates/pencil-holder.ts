@@ -55,9 +55,10 @@ export const pencilHolderOptions: OptionSpec[] = [
   ], help: "底板內縮=底板嵌入壁內、壁壓在底板邊緣膠合（最簡單）；鑲板入溝=4 壁內側開 5mm 槽、底板浮嵌（季節伸縮免裂）；整塊膠合=底板整塊外緣與框體齊邊、強力膠合。", wide: true },
   { group: "structure", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "stub-joint", choices: [
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
-    { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
+    { value: "finger-joint", label: "指接（finger joint，外露指狀，新手練習首選）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
-  ], dependsOn: { key: "bodyShape", equals: "rect" } },
+    { value: "dovetail-upgrade", label: "🔒 鳩尾榫（傳統工藝，請改用鳩尾盒模板）" },
+  ], dependsOn: { key: "bodyShape", equals: "rect" }, help: "鳩尾榫（dovetail）是傳統木工最高階的角接合，因實作細節多、需付費版「鳩尾盒」模板使用。" },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
@@ -85,7 +86,11 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
   const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
   const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
-  const cornerJoinery = (cornerJoineryRaw === "stub-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
+  // dovetail-upgrade 是付費鉤子：選了就 fallback 用 finger-joint 渲染，並由下方
+  // suggestions 推鳩尾盒模板。免費版不直接做鳩尾，避免低品質代表。
+  const cornerJoineryRequested = (cornerJoineryRaw === "stub-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw);
+  const wantsDovetailUpgrade = cornerJoineryRequested === "dovetail-upgrade";
+  const cornerJoinery = (wantsDovetailUpgrade ? "finger-joint" : cornerJoineryRequested) as
     | "stub-joint"
     | "finger-joint"
     | "miter";
@@ -466,7 +471,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂——**季節溫濕變化木紋會吃水膨脹收縮，這做法讓底板自由伸縮不撐裂壁板，是專業木工最愛的盒體做法**）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可，視覺整體、現代簡約）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合，組裝最快、新手友善）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，**新手練習指接的最佳對象**——3 mm 鋸路或夾具治具即可加工，做出整齊的齒形比例就是 pro 作品的標誌）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
@@ -479,6 +484,18 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       suggestedCategory: "dovetail-box",
       presetParams: { length: String(outerL), width: String(outerW), height: String(outerH), material },
     }];
+  }
+  // 鳩尾升級鉤子：使用者選了 🔒 鳩尾榫 → 推鳩尾盒模板
+  if (wantsDovetailUpgrade) {
+    warnings.push("鳩尾榫（dovetail）是傳統木工角接合的最高階工藝，目前以「指接 finger-joint」代替渲染。要做真正的鳩尾接合，請改用「鳩尾盒」模板（付費版）。");
+    design.suggestions = [
+      ...(design.suggestions ?? []),
+      {
+        text: "🔒 鳩尾榫接合 — 升級到「鳩尾盒」模板可解鎖傳統 7-14° 鳩尾角、tail/pin 段數調整、活動分隔抽板等完整鳩尾工法。",
+        suggestedCategory: "dovetail-box",
+        presetParams: { length: String(outerL), width: String(outerW), height: String(outerH), material },
+      },
+    ];
   }
   if (warnings.length) design.warnings = [...(design.warnings ?? []), ...warnings];
   return design;

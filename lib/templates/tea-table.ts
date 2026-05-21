@@ -29,7 +29,7 @@ export const teaTableOptions: OptionSpec[] = [
     { value: "box", label: "直腳（方料）" },
     { value: "tapered", label: "錐形腳" },
   ] },
-  { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 2 },
+  { group: "leg", type: "number", key: "legSize", label: "桌腳粗 (mm)", defaultValue: 50, min: 20, max: 120, step: 2 },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "桌腳往內移，形成 reveal。0 = 與桌面邊緣齊平" },
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1 },
   { group: "top", type: "select", key: "dropLeaf", label: "翻板（drop-leaf）", defaultValue: "none", choices: [
@@ -44,14 +44,14 @@ export const teaTableOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "upperApronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5 },
   { group: "apron", type: "number", key: "upperApronThickness", label: "牙板厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "牙板頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
-  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 80, min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
+  { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 120, min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）；> 0 時下棚板四邊長槽會跟著移動，建議搭配關閉下棚板" },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
   { group: "top", type: "select", key: "shelfOrientation", label: "下棚條方向", defaultValue: "length", choices: [
@@ -508,6 +508,22 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       text: `${input.length}×${input.width}mm 較大——矮桌模板支援更大尺寸 + 中央橫撐。`,
       suggestedCategory: "low-table",
       presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
+  // 付費鉤子：當使用者調出「適合加抽屜」的設定（牙板高且桌面夠厚）→ 推邊桌付費模板
+  if (upperApronWidth >= 100 && topThickness >= 22 && input.length <= 1000) {
+    appendSuggestion(design, {
+      text: "🔒 想加「前抽屜」收納嗎？邊桌（side-table）模板有完整抽屜 + 滑軌 + 把手組態（付費版解鎖）。",
+      suggestedCategory: "side-table",
+      presetParams: { length: input.length, width: input.width, height: input.height, material: input.material },
+    });
+  }
+  // 付費鉤子：方形 + 有下棚板 → 推圓形茶几（旋轉盤、X 字下橫撐、明清風）
+  if (hasLowerShelf && Math.abs(input.length - input.width) <= 100) {
+    appendSuggestion(design, {
+      text: "🔒 改做圓形茶几？圓茶几（round-tea-table）模板支援中央旋轉盤、X 字交叉下橫撐、明清風腳樣式（付費版解鎖）。",
+      suggestedCategory: "round-tea-table",
+      presetParams: { length: Math.min(input.length, input.width), width: Math.min(input.length, input.width), height: input.height, material: input.material },
     });
   }
   return design;
