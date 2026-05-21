@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { corners, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings } from "./_validators";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -22,7 +22,8 @@ export const barStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 28, min: 15, max: 60, step: 1 },
   { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角 (mm)", defaultValue: 0, min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角" },
   seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
   seatProfileOption("top"),
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile，但保留四角圓角" },
   legEdgeOption("leg", 1),
@@ -89,6 +90,8 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const seatCornerR = getOption<number>(input, opt(o, "seatCornerR"));
   const seatBendMm = getOption<number>(input, opt(o, "seatBendMm"));
@@ -438,7 +441,7 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
       const scoop = seatScoopShape(seatProfile);
       if (scoop) return scoop;
       // chamfered-top 加上 cornerR（4 角圓角，俯視）。即使 seatEdge=0 也建一個帶 cornerR 的 chamfered-top。
-      const edge = seatEdgeShape(seatEdge, seatEdgeStyle);
+      const edge = seatEdgeShape(seatEdge, seatEdgeStyle, seatEdgeBottomClamped);
       if (edge && seatCornerR > 0) return { ...edge, cornerR: seatCornerR };
       if (edge) return edge;
       if (seatCornerR > 0) return { kind: "chamfered-top" as const, chamferMm: 0, cornerR: seatCornerR };
