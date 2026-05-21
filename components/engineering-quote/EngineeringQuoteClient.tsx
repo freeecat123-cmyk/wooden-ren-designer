@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CustomerForm } from "@/components/customer/CustomerForm";
@@ -33,11 +33,7 @@ export function EngineeringQuoteClient({
   base,
 }: Props) {
   const router = useRouter();
-  // CustomerForm is uncontrolled (manages its own state for field-level typing).
-  // We track customer here only for programmatic updates (history chips / clear button)
-  // via the onApply callback. Field-level typed values are encoded via the form's
-  // hidden inputs; for the print URL we use whatever customer state is current.
-  const [customer, setCustomer] = useState<CustomerInfo>(EMPTY_CUSTOMER);
+  const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
 
   // 天花板材料費隨 opts.ceilingMaterialPerPing 變動
@@ -83,6 +79,16 @@ export function EngineeringQuoteClient({
   );
 
   function goPrint() {
+    const formEl = customerFormRef.current;
+    const fd = formEl ? new FormData(formEl) : new FormData();
+    const customer: CustomerInfo = {
+      name: String(fd.get("customerName") ?? ""),
+      contact: String(fd.get("customerContact") ?? ""),
+      phone: String(fd.get("customerPhone") ?? ""),
+      address: String(fd.get("customerAddress") ?? ""),
+      taxId: String(fd.get("customerTaxId") ?? ""),
+      email: String(fd.get("customerEmail") ?? ""),
+    };
     const params = new URLSearchParams();
     params.set("d", encodedSimInput);
     params.set("o", encodeState(opts));
@@ -100,12 +106,10 @@ export function EngineeringQuoteClient({
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">客戶資料</h2>
-            {/* CustomerForm is uncontrolled; initial sets starting values.
-                onApply fires when history chips or clear button are used. */}
-            <CustomerForm
-              initial={customer}
-              onApply={(next: CustomerInfo) => setCustomer(next)}
-            />
+            {/* 不原生提交的 form:CustomerForm 是 uncontrolled,goPrint 時用 FormData 讀實際輸入值 */}
+            <form ref={customerFormRef} onSubmit={(e) => e.preventDefault()}>
+              <CustomerForm initial={EMPTY_CUSTOMER} />
+            </form>
           </section>
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">費用參數</h2>
