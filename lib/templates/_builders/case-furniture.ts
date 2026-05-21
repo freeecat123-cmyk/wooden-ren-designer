@@ -747,7 +747,7 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const railW = opts.doorFrameRailWidth ?? 60;
     const frameT = opts.doorFrameThickness ?? 22;
     const slabT = 18; // 平板門厚
-    const panelT_door = 12; // 木鑲板厚度（玻璃時不計）
+    const panelT_door = 9; // 木鑲板厚度（玻璃時不計）
     const cornerTenonLen = Math.round(stileW * 0.6);
     // 門框榫卯尺寸（正規 cabinet door joinery）：
     // 榫寬（沿 rail width 方向） = railW × 2/3 = 40mm，留 1/6 雙肩各 10mm

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
+import { getGenericVariantKeys } from "@/lib/knowledge/style-variants";
 
 /** 風格圖示 → emoji 對照（沒對到的用🪵） */
 const STYLE_EMOJI: Record<string, string> = {
@@ -76,13 +77,15 @@ export function StylePresetButtons({
           material: sp?.get("material") ?? undefined,
         }
       : undefined;
-    const params = applyStylePreset(id, category, ctx, variantSeed);
+    const params = applyStylePreset(id, category, ctx, variantSeed, optionSchema);
     if (!params) return;
     const next = new URLSearchParams(sp?.toString() ?? "");
 
-    // 清掉所有風格可能管到的 key——避免舊風格設過、新風格沒覆寫的 key 殘留
+    // 清掉所有風格可能管到的 key——避免舊風格設過、新風格沒覆寫的 key 殘留。
+    // 含通用變體可寫入的 key：上次變體抽過、這次沒抽到的 key 要回模板預設。
     const managedKeys = getAllStyleManagedKeys(category);
     managedKeys.forEach((k) => next.delete(k));
+    getGenericVariantKeys(optionSchema).forEach((k) => next.delete(k));
 
     next.set("style", id);
     if (variantSeed > 0) next.set("styleVariant", String(variantSeed));

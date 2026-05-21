@@ -11,6 +11,8 @@
  *   - 沒列在 STYLE_VARIANT_POOLS 的 (style, category) 走 DEFAULT_POOL，仍有
  *     輕度變化
  */
+import type { OptionSpec, OptionDependency } from "@/lib/types";
+
 export interface StyleVariantPool {
   // 結構選擇池
   backStyle?: string[];
@@ -373,6 +375,47 @@ export const STYLE_VARIANT_POOLS: Record<string, Record<string, StyleVariantPool
       heightRatio: [0.95, 1.05],
     },
   },
+  // farmhouse = 美式手工（Farmhouse / Mission / Windsor 合併款）。
+  // 之前漏寫此 key，連椅凳都退回 DEFAULT_POOL → 重複按只變顏色。
+  // 範圍橫跨 Mission 粗實直腳到 Windsor 細外斜，rustic 多裸露榫頭。
+  farmhouse: {
+    "dining-chair": {
+      backStyle: ["ladder", "slats", "windsor"],
+      stretcherStyle: ["h-frame", "box", "side-only"],
+      backSlatsRange: [3, 6],
+      ladderRungsRange: [2, 4],
+      withArmrestProbability: 0.35,
+      splayAngleRange: [0, 10],
+      backRakeRange: [3, 12],
+      legSizeRatio: [0.9, 1.25],
+      apronWidthRatio: [0.85, 1.25],
+      seatThicknessRatio: [0.95, 1.2],
+      legInsetRange: [0, 25],
+      seatCornerRRange: [0, 14],
+      apronStaggerMmRange: [0, 22],
+      lowerStretcherStaggerMmRange: [0, 18],
+      backTopRailHeightRange: [45, 80],
+      lowerStretcherHeightRange: [120, 220],
+      legPenetratingTenonProbability: 0.8, // rustic 愛裸露穿榫
+      lengthRatio: [0.9, 1.1],
+      widthRatio: [0.9, 1.1],
+      heightRatio: [0.97, 1.03],
+    },
+    "stool": {
+      splayAngleRange: [0, 10],
+      legSizeRatio: [0.9, 1.25],
+      apronWidthRatio: [0.85, 1.25],
+      seatThicknessRatio: [0.95, 1.2],
+      legInsetRange: [0, 25],
+      apronStaggerMmRange: [0, 22],
+      lowerStretcherStaggerMmRange: [0, 18],
+      lowerStretcherHeightRange: [90, 200],
+      legPenetratingTenonProbability: 0.8,
+      lengthRatio: [0.9, 1.1],
+      widthRatio: [0.9, 1.1],
+      heightRatio: [0.94, 1.06],
+    },
+  },
 };
 
 // ─── Hash + 抽樣 helpers ────────────────────────────────────────────────
@@ -472,6 +515,100 @@ export function sampleStyleVariant(
   void pool.widthRatio;
   void pool.heightRatio;
 
+  return overlay;
+}
+
+// ─── 通用變體（所有家具類型）────────────────────────────────────────────
+// hand-coded STYLE_VARIANT_POOLS 只覆蓋 dining-chair / stool。其餘 26 種家具
+// 之前退回 DEFAULT_POOL → 只有 legSize/apronWidth 微調 → 使用者反饋「重複按
+// 同一風格只會變顏色」。通用變體改成直接讀模板自己的 OptionSpec[]，對每個
+// 選項在其宣告的範圍內抽樣，讓任何家具都有真正的結構 + 尺寸變化。
+
+/** 風格識別 key：base preset 已依風格設定，變體不要亂抽否則「同風格」會走鐘。 */
+const GENERIC_VARIANT_DENY = new Set<string>([
+  "legShape", "seatProfile",
+  "legEdgeStyle", "seatEdgeStyle", "topEdgeStyle", "stretcherEdgeStyle",
+  "splayAngle",
+]);
+
+/** 該選項是否排除在通用變體之外（風格識別 key + 配置預設選擇器 + override 鈕）。 */
+function isGenericVariantDeny(spec: OptionSpec): boolean {
+  if (GENERIC_VARIANT_DENY.has(spec.key)) return true;
+  if (spec.group === "preset") return true; // 一鍵配置預設不亂抽
+  // *Override 類「0=自動、否則強制」語意鈕，亂抽會強制成奇怪值 → 留預設
+  if (/[Oo]verride/.test(spec.key)) return true;
+  return false;
+}
+
+function evalDepLocal(
+  dep: OptionDependency,
+  values: Record<string, string | number | boolean>,
+): boolean {
+  if (dep.all) return dep.all.every((d) => evalDepLocal(d, values));
+  if (dep.any) return dep.any.some((d) => evalDepLocal(d, values));
+  if (!dep.key) return true;
+  const v = values[dep.key];
+  if (dep.notIn && dep.notIn.includes(v as string | number | boolean)) return false;
+  if (dep.oneOf && !dep.oneOf.includes(v as string | number | boolean)) return false;
+  if (dep.equals !== undefined && v !== dep.equals) return false;
+  if (dep.equals === undefined && dep.notIn === undefined && dep.oneOf === undefined && !v) return false;
+  return true;
+}
+
+/** 通用變體可寫入的 key——切風格時要連同 managed key 一起清掉避免殘留。 */
+export function getGenericVariantKeys(optionSchema: OptionSpec[]): string[] {
+  return optionSchema.filter((s) => !isGenericVariantDeny(s)).map((s) => s.key);
+}
+
+/**
+ * 通用變體：對任何模板的 OptionSpec[] 抽樣。
+ * - select  → 從 choices（依 dependsOn 過濾後）hash 抽一個
+ * - checkbox→ hash 決定 true/false
+ * - number  → 在 [min, max]（缺則 default ±20%）內 hash 抽值、對齊 step
+ * dependsOn 用「已抽樣 + 預設」的 values 評估，跳過當下不該顯示的選項。
+ */
+export function sampleGenericVariant(
+  optionSchema: OptionSpec[],
+  variantSeed: number,
+): Record<string, string | number | boolean> {
+  if (variantSeed <= 0 || optionSchema.length === 0) return {};
+  // 先用各選項預設值鋪一份完整 values，dependsOn 才評得準
+  const values: Record<string, string | number | boolean> = {};
+  for (const s of optionSchema) values[s.key] = s.defaultValue;
+  const overlay: Record<string, string | number | boolean> = {};
+
+  for (const spec of optionSchema) {
+    if (isGenericVariantDeny(spec)) continue;
+    if (spec.dependsOn && !evalDepLocal(spec.dependsOn, values)) continue;
+
+    if (spec.type === "select") {
+      const choices = spec.choices.filter(
+        (c) => !c.dependsOn || evalDepLocal(c.dependsOn, values),
+      );
+      if (choices.length <= 1) continue;
+      const picked = choices[hash32(variantSeed, spec.key) % choices.length].value;
+      overlay[spec.key] = picked;
+      values[spec.key] = picked;
+    } else if (spec.type === "checkbox") {
+      const picked = unitRand(variantSeed, spec.key) < 0.5;
+      overlay[spec.key] = picked;
+      values[spec.key] = picked;
+    } else {
+      const omin = spec.min ?? Math.round(spec.defaultValue * 0.8);
+      const omax = spec.max ?? Math.round(spec.defaultValue * 1.2);
+      if (omax <= omin) continue;
+      // 中段抽樣：兩端各砍 15%，避免抽到 min/max 退化極值（如 5mm 椅腳）
+      const span = omax - omin;
+      const lo = omin + span * 0.15;
+      const hi = omax - span * 0.15;
+      const step = spec.step ?? 1;
+      let v = lo + (hi - lo) * unitRand(variantSeed, spec.key);
+      v = Math.round(v / step) * step;
+      v = Math.min(omax, Math.max(omin, v));
+      overlay[spec.key] = v;
+      values[spec.key] = v;
+    }
+  }
   return overlay;
 }
 

@@ -14,7 +14,7 @@
  * - 不適合所有家具類型的 preset 用 applicableTo 限定
  */
 
-import type { MaterialId } from "@/lib/types";
+import type { MaterialId, OptionSpec } from "@/lib/types";
 import { STYLE_DETAIL_PACKS } from "./style-detail-packs";
 import { adaptStyleParams } from "./style-adapter";
 
@@ -250,7 +250,7 @@ export function getAllStyleManagedKeys(category?: string): Set<string> {
  *  detail packs 由 4 個 agent 平行研究 wood-master/knowledge/ 對應書系
  *  + lib/templates/<each>.ts 的 OptionSpec[] 產出，每組 (style × category)
  *  約 10-25 個值。8 風格 × 10 priority templates ≈ 200+ 風格化參數。 */
-import { sampleStyleVariant, getAllPoolKeys, getCanonicalSize } from "./style-variants";
+import { sampleStyleVariant, sampleGenericVariant, getAllPoolKeys, getCanonicalSize } from "./style-variants";
 // ─── Structural variants ─────────────────────────────────────────────────
 // 重複按同一風格時，套 STYLE_STRUCTURAL_VARIANTS 裡的結構性 overlay 而非
 // 數值 jitter——換 backStyle、改 ladder/slat 數、加扶手、換 stretcherStyle、
@@ -263,6 +263,7 @@ export function applyStylePreset(
   category?: string,
   ctx?: { totalLength: number; totalWidth: number; totalHeight: number; material?: string },
   variantSeed: number = 0,
+  optionSchema?: OptionSpec[],
 ): Record<string, string | number | boolean> | null {
   const preset = STYLE_PRESETS[styleId];
   if (!preset) return null;
@@ -338,6 +339,11 @@ export function applyStylePreset(
     const overlay = sampleStyleVariant(styleId, category, variantSeed,
       { length: adapterCtx.totalLength, width: adapterCtx.totalWidth, height: adapterCtx.totalHeight },
       result);
+    // 通用變體先鋪滿整個模板的選項（所有家具類型都有結構/尺寸變化），
+    // 再讓 hand-coded pool overlay 覆寫——chair/stool 走高保真風格池。
+    if (optionSchema && optionSchema.length > 0) {
+      Object.assign(result, sampleGenericVariant(optionSchema, variantSeed));
+    }
     Object.assign(result, overlay);
     // 木種也跟著變：從該風格 materials[] 抽（用獨立 salt 避免跟結構選擇相關）
     if (preset.materials.length > 1) {
