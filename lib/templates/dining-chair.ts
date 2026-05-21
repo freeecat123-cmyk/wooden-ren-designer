@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -28,7 +28,8 @@ export const diningChairOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatHeight", label: "坐高 (mm)", defaultValue: DINING_CHAIR.seatHeightMm, min: 350, max: 550, step: 10, help: `地面到座板上緣，一般 ${DINING_CHAIR.seatHeightRangeMm[0]}–${DINING_CHAIR.seatHeightRangeMm[1]}（FWW 共識）` },
   { group: "top", type: "number", key: "seatCornerR", label: "椅面四角圓角 (mm)", defaultValue: 0, min: 0, max: 100, step: 2, help: "俯視看，椅面 4 個角的圓弧半徑；0 = 直角，30~50 是常見柔角" },
   seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
@@ -121,6 +122,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   const seatHeight = getOption<number>(input, opt(o, "seatHeight"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -512,7 +515,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 並補 bottomChamferMm 把下緣一起做出來——視覺上跟預設 5mm 倒邊明顯區分
       const edge = seatFrontWaterfall
         ? { kind: "chamfered-top" as const, chamferMm: seatThickness, bottomChamferMm: seatThickness, style: "rounded" as const }
-        : seatEdgeShape(seatEdge, seatEdgeStyle);
+        : seatEdgeShape(seatEdge, seatEdgeStyle, seatEdgeBottomClamped);
       if (edge && seatCornerR > 0) return { ...edge, cornerR: seatCornerR };
       if (edge) return edge;
       if (seatCornerR > 0) return { kind: "chamfered-top" as const, chamferMm: 0, cornerR: seatCornerR };
