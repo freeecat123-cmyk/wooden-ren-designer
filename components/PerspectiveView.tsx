@@ -203,15 +203,12 @@ function subtractMortisesFromGeometry(
     } else {
       cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
     }
-    // rotation 直接烤進 geometry（不靠 mesh.rotation）：CSG evaluator 有時候
-    // matrixWorld propagation 不一致；烤進 geometry 是最可靠路徑。
-    // 外撇牆 cosmetic 孔 rotX：cut 繞 part-local X 軸（孔上下緣跟牆一起傾）
-    // splayed apron Z 面 mortise rotZ：cross-section 在 XY 平面內旋轉
-    if (m.rotX) cutGeo.rotateX(m.rotX);
-    if (m.rotZ) cutGeo.rotateZ(m.rotZ);
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
+    // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
+    // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
+    if (m.rotX) cut.rotation.x = m.rotX;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
@@ -1639,35 +1636,18 @@ export function PerspectiveView({
           const mortisesToCsg = joineryMode
             ? part.mortises
             : part.mortises.filter((m) => m.cosmetic);
-          // splayed shape 在 base mesh 上會把 cross-section 沿 Y 線性外移
-          // （bottom 移 dxMm/dzMm、top 不動）。cut box 跟 base 同個座標系做 CSG，
-          // 也要套同樣 deform：cut 在 part-local Y=cy 的 X/Z 要往外推
-          // (1 − (cy+ly/2)/legHeight) × dxMm / dzMm，不然 cut 留在 pre-deform
-          // 位置、base mesh 是 deform 過、cut 跟 tenon 中心對不上（user
-          // 2026-05-21「3D 跟 2D 對不起來，2D 是對的」）。
-          const splayedShape = part.shape?.kind === "splayed" ? part.shape : null;
-          const legHeightLocal = part.visible.thickness; // leg part-local Y span
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0
               ? mortisesToCsg.map((m) => {
                   const lb = mortiseLocalBox(part, m);
-                  // splayed deform：part-local Y centered around 0，需轉成
-                  // 「離 top 的距離」= ly/2 - cy（cy=ly/2 是 top → 0；cy=-ly/2 是 bottom → ly）
-                  let dx = 0, dz = 0;
-                  if (splayedShape && legHeightLocal > 0) {
-                    const tFromTop = (legHeightLocal / 2 - lb.cy) / legHeightLocal;
-                    dx = (splayedShape.dxMm ?? 0) * tFromTop;
-                    dz = (splayedShape.dzMm ?? 0) * tFromTop;
-                  }
                   return {
-                    cx: (lb.cx + dx) * SCALE,
+                    cx: lb.cx * SCALE,
                     cy: lb.cy * SCALE,
-                    cz: (lb.cz + dz) * SCALE,
+                    cz: lb.cz * SCALE,
                     hx: lb.hx * SCALE,
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
                     rotX: lb.rotX,
-                    rotZ: lb.rotZ,
                   };
                 })
               : undefined;
