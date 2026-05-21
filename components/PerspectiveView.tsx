@@ -203,12 +203,15 @@ function subtractMortisesFromGeometry(
     } else {
       cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
     }
+    // 把 rotation 直接烤進 geometry，避免 three-bvh-csg 的 matrixWorld
+    // propagation 不一致（mesh.rotation 有時不反映到 evaluator）。
+    // rotX：外撇牆 cosmetic 孔（孔軸跟牆面法線一致）
+    // rotZ：splayed apron Z 面 mortise（cross-section 跟 tilted tenon 對齊）
+    if (m.rotX) cutGeo.rotateX(m.rotX);
+    if (m.rotZ) cutGeo.rotateZ(m.rotZ);
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
-    // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
-    // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
-    if (m.rotX) cut.rotation.x = m.rotX;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
@@ -1648,6 +1651,7 @@ export function PerspectiveView({
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
                     rotX: lb.rotX,
+                    rotZ: lb.rotZ,
                   };
                 })
               : undefined;
