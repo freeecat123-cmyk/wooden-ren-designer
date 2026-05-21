@@ -841,7 +841,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         });
         // 把手：門前緣（z 軸往負前進方向，inset 跟 overlay 都是 zFront - slabT/2）
         // 雙開門 → 把手靠近中縫（內側 40mm 處），跟玻璃/框門邏輯一致；
-        // 單門 → 依 pullSide 決定（column 模式靠內側）；多門 → 居中
+        // 單門 → 依 pullSide 決定，預設靠左豎梃（真實櫃門把手在開啟邊不在板心）；
+        //         pullSide==="right" 靠右、"center" 放中央；3 扇以上 → 居中。
         const slabPullInset = 40;
         const slabPullOffset = doorOuterW / 2 - slabPullInset;
         const slabPullX =
@@ -849,11 +850,13 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
             ? i === 0
               ? xCenter + slabPullOffset
               : xCenter - slabPullOffset
-            : cfg.count === 1 && cfg.pullSide === "left"
-              ? xCenter - slabPullOffset
+            : cfg.count === 1 && cfg.pullSide === "center"
+              ? xCenter
               : cfg.count === 1 && cfg.pullSide === "right"
                 ? xCenter + slabPullOffset
-                : xCenter;
+                : cfg.count === 1
+                  ? xCenter - slabPullOffset
+                  : xCenter;
         parts.push(...makePullParts(
           `${idPrefix}-${i + 1}-slab`,
           xCenter, doorYBase, doorOuterW, doorOuterH,
@@ -943,7 +946,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
           id: `${idPrefix}-${i + 1}-stile-${side < 0 ? "left" : "right"}`,
           nameZh: `${labelPrefix}${i + 1} ${side < 0 ? "左" : "右"}豎梃`,
           material,
-          grainDirection: "length",
+          // 豎梃長軸是 width(=doorOuterH 鉛直向)，紋路順長走 → grainDirection "width"
+          grainDirection: "width",
           visible: {
             length: stileW,
             width: doorOuterH,
@@ -1173,18 +1177,21 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
       }
       // 框門 / 玻璃門把手：鎖在門板正面（ring-chinese / drop-bail 中式或古典款專用）
       // 雙開門：把手鎖在「內側豎梃中央」（兩扇相對的那條邊框，把手在中縫處）。
-      // 單門 / 3 扇以上：沒有明確「內外」概念，把手回到面板中央。
+      // 單門：把手鎖在豎梃上，預設靠左（真實櫃門把手在開啟邊，不在板心中央）；
+      //       pullSide 可覆寫為 right，或 "center" 顯式放板心。3 扇以上 → 居中。
       const innerStileOffset = doorOuterW / 2 - stileW / 2;
       const pullX =
         cfg.count === 2
           ? i === 0
             ? xCenter + innerStileOffset // 左門 → 把手在右側內框
             : xCenter - innerStileOffset // 右門 → 把手在左側內框
-          : cfg.count === 1 && cfg.pullSide === "left"
-            ? xCenter - innerStileOffset
+          : cfg.count === 1 && cfg.pullSide === "center"
+            ? xCenter
             : cfg.count === 1 && cfg.pullSide === "right"
               ? xCenter + innerStileOffset
-              : xCenter;
+              : cfg.count === 1
+                ? xCenter - innerStileOffset // 預設：把手靠左側豎梃
+                : xCenter;
       parts.push(...makePullParts(
         `${idPrefix}-${i + 1}-door`,
         xCenter, doorYBase, doorOuterW, doorOuterH,

@@ -541,6 +541,7 @@ const Part = memo(function PartInner({
         metalness={0.05}
         flatShading={useFlatShading}
         onBeforeCompile={woodCompile}
+        customProgramCacheKey={() => woodCompile.cacheKey}
         transparent
         opacity={isDimmed ? DIM_OPACITY : 1}
         depthWrite={!isDimmed && !wireframe}

@@ -132,14 +132,19 @@ dimming = max(dimming, 0.0);
 diffuseColor.rgb *= dimming;`;
 }
 
+/** onBeforeCompile 回呼，附唯一 cacheKey 供 material.customProgramCacheKey 用。 */
+export type WoodCompile = ((shader: WebGLProgramParametersWithUniforms) => void) & {
+  cacheKey: string;
+};
+
 function makeCompile(
   grainAxis: string,
   crossAxis: string,
   thinAxis: string,
   mode: GrainMode,
-) {
+): WoodCompile {
   const fragmentInjection = makeGrainFragment(grainAxis, crossAxis, thinAxis, mode);
-  return (shader: WebGLProgramParametersWithUniforms) => {
+  const compile = ((shader: WebGLProgramParametersWithUniforms) => {
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -157,7 +162,13 @@ function makeCompile(
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${HELPERS}`)
       .replace("#include <map_fragment>", fragmentInjection);
-  };
+  }) as WoodCompile;
+  // 四個 grain 變體都由這個 closure 產生 → onBeforeCompile.toString() 完全相同。
+  // three.js 程式快取用 toString() 當鍵 → 4 變體被當成同一支 shader，grain
+  // 方向會跟著「第一個編譯的零件」跑（豎梃拿到橫檔的 X-grain）。附唯一
+  // cacheKey 給 material.customProgramCacheKey，three.js 才會分開編譯。
+  compile.cacheKey = `wood:${grainAxis}:${mode}`;
+  return compile;
 }
 
 /** Cross-grain 尺寸（mm）≥ 此閾值用 wide（山形紋），否則用 narrow（直紋） */
