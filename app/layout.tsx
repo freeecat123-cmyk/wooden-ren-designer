@@ -121,6 +121,38 @@ export default async function RootLayout({
             }),
           }}
         />
+        {/* Organization schema — 獨立宣告，讓 Google 認 brand entity，
+            有機會在 SERP 出現 knowledge panel。聯絡資訊跟 Terms / Privacy 一致。 */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "木頭仁木匠學院 Wooden Ren Education Co., Ltd.",
+              alternateName: ["木頭仁", "Wooden Ren"],
+              url: "https://woodenren.com",
+              logo: `${SITE_URL}/og.png`,
+              sameAs: [
+                "https://www.youtube.com/@woodenren",
+                "https://woodenrenclass.com",
+              ],
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "東勢街 6-34 號 4 樓",
+                addressLocality: "暖暖區",
+                addressRegion: "基隆市",
+                addressCountry: "TW",
+              },
+              contactPoint: {
+                "@type": "ContactPoint",
+                email: "wengbinren@gmail.com",
+                contactType: "customer support",
+                availableLanguage: ["zh-TW"],
+              },
+            }),
+          }}
+        />
         <AuthProvider initialUser={user}>
           {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
           <StudentExpiryNotice />

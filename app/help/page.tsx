@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "常見問題 FAQ · 木頭仁 木作藍圖",
   description:
     "木頭仁 木作藍圖常見問題：登入、訂閱、付款、發票、退費、PWA 安裝、3D 顯示等使用疑難。",
+  alternates: { canonical: "/help" },
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
@@ -211,9 +212,44 @@ const SECTIONS: Array<{ title: string; emoji: string; items: QA[] }> = [
   },
 ];
 
+/**
+ * 把 React.ReactNode 遞迴抽純文字——JSON-LD FAQPage.acceptedAnswer 只能放
+ * plain string，不能直接塞 JSX。走 props.children 把整棵樹的字串／數字
+ * concatenated 起來，跳過 boolean / null / function。
+ */
+function textFromNode(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textFromNode).join("");
+  if (typeof node === "object" && "props" in node) {
+    const props = (node as { props?: { children?: React.ReactNode } }).props;
+    return props ? textFromNode(props.children) : "";
+  }
+  return "";
+}
+
 export default function HelpPage() {
+  // FAQPage JSON-LD — Google FAQ rich result，問答數量沒上限但前 ~10 個最有效
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: SECTIONS.flatMap((sec) =>
+      sec.items.map((qa) => ({
+        "@type": "Question",
+        name: qa.q,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: textFromNode(qa.a).replace(/\s+/g, " ").trim(),
+        },
+      })),
+    ),
+  };
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 leading-relaxed text-zinc-800">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <header className="rounded-2xl bg-white ring-1 ring-amber-900/10 shadow-sm px-6 py-7">
         <h1 className="font-serif-tc text-3xl font-bold tracking-tight text-amber-950">
           常見問題

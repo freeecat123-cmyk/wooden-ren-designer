@@ -86,10 +86,15 @@ export async function generateMetadata({
 
   const title = `${entry.nameZh}設計圖｜輸入尺寸自動產出三視圖、材料單、報價`;
   const description = `${entry.description}。輸入長寬高、選木材，自動算切料、生三視圖與透視圖、列印 A4 工程圖紙。木頭仁木匠學院出品。`;
+  // 跟 app/sitemap.ts 同一份名單：尚未完成的模板從 sitemap 拿掉，但頁面仍可訪
+  // 問。這裡同步加 robots noindex 防止 Google 仍照爬把半成品索引進去。
+  const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);
+  const isDevCategory = DEV_CATEGORIES.has(entry.category);
   return {
     title,
     description,
     alternates: { canonical },
+    ...(isDevCategory ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       title,
       description,
@@ -281,8 +286,24 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const printUrl = `${quoteUrl}&print=1`;
   const lineShareText = `木頭仁設計：${entry.nameZh} ${length}×${width}×${height}mm`;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首頁", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "家具範本", item: `${siteUrl}/#catalog` },
+      { "@type": "ListItem", position: 3, name: `${entry.nameZh}設計圖`, item: `${siteUrl}/design/${entry.category}` },
+    ],
+  };
+
   return (
     <>
+    {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+    />
     <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">

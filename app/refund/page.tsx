@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "退費政策 · 木頭仁 木作藍圖",
   description:
     "木頭仁 木作藍圖（木作藍圖）退費政策 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+  alternates: { canonical: "/refund" },
 };
 
 export default function RefundPage() {

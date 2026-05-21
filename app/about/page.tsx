@@ -7,6 +7,21 @@ export const metadata: Metadata = {
   description:
     "木頭仁木匠學院出品。超過 25 種家具範本，輸入長寬高自動產出三視圖、透視圖、榫卯細節、材料單、工序、A4 PDF 工程圖紙。給 DIY 木工愛好者、木匠師傅、設計接案、學員用。",
   alternates: { canonical: "/about" },
+  openGraph: {
+    title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
+    description:
+      "木頭仁木匠學院出品。25+ 家具範本、自動三視圖、榫卯、材料單、PDF 工程圖。",
+    url: "/about",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "關於 木頭仁 木作藍圖",
+    description:
+      "輸入尺寸 3 秒生工程圖、材料單、報價。木頭仁木匠學院出品。",
+    images: ["/og.png"],
+  },
 };
 
 /** 裝潢專區 — 7 件最常用櫃體 + 第 8 格放「持續新增中」（直接連到 /design/[slug]） */

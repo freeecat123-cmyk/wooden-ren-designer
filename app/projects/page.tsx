@@ -4,6 +4,9 @@ import type { ProjectRow } from "@/lib/projects/types";
 
 export const metadata = {
   title: "我的專案 · 木頭仁 木作藍圖",
+  description:
+    "把設計綁成「專案」管理：客戶資料、報價單、設計清單、進度，一個 case 一張畫面看完。",
+  alternates: { canonical: "/projects" },
 };
 
 export default async function ProjectsPage() {
