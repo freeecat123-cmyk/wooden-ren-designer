@@ -41,11 +41,15 @@ export function EngineeringQuoteClient({
     quoteType === "ceiling"
       ? Math.round(opts.ceilingMaterialPerPing * base.pingShu)
       : base.materialCost;
+  const ceilingBaseLine = base.materialLines[0] ?? {
+    label: "天花板系統材料",
+    amount: 0,
+  };
   const materialLines =
     quoteType === "ceiling"
       ? [
           {
-            ...base.materialLines[0],
+            ...ceilingBaseLine,
             amount: materialCost,
             unpriced: opts.ceilingMaterialPerPing <= 0,
           },
@@ -75,7 +79,7 @@ export function EngineeringQuoteClient({
         depositRate: opts.depositRate,
         validityDays: opts.validityDays,
       }),
-    [quoteType, base, materialCost, materialLines, opts],
+    [quoteType, base, opts],
   );
 
   function goPrint() {
