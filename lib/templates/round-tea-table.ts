@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
@@ -17,8 +17,9 @@ export const roundTeaTableOptions: OptionSpec[] = [
   // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered"] }),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  // stretcher 倒角只在「直腳 box」時有效（其他腳形會把橫撐做成梯形 / 斜面）
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤", defaultValue: false, help: "中央加可旋轉小圓盤——需配 8-12 吋軸承", wide: true },
   { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 350, min: 200, max: 600, step: 25, dependsOn: { key: "withLazySusan", equals: true } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 80, min: 30, max: 300, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量" },
@@ -210,7 +211,12 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
       shape:
         legShape === "tapered"
-          ? ({ kind: "tapered", bottomScale: 0.6 } as const)
+          ? ({
+              kind: "tapered",
+              bottomScale: 0.6,
+              chamferMm: parseLegChamferMm(legEdge),
+              chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+            } as const)
           : legShape === "round"
             ? ({ kind: "round" } as const)
             : legShape === "round-taper-down"

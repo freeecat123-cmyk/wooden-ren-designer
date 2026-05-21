@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
@@ -326,8 +326,10 @@ export const roundTableOptions: OptionSpec[] = [
   // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
-  stretcherEdgeOption("stretcher", 1),
-  stretcherEdgeStyleOption("stretcher"),
+  // stretcher 倒角只在「直腳 box」時有效（其他腳形會把橫撐做成梯形 / 斜面，
+  // 走 apron-trapezoid / apron-half-beveled 沒吃 chamfer），避免使用者拉了沒反應
+  { ...stretcherEdgeOption("stretcher", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
+  { ...stretcherEdgeStyleOption("stretcher"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "stretcherEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "withLazySusan", label: "中央旋轉盤（lazy susan）", defaultValue: false, help: "中央加可旋轉小圓盤——需配 12-16 吋金屬軸承（五金行 NT$ 200-400）。台灣家庭 8 人圓桌標配。獨柱／端梁桌型不適用", wide: true, dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "top", type: "number", key: "lazySusanDiameter", label: "旋轉盤直徑 (mm)", defaultValue: 600, min: 300, max: 1000, step: 50, dependsOn: { all: [{ key: "withLazySusan", equals: true }, { key: "legShape", notIn: ["pedestal", "trestle"] }] } },
   { group: "leg", type: "number", key: "legInset", label: "腳離邊 (mm)", defaultValue: 150, min: 50, max: 400, step: 10, unit: "mm", help: "腳中心離桌面圓周的內縮量。內縮越大坐得越進去（膝蓋空間越大）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
@@ -545,9 +547,19 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: sx * cornerOffset, y: 0, z: sz * cornerOffset },
       shape:
         legShape === "tapered"
-          ? ({ kind: "tapered", bottomScale: 0.55 } as const)
+          ? ({
+              kind: "tapered",
+              bottomScale: 0.55,
+              chamferMm: parseLegChamferMm(legEdge),
+              chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+            } as const)
           : legShape === "fluted-square"
-            ? ({ kind: "tapered", bottomScale: 1 } as const)
+            ? ({
+                kind: "tapered",
+                bottomScale: 1,
+                chamferMm: parseLegChamferMm(legEdge),
+                chamferStyle: legEdgeStyle === "rounded" ? "rounded" : "chamfered",
+              } as const)
             : legShape === "round"
               ? ({ kind: "round" } as const)
               : legShape === "round-taper-down"
