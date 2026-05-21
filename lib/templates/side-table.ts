@@ -21,7 +21,6 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳" },
-    { value: "strong-taper", label: "強錐腳（底縮 60%）" },
     { value: "shaker", label: "夏克風腳（上方頂+下圓錐）" },
   ] },
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 35, min: 20, max: 120, step: 1 },
