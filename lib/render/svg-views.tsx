@@ -2891,15 +2891,17 @@ export function OrthoView({
                 y2={sFloor}
                 label={`${labelClear} ${Math.round(mainBottomY)} mm`}
               />
-              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同 Y 同尺寸去重，只標一次
-                  名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」） */}
+              {/* cross-pieces 厚度（橫撐 / 牙板 / 椅背）— 同名 + 同尺寸去重只標一次
+                  名稱去掉「前/後/左/右」前綴避免重複（4 個都同樣是「牙板 60」）
+                  ⚠ 不用 bottomY 當 dedup key：apronStaggerMm > 0 時 X 軸牙板與
+                     Z 軸牙板坐在不同 Y、bottomY 不同，key 不同會疊兩個「牙板 85」 */}
               {(() => {
+                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
                 const seen = new Map<string, typeof crossPieces[0]>();
                 for (const c of crossPieces) {
-                  const key = `${Math.round(c.bottomY)}_${Math.round(c.yExt)}`;
+                  const key = `${bare(c.nameZh)}_${Math.round(c.yExt)}`;
                   if (!seen.has(key)) seen.set(key, c);
                 }
-                const bare = (n: string) => n.replace(/^(前|後|左|右)/, "");
                 return [...seen.values()].map((c) => {
                   // 側視圖：arch-bent 件（bow）往 +Z 凸出 bendMm。
                   // 前=右慣例下 +Z 投影到 SVG -x（左），bow 往 SVG 左凸 →
