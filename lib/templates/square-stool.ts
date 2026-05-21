@@ -277,8 +277,11 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronVisualStaggerMm: apronVisuallyStaggered ? apronStaggerMm : 0,
       apronWidth,
       legHeight,
+      legSize,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
+      tiltX: _isSplayedForLegs ? Math.atan(_splayDxForLegs / legHeight) : 0,
+      tiltZ: _isSplayedForLegs ? Math.atan(_splayDzForLegs / legHeight) : 0,
     }),
   });
   });
@@ -777,39 +780,79 @@ function legMortisesForApron(
     apronTenonThick: number;
     apronWidth: number;
     legHeight: number;
+    legSize: number;
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
+    /** apron 繞自己 length 軸的 splay tilt（弧度）— 對應 mortise cross-section
+     *  要跟著旋轉。Z 面 mortise（左右牙板）拿 tiltX、X 面 mortise（前後）拿 tiltZ。 */
+    tiltX?: number;
+    tiltZ?: number;
   },
 ) {
   const {
     apronTenonLength, apronUpperTenonH, apronLowerTenonH,
     apronUpperTenonOffset, apronLowerTenonOffset,
-    apronTenonThick, apronWidth, legHeight, apronDropFromTop,
+    apronTenonThick, apronWidth, legHeight, legSize, apronDropFromTop,
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
+  const tiltX = opts.tiltX ?? 0;
+  const tiltZ = opts.tiltZ ?? 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
+  // Z 面 mortise 對應左右牙板（axis="z"）— 該 apron 繞自己 Z 軸 tilt = s.sx * tiltX，
+  // 此 leg 在 +X 側 (s.sx=+1) 拿 +tiltX；-X 側拿 -tiltX。
+  // X 面 mortise 對應前後牙板（axis="x"）— 該 apron 繞自己 X 軸 tilt = -s.sz * tiltZ，
+  // 此 leg 在 +Z 側 (s.sz=+1) 拿 -tiltZ；-Z 側拿 +tiltZ。
+  const zFaceRotZ = (corner.x > 0 ? +1 : -1) * tiltX;
+  const xFaceRotX = (corner.z > 0 ? -1 : +1) * tiltZ;
+  // Tenon-as-truth 對齊：apron 經 (π/2 X, π/2 Y, tilt Z) ZYX rotation 後
+  // tenon 從 apron-local (lx/2, 0, oW) 投影到世界，相對 apron origin 位移：
+  //   Z 面 mortise (axis="z" apron, oW = -apronUpperTenonOffset):
+  //     ΔX = oW × sin(tilt) = -apronUpperTenonOffset × sin(zFaceRotZ)
+  //     ΔY = -oW × cos(tilt) = apronUpperTenonOffset × cos(zFaceRotZ)
+  //   X 面 mortise (axis="x" apron, ZYX simplified to Rx(π/2+δ), oW = -apronLowerTenonOffset):
+  //     ΔZ = oW × cos(π/2+δ) = -oW × sin(δ) = apronLowerTenonOffset × sin(xFaceRotX)
+  //     ΔY = -oW × sin(π/2+δ) = -oW × cos(δ) ≈ apronLowerTenonOffset × cos(xFaceRotX)
+  // user 2026-05-21 「孔跟榫頭沒重合，要不要反向用 tenon 算」。
+  const sinZRot = Math.sin(zFaceRotZ);
+  const cosZRot = Math.cos(zFaceRotZ);
+  const sinXRot = Math.sin(xFaceRotX);
+  const cosXRot = Math.cos(xFaceRotX);
+  // 鎖 entry face：origin.x/z 加 sin 偏移後 mortiseLocalBox heuristic 會被誤導
+  // （xToFace/zToFace 比較取最小），把 mortise 切到鄰面。用接近 face 的值
+  // (legSize/2 - 0.5) 強制 face dist = 0.5 最小，鎖定正確入榫面。
+  const legHalf = legSize / 2 - 0.5;
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
-      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: corner.z > 0 ? -1 : 1 },
+      origin: {
+        x: -apronUpperTenonOffset * sinZRot,
+        y: zCenterY + apronUpperTenonOffset * cosZRot,
+        z: corner.z > 0 ? -legHalf : +legHalf,
+      },
       depth: apronTenonLength,
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
+      ...(Math.abs(zFaceRotZ) > 0.001 ? { rotZ: zFaceRotZ } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
-      origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset, z: 0 },
+      origin: {
+        x: corner.x > 0 ? -legHalf : +legHalf,
+        y: xCenterY + apronLowerTenonOffset * cosXRot,
+        z: apronLowerTenonOffset * sinXRot,
+      },
       depth: apronTenonLength,
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
+      ...(Math.abs(xFaceRotX) > 0.001 ? { rotX: xFaceRotX } : {}),
     },
   ];
 }
