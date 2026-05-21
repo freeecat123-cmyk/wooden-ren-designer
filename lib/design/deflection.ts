@@ -118,6 +118,9 @@ export function checkShelfDeflection(parts: ShelfPart[]): DeflectionWarning[] {
 }
 
 function isShelfLike(id: string): boolean {
+  // 凸鑲板是貼在抽屜/門面板上的裝飾件，整片有底材撐著、不是跨距承重的層板，
+  // 不適用簡支樑撓度模型 → 排除，避免誤報「會明顯下垂」。
+  if (/raised-panel/i.test(id)) return false;
   return /shelf|under-shelf|board|top|bottom|panel/i.test(id);
 }
 

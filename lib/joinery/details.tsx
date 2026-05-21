@@ -1502,8 +1502,11 @@ function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
   const tCx = QUAD_W / 2;
   const tCy = QUAD_H / 2;
   const tLegSide = PX(mt);
+  // 母件橫向（榫厚方向）至少要容得下榫頭——榫↔薄板 joint 時 tt 可能 > mt，
+  // 用 mt 畫會讓榫頭矩形溢出母件方形、看起來像疊兩層。
+  const tLegSideY = PX(Math.max(mt, tt));
   const tLegX = tCx - tLegSide;
-  const tLegY = tCy - tLegSide / 2;
+  const tLegY = tCy - tLegSideY / 2;
   const tApronLen = Math.min(PX(apronLen), QUAD_W - tLegX - tLegSide - innerPad);
   const tApronH = PX(ct);
   const tApronX = tLegX + tLegSide;
@@ -1546,8 +1549,8 @@ function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
           `L${tTenonX} ${tTenonY} ` +
           `L${tTenonX} ${tTenonY + tTenonH} ` +
           `L${tLegX + tLegSide} ${tTenonY + tTenonH} ` +
-          `L${tLegX + tLegSide} ${tLegY + tLegSide} ` +
-          `L${tLegX} ${tLegY + tLegSide} Z`;
+          `L${tLegX + tLegSide} ${tLegY + tLegSideY} ` +
+          `L${tLegX} ${tLegY + tLegSideY} Z`;
         return (
           <g>
             {/* 母件（剖面 hatching） */}
@@ -1591,10 +1594,10 @@ function LegacyV2BlindTenonDetail(p: JoineryDetailParams) {
             </text>
             {/* 中心線 */}
             <CenterLine x1={tLegX - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
-            <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSide + 10} />
+            <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSideY + 10} />
             {/* 尺寸 */}
             <DimLine x1={tLegX} y1={tLegY - 14} x2={tLegX + tLegSide} y2={tLegY - 14} label={`${mt}`} side="top" />
-            <DimLine x1={tTenonX} y1={tLegY + tLegSide + 14} x2={tLegX + tLegSide} y2={tLegY + tLegSide + 14} label={`${safeTl}`} side="bottom" />
+            <DimLine x1={tTenonX} y1={tLegY + tLegSideY + 14} x2={tLegX + tLegSide} y2={tLegY + tLegSideY + 14} label={`${safeTl}`} side="bottom" />
             <DimLine x1={tApronX + tApronLen + 12} y1={tApronY} x2={tApronX + tApronLen + 12} y2={tApronY + tApronH} label={`${ct}`} side="right" />
             <DimLine x1={tLegX - 14} y1={tTenonY} x2={tLegX - 14} y2={tTenonY + tTenonH} label={`${tt}`} side="left" />
           </g>
@@ -4207,16 +4210,18 @@ function BlindTenonDetail(p: JoineryDetailParams) {
 
   // ============================ TOP view ============================
   const top = (() => {
-    const tBbox = { w: mt + apronLenMm, h: Math.max(mt, ct) };
+    const tBbox = { w: mt + apronLenMm, h: Math.max(mt, tt, ct) };
     const ts = unifiedFitScale(tBbox);
     const TPX = (mm: number) => mm * ts;
     const objW = TPX(tBbox.w);
-    const objH = TPX(mt);
+    const objH = TPX(Math.max(mt, tt));
     const place = placeInQuadrant({ w: objW, h: objH });
     const tLegSide = TPX(mt);
+    // 母件橫向（榫厚方向）至少要容得下榫頭——榫↔薄板 joint 時 tt 可能 > mt。
+    const tLegSideY = TPX(Math.max(mt, tt));
     const tLegX = place.x;
     const tCy = place.y + objH / 2;
-    const tLegY = tCy - tLegSide / 2;
+    const tLegY = tCy - tLegSideY / 2;
     const tApronX = tLegX + tLegSide;
     const tApronLen = TPX(apronLenMm);
     const tApronH = TPX(ct);
@@ -4255,8 +4260,8 @@ function BlindTenonDetail(p: JoineryDetailParams) {
             `L${tTenonX} ${tTenonY} ` +
             `L${tTenonX} ${tTenonY + tTenonH} ` +
             `L${tLegX + tLegSide} ${tTenonY + tTenonH} ` +
-            `L${tLegX + tLegSide} ${tLegY + tLegSide} ` +
-            `L${tLegX} ${tLegY + tLegSide} Z`;
+            `L${tLegX + tLegSide} ${tLegY + tLegSideY} ` +
+            `L${tLegX} ${tLegY + tLegSideY} Z`;
           return (
             <g>
               <path d={legPath} fill={`url(#${hatchId})`} stroke={COLOR.OUTLINE} strokeWidth={STROKE.OUTLINE} />
@@ -4266,11 +4271,11 @@ function BlindTenonDetail(p: JoineryDetailParams) {
                 榫眼底
               </text>
               <CenterLine x1={tLegX - 10} y1={tCy} x2={tApronX + tApronLen + 10} y2={tCy} />
-              <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSide + 10} />
+              <CenterLine x1={tLegX + tLegSide / 2} y1={tLegY - 10} x2={tLegX + tLegSide / 2} y2={tLegY + tLegSideY + 10} />
               <DimLine x1={tLegX} y1={tLegY} x2={tLegX + tLegSide} y2={tLegY} label={`${mt}`}
                 side={safeDimSide("top", `${mt}`, { x: tLegX + tLegSide / 2, y: tLegY }, qBounds)} />
-              <DimLine x1={tTenonX} y1={tLegY + tLegSide} x2={tLegX + tLegSide} y2={tLegY + tLegSide} label={`${safeTl}`}
-                side={safeDimSide("bottom", `${safeTl}`, { x: (tTenonX + tLegX + tLegSide) / 2, y: tLegY + tLegSide }, qBounds)} />
+              <DimLine x1={tTenonX} y1={tLegY + tLegSideY} x2={tLegX + tLegSide} y2={tLegY + tLegSideY} label={`${safeTl}`}
+                side={safeDimSide("bottom", `${safeTl}`, { x: (tTenonX + tLegX + tLegSide) / 2, y: tLegY + tLegSideY }, qBounds)} />
               <DimLine x1={tApronX + tApronLen} y1={tApronY} x2={tApronX + tApronLen} y2={tApronY + tApronH} label={`${ct}`}
                 side={safeDimSide("right", `${ct}`, { x: tApronX + tApronLen, y: tApronY + tApronH / 2 }, qBounds)} />
               <DimLine x1={tLegX} y1={tTenonY} x2={tLegX} y2={tTenonY + tTenonH} label={`${tt}`}
