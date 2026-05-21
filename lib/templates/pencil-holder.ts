@@ -73,7 +73,7 @@ export const pencilHolderOptions: OptionSpec[] = [
     { value: "woodworker-caddy", label: "木工工具盒（方筒 + 9 格 + 鑲板入溝）" },
     { value: "hex-tea-canister", label: "六角茶葉筒（hex + 鑲板入溝整空）" },
     { value: "oct-crossed", label: "八角十字筒（oct + 十字穿心 + 齊邊膠合）" },
-  ], help: "一鍵套適合該情境的形狀 / 接合 / 底板裝法 / 隔板組合，user 後改不蓋。" },
+  ], help: "強制套用該情境的形狀 / 接合 / 底板裝法 / 隔板組合；要自訂請先切到「自訂（不套 preset）」。" },
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
@@ -108,29 +108,30 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const o = pencilHolderOptions;
   const useCase = getOption<string>(input, opt(o, "useCase"));
   const preset = PENCIL_HOLDER_PRESETS[useCase];
+  // 強制套用：選了 preset 後 preset 有定義的欄位一律蓋過使用者當前值
   const wallTRaw = getOption<number>(input, opt(o, "wallThickness"));
-  const wallT = wallTRaw === 8 && preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
+  const wallT = preset?.wallThickness !== undefined ? preset.wallThickness : wallTRaw;
   const botTRaw = getOption<number>(input, opt(o, "bottomThickness"));
-  const botT = botTRaw === 8 && preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
+  const botT = preset?.bottomThickness !== undefined ? preset.bottomThickness : botTRaw;
   const cornerJoineryRaw = getOption<string>(input, opt(o, "cornerJoinery"));
-  const cornerJoinery = (cornerJoineryRaw === "stub-joint" && preset?.cornerJoinery ? preset.cornerJoinery : cornerJoineryRaw) as
+  const cornerJoinery = (preset?.cornerJoinery !== undefined ? preset.cornerJoinery : cornerJoineryRaw) as
     | "stub-joint"
     | "finger-joint"
     | "miter";
   const dividersRaw = getOption<number>(input, opt(o, "dividers"));
-  const dividers = dividersRaw === 0 && preset?.dividers !== undefined ? preset.dividers : dividersRaw;
+  const dividers = preset?.dividers !== undefined ? preset.dividers : dividersRaw;
   const crossDividersRaw = getOption<number>(input, opt(o, "crossDividers"));
-  const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
+  const crossDividers = preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
   const bodyShapeRaw = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
-  const bodyShape = (bodyShapeRaw === "rect" && preset?.bodyShape ? preset.bodyShape : bodyShapeRaw) as "rect" | "hex" | "oct";
+  const bodyShape = (preset?.bodyShape !== undefined ? preset.bodyShape : bodyShapeRaw) as "rect" | "hex" | "oct";
   const bottomAttachRaw = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
-  const bottomAttach = (bottomAttachRaw === "seated" && preset?.bottomAttach ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
+  const bottomAttach = (preset?.bottomAttach !== undefined ? preset.bottomAttach : bottomAttachRaw) as "seated" | "inset-panel" | "flush-glued";
   const polygonDividerStyleRaw = getOption<string>(input, opt(o, "polygonDividerStyle"));
-  const polygonDividerStyle = (polygonDividerStyleRaw === "none" && preset?.polygonDividerStyle ? preset.polygonDividerStyle : polygonDividerStyleRaw);
+  const polygonDividerStyle = preset?.polygonDividerStyle !== undefined ? preset.polygonDividerStyle : polygonDividerStyleRaw;
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInsetRaw = getOption<number>(input, opt(o, "dividerInset"));
-  const dividerInsetPreset = dividerInsetRaw === 0 && preset?.dividerInset !== undefined ? preset.dividerInset : dividerInsetRaw;
+  const dividerInsetPreset = preset?.dividerInset !== undefined ? preset.dividerInset : dividerInsetRaw;
   const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, dividerInsetPreset));
   const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
   const dividerThick = dividerThicknessRaw === 6
