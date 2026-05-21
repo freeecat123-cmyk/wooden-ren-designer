@@ -3228,8 +3228,9 @@ function OrthoViewImpl({
         if (!dims || !dims.cabinet) return null;
         if (view === "side") return null;
 
-        type Tag = { label: string; w: number; h: number; cx: number; cy: number };
-        const tags: Tag[] = [];
+        type Tag = { label: string; d1: number; d2: number; d3: number; cx: number; cy: number; count: number };
+        // key = "label|d1|d2|d3"，相同尺寸只留一個，count 累加
+        const tagMap = new Map<string, Tag>();
 
         const projectCenter = (part: Part) => {
           const proj = makeProjector(part, view);
@@ -3237,51 +3238,64 @@ function OrthoViewImpl({
           return { x: p.x, y: -p.y };
         };
 
-        const pickWH = (part: Part): [number, number] => {
+        const pickWDH = (part: Part): [number, number, number] => {
+          // 顯示寬×深(或高)×厚 → 三軸全部降冪輸出，最厚的板自動排到最後
           const dimsArr = [
             part.visible.length,
             part.visible.width,
             part.visible.thickness,
           ].sort((a, b) => b - a);
-          return [Math.round(dimsArr[0]), Math.round(dimsArr[1])];
+          return [Math.round(dimsArr[0]), Math.round(dimsArr[1]), Math.round(dimsArr[2])];
         };
 
-        // 直接用 id pattern 判斷，不走 categorizePart（後者有 ^ anchor，
-        // 真實櫃類 id 帶前綴如 chest-of-drawers-drawer-1-face 永遠不命中）
+        const addTag = (label: string, part: Part) => {
+          const [d1, d2, d3] = pickWDH(part);
+          const key = `${label}|${d1}|${d2}|${d3}`;
+          const c = projectCenter(part);
+          const existing = tagMap.get(key);
+          if (existing) {
+            existing.count += 1;
+            return;
+          }
+          tagMap.set(key, { label, d1, d2, d3, cx: c.x, cy: c.y, count: 1 });
+        };
+
+        // 直接用 id pattern 判斷，不走 categorizePart（後者 ^ anchor 不認帶前綴 id）
         for (const part of renderDesign.parts) {
-          if (view === "front") {
-            // 門面板：id 結尾 panel（-door-N-panel / 含 panel 段）
-            const isDoorPanel = /-door(-\d+)?-panel$/.test(part.id);
-            // 簡易門（部分 cabinet 用單片門 part 直接 id 是 *-door 或 door-N）
-            const isSimpleDoor = /(^|-)door(-\d+)?$/.test(part.id);
-            if (isDoorPanel || isSimpleDoor) {
-              const [w, h] = pickWH(part);
-              const c = projectCenter(part);
-              tags.push({ label: "門", w, h, cx: c.x, cy: c.y });
-              continue;
-            }
-            // 抽屜面板：id 結尾 face 或 front，且 id 含 drawer 段
-            const isDrawerFront =
-              /drawer/.test(part.id) && /-(face|front)$/.test(part.id);
-            if (isDrawerFront) {
-              const [w, h] = pickWH(part);
-              const c = projectCenter(part);
-              tags.push({ label: "抽屜", w, h, cx: c.x, cy: c.y });
-              continue;
-            }
-            // 層板：櫃類層板從上面被頂板蓋住，所以放 front view 標——層板在
-            // 正視圖會被當「水平線」露出來，把標籤放在它的 Y 位置
-            const isShelf =
-              /(^|-)shelf(-\d+)?$/.test(part.id) || /-shelf-/.test(part.id);
-            if (isShelf) {
-              const [w, h] = pickWH(part);
-              const c = projectCenter(part);
-              tags.push({ label: "層板", w, h, cx: c.x, cy: c.y });
-            }
+          if (view !== "front") continue;
+          // 門：木鑲板（-panel） / 夾板平板門（-slab） / 簡易單片門（結尾 -door 或 door-N）
+          const isDoor =
+            /-door(-\d+)?-(panel|slab)$/.test(part.id) ||
+            /(^|-)door(-\d+)?$/.test(part.id);
+          if (isDoor) {
+            addTag("門", part);
+            continue;
+          }
+          // 抽屜：只標 overlay face（外露面板）；同支抽屜還有 -front 內箱前板，
+          // 不再標避免重疊。若沒有 face 才 fallback 用 front
+          const isDrawerFace = /drawer/.test(part.id) && /-face$/.test(part.id);
+          if (isDrawerFace) {
+            addTag("抽屜", part);
+            continue;
+          }
+          const isDrawerFront = /drawer/.test(part.id) && /-front$/.test(part.id);
+          if (isDrawerFront) {
+            // 檢查同一支抽屜有沒有對應的 -face；有就 skip 這個 front
+            const facePeer = part.id.replace(/-front$/, "-face");
+            const hasFace = renderDesign.parts.some((p) => p.id === facePeer);
+            if (!hasFace) addTag("抽屜", part);
+            continue;
+          }
+          // 層板：櫃類層板從正視圖看得到水平線
+          const isShelf =
+            /(^|-)shelf(-\d+)?$/.test(part.id) || /-shelf-/.test(part.id);
+          if (isShelf) {
+            addTag("層板", part);
           }
         }
 
-        if (tags.length === 0) return null;
+        if (tagMap.size === 0) return null;
+        const tags = Array.from(tagMap.values());
         return (
           <g>
             {tags.map((t, i) => (
@@ -3289,15 +3303,18 @@ function OrthoViewImpl({
                 key={`inline-dim-${view}-${i}`}
                 x={t.cx}
                 y={t.cy}
-                fontSize={11}
+                fontSize={20}
+                fontWeight={600}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#0369a1"
                 stroke="white"
-                strokeWidth={3}
+                strokeWidth={5}
                 paintOrder="stroke"
               >
-                {`${t.label} ${t.w}×${t.h}`}
+                {t.count > 1
+                  ? `${t.label} ${t.d1}×${t.d2}×${t.d3} ×${t.count}`
+                  : `${t.label} ${t.d1}×${t.d2}×${t.d3}`}
               </text>
             ))}
           </g>
