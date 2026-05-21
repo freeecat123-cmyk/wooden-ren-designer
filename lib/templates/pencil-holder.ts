@@ -46,26 +46,21 @@ export const pencilHolderOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "wallThickness", label: "壁厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "number", key: "bottomThickness", label: "底厚 (mm)", defaultValue: 8, min: 5, max: 15, step: 1, unit: "mm" },
   { group: "structure", type: "select", key: "bottomAttach", label: "底板接法", defaultValue: "seated", choices: [
-    { value: "seated", label: "底板內縮（壁立其上膠合，最簡單）" },
+    { value: "seated", label: "底板坐地 + 壁圍上方（原本，膠合最簡單）" },
     { value: "inset-panel", label: "鑲板入溝（像抽屜底板，4 壁開槽嵌入）" },
-    { value: "flush-glued", label: "整塊膠合（底板與外框齊邊）" },
-  ], help: "底板內縮=底板嵌入壁內、壁壓在底板邊緣膠合（最簡單）；鑲板入溝=4 壁內側開 5mm 槽、底板浮嵌（季節伸縮免裂）；整塊膠合=底板整塊外緣與框體齊邊、強力膠合。", wide: true },
+    { value: "flush-glued", label: "整塊黏上去（底板與外框齊邊）" },
+  ], help: "seated=底板比框內小一圈坐地、壁立其上；inset-panel=4 壁內側下緣開 5mm 槽、底板浮嵌（季節伸縮免裂）；flush-glued=底板整塊外緣齊邊、強力膠合。", wide: true },
   { group: "structure", type: "select", key: "cornerJoinery", label: "角接合方式", defaultValue: "stub-joint", choices: [
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
-  ], dependsOn: { key: "bodyShape", equals: "rect" } },
-  { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
-  { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
+  ] },
+  { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）" },
+  { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）" },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
   { group: "structure", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
-  { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。", dependsOn: { key: "bodyShape", equals: "rect" } },
-  { group: "structure", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
-    { value: "none", label: "無隔板" },
-    { value: "single", label: "單片直徑（穿過中心）" },
-    { value: "cross", label: "十字（2 片穿過中心交叉）", dependsOn: { key: "bodyShape", equals: "oct" } },
-  ], dependsOn: { key: "bodyShape", notIn: ["rect"] }, help: "六/八角筒專用。單片穿過盒中心；八角還可以選十字（六角因 wall 間距 60° 不對齊垂直，不支援）。" },
-  { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。", dependsOn: { all: [{ key: "bodyShape", equals: "rect" }, { key: "cornerJoinery", equals: "finger-joint" }] } },
+  { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。" },
+  { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "僅 cornerJoinery=指接 時生效。0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。" },
 ];
 
 /**
@@ -95,7 +90,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
-  const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
   const dividerThick = dividerThicknessRaw === 6
     ? Math.max(3, Math.round(wallT / 2))
@@ -103,143 +97,34 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   // 指接段數：0 = 自動（依壁高奇數），1-30 = 手動指定
   const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
 
-  // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 多邊形底板
+  // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 圓底
   if (bodyShape === "hex" || bodyShape === "oct") {
     const sides = bodyShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
-    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
-    const innerWallVertexR = (apothem - wallT) / Math.cos(Math.PI / sides);
-    const outerWallVertexR = outerD / 2;
-
-    // 依 bottomAttach 決定 wall 起點/高度跟底板尺寸位置
-    let stavesOuterH: number; // 傳入 polygonStaves 算 wallH=outerH-botT
-    let stavesBaseY: number;
-    let bottomOriginY: number;
-    let bottomVertexR: number;
-    let bottomAttachDesc: string;
-    if (bottomAttach === "inset-panel") {
-      stavesOuterH = outerH + botT;  // 內部 wallH = outerH（全高）
-      stavesBaseY = 0;
-      bottomOriginY = botT;
-      // 5mm 卡進壁內側溝槽（沿用 box-builder 慣例 grooveDepth=5）
-      const grooveDepth = Math.min(5, wallT - 1);
-      const bottomApothem = (apothem - wallT) + grooveDepth;
-      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**鑲板入溝**（壁全高、底板邊緣卡進壁內側溝槽 ${grooveDepth}mm）`;
-    } else if (bottomAttach === "flush-glued") {
-      stavesOuterH = outerH;
-      stavesBaseY = botT;
-      bottomOriginY = 0;
-      bottomVertexR = outerWallVertexR; // 底板外緣跟壁外緣齊
-      bottomAttachDesc = "**整塊膠合**（底板外緣與框體齊邊）";
-    } else { // seated
-      stavesOuterH = outerH;
-      stavesBaseY = botT;
-      bottomOriginY = 0;
-      // 底板邊緣往外壓進壁內側 wallT/2，確保有「框壓底」的接合面（沿用 rect 的 BOTTOM_GROOVE_INSET 慣例）
-      const seatOverlap = wallT / 2;
-      const bottomApothem = (apothem - wallT) + seatOverlap;
-      bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
-      bottomAttachDesc = `**底板內縮**（底板邊緣壓入壁內 ${seatOverlap}mm，N 段壁壓在底板邊緣膠合）`;
-    }
-    const staves = polygonStaves({ sides, outerD, outerH: stavesOuterH, wallT, botT, material, baseY: stavesBaseY });
-    // 每塊壁的端面是 miter（角度 = π/N，相鄰兩壁總共 2π/N = 外角）。
-    // local +Y 經 polygon-stave-builder rotation 映射為 radial outward = "outer side"。
-    const miterInset = wallT * Math.tan(Math.PI / sides);
-    for (const stave of staves) {
-      stave.shape = { kind: "mitered-ends", insetEach: miterInset, outerSide: "+y" };
-    }
-    const bottomBbox = 2 * bottomVertexR;
+    const staves = polygonStaves({ sides, outerD, outerH, wallT, botT, material });
+    // 底板大小 = 多邊形內接圓直徑 − 2 wallT（坐進壁內，不超過 stave 外緣）
+    const innerD = outerD * Math.cos(Math.PI / sides) - 2 * wallT - 2;
     const polyBottom: Part = {
       id: "bottom",
       nameZh: `${sides} 角底板`,
       material,
       grainDirection: "length",
-      visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
-      origin: { x: 0, y: bottomOriginY, z: 0 },
-      shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
+      visible: { length: innerD, width: innerD, thickness: botT },
+      origin: { x: 0, y: 0, z: 0 },
+      shape: { kind: "round" },
       tenons: [],
       mortises: [],
     };
-    // 多邊形隔板：single = 1 片穿過中心、cross = 2 片垂直交叉
-    const polygonDividerParts: Part[] = [];
-    // hex 不支援 cross（保險：若舊 URL 帶 cross 強制降到 single）
-    const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle as string;
-    if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
-      const innerFlatR = apothem - wallT;
-      // 固定 5mm dado 槽（沿用 box-builder 慣例），延伸進壁內側並 CSG 挖出可見溝槽
-      const polyDividerGroove = Math.min(5, wallT - 1);
-      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
-      const polyBottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-      const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
-      const polyDividerH = dividerHeightOpt > 0
-        ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
-        : polyDividerHAuto;
-      // 隔板 1：沿世界 Z 軸（垂直於第一壁的方向）
-      polygonDividerParts.push({
-        id: "divider-1",
-        nameZh: "隔板 1（縱）",
-        material,
-        grainDirection: "length",
-        visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
-        origin: { x: 0, y: polyBottomTopY, z: 0 },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-      if (polyDividerStyleStr === "cross") {
-        // 隔板 2：沿世界 X 軸（垂直於隔板 1）
-        polygonDividerParts.push({
-          id: "divider-2",
-          nameZh: "隔板 2（橫）",
-          material,
-          grainDirection: "length",
-          visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
-          origin: { x: 0, y: polyBottomTopY, z: 0 },
-          rotation: { x: Math.PI / 2, y: 0, z: 0 },
-          tenons: [],
-          mortises: [],
-        });
-      }
-      // 在 staves 上加 cosmetic mortise（CSG 挖出 dado 溝槽，可見隔板嵌入）
-      // wall index 對應：第一壁在 ang=π/2 → divider 1 (Z 軸) 進 wall 0 跟 wall N/2
-      // divider 2 (X 軸) 進 wall N/4 跟 wall 3N/4 (僅 oct 用)
-      const addStaveMortise = (staveIdx: number) => {
-        const stave = staves[staveIdx];
-        if (!stave) return;
-        stave.mortises.push({
-          origin: { x: 0, y: wallT, z: 0 },
-          depth: polyDividerGroove + 0.3,
-          length: polyDividerH + 0.5,
-          width: dividerThick + 0.5,
-          through: false,
-          shape: "rect",
-          cosmetic: true,
-        });
-      };
-      addStaveMortise(0);
-      addStaveMortise(sides / 2);
-      if (polyDividerStyleStr === "cross") {
-        addStaveMortise(sides / 4);
-        addStaveMortise((3 * sides) / 4);
-      }
-    }
-    const polyDividerDesc = polyDividerStyleStr === "single"
-      ? "，內部 1 片穿心隔板分 2 區"
-      : polyDividerStyleStr === "cross"
-        ? "，內部十字隔板分 4 區"
-        : "";
-
     return {
       id: `pencil-holder-${bodyShape}-${outerD}x${outerH}`,
       category: "pencil-holder",
       nameZh: `${sides === 6 ? "六" : "八"}角筆筒`,
       overall: { length: outerD, width: outerD, thickness: outerH },
-      parts: [polyBottom, ...staves, ...polygonDividerParts],
+      parts: [polyBottom, ...staves],
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
-      notes: `${sides} 角筆筒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板為 ${sides} 邊形，採 ${bottomAttachDesc}${polyDividerDesc}。`,
+      notes: `${sides} 角筆筒，外接圓 ⌀${outerD}mm × 高 ${outerH}mm，壁厚 ${wallT}mm。${sides} 段直立壁邊接 ${(360 / sides).toFixed(1)}° 斜切（${sides === 6 ? "60° 內角" : "45° 內角"}），相鄰邊用膠合 + biscuit / 暗榫加固。底板⌀${outerD - 2}mm 圓盤從底嵌入或膠合。`,
     };
   }
 
@@ -308,7 +193,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   }
 
   // finger-joint 4 壁掛 finger-joint-ends shape：comb 沿 wallH 方向交錯。
-  let fingerJointInfo: { segmentCount: number; fingerW: number } | null = null;
   if (cornerJoinery === "finger-joint") {
     let segmentCount: number;
     if (fingerSegmentsOpt > 0) {
@@ -319,8 +203,6 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       if (segmentCount % 2 === 0) segmentCount += 1;
       segmentCount = Math.min(13, segmentCount);
     }
-    const wallActualH = bottomAttach === "inset-panel" ? outerH : outerH - botT;
-    fingerJointInfo = { segmentCount, fingerW: wallActualH / segmentCount };
     for (const part of built.parts) {
       let phase: 0 | 1 | null = null;
       if (part.id === "wall-front" || part.id === "wall-back") phase = 0;
@@ -336,76 +218,11 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // 後處理：4 壁 part-local 軸映射修正
-  //
-  // box-builder 預設把「壁高（wallH）」放 visible.width、「壁厚（wallT）」放
-  // visible.thickness、再用 rotation.x=π/2 把 width 翻成世界 Y（垂直）、
-  // thickness 翻成世界 Z（深度）。組裝時三視圖 / 3D 都正確。
-  //
-  // 但「零件圖 modal（isolatePartId）」會把 rotation reset 成 (0,0,0)（讓橫撐
-  // 零件圖回到 part-local 自然姿態）→ 壁的 part-local Y=thickness=8mm 變垂直軸
-  // → FRONT view 渲染成 80×8 扁條，壁高 162mm 被當成深度軸藏在 Z。
-  //
-  // 修法：把壁高搬到 visible.thickness（part-local Y）、壁厚搬到 visible.width
-  // （part-local Z）、rotation 從 rx=π/2 移除（front/back rotation=0；left/right
-  // 只剩 ry=π/2 的水平轉向）。worldExtents 對等變換 → world span X/Y/Z 完全不變
-  // → 3D / 三視圖視覺不變。同步翻 tenon.width↔thickness、mortise origin 與
-  // length/width 對應新軸（depth 改沿 part-local Z = 壁厚 8mm 方向）。
-  // ──────────────────────────────────────────────────────────────────────────
-  for (const part of built.parts) {
-    const isLongWall = part.id === "wall-front" || part.id === "wall-back";
-    const isShortWall = part.id === "wall-left" || part.id === "wall-right";
-    if (!isLongWall && !isShortWall) continue;
-
-    const oldW = part.visible.width;       // 壁高 wallH
-    const oldT = part.visible.thickness;   // 壁厚 wallT
-    // visible：把壁高搬到 thickness、壁厚搬到 width
-    part.visible = { ...part.visible, width: oldT, thickness: oldW };
-    // rotation：移除 rx=π/2；short wall 留 ry=π/2 保持沿 outerW 方向擺位
-    part.rotation = isShortWall
-      ? { x: 0, y: Math.PI / 2, z: 0 }
-      : { x: 0, y: 0, z: 0 };
-
-    // tenons：start/end 慣例 = length 沿 X、width 沿 Z、thickness 沿 Y。
-    // 軸映射翻轉後 cornerTenonW（原沿 Z=壁高）改沿 Y=新 thickness 軸、
-    // cornerTenonT（原沿 Y=壁厚）改沿 Z=新 width 軸 → swap width↔thickness。
-    if (part.tenons.length > 0) {
-      part.tenons = part.tenons.map((t) => ({
-        ...t,
-        width: t.thickness,
-        thickness: t.width,
-      }));
-    }
-
-    // mortises：short wall 兩端的角榫孔。原 origin=(±halfL+offset, 0, 0) +
-    // depth=wallT、auto-fit depthAxis="x"（end face 入榫，pocket 沿 X 深 wallT）。
-    // 軸映射翻轉後 depthAxis 仍應為 "x"，但 y=0「canonical bottom」現在指向新
-    // 壁高=ly=wallH（162mm）的最底邊→變成壁底端面的怪位置；改 y=ly/2 mid-height
-    // 讓 cross-section 落在 part body 中央、auto-fit 走非-canonical 分支。
-    //
-    // length/width 也要 swap：tenon 翻 width↔thickness，audit 規則
-    // mortise.L=tenon.W / mortise.W=tenon.T，等價於 mortise 也 swap L↔W。
-    // 原 buildBox 寫 L=wallH（沿 Z）/ W=wallT（沿 Y），跟翻後 tenon 對不上 →
-    // swap 成 L=wallT / W=wallH 才匹配。
-    if (part.mortises.length > 0) {
-      const newLy = part.visible.thickness;  // = wallH（162mm，新的 part-local Y）
-      part.mortises = part.mortises.map((m) => ({
-        ...m,
-        length: m.width,
-        width: m.length,
-        origin: {
-          x: m.origin.x,    // ±halfL+1（end-X 訊號保留）
-          y: newLy / 2,     // mid-height（from-bottom 慣例，非 canonical）
-          z: 0,             // mid-Z（cross-section 沿 Y/Z auto-fit）
-        },
-      }));
-    }
-  }
-
   // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
   const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
-  const dividerHAuto = Math.max(1, outerH - bottomTopY);
+  // 隔板嵌入壁時，隔板頂面會跟壁頂面 coplanar → z-fight。縮 1mm 防共平面。
+  const insetClearance = dividerInsetOpt > 0 ? 1 : 0;
+  const dividerHAuto = Math.max(1, outerH - bottomTopY - insetClearance);
   const dividerH = dividerHeightOpt > 0
     ? Math.max(1, Math.min(dividerHeightOpt, dividerHAuto))
     : dividerHAuto;
@@ -463,7 +280,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: cornerJoinery === "miter" ? "stub-joint" : cornerJoinery,
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**底板內縮**（底板嵌入框內、4 壁壓在底板邊緣膠合）"}，4 角採${cornerJoinery === "finger-joint" ? `**指接**（外露指狀視覺，新手練習指接的最佳對象）${fingerJointInfo ? `；共 ${fingerJointInfo.segmentCount} 段，每齒寬 ${fingerJointInfo.fingerW.toFixed(1)}mm` : ""}` : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
+    notes: `筆筒 ${outerL}×${outerW}×${outerH}mm，${5 + dividers + crossDividers} 片實木組成。底板${bottomAttach === "inset-panel" ? "**鑲板入溝**（4 壁內側下緣銑 5mm 槽、底板浮嵌，留伸縮空間免裂）" : bottomAttach === "flush-glued" ? "**整塊膠合**（底板外緣與框體齊邊，木工膠夾合即可）" : "**坐地疊裝**（底板坐地、4 壁立其上膠合）"}，4 角採${cornerJoinery === "finger-joint" ? "**指接**（外露指狀視覺，新手練習指接的最佳對象）" : cornerJoinery === "miter" ? "**斜角拼**（45° 對接，最隱形但需 45° 鋸台或斜切片切，膠合 + 細釘加固）" : "**搭接**（rabbet，最簡單，膠合即可）"}。內部 ${built.innerL}×${built.innerW}mm 約可放 ${Math.max(0, Math.floor((built.innerL * built.innerW) / 100))} 支筆。${dividers > 0 ? ` 內部縱向 ${dividers} 片隔板（${dividerThick}mm 厚）。` : ""}${crossDividers > 0 ? ` 橫向 ${crossDividers} 片隔板（${dividerThick}mm 厚）。` : ""}${dividers > 0 && crossDividers > 0 ? ` grid 網格分 ${(dividers + 1) * (crossDividers + 1)} 區。` : ""}`,
   };
 
   if (built.warnings.length) design.warnings = [...built.warnings];
