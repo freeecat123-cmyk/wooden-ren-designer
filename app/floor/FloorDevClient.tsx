@@ -7,7 +7,9 @@
  *   不管在改哪個輸入,結果永遠在眼前。任何輸入變更 → 即時 computeFloorBom 重算。
  */
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { computeFloorBom } from "@/lib/floor/calc";
+import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { DEFAULT_FLOOR_INPUT, type FloorInput, type RoomPolygon } from "@/lib/floor/types";
 import {
   SHAPE_PRESETS,
@@ -25,6 +27,7 @@ import { FloorCanvasEditor } from "./FloorCanvasEditor";
 import { FloorRangeInput } from "./FloorRangeInput";
 
 export function FloorDevClient() {
+  const router = useRouter();
   const [input, setInput] = useState<FloorInput>(DEFAULT_FLOOR_INPUT);
   const bom = useMemo(() => computeFloorBom(input), [input]);
   const [copied, setCopied] = useState(false);
@@ -309,6 +312,14 @@ export function FloorDevClient() {
                 </ul>
               </details>
             )}
+            <button
+              onClick={() =>
+                router.push(`/floor/quote?d=${encodeURIComponent(encodeState(input))}`)
+              }
+              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
+            >
+              🧾 產生報價單
+            </button>
           </div>
         </div>
       </div>

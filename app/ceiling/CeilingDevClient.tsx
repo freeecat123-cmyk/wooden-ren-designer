@@ -17,6 +17,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { encodeState } from "@/lib/engineering-quote/url-codec";
 import {
   DEFAULT_CEILING_INPUT,
   type AlignmentBase,
@@ -48,6 +50,7 @@ interface CustomerInfo {
 const EMPTY_CUSTOMER: CustomerInfo = { name: "", phone: "", address: "", notes: "" };
 
 export function CeilingDevClient() {
+  const router = useRouter();
   const [input, setInput] = useState<CeilingInput>(DEFAULT_CEILING_INPUT);
   const bom = useMemo(() => computeCeilingBom(input), [input]);
 
@@ -526,6 +529,16 @@ export function CeilingDevClient() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="px-5 py-3">
+            <button
+              onClick={() =>
+                router.push(`/ceiling/quote?d=${encodeURIComponent(encodeState(input))}`)
+              }
+              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
+            >
+              🧾 產生報價單
+            </button>
           </div>
         </section>
 
