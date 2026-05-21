@@ -345,11 +345,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         const zCenterY = apronY + apronWidth / 2;
         const xCenterY = zCenterY - apronStaggerMm;
         const apronThrough = apronTenonType === "through-tenon";
+        // 用真實腳面座標（跟 square-stool/round-table 一致）— placeholder ±1
+        // 在 mortiseLocalBox 的 yToFace/xToFace/zToFace 比較會跟 yToFace(~21)
+        // 拉很近，邊界條件 splay/tilt 一動就誤判 depthAxis。實值 ±(legHalfZ)
+        // 讓 zToFace=0.5 強訊號，through 通榫 CSG 才能可靠穿出腳背面。
+        const legHalfX = legW / 2 - 0.5;
+        const legHalfZ = legD / 2 - 0.5;
         if (apronCanHalfStagger) {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
             {
-              origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: c.z > 0 ? -1 : 1 },
+              origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: c.z > 0 ? -legHalfZ : legHalfZ },
               depth: apronTenonLen,
               length: apronUpperTenonH,
               width: apronTenonThick,
@@ -357,7 +363,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫
             {
-              origin: { x: c.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset, z: 0 },
+              origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY + apronLowerTenonOffset, z: 0 },
               depth: apronTenonLen,
               length: apronLowerTenonH,
               width: apronTenonThick,
@@ -367,14 +373,14 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }
         return [
           {
-            origin: { x: 0, y: zCenterY, z: c.z > 0 ? -1 : 1 },
+            origin: { x: 0, y: zCenterY, z: c.z > 0 ? -legHalfZ : legHalfZ },
             depth: apronTenonLen,
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
           },
           {
-            origin: { x: c.x > 0 ? -1 : 1, y: xCenterY, z: 0 },
+            origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY, z: 0 },
             depth: apronTenonLen,
             length: apronTenonW,
             width: apronTenonThick,
@@ -992,13 +998,17 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     else if (stretcherStyle === "h-frame") ["left","right"].forEach(k => stretcherSidesUsed.add(k));
     const needZFace = stretcherSidesUsed.has("left") || stretcherSidesUsed.has("right");
     const needXFace = stretcherSidesUsed.has("front") || stretcherSidesUsed.has("back");
+    // 跟上面 apron mortise 同調：用真實腳面座標，避免 placeholder ±1 跟
+    // yToFace 拉近造成 depthAxis 誤判
+    const lsLegHalfX = legW / 2 - 0.5;
+    const lsLegHalfZ = legD / 2 - 0.5;
     for (const leg of legs) {
       const cx = leg.origin.x;
       const cz = leg.origin.z;
       if (lowerCanHalfStagger) {
         if (needZFace) {
           leg.mortises.push({
-            origin: { x: 0, y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -1 : 1 },
+            origin: { x: 0, y: lsZCenterY + lowerUpperTenonOffset, z: cz > 0 ? -lsLegHalfZ : lsLegHalfZ },
             depth: lowerTenon,
             length: lowerUpperTenonH,
             width: lowerTenonThick,
@@ -1007,7 +1017,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }
         if (needXFace) {
           leg.mortises.push({
-            origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY + lowerLowerTenonOffset, z: 0 },
+            origin: { x: cx > 0 ? -lsLegHalfX : lsLegHalfX, y: lsXCenterY + lowerLowerTenonOffset, z: 0 },
             depth: lowerTenon,
             length: lowerLowerTenonH,
             width: lowerTenonThick,
@@ -1017,7 +1027,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       } else {
         if (needZFace) {
           leg.mortises.push({
-            origin: { x: 0, y: lsZCenterY, z: cz > 0 ? -1 : 1 },
+            origin: { x: 0, y: lsZCenterY, z: cz > 0 ? -lsLegHalfZ : lsLegHalfZ },
             depth: lowerTenon,
             length: lowerTenonW,
             width: lowerTenonThick,
@@ -1026,7 +1036,7 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }
         if (needXFace) {
           leg.mortises.push({
-            origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
+            origin: { x: cx > 0 ? -lsLegHalfX : lsLegHalfX, y: lsXCenterY, z: 0 },
             depth: lowerTenon,
             length: lowerTenonW,
             width: lowerTenonThick,
