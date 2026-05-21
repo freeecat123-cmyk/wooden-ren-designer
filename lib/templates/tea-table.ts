@@ -54,6 +54,12 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 80, min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高（自動上下半榫）；> 0 時下棚板四邊長槽會跟著移動，建議搭配關閉下棚板" },
   { group: "top", type: "checkbox", key: "hasLowerShelf", label: "下棚板", defaultValue: true, help: "關閉則只保留下橫撐" },
+  { group: "top", type: "select", key: "shelfOrientation", label: "下棚條方向", defaultValue: "length", choices: [
+    { value: "length", label: "沿長邊（slat 跨前後橫撐）" },
+    { value: "width", label: "沿短邊（slat 跨左右橫撐，旋轉 90°）" },
+  ], help: "改變棚條鋪設方向。預設沿長邊（length），切換到 width 等於整片棚板旋轉 90°", dependsOn: { key: "hasLowerShelf", equals: true } },
+  { group: "top", type: "number", key: "shelfSlatWidth", label: "下棚條寬 (mm)", defaultValue: 60, min: 20, max: 200, step: 5, unit: "mm", help: "每根棚條的寬度。寬度越大、所需根數越少", dependsOn: { key: "hasLowerShelf", equals: true } },
+  { group: "top", type: "number", key: "shelfSlatThickness", label: "下棚條厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, unit: "mm", dependsOn: { key: "hasLowerShelf", equals: true } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線（風潮款，需用單片大板）", wide: true },
 ];
 
@@ -100,7 +106,9 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const dropLeaf = getOption<string>(input, opt(o, "dropLeaf"));
   const dropLeafWidth = getOption<number>(input, opt(o, "dropLeafWidth"));
-  const shelfThickness = 18;
+  const shelfOrientation = getOption<string>(input, opt(o, "shelfOrientation")) as "length" | "width";
+  const shelfSlatWidth = getOption<number>(input, opt(o, "shelfSlatWidth"));
+  const shelfThickness = getOption<number>(input, opt(o, "shelfSlatThickness"));
 
   // ---- 榫卯標準（套自 square-stool / simple-table builder）----
   // 1) leg ↔ top：依自動規則（topThickness ≤ 25 → 通榫；> 25 → 盲榫深 2/3）
@@ -393,33 +401,39 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   // ----- 下棚板（slat 條板） -----
   // 設計：棚板拆成多條 slat 平鋪在四向下橫撐的「上面」（rest-on），跟 bench under-shelf 同概念。
-  // slat 沿 length 軸（X）走、跨在前後（X 軸）兩支下橫撐上面；slats 在 Z 方向等距排列、
-  // 兩端 slat 緊貼左右（Z 軸）下橫撐內側（避腳）。三視圖看得到 slat 縫隙。
+  // shelfOrientation:
+  //   "length"（預設）→ slat 沿 X 軸走、跨前後（X 軸）橫撐上面，slats 沿 Z 軸排列、兩端緊貼左右（Z 軸）橫撐內側
+  //   "width" → 整片棚板旋轉 90°：slat 沿 Z 軸走（rotation.y=π/2 把 part-local length 從 X 轉到 Z）、
+  //             跨左右（Z 軸）橫撐上面，slats 沿 X 軸排列、兩端緊貼前後（X 軸）橫撐內側
   const stretcherOuterX = length / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
   const stretcherOuterZ = width / 2 - legSize / 2 - legInset + lowerStretcherThickness / 2;
-  // slat 長度：跨到前後（X 軸）橫撐外側面 = 2 * stretcherOuterX
-  const slatLength = 2 * stretcherOuterX;
-  // slat 鋪設區間（Z 方向）：左右（Z 軸）橫撐之間的內側淨距
-  // 左右橫撐內側面 Z = stretcherOuterZ - lowerStretcherThickness
-  const slatInnerZSpan = 2 * (stretcherOuterZ - lowerStretcherThickness);
-  // slat 截面：寬 = 60mm（標準板條），高 = 18mm
-  const slatWidthMm = 60;
+  // shelfOrientation 決定「跨距軸」與「排列軸」：
+  //   length → slat 跨 X、排列 Z；width → slat 跨 Z、排列 X
+  const slatSpanAxisOuter = shelfOrientation === "width" ? stretcherOuterZ : stretcherOuterX;
+  const slatLayoutAxisOuter = shelfOrientation === "width" ? stretcherOuterX : stretcherOuterZ;
+  // slat 長度：跨到對應軸（X 或 Z）橫撐外側面
+  const slatLength = 2 * slatSpanAxisOuter;
+  // slat 鋪設區間：兩端 slat 緊貼排列軸方向橫撐的內側面（內側 = outer - lowerStretcherThickness）
+  const slatInnerSpan = 2 * (slatLayoutAxisOuter - lowerStretcherThickness);
   const slatGapMm = 10;
   // 自動決定 slat 數量：(span + gap) / (slatWidth + gap)
-  const slatCount = Math.max(3, Math.round((slatInnerZSpan + slatGapMm) / (slatWidthMm + slatGapMm)));
-  // 重算實際 gap 讓 slats 兩端齊平左右橫撐內側
+  const slatCount = Math.max(3, Math.round((slatInnerSpan + slatGapMm) / (shelfSlatWidth + slatGapMm)));
+  // 重算實際 gap 讓 slats 兩端齊平橫撐內側
   const actualGap = slatCount > 1
-    ? (slatInnerZSpan - slatCount * slatWidthMm) / (slatCount - 1)
+    ? (slatInnerSpan - slatCount * shelfSlatWidth) / (slatCount - 1)
     : 0;
   // 棚板 Y = 橫撐頂面（origin.y 是 slat bottom 在 world 的位置）
   const shelfY = stretcherFloorOffset + lowerStretcherWidth;
 
   const slatParts: Part[] = [];
   for (let i = 0; i < slatCount; i++) {
-    // slat 中心 Z：從 -slatInnerZSpan/2 + slatWidth/2 起、每步 (slatWidth + actualGap)
-    const slatZ = slatCount === 1
+    // 排列軸上的中心位置：從 -span/2 + slatWidth/2 起、每步 (slatWidth + actualGap)
+    const layoutPos = slatCount === 1
       ? 0
-      : -slatInnerZSpan / 2 + slatWidthMm / 2 + i * (slatWidthMm + actualGap);
+      : -slatInnerSpan / 2 + shelfSlatWidth / 2 + i * (shelfSlatWidth + actualGap);
+    const slatOrigin = shelfOrientation === "width"
+      ? { x: layoutPos, y: shelfY, z: 0 }
+      : { x: 0, y: shelfY, z: layoutPos };
     slatParts.push({
       id: `shelf-slat-${i + 1}`,
       nameZh: `下棚條 ${i + 1}`,
@@ -427,10 +441,14 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       grainDirection: "length",
       visible: {
         length: slatLength,
-        width: slatWidthMm,
+        width: shelfSlatWidth,
         thickness: shelfThickness,
       },
-      origin: { x: 0, y: shelfY, z: slatZ },
+      origin: slatOrigin,
+      // width 模式：旋轉 90°（繞 Y 軸）把 part-local X（length）轉到世界 Z 軸
+      ...(shelfOrientation === "width"
+        ? { rotation: { x: 0, y: Math.PI / 2, z: 0 } }
+        : {}),
       tenons: [],
       mortises: [],
     });
