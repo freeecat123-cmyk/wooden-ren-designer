@@ -5,6 +5,7 @@ import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSugg
 import {
   RECT_LEG_SHAPE_CHOICES,
   seatEdgeOption,
+  seatEdgeBottomOption,
   seatEdgeStyleOption,
   seatEdgeNote,
   seatProfileOption,
@@ -30,7 +31,8 @@ export const benchOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 20, max: 120, step: 1 },
   { group: "top", type: "number", key: "topThickness", label: "座板厚 (mm)", defaultValue: 30, min: 12, max: 60, step: 1 },
   seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  { ...seatEdgeBottomOption("top"), dependsOn: { key: "legInset", notIn: [0] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
   seatProfileOption("top"),
   legEdgeOption("leg", 1),
   legEdgeStyleOption("leg"),
@@ -84,6 +86,7 @@ export const bench: FurnitureTemplate = (input) => {
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
   const seatProfile = getOption<string>(input, opt(o, "seatProfile"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
@@ -105,6 +108,7 @@ export const bench: FurnitureTemplate = (input) => {
   const slatEndInset = getOption<number>(input, opt(o, "slatEndInset"));
   const topRailBendMm = getOption<number>(input, opt(o, "topRailBendMm"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const ladderRungs = getOption<number>(input, opt(o, "ladderRungs"));
   const ladderRailH = getOption<number>(input, opt(o, "ladderRailH"));
@@ -141,6 +145,7 @@ export const bench: FurnitureTemplate = (input) => {
     legShape: (["box", "tapered", "strong-taper", "inverted", "splayed", "splayed-length", "splayed-width", "hoof"].includes(legShape) ? legShape : "box") as "box" | "tapered" | "strong-taper" | "inverted" | "splayed" | "splayed-length" | "splayed-width" | "hoof",
     seatEdge,
     seatEdgeStyle,
+    seatEdgeBottom: seatEdgeBottomClamped,
     seatProfile,
     legEdge,
     legEdgeStyle,
