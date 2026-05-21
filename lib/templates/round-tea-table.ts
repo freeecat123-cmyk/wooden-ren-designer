@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, parseLegChamferMm, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
@@ -39,6 +39,8 @@ export const roundTeaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 20, min: 12, max: 35, step: 1, unit: "mm" },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", help: "茶几較矮，10–15 視覺整體感較佳" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示。0 = 等高（自動上下半榫）" },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固" },
   { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
@@ -72,6 +74,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const withLazySusan = getOption<boolean>(input, opt(o, "withLazySusan"));
   const lazySusanDiameter = getOption<number>(input, opt(o, "lazySusanDiameter"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
@@ -367,7 +371,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
         })
       : isSplayed && apronTopAtSeat
         ? ({ kind: "apron-half-beveled" as const, bevelAngle })
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        : legEdgeShape(apronEdge, apronEdgeStyle);
     const tenonType: "through-tenon" | "shouldered-tenon" =
       apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";
     const tenons = (() => {

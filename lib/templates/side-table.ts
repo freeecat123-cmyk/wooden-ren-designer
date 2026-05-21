@@ -9,6 +9,8 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  apronEdgeOption,
+  apronEdgeStyleOption,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
@@ -36,6 +38,8 @@ export const sideTableOptions: OptionSpec[] = [
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加下橫撐", defaultValue: false },
   { group: "leg", type: "number", key: "legInset", label: "桌腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "邊桌總高約 600，5–10 比例適中", dependsOn: { key: "withDrawer", equals: false } },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 0, min: 0, max: 500, step: 10, dependsOn: { key: "withLowerStretchers", equals: true } },
   // ----- 前緣抽屜（藏雜物 / 床頭物品）-----
   { group: "drawer", type: "checkbox", key: "withDrawer", label: "加抽屜", defaultValue: false, help: "前緣抽屜，掛在前牙板下方" },
@@ -64,6 +68,8 @@ export const sideTable: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
   const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -105,6 +111,8 @@ export const sideTable: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
+    apronEdge,
+    apronEdgeStyle,
     notes: `床側收納用矮桌，可加下橫撐增穩定。${withDrawer ? ` 含 1 個前緣抽屜（面板高 ${drawerHeight}mm，${drawerFaceOffset === 0 ? "跟正面齊平" : drawerFaceOffset > 0 ? `凸出 ${drawerFaceOffset}mm` : `內縮 ${-drawerFaceOffset}mm`}）。${drawerSlideType === "side-mount" ? "三段滑軌（兩側各留 12.5mm 鎖滑軌）" : "無滑軌（兩側 1mm 鬆配，純木工）"}。 把手：${pullStyle === "none" ? "無" : pullStyle === "knob" ? "圓把手" : "長條把手"}。` : ""}`,
   });
 

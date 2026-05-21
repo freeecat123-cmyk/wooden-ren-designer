@@ -97,6 +97,10 @@ export interface SimpleTableOpts {
   stretcherEdge?: string | number;
   /** 牙板/橫撐邊緣樣式 */
   stretcherEdgeStyle?: string;
+  /** 牙板邊緣倒角（mm）— 獨立於 stretcherEdge。0 = 直角。未指定時 fallback 到 stretcherEdge */
+  apronEdge?: string | number;
+  /** 牙板邊緣樣式 — 未指定時 fallback 到 stretcherEdgeStyle */
+  apronEdgeStyle?: string;
   /** 桌面拼板片數（1-4）。> 1 時材料單顯示 N 片小料、裁切器拆 N 片排料 */
   topPanelPieces?: number;
   /** 腳上榫頭通透（明榫裝飾）：勾選 → 牙板/下橫撐進腳改通榫（穿透腳另一面）。
@@ -521,7 +525,10 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       ? { kind: "apron-trapezoid" as const, topLengthScale: trapTopScale, bottomLengthScale: trapBotScale, bevelAngle: apronBevelAngle || undefined, bevelMode: useHalfBevel ? "half" as const : undefined }
       : isSplayed && useHalfBevel
         ? { kind: "apron-beveled" as const, bevelAngle }
-        : legEdgeShape(opts.stretcherEdge, opts.stretcherEdgeStyle);
+        : legEdgeShape(
+            opts.apronEdge ?? opts.stretcherEdge,
+            opts.apronEdgeStyle ?? opts.stretcherEdgeStyle,
+          );
     // 半榫指派：靜止 Z（左右）= 上半榫（保留 top 肩 + 10mm 上肩）；移動 X（前後）= 下半榫（無上下肩）
     const tenonType: "through-tenon" | "shouldered-tenon" =
       apronTenonType === "through-tenon" ? "through-tenon" : "shouldered-tenon";

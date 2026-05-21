@@ -12,6 +12,8 @@ import {
   legEdgeStyleOption,
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
+  apronEdgeOption,
+  apronEdgeStyleOption,
   pullStyleOption,
   legEdgeShape,
 } from "./_helpers";
@@ -54,6 +56,8 @@ export const deskOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
@@ -129,6 +133,8 @@ export const desk: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const liveEdge = getOption<boolean>(input, opt(o, "liveEdge"));
   const withModestyPanelRaw = getOption<boolean>(input, opt(o, "withModestyPanel"));
   // 斜腳 / 夏克腳款 modesty 板會跟外傾腳 / 下半圓錐幾何衝突，強制取消
@@ -200,6 +206,8 @@ export const desk: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
+    apronEdge,
+    apronEdgeStyle,
     liveEdge,
     notes: `書桌/辦公桌：桌腳 ${legSize}mm${legShape === "tapered" ? "（錐形）" : legShape === "shaker" ? "（夏克）" : ""}、牙板 ${apronWidth}×${apronThickness}mm${drawerStyle === "pedestal" ? `、${drawerSide === "center" ? "中央" : drawerSide === "left" ? "左側" : "右側"}懸吊 ${drawerCount} 抽屜` : drawerStyle === "apron" ? `、牙板抽屜 ${drawerCount} 個` : "、無抽屜"}。${liveEdge ? " Live edge 原木邊。" : ""}${withModestyPanel ? " 後方加 350mm 高 modesty 飾遮腿板。" : ""}`,
   });

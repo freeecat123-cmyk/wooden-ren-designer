@@ -15,6 +15,8 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
+  apronEdgeOption,
+  apronEdgeStyleOption,
   legShapeLabel,
 } from "./_helpers";
 import {
@@ -36,6 +38,8 @@ export const benchOptions: OptionSpec[] = [
   stretcherEdgeStyleOption("stretcher"),
   { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5, help: "長凳常見 50–70；80+ 配薄座板會頭輕腳重" },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 400, step: 5 },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
@@ -85,6 +89,8 @@ export const bench: FurnitureTemplate = (input) => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const apronWidth = getOption<number>(input, opt(o, "apronWidth"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
@@ -140,6 +146,8 @@ export const bench: FurnitureTemplate = (input) => {
     legEdgeStyle,
     stretcherEdge,
     stretcherEdgeStyle,
+    apronEdge,
+    apronEdgeStyle,
     notes: `腳樣式：${legShapeLabel(legShape)}。長凳腳粗越大越穩；超過 1.2m 建議開啟中央橫撐防扭。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${seatProfileNote(seatProfile) ? ` ${seatProfileNote(seatProfile)}` : ""}${endSplat !== "none" ? ` 椅背：${endSplat === "low" ? "150mm 板式（腰靠感）" : endSplat === "high" ? "350mm 板式" : endSplat === "slatted" ? "直格條 5 料" : endSplat === "ladder" ? "橫格條 3 條" : "Windsor 風（邊柱+5 圓料）"}。` : ""}`,
   });
 

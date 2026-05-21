@@ -382,6 +382,48 @@ export function stretcherEdgeStyleOption(
   };
 }
 
+/** 牙板 / 牙條倒角（apron）—— 走跟 stretcher 一樣的 4 邊倒角邏輯，
+ *  跟 stretcher 拆開讓使用者能個別調。tapered/splayed 腳形時牙板會變梯形
+ *  (apron-trapezoid)，倒角會被無視——template 加 dependsOn 自行決定要不要隱藏。 */
+export function apronEdgeOption(
+  group: OptionGroup = "apron",
+  defaultValue: number = 1,
+): OptionSpec {
+  return {
+    group,
+    type: "number",
+    key: "apronEdge",
+    label: "牙板倒角 (mm)",
+    defaultValue,
+    min: 0,
+    max: 15,
+    step: 1,
+    unit: "mm",
+    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊。tapered/splayed 腳形時牙板會變梯形，倒角無效",
+  };
+}
+
+export function apronEdgeStyleOption(
+  group: OptionGroup = "apron",
+  defaultValue: string = "chamfered",
+): OptionSpec {
+  return {
+    group,
+    type: "select",
+    key: "apronEdgeStyle",
+    label: "牙板倒角樣式",
+    defaultValue,
+    choices: EDGE_STYLE_CHOICES,
+    dependsOn: { key: "apronEdge", notIn: [0] },
+  };
+}
+
+export function apronEdgeNote(apronEdge: string | number, style: string = "chamfered"): string {
+  const mm = parseLegChamferMm(apronEdge);
+  if (mm <= 0) return "";
+  return ` 牙板 4 邊${style === "rounded" ? `R${mm} 圓角` : `${mm}mm 倒角`}。`;
+}
+
 /** seat 邊緣 shape：mm > 0 才回傳 chamfered-top shape，0 = 不修飾。
  *  style="rounded" 用多段 chamfer 拼近似圓角，"chamfered"（默認）用單段 45°。
  *  bothSides=true 時底面也倒角（腳內縮時座板下緣外露才用得到）。 */

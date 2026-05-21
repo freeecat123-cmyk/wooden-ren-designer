@@ -18,6 +18,8 @@ import {
   stretcherEdgeOption,
   stretcherEdgeStyleOption,
   stretcherEdgeNote,
+  apronEdgeOption,
+  apronEdgeStyleOption,
   legBottomScale,
   legScaleAt,
 } from "./_helpers";
@@ -49,6 +51,8 @@ export const teaTableOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "牙板頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
   { group: "stretcher", type: "number", key: "lowerStretcherThickness", label: "下橫撐厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
   { group: "stretcher", type: "number", key: "lowerStretcherHeight", label: "下橫撐離地高 (mm)", defaultValue: 120, min: 10, max: 400, step: 10, help: "下橫撐底面距地高度" },
@@ -93,6 +97,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const upperApronWidth = getOption<number>(input, opt(o, "upperApronWidth"));
   const upperApronThickness = getOption<number>(input, opt(o, "upperApronThickness"));
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
@@ -356,7 +362,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
     trapBotScaleX: apronTrapBotScaleX,
     trapTopScaleZ: apronTrapTopScaleZ,
     trapBotScaleZ: apronTrapBotScaleZ,
-    fallbackShape: legEdgeShape(stretcherEdge, stretcherEdgeStyle),
+    fallbackShape: legEdgeShape(apronEdge, apronEdgeStyle),
     extraMortises: () => [],
     // 前後牙板（X 軸）整支物理下移 apronStaggerMm；左右（Z 軸）不動
     xAxisYDelta: -apronStaggerMm,

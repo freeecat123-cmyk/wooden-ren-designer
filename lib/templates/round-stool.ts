@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundStoolOptions: OptionSpec[] = [
@@ -37,6 +37,8 @@ export const roundStoolOptions: OptionSpec[] = [
   { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示。0 = 等高（自動上下半榫避免穿模）", dependsOn: { key: "withApron", equals: true } },
+  apronEdgeOption("apron", 1),
+  apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐，更耐絆腳但料較費" },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 30, min: 20, max: 100, step: 5, unit: "mm", dependsOn: { key: "withLowerStretcher", equals: true } },
@@ -63,6 +65,8 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
   const stretcherEdgeStyle = getOption<string>(input, opt(o, "stretcherEdgeStyle"));
+  const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
+  const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
@@ -390,7 +394,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       // apronTopAtSeat 時把 bevel 一起帶進去，蓋掉舊的 apron-half-beveled 分支
       const partShape = (hasTaper || isSplayed)
         ? { kind: "apron-trapezoid" as const, topLengthScale: geom.trapTop, bottomLengthScale: geom.trapBot, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
-        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        : legEdgeShape(apronEdge, apronEdgeStyle);
       // tenon：A 半榫錯位 — 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
       // tenon type 依自動規則 / legPenetratingTenon
       const tenonType: "through-tenon" | "shouldered-tenon" =
