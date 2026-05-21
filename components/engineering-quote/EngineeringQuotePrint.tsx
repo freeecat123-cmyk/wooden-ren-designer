@@ -49,6 +49,7 @@ export function EngineeringQuotePrint({
           {customer.phone && <div>{customer.phone}</div>}
           {customer.address && <div>{customer.address}</div>}
           {customer.taxId && <div>統編 {customer.taxId}</div>}
+          {customer.email && <div>{customer.email}</div>}
         </div>
       </div>
 
@@ -74,7 +75,7 @@ export function EngineeringQuotePrint({
         </thead>
         <tbody>
           {b.lines.map((ln, i) => (
-            <tr key={i} className="border-b border-zinc-100">
+            <tr key={ln.label} className="border-b border-zinc-100">
               <td className="py-1">{ln.label}</td>
               <td className="py-1 text-zinc-500">{ln.detail ?? ""}</td>
               <td className="py-1 text-right">
@@ -101,7 +102,7 @@ export function EngineeringQuotePrint({
         {b.discountAmount > 0 && (
           <Row label="折扣" value={`−${formatTWD(b.discountAmount)}`} />
         )}
-        <Row label="營業稅 5%" value={formatTWD(b.vat)} />
+        <Row label={`營業稅 ${Math.round(input.vatRate * 100)}%`} value={formatTWD(b.vat)} />
         <Row label="總計" value={formatTWD(b.total)} bold />
         <Row label="訂金" value={formatTWD(b.depositAmount)} />
         <Row label="交貨尾款" value={formatTWD(b.balanceAmount)} />
@@ -114,6 +115,7 @@ export function EngineeringQuotePrint({
 
       {/* ===== 第 2 頁 ===== */}
       <div className="quote-page-break" />
+      {/* deliveryWorkdays 不傳:工程報價無工時模型,不估施工天數(spec 範圍外) */}
       <BrandedTermsBlocks
         depositRate={input.depositRate}
         depositAmount={b.depositAmount}
