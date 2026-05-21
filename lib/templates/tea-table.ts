@@ -44,8 +44,8 @@ export const teaTableOptions: OptionSpec[] = [
   legEdgeStyleOption("leg"),
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
-  { group: "apron", type: "number", key: "upperApronWidth", label: "上橫撐高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
-  { group: "apron", type: "number", key: "upperApronThickness", label: "上橫撐厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
+  { group: "apron", type: "number", key: "upperApronWidth", label: "牙板高 (mm)", defaultValue: 70, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "upperApronThickness", label: "牙板厚 (mm)", defaultValue: 22, min: 12, max: 50, step: 1 },
   { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, help: "牙板頂緣往下退離桌面下緣的距離。0 = 貼齊" },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：上下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）" },
@@ -324,7 +324,7 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   const upperAprons: Part[] = makeApronRing({
     idPrefix: "upper-apron",
-    nameZhPrefix: "上橫撐",
+    nameZhPrefix: "牙板",
     span: apronInnerSpan,
     overallLength: length,
     overallWidth: width,

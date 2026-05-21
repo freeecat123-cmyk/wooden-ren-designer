@@ -188,13 +188,22 @@ export function PartDrawing({
               // 增強——append `max-h-[80vh]`，preserveAspectRatio 自動把 viewBox
               // 縮進 viewport 高度內、part 置中、左右留白可接受（比 viewport
               // 截掉 80% part 好）。row 模式不動 caller className。
+              // zoom > 1：SVG 改用 h-full 配合 wrapper 的 width/height: zoom*100%
+              // 一起放大；wrapper 高度從外層 fixed-height scroll container（h-[70vh]）
+              // 取百分比，1× 剛好 fit、2× 真的 2× of fit。
+              // 用 h-auto+max-h 在 1× 是 fit-by-height、>1× 卻變 fit-by-width，
+              // 兩個基準對不上，2× 看起來像 5×（user 2026-05-21 回報）。
               const needViewportClamp =
+                zoom <= 1 &&
                 (viewLayout === "stack" || singleView !== undefined) &&
                 orthoClassName !== undefined &&
                 !/max-h-/.test(orthoClassName);
-              const effectiveOrthoClassName = needViewportClamp
-                ? `${orthoClassName} max-h-[80vh]`
-                : orthoClassName;
+              const effectiveOrthoClassName =
+                zoom > 1
+                  ? "bg-white w-full h-full"
+                  : needViewportClamp
+                  ? `${orthoClassName} max-h-[80vh]`
+                  : orthoClassName;
               const orthoEl = (
                 <OrthoView
                   design={design}
@@ -239,7 +248,7 @@ export function PartDrawing({
                     ref={(el) => {
                       scrollRefs.current[vIdx] = el;
                     }}
-                    className="overflow-auto max-h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]"
+                    className="overflow-auto h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]"
                   >
                     <div style={zoomWrapStyle} className="flex items-center justify-center">
                       {orthoEl}

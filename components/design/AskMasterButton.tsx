@@ -51,7 +51,7 @@ export function AskMasterButton({
     parts.push(`尺寸 ${length} × ${width} × ${height}mm`);
     parts.push(`木種 ${materialName}`);
     if (legShape) parts.push(`腳形 ${legShape}${legSize ? ` ${legSize}mm` : ""}`);
-    if (apronWidth) parts.push(`牙條高 ${apronWidth}mm`);
+    if (apronWidth) parts.push(`牙板高 ${apronWidth}mm`);
     if (splayAngle && splayAngle !== "0") parts.push(`外斜 ${splayAngle}°`);
     if (backStyle) parts.push(`椅背 ${backStyle}`);
     if (seatProfile && seatProfile !== "flat") parts.push(`座面 ${seatProfile}`);

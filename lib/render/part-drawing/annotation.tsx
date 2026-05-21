@@ -2635,10 +2635,13 @@ export function CompoundMiterAnnotation({
           // 沿 length 軸（X major）
           primaryDeg = Math.abs((Math.atan2(ax.y, Math.abs(ax.x)) * 180) / Math.PI);
           secondaryDeg = Math.abs((Math.atan2(ax.z, Math.abs(ax.x)) * 180) / Math.PI);
-          const localX = isEnd ? +L / 2 : -L / 2;
+          // X：從 part 邊角往內縮 6mm，讓文字主體留在 frame 內側、不貼到右邊界
+          // Y：從 part 底邊外推 45mm（原 28mm），讓出 T2 tenon length dim「30」
+          //   chain 空間（user 2026-05-21 回報蓋到尺寸）
+          const localX = isEnd ? +L / 2 - 6 : -L / 2 + 6;
           const bottom = ctx.partLocalToSvg(localX, -T / 2, 0);
           labelX = bottom.x;
-          labelY = bottom.y + 28;
+          labelY = bottom.y + 45;
           side = isEnd ? "end" : "start";
           endLabel = isEnd ? "尾端" : "起端";
         } else if (isTop || isBottom) {

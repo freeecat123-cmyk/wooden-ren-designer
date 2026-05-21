@@ -3298,7 +3298,7 @@ const CATEGORY_LABEL: Record<PartCategory, string> = {
   divider: "═ 層板 / 分隔板",
   drawer: "🧺 抽屜",
   door: "🚪 門",
-  apron: "━ 牙板 / 橫撐",
+  apron: "━ 牙板",
   seat: "🪑 座板 / 椅背",
   leg: "🦵 腳 / 底座",
   misc: "⚙ 其他",

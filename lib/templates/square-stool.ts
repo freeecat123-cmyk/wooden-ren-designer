@@ -325,19 +325,19 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronCenterY);  // 左右（Z）牙板，靜止
   const apronGeomX = apronGeomFor(apronCenterY - (apronVisuallyStaggered ? apronStaggerMm : 0));  // 前後（X）牙板，下移後
   const apronSides = [
-    { id: "apron-front", nameZh: "前橫撐",
+    { id: "apron-front", nameZh: "前牙板",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: -1,
       origin: { x: 0, z: -(apronEdgeZ + apronGeomX.splayZ) } },
-    { id: "apron-back", nameZh: "後橫撐",
+    { id: "apron-back", nameZh: "後牙板",
       visibleLength: 2 * apronEdgeX - apronGeomX.legSizeCenter + 2 * apronGeomX.splayX,
       axis: "x" as const, sx: 0, sz: 1,
       origin: { x: 0, z: apronEdgeZ + apronGeomX.splayZ } },
-    { id: "apron-left", nameZh: "左橫撐",
+    { id: "apron-left", nameZh: "左牙板",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: -1, sz: 0,
       origin: { x: -(apronEdgeX + apronGeomZ.splayX), z: 0 } },
-    { id: "apron-right", nameZh: "右橫撐",
+    { id: "apron-right", nameZh: "右牙板",
       visibleLength: 2 * apronEdgeZ - apronGeomZ.legSizeCenter + 2 * apronGeomZ.splayZ,
       axis: "z" as const, sx: 1, sz: 0,
       origin: { x: apronEdgeX + apronGeomZ.splayX, z: 0 } },

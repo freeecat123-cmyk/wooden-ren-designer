@@ -32,10 +32,10 @@ export const roundStoolOptions: OptionSpec[] = [
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
   ] },
   { group: "leg", type: "number", key: "splayAngle", label: "外斜角度（°）", defaultValue: 8, min: 0, max: 20, step: 1, unit: "°", help: "整支腳外傾的角度，0=直立，max 20°。牙板/橫撐會跟著腳一起斜同角度。僅外斜系列有效", dependsOn: { key: "legShape", oneOf: ["splayed-tapered", "splayed-round-taper-down", "splayed-round-taper-up"] } },
-  { group: "apron", type: "checkbox", key: "withApron", label: "加上橫撐", defaultValue: true, help: "座板下方接腳的橫撐，結構穩固" },
-  { group: "apron", type: "number", key: "apronWidth", label: "上橫撐高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronThickness", label: "上橫撐厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm", dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "上橫撐距座板 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "座板下方接腳的牙板，結構穩固" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 45, min: 25, max: 120, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 18, min: 10, max: 35, step: 1, unit: "mm", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示。0 = 等高（自動上下半榫避免穿模）", dependsOn: { key: "withApron", equals: true } },
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "withApron", equals: true } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐，更耐絆腳但料較費" },
@@ -350,10 +350,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     const apronGeomZ = apronGeomFor(apronYCenter0);
     const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
     const sides = [
-      { id: "apron-front", nameZh: "前橫撐", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-      { id: "apron-back", nameZh: "後橫撐", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-      { id: "apron-left", nameZh: "左橫撐", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-      { id: "apron-right", nameZh: "右橫撐", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+      { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+      { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+      { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+      { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
     ];
     // half-bevel 條件：apronDropFromTop===0（牙板頂面貼椅面）才用 half-bevel 讓頂面水平
     const apronTopAtSeat = apronDropFromTop === 0;
