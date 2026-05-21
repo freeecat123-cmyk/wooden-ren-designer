@@ -18,7 +18,6 @@ import { MATERIALS } from "@/lib/materials";
 import {
   T1Dimensions,
   T2Annotations,
-  GrainArrow,
   FacingMark,
   ShapeSpecificAnnotation,
   CompoundMiterAnnotation,
@@ -218,7 +217,6 @@ export function PartDrawing({
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />
                       <T2Annotations ctx={ctx} part={part} view={view} />
-                      <GrainArrow ctx={ctx} part={part} view={view} />
                       <FacingMark ctx={ctx} part={part} view={view} />
                       <ShapeSpecificAnnotation
                         ctx={ctx}
