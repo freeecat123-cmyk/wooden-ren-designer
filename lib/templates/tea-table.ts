@@ -64,6 +64,11 @@ export const teaTableOptions: OptionSpec[] = [
   ], help: "改變棚條鋪設方向。預設沿長邊（length），切換到 width 等於整片棚板旋轉 90°", dependsOn: { key: "hasLowerShelf", equals: true } },
   { group: "top", type: "number", key: "shelfSlatWidth", label: "下棚條寬 (mm)", defaultValue: 60, min: 20, max: 200, step: 5, unit: "mm", help: "每根棚條的寬度。寬度越大、所需根數越少", dependsOn: { key: "hasLowerShelf", equals: true } },
   { group: "top", type: "number", key: "shelfSlatThickness", label: "下棚條厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, unit: "mm", dependsOn: { key: "hasLowerShelf", equals: true } },
+  { group: "top", type: "number", key: "shelfSlatEdge", label: "下棚條倒角 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "棚條 4 條長邊倒角；0 = 無倒角；3-5 細倒邊；8 起明顯八角斷面", dependsOn: { key: "hasLowerShelf", equals: true } },
+  { group: "top", type: "select", key: "shelfSlatEdgeStyle", label: "下棚條倒角樣式", defaultValue: "chamfered", choices: [
+    { value: "chamfered", label: "45° 倒角 (V 型刀)" },
+    { value: "rounded", label: "圓角 (R 角刀)" },
+  ], dependsOn: { all: [{ key: "hasLowerShelf", equals: true }, { key: "shelfSlatEdge", notIn: [0] }] } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線（風潮款，需用單片大板）", wide: true },
 ];
 
@@ -115,6 +120,8 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
   const shelfOrientation = getOption<string>(input, opt(o, "shelfOrientation")) as "length" | "width";
   const shelfSlatWidth = getOption<number>(input, opt(o, "shelfSlatWidth"));
   const shelfThickness = getOption<number>(input, opt(o, "shelfSlatThickness"));
+  const shelfSlatEdge = getOption<number>(input, opt(o, "shelfSlatEdge"));
+  const shelfSlatEdgeStyle = getOption<string>(input, opt(o, "shelfSlatEdgeStyle"));
 
   // ---- 榫卯標準（套自 square-stool / simple-table builder）----
   // 1) leg ↔ top：依自動規則（topThickness ≤ 25 → 通榫；> 25 → 盲榫深 2/3）
@@ -454,6 +461,10 @@ export const teaTable: FurnitureTemplate = (input): FurnitureDesign => {
       // width 模式：旋轉 90°（繞 Y 軸）把 part-local X（length）轉到世界 Z 軸
       ...(shelfOrientation === "width"
         ? { rotation: { x: 0, y: Math.PI / 2, z: 0 } }
+        : {}),
+      // 下棚條 4 條長邊倒角（user 要求加開關，hasLowerShelf=true 才出現）
+      ...(shelfSlatEdge > 0
+        ? { shape: { kind: "chamfered-edges" as const, chamferMm: shelfSlatEdge, style: shelfSlatEdgeStyle === "rounded" ? "rounded" as const : "chamfered" as const } }
         : {}),
       tenons: [],
       mortises: [],
