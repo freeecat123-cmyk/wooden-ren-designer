@@ -286,7 +286,9 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
       (p) => p.id.endsWith("-panel") && p.id.includes("-door-") && !p.id.includes("-door-inner"),
     );
     for (const panel of louverPanels) {
-      const openW = panel.visible.length - 2 * grooveDepth; // 框內開口寬
+      // 葉片長度 = 原木鑲板全寬（panelOuterW）：整片直接卡進左右豎梃凹槽
+      // （兩端各埋 grooveDepth），不另做榫。跟原本木鑲板入框做法一致。
+      const slatLen = panel.visible.length;
       const openH = panel.visible.width - 2 * grooveDepth;  // 框內開口高
       const openBottomY = panel.origin.y + grooveDepth;
       const count = Math.max(2, Math.floor(openH / slatPitch));
@@ -299,7 +301,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
           nameZh: `${baseName}百葉條`,
           material: panel.material,
           grainDirection: "length",
-          visible: { length: openW, width: slatFaceH, thickness: slatThick },
+          visible: { length: slatLen, width: slatFaceH, thickness: slatThick },
           origin: {
             x: panel.origin.x,
             y: openBottomY + margin + r * slatPitch + (slatPitch - slatFaceH) / 2,

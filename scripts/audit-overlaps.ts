@@ -139,9 +139,10 @@ for (const entry of FURNITURE_CATALOG) {
       : allOverlaps;
     // 門框+鑲板的合法 joinery overlap：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
     // 是物理正確結構（frame & panel construction），audit 不該擋。
+    // 百葉門的百葉條（-louver-N）兩端同樣整片卡進豎梃凹槽，視同鑲板入框。
     const overlaps = buttJointFiltered.filter((o) => {
       const ids = [o.a, o.b].sort();
-      const isPanel = (id: string) => /-door-\d+-panel(-|$)/.test(id);
+      const isPanel = (id: string) => /-door-\d+-(panel|louver-\d+)(-|$)/.test(id);
       const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
       return !((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0])));
     });
