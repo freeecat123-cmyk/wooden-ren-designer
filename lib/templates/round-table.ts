@@ -342,7 +342,6 @@ export const roundTableOptions: OptionSpec[] = [
     { value: "round-taper-up", label: "倒圓錐腳（上細下粗）" },
     { value: "heavy-round-taper", label: "重型圓錐腳（大幅下收）" },
     { value: "shaker", label: "夏克風腳（方頂 + 圓錐）" },
-    { value: "lathe-turned", label: "車旋腳（古典花瓶輪廓）" },
     { value: "splayed-tapered", label: "外斜方錐腳（整支外傾）" },
     { value: "splayed-round-taper-down", label: "外斜圓錐腳（外傾 + 上粗下細）" },
     { value: "splayed-round-taper-up", label: "外斜倒圓錐腳（外傾 + 上細下粗）" },
