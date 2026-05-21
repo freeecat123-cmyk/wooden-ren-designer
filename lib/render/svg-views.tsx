@@ -2264,7 +2264,7 @@ function OrthoViewImpl({
                   part.shape?.kind === "round-tapered" ||
                   part.shape?.kind === "shaker" ||
                   part.shape?.kind === "splayed-round-tapered";
-                if (isRoundLegPart && t.position === "top") {
+                if (isRoundLegPart && (t.position === "top" || t.position === "bottom")) {
                   if (view === "top") {
                     // 俯視：圓榫畫成圓（圓料 cross-section）
                     const cx = r.x + r.w / 2;
@@ -2285,32 +2285,36 @@ function OrthoViewImpl({
                     );
                   } else {
                     // 正/側視：圓柱榫的側面投影 = 兩條沿腳中軸方向的平行延伸線
-                    // 不畫端面 cap（圓料端面是圓，但從側看就是線，畫了像方框）
-                    const cxBase = r.x + r.w / 2;  // 腳頂榫中心 X（在 r 底部，因為 tenon 從腳頂往上 = +Y 方向）
-                    const yBaseWorld = r.y;  // 腳頂 Y
-                    const yTopWorld = r.y + r.h;  // 榫頂 Y
+                    // top tenon：root 在 r.y（低 Y），tip 在 r.y+r.h（高 Y），軸向 +Y
+                    // bottom tenon：root 在 r.y+r.h（高 Y），tip 在 r.y（低 Y），軸向 -Y
+                    const isTopPos = t.position === "top";
+                    const cxBase = r.x + r.w / 2;
+                    const yBaseWorld = isTopPos ? r.y : r.y + r.h;  // root face Y
+                    const yTopWorld = isTopPos ? r.y + r.h : r.y;   // tip face Y
                     const halfWidth = r.w / 2;  // 圓料半徑
-                    // 腳中軸方向（從腳頂指向榫頂）：直腳=(0,1)，splayed=(-dx, lh) 歸一化
+                    // 腳中軸方向（top tenon = 腳頂往榫頂；bottom tenon = 圓料底往榫尖即繼續往下）
+                    // 直腳=(0, ±1)，splayed-round-tapered=(±dx, ±lh) 歸一化
                     let axDx = 0;
-                    let axDy = 1;
+                    let axDy = isTopPos ? 1 : -1;
                     if (part.shape?.kind === "splayed-round-tapered") {
                       const dx = part.shape.dxMm ?? 0;
                       const dz = part.shape.dzMm ?? 0;
                       const lh = part.visible.thickness;
                       if (lh > 0) {
-                        // 世界中腳軸往上 = (-dx, +lh, -dz)；投到 screen：
-                        //   front: screen X = -world X → screen Δx = +dx
-                        //   side:  screen X = -world Z（前=右慣例）→ screen Δx = +dz
-                        // screen Y = world Y 對 front/side 一致，axDy = lh/norm
+                        // top tenon: leg axis (bot→top) = (-dx, +lh, -dz)；繼續延伸上去 same direction
+                        // bottom tenon: spindle axis (top→bot) = (+dx, -lh, +dz)；繼續往下 same
+                        const sgn = isTopPos ? 1 : -1;
                         const projDx = view === "front" ? dx : view === "side" ? dz : 0;
                         const norm = Math.sqrt(projDx * projDx + lh * lh);
-                        axDx = projDx / norm;
-                        axDy = lh / norm;
+                        // screen X = -world X (front) 或 -world Z (side)
+                        // top: screen Δx = sgn * +projDx；bottom: 反向 → 套 -sgn
+                        axDx = (sgn === 1 ? projDx : -projDx) / norm;
+                        axDy = (sgn * lh) / norm;
                       }
                     }
-                    // 榫長 = 沿腳中軸延伸的距離；用 r.h（投影 Y 距離）≈ length × axDy
-                    const tenonLen = axDy > 0.01 ? r.h / axDy : r.h;
-                    // 兩條平行線：腳頂左右端點（垂直腳中軸偏 ±halfWidth）→ 沿軸延伸 tenonLen
+                    // 榫長 = 沿腳中軸延伸的距離；用 r.h（投影 Y 距離）≈ length × |axDy|
+                    const tenonLen = Math.abs(axDy) > 0.01 ? r.h / Math.abs(axDy) : r.h;
+                    // 兩條平行線：腳頂/底左右端點（垂直腳中軸偏 ±halfWidth）→ 沿軸延伸 tenonLen
                     // 垂直軸的 unit vector (right side)：rotate 軸 90° → (axDy, -axDx)
                     const perpX = axDy;
                     const perpY = -axDx;
