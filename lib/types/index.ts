@@ -140,14 +140,6 @@ export interface Mortise {
    */
   rotX?: number;
   /**
-   * 額外旋轉（弧度）—CSG cut box 繞 part-local Z 軸轉這個角度。
-   * 用途：splayed apron 的 tenon 繞自己 length 軸旋轉了 splay tilt 角，
-   * 對應的腳 mortise 也要把 cross-section（W×T 矩形）跟著旋轉，不然
-   * 軸對齊 cut box 比 tilted tenon 大、視覺上多出空白角（user 2026-05-21
-   * 回報「榫頭右邊多了一個沒傾斜的空榫孔」）。
-   */
-  rotZ?: number;
-  /**
    * WORLD-frame unit vector the mortise opens along (out of the mother part,
    * toward the mating tenon). Anti-parallel to the matching Tenon.axis (which
    * points the other way — into the mother). Same backward-compat fallback as

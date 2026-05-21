@@ -209,9 +209,6 @@ function subtractMortisesFromGeometry(
     // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
     // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
     if (m.rotX) cut.rotation.x = m.rotX;
-    // splayed apron 的 Z 面 mortise（左右牙板進腳）：cut 繞 part-local Z 軸轉
-    // rotZ 讓 cross-section 跟 tilted tenon 對齊，不留空白角
-    if (m.rotZ) cut.rotation.z = m.rotZ;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
@@ -1651,7 +1648,6 @@ export function PerspectiveView({
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
                     rotX: lb.rotX,
-                    rotZ: lb.rotZ,
                   };
                 })
               : undefined;

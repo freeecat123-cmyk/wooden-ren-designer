@@ -279,8 +279,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       legHeight,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
-      tiltX: _isSplayedForLegs ? Math.atan(_splayDxForLegs / legHeight) : 0,
-      tiltZ: _isSplayedForLegs ? Math.atan(_splayDzForLegs / legHeight) : 0,
     }),
   });
   });
@@ -782,10 +780,6 @@ function legMortisesForApron(
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
-    /** apron 繞自己 length 軸的 splay tilt（弧度）— 對應 mortise cross-section
-     *  要跟著旋轉。Z 面 mortise（左右牙板）拿 tiltX、X 面 mortise（前後）拿 tiltZ。 */
-    tiltX?: number;
-    tiltZ?: number;
   },
 ) {
   const {
@@ -795,19 +789,11 @@ function legMortisesForApron(
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
-  const tiltX = opts.tiltX ?? 0;
-  const tiltZ = opts.tiltZ ?? 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
-  // Z 面 mortise 對應左右牙板（axis="z"）— 該 apron 繞自己 Z 軸 tilt = s.sx * tiltX，
-  // 此 leg 在 +X 側 (s.sx=+1) 拿 +tiltX；-X 側拿 -tiltX。
-  // X 面 mortise 對應前後牙板（axis="x"）— 該 apron 繞自己 X 軸 tilt = -s.sz * tiltZ，
-  // 此 leg 在 +Z 側 (s.sz=+1) 拿 -tiltZ；-Z 側拿 +tiltZ。
-  const zFaceRotZ = (corner.x > 0 ? +1 : -1) * tiltX;
-  const xFaceRotX = (corner.z > 0 ? -1 : +1) * tiltZ;
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
@@ -816,7 +802,6 @@ function legMortisesForApron(
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
-      ...(Math.abs(zFaceRotZ) > 0.001 ? { rotZ: zFaceRotZ } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
@@ -825,7 +810,6 @@ function legMortisesForApron(
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
-      ...(Math.abs(xFaceRotX) > 0.001 ? { rotX: xFaceRotX } : {}),
     },
   ];
 }
