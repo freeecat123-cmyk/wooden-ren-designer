@@ -1090,16 +1090,28 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
   // backRake>0 時椅背框繞 X 軸傾斜，slat/splat/rung/spindle 兩端對接 apron 或
   // topRail/post，相對於本地 length（或 thickness）軸有 reclineRad 夾角 → 設 axis
   // 讓 CompoundMiterAnnotation 自動標「複斜切 窄面 X°」
+  //
+  // 重要：Tenon.axis / Mortise.axis 在 PerspectiveView 是 **世界座標** 向量
+  // （見 PerspectiveView.tsx L1154「t.axis IS world」），不是 part-local。
+  // 因此每種 part 的 rotation 不同 → 對應的世界軸不同，要分開算：
+  //   - rung   rotation (π/2+rec, 0, 0)：local X 軸不變 = world X
+  //   - slat / splat / curved-splat rotation (π/2, -rec, π/2)：local X → world Y
+  //   - spindle rotation (rec, 0, 0)：local Y → world Y 帶 +Z 傾斜
   const _reclineRadBack = (backRake * Math.PI) / 180;
   const _hasRakeBack = Math.abs(_reclineRadBack) > 1e-4;
   const _cosRBack = Math.cos(_reclineRadBack);
   const _sinRBack = Math.sin(_reclineRadBack);
-  // 沿 length 軸（X major）：start=-length, end=+length
-  const _axisStartLen = _hasRakeBack ? { x: -_cosRBack, y: 0, z: _sinRBack } : undefined;
-  const _axisEndLen = _hasRakeBack ? { x: _cosRBack, y: 0, z: -_sinRBack } : undefined;
-  // 沿 thickness 軸（Y major）：spindle top/bottom
-  const _axisTopThk = _hasRakeBack ? { x: 0, y: _cosRBack, z: -_sinRBack } : undefined;
-  const _axisBotThk = _hasRakeBack ? { x: 0, y: -_cosRBack, z: _sinRBack } : undefined;
+  // Rung：local X major、rotation 繞 X 軸 → 世界 X 不變，傾斜分量在 Z
+  // start = -X 方向、end = +X 方向（從俯視看 rung 連接兩支背柱）
+  const _axisStartRungX = _hasRakeBack ? { x: -_cosRBack, y: 0, z: _sinRBack } : undefined;
+  const _axisEndRungX = _hasRakeBack ? { x: _cosRBack, y: 0, z: -_sinRBack } : undefined;
+  // Slat / splat / curved-splat：local X → world Y（垂直），rake 把上端推往 +Z
+  // start = 朝下接後牙板（world -Y, -Z 帶傾）、end = 朝上接頂橫木（world +Y, +Z）
+  const _axisStartSlatY = _hasRakeBack ? { x: 0, y: -_cosRBack, z: -_sinRBack } : undefined;
+  const _axisEndSlatY = _hasRakeBack ? { x: 0, y: _cosRBack, z: _sinRBack } : undefined;
+  // Spindle：local Y → world Y（傾斜後 top 偏 +Z, bottom 偏 -Z）
+  const _axisTopThk = _hasRakeBack ? { x: 0, y: _cosRBack, z: _sinRBack } : undefined;
+  const _axisBotThk = _hasRakeBack ? { x: 0, y: -_cosRBack, z: -_sinRBack } : undefined;
 
   if (backStyle === "slats" && slatCount > 0) {
     const availableWidth = length - legW - 40 - backUsableLengthOffset;
@@ -1118,8 +1130,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         // 左右深度——這樣 slat 中心 z 跟牙板中心 z 對齊（牙板厚 20 也是窄面）
         rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
-          { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
+          { position: "start", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+          { position: "end", type: "blind-tenon", length: 15, width: Math.max(10, slatWidth - Math.round(slatWidth / 4)), thickness: Math.max(5, Math.round(slatThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
         ],
         mortises: [],
       });
@@ -1144,8 +1156,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         origin: { x: 0, y, z: backZ },
         rotation: { x: Math.PI / 2, y: 0, z: 0 },
         tenons: [
-          { position: "start", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
-          { position: "end", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
+          { position: "start", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisStartRungX ? { axis: _axisStartRungX } : {}) },
+          { position: "end", type: "blind-tenon", length: apronTenonLen, width: rungTenonW, thickness: rungTenonThick, ...(_axisEndRungX ? { axis: _axisEndRungX } : {}) },
         ],
         mortises: [],
       });
@@ -1164,8 +1176,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       origin: { x: 0, y: backStartY - splatDip, z: backZ },
       rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
-        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
+        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, splatWidth - 20), thickness: Math.max(5, Math.round(splatThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
       ],
       mortises: [],
     });
@@ -1209,8 +1221,8 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
       // 大面凹陷：thickness 才是薄軸，所以 bendAxis="y"；正值往背面凹、負值往前凸
       shape: { kind: "face-rounded", cornerR: 0, bendMm: curvedSplatBendMm, bendAxis: "y" },
       tenons: [
-        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisStartLen ? { axis: _axisStartLen } : {}) },
-        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisEndLen ? { axis: _axisEndLen } : {}) },
+        { position: "start", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisStartSlatY ? { axis: _axisStartSlatY } : {}) },
+        { position: "end", type: "blind-tenon", length: 15, width: Math.max(12, cWidth - 20), thickness: Math.max(5, Math.round(cThickness / 3)), ...(_axisEndSlatY ? { axis: _axisEndSlatY } : {}) },
       ],
       mortises: [],
     });
