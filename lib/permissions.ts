@@ -63,8 +63,10 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     canCustomizeQuoteHeader: false,
     canManageCustomers: false,
     canUseDesignerMode: false,
-    canUseCeilingTool: false,
-    canUseFloorTool: false,
+    // 2026-05-21 決策：裝潢實用工具（天花板／地板／線板）整組降到個人版，
+    // 把專業版完全聚焦「接案 SaaS」（報價/客戶/STL/無上限）。
+    canUseCeilingTool: true,
+    canUseFloorTool: true,
   },
   pro: {
     maxDesigns: Infinity,
