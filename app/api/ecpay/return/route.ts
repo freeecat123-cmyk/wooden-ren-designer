@@ -172,20 +172,49 @@ export async function POST(req: NextRequest) {
     .eq("id", sub.user_id);
   if (upUserErr) console.error("[ecpay/return] 更新 users 失敗", upUserErr);
 
-  const { data: insertedPayment } = await admin
-    .from("payments")
-    .insert({
-      user_id: sub.user_id,
-      subscription_id: sub.id,
-      amount,
-      status: "success",
-      ecpay_trade_no: tradeNo,
-      ecpay_payment_date: paymentDate,
-      raw_response: params as Record<string, unknown>,
-      invoice_status: "pending",
-    })
-    .select("id")
-    .single();
+  // ATM/超商先前可能已由 /payment-info 寫過一筆 awaiting_payment row（同 ecpay_trade_no）。
+  // 有就 update 成 success，沒有（信用卡/LINE Pay 等同步付款）就 insert。
+  let insertedPayment: { id: string } | null = null;
+  const { data: existingRow } = tradeNo
+    ? await admin
+        .from("payments")
+        .select("id, status")
+        .eq("ecpay_trade_no", tradeNo)
+        .maybeSingle()
+    : { data: null };
+
+  if (existingRow?.status === "awaiting_payment") {
+    const { data: updated } = await admin
+      .from("payments")
+      .update({
+        status: "success",
+        ecpay_payment_date: paymentDate,
+        raw_response: params as Record<string, unknown>,
+        invoice_status: "pending",
+      })
+      .eq("id", existingRow.id)
+      .select("id")
+      .single();
+    insertedPayment = updated ?? null;
+  } else if (!existingRow) {
+    const { data: inserted } = await admin
+      .from("payments")
+      .insert({
+        user_id: sub.user_id,
+        subscription_id: sub.id,
+        amount,
+        status: "success",
+        ecpay_trade_no: tradeNo,
+        ecpay_payment_date: paymentDate,
+        raw_response: params as Record<string, unknown>,
+        invoice_status: "pending",
+      })
+      .select("id")
+      .single();
+    insertedPayment = inserted ?? null;
+  }
+  // existingRow.status 已是 success → replay，insertedPayment 維持 null，
+  // 下方 after() 會因 !insertedPayment?.id 自動跳過後處理。
 
   console.log("[ecpay/return] 付款完成,核心 DB 更新已收尾,背景跑後處理", {
     orderId,

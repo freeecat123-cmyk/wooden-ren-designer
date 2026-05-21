@@ -24,6 +24,110 @@ const SUB_STATUS_ZH: Record<string, string> = {
   expired: "已到期",
 };
 
+interface PendingPayment {
+  amount: number;
+  paymentInfo: {
+    method: "atm" | "cvs" | "barcode";
+    expireDate: string;
+    bankCode?: string;
+    vAccount?: string;
+    paymentNo?: string;
+    barcode1?: string;
+    barcode2?: string;
+    barcode3?: string;
+  } | null;
+}
+
+function PendingRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-amber-700">{label}</span>
+      <span
+        className={
+          mono
+            ? "font-mono font-semibold text-amber-900"
+            : "font-semibold text-amber-900"
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** 「⏳ 等待繳費」卡片 — ATM/超商/條碼取號後、使用者尚未繳費時顯示繳費資訊 */
+function PendingPaymentCard() {
+  const [pending, setPending] = useState<PendingPayment | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/my-pending-payment")
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive) setPending(d.pending ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!pending?.paymentInfo) return null;
+  const info = pending.paymentInfo;
+  const deadline = new Date(info.expireDate).toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="mb-4 rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+      <p className="font-semibold text-amber-900">⏳ 等待繳費</p>
+      <p className="mt-1 text-sm text-amber-800">
+        應繳 NT$ {pending.amount.toLocaleString()}，請於 {deadline}{" "}
+        前完成繳費，繳費後訂閱會自動啟用。
+      </p>
+      <div className="mt-3 space-y-1 text-sm">
+        {info.method === "atm" && (
+          <>
+            <PendingRow label="付款方式" value="ATM 轉帳" />
+            <PendingRow label="銀行代碼" value={info.bankCode ?? ""} mono />
+            <PendingRow label="虛擬帳號" value={info.vAccount ?? ""} mono />
+          </>
+        )}
+        {info.method === "cvs" && (
+          <>
+            <PendingRow label="付款方式" value="超商代碼繳費" />
+            <PendingRow label="繳費代碼" value={info.paymentNo ?? ""} mono />
+          </>
+        )}
+        {info.method === "barcode" && (
+          <>
+            <PendingRow label="付款方式" value="超商條碼繳費" />
+            <PendingRow label="條碼一" value={info.barcode1 ?? ""} mono />
+            <PendingRow label="條碼二" value={info.barcode2 ?? ""} mono />
+            <PendingRow label="條碼三" value={info.barcode3 ?? ""} mono />
+            <p className="pt-1 text-xs text-amber-700">
+              請至超商出示三段條碼繳費。
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function MySubscriptionClient() {
   const { profile, plan, isLoading, isLoggedIn } = useUserPlan();
   const [justPaid, setJustPaid] = useState(false);
@@ -86,6 +190,9 @@ export function MySubscriptionClient() {
           </p>
         </div>
       )}
+
+      <PendingPaymentCard />
+
       <p className="text-sm text-zinc-500 mb-6">
         目前生效的方案：
         <strong className="text-zinc-900 ml-1">{PLAN_LABEL[plan]}</strong>

@@ -52,6 +52,8 @@ export function buildAioParams(input: OneTimeOrderInput): Record<string, string>
     ReturnURL: `${baseUrl}/api/ecpay/return`,
     ClientBackURL: `${baseUrl}/my-subscription?paid=1`,
     ChoosePayment: "ALL",
+    // ATM/超商/條碼為非同步付款，綠界以幕後 POST 把取號結果送到這個 URL
+    PaymentInfoURL: `${baseUrl}/api/ecpay/payment-info`,
     EncryptType: "1",
   };
   if (input.email) params.Email = input.email;

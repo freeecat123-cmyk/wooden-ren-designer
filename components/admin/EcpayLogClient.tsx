@@ -43,12 +43,14 @@ const STATUS_STYLE: Record<string, string> = {
   success: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   failed: "bg-red-100 text-red-800 ring-red-200",
   refunded: "bg-amber-100 text-amber-800 ring-amber-200",
+  awaiting_payment: "bg-amber-100 text-amber-800 ring-amber-200",
 };
 
 const STATUS_ZH: Record<string, string> = {
   success: "成功",
   failed: "失敗",
   refunded: "已退款",
+  awaiting_payment: "等待繳費",
 };
 
 const PLAN_ZH: Record<string, string> = {
