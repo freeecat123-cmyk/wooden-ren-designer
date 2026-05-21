@@ -273,6 +273,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronVisualStaggerMm: apronVisuallyStaggered ? apronStaggerMm : 0,
       apronWidth,
       legHeight,
+      legSize,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
       tiltX: _isSplayedForLegs ? Math.atan(_splayDxForLegs / legHeight) : 0,
@@ -775,6 +776,7 @@ function legMortisesForApron(
     apronTenonThick: number;
     apronWidth: number;
     legHeight: number;
+    legSize: number;
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
@@ -787,7 +789,7 @@ function legMortisesForApron(
   const {
     apronTenonLength, apronUpperTenonH, apronLowerTenonH,
     apronUpperTenonOffset, apronLowerTenonOffset,
-    apronTenonThick, apronWidth, legHeight, apronDropFromTop,
+    apronTenonThick, apronWidth, legHeight, legSize, apronDropFromTop,
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
@@ -817,13 +819,17 @@ function legMortisesForApron(
   const cosZRot = Math.cos(zFaceRotZ);
   const sinXRot = Math.sin(xFaceRotX);
   const cosXRot = Math.cos(xFaceRotX);
+  // 強制鎖定 entry face：mortiseLocalBox 的 depthAxis heuristic 取最小 face dist。
+  // 原本 origin.z = ±1（indicator）+ origin.x sin 偏移會讓 xToFace 比 zToFace 小、
+  // 切到鄰面。改成 origin 用「接近 face」值（legSize/2 - 0.5），face dist=0.5 強制鎖定。
+  const legHalf = legSize / 2 - 0.5;
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
       origin: {
         x: -apronUpperTenonOffset * sinZRot,
         y: zCenterY + apronUpperTenonOffset * cosZRot,
-        z: corner.z > 0 ? -1 : 1,
+        z: corner.z > 0 ? -legHalf : +legHalf,
       },
       depth: apronTenonLength,
       length: apronUpperTenonH,
@@ -834,7 +840,7 @@ function legMortisesForApron(
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
       origin: {
-        x: corner.x > 0 ? -1 : 1,
+        x: corner.x > 0 ? -legHalf : +legHalf,
         y: xCenterY + apronLowerTenonOffset * cosXRot,
         z: apronLowerTenonOffset * sinXRot,
       },
