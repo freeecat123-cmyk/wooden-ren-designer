@@ -43,9 +43,10 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
   const set = <K extends keyof EngQuoteOpts>(k: K, v: EngQuoteOpts[K]) =>
     onChange({ ...value, [k]: v });
 
+  // 注意:vatRate(營業稅 5%)為法定固定值,不開放 UI 編輯。
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${quoteType === "ceiling" ? "grid-cols-2" : "grid-cols-1"}`}>
         {quoteType === "ceiling" && (
           <NumField
             label="天花板每坪材料費"
@@ -69,6 +70,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
           <label className="flex items-center gap-1">
             <input
               type="radio"
+              name="demolitionMode"
               checked={value.demolitionMode === "lump"}
               onChange={() => set("demolitionMode", "lump")}
             />
@@ -77,6 +79,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
           <label className="flex items-center gap-1">
             <input
               type="radio"
+              name="demolitionMode"
               checked={value.demolitionMode === "perPing"}
               onChange={() => set("demolitionMode", "perPing")}
             />
@@ -107,6 +110,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
           <label className="flex items-center gap-1">
             <input
               type="radio"
+              name="consumablesMode"
               checked={value.consumablesMode === "lump"}
               onChange={() => set("consumablesMode", "lump")}
             />
@@ -115,6 +119,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
           <label className="flex items-center gap-1">
             <input
               type="radio"
+              name="consumablesMode"
               checked={value.consumablesMode === "percent"}
               onChange={() => set("consumablesMode", "percent")}
             />
