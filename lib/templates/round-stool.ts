@@ -6,13 +6,14 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeBottomOption, seatEdgeStyleOption, seatEdgeNote, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, parseSeatChamferMm, parseLegChamferMm, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundStoolOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "seatThickness", label: "座板厚 (mm)", defaultValue: 25, min: 12, max: 60, step: 1, unit: "mm" },
   seatEdgeOption("top", 5),
-  seatEdgeStyleOption("top"),
+  seatEdgeBottomOption("top"),
+  { ...seatEdgeStyleOption("top"), dependsOn: { any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] } },
   // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 時顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", oneOf: ["box", "tapered"] }),
@@ -61,6 +62,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
   const seatThickness = getOption<number>(input, opt(o, "seatThickness"));
   const seatEdge = getOption<string>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -110,6 +112,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 圓座板（shape: round；seatEdge > 0 時頂面外緣加倒角）
   const seatChamferMm = parseSeatChamferMm(seatEdge);
+  const seatBottomChamferMm = Math.min(seatEdgeBottom, legInset, seatThickness * 0.45);
   const seat: Part = {
     id: "seat",
     nameZh: "圓座板",
@@ -118,10 +121,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
     visible: { length: diameter, width: diameter, thickness: seatThickness },
     origin: { x: 0, y: legHeight, z: 0 },
     shape:
-      seatChamferMm > 0
+      seatChamferMm > 0 || seatBottomChamferMm > 0
         ? {
             kind: "round",
             chamferMm: seatChamferMm,
+            bottomChamferMm: seatBottomChamferMm > 0 ? seatBottomChamferMm : undefined,
             chamferStyle: seatEdgeStyle === "rounded" ? "rounded" : "chamfered",
           }
         : { kind: "round" },
