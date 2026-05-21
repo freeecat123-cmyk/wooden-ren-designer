@@ -20,8 +20,7 @@ export function encodeState(obj: unknown): string {
   }
   // 瀏覽器:先 UTF-8 編碼再 btoa
   const bytes = new TextEncoder().encode(json);
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
+  const bin = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
   return toBase64Url(btoa(bin));
 }
 

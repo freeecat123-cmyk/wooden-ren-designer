@@ -15,6 +15,12 @@ function assert(cond: boolean, msg: string) {
   assert(JSON.stringify(dec) === JSON.stringify(obj), "round-trip 一致");
 }
 
+// 1b. 空物件 round-trip
+{
+  const enc = encodeState({});
+  assert(JSON.stringify(decodeState(enc)) === "{}", "空物件 round-trip");
+}
+
 // 2. 編碼字串 URL-safe(無 + / =)
 {
   const enc = encodeState({ room: "x".repeat(200) });
