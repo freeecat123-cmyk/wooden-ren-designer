@@ -861,8 +861,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       material,
       grainDirection: "length",
       visible: { length: dia, width: dia, thickness: 22 },
-      // 桌面頂面 = legHeight + topThickness；軸承約 25mm 高
-      origin: { x: 0, y: legHeight + 25, z: 0 },
+      // 桌面頂面 = legHeight + topThickness；軸承約 25mm 高，轉盤坐在軸承上
+      origin: { x: 0, y: legHeight + topThickness + 25, z: 0 },
       shape: { kind: "round" },
       tenons: [],
       mortises: [],

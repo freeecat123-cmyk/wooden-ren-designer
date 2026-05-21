@@ -623,7 +623,8 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
             material,
             grainDirection: "length" as const,
             visible: { length: Math.min(lazySusanDiameter, diameter - 100), width: Math.min(lazySusanDiameter, diameter - 100), thickness: 18 },
-            origin: { x: 0, y: legHeight + 20, z: 0 },
+            // 桌面頂面 = legHeight + topThickness；軸承約 20mm 高，轉盤坐在軸承上
+            origin: { x: 0, y: legHeight + topThickness + 20, z: 0 },
             shape: { kind: "round" as const },
             tenons: [],
             mortises: [],
