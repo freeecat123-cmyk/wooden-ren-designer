@@ -67,7 +67,7 @@ export function ZoomableJoineryDetail({
   return (
     <>
       <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-2">
-        ⚠ 僅為組合參考，跟實際尺寸可能不合，請參考三視圖詳細尺寸
+        ⚠ 僅為組合參考示意圖，跟實際尺寸可能不合，請參考三視圖詳細尺寸
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {VIEW_ORDER.map((view) => (
