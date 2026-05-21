@@ -60,6 +60,11 @@ export const pencilHolderOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
   { group: "structure", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
   { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。" },
+  { group: "structure", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
+    { value: "none", label: "無隔板" },
+    { value: "single", label: "單片直徑（穿過中心）" },
+    { value: "cross", label: "十字（2 片穿過中心交叉）", dependsOn: { key: "bodyShape", equals: "oct" } },
+  ], dependsOn: { key: "bodyShape", notIn: ["rect"] }, help: "六/八角筒專用。單片穿過盒中心；八角還可以選十字（六角因 wall 間距 60° 不對齊垂直，不支援）。" },
   { group: "structure", type: "number", key: "fingerSegments", label: "指接段數", defaultValue: 0, min: 0, max: 30, step: 1, help: "僅 cornerJoinery=指接 時生效。0=自動（依壁高自動算奇數），1-30 = 手動指定段數。建議奇數（5/7/9/11/13），兩端都是齒視覺較對稱。" },
 ];
 
@@ -87,6 +92,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const crossDividers = crossDividersRaw === 0 && preset?.crossDividers !== undefined ? preset.crossDividers : crossDividersRaw;
   const bodyShape = getOption<string>(input, opt(o, "bodyShape")) as "rect" | "hex" | "oct";
   const bottomAttach = getOption<string>(input, opt(o, "bottomAttach")) as "seated" | "inset-panel" | "flush-glued";
+  const polygonDividerStyle = getOption<string>(input, opt(o, "polygonDividerStyle"));
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
   const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, getOption<number>(input, opt(o, "dividerInset"))));
@@ -152,12 +158,71 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [],
       mortises: [],
     };
+
+    // 穿心隔板（single / cross）；hex 不支援 cross（壁間距 60° 不對齊垂直）
+    const polygonDividerParts: Part[] = [];
+    const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle;
+    if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
+      const innerFlatR = apothem - wallT;
+      const polyDividerGroove = Math.min(5, wallT - 1);
+      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
+      const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
+      const polyDividerH = dividerHeightOpt > 0
+        ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
+        : polyDividerHAuto;
+      polygonDividerParts.push({
+        id: "divider-1",
+        nameZh: "穿心隔板 1（縱）",
+        material,
+        grainDirection: "length",
+        visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
+        origin: { x: 0, y: polyBottomTopY, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+      if (polyDividerStyleStr === "cross") {
+        polygonDividerParts.push({
+          id: "divider-2",
+          nameZh: "穿心隔板 2（橫）",
+          material,
+          grainDirection: "length",
+          visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
+          origin: { x: 0, y: polyBottomTopY, z: 0 },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      // CSG cosmetic mortise（壁加 dado 槽嵌入隔板）
+      const addStaveMortise = (staveIdx: number) => {
+        const stave = staves[staveIdx];
+        if (!stave) return;
+        stave.mortises.push({
+          origin: { x: 0, y: wallT, z: 0 },
+          depth: polyDividerGroove + 0.3,
+          length: polyDividerH + 0.5,
+          width: dividerThick + 0.5,
+          through: false,
+          shape: "rect",
+          cosmetic: true,
+        });
+      };
+      addStaveMortise(0);
+      addStaveMortise(sides / 2);
+      if (polyDividerStyleStr === "cross") {
+        addStaveMortise(sides / 4);
+        addStaveMortise((3 * sides) / 4);
+      }
+    }
+
     return {
       id: `pencil-holder-${bodyShape}-${outerD}x${outerH}`,
       category: "pencil-holder",
       nameZh: `${sides === 6 ? "六" : "八"}角筆筒`,
       overall: { length: outerD, width: outerD, thickness: outerH },
-      parts: [polyBottom, ...staves],
+      parts: [polyBottom, ...staves, ...polygonDividerParts],
       defaultJoinery: "mitered-spline",
       useButtJointConvention: false,
       primaryMaterial: material,
