@@ -287,10 +287,10 @@ function CeilingToolCard() {
       {/* Top-right markers */}
       <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
         <span
-          title="專業版工具"
+          title="個人版工具"
           className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold shadow-sm tracking-wide"
         >
-          專業版
+          個人版
         </span>
       </div>
       <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">

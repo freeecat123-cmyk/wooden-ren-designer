@@ -278,7 +278,7 @@ export default function AboutPage() {
           從天花板到收納櫃，輸入空間尺寸就出整套清單。
         </p>
 
-        {/* 主打：天花板骨架 寬卡（專業版功能、純展示不可點） */}
+        {/* 主打：天花板骨架 寬卡（個人版以上） */}
         <div className="block rounded-2xl bg-gradient-to-br from-amber-50 to-stone-100 ring-1 ring-amber-200 p-6 sm:p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl bg-white ring-1 ring-amber-200 flex items-center justify-center p-3 shrink-0">
@@ -295,7 +295,7 @@ export default function AboutPage() {
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-1.5 mb-2">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold">
-                  專業版
+                  個人版
                 </span>
                 <span className="text-xs text-amber-800 font-medium">已上線</span>
               </div>
@@ -472,8 +472,8 @@ export default function AboutPage() {
             unit="/月"
             features={[
               "全部家具範本解鎖",
-              "雲端儲存設計 / 多裝置同步",
-              "PDF / STL 輸出",
+              "天花板骨架 / 地板模擬器",
+              "PDF 列印 / 雲端儲存",
             ]}
             cta="升級個人版"
             ctaHref="/pricing"
@@ -486,7 +486,7 @@ export default function AboutPage() {
             features={[
               "個人版全部內容",
               "客製報價 + 客戶資料管理",
-              "天花板骨架等接案工具",
+              "STL / OBJ 輸出 + 尺寸無上限",
             ]}
             cta="升級專業版"
             ctaHref="/pricing"

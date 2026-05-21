@@ -67,7 +67,7 @@ const PLANS: PlanCard[] = [
       { ok: true, text: "下載 PDF（無浮水印）" },
       { ok: true, text: "完整裁切計算器" },
       { ok: true, text: "全部範本 + 3D 預覽" },
-      { ok: false, text: "天花板骨架施工模擬器" },
+      { ok: true, text: "天花板骨架施工模擬器" },
       { ok: false, text: "客製家具報價系統" },
       { ok: false, text: "客戶資料管理" },
     ],
@@ -82,7 +82,6 @@ const PLANS: PlanCard[] = [
     audience: ["接案木工師傅", "獨立傢俱設計師", "工作室經營者"],
     features: [
       { ok: true, text: "個人版全部功能" },
-      { ok: true, text: "天花板骨架施工模擬器" },
       { ok: true, text: "客製家具報價系統" },
       { ok: true, text: "自訂報價單抬頭 / LOGO" },
       { ok: true, text: "客戶資料管理" },
