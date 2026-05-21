@@ -1,12 +1,14 @@
+import type { DemolitionMode, ConsumablesMode } from "./types";
+
 /** 工程報價費用參數預設值(使用者可在報價表單調整)。
  *  數字為台灣裝潢市場保守估,使用者必調。 */
 export const ENGINEERING_QUOTE_DEFAULTS = {
   laborPricePerPing: 0,
-  demolitionMode: "lump" as "lump" | "perPing",
+  demolitionMode: "lump" as DemolitionMode,
   demolitionLump: 0,
   demolitionPerPing: 0,
   shippingCost: 0,
-  consumablesMode: "lump" as "lump" | "percent",
+  consumablesMode: "lump" as ConsumablesMode,
   consumablesLump: 0,
   consumablesPercent: 0.05,
   /** 天花板每坪材料費(adapter 用) */

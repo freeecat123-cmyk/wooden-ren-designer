@@ -5,6 +5,11 @@
 
 export type EngQuoteType = "floor" | "ceiling";
 
+/** 拆除清運計價模式 */
+export type DemolitionMode = "lump" | "perPing";
+/** 雜項耗材計價模式 */
+export type ConsumablesMode = "lump" | "percent";
+
 /** 報價單上的一行品項 */
 export interface EngLineItem {
   label: string;
@@ -31,7 +36,7 @@ export interface EngineeringQuoteInput {
   laborPricePerPing: number;
 
   /** 拆除清運 */
-  demolitionMode: "lump" | "perPing";
+  demolitionMode: DemolitionMode;
   demolitionLump: number;
   demolitionPerPing: number;
 
@@ -39,7 +44,7 @@ export interface EngineeringQuoteInput {
   shippingCost: number;
 
   /** 雜項耗材 */
-  consumablesMode: "lump" | "percent";
+  consumablesMode: ConsumablesMode;
   consumablesLump: number;
   /** 對 materialCost 取百分比(0–1) */
   consumablesPercent: number;
