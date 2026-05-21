@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   description:
     "木頭仁 木作藍圖（木作藍圖）服務條款 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
   alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "服務條款 · 木頭仁 木作藍圖",
+    description: "木頭仁 木作藍圖服務條款。",
+    url: "/terms",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
 };
 
 export default function TermsPage() {

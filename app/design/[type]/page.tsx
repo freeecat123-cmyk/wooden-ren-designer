@@ -26,6 +26,8 @@ import {
 } from "@/lib/joinery/details";
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
+import { deriveBuildSteps } from "@/lib/steps/derive";
+import { FURNITURE_CATALOG } from "@/lib/templates";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
 import { HeightPresetChips } from "@/components/design/HeightPresetChips";
@@ -297,12 +299,62 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     ],
   };
 
+  // HowTo JSON-LD — designer 產出的工序就是「製作教學」，HowTo schema 抓
+  // 「{家具}怎麼做 / 製作步驟」這類搜尋意圖的 rich result。資料來自跟畫面
+  // BuildSteps 同一份 deriveBuildSteps，保證 SEO 跟 UI 完全對齊。
+  const buildStepsForSchema = deriveBuildSteps(design);
+  const totalMinutes = buildStepsForSchema.reduce(
+    (sum, s) => sum + (s.estimatedMinutes ?? 0),
+    0,
+  );
+  const howToJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `如何製作${entry.nameZh}：${length}×${width}×${height}mm`,
+    description: `${entry.nameZh}（${length}×${width}×${height}mm，${MATERIALS[material].nameZh}）的製作工序，含選料、切料、榫接、組裝、塗裝完整步驟。`,
+    inLanguage: "zh-TW",
+    ...(totalMinutes > 0 ? { totalTime: `PT${totalMinutes}M` } : {}),
+    step: buildStepsForSchema.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.title,
+      text: s.description,
+    })),
+  };
+
+  // 相關範本：同 family 中挑 3 個非自己的，給設計頁互連、SEO link juice +
+  // UX「也想做這些嗎」入口。family 分組維持跟 lib/steps/derive.ts 同一套邏輯。
+  const FAMILY_MAP: Record<string, FurnitureCategory[]> = {
+    table: ["tea-table", "side-table", "low-table", "dining-table", "desk", "round-tea-table", "round-table"],
+    seating: ["stool", "bench", "dining-chair", "bar-stool", "round-stool"],
+    cabinet: ["open-bookshelf", "chest-of-drawers", "chinese-cabinet", "shoe-cabinet", "display-cabinet", "media-console", "nightstand", "wardrobe"],
+    accessory: ["pencil-holder", "bookend", "photo-frame", "tray", "dovetail-box", "wine-rack", "coat-rack"],
+    bed: ["bed"],
+  };
+  const family = (Object.keys(FAMILY_MAP) as Array<keyof typeof FAMILY_MAP>).find(
+    (k) => FAMILY_MAP[k].includes(entry.category),
+  );
+  const relatedTemplates = family
+    ? FURNITURE_CATALOG.filter(
+        (e) =>
+          e.category !== entry.category &&
+          FAMILY_MAP[family].includes(e.category) &&
+          // 跟 sitemap.ts 同名單，未完成的不出現在相關範本
+          !["chinese-cabinet", "bed", "coat-rack"].includes(e.category),
+      ).slice(0, 3)
+    : [];
+
   return (
     <>
     {/* BreadcrumbList JSON-LD — SERP rich snippet 顯示麵包屑路徑 */}
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+    />
+    {/* HowTo JSON-LD — 抓「{家具}怎麼做 / 製作步驟」這類 query 的 rich result */}
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
     />
     <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
@@ -577,6 +629,32 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           <BuildSteps design={design} />
         </div>
       </details>
+
+      {/* 相關範本 — 同類別其他家具，內部連結提權 + UX「也想做這些嗎」入口 */}
+      {relatedTemplates.length > 0 && (
+        <section className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/40 px-5 py-4">
+          <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2 mb-3">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
+            想做類似的？相關範本
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {relatedTemplates.map((r) => (
+              <Link
+                key={r.category}
+                href={`/design/${r.category}`}
+                className="group rounded-xl bg-white ring-1 ring-amber-900/10 px-4 py-3 hover:ring-amber-400 hover:shadow-md transition"
+              >
+                <div className="font-semibold text-zinc-900 group-hover:text-amber-800 transition">
+                  {r.nameZh}設計圖 →
+                </div>
+                <div className="mt-1 text-xs text-zinc-500 line-clamp-2">
+                  {r.description}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
     </div>
     {uiV2 && (

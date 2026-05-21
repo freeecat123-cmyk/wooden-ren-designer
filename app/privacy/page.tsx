@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   description:
     "木頭仁 木作藍圖（木作藍圖）隱私權政策 — 我們蒐集什麼資料、做什麼用、怎麼保護。",
   alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "隱私權政策 · 木頭仁 木作藍圖",
+    description: "木頭仁 木作藍圖隱私權政策。",
+    url: "/privacy",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
 };
 
 export default function PrivacyPage() {

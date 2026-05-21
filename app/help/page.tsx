@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description:
     "木頭仁 木作藍圖常見問題：登入、訂閱、付款、發票、退費、PWA 安裝、3D 顯示等使用疑難。",
   alternates: { canonical: "/help" },
+  openGraph: {
+    title: "常見問題 FAQ · 木頭仁 木作藍圖",
+    description: "登入、訂閱、付款、退費、PWA 安裝、3D 顯示等常見疑難。",
+    url: "/help",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";

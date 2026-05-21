@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description:
     "木頭仁 木作藍圖（木作藍圖）退費政策 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
   alternates: { canonical: "/refund" },
+  openGraph: {
+    title: "退費政策 · 木頭仁 木作藍圖",
+    description: "木頭仁 木作藍圖退費政策。",
+    url: "/refund",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
 };
 
 export default function RefundPage() {
