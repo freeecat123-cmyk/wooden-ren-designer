@@ -45,7 +45,11 @@ export const shoeCabinetOptions: OptionSpec[] = [
     { value: "door", label: "門板" },
     { value: "shelves", label: "開放層板" },
   ], dependsOn: { key: "withUpperZone", equals: true } },
-  { group: "zone-top", type: "number", key: "upperCount", label: "上層 數量", defaultValue: 1, min: 1, max: 4, step: 1, help: "抽屜=排數 / 門=扇數 / 層板=層數", dependsOn: { key: "withUpperZone", equals: true } },
+  // 「上層 數量」依類型拆 3 個 entry（同 key=upperCount，dependsOn 隔開）。
+  // 門扇數上限 2（單門 / 雙開門）；抽屜排數 / 層板層數仍可到 4。
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 門扇數", defaultValue: 1, min: 1, max: 2, step: 1, help: "雙開門=2、單門=1", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 抽屜排數", defaultValue: 1, min: 1, max: 4, step: 1, help: "上下幾排抽屜", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
+  { group: "zone-top", type: "number", key: "upperCount", label: "上層 層板層數", defaultValue: 1, min: 1, max: 4, step: 1, help: "1=空櫃、2=1 片中板…", dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "shelves" }] } },
   { group: "zone-top", type: "number", key: "upperCols", label: "上層 列數（左右分）", defaultValue: 2, min: 1, max: 4, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "drawer" }] } },
   { group: "zone-top", type: "number", key: "upperDoorShelves", label: "上層 門後藏層板數", defaultValue: 0, min: 0, max: 3, step: 1, dependsOn: { all: [{ key: "withUpperZone", equals: true }, { key: "upperType", equals: "door" }] } },
   // ── 下層（主鞋櫃 / 單一收納區時就是整櫃）：top* 全屬 zone-bot
@@ -57,7 +61,7 @@ export const shoeCabinetOptions: OptionSpec[] = [
   ] },
   // 「數量」依類型拆 3 個 entry，label 隨類型變（避免跟「門內層板數」搞混）。
   // 三個 entry 同 key=topCount，dependsOn 隔開，UI 只顯示符合當前類型的那個。
-  { group: "zone-bot", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 8, step: 1, help: "雙開門=2、單門=1、多扇=3 以上", dependsOn: { key: "topType", equals: "door" } },
+  { group: "zone-bot", type: "number", key: "topCount", label: "門扇數", defaultValue: 2, min: 1, max: 2, step: 1, help: "雙開門=2、單門=1", dependsOn: { key: "topType", equals: "door" } },
   { group: "zone-bot", type: "number", key: "topCount", label: "層板層數", defaultValue: 2, min: 1, max: 8, step: 1, help: "1=空櫃、2=1 片中板、3=2 片中板…", dependsOn: { key: "topType", equals: "shelves" } },
   { group: "zone-bot", type: "number", key: "topCount", label: "抽屜排數", defaultValue: 2, min: 1, max: 8, step: 1, help: "上下幾排抽屜", dependsOn: { key: "topType", equals: "drawer" } },
   { group: "zone-bot", type: "number", key: "topCols", label: "抽屜列數（左右分）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "topType", equals: "drawer" } },
@@ -126,7 +130,7 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   const withUpperZone = getOption<boolean>(input, opt(o, "withUpperZone"));
   const upperHeight = getOption<number>(input, opt(o, "upperHeight"));
   const upperType = getOption<string>(input, opt(o, "upperType")) as CabinetZone["type"];
-  const upperCount = getOption<number>(input, opt(o, "upperCount"));
+  let upperCount = getOption<number>(input, opt(o, "upperCount"));
   const upperCols = getOption<number>(input, opt(o, "upperCols"));
   const upperDoorShelves = getOption<number>(input, opt(o, "upperDoorShelves"));
   const hasUpper = withUpperZone;
@@ -177,6 +181,16 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
   // door 模式 doorInnerShelves=0 = 沒層板 → 尊重使用者選擇，斜放本次無作用，只 warn
   if (angledRackActive && zoneType === "door" && doorInnerShelves === 0) {
     warnings.push(`勾了斜放鞋格但「門後藏層板數」為 0 → 沒層板可斜。要看斜板請把「門後藏層板數」設 ≥ 1。`);
+  }
+  // 門扇數上限 2（單門 / 雙開門）。3 扇以上鞋櫃寬度分不實用，且門把無法落在豎梃。
+  // OptionSpec max 已限 2，這裡夾限防呆舊 URL / 風格變體寫進來的過大值。
+  if (zoneType === "door" && zoneCount > 2) {
+    warnings.push(`門扇數上限為 2（單門 / 雙開門），已從 ${zoneCount} 修正為 2。`);
+    zoneCount = 2;
+  }
+  if (upperType === "door" && upperCount > 2) {
+    warnings.push(`上層門扇數上限為 2，已從 ${upperCount} 修正為 2。`);
+    upperCount = 2;
   }
   // zones bottom-up: zones[0]=主（下）區，zones[1]=上層（hasUpper 才加）
   const zones: CabinetZone[] = [
@@ -258,28 +272,48 @@ export const shoeCabinet: FurnitureTemplate = (input) => {
     notes: `${notesLine}；門板：${doorMountLabel(doorMount)}（西德鉸鏈${doorMount === "inset" ? "入柱型" : doorMount === "overlay-3" ? "半蓋" : "全蓋"}）${effectiveLegHeight > 0 ? `；加 ${Math.round(effectiveLegHeight)}mm 底座腳（${legShape}）${legInset > 0 ? `，內縮 ${legInset}mm` : ""}${lockTotalHeight ? "（鎖定總高自動算）" : ""}` : ""}。${pullStyleNote(pullStyle)} ${doorType === "louvered" ? "百葉門：門板開水平百葉條（葉片厚 8mm、間距 15mm、傾斜 25°），通風散濕防鞋臭。" : ""}`.trim(),
     warnings,
   });
-  // 百葉門：在每片門面板上加水平百葉 mortises（每片 ⌀15mm 間距、傾斜記在 notes）
-  // 限定門相關 id（-door / -slab / -panel / -rail / -stile），不要誤抓抽屜面板（-face）
-  // 也排除門內藏層板 -door-inner-shelf-N
+  // 百葉門：把每片門的木鑲板換成「N 片橫向實心百葉條」（真實葉片，非裝飾凹槽）。
+  // 框（橫檔 + 豎梃）由 caseFurniture 已建好、保留；只把 -panel 換成葉片群。
+  // 葉片沿門寬橫放（rotation 同橫檔的單軸 X 旋轉），嵌在框內開口、上下均分。
   if (doorType === "louvered") {
-    const doorParts = design.parts.filter(
-      (p) =>
-        (p.id.includes("-door-") || p.id.endsWith("-door") || p.id.endsWith("-slab") || p.id.endsWith("-panel")) &&
-        !p.id.includes("-door-inner") &&
-        !/-rail-|-stile-/.test(p.id) &&
-        !p.id.endsWith("-glass"),
+    const grooveDepth = 8;   // caseFurniture 門框鑲板槽深，用來推算框內開口
+    const slatThick = 9;     // 葉片厚
+    const slatPitch = 30;    // 葉片中心間距
+    const slatFaceH = 26;    // 葉片面寬（傾斜後鉛直投影 ≈27mm < pitch → 不互疊）
+    // 葉片繞自身長軸（part-local X）傾斜 25°；疊在門板基準 X 旋轉上仍為單軸。
+    const slatTiltRad = (25 * Math.PI) / 180;
+    const louverPanels = design.parts.filter(
+      (p) => p.id.endsWith("-panel") && p.id.includes("-door-") && !p.id.includes("-door-inner"),
     );
-    for (const dp of doorParts) {
-      const dH = dp.visible.width;
-      const slatPitch = 23; // 8mm 葉片 + 15mm 間距
-      const count = Math.floor((dH - 40) / slatPitch);
-      const newM = [...dp.mortises];
+    for (const panel of louverPanels) {
+      const openW = panel.visible.length - 2 * grooveDepth; // 框內開口寬
+      const openH = panel.visible.width - 2 * grooveDepth;  // 框內開口高
+      const openBottomY = panel.origin.y + grooveDepth;
+      const count = Math.max(2, Math.floor(openH / slatPitch));
+      const margin = (openH - count * slatPitch) / 2;
+      const idBase = panel.id.replace(/-panel$/, "");
+      const baseName = panel.nameZh.replace(/木鑲板$/, "");
       for (let r = 0; r < count; r++) {
-        const y = -dH / 2 + 20 + (r + 0.5) * slatPitch;
-        newM.push({ origin: { x: 0, y, z: 0 }, depth: 6, length: dp.visible.length - 30, width: 8, through: false });
+        design.parts.push({
+          id: `${idBase}-louver-${r + 1}`,
+          nameZh: `${baseName}百葉條`,
+          material: panel.material,
+          grainDirection: "length",
+          visible: { length: openW, width: slatFaceH, thickness: slatThick },
+          origin: {
+            x: panel.origin.x,
+            y: openBottomY + margin + r * slatPitch + (slatPitch - slatFaceH) / 2,
+            z: panel.origin.z,
+          },
+          rotation: { x: Math.PI / 2 + slatTiltRad, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
       }
-      dp.mortises = newM;
     }
+    // 移除原本的實心木鑲板（已被百葉條群取代）
+    const louverPanelIds = new Set(louverPanels.map((p) => p.id));
+    design.parts = design.parts.filter((p) => !louverPanelIds.has(p.id));
   }
   // 斜放鞋格：將「主（下）收納區」的層板向前傾斜（rake = rotation.x），前緣下沉，
   // 鞋頭朝外好拿取；同時在前緣加 20×25mm 止擋條防止鞋子滑出。

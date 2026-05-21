@@ -1266,7 +1266,8 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
     const isFaceCol = (t: string) => t === "drawer" || t === "door";
     const doorOverlay = doorMount === "overlay-6" ? panelT : doorMount === "overlay-3" ? 9 : 0;
     const drawerOverlayCol = drawerMount === "overlay-6" ? panelT : drawerMount === "overlay-3" ? 9 : 0;
-    const halfBoundaryDoor = Math.max(0, Math.round(panelT / 2 - 1));
+    // 入柱門埋在開口內，不可往外延伸蓋 partition（會物理穿模）→ inset 時為 0。
+    const halfBoundaryDoor = doorMount === "inset" ? 0 : Math.max(0, Math.round(panelT / 2 - 1));
     const halfBoundaryDrawer = Math.max(0, Math.round(panelT / 2 - 1));
     let cursorX = -innerW / 2;
     for (let i = 0; i < cols.length; i++) {
@@ -1517,7 +1518,9 @@ export function caseFurniture(opts: CaseFurnitureOpts): FurnitureDesign {
         // 鄰居是非門 zone（shelves/drawer）：延伸 doorOverlap 蓋滿 boundary
         const doorOverlap =
           doorMount === "overlay-6" ? panelT : doorMount === "overlay-3" ? 9 : 0;
-        const halfBoundary = Math.round(shelfT / 2 + 1);
+        // 入柱門埋在開口內，不可延伸進相鄰 zone 的 boundary 板（門框會物理穿模、
+        // 上橫檔戳進區頂隔板）→ inset 時 halfBoundary 為 0，門高夾在開口內。
+        const halfBoundary = doorMount === "inset" ? 0 : Math.round(shelfT / 2 + 1);
         const isFirstZone = i === 0;
         const isTopZone = isLast;
         // 鄰 face zone（door 或 drawer 都會生面板）→ 共享 boundary 各覆蓋一半 +
