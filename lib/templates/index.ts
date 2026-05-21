@@ -23,7 +23,7 @@ import { nightstand, nightstandOptions } from "./nightstand";
 import { roundStool, roundStoolOptions } from "./round-stool";
 import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
 import { roundTable, roundTableOptions } from "./round-table";
-import { pencilHolder, pencilHolderOptions } from "./pencil-holder";
+import { pencilHolder, pencilHolderOptions, applyPencilHolderPresets } from "./pencil-holder";
 import { bookend, bookendOptions } from "./bookend";
 import { photoFrame, photoFrameOptions } from "./photo-frame";
 import { tray, trayOptions } from "./tray";
@@ -41,6 +41,11 @@ export interface FurnitureCatalogEntry {
   defaults: { length: number; width: number; height: number };
   limits?: { length: number; width: number; height: number };
   optionSchema?: OptionSpec[];
+  /** 強制套用使用情境 preset：解 search params 後呼叫，回傳的 options
+   *  會同時 shadow UI 表單欄位顯示跟模板渲染，preset 值在兩處一致。 */
+  applyPresets?: (
+    options: Record<string, string | number | boolean>,
+  ) => Record<string, string | number | boolean>;
 }
 
 export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
@@ -254,6 +259,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     defaults: { length: 80, width: 80, height: 100 },
     limits: { length: 200, width: 200, height: 250 },
     optionSchema: pencilHolderOptions,
+    applyPresets: applyPencilHolderPresets,
   },
   {
     category: "bookend",

@@ -79,10 +79,14 @@ export function parseDesignSearchParams(
     options[spec.key] = parseOption(spec, raw);
   }
 
+  // 套用使用情境 preset（force-apply）：preset 有定義的欄位一律 shadow user 值，
+  // 讓表單 UI 顯示跟模板渲染數字一致
+  const finalOptions = entry.applyPresets ? entry.applyPresets(options) : options;
+
   const designerRaw = spStr(sp, "designerMode");
   const designerMode = designerRaw === "true" || designerRaw === "1";
 
-  return { length, width, height, material, options, joineryMode, designerMode };
+  return { length, width, height, material, options: finalOptions, joineryMode, designerMode };
 }
 
 /**

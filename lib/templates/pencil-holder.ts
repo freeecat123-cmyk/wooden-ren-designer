@@ -8,8 +8,8 @@ import { getOption, opt } from "@/lib/types";
 import { buildBox } from "./_builders/box-builder";
 import { polygonStaves } from "./_builders/polygon-stave-builder";
 
-/** 使用情境 preset */
-interface PencilHolderPresetConfig {
+/** 使用情境 preset — exported 以便 lib/templates/index.ts applyPresets 用 */
+export interface PencilHolderPresetConfig {
   bodyShape?: "rect" | "hex" | "oct";
   wallThickness?: number;
   bottomThickness?: number;
@@ -20,7 +20,7 @@ interface PencilHolderPresetConfig {
   dividerInset?: number;
   polygonDividerStyle?: "none" | "single" | "cross";
 }
-const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
+export const PENCIL_HOLDER_PRESETS: Record<string, PencilHolderPresetConfig> = {
   // 1. 簡約方筒：入門款，純筒整空，搭接最快上手
   classic: {
     bodyShape: "rect", wallThickness: 8, bottomThickness: 8,
@@ -446,3 +446,24 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   if (warnings.length) design.warnings = [...(design.warnings ?? []), ...warnings];
   return design;
 };
+
+/** 把 preset 的欄位 shadow 進 options（呼叫端：parseDesignSearchParams）
+ *  讓表單 UI 顯示的數字 = 渲染用的數字，不再有「拉了沒反應」。 */
+export function applyPencilHolderPresets(
+  options: Record<string, string | number | boolean>,
+): Record<string, string | number | boolean> {
+  const useCase = String(options.useCase ?? "");
+  const preset = PENCIL_HOLDER_PRESETS[useCase];
+  if (!preset) return options;
+  const next: Record<string, string | number | boolean> = { ...options };
+  if (preset.bodyShape !== undefined) next.bodyShape = preset.bodyShape;
+  if (preset.wallThickness !== undefined) next.wallThickness = preset.wallThickness;
+  if (preset.bottomThickness !== undefined) next.bottomThickness = preset.bottomThickness;
+  if (preset.bottomAttach !== undefined) next.bottomAttach = preset.bottomAttach;
+  if (preset.cornerJoinery !== undefined) next.cornerJoinery = preset.cornerJoinery;
+  if (preset.dividers !== undefined) next.dividers = preset.dividers;
+  if (preset.crossDividers !== undefined) next.crossDividers = preset.crossDividers;
+  if (preset.dividerInset !== undefined) next.dividerInset = preset.dividerInset;
+  if (preset.polygonDividerStyle !== undefined) next.polygonDividerStyle = preset.polygonDividerStyle;
+  return next;
+}
