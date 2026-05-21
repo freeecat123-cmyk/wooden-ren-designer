@@ -343,8 +343,13 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       const centerEdge = cornerOffset + dx - legSizeC / 2;
       const topEdge = cornerOffset + dxTop - legSizeTop / 2;
       const botEdge = cornerOffset + dxBot - legSizeBot / 2;
-      const trapTop = hasTaper && centerEdge > 0 ? topEdge / centerEdge : 1;
-      const trapBot = hasTaper && centerEdge > 0 ? botEdge / centerEdge : 1;
+      // trap top/bottom length scale：原本只用 hasTaper（腳有錐度）觸發，
+      // 但純外斜（splayed-not-tapered）時兩端腳在 apron 上邊靠近、下邊張開，
+      // apron 物理上就是梯形，top view 應該顯示成單斜。改成 splay 也納入觸發
+      // （user 2026-05-21 回報「四腳外斜的牙板 top view 應該是單斜你畫成直的」）。
+      const hasTrap = (hasTaper || isSplayed) && centerEdge > 0;
+      const trapTop = hasTrap ? topEdge / centerEdge : 1;
+      const trapBot = hasTrap ? botEdge / centerEdge : 1;
       return { dx, dz, span, trapTop, trapBot };
     };
     const apronGeomZ = apronGeomFor(apronYCenter0);
@@ -381,11 +386,11 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         ? s.axis === "x" ? -s.sz * tilt : -s.sx * tilt
         : 0;
       const useTopBevel = isSplayed && apronTopAtSeat;
-      const partShape = hasTaper
+      // splayed-not-tapered 也走 apron-trapezoid（讓 top view 顯示梯形）；
+      // apronTopAtSeat 時把 bevel 一起帶進去，蓋掉舊的 apron-half-beveled 分支
+      const partShape = (hasTaper || isSplayed)
         ? { kind: "apron-trapezoid" as const, topLengthScale: geom.trapTop, bottomLengthScale: geom.trapBot, bevelAngle: useTopBevel ? bevelAngle : undefined, bevelMode: useTopBevel ? "half" as const : undefined }
-        : isSplayed && apronTopAtSeat
-          ? { kind: "apron-half-beveled" as const, bevelAngle }
-          : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
+        : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
       // tenon：A 半榫錯位 — 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
       // tenon type 依自動規則 / legPenetratingTenon
       const tenonType: "through-tenon" | "shouldered-tenon" =
@@ -461,8 +466,10 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
       const centerEdge = cornerOffset + dx - legSizeC / 2;
       const topEdge = cornerOffset + dxTop - legSizeTop / 2;
       const botEdge = cornerOffset + dxBot - legSizeBot / 2;
-      const trapTop = lsHasTaper && centerEdge > 0 ? topEdge / centerEdge : 1;
-      const trapBot = lsHasTaper && centerEdge > 0 ? botEdge / centerEdge : 1;
+      // 下橫撐同理：splay 也納入觸發（兩端腳張開不同，下橫撐物理上是梯形）
+      const lsHasTrap = (lsHasTaper || isSplayed) && centerEdge > 0;
+      const trapTop = lsHasTrap ? topEdge / centerEdge : 1;
+      const trapBot = lsHasTrap ? botEdge / centerEdge : 1;
       return { dx, dz, span, trapTop, trapBot };
     };
     const lsGeomX = lsGeomFor(lsYCenter0);
@@ -481,7 +488,7 @@ export const roundStool: FurnitureTemplate = (input): FurnitureDesign => {
         s.axis === "z"
           ? { x: Math.PI / 2, y: Math.PI / 2, z: s.sx * tilt }
           : { x: Math.PI / 2 + (-s.sz) * tilt, y: 0, z: 0 };
-      const partShape = lsHasTaper
+      const partShape = (lsHasTaper || isSplayed)
         ? { kind: "apron-trapezoid" as const, topLengthScale: geom.trapTop, bottomLengthScale: geom.trapBot }
         : legEdgeShape(stretcherEdge, stretcherEdgeStyle);
       // 下橫撐 tenon：A 半榫錯位 — 靜止 X（前後）= 下榫；移動 Z（左右，上移）= 上榫
