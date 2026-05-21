@@ -2,7 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { OrthoView } from "@/lib/render/svg-views";
-import { CabinetPartsTable } from "./CabinetPartsTable";
 import type { FurnitureDesign } from "@/lib/types";
 
 type ViewKind = "front" | "side" | "top";
@@ -84,8 +83,6 @@ export function ZoomableThreeViews({
             </span>
           </button>
         ))}
-        {/* 第 4 格：櫃類部件清單（門 / 抽屜 / 層板），桌椅類沒這些件會自動隱藏 */}
-        <CabinetPartsTable design={design} />
       </div>
 
       {zoomed && (
