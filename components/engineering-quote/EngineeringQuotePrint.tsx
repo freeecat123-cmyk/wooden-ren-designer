@@ -75,7 +75,7 @@ export function EngineeringQuotePrint({
         </thead>
         <tbody>
           {b.lines.map((ln, i) => (
-            <tr key={ln.label} className="border-b border-zinc-100">
+            <tr key={`${ln.label}-${i}`} className="border-b border-zinc-100">
               <td className="py-1">{ln.label}</td>
               <td className="py-1 text-zinc-500">{ln.detail ?? ""}</td>
               <td className="py-1 text-right">

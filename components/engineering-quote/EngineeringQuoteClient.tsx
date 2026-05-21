@@ -110,7 +110,7 @@ export function EngineeringQuoteClient({
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">客戶資料</h2>
-            {/* 不原生提交的 form:CustomerForm 是 uncontrolled,goPrint 時用 FormData 讀實際輸入值 */}
+            {/* CustomerForm 內部自管 state、不向外回傳;goPrint 時用 FormData 讀 DOM 實際值 */}
             <form ref={customerFormRef} onSubmit={(e) => e.preventDefault()}>
               <CustomerForm initial={EMPTY_CUSTOMER} />
             </form>
