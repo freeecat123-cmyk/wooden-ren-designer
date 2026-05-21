@@ -52,6 +52,16 @@ export interface FloorInput {
   /** 裁切餘料是否再利用 */
   reuseOffcuts: boolean;
   skirtingType: SkirtingType;
+  /** 門洞數量(踢腳板/收邊條長度扣除用) */
+  doorCount: number;
+  /** 每個門洞寬度(cm) */
+  doorWidthCm: number;
+  /** 地板每坪報價(NT$);0 = 未設定不計價 */
+  plankPricePerPing: number;
+  /** 踢腳板/收邊條每米報價(NT$) */
+  skirtingPricePerM: number;
+  /** 防潮墊每坪報價(NT$) */
+  underlayPricePerPing: number;
 }
 
 /** 一片排好的地板片 */
@@ -93,6 +103,8 @@ export interface FloorBomItem {
   /** 總面積(m²)— underlay 用 */
   totalAreaM2?: number;
   note?: string;
+  /** 此項小計金額(NT$);價格未設定時為 undefined */
+  subtotal?: number;
 }
 
 export interface FloorBom {
@@ -103,6 +115,14 @@ export interface FloorBom {
     roomAreaM2: number;
     pingShu: number;
     perimeterM: number;
+  };
+  cost: {
+    plank: number;
+    skirting: number;
+    underlay: number;
+    total: number;
+    /** 任一品項價格未設定(=0)→ true,UI 提示估價不完整 */
+    hasUnpriced: boolean;
   };
   trace: {
     fullPlankCount: number;
@@ -138,4 +158,9 @@ export const DEFAULT_FLOOR_INPUT: FloorInput = {
   wasteMode: "computed",
   reuseOffcuts: true,
   skirtingType: "skirting",
+  doorCount: 1,
+  doorWidthCm: 90,
+  plankPricePerPing: 0,
+  skirtingPricePerM: 0,
+  underlayPricePerPing: 0,
 };

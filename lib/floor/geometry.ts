@@ -247,6 +247,35 @@ function lineSegSideIsect(
   return { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) };
 }
 
+/** 線段 p1p2 與 p3p4 是否「真正交叉」(端點接觸不算,正交多邊形相鄰邊共點屬正常) */
+function segmentsCross(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
+  const cross = (a: Point, b: Point, c: Point) =>
+    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const d1 = cross(p3, p4, p1);
+  const d2 = cross(p3, p4, p2);
+  const d3 = cross(p1, p2, p3);
+  const d4 = cross(p1, p2, p4);
+  return (
+    ((d1 > EPS && d2 < -EPS) || (d1 < -EPS && d2 > EPS)) &&
+    ((d3 > EPS && d4 < -EPS) || (d3 < -EPS && d4 > EPS))
+  );
+}
+
+/** 多邊形是否自交(任兩條不相鄰的邊交叉)。拖角點/改邊長拉出怪形狀時用來防呆。 */
+export function polygonSelfIntersects(poly: RoomPolygon): boolean {
+  const v = poly.vertices;
+  const n = v.length;
+  for (let i = 0; i < n; i++) {
+    const a1 = v[i];
+    const a2 = v[(i + 1) % n];
+    for (let j = i + 2; j < n; j++) {
+      if ((j + 1) % n === i) continue; // 跳過與 i 相鄰的邊
+      if (segmentsCross(a1, a2, v[j], v[(j + 1) % n])) return true;
+    }
+  }
+  return false;
+}
+
 function clipX(xLine: number) {
   return (a: Point, b: Point): Point => {
     const t = (xLine - a.x) / (b.x - a.x);

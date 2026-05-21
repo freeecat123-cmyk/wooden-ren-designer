@@ -32,16 +32,32 @@ export function computeFloorLayout(input: FloorInput): FloorLayout {
   // 人字拼走獨立排版引擎
   if (input.pattern === "herringbone") return computeHerringboneLayout(input);
 
+  // startCorner:用鏡射房間達成「從不同角落起鋪」,排完再把座標鏡射回來。
+  const origBb = boundingBox(input.room);
+  const sumX = origBb.minX + origBb.maxX;
+  const sumY = origBb.minY + origBb.maxY;
+  const fromRight =
+    input.startCorner === "top-right" || input.startCorner === "bottom-right";
+  const fromBottom =
+    input.startCorner === "bottom-left" || input.startCorner === "bottom-right";
+  const mirror = (poly: RoomPolygon): RoomPolygon => ({
+    vertices: poly.vertices.map((v) => ({
+      x: fromRight ? sumX - v.x : v.x,
+      y: fromBottom ? sumY - v.y : v.y,
+    })),
+  });
+  const room = fromRight || fromBottom ? mirror(input.room) : input.room;
+
   // 伸縮縫夾到安全範圍:超過房間半邊長會讓 insetPolygon 翻面 → BOM 失真
-  const roomBb = boundingBox(input.room);
+  const roomBb = boundingBox(room);
   const maxGapCm =
     Math.min(roomBb.maxX - roomBb.minX, roomBb.maxY - roomBb.minY) / 2 - 1;
   const gapCm = Math.min(
     Math.max(input.expansionGapMm / 10, 0),
     Math.max(maxGapCm, 0),
   );
-  const layableRegion: RoomPolygon =
-    gapCm > 0 ? insetPolygon(input.room, gapCm) : input.room;
+  let layableRegion: RoomPolygon =
+    gapCm > 0 ? insetPolygon(room, gapCm) : room;
   const bb = boundingBox(layableRegion);
   const spanX = bb.maxX - bb.minX;
   const spanY = bb.maxY - bb.minY;
@@ -81,8 +97,27 @@ export function computeFloorLayout(input: FloorInput): FloorLayout {
         effectiveLengthCm: clip.fullyInside
           ? plankLen
           : clip.usedAreaCm2 / plankW,
+        // 裁切片存裁切後形狀,預覽才不會畫到房間外
+        shape: clip.fullyInside ? undefined : clip.clipped,
       });
     }
+  }
+
+  // 排完:把座標鏡射回真實房間方向
+  if (fromRight || fromBottom) {
+    for (const pk of planks) {
+      const xExt = runAlongX ? pk.lengthCm : pk.widthCm;
+      const yExt = runAlongX ? pk.widthCm : pk.lengthCm;
+      if (fromRight) pk.x = sumX - pk.x - xExt;
+      if (fromBottom) pk.y = sumY - pk.y - yExt;
+      if (pk.shape) {
+        pk.shape = pk.shape.map((v) => ({
+          x: fromRight ? sumX - v.x : v.x,
+          y: fromBottom ? sumY - v.y : v.y,
+        }));
+      }
+    }
+    layableRegion = mirror(layableRegion);
   }
 
   return { planks, rows, layableRegion };
