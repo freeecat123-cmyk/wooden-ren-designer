@@ -137,10 +137,14 @@ export const sideTable: FurnitureTemplate = (input) => {
         if (part) {
           const towardCenter = part.origin.x < 0 ? 1 : -1;
           part.origin.x += towardCenter * sideShift;
-          // shape 改 apron-beveled bevelAngle=0 → svg-views useOwnPolygon=true，
-          // tenon 用自己 polygon（在 apron 中軸 -176），不去 match 腳的母榫
-          // （bevelAngle=0 → bevShear=0 → 跟原矩形渲染一致）
-          part.shape = { kind: "apron-beveled", bevelAngle: 0 };
+          // 錐形腳：保留 simpleTable 已設的 apron-trapezoid（top/bot 不同長度跟著腳斜），
+          // 不要 override 成 apron-beveled 0° 直矩形 — 那會跟錐形腳側面出現視覺縫。
+          // 只有直腳（無 taper）才 override 成 apron-beveled 0°，讓 svg-views useOwnPolygon
+          // 跑自己 polygon、避免吃到已偏移過的腳母榫。
+          const isTrapezoid = part.shape?.kind === "apron-trapezoid";
+          if (!isTrapezoid) {
+            part.shape = { kind: "apron-beveled", bevelAngle: 0 };
+          }
         }
       }
       // 前腳（origin.z < 0）的 X 面母榫（接已刪除的 apron-front）→ 孤兒，過濾掉
