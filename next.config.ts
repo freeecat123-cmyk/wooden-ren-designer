@@ -15,6 +15,19 @@ const nextConfig: NextConfig = {
       "lucide-react",
     ],
   },
+  // dev：檔案監聽器不要遞迴進 .claude/（內含 git worktrees + 各自的
+  // node_modules / .next，可達數 GB；worktree 的 dev server 還會持續寫
+  // .next）→ 否則主 dev server 監聽迴圈永不收斂、idle 也吃滿 1.5+ 核。
+  // 一併排除 .git / .next / node_modules。
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: /[/\\](?:\.git|\.next|node_modules|\.claude)[/\\]/,
+      };
+    }
+    return config;
+  },
   // 木工大師客服 bot 在 runtime 從 lib/wood-master/knowledge/*.md 讀知識，
   // Vercel 預設只 trace 程式碼引用到的檔案；明確列出讓部署帶上這 19 份 md。
   outputFileTracingIncludes: {
