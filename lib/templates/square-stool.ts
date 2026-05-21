@@ -273,6 +273,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronVisualStaggerMm: apronVisuallyStaggered ? apronStaggerMm : 0,
       apronWidth,
       legHeight,
+      legSize,
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
       tiltX: _isSplayedForLegs ? Math.atan(_splayDxForLegs / legHeight) : 0,
@@ -775,6 +776,7 @@ function legMortisesForApron(
     apronTenonThick: number;
     apronWidth: number;
     legHeight: number;
+    legSize: number;
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
@@ -817,13 +819,19 @@ function legMortisesForApron(
   const cosZRot = Math.cos(zFaceRotZ);
   const sinXRot = Math.sin(xFaceRotX);
   const cosXRot = Math.cos(xFaceRotX);
+  // 強制鎖定 entry face：mortiseLocalBox 的 depthAxis heuristic 比較 xToFace/yToFace/zToFace
+  // 取最小。原本 origin.z = ±1（離 face = legSize/2 - 1 ≈ 21.5mm），加 origin.x 偏移
+  // 3.31mm 後 xToFace = 19.19 變最小，mortise 切到 X 面（user 2026-05-21 回報「相鄰面
+  // 多了一個榫孔」）。改成 origin 用接近 face 的值（legSize/2 - 0.5）讓 zToFace=0.5
+  // 強制當最小、鎖定 Z 面。X 面同樣處理。leg.visible.length = legSize for square legs。
+  const legHalf = (opts.legSize ?? 45) / 2 - 0.5;
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
       origin: {
         x: -apronUpperTenonOffset * sinZRot,
         y: zCenterY + apronUpperTenonOffset * cosZRot,
-        z: corner.z > 0 ? -1 : 1,
+        z: corner.z > 0 ? -legHalf : +legHalf,
       },
       depth: apronTenonLength,
       length: apronUpperTenonH,
@@ -834,7 +842,7 @@ function legMortisesForApron(
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
       origin: {
-        x: corner.x > 0 ? -1 : 1,
+        x: corner.x > 0 ? -legHalf : +legHalf,
         y: xCenterY + apronLowerTenonOffset * cosXRot,
         z: apronLowerTenonOffset * sinXRot,
       },
