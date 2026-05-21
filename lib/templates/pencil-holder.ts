@@ -164,8 +164,8 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle;
     if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
       const innerFlatR = apothem - wallT;
-      const polyDividerGroove = Math.min(5, wallT - 1);
-      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerGroove;
+      // 隔板兩端剛好頂到壁內側面、再留 1mm 縫，完全在框體內不溢出
+      const polyDividerLen = 2 * innerFlatR - 2;
       const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
       const polyDividerH = dividerHeightOpt > 0
@@ -200,26 +200,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
           mortises: [],
         });
       }
-      // CSG cosmetic mortise（壁加 dado 槽嵌入隔板）
-      const addStaveMortise = (staveIdx: number) => {
-        const stave = staves[staveIdx];
-        if (!stave) return;
-        stave.mortises.push({
-          origin: { x: 0, y: wallT, z: 0 },
-          depth: polyDividerGroove + 0.3,
-          length: polyDividerH + 0.5,
-          width: dividerThick + 0.5,
-          through: false,
-          shape: "rect",
-          cosmetic: true,
-        });
-      };
-      addStaveMortise(0);
-      addStaveMortise(sides / 2);
-      if (polyDividerStyleStr === "cross") {
-        addStaveMortise(sides / 4);
-        addStaveMortise((3 * sides) / 4);
-      }
+      // 不挖 dado 槽：隔板自由站立在底板上、靠膠合固定，不需要壁上的溝槽嵌入
     }
 
     return {
