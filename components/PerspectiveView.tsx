@@ -170,6 +170,17 @@ function subtractMortisesFromGeometry(
   for (let i = 0; i < mortiseBoxes.length; i++) {
     const m = mortiseBoxes[i];
     if (m.hx <= 0 || m.hy <= 0 || m.hz <= 0) continue;
+    // 防呆：half-extent 或中心若是 NaN/Infinity，BoxGeometry 會吐 degenerate
+    // triangles → three-bvh-csg 計算 BVH 時 normal=null → dot() crash
+    if (
+      !Number.isFinite(m.hx) || !Number.isFinite(m.hy) || !Number.isFinite(m.hz) ||
+      !Number.isFinite(m.cx) || !Number.isFinite(m.cy) || !Number.isFinite(m.cz)
+    ) {
+      if (typeof console !== "undefined") {
+        console.warn("[subtractMortisesFromGeometry] skip non-finite mortise", m);
+      }
+      continue;
+    }
     const isRound = mortiseShapes?.[i] === "round";
     // 外撇牆 cosmetic 孔（rotX≠0）的 slice 幾何修正：
     // Wall 在 part-local 是 parallelogram（mitered-ends vertices）；外面法線
@@ -213,10 +224,19 @@ function subtractMortisesFromGeometry(
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
     cut.updateMatrixWorld();
-    const next = evaluator.evaluate(acc, cut, SUBTRACTION);
-    cutGeo.dispose();
-    acc.geometry.dispose();
-    acc = next;
+    try {
+      const next = evaluator.evaluate(acc, cut, SUBTRACTION);
+      cutGeo.dispose();
+      acc.geometry.dispose();
+      acc = next;
+    } catch (err) {
+      // three-bvh-csg 偶爾因 degenerate triangle / 邊界重疊 hit null normal
+      // → 整個頁面掛掉。skip 這個 mortise 比讓使用者看到錯誤頁好。
+      if (typeof console !== "undefined") {
+        console.warn("[subtractMortisesFromGeometry] CSG evaluate failed, skipping mortise", { mortise: m, err });
+      }
+      cutGeo.dispose();
+    }
   }
   return acc.geometry;
 }
