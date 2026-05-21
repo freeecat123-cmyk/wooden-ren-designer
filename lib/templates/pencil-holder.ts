@@ -85,7 +85,7 @@ export const pencilHolderOptions: OptionSpec[] = [
     { value: "stub-joint", label: "搭接（rabbet，最簡單）" },
     { value: "finger-joint", label: "指接（finger joint，外露指狀）" },
     { value: "miter", label: "斜角拼（45°，最隱形但要對齊）" },
-  ] },
+  ], dependsOn: { key: "bodyShape", equals: "rect" }, help: "六/八角筒固定 miter-spline 端面斜接，不需要選擇。" },
   { group: "structure", type: "number", key: "dividers", label: "縱向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 整空；1-5 沿長邊方向加直立隔板（垂直 length 軸）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
