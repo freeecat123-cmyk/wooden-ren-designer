@@ -642,6 +642,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
               <Link
                 key={r.category}
                 href={`/design/${r.category}`}
+                target="_blank"
+                rel="noopener"
                 className="group rounded-xl bg-white ring-1 ring-amber-900/10 px-4 py-3 hover:ring-amber-400 hover:shadow-md transition"
               >
                 <div className="font-semibold text-zinc-900 group-hover:text-amber-800 transition">
