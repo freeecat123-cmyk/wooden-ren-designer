@@ -240,12 +240,13 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         });
       }
       // dividerInset > 0 時對應壁加 dado 槽（CSG cosmetic mortise）
+      // origin.y = 0（壁內側面），depth 朝外延伸 inset mm — divider tip 嵌入這個槽
       if (polyDividerInset > 0) {
         const addStaveMortise = (staveIdx: number) => {
           const stave = staves[staveIdx];
           if (!stave) return;
           stave.mortises.push({
-            origin: { x: 0, y: wallT, z: 0 },
+            origin: { x: 0, y: 0, z: 0 },
             depth: polyDividerInset + 0.3,
             length: polyDividerH + 0.5,
             width: dividerThick + 0.5,
