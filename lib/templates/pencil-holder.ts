@@ -171,7 +171,9 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       const polyDividerH = dividerHeightOpt > 0
         ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
         : polyDividerHAuto;
-      // divider-1：length 沿世界 Z（對齊 staves 0 / sides/2 的 ±Z 壁）、width 沿世界 Y 垂直
+      // divider-1：length 沿世界 -Z（對齊 staves 0 / sides/2 的 ±Z 壁）、width→-Y 垂直
+      // Three.js Euler "ZYX" intrinsic XYZ：world = Rz·Ry·Rx·local
+      // { x: π/2, y: π/2 }：part-X (length) → -Z 水平、part-Z (width) → -Y 垂直 bottom-anchored
       polygonDividerParts.push({
         id: "divider-1",
         nameZh: "穿心隔板 1（縱）",
@@ -179,12 +181,13 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         grainDirection: "length",
         visible: { length: polyDividerLen, width: polyDividerH, thickness: dividerThick },
         origin: { x: 0, y: polyBottomTopY, z: 0 },
-        rotation: { x: Math.PI / 2, y: 0, z: Math.PI / 2 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
         tenons: [],
         mortises: [],
       });
       if (polyDividerStyleStr === "cross") {
-        // divider-2：length 沿世界 X（對齊 staves sides/4 / 3·sides/4 的 ±X 壁）、width 沿世界 Y 垂直
+        // divider-2：length 沿世界 +X（對齊 staves sides/4 / 3·sides/4 的 ±X 壁）、width→-Y 垂直
+        // { x: π/2 }：part-X (length) → +X 水平、part-Z (width) → -Y 垂直
         polygonDividerParts.push({
           id: "divider-2",
           nameZh: "穿心隔板 2（橫）",
