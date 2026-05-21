@@ -190,7 +190,13 @@ export function MobileShell(props: MobileShellProps) {
           <div className="space-y-1.5">
             <RangeInput
               name="length"
-              label="長"
+              label={
+                entry.category === "round-stool" ||
+                entry.category === "round-table" ||
+                entry.category === "round-tea-table"
+                  ? "直徑"
+                  : "長"
+              }
               defaultValue={length}
               min={lMin}
               max={lMax}
@@ -199,17 +205,21 @@ export function MobileShell(props: MobileShellProps) {
               showRange
               partIds={resolvePartIds("length", allPartIds)}
             />
-            <RangeInput
-              name="width"
-              label="寬"
-              defaultValue={width}
-              min={wMin}
-              max={wMax}
-              step={10}
-              ticks={makeTicks(wMin, wMax, 10)}
-              showRange
-              partIds={resolvePartIds("width", allPartIds)}
-            />
+            {entry.category !== "round-stool" &&
+              entry.category !== "round-table" &&
+              entry.category !== "round-tea-table" && (
+                <RangeInput
+                  name="width"
+                  label="寬"
+                  defaultValue={width}
+                  min={wMin}
+                  max={wMax}
+                  step={10}
+                  ticks={makeTicks(wMin, wMax, 10)}
+                  showRange
+                  partIds={resolvePartIds("width", allPartIds)}
+                />
+              )}
             <RangeInput
               name="height"
               label="高"

@@ -173,13 +173,19 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const limits = (planAllowsDesigner || isAdmin) && parsed.designerMode
     ? null
     : entry.limits ?? null;
+  // 圓形家具（圓凳/圓茶几/圓餐桌）只有「直徑」一個尺寸——template 端 input.length
+  // 當直徑、忽略 input.width。UI 也只給直徑一個 input，width 強制 = length 避免
+  // 殘留分享連結帶不同數值造成 server / template 看到不一致。
+  const isRoundCategory =
+    type === "round-stool" || type === "round-table" || type === "round-tea-table";
   const length = limits ? Math.min(parsed.length, limits.length) : parsed.length;
-  const width = limits ? Math.min(parsed.width, limits.width) : parsed.width;
+  const widthRaw = limits ? Math.min(parsed.width, limits.width) : parsed.width;
+  const width = isRoundCategory ? length : widthRaw;
   const height = limits ? Math.min(parsed.height, limits.height) : parsed.height;
   const clampedDims: { dim: string; from: number; to: number }[] = [];
   if (limits) {
-    if (parsed.length > limits.length) clampedDims.push({ dim: "寬", from: parsed.length, to: limits.length });
-    if (parsed.width > limits.width) clampedDims.push({ dim: "深", from: parsed.width, to: limits.width });
+    if (parsed.length > limits.length) clampedDims.push({ dim: isRoundCategory ? "直徑" : "寬", from: parsed.length, to: limits.length });
+    if (!isRoundCategory && parsed.width > limits.width) clampedDims.push({ dim: "深", from: parsed.width, to: limits.width });
     if (parsed.height > limits.height) clampedDims.push({ dim: "高", from: parsed.height, to: limits.height });
   }
 
@@ -810,33 +816,41 @@ function ParameterForm({
       </div>
       <SizePresetButtons category={type as FurnitureCategory} limits={limits} />
       <HeightToSizeButton category={type as FurnitureCategory} />
-      <div className="grid grid-cols-3 gap-2 mb-3 items-end">
-        {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
-        <NumberInput
-          key={`length-${defaults.length}`}
-          name="length"
-          label="寬"
-          defaultValue={defaults.length}
-          max={limits?.length}
-          partIds={resolvePartIds("length", allPartIds)}
-        />
-        <NumberInput
-          key={`width-${defaults.width}`}
-          name="width"
-          label="深"
-          defaultValue={defaults.width}
-          max={limits?.width}
-          partIds={resolvePartIds("width", allPartIds)}
-        />
-        <NumberInput
-          key={`height-${defaults.height}`}
-          name="height"
-          label="高"
-          defaultValue={defaults.height}
-          max={limits?.height}
-          partIds={resolvePartIds("height", allPartIds)}
-        />
-      </div>
+      {(() => {
+        const isRound =
+          type === "round-stool" || type === "round-table" || type === "round-tea-table";
+        return (
+          <div className={`grid ${isRound ? "grid-cols-2" : "grid-cols-3"} gap-2 mb-3 items-end`}>
+            {/* key 綁 defaultValue 強制 remount——server clamp 後 input 才會顯示縮回後的值 */}
+            <NumberInput
+              key={`length-${defaults.length}`}
+              name="length"
+              label={isRound ? "直徑" : "寬"}
+              defaultValue={defaults.length}
+              max={limits?.length}
+              partIds={resolvePartIds("length", allPartIds)}
+            />
+            {!isRound && (
+              <NumberInput
+                key={`width-${defaults.width}`}
+                name="width"
+                label="深"
+                defaultValue={defaults.width}
+                max={limits?.width}
+                partIds={resolvePartIds("width", allPartIds)}
+              />
+            )}
+            <NumberInput
+              key={`height-${defaults.height}`}
+              name="height"
+              label="高"
+              defaultValue={defaults.height}
+              max={limits?.height}
+              partIds={resolvePartIds("height", allPartIds)}
+            />
+          </div>
+        );
+      })()}
       <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
         <label className="flex items-center gap-1.5 shrink-0">
           <span className="text-zinc-600 font-medium">木材</span>
