@@ -7,6 +7,7 @@ import { applyLowerStretcherArrangement } from "./dining-table";
 import { applyStandardChecks } from "./_validators";
 import {
   seatEdgeOption,
+  seatEdgeBottomOption,
   seatEdgeStyleOption,
   legEdgeOption,
   legEdgeStyleOption,
@@ -30,7 +31,8 @@ export const deskOptions: OptionSpec[] = [
   // ───────────── ① 桌面 ─────────────
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 12, max: 60, step: 2 },
   { ...seatEdgeOption("top", 5), dependsOn: { key: "liveEdge", notIn: [true] } },
-  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ key: "seatEdge", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
+  { ...seatEdgeBottomOption("top"), dependsOn: { all: [{ key: "legInset", notIn: [0] }, { key: "liveEdge", notIn: [true] }] } },
+  { ...seatEdgeStyleOption("top"), dependsOn: { all: [{ any: [{ key: "seatEdge", notIn: [0] }, { key: "seatEdgeBottom", notIn: [0] }] }, { key: "liveEdge", notIn: [true] }] } },
   { group: "top", type: "checkbox", key: "liveEdge", label: "Live edge 原木邊", defaultValue: false, help: "桌面長邊保留原木樹皮曲線", wide: true },
 
   // ───────────── ② 桌腳 ─────────────
@@ -129,6 +131,7 @@ export const desk: FurnitureTemplate = (input) => {
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
   const seatEdge = getOption<number>(input, opt(o, "seatEdge"));
   const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatEdgeBottom = getOption<number>(input, opt(o, "seatEdgeBottom"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
   const stretcherEdge = getOption<number>(input, opt(o, "stretcherEdge"));
@@ -166,6 +169,7 @@ export const desk: FurnitureTemplate = (input) => {
   const apronDrawerPosition = getOption<string>(input, opt(o, "apronDrawerPosition"));
   const apronDrawerFrontInset = getOption<number>(input, opt(o, "apronDrawerFrontInset"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
+  const seatEdgeBottomClamped = Math.min(seatEdgeBottom, legInset);
   const apronOffset = getOption<number>(input, opt(o, "apronOffset"));
   const lowerStretcherHeight = getOption<number>(input, opt(o, "lowerStretcherHeight"));
   const lowerStretcherArrangement = getOption<string>(input, opt(o, "lowerStretcherArrangement"));
@@ -202,6 +206,7 @@ export const desk: FurnitureTemplate = (input) => {
     legShape: legShape as "box" | "tapered" | "splayed" | "splayed-length" | "splayed-width" | "splayed-tapered" | "splayed-round-tapered" | "shaker",
     seatEdge,
     seatEdgeStyle,
+    seatEdgeBottom: seatEdgeBottomClamped,
     legEdge,
     legEdgeStyle,
     stretcherEdge,
