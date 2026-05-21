@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getTemplate } from "@/lib/templates";
+import { getCategoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -30,8 +30,7 @@ export function ShareDesignButton({
   };
 
   const buildTitle = (): string => {
-    const tmpl = getTemplate(category);
-    const name = tmpl?.nameZh ?? category;
+    const name = getCategoryLabel(category);
     const length = sp?.get("length") ?? defaults.length;
     const width = sp?.get("width") ?? defaults.width;
     const height = sp?.get("height") ?? defaults.height;

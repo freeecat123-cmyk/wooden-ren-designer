@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getTemplate } from "@/lib/templates";
+import { getCategoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory, MaterialId } from "@/lib/types";
 import { MATERIALS } from "@/lib/materials";
 
@@ -30,8 +30,7 @@ export function AskMasterButton({
   const [copied, setCopied] = useState(false);
 
   const buildQuestion = (): string => {
-    const tmpl = getTemplate(category);
-    const tmplName = tmpl?.nameZh ?? category;
+    const tmplName = getCategoryLabel(category);
 
     const length = sp?.get("length") ?? defaults.length;
     const width = sp?.get("width") ?? defaults.width;

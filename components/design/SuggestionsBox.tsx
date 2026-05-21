@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUserPlan } from "@/hooks/useUserPlan";
-import { getTemplate } from "@/lib/templates";
+import { getCategoryLabel } from "@/lib/templates/labels";
 import { isPaidCategory } from "@/lib/permissions";
 import type { FurnitureCategory } from "@/lib/types";
 
@@ -37,8 +37,7 @@ export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
             您要做的尺寸建議改用其他模板
           </div>
           {suggestions.map((s, i) => {
-            const target = getTemplate(s.suggestedCategory);
-            const targetLabel = target?.nameZh ?? s.suggestedCategory;
+            const targetLabel = getCategoryLabel(s.suggestedCategory);
             const targetIsPaid = isPaidCategory(s.suggestedCategory);
             const showUpgradeFlow = !isPaid && targetIsPaid;
             const url = showUpgradeFlow
