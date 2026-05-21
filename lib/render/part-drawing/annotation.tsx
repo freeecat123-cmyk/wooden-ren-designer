@@ -2107,13 +2107,16 @@ function ArchBentChord({
 }
 
 /**
- * <ApronTrapezoidDualEdge> — apron-trapezoid 上下邊雙標 + 端面斜角。
+ * <ApronTrapezoidDualEdge> — apron-trapezoid 上下邊雙標 + 端面斜角 + 切角。
  *
  * 牙條梯形（topLengthScale / bottomLengthScale）要木匠看清上邊跟下邊各多長，
  * top view 左上角同時標兩條邊長，bevelAngle 非 0 時加端面斜角度°。
+ * 錐形腳家具：top/bot 長度不同 → 端面要切角才能貼合腳的斜面，
+ * 補上「切角」= atan(|botL−topL|/2 / apronWidth)，木匠依此設斜切鋸刃角。
  *
- *   上邊長 = visible.length × topLengthScale
- *   下邊長 = visible.length × bottomLengthScale
+ *   上邊長 = visible.length × topLengthScale（不含榫頭）
+ *   下邊長 = visible.length × bottomLengthScale（不含榫頭）
+ *   切角  = atan(|botL−topL|/2 / apronWidth)
  *   端面斜 = bevelAngle * 180/π （若 != 0）
  *
  * Spec: …phase-3 §1.3
@@ -2134,20 +2137,34 @@ function ApronTrapezoidDualEdge({
   const topL = L * (shape.topLengthScale ?? 1);
   const botL = L * (shape.bottomLengthScale ?? 1);
   const bevel = shape.bevelAngle ?? 0;
+  const apronH = part.visible.width;
+  const cutAngleDeg =
+    apronH > 0
+      ? (Math.atan(Math.abs(botL - topL) / 2 / apronH) * 180) / Math.PI
+      : 0;
 
   const x0 = ctx.vbX + 14;
   const y0 = ctx.vbY + 42;
 
+  let row = 0;
   return (
     <g className="apron-trap-dual" style={{ fontSize: 8 }}>
-      <text x={x0} y={y0} fill="#374151">
+      <text x={x0} y={y0 + 10 * row++} fill="#9ca3af" fontSize={7}>
+        ─ 淨長（不含榫頭）─
+      </text>
+      <text x={x0} y={y0 + 10 * row++} fill="#374151">
         上邊長 {round1(topL)}
       </text>
-      <text x={x0} y={y0 + 10} fill="#374151">
+      <text x={x0} y={y0 + 10 * row++} fill="#374151">
         下邊長 {round1(botL)}
       </text>
+      {cutAngleDeg > 0.05 && (
+        <text x={x0} y={y0 + 10 * row++} fill="#b45309" fontWeight="bold">
+          切角 {round1(cutAngleDeg)}°（鋸刃角）
+        </text>
+      )}
       {bevel !== 0 && (
-        <text x={x0} y={y0 + 20} fill="#374151">
+        <text x={x0} y={y0 + 10 * row++} fill="#374151">
           端面斜 {round1((bevel * 180) / Math.PI)}°
         </text>
       )}
