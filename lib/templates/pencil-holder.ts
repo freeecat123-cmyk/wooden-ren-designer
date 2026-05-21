@@ -59,7 +59,7 @@ export const pencilHolderOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "crossDividers", label: "橫向隔板數", defaultValue: 0, min: 0, max: 5, step: 1, help: "0 = 沒有；1-5 沿短邊方向加隔板（跟縱向組合可形成 grid 網格）", dependsOn: { key: "bodyShape", equals: "rect" } },
   { group: "structure", type: "number", key: "dividerThickness", label: "隔板厚度 (mm)", defaultValue: 6, min: 3, max: 15, step: 1, unit: "mm", help: "預設跟著「壁厚的一半」（壁 8mm→隔板 4mm、壁 12mm→6mm）。改數字才覆寫。" },
   { group: "structure", type: "number", key: "dividerHeight", label: "隔板高度 (mm)", defaultValue: 0, min: 0, max: 500, step: 1, unit: "mm", help: "0 = 自動填滿（從底板到頂）。手動指定可矮於壁高，讓筆桿露出來。" },
-  { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，4 壁內側要銑對應槽）。", dependsOn: { key: "bodyShape", equals: "rect" } },
+  { group: "structure", type: "number", key: "dividerInset", label: "隔板嵌入深度 (mm)", defaultValue: 0, min: 0, max: 15, step: 1, unit: "mm", help: "0 = 跟壁齊；設 3mm = 隔板兩端各延伸 3mm 進壁內側溝槽（dado joint，壁內側要銑對應槽）。方筒 / 六角 / 八角通用。" },
   { group: "structure", type: "select", key: "polygonDividerStyle", label: "多邊形隔板", defaultValue: "none", choices: [
     { value: "none", label: "無隔板" },
     { value: "single", label: "單片直徑（穿過中心）" },
@@ -164,8 +164,10 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle;
     if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
       const innerFlatR = apothem - wallT;
-      // 隔板兩端剛好頂到壁內側面（zero gap），不溢出也不留縫
-      const polyDividerLen = 2 * innerFlatR;
+      // dividerInset > 0 時兩端各延伸進壁內側 dado 槽 dividerInsetOpt mm；
+      // = 0 時剛好頂到壁內側面、零縫
+      const polyDividerInset = Math.min(dividerInsetOpt, wallT - 1);
+      const polyDividerLen = 2 * innerFlatR + 2 * polyDividerInset;
       const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
       const polyDividerH = dividerHeightOpt > 0
@@ -200,7 +202,28 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
           mortises: [],
         });
       }
-      // 不挖 dado 槽：隔板自由站立在底板上、靠膠合固定，不需要壁上的溝槽嵌入
+      // dividerInset > 0 時對應壁加 dado 槽（CSG cosmetic mortise）
+      if (polyDividerInset > 0) {
+        const addStaveMortise = (staveIdx: number) => {
+          const stave = staves[staveIdx];
+          if (!stave) return;
+          stave.mortises.push({
+            origin: { x: 0, y: wallT, z: 0 },
+            depth: polyDividerInset + 0.3,
+            length: polyDividerH + 0.5,
+            width: dividerThick + 0.5,
+            through: false,
+            shape: "rect",
+            cosmetic: true,
+          });
+        };
+        addStaveMortise(0);
+        addStaveMortise(sides / 2);
+        if (polyDividerStyleStr === "cross") {
+          addStaveMortise(sides / 4);
+          addStaveMortise((3 * sides) / 4);
+        }
+      }
     }
 
     return {
