@@ -57,6 +57,29 @@ export function computeFloorBom(input: FloorInput): FloorBom {
         ? ((plankNominalAreaCm2 - usedAreaCm2) / usedAreaCm2) * 100
         : 0;
 
+  // 門洞扣除:踢腳板/收邊條長度
+  const doorDeductM =
+    (Math.max(0, input.doorCount) * Math.max(0, input.doorWidthCm)) / 100;
+  const skirtingActive = input.skirtingType !== "none";
+  const skirtingLengthM = Math.max(0, perimeterM - doorDeductM);
+
+  // 成本估算 — 地板/防潮墊每坪、踢腳板每米
+  const PING_M2 = 3.305;
+  const boughtPing = plankNominalAreaCm2 / 10000 / PING_M2;
+  const plankCost =
+    input.plankPricePerPing > 0 ? boughtPing * input.plankPricePerPing : 0;
+  const skirtingCost =
+    skirtingActive && input.skirtingPricePerM > 0
+      ? skirtingLengthM * input.skirtingPricePerM
+      : 0;
+  const underlayCost =
+    input.underlayPricePerPing > 0 ? pingShu * input.underlayPricePerPing : 0;
+  const totalCost = plankCost + skirtingCost + underlayCost;
+  const hasUnpriced =
+    input.plankPricePerPing <= 0 ||
+    input.underlayPricePerPing <= 0 ||
+    (skirtingActive && input.skirtingPricePerM <= 0);
+
   const items: FloorBomItem[] = [];
 
   items.push({
@@ -68,15 +91,20 @@ export function computeFloorBom(input: FloorInput): FloorBom {
       input.wasteMode === "empirical"
         ? `含經驗損耗 10%;建議進貨 ${Math.ceil(totalPlankCount * 1.1)} 片`
         : `整片 ${fullPlankCount} + 裁切 ${cutPlankCount}(實算損耗 ${wastePercent.toFixed(1)}%)`,
+    subtotal: plankCost > 0 ? plankCost : undefined,
   });
 
-  if (input.skirtingType !== "none") {
+  if (skirtingActive) {
     items.push({
       category: "skirting",
       nameZh: input.skirtingType === "skirting" ? "踢腳板" : "收邊條",
       spec: "沿牆周長",
-      totalLengthM: perimeterM,
-      note: "未扣門洞,請依現場門口數量自行調整",
+      totalLengthM: skirtingLengthM,
+      note:
+        input.doorCount > 0
+          ? `已扣 ${input.doorCount} 個門洞 × ${input.doorWidthCm}cm`
+          : "未扣門洞",
+      subtotal: skirtingCost > 0 ? skirtingCost : undefined,
     });
   }
 
@@ -85,6 +113,7 @@ export function computeFloorBom(input: FloorInput): FloorBom {
     nameZh: "防潮墊",
     spec: "滿鋪",
     totalAreaM2: roomAreaM2,
+    subtotal: underlayCost > 0 ? underlayCost : undefined,
   });
 
   return {
@@ -92,6 +121,13 @@ export function computeFloorBom(input: FloorInput): FloorBom {
     layout,
     items,
     auto: { roomAreaM2, pingShu, perimeterM },
+    cost: {
+      plank: plankCost,
+      skirting: skirtingCost,
+      underlay: underlayCost,
+      total: totalCost,
+      hasUnpriced,
+    },
     trace: {
       fullPlankCount,
       cutPieceCount,
