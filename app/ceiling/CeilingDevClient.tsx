@@ -535,7 +535,7 @@ export function CeilingDevClient() {
               onClick={() =>
                 router.push(`/ceiling/quote?d=${encodeURIComponent(encodeState(input))}`)
               }
-              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white"
+              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
             >
               🧾 產生報價單
             </button>
