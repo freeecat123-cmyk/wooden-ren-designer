@@ -2865,7 +2865,7 @@ export function OrthoView({
           }
           // 排序去重（同 Y 只留一個）
           const seen = new Set<number>();
-          const dedupedStack = leftStack
+          const dedupedStackBase = leftStack
             .sort((a, b) => a.y - b.y)
             .filter((it) => {
               const key = Math.round(it.y);
@@ -2873,6 +2873,29 @@ export function OrthoView({
               seen.add(key);
               return true;
             });
+          // labelY 防撞：兩筆 topY 太近時把後面那筆往下推一格（避免「左牙板 416/
+          // 前牙板 400」「左下橫撐 170/前下橫撐 170」label 撞字 user 2026-05-21 回報）。
+          // 處理順序由螢幕上往下（worldY 大→小、SVG y 小→大）：算出每筆「不要
+          // 撞到前一筆」的 labelY，再以原本的 column index 順序（i = ascending y）
+          // 套回去渲染。
+          const MIN_GAP = 18; // SVG mm，約一行字高
+          const labelYMap = new Map<number, number>();
+          {
+            const topDown = [...dedupedStackBase].sort((a, b) => b.y - a.y);
+            let prevLabelY = -Infinity;
+            for (const it of topDown) {
+              const desired = -it.y;
+              const effective = desired < prevLabelY + MIN_GAP
+                ? prevLabelY + MIN_GAP
+                : desired;
+              prevLabelY = effective;
+              labelYMap.set(Math.round(it.y), effective);
+            }
+          }
+          const dedupedStack = dedupedStackBase.map((it) => ({
+            ...it,
+            labelY: labelYMap.get(Math.round(it.y)) ?? -it.y,
+          }));
           return (
             <>
               {/* 主面厚 */}
@@ -2959,9 +2982,8 @@ export function OrthoView({
                   y1={-it.y}
                   y2={sFloor}
                   label={it.label}
-                  // 標籤貼著各自的 topY 不取中點：apronStaggerMm > 0 時前後 vs
-                  // 左右牙板 topY 差 16mm 自然錯開，416 跟 400 兩行不再疊字。
-                  labelY={-it.y}
+                  // 標籤位置：基準是各自 topY、但同 Y 或太近的會被算好錯位推下去
+                  labelY={it.labelY}
                 />
               ))}
             </>
