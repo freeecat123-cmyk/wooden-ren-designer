@@ -89,6 +89,9 @@ export interface SimpleTableOpts {
   seatProfile?: string;
   /** 座板邊緣樣式 — "chamfered"(45°) / "rounded"(圓刀)。預設 chamfered */
   seatEdgeStyle?: string;
+  /** 桌面 / 座板「下緣」倒角量（mm）。undefined = 沿用 legInset/topOverhang
+   *  自動鏡射上緣的舊行為；有傳值（含 0）就以明確值為準。 */
+  seatEdgeBottom?: number;
   /** 腳邊緣倒角（mm）。0 = 直角。當 legShape 是 box 時生效，其他造型腳忽略 */
   legEdge?: string | number;
   /** 腳邊緣樣式 — "chamfered"(45°) / "rounded"(圓刀)。預設 chamfered */
@@ -253,7 +256,13 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
       : opts.seatProfile === "waterfall"
         // 瀑布前緣：座板下緣前後兩面大圓角（22mm），上緣維持 seatEdge 設定
         ? { kind: "chamfered-top", chamferMm: typeof opts.seatEdge === "number" ? opts.seatEdge : 5, bottomChamferMm: 22, style: "rounded" }
-        : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(opts.seatEdge ?? "square", opts.seatEdgeStyle, (legInset > 0 || topOverhang > 0) ? (opts.seatEdge ?? "square") : 0)),
+        : (seatScoopShape(opts.seatProfile ?? "flat") ?? seatEdgeShape(
+            opts.seatEdge ?? "square",
+            opts.seatEdgeStyle,
+            opts.seatEdgeBottom !== undefined
+              ? opts.seatEdgeBottom
+              : ((legInset > 0 || topOverhang > 0) ? (opts.seatEdge ?? "square") : 0),
+          )),
     panelPieces: opts.topPanelPieces,
     tenons: [],
     mortises: cornerPts.map((c) => {
