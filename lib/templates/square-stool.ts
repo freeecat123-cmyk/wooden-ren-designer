@@ -808,27 +808,15 @@ function legMortisesForApron(
   // 此 leg 在 +Z 側 (s.sz=+1) 拿 -tiltZ；-Z 側拿 +tiltZ。
   const zFaceRotZ = (corner.x > 0 ? +1 : -1) * tiltX;
   const xFaceRotX = (corner.z > 0 ? -1 : +1) * tiltZ;
-  // Tenon-as-truth 對齊：apron 經 (π/2 X, π/2 Y, tilt Z) ZYX rotation 後
-  // tenon 從 apron-local (lx/2, 0, oW) 投影到世界，相對 apron origin 位移：
-  //   Z 面 mortise (axis="z" apron, oW = -apronUpperTenonOffset):
-  //     ΔX = oW × sin(tilt) = -apronUpperTenonOffset × sin(zFaceRotZ)
-  //     ΔY = -oW × cos(tilt) = apronUpperTenonOffset × cos(zFaceRotZ)
-  //   X 面 mortise (axis="x" apron, ZYX simplified to Rx(π/2+δ), oW = -apronLowerTenonOffset):
-  //     ΔZ = oW × cos(π/2+δ) = -oW × sin(δ) = apronLowerTenonOffset × sin(xFaceRotX)
-  //     ΔY = -oW × sin(π/2+δ) = -oW × cos(δ) ≈ apronLowerTenonOffset × cos(xFaceRotX)
-  // user 2026-05-21 「孔跟榫頭沒重合，要不要反向用 tenon 算」。
-  const sinZRot = Math.sin(zFaceRotZ);
+  // cos(tilt) 補償：apron 旋轉後 tenon 世界 Y = apronCenterY + offset × cos(tilt)
+  // （不是純 offset）。mortise origin.y 沒做這補償 → 跟 tenon 差 offset×(1-cos)。
+  // 14° 時 3% × offset ~0.9mm，視覺上 tenon 跑出孔變透明（user 2026-05-21 回報）。
   const cosZRot = Math.cos(zFaceRotZ);
-  const sinXRot = Math.sin(xFaceRotX);
   const cosXRot = Math.cos(xFaceRotX);
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
-      origin: {
-        x: -apronUpperTenonOffset * sinZRot,
-        y: zCenterY + apronUpperTenonOffset * cosZRot,
-        z: corner.z > 0 ? -1 : 1,
-      },
+      origin: { x: 0, y: zCenterY + apronUpperTenonOffset * cosZRot, z: corner.z > 0 ? -1 : 1 },
       depth: apronTenonLength,
       length: apronUpperTenonH,
       width: apronTenonThick,
@@ -837,11 +825,7 @@ function legMortisesForApron(
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
-      origin: {
-        x: corner.x > 0 ? -1 : 1,
-        y: xCenterY + apronLowerTenonOffset * cosXRot,
-        z: apronLowerTenonOffset * sinXRot,
-      },
+      origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset * cosXRot, z: 0 },
       depth: apronTenonLength,
       length: apronLowerTenonH,
       width: apronTenonThick,
