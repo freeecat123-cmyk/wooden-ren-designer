@@ -11,7 +11,7 @@ import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
-  seatEdgeOption("top", 0),
+  seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
   // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示

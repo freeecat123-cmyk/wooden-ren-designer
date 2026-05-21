@@ -36,7 +36,6 @@ import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER } from "@/lib/design/option-groups";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
-import { EdgePresetButtons } from "@/components/design/EdgePresetButtons";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
 // import { AIRefineButton } from "@/components/design/AIRefineButton";
@@ -910,7 +909,6 @@ function ParameterForm({
             />
           </div> */}
           <StyleMismatchWarning />
-          <EdgePresetButtons optionSchema={optionSchema} />
           <GroupedOptionFields
             optionSchema={optionSchema}
             optionValues={optionValues}

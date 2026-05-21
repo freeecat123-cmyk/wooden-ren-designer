@@ -320,7 +320,7 @@ function buildTrestleRoundTable(p: {
 
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
-  seatEdgeOption("top", 0),
+  seatEdgeOption("top", 1),
   seatEdgeStyleOption("top"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
   // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
