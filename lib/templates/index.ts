@@ -71,8 +71,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "tea-table",
-    nameZh: "邊桌",
-    description: "客廳沙發旁、茶水點心擺放——含下棚板放書本雜物",
+    nameZh: "茶几",
+    description: "沙發旁低矮小桌，茶水點心擺放——含下棚板放書本雜物",
     difficulty: "beginner",
     template: teaTable,
     defaults: { length: 500, width: 350, height: 400 },
@@ -81,8 +81,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   },
   {
     category: "side-table",
-    nameZh: "床邊桌",
-    description: "床側收納，可加單層抽屜",
+    nameZh: "邊桌",
+    description: "一般邊桌（客廳/玄關/床邊），可加單層抽屜",
     difficulty: "beginner",
     template: sideTable,
     defaults: { length: 450, width: 400, height: 600 },
@@ -212,7 +212,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
   {
     category: "nightstand",
     nameZh: "床頭櫃",
-    description: "1 抽屜 + 開放層的床邊小櫃",
+    description: "床邊收納櫃，含抽屜 + 門/層板",
     difficulty: "beginner",
     template: nightstand,
     defaults: { length: 450, width: 380, height: 600 },
