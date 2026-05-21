@@ -1708,7 +1708,8 @@ function OrthoViewImpl({
         // 但「帶 chamferMm 的 round（圓凳座板倒角）」前/側視會多 2 個倒角，
         // 這時要走 polygon 路徑；俯視仍由上面的圓形 case 處理。
         const isRoundWithChamfer =
-          part.shape?.kind === "round" && (part.shape.chamferMm ?? 0) > 0;
+          part.shape?.kind === "round" &&
+          ((part.shape.chamferMm ?? 0) > 0 || (part.shape.bottomChamferMm ?? 0) > 0);
         // tapered 帶 chamfer（圓凳/餐椅方錐腳套 legEdge）：俯視要畫八邊形
         // cross-section；前/側視仍是梯形（同 chamfered-edges convention）。
         const isTaperedWithChamfer =
