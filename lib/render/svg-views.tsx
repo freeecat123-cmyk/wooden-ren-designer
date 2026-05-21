@@ -2857,10 +2857,17 @@ export function OrthoView({
               label: `${s.nameZh} ${Math.round(s.topY)}`,
             });
           }
+          // cross-pieces 高度堆疊：按 view 軸過濾，避免 stagger 時左右兩軸
+          // 各自的牙板/下橫撐同時擠在左側標籤欄重疊（user 2026-05-21 回報
+          // 「左牙板 416」「前牙板 400」相疊）。front 只顯示 X 軸（前後），
+          // side 只顯示 Z 軸（左右）。再 strip 前/後/左/右 變「牙板 416」乾淨。
+          const bareXp = (n: string) => n.replace(/^(前|後|左|右)/, "");
           for (const c of crossPieces) {
+            if (view === "front" && c.isZAxis) continue;
+            if (view === "side" && !c.isZAxis) continue;
             leftStack.push({
               y: c.topY,
-              label: `${c.nameZh} ${Math.round(c.topY)}`,
+              label: `${bareXp(c.nameZh)} ${Math.round(c.topY)}`,
             });
           }
           // 排序去重（同 Y 只留一個）
