@@ -533,12 +533,15 @@ export function projectPartPolygon(
 
   if (!part.shape || part.shape.kind === "box") return box;
 
-  // 帶頂緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視
-  // 矩形 + 頂面 2 角倒角。等同 chamfered-top with bottomChamferMm=0。
-  if (part.shape.kind === "round" && (part.shape.chamferMm ?? 0) > 0) {
+  // 帶頂緣/下緣倒角的圓盤（圓凳座板）：俯視維持矩形（caller 改畫圓），前/側視
+  // 矩形 + 頂面 2 角倒角（chamferMm）+ 下緣 2 角倒角（bottomChamferMm）。
+  if (part.shape.kind === "round" && ((part.shape.chamferMm ?? 0) > 0 || (part.shape.bottomChamferMm ?? 0) > 0)) {
     if (view === "top") return box;
-    const cTop = Math.min(part.shape.chamferMm!, r.h * 0.45, r.w * 0.45);
-    if (cTop <= 0) return box;
+    const cTop = Math.min(part.shape.chamferMm ?? 0, r.h * 0.45, r.w * 0.45);
+    const cBot = part.shape.bottomChamferMm
+      ? Math.min(part.shape.bottomChamferMm, r.h * 0.45, r.w * 0.45)
+      : 0;
+    if (cTop <= 0 && cBot <= 0) return box;
     const rounded = part.shape.chamferStyle === "rounded";
     if (rounded) {
       const segs = 4;
@@ -553,16 +556,20 @@ export function projectPartPolygon(
       const pts: Array<{ x: number; y: number }> = [];
       pts.push(...arc(r.x + r.w - cTop, r.y + r.h - cTop, cTop, 0, Math.PI / 2));
       pts.push(...arc(r.x + cTop, r.y + r.h - cTop, cTop, Math.PI / 2, Math.PI));
-      pts.push({ x: r.x, y: r.y });
-      pts.push({ x: r.x + r.w, y: r.y });
+      pts.push({ x: r.x, y: r.y + cBot });
+      pts.push({ x: r.x + cBot, y: r.y });
+      pts.push({ x: r.x + r.w - cBot, y: r.y });
+      pts.push({ x: r.x + r.w, y: r.y + cBot });
       return pts;
     }
     return [
       { x: r.x + cTop, y: r.y + r.h },
       { x: r.x + r.w - cTop, y: r.y + r.h },
       { x: r.x + r.w, y: r.y + r.h - cTop },
-      { x: r.x + r.w, y: r.y },
-      { x: r.x, y: r.y },
+      { x: r.x + r.w, y: r.y + cBot },
+      { x: r.x + r.w - cBot, y: r.y },
+      { x: r.x + cBot, y: r.y },
+      { x: r.x, y: r.y + cBot },
       { x: r.x, y: r.y + r.h - cTop },
     ];
   }
