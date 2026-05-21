@@ -2857,17 +2857,10 @@ export function OrthoView({
               label: `${s.nameZh} ${Math.round(s.topY)}`,
             });
           }
-          // cross-pieces 高度堆疊：按 view 軸過濾，避免 stagger 時左右兩軸
-          // 各自的牙板/下橫撐同時擠在左側標籤欄重疊（user 2026-05-21 回報
-          // 「左牙板 416」「前牙板 400」相疊）。front 只顯示 X 軸（前後），
-          // side 只顯示 Z 軸（左右）。再 strip 前/後/左/右 變「牙板 416」乾淨。
-          const bareXp = (n: string) => n.replace(/^(前|後|左|右)/, "");
           for (const c of crossPieces) {
-            if (view === "front" && c.isZAxis) continue;
-            if (view === "side" && !c.isZAxis) continue;
             leftStack.push({
               y: c.topY,
-              label: `${bareXp(c.nameZh)} ${Math.round(c.topY)}`,
+              label: `${c.nameZh} ${Math.round(c.topY)}`,
             });
           }
           // 排序去重（同 Y 只留一個）
@@ -2966,6 +2959,9 @@ export function OrthoView({
                   y1={-it.y}
                   y2={sFloor}
                   label={it.label}
+                  // 標籤貼著各自的 topY 不取中點：apronStaggerMm > 0 時前後 vs
+                  // 左右牙板 topY 差 16mm 自然錯開，416 跟 400 兩行不再疊字。
+                  labelY={-it.y}
                 />
               ))}
             </>
@@ -3210,12 +3206,17 @@ export function VerticalDimensionLine({
   y2,
   label,
   arrowId,
+  labelY,
 }: {
   x: number;
   y1: number;
   y2: number;
   label: string;
   arrowId: string;
+  /** 自訂標籤垂直位置（SVG 座標）；不傳則用 (y1+y2)/2。
+   *  左側高度堆疊用 labelY = y1 讓每筆貼著自己的 topY，
+   *  416 vs 400 兩個 staggered 牙板自然錯開不疊字。 */
+  labelY?: number;
 }) {
   const ext = 2; // 越過 dim line 2 (per CNS 2-3mm)
   const reach = 26; // 從 dim line 往 bbox 方向延伸 26（典型 dim 距 bbox 28，剩 2 mm 為 CNS gap）
@@ -3236,7 +3237,7 @@ export function VerticalDimensionLine({
       />
       <text
         x={x >= 0 ? x + 6 : x - 6}
-        y={(y1 + y2) / 2}
+        y={labelY ?? (y1 + y2) / 2}
         textAnchor={x >= 0 ? "start" : "end"}
         dominantBaseline="middle"
         fontSize={13}
