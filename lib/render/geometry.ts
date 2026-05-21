@@ -556,10 +556,18 @@ export function projectPartPolygon(
       const pts: Array<{ x: number; y: number }> = [];
       pts.push(...arc(r.x + r.w - cTop, r.y + r.h - cTop, cTop, 0, Math.PI / 2));
       pts.push(...arc(r.x + cTop, r.y + r.h - cTop, cTop, Math.PI / 2, Math.PI));
-      pts.push({ x: r.x, y: r.y + cBot });
-      pts.push({ x: r.x + cBot, y: r.y });
-      pts.push({ x: r.x + r.w - cBot, y: r.y });
-      pts.push({ x: r.x + r.w, y: r.y + cBot });
+      // BL 下倒角：cBot > 0 → 圓弧，否則直角點
+      if (cBot > 0) {
+        pts.push(...arc(r.x + cBot, r.y + cBot, cBot, Math.PI, (3 * Math.PI) / 2));
+      } else {
+        pts.push({ x: r.x, y: r.y });
+      }
+      // BR 下倒角：cBot > 0 → 圓弧，否則直角點
+      if (cBot > 0) {
+        pts.push(...arc(r.x + r.w - cBot, r.y + cBot, cBot, (3 * Math.PI) / 2, 2 * Math.PI));
+      } else {
+        pts.push({ x: r.x + r.w, y: r.y });
+      }
       return pts;
     }
     return [
