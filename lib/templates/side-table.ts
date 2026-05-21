@@ -71,7 +71,13 @@ export const sideTable: FurnitureTemplate = (input) => {
   const apronEdge = getOption<number>(input, opt(o, "apronEdge"));
   const apronEdgeStyle = getOption<string>(input, opt(o, "apronEdgeStyle"));
   const apronWidthRaw = getOption<number>(input, opt(o, "apronWidth"));
-  const drawerHeight = getOption<number>(input, opt(o, "drawerHeight"));
+  const drawerHeightRaw = getOption<number>(input, opt(o, "drawerHeight"));
+  const legShapeForDrawerCap = getOption<string>(input, opt(o, "legShape"));
+  // 夏克風腳（shaker leg）視覺低調，抽屜不能太高（夏克家具慣例 ≤120mm），
+  // 超過會頭重腳輕、跟夏克風細腿不搭。硬夾 120mm 上限。
+  const drawerHeight = legShapeForDrawerCap === "shaker"
+    ? Math.min(drawerHeightRaw, 120)
+    : drawerHeightRaw;
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
   const withLowerStretchers = getOption<boolean>(input, opt(o, "withLowerStretchers"));
   const legInset = getOption<number>(input, opt(o, "legInset"));

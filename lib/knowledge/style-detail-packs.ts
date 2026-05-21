@@ -1393,7 +1393,7 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "withLowerStretchers": false
     },
     "side-table": {
-      "legShape": "tapered",
+      "legShape": "shaker",
       "legSize": 30,
       "legInset": 0,
       "topThickness": 22,
@@ -1407,10 +1407,10 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "apronOffset": 5,
       "withLowerStretchers": true,
       "withDrawer": true,
-      "drawerHeight": 110,
+      "drawerHeight": 100,
       "drawerSlideType": "none",
       "pullStyle": "knob",
-      "legPenetratingTenon": true
+      "legPenetratingTenon": false
     },
     "open-bookshelf": {
       "panelThickness": 18,
