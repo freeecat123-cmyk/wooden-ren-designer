@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
       "lucide-react",
     ],
   },
+  // Next 16 預設用 Turbopack 做 build；下方保留的 webpack 設定（dev 檔案監聽）
+  // 在沒有 turbopack 設定時會被 Next 16 視為錯誤而中斷 build。
+  // 設一個空的 turbopack 物件即明示「webpack 設定是刻意保留的」，build 照常用
+  // Turbopack 進行。webpack 設定僅在 `next dev --webpack` 時才生效。
+  turbopack: {},
   // dev：檔案監聽器不要遞迴進 .claude/（內含 git worktrees + 各自的
   // node_modules / .next，可達數 GB；worktree 的 dev server 還會持續寫
   // .next）→ 否則主 dev server 監聽迴圈永不收斂、idle 也吃滿 1.5+ 核。
