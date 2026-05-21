@@ -605,10 +605,16 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   //
   // Bug 修：origin.y=0 是 from-bottom 慣例的「便利預設值」，不該被當作真的
   // Y face 入榫。當 origin.y 在 canonical 值（0 或 ly）+ X 或 Z 軸有 origin
-  // 靠近 face (≤ ly/2) 時，優先選 X/Z 為真正 entry axis—template 真正想表
-  // 達的入榫方向。例：頂板側板榫眼 origin=(±halfL-9, 0, 0)，xToFace=9 才是
-  // 真正入榫面，不該因為 yToFace=0 而誤判 depthAxis="y" → CSG 切到頂板底面
-  // 整條 6×11×392mm 凹槽。
+  // **嚴格更靠近** face（< yToFace）時，優先選 X/Z 為真正 entry axis—template
+  // 真正想表達的入榫方向。例：頂板側板榫眼 origin=(±halfL-9, 0, 0)，xToFace=9
+  // 比 yToFace=0 不更靠近，仍維持 depthAxis="y"（這類 case 已改 template 不
+  // 依賴 placeholder）。
+  //
+  // 2026-05-21 修：原條件 `xToFace < ly/2 || zToFace < ly/2` 會在 part 很薄
+  // （例 topRailThickness=22, ly=topRailHeight=50, zToFace=11 < 25）時誤判，
+  // 把 slat→topRail 底面入榫的 mortise 改判成 Z 軸入榫 → CSG 切錯面、tenon
+  // mesh 找不到母件 → 紅榫頭凸出頂橫木頂面。改用「嚴格小於 yToFace」確保
+  // 真實底/頂面入榫（yToFace=0）永遠保留 Y。
   const yIsCanonical = m.origin.y === 0 || m.origin.y === ly;
   let depthAxis: "x" | "y" | "z";
   // cosmetic+through+rotX：外撇牆手把孔軸固定沿 part-local Y（牆厚方向）。
@@ -617,7 +623,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   // box 方向反轉、marker 跑到天上。
   if (m.cosmetic && m.through && m.rotX !== undefined && m.rotX !== 0) {
     depthAxis = "y";
-  } else if (yIsCanonical && (xToFace < ly / 2 || zToFace < ly / 2)) {
+  } else if (yIsCanonical && (xToFace < yToFace || zToFace < yToFace)) {
     depthAxis = xToFace <= zToFace ? "x" : "z";
   } else if (yToFace <= xToFace && yToFace <= zToFace) depthAxis = "y";
   else if (xToFace <= zToFace) depthAxis = "x";
