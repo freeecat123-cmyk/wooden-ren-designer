@@ -97,21 +97,28 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   // 指接段數：0 = 自動（依壁高奇數），1-30 = 手動指定
   const fingerSegmentsOpt = getOption<number>(input, opt(o, "fingerSegments"));
 
-  // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 圓底
+  // 六/八角款：完全跳過 buildBox，自組多邊形 stave + 多邊形底板
   if (bodyShape === "hex" || bodyShape === "oct") {
     const sides = bodyShape === "hex" ? 6 : 8;
     const outerD = Math.min(outerL, outerW);
     const staves = polygonStaves({ sides, outerD, outerH, wallT, botT, material });
-    // 底板大小 = 多邊形內接圓直徑 − 2 wallT（坐進壁內，不超過 stave 外緣）
-    const innerD = outerD * Math.cos(Math.PI / sides) - 2 * wallT - 2;
+    // 底板用 regular-polygon shape，邊形對齊內壁：
+    //   apothem = outerD/2 * cos(π/sides)（外壁 apothem）
+    //   bottomApothem = (apothem - wallT) + wallT/2  （內壁 apothem + 半壁厚 seatOverlap）
+    //   bottomVertexR = bottomApothem / cos(π/sides) （頂點圓半徑）
+    // 這樣底板邊緣壓入 wallT/2 進壁內、頂點貼合內壁 corner，視覺正確不溢出
+    const apothem = (outerD / 2) * Math.cos(Math.PI / sides);
+    const bottomApothem = (apothem - wallT) + wallT / 2;
+    const bottomVertexR = bottomApothem / Math.cos(Math.PI / sides);
+    const bottomBbox = 2 * bottomVertexR;
     const polyBottom: Part = {
       id: "bottom",
       nameZh: `${sides} 角底板`,
       material,
       grainDirection: "length",
-      visible: { length: innerD, width: innerD, thickness: botT },
+      visible: { length: bottomBbox, width: bottomBbox, thickness: botT },
       origin: { x: 0, y: 0, z: 0 },
-      shape: { kind: "round" },
+      shape: { kind: "regular-polygon", sides, outerRadius: bottomVertexR },
       tenons: [],
       mortises: [],
     };
