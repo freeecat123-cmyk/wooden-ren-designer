@@ -204,6 +204,9 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
       {usages.length > 0 && (
         <section data-print-page className="px-10 py-12">
           <SectionHeading title="榫卯細節圖" subtitle={`共 ${usages.length} 種`} />
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
+            ⚠ 僅為組合參考，跟實際尺寸可能不合，請參考三視圖詳細尺寸
+          </p>
           <div className="space-y-6">
             {usages.map((u, i) => (
               <div key={i} className="print-keep border border-zinc-300 rounded p-4">
