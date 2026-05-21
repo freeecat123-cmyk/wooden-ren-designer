@@ -808,15 +808,10 @@ function legMortisesForApron(
   // 此 leg 在 +Z 側 (s.sz=+1) 拿 -tiltZ；-Z 側拿 +tiltZ。
   const zFaceRotZ = (corner.x > 0 ? +1 : -1) * tiltX;
   const xFaceRotX = (corner.z > 0 ? -1 : +1) * tiltZ;
-  // cos(tilt) 補償：apron 旋轉後 tenon 世界 Y = apronCenterY + offset × cos(tilt)
-  // （不是純 offset）。mortise origin.y 沒做這補償 → 跟 tenon 差 offset×(1-cos)。
-  // 14° 時 3% × offset ~0.9mm，視覺上 tenon 跑出孔變透明（user 2026-05-21 回報）。
-  const cosZRot = Math.cos(zFaceRotZ);
-  const cosXRot = Math.cos(xFaceRotX);
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
     {
-      origin: { x: 0, y: zCenterY + apronUpperTenonOffset * cosZRot, z: corner.z > 0 ? -1 : 1 },
+      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: corner.z > 0 ? -1 : 1 },
       depth: apronTenonLength,
       length: apronUpperTenonH,
       width: apronTenonThick,
@@ -825,7 +820,7 @@ function legMortisesForApron(
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     {
-      origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset * cosXRot, z: 0 },
+      origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset, z: 0 },
       depth: apronTenonLength,
       length: apronLowerTenonH,
       width: apronTenonThick,
