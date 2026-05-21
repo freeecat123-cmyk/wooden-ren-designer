@@ -106,6 +106,9 @@ export const pencilHolderOptions: OptionSpec[] = [
 export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const { length: outerL, width: outerW, height: outerH, material } = input;
   const o = pencilHolderOptions;
+  // 鑲板入溝（inset-panel）底板統一抬高量。方筒 / 六角 / 八角共用同一個固定值，
+  // 否則底板與隔板起點會在三條路徑各自漂移（曾被 revert 拆散成 botT / 5 / 2*botT）。
+  const INSET_PANEL_LIFT = 6;
   const useCase = getOption<string>(input, opt(o, "useCase"));
   const preset = PENCIL_HOLDER_PRESETS[useCase];
   // 強制套用：選了 preset 後 preset 有定義的欄位一律蓋過使用者當前值
@@ -156,7 +159,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     let bottomOriginY: number;
     let bottomVertexR: number;
     if (bottomAttach === "inset-panel") {
-      const polyBotSkirt = 5;
+      const polyBotSkirt = INSET_PANEL_LIFT;
       stavesOuterH = outerH + botT;
       stavesBaseY = 0;
       bottomOriginY = polyBotSkirt;
@@ -205,7 +208,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
       // = 0 時剛好頂到壁內側面、零縫
       const polyDividerInset = Math.min(dividerInsetOpt, wallT - 1);
       const polyDividerLen = 2 * innerFlatR + 2 * polyDividerInset;
-      const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
+      const polyBottomTopY = bottomAttach === "inset-panel" ? INSET_PANEL_LIFT + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
       const polyDividerH = dividerHeightOpt > 0
         ? Math.max(1, Math.min(dividerHeightOpt, polyDividerHAuto))
@@ -292,7 +295,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const bottomPart = built.parts.find((p) => p.id === "bottom");
   if (bottomPart) {
     if (bottomAttach === "inset-panel") {
-      // 鑲板入溝：4 壁全高、底板浮嵌於壁內側 5mm 槽中，離地約 botT
+      // 鑲板入溝：4 壁全高、底板浮嵌於壁內側 5mm 槽中，底板下緣離盒底 INSET_PANEL_LIFT
       const grooveDepth = 5;
       const insetEach = Math.max(2, wallT - grooveDepth);
       bottomPart.visible = {
@@ -300,7 +303,7 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
         width: outerW - 2 * insetEach,
         thickness: botT,
       };
-      bottomPart.origin = { x: 0, y: botT, z: 0 };
+      bottomPart.origin = { x: 0, y: INSET_PANEL_LIFT, z: 0 };
       for (const part of built.parts) {
         if (part.id.startsWith("wall-")) {
           part.visible = { ...part.visible, width: outerH };
@@ -367,8 +370,8 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 botT，其餘走 buildBox 既定
-  const bottomTopY = bottomAttach === "inset-panel" ? 2 * botT : botT;
+  // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 INSET_PANEL_LIFT，其餘走 buildBox 既定
+  const bottomTopY = bottomAttach === "inset-panel" ? INSET_PANEL_LIFT + botT : botT;
   // 隔板嵌入壁時，隔板頂面會跟壁頂面 coplanar → z-fight。縮 1mm 防共平面。
   const insetClearance = dividerInsetOpt > 0 ? 1 : 0;
   const dividerHAuto = Math.max(1, outerH - bottomTopY - insetClearance);
