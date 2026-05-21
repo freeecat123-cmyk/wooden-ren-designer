@@ -193,6 +193,7 @@ export function FloorDevClient() {
                   ["top-right", "右上"],
                   ["bottom-left", "左下"],
                   ["bottom-right", "右下"],
+                  ["center", "中央置中"],
                 ]}
                 onChange={(v) => set("startCorner", v as FloorInput["startCorner"])} />
             </div>

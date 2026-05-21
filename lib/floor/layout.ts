@@ -69,17 +69,33 @@ export function computeFloorLayout(input: FloorInput): FloorLayout {
   const plankLen = input.plankLengthCm;
   const plankW = input.plankWidthCm;
 
-  // rowSpan 是「排堆疊」方向的總長度
+  // rowSpan 是「排堆疊」方向的總長度;runSpan 是片長方向的總長度
   const rowSpan = runAlongX ? spanY : spanX;
-  const rows = Math.ceil(rowSpan / plankW - EPS);
+  const runSpan = runAlongX ? spanX : spanY;
+
+  // 中央置中:兩軸各自回推半個餘數,讓四面牆的邊條盡量對稱。
+  //   - 片寬方向(排堆疊):首/末排等寬
+  //   - 片長方向(run 軸):以第 0 排為基準置中;其餘排仍照錯縫各自偏移
+  // 其餘起鋪角靠房間鏡射處理。
+  const rowBase = runAlongX ? bb.minY : bb.minX;
+  const centered = input.startCorner === "center";
+  let rowShift = 0;
+  let runShift = 0;
+  if (centered) {
+    const rowRem = rowSpan - Math.floor(rowSpan / plankW + EPS) * plankW;
+    if (rowRem > EPS) rowShift = (plankW - rowRem) / 2;
+    const runRem = runSpan - Math.floor(runSpan / plankLen + EPS) * plankLen;
+    if (runRem > EPS) runShift = (plankLen - runRem) / 2;
+  }
+  const rows = Math.ceil((rowSpan + rowShift) / plankW - EPS);
 
   const planks: PlacedPlank[] = [];
   for (let r = 0; r < rows; r++) {
     const off = staggerOffset(r, input.stagger, plankLen);
-    // 沿 run 軸從 bbox 起點 - off 開始,逐片 plankLen 步進直到蓋過 bbox
-    const runStart = (runAlongX ? bb.minX : bb.minY) - off;
+    // 沿 run 軸從 bbox 起點 - off - runShift 開始,逐片 plankLen 步進
+    const runStart = (runAlongX ? bb.minX : bb.minY) - off - runShift;
     const runEnd = runAlongX ? bb.maxX : bb.maxY;
-    const rowPos = (runAlongX ? bb.minY : bb.minX) + r * plankW;
+    const rowPos = rowBase - rowShift + r * plankW;
     for (let s = runStart; s < runEnd - EPS; s += plankLen) {
       const rect = runAlongX
         ? { x: s, y: rowPos, w: plankLen, h: plankW }

@@ -160,8 +160,11 @@ export function getPreset(id: ShapePreset["id"]): RoomPolygon {
  *   - 超耐磨大尺寸:KD 183.5×19.6cm
  *   - SPC 石塑:三環 122×18.3cm;寬版高可利斯 122×22.8cm
  *   - 海島型:6 寸板寬 ≈ 18cm(實際多為亂尺,此處取代表長度)
+ *   - 實木地板(無垢):日規企口 909×91mm(3 寸)為最常見,另有寬版 5 寸
+ *     (寬 ≈15cm)與傳統窄版 2 寸(寬 ≈6cm)。
  * 伸縮縫:密集板派(超耐磨/SPC)牆邊留 8mm 起、大尺寸 10mm;
- *         海島型夾板派留 3–5mm。
+ *         海島型夾板派留 3–5mm;
+ *         實木地板含水率變動大,牆邊伸縮縫留較大(窄版 10mm、標準/寬版 12mm)。
  */
 export interface PlankPreset {
   id: string;
@@ -177,4 +180,7 @@ export const PLANK_PRESETS: PlankPreset[] = [
   { id: "spc-std", nameZh: "SPC 石塑", lengthCm: 122, widthCm: 18, gapMm: 8 },
   { id: "spc-wide", nameZh: "SPC 寬版", lengthCm: 122, widthCm: 22.8, gapMm: 8 },
   { id: "island", nameZh: "海島型 6寸", lengthCm: 121, widthCm: 18, gapMm: 5 },
+  { id: "solid-std", nameZh: "實木 標準3寸", lengthCm: 91, widthCm: 9.1, gapMm: 12 },
+  { id: "solid-wide", nameZh: "實木 寬版5寸", lengthCm: 121, widthCm: 15, gapMm: 12 },
+  { id: "solid-narrow", nameZh: "實木 窄版2寸", lengthCm: 60, widthCm: 6, gapMm: 10 },
 ];

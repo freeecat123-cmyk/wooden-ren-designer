@@ -26,8 +26,13 @@ export type FloorPattern = "straight" | "herringbone";
 /** 錯縫策略 */
 export type StaggerMode = "half" | "third" | "random";
 
-/** 起鋪角 */
-export type StartCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/** 起鋪角。center = 中央置中:首/末排對牆等寬,不偏向任一角 */
+export type StartCorner =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right"
+  | "center";
 
 /** 損耗計法 */
 export type WasteMode = "computed" | "empirical";
