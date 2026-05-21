@@ -21,7 +21,7 @@ import {
   projectTiltedBoxSilhouette,
   sortPartsByDepth,
   worldExtents,
-  type OrthoView,
+  type OrthoView as OrthoViewKind,
 } from "@/lib/render/geometry";
 
 /** Sutherland-Hodgman: clip polygon to horizontal half-plane. */
@@ -259,7 +259,7 @@ export type LocalBox = {
  * 把 part-local 點 (xL, yL, zL) 經 part 的 Euler XYZ rotation + origin 投影
  * 到指定 view 的 (vx, vy)。共用給 projectFeatureRect。
  */
-function makeProjector(part: Part, view: OrthoView) {
+function makeProjector(part: Part, view: OrthoViewKind) {
   const rx = part.rotation?.x ?? 0;
   const ry = part.rotation?.y ?? 0;
   const rz = part.rotation?.z ?? 0;
@@ -352,7 +352,7 @@ function boxWorldCenter(part: Part, box: LocalBox): { x: number; y: number; z: n
 function projectFeatureRect(
   part: Part,
   box: LocalBox,
-  view: OrthoView,
+  view: OrthoViewKind,
 ): { x: number; y: number; w: number; h: number } {
   const polygon = projectFeaturePolygon(part, box, view);
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -373,7 +373,7 @@ function projectFeatureRect(
 function projectFeaturePolygon(
   part: Part,
   box: LocalBox,
-  view: OrthoView,
+  view: OrthoViewKind,
   /** true = box 是 tenon/mortise 之類 feature（強制走 full bevel，不套 half-bevel 的 top-only 邏輯） */
   isFeature = false,
 ): Array<{ x: number; y: number }> {
@@ -698,7 +698,7 @@ function OrthoViewImpl({
   overlayContent,
   noTitleInSvg = false,
 }: ViewProps & {
-  view: OrthoView;
+  view: OrthoViewKind;
   title: string;
   titleEn: string;
   /** 覆蓋 SVG 預設 className（預設 "bg-white w-full h-auto max-h-[70vh]"） */

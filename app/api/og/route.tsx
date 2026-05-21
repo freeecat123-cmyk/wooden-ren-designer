@@ -109,6 +109,15 @@ export async function GET(req: Request) {
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    {
+      width: 1200,
+      height: 630,
+      headers: {
+        // OG 圖完全由 query params 決定，內容不會變 → 強快取避免每次社群爬蟲
+        // 都重跑 edge function。一年 immutable + s-maxage 給 CDN，瀏覽器同上。
+        "Cache-Control":
+          "public, max-age=31536000, s-maxage=31536000, immutable",
+      },
+    },
   );
 }
