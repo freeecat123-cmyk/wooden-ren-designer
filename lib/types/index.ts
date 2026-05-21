@@ -391,7 +391,12 @@ export interface Part {
      *      axis=y → a1=X, a2=Z
      *      axis=z → a1=X, a2=Y
      *  - depthMm = 從原角往兩鄰面各內縮多少（45° → 兩軸相等）；= 板厚時 cross-section 變梯形 */
-    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number; bothEnds?: boolean };
+    | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number; bothEnds?: boolean }
+    /** 兩端切尖（pointed-ends）：local 長×厚（X-Y）截面從矩形塌成六邊形，兩個
+     *  X 端各收成一個尖點（兩個 45° 斜面）。沿 width 軸（Z）擠出成六角柱。
+     *  用於菱形酒窖格的 45° 斜板：板斜 45° 時兩個 45° 端面在世界座標變成
+     *  一鉛直一水平 → 尖端完美卡進格子的 90° 內角。 */
+    | { kind: "pointed-ends" };
 
   /**
    * 榫接版專用幾何覆寫：joineryMode 開啟時，渲染端會以此覆寫 part 的

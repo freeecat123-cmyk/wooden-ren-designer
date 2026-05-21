@@ -1762,6 +1762,9 @@ function OrthoViewImpl({
             part.shape.kind !== "arch-bent" &&
             part.shape.kind !== "right-triangle" &&
             part.shape.kind !== "mitered-corner" &&
+            // pointed-ends：六角柱斜板（45° 旋轉），top view 也要走 silhouette
+            // pipeline 才能正確投影旋轉後的尖角輪廓，不被 fallback rect 補方
+            part.shape.kind !== "pointed-ends" &&
             // chamfered-edges：腳 / 橫撐 4 條長邊倒角，在「沿最長軸看過去」
             // 的視圖畫八邊形截面（geometry.ts projectPartPolygon §730 處理）；
             // top view 對腳（最長軸=Y）正好是 cross-section view，必須走

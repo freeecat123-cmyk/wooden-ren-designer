@@ -119,6 +119,25 @@ export function projectPartSilhouette(
     return convexHull2D(projected);
   }
 
+  // pointed-ends：local 長×厚（X-Y）截面是六邊形（兩個 X 端塌成尖點），
+  // 沿 width 軸（Z）擠出。直接給 12 個 part-local 頂點（6 × 兩個 Z 端），
+  // 不走 bbox 角採樣（矩形 bbox 會把尖端補成方角）。
+  if (part.shape?.kind === "pointed-ends") {
+    const inset = Math.min(ly / 2, (lx / 2) * 0.999);
+    const hexXY: Array<[number, number]> = [
+      [lx / 2, 0],
+      [lx / 2 - inset, ly / 2],
+      [-lx / 2 + inset, ly / 2],
+      [-lx / 2, 0],
+      [-lx / 2 + inset, -ly / 2],
+      [lx / 2 - inset, -ly / 2],
+    ];
+    for (const zL of [-lz / 2, lz / 2]) {
+      for (const [xL, yL] of hexXY) pushPoint(xL, yL, zL);
+    }
+    return convexHull2D(projected);
+  }
+
   // === Phase 3 Task 6: silhouette gap 補 ===
   // 7 種 shape 原本走 bbox 4-corner 採樣 → convex hull 給 AABB；零件圖正視/俯
   // 視看起來像方塊，看不出形狀。改用 projectPartPolygon 既有 polygon 邏輯
@@ -1179,6 +1198,12 @@ export function projectPartPolygon(
 
   // Mitered-corner：silhouette 已把缺角換成兩個 inset 點 → convex hull 給五邊形/梯形
   if (part.shape.kind === "mitered-corner") {
+    return projectPartSilhouette(part, view);
+  }
+
+  // Pointed-ends：六角柱（兩端切尖）。交給 silhouette pipeline（已含 12 頂點
+  // 採樣 + rotation + origin 投影），三視圖才能正確描出 45° 斜板的尖角輪廓。
+  if (part.shape.kind === "pointed-ends") {
     return projectPartSilhouette(part, view);
   }
 

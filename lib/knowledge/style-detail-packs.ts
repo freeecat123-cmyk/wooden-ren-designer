@@ -431,11 +431,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 25,
       "bottleOrientation": "horizontal",
-      "mountStyle": "wall-mount",
       "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 0
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 75,
@@ -896,11 +893,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "horizontal",
-      "mountStyle": "freestanding",
       "withGlassRack": true,
-      "withFelt": true,
-      "withPullOutDrawer": true,
-      "edgeChamfer": 3
+      "withPullOutDrawer": true
     },
     "coat-rack": {
       "columnSize": 60,
@@ -1274,11 +1268,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "horizontal",
-      "mountStyle": "freestanding",
       "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 3
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 40,
@@ -1662,11 +1653,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "upright",
-      "mountStyle": "wall-mount",
       "withGlassRack": false,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 2
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 45,
@@ -2097,11 +2085,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 14,
       "bottleOrientation": "upright",
-      "mountStyle": "freestanding",
       "withGlassRack": false,
-      "withFelt": true,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 2
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 45,
@@ -2505,11 +2490,8 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "upright",
-      "mountStyle": "freestanding",
       "withGlassRack": true,
-      "withFelt": false,
-      "withPullOutDrawer": false,
-      "edgeChamfer": 1
+      "withPullOutDrawer": false
     },
     "coat-rack": {
       "columnSize": 65,
@@ -3108,8 +3090,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "edgeChamfer": 2
     }
   },
-  // ─── farmhouse（美式手工 Farmhouse / Mission / Windsor 變體） ───────
-  // 別名收斂用：點「美式手工」button 直接套這套（mission 變體當基底）
   "farmhouse": {
     "side-table": {
       "legShape": "box",

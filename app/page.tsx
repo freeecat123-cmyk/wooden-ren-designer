@@ -262,12 +262,12 @@ export default async function Home({
 
       {/* 大圖網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
-        {showTools && <CeilingToolCard />}
-        {showTools && <FloorToolCard />}
         {showFurniture &&
           furniture.map((item) => (
             <FurnitureCard key={item.category} item={item} />
           ))}
+        {showTools && <CeilingToolCard />}
+        {showTools && <FloorToolCard />}
       </div>
     </main>
   );
@@ -280,15 +280,6 @@ function CeilingToolCard() {
       data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
-      {/* Top-right markers */}
-      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
-        <span
-          title="個人版工具"
-          className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold shadow-sm tracking-wide"
-        >
-          個人版
-        </span>
-      </div>
       <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
         <Image
           src="/thumbs/v2/ceiling.webp"
@@ -322,14 +313,6 @@ function FloorToolCard() {
       data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 人字拼 估價 floor"
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
-      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
-        <span
-          title="個人版工具"
-          className="text-[10px] px-2 py-0.5 rounded-full bg-amber-600 text-white font-semibold shadow-sm tracking-wide"
-        >
-          個人版
-        </span>
-      </div>
       <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
         <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
           {[0, 1, 2, 3, 4].map((r) => (

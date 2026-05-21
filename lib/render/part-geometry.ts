@@ -77,7 +77,8 @@ export type ShapeSpec =
   | { kind: "dovetail-ends"; segmentCount: number; phase: 0 | 1; angleDeg: number; pinDepth: number; halfPin?: boolean }
   | { kind: "regular-polygon"; sides: number; outerRadius: number; angleOffsetDeg?: number }
   | { kind: "right-triangle"; corner: "-x-z" | "-x+z" | "+x-z" | "+x+z" }
-  | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number };
+  | { kind: "mitered-corner"; axis: "x" | "y" | "z"; corner: "++" | "+-" | "-+" | "--"; depthMm: number; chamferMm?: number }
+  | { kind: "pointed-ends" };
 
 
 /**
@@ -1237,6 +1238,39 @@ export function buildMiteredCornerGeometry(
   return g;
 }
 
+/**
+ * 兩端切尖（pointed-ends）：local 長×厚（X-Y）截面從矩形塌成六邊形，沿 width
+ * 軸（Z）擠出成六角柱。size = [length(lx), thickness(ly), width(lz)]。
+ *
+ * 六邊形 X-Y 頂點（CCW）：
+ *   (+L/2, 0), (+L/2-ly/2, +ly/2), (-L/2+ly/2, +ly/2),
+ *   (-L/2, 0), (-L/2+ly/2, -ly/2), (+L/2-ly/2, -ly/2)
+ * 兩個 X 端塌成尖點 → 端面是兩個 45° 斜面（當 ly≪L 時近似 90° 尖角）。
+ * ExtrudeGeometry 把 X-Y 平面的 shape 沿 +Z 擠 lz、再 translate 回中心。
+ */
+export function buildPointedEndsGeometry(
+  size: [number, number, number],
+): BufferGeometry {
+  const [lx, ly, lz] = size;
+  const hx = lx / 2;
+  const hy = ly / 2;
+  const hz = lz / 2;
+  // tip inset along X = hy (so each end face is a pair of 45° slopes)；
+  // 防呆：lx 太短時夾限 inset，避免六邊形自交。
+  const inset = Math.min(hy, hx * 0.999);
+  const shape2D = new Shape();
+  shape2D.moveTo(hx, 0);
+  shape2D.lineTo(hx - inset, hy);
+  shape2D.lineTo(-hx + inset, hy);
+  shape2D.lineTo(-hx, 0);
+  shape2D.lineTo(-hx + inset, -hy);
+  shape2D.lineTo(hx - inset, -hy);
+  shape2D.closePath();
+  const extrude = new ExtrudeGeometry(shape2D, { depth: lz, bevelEnabled: false });
+  extrude.translate(0, 0, -hz);
+  return extrude;
+}
+
 export function buildNotchedCornersGeometry(
   size: [number, number, number],
   notchL: number,
@@ -2175,6 +2209,9 @@ export function buildShapeGeometry(
   }
   if (shape.kind === "mitered-corner") {
     return buildMiteredCornerGeometry(size, shape.axis, shape.corner, shape.depthMm, shape.chamferMm);
+  }
+  if (shape.kind === "pointed-ends") {
+    return buildPointedEndsGeometry(size);
   }
   return null;
 }

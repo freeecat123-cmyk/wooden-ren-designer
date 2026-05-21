@@ -5,6 +5,8 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
+import { renderDrawerZone } from "./_builders/drawer-row";
+import { worldExtents } from "@/lib/render/geometry";
 
 /** 每個瓶位的左右間隙（mm）—— 瓶徑 + 此值 = cellSize */
 const CELL_CLEARANCE = 8;
@@ -12,11 +14,16 @@ const CELL_CLEARANCE = 8;
 const UPRIGHT_DEPTH = 280;
 /** 橫躺放（瓶身水平指向架後，常見酒窖式） */
 const HORIZONTAL_DEPTH = 1000;
-/** 掛壁吊掛條的厚度（額外加在背面，協助螺絲鎖入牆面） */
-const WALL_MOUNT_STRIP_T = 18;
 /** 槽接層板的舌頭尺寸 */
 const SHELF_TONGUE_LEN = 8;
 const SHELF_TONGUE_THICKNESS_OFFSET = 6;
+/** 方柱腳：架高高度 + 斷面尺寸（mm） */
+const LEG_HEIGHT = 140;
+const LEG_SIZE = 40;
+/** 底部拉出抽屜室的淨高（mm）—— 放開瓶器/酒塞/濾酒器等配件 */
+const DRAWER_ZONE_H = 130;
+/** 抽屜箱最大深度（橫躺架可達 1000mm，配件抽屜不需這麼深） */
+const DRAWER_MAX_DEPTH = 420;
 
 /** 瓶型 preset：依 5 瓶型自動套瓶徑 + cell clearance（研究 doc §2） */
 const BOTTLE_TYPE_PRESETS: Record<string, { bottleDiameter: number; clearance: number; label: string }> = {
@@ -45,22 +52,20 @@ export const wineRackOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "select", key: "gridLayout", label: "格子佈局", defaultValue: "rect", choices: [
     { value: "rect", label: "方格陣列（橫直交錯，最多瓶位）" },
-    { value: "diamond", label: "菱形 X-cross（X 對角分 4 區，酒窖經典）" },
-  ], help: "菱形款用 2 片對角板拼 X，每區放 N/4 瓶（外尺寸跟方格一樣）" },
-  { group: "structure", type: "select", key: "mountStyle", label: "安裝方式", defaultValue: "freestanding", choices: [
-    { value: "freestanding", label: "立式（直接立於地面/桌上）" },
-    { value: "wall-mount", label: "掛壁式（背面加吊掛條鎖牆）" },
-    { value: "stackable", label: "可堆疊（上下加凹凸卡榫，多座往上疊）" },
-  ] },
+    { value: "diamond", label: "菱形格子陣列（每格放 X 斜板，酒窖經典）" },
+  ], help: "菱形款保留方格框架，每個格子中央加一組 45° 交叉斜板（X），瓶子靠下方 V 槽（外尺寸跟方格一樣）" },
+  { group: "structure", type: "select", key: "legStyle", label: "腳型", defaultValue: "none", choices: [
+    { value: "none", label: "無腳（直接落地）" },
+    { value: "post", label: `方柱腳（架高 ${LEG_HEIGHT}mm，離地通風防潮）` },
+  ], help: "方柱腳在 4 角加 40mm 方料把酒架架高，底部離地好清掃、防潮" },
   { group: "structure", type: "checkbox", key: "withGlassRack", label: "頂部加掛酒杯架", defaultValue: false, help: "頂板下方加 4-6 道 30mm 寬槽軌（高腳杯倒掛），酒架同時是杯架。需為高腳杯預留至少 200mm 淨高", wide: true },
-  { group: "structure", type: "checkbox", key: "withFelt", label: "瓶位內貼絨布", defaultValue: false, help: "每個瓶位四壁內側貼薄絨布，瓶身放入時不會碰撞瓶身刮花標籤", wide: true },
-  { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: "底部加 100mm 高抽屜，放開瓶器/酒塞/濾酒器等配件", wide: true },
-  { group: "structure", type: "number", key: "edgeChamfer", label: "外露邊倒角 (mm)", defaultValue: 2, min: 0, max: 8, step: 1, unit: "mm", help: "頂板 / 底板 / 側板外露邊倒角，2-3mm 防割手 + 美感" },
+  { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
 ];
 
 /**
  * 紅酒架 — 2 側板 + N 層水平板 + (N+1) 個垂直分隔
- * 整體尺寸由 bottlesWide/Tall × 瓶身直徑算出，input 維度被忽略
+ * 整體尺寸由 bottlesWide/Tall × 瓶身直徑算出，input 維度被忽略。
+ * 可選方柱腳架高、底部拉出抽屜（用共用 renderDrawerZone 抽屜系統）。
  */
 export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const { material } = input;
@@ -76,11 +81,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const cellClearance = bottlePreset && bottleType !== "custom" ? bottlePreset.clearance : CELL_CLEARANCE;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
-  const mountStyle = getOption<string>(input, opt(o, "mountStyle"));
+  const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
+  const legStyle = getOption<string>(input, opt(o, "legStyle"));
   const withGlassRack = getOption<boolean>(input, opt(o, "withGlassRack"));
-  const withFelt = getOption<boolean>(input, opt(o, "withFelt"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
-  const edgeChamfer = getOption<number>(input, opt(o, "edgeChamfer"));
 
   const cellSize = bd + cellClearance;
   const innerW = bw * cellSize;
@@ -91,6 +95,14 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const totalBottles = bw * bt;
   const halfOuterW = outerW / 2;
+
+  // —— 垂直分層：地面 → 方柱腳 → 抽屜室 → 瓶格箱體 ——
+  // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
+  // boxBaseY = 瓶格箱體「底板」origin.y（既有箱體幾何整組往上抬此量）。
+  const hasLegs = legStyle === "post";
+  const legH = hasLegs ? LEG_HEIGHT : 0;
+  const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
+  const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
   // 上下板（水平，貫穿全寬）
   const top: Part = {
@@ -200,72 +212,82 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
-  // 菱形 X-cross：跳過 horizontalShelves + verticalDividers，改 2 片對角板
+  // 菱形格子陣列（經典酒窖款）：保留矩形格子框架（horizontalShelves +
+  // verticalDividers），再於「每個」正方形格子中央放一組 ±45° 交叉斜板，
+  // 把每格變成菱形酒窖格（瓶子靠下方 V 槽）。
   let layoutDividers: Part[] = [];
   if (gridLayout === "diamond") {
-    // 對角線長度 = √(innerW² + innerH²)；扣 panelT × (cos+sin) 補償 thickness 旋轉貢獻
-    const angle = Math.atan2(innerH, innerW);
-    const fullDiag = Math.sqrt(innerW * innerW + innerH * innerH);
-    const diag = fullDiag - panelT * (Math.cos(angle) + Math.sin(angle)) - 4;
-    // diagonal: length 沿 +X 預設、width 沿 +Z 預設（剛好深度方向）、thickness 沿 +Y
-    // 只繞 Z 軸轉 angle，把 length 從 +X 旋轉到對角方向
-    layoutDividers = [
-      {
-        id: "diagonal-1",
-        nameZh: "對角分隔板 1（左下→右上）",
+    // 框架 = 跟 rect 模式相同的水平層板 + 垂直分隔，重用既有零件陣列。
+    const diamondCrosses: Part[] = [];
+    // 格子的「淨開口」= cellSize − panelT（4 條框料各佔 panelT/2）。斜板沿這
+    // 個淨方塊的對角線跑，兩尖端剛好頂進 90° 內角。
+    const clear = Math.max(8, cellSize - panelT);
+    const diag = clear * Math.SQRT2;
+    // pointed-ends 斜板：local length 沿 +X、thickness 沿 +Y、width 沿 +Z（深度）。
+    // 繞 Z 軸轉 ±45° 把 length 旋到格子對角方向。
+    // ⚠️ renderer 的 worldExtents() 只支援 90° quarter-turn（lib/render/geometry.ts）：
+    // 45° 板的 |sin|>0.5 → 被 snap 成整個交換 xExt↔yExt → yExt 變成 diag 而非
+    // 真實旋轉高。renderer 用 pcy = origin.y + worldExtents.yExt/2 定位，所以
+    // origin.y 必須照 renderer「實際會算出的 yExt」反推，mesh 中心才會落在
+    // 該格中心（mesh 幾何走真旋轉，旋轉後實高 = diag/√2 = clear 塞得進格子）。
+    const mkCross = (
+      id: string,
+      nameZh: string,
+      cx: number,
+      cyCenter: number,
+      rz: number,
+    ): Part => {
+      const p: Part = {
+        id,
+        nameZh,
         material,
         grainDirection: "length",
         visible: { length: diag, width: depth, thickness: panelT },
-        origin: { x: 0, y: panelT + innerH / 2 - panelT / 2, z: 0 },
-        rotation: { x: 0, y: 0, z: angle },
+        origin: { x: cx, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: rz },
+        shape: { kind: "pointed-ends" },
         tenons: [],
         mortises: [],
-      },
-      {
-        id: "diagonal-2",
-        nameZh: "對角分隔板 2（左上→右下）",
-        material,
-        grainDirection: "length",
-        visible: { length: diag, width: depth, thickness: panelT },
-        origin: { x: 0, y: panelT + innerH / 2 - panelT / 2, z: 0 },
-        rotation: { x: 0, y: 0, z: -angle },
-        tenons: [],
-        mortises: [],
-      },
-    ];
+      };
+      p.origin.y = cyCenter - worldExtents(p).yExt / 2;
+      return p;
+    };
+    const q = Math.PI / 4;
+    for (let row = 0; row < bt; row++) {
+      // 該格中心 Y（箱體 local，未抬升）：底板上方 panelT + 第 row 格中心。
+      const cyCenter = panelT + (row + 0.5) * cellSize;
+      for (let col = 0; col < bw; col++) {
+        // 該格中心 X：箱體中心對齊原點，innerW 置中。
+        const cx = -innerW / 2 + (col + 0.5) * cellSize;
+        diamondCrosses.push(
+          mkCross(
+            `diamond-r${row + 1}-c${col + 1}-a`,
+            `第 ${row + 1} 排第 ${col + 1} 格斜板（／）`,
+            cx,
+            cyCenter,
+            q,
+          ),
+        );
+        diamondCrosses.push(
+          mkCross(
+            `diamond-r${row + 1}-c${col + 1}-b`,
+            `第 ${row + 1} 排第 ${col + 1} 格斜板（＼）`,
+            cx,
+            cyCenter,
+            -q,
+          ),
+        );
+      }
+    }
+    layoutDividers = [...horizontalShelves, ...verticalDividers, ...diamondCrosses];
   } else {
     layoutDividers = [...horizontalShelves, ...verticalDividers];
   }
-  const parts: Part[] = [bottom, top, leftSide, rightSide, ...layoutDividers];
 
-  // 底部拉出抽屜（高 100mm）
-  if (withPullOutDrawer) {
-    const drawerH = 100;
-    parts.push({
-      id: "drawer-front",
-      nameZh: "底部抽屜面板",
-      material,
-      grainDirection: "length",
-      visible: { length: outerW, width: drawerH, thickness: panelT },
-      origin: { x: 0, y: -drawerH / 2 - panelT / 2, z: depth / 2 - panelT / 2 },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-    parts.push({
-      id: "drawer-bottom",
-      nameZh: "底部抽屜底板",
-      material,
-      grainDirection: "length",
-      visible: { length: outerW - 30, width: depth - 30, thickness: 8 },
-      origin: { x: 0, y: -drawerH - 4, z: 0 },
-      tenons: [],
-      mortises: [],
-    });
-  }
+  // 瓶格箱體所有零件 —— 整組往上抬 boxBaseY（讓出方柱腳 + 抽屜室空間）
+  const boxParts: Part[] = [bottom, top, leftSide, rightSide, ...layoutDividers];
 
-  // 頂部杯軌：4 條 25mm 寬條沿 depth 方向跑，掛高腳杯倒立
+  // 頂部杯軌：4 條 25mm 寬條沿 depth 方向跑，掛高腳杯倒立（屬箱體，一起抬）
   if (withGlassRack) {
     const railCount = 4;
     const railWidthMm = 25;
@@ -275,7 +297,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     const railY = outerH - panelT - 25 - railThicknessMm / 2;
     for (let i = 0; i < railCount; i++) {
       const xPos = -outerW / 2 + panelT + railSpacing * (i + 1);
-      parts.push({
+      boxParts.push({
         id: `glass-rail-${i + 1}`,
         nameZh: `杯軌 ${i + 1}`,
         material,
@@ -289,45 +311,113 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
-  if (mountStyle === "wall-mount") {
-    // 背面加一條全寬吊掛條，鎖到牆內龍骨上
+  for (const part of boxParts) part.origin.y += boxBaseY;
+
+  const parts: Part[] = [...boxParts];
+
+  // —— 方柱腳：4 角 40mm 方料，y 0..legH（無旋轉，thickness 沿 +Y 鉛直） ——
+  if (hasLegs) {
+    const legCorners: Array<{ id: string; nameZh: string; xs: -1 | 1; zs: -1 | 1 }> = [
+      { id: "leg-fl", nameZh: "前左腳", xs: -1, zs: 1 },
+      { id: "leg-fr", nameZh: "前右腳", xs: 1, zs: 1 },
+      { id: "leg-bl", nameZh: "後左腳", xs: -1, zs: -1 },
+      { id: "leg-br", nameZh: "後右腳", xs: 1, zs: -1 },
+    ];
+    for (const c of legCorners) {
+      parts.push({
+        id: c.id,
+        nameZh: c.nameZh,
+        material,
+        grainDirection: "width",
+        visible: { length: LEG_SIZE, width: LEG_SIZE, thickness: legH },
+        origin: {
+          x: c.xs * (halfOuterW - LEG_SIZE / 2),
+          y: 0,
+          z: c.zs * (depth / 2 - LEG_SIZE / 2),
+        },
+        tenons: [],
+        mortises: [],
+      });
+    }
+  }
+
+  // —— 底部拉出抽屜：抽屜室地板 + 兩側牆 + 共用抽屜系統（renderDrawerZone） ——
+  if (withPullOutDrawer) {
+    const drawerFloorY = legH;
+    // 抽屜室地板（瓶格箱體底板當天花板）
     parts.push({
-      id: "wall-mount-strip",
-      nameZh: "吊掛條（鎖牆用）",
+      id: "drawer-floor",
+      nameZh: "抽屜室地板",
       material,
       grainDirection: "length",
-      visible: { length: outerW, width: 80, thickness: WALL_MOUNT_STRIP_T },
-      origin: { x: 0, y: outerH - 100, z: -(depth / 2 - WALL_MOUNT_STRIP_T / 2) },
-      rotation: { x: Math.PI / 2, y: 0, z: 0 },
+      visible: { length: outerW, width: depth, thickness: panelT },
+      origin: { x: 0, y: drawerFloorY, z: 0 },
       tenons: [],
       mortises: [],
     });
+    // 抽屜室兩側牆（與瓶格側板等厚，補滿 drawerZoneH 高）
+    for (const xs of [-1, 1] as const) {
+      parts.push({
+        id: xs < 0 ? "drawer-side-left" : "drawer-side-right",
+        nameZh: xs < 0 ? "抽屜室左側牆" : "抽屜室右側牆",
+        material,
+        grainDirection: "length",
+        visible: { length: depth, width: drawerZoneH, thickness: panelT },
+        origin: { x: xs * (halfOuterW - panelT / 2), y: drawerFloorY + panelT, z: 0 },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
+    // 共用抽屜系統：單列單抽，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
+    const drawerInnerD = Math.min(depth - 20, DRAWER_MAX_DEPTH);
+    renderDrawerZone(
+      {
+        yStart: drawerFloorY + panelT,
+        height: drawerZoneH,
+        rows: 1,
+        cols: 1,
+        idPrefix: "drawer",
+        labelPrefix: "配件抽屜 ",
+        dividerFrom: "none",
+        xCenter: 0,
+        colInnerW: innerW,
+        material,
+        panelT,
+        shelfT: 0,
+        shelfTongueT: 0,
+        tenonLen: 0,
+        caseLength: outerW,
+        caseWidth: depth,
+        innerW,
+        innerD: drawerInnerD,
+        caseInnerZ: 0,
+        drawerFacePanelT: 18,
+        drawerMount: "inset",
+        drawerBottomMode: "rebated",
+        drawerBottomThickness: 9,
+        pullStyle: "knob",
+        skipCaseDividers: true,
+      },
+      parts,
+    );
   }
 
-  // 邊緣倒角：給沒掛其他 shape 的零件套 chamfered-edges
-  if (edgeChamfer > 0) {
-    for (const part of parts) {
-      if (!part.shape) {
-        part.shape = { kind: "chamfered-edges", chamferMm: edgeChamfer };
-      }
-    }
-  }
+  const totalH = boxBaseY + outerH;
 
   return {
     id: `wine-rack-${bw}x${bt}-${orientation}`,
     category: "wine-rack",
     nameZh: `紅酒架 ${totalBottles} 瓶（${orientation === "horizontal" ? "橫躺" : "直立"}）`,
-    overall: { length: outerW, width: depth, thickness: outerH },
+    overall: { length: outerW, width: depth, thickness: totalH },
     parts,
     defaultJoinery: "tongue-and-groove",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${outerH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${cellClearance}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
-      mountStyle === "wall-mount"
-        ? "已加背面吊掛條，鎖到牆內龍骨上即可。"
-        : mountStyle === "stackable"
-          ? "頂底加凹凸卡榫，多座可往上疊（每座頂面挖 4 個 8×20mm 凹孔，下座底面凸 4 個對應榫）。"
-          : "可直接立於地面或桌上。"
-    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withFelt ? " 每個瓶位四壁內側貼 1mm 絨布（B&Q 自黏絨布裁好黏入），瓶身不會撞傷標籤。" : ""}${withPullOutDrawer ? " 底部加 100mm 高拉出抽屜（裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。" : ""}${edgeChamfer > 0 ? ` 頂底板及側板外露邊倒 ${edgeChamfer}mm 防割。` : ""}`,
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${cellClearance}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
+      gridLayout === "diamond" ? `菱形格子款：${totalBottles} 個方格內各加一組 45° 交叉斜板（X），斜板兩端切尖頂進格子內角，瓶身斜靠下方 V 槽，是經典酒窖收納樣式。` : ""
+    }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
+      hasLegs ? ` 底部 4 角加 ${LEG_SIZE}mm 方柱腳架高 ${LEG_HEIGHT}mm，離地通風防潮、好清掃。` : ""
+    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
   };
 };

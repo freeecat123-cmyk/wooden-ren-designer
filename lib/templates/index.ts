@@ -285,7 +285,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     category: "tray",
     nameZh: "托盤",
     description: "底板 + 4 圍邊，茶盤 / 文件 / 早餐通用",
-    difficulty: "intermediate",
+    difficulty: "beginner",
     template: tray,
     defaults: { length: 400, width: 280, height: 60 },
     limits: { length: 600, width: 450, height: 120 },
