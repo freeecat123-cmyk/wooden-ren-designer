@@ -60,7 +60,7 @@ const base: EngineeringQuoteInput = {
   });
   assert(approx(b.paintingCost, 8000), `painting 800×10=${b.paintingCost}`);
   assert(approx(b.demolitionCost, 6000), `demolition 600×10=${b.demolitionCost}`);
-  assert(approx(b.consumablesCost, 1500), `consumables 5%×30000=${b.consumablesCost}`);
+  assert(approx(b.consumablesCost, 1500), `consumables 5%×materialCost(30000)=${b.consumablesCost}`);
 }
 
 // 3. floor 即使 paintingPerPing>0 也不算
@@ -80,6 +80,15 @@ const base: EngineeringQuoteInput = {
 {
   const b = computeEngineeringQuote({ ...base, laborPricePerPing: 0 });
   assert(b.hasUnpriced === true, "施工費=0 → hasUnpriced=true");
+}
+
+// 5b. 未報價偵測:材料行有 unpriced
+{
+  const b = computeEngineeringQuote({
+    ...base,
+    materialLines: [{ label: "地板片", amount: 0, unpriced: true }],
+  });
+  assert(b.hasUnpriced === true, "材料行 unpriced → hasUnpriced=true");
 }
 
 // 6. computeValidUntil
