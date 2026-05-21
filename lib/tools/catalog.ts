@@ -9,7 +9,8 @@ export type ToolCategory =
   | "glue"
   | "finish"
   | "power"
-  | "hardware";
+  | "hardware"
+  | "sharpening";
 
 export type ToolPriority = "required" | "recommended" | "optional";
 
@@ -217,5 +218,63 @@ export const TOOL_CATALOG: Record<string, Tool> = {
     nameZh: "隱藏鉸鏈（合頁）",
     category: "hardware",
     shopUrl: "https://woodenren.easy.co/collections/%E5%90%88%E9%A0%81",
+  },
+
+  // ----- 木頭仁賣場新增（2026-05-21）-----
+  "chisel-canvas-roll": {
+    id: "chisel-canvas-roll",
+    nameZh: "日式 13 格帆布鑿刀包（工具捲包）",
+    category: "chisel",
+    shopUrl:
+      "https://woodenren.easy.co/collections/%EF%B8%8F-%E6%9C%A8%E5%B7%A5%E9%98%B2%E8%AD%B7/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E6%97%A5%E5%BC%8F13%E6%A0%BC%E5%B8%86%E5%B8%83%E9%91%BF%E5%88%80%E5%8C%85-%E5%B7%A5%E5%85%B7%E5%8C%85-%E9%9B%95%E5%88%BB%E5%88%80%E5%8C%85-%E5%B8%86%E5%B8%83%E5%8C%85-%E9%91%BF%E5%88%80%E8%A2%8B",
+    notes: "鑿刀收納捲包，13 格能裝完整一套；保護刀刃也方便攜帶",
+  },
+  "silicone-lubricant": {
+    id: "silicone-lubricant",
+    nameZh: "匠之滑 矽質潤滑噴霧 450ml（台製）",
+    category: "power",
+    shopUrl:
+      "https://woodenren.easy.co/collections/feature-on-homepage/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E5%8C%A0%E4%B9%8B%E6%BB%91-%E9%AB%98%E6%95%88%E8%83%BD%E7%9F%BD%E8%B3%AA%E6%BD%A4%E6%BB%91%E5%99%B4%E9%9C%A7-450ml%EF%BD%9C%E5%B8%B6%E9%8B%B8%E6%A9%9F-%E5%8F%B0%E9%8B%B8-%E5%B9%B3%E5%88%A8%E6%A9%9F-%E6%9C%A8%E5%B7%A5%E6%A9%9F%E5%85%B7%E6%BD%A4%E6%BB%91%E5%8A%91-%E9%98%B2%E9%8F%BD-%E9%9B%A2%E5%9E%8B%E5%8A%91-taiwan%E8%A3%BD",
+    notes: "帶鋸／台鋸／平刨機台面防鏽＋離型；木屑不沾、推料順暢",
+  },
+  "dovetail-jig": {
+    id: "dovetail-jig",
+    nameZh: "鳩尾榫檯（全透燕尾榫治具）",
+    category: "power",
+    shopUrl:
+      "https://woodenren.easy.co/collections/feature-on-homepage/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%B3%A9%E5%B0%BE%E6%A6%AB%E6%AA%AF-%E9%B3%A9%E5%B0%BE%E6%A6%AB%E7%89%87-%E7%87%95%E5%B0%BE%E6%A6%AB%E6%AA%AF-%E6%A6%AB%E7%89%87-%E5%85%A8%E9%80%8F%E9%B3%A9%E5%B0%BE%E6%A6%AB-%E6%9C%A8%E5%B7%A5diy",
+    notes: "修邊機配燕尾刀做全透鳩尾榫的定位治具；木盒／抽屜箱大量重複用",
+  },
+  "tenz-screw-set": {
+    id: "tenz-screw-set",
+    nameZh: "TENZ 登馳低耗能星型螺絲（2024 新款）",
+    category: "hardware",
+    shopUrl:
+      "https://woodenren.easy.co/collections/feature-on-homepage/products/tenz-%E7%99%BB%E9%A6%B3%E8%9E%BA%E7%B5%B2-%E4%BD%8E%E8%80%97%E8%83%BD%E8%9E%BA%E7%B5%B2-2024%E6%96%B0%E6%AC%BE%E7%99%BB%E9%A6%B3-%E6%98%9F%E5%9E%8B%E8%9E%BA%E7%B5%B2-%E6%9C%A8%E5%B7%A5%E8%9E%BA%E7%B5%B2-%E5%8F%B0%E7%81%A3%E7%B2%BE%E5%93%81%E7%8D%8E",
+    notes: "台灣精品獎；星型頭省力不咬合，pocket-hole / 直鎖通用",
+  },
+  "sharpening-jig": {
+    id: "sharpening-jig",
+    nameZh: "鋁合金定角磨刀器（鑿刀／鉋刀定角開刃）",
+    category: "sharpening",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%8B%81%E5%90%88%E9%87%91%E5%AE%9A%E8%A7%92%E7%A3%A8%E5%88%80%E5%99%A8-%E6%9C%A8%E5%B7%A5%E7%A3%A8%E5%88%80%E6%9E%B6-%E9%89%8B%E5%88%80-%E9%91%BF%E5%AD%90%E5%AE%9A%E8%A7%92%E5%99%A8-%E6%89%8B%E5%8B%95%E9%96%8B%E5%88%83%E5%99%A8-%E9%AB%98%E7%B2%BE%E5%BA%A6-%E9%98%B2%E6%BB%91%E6%BB%BE%E8%BC%AA-",
+    notes: "夾住鑿刀／鉋刀刃口，搭配磨刀石維持固定角度（25°/30°）；新手必備",
+  },
+  "glue-tray-set": {
+    id: "glue-tray-set",
+    nameZh: "矽膠膠水托盤＋刷膠工具組",
+    category: "glue",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E7%9F%BD%E8%86%A0%E8%86%A0%E6%B0%B4%E6%89%98%E7%9B%A4-%E5%88%B7%E8%86%A0%E5%B7%A5%E5%85%B7%E7%B5%84-%E6%9C%A8%E5%B7%A5%E5%A1%97%E8%86%A0%E5%AE%B9%E5%99%A8-%E6%BB%BE%E7%AD%92%E5%88%B7-%E7%9F%BD%E8%86%A0%E5%88%B7-%E8%86%A0%E6%B0%B4%E4%B9%BE%E6%8E%89%E4%B8%80%E6%92%95%E5%8D%B3%E6%B7%A8-",
+    notes: "矽膠托盤＋滾筒刷＋平刷；膠水乾掉一撕即淨，比紙杯衛生",
+  },
+  "router-engraving-base": {
+    id: "router-engraving-base",
+    nameZh: "龜甲紋雕刻底座（修邊機圓弧雕刻座）",
+    category: "power",
+    shopUrl:
+      "https://woodenren.easy.co/products/-%E6%9C%A8%E9%A0%AD%E4%BB%81-%E9%BE%9C%E7%94%B2%E7%B4%8B%E9%9B%95%E5%88%BB%E5%BA%95%E5%BA%A7-%E5%9C%93%E5%BC%A7%E9%9B%95%E5%88%BB%E5%BA%A7-%E4%BF%AE%E9%82%8A%E6%A9%9F%E5%BA%A7-%E8%B7%AF%E9%81%94%E5%BA%A7-%E9%9B%95%E5%88%BB%E5%BA%A7",
+    notes: "修邊機加裝這個底座做圓弧／龜甲紋雕刻；裝飾性家具加分項",
   },
 };

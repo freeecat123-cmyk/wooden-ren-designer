@@ -15,6 +15,7 @@ const CATEGORY_LABEL: Record<ToolCategory, string> = {
   finish: "塗裝",
   power: "電動",
   hardware: "五金",
+  sharpening: "磨刀",
 };
 
 const PRIORITY_LABEL: Record<ToolPriority, string> = {
