@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
 import { MATERIALS } from "@/lib/materials";
@@ -685,7 +686,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
 }
 
 /** Single orthographic view with engineering-drawing frame and dim lines */
-export function OrthoView({
+function OrthoViewImpl({
   design,
   view,
   title,
@@ -1475,14 +1476,17 @@ export function OrthoView({
             if (isolatePartId && trap) {
               const halfTop = (lx / 2) * trap.topLengthScale;
               const halfBot = (lx / 2) * trap.bottomLengthScale;
-              // svg y = -world z；top face zl=-lz/2 → svg y=+lz/2（畫面下方）
-              // bot face zl=+lz/2 → svg y=-lz/2（畫面上方）。但 top view 慣例
-              // 「接座那面」放上方，所以反過來：top→畫面上、bot→畫面下。
+              // 同 splayed-tapered top view (line 1601 headY=-(r.y+r.h)) 慣例：
+              // 接座面（3D 高 Y、短邊）放畫面上方、接地面（長邊）放畫面下方。
+              // fmt 會 `(-p.y)`，所以接座面要給 `y = +lz/2`、fmt 後 = -lz/2 = 畫面上方。
+              // user 2026-05-21 回報「正視圖牙板擺這樣、零件圖卻轉了 180 度」
+              // 前/後/左/右牙板 + 上/下橫撐 isolation 後 part-local frame 一致，
+              // 這個 patch 涵蓋所有受影響的件。
               const corners = [
-                { x: -halfTop, y: -lz / 2 }, // 接座面左
-                { x: +halfTop, y: -lz / 2 }, // 接座面右
-                { x: +halfBot, y: +lz / 2 }, // 接地面右
-                { x: -halfBot, y: +lz / 2 }, // 接地面左
+                { x: -halfTop, y: +lz / 2 }, // 接座面左（畫面上方）
+                { x: +halfTop, y: +lz / 2 }, // 接座面右
+                { x: +halfBot, y: -lz / 2 }, // 接地面右（畫面下方）
+                { x: -halfBot, y: -lz / 2 }, // 接地面左
               ];
               const pts = corners
                 .map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`)
@@ -3217,6 +3221,13 @@ export function OrthoView({
     </svg>
   );
 }
+
+// memo wrap：父層（ZoomableThreeViews / ThreeViewLayout / PartDrawing）有自己的
+// scale/scroll state，每次互動都會 re-render。OrthoView 內含 projectPart、
+// sortPartsByDepth、Sutherland-Hodgman polygon clipping，O(n²) 級別重算。
+// design 物件由 server component 產生、reference 在 client 端穩定 → 預設 shallow
+// 比較就能跳過大量無謂重算。
+export const OrthoView = memo(OrthoViewImpl);
 
 export function DimensionLine({
   x1,
