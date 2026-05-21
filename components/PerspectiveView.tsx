@@ -4,7 +4,7 @@ import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "r
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
-import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
+import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Brush, Evaluator, SUBTRACTION } from "three-bvh-csg";
 import type { FurnitureDesign } from "@/lib/types";
@@ -1600,6 +1600,9 @@ export function PerspectiveView({
                     <meshStandardMaterial
                       color="#c0392b"
                       roughness={0.8}
+                      // DoubleSide：tenon 從各角度看都要可見，避免 FrontSide
+                      // culling 在側向視角讓 tenon face 不渲染只剩 edge 一條紅線
+                      side={DoubleSide}
                       transparent={selectedPartId !== null && selectedPartId !== part.id}
                       opacity={selectedPartId !== null && selectedPartId !== part.id ? 0.18 : 1}
                     />
