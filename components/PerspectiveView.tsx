@@ -203,15 +203,15 @@ function subtractMortisesFromGeometry(
     } else {
       cutGeo = new BoxGeometry(2 * m.hx, 2 * hyExt, 2 * hzScaled);
     }
+    // rotation 直接烤進 geometry（不靠 mesh.rotation）：CSG evaluator 有時候
+    // matrixWorld propagation 不一致；烤進 geometry 是最可靠路徑。
+    // 外撇牆 cosmetic 孔 rotX：cut 繞 part-local X 軸（孔上下緣跟牆一起傾）
+    // splayed apron Z 面 mortise rotZ：cross-section 在 XY 平面內旋轉
+    if (m.rotX) cutGeo.rotateX(m.rotX);
+    if (m.rotZ) cutGeo.rotateZ(m.rotZ);
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
     cut.position.set(m.cx, m.cy, m.cz);
-    // 外撇牆 cosmetic 孔：cut Brush 繞 part-local X 軸轉 rotX 弧度，讓孔軸跟
-    // 牆面法線一致（孔上下緣斜、跟牆一起傾），不會是 axis-aligned 水平上下緣
-    if (m.rotX) cut.rotation.x = m.rotX;
-    // splayed apron 的 Z 面 mortise（左右牙板進腳）：cut 繞 part-local Z 軸轉
-    // rotZ 讓 cross-section 跟 tilted tenon 對齊，不留空白角
-    if (m.rotZ) cut.rotation.z = m.rotZ;
     cut.updateMatrixWorld();
     const next = evaluator.evaluate(acc, cut, SUBTRACTION);
     cutGeo.dispose();
