@@ -164,8 +164,8 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     const polyDividerStyleStr = (sides === 6 && polygonDividerStyle === "cross") ? "single" : polygonDividerStyle;
     if (polyDividerStyleStr === "single" || polyDividerStyleStr === "cross") {
       const innerFlatR = apothem - wallT;
-      // 隔板兩端剛好頂到壁內側面、再留 1mm 縫，完全在框體內不溢出
-      const polyDividerLen = 2 * innerFlatR - 2;
+      // 隔板兩端剛好頂到壁內側面（zero gap），不溢出也不留縫
+      const polyDividerLen = 2 * innerFlatR;
       const polyBottomTopY = bottomAttach === "inset-panel" ? 5 + botT : botT;
       const polyDividerHAuto = Math.max(1, outerH - polyBottomTopY);
       const polyDividerH = dividerHeightOpt > 0
