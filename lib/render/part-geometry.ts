@@ -50,7 +50,7 @@ export type ShapeSpec =
   | { kind: "tapered"; bottomScale: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "splayed"; dx: number; dz: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
   | { kind: "hoof"; hoofHeight: number; hoofScale: number; dirX: -1 | 0 | 1; dirZ: -1 | 0 | 1 }
-  | { kind: "round"; chamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
+  | { kind: "round"; chamferMm?: number; bottomChamferMm?: number; chamferStyle?: "chamfered" | "rounded"; axis?: "x" | "y" | "z" }
   | { kind: "round-tapered"; bottomScale: number }
   | { kind: "shaker"; squareFrac?: number; bottomScale?: number }
   | { kind: "lathe-turned" }
@@ -2011,27 +2011,52 @@ export function buildShapeGeometry(
       ax === "y" ? size[0] / 2 : ax === "x" ? size[1] / 2 : size[0] / 2;
     const height = ax === "y" ? size[1] : ax === "x" ? size[0] : size[2];
     const chamfer = shape.chamferMm ?? 0;
+    const bottomChamfer = shape.bottomChamferMm ?? 0;
     const rotation: [number, number, number] =
       ax === "x" ? [0, 0, Math.PI / 2] : ax === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
-    if (chamfer > 0) {
+    if (chamfer > 0 || bottomChamfer > 0) {
       const h = height;
-      const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
-      const innerR = Math.max(0.5, radius - cap);
       const styleSegs = shape.chamferStyle === "rounded" ? 6 : 1;
-      const points: Vector2[] = [
-        new Vector2(0, -h / 2),
-        new Vector2(radius, -h / 2),
-        new Vector2(radius, h / 2 - cap),
-      ];
-      if (styleSegs === 1) {
-        points.push(new Vector2(innerR, h / 2));
-      } else {
-        for (let i = 1; i <= styleSegs; i++) {
-          const t = (i / styleSegs) * (Math.PI / 2);
-          points.push(
-            new Vector2(innerR + cap * Math.cos(t), h / 2 - cap + cap * Math.sin(t)),
-          );
+      // lathe profile, bottom-center → bottom edge → side → top edge → top-center
+      const points: Vector2[] = [new Vector2(0, -h / 2)];
+      // 下緣倒角：底面外緣 (innerRBot,-h/2) → 斜上到側面 (radius,-h/2+capBot)
+      if (bottomChamfer > 0) {
+        const capBot = Math.min(bottomChamfer, radius * 0.5, h * 0.5);
+        const innerRBot = Math.max(0.5, radius - capBot);
+        points.push(new Vector2(innerRBot, -h / 2));
+        if (styleSegs === 1) {
+          points.push(new Vector2(radius, -h / 2 + capBot));
+        } else {
+          for (let i = 1; i <= styleSegs; i++) {
+            const t = (i / styleSegs) * (Math.PI / 2);
+            points.push(
+              new Vector2(
+                innerRBot + capBot * Math.sin(t),
+                -h / 2 + capBot - capBot * Math.cos(t),
+              ),
+            );
+          }
         }
+      } else {
+        points.push(new Vector2(radius, -h / 2));
+      }
+      // 上緣倒角：側面 (radius,h/2-cap) → 斜入到頂面 (innerR,h/2)
+      if (chamfer > 0) {
+        const cap = Math.min(chamfer, radius * 0.5, h * 0.5);
+        const innerR = Math.max(0.5, radius - cap);
+        points.push(new Vector2(radius, h / 2 - cap));
+        if (styleSegs === 1) {
+          points.push(new Vector2(innerR, h / 2));
+        } else {
+          for (let i = 1; i <= styleSegs; i++) {
+            const t = (i / styleSegs) * (Math.PI / 2);
+            points.push(
+              new Vector2(innerR + cap * Math.cos(t), h / 2 - cap + cap * Math.sin(t)),
+            );
+          }
+        }
+      } else {
+        points.push(new Vector2(radius, h / 2));
       }
       points.push(new Vector2(0, h / 2));
       const lathe = new LatheGeometry(points, 48);
