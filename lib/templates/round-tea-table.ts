@@ -6,11 +6,13 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks, appendSuggestion } from "./_validators";
-import { legShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 export const roundTeaTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm" },
+  seatEdgeOption("top", 0),
+  seatEdgeStyleOption("top"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 40, min: 25, max: 80, step: 1, unit: "mm" },
   // 圓腳/夏克腳沒有 4 條長邊可倒角；只在 box / tapered 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered"] }),
@@ -61,6 +63,9 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   const o = roundTeaTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<string | number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
+  const seatChamferMm = parseSeatChamferMm(seatEdge);
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
@@ -157,7 +162,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? topThickness
     : Math.round(Math.min(topThickness * (2 / 3), topThickness - 6));
 
-  // 圓桌面
+  // 圓桌面（seatEdge > 0 時頂面外緣加倒角）
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
@@ -165,7 +170,14 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? {
+            kind: "round",
+            chamferMm: seatChamferMm,
+            chamferStyle: seatEdgeStyle === "rounded" ? "rounded" : "chamfered",
+          }
+        : { kind: "round" },
     tenons: [],
     mortises: [
       ...[-1, 1].flatMap((sx) =>
@@ -611,7 +623,7 @@ export const roundTeaTable: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "shouldered-tenon",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
+    notes: `圓茶几直徑 ${diameter}mm × 高 ${height}mm，4 隻${legShapeLabel(legShape)}含牙板。${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLowerStretcher && withLowerShelf ? ` 下層圓棚板 ${lowerShelfParts[0]?.visible.length}mm × ${lowerShelfThickness}mm，rest-on 擱在 4 條下橫撐上。` : ""}${withLazySusan ? ` 中央旋轉盤 ${Math.min(lazySusanDiameter, diameter - 100)}mm，配 8-12 吋軸承一組。` : ""}`,
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];

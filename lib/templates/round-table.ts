@@ -6,7 +6,7 @@ import type {
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
 import { validateRoundLegJoinery, applyStandardChecks } from "./_validators";
-import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { legShapeLabel as sharedLegShapeLabel, computeSplayGeometry, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, parseSeatChamferMm, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, legBottomScale, legProfileScaleAt, computeCompoundSplayNormal } from "./_helpers";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
 
 /** round-table 多出 pedestal/trestle 兩種「桌型」標籤（非 leg shape）；shared label 不認這兩個就 fallback */
@@ -27,8 +27,11 @@ function buildPedestalRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
   footLengthOverride?: number; footWidth?: number; footThickness?: number;
+  seatChamferMm?: number; seatEdgeStyle?: string;
 }): FurnitureDesign {
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  const seatChamferMm = p.seatChamferMm ?? 0;
+  const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
   // 柱粗 = legSize × 2.5，太細看起來會像柱頂頂著桌面要倒
   const columnSize = Math.round(legSize * 2.5);
   // 底盤爪：override > 0 直接用，否則自動 = 半徑 × 0.6
@@ -48,7 +51,10 @@ function buildPedestalRoundTable(p: {
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? { kind: "round", chamferMm: seatChamferMm, chamferStyle }
+        : { kind: "round" },
     tenons: [],
     mortises: [],
   };
@@ -157,8 +163,11 @@ function buildPedestalRoundTable(p: {
 function buildTrestleRoundTable(p: {
   diameter: number; height: number; material: string;
   topThickness: number; legSize: number; legHeight: number; radius: number;
+  seatChamferMm?: number; seatEdgeStyle?: string;
 }): FurnitureDesign {
   const { diameter, height, material, topThickness, legSize, legHeight, radius } = p;
+  const seatChamferMm = p.seatChamferMm ?? 0;
+  const chamferStyle = p.seatEdgeStyle === "rounded" ? "rounded" : "chamfered";
   // 端框位置：z = ±frameZ
   const frameZ = Math.round(radius * 0.55);
   // 每框 2 支腳間距 = 半徑 × 0.5
@@ -188,7 +197,10 @@ function buildTrestleRoundTable(p: {
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? { kind: "round", chamferMm: seatChamferMm, chamferStyle }
+        : { kind: "round" },
     tenons: [],
     mortises: [],
   };
@@ -308,6 +320,8 @@ function buildTrestleRoundTable(p: {
 
 export const roundTableOptions: OptionSpec[] = [
   { group: "top", type: "number", key: "topThickness", label: "桌面厚 (mm)", defaultValue: 28, min: 18, max: 50, step: 1, unit: "mm" },
+  seatEdgeOption("top", 0),
+  seatEdgeStyleOption("top"),
   { group: "leg", type: "number", key: "legSize", label: "腳粗 (mm)", defaultValue: 60, min: 30, max: 120, step: 1, unit: "mm" },
   // 圓腳/夏克/車旋/獨柱/端梁腳沒有 4 條長邊可倒角；只在 box / tapered / fluted-square 顯示
   legEdgeOption("leg", 1, { key: "legShape", oneOf: ["box", "tapered", "fluted-square"] }),
@@ -373,6 +387,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
 
   const o = roundTableOptions;
   const topThickness = getOption<number>(input, opt(o, "topThickness"));
+  const seatEdge = getOption<string | number>(input, opt(o, "seatEdge"));
+  const seatEdgeStyle = getOption<string>(input, opt(o, "seatEdgeStyle"));
   const legSize = getOption<number>(input, opt(o, "legSize"));
   const legEdge = getOption<number>(input, opt(o, "legEdge"));
   const legEdgeStyle = getOption<string>(input, opt(o, "legEdgeStyle"));
@@ -402,6 +418,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const radius = diameter / 2;
   const legHeight = height - topThickness;
 
+  const seatChamferMmEarly = parseSeatChamferMm(seatEdge);
   // 獨柱餐桌 / 端梁餐桌：完全不同結構，跳過 4 隻腳分支
   if (legShape === "pedestal") {
     return buildPedestalRoundTable({
@@ -409,10 +426,16 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       footLengthOverride: getOption<number>(input, opt(o, "pedestalFootLength")),
       footWidth: getOption<number>(input, opt(o, "pedestalFootWidth")),
       footThickness: getOption<number>(input, opt(o, "pedestalFootThickness")),
+      seatChamferMm: seatChamferMmEarly,
+      seatEdgeStyle,
     });
   }
   if (legShape === "trestle") {
-    return buildTrestleRoundTable({ diameter, height, material, topThickness, legSize, legHeight, radius });
+    return buildTrestleRoundTable({
+      diameter, height, material, topThickness, legSize, legHeight, radius,
+      seatChamferMm: seatChamferMmEarly,
+      seatEdgeStyle,
+    });
   }
 
   const cornerOffset = Math.max(legSize, (radius - legInset) / Math.SQRT2);
@@ -479,7 +502,8 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     ? topThickness
     : Math.round(Math.min(topThickness * (2 / 3), topThickness - 6));
 
-  // 圓桌面
+  // 圓桌面（seatEdge > 0 時頂面外緣加倒角）
+  const seatChamferMm = parseSeatChamferMm(seatEdge);
   const top: Part = {
     id: "top",
     nameZh: "圓桌面",
@@ -487,7 +511,14 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
     grainDirection: "length",
     visible: { length: diameter, width: diameter, thickness: topThickness },
     origin: { x: 0, y: legHeight, z: 0 },
-    shape: { kind: "round" },
+    shape:
+      seatChamferMm > 0
+        ? {
+            kind: "round",
+            chamferMm: seatChamferMm,
+            chamferStyle: seatEdgeStyle === "rounded" ? "rounded" : "chamfered",
+          }
+        : { kind: "round" },
     tenons: [],
     mortises: [
       ...[-1, 1].flatMap((sx) =>
@@ -838,7 +869,7 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
       legShape === "lathe-turned"
         ? `車旋腳：上車床車出多段球節 + 主桿輪廓，建議用直徑 ≥ legSize 的圓料（${legSize}mm 以上）才有料可車。`
         : ""
-    }${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter)}`.trim(),
+    }${seatEdgeNote(seatEdge, seatEdgeStyle)}${legEdgeNote(legEdge, legEdgeStyle)}${stretcherEdgeNote(stretcherEdge, stretcherEdgeStyle)}${withLazySusan ? ` 中央旋轉盤直徑 ${Math.min(lazySusanDiameter, diameter - 200)}mm，需配 12-16 吋金屬軸承一組（依旋轉盤尺寸選）。` : ""}${topPanelPiecingHint(diameter)}`.trim(),
   };
   const w = validateRoundLegJoinery(design);
   if (w.length) design.warnings = [...(design.warnings ?? []), ...w];
