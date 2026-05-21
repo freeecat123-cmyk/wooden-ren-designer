@@ -4,7 +4,7 @@ import type {
   MaterialId,
   Part,
 } from "@/lib/types";
-import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "../_helpers";
+import { corners, seatEdgeShape, seatScoopShape, legEdgeShape, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "../_helpers";
 import {
   LOWER_STRETCHER_HEIGHT_RATIO,
   TENON_THICKNESS_RATIO,
@@ -340,6 +340,22 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
           return { x: x / mag, y: y / mag, z: z / mag };
         })()
       : undefined;
+    // Z 面 mortise 從 tenon 反推位置（套自 square-stool 2f5f3ff，只動接左右
+    // 牙板的這一面，X 面跟下橫撐 mortise 都不動）：
+    // - apron 繞自己 length 軸 tilt = sign(corner.x) × tiltX
+    // - tenon 經 rotation 後 X 偏移 = -apronUpperTenonOffset × sin(tiltX)
+    // - 腳的 splayed shape deform 在 apron Y 的位移 = (1 − zCenterY/legHeight) × |splayDx|
+    // 對 splayDx === 0 完全不影響（tiltX=0、splayShift=0、rotZ=0）
+    const zCenterY = legHeight - apronOffset - apronWidth / 2;
+    const zFaceGeom = splayedLegMortiseGeom({
+      corner: c,
+      splayDx: _splayDxPre,
+      legHeight,
+      legSize,
+      zCenterY,
+      tenonOffset: apronUpperTenonOffset,
+      fallbackZ: LEG_FACE_INSET,
+    });
     return ({
     id: `leg-${i + 1}`,
     nameZh: `${legNameZh} ${i + 1}`,
@@ -369,12 +385,15 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ],
     mortises: !withApron ? [] : [
       // Z 面 mortise（接 Z 軸 = 左右牙板）— 上半榫
+      // splayDx !== 0 時從 tenon 反推位置（套自 square-stool 2f5f3ff）；
+      // splayDx === 0 時公式退化為原本的 { x: 0, y: apronCenterY+offset, z: ±LEG_FACE_INSET, rotZ: 0 }
       {
-        origin: { x: 0, y: apronY + apronWidth / 2 + apronUpperTenonOffset, z: c.z > 0 ? -LEG_FACE_INSET : LEG_FACE_INSET },
+        origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
         depth: apronTenonLen,
         length: apronHalfTenonH,
         width: apronTenonThick,
         through: apronTenonType === "through-tenon",
+        ...(zFaceGeom.rotZ !== undefined && Math.abs(zFaceGeom.rotZ) > 0.001 ? { rotZ: zFaceGeom.rotZ } : {}),
       },
       // X 面 mortise（接 X 軸 = 前後牙板）— 下半榫
       {
@@ -947,7 +966,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     ); // 1/3 母件 + 上下肩
     parts.push({
       id: "center-stretcher",
-      nameZh: "中央橫撐",
+      nameZh: "中央牙條",
       material,
       grainDirection: "length",
       visible: {
@@ -1030,6 +1049,6 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     useButtJointConvention: true,
     primaryMaterial: material,
     notes:
-      opts.notes ?? "桌腳與桌面通榫；牙板與桌腳半榫；長桌建議加中央橫撐防扭。",
+      opts.notes ?? "桌腳與桌面通榫；牙板與桌腳半榫；長桌建議加中央牙條防扭。",
   };
 }

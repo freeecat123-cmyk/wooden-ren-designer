@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { corners, rectLegShape, RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeShape, legEdgeNote, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, legShapeLabel, parseLegChamferMm, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { applyStandardChecks, validateStoolStructure, appendWarnings, appendSuggestion } from "./_validators";
 import { LOWER_STRETCHER_HEIGHT_RATIO } from "./_constants";
 import { SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
@@ -802,38 +802,25 @@ function legMortisesForApron(
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
-  // Z 面 mortise 從 tenon 反推位置（只動這個面，X 面維持原樣）：
-  // - apron 繞自己 length 軸 tilt = sign(corner.x) × tiltX
-  // - tenon at apron-local (±lx/2, 0, -apronUpperTenonOffset) 經 ZYX rotation
-  // - 加上腳的 splayed shape deform 在 apron Y 的位移 (1−apronY/legHeight) × splayDx
-  const tiltX = legHeight > 0 && splayDx !== 0
-    ? Math.atan(Math.abs(splayDx) / legHeight)
-    : 0;
-  const splayShiftAtApronY = legHeight > 0
-    ? Math.abs(splayDx) * (1 - zCenterY / legHeight)
-    : 0;
-  // 公式：mortiseX (leg-local) = sign(corner.x) × (splayShift − offset × sin(tiltX))
-  //   +X corner: +splayShift − offset×sin = ~+6.98mm
-  //   −X corner: −splayShift + offset×sin = ~-6.98mm
-  const zFaceMortiseX =
-    Math.sign(corner.x || 1) * (splayShiftAtApronY - apronUpperTenonOffset * Math.sin(tiltX));
-  // origin.y cos 補償：tenon world Y = apronCenterY + offset × cos(tilt)
-  const zFaceMortiseY = zCenterY + apronUpperTenonOffset * Math.cos(tiltX);
-  // origin.z face lock：靠近 face 強制 depthAxis=z（避免 sin 偏移後 heuristic 選錯面）
-  const legHalfZ = legSize / 2 - 0.5;
-  const zFaceMortiseZ = corner.z > 0 ? -legHalfZ : +legHalfZ;
-  // rotation：cross-section 跟 tilted tenon 同向（兩面對齊）
-  const zFaceRotZ = (corner.x > 0 ? +1 : -1) * tiltX;
+  // Z 面 mortise 從 tenon 反推位置（公式移到 _helpers.splayedLegMortiseGeom）
+  const zFaceGeom = splayedLegMortiseGeom({
+    corner,
+    splayDx,
+    legHeight,
+    legSize,
+    zCenterY,
+    tenonOffset: apronUpperTenonOffset,
+    fallbackZ: 1,
+  });
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
-    // 從 tenon 反推位置（B 路線，只動這一面），其他保持原樣
     {
-      origin: { x: zFaceMortiseX, y: zFaceMortiseY, z: zFaceMortiseZ },
+      origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
       depth: apronTenonLength,
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
-      ...(Math.abs(zFaceRotZ) > 0.001 ? { rotZ: zFaceRotZ } : {}),
+      ...(zFaceGeom.rotZ !== undefined && Math.abs(zFaceGeom.rotZ) > 0.001 ? { rotZ: zFaceGeom.rotZ } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
     // 維持原狀（不動 user 沒抱怨的面）

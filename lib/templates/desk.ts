@@ -61,7 +61,7 @@ export const deskOptions: OptionSpec[] = [
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
-  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "中央橫撐", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙板。pedestal 中央抽屜跟牙板抽屜會跟中央橫撐衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙板。pedestal 中央抽屜跟牙板抽屜會跟中央牙條衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
   { group: "stretcher", type: "select", key: "lowerStretcherArrangement", label: "下橫撐排列", defaultValue: "box-frame", choices: [
     { value: "box-frame", label: "4 邊框（最穩，預設）" },

@@ -6,6 +6,68 @@ import type { Part, OptionSpec, OptionGroup, FurnitureTemplateInput } from "@/li
 import { getOption, opt } from "@/lib/types";
 
 /**
+ * Z 面 mortise origin / rotation for splayed-leg apron-to-leg joint.
+ *
+ * 跟 square-stool commit 2f5f3ff 同套修正——外斜腳家具的「左右牙板進腳」
+ * (Z 面 mortise) 必須從 tenon 反推位置，否則 apron 端面跟 leg inner face 中間
+ * 會有缺口。8 個 template (square-stool / simple-table 系列 / round-stool 系列
+ * / bar-stool / dining-chair) 都共用這條公式，集中在這支 helper 避免每次
+ * 新模板都散落抄一份。
+ *
+ * 公式 (從 square-stool legMortisesForApron 抽出)：
+ *   tiltX = atan(|splayDx| / legHeight)                    腳沿 X 軸傾角
+ *   splayShift = |splayDx| × (1 − zCenterY / legHeight)    apron Y 處的腳側偏量
+ *   mortise.x = sign(corner.x) × (splayShift − offset × sin(tiltX))
+ *   mortise.y = zCenterY + offset × cos(tiltX)
+ *   mortise.z = ±(legSize/2 − 0.5)   face lock 鎖 depthAxis=z
+ *   rotZ     = sign(corner.x) × tiltX
+ *
+ * splayDx === 0 時公式自動退化（tiltX=0、splayShift=0、sin=0、cos=1），
+ * caller 可選擇 fallback 到原 LEG_FACE_INSET=±1 慣例（傳 fallbackZ）。
+ *
+ * @param corner       Leg corner {x, z}（世界 X/Z）
+ * @param splayDx      X 軸 splay 量（splayed / splayed-length / splayed-tapered）；
+ *                     非 splay legShape 傳 0、就退化成「無 splay」結果
+ * @param legHeight    腳高
+ * @param legSize      腳截面尺寸（face lock 用 legSize/2 − 0.5）
+ * @param zCenterY     apron 中心 Y 在 leg-local 座標
+ * @param tenonOffset  tenon 在 apron-local 的 Y 偏移（半榫錯位用 ±apronHalfTenonH/2、
+ *                     無錯位傳 0）
+ * @param fallbackZ    splayDx=0 時用的舊慣例值（通常 ±LEG_FACE_INSET=±1）
+ */
+export function splayedLegMortiseGeom(args: {
+  corner: { x: number; z: number };
+  splayDx: number;
+  legHeight: number;
+  legSize: number;
+  zCenterY: number;
+  tenonOffset: number;
+  /** splayDx=0 時的 fallback origin.z，預設 ±1（LEG_FACE_INSET） */
+  fallbackZ?: number;
+}): { x: number; y: number; z: number; rotZ?: number } {
+  const { corner, splayDx, legHeight, legSize, zCenterY, tenonOffset } = args;
+  const hasSplay = splayDx !== 0 && legHeight > 0;
+  if (!hasSplay) {
+    // 無 splay：維持舊慣例（origin.z=±1 讓 mortiseLocalBox heuristic 選 z 面）
+    const fz = args.fallbackZ ?? 1;
+    return {
+      x: 0,
+      y: zCenterY + tenonOffset,
+      z: corner.z > 0 ? -fz : +fz,
+    };
+  }
+  const tiltX = Math.atan(Math.abs(splayDx) / legHeight);
+  const splayShift = Math.abs(splayDx) * (1 - zCenterY / legHeight);
+  const sgn = Math.sign(corner.x || 1);
+  const x = sgn * (splayShift - tenonOffset * Math.sin(tiltX));
+  const y = zCenterY + tenonOffset * Math.cos(tiltX);
+  const legHalfZ = legSize / 2 - 0.5;
+  const z = corner.z > 0 ? -legHalfZ : +legHalfZ;
+  const rotZ = sgn * tiltX;
+  return { x, y, z, rotZ };
+}
+
+/**
  * Four corner positions (centered on origin) for a leg of given size.
  * `inset` shifts legs inward from the outer edge on all sides.
  */

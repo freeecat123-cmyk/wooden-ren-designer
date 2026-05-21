@@ -5,7 +5,7 @@ import type {
   Part,
 } from "@/lib/types";
 import { getOption, opt } from "@/lib/types";
-import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal } from "./_helpers";
+import { RECT_LEG_SHAPE_CHOICES, seatEdgeOption, seatEdgeStyleOption, seatEdgeNote, seatEdgeShape, seatProfileOption, seatProfileNote, seatScoopShape, legEdgeOption, legEdgeStyleOption, legEdgeNote, legEdgeShape, stretcherEdgeOption, stretcherEdgeStyleOption, stretcherEdgeNote, apronEdgeOption, apronEdgeStyleOption, backRakeOption, backRakeNote, legShapeLabel, legBottomScale, legScaleAt, computeCompoundSplayNormal, splayedLegMortiseGeom } from "./_helpers";
 import { applyStandardChecks } from "./_validators";
 import { DINING_CHAIR, SPLAY_ANGLE } from "@/lib/knowledge/chair-geometry";
 import { standardTenon, autoTenonType } from "@/lib/joinery/standards";
@@ -351,15 +351,31 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         // 讓 zToFace=0.5 強訊號，through 通榫 CSG 才能可靠穿出腳背面。
         const legHalfX = legW / 2 - 0.5;
         const legHalfZ = legD / 2 - 0.5;
+        // === Z 面 mortise splay 修正（公式移到 _helpers.splayedLegMortiseGeom）===
+        const _splayDxForLegs = (legShape === "splayed" || legShape === "splayed-length") ? Math.sign(c.x) * splayMm : 0;
+        const _legH = Math.max(1, legBaseHeight);
+        const _upperOffset = apronCanHalfStagger ? apronUpperTenonOffset : 0;
+        const _zFaceGeom = splayedLegMortiseGeom({
+          corner: c,
+          splayDx: _splayDxForLegs,
+          legHeight: _legH,
+          legSize: legD,
+          zCenterY,
+          tenonOffset: _upperOffset,
+          fallbackZ: legHalfZ,
+        });
+        const _zFaceRotZ = _zFaceGeom.rotZ ?? 0;
+        const _zRotProp = Math.abs(_zFaceRotZ) > 0.001 ? { rotZ: _zFaceRotZ } : {};
         if (apronCanHalfStagger) {
           return [
             // Z 面 mortise（接 Z 軸 = 左右牙板，靜止）— 上榫
             {
-              origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: c.z > 0 ? -legHalfZ : legHalfZ },
+              origin: { x: _zFaceGeom.x, y: _zFaceGeom.y, z: _zFaceGeom.z },
               depth: apronTenonLen,
               length: apronUpperTenonH,
               width: apronTenonThick,
               through: apronThrough,
+              ..._zRotProp,
             },
             // X 面 mortise（接 X 軸 = 前後牙板，下移）— 下榫
             {
@@ -373,11 +389,12 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
         }
         return [
           {
-            origin: { x: 0, y: zCenterY, z: c.z > 0 ? -legHalfZ : legHalfZ },
+            origin: { x: _zFaceGeom.x, y: _zFaceGeom.y, z: _zFaceGeom.z },
             depth: apronTenonLen,
             length: apronTenonW,
             width: apronTenonThick,
             through: apronThrough,
+            ..._zRotProp,
           },
           {
             origin: { x: c.x > 0 ? -legHalfX : legHalfX, y: xCenterY, z: 0 },

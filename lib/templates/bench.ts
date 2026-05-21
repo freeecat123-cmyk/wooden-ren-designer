@@ -41,7 +41,7 @@ export const benchOptions: OptionSpec[] = [
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
-  { group: "stretcher", type: "checkbox", key: "withCenterStretcher", label: "加中央橫撐", defaultValue: false, help: "超過 1.2m 建議加" },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "加中央牙條", defaultValue: false, help: "超過 1.2m 建議加" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "加 4 邊下橫撐", defaultValue: false, help: "H 字形結構，更穩但費料" },
   { group: "stretcher", type: "checkbox", key: "withUnderShelf", label: "座下儲物層板", defaultValue: false, help: "在下橫撐之間加一片層板收納鞋子/書（會自動啟用下橫撐當層板支撐）" },
   { group: "back", type: "select", key: "endSplat", label: "椅背款式", defaultValue: "none", choices: [
@@ -200,8 +200,11 @@ export const bench: FurnitureTemplate = (input) => {
       // 直料 origin.z 從 backZ 往前推 slatBackInset，但 backZ 算法用了 splatThick/2，
       // 直料截面是 slatT 不是 splatThick，要校正：直料背面齊平座板背緣 - slatBackInset
       // → origin.z = halfW - slatT/2 - slatBackInset
-      const slatZ = halfW - slatT / 2 - slatBackInset;
+      // 頂橫木中軸 Z（slat 中軸跟此對齊，讓榫頭落在 rail 下緣中心軸上）
       const railZ = halfW - topRailT / 2 - slatBackInset;
+      // 直料中軸對齊頂橫木中軸（原本是後緣對齊座板後緣 → 中軸差 2.5mm，
+      // 在 rail 上的榫眼會偏後緣不在 rail 中心）
+      const slatZ = railZ;
       for (let i = 0; i < slatN; i++) {
         const x = -slatSpan / 2 + slatW / 2 + i * (slatW + slatGap);
         // 頂橫木在這個 X 位置的後彎量
@@ -214,7 +217,11 @@ export const bench: FurnitureTemplate = (input) => {
         const tilt = dzAtTop > 0 ? Math.atan(dzAtTop / slatHeight) : 0;
         const tiltedHeight = slatHeight / Math.cos(tilt);
         // PerspectiveView py = (origin.y + yExt/2) → 調 origin 讓料中軸中點落在 (slatX, seatTop+slatHeight/2, slatZ+dz/2)
-        const originY = seatTop + (slatHeight - tiltedHeight) / 2;
+        // 加 slatW/2 * sin(tilt)：rotation x=π/2+tilt 把 cross-section 角點 (±slatW/2,
+        // ±slatT/2) 也轉進 Y 軸，slat 實際世界 Y 範圍 = slatHeight + slatW * sin(tilt)。
+        // 不補償的話中段（tilt 大）slat 底邊會凸進座板 slatW/2 * sin(tilt)。
+        const slatCrossYExt = (slatW / 2) * Math.sin(tilt);
+        const originY = seatTop + (slatHeight - tiltedHeight) / 2 + slatCrossYExt;
         const originZ = slatZ + dzAtTop / 2;
         design.parts.push({
           id: `back-slat-${i + 1}`,
@@ -224,9 +231,11 @@ export const bench: FurnitureTemplate = (input) => {
           visible: { length: slatW, width: tiltedHeight, thickness: slatT },
           origin: { x, y: originY, z: originZ },
           rotation: { x: Math.PI / 2 + tilt, y: 0, z: 0 },
-          shape: dzAtTop > 0
-            ? { kind: "tilt-z", topShiftMm: dzAtTop, baseHeightMm: slatHeight }
-            : undefined,
+          // 不套 tilt-z shape：rotation x=π/2+tilt 已經把斜度做進 3D BoxGeometry
+          // (buildShapeGeometry 對 tilt-z 回 null、只看 rotation)。
+          // 同時套 tilt-z 會讓 projectPartSilhouette 雙重 tilt（rotation + shape Z
+          // 偏移），SVG 比 3D 多一份位移、slat 底邊凸進座板。
+          shape: undefined,
           tenons: [
             // slat rotation x=π/2 後 part-local ±Z → 世界 ∓Y：
             //   "left"  (cz=-lz/2-L/2) → 世界 +Y = slat 頂端 → 接 bow rail
