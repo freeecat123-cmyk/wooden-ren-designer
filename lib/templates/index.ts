@@ -70,8 +70,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     description: "客廳沙發旁、茶水點心擺放——含下棚板放書本雜物",
     difficulty: "beginner",
     template: teaTable,
-    defaults: { length: 600, width: 600, height: 400 },
-    limits: { length: 1200, width: 900, height: 500 },
+    defaults: { length: 500, width: 350, height: 400 },
+    limits: { length: 600, width: 400, height: 500 },
     optionSchema: teaTableOptions,
   },
   {
