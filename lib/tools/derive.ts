@@ -34,39 +34,47 @@ const JOINERY_TOOLS: Record<
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切榫頰與肩線" },
     { id: "flush-cut-saw", priority: "recommended", reason: "組裝後切平突出的通榫榫頭，不傷木面" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   "blind-tenon": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "鑿半榫榫眼" },
     { id: "japanese-saw", priority: "required", reason: "切榫頰與肩線" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切榫頰與肩線" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   "shouldered-tenon": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "整修肩榫" },
     { id: "japanese-saw", priority: "required", reason: "切肩線" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切肩線" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   "stub-joint": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "鑿出寬深榫眼讓整支牙條卡入" },
     { id: "mallet", priority: "required", reason: "敲擊鑿刀" },
     { id: "router-table", priority: "recommended", reason: "用銑床快速挖槽，比手鑿快數倍" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   "half-lap": [
     { id: "japanese-saw", priority: "required", reason: "切搭接深度" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，一把可替代切搭接" },
     { id: "chisel-set-3-6-12", priority: "required", reason: "整平搭接面" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   dovetail: [
     { id: "dovetail-saw", priority: "required", reason: "切鳩尾的細齒鋸" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，極細齒亦可切鳩尾" },
     { id: "dovetail-marker", priority: "required", reason: "1:6 / 1:8 角度劃線" },
     { id: "chisel-set-3-6-12", priority: "required", reason: "清除鳩尾廢料" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
+    { id: "dovetail-jig", priority: "recommended", reason: "搭配修邊機批量做全透燕尾榫，省手工時間" },
   ],
   "finger-joint": [
     { id: "chisel-set-3-6-12", priority: "required", reason: "整修指接" },
     { id: "all-purpose-saw", priority: "recommended", reason: "泛用型導付鋸，手工切指接" },
     { id: "router-table", priority: "recommended", reason: "用銑床批量切指" },
+    { id: "chisel-canvas-roll", priority: "recommended", reason: "鑿刀組收納捲包，保護刀刃" },
   ],
   "tongue-and-groove": [
     { id: "groove-plane", priority: "recommended", reason: "手工開槽" },
@@ -92,12 +100,27 @@ const JOINERY_TOOLS: Record<
     { id: "pocket-hole-jig", priority: "required", reason: "鑽 15° 斜孔" },
     { id: "drill", priority: "required", reason: "鑽孔" },
     { id: "drill-bits", priority: "required", reason: "斜孔專用階梯鑽頭" },
+    { id: "tenz-screw-set", priority: "recommended", reason: "TENZ 星型螺絲省力不咬合，斜孔鎖固專用" },
   ],
   screw: [
     { id: "drill", priority: "required", reason: "鑽先導孔與鎖螺絲" },
     { id: "drill-bits", priority: "required", reason: "搭配電鑽" },
+    { id: "tenz-screw-set", priority: "recommended", reason: "TENZ 星型螺絲省力不咬合" },
   ],
 };
+
+/** 任一存在於 map 中就代表用到電動／鑽孔／銑刀類工具 */
+const POWER_TOOL_IDS = [
+  "router-table",
+  "drill",
+  "drill-bits",
+  "dowel-jig",
+  "pocket-hole-jig",
+  "groove-blade",
+];
+
+/** 任一存在於 map 中就代表動到刃口工具，會需要磨刀 */
+const SHARPENABLE_IDS = ["chisel-set-3-6-12", "chisel-hardwood", "groove-plane"];
 
 export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
   const map = new Map<string, RequiredTool>();
@@ -155,6 +178,26 @@ export function deriveRequiredTools(design: FurnitureDesign): RequiredTool[] {
     design.category === "wardrobe"
   ) {
     add("concealed-hinge", "optional", "櫃門可選用隱藏鉸鏈");
+  }
+
+  // ----- 衍生推薦（依目前已選工具反推） -----
+  // pva-glue 一定在 ALWAYS_REQUIRED → 任何家具都會帶到，所以 glue-tray-set
+  // 也跟著建議
+  add("glue-tray-set", "recommended", "矽膠托盤＋滾筒刷，膠水乾掉一撕即淨，比紙杯衛生");
+  // 用到刃口工具 → 推薦磨刀器（鑿刀／鉋刀都需要定期定角開刃）
+  if (SHARPENABLE_IDS.some((id) => map.has(id))) {
+    add("sharpening-jig", "recommended", "鑿刀／鉋刀定角開刃，搭配磨刀石使用");
+  }
+  // 用到電動／鑽孔／銑刀類 → 推薦機台潤滑噴霧
+  if (POWER_TOOL_IDS.some((id) => map.has(id))) {
+    add("silicone-lubricant", "recommended", "帶鋸／台鋸／平刨台面防鏽＋離型，推料順暢");
+  }
+  // 裝飾性櫃類家具 → 推薦修邊機雕刻底座（圓弧／龜甲紋裝飾）
+  if (
+    design.category === "chinese-cabinet" ||
+    design.category === "display-cabinet"
+  ) {
+    add("router-engraving-base", "optional", "修邊機加底座做圓弧／龜甲紋雕刻裝飾");
   }
 
   return Array.from(map.values()).sort((a, b) => {
