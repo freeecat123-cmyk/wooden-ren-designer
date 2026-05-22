@@ -53,7 +53,7 @@ export default function TermsPage() {
       <section className="mt-8 space-y-3">
         <h2 className="text-xl font-semibold">4. 方案與付費</h2>
         <ul className="ml-5 list-disc space-y-2">
-          <li>免費版可使用部分家具範本（方凳、茶几、筆筒）與每帳號 1 筆設計存檔。</li>
+          <li>免費版可使用部分家具範本（方凳、筆筒、書擋）與每帳號 1 筆設計存檔。</li>
           <li>個人版／專業版採月付或年付訂閱；學員版為木匠學院學員身份開通之免費使用方案，依當下方案說明為準。</li>
           <li>付費完成後通常即時開通；如未開通可來信
             <a className="underline" href="mailto:wengbinren@gmail.com">wengbinren@gmail.com</a>。</li>

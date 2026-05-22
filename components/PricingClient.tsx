@@ -8,6 +8,9 @@ import { TemplateUnlockSection } from "./TemplateUnlockSection";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { isPaidCategory } from "@/lib/permissions";
 
+// 跟 app/page.tsx 同步:開發中的家具不上架買斷,等做完才放
+const DEVELOPMENT_CATEGORIES = new Set<string>(["chinese-cabinet", "bed", "coat-rack"]);
+
 const CATEGORY_NAME_ZH: Record<string, string> = {
   stool: "方凳",
   bench: "長凳",
@@ -45,11 +48,11 @@ const PLANS: PlanCard[] = [
     yearlyPrice: 0,
     audience: [
       "想先試試看的",
-      "做方凳、茶几、筆筒就夠的",
+      "做方凳、筆筒、書擋就夠的",
       "還沒決定要不要付費的",
     ],
     features: [
-      { ok: true, text: "3 種入門家具：方凳、茶几、筆筒" },
+      { ok: true, text: "3 種練習小物：方凳、筆筒、書擋" },
       { ok: true, text: "3D 透視圖預覽" },
       { ok: true, text: "工程三視圖（含浮水印）" },
       { ok: false, text: "其他 16 種家具" },
@@ -196,7 +199,7 @@ export function PricingClient() {
               「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」是付費版才能用的家具範本
             </p>
             <p className="mt-1 text-amber-800">
-              免費版只開放 3 種入門款（方凳、茶几、筆筒），其他 16 種要升級個人版以上。
+              免費版只開放 3 種練習小物（方凳、筆筒、書擋）。其他真實家具可選「單範本買斷」或「升級個人版」。
               下方挑一個適合你的方案就能解鎖。
             </p>
           </div>
@@ -319,6 +322,7 @@ export function PricingClient() {
       <TemplateUnlockSection
         catalog={FURNITURE_CATALOG
           .filter((e) => isPaidCategory(e.category))
+          .filter((e) => !DEVELOPMENT_CATEGORIES.has(e.category))
           .map((e) => ({
             category: e.category,
             nameZh: e.nameZh,
