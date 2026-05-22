@@ -480,7 +480,9 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
             </div>
             <SceneThemeToggle current={sceneId} />
             <LazyPerspectiveView design={design} sceneTheme={sceneTheme} joineryMode={joineryMode} auditMode={auditMode} explodeMm={explodeMm} lidLiftMm={lidLiftMm} xrayMode={xrayMode} wireframeMode={wireframeMode} hidePartIds={hidePartIds} noSync />
-            <ThreeDExportButton design={design} />
+            {getPlanFeatures(profile).canUseQuoteSystem && (
+              <ThreeDExportButton design={design} />
+            )}
           </div>
         </div>
 
