@@ -101,6 +101,12 @@ export function AdminDashboardClient() {
           >
             💸 退費審核
           </Link>
+          <Link
+            href="/admin/broadcast"
+            className="px-3 py-1.5 rounded bg-indigo-700 text-white text-sm hover:bg-indigo-800"
+          >
+            📧 批次寄信
+          </Link>
           <button
             type="button"
             onClick={load}
