@@ -253,6 +253,7 @@ export type LocalBox = {
   cx: number; cy: number; cz: number;     // local center (centered on length/thickness/width)
   hx: number; hy: number; hz: number;     // half-extents
   rotX?: number;                          // 額外繞 part-local X 軸旋轉（弧度）—外撇牆 cosmetic 孔 / splayed apron X 面榫
+  rotY?: number;                          // 額外繞 part-local Y 軸旋轉（弧度）—rect 筆筒壁 dado dim swap
   rotZ?: number;                          // 額外繞 part-local Z 軸旋轉（弧度）—splayed apron Z 面榫的 tilt
 };
 
@@ -662,7 +663,7 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
     const useZ = Math.max(0.1, (longOnZ ? longDim : shortDim) - PERP_SHRINK * 2);
     const cxClipped = Math.max(-lx / 2 + useX / 2, Math.min(lx / 2 - useX / 2, oxC));
     const czClipped = Math.max(-lz / 2 + useZ / 2, Math.min(lz / 2 - useZ / 2, ozC));
-    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX };
+    return { cx: cxClipped, cy: cyL, cz: czClipped, hx: useX / 2, hy: D / 2, hz: useZ / 2, rotX: m.rotX, rotY: m.rotY };
   } else if (depthAxis === "x") {
     const enterRight = m.origin.x >= 0;
     const cxL = enterRight ? +lx / 2 - D / 2 : -lx / 2 + D / 2;
@@ -2568,7 +2569,8 @@ function OrthoViewImpl({
           // polygon staves（wall-1, wall-2…）的 divider dado mortise 不畫橘色指示框
           // CSG 還是會挖，只是 2D 不再加多餘虛線（隔板邊緣已經視覺上嵌入壁）
           if (/^wall-\d+$/.test(part.id)) return null;
-          const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0);
+          // rect 壁 dado（divider 嵌入溝）：m.rotY 標記用，CSG 會挖但 2D outline 算錯方向，跳過
+          const cosmetic = part.mortises.filter((m) => m.cosmetic && m.depth > 0 && !m.rotY);
           if (cosmetic.length === 0) return null;
           // Pill 偵測：rect mortise + 2 round mortise（at ±rect.length/2、同 cy/cz/rotX/depth）
           // 視為單一 pill 路徑。否則 3 個獨立框 + outer/inner 雙輪廓 = 6 條線，使用者覺得亂。

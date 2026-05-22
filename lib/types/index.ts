@@ -148,6 +148,14 @@ export interface Mortise {
    */
   rotZ?: number;
   /**
+   * 額外旋轉（弧度）—CSG cut box 繞 part-local Y 軸轉這個角度。
+   * 用途：rect 筆筒壁的 divider dado—svg-views auto-fit heuristic 預設把長軸放
+   * 在較寬的 part 軸（outerL > wallH 時放 part-X）→ 變成橫向溝槽。rotY=π/2 把
+   * cut box 繞 Y 軸轉 90° 把 (longDim, D, shortDim) 換成 (shortDim, D, longDim) —
+   * 真正的垂直 dado。template 端要自己預測 longOnZ 決定要不要旋轉。
+   */
+  rotY?: number;
+  /**
    * WORLD-frame unit vector the mortise opens along (out of the mother part,
    * toward the mating tenon). Anti-parallel to the matching Tenon.axis (which
    * points the other way — into the mother). Same backward-compat fallback as

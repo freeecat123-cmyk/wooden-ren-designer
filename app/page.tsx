@@ -71,7 +71,7 @@ const CATEGORY_CHIPS: Array<{
       c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
-  { key: "tool", label: "工具" },
+  { key: "tool", label: "裝潢師工具" },
   {
     key: "dev",
     label: "開發中",
@@ -260,14 +260,35 @@ export default async function Home({
         </div>
       </div>
 
-      {/* 大圖網格 */}
+      {/* 大圖網格 — 工具卡（中階）插在 furniture 中階區開頭 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
-        {showFurniture &&
-          furniture.map((item) => (
+        {(() => {
+          if (!showFurniture && !showTools) return null;
+          if (!showFurniture) {
+            return [<CeilingToolCard key="t-ceiling" />, <FloorToolCard key="t-floor" />];
+          }
+          if (!showTools) {
+            return furniture.map((item) => <FurnitureCard key={item.category} item={item} />);
+          }
+          // furniture 已依難度排序；找第一個 intermediate 的位置，把工具卡插在中階區開頭
+          const interIdx = furniture.findIndex((it) => it.difficulty === "intermediate");
+          const cut = interIdx === -1
+            ? furniture.findIndex((it) => it.difficulty === "advanced")
+            : interIdx;
+          const cutFinal = cut === -1 ? furniture.length : cut;
+          const head = furniture.slice(0, cutFinal).map((item) => (
             <FurnitureCard key={item.category} item={item} />
-          ))}
-        {showTools && <CeilingToolCard />}
-        {showTools && <FloorToolCard />}
+          ));
+          const tail = furniture.slice(cutFinal).map((item) => (
+            <FurnitureCard key={item.category} item={item} />
+          ));
+          return [
+            ...head,
+            <CeilingToolCard key="t-ceiling" />,
+            <FloorToolCard key="t-floor" />,
+            ...tail,
+          ];
+        })()}
       </div>
     </main>
   );
@@ -293,12 +314,15 @@ function CeilingToolCard() {
           style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
         />
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
         <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🔨 天花板骨架
         </span>
-        <span className="shrink-0 text-[11px] font-semibold text-amber-700 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-          開啟 →
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title="難度:中階"
+        >
+          {DIFFICULTY_LABEL.intermediate}
         </span>
       </div>
     </Link>
@@ -334,12 +358,15 @@ function FloorToolCard() {
           ))}
         </svg>
       </div>
-      <div className="px-3 py-2.5 flex items-center justify-between border-t border-amber-100 bg-amber-50">
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
         <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🪵 地板施工模擬器
         </span>
-        <span className="shrink-0 text-[11px] font-semibold text-amber-700 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
-          開啟 →
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title="難度:中階"
+        >
+          {DIFFICULTY_LABEL.intermediate}
         </span>
       </div>
     </Link>

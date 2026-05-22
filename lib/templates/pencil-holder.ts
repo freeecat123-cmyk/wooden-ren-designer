@@ -133,9 +133,12 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
   const polygonDividerStyle = preset?.polygonDividerStyle !== undefined ? preset.polygonDividerStyle : polygonDividerStyleRaw;
   // 隔板厚度：option 預設 6 當 sentinel = 自動走 wallT/2
   const dividerHeightOpt = getOption<number>(input, opt(o, "dividerHeight"));
+  // dividerInset 故意不走 preset 強制覆寫——preset 只決定隔板「有沒有 / 幾片」這種結構選擇，
+  // 嵌入深度是 user 拉 slider 微調的細節。之前 e842579 把它一起強制套了，
+  // 結果 classic/makeup-brush（inset=0）下 slider 變零反應，方筒看起來像壞掉。
+  // 六/八角筒走 polygonStaves 完全獨立 code path，不在這條 buildBox 邏輯內。
   const dividerInsetRaw = getOption<number>(input, opt(o, "dividerInset"));
-  const dividerInsetPreset = preset?.dividerInset !== undefined ? preset.dividerInset : dividerInsetRaw;
-  const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, dividerInsetPreset));
+  const dividerInsetOpt = Math.max(0, Math.min(wallT - 1, dividerInsetRaw));
   const dividerThicknessRaw = getOption<number>(input, opt(o, "dividerThickness"));
   const dividerThick = dividerThicknessRaw === 6
     ? Math.max(3, Math.round(wallT / 2))
@@ -372,9 +375,8 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
 
   // 隔板起點 Y：底板頂面位置 — inset-panel 底板抬高 INSET_PANEL_LIFT，其餘走 buildBox 既定
   const bottomTopY = bottomAttach === "inset-panel" ? INSET_PANEL_LIFT + botT : botT;
-  // 隔板嵌入壁時，隔板頂面會跟壁頂面 coplanar → z-fight。縮 1mm 防共平面。
-  const insetClearance = dividerInsetOpt > 0 ? 1 : 0;
-  const dividerHAuto = Math.max(1, outerH - bottomTopY - insetClearance);
+  // dividerHeight=0 時自動填滿到壁頂；4 壁有 CSG dado 槽承接，不會 z-fight。
+  const dividerHAuto = Math.max(1, outerH - bottomTopY);
   const dividerH = dividerHeightOpt > 0
     ? Math.max(1, Math.min(dividerHeightOpt, dividerHAuto))
     : dividerHAuto;
@@ -423,6 +425,61 @@ export const pencilHolder: FurnitureTemplate = (input): FurnitureDesign => {
     }
   }
 
+  // dividerInset > 0 時在 4 壁內側面開 dado 槽（CSG cosmetic mortise）。
+  // 不跟六/八角共用：六/八角走 polygonStaves（origin.y=0 = 壁內側面），
+  // rect 壁有自己的 part-Y 對應內外面（front/left inner=wallT、back/right inner=0）。
+  // svg-views auto-fit heuristic 預設把 longDim 放在較居中軸；rect 壁 outerL 跟
+  // wallH 比例不固定，預測 longOnZ 決定要不要 rotY π/2 把 cut box dim 從
+  // (longDim, D, shortDim) 轉成 (shortDim, D, longDim) — 真正垂直 dado。
+  if (dividerInsetOpt > 0) {
+    const dadoDepth = dividerInsetOpt + 0.3;
+    const dadoLen = dividerH + 0.5;
+    const dadoWid = dividerThick + 0.5;
+    const wallFrontPart = built.parts.find((p) => p.id === "wall-front");
+    const wallBackPart = built.parts.find((p) => p.id === "wall-back");
+    const wallLeftPart = built.parts.find((p) => p.id === "wall-left");
+    const wallRightPart = built.parts.find((p) => p.id === "wall-right");
+    const pushDado = (wall: Part | undefined, innerY: number, xPos: number) => {
+      if (!wall) return;
+      const wallHActual = wall.visible.width;
+      const wallOrigY = wall.origin.y;
+      // part-Z（centered）對應 world -Y 偏移：把 divider 中心 Y 投回 wall part-Z。
+      const zCenter = -((bottomTopY + dividerH / 2) - (wallOrigY + wallHActual / 2));
+      const lxWall = wall.visible.length;
+      const lzWall = wall.visible.width;
+      const xFace = lxWall / 2 - Math.abs(xPos);
+      const zFace = lzWall / 2 - Math.abs(zCenter);
+      // auto-fit 預測：zFace>xFace 才會把 longDim 放 part-Z（垂直）→ 不用旋轉；
+      // 反之需 rotY=π/2 把 X、Z 半軸互換。
+      const longOnZ = zFace > xFace;
+      const rotY = longOnZ ? undefined : Math.PI / 2;
+      wall.mortises.push({
+        origin: { x: xPos, y: innerY, z: zCenter },
+        depth: dadoDepth,
+        length: dadoLen,
+        width: dadoWid,
+        through: false,
+        cosmetic: true,
+        shape: "rect",
+        ...(rotY !== undefined ? { rotY } : {}),
+      });
+    };
+    // 縱向 divider 兩端 → wall-front（inner=part-Y wallT）/ wall-back（inner=0）
+    // wall-front/back part-X 對齊 world X，origin.x = divider.origin.x
+    for (const dp of dividerParts) {
+      if (!dp.id.startsWith("divider-")) continue;
+      pushDado(wallFrontPart, wallT, dp.origin.x);
+      pushDado(wallBackPart, 0, dp.origin.x);
+    }
+    // 橫向 cross-divider 兩端 → wall-left（inner=part-Y wallT）/ wall-right（inner=0）
+    // wall-left/right 經 Rx+Ry rotation，part-X → world -Z，所以 origin.x = -worldZ
+    for (const dp of dividerParts) {
+      if (!dp.id.startsWith("cross-divider-")) continue;
+      pushDado(wallLeftPart, wallT, -dp.origin.z);
+      pushDado(wallRightPart, 0, -dp.origin.z);
+    }
+  }
+
   const design: FurnitureDesign = {
     id: `pencil-holder-${outerL}x${outerW}x${outerH}`,
     category: "pencil-holder",
@@ -466,7 +523,7 @@ export function applyPencilHolderPresets(
   if (preset.cornerJoinery !== undefined) next.cornerJoinery = preset.cornerJoinery;
   if (preset.dividers !== undefined) next.dividers = preset.dividers;
   if (preset.crossDividers !== undefined) next.crossDividers = preset.crossDividers;
-  if (preset.dividerInset !== undefined) next.dividerInset = preset.dividerInset;
+  // dividerInset 不走 shadow：user 拉 slider 微調的細節，preset 只給結構選擇。
   if (preset.polygonDividerStyle !== undefined) next.polygonDividerStyle = preset.polygonDividerStyle;
   return next;
 }

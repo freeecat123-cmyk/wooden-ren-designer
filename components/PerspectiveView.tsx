@@ -219,6 +219,7 @@ function subtractMortisesFromGeometry(
     // rotX：外撇牆 cosmetic 孔（孔軸跟牆面法線一致）
     // rotZ：splayed apron Z 面 mortise（cross-section 跟 tilted tenon 對齊）
     if (m.rotX) cutGeo.rotateX(m.rotX);
+    if (m.rotY) cutGeo.rotateY(m.rotY);
     if (m.rotZ) cutGeo.rotateZ(m.rotZ);
     cutGeo.deleteAttribute("uv");
     const cut = new Brush(cutGeo, material);
@@ -1702,6 +1703,7 @@ export function PerspectiveView({
                     hy: lb.hy * SCALE,
                     hz: lb.hz * SCALE,
                     rotX: lb.rotX,
+                    rotY: lb.rotY,
                     rotZ: lb.rotZ,
                   };
                 })
