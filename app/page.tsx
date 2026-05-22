@@ -7,6 +7,8 @@ import { StudentLoginHint } from "@/components/StudentLoginHint";
 import { isPaidCategory } from "@/lib/permissions";
 import { CatalogSearch } from "@/components/CatalogSearch";
 import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
+import { createAdminClient, getSessionUser } from "@/lib/supabase/server";
+import { fetchUnlockedCategories } from "@/lib/permissions/unlocks";
 
 interface SearchParams {
   cat?: string;
@@ -142,6 +144,12 @@ export default async function Home({
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
 
+  // 撈 user 已永久買斷的範本,首頁卡片要根據這個決定要不要顯示 🔒
+  const user = await getSessionUser();
+  const unlockedSet = user
+    ? new Set(await fetchUnlockedCategories(createAdminClient(), user.id))
+    : new Set<string>();
+
   const filtered = filterByChip(FURNITURE_CATALOG, chip);
   const furniture = chip === "all"
     ? sortAllFreeFirst(filtered)
@@ -268,7 +276,7 @@ export default async function Home({
             return [<CeilingToolCard key="t-ceiling" />, <FloorToolCard key="t-floor" />];
           }
           if (!showTools) {
-            return furniture.map((item) => <FurnitureCard key={item.category} item={item} />);
+            return furniture.map((item) => <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />);
           }
           // furniture 已依難度排序；找第一個 intermediate 的位置，把工具卡插在中階區開頭
           const interIdx = furniture.findIndex((it) => it.difficulty === "intermediate");
@@ -277,10 +285,10 @@ export default async function Home({
             : interIdx;
           const cutFinal = cut === -1 ? furniture.length : cut;
           const head = furniture.slice(0, cutFinal).map((item) => (
-            <FurnitureCard key={item.category} item={item} />
+            <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
           ));
           const tail = furniture.slice(cutFinal).map((item) => (
-            <FurnitureCard key={item.category} item={item} />
+            <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
           ));
           return [
             ...head,
@@ -373,8 +381,9 @@ function FloorToolCard() {
   );
 }
 
-function FurnitureCard({ item }: { item: FurnitureCatalogEntry }) {
-  const paid = isPaidCategory(item.category);
+function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEntry; isUnlocked?: boolean }) {
+  // 付費版範本但 user 已永久買斷 → 不顯示 🔒（避免「我已買還鎖」的視覺誤導）
+  const paid = isPaidCategory(item.category) && !isUnlocked;
   const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
   const searchTokens = [item.nameZh, item.category, item.description]
     .filter(Boolean)
