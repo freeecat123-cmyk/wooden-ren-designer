@@ -72,16 +72,17 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // 先嘗試 template_unlock 訂單（pending payment 含 raw_response.kind = "template_unlock"）
-  // 找不到再 fallback 到 subscription 流程。兩者用同一個 /api/ecpay/return webhook。
+  // 先嘗試 template / tool unlock 訂單（pending payment 含 raw_response.kind）
+  // 兩種一次性買斷共用同一段邏輯,差別只在最後寫入哪張表。找不到再 fallback subscription。
   {
-    const { data: tplPending } = await admin
+    const { data: pending } = await admin
       .from("payments")
       .select("id, user_id, amount, raw_response")
       .eq("status", "pending")
-      .filter("raw_response->>kind", "eq", "template_unlock")
       .filter("raw_response->>orderId", "eq", orderId)
+      .or("raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock")
       .maybeSingle();
+    const tplPending = pending;
     if (tplPending) {
       // CheckMacValue 已驗過,MerchantID 等等再驗
       if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
@@ -106,16 +107,30 @@ export async function POST(req: NextRequest) {
         });
         return new Response("0|AmountMismatch", { status: 200 });
       }
-      const tplCategory = (tplPending.raw_response as Record<string, unknown>).category as string;
-      // 寫 template_unlocks（unique (user_id, category) 防重複,即使 webhook replay 也 idempotent）
-      const { error: unlockErr } = await admin.from("template_unlocks").insert({
-        user_id: tplPending.user_id,
-        category: tplCategory,
-        paid_amount: expectedAmount,
-        ecpay_merchant_trade_no: orderId,
-      });
-      if (unlockErr && !unlockErr.message?.includes("duplicate")) {
-        console.error("[ecpay/return/template] insert unlock failed", unlockErr);
+      const rawResp = tplPending.raw_response as Record<string, unknown>;
+      const kind = rawResp.kind as string;
+      if (kind === "template_unlock") {
+        const tplCategory = rawResp.category as string;
+        const { error: unlockErr } = await admin.from("template_unlocks").insert({
+          user_id: tplPending.user_id,
+          category: tplCategory,
+          paid_amount: expectedAmount,
+          ecpay_merchant_trade_no: orderId,
+        });
+        if (unlockErr && !unlockErr.message?.includes("duplicate")) {
+          console.error("[ecpay/return/template] insert unlock failed", unlockErr);
+        }
+      } else if (kind === "tool_unlock") {
+        const tool = rawResp.tool as string;
+        const { error: unlockErr } = await admin.from("tool_unlocks").insert({
+          user_id: tplPending.user_id,
+          tool,
+          paid_amount: expectedAmount,
+          ecpay_merchant_trade_no: orderId,
+        });
+        if (unlockErr && !unlockErr.message?.includes("duplicate")) {
+          console.error("[ecpay/return/tool] insert unlock failed", unlockErr);
+        }
       }
       await admin
         .from("payments")

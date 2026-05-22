@@ -239,6 +239,9 @@ export function MySubscriptionClient() {
         ) : null}
       </div>
 
+      {/* 永久買斷清單(範本 + 工具)——沒買過完全不顯示 */}
+      <UnlocksSection />
+
       {/* 發票偏好設定（只有付費方案才顯示） */}
       {!isStudent &&
         profile &&
@@ -246,6 +249,107 @@ export function MySubscriptionClient() {
           <InvoicePreferenceCard />
         )}
     </main>
+  );
+}
+
+interface UnlockedTemplate { category: string; created_at: string; }
+interface UnlockedTool { tool: string; created_at: string; }
+
+function UnlocksSection() {
+  const [templates, setTemplates] = useState<UnlockedTemplate[]>([]);
+  const [tools, setTools] = useState<UnlockedTool[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        const [tplRes, toolRes] = await Promise.all([
+          supabase
+            .from("template_unlocks")
+            .select("category, created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("tool_unlocks")
+            .select("tool, created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+        ]);
+        if (cancelled) return;
+        setTemplates((tplRes.data ?? []) as UnlockedTemplate[]);
+        setTools((toolRes.data ?? []) as UnlockedTool[]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return null;
+  if (templates.length === 0 && tools.length === 0) return null;
+
+  const TEMPLATE_NAME: Record<string, string> = {
+    stool: "方凳", bench: "長凳", "tea-table": "茶几", "side-table": "邊桌",
+    "low-table": "矮桌", "open-bookshelf": "開放書櫃", "chest-of-drawers": "斗櫃",
+    "shoe-cabinet": "鞋櫃", "display-cabinet": "玻璃展示櫃", "dining-table": "餐桌",
+    desk: "書桌", "dining-chair": "餐椅", wardrobe: "衣櫃", "bar-stool": "吧檯椅",
+    "media-console": "電視櫃", nightstand: "床頭櫃", "round-stool": "圓凳",
+    "round-tea-table": "圓茶几", "round-table": "圓餐桌", "pencil-holder": "筆筒",
+    bookend: "書擋", "photo-frame": "相框", tray: "托盤", "dovetail-box": "木盒",
+    "wine-rack": "紅酒架",
+  };
+  const TOOL_NAME: Record<string, string> = {
+    ceiling: "🔨 天花板骨架施工模擬器",
+    floor: "🪵 地板施工模擬器",
+  };
+
+  return (
+    <div className="mt-6 rounded-2xl border-2 border-amber-200 bg-amber-50/40 p-5 sm:p-6">
+      <h2 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+        🎫 永久買斷清單
+      </h2>
+      <p className="text-xs text-zinc-600 mb-4">這些是你一次買斷的內容,永久使用,不會跟訂閱一起到期。</p>
+
+      {tools.length > 0 && (
+        <div className="mb-4">
+          <div className="text-xs font-semibold text-zinc-700 mb-2">裝潢工具</div>
+          <ul className="space-y-1">
+            {tools.map((t) => (
+              <li key={t.tool} className="flex items-center justify-between text-sm">
+                <span>{TOOL_NAME[t.tool] ?? t.tool}</span>
+                <Link href={t.tool === "ceiling" ? "/ceiling" : "/floor"} className="text-xs text-amber-700 hover:underline">
+                  開啟 →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {templates.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-zinc-700 mb-2">家具範本</div>
+          <ul className="space-y-1">
+            {templates.map((t) => (
+              <li key={t.category} className="flex items-center justify-between text-sm">
+                <span>🪵 {TEMPLATE_NAME[t.category] ?? t.category}</span>
+                <Link href={`/design/${t.category}`} className="text-xs text-amber-700 hover:underline">
+                  開啟 →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 

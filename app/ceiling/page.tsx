@@ -7,9 +7,10 @@
  */
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
+import { fetchUnlockedTools } from "@/lib/permissions/tool-unlocks";
 import { CeilingDevClient } from "./CeilingDevClient";
 
 export const metadata = {
@@ -24,14 +25,17 @@ export default async function CeilingPage() {
 
   if (!user) redirect("/login?next=/ceiling");
 
-  // admin 永遠可進(內部測試用),其他人依 canUseCeilingTool permission
+  // admin 永遠可進(內部測試用),其他人:plan OR 工具單買斷 任一通過放行
   if (!isAdminEmail(user.email, getServerAdminEmails())) {
     const { data: profile } = await supabase
       .from("users")
       .select("plan,subscription_status,subscription_expires_at,student_expires_at")
       .eq("id", user.id)
       .single();
-    if (!canUseFeature(profile as UserPlanProfile | null, "canUseCeilingTool")) {
+    const planAllows = canUseFeature(profile as UserPlanProfile | null, "canUseCeilingTool");
+    const unlockedTools = await fetchUnlockedTools(createAdminClient(), user.id);
+    const boughtUnlock = unlockedTools.includes("ceiling");
+    if (!planAllows && !boughtUnlock) {
       redirect("/pricing?upgrade=ceiling");
     }
   }

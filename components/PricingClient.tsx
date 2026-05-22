@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { PlanCardView, type PlanCard, type BillingPeriod } from "./PricingPlanCard";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { TemplateUnlockSection } from "./TemplateUnlockSection";
+import { ToolUnlockSection } from "./ToolUnlockSection";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { isPaidCategory } from "@/lib/permissions";
 
@@ -330,6 +331,9 @@ export function PricingClient() {
           }))}
         lockedCategory={lockedCategory}
       />
+
+      {/* 裝潢工具買斷 */}
+      <ToolUnlockSection />
 
       <div className="mt-12 max-w-2xl mx-auto rounded-2xl bg-amber-50/80 ring-1 ring-amber-900/10 px-6 py-5 text-center text-xs text-zinc-600 leading-relaxed">
         <p className="flex items-center justify-center gap-1.5">
