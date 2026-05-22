@@ -40,6 +40,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESC,
+  // 顯式 canonical：Google 同時搜到 designer.woodenren.com 跟 wooden-ren-designer.vercel.app
+  // 時，把所有排名訊號合併到正式網域。
+  alternates: { canonical: SITE_URL },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
