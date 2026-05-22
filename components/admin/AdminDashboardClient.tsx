@@ -107,6 +107,12 @@ export function AdminDashboardClient() {
           >
             📧 批次寄信
           </Link>
+          <Link
+            href="/admin/surveys"
+            className="px-3 py-1.5 rounded bg-teal-700 text-white text-sm hover:bg-teal-800"
+          >
+            📋 問卷分析
+          </Link>
           <button
             type="button"
             onClick={load}
