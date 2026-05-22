@@ -9,6 +9,8 @@ import { CatalogSearch } from "@/components/CatalogSearch";
 import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
 import { createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { fetchUnlockedCategories } from "@/lib/unlocks";
+import { fetchUnlockedTools } from "@/lib/tool-unlocks";
+import type { ToolId } from "@/lib/pricing/tool-unlock";
 
 interface SearchParams {
   cat?: string;
@@ -144,11 +146,17 @@ export default async function Home({
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
 
-  // 撈 user 已永久買斷的範本,首頁卡片要根據這個決定要不要顯示 🔒
+  // 撈 user 已永久買斷的範本 + 工具,首頁卡片要根據這個決定要不要顯示 🔒 / ✓
   const user = await getSessionUser();
-  const unlockedSet = user
-    ? new Set(await fetchUnlockedCategories(createAdminClient(), user.id))
-    : new Set<string>();
+  const admin = user ? createAdminClient() : null;
+  const [unlockedCats, unlockedTools] = user && admin
+    ? await Promise.all([
+        fetchUnlockedCategories(admin, user.id),
+        fetchUnlockedTools(admin, user.id),
+      ])
+    : [[] as string[], [] as ToolId[]];
+  const unlockedSet = new Set(unlockedCats);
+  const unlockedToolSet = new Set<ToolId>(unlockedTools);
 
   const filtered = filterByChip(FURNITURE_CATALOG, chip);
   const furniture = chip === "all"
@@ -292,8 +300,8 @@ export default async function Home({
           ));
           return [
             ...head,
-            <CeilingToolCard key="t-ceiling" />,
-            <FloorToolCard key="t-floor" />,
+            <CeilingToolCard key="t-ceiling" isUnlocked={unlockedToolSet.has("ceiling")} />,
+            <FloorToolCard key="t-floor" isUnlocked={unlockedToolSet.has("floor")} />,
             ...tail,
           ];
         })()}
@@ -302,13 +310,23 @@ export default async function Home({
   );
 }
 
-function CeilingToolCard() {
+function CeilingToolCard({ isUnlocked = false }: { isUnlocked?: boolean }) {
   return (
     <Link
       href="/ceiling"
       data-catalog-search="天花板 骨架 矽酸鈣板 裝潢 ceiling"
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
+      {/* Top-right corner: 已擁有打勾 / 付費鎖 */}
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          ✓ 已擁有
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title="付費版">🔒</span>
+        </div>
+      )}
       <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
         <Image
           src="/thumbs/v2/ceiling.webp"
@@ -338,13 +356,22 @@ function CeilingToolCard() {
 }
 
 /** 地板施工模擬器:個人版工具卡(可點,導 /floor) */
-function FloorToolCard() {
+function FloorToolCard({ isUnlocked = false }: { isUnlocked?: boolean }) {
   return (
     <Link
       href="/floor"
       data-catalog-search="地板 施工 模擬器 超耐磨 海島型 木地板 排版 人字拼 估價 floor"
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          ✓ 已擁有
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title="付費版">🔒</span>
+        </div>
+      )}
       <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
         <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
           {[0, 1, 2, 3, 4].map((r) => (
