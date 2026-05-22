@@ -177,11 +177,17 @@ export function getPlanFeatures(profile: UserPlanProfile | null | undefined): Pl
   return PLAN_FEATURES[plan];
 }
 
-/** 該方案是否能進這個家具範本（免費版只能進 FREE_UNLOCKED_CATEGORIES） */
+/** 該方案是否能進這個家具範本（免費版只能進 FREE_UNLOCKED_CATEGORIES）
+ *
+ *  unlockedCategories 是該 user 透過單範本買斷取得的永久解鎖清單,任一通過即可放行
+ *  （訂閱 OR 單範本買斷 OR 免費版預設）。
+ */
 export function canAccessCategory(
   profile: UserPlanProfile | null | undefined,
   category: FurnitureCategory,
+  unlockedCategories?: readonly string[],
 ): boolean {
+  if (unlockedCategories?.includes(category)) return true;
   const plan = getEffectivePlan(profile);
   if (plan === "free") return FREE_UNLOCKED_CATEGORIES.includes(category);
   return true; // 付費版全部解鎖

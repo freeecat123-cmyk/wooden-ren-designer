@@ -71,6 +71,64 @@ export async function POST(req: NextRequest) {
   const amount = Number(params.TradeAmt ?? 0);
 
   const admin = createAdminClient();
+
+  // 先嘗試 template_unlock 訂單（pending payment 含 raw_response.kind = "template_unlock"）
+  // 找不到再 fallback 到 subscription 流程。兩者用同一個 /api/ecpay/return webhook。
+  {
+    const { data: tplPending } = await admin
+      .from("payments")
+      .select("id, user_id, amount, raw_response")
+      .eq("status", "pending")
+      .filter("raw_response->>kind", "eq", "template_unlock")
+      .filter("raw_response->>orderId", "eq", orderId)
+      .maybeSingle();
+    if (tplPending) {
+      // CheckMacValue 已驗過,MerchantID 等等再驗
+      if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+        return new Response("0|MerchantIDInvalid", { status: 200 });
+      }
+      if (rtnCode !== "1") {
+        await admin
+          .from("payments")
+          .update({
+            status: "failed",
+            ecpay_trade_no: tradeNo ?? null,
+            raw_response: { ...(tplPending.raw_response as object), ecpay: params },
+          })
+          .eq("id", tplPending.id);
+        console.warn("[ecpay/return/template] 付款失敗", { orderId, rtnCode });
+        return new Response("1|OK");
+      }
+      const expectedAmount = tplPending.amount as number;
+      if (Number(amount) !== expectedAmount) {
+        console.error("[ecpay/return/template] amount mismatch", {
+          orderId, got: amount, expected: expectedAmount,
+        });
+        return new Response("0|AmountMismatch", { status: 200 });
+      }
+      const tplCategory = (tplPending.raw_response as Record<string, unknown>).category as string;
+      // 寫 template_unlocks（unique (user_id, category) 防重複,即使 webhook replay 也 idempotent）
+      const { error: unlockErr } = await admin.from("template_unlocks").insert({
+        user_id: tplPending.user_id,
+        category: tplCategory,
+        paid_amount: expectedAmount,
+        ecpay_merchant_trade_no: orderId,
+      });
+      if (unlockErr && !unlockErr.message?.includes("duplicate")) {
+        console.error("[ecpay/return/template] insert unlock failed", unlockErr);
+      }
+      await admin
+        .from("payments")
+        .update({
+          status: "success",
+          ecpay_trade_no: tradeNo ?? null,
+          raw_response: { ...(tplPending.raw_response as object), ecpay: params },
+        })
+        .eq("id", tplPending.id);
+      return new Response("1|OK");
+    }
+  }
+
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
     .select("id, user_id, plan, status, expected_amount, period, replaced_subscription_id, coupon_code")

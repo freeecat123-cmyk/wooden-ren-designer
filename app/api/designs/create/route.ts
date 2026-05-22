@@ -113,8 +113,10 @@ export async function POST(req: NextRequest) {
     .single();
   const profile = profileData as UserPlanProfile | null;
   const isAdmin = isAdminEmail(user.email, getServerAdminEmails());
+  const { fetchUnlockedCategories } = await import("@/lib/permissions/unlocks");
+  const unlockedCategories = await fetchUnlockedCategories(admin, user.id);
 
-  if (!isAdmin && !canAccessCategory(profile, v.furnitureType)) {
+  if (!isAdmin && !canAccessCategory(profile, v.furnitureType, unlockedCategories)) {
     return NextResponse.json(
       { error: "plan_locked_category", message: "此家具範本需付費方案" },
       { status: 403 },

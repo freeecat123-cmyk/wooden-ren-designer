@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
-import { createClient, getSessionUser } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
+import { fetchUnlockedCategories } from "@/lib/permissions/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";
@@ -121,6 +122,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   const user = await getSessionUser();
   const supabase = await createClient();
   let profile = null;
+  let unlockedCategories: string[] = [];
   if (user) {
     const { data } = await supabase
       .from("users")
@@ -130,6 +132,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       .eq("id", user.id)
       .single();
     profile = data;
+    // 拉單範本永久買斷的解鎖清單,給 canAccessCategory 判斷
+    unlockedCategories = await fetchUnlockedCategories(createAdminClient(), user.id);
   }
   const isAdmin = isAdminEmail(user?.email, getServerAdminEmails());
   // dev-only：playwright shoot-thumbs 腳本繞過 paywall 抓所有家具縮圖
@@ -139,7 +143,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     !isAdmin &&
     !isThumbShoot &&
     isPaidCategory(type as FurnitureCategory) &&
-    !canAccessCategory(profile, type as FurnitureCategory)
+    !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories)
   ) {
     redirect(`/pricing?locked=${type}`);
   }
