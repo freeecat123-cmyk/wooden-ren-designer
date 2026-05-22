@@ -33,5 +33,9 @@ create table if not exists public.email_broadcasts (
 create index if not exists email_broadcasts_created_idx
   on public.email_broadcasts (created_at desc);
 
+-- RLS：admin 用 service role 寫（自動 bypass）、一般用戶完全擋（沒 policy = 全拒絕）。
+-- API route 端會檢查 isAdminEmail，這層是第二道防線。
+alter table public.email_broadcasts enable row level security;
+
 comment on table public.email_broadcasts is
   'admin 批次寄信紀錄：每次 broadcast 留一筆，含 audience filter / sent / failed';
