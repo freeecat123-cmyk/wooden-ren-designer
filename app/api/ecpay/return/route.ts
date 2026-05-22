@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
-    .select("id, user_id, plan, status, expected_amount, period, replaced_subscription_id")
+    .select("id, user_id, plan, status, expected_amount, period, replaced_subscription_id, coupon_code")
     .eq("ecpay_merchant_trade_no", orderId)
     .single();
 
@@ -171,6 +171,18 @@ export async function POST(req: NextRequest) {
     })
     .eq("id", sub.user_id);
   if (upUserErr) console.error("[ecpay/return] 更新 users 失敗", upUserErr);
+
+  // Coupon 標 used（如果 sub 用了 coupon）
+  if (sub.coupon_code) {
+    const { error: couponErr } = await admin
+      .from("survey_coupons")
+      .update({ used: true, used_at: now.toISOString() })
+      .eq("code", sub.coupon_code)
+      .eq("used", false);
+    if (couponErr) {
+      console.error("[ecpay/return] 標 coupon used 失敗", { code: sub.coupon_code, error: couponErr });
+    }
+  }
 
   // ATM/超商先前可能已由 /payment-info 寫過一筆 awaiting_payment row（同 ecpay_trade_no）。
   // 有就 update 成 success，沒有（信用卡/LINE Pay 等同步付款）就 insert。

@@ -60,6 +60,8 @@ export function PlanCardView({
   currentStatus = null,
   currentPeriod = null,
   currentExpiresAt = null,
+  couponCode = null,
+  couponDiscountPercent = null,
 }: {
   plan: PlanCard;
   period: BillingPeriod;
@@ -71,6 +73,10 @@ export function PlanCardView({
   currentPeriod?: BillingPeriod | null;
   /** users.subscription_expires_at (ISO),算升級贈送的剩餘天數用 */
   currentExpiresAt?: string | null;
+  /** 已驗證通過的 coupon code（年付才會傳入,month 時 PricingClient 自動清掉） */
+  couponCode?: string | null;
+  /** coupon 折扣百分比（例 50 = 半價） */
+  couponDiscountPercent?: number | null;
 }) {
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
@@ -129,13 +135,22 @@ export function PlanCardView({
       </>
     );
   } else if (period === "yearly") {
-    const monthlyEq = Math.round(plan.yearlyPrice / 12);
+    const hasCoupon = !!couponCode && !!couponDiscountPercent && !isFree;
+    const couponedYearly = hasCoupon
+      ? Math.max(1, Math.round((plan.yearlyPrice * (100 - couponDiscountPercent!)) / 100))
+      : plan.yearlyPrice;
+    const monthlyEq = Math.round(couponedYearly / 12);
     priceLine = (
       <>
         <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          NT$ {plan.yearlyPrice.toLocaleString()}
+          NT$ {couponedYearly.toLocaleString()}
         </span>
-        {plan.originalYearly && plan.originalYearly > plan.yearlyPrice && (
+        {hasCoupon && (
+          <span className="text-sm text-zinc-400 line-through">
+            NT$ {plan.yearlyPrice.toLocaleString()}
+          </span>
+        )}
+        {!hasCoupon && plan.originalYearly && plan.originalYearly > plan.yearlyPrice && (
           <span className="text-sm text-zinc-400 line-through">
             NT$ {plan.originalYearly.toLocaleString()}
           </span>
@@ -145,10 +160,13 @@ export function PlanCardView({
     );
     belowPrice = (
       <p className="mt-1 text-xs text-emerald-700 font-medium">
-        相當於 NT$ {monthlyEq} / 月
-        {plan.originalYearly &&
-          plan.originalYearly > plan.yearlyPrice &&
-          `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
+        {hasCoupon
+          ? `🎫 折扣 ${couponDiscountPercent}% 已套用，省 NT$ ${(plan.yearlyPrice - couponedYearly).toLocaleString()}`
+          : <>相當於 NT$ {monthlyEq} / 月
+              {plan.originalYearly &&
+                plan.originalYearly > plan.yearlyPrice &&
+                `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
+            </>}
       </p>
     );
   } else {
@@ -322,6 +340,7 @@ export function PlanCardView({
           >
             <input type="hidden" name="plan" value={plan.id} />
             <input type="hidden" name="period" value={period} />
+            {couponCode && <input type="hidden" name="coupon" value={couponCode} />}
             <button
               type="submit"
               disabled={checkingPref}

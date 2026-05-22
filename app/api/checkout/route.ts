@@ -31,6 +31,7 @@ import {
   getAioUrl,
 } from "@/lib/ecpay/create-order";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
+import { validateCoupon } from "@/lib/coupon/validate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const plan = String(form.get("plan") ?? "");
   const period = String(form.get("period") ?? "monthly");
+  const couponRaw = String(form.get("coupon") ?? "").trim();
 
   if (!isValidPlan(plan) || !isValidPeriod(period)) {
     return NextResponse.json({ error: "invalid_plan_or_period" }, { status: 400 });
@@ -155,11 +157,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const amount = getPlanPrice(plan, period);
+  const baseAmount = getPlanPrice(plan, period);
+
+  // Coupon 套用（年付限定，月付定期定額無法只折首期）
+  let amount = baseAmount;
+  let appliedCouponCode: string | null = null;
+  if (couponRaw) {
+    const couponResult = await validateCoupon({
+      admin,
+      userId: user.id,
+      code: couponRaw,
+      period,
+      originalAmount: baseAmount,
+    });
+    if (!couponResult.ok) {
+      return NextResponse.json(
+        { error: "coupon_invalid", message: couponResult.error },
+        { status: 400 },
+      );
+    }
+    amount = couponResult.discountedAmount;
+    appliedCouponCode = couponResult.coupon.code;
+  }
+
   const basePlan = getBasePlan(plan);
   const periodLabel = period === "yearly" ? "年付" : "月付";
   const orderId = generateOrderId();
-  const itemName = `木頭仁 木作藍圖${PLAN_NAME_ZH[plan]}(${periodLabel})`;
+  const couponSuffix = appliedCouponCode ? ` 折扣 ${appliedCouponCode}` : "";
+  const itemName = `木頭仁 木作藍圖${PLAN_NAME_ZH[plan]}(${periodLabel})${couponSuffix}`;
 
   // 預先插入 subscription row 當 placeholder；status=expired，付款成功 webhook 改 active。
   // expected_amount = 預期收款金額（跨 student tier 都正確），webhook 用這個比對防 tampering。
@@ -174,6 +199,7 @@ export async function POST(req: NextRequest) {
     expected_amount: amount,
     period,
     replaced_subscription_id: replacedSubId,
+    coupon_code: appliedCouponCode,
   });
   if (subErr) {
     console.error("[checkout] insert subscription failed", subErr);

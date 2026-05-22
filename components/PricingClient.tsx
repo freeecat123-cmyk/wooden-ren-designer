@@ -93,9 +93,17 @@ const PLANS: PlanCard[] = [
   },
 ];
 
+interface CouponState {
+  code: string;
+  status: "idle" | "checking" | "ok" | "error";
+  discountPercent?: number;
+  error?: string;
+}
+
 export function PricingClient() {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+  const [coupon, setCoupon] = useState<CouponState>({ code: "", status: "idle" });
   const { profile, userId } = useUserPlan();
   const currentPlan = profile?.plan ?? null;
   const currentStatus = profile?.subscription_status ?? null;
@@ -133,7 +141,47 @@ export function PricingClient() {
     const sp = new URLSearchParams(window.location.search);
     const locked = sp.get("locked");
     if (locked) setLockedCategory(locked);
+    // 支援 ?coupon=XXXX 自動填入
+    const c = sp.get("coupon");
+    if (c) setCoupon({ code: c.toUpperCase(), status: "idle" });
   }, []);
+
+  // 切換 period / coupon code 改動時，重置 coupon 驗證狀態
+  useEffect(() => {
+    if (coupon.status === "ok" || coupon.status === "error") {
+      setCoupon((c) => ({ code: c.code, status: "idle" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
+
+  async function applyCoupon() {
+    if (!coupon.code.trim()) return;
+    setCoupon((c) => ({ ...c, status: "checking", error: undefined }));
+    try {
+      const res = await fetch("/api/coupon/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // plan 隨便挑一個（後端只用 plan 決定 baseAmount 預覽，實際結帳時用 user 選的）
+        body: JSON.stringify({ code: coupon.code, plan: "personal", period }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setCoupon((c) => ({ ...c, status: "error", error: json.error ?? "驗證失敗" }));
+      } else {
+        setCoupon((c) => ({
+          ...c,
+          status: "ok",
+          discountPercent: json.coupon.discountPercent,
+        }));
+      }
+    } catch (e) {
+      setCoupon((c) => ({
+        ...c,
+        status: "error",
+        error: e instanceof Error ? e.message : "網路錯誤",
+      }));
+    }
+  }
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
@@ -204,6 +252,50 @@ export function PricingClient() {
         </div>
       </div>
 
+      {/* Coupon 折扣碼 */}
+      <div className="max-w-md mx-auto mb-8">
+        <div className="rounded-2xl bg-white ring-1 ring-amber-900/10 p-4 shadow-sm">
+          <label className="block text-xs font-semibold text-zinc-700 mb-2">
+            🎫 折扣碼（可選）
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={coupon.code}
+              onChange={(e) =>
+                setCoupon((c) => ({
+                  code: e.target.value.toUpperCase(),
+                  status: c.status === "ok" ? "idle" : c.status,
+                }))
+              }
+              placeholder="例：LAUNCH-XXXXXXXX"
+              className="flex-1 px-3 py-2 rounded-lg border border-zinc-300 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <button
+              type="button"
+              onClick={applyCoupon}
+              disabled={!coupon.code.trim() || coupon.status === "checking"}
+              className="px-4 py-2 rounded-lg bg-zinc-800 text-white text-sm font-semibold hover:bg-zinc-900 disabled:opacity-50"
+            >
+              {coupon.status === "checking" ? "驗證中…" : "套用"}
+            </button>
+          </div>
+          {coupon.status === "ok" && (
+            <p className="mt-2 text-xs text-emerald-700 font-semibold">
+              ✅ 折扣 {coupon.discountPercent}% 已套用（限年付方案，結帳自動扣）
+            </p>
+          )}
+          {coupon.status === "error" && (
+            <p className="mt-2 text-xs text-rose-700">❌ {coupon.error}</p>
+          )}
+          {coupon.status === "ok" && period === "monthly" && (
+            <p className="mt-1 text-xs text-amber-700">
+              ⚠️ 此 coupon 只能用年付,切到上方「年付」才會生效
+            </p>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-start">
         {PLANS.map((p) => (
           <PlanCardView
@@ -214,6 +306,8 @@ export function PricingClient() {
             currentStatus={currentStatus}
             currentPeriod={currentPeriod}
             currentExpiresAt={profile?.subscription_expires_at ?? null}
+            couponCode={coupon.status === "ok" && period === "yearly" ? coupon.code : null}
+            couponDiscountPercent={coupon.status === "ok" && period === "yearly" ? coupon.discountPercent ?? null : null}
           />
         ))}
       </div>
