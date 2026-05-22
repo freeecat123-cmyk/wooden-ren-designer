@@ -152,7 +152,8 @@ export async function PATCH(
     const paymentRow = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
     const tradeNo = (paymentRow as { ecpay_trade_no?: string })?.ecpay_trade_no;
     const raw = (paymentRow as { raw_response?: Record<string, string> })?.raw_response;
-    const orderId = raw?.MerchantTradeNo;
+    // subscription:ECPay 回的 params(MerchantTradeNo);template/tool unlock:checkout 自塞(orderId)
+    const orderId = raw?.MerchantTradeNo || raw?.orderId;
     const invoiceNumber = (paymentRow as { invoice_number?: string })?.invoice_number;
     const invoiceIssuedAt = (paymentRow as { invoice_issued_at?: string })?.invoice_issued_at;
 
@@ -291,9 +292,34 @@ export async function PATCH(
     }
   }
 
-  // approved + downgrade_user (default true) → 降回 free
+  // unlock 退費:刪掉 template_unlocks / tool_unlocks row 取消使用權。
+  // 跟訂閱降回 free 互斥(unlock 不會碰 user.plan,user 可能還有獨立訂閱)
+  if (body.status === "approved" || body.status === "refunded") {
+    const paymentRow = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
+    const raw = (paymentRow as { raw_response?: Record<string, unknown> })?.raw_response;
+    const kind = raw?.kind as string | undefined;
+    if (kind === "template_unlock") {
+      const cat = raw?.category as string | undefined;
+      if (cat) {
+        await svc.from("template_unlocks").delete()
+          .eq("user_id", rr.user_id).eq("category", cat);
+      }
+    } else if (kind === "tool_unlock") {
+      const tool = raw?.tool as string | undefined;
+      if (tool) {
+        await svc.from("tool_unlocks").delete()
+          .eq("user_id", rr.user_id).eq("tool", tool);
+      }
+    }
+  }
+
+  // approved + downgrade_user (default true) + 不是 unlock → 降回 free
+  // unlock 退費不該降 plan(user 可能還有獨立訂閱)
   const downgrade = body.downgrade_user !== false;
-  if (body.status === "approved" && downgrade) {
+  const paymentRowForDowngrade = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
+  const rawForDowngrade = (paymentRowForDowngrade as { raw_response?: Record<string, unknown> })?.raw_response;
+  const isUnlockRefund = rawForDowngrade?.kind === "template_unlock" || rawForDowngrade?.kind === "tool_unlock";
+  if (body.status === "approved" && downgrade && !isUnlockRefund) {
     await svc
       .from("users")
       .update({

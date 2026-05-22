@@ -101,7 +101,9 @@ export async function POST(req: Request) {
 
   const tradeNo = payment.ecpay_trade_no as string | null;
   const raw = payment.raw_response as Record<string, string> | null;
-  const orderId = raw?.MerchantTradeNo;
+  // subscription payments raw_response 是 ECPay 回的 params(MerchantTradeNo);
+  // template_unlock / tool_unlock payments 是 checkout 自己塞的(orderId)。兩種都接。
+  const orderId = raw?.MerchantTradeNo || raw?.orderId;
   const invoiceNumber = payment.invoice_number as string | null;
   const invoiceIssuedAt = payment.invoice_issued_at as string | null;
 
@@ -214,19 +216,37 @@ export async function POST(req: Request) {
       .from("payments")
       .update({ status: "refunded" })
       .eq("id", paymentId);
-    await svc
-      .from("users")
-      .update({
-        plan: "free",
-        subscription_status: "expired",
-        subscription_expires_at: null,
-      })
-      .eq("id", payment.user_id);
-    await svc
-      .from("subscriptions")
-      .update({ status: "expired" })
-      .eq("user_id", payment.user_id)
-      .eq("status", "active");
+
+    // unlock 退費:刪掉 unlock row 取消使用權,不動 user.plan / 訂閱(可能還有別的訂閱)
+    const kind = (raw as Record<string, unknown> | null)?.kind as string | undefined;
+    if (kind === "template_unlock") {
+      const cat = (raw as Record<string, unknown>).category as string | undefined;
+      if (cat) {
+        await svc.from("template_unlocks").delete()
+          .eq("user_id", payment.user_id).eq("category", cat);
+      }
+    } else if (kind === "tool_unlock") {
+      const tool = (raw as Record<string, unknown>).tool as string | undefined;
+      if (tool) {
+        await svc.from("tool_unlocks").delete()
+          .eq("user_id", payment.user_id).eq("tool", tool);
+      }
+    } else {
+      // 訂閱退費才降 plan,unlock 退費不動
+      await svc
+        .from("users")
+        .update({
+          plan: "free",
+          subscription_status: "expired",
+          subscription_expires_at: null,
+        })
+        .eq("id", payment.user_id);
+      await svc
+        .from("subscriptions")
+        .update({ status: "expired" })
+        .eq("user_id", payment.user_id)
+        .eq("status", "active");
+    }
   }
 
   return NextResponse.json({
