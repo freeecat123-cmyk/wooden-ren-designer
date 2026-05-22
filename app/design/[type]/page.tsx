@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
-import { fetchUnlockedCategories } from "@/lib/permissions/unlocks";
+import { fetchUnlockedCategories } from "@/lib/unlocks";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { toBeginnerMode } from "@/lib/templates/beginner-mode";
 import { applyEdgeProtection } from "@/lib/joinery/edge-protection";

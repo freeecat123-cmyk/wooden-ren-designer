@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     .single();
   const profile = profileData as UserPlanProfile | null;
   const isAdmin = isAdminEmail(user.email, getServerAdminEmails());
-  const { fetchUnlockedCategories } = await import("@/lib/permissions/unlocks");
+  const { fetchUnlockedCategories } = await import("@/lib/unlocks");
   const unlockedCategories = await fetchUnlockedCategories(admin, user.id);
 
   if (!isAdmin && !canAccessCategory(profile, v.furnitureType, unlockedCategories)) {

@@ -8,7 +8,7 @@ import { isPaidCategory } from "@/lib/permissions";
 import { CatalogSearch } from "@/components/CatalogSearch";
 import { PerspectivePrefetch } from "@/components/PerspectivePrefetch";
 import { createAdminClient, getSessionUser } from "@/lib/supabase/server";
-import { fetchUnlockedCategories } from "@/lib/permissions/unlocks";
+import { fetchUnlockedCategories } from "@/lib/unlocks";
 
 interface SearchParams {
   cat?: string;

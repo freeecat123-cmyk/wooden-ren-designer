@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
-import { fetchUnlockedTools } from "@/lib/permissions/tool-unlocks";
+import { fetchUnlockedTools } from "@/lib/tool-unlocks";
 import { CeilingDevClient } from "./CeilingDevClient";
 
 export const metadata = {
