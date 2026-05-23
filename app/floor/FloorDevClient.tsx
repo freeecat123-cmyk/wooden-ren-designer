@@ -151,14 +151,14 @@ export function FloorDevClient() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div className="grid grid-cols-1 gap-x-3 gap-y-2 text-xs">
               <FloorRangeInput label="地板片長" unit="cm" value={input.plankLengthCm}
                 min={30} max={250} step={1}
                 onChange={(v) => set("plankLengthCm", v)} />
               <FloorRangeInput label="地板片寬" unit="cm" value={input.plankWidthCm}
                 min={5} max={40} step={0.5}
                 onChange={(v) => set("plankWidthCm", v)} />
-              <div className="col-span-2">
+              <div>
                 <SelField label="鋪設樣式" value={input.pattern}
                   opts={[
                     ["straight", "直鋪錯縫"],
