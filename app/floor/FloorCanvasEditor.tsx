@@ -138,17 +138,48 @@ export function FloorCanvasEditor({
   const verts = room.vertices;
   const n = verts.length;
 
+  // 多邊形繞向（CCW 正面積 +、CW 負面積 -）— 用來判別凹凸角
+  const signedArea2 =
+    verts.reduce((s, p, i) => {
+      const q = verts[(i + 1) % n];
+      return s + p.x * q.y - q.x * p.y;
+    }, 0);
+  const windingSign = signedArea2 >= 0 ? 1 : -1;
+  const crossZ = (ax: number, ay: number, bx: number, by: number) =>
+    ax * by - ay * bx;
+
   // 預先算好每條邊的標籤位置 / 長度 / 是否可編輯
   const labels = verts.map((a, i) => {
+    const aPrev = verts[(i - 1 + n) % n];
     const b = verts[(i + 1) % n];
+    const bNext = verts[(i + 2) % n];
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const lenCm = Math.hypot(dx, dy);
     const editable = lenCm > EPS && (Math.abs(dx) < EPS || Math.abs(dy) < EPS);
     const nx = lenCm > EPS ? -dy / lenCm : 0;
     const ny = lenCm > EPS ? dx / lenCm : 0;
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2;
+    const tx_ = lenCm > EPS ? dx / lenCm : 0;
+    const ty_ = lenCm > EPS ? dy / lenCm : 0;
+    // 兩端是凹角還是凸角（L/T/凸 的內角為凹）
+    const concaveAtA =
+      crossZ(a.x - aPrev.x, a.y - aPrev.y, dx, dy) * windingSign < 0;
+    const concaveAtB =
+      crossZ(dx, dy, bNext.x - b.x, bNext.y - b.y) * windingSign < 0;
+
+    // 沿切線方向把 label 往凸角端推，避開凹角附近的擠壓
+    let mx = (a.x + b.x) / 2;
+    let my = (a.y + b.y) / 2;
+    const tangentShiftPx = 28;
+    const tangentShiftCm = scale > 0 ? tangentShiftPx / scale : 0;
+    if (concaveAtA && !concaveAtB) {
+      mx += tx_ * tangentShiftCm;
+      my += ty_ * tangentShiftCm;
+    } else if (!concaveAtA && concaveAtB) {
+      mx -= tx_ * tangentShiftCm;
+      my -= ty_ * tangentShiftCm;
+    }
+
     const inside = pointInPolygon({ x: mx + nx * 0.5, y: my + ny * 0.5 }, room);
     // 短邊（L/T/凸 凹陷處的內邊）label 推得更遠，避免在窄空間互相重疊
     const edgeLenPx = lenCm * scale;
