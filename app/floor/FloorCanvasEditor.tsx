@@ -157,12 +157,13 @@ export function FloorCanvasEditor({
   const editing = editEdge != null ? labels[editEdge] : null;
 
   return (
-    // 固定保留高度跟最大寬,SVG 隨房間尺寸縮放但容器尺寸不變 → 拖總寬時頁面不會跳
+    // SVG 對齊容器左上角（不能 flex-center，否則 HTML labels 用容器座標、SVG 視覺位置
+    // 已被居中位移，labels 會浮到房間外面）。
     // boxW 由 ResizeObserver 抓真實寬度,labels HTML 浮層座標才能跟 SVG 一致
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center rounded border border-zinc-200 bg-white overflow-hidden"
-      style={{ width: "100%", maxWidth: width, height: boxW }}
+      className="relative rounded border border-zinc-200 bg-white overflow-hidden"
+      style={{ width: "100%", maxWidth: width, height: svgH }}
     >
       <svg
         ref={svgRef}
