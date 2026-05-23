@@ -93,7 +93,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
   const maxDim = Math.max(L, S);
 
   return (
-    <div className="w-full h-[38vh] sm:h-[520px] sm:max-h-[70vh]">
+    <div className="w-full h-[30vh] sm:h-[520px] sm:max-h-[70vh]">
     <Canvas
       className="bg-amber-50/30 rounded border border-zinc-200"
       style={{ width: "100%", height: "100%" }}
