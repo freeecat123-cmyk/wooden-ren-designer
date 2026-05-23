@@ -238,6 +238,7 @@ export default async function Home({
                 <Link
                   key={c.key}
                   href={href}
+                  scroll={false}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
                     active
                       ? "bg-amber-700 text-white shadow-md shadow-amber-700/20 ring-1 ring-amber-700"
