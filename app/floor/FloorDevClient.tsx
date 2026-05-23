@@ -169,8 +169,8 @@ export function FloorDevClient() {
             </div>
           </section>
 
-          {/* ③ 鋪法細節(可收合) */}
-          <details className="rounded-lg border border-zinc-200 p-4">
+          {/* ③ 鋪法細節(可收合，預設打開) */}
+          <details open className="rounded-lg border border-zinc-200 p-4">
             <summary className="cursor-pointer text-sm font-semibold">
               ③ 鋪法細節
             </summary>
@@ -204,8 +204,8 @@ export function FloorDevClient() {
 
         </div>
 
-        {/* ───── 右:結果面板 — 預覽優先,報價/按鈕放最後 ───── */}
-        <div className="space-y-3">
+        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
+        <div className="space-y-3 md:sticky md:top-4">
           {/* 2D 預覽 */}
           <FloorOverviewSvg bom={bom} width={388} />
 
