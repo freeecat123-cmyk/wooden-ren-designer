@@ -34,10 +34,6 @@ function fmtDate(iso: string | null): string {
 
 export function RefundClient() {
   const [requests, setRequests] = useState<RefundRequest[] | null>(null);
-  const [reason, setReason] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [notLoggedIn, setNotLoggedIn] = useState(false);
 
   async function loadRequests() {
@@ -58,96 +54,40 @@ export function RefundClient() {
     void loadRequests();
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (submitting) return;
-    if (reason.trim().length < 5) {
-      setError("請填寫退費原因（至少 5 個字）");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/refund", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
-      });
-      const j = await res.json();
-      if (!res.ok) {
-        const errMap: Record<string, string> = {
-          not_logged_in: "請先登入再申請",
-          no_payment_to_refund: "找不到可退費的付款紀錄",
-          duplicate_request: "您已有未完成的退費申請、不能重複提交",
-          reason_too_short: "退費原因太短",
-        };
-        throw new Error(errMap[j.error] ?? j.error ?? `HTTP ${res.status}`);
-      }
-      setSubmitted(true);
-      setReason("");
-      void loadRequests();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (notLoggedIn) {
-    return (
-      <section className="mt-12 rounded-xl border-2 border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold mb-2">線上申請退費</h2>
-        <p className="text-sm text-zinc-600">
-          請先<Link href="/login?next=/refund" className="underline text-emerald-700 mx-1">登入</Link>
-          再申請退費。也可直接 email 至{" "}
-          <a className="underline" href="mailto:wengbinren@gmail.com">wengbinren@gmail.com</a>。
-        </p>
-      </section>
-    );
-  }
-
   return (
     <>
-      <section className="mt-12 rounded-xl border-2 border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold mb-3">線上申請退費</h2>
-
-        {submitted && (
-          <div className="mb-4 rounded-lg p-3 border-2 bg-emerald-50 border-emerald-300 text-emerald-900 text-sm">
-            ✅ 已收到您的申請，我們會在 7 個工作日內審核並 email 回覆。
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">
-            退費原因 <span className="text-zinc-500 text-xs">(請具體說明、至少 5 字)</span>
-          </label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={4}
-            placeholder="例：本服務無法產生我需要的家具類型；或：重複付款；或：系統長期無法使用…"
-            className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-          />
-          {error && (
-            <div className="mt-2 text-xs text-rose-700">⚠️ {error}</div>
-          )}
-          <p className="mt-2 text-xs text-zinc-500 leading-relaxed">
-            退費將依「2. 可申請退費之情形」與「3. 不予退費之情形」審核，並非所有申請都會通過。
-            審核後我們會 email 通知結果。
-          </p>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-3 inline-block rounded-lg bg-amber-700 px-5 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-50"
+      <section className="mt-12 rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6">
+        <h2 className="text-lg font-semibold mb-3">如何申請退費</h2>
+        <p className="text-sm text-zinc-700 leading-relaxed mb-3">
+          木作藍圖為數位虛擬商品，依「3. 不予退費之情形」原則上不接受退費。
+          若您有特殊情況需申請退費，請<strong>直接 email</strong> 給木頭仁本人，
+          會逐則人工評估後 email 回覆。
+        </p>
+        <div className="mt-4 rounded-lg bg-white border border-amber-300 p-4">
+          <p className="text-sm text-zinc-700 mb-1">退費聯絡信箱：</p>
+          <a
+            className="text-base font-mono font-semibold text-amber-800 hover:underline"
+            href="mailto:wengbinren@gmail.com?subject=木作藍圖退費申請"
           >
-            {submitting ? "送出中…" : "送出退費申請"}
-          </button>
-        </form>
+            wengbinren@gmail.com
+          </a>
+          <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
+            來信請註明：註冊 email、訂單編號（在我的訂閱頁可查）、付款日期、申請原因。
+            <br />
+            一般在 7 個工作日內回覆。
+          </p>
+        </div>
+        {notLoggedIn && (
+          <p className="text-xs text-zinc-500 mt-3">
+            <Link href="/login?next=/refund" className="underline text-emerald-700">登入</Link>
+            後可在下方查看自己的退費紀錄。
+          </p>
+        )}
       </section>
 
       {requests !== null && requests.length > 0 && (
         <section className="mt-8 rounded-xl border-2 border-zinc-200 bg-white p-6">
-          <h2 className="text-lg font-semibold mb-3">我的申請紀錄</h2>
+          <h2 className="text-lg font-semibold mb-3">我的退費紀錄</h2>
           <ul className="space-y-3">
             {requests.map((r) => (
               <li key={r.id} className="border border-zinc-200 rounded-lg p-3">
