@@ -278,7 +278,7 @@ export function CeilingDevClient() {
       <main className="max-w-7xl mx-auto px-5 py-6">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,520px)] lg:gap-6 items-start">
           {/* ====== 視覺(mobile order-1 在最上、desktop order-2 在右、sticky)====== */}
-          <aside className="w-full order-1 lg:order-2 sticky top-[120px] lg:top-[80px] z-20 lg:z-auto self-start mb-5 lg:mb-0 print:static print:mb-3 print-keep">
+          <aside className="w-full order-1 lg:order-2 sticky top-[156px] lg:top-[80px] z-20 lg:z-auto self-start mb-5 lg:mb-0 print:static print:mb-3 print-keep">
             <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           {viewKind === "3d" && (
             <div className="px-4 py-2.5 border-b border-stone-100 bg-gradient-to-r from-stone-50/50 to-transparent flex flex-wrap items-center gap-3 text-[11px]">
