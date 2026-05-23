@@ -449,12 +449,16 @@ function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEnt
       title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
-      {/* Top-right corner markers */}
-      {paid && (
+      {/* Top-right corner: 已擁有打勾 / 付費鎖 */}
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          ✓ 已擁有
+        </div>
+      ) : paid ? (
         <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
           <span className="text-amber-600 text-xs" title="付費版">🔒</span>
         </div>
-      )}
+      ) : null}
       <CardThumb item={item} />
       <CardFooter item={item} paid={paid} />
     </Link>
