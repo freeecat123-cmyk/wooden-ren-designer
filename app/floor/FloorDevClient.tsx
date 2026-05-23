@@ -79,9 +79,9 @@ export function FloorDevClient() {
         超耐磨/海島型木地板 · 直鋪與人字拼排版算料、材料估價
       </p>
 
-      <div className="mt-4 grid gap-6 md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
-        {/* ───── 左:輸入(照決策順序) ───── */}
-        <div className="space-y-4">
+      <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
+        {/* ───── 左:輸入(照決策順序) — 手機放下方,桌面回到左欄 ───── */}
+        <div className="order-2 md:order-none space-y-4">
           {/* ① 房間 */}
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">① 房間</h2>
@@ -227,8 +227,8 @@ export function FloorDevClient() {
           </details>
         </div>
 
-        {/* ───── 右:結果面板(sticky) ───── */}
-        <div className="space-y-3 md:sticky md:top-4">
+        {/* ───── 右:結果面板(sticky) — 手機放上方,桌面回到右欄 ───── */}
+        <div className="order-1 md:order-none space-y-3 md:sticky md:top-4">
           {/* 頭條:總價 */}
           <div className="rounded-lg border border-[#bd9955]/40 bg-[#bd9955]/10 p-3">
             <div className="text-xs text-zinc-500">預估總價</div>

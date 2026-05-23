@@ -144,12 +144,16 @@ export function FloorCanvasEditor({
   const editing = editEdge != null ? labels[editEdge] : null;
 
   return (
-    <div className="relative inline-block">
+    // 固定保留高度跟最大寬,SVG 隨房間尺寸縮放但容器尺寸不變 → 拖總寬時頁面不會跳
+    <div
+      className="relative flex items-center justify-center rounded border border-zinc-200 bg-white overflow-hidden"
+      style={{ width: "100%", maxWidth: width, height: width }}
+    >
       <svg
         ref={svgRef}
         width={svgW}
         height={svgH}
-        className="block touch-none rounded border border-zinc-200 bg-white"
+        className="block touch-none"
         onPointerMove={handleMove}
         onPointerUp={() => setDragIdx(null)}
         onPointerLeave={() => setDragIdx(null)}

@@ -118,7 +118,7 @@ export function FloorRangeInput({
               setDraft(String(value));
               setEditing(true);
             }}
-            className="shrink-0 min-w-[60px] px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 font-mono tabular-nums text-zinc-900"
+            className="shrink-0 w-[72px] px-2 py-1 rounded-md bg-stone-100 hover:bg-stone-200 font-mono tabular-nums text-zinc-900 text-right"
           >
             {value}
             {unit && <span className="text-zinc-400 ml-0.5">{unit}</span>}
