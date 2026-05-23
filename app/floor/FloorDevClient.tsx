@@ -202,12 +202,26 @@ export function FloorDevClient() {
             </div>
           </details>
 
-          {/* ④ 估價 / 門洞(可收合) */}
+        </div>
+
+        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
+        <div className="space-y-3 md:sticky md:top-4">
+          {/* 2D 預覽 */}
+          <FloorOverviewSvg bom={bom} width={388} />
+
+          {/* 摘要數字 */}
+          <div className="grid grid-cols-3 gap-2">
+            <Stat label="總片數" value={`${bom.trace.totalPlankCount}`} unit="片" />
+            <Stat label="損耗" value={bom.trace.wastePercent.toFixed(1)} unit="%" />
+            <Stat label="坪數" value={bom.auto.pingShu.toFixed(1)} unit="坪" />
+          </div>
+
+          {/* ④ 估價 / 門洞(可收合) — 跟材料清單相鄰，改參數立刻看影響 */}
           <details className="rounded-lg border border-zinc-200 p-4">
             <summary className="cursor-pointer text-sm font-semibold">
               ④ 估價 / 門洞
             </summary>
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-2 text-xs">
               <FloorRangeInput label="門洞數量" unit="個" value={input.doorCount}
                 min={0} max={10} step={1}
                 onChange={(v) => set("doorCount", v)} />
@@ -225,19 +239,6 @@ export function FloorDevClient() {
                 onChange={(v) => set("underlayPricePerPing", v)} />
             </div>
           </details>
-        </div>
-
-        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
-        <div className="space-y-3 md:sticky md:top-4">
-          {/* 2D 預覽 */}
-          <FloorOverviewSvg bom={bom} width={388} />
-
-          {/* 摘要數字 */}
-          <div className="grid grid-cols-3 gap-2">
-            <Stat label="總片數" value={`${bom.trace.totalPlankCount}`} unit="片" />
-            <Stat label="損耗" value={bom.trace.wastePercent.toFixed(1)} unit="%" />
-            <Stat label="坪數" value={bom.auto.pingShu.toFixed(1)} unit="坪" />
-          </div>
 
           {/* 材料清單 */}
           <div className="rounded-lg border border-zinc-200 p-3">
