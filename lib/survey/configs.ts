@@ -153,7 +153,6 @@ export const LAUNCH_2026_05_SURVEY: SurveyConfig = {
         { value: "more_templates", label: "更多家具範本" },
         { value: "interior_layout", label: "室內配置/空間規劃" },
         { value: "moulding", label: "線板/踢腳板算料" },
-        { value: "floor", label: "木地板施工模擬器" },
         { value: "quote", label: "報價單(給接案用)" },
         { value: "video_links", label: "工序影片教學連結" },
         { value: "mobile_app", label: "行動 App" },
