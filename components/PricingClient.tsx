@@ -200,7 +200,7 @@ export function PricingClient() {
               「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」是付費版才能用的家具範本
             </p>
             <p className="mt-1 text-amber-800">
-              免費版只開放 3 種練習小物（方凳、筆筒、書擋）。其他真實家具可選「單範本買斷」或「升級個人版」。
+              免費版只開放 2 種練習小物（方凳、筆筒）。其他真實家具可選「單範本買斷」或「升級個人版」。
               下方挑一個適合你的方案就能解鎖。
             </p>
           </div>

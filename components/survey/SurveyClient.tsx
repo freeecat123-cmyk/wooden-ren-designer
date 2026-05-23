@@ -258,9 +258,9 @@ function ThankYouView({ coupon, survey }: { coupon: string; survey: SurveyConfig
           {coupon}
         </div>
         <div className="text-xs text-zinc-500">
-          結帳時輸入此 code,個人版第一個月半價
+          結帳時輸入此 code,個人版<strong>年付</strong>半價
           <br />
-          (此 code 7 天內有效)
+          NT$3,900 → <strong>NT$1,950</strong>（月付不適用 · 7 天內有效）
         </div>
       </div>
       <div className="mt-8">

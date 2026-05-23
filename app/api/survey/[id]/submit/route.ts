@@ -103,8 +103,10 @@ export async function POST(
         `謝謝你花時間填問卷。`,
         ``,
         `你的專屬折扣 code:${couponCode ?? "(未發放)"}`,
-        `折扣:個人版第一個月 ${discount}% off`,
+        `折扣:個人版「年付方案」${discount}% off（NT$3,900 → NT$1,950）`,
         `有效期:${expireDays} 天`,
+        ``,
+        `※ 此 coupon 只能用於「年付」方案，月付不適用。`,
         ``,
         `現在去升級:https://designer.woodenren.com/pricing`,
         ``,
@@ -116,7 +118,8 @@ export async function POST(
         <div style="font-family: monospace; font-size: 28px; font-weight: bold; padding: 16px 24px; background: #fef3c7; border: 2px solid #fbbf24; border-radius: 8px; display: inline-block; margin: 12px 0;">
           ${couponCode ?? "(未發放)"}
         </div>
-        <p>折扣:個人版第一個月 <strong>${discount}% off</strong><br>有效期:${expireDays} 天</p>
+        <p>折扣:個人版<strong>年付方案</strong> <strong>${discount}% off</strong>（NT$3,900 → <strong>NT$1,950</strong>）<br>有效期:${expireDays} 天</p>
+        <p style="color: #92400e; font-size: 13px; background: #fef3c7; padding: 8px 12px; border-radius: 6px;">※ 此 coupon 只能用於「年付」方案，月付不適用。</p>
         <p><a href="https://designer.woodenren.com/pricing" style="display:inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 8px;">現在去升級 →</a></p>
         <p style="color: #71717a; font-size: 14px;">— 木頭仁</p>
       `,
