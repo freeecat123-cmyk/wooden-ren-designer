@@ -11,7 +11,7 @@
  * 維持正交不變量:拖某角點時,與它相鄰的兩角點各自跟著對齊(共用水平邊同步 y、
  * 共用垂直邊同步 x);若相鄰邊本身是斜邊,則該角點自由移動、不強制同步。
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Point, RoomPolygon } from "@/lib/floor/types";
 import { boundingBox, pointInPolygon } from "@/lib/floor/geometry";
 
@@ -32,9 +32,22 @@ export function FloorCanvasEditor({
   width = 460,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [editEdge, setEditEdge] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+  // 容器實際渲染寬度（手機版 ~360px，桌機到 maxWidth=460），所有座標計算用這個
+  const [boxW, setBoxW] = useState(width);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setBoxW(el.clientWidth || width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [width]);
 
   const bb = boundingBox(room);
   const pad = 30;
@@ -43,7 +56,7 @@ export function FloorCanvasEditor({
   const REF_CM = 700;
   const extX = Math.max(bb.maxX - bb.minX, 1);
   const extY = Math.max(bb.maxY - bb.minY, 1);
-  const inner = width - pad * 2;
+  const inner = boxW - pad * 2;
   const scale = Math.min(inner / REF_CM, inner / Math.max(extX, extY));
   const svgW = extX * scale + pad * 2;
   const svgH = extY * scale + pad * 2;
@@ -145,9 +158,11 @@ export function FloorCanvasEditor({
 
   return (
     // 固定保留高度跟最大寬,SVG 隨房間尺寸縮放但容器尺寸不變 → 拖總寬時頁面不會跳
+    // boxW 由 ResizeObserver 抓真實寬度,labels HTML 浮層座標才能跟 SVG 一致
     <div
+      ref={containerRef}
       className="relative flex items-center justify-center rounded border border-zinc-200 bg-white overflow-hidden"
-      style={{ width: "100%", maxWidth: width, height: width }}
+      style={{ width: "100%", maxWidth: width, height: boxW }}
     >
       <svg
         ref={svgRef}
