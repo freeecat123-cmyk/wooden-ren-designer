@@ -107,10 +107,25 @@ async function signupTrend(svc: ReturnType<typeof getServiceSupabase>, days: num
   return Object.entries(buckets).map(([date, count]) => ({ date, count }));
 }
 
+/**
+ * 統計起算日：在這之前的 payments 視為「測試資料」，全部不算進儀表板。
+ * 真正開賣後第一筆正式付款的日期設這裡，30 天滾動窗一旦超過這日期就自然
+ * 失效（since 取 max(launchDate, 30天前)）。
+ *
+ * 2026-05-23：開賣前後測試一堆假訂單，先設 2026-05-24 起算清乾淨。
+ * 改日期不用碰 DB，只改這行。
+ */
+const STATS_LAUNCH_DATE = new Date("2026-05-24T00:00:00+08:00");
+
+function statsSince(daysAgo: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d > STATS_LAUNCH_DATE ? d : STATS_LAUNCH_DATE;
+}
+
 async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
-  // 過去 30 天「成功付款」的訂單筆數與金額
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
+  // 過去 30 天「成功付款」的訂單筆數與金額（受 STATS_LAUNCH_DATE clamp）
+  const since = statsSince(30);
   const { data } = await svc
     .from("payments")
     .select("amount, status, created_at")
@@ -125,8 +140,7 @@ async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
 
 async function recentRefunds(svc: ReturnType<typeof getServiceSupabase>) {
   // 過去 30 天已退費的訂單（payments.status='refunded'）
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
+  const since = statsSince(30);
   const { data } = await svc
     .from("payments")
     .select("amount, status, created_at")
