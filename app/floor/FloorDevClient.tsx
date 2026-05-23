@@ -204,8 +204,8 @@ export function FloorDevClient() {
 
         </div>
 
-        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
-        <div className="space-y-3 md:sticky md:top-4">
+        {/* ───── 右:結果面板 — 預覽優先,報價/按鈕放最後 ───── */}
+        <div className="space-y-3">
           {/* 2D 預覽 */}
           <FloorOverviewSvg bom={bom} width={388} />
 
