@@ -736,26 +736,36 @@ function OrthoViewImpl({
           .filter((p) => p.id === isolatePartId)
           .map((p) => {
             // splayed-tapered / splayed-round-tapered → 清零 dx/dz 保留 kind,
-            // 讓 top view 雙 rect 渲染呈現 taper 收縮;垂直位姿便於師傅看 taper 圖。
-            //
-            // 純 splayed（無 taper）→ 保留 dxMm/dzMm + 設 isolatedRender 旗標,
-            // projectPartPolygon 走「腳直立、上下端面斜切」分支:零件圖看到
-            // 平行四邊形 with 垂直側邊,兩端斜切角對應椅面/落地接合,長度軸跟
-            // 圖面垂直（製造圖該長這樣）。
+            // 讓 top view 雙 rect 渲染呈現 taper 收縮。
+            // 純 splayed → 保留 dx/dz，渲染原本平行四邊形（斜邊），rotation 會把
+            // 整個 part 轉成橫躺，所以平行四邊形也跟著轉橫，端面斜切自然朝橫向。
             let nextShape = p.shape;
             if (p.shape?.kind === "splayed-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed-round-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
-            } else if (p.shape?.kind === "splayed") {
-              nextShape = { ...p.shape, isolatedRender: true };
             }
+
+            // 橫向正規製圖：偵測 part 三軸最大者，加 rotation 讓長軸轉到水平
+            //   local X = visible.length,  local Y = visible.thickness,  local Z = visible.width
+            //   想要 longest 軸落在 world X（front view r.w 方向 = 水平）
+            //     length 最長 → 不旋轉
+            //     thickness 最長 → rotation.z = -π/2 把 local Y 轉到 world X
+            //     width 最長 → rotation.y = -π/2 把 local Z 轉到 world X
+            const L = p.visible.length;
+            const T = p.visible.thickness;
+            const W = p.visible.width;
+            let rotation = { x: 0, y: 0, z: 0 };
+            if (T > L && T >= W) {
+              rotation = { x: 0, y: 0, z: -Math.PI / 2 };
+            } else if (W > L && W > T) {
+              rotation = { x: 0, y: -Math.PI / 2, z: 0 };
+            }
+
             return {
               ...p,
               origin: { x: 0, y: 0, z: 0 },
-              // 同時 reset rotation 到 0、讓零件圖回到 part-local 自然姿態
-              // （橫撐 rotation.y=π/2 在家具裡是橫躺、但零件圖要看 length 水平方）
-              rotation: { x: 0, y: 0, z: 0 },
+              rotation,
               shape: nextShape,
             };
           });

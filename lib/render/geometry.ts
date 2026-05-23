@@ -640,30 +640,6 @@ export function projectPartPolygon(
     // bottom footprints (we draw the top, bottom handled by second polygon in
     // the renderer — keep it simple here: top silhouette only in top view).
     if (view === "top") return box;
-    // Isolated 零件圖渲染：腳直立，上下端面平行斜切（vertical sides + slanted
-    // top/bottom）。長度軸跟圖面垂直，端面斜角對應椅面/落地接合。
-    //
-    // 角度推導：splayed 腳的「長軸」是 visible.thickness（family convention,
-    // 跟 projectFeaturePolygon 的 ly = visible.thickness 一致）。
-    // tan(θ) = dMm / thickness，端面 y 隨 x 線性變化:
-    //   slant_total = 跨 cross-section r.w 的 y 落差 = r.w * tan(θ)
-    //   slant_half  = ± slant_total/2 from edge midpoint
-    if (part.shape.isolatedRender) {
-      const axialLen = part.visible.thickness; // splayed 長軸
-      if (axialLen > 0) {
-        const dMm =
-          view === "front" ? part.shape.dxMm : part.shape.dzMm;
-        // SVG x = -world x: SVG-left (r.x) = world-right side. dxMm>0
-        // 時 world-right 端被「往上削」少（cut 後較高）→ y_TL > y_TR。
-        const slant = (r.w * dMm) / (2 * axialLen);
-        return [
-          { x: r.x,         y: r.y + r.h + slant },  // top-left（world-right HIGHER）
-          { x: r.x + r.w,   y: r.y + r.h - slant },  // top-right（world-left LOWER）
-          { x: r.x + r.w,   y: r.y - slant },        // bot-right（同向平行）
-          { x: r.x,         y: r.y + slant },        // bot-left
-        ];
-      }
-    }
     // Front view: svg x = -wx → 底偏 +dxMm（世界）= 螢幕 -dxMm
     // Side view: 前=右慣例 svg x = -wz → 底偏 +dzMm（世界）= 螢幕 -dzMm
     const offset =
