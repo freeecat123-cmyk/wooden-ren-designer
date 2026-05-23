@@ -344,57 +344,6 @@ export function CeilingDevClient() {
               </div>
             </section>
 
-        {/* ============ 客戶資料(列印 PDF 帶入頂部) ============ */}
-        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden print:hidden">
-          <button onClick={() => setCustomerOpen(!customerOpen)}
-            className="w-full px-5 py-3 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-zinc-900">📇 客戶資料</h2>
-              <span className="text-[11px] text-zinc-600">
-                {customer.name ? customer.name : "未填(列印不顯示)"}
-              </span>
-            </div>
-            <span className="text-zinc-400 text-xs">{customerOpen ? "▲" : "▼"}</span>
-          </button>
-          {customerOpen && (
-            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <label className="block">
-                <span className="text-zinc-600 block mb-1">客戶姓名</span>
-                <input type="text" value={customer.name}
-                  onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-                  placeholder="王先生 / 林設計師"
-                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
-              </label>
-              <label className="block">
-                <span className="text-zinc-600 block mb-1">聯絡電話</span>
-                <input type="text" value={customer.phone}
-                  onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-                  placeholder="09xx-xxx-xxx"
-                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="text-zinc-600 block mb-1">案場地址</span>
-                <input type="text" value={customer.address}
-                  onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
-                  placeholder="台北市信義區 ___ 路 ___ 號"
-                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="text-zinc-600 block mb-1">備註</span>
-                <textarea value={customer.notes}
-                  onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
-                  rows={2}
-                  placeholder="施作期 / 特別需求 / 收費對象..."
-                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500 resize-none" />
-              </label>
-              <p className="sm:col-span-2 text-[10px] text-zinc-500">
-                客戶資料只用於 PDF 列印 + 短碼分享(讓師傅/客戶確認案場)。
-                LOGO/公司資訊請去 <a href="/settings" className="text-amber-700 hover:underline">設定頁</a> 自訂。
-              </p>
-            </div>
-          )}
-        </section>
-
         {/* ============ 6 重點數字 ============ */}
         <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <Stat icon="◬" tone="amber" label="坪數" value={r2(bom.auto.pingShu)} unit="坪"
@@ -805,6 +754,57 @@ export function CeilingDevClient() {
                 </li>
               ))}
             </ol>
+          )}
+        </section>
+
+        {/* ============ 客戶資料(列印 PDF 帶入頂部) — 放最下方,平常很少編 ============ */}
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden print:hidden">
+          <button onClick={() => setCustomerOpen(!customerOpen)}
+            className="w-full px-5 py-3 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">📇 客戶資料</h2>
+              <span className="text-[11px] text-zinc-600">
+                {customer.name ? customer.name : "未填(列印不顯示)"}
+              </span>
+            </div>
+            <span className="text-zinc-400 text-xs">{customerOpen ? "▲" : "▼"}</span>
+          </button>
+          {customerOpen && (
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <label className="block">
+                <span className="text-zinc-600 block mb-1">客戶姓名</span>
+                <input type="text" value={customer.name}
+                  onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                  placeholder="王先生 / 林設計師"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block">
+                <span className="text-zinc-600 block mb-1">聯絡電話</span>
+                <input type="text" value={customer.phone}
+                  onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                  placeholder="09xx-xxx-xxx"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-zinc-600 block mb-1">案場地址</span>
+                <input type="text" value={customer.address}
+                  onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+                  placeholder="台北市信義區 ___ 路 ___ 號"
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-zinc-600 block mb-1">備註</span>
+                <textarea value={customer.notes}
+                  onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
+                  rows={2}
+                  placeholder="施作期 / 特別需求 / 收費對象..."
+                  className="w-full px-2.5 py-1.5 text-sm border border-stone-300 rounded-md focus:outline-none focus:border-amber-500 resize-none" />
+              </label>
+              <p className="sm:col-span-2 text-[10px] text-zinc-500">
+                客戶資料只用於 PDF 列印 + 短碼分享(讓師傅/客戶確認案場)。
+                LOGO/公司資訊請去 <a href="/settings" className="text-amber-700 hover:underline">設定頁</a> 自訂。
+              </p>
+            </div>
           )}
         </section>
 
