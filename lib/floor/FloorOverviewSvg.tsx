@@ -48,7 +48,13 @@ export function FloorOverviewSvg({ bom, width = 520 }: Props) {
   const legendY = padT + drawH + 18;
 
   return (
-    <svg width={width} height={height} className="rounded border border-zinc-200">
+    <svg
+      width="100%"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ maxWidth: `${width}px`, height: "auto", display: "block" }}
+      className="rounded border border-zinc-200"
+    >
       {/* 地板片(人字拼為旋轉四邊形,直鋪為軸對齊矩形) */}
       {bom.layout.planks.map((p, i) => {
         const fill = p.kind === "full" ? "#e7d8ae" : "#f3d9d4";
