@@ -139,7 +139,6 @@ export const LAUNCH_2026_05_SURVEY: SurveyConfig = {
         { value: "monthly", label: "月付訂閱 NT$390(23 範本全用,不續訂就停)" },
         { value: "yearly", label: "年付 NT$3,900(省 2 個月)" },
         { value: "per_template", label: "單範本買斷(199~499/張,永久擁有那張)" },
-        { value: "all_in_pack", label: "全範本套票買斷 NT$2,999(全部永久)" },
         { value: "still_free", label: "都不買,免費版就好" },
       ],
     },
