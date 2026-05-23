@@ -20,7 +20,7 @@
  * frameloop="always"(對齊 [[feedback-frameloop-demand-invalidate]] iOS scroll 安全)
  */
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -91,7 +91,6 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
 
   // 攝影機距離 — 房間最長維度 × 0.9 給 ortho frustum
   const maxDim = Math.max(L, S);
-  const zoom = 380 / maxDim; // 380 = 預設 canvas pixel 半徑大致
 
   return (
     <div className="w-full h-[38vh] sm:h-[520px] sm:max-h-[70vh]">
@@ -102,7 +101,7 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
       frameloop="always"
       dpr={[1, 1.5]}
     >
-      <CameraRig viewMode={viewMode} maxDim={maxDim} zoom={zoom} />
+      <CameraRig viewMode={viewMode} maxDim={maxDim} />
       <ambientLight intensity={0.7} />
       <directionalLight position={[L, 400, S]} intensity={0.6} />
 
@@ -187,8 +186,14 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
 // ─────────────────────────────────────────────────────────
 // 攝影機 — 軸測 / 俯視 切換
 // ─────────────────────────────────────────────────────────
-function CameraRig({ viewMode, maxDim, zoom }: { viewMode: ViewMode; maxDim: number; zoom: number }) {
+function CameraRig({ viewMode, maxDim }: { viewMode: ViewMode; maxDim: number }) {
   const camRef = useRef<THREE.OrthographicCamera>(null);
+  // 依實際 canvas 尺寸算 zoom,避免房間超過 ~520cm 時內容溢出小螢幕白框。
+  // 取較短邊 × 0.45 留呼吸,軸測比俯視多花對角空間再扣 0.85。
+  const { size } = useThree();
+  const minSide = Math.min(size.width, size.height);
+  const baseRadius = minSide * 0.45;
+  const zoom = (baseRadius / Math.max(maxDim, 1)) * (viewMode === "iso" ? 0.85 : 1);
   const dist = maxDim * 1.5;
   const position: [number, number, number] =
     viewMode === "iso" ? [dist, dist, dist] : [0, dist * 1.2, 0.001];
