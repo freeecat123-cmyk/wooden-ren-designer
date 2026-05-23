@@ -32,9 +32,17 @@ function classifyMethod(payment: {
   payment_info: { method?: string } | null;
   raw_response: Record<string, unknown> | null;
 }): "credit_card" | "atm" | "cvs" | "barcode" | "unknown" {
+  // 1. payment_info.method（ATM/CVS/Barcode 在 payment-info webhook 寫入）
   const m = payment.payment_info?.method;
   if (m === "atm" || m === "cvs" || m === "barcode") return m;
-  const pt = (payment.raw_response?.PaymentType as string | undefined) ?? "";
+  // 2. raw_response.PaymentType（訂閱、信用卡直接走 return webhook 時的頂層欄位）
+  // 3. raw_response.ecpay.PaymentType（unlock 訂單 webhook 把綠界 params nest 在 .ecpay 下）
+  const raw = payment.raw_response ?? {};
+  const ecpayNested = (raw.ecpay as Record<string, unknown> | undefined) ?? {};
+  const pt =
+    (raw.PaymentType as string | undefined) ??
+    (ecpayNested.PaymentType as string | undefined) ??
+    "";
   if (pt.startsWith("Credit_")) return "credit_card";
   if (pt.startsWith("ATM_")) return "atm";
   if (pt.startsWith("CVS_")) return "cvs";

@@ -111,6 +111,32 @@ export function RefundsAdminClient() {
     }
   }
 
+  async function openExistingRefund(refundId: string) {
+    // 從目前 rows 找；找不到就把篩選切到全部 + reload 後再找
+    let target = rows.find((x) => x.id === refundId);
+    if (!target) {
+      setStatusFilter("all");
+      await load();
+      // load() 完成後 rows 還沒同步到這個函式 scope 的 closure，
+      // 改 fetch 一次拿目標 row
+      try {
+        const res = await fetch(`/api/admin/refunds?status=all`, { cache: "no-store" });
+        const j = await res.json();
+        target = (j.data ?? []).find((x: RefundRow) => x.id === refundId);
+      } catch {
+        // ignore
+      }
+    }
+    if (target) {
+      setReviewing(target);
+      // 收起 lookup 結果，畫面比較乾淨
+      setLookupResults(null);
+      setLookupEmail("");
+    } else {
+      alert(`找不到 refund_request id=${refundId}，請手動到 /admin/refunds 全部分頁找`);
+    }
+  }
+
   async function createRefundForPayment(row: LookupPaymentRow) {
     const reason = window.prompt(
       `為這筆 ${row.method_label} NT$${row.amount} 付款建立退費單，請輸入原因：`,
@@ -350,9 +376,14 @@ export function RefundsAdminClient() {
                     </td>
                     <td className="px-2 py-1.5">
                       {r.existing_refund ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700">
-                          已有退費單（{r.existing_refund.status}）
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openExistingRefund(r.existing_refund!.id)}
+                          className="text-[11px] px-2 py-1 rounded bg-zinc-700 text-white hover:bg-zinc-800"
+                          title={`處理此退費單（狀態：${r.existing_refund.status}）`}
+                        >
+                          處理此單（{r.existing_refund.status}）
+                        </button>
                       ) : r.status === "success" ? (
                         <button
                           type="button"
