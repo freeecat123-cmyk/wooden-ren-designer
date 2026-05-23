@@ -353,7 +353,7 @@ export function RefundsAdminClient() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700">
                           已有退費單（{r.existing_refund.status}）
                         </span>
-                      ) : r.status === "success" || r.status === "awaiting_payment" ? (
+                      ) : r.status === "success" ? (
                         <button
                           type="button"
                           onClick={() => createRefundForPayment(r)}

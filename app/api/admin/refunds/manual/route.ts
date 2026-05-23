@@ -82,9 +82,11 @@ export async function GET(req: Request) {
     foundEmail = u.email;
   }
 
+  // 只列「已付款 success」的——未付款（awaiting_payment）沒錢可退，不算退費案
   let query = svc
     .from("payments")
     .select("id, user_id, amount, status, ecpay_trade_no, payment_info, raw_response, invoice_number, invoice_status, created_at")
+    .eq("status", "success")
     .order("created_at", { ascending: false })
     .limit(20);
   if (paymentId) query = query.eq("id", paymentId);
@@ -158,10 +160,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "payment_not_found" }, { status: 404 });
   }
 
-  // 不允許對 refunded / failed 建退費單
-  if (payment.status !== "success" && payment.status !== "awaiting_payment") {
+  // 只能對「已付款 success」建退費單
+  if (payment.status !== "success") {
     return NextResponse.json(
-      { error: "payment_not_refundable", current_status: payment.status },
+      { error: "payment_not_refundable", current_status: payment.status,
+        message: "只有已付款（success）的訂單可建退費單。awaiting_payment 是未付款的 ATM/超商待繳訂單，沒錢可退。" },
       { status: 400 },
     );
   }
