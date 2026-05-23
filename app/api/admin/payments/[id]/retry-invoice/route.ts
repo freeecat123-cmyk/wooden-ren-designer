@@ -32,7 +32,7 @@ export async function POST(
   // 撈 payment + 連帶 subscription.plan + period
   const { data: payment, error: payErr } = await admin
     .from("payments")
-    .select("id, user_id, amount, status, invoice_status, subscription_id")
+    .select("id, user_id, amount, status, invoice_status, subscription_id, raw_response")
     .eq("id", id)
     .single();
   if (payErr || !payment) {
@@ -55,6 +55,13 @@ export async function POST(
     if (sub) {
       const periodLabel = sub.period === "monthly" ? "月付" : "年付";
       itemName = `木頭仁 木作藍圖${planLabelFromUserPlan(sub.plan)}${periodLabel}訂閱`;
+    }
+  } else {
+    // 無 subscription_id = 一次性買斷（template_unlock / tool_unlock），
+    // itemName 從 raw_response 拿（checkout 寫進去的）
+    const raw = payment.raw_response as Record<string, unknown> | null;
+    if (raw && typeof raw.itemName === "string") {
+      itemName = raw.itemName;
     }
   }
 
