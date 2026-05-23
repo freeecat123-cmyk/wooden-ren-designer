@@ -159,33 +159,25 @@ export function FloorCanvasEditor({
     const editable = lenCm > EPS && (Math.abs(dx) < EPS || Math.abs(dy) < EPS);
     const nx = lenCm > EPS ? -dy / lenCm : 0;
     const ny = lenCm > EPS ? dx / lenCm : 0;
-    const tx_ = lenCm > EPS ? dx / lenCm : 0;
-    const ty_ = lenCm > EPS ? dy / lenCm : 0;
     // 兩端是凹角還是凸角（L/T/凸 的內角為凹）
     const concaveAtA =
       crossZ(a.x - aPrev.x, a.y - aPrev.y, dx, dy) * windingSign < 0;
     const concaveAtB =
       crossZ(dx, dy, bNext.x - b.x, bNext.y - b.y) * windingSign < 0;
+    const hasConcave = concaveAtA || concaveAtB;
 
-    // 沿切線方向把 label 往凸角端推，避開凹角附近的擠壓
-    let mx = (a.x + b.x) / 2;
-    let my = (a.y + b.y) / 2;
-    const tangentShiftPx = 28;
-    const tangentShiftCm = scale > 0 ? tangentShiftPx / scale : 0;
-    if (concaveAtA && !concaveAtB) {
-      mx += tx_ * tangentShiftCm;
-      my += ty_ * tangentShiftCm;
-    } else if (!concaveAtA && concaveAtB) {
-      mx -= tx_ * tangentShiftCm;
-      my -= ty_ * tangentShiftCm;
-    }
-
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
     const inside = pointInPolygon({ x: mx + nx * 0.5, y: my + ny * 0.5 }, room);
-    // 短邊（L/T/凸 凹陷處的內邊）label 推得更遠，避免在窄空間互相重疊
-    const edgeLenPx = lenCm * scale;
-    const offset = 16 + Math.max(0, (80 - edgeLenPx) / 3);
-    const lx = tx(mx) + (inside ? -nx : nx) * offset;
-    const ly = ty(my) + (inside ? -ny : ny) * offset;
+
+    // 一般外邊（兩端都凸）→ label 放 polygon 外側
+    // 凹角相關邊（L/T/凸 凹陷處的內邊）→ label 放 polygon 內側（房間主體有空間，不擠）
+    const sign = hasConcave
+      ? (inside ? 1 : -1)
+      : (inside ? -1 : 1);
+    const offset = 14;
+    const lx = tx(mx) + sign * nx * offset;
+    const ly = ty(my) + sign * ny * offset;
     return { i, lenCm, editable, lx, ly };
   });
   const editing = editEdge != null ? labels[editEdge] : null;
