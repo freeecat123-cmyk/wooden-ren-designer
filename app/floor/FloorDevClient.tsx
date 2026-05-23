@@ -104,7 +104,9 @@ export function FloorDevClient() {
                 min={100} max={1500} step={10}
                 onChange={(v) => setRoom(scalePolygonToBBox(input.room, roomW, v))} />
             </div>
-            <FloorCanvasEditor room={input.room} onChange={setRoom} />
+            <div className="md:sticky md:top-4 md:z-10 md:bg-white">
+              <FloorCanvasEditor room={input.room} onChange={setRoom} />
+            </div>
             <p className="mt-2 text-xs text-zinc-400">
               拉桿或打字設定外框,缺口比例隨之等比;拖角點微調,
               或點邊上的數字直接輸入該邊長度。
@@ -206,8 +208,10 @@ export function FloorDevClient() {
 
         {/* ───── 右:結果面板 — 預覽優先,報價/按鈕放最後 ───── */}
         <div className="space-y-3">
-          {/* 2D 預覽 */}
-          <FloorOverviewSvg bom={bom} width={388} />
+          {/* 2D 預覽 — sticky 在畫面上方，捲到下方時仍可看到鋪設結果 */}
+          <div className="md:sticky md:top-4 md:z-10 md:bg-white">
+            <FloorOverviewSvg bom={bom} width={388} />
+          </div>
 
           {/* 摘要數字 */}
           <div className="grid grid-cols-3 gap-2">

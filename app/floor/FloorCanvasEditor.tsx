@@ -51,13 +51,12 @@ export function FloorCanvasEditor({
 
   const bb = boundingBox(room);
   const pad = 30;
-  // 真.比例渲染:固定 cm→px 尺度 → 改寬只動寬、改深只動深,房間維持真實比例。
-  // 房間任一軸超過 REF_CM 才整體縮小以塞進畫布(避免溢出)。
-  const REF_CM = 700;
+  // 房間填滿可用空間（不再用 REF_CM 限制，跟右邊 FloorOverviewSvg 一致，
+  // 兩張圖視覺高度才會對齊）
   const extX = Math.max(bb.maxX - bb.minX, 1);
   const extY = Math.max(bb.maxY - bb.minY, 1);
   const inner = boxW - pad * 2;
-  const scale = Math.min(inner / REF_CM, inner / Math.max(extX, extY));
+  const scale = inner / Math.max(extX, extY);
   const svgW = extX * scale + pad * 2;
   const svgH = extY * scale + pad * 2;
   const tx = (x: number) => (x - bb.minX) * scale + pad;
