@@ -159,9 +159,16 @@ export default async function Home({
   const unlockedToolSet = new Set<ToolId>(unlockedTools);
 
   const filtered = filterByChip(FURNITURE_CATALOG, chip);
-  const furniture = chip === "all"
+  const sorted = chip === "all"
     ? sortAllFreeFirst(filtered)
     : sortByDifficulty(filtered);
+  // 已單買解鎖的範本一律置頂(stable),讓買過的看得到自己的東西
+  const furniture = unlockedSet.size === 0
+    ? sorted
+    : [
+        ...sorted.filter((e) => unlockedSet.has(e.category)),
+        ...sorted.filter((e) => !unlockedSet.has(e.category)),
+      ];
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
   const visibleCount =
