@@ -137,9 +137,25 @@ export async function POST(req: NextRequest) {
         .update({
           status: "success",
           ecpay_trade_no: tradeNo ?? null,
+          invoice_status: "pending",
           raw_response: { ...(tplPending.raw_response as object), ecpay: params },
         })
         .eq("id", tplPending.id);
+
+      // 背景開發票（不擋綠界 webhook 回應）
+      const invoiceItemName = (rawResp.itemName as string) ?? "木頭仁 木作藍圖 範本買斷";
+      after(async () => {
+        try {
+          await issueInvoiceForPayment(admin, {
+            paymentId: tplPending.id,
+            userId: tplPending.user_id,
+            amount: expectedAmount,
+            itemName: invoiceItemName,
+          });
+        } catch (e) {
+          console.warn("[ecpay/return:unlock:after] invoice 例外", e);
+        }
+      });
       return new Response("1|OK");
     }
   }
