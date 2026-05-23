@@ -479,16 +479,6 @@ export function CeilingDevClient() {
               </tbody>
             </table>
           </div>
-          <div className="px-5 py-3">
-            <button
-              onClick={() =>
-                router.push(`/ceiling/quote?d=${encodeURIComponent(encodeState(input))}`)
-              }
-              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
-            >
-              🧾 產生報價單
-            </button>
-          </div>
         </section>
 
         {/* ============ 施作提示 ============ */}
@@ -807,6 +797,16 @@ export function CeilingDevClient() {
             </div>
           )}
         </section>
+
+        {/* ============ 產生報價單 — 整頁最後 CTA ============ */}
+        <button
+          onClick={() =>
+            router.push(`/ceiling/quote?d=${encodeURIComponent(encodeState(input))}`)
+          }
+          className="w-full rounded-2xl bg-[#bd9955] py-3 text-base font-semibold text-white hover:opacity-90 transition shadow-sm print:hidden"
+        >
+          🧾 產生報價單
+        </button>
 
         {/* ============ 公式 trace(admin) ============ */}
         <section className="print:hidden">
