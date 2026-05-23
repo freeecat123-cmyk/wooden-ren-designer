@@ -640,6 +640,26 @@ export function projectPartPolygon(
     // bottom footprints (we draw the top, bottom handled by second polygon in
     // the renderer — keep it simple here: top silhouette only in top view).
     if (view === "top") return box;
+    // Isolated 零件圖渲染：腳直立，上下端面平行斜切（vertical sides + slanted
+    // top/bottom）。長度軸跟圖面垂直，端面斜角對應椅面/落地接合。
+    // tan(θ) = offset/L，端面 y 隨 x 線性變化 → 平行四邊形 with 垂直側邊。
+    if (part.shape.isolatedRender) {
+      const L = part.visible.length;
+      if (L > 0) {
+        const dMm =
+          view === "front" ? part.shape.dxMm : part.shape.dzMm;
+        // SVG x = -world x: SVG-left (r.x) 對應 world-right side, world-right
+        // 在 dxMm>0 時要 HIGHER（y 大）→ y_TL = r.y + r.h + slant
+        // 上下兩端平行（同向 cut）。slant 取 half 讓上下對稱分布。
+        const slant = (r.w * dMm) / (2 * L);
+        return [
+          { x: r.x,         y: r.y + r.h + slant },  // top-left（world-right）
+          { x: r.x + r.w,   y: r.y + r.h - slant },  // top-right（world-left）
+          { x: r.x + r.w,   y: r.y - slant },        // bot-right
+          { x: r.x,         y: r.y + slant },        // bot-left
+        ];
+      }
+    }
     // Front view: svg x = -wx → 底偏 +dxMm（世界）= 螢幕 -dxMm
     // Side view: 前=右慣例 svg x = -wz → 底偏 +dzMm（世界）= 螢幕 -dzMm
     const offset =

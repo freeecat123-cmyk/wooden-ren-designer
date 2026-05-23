@@ -251,7 +251,11 @@ export interface Part {
      *  the top in the part's LOCAL frame. Positive values → bottom shifts
      *  toward +x/+z of the leg.
      *  chamferMm / chamferStyle 可選——讓外斜腳同時帶 4 條長邊倒角。 */
-    | { kind: "splayed"; dxMm: number; dzMm: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded" }
+    | { kind: "splayed"; dxMm: number; dzMm: number; chamferMm?: number; chamferStyle?: "chamfered" | "rounded";
+        /** 零件圖 isolated 渲染專用：true 時 svg-views 的 splayed 分支改用「腳直立、
+         *  上下端面斜切」幾何，正視/側視看到平行四邊形 with 垂直側邊。製造圖需要此呈現。
+         *  非 isolated 場景（整套家具 / 3D / 三視圖）不要設此 flag。 */
+        isolatedRender?: boolean }
     /** Hoof: 明式馬蹄腳——直料 + 底部「外側」2 面以 S 形外撇形成腳趾。
      *  hoofMm = 馬蹄區段高度（從底部往上算）
      *  hoofScale = 外側面 flare 倍率（>1 = 外撇，傳統 ~1.3）

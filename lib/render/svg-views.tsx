@@ -738,16 +738,18 @@ function OrthoViewImpl({
             // splayed-tapered / splayed-round-tapered → 清零 dx/dz 保留 kind,
             // 讓 top view 雙 rect 渲染呈現 taper 收縮;垂直位姿便於師傅看 taper 圖。
             //
-            // 純 splayed（無 taper）→ 保留 dxMm/dzMm,正視/側視圖呈現平行四邊形
-            // 斜邊,正面對應椅面接合的斜切、底面對應落地的斜切——零件圖能看到
-            // 兩端真實的傾角是 manufacturing 需要的資訊,不該抹平成方料。
+            // 純 splayed（無 taper）→ 保留 dxMm/dzMm + 設 isolatedRender 旗標,
+            // projectPartPolygon 走「腳直立、上下端面斜切」分支:零件圖看到
+            // 平行四邊形 with 垂直側邊,兩端斜切角對應椅面/落地接合,長度軸跟
+            // 圖面垂直（製造圖該長這樣）。
             let nextShape = p.shape;
             if (p.shape?.kind === "splayed-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed-round-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
+            } else if (p.shape?.kind === "splayed") {
+              nextShape = { ...p.shape, isolatedRender: true };
             }
-            // splayed 不動：保留 dx/dz 讓正視/側視看到斜切角度
             return {
               ...p,
               origin: { x: 0, y: 0, z: 0 },
