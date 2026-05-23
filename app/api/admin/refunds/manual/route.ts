@@ -117,30 +117,34 @@ export async function GET(req: Request) {
     refundByPaymentId.set(r.payment_id as string, { id: r.id, status: r.status });
   }
 
-  const rows = (data ?? []).map((p) => {
-    const method = classifyMethod(p);
-    const raw = p.raw_response as Record<string, unknown> | null;
-    const orderId =
-      (raw?.MerchantTradeNo as string | undefined) ??
-      (raw?.orderId as string | undefined) ??
-      null;
-    const itemName = (raw?.itemName as string | undefined) ?? null;
-    return {
-      payment_id: p.id,
-      user_id: p.user_id,
-      amount: p.amount,
-      status: p.status,
-      method,
-      method_label: METHOD_LABEL[method],
-      order_id: orderId,
-      ecpay_trade_no: p.ecpay_trade_no,
-      item_name: itemName,
-      invoice_number: p.invoice_number,
-      invoice_status: p.invoice_status,
-      created_at: p.created_at,
-      existing_refund: refundByPaymentId.get(p.id) ?? null,
-    };
-  });
+  // 這個 lookup 專給「ATM/超商/條碼手動退費」用——信用卡有自動退款路徑，
+  // 不該混進來干擾 admin 判斷。過濾掉 credit_card（但保留 unknown 以防舊資料漏判）。
+  const rows = (data ?? [])
+    .map((p) => {
+      const method = classifyMethod(p);
+      const raw = p.raw_response as Record<string, unknown> | null;
+      const orderId =
+        (raw?.MerchantTradeNo as string | undefined) ??
+        (raw?.orderId as string | undefined) ??
+        null;
+      const itemName = (raw?.itemName as string | undefined) ?? null;
+      return {
+        payment_id: p.id,
+        user_id: p.user_id,
+        amount: p.amount,
+        status: p.status,
+        method,
+        method_label: METHOD_LABEL[method],
+        order_id: orderId,
+        ecpay_trade_no: p.ecpay_trade_no,
+        item_name: itemName,
+        invoice_number: p.invoice_number,
+        invoice_status: p.invoice_status,
+        created_at: p.created_at,
+        existing_refund: refundByPaymentId.get(p.id) ?? null,
+      };
+    })
+    .filter((r) => r.method !== "credit_card");
 
   return NextResponse.json({ ok: true, user_email: foundEmail, data: rows });
 }

@@ -301,7 +301,7 @@ export function RefundsAdminClient() {
       {/* 查使用者付款 → 建退費單（ATM/超商手動流程入口） */}
       <div className="mb-3 rounded-lg border-2 border-sky-400 bg-sky-50 p-3">
         <div className="text-[12px] font-semibold text-sky-900 mb-2">
-          🔎 查使用者付款 → 建退費單（admin 從 email 收到退費申請後從這建）
+          🔎 查使用者付款 → 建退費單（ATM / 超商 / 條碼 手動退費用，信用卡不會列出）
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
