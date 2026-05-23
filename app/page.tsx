@@ -159,16 +159,10 @@ export default async function Home({
   const unlockedToolSet = new Set<ToolId>(unlockedTools);
 
   const filtered = filterByChip(FURNITURE_CATALOG, chip);
-  const sorted = chip === "all"
+  // 自然排序(免費置頂 / 按難度) — 不在這層把已解鎖搬上去,否則會打亂工具卡插入點
+  const furniture = chip === "all"
     ? sortAllFreeFirst(filtered)
     : sortByDifficulty(filtered);
-  // 已單買解鎖的範本一律置頂(stable),讓買過的看得到自己的東西
-  const furniture = unlockedSet.size === 0
-    ? sorted
-    : [
-        ...sorted.filter((e) => unlockedSet.has(e.category)),
-        ...sorted.filter((e) => !unlockedSet.has(e.category)),
-      ];
   const showTools = chip === "all" || chip === "tool";
   const showFurniture = chip !== "tool";
   const visibleCount =
@@ -290,22 +284,35 @@ export default async function Home({
           if (!showFurniture) {
             return [<CeilingToolCard key="t-ceiling" />, <FloorToolCard key="t-floor" />];
           }
+          // 拆兩堆:已單買解鎖的範本一律置頂,其他維持自然排序;
+          // 工具卡只插在「未解鎖區」的中階開頭 — 不會被擠到頂端。
+          const ownedFurniture = furniture.filter((it) => unlockedSet.has(it.category));
+          const restFurniture = furniture.filter((it) => !unlockedSet.has(it.category));
+
           if (!showTools) {
-            return furniture.map((item) => <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />);
+            return [...ownedFurniture, ...restFurniture].map((item) => (
+              <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
+            ));
           }
-          // furniture 已依難度排序；找第一個 intermediate 的位置，把工具卡插在中階區開頭
-          const interIdx = furniture.findIndex((it) => it.difficulty === "intermediate");
-          const cut = interIdx === -1
-            ? furniture.findIndex((it) => it.difficulty === "advanced")
-            : interIdx;
-          const cutFinal = cut === -1 ? furniture.length : cut;
-          const head = furniture.slice(0, cutFinal).map((item) => (
+
+          const ownedNodes = ownedFurniture.map((item) => (
             <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
           ));
-          const tail = furniture.slice(cutFinal).map((item) => (
-            <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
+
+          // 在「未解鎖區」找第一個 intermediate 的位置,工具卡插在這
+          const interIdx = restFurniture.findIndex((it) => it.difficulty === "intermediate");
+          const cut = interIdx === -1
+            ? restFurniture.findIndex((it) => it.difficulty === "advanced")
+            : interIdx;
+          const cutFinal = cut === -1 ? restFurniture.length : cut;
+          const head = restFurniture.slice(0, cutFinal).map((item) => (
+            <FurnitureCard key={item.category} item={item} isUnlocked={false} />
+          ));
+          const tail = restFurniture.slice(cutFinal).map((item) => (
+            <FurnitureCard key={item.category} item={item} isUnlocked={false} />
           ));
           return [
+            ...ownedNodes,
             ...head,
             <CeilingToolCard key="t-ceiling" isUnlocked={unlockedToolSet.has("ceiling")} />,
             <FloorToolCard key="t-floor" isUnlocked={unlockedToolSet.has("floor")} />,
