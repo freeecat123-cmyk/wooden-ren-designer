@@ -76,7 +76,7 @@ export async function PATCH(
   const { data: rr, error: selErr } = await svc
     .from("refund_requests")
     .select(
-      "id, user_id, payment_id, amount_requested, status, users:user_id(email, plan), payments:payment_id(ecpay_trade_no, raw_response, invoice_number, invoice_issued_at, invoice_status, subscription_id, subscriptions:subscription_id(period, ecpay_merchant_trade_no, status))",
+      "id, user_id, payment_id, amount_requested, status, users:user_id(email, plan), payments:payment_id(ecpay_trade_no, raw_response, payment_info, invoice_number, invoice_issued_at, invoice_status, subscription_id, subscriptions:subscription_id(period, ecpay_merchant_trade_no, status))",
     )
     .eq("id", id)
     .single();
@@ -163,8 +163,35 @@ export async function PATCH(
     const subPeriod = (Array.isArray(subRow) ? subRow[0] : subRow)?.period;
     const subOrderId = (Array.isArray(subRow) ? subRow[0] : subRow)?.ecpay_merchant_trade_no;
 
-    if (tradeNo && orderId) {
-      // (1) 退款本期
+    // 判斷付款方式：payment_info 有值 = ATM/超商/條碼（非信用卡）
+    // ATM/CVS/Barcode 無法用 ECPay refund API（綠界沒接 reversal），admin 需手動匯款
+    const paymentInfoRaw = (paymentRow as { payment_info?: { method?: string } | null })
+      ?.payment_info;
+    const paymentMethod = paymentInfoRaw?.method ?? null;
+    const isManualRefundMethod =
+      paymentMethod === "atm" || paymentMethod === "cvs" || paymentMethod === "barcode";
+
+    if (isManualRefundMethod) {
+      // 不打 ECPay 退款 API（會失敗），標記讓 admin 手動匯款
+      ecpayRefund = {
+        ok: false,
+        error: `manual_refund_required:${paymentMethod}`,
+        rtnMsg: `${paymentMethod?.toUpperCase()} 付款須手動匯款退費，請至銀行操作後再標 refunded`,
+      };
+      console.warn("[admin/refunds] 非信用卡付款,跳過綠界 refund API", {
+        refundId: id, paymentMethod,
+      });
+      // 把提示寫進 admin_note（保留原本的 note，後面 append）
+      const existingNote = (body.admin_note ?? "").trim();
+      const autoNote = `[${paymentMethod?.toUpperCase()} 退費] 需手動銀行匯款,匯款後再 PATCH status=refunded`;
+      const mergedNote = existingNote ? `${existingNote}\n${autoNote}` : autoNote;
+      await svc
+        .from("refund_requests")
+        .update({ admin_note: mergedNote })
+        .eq("id", id);
+      // 不 return —— 繼續往下做發票作廢 / 折讓（這些一樣要處理）
+    } else if (tradeNo && orderId) {
+      // (1) 退款本期 — 信用卡走綠界 API
       ecpayRefund = await requestRefund({
         merchantTradeNo: orderId,
         tradeNo,
@@ -290,6 +317,69 @@ export async function PATCH(
         hasOrderId: !!orderId,
       });
     }
+  }
+
+  // status='refunded'：admin 手動匯款 ATM/CVS/Barcode 完成後標記退費完成。
+  // 跑：發票作廢/折讓 + payments.status='refunded'（信用卡走 approved 分支已處理完）
+  if (body.status === "refunded" && rr.payment_id && rr.status === "approved") {
+    const paymentRow = Array.isArray(rr.payments) ? rr.payments[0] : rr.payments;
+    const invoiceNumber = (paymentRow as { invoice_number?: string })?.invoice_number;
+    const invoiceIssuedAt = (paymentRow as { invoice_issued_at?: string })?.invoice_issued_at;
+    if (invoiceNumber && invoiceIssuedAt) {
+      const ageMs = Date.now() - new Date(invoiceIssuedAt).getTime();
+      const within24h = ageMs < 24 * 60 * 60 * 1000;
+      if (within24h) {
+        const inv = await invalidInvoice({
+          invoiceNumber,
+          invoiceDate: new Date(invoiceIssuedAt).toISOString().slice(0, 10),
+          reason: "退款作廢",
+        });
+        invoiceVoid = { ok: inv.success, rtnCode: inv.rtnCode, rtnMsg: inv.rtnMsg };
+        if (inv.success) {
+          await svc
+            .from("payments")
+            .update({ invoice_status: "invalid" })
+            .eq("id", rr.payment_id);
+        }
+      } else if (allowanceNotifyMail) {
+        try {
+          const allow = await allowanceInvoice({
+            invoiceNumber,
+            invoiceDate: new Date(invoiceIssuedAt).toISOString().slice(0, 10),
+            itemName: "木作藍圖退費折讓",
+            amount: rr.amount_requested,
+            notifyEmail: allowanceNotifyMail,
+            customerName: allowanceCustomerName,
+          });
+          invoiceAllowance = {
+            ok: allow.success,
+            rtnCode: allow.rtnCode,
+            rtnMsg: allow.rtnMsg,
+            allowanceNumber: allow.allowanceNumber,
+            remainAmount: allow.remainAmount,
+          };
+          if (allow.success && allow.allowanceNumber) {
+            await svc
+              .from("payments")
+              .update({
+                invoice_status: "allowanced",
+                allowance_number: allow.allowanceNumber,
+                allowance_issued_at: allow.allowanceDate
+                  ? new Date(allow.allowanceDate).toISOString()
+                  : new Date().toISOString(),
+                allowance_amount: rr.amount_requested,
+              })
+              .eq("id", rr.payment_id);
+          }
+        } catch (e) {
+          console.error("[admin/refunds:manual-refunded] 折讓 exception", e);
+        }
+      }
+    }
+    await svc
+      .from("payments")
+      .update({ status: "refunded" })
+      .eq("id", rr.payment_id);
   }
 
   // unlock 退費:刪掉 template_unlocks / tool_unlocks row 取消使用權。
