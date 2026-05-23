@@ -24,7 +24,6 @@ import { roundStool, roundStoolOptions } from "./round-stool";
 import { roundTeaTable, roundTeaTableOptions } from "./round-tea-table";
 import { roundTable, roundTableOptions } from "./round-table";
 import { pencilHolder, pencilHolderOptions, applyPencilHolderPresets } from "./pencil-holder";
-import { bookend, bookendOptions } from "./bookend";
 import { photoFrame, photoFrameOptions } from "./photo-frame";
 import { tray, trayOptions } from "./tray";
 import { dovetailBox, dovetailBoxOptions } from "./dovetail-box";
@@ -260,16 +259,6 @@ export const FURNITURE_CATALOG: FurnitureCatalogEntry[] = [
     limits: { length: 200, width: 200, height: 250 },
     optionSchema: pencilHolderOptions,
     applyPresets: applyPencilHolderPresets,
-  },
-  {
-    category: "bookend",
-    nameZh: "書擋",
-    description: "L 型結構的書架夾，可選三角加固",
-    difficulty: "beginner",
-    template: bookend,
-    defaults: { length: 150, width: 120, height: 180 },
-    limits: { length: 250, width: 300, height: 350 },
-    optionSchema: bookendOptions,
   },
   {
     category: "photo-frame",

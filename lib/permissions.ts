@@ -8,15 +8,11 @@ import type { FurnitureCategory } from "./types";
 export type PlanId = "free" | "personal" | "pro" | "lifetime" | "student";
 
 /**
- * 免費版可訪問的家具範本——「練習小物」3 種。
- * 2026-05-23:
- *   - 茶几移到付費（真實家具,該擋）
- *   - 書擋從付費移到免費（太陽春,不適合賣,當練習小物送）
+ * 免費版可訪問的家具範本——「練習小物」2 種。
  */
 export const FREE_UNLOCKED_CATEGORIES: FurnitureCategory[] = [
   "stool",          // 方凳（椅凳練習）
   "pencil-holder",  // 筆筒（小物件練習）
-  "bookend",        // 書擋（三角加固練習）
 ];
 
 /** 該分類是否需要付費才能進 */

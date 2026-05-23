@@ -74,7 +74,7 @@ const CATEGORY_CHIPS: Array<{
     key: "accessories",
     label: "小物",
     match: (c) =>
-      c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
+      c === "pencil-holder" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
   {
