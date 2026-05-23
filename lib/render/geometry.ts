@@ -635,11 +635,19 @@ export function projectPartPolygon(
   }
 
   if (part.shape.kind === "splayed") {
-    // Splayed: bottom face shifted by (dxMm, dzMm) in world. Silhouette is a
-    // parallelogram in front/side view; top view shows both top and shifted
-    // bottom footprints (we draw the top, bottom handled by second polygon in
-    // the renderer — keep it simple here: top silhouette only in top view).
     if (view === "top") return box;
+    // 旋轉的 splayed part（零件圖橫躺）── 原本 hardcoded 路徑把 offset 套在
+    // r.h 軸,等於把 30mm 偏移擠進 35mm cross-section 高度,slant 變 40° 暴斜。
+    // 改 delegate 給 projectPartSilhouette,讓它跑 local-frame 變形 + rotation
+    // + 投影,slant 自然套到旋轉後正確的軸上（4° 真實傾角）。
+    const hasRotation =
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0;
+    if (hasRotation) {
+      return projectPartSilhouette(part, view);
+    }
+    // Non-rotated 既有路徑：平行四邊形（足端 X 偏 dxMm 或 dzMm）
     // Front view: svg x = -wx → 底偏 +dxMm（世界）= 螢幕 -dxMm
     // Side view: 前=右慣例 svg x = -wz → 底偏 +dzMm（世界）= 螢幕 -dzMm
     const offset =
