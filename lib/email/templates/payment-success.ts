@@ -92,6 +92,55 @@ ${
   return { subject, text, html };
 }
 
+interface UnlockSuccessInput {
+  /** e.g. "餐椅（進階）永久買斷" 或 "天花板施工模擬器 永久買斷" */
+  itemName: string;
+  amount: number;
+  tradeNo?: string | null;
+  /** 解鎖後的連結，例如 designer.woodenren.com/design/dining-chair */
+  destinationUrl?: string;
+}
+
+export function unlockSuccessEmail(input: UnlockSuccessInput): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const { itemName, amount, tradeNo, destinationUrl } = input;
+  const subject = `付款成功：${itemName} NT$${amount}`;
+  const ctaUrl = destinationUrl ?? SITE_URL;
+  const text = [
+    `付款成功通知`,
+    ``,
+    `品項：${itemName}`,
+    `金額：NT$ ${amount}`,
+    tradeNo ? `綠界交易單號：${tradeNo}` : "",
+    ``,
+    `已永久解鎖，沒有到期日。`,
+    `電子發票會另寄一封通知到此信箱。`,
+    ``,
+    `去使用：${ctaUrl}`,
+    ``,
+    `木頭仁 木作藍圖`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const html = htmlShell(
+    subject,
+    `<p style="background:#ecfdf5;border:2px solid #34d399;border-radius:8px;padding:12px;color:#065f46;font-weight:600">
+✅ 已收到付款，已永久解鎖
+</p>
+<table style="width:100%;border-collapse:collapse;margin-top:16px">
+<tr><td style="padding:8px 0;color:#6b7280">品項</td><td style="text-align:right;font-weight:600">${escapeHtml(itemName)}</td></tr>
+<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">金額</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">NT$ ${amount.toLocaleString()}</td></tr>
+${tradeNo ? `<tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">綠界單號</td><td style="text-align:right;font-family:monospace;border-top:1px solid #e5e7eb">${escapeHtml(tradeNo)}</td></tr>` : ""}
+</table>
+<p style="font-size:14px;color:#6b7280;margin-top:16px">永久解鎖，沒有到期日。電子發票會另寄一封通知到此信箱。</p>
+<p><a href="${ctaUrl}" style="display:inline-block;background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">去使用 →</a></p>`,
+  );
+  return { subject, text, html };
+}
+
 export function periodicChargeSuccessEmail(input: PaymentInput): {
   subject: string;
   text: string;

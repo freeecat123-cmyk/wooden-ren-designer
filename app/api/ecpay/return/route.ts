@@ -21,7 +21,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { verifyCheckMacValue } from "@/lib/ecpay/check-mac-value";
 import { ECPAY_HASH_IV, ECPAY_HASH_KEY } from "@/lib/ecpay/config";
 import { sendEmail } from "@/lib/email/send";
-import { firstPaymentSuccessEmail } from "@/lib/email/templates/payment-success";
+import { firstPaymentSuccessEmail, unlockSuccessEmail } from "@/lib/email/templates/payment-success";
 import { planLabelFromUserPlan } from "@/lib/email/templates/subscription-expiry";
 import { issueInvoiceForPayment } from "@/lib/ecpay/issue-invoice-for-payment";
 import { voidOrAllowanceAfterRefund } from "@/lib/ecpay/invoice-after-refund";
@@ -142,9 +142,22 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", tplPending.id);
 
-      // 背景開發票（不擋綠界 webhook 回應）
+      // 背景開發票 + 寄付款成功信（不擋綠界 webhook 回應）
       const invoiceItemName = (rawResp.itemName as string) ?? "木頭仁 木作藍圖 範本買斷";
+      const unlockCategory =
+        kind === "template_unlock" ? (rawResp.category as string | undefined) : undefined;
+      const unlockTool =
+        kind === "tool_unlock" ? (rawResp.tool as string | undefined) : undefined;
+      const destinationUrl =
+        unlockCategory
+          ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/design/${unlockCategory}`
+          : unlockTool === "ceiling"
+            ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/ceiling`
+            : unlockTool === "floor"
+              ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com"}/floor`
+              : undefined;
       after(async () => {
+        // 1. 開發票
         try {
           await issueInvoiceForPayment(admin, {
             paymentId: tplPending.id,
@@ -154,6 +167,30 @@ export async function POST(req: NextRequest) {
           });
         } catch (e) {
           console.warn("[ecpay/return:unlock:after] invoice 例外", e);
+        }
+        // 2. 寄付款成功信
+        try {
+          const { data: u } = await admin
+            .from("users")
+            .select("email")
+            .eq("id", tplPending.user_id)
+            .single();
+          if (u?.email) {
+            const payload = unlockSuccessEmail({
+              itemName: invoiceItemName,
+              amount: expectedAmount,
+              tradeNo,
+              destinationUrl,
+            });
+            await sendEmail({
+              to: u.email,
+              subject: payload.subject,
+              text: payload.text,
+              html: payload.html,
+            });
+          }
+        } catch (e) {
+          console.warn("[ecpay/return:unlock:after] success email 例外", e);
         }
       });
       return new Response("1|OK");
