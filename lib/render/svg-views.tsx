@@ -735,20 +735,19 @@ function OrthoViewImpl({
         const isolated = design.parts
           .filter((p) => p.id === isolatePartId)
           .map((p) => {
-            // splayed-* → 把 splay 偏移 dx/dz 清零、但保留 kind。
-            // 之前是替換成「直胚 tapered/round-tapered」，但這樣 splayed-tapered
-            // 自己的 top view 雙 rect（head 實線 + foot 虛線 + 4 對角線）渲染
-            // 邏輯就吃不到，零件圖 top view 只剩純頭部矩形看不出 taper 收縮。
-            // 改成保留 kind + 清掉 dxMm/dzMm，splayed-* 的渲染分支自然會把
-            // foot 畫在 head 正下方（dx=dz=0），呈現完整 taper 收縮資訊。
+            // splayed-tapered / splayed-round-tapered → 清零 dx/dz 保留 kind,
+            // 讓 top view 雙 rect 渲染呈現 taper 收縮;垂直位姿便於師傅看 taper 圖。
+            //
+            // 純 splayed（無 taper）→ 保留 dxMm/dzMm,正視/側視圖呈現平行四邊形
+            // 斜邊,正面對應椅面接合的斜切、底面對應落地的斜切——零件圖能看到
+            // 兩端真實的傾角是 manufacturing 需要的資訊,不該抹平成方料。
             let nextShape = p.shape;
             if (p.shape?.kind === "splayed-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
             } else if (p.shape?.kind === "splayed-round-tapered") {
               nextShape = { ...p.shape, dxMm: 0, dzMm: 0 };
-            } else if (p.shape?.kind === "splayed") {
-              nextShape = undefined;
             }
+            // splayed 不動：保留 dx/dz 讓正視/側視看到斜切角度
             return {
               ...p,
               origin: { x: 0, y: 0, z: 0 },
