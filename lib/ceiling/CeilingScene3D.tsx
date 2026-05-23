@@ -188,17 +188,15 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
 // ─────────────────────────────────────────────────────────
 function CameraRig({ viewMode, maxDim }: { viewMode: ViewMode; maxDim: number }) {
   const camRef = useRef<THREE.OrthographicCamera>(null);
-  // 依實際 canvas 尺寸算 zoom:
-  //   - REF_DIM=550cm:對應預設房間(longSide 500)幾乎填滿白框
-  //   - 小於 REF_DIM 的房間保持同一像素比,拖動只改房間比例不整體縮放
-  //   - 大於 REF_DIM 才開始 fit-to-canvas 避免溢出
-  // 取較短邊 × 0.48 留小頭呼吸,軸測比俯視多花對角空間再 × 0.85。
+  // 依實際 canvas 尺寸算 zoom — 目標:預設房間 500cm 幾乎填滿白框,拖大尺寸時
+  // 緩降不要劇縮。three OrthographicCamera 的 zoom 是「螢幕像素 / 世界單位」。
+  //   iso 投影把 L×S 房間轉成寬度 ~(L+S)/√2 的菱形,maxDim 是 max(L,S),
+  //   保守估 iso projW ≈ 1.4*maxDim → coef = minSide/1.4 ≈ 0.7 才剛好填滿
+  //   實測 coef=1.0 + minSide(290px) 在預設能填 ~90%、漲到 1000cm 仍 ~85%,
+  //   既符合「填滿白框」又「拖大不劇縮」。Top view 用 0.85 留邊。
   const { size } = useThree();
   const minSide = Math.min(size.width, size.height);
-  const baseRadius = minSide * 0.48;
-  const REF_DIM = 550;
-  const zoom =
-    (baseRadius / Math.max(maxDim, REF_DIM)) * (viewMode === "iso" ? 0.85 : 1);
+  const zoom = (minSide * (viewMode === "iso" ? 1.0 : 0.85)) / Math.max(maxDim, 1);
   const dist = maxDim * 1.5;
   const position: [number, number, number] =
     viewMode === "iso" ? [dist, dist, dist] : [0, dist * 1.2, 0.001];
