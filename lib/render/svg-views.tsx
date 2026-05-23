@@ -771,15 +771,19 @@ function OrthoViewImpl({
           });
         if (!isolated.length) return design;
         const p = isolated[0];
-        // 同步更新 overall 用 part 自己的尺寸——之前 OrthoView 用整套家具的
-        // overall 算 viewBox 導致扁平 part 縮中間留大白邊
+        // 同步更新 overall——用 worldExtents 算旋轉後的 bbox,讓圖紙框跟著 part
+        // 旋轉變橫向（rotation.z=-π/2 把 thickness 轉到水平 → overall.length
+        // = worldExtents.xExt = 原 thickness）。
+        // 若直接用 p.visible.thickness 當高度,框會維持 portrait、橫躺的 part 會
+        // 突出框外。
+        const we = worldExtents(p);
         return {
           ...design,
           parts: isolated,
           overall: {
-            length: p.visible.length,
-            width: p.visible.width,
-            thickness: p.visible.thickness,
+            length: we.xExt,
+            width: we.zExt,
+            thickness: we.yExt,
           },
         };
       })()
