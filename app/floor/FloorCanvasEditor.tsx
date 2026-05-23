@@ -150,8 +150,11 @@ export function FloorCanvasEditor({
     const mx = (a.x + b.x) / 2;
     const my = (a.y + b.y) / 2;
     const inside = pointInPolygon({ x: mx + nx * 0.5, y: my + ny * 0.5 }, room);
-    const lx = tx(mx) + (inside ? -nx : nx) * 16;
-    const ly = ty(my) + (inside ? -ny : ny) * 16;
+    // 短邊（L/T/凸 凹陷處的內邊）label 推得更遠，避免在窄空間互相重疊
+    const edgeLenPx = lenCm * scale;
+    const offset = 16 + Math.max(0, (80 - edgeLenPx) / 3);
+    const lx = tx(mx) + (inside ? -nx : nx) * offset;
+    const ly = ty(my) + (inside ? -ny : ny) * offset;
     return { i, lenCm, editable, lx, ly };
   });
   const editing = editEdge != null ? labels[editEdge] : null;
