@@ -172,3 +172,12 @@ summary {
   appearance: none;
   margin: 0;
 }
+
+/* 隱藏水平捲軸(chip 列在手機橫向溢出時不要露出原生捲軸貼著文字) */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/iOS */
+}
