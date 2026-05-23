@@ -12,6 +12,8 @@ interface Stats {
   churnedCount: number;
   mrrEstimate: number;
   last30Pay: { count: number; revenue: number };
+  last30Refund: { count: number; amount: number };
+  last30Net: { count: number; revenue: number };
   trend7: Array<{ date: string; count: number }>;
   trend30: Array<{ date: string; count: number }>;
   generatedAt: string;
@@ -148,7 +150,18 @@ export function AdminDashboardClient() {
             <StatCard
               label="過去 30 天付款收入"
               value={`NT$ ${stats.last30Pay.revenue.toLocaleString()}`}
-              hint={`${stats.last30Pay.count} 筆`}
+              hint={`${stats.last30Pay.count} 筆（毛收入）`}
+            />
+            <StatCard
+              label="過去 30 天退費"
+              value={`-NT$ ${stats.last30Refund.amount.toLocaleString()}`}
+              hint={`${stats.last30Refund.count} 筆`}
+            />
+            <StatCard
+              label="過去 30 天淨收入"
+              value={`NT$ ${stats.last30Net.revenue.toLocaleString()}`}
+              hint={`${stats.last30Net.count} 筆（已扣退費）`}
+              accent
             />
             <StatCard
               label="流失（cancel/expired）"

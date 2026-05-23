@@ -123,6 +123,22 @@ async function recentSubscriptions(svc: ReturnType<typeof getServiceSupabase>) {
   };
 }
 
+async function recentRefunds(svc: ReturnType<typeof getServiceSupabase>) {
+  // 過去 30 天已退費的訂單（payments.status='refunded'）
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  const { data } = await svc
+    .from("payments")
+    .select("amount, status, created_at")
+    .gte("created_at", since.toISOString())
+    .eq("status", "refunded");
+  const list = (data ?? []) as Array<{ amount: number }>;
+  return {
+    count: list.length,
+    amount: list.reduce((s, r) => s + (r.amount ?? 0), 0),
+  };
+}
+
 export async function GET() {
   const check = await ensureAdmin();
   if (!check.ok) {
@@ -143,6 +159,7 @@ export async function GET() {
     trend7,
     trend30,
     last30Pay,
+    last30Refund,
   ] = await Promise.all([
     totalCount(svc, "users"),
     totalCount(svc, "designs"),
@@ -152,6 +169,7 @@ export async function GET() {
     signupTrend(svc, 7),
     signupTrend(svc, 30),
     recentSubscriptions(svc),
+    recentRefunds(svc),
   ]);
 
   // 估算 MRR（NTD）
@@ -182,6 +200,11 @@ export async function GET() {
     churnedCount,
     mrrEstimate,
     last30Pay,
+    last30Refund,
+    last30Net: {
+      revenue: last30Pay.revenue - last30Refund.amount,
+      count: last30Pay.count - last30Refund.count,
+    },
     trend7,
     trend30,
     generatedAt: new Date().toISOString(),
