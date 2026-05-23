@@ -17,6 +17,7 @@ import {
 } from "@/lib/ecpay/create-order";
 import { assertEcpayConfigured } from "@/lib/ecpay/config";
 import { TOOL_UNLOCK_PRICES, TOOL_LABEL_ZH, isValidTool } from "@/lib/pricing/tool-unlock";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,13 @@ export async function POST(req: NextRequest) {
   if (!user) {
     const loginUrl = new URL(`/login?next=/pricing?unlock_tool=${tool}`, req.url);
     return NextResponse.redirect(loginUrl, 303);
+  }
+
+  if (isAdminEmail(user.email, getServerAdminEmails())) {
+    return NextResponse.json(
+      { error: "admin_no_purchase", message: "管理員帳號已享有全部功能,無需購買" },
+      { status: 400 },
+    );
   }
 
   const admin = createAdminClient();

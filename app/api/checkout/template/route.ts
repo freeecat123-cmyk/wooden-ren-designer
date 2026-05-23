@@ -25,6 +25,7 @@ import { assertEcpayConfigured } from "@/lib/ecpay/config";
 import { getUnlockPrice, getDifficulty, DIFFICULTY_LABEL_ZH } from "@/lib/pricing/template-unlock";
 import { getCatalogEntry } from "@/lib/pricing/template-unlock";
 import { isPaidCategory } from "@/lib/permissions";
+import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import type { FurnitureCategory } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -57,6 +58,14 @@ export async function POST(req: NextRequest) {
   if (!user) {
     const loginUrl = new URL(`/login?next=/pricing?unlock=${category}`, req.url);
     return NextResponse.redirect(loginUrl, 303);
+  }
+
+  // Admin override 已把 UI 顯示成 lifetime + 全模板開放,實際付款也沒意義 → 直接擋
+  if (isAdminEmail(user.email, getServerAdminEmails())) {
+    return NextResponse.json(
+      { error: "admin_no_purchase", message: "管理員帳號已享有全部功能,無需購買" },
+      { status: 400 },
+    );
   }
 
   const admin = createAdminClient();
