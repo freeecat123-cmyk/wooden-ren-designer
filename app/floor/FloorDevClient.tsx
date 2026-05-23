@@ -82,8 +82,8 @@ export function FloorDevClient() {
       <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
         {/* ───── 左:輸入(照決策順序) ───── */}
         <div className="space-y-4">
-          {/* ① 房間 — 整段 sticky 跟右邊 2D 預覽一起卡在畫面上方 */}
-          <section className="rounded-lg border border-zinc-200 p-4 md:sticky md:top-4 md:z-10 bg-white">
+          {/* ① 房間 */}
+          <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">① 房間</h2>
             <div className="mb-2 flex flex-wrap gap-2">
               {SHAPE_PRESETS.map((preset: ShapePreset) => (
@@ -206,10 +206,8 @@ export function FloorDevClient() {
 
         {/* ───── 右:結果面板 — 預覽優先,報價/按鈕放最後 ───── */}
         <div className="space-y-3">
-          {/* 2D 預覽 — sticky 在畫面上方，捲到下方時仍可看到鋪設結果 */}
-          <div className="md:sticky md:top-4 md:z-10 md:bg-white">
-            <FloorOverviewSvg bom={bom} width={388} />
-          </div>
+          {/* 2D 預覽 */}
+          <FloorOverviewSvg bom={bom} width={388} />
 
           {/* 摘要數字 */}
           <div className="grid grid-cols-3 gap-2">
