@@ -12,7 +12,7 @@ export const LazyCeilingScene3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[520px] rounded border border-zinc-200 bg-gradient-to-b from-zinc-50 to-zinc-100 flex items-center justify-center">
+      <div className="w-full h-[50vh] sm:h-[520px] rounded border border-zinc-200 bg-gradient-to-b from-zinc-50 to-zinc-100 flex items-center justify-center">
         <span className="text-sm text-zinc-500">3D 場景載入中...</span>
       </div>
     ),
