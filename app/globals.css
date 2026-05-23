@@ -173,11 +173,17 @@ summary {
   margin: 0;
 }
 
-/* 隱藏水平捲軸(chip 列在手機橫向溢出時不要露出原生捲軸貼著文字) */
-.scrollbar-hide {
-  -ms-overflow-style: none; /* IE/Edge legacy */
-  scrollbar-width: none;     /* Firefox */
+/* chip 列細捲軸:留著當「可往右捲」的視覺提示,但壓細並跟文字留呼吸 */
+.scrollbar-thin {
+  scrollbar-width: thin; /* Firefox */
 }
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/iOS */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.4); /* stone-500 @40% */
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }

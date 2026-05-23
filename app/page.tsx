@@ -229,7 +229,7 @@ export default async function Home({
         <CatalogSearch />
 
         {/* 分類 chip row */}
-        <nav className="mt-4 -mx-5 sm:mx-0 px-5 sm:px-0 overflow-x-auto scrollbar-hide">
+        <nav className="mt-4 -mx-5 sm:mx-0 px-5 sm:px-0 pb-3 overflow-x-auto scrollbar-thin">
           <div className="inline-flex gap-2 min-w-max">
             {CATEGORY_CHIPS.map((c) => {
               const active = chip === c.key;
