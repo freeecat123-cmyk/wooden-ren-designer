@@ -225,7 +225,7 @@ export default async function Home({
       </header>
 
       {/* 搜尋 + 分類:同一塊操作區 */}
-      <div className="mb-6">
+      <div className="mb-9 sm:mb-10">
         <CatalogSearch />
 
         {/* 分類 chip row */}
