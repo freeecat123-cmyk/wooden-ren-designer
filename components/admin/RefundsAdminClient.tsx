@@ -3,6 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+interface LookupPaymentRow {
+  payment_id: string;
+  user_id: string;
+  amount: number;
+  status: string;
+  method: "credit_card" | "atm" | "cvs" | "barcode" | "unknown";
+  method_label: string;
+  order_id: string | null;
+  ecpay_trade_no: string | null;
+  item_name: string | null;
+  invoice_number: string | null;
+  invoice_status: string | null;
+  created_at: string;
+  existing_refund: { id: string; status: string } | null;
+}
+
 interface RefundRow {
   id: string;
   user_id: string;
@@ -58,6 +74,69 @@ export function RefundsAdminClient() {
   const [quickPaymentId, setQuickPaymentId] = useState("");
   const [quickBusy, setQuickBusy] = useState(false);
   const [quickResult, setQuickResult] = useState<string | null>(null);
+
+  // 查使用者付款 → 建退費單（給 ATM/超商手動退費用，admin 收到 user email 後操作）
+  const [lookupEmail, setLookupEmail] = useState("");
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupResults, setLookupResults] = useState<LookupPaymentRow[] | null>(null);
+
+  async function runLookup() {
+    const email = lookupEmail.trim();
+    if (!email) {
+      setLookupError("請輸入 email");
+      return;
+    }
+    setLookupBusy(true);
+    setLookupError(null);
+    setLookupResults(null);
+    try {
+      const res = await fetch(
+        `/api/admin/refunds/manual?user_email=${encodeURIComponent(email)}`,
+        { cache: "no-store" },
+      );
+      const j = await res.json();
+      if (!res.ok) {
+        setLookupError(j.error ?? `HTTP ${res.status}`);
+      } else if (j.error === "user_not_found") {
+        setLookupError("找不到此 email 的使用者");
+        setLookupResults([]);
+      } else {
+        setLookupResults((j.data ?? []) as LookupPaymentRow[]);
+      }
+    } catch (e) {
+      setLookupError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLookupBusy(false);
+    }
+  }
+
+  async function createRefundForPayment(row: LookupPaymentRow) {
+    const reason = window.prompt(
+      `為這筆 ${row.method_label} NT$${row.amount} 付款建立退費單，請輸入原因：`,
+      "使用者 email 來信申請退費",
+    );
+    if (!reason) return;
+    try {
+      const res = await fetch("/api/admin/refunds/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_id: row.payment_id, reason }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        alert(`建立失敗：${j.error}\n${JSON.stringify(j.existing ?? {}, null, 2)}`);
+        return;
+      }
+      alert(`✅ 退費單已建立（狀態：待審核）\n下方列表會出現此筆，點「審核此申請」進入處理流程。`);
+      setLookupResults(null);
+      setLookupEmail("");
+      setStatusFilter("pending");
+      void load();
+    } catch (e) {
+      alert(`建立失敗：${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   async function runQuickRefund() {
     const usePid = quickPaymentId.trim().length > 0;
@@ -191,6 +270,107 @@ export function RefundsAdminClient() {
             </button>
           );
         })}
+      </div>
+
+      {/* 查使用者付款 → 建退費單（ATM/超商手動流程入口） */}
+      <div className="mb-3 rounded-lg border-2 border-sky-400 bg-sky-50 p-3">
+        <div className="text-[12px] font-semibold text-sky-900 mb-2">
+          🔎 查使用者付款 → 建退費單（admin 從 email 收到退費申請後從這建）
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            value={lookupEmail}
+            onChange={(e) => setLookupEmail(e.target.value)}
+            placeholder="使用者 email"
+            className="flex-1 min-w-[220px] text-sm px-3 py-2 rounded border border-sky-300 bg-white"
+            disabled={lookupBusy}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void runLookup();
+            }}
+          />
+          <button
+            type="button"
+            onClick={runLookup}
+            disabled={lookupBusy}
+            className="text-sm px-4 py-2 rounded bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50"
+          >
+            {lookupBusy ? "查詢中…" : "查付款紀錄"}
+          </button>
+        </div>
+        {lookupError && (
+          <div className="mt-2 text-xs text-rose-700 bg-white border border-rose-200 rounded px-2 py-1">
+            ⚠️ {lookupError}
+          </div>
+        )}
+        {lookupResults && lookupResults.length === 0 && !lookupError && (
+          <div className="mt-2 text-xs text-zinc-600">查無此 email 的付款紀錄</div>
+        )}
+        {lookupResults && lookupResults.length > 0 && (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-sky-100 text-sky-900">
+                <tr>
+                  <th className="px-2 py-1.5 text-left">日期</th>
+                  <th className="px-2 py-1.5 text-left">付款方式</th>
+                  <th className="px-2 py-1.5 text-right">金額</th>
+                  <th className="px-2 py-1.5 text-left">狀態</th>
+                  <th className="px-2 py-1.5 text-left">品項 / 訂單</th>
+                  <th className="px-2 py-1.5 text-left">退費</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lookupResults.map((r) => (
+                  <tr key={r.payment_id} className="border-b border-sky-100 bg-white">
+                    <td className="px-2 py-1.5 whitespace-nowrap">
+                      {fmtDate(r.created_at)}
+                    </td>
+                    <td className="px-2 py-1.5 whitespace-nowrap">
+                      <span
+                        className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          r.method === "credit_card"
+                            ? "bg-emerald-100 text-emerald-900"
+                            : r.method === "atm"
+                              ? "bg-amber-100 text-amber-900"
+                              : "bg-zinc-100 text-zinc-700"
+                        }`}
+                      >
+                        {r.method_label}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-semibold">
+                      NT$ {r.amount.toLocaleString()}
+                    </td>
+                    <td className="px-2 py-1.5">{r.status}</td>
+                    <td className="px-2 py-1.5">
+                      <div className="text-zinc-700">{r.item_name ?? "—"}</div>
+                      {r.order_id && (
+                        <div className="font-mono text-[10px] text-zinc-500">{r.order_id}</div>
+                      )}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {r.existing_refund ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700">
+                          已有退費單（{r.existing_refund.status}）
+                        </span>
+                      ) : r.status === "success" || r.status === "awaiting_payment" ? (
+                        <button
+                          type="button"
+                          onClick={() => createRefundForPayment(r)}
+                          className="text-[11px] px-2 py-1 rounded bg-sky-700 text-white hover:bg-sky-800"
+                        >
+                          建退費單
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-zinc-500">不可退</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* 一鍵代開退費(測試 N→E→R fallback 用) */}
