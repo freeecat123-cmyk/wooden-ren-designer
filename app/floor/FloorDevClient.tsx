@@ -96,7 +96,7 @@ export function FloorDevClient() {
                 </button>
               ))}
             </div>
-            <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-2">
+            <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
               <FloorRangeInput label="總寬" unit="cm" value={Math.round(roomW)}
                 min={100} max={1500} step={10}
                 onChange={(v) => setRoom(scalePolygonToBBox(input.room, v, roomD))} />
@@ -151,7 +151,7 @@ export function FloorDevClient() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
               <FloorRangeInput label="地板片長" unit="cm" value={input.plankLengthCm}
                 min={30} max={250} step={1}
                 onChange={(v) => set("plankLengthCm", v)} />
@@ -174,7 +174,7 @@ export function FloorDevClient() {
             <summary className="cursor-pointer text-sm font-semibold">
               ③ 鋪法細節
             </summary>
-            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
               <FloorRangeInput label="伸縮縫" unit="mm" value={input.expansionGapMm}
                 min={0} max={20} step={1}
                 onChange={(v) => set("expansionGapMm", v)} />
@@ -207,7 +207,7 @@ export function FloorDevClient() {
             <summary className="cursor-pointer text-sm font-semibold">
               ④ 估價 / 門洞
             </summary>
-            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
               <FloorRangeInput label="門洞數量" unit="個" value={input.doorCount}
                 min={0} max={10} step={1}
                 onChange={(v) => set("doorCount", v)} />
