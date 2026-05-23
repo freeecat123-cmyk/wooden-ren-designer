@@ -600,6 +600,18 @@ export function PerspectiveView({
   // Hover 高亮（Bot B：context 進來的 part id 集合，emissive 預覽用）
   // 沒 provider 也 fallback 空集合，hook 不會 throw
   const { hoveredPartIds } = useHoveredParts();
+  // xrayMode 完全用 URL 當 source of truth:
+  //   ViewPresetBar 按鈕走 router.replace 改 URL,App Router 在手機 + Vercel cache
+  //   下 server 不一定立刻 re-render,server prop 會 stale。改在 client 直接讀
+  //   useSearchParams,任何 URL 變化即時反映,不靠 server roundtrip。
+  const _spUrl = useSearchParams();
+  const _xUrl = _spUrl?.get("xray");
+  xrayMode =
+    _xUrl === "face" || _xUrl === "true" || _xUrl === "1"
+      ? "face"
+      : _xUrl === "full"
+        ? "full"
+        : "off";
   // 將 mm 縮放成 Three.js 單位（1 unit = 100mm）
   const SCALE = 0.01;
   const maxDim = Math.max(

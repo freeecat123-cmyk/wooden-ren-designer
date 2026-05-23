@@ -82,8 +82,8 @@ export function FloorDevClient() {
       <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
         {/* ───── 左:輸入(照決策順序) ───── */}
         <div className="space-y-4">
-          {/* ① 房間 */}
-          <section className="rounded-lg border border-zinc-200 p-4">
+          {/* ① 房間 — 整段 sticky 跟右邊 2D 預覽一起卡在畫面上方 */}
+          <section className="rounded-lg border border-zinc-200 p-4 md:sticky md:top-4 md:z-10 bg-white">
             <h2 className="mb-3 text-sm font-semibold">① 房間</h2>
             <div className="mb-2 flex flex-wrap gap-2">
               {SHAPE_PRESETS.map((preset: ShapePreset) => (
@@ -104,9 +104,7 @@ export function FloorDevClient() {
                 min={100} max={1500} step={10}
                 onChange={(v) => setRoom(scalePolygonToBBox(input.room, roomW, v))} />
             </div>
-            <div className="md:sticky md:top-4 md:z-10 md:bg-white">
-              <FloorCanvasEditor room={input.room} onChange={setRoom} />
-            </div>
+            <FloorCanvasEditor room={input.room} onChange={setRoom} />
             <p className="mt-2 text-xs text-zinc-400">
               拉桿或打字設定外框,缺口比例隨之等比;拖角點微調,
               或點邊上的數字直接輸入該邊長度。
