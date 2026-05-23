@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import type { FurnitureCategory } from "@/lib/types";
@@ -284,10 +285,11 @@ export default async function Home({
           if (!showFurniture) {
             return [<CeilingToolCard key="t-ceiling" />, <FloorToolCard key="t-floor" />];
           }
-          // 拆兩堆:已單買解鎖的範本一律置頂,其他維持自然排序;
-          // 工具卡只插在「未解鎖區」的中階開頭 — 不會被擠到頂端。
+          // 已解鎖的範本/工具一律置頂;未解鎖的維持自然排序、工具卡插在中階開頭
           const ownedFurniture = furniture.filter((it) => unlockedSet.has(it.category));
           const restFurniture = furniture.filter((it) => !unlockedSet.has(it.category));
+          const ceilingOwned = unlockedToolSet.has("ceiling");
+          const floorOwned = unlockedToolSet.has("floor");
 
           if (!showTools) {
             return [...ownedFurniture, ...restFurniture].map((item) => (
@@ -295,11 +297,15 @@ export default async function Home({
             ));
           }
 
-          const ownedNodes = ownedFurniture.map((item) => (
-            <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
-          ));
+          const ownedNodes: ReactNode[] = [
+            ...ownedFurniture.map((item) => (
+              <FurnitureCard key={item.category} item={item} isUnlocked />
+            )),
+            ...(ceilingOwned ? [<CeilingToolCard key="t-ceiling-owned" isUnlocked />] : []),
+            ...(floorOwned ? [<FloorToolCard key="t-floor-owned" isUnlocked />] : []),
+          ];
 
-          // 在「未解鎖區」找第一個 intermediate 的位置,工具卡插在這
+          // 在「未解鎖區」找第一個 intermediate 的位置,未擁有的工具卡插在這
           const interIdx = restFurniture.findIndex((it) => it.difficulty === "intermediate");
           const cut = interIdx === -1
             ? restFurniture.findIndex((it) => it.difficulty === "advanced")
@@ -311,11 +317,14 @@ export default async function Home({
           const tail = restFurniture.slice(cutFinal).map((item) => (
             <FurnitureCard key={item.category} item={item} isUnlocked={false} />
           ));
+          const unownedTools: ReactNode[] = [
+            ...(ceilingOwned ? [] : [<CeilingToolCard key="t-ceiling" isUnlocked={false} />]),
+            ...(floorOwned ? [] : [<FloorToolCard key="t-floor" isUnlocked={false} />]),
+          ];
           return [
             ...ownedNodes,
             ...head,
-            <CeilingToolCard key="t-ceiling" isUnlocked={unlockedToolSet.has("ceiling")} />,
-            <FloorToolCard key="t-floor" isUnlocked={unlockedToolSet.has("floor")} />,
+            ...unownedTools,
             ...tail,
           ];
         })()}
