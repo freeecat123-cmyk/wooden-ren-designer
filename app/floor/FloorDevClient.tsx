@@ -204,16 +204,16 @@ export function FloorDevClient() {
 
         </div>
 
-        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
-        <div className="space-y-3 md:sticky md:top-4">
-          {/* 2D 預覽 */}
-          <FloorOverviewSvg bom={bom} width={388} />
-
-          {/* 摘要數字 */}
-          <div className="grid grid-cols-3 gap-2">
-            <Stat label="總片數" value={`${bom.trace.totalPlankCount}`} unit="片" />
-            <Stat label="損耗" value={bom.trace.wastePercent.toFixed(1)} unit="%" />
-            <Stat label="坪數" value={bom.auto.pingShu.toFixed(1)} unit="坪" />
+        {/* ───── 右:結果面板 ───── */}
+        <div className="space-y-3">
+          {/* 2D 預覽 + 摘要數字 — 桌面版 sticky 在畫面最上方,捲動時始終可見 */}
+          <div className="md:sticky md:top-4 md:z-10 space-y-3 bg-white md:bg-transparent">
+            <FloorOverviewSvg bom={bom} width={388} />
+            <div className="grid grid-cols-3 gap-2">
+              <Stat label="總片數" value={`${bom.trace.totalPlankCount}`} unit="片" />
+              <Stat label="損耗" value={bom.trace.wastePercent.toFixed(1)} unit="%" />
+              <Stat label="坪數" value={bom.auto.pingShu.toFixed(1)} unit="坪" />
+            </div>
           </div>
 
           {/* ④ 估價 / 門洞(可收合) — 跟材料清單相鄰，改參數立刻看影響 */}
