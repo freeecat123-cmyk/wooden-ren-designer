@@ -80,8 +80,8 @@ export function FloorDevClient() {
       </p>
 
       <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
-        {/* ───── 左:輸入(照決策順序) — 手機放下方,桌面回到左欄 ───── */}
-        <div className="order-2 md:order-none space-y-4">
+        {/* ───── 左:輸入(照決策順序) ───── */}
+        <div className="space-y-4">
           {/* ① 房間 */}
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">① 房間</h2>
@@ -227,29 +227,17 @@ export function FloorDevClient() {
           </details>
         </div>
 
-        {/* ───── 右:結果面板(sticky) — 手機放上方,桌面回到右欄 ───── */}
-        <div className="order-1 md:order-none space-y-3 md:sticky md:top-4">
-          {/* 頭條:總價 */}
-          <div className="rounded-lg border border-[#bd9955]/40 bg-[#bd9955]/10 p-3">
-            <div className="text-xs text-zinc-500">預估總價</div>
-            <div className="text-2xl font-bold text-[#8a6d3b]">
-              {bom.cost.total > 0
-                ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
-                : "未設定報價"}
-            </div>
-            {bom.cost.total > 0 && bom.cost.hasUnpriced && (
-              <div className="text-[11px] text-amber-600">部分品項未報價</div>
-            )}
-          </div>
+        {/* ───── 右:結果面板(sticky) — 預覽優先,報價/按鈕放最後 ───── */}
+        <div className="space-y-3 md:sticky md:top-4">
+          {/* 2D 預覽 */}
+          <FloorOverviewSvg bom={bom} width={388} />
+
           {/* 摘要數字 */}
           <div className="grid grid-cols-3 gap-2">
             <Stat label="總片數" value={`${bom.trace.totalPlankCount}`} unit="片" />
             <Stat label="損耗" value={bom.trace.wastePercent.toFixed(1)} unit="%" />
             <Stat label="坪數" value={bom.auto.pingShu.toFixed(1)} unit="坪" />
           </div>
-
-          {/* 2D 預覽 */}
-          <FloorOverviewSvg bom={bom} width={388} />
 
           {/* 材料清單 */}
           <div className="rounded-lg border border-zinc-200 p-3">
@@ -312,15 +300,28 @@ export function FloorDevClient() {
                 </ul>
               </details>
             )}
-            <button
-              onClick={() =>
-                router.push(`/floor/quote?d=${encodeURIComponent(encodeState(input))}`)
-              }
-              className="mt-3 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
-            >
-              🧾 產生報價單
-            </button>
           </div>
+
+          {/* 預估總價 — 放最下方,跟產生報價單按鈕相鄰 */}
+          <div className="rounded-lg border border-[#bd9955]/40 bg-[#bd9955]/10 p-3">
+            <div className="text-xs text-zinc-500">預估總價</div>
+            <div className="text-2xl font-bold text-[#8a6d3b]">
+              {bom.cost.total > 0
+                ? `NT$ ${Math.round(bom.cost.total).toLocaleString()}`
+                : "未設定報價"}
+            </div>
+            {bom.cost.total > 0 && bom.cost.hasUnpriced && (
+              <div className="text-[11px] text-amber-600">部分品項未報價</div>
+            )}
+          </div>
+          <button
+            onClick={() =>
+              router.push(`/floor/quote?d=${encodeURIComponent(encodeState(input))}`)
+            }
+            className="w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
+          >
+            🧾 產生報價單
+          </button>
         </div>
       </div>
     </main>
