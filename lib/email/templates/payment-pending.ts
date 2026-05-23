@@ -30,6 +30,8 @@ interface AwaitingPaymentInput {
   planLabel: string;
   amount: number;
   paymentInfo: PaymentInfo;
+  /** 一次性買斷（單範本/工具）= true，訂閱方案 = false（預設） */
+  isUnlock?: boolean;
 }
 
 /** 依付款方式產生繳費說明的純文字行 + HTML 區塊 */
@@ -88,20 +90,26 @@ export function awaitingPaymentEmail(input: AwaitingPaymentInput): {
   text: string;
   html: string;
 } {
-  const { planLabel, amount, paymentInfo } = input;
+  const { planLabel, amount, paymentInfo, isUnlock = false } = input;
   const deadline = formatDateTime(paymentInfo.expireDate);
   const d = describe(paymentInfo);
+  const labelRowSuffix = isUnlock ? "" : "（年付）";
+  const itemRowLabel = isUnlock ? "品項" : "方案";
+  const successFollowup = isUnlock
+    ? "完成繳費後該範本/工具會自動永久解鎖，並寄出付款成功通知與電子發票。"
+    : "完成繳費後訂閱會自動啟用，並寄出付款成功通知與電子發票。";
+  const ctaUrl = isUnlock ? `${SITE_URL}/my-subscription` : `${SITE_URL}/my-subscription`;
   const subject = `訂單已成立，請於 ${deadline} 前完成繳費 — ${planLabel}`;
   const text = [
     `木頭仁 木作藍圖 — 訂單已成立`,
     ``,
-    `方案：${planLabel}（年付）`,
+    `${itemRowLabel}：${planLabel}${labelRowSuffix}`,
     `應繳金額：NT$ ${amount}`,
     `繳費期限：${deadline}`,
     ``,
     ...d.textLines,
     ``,
-    `完成繳費後訂閱會自動啟用，並寄出付款成功通知與電子發票。`,
+    successFollowup,
     `也可在「我的訂閱」頁查看繳費資訊：${SITE_URL}/my-subscription`,
     ``,
     `木頭仁 木作藍圖`,
@@ -112,12 +120,12 @@ export function awaitingPaymentEmail(input: AwaitingPaymentInput): {
 ⏳ 訂單已成立，尚未收到款項。請於 <strong>${deadline}</strong> 前完成繳費。
 </p>
 <table style="width:100%;border-collapse:collapse;margin-top:16px">
-<tr><td style="padding:8px 0;color:#6b7280">方案</td><td style="text-align:right;font-weight:600">${escapeHtml(planLabel)}（年付）</td></tr>
+<tr><td style="padding:8px 0;color:#6b7280">${itemRowLabel}</td><td style="text-align:right;font-weight:600">${escapeHtml(planLabel)}${labelRowSuffix}</td></tr>
 <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">應繳金額</td><td style="text-align:right;font-weight:600;border-top:1px solid #e5e7eb">NT$ ${amount.toLocaleString()}</td></tr>
 </table>
 ${d.html}
-<p style="font-size:14px;color:#6b7280;margin-top:16px">完成繳費後訂閱會自動啟用，並寄出付款成功通知與電子發票。</p>
-<p><a href="${SITE_URL}/my-subscription" style="display:inline-block;background:#d97706;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">查看我的訂閱 →</a></p>`,
+<p style="font-size:14px;color:#6b7280;margin-top:16px">${successFollowup}</p>
+<p><a href="${ctaUrl}" style="display:inline-block;background:#d97706;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600">查看我的訂閱 →</a></p>`,
   );
   return { subject, text, html };
 }

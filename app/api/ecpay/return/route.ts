@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
   {
     const { data: pending } = await admin
       .from("payments")
-      .select("id, user_id, amount, raw_response")
-      .eq("status", "pending")
+      .select("id, user_id, amount, raw_response, status")
+      .in("status", ["pending", "awaiting_payment"])
       .filter("raw_response->>orderId", "eq", orderId)
       .or("raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock")
       .maybeSingle();

@@ -47,6 +47,82 @@ export async function POST(req: NextRequest) {
   const amount = Number(params.TradeAmt ?? 0);
 
   const admin = createAdminClient();
+
+  // 先找 unlock 訂單（pending payment 帶 raw_response.kind in template/tool_unlock）
+  {
+    const { data: tplPending } = await admin
+      .from("payments")
+      .select("id, user_id, amount, raw_response")
+      .eq("status", "pending")
+      .filter("raw_response->>orderId", "eq", orderId)
+      .or("raw_response->>kind.eq.template_unlock,raw_response->>kind.eq.tool_unlock")
+      .maybeSingle();
+    if (tplPending) {
+      if (params.MerchantID !== process.env.ECPAY_MERCHANT_ID) {
+        return new Response("0|MerchantIDInvalid", { status: 200 });
+      }
+      if (!isGetCodeSuccess(params.RtnCode)) {
+        console.warn("[ecpay/payment-info:unlock] 取號失敗", {
+          orderId, rtnCode: params.RtnCode, msg: params.RtnMsg,
+        });
+        return new Response("1|OK");
+      }
+      const expectedAmount = tplPending.amount as number;
+      if (amount !== expectedAmount) {
+        console.error("[ecpay/payment-info:unlock] amount mismatch", {
+          orderId, got: amount, expected: expectedAmount,
+        });
+        return new Response("0|AmountMismatch", { status: 200 });
+      }
+      const paymentInfo = buildPaymentInfo(params);
+      if (!paymentInfo) {
+        console.error("[ecpay/payment-info:unlock] 取號參數不完整", {
+          orderId, paymentType: params.PaymentType,
+        });
+        return new Response("1|OK");
+      }
+      // update pending payment → awaiting_payment（同一筆，不新增 row）
+      await admin
+        .from("payments")
+        .update({
+          status: "awaiting_payment",
+          ecpay_trade_no: tradeNo,
+          payment_info: paymentInfo as unknown as Record<string, unknown>,
+          raw_response: { ...(tplPending.raw_response as object), ecpay: params },
+        })
+        .eq("id", tplPending.id);
+
+      const rawResp = tplPending.raw_response as Record<string, unknown>;
+      const itemName = (rawResp.itemName as string) ?? "木頭仁 木作藍圖 範本買斷";
+      after(async () => {
+        try {
+          const { data: u } = await admin
+            .from("users")
+            .select("email")
+            .eq("id", tplPending.user_id)
+            .single();
+          if (u?.email) {
+            const payload = awaitingPaymentEmail({
+              planLabel: itemName,
+              amount: expectedAmount,
+              paymentInfo,
+              isUnlock: true,
+            });
+            await sendEmail({
+              to: u.email,
+              subject: payload.subject,
+              text: payload.text,
+              html: payload.html,
+            });
+          }
+        } catch (e) {
+          console.warn("[ecpay/payment-info:unlock:after] 取號通知 email 例外", e);
+        }
+      });
+      return new Response("1|OK");
+    }
+  }
+
   const { data: sub, error: subErr } = await admin
     .from("subscriptions")
     .select("id, user_id, plan, expected_amount")
