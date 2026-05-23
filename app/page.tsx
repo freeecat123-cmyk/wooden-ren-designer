@@ -68,6 +68,7 @@ const CATEGORY_CHIPS: Array<{
       c === "shoe-cabinet" || c === "display-cabinet" ||
       c === "wardrobe" || c === "media-console" || c === "nightstand",
   },
+  { key: "tool", label: "裝潢師工具" },
   {
     key: "accessories",
     label: "小物",
@@ -75,7 +76,6 @@ const CATEGORY_CHIPS: Array<{
       c === "pencil-holder" || c === "bookend" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
-  { key: "tool", label: "裝潢師工具" },
   {
     key: "dev",
     label: "開發中",
