@@ -188,12 +188,16 @@ export function CeilingScene3D({ bom, viewMode, explode, layers, highlight = nul
 // ─────────────────────────────────────────────────────────
 function CameraRig({ viewMode, maxDim }: { viewMode: ViewMode; maxDim: number }) {
   const camRef = useRef<THREE.OrthographicCamera>(null);
-  // 依實際 canvas 尺寸算 zoom,避免房間超過 ~520cm 時內容溢出小螢幕白框。
-  // 取較短邊 × 0.45 留呼吸,軸測比俯視多花對角空間再扣 0.85。
+  // 依實際 canvas 尺寸算 zoom:
+  //   - 預設用 800cm 當參考尺寸 → 小於這個的房間保持同一像素比,拖長邊不會一直縮
+  //   - 房間超過 800cm 時才開始 fit-to-canvas,避免溢出白框
+  // 取較短邊 × 0.45 留呼吸,軸測比俯視多花對角空間再 × 0.85。
   const { size } = useThree();
   const minSide = Math.min(size.width, size.height);
   const baseRadius = minSide * 0.45;
-  const zoom = (baseRadius / Math.max(maxDim, 1)) * (viewMode === "iso" ? 0.85 : 1);
+  const REF_DIM = 800;
+  const zoom =
+    (baseRadius / Math.max(maxDim, REF_DIM)) * (viewMode === "iso" ? 0.85 : 1);
   const dist = maxDim * 1.5;
   const position: [number, number, number] =
     viewMode === "iso" ? [dist, dist, dist] : [0, dist * 1.2, 0.001];
