@@ -708,6 +708,7 @@ function OrthoViewImpl({
   paperMode,
   paperScale,
   paperBroken,
+  paperTitleBlock,
 }: ViewProps & {
   view: OrthoViewKind;
   title: string;
@@ -742,6 +743,13 @@ function OrthoViewImpl({
   paperScale?: number;
   /** paperMode + needBrokenView 時，broken view 切割參數（傳 null 不切）。 */
   paperBroken?: import("@/lib/render/part-drawing/broken-view").BrokenViewSpec | null;
+  /** paperMode title block 欄位（件號/材料/數量/尺寸）。 */
+  paperTitleBlock?: {
+    partNo: string;
+    count: number;
+    materialLabel: string;
+    dimsLabel: string; // e.g. "35×35×425"
+  };
 }) {
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
@@ -993,7 +1001,8 @@ function OrthoViewImpl({
             strokeWidth={0.2}
             strokeDasharray="1 1"
           />
-          {/* Title block 區（y 182~202） */}
+          {/* Title block 區（y 182~202）— CNS 六大必備欄位
+              寬 277mm 分 6 等：每格 ~46mm（件號/件名/材料/數量/比例/尺寸）*/}
           <line
             x1={10}
             x2={287}
@@ -1011,6 +1020,56 @@ function OrthoViewImpl({
             stroke="#222"
             strokeWidth={0.4}
           />
+          {/* 6 個欄位垂直分割線 */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <line
+              key={i}
+              x1={10 + (277 / 6) * i}
+              x2={10 + (277 / 6) * i}
+              y1={182}
+              y2={202}
+              stroke="#222"
+              strokeWidth={0.3}
+            />
+          ))}
+          {/* 欄位標籤 + 值 */}
+          {(() => {
+            const colW = 277 / 6;
+            const cols: Array<{ label: string; value: string }> = [
+              { label: "件號", value: paperTitleBlock?.partNo ?? "—" },
+              { label: "件名", value: title },
+              { label: "材料", value: paperTitleBlock?.materialLabel ?? "—" },
+              { label: "數量", value: `×${paperTitleBlock?.count ?? 1}` },
+              { label: "比例", value: `1:${paperScaleN}` },
+              { label: "尺寸 mm", value: paperTitleBlock?.dimsLabel ?? "—" },
+            ];
+            return cols.map((c, i) => {
+              const cx = 10 + colW * i + colW / 2;
+              return (
+                <g key={i}>
+                  <text
+                    x={cx}
+                    y={189}
+                    fontSize={3}
+                    fill="#666"
+                    textAnchor="middle"
+                  >
+                    {c.label}
+                  </text>
+                  <text
+                    x={cx}
+                    y={198}
+                    fontSize={4.5}
+                    fontWeight={600}
+                    fill="#111"
+                    textAnchor="middle"
+                  >
+                    {c.value}
+                  </text>
+                </g>
+              );
+            });
+          })()}
         </g>
       )}
 

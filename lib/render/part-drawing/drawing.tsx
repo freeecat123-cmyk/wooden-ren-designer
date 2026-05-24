@@ -221,6 +221,12 @@ export function PartDrawing({
                   paperMode="a4-landscape"
                   paperScale={scale}
                   paperBroken={brokenSpec.active ? brokenSpec : null}
+                  paperTitleBlock={{
+                    partNo,
+                    count: Math.min(group.count, 99),
+                    materialLabel: material?.nameZh ?? part.material,
+                    dimsLabel: `${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`,
+                  }}
                   overlayContent={(ctx) => (
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />
