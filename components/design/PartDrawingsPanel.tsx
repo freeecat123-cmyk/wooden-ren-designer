@@ -178,7 +178,7 @@ export function PartDrawingsPanel({ design }: Props) {
                 group={groups[openIdx]}
                 design={design}
                 index={openIdx}
-                viewLayout="stack"
+                /* viewLayout 預設 row → 走 PartDrawingPaperSheet（L 型 1 A4） */
                 singleView={zoomedView ?? undefined}
                 onViewClick={
                   zoomedView ? undefined : (v) => setZoomedView(v)
