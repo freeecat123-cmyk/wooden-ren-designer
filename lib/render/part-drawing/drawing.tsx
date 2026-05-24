@@ -21,6 +21,7 @@ import {
   FacingMark,
   ShapeSpecificAnnotation,
   CompoundMiterAnnotation,
+  ConnectionMarks,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
@@ -224,6 +225,12 @@ export function PartDrawing({
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />
                       <T2Annotations ctx={ctx} part={part} view={view} />
+                      <ConnectionMarks
+                        ctx={ctx}
+                        part={part}
+                        design={design}
+                        view={view}
+                      />
                       <FacingMark ctx={ctx} part={part} view={view} />
                       <ShapeSpecificAnnotation
                         ctx={ctx}

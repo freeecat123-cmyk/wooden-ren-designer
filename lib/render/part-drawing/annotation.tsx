@@ -23,6 +23,7 @@ import {
   tenonLocalBox,
   type OrthoViewBoxCtx,
 } from "@/lib/render/svg-views";
+import { inferConnectionMarks, type ConnectionMark } from "./connection-marks";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -2709,6 +2710,134 @@ export function CompoundMiterAnnotation({
             side={side}
             endLabel={endLabel}
           />
+        );
+      })}
+    </g>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// <ConnectionMarks> — 接 sibling 位置虛線標示
+//
+// 即使組裝版（toBeginnerMode）strip 掉 tenon/mortise，仍要讓使用者看到
+// leg 上接 apron / 接 stretcher 的位置 + 距端距離（鑽木釘/釘斜孔的位置）。
+//
+// 演算法在 connection-marks.ts；本元件負責投影 + 繪製虛線 rect + leader 標籤。
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CONNECTION_KIND_LABEL: Record<string, string> = {
+  apron: "接牙條",
+  stretcher: "接橫撐",
+  other: "接合",
+};
+
+function projectMarkBox(
+  ctx: OrthoViewBoxCtx,
+  mark: ConnectionMark,
+): { x: number; y: number; w: number; h: number } | null {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        const p = ctx.partLocalToSvg(
+          mark.localX + sx * mark.sizeX / 2,
+          mark.localY + sy * mark.sizeY / 2,
+          mark.localZ + sz * mark.sizeZ / 2,
+        );
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+    }
+  }
+  const w = maxX - minX;
+  const h = maxY - minY;
+  if (w < 0.5 || h < 0.5) return null;
+  return { x: minX, y: minY, w, h };
+}
+
+export function ConnectionMarks({
+  ctx,
+  part,
+  design,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  design: FurnitureDesign;
+  view: PartView;
+}) {
+  const marks = React.useMemo(
+    () => inferConnectionMarks(part, design),
+    [part, design],
+  );
+  if (marks.length === 0) return null;
+
+  // 對每個 mark 算 projected rect + label 位置
+  type Drawn = {
+    mark: ConnectionMark;
+    rect: { x: number; y: number; w: number; h: number };
+    label: string;
+  };
+  const drawn: Drawn[] = [];
+  for (const m of marks) {
+    const rect = projectMarkBox(ctx, m);
+    if (!rect) continue;
+    const kindLabel = CONNECTION_KIND_LABEL[m.kind] ?? "接合";
+    // 標籤：「接牙條 ↓375」（距上 375mm，朝上箭頭代表方向）
+    const label = `${kindLabel} ↓${Math.round(m.distanceFromTop)}`;
+    drawn.push({ mark: m, rect, label });
+  }
+  if (drawn.length === 0) return null;
+
+  // 排序避免 leader 擠：rect 中心 y 由小到大（top→bot）
+  drawn.sort((a, b) => a.rect.y + a.rect.h / 2 - (b.rect.y + b.rect.h / 2));
+
+  return (
+    <g className="connection-marks">
+      {drawn.map((d, i) => {
+        const cx = d.rect.x + d.rect.w / 2;
+        const cy = d.rect.y + d.rect.h / 2;
+        // Leader 朝外：奇/偶 alternate 左右；多 marks 上下分散
+        const goRight = i % 2 === 0;
+        const leaderX = goRight ? d.rect.x + d.rect.w + 30 : d.rect.x - 30;
+        const labelX = goRight ? leaderX + 2 : leaderX - 2;
+        const anchor = goRight ? "start" : "end";
+        return (
+          <g key={d.mark.siblingId}>
+            {/* 虛線矩形 — 標出接合區域 */}
+            <rect
+              x={d.rect.x}
+              y={d.rect.y}
+              width={d.rect.w}
+              height={d.rect.h}
+              fill="none"
+              stroke="#666"
+              strokeWidth={0.3}
+              strokeDasharray="2 1.5"
+            />
+            {/* Leader 細線 */}
+            <line
+              x1={goRight ? d.rect.x + d.rect.w : d.rect.x}
+              y1={cy}
+              x2={leaderX}
+              y2={cy}
+              stroke="#666"
+              strokeWidth={0.25}
+            />
+            {/* 標籤 */}
+            <text
+              x={labelX}
+              y={cy + 3}
+              fontSize={8}
+              fill="#444"
+              textAnchor={anchor}
+              fontFamily="sans-serif"
+            >
+              {d.label}
+            </text>
+          </g>
         );
       })}
     </g>
