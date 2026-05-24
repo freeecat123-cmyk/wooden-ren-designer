@@ -22,6 +22,7 @@ import {
   ShapeSpecificAnnotation,
   CompoundMiterAnnotation,
   ConnectionMarks,
+  GrainArrow,
 } from "./annotation";
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
@@ -237,6 +238,7 @@ export function PartDrawing({
                         design={design}
                         view={view}
                       />
+                      <GrainArrow ctx={ctx} part={part} view={view} />
                       <FacingMark ctx={ctx} part={part} view={view} />
                       <ShapeSpecificAnnotation
                         ctx={ctx}
