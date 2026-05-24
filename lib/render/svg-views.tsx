@@ -3464,6 +3464,80 @@ function OrthoViewImpl({
       {/* Phase 2: overlay slot — caller-controlled SVG over OrthoView. */}
       {overlayCtx && overlayContent && overlayContent(overlayCtx)}
 
+      {/* Broken view（Step 3）：超長件中段省略 — 用白色遮中段 silhouette + 兩條
+          波浪線標示中斷邊界。不真 clipPath 切 silhouette（複雜），但視覺上能
+          看出「中段省略 → 真實全長」這件事。 */}
+      {isPaper && paperBroken?.active && (() => {
+        const spec = paperBroken;
+        // 中段 gap 區（part-world mm，y 用 silhouette 慣例負 y）
+        const gapMinX = spec.leftHi;
+        const gapMaxX = spec.rightLo;
+        const vert = spec.vertHeight;
+        // y range：silhouette 用 -y 慣例，從 -vert 到 +vert/2 取保險寬一點
+        const yTop = -vert * 0.65;
+        const yBot = vert * 0.65;
+        return (
+          <g className="broken-view">
+            {/* 白遮罩：把中段 silhouette 蓋掉 */}
+            <rect
+              x={gapMinX}
+              y={yTop}
+              width={gapMaxX - gapMinX}
+              height={yBot - yTop}
+              fill="white"
+            />
+            {/* 兩條波浪線 — 因 scaled group 有 1/n scale，stroke-width 要 × n 才會
+                顯示成設計的 0.4mm 紙上寬度 */}
+            <path
+              d={(() => {
+                const amp = 1.5 * paperScaleN; // 振幅按 scale 補回
+                const seg = 4 * paperScaleN;
+                const n = Math.max(2, Math.ceil((yBot - yTop) / seg));
+                let d = `M ${gapMinX} ${yTop}`;
+                for (let i = 0; i < n; i++) {
+                  const yMid = yTop + (i + 0.5) * ((yBot - yTop) / n);
+                  const yEnd = yTop + (i + 1) * ((yBot - yTop) / n);
+                  const dir = i % 2 === 0 ? +1 : -1;
+                  d += ` Q ${gapMinX + dir * amp} ${yMid} ${gapMinX} ${yEnd}`;
+                }
+                return d;
+              })()}
+              stroke="#222"
+              strokeWidth={0.4 * paperScaleN}
+              fill="none"
+            />
+            <path
+              d={(() => {
+                const amp = 1.5 * paperScaleN;
+                const seg = 4 * paperScaleN;
+                const n = Math.max(2, Math.ceil((yBot - yTop) / seg));
+                let d = `M ${gapMaxX} ${yTop}`;
+                for (let i = 0; i < n; i++) {
+                  const yMid = yTop + (i + 0.5) * ((yBot - yTop) / n);
+                  const yEnd = yTop + (i + 1) * ((yBot - yTop) / n);
+                  const dir = i % 2 === 0 ? +1 : -1;
+                  d += ` Q ${gapMaxX + dir * amp} ${yMid} ${gapMaxX} ${yEnd}`;
+                }
+                return d;
+              })()}
+              stroke="#222"
+              strokeWidth={0.4 * paperScaleN}
+              fill="none"
+            />
+            {/* 中段標真實全長 */}
+            <text
+              x={(gapMinX + gapMaxX) / 2}
+              y={yBot + 6 * paperScaleN}
+              fontSize={4 * paperScaleN}
+              fill="#444"
+              textAnchor="middle"
+            >
+              真實全長 {Math.round(spec.fullLength)}mm
+            </text>
+          </g>
+        );
+      })()}
+
       </g>
     </svg>
   );
