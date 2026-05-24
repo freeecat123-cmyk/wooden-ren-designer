@@ -23,6 +23,7 @@ import React from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { OrthoView } from "@/lib/render/svg-views";
 import { worldExtents } from "@/lib/render/geometry";
+import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD } from "./paper-fit";
 import {
   T1Dimensions,
   T2Annotations,
@@ -67,23 +68,42 @@ export function PartDrawingPaperSheet({
   className,
 }: PaperSheetProps) {
   const we = worldExtents(part);
-  // L 佈局尺寸（紙上 mm）
+  // L 佈局 silhouette 尺寸（紙上 mm）
   const fW = we.xExt / scale;
   const fH = we.yExt / scale;
   const tH = we.zExt / scale;
   const sW = we.zExt / scale;
+
+  // Dim chain 留白（紙上 mm）— 每個 view 周圍預留給 T1 全長 / T2 標
+  const padPaper = L_LAYOUT_CHAIN_PAD / scale;
 
   // 紙面佈局
   const innerX = 10;
   const innerY = 24;
   const innerW = 267;
   const innerH = 156;
-  const gap = 8;
+  const gap = L_LAYOUT_GAP;
 
-  // L 佈局 viewport（紙面 A4 mm 座標）
-  const topVp = { x: innerX, y: innerY, w: fW, h: tH };
-  const frontVp = { x: innerX, y: innerY + tH + gap, w: fW, h: fH };
-  const sideVp = { x: innerX + fW + gap, y: innerY + tH + gap, w: sW, h: fH };
+  // L 佈局 viewport（紙面 A4 mm 座標）— 加 chain padding,viewport 包含 silhouette
+  // ± padPaper 的空間,讓 dim chain 不會溢出到鄰居 view
+  const topVp = {
+    x: innerX + padPaper,
+    y: innerY + padPaper,
+    w: fW,
+    h: tH,
+  };
+  const frontVp = {
+    x: innerX + padPaper,
+    y: topVp.y + tH + padPaper + gap + padPaper,
+    w: fW,
+    h: fH,
+  };
+  const sideVp = {
+    x: topVp.x + fW + padPaper + gap + padPaper,
+    y: frontVp.y,
+    w: sW,
+    h: fH,
+  };
 
   // 共用 overlay slot fragment（與 PartDrawing 的 overlay 一致）
   const overlayContent = (view: "front" | "top" | "side") => (ctx: any) => (
@@ -129,16 +149,38 @@ export function PartDrawingPaperSheet({
           strokeDasharray="1 1"
         />
 
-        {/* View 標籤（左上） */}
-        <text x={topVp.x} y={topVp.y - 2} fontSize={3.5} fill="#666">
-          俯視 TOP
-        </text>
-        <text x={frontVp.x} y={frontVp.y - 2} fontSize={3.5} fill="#666">
-          正視 FRONT
-        </text>
-        <text x={sideVp.x} y={sideVp.y - 2} fontSize={3.5} fill="#666">
-          側視 SIDE (right)
-        </text>
+        {/* View 標籤（每個 view 左上角加底色矩形, 視覺分隔 3 個 view） */}
+        {([
+          { label: "俯視 TOP", vp: topVp },
+          { label: "正視 FRONT", vp: frontVp },
+          { label: "側視 SIDE", vp: sideVp },
+        ] as const).map((v, i) => {
+          // 標籤放在 viewport 左上角往上 padPaper 高度的 chain pad 區內
+          const labelX = v.vp.x - padPaper * 0.8;
+          const labelY = v.vp.y - padPaper * 0.5;
+          return (
+            <g key={i}>
+              <rect
+                x={labelX}
+                y={labelY - 4}
+                width={28}
+                height={5.2}
+                fill="#f3f4f6"
+                stroke="#999"
+                strokeWidth={0.2}
+              />
+              <text
+                x={labelX + 2}
+                y={labelY - 0.3}
+                fontSize={3.5}
+                fontWeight={700}
+                fill="#222"
+              >
+                {v.label}
+              </text>
+            </g>
+          );
+        })}
 
         {/* 投影輔助線 toggle */}
         {showProjectionLines && (

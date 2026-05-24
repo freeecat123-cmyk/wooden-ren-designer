@@ -67,8 +67,15 @@ export interface PaperFitResult {
   views: Record<PartView, { w: number; h: number }>;
 }
 
+/** L 佈局 view 間隔（紙上 mm，view 之間的留白） */
+export const L_LAYOUT_GAP = 14;
+/** L 佈局每個 view 周圍 dim chain 預留量（part-local mm）— H_OFFSET 30 + GROSS_GAP 14 + text + safety */
+export const L_LAYOUT_CHAIN_PAD = 35;
+
 /**
- * 找到能讓三 view 同時 fit 進 FIT_W × FIT_H 的最小 CNS 比例 n。
+ * 找到能讓 L 佈局（TOP 上 + FRONT 下 + SIDE 右）整體 fit 進 DRAW_AREA 的最小 CNS 比例 n。
+ * L 佈局總寬 = fW + sW + gap + chain_pad_paper*4（左右兩端 + 中間 view 邊界）
+ * L 佈局總高 = tH + fH + gap + chain_pad_paper*4
  * 若 1:20 仍超出，回 { scale: 20, needBrokenView: true }。
  */
 export function pickScaleForPaper(part: Part): PaperFitResult {
@@ -77,11 +84,19 @@ export function pickScaleForPaper(part: Part): PaperFitResult {
     top: projectExtentForView(part, "top"),
     side: projectExtentForView(part, "side"),
   };
+  // L 佈局水平 = front 寬 + side 寬 + gap + chain pad 兩端
+  // L 佈局垂直 = top 高 + front 高 + gap + chain pad 上下
   for (const n of SCALE_CANDIDATES) {
-    const allFit = (Object.values(views) as Array<{ w: number; h: number }>).every(
-      (v) => v.w / n <= FIT_W && v.h / n <= FIT_H,
-    );
-    if (allFit) {
+    const fW = views.front.w / n;
+    const fH = views.front.h / n;
+    const tH = views.top.h / n;
+    const sW = views.side.w / n;
+    const padPaper = L_LAYOUT_CHAIN_PAD / n; // 紙上每邊 chain pad
+    // 水平: fW + gap + sW + 兩端 chain pad
+    const lLayoutW = fW + sW + L_LAYOUT_GAP + padPaper * 2;
+    // 垂直: tH + gap + fH + 上下 chain pad
+    const lLayoutH = tH + fH + L_LAYOUT_GAP + padPaper * 2;
+    if (lLayoutW <= DRAW_AREA_W && lLayoutH <= DRAW_AREA_H) {
       return { scale: n, needBrokenView: false, views };
     }
   }
