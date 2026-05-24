@@ -1,0 +1,101 @@
+/**
+ * paper-fit.ts — A4 landscape paper fit + CNS standard scale tree
+ *
+ * 規格（Step 1 + Step 2）：
+ *   - 紙張固定 A4 横式：viewBox 0 0 297 210（mm）
+ *   - 主繪圖區（drawing area）：x∈[10, 287]，y∈[24, 180]（267×156 mm）
+ *   - title bar：y∈[8, 20]
+ *   - title block：y∈[182, 202]
+ *   - 候選比例（CNS）：1 / 2 / 5 / 10 / 20
+ *   - dim chain padding：H≈35mm（水平），V≈25mm（垂直）
+ *   - 三 view（front/top/side）共用同一比例 n（取 max）
+ *   - 都不滿足 → scale=20 + needBrokenView=true
+ *
+ * Spec：partLocalToSvg 仍輸出 mm，SVG 內用 <g transform="scale(1/n)"> 包覆。
+ */
+
+import type { Part } from "@/lib/types";
+import { worldExtents } from "@/lib/render/geometry";
+
+// A4 横式紙面常數（mm）
+export const A4_PAPER = {
+  W: 297,
+  H: 210,
+  DRAW_X_LO: 10,
+  DRAW_X_HI: 287, // 287-10 = 277mm
+  DRAW_Y_LO: 24,
+  DRAW_Y_HI: 180, // 180-24 = 156mm
+  TITLE_BAR_Y_LO: 8,
+  TITLE_BAR_Y_HI: 20,
+  TITLE_BLOCK_Y_LO: 182,
+  TITLE_BLOCK_Y_HI: 202,
+} as const;
+
+// 主繪圖區可用 mm
+export const DRAW_AREA_W = A4_PAPER.DRAW_X_HI - A4_PAPER.DRAW_X_LO; // 277
+export const DRAW_AREA_H = A4_PAPER.DRAW_Y_HI - A4_PAPER.DRAW_Y_LO; // 156
+
+// dim chain padding（紙上 mm）
+export const DIM_CHAIN_PAD_H = 35; // 水平方向左右共 35mm（給 dim line + 文字）
+export const DIM_CHAIN_PAD_V = 25; // 垂直方向上下共 25mm
+
+// 實際可放 part 投影的紙上區域（扣除 dim padding）
+export const FIT_W = DRAW_AREA_W - DIM_CHAIN_PAD_H; // 242
+export const FIT_H = DRAW_AREA_H - DIM_CHAIN_PAD_V; // 131
+
+// CNS 標準比例樹（denominator）
+const SCALE_CANDIDATES = [1, 2, 5, 10, 20] as const;
+
+export type PartView = "front" | "top" | "side";
+
+/** 取某 view 在 part-local mm 下的水平/垂直 needed extent（含 rotation）。 */
+export function projectExtentForView(part: Part, view: PartView): { w: number; h: number } {
+  const we = worldExtents(part);
+  // worldExtents: xExt = world X (水平 length 軸), yExt = world Y (vertical thickness), zExt = world Z (depth/width)
+  // front view: horizontal = X, vertical = Y
+  // top view:   horizontal = X, vertical = Z
+  // side view:  horizontal = Z, vertical = Y
+  if (view === "front") return { w: we.xExt, h: we.yExt };
+  if (view === "top") return { w: we.xExt, h: we.zExt };
+  return { w: we.zExt, h: we.yExt };
+}
+
+export interface PaperFitResult {
+  scale: number;
+  needBrokenView: boolean;
+  /** 三 view 各自的 needed (w, h) — debug/工具用。 */
+  views: Record<PartView, { w: number; h: number }>;
+}
+
+/**
+ * 找到能讓三 view 同時 fit 進 FIT_W × FIT_H 的最小 CNS 比例 n。
+ * 若 1:20 仍超出，回 { scale: 20, needBrokenView: true }。
+ */
+export function pickScaleForPaper(part: Part): PaperFitResult {
+  const views = {
+    front: projectExtentForView(part, "front"),
+    top: projectExtentForView(part, "top"),
+    side: projectExtentForView(part, "side"),
+  };
+  for (const n of SCALE_CANDIDATES) {
+    const allFit = (Object.values(views) as Array<{ w: number; h: number }>).every(
+      (v) => v.w / n <= FIT_W && v.h / n <= FIT_H,
+    );
+    if (allFit) {
+      return { scale: n, needBrokenView: false, views };
+    }
+  }
+  return { scale: 20, needBrokenView: true, views };
+}
+
+/**
+ * 在 A4 紙面上，把某 view 對應的繪圖區「子矩形」回傳（mm）。
+ * 三 view 在主繪圖區裡的位置（簡化版：row 排列由 PartDrawing 安排，
+ * OrthoView 只負責自己這張紙）。本函式提供「主繪圖區中心」給 OrthoView 用。
+ */
+export function drawAreaCenter(): { cx: number; cy: number } {
+  return {
+    cx: (A4_PAPER.DRAW_X_LO + A4_PAPER.DRAW_X_HI) / 2,
+    cy: (A4_PAPER.DRAW_Y_LO + A4_PAPER.DRAW_Y_HI) / 2,
+  };
+}

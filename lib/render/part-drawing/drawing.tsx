@@ -25,6 +25,8 @@ import {
 import { InstallHintMini } from "./install-hint";
 import { rawStockSize } from "./raw-stock";
 import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
+import { pickScaleForPaper } from "./paper-fit";
+import { computeBrokenViewSpec } from "./broken-view";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -78,19 +80,12 @@ interface PartDrawingProps {
 }
 
 /**
- * 自動選比例：以最長邊 / scale 為目標 ≤ 280mm 在紙上的對應長度。
- * 候選 1 / 2 / 5 / 10 / 20 / 50，從小到大選第一個滿足的。
+ * Legacy 自動選比例（fallback）：以最長邊 / scale 為目標 ≤ 280mm。
+ * 留作 paperFitResult 內 scale denominator 的相容化計算來源。
+ * Step 2 起改用 pickScaleForPaper（A4 紙面 + 三 view max + CNS 樹）。
  */
 function pickScale(part: Part): number {
-  const max = Math.max(
-    part.visible.length,
-    part.visible.width,
-    part.visible.thickness,
-  );
-  for (const s of [1, 2, 5, 10, 20]) {
-    if (max / s <= 280) return s;
-  }
-  return 50;
+  return pickScaleForPaper(part).scale;
 }
 
 export function PartDrawing({
@@ -128,7 +123,10 @@ export function PartDrawing({
         }
       : undefined;
   const part = group.representative;
-  const scale = scaleDenom ?? pickScale(part);
+  // Step 2: 用 A4 paper-fit 比例樹（三 view max + CNS 1/2/5/10/20）。
+  // 若 caller 給 scaleDenom 走 override（測試/打印偏好）。
+  const paperFit = pickScaleForPaper(part);
+  const scale = scaleDenom ?? paperFit.scale;
   const partNo = `P-${String(index + 1).padStart(2, "0")}`;
   const titleSuffix =
     group.count > 1
@@ -203,6 +201,12 @@ export function PartDrawing({
                   : needViewportClamp
                   ? `${orthoClassName} max-h-[80vh]`
                   : orthoClassName;
+              const brokenSpec = computeBrokenViewSpec(
+                part,
+                view,
+                scale,
+                paperFit.needBrokenView,
+              );
               const orthoEl = (
                 <OrthoView
                   design={design}
@@ -213,6 +217,9 @@ export function PartDrawing({
                   showDimensions={false}
                   className={effectiveOrthoClassName}
                   noTitleInSvg={useExternalTitle}
+                  paperMode="a4-landscape"
+                  paperScale={scale}
+                  paperBroken={brokenSpec.active ? brokenSpec : null}
                   overlayContent={(ctx) => (
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />

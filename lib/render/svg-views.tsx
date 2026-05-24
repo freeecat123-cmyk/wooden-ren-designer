@@ -705,6 +705,9 @@ function OrthoViewImpl({
   showDimensions = true,
   overlayContent,
   noTitleInSvg = false,
+  paperMode,
+  paperScale,
+  paperBroken,
 }: ViewProps & {
   view: OrthoViewKind;
   title: string;
@@ -727,6 +730,18 @@ function OrthoViewImpl({
    * 在 SVG 外畫標題，避免 transform: scale(zoom) 把 SVG 內的標題字也一起放大。
    */
   noTitleInSvg?: boolean;
+  /**
+   * 零件圖正規製圖紙張模式（Step 1）。設為 "a4-landscape" 時：
+   *   - viewBox 固定 0 0 297 210（A4 横式 mm）
+   *   - silhouette + overlay 套 <g transform="translate(cx, cy) scale(1/scale)">
+   *   - paperScale denominator 由 caller（PartDrawing）算好傳進
+   * 預設 undefined → 走既有 isolatePartId 動態 padding 邏輯。
+   */
+  paperMode?: "a4-landscape";
+  /** paperMode 對應的 CNS 比例分母（pickScaleForPaper 結果）。 */
+  paperScale?: number;
+  /** paperMode + needBrokenView 時，broken view 切割參數（傳 null 不切）。 */
+  paperBroken?: import("@/lib/render/part-drawing/broken-view").BrokenViewSpec | null;
 }) {
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
@@ -877,9 +892,30 @@ function OrthoViewImpl({
       }
     : null;
 
+  // ─── Paper mode (Step 1)：A4 横式紙面 ─────────────────────────────────
+  // viewBox 固定 0 0 297 210，把既有 inner content（part-local mm）用
+  // <g transform="translate(...) scale(1/n)"> 映射到紙面主繪圖區中央。
+  // partLocalToSvg 仍輸出原 mm（不變語意），overlay 跟 silhouette 同 group。
+  const isPaper = paperMode === "a4-landscape";
+  const paperScaleN = isPaper ? Math.max(1, paperScale ?? 1) : 1;
+  const outerViewBox = isPaper
+    ? `0 0 297 210`
+    : `${vbX} ${vbY} ${vbW} ${vbH}`;
+  // 把原 inner viewBox 中心 (innerCx, innerCy) 映射到紙面主繪圖區中心
+  // (paperCx, paperCy)：translate 量 = paperC - innerC/n
+  const innerCx = vbX + vbW / 2;
+  const innerCy = vbY + vbH / 2;
+  const paperCx = (10 + 287) / 2; // 148.5
+  const paperCy = (24 + 180) / 2; // 102
+  const paperTx = paperCx - innerCx / paperScaleN;
+  const paperTy = paperCy - innerCy / paperScaleN;
+  const paperGroupTransform = isPaper
+    ? `translate(${paperTx} ${paperTy}) scale(${1 / paperScaleN})`
+    : undefined;
+
   return (
     <svg
-      viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+      viewBox={outerViewBox}
       preserveAspectRatio="xMidYMid meet"
       className={className ?? "bg-white w-full h-auto max-h-[70vh]"}
     >
@@ -902,10 +938,91 @@ function OrthoViewImpl({
         </clipPath>
       </defs>
 
+      {/* Paper mode（Step 1）：A4 紙面外框 + title bar + title block，
+          放在 scaled group **外**，這樣文字/框線不受 1/n 縮放影響。 */}
+      {isPaper && (
+        <g fontFamily="sans-serif">
+          {/* A4 紙面外框 */}
+          <rect
+            x={0.5}
+            y={0.5}
+            width={296}
+            height={209}
+            fill="none"
+            stroke="#222"
+            strokeWidth={0.5}
+          />
+          {/* Title bar 區（y 8~20） */}
+          <line
+            x1={10}
+            x2={287}
+            y1={20}
+            y2={20}
+            stroke="#222"
+            strokeWidth={0.4}
+          />
+          <text
+            x={12}
+            y={16.5}
+            fontSize={5}
+            fontWeight={700}
+            fill="#111"
+          >
+            {title}
+            <tspan dx={3} fontSize={3.5} fontWeight={400} fill="#666">
+              {titleEn}
+            </tspan>
+          </text>
+          <text
+            x={285}
+            y={16.5}
+            fontSize={4}
+            fill="#444"
+            textAnchor="end"
+          >
+            比例 1:{paperScaleN}
+          </text>
+          {/* Drawing area inner border (淺色輔助) */}
+          <rect
+            x={10}
+            y={24}
+            width={277}
+            height={156}
+            fill="none"
+            stroke="#ddd"
+            strokeWidth={0.2}
+            strokeDasharray="1 1"
+          />
+          {/* Title block 區（y 182~202） */}
+          <line
+            x1={10}
+            x2={287}
+            y1={182}
+            y2={182}
+            stroke="#222"
+            strokeWidth={0.5}
+          />
+          <rect
+            x={10}
+            y={182}
+            width={277}
+            height={20}
+            fill="none"
+            stroke="#222"
+            strokeWidth={0.4}
+          />
+        </g>
+      )}
+
+      {/* 把 inner content 包進 scaled group（paperMode 才有 transform）；
+          一般模式 transform=undefined → React 不會輸出 transform 屬性。 */}
+      <g transform={paperGroupTransform}>
+
       {/* outer frame + title bar — 預設保留；noTitleInSvg=true（PartDrawing zoom 模式）
           時整組跳過，由 caller 用 HTML 在 SVG 外畫標題，避免 transform:scale
-          連帶把這層 SVG 文字也一起放大 */}
-      {!noTitleInSvg && (
+          連帶把這層 SVG 文字也一起放大。
+          paperMode 時也跳過（紙面外框由上面 isPaper 區處理） */}
+      {!noTitleInSvg && !isPaper && (
         <>
           <rect
             x={frameX}
@@ -3260,8 +3377,9 @@ function OrthoViewImpl({
       )}
 
       {/* 比例尺：100mm 參考棒（per drafting-math.md §A3）
-          位於圖框左下角，給讀者一個視覺基準快速估其他尺寸 */}
-      {showDimensions && (
+          位於圖框左下角，給讀者一個視覺基準快速估其他尺寸。
+          paperMode 時 scale bar 已由 title block 表達，跳過。 */}
+      {showDimensions && !isPaper && (
         <g fontFamily="sans-serif" fill="#666" stroke="#666" strokeWidth={0.3}>
           {(() => {
             const sx = frameX + 14;
@@ -3286,6 +3404,8 @@ function OrthoViewImpl({
 
       {/* Phase 2: overlay slot — caller-controlled SVG over OrthoView. */}
       {overlayCtx && overlayContent && overlayContent(overlayCtx)}
+
+      </g>
     </svg>
   );
 }
