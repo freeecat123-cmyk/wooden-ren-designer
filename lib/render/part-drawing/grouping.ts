@@ -40,9 +40,11 @@ export function needsPartDrawing(part: Part): boolean {
   // 玻璃片（display-cabinet / photo-frame）：3D 不計才但下料/玻璃廠採購要列。
   if (part.visual === "glass") return true;
   // 主結構分類：case（頂底側背板）、divider（層板 / 分隔板）、drawer / door /
-  // apron / seat（slat / 椅背板）——這些就算純方料無榫也要出圖。
+  // apron / seat（slat / 椅背板）、leg（腳柱）——這些就算純方料無榫也要出圖。
+  // leg 加進來：組裝版下腳被 strip 掉 tenon/mortise 變方料,但木工仍需看尺寸/
+  // 倒角/接合位置,跟 apron 同等核心結構件。
   const cat = categorizePart(part.id);
-  if (cat === "case" || cat === "divider" || cat === "drawer" || cat === "door" || cat === "apron" || cat === "seat") {
+  if (cat === "case" || cat === "divider" || cat === "drawer" || cat === "door" || cat === "apron" || cat === "seat" || cat === "leg") {
     return true;
   }
   return false;
