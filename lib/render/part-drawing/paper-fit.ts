@@ -48,10 +48,33 @@ const SCALE_CANDIDATES = [1, 2, 5, 10, 20] as const;
 
 export type PartView = "front" | "top" | "side";
 
-/** 取某 view 在 part-local mm 下的水平/垂直 needed extent（含 rotation）。 */
+/**
+ * Isolation 模式會把 part 的長軸旋轉到 world X（橫躺正規製圖）。
+ * 此函式回傳「isolation 後」的 xExt/yExt/zExt，給 paper-fit 跟 paper-sheet
+ * 用同一套座標計算 L 佈局，避免 layout 算法跟實際渲染對不上。
+ *
+ * 對應 svg-views.tsx 內 isolation rotation 邏輯（thickness 最長 → rot.z=-π/2,
+ * width 最長 → rot.y=-π/2）。
+ */
+export function getIsolatedExtents(part: Part): { xExt: number; yExt: number; zExt: number } {
+  const L = part.visible.length;
+  const T = part.visible.thickness;
+  const W = part.visible.width;
+  // 預設（length 最長）→ xExt=L, yExt=T, zExt=W
+  let xExt = L, yExt = T, zExt = W;
+  if (T > L && T >= W) {
+    // rotation.z=-π/2: local Y → world X，local X → world -Y（swap X↔Y）
+    [xExt, yExt] = [yExt, xExt];
+  } else if (W > L && W > T) {
+    // rotation.y=-π/2: local Z → world X（swap X↔Z）
+    [xExt, zExt] = [zExt, xExt];
+  }
+  return { xExt, yExt, zExt };
+}
+
+/** 取某 view 在 isolation 旋轉後 part-local mm 下的水平/垂直 needed extent。 */
 export function projectExtentForView(part: Part, view: PartView): { w: number; h: number } {
-  const we = worldExtents(part);
-  // worldExtents: xExt = world X (水平 length 軸), yExt = world Y (vertical thickness), zExt = world Z (depth/width)
+  const we = getIsolatedExtents(part);
   // front view: horizontal = X, vertical = Y
   // top view:   horizontal = X, vertical = Z
   // side view:  horizontal = Z, vertical = Y

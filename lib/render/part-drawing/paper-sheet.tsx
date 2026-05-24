@@ -22,8 +22,7 @@
 import React from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { OrthoView } from "@/lib/render/svg-views";
-import { worldExtents } from "@/lib/render/geometry";
-import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD } from "./paper-fit";
+import { L_LAYOUT_GAP, L_LAYOUT_CHAIN_PAD, getIsolatedExtents } from "./paper-fit";
 import {
   T1Dimensions,
   T2Annotations,
@@ -67,7 +66,9 @@ export function PartDrawingPaperSheet({
   showProjectionLines = false,
   className,
 }: PaperSheetProps) {
-  const we = worldExtents(part);
+  // 用 isolation 旋轉後的 extents（跟 svg-views.tsx isolation 邏輯一致）
+  // 否則 layout 算出來的 viewport 跟實際渲染的 silhouette 對不上 → 標籤/silhouette 位置亂跑
+  const we = getIsolatedExtents(part);
   // L 佈局 silhouette 尺寸（紙上 mm）
   const fW = we.xExt / scale;
   const fH = we.yExt / scale;
