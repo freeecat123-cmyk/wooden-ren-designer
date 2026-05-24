@@ -2843,3 +2843,93 @@ export function ConnectionMarks({
     </g>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// <ChamferRoundAnnotation> — 倒角 / 圓角角度標
+//
+// 偵測 part.shape 含 chamferMm 的 shape kind（splayed / round / chamfered-top
+// / chamfered-edges / mitered-corner 等），在 silhouette 一角加 leader + 標籤
+// 「C5」(45° chamfer 5mm) 或 「R5」(rounded edge 5mm)。木工慣例優於 CAD 的
+// 「5×45°」寫法。
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ChamferInfo {
+  mm: number;
+  style: "chamfered" | "rounded";
+  source: string; // shape kind 來源
+}
+
+function extractChamfer(part: Part): ChamferInfo | null {
+  const s = part.shape;
+  if (!s) return null;
+  switch (s.kind) {
+    case "splayed":
+    case "round": {
+      const mm = s.chamferMm ?? 0;
+      if (mm <= 0) return null;
+      return { mm, style: s.chamferStyle ?? "chamfered", source: s.kind };
+    }
+    case "chamfered-top":
+    case "chamfered-edges":
+      if (s.chamferMm <= 0) return null;
+      return { mm: s.chamferMm, style: s.style ?? "chamfered", source: s.kind };
+    case "mitered-corner": {
+      const mm = s.chamferMm ?? 0;
+      if (mm <= 0) return null;
+      return { mm, style: "chamfered", source: "mitered-corner" };
+    }
+    default:
+      return null;
+  }
+}
+
+export function ChamferRoundAnnotation({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  const info = extractChamfer(part);
+  if (!info) return null;
+  // 只在 front view 標一次（避免三 view 重複）
+  if (view !== "front") return null;
+
+  // 找 part 在 view 內的右上角，放 leader 朝右上斜出去 + 標籤
+  const lx = part.visible.length;
+  const ly = part.visible.thickness;
+  const lz = part.visible.width;
+  const corner = ctx.partLocalToSvg(lx / 2, ly / 2, lz / 2);
+  const leaderEndX = corner.x + 22;
+  const leaderEndY = corner.y - 14;
+  const label = info.style === "rounded"
+    ? `R${Math.round(info.mm)}`
+    : `C${Math.round(info.mm)}`;
+
+  return (
+    <g className="chamfer-annotation">
+      {/* Leader 細線從倒角角落往外斜引出 */}
+      <line
+        x1={corner.x - 2}
+        y1={corner.y + 2}
+        x2={leaderEndX}
+        y2={leaderEndY}
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      {/* 標籤 */}
+      <text
+        x={leaderEndX + 2}
+        y={leaderEndY + 3}
+        fontSize={10}
+        fill="#111"
+        fontFamily="sans-serif"
+        fontWeight={600}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}

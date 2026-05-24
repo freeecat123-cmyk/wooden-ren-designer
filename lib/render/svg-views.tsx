@@ -1001,6 +1001,96 @@ function OrthoViewImpl({
             strokeWidth={0.2}
             strokeDasharray="1 1"
           />
+
+          {/* 比例尺條 — 實體 50mm 真實長度，按比例縮畫
+              印 1:1 時影印縮放仍能對照真實尺寸 */}
+          {(() => {
+            const realMm = 50;
+            const barMm = realMm / paperScaleN; // 紙上 mm
+            if (barMm < 4 || barMm > 60) return null;
+            const barX = 200;
+            const barY = 178;
+            return (
+              <g fontFamily="sans-serif">
+                {/* 主刻度線 5 分 */}
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <line
+                    key={i}
+                    x1={barX + (barMm * i) / 5}
+                    x2={barX + (barMm * i) / 5}
+                    y1={barY - (i % 5 === 0 ? 2 : 1)}
+                    y2={barY}
+                    stroke="#222"
+                    strokeWidth={0.3}
+                  />
+                ))}
+                {/* 主橫條 */}
+                <line
+                  x1={barX}
+                  x2={barX + barMm}
+                  y1={barY}
+                  y2={barY}
+                  stroke="#222"
+                  strokeWidth={0.4}
+                />
+                <text x={barX} y={barY + 4} fontSize={2.8} fill="#444">
+                  0
+                </text>
+                <text
+                  x={barX + barMm}
+                  y={barY + 4}
+                  fontSize={2.8}
+                  fill="#444"
+                  textAnchor="end"
+                >
+                  {realMm}mm
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* 第三角法投影符號（CNS / JIS / ASME 慣例）
+              兩塊：左 = 圓+同心小圓（從圓錐大端看）、右 = 梯形（側面看）
+              木工不一定需要，但符合製圖規範，學員教學/正式圖紙都該有 */}
+          {(() => {
+            const sx = 168;
+            const sy = 184;
+            const w = 6;
+            return (
+              <g fontFamily="sans-serif">
+                {/* 左方塊：兩個同心圓 */}
+                <circle
+                  cx={sx + w / 2}
+                  cy={sy + 6}
+                  r={2.5}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                <circle
+                  cx={sx + w / 2}
+                  cy={sy + 6}
+                  r={1.2}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                {/* 右方塊：梯形 */}
+                <path
+                  d={`M ${sx + w + 1} ${sy + 8.5}
+                      L ${sx + w + 1} ${sy + 3.5}
+                      L ${sx + w + 6} ${sy + 4.5}
+                      L ${sx + w + 6} ${sy + 7.5} Z`}
+                  fill="none"
+                  stroke="#333"
+                  strokeWidth={0.3}
+                />
+                <text x={sx} y={sy + 2.5} fontSize={2.4} fill="#666">
+                  第三角法
+                </text>
+              </g>
+            );
+          })()}
           {/* Title block 區（y 182~202）— CNS 六大必備欄位
               寬 277mm 分 6 等：每格 ~46mm（件號/件名/材料/數量/比例/尺寸）*/}
           <line
