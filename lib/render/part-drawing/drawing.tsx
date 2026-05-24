@@ -30,6 +30,7 @@ import { rawStockSize } from "./raw-stock";
 import { inferProcessSteps, inferTableSawSetting } from "./process-steps";
 import { pickScaleForPaper } from "./paper-fit";
 import { computeBrokenViewSpec } from "./broken-view";
+import { PartDrawingPaperSheet } from "./paper-sheet";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -163,8 +164,24 @@ export function PartDrawing({
         </span>
       </div>
 
-      {/* 3 views layout：row / stack / singleView。 */}
-      {(() => {
+      {/* 3 views layout：
+            - row（預設）→ 1 張 A4 + L 型 3 view（CNS/JIS 第三角法慣例）
+            - stack → 3 張獨立 A4 垂直疊（modal 全螢幕模式仍可放大單 view 看細節）
+            - singleView → 單 view 模式
+       */}
+      {!singleView && viewLayout !== "stack" ? (
+        <PartDrawingPaperSheet
+          design={design}
+          part={part}
+          partNo={partNo}
+          count={Math.min(group.count, 99)}
+          scale={scale}
+          materialLabel={material?.nameZh ?? part.material}
+          dimsLabel={`${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`}
+          title={part.nameZh}
+          className="bg-white w-full h-auto"
+        />
+      ) : (() => {
         const VIEWS: Array<{ view: PartView; title: string; titleEn: string }> = [
           { view: "front", title: "正視", titleEn: "FRONT" },
           { view: "top", title: "俯視", titleEn: "TOP" },

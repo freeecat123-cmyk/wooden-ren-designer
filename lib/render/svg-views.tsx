@@ -709,6 +709,9 @@ function OrthoViewImpl({
   paperScale,
   paperBroken,
   paperTitleBlock,
+  paperViewport,
+  paperFrame = true,
+  embedded = false,
 }: ViewProps & {
   view: OrthoViewKind;
   title: string;
@@ -750,6 +753,15 @@ function OrthoViewImpl({
     materialLabel: string;
     dimsLabel: string; // e.g. "35×35×425"
   };
+  /** paperMode 自訂 viewport 中心（A4 mm 座標）。
+   *  L 型佈局時 PaperSheet wrapper 用這個把 3 個 view 放到不同位置。
+   *  傳 undefined → 預設置中於 drawing area 中央。 */
+  paperViewport?: { x: number; y: number; w: number; h: number };
+  /** 是否渲染 A4 紙面 chrome（外框/標題列/標題欄/比例尺/投影符號）。
+   *  L 型 PaperSheet 已自繪 chrome,3 個內嵌 view 該設 false。預設 true。 */
+  paperFrame?: boolean;
+  /** 是否回 <g> 而非 <svg>，給 PaperSheet 多 view 共用同一 outer SVG。 */
+  embedded?: boolean;
 }) {
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
@@ -909,24 +921,38 @@ function OrthoViewImpl({
   const outerViewBox = isPaper
     ? `0 0 297 210`
     : `${vbX} ${vbY} ${vbW} ${vbH}`;
-  // 把原 inner viewBox 中心 (innerCx, innerCy) 映射到紙面主繪圖區中心
+  // 把原 inner viewBox 中心 (innerCx, innerCy) 映射到紙面 viewport 中心
   // (paperCx, paperCy)：translate 量 = paperC - innerC/n
+  // paperViewport 設定時用該 region 中心,否則用 drawing area 中央
   const innerCx = vbX + vbW / 2;
   const innerCy = vbY + vbH / 2;
-  const paperCx = (10 + 287) / 2; // 148.5
-  const paperCy = (24 + 180) / 2; // 102
+  const paperCx = paperViewport
+    ? paperViewport.x + paperViewport.w / 2
+    : (10 + 287) / 2; // 148.5
+  const paperCy = paperViewport
+    ? paperViewport.y + paperViewport.h / 2
+    : (24 + 180) / 2; // 102
   const paperTx = paperCx - innerCx / paperScaleN;
   const paperTy = paperCy - innerCy / paperScaleN;
   const paperGroupTransform = isPaper
     ? `translate(${paperTx} ${paperTy}) scale(${1 / paperScaleN})`
     : undefined;
 
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    embedded ? (
+      <g>{children}</g>
+    ) : (
+      <svg
+        viewBox={outerViewBox}
+        preserveAspectRatio="xMidYMid meet"
+        className={className ?? "bg-white w-full h-auto max-h-[70vh]"}
+      >
+        {children}
+      </svg>
+    );
+
   return (
-    <svg
-      viewBox={outerViewBox}
-      preserveAspectRatio="xMidYMid meet"
-      className={className ?? "bg-white w-full h-auto max-h-[70vh]"}
-    >
+    <Wrapper>
       <defs>
         <marker
           id={`arr-${view}`}
@@ -947,8 +973,9 @@ function OrthoViewImpl({
       </defs>
 
       {/* Paper mode（Step 1）：A4 紙面外框 + title bar + title block，
-          放在 scaled group **外**，這樣文字/框線不受 1/n 縮放影響。 */}
-      {isPaper && (
+          放在 scaled group **外**，這樣文字/框線不受 1/n 縮放影響。
+          paperFrame=false（L 型 PaperSheet wrap 已自繪 chrome 時）跳過。 */}
+      {isPaper && paperFrame && (
         <g fontFamily="sans-serif">
           {/* A4 紙面外框 */}
           <rect
@@ -3629,7 +3656,7 @@ function OrthoViewImpl({
       })()}
 
       </g>
-    </svg>
+    </Wrapper>
   );
 }
 
