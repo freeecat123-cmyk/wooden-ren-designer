@@ -2093,24 +2093,8 @@ function OrthoViewImpl({
           const poly = projectPartPolygon(part, view, polyAllParts);
           const points = poly.map((p) => `${p.x.toFixed(2)},${(-p.y).toFixed(2)}`).join(" ");
           const extras: React.ReactNode[] = [];
-          // Splayed top view: also draw the shifted bottom footprint so you
-          // can see how far the foot lands from directly below the head.
-          if (part.shape?.kind === "splayed" && view === "top") {
-            const r = projectPart(part, view);
-            extras.push(
-              <rect
-                key={`${part.id}-foot`}
-                x={r.x + -part.shape.dxMm}
-                y={-(r.y + r.h) - part.shape.dzMm}
-                width={r.w}
-                height={r.h}
-                fill="none"
-                stroke="#888"
-                strokeWidth={0.4}
-                strokeDasharray="3 3"
-              />,
-            );
-          }
+          // Splayed top view: projectPartPolygon 現在已直接回 union outline
+          // （頂面 + 底面偏移的凸包六邊形），不再需要另畫 footprint dashed rect。
           // Arch-bent 側視：在未彎時的端面後緣多畫一條垂直實線，標示
           // 端面（cross-section）邊界——讓看圖的人分得出料的真實厚度 vs 彎弧延伸
           if (part.shape?.kind === "arch-bent" && view === "side") {

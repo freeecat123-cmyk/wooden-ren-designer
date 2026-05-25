@@ -69,6 +69,27 @@ export function getIsolatedExtents(part: Part): { xExt: number; yExt: number; zE
     // rotation.y=-π/2: local Z → world X（swap X↔Z）
     [xExt, zExt] = [zExt, xExt];
   }
+  // splay extension：splayed* shape 底面相對頂面有 dxMm/dzMm 偏移，
+  // silhouette 會延伸到 box bbox 之外（平行四邊形/梯形端面斜伸）。
+  // paper-fit 不補的話 viewport 會撐爆相鄰 view。
+  // 簡化：用「軸對齐 upper bound」三軸都加 max(|dx|,|dz|)，
+  // 避免在 isolation rotation 後算錯軸別（rotation 可能把 dx 映到任一軸）。
+  const sh = part.shape as { kind?: string; dxMm?: number; dzMm?: number } | undefined;
+  if (
+    sh &&
+    (sh.kind === "splayed" ||
+      sh.kind === "splayed-tapered" ||
+      sh.kind === "splayed-round-tapered")
+  ) {
+    const dx = Math.abs(sh.dxMm ?? 0);
+    const dz = Math.abs(sh.dzMm ?? 0);
+    const splayMax = Math.max(dx, dz);
+    if (splayMax > 0) {
+      xExt += splayMax;
+      yExt += splayMax;
+      zExt += splayMax;
+    }
+  }
   return { xExt, yExt, zExt };
 }
 

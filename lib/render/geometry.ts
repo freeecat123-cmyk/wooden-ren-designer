@@ -635,7 +635,63 @@ export function projectPartPolygon(
   }
 
   if (part.shape.kind === "splayed") {
-    if (view === "top") return box;
+    const hasRot =
+      (part.rotation?.x ?? 0) !== 0 ||
+      (part.rotation?.y ?? 0) !== 0 ||
+      (part.rotation?.z ?? 0) !== 0;
+    if (view === "top" && hasRot) {
+      // 零件圖橫躺：local splay 經 rotation 後軸別變，delegate 給 silhouette
+      return projectPartSilhouette(part, view);
+    }
+    if (view === "top") {
+      // 俯視：頂面 box + 底面偏移 (Dx, Dy) 的聯合輪廓。
+      // box 軸別：x = world -X（mirror）, y = world Z。
+      // dxMm = world +X 底偏移 → polygon -dxMm
+      // dzMm = world +Z 底偏移 → polygon +dzMm
+      const Dx = -(part.shape.dxMm ?? 0);
+      const Dy = part.shape.dzMm ?? 0;
+      if (Dx === 0 && Dy === 0) return box;
+      // 8 corners (top face + shifted bottom face)，convex hull → 平行四邊形/六邊形。
+      const corners = [
+        { x: r.x, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y + r.h },
+        { x: r.x + r.w, y: r.y },
+        { x: r.x, y: r.y },
+        { x: r.x + Dx, y: r.y + r.h + Dy },
+        { x: r.x + r.w + Dx, y: r.y + r.h + Dy },
+        { x: r.x + r.w + Dx, y: r.y + Dy },
+        { x: r.x + Dx, y: r.y + Dy },
+      ];
+      // Andrew's monotone chain convex hull
+      const pts = corners.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+      const cross = (
+        o: { x: number; y: number },
+        a: { x: number; y: number },
+        b: { x: number; y: number },
+      ) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+      const lower: Array<{ x: number; y: number }> = [];
+      for (const p of pts) {
+        while (
+          lower.length >= 2 &&
+          cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+        )
+          lower.pop();
+        lower.push(p);
+      }
+      const upper: Array<{ x: number; y: number }> = [];
+      for (let i = pts.length - 1; i >= 0; i--) {
+        const p = pts[i];
+        while (
+          upper.length >= 2 &&
+          cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+        )
+          upper.pop();
+        upper.push(p);
+      }
+      upper.pop();
+      lower.pop();
+      return lower.concat(upper);
+    }
     // 旋轉的 splayed part（零件圖橫躺）── 原本 hardcoded 路徑把 offset 套在
     // r.h 軸,等於把 30mm 偏移擠進 35mm cross-section 高度,slant 變 40° 暴斜。
     // 改 delegate 給 projectPartSilhouette,讓它跑 local-frame 變形 + rotation
