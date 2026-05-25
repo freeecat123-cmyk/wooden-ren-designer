@@ -258,6 +258,10 @@ type PartProps = {
   isHovered?: boolean;
   isDimmed?: boolean;
   wireframe?: boolean;
+  /** 開啟 polygon offset，把這個 mesh 的深度往前推一格、避開跟其他共平面 mesh
+   * 的 z-fight。目前只用在紅酒架菱形對角板（pointed-ends 兩 wedge 面剛好落在
+   * 框內側面平面上、否則 solid view 會閃動）。 */
+  polygonOffset?: boolean;
 };
 
 // React.memo 比較器：父元件 render 時 size/position/rotation 都是新 array
@@ -270,6 +274,7 @@ function arePartPropsEqual(a: PartProps, b: PartProps): boolean {
   if (a.grainDirection !== b.grainDirection) return false;
   if (a.isSelected !== b.isSelected || a.isHovered !== b.isHovered) return false;
   if (a.isDimmed !== b.isDimmed || a.wireframe !== b.wireframe) return false;
+  if (a.polygonOffset !== b.polygonOffset) return false;
   if (a.position[0] !== b.position[0] || a.position[1] !== b.position[1] || a.position[2] !== b.position[2]) return false;
   if (a.size[0] !== b.size[0] || a.size[1] !== b.size[1] || a.size[2] !== b.size[2]) return false;
   if (a.rotation.x !== b.rotation.x || a.rotation.y !== b.rotation.y || a.rotation.z !== b.rotation.z) return false;
@@ -306,6 +311,7 @@ const Part = memo(function PartInner({
   isHovered,
   isDimmed,
   wireframe,
+  polygonOffset,
 }: PartProps) {
   // 高亮配色（選中：amber-400 emissive 強；hover：同色但弱，預覽用）
   const HIGHLIGHT_EMISSIVE = "#fbbf24";
@@ -397,6 +403,42 @@ const Part = memo(function PartInner({
   //  → 不會畫三角形對角線）
   const edgesGeometry = useMemo(() => {
     if (!wireframe) return null;
+    // ⭐ pointed-ends 特例：六角柱的「±X tip」兩條 Z 方向 side edge 在紅酒架
+    // 菱形 lattice 用 Rz(π/4) 後落在框內側面 plane 上、wireframe 看像「對角板
+    // tip line 從框前緣穿到後緣」（這是 line-in-coplanar-face 視錯覺、非真穿透）。
+    // polygonOffset 在 WebGL line spec 不適用（GL_POLYGON_OFFSET_LINE 沒在 WebGL）。
+    // → 自建 edges：保留 hex 12 outline edge + 4 條 non-tip side edge，
+    //    skip 兩條 tip side edge (i=0 / i=3)。三視圖 / STL / silhouette 不受影響。
+    if (shape?.kind === "pointed-ends") {
+      const hx = sx / 2, hy = sy / 2, hz = sz / 2;
+      const inset = Math.min(hy, hx * 0.999);
+      const front: Array<[number, number, number]> = [
+        [hx, 0, hz],
+        [hx - inset, hy, hz],
+        [-hx + inset, hy, hz],
+        [-hx, 0, hz],
+        [-hx + inset, -hy, hz],
+        [hx - inset, -hy, hz],
+      ];
+      const back: Array<[number, number, number]> = front.map(([x, y]) => [x, y, -hz]);
+      const positions: number[] = [];
+      const push = (a: [number, number, number], b: [number, number, number]) => {
+        positions.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+      };
+      // 12 條 hex outline edge (front + back 各 6 條)
+      for (let i = 0; i < 6; i++) {
+        push(front[i], front[(i + 1) % 6]);
+        push(back[i], back[(i + 1) % 6]);
+      }
+      // 6 條 z 方向 side edge — skip ±X tip 那兩條 (i=0 +X tip / i=3 -X tip)
+      for (let i = 0; i < 6; i++) {
+        if (i === 0 || i === 3) continue;
+        push(front[i], back[i]);
+      }
+      const eg = new BufferGeometry();
+      eg.setAttribute("position", new Float32BufferAttribute(positions, 3));
+      return eg;
+    }
     // 線框直接用 pre-CSG geometry（box / tapered / cylinder 原型），
     // 不抽 csgGeometry 因 CSG 切出的小三角網狀沒有 clean shared edges
     // → 對角線消不掉。線框是「結構輪廓」視圖，榫眼挖洞細節不需要顯示。
@@ -548,6 +590,9 @@ const Part = memo(function PartInner({
         depthWrite={!isDimmed && !wireframe}
         emissive={isHighlighted ? HIGHLIGHT_EMISSIVE : "#000000"}
         emissiveIntensity={highlightIntensity}
+        polygonOffset={polygonOffset}
+        polygonOffsetFactor={polygonOffset ? 1 : 0}
+        polygonOffsetUnits={polygonOffset ? 1 : 0}
       />
     </mesh>
   );
@@ -1164,6 +1209,11 @@ export function PerspectiveView({
               depthMm: part.shape.depthMm * SCALE,
               chamferMm: part.shape.chamferMm ? part.shape.chamferMm * SCALE : undefined,
             };
+          } else if (part.shape?.kind === "pointed-ends") {
+            // 純 kind tag、沒 mm-scaled params；passthrough 讓 Part 的
+            // edgesGeometry useMemo 內早 return 分支抓得到、跳 ±X tip 兩條
+            // z 軸 side edge（紅酒架菱形 lattice wireframe 不進框關鍵）。
+            shape = { kind: "pointed-ends" };
           }
           // joineryMode：每個 tenon 凸出當小盒子畫，用 part 的 rotation +
           // tenon local center（含 offset）算 world position；box 跟 part 同
@@ -1769,6 +1819,7 @@ export function PerspectiveView({
                 isHovered={isHovered}
                 isDimmed={isDimmed}
                 wireframe={wireframeMode}
+                polygonOffset={part.id.startsWith("diamond-")}
               />
               {tenonMeshes}
               {auditOverlay}

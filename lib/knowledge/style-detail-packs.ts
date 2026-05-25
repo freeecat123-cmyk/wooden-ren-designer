@@ -431,7 +431,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 25,
       "bottleOrientation": "horizontal",
-      "withGlassRack": true,
       "withPullOutDrawer": false
     },
     "coat-rack": {
@@ -893,7 +892,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "horizontal",
-      "withGlassRack": true,
       "withPullOutDrawer": true
     },
     "coat-rack": {
@@ -1268,7 +1266,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "horizontal",
-      "withGlassRack": true,
       "withPullOutDrawer": false
     },
     "coat-rack": {
@@ -1653,7 +1650,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 18,
       "bottleOrientation": "upright",
-      "withGlassRack": false,
       "withPullOutDrawer": false
     },
     "coat-rack": {
@@ -2085,7 +2081,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 14,
       "bottleOrientation": "upright",
-      "withGlassRack": false,
       "withPullOutDrawer": false
     },
     "coat-rack": {
@@ -2490,7 +2485,6 @@ export const STYLE_DETAIL_PACKS: Record<string, Record<string, Record<string, st
       "bottleDiameter": 80,
       "panelThickness": 22,
       "bottleOrientation": "upright",
-      "withGlassRack": true,
       "withPullOutDrawer": false
     },
     "coat-rack": {

@@ -8,6 +8,27 @@ import { useRouter, useSearchParams } from "next/navigation";
 const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode", "designerMode", "ui", "lidLift", "style", "styleVariant"];
 
 /**
+ * Preset → 自動同步 sibling input 值的映射表。
+ *
+ * 場景：紅酒架的「瓶型」select 選 bordeaux/burgundy/... 時，下面「瓶身直徑」
+ * slider 應該自動跳到該 preset 對應的數字、視覺跟實際算保持一致。
+ * builder 端（lib/templates/wine-rack.ts）會強制套 preset 的 bd，但 UI 上
+ * slider 不同步使用者會看到「slider=80 但實際算 76」的視覺欺騙。
+ *
+ * 表結構：{ [select.name]: { [select.value]: { [target.name]: targetValue } } }
+ * - select 變更時查表、找到對應 target name → 用 querySelector 改 input.value
+ * - "custom" / 表上沒列的 value = 不同步、user 的 slider 值留著
+ */
+const PRESET_INPUT_SYNC: Record<string, Record<string, Record<string, string>>> = {
+  bottleType: {
+    bordeaux: { bottleDiameter: "75" },
+    burgundy: { bottleDiameter: "80" },
+    champagne: { bottleDiameter: "90" },
+    magnum: { bottleDiameter: "105" },
+  },
+};
+
+/**
  * 設計頁表單的 client-side 外殼。
  *
  * 為什麼需要：原本 ParameterForm 用「改數字 → 按重新生成」方式更新設計，
@@ -71,6 +92,24 @@ export function DesignFormShell({
   const handleChange = useCallback((e: React.ChangeEvent<HTMLFormElement>) => {
     clearTimeout(timerRef.current);
     const target = e.target;
+    // Preset → sibling input 自動同步（紅酒架 bottleType → bottleDiameter）
+    if (
+      target instanceof HTMLSelectElement &&
+      PRESET_INPUT_SYNC[target.name] &&
+      PRESET_INPUT_SYNC[target.name][target.value]
+    ) {
+      const syncMap = PRESET_INPUT_SYNC[target.name][target.value];
+      for (const [targetKey, targetVal] of Object.entries(syncMap)) {
+        const targetInput = formRef.current?.querySelector<HTMLInputElement>(
+          `input[name="${targetKey}"]`,
+        );
+        if (targetInput && targetInput.value !== targetVal) {
+          targetInput.value = targetVal;
+          // 觸發 input event 讓 React controlled-component listener（若有）跟上
+          targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    }
     // 數字 input：區分 spinner ▲▼ 點擊 vs 鍵盤輸入。
     // - 鍵盤輸入：InputEvent.inputType = "insertText" / "deleteContentBackward" 等
     // - spinner 點擊：inputType 為 ""（empty string）

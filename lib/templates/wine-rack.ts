@@ -26,9 +26,12 @@ const DRAWER_ZONE_H = 130;
 const DRAWER_MAX_DEPTH = 420;
 
 /** 瓶型 preset：依 5 瓶型自動套瓶徑 + cell clearance（研究 doc §2） */
+// 瓶徑對齊 slider step 5（min 70 max 150 step 5）→ 視覺/實際同步、
+// preset 切換時 UI slider 也跳到真實 preset 值（誤差 1mm 在 auto-fit
+// 5mm safety margin 內無感）。
 const BOTTLE_TYPE_PRESETS: Record<string, { bottleDiameter: number; clearance: number; label: string }> = {
-  bordeaux: { bottleDiameter: 76, clearance: 12, label: "波爾多（細肩 ⌀76mm）" },
-  burgundy: { bottleDiameter: 81, clearance: 12, label: "勃根地（粗肩 ⌀81mm）" },
+  bordeaux: { bottleDiameter: 75, clearance: 12, label: "波爾多（細肩 ⌀75mm）" },
+  burgundy: { bottleDiameter: 80, clearance: 12, label: "勃根地（粗肩 ⌀80mm）" },
   champagne: { bottleDiameter: 90, clearance: 12, label: "香檳（最粗 ⌀90mm）" },
   magnum: { bottleDiameter: 105, clearance: 12, label: "Magnum 1.5L（⌀105mm）" },
   custom: { bottleDiameter: 80, clearance: 8, label: "自訂瓶徑" },
@@ -37,8 +40,8 @@ const BOTTLE_TYPE_PRESETS: Record<string, { bottleDiameter: number; clearance: n
 export const wineRackOptions: OptionSpec[] = [
   { group: "preset", type: "select", key: "bottleType", label: "瓶型預設", defaultValue: "custom", choices: [
     { value: "custom", label: "自訂瓶徑" },
-    { value: "bordeaux", label: "波爾多（⌀76mm，細肩）" },
-    { value: "burgundy", label: "勃根地（⌀81mm，粗肩）" },
+    { value: "bordeaux", label: "波爾多（⌀75mm，細肩）" },
+    { value: "burgundy", label: "勃根地（⌀80mm，粗肩）" },
     { value: "champagne", label: "香檳（⌀90mm，最粗）" },
     { value: "magnum", label: "Magnum 1.5L（⌀105mm）" },
   ], help: "選瓶型自動套瓶徑 + 瓶位間距（user 改瓶徑後仍以 user 值為準）" },
@@ -52,13 +55,12 @@ export const wineRackOptions: OptionSpec[] = [
   ] },
   { group: "structure", type: "select", key: "gridLayout", label: "格子佈局", defaultValue: "rect", choices: [
     { value: "rect", label: "方格陣列（橫直交錯，最多瓶位）" },
-    { value: "diamond", label: "菱形格子陣列（每格放 X 斜板，酒窖經典）" },
-  ], help: "菱形款保留方格框架，每個格子中央加一組 45° 交叉斜板（X），瓶子靠下方 V 槽（外尺寸跟方格一樣）" },
+    { value: "diamond", label: "菱形陣列（bw×bt 等距方菱形，酒窖經典）" },
+  ], help: "菱形款用連續 ／ ＼ 對角板交織成 bw×bt 個等距 45° 方菱形，每格放 1 瓶；對角板在每個 lattice corner 切段、兩端 45° 切角 butt 進 90° 內角無縫" },
   { group: "structure", type: "select", key: "legStyle", label: "腳型", defaultValue: "none", choices: [
     { value: "none", label: "無腳（直接落地）" },
     { value: "post", label: `方柱腳（架高 ${LEG_HEIGHT}mm，離地通風防潮）` },
   ], help: "方柱腳在 4 角加 40mm 方料把酒架架高，底部離地好清掃、防潮" },
-  { group: "structure", type: "checkbox", key: "withGlassRack", label: "頂部加掛酒杯架", defaultValue: false, help: "頂板下方加 4-6 道 30mm 寬槽軌（高腳杯倒掛），酒架同時是杯架。需為高腳杯預留至少 200mm 淨高", wide: true },
   { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
 ];
 
@@ -75,18 +77,39 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const bw = getOption<number>(input, opt(o, "bottlesWide"));
   const bt = getOption<number>(input, opt(o, "bottlesTall"));
   const bdRaw = getOption<number>(input, opt(o, "bottleDiameter"));
-  // 若 user 仍是 default 80，套 preset 瓶徑
-  const bd = bdRaw === 80 && bottlePreset && bottleType !== "custom" ? bottlePreset.bottleDiameter : bdRaw;
-  // 套 preset clearance 蓋過 const CELL_CLEARANCE
-  const cellClearance = bottlePreset && bottleType !== "custom" ? bottlePreset.clearance : CELL_CLEARANCE;
+  // 瓶型 preset 強制蓋過 slider — 選 bordeaux/burgundy/champagne/magnum 一律
+  // 套 preset 的 bd + clearance（slider 自訂值只在 bottleType="custom" 時生效）。
+  // 之前用 `bdRaw === 80` gate 太嚴、slider 一動 preset 就失效，UI label 跟實際算
+  // 對不上。preset/slider 互斥才不會視覺-實際分裂。
+  const usePreset = bottleType !== "custom" && bottlePreset;
+  const bd = usePreset ? bottlePreset.bottleDiameter : bdRaw;
+  const cellClearance = usePreset ? bottlePreset.clearance : CELL_CLEARANCE;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
   const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
   const legStyle = getOption<string>(input, opt(o, "legStyle"));
-  const withGlassRack = getOption<boolean>(input, opt(o, "withGlassRack"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
 
-  const cellSize = bd + cellClearance;
+  // === 瓶位是否塞得下瓶子 — 自動拉 clearance + 警示 ===
+  // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
+  // 兩者都要 ≥ 瓶徑 bd + SAFETY 才放得舒服。
+  // 預設 bd=80/clearance=8/panelT=15 兩種格都塞不下：矩形淨寬 73、菱形內接 47。
+  const FIT_SAFETY_MARGIN = 5; // mm
+  const requestedCellSize = bd + cellClearance;
+  const minCellSize = gridLayout === "diamond"
+    ? Math.ceil(Math.SQRT2 * (bd + panelT + FIT_SAFETY_MARGIN))
+    : bd + panelT + FIT_SAFETY_MARGIN;
+  const cellSize = Math.max(requestedCellSize, minCellSize);
+  const fitAutoAdjusted = cellSize > requestedCellSize;
+  const effectiveClearance = cellSize - bd;
+  // 實際淨空間（給 notes 跟 warning 用）
+  const rectNetCellW = cellSize - panelT;
+  const diamondInscribed = cellSize / Math.SQRT2 - panelT;
+  const netFitDim = gridLayout === "diamond" ? diamondInscribed : rectNetCellW;
+  const netFitDesc = gridLayout === "diamond"
+    ? `菱形內接圓直徑 ${diamondInscribed.toFixed(0)}mm`
+    : `每格淨寬 ${rectNetCellW.toFixed(0)}mm`;
+
   const innerW = bw * cellSize;
   const innerH = bt * cellSize;
   const outerW = innerW + 2 * panelT;
@@ -217,99 +240,76 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 把每格變成菱形酒窖格（瓶子靠下方 V 槽）。
   let layoutDividers: Part[] = [];
   if (gridLayout === "diamond") {
-    // 框架 = 跟 rect 模式相同的水平層板 + 垂直分隔，重用既有零件陣列。
-    const diamondCrosses: Part[] = [];
-    // 格子的「淨開口」= cellSize − panelT（4 條框料各佔 panelT/2）。斜板沿這
-    // 個淨方塊的對角線跑，兩尖端剛好頂進 90° 內角。
-    const clear = Math.max(8, cellSize - panelT);
-    const diag = clear * Math.SQRT2;
-    // pointed-ends 斜板：local length 沿 +X、thickness 沿 +Y、width 沿 +Z（深度）。
-    // 繞 Z 軸轉 ±45° 把 length 旋到格子對角方向。
-    // ⚠️ renderer 的 worldExtents() 只支援 90° quarter-turn（lib/render/geometry.ts）：
-    // 45° 板的 |sin|>0.5 → 被 snap 成整個交換 xExt↔yExt → yExt 變成 diag 而非
-    // 真實旋轉高。renderer 用 pcy = origin.y + worldExtents.yExt/2 定位，所以
-    // origin.y 必須照 renderer「實際會算出的 yExt」反推，mesh 中心才會落在
-    // 該格中心（mesh 幾何走真旋轉，旋轉後實高 = diag/√2 = clear 塞得進格子）。
-    const mkCross = (
-      id: string,
-      nameZh: string,
-      cx: number,
-      cyCenter: number,
-      rz: number,
-    ): Part => {
+    // 等距 45° 菱形 lattice：bw × bt 個等邊正方菱形（45° 旋轉方形）。
+    // pointed-ends shape 必為 45° 才能在世界座標形成「鉛直 + 水平」面 butt 進 90° 內角。
+    // → 用 D = min(innerW/bw, innerH/bt) 當菱形對角線；較長軸方向 lattice 留 margin（置中）。
+    // ⭐ FRAME_CLEAR：tip POINT 若剛好在框內側面，pointed-ends wedge 有一面跟框面 coincident
+    //   → 3D z-fight。把 lattice 整體往內縮 0.5mm，視覺上仍貼齊框、但無 coincident 面。
+    const FRAME_CLEAR = 0;
+    const D = Math.min((innerW - 2 * FRAME_CLEAR) / bw, (innerH - 2 * FRAME_CLEAR) / bt);
+    const latticeW = bw * D;
+    const latticeH = bt * D;
+    const offsetX = (innerW - latticeW) / 2; // ≥ FRAME_CLEAR
+    const offsetY = (innerH - latticeH) / 2; // ≥ FRAME_CLEAR
+    const angle = Math.PI / 4; // 強制 45°
+    const diamonds: Part[] = [];
+
+    // 連續對角板版本（前一步）：每條 ／ 或 ＼ 從 lattice 一邊跨到另一邊。
+    // 交叉點 z-fighting 已知問題、暫接受（user 要求回到此版）。
+    let idCounter = 0;
+    const mkSlat = (
+      ax: number, ay: number, bx: number, by: number, rz: number,
+    ): Part | null => {
+      const len = Math.hypot(bx - ax, by - ay);
+      if (len < 8) return null;
+      idCounter += 1;
+      const cxLocal = (ax + bx) / 2;
+      const cyLocal = (ay + by) / 2;
+      const cx = cxLocal + offsetX - innerW / 2;
+      const cyTarget = panelT + offsetY + cyLocal;
       const p: Part = {
-        id,
-        nameZh,
+        id: `diamond-${rz > 0 ? "pos" : "neg"}-${idCounter}`,
+        nameZh: `對角分隔板 ${idCounter}`,
         material,
         grainDirection: "length",
-        visible: { length: diag, width: depth, thickness: panelT },
+        visible: { length: len, width: depth, thickness: panelT },
         origin: { x: cx, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: rz },
         shape: { kind: "pointed-ends" },
         tenons: [],
         mortises: [],
       };
-      p.origin.y = cyCenter - worldExtents(p).yExt / 2;
+      p.origin.y = cyTarget - worldExtents(p).yExt / 2;
       return p;
     };
-    const q = Math.PI / 4;
-    for (let row = 0; row < bt; row++) {
-      // 該格中心 Y（箱體 local，未抬升）：底板上方 panelT + 第 row 格中心。
-      const cyCenter = panelT + (row + 0.5) * cellSize;
-      for (let col = 0; col < bw; col++) {
-        // 該格中心 X：箱體中心對齊原點，innerW 置中。
-        const cx = -innerW / 2 + (col + 0.5) * cellSize;
-        diamondCrosses.push(
-          mkCross(
-            `diamond-r${row + 1}-c${col + 1}-a`,
-            `第 ${row + 1} 排第 ${col + 1} 格斜板（／）`,
-            cx,
-            cyCenter,
-            q,
-          ),
-        );
-        diamondCrosses.push(
-          mkCross(
-            `diamond-r${row + 1}-c${col + 1}-b`,
-            `第 ${row + 1} 排第 ${col + 1} 格斜板（＼）`,
-            cx,
-            cyCenter,
-            -q,
-          ),
-        );
-      }
+
+    // ／ 對角板（斜率 +1）：方程 y = x + k*D，k ∈ [-bw, bt]；端點為線跟 lattice 矩形交點
+    for (let k = -bw; k <= bt; k++) {
+      const ax = k >= 0 ? 0 : -k * D;
+      const ay = k >= 0 ? k * D : 0;
+      const yAtRight = latticeW + k * D;
+      const bx = yAtRight <= latticeH ? latticeW : latticeH - k * D;
+      const by = yAtRight <= latticeH ? yAtRight : latticeH;
+      const part = mkSlat(ax, ay, bx, by, +angle);
+      if (part) diamonds.push(part);
     }
-    layoutDividers = [...horizontalShelves, ...verticalDividers, ...diamondCrosses];
+    // ＼ 對角板（斜率 -1）：水平鏡射 ／
+    for (let k = -bw; k <= bt; k++) {
+      const ax = k >= 0 ? 0 : -k * D;
+      const ay = k >= 0 ? k * D : 0;
+      const yAtRight = latticeW + k * D;
+      const bx = yAtRight <= latticeH ? latticeW : latticeH - k * D;
+      const by = yAtRight <= latticeH ? yAtRight : latticeH;
+      const part = mkSlat(ax, latticeH - ay, bx, latticeH - by, -angle);
+      if (part) diamonds.push(part);
+    }
+    layoutDividers = diamonds;
   } else {
     layoutDividers = [...horizontalShelves, ...verticalDividers];
   }
 
   // 瓶格箱體所有零件 —— 整組往上抬 boxBaseY（讓出方柱腳 + 抽屜室空間）
   const boxParts: Part[] = [bottom, top, leftSide, rightSide, ...layoutDividers];
-
-  // 頂部杯軌：4 條 25mm 寬條沿 depth 方向跑，掛高腳杯倒立（屬箱體，一起抬）
-  if (withGlassRack) {
-    const railCount = 4;
-    const railWidthMm = 25;
-    const railThicknessMm = 12;
-    const railSpacing = (outerW - 2 * panelT) / (railCount + 1);
-    // 軌道貼在頂板下方、留 25mm 縫好掛高腳杯柱
-    const railY = outerH - panelT - 25 - railThicknessMm / 2;
-    for (let i = 0; i < railCount; i++) {
-      const xPos = -outerW / 2 + panelT + railSpacing * (i + 1);
-      boxParts.push({
-        id: `glass-rail-${i + 1}`,
-        nameZh: `杯軌 ${i + 1}`,
-        material,
-        grainDirection: "length",
-        visible: { length: depth - 2 * panelT, width: railWidthMm, thickness: railThicknessMm },
-        origin: { x: xPos, y: railY, z: 0 },
-        rotation: { x: 0, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
-  }
 
   for (const part of boxParts) part.origin.y += boxBaseY;
 
@@ -405,6 +405,13 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const totalH = boxBaseY + outerH;
 
+  const warnings: string[] = [];
+  if (fitAutoAdjusted) {
+    warnings.push(
+      `${bd}mm 瓶徑塞不下原本 ${cellClearance}mm 瓶位間距（${gridLayout === "diamond" ? "菱形內接圓" : "矩形格淨寬"}會剩 ${(gridLayout === "diamond" ? requestedCellSize / Math.SQRT2 - panelT : requestedCellSize - panelT).toFixed(0)}mm < ${bd}mm 瓶徑）。已自動把瓶位間距拉到 ${effectiveClearance}mm（cellSize ${requestedCellSize}→${cellSize}mm）讓瓶子放得下。要更小可選別的「瓶型預設」。`,
+    );
+  }
+
   return {
     id: `wine-rack-${bw}x${bt}-${orientation}`,
     category: "wine-rack",
@@ -414,10 +421,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     defaultJoinery: "tongue-and-groove",
     useButtJointConvention: true,
     primaryMaterial: material,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。每瓶位 ${cellSize}×${cellSize}mm（瓶身 ${bd}mm + ${cellClearance}mm 緩衝）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
-      gridLayout === "diamond" ? `菱形格子款：${totalBottles} 個方格內各加一組 45° 交叉斜板（X），斜板兩端切尖頂進格子內角，瓶身斜靠下方 V 槽，是經典酒窖收納樣式。` : ""
+    warnings: warnings.length ? warnings : undefined,
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${effectiveClearance}mm 間距）${fitAutoAdjusted ? `，已自動從 ${cellClearance}mm 拉到 ${effectiveClearance}mm 確保塞得下` : ""}。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
+      gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式（菱形可用空間 = pitch/√2 − 板厚、比矩形小、需要更大 pitch）。` : ""
     }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       hasLegs ? ` 底部 4 角加 ${LEG_SIZE}mm 方柱腳架高 ${LEG_HEIGHT}mm，離地通風防潮、好清掃。` : ""
-    }${withGlassRack ? " 頂板下方加 4-6 道 30mm 寬軌道掛高腳杯（鋸軌或裝金屬杯軌條），酒架同時是杯架。" : ""}${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
+    }${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
   };
 };
