@@ -21,7 +21,6 @@ import {
   FacingMark,
   ShapeSpecificAnnotation,
   CompoundMiterAnnotation,
-  ConnectionMarks,
   GrainArrow,
   ChamferRoundAnnotation,
 } from "./annotation";
@@ -250,12 +249,6 @@ export function PartDrawing({
                     <>
                       <T1Dimensions ctx={ctx} part={part} view={view} />
                       <T2Annotations ctx={ctx} part={part} view={view} />
-                      <ConnectionMarks
-                        ctx={ctx}
-                        part={part}
-                        design={design}
-                        view={view}
-                      />
                       <GrainArrow ctx={ctx} part={part} view={view} />
                       <ChamferRoundAnnotation ctx={ctx} part={part} view={view} />
                       <FacingMark ctx={ctx} part={part} view={view} />
