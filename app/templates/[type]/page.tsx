@@ -9,6 +9,7 @@ import {
   getTemplateMarketing,
 } from "@/lib/templates/marketing";
 import { getHighlights } from "@/lib/templates/highlights";
+import { getGallery } from "@/lib/templates/gallery";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -73,6 +74,7 @@ export default async function TemplateDetail({ params }: PageProps) {
 
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
   const highlights = getHighlights(entry.category);
+  const gallery = getGallery(entry.category);
   const relatedEntries = marketing.related
     .map((c) => FURNITURE_CATALOG.find((f) => f.category === c))
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
@@ -214,6 +216,50 @@ export default async function TemplateDetail({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      {/* ============ 設計細節透視（gallery） ============ */}
+      {gallery && (
+        <section className="bg-gradient-to-b from-stone-50 to-white border-b border-stone-200">
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
+            <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
+              {entry.nameZh} 設計細節
+            </h2>
+            <p className="text-center text-zinc-500 mb-9">
+              這支模板獨有的視覺重點
+            </p>
+            <div
+              className={`grid gap-5 ${gallery.length === 1 ? "max-w-3xl mx-auto" : gallery.length === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"}`}
+            >
+              {gallery.map((g) => (
+                <figure
+                  key={g.src}
+                  className="rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-amber-400 transition-all"
+                >
+                  <div className="relative aspect-[4/3] bg-gradient-to-br from-stone-50 to-amber-50/20 overflow-hidden">
+                    <Image
+                      src={g.src}
+                      alt={g.label}
+                      fill
+                      sizes={gallery.length === 1 ? "(min-width:768px) 768px, 100vw" : "(min-width:768px) 50vw, 100vw"}
+                      className="object-contain p-2"
+                    />
+                  </div>
+                  <figcaption className="p-5 border-t border-amber-100 bg-amber-50">
+                    <div className="font-bold text-zinc-900 mb-1">
+                      {g.label}
+                    </div>
+                    {g.desc && (
+                      <div className="text-sm text-zinc-600 leading-relaxed">
+                        {g.desc}
+                      </div>
+                    )}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ============ 設計重點 Highlights ============ */}
       {highlights && highlights.length > 0 && (
