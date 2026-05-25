@@ -3,7 +3,10 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
-import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
+import {
+  FEATURED_TEMPLATE_CATEGORIES,
+  getTemplateMarketing,
+} from "@/lib/templates/marketing";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -209,6 +212,8 @@ function TemplateCard({
 }) {
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(item.category);
   const isDev = DEV_SET.has(item.category);
+  const marketing = getTemplateMarketing(item.category);
+  const tagline = marketing?.tagline;
 
   return (
     <div className="group relative rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
@@ -238,7 +243,16 @@ function TemplateCard({
         />
       </div>
       <div className="p-4 border-t border-amber-100 bg-amber-50">
-        <h3 className="font-bold text-lg text-zinc-900 mb-3">{item.nameZh}</h3>
+        <h3 className="font-bold text-lg text-zinc-900 mb-1">{item.nameZh}</h3>
+        {tagline ? (
+          <p className="text-xs text-zinc-600 leading-snug mb-3 min-h-[2.5em] line-clamp-2">
+            {tagline}
+          </p>
+        ) : (
+          <p className="text-xs text-zinc-400 leading-snug mb-3 min-h-[2.5em]">
+            {isDev ? "敬請期待" : item.description ?? ""}
+          </p>
+        )}
         <div className="flex gap-2">
           {hasDetail ? (
             <Link

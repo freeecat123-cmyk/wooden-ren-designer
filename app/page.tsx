@@ -82,12 +82,12 @@ const OUTPUTS = [
 ];
 
 const SCENARIOS = [
-  { tag: "清晨咖啡", body: "沙發上滑手機畫一張床邊桌，無摩擦、輕巧、生活感。" },
-  { tag: "工作室實戰", body: "拿著剛印的 PDF 對木料，精準到 mm，減少報廢。" },
-  { tag: "教室上課", body: "每人一支手機開 designer，抽象變具象，學員秒懂榫卯。" },
-  { tag: "客戶接單", body: "客人 LINE 來訊「能不能做張餐桌」，當場開圖邊聊邊改。" },
-  { tag: "半夜靈感", body: "靈感來了不流失，半夢半醒做設計，明天再優化細節。" },
-  { tag: "小孩生日", body: "30 分鐘和孩子一起設計筆筒，把木工變親子工具。" },
+  { icon: "☕", tag: "清晨咖啡", body: "沙發上滑手機畫一張床邊桌，無摩擦、輕巧、生活感。" },
+  { icon: "🪚", tag: "工作室實戰", body: "拿著剛印的 PDF 對木料，精準到 mm，減少報廢。" },
+  { icon: "🎓", tag: "教室上課", body: "每人一支手機開 designer，抽象變具象，學員秒懂榫卯。" },
+  { icon: "💬", tag: "客戶接單", body: "客人 LINE 來訊「能不能做張餐桌」，當場開圖邊聊邊改。" },
+  { icon: "🌙", tag: "半夜靈感", body: "靈感來了不流失，半夢半醒做設計，明天再優化細節。" },
+  { icon: "🎂", tag: "小孩生日", body: "30 分鐘和孩子一起設計筆筒，把木工變親子工具。" },
 ];
 
 const FAQS = [
@@ -329,10 +329,18 @@ export default async function Landing() {
             {SCENARIOS.map((s) => (
               <div
                 key={s.tag}
-                className="rounded-2xl bg-white ring-1 ring-stone-200 p-5 shadow-sm hover:shadow-md transition-shadow"
+                className="group rounded-2xl bg-white ring-1 ring-stone-200 p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:ring-amber-300 transition-all"
               >
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-800 text-xs font-bold mb-3">
-                  {s.tag}
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span
+                    aria-hidden
+                    className="text-3xl leading-none group-hover:scale-110 transition-transform"
+                  >
+                    {s.icon}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 ring-1 ring-amber-300 text-amber-800 text-xs font-bold">
+                    {s.tag}
+                  </span>
                 </div>
                 <p className="text-zinc-700 leading-relaxed text-sm">{s.body}</p>
               </div>
