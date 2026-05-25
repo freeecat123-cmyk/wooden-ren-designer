@@ -8,6 +8,7 @@ import {
   FEATURED_TEMPLATE_CATEGORIES,
   getTemplateMarketing,
 } from "@/lib/templates/marketing";
+import { getHighlights } from "@/lib/templates/highlights";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -71,6 +72,7 @@ export default async function TemplateDetail({ params }: PageProps) {
   if (!marketing || !entry) notFound();
 
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
+  const highlights = getHighlights(entry.category);
   const relatedEntries = marketing.related
     .map((c) => FURNITURE_CATALOG.find((f) => f.category === c))
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
@@ -213,6 +215,40 @@ export default async function TemplateDetail({ params }: PageProps) {
         </div>
       </section>
 
+      {/* ============ 設計重點 Highlights ============ */}
+      {highlights && highlights.length > 0 && (
+        <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
+          <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
+            設計重點
+          </h2>
+          <p className="text-center text-zinc-500 mb-9">
+            這支模板的演算法幫你顧到的事
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {highlights.map((h) => (
+              <div
+                key={h.title}
+                className="flex items-start gap-3 rounded-2xl bg-white ring-1 ring-stone-200 p-4 hover:ring-amber-300 hover:shadow-md transition-all"
+              >
+                <div className="text-3xl shrink-0 leading-none mt-0.5">
+                  {h.icon}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-zinc-900 text-sm leading-snug">
+                    {h.title}
+                  </div>
+                  {h.desc && (
+                    <div className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                      {h.desc}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ============ 能幫你做什麼 ============ */}
       <section className="max-w-3xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
         <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-5">
@@ -324,6 +360,76 @@ export default async function TemplateDetail({ params }: PageProps) {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ============ 實際輸出畫面（共用截圖） ============ */}
+      <section className="max-w-6xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
+          實際輸出畫面
+        </h2>
+        <p className="text-center text-zinc-500 mb-9">
+          點下「開始設計」5 分鐘內，你會拿到這些東西。
+        </p>
+        <div className="grid md:grid-cols-2 gap-5">
+          {[
+            {
+              img: "/about-assets/feat-threeview.png",
+              label: "工程三視圖",
+              desc: "前 / 側 / 俯三向尺寸全自動標註",
+            },
+            {
+              img: "/about-assets/feat-cutplan-full.png",
+              label: "排板裁切圖",
+              desc: "演算法排料、邊料最少，材料行直接照鋸",
+            },
+            {
+              img: "/about-assets/feat-cutlist.png",
+              label: "切料清單",
+              desc: "每片木料尺寸、含台才換算、可列印帶進工坊",
+            },
+            {
+              img: "/about-assets/feat-steps.png",
+              label: "製作工序",
+              desc: "從備料、開料、組裝到塗裝，每步都標時間",
+            },
+            {
+              img: "/about-assets/feat-quote.png",
+              label: "客製報價單",
+              desc: "板材 × 厚度 × 塗裝 × 工時自動算（專業版）",
+            },
+            {
+              img: "/about-assets/hero-3d.png",
+              label: "3D 透視預覽",
+              desc: "可旋轉、可拆解、可看內部榫卯結構",
+            },
+          ].map((s) => (
+            <figure
+              key={s.label}
+              className="group rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-amber-400 transition-all"
+            >
+              <div className="relative aspect-[4/3] bg-gradient-to-br from-stone-50 to-amber-50/20 overflow-hidden">
+                <Image
+                  src={s.img}
+                  alt={s.label}
+                  fill
+                  sizes="(min-width:768px) 50vw, 100vw"
+                  className="object-contain p-2 group-hover:scale-[1.02] transition-transform duration-300"
+                />
+              </div>
+              <figcaption className="p-4 border-t border-amber-100 bg-amber-50">
+                <div className="font-bold text-zinc-900 mb-0.5">
+                  {s.label}
+                </div>
+                <div className="text-xs text-zinc-600 leading-relaxed">
+                  {s.desc}
+                </div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-xs text-zinc-400">
+          ※ 以上是實際產品畫面，套到「{entry.nameZh}」會依你的尺寸自動生成
+        </p>
       </section>
 
       {/* ============ 使用情境 ============ */}

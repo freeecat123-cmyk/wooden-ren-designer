@@ -66,17 +66,17 @@ const OUTPUTS = [
   {
     title: "三視圖 + 榫卯細節",
     body: "前視、側視、俯視自動標尺寸；榫頭通榫／盲榫／半榫錯位都算好位置。",
-    img: "/og.png",
+    img: "/about-assets/feat-threeview.png",
   },
   {
     title: "材料單 + 切割圖",
     body: "自動換算板才／台才，列出每片木料尺寸與裁切順序，邊料最少。",
-    img: "/og.png",
+    img: "/about-assets/feat-cutplan-full.png",
   },
   {
     title: "報價單 + 工時",
     body: "板材 × 厚度 × 塗裝 × 工時自動算總價，專業版可帶客戶抬頭、margin。",
-    img: "/og.png",
+    img: "/about-assets/feat-quote.png",
   },
 ];
 
@@ -213,13 +213,19 @@ export default async function Landing() {
             拿著材料單就能直接進工坊開鋸。
           </p>
           <div className="mt-12 grid md:grid-cols-3 gap-6">
-            {OUTPUTS.map((o, i) => (
+            {OUTPUTS.map((o) => (
               <div
                 key={o.title}
                 className="rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all"
               >
-                <div className="aspect-video bg-gradient-to-br from-amber-50 to-stone-100 flex items-center justify-center text-6xl text-amber-700/60 font-serif-tc">
-                  {i + 1}
+                <div className="relative aspect-video bg-gradient-to-br from-stone-50 to-amber-50/30 overflow-hidden">
+                  <Image
+                    src={o.img}
+                    alt={o.title}
+                    fill
+                    sizes="(min-width:768px) 33vw, 100vw"
+                    className="object-contain p-3"
+                  />
                 </div>
                 <div className="p-6">
                   <h3 className="font-bold text-lg text-zinc-900 mb-2">
