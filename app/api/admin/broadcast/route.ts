@@ -23,6 +23,9 @@ interface AudienceFilter {
   kind: "all" | "unpaid" | "paid" | "plan" | "manual";
   plan?: PlanId;
   emails?: string[];
+  /** 排除已填寫指定問卷者（survey_responses.survey_id）。重寄問卷常用：
+   *  選 unpaid + excludeRespondentsOfSurveyId="launch-2026-05" → 沒填過的未付費者。 */
+  excludeRespondentsOfSurveyId?: string;
 }
 
 interface BroadcastBody {
@@ -34,12 +37,15 @@ interface BroadcastBody {
 }
 
 function audienceLabel(filter: AudienceFilter, count: number): string {
+  const exclude = filter.excludeRespondentsOfSurveyId
+    ? `，排除已填「${filter.excludeRespondentsOfSurveyId}」問卷`
+    : "";
   switch (filter.kind) {
-    case "all": return `全部用戶 (${count} 人)`;
-    case "unpaid": return `未付費 (${count} 人)`;
-    case "paid": return `已付費 (${count} 人)`;
-    case "plan": return `${filter.plan} 方案 (${count} 人)`;
-    case "manual": return `手動指定 (${count} emails)`;
+    case "all": return `全部用戶 (${count} 人)${exclude}`;
+    case "unpaid": return `未付費 (${count} 人)${exclude}`;
+    case "paid": return `已付費 (${count} 人)${exclude}`;
+    case "plan": return `${filter.plan} 方案 (${count} 人)${exclude}`;
+    case "manual": return `手動指定 (${count} emails)${exclude}`;
   }
 }
 
@@ -123,6 +129,34 @@ export async function POST(req: Request) {
       })
       .map((r) => ({ email: r.email }))
       .filter((r) => !!r.email);
+  }
+
+  // 排除已填某問卷者（重寄場景）
+  if (filter.excludeRespondentsOfSurveyId) {
+    const surveyId = filter.excludeRespondentsOfSurveyId;
+    const { data: responses, error: rErr } = await svc
+      .from("survey_responses")
+      .select("user_id")
+      .eq("survey_id", surveyId);
+    if (rErr) {
+      return NextResponse.json({ error: `survey filter: ${rErr.message}` }, { status: 500 });
+    }
+    const respondentUserIds = Array.from(new Set((responses ?? []).map((r) => r.user_id)));
+    if (respondentUserIds.length > 0) {
+      const { data: respUsers, error: uErr } = await svc
+        .from("users")
+        .select("email")
+        .in("id", respondentUserIds);
+      if (uErr) {
+        return NextResponse.json({ error: `survey filter users: ${uErr.message}` }, { status: 500 });
+      }
+      const excludeSet = new Set(
+        (respUsers ?? [])
+          .map((u) => (u.email ?? "").trim().toLowerCase())
+          .filter((e) => e),
+      );
+      recipients = recipients.filter((r) => !excludeSet.has(r.email.trim().toLowerCase()));
+    }
   }
 
   if (recipients.length === 0) {

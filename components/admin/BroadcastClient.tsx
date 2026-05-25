@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { SURVEYS } from "@/lib/survey/configs";
 
 type AudienceKind = "all" | "unpaid" | "paid" | "plan" | "manual";
 type PlanId = "free" | "personal" | "pro" | "student" | "lifetime";
@@ -41,6 +42,29 @@ export function BroadcastClient() {
   const [audiencePlan, setAudiencePlan] = useState<PlanId>("personal");
   const [manualEmails, setManualEmails] = useState("");
 
+  // 排除已填問卷者（重寄場景）— 空字串 = 不排除
+  const surveyKeys = useMemo(() => Object.keys(SURVEYS), []);
+  const [excludeSurveyId, setExcludeSurveyId] = useState<string>("");
+  const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
+  const [loadingExclude, setLoadingExclude] = useState(false);
+
+  // 選了問卷 → fetch 該問卷的填寫者 email（小寫 set，比對用）
+  useEffect(() => {
+    if (!excludeSurveyId) {
+      setExcludedEmails(new Set());
+      return;
+    }
+    setLoadingExclude(true);
+    fetch(`/api/admin/survey-respondents?survey_id=${encodeURIComponent(excludeSurveyId)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (Array.isArray(j.emails)) {
+          setExcludedEmails(new Set(j.emails.map((e: string) => e.toLowerCase())));
+        }
+      })
+      .finally(() => setLoadingExclude(false));
+  }, [excludeSurveyId]);
+
   const [subject, setSubject] = useState("");
   const [textBody, setTextBody] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
@@ -62,20 +86,29 @@ export function BroadcastClient() {
     })();
   }, []);
 
-  // 即時算 audience 命中數
+  // 即時算 audience 命中數（含「排除已填問卷者」扣除）
   const audienceCount = useMemo(() => {
+    const notExcluded = (email: string) =>
+      excludedEmails.size === 0 || !excludedEmails.has(email.trim().toLowerCase());
     if (audienceKind === "manual") {
-      return manualEmails.split(/\n|,/).map((e) => e.trim()).filter((e) => e.includes("@")).length;
+      return manualEmails
+        .split(/\n|,/)
+        .map((e) => e.trim())
+        .filter((e) => e.includes("@"))
+        .filter(notExcluded)
+        .length;
     }
     return users.filter((u) => {
       const eff = getEffectivePlan(u);
-      if (audienceKind === "all") return true;
-      if (audienceKind === "unpaid") return eff === "free";
-      if (audienceKind === "paid") return eff !== "free";
-      if (audienceKind === "plan") return eff === audiencePlan;
-      return false;
+      const kindMatch =
+        audienceKind === "all" ? true
+        : audienceKind === "unpaid" ? eff === "free"
+        : audienceKind === "paid" ? eff !== "free"
+        : audienceKind === "plan" ? eff === audiencePlan
+        : false;
+      return kindMatch && notExcluded(u.email);
     }).length;
-  }, [users, audienceKind, audiencePlan, manualEmails]);
+  }, [users, audienceKind, audiencePlan, manualEmails, excludedEmails]);
 
   const breakdown = useMemo(() => {
     const counts = { free: 0, personal: 0, pro: 0, student: 0, lifetime: 0 } as Record<string, number>;
@@ -84,11 +117,17 @@ export function BroadcastClient() {
   }, [users]);
 
   async function buildPayload(dryRun: boolean) {
-    const filter: { kind: AudienceKind; plan?: PlanId; emails?: string[] } = { kind: audienceKind };
+    const filter: {
+      kind: AudienceKind;
+      plan?: PlanId;
+      emails?: string[];
+      excludeRespondentsOfSurveyId?: string;
+    } = { kind: audienceKind };
     if (audienceKind === "plan") filter.plan = audiencePlan;
     if (audienceKind === "manual") {
       filter.emails = manualEmails.split(/\n|,/).map((e) => e.trim()).filter((e) => e.includes("@"));
     }
+    if (excludeSurveyId) filter.excludeRespondentsOfSurveyId = excludeSurveyId;
     return {
       audience: filter,
       subject,
@@ -228,8 +267,43 @@ export function BroadcastClient() {
             className="mt-2 w-full px-3 py-2 rounded border border-zinc-300 text-sm font-mono"
           />
         )}
-        <p className="mt-2 text-xs text-zinc-500">
+        {/* 排除已填問卷者（重寄場景） */}
+        <div className="mt-4 pt-3 border-t border-zinc-200">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!excludeSurveyId}
+              onChange={(e) => setExcludeSurveyId(e.target.checked ? (surveyKeys[0] ?? "") : "")}
+              disabled={surveyKeys.length === 0}
+            />
+            <span>排除已填寫此問卷者（重寄常用）</span>
+            {loadingExclude && <span className="text-xs text-zinc-400">載入中…</span>}
+            {!loadingExclude && excludeSurveyId && (
+              <span className="text-xs text-emerald-700 font-mono">
+                已填 {excludedEmails.size} 人，將排除
+              </span>
+            )}
+          </label>
+          {excludeSurveyId && (
+            <select
+              value={excludeSurveyId}
+              onChange={(e) => setExcludeSurveyId(e.target.value)}
+              className="mt-2 px-3 py-1.5 rounded border border-zinc-300 text-sm"
+            >
+              {surveyKeys.map((id) => (
+                <option key={id} value={id}>
+                  {id} ({SURVEYS[id].title ?? id})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <p className="mt-3 text-xs text-zinc-500">
           目前命中：<strong className="text-amber-700 font-mono">{audienceCount} 人</strong>
+          {excludeSurveyId && excludedEmails.size > 0 && (
+            <span className="ml-1 text-zinc-400">（已扣除已填問卷者）</span>
+          )}
         </p>
       </section>
 
