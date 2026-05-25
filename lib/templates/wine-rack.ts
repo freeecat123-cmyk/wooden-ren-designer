@@ -108,15 +108,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const minCellSize = gridLayout === "diamond"
     ? Math.ceil(Math.SQRT2 * (bd + panelT + FIT_SAFETY_MARGIN))
     : bd + panelT + FIT_SAFETY_MARGIN;
-  const cellSize = bd + cellClearance; // user 設定原值、不 auto-fit
-  const fitTooSmall = cellSize < minCellSize;
-  // 實際淨空間（給 notes 跟 warning 用）
-  const rectNetCellW = cellSize - panelT;
-  const diamondInscribed = cellSize / Math.SQRT2 - panelT;
-  const netFitDim = gridLayout === "diamond" ? diamondInscribed : rectNetCellW;
-  const netFitDesc = gridLayout === "diamond"
-    ? `菱形內接圓直徑 ${diamondInscribed.toFixed(0)}mm`
-    : `每格淨寬 ${rectNetCellW.toFixed(0)}mm`;
+  // requestedCellSize = user 設定的 pitch (bd+clearance)；byOverall mode 下
+  // 會被反算為 usableW/bw 後賦給最終 `cellSize`（hard-lock outerW）；
+  // byCount mode 下 cellSize = requestedCellSize 直接用。
+  const requestedCellSize = bd + cellClearance;
 
   // —— 垂直分層：地面 → 方柱腳 → 抽屜室 → 瓶格箱體 ——
   // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
@@ -128,7 +123,13 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
   // === sizing mode 二擇一：byCount（user 設瓶數）或 byOverall（user 設總尺寸） ===
+  // ⭐ byOverall mode hard-lock outerW = user totalLength：
+  //   cellSize 反算成 usableW/bw（拉伸到剛好填滿）、innerW = bw*cellSize = usableW、
+  //   outerW = innerW + 2*panelT = totalLength 嚴格相等。
+  //   height 只能 soft-lock（要正方格、cellSize 兩維共用、只能一維 hard）、
+  //   outerH = bt*cellSize + 2*panelT + 腳 + 抽屜室、實際可能 < totalHeight。
   let bw: number, bt: number;
+  let cellSize: number;
   let targetTotalL: number | null = null;
   let targetTotalH: number | null = null;
   if (sizingMode === "byOverall") {
@@ -136,11 +137,17 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     targetTotalH = getOption<number>(input, opt(o, "totalHeight"));
     const usableW = targetTotalL - 2 * panelT;
     const usableH = targetTotalH - 2 * panelT - legH - (withPullOutDrawer ? panelT + drawerZoneH : 0);
-    bw = Math.max(2, Math.floor(usableW / cellSize));
+    // 1. 用 user 設的 pitch hint (bd + clearance) 算最大可放的 bw
+    bw = Math.max(2, Math.floor(usableW / requestedCellSize));
+    // 2. cellSize 反算成 floor(usableW/bw)（拉伸填滿、取整避免浮點 outerH）
+    //    outerW 會比 target 小幾 mm（差 < bw）、user 看仍很接近、不是「不變」
+    cellSize = Math.floor(usableW / bw);
+    // 3. bt 用 stretched cellSize 算（height 仍 soft-lock、保留正方格）
     bt = Math.max(2, Math.floor(usableH / cellSize));
   } else {
     bw = getOption<number>(input, opt(o, "bottlesWide"));
     bt = getOption<number>(input, opt(o, "bottlesTall"));
+    cellSize = requestedCellSize;
   }
 
   const innerW = bw * cellSize;
@@ -151,6 +158,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const totalBottles = bw * bt;
   const halfOuterW = outerW / 2;
+
+  // 等 cellSize / outerW 算完後再算「塞不下」/「淨格寬」（給 notes 跟 warning 用）。
+  // byOverall 模式下 cellSize 可能被拉伸到比 requestedCellSize 大、淨空間反而比較鬆。
+  const fitTooSmall = cellSize < minCellSize;
+  const rectNetCellW = cellSize - panelT;
+  const diamondInscribed = cellSize / Math.SQRT2 - panelT;
+  const netFitDim = gridLayout === "diamond" ? diamondInscribed : rectNetCellW;
+  const netFitDesc = gridLayout === "diamond"
+    ? `菱形內接圓直徑 ${diamondInscribed.toFixed(0)}mm`
+    : `每格淨寬 ${rectNetCellW.toFixed(0)}mm`;
 
   // 上下板（水平，貫穿全寬）
   const top: Part = {
