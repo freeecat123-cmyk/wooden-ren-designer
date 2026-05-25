@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
+import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/supabase/server";
 
@@ -266,23 +267,24 @@ export default async function Landing() {
               26 件家具範本
             </h2>
             <p className="mt-2 text-zinc-600">
-              從練習小物到客廳真家具，總有一張你想做的。
+              點任一張看「能幫你做什麼」、設計重點、實際畫面。
             </p>
           </div>
           <Link
-            href="/app"
+            href="/templates"
             className="text-amber-700 hover:text-amber-900 font-semibold text-sm inline-flex items-center gap-1"
           >
-            看全部 →
+            看全部範本介紹 →
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 sm:gap-4">
           {featuredEntries.map((e) => {
             const free = FREE_UNLOCKED_CATEGORIES.includes(e.category);
+            const hasDetail = FEATURED_TEMPLATE_CATEGORIES.includes(e.category);
             return (
               <Link
                 key={e.category}
-                href={`/app`}
+                href={hasDetail ? `/templates/${e.category}` : `/app`}
                 className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 shadow-sm hover:-translate-y-1 hover:shadow-xl hover:ring-amber-500 transition-all"
               >
                 {free && (

@@ -217,17 +217,33 @@ export function PricingClient() {
       )}
 
       <div className="text-center mb-8">
-        <Link
-          href="/app"
-          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-amber-800 mb-5 transition-colors"
-        >
-          ← 回家具列表
-        </Link>
+        <div className="flex items-center justify-center gap-4 flex-wrap mb-5">
+          <Link
+            href="/app"
+            className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-amber-800 transition-colors"
+          >
+            ← 回家具列表
+          </Link>
+          <span aria-hidden className="text-amber-900/20 select-none">·</span>
+          <Link
+            href="/templates"
+            className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 transition-colors"
+          >
+            📖 看每張家具的詳細介紹
+          </Link>
+        </div>
         <h1 className="font-serif-tc text-3xl sm:text-4xl font-bold tracking-tight text-amber-950">
           選一個適合你的方案
         </h1>
         <p className="mt-3 text-zinc-600 text-sm sm:text-base">
           不論你是 DIY 玩家、接案師傅，還是設計師，都有對應方案
+        </p>
+        <p className="mt-2 text-xs text-zinc-500">
+          還沒決定要做哪張家具？先到{" "}
+          <Link href="/templates" className="text-amber-700 hover:text-amber-900 underline underline-offset-2">
+            範本介紹
+          </Link>
+          {" "}讀完整版面、設計重點、實際畫面再回來
         </p>
       </div>
 
