@@ -8,6 +8,7 @@ import { TemplateUnlockSection } from "./TemplateUnlockSection";
 import { ToolUnlockSection } from "./ToolUnlockSection";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { isPaidCategory } from "@/lib/permissions";
+import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 
 // 跟 app/page.tsx 同步:開發中的家具不上架買斷,等做完才放
 const DEVELOPMENT_CATEGORIES = new Set<string>(["chinese-cabinet", "bed", "coat-rack"]);
@@ -203,13 +204,21 @@ export function PricingClient() {
               免費版只開放 2 種練習小物（方凳、筆筒）。其他真實家具可選「單範本買斷」或「升級個人版」。
               下方挑一個適合你的方案就能解鎖。
             </p>
+            {FEATURED_TEMPLATE_CATEGORIES.includes(lockedCategory as never) && (
+              <Link
+                href={`/templates/${lockedCategory}`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2"
+              >
+                📖 先看「{CATEGORY_NAME_ZH[lockedCategory] ?? lockedCategory}」的詳細介紹 →
+              </Link>
+            )}
           </div>
         </div>
       )}
 
       <div className="text-center mb-8">
         <Link
-          href="/"
+          href="/app"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-amber-800 mb-5 transition-colors"
         >
           ← 回家具列表
