@@ -76,6 +76,16 @@ export function ClampedNumberInput({
     });
   }, [max]);
 
+  // 外部 sync：URL 改變 → server rerender → defaultValue prop 更新時、
+  // 同步把內部 state 拉到新值。只在 input 非 focused 時做（避免打字中
+  // 被 URL push 蓋回半值）。場景：紅酒架 PRESET_INPUT_SYNC 切瓶型自動
+  // 同步瓶徑 slider 用、或任何 select→sibling input 同步機制。
+  const defaultValueStr = String(defaultValue);
+  useEffect(() => {
+    if (document.activeElement === inputRef.current) return; // 打字中不接受外部
+    setValue(defaultValueStr);
+  }, [defaultValueStr]);
+
   const clamp = useCallback(
     (n: number) => {
       let r = n;

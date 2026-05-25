@@ -84,13 +84,15 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const bottlePreset = BOTTLE_TYPE_PRESETS[bottleType];
   const sizingMode = getOption<string>(input, opt(o, "sizingMode"));
   const bdRaw = getOption<number>(input, opt(o, "bottleDiameter"));
-  // 瓶型 preset 強制蓋過 slider — 選 bordeaux/burgundy/champagne/magnum 一律
-  // 套 preset 的 bd + clearance（slider 自訂值只在 bottleType="custom" 時生效）。
-  // 之前用 `bdRaw === 80` gate 太嚴、slider 一動 preset 就失效，UI label 跟實際算
-  // 對不上。preset/slider 互斥才不會視覺-實際分裂。
-  const usePreset = bottleType !== "custom" && bottlePreset;
-  const bd = usePreset ? bottlePreset.bottleDiameter : bdRaw;
-  const cellClearance = usePreset ? bottlePreset.clearance : CELL_CLEARANCE;
+  // bd 一律以 slider 為準（user 拉就生效、立刻看到總尺寸變）。
+  // bottleType preset 不再 force-override bd——改成切 preset 時透過
+  // `DesignFormShell.PRESET_INPUT_SYNC` 把 slider 自動跳到 preset 對應值
+  // （走 ClampedNumberInput 的 defaultValue useEffect 真實同步），slider 仍是
+  // 真實 source of truth。preset 只繼續影響 cellClearance（瓶位間距 hint）。
+  // 之前「preset force-override slider」設計讓 user 看 slider 沒效果，違反直覺。
+  const usePresetClearance = bottleType !== "custom" && bottlePreset;
+  const bd = bdRaw;
+  const cellClearance = usePresetClearance ? bottlePreset.clearance : CELL_CLEARANCE;
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
   const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
