@@ -25,37 +25,49 @@ export const metadata: Metadata = {
 };
 
 const CATEGORY_GROUPS: Array<{
+  id: string;
   label: string;
+  emoji: string;
   match: (c: FurnitureCategory) => boolean;
 }> = [
   {
+    id: "seating",
     label: "椅凳",
+    emoji: "🪑",
     match: (c) =>
       c === "stool" || c === "bench" || c === "dining-chair" ||
       c === "bar-stool" || c === "round-stool",
   },
   {
+    id: "table",
     label: "桌",
+    emoji: "🪵",
     match: (c) =>
       c === "tea-table" || c === "side-table" || c === "low-table" ||
       c === "dining-table" || c === "desk" ||
       c === "round-tea-table" || c === "round-table",
   },
   {
+    id: "cabinet",
     label: "櫃",
+    emoji: "🗄️",
     match: (c) =>
       c === "open-bookshelf" || c === "chest-of-drawers" ||
       c === "shoe-cabinet" || c === "display-cabinet" ||
       c === "wardrobe" || c === "media-console" || c === "nightstand",
   },
   {
+    id: "small",
     label: "小物",
+    emoji: "🧰",
     match: (c) =>
       c === "pencil-holder" || c === "photo-frame" ||
       c === "tray" || c === "dovetail-box" || c === "wine-rack",
   },
   {
-    label: "大件 / 其他",
+    id: "large",
+    label: "大件",
+    emoji: "🛏️",
     match: (c) =>
       c === "bed" || c === "coat-rack" || c === "chinese-cabinet",
   },
@@ -102,14 +114,44 @@ export default function TemplatesIndex() {
         </div>
       </section>
 
+      {/* ============ 快速跳轉 chip bar ============ */}
+      <div className="sticky top-0 z-30 bg-[#fafaf7]/95 backdrop-blur-sm border-b border-stone-200 shadow-sm">
+        <nav className="max-w-6xl mx-auto px-5 sm:px-6 py-3 overflow-x-auto scrollbar-thin">
+          <div className="inline-flex gap-2 min-w-max">
+            {CATEGORY_GROUPS.map((g) => {
+              const count = FURNITURE_CATALOG.filter((e) => g.match(e.category)).length;
+              if (count === 0) return null;
+              return (
+                <a
+                  key={g.id}
+                  href={`#${g.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-sm font-medium text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 hover:-translate-y-0.5 transition-all"
+                >
+                  <span aria-hidden>{g.emoji}</span>
+                  <span>{g.label}</span>
+                  <span className="text-xs text-zinc-400 tabular-nums">
+                    {count}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
       {/* ============ Groups ============ */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16 space-y-14">
         {CATEGORY_GROUPS.map((g) => {
           const items = FURNITURE_CATALOG.filter((e) => g.match(e.category));
           if (items.length === 0) return null;
           return (
-            <div key={g.label}>
-              <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1">
+            <div
+              key={g.id}
+              id={g.id}
+              className="scroll-mt-20"
+            >
+              <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
+                <span aria-hidden>{g.emoji}</span>
                 {g.label}
               </h2>
               <p className="text-zinc-500 text-sm mb-6">

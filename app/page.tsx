@@ -168,14 +168,31 @@ export default async function Landing() {
               </p>
             </div>
             <div className="relative">
-              <Image
-                src="/brand-logo.png"
-                alt="木頭仁 木作藍圖"
-                width={520}
-                height={520}
-                className="rounded-3xl shadow-2xl ring-1 ring-amber-200 mx-auto"
-                priority
-              />
+              <div className="rounded-3xl bg-white ring-1 ring-amber-200 shadow-2xl overflow-hidden p-4 sm:p-6">
+                <div className="aspect-[4/3] flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50/40">
+                  <Image
+                    src="/about-assets/hero-3d.png"
+                    alt="木頭仁木作藍圖實際產出 — 胡桃色電視櫃 3D 透視"
+                    width={620}
+                    height={465}
+                    priority
+                    style={{ objectFit: "contain", maxHeight: "92%", maxWidth: "92%" }}
+                  />
+                </div>
+                <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    實際產出畫面
+                  </span>
+                  <span className="font-mono">designer.woodenren.com</span>
+                </div>
+              </div>
+              <div
+                aria-hidden
+                className="hidden md:block absolute -bottom-5 -right-4 rotate-3 px-3 py-1.5 rounded-full bg-amber-700 text-white text-xs font-bold shadow-lg"
+              >
+                ⚡ 3 秒生成
+              </div>
             </div>
           </div>
         </div>
