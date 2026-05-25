@@ -51,7 +51,7 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "byCount", label: "鎖瓶數（總尺寸算出）" },
     { value: "byOverall", label: "鎖總長（橫向瓶數算出）" },
   ], help: "byCount=user 設橫/縱瓶數、總尺寸自動算（預設）；byOverall=user 設總長 + 縱向層數、橫向瓶數自動算。總高永遠由 bt × cellSize 算出（兩維共用正方格、無法同時鎖兩維）", wide: true },
-  { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "sizingMode", equals: "byCount" } },
+  { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1, help: "byCount 模式 = 直接決定寬度；byOverall 模式 = 在固定總長內均分多少格（拉大瓶數每格變小、可能塞不下需警告）" },
   { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1 },
   { group: "structure", type: "number", key: "totalLength", label: "總長 (mm)", defaultValue: 500, min: 200, max: 2000, step: 10, unit: "mm", help: "byOverall 模式：外框總寬（含兩側板 panelT×2）。bw 從 (totalLength − 2×panelT) / cellSize 取整算出", dependsOn: { key: "sizingMode", equals: "byOverall" } },
   { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
@@ -121,26 +121,24 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
   const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
-  // === sizing mode 二擇一：byCount（user 設橫向瓶數）或 byOverall（user 設總長） ===
+  // === sizing mode 二擇一：byCount（user 設件數）或 byOverall（user 設總長） ===
   // ⭐ byOverall mode hard-lock outerW = user totalLength：
-  //   cellSize 反算成 floor(usableW/bw)（拉伸填滿、整數避免浮點 outerH）、
-  //   outerW = innerW + 2*panelT ≈ totalLength（差 < bw mm）。
-  //   bt（縱向層數）兩 mode 都由 user 直接設、outerH = bt × cellSize + 框 +
-  //   腳 + 抽屜室（derived、不再 user-input total height）— 因正方格 cellSize
-  //   兩維共用、無法同時鎖兩維、改成「鎖一維 + 另一維直接 user 設件數」。
+  //   user 設 totalLength + bw + bt 三者、cellSize 反算成 floor(usableW/bw)
+  //   均分填滿、outerW = innerW + 2*panelT ≈ totalLength（差 < bw mm）。
+  //   user 拉 bw 整體尺寸不變、但每格寬度跟著變（瓶子相對變大/變小）。
+  //   user 拉 totalLength 整體尺寸跟著變、每格寬度跟著變。
+  //   bt 兩 mode 都直接 user-set、outerH = bt × cellSize + 框 + 腳。
+  //   bd 影響 fit check warning、不影響 cellSize（byOverall mode）。
+  const bw = getOption<number>(input, opt(o, "bottlesWide"));
   const bt = getOption<number>(input, opt(o, "bottlesTall"));
-  let bw: number;
   let cellSize: number;
   let targetTotalL: number | null = null;
   if (sizingMode === "byOverall") {
     targetTotalL = getOption<number>(input, opt(o, "totalLength"));
     const usableW = targetTotalL - 2 * panelT;
-    // 1. 用 user 設的 pitch hint (bd + clearance) 算最大可放的 bw
-    bw = Math.max(2, Math.floor(usableW / requestedCellSize));
-    // 2. cellSize 反算成 floor(usableW/bw)（拉伸填滿、取整避免浮點 outerH）
-    cellSize = Math.floor(usableW / bw);
+    // cellSize 反算成 floor(usableW/bw) 均分填滿、user 拉 bw 自動分配
+    cellSize = Math.max(20, Math.floor(usableW / bw)); // min 20mm 保底
   } else {
-    bw = getOption<number>(input, opt(o, "bottlesWide"));
     cellSize = requestedCellSize;
   }
 
