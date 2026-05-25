@@ -20,6 +20,33 @@ export function SiteFooter() {
     { href: "/contact", label: "聯絡我們" },
   ];
 
+  const socials = [
+    {
+      href: "https://www.youtube.com/@WoodenRen",
+      label: "YouTube",
+      icon: "▶️",
+      handle: "@WoodenRen",
+    },
+    {
+      href: "https://www.instagram.com/wooden_ren/",
+      label: "Instagram",
+      icon: "📷",
+      handle: "@wooden_ren",
+    },
+    {
+      href: "https://www.facebook.com/woodenren99/",
+      label: "Facebook",
+      icon: "👍",
+      handle: "@woodenren99",
+    },
+    {
+      href: "https://woodenrenclass.com",
+      label: "木匠學院",
+      icon: "🎓",
+      handle: "課程網站",
+    },
+  ];
+
   return (
     <footer className="no-print mt-16 border-t border-amber-900/15 bg-amber-50/70 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-6 py-9">
@@ -38,8 +65,26 @@ export function SiteFooter() {
           </p>
         </div>
 
-        {/* 連結列 */}
-        <nav className="mt-5 flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+        {/* 社群連結列 */}
+        <nav className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {socials.map((s) => (
+            <a
+              key={s.href}
+              href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${s.label} · ${s.handle}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white ring-1 ring-amber-900/15 text-xs font-medium text-zinc-700 hover:text-amber-800 hover:ring-amber-400 hover:-translate-y-0.5 transition-all shadow-sm"
+            >
+              <span aria-hidden>{s.icon}</span>
+              <span>{s.label}</span>
+              <span className="text-zinc-400">{s.handle}</span>
+            </a>
+          ))}
+        </nav>
+
+        {/* 站內連結列 */}
+        <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
           {links.map((l, i) => (
             <span key={l.href} className="flex items-center">
               <a

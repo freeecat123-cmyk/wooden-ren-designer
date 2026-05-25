@@ -360,6 +360,42 @@ export function PricingClient() {
       {/* 裝潢工具買斷 */}
       <ToolUnlockSection />
 
+      {/* 方案 FAQ */}
+      <section className="mt-16 max-w-3xl mx-auto">
+        <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-center text-amber-950 mb-2">
+          方案常見問題
+        </h2>
+        <p className="text-center text-zinc-500 text-sm mb-9">
+          付費前最常被問的 8 個問題
+        </p>
+        <div className="space-y-3">
+          {PRICING_FAQS.map((f) => (
+            <details
+              key={f.q}
+              className="group rounded-2xl bg-white ring-1 ring-stone-200 px-5 py-4 open:shadow-md transition-shadow"
+            >
+              <summary className="cursor-pointer font-semibold text-zinc-900 list-none flex items-center justify-between gap-3">
+                <span>{f.q}</span>
+                <span className="text-amber-700 group-open:rotate-45 transition-transform text-xl shrink-0">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-zinc-700 leading-relaxed text-sm whitespace-pre-line">
+                {f.a}
+              </p>
+            </details>
+          ))}
+        </div>
+        <div className="mt-6 text-center">
+          <Link
+            href="/help"
+            className="text-sm text-amber-700 hover:text-amber-900 font-semibold"
+          >
+            看完整 FAQ →
+          </Link>
+        </div>
+      </section>
+
       <div className="mt-12 max-w-2xl mx-auto rounded-2xl bg-amber-50/80 ring-1 ring-amber-900/10 px-6 py-5 text-center text-xs text-zinc-600 leading-relaxed">
         <p className="flex items-center justify-center gap-1.5">
           <span aria-hidden>🔄</span>
@@ -374,3 +410,38 @@ export function PricingClient() {
     </main>
   );
 }
+
+const PRICING_FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: "免費版到底能做什麼？",
+    a: "開放方凳、筆筒兩個入門模板。3D、榫卯、三視圖、材料單、PDF 全給你，跟付費用戶一模一樣。差別只在模板數量跟尺寸上限（方凳 35×35×45cm、筆筒 20×20×25cm）。",
+  },
+  {
+    q: "個人版 NT$390 跟專業版 NT$890 差在哪？",
+    a: "個人版：全 26 模板 + 天花板/地板模擬器 + PDF + 雲端儲存無限。適合 DIY、自家裝潢、週末做家具的人。\n\n專業版：個人版全部 + 客戶報價系統 + 客戶資料管理 + STL/OBJ 輸出（可接 CNC）+ 設計師模式（尺寸無上限）。適合靠木工接案、開家具工作室的職人。\n\n簡單說：不接案就買個人版，要靠這個賺錢就上專業版。",
+  },
+  {
+    q: "可以隨時取消嗎？會被自動續訂嗎？",
+    a: "可以。月扣方案隨時取消，當月仍可使用到期。年扣方案 7 天內不滿意可全額退費（一次性付款，到期不續訂直接降為免費版）。",
+  },
+  {
+    q: "為什麼選年付？真的比較划算嗎？",
+    a: "年付 = 月費 × 10（等於送你 2 個月）。個人版年付 3,900（月付 4,680）省 780；專業版年付 8,900（月付 10,680）省 1,780。如果確定會用半年以上，年付比較划算。",
+  },
+  {
+    q: "可以單買某一個模板嗎？（單範本買斷）",
+    a: "可以。不想訂閱也能一次買下某個模板永久使用（不過期、跨方案保留）。價格依模板複雜度從 NT$200~990 不等，下方「單範本買斷」區可看。",
+  },
+  {
+    q: "木匠學院終身會員有專屬優惠嗎？",
+    a: "有。請私訊木頭仁取得專屬碼，全方案打折（不另公開）。學員身份驗證後直接套用。",
+  },
+  {
+    q: "付款方式有哪些？",
+    a: "信用卡（VISA / Mastercard / JCB）、ATM 轉帳、超商代碼繳款。透過綠界 ECPay 處理，安全且符合台灣金管會規範。可開立電子發票（個人 / 公司皆可）。",
+  },
+  {
+    q: "升降級會怎麼算錢？",
+    a: "升級：補差價立即生效（按剩餘天數比例計算）。降級：當期到期後自動切換（不會中途扣回）。所有設計、客戶資料、儲存的範本都會保留，不會因為降級而消失。",
+  },
+];
