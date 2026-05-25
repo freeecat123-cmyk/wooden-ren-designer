@@ -8,8 +8,10 @@ import { getOption, opt } from "@/lib/types";
 import { renderDrawerZone } from "./_builders/drawer-row";
 import { worldExtents } from "@/lib/render/geometry";
 
-/** 每個瓶位的左右間隙（mm）—— 瓶徑 + 此值 = cellSize */
-const CELL_CLEARANCE = 8;
+/** 每個瓶位的左右間隙（mm）—— 瓶徑 + 此值 = cellSize（格 pitch、含分隔板厚）。
+ * panelT 預設 15mm + 5mm 餘量 = 20mm 起跳，確保 default 矩形格能塞下瓶子。
+ * 菱形格需要 ≥ √2 倍空間、會在 warning 提示 user 拉大 pitch 或換瓶型。 */
+const CELL_CLEARANCE = 20;
 /** 標準波爾多 750ml 直立放（瓶長 ≈ 300mm，預留 -20mm 露頭好取） */
 const UPRIGHT_DEPTH = 280;
 /** 橫躺放（瓶身水平指向架後，常見酒窖式） */
@@ -27,14 +29,14 @@ const DRAWER_MAX_DEPTH = 420;
 
 /** 瓶型 preset：依 5 瓶型自動套瓶徑 + cell clearance（研究 doc §2） */
 // 瓶徑對齊 slider step 5（min 70 max 150 step 5）→ 視覺/實際同步、
-// preset 切換時 UI slider 也跳到真實 preset 值（誤差 1mm 在 auto-fit
-// 5mm safety margin 內無感）。
+// preset 切換時 UI slider 也跳到真實 preset 值（誤差 1mm 無感）。
+// clearance ≥ panelT(15) + safety(5) + ~2mm 餘量 = 22mm 起、矩形格保證能塞下瓶子。
 const BOTTLE_TYPE_PRESETS: Record<string, { bottleDiameter: number; clearance: number; label: string }> = {
-  bordeaux: { bottleDiameter: 75, clearance: 12, label: "波爾多（細肩 ⌀75mm）" },
-  burgundy: { bottleDiameter: 80, clearance: 12, label: "勃根地（粗肩 ⌀80mm）" },
-  champagne: { bottleDiameter: 90, clearance: 12, label: "香檳（最粗 ⌀90mm）" },
-  magnum: { bottleDiameter: 105, clearance: 12, label: "Magnum 1.5L（⌀105mm）" },
-  custom: { bottleDiameter: 80, clearance: 8, label: "自訂瓶徑" },
+  bordeaux: { bottleDiameter: 75, clearance: 22, label: "波爾多（細肩 ⌀75mm）" },
+  burgundy: { bottleDiameter: 80, clearance: 22, label: "勃根地（粗肩 ⌀80mm）" },
+  champagne: { bottleDiameter: 90, clearance: 22, label: "香檳（最粗 ⌀90mm）" },
+  magnum: { bottleDiameter: 105, clearance: 22, label: "Magnum 1.5L（⌀105mm）" },
+  custom: { bottleDiameter: 80, clearance: 20, label: "自訂瓶徑" },
 };
 
 export const wineRackOptions: OptionSpec[] = [
@@ -90,18 +92,17 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const legStyle = getOption<string>(input, opt(o, "legStyle"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
 
-  // === 瓶位是否塞得下瓶子 — 自動拉 clearance + 警示 ===
+  // === 瓶位是否塞得下瓶子 — 只警告不自動拉 ===
   // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
   // 兩者都要 ≥ 瓶徑 bd + SAFETY 才放得舒服。
-  // 預設 bd=80/clearance=8/panelT=15 兩種格都塞不下：矩形淨寬 73、菱形內接 47。
+  // 不自動拉、user 看 slider / notes / warning 自己調 — 拉 slider 馬上看得到
+  // 總尺寸跟著變、不會被「auto-fit clamp 到一樣」搞混。
   const FIT_SAFETY_MARGIN = 5; // mm
-  const requestedCellSize = bd + cellClearance;
   const minCellSize = gridLayout === "diamond"
     ? Math.ceil(Math.SQRT2 * (bd + panelT + FIT_SAFETY_MARGIN))
     : bd + panelT + FIT_SAFETY_MARGIN;
-  const cellSize = Math.max(requestedCellSize, minCellSize);
-  const fitAutoAdjusted = cellSize > requestedCellSize;
-  const effectiveClearance = cellSize - bd;
+  const cellSize = bd + cellClearance; // user 設定原值、不 auto-fit
+  const fitTooSmall = cellSize < minCellSize;
   // 實際淨空間（給 notes 跟 warning 用）
   const rectNetCellW = cellSize - panelT;
   const diamondInscribed = cellSize / Math.SQRT2 - panelT;
@@ -406,9 +407,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const totalH = boxBaseY + outerH;
 
   const warnings: string[] = [];
-  if (fitAutoAdjusted) {
+  if (fitTooSmall) {
+    const need = minCellSize - cellSize;
     warnings.push(
-      `${bd}mm 瓶徑塞不下原本 ${cellClearance}mm 瓶位間距（${gridLayout === "diamond" ? "菱形內接圓" : "矩形格淨寬"}會剩 ${(gridLayout === "diamond" ? requestedCellSize / Math.SQRT2 - panelT : requestedCellSize - panelT).toFixed(0)}mm < ${bd}mm 瓶徑）。已自動把瓶位間距拉到 ${effectiveClearance}mm（cellSize ${requestedCellSize}→${cellSize}mm）讓瓶子放得下。要更小可選別的「瓶型預設」。`,
+      `⚠ 瓶子塞不下：${bd}mm 瓶徑在現在的 ${cellSize}mm pitch 下、${netFitDesc} ${netFitDim.toFixed(0)}mm < 瓶徑 ${bd}mm。建議瓶位 pitch ≥ ${minCellSize}mm（差 ${need}mm）— 把「瓶身直徑」拉大 ${need}mm 或選別的「瓶型預設」。${gridLayout === "diamond" ? "（菱形可用空間 = pitch/√2 − 板厚、比矩形小很多）" : ""}`,
     );
   }
 
@@ -422,7 +424,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     useButtJointConvention: true,
     primaryMaterial: material,
     warnings: warnings.length ? warnings : undefined,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${effectiveClearance}mm 間距）${fitAutoAdjusted ? `，已自動從 ${cellClearance}mm 拉到 ${effectiveClearance}mm 確保塞得下` : ""}。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
       gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式（菱形可用空間 = pitch/√2 − 板厚、比矩形小、需要更大 pitch）。` : ""
     }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       hasLegs ? ` 底部 4 角加 ${LEG_SIZE}mm 方柱腳架高 ${LEG_HEIGHT}mm，離地通風防潮、好清掃。` : ""
