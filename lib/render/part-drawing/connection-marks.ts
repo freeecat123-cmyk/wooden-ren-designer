@@ -89,6 +89,18 @@ function shrinkSiblingAABB(aabb: WorldAABB, sibling: Part, mm: number): WorldAAB
   };
 }
 
+/** 把 AABB 各方向向外擴 mm；用來在 intersect 階段把「貼面」也視為相交。 */
+function inflateAABB(a: WorldAABB, mm: number): WorldAABB {
+  return {
+    xMin: a.xMin - mm,
+    xMax: a.xMax + mm,
+    yMin: a.yMin - mm,
+    yMax: a.yMax + mm,
+    zMin: a.zMin - mm,
+    zMax: a.zMax + mm,
+  };
+}
+
 function intersectAABB(a: WorldAABB, b: WorldAABB): WorldAABB | null {
   const xMin = Math.max(a.xMin, b.xMin);
   const xMax = Math.min(a.xMax, b.xMax);
@@ -108,6 +120,54 @@ function siblingFullyEatenOnSomeAxis(target: WorldAABB, sib: WorldAABB): boolean
   const eatenY = sib.yMin >= target.yMin - 1e-3 && sib.yMax <= target.yMax + 1e-3;
   const eatenZ = sib.zMin >= target.zMin - 1e-3 && sib.zMax <= target.zMax + 1e-3;
   return eatenX || eatenY || eatenZ;
+}
+
+/** 世界 AABB 相交體積（mm³）；放寬版 filter 用。 */
+function intersectVolume(a: WorldAABB, b: WorldAABB): number {
+  const ix = Math.max(0, Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin));
+  const iy = Math.max(0, Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin));
+  const iz = Math.max(0, Math.min(a.zMax, b.zMax) - Math.max(a.zMin, b.zMin));
+  return ix * iy * iz;
+}
+
+/**
+ * 把世界座標 (wx, wy, wz) 點轉到 target part-local 座標（centered frame：local 軸
+ * length=X、thickness=Y、width=Z；target 中心在 origin.x / origin.y+yExt/2 / origin.z）。
+ * 給 ConnectionMarks 鄰件 polygon 投影用。
+ */
+export function worldPointToTargetLocal(
+  target: Part,
+  wx: number,
+  wy: number,
+  wz: number,
+): { x: number; y: number; z: number } {
+  const { yExt } = worldExtents(target);
+  const cxW = target.origin.x;
+  const cyW = target.origin.y + yExt / 2;
+  const czW = target.origin.z;
+  const rotX = target.rotation?.x ?? 0;
+  const rotY = target.rotation?.y ?? 0;
+  const rotZ = target.rotation?.z ?? 0;
+  return worldDeltaToLocal(wx - cxW, wy - cyW, wz - czW, rotX, rotY, rotZ);
+}
+
+/**
+ * 取得 sibling 在世界座標的 AABB 8 角點（不套 shape modifier，純 bbox corners）。
+ * 對方凳基礎件（直牙條/橫撐 = 純長方體）已能精確呈現外形輪廓。
+ */
+export function siblingWorldCorners(
+  sibling: Part,
+): Array<{ x: number; y: number; z: number }> {
+  const aabb = partWorldAABB(sibling);
+  const corners: Array<{ x: number; y: number; z: number }> = [];
+  for (const x of [aabb.xMin, aabb.xMax]) {
+    for (const y of [aabb.yMin, aabb.yMax]) {
+      for (const z of [aabb.zMin, aabb.zMax]) {
+        corners.push({ x, y, z });
+      }
+    }
+  }
+  return corners;
 }
 
 /**
@@ -217,20 +277,27 @@ export function inferConnectionMarks(
   target: Part,
   design: FurnitureDesign,
 ): ConnectionMark[] {
-  const tWorld = partWorldAABB(target);
+  const tWorldRaw = partWorldAABB(target);
+  // 把 target AABB 各方向向外擴 2mm 做 filter 用，讓「貼面接合」(鄰件外緣剛好貼齊
+  // target 外緣，例如 stool leg 跟 apron) 也被當成相交。本地 box 還是用未擴大版
+  // 算，避免測試假設的 sizeX/sizeY 受影響。
+  const tWorldInflated = inflateAABB(tWorldRaw, 2);
   const marks: ConnectionMark[] = [];
 
   for (const sib of design.parts) {
     if (sib.id === target.id) continue;
-    // 不對自己同 id 的「複數實體」連連看（避免 left-leg 跟 right-leg 互標）
-    // 兩支腳互相 AABB 通常不交集；保險起見也排除「兩個都是 leg 樣式」的情況——
-    // 演算法依賴「sibling 有 1 軸完整吃進 target」，兩支腳一般不會互相 fully eaten。
     const sWorld = shrinkSiblingAABB(partWorldAABB(sib), sib, 5);
-    const inter = intersectAABB(tWorld, sWorld);
+    const inter = intersectAABB(tWorldInflated, sWorld);
     if (!inter) continue;
-    if (!siblingFullyEatenOnSomeAxis(tWorld, sWorld)) continue;
+    // 相交體積 > 100mm³ threshold（取代舊版 siblingFullyEatenOnSomeAxis 嚴格約束）。
+    // stool 下橫撐 X 軸跨多隻腳、Y 軸在腳底外、3 軸都沒被完整包覆 → 舊 filter 漏掉。
+    if (intersectVolume(tWorldInflated, sWorld) < 100) continue;
+    void siblingFullyEatenOnSomeAxis; // 保留 helper 給未來使用
 
-    const local = projectWorldAABBToTargetLocal(target, inter);
+    // local box derivation 用未擴大版 target，這樣 distanceFromEnd/Top 跟原本一致；
+    // 跟 inflated tWorld 算 inter 就拿來判斷「有沒有接」即可。
+    const interLocal = intersectAABB(tWorldRaw, sWorld) ?? inter;
+    const local = projectWorldAABBToTargetLocal(target, interLocal);
     const L = target.visible.length;
     const T = target.visible.thickness;
 

@@ -23,7 +23,12 @@ import {
   tenonLocalBox,
   type OrthoViewBoxCtx,
 } from "@/lib/render/svg-views";
-import { inferConnectionMarks, type ConnectionMark } from "./connection-marks";
+import {
+  inferConnectionMarks,
+  siblingWorldCorners,
+  worldPointToTargetLocal,
+  type ConnectionMark,
+} from "./connection-marks";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -2751,43 +2756,60 @@ export function CompoundMiterAnnotation({
 // 演算法在 connection-marks.ts；本元件負責投影 + 繪製虛線 rect + leader 標籤。
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CONNECTION_KIND_LABEL: Record<string, string> = {
-  apron: "接牙條",
-  stretcher: "接橫撐",
-  other: "接合",
-};
-
-function projectMarkBox(
-  ctx: OrthoViewBoxCtx,
-  mark: ConnectionMark,
-): { x: number; y: number; w: number; h: number } | null {
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const sx of [-1, 1]) {
-    for (const sy of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        const p = ctx.partLocalToSvg(
-          mark.localX + sx * mark.sizeX / 2,
-          mark.localY + sy * mark.sizeY / 2,
-          mark.localZ + sz * mark.sizeZ / 2,
-        );
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y < minY) minY = p.y;
-        if (p.y > maxY) maxY = p.y;
-      }
-    }
+/**
+ * 對 2D 點集做 Andrew monotone-chain convex hull（順時針 / 逆時針 polygon 都可）。
+ * 用來把 sibling AABB 8 角投影後的 SVG 點包成 outline polygon。
+ */
+function convexHull2D(
+  pts: Array<{ x: number; y: number }>,
+): Array<{ x: number; y: number }> {
+  if (pts.length < 3) return pts.slice();
+  const sorted = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (
+    o: { x: number; y: number },
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Array<{ x: number; y: number }> = [];
+  for (const p of sorted) {
+    while (
+      lower.length >= 2 &&
+      cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0
+    )
+      lower.pop();
+    lower.push(p);
   }
-  const w = maxX - minX;
-  const h = maxY - minY;
-  if (w < 0.5 || h < 0.5) return null;
-  return { x: minX, y: minY, w, h };
+  const upper: Array<{ x: number; y: number }> = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (
+      upper.length >= 2 &&
+      cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0
+    )
+      upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return lower.concat(upper);
 }
 
+/**
+ * <ConnectionMarks> — 鄰件組裝版輪廓「紅虛線 polygon」標示。
+ *
+ * 演算法：
+ *   1. inferConnectionMarks 找出跟 target 有交集的鄰件（apron / stretcher / 其他）
+ *   2. 對每個 sibling 取世界 AABB 8 角
+ *   3. 用 worldPointToTargetLocal 把世界座標反算到 target part-local (centered) 座標
+ *   4. ctx.partLocalToSvg 把 target-local mm 投影到目前 view 的 SVG 座標
+ *   5. convex hull 2D → polygon points 字串 → <polygon> 紅色虛線
+ *
+ * 故意不畫 leader / 文字標籤；不依距端/距頂數字，純粹「鄰件實體外形」視覺投影。
+ */
 export function ConnectionMarks({
   ctx,
   part,
   design,
-  view,
 }: {
   ctx: OrthoViewBoxCtx;
   part: Part;
@@ -2800,72 +2822,47 @@ export function ConnectionMarks({
   );
   if (marks.length === 0) return null;
 
-  // 對每個 mark 算 projected rect + label 位置
-  type Drawn = {
-    mark: ConnectionMark;
-    rect: { x: number; y: number; w: number; h: number };
-    label: string;
-  };
+  type Drawn = { mark: ConnectionMark; pointsStr: string };
   const drawn: Drawn[] = [];
   for (const m of marks) {
-    const rect = projectMarkBox(ctx, m);
-    if (!rect) continue;
-    const kindLabel = CONNECTION_KIND_LABEL[m.kind] ?? "接合";
-    // 標籤：「接牙條 ↓375」（距上 375mm，朝上箭頭代表方向）
-    const label = `${kindLabel} ↓${Math.round(m.distanceFromTop)}`;
-    drawn.push({ mark: m, rect, label });
+    const sibling = design.parts.find((p) => p.id === m.siblingId);
+    if (!sibling) continue;
+    // 8 個世界 AABB 角 → target-local → SVG
+    const worldCorners = siblingWorldCorners(sibling);
+    const svgPts: Array<{ x: number; y: number }> = [];
+    for (const c of worldCorners) {
+      const local = worldPointToTargetLocal(part, c.x, c.y, c.z);
+      const svg = ctx.partLocalToSvg(local.x, local.y, local.z);
+      svgPts.push(svg);
+    }
+    const hull = convexHull2D(svgPts);
+    if (hull.length < 3) continue;
+    // 過濾退化 polygon（投影在 view 軸方向變成一條線 / 點）：包圍盒 < 0.5mm 視為退化
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of hull) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    if (maxX - minX < 0.5 || maxY - minY < 0.5) continue;
+    const pointsStr = hull.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+    drawn.push({ mark: m, pointsStr });
   }
   if (drawn.length === 0) return null;
 
-  // 排序避免 leader 擠：rect 中心 y 由小到大（top→bot）
-  drawn.sort((a, b) => a.rect.y + a.rect.h / 2 - (b.rect.y + b.rect.h / 2));
-
   return (
     <g className="connection-marks">
-      {drawn.map((d, i) => {
-        const cx = d.rect.x + d.rect.w / 2;
-        const cy = d.rect.y + d.rect.h / 2;
-        // Leader 朝外：奇/偶 alternate 左右；多 marks 上下分散
-        const goRight = i % 2 === 0;
-        const leaderX = goRight ? d.rect.x + d.rect.w + 30 : d.rect.x - 30;
-        const labelX = goRight ? leaderX + 2 : leaderX - 2;
-        const anchor = goRight ? "start" : "end";
-        return (
-          <g key={d.mark.siblingId}>
-            {/* 虛線矩形 — 標出接合區域 */}
-            <rect
-              x={d.rect.x}
-              y={d.rect.y}
-              width={d.rect.w}
-              height={d.rect.h}
-              fill="none"
-              stroke="#666"
-              strokeWidth={0.3}
-              strokeDasharray="2 1.5"
-            />
-            {/* Leader 細線 */}
-            <line
-              x1={goRight ? d.rect.x + d.rect.w : d.rect.x}
-              y1={cy}
-              x2={leaderX}
-              y2={cy}
-              stroke="#666"
-              strokeWidth={0.25}
-            />
-            {/* 標籤 */}
-            <text
-              x={labelX}
-              y={cy + 3}
-              fontSize={8}
-              fill="#444"
-              textAnchor={anchor}
-              fontFamily="sans-serif"
-            >
-              {d.label}
-            </text>
-          </g>
-        );
-      })}
+      {drawn.map((d) => (
+        <polygon
+          key={d.mark.siblingId}
+          points={d.pointsStr}
+          fill="none"
+          stroke="#dc2626"
+          strokeWidth={0.3}
+          strokeDasharray="2 1.5"
+        />
+      ))}
     </g>
   );
 }

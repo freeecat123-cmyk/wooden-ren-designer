@@ -136,14 +136,25 @@ const legSelf = inferConnectionMarks(legFR, design);
 const hasLegToLeg = legSelf.some((m) => m.siblingId.startsWith("leg-"));
 assertEq(hasLegToLeg, false, "leg should not mark other legs");
 
-// 測試 3：apron 從自己角度看，演算法刻意不對稱不會找到 legs
-// （legs 是主結構承載被吃進的 apron，inferConnectionMarks 在「主→輔」方向才標）
-// 故 apron 的 marks 不該含 legs，這正是零件圖的需求：leg 圖面標
-// 「接 apron 位置」，apron 圖面不必再標「接 leg 位置」
+// 測試 3：放寬 filter 後改成對稱 — apron 也應該標到接合的兩支 leg
+// （legFL/legFR 跟 apron-front 在 z=-halfZ 共面、AABB 相交體積 > 100mm³）
+// 這支援 P-02 牙板零件圖也能秀「接腳」紅虛線輪廓
 const apron = design.parts.find((p) => p.id === "apron-front")!;
 const apronMarks = inferConnectionMarks(apron, design);
 const apronLegs = apronMarks.filter((m) => m.siblingId.startsWith("leg-"));
-assertEq(apronLegs.length, 0, "apron should NOT mark legs (asymmetric by design)");
+assertEq(apronLegs.length, 2, "apron should mark the 2 legs it joins (legFL + legFR)");
+const apronLegIds = new Set(apronLegs.map((m) => m.siblingId));
+assertEq(apronLegIds.has("leg-FL"), true, "apron marks leg-FL");
+assertEq(apronLegIds.has("leg-FR"), true, "apron marks leg-FR");
+
+// 測試 4：新放寬 filter — 加 sibling 沒被任何軸完全包覆的場景（橫撐跨多腳 / 牙條跨腳）
+// 用同一 fixture 確認交集體積 filter 沒有漏掉這類「partial overlap」鄰件。
+{
+  const legFLMarks = inferConnectionMarks(legFL, design);
+  const ids = new Set(legFLMarks.map((m) => m.siblingId));
+  assertEq(ids.has("apron-front"), true, "legFL marks contain apron-front (partial overlap path)");
+  assertEq(ids.has("stretcher-front"), true, "legFL marks contain stretcher-front");
+}
 
 // 測試 5：mark size 合理（不為 0、不超過 leg 截面）
 if (apronMark) {
