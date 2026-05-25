@@ -11,6 +11,10 @@ import {
 import { getHighlights } from "@/lib/templates/highlights";
 import { getGallery } from "@/lib/templates/gallery";
 import { ShareButtons } from "@/components/ShareButtons";
+import {
+  getUnlockPrice,
+  DIFFICULTY_LABEL_ZH,
+} from "@/lib/pricing/template-unlock";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -76,6 +80,8 @@ export default async function TemplateDetail({ params }: PageProps) {
   const isFree = FREE_UNLOCKED_CATEGORIES.includes(entry.category);
   const highlights = getHighlights(entry.category);
   const gallery = getGallery(entry.category);
+  const unlockPrice = isFree ? null : getUnlockPrice(entry.category);
+  const difficultyLabel = DIFFICULTY_LABEL_ZH[entry.difficulty];
   const relatedEntries = marketing.related
     .map((c) => FURNITURE_CATALOG.find((f) => f.category === c))
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
@@ -557,6 +563,110 @@ export default async function TemplateDetail({ params }: PageProps) {
         </div>
       </section>
 
+      {/* ============ 如何取得這支模板（定價對應表） ============ */}
+      <section className="bg-gradient-to-b from-amber-50/30 to-white border-y border-amber-100">
+        <div className="max-w-4xl mx-auto px-5 sm:px-6 py-14 sm:py-20">
+          <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
+            如何取得「{entry.nameZh}」
+          </h2>
+          <p className="text-center text-zinc-500 text-sm mb-9">
+            {isFree
+              ? "免費模板，直接開始用"
+              : `${difficultyLabel}模板，三種解鎖方式擇一`}
+          </p>
+
+          {isFree ? (
+            <div className="max-w-2xl mx-auto rounded-2xl bg-white ring-2 ring-emerald-400 p-7 shadow-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-xs font-bold">
+                  完全免費
+                </span>
+                <span className="text-zinc-400 text-sm">永久使用</span>
+              </div>
+              <h3 className="font-bold text-xl text-zinc-900 mb-3">
+                {entry.nameZh} 是入門練手模板，木頭仁送你
+              </h3>
+              <ul className="space-y-2 mb-6 text-sm text-zinc-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
+                  <span>不用註冊、不用付費、不限次數</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
+                  <span>3D、榫卯、三視圖、材料單、PDF 全給，跟付費用戶一樣</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
+                  <span>唯一限制：尺寸有上限（適合練手小品）</span>
+                </li>
+              </ul>
+              <Link
+                href={`/design/${entry.category}`}
+                className="block text-center px-6 py-3.5 rounded-full bg-amber-700 text-white font-bold shadow-md hover:bg-amber-800 hover:-translate-y-0.5 transition-all"
+              >
+                免費試做 →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* 單範本買斷 */}
+              {unlockPrice && (
+                <PricingOption
+                  badge="單買"
+                  title="單範本買斷"
+                  price={`NT$${unlockPrice}`}
+                  unit="永久"
+                  features={[
+                    "永久解鎖這支模板",
+                    "不訂閱也能用",
+                    "未來功能改進也自動拿到",
+                  ]}
+                  cta={{ label: "單買解鎖", href: `/pricing?locked=${entry.category}` }}
+                  highlight={false}
+                />
+              )}
+              {/* 個人版 */}
+              <PricingOption
+                badge="最多人選"
+                title="個人版訂閱"
+                price="NT$390"
+                unit="/月"
+                features={[
+                  "全 26 模板解鎖",
+                  "天花板 + 地板模擬器",
+                  "PDF 列印 + 雲端儲存無限",
+                ]}
+                cta={{ label: "升級個人版", href: "/pricing" }}
+                highlight={true}
+              />
+              {/* 專業版 */}
+              <PricingOption
+                badge="接案級"
+                title="專業版訂閱"
+                price="NT$890"
+                unit="/月"
+                features={[
+                  "個人版全部功能",
+                  "客戶報價 + 客戶資料管理",
+                  "STL/OBJ 輸出（CNC）+ 尺寸無上限",
+                ]}
+                cta={{ label: "升級專業版", href: "/pricing" }}
+                highlight={false}
+              />
+            </div>
+          )}
+
+          {!isFree && (
+            <p className="mt-6 text-center text-xs text-zinc-500">
+              年付方案再省一個多月 · 木匠學院終身會員私訊拿專屬碼 ·
+              <Link href="/pricing" className="ml-1 text-amber-700 hover:text-amber-900 underline underline-offset-2">
+                看完整方案比較
+              </Link>
+            </p>
+          )}
+        </div>
+      </section>
+
       {/* ============ 相關模板 ============ */}
       {relatedEntries.length > 0 && (
         <section className="bg-stone-50 border-y border-stone-200">
@@ -663,5 +773,68 @@ export default async function TemplateDetail({ params }: PageProps) {
         </div>
       </section>
     </main>
+  );
+}
+
+function PricingOption({
+  badge,
+  title,
+  price,
+  unit,
+  features,
+  cta,
+  highlight,
+}: {
+  badge: string;
+  title: string;
+  price: string;
+  unit: string;
+  features: string[];
+  cta: { label: string; href: string };
+  highlight: boolean;
+}) {
+  return (
+    <div
+      className={`relative rounded-2xl p-5 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 ${
+        highlight
+          ? "bg-amber-50 ring-2 ring-amber-500 shadow-amber-700/10"
+          : "bg-white ring-1 ring-stone-200"
+      }`}
+    >
+      <div
+        className={`absolute -top-2.5 left-4 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm ${
+          highlight
+            ? "bg-amber-700 text-white"
+            : "bg-zinc-700 text-white"
+        }`}
+      >
+        {badge}
+      </div>
+      <h3 className="font-bold text-zinc-900 mb-2 mt-1">{title}</h3>
+      <div className="flex items-baseline gap-1 mb-4">
+        <span className="text-2xl font-bold text-zinc-900 tabular-nums">
+          {price}
+        </span>
+        <span className="text-zinc-500 text-xs">{unit}</span>
+      </div>
+      <ul className="space-y-1.5 mb-5 min-h-[5rem]">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-1.5 text-xs text-zinc-700 leading-relaxed">
+            <span className="text-emerald-600 mt-0.5 shrink-0">✓</span>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href={cta.href}
+        className={`block text-center px-3 py-2 rounded-full font-semibold text-xs transition-all ${
+          highlight
+            ? "bg-amber-700 text-white shadow-md hover:bg-amber-800"
+            : "bg-white text-zinc-800 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800"
+        }`}
+      >
+        {cta.label}
+      </Link>
+    </div>
   );
 }
