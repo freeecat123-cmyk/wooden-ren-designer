@@ -212,6 +212,27 @@ export function PricingClient() {
               </Link>{" "}
               協助處理。
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    window.location.href = "/templates";
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-rose-800 text-xs font-semibold ring-1 ring-rose-300 hover:ring-rose-500 hover:-translate-y-0.5 transition-all"
+              >
+                ← 回上一步
+              </button>
+              <Link
+                href="/templates"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-zinc-700 text-xs font-semibold ring-1 ring-stone-300 hover:ring-amber-500 hover:-translate-y-0.5 transition-all"
+              >
+                看其他範本
+              </Link>
+            </div>
           </div>
         </div>
       )}

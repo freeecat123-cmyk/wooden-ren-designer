@@ -2253,35 +2253,61 @@ function SplayedTrueLength({
   view: PartView;
 }) {
   if (view !== "front") return null;
+  const kind = part.shape?.kind;
+  // 擴大覆蓋：純 splayed 也要標（之前只標 splayed-tapered/splayed-round-tapered）
   if (
-    part.shape?.kind !== "splayed-tapered" &&
-    part.shape?.kind !== "splayed-round-tapered"
+    kind !== "splayed" &&
+    kind !== "splayed-tapered" &&
+    kind !== "splayed-round-tapered"
   ) {
     return null;
   }
-  const shape = part.shape;
-  const L = part.visible.length;
-  const dx = shape.dxMm ?? 0;
-  const dz = shape.dzMm ?? 0;
+  const shape = part.shape!;
+  // splayed family 長軸 = visible.thickness（不是 length）
+  const L = part.visible.thickness;
+  const dx = Math.abs((shape as { dxMm?: number }).dxMm ?? 0);
+  const dz = Math.abs((shape as { dzMm?: number }).dzMm ?? 0);
+  if (dx === 0 && dz === 0) return null;
   const realL = Math.sqrt(L * L + dx * dx + dz * dz);
-  const angleDeg =
-    (Math.atan2(Math.sqrt(dx * dx + dz * dz), L) * 180) / Math.PI;
+  // 分軸 splay 角度（木工機台設定值用）
+  const angleX = dx > 0 ? (Math.atan(dx / L) * 180) / Math.PI : 0;
+  const angleZ = dz > 0 ? (Math.atan(dz / L) * 180) / Math.PI : 0;
+  const isCompound = dx > 0 && dz > 0;
 
   const x0 = ctx.vbX + 14;
-  const y0 = ctx.vbY + ctx.vbH - 30;
+  const y0 = ctx.vbY + ctx.vbH - 56;
+  const lineH = 9;
+
+  // 機台設定值（木工實務優於投影角度）
+  const splayType = isCompound ? "複斜" : dx > 0 ? "單斜（X 軸）" : "單斜（Z 軸）";
 
   return (
-    <g className="splayed-true-length" style={{ fontSize: 8 }}>
-      <text x={x0} y={y0} fill="#374151">
-        真長 {round1(realL)}
+    <g className="splayed-true-length" style={{ fontSize: 7.5 }}>
+      <text x={x0} y={y0} fontSize={8} fontWeight={600} fill="#111">
+        {splayType}腳
       </text>
-      <text x={x0} y={y0 + 10} fontSize={7} fill="#6b7280">
-        端面斜 {round1(angleDeg)}°
+      <text x={x0} y={y0 + lineH * 1} fill="#374151">
+        真長 {round1(realL)} mm
       </text>
-      {shape.kind === "splayed-round-tapered" && (
-        <text x={x0} y={y0 + 20} fontSize={7} fill="#374151">
+      {dx > 0 && (
+        <text x={x0} y={y0 + lineH * 2} fill="#6b7280">
+          {isCompound ? "X-splay" : "傾角"} {round1(angleX)}°（鋸片傾斜）
+        </text>
+      )}
+      {dz > 0 && (
+        <text x={x0} y={y0 + lineH * 3} fill="#6b7280">
+          {isCompound ? "Z-splay" : "傾角"} {round1(angleZ)}°（切割角度）
+        </text>
+      )}
+      {(kind === "splayed-tapered" || kind === "splayed-round-tapered") && (
+        <text x={x0} y={y0 + lineH * 4} fill="#6b7280">
+          底錐縮 {round1((shape as { bottomScale: number }).bottomScale * 100)}%
+        </text>
+      )}
+      {kind === "splayed-round-tapered" && (
+        <text x={x0} y={y0 + lineH * 5} fill="#374151">
           頂徑 {round1(part.visible.width)} / 底徑{" "}
-          {round1(part.visible.width * (shape.bottomScale ?? 1))}
+          {round1(part.visible.width * (shape as { bottomScale: number }).bottomScale)}
         </text>
       )}
     </g>
