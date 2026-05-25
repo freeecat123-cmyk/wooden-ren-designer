@@ -85,22 +85,31 @@ export function PartDrawingPaperSheet({
   const innerH = 156;
   const gap = L_LAYOUT_GAP;
 
+  // L 佈局 bbox（包含兩端+中間 view 邊界共 4 條 chain pad）
+  const lLayoutW = fW + sW + gap + padPaper * 4;
+  const lLayoutH = tH + fH + gap + padPaper * 4;
+  // 置中於 inner drawing area（不夠時 clamp 0）
+  const offX = Math.max(0, (innerW - lLayoutW) / 2);
+  const offY = Math.max(0, (innerH - lLayoutH) / 2);
+  const baseX = innerX + offX + padPaper;
+  const baseY = innerY + offY + padPaper;
+
   // L 佈局 viewport（紙面 A4 mm 座標）— 加 chain padding,viewport 包含 silhouette
   // ± padPaper 的空間,讓 dim chain 不會溢出到鄰居 view
   const topVp = {
-    x: innerX + padPaper,
-    y: innerY + padPaper,
+    x: baseX,
+    y: baseY,
     w: fW,
     h: tH,
   };
   const frontVp = {
-    x: innerX + padPaper,
-    y: topVp.y + tH + padPaper + gap + padPaper,
+    x: baseX,
+    y: baseY + tH + padPaper + gap + padPaper,
     w: fW,
     h: fH,
   };
   const sideVp = {
-    x: topVp.x + fW + padPaper + gap + padPaper,
+    x: baseX + fW + padPaper + gap + padPaper,
     y: frontVp.y,
     w: sW,
     h: fH,

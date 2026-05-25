@@ -115,11 +115,11 @@ export function pickScaleForPaper(part: Part): PaperFitResult {
     const tH = views.top.h / n;
     const sW = views.side.w / n;
     const padPaper = L_LAYOUT_CHAIN_PAD / n; // 紙上每邊 chain pad
-    // 水平: fW + gap + sW + 兩端 chain pad
-    const lLayoutW = fW + sW + L_LAYOUT_GAP + padPaper * 2;
-    // 垂直: tH + gap + fH + 上下 chain pad
-    const lLayoutH = tH + fH + L_LAYOUT_GAP + padPaper * 2;
-    if (lLayoutW <= DRAW_AREA_W && lLayoutH <= DRAW_AREA_H) {
+    // L 佈局 bbox（跟 paper-sheet 一致：兩端+中間 view 邊界共 4 條 chain pad）
+    const lLayoutW = fW + sW + L_LAYOUT_GAP + padPaper * 4;
+    const lLayoutH = tH + fH + L_LAYOUT_GAP + padPaper * 4;
+    // DRAW_AREA_H 扣 5mm 給比例尺+第三角法符號（y=178-185 區）
+    if (lLayoutW <= DRAW_AREA_W && lLayoutH <= DRAW_AREA_H - 5) {
       return { scale: n, needBrokenView: false, views };
     }
   }
