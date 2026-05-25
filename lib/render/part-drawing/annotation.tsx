@@ -1996,6 +1996,7 @@ export function ShapeSpecificAnnotation({
       return null;
     case "hoof":
       return <HoofDirection ctx={ctx} part={part} view={view} />;
+    case "splayed":
     case "splayed-tapered":
     case "splayed-round-tapered":
       return <SplayedTrueLength ctx={ctx} part={part} view={view} />;
