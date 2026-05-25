@@ -18,6 +18,7 @@ export function SiteFooter() {
     { href: "/privacy", label: "隱私權政策" },
     { href: "/refund", label: "退費政策" },
     { href: "/contact", label: "聯絡我們" },
+    { href: "/changelog", label: "更新日誌" },
   ];
 
   const socials = [

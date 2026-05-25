@@ -10,6 +10,7 @@ import {
 } from "@/lib/templates/marketing";
 import { getHighlights } from "@/lib/templates/highlights";
 import { getGallery } from "@/lib/templates/gallery";
+import { ShareButtons } from "@/components/ShareButtons";
 import type { FurnitureCategory } from "@/lib/types";
 
 /**
@@ -197,6 +198,12 @@ export default async function TemplateDetail({ params }: PageProps) {
                 >
                   {isFree ? "升級全部模板" : "查看方案"}
                 </Link>
+              </div>
+              <div className="mt-5">
+                <ShareButtons
+                  url={`${SITE_URL}/templates/${type}`}
+                  title={`${entry.nameZh}設計圖｜${marketing.tagline}`}
+                />
               </div>
             </div>
             <div className="relative">
@@ -554,27 +561,37 @@ export default async function TemplateDetail({ params }: PageProps) {
       {relatedEntries.length > 0 && (
         <section className="bg-stone-50 border-y border-stone-200">
           <div className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
-            <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-7 text-center">
+            <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 text-center mb-2">
               你可能也想看
             </h2>
+            <p className="text-center text-zinc-500 text-sm mb-9">
+              同類別或互補的家具範本
+            </p>
             <div className="grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {relatedEntries.map((r) => {
                 const rHasDetail = FEATURED_TEMPLATE_CATEGORIES.includes(
                   r.category,
                 );
                 const rIsFree = FREE_UNLOCKED_CATEGORIES.includes(r.category);
+                const rMarketing = getTemplateMarketing(r.category);
+                const rDifficulty = r.difficulty === "beginner" ? "入門" : r.difficulty === "intermediate" ? "中階" : "進階";
                 return (
                   <Link
                     key={r.category}
                     href={rHasDetail ? `/templates/${r.category}` : `/design/${r.category}`}
-                    className="group block rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden hover:ring-amber-400 hover:shadow-xl hover:-translate-y-1 transition-all"
+                    className="group flex flex-col rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden hover:ring-amber-400 hover:shadow-xl hover:-translate-y-1 transition-all"
                   >
                     <div className="aspect-square flex items-center justify-center bg-gradient-to-br from-white to-stone-50 relative">
-                      {rIsFree && (
-                        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold">
-                          免費
+                      <div className="absolute top-2 right-2 z-10 flex gap-1.5">
+                        {rIsFree && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold">
+                            免費
+                          </span>
+                        )}
+                        <span className="px-1.5 py-0.5 rounded-full bg-white/95 ring-1 ring-stone-300 text-zinc-600 text-[10px] font-bold">
+                          {rDifficulty}
                         </span>
-                      )}
+                      </div>
                       <Image
                         src={`/thumbs/v2/${r.category}.webp`}
                         alt={`${r.nameZh} 3D 預覽`}
@@ -587,14 +604,32 @@ export default async function TemplateDetail({ params }: PageProps) {
                         style={{ objectFit: "contain", maxHeight: "84%", maxWidth: "84%" }}
                       />
                     </div>
-                    <div className="p-3 border-t border-amber-100 bg-amber-50">
-                      <div className="font-semibold text-zinc-900 group-hover:text-amber-900">
+                    <div className="p-4 border-t border-amber-100 bg-amber-50 flex-1 flex flex-col">
+                      <div className="font-bold text-zinc-900 group-hover:text-amber-900 mb-1">
                         {r.nameZh}
                       </div>
+                      {rMarketing?.tagline && (
+                        <p className="text-xs text-zinc-600 leading-snug line-clamp-2">
+                          {rMarketing.tagline}
+                        </p>
+                      )}
+                      {rHasDetail && (
+                        <div className="mt-3 text-xs font-semibold text-amber-700 group-hover:text-amber-900 inline-flex items-center gap-1">
+                          看詳細介紹 →
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );
               })}
+            </div>
+            <div className="mt-6 text-center">
+              <Link
+                href="/templates"
+                className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-900 font-semibold"
+              >
+                看全部 26 件範本 →
+              </Link>
             </div>
           </div>
         </section>
