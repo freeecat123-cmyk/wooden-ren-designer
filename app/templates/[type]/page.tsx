@@ -609,7 +609,7 @@ export default async function TemplateDetail({ params }: PageProps) {
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-4">
-              {/* 單範本買斷 */}
+              {/* 單範本買斷 — 直接 POST 到 ECPay（未登入會 redirect 到 /login） */}
               {unlockPrice && (
                 <PricingOption
                   badge="單買"
@@ -621,7 +621,11 @@ export default async function TemplateDetail({ params }: PageProps) {
                     "不訂閱也能用",
                     "未來功能改進也自動拿到",
                   ]}
-                  cta={{ label: "單買解鎖", href: `/pricing?locked=${entry.category}` }}
+                  cta={{
+                    label: "立即購買",
+                    action: "/api/checkout/template",
+                    hiddenField: { name: "category", value: entry.category },
+                  }}
                   highlight={false}
                 />
               )}
@@ -776,6 +780,10 @@ export default async function TemplateDetail({ params }: PageProps) {
   );
 }
 
+type PricingCta =
+  | { label: string; href: string }
+  | { label: string; action: string; hiddenField?: { name: string; value: string } };
+
 function PricingOption({
   badge,
   title,
@@ -790,9 +798,15 @@ function PricingOption({
   price: string;
   unit: string;
   features: string[];
-  cta: { label: string; href: string };
+  cta: PricingCta;
   highlight: boolean;
 }) {
+  const ctaClass = `block w-full text-center px-3 py-2 rounded-full font-semibold text-xs transition-all ${
+    highlight
+      ? "bg-amber-700 text-white shadow-md hover:bg-amber-800"
+      : "bg-white text-zinc-800 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800"
+  }`;
+
   return (
     <div
       className={`relative rounded-2xl p-5 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 ${
@@ -825,16 +839,20 @@ function PricingOption({
           </li>
         ))}
       </ul>
-      <Link
-        href={cta.href}
-        className={`block text-center px-3 py-2 rounded-full font-semibold text-xs transition-all ${
-          highlight
-            ? "bg-amber-700 text-white shadow-md hover:bg-amber-800"
-            : "bg-white text-zinc-800 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800"
-        }`}
-      >
-        {cta.label}
-      </Link>
+      {"action" in cta ? (
+        <form method="POST" action={cta.action}>
+          {cta.hiddenField && (
+            <input type="hidden" name={cta.hiddenField.name} value={cta.hiddenField.value} />
+          )}
+          <button type="submit" className={ctaClass}>
+            {cta.label}
+          </button>
+        </form>
+      ) : (
+        <Link href={cta.href} className={ctaClass}>
+          {cta.label}
+        </Link>
+      )}
     </div>
   );
 }
