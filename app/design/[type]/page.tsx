@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTemplate } from "@/lib/templates";
+import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { createClient, createAdminClient, getSessionUser } from "@/lib/supabase/server";
 import { canAccessCategory, getPlanFeatures, isPaidCategory } from "@/lib/permissions";
 import { fetchUnlockedCategories } from "@/lib/unlocks";
@@ -362,9 +363,17 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     />
     <div className={uiV2 ? "hidden md:block" : "block"}>
     <main className="max-w-7xl mx-auto px-6 py-6">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
-        <span className="transition-transform group-hover:-translate-x-0.5">←</span> 回家具列表
-      </Link>
+      <div className="flex items-center gap-4 flex-wrap">
+        <Link href="/app" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-amber-700 transition-colors group">
+          <span className="transition-transform group-hover:-translate-x-0.5">←</span> 回家具列表
+        </Link>
+        {FEATURED_TEMPLATE_CATEGORIES.includes(entry.category) && (
+          <Link href={`/templates/${entry.category}`} className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 transition-colors">
+            <span aria-hidden>📖</span>
+            這支{entry.nameZh}的詳細介紹
+          </Link>
+        )}
+      </div>
 
       <header className="mt-3 mb-5 rounded-2xl border border-amber-200/70 bg-white/80 shadow-sm shadow-amber-900/5 px-5 py-4 flex items-center justify-between flex-wrap gap-4">
         <div className="min-w-0">

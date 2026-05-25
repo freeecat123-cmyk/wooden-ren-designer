@@ -219,6 +219,16 @@ export default async function Home({
               <p className="mt-3 text-sm text-zinc-500 leading-relaxed">
                 切料長度已內建台灣木匠慣例,拿著材料單就能直接進工坊開鋸。
               </p>
+              <div className="mt-5">
+                <Link
+                  href="/templates"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:text-amber-900 transition-colors"
+                >
+                  <span aria-hidden>📖</span>
+                  先看每張家具的詳細介紹
+                  <span aria-hidden>→</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
