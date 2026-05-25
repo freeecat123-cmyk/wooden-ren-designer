@@ -4,7 +4,8 @@
  * /raised-floor 和室架高平台估價 — 主 UI
  *
  * 版面:左欄 6 區漸進輸入(平台形狀 → 架高高度 → 面材 → 骨架 → 夾板 → 估價)
- *      右欄 sticky 結果(俯視預覽 + 4 張統計卡 + BOM 表 + 總價 + 複製清單)
+ *      右欄 sticky 結果(三 tab 預覽:骨架 2D / 拼花 2D / 3D 爆炸
+ *                       + 5 張統計卡 + BOM 表 + 總價 + 複製清單)
  *
  * 任何輸入變更 → useMemo 即時 computeRaisedFloorBom 重算。
  */
@@ -25,6 +26,14 @@ import {
 } from "@/lib/raised-floor/presets";
 import { PLANK_PRESETS } from "@/lib/floor/presets";
 import { RaisedFloorOverviewSvg } from "@/lib/raised-floor/RaisedFloorOverviewSvg";
+import { RaisedFloorPlankSvg } from "@/lib/raised-floor/RaisedFloorPlankSvg";
+import {
+  LazyRaisedFloorScene3D,
+} from "@/lib/raised-floor/LazyRaisedFloorScene3D";
+import type {
+  LayerKey,
+  ViewMode,
+} from "@/lib/raised-floor/RaisedFloorScene3D";
 import { FloorRangeInput } from "@/app/floor/FloorRangeInput";
 
 const PILLAR_CORNERS: { value: PillarCorner; label: string }[] = [
@@ -34,13 +43,42 @@ const PILLAR_CORNERS: { value: PillarCorner; label: string }[] = [
   { value: "br", label: "右下" },
 ];
 
+type PreviewTab = "frame" | "plank" | "3d";
+
+const LAYER_LABELS: { key: LayerKey; label: string }[] = [
+  { key: "ground", label: "地面" },
+  { key: "legs", label: "腳柱" },
+  { key: "frame", label: "邊框" },
+  { key: "main", label: "主支" },
+  { key: "sub", label: "副支" },
+  { key: "plywood", label: "夾板" },
+  { key: "plank", label: "面材" },
+];
+
 export function RaisedFloorClient() {
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
   const bom = useMemo(() => computeRaisedFloorBom(input), [input]);
   const [copied, setCopied] = useState(false);
 
+  // 預覽 tab + 3D 控制
+  const [tab, setTab] = useState<PreviewTab>("frame");
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>({
+    ground: true,
+    legs: true,
+    frame: true,
+    main: true,
+    sub: true,
+    plywood: true,
+    plank: true,
+  });
+  const [explode, setExplode] = useState(0.3);
+  const [viewMode, setViewMode] = useState<ViewMode>("iso");
+
   const set = <K extends keyof RaisedFloorInput>(k: K, v: RaisedFloorInput[K]) =>
     setInput((p) => ({ ...p, [k]: v }));
+
+  const toggleLayer = (k: LayerKey) =>
+    setLayers((prev) => ({ ...prev, [k]: !prev[k] }));
 
   const addPillar = () => {
     if (input.pillars.length >= 2) return;
@@ -343,6 +381,15 @@ export function RaisedFloorClient() {
                 step={5}
                 onChange={(v) => set("joistSpacingCm", v)}
               />
+              <FloorRangeInput
+                label="副支間距"
+                unit="cm"
+                value={input.subJoistSpacingCm}
+                min={20}
+                max={80}
+                step={5}
+                onChange={(v) => set("subJoistSpacingCm", v)}
+              />
             </div>
           </details>
 
@@ -423,13 +470,121 @@ export function RaisedFloorClient() {
         {/* ───── 右:結果 sticky ───── */}
         <div className="space-y-3">
           <div className="md:sticky md:top-4 md:z-10 space-y-3 bg-white md:bg-transparent">
-            <RaisedFloorOverviewSvg bom={bom} width={388} />
+            {/* tab 切換 */}
+            <div className="flex gap-1.5">
+              {(
+                [
+                  { key: "frame", label: "骨架 2D" },
+                  { key: "plank", label: "拼花 2D" },
+                  { key: "3d", label: "3D 爆炸" },
+                ] as { key: PreviewTab; label: string }[]
+              ).map((t) => {
+                const active = tab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`flex-1 rounded border px-3 py-1.5 text-xs ${
+                      active
+                        ? "border-[#bd9955] bg-[#bd9955]/15 text-[#8a6d3b] font-medium"
+                        : "border-zinc-300 hover:bg-zinc-50"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            {/* 對應 tab 顯示視圖 */}
+            {tab === "frame" && <RaisedFloorOverviewSvg bom={bom} width={388} />}
+            {tab === "plank" && <RaisedFloorPlankSvg bom={bom} width={388} />}
+            {tab === "3d" && (
+              <div className="space-y-2">
+                <LazyRaisedFloorScene3D
+                  bom={bom}
+                  viewMode={viewMode}
+                  explode={explode}
+                  layers={layers}
+                />
+
+                {/* 圖層 toggle(2 列 wrap) */}
+                <div className="rounded border border-zinc-200 p-2">
+                  <div className="mb-1 text-[11px] text-zinc-500">顯示圖層</div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {LAYER_LABELS.map((l) => (
+                      <label
+                        key={l.key}
+                        className="flex items-center gap-1 text-xs text-zinc-600 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={layers[l.key]}
+                          onChange={() => toggleLayer(l.key)}
+                          className="accent-[#bd9955]"
+                        />
+                        {l.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 爆炸 slider */}
+                <div className="rounded border border-zinc-200 p-2">
+                  <div className="mb-1 flex items-center justify-between text-[11px] text-zinc-500">
+                    <span>爆炸程度</span>
+                    <span className="font-mono text-zinc-700">
+                      {Math.round(explode * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(explode * 100)}
+                    onChange={(e) => setExplode(Number(e.target.value) / 100)}
+                    className="w-full accent-[#bd9955]"
+                  />
+                </div>
+
+                {/* 視角切換 */}
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      { key: "iso", label: "軸測" },
+                      { key: "top", label: "俯視" },
+                    ] as { key: ViewMode; label: string }[]
+                  ).map((v) => {
+                    const active = viewMode === v.key;
+                    return (
+                      <button
+                        key={v.key}
+                        onClick={() => setViewMode(v.key)}
+                        className={`flex-1 rounded border px-3 py-1 text-xs ${
+                          active
+                            ? "border-[#bd9955] bg-[#bd9955]/15 text-[#8a6d3b] font-medium"
+                            : "border-zinc-300 hover:bg-zinc-50"
+                        }`}
+                      >
+                        {v.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               <Stat
                 label="面材"
                 value={`${bom.trace.plankTotalCount}`}
                 unit="片"
+              />
+              <Stat
+                label="副支"
+                value={bom.trace.subJoistTotalM.toFixed(1)}
+                unit="m"
               />
               <Stat
                 label="骨架"

@@ -8,6 +8,7 @@ import {
   subtractCornerRect,
   buildPlatformPolygon,
   joistRunLengthsM,
+  subJoistRunLengthsM,
 } from "./geometry";
 import { polygonArea, polygonPerimeter } from "@/lib/floor/geometry";
 
@@ -146,6 +147,77 @@ function approx(a: number, b: number, eps = 0.5) {
   });
   // axis-aligned 挖角周長不變,兩柱仍 1400
   assert(polygonPerimeter(p) === 1400, `兩柱周長預期 1400 實際 ${polygonPerimeter(p)}`);
+}
+
+// ────────── joistRunLengthsM 回傳 mainJoistCentersCm ──────────
+{
+  const r = joistRunLengthsM(rectPolygon(400, 300), 30);
+  assert(
+    r.mainJoistCentersCm.length === r.middleCount,
+    `mainCenters.length=${r.mainJoistCentersCm.length} 預期 = middleCount=${r.middleCount}`,
+  );
+  // 矩形 400×300:short=Y=300、long=X=400,centers 沿 X(長軸)分布在 (0, 400) 內
+  for (const c of r.mainJoistCentersCm) {
+    assert(c > 0 && c < 400, `center ${c} 應落在 (0, 400) 內`);
+  }
+}
+
+// ────────── subJoistRunLengthsM:矩形 400×300 預期 count>0 ──────────
+{
+  const r = joistRunLengthsM(rectPolygon(400, 300), 30);
+  const sub = subJoistRunLengthsM(rectPolygon(400, 300), r.mainJoistCentersCm, 40);
+  assert(sub.count > 0, `矩形 sub.count > 0, 實際 ${sub.count}`);
+  assert(sub.totalLengthM > 0, `sub.totalLengthM > 0, 實際 ${sub.totalLengthM}`);
+  assert(sub.typicalLengthCm > 0, `sub.typicalLengthCm > 0, 實際 ${sub.typicalLengthCm}`);
+}
+
+// ────────── subJoistRunLengthsM:間距減半,count 約翻倍 ──────────
+{
+  const r = joistRunLengthsM(rectPolygon(400, 300), 30);
+  const wide = subJoistRunLengthsM(rectPolygon(400, 300), r.mainJoistCentersCm, 40);
+  const dense = subJoistRunLengthsM(rectPolygon(400, 300), r.mainJoistCentersCm, 20);
+  assert(
+    dense.count > wide.count,
+    `subSpacing 20 (${dense.count}) > 40 (${wide.count})`,
+  );
+  // 約翻倍:dense >= 1.5 * wide(floor 取整有 +/- 一根)
+  assert(
+    dense.count >= wide.count * 1.5,
+    `密副支至少 1.5x:wide=${wide.count} dense=${dense.count}`,
+  );
+}
+
+// ────────── subJoistRunLengthsM:typicalLengthCm 約等於主支間距 ──────────
+{
+  // 矩形 400×300,short=300,long=400,主支間距 30 → middleCount=13
+  // slot 寬大約 = 400/14 ≈ 28.57cm
+  const main = joistRunLengthsM(rectPolygon(400, 300), 30);
+  const sub = subJoistRunLengthsM(rectPolygon(400, 300), main.mainJoistCentersCm, 40);
+  const expectedSlot = 400 / (main.middleCount + 1);
+  assert(
+    approx(sub.typicalLengthCm, expectedSlot, 0.5),
+    `typicalLength ${sub.typicalLengthCm} 預期 ≈ ${expectedSlot}`,
+  );
+}
+
+// ────────── subJoistRunLengthsM:L 形 count > 0 不報錯 ──────────
+{
+  const lPoly = lShapePolygon(400, 300, 160, 120);
+  const main = joistRunLengthsM(lPoly, 30);
+  const sub = subJoistRunLengthsM(lPoly, main.mainJoistCentersCm, 40);
+  assert(sub.count > 0, `L 形 sub.count > 0, 實際 ${sub.count}`);
+  assert(sub.totalLengthM > 0, `L 形 sub.totalLengthM > 0, 實際 ${sub.totalLengthM}`);
+}
+
+// ────────── subJoistRunLengthsM:主支 0 條(極小平台)仍能算 ──────────
+{
+  // 50×50 小平台、間距 100 → middleCount=0 → 整片 1 個 slot
+  const poly = rectPolygon(50, 50);
+  const main = joistRunLengthsM(poly, 100);
+  assert(main.mainJoistCentersCm.length === 0, "極小平台無中間主支");
+  const sub = subJoistRunLengthsM(poly, main.mainJoistCentersCm, 40);
+  // 1 個 slot 寬 50,short 50 / 40 = 1 排,1×50=50cm=0.5m
+  assert(sub.count >= 0, "極小平台 sub.count >= 0 不報錯");
 }
 
 console.log(`✅ geometry: ${passed} passed`);

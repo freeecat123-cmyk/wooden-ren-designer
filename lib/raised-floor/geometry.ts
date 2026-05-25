@@ -130,18 +130,28 @@ export function buildPlatformPolygon(opts: {
 }
 
 /**
- * 算骨架總公尺數:平台周長(井字邊框)+ 中間短向支撐 N 條。
+ * 算主支(main-joist)總公尺數:平台周長(井字邊框)+ 中間短向支撐 N 條。
  *
  * 規矩:
- *   - 骨架沿「短軸」走(短軸=每根角材長度方向),平台短邊長則 →每條更短。
+ *   - 主支沿「短軸」走(短軸=每根角材長度方向),平台短邊長則 →每條更短。
  *   - 沿「長軸」每 spacingCm 一條中間支撐(不含兩端,兩端是邊框)。
  *   - 中間條數 N = floor(longAxisCm / spacingCm)
  *   - 每條長度 = 平台 polygon 在該掃描線位置的橫切長度(corner 挖洞自動扣)
+ *
+ * 回傳:
+ *   - `mainJoistCentersCm` = 中間主支沿長軸方向的中心座標(cm,bbox 相對),
+ *     讓 SVG / 副支算法共用,別重算。
  */
 export function joistRunLengthsM(
   poly: RoomPolygon,
   spacingCm: number,
-): { rowCount: number; totalLengthM: number; perimeterM: number; middleCount: number } {
+): {
+  rowCount: number;
+  totalLengthM: number;
+  perimeterM: number;
+  middleCount: number;
+  mainJoistCentersCm: number[];
+} {
   const perimeterM = polygonPerimeter(poly) / 100;
   const bb = bbox(poly);
   const w = bb.maxX - bb.minX;
@@ -150,9 +160,11 @@ export function joistRunLengthsM(
   const shortAlongX = w <= d; // true → 角材沿 X 走、間距沿 Y 量
   const longSpan = shortAlongX ? d : w;
   const middleCount = Math.max(0, Math.floor(longSpan / Math.max(spacingCm, 1)));
+  const mainJoistCentersCm: number[] = [];
   let middleCm = 0;
   for (let i = 1; i <= middleCount; i++) {
     const t = (i * longSpan) / (middleCount + 1);
+    mainJoistCentersCm.push(t);
     // 掃描線基準:沿長軸走 → 基準軸跟長軸同
     const base = shortAlongX ? bb.minY : bb.minX;
     middleCm += scanlineLength(poly, shortAlongX, base + t);
@@ -160,7 +172,78 @@ export function joistRunLengthsM(
   const totalLengthM = perimeterM + middleCm / 100;
   // rowCount 對外暴露含兩端邊框的「角材條數」,UI 顯示用
   const rowCount = middleCount + 2;
-  return { rowCount, totalLengthM, perimeterM, middleCount };
+  return { rowCount, totalLengthM, perimeterM, middleCount, mainJoistCentersCm };
+}
+
+/**
+ * 算副支(sub-joist)總公尺數。副支用來把夾板底層支撐密度提高。
+ *
+ * 拓樸(對標 ceiling §CE.5 model):
+ *   - 主支沿「短軸」走,垂直排列 N 條中間主支 → 把平台沿「長軸」切成 N+1 個 slot。
+ *   - 副支沿「長軸」走(垂直主支),被主支夾在 slot 內,長度 = slot 寬(相鄰主支中心距)。
+ *   - 副支沿「短軸」方向以 subSpacingCm 為間距排列,排數一致,每個 slot 都同樣多。
+ *
+ * 演算法:
+ *   1. slot 邊界 = [0, ...mainCentersCm, longSpan];共 N+1 個 slot。
+ *   2. 每 slot 內副支根數 = floor(shortSpan / subSpacingCm)
+ *      (副支沿短軸排,跟掃描線一樣;假設整片平台共用同密度,L/挨柱平台也照這個基線估)。
+ *   3. 每根副支長 = slot 寬(相鄰主支中心距)。
+ *   4. 總公尺 = Σ(slot 寬 × 排數)/ 100。
+ *   5. typicalLengthCm = 取中段 slot 的副支長(沒有就第一個 slot)。
+ *
+ * 簡化假設(跟 ceiling 一樣):這版固定「sub 走長軸 / main 走短軸」,不過度通用化。
+ *   L 形/挨柱平台,slot 寬是「相鄰主支中心距」而不是實際扣洞長度,
+ *   會略高估副支長(可接受誤差,跟 ceiling 同尺度)。
+ *
+ * @param poly 平台多邊形(bbox 用來推 short/long 軸)
+ * @param mainCentersCm 中間主支沿長軸的中心座標(joistRunLengthsM 回傳)
+ * @param subSpacingCm 副支間距(cm,沿短軸方向)
+ */
+export function subJoistRunLengthsM(
+  poly: RoomPolygon,
+  mainCentersCm: number[],
+  subSpacingCm: number,
+): { totalLengthM: number; count: number; typicalLengthCm: number } {
+  const bb = bbox(poly);
+  const w = bb.maxX - bb.minX;
+  const d = bb.maxY - bb.minY;
+  const shortAlongX = w <= d; // 主支沿 X → 短軸 = X,長軸 = Y
+  const longSpan = shortAlongX ? d : w;
+  const shortSpan = shortAlongX ? w : d;
+  const spacing = Math.max(subSpacingCm, 1);
+
+  // slot 邊界陣列(沿長軸):0 → 每根主支中心 → longSpan
+  const boundaries = [0, ...mainCentersCm, longSpan];
+
+  // 每 slot 副支排數 = 沿短軸方向 floor(shortSpan / spacing)
+  const subRowsPerSlot = Math.max(0, Math.floor(shortSpan / spacing));
+
+  let totalCm = 0;
+  let count = 0;
+  const slotWidths: number[] = [];
+
+  for (let s = 0; s + 1 < boundaries.length; s++) {
+    const slotLo = boundaries[s];
+    const slotHi = boundaries[s + 1];
+    const slotWidth = slotHi - slotLo;
+    if (slotWidth <= 0) continue;
+
+    count += subRowsPerSlot;
+    totalCm += subRowsPerSlot * slotWidth;
+    slotWidths.push(slotWidth);
+  }
+
+  // typicalLengthCm:取中段 slot 寬(=典型副支長)
+  let typicalLengthCm = 0;
+  if (slotWidths.length > 0) {
+    typicalLengthCm = slotWidths[Math.floor(slotWidths.length / 2)];
+  }
+
+  return {
+    totalLengthM: totalCm / 100,
+    count,
+    typicalLengthCm,
+  };
 }
 
 /**

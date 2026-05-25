@@ -13,7 +13,7 @@
 import type { RaisedFloorBom, RaisedFloorBomItem, RaisedFloorInput } from "./types";
 import { polygonArea, polygonPerimeter } from "@/lib/floor/geometry";
 import { computeFloorLayout } from "@/lib/floor/layout";
-import { buildPlatformPolygon, joistRunLengthsM } from "./geometry";
+import { buildPlatformPolygon, joistRunLengthsM, subJoistRunLengthsM } from "./geometry";
 import type { FloorInput } from "@/lib/floor/types";
 
 const PING_M2 = 3.305;
@@ -63,9 +63,17 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
       ? ((plankNominalCm2 - plankUsedCm2) / plankUsedCm2) * 100
       : 0;
 
-  // 3. 骨架
+  // 3. 骨架(主支:邊框 + 中間短向支撐)
   const joist = joistRunLengthsM(platform, input.joistSpacingCm);
   const joistTotalM = joist.totalLengthM;
+
+  // 3b. 副支(垂直主支、跨 slot,沿短軸方向每 subSpacingCm 一排)
+  const subJoist = subJoistRunLengthsM(
+    platform,
+    joist.mainJoistCentersCm,
+    input.subJoistSpacingCm,
+  );
+  const subJoistTotalM = subJoist.totalLengthM;
 
   // 4. 夾板
   const sheetAreaM2 =
@@ -79,8 +87,12 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
   const boughtPing = plankNominalCm2 / 10000 / PING_M2;
   const plankCost =
     input.plankPricePerPing > 0 ? boughtPing * input.plankPricePerPing : 0;
-  const joistCost =
+  const mainJoistCost =
     input.joistPricePerM > 0 ? joistTotalM * input.joistPricePerM : 0;
+  const subJoistCost =
+    input.joistPricePerM > 0 ? subJoistTotalM * input.joistPricePerM : 0;
+  // cost.joist = 主 + 副(共用同單價;UI 想拆顯示走 trace)
+  const joistCost = mainJoistCost + subJoistCost;
   const plywoodCost =
     input.plywoodPricePerSheet > 0
       ? plywoodSheetCount * input.plywoodPricePerSheet
@@ -106,11 +118,19 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     },
     {
       category: "joist",
-      nameZh: "骨架角材",
+      nameZh: "主支(骨架)",
       spec: `${input.joist.nameZh} @ ${input.joistSpacingCm}cm`,
       totalLengthM: joistTotalM,
-      note: `井字邊框 ${joist.perimeterM.toFixed(1)}m + 中間支撐 ${joist.middleCount} 條`,
-      subtotal: joistCost > 0 ? joistCost : undefined,
+      note: `井字邊框 ${joist.perimeterM.toFixed(1)}m + 中間主支 ${joist.middleCount} 條`,
+      subtotal: mainJoistCost > 0 ? mainJoistCost : undefined,
+    },
+    {
+      category: "sub-joist",
+      nameZh: "副支(密底)",
+      spec: `${input.joist.nameZh} @ ${input.subJoistSpacingCm}cm`,
+      totalLengthM: subJoistTotalM,
+      note: `${subJoist.count} 根 × 平均 ${subJoist.typicalLengthCm.toFixed(0)}cm`,
+      subtotal: subJoistCost > 0 ? subJoistCost : undefined,
     },
     {
       category: "plywood",
@@ -149,6 +169,10 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
       plankWastePercent,
       joistTotalM,
       joistRowCount: joist.middleCount,
+      mainJoistCentersCm: joist.mainJoistCentersCm,
+      subJoistCount: subJoist.count,
+      subJoistTotalM,
+      subJoistLengthCm: subJoist.typicalLengthCm,
       plywoodSheetCount,
       perimeterM,
     },

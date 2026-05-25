@@ -20,11 +20,12 @@ function approx(a: number, b: number, eps = 0.5) {
   assert(approx(bom.auto.platformAreaM2, 12, 0.01), `面積 = 12, 實際 ${bom.auto.platformAreaM2}`);
   assert(approx(bom.auto.pingShu, 3.63, 0.05), `坪 ≈ 3.63, 實際 ${bom.auto.pingShu}`);
   assert(approx(bom.auto.perimeterM, 14, 0.01), `周長 = 14m`);
-  assert(bom.items.length === 4, "4 大材料品項");
+  assert(bom.items.length === 5, "5 大材料品項(含副支)");
   assert(bom.items[0].category === "plank", "[0] plank");
   assert(bom.items[1].category === "joist", "[1] joist");
-  assert(bom.items[2].category === "plywood", "[2] plywood");
-  assert(bom.items[3].category === "skirting", "[3] skirting");
+  assert(bom.items[2].category === "sub-joist", "[2] sub-joist");
+  assert(bom.items[3].category === "plywood", "[3] plywood");
+  assert(bom.items[4].category === "skirting", "[4] skirting");
 }
 
 // ────────── 4 大數量 sanity ──────────
@@ -138,6 +139,64 @@ function approx(a: number, b: number, eps = 0.5) {
   const l = computeRaisedFloorBom(low);
   const h = computeRaisedFloorBom(high);
   assert(h.trace.plywoodSheetCount >= l.trace.plywoodSheetCount, "高損耗 ≥ 低損耗");
+}
+
+// ────────── 副支:預設輸入 subJoistTotalM > 0 ──────────
+{
+  const bom = computeRaisedFloorBom(DEFAULT_RAISED_FLOOR_INPUT);
+  assert(bom.trace.subJoistTotalM > 0, `預設副支 totalM > 0, 實際 ${bom.trace.subJoistTotalM}`);
+  assert(bom.trace.subJoistCount > 0, `預設副支 count > 0, 實際 ${bom.trace.subJoistCount}`);
+}
+
+// ────────── trace.mainJoistCentersCm 跟 joistRowCount 對應 ──────────
+{
+  const bom = computeRaisedFloorBom(DEFAULT_RAISED_FLOOR_INPUT);
+  assert(
+    bom.trace.mainJoistCentersCm.length === bom.trace.joistRowCount,
+    `mainCenters.length=${bom.trace.mainJoistCentersCm.length} 預期 = joistRowCount=${bom.trace.joistRowCount}`,
+  );
+}
+
+// ────────── BOM items 含 sub-joist category ──────────
+{
+  const bom = computeRaisedFloorBom(DEFAULT_RAISED_FLOOR_INPUT);
+  const subItem = bom.items.find((i) => i.category === "sub-joist");
+  assert(subItem !== undefined, "BOM 含 sub-joist 一行");
+  assert(
+    (subItem?.totalLengthM ?? 0) > 0,
+    `sub-joist totalLengthM > 0, 實際 ${subItem?.totalLengthM}`,
+  );
+}
+
+// ────────── 副支間距變小 → count/totalM 增加 ──────────
+{
+  const sparse: RaisedFloorInput = { ...DEFAULT_RAISED_FLOOR_INPUT, subJoistSpacingCm: 60 };
+  const dense: RaisedFloorInput = { ...DEFAULT_RAISED_FLOOR_INPUT, subJoistSpacingCm: 20 };
+  const sp = computeRaisedFloorBom(sparse);
+  const ds = computeRaisedFloorBom(dense);
+  assert(
+    ds.trace.subJoistCount > sp.trace.subJoistCount,
+    `密副支 ${ds.trace.subJoistCount} > 疏副支 ${sp.trace.subJoistCount}`,
+  );
+  assert(
+    ds.trace.subJoistTotalM > sp.trace.subJoistTotalM,
+    `密副支 totalM ${ds.trace.subJoistTotalM} > 疏 ${sp.trace.subJoistTotalM}`,
+  );
+}
+
+// ────────── cost.joist 是「主+副」合計 ──────────
+{
+  const input: RaisedFloorInput = {
+    ...DEFAULT_RAISED_FLOOR_INPUT,
+    joistPricePerM: 80,
+  };
+  const bom = computeRaisedFloorBom(input);
+  const expected =
+    (bom.trace.joistTotalM + bom.trace.subJoistTotalM) * 80;
+  assert(
+    approx(bom.cost.joist, expected, 1),
+    `cost.joist=${bom.cost.joist} 預期主+副合計 ${expected}`,
+  );
 }
 
 console.log(`✅ calc: ${passed} passed`);

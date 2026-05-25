@@ -67,8 +67,10 @@ export interface RaisedFloorInput {
   plankGapMm: number;
   /** 骨架 */
   joist: JoistPreset;
-  /** 骨架間距(cm,中心-中心) */
+  /** 主支間距(cm,中心-中心,沿長軸方向量)*/
   joistSpacingCm: number;
+  /** 副支間距(cm,中心-中心,沿短軸方向量;副支垂直主支跨 slot)*/
+  subJoistSpacingCm: number;
   /** 夾板 */
   plywood: PlywoodPreset;
   /** 夾板損耗率(0–0.5) */
@@ -83,6 +85,7 @@ export interface RaisedFloorInput {
 export type RaisedFloorBomCategory =
   | "plank"
   | "joist"
+  | "sub-joist"
   | "plywood"
   | "skirting";
 
@@ -130,10 +133,18 @@ export interface RaisedFloorBom {
     plankTotalCount: number;
     /** 面材損耗率(%) */
     plankWastePercent: number;
-    /** 骨架總公尺數(短向骨架 + 一圈邊框) */
+    /** 主支總公尺數(短向骨架 + 一圈邊框)— 不含副支 */
     joistTotalM: number;
-    /** 短向骨架條數 */
+    /** 短向主支條數(中間,不含邊框)*/
     joistRowCount: number;
+    /** 中間主支沿長軸的中心位置陣列(cm,bbox 相對座標),供 SVG/3D 共用 */
+    mainJoistCentersCm: number[];
+    /** 副支總根數(所有 slot 加總) */
+    subJoistCount: number;
+    /** 副支總公尺數(只含副支) */
+    subJoistTotalM: number;
+    /** 副支典型單支長(cm)— UI 顯示用,取 middle slot 的長度 */
+    subJoistLengthCm: number;
     /** 夾板片數(含損耗) */
     plywoodSheetCount: number;
     /** 平台周長(m) */
@@ -160,6 +171,7 @@ export const DEFAULT_RAISED_FLOOR_INPUT: RaisedFloorInput = {
     thicknessMm: 36,
   },
   joistSpacingCm: 30,
+  subJoistSpacingCm: 40,
   plywood: {
     id: "ply15",
     nameZh: "樺木夾板 15mm",
