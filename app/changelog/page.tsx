@@ -171,17 +171,15 @@ export default function ChangelogPage() {
 
       <section className="border-t border-stone-200 bg-stone-50">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 py-12 text-center">
-          <p className="text-sm text-zinc-600 mb-4">
-            想看完整 commit 紀錄？
+          <p className="text-sm text-zinc-600 mb-2">
+            想要新功能或回報問題？
           </p>
-          <a
-            href="https://github.com/freeecat123-cmyk/wooden-ren-designer/commits/main"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/contact"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 hover:text-amber-900"
           >
-            GitHub commit history →
-          </a>
+            聯絡我們 →
+          </Link>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm">
             <Link
               href="/templates"
