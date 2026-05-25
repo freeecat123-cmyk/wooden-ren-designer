@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Noto_Serif_TC } from "next/font/google";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { HeaderUser } from "@/components/auth/HeaderUser";
+import { SiteHeader } from "@/components/SiteHeader";
 import { StudentWelcomeModal } from "@/components/StudentWelcomeModal";
 import { StudentExpiryNotice } from "@/components/StudentExpiryNotice";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -159,12 +159,8 @@ export default async function RootLayout({
         <AuthProvider initialUser={user}>
           {/* 學員到期前 30 天頂部橫幅（其他狀態自動隱藏） */}
           <StudentExpiryNotice />
-          {/* 全站固定右上角浮動的登入狀態 widget，不干擾既有 per-page header */}
-          {/* 全站浮動帳號選單（桌面 + 手機都顯示）。設計頁的 MobileTopBar 把 ⋯
-              移到左側避開這個 fixed top-4 right-4 容器 */}
-          <div className="fixed top-4 right-4 z-40">
-            <HeaderUser />
-          </div>
+          {/* 全站頂部導覽列；設計頁/列印頁自動隱藏。HeaderUser 嵌入右側。*/}
+          <SiteHeader />
           {children}
           <SiteFooter />
           <BugReportFab />

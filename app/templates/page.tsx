@@ -117,8 +117,8 @@ export default function TemplatesIndex() {
         </div>
       </section>
 
-      {/* ============ 快速跳轉 chip bar ============ */}
-      <div className="sticky top-0 z-30 bg-[#fafaf7]/95 backdrop-blur-sm border-b border-stone-200 shadow-sm">
+      {/* ============ 快速跳轉 chip bar（緊貼 SiteHeader 下方）============ */}
+      <div className="sticky top-14 z-30 bg-[#fafaf7]/95 backdrop-blur-sm border-b border-stone-200 shadow-sm">
         <nav className="max-w-6xl mx-auto px-5 sm:px-6 py-3 overflow-x-auto scrollbar-thin">
           <div className="inline-flex gap-2 min-w-max">
             {CATEGORY_GROUPS.map((g) => {
@@ -151,7 +151,7 @@ export default function TemplatesIndex() {
             <div
               key={g.id}
               id={g.id}
-              className="scroll-mt-20"
+              className="scroll-mt-32"
             >
               <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
                 <span aria-hidden>{g.emoji}</span>
