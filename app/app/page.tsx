@@ -294,13 +294,19 @@ export default async function Home({
         {(() => {
           if (!showFurniture && !showTools) return null;
           if (!showFurniture) {
-            return [<CeilingToolCard key="t-ceiling" />, <FloorToolCard key="t-floor" />];
+            return [
+              <CeilingToolCard key="t-ceiling" />,
+              <FloorToolCard key="t-floor" />,
+              <RaisedFloorToolCard key="t-raised-floor" />,
+            ];
           }
           // 已解鎖的範本/工具一律置頂;未解鎖的維持自然排序、工具卡插在中階開頭
           const ownedFurniture = furniture.filter((it) => unlockedSet.has(it.category));
           const restFurniture = furniture.filter((it) => !unlockedSet.has(it.category));
           const ceilingOwned = unlockedToolSet.has("ceiling");
           const floorOwned = unlockedToolSet.has("floor");
+          // 和室架高平台共用 floor 解鎖(同 server gate),不另開單買斷
+          const raisedFloorOwned = floorOwned;
 
           if (!showTools) {
             return [...ownedFurniture, ...restFurniture].map((item) => (
@@ -314,6 +320,9 @@ export default async function Home({
             )),
             ...(ceilingOwned ? [<CeilingToolCard key="t-ceiling-owned" isUnlocked />] : []),
             ...(floorOwned ? [<FloorToolCard key="t-floor-owned" isUnlocked />] : []),
+            ...(raisedFloorOwned
+              ? [<RaisedFloorToolCard key="t-raised-floor-owned" isUnlocked />]
+              : []),
           ];
 
           // 在「未解鎖區」找第一個 intermediate 的位置,未擁有的工具卡插在這
@@ -331,6 +340,9 @@ export default async function Home({
           const unownedTools: ReactNode[] = [
             ...(ceilingOwned ? [] : [<CeilingToolCard key="t-ceiling" isUnlocked={false} />]),
             ...(floorOwned ? [] : [<FloorToolCard key="t-floor" isUnlocked={false} />]),
+            ...(raisedFloorOwned
+              ? []
+              : [<RaisedFloorToolCard key="t-raised-floor" isUnlocked={false} />]),
           ];
           return [
             ...ownedNodes,
@@ -430,6 +442,52 @@ function FloorToolCard({ isUnlocked = false }: { isUnlocked?: boolean }) {
       <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
         <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
           🪵 地板施工模擬器
+        </span>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
+          title="難度:中階"
+        >
+          {DIFFICULTY_LABEL.intermediate}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+/** 和室架高平台:個人版工具卡(可點,導 /raised-floor、跟 floor 共用解鎖) */
+function RaisedFloorToolCard({ isUnlocked = false }: { isUnlocked?: boolean }) {
+  return (
+    <Link
+      href="/raised-floor"
+      data-catalog-search="和室 架高 平台 榻榻米 骨架 角材 夾板 估價 raised-floor"
+      className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-amber-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
+    >
+      {isUnlocked ? (
+        <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 text-emerald-800 text-[10px] font-bold shadow-sm">
+          ✓ 已擁有
+        </div>
+      ) : (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/95 ring-1 ring-amber-300 flex items-center justify-center shadow-sm">
+          <span className="text-amber-600 text-xs" title="付費版">🔒</span>
+        </div>
+      )}
+      <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
+        <svg viewBox="0 0 120 120" className="w-[78%] h-[78%] transition-transform duration-300 ease-out group-hover:scale-[1.06]" aria-hidden>
+          {/* 平台側視:架高平台 + 4 根角材柱 */}
+          <rect x={14} y={28} width={92} height={14} rx={1} fill="#e7d8ae" stroke="#bd9955" strokeWidth={1.2} />
+          {[18, 44, 70, 96].map((x) => (
+            <rect key={x} x={x - 3} y={42} width={6} height={42} fill="#bd9955" />
+          ))}
+          <line x1={10} y1={84} x2={110} y2={84} stroke="#999" strokeWidth={1.5} />
+          {/* 骨架虛線 */}
+          {[36, 52, 68].map((y) => (
+            <line key={y} x1={14} y1={y} x2={106} y2={y} stroke="#c9a86b" strokeWidth={0.8} strokeDasharray="2 2" />
+          ))}
+        </svg>
+      </div>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
+        <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
+          🏯 和室架高平台
         </span>
         <span
           className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL.intermediate}`}
