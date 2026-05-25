@@ -47,8 +47,14 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "champagne", label: "香檳（⌀90mm，最粗）" },
     { value: "magnum", label: "Magnum 1.5L（⌀105mm）" },
   ], help: "選瓶型自動套瓶徑 + 瓶位間距（user 改瓶徑後仍以 user 值為準）" },
-  { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1 },
-  { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1 },
+  { group: "structure", type: "select", key: "sizingMode", label: "尺寸決定方式", defaultValue: "byCount", choices: [
+    { value: "byCount", label: "鎖瓶數（總尺寸算出）" },
+    { value: "byOverall", label: "鎖總尺寸（瓶數算出）" },
+  ], help: "byCount=user 設橫/縱瓶數、總尺寸自動算（預設）；byOverall=user 設總長/總高、瓶數自動算（餘數空間浪費掉、warning 提示實際做出來尺寸）", wide: true },
+  { group: "structure", type: "number", key: "bottlesWide", label: "橫向瓶數", defaultValue: 4, min: 2, max: 8, step: 1, dependsOn: { key: "sizingMode", equals: "byCount" } },
+  { group: "structure", type: "number", key: "bottlesTall", label: "縱向層數", defaultValue: 3, min: 2, max: 6, step: 1, dependsOn: { key: "sizingMode", equals: "byCount" } },
+  { group: "structure", type: "number", key: "totalLength", label: "總長 (mm)", defaultValue: 500, min: 200, max: 2000, step: 10, unit: "mm", help: "byOverall 模式：外框總寬（含兩側板 panelT×2）。bw 從 (totalLength − 2×panelT) / cellSize 取整算出", dependsOn: { key: "sizingMode", equals: "byOverall" } },
+  { group: "structure", type: "number", key: "totalHeight", label: "總高 (mm)", defaultValue: 400, min: 200, max: 2000, step: 10, unit: "mm", help: "byOverall 模式：外框總高（含上下板 + 腳 + 抽屜室）。bt 從可用內高 / cellSize 取整算出", dependsOn: { key: "sizingMode", equals: "byOverall" } },
   { group: "structure", type: "number", key: "bottleDiameter", label: "瓶身直徑 (mm)", defaultValue: 80, min: 70, max: 150, step: 5, help: "波爾多 75mm，香檳 90mm，Magnum 1.5L 105mm，Jeroboam 3L 145mm" },
   { group: "structure", type: "number", key: "panelThickness", label: "板厚 (mm)", defaultValue: 15, min: 12, max: 25, step: 1, unit: "mm", help: "酒架本來就輕量，15 比 18 視覺更輕巧" },
   { group: "structure", type: "select", key: "bottleOrientation", label: "瓶身擺放方向", defaultValue: "upright", choices: [
@@ -76,8 +82,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const o = wineRackOptions;
   const bottleType = getOption<string>(input, opt(o, "bottleType"));
   const bottlePreset = BOTTLE_TYPE_PRESETS[bottleType];
-  const bw = getOption<number>(input, opt(o, "bottlesWide"));
-  const bt = getOption<number>(input, opt(o, "bottlesTall"));
+  const sizingMode = getOption<string>(input, opt(o, "sizingMode"));
   const bdRaw = getOption<number>(input, opt(o, "bottleDiameter"));
   // 瓶型 preset 強制蓋過 slider — 選 bordeaux/burgundy/champagne/magnum 一律
   // 套 preset 的 bd + clearance（slider 自訂值只在 bottleType="custom" 時生效）。
@@ -111,6 +116,31 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     ? `菱形內接圓直徑 ${diamondInscribed.toFixed(0)}mm`
     : `每格淨寬 ${rectNetCellW.toFixed(0)}mm`;
 
+  // —— 垂直分層：地面 → 方柱腳 → 抽屜室 → 瓶格箱體 ——
+  // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
+  // boxBaseY = 瓶格箱體「底板」origin.y（既有箱體幾何整組往上抬此量）。
+  // 提前計算（byOverall 模式需要扣這些算 lattice 可用高度）。
+  const hasLegs = legStyle === "post";
+  const legH = hasLegs ? LEG_HEIGHT : 0;
+  const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
+  const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
+
+  // === sizing mode 二擇一：byCount（user 設瓶數）或 byOverall（user 設總尺寸） ===
+  let bw: number, bt: number;
+  let targetTotalL: number | null = null;
+  let targetTotalH: number | null = null;
+  if (sizingMode === "byOverall") {
+    targetTotalL = getOption<number>(input, opt(o, "totalLength"));
+    targetTotalH = getOption<number>(input, opt(o, "totalHeight"));
+    const usableW = targetTotalL - 2 * panelT;
+    const usableH = targetTotalH - 2 * panelT - legH - (withPullOutDrawer ? panelT + drawerZoneH : 0);
+    bw = Math.max(2, Math.floor(usableW / cellSize));
+    bt = Math.max(2, Math.floor(usableH / cellSize));
+  } else {
+    bw = getOption<number>(input, opt(o, "bottlesWide"));
+    bt = getOption<number>(input, opt(o, "bottlesTall"));
+  }
+
   const innerW = bw * cellSize;
   const innerH = bt * cellSize;
   const outerW = innerW + 2 * panelT;
@@ -119,14 +149,6 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const totalBottles = bw * bt;
   const halfOuterW = outerW / 2;
-
-  // —— 垂直分層：地面 → 方柱腳 → 抽屜室 → 瓶格箱體 ——
-  // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
-  // boxBaseY = 瓶格箱體「底板」origin.y（既有箱體幾何整組往上抬此量）。
-  const hasLegs = legStyle === "post";
-  const legH = hasLegs ? LEG_HEIGHT : 0;
-  const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
-  const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
   // 上下板（水平，貫穿全寬）
   const top: Part = {
@@ -412,6 +434,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     warnings.push(
       `⚠ 瓶子塞不下：${bd}mm 瓶徑在現在的 ${cellSize}mm pitch 下、${netFitDesc} ${netFitDim.toFixed(0)}mm < 瓶徑 ${bd}mm。建議瓶位 pitch ≥ ${minCellSize}mm（差 ${need}mm）— 把「瓶身直徑」拉大 ${need}mm 或選別的「瓶型預設」。${gridLayout === "diamond" ? "（菱形可用空間 = pitch/√2 − 板厚、比矩形小很多）" : ""}`,
     );
+  }
+  // byOverall 模式：實際做出來尺寸跟目標可能有餘數差、提示 user
+  if (sizingMode === "byOverall" && targetTotalL !== null && targetTotalH !== null) {
+    const diffL = targetTotalL - outerW;
+    const diffH = targetTotalH - totalH;
+    if (diffL > 5 || diffH > 5) {
+      warnings.push(
+        `📐 目標總尺寸 ${targetTotalL}×${targetTotalH}mm、實際做出來 ${outerW}×${totalH}mm（${bw}×${bt} 格 × ${cellSize}mm pitch）。差額是 cellSize 不整除剩下的餘數空間、可微調「瓶身直徑」/「板厚」/「腳型」吃掉差額。`,
+      );
+    }
   }
 
   return {
