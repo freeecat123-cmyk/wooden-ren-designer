@@ -111,6 +111,7 @@ interface CouponState {
 export function PricingClient() {
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [lockedCategory, setLockedCategory] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState(false);
   const [coupon, setCoupon] = useState<CouponState>({ code: "", status: "idle" });
   const { profile, userId } = useUserPlan();
   const currentPlan = profile?.plan ?? null;
@@ -152,6 +153,10 @@ export function PricingClient() {
     // 支援 ?coupon=XXXX 自動填入
     const c = sp.get("coupon");
     if (c) setCoupon({ code: c.toUpperCase(), status: "idle" });
+    // 結帳 fallback：API 偵測 ECPay 未設定會 redirect 回這裡
+    if (sp.get("error") === "payment_not_configured") {
+      setPaymentError(true);
+    }
   }, []);
 
   // 切換 period / coupon code 改動時，重置 coupon 驗證狀態
@@ -193,6 +198,23 @@ export function PricingClient() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      {paymentError && (
+        <div className="max-w-3xl mx-auto mb-6 px-5 py-4 rounded-2xl bg-rose-50 ring-1 ring-rose-300 shadow-sm flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">⚠️</span>
+          <div className="flex-1 text-sm leading-relaxed">
+            <p className="font-semibold text-rose-900">
+              結帳系統暫時無法使用
+            </p>
+            <p className="mt-1 text-rose-800">
+              抱歉，金流目前無法連線。請稍後再試，或{" "}
+              <Link href="/contact" className="underline underline-offset-2 font-semibold">
+                聯絡我們
+              </Link>{" "}
+              協助處理。
+            </p>
+          </div>
+        </div>
+      )}
       {lockedCategory && (
         <div className="max-w-3xl mx-auto mb-8 px-5 py-4 rounded-2xl bg-amber-50 ring-1 ring-amber-400/60 shadow-sm flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">🔒</span>

@@ -49,10 +49,8 @@ export async function POST(req: NextRequest) {
     assertEcpayConfigured();
   } catch (e) {
     console.error("[checkout] ECPay 未設定", e);
-    return NextResponse.json(
-      { error: "payment_not_configured" },
-      { status: 500 },
-    );
+    const fallback = new URL(`/pricing?error=payment_not_configured`, req.url);
+    return NextResponse.redirect(fallback, 303);
   }
 
   const form = await req.formData();

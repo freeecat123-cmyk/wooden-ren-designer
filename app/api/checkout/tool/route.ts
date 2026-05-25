@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
   try {
     assertEcpayConfigured();
   } catch {
-    return NextResponse.json({ error: "payment_not_configured" }, { status: 500 });
+    const fallback = new URL(`/pricing?error=payment_not_configured`, req.url);
+    return NextResponse.redirect(fallback, 303);
   }
 
   const form = await req.formData();
