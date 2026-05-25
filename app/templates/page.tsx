@@ -9,6 +9,22 @@ import {
 } from "@/lib/templates/marketing";
 import type { FurnitureCategory } from "@/lib/types";
 
+type FilterKey = "all" | "free" | "beginner" | "intermediate" | "advanced";
+
+const FILTERS: Array<{ key: FilterKey; label: string; emoji?: string }> = [
+  { key: "all", label: "全部" },
+  { key: "free", label: "免費", emoji: "🆓" },
+  { key: "beginner", label: "入門", emoji: "🟢" },
+  { key: "intermediate", label: "中階", emoji: "🟡" },
+  { key: "advanced", label: "進階", emoji: "🔴" },
+];
+
+function matchFilter(item: FurnitureCatalogEntry, filter: FilterKey): boolean {
+  if (filter === "all") return true;
+  if (filter === "free") return FREE_UNLOCKED_CATEGORIES.includes(item.category);
+  return item.difficulty === filter;
+}
+
 /**
  * /templates — 模板介紹索引頁
  *
@@ -80,8 +96,19 @@ const DEV_SET = new Set<FurnitureCategory>([
   "chinese-cabinet", "bed", "coat-rack",
 ]);
 
-export default function TemplatesIndex() {
+interface PageProps {
+  searchParams?: Promise<{ filter?: string }>;
+}
+
+export default async function TemplatesIndex({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {};
+  const activeFilter = (FILTERS.find((f) => f.key === sp.filter)?.key ??
+    "all") as FilterKey;
   const featuredSet = new Set<string>(FEATURED_TEMPLATE_CATEGORIES);
+  const filteredCatalog = FURNITURE_CATALOG.filter((e) =>
+    matchFilter(e, activeFilter),
+  );
+  const visibleCount = filteredCatalog.length;
 
   return (
     <main className="bg-[#fafaf7]">
@@ -117,41 +144,83 @@ export default function TemplatesIndex() {
         </div>
       </section>
 
-      {/* ============ 快速跳轉 chip bar（緊貼 SiteHeader 下方）============ */}
+      {/* ============ 篩選 + 快速跳轉 sticky bar ============ */}
       <div className="sticky top-14 z-30 bg-[#fafaf7]/95 backdrop-blur-sm border-b border-stone-200 shadow-sm">
-        <nav className="max-w-6xl mx-auto px-5 sm:px-6 py-3 overflow-x-auto scrollbar-thin">
-          <div className="inline-flex gap-2 min-w-max">
-            {CATEGORY_GROUPS.map((g) => {
-              const count = FURNITURE_CATALOG.filter((e) => g.match(e.category)).length;
-              if (count === 0) return null;
-              return (
-                <a
-                  key={g.id}
-                  href={`#${g.id}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-sm font-medium text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 hover:-translate-y-0.5 transition-all"
-                >
-                  <span aria-hidden>{g.emoji}</span>
-                  <span>{g.label}</span>
-                  <span className="text-xs text-zinc-400 tabular-nums">
-                    {count}
-                  </span>
-                </a>
-              );
-            })}
-          </div>
-        </nav>
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-2.5 space-y-2">
+          {/* 篩選 chip 列（免費 / 難度） */}
+          <nav className="overflow-x-auto scrollbar-thin">
+            <div className="inline-flex gap-1.5 min-w-max items-center">
+              <span className="text-xs text-zinc-400 font-medium pr-1">
+                篩選
+              </span>
+              {FILTERS.map((f) => {
+                const active = activeFilter === f.key;
+                const href = f.key === "all" ? "/templates" : `/templates?filter=${f.key}`;
+                return (
+                  <Link
+                    key={f.key}
+                    href={href}
+                    scroll={false}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                      active
+                        ? "bg-amber-700 text-white shadow-sm ring-1 ring-amber-700"
+                        : "bg-white text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-400 hover:text-amber-800"
+                    }`}
+                  >
+                    {f.emoji && <span aria-hidden>{f.emoji}</span>}
+                    <span>{f.label}</span>
+                  </Link>
+                );
+              })}
+              <span className="ml-3 text-xs text-zinc-500 tabular-nums shrink-0">
+                {visibleCount} 件
+              </span>
+            </div>
+          </nav>
+          {/* 分類 anchor 跳轉列 */}
+          <nav className="overflow-x-auto scrollbar-thin">
+            <div className="inline-flex gap-2 min-w-max items-center">
+              <span className="text-xs text-zinc-400 font-medium pr-1">
+                跳到
+              </span>
+              {CATEGORY_GROUPS.map((g) => {
+                const count = filteredCatalog.filter((e) => g.match(e.category)).length;
+                if (count === 0) return null;
+                return (
+                  <a
+                    key={g.id}
+                    href={`#${g.id}`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-xs font-medium text-zinc-700 ring-1 ring-stone-300 hover:ring-amber-500 hover:text-amber-800 hover:-translate-y-0.5 transition-all"
+                  >
+                    <span aria-hidden>{g.emoji}</span>
+                    <span>{g.label}</span>
+                    <span className="text-zinc-400 tabular-nums">{count}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
       </div>
 
       {/* ============ Groups ============ */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-12 sm:py-16 space-y-14">
+        {visibleCount === 0 && (
+          <div className="text-center py-20 text-zinc-500">
+            這個篩選沒有對應的範本 ·{" "}
+            <Link href="/templates" className="text-amber-700 hover:text-amber-900 underline underline-offset-2">
+              清除篩選
+            </Link>
+          </div>
+        )}
         {CATEGORY_GROUPS.map((g) => {
-          const items = FURNITURE_CATALOG.filter((e) => g.match(e.category));
+          const items = filteredCatalog.filter((e) => g.match(e.category));
           if (items.length === 0) return null;
           return (
             <div
               key={g.id}
               id={g.id}
-              className="scroll-mt-32"
+              className="scroll-mt-40"
             >
               <h2 className="font-serif-tc text-2xl sm:text-3xl font-bold text-zinc-900 mb-1 flex items-center gap-2">
                 <span aria-hidden>{g.emoji}</span>
