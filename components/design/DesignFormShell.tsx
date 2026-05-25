@@ -12,8 +12,6 @@ const PRESERVE_KEYS = ["scene", "xray", "wf", "audit", "explode", "joineryMode",
  *
  * 場景：紅酒架的「瓶型」select 選 bordeaux/burgundy/... 時，下面「瓶身直徑」
  * slider 應該自動跳到該 preset 對應的數字、視覺跟實際算保持一致。
- * builder 端（lib/templates/wine-rack.ts）會強制套 preset 的 bd，但 UI 上
- * slider 不同步使用者會看到「slider=80 但實際算 76」的視覺欺騙。
  *
  * 表結構：{ [select.name]: { [select.value]: { [target.name]: targetValue } } }
  * - select 變更時查表、找到對應 target name → 用 querySelector 改 input.value
@@ -25,6 +23,25 @@ const PRESET_INPUT_SYNC: Record<string, Record<string, Record<string, string>>> 
     burgundy: { bottleDiameter: "80" },
     champagne: { bottleDiameter: "90" },
     magnum: { bottleDiameter: "105" },
+  },
+};
+
+/**
+ * Reverse sync：sibling input 改變時、若值脫離 master select 的 preset、
+ * 自動把 master select 切回 "custom"。避免 bordeaux preset 模式下拉 slider
+ * 到 100、UI 上仍顯示「波爾多」+ slider 100 的衝突視覺。
+ *
+ * 表結構：{ [inputName]: { selectName, customValue, presetValues } }
+ */
+const PRESET_INPUT_REVERSE_SYNC: Record<string, {
+  selectName: string;
+  customValue: string;
+  presetValues: Record<string, number>;
+}> = {
+  bottleDiameter: {
+    selectName: "bottleType",
+    customValue: "custom",
+    presetValues: { bordeaux: 75, burgundy: 80, champagne: 90, magnum: 105 },
   },
 };
 
@@ -107,6 +124,26 @@ export function DesignFormShell({
           targetInput.value = targetVal;
           // 觸發 input event 讓 React controlled-component listener（若有）跟上
           targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    }
+    // Reverse sync：input 改變時、若值脫離 master select 的 preset 對應、
+    // 自動把 select 切回 "custom"。避免「波爾多 preset + slider 100」衝突視覺。
+    if (
+      target instanceof HTMLInputElement &&
+      target.type === "number" &&
+      PRESET_INPUT_REVERSE_SYNC[target.name]
+    ) {
+      const cfg = PRESET_INPUT_REVERSE_SYNC[target.name];
+      const masterSelect = formRef.current?.querySelector<HTMLSelectElement>(
+        `select[name="${cfg.selectName}"]`,
+      );
+      if (masterSelect && masterSelect.value !== cfg.customValue) {
+        const expectedPresetValue = cfg.presetValues[masterSelect.value];
+        const newInputValue = Number(target.value);
+        if (Number.isFinite(newInputValue) && expectedPresetValue !== newInputValue) {
+          masterSelect.value = cfg.customValue;
+          masterSelect.dispatchEvent(new Event("change", { bubbles: true }));
         }
       }
     }
