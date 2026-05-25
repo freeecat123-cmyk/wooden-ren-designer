@@ -35,9 +35,15 @@ const BENCH_CURVED_BACK: GalleryImage = {
   desc: "可選曲面椅背 + 直棍式靠背樣式，3D 透視即時看到組裝後的真實樣子",
 };
 
+const WARDROBE_VARIATIONS: GalleryImage = {
+  src: "/showcase/wardrobe-variations.png",
+  label: "衣櫃配置變化多",
+  desc: "吊衣桿、抽屜、上層板、下方鞋格、頂櫃自由組合 — 同一支模板能長出 N 種衣櫃",
+};
+
 export const TEMPLATE_GALLERY: Partial<Record<FurnitureCategory, GalleryImage[]>> = {
   // === 櫃子類共用「櫃體內部透視」 ===
-  wardrobe: [CABINET_INTERNAL],
+  wardrobe: [WARDROBE_VARIATIONS, CABINET_INTERNAL],
   "chest-of-drawers": [CABINET_INTERNAL],
   "shoe-cabinet": [CABINET_INTERNAL],
   "display-cabinet": [CABINET_INTERNAL],
