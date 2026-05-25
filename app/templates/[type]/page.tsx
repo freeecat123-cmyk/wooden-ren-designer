@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -427,41 +429,45 @@ export default async function TemplateDetail({ params }: PageProps) {
           實際輸出畫面
         </h2>
         <p className="text-center text-zinc-500 mb-9">
-          點下「開始設計」5 分鐘內，你會拿到這些東西。
+          以下都是「{entry.nameZh}」實際生成的畫面，套你的尺寸後會即時更新。
         </p>
         <div className="grid md:grid-cols-2 gap-5">
-          {[
-            {
-              img: "/about-assets/feat-threeview.png",
-              label: "工程三視圖",
-              desc: "前 / 側 / 俯三向尺寸全自動標註",
-            },
-            {
-              img: "/about-assets/feat-cutplan-full.png",
-              label: "排板裁切圖",
-              desc: "演算法排料、邊料最少，材料行直接照鋸",
-            },
-            {
-              img: "/about-assets/feat-cutlist.png",
-              label: "切料清單",
-              desc: "每片木料尺寸、含台才換算、可列印帶進工坊",
-            },
-            {
-              img: "/about-assets/feat-steps.png",
-              label: "製作工序",
-              desc: "從備料、開料、組裝到塗裝，每步都標時間",
-            },
-            {
-              img: "/about-assets/feat-quote.png",
-              label: "客製報價單",
-              desc: "板材 × 厚度 × 塗裝 × 工時自動算（專業版）",
-            },
-            {
-              img: "/about-assets/hero-3d.png",
-              label: "3D 透視預覽",
-              desc: "可旋轉、可拆解、可看內部榫卯結構",
-            },
-          ].map((s) => (
+          {(() => {
+            // 沒有模板專屬截圖時 fall back 到 /about-assets/feat-*.png（罕見：
+            // 某些模板預設尺寸排板會超過原料）
+            const tpl = (key: string, fallback: string) => {
+              const specific = `/showcase/${entry.category}-${key}.png`;
+              const exists = fs.existsSync(path.join(process.cwd(), "public", specific));
+              return exists ? specific : fallback;
+            };
+            return [
+              {
+                img: tpl("threeview", "/about-assets/feat-threeview.png"),
+                label: "工程三視圖",
+                desc: "前 / 側 / 俯三向尺寸全自動標註",
+              },
+              {
+                img: tpl("cutplan", "/about-assets/feat-cutplan-full.png"),
+                label: "排板裁切圖",
+                desc: "演算法排料、邊料最少，材料行直接照鋸",
+              },
+              {
+                img: tpl("cutlist", "/about-assets/feat-cutlist.png"),
+                label: "切料清單",
+                desc: "每片木料尺寸、含台才換算、可列印帶進工坊",
+              },
+              {
+                img: tpl("steps", "/about-assets/feat-steps.png"),
+                label: "製作工序",
+                desc: "從備料、開料、組裝到塗裝，每步都標時間",
+              },
+              {
+                img: tpl("3d", "/about-assets/hero-3d.png"),
+                label: "3D 透視預覽",
+                desc: "可旋轉、可拆解、可看內部榫卯結構",
+              },
+            ];
+          })().map((s) => (
             <figure
               key={s.label}
               className="group rounded-2xl bg-white ring-1 ring-stone-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-amber-400 transition-all"
@@ -487,7 +493,7 @@ export default async function TemplateDetail({ params }: PageProps) {
           ))}
         </div>
         <p className="mt-6 text-center text-xs text-zinc-400">
-          ※ 以上是實際產品畫面，套到「{entry.nameZh}」會依你的尺寸自動生成
+          ※ 改尺寸 / 換木料 / 切換款式時，這幾張圖都會即時重算
         </p>
       </section>
 
