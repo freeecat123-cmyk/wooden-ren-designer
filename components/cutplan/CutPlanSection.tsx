@@ -61,7 +61,7 @@ export function CutPlanSection({
           }`}
         >
           {group.bins.map((bin, i) => (
-            <div key={i} className="print:break-inside-avoid">
+            <div key={i} className="print:break-inside-avoid" data-cutplan-board={i + 1}>
               <SheetBinSvg
                 bin={bin}
                 index={i + 1}

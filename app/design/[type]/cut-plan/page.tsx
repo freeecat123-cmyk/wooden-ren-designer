@@ -30,14 +30,20 @@ export default async function CutPlanPage({ params, searchParams }: PageProps) {
   const entry = getTemplate(type as FurnitureCategory);
   if (!entry || !entry.template) notFound();
 
+  // dev-only：playwright shoot-output 腳本繞過 paywall 抓所有家具排板圖
+  const isThumbShoot =
+    process.env.NODE_ENV === "development" && sp._shoot === "1";
+
   // server-side paid gate — session 取自 cookie（middleware 已驗 JWT），無 HTTP
   const user = await getSessionUser();
   const supabase = await createClient();
-  if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/design/${type}/cut-plan`)}`);
-  }
-  if (!(await isPaidUser(user.id))) {
-    redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+  if (!isThumbShoot) {
+    if (!user) {
+      redirect(`/login?next=${encodeURIComponent(`/design/${type}/cut-plan`)}`);
+    }
+    if (!(await isPaidUser(user.id))) {
+      redirect(`/pricing?locked=${encodeURIComponent(type)}`);
+    }
   }
 
   const parsed = parseDesignSearchParams(sp, entry);

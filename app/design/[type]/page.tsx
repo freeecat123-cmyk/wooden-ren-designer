@@ -515,7 +515,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+      <section data-section="threeview" className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
         <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
           <span className="w-1 h-4 bg-amber-500 rounded-full" />
           工程三視圖
@@ -539,7 +539,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
       {/* 注意：此 details 不能用 overflow-hidden —— 內含 sticky 3D，
           overflow!=visible 的祖先會讓 position:sticky 失效。圓角靠 summary
           的 rounded-t + 材料單欄的 rounded-b 各自處理。 */}
-      <details className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5" open>
+      <details data-section="cutlist" className="group/d mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5" open>
         <summary className="cursor-pointer list-none rounded-t-2xl px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
@@ -632,7 +632,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
         </div>
       </details>
 
-      <details className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
+      <details data-section="steps" open className="group/d mt-4 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between bg-gradient-to-r from-amber-50/60 to-transparent hover:from-amber-50 transition-colors">
           <span className="font-semibold text-zinc-800 flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full" />
