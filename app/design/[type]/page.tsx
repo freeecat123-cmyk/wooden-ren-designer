@@ -501,9 +501,23 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
 
         {/* 參數表單：DOM 第二順位 → mobile 在 3D 下方；desktop grid 顯式放到左欄 row 1 */}
         <div className="mt-3 lg:mt-0 lg:col-start-1 lg:row-start-1">
+          {/* 紅酒架 builder 忽略 URL 的 length/width/height、從 bw/bt/bd 推導 overall。
+             把「整體尺寸」三欄綁到 design.overall 而非 URL 值，這樣拉 bw/bt 上面寬/深/高
+             即時跟著變、UI 不會說謊。其他模板 overall 多半 === input，但少數 derive
+             (coat-rack/pencil-holder/dovetail-box/bookend/photo-frame)，避免 regression
+             僅白名單 wine-rack。 */}
           <ParameterForm
             type={type}
-            defaults={{ length, width, height, material }}
+            defaults={
+              type === "wine-rack"
+                ? {
+                    length: design.overall.length,
+                    width: design.overall.width,
+                    height: design.overall.thickness,
+                    material,
+                  }
+                : { length, width, height, material }
+            }
             limits={designerMode ? undefined : entry.limits}
             optionSchema={optionSchema}
             optionValues={options}
