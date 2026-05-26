@@ -98,19 +98,19 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const legStyle = getOption<string>(input, opt(o, "legStyle"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
 
-  // === 瓶位是否塞得下瓶子 — 只警告不自動拉 ===
+  // === 瓶位塞得下瓶子的最小 cellSize ===
   // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
   // 兩者都要 ≥ 瓶徑 bd + SAFETY 才放得舒服。
-  // 不自動拉、user 看 slider / notes / warning 自己調 — 拉 slider 馬上看得到
-  // 總尺寸跟著變、不會被「auto-fit clamp 到一樣」搞混。
   const FIT_SAFETY_MARGIN = 5; // mm
   const minCellSize = gridLayout === "diamond"
     ? Math.ceil(Math.SQRT2 * (bd + panelT + FIT_SAFETY_MARGIN))
     : bd + panelT + FIT_SAFETY_MARGIN;
-  // requestedCellSize = user 設定的 pitch (bd+clearance)；byOverall mode 下
-  // 會被反算為 usableW/bw 後賦給最終 `cellSize`（hard-lock outerW）；
-  // byCount mode 下 cellSize = requestedCellSize 直接用。
-  const requestedCellSize = bd + cellClearance;
+  // requestedCellSize：byCount mode 直接用、byOverall mode 反算 usableW/bw。
+  // 菱形 layout 自動把 pitch × √2，讓內接圓 ≥ bd（不然選 80mm 瓶卻只塞得下
+  // 57mm 內接圓會誤導 user）。byOverall mode 不自動拉、warning 提示。
+  const requestedCellSize = gridLayout === "diamond"
+    ? Math.ceil(Math.SQRT2 * (bd + cellClearance))
+    : bd + cellClearance;
 
   // —— 垂直分層：地面 → 方柱腳 → 抽屜室 → 瓶格箱體 ——
   // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
@@ -467,7 +467,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     primaryMaterial: material,
     warnings: warnings.length ? warnings : undefined,
     notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
-      gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式（菱形可用空間 = pitch/√2 − 板厚、比矩形小、需要更大 pitch）。` : ""
+      gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式。為讓 ${bd}mm 瓶身塞得進菱形內接圓，pitch 自動拉大到 ${cellSize}mm（外尺寸比方格款大約 ${Math.round((Math.SQRT2 - 1) * 100)}%）。` : ""
     }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       hasLegs ? ` 底部 4 角加 ${LEG_SIZE}mm 方柱腳架高 ${LEG_HEIGHT}mm，離地通風防潮、好清掃。` : ""
     }${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
