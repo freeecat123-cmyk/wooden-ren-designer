@@ -427,26 +427,39 @@ export function PartDrawingPaperSheet({
               stroke="#111"
               strokeWidth={0.4}
             />
-            {/* 邊長標 — 寬面 (上邊 p1→p2) */}
-            <text
-              x={(p1.x + p2.x) / 2}
-              y={(p1.y + p2.y) / 2 - 1.5}
-              fontSize={2.6}
-              fill="#111"
-              textAnchor="middle"
-            >
-              寬 {d.edgeW.toFixed(1)}
-            </text>
-            {/* 邊長標 — 窄面 (右邊 p2→p3) */}
-            <text
-              x={(p2.x + p3.x) / 2 + 1.5}
-              y={(p2.y + p3.y) / 2}
-              fontSize={2.6}
-              fill="#111"
-              textAnchor="start"
-            >
-              窄 {d.edgeH.toFixed(1)}
-            </text>
+            {/* 邊長標 — 寬面 vs 窄面相同時合併成「邊 X」單標（user 回報重複） */}
+            {Math.abs(d.edgeW - d.edgeH) < 0.05 ? (
+              <text
+                x={(p1.x + p2.x) / 2}
+                y={(p1.y + p2.y) / 2 - 1.5}
+                fontSize={2.6}
+                fill="#111"
+                textAnchor="middle"
+              >
+                邊 {d.edgeW.toFixed(1)}
+              </text>
+            ) : (
+              <>
+                <text
+                  x={(p1.x + p2.x) / 2}
+                  y={(p1.y + p2.y) / 2 - 1.5}
+                  fontSize={2.6}
+                  fill="#111"
+                  textAnchor="middle"
+                >
+                  寬 {d.edgeW.toFixed(1)}
+                </text>
+                <text
+                  x={(p2.x + p3.x) / 2 + 1.5}
+                  y={(p2.y + p3.y) / 2}
+                  fontSize={2.6}
+                  fill="#111"
+                  textAnchor="start"
+                >
+                  窄 {d.edgeH.toFixed(1)}
+                </text>
+              </>
+            )}
             {/* 角度標（兩個複斜軸角度，左下＋右上角落附近） */}
             <text
               x={p4.x - 1}

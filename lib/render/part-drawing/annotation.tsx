@@ -206,8 +206,32 @@ export function T1Dimensions({
     horiz > 0.1 && partWidthSvg > 1 ? partWidthSvg / horiz : 1;
   const svgPerMmY =
     vert > 0.1 && partHeightSvg > 1 ? partHeightSvg / vert : 1;
-  const horizGross = round1((grossMaxX - grossMinX) / svgPerMmX);
-  const vertGross = round1((grossMaxY - grossMinY) / svgPerMmY);
+  // 含榫總長：直接從 part.tenons 加總，避免 SVG 投影反推（splayed/tapered
+  // 件投影軸壓縮會造成 svgPerMmX 失準 → user 2026-05-26 回報「含榫 37.1」
+  // 出現在無水平榫的凳腳上）。
+  //
+  // tenon.position 軸對應（lib/types/index.ts L114）：
+  //   start/end → ±x（length 軸）
+  //   top/bottom → ±y（thickness 軸）
+  //   left/right → ±z（width 軸）
+  // 各 view 的「水平軸」「垂直軸」對映 part-local：
+  //   front: horiz=x, vert=y
+  //   top:   horiz=x, vert=z
+  //   side:  horiz=z, vert=y
+  const horizAxis: "x" | "z" = view === "side" ? "z" : "x";
+  const vertAxis: "y" | "z" = view === "top" ? "z" : "y";
+  let horizExt = 0;
+  let vertExt = 0;
+  for (const t of part.tenons) {
+    if (t.length <= 0) continue;
+    const pos = t.position;
+    if (horizAxis === "x" && (pos === "start" || pos === "end")) horizExt += t.length;
+    if (horizAxis === "z" && (pos === "left" || pos === "right")) horizExt += t.length;
+    if (vertAxis === "y" && (pos === "top" || pos === "bottom")) vertExt += t.length;
+    if (vertAxis === "z" && (pos === "left" || pos === "right")) vertExt += t.length;
+  }
+  const horizGross = round1(horiz + horizExt);
+  const vertGross = round1(vert + vertExt);
   const showHorizGross = horizGross - horiz > 0.5;
   const showVertGross = vertGross - vert > 0.5;
 
