@@ -10,6 +10,7 @@ import {
   TEMPLATE_UNLOCK_PRICES,
   DIFFICULTY_LABEL_ZH,
 } from "@/lib/pricing/template-unlock";
+import { AcademyPromoBanner } from "@/components/AcademyPromoBanner";
 
 /**
  * 首頁 = 行銷 Landing（給新訪客）
@@ -505,6 +506,8 @@ export default async function Landing() {
           </div>
         </div>
       </section>
+
+      <AcademyPromoBanner />
     </main>
   );
 }

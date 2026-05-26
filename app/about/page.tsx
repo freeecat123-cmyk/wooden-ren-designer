@@ -6,6 +6,7 @@ import {
   TEMPLATE_UNLOCK_PRICES,
   DIFFICULTY_LABEL_ZH,
 } from "@/lib/pricing/template-unlock";
+import { AcademyPromoBanner } from "@/components/AcademyPromoBanner";
 export const metadata: Metadata = {
   title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
   description:
@@ -576,6 +577,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <AcademyPromoBanner />
     </main>
   );
 }
