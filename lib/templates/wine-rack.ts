@@ -196,10 +196,13 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     tenons: [],
     mortises: [],
   };
+  // 底板（兼上下層分隔板）：嵌進兩塊側板之間（innerW 寬），不跟左右側板重疊。
+  // 頂板繼續 outerW 寬蓋住側板上緣，那邊沒有同 y 區間衝突。
   const bottom: Part = {
     ...top,
     id: "bottom",
     nameZh: "底板",
+    visible: { length: innerW, width: depth, thickness: panelT },
     origin: { x: 0, y: 0, z: 0 },
   };
 
