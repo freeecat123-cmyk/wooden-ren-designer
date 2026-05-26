@@ -135,7 +135,12 @@ export function T1Dimensions({
   const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
   // 8 corners 投影
-  const allCorners = [
+  // ⚠️ ctx.partLocalToSvg 包的 makeProjector 只套 rotation 不套 shape 變形
+  //（splayed/splayed-tapered/splayed-round-tapered 的 dx/dz top-vs-bot shift
+  // 沒被算進來）→ partMinY 取到「未變形矩形」的頂、splay 把端點翹起時 dim
+  // chain horizY 算太低、會蓋到圖（user 2026-05-27 回報「500/475/415 往上移
+  // 不要蓋著圖」）。對 splayed 系列補一份「底面 shift 過的 corners」併入 min/max。
+  const baseCorners = [
     ctx.partLocalToSvg(-L / 2, -T / 2, -W / 2),
     ctx.partLocalToSvg(+L / 2, -T / 2, -W / 2),
     ctx.partLocalToSvg(-L / 2, +T / 2, -W / 2),
@@ -145,6 +150,31 @@ export function T1Dimensions({
     ctx.partLocalToSvg(-L / 2, +T / 2, +W / 2),
     ctx.partLocalToSvg(+L / 2, +T / 2, +W / 2),
   ];
+  const splayShape =
+    part.shape?.kind === "splayed" ||
+    part.shape?.kind === "splayed-tapered" ||
+    part.shape?.kind === "splayed-round-tapered"
+      ? part.shape
+      : null;
+  const splayedCorners: { x: number; y: number }[] = [];
+  if (splayShape && (Math.abs(splayShape.dxMm) > 0.01 || Math.abs(splayShape.dzMm) > 0.01)) {
+    // splay 底面（y = +T/2 對應 mesh 底端，boxWorldCenter 公式 t=1 - yFromBottom/ly）
+    // 走 partLocalToSvg 時 makeProjector 沒套 dx/dz、所以 4 底角實際被 dx/dz shift。
+    // 加 8 對 base + (dx/dz shift) sample（top 不 shift t=0、bot full shift t=1
+    // 已涵蓋極端、夠抓 silhouette 邊界）。
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        splayedCorners.push(
+          ctx.partLocalToSvg(
+            sx * (L / 2) + splayShape.dxMm,
+            +T / 2,
+            sz * (W / 2) + splayShape.dzMm,
+          ),
+        );
+      }
+    }
+  }
+  const allCorners = [...baseCorners, ...splayedCorners];
   const partMinX = Math.min(...allCorners.map((p) => p.x));
   const partMaxX = Math.max(...allCorners.map((p) => p.x));
   const partMinY = Math.min(...allCorners.map((p) => p.y));
@@ -967,6 +997,47 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
+  // splay 系列 silhouette top（含 dx/dz 變形）— W dim chain `wDimY = box.y - wGap`
+  // 在 splayed/splayed-tapered/splayed-round-tapered 件上會跑進 silhouette 內、
+  // 被翹起的 splay 端蓋住（user 2026-05-27 回報「415 往上移不要蓋著圖」）。
+  // makeProjector 純套 rotation 不套 shape 變形、partLocalToSvg 算出來的 corners
+  // 沒包含 dx/dz shift → 補一份「shape-deformed 底面 corners」併入算最小 svg y。
+  // 後面 wDim above-case 把 wDimY clamp 在 splaySilTopY - SAFETY 之上避免蓋圖。
+  let splaySilTopY = Infinity;
+  const splayShapeForSil =
+    part.shape?.kind === "splayed" ||
+    part.shape?.kind === "splayed-tapered" ||
+    part.shape?.kind === "splayed-round-tapered"
+      ? part.shape
+      : null;
+  if (
+    splayShapeForSil &&
+    (Math.abs(splayShapeForSil.dxMm) > 0.01 ||
+      Math.abs(splayShapeForSil.dzMm) > 0.01)
+  ) {
+    const L = part.visible.length;
+    const T = part.visible.thickness;
+    const W = part.visible.width;
+    const sampleCorners = [
+      // base box top corners
+      ctx.partLocalToSvg(-L / 2, -T / 2, -W / 2),
+      ctx.partLocalToSvg(+L / 2, -T / 2, -W / 2),
+      ctx.partLocalToSvg(-L / 2, +T / 2, -W / 2),
+      ctx.partLocalToSvg(+L / 2, +T / 2, -W / 2),
+      ctx.partLocalToSvg(-L / 2, -T / 2, +W / 2),
+      ctx.partLocalToSvg(+L / 2, -T / 2, +W / 2),
+      ctx.partLocalToSvg(-L / 2, +T / 2, +W / 2),
+      ctx.partLocalToSvg(+L / 2, +T / 2, +W / 2),
+      // splay-shifted bottom face corners (y=+T/2、套 dx/dz)
+      ctx.partLocalToSvg(-L / 2 + splayShapeForSil.dxMm, +T / 2, -W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForSil.dxMm, +T / 2, -W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(-L / 2 + splayShapeForSil.dxMm, +T / 2, +W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForSil.dxMm, +T / 2, +W / 2 + splayShapeForSil.dzMm),
+    ];
+    splaySilTopY = Math.min(...sampleCorners.map((p) => p.y));
+  }
+  const SIL_TOP_SAFETY = 4; // svg px
+
   // 工程圖風格：每個 feature 畫 dashed box + 名稱/尺寸 label + 真實 dim line（黃俊傑式）
   // - DimensionLine: extension line + dim line + filled triangle arrows + label
   // - 對稱件用「距中軸」、非對稱件用「距底/距邊」
@@ -1111,7 +1182,11 @@ export function T2Annotations({
     //  夠精確分辨同 row、後面 stagger 再調整)
     const wDimBelow = !outerAbove;
     const wGap = GAP;
-    const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+    let wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+    // splay 件 above-case 抬高到 silhouette top 之上（避免被翹起的端蓋住）
+    if (!wDimBelow && Number.isFinite(splaySilTopY)) {
+      wDimY = Math.min(wDimY, splaySilTopY - SIL_TOP_SAFETY);
+    }
     return { wDimY, wDimBelow, lDimX: lDimXBase, wStagger: 0, lStagger: 0 };
   });
 
@@ -1504,7 +1579,11 @@ export function T2Annotations({
       // 避免「438 438」「415 415」「202.5 202.5」這種多 mortise 標籤撞同一行
       const myMeta = baselineMetas[itemIdx];
       const wStaggerOffset = myMeta.wStagger * STAGGER_GAP;
-      const wDimYBase = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      const wDimYBaseRaw = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      const wDimYBase =
+        !wDimBelow && Number.isFinite(splaySilTopY)
+          ? Math.min(wDimYBaseRaw, splaySilTopY - SIL_TOP_SAFETY)
+          : wDimYBaseRaw;
       const wDimY = wDimBelow
         ? wDimYBase + wStaggerOffset
         : wDimYBase - wStaggerOffset;
