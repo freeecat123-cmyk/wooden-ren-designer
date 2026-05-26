@@ -86,6 +86,35 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "rebated", label: "入溝（板嵌進兩側板之間，外觀乾淨）" },
   ], help: "無背板=後面開放；釘背=薄板貼後緣、覆蓋整個外側；入溝=板嵌進兩側板之間、跟櫃身切齊", dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "number", key: "drawerBackThickness", label: "抽屜層背板厚 (mm)", defaultValue: 9, min: 3, max: 18, step: 1, help: "釘背常見 3mm 薄夾板；入溝常見 9mm；用實木一般 12–15mm", dependsOn: { all: [{ key: "withPullOutDrawer", equals: true }, { key: "drawerBackMode", notIn: ["none"] }] } },
+  // ─── 抽屜系統選項（跟其他櫃子同款，dependsOn withPullOutDrawer）───
+  { group: "drawer", type: "select", key: "drawerMount", label: "抽屜面板安裝方式", defaultValue: "inset", choices: [
+    { value: "overlay-6", label: "蓋 6 分（全蓋，面板蓋滿）" },
+    { value: "overlay-3", label: "蓋 3 分（半蓋，面板蓋 9mm）" },
+    { value: "inset", label: "入柱（面板埋進開口內、齊平）" },
+  ], dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "drawer", type: "select", key: "drawerPullStyle", label: "抽屜把手", defaultValue: "knob", choices: [
+    { value: "knob", label: "● 黃銅圓把手（傳統）" },
+    { value: "wood-knob", label: "🍄 木製旋削圓把手" },
+    { value: "bar", label: "▬ 長條把手（現代簡約）" },
+    { value: "ring-chinese", label: "◎ 中式古銅吊環" },
+    { value: "drop-bail", label: "⌒ 古典吊環（Hepplewhite）" },
+    { value: "none", label: "✕ 不裝（純展示用）" },
+  ], dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "drawer", type: "select", key: "drawerBoxJoinery", label: "抽屜箱接合方式", defaultValue: "lap", choices: [
+    { value: "lap", label: "搭接（butt + 螺絲/木釘，最簡單）" },
+    { value: "dovetail", label: "鳩尾接（dovetail，傳統實木）" },
+  ], dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "drawer", type: "select", key: "drawerBottomMode", label: "抽屜底板作法", defaultValue: "rebated", choices: [
+    { value: "surface", label: "釘底（薄底板釘在側板下緣）" },
+    { value: "rebated", label: "入溝（底板嵌進側板下緣溝槽，外觀乾淨）" },
+  ], dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "drawer", type: "select", key: "drawerBottomThickness", label: "抽屜底板厚 (mm)", defaultValue: "9", choices: [
+    { value: "3", label: "3mm（薄夾板）" },
+    { value: "6", label: "6mm" },
+    { value: "9", label: "9mm（標準）" },
+    { value: "12", label: "12mm（實木常見）" },
+  ], dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "drawer", type: "checkbox", key: "useDrawerSlide", label: "三段式滑軌（左右各 12.5mm 五金縫）", defaultValue: false, wide: true, help: "勾選：箱體寬縮 25mm 留滑軌五金，加面板蓋掉左右空隙；不勾：傳統木製側拉或無滑軌", dependsOn: { key: "withPullOutDrawer", equals: true } },
 ];
 
 /**
@@ -123,6 +152,12 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const drawerBackMode = getOption<string>(input, opt(o, "drawerBackMode"));
   const drawerBackThickness = getOption<number>(input, opt(o, "drawerBackThickness"));
   const drawerBackPanel = drawerBackMode !== "none";
+  const drawerMount = getOption<string>(input, opt(o, "drawerMount")) as "inset" | "overlay-6" | "overlay-3";
+  const drawerPullStyle = getOption<string>(input, opt(o, "drawerPullStyle"));
+  const drawerBoxJoinery = getOption<string>(input, opt(o, "drawerBoxJoinery")) as "lap" | "dovetail";
+  const drawerBottomModeOpt = getOption<string>(input, opt(o, "drawerBottomMode")) as "surface" | "rebated";
+  const drawerBottomThickness = Number(getOption<string>(input, opt(o, "drawerBottomThickness")));
+  const useDrawerSlide = getOption<boolean>(input, opt(o, "useDrawerSlide"));
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
   // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
@@ -600,10 +635,12 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         innerD: drawerInnerD,
         caseInnerZ: 0,
         drawerFacePanelT: 18,
-        drawerMount: "inset",
-        drawerBottomMode: "rebated",
-        drawerBottomThickness: 9,
-        pullStyle: "knob",
+        drawerMount,
+        drawerBottomMode: drawerBottomModeOpt,
+        drawerBottomThickness,
+        drawerBoxJoinery,
+        drawerSlideGap: useDrawerSlide ? 12.5 : 0,
+        pullStyle: drawerPullStyle as never,
         skipCaseDividers: true,
       },
       parts,
