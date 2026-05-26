@@ -1595,8 +1595,8 @@ export function T2Annotations({
           />
           {inwardArrowsV(box.y, box.y + box.h, lDimX)}
           <text
-            x={lLabelX}
-            y={box.y + box.h / 2 + 3 + (myLIdx > 0 ? myLIdx * 10 : 0)}
+            x={lLabelX + (myLIdx > 0 ? (outerLeft ? -1 : 1) * myLIdx * 14 : 0)}
+            y={box.y + box.h / 2 + 3}
             fontSize={8}
             fill={stroke}
             fontFamily="monospace"
