@@ -31,6 +31,7 @@ import {
   CompoundMiterAnnotation,
   GrainArrow,
   ChamferRoundAnnotation,
+  SawSetupTable,
 } from "./annotation";
 
 export interface PaperSheetProps {
@@ -194,6 +195,7 @@ export function PartDrawingPaperSheet({
       <FacingMark ctx={ctx} part={part} view={view} />
       <ShapeSpecificAnnotation ctx={ctx} part={part} view={view} />
       <CompoundMiterAnnotation ctx={ctx} part={part} view={view} />
+      <SawSetupTable ctx={ctx} part={part} view={view} />
     </>
   );
 

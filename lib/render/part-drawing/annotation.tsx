@@ -2830,3 +2830,230 @@ export function ChamferRoundAnnotation({
     </g>
   );
 }
+
+/**
+ * <SawSetupTable> — 複斜腳「桌鋸設定表」（Phase 4 W5）。
+ *
+ * 依 docs/research/compound-splay-leg-drawing-refs.md W5 結論：
+ *   - 表頭：[切割 | 鋸片傾角 | 米角機台]
+ *   - 兩列：腳頂 / 腳底（同數值，腳底鏡像）
+ *   - 鋸片傾角 = atan(dx / T)（朝 X 方向 splay 分量）
+ *   - 米角機台 = atan(dz / T)（朝 Z 方向 splay 分量）
+ *   - 表格下方附 TL（真實長度）公式提示
+ *
+ * 只在 front view、且 splayed 家族 + 有偏移時顯示。
+ * 位置：viewBox 內、靠左下、與 SplayedTrueLength 文字塊不重疊（往右偏移）。
+ *
+ * Ref: docs/research/compound-splay-leg-drawing-refs.md §2
+ */
+export function SawSetupTable({
+  ctx,
+  part,
+  view,
+}: {
+  ctx: OrthoViewBoxCtx;
+  part: Part;
+  view: PartView;
+}) {
+  if (view !== "front") return null;
+  const sh = part.shape;
+  if (
+    !sh ||
+    (sh.kind !== "splayed" &&
+      sh.kind !== "splayed-tapered" &&
+      sh.kind !== "splayed-round-tapered")
+  ) {
+    return null;
+  }
+  const dx = Math.abs((sh as { dxMm?: number }).dxMm ?? 0);
+  const dz = Math.abs((sh as { dzMm?: number }).dzMm ?? 0);
+  if (dx === 0 && dz === 0) return null;
+
+  // splayed family 長軸 = visible.thickness
+  const T = part.visible.thickness;
+  const bladeTilt = T > 0 ? (Math.atan(dx / T) * 180) / Math.PI : 0;
+  const miterAngle = T > 0 ? (Math.atan(dz / T) * 180) / Math.PI : 0;
+  const realL = Math.sqrt(T * T + dx * dx + dz * dz);
+
+  // 表格放在 viewBox 右下角，避開 SplayedTrueLength（左下）+ GrainArrow（右下角小區）
+  // 表寬 70mm × 4 行 × 行高 6mm
+  const colW = [18, 22, 22]; // 切割 / 鋸片傾角 / 米角機台
+  const tableW = colW[0] + colW[1] + colW[2];
+  const rowH = 6;
+  const headerH = 6;
+  const titleH = 7;
+  const footerH = 6;
+  const tableH = titleH + headerH + rowH * 2 + footerH;
+
+  // 放右下角（避開 grain arrow 預留區 ~40×40：往上推 + 靠左）
+  const x0 = ctx.vbX + ctx.vbW - tableW - 50;
+  const y0 = ctx.vbY + ctx.vbH - tableH - 8;
+
+  const xCol1 = x0 + colW[0];
+  const xCol2 = xCol1 + colW[1];
+  const xEnd = x0 + tableW;
+
+  const yTitle = y0 + titleH - 1;
+  const yHeader = y0 + titleH + headerH - 1;
+  const yRow1 = yHeader + rowH;
+  const yRow2 = yRow1 + rowH;
+  const yFooter = yRow2 + footerH - 1;
+
+  const lineTop = y0 + titleH;
+  const lineHeader = y0 + titleH + headerH;
+  const lineRow1 = lineHeader + rowH;
+  const lineRow2 = lineRow1 + rowH;
+
+  const fmt = (n: number) => `${round1(n)}°`;
+
+  return (
+    <g className="saw-setup-table" fontFamily="sans-serif">
+      {/* 標題 */}
+      <text
+        x={x0 + tableW / 2}
+        y={yTitle}
+        fontSize={4}
+        fontWeight={700}
+        textAnchor="middle"
+        fill="#111"
+      >
+        桌鋸設定
+      </text>
+      {/* 外框 */}
+      <rect
+        x={x0}
+        y={lineTop}
+        width={tableW}
+        height={headerH + rowH * 2}
+        fill="#fff"
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      {/* 直線分欄 */}
+      <line
+        x1={xCol1}
+        y1={lineTop}
+        x2={xCol1}
+        y2={lineRow2}
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      <line
+        x1={xCol2}
+        y1={lineTop}
+        x2={xCol2}
+        y2={lineRow2}
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      {/* 橫線分列 */}
+      <line
+        x1={x0}
+        y1={lineHeader}
+        x2={xEnd}
+        y2={lineHeader}
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      <line
+        x1={x0}
+        y1={lineRow1}
+        x2={xEnd}
+        y2={lineRow1}
+        stroke="#222"
+        strokeWidth={0.3}
+      />
+      {/* 表頭 */}
+      <text
+        x={x0 + colW[0] / 2}
+        y={yHeader - 1.5}
+        fontSize={3.2}
+        fontWeight={600}
+        textAnchor="middle"
+        fill="#111"
+      >
+        切割
+      </text>
+      <text
+        x={xCol1 + colW[1] / 2}
+        y={yHeader - 1.5}
+        fontSize={3.2}
+        fontWeight={600}
+        textAnchor="middle"
+        fill="#111"
+      >
+        鋸片傾角
+      </text>
+      <text
+        x={xCol2 + colW[2] / 2}
+        y={yHeader - 1.5}
+        fontSize={3.2}
+        fontWeight={600}
+        textAnchor="middle"
+        fill="#111"
+      >
+        米角機台
+      </text>
+      {/* row1 — 腳頂 */}
+      <text
+        x={x0 + colW[0] / 2}
+        y={yRow1 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        腳頂
+      </text>
+      <text
+        x={xCol1 + colW[1] / 2}
+        y={yRow1 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        {fmt(bladeTilt)}
+      </text>
+      <text
+        x={xCol2 + colW[2] / 2}
+        y={yRow1 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        {fmt(miterAngle)}
+      </text>
+      {/* row2 — 腳底（鏡像，數值相同） */}
+      <text
+        x={x0 + colW[0] / 2}
+        y={yRow2 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        腳底
+      </text>
+      <text
+        x={xCol1 + colW[1] / 2}
+        y={yRow2 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        {fmt(bladeTilt)}
+      </text>
+      <text
+        x={xCol2 + colW[2] / 2}
+        y={yRow2 - 1.5}
+        fontSize={3.2}
+        textAnchor="middle"
+        fill="#374151"
+      >
+        {fmt(miterAngle)}
+      </text>
+      {/* 註腳：TL 公式 + 鏡像提醒 */}
+      <text x={x0} y={yFooter} fontSize={2.8} fill="#6b7280">
+        TL={round1(realL)}mm｜腳底與腳頂鏡像
+      </text>
+    </g>
+  );
+}
