@@ -1403,10 +1403,26 @@ export function T2Annotations({
       //   front: 水平=X, 垂直=Y, 深(into page)=Z
       //   top:   水平=X, 垂直=Z, 深=Y
       //   side:  水平=Z, 垂直=Y, 深=X
-      const hMm =
-        view === "side" ? round1(2 * lb.hz) : round1(2 * lb.hx);
-      const vMm =
-        view === "top" ? round1(2 * lb.hz) : round1(2 * lb.hy);
+      // ⚠ tall part (T>L && T>=W) 有 svg-views.tsx isolation rotation Rz=-π/2，
+      // 把 part-local Y 轉到螢幕水平 → hMm/vMm 軸來源要互換才對應視覺 box 大小
+      // (user 2026-05-26 14:33 回報「光看榫大小就知道標錯了」7/23 互換)
+      const L_local_label = part.visible.length;
+      const W_local_label = part.visible.width;
+      const T_local_label = part.visible.thickness;
+      const tallSwapLabel =
+        T_local_label > L_local_label &&
+        T_local_label >= W_local_label &&
+        (view === "front" || view === "side");
+      const hMm = tallSwapLabel
+        ? round1(2 * lb.hy)
+        : view === "side"
+          ? round1(2 * lb.hz)
+          : round1(2 * lb.hx);
+      const vMm = tallSwapLabel
+        ? round1(2 * lb.hx)
+        : view === "top"
+          ? round1(2 * lb.hz)
+          : round1(2 * lb.hy);
       // 工程慣例：視圖內看不到的尺寸不在這視圖標（into-page dim 留給其他 view 標）
 
       // dim line 擺在 part body 外側（用 partCenterSvg 判內外）
