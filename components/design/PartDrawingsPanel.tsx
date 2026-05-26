@@ -53,14 +53,19 @@ function roundPartDim(part: Part): string {
   return `Ø${fmt(diameter)}×${fmt(len)}`;
 }
 
+const ZOOM_LEVELS_LOCAL = [1, 2, 3, 5, 8] as const;
+
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  // 每張視圖（front/top/side）獨立倍率（方案 1）。未設視為 1×。
-  const [perViewZoom, setPerViewZoom] = useState<
-    Partial<Record<PartView, ZoomLevel>>
-  >({});
-  const resetZoom = () => setPerViewZoom({});
+  // 進入單視圖放大模式：未選 = 顯示 L 型 A4 三視圖（CNS 第三角法）
+  // 選了 = 隱藏 L 型，單獨放大該視圖到指定倍率
+  const [zoomedView, setZoomedView] = useState<PartView | null>(null);
+  const [zoom, setZoom] = useState<ZoomLevel>(2);
+  const resetZoom = () => {
+    setZoomedView(null);
+    setZoom(2);
+  };
 
   if (!groups.length) return null;
 
@@ -116,8 +121,28 @@ export function PartDrawingsPanel({ design }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center gap-3 p-3 border-b border-zinc-200 sticky top-0 bg-white z-10">
-              <h3 className="font-semibold text-sm">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                {zoomedView !== null && (
+                  <button
+                    type="button"
+                    onClick={resetZoom}
+                    className="text-zinc-600 hover:text-zinc-900 text-xs px-2 py-0.5 rounded border border-zinc-300 hover:bg-zinc-50"
+                  >
+                    ← 返回三視圖
+                  </button>
+                )}
                 零件圖 — {groups[openIdx].representative.nameZh}
+                {zoomedView && (
+                  <span className="text-zinc-500 text-xs">
+                    （
+                    {zoomedView === "front"
+                      ? "正視"
+                      : zoomedView === "top"
+                      ? "俯視"
+                      : "側視"}
+                    ）
+                  </span>
+                )}
               </h3>
               <button
                 type="button"
@@ -131,19 +156,58 @@ export function PartDrawingsPanel({ design }: Props) {
                 ×
               </button>
             </div>
+            {/* 倍率工具列：modal 一開啟就常駐，三個視圖各自獨立一排 1×~8×
+                點任一倍率 → 進入該視圖單視圖放大模式
+                1× 在三視圖模式下視為「不放大」（不影響 L 型 paper sheet） */}
+            <div className="px-4 py-2 border-b border-zinc-100 bg-zinc-50/50 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+              {(
+                [
+                  { v: "front" as PartView, label: "正視" },
+                  { v: "top" as PartView, label: "俯視" },
+                  { v: "side" as PartView, label: "側視" },
+                ]
+              ).map(({ v, label }) => (
+                <div key={v} className="flex items-center gap-1">
+                  <span className="text-zinc-600 font-medium w-8">{label}</span>
+                  <span className="text-[10px] text-zinc-400 mr-1">放大</span>
+                  {ZOOM_LEVELS_LOCAL.map((z) => {
+                    const active = zoomedView === v && zoom === z;
+                    return (
+                      <button
+                        key={z}
+                        type="button"
+                        onClick={() => {
+                          if (z === 1) {
+                            // 1× = 退回 L 型三視圖
+                            resetZoom();
+                          } else {
+                            setZoomedView(v);
+                            setZoom(z as ZoomLevel);
+                          }
+                        }}
+                        className={`text-xs px-2 py-0.5 rounded border tabular-nums ${
+                          active
+                            ? "bg-amber-500 text-white border-amber-500"
+                            : "border-zinc-300 text-zinc-700 hover:bg-zinc-50 bg-white"
+                        }`}
+                      >
+                        {z}×
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
             <div className="p-4 overflow-auto">
-              {/* Modal 走 stack 三視圖獨立 layout，每張視圖標題列旁直接放
-                  1×~8× 倍率按鈕（方案 1）。各 view zoom 互相獨立。 */}
+              {/* 預設：L 型 A4 paper sheet（CNS 第三角法三視圖對位）
+                  選了倍率 → singleView 模式單獨放大該視圖 */}
               <PartDrawing
                 group={groups[openIdx]}
                 design={design}
                 index={openIdx}
-                viewLayout="stack"
+                singleView={zoomedView ?? undefined}
                 orthoClassName="bg-white w-full h-auto"
-                perViewZoom={perViewZoom}
-                onViewZoom={(v, z) =>
-                  setPerViewZoom((p) => ({ ...p, [v]: z }))
-                }
+                zoom={zoomedView !== null ? zoom : 1}
               />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
