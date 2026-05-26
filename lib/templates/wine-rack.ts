@@ -210,11 +210,16 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 但 part rotation {x:π/2, y:π/2} → mesh local Z 投到世界鉛直軸。
   // local z = (yMid - panel.origin.y) - innerH/2 = yMid - panelT - innerH/2
   // side-aware origin.y：LEFT(xSign=1, side at -halfOuterW+panelT/2)用 y=0；RIGHT 用 y=panelT。
+  //
+  // 若有抽屜層：側板往下延伸 (drawerZoneH + panelT) 包住抽屜層側面、用單一塊代替
+  // 上層 + 抽屜層各一塊。mortise zLocal 加 sideExtensionH/2 補償 panel center 下移。
+  const sideExtensionH = withPullOutDrawer ? drawerZoneH + panelT : 0;
+  const sidePanelWidth = innerH + sideExtensionH;
   const shelfMortises = (xSign: -1 | 1) =>
     Array.from({ length: bt - 1 }, (_, idx) => {
       const row = idx + 1;
       const yMid = panelT + row * cellSize - panelT / 2;
-      const zLocal = yMid - panelT - innerH / 2;
+      const zLocal = yMid - panelT - innerH / 2 + sideExtensionH / 2;
       return {
         origin: { x: 0, y: xSign > 0 ? 0 : panelT, z: zLocal },
         depth: SHELF_TONGUE_LEN,
@@ -226,11 +231,11 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const leftSide: Part = {
     id: "side-left",
-    nameZh: "左側板",
+    nameZh: withPullOutDrawer ? "左側板（含抽屜層）" : "左側板",
     material,
     grainDirection: "length",
-    visible: { length: depth, width: innerH, thickness: panelT },
-    origin: { x: -(halfOuterW - panelT / 2), y: panelT, z: 0 },
+    visible: { length: depth, width: sidePanelWidth, thickness: panelT },
+    origin: { x: -(halfOuterW - panelT / 2), y: panelT - sideExtensionH, z: 0 },
     rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
     tenons: [],
     mortises: shelfMortises(1),
@@ -238,8 +243,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const rightSide: Part = {
     ...leftSide,
     id: "side-right",
-    nameZh: "右側板",
-    origin: { x: halfOuterW - panelT / 2, y: panelT, z: 0 },
+    nameZh: withPullOutDrawer ? "右側板（含抽屜層）" : "右側板",
+    origin: { x: halfOuterW - panelT / 2, y: panelT - sideExtensionH, z: 0 },
     mortises: shelfMortises(-1),
   };
 
@@ -484,20 +489,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       tenons: [],
       mortises: [],
     });
-    // 抽屜室兩側牆（與瓶格側板等厚，補滿 drawerZoneH 高）
-    for (const xs of [-1, 1] as const) {
-      parts.push({
-        id: xs < 0 ? "drawer-side-left" : "drawer-side-right",
-        nameZh: xs < 0 ? "抽屜室左側牆" : "抽屜室右側牆",
-        material,
-        grainDirection: "length",
-        visible: { length: depth, width: drawerZoneH, thickness: panelT },
-        origin: { x: xs * (halfOuterW - panelT / 2), y: drawerFloorY + panelT, z: 0 },
-        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-        tenons: [],
-        mortises: [],
-      });
-    }
+    // 抽屜層兩側不再各加一塊側牆 —— 改由瓶格箱體側板向下延伸蓋住（單一片側板貫穿
+    // 上下兩層），木工接合更簡單、外觀也更整體。
     // 共用抽屜系統：rows × cols 等分，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
     // 背板開啟時抽屜深度扣 panelT，避免抽屜後緣撞背板。
     const drawerInnerD = Math.min(
