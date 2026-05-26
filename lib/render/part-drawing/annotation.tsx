@@ -805,7 +805,12 @@ export function T2Annotations({
       const cxL = enterRight ? lx / 2 - D / 2 : -lx / 2 + D / 2;
       const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
       const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
-      const longOnZ = zFace > yFace;
+      // tall part isolation rotation (Rz=-π/2) 場景：橫向接過來的牙板/橫撐 W 軸
+      // 走世界 Y 軸（leg 主軸），所以 mortise.length (= 配對 tenon W) 應該落在
+      // leg part-local Y 軸；不該被 face-distance heuristic 拋給 Z 軸 cross-section。
+      // 非 tall part 維持原 auto-fit（cosmetic mortise / 桌面榫眼需要）。
+      const isTallPart = ly > lx && ly > lz;
+      const longOnZ = isTallPart ? false : zFace > yFace;
       return {
         cx: cxL,
         cy: oyC,
@@ -821,7 +826,9 @@ export function T2Annotations({
       const czL = enterFront ? lz / 2 - D / 2 : -lz / 2 + D / 2;
       const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
       const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
-      const longOnX = xFace > yFace;
+      // tall part：同理 force longDim 落在 Y 軸（leg 主軸 = 配對 tenon W 方向）
+      const isTallPart = ly > lx && ly > lz;
+      const longOnX = isTallPart ? false : xFace > yFace;
       return {
         cx: m.origin.x,
         cy: oyC,

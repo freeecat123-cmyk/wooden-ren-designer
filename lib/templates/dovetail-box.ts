@@ -726,8 +726,8 @@ const polyDesign: FurnitureDesign = {
         lidPart.mortises.push({
           origin: { x: (lidLenLocal - rightEdgeW) / 2, y: cutCenterYDirect, z: 0 },
           depth: cutD,
-          length: rightEdgeW,
-          width: lidWidLocal,
+          length: lidWidLocal,
+          width: rightEdgeW,
           through: true,
           shape: "rect",
           cosmetic: true,
