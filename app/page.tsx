@@ -6,6 +6,10 @@ import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/supabase/server";
+import {
+  TEMPLATE_UNLOCK_PRICES,
+  DIFFICULTY_LABEL_ZH,
+} from "@/lib/pricing/template-unlock";
 
 /**
  * 首頁 = 行銷 Landing（給新訪客）
@@ -401,6 +405,43 @@ export default async function Landing() {
         <p className="mt-6 text-center text-sm text-zinc-500">
           年繳再省一個多月 · 木匠學院終身會員私訊拿專屬碼
         </p>
+
+        {/* 單範本永久買斷 */}
+        <div className="mt-10 rounded-2xl bg-stone-50 ring-1 ring-stone-200 p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="md:max-w-md">
+              <h3 className="font-serif-tc text-xl sm:text-2xl font-bold text-zinc-900">
+                🪵 不想訂閱？單範本永久買斷
+              </h3>
+              <p className="mt-2 text-zinc-700 text-sm leading-relaxed">
+                只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 md:flex md:gap-3">
+              {(["beginner", "intermediate", "advanced"] as const).map((d) => (
+                <div
+                  key={d}
+                  className="rounded-xl bg-white ring-1 ring-stone-200 px-4 py-3 text-center"
+                >
+                  <div className="text-xs text-zinc-500">
+                    {DIFFICULTY_LABEL_ZH[d]}
+                  </div>
+                  <div className="mt-1 font-bold text-zinc-900">
+                    NT$ {TEMPLATE_UNLOCK_PRICES[d]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-5 text-center md:text-right">
+            <Link
+              href="/pricing"
+              className="text-sm font-semibold text-amber-800 hover:text-amber-900 underline underline-offset-4"
+            >
+              → 看全部 26 個範本買斷價
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ============ FAQ ============ */}
