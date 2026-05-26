@@ -805,7 +805,11 @@ export function T2Annotations({
       const cxL = enterRight ? lx / 2 - D / 2 : -lx / 2 + D / 2;
       const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
       const zFace = Math.min(Math.abs(ozC - lz / 2), Math.abs(ozC + lz / 2));
-      const longOnZ = zFace > yFace;
+      // tall part：mortise.length 永遠沿木材紋理（Y 軸）延伸，覆寫 auto-fit。
+      // 木工直覺「榫眼長度 = 順紋方向」，不該按 face-distance 拋給短軸（user
+      // 2026-05-26 回報「把榫眼寬跟厚搞反了」）。
+      const isTallPart = ly > lx && ly > lz;
+      const longOnZ = isTallPart ? false : zFace > yFace;
       return {
         cx: cxL,
         cy: oyC,
@@ -821,7 +825,9 @@ export function T2Annotations({
       const czL = enterFront ? lz / 2 - D / 2 : -lz / 2 + D / 2;
       const xFace = Math.min(Math.abs(oxC - lx / 2), Math.abs(oxC + lx / 2));
       const yFace = Math.min(Math.abs(oyC - ly / 2), Math.abs(oyC + ly / 2));
-      const longOnX = xFace > yFace;
+      // tall part：強制 longDim 沿 Y 軸（順紋方向），覆寫 face-distance 啟發式
+      const isTallPart = ly > lx && ly > lz;
+      const longOnX = isTallPart ? false : xFace > yFace;
       return {
         cx: m.origin.x,
         cy: oyC,
