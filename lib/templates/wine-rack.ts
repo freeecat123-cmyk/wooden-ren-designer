@@ -76,7 +76,11 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "plinth", label: "平台底座（衣櫃常見）" },
     { value: "panel-side", label: "側板延伸落地" },
   ], dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
-  { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
+  { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加抽屜層，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
+  { group: "structure", type: "number", key: "drawerZoneHeight", label: "抽屜層總高 (mm)", defaultValue: DRAWER_ZONE_H, min: 60, max: 400, step: 10, dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "number", key: "drawerRows", label: "抽屜層數（縱向）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "number", key: "drawerCols", label: "抽屜橫向切割數", defaultValue: 1, min: 1, max: 6, step: 1, help: "每一層橫向再切幾個抽屜（1=整列、2=左右兩個、3=三等分…）", dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "checkbox", key: "drawerBackPanel", label: "抽屜層背板（封後緣）", defaultValue: false, help: "勾起：抽屜層後緣加一片背板封住，灰塵不會掉進去；不勾：背面開放（裝側裝滑軌也能直接從後面塞物）", dependsOn: { key: "withPullOutDrawer", equals: true } },
 ];
 
 /**
@@ -108,6 +112,10 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const legHeightOpt = getOption<number>(input, opt(o, "legHeight"));
   const legInset = getOption<number>(input, opt(o, "legInset"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
+  const drawerZoneHeightOpt = getOption<number>(input, opt(o, "drawerZoneHeight"));
+  const drawerRows = getOption<number>(input, opt(o, "drawerRows"));
+  const drawerCols = getOption<number>(input, opt(o, "drawerCols"));
+  const drawerBackPanel = getOption<boolean>(input, opt(o, "drawerBackPanel"));
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
   // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
@@ -129,7 +137,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 提前計算（byOverall 模式需要扣這些算 lattice 可用高度）。
   const hasLegs = withLegs && legHeightOpt > 0;
   const legH = hasLegs ? legHeightOpt : 0;
-  const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
+  const drawerZoneH = withPullOutDrawer ? drawerZoneHeightOpt : 0;
   const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
   // === sizing mode 二擇一：byCount（user 設件數）或 byOverall（user 設總長） ===
@@ -485,14 +493,32 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       });
     }
-    // 共用抽屜系統：單列單抽，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
-    const drawerInnerD = Math.min(depth - 20, DRAWER_MAX_DEPTH);
+    // 共用抽屜系統：rows × cols 等分，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
+    // 背板開啟時抽屜深度扣 panelT，避免抽屜後緣撞背板。
+    const drawerInnerD = Math.min(
+      depth - 20 - (drawerBackPanel ? panelT : 0),
+      DRAWER_MAX_DEPTH,
+    );
+    // 後緣背板（選配）：抽屜層的後牆，灰塵不會掉進去
+    if (drawerBackPanel) {
+      parts.push({
+        id: "drawer-back",
+        nameZh: "抽屜層背板",
+        material,
+        grainDirection: "length",
+        visible: { length: outerW - 2 * panelT, width: drawerZoneH, thickness: panelT },
+        origin: { x: 0, y: drawerFloorY + panelT, z: -(depth / 2 - panelT / 2) },
+        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
     renderDrawerZone(
       {
         yStart: drawerFloorY + panelT,
         height: drawerZoneH,
-        rows: 1,
-        cols: 1,
+        rows: drawerRows,
+        cols: drawerCols,
         idPrefix: "drawer",
         labelPrefix: "配件抽屜 ",
         dividerFrom: "none",
