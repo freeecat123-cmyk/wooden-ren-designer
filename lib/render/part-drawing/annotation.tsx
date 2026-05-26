@@ -698,8 +698,6 @@ export function T2Annotations({
     dims: string;
     /** 基準距：對稱件用「距中 X/Z」、其他用「距底 Y」（依當前 view 軸取捨）。 */
     baseline: string;
-    /** true = 只畫紅虛框、跳過所有 W/T/chain dim 標註（避免複數同尺寸榫頭重複標）。 */
-    suppressDim?: boolean;
   };
   const items: Item[] = [];
 
@@ -921,20 +919,6 @@ export function T2Annotations({
     }
     items.length = 0;
     items.push(...unique);
-  }
-
-  // 同尺寸榫頭只標一次：複斜腳常有 4 個 W×T×L 都一樣的榫頭（上下端 × 兩面），
-  // 全標 = 4 組 W/T/chain dim 疊在一起難讀。保留第一個有完整標註、其他只畫紅虛框。
-  {
-    const seenTenonDims = new Set<string>();
-    for (const it of items) {
-      if (it.kind !== "t") continue;
-      if (seenTenonDims.has(it.dims)) {
-        it.suppressDim = true;
-      } else {
-        seenTenonDims.add(it.dims);
-      }
-    }
   }
 
   if (!items.length) return null;
@@ -1343,12 +1327,6 @@ export function T2Annotations({
         />
       ),
     ];
-
-    // 同尺寸榫頭：只畫虛框，不重複標 W/T/chain dim
-    if (it.suppressDim) {
-      elements.push(<g key={`${it.kind}-${it.idx}`}>{partEls}</g>);
-      return;
-    }
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
     // 方榫 (rect)：把 W/L 拉箭頭直接畫在 box 上、深度小字附近（工程圖風格）
