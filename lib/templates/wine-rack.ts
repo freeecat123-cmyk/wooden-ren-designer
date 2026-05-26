@@ -66,6 +66,7 @@ export const wineRackOptions: OptionSpec[] = [
   ], help: "菱形款用連續 ／ ＼ 對角板交織成 bw×bt 個等距 45° 方菱形，每格放 1 瓶；對角板在每個 lattice corner 切段、兩端 45° 切角 butt 進 90° 內角無縫" },
   { group: "leg", type: "checkbox", key: "withLegs", label: "🦿 安裝櫃腳（關掉 = 貼地）", defaultValue: false, wide: true, help: "勾起：加底座櫃腳，可選腳高 / 樣式；不勾：酒架直接貼地" },
   { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: LEG_HEIGHT, min: 0, max: 400, step: 10, dependsOn: { key: "withLegs", equals: true } },
+  { group: "leg", type: "number", key: "legInset", label: "腳內縮 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
     { value: "box", label: "直腳" },
     { value: "tapered", label: "錐形腳（方料）" },
@@ -105,6 +106,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const withLegs = getOption<boolean>(input, opt(o, "withLegs"));
   const legShape = getOption<string>(input, opt(o, "legShape"));
   const legHeightOpt = getOption<number>(input, opt(o, "legHeight"));
+  const legInset = getOption<number>(input, opt(o, "legInset"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
@@ -380,8 +382,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       }
     } else if (legShape === "plinth") {
       const plinthT = 18;
-      const insetX = 10;
-      const insetZ = 10;
+      const insetX = 10 + legInset;
+      const insetZ = 10 + legInset;
       for (const sz of [-1, 1] as const) {
         parts.push({
           id: `plinth-${sz < 0 ? "front" : "back"}`,
@@ -409,8 +411,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         });
       }
     } else {
-      const legOffsetX = halfOuterW - LEG_SIZE / 2;
-      const legOffsetZ = depth / 2 - LEG_SIZE / 2;
+      const legOffsetX = halfOuterW - LEG_SIZE / 2 - legInset;
+      const legOffsetZ = depth / 2 - LEG_SIZE / 2 - legInset;
       const shape: Part["shape"] =
         legShape === "tapered"
           ? { kind: "tapered", bottomScale: 0.55 }
