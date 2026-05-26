@@ -1556,16 +1556,7 @@ export function T2Annotations({
             strokeWidth={0.3}
           />
           {inwardArrowsH(box.x, box.x + box.w, wDimY)}
-          <text
-            x={box.x + box.w / 2}
-            y={wLabelY}
-            fontSize={8}
-            fill={stroke}
-            fontFamily="monospace"
-            textAnchor="middle"
-          >
-            {hMm}
-          </text>
+          {/* hMm label 已移到 inline-dims（box 上邊） */}
         </g>,
         // L (垂直) dim line：跨 box 高度
         <g key={`${it.kind}-${it.idx}-Ldim`}>
@@ -1594,25 +1585,32 @@ export function T2Annotations({
             strokeWidth={0.3}
           />
           {inwardArrowsV(box.y, box.y + box.h, lDimX)}
-          {myLIdx > 0 && (
-            <line
-              x1={lDimX}
-              y1={box.y + box.h / 2}
-              x2={lLabelX + (outerLeft ? -1 : 1) * myLIdx * 14 + (outerLeft ? 2 : -2)}
-              y2={box.y + box.h / 2}
-              stroke={stroke}
-              strokeWidth={0.3}
-            />
-          )}
+        </g>,
+        // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
+        // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
+        // lLabelX/wLabelY 那個外推欄位，避免多 feature 同欄位疊字。
+        <g key={`${it.kind}-${it.idx}-inline-dims`}>
+          {/* L dim label on box LEFT side */}
           <text
-            x={lLabelX + (myLIdx > 0 ? (outerLeft ? -1 : 1) * myLIdx * 14 : 0)}
+            x={box.x - 2}
             y={box.y + box.h / 2 + 3}
-            fontSize={8}
+            fontSize={7}
             fill={stroke}
             fontFamily="monospace"
-            textAnchor={lLabelAnchor}
+            textAnchor="end"
           >
             {vMm}
+          </text>
+          {/* W dim label on box TOP side */}
+          <text
+            x={box.x + box.w / 2}
+            y={box.y - 2}
+            fontSize={7}
+            fill={stroke}
+            fontFamily="monospace"
+            textAnchor="middle"
+          >
+            {hMm}
           </text>
         </g>,
       );
