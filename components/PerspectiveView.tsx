@@ -1750,8 +1750,23 @@ export function PerspectiveView({
           ) : null;
 
           // mortise CSG：joineryMode 顯示全部；正常 3D 只顯示 cosmetic（無線充電/穿線孔等產品凹槽）
+          //
+          // splay 腳系列特例 (user 2026-05-26)：splay deform 跟 CSG cut box 軸對齊
+          // 不同步、cut box 永遠開在 undeformed 位置、跟 tenon 對不上、視覺上會看
+          // 到「位置錯的 mortise 洞」。兩種狀況都跳過 CSG（mesh 不挖洞、tenon 進
+          // 入被包住看不到、視覺乾淨）：
+          //   1. part 本身是 splayed leg（leg 接 apron 那面）
+          //   2. mortise 帶 axis field（座板接 splay leg top tenon 的洞、axis CSG
+          //      不認）
+          // Cosmetic mortise（產品凹槽 = 無線充電孔之類非結構性凹槽）不受影響。
+          const isSplayedLeg = part.shape?.kind === "splayed";
           const mortisesToCsg = joineryMode
-            ? part.mortises
+            ? part.mortises.filter((m) => {
+                if (m.cosmetic) return true;
+                if (isSplayedLeg) return false;
+                if (m.axis) return false;
+                return true;
+              })
             : part.mortises.filter((m) => m.cosmetic);
           const mortiseBoxesScaled: LocalBox[] | undefined =
             mortisesToCsg.length > 0

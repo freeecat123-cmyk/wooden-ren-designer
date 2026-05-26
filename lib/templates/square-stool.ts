@@ -31,6 +31,7 @@ export const squareStoolOptions: OptionSpec[] = [
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
   { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "top", type: "checkbox", key: "seatPenetratingTenon", label: "椅面通透（腳頂穿透）", defaultValue: false, help: "勾選：腳頂榫穿透座板上面（明式装饰）；未勾：盲榫，深度上限座板厚 × 4/5、不穿透" },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: true, help: "在腳下方 1/4 高加一圈橫撐，結構更穩；傳統方凳必備（取消勾選 = 簡約款）" },
   { group: "stretcher", type: "select", key: "lowerStretcherStyle", label: "下橫撐樣式", defaultValue: "h-frame", choices: [
     { value: "h-frame", label: "H 字形（4 條繞 1 圈，最穩）" },
@@ -94,6 +95,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronDropFromTop = getOption<number>(input, opt(o, "apronDropFromTop"));
   const apronStaggerMm = getOption<number>(input, opt(o, "apronStaggerMm"));
   const legPenetratingTenon = getOption<boolean>(input, opt(o, "legPenetratingTenon"));
+  const seatPenetratingTenon = getOption<boolean>(input, opt(o, "seatPenetratingTenon"));
   const withLowerStretcher = getOption<boolean>(input, opt(o, "withLowerStretcher"));
   const lowerStretcherStyle = getOption<string>(input, opt(o, "lowerStretcherStyle"));
   const lowerStretcherWidth = getOption<number>(input, opt(o, "lowerStretcherWidth"));
@@ -108,14 +110,26 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 自動類型規則：母厚 ≤ 25mm → 通榫；> 25mm → 盲榫
   // legPenetratingTenon = true 時強制牙板/下橫撐進腳通榫（明榫裝飾）
 
-  // 1) leg ↔ seat：腳頂進座板，依自動規則（座板薄通榫、厚盲榫）
-  const legTopTenonType = autoTenonType(seatThickness);
-  const legTenonStd = standardTenon({
+  // 1) leg ↔ seat：腳頂進座板
+  //    - seatPenetratingTenon=true (明式裝飾)：通榫、tenon 凸出座板上面
+  //    - seatPenetratingTenon=false (預設)：盲榫、depth 上限 = 座板厚 × 4/5、不穿透
+  //    (user 2026-05-26：「腳接椅面預設不穿透、最多 4/5 椅面厚」+ 拆獨立 toggle)
+  const legTopTenonType: "through-tenon" | "blind-tenon" =
+    seatPenetratingTenon ? "through-tenon" : "blind-tenon";
+  const _legTenonStdRaw = standardTenon({
     type: legTopTenonType,
     childThickness: legSize,
     childWidth: legSize,
     motherThickness: seatThickness,
   });
+  // 盲榫上限：standardTenon 對 25mm 母厚回 25mm (= 穿透)、要 clamp 到 20mm 才合 4/5
+  const _legTenonMaxDepth = Math.floor(seatThickness * 4 / 5);
+  const legTenonStd = seatPenetratingTenon
+    ? _legTenonStdRaw  // through 直接用 length = seatThickness
+    : {
+        ..._legTenonStdRaw,
+        length: Math.min(_legTenonStdRaw.length, _legTenonMaxDepth),
+      };
   // 2) apron ↔ leg：依自動規則 + legPenetratingTenon override
   const apronTenonType = legPenetratingTenon ? "through-tenon" : autoTenonType(legSize);
   const apronTenonStd = standardTenon({
@@ -161,7 +175,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
   // 腳頂榫朝家具中心偏（X 軸），讓 tenon 內側緣貼腳內緣（內側無肩）。
   // 只有 legInset === 0（腳貼座板邊緣）時才偏，避免座板外側木材太薄破裂。
   // 偏移量 = (legSize − tenonWidth) / 2 — tenon 內側緣 = 腳內緣，外側留 SHOULDER 肩。
-  const legTopType = legTopTenonType === "through-tenon" ? "through-tenon" : "blind-tenon";
+  const legTopType: "through-tenon" | "blind-tenon" = legTopTenonType;
   const legTopInsetX = legInset === 0
     ? Math.max(0, Math.round((legSize - legTenonStd.width) / 2))
     : 0;
@@ -210,7 +224,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           depth: legTenonStd.length,
           length: legTenonStd.width,
           width: legTenonStd.thickness,
-          through: legTopTenonType === "through-tenon",
+          through: seatPenetratingTenon,  // 椅面通透＝穿透座板、否則盲榫
           ...(mortiseAxis ? { axis: mortiseAxis } : {}),
         };
       }),
@@ -284,6 +298,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       apronDropFromTop,
       apronThrough: apronTenonType === "through-tenon",
       splayDx: _splayDxForLegs,
+      splayDz: _splayDzForLegs,
     }),
   });
   });
@@ -669,6 +684,15 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       }
       // 凳腳補 2 個下橫撐榫眼（前後 + 左右兩面）
       // 靜止 X（前後）= 下榫；移動 Z（左右）= 上榫；Z 整支上移
+      // ⚠️ 未套 splay 補償：是 latent bug 但無法用 builder origin 修。
+      // splayed 腳在 stretcherY=100 高度 splayShift_X = 75 × (1-100/425) = 57mm、
+      // 已比 legHalfX (17) 大、deformed inner face 跑到 leg-local 負側、若用
+      // 「sgn × (legHalfX - splayShift)」shift origin、值變負被 mortiseLocalBox
+      // 誤判為「另一面 mortise」、cut box 開到錯的面、跟 leg material 還是不重疊。
+      // 治本：CSG 層 deform shift（23b0563 風格、已 revert）。
+      // 現況：下橫撐 mortise cut box 不在 leg material 範圍內、CSG 沒挖到孔、
+      // tenon mesh z-fight 在 leg material 裡視覺上看不出缺陷。詳見
+      // memory project_wrd_splayed_apron_mortise_fix.md「沒解的長期問題」。
       const lsXCenterY = lowerY + lowerW / 2;
       const lsZCenterY = lsXCenterY + (lowerVisuallyStaggered ? lowerStretcherStaggerMm : 0);
       const lsThrough = lowerTenonType === "through-tenon";
@@ -696,7 +720,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
           );
         } else {
           leg.mortises.push(
-            // Z 面 → 接 Z 軸（左右）下橫撐
             {
               origin: { x: 0, y: lsZCenterY, z: cz > 0 ? -1 : 1 },
               depth: lowerTenon,
@@ -704,7 +727,6 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               width: lowerTenonThick,
               through: lsThrough,
             },
-            // X 面 → 接 X 軸（前後）下橫撐
             {
               origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
               depth: lowerTenon,
@@ -786,10 +808,13 @@ function legMortisesForApron(
     apronDropFromTop: number;
     apronVisualStaggerMm?: number;
     apronThrough?: boolean;
-    /** splay 影響：splayDxForLegs（沿 X 軸的腳底位移量）。Z 面 mortise（左右
-     *  牙板進腳）位置要從 tenon 反推 — apron 繞自己 length 軸 tilt 後，加上
-     *  腳本身的 splayed deform，tenon 落在 (splayX + sin shift) 位置。 */
+    /** 已停用：以前 splayed 腳給 mortise 加 splayShift/rotation 對齊 deformed
+     *  leg material + apron tenon 世界位置、但 user 2026-05-26 確認 maker 製作
+     *  優先 > 3D 視覺對齊，要求 mortise 回到腳中心軸（對稱 12.5/12.5 肩位、乾淨
+     *  垂直矩形）。所以這兩個參數忽略。3D 上 splay 腳會看到接合缺口，是接受的
+     *  trade-off。詳見 memory [[project-wrd-splayed-apron-mortise-fix]]。 */
     splayDx?: number;
+    splayDz?: number;
   },
 ) {
   const {
@@ -799,34 +824,22 @@ function legMortisesForApron(
   } = opts;
   const visualStagger = opts.apronVisualStaggerMm ?? 0;
   const through = opts.apronThrough ?? false;
-  const splayDx = opts.splayDx ?? 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
   // 靜止 Z（左右）= 上榫；移動 X（前後，下移）= 下榫
   // 視覺錯開時 X 向整支下移
   const zCenterY = legHeight - apronDropFromTop - apronWidth / 2;
   const xCenterY = zCenterY - visualStagger;
-  // Z 面 mortise 從 tenon 反推位置（公式移到 _helpers.splayedLegMortiseGeom）
-  const zFaceGeom = splayedLegMortiseGeom({
-    corner,
-    splayDx,
-    legHeight,
-    legSize,
-    zCenterY,
-    tenonOffset: apronUpperTenonOffset,
-    fallbackZ: 1,
-  });
   return [
     // Z 面 mortise（接 Z 軸 = 左右牙板, 靜止）— 上榫
+    // origin.x = 0 / origin.z = ±LEG_FACE_INSET (=1) → 腳中心軸、對稱 12.5/12.5 肩位
     {
-      origin: { x: zFaceGeom.x, y: zFaceGeom.y, z: zFaceGeom.z },
+      origin: { x: 0, y: zCenterY + apronUpperTenonOffset, z: corner.z > 0 ? -1 : 1 },
       depth: apronTenonLength,
       length: apronUpperTenonH,
       width: apronTenonThick,
       through,
-      ...(zFaceGeom.rotZ !== undefined && Math.abs(zFaceGeom.rotZ) > 0.001 ? { rotZ: zFaceGeom.rotZ } : {}),
     },
     // X 面 mortise（接 X 軸 = 前後牙板, 下移）— 下榫
-    // 維持原狀（不動 user 沒抱怨的面）
     {
       origin: { x: corner.x > 0 ? -1 : 1, y: xCenterY + apronLowerTenonOffset, z: 0 },
       depth: apronTenonLength,
