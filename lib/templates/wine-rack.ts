@@ -499,16 +499,17 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       depth - 20 - (drawerBackPanel ? panelT : 0),
       DRAWER_MAX_DEPTH,
     );
-    // 後緣背板（選配）：抽屜層的後牆，灰塵不會掉進去
+    // 後緣背板（選配）：抽屜層的後牆，灰塵不會掉進去。
+    // 抽屜面板在 -Z（前）、所以背板要放 +Z（後）。沿用 case-furniture surface back
+    // 的軸別慣例：thickness=vertical（沿 Y）、width=panel-thickness（沿 Z），不轉旋。
     if (drawerBackPanel) {
       parts.push({
         id: "drawer-back",
         nameZh: "抽屜層背板",
         material,
         grainDirection: "length",
-        visible: { length: outerW - 2 * panelT, width: drawerZoneH, thickness: panelT },
-        origin: { x: 0, y: drawerFloorY + panelT, z: -(depth / 2 - panelT / 2) },
-        rotation: { x: Math.PI / 2, y: 0, z: 0 },
+        visible: { length: outerW - 2 * panelT, width: panelT, thickness: drawerZoneH },
+        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 - panelT / 2 },
         tenons: [],
         mortises: [],
       });
