@@ -3454,12 +3454,14 @@ function OrthoViewImpl({
                 </text>
               </g>
               {/* 紅酒架格子尺寸：只在「左下第一格」標一次 pitch，全部格子尺寸都相同
-                  user 2026-05-26 回報「不要全部標 只需要寫一個格子就好」 */}
+                  user 2026-05-26 回報「不要全部標 只需要寫一個格子就好」；菱形格 layout
+                  也適用（從 notes 抓 cellSize，菱形 cell 同樣是 D × D bounding box）。 */}
               {(() => {
                 if (renderDesign.category !== "wine-rack") return null;
-                const firstShelf = renderDesign.parts.find((p) => p.id === "shelf-h-1");
-                if (!firstShelf) return null;
-                const cellSize = Math.round(firstShelf.origin.y - panelT / 2);
+                // 從 notes 抓 cellSize（rect/diamond 兩種 layout 都會寫「每瓶位 X×X mm pitch」）
+                const m = renderDesign.notes?.match(/每瓶位\s*(\d+(?:\.\d+)?)\s*×\s*(\d+(?:\.\d+)?)\s*mm/);
+                if (!m) return null;
+                const cellSize = Math.round(parseFloat(m[1]));
                 if (cellSize <= 0) return null;
                 const cellCx = -w / 2 + panelT + cellSize / 2;
                 const cellCy = -(bottomTopY + cellSize / 2);
