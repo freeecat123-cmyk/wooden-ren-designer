@@ -1559,11 +1559,22 @@ export function T2Annotations({
       const partRightX = partRightSvg;
       const partTopY = partTopSvg;
 
-      // mm/svg 比例：用 hMm/box.w fallback vMm/box.h
+      // mm/svg 比例：用 part body 投影寬高 vs visible 真實 mm 作為基準。
+      // 不要用 mortise local half-extent（hMm/vMm）vs 投影 box.w/box.h —
+      // 兩者一個是未變形 part-local、一個是已 splay 變形的 SVG 投影，splayed/
+      // tapered 件比例會失真，shoulder chain 變成 418.1/25/147.2 加總 590 ≠ 425
+      // （user 2026-05-26 回報）。part body 與 mortise box 受同一 splay 變形，
+      // 用 part-level 比例可消除這個誤差。
+      const partRealHoriz =
+        view === "side" ? part.visible.width : part.visible.length;
+      const partRealVert =
+        view === "top" ? part.visible.width : part.visible.thickness;
+      const partWidthSvgRef = partRightSvg - partLeftSvg;
+      const partHeightSvgRef = partBottomY - partTopSvg;
       const mmPerSvgX =
-        box.w > 1 && hMm > 0.1 ? hMm / box.w : 1;
+        partWidthSvgRef > 1 ? partRealHoriz / partWidthSvgRef : 1;
       const mmPerSvgY =
-        box.h > 1 && vMm > 0.1 ? vMm / box.h : 1;
+        partHeightSvgRef > 1 ? partRealVert / partHeightSvgRef : 1;
 
       // feature 必須在 part body 那軸範圍內，才算 shoulder（榫頭凸出側不是
       // shoulder、是 part 外）；2mm 容差吸收 SVG 投影誤差
