@@ -80,7 +80,11 @@ export const wineRackOptions: OptionSpec[] = [
   { group: "structure", type: "number", key: "drawerZoneHeight", label: "抽屜層總高 (mm)", defaultValue: DRAWER_ZONE_H, min: 60, max: 400, step: 10, dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "number", key: "drawerRows", label: "抽屜層數（縱向）", defaultValue: 1, min: 1, max: 4, step: 1, dependsOn: { key: "withPullOutDrawer", equals: true } },
   { group: "structure", type: "number", key: "drawerCols", label: "抽屜橫向切割數", defaultValue: 1, min: 1, max: 6, step: 1, help: "每一層橫向再切幾個抽屜（1=整列、2=左右兩個、3=三等分…）", dependsOn: { key: "withPullOutDrawer", equals: true } },
-  { group: "structure", type: "checkbox", key: "drawerBackPanel", label: "抽屜層背板（封後緣）", defaultValue: false, help: "勾起：抽屜層後緣加一片背板封住，灰塵不會掉進去；不勾：背面開放（裝側裝滑軌也能直接從後面塞物）", dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "select", key: "drawerBackMode", label: "抽屜層背板樣式", defaultValue: "none", choices: [
+    { value: "none", label: "無背板（背面開放）" },
+    { value: "surface", label: "釘背（薄板釘在後緣，覆蓋整個後面）" },
+    { value: "rebated", label: "入溝（板嵌進兩側板之間，外觀乾淨）" },
+  ], help: "無背板=後面開放；釘背=薄板貼後緣、覆蓋整個外側；入溝=板嵌進兩側板之間、跟櫃身切齊", dependsOn: { key: "withPullOutDrawer", equals: true } },
 ];
 
 /**
@@ -115,7 +119,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const drawerZoneHeightOpt = getOption<number>(input, opt(o, "drawerZoneHeight"));
   const drawerRows = getOption<number>(input, opt(o, "drawerRows"));
   const drawerCols = getOption<number>(input, opt(o, "drawerCols"));
-  const drawerBackPanel = getOption<boolean>(input, opt(o, "drawerBackPanel"));
+  const drawerBackMode = getOption<string>(input, opt(o, "drawerBackMode"));
+  const drawerBackPanel = drawerBackMode !== "none";
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
   // 矩形格淨寬 = cellSize − panelT；菱形格內接圓直徑 ≈ cellSize/√2 − panelT。
@@ -499,13 +504,24 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       depth - 20 - (drawerBackPanel ? panelT : 0),
       DRAWER_MAX_DEPTH,
     );
-    // 後緣背板（選配）：抽屜層的後牆，灰塵不會掉進去。
-    // 抽屜面板在 -Z（前）、所以背板要放 +Z（後）。沿用 case-furniture surface back
-    // 的軸別慣例：thickness=vertical（沿 Y）、width=panel-thickness（沿 Z），不轉旋。
-    if (drawerBackPanel) {
+    // 後緣背板（選配）：抽屜層的後牆。surface=釘背貼後緣、rebated=入溝嵌進兩側板。
+    // 抽屜面板在 -Z（前）、背板放 +Z（後）。沿用 case-furniture surface back 的軸別慣例：
+    // thickness=vertical（沿 Y）、width=panel-thickness（沿 Z），不轉旋。
+    if (drawerBackMode === "surface") {
       parts.push({
         id: "drawer-back",
-        nameZh: "抽屜層背板",
+        nameZh: "抽屜層背板（釘背）",
+        material,
+        grainDirection: "length",
+        visible: { length: outerW, width: panelT, thickness: drawerZoneH },
+        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 + panelT / 2 },
+        tenons: [],
+        mortises: [],
+      });
+    } else if (drawerBackMode === "rebated") {
+      parts.push({
+        id: "drawer-back",
+        nameZh: "抽屜層背板（入溝）",
         material,
         grainDirection: "length",
         visible: { length: outerW - 2 * panelT, width: panelT, thickness: drawerZoneH },
