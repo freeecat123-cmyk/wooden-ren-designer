@@ -3498,17 +3498,27 @@ function OrthoViewImpl({
                     </g>
                   );
                 }
+                const rectNet = Math.round(cellSize - panelT);
                 return (
                   <g fontFamily="sans-serif" pointerEvents="none">
                     <text
                       x={cellCx}
-                      y={cellCy + 4}
+                      y={cellCy - 2}
                       textAnchor="middle"
                       fontSize={11}
                       fill="#7a5a2b"
                       fontWeight="600"
                     >
-                      格 {Math.round(cellSize)}×{Math.round(cellSize)} mm
+                      格 {rectNet}×{rectNet} mm
+                    </text>
+                    <text
+                      x={cellCx}
+                      y={cellCy + 11}
+                      textAnchor="middle"
+                      fontSize={9}
+                      fill="#7a5a2b"
+                    >
+                      淨寬
                     </text>
                   </g>
                 );
