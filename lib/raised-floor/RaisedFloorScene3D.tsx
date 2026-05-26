@@ -34,8 +34,10 @@ import { boundingBox } from "@/lib/floor/geometry";
 
 export type LayerKey =
   | "legs"
-  | "frame"
-  | "main"
+  | "frameTop"
+  | "frameBottom"
+  | "mainTop"
+  | "mainBottom"
   | "sub"
   | "plywood"
   | "plank";
@@ -242,7 +244,7 @@ export function RaisedFloorScene3D({
 
         <group position={[-cx, 0, -cz]}>
           {/* ────── 底框(腳柱底下承重)────── */}
-          {layers.frame && (
+          {layers.frameBottom && (
             <FrameLayer
               vertices={platformVerts}
               tw={mainTw}
@@ -252,7 +254,7 @@ export function RaisedFloorScene3D({
           )}
 
           {/* ────── 底主支(只畫在「有內柱」的那排,承重用)────── */}
-          {layers.main && bottomMainCenters.length > 0 && (
+          {layers.mainBottom && bottomMainCenters.length > 0 && (
             <MainJoistsLayer
               W={W}
               D={D}
@@ -277,7 +279,7 @@ export function RaisedFloorScene3D({
           )}
 
           {/* ────── 頂框 ────── */}
-          {layers.frame && (
+          {layers.frameTop && (
             <FrameLayer
               vertices={platformVerts}
               tw={mainTw}
@@ -286,8 +288,8 @@ export function RaisedFloorScene3D({
             />
           )}
 
-          {/* ────── 主支 ────── */}
-          {layers.main && (
+          {/* ────── 頂主支 ────── */}
+          {layers.mainTop && (
             <MainJoistsLayer
               W={W}
               D={D}
@@ -312,6 +314,7 @@ export function RaisedFloorScene3D({
               shortSpan={shortSpan}
               vertices={platformVerts}
               subJoistSpacingCm={input.subJoistSpacingCm}
+              plywoodLongCm={input.plywood.sheetWidthCm}
               yCenter={ySubCenter + eo.sub}
             />
           )}
@@ -571,6 +574,7 @@ function SubJoistsLayer({
   shortSpan,
   vertices,
   subJoistSpacingCm,
+  plywoodLongCm,
   yCenter,
 }: {
   W: number;
@@ -582,16 +586,21 @@ function SubJoistsLayer({
   shortSpan: number;
   vertices: Pt[];
   subJoistSpacingCm: number;
+  plywoodLongCm: number;
   yCenter: number;
 }) {
   const segments = useMemo(() => {
-    // 副支「沿長軸方向跑」,在短軸方向每 spacing 一條(整片不分 slot,
-    // 因為 slot 切割只是 BOM 估料分組,3D 視覺呈現一條條跨長軸即可)
-    const spacing = Math.max(subJoistSpacingCm, 1);
-    const subRows = Math.max(0, Math.floor(shortSpan / spacing));
+    // 副支對齊夾板接縫(以 plywoodLongCm/N 為間距,從 0 起算)
+    const target = Math.max(subJoistSpacingCm, 10);
+    const aligned =
+      plywoodLongCm > 0
+        ? plywoodLongCm / Math.max(2, Math.round(plywoodLongCm / target))
+        : target;
     const subCenters: number[] = [];
-    for (let i = 1; i <= subRows; i++) {
-      subCenters.push((i * shortSpan) / (subRows + 1));
+    let pos = aligned;
+    while (pos < shortSpan - 0.5) {
+      subCenters.push(pos);
+      pos += aligned;
     }
     const out: Array<{ c: number; lo: number; hi: number }> = [];
     for (const sc of subCenters) {
@@ -602,7 +611,7 @@ function SubJoistsLayer({
       for (const [lo, hi] of intervals) out.push({ c: sc, lo, hi });
     }
     return out;
-  }, [shortAlongX, shortSpan, subJoistSpacingCm, vertices, tw, W, D]);
+  }, [shortAlongX, shortSpan, subJoistSpacingCm, plywoodLongCm, vertices, frameTw, W, D]);
 
   return (
     <group position={[0, yCenter, 0]}>

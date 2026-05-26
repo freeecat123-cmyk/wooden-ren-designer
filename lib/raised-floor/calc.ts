@@ -39,9 +39,9 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     pattern: "straight",
     plankLengthCm: input.plankLengthCm,
     plankWidthCm: input.plankWidthCm,
-    direction: "long-axis",
+    direction: input.plankDirection ?? "long-axis",
     stagger: "half",
-    startCorner: "top-left",
+    startCorner: input.plankStartCorner ?? "top-left",
     expansionGapMm: input.plankGapMm,
     wasteMode: "computed",
     reuseOffcuts: true,
@@ -74,14 +74,22 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
       : 0;
 
   // 3. 骨架(主支:邊框 + 中間短向支撐)
-  const joist = joistRunLengthsM(platform, input.joistSpacingCm);
+  // 主支對齊夾板:用 plywood.sheetLengthCm(短邊)當 N 等分基準,
+  // 確保夾板沿長軸的接縫剛好落在主支中心(消除 snap 浪費)
+  const joist = joistRunLengthsM(
+    platform,
+    input.joistSpacingCm,
+    input.plywood.sheetLengthCm,
+  );
   const joistTotalM = joist.totalLengthM;
 
   // 3b. 副支(垂直主支、跨 slot,沿短軸方向每 subSpacingCm 一排)
+  // plywood.sheetWidthCm = 夾板長邊(244 或 183);副支會自動對齊夾板接縫
   const subJoist = subJoistRunLengthsM(
     platform,
     joist.mainJoistCentersCm,
     input.subJoistSpacingCm,
+    input.plywood.sheetWidthCm,
   );
   const subJoistTotalM = subJoist.totalLengthM;
 
@@ -107,14 +115,41 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     input.plywoodPricePerSheet > 0
       ? plywoodSheetCount * input.plywoodPricePerSheet
       : 0;
+  // 5b. 踢腳板長度 — skirtingType ≠ "none" 才扣門洞,反之沿用舊版「沿平台周長」
+  const skirtingType = input.skirtingType ?? "none";
+  const doorCount = Math.max(0, input.doorCount ?? 0);
+  const doorWidthCm = Math.max(0, input.doorWidthCm ?? 0);
+  const doorDeductM =
+    skirtingType !== "none" ? (doorCount * doorWidthCm) / 100 : 0;
+  const skirtingLengthM = Math.max(0, perimeterM - doorDeductM);
   const skirtingCost =
-    input.skirtingPricePerM > 0 ? perimeterM * input.skirtingPricePerM : 0;
-  const totalCost = plankCost + joistCost + plywoodCost + skirtingCost;
+    input.skirtingPricePerM > 0
+      ? skirtingLengthM * input.skirtingPricePerM
+      : 0;
+
+  // 5c. 防潮墊 — 平台面積 × (1 + waste) ÷ 單卷面積,卷數無條件進位
+  const underlay = input.underlay;
+  const underlayWaste = Math.max(0, input.underlayWaste ?? 0.1);
+  const underlayRollCount =
+    underlay && underlay.rollAreaM2 > 0
+      ? Math.max(
+          1,
+          Math.ceil((platformAreaM2 * (1 + underlayWaste)) / underlay.rollAreaM2),
+        )
+      : 0;
+  const underlayCost =
+    underlay && underlay.pricePerRoll > 0
+      ? underlayRollCount * underlay.pricePerRoll
+      : 0;
+
+  const totalCost =
+    plankCost + joistCost + plywoodCost + skirtingCost + underlayCost;
   const hasUnpriced =
     input.plankPricePerPing <= 0 ||
     input.joistPricePerM <= 0 ||
     input.plywoodPricePerSheet <= 0 ||
-    input.skirtingPricePerM <= 0;
+    input.skirtingPricePerM <= 0 ||
+    (underlay !== undefined && underlay.pricePerRoll <= 0);
 
   // 6. BOM items
   const items: RaisedFloorBomItem[] = [
@@ -152,12 +187,36 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     },
     {
       category: "skirting",
-      nameZh: "踢腳/收邊",
-      spec: "沿平台周長",
-      totalLengthM: perimeterM,
+      nameZh:
+        skirtingType === "wood"
+          ? "踢腳板(木質)"
+          : skirtingType === "pvc"
+            ? "踢腳板(PVC)"
+            : "踢腳/收邊",
+      spec:
+        skirtingType === "none"
+          ? "沿平台周長"
+          : `高 ${input.skirtingHeightCm ?? 8}cm × 沿平台周長`,
+      totalLengthM: skirtingLengthM,
+      note:
+        skirtingType !== "none" && doorCount > 0
+          ? `已扣 ${doorCount} 個門洞 × ${doorWidthCm}cm`
+          : undefined,
       subtotal: skirtingCost > 0 ? skirtingCost : undefined,
     },
   ];
+
+  if (underlay) {
+    const rollM2Total = underlayRollCount * underlay.rollAreaM2;
+    items.push({
+      category: "underlay",
+      nameZh: "防潮墊",
+      spec: `${underlay.nameZh} ${underlay.rollAreaM2.toFixed(0)}m²/卷`,
+      count: underlayRollCount,
+      note: `平台 ${platformAreaM2.toFixed(2)}m² × 1+${Math.round(underlayWaste * 100)}%損耗 → ${underlayRollCount} 卷(${rollM2Total.toFixed(0)}m²)`,
+      subtotal: underlayCost > 0 ? underlayCost : undefined,
+    });
+  }
 
   return {
     input,
@@ -170,6 +229,7 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
       joist: joistCost,
       plywood: plywoodCost,
       skirting: skirtingCost,
+      underlay: underlayCost,
       total: totalCost,
       hasUnpriced,
     },
@@ -188,6 +248,8 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
       subJoistLengthCm: subJoist.typicalLengthCm,
       plywoodSheetCount,
       perimeterM,
+      skirtingLengthM,
+      underlayRollCount,
     },
   };
 }

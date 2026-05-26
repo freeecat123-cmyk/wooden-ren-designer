@@ -45,9 +45,9 @@ export function RaisedFloorPlankSvg({ bom, width = 388 }: Props): JSX.Element {
     pattern: "straight",
     plankLengthCm: bom.input.plankLengthCm,
     plankWidthCm: bom.input.plankWidthCm,
-    direction: "long-axis",
+    direction: bom.input.plankDirection ?? "long-axis",
     stagger: "half",
-    startCorner: "top-left",
+    startCorner: bom.input.plankStartCorner ?? "top-left",
     expansionGapMm: bom.input.plankGapMm,
     wasteMode: "computed",
     reuseOffcuts: true,
@@ -60,10 +60,13 @@ export function RaisedFloorPlankSvg({ bom, width = 388 }: Props): JSX.Element {
   };
   const layout = computeFloorLayout(floorInput);
 
-  // 跟 FloorOverviewSvg 一樣推 runAlongX:bom.input 沒 direction 欄位,
-  // 走 long-axis 一律比 layable bbox 長邊。
+  // 跟 floor/layout.ts 同一招:依 direction 跟 bbox 算 runAlongX
+  // long-axis → 沿較長邊;short-axis → 沿較短邊(轉 90°)
   const layBb = boundingBox(layout.layableRegion);
-  const runAlongX = layBb.maxX - layBb.minX >= layBb.maxY - layBb.minY;
+  const spanX = layBb.maxX - layBb.minX;
+  const spanY = layBb.maxY - layBb.minY;
+  const dir = bom.input.plankDirection ?? "long-axis";
+  const runAlongX = dir === "long-axis" ? spanX >= spanY : spanX < spanY;
 
   const platformPath =
     platform.vertices

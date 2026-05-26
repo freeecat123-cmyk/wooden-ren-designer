@@ -33,6 +33,21 @@ export interface JoistPreset {
   thicknessMm: number;
 }
 
+/** 防潮墊規格(地板/平台底層防潮) */
+export interface UnderlayPreset {
+  id: string;
+  nameZh: string;
+  /** 單捲覆蓋面積(m²) */
+  rollAreaM2: number;
+  /** 厚度(mm)— 標示用 */
+  thicknessMm: number;
+  /** 單捲報價(NT$);0 = 未設定不計價 */
+  pricePerRoll: number;
+}
+
+/** 踢腳板種類 */
+export type SkirtingType = "none" | "wood" | "pvc";
+
 /** 夾板規格(底層襯板) */
 export interface PlywoodPreset {
   id: string;
@@ -65,6 +80,15 @@ export interface RaisedFloorInput {
   plankWidthCm: number;
   /** 牆邊伸縮縫(mm)— 跟 /floor 同單位慣例 */
   plankGapMm: number;
+  /** 面材鋪設方向:沿長軸(預設,跨多根主支)或沿短軸(轉 90°)*/
+  plankDirection?: "long-axis" | "short-axis";
+  /** 起鋪角:從哪個角起鋪面材;center = 中央置中對牆等寬 */
+  plankStartCorner?:
+    | "top-left"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right"
+    | "center";
   /** 主支角材(也用於頂框/底框)*/
   mainJoist: JoistPreset;
   /** 副支角材(可跟主支不同尺寸)*/
@@ -77,11 +101,25 @@ export interface RaisedFloorInput {
   plywood: PlywoodPreset;
   /** 夾板損耗率(0–0.5) */
   plywoodWaste: number;
+  /** 夾板拼縫間隙(mm)— 防潮膨脹用,實務 2–5mm */
+  plywoodGapMm: number;
   /** 估價(NT$) */
   plankPricePerPing: number;
   joistPricePerM: number;
   plywoodPricePerSheet: number;
   skirtingPricePerM: number;
+  /** 防潮墊規格;undefined = 不裝防潮墊 */
+  underlay?: UnderlayPreset;
+  /** 防潮墊損耗率(0–0.5),預設 0.1;搭接 + 切邊 */
+  underlayWaste?: number;
+  /** 踢腳板種類;預設 "none" 表示沿用舊版「踢腳/收邊 沿平台周長」單一行為 */
+  skirtingType?: SkirtingType;
+  /** 踢腳板高度(cm),預設 8;skirtingType ≠ "none" 才顯示 */
+  skirtingHeightCm?: number;
+  /** 門洞數量(踢腳板長度扣除用) */
+  doorCount?: number;
+  /** 每個門洞寬度(cm) */
+  doorWidthCm?: number;
 }
 
 export type RaisedFloorBomCategory =
@@ -89,7 +127,8 @@ export type RaisedFloorBomCategory =
   | "joist"
   | "sub-joist"
   | "plywood"
-  | "skirting";
+  | "skirting"
+  | "underlay";
 
 export interface RaisedFloorBomItem {
   category: RaisedFloorBomCategory;
@@ -124,6 +163,8 @@ export interface RaisedFloorBom {
     joist: number;
     plywood: number;
     skirting: number;
+    /** 防潮墊小計;input.underlay = undefined 時為 0 */
+    underlay: number;
     total: number;
     /** 任一品項未報價 → true */
     hasUnpriced: boolean;
@@ -157,6 +198,10 @@ export interface RaisedFloorBom {
     plywoodSheetCount: number;
     /** 平台周長(m) */
     perimeterM: number;
+    /** 踢腳板長度(m)= 周長 − 門洞;skirtingType="none" 時 = 周長 */
+    skirtingLengthM: number;
+    /** 防潮墊卷數(含損耗);input.underlay = undefined 時 = 0 */
+    underlayRollCount: number;
   };
 }
 
@@ -172,6 +217,8 @@ export const DEFAULT_RAISED_FLOOR_INPUT: RaisedFloorInput = {
   plankLengthCm: 121,
   plankWidthCm: 19.5,
   plankGapMm: 8,
+  plankDirection: "long-axis",
+  plankStartCorner: "top-left",
   mainJoist: {
     id: "joist-2x1.2",
     nameZh: "2寸×1.2(60×36mm)",
@@ -187,15 +234,22 @@ export const DEFAULT_RAISED_FLOOR_INPUT: RaisedFloorInput = {
   joistSpacingCm: 30,
   subJoistSpacingCm: 40,
   plywood: {
-    id: "ply18",
-    nameZh: "普通夾板 18mm",
+    id: "ply18-4x8",
+    nameZh: "普通夾板 18mm (4×8 尺)",
     thicknessMm: 18,
     sheetLengthCm: 122,
     sheetWidthCm: 244,
   },
   plywoodWaste: 0.2,
+  plywoodGapMm: 3,
   plankPricePerPing: 0,
   joistPricePerM: 0,
   plywoodPricePerSheet: 0,
   skirtingPricePerM: 0,
+  underlay: undefined,
+  underlayWaste: 0.1,
+  skirtingType: "none",
+  skirtingHeightCm: 8,
+  doorCount: 0,
+  doorWidthCm: 90,
 };

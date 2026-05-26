@@ -18,22 +18,40 @@
  */
 import type { JSX } from "react";
 import type { RaisedFloorBom } from "./types";
+import type { LayerKey } from "./RaisedFloorScene3D";
 import { boundingBox } from "@/lib/floor/geometry";
+import { computePlywoodLayout } from "./cutting";
 
 const PAD_TOP = 50;
 const PAD_LEFT = 60;
 const PAD_RIGHT = 40;
-const PAD_BOTTOM = 60;
+const PAD_BOTTOM = 80; // 留兩行 legend + H 標籤的空間
 const LEG_MAX_SPACING_CM = 80; // 跟 RaisedFloorScene3D 同步
 const LEG_SIZE_CM = 6;          // 視覺腳柱斷面(對標 Scene3D 的 LEG_CROSS_CM)
 
 interface Props {
   bom: RaisedFloorBom;
+  /** 圖層顯示開關(2D/3D 共用同一份 layers state) */
+  layers?: Record<LayerKey, boolean>;
   /** 預留 prop,不影響繪製(viewBox 是 cm,RWD 自動縮放) */
   width?: number;
 }
 
-export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
+const ALL_ON: Record<LayerKey, boolean> = {
+  legs: true,
+  frameTop: true,
+  frameBottom: true,
+  mainTop: true,
+  mainBottom: true,
+  sub: true,
+  plywood: true,
+  plank: true,
+};
+
+export function RaisedFloorOverviewSvg({
+  bom,
+  layers = ALL_ON,
+}: Props): JSX.Element {
   const platform = bom.platform;
   const bb = boundingBox(platform);
   const W = bb.maxX - bb.minX;
@@ -71,13 +89,20 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
     mainTs.push((i * longSpan) / (middleCount + 1));
   }
 
-  // 副支(長軸=方向)
-  const subSpacing = Math.max(bom.input.subJoistSpacingCm, 1);
-  const subCount = Math.max(0, Math.floor(shortSpan / subSpacing));
-  const subTs: number[] = [];
-  for (let i = 1; i <= subCount; i++) {
-    subTs.push((i * shortSpan) / (subCount + 1));
-  }
+  // 副支(長軸=方向)— 用對齊夾板 helper(從 0 起算、aligned spacing)
+  const subTs = (() => {
+    const target = Math.max(bom.input.subJoistSpacingCm, 10);
+    const plyLong = bom.input.plywood.sheetWidthCm;
+    const aligned =
+      plyLong > 0 ? plyLong / Math.max(2, Math.round(plyLong / target)) : target;
+    const out: number[] = [];
+    let pos = aligned;
+    while (pos < shortSpan - 0.5) {
+      out.push(pos);
+      pos += aligned;
+    }
+    return out;
+  })();
 
   // 腳柱 grid 內柱 row(沿長軸,= 底主支位置)
   const legCountLong = Math.max(2, Math.ceil(longSpan / LEG_MAX_SPACING_CM) + 1);
@@ -123,6 +148,10 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
 
   const hasPillar = pillarRects.length > 0;
 
+  // 夾板拼法用共用模組(SVG + 裁切表)
+  const plywoodLayout = computePlywoodLayout(bom);
+  const plywoodSheets = plywoodLayout.sheets;
+
   return (
     <svg
       viewBox={`0 0 ${viewW} ${viewH}`}
@@ -143,6 +172,17 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
         >
           <line x1={0} y1={0} x2={0} y2={6} stroke="#888" strokeWidth={0.7} />
         </pattern>
+        {/* 整片夾板:斜紋淡米 hatch(對標 ceiling board-hatch) */}
+        <pattern
+          id="raisedFloorPlywoodHatch"
+          patternUnits="userSpaceOnUse"
+          width={6}
+          height={6}
+          patternTransform="rotate(45)"
+        >
+          <rect width={6} height={6} fill="#fef3c7" opacity={0.45} />
+          <line x1={0} y1={0} x2={0} y2={6} stroke="#fbbf24" strokeWidth={0.4} opacity={0.5} />
+        </pattern>
       </defs>
 
       {/* ────── 1. 平台外框(虛線,牆面) ────── */}
@@ -154,12 +194,20 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
         strokeDasharray="3 2"
       />
 
-      {/* ────── 2. 邊框角材(沿 polygon 每條邊往內偏 mainTw 半寬) ────── */}
-      <g clipPath="url(#raisedFloorPlatformClip)">
-        {renderFrameBeams(platform.vertices, bb.minX, bb.minY, x0, y0, mainTw)}
-      </g>
+      {/* ────── 2. 邊框角材 — 頂框 / 底框(2D 重疊,先底再頂半透明蓋上) ────── */}
+      {layers.frameBottom && (
+        <g clipPath="url(#raisedFloorPlatformClip)" opacity={layers.frameTop ? 0.7 : 1}>
+          {renderFrameBeams(platform.vertices, bb.minX, bb.minY, x0, y0, mainTw)}
+        </g>
+      )}
+      {layers.frameTop && (
+        <g clipPath="url(#raisedFloorPlatformClip)">
+          {renderFrameBeams(platform.vertices, bb.minX, bb.minY, x0, y0, mainTw)}
+        </g>
+      )}
 
       {/* ────── 3. 副支(細灰,沿長軸跑,clip 在 polygon 內) ────── */}
+      {layers.sub && (
       <g clipPath="url(#raisedFloorPlatformClip)">
         {subTs.map((t, i) => {
           if (shortAlongX) {
@@ -193,8 +241,10 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
           );
         })}
       </g>
+      )}
 
       {/* ────── 4. 頂主支(實心矩形,沿短軸跨,扣兩端邊框) ────── */}
+      {layers.mainTop && (
       <g clipPath="url(#raisedFloorPlatformClip)">
         {mainTs.map((t, i) => {
           if (shortAlongX) {
@@ -227,8 +277,10 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
           );
         })}
       </g>
+      )}
 
       {/* ────── 5. 底主支(只在「有內柱」row,深咖,半透明標示) ────── */}
+      {layers.mainBottom && (
       <g clipPath="url(#raisedFloorPlatformClip)">
         {innerLegLongTs.map((t, i) => {
           if (shortAlongX) {
@@ -261,9 +313,128 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
           );
         })}
       </g>
+      )}
+
+      {/* ────── 5b. 夾板拼法 — 矩形塊(clipPath 內,挨柱自動切掉) ────── */}
+      {layers.plywood && (
+        <g clipPath="url(#raisedFloorPlatformClip)" opacity={0.85}>
+          {plywoodSheets.map((s, i) => {
+            const gapCm = (bom.input.plywoodGapMm ?? 0) / 10;
+            const inset = gapCm / 2;
+            const rw = Math.max(0, s.w - 2 * inset);
+            const rh = Math.max(0, s.h - 2 * inset);
+            const fill = s.isFull
+              ? s.parity === 0
+                ? "#fde68a"
+                : "#fcd34d"
+              : s.parity === 0
+                ? "#fecaca"
+                : "#fda4af";
+            const stroke = s.isFull ? "#a16207" : "#be123c";
+            return (
+              <rect
+                key={`ply-${i}`}
+                x={x0 + s.x + inset}
+                y={y0 + s.y + inset}
+                width={rw}
+                height={rh}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={0.6}
+              />
+            );
+          })}
+        </g>
+      )}
+
+      {/* ────── 5c. 夾板編號 + 料 N(clipPath 外,確保挨柱旁小 cell 也看得到字) ────── */}
+      {/* 標籤位置移到「visible centroid」:cell 跟所有挨柱做差後的可見區中心,而非 cell rect 中心 */}
+      {layers.plywood &&
+        plywoodSheets.map((s, i) => {
+          const rw = s.w;
+          const rh = s.h;
+          // 計算可見區中心:cell 跟每個挨柱做差,取最大子矩形的中心
+          let visRect = { xL: s.x, yL: s.y, xR: s.x + s.w, yR: s.y + s.h };
+          for (const p of pillarRects) {
+            // p in bbox-local: { x, y, w, d }
+            const ox = Math.max(visRect.xL, p.x);
+            const oy = Math.max(visRect.yL, p.y);
+            const orL = Math.min(visRect.xR, p.x + p.w);
+            const orB = Math.min(visRect.yR, p.y + p.d);
+            if (ox >= orL || oy >= orB) continue; // 不重疊
+            // 重疊:把 visRect 切成 4 條(上/下/左/右),取最大的當新 visRect
+            const candidates = [
+              { xL: visRect.xL, yL: visRect.yL, xR: visRect.xR, yR: oy }, // 上條
+              { xL: visRect.xL, yL: orB, xR: visRect.xR, yR: visRect.yR }, // 下條
+              { xL: visRect.xL, yL: visRect.yL, xR: ox, yR: visRect.yR }, // 左條
+              { xL: orL, yL: visRect.yL, xR: visRect.xR, yR: visRect.yR }, // 右條
+            ];
+            let best = visRect;
+            let bestArea = 0;
+            for (const c of candidates) {
+              const w = c.xR - c.xL;
+              const h = c.yR - c.yL;
+              if (w <= 0 || h <= 0) continue;
+              if (w * h > bestArea) {
+                bestArea = w * h;
+                best = c;
+              }
+            }
+            if (bestArea <= 0) return null; // 整片在挨柱裡,不畫字
+            visRect = best;
+          }
+          const cx = x0 + (visRect.xL + visRect.xR) / 2;
+          const cy = y0 + (visRect.yL + visRect.yR) / 2;
+          const vw = visRect.xR - visRect.xL;
+          const vh = visRect.yR - visRect.yL;
+          const fontSize = Math.max(6, Math.min(14, Math.min(vw, vh) * 0.22));
+          const compact = Math.min(rw, rh) < 35 || Math.min(vw, vh) < 35;
+          return (
+            <g key={`ply-label-${i}`}>
+              {compact ? (
+                <text
+                  x={cx}
+                  y={cy + fontSize * 0.35}
+                  fontSize={fontSize}
+                  fill={s.isFull ? "#78350f" : "#9f1239"}
+                  fontWeight="600"
+                  textAnchor="middle"
+                >
+                  {s.isFull ? `${s.index}` : `${s.index}裁`}
+                  {s.orderSheetIndex != null ? `·料${s.orderSheetIndex}` : ""}
+                </text>
+              ) : (
+                <>
+                  <text
+                    x={cx}
+                    y={cy - fontSize * 0.3}
+                    fontSize={fontSize}
+                    fill={s.isFull ? "#78350f" : "#9f1239"}
+                    fontWeight="600"
+                    textAnchor="middle"
+                  >
+                    {s.isFull ? `${s.index}` : `${s.index}裁`}
+                  </text>
+                  {s.orderSheetIndex != null && (
+                    <text
+                      x={cx}
+                      y={cy + fontSize * 0.95}
+                      fontSize={fontSize * 0.85}
+                      fill="#52525b"
+                      fontWeight="600"
+                      textAnchor="middle"
+                    >
+                      料{s.orderSheetIndex}
+                    </text>
+                  )}
+                </>
+              )}
+            </g>
+          );
+        })}
 
       {/* ────── 6. 腳柱(內+周邊,挨柱挖空處過濾) ────── */}
-      {legLongs.flatMap((lLong, li) =>
+      {layers.legs && legLongs.flatMap((lLong, li) =>
         legShorts.map((lShort, sj) => {
           const lx = shortAlongX ? lShort : lLong;
           const ly = shortAlongX ? lLong : lShort;
@@ -327,21 +498,34 @@ export function RaisedFloorOverviewSvg({ bom }: Props): JSX.Element {
         color="#78350f"
       />
 
-      {/* ────── 9. 圖例 ────── */}
-      <g transform={`translate(${PAD_LEFT}, ${y1 + 22})`}>
-        <LegendBox color="#a16207" label="邊框" x={0} />
-        <LegendBox color="#d97706" label={`主支(${bom.trace.joistRowCount})`} x={60} />
-        <LegendBox color="#8a6d3b" label="底主支" x={140} opacity={0.45} />
-        <LegendBox color="#a1a1aa" label="副支" x={200} />
-        <LegendBox color="#27272a" label="腳柱" x={250} />
-        {hasPillar && (
-          <LegendBox
-            color="#aaa"
-            label={`挨柱 ${pillarRects.length}`}
-            x={300}
-            opacity={0.3}
-          />
-        )}
+      {/* ────── 9. 圖例(兩行排版避免擠在一起) ────── */}
+      <g transform={`translate(${PAD_LEFT}, ${y1 + 18})`}>
+        {/* 第一行:框 + 主支 */}
+        <LegendBox color="#a16207" label="頂框" x={0} />
+        <LegendBox color="#a16207" label="底框" x={48} opacity={0.7} />
+        <LegendBox color="#d97706" label={`頂主支 ${bom.trace.joistRowCount}`} x={100} />
+        <LegendBox color="#8a6d3b" label="底主支" x={170} opacity={0.55} />
+        {/* 第二行:副支 / 腳柱 / 夾板(整 + 裁) / 挨柱 */}
+        <g transform="translate(0, 14)">
+          <LegendBox color="#a1a1aa" label="副支" x={0} />
+          <LegendBox color="#27272a" label="腳柱" x={48} />
+          <g transform="translate(96, 0)">
+            <rect width={6} height={4} fill="#fde68a" stroke="#a16207" strokeWidth={0.3} />
+            <text x={8} y={3.5} fontSize={9} fill="#52525b">夾板整片</text>
+          </g>
+          <g transform="translate(156, 0)">
+            <rect width={6} height={4} fill="#fda4af" stroke="#be123c" strokeWidth={0.3} />
+            <text x={8} y={3.5} fontSize={9} fill="#52525b">夾板裁切</text>
+          </g>
+          {hasPillar && (
+            <LegendBox
+              color="#aaa"
+              label={`挨柱 ${pillarRects.length}`}
+              x={216}
+              opacity={0.3}
+            />
+          )}
+        </g>
       </g>
 
       {/* 右下架高高度 */}

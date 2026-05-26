@@ -145,6 +145,7 @@ export function buildPlatformPolygon(opts: {
 export function joistRunLengthsM(
   poly: RoomPolygon,
   spacingCm: number,
+  plywoodShortCm: number = 0,
 ): {
   rowCount: number;
   totalLengthM: number;
@@ -159,12 +160,29 @@ export function joistRunLengthsM(
   // 短軸 = 角材方向,長軸 = 排列方向
   const shortAlongX = w <= d; // true → 角材沿 X 走、間距沿 Y 量
   const longSpan = shortAlongX ? d : w;
-  const middleCount = Math.max(0, Math.floor(longSpan / Math.max(spacingCm, 1)));
-  const mainJoistCentersCm: number[] = [];
+  // 對齊夾板:如果有給 plywoodShortCm,用 aligned = plywoodShortCm/N 為間距,
+  // 從 0 起算。確保夾板沿長軸的接縫剛好落在主支中心。否則 fallback 均分。
+  let mainJoistCentersCm: number[] = [];
+  let middleCount: number;
+  if (plywoodShortCm > 0) {
+    const target = Math.max(spacingCm, 10);
+    const N = Math.max(2, Math.round(plywoodShortCm / target));
+    const aligned = plywoodShortCm / N;
+    let pos = aligned;
+    while (pos < longSpan - 0.5) {
+      mainJoistCentersCm.push(pos);
+      pos += aligned;
+    }
+    middleCount = mainJoistCentersCm.length;
+  } else {
+    middleCount = Math.max(0, Math.floor(longSpan / Math.max(spacingCm, 1)));
+    for (let i = 1; i <= middleCount; i++) {
+      mainJoistCentersCm.push((i * longSpan) / (middleCount + 1));
+    }
+  }
   let middleCm = 0;
-  for (let i = 1; i <= middleCount; i++) {
-    const t = (i * longSpan) / (middleCount + 1);
-    mainJoistCentersCm.push(t);
+  for (let i = 0; i < mainJoistCentersCm.length; i++) {
+    const t = mainJoistCentersCm[i];
     // 掃描線基準:沿長軸走 → 基準軸跟長軸同
     const base = shortAlongX ? bb.minY : bb.minX;
     middleCm += scanlineLength(poly, shortAlongX, base + t);
@@ -199,10 +217,39 @@ export function joistRunLengthsM(
  * @param mainCentersCm 中間主支沿長軸的中心座標(joistRunLengthsM 回傳)
  * @param subSpacingCm 副支間距(cm,沿短軸方向)
  */
+/**
+ * 副支對齊夾板:從 0 起算、用 aligned = plywoodLongCm/N 為間距,
+ * 保證夾板接縫剛好落在某根副支上。N 取最接近 targetSpacing 的整數。
+ *
+ * @param shortSpanCm 副支沿短軸排列的最大長度
+ * @param plywoodLongCm 夾板長邊(244 或 183 等);0 = 不對齊夾板
+ * @param targetSpacingCm 使用者偏好的間距(40 預設)
+ * @returns 副支中心位置陣列(從小到大、不含 0 跟 shortSpan)
+ */
+export function computeAlignedSubCenters(
+  shortSpanCm: number,
+  plywoodLongCm: number,
+  targetSpacingCm: number,
+): number[] {
+  const target = Math.max(targetSpacingCm, 10);
+  const aligned =
+    plywoodLongCm > 0
+      ? plywoodLongCm / Math.max(2, Math.round(plywoodLongCm / target))
+      : target;
+  const out: number[] = [];
+  let pos = aligned;
+  while (pos < shortSpanCm - 0.5) {
+    out.push(pos);
+    pos += aligned;
+  }
+  return out;
+}
+
 export function subJoistRunLengthsM(
   poly: RoomPolygon,
   mainCentersCm: number[],
   subSpacingCm: number,
+  plywoodLongCm: number = 0,
 ): { totalLengthM: number; count: number; typicalLengthCm: number } {
   const bb = bbox(poly);
   const w = bb.maxX - bb.minX;
@@ -215,8 +262,12 @@ export function subJoistRunLengthsM(
   // slot 邊界陣列(沿長軸):0 → 每根主支中心 → longSpan
   const boundaries = [0, ...mainCentersCm, longSpan];
 
-  // 每 slot 副支排數 = 沿短軸方向 floor(shortSpan / spacing)
-  const subRowsPerSlot = Math.max(0, Math.floor(shortSpan / spacing));
+  // 每 slot 副支排數:用對齊夾板的 helper 算
+  const subRowsPerSlot = computeAlignedSubCenters(
+    shortSpan,
+    plywoodLongCm,
+    spacing,
+  ).length;
 
   let totalCm = 0;
   let count = 0;

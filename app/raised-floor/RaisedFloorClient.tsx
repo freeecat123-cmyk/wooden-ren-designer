@@ -9,7 +9,9 @@
  *
  * 任何輸入變更 → useMemo 即時 computeRaisedFloorBom 重算。
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { encodeState } from "@/lib/engineering-quote/url-codec";
 import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
 import {
   DEFAULT_RAISED_FLOOR_INPUT,
@@ -35,9 +37,13 @@ import type {
   ViewMode,
 } from "@/lib/raised-floor/RaisedFloorScene3D";
 import { FloorRangeInput } from "@/app/floor/FloorRangeInput";
+import { UnderlaySkirtingSection } from "./UnderlaySkirtingSection";
 import {
   bomToCuttingPieces,
   computeCuttingPlan,
+  computePlywoodLayout,
+  bomToCsvRows,
+  bomCsvString,
   type CuttingCategory,
 } from "@/lib/raised-floor/cutting";
 
@@ -52,14 +58,17 @@ type PreviewTab = "frame" | "plank" | "3d";
 
 const LAYER_LABELS: { key: LayerKey; label: string }[] = [
   { key: "legs", label: "腳柱" },
-  { key: "frame", label: "邊框" },
-  { key: "main", label: "主支" },
+  { key: "frameTop", label: "頂框" },
+  { key: "frameBottom", label: "底框" },
+  { key: "mainTop", label: "頂主支" },
+  { key: "mainBottom", label: "底主支" },
   { key: "sub", label: "副支" },
   { key: "plywood", label: "夾板" },
   { key: "plank", label: "面材" },
 ];
 
 export function RaisedFloorClient() {
+  const router = useRouter();
   const [input, setInput] = useState<RaisedFloorInput>(DEFAULT_RAISED_FLOOR_INPUT);
   const bom = useMemo(() => computeRaisedFloorBom(input), [input]);
   const [copied, setCopied] = useState(false);
@@ -68,8 +77,10 @@ export function RaisedFloorClient() {
   const [tab, setTab] = useState<PreviewTab>("frame");
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({
     legs: true,
-    frame: true,
-    main: true,
+    frameTop: true,
+    frameBottom: true,
+    mainTop: true,
+    mainBottom: true,
     sub: true,
     plywood: true,
     plank: true,
@@ -93,9 +104,27 @@ export function RaisedFloorClient() {
     [bom, stockLengthCm, sawKerfCm, spliceOverlapCm],
   );
   const [plankCutOpen, setPlankCutOpen] = useState(false);
+  const [plywoodCutOpen, setPlywoodCutOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const plywoodLayout = useMemo(() => computePlywoodLayout(bom), [bom]);
 
   const set = <K extends keyof RaisedFloorInput>(k: K, v: RaisedFloorInput[K]) =>
     setInput((p) => ({ ...p, [k]: v }));
+
+  // 夾板尺寸變化 → 自動把主/副支間距重算成對齊夾板(plywoodDim/N 為間距)
+  // 切換 preset 或微調長/短邊都會觸發。手動拉間距 slider 不會觸發(deps 只看夾板)。
+  useEffect(() => {
+    setInput((p) => {
+      const plyShort = p.plywood.sheetLengthCm; // 短邊 → 主支對齊
+      const plyLong = p.plywood.sheetWidthCm;   // 長邊 → 副支對齊
+      const nMain = Math.max(2, Math.round(plyShort / Math.max(p.joistSpacingCm, 10)));
+      const nSub = Math.max(2, Math.round(plyLong / Math.max(p.subJoistSpacingCm, 10)));
+      const newMain = Math.round(plyShort / nMain);
+      const newSub = Math.round(plyLong / nSub);
+      if (newMain === p.joistSpacingCm && newSub === p.subJoistSpacingCm) return p;
+      return { ...p, joistSpacingCm: newMain, subJoistSpacingCm: newSub };
+    });
+  }, [input.plywood.sheetLengthCm, input.plywood.sheetWidthCm]);
 
   const toggleLayer = (k: LayerKey) =>
     setLayers((prev) => ({ ...prev, [k]: !prev[k] }));
@@ -145,6 +174,17 @@ export function RaisedFloorClient() {
     });
   };
 
+  const downloadCsv = () => {
+    const csv = bomCsvString(bomToCsvRows(bom, cuttingPlan, plywoodLayout));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `架高地板_${input.widthCm}x${input.depthCm}_H${input.heightCm}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="mx-auto max-w-6xl p-6">
       <h1 className="text-xl font-bold">和室架高平台估價</h1>
@@ -152,10 +192,10 @@ export function RaisedFloorClient() {
         底架 + 面材完整算料 · 矩形/L 形 + 0~2 根挨柱
       </p>
 
-      <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[1fr_minmax(360px,400px)] md:items-start">
+      <div className="mt-4 flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_420px] md:items-start">
         {/* ───── 左:輸入 ───── */}
-        <div className="space-y-4">
-          {/* ① 平台形狀 */}
+        <div className="space-y-4 min-w-0">
+          {/* ① 平台形狀 [永遠展開] */}
           <section className="rounded-lg border border-zinc-200 p-4">
             <h2 className="mb-3 text-sm font-semibold">① 平台形狀</h2>
             <div className="mb-3 flex gap-2">
@@ -219,79 +259,6 @@ export function RaisedFloorClient() {
               )}
             </div>
 
-            {/* 挨柱 */}
-            <div className="mt-4 border-t border-zinc-100 pt-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-600">
-                  挨柱({input.pillars.length}/2)
-                </span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={removePillar}
-                    disabled={input.pillars.length <= 0}
-                    className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="移除挨柱"
-                  >
-                    −
-                  </button>
-                  <button
-                    onClick={addPillar}
-                    disabled={input.pillars.length >= 2}
-                    className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="加入挨柱"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {input.pillars.map((p, i) => (
-                  <div key={i} className="rounded border border-zinc-200 p-2">
-                    <label className="mb-2 flex items-center gap-2 text-xs">
-                      <span className="text-zinc-500">位置</span>
-                      <select
-                        className="rounded border border-zinc-300 px-2 py-1"
-                        value={p.corner}
-                        onChange={(e) =>
-                          updatePillar(i, { corner: e.target.value as PillarCorner })
-                        }
-                      >
-                        {PILLAR_CORNERS.map((c) => (
-                          <option key={c.value} value={c.value}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
-                      <FloorRangeInput
-                        label="柱寬"
-                        unit="cm"
-                        value={p.widthCm}
-                        min={20}
-                        max={150}
-                        step={5}
-                        onChange={(v) => updatePillar(i, { widthCm: v })}
-                      />
-                      <FloorRangeInput
-                        label="柱深"
-                        unit="cm"
-                        value={p.depthCm}
-                        min={20}
-                        max={150}
-                        step={5}
-                        onChange={(v) => updatePillar(i, { depthCm: v })}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {input.pillars.length === 0 && (
-                  <p className="text-[11px] text-zinc-400">
-                    無挨柱;若靠柱施工,按 + 加入並選位置與凹陷尺寸。
-                  </p>
-                )}
-              </div>
-            </div>
           </section>
 
           {/* ② 架高高度 */}
@@ -372,11 +339,142 @@ export function RaisedFloorClient() {
                 onChange={(v) => set("plankGapMm", v)}
               />
             </div>
+
+            {/* 鋪設方向轉向 toggle */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-zinc-500">鋪設方向</span>
+              <div className="flex gap-1">
+                {(
+                  [
+                    { v: "long-axis", label: "沿長軸" },
+                    { v: "short-axis", label: "沿短軸 ↻" },
+                  ] as { v: "long-axis" | "short-axis"; label: string }[]
+                ).map((opt) => {
+                  const active = (input.plankDirection ?? "long-axis") === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      onClick={() => set("plankDirection", opt.v)}
+                      className={`rounded border px-2 py-1 text-xs ${
+                        active
+                          ? "border-[#bd9955] bg-[#bd9955]/15 text-[#8a6d3b] font-medium"
+                          : "border-zinc-300 hover:bg-zinc-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 起鋪角(對齊地板模擬器:左/右/上/下/中央置中) */}
+            <label className="mt-2 flex items-center gap-2 text-xs">
+              <span className="text-zinc-500">起鋪角</span>
+              <select
+                className="rounded border border-zinc-300 px-2 py-1"
+                value={input.plankStartCorner ?? "top-left"}
+                onChange={(e) =>
+                  set(
+                    "plankStartCorner",
+                    e.target.value as NonNullable<RaisedFloorInput["plankStartCorner"]>,
+                  )
+                }
+              >
+                <option value="top-left">左上</option>
+                <option value="top-right">右上</option>
+                <option value="bottom-left">左下</option>
+                <option value="bottom-right">右下</option>
+                <option value="center">中央置中</option>
+              </select>
+            </label>
           </section>
 
-          {/* ④ 骨架 */}
+          {/* ④ 挨柱(可選,預設展開可摺) */}
           <details open className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">④ 骨架</summary>
+            <summary className="cursor-pointer text-sm font-semibold">
+              ④ 挨柱
+              <span className="ml-2 text-[11px] font-normal text-zinc-400">
+                ({input.pillars.length}/2 根)
+              </span>
+            </summary>
+            <div className="mt-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs text-zinc-500">
+                  靠柱施工時挖出凹陷,最多 2 根
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={removePillar}
+                    disabled={input.pillars.length <= 0}
+                    className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="移除挨柱"
+                  >
+                    −
+                  </button>
+                  <button
+                    onClick={addPillar}
+                    disabled={input.pillars.length >= 2}
+                    className="h-6 w-6 rounded bg-stone-100 text-base leading-none hover:bg-stone-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="加入挨柱"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {input.pillars.map((p, i) => (
+                  <div key={i} className="rounded border border-zinc-200 p-2">
+                    <label className="mb-2 flex items-center gap-2 text-xs">
+                      <span className="text-zinc-500">位置</span>
+                      <select
+                        className="rounded border border-zinc-300 px-2 py-1"
+                        value={p.corner}
+                        onChange={(e) =>
+                          updatePillar(i, { corner: e.target.value as PillarCorner })
+                        }
+                      >
+                        {PILLAR_CORNERS.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                      <FloorRangeInput
+                        label="柱寬"
+                        unit="cm"
+                        value={p.widthCm}
+                        min={20}
+                        max={150}
+                        step={5}
+                        onChange={(v) => updatePillar(i, { widthCm: v })}
+                      />
+                      <FloorRangeInput
+                        label="柱深"
+                        unit="cm"
+                        value={p.depthCm}
+                        min={20}
+                        max={150}
+                        step={5}
+                        onChange={(v) => updatePillar(i, { depthCm: v })}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {input.pillars.length === 0 && (
+                  <p className="text-[11px] text-zinc-400">
+                    無挨柱;按 + 加入並選位置與凹陷尺寸。
+                  </p>
+                )}
+              </div>
+            </div>
+          </details>
+
+          {/* ⑤ 骨架 */}
+          <details className="rounded-lg border border-zinc-200 p-4">
+            <summary className="cursor-pointer text-sm font-semibold">⑤ 骨架</summary>
             <div className="mt-3 space-y-3">
               <label className="flex flex-col gap-1 text-xs">
                 <span className="text-zinc-500">主支角材(頂/底框共用)</span>
@@ -427,9 +525,9 @@ export function RaisedFloorClient() {
             </div>
           </details>
 
-          {/* ⑤ 夾板 */}
+          {/* ⑥ 夾板 */}
           <details className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">⑤ 夾板</summary>
+            <summary className="cursor-pointer text-sm font-semibold">⑥ 夾板</summary>
             <div className="mt-3 space-y-3">
               <label className="flex flex-col gap-1 text-xs">
                 <span className="text-zinc-500">夾板規格</span>
@@ -445,6 +543,56 @@ export function RaisedFloorClient() {
                   ))}
                 </select>
               </label>
+
+              {/* 夾板微調(預設來自規格,可±1cm 調整成料行實品) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                <FloorRangeInput
+                  label="長邊"
+                  unit="cm"
+                  value={input.plywood.sheetWidthCm}
+                  min={120}
+                  max={260}
+                  step={1}
+                  onChange={(v) =>
+                    set("plywood", { ...input.plywood, sheetWidthCm: v })
+                  }
+                />
+                <FloorRangeInput
+                  label="短邊"
+                  unit="cm"
+                  value={input.plywood.sheetLengthCm}
+                  min={60}
+                  max={130}
+                  step={1}
+                  onChange={(v) =>
+                    set("plywood", { ...input.plywood, sheetLengthCm: v })
+                  }
+                />
+                <FloorRangeInput
+                  label="厚度"
+                  unit="mm"
+                  value={input.plywood.thicknessMm}
+                  min={9}
+                  max={24}
+                  step={1}
+                  onChange={(v) =>
+                    set("plywood", { ...input.plywood, thicknessMm: v })
+                  }
+                />
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed">
+                💡 選 preset 自動帶入標準尺寸,可再 ±1cm 微調對齊料行實品。
+              </p>
+
+              <FloorRangeInput
+                label="拼縫間隙(不補 AB 膠)"
+                unit="mm"
+                value={input.plywoodGapMm}
+                min={2}
+                max={4}
+                step={1}
+                onChange={(v) => set("plywoodGapMm", v)}
+              />
               <FloorRangeInput
                 label="損耗"
                 unit="%"
@@ -457,9 +605,12 @@ export function RaisedFloorClient() {
             </div>
           </details>
 
-          {/* ⑥ 估價 */}
+          {/* ⑦ 防潮墊 + 踢腳板(可選) */}
+          <UnderlaySkirtingSection input={input} set={set} />
+
+          {/* ⑧ 估價 */}
           <details className="rounded-lg border border-zinc-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold">⑥ 估價</summary>
+            <summary className="cursor-pointer text-sm font-semibold">⑧ 估價</summary>
             <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-2">
               <FloorRangeInput
                 label="面材每坪"
@@ -501,9 +652,9 @@ export function RaisedFloorClient() {
           </details>
         </div>
 
-        {/* ───── 右:結果 sticky ───── */}
-        <div className="space-y-3">
-          <div className="md:sticky md:top-4 md:z-10 space-y-3 bg-white md:bg-transparent">
+        {/* ───── 右:結果(整塊 sticky,grid item 自身 sticky 才有效) ───── */}
+        <aside className="space-y-3 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-2rem)] md:overflow-y-auto md:pr-1">
+          <div className="space-y-3">
             {/* tab 切換 */}
             <div className="flex gap-1.5">
               {(
@@ -531,7 +682,9 @@ export function RaisedFloorClient() {
             </div>
 
             {/* 對應 tab 顯示視圖 */}
-            {tab === "frame" && <RaisedFloorOverviewSvg bom={bom} width={388} />}
+            {tab === "frame" && (
+              <RaisedFloorOverviewSvg bom={bom} layers={layers} />
+            )}
             {tab === "plank" && <RaisedFloorPlankSvg bom={bom} width={388} />}
             {tab === "3d" && (
               <div className="space-y-2">
@@ -541,27 +694,6 @@ export function RaisedFloorClient() {
                   explode={explode}
                   layers={layers}
                 />
-
-                {/* 圖層 toggle(2 列 wrap) */}
-                <div className="rounded border border-zinc-200 p-2">
-                  <div className="mb-1 text-[11px] text-zinc-500">顯示圖層</div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {LAYER_LABELS.map((l) => (
-                      <label
-                        key={l.key}
-                        className="flex items-center gap-1 text-xs text-zinc-600 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={layers[l.key]}
-                          onChange={() => toggleLayer(l.key)}
-                          className="accent-[#bd9955]"
-                        />
-                        {l.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
 
                 {/* 爆炸 slider */}
                 <div className="rounded border border-zinc-200 p-2">
@@ -609,6 +741,29 @@ export function RaisedFloorClient() {
               </div>
             )}
 
+            {/* 圖層 toggle — 三個 tab 都共用(2D/拼花/3D 都吃 layers) */}
+            {(tab === "frame" || tab === "3d") && (
+              <div className="rounded border border-zinc-200 p-2">
+                <div className="mb-1 text-[11px] text-zinc-500">顯示圖層</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {LAYER_LABELS.map((l) => (
+                    <label
+                      key={l.key}
+                      className="flex items-center gap-1 text-xs text-zinc-600 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={layers[l.key]}
+                        onChange={() => toggleLayer(l.key)}
+                        className="accent-[#bd9955]"
+                      />
+                      {l.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               <Stat
                 label="面材"
@@ -641,12 +796,21 @@ export function RaisedFloorClient() {
             <div className="rounded-lg border border-zinc-200 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-sm font-semibold">材料清單</h2>
-                <button
-                  onClick={copyBom}
-                  className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
-                >
-                  {copied ? "已複製 ✓" : "複製清單"}
-                </button>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={downloadCsv}
+                    className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
+                    title="含 BOM + 三張裁切表(UTF-8 BOM,Excel 開中文 OK)"
+                  >
+                    ⬇ CSV
+                  </button>
+                  <button
+                    onClick={copyBom}
+                    className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50"
+                  >
+                    {copied ? "已複製 ✓" : "複製清單"}
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-zinc-500">
                 平台 {bom.auto.platformAreaM2.toFixed(2)} m² ·{" "}
@@ -705,13 +869,28 @@ export function RaisedFloorClient() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* ════════════════════════════════════════
-            裁切表 ① 骨架(1D FFD,角材原料用)
-            ════════════════════════════════════════ */}
-        <section className="mt-6 rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+            {/* 產生報價單 → /raised-floor/quote?d=<encoded> */}
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/raised-floor/quote?d=${encodeURIComponent(encodeState(input))}`,
+                )
+              }
+              className="w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
+            >
+              🧾 產生報價單
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      {/* ════════════════════════════════════════
+          下方全寬:裁切表 ① 骨架(1D FFD,角材原料用)
+          ════════════════════════════════════════ */}
+      <div className="mt-6 space-y-4">
+        <section className="rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
           <button
             onClick={() => setCutOpen(!cutOpen)}
             className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
@@ -1007,6 +1186,239 @@ export function RaisedFloorClient() {
                 </details>
               )}
             </div>
+          )}
+        </section>
+
+        {/* ════════════════════════════════════════
+            裁切表 ③ 夾板(整片 + 裁切片 + 棋盤交錯每片明細)
+            ════════════════════════════════════════ */}
+        <section className="mt-4 rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setPlywoodCutOpen(!plywoodCutOpen)}
+            className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
+          >
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">🟫 裁料表 ③ 夾板</h2>
+              <span className="text-[11px] text-zinc-600">
+                {plywoodLayout.sheets.length} 片(整 {plywoodLayout.fullCount} + 裁{" "}
+                {plywoodLayout.cutCount})· 訂料{" "}
+                <strong className="text-amber-700">{plywoodLayout.orderSheetCount} 張</strong>
+                {plywoodLayout.sheets.length > plywoodLayout.orderSheetCount && (
+                  <span className="text-emerald-700">
+                    {" "}
+                    ♻ 省{plywoodLayout.sheets.length - plywoodLayout.orderSheetCount}
+                  </span>
+                )}
+              </span>
+            </div>
+            <span className="text-zinc-400 text-xs">{plywoodCutOpen ? "▲" : "▼"}</span>
+          </button>
+          {plywoodCutOpen && (
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <Stat label="平台需鋪" value={String(plywoodLayout.sheets.length)} unit="片" />
+                <Stat label="整片" value={String(plywoodLayout.fullCount)} unit="片" />
+                <Stat label="裁切片" value={String(plywoodLayout.cutCount)} unit="片" />
+                <Stat
+                  label="實際訂料"
+                  value={String(plywoodLayout.orderSheetCount)}
+                  unit="張"
+                />
+              </div>
+
+              {plywoodLayout.sheets.length > plywoodLayout.orderSheetCount && (
+                <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-3 text-[11px] text-emerald-900">
+                  ♻️ 2D 餘料拼湊後省{" "}
+                  <strong>
+                    {plywoodLayout.sheets.length - plywoodLayout.orderSheetCount}
+                  </strong>{" "}
+                  張新料(平台需鋪 {plywoodLayout.sheets.length} 片但只要訂{" "}
+                  {plywoodLayout.orderSheetCount} 張{plywoodLayout.sheetLongX}×
+                  {plywoodLayout.sheetShortZ}cm 板,小裁切片從整片下料剩餘區裁出)
+                </div>
+              )}
+
+              <div className="overflow-x-auto rounded-lg ring-1 ring-stone-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-stone-50/60 text-zinc-500 text-[10px] uppercase tracking-wider">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-semibold">編號</th>
+                      <th className="text-left px-3 py-2 font-semibold">類型</th>
+                      <th className="text-right px-3 py-2 font-semibold">寬 cm</th>
+                      <th className="text-right px-3 py-2 font-semibold">高 cm</th>
+                      <th className="text-right px-3 py-2 font-semibold">面積 cm²</th>
+                      <th className="text-right px-3 py-2 font-semibold">新料</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {plywoodLayout.sheets.map((s) => (
+                      <tr
+                        key={s.index}
+                        className={
+                          s.isFull
+                            ? "hover:bg-amber-50/40"
+                            : "bg-rose-50/30 hover:bg-rose-50"
+                        }
+                      >
+                        <td className="px-3 py-2 font-mono text-zinc-700">
+                          #{s.index}
+                          {!s.isFull && (
+                            <span className="ml-1 text-[10px] text-rose-700">裁</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {s.isFull ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-amber-100 text-amber-900 ring-amber-200">
+                              整片
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] ring-1 bg-rose-100 text-rose-900 ring-rose-200">
+                              裁切片
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {r1(s.w)}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {r1(s.h)}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-zinc-500">
+                          {Math.round(s.w * s.h).toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-right text-zinc-700 font-mono text-[11px]">
+                          {s.orderSheetIndex != null
+                            ? `料${s.orderSheetIndex}`
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 同張新料切出的 cell 編號清單(用戶要的「4-14-24-3」格式) */}
+              {(() => {
+                const groups = new Map<number, number[]>();
+                for (const s of plywoodLayout.sheets) {
+                  if (s.orderSheetIndex == null) continue;
+                  if (!groups.has(s.orderSheetIndex))
+                    groups.set(s.orderSheetIndex, []);
+                  groups.get(s.orderSheetIndex)!.push(s.index);
+                }
+                if (groups.size === 0) return null;
+                return (
+                  <div className="rounded-lg bg-stone-50 ring-1 ring-stone-200 p-3">
+                    <h3 className="text-xs font-semibold text-stone-800 mb-2">
+                      📦 新料下料分組(同號 = 同張板切出)
+                    </h3>
+                    <ul className="text-[11px] text-stone-700 space-y-0.5 font-mono">
+                      {[...groups.entries()]
+                        .sort(([a], [b]) => a - b)
+                        .map(([sheetIdx, cells]) => (
+                          <li key={sheetIdx}>
+                            <span className="text-amber-700 font-semibold">
+                              料 {sheetIdx}:
+                            </span>{" "}
+                            #{cells.join(" + #")}
+                            {cells.length > 1 && (
+                              <span className="text-emerald-700 ml-1">
+                                ({cells.length} 片共板)
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
+              {plywoodLayout.packingLog.length > 0 && (
+                <details className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-amber-900">
+                    📦 下料拼湊明細({plywoodLayout.packingLog.length} 筆)
+                  </summary>
+                  <ul className="mt-2 text-[11px] text-amber-800 space-y-0.5 pl-4 list-disc">
+                    {plywoodLayout.packingLog.map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                💡 接縫已自動吸到最近的主支/副支中心(實務上每片邊緣都釘得到骨架)。
+                整片寬 {plywoodLayout.sheetLongX}cm × {plywoodLayout.sheetShortZ}cm
+                ±15% 內算「整片下料」。
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* ════════════════════════════════════════
+            施工步驟 — 6 步流程(對標 ceiling 5 步)
+            ════════════════════════════════════════ */}
+        <section className="mt-4 rounded-2xl bg-white ring-1 ring-stone-200 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setStepsOpen(!stepsOpen)}
+            className="w-full px-5 py-3.5 border-b border-stone-100 flex items-center justify-between hover:bg-stone-50 transition"
+          >
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-900">📐 施工步驟</h2>
+              <span className="text-[11px] text-zinc-600">6 步流程</span>
+            </div>
+            <span className="text-zinc-400 text-xs">{stepsOpen ? "▲" : "▼"}</span>
+          </button>
+          {stepsOpen && (
+            <ol className="divide-y divide-stone-100 text-sm">
+              {[
+                {
+                  n: 1,
+                  title: "放樣 + 底框鎖地",
+                  desc: "在原地坪上彈線標出平台範圍(挨柱/L 形依設計圖),沿輪廓鎖底框角材;遇到挨柱角向內凹折,挨柱本體保留不蓋。",
+                },
+                {
+                  n: 2,
+                  title: "立腳柱",
+                  desc: `周邊腳柱站底框上、內柱站底主支上(都用 ${bom.input.mainJoist.nameZh});${bom.trace.joistRowCount} 排內柱用調整腳對齊平台水平,鎖緊不晃動。`,
+                },
+                {
+                  n: 3,
+                  title: "架頂框 + 頂主支",
+                  desc: `沿平台輪廓鎖頂框,${bom.input.mainJoist.nameZh} 主支跨短軸、中心距 ${bom.input.joistSpacingCm}cm 共 ${bom.trace.joistRowCount} 條;頂面共線,雷射水平儀確認整個平台水平。`,
+                },
+                {
+                  n: 4,
+                  title: "副支補強",
+                  desc: `${bom.input.subJoist.nameZh} 副支跨主支中間 slot、間距 ${bom.input.subJoistSpacingCm}cm 共 ${bom.trace.subJoistCount} 根;每片夾板邊緣都要釘得到副支才不會踩起來軟。`,
+                },
+                {
+                  n: 5,
+                  title: `鋪夾板(${bom.input.plywood.nameZh})`,
+                  desc: `${plywoodLayout.fullCount} 片整片 + ${plywoodLayout.cutCount} 片裁切;接縫對準主支/副支中心釘下,片與片留 ${bom.input.plywoodGapMm}mm 拼縫(防潮膨脹用,不補 AB 膠)。`,
+                },
+                {
+                  n: 6,
+                  title: "鋪面材",
+                  desc: `${bom.input.plankLengthCm}×${bom.input.plankWidthCm}cm 面材沿長軸鋪、錯縫 1/2 一片;牆邊留伸縮縫 ${bom.input.plankGapMm}mm,踢腳板/收邊條最後上。`,
+                },
+              ].map((step) => (
+                <li
+                  key={step.n}
+                  className="px-5 py-3 flex items-start gap-3 hover:bg-amber-50/30 transition"
+                >
+                  <div className="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-[#bd9955] to-[#8a6d3b] flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                    {step.n}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-zinc-900">{step.title}</div>
+                    <div className="text-xs text-zinc-600 mt-0.5 leading-relaxed">
+                      {step.desc}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
         </section>
       </div>
