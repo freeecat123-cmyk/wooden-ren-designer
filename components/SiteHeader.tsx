@@ -16,6 +16,7 @@ import { HeaderUser } from "@/components/auth/HeaderUser";
  */
 
 const NAV_LINKS = [
+  { href: "/about", label: "認識木作藍圖" },
   { href: "/templates", label: "範本介紹" },
   { href: "/app", label: "家具範本" },
   { href: "/pricing", label: "方案定價" },

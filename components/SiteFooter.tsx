@@ -12,7 +12,7 @@ export function SiteFooter() {
     { href: "/app", label: "家具範本" },
     { href: "/templates", label: "範本介紹" },
     { href: "/pricing", label: "方案定價" },
-    { href: "/about", label: "關於本站" },
+    { href: "/about", label: "認識木作藍圖" },
     { href: "/help", label: "常見問題" },
     { href: "/terms", label: "服務條款" },
     { href: "/privacy", label: "隱私權政策" },

@@ -123,7 +123,7 @@ function UserDropdown({
           </div>
           <div className="py-1.5 border-t border-zinc-100">
             {[
-              { href: "/about", icon: "ℹ️", label: "關於本站" },
+              { href: "/about", icon: "ℹ️", label: "認識木作藍圖" },
               { href: "/help", icon: "❓", label: "常見問題" },
             ].map((it) => (
               <Link
