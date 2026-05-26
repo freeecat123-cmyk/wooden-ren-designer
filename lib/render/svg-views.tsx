@@ -1761,7 +1761,7 @@ function OrthoViewImpl({
                   strokeWidth={topCircleHidden ? 0.5 : sw}
                   strokeDasharray={topCircleHidden ? "4 3" : dash}
                 />
-                <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#555" strokeWidth={0.6} strokeDasharray="3 3" />
+                <circle cx={footCx} cy={footCy} r={r2} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
                 {tangentEls}
               </g>
             );
@@ -1898,7 +1898,7 @@ function OrthoViewImpl({
             return (
               <g key={part.id}>
                 <polygon points={fmt(topCorners)} fill="none" stroke={stroke} strokeWidth={sw} />
-                <polygon points={fmt(botCorners)} fill="none" stroke="#555" strokeWidth={0.6} strokeDasharray="3 3" />
+                <polygon points={fmt(botCorners)} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               </g>
             );
           }
@@ -2004,7 +2004,7 @@ function OrthoViewImpl({
           return (
             <g key={part.id}>
               <rect x={r.x} y={headY} width={r.w} height={r.h} fill="none" stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
-              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#555" strokeWidth={0.6} strokeDasharray="3 3" />
+              <rect x={footX} y={footY} width={footW} height={footH} fill="none" stroke="#222" strokeWidth={0.7} strokeDasharray="3 3" />
               {topCorners.map((tc, i) => (
                 <line key={i} x1={tc[0]} y1={tc[1]} x2={botCorners[i][0]} y2={botCorners[i][1]} stroke={stroke} strokeWidth={sw} strokeDasharray={dash} />
               ))}
