@@ -64,10 +64,17 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "rect", label: "方格陣列（橫直交錯，最多瓶位）" },
     { value: "diamond", label: "菱形陣列（bw×bt 等距方菱形，酒窖經典）" },
   ], help: "菱形款用連續 ／ ＼ 對角板交織成 bw×bt 個等距 45° 方菱形，每格放 1 瓶；對角板在每個 lattice corner 切段、兩端 45° 切角 butt 進 90° 內角無縫" },
-  { group: "structure", type: "select", key: "legStyle", label: "腳型", defaultValue: "none", choices: [
-    { value: "none", label: "無腳（直接落地）" },
-    { value: "post", label: `方柱腳（架高 ${LEG_HEIGHT}mm，離地通風防潮）` },
-  ], help: "方柱腳在 4 角加 40mm 方料把酒架架高，底部離地好清掃、防潮" },
+  { group: "leg", type: "checkbox", key: "withLegs", label: "🦿 安裝櫃腳（關掉 = 貼地）", defaultValue: false, wide: true, help: "勾起：加底座櫃腳，可選腳高 / 樣式；不勾：酒架直接貼地" },
+  { group: "leg", type: "number", key: "legHeight", label: "底座腳高 (mm)", defaultValue: LEG_HEIGHT, min: 0, max: 400, step: 10, dependsOn: { key: "withLegs", equals: true } },
+  { group: "leg", type: "select", key: "legShape", label: "腳樣式", defaultValue: "box", choices: [
+    { value: "box", label: "直腳" },
+    { value: "tapered", label: "錐形腳（方料）" },
+    { value: "round", label: "圓柱腳" },
+    { value: "round-tapered", label: "圓錐腳" },
+    { value: "bracket", label: "帶托腳牙" },
+    { value: "plinth", label: "平台底座（衣櫃常見）" },
+    { value: "panel-side", label: "側板延伸落地" },
+  ], dependsOn: { all: [{ key: "withLegs", equals: true }, { key: "legHeight", notIn: [0] }] } },
   { group: "structure", type: "checkbox", key: "withPullOutDrawer", label: "底部拉出抽屜（開瓶器/配件）", defaultValue: false, help: `底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜，與斗櫃同一套抽屜系統（前後板 + 兩側板 + 底板 + 把手），放開瓶器/酒塞/濾酒器等配件`, wide: true },
 ];
 
@@ -95,7 +102,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const panelT = getOption<number>(input, opt(o, "panelThickness"));
   const orientation = getOption<string>(input, opt(o, "bottleOrientation"));
   const gridLayout = getOption<string>(input, opt(o, "gridLayout"));
-  const legStyle = getOption<string>(input, opt(o, "legStyle"));
+  const withLegs = getOption<boolean>(input, opt(o, "withLegs"));
+  const legShape = getOption<string>(input, opt(o, "legShape"));
+  const legHeightOpt = getOption<number>(input, opt(o, "legHeight"));
   const withPullOutDrawer = getOption<boolean>(input, opt(o, "withPullOutDrawer"));
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
@@ -116,8 +125,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 方柱腳：y 0..legH。抽屜室：地板 panelT + 淨高 DRAWER_ZONE_H。
   // boxBaseY = 瓶格箱體「底板」origin.y（既有箱體幾何整組往上抬此量）。
   // 提前計算（byOverall 模式需要扣這些算 lattice 可用高度）。
-  const hasLegs = legStyle === "post";
-  const legH = hasLegs ? LEG_HEIGHT : 0;
+  const hasLegs = withLegs && legHeightOpt > 0;
+  const legH = hasLegs ? legHeightOpt : 0;
   const drawerZoneH = withPullOutDrawer ? DRAWER_ZONE_H : 0;
   const boxBaseY = legH + (withPullOutDrawer ? panelT + drawerZoneH : 0);
 
@@ -349,29 +358,100 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
 
   const parts: Part[] = [...boxParts];
 
-  // —— 方柱腳：4 角 40mm 方料，y 0..legH（無旋轉，thickness 沿 +Y 鉛直） ——
+  // —— 櫃腳（沿用 case-furniture 同款 7 種樣式：box / tapered / round /
+  //     round-tapered / bracket / plinth / panel-side） ——
+  // legShape = "plinth" → 4 邊連板底座、"panel-side" → 兩側板延伸落地、
+  // 其他 → 4 角柱腳（依 shape 選錐/圓/圓錐），bracket 多加 4 片托腳牙。
   if (hasLegs) {
-    const legCorners: Array<{ id: string; nameZh: string; xs: -1 | 1; zs: -1 | 1 }> = [
-      { id: "leg-fl", nameZh: "前左腳", xs: -1, zs: 1 },
-      { id: "leg-fr", nameZh: "前右腳", xs: 1, zs: 1 },
-      { id: "leg-bl", nameZh: "後左腳", xs: -1, zs: -1 },
-      { id: "leg-br", nameZh: "後右腳", xs: 1, zs: -1 },
-    ];
-    for (const c of legCorners) {
-      parts.push({
-        id: c.id,
-        nameZh: c.nameZh,
-        material,
-        grainDirection: "width",
-        visible: { length: LEG_SIZE, width: LEG_SIZE, thickness: legH },
-        origin: {
-          x: c.xs * (halfOuterW - LEG_SIZE / 2),
-          y: 0,
-          z: c.zs * (depth / 2 - LEG_SIZE / 2),
-        },
-        tenons: [],
-        mortises: [],
-      });
+    if (legShape === "panel-side") {
+      const insetZ = 10;
+      for (const sx of [-1, 1] as const) {
+        parts.push({
+          id: `side-extension-${sx < 0 ? "left" : "right"}`,
+          nameZh: `${sx < 0 ? "左" : "右"}側板延伸腳`,
+          material,
+          grainDirection: "length",
+          visible: { length: depth - 2 * insetZ, width: legH, thickness: panelT },
+          origin: { x: sx * (halfOuterW - panelT / 2), y: 0, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else if (legShape === "plinth") {
+      const plinthT = 18;
+      const insetX = 10;
+      const insetZ = 10;
+      for (const sz of [-1, 1] as const) {
+        parts.push({
+          id: `plinth-${sz < 0 ? "front" : "back"}`,
+          nameZh: `${sz < 0 ? "前" : "後"}底座板`,
+          material,
+          grainDirection: "length",
+          visible: { length: outerW - 2 * insetX, width: legH, thickness: plinthT },
+          origin: { x: 0, y: 0, z: sz * (depth / 2 - plinthT / 2 - insetZ) },
+          rotation: { x: Math.PI / 2, y: 0, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+      for (const sx of [-1, 1] as const) {
+        parts.push({
+          id: `plinth-${sx < 0 ? "left" : "right"}`,
+          nameZh: `${sx < 0 ? "左" : "右"}底座板`,
+          material,
+          grainDirection: "length",
+          visible: { length: depth - 2 * insetZ - 2 * plinthT, width: legH, thickness: plinthT },
+          origin: { x: sx * (outerW / 2 - plinthT / 2 - insetX), y: 0, z: 0 },
+          rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+          tenons: [],
+          mortises: [],
+        });
+      }
+    } else {
+      const legOffsetX = halfOuterW - LEG_SIZE / 2;
+      const legOffsetZ = depth / 2 - LEG_SIZE / 2;
+      const shape: Part["shape"] =
+        legShape === "tapered"
+          ? { kind: "tapered", bottomScale: 0.55 }
+          : legShape === "round"
+            ? { kind: "round" }
+            : legShape === "round-tapered"
+              ? { kind: "round-tapered", bottomScale: 0.55 }
+              : undefined;
+      for (const sx of [-1, 1] as const) {
+        for (const sz of [-1, 1] as const) {
+          parts.push({
+            id: `leg-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
+            nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}腳`,
+            material,
+            grainDirection: "width",
+            visible: { length: LEG_SIZE, width: LEG_SIZE, thickness: legH },
+            origin: { x: sx * legOffsetX, y: 0, z: sz * legOffsetZ },
+            shape,
+            tenons: [],
+            mortises: [],
+          });
+          if (legShape === "bracket") {
+            const bracketLen = Math.min(legH * 1.4, 80);
+            parts.push({
+              id: `bracket-${sx < 0 ? "l" : "r"}${sz < 0 ? "f" : "b"}`,
+              nameZh: `${sz < 0 ? "前" : "後"}${sx < 0 ? "左" : "右"}托腳牙`,
+              material,
+              grainDirection: "length",
+              visible: { length: bracketLen, width: legH * 0.7, thickness: 14 },
+              origin: {
+                x: sx * (legOffsetX - LEG_SIZE / 2 - bracketLen / 2),
+                y: legH * 0.3,
+                z: sz * legOffsetZ,
+              },
+              rotation: { x: Math.PI / 2, y: 0, z: 0 },
+              tenons: [],
+              mortises: [],
+            });
+          }
+        }
+      }
     }
   }
 
@@ -469,7 +549,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
       gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式。為讓 ${bd}mm 瓶身塞得進菱形內接圓，pitch 自動拉大到 ${cellSize}mm（外尺寸比方格款大約 ${Math.round((Math.SQRT2 - 1) * 100)}%）。` : ""
     }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
-      hasLegs ? ` 底部 4 角加 ${LEG_SIZE}mm 方柱腳架高 ${LEG_HEIGHT}mm，離地通風防潮、好清掃。` : ""
+      hasLegs ? ` 底部加${legShape === "plinth" ? "平台底座" : legShape === "panel-side" ? "側板延伸落地" : legShape === "bracket" ? "帶托腳牙的方柱腳" : legShape === "tapered" ? "錐形方柱腳" : legShape === "round" ? "圓柱腳" : legShape === "round-tapered" ? "圓錐腳" : "方柱腳"}架高 ${legH}mm，離地通風防潮、好清掃。` : ""
     }${withPullOutDrawer ? ` 底部加 ${DRAWER_ZONE_H}mm 高拉出抽屜（與斗櫃同一套抽屜系統：前後板 + 兩側板 + 底板 + 把手，裝側裝滑軌），放開瓶器、酒塞、濾酒器等配件。` : ""}`,
   };
 };
