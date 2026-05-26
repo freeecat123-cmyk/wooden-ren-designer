@@ -579,7 +579,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 共用抽屜系統：rows × cols 等分，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
     // 入溝背板會吃進櫃內深度（drawerBackThickness + BACK_RECESS），釘背在外不影響內深。
     const drawerInnerD = Math.min(
-      depth - 20 - (drawerBackMode === "rebated" ? drawerBackThickness + BACK_RECESS : 0),
+      depth - (drawerBackMode === "rebated" ? drawerBackThickness + BACK_RECESS : 0),
       DRAWER_MAX_DEPTH,
     );
     // 後緣背板（選配）：抽屜層的後牆。surface=釘背貼後緣、rebated=入溝嵌進兩側板。
