@@ -1543,18 +1543,17 @@ export function T2Annotations({
         </>
       );
 
+      // W/L dim 框瘦身：原本 hMm/vMm label 在 box 外側的 dim 線上、現在改 inline 貼
+      // box 邊，所以 bracket box 寬/高的 dim 主線 + 兩端內向箭頭都不需要。
+      // **保留 tics**——
+      //   W-dim tics（box 上/下到 wDimY 的短垂直連接）= box 接 392/279/128 chain dim
+      //   L-dim tics（box 兩端到 lDimX 的水平連接）= box 接 12.5/14.4 shoulder dim 列
+      // (user 2026-05-26 多輪釐清：「12.5 上面沒用的箭頭可去掉」+「12.5/14.4 引線
+      // 要留著」+「10/25 引線還留在右邊」→ 真因＝L-dim tics 是 12.5/14.4 的引線，
+      // 不是 10/25 的；只刪 W/L 主線+箭頭、tics 全留。)
       partEls.push(
-        // W (水平) dim line：跨 box 寬度
-        <g key={`${it.kind}-${it.idx}-Wdim`}>
-          <line
-            x1={box.x}
-            y1={wDimY}
-            x2={box.x + box.w}
-            y2={wDimY}
-            stroke={stroke}
-            strokeWidth={0.5}
-          />
-          {/* 短延伸線連 box 邊到 dim line */}
+        // W-dim 列：box 兩側 vertical 延伸到 wDimY（mortise 接 chain dim 用）
+        <g key={`${it.kind}-${it.idx}-Wdim-tics`}>
           <line
             x1={box.x}
             y1={outerAbove ? box.y : box.y + box.h}
@@ -1571,19 +1570,10 @@ export function T2Annotations({
             stroke={stroke}
             strokeWidth={0.3}
           />
-          {inwardArrowsH(box.x, box.x + box.w, wDimY)}
-          {/* hMm label 已移到 inline-dims（box 上邊） */}
         </g>,
-        // L (垂直) dim line：跨 box 高度
-        <g key={`${it.kind}-${it.idx}-Ldim`}>
-          <line
-            x1={lDimX}
-            y1={box.y}
-            x2={lDimX}
-            y2={box.y + box.h}
-            stroke={stroke}
-            strokeWidth={0.5}
-          />
+        // L-dim 列：box 兩端 horizontal 延伸到 lDimX（mortise 接 12.5/14.4 shoulder
+        // dim 列；少了這條 shoulderTop/Bot 的 box 端內向箭頭就指向空氣）
+        <g key={`${it.kind}-${it.idx}-Ldim-tics`}>
           <line
             x1={outerLeft ? box.x : box.x + box.w}
             y1={box.y}
@@ -1600,23 +1590,41 @@ export function T2Annotations({
             stroke={stroke}
             strokeWidth={0.3}
           />
-          {inwardArrowsV(box.y, box.y + box.h, lDimX)}
         </g>,
         // vMm / hMm label 直接貼在 box 左/上邊（user 2026-05-26 14:17 要求
         // 「直接標在榫孔的左邊跟上方兩側」），不再跟 chain shoulder 共用
         // lLabelX/wLabelY 那個外推欄位，避免多 feature 同欄位疊字。
+        //
+        // 隱藏線（dashed shadow）mortise：vMm 走 box 右邊（不跟同列實線 mortise 的
+        // vMm 擠左欄位）。對 splayed leg 的 side-face mortise（投影到 front view
+        // 成虛線殘影）尤其明顯——dashed 高度 = mortise.depth、實線高度 = mortise.width
+        // 兩個 vMm 數字不一樣、同列左邊難辨。(user 2026-05-26「兩個 25 應該移到榫孔
+        // 右邊比較好」)
         <g key={`${it.kind}-${it.idx}-inline-dims`}>
-          {/* L dim label on box LEFT side */}
-          <text
-            x={box.x - 2}
-            y={box.y + box.h / 2 + 3}
-            fontSize={7}
-            fill={stroke}
-            fontFamily="monospace"
-            textAnchor="end"
-          >
-            {vMm}
-          </text>
+          {/* L dim label：實線 box 走左邊 (anchor=end)，虛線 box 走右邊 (anchor=start) */}
+          {isMortise && !isVisibleFromView ? (
+            <text
+              x={box.x + box.w + 2}
+              y={box.y + box.h / 2 + 3}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor="start"
+            >
+              {vMm}
+            </text>
+          ) : (
+            <text
+              x={box.x - 2}
+              y={box.y + box.h / 2 + 3}
+              fontSize={7}
+              fill={stroke}
+              fontFamily="monospace"
+              textAnchor="end"
+            >
+              {vMm}
+            </text>
+          )}
           {/* W dim label on box TOP side */}
           <text
             x={box.x + box.w / 2}
@@ -1776,25 +1784,11 @@ export function T2Annotations({
       const shoulderTopStartY = topBoundary;
 
       // L dim 線（vertical）上下延伸：topBoundary→box.y 和 box.y+box.h→partBottom
-      // chain 中段（prevLSibling 存在）的 shoulderTop label 容易跟前 sibling 的
-      // W dim label 在同 X 列撞 → 外推 14 svg unit + leader 線連回 dim 線中點，
-      // 讓使用者知道這數字屬於哪段。第一個 sibling 的 shoulderTop 不外推。
+      // 原本 mid-chain shoulderTop label 會外推 tightOut + 加斜引線避免跟 box W-dim
+      // label 同列撞，現在 W/L dim 框已拆 → 撤掉外推，label 回到 dim 線中點原位。
+      // (user 2026-05-26「14.4 可以移回去原本位置了」)
       if (shoulderTop > TH) {
-        const isMidChain = !!prevLSibling;
-        // 多個相鄰 chain 的 shoulderTop label 容易疊在一起（user 2026-05-26
-        // 回報）。tall part (Rz=-π/2) 螢幕垂直空間很窄，labels 全擠右邊。
-        // 改用 X+Y 雙軸錯開：X 按 sibling index 外推、Y 按 index 階梯下移，
-        // 配 leader 線指回 dim 線中點。
-        const ROW_H = 10;
-        const TIGHT_OUT_BASE = 18;
-        const TIGHT_OUT_STEP = 0; // 主要靠 Y 錯開，X 統一外推一段距離即可
-        const tightOut =
-          TIGHT_OUT_BASE + Math.max(0, myLIdx - 1) * TIGHT_OUT_STEP;
-        const shTLabelX = isMidChain
-          ? lLabelX + (outerLeft ? -tightOut : tightOut)
-          : lLabelX;
         const segMidY = (shoulderTopStartY + box.y) / 2;
-        const labelYOffset = isMidChain ? myLIdx * ROW_H : 0;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1814,19 +1808,9 @@ export function T2Annotations({
               strokeWidth={0.3}
             />
             {inwardArrowsV(shoulderTopStartY, box.y, lDimX)}
-            {isMidChain && (
-              <line
-                x1={lDimX}
-                y1={segMidY}
-                x2={shTLabelX + (outerLeft ? 2 : -2)}
-                y2={segMidY + labelYOffset}
-                stroke={stroke}
-                strokeWidth={0.3}
-              />
-            )}
             <text
-              x={shTLabelX}
-              y={segMidY + 3 + labelYOffset}
+              x={lLabelX}
+              y={segMidY + 3}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"

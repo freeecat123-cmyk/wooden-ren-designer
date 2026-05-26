@@ -6,7 +6,9 @@ import type { JoineryType } from "@/lib/types";
  * 依據：docs/drafting-math.md §B2 榫卯尺寸標準比例
  *
  * 規則（硬軟木統一，避免設計者要記材料規則）：
- *  - 榫厚 t = T / 3              （T = 公榫件斷面厚）
+ *  - 榫厚 t：
+ *      薄料 T ≤ 30mm → t = T / 2  （T/3 會掉到 6mm 下限、強度不夠；牙條/橫撐多在此區）
+ *      厚料 T > 30mm → t = T / 3  （桌腳/粗料常規比例）
  *  - 榫寬 w = W − 2 × 肩寬       （W = 公榫件斷面寬）
  *  - 肩寬 = 5mm（4 邊全肩，固定不自適應）
  *  - 盲榫長 L = max(2/3 × M, 25mm)
@@ -14,6 +16,9 @@ import type { JoineryType } from "@/lib/types";
  *
  * 配合公差渲染畫 0 縫（手作實際 0.1mm 由木工自己對）。
  */
+
+/** 薄料分界：≤ THIN_TENON_THICKNESS_THRESHOLD → 榫厚走 T/2，否則 T/3。 */
+export const THIN_TENON_THICKNESS_THRESHOLD = 30 as const;
 
 export const SHOULDER_MM = 5 as const;
 export const MIN_BLIND_TENON_LEN = 25 as const;
@@ -62,8 +67,10 @@ export interface StandardTenonOutput {
 export function standardTenon(i: StandardTenonInput): StandardTenonOutput {
   const shoulder = SHOULDER_MM;
 
-  // 榫厚 = T/3，clamp 到 [MIN_TENON_THICKNESS, T - 2*肩]（不能比兩肩之間還薄、不能太細）
-  const thicknessRaw = Math.round(i.childThickness / 3);
+  // 榫厚：薄料(≤30) T/2、厚料(>30) T/3，clamp 到 [MIN_TENON_THICKNESS, T - 2*肩]
+  // 薄料用 T/2 是因為 T/3 會掉到 6mm 下限，導致 18~30mm 牙條/橫撐榫都只有 6mm，結構強度不足。
+  const divisor = i.childThickness <= THIN_TENON_THICKNESS_THRESHOLD ? 2 : 3;
+  const thicknessRaw = Math.round(i.childThickness / divisor);
   const thicknessMax = Math.max(MIN_TENON_THICKNESS, i.childThickness - 2 * shoulder);
   const thickness = Math.max(MIN_TENON_THICKNESS, Math.min(thicknessMax, thicknessRaw));
 
