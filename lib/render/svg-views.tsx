@@ -3467,7 +3467,10 @@ function OrthoViewImpl({
                   p.id.startsWith("diamond-"),
                 );
                 const cellCx = -w / 2 + panelT + cellSize / 2;
-                const cellCy = -(bottomTopY + cellSize / 2);
+                // 菱形 layout 在左下角是半菱形（被框邊切掉），標籤往上推 1 row
+                // 落在第 2 列完整菱形/邊界節點之間的空白處，避免壓到對角線。
+                const rowOffset = isDiamond ? cellSize * 1.5 : cellSize / 2;
+                const cellCy = -(bottomTopY + rowOffset);
                 if (isDiamond) {
                   const inscribed = Math.round(cellSize / Math.SQRT2 - panelT);
                   if (inscribed <= 0) return null;
