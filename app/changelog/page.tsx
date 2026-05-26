@@ -33,6 +33,15 @@ const BADGE_STYLE: Record<ChangelogEntry["badge"], { label: string; cls: string 
 
 const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-05-26",
+    badge: "design",
+    title: "頂部 nav 新增「認識木作藍圖」入口",
+    body: [
+      "頂部導覽列最左邊新增「認識木作藍圖」，原本「關於本站」入口同步改名，方便第一次來的人從這裡了解工具全貌再開始使用。",
+      "介紹頁 / 跟 /about 的定價區塊下方都加上「單範本永久買斷」說明，三個難度（NT$199 / 299 / 499）一眼看到，不想訂閱的人也能直接買斷某一張藍圖。",
+    ],
+  },
+  {
     date: "2026-05-25",
     badge: "new",
     title: "每張家具都有獨立介紹頁",
