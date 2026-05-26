@@ -375,12 +375,15 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       const row = idx + 1;
       const zLocal = row * cellSize - panelT / 2 - innerH / 2;
       return {
-        // 從 +y 面（v-divider 厚度上面那側）往內挖一半
-        origin: { x: 0, y: panelT / 2, z: zLocal },
-        depth: panelT / 2,
-        length: depth,              // 沿 local x = world Z：整條深度
+        // egg-crate 十字搭接：從 v-divider「後緣」（world Z=+depth/2，
+        // 部件 local x=+depth/2）往前挖到中央 0，跟 shelf 前半槽互鎖。
+        // local x = world Z（length=depth）；local y = world X（thickness=panelT）；
+        // local z = world Y（width=innerH）。
+        origin: { x: depth / 4, y: 0, z: zLocal },
+        depth: panelT,              // 沿 thickness（local y = world X）穿透
+        length: depth / 2,          // 沿 local x = world Z：切一半深度
         width: panelT,              // 沿 local z = world Y：shelf 厚度
-        through: false,
+        through: true,
         cosmetic: true,
       };
     });
@@ -485,12 +488,15 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       const len = Math.hypot(slat.bx - slat.ax, slat.by - slat.ay);
       // 邊界檢查：留出 panelT/2 餘量避免槽切到端點外
       if (Math.abs(localX) > len / 2 - panelT / 2) return;
+      // egg-crate 十字搭接：從 slat 寬度（=depth）的一邊往中央挖一半。
+      // local x 沿 strut 長度、local y 沿 breadth(=depth)、local z 沿 thickness(=panelT)。
+      // faceSign=+1：從 +y 邊往中央（／ slat）；-1：從 -y 邊往中央（＼ slat）。
       slat.part.mortises!.push({
-        origin: { x: localX, y: 0, z: faceSign * (panelT / 2) },
-        depth: panelT / 2,
+        origin: { x: localX, y: faceSign * (depth / 4), z: 0 },
+        depth: panelT,     // 沿 thickness（local z = world Z）穿透
         length: panelT,    // 沿 strut 長度 = 另一條 strut 投影厚度
-        width: depth,      // 沿 strut breadth（width=depth）：全寬槽
-        through: false,
+        width: depth / 2,  // 沿 strut breadth：切一半板寬
+        through: true,
         cosmetic: true,
       });
     };
