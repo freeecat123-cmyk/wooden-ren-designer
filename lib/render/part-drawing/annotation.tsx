@@ -2638,7 +2638,7 @@ export function CompoundMiterLabel({
   return (
     <g transform={`translate(${x},${y})`} className="compound-miter-label">
       <text
-        fontSize={6}
+        fontSize={3.5}
         fill="#222"
         textAnchor={side === "start" ? "start" : "end"}
       >

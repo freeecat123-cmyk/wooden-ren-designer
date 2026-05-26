@@ -229,38 +229,9 @@ export function PartDrawingPaperSheet({
           strokeDasharray="1 1"
         />
 
-        {/* View 標籤（每個 view 左上角加底色矩形, 視覺分隔 3 個 view） */}
-        {([
-          { label: "俯視 TOP", vp: topVp },
-          { label: "正視 FRONT", vp: frontVp },
-          { label: "側視 SIDE", vp: sideVp },
-        ] as const).map((v, i) => {
-          // 標籤放在 viewport 左上角往上 padPaper 高度的 chain pad 區內
-          const labelX = v.vp.x - padPaper * 0.8;
-          const labelY = v.vp.y - padPaper * 0.5;
-          return (
-            <g key={i}>
-              <rect
-                x={labelX}
-                y={labelY - 4}
-                width={28}
-                height={5.2}
-                fill="#f3f4f6"
-                stroke="#999"
-                strokeWidth={0.2}
-              />
-              <text
-                x={labelX + 2}
-                y={labelY - 0.3}
-                fontSize={3.5}
-                fontWeight={700}
-                fill="#222"
-              >
-                {v.label}
-              </text>
-            </g>
-          );
-        })}
+        {/* View 標籤改在 SVG 尾端渲染（搬到 OrthoView 之後），確保標題不被
+            annotation overlay（如 CompoundMiterAnnotation）覆蓋。
+            user 2026-05-26 回報「正視 FRONT」「側視 SIDE」被蓋字。 */}
 
         {/* 投影輔助線 toggle */}
         {showProjectionLines && (
@@ -498,6 +469,40 @@ export function PartDrawingPaperSheet({
           </g>
         );
       })()}
+
+      {/* View 標籤（每個 view 左上角加底色矩形）— 最後渲染，蓋在 annotation 之上 */}
+      <g fontFamily="sans-serif">
+        {([
+          { label: "俯視 TOP", vp: topVp },
+          { label: "正視 FRONT", vp: frontVp },
+          { label: "側視 SIDE", vp: sideVp },
+        ] as const).map((v, i) => {
+          const labelX = v.vp.x - padPaper * 0.8;
+          const labelY = v.vp.y - padPaper * 0.5;
+          return (
+            <g key={i}>
+              <rect
+                x={labelX}
+                y={labelY - 4}
+                width={28}
+                height={5.2}
+                fill="#f3f4f6"
+                stroke="#999"
+                strokeWidth={0.2}
+              />
+              <text
+                x={labelX + 2}
+                y={labelY - 0.3}
+                fontSize={3.5}
+                fontWeight={700}
+                fill="#222"
+              >
+                {v.label}
+              </text>
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }
