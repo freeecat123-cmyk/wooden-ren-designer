@@ -226,7 +226,34 @@ export function T1Dimensions({
   const grossMaxY = Math.max(...grossCorners.map((p) => p.y));
   // T1 dim line 起點用 gross（含 tenon protrusion）邊緣，避免 dim 線/標籤
   // 撞進榫頭凸出區（user 05-17 23:16：「30 應該往上拉到 6 18 6 上面」）
-  const horizY = grossMinY - HORIZ_OFFSET;
+  // ⚠️ splay 件（dx/dz ≠ 0）的端點翹起、`partLocalToSvg` 走的 `makeProjector`
+  // 純套 rotation 不套 shape 變形 → grossMinY 抓的是「未變形矩形」頂、splay 端
+  // 衝過去蓋住 dim chain（user 2026-05-27 回報「500 / 475 / 415 往上移不要蓋著
+  // 圖」）。額外算「shape-deformed 底面 4 corners」svg y 最小值、必要時抬到該值
+  // 之上。注意：這個 clamp **只**動 horizY、不能動 allCorners / partWidthSvg /
+  // grossCorners（會牽連 screenRatio → bestPair 軸對應、之前一版抬高把「475」
+  // 字搞不見）。
+  let horizY = grossMinY - HORIZ_OFFSET;
+  const splayShapeForOffset =
+    part.shape?.kind === "splayed" ||
+    part.shape?.kind === "splayed-tapered" ||
+    part.shape?.kind === "splayed-round-tapered"
+      ? part.shape
+      : null;
+  if (
+    splayShapeForOffset &&
+    (Math.abs(splayShapeForOffset.dxMm) > 0.01 ||
+      Math.abs(splayShapeForOffset.dzMm) > 0.01)
+  ) {
+    const splaySamples = [
+      ctx.partLocalToSvg(-L / 2 + splayShapeForOffset.dxMm, +T / 2, -W / 2 + splayShapeForOffset.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForOffset.dxMm, +T / 2, -W / 2 + splayShapeForOffset.dzMm),
+      ctx.partLocalToSvg(-L / 2 + splayShapeForOffset.dxMm, +T / 2, +W / 2 + splayShapeForOffset.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForOffset.dxMm, +T / 2, +W / 2 + splayShapeForOffset.dzMm),
+    ];
+    const splayTopY = Math.min(...splaySamples.map((p) => p.y));
+    horizY = Math.min(horizY, splayTopY - HORIZ_OFFSET);
+  }
   const vertX = grossMaxX + VERT_OFFSET;
   const partWidthSvg =
     Math.max(...allCorners.map((p) => p.x)) -
@@ -967,6 +994,37 @@ export function T2Annotations({
 
   if (!items.length) return null;
 
+  // splay 件 silhouette top（含 dx/dz 變形）— W dim chain `wDimY = box.y - wGap`
+  // 在 splayed/splayed-tapered/splayed-round-tapered 件上會跑進 silhouette 內、
+  // 被翹起的 splay 端蓋住（user 2026-05-27 回報「415 往上移不要蓋著圖」）。
+  // 算 4 個「shape-deformed 底面 corners」svg y 最小值、wDim above-case 把
+  // wDimY clamp 在它上面避免蓋圖。注意：這個 clamp **只**動 wDimY 位置、不
+  // 影響 box / dim 值衍生。
+  let splaySilTopY = Infinity;
+  const splayShapeForSil =
+    part.shape?.kind === "splayed" ||
+    part.shape?.kind === "splayed-tapered" ||
+    part.shape?.kind === "splayed-round-tapered"
+      ? part.shape
+      : null;
+  if (
+    splayShapeForSil &&
+    (Math.abs(splayShapeForSil.dxMm) > 0.01 ||
+      Math.abs(splayShapeForSil.dzMm) > 0.01)
+  ) {
+    const L = part.visible.length;
+    const T = part.visible.thickness;
+    const W = part.visible.width;
+    const samples = [
+      ctx.partLocalToSvg(-L / 2 + splayShapeForSil.dxMm, +T / 2, -W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForSil.dxMm, +T / 2, -W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(-L / 2 + splayShapeForSil.dxMm, +T / 2, +W / 2 + splayShapeForSil.dzMm),
+      ctx.partLocalToSvg(+L / 2 + splayShapeForSil.dxMm, +T / 2, +W / 2 + splayShapeForSil.dzMm),
+    ];
+    splaySilTopY = Math.min(...samples.map((p) => p.y));
+  }
+  const SIL_TOP_SAFETY = 4; // svg px
+
   // 工程圖風格：每個 feature 畫 dashed box + 名稱/尺寸 label + 真實 dim line（黃俊傑式）
   // - DimensionLine: extension line + dim line + filled triangle arrows + label
   // - 對稱件用「距中軸」、非對稱件用「距底/距邊」
@@ -1111,7 +1169,10 @@ export function T2Annotations({
     //  夠精確分辨同 row、後面 stagger 再調整)
     const wDimBelow = !outerAbove;
     const wGap = GAP;
-    const wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+    let wDimY = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+    if (!wDimBelow && Number.isFinite(splaySilTopY)) {
+      wDimY = Math.min(wDimY, splaySilTopY - SIL_TOP_SAFETY);
+    }
     return { wDimY, wDimBelow, lDimX: lDimXBase, wStagger: 0, lStagger: 0 };
   });
 
@@ -1504,7 +1565,11 @@ export function T2Annotations({
       // 避免「438 438」「415 415」「202.5 202.5」這種多 mortise 標籤撞同一行
       const myMeta = baselineMetas[itemIdx];
       const wStaggerOffset = myMeta.wStagger * STAGGER_GAP;
-      const wDimYBase = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      const wDimYBaseRaw = wDimBelow ? box.y + box.h + wGap : box.y - wGap;
+      const wDimYBase =
+        !wDimBelow && Number.isFinite(splaySilTopY)
+          ? Math.min(wDimYBaseRaw, splaySilTopY - SIL_TOP_SAFETY)
+          : wDimYBaseRaw;
       const wDimY = wDimBelow
         ? wDimYBase + wStaggerOffset
         : wDimYBase - wStaggerOffset;
