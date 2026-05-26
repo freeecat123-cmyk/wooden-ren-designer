@@ -140,11 +140,19 @@ for (const entry of FURNITURE_CATALOG) {
     // 門框+鑲板的合法 joinery overlap：鑲板舌頭嵌入框料凹槽 grooveDepth=8mm
     // 是物理正確結構（frame & panel construction），audit 不該擋。
     // 百葉門的百葉條（-louver-N）兩端同樣整片卡進豎梃凹槽，視同鑲板入框。
+    // 紅酒架十字搭接（half-lap）：shelf × v-divider 與 ／ × ＼ 對角板交叉處
+    // 物理上各切一半板厚對接、cosmetic mortise 已標示，3D AABB 重疊是必然。
     const overlaps = buttJointFiltered.filter((o) => {
       const ids = [o.a, o.b].sort();
       const isPanel = (id: string) => /-door-\d+-(panel|louver-\d+)(-|$)/.test(id);
       const isFrame = (id: string) => /-door-\d+-(rail-(top|bottom)|stile-(left|right))(-|$)/.test(id);
-      return !((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0])));
+      if ((isPanel(ids[0]) && isFrame(ids[1])) || (isPanel(ids[1]) && isFrame(ids[0]))) return false;
+      // wine-rack rect 十字搭接：shelf-h-N × divider-v-cM
+      if (/^shelf-h-\d+$/.test(ids[0]) && /^divider-v-c\d+$/.test(ids[1])) return false;
+      if (/^divider-v-c\d+$/.test(ids[0]) && /^shelf-h-\d+$/.test(ids[1])) return false;
+      // wine-rack diamond 十字搭接：diamond-pos-* × diamond-neg-*
+      if (/^diamond-pos-\d+$/.test(ids[0]) && /^diamond-neg-\d+$/.test(ids[1])) return false;
+      return true;
     });
     const examples = overlaps
       .slice(0, 3)
