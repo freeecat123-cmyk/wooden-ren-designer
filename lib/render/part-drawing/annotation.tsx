@@ -108,7 +108,11 @@ export function T1Dimensions({
   part: Part;
   view: PartView;
 }) {
-  const { horiz, vert, horizLabel, vertLabel } = getT1ForView(part, view);
+  // 不直接用 getT1ForView 的 horiz/vert/horizLabel/vertLabel — 對 stool leg
+  // 這種 visible.thickness > visible.length 的件，視覺長軸對到 part-local Y，
+  // 但 getT1ForView 仍把 part-local X 當水平 → 標籤位置跟 silhouette 方向錯位
+  // （user 2026-05-26 回報「寬度標長度位置、長度標寬度位置」）。
+  // 改用「螢幕投影後實際 horiz/vert SVG 距離」對應，下面 horizP/vertP 算完再覆寫。
   const L = part.visible.length;
   const W = part.visible.width;
   const T = part.visible.thickness;
@@ -153,6 +157,26 @@ export function T1Dimensions({
     vertP1 = ctx.partLocalToSvg(0, -T / 2, -W / 2);
     vertP2 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
   }
+
+  // ─── T1 標籤 projection-aware 對應 ───────────────────────────────
+  // 把標籤跟「螢幕上實際看到的長軸方向」綁定，避免 stool leg 這種
+  // part-local 軸跟視覺方向不一致的件出現「寬度標長度位置」的錯位。
+  // 規則：whichever 投影較長的軸 → 標「長」（或 SIDE view 標「寬」），
+  //       另一軸 → 標「厚」（FRONT/SIDE）或「寬」（TOP）。
+  const horizSvgDist = Math.abs(horizP2.x - horizP1.x);
+  const vertSvgDist = Math.abs(vertP2.y - vertP1.y);
+  const horizMmDefault = view === "side" ? W : L;
+  const vertMmDefault = view === "top" ? W : T;
+  const longerVisibleLabel = view === "side" ? "寬" : "長";
+  const shorterVisibleLabel = view === "top" ? "寬" : "厚";
+  const svgHorizIsLonger = horizSvgDist >= vertSvgDist;
+  const defaultHorizIsLonger = horizMmDefault >= vertMmDefault;
+  // SVG 跟 default 反過來 → swap mm 對應；label 永遠跟「實際較長的那邊」走
+  const flip = svgHorizIsLonger !== defaultHorizIsLonger;
+  const horiz = round1(flip ? vertMmDefault : horizMmDefault);
+  const vert = round1(flip ? horizMmDefault : vertMmDefault);
+  const horizLabel = svgHorizIsLonger ? longerVisibleLabel : shorterVisibleLabel;
+  const vertLabel = svgHorizIsLonger ? shorterVisibleLabel : longerVisibleLabel;
 
   // 水平 dim line 放材料 *上方* — 抓 part 8 角投影最高 SVG y（最小值）再上推 OFFSET
   // 之前用 max 2 個 horizP 端點 y 不夠保險（圓料/扁料 bbox 跟邊不一定一致）
