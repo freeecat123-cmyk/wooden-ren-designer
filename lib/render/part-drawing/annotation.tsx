@@ -1694,15 +1694,26 @@ export function T2Annotations({
 
       // 取 prev sibling 在 vertAxis 上的 part-local 下緣（如有 sibling）
       // 不然用 part 邊（+partHalfV = top edge）
+      // ⚠ 必須跟 featCv/featHv 同軸（swapForTallPart 對 tall part FRONT/SIDE
+      // 把 vert 對到 part-local X 軸），不然會混到 T 軸 ±212.5 算出 199/158
+      // 這種不合理數值（user 2026-05-26 12:36 回報）。
       const prevSibCv = prevLSibling
-        ? view === "top"
-          ? prevLSibling.lb.cz
-          : prevLSibling.lb.cy
+        ? swapForTallPart
+          ? view === "side"
+            ? prevLSibling.lb.cz
+            : prevLSibling.lb.cx
+          : view === "top"
+            ? prevLSibling.lb.cz
+            : prevLSibling.lb.cy
         : 0;
       const prevSibHv = prevLSibling
-        ? view === "top"
-          ? prevLSibling.lb.hz
-          : prevLSibling.lb.hy
+        ? swapForTallPart
+          ? view === "side"
+            ? prevLSibling.lb.hz
+            : prevLSibling.lb.hx
+          : view === "top"
+            ? prevLSibling.lb.hz
+            : prevLSibling.lb.hy
         : 0;
       const topBoundaryLocal = prevLSibling
         ? prevSibCv + prevSibHv
@@ -1739,9 +1750,14 @@ export function T2Annotations({
       // 讓使用者知道這數字屬於哪段。第一個 sibling 的 shoulderTop 不外推。
       if (shoulderTop > TH) {
         const isMidChain = !!prevLSibling;
-        const TIGHT_OUT = 14;
+        // 多個相鄰 chain 的 shoulderTop label 同 X 列會疊在一起（user 2026-05-26
+        // 12:36 回報），按 sibling index 階梯遞增外推距離避免堆疊。
+        const TIGHT_OUT_BASE = 14;
+        const TIGHT_OUT_STEP = 12;
+        const tightOut =
+          TIGHT_OUT_BASE + Math.max(0, myLIdx - 1) * TIGHT_OUT_STEP;
         const shTLabelX = isMidChain
-          ? lLabelX + (outerLeft ? -TIGHT_OUT : TIGHT_OUT)
+          ? lLabelX + (outerLeft ? -tightOut : tightOut)
           : lLabelX;
         const segMidY = (shoulderTopStartY + box.y) / 2;
         partEls.push(
