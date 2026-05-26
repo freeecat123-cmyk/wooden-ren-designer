@@ -85,6 +85,7 @@ export const wineRackOptions: OptionSpec[] = [
     { value: "surface", label: "釘背（薄板釘在後緣，覆蓋整個後面）" },
     { value: "rebated", label: "入溝（板嵌進兩側板之間，外觀乾淨）" },
   ], help: "無背板=後面開放；釘背=薄板貼後緣、覆蓋整個外側；入溝=板嵌進兩側板之間、跟櫃身切齊", dependsOn: { key: "withPullOutDrawer", equals: true } },
+  { group: "structure", type: "number", key: "drawerBackThickness", label: "抽屜層背板厚 (mm)", defaultValue: 9, min: 3, max: 18, step: 1, help: "釘背常見 3mm 薄夾板；入溝常見 9mm；用實木一般 12–15mm", dependsOn: { all: [{ key: "withPullOutDrawer", equals: true }, { key: "drawerBackMode", notIn: ["none"] }] } },
 ];
 
 /**
@@ -120,6 +121,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   const drawerRows = getOption<number>(input, opt(o, "drawerRows"));
   const drawerCols = getOption<number>(input, opt(o, "drawerCols"));
   const drawerBackMode = getOption<string>(input, opt(o, "drawerBackMode"));
+  const drawerBackThickness = getOption<number>(input, opt(o, "drawerBackThickness"));
   const drawerBackPanel = drawerBackMode !== "none";
 
   // === 瓶位塞得下瓶子的最小 cellSize ===
@@ -495,9 +497,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 抽屜層兩側不再各加一塊側牆 —— 改由瓶格箱體側板向下延伸蓋住（單一片側板貫穿
     // 上下兩層），木工接合更簡單、外觀也更整體。
     // 共用抽屜系統：rows × cols 等分，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
-    // 背板開啟時抽屜深度扣 panelT，避免抽屜後緣撞背板。
+    // 入溝背板會吃進櫃內深度（板嵌在兩側板之間），釘背在外不影響內深。
     const drawerInnerD = Math.min(
-      depth - 20 - (drawerBackPanel ? panelT : 0),
+      depth - 20 - (drawerBackMode === "rebated" ? drawerBackThickness : 0),
       DRAWER_MAX_DEPTH,
     );
     // 後緣背板（選配）：抽屜層的後牆。surface=釘背貼後緣、rebated=入溝嵌進兩側板。
@@ -509,8 +511,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: "抽屜層背板（釘背）",
         material,
         grainDirection: "length",
-        visible: { length: outerW, width: panelT, thickness: drawerZoneH },
-        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 + panelT / 2 },
+        visible: { length: outerW, width: drawerBackThickness, thickness: drawerZoneH },
+        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 + drawerBackThickness / 2 },
         tenons: [],
         mortises: [],
       });
@@ -520,8 +522,8 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         nameZh: "抽屜層背板（入溝）",
         material,
         grainDirection: "length",
-        visible: { length: outerW - 2 * panelT, width: panelT, thickness: drawerZoneH },
-        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 - panelT / 2 },
+        visible: { length: outerW - 2 * panelT, width: drawerBackThickness, thickness: drawerZoneH },
+        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 - drawerBackThickness / 2 },
         tenons: [],
         mortises: [],
       });
