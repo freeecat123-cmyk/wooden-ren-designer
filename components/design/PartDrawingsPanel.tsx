@@ -15,15 +15,15 @@
 import React, { useState } from "react";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
-import { PartDrawing } from "@/lib/render/part-drawing/drawing";
+import {
+  PartDrawing,
+  type PartView,
+  type ZoomLevel,
+} from "@/lib/render/part-drawing/drawing";
 
 interface Props {
   design: FurnitureDesign;
 }
-
-type PartView = "front" | "top" | "side";
-const ZOOM_LEVELS = [1, 2, 3, 5, 8] as const;
-type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 // 顯示用：mm 最多保留 1 位小數（feedback_ui_number_precision）。
 // 內部計算保持高精度，只在 render layer round。
@@ -56,8 +56,11 @@ function roundPartDim(part: Part): string {
 export function PartDrawingsPanel({ design }: Props) {
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [zoomedView, setZoomedView] = useState<PartView | null>(null);
-  const [zoom, setZoom] = useState<ZoomLevel>(2);
+  // 每張視圖（front/top/side）獨立倍率（方案 1）。未設視為 1×。
+  const [perViewZoom, setPerViewZoom] = useState<
+    Partial<Record<PartView, ZoomLevel>>
+  >({});
+  const resetZoom = () => setPerViewZoom({});
 
   if (!groups.length) return null;
 
@@ -113,57 +116,15 @@ export function PartDrawingsPanel({ design }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center gap-3 p-3 border-b border-zinc-200 sticky top-0 bg-white z-10">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                {zoomedView !== null && (
-                  <button
-                    type="button"
-                    onClick={() => setZoomedView(null)}
-                    className="text-zinc-600 hover:text-zinc-900 text-xs px-2 py-0.5 rounded border border-zinc-300 hover:bg-zinc-50"
-                  >
-                    ← 返回三視圖
-                  </button>
-                )}
+              <h3 className="font-semibold text-sm">
                 零件圖 — {groups[openIdx].representative.nameZh}
-                {zoomedView && (
-                  <span className="text-zinc-500 text-xs">
-                    （
-                    {zoomedView === "front"
-                      ? "正視"
-                      : zoomedView === "top"
-                      ? "俯視"
-                      : "側視"}
-                    ）
-                  </span>
-                )}
               </h3>
-              {zoomedView !== null && (
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[10px] text-zinc-500 mr-1">放大</span>
-                  {ZOOM_LEVELS.map((z) => (
-                    <button
-                      key={z}
-                      type="button"
-                      onClick={() => setZoom(z)}
-                      className={`text-xs px-2 py-0.5 rounded border tabular-nums ${
-                        zoom === z
-                          ? "bg-amber-500 text-white border-amber-500"
-                          : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {z}×
-                    </button>
-                  ))}
-                </div>
-              )}
               <button
                 type="button"
-                className={`text-zinc-500 hover:text-zinc-900 text-xl leading-none ${
-                  zoomedView !== null ? "ml-2" : "ml-auto"
-                }`}
+                className="text-zinc-500 hover:text-zinc-900 text-xl leading-none ml-auto"
                 onClick={() => {
                   setOpenIdx(null);
-                  setZoomedView(null);
-                  setZoom(2);
+                  resetZoom();
                 }}
                 aria-label="關閉"
               >
@@ -171,29 +132,28 @@ export function PartDrawingsPanel({ design }: Props) {
               </button>
             </div>
             <div className="p-4 overflow-auto">
-              {/* zoom 改交給 PartDrawing 內部處理：只縮 SVG drawing 本體、
-                  不縮卡片邊框 / 標題列 / 右上角 InstallHintMini / 底部 title block / T2 標註清單。
-                  外層不再 transform: scale，避免「正視/側視」「縮圖」一起放大。 */}
+              {/* Modal 走 stack 三視圖獨立 layout，每張視圖標題列旁直接放
+                  1×~8× 倍率按鈕（方案 1）。各 view zoom 互相獨立。 */}
               <PartDrawing
                 group={groups[openIdx]}
                 design={design}
                 index={openIdx}
-                /* viewLayout 預設 row → 走 PartDrawingPaperSheet（L 型 1 A4） */
-                singleView={zoomedView ?? undefined}
-                onViewClick={
-                  zoomedView ? undefined : (v) => setZoomedView(v)
-                }
+                viewLayout="stack"
                 orthoClassName="bg-white w-full h-auto"
-                zoom={zoomedView !== null ? zoom : 1}
+                perViewZoom={perViewZoom}
+                onViewZoom={(v, z) =>
+                  setPerViewZoom((p) => ({ ...p, [v]: z }))
+                }
               />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
                   type="button"
                   disabled={openIdx === 0}
                   className="text-zinc-700 disabled:text-zinc-300 disabled:cursor-not-allowed hover:text-zinc-900"
-                  onClick={() =>
-                    setOpenIdx((i) => (i === null || i === 0 ? i : i - 1))
-                  }
+                  onClick={() => {
+                    resetZoom();
+                    setOpenIdx((i) => (i === null || i === 0 ? i : i - 1));
+                  }}
                 >
                   ← 上一件
                 </button>
@@ -204,11 +164,12 @@ export function PartDrawingsPanel({ design }: Props) {
                   type="button"
                   disabled={openIdx === groups.length - 1}
                   className="text-zinc-700 disabled:text-zinc-300 disabled:cursor-not-allowed hover:text-zinc-900"
-                  onClick={() =>
+                  onClick={() => {
+                    resetZoom();
                     setOpenIdx((i) =>
                       i === null || i === groups.length - 1 ? i : i + 1,
-                    )
-                  }
+                    );
+                  }}
                 >
                   下一件 →
                 </button>

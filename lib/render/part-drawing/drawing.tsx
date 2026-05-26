@@ -45,7 +45,9 @@ const isRoundFamilyShape = (part: Part): boolean => {
   );
 };
 
-type PartView = "front" | "top" | "side";
+export type PartView = "front" | "top" | "side";
+export const ZOOM_LEVELS = [1, 2, 3, 5, 8] as const;
+export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 interface PartDrawingProps {
   group: PartDrawingGroup;
@@ -80,6 +82,14 @@ interface PartDrawingProps {
    *  「正視/側視」「右上角縮圖」「比例編號」等附屬元素也一起放大。
    */
   zoom?: number;
+  /**
+   * 每張視圖獨立放大倍率（方案 1：每個視圖標題旁直接放 1×~8× 按鈕）。
+   * 若提供，覆蓋全卡 `zoom` prop，作用範圍只限該 view。
+   * 僅 stack / singleView 路徑生效（paper-sheet L 型整張不支援）。
+   */
+  perViewZoom?: Partial<Record<PartView, ZoomLevel>>;
+  /** 倍率按鈕被按時的 callback；提供才會渲染倍率工具列。 */
+  onViewZoom?: (view: PartView, zoom: ZoomLevel) => void;
 }
 
 /**
@@ -102,12 +112,14 @@ export function PartDrawing({
   onViewClick,
   orthoClassName,
   zoom = 1,
+  perViewZoom,
+  onViewZoom,
 }: PartDrawingProps) {
-  // zoom > 1 → 改用 HTML 畫 view 標題（不縮）、SVG 內 title bar 關掉。
-  // 縮放機制參考 ZoomableThreeViews：用 width/height % 撐大 wrapper、SVG
-  // 以 preserveAspectRatio="meet" 自動填滿；outer container overflow-auto
-  // 提供 scrollbar。比 transform: scale 乾淨（不會把 anti-aliased text 弄糊）
-  const useExternalTitle = zoom > 1;
+  // 全卡 zoom（既有行為）vs 每張視圖獨立 zoom（方案 1）。
+  // perViewZoom 任一 view > 1 也算 anyZoom，因為 scrollRefs effect 需要重置中心。
+  const perViewZoomSig = perViewZoom
+    ? Object.values(perViewZoom).join(",")
+    : "";
   const scrollRefs = useRef<Array<HTMLDivElement | null>>([]);
   useLayoutEffect(() => {
     // zoom 變動時把每個 view 的 scroll 容器中央錨定（同 ZoomableThreeViews）
@@ -116,15 +128,7 @@ export function PartDrawing({
       el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
       el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
     });
-  }, [zoom, singleView, group.hash]);
-  const zoomWrapStyle: React.CSSProperties | undefined =
-    zoom > 1
-      ? {
-          width: `${zoom * 100}%`,
-          height: `${zoom * 100}%`,
-          flexShrink: 0,
-        }
-      : undefined;
+  }, [zoom, singleView, group.hash, perViewZoomSig]);
   const part = group.representative;
   // Step 2: 用 A4 paper-fit 比例樹（三 view max + CNS 1/2/5/10/20）。
   // 若 caller 給 scaleDenom 走 override（測試/打印偏好）。
@@ -197,6 +201,17 @@ export function PartDrawing({
         return (
           <div className={gridClass}>
             {filtered.map(({ view, title, titleEn }, vIdx) => {
+              // 此 view 的有效 zoom（per-view 覆寫 > 全卡 zoom > 1）
+              const viewZoom: number = perViewZoom?.[view] ?? zoom;
+              const viewUseExternalTitle = viewZoom > 1;
+              const viewZoomWrapStyle: React.CSSProperties | undefined =
+                viewZoom > 1
+                  ? {
+                      width: `${viewZoom * 100}%`,
+                      height: `${viewZoom * 100}%`,
+                      flexShrink: 0,
+                    }
+                  : undefined;
               // Modal stack / single-view mode：強制 SVG `max-h-[80vh]` 讓
               // 高 aspect 零件（長腳/桌腳 35×425）不會把 SVG 撐成 4000+ px 高、
               // 整個 modal 只看得到 part 頂端 + 一片白邊。caller 傳的
@@ -210,12 +225,12 @@ export function PartDrawing({
               // 用 h-auto+max-h 在 1× 是 fit-by-height、>1× 卻變 fit-by-width，
               // 兩個基準對不上，2× 看起來像 5×（user 2026-05-21 回報）。
               const needViewportClamp =
-                zoom <= 1 &&
+                viewZoom <= 1 &&
                 (viewLayout === "stack" || singleView !== undefined) &&
                 orthoClassName !== undefined &&
                 !/max-h-/.test(orthoClassName);
               const effectiveOrthoClassName =
-                zoom > 1
+                viewZoom > 1
                   ? "bg-white w-full h-full"
                   : needViewportClamp
                   ? `${orthoClassName} max-h-[80vh]`
@@ -235,7 +250,7 @@ export function PartDrawing({
                   isolatePartId={part.id}
                   showDimensions={false}
                   className={effectiveOrthoClassName}
-                  noTitleInSvg={useExternalTitle}
+                  noTitleInSvg={viewUseExternalTitle}
                   paperMode="a4-landscape"
                   paperScale={scale}
                   paperBroken={brokenSpec.active ? brokenSpec : null}
@@ -266,24 +281,55 @@ export function PartDrawing({
                   )}
                 />
               );
+              // 倍率工具列（方案 1：每張視圖標題列旁直接放 1×~8×）
+              const zoomToolbar = onViewZoom ? (
+                <div className="flex items-center gap-1 ml-auto">
+                  <span className="text-[10px] text-zinc-500 mr-1">放大</span>
+                  {ZOOM_LEVELS.map((z) => (
+                    <button
+                      key={z}
+                      type="button"
+                      onClick={() => onViewZoom(view, z)}
+                      className={`text-xs px-2 py-0.5 rounded border tabular-nums ${
+                        viewZoom === z
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                      }`}
+                    >
+                      {z}×
+                    </button>
+                  ))}
+                </div>
+              ) : null;
               // zoom > 1 時把 OrthoView 包進 transform:scale wrapper、外面
               // 另畫不縮放的 HTML view 標題；zoom=1 維持既有行為（標題在 SVG 內）
-              const viewBody = useExternalTitle ? (
+              // 提供 onViewZoom 時：無論 zoom=1 都改用外置 HTML 標題列，
+              // 才有地方掛倍率按鈕（否則 1× 標題在 SVG 內、按鈕無處附身）
+              const externalTitle = viewUseExternalTitle || !!onViewZoom;
+              const viewBody = externalTitle ? (
                 <>
-                  <div className="text-sm font-semibold text-zinc-800 mb-1 border-b border-zinc-200 pb-1">
-                    {title}
-                    <span className="ml-2 text-xs font-normal text-zinc-500">
-                      {titleEn}
+                  <div className="text-sm font-semibold text-zinc-800 mb-1 border-b border-zinc-200 pb-1 flex items-center">
+                    <span>
+                      {title}
+                      <span className="ml-2 text-xs font-normal text-zinc-500">
+                        {titleEn}
+                      </span>
                     </span>
+                    {zoomToolbar}
                   </div>
                   <div
                     ref={(el) => {
                       scrollRefs.current[vIdx] = el;
                     }}
-                    className="overflow-auto h-[70vh] bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]"
+                    className={`overflow-auto ${viewZoom > 1 ? "h-[70vh]" : ""} bg-zinc-50 flex [align-items:safe_center] [justify-content:safe_center]`}
                   >
-                    <div style={zoomWrapStyle} className="flex items-center justify-center">
-                      {orthoEl}
+                    <div
+                      style={viewZoomWrapStyle}
+                      className="flex items-center justify-center w-full"
+                    >
+                      {React.cloneElement(orthoEl, {
+                        noTitleInSvg: true,
+                      })}
                     </div>
                   </div>
                 </>
