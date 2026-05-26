@@ -113,3 +113,103 @@ fallback 到 base preset。
 - detail pack 是 per-template 的 fine tune → 風格內聚力 + 視覺差異拉開
 - 漏 step 3 → 風格切換時細部設定全 fallback 到 template default → 使用者
   看不出差別（典型抱怨：「8 風格看起來都一樣」）
+
+---
+
+# 家具設計器：完整網頁觸點 inventory（一條龍 SOP 補強）
+
+§前面 4 步只 cover 模板程式碼層。**新增家具到「跟現有 26 件一致水準」還要動以下網頁/SEO/權限觸點**。漏掉就會出現「我加了模板，可是介紹頁/首頁/搜尋沒看到」。
+
+## 家具 — 自動接的觸點（catalog-driven，不用動）
+
+只要 §1 完成（lib/templates/index.ts 註冊 + FurnitureCategory union 加字串），下列**自動接**：
+
+- `/app` 設計器內目錄卡（FURNITURE_CATALOG loop）
+- `/templates` 索引頁分類群組（CATEGORY_GROUPS match 規則）
+- `/design/<category>` 設計頁
+- `/design/<category>/quote` 報價頁、`/quote/print` A4 列印
+- `/design/<category>/cut-plan` 裁切計算器
+- `/design/<category>/print` 列印工程包
+
+## 家具 — 手動觸點（容易漏）
+
+- **`lib/templates/marketing.ts`** — 加 marketing entry（tagline / whatItDoes / scenarios / fitFor / notFor / faqs / presets / howToSteps）。沒這個 → `/templates/<category>` 介紹頁不會 render，`/templates` 索引卡 tagline 顯示 fallback。
+- **`FEATURED_TEMPLATE_CATEGORIES`** — 同檔。加進去 → sitemap 收 `/templates/<category>` 介紹頁 + SEO 升權。
+- **`public/thumbs/v2/<category>.webp`** — 縮圖。沒這個 → `/app` `/templates` 卡片破圖。產法見其他家具 webp 對齊規格。
+- **`lib/permissions.ts:FREE_UNLOCKED_CATEGORIES`** — 免費家具加進去；付費家具不動。
+- **`app/sitemap.ts`** — `FURNITURE_CATALOG` 自動 loop 進 `/design/<c>`，但 `DEV_CATEGORIES` set 要審：開發中暫不收。
+- **`lib/render/svg-views.tsx`** — 加 shape kind / 新零件 visual 時要動。普通家具用既有 shape 不用改。
+- **`scripts/audit-overlaps.ts`** — `npx tsx scripts/audit-overlaps.ts` 必跑 0 overlap（butt-joint 迴歸防護，§A10）。
+
+# 新增裝潢工具（ceiling / floor / raised-floor 同等級）的一條龍 SOP
+
+裝潢工具**不走 FURNITURE_CATALOG**，沒有 catalog-driven 自動接駁。每個都要手動掛 8+ 個位置。漏一個就會出現「工具有，但訪客找不到 / SEO 沒收 / 卡片連錯」。
+
+## 必做（缺一個都算半成品）
+
+### 1. 算料引擎 & 工具本體
+- `lib/<tool>/types.ts` `calc.ts` `presets.ts` `geometry.ts` — 算料引擎
+- `lib/<tool>/cutting.ts` — 裁切計算（1D FFD / 2D shelf packing）
+- `app/<tool>/<Tool>Client.tsx` — 互動 UI
+- `app/<tool>/page.tsx` — 路由 + 權限分流
+
+### 2. 雙頭路由（訪客銷售頁 + 登入工具）
+`app/<tool>/page.tsx` **必走雙頭分流**，不要直接 `redirect("/login")`：
+
+```typescript
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return <ToolMarketing status="guest" />;
+if (isAdminEmail(...)) return <ToolClient />;
+// ...檢查 plan + unlocks...
+if (!planAllows && !boughtUnlock) return <ToolMarketing status="loggedInNoAccess" />;
+return <ToolClient />;
+```
+
+**理由**：訪客直接 redirect 走 = 沒 SEO 入口、沒銷售漏斗。雙頭分流訪客看銷售頁、有權限直進工具。
+
+### 3. 銷售頁 `app/<tool>/<Tool>Marketing.tsx`
+仿 `RaisedFloorMarketing.tsx` 6 段結構：
+- **Hero**（標題 / tagline / SVG 示意圖 / 主副 CTA）
+- **痛點**（4 個 emoji 卡）
+- **功能**（6 個 emoji 卡）
+- **適合誰**（4 個職業 + 「不適合」灰底框）
+- **FAQ**（6–8 題折疊）
+- **最終 CTA gradient banner**
+
+CTA URL 用 `status` prop 分流：
+- `guest` → `/login?next=/<tool>`
+- `loggedInNoAccess` → `/pricing?upgrade=<tool>`
+
+### 4. metadata
+`app/<tool>/page.tsx` 必補 `metadata.description`（SEO + 社群分享 preview）。
+
+### 5. `app/templates/page.tsx` — `INTERIOR_TOOLS` 加一筆
+- `id` / `nameZh` / `tagline` / `href` / `difficulty`
+- `InteriorToolCard` 內 `tool.id === "..."` 分支加新工具的 SVG 圖示 or `<Image src="/thumbs/v2/<tool>.webp">`
+
+### 6. `app/app/page.tsx` — 設計器內工具卡
+新加 `<ToolCard>` 元件 + 在 unownedTools 列表加進去。仿 `CeilingToolCard / FloorToolCard / RaisedFloorToolCard`。
+
+### 7. `app/sitemap.ts` — 加 `/<tool>` 靜態路由
+優先級 0.85 對齊家具介紹頁。
+
+### 8. 權限 / 解鎖 / 定價
+- `lib/permissions.ts` — 加 `canUse<Tool>Tool` feature flag + plan 規則
+- `lib/tool-unlocks.ts` — 註冊 unlockable id（若可單買斷）
+- `app/pricing/...` — 補 plan 文案、單買斷卡
+
+### 9. 文案散落點
+- `app/page.tsx` 首頁個人版 features 文字（line ~386）— 補新工具名
+- `/about` 介紹（如果有放工具區）— 補新工具
+
+## 自動測試
+1. `npx tsc --noEmit` — 0 新型別錯誤
+2. **未登入**訪問 `/<tool>` → 看到銷售頁、CTA 連 `/login?next=/<tool>`
+3. **已登入無權限**訪問 `/<tool>` → 看到銷售頁、CTA 連 `/pricing?upgrade=<tool>`
+4. **已登入有權限**訪問 `/<tool>` → 直進工具
+5. `/templates` 看到「裝潢工具」群組多一張卡，「了解更多 / 開始試算」雙鈕都連 `/<tool>`
+6. `/sitemap.xml` curl 看 `/<tool>` 已收
+
+## 為什麼包這個 SOP
+
+裝潢工具不像家具有 catalog 自動接駁，**漏 §5 / §6 / §7 = user 在 `/templates` 找不到、SEO 找不到、`/app` 工具卡沒新工具**。歷史教訓：raised-floor 上線後一段時間，user 才發現 `/templates` 沒收（這份 SOP 就是衝著這個寫的）。

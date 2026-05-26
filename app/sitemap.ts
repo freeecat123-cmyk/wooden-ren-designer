@@ -15,6 +15,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/changelog`, lastModified: now, changeFrequency: "weekly", priority: 0.4 },
     { url: `${BASE}/calc/apron-tilt`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    // 裝潢工具(訪客可看銷售頁,登入有權限直進工具)— SEO 入口頁優先級對齊家具介紹頁
+    { url: `${BASE}/ceiling`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/floor`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${BASE}/raised-floor`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
   ];
   // 開發中家具不收錄到 sitemap（避免 Google 收錄到不能用的頁）
   const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);

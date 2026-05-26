@@ -383,7 +383,7 @@ export default async function Landing() {
             highlight={true}
             features={[
               "全 26 個家具模板",
-              "天花板骨架 + 地板模擬器",
+              "天花板骨架 + 地板 + 和室架高平台",
               "PDF 列印 + 雲端儲存無限",
               "適合 DIY、自家裝潢、週末做家具的人",
             ]}
