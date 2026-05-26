@@ -1415,7 +1415,18 @@ export function T2Annotations({
           if (!otherR) return false;
           return Math.abs(computeLDimX(otherR) - lDimX) < COL_TOL;
         })
-        .map((other) => ({ other, r: other.rect }))
+        .map((other) => {
+          // cache lb to allow part-local shoulder boundary computation later
+          const otherFeature =
+            other.kind === "m"
+              ? part.mortises[other.idx]
+              : part.tenons[other.idx];
+          const otherLb =
+            other.kind === "m"
+              ? mortiseEntryBox(otherFeature as Mortise)
+              : tenonLocalBox(part, otherFeature as Tenon);
+          return { other, r: other.rect, lb: otherLb };
+        })
         .sort((a, b) => a.r.y - b.r.y);
       const myLIdx = lSiblings.findIndex((s) => s.other === it);
       const prevLSibling = myLIdx > 0 ? lSiblings[myLIdx - 1] : null;
@@ -1559,22 +1570,26 @@ export function T2Annotations({
       const partRightX = partRightSvg;
       const partTopY = partTopSvg;
 
-      // mm/svg 比例：用 part body 投影寬高 vs visible 真實 mm 作為基準。
-      // 不要用 mortise local half-extent（hMm/vMm）vs 投影 box.w/box.h —
-      // 兩者一個是未變形 part-local、一個是已 splay 變形的 SVG 投影，splayed/
-      // tapered 件比例會失真，shoulder chain 變成 418.1/25/147.2 加總 590 ≠ 425
-      // （user 2026-05-26 回報）。part body 與 mortise box 受同一 splay 變形，
-      // 用 part-level 比例可消除這個誤差。
-      const partRealHoriz =
-        view === "side" ? part.visible.width : part.visible.length;
-      const partRealVert =
-        view === "top" ? part.visible.width : part.visible.thickness;
-      const partWidthSvgRef = partRightSvg - partLeftSvg;
-      const partHeightSvgRef = partBottomY - partTopSvg;
-      const mmPerSvgX =
-        partWidthSvgRef > 1 ? partRealHoriz / partWidthSvgRef : 1;
-      const mmPerSvgY =
-        partHeightSvgRef > 1 ? partRealVert / partHeightSvgRef : 1;
+      // shoulder 數值改用 part-local 座標直接算。原本 (box.y - topBoundary) *
+      // mmPerSvg 量的是 SVG 投影上的 screen-Y 距離，對 splayed/tapered 件（投影
+      // 為傾斜平行四邊形）量出來的不是 part-local 軸向距離 → 121.4 / 170 / 418.1
+      // 等離譜值（user 2026-05-26 多次回報）。
+      //
+      // 各 view 軸對映（與 mortiseEntryBox / tenonLocalBox 同座標系）：
+      //   front: horiz=X, vert=Y
+      //   top:   horiz=X, vert=Z
+      //   side:  horiz=Z, vert=Y
+      const L_local = part.visible.length;
+      const W_local = part.visible.width;
+      const T_local = part.visible.thickness;
+      const partHalfH =
+        view === "side" ? W_local / 2 : L_local / 2;
+      const partHalfV =
+        view === "top" ? W_local / 2 : T_local / 2;
+      const featCh = view === "side" ? lb.cz : lb.cx;
+      const featHh = view === "side" ? lb.hz : lb.hx;
+      const featCv = view === "top" ? lb.cz : lb.cy;
+      const featHv = view === "top" ? lb.hz : lb.hy;
 
       // feature 必須在 part body 那軸範圍內，才算 shoulder（榫頭凸出側不是
       // shoulder、是 part 外）；2mm 容差吸收 SVG 投影誤差
@@ -1603,19 +1618,34 @@ export function T2Annotations({
       const skipLastShoulderBot =
         isLastSibling && partBottomY - (box.y + box.h) > LONG_CHAIN_TH;
 
+      // 取 prev sibling 在 vertAxis 上的 part-local 下緣（如有 sibling）
+      // 不然用 part 邊（+partHalfV = top edge）
+      const prevSibCv = prevLSibling
+        ? view === "top"
+          ? prevLSibling.lb.cz
+          : prevLSibling.lb.cy
+        : 0;
+      const prevSibHv = prevLSibling
+        ? view === "top"
+          ? prevLSibling.lb.hz
+          : prevLSibling.lb.hy
+        : 0;
+      const topBoundaryLocal = prevLSibling
+        ? prevSibCv + prevSibHv
+        : partHalfV;
       const shoulderTop =
         featureInsideY && !skipFirstShoulderTop
-          ? round1((box.y - topBoundary) * mmPerSvgY)
+          ? round1(topBoundaryLocal - (featCv + featHv))
           : 0;
       const shoulderBot =
         featureInsideY && drawBotShoulder && !skipLastShoulderBot
-          ? round1((partBottomY - (box.y + box.h)) * mmPerSvgY)
+          ? round1((featCv - featHv) + partHalfV)
           : 0;
       const shoulderLft = featureInsideX
-        ? round1((box.x - partLeftX) * mmPerSvgX)
+        ? round1((featCh - featHh) + partHalfH)
         : 0;
       const shoulderRgt = featureInsideX
-        ? round1((partRightX - (box.x + box.w)) * mmPerSvgX)
+        ? round1(partHalfH - (featCh + featHh))
         : 0;
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
