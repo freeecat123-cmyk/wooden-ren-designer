@@ -24,6 +24,7 @@ interface Props {
 
 const EPS = 0.001;
 const MIN_EDGE_CM = 10;
+const MAX_EDGE_CM = 1500; // 對齊「總寬/總深」拉桿上限,避免 typing 殘渣 e.g. "4205" 噴出
 
 export function FloorCanvasEditor({
   room,
@@ -108,7 +109,7 @@ export function FloorCanvasEditor({
     const horiz = Math.abs(b.y - a.y) < EPS;
     const vert = Math.abs(b.x - a.x) < EPS;
     if (!horiz && !vert) return; // 斜邊不可編輯
-    const len = Math.max(L, MIN_EDGE_CM);
+    const len = Math.min(Math.max(L, MIN_EDGE_CM), MAX_EDGE_CM);
     if (horiz) {
       const dir = b.x - a.x >= 0 ? 1 : -1;
       const newX = a.x + dir * len;
@@ -275,13 +276,22 @@ export function FloorCanvasEditor({
         );
       })}
 
-      {/* 編輯輸入框 — HTML 浮層 */}
+      {/* 編輯輸入框 — HTML 浮層
+        ⚠️ 用 type="text" + inputMode="numeric" 而非 type="number":
+        - type="number" 不支援 select()/setSelectionRange,user typing 變 append
+          (點 420 → type "5" → 變 "4205",直接打死功能)
+        - text 模式可以 onFocus select all,user 看到輸入框就直接 type 取代
+        - inputMode="numeric" 行動裝置仍彈數字鍵盤
+        - onChange 過濾非數字,維持「數字輸入」UX */}
       {editing && (
         <input
           autoFocus
-          type="number"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
           onBlur={commitEdit}
           onKeyDown={(e) => {
             if (e.key === "Enter") commitEdit();
@@ -291,11 +301,11 @@ export function FloorCanvasEditor({
             position: "absolute",
             left: editing.lx,
             top: editing.ly,
-            width: 56,
+            width: 64,
             height: 24,
             transform: "translate(-50%, -50%)",
           }}
-          className="rounded border border-[#bd9955] bg-white text-center text-[11px] outline-none"
+          className="rounded border border-[#bd9955] bg-white text-center text-[12px] outline-none"
         />
       )}
     </div>
