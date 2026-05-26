@@ -251,7 +251,7 @@ export function subJoistRunLengthsM(
  * runAlongX=true → 水平線 y=const,回傳交集 x 區間總長。
  * runAlongX=false → 垂直線 x=const,回傳交集 y 區間總長。
  */
-function scanlineLength(
+export function scanlineLength(
   poly: RoomPolygon,
   runAlongX: boolean,
   level: number,
@@ -282,7 +282,7 @@ function clamp(n: number, lo: number, hi: number): number {
   return n < lo ? lo : n > hi ? hi : n;
 }
 
-function bbox(poly: RoomPolygon) {
+export function bbox(poly: RoomPolygon) {
   const xs = poly.vertices.map((p) => p.x);
   const ys = poly.vertices.map((p) => p.y);
   return {

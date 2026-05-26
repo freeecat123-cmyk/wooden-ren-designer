@@ -3,7 +3,7 @@
 /**
  * 和室架高平台 — R3F 3D 場景含爆炸圖
  *
- * 對標 lib/ceiling/CeilingScene3D.tsx 的 5 圖層架構,擴增到 7 圖層。
+ * 對標 lib/ceiling/CeilingScene3D.tsx 的 5 圖層架構,擴增到 6 圖層。
  *
  * 座標系(嚴格遵守 spec):
  *   X = 平台 polygon 的 x 軸(=input.widthCm 方向)
@@ -15,7 +15,6 @@
  * 對齊 lib/raised-floor/geometry.ts 的 shortAlongX 規則。
  *
  * 圖層由下而上(對應 explode 0..1 把各層往上拉開 EXPLODE_BASE_CM=30cm):
- *   ground   — 平台真實多邊形 footprint(顯 L 形 / 挨柱挖空,Y=0)
  *   legs     — 4 角+中段腳柱(0..heightCm,不爆)
  *   frame    — 邊框角材(× 1)
  *   main     — 主支(× 2)
@@ -34,7 +33,6 @@ import type { RaisedFloorBom } from "./types";
 import { boundingBox } from "@/lib/floor/geometry";
 
 export type LayerKey =
-  | "ground"
   | "legs"
   | "frame"
   | "main"
@@ -56,9 +54,81 @@ const LEG_CROSS_CM = 6;       // 視覺腳柱斷面(2 寸角材實寬 5.5,圓整
 const PLANK_THICK_CM = 1.2;   // 超耐磨面材厚度 ~12 mm
 const LEG_MAX_SPACING_CM = 80;
 
+// ─────────────────────────────────────────────────────────
+// 多邊形幾何工具(平台 polygon 都是軸向正交,挨柱挖洞也是正交矩形)
+// ─────────────────────────────────────────────────────────
+type Pt = { x: number; y: number };
+
+function pointInPolygon(px: number, py: number, verts: Pt[]): boolean {
+  let inside = false;
+  for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+    const xi = verts[i].x;
+    const yi = verts[i].y;
+    const xj = verts[j].x;
+    const yj = verts[j].y;
+    const intersect =
+      yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * 把一條軸向線段(axis=horizontal → 沿 X 跑,fixedCoord = polygon.y;
+ * axis=vertical → 沿 Y 跑,fixedCoord = polygon.x)依 polygon 切成「內部」區段。
+ * 回傳 [start, end] 區間陣列。
+ */
+function clipSegmentToPolygon(
+  axis: "horizontal" | "vertical",
+  fixedCoord: number,
+  rangeStart: number,
+  rangeEnd: number,
+  verts: Pt[],
+): Array<[number, number]> {
+  if (verts.length < 3) return [];
+  const crossings: number[] = [];
+  for (let i = 0; i < verts.length; i++) {
+    const a = verts[i];
+    const b = verts[(i + 1) % verts.length];
+    if (axis === "horizontal") {
+      // 邊跨越 y=fixedCoord(用半開區間避開頂點重複計數)
+      const aBelow = a.y <= fixedCoord;
+      const bBelow = b.y <= fixedCoord;
+      if (aBelow !== bBelow) {
+        const t = (fixedCoord - a.y) / (b.y - a.y);
+        crossings.push(a.x + t * (b.x - a.x));
+      }
+    } else {
+      const aLeft = a.x <= fixedCoord;
+      const bLeft = b.x <= fixedCoord;
+      if (aLeft !== bLeft) {
+        const t = (fixedCoord - a.x) / (b.x - a.x);
+        crossings.push(a.y + t * (b.y - a.y));
+      }
+    }
+  }
+  crossings.sort((p, q) => p - q);
+  const intervals: Array<[number, number]> = [];
+  for (let i = 0; i + 1 < crossings.length; i += 2) {
+    const lo = Math.max(crossings[i], rangeStart);
+    const hi = Math.min(crossings[i + 1], rangeEnd);
+    if (hi - lo > 0.1) intervals.push([lo, hi]);
+  }
+  return intervals;
+}
+
+/** signed area > 0 → CCW;<0 → CW */
+function polygonSignedArea(verts: Pt[]): number {
+  let s = 0;
+  for (let i = 0; i < verts.length; i++) {
+    const a = verts[i];
+    const b = verts[(i + 1) % verts.length];
+    s += a.x * b.y - b.x * a.y;
+  }
+  return s / 2;
+}
+
 const COLOR = {
-  ground: "#fef3c7",     // 地面 footprint 淡黃
-  groundEdge: "#a16207",
   leg: "#71717a",
   frame: "#a16207",
   main: "#d97706",
@@ -78,34 +148,41 @@ export function RaisedFloorScene3D({
   const bb = boundingBox(platform);
   const W = bb.maxX - bb.minX; // = input.widthCm(polygon X span)
   const D = bb.maxY - bb.minY; // = input.depthCm(polygon Z span)
-  const tt = input.joist.thicknessMm / 10; // 角材厚(高度 Y 方向)
-  const tw = input.joist.widthMm / 10;     // 角材寬(俯視寬度)
+  // 主支(也用於頂框/底框)與副支可不同斷面
+  const mainTt = input.mainJoist.thicknessMm / 10;
+  const mainTw = input.mainJoist.widthMm / 10;
+  const subTt = input.subJoist.thicknessMm / 10;
+  const subTw = input.subJoist.widthMm / 10;
   const plyT = input.plywood.thicknessMm / 10;
   const plankT = PLANK_THICK_CM;
   const heightCm = input.heightCm;
-  const plankW = input.plankWidthCm;
 
   // ─── 長 / 短軸方向(對齊 geometry.ts shortAlongX 規則)──
   // shortAlongX=true → 角材沿 X 走(每根長 = W),主支沿 Z 排列(長軸 = Z = depthCm)
   // shortAlongX=false → 角材沿 Z 走(每根長 = D),主支沿 X 排列(長軸 = X = widthCm)
   const shortAlongX = W <= D;
-  const longSpan = shortAlongX ? D : W;
   const shortSpan = shortAlongX ? W : D;
 
   // ─── 各層 Y 位置(中心)──
   // 平台底 Y=0、頂面 Y=heightCm
   // 角材(邊框/主支/副支)上表面 = heightCm → 角材中心 = heightCm - tt/2
   // 副支稍微在主支下方(差 0.5cm)同 ceiling 慣例
-  const yLegCenter = heightCm / 2;
-  const yFrameCenter = heightCm - tt / 2;
-  const yMainCenter = heightCm - tt / 2;
-  const ySubCenter = heightCm - tt / 2 - 0.5;
+  // 底框 + 底主支(只在有內柱的那排)貼地;
+  // 腳柱站在底框/底主支頂面(Y=mainTt);頂框/主支貼頂、副支在主支下方。
+  const yBottomFrameCenter = mainTt / 2;
+  const yBottomMainCenter = mainTt / 2;
+  const yLegCenter = (mainTt + (heightCm - mainTt)) / 2;
+  const yFrameCenter = heightCm - mainTt / 2;
+  const yMainCenter = heightCm - mainTt / 2;
+  const ySubCenter = heightCm - mainTt - subTt / 2 - 0.1;
   const yPlywoodCenter = heightCm + plyT / 2;
   const yPlankCenter = heightCm + plyT + plankT / 2;
+  const legBodyHeight = Math.max(0, heightCm - 2 * mainTt);
 
   // ─── 爆炸偏移(由下而上往上拉開)──
   const eo = {
-    ground: 0,
+    bottomFrame: 0, // 不爆(地面那層當基準)
+    bottomMain: 0,  // 跟底框同層,不爆
     legs: 0, // 不爆
     frame: explode * EXPLODE_BASE_CM * 1,
     main: explode * EXPLODE_BASE_CM * 2,
@@ -117,6 +194,34 @@ export function RaisedFloorScene3D({
   // 平台 bbox 中心(把場景移到原點)
   const cx = W / 2;
   const cz = D / 2;
+
+  // 把 polygon vertices 平移到 bbox-local 座標(0..W, 0..D),
+  // 給 plank/plywood 的 ExtrudeGeometry 使用,讓 L 形 / 挨柱挖洞反映在 3D。
+  const platformVerts = useMemo(
+    () => platform.vertices.map((p) => ({ x: p.x - bb.minX, y: p.y - bb.minY })),
+    [platform.vertices, bb.minX, bb.minY]
+  );
+
+  // 腳柱 grid 的內部 X / Z 位置(去掉周邊 i=0 / i=last 那一圈);
+  // 底主支只畫在「有內柱」的那一排(沿主支方向跨,承一整排內柱)。
+  const interiorLegLines = useMemo(() => {
+    const legCountX = Math.max(2, Math.ceil(W / LEG_MAX_SPACING_CM) + 1);
+    const legCountZ = Math.max(2, Math.ceil(D / LEG_MAX_SPACING_CM) + 1);
+    const innerXs: number[] = [];
+    const innerZs: number[] = [];
+    for (let i = 1; i < legCountX - 1; i++) {
+      innerXs.push((i * W) / (legCountX - 1));
+    }
+    for (let j = 1; j < legCountZ - 1; j++) {
+      innerZs.push((j * D) / (legCountZ - 1));
+    }
+    return { innerXs, innerZs };
+  }, [W, D]);
+  // shortAlongX=true → 主支沿 X 跑、c 在 Z;底主支取內柱 Z 排
+  // shortAlongX=false → 主支沿 Z 跑、c 在 X;底主支取內柱 X 排
+  const bottomMainCenters = shortAlongX
+    ? interiorLegLines.innerZs
+    : interiorLegLines.innerXs;
 
   // ortho 攝影機 frustum 推算 — 架高高度通常小(30cm vs 平台 300+cm)
   // 要乘 4 才會在 iso 視角能看見高度;對齊 spec
@@ -136,11 +241,27 @@ export function RaisedFloorScene3D({
         <directionalLight position={[W, 400, D]} intensity={0.6} />
 
         <group position={[-cx, 0, -cz]}>
-          {/* ────── 平台真實 footprint(L 形 / 挨柱挖空) ────── */}
-          {layers.ground && (
-            <GroundLayer
-              vertices={platform.vertices}
-              yCenter={0.01}
+          {/* ────── 底框(腳柱底下承重)────── */}
+          {layers.frame && (
+            <FrameLayer
+              vertices={platformVerts}
+              tw={mainTw}
+              tt={mainTt}
+              yCenter={yBottomFrameCenter + eo.bottomFrame}
+            />
+          )}
+
+          {/* ────── 底主支(只畫在「有內柱」的那排,承重用)────── */}
+          {layers.main && bottomMainCenters.length > 0 && (
+            <MainJoistsLayer
+              W={W}
+              D={D}
+              tw={mainTw}
+              tt={mainTt}
+              shortAlongX={shortAlongX}
+              vertices={platformVerts}
+              mainCenters={bottomMainCenters}
+              yCenter={yBottomMainCenter + eo.bottomMain}
             />
           )}
 
@@ -149,18 +270,18 @@ export function RaisedFloorScene3D({
             <LegsLayer
               W={W}
               D={D}
-              heightCm={heightCm}
+              vertices={platformVerts}
+              heightCm={legBodyHeight}
               yCenter={yLegCenter + eo.legs}
             />
           )}
 
-          {/* ────── 邊框 ────── */}
+          {/* ────── 頂框 ────── */}
           {layers.frame && (
             <FrameLayer
-              W={W}
-              D={D}
-              tw={tw}
-              tt={tt}
+              vertices={platformVerts}
+              tw={mainTw}
+              tt={mainTt}
               yCenter={yFrameCenter + eo.frame}
             />
           )}
@@ -170,10 +291,10 @@ export function RaisedFloorScene3D({
             <MainJoistsLayer
               W={W}
               D={D}
-              tw={tw}
-              tt={tt}
+              tw={mainTw}
+              tt={mainTt}
               shortAlongX={shortAlongX}
-              shortSpan={shortSpan}
+              vertices={platformVerts}
               mainCenters={trace.mainJoistCentersCm}
               yCenter={yMainCenter + eo.main}
             />
@@ -184,12 +305,12 @@ export function RaisedFloorScene3D({
             <SubJoistsLayer
               W={W}
               D={D}
-              tw={tw}
-              tt={tt}
+              tw={subTw}
+              tt={subTt}
+              frameTw={mainTw}
               shortAlongX={shortAlongX}
               shortSpan={shortSpan}
-              longSpan={longSpan}
-              mainCenters={trace.mainJoistCentersCm}
+              vertices={platformVerts}
               subJoistSpacingCm={input.subJoistSpacingCm}
               yCenter={ySubCenter + eo.sub}
             />
@@ -198,10 +319,7 @@ export function RaisedFloorScene3D({
           {/* ────── 夾板 ────── */}
           {layers.plywood && (
             <PlywoodLayer
-              W={W}
-              D={D}
-              sheetLengthCm={input.plywood.sheetLengthCm}
-              sheetWidthCm={input.plywood.sheetWidthCm}
+              vertices={platformVerts}
               plyT={plyT}
               yCenter={yPlywoodCenter + eo.plywood}
             />
@@ -210,11 +328,8 @@ export function RaisedFloorScene3D({
           {/* ────── 面材 ────── */}
           {layers.plank && (
             <PlankLayer
-              W={W}
-              D={D}
-              plankW={plankW}
+              vertices={platformVerts}
               plankT={plankT}
-              shortAlongX={shortAlongX}
               yCenter={yPlankCenter + eo.plank}
             />
           )}
@@ -261,51 +376,6 @@ function CameraRig({
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// 地面 footprint — 用 THREE.Shape 畫真實多邊形(顯 L / 挨柱)
-// ─────────────────────────────────────────────────────────
-function GroundLayer({
-  vertices,
-  yCenter,
-}: {
-  vertices: { x: number; y: number }[];
-  yCenter: number;
-}) {
-  const { geometry, edgesGeom } = useMemo(() => {
-    const shape = new THREE.Shape();
-    if (vertices.length > 0) {
-      // polygon (x, y) → XZ 平面(z 來自 polygon.y);
-      // THREE.Shape 在自己的 2D 平面上(x, y),mesh 用 rotation 攤平到 XZ
-      shape.moveTo(vertices[0].x, vertices[0].y);
-      for (let i = 1; i < vertices.length; i++) {
-        shape.lineTo(vertices[i].x, vertices[i].y);
-      }
-      shape.closePath();
-    }
-    const g = new THREE.ShapeGeometry(shape);
-    const e = new THREE.EdgesGeometry(g);
-    return { geometry: g, edgesGeom: e };
-  }, [vertices]);
-
-  return (
-    <group position={[0, yCenter, 0]}>
-      {/* shape XY 平面 → rotate -90° 繞 X,變成 XZ 平面;再翻 Z 鏡像對齊 polygon y→world Z */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <primitive object={geometry} attach="geometry" />
-        <meshStandardMaterial
-          color={COLOR.ground}
-          side={THREE.DoubleSide}
-          transparent
-          opacity={0.7}
-        />
-      </mesh>
-      <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <primitive object={edgesGeom} attach="geometry" />
-        <lineBasicMaterial color={COLOR.groundEdge} />
-      </lineSegments>
-    </group>
-  );
-}
 
 // ─────────────────────────────────────────────────────────
 // 腳柱 — 4 角 + 中段每 ≤80cm 補一根(bbox 簡化)
@@ -313,11 +383,13 @@ function GroundLayer({
 function LegsLayer({
   W,
   D,
+  vertices,
   heightCm,
   yCenter,
 }: {
   W: number;
   D: number;
+  vertices: Pt[];
   heightCm: number;
   yCenter: number;
 }) {
@@ -333,14 +405,24 @@ function LegsLayer({
       zs.push((j * D) / (legCountZ - 1));
     }
     const out: Array<[number, number]> = [];
-    for (const x of xs) for (const z of zs) out.push([x, z]);
-    if (typeof console !== "undefined") {
-      console.log(
-        `[RaisedFloor3D] legs grid ${legCountX} × ${legCountZ} = ${out.length} pcs`,
+    // 內部 grid:挨柱挖空處跳過。用點稍微往內縮 0.1cm 避開邊界誤判。
+    const EPS = 0.1;
+    for (const x of xs) {
+      for (const z of zs) {
+        const xi = Math.max(EPS, Math.min(W - EPS, x));
+        const zi = Math.max(EPS, Math.min(D - EPS, z));
+        if (pointInPolygon(xi, zi, vertices)) out.push([x, z]);
+      }
+    }
+    // 加 polygon 頂點(L 形 / 挨柱新角)的腳柱,確保每個角都有支撐
+    for (const v of vertices) {
+      const dup = out.some(
+        ([x, z]) => Math.abs(x - v.x) < 1 && Math.abs(z - v.y) < 1,
       );
+      if (!dup) out.push([v.x, v.y]);
     }
     return out;
-  }, [W, D]);
+  }, [W, D, vertices]);
 
   return (
     <group position={[0, yCenter, 0]}>
@@ -355,254 +437,62 @@ function LegsLayer({
 }
 
 // ─────────────────────────────────────────────────────────
-// 邊框 — 4 條角材圍 bbox(對標 ceiling FrameLayer)
+// 邊框 — 沿 polygon 每條邊鋪一根角材(L 形 / 挨柱自動跟形)
+// 平台 polygon 都是軸向正交,每邊不是水平就是垂直,beam 用 boxGeometry 即可。
+// 「往內」方向用 CCW 法向(左手邊),所以先正規化成 CCW。
 // ─────────────────────────────────────────────────────────
 function FrameLayer({
-  W,
-  D,
+  vertices,
   tw,
   tt,
   yCenter,
 }: {
-  W: number;
-  D: number;
+  vertices: Pt[];
   tw: number;
   tt: number;
   yCenter: number;
 }) {
-  return (
-    <group position={[0, yCenter, 0]}>
-      {/* 沿 X 兩條(前後)*/}
-      <mesh position={[W / 2, 0, tw / 2]}>
-        <boxGeometry args={[W, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} />
-      </mesh>
-      <mesh position={[W / 2, 0, D - tw / 2]}>
-        <boxGeometry args={[W, tt, tw]} />
-        <meshStandardMaterial color={COLOR.frame} />
-      </mesh>
-      {/* 沿 Z 兩條(左右)*/}
-      <mesh position={[tw / 2, 0, D / 2]}>
-        <boxGeometry args={[tw, tt, D]} />
-        <meshStandardMaterial color={COLOR.frame} />
-      </mesh>
-      <mesh position={[W - tw / 2, 0, D / 2]}>
-        <boxGeometry args={[tw, tt, D]} />
-        <meshStandardMaterial color={COLOR.frame} />
-      </mesh>
-    </group>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// 主支 — 沿短軸跨,長軸排列(mainCenters 給位置)
-// ─────────────────────────────────────────────────────────
-function MainJoistsLayer({
-  W,
-  D,
-  tw,
-  tt,
-  shortAlongX,
-  shortSpan,
-  mainCenters,
-  yCenter,
-}: {
-  W: number;
-  D: number;
-  tw: number;
-  tt: number;
-  shortAlongX: boolean;
-  shortSpan: number;
-  mainCenters: number[];
-  yCenter: number;
-}) {
-  // 每根長度 = 短軸寬 - 2*frameW(扣邊框)
-  const joistLength = Math.max(0, shortSpan - 2 * tw);
-
-  return (
-    <group position={[0, yCenter, 0]}>
-      {mainCenters.map((c, idx) => {
-        if (shortAlongX) {
-          // 主支沿 X 跨(長度方向=X),沿 Z 排列(c 在 Z)
-          return (
-            <mesh key={idx} position={[W / 2, 0, c]}>
-              <boxGeometry args={[joistLength, tt, tw]} />
-              <meshStandardMaterial color={COLOR.main} />
-            </mesh>
-          );
-        } else {
-          // 主支沿 Z 跨,沿 X 排列(c 在 X)
-          return (
-            <mesh key={idx} position={[c, 0, D / 2]}>
-              <boxGeometry args={[tw, tt, joistLength]} />
-              <meshStandardMaterial color={COLOR.main} />
-            </mesh>
-          );
-        }
-      })}
-    </group>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// 副支 — 每 slot 內,沿長軸方向短段(垂直主支)
-// ─────────────────────────────────────────────────────────
-function SubJoistsLayer({
-  W,
-  D,
-  tw,
-  tt,
-  shortAlongX,
-  shortSpan,
-  longSpan,
-  mainCenters,
-  subJoistSpacingCm,
-  yCenter,
-}: {
-  W: number;
-  D: number;
-  tw: number;
-  tt: number;
-  shortAlongX: boolean;
-  shortSpan: number;
-  longSpan: number;
-  mainCenters: number[];
-  subJoistSpacingCm: number;
-  yCenter: number;
-}) {
-  const items = useMemo(() => {
-    // slot 邊界沿長軸:[frameW, ...mainCenters, longSpan - frameW]
-    const boundaries = [tw, ...mainCenters, longSpan - tw];
-    const spacing = Math.max(subJoistSpacingCm, 1);
-
-    // 副支沿短軸排列(每 spacing 一根),每根長度 = slot 寬
-    const subRows = Math.max(0, Math.floor(shortSpan / spacing));
-    const subCenters: number[] = [];
-    for (let i = 1; i <= subRows; i++) {
-      subCenters.push((i * shortSpan) / (subRows + 1));
-    }
-
-    const out: Array<{ axisLongCenter: number; axisLongLength: number; axisShortCenter: number }> = [];
-    for (let s = 0; s + 1 < boundaries.length; s++) {
-      const lo = boundaries[s];
-      const hi = boundaries[s + 1];
-      const slotWidth = hi - lo;
-      if (slotWidth <= 0) continue;
-      const slotCenter = (lo + hi) / 2;
-      for (const sc of subCenters) {
-        out.push({
-          axisLongCenter: slotCenter,
-          axisLongLength: slotWidth,
-          axisShortCenter: sc,
-        });
-      }
+  const beams = useMemo(() => {
+    const verts =
+      polygonSignedArea(vertices) < 0 ? [...vertices].reverse() : vertices;
+    const out: Array<{
+      cx: number;
+      cz: number;
+      lenX: number;
+      lenZ: number;
+    }> = [];
+    for (let i = 0; i < verts.length; i++) {
+      const a = verts[i];
+      const b = verts[(i + 1) % verts.length];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.1) continue;
+      const ux = dx / len;
+      const uy = dy / len;
+      // CCW 左法向(往 polygon 內部)
+      const nx = -uy;
+      const ny = ux;
+      // beam 中心 = 邊中點 + 法向 × tw/2
+      const cx = (a.x + b.x) / 2 + (nx * tw) / 2;
+      const cz = (a.y + b.y) / 2 + (ny * tw) / 2;
+      const horiz = Math.abs(uy) < 0.01; // 邊沿 X 跑
+      out.push({
+        cx,
+        cz,
+        lenX: horiz ? len : tw,
+        lenZ: horiz ? tw : len,
+      });
     }
     return out;
-  }, [tw, mainCenters, longSpan, subJoistSpacingCm, shortSpan]);
-
-  // 副支「沿長軸方向跑」,跟主支垂直
-  //   shortAlongX=true → 長軸 = Z → 副支長度沿 Z
-  //   shortAlongX=false → 長軸 = X → 副支長度沿 X
-  return (
-    <group position={[0, yCenter, 0]}>
-      {items.map((it, i) => {
-        if (shortAlongX) {
-          // 副支沿 Z 跑(長度),沿 X 排列;axisShortCenter 在 X,axisLongCenter 在 Z
-          return (
-            <mesh
-              key={i}
-              position={[it.axisShortCenter, 0, it.axisLongCenter]}
-            >
-              <boxGeometry args={[tw, tt * 0.85, it.axisLongLength]} />
-              <meshStandardMaterial color={COLOR.sub} />
-            </mesh>
-          );
-        } else {
-          // 副支沿 X 跑;axisLongCenter 在 X,axisShortCenter 在 Z
-          return (
-            <mesh
-              key={i}
-              position={[it.axisLongCenter, 0, it.axisShortCenter]}
-            >
-              <boxGeometry args={[it.axisLongLength, tt * 0.85, tw]} />
-              <meshStandardMaterial color={COLOR.sub} />
-            </mesh>
-          );
-        }
-      })}
-    </group>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// 夾板 — bbox 攤滿,單片 244×122 切片(沿 X 切 244, 沿 Z 切 122)
-// ─────────────────────────────────────────────────────────
-function PlywoodLayer({
-  W,
-  D,
-  sheetLengthCm,
-  sheetWidthCm,
-  plyT,
-  yCenter,
-}: {
-  W: number;
-  D: number;
-  sheetLengthCm: number;
-  sheetWidthCm: number;
-  plyT: number;
-  yCenter: number;
-}) {
-  const sheets = useMemo(() => {
-    const gap = 0.2;
-    // 夾板長 244 沿 X、寬 122 沿 Z(預設 preset);
-    // 跟 spec「沿 X 切:每片 244cm,沿 Z 切:每片 122cm」對齊
-    const sheetLongX = sheetWidthCm;   // preset 預設 244
-    const sheetShortZ = sheetLengthCm; // preset 預設 122
-
-    const xEdges: number[] = [0];
-    let x = sheetLongX;
-    while (x < W) {
-      xEdges.push(x);
-      x += sheetLongX;
-    }
-    xEdges.push(W);
-
-    const zEdges: number[] = [0];
-    let z = sheetShortZ;
-    while (z < D) {
-      zEdges.push(z);
-      z += sheetShortZ;
-    }
-    zEdges.push(D);
-
-    const out: Array<{ cx: number; cz: number; w: number; d: number }> = [];
-    for (let i = 0; i < xEdges.length - 1; i++) {
-      const xL = xEdges[i];
-      const xR = xEdges[i + 1];
-      const w = xR - xL - gap;
-      if (w <= 0) continue;
-      for (let j = 0; j < zEdges.length - 1; j++) {
-        const zL = zEdges[j];
-        const zR = zEdges[j + 1];
-        const d = zR - zL - gap;
-        if (d <= 0) continue;
-        out.push({
-          cx: (xL + xR) / 2,
-          cz: (zL + zR) / 2,
-          w,
-          d,
-        });
-      }
-    }
-    return out;
-  }, [W, D, sheetLengthCm, sheetWidthCm]);
+  }, [vertices, tw]);
 
   return (
     <group position={[0, yCenter, 0]}>
-      {sheets.map((s, i) => (
-        <mesh key={i} position={[s.cx, 0, s.cz]}>
-          <boxGeometry args={[s.w, plyT, s.d]} />
-          <meshStandardMaterial color={COLOR.plywood} />
+      {beams.map((b, i) => (
+        <mesh key={i} position={[b.cx, 0, b.cz]}>
+          <boxGeometry args={[b.lenX, tt, b.lenZ]} />
+          <meshStandardMaterial color={COLOR.frame} />
         </mesh>
       ))}
     </group>
@@ -610,66 +500,236 @@ function PlywoodLayer({
 }
 
 // ─────────────────────────────────────────────────────────
-// 面材 — 偷懶整條版本,沿短軸排,每條長度 = bbox 長(沿長軸)
+// 主支 — 沿短軸跨,長軸排列(mainCenters 給位置);依 polygon 切段避開挨柱
 // ─────────────────────────────────────────────────────────
-function PlankLayer({
+function MainJoistsLayer({
   W,
   D,
-  plankW,
-  plankT,
+  tw,
+  tt,
   shortAlongX,
+  vertices,
+  mainCenters,
   yCenter,
 }: {
   W: number;
   D: number;
-  plankW: number;
-  plankT: number;
+  tw: number;
+  tt: number;
   shortAlongX: boolean;
+  vertices: Pt[];
+  mainCenters: number[];
   yCenter: number;
 }) {
-  const planks = useMemo(() => {
-    // 面材方向慣例:長邊沿長軸走;條寬 plankW 沿短軸排
-    // shortAlongX=true → 長軸 = Z → 每條長度沿 Z = D,寬沿 X = plankW
-    // shortAlongX=false → 長軸 = X → 每條長度沿 X = W,寬沿 Z = plankW
-    const gap = 0.2;
-    const span = shortAlongX ? W : D;
-    const count = Math.max(1, Math.floor(span / plankW));
-    const out: Array<{
-      axisShortCenter: number;
-      lengthX: number;
-      lengthZ: number;
-    }> = [];
-    for (let i = 0; i < count; i++) {
-      const sc = i * plankW + plankW / 2;
-      if (shortAlongX) {
-        out.push({
-          axisShortCenter: sc, // X
-          lengthX: plankW - gap,
-          lengthZ: D,
-        });
-      } else {
-        out.push({
-          axisShortCenter: sc, // Z
-          lengthX: W,
-          lengthZ: plankW - gap,
-        });
-      }
+  const segments = useMemo(() => {
+    const out: Array<{ c: number; lo: number; hi: number }> = [];
+    for (const c of mainCenters) {
+      // shortAlongX=true → 主支沿 X 跑,c 是 z;clip horizontal segment at y=c (polygon coord),x range = [tw, W-tw]
+      // shortAlongX=false → 主支沿 Z 跑,c 是 x;clip vertical at x=c, y range = [tw, D-tw]
+      const intervals = shortAlongX
+        ? clipSegmentToPolygon("horizontal", c, tw, W - tw, vertices)
+        : clipSegmentToPolygon("vertical", c, tw, D - tw, vertices);
+      for (const [lo, hi] of intervals) out.push({ c, lo, hi });
     }
     return out;
-  }, [W, D, plankW, shortAlongX]);
+  }, [shortAlongX, mainCenters, vertices, tw, W, D]);
 
   return (
     <group position={[0, yCenter, 0]}>
-      {planks.map((p, i) => {
-        const cx = shortAlongX ? p.axisShortCenter : W / 2;
-        const cz = shortAlongX ? D / 2 : p.axisShortCenter;
+      {segments.map((s, idx) => {
+        const len = s.hi - s.lo;
+        const mid = (s.lo + s.hi) / 2;
+        if (shortAlongX) {
+          return (
+            <mesh key={idx} position={[mid, 0, s.c]}>
+              <boxGeometry args={[len, tt, tw]} />
+              <meshStandardMaterial color={COLOR.main} />
+            </mesh>
+          );
+        }
         return (
-          <mesh key={i} position={[cx, 0, cz]}>
-            <boxGeometry args={[p.lengthX, plankT, p.lengthZ]} />
-            <meshStandardMaterial color={COLOR.plank} />
+          <mesh key={idx} position={[s.c, 0, mid]}>
+            <boxGeometry args={[tw, tt, len]} />
+            <meshStandardMaterial color={COLOR.main} />
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 副支 — 沿長軸方向跑(垂直主支),每 sub-row 位置依 polygon 切段避開挨柱
+// ─────────────────────────────────────────────────────────
+function SubJoistsLayer({
+  W,
+  D,
+  tw,
+  tt,
+  frameTw,
+  shortAlongX,
+  shortSpan,
+  vertices,
+  subJoistSpacingCm,
+  yCenter,
+}: {
+  W: number;
+  D: number;
+  tw: number;
+  tt: number;
+  frameTw: number;
+  shortAlongX: boolean;
+  shortSpan: number;
+  vertices: Pt[];
+  subJoistSpacingCm: number;
+  yCenter: number;
+}) {
+  const segments = useMemo(() => {
+    // 副支「沿長軸方向跑」,在短軸方向每 spacing 一條(整片不分 slot,
+    // 因為 slot 切割只是 BOM 估料分組,3D 視覺呈現一條條跨長軸即可)
+    const spacing = Math.max(subJoistSpacingCm, 1);
+    const subRows = Math.max(0, Math.floor(shortSpan / spacing));
+    const subCenters: number[] = [];
+    for (let i = 1; i <= subRows; i++) {
+      subCenters.push((i * shortSpan) / (subRows + 1));
+    }
+    const out: Array<{ c: number; lo: number; hi: number }> = [];
+    for (const sc of subCenters) {
+      // 副支內側 clip 用「邊框寬」(frameTw=mainTw)而非自身寬,避免副支比主支細時跑出框外
+      const intervals = shortAlongX
+        ? clipSegmentToPolygon("vertical", sc, frameTw, D - frameTw, vertices)
+        : clipSegmentToPolygon("horizontal", sc, frameTw, W - frameTw, vertices);
+      for (const [lo, hi] of intervals) out.push({ c: sc, lo, hi });
+    }
+    return out;
+  }, [shortAlongX, shortSpan, subJoistSpacingCm, vertices, tw, W, D]);
+
+  return (
+    <group position={[0, yCenter, 0]}>
+      {segments.map((s, i) => {
+        const len = s.hi - s.lo;
+        const mid = (s.lo + s.hi) / 2;
+        if (shortAlongX) {
+          // 副支沿 Z 跑,c 是 x
+          return (
+            <mesh key={i} position={[s.c, 0, mid]}>
+              <boxGeometry args={[tw, tt * 0.85, len]} />
+              <meshStandardMaterial color={COLOR.sub} />
+            </mesh>
+          );
+        }
+        return (
+          <mesh key={i} position={[mid, 0, s.c]}>
+            <boxGeometry args={[len, tt * 0.85, tw]} />
+            <meshStandardMaterial color={COLOR.sub} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 用 platform polygon 建一個 ExtrudeGeometry,實際反映 L 形 / 挨柱挖洞。
+// vertices 是 bbox-local(0..W, 0..D),polygon.y → world Z。
+// 拉伸方向預設沿 +Z(THREE.Shape 在 XY 平面),mesh 用 rotation [-π/2, 0, 0] 攤到 XZ,
+// 厚度 thickness 沿世界 Y。
+// ─────────────────────────────────────────────────────────
+function PlatformExtrudeMesh({
+  vertices,
+  thickness,
+  color,
+}: {
+  vertices: { x: number; y: number }[];
+  thickness: number;
+  color: string;
+}) {
+  const { geometry, edgesGeom } = useMemo(() => {
+    // geometry.ts 產出順時針(CW)頂點,但 THREE.Shape / earcut 期望 CCW
+    // 才會生出朝外的正面三角形。檢測 signed area 決定是否反轉。
+    let area = 0;
+    for (let i = 0; i < vertices.length; i++) {
+      const a = vertices[i];
+      const b = vertices[(i + 1) % vertices.length];
+      area += a.x * b.y - b.x * a.y;
+    }
+    const verts = area < 0 ? [...vertices].reverse() : vertices;
+
+    const shape = new THREE.Shape();
+    if (verts.length > 0) {
+      shape.moveTo(verts[0].x, verts[0].y);
+      for (let i = 1; i < verts.length; i++) {
+        shape.lineTo(verts[i].x, verts[i].y);
+      }
+      shape.closePath();
+    }
+    const g = new THREE.ExtrudeGeometry(shape, {
+      depth: thickness,
+      bevelEnabled: false,
+    });
+    // 讓 slab 中心對齊 parent group 的 Y=0
+    g.translate(0, 0, -thickness / 2);
+    const e = new THREE.EdgesGeometry(g);
+    return { geometry: g, edgesGeom: e };
+  }, [vertices, thickness]);
+
+  return (
+    <group rotation={[Math.PI / 2, 0, 0]}>
+      <mesh>
+        <primitive object={geometry} attach="geometry" />
+        <meshStandardMaterial color={color} side={THREE.DoubleSide} />
+      </mesh>
+      <lineSegments>
+        <primitive object={edgesGeom} attach="geometry" />
+        <lineBasicMaterial color="#52525b" />
+      </lineSegments>
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 夾板 — 依平台多邊形 extrude(含 L 形/挨柱);
+// 沿 X/Z 的拼接縫在 2D「拼花」tab 看,3D 簡化成整層。
+// ─────────────────────────────────────────────────────────
+function PlywoodLayer({
+  vertices,
+  plyT,
+  yCenter,
+}: {
+  vertices: { x: number; y: number }[];
+  plyT: number;
+  yCenter: number;
+}) {
+  return (
+    <group position={[0, yCenter, 0]}>
+      <PlatformExtrudeMesh
+        vertices={vertices}
+        thickness={plyT}
+        color={COLOR.plywood}
+      />
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// 面材 — 依平台多邊形 extrude(含 L 形/挨柱);條寬細節留給 2D 拼花 tab。
+// ─────────────────────────────────────────────────────────
+function PlankLayer({
+  vertices,
+  plankT,
+  yCenter,
+}: {
+  vertices: { x: number; y: number }[];
+  plankT: number;
+  yCenter: number;
+}) {
+  return (
+    <group position={[0, yCenter, 0]}>
+      <PlatformExtrudeMesh
+        vertices={vertices}
+        thickness={plankT}
+        color={COLOR.plank}
+      />
     </group>
   );
 }

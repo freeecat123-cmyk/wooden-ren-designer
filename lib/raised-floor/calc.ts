@@ -13,6 +13,7 @@
 import type { RaisedFloorBom, RaisedFloorBomItem, RaisedFloorInput } from "./types";
 import { polygonArea, polygonPerimeter } from "@/lib/floor/geometry";
 import { computeFloorLayout } from "@/lib/floor/layout";
+import { optimizeOffcuts } from "@/lib/floor/cutting";
 import { buildPlatformPolygon, joistRunLengthsM, subJoistRunLengthsM } from "./geometry";
 import type { FloorInput } from "@/lib/floor/types";
 
@@ -52,9 +53,18 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     underlayPricePerPing: 0,
   };
   const layout = computeFloorLayout(floorInput);
-  const plankFullCount = layout.planks.filter((p) => p.kind === "full").length;
-  const plankCutCount = layout.planks.filter((p) => p.kind === "cut").length;
+  const fullPlanks = layout.planks.filter((p) => p.kind === "full");
+  const cutPlanks = layout.planks.filter((p) => p.kind === "cut");
+  const plankFullCount = fullPlanks.length;
+  const plankCutCount = cutPlanks.length;
   const plankTotalCount = plankFullCount + plankCutCount;
+  // 餘料再利用 — 算「裁切片實際消耗的全新片數」與紀錄
+  const cutResult = optimizeOffcuts(
+    cutPlanks.map((p) => p.effectiveLengthCm),
+    input.plankLengthCm,
+  );
+  const plankCutNewCount = cutResult.cutPlankCount;
+  const offcutReuseLog = cutResult.reuseLog;
   const plankNominalCm2 =
     plankTotalCount * input.plankLengthCm * input.plankWidthCm;
   const plankUsedCm2 = layout.planks.reduce((s, p) => s + p.usedAreaCm2, 0);
@@ -119,7 +129,7 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     {
       category: "joist",
       nameZh: "主支(骨架)",
-      spec: `${input.joist.nameZh} @ ${input.joistSpacingCm}cm`,
+      spec: `${input.mainJoist.nameZh} @ ${input.joistSpacingCm}cm`,
       totalLengthM: joistTotalM,
       note: `井字邊框 ${joist.perimeterM.toFixed(1)}m + 中間主支 ${joist.middleCount} 條`,
       subtotal: mainJoistCost > 0 ? mainJoistCost : undefined,
@@ -127,7 +137,7 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     {
       category: "sub-joist",
       nameZh: "副支(密底)",
-      spec: `${input.joist.nameZh} @ ${input.subJoistSpacingCm}cm`,
+      spec: `${input.subJoist.nameZh} @ ${input.subJoistSpacingCm}cm`,
       totalLengthM: subJoistTotalM,
       note: `${subJoist.count} 根 × 平均 ${subJoist.typicalLengthCm.toFixed(0)}cm`,
       subtotal: subJoistCost > 0 ? subJoistCost : undefined,
@@ -152,6 +162,7 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
   return {
     input,
     platform,
+    layout,
     items,
     auto: { platformAreaM2, pingShu, perimeterM },
     cost: {
@@ -165,6 +176,8 @@ export function computeRaisedFloorBom(input: RaisedFloorInput): RaisedFloorBom {
     trace: {
       plankFullCount,
       plankCutCount,
+      plankCutNewCount,
+      offcutReuseLog,
       plankTotalCount,
       plankWastePercent,
       joistTotalM,

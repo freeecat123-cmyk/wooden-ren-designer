@@ -65,8 +65,10 @@ export interface RaisedFloorInput {
   plankWidthCm: number;
   /** 牆邊伸縮縫(mm)— 跟 /floor 同單位慣例 */
   plankGapMm: number;
-  /** 骨架 */
-  joist: JoistPreset;
+  /** 主支角材(也用於頂框/底框)*/
+  mainJoist: JoistPreset;
+  /** 副支角材(可跟主支不同尺寸)*/
+  subJoist: JoistPreset;
   /** 主支間距(cm,中心-中心,沿長軸方向量)*/
   joistSpacingCm: number;
   /** 副支間距(cm,中心-中心,沿短軸方向量;副支垂直主支跨 slot)*/
@@ -106,6 +108,8 @@ export interface RaisedFloorBom {
   input: RaisedFloorInput;
   /** 平台多邊形(扣除挨柱後) */
   platform: RoomPolygon;
+  /** 面材排版(重用 lib/floor 的 layout,給裁切表用) */
+  layout: import("@/lib/floor/types").FloorLayout;
   items: RaisedFloorBomItem[];
   auto: {
     /** 平台面積(m²) */
@@ -129,6 +133,10 @@ export interface RaisedFloorBom {
     plankFullCount: number;
     /** 面材裁切件數 */
     plankCutCount: number;
+    /** 裁切片實際消耗的新片數(餘料再利用後)*/
+    plankCutNewCount: number;
+    /** 餘料再利用紀錄(人類可讀) */
+    offcutReuseLog: string[];
     /** 面材總片數(整片 + 裁切片新料)*/
     plankTotalCount: number;
     /** 面材損耗率(%) */
@@ -164,18 +172,24 @@ export const DEFAULT_RAISED_FLOOR_INPUT: RaisedFloorInput = {
   plankLengthCm: 121,
   plankWidthCm: 19.5,
   plankGapMm: 8,
-  joist: {
-    id: "j1",
-    nameZh: "1寸×1.2",
+  mainJoist: {
+    id: "joist-2x1.2",
+    nameZh: "2寸×1.2(60×36mm)",
+    widthMm: 60,
+    thicknessMm: 36,
+  },
+  subJoist: {
+    id: "joist-1x1.2",
+    nameZh: "1寸×1.2(30×36mm)",
     widthMm: 30,
     thicknessMm: 36,
   },
   joistSpacingCm: 30,
   subJoistSpacingCm: 40,
   plywood: {
-    id: "ply15",
-    nameZh: "樺木夾板 15mm",
-    thicknessMm: 15,
+    id: "ply18",
+    nameZh: "普通夾板 18mm",
+    thicknessMm: 18,
     sheetLengthCm: 122,
     sheetWidthCm: 244,
   },

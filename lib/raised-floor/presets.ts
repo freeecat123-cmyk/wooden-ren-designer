@@ -16,9 +16,11 @@ export const JOIST_PRESETS: JoistPreset[] = [
 ];
 
 export const PLYWOOD_PRESETS: PlywoodPreset[] = [
-  { id: "ply12", nameZh: "樺木夾板 12mm", thicknessMm: 12, sheetLengthCm: 122, sheetWidthCm: 244 },
-  { id: "ply15", nameZh: "樺木夾板 15mm", thicknessMm: 15, sheetLengthCm: 122, sheetWidthCm: 244 },
-  { id: "ply18", nameZh: "樺木夾板 18mm", thicknessMm: 18, sheetLengthCm: 122, sheetWidthCm: 244 },
+  { id: "ply18", nameZh: "普通夾板 18mm", thicknessMm: 18, sheetLengthCm: 122, sheetWidthCm: 244 },
+  { id: "ply15", nameZh: "普通夾板 15mm", thicknessMm: 15, sheetLengthCm: 122, sheetWidthCm: 244 },
+  { id: "ply12", nameZh: "普通夾板 12mm", thicknessMm: 12, sheetLengthCm: 122, sheetWidthCm: 244 },
+  { id: "ply18-birch", nameZh: "樺木夾板 18mm", thicknessMm: 18, sheetLengthCm: 122, sheetWidthCm: 244 },
+  { id: "ply15-birch", nameZh: "樺木夾板 15mm", thicknessMm: 15, sheetLengthCm: 122, sheetWidthCm: 244 },
 ];
 
 export function getJoistPreset(id: string): JoistPreset {
