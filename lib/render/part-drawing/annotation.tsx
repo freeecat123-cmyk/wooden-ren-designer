@@ -1750,16 +1750,20 @@ export function T2Annotations({
       // 讓使用者知道這數字屬於哪段。第一個 sibling 的 shoulderTop 不外推。
       if (shoulderTop > TH) {
         const isMidChain = !!prevLSibling;
-        // 多個相鄰 chain 的 shoulderTop label 同 X 列會疊在一起（user 2026-05-26
-        // 12:36 回報），按 sibling index 階梯遞增外推距離避免堆疊。
-        const TIGHT_OUT_BASE = 14;
-        const TIGHT_OUT_STEP = 12;
+        // 多個相鄰 chain 的 shoulderTop label 容易疊在一起（user 2026-05-26
+        // 回報）。tall part (Rz=-π/2) 螢幕垂直空間很窄，labels 全擠右邊。
+        // 改用 X+Y 雙軸錯開：X 按 sibling index 外推、Y 按 index 階梯下移，
+        // 配 leader 線指回 dim 線中點。
+        const ROW_H = 10;
+        const TIGHT_OUT_BASE = 18;
+        const TIGHT_OUT_STEP = 0; // 主要靠 Y 錯開，X 統一外推一段距離即可
         const tightOut =
           TIGHT_OUT_BASE + Math.max(0, myLIdx - 1) * TIGHT_OUT_STEP;
         const shTLabelX = isMidChain
           ? lLabelX + (outerLeft ? -tightOut : tightOut)
           : lLabelX;
         const segMidY = (shoulderTopStartY + box.y) / 2;
+        const labelYOffset = isMidChain ? myLIdx * ROW_H : 0;
         partEls.push(
           <g key={`${it.kind}-${it.idx}-shT`}>
             <line
@@ -1784,14 +1788,14 @@ export function T2Annotations({
                 x1={lDimX}
                 y1={segMidY}
                 x2={shTLabelX + (outerLeft ? 2 : -2)}
-                y2={segMidY}
+                y2={segMidY + labelYOffset}
                 stroke={stroke}
                 strokeWidth={0.3}
               />
             )}
             <text
               x={shTLabelX}
-              y={segMidY + 3}
+              y={segMidY + 3 + labelYOffset}
               fontSize={7}
               fill={stroke}
               fontFamily="monospace"
