@@ -1594,6 +1594,16 @@ export function T2Annotations({
             strokeWidth={0.3}
           />
           {inwardArrowsV(box.y, box.y + box.h, lDimX)}
+          {myLIdx > 0 && (
+            <line
+              x1={lDimX}
+              y1={box.y + box.h / 2}
+              x2={lLabelX + (outerLeft ? -1 : 1) * myLIdx * 14 + (outerLeft ? 2 : -2)}
+              y2={box.y + box.h / 2}
+              stroke={stroke}
+              strokeWidth={0.3}
+            />
+          )}
           <text
             x={lLabelX + (myLIdx > 0 ? (outerLeft ? -1 : 1) * myLIdx * 14 : 0)}
             y={box.y + box.h / 2 + 3}

@@ -348,12 +348,14 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
       ],
       mortises: dividerXs.map((dx) => ({
-        // shelf local x = world X（shelf origin.x = 0），下表面 local y = -panelT/2
-        origin: { x: dx, y: -panelT / 2, z: 0 },
-        depth: panelT / 2,        // 從下表面往上挖一半板厚
+        // egg-crate 十字搭接：從 shelf 「前緣」（z=-depth/2）往後挖到中央 z=0、
+        // 寬度方向（=depth）切一半。穿透厚度（panelT, Y 軸）。
+        // shelf local x = world X（shelf origin.x = 0）
+        origin: { x: dx, y: 0, z: -depth / 4 },
+        depth: panelT,             // 沿 thickness（Y）穿透
         length: panelT,            // 沿 shelf-length (X)：吃掉 v-divider 厚度
-        width: depth,              // 沿 shelf-width (Z)：全深度貫穿
-        through: false,
+        width: depth / 2,          // 沿 shelf-width (Z)：切一半板寬
+        through: true,
         cosmetic: true,
       })),
     });
