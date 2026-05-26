@@ -324,16 +324,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     mortises: shelfMortises(-1),
   };
 
-  // 十字搭接（egg-crate cross-lap）：分隔板互相交叉處各切一半板厚對接。
-  // - shelf 在每個垂直交叉處（col∈[1..bw-1]）下表面挖 panelT×depth×panelT/2 凹槽
-  // - v-divider 是整支貫穿（不再分段）、在每個水平交叉處（row∈[1..bt-1]）對應上表面挖凹槽
-  // 兩槽合上後表面平齊。cosmetic:true 在 joineryMode + 一般 3D 都會挖（cosmetic 慣例）。
-  // 3D 仍可能 z-fight（無 CSG manifold），visual fidelity 待後續 CSG ticket。
-
-  // 內部水平層板（bt-1 片）—— 兩端有 tongue 卡入側板；下表面在 v-divider 交叉處有半搭凹槽
-  const dividerXs = Array.from({ length: bw - 1 }, (_, idx) =>
-    -halfOuterW + panelT + (idx + 1) * cellSize - panelT / 2,
-  );
+  // 內部水平層板（bt-1 片）—— 兩端有 tongue 卡入側板
   const horizontalShelves: Part[] = [];
   for (let row = 1; row < bt; row++) {
     horizontalShelves.push({
@@ -347,58 +338,40 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         { position: "start", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
         { position: "end", type: "tongue-and-groove", length: SHELF_TONGUE_LEN, width: depth - SHELF_TONGUE_THICKNESS_OFFSET, thickness: panelT },
       ],
-      mortises: dividerXs.map((dx) => ({
-        // egg-crate 十字搭接：從 shelf 「前緣」（z=-depth/2）往後挖到中央 z=0、
-        // 寬度方向（=depth）切一半。穿透厚度（panelT, Y 軸）。
-        // shelf local x = world X（shelf origin.x = 0）
-        origin: { x: dx, y: 0, z: -depth / 4 },
-        depth: panelT,             // 沿 thickness（Y）穿透
-        length: panelT,            // 沿 shelf-length (X)：吃掉 v-divider 厚度
-        width: depth / 2,          // 沿 shelf-width (Z)：切一半板寬
-        through: true,
-        cosmetic: true,
-      })),
+      mortises: [],
     });
   }
 
-  // 內部垂直分隔——整支貫穿 (height=innerH)，每 col 一支
-  // 在每個水平交叉處（row∈[1..bt-1]）上表面挖凹槽接 shelf
+  // 內部垂直分隔——butt-joint 慣例：切成段，每段位於相鄰 2 條水平板之間
+  // （或最上 / 最下層位於水平板與頂 / 底板之間），不再貫穿水平板。
+  // 每排 (bw-1) 個分隔板 × bt 排 = (bw-1)×bt 段。
   const verticalDividers: Part[] = [];
-  for (let col = 1; col < bw; col++) {
-    // 在 row 交叉處挖 cosmetic mortise：v-divider rotation {x:π/2, y:π/2}
-    //   local x → world Z（length=depth，整條前後深度）
-    //   local y → world X（thickness=panelT 軸；mortise 從 +panelT/2 面往內挖）
-    //   local z → world Y（width=innerH，鉛直；交叉點 Y = panelT + row*cellSize - panelT/2）
-    // panel 中心世界 Y = origin.y + innerH/2 = panelT + innerH/2
-    // local z = yMid - (panelT + innerH/2) = row*cellSize - panelT/2 - innerH/2
-    const crossMortises = Array.from({ length: bt - 1 }, (_, idx) => {
-      const row = idx + 1;
-      const zLocal = row * cellSize - panelT / 2 - innerH / 2;
-      return {
-        // 從 +y 面（v-divider 厚度上面那側）往內挖一半
-        origin: { x: 0, y: panelT / 2, z: zLocal },
-        depth: panelT / 2,
-        length: depth,              // 沿 local x = world Z：整條深度
-        width: panelT,              // 沿 local z = world Y：shelf 厚度
-        through: false,
-        cosmetic: true,
-      };
-    });
-    verticalDividers.push({
-      id: `divider-v-c${col}`,
-      nameZh: `第 ${col} 縱向分隔`,
-      material,
-      grainDirection: "length",
-      visible: { length: depth, width: innerH, thickness: panelT },
-      origin: {
-        x: dividerXs[col - 1],
-        y: panelT,
-        z: 0,
-      },
-      rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
-      tenons: [],
-      mortises: crossMortises,
-    });
+  for (let row = 0; row < bt; row++) {
+    // 該排頂底 Y（避開水平板厚度）
+    const yMin = row === 0
+      ? panelT
+      : panelT + row * cellSize + panelT / 2;
+    const yMax = row === bt - 1
+      ? panelT + bt * cellSize
+      : panelT + (row + 1) * cellSize - panelT / 2;
+    const segH = yMax - yMin;
+    for (let col = 1; col < bw; col++) {
+      verticalDividers.push({
+        id: `divider-v-r${row + 1}-c${col}`,
+        nameZh: `第 ${row + 1} 排第 ${col} 縱向分隔`,
+        material,
+        grainDirection: "length",
+        visible: { length: depth, width: segH, thickness: panelT },
+        origin: {
+          x: -halfOuterW + panelT + col * cellSize - panelT / 2,
+          y: yMin,
+          z: 0,
+        },
+        rotation: { x: Math.PI / 2, y: Math.PI / 2, z: 0 },
+        tenons: [],
+        mortises: [],
+      });
+    }
   }
 
   // 菱形格子陣列（經典酒窖款）：保留矩形格子框架（horizontalShelves +
@@ -420,15 +393,12 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     const angle = Math.PI / 4; // 強制 45°
     const diamonds: Part[] = [];
 
-    // 連續對角板版本：每條 ／ 或 ＼ 從 lattice 一邊跨到另一邊。
-    // 每個 ／×＼ 交叉處加 cosmetic mortise 標出半搭凹槽（egg-crate cross-lap）。
-    // ／ 在 +z 面挖一半、＼ 在 -z 面挖另一半，合上後表面平齊。
-    // 3D 仍有 z-fight（無 CSG），但 joineryMode + part drawing 可看出搭接結構。
+    // 連續對角板版本（前一步）：每條 ／ 或 ＼ 從 lattice 一邊跨到另一邊。
+    // 交叉點 z-fighting 已知問題、暫接受（user 要求回到此版）。
     let idCounter = 0;
-    type SlatMeta = { part: Part; ax: number; ay: number; bx: number; by: number; rz: number };
     const mkSlat = (
       ax: number, ay: number, bx: number, by: number, rz: number,
-    ): SlatMeta | null => {
+    ): Part | null => {
       const len = Math.hypot(bx - ax, by - ay);
       if (len < 8) return null;
       idCounter += 1;
@@ -449,20 +419,18 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       };
       p.origin.y = cyTarget - worldExtents(p).yExt / 2;
-      return { part: p, ax, ay, bx, by, rz };
+      return p;
     };
 
-    const posSlats: SlatMeta[] = [];
-    const negSlats: SlatMeta[] = [];
-    // ／ 對角板（斜率 +1）：方程 y = x + k*D，k ∈ [-bw, bt]
+    // ／ 對角板（斜率 +1）：方程 y = x + k*D，k ∈ [-bw, bt]；端點為線跟 lattice 矩形交點
     for (let k = -bw; k <= bt; k++) {
       const ax = k >= 0 ? 0 : -k * D;
       const ay = k >= 0 ? k * D : 0;
       const yAtRight = latticeW + k * D;
       const bx = yAtRight <= latticeH ? latticeW : latticeH - k * D;
       const by = yAtRight <= latticeH ? yAtRight : latticeH;
-      const meta = mkSlat(ax, ay, bx, by, +angle);
-      if (meta) posSlats.push(meta);
+      const part = mkSlat(ax, ay, bx, by, +angle);
+      if (part) diamonds.push(part);
     }
     // ＼ 對角板（斜率 -1）：水平鏡射 ／
     for (let k = -bw; k <= bt; k++) {
@@ -471,48 +439,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
       const yAtRight = latticeW + k * D;
       const bx = yAtRight <= latticeH ? latticeW : latticeH - k * D;
       const by = yAtRight <= latticeH ? yAtRight : latticeH;
-      const meta = mkSlat(ax, latticeH - ay, bx, latticeH - by, -angle);
-      if (meta) negSlats.push(meta);
+      const part = mkSlat(ax, latticeH - ay, bx, latticeH - by, -angle);
+      if (part) diamonds.push(part);
     }
-
-    // 算 ／×＼ 交叉點 → 兩條 slat 各加一個 cosmetic mortise
-    // 兩條 45° 線交點：xi = ((mid_pos_x*2 + by_pos*2 - ay_pos - cy_pos)...)
-    // 改用幾何：對每對 (p, n)，line-line intersection 在 lattice 座標
-    const addLapMortise = (slat: SlatMeta, xi: number, yi: number, faceSign: 1 | -1) => {
-      const dx = xi - (slat.ax + slat.bx) / 2;
-      const dy = yi - (slat.ay + slat.by) / 2;
-      const localX = dx * Math.cos(slat.rz) + dy * Math.sin(slat.rz);
-      const len = Math.hypot(slat.bx - slat.ax, slat.by - slat.ay);
-      // 邊界檢查：留出 panelT/2 餘量避免槽切到端點外
-      if (Math.abs(localX) > len / 2 - panelT / 2) return;
-      slat.part.mortises!.push({
-        origin: { x: localX, y: 0, z: faceSign * (panelT / 2) },
-        depth: panelT / 2,
-        length: panelT,    // 沿 strut 長度 = 另一條 strut 投影厚度
-        width: depth,      // 沿 strut breadth（width=depth）：全寬槽
-        through: false,
-        cosmetic: true,
-      });
-    };
-
-    for (const p of posSlats) {
-      for (const n of negSlats) {
-        // ／ line: y - p.ay = (x - p.ax)  → y = x + (p.ay - p.ax)
-        // ＼ line: y - n.ay = -(x - n.ax) → y = -x + (n.ay + n.ax)
-        const cP = p.ay - p.ax;
-        const cN = n.ay + n.ax;
-        const xi = (cN - cP) / 2;
-        const yi = (cN + cP) / 2;
-        // lattice 內部交叉（含邊界 corner 視為內部）
-        if (xi < -0.5 || xi > latticeW + 0.5) continue;
-        if (yi < -0.5 || yi > latticeH + 0.5) continue;
-        addLapMortise(p, xi, yi, +1);  // ／ 從 +z 面挖
-        addLapMortise(n, xi, yi, -1);  // ＼ 從 -z 面挖
-      }
-    }
-
-    const diamondParts = [...posSlats, ...negSlats].map((s) => s.part);
-    diamonds.push(...diamondParts);
     layoutDividers = diamonds;
   } else {
     layoutDividers = [...horizontalShelves, ...verticalDividers];
@@ -747,7 +676,7 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     useButtJointConvention: true,
     primaryMaterial: material,
     warnings: warnings.length ? warnings : undefined,
-    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板；分隔板互相交叉處改用**十字搭接（half-lap）**，兩片各切一半板厚扣合、表面平齊。不上膠也能穩固——拆卸方便、移動好搬。${
+    notes: `紅酒架 ${bw} 橫 × ${bt} 縱 = ${totalBottles} 瓶位，外尺寸 ${outerW}×${depth}×${totalH}mm。**${netFitDesc} vs 瓶徑 ${bd}mm**（餘量 ${(netFitDim - bd).toFixed(0)}mm${fitTooSmall ? "、⚠ 塞不下" : ""}）。每瓶位 ${cellSize}×${cellSize}mm pitch（瓶身 ${bd}mm + ${cellClearance}mm 間距）。內部分隔板用槽接（dado joint）卡入兩側板，不上膠也能穩固——拆卸方便、移動好搬。${
       gridLayout === "diamond" ? `菱形款：${bw}×${bt} 個等距 45° 方菱形格、瓶身斜靠菱形 V 底；對角板切段、兩端 45° 斜角 butt 進 lattice corner 無縫，是經典酒窖陣列樣式。為讓 ${bd}mm 瓶身塞得進菱形內接圓，pitch 自動拉大到 ${cellSize}mm（外尺寸比方格款大約 ${Math.round((Math.SQRT2 - 1) * 100)}%）。` : ""
     }${orientation === "horizontal" ? `深度 ${depth}mm 整支瓶身平躺，紅酒專用。` : `深度 ${depth}mm 適合裝直立的 750ml 標準波爾多瓶。`}${
       hasLegs ? ` 底部加${legShape === "plinth" ? "平台底座" : legShape === "panel-side" ? "側板延伸落地" : legShape === "bracket" ? "帶托腳牙的方柱腳" : legShape === "tapered" ? "錐形方柱腳" : legShape === "round" ? "圓柱腳" : legShape === "round-tapered" ? "圓錐腳" : "方柱腳"}架高 ${legH}mm，離地通風防潮、好清掃。` : ""
