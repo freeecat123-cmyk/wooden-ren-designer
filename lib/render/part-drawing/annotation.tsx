@@ -1579,17 +1579,54 @@ export function T2Annotations({
       //   front: horiz=X, vert=Y
       //   top:   horiz=X, vert=Z
       //   side:  horiz=Z, vert=Y
+      // BUT：對 stool leg 這種 thickness > length 的件，OrthoView 把長軸
+      // 旋轉成螢幕橫向 → 螢幕水平方向實際對應 part-local Y 軸（T 軸）。
+      // 為了讓 T2 shoulder chain 跟 T1「長 425」量同一個軸（user 2026-05-26
+      // 回報「上面黑 vs 下面紅 方向不合」），偵測這個 case 並把 horiz/vert
+      // 軸來源對調。
       const L_local = part.visible.length;
       const W_local = part.visible.width;
       const T_local = part.visible.thickness;
-      const partHalfH =
-        view === "side" ? W_local / 2 : L_local / 2;
-      const partHalfV =
-        view === "top" ? W_local / 2 : T_local / 2;
-      const featCh = view === "side" ? lb.cz : lb.cx;
-      const featHh = view === "side" ? lb.hz : lb.hx;
-      const featCv = view === "top" ? lb.cz : lb.cy;
-      const featHv = view === "top" ? lb.hz : lb.hy;
+      const swapForTallPart =
+        T_local > L_local &&
+        T_local > W_local &&
+        (view === "front" || view === "side");
+      const partHalfH = swapForTallPart
+        ? T_local / 2
+        : view === "side"
+          ? W_local / 2
+          : L_local / 2;
+      const partHalfV = swapForTallPart
+        ? view === "side"
+          ? W_local / 2
+          : L_local / 2
+        : view === "top"
+          ? W_local / 2
+          : T_local / 2;
+      const featCh = swapForTallPart
+        ? lb.cy
+        : view === "side"
+          ? lb.cz
+          : lb.cx;
+      const featHh = swapForTallPart
+        ? lb.hy
+        : view === "side"
+          ? lb.hz
+          : lb.hx;
+      const featCv = swapForTallPart
+        ? view === "side"
+          ? lb.cz
+          : lb.cx
+        : view === "top"
+          ? lb.cz
+          : lb.cy;
+      const featHv = swapForTallPart
+        ? view === "side"
+          ? lb.hz
+          : lb.hx
+        : view === "top"
+          ? lb.hz
+          : lb.hy;
 
       // feature 必須在 part body 那軸範圍內，才算 shoulder（榫頭凸出側不是
       // shoulder、是 part 外）；2mm 容差吸收 SVG 投影誤差
