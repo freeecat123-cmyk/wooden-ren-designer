@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Fragment } from "react";
+import {
+  TEMPLATE_UNLOCK_PRICES,
+  DIFFICULTY_LABEL_ZH,
+} from "@/lib/pricing/template-unlock";
 export const metadata: Metadata = {
   title: "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",
   description:
@@ -492,6 +496,43 @@ export default function AboutPage() {
             ctaHref="/pricing"
             highlight={false}
           />
+        </div>
+
+        {/* 單範本永久買斷 */}
+        <div className="mt-8 max-w-4xl mx-auto rounded-2xl bg-stone-50 ring-1 ring-stone-200 p-6 sm:p-7 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div className="md:max-w-sm">
+              <h3 className="font-serif-tc text-xl font-bold text-zinc-900">
+                🪵 不想訂閱？單範本永久買斷
+              </h3>
+              <p className="mt-2 text-zinc-700 text-sm leading-relaxed">
+                只想做某張椅子？一次買斷，永久擁有那張藍圖。不訂閱也能用。
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 md:flex md:gap-3">
+              {(["beginner", "intermediate", "advanced"] as const).map((d) => (
+                <div
+                  key={d}
+                  className="rounded-xl bg-white ring-1 ring-stone-200 px-4 py-3 text-center"
+                >
+                  <div className="text-xs text-zinc-500">
+                    {DIFFICULTY_LABEL_ZH[d]}
+                  </div>
+                  <div className="mt-1 font-bold text-zinc-900">
+                    NT$ {TEMPLATE_UNLOCK_PRICES[d]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 text-center md:text-right">
+            <Link
+              href="/pricing"
+              className="text-sm font-semibold text-amber-800 hover:text-amber-900 underline underline-offset-4"
+            >
+              → 看全部 26 個範本買斷價
+            </Link>
+          </div>
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-xs text-zinc-600">
