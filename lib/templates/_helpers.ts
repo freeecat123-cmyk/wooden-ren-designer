@@ -477,13 +477,13 @@ export function apronEdgeOption(
     group,
     type: "number",
     key: "apronEdge",
-    label: "牙板倒角 (mm)",
+    label: "牙條倒角 (mm)",
     defaultValue,
     min: 0,
     max: 15,
     step: 1,
     unit: "mm",
-    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊。tapered/splayed 腳形時牙板會變梯形，倒角無效",
+    help: "預設 1mm 微倒（防扎手）；3-5 細倒邊。tapered/splayed 腳形時牙條會變梯形，倒角無效",
   };
 }
 
@@ -495,7 +495,7 @@ export function apronEdgeStyleOption(
     group,
     type: "select",
     key: "apronEdgeStyle",
-    label: "牙板倒角樣式",
+    label: "牙條倒角樣式",
     defaultValue,
     choices: EDGE_STYLE_CHOICES,
     dependsOn: { key: "apronEdge", notIn: [0] },

@@ -38,14 +38,14 @@ export const diningChairOptions: OptionSpec[] = [
   seatProfileOption("top"),
   { group: "top", type: "checkbox", key: "seatFrontWaterfall", label: "座板前緣 waterfall 圓化", defaultValue: false, help: "座板前緣大圓化（R20-R30），減少對大腿後側壓迫，久坐不麻", wide: true },
   { group: "top", type: "number", key: "seatBendMm", label: "椅面彎曲 (mm)", defaultValue: 0, min: 0, max: 25, step: 1, help: "整片椅面像彎合板那樣彎曲，中間下凹比較好坐；四角榫眼位置不受影響。>0 會覆蓋鞍形 / 邊緣 profile / waterfall" },
-  // 牙板
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 20, min: 10, max: 40, step: 1, help: "牙板的水平厚度（垂直於座板邊）" },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "牙板頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "前後牙板（X 軸）相對左右牙板下移量；0 = 等高（自動上下半榫避免穿模）" },
+  // 牙條
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 60, min: 30, max: 200, step: 5 },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 20, min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板 (mm)", defaultValue: 0, min: 0, max: 150, step: 5, help: "牙條頂緣往下退的距離；0 = 齊平座板下緣（最常見）。一木連做模式強制 0。", dependsOn: { key: "rearPostMode", equals: "split" } },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量；0 = 等高（自動上下半榫避免穿模）" },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   // 椅背
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "slats", choices: [
     { value: "slats", label: "直條式（垂直板條）" },
@@ -603,10 +603,10 @@ export const diningChair: FurnitureTemplate = (input): FurnitureDesign => {
     origin: { x: number; z: number };
   };
   const apronSides: ApronSideDef[] = [
-    { key: "front", nameZh: "前牙板", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
-    { key: "back",  nameZh: "後牙板", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
-    { key: "left",  nameZh: "左牙板", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
-    { key: "right", nameZh: "右牙板", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
+    { key: "front", nameZh: "前牙條", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: -1, origin: { x: 0, z: -(apronLegEdgeZ + apronGeomX.splayZc) } },
+    { key: "back",  nameZh: "後牙條", visibleLength: apronInnerSpanX - apronGeomX.lwC + 2 * apronGeomX.splayXc, axis: "x", sx: 0, sz: 1,  origin: { x: 0, z: apronLegEdgeZ + apronGeomX.splayZc } },
+    { key: "left",  nameZh: "左牙條", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: -1, sz: 0, origin: { x: -(apronLegEdgeX + apronGeomZ.splayXc), z: 0 } },
+    { key: "right", nameZh: "右牙條", visibleLength: apronInnerSpanZ - apronGeomZ.ldC + 2 * apronGeomZ.splayZc, axis: "z", sx: 1, sz: 0,  origin: { x: apronLegEdgeX + apronGeomZ.splayXc, z: 0 } },
   ];
 
   const apronHasShapeBend = apronSplayDx > 0 || apronSplayDz > 0 || bottomScale !== 1;

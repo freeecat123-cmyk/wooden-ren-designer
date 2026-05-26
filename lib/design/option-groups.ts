@@ -28,7 +28,7 @@ export const GROUP_META: Record<
   door:       { label: "門板",         icon: "▯", bar: "bg-fuchsia-400" },
   drawer:     { label: "抽屜",         icon: "▦", bar: "bg-violet-400"  },
   leg:        { label: "底座 / 桌椅腳",  icon: "🦵", bar: "bg-rose-400"    },
-  apron:      { label: "牙板",         icon: "━", bar: "bg-amber-400"   },
+  apron:      { label: "牙條",         icon: "━", bar: "bg-amber-400"   },
   skirt:      { label: "牙條 / 牙頭裝飾", icon: "〰", bar: "bg-orange-400" },
   joinery:    { label: "角接合",       icon: "◢", bar: "bg-amber-500"   },
   divider:    { label: "內格分隔",     icon: "▤", bar: "bg-indigo-400"  },

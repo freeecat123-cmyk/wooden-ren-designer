@@ -353,14 +353,14 @@ export const roundTableOptions: OptionSpec[] = [
   { group: "leg", type: "number", key: "pedestalFootLength", label: "底爪長 (mm)", defaultValue: 0, min: 0, max: 600, step: 10, unit: "mm", help: "0 = 自動（半徑 × 0.6）；想自訂可指定 mm", dependsOn: { key: "legShape", equals: "pedestal" } },
   { group: "leg", type: "number", key: "pedestalFootWidth", label: "底爪寬 (mm)", defaultValue: 50, min: 30, max: 120, step: 5, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
   { group: "leg", type: "number", key: "pedestalFootThickness", label: "底爪厚 (mm)", defaultValue: 35, min: 20, max: 80, step: 1, unit: "mm", dependsOn: { key: "legShape", equals: "pedestal" } },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  // 牙條倒角：跟橫撐一樣，只有直腳 box 時牙板才是直方料、能吃 chamfer
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 100, min: 50, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 25, min: 15, max: 40, step: 1, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronDropFromTop", label: "牙條距桌面 (mm)", defaultValue: 0, min: 0, max: 200, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  // 牙條倒角：跟橫撐一樣，只有直腳 box 時牙條才是直方料、能吃 chamfer
   { ...apronEdgeOption("apron", 1), dependsOn: { key: "legShape", oneOf: ["box"] } },
   { ...apronEdgeStyleOption("apron"), dependsOn: { all: [{ key: "legShape", oneOf: ["box"] }, { key: "apronEdge", notIn: [0] }] } },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙板（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "前後牙條（X 軸）相對左右下移量。0 = 等高（自動上下半榫）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫；圓腳系列強制盲榫（曲面不能鑿穿）", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretcher", label: "加下橫撐", defaultValue: false, help: "靠近地面的另一組橫撐連結 4 腳，更穩固", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherStaggerMm", label: "下橫撐錯開 (mm)", defaultValue: 0, min: 0, max: 80, step: 2, unit: "mm", help: "左右下橫撐（Z 軸）相對前後上移量。0 = 等高", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
   { group: "stretcher", type: "number", key: "lowerStretcherWidth", label: "下橫撐高 (mm)", defaultValue: 50, min: 25, max: 150, step: 5, unit: "mm", dependsOn: { key: "legShape", notIn: ["pedestal", "trestle"] } },
@@ -694,10 +694,10 @@ export const roundTable: FurnitureTemplate = (input): FurnitureDesign => {
   const apronGeomZ = apronGeomFor(apronYCenter0);
   const apronGeomX = apronGeomFor(apronYCenter0 - apronStaggerY);
   const aprons: Part[] = [
-    { id: "apron-front", nameZh: "前牙板", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
-    { id: "apron-back", nameZh: "後牙板", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
-    { id: "apron-left", nameZh: "左牙板", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
-    { id: "apron-right", nameZh: "右牙板", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
+    { id: "apron-front", nameZh: "前牙條", axis: "x" as const, sx: 0, sz: -1, origin: { x: 0, z: -(cornerOffset + apronGeomX.dz) } },
+    { id: "apron-back", nameZh: "後牙條", axis: "x" as const, sx: 0, sz: 1, origin: { x: 0, z: cornerOffset + apronGeomX.dz } },
+    { id: "apron-left", nameZh: "左牙條", axis: "z" as const, sx: -1, sz: 0, origin: { x: -(cornerOffset + apronGeomZ.dx), z: 0 } },
+    { id: "apron-right", nameZh: "右牙條", axis: "z" as const, sx: 1, sz: 0, origin: { x: cornerOffset + apronGeomZ.dx, z: 0 } },
   ].map((s) => {
     const geom = s.axis === "x" ? apronGeomX : apronGeomZ;
     // axis-specific：單向斜也觸發。axis="x" 牙條只受 splayDx 影響、axis="z" 牙條只受 splayDz 影響

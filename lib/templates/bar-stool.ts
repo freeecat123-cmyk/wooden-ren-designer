@@ -31,13 +31,13 @@ export const barStoolOptions: OptionSpec[] = [
   stretcherEdgeOption("stretcher", 1),
   stretcherEdgeStyleOption("stretcher"),
   { group: "stretcher", type: "number", key: "footrestHeight", label: "腳踏高 (mm)", defaultValue: 350, min: 50, max: 700, step: 10, help: "腳踏離地高度。吧檯椅標準＝座面下 400–450mm（座面 750→腳踏 300–350；座面 800→腳踏 350–400）；counter stool 較矮，距座面約 300mm" },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, help: "牙板的水平厚度（垂直於座板邊）" },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距座板 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "牙板頂緣往下退的距離" },
-  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙板錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "前後牙板（X 軸）相對左右牙板下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 50, min: 20, max: 150, step: 5 },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 18, min: 10, max: 40, step: 1, help: "牙條的水平厚度（垂直於座板邊）" },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距座板 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, help: "牙條頂緣往下退的距離" },
+  { group: "apron", type: "number", key: "apronStaggerMm", label: "牙條錯開 (mm)", defaultValue: 0, min: 0, max: 60, step: 2, help: "前後牙條（X 軸）相對左右牙條下移量，3D 即時顯示，榫頭整支跟著。0 = 等高（自動上下半榫避免穿模）" },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/腳踏進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/腳踏進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）" },
   { group: "back", type: "select", key: "backStyle", label: "椅背樣式", defaultValue: "none", choices: [
     { value: "none", label: "無椅背" },
     { value: "rail", label: "短橫木（一根橫木）" },
@@ -532,9 +532,9 @@ export const barStool: FurnitureTemplate = (input): FurnitureDesign => {
   const apronCenterY = ringY + apronWidth / 2;
   // 牙條錯開時 X 軸（前後）下移 apronStaggerMm；外斜時腳在更低處 splay 更大——
   // X 軸 / Z 軸 各用各自的 Y 中心算 splay/legW/innerSpan，否則接不到腳
-  const apronBZ = buildSides(apronCenterY, apronWidth, "牙板");
+  const apronBZ = buildSides(apronCenterY, apronWidth, "牙條");
   const apronBX = apronVisuallyStaggered
-    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙板")
+    ? buildSides(apronCenterY - apronStaggerMm, apronWidth, "牙條")
     : apronBZ;
   // X 軸用 apronBX 的 sides[0,1]（前/後），Z 軸用 apronBZ 的 sides[2,3]（左/右）
   const apronCombinedSides = [

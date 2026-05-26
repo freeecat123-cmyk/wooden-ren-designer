@@ -53,17 +53,17 @@ export const deskOptions: OptionSpec[] = [
   legEdgeOption("leg", 1, { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
   legEdgeStyleOption("leg", "chamfered", { key: "legShape", notIn: ["shaker", "splayed-round-tapered"] }),
 
-  // ───────────── ③ 牙板 ─────────────
-  { group: "apron", type: "checkbox", key: "withApron", label: "加牙板", defaultValue: true, help: "牙板連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
-  { group: "apron", type: "number", key: "apronWidth", label: "牙板高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronThickness", label: "牙板厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
-  { group: "apron", type: "number", key: "apronOffset", label: "牙板距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
+  // ───────────── ③ 牙條 ─────────────
+  { group: "apron", type: "checkbox", key: "withApron", label: "加牙條", defaultValue: true, help: "牙條連接四隻腳上方，傳統桌類結構件。Mid-century / 工業風常省略改用金屬支架" },
+  { group: "apron", type: "number", key: "apronWidth", label: "牙條高 (mm)", defaultValue: 90, min: 30, max: 200, step: 5, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronThickness", label: "牙條厚 (mm)", defaultValue: 25, min: 10, max: 50, step: 2, dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "number", key: "apronOffset", label: "牙條距桌面 (mm)", defaultValue: 0, min: 0, max: 300, step: 5, dependsOn: { key: "withApron", equals: true } },
   apronEdgeOption("apron", 1),
   apronEdgeStyleOption("apron"),
-  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙板/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
+  { group: "apron", type: "checkbox", key: "legPenetratingTenon", label: "腳上榫頭通透（明榫裝飾）", defaultValue: false, help: "勾選：牙條/下橫撐進腳改通榫（榫頭穿透到腳另一面），明式裝飾感；未勾：依母件厚度自動規則（≤25mm 通榫、>25mm 盲榫深度=厚度2/3）", dependsOn: { key: "withApron", equals: true } },
 
   // ───────────── ④ 橫撐 ─────────────
-  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙板。pedestal 中央抽屜跟牙板抽屜會跟中央牙條衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
+  { group: "apron", type: "checkbox", key: "withCenterStretcher", label: "中央牙條", defaultValue: false, help: "現代書桌少用；中式 / 工業風款再勾起來。需有牙條。pedestal 中央抽屜跟牙條抽屜會跟中央牙條衝突所以隱藏", dependsOn: { all: [{ key: "withApron", equals: true }, { key: "drawerStyle", notIn: ["apron"] }, { any: [{ key: "drawerStyle", equals: "none" }, { key: "drawerSide", notIn: ["center"] }] }] } },
   { group: "stretcher", type: "checkbox", key: "withLowerStretchers", label: "下橫撐", defaultValue: false },
   { group: "stretcher", type: "select", key: "lowerStretcherArrangement", label: "下橫撐排列", defaultValue: "box-frame", choices: [
     { value: "box-frame", label: "4 邊框（最穩，預設）" },
@@ -607,7 +607,7 @@ export const desk: FurnitureTemplate = (input) => {
     if (gapLeftW > 5) {
       design.parts.push({
         id: "desk-apron-front-filler-left",
-        nameZh: "前牙板填補（左）",
+        nameZh: "前牙條填補（左）",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapLeftW, width: apronWidth, thickness: apronThickness },
@@ -620,7 +620,7 @@ export const desk: FurnitureTemplate = (input) => {
     if (gapRightW > 5) {
       design.parts.push({
         id: "desk-apron-front-filler-right",
-        nameZh: "前牙板填補（右）",
+        nameZh: "前牙條填補（右）",
         material: input.material,
         grainDirection: "length",
         visible: { length: gapRightW, width: apronWidth, thickness: apronThickness },

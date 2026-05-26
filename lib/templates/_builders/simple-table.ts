@@ -467,7 +467,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
   const apronSides = [
     {
       key: "front",
-      nameZh: "前牙板",
+      nameZh: "前牙條",
       // 前後牙板沿 X 軸 → 跨距受 X 軸外斜影響
       visibleLength: apronInnerSpan.x + 2 * apronSplayX,
       axis: "x" as const,
@@ -478,7 +478,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     },
     {
       key: "back",
-      nameZh: "後牙板",
+      nameZh: "後牙條",
       visibleLength: apronInnerSpan.x + 2 * apronSplayX,
       axis: "x" as const,
       sx: 0,
@@ -487,7 +487,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     },
     {
       key: "left",
-      nameZh: "左牙板",
+      nameZh: "左牙條",
       // 左右牙板沿 Z 軸 → 跨距受 Z 軸外斜影響
       visibleLength: apronInnerSpan.z + 2 * apronSplayZ,
       axis: "z" as const,
@@ -497,7 +497,7 @@ export function simpleTable(opts: SimpleTableOpts): FurnitureDesign {
     },
     {
       key: "right",
-      nameZh: "右牙板",
+      nameZh: "右牙條",
       visibleLength: apronInnerSpan.z + 2 * apronSplayZ,
       axis: "z" as const,
       sx: 1,
