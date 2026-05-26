@@ -108,7 +108,13 @@ export function T1Dimensions({
   part: Part;
   view: PartView;
 }) {
-  const { horiz, vert, horizLabel, vertLabel } = getT1ForView(part, view);
+  // T1 標籤跟 dim arrow 改用 SCREEN BOUNDING BOX：
+  // 對 stool leg (T > L) 這種 OrthoView 內部旋轉 (isolation rotation Rz=-π/2)
+  // 把長軸投影到螢幕水平的件，part-local 軸跟視覺方向不一致。getT1ForView
+  // 用 part-local 軸名硬綁 → user 看到「長度標寬度位置」。改用 8 corners
+  // 投影後的 screen bounding box（top edge for horiz arrow, right edge for
+  // vert arrow），label 用 auto-detect: 哪兩個軸的 mm ratio 接近 screen
+  // X/Y extent ratio 就是當前 view 的 visible 兩軸。
   const L = part.visible.length;
   const W = part.visible.width;
   const T = part.visible.thickness;
@@ -128,34 +134,7 @@ export function T1Dimensions({
   const VERT_OFFSET = 50;
   const GROSS_GAP = 14; // SVG px；含榫總長 dim 距 T1 dim line
 
-  let horizP1: { x: number; y: number };
-  let horizP2: { x: number; y: number };
-  let vertP1: { x: number; y: number };
-  let vertP2: { x: number; y: number };
-
-  if (view === "front") {
-    // 底面 = localY = +T/2（SVG 較大 y）
-    horizP1 = ctx.partLocalToSvg(-L / 2, +T / 2, 0);
-    horizP2 = ctx.partLocalToSvg(+L / 2, +T / 2, 0);
-    // 右側 = localX = -L/2（投影後 SVG 較大 x）
-    vertP1 = ctx.partLocalToSvg(-L / 2, -T / 2, 0);
-    vertP2 = ctx.partLocalToSvg(-L / 2, +T / 2, 0);
-  } else if (view === "top") {
-    horizP1 = ctx.partLocalToSvg(-L / 2, 0, +W / 2);
-    horizP2 = ctx.partLocalToSvg(+L / 2, 0, +W / 2);
-    vertP1 = ctx.partLocalToSvg(-L / 2, 0, -W / 2);
-    vertP2 = ctx.partLocalToSvg(-L / 2, 0, +W / 2);
-  } else {
-    // side（前=右慣例：vx = -wz，localZ=-W/2 在 SVG +x 側）
-    horizP1 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
-    horizP2 = ctx.partLocalToSvg(0, +T / 2, +W / 2);
-    // 右側 = localZ = -W/2（SVG 較大 x）
-    vertP1 = ctx.partLocalToSvg(0, -T / 2, -W / 2);
-    vertP2 = ctx.partLocalToSvg(0, +T / 2, -W / 2);
-  }
-
-  // 水平 dim line 放材料 *上方* — 抓 part 8 角投影最高 SVG y（最小值）再上推 OFFSET
-  // 之前用 max 2 個 horizP 端點 y 不夠保險（圓料/扁料 bbox 跟邊不一定一致）
+  // 8 corners 投影
   const allCorners = [
     ctx.partLocalToSvg(-L / 2, -T / 2, -W / 2),
     ctx.partLocalToSvg(+L / 2, -T / 2, -W / 2),
@@ -166,8 +145,61 @@ export function T1Dimensions({
     ctx.partLocalToSvg(-L / 2, +T / 2, +W / 2),
     ctx.partLocalToSvg(+L / 2, +T / 2, +W / 2),
   ];
-  const partMinY = Math.min(...allCorners.map((p) => p.y));
+  const partMinX = Math.min(...allCorners.map((p) => p.x));
   const partMaxX = Math.max(...allCorners.map((p) => p.x));
+  const partMinY = Math.min(...allCorners.map((p) => p.y));
+  const partMaxY = Math.max(...allCorners.map((p) => p.y));
+
+  // horiz arrow = top edge bounding box（畫水平 arrow 橫跨 silhouette top）
+  // vert  arrow = right edge bounding box（畫垂直 arrow 橫跨 silhouette right）
+  const horizP1 = { x: partMinX, y: partMinY };
+  const horizP2 = { x: partMaxX, y: partMinY };
+  const vertP1 = { x: partMaxX, y: partMinY };
+  const vertP2 = { x: partMaxX, y: partMaxY };
+
+  // Auto-detect 哪兩軸投影到當前 view（避開 view 約定）：比對 screen X/Y
+  // extent ratio 跟 [L,W,T] 三對組合的 mm ratio，挑最接近的那對。
+  const screenXExt = partMaxX - partMinX;
+  const screenYExt = partMaxY - partMinY;
+  const screenLandscape = screenXExt >= screenYExt;
+  const screenRatio =
+    Math.max(screenXExt, screenYExt) /
+    Math.max(0.001, Math.min(screenXExt, screenYExt));
+  const dimsAll = [
+    { mm: L, axis: "L" as const },
+    { mm: W, axis: "W" as const },
+    { mm: T, axis: "T" as const },
+  ];
+  let bestPair: [(typeof dimsAll)[0], (typeof dimsAll)[0]] = [dimsAll[0], dimsAll[1]];
+  let bestDiff = Infinity;
+  for (let i = 0; i < dimsAll.length; i++) {
+    for (let j = i + 1; j < dimsAll.length; j++) {
+      const a = dimsAll[i];
+      const b = dimsAll[j];
+      const r = Math.max(a.mm, b.mm) / Math.max(0.001, Math.min(a.mm, b.mm));
+      const diff = Math.abs(r - screenRatio);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPair = [a, b];
+      }
+    }
+  }
+  const bigVisible =
+    bestPair[0].mm >= bestPair[1].mm ? bestPair[0] : bestPair[1];
+  const smallVisible =
+    bestPair[0].mm >= bestPair[1].mm ? bestPair[1] : bestPair[0];
+  const horiz = round1(screenLandscape ? bigVisible.mm : smallVisible.mm);
+  const vert = round1(screenLandscape ? smallVisible.mm : bigVisible.mm);
+  // label by mm-rank 三軸（最大=長、中=寬、最小=厚）
+  const allRanked = dimsAll.slice().sort((a, b) => b.mm - a.mm);
+  const labelByAxis: Record<string, string> = {};
+  labelByAxis[allRanked[0].axis] = "長";
+  labelByAxis[allRanked[1].axis] = "寬";
+  labelByAxis[allRanked[2].axis] = "厚";
+  const horizAxisName = (screenLandscape ? bigVisible : smallVisible).axis;
+  const vertAxisName = (screenLandscape ? smallVisible : bigVisible).axis;
+  const horizLabel = labelByAxis[horizAxisName];
+  const vertLabel = labelByAxis[vertAxisName];
 
   // 連榫頭總長：把所有 tenon bbox 8 corners 投影併入 → 算 gross 比 partBody 大多少
   const grossCorners: { x: number; y: number }[] = [...allCorners];
@@ -218,17 +250,22 @@ export function T1Dimensions({
   //   front: horiz=x, vert=y
   //   top:   horiz=x, vert=z
   //   side:  horiz=z, vert=y
-  const horizAxis: "x" | "z" = view === "side" ? "z" : "x";
-  const vertAxis: "y" | "z" = view === "top" ? "z" : "y";
+  // horiz/vert tenon extension 跟 auto-detected 軸走（不是 view 約定）
+  const axisToLocal = (a: "L" | "W" | "T"): "x" | "y" | "z" =>
+    a === "L" ? "x" : a === "W" ? "z" : "y";
+  const horizPartLocal = axisToLocal(horizAxisName as "L" | "W" | "T");
+  const vertPartLocal = axisToLocal(vertAxisName as "L" | "W" | "T");
   let horizExt = 0;
   let vertExt = 0;
   for (const t of part.tenons) {
     if (t.length <= 0) continue;
     const pos = t.position;
-    if (horizAxis === "x" && (pos === "start" || pos === "end")) horizExt += t.length;
-    if (horizAxis === "z" && (pos === "left" || pos === "right")) horizExt += t.length;
-    if (vertAxis === "y" && (pos === "top" || pos === "bottom")) vertExt += t.length;
-    if (vertAxis === "z" && (pos === "left" || pos === "right")) vertExt += t.length;
+    if (horizPartLocal === "x" && (pos === "start" || pos === "end")) horizExt += t.length;
+    if (horizPartLocal === "y" && (pos === "top" || pos === "bottom")) horizExt += t.length;
+    if (horizPartLocal === "z" && (pos === "left" || pos === "right")) horizExt += t.length;
+    if (vertPartLocal === "x" && (pos === "start" || pos === "end")) vertExt += t.length;
+    if (vertPartLocal === "y" && (pos === "top" || pos === "bottom")) vertExt += t.length;
+    if (vertPartLocal === "z" && (pos === "left" || pos === "right")) vertExt += t.length;
   }
   const horizGross = round1(horiz + horizExt);
   const vertGross = round1(vert + vertExt);
@@ -1678,11 +1715,19 @@ export function T2Annotations({
         featureInsideY && drawBotShoulder && !skipLastShoulderBot
           ? round1((featCv - featHv) + partHalfV)
           : 0;
+      // swapForTallPart 把 horiz 軸對到 part-local Y，但 part-local +Y → screen
+      // -X（Rz=-π/2 rotation）→ part-local Y 軸的「正向」對應 screen 的「左方」
+      // → shoulderLft/Rgt 的「左右」對應跟 part-local Y 方向相反，需鏡像。
+      // (user 2026-05-26 回報「106-25-301 應該是 301-25-106」)
       const shoulderLft = featureInsideX
-        ? round1((featCh - featHh) + partHalfH)
+        ? swapForTallPart
+          ? round1(partHalfH - (featCh + featHh))
+          : round1((featCh - featHh) + partHalfH)
         : 0;
       const shoulderRgt = featureInsideX
-        ? round1(partHalfH - (featCh + featHh))
+        ? swapForTallPart
+          ? round1((featCh - featHh) + partHalfH)
+          : round1(partHalfH - (featCh + featHh))
         : 0;
       const TH = 2; // mm 門檻
       // shoulder top 的 dim line 起點用 topBoundary（不一定 partTopY）
