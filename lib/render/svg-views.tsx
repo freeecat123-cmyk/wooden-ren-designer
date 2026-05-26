@@ -3453,6 +3453,31 @@ function OrthoViewImpl({
                   底板 {panelT} mm
                 </text>
               </g>
+              {/* 紅酒架格子尺寸：只在「左下第一格」標一次 pitch，全部格子尺寸都相同
+                  user 2026-05-26 回報「不要全部標 只需要寫一個格子就好」 */}
+              {(() => {
+                if (renderDesign.category !== "wine-rack") return null;
+                const firstShelf = renderDesign.parts.find((p) => p.id === "shelf-h-1");
+                if (!firstShelf) return null;
+                const cellSize = Math.round(firstShelf.origin.y - panelT / 2);
+                if (cellSize <= 0) return null;
+                const cellCx = -w / 2 + panelT + cellSize / 2;
+                const cellCy = -(bottomTopY + cellSize / 2);
+                return (
+                  <g fontFamily="sans-serif" pointerEvents="none">
+                    <text
+                      x={cellCx}
+                      y={cellCy + 4}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fill="#7a5a2b"
+                      fontWeight="600"
+                    >
+                      格 {cellSize}×{cellSize} mm
+                    </text>
+                  </g>
+                );
+              })()}
             </>
           );
         }
