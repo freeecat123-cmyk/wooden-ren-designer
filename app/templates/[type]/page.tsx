@@ -139,6 +139,22 @@ export default async function TemplateDetail({ params }: PageProps) {
     })),
   };
 
+  const howToSchema = marketing.howToSteps && marketing.howToSteps.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: `如何製作${entry.nameZh}`,
+        description: marketing.tagline,
+        image: `${SITE_URL}/thumbs/v2/${type}.webp`,
+        step: marketing.howToSteps.map((s, i) => ({
+          "@type": "HowToStep",
+          position: i + 1,
+          name: s.name,
+          text: s.text,
+        })),
+      }
+    : null;
+
   return (
     <main className="bg-[#fafaf7]">
       <script
@@ -153,6 +169,12 @@ export default async function TemplateDetail({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
+      {howToSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+        />
+      )}
 
       {/* ============ Breadcrumb ============ */}
       <nav className="max-w-6xl mx-auto px-5 sm:px-6 pt-6 pb-2 text-sm text-zinc-500">
