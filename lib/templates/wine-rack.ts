@@ -220,8 +220,13 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
   // 上層 + 抽屜層各一塊。mortise zLocal 加 sideExtensionH/2 補償 panel center 下移。
   const sideExtensionH = withPullOutDrawer ? drawerZoneH + panelT : 0;
   const sidePanelWidth = innerH + sideExtensionH;
-  const shelfMortises = (xSign: -1 | 1) =>
-    Array.from({ length: bt - 1 }, (_, idx) => {
+  // 抽屜層入溝背板：跟 case-furniture 同款 stopped dado—側板內側面開
+  // drawerBackThickness 寬 × 6mm 深的槽，背板嵌入後緣陷 backRecess(6mm)
+  const REBATE_DEPTH = 6;
+  const BACK_RECESS = 6;
+  const hasRebatedBack = drawerBackMode === "rebated" && withPullOutDrawer;
+  const shelfMortises = (xSign: -1 | 1) => {
+    const list = Array.from({ length: bt - 1 }, (_, idx) => {
       const row = idx + 1;
       const yMid = panelT + row * cellSize - panelT / 2;
       const zLocal = yMid - panelT - innerH / 2 + sideExtensionH / 2;
@@ -233,6 +238,23 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         through: false,
       };
     });
+    if (hasRebatedBack) {
+      // 抽屜層背板入溝：side panel local x = world Z（front-back），local z =
+      // world Y（垂直）。dado 中心位於抽屜層垂直中段、後緣近端。
+      list.push({
+        origin: {
+          x: depth / 2 - BACK_RECESS - drawerBackThickness / 2,
+          y: xSign > 0 ? 0 : panelT,
+          z: -(innerH + panelT) / 2,
+        },
+        depth: REBATE_DEPTH,
+        length: drawerBackThickness,
+        width: drawerZoneH,
+        through: false,
+      });
+    }
+    return list;
+  };
 
   const leftSide: Part = {
     id: "side-left",
@@ -497,9 +519,9 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
     // 抽屜層兩側不再各加一塊側牆 —— 改由瓶格箱體側板向下延伸蓋住（單一片側板貫穿
     // 上下兩層），木工接合更簡單、外觀也更整體。
     // 共用抽屜系統：rows × cols 等分，inset 入框。caseWidth=depth → 抽屜面板切齊架前緣。
-    // 入溝背板會吃進櫃內深度（板嵌在兩側板之間），釘背在外不影響內深。
+    // 入溝背板會吃進櫃內深度（drawerBackThickness + BACK_RECESS），釘背在外不影響內深。
     const drawerInnerD = Math.min(
-      depth - 20 - (drawerBackMode === "rebated" ? drawerBackThickness : 0),
+      depth - 20 - (drawerBackMode === "rebated" ? drawerBackThickness + BACK_RECESS : 0),
       DRAWER_MAX_DEPTH,
     );
     // 後緣背板（選配）：抽屜層的後牆。surface=釘背貼後緣、rebated=入溝嵌進兩側板。
@@ -517,13 +539,14 @@ export const wineRack: FurnitureTemplate = (input): FurnitureDesign => {
         mortises: [],
       });
     } else if (drawerBackMode === "rebated") {
+      // 入溝：背板兩端各延伸 REBATE_DEPTH 進側板槽、後緣陷 BACK_RECESS
       parts.push({
         id: "drawer-back",
         nameZh: "抽屜層背板（入溝）",
         material,
         grainDirection: "length",
-        visible: { length: outerW - 2 * panelT, width: drawerBackThickness, thickness: drawerZoneH },
-        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 - drawerBackThickness / 2 },
+        visible: { length: innerW + 2 * REBATE_DEPTH, width: drawerBackThickness, thickness: drawerZoneH },
+        origin: { x: 0, y: drawerFloorY + panelT, z: depth / 2 - BACK_RECESS - drawerBackThickness / 2 },
         tenons: [],
         mortises: [],
       });
