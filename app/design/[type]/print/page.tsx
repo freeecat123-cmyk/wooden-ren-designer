@@ -243,8 +243,8 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
         </section>
       )}
 
-      {/* 零件圖 / 索引：開發中，僅 localhost 顯示 */}
-      {(await isLocalhost()) && (
+      {/* 零件圖 / 索引：方凳已上線；其他家具仍僅 localhost 顯示 */}
+      {(type === "square-stool" || (await isLocalhost())) && (
         <>
           {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
           <PartDrawingsIndex design={design} />

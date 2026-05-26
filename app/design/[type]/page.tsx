@@ -546,8 +546,8 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
           一律走榫接版（applyEdgeProtection），不吃 toBeginnerMode strip——零件圖
           是給師傅看的製作圖，組裝版 strip 會把腳 / 牙條的 tenon/mortise 砍掉，
           導致 needsPartDrawing 全 false 只剩 shape 件出現。
-          開發中，僅 localhost 顯示。 */}
-      {(await isLocalhost()) && <PartDrawingsPanel design={design} />}
+          方凳已上線；其他家具仍僅 localhost 顯示。 */}
+      {(type === "square-stool" || (await isLocalhost())) && <PartDrawingsPanel design={design} />}
 
       {/* 下半：施工備料（按需展開） */}
       {/* 注意：此 details 不能用 overflow-hidden —— 內含 sticky 3D，
