@@ -306,9 +306,13 @@ export function PartDrawing({
               // 提供 onViewZoom 時：無論 zoom=1 都改用外置 HTML 標題列，
               // 才有地方掛倍率按鈕（否則 1× 標題在 SVG 內、按鈕無處附身）
               const externalTitle = viewUseExternalTitle || !!onViewZoom;
+              // 第一張視圖的標題列要避開卡片右上角的 InstallHintMini（~88px 寬），
+              // 不然 5×/8× 按鈕會被縮圖蓋住（user 2026-05-26 回報）
+              const titleRowExtraClass = vIdx === 0 ? "pr-[92px]" : "";
               const viewBody = externalTitle ? (
                 <>
-                  <div className="text-sm font-semibold text-zinc-800 mb-1 border-b border-zinc-200 pb-1 flex items-center">
+                  <div className={`text-sm font-semibold text-zinc-800 mb-1 border-b border-zinc-200 pb-1 flex items-center ${titleRowExtraClass}`}>
+
                     <span>
                       {title}
                       <span className="ml-2 text-xs font-normal text-zinc-500">
