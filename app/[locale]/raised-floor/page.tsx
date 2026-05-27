@@ -5,6 +5,8 @@
  * 權限門檻共用 /floor 的鑰匙(canUseFloorTool / 已解鎖 "floor")。
  * admin 永遠可進。
  */
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -12,11 +14,18 @@ import { fetchUnlockedTools } from "@/lib/tool-unlocks";
 import { RaisedFloorClient } from "./RaisedFloorClient";
 import { RaisedFloorMarketing } from "./RaisedFloorMarketing";
 
-export const metadata = {
-  title: "和室架高平台估價 · 木頭仁",
-  description:
-    "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 自己做和室一次搞定。",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "engineeringToolPages.raisedFloor" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 export default async function RaisedFloorPage({
   searchParams,

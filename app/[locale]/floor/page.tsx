@@ -4,6 +4,8 @@
  * 雙頭路由:訪客 / 無權限者看銷售頁,有權限者進工具。
  * admin 永遠可進。
  */
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -11,11 +13,18 @@ import { fetchUnlockedTools } from "@/lib/tool-unlocks";
 import { FloorDevClient } from "./FloorDevClient";
 import { FloorMarketing } from "./FloorMarketing";
 
-export const metadata = {
-  title: "地板施工模擬器 · 木頭仁",
-  description:
-    "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數損耗估價。木地板算料 30 秒搞定。",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "engineeringToolPages.floor" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 export default async function FloorPage({
   searchParams,

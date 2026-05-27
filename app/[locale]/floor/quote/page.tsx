@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
@@ -10,9 +12,15 @@ import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
 import { FloorOverviewSvg } from "@/lib/floor/FloorOverviewSvg";
 import { EngineeringQuoteClient } from "@/components/engineering-quote/EngineeringQuoteClient";
 
-export const metadata = {
-  title: "地板工程報價 · 木頭仁",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "engineeringToolPages.floorQuote" });
+  return { title: t("metaTitle") };
+}
 
 export default async function FloorQuotePage({
   searchParams,

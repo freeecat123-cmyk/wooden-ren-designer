@@ -5,6 +5,8 @@
  * admin 永遠可進。
  */
 
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -12,11 +14,18 @@ import { fetchUnlockedTools } from "@/lib/tool-unlocks";
 import { CeilingDevClient } from "./CeilingDevClient";
 import { CeilingMarketing } from "./CeilingMarketing";
 
-export const metadata = {
-  title: "木作天花板骨架施工模擬器 · 木頭仁",
-  description:
-    "畫房間 → 算角材、矽酸鈣板、吊筋 → 出 A4 估價單。木作天花板算料 30 秒搞定。",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "engineeringToolPages.ceiling" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 export default async function CeilingPage({
   searchParams,

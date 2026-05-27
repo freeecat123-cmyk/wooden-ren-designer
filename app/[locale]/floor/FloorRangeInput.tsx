@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface FloorRangeInputProps {
   /** 中文 label,如「總寬」「地板片長」 */
@@ -42,6 +43,7 @@ export function FloorRangeInput({
   unit,
   sub,
 }: FloorRangeInputProps) {
+  const t = useTranslations("numberInput");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +86,7 @@ export function FloorRangeInput({
         />
         <button
           type="button"
-          aria-label="減少"
+          aria-label={t("decrease")}
           disabled={atMin}
           onClick={() => stepBy(-1)}
           className={stepBtn}
@@ -126,7 +128,7 @@ export function FloorRangeInput({
         )}
         <button
           type="button"
-          aria-label="增加"
+          aria-label={t("increase")}
           disabled={atMax}
           onClick={() => stepBy(1)}
           className={stepBtn}

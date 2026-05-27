@@ -1,10 +1,18 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { CustomersClient } from "@/components/projects/CustomersClient";
 import { createClient } from "@/lib/supabase/server";
 import type { ProjectRow, ProjectItemRow } from "@/lib/projects/types";
 
-export const metadata = {
-  title: "客戶名單 · 木頭仁 木作藍圖",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "customersPage" });
+  return { title: t("metaTitle") };
+}
 
 export interface CustomerSummary {
   /** 客戶名稱（trim 後）做 key */

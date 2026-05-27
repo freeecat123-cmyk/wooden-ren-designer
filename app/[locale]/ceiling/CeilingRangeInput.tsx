@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface CeilingRangeInputProps {
   /** 中文 label,如「長邊」「角材寬」 */
@@ -50,6 +51,7 @@ export function CeilingRangeInput({
   help,
   disabled,
 }: CeilingRangeInputProps) {
+  const t = useTranslations("numberInput");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +97,7 @@ export function CeilingRangeInput({
         />
         <button
           type="button"
-          aria-label="減少"
+          aria-label={t("decrease")}
           disabled={disabled || atMin}
           onClick={() => stepBy(-1)}
           className={stepBtn}
@@ -138,7 +140,7 @@ export function CeilingRangeInput({
         )}
         <button
           type="button"
-          aria-label="增加"
+          aria-label={t("increase")}
           disabled={disabled || atMax}
           onClick={() => stepBy(1)}
           className={stepBtn}

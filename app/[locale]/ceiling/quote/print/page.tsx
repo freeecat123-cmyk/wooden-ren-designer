@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { computeCeilingBom } from "@/lib/ceiling/calc";
 import { DEFAULT_CEILING_INPUT, type CeilingInput } from "@/lib/ceiling/types";
 import { decodeState } from "@/lib/engineering-quote/url-codec";
@@ -9,9 +11,15 @@ import { EngineeringQuotePrint } from "@/components/engineering-quote/Engineerin
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import type { EngQuoteOpts } from "@/components/engineering-quote/EngineeringQuoteForm";
 
-export const metadata = {
-  title: "天花板工程報價單 · 木頭仁",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "engineeringToolPages.ceilingQuotePrint" });
+  return { title: t("metaTitle") };
+}
 
 export default async function CeilingQuotePrintPage({
   searchParams,

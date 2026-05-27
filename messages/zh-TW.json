@@ -4535,6 +4535,7 @@
     "upgradeBtn": "現在去 /pricing 升級 →"
   },
   "customersPage": {
+    "metaTitle": "客戶名單 · 木頭仁 木作藍圖",
     "h1": "客戶名單",
     "loginRequired": "請先登入才能查看客戶名單（右上角點「使用 Google 登入」）。",
     "backHome": "← 回家具列表",
@@ -4721,6 +4722,41 @@
     "japandi": "日式",
     "industrial": "工業",
     "chinese": "中式"
+  },
+  "engineeringToolPages": {
+    "raisedFloor": {
+      "metaTitle": "和室架高平台估價 · 木頭仁",
+      "metaDescription": "畫平台 → 算骨架、夾板、面材、防潮、踢腳 → 出 A4 客戶報價單。木工師傅、統包、DIY 自己做和室一次搞定。"
+    },
+    "ceiling": {
+      "metaTitle": "木作天花板骨架施工模擬器 · 木頭仁",
+      "metaDescription": "畫房間 → 算角材、矽酸鈣板、吊筋 → 出 A4 估價單。木作天花板算料 30 秒搞定。"
+    },
+    "floor": {
+      "metaTitle": "地板施工模擬器 · 木頭仁",
+      "metaDescription": "畫房間 → 直鋪 / 錯縫 / 人字拼自動排版 → 算片數損耗估價。木地板算料 30 秒搞定。"
+    },
+    "ceilingQuote": {
+      "metaTitle": "天花板工程報價 · 木頭仁"
+    },
+    "floorQuote": {
+      "metaTitle": "地板工程報價 · 木頭仁"
+    },
+    "ceilingQuotePrint": {
+      "metaTitle": "天花板工程報價單 · 木頭仁"
+    },
+    "floorQuotePrint": {
+      "metaTitle": "地板工程報價單 · 木頭仁"
+    }
+  },
+  "surveyPage": {
+    "metaTitle": "問卷 · 木頭仁木作藍圖"
+  },
+  "globalError": {
+    "h": "發生嚴重錯誤",
+    "bodyPre": "請重試,或重新整理頁面。如果一直發生,請聯絡木頭仁 ",
+    "bodySuf": "。",
+    "retry": "重試"
   },
   "lemon": {
     "_note": "Lemon Squeezy 元件僅在 en locale 渲染，這份只給 next-intl fallback 用、避免 missing-key 警告",

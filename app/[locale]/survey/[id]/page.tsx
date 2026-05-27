@@ -1,12 +1,20 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getSurvey } from "@/lib/survey/configs";
 import { SurveyClient } from "@/components/survey/SurveyClient";
 
-export const metadata = {
-  title: "問卷 · 木頭仁木作藍圖",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "surveyPage" });
+  return { title: t("metaTitle") };
+}
 
 export default async function SurveyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

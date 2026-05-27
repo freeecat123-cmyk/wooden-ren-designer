@@ -4535,6 +4535,7 @@
     "upgradeBtn": "Go to /pricing now →"
   },
   "customersPage": {
+    "metaTitle": "Customers · Wooden Ren Furniture Blueprints",
     "h1": "Customers",
     "loginRequired": "Sign in to view your customer list (top-right \"Sign in with Google\").",
     "backHome": "← Back to catalog",
@@ -4721,6 +4722,41 @@
     "japandi": "Japanese",
     "industrial": "Industrial",
     "chinese": "Chinese"
+  },
+  "engineeringToolPages": {
+    "raisedFloor": {
+      "metaTitle": "Raised Tatami Platform Quote · Wooden Ren",
+      "metaDescription": "Sketch your platform → calculate frame, plywood, finish, vapor barrier, baseboard → output A4 customer quote. Carpenters, GCs, DIYers — get it done in one go."
+    },
+    "ceiling": {
+      "metaTitle": "Wood Ceiling Frame Simulator · Wooden Ren",
+      "metaDescription": "Draw the room → calculate furring, calcium silicate boards, hangers → output A4 quote. Ceiling estimation in 30 seconds."
+    },
+    "floor": {
+      "metaTitle": "Floor Installation Simulator · Wooden Ren",
+      "metaDescription": "Draw the room → auto-layout straight / staggered / herringbone → calculate plank count, waste, and price. Floor estimation in 30 seconds."
+    },
+    "ceilingQuote": {
+      "metaTitle": "Ceiling Engineering Quote · Wooden Ren"
+    },
+    "floorQuote": {
+      "metaTitle": "Floor Engineering Quote · Wooden Ren"
+    },
+    "ceilingQuotePrint": {
+      "metaTitle": "Ceiling Engineering Quote Sheet · Wooden Ren"
+    },
+    "floorQuotePrint": {
+      "metaTitle": "Floor Engineering Quote Sheet · Wooden Ren"
+    }
+  },
+  "surveyPage": {
+    "metaTitle": "Survey · Wooden Ren Furniture Blueprints"
+  },
+  "globalError": {
+    "h": "Something went wrong",
+    "bodyPre": "Please retry or refresh the page. If the issue keeps happening, contact Wooden Ren at ",
+    "bodySuf": ".",
+    "retry": "Retry"
   },
   "lemon": {
     "pricing": {
