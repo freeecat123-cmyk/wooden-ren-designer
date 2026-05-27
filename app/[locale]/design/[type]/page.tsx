@@ -31,6 +31,7 @@ import {
 import { ToolList } from "@/components/ToolList";
 import { BuildSteps } from "@/components/BuildSteps";
 import { deriveBuildSteps } from "@/lib/steps/derive";
+import { translateSteps } from "@/lib/steps/translations";
 import { FURNITURE_CATALOG } from "@/lib/templates";
 import { DesignFormShell } from "@/components/design/DesignFormShell";
 import { ClampedNumberInput } from "@/components/design/ClampedNumberInput";
@@ -322,7 +323,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   // HowTo JSON-LD — designer 產出的工序就是「製作教學」，HowTo schema 抓
   // 「{家具}怎麼做 / 製作步驟」這類搜尋意圖的 rich result。資料來自跟畫面
   // BuildSteps 同一份 deriveBuildSteps，保證 SEO 跟 UI 完全對齊。
-  const buildStepsForSchema = deriveBuildSteps(design);
+  const buildStepsForSchema = translateSteps(deriveBuildSteps(design), design, locale);
   const totalMinutes = buildStepsForSchema.reduce(
     (sum, s) => sum + (s.estimatedMinutes ?? 0),
     0,

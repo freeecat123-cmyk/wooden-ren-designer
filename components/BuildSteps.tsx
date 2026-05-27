@@ -5,6 +5,7 @@ import {
   phaseLabel,
   type StepPhase,
 } from "@/lib/steps/derive";
+import { translateSteps } from "@/lib/steps/translations";
 import { TOOL_CATALOG, toolName } from "@/lib/tools/catalog";
 
 const PHASE_COLOR: Record<StepPhase, string> = {
@@ -25,7 +26,7 @@ interface BuildStepsProps {
 }
 
 export function BuildSteps({ design, locale = "zh-TW" }: BuildStepsProps) {
-  const steps = deriveBuildSteps(design);
+  const steps = translateSteps(deriveBuildSteps(design), design, locale);
   const totalHours = totalEstimatedHours(steps);
   const saw = design.sawSettings;
   const isEn = locale === "en";

@@ -23,6 +23,7 @@ import {
   tenonLocalBox,
   type OrthoViewBoxCtx,
 } from "@/lib/render/svg-views";
+import { worldExtents } from "@/lib/render/geometry";
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export type PartView = "front" | "side" | "top" | "bottom";
@@ -909,8 +910,17 @@ export function T2Annotations({
   // user:「俯視尺寸圖太亂了」→ 細長腳的 top view 投影 30×30 小方塊把 4 個側面
   // mortise 全擠進去。本視圖 cross-section < 50mm 時只渲染從這視圖軸方向進入
   // 的 mortise（depthAxis === viewDepthAxis），其他面入的 mortise 留給對應視圖
-  const viewDepthAxis: "x" | "y" | "z" =
-    view === "top" ? "y" : view === "side" ? "x" : "z";
+  //
+  // tall isolated part（ly > lx && ly > lz）：OrthoView 自動套 Rz=-π/2 把長軸轉橫躺
+  // → 原 local Y 軸對到 world -X，原 local X 軸對到 world Y。
+  // 所以 top view 看到的是 part-local +X face（不是 +Y face）→ viewDepthAxis 應為 "x"。
+  // side view 看到的 X-face mortise（local +X）也匹配 "x"。
+  // 對 stool leg X-face 牙板榫眼（depthAxis="x"），這修使 top/bottom/side 都能 render T2 標籤。
+  const weForView = worldExtents(part);
+  const isTallIso = weForView.yExt > weForView.xExt && weForView.yExt > weForView.zExt;
+  const viewDepthAxis: "x" | "y" | "z" = isTallIso
+    ? (view === "front" ? "z" : "x")
+    : (view === "top" ? "y" : view === "side" ? "x" : "z");
   const crossSectionMm = (() => {
     if (view === "top") return Math.max(part.visible.length, part.visible.width);
     if (view === "side") return Math.max(part.visible.width, part.visible.thickness);
