@@ -1274,7 +1274,9 @@ export function T2Annotations({
     } else {
       isVisibleFromView = true; // tenon 永遠實線
     }
-    const dash = isVisibleFromView ? undefined : (isMortise ? "3 2" : "4 2");
+    // 隱藏榫眼用較粗虛線（user 2026-05-27 回報：原本 "3 2" 太細在俯視幾乎看不到）。
+    // tenon 維持 "4 2"（凸出實體本來就少用 hidden）
+    const dash = isVisibleFromView ? undefined : (isMortise ? "6 3" : "4 2");
 
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
