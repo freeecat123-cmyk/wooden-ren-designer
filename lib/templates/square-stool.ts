@@ -699,6 +699,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
+        // 斜腳：下橫撐榫眼跟著腳的斜角（跟 apron mortise 同邏輯）
+        const lsZFaceRotZ = (_splayDxForLegs !== 0 && legHeight > 0)
+          ? Math.sign(cx || 1) * Math.atan(Math.abs(_splayDxForLegs) / legHeight)
+          : 0;
+        const lsXFaceRotX = (_splayDzForLegs !== 0 && legHeight > 0)
+          ? Math.sign(cz || 1) * Math.atan(Math.abs(_splayDzForLegs) / legHeight)
+          : 0;
         if (lowerCanHalfStagger) {
           leg.mortises.push(
             // Z 面 mortise（接 Z 軸 = 左右下橫撐, 上移）— 上榫
@@ -708,6 +715,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerUpperTenonH,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsZFaceRotZ ? { rotZ: lsZFaceRotZ } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後下橫撐, 靜止）— 下榫
             {
@@ -716,6 +724,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerLowerTenonH,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsXFaceRotX ? { rotX: lsXFaceRotX } : {}),
             },
           );
         } else {
@@ -726,6 +735,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsZFaceRotZ ? { rotZ: lsZFaceRotZ } : {}),
             },
             {
               origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
@@ -733,6 +743,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsXFaceRotX ? { rotX: lsXFaceRotX } : {}),
             },
           );
         }

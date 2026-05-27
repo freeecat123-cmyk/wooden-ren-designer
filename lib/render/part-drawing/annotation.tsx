@@ -729,31 +729,61 @@ export function T2Annotations({
   part: Part;
   view: PartView;
 }) {
+  const projectBoxCorners = (box: {
+    cx: number; cy: number; cz: number;
+    hx: number; hy: number; hz: number;
+    rotX?: number; rotY?: number; rotZ?: number;
+  }): Array<{ x: number; y: number }> => {
+    const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
+    const bcx = Math.cos(brx), bsx = Math.sin(brx);
+    const bcy = Math.cos(bry), bsy = Math.sin(bry);
+    const bcz = Math.cos(brz), bsz = Math.sin(brz);
+    const out: Array<{ x: number; y: number }> = [];
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          let ox = sx * box.hx, oy = sy * box.hy, oz = sz * box.hz;
+          if (brx) { const ny = oy * bcx - oz * bsx, nz = oy * bsx + oz * bcx; oy = ny; oz = nz; }
+          if (bry) { const nx = ox * bcy + oz * bsy, nz = -ox * bsy + oz * bcy; ox = nx; oz = nz; }
+          if (brz) { const nx = ox * bcz - oy * bsz, ny = ox * bsz + oy * bcz; ox = nx; oy = ny; }
+          out.push(ctx.partLocalToSvg(box.cx + ox, box.cy + oy, box.cz + oz));
+        }
+      }
+    }
+    return out;
+  };
+  /** 2D convex hull (Andrew monotone chain)。CCW outline。 */
+  const convexHull2D = (pts: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> => {
+    const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
+    if (sorted.length <= 1) return sorted;
+    const cross = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
+      (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lower: typeof sorted = [];
+    for (const p of sorted) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+      lower.push(p);
+    }
+    const upper: typeof sorted = [];
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      const p = sorted[i];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+      upper.push(p);
+    }
+    upper.pop(); lower.pop();
+    return [...lower, ...upper];
+  };
   const projectBoxRect = (box: {
     cx: number; cy: number; cz: number;
     hx: number; hy: number; hz: number;
     rotX?: number; rotY?: number; rotZ?: number;
   }): { x: number; y: number; w: number; h: number } | null => {
-    const brx = box.rotX ?? 0, bry = box.rotY ?? 0, brz = box.rotZ ?? 0;
-    const bcx = Math.cos(brx), bsx = Math.sin(brx);
-    const bcy = Math.cos(bry), bsy = Math.sin(bry);
-    const bcz = Math.cos(brz), bsz = Math.sin(brz);
+    const corners = projectBoxCorners(box);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const sx of [-1, 1]) {
-      for (const sy of [-1, 1]) {
-        for (const sz of [-1, 1]) {
-          // box 自己的 Euler XYZ 旋轉（splayed mortise 用）
-          let ox = sx * box.hx, oy = sy * box.hy, oz = sz * box.hz;
-          if (brx) { const ny = oy * bcx - oz * bsx, nz = oy * bsx + oz * bcx; oy = ny; oz = nz; }
-          if (bry) { const nx = ox * bcy + oz * bsy, nz = -ox * bsy + oz * bcy; ox = nx; oz = nz; }
-          if (brz) { const nx = ox * bcz - oy * bsz, ny = ox * bsz + oy * bcz; ox = nx; oy = ny; }
-          const p = ctx.partLocalToSvg(box.cx + ox, box.cy + oy, box.cz + oz);
-          if (p.x < minX) minX = p.x;
-          if (p.x > maxX) maxX = p.x;
-          if (p.y < minY) minY = p.y;
-          if (p.y > maxY) maxY = p.y;
-        }
-      }
+    for (const p of corners) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
     }
     const w = maxX - minX;
     const h = maxY - minY;
@@ -1440,19 +1470,39 @@ export function T2Annotations({
             strokeDasharray="4 1.5 0.5 1.5"
           />
         </g>
-      ) : (
-        <rect
-          key={`${it.kind}-${it.idx}-box`}
-          x={box.x}
-          y={box.y}
-          width={box.w}
-          height={box.h}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={1.2}
-          strokeDasharray={dash}
-        />
-      ),
+      ) : (() => {
+          // 有 rotation（splayed mortise/tenon）→ 用 convex hull polygon 畫實際斜邊
+          // 而非 AABB rect。fallback: 無 rotation 維持 rect。
+          const hasRot = !!((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ);
+          if (hasRot) {
+            const corners = projectBoxCorners(lb as any);
+            const hull = convexHull2D(corners);
+            const pts = hull.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+            return (
+              <polygon
+                key={`${it.kind}-${it.idx}-box`}
+                points={pts}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={1.2}
+                strokeDasharray={dash}
+              />
+            );
+          }
+          return (
+            <rect
+              key={`${it.kind}-${it.idx}-box`}
+              x={box.x}
+              y={box.y}
+              width={box.w}
+              height={box.h}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={1.2}
+              strokeDasharray={dash}
+            />
+          );
+        })(),
     ];
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
