@@ -17,13 +17,16 @@ import { worldExtents } from "@/lib/render/geometry";
 
 interface Props {
   design: FurnitureDesign;
-  highlightPartId: string;
+  /** 單一 part id，或同組多個 part id（×N 群組件時把所有 sibling id 傳進來，
+   *  4 個角落都用紅色標出，木匠看一張圖能對到全部裝位 */
+  highlightPartId: string | string[];
   className?: string;
 }
 
 export function InstallHintMini({ design, highlightPartId, className }: Props) {
-  const target = design.parts.find((p) => p.id === highlightPartId);
-  if (!target) return null;
+  const targetIds = Array.isArray(highlightPartId) ? highlightPartId : [highlightPartId];
+  const targets = design.parts.filter((p) => targetIds.includes(p.id));
+  if (targets.length === 0) return null;
 
   // 算整家具 bbox（top view = X-Z 平面，從上往下看）
   // top view 對家具裝位最直觀：座板、4 腳、4 牙條、橫撐 全部 horizontal 投影
@@ -98,9 +101,10 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
           />
         );
       })}
-      {/* Pass 2: target part 用紅色半透明 fill + 紅 outline 蓋在最上層
-          —— 半透明確保大型 part（如背板/側板）不會把家具骨架完全遮掉 */}
-      {(() => {
+      {/* Pass 2: target parts 用紅色半透明 fill + 紅 outline 蓋在最上層
+          —— 半透明確保大型 part（如背板/側板）不會把家具骨架完全遮掉
+          —— ×N 群組件（4 腳/4 牙條等）所有 sibling 都紅標，讓木匠一張圖看到全部裝位 */}
+      {targets.map((target, idx) => {
         const o = target.origin ?? { x: 0, y: 0, z: 0 };
         const ext = worldExtents(target);
         const x = tx((o.x ?? 0) - ext.xExt / 2);
@@ -109,6 +113,7 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
         const h = ext.zExt * scale;
         return (
           <rect
+            key={`hl-${target.id}-${idx}`}
             x={x}
             y={y}
             width={Math.max(w, 0.5)}
@@ -119,7 +124,7 @@ export function InstallHintMini({ design, highlightPartId, className }: Props) {
             strokeWidth={1.2}
           />
         );
-      })()}
+      })}
     </svg>
   );
 }

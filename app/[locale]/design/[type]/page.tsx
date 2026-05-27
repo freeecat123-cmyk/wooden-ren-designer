@@ -690,7 +690,7 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     </div>
     {uiV2 && (
       <MobileShell
-        entry={{ category: entry.category, nameZh: entry.nameZh, description: entry.description, difficulty: entry.difficulty, defaults: entry.defaults, limits: entry.limits, optionSchema: entry.optionSchema }}
+        entry={{ category: entry.category, nameZh: entry.nameZh, nameEn: entry.nameEn, description: entry.description, descriptionEn: entry.descriptionEn, difficulty: entry.difficulty, defaults: entry.defaults, limits: entry.limits, optionSchema: entry.optionSchema }}
         design={design}
         length={length}
         width={width}

@@ -154,7 +154,7 @@ export function PartDrawing({
           z-20 保證蓋在 OrthoView SVG（normal flow + bg-white）之上，否則
           高 aspect 零件的 SVG 會把右上角縮圖蓋掉一半（user 05-19 11:42 回報） */}
       <div className="absolute top-2 right-2 z-20">
-        <InstallHintMini design={design} highlightPartId={part.id} />
+        <InstallHintMini design={design} highlightPartId={group.parts.map((p) => p.id)} />
       </div>
       {/* Title bar */}
       <div className="flex items-baseline justify-between border-b border-zinc-200 pb-1 mb-2 pr-[88px]">

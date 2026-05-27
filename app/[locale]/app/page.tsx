@@ -2,7 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { FURNITURE_CATALOG, type FurnitureCatalogEntry } from "@/lib/templates";
+import { FURNITURE_CATALOG, getEntryName, type FurnitureCatalogEntry } from "@/lib/templates";
+import { routing, type Locale } from "@/i18n/routing";
 import type { FurnitureCategory } from "@/lib/types";
 import { StudentLoginHint } from "@/components/StudentLoginHint";
 import { isPaidCategory } from "@/lib/permissions";
@@ -139,10 +140,14 @@ function sortAllFreeFirst(entries: FurnitureCatalogEntry[]) {
 }
 
 export default async function Home({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams?: Promise<SearchParams>;
 }) {
+  const { locale: raw } = await params;
+  const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
   const sp = (await searchParams) ?? {};
   const chip = (CATEGORY_CHIPS.find((c) => c.key === sp.cat)?.key ?? "all") as CatKey;
   const ready = FURNITURE_CATALOG.filter((f) => f.template).length;
@@ -310,13 +315,13 @@ export default async function Home({
 
           if (!showTools) {
             return [...ownedFurniture, ...restFurniture].map((item) => (
-              <FurnitureCard key={item.category} item={item} isUnlocked={unlockedSet.has(item.category)} />
+              <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={unlockedSet.has(item.category)} />
             ));
           }
 
           const ownedNodes: ReactNode[] = [
             ...ownedFurniture.map((item) => (
-              <FurnitureCard key={item.category} item={item} isUnlocked />
+              <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked />
             )),
             ...(ceilingOwned ? [<CeilingToolCard key="t-ceiling-owned" isUnlocked />] : []),
             ...(floorOwned ? [<FloorToolCard key="t-floor-owned" isUnlocked />] : []),
@@ -332,10 +337,10 @@ export default async function Home({
             : interIdx;
           const cutFinal = cut === -1 ? restFurniture.length : cut;
           const head = restFurniture.slice(0, cutFinal).map((item) => (
-            <FurnitureCard key={item.category} item={item} isUnlocked={false} />
+            <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={false} />
           ));
           const tail = restFurniture.slice(cutFinal).map((item) => (
-            <FurnitureCard key={item.category} item={item} isUnlocked={false} />
+            <FurnitureCard key={item.category} item={item} locale={locale} isUnlocked={false} />
           ));
           const unownedTools: ReactNode[] = [
             ...(ceilingOwned ? [] : [<CeilingToolCard key="t-ceiling" isUnlocked={false} />]),
@@ -500,11 +505,13 @@ function RaisedFloorToolCard({ isUnlocked = false }: { isUnlocked?: boolean }) {
   );
 }
 
-function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEntry; isUnlocked?: boolean }) {
+function FurnitureCard({ item, locale, isUnlocked = false }: { item: FurnitureCatalogEntry; locale: Locale; isUnlocked?: boolean }) {
   // 付費版範本但 user 已永久買斷 → 不顯示 🔒（避免「我已買還鎖」的視覺誤導）
   const paid = isPaidCategory(item.category) && !isUnlocked;
   const inDevelopment = DEVELOPMENT_CATEGORIES.has(item.category);
-  const searchTokens = [item.nameZh, item.category, item.description]
+  const displayName = getEntryName(item, locale);
+  // 搜尋兼用兩語名稱（zh-TW user 搜英文名也能找到，反之亦然）
+  const searchTokens = [item.nameZh, item.nameEn, item.category, item.description, item.descriptionEn]
     .filter(Boolean)
     .join(" ");
 
@@ -521,8 +528,8 @@ function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEnt
             🚧 敬請期待
           </span>
         </span>
-        <CardThumb item={item} />
-        <CardFooter item={item} paid={paid} />
+        <CardThumb item={item} alt={displayName} />
+        <CardFooter name={displayName} item={item} paid={paid} />
       </div>
     );
   }
@@ -531,7 +538,7 @@ function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEnt
     <Link
       href={`/design/${item.category}`}
       data-catalog-search={searchTokens}
-      title={`${item.nameZh} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
+      title={`${displayName} · ${DIFFICULTY_LABEL[item.difficulty]}${paid ? " · 付費版" : " · 免費"}`}
       className="group relative block overflow-hidden rounded-xl bg-white ring-1 ring-stone-300 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-900/10 hover:ring-amber-500"
     >
       {/* Top-right corner: 已擁有打勾 / 付費鎖 */}
@@ -544,18 +551,18 @@ function FurnitureCard({ item, isUnlocked = false }: { item: FurnitureCatalogEnt
           <span className="text-amber-600 text-xs" title="付費版">🔒</span>
         </div>
       ) : null}
-      <CardThumb item={item} />
-      <CardFooter item={item} paid={paid} />
+      <CardThumb item={item} alt={displayName} />
+      <CardFooter name={displayName} item={item} paid={paid} />
     </Link>
   );
 }
 
-function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
+function CardThumb({ item, alt }: { item: FurnitureCatalogEntry; alt: string }) {
   return (
     <div className="relative aspect-square flex items-center justify-center overflow-hidden bg-gradient-to-br from-white to-stone-50">
       <Image
         src={`/thumbs/v2/${item.category}.webp`}
-        alt={`${item.nameZh} 3D 預覽`}
+        alt={`${alt} 3D preview`}
         width={240}
         height={180}
         quality={75}
@@ -570,15 +577,17 @@ function CardThumb({ item }: { item: FurnitureCatalogEntry }) {
 
 function CardFooter({
   item,
+  name,
   paid,
 }: {
   item: FurnitureCatalogEntry;
+  name: string;
   paid: boolean;
 }) {
   return (
     <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-t border-amber-100 bg-amber-50">
       <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate">
-        {item.nameZh}
+        {name}
       </span>
       <span
         className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${DIFFICULTY_PILL[item.difficulty]}`}

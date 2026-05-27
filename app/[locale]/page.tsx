@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { FURNITURE_CATALOG } from "@/lib/templates";
+import { FURNITURE_CATALOG, getEntryName } from "@/lib/templates";
 import { FREE_UNLOCKED_CATEGORIES } from "@/lib/permissions";
 import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 import { getSessionUser } from "@/lib/supabase/server";
@@ -297,7 +297,7 @@ export default async function Landing({
                 <div className="relative aspect-square flex items-center justify-center bg-gradient-to-br from-white to-stone-50">
                   <Image
                     src={`/thumbs/v2/${e.category}.webp`}
-                    alt={t("templates.previewAlt", { name: e.nameZh })}
+                    alt={t("templates.previewAlt", { name: getEntryName(e, locale) })}
                     width={240}
                     height={180}
                     quality={75}
@@ -309,7 +309,7 @@ export default async function Landing({
                 </div>
                 <div className="px-3 py-2.5 border-t border-amber-100 bg-amber-50">
                   <span className="text-sm font-semibold text-zinc-900 group-hover:text-amber-900 truncate block">
-                    {e.nameZh}
+                    {getEntryName(e, locale)}
                   </span>
                 </div>
               </Link>
