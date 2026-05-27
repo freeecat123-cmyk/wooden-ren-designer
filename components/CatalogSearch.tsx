@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * 首頁搜尋框：用 client-side filter 快速隱藏不符合的家具卡片。
@@ -11,6 +12,7 @@ import { useEffect, useState } from "react";
  * 沒 JS 也不會壞——卡片預設都顯示。
  */
 export function CatalogSearch() {
+  const t = useTranslations("catalogSearch");
   const [q, setQ] = useState("");
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function CatalogSearch() {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="🔍 搜尋家具：餐桌、書櫃、玄關鞋櫃…"
+        placeholder={t("placeholder")}
         className="w-full px-4 py-3 rounded-xl border-2 border-zinc-200 bg-white text-base focus:border-amber-400 focus:outline-none"
       />
       {q && (
@@ -53,7 +55,7 @@ export function CatalogSearch() {
           onClick={() => setQ("")}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-sm"
         >
-          ✕ 清除
+          {t("clear")}
         </button>
       )}
     </div>

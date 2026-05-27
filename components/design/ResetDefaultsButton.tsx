@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * 一鍵把所有 URL params 清空回到模板預設值。
@@ -8,6 +9,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
  * 故意做 confirm 確認，因為 URL 即所有設計狀態，誤按會清光。
  */
 export function ResetDefaultsButton() {
+  const t = useTranslations("resetDefaults");
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -17,11 +19,7 @@ export function ResetDefaultsButton() {
   if (!hasAnyParam) return null;
 
   const handleReset = () => {
-    if (
-      window.confirm(
-        "重設後會清空你目前所有調整，回到出廠預設。要繼續嗎？\n（清空後可以按瀏覽器上一頁救回）",
-      )
-    ) {
+    if (window.confirm(t("confirm"))) {
       router.replace(pathname ?? "/", { scroll: false });
     }
   };
@@ -30,10 +28,10 @@ export function ResetDefaultsButton() {
     <button
       type="button"
       onClick={handleReset}
-      title="清空所有調整、回到模板預設值"
+      title={t("title")}
       className="text-[11px] px-2.5 py-1 rounded-md border border-amber-200 bg-white text-zinc-600 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 transition-colors"
     >
-      ↺ 重設預設
+      {t("button")}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { getCategoryLabel } from "@/lib/templates/labels";
 import { isPaidCategory } from "@/lib/permissions";
@@ -23,10 +24,20 @@ interface Suggestion {
  * 才能轉付費）+ 付費 UX 不被擋（一鍵切到對的模板）。
  */
 export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
+  const t = useTranslations("suggestionsBox");
+  const tFurn = useTranslations("furniture");
   const { plan, isLoading } = useUserPlan();
   if (isLoading || suggestions.length === 0) return null;
 
   const isPaid = plan !== "free";
+
+  function categoryLabel(c: FurnitureCategory): string {
+    try {
+      return tFurn(c);
+    } catch {
+      return getCategoryLabel(c);
+    }
+  }
 
   return (
     <div className="mb-4 rounded-xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 px-5 py-4 shadow-sm">
@@ -34,10 +45,10 @@ export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
         <span className="text-2xl leading-none mt-0.5">💡</span>
         <div className="flex-1 space-y-3">
           <div className="text-sm font-semibold text-amber-900">
-            您要做的尺寸建議改用其他模板
+            {t("headerText")}
           </div>
           {suggestions.map((s, i) => {
-            const targetLabel = getCategoryLabel(s.suggestedCategory);
+            const targetLabel = categoryLabel(s.suggestedCategory);
             const targetIsPaid = isPaidCategory(s.suggestedCategory);
             const showUpgradeFlow = !isPaid && targetIsPaid;
             const url = showUpgradeFlow
@@ -59,11 +70,9 @@ export function SuggestionsBox({ suggestions }: { suggestions: Suggestion[] }) {
                       : "bg-emerald-600 text-white hover:bg-emerald-700"
                   }`}
                 >
-                  {showUpgradeFlow ? (
-                    <>🔓 升級看「{targetLabel}」模板</>
-                  ) : (
-                    <>→ 切換到「{targetLabel}」模板（沿用當前尺寸）</>
-                  )}
+                  {showUpgradeFlow
+                    ? t("upgradeCtaTpl", { name: targetLabel })
+                    : t("switchCtaTpl", { name: targetLabel })}
                 </Link>
               </div>
             );

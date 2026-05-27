@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 export function HeightPresetChips({
   presets,
   maxHeight,
@@ -8,12 +10,13 @@ export function HeightPresetChips({
   /** 該家具的 limits.height；超過上限的 chip 不顯示，避免一鍵就違規 */
   maxHeight?: number;
 }) {
+  const t = useTranslations("heightChip");
   const valid = maxHeight ? presets.filter((p) => p.value <= maxHeight) : presets;
   if (valid.length === 0) return null;
 
   return (
     <span className="flex flex-wrap items-center gap-1 text-zinc-500">
-      <span className="text-zinc-500">高度</span>
+      <span className="text-zinc-500">{t("heightLbl")}</span>
       {valid.map((p) => (
         <button
           key={`${p.label}-${p.value}`}

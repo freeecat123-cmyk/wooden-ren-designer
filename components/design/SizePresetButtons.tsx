@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { getSizePresets } from "@/lib/design/size-presets";
 import type { FurnitureCategory } from "@/lib/types";
 
@@ -23,6 +24,7 @@ interface SizePresetButtonsProps {
 }
 
 export function SizePresetButtons({ category, limits, compact }: SizePresetButtonsProps) {
+  const t = useTranslations("sizePreset");
   const router = useRouter();
   const searchParams = useSearchParams();
   const allPresets = getSizePresets(category);
@@ -61,7 +63,7 @@ export function SizePresetButtons({ category, limits, compact }: SizePresetButto
   return (
     <div className="mb-3 flex flex-wrap gap-1.5 items-center">
       <span className="text-[10px] text-zinc-500 font-medium tracking-wide mr-1">
-        🎯 業界常用：
+        {t("commonLabel")}
       </span>
       {presets.map((p) => (
         <button

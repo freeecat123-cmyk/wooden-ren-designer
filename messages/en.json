@@ -4676,5 +4676,124 @@
     "h": "Try Furniture Blueprints — sign in to get started ✨",
     "body": "Sign in to unlock the full toolkit (unlimited storage, PDF downloads, custom quoting, and more). Non-academy users can also sign in to save designs.",
     "logoAlt": "Wooden Ren"
+  },
+  "lazyPerspective": {
+    "loadingHint": "Loading 3D preview…"
+  },
+  "numberInput": {
+    "decrease": "Decrease",
+    "increase": "Increase"
+  },
+  "resetDefaults": {
+    "confirm": "This will clear all your current adjustments and return to factory defaults. Continue?\n(You can use the browser's back button to restore.)",
+    "title": "Clear all adjustments and return to template defaults",
+    "button": "↺ Reset"
+  },
+  "suggestionsBox": {
+    "headerText": "Your size suggests a different template",
+    "upgradeCtaTpl": "🔓 Unlock \"{name}\" template",
+    "switchCtaTpl": "→ Switch to \"{name}\" template (keep current size)"
+  },
+  "catalogSearch": {
+    "placeholder": "🔍 Search furniture: dining table, bookcase, shoe cabinet…",
+    "clear": "✕ Clear"
+  },
+  "viewModeToggle": {
+    "customer": "👤 Customer",
+    "internal": "🔧 Internal"
+  },
+  "sizePreset": {
+    "commonLabel": "🎯 Industry standard:"
+  },
+  "heightChip": {
+    "heightLbl": "Height"
+  },
+  "stylePreset": {
+    "reapplyHintTpl": "\nPress again for variant #{n}"
+  },
+  "material3dPip": {
+    "syncLabel": "3D sync highlight"
+  },
+  "sceneToggle": {
+    "sceneLbl": "Scene",
+    "natural": "Pure white",
+    "nordic": "Nordic",
+    "japandi": "Japanese",
+    "industrial": "Industrial",
+    "chinese": "Chinese"
+  },
+  "lemon": {
+    "pricing": {
+      "heroTitle": "Furniture Blueprints",
+      "heroSubtitle": "Parametric furniture design with engineering drawings, 3D views, bill of materials, and step-by-step construction plans.",
+      "bestValue": "BEST VALUE",
+      "monthlyTitle": "Monthly",
+      "monthlyPrice": "$9",
+      "monthlyPeriod": "/ month",
+      "monthlySubtitle": "Cancel anytime",
+      "monthlyCta": "Start monthly",
+      "monthlyFeatures": [
+        "All 27+ furniture templates",
+        "Unlimited designs",
+        "PDF & SVG export",
+        "Bill of materials + cut list",
+        "3D real-time preview"
+      ],
+      "annualTitle": "Annual",
+      "annualPrice": "$79",
+      "annualPeriod": "/ year",
+      "annualSubtitle": "Save 27% — 2 months free",
+      "annualCta": "Start annual",
+      "annualFeatures": [
+        "Everything in Monthly",
+        "Priority support",
+        "Early access to new templates",
+        "Annual maintenance billing"
+      ],
+      "lifetimeTitle": "Lifetime",
+      "lifetimePrice": "$129",
+      "lifetimePeriod": "",
+      "lifetimeSubtitle": "One-time purchase",
+      "lifetimeCta": "Buy lifetime",
+      "lifetimeFeatures": [
+        "All current templates",
+        "All future templates included",
+        "Unlimited designs forever",
+        "No recurring charges"
+      ],
+      "signInPrefix": "Sign in to ",
+      "redirecting": "Redirecting…",
+      "footerPaymentsBy": "Payments processed securely by",
+      "footerMoR": "(merchant of record). VAT/sales tax handled automatically for your country."
+    },
+    "singleTemplate": {
+      "heading": "Just want one template?",
+      "intro": "Buy lifetime access to a single template. No subscription.",
+      "tierBasic": "Basic",
+      "tierPro": "Pro",
+      "tierStudio": "Studio",
+      "filterAll": "All",
+      "loading": "Loading…",
+      "owned": "Owned ✓",
+      "buy": "Buy",
+      "signIn": "Sign in"
+    },
+    "subscription": {
+      "h1": "My subscription",
+      "intro": "Manage your Furniture Blueprints plan and single-template purchases.",
+      "planProLabel": "Furniture Blueprints Pro",
+      "manage": "Manage subscription →",
+      "started": "Started",
+      "renewsOn": "Renews on",
+      "accessUntil": "Access until",
+      "cancelledNote": "Your subscription is cancelled but remains active until {date}. You can reactivate from the customer portal.",
+      "portalHint": "Update payment method, cancel, or view invoices on the Lemon Squeezy customer portal.",
+      "noActive": "No active subscription.",
+      "viewPlans": "View plans",
+      "singlePurchasesH": "Single-template purchases",
+      "purchaseTypeTool": "tool",
+      "purchaseTypeTemplate": "template",
+      "loading": "Loading subscription…"
+    }
   }
 }

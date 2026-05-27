@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 /**
  * 客戶版 / 內部版 切換。兩種版本差異：
@@ -13,6 +14,7 @@ export function ViewModeToggle({
 }: {
   current: "customer" | "internal";
 }) {
+  const t = useTranslations("viewModeToggle");
   const sp = useSearchParams();
   const pathname = usePathname();
 
@@ -38,7 +40,7 @@ export function ViewModeToggle({
         }`}
         scroll={false}
       >
-        👤 客戶版
+        {t("customer")}
       </Link>
       <Link
         href={makeUrl("internal")}
@@ -47,7 +49,7 @@ export function ViewModeToggle({
         }`}
         scroll={false}
       >
-        🔧 內部版
+        {t("internal")}
       </Link>
     </div>
   );

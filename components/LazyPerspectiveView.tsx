@@ -1,31 +1,29 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { useSelectedPart } from "./SelectedPartContext";
 
-/**
- * 3D 透視圖懶載入 wrapper。
- * 主要 bundle（three / @react-three/*）約 600KB，在初始頁面載入時延遲，
- * 讓文字 / 表格 / 表單先互動完，再拉 3D 畫面。
- *
- * 提早看到內容的觀感比 FCP 數字還重要。
- */
+function LoadingShell() {
+  const t = useTranslations("lazyPerspective");
+  return (
+    <div className="w-full h-full min-h-[180px] aspect-[4/3] md:aspect-[16/10] rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.6s_infinite]" />
+      <div className="relative text-center text-zinc-500 text-sm select-none">
+        <div className="text-3xl mb-1">🪵</div>
+        <p className="text-xs">{t("loadingHint")}</p>
+      </div>
+    </div>
+  );
+}
+
 const PerspectiveViewLazy = dynamic(
   () =>
     import("./PerspectiveView").then((m) => ({ default: m.PerspectiveView })),
   {
     ssr: false,
-    loading: () => (
-      <div className="w-full h-full min-h-[180px] aspect-[4/3] md:aspect-[16/10] rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center relative overflow-hidden">
-        {/* shimmer */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.6s_infinite]" />
-        <div className="relative text-center text-zinc-500 text-sm select-none">
-          <div className="text-3xl mb-1">🪵</div>
-          <p className="text-xs">準備 3D 透視圖中</p>
-        </div>
-      </div>
-    ),
+    loading: () => <LoadingShell />,
   },
 );
 

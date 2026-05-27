@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useHoveredParts } from "@/components/HoveredPartsContext";
 
 interface PresetPoint {
@@ -48,6 +49,7 @@ export function ClampedNumberInput({
   ticks,
 }: Props) {
   void ticks;
+  const t = useTranslations("numberInput");
 
   // Part anchor hover/focus → 3D 對應件 emissive 高亮
   const { setHoveredPartIds } = useHoveredParts();
@@ -200,7 +202,7 @@ export function ClampedNumberInput({
         {showPlusMinus && (
           <button
             type="button"
-            aria-label="減"
+            aria-label={t("decrease")}
             onMouseDown={() => startRepeat(-stepDelta)}
             onMouseUp={stopRepeat}
             onMouseLeave={stopRepeat}
@@ -235,7 +237,7 @@ export function ClampedNumberInput({
         {showPlusMinus && (
           <button
             type="button"
-            aria-label="加"
+            aria-label={t("increase")}
             onMouseDown={() => startRepeat(stepDelta)}
             onMouseUp={stopRepeat}
             onMouseLeave={stopRepeat}

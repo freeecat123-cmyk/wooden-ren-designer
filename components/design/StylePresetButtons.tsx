@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 import { STYLE_PRESETS, applyStylePreset, getAllStyleManagedKeys } from "@/lib/knowledge/style-presets";
 import { getGenericVariantKeys } from "@/lib/knowledge/style-variants";
@@ -47,6 +48,7 @@ export function StylePresetButtons({
   /** compact=true：手機橫滑模式，去掉說明文字與 adapter notes */
   compact?: boolean;
 }) {
+  const t = useTranslations("stylePreset");
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
@@ -158,7 +160,7 @@ export function StylePresetButtons({
                   ? "bg-violet-100 text-violet-900 ring-violet-400 font-medium"
                   : "bg-white text-zinc-800 ring-zinc-300 hover:bg-violet-50 hover:ring-violet-400"
               }`}
-              title={`${p.visualHint}${isActive ? `\n再按產出 #${currentVariant + 1} 變體` : ""}`}
+              title={`${p.visualHint}${isActive ? t("reapplyHintTpl", { n: currentVariant + 1 }) : ""}`}
             >
               {STYLE_EMOJI[p.id] ?? "🪵"} {shortName}{variantLabel}
             </button>
