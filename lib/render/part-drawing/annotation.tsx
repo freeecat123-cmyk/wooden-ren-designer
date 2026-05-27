@@ -2753,8 +2753,10 @@ export function DetailCallout({
         );
         const targetName =
           t.kind === "mortise" ? `榫眼${t.idx + 1}` : `榫頭${t.idx + 1}`;
+        // 正視圖榫頭 callout 不標榫厚（D 是 Z 方向，正視圖看不到，標出來會誤導
+        // — 之前畫面上的「10」就是這個 D；榫厚請看材料單或側視圖）
         const dimText =
-          t.kind === "mortise" ? `${W}×${L} 深${D}` : `${W}×${D} 長${L}`;
+          t.kind === "mortise" ? `${W}×${L} 深${D}` : `${W} 長${L}`;
 
         // Leader: feature 圓邊朝 inset 中心方向 → inset 最近角
         const insetCx = p.x + p.w / 2;
