@@ -2,18 +2,25 @@ import type { FurnitureDesign } from "@/lib/types";
 import { deriveRequiredTools } from "@/lib/tools/derive";
 import { buildShopUrl } from "@/lib/tools/utm";
 import { qrSvg } from "@/lib/render/qr";
-import type { ToolPriority } from "@/lib/tools/catalog";
+import { toolName, type ToolPriority } from "@/lib/tools/catalog";
 
-const PRIORITY_LABEL: Record<ToolPriority, string> = {
+const PRIORITY_LABEL_ZH: Record<ToolPriority, string> = {
   required: "必備工具",
   recommended: "建議工具",
   optional: "可選工具",
 };
 
-export async function PrintToolList({ design }: { design: FurnitureDesign }) {
-  const tools = deriveRequiredTools(design);
+const PRIORITY_LABEL_EN: Record<ToolPriority, string> = {
+  required: "Required",
+  recommended: "Recommended",
+  optional: "Optional",
+};
 
-  // Pre-render QR SVG for each tool that has a shopUrl
+export async function PrintToolList({ design, locale = "zh-TW" }: { design: FurnitureDesign; locale?: string }) {
+  const tools = deriveRequiredTools(design);
+  const isEn = locale === "en";
+  const PRIORITY_LABEL = isEn ? PRIORITY_LABEL_EN : PRIORITY_LABEL_ZH;
+
   const qrByToolId = new Map<string, string>();
   await Promise.all(
     tools.map(async (rt) => {
@@ -39,7 +46,7 @@ export async function PrintToolList({ design }: { design: FurnitureDesign }) {
         return (
           <div key={priority} className="print-keep">
             <h3 className="text-base font-semibold mb-2 border-b border-zinc-300 pb-1">
-              {PRIORITY_LABEL[priority]}（{items.length} 項）
+              {PRIORITY_LABEL[priority]}{isEn ? ` (${items.length})` : `（${items.length} 項）`}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               {items.map((rt) => {
@@ -61,7 +68,7 @@ export async function PrintToolList({ design }: { design: FurnitureDesign }) {
                     )}
                     <div className="flex-1 min-w-0 text-xs leading-snug">
                       <div className="font-semibold text-sm">
-                        {rt.tool.nameZh}
+                        {toolName(rt.tool, locale)}
                       </div>
                       <div className="text-zinc-600 mt-0.5">{rt.reason}</div>
                       {url ? (
@@ -72,14 +79,14 @@ export async function PrintToolList({ design }: { design: FurnitureDesign }) {
                             rel="noopener noreferrer"
                             className="text-zinc-900 underline"
                           >
-                            查看商品 →
+                            {isEn ? "View product →" : "查看商品 →"}
                           </a>
                           <div className="text-[9px] text-zinc-400 break-all mt-0.5 font-mono">
                             {url}
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-1 text-zinc-400">尚未上架</div>
+                        <div className="mt-1 text-zinc-400">{isEn ? "Coming soon" : "尚未上架"}</div>
                       )}
                     </div>
                   </div>

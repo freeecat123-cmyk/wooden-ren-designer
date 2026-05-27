@@ -275,15 +275,15 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
       {(await isLocalhost()) && (
         <>
           {/* ================= Page N+: Part drawings index (零件清單索引) ================= */}
-          <PartDrawingsIndex design={design} />
+          <PartDrawingsIndex design={design} locale={locale} />
 
           {/* ================= Page N+: Part drawings (零件圖) ================= */}
-          <PrintPartDrawings design={design} />
+          <PrintPartDrawings design={design} locale={locale} />
         </>
       )}
 
       {/* ================= Page N+: 1:1 樣板列印頁 ================= */}
-      <PrintTemplates design={design} />
+      <PrintTemplates design={design} locale={locale} />
 
       {/* ================= Page N+: Tool list with QR ================= */}
       <section data-print-page className="px-10 py-12">
@@ -291,7 +291,7 @@ export default async function PrintPage({ params, searchParams }: PageProps) {
           title={isEn ? "Tool list" : "工具清單"}
           subtitle={isEn ? "Scan QR codes to buy from the Wooden Ren store" : "掃 QR 碼到木頭仁木匠商城購買"}
         />
-        <PrintToolList design={design} />
+        <PrintToolList design={design} locale={locale} />
         <p className="mt-4 text-[10px] text-zinc-500">
           {isEn
             ? "All QR codes embed UTM tracking so we can prioritize stocking; links go to woodenren.easy.co"

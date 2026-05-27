@@ -8,6 +8,7 @@ import { PartDrawing } from "@/lib/render/part-drawing/drawing";
 
 interface Props {
   design: FurnitureDesign;
+  locale?: string;
 }
 
 /**
@@ -40,17 +41,20 @@ function isHardPart(g: PartDrawingGroup): boolean {
  * Hard-shape parts (HARD_SHAPES) take `col-span-2` so their richer
  * annotations (Phase 3) get a full row; lighter parts stay 2-up.
  */
-export function PrintPartDrawings({ design }: Props) {
+export function PrintPartDrawings({ design, locale = "zh-TW" }: Props) {
   const groups = groupPartsForDrawing(design);
 
   if (!groups.length) return null;
+  const isEn = locale === "en";
 
   return (
     <section data-print-page className="px-10 py-12">
       <div className="mb-4 pb-2 border-b-2 border-zinc-900">
-        <h2 className="text-2xl font-bold">零件圖</h2>
+        <h2 className="text-2xl font-bold">{isEn ? "Part drawings" : "零件圖"}</h2>
         <p className="text-xs text-zinc-500 mt-0.5">
-          共 {groups.length} 件（合併同形後）—— 每張含三視圖、主要尺寸、榫卯位置
+          {isEn
+            ? `${groups.length} parts (deduplicated by shape) — each card has 3 views, key dimensions, joinery positions`
+            : `共 ${groups.length} 件（合併同形後）—— 每張含三視圖、主要尺寸、榫卯位置`}
         </p>
       </div>
 

@@ -5,9 +5,11 @@ import {
   type PartDrawingGroup,
 } from "@/lib/render/part-drawing/grouping";
 import { OrthoView } from "@/lib/render/svg-views";
+import { partName } from "@/lib/templates/part-names";
 
 interface Props {
   design: FurnitureDesign;
+  locale?: string;
 }
 
 /**
@@ -41,10 +43,11 @@ function isCurvedPart(g: PartDrawingGroup): boolean {
  *
  * 沒有 curved 件時整段不渲染（pure-box 家具不要無謂分頁）。
  */
-export function PrintTemplates({ design }: Props) {
+export function PrintTemplates({ design, locale = "zh-TW" }: Props) {
   const groups = groupPartsForDrawing(design);
   const curvedGroups = groups.filter(isCurvedPart);
   if (!curvedGroups.length) return null;
+  const isEn = locale === "en";
 
   return (
     <>
@@ -58,10 +61,12 @@ export function PrintTemplates({ design }: Props) {
           >
             <div className="mb-2 pb-2 border-b-2 border-zinc-900">
               <h2 className="text-xl font-bold">
-                樣板 — {p.nameZh}（1:1 真實尺寸）
+                {isEn
+                  ? `Template — ${partName(p, locale)} (1:1 true size)`
+                  : `樣板 — ${p.nameZh}（1:1 真實尺寸）`}
               </h2>
               <p className="text-xs text-zinc-500 mt-0.5">
-                沿外輪廓剪下、貼擋板使用
+                {isEn ? "Cut along the outline and adhere to a story board" : "沿外輪廓剪下、貼擋板使用"}
               </p>
             </div>
             <div
