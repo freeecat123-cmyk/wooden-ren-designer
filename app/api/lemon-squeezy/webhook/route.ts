@@ -98,6 +98,27 @@ export async function POST(req: NextRequest) {
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+/**
+ * Supabase JS 的 query builder 不會 throw error，會把錯誤放在回傳物件 .error。
+ * 不檢查就會 silent fail（log 標 OK 但 row 沒寫進去）。
+ * 所有 DB 寫入都包這個 helper，有錯一律 throw 進 catch → 記到 processing_error。
+ */
+// supabase-js 的 query builder 是 thenable 但不是 Promise，用 PromiseLike 才能 await
+type SupabaseResult = { error: { message: string; code?: string } | null };
+
+async function mustOk<T extends SupabaseResult>(
+  query: PromiseLike<T>,
+  label: string,
+): Promise<T> {
+  const res = await query;
+  if (res.error) {
+    throw new Error(
+      `[${label}] ${res.error.message} (code=${res.error.code ?? "?"})`,
+    );
+  }
+  return res;
+}
+
 async function dispatchEvent(
   admin: AdminClient,
   payload: LemonWebhookPayload,
@@ -155,21 +176,24 @@ async function handleOrderCreated(
   }
 
   // 1. 寫 payments
-  await admin.from("payments").insert({
-    user_id: userId,
-    amount: Math.round(totalCents / 100), // 內部用整數塊（USD）
-    status: "success",
-    payment_provider: "lemonsqueezy",
-    lemonsqueezy_order_id: orderId,
-  });
+  await mustOk(
+    admin.from("payments").insert({
+      user_id: userId,
+      amount: Math.round(totalCents / 100), // 內部用整數塊（USD）
+      status: "success",
+      payment_provider: "lemonsqueezy",
+      lemonsqueezy_order_id: orderId,
+    }),
+    "order_created.payments.insert",
+  );
 
   // 2. 按 variant 種類開權限
   if (variant.kind === "lifetime") {
     // Lifetime → users.plan = 'lifetime'（或視 schema 改 subscriptions row）
-    await admin
-      .from("users")
-      .update({ plan: "lifetime" })
-      .eq("id", userId);
+    await mustOk(
+      admin.from("users").update({ plan: "lifetime" }).eq("id", userId),
+      "order_created.users.update.lifetime",
+    );
   } else if (variant.kind === "single-template") {
     const templateId = custom.template_id;
     if (!templateId) {
@@ -177,21 +201,27 @@ async function handleOrderCreated(
     }
     // 判斷是 furniture 還是 tool
     if (isSellableFurniture(templateId)) {
-      await admin.from("template_unlocks").insert({
-        user_id: userId,
-        category: templateId,
-        paid_amount: Math.round(totalCents / 100),
-        payment_provider: "lemonsqueezy",
-        lemonsqueezy_order_id: orderId,
-      });
+      await mustOk(
+        admin.from("template_unlocks").insert({
+          user_id: userId,
+          category: templateId,
+          paid_amount: Math.round(totalCents / 100),
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_order_id: orderId,
+        }),
+        "order_created.template_unlocks.insert",
+      );
     } else if (isSellableTool(templateId)) {
-      await admin.from("tool_unlocks").insert({
-        user_id: userId,
-        tool: templateId,
-        paid_amount: Math.round(totalCents / 100),
-        payment_provider: "lemonsqueezy",
-        lemonsqueezy_order_id: orderId,
-      });
+      await mustOk(
+        admin.from("tool_unlocks").insert({
+          user_id: userId,
+          tool: templateId,
+          paid_amount: Math.round(totalCents / 100),
+          payment_provider: "lemonsqueezy",
+          lemonsqueezy_order_id: orderId,
+        }),
+        "order_created.tool_unlocks.insert",
+      );
     } else {
       throw new Error(`single-template order: unknown template_id "${templateId}"`);
     }
@@ -224,24 +254,30 @@ async function handleSubscriptionCreated(
   }
 
   const renewsAt = sub.renews_at as string; // ISO
+  const startedAt = (sub.created_at as string) ?? new Date().toISOString();
   const orderId = sub.order_id as number | undefined;
 
-  await admin.from("subscriptions").insert({
-    user_id: userId,
-    plan: variant.plan, // 'pro'
-    period: variant.period === "yearly" ? "yearly" : "monthly",
-    status: "active",
-    expires_at: renewsAt,
-    payment_provider: "lemonsqueezy",
-    lemonsqueezy_subscription_id: subId,
-    lemonsqueezy_order_id: orderId ? String(orderId) : null,
-  });
+  // ⚠️ subscriptions.started_at 是 NOT NULL 沒 default，漏給會 silent fail。
+  await mustOk(
+    admin.from("subscriptions").insert({
+      user_id: userId,
+      plan: variant.plan, // 'pro'
+      period: variant.period === "yearly" ? "yearly" : "monthly",
+      status: "active",
+      started_at: startedAt,
+      expires_at: renewsAt,
+      payment_provider: "lemonsqueezy",
+      lemonsqueezy_subscription_id: subId,
+      lemonsqueezy_order_id: orderId ? String(orderId) : null,
+    }),
+    "subscription_created.subscriptions.insert",
+  );
 
   // 同步 users.plan
-  await admin
-    .from("users")
-    .update({ plan: variant.plan })
-    .eq("id", userId);
+  await mustOk(
+    admin.from("users").update({ plan: variant.plan }).eq("id", userId),
+    "subscription_created.users.update",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -258,15 +294,18 @@ async function handleSubscriptionUpdated(
   const variant = lookupVariant(variantId);
   if (!variant || variant.kind !== "subscription") return;
 
-  await admin
-    .from("subscriptions")
-    .update({
-      plan: variant.plan,
-      period: variant.period === "yearly" ? "yearly" : "monthly",
-      expires_at: sub.renews_at as string,
-      status: sub.status as string, // active / paused / cancelled / expired
-    })
-    .eq("lemonsqueezy_subscription_id", subId);
+  await mustOk(
+    admin
+      .from("subscriptions")
+      .update({
+        plan: variant.plan,
+        period: variant.period === "yearly" ? "yearly" : "monthly",
+        expires_at: sub.renews_at as string,
+        status: sub.status as string, // active / paused / cancelled / expired
+      })
+      .eq("lemonsqueezy_subscription_id", subId),
+    "subscription_updated.subscriptions.update",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -279,14 +318,17 @@ async function handleSubscriptionCancelled(
 ): Promise<void> {
   const subId = payload.data.id;
   const sub = payload.data.attributes;
-  await admin
-    .from("subscriptions")
-    .update({
-      status: "cancelled",
-      // expires_at 保留：使用者付到 end of period 仍能用
-      expires_at: sub.ends_at as string,
-    })
-    .eq("lemonsqueezy_subscription_id", subId);
+  await mustOk(
+    admin
+      .from("subscriptions")
+      .update({
+        status: "cancelled",
+        // expires_at 保留：使用者付到 end of period 仍能用
+        expires_at: sub.ends_at as string,
+      })
+      .eq("lemonsqueezy_subscription_id", subId),
+    "subscription_cancelled.subscriptions.update",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -313,13 +355,16 @@ async function handleSubscriptionPaymentSuccess(
     throw new Error(`payment_success: subscription ${subId} not found in DB`);
   }
 
-  await admin.from("payments").insert({
-    user_id: subRow.user_id,
-    amount: Math.round(totalCents / 100),
-    status: "success",
-    payment_provider: "lemonsqueezy",
-    lemonsqueezy_order_id: String(payload.data.id),
-  });
+  await mustOk(
+    admin.from("payments").insert({
+      user_id: subRow.user_id,
+      amount: Math.round(totalCents / 100),
+      status: "success",
+      payment_provider: "lemonsqueezy",
+      lemonsqueezy_order_id: String(payload.data.id),
+    }),
+    "payment_success.payments.insert",
+  );
 
   // 續扣後 renews_at 會在另一個 subscription_updated 事件帶來，這裡不主動延 expires_at
 }
@@ -343,12 +388,15 @@ async function handleSubscriptionPaymentFailed(
 
   if (!subRow) return;
 
-  await admin.from("payments").insert({
-    user_id: subRow.user_id,
-    amount: Math.round((invoice.total as number) / 100),
-    status: "failed",
-    payment_provider: "lemonsqueezy",
-    lemonsqueezy_order_id: String(payload.data.id),
-  });
+  await mustOk(
+    admin.from("payments").insert({
+      user_id: subRow.user_id,
+      amount: Math.round((invoice.total as number) / 100),
+      status: "failed",
+      payment_provider: "lemonsqueezy",
+      lemonsqueezy_order_id: String(payload.data.id),
+    }),
+    "payment_failed.payments.insert",
+  );
   // TODO: 寄信通知使用者更新卡片
 }
