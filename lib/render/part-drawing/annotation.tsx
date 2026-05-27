@@ -1469,37 +1469,28 @@ export function T2Annotations({
             strokeDasharray="4 1.5 0.5 1.5"
           />
         </g>
-      ) : (() => {
-          const hasRot = !!((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ);
-          if (hasRot) {
-            const corners = projectBoxCorners(lb as any);
-            const hull = convexHull2D(corners);
-            const pts = hull.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
-            return (
-              <polygon
-                key={`${it.kind}-${it.idx}-box`}
-                points={pts}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={1.2}
-                strokeDasharray={dash}
-              />
-            );
-          }
-          return (
-            <rect
-              key={`${it.kind}-${it.idx}-box`}
-              x={box.x}
-              y={box.y}
-              width={box.w}
-              height={box.h}
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={1.2}
-              strokeDasharray={dash}
-            />
-          );
-        })(),
+      ) : ((lb as any).rotX || (lb as any).rotY || (lb as any).rotZ) ? (
+        <polygon
+          key={`${it.kind}-${it.idx}-box`}
+          points={convexHull2D(projectBoxCorners(lb as any)).map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeDasharray={dash}
+        />
+      ) : (
+        <rect
+          key={`${it.kind}-${it.idx}-box`}
+          x={box.x}
+          y={box.y}
+          width={box.w}
+          height={box.h}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.2}
+          strokeDasharray={dash}
+        />
+      ),
     ];
 
     // 圓孔/圓榫：保留下方 leader + 「Ø18 深25」label（Ø 是行業慣例 short label）
