@@ -2,7 +2,7 @@
 
 import type { OptionSpec, OptionDependency } from "@/lib/types";
 import { useTranslations, useLocale } from "next-intl";
-import { specLabel } from "@/lib/templates/spec-labels";
+import { specLabel, choiceLabel } from "@/lib/templates/spec-labels";
 import { RangeInput } from "./RangeInput";
 import { resolvePartIds } from "@/lib/design/option-part-map";
 
@@ -182,7 +182,7 @@ export function MobileOptionField({ spec, value, allValues, overallHeight, overa
                   defaultChecked={checked}
                   className="sr-only"
                 />
-                {c.label}
+                {choiceLabel(spec.key, c.value, c.label, locale)}
               </label>
             );
           })}

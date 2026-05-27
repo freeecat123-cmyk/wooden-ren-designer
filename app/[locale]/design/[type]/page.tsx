@@ -41,7 +41,7 @@ import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
-import { specLabel } from "@/lib/templates/spec-labels";
+import { specLabel, choiceLabel } from "@/lib/templates/spec-labels";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
@@ -1314,7 +1314,7 @@ function OptionField({
         >
           {spec.choices.filter((c) => choiceVisible(c.dependsOn)).map((c) => (
             <option key={c.value} value={c.value}>
-              {c.label}
+              {choiceLabel(spec.key, c.value, c.label, locale)}
             </option>
           ))}
         </select>
