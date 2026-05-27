@@ -52,6 +52,8 @@ export interface PaperSheetProps {
   /** 是否畫投影輔助線（toggle，預設關） */
   showProjectionLines?: boolean;
   className?: string;
+  /** 圖紙標題欄/比例文字語言;預設 zh-TW */
+  locale?: string;
 }
 
 export function PartDrawingPaperSheet({
@@ -65,7 +67,13 @@ export function PartDrawingPaperSheet({
   title,
   showProjectionLines = false,
   className,
+  locale = "zh-TW",
 }: PaperSheetProps) {
+  const isEn = locale === "en";
+  const scaleLabel = isEn ? `Scale 1:${scale}` : `比例 1:${scale}`;
+  const headerCols = isEn
+    ? ["Part #", "Name", "Material", "Qty", "Scale", "Size (mm)"]
+    : ["件號", "件名", "材料", "數量", "比例", "尺寸 mm"];
   // 用 isolation 旋轉後的 extents（跟 svg-views.tsx isolation 邏輯一致）
   // 否則 layout 算出來的 viewport 跟實際渲染的 silhouette 對不上 → 標籤/silhouette 位置亂跑
   const we = getIsolatedExtents(part);
@@ -241,7 +249,7 @@ export function PartDrawingPaperSheet({
           {title}
         </text>
         <text x={285} y={16.5} fontSize={4} fill="#444" textAnchor="end">
-          比例 1:{scale}
+          {scaleLabel}
         </text>
         {/* Drawing area 邊框（淺灰輔助） */}
         <rect
@@ -288,12 +296,12 @@ export function PartDrawingPaperSheet({
         {(() => {
           const colW = 277 / 6;
           const cols = [
-            { label: "件號", value: partNo },
-            { label: "件名", value: title },
-            { label: "材料", value: materialLabel },
-            { label: "數量", value: `×${count}` },
-            { label: "比例", value: `1:${scale}` },
-            { label: "尺寸 mm", value: dimsLabel },
+            { label: headerCols[0], value: partNo },
+            { label: headerCols[1], value: title },
+            { label: headerCols[2], value: materialLabel },
+            { label: headerCols[3], value: `×${count}` },
+            { label: headerCols[4], value: `1:${scale}` },
+            { label: headerCols[5], value: dimsLabel },
           ];
           return cols.map((c, i) => {
             const cx = 10 + colW * i + colW / 2;

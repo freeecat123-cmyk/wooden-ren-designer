@@ -186,6 +186,11 @@ export default async function QuotePrintPage({
         data-print-page
         className="px-10 py-6 flex flex-col text-[12px] leading-relaxed"
       >
+        {locale === "en" && (
+          <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-[11px] text-amber-900">
+            All amounts quoted in New Taiwan Dollars (TWD). Conversion at your bank&apos;s current rate (≈31 TWD per USD).
+          </div>
+        )}
         {/* Header — branding + quote meta */}
         <header className="flex justify-between items-start border-b-2 border-zinc-900 pb-3 gap-4">
           <BrandedHeader />

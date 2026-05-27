@@ -64,7 +64,7 @@ export function PrintPartDrawings({ design, locale = "zh-TW" }: Props) {
             key={g.hash}
             className={isHardPart(g) ? "col-span-2" : undefined}
           >
-            <PartDrawing group={g} design={design} index={idx} />
+            <PartDrawing group={g} design={design} index={idx} locale={locale} />
           </div>
         ))}
       </div>

@@ -90,6 +90,8 @@ interface PartDrawingProps {
   perViewZoom?: Partial<Record<PartView, ZoomLevel>>;
   /** 倍率按鈕被按時的 callback；提供才會渲染倍率工具列。 */
   onViewZoom?: (view: PartView, zoom: ZoomLevel) => void;
+  /** 標題/材料/比例 label 語言;預設 zh-TW。 */
+  locale?: string;
 }
 
 /**
@@ -114,7 +116,10 @@ export function PartDrawing({
   zoom = 1,
   perViewZoom,
   onViewZoom,
+  locale = "zh-TW",
 }: PartDrawingProps) {
+  const isEn = locale === "en";
+  const scalePrefix = isEn ? "Scale " : "比例 ";
   // 全卡 zoom（既有行為）vs 每張視圖獨立 zoom（方案 1）。
   // perViewZoom 任一 view > 1 也算 anyZoom，因為 scrollRefs effect 需要重置中心。
   const perViewZoomSig = perViewZoom
@@ -163,7 +168,7 @@ export function PartDrawing({
           {titleSuffix}
         </h3>
         <span className="text-xs text-zinc-500 tabular-nums">
-          比例 1:{scale}　{partNo}
+          {scalePrefix}1:{scale}　{partNo}
         </span>
       </div>
 
@@ -179,10 +184,15 @@ export function PartDrawing({
           partNo={partNo}
           count={Math.min(group.count, 99)}
           scale={scale}
-          materialLabel={material?.nameZh ?? part.material}
+          materialLabel={
+            isEn
+              ? (material?.nameEn ?? material?.nameZh ?? part.material)
+              : (material?.nameZh ?? part.material)
+          }
           dimsLabel={`${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`}
           title={part.nameZh}
           className="bg-white w-full h-auto"
+          locale={locale}
         />
       ) : (() => {
         const VIEWS: Array<{ view: PartView; title: string; titleEn: string }> = [
@@ -258,7 +268,9 @@ export function PartDrawing({
                   paperTitleBlock={{
                     partNo,
                     count: Math.min(group.count, 99),
-                    materialLabel: material?.nameZh ?? part.material,
+                    materialLabel: isEn
+                      ? (material?.nameEn ?? material?.nameZh ?? part.material)
+                      : (material?.nameZh ?? part.material),
                     dimsLabel: `${Math.round(part.visible.length)}×${Math.round(part.visible.width)}×${Math.round(part.visible.thickness)}`,
                   }}
                   overlayContent={(ctx) => {
@@ -373,40 +385,46 @@ export function PartDrawing({
       <div className="border-t border-zinc-300 mt-2 pt-1 text-[9px] text-zinc-700 font-mono tabular-nums">
         <div className="grid grid-cols-4 gap-1">
           <div>
-            <span className="text-zinc-500">編號 </span>
+            <span className="text-zinc-500">{isEn ? "Part # " : "編號 "}</span>
             {partNo}
           </div>
           <div>
-            <span className="text-zinc-500">材料 </span>
-            {material?.nameZh ?? material?.nameEn ?? part.material}
+            <span className="text-zinc-500">{isEn ? "Material " : "材料 "}</span>
+            {isEn
+              ? (material?.nameEn ?? material?.nameZh ?? part.material)
+              : (material?.nameZh ?? material?.nameEn ?? part.material)}
           </div>
           <div>
-            <span className="text-zinc-500">比例 </span>1:{scale}
+            <span className="text-zinc-500">{isEn ? "Scale " : "比例 "}</span>1:{scale}
           </div>
           <div>
-            <span className="text-zinc-500">公差 </span>±1mm
+            <span className="text-zinc-500">{isEn ? "Tolerance " : "公差 "}</span>±1mm
           </div>
         </div>
         {/* Phase 2.5 Task 2: 成品 vs 毛料雙標 */}
         <div className="text-zinc-500 mt-0.5">
-          成品{" "}
+          {isEn ? "Finished " : "成品 "}
           {isRoundFamilyShape(part)
             ? `Ø${round1(
                 Math.max(part.visible.width, part.visible.thickness),
               )}×${round1(part.visible.length)}`
             : `${round1(part.visible.length)}×${round1(part.visible.width)}×${round1(part.visible.thickness)}`}
-          　|　毛料 {raw.L}×{raw.W}×{raw.T}
+          　|　{isEn ? "Stock " : "毛料 "}{raw.L}×{raw.W}×{raw.T}
         </div>
         {design.useButtJointConvention !== false && (
           <div className="text-[8px] text-zinc-400 italic mt-0.5">
             {part.shape?.kind === "dovetail-ends"
-              ? "※ visible.length = stock 裁切長（含兩端鳩尾 tail tip）"
-              : "※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長"}
+              ? isEn
+                ? "※ visible.length = stock cut length (incl. dovetail tail tips on both ends)"
+                : "※ visible.length = stock 裁切長（含兩端鳩尾 tail tip）"
+              : isEn
+                ? "※ visible.length = with tenon overlap; exposed = visible.length − 2 × tenon length"
+                : "※ visible.length = 含榫對接長度；裸露長 = visible.length − 2 × 榫長"}
           </div>
         )}
         {part.shape?.kind === "hoof" && (
           <div className="text-[8px] text-amber-700 mt-0.5">
-            毛料厚建議 ≥{" "}
+            {isEn ? "Stock thickness ≥ " : "毛料厚建議 ≥ "}
             {Math.round(
               part.visible.width * (part.shape.hoofScale ?? 1.4) * 10,
             ) / 10}
@@ -415,13 +433,13 @@ export function PartDrawing({
         )}
         {/* Phase 4 Task 2: 加工順序建議 */}
         <div className="text-[9px] text-zinc-700 mt-0.5">
-          <span className="text-zinc-500">工序 </span>
+          <span className="text-zinc-500">{isEn ? "Process " : "工序 "}</span>
           {steps.join(" → ")}
         </div>
         {/* Phase 4 Task 3: 鋸台設定值（僅斜角件出現） */}
         {tableSaw && (
           <div className="text-[9px] text-amber-700 mt-0.5">
-            <span className="text-amber-500">鋸台 </span>
+            <span className="text-amber-500">{isEn ? "Table saw " : "鋸台 "}</span>
             {tableSaw}
           </div>
         )}

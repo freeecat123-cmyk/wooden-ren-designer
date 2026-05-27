@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import { BrandedSupplier } from "@/components/branding/BrandedSupplier";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
@@ -32,6 +32,7 @@ export function EngineeringQuotePrint({
   viewMode,
 }: Props) {
   const t = useTranslations("engQuotePrint");
+  const locale = useLocale();
   const b = breakdown;
   const title = quoteType === "floor" ? t("titleFloor") : t("titleCeiling");
   const validUntil = computeValidUntil(input.validityDays);
@@ -41,6 +42,11 @@ export function EngineeringQuotePrint({
     <div className="mx-auto max-w-[210mm] bg-white p-8 text-zinc-800">
       <BrandedHeader />
       <h1 className="my-3 text-center text-lg font-bold">{title}</h1>
+      {locale === "en" && (
+        <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-[11px] text-amber-900">
+          All amounts quoted in New Taiwan Dollars (TWD). Conversion at your bank's current rate (≈31 TWD per USD).
+        </div>
+      )}
 
       <div className="flex justify-between text-xs">
         <BrandedSupplier />

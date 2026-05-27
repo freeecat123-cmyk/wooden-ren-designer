@@ -13,7 +13,7 @@
  */
 
 import React, { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
 import {
@@ -58,6 +58,7 @@ const ZOOM_LEVELS_LOCAL = [1, 2, 3, 5, 8] as const;
 
 export function PartDrawingsPanel({ design }: Props) {
   const t = useTranslations("partDrawings");
+  const locale = useLocale();
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // 進入單視圖放大模式：未選 = 顯示 L 型 A4 三視圖（CNS 第三角法）
@@ -211,6 +212,7 @@ export function PartDrawingsPanel({ design }: Props) {
                 singleView={zoomedView ?? undefined}
                 orthoClassName="bg-white w-full h-auto"
                 zoom={zoomedView !== null ? zoom : 1}
+                locale={locale}
               />
               <div className="flex justify-between items-center mt-4 text-sm">
                 <button
