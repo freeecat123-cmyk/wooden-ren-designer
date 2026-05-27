@@ -48,6 +48,34 @@
     "nightstand": "床頭櫃",
     "chest-of-drawers": "斗櫃"
   },
+  "contact": {
+    "metadata": {
+      "title": "聯絡我們 · 木頭仁 木作藍圖",
+      "description": "木頭仁 木作藍圖（designer.woodenren.com）聯絡資訊 — 由木頭仁木匠學院 Wooden Ren Education Co., Ltd. 提供。",
+      "ogTitle": "聯絡我們 · 木頭仁 木作藍圖",
+      "ogDescription": "木頭仁木匠學院聯絡資訊與客服管道。"
+    },
+    "h1": "聯絡我們",
+    "lastUpdated": "最後更新：2026 年 5 月 13 日",
+    "companyH2": "🏢 公司資訊",
+    "companyName": "公司名稱：Wooden Ren Education Co., Ltd.（木頭仁木匠學院）",
+    "companyAddress": "登記地址：基隆市暖暖區東勢街 6-34 號 4 樓",
+    "companyOwner": "負責人：翁彬仁（木頭仁）",
+    "officialSiteLabel": "官方網站：",
+    "designerSiteLabel": "本服務網址：",
+    "supportH2": "✉️ 客服聯絡",
+    "supportEmailLabel": "客服信箱：",
+    "supportHours": "客服時間：週一至週五 10:00–18:00（國定假日休）",
+    "supportSla": "回覆時間：一般 1~3 個工作日內回覆。",
+    "topicsH2": "📨 問題類型",
+    "topicBilling": "付款／開通／發票問題 → 主旨請註明「付款問題 - 訂單編號」",
+    "topicRefund": "退費申請 → 請參考 <link>退費政策</link> 後來信",
+    "topicOther": "功能 bug、設計建議、教學合作 → 直接信件說明即可",
+    "socialH2": "📺 社群",
+    "ytLabel": "YouTube：",
+    "ytHandle": "@woodenren（木頭仁 Wooden Ren）",
+    "academyLabel": "木匠學院："
+  },
   "about": {
     "metadata": {
       "title": "關於 木頭仁 木作藍圖｜輸入尺寸 3 秒生工程圖",

@@ -48,6 +48,34 @@
     "nightstand": "Nightstand",
     "chest-of-drawers": "Chest of drawers"
   },
+  "contact": {
+    "metadata": {
+      "title": "Contact · Wooden Ren Designer",
+      "description": "Contact information for Wooden Ren Designer (designer.woodenren.com) — operated by Wooden Ren Education Co., Ltd.",
+      "ogTitle": "Contact · Wooden Ren Designer",
+      "ogDescription": "Wooden Ren Academy contact info and support channels."
+    },
+    "h1": "Contact",
+    "lastUpdated": "Last updated: May 13, 2026",
+    "companyH2": "🏢 Company",
+    "companyName": "Company: Wooden Ren Education Co., Ltd.",
+    "companyAddress": "Registered address: 4F, No. 6-34, Dongshi St., Nuannuan Dist., Keelung City, Taiwan",
+    "companyOwner": "Principal: Bin-Ren Weng (Wooden Ren)",
+    "officialSiteLabel": "Official site: ",
+    "designerSiteLabel": "Service URL: ",
+    "supportH2": "✉️ Support",
+    "supportEmailLabel": "Email: ",
+    "supportHours": "Hours: Mon–Fri 10:00–18:00 Taiwan time (UTC+8). Closed on Taiwanese public holidays.",
+    "supportSla": "Response time: typically within 1–3 business days.",
+    "topicsH2": "📨 Topic guide",
+    "topicBilling": "Payment / activation / invoicing → subject line: \"Payment - Order #\"",
+    "topicRefund": "Refund requests → please review the <link>refund policy</link> before writing",
+    "topicOther": "Bug reports, design feedback, partnerships → just write us directly",
+    "socialH2": "📺 Social",
+    "ytLabel": "YouTube: ",
+    "ytHandle": "@woodenren (Wooden Ren)",
+    "academyLabel": "Academy: "
+  },
   "about": {
     "metadata": {
       "title": "About · Wooden Ren Designer — dimensions in, plans in 3 seconds",
