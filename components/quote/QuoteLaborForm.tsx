@@ -2,27 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { LABOR_BOUNDS } from "@/lib/pricing/labor";
 import type { CustomerInfo } from "@/components/customer/customer";
-
-const PRESETS = [
-  {
-    label: "標準接案",
-    emoji: "🪑",
-    values: { marginRate: "0.30", hourlyRate: "500", equipmentRate: "50", discountRate: "0", overrideUnitPrice: "0" },
-  },
-  {
-    label: "競標低利",
-    emoji: "📉",
-    values: { marginRate: "0.15", hourlyRate: "500", equipmentRate: "50", discountRate: "0", overrideUnitPrice: "0" },
-  },
-  {
-    label: "精品高利",
-    emoji: "✨",
-    values: { marginRate: "0.45", hourlyRate: "650", equipmentRate: "80", discountRate: "0", overrideUnitPrice: "0" },
-  },
-] as const;
 
 type Defaults = {
   hourlyRate: number;
@@ -69,17 +52,31 @@ export function QuoteLaborForm({
   quotedAt: string;
   autoLaborHours: number;
 }) {
+  const t = useTranslations("quoteLaborForm");
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
 
-  /**
-   * 把當前表單推到 URL。
-   * `customerOverride` 用於 CustomerForm 套用歷史 chip 時——React setState 改 input value
-   * 不會 dispatch native change 事件，而 FormData 又只讀 DOM 當下值，所以要手動覆寫。
-   */
+  const PRESETS = [
+    {
+      label: t("presetStandard"),
+      emoji: "🪑",
+      values: { marginRate: "0.30", hourlyRate: "500", equipmentRate: "50", discountRate: "0", overrideUnitPrice: "0" },
+    },
+    {
+      label: t("presetLow"),
+      emoji: "📉",
+      values: { marginRate: "0.15", hourlyRate: "500", equipmentRate: "50", discountRate: "0", overrideUnitPrice: "0" },
+    },
+    {
+      label: t("presetHigh"),
+      emoji: "✨",
+      values: { marginRate: "0.45", hourlyRate: "650", equipmentRate: "80", discountRate: "0", overrideUnitPrice: "0" },
+    },
+  ] as const;
+
   const pushURL = useCallback((customerOverride?: CustomerInfo) => {
     if (!formRef.current) return;
     const data = new FormData(formRef.current);
@@ -87,7 +84,6 @@ export function QuoteLaborForm({
     for (const [k, v] of data.entries()) {
       params.set(k, v as string);
     }
-    // Unchecked checkboxes are absent from FormData — remove them so server sees no value
     formRef.current.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((cb) => {
       if (!cb.checked) params.delete(cb.name);
     });
@@ -111,7 +107,6 @@ export function QuoteLaborForm({
 
   const handleCustomerApply = useCallback(
     (next: CustomerInfo) => {
-      // 取消任何 pending debounce，立即用 next 覆寫推 URL
       clearTimeout(timerRef.current);
       pushURL(next);
     },
@@ -138,23 +133,18 @@ export function QuoteLaborForm({
       {Object.entries(designParams).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
-      {/* viewMode 透過 hidden input 帶入，避免 form 重組 URL 時遺失（由 ViewModeToggle 設定） */}
       <input type="hidden" name="viewMode" value={viewMode} />
-      {/* quotedAt：第一次開頁時 server 算今天，QuoteLaborForm 把它寫死回 URL，
-          重整不會漂移、寄出去的連結客人看到的有效期跟我看到的一致 */}
       <input type="hidden" name="quotedAt" value={quotedAt} />
 
-      {/* 客戶資料 */}
       <CustomerForm initial={initialCustomer} onApply={handleCustomerApply} />
 
-      {/* 常用微調：議價 / 數量 / 折扣 / 訂金 + 含運/含安裝 */}
       <fieldset className="mt-5 pt-4 border-t border-zinc-200">
         <div className="flex items-baseline justify-between mb-2">
           <legend className="text-xs text-zinc-700 font-medium">
-            💰 議價與條款（最常微調）
+            {t("termsLegend")}
           </legend>
           <div className="flex items-center gap-1.5 text-xs text-zinc-600">
-            <span>套用：</span>
+            <span>{t("presetLabel")}</span>
             {PRESETS.map((p) => (
               <button
                 key={p.label}
@@ -166,23 +156,51 @@ export function QuoteLaborForm({
               </button>
             ))}
             {pending && (
-              <span className="text-zinc-600 animate-pulse ml-1">更新中…</span>
+              <span className="text-zinc-600 animate-pulse ml-1">{t("pending")}</span>
             )}
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <NumField
             name="overrideUnitPrice"
-            label="議價 NT$（0=不覆寫）"
+            label={t("fieldOverridePrice")}
             value={defaults.overrideUnitPrice}
             min={LABOR_BOUNDS.overrideUnitPrice.min}
             max={LABOR_BOUNDS.overrideUnitPrice.max}
             step={LABOR_BOUNDS.overrideUnitPrice.step}
-            hint="客戶砍到 25000 就填 → 毛利自動反算"
+            hint={t("fieldOverridePriceHint")}
+            optionalPlaceholder={t("optionalPlaceholder")}
           />
-          <NumField name="quantity" label="數量" value={defaults.quantity} min={LABOR_BOUNDS.quantity.min} max={LABOR_BOUNDS.quantity.max} step={LABOR_BOUNDS.quantity.step} />
-          <NumField name="discountRate" label="折扣率" value={defaults.discountRate} min={LABOR_BOUNDS.discountRate.min} max={LABOR_BOUNDS.discountRate.max} step={LABOR_BOUNDS.discountRate.step} percent hint="例：5% = 95 折" />
-          <NumField name="depositRate" label="訂金比例" value={defaults.depositRate} min={LABOR_BOUNDS.depositRate.min} max={LABOR_BOUNDS.depositRate.max} step={LABOR_BOUNDS.depositRate.step} percent />
+          <NumField
+            name="quantity"
+            label={t("fieldQuantity")}
+            value={defaults.quantity}
+            min={LABOR_BOUNDS.quantity.min}
+            max={LABOR_BOUNDS.quantity.max}
+            step={LABOR_BOUNDS.quantity.step}
+            optionalPlaceholder={t("optionalPlaceholder")}
+          />
+          <NumField
+            name="discountRate"
+            label={t("fieldDiscountRate")}
+            value={defaults.discountRate}
+            min={LABOR_BOUNDS.discountRate.min}
+            max={LABOR_BOUNDS.discountRate.max}
+            step={LABOR_BOUNDS.discountRate.step}
+            percent
+            hint={t("fieldDiscountRateHint")}
+            optionalPlaceholder={t("optionalPlaceholder")}
+          />
+          <NumField
+            name="depositRate"
+            label={t("fieldDepositRate")}
+            value={defaults.depositRate}
+            min={LABOR_BOUNDS.depositRate.min}
+            max={LABOR_BOUNDS.depositRate.max}
+            step={LABOR_BOUNDS.depositRate.step}
+            percent
+            optionalPlaceholder={t("optionalPlaceholder")}
+          />
         </div>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -193,8 +211,8 @@ export function QuoteLaborForm({
               defaultChecked={terms.termIncludeShipping}
               className="w-4 h-4"
             />
-            <span>🚚 含運費</span>
-            <span className="text-[10px] text-zinc-600">（PDF 備註）</span>
+            <span>{t("termShipping")}</span>
+            <span className="text-[10px] text-zinc-600">{t("termPdfNote")}</span>
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
@@ -204,13 +222,12 @@ export function QuoteLaborForm({
               defaultChecked={terms.termIncludeInstallation}
               className="w-4 h-4"
             />
-            <span>🔧 含現場安裝</span>
-            <span className="text-[10px] text-zinc-600">（PDF 備註）</span>
+            <span>{t("termInstall")}</span>
+            <span className="text-[10px] text-zinc-600">{t("termPdfNote")}</span>
           </label>
         </div>
       </fieldset>
 
-      {/* 進階設定（折疊）：有效期/緩衝/材料單價/工資/毛利率/稅率 */}
       <div className="mt-4 pt-3 border-t border-zinc-100">
         <button
           type="button"
@@ -218,66 +235,77 @@ export function QuoteLaborForm({
           className="text-xs text-zinc-700 hover:text-zinc-800 flex items-center gap-1.5 transition-colors"
         >
           <span>{showAdvanced ? "▲" : "▼"}</span>
-          <span>進階設定（有效期、材料單價、時薪、毛利率、稅率）</span>
+          <span>{t("advancedToggle")}</span>
         </button>
 
         {showAdvanced && (
           <div className="mt-3 space-y-4">
             <fieldset>
               <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
-                有效期 / 交期 / 緩衝
+                {t("validityLegend")}
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <NumField name="expiryDays" label="報價有效期（天）" value={defaults.expiryDays} min={LABOR_BOUNDS.expiryDays.min} max={LABOR_BOUNDS.expiryDays.max} step={LABOR_BOUNDS.expiryDays.step} />
-                <NumField name="deliveryDaysOverride" label="交貨工作天" value={defaults.deliveryDaysOverride} min={LABOR_BOUNDS.deliveryDaysOverride.min} max={LABOR_BOUNDS.deliveryDaysOverride.max} step={LABOR_BOUNDS.deliveryDaysOverride.step} hint={`0=自動估 ${autoLaborHours > 0 ? "（含緩衝）" : ""}；填值=直接覆寫`} />
-                <NumField name="bufferDays" label="塗裝/出貨緩衝（天）" value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint="乾燥+出貨，併入自動估" />
+                <NumField name="expiryDays" label={t("fieldExpiryDays")} value={defaults.expiryDays} min={LABOR_BOUNDS.expiryDays.min} max={LABOR_BOUNDS.expiryDays.max} step={LABOR_BOUNDS.expiryDays.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField
+                  name="deliveryDaysOverride"
+                  label={t("fieldDeliveryDays")}
+                  value={defaults.deliveryDaysOverride}
+                  min={LABOR_BOUNDS.deliveryDaysOverride.min}
+                  max={LABOR_BOUNDS.deliveryDaysOverride.max}
+                  step={LABOR_BOUNDS.deliveryDaysOverride.step}
+                  hint={autoLaborHours > 0 ? t("fieldDeliveryDaysHintAuto") : t("fieldDeliveryDaysHintNoAuto")}
+                  optionalPlaceholder={t("optionalPlaceholder")}
+                />
+                <NumField name="bufferDays" label={t("fieldBufferDays")} value={defaults.bufferDays} min={LABOR_BOUNDS.bufferDays.min} max={LABOR_BOUNDS.bufferDays.max} step={LABOR_BOUNDS.bufferDays.step} hint={t("fieldBufferDaysHint")} optionalPlaceholder={t("optionalPlaceholder")} />
               </div>
             </fieldset>
             <fieldset>
               <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
-                材料單價（NT$/板才）
+                {t("materialLegend")}
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <NumField name="primaryMaterialPricePerBdft" label={`${primaryMaterialName}（主材）`} value={defaults.primaryMaterialPricePerBdft} min={LABOR_BOUNDS.primaryMaterialPricePerBdft.min} max={LABOR_BOUNDS.primaryMaterialPricePerBdft.max} step={LABOR_BOUNDS.primaryMaterialPricePerBdft.step} />
-                <NumField name="plywoodPricePerBdft" label="夾板（背板/抽屜底）" value={defaults.plywoodPricePerBdft} min={LABOR_BOUNDS.plywoodPricePerBdft.min} max={LABOR_BOUNDS.plywoodPricePerBdft.max} step={LABOR_BOUNDS.plywoodPricePerBdft.step} optional hint="留空併入主材" />
-                <NumField name="mdfPricePerBdft" label="中纖板（抽屜側背）" value={defaults.mdfPricePerBdft} min={LABOR_BOUNDS.mdfPricePerBdft.min} max={LABOR_BOUNDS.mdfPricePerBdft.max} step={LABOR_BOUNDS.mdfPricePerBdft.step} optional hint="留空併入主材" />
+                <NumField name="primaryMaterialPricePerBdft" label={t("primaryMaterialLabelTpl", { name: primaryMaterialName })} value={defaults.primaryMaterialPricePerBdft} min={LABOR_BOUNDS.primaryMaterialPricePerBdft.min} max={LABOR_BOUNDS.primaryMaterialPricePerBdft.max} step={LABOR_BOUNDS.primaryMaterialPricePerBdft.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="plywoodPricePerBdft" label={t("fieldPlywood")} value={defaults.plywoodPricePerBdft} min={LABOR_BOUNDS.plywoodPricePerBdft.min} max={LABOR_BOUNDS.plywoodPricePerBdft.max} step={LABOR_BOUNDS.plywoodPricePerBdft.step} optional hint={t("matOptionalHint")} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="mdfPricePerBdft" label={t("fieldMdf")} value={defaults.mdfPricePerBdft} min={LABOR_BOUNDS.mdfPricePerBdft.min} max={LABOR_BOUNDS.mdfPricePerBdft.max} step={LABOR_BOUNDS.mdfPricePerBdft.step} optional hint={t("matOptionalHint")} optionalPlaceholder={t("optionalPlaceholder")} />
               </div>
             </fieldset>
             <fieldset>
               <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
-                時薪 / 雜項 / 毛利
+                {t("laborLegend")}
               </legend>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <NumField name="hourlyRate" label="師傅時薪 (NT$/hr)" value={defaults.hourlyRate} min={LABOR_BOUNDS.hourlyRate.min} max={LABOR_BOUNDS.hourlyRate.max} step={LABOR_BOUNDS.hourlyRate.step} />
-                <NumField name="laborHoursOverride" label={`工時覆寫 (hr) — 預估 ${autoLaborHours.toFixed(1)}h`} value={defaults.laborHoursOverride} min={LABOR_BOUNDS.laborHoursOverride.min} max={LABOR_BOUNDS.laborHoursOverride.max} step={LABOR_BOUNDS.laborHoursOverride.step} decimal hint={`0=用預估的 ${autoLaborHours.toFixed(1)}h；填值=直接覆寫`} />
-                <NumField name="equipmentRate" label="設備折舊 (NT$/hr)" value={defaults.equipmentRate} min={LABOR_BOUNDS.equipmentRate.min} max={LABOR_BOUNDS.equipmentRate.max} step={LABOR_BOUNDS.equipmentRate.step} />
-                <NumField name="consumables" label="耗材 (NT$)" value={defaults.consumables} min={LABOR_BOUNDS.consumables.min} max={LABOR_BOUNDS.consumables.max} step={LABOR_BOUNDS.consumables.step} />
-                <NumField name="finishingCost" label="塗裝費 (NT$)" value={defaults.finishingCost} min={LABOR_BOUNDS.finishingCost.min} max={LABOR_BOUNDS.finishingCost.max} step={LABOR_BOUNDS.finishingCost.step} />
-                <NumField name="hardwareCost" label="五金 (NT$)" value={defaults.hardwareCost} min={LABOR_BOUNDS.hardwareCost.min} max={LABOR_BOUNDS.hardwareCost.max} step={LABOR_BOUNDS.hardwareCost.step} />
-                <NumField name="shippingCost" label="運費 (NT$)" value={defaults.shippingCost} min={LABOR_BOUNDS.shippingCost.min} max={LABOR_BOUNDS.shippingCost.max} step={LABOR_BOUNDS.shippingCost.step} />
-                <NumField name="installationCost" label="安裝費 (NT$)" value={defaults.installationCost} min={LABOR_BOUNDS.installationCost.min} max={LABOR_BOUNDS.installationCost.max} step={LABOR_BOUNDS.installationCost.step} />
-                <NumField name="marginRate" label="毛利率" value={defaults.marginRate} min={LABOR_BOUNDS.marginRate.min} max={LABOR_BOUNDS.marginRate.max} step={LABOR_BOUNDS.marginRate.step} percent />
-                <NumField name="vatRate" label="營業稅率" value={defaults.vatRate} min={LABOR_BOUNDS.vatRate.min} max={LABOR_BOUNDS.vatRate.max} step={LABOR_BOUNDS.vatRate.step} percent />
+                <NumField name="hourlyRate" label={t("fieldHourlyRate")} value={defaults.hourlyRate} min={LABOR_BOUNDS.hourlyRate.min} max={LABOR_BOUNDS.hourlyRate.max} step={LABOR_BOUNDS.hourlyRate.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="laborHoursOverride" label={t("fieldHoursOverrideTpl", { hours: autoLaborHours.toFixed(1) })} value={defaults.laborHoursOverride} min={LABOR_BOUNDS.laborHoursOverride.min} max={LABOR_BOUNDS.laborHoursOverride.max} step={LABOR_BOUNDS.laborHoursOverride.step} decimal hint={t("fieldHoursOverrideHintTpl", { hours: autoLaborHours.toFixed(1) })} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="equipmentRate" label={t("fieldEquipment")} value={defaults.equipmentRate} min={LABOR_BOUNDS.equipmentRate.min} max={LABOR_BOUNDS.equipmentRate.max} step={LABOR_BOUNDS.equipmentRate.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="consumables" label={t("fieldConsumables")} value={defaults.consumables} min={LABOR_BOUNDS.consumables.min} max={LABOR_BOUNDS.consumables.max} step={LABOR_BOUNDS.consumables.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="finishingCost" label={t("fieldFinishing")} value={defaults.finishingCost} min={LABOR_BOUNDS.finishingCost.min} max={LABOR_BOUNDS.finishingCost.max} step={LABOR_BOUNDS.finishingCost.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="hardwareCost" label={t("fieldHardware")} value={defaults.hardwareCost} min={LABOR_BOUNDS.hardwareCost.min} max={LABOR_BOUNDS.hardwareCost.max} step={LABOR_BOUNDS.hardwareCost.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="shippingCost" label={t("fieldShipping")} value={defaults.shippingCost} min={LABOR_BOUNDS.shippingCost.min} max={LABOR_BOUNDS.shippingCost.max} step={LABOR_BOUNDS.shippingCost.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="installationCost" label={t("fieldInstall")} value={defaults.installationCost} min={LABOR_BOUNDS.installationCost.min} max={LABOR_BOUNDS.installationCost.max} step={LABOR_BOUNDS.installationCost.step} optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="marginRate" label={t("fieldMargin")} value={defaults.marginRate} min={LABOR_BOUNDS.marginRate.min} max={LABOR_BOUNDS.marginRate.max} step={LABOR_BOUNDS.marginRate.step} percent optionalPlaceholder={t("optionalPlaceholder")} />
+                <NumField name="vatRate" label={t("fieldVat")} value={defaults.vatRate} min={LABOR_BOUNDS.vatRate.min} max={LABOR_BOUNDS.vatRate.max} step={LABOR_BOUNDS.vatRate.step} percent optionalPlaceholder={t("optionalPlaceholder")} />
               </div>
             </fieldset>
             <fieldset className="rounded-lg border-2 border-amber-200 bg-amber-50/40 p-3">
               <legend className="text-xs text-amber-900 px-1.5 font-semibold">
-                🎨 設計師加成（對外提案專用）
+                {t("designerLegend")}
               </legend>
               <p className="text-[10px] text-amber-700 mb-2 leading-relaxed">
-                在「成本＋毛利」之上再乘一層。給裝潢設計師對自己客戶報價：木匠出貨價 × (1 + 加成) = 對外單價。<br />
-                0 = 不啟用（一般木工接案模式）；常見 30~50%。後台仍可看到原始木匠價。
+                {t("designerHelp")}
+                <br />
+                {t("designerHelp2")}
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <NumField
                   name="designerMarkupRate"
-                  label="設計師加成"
+                  label={t("fieldDesignerMarkup")}
                   value={defaults.designerMarkupRate}
                   min={LABOR_BOUNDS.designerMarkupRate.min}
                   max={LABOR_BOUNDS.designerMarkupRate.max}
                   step={LABOR_BOUNDS.designerMarkupRate.step}
                   percent
-                  hint="0=關閉；輸入 30 = 加 30%"
+                  hint={t("fieldDesignerMarkupHint")}
+                  optionalPlaceholder={t("optionalPlaceholder")}
                 />
               </div>
             </fieldset>
@@ -299,6 +327,7 @@ function NumField({
   optional,
   hint,
   percent,
+  optionalPlaceholder,
 }: {
   name: string;
   label: string;
@@ -312,6 +341,7 @@ function NumField({
   /** percent 模式：value 是 0-1 fraction，UI 顯示 × 100 帶 % 後綴；submit
    *  仍寫 fraction（hidden input） */
   percent?: boolean;
+  optionalPlaceholder?: string;
 }) {
   if (percent) {
     return <PercentField name={name} label={label} value={value} min={min} max={max} step={step} hint={hint} />;
@@ -328,7 +358,7 @@ function NumField({
         max={max}
         step={step}
         inputMode="decimal"
-        placeholder={optional ? "（不填 / 0＝併入主材）" : undefined}
+        placeholder={optional ? optionalPlaceholder : undefined}
         className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-base"
       />
       {hint && <span className="mt-0.5 text-[10px] text-zinc-600">{hint}</span>}
@@ -353,7 +383,6 @@ function PercentField({
   step: number;
   hint?: string;
 }) {
-  // 內部維護 fraction state，UI 顯示 ×100 + %，hidden input 寫 fraction 給 form submit
   const [frac, setFrac] = useState<number>(value ?? 0);
   const displayPct = (frac * 100).toFixed(frac * 100 < 10 ? 1 : 0);
   const minPct = min * 100;

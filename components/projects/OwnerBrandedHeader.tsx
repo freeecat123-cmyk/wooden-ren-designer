@@ -1,3 +1,4 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import type { OwnerBranding } from "@/lib/projects/fetch-quote-data";
 
 /**
@@ -6,8 +7,10 @@ import type { OwnerBranding } from "@/lib/projects/fetch-quote-data";
  * 客戶（沒帳號）打開分享連結時 localStorage 是空的，會看到木頭仁的預設品牌。
  * 這裡資料由 server 端從 user_branding 撈，直接 render 進 HTML。
  */
-export function OwnerBrandedHeader({ branding }: { branding: OwnerBranding }) {
-  const name = branding.companyNameZh || "工作室";
+export async function OwnerBrandedHeader({ branding }: { branding: OwnerBranding }) {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "ownerBranded" });
+  const name = branding.companyNameZh || t("studio");
   const tagline = branding.tagline || "";
   return (
     <div className="flex items-center gap-3">
@@ -26,7 +29,7 @@ export function OwnerBrandedHeader({ branding }: { branding: OwnerBranding }) {
           </p>
         )}
         <p className="text-lg font-bold">{name}</p>
-        <p className="text-[10px] text-zinc-500">QUOTATION · 客製家具報價單</p>
+        <p className="text-[10px] text-zinc-500">{t("kicker")}</p>
       </div>
     </div>
   );

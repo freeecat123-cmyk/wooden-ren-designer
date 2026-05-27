@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations, useLocale } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import { calculateCutDimensions } from "@/lib/geometry/cut-dimensions";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import { JOINERY_LABEL } from "@/lib/joinery/details";
 import {
   MM3_PER_BDFT,
@@ -15,19 +16,21 @@ interface Props {
 }
 
 export function CsvExportButton({ design }: Props) {
+  const t = useTranslations("csvExport");
+  const locale = useLocale();
   const download = () => {
     const rows: string[][] = [];
     rows.push([
-      "零件",
-      "材質",
-      "可見長 (mm)",
-      "可見寬 (mm)",
-      "可見厚 (mm)",
-      "切料長 (mm)",
-      "切料寬 (mm)",
-      "切料厚 (mm)",
-      "材積 (板才)",
-      "榫頭備註",
+      t("colPart"),
+      t("colMaterial"),
+      t("colVisL"),
+      t("colVisW"),
+      t("colVisT"),
+      t("colCutL"),
+      t("colCutW"),
+      t("colCutT"),
+      t("colBdft"),
+      t("colTenon"),
     ]);
 
     // 尺寸依數值降冪排序輸出為 長/寬/厚，避免背板那類 visible 欄位
@@ -40,10 +43,11 @@ export function CsvExportButton({ design }: Props) {
       const cut = calculateCutDimensions(part);
       const bdft = (cut.length * cut.width * cut.thickness) / MM3_PER_BDFT;
       const billable = effectiveBillableMaterial(part);
+      const matName = materialName(part.material, locale);
       const materialLabel =
         billable === "plywood" || billable === "mdf"
-          ? `${MATERIALS[part.material].nameZh} / ${SHEET_GOOD_LABEL[billable]}`
-          : MATERIALS[part.material].nameZh;
+          ? `${matName} / ${SHEET_GOOD_LABEL[billable]}`
+          : matName;
 
       const tenonNotes = part.tenons.length
         ? part.tenons
@@ -93,7 +97,7 @@ export function CsvExportButton({ design }: Props) {
         .join("\r\n");
 
     const today = new Date().toISOString().slice(0, 10);
-    const fname = `${design.nameZh}_材料單_${today}.csv`;
+    const fname = t("filenameTpl", { name: design.nameZh, date: today });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -112,7 +116,7 @@ export function CsvExportButton({ design }: Props) {
       onClick={download}
       className="mt-4 inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 rounded bg-white hover:bg-zinc-50 text-zinc-700"
     >
-      📋 材料單 CSV 下載
+      {t("btn")}
     </button>
   );
 }

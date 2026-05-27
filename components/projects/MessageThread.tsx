@@ -2,20 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectMessage } from "@/lib/projects/fetch-quote-data";
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const sameDay =
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate();
-  const t = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  if (sameDay) return `今天 ${t}`;
-  return `${d.getMonth() + 1}/${d.getDate()} ${t}`;
-}
 
 interface Props {
   projectId: string;
@@ -27,12 +16,25 @@ interface Props {
 }
 
 export function MessageThread({ projectId, initialMessages, mode, token }: Props) {
+  const t = useTranslations("messageThread");
   const [messages, setMessages] = useState<ProjectMessage[]>(initialMessages);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
+
+  const formatTime = (iso: string): string => {
+    const d = new Date(iso);
+    const today = new Date();
+    const sameDay =
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate();
+    const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    if (sameDay) return t("todayTpl", { time });
+    return `${d.getMonth() + 1}/${d.getDate()} ${time}`;
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +43,7 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
     setErr(null);
     try {
       if (mode === "customer") {
-        if (!token) throw new Error("缺少 token");
+        if (!token) throw new Error(t("errMissingToken"));
         const res = await fetch(`/api/projects/${projectId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -66,9 +68,7 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
         if (error) throw error;
       }
       setContent("");
-      // refetch via router refresh — server fetch will pick up the new row
       router.refresh();
-      // optimistic 顯示一條，重整後伺服端會覆蓋
       setMessages((prev) => [
         ...prev,
         {
@@ -91,11 +91,9 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
       <div className="flex items-baseline gap-2 mb-3">
         <span className="text-lg">💬</span>
         <h2 className="text-base font-semibold text-zinc-900">
-          {mode === "customer" ? "跟師傅留言" : "客戶往來"}
+          {mode === "customer" ? t("thCustomer") : t("thCraftsman")}
         </h2>
-        <span className="text-xs text-zinc-500">
-          ({messages.length})
-        </span>
+        <span className="text-xs text-zinc-500">({messages.length})</span>
       </div>
 
       {messages.length > 0 && (
@@ -117,7 +115,9 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
                   <div className="text-[10px] opacity-70 mb-0.5 flex items-baseline gap-1.5">
                     <span className="font-medium">
                       {m.sender_name ||
-                        (m.sender_role === "customer" ? "客戶" : "師傅")}
+                        (m.sender_role === "customer"
+                          ? t("nicknameCustomer")
+                          : t("nicknameCraftsman"))}
                     </span>
                     <span>·</span>
                     <span>{formatTime(m.created_at)}</span>
@@ -135,7 +135,9 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={mode === "customer" ? "您的名字（選填）" : "（選填）顯示名稱"}
+          placeholder={
+            mode === "customer" ? t("namePhCustomer") : t("namePhCraftsman")
+          }
           maxLength={40}
           className="w-full px-3 py-1.5 text-sm border border-zinc-300 rounded-lg bg-white"
         />
@@ -143,27 +145,21 @@ export function MessageThread({ projectId, initialMessages, mode, token }: Props
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={
-            mode === "customer"
-              ? "想調尺寸？想換木材？想知道交期？想還價？任何問題都歡迎留言。"
-              : "回覆客戶留言或主動更新進度…"
+            mode === "customer" ? t("contentPhCustomer") : t("contentPhCraftsman")
           }
           rows={3}
           maxLength={2000}
           className="w-full px-3 py-2 text-sm border border-zinc-300 rounded-lg bg-white resize-y"
         />
-        {err && (
-          <p className="text-xs text-red-600">送出失敗：{err}</p>
-        )}
+        {err && <p className="text-xs text-red-600">{t("errPrefixTpl", { msg: err })}</p>}
         <div className="flex justify-between items-center gap-2">
-          <span className="text-[10px] text-zinc-400">
-            {content.length}/2000
-          </span>
+          <span className="text-[10px] text-zinc-400">{content.length}/2000</span>
           <button
             type="submit"
             disabled={busy || !content.trim()}
             className="px-4 py-2 rounded-lg bg-[#8b4513] text-white text-sm font-medium hover:bg-[#6f370f] disabled:opacity-50"
           >
-            {busy ? "送出中…" : "送出留言"}
+            {busy ? t("sendBtnBusy") : t("sendBtnIdle")}
           </button>
         </div>
       </form>

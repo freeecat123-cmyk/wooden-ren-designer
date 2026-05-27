@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
 
 export type EngQuoteOpts = typeof ENGINEERING_QUOTE_DEFAULTS;
@@ -10,7 +11,6 @@ interface Props {
   onChange: (next: EngQuoteOpts) => void;
 }
 
-/** 一欄數字輸入 */
 function NumField({
   label,
   unit,
@@ -40,32 +40,31 @@ function NumField({
 }
 
 export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
+  const t = useTranslations("engQuoteForm");
   const set = <K extends keyof EngQuoteOpts>(k: K, v: EngQuoteOpts[K]) =>
     onChange({ ...value, [k]: v });
 
-  // 注意:vatRate(營業稅 5%)為法定固定值,不開放 UI 編輯。
   return (
     <div className="space-y-4">
       <div className={`grid gap-3 ${quoteType === "ceiling" ? "grid-cols-2" : "grid-cols-1"}`}>
         {quoteType === "ceiling" && (
           <NumField
-            label="天花板每坪材料費"
-            unit="元/坪"
+            label={t("fieldCeilingMaterial")}
+            unit={t("unitPerPing")}
             value={value.ceilingMaterialPerPing}
             onChange={(v) => set("ceilingMaterialPerPing", v)}
           />
         )}
         <NumField
-          label="每坪施工費"
-          unit="元/坪"
+          label={t("fieldLabor")}
+          unit={t("unitPerPing")}
           value={value.laborPricePerPing}
           onChange={(v) => set("laborPricePerPing", v)}
         />
       </div>
 
-      {/* 拆除清運 */}
       <div className="rounded border border-zinc-200 p-3">
-        <div className="mb-2 text-xs font-semibold">拆除清運費</div>
+        <div className="mb-2 text-xs font-semibold">{t("demolitionH")}</div>
         <div className="mb-2 flex gap-3 text-xs">
           <label className="flex items-center gap-1">
             <input
@@ -74,7 +73,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
               checked={value.demolitionMode === "lump"}
               onChange={() => set("demolitionMode", "lump")}
             />
-            定額
+            {t("modeLump")}
           </label>
           <label className="flex items-center gap-1">
             <input
@@ -83,29 +82,28 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
               checked={value.demolitionMode === "perPing"}
               onChange={() => set("demolitionMode", "perPing")}
             />
-            每坪
+            {t("modePerPing")}
           </label>
         </div>
         {value.demolitionMode === "lump" ? (
           <NumField
-            label="拆除清運(定額)"
-            unit="元"
+            label={t("fieldDemolitionLump")}
+            unit={t("unitNtd")}
             value={value.demolitionLump}
             onChange={(v) => set("demolitionLump", v)}
           />
         ) : (
           <NumField
-            label="拆除清運(每坪)"
-            unit="元/坪"
+            label={t("fieldDemolitionPerPing")}
+            unit={t("unitPerPing")}
             value={value.demolitionPerPing}
             onChange={(v) => set("demolitionPerPing", v)}
           />
         )}
       </div>
 
-      {/* 雜項耗材 */}
       <div className="rounded border border-zinc-200 p-3">
-        <div className="mb-2 text-xs font-semibold">雜項耗材</div>
+        <div className="mb-2 text-xs font-semibold">{t("consumablesH")}</div>
         <div className="mb-2 flex gap-3 text-xs">
           <label className="flex items-center gap-1">
             <input
@@ -114,7 +112,7 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
               checked={value.consumablesMode === "lump"}
               onChange={() => set("consumablesMode", "lump")}
             />
-            定額
+            {t("modeLump")}
           </label>
           <label className="flex items-center gap-1">
             <input
@@ -123,20 +121,20 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
               checked={value.consumablesMode === "percent"}
               onChange={() => set("consumablesMode", "percent")}
             />
-            材料費 %
+            {t("modePercent")}
           </label>
         </div>
         {value.consumablesMode === "lump" ? (
           <NumField
-            label="雜項耗材(定額)"
-            unit="元"
+            label={t("fieldConsumablesLump")}
+            unit={t("unitNtd")}
             value={value.consumablesLump}
             onChange={(v) => set("consumablesLump", v)}
           />
         ) : (
           <NumField
-            label="雜項耗材(材料費百分比)"
-            unit="%"
+            label={t("fieldConsumablesPercent")}
+            unit={t("unitPct")}
             value={Math.round(value.consumablesPercent * 100)}
             onChange={(v) => set("consumablesPercent", v / 100)}
           />
@@ -146,39 +144,39 @@ export function EngineeringQuoteForm({ quoteType, value, onChange }: Props) {
       <div className="grid grid-cols-2 gap-3">
         {quoteType === "ceiling" && (
           <NumField
-            label="批土油漆"
-            unit="元/坪"
+            label={t("fieldPainting")}
+            unit={t("unitPerPing")}
             value={value.paintingPerPing}
             onChange={(v) => set("paintingPerPing", v)}
           />
         )}
         <NumField
-          label="運費"
-          unit="元"
+          label={t("fieldShipping")}
+          unit={t("unitNtd")}
           value={value.shippingCost}
           onChange={(v) => set("shippingCost", v)}
         />
         <NumField
-          label="毛利率"
-          unit="%"
+          label={t("fieldMargin")}
+          unit={t("unitPct")}
           value={Math.round(value.marginRate * 100)}
           onChange={(v) => set("marginRate", v / 100)}
         />
         <NumField
-          label="折扣率"
-          unit="%"
+          label={t("fieldDiscount")}
+          unit={t("unitPct")}
           value={Math.round(value.discountRate * 100)}
           onChange={(v) => set("discountRate", Math.min(50, v) / 100)}
         />
         <NumField
-          label="訂金比例"
-          unit="%"
+          label={t("fieldDeposit")}
+          unit={t("unitPct")}
           value={Math.round(value.depositRate * 100)}
           onChange={(v) => set("depositRate", Math.min(100, v) / 100)}
         />
         <NumField
-          label="報價有效天數"
-          unit="天"
+          label={t("fieldValidity")}
+          unit={t("unitDays")}
           value={value.validityDays}
           onChange={(v) => set("validityDays", v)}
         />

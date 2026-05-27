@@ -2,16 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAuth } from "./AuthProvider";
 import { LoginButton } from "./LoginButton";
 import { getPublicAdminEmails, isAdminEmail } from "@/lib/admin";
 import { InstallAppButton } from "@/components/InstallAppButton";
 
-/**
- * 頁首右上角浮動的登入狀態 widget。
- * - 未登入：顯示「使用 Google 登入」按鈕
- * - 已登入：頭像 + 名字 + 下拉選單（我的設計 / 訂閱方案 / 登出）
- */
 export function HeaderUser() {
   const { user, loading, signOut } = useAuth();
 
@@ -35,10 +31,10 @@ function UserDropdown({
   user: { email?: string; user_metadata?: { full_name?: string; avatar_url?: string } };
   signOut: () => Promise<void>;
 }) {
+  const t = useTranslations("headerUser");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // 點外面關閉下拉
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -49,9 +45,24 @@ function UserDropdown({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "已登入";
+  const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? t("loggedInFallback");
   const avatar = user.user_metadata?.avatar_url;
   const isAdmin = isAdminEmail(user.email, getPublicAdminEmails());
+
+  const navItems: Array<{ href: string; icon: string; label: string }> = [
+    { href: "/", icon: "🪑", label: t("navHome") },
+    { href: "/account/designs", icon: "🗂", label: t("navMyDesigns") },
+    { href: "/projects", icon: "📁", label: t("navProjects") },
+    { href: "/customers", icon: "👥", label: t("navCustomers") },
+    { href: "/settings/branding", icon: "🏢", label: t("navBranding") },
+    { href: "/my-subscription", icon: "💎", label: t("navSubscription") },
+    { href: "/pricing", icon: "💰", label: t("navPricing") },
+  ];
+
+  const secondaryItems: Array<{ href: string; icon: string; label: string }> = [
+    { href: "/about", icon: "ℹ️", label: t("navAbout") },
+    { href: "/help", icon: "❓", label: t("navHelp") },
+  ];
 
   return (
     <div ref={ref} className="relative">
@@ -101,15 +112,7 @@ function UserDropdown({
             </div>
           </div>
           <div className="py-1.5">
-            {[
-              { href: "/", icon: "🪑", label: "家具列表" },
-              { href: "/account/designs", icon: "🗂", label: "我的設計" },
-              { href: "/projects", icon: "📁", label: "我的專案" },
-              { href: "/customers", icon: "👥", label: "客戶名單" },
-              { href: "/settings/branding", icon: "🏢", label: "抬頭設定" },
-              { href: "/my-subscription", icon: "💎", label: "我的訂閱" },
-              { href: "/pricing", icon: "💰", label: "方案" },
-            ].map((it) => (
+            {navItems.map((it) => (
               <Link
                 key={it.href}
                 href={it.href}
@@ -122,10 +125,7 @@ function UserDropdown({
             ))}
           </div>
           <div className="py-1.5 border-t border-zinc-100">
-            {[
-              { href: "/about", icon: "ℹ️", label: "認識木作藍圖" },
-              { href: "/help", icon: "❓", label: "常見問題" },
-            ].map((it) => (
+            {secondaryItems.map((it) => (
               <Link
                 key={it.href}
                 href={it.href}
@@ -143,7 +143,7 @@ function UserDropdown({
                 onClick={() => setOpen(false)}
               >
                 <span className="w-5 text-center">🛠</span>
-                後台儀表板
+                {t("navAdmin")}
               </Link>
             )}
             <InstallAppButton
@@ -158,7 +158,7 @@ function UserDropdown({
               className="flex w-[calc(100%-12px)] items-center gap-2.5 mx-1.5 px-2.5 py-2 rounded-lg text-sm text-zinc-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
             >
               <span className="w-5 text-center">↩</span>
-              登出
+              {t("signOut")}
             </button>
           </div>
         </div>

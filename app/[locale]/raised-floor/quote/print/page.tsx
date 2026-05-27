@@ -6,6 +6,8 @@
  *
  * 不做權限檢查:能拿到 URL 的人才會打開,reuse 上層 /raised-floor/quote 的 gate。
  */
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { computeRaisedFloorBom } from "@/lib/raised-floor/calc";
 import {
   DEFAULT_RAISED_FLOOR_INPUT,
@@ -21,20 +23,25 @@ import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/custome
 import type { EngQuoteOpts } from "@/components/engineering-quote/EngineeringQuoteForm";
 import { RaisedFloorPrintShell } from "./RaisedFloorPrintShell";
 
-export const metadata = {
-  title: "和室架高平台 報價單 · 木頭仁",
-};
-
-export default async function RaisedFloorQuotePrintPage({
-  searchParams,
-}: {
+interface PageProps {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     d?: string;
     o?: string;
     c?: string;
     viewMode?: string;
   }>;
-}) {
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "raisedFloorQuote" });
+  return { title: t("printMetaTitle") };
+}
+
+export default async function RaisedFloorQuotePrintPage({
+  searchParams,
+}: PageProps) {
   const { d, o, c, viewMode } = await searchParams;
 
   let input: RaisedFloorInput = DEFAULT_RAISED_FLOOR_INPUT;

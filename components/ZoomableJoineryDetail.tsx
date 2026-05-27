@@ -1,17 +1,11 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { JoineryDetail, JOINERY_LABEL, type JoineryDetailParams } from "@/lib/joinery/details";
 import type { JoineryType } from "@/lib/types";
 
 type ViewKind = "front" | "side" | "top" | "iso";
-
-const VIEW_TITLES: Record<ViewKind, string> = {
-  front: "正視圖",
-  side: "側視圖",
-  top: "俯視圖",
-  iso: "等角圖",
-};
 
 const VIEW_ORDER: ViewKind[] = ["front", "side", "top", "iso"];
 
@@ -32,6 +26,13 @@ export function ZoomableJoineryDetail({
    *  appears above the sheet (e.g. MobileShell AdvancedSheet). */
   zModal?: string;
 }) {
+  const t = useTranslations("joineryDetail");
+  const VIEW_TITLES: Record<ViewKind, string> = {
+    front: t("viewFront"),
+    side: t("viewSide"),
+    top: t("viewTop"),
+    iso: t("viewIso"),
+  };
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,7 +68,7 @@ export function ZoomableJoineryDetail({
   return (
     <>
       <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mb-2">
-        ⚠ 僅為組合參考示意圖，跟實際尺寸可能不合，請參考三視圖詳細尺寸
+        {t("warnNote")}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {VIEW_ORDER.map((view) => (
@@ -76,12 +77,12 @@ export function ZoomableJoineryDetail({
             type="button"
             onClick={() => setZoomed(view)}
             className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm cursor-zoom-in hover:border-amber-400 hover:shadow-md transition relative group text-left"
-            aria-label={`點擊放大 ${JOINERY_LABEL[type]} ${VIEW_TITLES[view]}`}
-            title="點擊放大"
+            aria-label={t("zoomAriaTpl", { type: JOINERY_LABEL[type], view: VIEW_TITLES[view] })}
+            title={t("zoomTitle")}
           >
             <JoineryDetail type={type} params={params} singleView={view} />
             <span className="absolute top-1.5 right-1.5 text-[10px] bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none">
-              🔍 點擊放大
+              {t("zoomHint")}
             </span>
           </button>
         ))}
@@ -123,7 +124,7 @@ export function ZoomableJoineryDetail({
                     onClick={() => setScale((s) => Math.max(1, s - 0.25))}
                     disabled={scale <= 1}
                     className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                    title="縮小 (−)"
+                    title={t("zoomOutTitle")}
                   >
                     −
                   </button>
@@ -131,7 +132,7 @@ export function ZoomableJoineryDetail({
                     type="button"
                     onClick={() => setScale(1)}
                     className="px-1.5 h-6 rounded text-[11px] text-zinc-700 hover:bg-white tabular-nums min-w-[42px]"
-                    title="重設 (0)"
+                    title={t("zoomResetTitle")}
                   >
                     {Math.round(scale * 100)}%
                   </button>
@@ -140,7 +141,7 @@ export function ZoomableJoineryDetail({
                     onClick={() => setScale((s) => Math.min(4, s + 0.25))}
                     disabled={scale >= 4}
                     className="w-6 h-6 rounded text-zinc-700 hover:bg-white disabled:opacity-30 text-base leading-none"
-                    title="放大 (+)"
+                    title={t("zoomInTitle")}
                   >
                     ＋
                   </button>
@@ -149,8 +150,8 @@ export function ZoomableJoineryDetail({
                   type="button"
                   onClick={() => setZoomed(null)}
                   className="ml-2 w-7 h-7 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-base flex items-center justify-center"
-                  aria-label="關閉"
-                  title="關閉 (ESC)"
+                  aria-label={t("closeAria")}
+                  title={t("closeTitle")}
                 >
                   ×
                 </button>

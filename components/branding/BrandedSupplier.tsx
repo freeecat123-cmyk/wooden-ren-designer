@@ -1,25 +1,26 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useBranding } from "./branding";
 
-const DASH = "＿＿＿＿＿＿＿＿";
-
 export function BrandedSupplier() {
+  const t = useTranslations("branded");
   const { data } = useBranding();
+  const DASH = t("dashesPlaceholder");
 
   return (
     <div className="border border-zinc-300 rounded">
       <div className="bg-zinc-100 px-3 py-1.5 text-[10px] font-semibold tracking-wider border-b border-zinc-300">
-        供應商 FROM
+        {t("supplierH")}
       </div>
       <dl className="p-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
-        <Row k="公司" v={data.companyNameEn || DASH} />
-        <Row k="中文" v={data.companyNameZh || DASH} />
-        <Row k="地址" v={data.address || DASH} />
-        <Row k="電話" v={data.phone || DASH} />
-        <Row k="統編" v={data.taxId || DASH} />
-        <Row k="聯絡人" v={data.contact || DASH} />
-        {data.email && <Row k="email" v={data.email} />}
+        <Row k={t("fieldCompany")} v={data.companyNameEn || DASH} />
+        <Row k={t("fieldChinese")} v={data.companyNameZh || DASH} />
+        <Row k={t("fieldAddress")} v={data.address || DASH} />
+        <Row k={t("fieldPhone")} v={data.phone || DASH} />
+        <Row k={t("fieldTaxId")} v={data.taxId || DASH} />
+        <Row k={t("fieldContact")} v={data.contact || DASH} />
+        {data.email && <Row k={t("fieldEmail")} v={data.email} />}
       </dl>
     </div>
   );
@@ -35,22 +36,24 @@ function Row({ k, v }: { k: string; v: string }) {
 }
 
 export function BrandedFooter() {
+  const t = useTranslations("branded");
   const { data } = useBranding();
-  const company = data.companyNameEn || "Wooden Ren Education Co., Ltd.";
+  const company = data.companyNameEn || t("footerCompanyFallback");
   return (
     <footer className="mt-6 pt-3 border-t border-zinc-200 text-center text-[9px] text-zinc-500">
-      © 2026 {company} · 本報價單由木作藍圖自動產出
+      {t("footerCopyright", { company })}
     </footer>
   );
 }
 
 export function BrandedSignature({ todayStr }: { todayStr: string }) {
+  const t = useTranslations("branded");
   const { data } = useBranding();
-  const company = data.companyNameZh || "木頭仁木匠學院";
+  const company = data.companyNameZh || t("signatureCompanyFallback");
   return (
     <div className="mt-1 flex justify-between text-zinc-600">
       <span>{company}</span>
-      <span>日期：{todayStr}</span>
+      <span>{t("signatureDateTpl", { date: todayStr })}</span>
     </div>
   );
 }

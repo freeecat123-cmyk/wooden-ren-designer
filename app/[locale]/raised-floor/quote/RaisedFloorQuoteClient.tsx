@@ -10,6 +10,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import {
@@ -86,6 +87,7 @@ export function RaisedFloorQuoteClient({
   overview,
   base,
 }: Props) {
+  const t = useTranslations("raisedFloorQuote");
   const router = useRouter();
   const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
@@ -172,12 +174,12 @@ export function RaisedFloorQuoteClient({
   return (
     <div className="mx-auto max-w-5xl p-4">
       <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-lg font-bold">和室架高平台 工程報價</h1>
+        <h1 className="text-lg font-bold">{t("h1")}</h1>
         <a
           href="/raised-floor"
           className="text-xs text-zinc-500 hover:text-[#bd9955] underline"
         >
-          ← 回模擬器
+          {t("backToSim")}
         </a>
       </div>
 
@@ -185,7 +187,7 @@ export function RaisedFloorQuoteClient({
         {/* 左:輸入 */}
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">客戶資料</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secCustomer")}</h2>
             <form
               ref={customerFormRef}
               onSubmit={(e) => e.preventDefault()}
@@ -195,7 +197,7 @@ export function RaisedFloorQuoteClient({
           </section>
 
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">費用參數</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secFeeOpts")}</h2>
             <EngineeringQuoteForm
               quoteType="floor"
               value={opts}
@@ -204,7 +206,7 @@ export function RaisedFloorQuoteClient({
           </section>
 
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">列印模式</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secPrintMode")}</h2>
             <div className="flex gap-2 text-xs">
               <label
                 className={`flex-1 cursor-pointer rounded border px-3 py-2 text-center ${
@@ -221,7 +223,7 @@ export function RaisedFloorQuoteClient({
                   onChange={() => setViewMode("customer")}
                   className="hidden"
                 />
-                客戶版(隱藏成本/毛利)
+                {t("modeCustomer")}
               </label>
               <label
                 className={`flex-1 cursor-pointer rounded border px-3 py-2 text-center ${
@@ -238,7 +240,7 @@ export function RaisedFloorQuoteClient({
                   onChange={() => setViewMode("internal")}
                   className="hidden"
                 />
-                內部版(顯示成本/毛利)
+                {t("modeInternal")}
               </label>
             </div>
           </section>
@@ -248,13 +250,16 @@ export function RaisedFloorQuoteClient({
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
             <div className="mb-2 text-xs text-zinc-500">
-              坪數 {base.pingShu.toFixed(2)} 坪 · 面積 {base.areaM2.toFixed(2)} m²
+              {t("summaryArea", {
+                ping: base.pingShu.toFixed(2),
+                m2: base.areaM2.toFixed(2),
+              })}
             </div>
             {overview}
           </section>
 
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">報價試算</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secQuote")}</h2>
             <table className="w-full text-xs">
               <tbody>
                 {breakdown.lines.map((ln, i) => (
@@ -262,7 +267,7 @@ export function RaisedFloorQuoteClient({
                     <td className="py-1">{ln.label}</td>
                     <td className="py-1 text-right">
                       {ln.unpriced ? (
-                        <span className="text-zinc-400">未報價</span>
+                        <span className="text-zinc-400">{t("unpriced")}</span>
                       ) : (
                         formatTWD(ln.amount)
                       )}
@@ -270,21 +275,21 @@ export function RaisedFloorQuoteClient({
                   </tr>
                 ))}
                 <tr className="border-t border-zinc-400 font-bold">
-                  <td className="py-1">含稅總計</td>
+                  <td className="py-1">{t("totalWithVat")}</td>
                   <td className="py-1 text-right">{formatTWD(breakdown.total)}</td>
                 </tr>
               </tbody>
             </table>
             {breakdown.hasUnpriced && (
               <p className="mt-2 text-xs text-rose-600">
-                ⚠️ 估價不完整(有品項未設單價)
+                {t("unpricedWarn")}
               </p>
             )}
             <button
               onClick={goPrint}
               className="mt-4 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white hover:opacity-90 transition"
             >
-              🧾 列印報價單
+              {t("printBtn")}
             </button>
           </section>
 
@@ -292,13 +297,13 @@ export function RaisedFloorQuoteClient({
             <section className="rounded-lg border border-zinc-200 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-sm font-semibold">
-                  📁 最近架高地板報價({history.length})
+                  {t("historyH", { n: history.length })}
                 </h2>
                 <button
                   onClick={clearHistory}
                   className="text-[11px] text-zinc-400 hover:text-red-600 hover:underline"
                 >
-                  清除歷史
+                  {t("clearHistory")}
                 </button>
               </div>
               <ul className="divide-y divide-zinc-100 text-xs">
@@ -308,7 +313,7 @@ export function RaisedFloorQuoteClient({
                       {e.savedAt.slice(0, 10)}
                     </span>
                     <span className="font-medium truncate">
-                      {e.customerName || "(未填客戶)"}
+                      {e.customerName || t("noCustomer")}
                     </span>
                     <span className="ml-auto font-mono text-zinc-700">
                       {formatTWD(e.total)}
@@ -328,7 +333,7 @@ export function RaisedFloorQuoteClient({
                       }}
                       className="px-1.5 py-0.5 text-[10px] rounded border border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100"
                     >
-                      ↗ 重開
+                      {t("reopen")}
                     </button>
                   </li>
                 ))}

@@ -2,16 +2,10 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { getCategoryLabel } from "@/lib/templates/labels";
 import type { FurnitureCategory } from "@/lib/types";
 
-/**
- * 分享當前設計：複製完整 URL 到剪貼簿。
- *
- * URL 已含所有設計參數（next-router 自動寫入 searchParams），
- * 配合 app/design/[type]/opengraph-image.tsx 動態產 1200×630 縮圖，
- * 學員貼到 FB / IG / LINE 會自動帶預覽圖 → 免費廣告。
- */
 export function ShareDesignButton({
   category,
   defaults,
@@ -19,8 +13,18 @@ export function ShareDesignButton({
   category: FurnitureCategory;
   defaults: { length: number; width: number; height: number };
 }) {
+  const t = useTranslations("shareDesign");
+  const tFurn = useTranslations("furniture");
   const sp = useSearchParams();
   const [state, setState] = useState<"idle" | "copied" | "shared">("idle");
+
+  const categoryName = (): string => {
+    try {
+      return tFurn(category);
+    } catch {
+      return getCategoryLabel(category);
+    }
+  };
 
   const buildUrl = (): string => {
     if (typeof window === "undefined") return "";
@@ -30,11 +34,11 @@ export function ShareDesignButton({
   };
 
   const buildTitle = (): string => {
-    const name = getCategoryLabel(category);
+    const name = categoryName();
     const length = sp?.get("length") ?? defaults.length;
     const width = sp?.get("width") ?? defaults.width;
     const height = sp?.get("height") ?? defaults.height;
-    return `我用木頭仁 木作藍圖做了一張${name} ${length}×${width}×${height}mm`;
+    return t("messageTpl", { name, l: length, w: width, h: height });
   };
 
   const handleClick = async () => {
@@ -55,18 +59,18 @@ export function ShareDesignButton({
       setState("copied");
       setTimeout(() => setState("idle"), 2500);
     } catch {
-      window.prompt("複製這個連結：", url);
+      window.prompt(t("copyPrompt"), url);
     }
   };
 
-  const label = state === "copied" ? "✓ 已複製連結" : state === "shared" ? "✓ 已分享" : "分享設計";
+  const label = state === "copied" ? t("copied") : state === "shared" ? t("shared") : t("idle");
 
   return (
     <button
       type="button"
       onClick={handleClick}
       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white text-zinc-800 ring-1 ring-amber-200 shadow-sm hover:bg-amber-50 hover:ring-amber-400 hover:shadow transition-all"
-      title="複製當前設計連結，貼到 FB / IG / LINE 會自動帶預覽圖"
+      title={t("title")}
     >
       <span>🔗</span>
       <span>{label}</span>

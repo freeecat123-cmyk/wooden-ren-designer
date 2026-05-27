@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { nanoid } from "nanoid";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
  * 順便把 status 從 draft 推到 sent（已寄提案）。
  */
 export function CopyShareLinkButton({ projectId }: { projectId: string }) {
+  const t = useTranslations("copyShareLink");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +45,9 @@ export function CopyShareLinkButton({ projectId }: { projectId: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
-      window.alert(`複製失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(
+        t("alertFailedTpl", { msg: e instanceof Error ? e.message : String(e) }),
+      );
     } finally {
       setBusy(false);
     }
@@ -54,10 +58,10 @@ export function CopyShareLinkButton({ projectId }: { projectId: string }) {
       type="button"
       onClick={handleClick}
       disabled={busy}
-      title="產生公開連結（客戶不需登入即可看到報價）"
+      title={t("title")}
       className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50 disabled:opacity-50"
     >
-      {copied ? "✅ 已複製公開連結" : "🔗 複製公開連結"}
+      {copied ? t("copied") : t("idle")}
     </button>
   );
 }

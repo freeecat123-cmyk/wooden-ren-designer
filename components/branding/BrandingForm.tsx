@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import { DEFAULT_BRANDING, useBranding } from "./branding";
 
-const MAX_LOGO_BYTES = 300_000; // 300KB，壓縮 base64 後寫入 localStorage
+const MAX_LOGO_BYTES = 300_000;
 
 export function BrandingForm({
   defaultOpen = false,
 }: { defaultOpen?: boolean } = {}) {
+  const t = useTranslations("brandingForm");
   const { data, hydrated, syncedAt, pendingPush, update, reset, flush } =
     useBranding();
   const [logoError, setLogoError] = useState<string>("");
@@ -26,7 +28,7 @@ export function BrandingForm({
   if (!hydrated) {
     return (
       <div className="mt-4 p-3 text-xs text-zinc-600 border border-dashed border-zinc-200 rounded">
-        載入品牌設定…
+        {t("loadingBranding")}
       </div>
     );
   }
@@ -42,13 +44,11 @@ export function BrandingForm({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setLogoError("檔案要是圖片（png / jpg / svg）");
+      setLogoError(t("logoErrType"));
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      setLogoError(
-        `LOGO 超過 ${Math.round(MAX_LOGO_BYTES / 1024)}KB，建議先壓縮（256×256 以內）`,
-      );
+      setLogoError(t("logoErrSizeTpl", { limit: Math.round(MAX_LOGO_BYTES / 1024) }));
       return;
     }
     const reader = new FileReader();
@@ -58,7 +58,7 @@ export function BrandingForm({
         update({ logoDataUrl: result });
       }
     };
-    reader.onerror = () => setLogoError("讀檔失敗");
+    reader.onerror = () => setLogoError(t("logoErrRead"));
     reader.readAsDataURL(file);
   };
 
@@ -74,17 +74,15 @@ export function BrandingForm({
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-zinc-50"
       >
-        <span className="font-medium text-zinc-800">
-          🏢 報價單抬頭設定（公司名稱 + LOGO）
-        </span>
+        <span className="font-medium text-zinc-800">{t("headerH")}</span>
         <span className="text-xs text-zinc-700">
-          {isDefault ? "尚未客製（使用預設）" : "已客製"} · {open ? "收合" : "展開"}
+          {isDefault ? t("notCustomized") : t("customized")} ·{" "}
+          {open ? t("collapse") : t("expand")}
         </span>
       </button>
 
       {open && (
         <div className="border-t border-zinc-200 p-4 space-y-4">
-          {/* 儲存狀態 + 立即儲存按鈕——常駐在表單頂端 */}
           <div className="-mx-4 px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between gap-3 flex-wrap">
             <SaveStatusBadge
               pendingPush={pendingPush}
@@ -102,22 +100,20 @@ export function BrandingForm({
               }`}
             >
               {savePulse === "saving"
-                ? "⏳ 儲存中…"
+                ? t("saving")
                 : savePulse === "saved"
-                  ? "✓ 已儲存"
-                  : "💾 立即儲存"}
+                  ? t("saved")
+                  : t("saveNow")}
             </button>
           </div>
           <div>
-            <label className="text-xs text-zinc-600 mb-1 block">
-              公司 LOGO（建議 256×256 以內，png 透明背景）
-            </label>
+            <label className="text-xs text-zinc-600 mb-1 block">{t("logoLabel")}</label>
             <div className="flex items-center gap-3">
               {data.logoDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={data.logoDataUrl}
-                  alt="LOGO 預覽"
+                  alt={t("logoAltPreview")}
                   width={56}
                   height={56}
                   className="object-contain border border-zinc-200 rounded bg-zinc-50"
@@ -126,7 +122,7 @@ export function BrandingForm({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src="/logo.png"
-                  alt="預設 LOGO"
+                  alt={t("logoAltDefault")}
                   width={56}
                   height={56}
                   className="object-contain border border-zinc-200 rounded bg-zinc-50 opacity-60"
@@ -145,7 +141,7 @@ export function BrandingForm({
                     onClick={clearLogo}
                     className="self-start text-xs text-red-600 hover:underline"
                   >
-                    清除（回預設）
+                    {t("logoClear")}
                   </button>
                 )}
               </div>
@@ -157,57 +153,56 @@ export function BrandingForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <TextField
-              label="公司中文名稱"
+              label={t("fieldCompanyZh")}
               value={data.companyNameZh}
               onChange={handleField("companyNameZh")}
-              placeholder="例：木頭仁木匠學院"
+              placeholder={t("phCompanyZh")}
             />
             <TextField
-              label="公司英文 / 登記名稱"
+              label={t("fieldCompanyEn")}
               value={data.companyNameEn}
               onChange={handleField("companyNameEn")}
-              placeholder="例：Wooden Ren Education Co., Ltd."
+              placeholder={t("phCompanyEn")}
             />
             <TextField
-              label="抬頭小字 (tagline)"
+              label={t("fieldTagline")}
               value={data.tagline}
               onChange={handleField("tagline")}
-              placeholder="例：WOODEN REN · 手作家具"
+              placeholder={t("phTagline")}
             />
             <TextField
-              label="聯絡人"
+              label={t("fieldContact")}
               value={data.contact}
               onChange={handleField("contact")}
             />
             <TextField
-              label="公司地址"
+              label={t("fieldAddress")}
               value={data.address}
               onChange={handleField("address")}
               colSpan2
             />
             <TextField
-              label="聯絡電話"
+              label={t("fieldPhone")}
               value={data.phone}
               onChange={handleField("phone")}
             />
             <TextField
-              label="統一編號"
+              label={t("fieldTaxId")}
               value={data.taxId}
               onChange={handleField("taxId")}
             />
             <TextField
-              label="Email"
+              label={t("fieldEmail")}
               value={data.email}
               onChange={handleField("email")}
               colSpan2
             />
           </div>
 
-          {/* 對外公開網址：用於 LINE/Email 內的「完整報價單連結」 */}
           <div className="pt-3 mt-3 border-t border-zinc-100">
             <label className="flex flex-col text-xs">
               <span className="text-zinc-600 mb-1 flex items-center gap-2">
-                對外公開網址（給客戶看的連結 base）
+                {t("publicUrlLabel")}
                 <button
                   type="button"
                   onClick={() => {
@@ -218,56 +213,52 @@ export function BrandingForm({
                         origin,
                       )
                     ) {
-                      alert(
-                        `❌ 你現在是 ${origin}，這是本機網址，客戶根本連不上你的電腦。\n\n請先到「線上版」（例如 https://你的網站.vercel.app）按一次這顆按鈕，之後在 localhost 編輯時就會用線上版 URL 了。\n\n如果你還沒有線上版網址，請手動輸入到下方欄位。`,
-                      );
+                      alert(t("captureLocalAlertTpl", { origin }));
                       return;
                     }
                     update({ publicBaseUrl: origin });
                   }}
                   className="text-[10px] text-sky-700 hover:text-sky-900 hover:underline"
-                  title="把現在這個瀏覽器分頁的網址當作公開網址（必須在線上版按，localhost 會被擋下）"
+                  title={t("captureCurrentTitle")}
                 >
-                  📋 抓當前網址
+                  {t("captureCurrentUrl")}
                 </button>
               </span>
               <input
                 type="text"
                 value={data.publicBaseUrl}
                 onChange={handleField("publicBaseUrl")}
-                placeholder="例：https://你的網站.vercel.app（留空則用當前 origin）"
+                placeholder={t("phPublicUrl")}
                 className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-zinc-900 text-sm font-mono"
               />
               <span className="mt-0.5 text-[10px] text-zinc-600">
-                寄 LINE/Email 給客戶時，「完整報價單連結」會用這個當前綴。在 localhost 編輯時必填，不然客戶連不上你電腦。
+                {t("publicUrlHint")}
               </span>
             </label>
           </div>
 
           <div className="pt-3 mt-3 border-t border-zinc-100">
-            <p className="text-xs text-zinc-700 font-medium mb-2">
-              報價單條款（可自行編輯，會套用在 A4 報價單）
-            </p>
+            <p className="text-xs text-zinc-700 font-medium mb-2">{t("termsH")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <TextAreaField
-                label="付款條件"
+                label={t("fieldPaymentTerms")}
                 value={data.paymentTerms}
                 onChange={handleField("paymentTerms")}
                 rows={4}
                 colSpan2
-                hint="開頭「訂金」「尾款」行會被上方訂金比例自動覆寫；匯款銀行/帳戶填下面欄位即可（會自動接到付款條件後面）"
+                hint={t("paymentTermsHint")}
               />
               <TextField
-                label="匯款銀行"
+                label={t("fieldBankName")}
                 value={data.bankName}
                 onChange={handleField("bankName")}
-                placeholder="例：玉山銀行 暖暖分行（808）"
+                placeholder={t("phBankName")}
               />
               <TextField
-                label="匯款帳戶"
+                label={t("fieldBankAccount")}
                 value={data.bankAccount}
                 onChange={handleField("bankAccount")}
-                placeholder="例：戶名 木頭仁 / 0123-456-789012"
+                placeholder={t("phBankAccount")}
               />
               <div className="md:col-span-2">
                 <InstallmentsEditor
@@ -276,17 +267,17 @@ export function BrandingForm({
                 />
               </div>
               <TextField
-                label="保固"
+                label={t("fieldWarranty")}
                 value={data.warranty}
                 onChange={handleField("warranty")}
               />
               <TextField
-                label="售後服務"
+                label={t("fieldAfterSales")}
                 value={data.afterSales}
                 onChange={handleField("afterSales")}
               />
               <TextAreaField
-                label="備註（一行一條）"
+                label={t("fieldNotes")}
                 value={data.notes}
                 onChange={handleField("notes")}
                 rows={5}
@@ -299,17 +290,13 @@ export function BrandingForm({
             <button
               type="button"
               onClick={() => {
-                if (
-                  window.confirm(
-                    "確定要全部還原為預設嗎？\n\n這會清空：\n- 公司抬頭、LOGO\n- 匯款銀行、帳戶\n- 付款分期、條款、備註\n\n此動作無法復原。",
-                  )
-                ) {
+                if (window.confirm(t("confirmReset"))) {
                   reset();
                 }
               }}
               className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
             >
-              ⚠️ 全部還原為預設
+              {t("resetAll")}
             </button>
           </div>
         </div>
@@ -401,24 +388,25 @@ function SaveStatusBadge({
   syncedAt: number | null;
   savePulse: "idle" | "saving" | "saved";
 }) {
+  const t = useTranslations("brandingForm");
   if (savePulse === "saving") {
     return (
       <span className="text-xs text-amber-700 font-medium">
-        ⏳ 同步雲端中…
+        {t("statusSyncing")}
       </span>
     );
   }
   if (savePulse === "saved") {
     return (
       <span className="text-xs text-emerald-700 font-medium">
-        ✓ 已存到雲端
+        {t("statusSyncedSaved")}
       </span>
     );
   }
   if (pendingPush) {
     return (
       <span className="text-xs text-amber-700">
-        💾 已存本機 · 1.5 秒後自動同步雲端
+        {t("statusPendingPush")}
       </span>
     );
   }
@@ -426,45 +414,46 @@ function SaveStatusBadge({
     const ts = new Date(syncedAt).toLocaleTimeString();
     return (
       <span className="text-xs text-emerald-700">
-        ✓ 已同步雲端 · {ts}（登入帳號跨裝置共用）
+        {t("statusSyncedAtTpl", { time: ts })}
       </span>
     );
   }
   return (
     <span className="text-xs text-zinc-700">
-      💾 設定存在本機；登入後會自動同步到雲端
+      {t("statusLocalOnly")}
     </span>
   );
 }
 
-const INSTALLMENT_PRESETS: Record<
-  number,
-  Array<{ label: string; ratio: number }>
-> = {
-  1: [{ label: "全額", ratio: 1 }],
-  2: [
-    { label: "訂金", ratio: 0.5 },
-    { label: "尾款", ratio: 0.5 },
-  ],
-  3: [
-    { label: "訂金", ratio: 0.3 },
-    { label: "中期款", ratio: 0.4 },
-    { label: "尾款", ratio: 0.3 },
-  ],
-  4: [
-    { label: "訂金", ratio: 0.25 },
-    { label: "備料款", ratio: 0.25 },
-    { label: "木工完成款", ratio: 0.25 },
-    { label: "尾款", ratio: 0.25 },
-  ],
-  5: [
-    { label: "訂金", ratio: 0.2 },
-    { label: "備料款", ratio: 0.2 },
-    { label: "木工完成款", ratio: 0.2 },
-    { label: "塗裝完成款", ratio: 0.2 },
-    { label: "尾款", ratio: 0.2 },
-  ],
-};
+function buildInstallmentPresets(
+  t: ReturnType<typeof useTranslations<"brandingForm.installments">>,
+): Record<number, Array<{ label: string; ratio: number }>> {
+  return {
+    1: [{ label: t("presetFull"), ratio: 1 }],
+    2: [
+      { label: t("presetDeposit"), ratio: 0.5 },
+      { label: t("presetBalance"), ratio: 0.5 },
+    ],
+    3: [
+      { label: t("presetDeposit"), ratio: 0.3 },
+      { label: t("presetMid"), ratio: 0.4 },
+      { label: t("presetBalance"), ratio: 0.3 },
+    ],
+    4: [
+      { label: t("presetDeposit"), ratio: 0.25 },
+      { label: t("presetMaterial"), ratio: 0.25 },
+      { label: t("presetWoodDone"), ratio: 0.25 },
+      { label: t("presetBalance"), ratio: 0.25 },
+    ],
+    5: [
+      { label: t("presetDeposit"), ratio: 0.2 },
+      { label: t("presetMaterial"), ratio: 0.2 },
+      { label: t("presetWoodDone"), ratio: 0.2 },
+      { label: t("presetFinishDone"), ratio: 0.2 },
+      { label: t("presetBalance"), ratio: 0.2 },
+    ],
+  };
+}
 
 function InstallmentsEditor({
   value,
@@ -473,6 +462,8 @@ function InstallmentsEditor({
   value: Array<{ label: string; ratio: number }>;
   onChange: (next: Array<{ label: string; ratio: number }>) => void;
 }) {
+  const t = useTranslations("brandingForm.installments");
+  const PRESETS = buildInstallmentPresets(t);
   const enabled = value.length > 0;
   const totalPct = value.reduce((s, r) => s + r.ratio * 100, 0);
   const totalDelta = Math.abs(totalPct - 100);
@@ -481,11 +472,9 @@ function InstallmentsEditor({
   return (
     <div className="border border-zinc-200 rounded p-3 bg-zinc-50/50">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-zinc-700 font-medium">
-          付款分期(覆寫上方訂金比例)
-        </span>
+        <span className="text-xs text-zinc-700 font-medium">{t("h")}</span>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] text-zinc-700">分</span>
+          <span className="text-[10px] text-zinc-700">{t("dividerLbl")}</span>
           {([0, 1, 2, 3, 4, 5] as const).map((n) => {
             const active = n === 0 ? !enabled : value.length === n;
             return (
@@ -496,7 +485,7 @@ function InstallmentsEditor({
                   if (n === 0) {
                     onChange([]);
                   } else {
-                    onChange(INSTALLMENT_PRESETS[n].map((r) => ({ ...r })));
+                    onChange(PRESETS[n].map((r) => ({ ...r })));
                   }
                 }}
                 className={`text-[11px] px-2 py-0.5 rounded border transition ${
@@ -505,16 +494,14 @@ function InstallmentsEditor({
                     : "bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100"
                 }`}
               >
-                {n === 0 ? "不分期" : `${n} 期`}
+                {n === 0 ? t("noInstall") : t("nPeriodsTpl", { n })}
               </button>
             );
           })}
         </div>
       </div>
       {!enabled && (
-        <p className="text-[10px] text-zinc-600 leading-relaxed">
-          目前用報價頁的訂金比例(depositRate)做 2 段拆分。設成 1–5 期後改用這裡的設定，每期自訂名稱與 % 數。
-        </p>
+        <p className="text-[10px] text-zinc-600 leading-relaxed">{t("intro")}</p>
       )}
       {enabled && (
         <>
@@ -532,7 +519,7 @@ function InstallmentsEditor({
                     next[idx] = { ...row, label: e.target.value };
                     onChange(next);
                   }}
-                  placeholder="期別名稱"
+                  placeholder={t("labelPh")}
                   className="flex-1 border border-zinc-300 rounded px-2 py-1 bg-white text-zinc-900 text-sm"
                 />
                 <input
@@ -559,8 +546,8 @@ function InstallmentsEditor({
               totalOk ? "text-zinc-700" : "text-rose-700 font-semibold"
             }`}
           >
-            合計：{totalPct.toFixed(1)}%
-            {!totalOk && `(差 ${(100 - totalPct).toFixed(1)}%——加總要 100%)`}
+            {t("totalTpl", { pct: totalPct.toFixed(1) })}
+            {!totalOk && t("deltaTpl", { delta: (100 - totalPct).toFixed(1) })}
           </p>
         </>
       )}

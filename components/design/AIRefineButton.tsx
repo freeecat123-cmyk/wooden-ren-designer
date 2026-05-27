@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { OptionSpec, FurnitureCategory } from "@/lib/types";
 
 interface SuggestResponse {
@@ -32,6 +33,7 @@ export function AIRefineButton({
   category: FurnitureCategory;
   designSize: { length: number; width: number; height: number };
 }) {
+  const t = useTranslations("aiRefine");
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
@@ -99,13 +101,13 @@ export function AIRefineButton({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "AI 服務錯誤");
-        if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? "看方案 →" });
+        setError(data.error ?? t("errService"));
+        if (data.upgradeUrl) setErrorUpgrade({ url: data.upgradeUrl, label: data.upgradeLabel ?? t("errUpgradeFallback") });
         return;
       }
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "網路錯誤");
+      setError(err instanceof Error ? err.message : t("errNetwork"));
       setErrorUpgrade(null);
     } finally {
       setLoading(false);
@@ -133,9 +135,9 @@ export function AIRefineButton({
         type="button"
         onClick={() => setOpen(true)}
         className="px-3 py-1.5 rounded-md text-xs font-medium bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600 transition shadow-sm"
-        title="AI 看當前設計給情境化的微調建議（會用到 LLM API）"
+        title={t("btnTitle")}
       >
-        🤖 AI 微調
+        {t("btn")}
       </button>
 
       {open && (
@@ -151,11 +153,9 @@ export function AIRefineButton({
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b">
               <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-1.5">
-                🤖 AI 微調當前 {styleId} 配置
+                {t("modalH", { style: styleId })}
               </h3>
-              <p className="text-xs text-zinc-500 mt-1">
-                AI 會看當前風格 + 尺寸 + 材質 + 你的需求給情境化建議。
-              </p>
+              <p className="text-xs text-zinc-500 mt-1">{t("modalSub")}</p>
             </div>
 
             <div className="p-4 space-y-3">
@@ -163,12 +163,12 @@ export function AIRefineButton({
                 <>
                   <label className="block">
                     <span className="text-xs text-zinc-700 font-medium">
-                      你的需求 (選填)
+                      {t("intentLabel")}
                     </span>
                     <textarea
                       value={intent}
                       onChange={(e) => setIntent(e.target.value)}
-                      placeholder="例：腳要粗一點 / 給小孩用 / 預算有限想用便宜木材 / 客戶要中式現代風"
+                      placeholder={t("intentPh")}
                       className="mt-1 w-full text-xs border border-zinc-300 rounded p-2 h-20 resize-none focus:ring-2 focus:ring-violet-300"
                     />
                   </label>
@@ -177,14 +177,14 @@ export function AIRefineButton({
                     onClick={askAI}
                     className="w-full py-2 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition"
                   >
-                    🤖 給我建議
+                    {t("askBtn")}
                   </button>
                 </>
               )}
 
               {loading && (
                 <div className="text-center py-6 text-xs text-zinc-500">
-                  ⏳ AI 思考中…通常 3-8 秒
+                  {t("thinking")}
                 </div>
               )}
 
@@ -206,7 +206,7 @@ export function AIRefineButton({
                 <>
                   <div>
                     <div className="text-xs font-medium text-zinc-700 mb-1">
-                      💡 AI 理由
+                      {t("rationaleH")}
                     </div>
                     <p className="text-xs text-zinc-600 leading-relaxed bg-violet-50 ring-1 ring-violet-200 rounded p-2">
                       {result.rationale}
@@ -215,7 +215,7 @@ export function AIRefineButton({
 
                   <div>
                     <div className="text-xs font-medium text-zinc-700 mb-1">
-                      🔧 建議調整 ({Object.keys(result.suggestions).length} 個欄位)
+                      {t("suggestHTpl", { n: Object.keys(result.suggestions).length })}
                     </div>
                     <div className="text-xs space-y-1.5 bg-zinc-50 ring-1 ring-zinc-200 rounded p-2">
                       {Object.entries(result.suggestions).map(([k, v]) => {
@@ -226,7 +226,7 @@ export function AIRefineButton({
                           : null;
                         return (
                           <div key={k} className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-zinc-700 font-medium">{labelFor(k)}：</span>
+                            <span className="text-zinc-700 font-medium">{labelFor(k)}{t("suggestKvSep")}</span>
                             {oldDisplay !== null ? (
                               <span className="text-zinc-400 line-through">{oldDisplay}</span>
                             ) : null}
@@ -240,7 +240,7 @@ export function AIRefineButton({
                   {result.warnings && result.warnings.length > 0 && (
                     <div>
                       <div className="text-xs font-medium text-amber-800 mb-1">
-                        ⚠️ 警告
+                        {t("warningsH")}
                       </div>
                       <ul className="text-xs text-amber-900 bg-amber-50 ring-1 ring-amber-200 rounded p-2 space-y-0.5 list-disc list-inside">
                         {result.warnings.map((w, i) => (
@@ -256,7 +256,7 @@ export function AIRefineButton({
                       onClick={apply}
                       className="flex-1 py-2 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition"
                     >
-                      ✓ 套用 AI 建議
+                      {t("applyBtn")}
                     </button>
                     <button
                       type="button"
@@ -266,7 +266,7 @@ export function AIRefineButton({
                       }}
                       className="px-3 py-2 rounded-md text-xs font-medium bg-zinc-200 text-zinc-700 hover:bg-zinc-300 transition"
                     >
-                      重新問
+                      {t("redoBtn")}
                     </button>
                   </div>
                 </>
@@ -277,7 +277,7 @@ export function AIRefineButton({
                 onClick={() => setOpen(false)}
                 className="w-full py-1.5 text-xs text-zinc-500 hover:text-zinc-700"
               >
-                關閉
+                {t("closeBtn")}
               </button>
             </div>
           </div>

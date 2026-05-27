@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { nanoid } from "nanoid";
 import { createClient } from "@/lib/supabase/client";
 import { useBranding } from "@/components/branding/branding";
@@ -16,10 +17,6 @@ interface Props {
   token: string | null;
 }
 
-/**
- * 生成 LINE / Email 分享連結。木工點下去把報價單網址 + 一段招呼貼到對方收件匣。
- * 沒 share_token 時自動生一個寫回 DB；有就重用。
- */
 export function ProjectQuoteShareActions({
   projectId,
   quoteNo,
@@ -28,6 +25,7 @@ export function ProjectQuoteShareActions({
   total,
   token,
 }: Props) {
+  const t = useTranslations("projectShare");
   const { data: branding } = useBranding();
   const [busy, setBusy] = useState(false);
 
@@ -41,55 +39,72 @@ export function ProjectQuoteShareActions({
         .select("share_token")
         .eq("id", projectId)
         .single();
-      let t = (existing?.share_token as string | null) ?? null;
-      if (!t) {
-        t = nanoid(16);
+      let tk = (existing?.share_token as string | null) ?? null;
+      if (!tk) {
+        tk = nanoid(16);
         await supabase
           .from("projects")
-          .update({ share_token: t })
+          .update({ share_token: tk })
           .eq("id", projectId);
       }
-      return t;
+      return tk;
     } catch (e) {
-      window.alert(`產生連結失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(
+        t("alertGenerateFailedTpl", {
+          msg: e instanceof Error ? e.message : String(e),
+        }),
+      );
       return null;
     } finally {
       setBusy(false);
     }
   };
 
-  const buildPublicUrl = (t: string) => {
+  const buildPublicUrl = (tk: string) => {
     const base = branding.publicBaseUrl?.trim() || window.location.origin;
-    return `${base}/projects/${projectId}/quote?token=${t}`;
+    return `${base}/projects/${projectId}/quote?token=${tk}`;
   };
 
-  const sender = branding.companyNameZh || "工作室";
-  const greeting = customerName ? `${customerName} 您好，` : "您好，";
+  const sender = branding.companyNameZh || t("studio");
+  const greeting = customerName
+    ? t("greetingTpl", { name: customerName })
+    : t("greetingFallback");
 
   const handleLine = async () => {
-    const t = await ensureToken();
-    if (!t) return;
-    const url = buildPublicUrl(t);
-    const text = `${greeting}\n\n${sender}為您準備的「${projectName}」整套報價單已完成（單號 ${quoteNo}，總計 ${formatTWD(total)}）。\n\n線上檢視：${url}\n\n如有任何問題或想調整內容，歡迎隨時聯絡，謝謝！`;
+    const tk = await ensureToken();
+    if (!tk) return;
+    const url = buildPublicUrl(tk);
+    const text = t("lineMessageTpl", {
+      greeting,
+      sender,
+      project: projectName,
+      no: quoteNo,
+      total: formatTWD(total),
+      url,
+    });
     const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
     window.open(lineUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleEmail = async () => {
-    const t = await ensureToken();
-    if (!t) return;
-    const url = buildPublicUrl(t);
-    const subject = `${projectName} 報價單（${quoteNo}）— ${sender}`;
+    const tk = await ensureToken();
+    if (!tk) return;
+    const url = buildPublicUrl(tk);
+    const subject = t("emailSubjectTpl", {
+      project: projectName,
+      no: quoteNo,
+      sender,
+    });
     const lines = [
       greeting,
       "",
-      `感謝您的詢問。${sender}為您準備的「${projectName}」整套報價單已完成。`,
+      t("emailIntroTpl", { sender, project: projectName }),
       "",
-      `報價單號：${quoteNo}`,
-      `整套金額：${formatTWD(total)}`,
-      `線上檢視：${url}`,
+      t("emailQuoteNoTpl", { no: quoteNo }),
+      t("emailTotalTpl", { total: formatTWD(total) }),
+      t("emailUrlTpl", { url }),
       "",
-      "如有任何問題或希望調整內容，歡迎回覆此信，謝謝！",
+      t("emailSignoff"),
       "",
       sender,
     ];
@@ -104,18 +119,18 @@ export function ProjectQuoteShareActions({
         onClick={handleLine}
         disabled={busy}
         className="px-3 py-2 rounded text-sm bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
-        title="開啟 LINE 分享面板，已預填招呼語與連結"
+        title={t("lineBtnTitle")}
       >
-        💬 LINE 提案
+        {t("lineBtn")}
       </button>
       <button
         type="button"
         onClick={handleEmail}
         disabled={busy}
         className="px-3 py-2 rounded text-sm bg-sky-500 text-white hover:bg-sky-600 disabled:opacity-50"
-        title="開啟 Email，已預填主旨與連結"
+        title={t("emailBtnTitle")}
       >
-        📧 寄 Email
+        {t("emailBtn")}
       </button>
     </>
   );

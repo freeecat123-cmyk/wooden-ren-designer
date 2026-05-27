@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { InvoicePreflightModal } from "./InvoicePreflightModal";
 
 export type BillingPeriod = "monthly" | "yearly";
@@ -78,6 +79,7 @@ export function PlanCardView({
   /** coupon 折扣百分比（例 50 = 半價） */
   couponDiscountPercent?: number | null;
 }) {
+  const t = useTranslations("planCard");
   const isFree = plan.monthlyPrice === 0;
   let priceLine: React.ReactNode;
   let belowPrice: React.ReactNode = null;
@@ -130,7 +132,7 @@ export function PlanCardView({
       <>
         <span className="text-2xl sm:text-3xl font-bold text-zinc-900">NT$ 0</span>
         <span className="text-sm text-zinc-500">
-          {period === "yearly" ? "/ 年" : "/ 月"}
+          {period === "yearly" ? t("perYear") : t("perMonth")}
         </span>
       </>
     );
@@ -155,18 +157,26 @@ export function PlanCardView({
             NT$ {plan.originalYearly.toLocaleString()}
           </span>
         )}
-        <span className="text-sm text-zinc-500">/ 年</span>
+        <span className="text-sm text-zinc-500">{t("perYear")}</span>
       </>
     );
     belowPrice = (
       <p className="mt-1 text-xs text-emerald-700 font-medium">
         {hasCoupon
-          ? `🎫 折扣 ${couponDiscountPercent}% 已套用，省 NT$ ${(plan.yearlyPrice - couponedYearly).toLocaleString()}`
-          : <>相當於 NT$ {monthlyEq} / 月
+          ? t("couponAppliedTpl", {
+              pct: couponDiscountPercent!,
+              amount: (plan.yearlyPrice - couponedYearly).toLocaleString(),
+            })
+          : (
+            <>
+              {t("monthlyEqTpl", { price: monthlyEq })}
               {plan.originalYearly &&
                 plan.originalYearly > plan.yearlyPrice &&
-                `（省 NT$ ${(plan.originalYearly - plan.yearlyPrice).toLocaleString()}）`}
-            </>}
+                t("savingsTpl", {
+                  amount: (plan.originalYearly - plan.yearlyPrice).toLocaleString(),
+                })}
+            </>
+          )}
       </p>
     );
   } else {
@@ -180,7 +190,7 @@ export function PlanCardView({
             NT$ {plan.originalMonthly.toLocaleString()}
           </span>
         )}
-        <span className="text-sm text-zinc-500">/ 月</span>
+        <span className="text-sm text-zinc-500">{t("perMonth")}</span>
       </>
     );
   }
@@ -195,7 +205,7 @@ export function PlanCardView({
     >
       {plan.highlight && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-amber-700 text-white text-xs font-bold shadow-md whitespace-nowrap">
-          ★ 最受歡迎
+          {t("popular")}
         </div>
       )}
 
@@ -206,7 +216,7 @@ export function PlanCardView({
       {belowPrice}
       {plan.studentOnly && (
         <p className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 font-medium">
-          🎓 限木匠學院學員
+          {t("studentOnly")}
         </p>
       )}
 
@@ -270,29 +280,29 @@ export function PlanCardView({
           if (samePeriod || !currentPeriod) {
             return (
               <div className="mt-6 w-full px-4 py-3 rounded-xl font-semibold text-sm bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-center">
-                ✓ 你目前的方案
+                {t("currentPlan")}
               </div>
             );
           }
-          // 跨週期切換 (例:月扣 → 年扣) 需先取消
           return (
             <Link
               href="/my-subscription"
               className="mt-6 w-full inline-block text-center px-4 py-3 rounded-xl font-semibold text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
-              換成{period === "yearly" ? "年" : "月"}付請先取消當前
+              {t("switchPeriodTpl", {
+                period: period === "yearly" ? t("yearly") : t("monthly"),
+              })}
             </Link>
           );
         }
 
-        // 降級 → 不能直接買,引導去 /my-subscription
         if (isDowngrade) {
           return (
             <Link
               href="/my-subscription"
               className="mt-6 w-full inline-block text-center px-4 py-3 rounded-xl font-semibold text-sm bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-200 active:scale-[0.99] transition-all"
             >
-              降級請先取消當前訂閱
+              {t("downgradeCancel")}
             </Link>
           );
         }
@@ -326,9 +336,9 @@ export function PlanCardView({
         })();
         const ctaText =
           isUpgrade && refundCalc.state === "loaded" && refundCalc.refundAmount > 0
-            ? `立刻升級 · 退舊版 NT$ ${refundCalc.refundAmount}`
+            ? t("upgradeNowTpl", { amount: refundCalc.refundAmount })
             : isUpgrade
-            ? "立刻升級"
+            ? t("upgradeNow")
             : plan.cta;
         return (
           <form
@@ -350,21 +360,24 @@ export function PlanCardView({
                   : "bg-amber-900 text-white hover:bg-amber-800 hover:shadow"
               } disabled:opacity-60`}
             >
-              {checkingPref ? "確認中…" : ctaText}
+              {checkingPref ? t("checking") : ctaText}
             </button>
             {isUpgrade && refundCalc.state === "loaded" && refundCalc.refundAmount > 0 && (
               <p className="mt-2 text-[11px] text-emerald-700 text-center leading-snug">
-                舊方案剩 {refundCalc.remainingDays} 天未用,升級後自動退 <strong>NT$ {refundCalc.refundAmount}</strong> 回原信用卡(3-7 個工作日入帳)
+                {t("refundDetailTpl", {
+                  days: refundCalc.remainingDays,
+                  amount: refundCalc.refundAmount,
+                })}
               </p>
             )}
             {isUpgrade && refundCalc.state === "loaded" && refundCalc.refundAmount === 0 && (
               <p className="mt-2 text-[11px] text-zinc-500 text-center leading-snug">
-                舊方案已無剩餘天數可退,新方案立刻啟用
+                {t("refundZero")}
               </p>
             )}
             {isUpgrade && refundCalc.state === "loading" && (
               <p className="mt-2 text-[11px] text-zinc-500 text-center leading-snug">
-                升級後將自動退舊版未使用部分回原信用卡
+                {t("refundLoading")}
               </p>
             )}
           </form>
@@ -372,7 +385,9 @@ export function PlanCardView({
       })()}
       {!isFree && (
         <p className="mt-2 text-[11px] text-zinc-500 text-center">
-          將跳轉綠界 ECPay 付款 · {period === "monthly" ? "信用卡(每月自動扣款)" : "信用卡 / ATM / 超商"}
+          {period === "monthly"
+            ? t("checkoutGatewayTplMonthly")
+            : t("checkoutGatewayTplYearly")}
         </p>
       )}
 

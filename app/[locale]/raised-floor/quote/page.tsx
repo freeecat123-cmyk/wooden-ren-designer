@@ -4,7 +4,9 @@
  * 共用 /floor 的權限門檻(canUseFloorTool / 已解鎖 "floor")。
  * URL query: ?d=<base64 RaisedFloorInput>
  */
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getServerAdminEmails, isAdminEmail } from "@/lib/admin";
 import { canUseFeature, type UserPlanProfile } from "@/lib/permissions";
@@ -20,15 +22,20 @@ import { ENGINEERING_QUOTE_DEFAULTS } from "@/lib/engineering-quote/defaults";
 import { RaisedFloorOverviewSvg } from "@/lib/raised-floor/RaisedFloorOverviewSvg";
 import { RaisedFloorQuoteClient } from "./RaisedFloorQuoteClient";
 
-export const metadata = {
-  title: "和室架高平台 工程報價 · 木頭仁",
-};
+interface PageProps {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ d?: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "raisedFloorQuote" });
+  return { title: t("metaTitle") };
+}
 
 export default async function RaisedFloorQuotePage({
   searchParams,
-}: {
-  searchParams: Promise<{ d?: string }>;
-}) {
+}: PageProps) {
   const supabase = await createClient();
   const {
     data: { user },

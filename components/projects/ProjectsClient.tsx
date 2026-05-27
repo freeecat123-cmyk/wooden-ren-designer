@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
-  PROJECT_STATUS_LABEL,
   type ProjectRow,
   type ProjectStatus,
 } from "@/lib/projects/types";
@@ -30,6 +30,8 @@ export function ProjectsClient({
 }: {
   initialRows: ProjectRow[] | null;
 }) {
+  const t = useTranslations("projectsClient");
+  const tStatus = useTranslations("projectDetailClient.projectStatus");
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id ?? null;
   const isLoggedIn = !!user;
@@ -69,7 +71,7 @@ export function ProjectsClient({
 
   const handleCreate = async () => {
     if (!userId) return;
-    const name = window.prompt("專案名稱（例：林宅全屋、王公館客廳）");
+    const name = window.prompt(t("promptName"));
     if (!name?.trim()) return;
     setCreating(true);
     try {
@@ -82,7 +84,7 @@ export function ProjectsClient({
       if (error) throw error;
       setRows((prev) => (prev ? [data as ProjectRow, ...prev] : [data as ProjectRow]));
     } catch (e) {
-      window.alert(`建立失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertCreateFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setCreating(false);
     }
@@ -91,7 +93,7 @@ export function ProjectsClient({
   if (loading || (authLoading && rows === null)) {
     return (
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-sm text-zinc-500">
-        載入中…
+        {t("loading")}
       </main>
     );
   }
@@ -99,10 +101,8 @@ export function ProjectsClient({
   if (!isLoggedIn) {
     return (
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-4">我的專案</h1>
-        <p className="text-zinc-600 text-sm">
-          請先登入才能管理專案（右上角點「使用 Google 登入」）。
-        </p>
+        <h1 className="text-2xl font-bold text-zinc-900 mb-4">{t("h1")}</h1>
+        <p className="text-zinc-600 text-sm">{t("loginRequired")}</p>
       </main>
     );
   }
@@ -110,42 +110,38 @@ export function ProjectsClient({
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <Link href="/" className="text-sm text-zinc-500 hover:underline">
-        ← 回家具列表
+        {t("backHome")}
       </Link>
       <QuoteAccessGate>
       <div className="mt-3 mb-2 flex items-baseline justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">我的專案</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">{t("h1")}</h1>
         <button
           type="button"
           onClick={handleCreate}
           disabled={creating}
           className="px-4 py-2 rounded-lg bg-[#8b4513] text-white text-sm font-medium hover:bg-[#6f370f] disabled:opacity-50"
         >
-          {creating ? "建立中…" : "+ 新增專案"}
+          {creating ? t("creatingBtn") : t("createBtn")}
         </button>
       </div>
-      <p className="text-sm text-zinc-500 mb-6">
-        把多件家具打包成一個案子（含客戶資料、案場、設計概念、整套報價）。
-      </p>
+      <p className="text-sm text-zinc-500 mb-6">{t("intro")}</p>
 
       {err && (
         <div className="rounded-lg border-2 border-red-200 bg-red-50 text-red-700 text-sm p-4 mb-6">
-          載入失敗：{err}
+          {t("loadFailTpl", { msg: err })}
         </div>
       )}
 
       {rows && rows.length === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-8 text-center">
-          <p className="text-zinc-600 text-sm mb-4">
-            還沒有任何專案。建一個新專案，就可以把多件家具打包成一份提案給客戶。
-          </p>
+          <p className="text-zinc-600 text-sm mb-4">{t("emptyBody")}</p>
           <button
             type="button"
             onClick={handleCreate}
             disabled={creating}
             className="inline-block px-4 py-2 rounded-lg bg-[#8b4513] text-white text-sm font-medium hover:bg-[#6f370f] disabled:opacity-50"
           >
-            建立第一個專案
+            {t("createFirst")}
           </button>
         </div>
       )}
@@ -168,7 +164,7 @@ export function ProjectsClient({
                     </h2>
                     {row.customer_name && (
                       <p className="text-xs text-zinc-500 mt-0.5">
-                        客戶：{row.customer_name}
+                        {t("customerLabelTpl", { name: row.customer_name })}
                         {row.project_address ? ` · ${row.project_address}` : ""}
                       </p>
                     )}
@@ -176,7 +172,7 @@ export function ProjectsClient({
                   <span
                     className={`shrink-0 text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[row.status]}`}
                   >
-                    {PROJECT_STATUS_LABEL[row.status]}
+                    {tStatus(row.status)}
                   </span>
                 </div>
                 {row.design_concept && (
@@ -185,7 +181,7 @@ export function ProjectsClient({
                   </p>
                 )}
                 <p className="text-[10px] text-zinc-400 mt-2">
-                  更新於 {formatDate(row.updated_at)}
+                  {t("updatedTpl", { date: formatDate(row.updated_at) })}
                 </p>
               </Link>
             </li>

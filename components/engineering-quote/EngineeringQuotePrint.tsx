@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BrandedHeader } from "@/components/branding/BrandedHeader";
 import { BrandedSupplier } from "@/components/branding/BrandedSupplier";
 import { BrandedTermsBlocks } from "@/components/branding/BrandedTerms";
@@ -16,7 +17,7 @@ interface Props {
   input: EngineeringQuoteInput;
   breakdown: EngineeringQuoteBreakdown;
   customer: CustomerInfo;
-  /** 平面圖(由 page 傳入 FloorOverviewSvg / CeilingOverviewSvg) */
+  /** 平面圖（由 page 傳入 FloorOverviewSvg / CeilingOverviewSvg） */
   overview: React.ReactNode;
   /** viewMode：customer 隱藏成本明細與毛利 */
   viewMode: "customer" | "internal";
@@ -30,47 +31,46 @@ export function EngineeringQuotePrint({
   overview,
   viewMode,
 }: Props) {
+  const t = useTranslations("engQuotePrint");
   const b = breakdown;
-  const title = quoteType === "floor" ? "地板工程報價單" : "天花板工程報價單";
+  const title = quoteType === "floor" ? t("titleFloor") : t("titleCeiling");
   const validUntil = computeValidUntil(input.validityDays);
+  const DASH = "—";
 
   return (
     <div className="mx-auto max-w-[210mm] bg-white p-8 text-zinc-800">
-      {/* ===== 第 1 頁 ===== */}
       <BrandedHeader />
       <h1 className="my-3 text-center text-lg font-bold">{title}</h1>
 
       <div className="flex justify-between text-xs">
         <BrandedSupplier />
         <div className="text-right">
-          <div className="font-semibold">客戶</div>
-          <div>{customer.name || "—"}</div>
+          <div className="font-semibold">{t("customerH")}</div>
+          <div>{customer.name || DASH}</div>
           {customer.contact && <div>{customer.contact}</div>}
           {customer.phone && <div>{customer.phone}</div>}
           {customer.address && <div>{customer.address}</div>}
-          {customer.taxId && <div>統編 {customer.taxId}</div>}
+          {customer.taxId && <div>{t("taxIdPrefix")} {customer.taxId}</div>}
           {customer.email && <div>{customer.email}</div>}
         </div>
       </div>
 
-      {/* 平面圖 + 坪數 */}
       <div className="my-4 flex items-center gap-4 rounded border border-zinc-200 p-3">
         <div className="shrink-0">{overview}</div>
         <div className="text-xs">
           <div>
-            坪數 <span className="text-base font-bold">{input.pingShu.toFixed(2)}</span> 坪
+            {t("pingTpl")} <span className="text-base font-bold">{input.pingShu.toFixed(2)}</span> {t("ping")}
           </div>
-          <div className="text-zinc-500">面積 {input.areaM2.toFixed(2)} m²</div>
+          <div className="text-zinc-500">{t("areaTpl")} {input.areaM2.toFixed(2)} m²</div>
         </div>
       </div>
 
-      {/* 工程品項表 */}
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="border-y border-zinc-300 bg-zinc-50">
-            <th className="py-1 text-left">項目</th>
-            <th className="py-1 text-left">說明</th>
-            <th className="py-1 text-right">金額</th>
+            <th className="py-1 text-left">{t("thItem")}</th>
+            <th className="py-1 text-left">{t("thDetail")}</th>
+            <th className="py-1 text-right">{t("thAmount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +80,7 @@ export function EngineeringQuotePrint({
               <td className="py-1 text-zinc-500">{ln.detail ?? ""}</td>
               <td className="py-1 text-right">
                 {ln.unpriced ? (
-                  <span className="text-zinc-400">未報價</span>
+                  <span className="text-zinc-400">{t("unpriced")}</span>
                 ) : (
                   formatTWD(ln.amount)
                 )}
@@ -90,32 +90,32 @@ export function EngineeringQuotePrint({
         </tbody>
       </table>
 
-      {/* 總計 */}
       <div className="mt-3 ml-auto w-64 text-xs">
         {viewMode === "internal" && (
           <>
-            <Row label="成本小計" value={formatTWD(b.costSubtotal)} />
-            <Row label={`毛利`} value={formatTWD(b.margin)} />
+            <Row label={t("rowCostSubtotal")} value={formatTWD(b.costSubtotal)} />
+            <Row label={t("rowMargin")} value={formatTWD(b.margin)} />
           </>
         )}
-        <Row label="未稅小計" value={formatTWD(b.subtotalExclVat)} />
+        <Row label={t("rowSubtotalExclVat")} value={formatTWD(b.subtotalExclVat)} />
         {b.discountAmount > 0 && (
-          <Row label="折扣" value={`−${formatTWD(b.discountAmount)}`} />
+          <Row label={t("rowDiscount")} value={`−${formatTWD(b.discountAmount)}`} />
         )}
-        <Row label={`營業稅 ${Math.round(input.vatRate * 100)}%`} value={formatTWD(b.vat)} />
-        <Row label="總計" value={formatTWD(b.total)} bold />
-        <Row label="訂金" value={formatTWD(b.depositAmount)} />
-        <Row label="交貨尾款" value={formatTWD(b.balanceAmount)} />
+        <Row
+          label={t("rowVatTpl", { pct: Math.round(input.vatRate * 100) })}
+          value={formatTWD(b.vat)}
+        />
+        <Row label={t("rowTotal")} value={formatTWD(b.total)} bold />
+        <Row label={t("rowDeposit")} value={formatTWD(b.depositAmount)} />
+        <Row label={t("rowBalance")} value={formatTWD(b.balanceAmount)} />
       </div>
 
       {b.hasUnpriced && (
-        <p className="mt-2 text-xs text-rose-600">⚠️ 部分品項未設定單價,此報價尚不完整。</p>
+        <p className="mt-2 text-xs text-rose-600">{t("unpricedWarn")}</p>
       )}
-      <p className="mt-2 text-xs text-zinc-500">報價有效至 {validUntil}</p>
+      <p className="mt-2 text-xs text-zinc-500">{t("validUntilTpl", { date: validUntil })}</p>
 
-      {/* ===== 第 2 頁 ===== */}
       <div className="quote-page-break" />
-      {/* deliveryWorkdays 不傳:工程報價無工時模型,不估施工天數(spec 範圍外) */}
       <BrandedTermsBlocks
         depositRate={input.depositRate}
         depositAmount={b.depositAmount}
@@ -123,8 +123,8 @@ export function EngineeringQuotePrint({
         totalAmount={b.total}
       />
       <div className="mt-12 flex justify-between text-xs">
-        <div>客戶簽章：________________</div>
-        <div>承包商簽章：________________</div>
+        <div>{t("signCustomer")}</div>
+        <div>{t("signContractor")}</div>
       </div>
     </div>
   );

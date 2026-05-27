@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { NestConfig, StockItem } from "@/lib/cutplan";
 import type { PieceSpec } from "@/lib/cutplan/piece-spec";
 import { planFromSpecs, splitSpecPrompt } from "@/lib/cutplan/piece-spec";
@@ -20,6 +21,8 @@ export function CutPlanApp({
   initialConfig: NestConfig;
   entryNameZh: string;
 }) {
+  const t = useTranslations("cutPlanApp");
+  const tCsv = useTranslations("cutPlanApp.csv");
   const [specs, setSpecs] = useState<PieceSpec[]>(initialSpecs);
   const [config, setConfig] = useState<NestConfig>(initialConfig);
 
@@ -149,10 +152,17 @@ export function CutPlanApp({
       return s;
     };
     const rows: string[] = [];
-    // Header 1：零件清單（拿去料行用）
-    rows.push("# 零件清單（去料行用）");
+    rows.push(tCsv("h1"));
     rows.push(
-      ["零件名稱", "長 mm", "寬 mm", "厚 mm", "材料", "計價類別", "件數"]
+      [
+        tCsv("col1Name"),
+        tCsv("col1Length"),
+        tCsv("col1Width"),
+        tCsv("col1Thickness"),
+        tCsv("col1Material"),
+        tCsv("col1Billable"),
+        tCsv("col1Quantity"),
+      ]
         .map(csvEscape)
         .join(","),
     );
@@ -171,24 +181,23 @@ export function CutPlanApp({
           .join(","),
       );
     }
-    // Header 2：排料明細（哪片放哪塊原料）
     rows.push("");
-    rows.push("# 排料明細（每片零件的板上座標）");
+    rows.push(tCsv("h2"));
     rows.push(
       [
-        "原料種類",
-        "材料",
-        "厚 mm",
-        "原料 #",
-        "原料長 mm",
-        "原料寬 mm",
-        "編號",
-        "零件",
-        "切料長 mm",
-        "切料寬 mm",
-        "x mm",
-        "y mm",
-        "已旋轉",
+        tCsv("col2Kind"),
+        tCsv("col2Material"),
+        tCsv("col2Thickness"),
+        tCsv("col2BinIdx"),
+        tCsv("col2StockLength"),
+        tCsv("col2StockWidth"),
+        tCsv("col2Code"),
+        tCsv("col2Part"),
+        tCsv("col2CutLength"),
+        tCsv("col2CutWidth"),
+        tCsv("col2X"),
+        tCsv("col2Y"),
+        tCsv("col2Rotated"),
       ]
         .map(csvEscape)
         .join(","),
@@ -211,7 +220,7 @@ export function CutPlanApp({
                 p.piece.width,
                 p.x,
                 p.y,
-                p.rotated ? "是" : "否",
+                p.rotated ? tCsv("yes") : tCsv("no"),
               ]
                 .map(csvEscape)
                 .join(","),
@@ -226,7 +235,7 @@ export function CutPlanApp({
               g.kind,
               g.material ?? "",
               g.thickness,
-              "排不下",
+              tCsv("unplaced"),
               "",
               "",
               piece.code ?? "",
@@ -250,7 +259,7 @@ export function CutPlanApp({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${entryNameZh}_裁切清單_${date}.csv`;
+    a.download = t("csvFilenameTpl", { name: entryNameZh, date });
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -261,7 +270,7 @@ export function CutPlanApp({
     const original = typeof document !== "undefined" ? document.title : "";
     const date = new Date().toISOString().slice(0, 10);
     if (typeof document !== "undefined") {
-      document.title = `${entryNameZh}_裁切排料圖_${date}`;
+      document.title = t("printDocTitleTpl", { name: entryNameZh, date });
     }
     window.print();
     // 延遲還原，讓列印對話框抓到新 title 再還原
@@ -270,7 +279,7 @@ export function CutPlanApp({
     }, 500);
   };
   const handleReset = () => {
-    if (confirm("重設為家具設計的原始零件清單？目前的編輯會全部丟失。")) {
+    if (confirm(t("confirmReset"))) {
       setSpecs(initialSpecs);
     }
   };
@@ -289,10 +298,12 @@ export function CutPlanApp({
       {/* 頂部狀態列 + 動作按鈕（no-print） */}
       <div className="flex items-center justify-between gap-3 flex-wrap no-print">
         <div className="text-sm text-zinc-600">
-          {entryNameZh}．共 {totalPieces} 件
-          {hasStock ? `．排出 ${totalBins} 塊原料` : "．尚未列庫存"}
+          {t("summaryPiecesTpl", { name: entryNameZh, n: totalPieces })}
+          {hasStock ? t("summaryStockTpl", { n: totalBins }) : t("summaryNoStock")}
           {totalUnplaced > 0 && (
-            <span className="ml-2 text-red-700">（{totalUnplaced} 件排不下）</span>
+            <span className="ml-2 text-red-700">
+              {t("summaryUnplacedTpl", { n: totalUnplaced })}
+            </span>
           )}
         </div>
         <div className="flex gap-2">
@@ -300,45 +311,53 @@ export function CutPlanApp({
             onClick={handleReset}
             className="px-3 py-1.5 text-sm bg-zinc-100 hover:bg-zinc-200 rounded"
           >
-            ↺ 重設為原始設計
+            {t("resetBtn")}
           </button>
           <button
             onClick={handleExportCsv}
             disabled={specs.length === 0}
-            title="下載零件清單 + 排料明細 CSV，可直接交給料行或 Excel 打開"
+            title={t("csvBtnTitle")}
             className="px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:bg-zinc-400 disabled:cursor-not-allowed"
           >
-            📄 下載 CSV
+            {t("csvBtn")}
           </button>
           <button
             onClick={handlePrint}
             disabled={!hasStock}
             className="px-3 py-1.5 text-sm bg-zinc-900 hover:bg-zinc-700 text-white rounded disabled:bg-zinc-400 disabled:cursor-not-allowed"
           >
-            🖨️ 列印 / PDF
+            {t("printBtn")}
           </button>
         </div>
       </div>
 
-      {/* 破版警示：跨 group 彙整所有排不下的零件，明顯紅框防漏單 */}
       {totalUnplaced > 0 && (
         <div className="no-print rounded-lg border-2 border-red-300 bg-red-50 p-3">
           <div className="text-sm font-semibold text-red-900 mb-1.5 flex items-center gap-1.5">
             <span>⚠️</span>
-            <span>以下 {totalUnplaced} 件零件超過原料板尺寸，無法排版</span>
+            <span>{t("unplacedH", { n: totalUnplaced })}</span>
           </div>
           <p className="text-[11px] text-red-700 mb-2 leading-relaxed">
-            請加大「原料庫存」尺寸、改用更大張板，或在零件清單把這幾件用 ✂ 拆成兩塊。
-            否則照單去料行會缺料。
+            {t("unplacedBody")}
           </p>
           <ul className="text-xs text-red-900 space-y-0.5">
             {plan.groups.flatMap((g, gi) =>
-              g.unplaced.map((p, pi) => (
-                <li key={`unp-${gi}-${pi}-${p.partId}`} className="font-mono">
-                  · {p.partNameZh}　{p.length} × {p.width} × {p.thickness} mm
-                  <span className="text-red-600 ml-1">（{g.kind === "solid" ? "實木" : g.kind === "plywood" ? "夾板" : "中纖板"}）</span>
-                </li>
-              )),
+              g.unplaced.map((p, pi) => {
+                const kindLabel =
+                  g.kind === "solid"
+                    ? t("kindSolid")
+                    : g.kind === "plywood"
+                      ? t("kindPlywood")
+                      : t("kindMdf");
+                return (
+                  <li key={`unp-${gi}-${pi}-${p.partId}`} className="font-mono">
+                    · {p.partNameZh}　{p.length} × {p.width} × {p.thickness} mm
+                    <span className="text-red-600 ml-1">
+                      {t("kindParenTpl", { label: kindLabel })}
+                    </span>
+                  </li>
+                );
+              }),
             )}
           </ul>
         </div>
@@ -356,26 +375,22 @@ export function CutPlanApp({
           {stockEmpty ? (
             <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900 min-h-[420px] flex flex-col items-center justify-center text-center">
               <p className="text-3xl mb-2">🪵</p>
-              <p className="font-semibold mb-1">還沒列原料庫存</p>
-              <p className="text-xs max-w-xs">
-                在左邊「原料庫存」按「＋ 加一筆」加入你實際有的板才（實木 / 夾板 /
-                中纖板皆可），右邊會立刻算出排料圖。
-              </p>
+              <p className="font-semibold mb-1">{t("stockEmptyH")}</p>
+              <p className="text-xs max-w-xs">{t("stockEmptyBody")}</p>
             </div>
           ) : nothingToPlan ? (
             <div className="p-6 bg-amber-50 text-amber-800 rounded-lg">
-              沒有可排料的零件——請新增零件或重設回設計。
+              {t("nothingToPlan")}
             </div>
           ) : (
             <div className="space-y-3">
-              {/* 排料策略：直接放在排料圖上方，切換立刻重算 */}
               <div className="flex items-center gap-2 px-1 flex-wrap">
-                <span className="text-xs text-zinc-600">排料策略：</span>
+                <span className="text-xs text-zinc-600">{t("strategyLbl")}</span>
                 {(
                   [
-                    { value: "guillotine", label: "刀線式", help: "最省料（小件填大件肚子）" },
-                    { value: "ffd", label: "FFD", help: "第一適合，穩定" },
-                    { value: "bfd", label: "BFD", help: "最佳適合，省料" },
+                    { value: "guillotine", label: t("strategyGuillotineLabel"), help: t("strategyGuillotineHelp") },
+                    { value: "ffd", label: t("strategyFfdLabel"), help: t("strategyFfdHelp") },
+                    { value: "bfd", label: t("strategyBfdLabel"), help: t("strategyBfdHelp") },
                   ] as const
                 ).map((opt) => {
                   const active = (config.strategy ?? "guillotine") === opt.value;
@@ -396,7 +411,7 @@ export function CutPlanApp({
                   );
                 })}
                 <span className="text-[11px] text-zinc-400 ml-auto">
-                  鋸路 {config.kerf}mm · 餘料下限 {config.minWasteMm}mm
+                  {t("strategyKerfTpl", { kerf: config.kerf, min: config.minWasteMm })}
                 </span>
               </div>
 
@@ -418,12 +433,12 @@ export function CutPlanApp({
       <details className="mt-4 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800">
-            📋 零件清單
+            {t("piecesDetailsH")}
             <span className="ml-2 text-[11px] font-normal text-zinc-400">
-              {specs.length} 種規格 · 共 {totalPieces} 件 · 從設計匯入，可手改
+              {t("piecesDetailsCountTpl", { specs: specs.length, pieces: totalPieces })}
             </span>
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-xs text-zinc-400">{t("expandCollapse")}</span>
         </summary>
         <div className="border-t border-zinc-200 p-4">
           <PiecesEditor specs={specs} onChange={setSpecs} />
@@ -433,24 +448,22 @@ export function CutPlanApp({
       <details className="mt-3 rounded-lg border border-zinc-200 bg-white overflow-hidden no-print">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm flex items-center justify-between hover:bg-zinc-50">
           <span className="font-medium text-zinc-800">
-            ⚙️ 進階設定（鋸路 / 最小餘料）
+            {t("advancedDetailsH")}
             <span className="ml-2 text-[11px] font-normal text-zinc-400">
-              鋸路 {config.kerf}mm · 最小餘料 {config.minWasteMm}mm
+              {t("advancedDetailsCountTpl", { kerf: config.kerf, min: config.minWasteMm })}
             </span>
           </span>
-          <span className="text-xs text-zinc-400">展開 / 收合</span>
+          <span className="text-xs text-zinc-400">{t("expandCollapse")}</span>
         </summary>
         <div className="border-t border-zinc-200 p-4">
           <CutPlanConfigPanel value={config} onChange={setConfig} />
         </div>
       </details>
 
-      {/* 列印用 header */}
       <header className="hidden print:block print:mb-2">
-        <h1 className="text-lg font-bold">{entryNameZh}．裁切排料圖</h1>
+        <h1 className="text-lg font-bold">{t("printHeaderTpl", { name: entryNameZh })}</h1>
         <p className="text-xs text-zinc-600">
-          共 {totalBins} 塊原料．鋸路 {config.kerf}mm．最小餘料{" "}
-          {config.minWasteMm}mm
+          {t("printSubTpl", { n: totalBins, kerf: config.kerf, min: config.minWasteMm })}
         </p>
         <hr className="my-1" />
       </header>

@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { CutPiece, SheetBin } from "@/lib/cutplan";
 
 export function SheetBinSvg({
@@ -13,6 +14,7 @@ export function SheetBinSvg({
   index: number;
   colorFor: (piece: CutPiece) => string;
 }) {
+  const t = useTranslations("sheetBinSvg");
   const PAD = 14;
   // 以長邊 = x 軸、寬邊 = y 軸畫。最大 SVG 寬度 500。
   const MAX_W = 500;
@@ -202,11 +204,11 @@ export function SheetBinSvg({
     <div className="border border-zinc-200 rounded p-3 bg-white">
       <div className="flex items-baseline justify-between mb-2 text-xs">
         <span className="font-semibold text-zinc-700">
-          板 #{index}．{bin.stockLength} × {bin.stockWidth} mm
+          {t("stockTitleTpl", { n: index, l: bin.stockLength, w: bin.stockWidth })}
         </span>
         <span className="text-zinc-500">
-          利用率 {pct.toFixed(1)}%
-          <span className="ml-2 text-zinc-400 print:hidden">🔍 點圖放大</span>
+          {t("utilTpl", { pct: pct.toFixed(1) })}
+          <span className="ml-2 text-zinc-400 print:hidden">{t("clickToZoom")}</span>
         </span>
       </div>
       <svg
@@ -226,10 +228,10 @@ export function SheetBinSvg({
         >
           <div className="text-white text-sm mb-3 flex items-center gap-3">
             <span className="font-semibold">
-              板 #{index}．{bin.stockLength} × {bin.stockWidth} mm
+              {t("stockTitleTpl", { n: index, l: bin.stockLength, w: bin.stockWidth })}
             </span>
-            <span className="opacity-70">利用率 {pct.toFixed(1)}%</span>
-            <span className="opacity-50 text-xs">點任意處 / ESC 關閉</span>
+            <span className="opacity-70">{t("utilTpl", { pct: pct.toFixed(1) })}</span>
+            <span className="opacity-50 text-xs">{t("modalHint")}</span>
           </div>
           <div
             className="bg-white rounded-lg p-6 max-w-[95vw] max-h-[85vh] overflow-auto"
@@ -256,6 +258,7 @@ function CutListTable({
   bin: SheetBin;
   colorFor: (piece: CutPiece) => string;
 }) {
+  const t = useTranslations("sheetBinSvg");
   // 收集所有零件 + 順序 + 位置
   const rows: Array<{
     order: number;
@@ -290,16 +293,16 @@ function CutListTable({
   return (
     <details className="mt-2 text-[11px] text-zinc-700" open>
       <summary className="cursor-pointer font-semibold text-zinc-600 hover:text-zinc-900 select-none">
-        切料清單（{rows.length} 刀）
+        {t("cutListSummaryTpl", { n: rows.length })}
       </summary>
       <table className="w-full mt-1 border-collapse">
         <thead>
           <tr className="bg-zinc-50 text-zinc-500">
             <th className="text-center px-1 py-0.5 w-8">#</th>
-            <th className="text-left px-1 py-0.5 w-10">編號</th>
-            <th className="text-left px-1 py-0.5">零件</th>
-            <th className="text-right px-1 py-0.5 w-28">長×寬×厚 mm</th>
-            <th className="text-right px-1 py-0.5 w-20">起點 x,y</th>
+            <th className="text-left px-1 py-0.5 w-10">{t("thCode")}</th>
+            <th className="text-left px-1 py-0.5">{t("thPart")}</th>
+            <th className="text-right px-1 py-0.5 w-28">{t("thDimMm")}</th>
+            <th className="text-right px-1 py-0.5 w-20">{t("thStartXy")}</th>
           </tr>
         </thead>
         <tbody>

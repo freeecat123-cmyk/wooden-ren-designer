@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { EMPTY_CUSTOMER, type CustomerInfo } from "@/components/customer/customer";
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import { EngineeringQuoteForm, type EngQuoteOpts } from "./EngineeringQuoteForm";
@@ -32,6 +33,7 @@ export function EngineeringQuoteClient({
   overview,
   base,
 }: Props) {
+  const t = useTranslations("engQuoteClient");
   const router = useRouter();
   const customerFormRef = useRef<HTMLFormElement>(null);
   const [opts, setOpts] = useState<EngQuoteOpts>(ENGINEERING_QUOTE_DEFAULTS);
@@ -42,7 +44,7 @@ export function EngineeringQuoteClient({
       ? Math.round(opts.ceilingMaterialPerPing * base.pingShu)
       : base.materialCost;
   const ceilingBaseLine = base.materialLines[0] ?? {
-    label: "天花板系統材料",
+    label: t("ceilingMaterialDefault"),
     amount: 0,
   };
   const materialLines =
@@ -103,34 +105,31 @@ export function EngineeringQuoteClient({
   return (
     <div className="mx-auto max-w-5xl p-4">
       <h1 className="mb-4 text-lg font-bold">
-        {quoteType === "floor" ? "地板" : "天花板"}工程報價
+        {t("titleFloorTpl", { type: quoteType === "floor" ? t("typeFloor") : t("typeCeiling") })}
       </h1>
       <div className="grid gap-6 md:grid-cols-2">
-        {/* 左:輸入 */}
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">客戶資料</h2>
-            {/* CustomerForm 內部自管 state、不向外回傳;goPrint 時用 FormData 讀 DOM 實際值 */}
+            <h2 className="mb-3 text-sm font-semibold">{t("secCustomer")}</h2>
             <form ref={customerFormRef} onSubmit={(e) => e.preventDefault()}>
               <CustomerForm initial={EMPTY_CUSTOMER} />
             </form>
           </section>
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">費用參數</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secFeeOpts")}</h2>
             <EngineeringQuoteForm quoteType={quoteType} value={opts} onChange={setOpts} />
           </section>
         </div>
 
-        {/* 右:試算 */}
         <div className="space-y-4">
           <section className="rounded-lg border border-zinc-200 p-4">
             <div className="mb-2 text-xs text-zinc-500">
-              坪數 {base.pingShu.toFixed(2)} 坪 · 面積 {base.areaM2.toFixed(2)} m²
+              {t("areaTpl", { ping: base.pingShu.toFixed(2), m2: base.areaM2.toFixed(2) })}
             </div>
             {overview}
           </section>
           <section className="rounded-lg border border-zinc-200 p-4">
-            <h2 className="mb-3 text-sm font-semibold">報價試算</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t("secQuote")}</h2>
             <table className="w-full text-xs">
               <tbody>
                 {breakdown.lines.map((ln, i) => (
@@ -138,7 +137,7 @@ export function EngineeringQuoteClient({
                     <td className="py-1">{ln.label}</td>
                     <td className="py-1 text-right">
                       {ln.unpriced ? (
-                        <span className="text-zinc-400">未報價</span>
+                        <span className="text-zinc-400">{t("unpriced")}</span>
                       ) : (
                         formatTWD(ln.amount)
                       )}
@@ -146,19 +145,19 @@ export function EngineeringQuoteClient({
                   </tr>
                 ))}
                 <tr className="border-t border-zinc-400 font-bold">
-                  <td className="py-1">含稅總計</td>
+                  <td className="py-1">{t("totalWithVat")}</td>
                   <td className="py-1 text-right">{formatTWD(breakdown.total)}</td>
                 </tr>
               </tbody>
             </table>
             {breakdown.hasUnpriced && (
-              <p className="mt-2 text-xs text-rose-600">⚠️ 估價不完整(有品項未設單價)</p>
+              <p className="mt-2 text-xs text-rose-600">{t("unpricedWarn")}</p>
             )}
             <button
               onClick={goPrint}
               className="mt-4 w-full rounded bg-[#bd9955] py-2 text-sm font-semibold text-white"
             >
-              列印報價單
+              {t("printBtn")}
             </button>
           </section>
         </div>

@@ -1,13 +1,10 @@
+"use client";
+
+import { useTranslations, useLocale } from "next-intl";
 import type { StockGroup, StockItem } from "@/lib/cutplan";
-import { MATERIALS } from "@/lib/materials";
+import { MATERIALS, materialName } from "@/lib/materials";
 import { SheetBinSvg } from "./SheetBinSvg";
 import { colorForCode } from "@/lib/cutplan/colors";
-
-function kindLabel(kind: StockGroup["kind"]): string {
-  if (kind === "plywood") return "夾板";
-  if (kind === "mdf") return "中纖板";
-  return "實木";
-}
 
 export function CutPlanSection({
   group,
@@ -19,11 +16,19 @@ export function CutPlanSection({
   /** 點排不下零件旁的「✂ 分割」時，傳回該零件的 spec id 給上層處理 */
   onSplitSpec?: (specId: string) => void;
 }) {
+  const t = useTranslations("cutPlanSection");
+  const locale = useLocale();
+  const kindLabel = (kind: StockGroup["kind"]): string => {
+    if (kind === "plywood") return t("kindPlywood");
+    if (kind === "mdf") return t("kindMdf");
+    return t("kindSolid");
+  };
   const matLabel =
     group.kind === "solid"
-      ? MATERIALS[group.material!]?.nameZh ?? group.material
+      ? group.material && MATERIALS[group.material]
+        ? materialName(group.material, locale)
+        : group.material ?? ""
       : kindLabel(group.kind);
-  // 厚度集合——同一組可能有多種厚度零件（由實體板材刨到所需厚度）
   const thicknesses = Array.from(new Set(group.pieces.map((p) => p.thickness)))
     .sort((a, b) => b - a);
   const title =
@@ -41,9 +46,12 @@ export function CutPlanSection({
           </span>
         </h3>
         <div className="text-sm text-zinc-600 print:text-xs">
-          {group.bins.length} 塊原料．{group.pieces.length - group.unplaced.length}/
-          {group.pieces.length} 件．利用率{" "}
-          <span className="font-semibold">{(group.utilization * 100).toFixed(1)}%</span>
+          {t("stockStatsTpl", {
+            bins: group.bins.length,
+            placed: group.pieces.length - group.unplaced.length,
+            total: group.pieces.length,
+            pct: (group.utilization * 100).toFixed(1),
+          })}
         </div>
       </header>
       {group.unplaced.length > 0 && (
@@ -86,8 +94,7 @@ function UnplacedNotice({
   inventory: StockItem[];
   onSplitSpec?: (specId: string) => void;
 }) {
-  // 估算還需要多少塊板——以「該 kind/material 已用過的原料平均面積」或
-  // 「庫存裡該類最常見的規格」推估；用 1.2 倍利用率寬鬆抓
+  const t = useTranslations("cutPlanSection");
   const matching = inventory.filter((s) => {
     if (s.kind !== group.kind) return false;
     if (group.kind === "solid" && s.material !== group.material) return false;
@@ -104,17 +111,16 @@ function UnplacedNotice({
   );
   let shortageMsg: string | null = null;
   if (refStock && unplacedArea > 0) {
-    // 利用率以 0.75 抓（邊角會浪費），ceil 向上取整
     const estimated = Math.ceil(unplacedArea / (refStock.length * refStock.width * 0.75));
-    shortageMsg = `估計還需要約 ${estimated} 塊 ${refStock.length}×${refStock.width}mm 原料`;
+    shortageMsg = t("shortageTpl", { n: estimated, l: refStock.length, w: refStock.width });
   }
   return (
     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
       <p className="font-semibold mb-1">
-        ⚠️ {unplaced.length} 件排不下——庫存不足或原料尺寸不夠大
+        {t("unplacedHTpl", { n: unplaced.length })}
       </p>
       {shortageMsg && (
-        <p className="text-xs mb-1 font-semibold text-red-900">🧮 {shortageMsg}</p>
+        <p className="text-xs mb-1 font-semibold text-red-900">{shortageMsg}</p>
       )}
       <ul className="text-xs space-y-1 ml-1">
         {unplaced.map((p, i) => (
@@ -133,9 +139,9 @@ function UnplacedNotice({
                 type="button"
                 onClick={() => onSplitSpec(p.partId)}
                 className="ml-auto text-[10px] px-2 py-0.5 rounded border border-red-300 text-red-700 bg-white hover:bg-red-100"
-                title="拼板分割：把寬度拆成 N 條，多板拼合（自動加 10mm 膠合損耗）"
+                title={t("splitTitle")}
               >
-                ✂ 分割
+                {t("splitBtn")}
               </button>
             )}
           </li>

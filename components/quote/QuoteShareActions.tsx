@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { FurnitureDesign } from "@/lib/types";
 import {
   calculateQuote,
@@ -61,6 +62,7 @@ export function QuoteShareActions({
   dimensionsLabel,
   materialName,
 }: Props) {
+  const t = useTranslations("quoteShareActions");
   const [copied, setCopied] = useState<CopiedState>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
@@ -69,10 +71,10 @@ export function QuoteShareActions({
   const prepareShareUrl = async () => {
     const state = readFormState(design);
     if (!state) {
-      alert("找不到報價表單，請重新整理頁面");
+      alert(t("alertNoForm"));
       return null;
     }
-    const origin = resolvePublicOrigin();
+    const origin = resolvePublicOrigin(t);
     if (!origin) return null;
     const longPath = `/design/${type}/quote/print?${state.params.toString()}`;
     const printUrl = await shortenIfPossible(origin, longPath);
@@ -85,7 +87,7 @@ export function QuoteShareActions({
     const ctx = await prepareShareUrl();
     if (!ctx) return;
     const { customer, quote, opts, deliveryIso, expiryIso, printUrl, quoteNo } = ctx;
-    const message = buildLineMessage({
+    const message = buildLineMessage(t, {
       customerName: customer.name,
       furnitureName: furnitureNameZh,
       dimensions: dimensionsLabel,
@@ -129,10 +131,10 @@ export function QuoteShareActions({
     if (!ctx) return;
     const { customer, quote, opts, deliveryIso, expiryIso, printUrl, quoteNo } = ctx;
     if (!customer.email || !customer.email.includes("@")) {
-      alert("客戶還沒填 Email。請在下方「客戶資料」欄填入 email 後再試。");
+      alert(t("alertNoEmail"));
       return;
     }
-    const { subject, body } = buildEmailContent({
+    const { subject, body } = buildEmailContent(t, {
       customerName: customer.name,
       furnitureName: furnitureNameZh,
       dimensions: dimensionsLabel,
@@ -153,7 +155,7 @@ export function QuoteShareActions({
   const handlePdf = () => {
     const state = readFormState(design);
     if (!state) {
-      alert("找不到報價表單，請重新整理頁面");
+      alert(t("alertNoForm"));
       return;
     }
     const url = `/design/${type}/quote/print?${state.params.toString()}`;
@@ -169,17 +171,17 @@ export function QuoteShareActions({
           className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
             copied === "line" ? "bg-emerald-600" : "bg-green-500 hover:bg-green-600"
           }`}
-          title="複製格式化的 LINE 訊息"
+          title={t("btnLineTitle")}
         >
-          {copied === "line" ? "✅ 已複製" : "💬 LINE 訊息"}
+          {copied === "line" ? t("btnLineCopied") : t("btnLine")}
         </button>
         <button
           type="button"
           onClick={handleEmail}
           className="px-3 py-1.5 rounded text-xs text-white bg-sky-600 hover:bg-sky-700"
-          title="開啟郵件客戶端寄給客戶 Email"
+          title={t("btnEmailTitle")}
         >
-          📧 寄 Email
+          {t("btnEmail")}
         </button>
         <button
           type="button"
@@ -187,26 +189,26 @@ export function QuoteShareActions({
           className={`px-3 py-1.5 rounded text-xs transition-colors text-white ${
             copied === "link" ? "bg-emerald-600" : "bg-zinc-600 hover:bg-zinc-700"
           }`}
-          title="複製短連結，可貼到任何地方"
+          title={t("btnCopyLinkTitle")}
         >
-          {copied === "link" ? "✅ 已複製" : "🔗 複製連結"}
+          {copied === "link" ? t("btnLineCopied") : t("btnCopyLink")}
         </button>
         <button
           type="button"
           onClick={handleQr}
           disabled={qrBusy}
           className="px-3 py-1.5 rounded text-xs text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
-          title="顯示 QR 給現場客戶手機掃"
+          title={t("btnQrTitle")}
         >
-          {qrBusy ? "…" : qrUrl ? "✕ 收起 QR" : "📱 QR"}
+          {qrBusy ? t("btnQrBusy") : qrUrl ? t("btnQrClose") : t("btnQr")}
         </button>
         <button
           type="button"
           onClick={handlePdf}
           className="px-3 py-1.5 bg-zinc-900 text-white rounded text-xs hover:bg-zinc-700"
-          title="開新分頁列印 / 存 PDF"
+          title={t("btnPdfTitle")}
         >
-          🧾 列印 / PDF
+          {t("btnPdf")}
         </button>
       </div>
       {qrUrl && (
@@ -259,7 +261,7 @@ function isLocalOrigin(url: string): boolean {
   );
 }
 
-function resolvePublicOrigin(): string | null {
+function resolvePublicOrigin(t: (key: string, vals?: Record<string, string | number>) => string): string | null {
   const branding = loadBranding();
   const explicit = branding.publicBaseUrl.trim().replace(/\/$/, "");
 
@@ -267,17 +269,13 @@ function resolvePublicOrigin(): string | null {
   if (explicit && !isLocalOrigin(explicit)) return explicit;
 
   if (explicit && isLocalOrigin(explicit)) {
-    alert(
-      `❌ 你的「對外公開網址」設定是 ${explicit}，這是本機網址，客戶連不上。\n\n請到「報價單抬頭設定」修改成你的線上網址（例如 https://你的網站.vercel.app）。`,
-    );
+    alert(t("alertLocalBaseUrl", { url: explicit }));
     return null;
   }
 
   const origin = window.location.origin;
   if (isLocalOrigin(origin)) {
-    alert(
-      "⚠️ 你正在 localhost 編輯，分享出去的連結客戶無法打開。\n\n請先到「報價單抬頭設定」展開，填入「對外公開網址」（例如 https://你的網站.vercel.app）。",
-    );
+    alert(t("alertLocalOrigin"));
     return null;
   }
   return origin;
@@ -397,73 +395,89 @@ interface ShareContent {
   printUrl: string;
 }
 
-function buildLineMessage(c: ShareContent): string {
-  const greeting = c.customerName ? `${c.customerName} 您好，` : "您好，";
+type T = (key: string, vals?: Record<string, string | number>) => string;
+
+function buildLineMessage(t: T, c: ShareContent): string {
+  const greeting = c.customerName
+    ? t("lineGreetingTpl", { name: c.customerName })
+    : t("lineGreetingFallback");
   const hasSplit = c.depositRate > 0 && c.depositRate < 1;
   return [
-    `【木頭仁客製家具報價】`,
+    t("lineTitle"),
     ``,
     greeting,
-    `以下是您的報價資訊：`,
+    t("lineIntro"),
     ``,
-    `📐 品項：${c.furnitureName}`,
-    `📏 尺寸：${c.dimensions}`,
-    `🪵 木材：${c.materialName}`,
+    t("lineItemTpl", { name: c.furnitureName }),
+    t("lineDimensionsTpl", { value: c.dimensions }),
+    t("lineMaterialTpl", { name: c.materialName }),
     ``,
-    `💰 報價總計（含稅）：${twd(c.total)}`,
+    t("lineTotalTpl", { total: twd(c.total) }),
     ...(hasSplit
       ? [
-          `　├─ 訂金（下訂時付 ${Math.round(c.depositRate * 100)}%）：${twd(c.depositAmount)}`,
-          `　└─ 尾款（交貨時付）：${twd(c.balanceAmount)}`,
+          t("lineDepositTpl", {
+            pct: Math.round(c.depositRate * 100),
+            amount: twd(c.depositAmount),
+          }),
+          t("lineBalanceTpl", { amount: twd(c.balanceAmount) }),
         ]
       : []),
     ``,
-    `📅 預計交期：${c.deliveryDate}`,
-    `⏰ 報價有效至：${c.expiryDate}`,
+    t("lineDeliveryTpl", { date: c.deliveryDate }),
+    t("lineExpiryTpl", { date: c.expiryDate }),
     ``,
-    `🔗 詳細報價單：`,
+    t("lineUrlLabel"),
     c.printUrl,
     ``,
-    `報價單號：${c.quoteNo}`,
-    `如需調整或有問題歡迎回覆，謝謝！`,
-    `— 木頭仁木作`,
+    t("lineQuoteNoTpl", { no: c.quoteNo }),
+    t("lineSignoff"),
+    t("lineFrom"),
   ].join("\n");
 }
 
-function buildEmailContent(c: ShareContent): { subject: string; body: string } {
-  const greeting = c.customerName ? `${c.customerName} 您好，` : "您好，";
+function buildEmailContent(t: T, c: ShareContent): { subject: string; body: string } {
+  const greeting = c.customerName
+    ? t("lineGreetingTpl", { name: c.customerName })
+    : t("lineGreetingFallback");
   const hasSplit = c.depositRate > 0 && c.depositRate < 1;
-  const subject = `客製家具報價 ${c.quoteNo}｜${c.furnitureName} ${c.dimensions}`;
+  const subject = t("emailSubjectTpl", {
+    no: c.quoteNo,
+    name: c.furnitureName,
+    dim: c.dimensions,
+  });
   const body = [
     greeting,
     ``,
-    `感謝您的詢問，以下是您的客製家具報價：`,
+    t("emailIntro"),
     ``,
-    `━━━━━━━━━━━━━━━`,
-    `品項：${c.furnitureName}`,
-    `尺寸：${c.dimensions}`,
-    `木材：${c.materialName}`,
+    t("emailDivider"),
+    t("emailItemTpl", { name: c.furnitureName }),
+    t("emailDimTpl", { value: c.dimensions }),
+    t("emailMaterialTpl", { name: c.materialName }),
     ``,
-    `報價總計（含稅）：${twd(c.total)}`,
+    t("emailTotalTpl", { total: twd(c.total) }),
     ...(hasSplit
       ? [
-          `　訂金（下訂時付 ${Math.round(c.depositRate * 100)}%）：${twd(c.depositAmount)}`,
-          `　尾款（交貨時付）：${twd(c.balanceAmount)}`,
+          t("emailDepositTpl", {
+            pct: Math.round(c.depositRate * 100),
+            amount: twd(c.depositAmount),
+          }),
+          t("emailBalanceTpl", { amount: twd(c.balanceAmount) }),
         ]
       : []),
     ``,
-    `預計交期：${c.deliveryDate}`,
-    `報價有效至：${c.expiryDate}`,
-    `━━━━━━━━━━━━━━━`,
+    t("emailDeliveryTpl", { date: c.deliveryDate }),
+    t("emailExpiryTpl", { date: c.expiryDate }),
+    t("emailDivider"),
     ``,
-    `完整報價單（含三視圖、條款、備註）請點：`,
+    t("emailLinkIntro"),
     c.printUrl,
     ``,
-    `若需調整設計或有任何問題，歡迎回信討論。`,
+    t("emailSignoff"),
     ``,
-    `報價單號：${c.quoteNo}`,
+    t("lineQuoteNoTpl", { no: c.quoteNo }),
     ``,
-    `— 木頭仁木作`,
+    t("emailFrom"),
   ].join("\n");
   return { subject, body };
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { SurveyConfig, Question } from "@/lib/survey/configs";
 
 interface Props {
@@ -13,14 +14,13 @@ type AnswerValue = string | string[] | undefined;
 type Answers = Record<string, AnswerValue>;
 
 export function SurveyClient({ config, existingCoupon }: Props) {
+  const t = useTranslations("survey");
   const [answers, setAnswers] = useState<Answers>({});
-  // 對 allowOther 題目，記住「其他」輸入文字
   const [otherText, setOtherText] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issuedCoupon, setIssuedCoupon] = useState<string | null>(existingCoupon);
 
-  // 已填過 / 剛填完 → 顯示 coupon 頁
   if (issuedCoupon) {
     return <ThankYouView coupon={issuedCoupon} survey={config} />;
   }
@@ -43,14 +43,12 @@ export function SurveyClient({ config, existingCoupon }: Props) {
 
   function buildFinalAnswers(): Answers {
     const final: Answers = { ...answers };
-    // 把 otherText 合併進對應題目的 answer
     for (const q of config.questions) {
       if (!q.allowOther) continue;
       const txt = (otherText[q.id] ?? "").trim();
       if (!txt) continue;
       const tag = `other:${txt}`;
       if (q.type === "single") {
-        // single 模式下 user 應該選 other 才填文字（前端用 special value "__other__"）
         if (answers[q.id] === "__other__") final[q.id] = tag;
       } else if (q.type === "multi") {
         const cur = Array.isArray(final[q.id]) ? (final[q.id] as string[]) : [];
@@ -77,7 +75,7 @@ export function SurveyClient({ config, existingCoupon }: Props) {
         setError(json.error ?? `HTTP ${res.status}`);
         return;
       }
-      setIssuedCoupon(json.couponCode ?? "已記錄");
+      setIssuedCoupon(json.couponCode ?? t("issuedFallback"));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -121,14 +119,14 @@ export function SurveyClient({ config, existingCoupon }: Props) {
 
         <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
           <Link href="/" className="text-sm text-zinc-500 hover:underline">
-            ← 回首頁
+            {t("backHome")}
           </Link>
           <button
             type="submit"
             disabled={submitting}
             className="px-6 py-2.5 rounded-lg bg-amber-700 text-white font-semibold hover:bg-amber-800 disabled:opacity-50"
           >
-            {submitting ? "送出中…" : "送出問卷"}
+            {submitting ? t("submitting") : t("submitBtn")}
           </button>
         </div>
       </form>
@@ -155,6 +153,7 @@ function QuestionBlock({
   onText: (v: string) => void;
   onOtherText: (v: string) => void;
 }) {
+  const t = useTranslations("survey");
   const isOtherSelected =
     (q.type === "single" && value === "__other__") ||
     (q.type === "multi" && Array.isArray(value) && value.includes("__other__"));
@@ -163,7 +162,7 @@ function QuestionBlock({
     <div className="p-5 rounded-lg bg-zinc-50 border border-zinc-200">
       <div className="font-semibold text-zinc-900 mb-1">
         {idx}. {q.label}
-        {q.required && <span className="text-rose-600 ml-1">*</span>}
+        {q.required && <span className="text-rose-600 ml-1">{t("qRequired")}</span>}
       </div>
       {q.help && <div className="text-xs text-zinc-500 mb-3">{q.help}</div>}
       <div className="mt-3 space-y-2">
@@ -187,13 +186,13 @@ function QuestionBlock({
               checked={value === "__other__"}
               onChange={() => onSingle("__other__")}
             />
-            <span className="text-sm">其他</span>
+            <span className="text-sm">{t("qOther")}</span>
             {isOtherSelected && (
               <input
                 type="text"
                 value={otherText}
                 onChange={(e) => onOtherText(e.target.value)}
-                placeholder="自由填寫"
+                placeholder={t("qOtherPh")}
                 className="ml-2 px-2 py-1 text-sm border border-zinc-300 rounded flex-1"
               />
             )}
@@ -217,13 +216,13 @@ function QuestionBlock({
               checked={Array.isArray(value) && value.includes("__other__")}
               onChange={() => onMulti("__other__")}
             />
-            <span className="text-sm">其他</span>
+            <span className="text-sm">{t("qOther")}</span>
             {isOtherSelected && (
               <input
                 type="text"
                 value={otherText}
                 onChange={(e) => onOtherText(e.target.value)}
-                placeholder="自由填寫"
+                placeholder={t("qOtherPh")}
                 className="ml-2 px-2 py-1 text-sm border border-zinc-300 rounded flex-1"
               />
             )}
@@ -235,7 +234,7 @@ function QuestionBlock({
             onChange={(e) => onText(e.target.value)}
             rows={4}
             className="w-full px-3 py-2 border border-zinc-300 rounded text-sm"
-            placeholder="自由回答"
+            placeholder={t("qTextPh")}
           />
         )}
       </div>
@@ -244,23 +243,30 @@ function QuestionBlock({
 }
 
 function ThankYouView({ coupon, survey }: { coupon: string; survey: SurveyConfig }) {
+  const t = useTranslations("survey");
   const discount = survey.couponReward?.discountPercent ?? 50;
   return (
     <main className="max-w-2xl mx-auto px-4 py-12 text-center">
-      <h1 className="text-3xl font-bold text-amber-800 mb-4">謝謝你 🪵</h1>
+      <h1 className="text-3xl font-bold text-amber-800 mb-4">{t("thxH")}</h1>
       <p className="text-zinc-700 leading-relaxed mb-8">
-        我會逐則看你的回饋。<br />
-        你接下來幾週用木作藍圖時遇到任何問題,直接寫信給我都行。
+        {t("thxBody1")}<br />
+        {t("thxBody2")}
       </p>
       <div className="p-6 rounded-xl bg-amber-50 border-2 border-amber-300 inline-block">
-        <div className="text-sm text-zinc-600 mb-2">你的專屬 {discount}% 折扣 code</div>
+        <div className="text-sm text-zinc-600 mb-2">
+          {t("couponLblTpl", { pct: discount })}
+        </div>
         <div className="text-3xl font-mono font-bold text-amber-900 mb-3 tracking-wide">
           {coupon}
         </div>
         <div className="text-xs text-zinc-500">
-          結帳時輸入此 code,個人版<strong>年付</strong>半價
+          {t("couponHint1")}
+          <strong>{t("couponHintStrong")}</strong>
+          {t("couponHint2")}
           <br />
-          NT$3,900 → <strong>NT$1,950</strong>（月付不適用 · 7 天內有效）
+          {t("couponPriceTplPre")}
+          <strong>{t("couponPriceTplStrong")}</strong>
+          {t("couponPriceTplSuf")}
         </div>
       </div>
       <div className="mt-8">
@@ -268,12 +274,12 @@ function ThankYouView({ coupon, survey }: { coupon: string; survey: SurveyConfig
           href="/pricing"
           className="inline-block px-6 py-3 rounded-lg bg-amber-700 text-white font-semibold hover:bg-amber-800"
         >
-          現在去 /pricing 升級 →
+          {t("upgradeBtn")}
         </Link>
       </div>
       <div className="mt-4">
         <Link href="/" className="text-sm text-zinc-500 hover:underline">
-          ← 回首頁
+          {t("backHome")}
         </Link>
       </div>
     </main>

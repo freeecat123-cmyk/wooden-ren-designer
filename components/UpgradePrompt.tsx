@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PLAN_LABEL, type PlanId } from "@/lib/permissions";
+import { useTranslations } from "next-intl";
+import { type PlanId } from "@/lib/permissions";
 
 interface Props {
   /** 缺少的功能描述（給使用者看的，例：「下載 PDF」「客製家具報價」） */
@@ -16,15 +17,6 @@ interface Props {
   hideCta?: boolean;
 }
 
-const PLAN_PRICE_LINE: Record<PlanId, string> = {
-  free: "",
-  personal: "個人版 NT$ 390 / 月（年付 3,900）",
-  pro: "專業版 NT$ 890 / 月（年付 8,900）",
-  student: "學員版（憑學員身份）",
-  // lifetime 留著供舊資料相容；不再對外推銷
-  lifetime: "終身版（已停售）",
-};
-
 /**
  * 暖色調升級提示。語氣像朋友推薦，不強迫。
  */
@@ -35,16 +27,25 @@ export function UpgradePrompt({
   variant = "card",
   hideCta = false,
 }: Props) {
-  const planLabel = PLAN_LABEL[requiredPlan];
+  const t = useTranslations("upgradePrompt");
+  const tPlanLabel = useTranslations("planLabel");
+  const planLabel = tPlanLabel(requiredPlan);
+  const PLAN_PRICE_LINE: Record<PlanId, string> = {
+    free: t("planPriceFree"),
+    personal: t("planPricePersonal"),
+    pro: t("planPricePro"),
+    student: t("planPriceStudent"),
+    lifetime: t("planPriceLifetime"),
+  };
   const priceLine = PLAN_PRICE_LINE[requiredPlan];
 
   if (variant === "inline") {
     return (
       <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#fff4e6] border border-[#d4a574] text-[#7c4f1a] text-xs">
-        <span>🌱 想用 {feature}？升級 {planLabel}</span>
+        <span>{t("inlineTpl", { feature, plan: planLabel })}</span>
         {!hideCta && (
           <Link href="/pricing" className="underline font-medium hover:text-[#5a3812]">
-            看方案 →
+            {t("inlineCta")}
           </Link>
         )}
       </span>
@@ -60,10 +61,10 @@ export function UpgradePrompt({
         <div className="text-2xl leading-none mt-0.5">🌱</div>
         <div className="flex-1">
           <div className="font-semibold text-[#5a3812] mb-1">
-            想用「{feature}」嗎？
+            {t("cardH", { feature })}
           </div>
           <p className="text-sm text-[#7c4f1a] leading-relaxed mb-2">
-            {hint ?? `${planLabel}就能用囉～`}
+            {hint ?? t("cardHintFallbackTpl", { plan: planLabel })}
             {priceLine && <span className="text-[#5a3812] font-medium"> · {priceLine}</span>}
           </p>
           {!hideCta && (
@@ -71,7 +72,7 @@ export function UpgradePrompt({
               href="/pricing"
               className="inline-block mt-1 px-4 py-1.5 rounded-md bg-[#8b4513] text-white text-sm font-medium hover:bg-[#6f370f] transition-colors"
             >
-              看方案
+              {t("cardCta")}
             </Link>
           )}
         </div>

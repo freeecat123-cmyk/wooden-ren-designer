@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent } from "react";
+import { useTranslations } from "next-intl";
 import {
   EMPTY_CUSTOMER,
   loadCustomerHistory,
@@ -15,8 +16,6 @@ interface Props {
   fieldPrefix?: string;
   /**
    * 程式呼叫 setData 時通知外層（套用歷史 chip、清空按鈕）。
-   * 為什麼需要：React setState 改 input value 不會 dispatch native change 事件，
-   * 外層 <form onChange> 收不到，URL 不會 sync。callback 讓外層自己決定怎麼推 URL。
    */
   onApply?: (next: CustomerInfo) => void;
 }
@@ -24,6 +23,7 @@ interface Props {
 const PREFIX_DEFAULT = "customer";
 
 export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }: Props) {
+  const t = useTranslations("customerForm");
   const [data, setData] = useState<CustomerInfo>(initial);
   const [history, setHistory] = useState<CustomerInfo[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -62,22 +62,28 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
     }
   };
 
-  // 表單 submit 前先把 data 存進 history（實際 submit 由外層 form 處理）
   const handleBlurSave = () => {
     saveCustomer(data);
   };
 
   const name = (key: string) => `${fieldPrefix}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
 
+  const applyTitle = (c: CustomerInfo) =>
+    t("historyApplyTitleTpl", {
+      name: c.name,
+      phone: c.phone ? t("historyPhoneSep", { phone: c.phone }) : "",
+      tax: c.taxId ? t("historyTaxSep", { tax: c.taxId }) : "",
+    });
+
   return (
     <fieldset>
       <legend className="text-xs text-zinc-700 mb-1.5 font-medium">
-        客戶資料（報價單「客戶 TO」欄會帶入）
+        {t("legend")}
       </legend>
       {hydrated && history.length > 0 && (
         <div className="mb-3 p-2 rounded-md bg-sky-50 border border-sky-200">
           <div className="text-[10px] text-sky-700 font-medium mb-1.5">
-            📇 近期客戶（{history.length}）— 點一下直接套用
+            {t("historyHTpl", { n: history.length })}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {history.map((c, i) => (
@@ -89,7 +95,7 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
                   type="button"
                   onClick={() => applyHistoryByIndex(i)}
                   className="font-medium text-zinc-800"
-                  title={`套用 ${c.name}${c.phone ? ` · ${c.phone}` : ""}${c.taxId ? ` · 統編 ${c.taxId}` : ""}`}
+                  title={applyTitle(c)}
                 >
                   {c.taxId ? "🏢 " : ""}
                   {c.name}
@@ -98,8 +104,8 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
                   type="button"
                   onClick={() => removeFromHistory(i)}
                   className="w-4 h-4 rounded-full text-zinc-400 hover:bg-red-100 hover:text-red-600 text-[10px] leading-none flex items-center justify-center"
-                  title="從歷史刪除"
-                  aria-label="移除"
+                  title={t("removeTitle")}
+                  aria-label={t("removeAria")}
                 >
                   ×
                 </button>
@@ -110,28 +116,28 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
       )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Field
-          label="公司 / 姓名"
+          label={t("fieldName")}
           name={name("Name")}
           value={data.name}
           onChange={field("name")}
           onBlur={handleBlurSave}
         />
         <Field
-          label="聯絡人"
+          label={t("fieldContact")}
           name={name("Contact")}
           value={data.contact}
           onChange={field("contact")}
           onBlur={handleBlurSave}
         />
         <Field
-          label="電話"
+          label={t("fieldPhone")}
           name={name("Phone")}
           value={data.phone}
           onChange={field("phone")}
           onBlur={handleBlurSave}
         />
         <Field
-          label="送貨地址"
+          label={t("fieldAddress")}
           name={name("Address")}
           value={data.address}
           onChange={field("address")}
@@ -139,14 +145,14 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
           colSpan2
         />
         <Field
-          label="統一編號"
+          label={t("fieldTaxId")}
           name={name("TaxId")}
           value={data.taxId}
           onChange={field("taxId")}
           onBlur={handleBlurSave}
         />
         <Field
-          label="Email"
+          label={t("fieldEmail")}
           name={name("Email")}
           value={data.email}
           onChange={field("email")}
@@ -159,7 +165,7 @@ export function CustomerForm({ initial, fieldPrefix = PREFIX_DEFAULT, onApply }:
         onClick={clearAll}
         className="mt-2 text-[11px] text-zinc-700 hover:text-zinc-900 hover:underline"
       >
-        清除客戶資料
+        {t("clear")}
       </button>
     </fieldset>
   );

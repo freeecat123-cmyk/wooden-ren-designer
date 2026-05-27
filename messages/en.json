@@ -40,13 +40,34 @@
     "advanced": "Advanced"
   },
   "furniture": {
+    "stool": "Square Stool",
+    "bench": "Bench",
+    "tea-table": "Side Table",
+    "side-table": "Bedside Table",
+    "low-table": "Low Table",
+    "open-bookshelf": "Open Bookshelf",
+    "chest-of-drawers": "Chest of Drawers",
+    "shoe-cabinet": "Shoe Cabinet",
+    "display-cabinet": "Display Cabinet",
+    "dining-table": "Dining Table",
+    "desk": "Desk",
+    "dining-chair": "Dining Chair",
     "wardrobe": "Wardrobe",
-    "shoe-cabinet": "Shoe cabinet",
-    "media-console": "Media console",
-    "open-bookshelf": "Bookshelf",
-    "display-cabinet": "Display case",
+    "bar-stool": "Bar Stool",
+    "media-console": "Media Console",
     "nightstand": "Nightstand",
-    "chest-of-drawers": "Chest of drawers"
+    "round-stool": "Round Stool",
+    "round-tea-table": "Round Tea Table",
+    "round-table": "Round Dining Table",
+    "pencil-holder": "Pencil Holder",
+    "bookend": "Bookend",
+    "photo-frame": "Photo Frame",
+    "tray": "Tray",
+    "dovetail-box": "Dovetail Box",
+    "wine-rack": "Wine Rack",
+    "coat-rack": "Coat Rack",
+    "chinese-cabinet": "Chinese Cabinet",
+    "bed": "Bed Frame"
   },
   "error": {
     "emoji": "⚠️",
@@ -255,9 +276,18 @@
       "eyebrow": "Why this tool exists",
       "h2": "The slow part of woodworking isn't building.",
       "intro": "It's drawing the plan right, getting the stock math right, and sequencing the cuts. A stool plan typically eats 2–3 hours. A cabinet, half a day. Burned the afternoon before you even touch wood.",
-      "drawing": { "title": "Drawing gets stuck", "desc": "Some dimension's always off — the three-view and the perspective just won't add up." },
-      "material": { "title": "Stock math gets stuck", "desc": "Length × width × thickness, plus tenon allowance, plus waste, plus planing — half an hour goes counting on fingers." },
-      "process": { "title": "Build order gets stuck", "desc": "What goes first, what gets glued, what gets clamped — get it wrong and you can't even take it apart to fix." },
+      "drawing": {
+        "title": "Drawing gets stuck",
+        "desc": "Some dimension's always off — the three-view and the perspective just won't add up."
+      },
+      "material": {
+        "title": "Stock math gets stuck",
+        "desc": "Length × width × thickness, plus tenon allowance, plus waste, plus planing — half an hour goes counting on fingers."
+      },
+      "process": {
+        "title": "Build order gets stuck",
+        "desc": "What goes first, what gets glued, what gets clamped — get it wrong and you can't even take it apart to fix."
+      },
       "conclusion": "Designer compresses all three into 3 seconds — the two evenings you save are enough to pick up another commission."
     },
     "steps": {
@@ -276,15 +306,42 @@
       "eyebrow": "What you get",
       "h2": "Every piece comes with all of this",
       "intro": "Not just a design — a complete build package, ready for the shop.",
-      "threeview": { "title": "📐 Engineering three-view", "desc": "Front, side, top — fully dimensioned, drawn in the conventions a working woodworker recognizes, print-and-build." },
-      "cutlist": { "title": "📋 Cut list", "desc": "L × W × T, part number, 3D location for every piece — check them off as you cut, no mistakes." },
-      "cutplan": { "title": "🪵 Stock layout", "desc": "Most efficient layout auto-computed with utilization percentage. Even tells you which side of the board to start the cut." },
-      "process": { "title": "📑 Build order", "desc": "Full 19-step sequence, time estimates, stock selection notes, moisture content, grain direction — more detailed than the textbook." },
-      "quote": { "title": "💰 Customer quote", "desc": "Furniture price, tax, deposit / final split, installment terms, customer info table — print it and hand it to the customer." },
-      "perspective": { "title": "🪑 3D perspective preview", "desc": "Photoreal wood grain rendering, rotate to any angle — see the finished piece clearly before you cut." },
-      "joinery": { "title": "Joinery details", "desc": "Through tenons, blind tenons, half-laps — positions auto-computed, with male/female alignment diagrams." },
-      "tools": { "title": "Tool list", "desc": "Which tools this piece needs — beginners don't have to guess what to buy." },
-      "stl": { "title": "STL 3D export", "desc": "Open in SketchUp or your 3D printer. Print a scale model to prototype before you commit." }
+      "threeview": {
+        "title": "📐 Engineering three-view",
+        "desc": "Front, side, top — fully dimensioned, drawn in the conventions a working woodworker recognizes, print-and-build."
+      },
+      "cutlist": {
+        "title": "📋 Cut list",
+        "desc": "L × W × T, part number, 3D location for every piece — check them off as you cut, no mistakes."
+      },
+      "cutplan": {
+        "title": "🪵 Stock layout",
+        "desc": "Most efficient layout auto-computed with utilization percentage. Even tells you which side of the board to start the cut."
+      },
+      "process": {
+        "title": "📑 Build order",
+        "desc": "Full 19-step sequence, time estimates, stock selection notes, moisture content, grain direction — more detailed than the textbook."
+      },
+      "quote": {
+        "title": "💰 Customer quote",
+        "desc": "Furniture price, tax, deposit / final split, installment terms, customer info table — print it and hand it to the customer."
+      },
+      "perspective": {
+        "title": "🪑 3D perspective preview",
+        "desc": "Photoreal wood grain rendering, rotate to any angle — see the finished piece clearly before you cut."
+      },
+      "joinery": {
+        "title": "Joinery details",
+        "desc": "Through tenons, blind tenons, half-laps — positions auto-computed, with male/female alignment diagrams."
+      },
+      "tools": {
+        "title": "Tool list",
+        "desc": "Which tools this piece needs — beginners don't have to guess what to buy."
+      },
+      "stl": {
+        "title": "STL 3D export",
+        "desc": "Open in SketchUp or your 3D printer. Print a scale model to prototype before you commit."
+      }
     },
     "decor": {
       "tag": "🔨 Interior tools",
@@ -300,11 +357,26 @@
     "persona": {
       "eyebrow": "Who it's for",
       "h2": "Built for five kinds of people",
-      "diy": { "title": "DIY woodworkers", "desc": "Can't draft engineering drawings but want to build furniture for the home. Pick a template, adjust to your space, let the tool handle the rest." },
-      "pro": { "title": "Pro woodworkers / commissions", "desc": "Customer asks \"how much for a cabinet like this?\" — design + quote + build order in 5 minutes. Faster than the competition wins the job. Stock math precise so you don't over-order." },
-      "interior": { "title": "Interior contractors / renovators", "desc": "Measure the room and enter L×W×H — ceiling frame (main / secondary / supports) auto-computed, panels, nails, full spec to print and bring on site." },
-      "designer": { "title": "Designers", "desc": "Hand the engineering drawings and cut list straight to the woodworker for fabrication — minimum communication overhead." },
-      "student": { "title": "Academy students / self-learners", "desc": "Change the dimensions or swap the joinery on a class project — see the 3D update instantly. Ten times faster than a textbook." }
+      "diy": {
+        "title": "DIY woodworkers",
+        "desc": "Can't draft engineering drawings but want to build furniture for the home. Pick a template, adjust to your space, let the tool handle the rest."
+      },
+      "pro": {
+        "title": "Pro woodworkers / commissions",
+        "desc": "Customer asks \"how much for a cabinet like this?\" — design + quote + build order in 5 minutes. Faster than the competition wins the job. Stock math precise so you don't over-order."
+      },
+      "interior": {
+        "title": "Interior contractors / renovators",
+        "desc": "Measure the room and enter L×W×H — ceiling frame (main / secondary / supports) auto-computed, panels, nails, full spec to print and bring on site."
+      },
+      "designer": {
+        "title": "Designers",
+        "desc": "Hand the engineering drawings and cut list straight to the woodworker for fabrication — minimum communication overhead."
+      },
+      "student": {
+        "title": "Academy students / self-learners",
+        "desc": "Change the dimensions or swap the joinery on a class project — see the 3D update instantly. Ten times faster than a textbook."
+      }
     },
     "bio": {
       "h2": "I'm Wooden Ren",
@@ -326,9 +398,33 @@
       "h2": "Try free, upgrade when you need to",
       "intro": "Monthly from NT$390, yearly saves two months. One extra commission, or one stock-math mistake avoided — the subscription has already paid itself off.",
       "popular": "Most chosen",
-      "free": { "name": "Free", "price": "$0", "unit": "", "f1": "3 templates, unlimited use", "f2": "3D preview + three-view", "f3": "Cut list + build order", "cta": "Try free" },
-      "personal": { "name": "Personal", "price": "$390", "unit": "/mo", "f1": "All furniture templates unlocked", "f2": "Ceiling frame / flooring simulator", "f3": "PDF print / cloud save", "cta": "Upgrade to Personal" },
-      "pro": { "name": "Pro", "price": "$890", "unit": "/mo", "f1": "Everything in Personal", "f2": "Custom quote + customer database", "f3": "STL / OBJ export + unlimited size", "cta": "Upgrade to Pro" },
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "unit": "",
+        "f1": "3 templates, unlimited use",
+        "f2": "3D preview + three-view",
+        "f3": "Cut list + build order",
+        "cta": "Try free"
+      },
+      "personal": {
+        "name": "Personal",
+        "price": "$390",
+        "unit": "/mo",
+        "f1": "All furniture templates unlocked",
+        "f2": "Ceiling frame / flooring simulator",
+        "f3": "PDF print / cloud save",
+        "cta": "Upgrade to Personal"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$890",
+        "unit": "/mo",
+        "f1": "Everything in Personal",
+        "f2": "Custom quote + customer database",
+        "f3": "STL / OBJ export + unlimited size",
+        "cta": "Upgrade to Pro"
+      },
       "customTitle": "🪵 Not subscribing? Buy a single template",
       "customBody": "Want to build just one chair? Buy that blueprint once and own it forever. No subscription required.",
       "customSeeAll": "→ See lifetime prices for all 26 templates",
@@ -403,12 +499,30 @@
     "scenarios": {
       "h2": "When you'll actually use it",
       "subtitle": "Six real scenarios — which one's most like you?",
-      "morning": { "tag": "Morning coffee", "body": "On the couch with your phone, sketch a bedside table — frictionless, light, part of life." },
-      "workshop": { "tag": "Shop floor", "body": "Fresh PDF in hand against the stock — millimeter-precise, fewer rejects." },
-      "classroom": { "tag": "Classroom", "body": "Every student opens Designer on their phone — abstract becomes concrete, joinery clicks instantly." },
-      "customer": { "tag": "Custom order", "body": "Customer texts \"can you build a dining table?\" — pull up the design and iterate in the chat." },
-      "midnight": { "tag": "Midnight ideas", "body": "Inspiration doesn't wait. Half-asleep design now, refine tomorrow." },
-      "kid": { "tag": "Kid's birthday", "body": "30 minutes with your kid designing a pencil holder — woodworking becomes a parent-child tool." }
+      "morning": {
+        "tag": "Morning coffee",
+        "body": "On the couch with your phone, sketch a bedside table — frictionless, light, part of life."
+      },
+      "workshop": {
+        "tag": "Shop floor",
+        "body": "Fresh PDF in hand against the stock — millimeter-precise, fewer rejects."
+      },
+      "classroom": {
+        "tag": "Classroom",
+        "body": "Every student opens Designer on their phone — abstract becomes concrete, joinery clicks instantly."
+      },
+      "customer": {
+        "tag": "Custom order",
+        "body": "Customer texts \"can you build a dining table?\" — pull up the design and iterate in the chat."
+      },
+      "midnight": {
+        "tag": "Midnight ideas",
+        "body": "Inspiration doesn't wait. Half-asleep design now, refine tomorrow."
+      },
+      "kid": {
+        "tag": "Kid's birthday",
+        "body": "30 minutes with your kid designing a pencil holder — woodworking becomes a parent-child tool."
+      }
     },
     "pricing": {
       "h2": "Pick a plan that fits",
@@ -765,67 +879,183 @@
       "h2": "The 4 worst things about wood ceiling work",
       "sub": "Exactly what this tool was built to fix",
       "items": [
-        { "emoji": "🧮", "title": "Adding up batten meters is dizzying", "body": "12-ft main battens, sub battens criss-crossing one by one, and rooms aren't perfect rectangles. Miss one and you're back at the lumber yard." },
-        { "emoji": "📐", "title": "Board seams missing the battens", "body": "Fiber-cement seams float between battens → unsupported edges, cracks by year-end. Aligning them by hand is exhausting." },
-        { "emoji": "📦", "title": "Order 4×8 or 3×6 boards?", "body": "Different prices, different waste. Guessing usually overshoots by 20%." },
-        { "emoji": "📄", "title": "Quoting means opening Excel again", "body": "Once you finish counting, you still type Excel, paste a logo, format A4. Change a dimension and redo it all — half a day gone." }
+        {
+          "emoji": "🧮",
+          "title": "Adding up batten meters is dizzying",
+          "body": "12-ft main battens, sub battens criss-crossing one by one, and rooms aren't perfect rectangles. Miss one and you're back at the lumber yard."
+        },
+        {
+          "emoji": "📐",
+          "title": "Board seams missing the battens",
+          "body": "Fiber-cement seams float between battens → unsupported edges, cracks by year-end. Aligning them by hand is exhausting."
+        },
+        {
+          "emoji": "📦",
+          "title": "Order 4×8 or 3×6 boards?",
+          "body": "Different prices, different waste. Guessing usually overshoots by 20%."
+        },
+        {
+          "emoji": "📄",
+          "title": "Quoting means opening Excel again",
+          "body": "Once you finish counting, you still type Excel, paste a logo, format A4. Change a dimension and redo it all — half a day gone."
+        }
       ]
     },
     "featureSection": {
       "h2": "What this tool does",
       "sub": "Room shape → batten BOM → quote, end to end",
       "items": [
-        { "emoji": "📐", "title": "Room shape: rectangle / L / U / bay window", "body": "Drag length & width, L-shape inner corners, U-shape, pull bay windows out separately. 2D recalc live, 3D structure live." },
-        { "emoji": "🪵", "title": "Main + sub battens auto-laid", "body": "Main 60×30, sub 30×30, spacing 30/45/60 cm tunable. Auto-tiles across the whole room." },
-        { "emoji": "📦", "title": "Auto board layout", "body": "Switch 4×8 vs 3×6 specs side by side. Seams snap to batten centerlines — edges always supported." },
-        { "emoji": "🔗", "title": "Even hanger distribution", "body": "Hangers auto-laid by room length & width, 60–90 cm range, cross-joints emphasized for 3D legibility." },
-        { "emoji": "🎛️", "title": "3D 8-layer toggles", "body": "Slab / hangers / main battens / sub battens / boards / joints — toggle each. Clients grasp install order at a glance." },
-        { "emoji": "🧾", "title": "A4 quote + CSV BOM", "body": "Client info, line items, totals, terms — one A4 page. BOM exports to CSV for the crew." }
+        {
+          "emoji": "📐",
+          "title": "Room shape: rectangle / L / U / bay window",
+          "body": "Drag length & width, L-shape inner corners, U-shape, pull bay windows out separately. 2D recalc live, 3D structure live."
+        },
+        {
+          "emoji": "🪵",
+          "title": "Main + sub battens auto-laid",
+          "body": "Main 60×30, sub 30×30, spacing 30/45/60 cm tunable. Auto-tiles across the whole room."
+        },
+        {
+          "emoji": "📦",
+          "title": "Auto board layout",
+          "body": "Switch 4×8 vs 3×6 specs side by side. Seams snap to batten centerlines — edges always supported."
+        },
+        {
+          "emoji": "🔗",
+          "title": "Even hanger distribution",
+          "body": "Hangers auto-laid by room length & width, 60–90 cm range, cross-joints emphasized for 3D legibility."
+        },
+        {
+          "emoji": "🎛️",
+          "title": "3D 8-layer toggles",
+          "body": "Slab / hangers / main battens / sub battens / boards / joints — toggle each. Clients grasp install order at a glance."
+        },
+        {
+          "emoji": "🧾",
+          "title": "A4 quote + CSV BOM",
+          "body": "Client info, line items, totals, terms — one A4 page. BOM exports to CSV for the crew."
+        }
       ]
     },
     "paramsSection": {
       "h2": "Parameters you can tweak",
       "sub": "The algorithm auto-calculates battens, board seams, hanger spread.",
       "items": [
-        { "label": "Room shape (rectangle / L / U / bay window)", "desc": "Live 3D as you drag length/width, L/U inner corners tunable, bay windows pulled separately." },
-        { "label": "Ceiling height", "desc": "Distance from original slab to wood ceiling — hanger length is auto-calculated." },
-        { "label": "Main batten spacing", "desc": "30 / 45 / 60 cm presets. The system back-solves from board short edge so seams always land on batten centers." },
-        { "label": "Sub batten spacing", "desc": "30 / 45 cm presets. Bigger spans auto-upgrade to heavier battens." },
-        { "label": "Fiber-cement board spec (4×8 / 3×6)", "desc": "Toggle to see which spec wastes less — 4×8 means big sheets and low waste; 3×6 ships easier." },
-        { "label": "Hanger spacing", "desc": "60–90 cm range, auto even distribution. The system warns if a span exceeds 90 cm." },
-        { "label": "Trim / molding (optional)", "desc": "Add perimeter molding (PS or wood), with door openings auto-deducted from total meters." },
-        { "label": "Light-fixture openings (reserved)", "desc": "Mark recessed-light positions and the BOM annotates board cuts so you don't over-cut." }
+        {
+          "label": "Room shape (rectangle / L / U / bay window)",
+          "desc": "Live 3D as you drag length/width, L/U inner corners tunable, bay windows pulled separately."
+        },
+        {
+          "label": "Ceiling height",
+          "desc": "Distance from original slab to wood ceiling — hanger length is auto-calculated."
+        },
+        {
+          "label": "Main batten spacing",
+          "desc": "30 / 45 / 60 cm presets. The system back-solves from board short edge so seams always land on batten centers."
+        },
+        {
+          "label": "Sub batten spacing",
+          "desc": "30 / 45 cm presets. Bigger spans auto-upgrade to heavier battens."
+        },
+        {
+          "label": "Fiber-cement board spec (4×8 / 3×6)",
+          "desc": "Toggle to see which spec wastes less — 4×8 means big sheets and low waste; 3×6 ships easier."
+        },
+        {
+          "label": "Hanger spacing",
+          "desc": "60–90 cm range, auto even distribution. The system warns if a span exceeds 90 cm."
+        },
+        {
+          "label": "Trim / molding (optional)",
+          "desc": "Add perimeter molding (PS or wood), with door openings auto-deducted from total meters."
+        },
+        {
+          "label": "Light-fixture openings (reserved)",
+          "desc": "Mark recessed-light positions and the BOM annotates board cuts so you don't over-cut."
+        }
       ]
     },
     "outputsSection": {
       "h2": "Auto-generated outputs",
       "sub": "Six artifacts at once — print A4 and bring it to the shop or hand it to the client.",
       "items": [
-        { "icon": "🪵", "title": "Batten BOM", "body": "Main and sub batten meters & counts, with 12-ft / 8-ft stock cut plans laid out." },
-        { "icon": "📦", "title": "Board layout drawing", "body": "Compare 4×8 vs 3×6, see which wastes less; 2D layout with auto-numbered panels." },
-        { "icon": "🔗", "title": "Hanger spread table", "body": "Hangers auto-laid from room dimensions, spacing within 60–90 cm." },
-        { "icon": "🎛️", "title": "3D 8-layer breakdown", "body": "Slab / hangers / main battens / sub battens / boards / joints — toggle each." },
-        { "icon": "🧾", "title": "A4 quote", "body": "Client info + line items + totals + terms on one A4 page. Save as PDF from your browser." },
-        { "icon": "📊", "title": "BOM CSV export", "body": "Excel opens cleanly, crews use it for procurement directly." }
+        {
+          "icon": "🪵",
+          "title": "Batten BOM",
+          "body": "Main and sub batten meters & counts, with 12-ft / 8-ft stock cut plans laid out."
+        },
+        {
+          "icon": "📦",
+          "title": "Board layout drawing",
+          "body": "Compare 4×8 vs 3×6, see which wastes less; 2D layout with auto-numbered panels."
+        },
+        {
+          "icon": "🔗",
+          "title": "Hanger spread table",
+          "body": "Hangers auto-laid from room dimensions, spacing within 60–90 cm."
+        },
+        {
+          "icon": "🎛️",
+          "title": "3D 8-layer breakdown",
+          "body": "Slab / hangers / main battens / sub battens / boards / joints — toggle each."
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 quote",
+          "body": "Client info + line items + totals + terms on one A4 page. Save as PDF from your browser."
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV export",
+          "body": "Excel opens cleanly, crews use it for procurement directly."
+        }
       ]
     },
     "showcaseSection": {
       "h2": "Real outputs",
       "sub": "These are actual artifacts the tool produces — they update live as you change dimensions.",
       "items": [
-        { "img": "/showcase/ceiling-overview.png", "label": "2D plan + main/sub batten grid", "desc": "Drag room dimensions, framing lays out automatically, seams always land on batten centers." },
-        { "img": "/showcase/ceiling-3d.png", "label": "3D structure with 8 toggleable layers", "desc": "Slab / hangers / main / sub / boards / joints — clients grasp install order in seconds." },
-        { "img": "/showcase/ceiling-bom.png", "label": "Cut plan + BOM", "desc": "How each 12-ft batten gets cut, with offcut sizes — hand it to the lumber yard and they cut accordingly." }
+        {
+          "img": "/showcase/ceiling-overview.png",
+          "label": "2D plan + main/sub batten grid",
+          "desc": "Drag room dimensions, framing lays out automatically, seams always land on batten centers."
+        },
+        {
+          "img": "/showcase/ceiling-3d.png",
+          "label": "3D structure with 8 toggleable layers",
+          "desc": "Slab / hangers / main / sub / boards / joints — clients grasp install order in seconds."
+        },
+        {
+          "img": "/showcase/ceiling-bom.png",
+          "label": "Cut plan + BOM",
+          "desc": "How each 12-ft batten gets cut, with offcut sizes — hand it to the lumber yard and they cut accordingly."
+        }
       ],
       "footnote": "※ Change dimensions / switch board specs / change batten spacing — these all redraw live."
     },
     "audienceSection": {
       "h2": "Who it's for",
       "items": [
-        { "emoji": "🔨", "title": "Carpenters / drywall installers", "body": "Client asks 'how much for a living room ceiling per ping' — pull out your phone, change dimensions, quote re-issues instantly." },
-        { "emoji": "🪜", "title": "GCs / interior designers", "body": "Put a 3D view + quote in one proposal, client closes on the spot. Spec changes don't require a redraw." },
-        { "emoji": "🏠", "title": "DIY wood ceiling builders", "body": "Draw the room → tool tells you to order N 12-ft battens, M fiber-cement boards. Walk into the lumber yard ready." },
-        { "emoji": "🎓", "title": "Carpentry academy students", "body": "Run the framing logic from class on real numbers. Bridge from practice to client work seamlessly." }
+        {
+          "emoji": "🔨",
+          "title": "Carpenters / drywall installers",
+          "body": "Client asks 'how much for a living room ceiling per ping' — pull out your phone, change dimensions, quote re-issues instantly."
+        },
+        {
+          "emoji": "🪜",
+          "title": "GCs / interior designers",
+          "body": "Put a 3D view + quote in one proposal, client closes on the spot. Spec changes don't require a redraw."
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY wood ceiling builders",
+          "body": "Draw the room → tool tells you to order N 12-ft battens, M fiber-cement boards. Walk into the lumber yard ready."
+        },
+        {
+          "emoji": "🎓",
+          "title": "Carpentry academy students",
+          "body": "Run the framing logic from class on real numbers. Bridge from practice to client work seamlessly."
+        }
       ],
       "notForTitle": "⚠️ Not for these situations",
       "notForItems": [
@@ -838,23 +1068,59 @@
     "scenariosSection": {
       "h2": "When you'll use it",
       "items": [
-        { "tag": "🔨 On-site quoting", "body": "Client asks 'how much for the living room ceiling per ping' — pull out your phone, criss-cross framing + board layout + hangers, A4 quote in 30 seconds, close right there." },
-        { "tag": "🪜 GC / designer pitch", "body": "Pitch ceiling, floor, raised platform together: 3D + quote on one sheet, clients read drawings 10× faster than Excel — no overnight grind." },
-        { "tag": "🏠 DIY home renovation", "body": "Tearing down an old drop ceiling, rebuilding wood framing: draw the room → tool tells you how many 12-ft battens and fiber-cement boards to order. Skip asking the contractor." },
-        { "tag": "🎓 Carpentry academy student", "body": "The framing logic and seam-alignment principles you learned in class — this tool lets you see how the algorithm computes them. Bridge from practice to client work." }
+        {
+          "tag": "🔨 On-site quoting",
+          "body": "Client asks 'how much for the living room ceiling per ping' — pull out your phone, criss-cross framing + board layout + hangers, A4 quote in 30 seconds, close right there."
+        },
+        {
+          "tag": "🪜 GC / designer pitch",
+          "body": "Pitch ceiling, floor, raised platform together: 3D + quote on one sheet, clients read drawings 10× faster than Excel — no overnight grind."
+        },
+        {
+          "tag": "🏠 DIY home renovation",
+          "body": "Tearing down an old drop ceiling, rebuilding wood framing: draw the room → tool tells you how many 12-ft battens and fiber-cement boards to order. Skip asking the contractor."
+        },
+        {
+          "tag": "🎓 Carpentry academy student",
+          "body": "The framing logic and seam-alignment principles you learned in class — this tool lets you see how the algorithm computes them. Bridge from practice to client work."
+        }
       ]
     },
     "faqSection": {
       "h2": "FAQ",
       "items": [
-        { "q": "How does wood ceiling framing differ from steel-stud T-bar?", "a": "Wood framing uses 'batten grid + fiber-cement boards' — 12-ft battens with boards screwed on, supports light fixtures, allows shaping. Steel T-bar uses T-bars + mineral fiber tiles, modular and easy to dismantle but weak load and hard to shape. This tool calculates wood framing." },
-        { "q": "Should I order 4×8 or 3×6 boards?", "a": "4×8 (122×244 cm) is the most common in Taiwan — large sheet, good for big living/dining rooms. 3×6 (91×183 cm) is smaller, less waste in small spaces, easier to transport. This tool toggles both specs and compares waste automatically." },
-        { "q": "Do seams really auto-align with battens?", "a": "Yes. The system back-solves main batten spacing as 'board short edge ÷ N', so board seams always land on batten centerlines — edges always supported, no year-end cracks. Switch board spec (4×8 / 3×6) and batten spacing auto-updates." },
-        { "q": "Can I export PDF / CSV?", "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly." },
-        { "q": "How much does the tool cost?", "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions." },
-        { "q": "Can I buy just this tool?", "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 26 furniture + 3 interior tools — most people end up subscribing to Personal instead." },
-        { "q": "What about my bay window or slanted wall?", "a": "v1 supports rectangle, L, and small bay extrusions. Non-orthogonal (slanted walls, curves) are on the roadmap, with seamless upgrade." },
-        { "q": "Will the tool keep getting updates?", "a": "Yes. 3D layer toggles, board layout, joint emphasis — all added incrementally after launch. Roadmap: multi-fixture/vent openings, auto load calc, RC slab field data integration." }
+        {
+          "q": "How does wood ceiling framing differ from steel-stud T-bar?",
+          "a": "Wood framing uses 'batten grid + fiber-cement boards' — 12-ft battens with boards screwed on, supports light fixtures, allows shaping. Steel T-bar uses T-bars + mineral fiber tiles, modular and easy to dismantle but weak load and hard to shape. This tool calculates wood framing."
+        },
+        {
+          "q": "Should I order 4×8 or 3×6 boards?",
+          "a": "4×8 (122×244 cm) is the most common in Taiwan — large sheet, good for big living/dining rooms. 3×6 (91×183 cm) is smaller, less waste in small spaces, easier to transport. This tool toggles both specs and compares waste automatically."
+        },
+        {
+          "q": "Do seams really auto-align with battens?",
+          "a": "Yes. The system back-solves main batten spacing as 'board short edge ÷ N', so board seams always land on batten centerlines — edges always supported, no year-end cracks. Switch board spec (4×8 / 3×6) and batten spacing auto-updates."
+        },
+        {
+          "q": "Can I export PDF / CSV?",
+          "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly."
+        },
+        {
+          "q": "How much does the tool cost?",
+          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+        },
+        {
+          "q": "Can I buy just this tool?",
+          "a": "Yes. Find the single-tool unlock for ceiling on /pricing. But Personal covers all 26 furniture + 3 interior tools — most people end up subscribing to Personal instead."
+        },
+        {
+          "q": "What about my bay window or slanted wall?",
+          "a": "v1 supports rectangle, L, and small bay extrusions. Non-orthogonal (slanted walls, curves) are on the roadmap, with seamless upgrade."
+        },
+        {
+          "q": "Will the tool keep getting updates?",
+          "a": "Yes. 3D layer toggles, board layout, joint emphasis — all added incrementally after launch. Roadmap: multi-fixture/vent openings, auto load calc, RC slab field data integration."
+        }
       ]
     },
     "pricingSection": {
@@ -904,9 +1170,24 @@
       "sub": "Companion tools to win projects and crunch numbers together",
       "cta": "Read more →",
       "items": [
-        { "href": "/floor", "emoji": "🪵", "title": "Floor installation simulator", "body": "Plank floor takeoff + 5 layout patterns + A4 quote. Pitching ceiling + floor together is gold." },
-        { "href": "/raised-floor", "emoji": "🏯", "title": "Tatami raised platform calculator", "body": "30 cm+ platforms — frame + plywood + underlay + skirting, end to end." },
-        { "href": "/templates", "emoji": "🪑", "title": "26 furniture templates", "body": "From pencil holders to wardrobes — interior projects often pair with furniture." }
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "Floor installation simulator",
+          "body": "Plank floor takeoff + 5 layout patterns + A4 quote. Pitching ceiling + floor together is gold."
+        },
+        {
+          "href": "/raised-floor",
+          "emoji": "🏯",
+          "title": "Tatami raised platform calculator",
+          "body": "30 cm+ platforms — frame + plywood + underlay + skirting, end to end."
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 furniture templates",
+          "body": "From pencil holders to wardrobes — interior projects often pair with furniture."
+        }
       ]
     },
     "finalCta": {
@@ -949,66 +1230,178 @@
       "h2": "The 4 worst things about wood floor takeoffs",
       "sub": "Exactly what this tool was built to fix",
       "items": [
-        { "emoji": "🤯", "title": "Plank counts often over- or under-ordered", "body": "Room 4 m × 3 m, plank 121×19.5 cm — how many do you order? Half a day later you forgot to deduct the door opening." },
-        { "emoji": "🌀", "title": "Herringbone math fries your brain", "body": "Is the herringbone waste 15% or 22%? Can offcuts be paired? Just thinking about it hurts — the lumber yard usually adds 20% blindly." },
-        { "emoji": "📐", "title": "Wrong start angle, repaint the whole row", "body": "Top-left or center start? 60 cm or 40 cm stagger? Set it wrong once and you redraw everything to check." },
-        { "emoji": "📄", "title": "Quoting means opening Excel again", "body": "Once you finish counting, you still type Excel, paste a logo, format A4. Change a dimension and redo it all — half a day gone." }
+        {
+          "emoji": "🤯",
+          "title": "Plank counts often over- or under-ordered",
+          "body": "Room 4 m × 3 m, plank 121×19.5 cm — how many do you order? Half a day later you forgot to deduct the door opening."
+        },
+        {
+          "emoji": "🌀",
+          "title": "Herringbone math fries your brain",
+          "body": "Is the herringbone waste 15% or 22%? Can offcuts be paired? Just thinking about it hurts — the lumber yard usually adds 20% blindly."
+        },
+        {
+          "emoji": "📐",
+          "title": "Wrong start angle, repaint the whole row",
+          "body": "Top-left or center start? 60 cm or 40 cm stagger? Set it wrong once and you redraw everything to check."
+        },
+        {
+          "emoji": "📄",
+          "title": "Quoting means opening Excel again",
+          "body": "Once you finish counting, you still type Excel, paste a logo, format A4. Change a dimension and redo it all — half a day gone."
+        }
       ]
     },
     "featureSection": {
       "h2": "What this tool does",
       "sub": "Room shape → layout → quote, end to end",
       "items": [
-        { "emoji": "📐", "title": "9 room shapes", "body": "Rectangle / L / T / U / cross / Z / hexagon / custom polygon — drag length & width and recalc live." },
-        { "emoji": "🪵", "title": "3 material families + specs", "body": "Laminate 121×19.5, engineered, solid wood 3-inch / 5-inch / 2-inch — pricing units match the lumber yard." },
-        { "emoji": "🌀", "title": "4 layout patterns", "body": "Straight, half stagger, random stagger, herringbone. Herringbone offcuts pair back automatically." },
-        { "emoji": "🎯", "title": "5 start corners", "body": "Top-left / top-right / bottom-left / bottom-right / center. Center auto-computes symmetric edge widths. Each plank labeled with cut side." },
-        { "emoji": "🚪", "title": "Door & trim deductions", "body": "Set door-opening cm and skirting toggle, the system subtracts and reports net usage." },
-        { "emoji": "🧾", "title": "A4 quote + CSV cut plan", "body": "Client info, line items, totals, terms — one A4 page. BOM exports to CSV for the crew." }
+        {
+          "emoji": "📐",
+          "title": "9 room shapes",
+          "body": "Rectangle / L / T / U / cross / Z / hexagon / custom polygon — drag length & width and recalc live."
+        },
+        {
+          "emoji": "🪵",
+          "title": "3 material families + specs",
+          "body": "Laminate 121×19.5, engineered, solid wood 3-inch / 5-inch / 2-inch — pricing units match the lumber yard."
+        },
+        {
+          "emoji": "🌀",
+          "title": "4 layout patterns",
+          "body": "Straight, half stagger, random stagger, herringbone. Herringbone offcuts pair back automatically."
+        },
+        {
+          "emoji": "🎯",
+          "title": "5 start corners",
+          "body": "Top-left / top-right / bottom-left / bottom-right / center. Center auto-computes symmetric edge widths. Each plank labeled with cut side."
+        },
+        {
+          "emoji": "🚪",
+          "title": "Door & trim deductions",
+          "body": "Set door-opening cm and skirting toggle, the system subtracts and reports net usage."
+        },
+        {
+          "emoji": "🧾",
+          "title": "A4 quote + CSV cut plan",
+          "body": "Client info, line items, totals, terms — one A4 page. BOM exports to CSV for the crew."
+        }
       ]
     },
     "paramsSection": {
       "h2": "Parameters you can tweak",
       "sub": "The algorithm auto-computes plank count, waste, skirting meters.",
       "items": [
-        { "label": "Room shape (9 types)", "desc": "Rectangle, L-shape, U-shape, cross, bay window + 0–2 internal columns — drag the 2D editor." },
-        { "label": "Plank spec", "desc": "Laminate / engineered / solid wood with mm-level length & width — compare which spec wastes less." },
-        { "label": "Layout pattern (5 types)", "desc": "Straight, 1/2 stagger, 1/3 stagger, herringbone, chevron V." },
-        { "label": "Start angle", "desc": "0° / 30° / 45° / 90° — auto-computes miter waste." },
-        { "label": "Long axis direction", "desc": "Lay planks along room's long or short edge — different visual extension, different waste." },
-        { "label": "Expansion gap (mm)", "desc": "Wall expansion gaps from 8 mm to 15 mm — affects edge trim material usage." },
-        { "label": "Skirting (height / door cuts)", "desc": "Set skirting height; mark door positions and the system auto-subtracts from total length." },
-        { "label": "Underlay spec (optional)", "desc": "Pick PE / EPE / Tyvek — different roll length & width auto-computes roll count." }
+        {
+          "label": "Room shape (9 types)",
+          "desc": "Rectangle, L-shape, U-shape, cross, bay window + 0–2 internal columns — drag the 2D editor."
+        },
+        {
+          "label": "Plank spec",
+          "desc": "Laminate / engineered / solid wood with mm-level length & width — compare which spec wastes less."
+        },
+        {
+          "label": "Layout pattern (5 types)",
+          "desc": "Straight, 1/2 stagger, 1/3 stagger, herringbone, chevron V."
+        },
+        {
+          "label": "Start angle",
+          "desc": "0° / 30° / 45° / 90° — auto-computes miter waste."
+        },
+        {
+          "label": "Long axis direction",
+          "desc": "Lay planks along room's long or short edge — different visual extension, different waste."
+        },
+        {
+          "label": "Expansion gap (mm)",
+          "desc": "Wall expansion gaps from 8 mm to 15 mm — affects edge trim material usage."
+        },
+        {
+          "label": "Skirting (height / door cuts)",
+          "desc": "Set skirting height; mark door positions and the system auto-subtracts from total length."
+        },
+        {
+          "label": "Underlay spec (optional)",
+          "desc": "Pick PE / EPE / Tyvek — different roll length & width auto-computes roll count."
+        }
       ]
     },
     "outputsSection": {
       "h2": "Auto-generated outputs",
       "sub": "Six artifacts at once — print A4 and bring it to the shop or hand it to the client.",
       "items": [
-        { "icon": "🪵", "title": "Plank count", "body": "Start angle, expansion gaps, 5 patterns all baked into the waste calc — laminate / engineered / solid wood share the same algorithm." },
-        { "icon": "📐", "title": "Layout preview", "body": "2D live layout, 3D perspective for real texture feel — clients don't have to imagine." },
-        { "icon": "🔁", "title": "5 patterns instantly compared", "body": "Switch patterns and recalc in one second — 'how much more waste is herringbone vs straight' answered instantly." },
-        { "icon": "📏", "title": "Skirting meters", "body": "Auto-computed from room perimeter, door openings auto-deducted, wood / PVC trim both supported." },
-        { "icon": "🧾", "title": "A4 quote", "body": "Client info + line items + totals + terms on one A4 page. Save as PDF and email the client." },
-        { "icon": "📊", "title": "BOM CSV export", "body": "Excel opens cleanly, crews use it for procurement directly." }
+        {
+          "icon": "🪵",
+          "title": "Plank count",
+          "body": "Start angle, expansion gaps, 5 patterns all baked into the waste calc — laminate / engineered / solid wood share the same algorithm."
+        },
+        {
+          "icon": "📐",
+          "title": "Layout preview",
+          "body": "2D live layout, 3D perspective for real texture feel — clients don't have to imagine."
+        },
+        {
+          "icon": "🔁",
+          "title": "5 patterns instantly compared",
+          "body": "Switch patterns and recalc in one second — 'how much more waste is herringbone vs straight' answered instantly."
+        },
+        {
+          "icon": "📏",
+          "title": "Skirting meters",
+          "body": "Auto-computed from room perimeter, door openings auto-deducted, wood / PVC trim both supported."
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 quote",
+          "body": "Client info + line items + totals + terms on one A4 page. Save as PDF and email the client."
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV export",
+          "body": "Excel opens cleanly, crews use it for procurement directly."
+        }
       ]
     },
     "showcaseSection": {
       "h2": "Real outputs",
       "sub": "These are actual artifacts the tool produces — they update live as you change dimensions.",
       "items": [
-        { "img": "/showcase/floor-overview.png", "label": "9 room shapes + 5 layout patterns", "desc": "Drag the room outline → see the layout live, switch straight/stagger/herringbone with one click." },
-        { "img": "/showcase/floor-patterns.png", "label": "Plank spec + start angle", "desc": "8 common plank specs one-click apply; start angle / expansion gap / long axis all tunable." }
+        {
+          "img": "/showcase/floor-overview.png",
+          "label": "9 room shapes + 5 layout patterns",
+          "desc": "Drag the room outline → see the layout live, switch straight/stagger/herringbone with one click."
+        },
+        {
+          "img": "/showcase/floor-patterns.png",
+          "label": "Plank spec + start angle",
+          "desc": "8 common plank specs one-click apply; start angle / expansion gap / long axis all tunable."
+        }
       ],
       "footnote": "※ Change dimensions / switch pattern / switch plank spec — these all redraw live."
     },
     "audienceSection": {
       "h2": "Who it's for",
       "items": [
-        { "emoji": "🔨", "title": "Wood floor installers / GCs", "body": "Client asks 'how many boxes for the living room' — pull out your phone, change dimensions, requote on the spot." },
-        { "emoji": "🏠", "title": "DIY floor replacement", "body": "Read the BOM, walk into HOLA / B&Q — no contractor needed, no Excel, even start angle is told to you." },
-        { "emoji": "🪜", "title": "Interior designers", "body": "Drop a layout drawing + quote into your pitch, client closes on the spot. Material swaps don't require a redraw." },
-        { "emoji": "🎓", "title": "Carpentry academy students", "body": "Run the install logic from class on real numbers. Bridge from practice to client work seamlessly." }
+        {
+          "emoji": "🔨",
+          "title": "Wood floor installers / GCs",
+          "body": "Client asks 'how many boxes for the living room' — pull out your phone, change dimensions, requote on the spot."
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY floor replacement",
+          "body": "Read the BOM, walk into HOLA / B&Q — no contractor needed, no Excel, even start angle is told to you."
+        },
+        {
+          "emoji": "🪜",
+          "title": "Interior designers",
+          "body": "Drop a layout drawing + quote into your pitch, client closes on the spot. Material swaps don't require a redraw."
+        },
+        {
+          "emoji": "🎓",
+          "title": "Carpentry academy students",
+          "body": "Run the install logic from class on real numbers. Bridge from practice to client work seamlessly."
+        }
       ],
       "notForTitle": "⚠️ Not for these situations",
       "notForItems": [
@@ -1021,24 +1414,63 @@
     "scenariosSection": {
       "h2": "When you'll use it",
       "items": [
-        { "tag": "🔨 On-site quoting", "body": "Client asks 'how much more for herringbone in the living room' — switch the pattern on the spot, 2D preview + quote re-runs in one second, client picks pattern right there." },
-        { "tag": "🪜 GC / designer pitch", "body": "Propose 3 bedrooms + 2 living rooms with different patterns and colors each — all on one A4 page. Spec changes don't require a redraw; 30-minute job done in 5." },
-        { "tag": "🏠 DIY floor replacement", "body": "Old-house remodel, laying it yourself — draw the room → tool tells you how many laminate planks and skirting strips to order. Walk into the lumber yard ready." },
-        { "tag": "🎓 Carpentry academy student", "body": "The install logic, start angles, expansion gaps you learned in class — this tool shows you 'how the algorithm computes them'. Bridge from practice to client work." }
+        {
+          "tag": "🔨 On-site quoting",
+          "body": "Client asks 'how much more for herringbone in the living room' — switch the pattern on the spot, 2D preview + quote re-runs in one second, client picks pattern right there."
+        },
+        {
+          "tag": "🪜 GC / designer pitch",
+          "body": "Propose 3 bedrooms + 2 living rooms with different patterns and colors each — all on one A4 page. Spec changes don't require a redraw; 30-minute job done in 5."
+        },
+        {
+          "tag": "🏠 DIY floor replacement",
+          "body": "Old-house remodel, laying it yourself — draw the room → tool tells you how many laminate planks and skirting strips to order. Walk into the lumber yard ready."
+        },
+        {
+          "tag": "🎓 Carpentry academy student",
+          "body": "The install logic, start angles, expansion gaps you learned in class — this tool shows you 'how the algorithm computes them'. Bridge from practice to client work."
+        }
       ]
     },
     "faqSection": {
       "h2": "FAQ",
       "items": [
-        { "q": "What's the difference between laminate, engineered, and solid wood?", "a": "Laminate is HDF with printed wood-grain laminate — durable, scratch-resistant, cheap, but water-damaged. Engineered is HDF topped with 1–2 mm real wood veneer — real-wood feel, moisture-resistant, the mainstream pick. Solid wood is 100% real wood — best feel but most expensive and expands/contracts. This tool supports all three with auto-applied specs and pricing." },
-        { "q": "Is herringbone waste really that high?", "a": "Herringbone waste runs 12–22% vs 1.5–6.6% for straight. But herringbone looks expensive and commands premium pricing. This tool pairs herringbone offcuts back (one cut produces two planks shared between bays), shows you actual waste, and the lumber yard's blanket 20% markup can save you 5–10%." },
-        { "q": "What does center-start mean? Should I choose it?", "a": "Center-start = laying from room centerline outward, so first/last rows have symmetric width. Pros: symmetric edge waste, most visually balanced. Cons: one seam down the middle. For most living rooms we recommend center-start; small rooms can stay top-left." },
-        { "q": "How is this different from 'Tatami Raised Platform'?", "a": "The floor simulator computes flat-laid wood flooring (laminate / engineered / solid) with no frame — directly on the slab. The raised platform is a 30 cm+ podium with top frame, bottom frame, main joists, sub joists, plywood, underlay, skirting. Both share the same unlock key — buy one, unlock both." },
-        { "q": "Can I export PDF / CSV?", "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly." },
-        { "q": "How much does the tool cost?", "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions." },
-        { "q": "Can I buy just the floor simulator?", "a": "Yes. The floor simulator shares the 'floor' unlock key with the Tatami Raised Platform, so a single-tool purchase unlocks both. See /pricing." },
-        { "q": "My place isn't a perfect rectangle — anything besides L?", "a": "v1 supports rectangle, L, T, U, cross, Z, hexagon — 7 orthogonal polygons, plus custom polygons. Slanted walls and curves not yet supported but on the roadmap." },
-        { "q": "Will the tool keep getting updates?", "a": "Yes. Herringbone algorithm, 9 room shapes, 5 start angles, 2D offcut pairing — all added incrementally after launch. Roadmap: slanted walls / curves, 3D perspective, thermal expansion tips, vendor spec database integration." }
+        {
+          "q": "What's the difference between laminate, engineered, and solid wood?",
+          "a": "Laminate is HDF with printed wood-grain laminate — durable, scratch-resistant, cheap, but water-damaged. Engineered is HDF topped with 1–2 mm real wood veneer — real-wood feel, moisture-resistant, the mainstream pick. Solid wood is 100% real wood — best feel but most expensive and expands/contracts. This tool supports all three with auto-applied specs and pricing."
+        },
+        {
+          "q": "Is herringbone waste really that high?",
+          "a": "Herringbone waste runs 12–22% vs 1.5–6.6% for straight. But herringbone looks expensive and commands premium pricing. This tool pairs herringbone offcuts back (one cut produces two planks shared between bays), shows you actual waste, and the lumber yard's blanket 20% markup can save you 5–10%."
+        },
+        {
+          "q": "What does center-start mean? Should I choose it?",
+          "a": "Center-start = laying from room centerline outward, so first/last rows have symmetric width. Pros: symmetric edge waste, most visually balanced. Cons: one seam down the middle. For most living rooms we recommend center-start; small rooms can stay top-left."
+        },
+        {
+          "q": "How is this different from 'Tatami Raised Platform'?",
+          "a": "The floor simulator computes flat-laid wood flooring (laminate / engineered / solid) with no frame — directly on the slab. The raised platform is a 30 cm+ podium with top frame, bottom frame, main joists, sub joists, plywood, underlay, skirting. Both share the same unlock key — buy one, unlock both."
+        },
+        {
+          "q": "Can I export PDF / CSV?",
+          "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly."
+        },
+        {
+          "q": "How much does the tool cost?",
+          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+        },
+        {
+          "q": "Can I buy just the floor simulator?",
+          "a": "Yes. The floor simulator shares the 'floor' unlock key with the Tatami Raised Platform, so a single-tool purchase unlocks both. See /pricing."
+        },
+        {
+          "q": "My place isn't a perfect rectangle — anything besides L?",
+          "a": "v1 supports rectangle, L, T, U, cross, Z, hexagon — 7 orthogonal polygons, plus custom polygons. Slanted walls and curves not yet supported but on the roadmap."
+        },
+        {
+          "q": "Will the tool keep getting updates?",
+          "a": "Yes. Herringbone algorithm, 9 room shapes, 5 start angles, 2D offcut pairing — all added incrementally after launch. Roadmap: slanted walls / curves, 3D perspective, thermal expansion tips, vendor spec database integration."
+        }
       ]
     },
     "pricingSection": {
@@ -1088,9 +1520,24 @@
       "sub": "Companion tools to win projects and crunch numbers together",
       "cta": "Read more →",
       "items": [
-        { "href": "/raised-floor", "emoji": "🏯", "title": "Tatami Raised Platform calculator", "body": "30 cm+ platforms — frame + plywood + underlay + skirting, end to end. Shares an unlock key with floor." },
-        { "href": "/ceiling", "emoji": "🔨", "title": "Wood Ceiling Framing Simulator", "body": "Batten grid + fiber-cement boards. When clients want 'ceiling + floor together', one-stop done." },
-        { "href": "/templates", "emoji": "🪑", "title": "26 furniture templates", "body": "From pencil holders to wardrobes — interior projects often pair with furniture." }
+        {
+          "href": "/raised-floor",
+          "emoji": "🏯",
+          "title": "Tatami Raised Platform calculator",
+          "body": "30 cm+ platforms — frame + plywood + underlay + skirting, end to end. Shares an unlock key with floor."
+        },
+        {
+          "href": "/ceiling",
+          "emoji": "🔨",
+          "title": "Wood Ceiling Framing Simulator",
+          "body": "Batten grid + fiber-cement boards. When clients want 'ceiling + floor together', one-stop done."
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 furniture templates",
+          "body": "From pencil holders to wardrobes — interior projects often pair with furniture."
+        }
       ]
     },
     "finalCta": {
@@ -1135,69 +1582,191 @@
       "h2": "The 4 worst things about tatami / raised-platform takeoffs",
       "sub": "Exactly what this tool was built to fix",
       "items": [
-        { "emoji": "🤯", "title": "Brain-fryer math, easy to over- or under-order", "body": "How many main joists, sub joists, plywood sheets, underlay rolls — each in different units and different logic. A pen and paper for 30 minutes might still come out wrong." },
-        { "emoji": "📐", "title": "Plywood seams not landing on joists", "body": "Set main/sub spacing wrong and plywood seams float between joists — you'll have to add extra battens to support them, wasting material and time." },
-        { "emoji": "📦", "title": "Order too much plywood, leftovers pile up in storage", "body": "11 offcut pieces could pack into 4 new sheets, but without 2D packing math people just multiply 'pieces × 1.2 waste' → 30% over-order." },
-        { "emoji": "📄", "title": "Client quotes still need Excel formatting", "body": "Once you finish counting, you still type Excel, paste a logo, format A4 — half a day per quote. Change one dimension and redo it all." }
+        {
+          "emoji": "🤯",
+          "title": "Brain-fryer math, easy to over- or under-order",
+          "body": "How many main joists, sub joists, plywood sheets, underlay rolls — each in different units and different logic. A pen and paper for 30 minutes might still come out wrong."
+        },
+        {
+          "emoji": "📐",
+          "title": "Plywood seams not landing on joists",
+          "body": "Set main/sub spacing wrong and plywood seams float between joists — you'll have to add extra battens to support them, wasting material and time."
+        },
+        {
+          "emoji": "📦",
+          "title": "Order too much plywood, leftovers pile up in storage",
+          "body": "11 offcut pieces could pack into 4 new sheets, but without 2D packing math people just multiply 'pieces × 1.2 waste' → 30% over-order."
+        },
+        {
+          "emoji": "📄",
+          "title": "Client quotes still need Excel formatting",
+          "body": "Once you finish counting, you still type Excel, paste a logo, format A4 — half a day per quote. Change one dimension and redo it all."
+        }
       ]
     },
     "featureSection": {
       "h2": "What this tool does",
       "sub": "Platform shape → BOM → quote, end to end",
       "items": [
-        { "emoji": "📐", "title": "Platform shape: rectangle / L + columns", "body": "Drag length / width / height, L-shape inner corners, 0–2 interior columns auto-notched, 3D updates live." },
-        { "emoji": "🪵", "title": "Surface: laminate / engineered / solid wood", "body": "Plank length & width tunable, 5 start angles, long/short axis switch, mm-level expansion gap." },
-        { "emoji": "🧱", "title": "Joists auto-align with plywood", "body": "Main joists evenly along plywood short edge, sub joists along long edge — plywood seams land exactly on joist centerlines. Zero snap waste." },
-        { "emoji": "📦", "title": "Smart 2D plywood packing", "body": "11 cut pieces auto-pack into 4 new sheets via guillotine FFD, with sheet IDs 1-2-3 labeled — lumber yard reads it directly." },
-        { "emoji": "🛡️", "title": "Underlay + skirting", "body": "PE / EPE / Tyvek 3 specs with auto roll count. Skirting auto-deducts door opening lengths." },
-        { "emoji": "🧾", "title": "One-click A4 quote", "body": "Client info, line items, totals, terms, signature — 4-column, 3-table layout on one A4 page. CSV export BOM for the crew." }
+        {
+          "emoji": "📐",
+          "title": "Platform shape: rectangle / L + columns",
+          "body": "Drag length / width / height, L-shape inner corners, 0–2 interior columns auto-notched, 3D updates live."
+        },
+        {
+          "emoji": "🪵",
+          "title": "Surface: laminate / engineered / solid wood",
+          "body": "Plank length & width tunable, 5 start angles, long/short axis switch, mm-level expansion gap."
+        },
+        {
+          "emoji": "🧱",
+          "title": "Joists auto-align with plywood",
+          "body": "Main joists evenly along plywood short edge, sub joists along long edge — plywood seams land exactly on joist centerlines. Zero snap waste."
+        },
+        {
+          "emoji": "📦",
+          "title": "Smart 2D plywood packing",
+          "body": "11 cut pieces auto-pack into 4 new sheets via guillotine FFD, with sheet IDs 1-2-3 labeled — lumber yard reads it directly."
+        },
+        {
+          "emoji": "🛡️",
+          "title": "Underlay + skirting",
+          "body": "PE / EPE / Tyvek 3 specs with auto roll count. Skirting auto-deducts door opening lengths."
+        },
+        {
+          "emoji": "🧾",
+          "title": "One-click A4 quote",
+          "body": "Client info, line items, totals, terms, signature — 4-column, 3-table layout on one A4 page. CSV export BOM for the crew."
+        }
       ]
     },
     "paramsSection": {
       "h2": "Parameters you can tweak",
       "sub": "The algorithm auto-computes frame, plywood seams, surface layout, underlay rolls.",
       "items": [
-        { "label": "Platform shape (rectangle / L)", "desc": "Live 3D as you drag length/width; L-shape inner corners can dodge columns, beams, window frames." },
-        { "label": "Platform height (H)", "desc": "30–60 cm tunable; over 60 cm the system warns to add sub posts to avoid wobble." },
-        { "label": "Interior columns (0–2)", "desc": "Notch a rectangle into the platform for each column position; 5 mm clearance to column face." },
-        { "label": "Surface spec", "desc": "Laminate / engineered / solid wood, plank length & width tunable — compare which spec wastes less." },
-        { "label": "Layout pattern (5 types)", "desc": "Straight, 1/2 stagger, 1/3 stagger, herringbone, chevron V — start angle independently tunable." },
-        { "label": "Main joist spacing", "desc": "Back-solved from 'plywood short edge ÷ N' so plywood seams always land on joist centerlines." },
-        { "label": "Sub joist spacing", "desc": "30 / 40 / 45 cm presets — bigger spans auto-upgrade to thicker battens." },
-        { "label": "Plywood spec (4×8 / 3×6)", "desc": "Toggle between specs to compare waste; auto 2D layout." },
-        { "label": "Underlay spec", "desc": "Pick PE / EPE / Tyvek — different roll length & width auto-computes roll count." },
-        { "label": "Skirting (height / door cuts)", "desc": "Set skirting height; mark door positions and the system auto-deducts from total length." }
+        {
+          "label": "Platform shape (rectangle / L)",
+          "desc": "Live 3D as you drag length/width; L-shape inner corners can dodge columns, beams, window frames."
+        },
+        {
+          "label": "Platform height (H)",
+          "desc": "30–60 cm tunable; over 60 cm the system warns to add sub posts to avoid wobble."
+        },
+        {
+          "label": "Interior columns (0–2)",
+          "desc": "Notch a rectangle into the platform for each column position; 5 mm clearance to column face."
+        },
+        {
+          "label": "Surface spec",
+          "desc": "Laminate / engineered / solid wood, plank length & width tunable — compare which spec wastes less."
+        },
+        {
+          "label": "Layout pattern (5 types)",
+          "desc": "Straight, 1/2 stagger, 1/3 stagger, herringbone, chevron V — start angle independently tunable."
+        },
+        {
+          "label": "Main joist spacing",
+          "desc": "Back-solved from 'plywood short edge ÷ N' so plywood seams always land on joist centerlines."
+        },
+        {
+          "label": "Sub joist spacing",
+          "desc": "30 / 40 / 45 cm presets — bigger spans auto-upgrade to thicker battens."
+        },
+        {
+          "label": "Plywood spec (4×8 / 3×6)",
+          "desc": "Toggle between specs to compare waste; auto 2D layout."
+        },
+        {
+          "label": "Underlay spec",
+          "desc": "Pick PE / EPE / Tyvek — different roll length & width auto-computes roll count."
+        },
+        {
+          "label": "Skirting (height / door cuts)",
+          "desc": "Set skirting height; mark door positions and the system auto-deducts from total length."
+        }
       ]
     },
     "outputsSection": {
       "h2": "Auto-generated outputs",
       "sub": "Six artifacts at once — print A4 and bring it to the shop or hand it to the client.",
       "items": [
-        { "icon": "🪵", "title": "Frame BOM", "body": "Top frame, bottom frame, main joists, sub joists — meters & counts. Dual-labeled Taiwanese tsai / feet." },
-        { "icon": "📦", "title": "Plywood layout drawing", "body": "Auto 2D guillotine FFD packing, sheet IDs 1-2-3 labeled, lumber yard reads it directly." },
-        { "icon": "🛡️", "title": "Underlay roll count", "body": "Round-up from platform area + roll spec; door openings auto-deducted." },
-        { "icon": "🎨", "title": "Surface plank count", "body": "Start angle, expansion gap, 5 layout patterns all baked into the waste calc." },
-        { "icon": "🧾", "title": "A4 client quote", "body": "Client info + line items + totals + terms + signature — one A4 page." },
-        { "icon": "📊", "title": "BOM CSV export", "body": "Excel opens cleanly, crews use it for procurement directly." }
+        {
+          "icon": "🪵",
+          "title": "Frame BOM",
+          "body": "Top frame, bottom frame, main joists, sub joists — meters & counts. Dual-labeled Taiwanese tsai / feet."
+        },
+        {
+          "icon": "📦",
+          "title": "Plywood layout drawing",
+          "body": "Auto 2D guillotine FFD packing, sheet IDs 1-2-3 labeled, lumber yard reads it directly."
+        },
+        {
+          "icon": "🛡️",
+          "title": "Underlay roll count",
+          "body": "Round-up from platform area + roll spec; door openings auto-deducted."
+        },
+        {
+          "icon": "🎨",
+          "title": "Surface plank count",
+          "body": "Start angle, expansion gap, 5 layout patterns all baked into the waste calc."
+        },
+        {
+          "icon": "🧾",
+          "title": "A4 client quote",
+          "body": "Client info + line items + totals + terms + signature — one A4 page."
+        },
+        {
+          "icon": "📊",
+          "title": "BOM CSV export",
+          "body": "Excel opens cleanly, crews use it for procurement directly."
+        }
       ]
     },
     "showcaseSection": {
       "h2": "Real outputs",
       "sub": "These are actual artifacts the tool produces — they update live as you change dimensions.",
       "items": [
-        { "img": "/showcase/raised-floor-overview.png", "label": "2D framing + column notches", "desc": "Rectangle / L-shape + 0–2 column notches; main along short edge, sub along long edge, auto evenly spaced." },
-        { "img": "/showcase/raised-floor-3d.png", "label": "3D exploded view", "desc": "Top frame, bottom frame, plywood, surface — each layer expanded. Clients grasp why it's NT$ 8,000+ per ping in seconds." },
-        { "img": "/showcase/raised-floor-surface.png", "label": "2D surface layout", "desc": "Start angle, expansion gap, long/short axis direction baked in — clients pick patterns by sight." }
+        {
+          "img": "/showcase/raised-floor-overview.png",
+          "label": "2D framing + column notches",
+          "desc": "Rectangle / L-shape + 0–2 column notches; main along short edge, sub along long edge, auto evenly spaced."
+        },
+        {
+          "img": "/showcase/raised-floor-3d.png",
+          "label": "3D exploded view",
+          "desc": "Top frame, bottom frame, plywood, surface — each layer expanded. Clients grasp why it's NT$ 8,000+ per ping in seconds."
+        },
+        {
+          "img": "/showcase/raised-floor-surface.png",
+          "label": "2D surface layout",
+          "desc": "Start angle, expansion gap, long/short axis direction baked in — clients pick patterns by sight."
+        }
       ],
       "footnote": "※ Change dimensions / surface / column count — these all redraw live."
     },
     "audienceSection": {
       "h2": "Who it's for",
       "items": [
-        { "emoji": "🔨", "title": "Carpenters / GCs", "body": "Client asks 'how much per ping for a tatami' — pull out your phone, change dimensions, requote on the spot." },
-        { "emoji": "🏠", "title": "DIY home tatami builders", "body": "Read the BOM, walk into the lumber yard — no contractor needed, no Excel, even plywood packing is told to you." },
-        { "emoji": "🪜", "title": "Interior designers", "body": "Drop a 3D + quote into your pitch, client closes on the spot." },
-        { "emoji": "🎓", "title": "Carpentry academy students", "body": "Run the framing logic from class on real numbers. Bridge from practice to client work seamlessly." }
+        {
+          "emoji": "🔨",
+          "title": "Carpenters / GCs",
+          "body": "Client asks 'how much per ping for a tatami' — pull out your phone, change dimensions, requote on the spot."
+        },
+        {
+          "emoji": "🏠",
+          "title": "DIY home tatami builders",
+          "body": "Read the BOM, walk into the lumber yard — no contractor needed, no Excel, even plywood packing is told to you."
+        },
+        {
+          "emoji": "🪜",
+          "title": "Interior designers",
+          "body": "Drop a 3D + quote into your pitch, client closes on the spot."
+        },
+        {
+          "emoji": "🎓",
+          "title": "Carpentry academy students",
+          "body": "Run the framing logic from class on real numbers. Bridge from practice to client work seamlessly."
+        }
       ],
       "notForTitle": "⚠️ Not for these situations",
       "notForItems": [
@@ -1210,23 +1779,59 @@
     "scenariosSection": {
       "h2": "When you'll use it",
       "items": [
-        { "tag": "🔨 On-site quoting", "body": "Client asks 'how much per ping for a 3 m × 4 m tatami' — pull out your phone, sketch 3D and A4 quote in 30 seconds, close right there. Spec changes recompute instantly; no Excel back at the studio." },
-        { "tag": "🏠 DIY tatami builders", "body": "Building a sleeping platform, a guest tatami room, a storage podium — draw the platform → tool tells you how many 12-ft battens, how many plywood sheets, how many underlay rolls. Walk into the lumber yard ready." },
-        { "tag": "🪜 Designer pitches", "body": "Drop 3D + quote on a tatami proposal, beat the competition by one extra page and win the project. Client says 'change to 50 cm height' — change on the spot, no overnight grind." },
-        { "tag": "🎓 Carpentry academy students", "body": "The framing logic, plywood seam alignment, underlay principles you learned in class — this tool shows you 'how the algorithm computes them'. Bridge from practice to client work." }
+        {
+          "tag": "🔨 On-site quoting",
+          "body": "Client asks 'how much per ping for a 3 m × 4 m tatami' — pull out your phone, sketch 3D and A4 quote in 30 seconds, close right there. Spec changes recompute instantly; no Excel back at the studio."
+        },
+        {
+          "tag": "🏠 DIY tatami builders",
+          "body": "Building a sleeping platform, a guest tatami room, a storage podium — draw the platform → tool tells you how many 12-ft battens, how many plywood sheets, how many underlay rolls. Walk into the lumber yard ready."
+        },
+        {
+          "tag": "🪜 Designer pitches",
+          "body": "Drop 3D + quote on a tatami proposal, beat the competition by one extra page and win the project. Client says 'change to 50 cm height' — change on the spot, no overnight grind."
+        },
+        {
+          "tag": "🎓 Carpentry academy students",
+          "body": "The framing logic, plywood seam alignment, underlay principles you learned in class — this tool shows you 'how the algorithm computes them'. Bridge from practice to client work."
+        }
       ]
     },
     "faqSection": {
       "h2": "FAQ",
       "items": [
-        { "q": "How is this different from the Floor Simulator?", "a": "The floor simulator computes flat-laid wood flooring (laminate / engineered) with no frame. The raised platform is a 30 cm+ podium with top frame, bottom frame, main joists, sub joists, plywood, underlay, skirting — the wood-construction method for tatami / underlay beds / guest sleeping platforms. Both share the same unlock key — buy one, unlock both." },
-        { "q": "Does the plywood packing really save material?", "a": "Real test: 11 cut pieces packed via 2D guillotine — a 3 m × 4 m tatami originally costing '8 full sheets + 11 cuts = 19 plywood sheets' becomes '8 full sheets + 4 new sheets cut into 11 pieces' = 12 sheets total. Saves 7 sheets (~35%), NT$ 3,500+ saved." },
-        { "q": "Is the quote accurate?", "a": "Material quantity is BOM-precise (main joist meters, plywood sheet counts, underlay rolls — units all correct). Unit prices use your own lumber-yard cost and your own labor rate. The system doesn't sneak in 'market price' inflation — all unit-price fields are blank for you to fill. Whatever you fill is what gets calculated." },
-        { "q": "Can I export PDF / CSV?", "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly." },
-        { "q": "How much does the tool cost?", "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions." },
-        { "q": "Can I buy just the raised platform tool?", "a": "Yes. The raised platform shares the 'floor' unlock key with the Floor Simulator — a single-tool purchase unlocks both. See /pricing." },
-        { "q": "My place isn't a perfect rectangle — anything besides L?", "a": "v1 supports rectangle, L-shape, and up to 2 column notches. Non-orthogonal polygons (slanted walls, U-shape, cross shape) are on the roadmap and will land in the same wave as the floor simulator — seamless upgrade." },
-        { "q": "Will the tool keep getting updates?", "a": "Yes. The tool launched 2026-05 — 3D layer toggles, plywood packing algorithm, install-step cards, underlay catalog were all added within 2 weeks of launch. Roadmap: more columns, slanted edges, herringbone surfaces, on-site cutouts (light fixtures / outlets)." }
+        {
+          "q": "How is this different from the Floor Simulator?",
+          "a": "The floor simulator computes flat-laid wood flooring (laminate / engineered) with no frame. The raised platform is a 30 cm+ podium with top frame, bottom frame, main joists, sub joists, plywood, underlay, skirting — the wood-construction method for tatami / underlay beds / guest sleeping platforms. Both share the same unlock key — buy one, unlock both."
+        },
+        {
+          "q": "Does the plywood packing really save material?",
+          "a": "Real test: 11 cut pieces packed via 2D guillotine — a 3 m × 4 m tatami originally costing '8 full sheets + 11 cuts = 19 plywood sheets' becomes '8 full sheets + 4 new sheets cut into 11 pieces' = 12 sheets total. Saves 7 sheets (~35%), NT$ 3,500+ saved."
+        },
+        {
+          "q": "Is the quote accurate?",
+          "a": "Material quantity is BOM-precise (main joist meters, plywood sheet counts, underlay rolls — units all correct). Unit prices use your own lumber-yard cost and your own labor rate. The system doesn't sneak in 'market price' inflation — all unit-price fields are blank for you to fill. Whatever you fill is what gets calculated."
+        },
+        {
+          "q": "Can I export PDF / CSV?",
+          "a": "A4 quotes print straight from the browser → Save as PDF. Logo / company info / terms are filled once in 'Branding' panel and reused. BOM exports to CSV, Excel opens cleanly."
+        },
+        {
+          "q": "How much does the tool cost?",
+          "a": "Personal NT$ 390/mo — includes all 26 furniture templates + ceiling framing + floor simulator + raised platform. Pro NT$ 890/mo — adds client quoting system + STL/CNC export + unlimited dimensions."
+        },
+        {
+          "q": "Can I buy just the raised platform tool?",
+          "a": "Yes. The raised platform shares the 'floor' unlock key with the Floor Simulator — a single-tool purchase unlocks both. See /pricing."
+        },
+        {
+          "q": "My place isn't a perfect rectangle — anything besides L?",
+          "a": "v1 supports rectangle, L-shape, and up to 2 column notches. Non-orthogonal polygons (slanted walls, U-shape, cross shape) are on the roadmap and will land in the same wave as the floor simulator — seamless upgrade."
+        },
+        {
+          "q": "Will the tool keep getting updates?",
+          "a": "Yes. The tool launched 2026-05 — 3D layer toggles, plywood packing algorithm, install-step cards, underlay catalog were all added within 2 weeks of launch. Roadmap: more columns, slanted edges, herringbone surfaces, on-site cutouts (light fixtures / outlets)."
+        }
       ]
     },
     "pricingSection": {
@@ -1276,9 +1881,24 @@
       "sub": "Companion tools to win projects and crunch numbers together",
       "cta": "Read more →",
       "items": [
-        { "href": "/floor", "emoji": "🪵", "title": "Floor Installation Simulator", "body": "Plank floor takeoff + 5 layout patterns + A4 quote. Shares an unlock key with raised platform." },
-        { "href": "/ceiling", "emoji": "🔨", "title": "Wood Ceiling Framing Simulator", "body": "Batten grid + fiber-cement boards + hangers. When clients want 'ceiling + floor together', one-stop done." },
-        { "href": "/templates", "emoji": "🪑", "title": "26 furniture templates", "body": "From pencil holders to wardrobes — designers often pair these with interior projects." }
+        {
+          "href": "/floor",
+          "emoji": "🪵",
+          "title": "Floor Installation Simulator",
+          "body": "Plank floor takeoff + 5 layout patterns + A4 quote. Shares an unlock key with raised platform."
+        },
+        {
+          "href": "/ceiling",
+          "emoji": "🔨",
+          "title": "Wood Ceiling Framing Simulator",
+          "body": "Batten grid + fiber-cement boards + hangers. When clients want 'ceiling + floor together', one-stop done."
+        },
+        {
+          "href": "/templates",
+          "emoji": "🪑",
+          "title": "26 furniture templates",
+          "body": "From pencil holders to wardrobes — designers often pair these with interior projects."
+        }
       ]
     },
     "finalCta": {
@@ -1337,8 +1957,82 @@
     "preview3dAlt": "{name} 3D preview"
   },
   "mySubscription": {
-    "metaTitle": "My subscription · Wooden Ren Furniture Blueprints",
-    "metaDescription": "View your current plan, expiry date, invoices, payment method, and ECPay subscription management portal."
+    "loading": "Loading…",
+    "h1": "My Subscription",
+    "loginRequired": "Sign in to view your subscription status (top-right \"Sign in with Google\").",
+    "backHome": "← Back to catalog",
+    "justPaidH": "✅ Payment received",
+    "justPaidBody": "ECPay has received the payment and your plan is active. If you paid by ATM / convenience store, it may take a few minutes — please refresh or check back shortly.",
+    "currentPlanPre": "Active plan:",
+    "freeH": "Free",
+    "freeBody": "You're not on a paid plan.",
+    "seePlans": "See plans →",
+    "lifetimeH": "Lifetime",
+    "lifetimeBody": "You own Lifetime — all paid features are unlocked permanently.",
+    "subStatus": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "cancelledStillValid": "Cancelled (active until expiry)"
+    },
+    "pending": {
+      "h": "⏳ Awaiting payment",
+      "bodyTpl": "Amount due NT$ {amount}. Pay by {deadline} — your subscription activates automatically after payment.",
+      "rowMethod": "Method",
+      "methodAtm": "ATM transfer",
+      "methodCvs": "Convenience-store voucher",
+      "methodBarcode": "Convenience-store barcode",
+      "rowBankCode": "Bank code",
+      "rowVAccount": "Virtual account",
+      "rowPaymentNo": "Payment code",
+      "rowBarcode1": "Barcode 1",
+      "rowBarcode2": "Barcode 2",
+      "rowBarcode3": "Barcode 3",
+      "barcodeHint": "Show all three barcodes at the convenience store to pay."
+    },
+    "unlocks": {
+      "h": "🎫 One-time purchases",
+      "intro": "Permanent unlocks — these stay even when your subscription expires.",
+      "toolsH": "Interior tools",
+      "templatesH": "Furniture templates",
+      "open": "Open →",
+      "toolCeiling": "🔨 Ceiling framing simulator",
+      "toolFloor": "🪵 Flooring simulator"
+    },
+    "paidPlan": {
+      "expiresAtLbl": "Expires: {date}",
+      "statusLbl": "Status: {status}",
+      "confirmCancel": "Cancelling stops next month's auto-charge.\nThe plan remains active until the current expiry, then auto-downgrades to Free.\n\nCancel subscription?",
+      "cancelFail": "Cancel failed, please try again later",
+      "cancelling": "Cancelling…",
+      "cancelCta": "Cancel subscription (stop next month's auto-charge)",
+      "expiringSoonTpl": "⏰ {days} days until expiry. Monthly plans auto-renew, no action needed. If you're on yearly or want to switch, you can",
+      "reSubscribe": "renew",
+      "expiringSoonSuffix": ".",
+      "graceH": "⚠️ Subscription expired — {days} days of grace period remaining",
+      "graceBody": "Paid features still work. Please renew within {days} days, otherwise the account auto-downgrades to Free. Common causes: card expired, insufficient funds, bank verification failed.",
+      "resubLink": "Renew now →",
+      "pastGraceTpl": "Subscription has expired past the {days}-day grace period. The system will auto-downgrade to Free on the next scan. To restore paid features, visit",
+      "pastGraceSuffix": "to renew.",
+      "cancelledBodyTpl": "Auto-charge stopped. Plan stays active until {date}, then auto-downgrades to Free. To restore, visit",
+      "plansPage": "Plans",
+      "cancelledBodySuffix": "to subscribe again."
+    },
+    "student": {
+      "h": "Wooden Ren Academy — Student plan",
+      "rowActivated": "Activated",
+      "rowExpires": "Expires",
+      "expired": "(Expired)",
+      "daysLeftTpl": "({n} days left)",
+      "expiringH": "⚠️ {n} days until expiry",
+      "expiringBody": "From year 3 onward, students get a special rate (DIY NT$ 219, Pro NT$ 690 / mo).",
+      "renewBtn": "Renew student plan",
+      "expiredH": "Expired",
+      "expiredBody": "Your 2-year student plan has ended and your account has auto-downgraded to Free. Continue with the student renewal plan (Personal NT$ 219 / Pro NT$ 690 per month).",
+      "expiredBtn": "See renewal plans",
+      "futurePriceNote": "After expiry, student renewal pricing applies: Personal NT$ 219, Pro NT$ 690 / mo."
+    }
   },
   "myDesigns": {
     "metaTitle": "My designs · Wooden Ren Furniture Blueprints",
@@ -1404,8 +2098,7 @@
     "heroChip": "Furniture Blueprints · Changelog",
     "heroH1": "What we changed",
     "heroBodyLine1": "Every user-facing feature, improvement, and fix lands here.",
-    "heroBodyLine2": "Newest at the top."
-  ,
+    "heroBodyLine2": "Newest at the top.",
     "footerAsk": "Want a feature or want to report an issue?",
     "footerContactLink": "Contact us →",
     "footerTemplates": "Templates",
@@ -1561,21 +2254,60 @@
     "outputsH2": "Enter sizes, get everything",
     "outputsSubtitle": "Six deliverables in one pass — print A4 and walk into the shop.",
     "outputs": [
-      { "icon": "📐", "title": "Engineering views", "body": "Front / side / top auto-dimensioned" },
-      { "icon": "🪵", "title": "Perspective", "body": "3D rotatable, explodable, see inside" },
-      { "icon": "🔧", "title": "Joinery detail", "body": "Every joint zoomed and dimensioned" },
-      { "icon": "📊", "title": "Cut list", "body": "Per-part sizes, board-foot conversion, waste estimate" },
-      { "icon": "✂️", "title": "Cut layout", "body": "Optimized stock layout, minimum waste" },
-      { "icon": "📄", "title": "A4 PDF", "body": "One-click print for the shop" }
+      {
+        "icon": "📐",
+        "title": "Engineering views",
+        "body": "Front / side / top auto-dimensioned"
+      },
+      {
+        "icon": "🪵",
+        "title": "Perspective",
+        "body": "3D rotatable, explodable, see inside"
+      },
+      {
+        "icon": "🔧",
+        "title": "Joinery detail",
+        "body": "Every joint zoomed and dimensioned"
+      },
+      {
+        "icon": "📊",
+        "title": "Cut list",
+        "body": "Per-part sizes, board-foot conversion, waste estimate"
+      },
+      {
+        "icon": "✂️",
+        "title": "Cut layout",
+        "body": "Optimized stock layout, minimum waste"
+      },
+      {
+        "icon": "📄",
+        "title": "A4 PDF",
+        "body": "One-click print for the shop"
+      }
     ],
     "showcaseH2": "Real generated output",
     "showcaseSubtitle": "The screens below are actually generated from the {name} template — apply your sizes and they update live.",
     "showcase": [
-      { "label": "Engineering views", "desc": "Front / side / top fully auto-dimensioned" },
-      { "label": "Cut layout", "desc": "Algorithmic nesting, minimum waste — hand to the lumber yard and cut straight from it" },
-      { "label": "Cut list", "desc": "Per-part sizes with board-foot conversion, printable for the shop" },
-      { "label": "Build steps", "desc": "Stock prep through finishing, every step timed" },
-      { "label": "3D perspective", "desc": "Rotatable, explodable, see the joinery inside" }
+      {
+        "label": "Engineering views",
+        "desc": "Front / side / top fully auto-dimensioned"
+      },
+      {
+        "label": "Cut layout",
+        "desc": "Algorithmic nesting, minimum waste — hand to the lumber yard and cut straight from it"
+      },
+      {
+        "label": "Cut list",
+        "desc": "Per-part sizes with board-foot conversion, printable for the shop"
+      },
+      {
+        "label": "Build steps",
+        "desc": "Stock prep through finishing, every step timed"
+      },
+      {
+        "label": "3D perspective",
+        "desc": "Rotatable, explodable, see the joinery inside"
+      }
     ],
     "showcaseFootnote": "※ These regenerate live whenever you tweak size, wood, or style",
     "scenariosH2": "When you'd build one",
@@ -2155,5 +2887,1794 @@
       "doorWidthUnit": "cm",
       "skirtingFormulaHint": "Skirting length = perimeter − door count × door width"
     }
+  },
+  "projectsIndex": {
+    "metaTitle": "My Projects · Furniture Blueprints",
+    "metaDescription": "Bundle designs into a project: customer info, quotes, design list, status — one case, one screen."
+  },
+  "projectDetail": {
+    "metaTitle": "Project Details · Furniture Blueprints"
+  },
+  "projectPurchase": {
+    "metaTitle": "Purchase List · Furniture Blueprints",
+    "pdfFilenameTpl": "Purchase_{name}.pdf",
+    "backToProject": "← Back to project",
+    "kicker": "MATERIAL PURCHASE LIST",
+    "h1": "Purchase List",
+    "wasteNote": "Includes cutting waste (10% standard, 25% accessories)",
+    "emptyState": "No furniture items added yet — purchase list unavailable.",
+    "thMaterial": "Material",
+    "thParts": "Parts",
+    "thBdft": "Bd.ft",
+    "thUnit": "Unit price",
+    "thSubtotal": "Subtotal",
+    "partsCountTpl": "{n} pcs",
+    "usedIn": "Used in: {names}",
+    "footTotal": "Total",
+    "tipPurchaseTitle": "📐 Purchasing notes:",
+    "tipPurchaseBody": "Lumber yards typically sell 8/10/12 ft lengths. Bring the longest part length per furniture item to ensure you get enough.",
+    "tipPriceTitle": "💰 Pricing notes:",
+    "tipPriceBody": "Calculated at catalog unit prices. Actual prices depend on the lumber yard. Discounts and bulk orders priced separately.",
+    "unbuiltWarnTpl": "⚠️ {n} furniture item(s) could not be rebuilt (template may have changed) and are excluded from this list.",
+    "summaryLineTpl": "Total {parts} parts · {kinds} materials"
+  },
+  "projectQuote": {
+    "customerView": "Customer view",
+    "backToEdit": "← Back to project editor",
+    "printPageBtn": "🖨️ Print page",
+    "filenameTpl": "Quote_{name}_{no}.pdf",
+    "quoteDateLbl": "Quote date: {date}",
+    "statusLbl": "Status: {label}",
+    "designConceptQuote": "“{text}”",
+    "fieldCustomer": "Customer",
+    "fieldContact": "Contact",
+    "fieldAddress": "Site address",
+    "fieldAddressShort": "Site",
+    "dash": "—",
+    "noItems": "No furniture items added yet.",
+    "roomCountTpl": "({n} items)",
+    "roomCountParenTpl": "{name} ({n} items)",
+    "ungrouped": "Ungrouped",
+    "lineUnitTimesQtyTpl": "{price} × {qty}",
+    "sectionTotalKicker": "Total quote",
+    "totalUnitsTpl": "{n} items",
+    "depositPct": "Deposit ({pct}%)",
+    "balancePct": "Balance ({pct}%)",
+    "notesH": "Notes",
+    "footerPayTerms": "Payment terms: {pct}% deposit on signing, balance paid before delivery.",
+    "footerRepriceNote": "Quote covers only items listed here; changes to design, dimensions or material require requoting.",
+    "footerValidity": "This quote is valid for 14 days from issue date.",
+    "dimNoData": "—",
+    "matNoData": "—"
+  },
+  "raisedFloorQuote": {
+    "metaTitle": "Tatami Raised Platform Quote · Furniture Blueprints",
+    "printMetaTitle": "Tatami Raised Platform Quote · Furniture Blueprints",
+    "h1": "Tatami Raised Platform — Quote",
+    "backToSim": "← Back to simulator",
+    "secCustomer": "Customer info",
+    "secFeeOpts": "Pricing parameters",
+    "secPrintMode": "Print mode",
+    "modeCustomer": "Customer view (hide cost/margin)",
+    "modeInternal": "Internal view (show cost/margin)",
+    "summaryArea": "{ping} ping · {m2} m²",
+    "secQuote": "Quote breakdown",
+    "totalWithVat": "Total (incl. tax)",
+    "unpriced": "Not priced",
+    "unpricedWarn": "⚠️ Estimate incomplete (some items have no unit price)",
+    "printBtn": "🧾 Print quote",
+    "historyH": "📁 Recent raised-floor quotes ({n})",
+    "clearHistory": "Clear history",
+    "noCustomer": "(no customer)",
+    "reopen": "↗ Reopen",
+    "shellWatermark": "Furniture Blueprints · Raised Floor",
+    "shellBackToSetup": "← Back to setup",
+    "shellPrintBtn": "🖨️ Print / Save PDF",
+    "shellTitleTpl": "{name}_RaisedFloor_{date}",
+    "shellFallbackName": "Customer"
+  },
+  "apronTilt": {
+    "metaTitle": "Splayed-Leg Apron Tilt Calculator",
+    "backHome": "← Home",
+    "h1": "Splayed-Leg Furniture · Apron Tilt Calculator",
+    "intro": "On furniture where 4 legs splay along the diagonals, the apron tilt is not the leg's full splay angle — it's the leg's projected angle as seen from the front or side.",
+    "inputAngleLabel": "Total leg splay angle (°)",
+    "inputAngleHint": "α — angle between leg and vertical",
+    "inputLegHeightLabel": "Leg height (mm)",
+    "inputLegHeightHint": "H — floor to leg top",
+    "resultLabel": "Required apron tilt",
+    "resultFormulaTpl": "arctan(tan({angle}°) / √2)",
+    "calcProcessSummary": "📐 Calculation walkthrough (plain-language explanation)",
+    "step1H": "Step 1: How far does the foot kick out compared to the leg top?",
+    "step1FormulaTpl": "splayMm = H × tan(α) = {h} × tan({angle}°) =",
+    "step1Body1": "Picture the leg as a right triangle: H is the vertical side; α is the splay angle at the top.",
+    "step1Body2": "tan(α) = opposite / adjacent = how far the foot kicks out / leg height",
+    "step1Body3": "So the foot's kick-out distance = H × tan(α). This is the total displacement along the diagonal.",
+    "step2H": "Step 2: How is the diagonal displacement split between X (left/right) and Z (front/back)?",
+    "step2FormulaTpl": "splayDx = splayDz = splayMm / √2 = {splay} / 1.414 =",
+    "step2Body1": "The diagonal direction sits at 45°, so the displacement splits into X (left/right) and Z (front/back) components.",
+    "step2Body2": "component = diagonal × cos(45°) = diagonal / √2",
+    "step2Body3": "X and Z each get splayMm/√2. E.g. a 75 mm diagonal kick = 53 mm left/right and 53 mm front/back.",
+    "step3H": "Step 3: What's the visual slope of the leg from the front?",
+    "step3FormulaTpl": "slope = splayDx / H = {dx} / {h} =",
+    "step3Body1": "Standing in front of the furniture you only see the front/back component (the left/right component is foreshortened away).",
+    "step3Body2": "slope = horizontal displacement / vertical height",
+    "step3Body3": "So front-view slope = splayDx ÷ leg height. A value around 0.23 means \"for every 1 mm of rise, the leg moves 0.23 mm forward.\"",
+    "step4H": "Step 4: Convert slope back to angle",
+    "step4FormulaTpl": "apron tilt = arctan(slope) = arctan({slope}) =",
+    "step4Body1prefix": "arctan",
+    "step4Body1suffix": " is the inverse of tan: given a slope (opposite/adjacent), it returns the angle.",
+    "step4Body2": "This is the apron tilt — it's exactly parallel to the leg in front view, so the geometry aligns visually.",
+    "conclusionTpl": "<strong>TL;DR:</strong> The leg splays {angle}° in 3D, but from the front you only see {tilt}° (the √2 \"flattens\" it). The apron also sits in that front plane, so tilt it {tilt}° to line up with the leg.",
+    "tableSummary": "📊 Quick reference table",
+    "thLegSplay": "Leg splay α",
+    "thApronTilt": "apron tilt",
+    "whySummary": "💡 Why divide by √2?",
+    "whyP1": "Round stools / round tables kick all 4 legs along the diagonals (toward the 4 corners), not purely front/back or purely left/right.",
+    "whyP2": "So the foot moves splayMm along the diagonal, splitting evenly into left/right (X) and front/back (Z) — only splayMm/√2 in each direction.",
+    "whyP3": "From the front (only the Z component is visible), the visual slope is (splayMm/√2) ÷ H = tan(α)/√2 — √2× smaller than the full splay.",
+    "whyP4": "The apron is horizontal in the same viewing plane as the leg, so its required tilt = the leg's projected tilt in front/side view = arctan(tan(α)/√2)."
+  },
+  "refund": {
+    "metaTitle": "Refund Policy · Furniture Blueprints",
+    "metaDescription": "Refund policy for Furniture Blueprints (designer.woodenren.com), operated by Wooden Ren Education Co., Ltd.",
+    "ogTitle": "Refund Policy · Furniture Blueprints",
+    "ogDescription": "Furniture Blueprints refund policy.",
+    "h1": "Refund Policy",
+    "lastUpdated": "Last updated: May 13, 2026",
+    "sec1H": "1. Nature of the service",
+    "sec1P1Pre": "Furniture Blueprints (designer.woodenren.com) is a ",
+    "sec1P1MidStrong": "digital content / online software service (SaaS)",
+    "sec1P1MidPlain": ". Under Taiwan's Consumer Protection Act Article 19(2) and the Executive Yuan's \"Regulations on Reasonable Exceptions to the Right of Cancellation for Distance Sales,\" Article 2, Item 5: ",
+    "sec1P1EmStart": "\"",
+    "sec1P1Em": "Digital content provided not on a tangible medium, or online services completed upon provision, supplied with the consumer's prior consent",
+    "sec1P1EmEnd": "\" — the 7-day cooling-off right does not apply.",
+    "sec1P2Pre": "By completing payment and activating the account, the user is deemed to have consented to immediate provision of the digital content and to have ",
+    "sec1P2Strong": "waived the 7-day cooling-off period",
+    "sec1P2Suffix": ".",
+    "sec2H": "2. Cases where refund applications are accepted",
+    "sec2P": "Payment is generally non-refundable once processed. Refund requests may be reviewed case-by-case within 7 days of payment for the following situations:",
+    "sec2Li1": "A major system defect renders the purchased plan completely unusable and cannot be fixed within a reasonable time.",
+    "sec2Li2": "Duplicate payment (the same plan and account charged repeatedly in a short period).",
+    "sec2Li3": "If we voluntarily discontinue the service, the unused portion of any paid period will be refunded pro rata.",
+    "sec3H": "3. Cases where refunds are not granted",
+    "sec3Li1": "Drawings, PDFs, 3D models, quotes, or any downloadable files have already been generated using the service.",
+    "sec3Li2": "Personal reasons (don't know how to use it, changed your mind, lack of woodworking tools, unfamiliarity with operation, etc.).",
+    "sec3Li3": "Account suspended or terminated for violating the Terms of Service.",
+    "sec4H": "4. Refund procedure",
+    "sec4Li1Pre": "Email ",
+    "sec4Li1Email": "wengbinren@gmail.com",
+    "sec4Li1Suffix": " with the subject \"Refund Request - <your registered email>\". Include order number, payment date, and reason.",
+    "sec4Li2": "We will respond within 7 business days as to whether the request is accepted.",
+    "sec4Li3": "Accepted refunds are returned via the original payment channel (ECPay credit card / ATM). Posting time depends on the issuing bank, typically 3–30 business days.",
+    "sec4Li4Pre": "Because payment-processing fees are charged and kept by third parties (ECPay, issuing banks) and are non-refundable, refund amounts will be ",
+    "sec4Li4Strong": "less any already-incurred payment-processing fees",
+    "sec4Li4Suffix": ".",
+    "sec5H": "5. Contact",
+    "sec5Company": "Wooden Ren Education Co., Ltd.",
+    "sec5AddrLabel": "Address: ",
+    "sec5Addr": "4F, No. 6-34, Dongshi St., Nuannuan Dist., Keelung City, Taiwan",
+    "sec5EmailLabel": "Email: ",
+    "client": {
+      "applyH": "How to apply for a refund",
+      "applyP1": "Furniture Blueprints is a digital product. Per Section 3, refunds are generally not granted. For special cases, please ",
+      "applyP1Strong": "email Wooden Ren directly",
+      "applyP1Suffix": " — each request is reviewed manually and answered by email.",
+      "emailLabel": "Refund contact email:",
+      "emailHint": "Include in your email: registered email, order number (visible in My Subscription), payment date, reason.",
+      "emailHint2": "Typically replied within 7 business days.",
+      "mailtoSubject": "Furniture Blueprints refund request",
+      "loginToView": " to view your own refund history below.",
+      "loginLink": "Sign in",
+      "myRecordsH": "My refund history",
+      "appliedOnTpl": "Applied {date}",
+      "adminReplyLabel": "Reply: ",
+      "statusPending": "Pending",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "statusRefunded": "Refunded"
+    }
+  },
+  "privacy": {
+    "metaTitle": "Privacy Policy · Furniture Blueprints",
+    "metaDescription": "Furniture Blueprints (designer.woodenren.com) privacy policy — what we collect, how we use it, how we protect it.",
+    "ogTitle": "Privacy Policy · Furniture Blueprints",
+    "ogDescription": "Furniture Blueprints privacy policy.",
+    "h1": "Privacy Policy",
+    "lastUpdated": "Last updated: May 12, 2026",
+    "sec1H": "1. Who we are",
+    "sec1P1Pre": "This service is operated by ",
+    "sec1P1Strong": "Wooden Ren Education Co., Ltd.",
+    "sec1P1Suffix": ". Contact email: ",
+    "sec1P1Period": ".",
+    "sec2H": "2. What data we collect",
+    "sec2Li1Strong": "Account data: ",
+    "sec2Li1": "email, display name, avatar (if signing in with Google), registration timestamp.",
+    "sec2Li2Strong": "Design data: ",
+    "sec2Li2": "design files created by users (furniture type, dimensions, options, quote content, customer details).",
+    "sec2Li3Strong": "Payment records: ",
+    "sec2Li3": "payment timestamps, plan type, subscription expiry; ",
+    "sec2Li3Strong2": "we do not store credit card numbers or CVV",
+    "sec2Li3Suffix": " (processed directly by the payment provider).",
+    "sec2Li4Strong": "System logs: ",
+    "sec2Li4": "IP address, browser UA, error messages (used for troubleshooting), retained for up to 90 days.",
+    "sec2Li5Strong": "User-submitted content: ",
+    "sec2Li5": "messages sent via the 🐛 \"Report\" button at the bottom right, and support emails.",
+    "sec3H": "3. How we use the data",
+    "sec3Li1": "To provide and maintain core features (sign-in, design storage, printing, quoting).",
+    "sec3Li2": "Subscription-expiry reminders, receipts, notice of material policy changes.",
+    "sec3Li3": "Troubleshooting and service-quality improvement.",
+    "sec3Li4": "With your consent, product updates / educational content / promotions (you can unsubscribe at any time).",
+    "sec3P": "We <strong>do not</strong> sell or trade your personal data with third parties for marketing.",
+    "sec4H": "4. Third-party services we use",
+    "sec4Li1Strong": "Supabase (database + auth)",
+    "sec4Li1Suffix": ": stores account and design data; servers located in AWS Singapore.",
+    "sec4Li2Strong": "Vercel (deployment)",
+    "sec4Li2Suffix": ": hosts the site; stores build artefacts and system logs.",
+    "sec4Li3Strong": "Google OAuth",
+    "sec4Li3Suffix": " (if you sign in with Google): only email, name, and avatar are retrieved.",
+    "sec4Li4Strong": "Anthropic Claude API",
+    "sec4Li4Suffix": " (if you use the \"photo to design\" feature): uploaded images are sent to Anthropic for image recognition. Anthropic does not use the content for model training (per its API terms).",
+    "sec5H": "5. Cookies and local storage",
+    "sec5Li1": "Sign-in: Supabase Auth uses cookies to maintain session state.",
+    "sec5Li2Pre": "User preferences: quote letterhead, brand customization, etc. are stored in browser ",
+    "sec5Li2Code": "localStorage",
+    "sec5Li2Suffix": " and are not uploaded to the server.",
+    "sec5Li3": "We do <strong>not</strong> use Google Analytics or third-party ad-tracking cookies.",
+    "sec6H": "6. Your rights",
+    "sec6P1": "Under Taiwan's Personal Data Protection Act, you have the following rights regarding your data:",
+    "sec6Li1": "Inquire about, view, and copy your personal data.",
+    "sec6Li2": "Request completion or correction of inaccurate data.",
+    "sec6Li3": "Request that collection / processing / use cease, or that your data be deleted (including account closure).",
+    "sec6P2Pre": "To exercise these rights, please email ",
+    "sec6P2Suffix": ". We will respond within 14 business days.",
+    "sec7H": "7. Data retention",
+    "sec7Li1": "Account and design data: kept until you request account deletion.",
+    "sec7Li2": "Payment records: kept for 7 years per Taiwan tax law.",
+    "sec7Li3": "System logs: rolling 90-day overwrite.",
+    "sec8H": "8. Children's privacy",
+    "sec8P": "This service is not designed for users under 14. If you discover a minor has registered without guardian consent, please email us to delete the account.",
+    "sec9H": "9. Policy updates",
+    "sec9P": "This policy may be updated and announced on this page at any time. Material changes are notified via on-site notice or email. Continued use of the service indicates acceptance of the updated policy.",
+    "footerPre": "If you have questions about this policy, please email ",
+    "footerSuffix": "."
+  },
+  "terms": {
+    "metaTitle": "Terms of Service · Furniture Blueprints",
+    "metaDescription": "Furniture Blueprints (designer.woodenren.com) Terms of Service — operated by Wooden Ren Education Co., Ltd.",
+    "ogTitle": "Terms of Service · Furniture Blueprints",
+    "ogDescription": "Furniture Blueprints Terms of Service.",
+    "h1": "Terms of Service",
+    "lastUpdated": "Last updated: May 12, 2026",
+    "sec1H": "1. Service provider",
+    "sec1Pre": "This service (hereinafter \"the Generator\") is operated by ",
+    "sec1Strong": "Wooden Ren Education Co., Ltd.",
+    "sec1Suffix": ", registered at 4F, No. 6-34, Dongshi St., Nuannuan Dist., Keelung City, Taiwan. Contact email: ",
+    "sec1Period": ".",
+    "sec2H": "2. Service scope",
+    "sec2P1": "The Generator provides the following features: input furniture dimensions / wood species / joinery options, and automatically produce 3D models, three-view engineering drawings, exploded views, bill of materials, and A4 print-ready engineering sheets. The Pro plan and above additionally include a furniture quoting system, customer-data management, and Designer mode.",
+    "sec2P2": "The Generator is under active development; users understand that features may change, be paused, or have pricing adjusted. Material changes are notified via on-site notice or email.",
+    "sec3H": "3. Account registration and security",
+    "sec3Li1": "Users must register with a real email address; impersonation or multi-account registration to circumvent plan limits is prohibited.",
+    "sec3Li2": "Account passwords / sign-in tokens are the user's responsibility to safeguard; losses arising from leakage are borne by the user.",
+    "sec3Li3": "The Generator reserves the right to suspend or terminate accounts that violate these terms or engage in malicious behavior.",
+    "sec4H": "4. Plans and billing",
+    "sec4Li1": "The Free plan offers a subset of furniture templates (square stool, pencil holder, bookend) and 1 saved design per account.",
+    "sec4Li2": "Personal / Pro plans are billed monthly or annually; the Student plan is a complimentary plan for Wooden Ren Academy students, subject to the then-current plan description.",
+    "sec4Li3Pre": "Activation is typically immediate after payment. If activation fails, please email ",
+    "sec4Li3Suffix": ".",
+    "sec4Li4Strong": "Refund policy: ",
+    "sec4Li4": "As this is a digital-content service, payments are generally non-refundable. If a major system defect makes the service unusable, please email us within 7 days of payment for case-by-case review.",
+    "sec5H": "5. Intellectual property",
+    "sec5Li1": "Copyright in the Generator's code, UI, furniture templates, and engineering drawing styles belongs to our company.",
+    "sec5Li2Pre": "Copyright and commercial-use rights in ",
+    "sec5Li2Strong": "the concrete dimensioned design files and printable PDFs",
+    "sec5Li2Suffix": " produced by users via the Generator belong to the user; users may freely use them for their own woodworking, teaching, client projects, and product sales.",
+    "sec5Li3": "Users may not repackage, resell, or supply the Generator's interface, source code, or template database to third parties.",
+    "sec6H": "6. User responsibility and disclaimer",
+    "sec6Li1Pre": "Drawings produced by the Generator are for ",
+    "sec6Li1Strong": "design reference only",
+    "sec6Li1Suffix": "; verify with on-site lumber and tooling before actual construction. We are not liable for any damages (including wasted material, safety incidents, structural failure) arising from constructing based on these drawings.",
+    "sec6Li2": "Suggested material types, quantities, and labor hours included in the Generator are estimates; actual results may differ.",
+    "sec6Li3": "Users may not use the Generator for unlawful, infringing, harassing, or service-destabilizing activities.",
+    "sec7H": "7. Service changes and discontinuation",
+    "sec7P": "We reserve the right to modify, pause, or terminate all or part of the service at any time. Material changes are notified via on-site notice or email. If service termination results in unused paid-period time, a pro rata refund will be issued.",
+    "sec8H": "8. Updates to these terms",
+    "sec8P": "These terms may be updated and announced on this page at any time. Continued use of the service after updates indicates acceptance of the updated terms.",
+    "sec9H": "9. Governing law and jurisdiction",
+    "sec9Pre": "These terms are governed by the laws of the Republic of China (Taiwan). Any dispute arising hereunder shall be subject to the exclusive first-instance jurisdiction of the ",
+    "sec9Strong": "Keelung District Court of Taiwan",
+    "sec9Suffix": ".",
+    "footerPre": "If you have questions about these terms, please email ",
+    "footerSuffix": "."
+  },
+  "quoteShareActions": {
+    "alertNoForm": "Quote form not found — please refresh the page.",
+    "alertNoEmail": "The customer hasn't provided an email yet. Fill in the email in the \"Customer info\" section below and try again.",
+    "alertLocalBaseUrl": "❌ Your \"Public base URL\" is set to {url}, which is a local address — customers cannot reach it.\n\nGo to Quote Header Settings and change it to your live URL (e.g. https://yourstudio.vercel.app).",
+    "alertLocalOrigin": "⚠️ You're editing on localhost — shared links won't be reachable by customers.\n\nExpand \"Quote Header Settings\" first and fill in the \"Public base URL\" field (e.g. https://yourstudio.vercel.app).",
+    "btnLineCopied": "✅ Copied",
+    "btnLine": "💬 LINE message",
+    "btnLineTitle": "Copy a formatted LINE message",
+    "btnEmail": "📧 Email",
+    "btnEmailTitle": "Open mail client to send the customer",
+    "btnCopyLink": "🔗 Copy link",
+    "btnCopyLinkTitle": "Copy a short link to paste anywhere",
+    "btnQrBusy": "…",
+    "btnQrClose": "✕ Hide QR",
+    "btnQr": "📱 QR",
+    "btnQrTitle": "Show a QR code for the customer to scan on-site",
+    "btnPdf": "🧾 Print / PDF",
+    "btnPdfTitle": "Open in new tab to print / save as PDF",
+    "lineTitle": "[Custom Furniture Quote]",
+    "lineGreetingTpl": "Hi {name},",
+    "lineGreetingFallback": "Hello,",
+    "lineIntro": "Here is your quote:",
+    "lineItemTpl": "📐 Item: {name}",
+    "lineDimensionsTpl": "📏 Dimensions: {value}",
+    "lineMaterialTpl": "🪵 Material: {name}",
+    "lineTotalTpl": "💰 Total (incl. tax): {total}",
+    "lineDepositTpl": "  ├─ Deposit (on order, {pct}%): {amount}",
+    "lineBalanceTpl": "  └─ Balance (on delivery): {amount}",
+    "lineDeliveryTpl": "📅 Estimated delivery: {date}",
+    "lineExpiryTpl": "⏰ Quote valid until: {date}",
+    "lineUrlLabel": "🔗 Full quote:",
+    "lineQuoteNoTpl": "Quote no.: {no}",
+    "lineSignoff": "Feel free to reply if you'd like to adjust anything. Thank you!",
+    "lineFrom": "— Furniture Blueprints",
+    "emailSubjectTpl": "Custom Furniture Quote {no} | {name} {dim}",
+    "emailIntro": "Thank you for the inquiry. Here is your custom furniture quote:",
+    "emailDivider": "━━━━━━━━━━━━━━━",
+    "emailItemTpl": "Item: {name}",
+    "emailDimTpl": "Dimensions: {value}",
+    "emailMaterialTpl": "Material: {name}",
+    "emailTotalTpl": "Total (incl. tax): {total}",
+    "emailDepositTpl": "  Deposit (on order, {pct}%): {amount}",
+    "emailBalanceTpl": "  Balance (on delivery): {amount}",
+    "emailDeliveryTpl": "Estimated delivery: {date}",
+    "emailExpiryTpl": "Quote valid until: {date}",
+    "emailLinkIntro": "Full quote (three-views, terms, notes):",
+    "emailSignoff": "If you'd like to adjust the design or have any questions, just reply to this email.",
+    "emailFrom": "— Furniture Blueprints"
+  },
+  "quoteLaborForm": {
+    "presetStandard": "Standard job",
+    "presetLow": "Low-margin bid",
+    "presetHigh": "Premium",
+    "presetLabel": "Apply:",
+    "pending": "Updating…",
+    "termsLegend": "💰 Pricing & terms (most-tweaked)",
+    "fieldOverridePrice": "Override price NT$ (0=disabled)",
+    "fieldOverridePriceHint": "Customer counter-offered 25,000? Type it in → margin auto-recalcs",
+    "fieldQuantity": "Quantity",
+    "fieldDiscountRate": "Discount rate",
+    "fieldDiscountRateHint": "e.g. 5% = 95% off list",
+    "fieldDepositRate": "Deposit ratio",
+    "termShipping": "🚚 Includes shipping",
+    "termInstall": "🔧 Includes on-site installation",
+    "termPdfNote": "(PDF note)",
+    "advancedToggle": "Advanced (validity, material price, hourly rate, margin, tax)",
+    "validityLegend": "Validity / lead time / buffer",
+    "fieldExpiryDays": "Quote validity (days)",
+    "fieldDeliveryDays": "Delivery (workdays)",
+    "fieldDeliveryDaysHintAuto": "0 = auto-estimate (with buffer); set a value to override",
+    "fieldDeliveryDaysHintNoAuto": "0 = auto-estimate; set a value to override",
+    "fieldBufferDays": "Finishing / shipping buffer (days)",
+    "fieldBufferDaysHint": "Drying + shipping, added to auto-estimate",
+    "materialLegend": "Material price (NT$ / board foot)",
+    "primaryMaterialLabelTpl": "{name} (primary)",
+    "fieldPlywood": "Plywood (back / drawer bottom)",
+    "fieldMdf": "MDF (drawer side/back)",
+    "matOptionalHint": "Leave blank to roll into primary material",
+    "laborLegend": "Hourly / consumables / margin",
+    "fieldHourlyRate": "Hourly rate (NT$/hr)",
+    "fieldHoursOverrideTpl": "Hours override (hr) — estimated {hours}h",
+    "fieldHoursOverrideHintTpl": "0 = use estimated {hours}h; set a value to override",
+    "fieldEquipment": "Equipment depreciation (NT$/hr)",
+    "fieldConsumables": "Consumables (NT$)",
+    "fieldFinishing": "Finishing (NT$)",
+    "fieldHardware": "Hardware (NT$)",
+    "fieldShipping": "Shipping (NT$)",
+    "fieldInstall": "Installation (NT$)",
+    "fieldMargin": "Margin",
+    "fieldVat": "VAT rate",
+    "designerLegend": "🎨 Designer markup (for client-facing proposals)",
+    "designerHelp": "An additional multiplier on top of cost + margin. For interior designers quoting to their own clients: maker price × (1 + markup) = client price.",
+    "designerHelp2": "0 = disabled (regular maker mode); typical 30–50%. The backend always shows the underlying maker price.",
+    "fieldDesignerMarkup": "Designer markup",
+    "fieldDesignerMarkupHint": "0 = off; enter 30 to add 30%",
+    "optionalPlaceholder": "(blank / 0 = rolled into primary)"
+  },
+  "zoomableViews": {
+    "front": "Front view",
+    "side": "Side view",
+    "top": "Top view",
+    "zoomHint": "🔍 Click to zoom",
+    "zoomInAriaLabel": "Zoom in",
+    "zoomOutAriaLabel": "Zoom out",
+    "zoomInTitle": "Zoom in (press +)",
+    "zoomOutTitle": "Zoom out (press -)",
+    "resetTitle": "Reset zoom (press 0)",
+    "closeAriaLabel": "Close",
+    "zoomLabelTpl": "Zoom {title}"
+  },
+  "quoteGate": {
+    "checking": "Checking your plan…",
+    "h": "Custom Furniture Quoting is a Pro feature",
+    "body1": "End-to-end quoting (materials / labor / finishing / discount / tax) + custom letterhead + customer DB + LINE/Email one-click share — all here.",
+    "body2": "Pro is NT$ 890 / month — pays for itself in a single job.",
+    "cta": "See plans",
+    "notLoggedInHint": "· Not signed in? Sign in from the top-right first.",
+    "upgradeFeature": "Custom quote letterhead / logo / customer DB",
+    "upgradeHint": "Pro includes these studio essentials."
+  },
+  "engQuoteForm": {
+    "demolitionH": "Demolition & disposal",
+    "consumablesH": "Sundry consumables",
+    "modeLump": "Lump sum",
+    "modePerPing": "Per ping",
+    "modePercent": "% of materials",
+    "fieldCeilingMaterial": "Ceiling material per ping",
+    "fieldLabor": "Labor per ping",
+    "fieldDemolitionLump": "Demolition (lump)",
+    "fieldDemolitionPerPing": "Demolition (per ping)",
+    "fieldConsumablesLump": "Sundries (lump)",
+    "fieldConsumablesPercent": "Sundries (% of materials)",
+    "fieldPainting": "Skim & paint",
+    "fieldShipping": "Shipping",
+    "fieldMargin": "Margin",
+    "fieldDiscount": "Discount",
+    "fieldDeposit": "Deposit",
+    "fieldValidity": "Validity (days)",
+    "unitPerPing": "NTD/ping",
+    "unitNtd": "NTD",
+    "unitPct": "%",
+    "unitDays": "days"
+  },
+  "engQuotePrint": {
+    "titleFloor": "Flooring Project Quote",
+    "titleCeiling": "Ceiling Project Quote",
+    "customerH": "Customer",
+    "taxIdPrefix": "VAT",
+    "pingTpl": "Area",
+    "ping": "ping",
+    "areaTpl": "Area",
+    "thItem": "Item",
+    "thDetail": "Description",
+    "thAmount": "Amount",
+    "unpriced": "Not priced",
+    "rowCostSubtotal": "Cost subtotal",
+    "rowMargin": "Margin",
+    "rowSubtotalExclVat": "Subtotal (excl. VAT)",
+    "rowDiscount": "Discount",
+    "rowVatTpl": "VAT {pct}%",
+    "rowTotal": "Total",
+    "rowDeposit": "Deposit",
+    "rowBalance": "Balance on delivery",
+    "unpricedWarn": "⚠️ Some items have no unit price set — this quote is incomplete.",
+    "validUntilTpl": "Quote valid until {date}",
+    "signCustomer": "Customer signature: ________________",
+    "signContractor": "Contractor signature: ________________"
+  },
+  "projectShare": {
+    "studio": "Studio",
+    "greetingTpl": "Hi {name},",
+    "greetingFallback": "Hello,",
+    "alertGenerateFailedTpl": "Failed to generate link: {msg}",
+    "lineBtn": "💬 LINE proposal",
+    "lineBtnTitle": "Open LINE share panel with greeting and link pre-filled",
+    "emailBtn": "📧 Email",
+    "emailBtnTitle": "Open email with subject and link pre-filled",
+    "lineMessageTpl": "{greeting}\n\n{sender} has prepared the full quote for \"{project}\" (no. {no}, total {total}).\n\nView online: {url}\n\nFeel free to reach out for any questions or adjustments. Thank you!",
+    "emailSubjectTpl": "{project} Quote ({no}) — {sender}",
+    "emailIntroTpl": "Thank you for the inquiry. {sender} has prepared the full quote for \"{project}\".",
+    "emailQuoteNoTpl": "Quote no.: {no}",
+    "emailTotalTpl": "Total: {total}",
+    "emailUrlTpl": "View online: {url}",
+    "emailSignoff": "Feel free to reply if you'd like to adjust anything. Thank you!"
+  },
+  "branded": {
+    "logoAltFallback": "LOGO",
+    "taglineDefault": "WOODEN REN · Furniture Blueprints",
+    "headerTitleZh": "Custom Furniture Quote",
+    "headerTitleEn": "QUOTATION",
+    "supplierH": "From",
+    "fieldCompany": "Company",
+    "fieldChinese": "Chinese",
+    "fieldAddress": "Address",
+    "fieldPhone": "Phone",
+    "fieldTaxId": "VAT",
+    "fieldContact": "Contact",
+    "fieldEmail": "Email",
+    "footerCopyright": "© 2026 {company} · Auto-generated by Furniture Blueprints",
+    "footerCompanyFallback": "Wooden Ren Education Co., Ltd.",
+    "signatureCompanyFallback": "Wooden Ren Education Co., Ltd.",
+    "signatureDateTpl": "Date: {date}",
+    "termsPaymentH": "Payment Terms",
+    "termsDeliveryH": "Delivery & Warranty",
+    "termsDeliveryLbl": "Lead time",
+    "termsWarrantyLbl": "Warranty",
+    "termsAfterSalesLbl": "After-sales",
+    "depositLineTpl": "Deposit: on signing {pct}% ({amount})",
+    "balanceLineTpl": "Balance: before delivery {pct}% ({amount})",
+    "installmentLineTpl": "{label}: {pct}% ({amount})",
+    "installmentLabelFallback": "—",
+    "bankNameTpl": "Bank: {bank}",
+    "bankAccountTpl": "Account: {account}",
+    "deliveryWorkdaysTpl": "approx. {n} workdays",
+    "notesH": "Notes",
+    "dashesPlaceholder": "________________",
+    "dashesShort": "________"
+  },
+  "ownerBranded": {
+    "studio": "Studio",
+    "kicker": "QUOTATION · Custom Furniture Quote"
+  },
+  "customerForm": {
+    "legend": "Customer info (fills the \"To\" block on the quote)",
+    "historyHTpl": "📇 Recent customers ({n}) — tap to apply",
+    "historyApplyTitleTpl": "Apply {name}{phone}{tax}",
+    "historyPhoneSep": " · {phone}",
+    "historyTaxSep": " · VAT {tax}",
+    "removeTitle": "Remove from history",
+    "removeAria": "Remove",
+    "fieldName": "Company / Name",
+    "fieldContact": "Contact person",
+    "fieldPhone": "Phone",
+    "fieldAddress": "Delivery address",
+    "fieldTaxId": "VAT / Tax ID",
+    "fieldEmail": "Email",
+    "clear": "Clear customer info"
+  },
+  "expiryBanner": {
+    "expiredTitleTpl": "⚠️ This quote expired on {date}",
+    "expiredCustomer": "Material costs and labor may have changed — please contact the maker for an updated quote.",
+    "expiredCraftsman": "Recommend confirming unit prices again or extending validity from the project page.",
+    "soonTpl": "⏰ Quote valid until {date} ({days} days left) — please confirm soon.",
+    "validTpl": "📅 Quote valid until {date} ({days} days left)"
+  },
+  "contactCraftsman": {
+    "studio": "Studio",
+    "greetingTpl": "Hi {name},",
+    "greetingFallback": "Hello,",
+    "h": "Questions? Reach out to the maker directly",
+    "intro": "Want to tweak dimensions? Change wood species? See more details? Ask about lead time? Get in touch any time.",
+    "phoneBtn": "📞 Call",
+    "emailBtn": "📧 Email the maker",
+    "footerTpl": "Quote prepared by {sender} via Furniture Blueprints",
+    "inquirySubjectTpl": "Quote inquiry (no. {no})",
+    "inquiryBodyTpl": "{greeting}\n\nI'm looking at the quote you sent (no. {no}) and would like to discuss:\n\n(write your question here)\n\nThanks!"
+  },
+  "messageThread": {
+    "errMissingToken": "Missing token",
+    "thCustomer": "Message the maker",
+    "thCraftsman": "Conversations with customers",
+    "todayTpl": "Today {time}",
+    "nicknameCustomer": "Customer",
+    "nicknameCraftsman": "Maker",
+    "namePhCustomer": "Your name (optional)",
+    "namePhCraftsman": "(Optional) display name",
+    "contentPhCustomer": "Want to adjust dimensions? Change wood? Ask about lead time? Negotiate price? Drop any question here.",
+    "contentPhCraftsman": "Reply to the customer or post a progress update…",
+    "sendBtnIdle": "Send message",
+    "sendBtnBusy": "Sending…",
+    "errPrefixTpl": "Send failed: {msg}"
+  },
+  "copyShareLink": {
+    "title": "Generate a public link (customers don't need to log in to view the quote)",
+    "copied": "✅ Public link copied",
+    "idle": "🔗 Copy public link",
+    "alertFailedTpl": "Copy failed: {msg}"
+  },
+  "pricingPage": {
+    "paymentErrorH": "Checkout is temporarily unavailable",
+    "paymentErrorBody": "Sorry, payments are offline right now. Please try again later, or ",
+    "paymentErrorContact": "contact us",
+    "paymentErrorBodyTail": " for help.",
+    "paymentErrorBack": "← Go back",
+    "paymentErrorBrowse": "Browse templates",
+    "lockedHTpl": "\"{name}\" is a paid-plan template",
+    "lockedBody": "The free plan only includes 2 starter templates (Square Stool, Pencil Holder). Other real furniture is available via \"single-template purchase\" or by upgrading to Personal. Pick a plan below to unlock.",
+    "lockedDetailTpl": "📖 Read \"{name}\" details first →",
+    "backToApp": "← Back to catalog",
+    "browseTemplates": "📖 Browse template details",
+    "h1": "Pick the plan that fits you",
+    "subH1": "Whether you're a DIY hobbyist, working maker, or designer — there's a plan for you",
+    "subHelpPre": "Not sure which furniture to build yet? Head over to ",
+    "subHelpLink": "Templates",
+    "subHelpSuffix": " to read full pages, design highlights, and screenshots first.",
+    "tabMonthly": "Monthly",
+    "tabYearly": "Yearly",
+    "yearlySavings": "Save 2 months",
+    "couponLabel": "🎫 Promo code (optional)",
+    "couponPlaceholder": "e.g. LAUNCH-XXXXXXXX",
+    "couponApply": "Apply",
+    "couponChecking": "Checking…",
+    "couponOkTpl": "✅ {pct}% discount applied (yearly plans only, auto-deducted at checkout)",
+    "couponErrPrefix": "❌ ",
+    "couponMonthlyWarn": "⚠️ This coupon only works on yearly plans — switch to \"Yearly\" above to activate.",
+    "couponErrFallback": "Validation failed",
+    "couponNetworkErr": "Network error",
+    "faqsH": "Pricing FAQ",
+    "faqsSub": "The 8 most-asked questions before signing up",
+    "fullFaq": "Full FAQ →",
+    "footnote1": "All plans can be upgraded or downgraded at any time. Monthly/yearly plans auto-downgrade to Free at expiry (designs and customer data retained for 90 days).",
+    "footnote2": "Yearly = monthly × 10 (save 2 months). Simpler — pay once a year."
+  },
+  "pricingPlans": {
+    "free": {
+      "name": "Free",
+      "audience": [
+        "Just exploring",
+        "Square Stool / Pencil Holder / Bookend is enough",
+        "Haven't decided whether to pay"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "3 starter templates: Square Stool, Pencil Holder, Bookend"
+        },
+        {
+          "ok": true,
+          "text": "3D perspective preview"
+        },
+        {
+          "ok": true,
+          "text": "Engineering 3-views (with watermark)"
+        },
+        {
+          "ok": false,
+          "text": "Other 16 furniture templates"
+        },
+        {
+          "ok": false,
+          "text": "PDF download"
+        },
+        {
+          "ok": false,
+          "text": "Custom furniture quoting"
+        }
+      ],
+      "cta": "Start free"
+    },
+    "personal": {
+      "name": "Personal",
+      "audience": [
+        "DIY woodworkers",
+        "Weekend furniture makers",
+        "Building for your own home"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "Unlimited saved designs"
+        },
+        {
+          "ok": true,
+          "text": "PDF download (no watermark)"
+        },
+        {
+          "ok": true,
+          "text": "Full cut-plan calculator"
+        },
+        {
+          "ok": true,
+          "text": "All templates + 3D preview"
+        },
+        {
+          "ok": true,
+          "text": "Ceiling/floor simulator"
+        },
+        {
+          "ok": false,
+          "text": "Custom furniture quoting"
+        },
+        {
+          "ok": false,
+          "text": "Customer database"
+        }
+      ],
+      "cta": "Choose Personal"
+    },
+    "pro": {
+      "name": "Pro",
+      "audience": [
+        "Working woodworkers",
+        "Independent furniture designers",
+        "Studio owners"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "Everything in Personal"
+        },
+        {
+          "ok": true,
+          "text": "Custom furniture quoting"
+        },
+        {
+          "ok": true,
+          "text": "Custom quote letterhead / logo"
+        },
+        {
+          "ok": true,
+          "text": "Customer database"
+        },
+        {
+          "ok": true,
+          "text": "One-click PDF quote"
+        },
+        {
+          "ok": true,
+          "text": "LINE / Email one-click share"
+        }
+      ],
+      "cta": "Choose Pro"
+    },
+    "student_personal": {
+      "name": "Student · Personal",
+      "audience": [
+        "Students using it at home",
+        "Continuing post-class projects",
+        "Don't need quoting"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "Everything in Personal"
+        },
+        {
+          "ok": true,
+          "text": "Unlimited saved designs"
+        },
+        {
+          "ok": true,
+          "text": "PDF download (no watermark)"
+        },
+        {
+          "ok": true,
+          "text": "Full cut-plan calculator"
+        },
+        {
+          "ok": true,
+          "text": "Student-only ~25% discount"
+        },
+        {
+          "ok": false,
+          "text": "Custom furniture quoting"
+        }
+      ],
+      "cta": "Choose Student · Personal"
+    },
+    "student_pro": {
+      "name": "Student · Pro",
+      "audience": [
+        "Students who started working professionally",
+        "Independent studio owners",
+        "Need full quote/customer management"
+      ],
+      "features": [
+        {
+          "ok": true,
+          "text": "Everything in Pro"
+        },
+        {
+          "ok": true,
+          "text": "Custom furniture quoting"
+        },
+        {
+          "ok": true,
+          "text": "Custom quote letterhead / logo"
+        },
+        {
+          "ok": true,
+          "text": "Customer database"
+        },
+        {
+          "ok": true,
+          "text": "One-click PDF quote"
+        },
+        {
+          "ok": true,
+          "text": "Student-only ~22% discount"
+        }
+      ],
+      "cta": "Choose Student · Pro"
+    }
+  },
+  "pricingFaqs": [
+    {
+      "q": "What does the free plan actually include?",
+      "a": "Two starter templates (Square Stool, Pencil Holder) are unlocked. 3D, joinery, 3-views, BOM, PDF — all included, identical to paid users. The only differences are template count and size limits (Square Stool 35×35×45cm, Pencil Holder 20×20×25cm)."
+    },
+    {
+      "q": "What's the difference between Personal (NT$390) and Pro (NT$890)?",
+      "a": "Personal: all 26 templates + ceiling/floor simulators + PDF + unlimited cloud storage. For DIY, home projects, weekend furniture makers.\n\nPro: everything in Personal + customer quote system + customer database + STL/OBJ export (CNC-ready) + Designer Mode (no size limit). For professionals who work jobs or run a studio.\n\nShort version: not taking jobs → Personal. Earning a living from this → Pro."
+    },
+    {
+      "q": "Can I cancel any time? Will I be auto-renewed?",
+      "a": "Yes. Monthly plans can be cancelled any time and remain active until the period ends. Yearly plans are fully refundable within 7 days (one-time payment; auto-downgrades to Free at expiry without renewal)."
+    },
+    {
+      "q": "Why pick yearly? Is it really cheaper?",
+      "a": "Yearly = monthly × 10 (effectively 2 months free). Personal yearly NT$3,900 (vs NT$4,680 monthly) saves NT$780. Pro yearly NT$8,900 (vs NT$10,680 monthly) saves NT$1,780. If you're sure you'll use it 6+ months, yearly is cheaper."
+    },
+    {
+      "q": "Can I buy just one template? (Single-template purchase)",
+      "a": "Yes. You can purchase a single template for permanent use without subscribing (never expires, retained across plans). Price ranges from NT$200~990 depending on template complexity. See the \"Single-template purchase\" section below."
+    },
+    {
+      "q": "Is there a discount for Wooden Ren Academy lifetime members?",
+      "a": "Yes. DM Wooden Ren for the dedicated code — all plans receive a discount (not publicly advertised). Verified students get it auto-applied."
+    },
+    {
+      "q": "What payment methods are supported?",
+      "a": "Credit card (VISA / Mastercard / JCB), ATM transfer, convenience-store voucher. Processed by ECPay — secure and compliant with Taiwan FSC regulations. E-invoices are available (personal / corporate)."
+    },
+    {
+      "q": "How does upgrading / downgrading work?",
+      "a": "Upgrade: pay the prorated difference, takes effect immediately (based on remaining days). Downgrade: applied at the end of the current period (no mid-cycle clawback). All designs, customer data, and saved templates are preserved across plan changes."
+    }
+  ],
+  "planCard": {
+    "perMonth": "/ mo",
+    "perYear": "/ yr",
+    "popular": "★ Most popular",
+    "studentOnly": "🎓 Academy students only",
+    "monthlyEqTpl": "Equivalent to NT$ {price} / mo",
+    "savingsTpl": "(save NT$ {amount})",
+    "couponAppliedTpl": "🎫 {pct}% discount applied, save NT$ {amount}",
+    "currentPlan": "✓ Your current plan",
+    "switchPeriodTpl": "Cancel current to switch to {period}",
+    "monthly": "monthly",
+    "yearly": "yearly",
+    "downgradeCancel": "Cancel current subscription to downgrade",
+    "upgradeNowTpl": "Upgrade now · refund NT$ {amount} for old plan",
+    "upgradeNow": "Upgrade now",
+    "checking": "Checking…",
+    "refundDetailTpl": "{days} days unused on the old plan — NT$ {amount} will be auto-refunded to the original card (3-7 business days).",
+    "refundZero": "No remaining days to refund on the old plan; the new plan starts immediately.",
+    "refundLoading": "The unused portion of your previous plan will be auto-refunded to the original card.",
+    "checkoutGatewayTplMonthly": "Redirects to ECPay · Credit card (auto-charged monthly)",
+    "checkoutGatewayTplYearly": "Redirects to ECPay · Credit card / ATM / convenience store"
+  },
+  "planLabel": {
+    "free": "Free",
+    "personal": "Personal",
+    "pro": "Pro",
+    "student": "Student",
+    "lifetime": "Lifetime"
+  },
+  "projectDetailClient": {
+    "commonRooms": [
+      "Master bedroom",
+      "Second bedroom",
+      "Children's room",
+      "Guest room",
+      "Study",
+      "Living room",
+      "Dining room",
+      "Kitchen",
+      "Entryway",
+      "Bathroom",
+      "Balcony",
+      "Storage",
+      "Office"
+    ],
+    "ungrouped": "Ungrouped",
+    "loading": "Loading…",
+    "loginRequired": "Sign in to view your project.",
+    "backToList": "← Back to projects",
+    "errFallback": "Project not found — it may have been deleted or you don't have access.",
+    "untitled": "(Untitled)",
+    "statusTitle": "Change project status",
+    "fieldCustomerName": "Customer name",
+    "phCustomerName": "e.g. Mr. Lin / Mrs. Wang",
+    "fieldCustomerContact": "Customer contact",
+    "phCustomerContact": "Phone / Email / LINE",
+    "fieldProjectAddress": "Site address",
+    "phProjectAddress": "e.g. Da'an Dist., Taipei...",
+    "fieldDesignConcept": "Design concept (one line)",
+    "phDesignConcept": "e.g. Japanese wabi-sabi, Scandinavian light tones, natural wood grain",
+    "publicNotesH": "📌 Public notes",
+    "publicNotesSub": "Shown to the customer on the quote",
+    "phPublicNotes": "e.g. Care guide provided at delivery, 1-year warranty, delivery to door included...",
+    "internalNotesH": "📝 Internal notes",
+    "internalNotesSub": "Hidden from customer — for yourself / the foreman",
+    "phInternalNotes": "e.g. Customer haggle room 5%, 10% off if boss approves, foreman insists 18mm sheets, customer referred by OOO...",
+    "itemsH": "Furniture items",
+    "collapseBtn": "Collapse",
+    "addBtn": "+ Add furniture",
+    "selectedCountTpl": "{n} items selected",
+    "cancelSelect": "Clear selection",
+    "batchDelete": "🗑 Delete selected",
+    "emptyH": "No furniture in this project yet",
+    "emptyBody": "Design some furniture and save them first, then come back here to add them.",
+    "addFromSaved": "+ Add from saved designs",
+    "goDesign": "Go design first",
+    "roomGroupTpl": "📐 {name} ({n} items)",
+    "totalsH": "Project total",
+    "totalsLineTpl": "{n} items · prices reflect the unit price below after haggling (items without unit price count as 0)",
+    "depositTpl": "Deposit {pct}%:",
+    "previewQuote": "👀 Preview quote",
+    "printQuote": "🖨️ Print / PDF",
+    "purchaseList": "🛒 Purchase list",
+    "purchaseTitle": "Aggregated lumber requirements (board feet) across all items",
+    "moreActions": "More actions",
+    "duplicateNote": "📋 Useful for the second job or a developer's next case — copies customer info, items, and quote settings.",
+    "duplicateBtn": "📋 Duplicate this project",
+    "dangerZoneNote": "⚠️ Danger zone: these actions cannot be undone",
+    "deleteProject": "🗑 Delete entire project",
+    "stickyCountTpl": "{n} items · total",
+    "stickyPreview": "👀 Preview quote",
+    "alertAddFailTpl": "Add failed: {msg}",
+    "alertSaveFailTpl": "Save failed: {msg}",
+    "alertConfirmRemoveItem": "Remove this item?",
+    "alertRemoveFailTpl": "Remove failed: {msg}",
+    "alertConfirmBatchTpl": "Remove {n} items?",
+    "alertBatchFailTpl": "Delete failed: {msg}",
+    "promptNewNameTitle": "New project name?",
+    "promptNewNameTpl": "{name} (Copy)",
+    "alertDuplicateFailTpl": "Duplicate failed: {msg}",
+    "confirmDeleteTpl": "Delete project \"{name}\"? All items will be deleted too — cannot be undone.",
+    "alertDeleteFailTpl": "Delete failed: {msg}",
+    "labelSaved": "✓ Saved",
+    "dragTitle": "Drag to reorder (within room)",
+    "selectTitle": "Select",
+    "phRoom": "Room",
+    "unitPriceLbl": "Price",
+    "estPlaceholderTpl": "est {n}",
+    "useEstimate": "Use",
+    "updateEstimate": "Update to",
+    "useEstimateTitle": "Estimate from template + default labor",
+    "useEstimatePriceTpl": "est ${amount}",
+    "openItem": "Open",
+    "removeItem": "Remove",
+    "laborOptsH": "⚙️ Quote settings",
+    "laborOptsSub": "(affects the \"Use estimate\" labor / margin / tax inputs)",
+    "customizedTpl": "{n} custom values",
+    "useDefault": "Using defaults",
+    "resetDefault": "Reset to defaults",
+    "laborGroupWages": "Labor & margin",
+    "laborGroupMisc": "Misc costs",
+    "laborGroupTax": "Tax & discount",
+    "fHourlyRate": "Hourly rate (NT$/hr)",
+    "fHourlyRateHint": "default 500 (senior maker)",
+    "fMargin": "Margin %",
+    "fMarginHint": "default 30%",
+    "fFinishing": "Finishing (NT$)",
+    "fFinishingHint": "default 1500",
+    "fShipping": "Shipping (NT$)",
+    "fShippingHint": "default 0 (pickup)",
+    "fInstall": "Install (NT$)",
+    "fInstallHint": "default 0",
+    "fHardware": "Hardware (NT$)",
+    "fHardwareHint": "default 0",
+    "fVat": "VAT rate %",
+    "fVatHint": "default 0 (no invoice)",
+    "fDiscount": "Discount %",
+    "fDiscountHint": "0 = no discount",
+    "defaultPrefix": "default ",
+    "paymentH": "💰 Payments · status",
+    "paymentAllPaid": "✓ Fully paid",
+    "paymentDepositPaid": "Deposit received",
+    "paymentNoPay": "Unpaid",
+    "paymentDeliveryTpl": "Delivery: {date}",
+    "depositLblTpl": "Deposit ({pct}%)",
+    "balanceLbl": "Balance",
+    "expectedDeliveryH": "📅 Expected delivery date",
+    "expectedDeliveryHint": "Blank = auto-estimate from labor hours",
+    "addPanelHTpl": "Add from saved designs",
+    "addPanelRoom": "Room",
+    "addPanelRoomPh": "e.g. Entryway / Living room",
+    "noSavedDesigns1": "You haven't saved any designs yet. Head to the",
+    "noSavedDesignsLink": "Catalog",
+    "noSavedDesigns2": ", pick one, adjust the size, and hit \"💾 Save\" in the top-right — then come back here.",
+    "projectStatus": {
+      "draft": "Draft",
+      "sent": "Proposal sent",
+      "confirmed": "Confirmed",
+      "in_production": "In production",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
+  },
+  "projectsClient": {
+    "loading": "Loading…",
+    "h1": "My Projects",
+    "loginRequired": "Sign in to manage your projects (top-right \"Sign in with Google\").",
+    "backHome": "← Back to catalog",
+    "createBtn": "+ New project",
+    "creatingBtn": "Creating…",
+    "promptName": "Project name (e.g. Lin Residence, Wang's living room)",
+    "alertCreateFailTpl": "Create failed: {msg}",
+    "intro": "Bundle multiple furniture items into a single case (with customer info, site, design concept, and total quote).",
+    "loadFailTpl": "Load failed: {msg}",
+    "emptyBody": "No projects yet. Create one to bundle multiple furniture items into a proposal for your customer.",
+    "createFirst": "Create your first project",
+    "customerLabelTpl": "Customer: {name}",
+    "updatedTpl": "Updated {date}"
+  },
+  "brandingForm": {
+    "loadingBranding": "Loading branding settings…",
+    "logoErrType": "File must be an image (png / jpg / svg)",
+    "logoErrSizeTpl": "Logo exceeds {limit}KB — please compress it (256×256 or smaller)",
+    "logoErrRead": "File read failed",
+    "headerH": "🏢 Quote letterhead settings (company name + logo)",
+    "notCustomized": "Not customized (using defaults)",
+    "customized": "Customized",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "saving": "⏳ Saving…",
+    "saved": "✓ Saved",
+    "saveNow": "💾 Save now",
+    "logoLabel": "Company logo (256×256 or smaller recommended, png with transparent background)",
+    "logoAltPreview": "Logo preview",
+    "logoAltDefault": "Default logo",
+    "logoClear": "Clear (revert to default)",
+    "fieldCompanyZh": "Company name (Chinese)",
+    "phCompanyZh": "e.g. Wooden Ren Academy",
+    "fieldCompanyEn": "Company name (English / registered)",
+    "phCompanyEn": "e.g. Wooden Ren Education Co., Ltd.",
+    "fieldTagline": "Tagline",
+    "phTagline": "e.g. WOODEN REN · Handmade Furniture",
+    "fieldContact": "Contact person",
+    "fieldAddress": "Address",
+    "fieldPhone": "Phone",
+    "fieldTaxId": "VAT / Tax ID",
+    "fieldEmail": "Email",
+    "publicUrlLabel": "Public base URL (the link customers see)",
+    "captureCurrentUrl": "📋 Capture current URL",
+    "captureCurrentTitle": "Use the current browser tab's URL as the public URL (must be clicked on the live site — localhost is rejected)",
+    "captureLocalAlertTpl": "❌ Current URL is {origin} — a local address that customers can't reach.\n\nClick this button once on the live site (e.g. https://yourstudio.vercel.app), and the live URL will be used even when you edit on localhost.\n\nIf you don't have a live URL yet, type it manually in the field below.",
+    "phPublicUrl": "e.g. https://yourstudio.vercel.app (blank uses current origin)",
+    "publicUrlHint": "When sharing via LINE/Email, the \"full quote link\" uses this as the prefix. Required when editing on localhost — otherwise customers can't reach your computer.",
+    "termsH": "Quote terms (editable, applied on the A4 PDF)",
+    "fieldPaymentTerms": "Payment terms",
+    "paymentTermsHint": "Leading \"Deposit\" / \"Balance\" lines are auto-overwritten by the deposit ratio above. Fill bank info in the fields below — they're auto-appended to the payment terms.",
+    "fieldBankName": "Bank",
+    "phBankName": "e.g. E.Sun Bank, Nuannuan Branch (808)",
+    "fieldBankAccount": "Bank account",
+    "phBankAccount": "e.g. Wooden Ren / 0123-456-789012",
+    "fieldWarranty": "Warranty",
+    "fieldAfterSales": "After-sales",
+    "fieldNotes": "Notes (one per line)",
+    "confirmReset": "Reset all to defaults?\n\nThis will clear:\n- Company letterhead, logo\n- Bank info\n- Installments, terms, notes\n\nCannot be undone.",
+    "resetAll": "⚠️ Reset all to defaults",
+    "statusSyncing": "⏳ Syncing to cloud…",
+    "statusSyncedSaved": "✓ Saved to cloud",
+    "statusPendingPush": "💾 Saved locally · auto-syncing to cloud in 1.5s",
+    "statusSyncedAtTpl": "✓ Synced to cloud · {time} (shared across devices when signed in)",
+    "statusLocalOnly": "💾 Settings stored locally; sign in to sync to cloud",
+    "installments": {
+      "h": "Payment installments (overrides the deposit ratio above)",
+      "dividerLbl": "Split",
+      "noInstall": "None",
+      "nPeriodsTpl": "{n} periods",
+      "intro": "Currently using the quote-page deposit ratio (depositRate) for a 2-stage split. After choosing 1–5 periods below, that overrides — each stage gets its own label and %.",
+      "labelPh": "Stage name",
+      "totalTpl": "Total: {pct}%",
+      "deltaTpl": "(off by {delta}% — must total 100%)",
+      "presetFull": "Full payment",
+      "presetDeposit": "Deposit",
+      "presetBalance": "Balance",
+      "presetMid": "Mid-term",
+      "presetMaterial": "Material order",
+      "presetWoodDone": "Carpentry done",
+      "presetFinishDone": "Finishing done"
+    }
+  },
+  "myDesignsPage": {
+    "loading": "Loading…",
+    "h1": "My Designs",
+    "loginRequired": "Sign in to view your saved designs (top-right \"Sign in with Google\").",
+    "backHome": "← Back to catalog",
+    "countTpl": "{n} saved designs. \"Re-edit\" opens the design page with the original dimensions.",
+    "loadFailTpl": "Load failed: {msg}",
+    "emptyBody": "No saved designs yet. Pick one from the catalog, adjust dimensions, and click \"💾 Save\" — it'll show up here.",
+    "goCatalog": "Browse catalog",
+    "noDim": "Dimensions: —",
+    "updatedTpl": "Updated {date}",
+    "editBtn": "Re-edit",
+    "renaming": "Renaming…",
+    "renameBtn": "✏️ Rename",
+    "deleting": "Deleting…",
+    "deleteBtn": "Delete",
+    "promptRename": "New design name",
+    "alertRenameFail": "Rename failed",
+    "alertRenameFailTpl": "Rename failed: {msg}",
+    "confirmDelete": "Delete this design? Cannot be undone.",
+    "alertDeleteFail": "Delete failed",
+    "alertDeleteFailTpl": "Delete failed: {msg}"
+  },
+  "saveDesign": {
+    "btnLoading": "💾 Loading…",
+    "btnSaving": "Saving…",
+    "btnSave": "💾 Save design",
+    "btnLogin": "🔒 Sign in to save",
+    "tipLoggedInTpl": "Save to your designs ({limit})",
+    "tipLimitUnlimited": "unlimited",
+    "tipLimitNTpl": "limit {n}",
+    "tipLoggedOut": "Sign in to save to the cloud and sync across devices",
+    "promptName": "Design name (auto-suggested, editable)",
+    "okSaved": "✅ Saved to your designs",
+    "warnMaxDesignsTpl": "Free plan saves up to {max} designs (you have {count}). Upgrade to Personal for unlimited — see /pricing.",
+    "warnPlanLockedFallback": "This template requires a paid plan — see /pricing.",
+    "warnUnauth": "Please sign in (session may have expired)",
+    "errSaveFailTpl": "Save failed: {msg}",
+    "loginPrompt": {
+      "h": "Sign in to save designs",
+      "body": "Saving to the cloud requires an account. Once signed in you can:",
+      "bullet1": "Sync across devices (phone, tablet, computer)",
+      "bullet2Pre": "Build a ",
+      "bullet2Strong": "\"My Designs\"",
+      "bullet2Suffix": " list to manage everything",
+      "bullet3": "Share a link with your customer",
+      "warn": "⚠️ Leaving the page without signing in = your parameters are lost (unless you bookmark the URL).",
+      "cancel": "Not now",
+      "loginNow": "Sign in →"
+    }
+  },
+  "invoicePref": {
+    "loading": "Loading invoice settings…",
+    "h": "E-invoice settings",
+    "saved": "✓ Saved",
+    "intro": "Future charges will auto-issue an e-invoice using these settings. Invoices are emailed to the address below.",
+    "tabPersonal": "Personal",
+    "tabCompany": "Company (for expense reports)",
+    "lblCarrierType": "Carrier type",
+    "carrierMember": "ECPay member carrier (default)",
+    "carrierMobile": "Mobile barcode carrier",
+    "lblCarrierNum": "Mobile barcode (8 chars, starts with /)",
+    "carrierHint": "Get your barcode from MoF e-Invoice platform → personal mobile barcode",
+    "lblTaxId": "VAT number (8 digits)",
+    "phTaxId": "12345678",
+    "lblTitle": "Company name on invoice",
+    "phTitle": "Acme Co., Ltd.",
+    "lblEmail": "E-invoice email",
+    "emailHintTpl": "Blank = use registered email ({default})",
+    "emailHintMissing": "not set",
+    "errTaxId": "VAT number must be 8 digits",
+    "errTitle": "Company name is required",
+    "errCarrier": "Invalid mobile barcode format (e.g. /ABC+123, 8 chars)",
+    "errEmail": "Invalid email format for e-invoice",
+    "errSaveFallback": "Save failed",
+    "errNetwork": "Network error",
+    "saving": "Saving…",
+    "saveBtn": "Save settings"
+  },
+  "invoiceModal": {
+    "hConfirm": "Confirm company invoice info",
+    "hPick": "Pick invoice type",
+    "subConfirm": "Once issued, an invoice can be voided/reissued within 24h; after that, a credit-note process is required. Please verify below before submitting.",
+    "subPick": "After payment, an e-invoice is auto-issued and emailed to you. Once set, future charges use this — you won't be asked again.",
+    "rowTaxId": "VAT number",
+    "rowTitle": "Company name",
+    "btnPersonal": "🧍 Personal",
+    "btnCompany": "🏢 Company expense",
+    "lblCarrier": "Carrier",
+    "carrierMember": "Member carrier (email delivery)",
+    "carrierMobile": "Mobile barcode (universal carrier)",
+    "lblCarrierNum": "Mobile barcode (format /ABC1234, 8 chars)",
+    "phCarrierNum": "/ABC1234",
+    "carrierHint": "Forgot? Go to MoF e-Invoice platform → My carriers → Universal carrier",
+    "lblTaxId": "Company VAT (8 digits)",
+    "phTaxId": "12345678",
+    "lblTitle": "Company name",
+    "phTitle": "Acme Co., Ltd.",
+    "errTaxId": "VAT number must be 8 digits",
+    "errTitle": "Company name is required (max 60 chars)",
+    "errCarrier": "Invalid mobile barcode format — must start with / followed by 7 uppercase letters/digits",
+    "errStatusTpl": "Save failed {code}",
+    "btnEdit": "← Edit",
+    "btnCancel": "Cancel",
+    "btnSaving": "Saving…",
+    "btnConfirm": "✓ Confirm and submit",
+    "btnNext": "Next → Confirm",
+    "btnSavePersonal": "Save · Continue to checkout"
+  },
+  "cutPlanApp": {
+    "summaryNameDot": " · total ",
+    "summaryPiecesTpl": "{name} · {n} pieces",
+    "summaryStockTpl": " · {n} stock pieces used",
+    "summaryNoStock": " · no stock listed",
+    "summaryUnplacedTpl": "({n} pieces don't fit)",
+    "resetBtn": "↺ Reset to original design",
+    "csvBtn": "📄 Download CSV",
+    "csvBtnTitle": "Download parts list + nesting details CSV — give it to your lumber supplier or open in Excel",
+    "printBtn": "🖨️ Print / PDF",
+    "unplacedH": "{n} pieces exceed the stock sheet size and can't be nested",
+    "unplacedBody": "Increase the \"Stock inventory\" dimensions, use a larger sheet, or split these pieces with the ✂ button in the parts list. Otherwise the supplier will run short.",
+    "kindSolid": "Solid wood",
+    "kindPlywood": "Plywood",
+    "kindMdf": "MDF",
+    "kindParenTpl": "({label})",
+    "stockEmptyH": "No stock inventory yet",
+    "stockEmptyBody": "Click \"+ Add row\" in \"Stock inventory\" on the left to enter the actual material you have (solid wood / plywood / MDF). The nesting plan appears on the right immediately.",
+    "nothingToPlan": "Nothing to nest — add parts or reset to the design.",
+    "strategyLbl": "Nesting strategy:",
+    "strategyGuillotineLabel": "Guillotine",
+    "strategyGuillotineHelp": "Most efficient (fills large pieces with small ones)",
+    "strategyFfdLabel": "FFD",
+    "strategyFfdHelp": "First-fit decreasing, stable",
+    "strategyBfdLabel": "BFD",
+    "strategyBfdHelp": "Best-fit decreasing, efficient",
+    "strategyKerfTpl": "Kerf {kerf}mm · min offcut {min}mm",
+    "piecesDetailsH": "📋 Parts list",
+    "piecesDetailsCountTpl": "{specs} part types · {pieces} pieces · imported from design, editable",
+    "expandCollapse": "Expand / collapse",
+    "advancedDetailsH": "⚙️ Advanced (kerf / min offcut)",
+    "advancedDetailsCountTpl": "Kerf {kerf}mm · min offcut {min}mm",
+    "printHeaderTpl": "{name} · Cutting / nesting plan",
+    "printSubTpl": "{n} stock pieces · kerf {kerf}mm · min offcut {min}mm",
+    "confirmReset": "Reset to the design's original parts list? Current edits will be discarded.",
+    "csvFilenameTpl": "{name}_CutPlan_{date}.csv",
+    "printDocTitleTpl": "{name}_CutPlan_{date}",
+    "csv": {
+      "h1": "# Parts list (for lumber supplier)",
+      "h2": "# Nesting details (each piece's coordinates on the stock)",
+      "col1Name": "Part name",
+      "col1Length": "Length mm",
+      "col1Width": "Width mm",
+      "col1Thickness": "Thickness mm",
+      "col1Material": "Material",
+      "col1Billable": "Billing category",
+      "col1Quantity": "Quantity",
+      "col2Kind": "Stock kind",
+      "col2Material": "Material",
+      "col2Thickness": "Thickness mm",
+      "col2BinIdx": "Stock #",
+      "col2StockLength": "Stock length mm",
+      "col2StockWidth": "Stock width mm",
+      "col2Code": "Code",
+      "col2Part": "Part",
+      "col2CutLength": "Cut length mm",
+      "col2CutWidth": "Cut width mm",
+      "col2X": "x mm",
+      "col2Y": "y mm",
+      "col2Rotated": "Rotated",
+      "yes": "Yes",
+      "no": "No",
+      "unplaced": "Unplaced"
+    },
+    "stock": {
+      "h": "Stock inventory (solid wood + sheet goods)",
+      "warnEmpty": "No stock listed — no nesting plan will appear. Add the actual stock you have first.",
+      "introNotEmpty1": "Recorded by kind + material + length × width — ",
+      "introNotEmpty2": "thickness-agnostic",
+      "introNotEmpty3": "; one entry can supply parts of multiple thicknesses.",
+      "introNotEmptyAuto": "✓ Auto-saved locally — re-loaded next visit",
+      "confirmClear": "Clear all stock? The saved data will also be cleared.",
+      "clearBtn": "Clear",
+      "addRow": "+ Add row",
+      "thKind": "Kind",
+      "thMaterial": "Material",
+      "thLength": "Length (mm)",
+      "thWidth": "Width (mm)",
+      "thCount": "Count",
+      "kindSolid": "Solid",
+      "kindPlywood": "Plywood",
+      "kindMdf": "MDF",
+      "countUnlimited": "no limit",
+      "removeAria": "Remove",
+      "mobileLblKind": "Kind",
+      "mobileLblMaterial": "Material",
+      "mobileLblLength": "Length (mm)",
+      "mobileLblWidth": "Width (mm)",
+      "mobileLblCount": "Count",
+      "uncoveredHint": "The following categories used by parts aren't listed as stock (without adding, they can't be nested):",
+      "quickAddPrefix": "+ ",
+      "dataListLengthSolid6ft": "6 ft (1818mm)",
+      "dataListLengthSolid8ft": "8 ft (2438mm)",
+      "dataListLengthSheet48ft": "4×8 ft (2440mm)",
+      "dataListLengthSheet9ft": "9 ft (2745mm)",
+      "dataListWidthSheet4ft": "4 ft (1220mm)"
+    },
+    "pieces": {
+      "h": "Parts list",
+      "summaryTpl": "{specs} part types · {n} pieces total",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "addNew": "+ New part",
+      "thCode": "#",
+      "thName": "Name",
+      "thMaterial": "Material",
+      "thLength": "Length",
+      "thWidth": "Width",
+      "thThickness": "Thickness",
+      "thQuantity": "Qty",
+      "thRotate": "Rotate",
+      "namePh": "Name",
+      "matSolidGroup": "Solid wood",
+      "matSheetGroup": "Sheet goods",
+      "matSheetPlywood": "Plywood",
+      "matSheetMdf": "MDF",
+      "thicknessOther": "Other…",
+      "thicknessSwitchTitle": "Back to dropdown",
+      "rotateTitleSheet": "Allow 90° rotation",
+      "rotateTitleSolid": "Solid wood: enabling ignores grain direction — only for short / non-load-bearing parts",
+      "newPart": "New part",
+      "copySuffix": " copy",
+      "split": "✂ Split",
+      "splitTitle": "Divide the width into N strips (for edge-jointing)",
+      "duplicate": "Duplicate",
+      "duplicateTitle": "Duplicate this row",
+      "removeTitle": "Remove this row",
+      "mobileLblMaterial": "Material",
+      "mobileLblLength": "Length (mm)",
+      "mobileLblWidth": "Width (mm)",
+      "mobileLblThickness": "Thickness (mm)",
+      "mobileLblQuantity": "Qty",
+      "mobileRotateLabel": "Allow 90° rotation"
+    }
+  },
+  "perspectiveView": {
+    "viewTitleHero": "Default isometric angle",
+    "viewLabelFit": "🔍 Fit",
+    "viewTitleFit": "Zoom to fit the furniture in the viewport (based on actual L×W×H and screen ratio)",
+    "viewLabelFront": "F",
+    "viewTitleFront": "Front view",
+    "viewLabelBack": "B",
+    "viewTitleBack": "Back view",
+    "viewLabelLeft": "L",
+    "viewTitleLeft": "Left side view",
+    "viewLabelRight": "R",
+    "viewTitleRight": "Right side view",
+    "viewLabelTop": "T",
+    "viewTitleTop": "Top view",
+    "viewLabelBottom": "Bot",
+    "viewTitleBottom": "Bottom view",
+    "wireframeTitle": "Wireframe mode (show all edges / internal structure)",
+    "xrayTitleOffToFace": "Hide panels (click to hide only doors / drawer fronts)",
+    "xrayTitleFaceToAll": "Hide panels (click to hide entire drawers + doors)",
+    "xrayTitleAllToOff": "Hide panels (click to turn off)",
+    "xrayBtnOff": "🪟 Hide panels",
+    "xrayBtnFace": "🪟 Hide fronts",
+    "xrayBtnAll": "🪟 Hide all",
+    "lidLiftTitleNeg": "90° open",
+    "lidLiftTitleFloatTpl": "Floated {n}mm",
+    "lidLiftTitleClosed": "Closed",
+    "lidLiftBtnNeg": "📦 90° open",
+    "lidLiftBtnFloatTpl": "📦 Float {n}mm",
+    "lidLiftBtnClosed": "📦 Lift lid",
+    "wireframeLabel": "⊞ Wireframe",
+    "lidLiftTitleTpl": "Lift lid (reveal what's under): currently {state} — click to cycle",
+    "viewLbl": "View"
+  },
+  "photoToParams": {
+    "errReadFail": "File read failed",
+    "errDecodeFail": "Image decode failed",
+    "errCanvasFail": "Canvas failed",
+    "errSelectImage": "Please select an image file",
+    "errSize10MB": "Image cannot exceed 10MB",
+    "errRecognize": "Recognition failed",
+    "errUnknown": "Unknown error",
+    "confidenceHigh": "High confidence",
+    "confidenceMedium": "Medium confidence",
+    "confidenceLow": "Low confidence",
+    "btnTitle": "Upload a furniture photo — AI infers category / dimensions / wood / style and auto-fills the designer",
+    "btnLabel": "Photo → design",
+    "modalH": "📷 Photo → design",
+    "dropZoneH": "Click / drop a furniture photo",
+    "dropZoneSub": "jpeg / png / webp · max 10MB",
+    "previewAlt": "Preview",
+    "loading": "🔍 AI analyzing… (about 5–10 seconds)",
+    "upgradeFallback": "See plans →",
+    "lblMaterial": "Wood: ",
+    "lblStyle": "Style: ",
+    "lblLegShape": "Leg shape: ",
+    "lblLegSize": "Leg width: ",
+    "estimatedWarn": "⚠️ Dimensions are AI estimates, not measurements — adjust to your actual needs after applying",
+    "applyBtn": "Apply to designer",
+    "redoBtn": "Redo"
+  },
+  "csvExport": {
+    "btn": "📋 BOM CSV download",
+    "colPart": "Part",
+    "colMaterial": "Material",
+    "colVisL": "Visible L (mm)",
+    "colVisW": "Visible W (mm)",
+    "colVisT": "Visible T (mm)",
+    "colCutL": "Cut L (mm)",
+    "colCutW": "Cut W (mm)",
+    "colCutT": "Cut T (mm)",
+    "colBdft": "Volume (bd.ft)",
+    "colTenon": "Tenon notes",
+    "filenameTpl": "{name}_BOM_{date}.csv"
+  },
+  "loginButton": {
+    "btn": "Sign in / Sign up",
+    "divider": "or",
+    "webviewWarnTpl": "⚠️ You're using {app}'s in-app browser",
+    "webviewBody": "Google sign-in won't work here. Try:",
+    "webviewBullet1Pre": "The ",
+    "webviewBullet1Strong": "email sign-in link",
+    "webviewBullet1Suffix": " below (easiest — works in Line/FB/IG)",
+    "webviewBullet2": "Or tap top-right ⋯ → \"Open in Safari/Chrome\"",
+    "errRate": "Too many attempts. Please wait 60 seconds and try again.",
+    "errInvalid": "Email format is invalid — please check and try again.",
+    "errNotFound": "Account not found. First-time use? Just submit — we'll create one automatically.",
+    "errSignupDisabled": "Sign-ups are closed right now. Please contact support.",
+    "errNetwork": "Network is unstable — please retry.",
+    "errFallbackTpl": "Send failed, please try again later ({msg})",
+    "sentH": "✅ Sign-in link sent",
+    "sentBodyPre": "Check ",
+    "sentBodySuffix": " for the email — click the button inside to finish signing in (valid for 10 minutes).",
+    "sentNoEmail": "Didn't receive it? Check your spam folder, or",
+    "resend": "resend",
+    "magicLinkLabel": "Enter your email for the sign-in link",
+    "sending": "Sending…",
+    "magicLinkBtn": "Send sign-in link →",
+    "magicLinkNote": "First-time use = auto sign-up. Click the link in the email to finish — no password needed.",
+    "googleDisabledTpl": "Google sign-in disabled inside {app}",
+    "googleRedirecting": "Redirecting…",
+    "googleBtn": "Sign in with Google"
+  },
+  "headerUser": {
+    "loggedInFallback": "Signed in",
+    "navHome": "Catalog",
+    "navMyDesigns": "My designs",
+    "navProjects": "My projects",
+    "navCustomers": "Customers",
+    "navBranding": "Letterhead",
+    "navSubscription": "Subscription",
+    "navPricing": "Plans",
+    "navAbout": "About Furniture Blueprints",
+    "navHelp": "FAQ",
+    "navAdmin": "Admin dashboard",
+    "signOut": "Sign out"
+  },
+  "bugReport": {
+    "title": "Report a bug",
+    "subjectTpl": "[Furniture Blueprints] Bug report (build {sha})",
+    "bodyTimePre": "Time: ",
+    "bodyBuildPre": "Build: ",
+    "bodyPagePre": "Page: ",
+    "bodyBrowserPre": "Browser: ",
+    "bodyDescH": "=== Description ===",
+    "bodyDescExample": "(e.g. I set chair height to 500mm and the 3D view went blank)",
+    "bodyScreenshotH": "=== Screenshot ===",
+    "bodyScreenshotHint": "(paste the screenshot directly into the email)",
+    "copyPromptTpl": "Copy this to any email client and send to wengbinren@gmail.com",
+    "panelH": "Send a bug report to Wooden Ren",
+    "panelBodyPre": "Auto-attaches the current page + version. Describe what you did and include a screenshot if possible. Sent to ",
+    "gmailBtn": "📧 Send via Gmail (mobile opens the app first)",
+    "copyBtnIdle": "📋 Copy to clipboard (use this if not Gmail)",
+    "copyBtnDone": "✓ Copied — paste into any email client and send",
+    "cancel": "Cancel",
+    "fabTitle": "Report a bug",
+    "logoAlt": "Wooden Ren"
+  },
+  "upgradePrompt": {
+    "planPriceFree": "",
+    "planPricePersonal": "Personal NT$ 390 / mo (yearly 3,900)",
+    "planPricePro": "Pro NT$ 890 / mo (yearly 8,900)",
+    "planPriceStudent": "Student plan (academy student only)",
+    "planPriceLifetime": "Lifetime (discontinued)",
+    "inlineTpl": "🌱 Want {feature}? Upgrade to {plan}",
+    "inlineCta": "See plans →",
+    "cardH": "Want \"{feature}\"?",
+    "cardHintFallbackTpl": "Available on {plan} ✨",
+    "cardCta": "See plans"
+  },
+  "templateUnlock": {
+    "h": "🪵 One-time template purchase",
+    "intro": "Just want a single design? Buy the blueprint once — yours forever. No subscription needed.",
+    "priceChipTpl": "{label} NT$ {price}",
+    "filterAll": "All",
+    "loading": "Loading…",
+    "owned": "✓ Owned",
+    "buyBtn": "Buy now →"
+  },
+  "toolUnlock": {
+    "h": "🔨 Interior tool one-time purchase",
+    "intro": "Skip the monthly subscription — buy a tool outright. Homeowners doing one renovation already get their money's worth.",
+    "loading": "Loading…",
+    "owned": "✓ Owned",
+    "buyBtn": "Buy now →",
+    "ceilingLabel": "Ceiling framing simulator",
+    "ceilingDesc": "Input L×W×H — instantly calculates main/sub joists, calcium silicate sheets, screws. Print an A4 list to take on-site.",
+    "floorLabel": "Flooring simulator",
+    "floorDesc": "Input room dimensions — auto-lays out planks, estimates laminate / engineered / solid wood usage, includes herringbone pattern calc"
+  },
+  "threeDExport": {
+    "scale1to1": "1:1 actual size (SketchUp / industrial print / CNC)",
+    "scale1to2": "1:2 (mock-up, joinery test)",
+    "scale1to5": "1:5 (proposal sample, desktop display)",
+    "scale1to10": "1:10 default (home 3D printer, fits on a 200mm bed)",
+    "scale1to20": "1:20 (architectural model, cabinet miniature)",
+    "scale1to25": "1:25 (common architectural model)",
+    "scale1to50": "1:50 (whole-room furniture layout)",
+    "scale1to100": "1:100 (space planning sketch)",
+    "lbl": "3D print export",
+    "selectTitle": "Output scale. 1:10 default suits home 3D printers",
+    "stlBtn": "🖨️ STL",
+    "stlTitle": "3D print / slicers (Cura, PrusaSlicer)",
+    "objBtn": "📐 OBJ",
+    "objTitle": "SketchUp / Blender / general 3D software",
+    "flatBtn": "🛏️ Flat STL",
+    "flatTitle": "All parts laid flat, support-free — ready for slicer print",
+    "threeMfBtn": "📦 3MF",
+    "threeMfTitle": "3MF — preferred by Bambu / Prusa / Cura, includes units and part names",
+    "warnThinTpl": "⚠️ Thinnest part is {thin}mm ({part}). Export will auto-thicken to {min}mm so it can print — for precise scale, use a larger ratio.",
+    "warnBadGeoTpl": "⚠️ Detected {n} parts with geometry issues ({parts}); the export may need repair in the slicer."
+  },
+  "partDrawings": {
+    "h": "Part drawings",
+    "countTpl": "{n} parts (merged duplicates)",
+    "pCodeTpl": "P-{code}",
+    "modalTitleTpl": "Part drawing — {name}",
+    "viewFrontParen": " (Front)",
+    "viewTopParen": " (Top)",
+    "viewSideParen": " (Side)",
+    "viewBottomParen": " (Bottom)",
+    "backToTri": "← Back to 3-view",
+    "closeAria": "Close",
+    "viewFront": "Front",
+    "viewTop": "Top",
+    "viewSide": "Side",
+    "viewBottom": "Bottom",
+    "zoomLbl": "Zoom",
+    "prev": "← Previous",
+    "next": "Next →"
+  },
+  "aiRefine": {
+    "errService": "AI service error",
+    "errUpgradeFallback": "See plans →",
+    "errNetwork": "Network error",
+    "btn": "🤖 AI refine",
+    "btnTitle": "Let AI look at the current design and suggest contextual tweaks (uses LLM API)",
+    "modalH": "🤖 AI refine current {style} config",
+    "modalSub": "AI considers the current style + dimensions + material + your intent to suggest contextual changes.",
+    "intentLabel": "Your intent (optional)",
+    "intentPh": "e.g. thicker legs / for kids / cheap wood within budget / client wants modern Chinese style",
+    "askBtn": "🤖 Get suggestions",
+    "thinking": "⏳ AI thinking… typically 3–8 seconds",
+    "rationaleH": "💡 AI rationale",
+    "suggestHTpl": "🔧 Suggested changes ({n} fields)",
+    "suggestKvSep": ": ",
+    "warningsH": "⚠️ Warnings",
+    "applyBtn": "✓ Apply suggestions",
+    "redoBtn": "Ask again",
+    "closeBtn": "Close"
+  },
+  "askMaster": {
+    "introTpl": "I'm making a {name}:",
+    "dimTpl": "Dimensions {l} × {w} × {h}mm",
+    "matTpl": "Wood: {name}",
+    "legShapeTpl": "Leg shape: {shape}",
+    "legShapeWithSizeTpl": "Leg shape: {shape} {size}mm",
+    "apronTpl": "Apron height: {h}mm",
+    "splayTpl": "Splay: {angle}°",
+    "backStyleTpl": "Back: {style}",
+    "seatProfileTpl": "Seat: {profile}",
+    "joineryNote": "Using mortise-and-tenon",
+    "tail": "Is this design reasonable? Anything I should watch out for or could be improved?",
+    "fallbackPromptTitle": "Copy and paste this to the Wooden Master bot:",
+    "btnTitle": "Copy the current design as a question and open Telegram — paste to @woodenren_bot for advice",
+    "btnCopied": "✓ Copied — paste in Telegram",
+    "btnIdle": "Ask the Master"
+  },
+  "heightToSize": {
+    "lblSeat": "Seat height",
+    "lblTable": "Table height",
+    "btn": "📏 Sized for your height",
+    "btnTitle": "Enter your height — auto-recommends seat / table height (ergonomic formula)",
+    "heightLbl": "Height",
+    "cm": "cm",
+    "applyBtn": "Apply"
+  },
+  "iosInstall": {
+    "title": "Add to home screen — open in one tap next time",
+    "subtitle": "No download, full app experience",
+    "installBtn": "Install",
+    "closeAria": "Close",
+    "expandedH": "Install to home screen (iOS)",
+    "step1Pre": "Tap Safari's ",
+    "step1Strong": "Share",
+    "step1Suffix": " button at the bottom ",
+    "step1Icon": "⬆",
+    "step2Pre": "Scroll down and choose ",
+    "step2Strong": "\"Add to Home Screen\"",
+    "step3Pre": "Tap ",
+    "step3Strong": "\"Add\"",
+    "step3Suffix": " in the top-right to finish",
+    "warnPre": "💡 You must use ",
+    "warnStrong": "Safari",
+    "warnSuffix": " — Chrome / Line / FB in-app browsers don't have this option.",
+    "okBtn": "Got it"
+  },
+  "engQuoteClient": {
+    "titleFloorTpl": "{type} project quote",
+    "typeFloor": "Flooring",
+    "typeCeiling": "Ceiling",
+    "secCustomer": "Customer info",
+    "secFeeOpts": "Pricing parameters",
+    "areaTpl": "{ping} ping · {m2} m²",
+    "secQuote": "Quote breakdown",
+    "unpriced": "Not priced",
+    "totalWithVat": "Total (incl. tax)",
+    "unpricedWarn": "⚠️ Estimate incomplete (some items have no unit price)",
+    "printBtn": "Print quote",
+    "ceilingMaterialDefault": "Ceiling system materials"
+  },
+  "joineryDetail": {
+    "viewFront": "Front",
+    "viewSide": "Side",
+    "viewTop": "Top",
+    "viewIso": "Isometric",
+    "warnNote": "⚠ Diagrammatic only — may not match actual dimensions; refer to the 3-view for precise sizes",
+    "zoomAriaTpl": "Click to zoom {type} {view}",
+    "zoomTitle": "Click to zoom",
+    "zoomHint": "🔍 Click to zoom",
+    "zoomOutTitle": "Zoom out (−)",
+    "zoomResetTitle": "Reset (0)",
+    "zoomInTitle": "Zoom in (+)",
+    "closeAria": "Close",
+    "closeTitle": "Close (ESC)"
+  },
+  "survey": {
+    "issuedFallback": "Recorded",
+    "backHome": "← Back home",
+    "submitting": "Submitting…",
+    "submitBtn": "Submit survey",
+    "qOther": "Other",
+    "qOtherPh": "Type your answer",
+    "qTextPh": "Free text answer",
+    "qRequired": "*",
+    "thxH": "Thank you 🪵",
+    "thxBody1": "I'll read every response personally.",
+    "thxBody2": "If you run into any issues with Furniture Blueprints in the coming weeks, just drop me an email.",
+    "couponLblTpl": "Your exclusive {pct}% discount code",
+    "couponHint1": "Enter at checkout — Personal ",
+    "couponHintStrong": "yearly plan",
+    "couponHint2": " at half price",
+    "couponPriceTplPre": "NT$3,900 → ",
+    "couponPriceTplStrong": "NT$1,950",
+    "couponPriceTplSuf": " (monthly not eligible · 7-day validity)",
+    "upgradeBtn": "Go to /pricing now →"
+  },
+  "customersPage": {
+    "h1": "Customers",
+    "loginRequired": "Sign in to view your customer list (top-right \"Sign in with Google\").",
+    "backHome": "← Back to catalog",
+    "seeProjects": "→ See all projects",
+    "intro": "Auto-aggregated from your projects: each customer's projects, total revenue, and most-recent activity in one place.",
+    "emptyTitle": "No customers yet.",
+    "emptySub": "Fill in \"Customer name\" on the project page — this view auto-aggregates that customer's projects.",
+    "projectsCountTpl": "{n} projects",
+    "contactLbl": "Contact: ",
+    "addressLbl": "Site: ",
+    "lastUpdatedTpl": "Last activity {date}",
+    "totalLblPre": "Total "
+  },
+  "quoteHistory": {
+    "statusPending": "Pending",
+    "statusWon": "✅ Won",
+    "statusLost": "✕ Lost",
+    "summaryHTpl": "📁 Recent quotes ({n})",
+    "summarySub": "Tap the left badge to cycle Pending / Won / Lost",
+    "winRateTpl": "Win rate {pct}% · won {won} / lost {lost}",
+    "expandCollapse": "Expand / collapse",
+    "cycleTitle": "Click to cycle status: Pending → Won → Lost",
+    "expired": "Expired",
+    "resendBtn": "↗ Resend",
+    "resendTitle": "Open in a new tab with this quote's parameters — resend to the same customer",
+    "clearAll": "Clear all history"
+  },
+  "sheetBinSvg": {
+    "stockTitleTpl": "Sheet #{n} · {l} × {w} mm",
+    "utilTpl": "Utilization {pct}%",
+    "clickToZoom": "🔍 Click to zoom",
+    "modalHint": "Click anywhere / press ESC to close",
+    "cutListSummaryTpl": "Cut list ({n} pieces)",
+    "thCode": "Code",
+    "thPart": "Part",
+    "thDimMm": "L×W×T mm",
+    "thStartXy": "Start x,y"
+  },
+  "cutPlanConfig": {
+    "kerfLbl": "Kerf (mm)",
+    "kerfHint": "Circular saw 3, band saw 1–2",
+    "minWasteLbl": "Min usable offcut (mm)",
+    "minWasteHint": "Offcuts shorter than this aren't counted in utilization",
+    "h": "Advanced settings",
+    "footer": "💡 Nesting strategy moved to the right of the plan view above. Per-part 90° rotation is in the right column of the \"Parts list\"."
+  },
+  "cutPlanSection": {
+    "h": "Nesting plan",
+    "summaryTpl": "{kind}{material} {thickness}mm · {bins} sheets",
+    "kindSolid": "Solid",
+    "kindPlywood": "Plywood",
+    "kindMdf": "MDF",
+    "materialParenTpl": " ({name})",
+    "unplacedH": "Doesn't fit: ",
+    "splitBtn": "✂ Split",
+    "splitTitle": "Edge-joint split: divide the width into N strips and glue them up (auto +10mm glue allowance)",
+    "stockStatsTpl": "{bins} stock pieces · {placed}/{total} parts placed · utilization {pct}%",
+    "unplacedHTpl": "⚠️ {n} parts don't fit — stock too small or insufficient",
+    "shortageTpl": "🧮 Need ~{n} more {l}×{w}mm stock pieces",
+    "shortagePrefix": "🧮 "
+  },
+  "xrayToggle": {
+    "lbl": "X-ray",
+    "offLabel": "🔲 Off",
+    "offTitle": "Show everything",
+    "faceLabel": "🪞 Hide fronts",
+    "faceTitle": "Hide doors + drawer fronts; reveals drawer boxes",
+    "fullLabel": "🔍 Hide all",
+    "fullTitle": "Hide whole drawers + doors; see the cabinet empty"
+  },
+  "shareButtons": {
+    "lbl": "Share: ",
+    "lineTitle": "Share on LINE",
+    "fbTitle": "Share on Facebook",
+    "copyTitle": "Copy link",
+    "copyPrompt": "Copy this link:",
+    "copiedLabel": "Copied",
+    "copyLabel": "Copy link"
+  },
+  "shareDesign": {
+    "copyPrompt": "Copy this link:",
+    "copied": "✓ Link copied",
+    "shared": "✓ Shared",
+    "idle": "Share design",
+    "title": "Copy this design's link — paste to FB / IG / LINE for an auto preview image",
+    "messageTpl": "I made a {name} {l}×{w}×{h}mm with Furniture Blueprints"
+  },
+  "styleMismatch": {
+    "presetNameLbl": "traditionally uses",
+    "currentLblPre": ", but currently selected",
+    "deviateSufTpl": "deviates from this style — risks looking like a \"fake {name}\".",
+    "sourcePre": "Source: "
+  },
+  "printGate": {
+    "loadingBtn": "🖨️ Loading…",
+    "upgradeTitle": "Upgrade to Personal to download PDF",
+    "upgradeBtn": "🔒 Upgrade to download PDF",
+    "watermark": "Wooden Ren · Trial",
+    "upgradeFeature": "watermark-free PDF",
+    "upgradeHint": "Personal plan downloads PDFs without the watermark ✨"
+  },
+  "brandingGate": {
+    "loading": "Loading…",
+    "h": "Set up your studio letterhead first",
+    "body1": "Quotes carry your company name / logo / contact info to customers.",
+    "bodyStrong": "Until you set this up, customers see Wooden Ren's default branding",
+    "body2": " — a huge professionalism hit.",
+    "body3": "Spend 2 minutes to set it up and every quote auto-uses your brand.",
+    "openBtn": "⚙️ Set up my studio letterhead",
+    "afterSaveHint": "Fields auto-save as you fill them. Refresh after saving to proceed."
+  },
+  "installApp": {
+    "btn": "📲 Install app to home screen",
+    "iosH": "Install to home screen (iOS)",
+    "iosStep1Pre": "Tap Safari's Share button ",
+    "iosStep1Icon": "⬆️",
+    "iosStep2": "Choose \"Add to Home Screen\"",
+    "iosStep3": "Tap \"Add\" in the top-right to finish",
+    "iosHint": "Note: must use Safari to install — Chrome / Line in-app browsers don't have this option.",
+    "okBtn": "Got it"
+  },
+  "qrCode": {
+    "alt": "Scan to view the online quote",
+    "caption": "📱 Scan for the online quote"
+  },
+  "printToolList": {
+    "priorityRequired": "Required tools",
+    "priorityRecommended": "Recommended tools",
+    "priorityOptional": "Optional tools"
+  },
+  "wireframeToggle": {
+    "lbl": "Wireframe",
+    "onTitle": "Click to return to solid mode",
+    "offTitle": "Click to switch to wireframe (see internal structure)",
+    "onLabel": "🕸️ Wireframe ON",
+    "offLabel": "🕸️ Wireframe"
+  },
+  "studentLoginHint": {
+    "h": "Try Furniture Blueprints — sign in to get started ✨",
+    "body": "Sign in to unlock the full toolkit (unlimited storage, PDF downloads, custom quoting, and more). Non-academy users can also sign in to save designs.",
+    "logoAlt": "Wooden Ren"
   }
 }

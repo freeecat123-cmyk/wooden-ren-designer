@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { fetchProjectQuoteData } from "@/lib/projects/fetch-quote-data";
 import { rebuildDesignFromItem } from "@/lib/projects/rebuild-design";
 import {
@@ -17,10 +19,14 @@ import type { ProjectItemRow } from "@/lib/projects/types";
 import type { MaterialId } from "@/lib/types";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
-export const metadata = { title: "採購清單 · 木頭仁 木作藍圖" };
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "projectPurchase" });
+  return { title: t("metaTitle") };
+}
 
 const ACCESSORY_SET = new Set([
   "pencil-holder",
@@ -62,7 +68,8 @@ interface MaterialAggregate {
 }
 
 export default async function ProjectPurchasePage({ params }: PageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
+  const t = await getTranslations({ locale, namespace: "projectPurchase" });
   const data = await fetchProjectQuoteData(id, null);
   if (!data) notFound();
   const { project: p, items: list } = data;
@@ -116,7 +123,7 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
   const sorted = [...aggregate.values()].sort((a, b) => b.amount - a.amount);
   const totalBdft = sorted.reduce((s, x) => s + x.bdft, 0);
   const totalAmount = sorted.reduce((s, x) => s + x.amount, 0);
-  const filename = `採購清單_${p.customer_name || p.name}.pdf`;
+  const filename = t("pdfFilenameTpl", { name: p.customer_name || p.name });
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 print:py-0">
@@ -125,7 +132,7 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
           href={`/projects/${id}`}
           className="text-sm text-zinc-500 hover:underline"
         >
-          ← 回專案
+          {t("backToProject")}
         </Link>
         <PrintButton suggestedFilename={filename} />
       </div>
@@ -134,10 +141,10 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
         <article className="rounded-2xl border-2 border-zinc-200 bg-white p-6 sm:p-8 print:border-0 print:p-0">
           <header className="pb-5 border-b border-zinc-200 mb-5">
             <p className="text-[10px] tracking-[0.2em] text-zinc-500">
-              MATERIAL PURCHASE LIST
+              {t("kicker")}
             </p>
             <h1 className="text-2xl font-bold text-zinc-900 mt-1">
-              採購清單
+              {t("h1")}
             </h1>
             <p className="text-sm text-zinc-600 mt-1">
               {p.name}
@@ -146,24 +153,24 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
               )}
             </p>
             <p className="text-[10px] text-zinc-400 mt-2">
-              已含切料損耗（一般 10%、小物 25%）
+              {t("wasteNote")}
             </p>
           </header>
 
           {sorted.length === 0 ? (
             <p className="text-sm text-zinc-500 text-center py-12">
-              尚未加入家具項目，無法產生採購清單。
+              {t("emptyState")}
             </p>
           ) : (
             <>
               <table className="w-full text-sm border-collapse mb-5">
                 <thead>
                   <tr className="border-b-2 border-zinc-300 text-xs text-zinc-500 text-left">
-                    <th className="py-2 pr-2 font-medium">木材</th>
-                    <th className="py-2 px-2 font-medium text-right">零件</th>
-                    <th className="py-2 px-2 font-medium text-right">板才</th>
-                    <th className="py-2 px-2 font-medium text-right">單價</th>
-                    <th className="py-2 pl-2 font-medium text-right">小計</th>
+                    <th className="py-2 pr-2 font-medium">{t("thMaterial")}</th>
+                    <th className="py-2 px-2 font-medium text-right">{t("thParts")}</th>
+                    <th className="py-2 px-2 font-medium text-right">{t("thBdft")}</th>
+                    <th className="py-2 px-2 font-medium text-right">{t("thUnit")}</th>
+                    <th className="py-2 pl-2 font-medium text-right">{t("thSubtotal")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,11 +184,11 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
                           {materialName(row.material)}
                         </div>
                         <div className="text-[10px] text-zinc-500 mt-0.5 leading-tight">
-                          用於：{row.usedIn.join("、")}
+                          {t("usedIn", { names: row.usedIn.join(locale === "en" ? ", " : "、") })}
                         </div>
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-xs">
-                        {row.partCount} 片
+                        {t("partsCountTpl", { n: row.partCount })}
                       </td>
                       <td className="py-2 px-2 text-right font-mono">
                         {row.bdft.toFixed(2)}
@@ -198,7 +205,7 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
                 <tfoot className="bg-zinc-50">
                   <tr className="border-t-2 border-zinc-300">
                     <td className="py-3 px-2 font-semibold" colSpan={2}>
-                      合計
+                      {t("footTotal")}
                     </td>
                     <td className="py-3 px-2 text-right font-mono font-semibold">
                       {totalBdft.toFixed(2)}
@@ -213,23 +220,25 @@ export default async function ProjectPurchasePage({ params }: PageProps) {
 
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-900 leading-relaxed">
                 <p>
-                  <strong>📐 採購重點：</strong>
-                  木料行通常賣 8 尺、10 尺、12 尺長料。建議帶上每件家具的「最長零件長度」採購，
-                  避免買回來不夠長。
+                  <strong>{t("tipPurchaseTitle")}</strong>
+                  {t("tipPurchaseBody")}
                 </p>
                 <p className="mt-1">
-                  <strong>💰 估價說明：</strong>
-                  以系統 catalog 單價計算，實際價格依木料行報價。打折議價、整批優惠請另議。
+                  <strong>{t("tipPriceTitle")}</strong>
+                  {t("tipPriceBody")}
                 </p>
                 {unbuilt > 0 && (
                   <p className="mt-1 text-red-700">
-                    ⚠️ 有 {unbuilt} 件家具無法重建（範本可能有更新），未列入此清單。
+                    {t("unbuiltWarnTpl", { n: unbuilt })}
                   </p>
                 )}
               </div>
 
               <div className="mt-6 text-[10px] text-zinc-400 text-center">
-                合計 {totalParts.toLocaleString()} 個零件 · {sorted.length} 種木材
+                {t("summaryLineTpl", {
+                  parts: totalParts.toLocaleString(),
+                  kinds: sorted.length,
+                })}
               </div>
             </>
           )}

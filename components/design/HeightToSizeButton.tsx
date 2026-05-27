@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   workbenchByHeight,
   diningSeatByHeight,
@@ -12,19 +13,21 @@ import {
 } from "@/lib/knowledge/ergonomics";
 import type { FurnitureCategory } from "@/lib/types";
 
-type Mapping = { key: string; calc: (cm: number) => number; label: string };
+type MappingKind = "seat" | "table";
+type Mapping = { key: string; calc: (cm: number) => number; kind: MappingKind };
 
 const CATEGORY_MAP: Partial<Record<FurnitureCategory, Mapping[]>> = {
-  "dining-chair": [{ key: "seatHeight", calc: diningSeatByHeight, label: "座高" }],
-  "bench": [{ key: "seatHeight", calc: diningSeatByHeight, label: "座高" }],
-  "stool": [{ key: "height", calc: diningSeatByHeight, label: "座高" }],
-  "round-stool": [{ key: "height", calc: diningSeatByHeight, label: "座高" }],
-  "dining-table": [{ key: "height", calc: diningTableByHeight, label: "桌高" }],
-  "round-table": [{ key: "height", calc: diningTableByHeight, label: "桌高" }],
-  "desk": [{ key: "height", calc: deskByHeight, label: "桌高" }],
+  "dining-chair": [{ key: "seatHeight", calc: diningSeatByHeight, kind: "seat" }],
+  "bench": [{ key: "seatHeight", calc: diningSeatByHeight, kind: "seat" }],
+  "stool": [{ key: "height", calc: diningSeatByHeight, kind: "seat" }],
+  "round-stool": [{ key: "height", calc: diningSeatByHeight, kind: "seat" }],
+  "dining-table": [{ key: "height", calc: diningTableByHeight, kind: "table" }],
+  "round-table": [{ key: "height", calc: diningTableByHeight, kind: "table" }],
+  "desk": [{ key: "height", calc: deskByHeight, kind: "table" }],
 };
 
 export function HeightToSizeButton({ category }: { category: FurnitureCategory }) {
+  const t = useTranslations("heightToSize");
   const router = useRouter();
   const searchParams = useSearchParams();
   const mapping = CATEGORY_MAP[category];
@@ -41,7 +44,9 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
     setOpen(false);
   };
 
-  const previewLines = mapping.map((m) => `${m.label} ${m.calc(height)}mm`).join(" / ");
+  const previewLines = mapping
+    .map((m) => `${m.kind === "seat" ? t("lblSeat") : t("lblTable")} ${m.calc(height)}mm`)
+    .join(" / ");
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -49,13 +54,13 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="px-2.5 py-1 rounded text-[11px] bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300"
-        title="輸入身高自動推薦座高 / 桌高（依人體工學公式）"
+        title={t("btnTitle")}
       >
-        📏 依身高推薦
+        {t("btn")}
       </button>
       {open && (
         <div className="flex flex-wrap items-center gap-1.5 p-2 rounded border border-emerald-200 bg-emerald-50/40">
-          <span className="text-[10px] text-emerald-900">身高</span>
+          <span className="text-[10px] text-emerald-900">{t("heightLbl")}</span>
           <input
             type="number"
             value={height}
@@ -66,7 +71,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
             onClick={(e) => e.stopPropagation()}
             className="w-16 px-1.5 py-0.5 text-[11px] border border-emerald-200 rounded bg-white"
           />
-          <span className="text-[10px] text-emerald-900">cm</span>
+          <span className="text-[10px] text-emerald-900">{t("cm")}</span>
           {[155, 165, 172, 180].map((cm) => (
             <button
               key={cm}
@@ -87,7 +92,7 @@ export function HeightToSizeButton({ category }: { category: FurnitureCategory }
             onClick={() => applyHeight(height)}
             className="px-2 py-0.5 text-[11px] rounded bg-emerald-600 text-white hover:bg-emerald-700"
           >
-            套用
+            {t("applyBtn")}
           </button>
         </div>
       )}

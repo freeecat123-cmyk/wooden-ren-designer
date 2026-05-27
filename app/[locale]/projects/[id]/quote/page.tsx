@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { formatTWD } from "@/lib/pricing/catalog";
 import { getTemplate } from "@/lib/templates";
 import { MATERIALS } from "@/lib/materials";
@@ -16,7 +17,6 @@ import { ProjectQuoteShareActions } from "@/components/projects/ProjectQuoteShar
 import { CompactThreeViews } from "@/lib/render/svg-views";
 import { QuoteAccessGate } from "@/components/QuoteAccessGate";
 import {
-  PROJECT_STATUS_LABEL,
   type ProjectItemRow,
 } from "@/lib/projects/types";
 import type { FurnitureCategory } from "@/lib/types";
@@ -26,7 +26,7 @@ import { projectQuoteNumber } from "@/lib/projects/quote-number";
 import { taipeiIsoDate } from "@/lib/utils/date-tw";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<{ token?: string }>;
 }
 
@@ -35,32 +35,35 @@ function categoryLabel(type: string): string {
   return getTemplate(slug)?.nameZh ?? type;
 }
 
-function dimensionLabel(item: ProjectItemRow): string {
+function dimensionLabel(item: ProjectItemRow, dash: string): string {
   const p = item.params as Record<string, unknown>;
   if ([p.length, p.width, p.height].every((v) => typeof v === "number")) {
     return `${p.length}×${p.width}×${p.height} mm`;
   }
-  return "—";
+  return dash;
 }
 
-function materialLabel(item: ProjectItemRow): string {
+function materialLabel(item: ProjectItemRow, dash: string): string {
   const p = item.params as Record<string, unknown>;
   const key = typeof p.material === "string" ? p.material : "";
   return key
     ? (MATERIALS as Record<string, { nameZh: string }>)[key]?.nameZh ?? key
-    : "—";
+    : dash;
 }
 
 export default async function ProjectQuotePage({
   params,
   searchParams,
 }: PageProps) {
-  const { id } = await params;
+  const { locale, id } = await params;
   const { token } = await searchParams;
+  const t = await getTranslations({ locale, namespace: "projectQuote" });
+  const tStatus = await getTranslations({ locale, namespace: "projectDetailClient.projectStatus" });
   const data = await fetchProjectQuoteData(id, token ?? null);
   if (!data) notFound();
 
   const { project: p, items: list, branding, messages, publicAccess } = data;
+  const dash = t("dash");
 
   let subtotal = 0;
   let count = 0;
@@ -72,10 +75,11 @@ export default async function ProjectQuotePage({
   const deposit = Math.round(subtotal * p.deposit_rate);
   const balance = subtotal - deposit;
 
+  const ungroupedLabel = t("ungrouped");
   const grouped = (() => {
     const map = new Map<string, ProjectItemRow[]>();
     for (const it of list) {
-      const room = it.room?.trim() || "未分組";
+      const room = it.room?.trim() || ungroupedLabel;
       const arr = map.get(room) ?? [];
       arr.push(it);
       map.set(room, arr);
@@ -86,20 +90,23 @@ export default async function ProjectQuotePage({
   const today = new Date();
   const todayIso = taipeiIsoDate(today);
   const quoteNo = projectQuoteNumber(id, today);
-  const filename = `報價_${p.customer_name || p.name}_${quoteNo}.pdf`;
+  const filename = t("filenameTpl", {
+    name: p.customer_name || p.name,
+    no: quoteNo,
+  });
   const printHref = `/projects/${id}/quote/print${token ? `?token=${token}` : ""}`;
 
   const body = (
     <>
       <div className="flex items-baseline justify-between mb-4 print:hidden">
         {publicAccess ? (
-          <span className="text-xs text-zinc-400">客戶版檢視</span>
+          <span className="text-xs text-zinc-400">{t("customerView")}</span>
         ) : (
           <Link
             href={`/projects/${id}`}
             className="text-sm text-zinc-500 hover:underline"
           >
-            ← 回專案編輯
+            {t("backToEdit")}
           </Link>
         )}
         <div className="flex flex-wrap items-center gap-2">
@@ -118,7 +125,7 @@ export default async function ProjectQuotePage({
             rel="noopener noreferrer"
             className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
           >
-            🖨️ 列印頁
+            {t("printPageBtn")}
           </Link>
           <PrintButton suggestedFilename={filename} />
         </div>
@@ -134,9 +141,11 @@ export default async function ProjectQuotePage({
           </div>
           <div className="text-right text-xs text-zinc-500">
             <p className="font-mono text-zinc-700">{quoteNo}</p>
-            <p className="mt-0.5">報價日期：{todayIso}</p>
+            <p className="mt-0.5">{t("quoteDateLbl", { date: todayIso })}</p>
             {!publicAccess && (
-              <p className="mt-0.5">狀態：{PROJECT_STATUS_LABEL[p.status]}</p>
+              <p className="mt-0.5">
+                {t("statusLbl", { label: tStatus(p.status) })}
+              </p>
             )}
           </div>
         </header>
@@ -145,24 +154,24 @@ export default async function ProjectQuotePage({
           <h1 className="text-2xl font-bold text-zinc-900">{p.name}</h1>
           {p.design_concept && (
             <p className="mt-1 text-sm text-zinc-600 italic">
-              「{p.design_concept}」
+              {t("designConceptQuote", { text: p.design_concept })}
             </p>
           )}
           <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
-              <dt className="text-zinc-500">客戶</dt>
-              <dd className="text-zinc-900 mt-0.5">{p.customer_name || "—"}</dd>
+              <dt className="text-zinc-500">{t("fieldCustomer")}</dt>
+              <dd className="text-zinc-900 mt-0.5">{p.customer_name || dash}</dd>
             </div>
             <div>
-              <dt className="text-zinc-500">聯絡</dt>
+              <dt className="text-zinc-500">{t("fieldContact")}</dt>
               <dd className="text-zinc-900 mt-0.5">
-                {p.customer_contact || "—"}
+                {p.customer_contact || dash}
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-zinc-500">案場地址</dt>
+              <dt className="text-zinc-500">{t("fieldAddress")}</dt>
               <dd className="text-zinc-900 mt-0.5">
-                {p.project_address || "—"}
+                {p.project_address || dash}
               </dd>
             </div>
           </dl>
@@ -171,7 +180,7 @@ export default async function ProjectQuotePage({
         <section className="mb-6">
           {grouped.length === 0 && (
             <div className="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
-              尚未加入任何家具項目。
+              {t("noItems")}
             </div>
           )}
           {grouped.map(([room, roomItems]) => (
@@ -180,7 +189,7 @@ export default async function ProjectQuotePage({
                 <span>📐</span>
                 <span>{room}</span>
                 <span className="text-xs text-zinc-400 font-normal">
-                  ({roomItems.length} 件)
+                  {t("roomCountTpl", { n: roomItems.length })}
                 </span>
               </h2>
               <div className="space-y-4">
@@ -200,19 +209,23 @@ export default async function ProjectQuotePage({
                           </div>
                           <div className="text-[11px] text-zinc-500 mt-0.5">
                             {categoryLabel(it.furniture_type)} ·{" "}
-                            {dimensionLabel(it)} · {materialLabel(it)}
+                            {dimensionLabel(it, dash)} ·{" "}
+                            {materialLabel(it, dash)}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
                           <div className="text-xs text-zinc-500">
                             {it.quantity > 1 && (
                               <span>
-                                {formatTWD(unit)} × {it.quantity}
+                                {t("lineUnitTimesQtyTpl", {
+                                  price: formatTWD(unit),
+                                  qty: it.quantity,
+                                })}
                               </span>
                             )}
                           </div>
                           <div className="text-lg font-mono font-bold text-zinc-900">
-                            {lineTotal > 0 ? formatTWD(lineTotal) : "—"}
+                            {lineTotal > 0 ? formatTWD(lineTotal) : dash}
                           </div>
                         </div>
                       </div>
@@ -233,9 +246,11 @@ export default async function ProjectQuotePage({
           <div className="bg-zinc-900 text-white px-5 py-4 flex items-baseline justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-wider opacity-70">
-                整套報價
+                {t("sectionTotalKicker")}
               </div>
-              <div className="text-xs opacity-70 mt-0.5">{count} 件</div>
+              <div className="text-xs opacity-70 mt-0.5">
+                {t("totalUnitsTpl", { n: count })}
+              </div>
             </div>
             <div className="text-3xl font-mono font-bold">
               {formatTWD(subtotal)}
@@ -244,7 +259,7 @@ export default async function ProjectQuotePage({
           <div className="grid grid-cols-2 divide-x divide-zinc-200">
             <div className="p-4">
               <div className="text-[10px] text-emerald-700 font-medium">
-                訂金（{Math.round(p.deposit_rate * 100)}%）
+                {t("depositPct", { pct: Math.round(p.deposit_rate * 100) })}
               </div>
               <div className="mt-0.5 text-lg font-mono font-semibold text-emerald-900">
                 {formatTWD(deposit)}
@@ -252,7 +267,7 @@ export default async function ProjectQuotePage({
             </div>
             <div className="p-4">
               <div className="text-[10px] text-zinc-600 font-medium">
-                尾款（{Math.round((1 - p.deposit_rate) * 100)}%）
+                {t("balancePct", { pct: Math.round((1 - p.deposit_rate) * 100) })}
               </div>
               <div className="mt-0.5 text-lg font-mono font-semibold text-zinc-900">
                 {formatTWD(balance)}
@@ -263,19 +278,17 @@ export default async function ProjectQuotePage({
 
         {p.notes && (
           <section className="mt-6 rounded-lg bg-amber-50 border border-amber-200 p-4 text-xs text-amber-900 whitespace-pre-wrap">
-            <div className="font-semibold mb-1">備註</div>
+            <div className="font-semibold mb-1">{t("notesH")}</div>
             {p.notes}
           </section>
         )}
 
         <footer className="mt-8 pt-5 border-t border-zinc-200 text-[11px] text-zinc-500 leading-relaxed">
           <p>
-            付款條件：簽約付訂金 {Math.round(p.deposit_rate * 100)}%，交貨前付清尾款。
+            {t("footerPayTerms", { pct: Math.round(p.deposit_rate * 100) })}
           </p>
-          <p className="mt-1">
-            報價以本單載明品項為準；變更設計、尺寸、材質須重新報價。
-          </p>
-          <p className="mt-1">本報價自寄出日起 14 日內有效。</p>
+          <p className="mt-1">{t("footerRepriceNote")}</p>
+          <p className="mt-1">{t("footerValidity")}</p>
         </footer>
       </article>
 

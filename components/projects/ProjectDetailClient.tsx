@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { createClient } from "@/lib/supabase/client";
 import { getTemplate } from "@/lib/templates";
 import { formatTWD } from "@/lib/pricing/catalog";
 import { MATERIALS } from "@/lib/materials";
 import {
-  PROJECT_STATUS_LABEL,
   type ProjectRow,
   type ProjectItemRow,
   type ProjectStatus,
@@ -23,22 +23,6 @@ import { BrandingSetupGate } from "@/components/projects/BrandingSetupGate";
 import { MessageThread } from "@/components/projects/MessageThread";
 import type { ProjectMessage } from "@/lib/projects/fetch-quote-data";
 
-const COMMON_ROOMS = [
-  "主臥室",
-  "次臥室",
-  "兒童房",
-  "客房",
-  "書房",
-  "客廳",
-  "餐廳",
-  "廚房",
-  "玄關",
-  "衛浴",
-  "陽台",
-  "儲藏室",
-  "辦公室",
-];
-
 /** 狀態 → 顏色（給 status pill 用）*/
 const STATUS_COLOR: Record<ProjectStatus, string> = {
   draft: "bg-zinc-100 text-zinc-700 border-zinc-300",
@@ -49,9 +33,13 @@ const STATUS_COLOR: Record<ProjectStatus, string> = {
   cancelled: "bg-rose-100 text-rose-700 border-rose-300",
 };
 
-function categoryLabel(type: string): string {
+function categoryLabel(type: string, tFurn: ReturnType<typeof useTranslations<"furniture">>): string {
   const slug = type.replace(/_/g, "-") as FurnitureCategory;
-  return getTemplate(slug)?.nameZh ?? type;
+  try {
+    return tFurn(slug);
+  } catch {
+    return getTemplate(slug)?.nameZh ?? type;
+  }
 }
 
 function buildDesignHref(item: ProjectItemRow): string {
@@ -67,6 +55,19 @@ function buildDesignHref(item: ProjectItemRow): string {
 }
 
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
+  const t = useTranslations("projectDetailClient");
+  const tStatus = useTranslations("projectDetailClient.projectStatus");
+  const tFurn = useTranslations("furniture");
+  const COMMON_ROOMS = t.raw("commonRooms") as string[];
+  const ungrouped = t("ungrouped");
+  const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+    draft: tStatus("draft"),
+    sent: tStatus("sent"),
+    confirmed: tStatus("confirmed"),
+    in_production: tStatus("in_production"),
+    delivered: tStatus("delivered"),
+    cancelled: tStatus("cancelled"),
+  };
   const { isLoading: planLoading, isLoggedIn, userId } = useUserPlan();
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [items, setItems] = useState<ProjectItemRow[] | null>(null);
@@ -152,7 +153,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     if (!items) return [];
     const map = new Map<string, ProjectItemRow[]>();
     for (const it of items) {
-      const room = it.room?.trim() || "未分組";
+      const room = it.room?.trim() || ungrouped;
       const arr = map.get(room) ?? [];
       arr.push(it);
       map.set(room, arr);
@@ -173,7 +174,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         .eq("id", projectId);
       if (error) throw error;
     } catch (e) {
-      window.alert(`儲存失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertSaveFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -190,7 +191,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         : "";
       const insertName =
         design.name?.trim() ||
-        `${categoryLabel(design.furniture_type)}${dim ? " " + dim : ""}`;
+        `${categoryLabel(design.furniture_type, tFurn)}${dim ? " " + dim : ""}`;
       const estimatedPrice = estimateUnitPriceFromParams(
         design.furniture_type,
         design.params as Record<string, unknown>,
@@ -215,7 +216,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       setItems((prev) => (prev ? [...prev, data as ProjectItemRow] : [data as ProjectItemRow]));
       setShowAdd(false);
     } catch (e) {
-      window.alert(`加入失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertAddFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -234,14 +235,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         .eq("id", id);
       if (error) throw error;
     } catch (e) {
-      window.alert(`儲存失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertSaveFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
   };
 
   const deleteItem = async (id: string) => {
-    if (!window.confirm("確定移除這個項目？")) return;
+    if (!window.confirm(t("alertConfirmRemoveItem"))) return;
     setBusy(true);
     try {
       const supabase = createClient();
@@ -254,16 +255,15 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         return next;
       });
     } catch (e) {
-      window.alert(`移除失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertRemoveFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
   };
 
-  // 批次刪除選中的 items
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(`確定移除 ${selectedIds.size} 個項目？`)) return;
+    if (!window.confirm(t("alertConfirmBatchTpl", { n: selectedIds.size }))) return;
     setBusy(true);
     try {
       const supabase = createClient();
@@ -273,7 +273,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       setItems((prev) => (prev ? prev.filter((it) => !selectedIds.has(it.id)) : prev));
       setSelectedIds(new Set());
     } catch (e) {
-      window.alert(`刪除失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertBatchFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -303,9 +303,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     const sIdx = items.findIndex((it) => it.id === sourceId);
     const tIdx = items.findIndex((it) => it.id === targetId);
     if (sIdx === -1 || tIdx === -1) return;
-    const sRoom = items[sIdx].room?.trim() || "未分組";
-    const tRoom = items[tIdx].room?.trim() || "未分組";
-    if (sRoom !== tRoom) return; // 跨房間不處理
+    const sRoom = items[sIdx].room?.trim() || ungrouped;
+    const tRoom = items[tIdx].room?.trim() || ungrouped;
+    if (sRoom !== tRoom) return;
     // splice 重排
     const newItems = [...items];
     const [moved] = newItems.splice(sIdx, 1);
@@ -337,7 +337,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   // 複製專案：建一個新 project + 複製所有 items（給第二次接單或同建商案用）
   const duplicateProject = async () => {
     if (!project || !items) return;
-    const newName = window.prompt("新專案名稱？", `${project.name} (副本)`);
+    const newName = window.prompt(
+      t("promptNewNameTitle"),
+      t("promptNewNameTpl", { name: project.name }),
+    );
     if (!newName?.trim()) return;
     setBusy(true);
     try {
@@ -379,19 +382,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       }
       window.location.href = `/projects/${newProj.id}`;
     } catch (e) {
-      window.alert(`複製失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertDuplicateFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
       setBusy(false);
     }
   };
 
   const deleteProject = async () => {
     if (!project) return;
-    if (
-      !window.confirm(
-        `確定刪除專案「${project.name}」？所有項目也會一起刪除，無法復原。`,
-      )
-    )
-      return;
+    if (!window.confirm(t("confirmDeleteTpl", { name: project.name }))) return;
     setBusy(true);
     try {
       const supabase = createClient();
@@ -399,7 +397,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       if (error) throw error;
       window.location.href = "/projects";
     } catch (e) {
-      window.alert(`刪除失敗：${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t("alertDeleteFailTpl", { msg: e instanceof Error ? e.message : String(e) }));
       setBusy(false);
     }
   };
@@ -407,7 +405,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   if (planLoading || loading) {
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 text-sm text-zinc-500">
-        載入中…
+        {t("loading")}
       </main>
     );
   }
@@ -415,7 +413,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   if (!isLoggedIn) {
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
-        <p className="text-zinc-600 text-sm">請先登入才能查看專案。</p>
+        <p className="text-zinc-600 text-sm">{t("loginRequired")}</p>
       </main>
     );
   }
@@ -424,10 +422,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <Link href="/projects" className="text-sm text-zinc-500 hover:underline">
-          ← 回專案列表
+          {t("backToList")}
         </Link>
         <div className="mt-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-700 text-sm p-4">
-          {err ?? "找不到此專案，可能已刪除或你沒有權限。"}
+          {err ?? t("errFallback")}
         </div>
       </main>
     );
@@ -441,7 +439,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         ))}
       </datalist>
       <Link href="/projects" className="text-sm text-zinc-500 hover:underline">
-        ← 回專案列表
+        {t("backToList")}
       </Link>
       <QuoteAccessGate>
       <BrandingSetupGate>
@@ -453,14 +451,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             type="text"
             value={project.name}
             onChange={(e) => setProject({ ...project, name: e.target.value })}
-            onBlur={(e) => updateProject({ name: e.target.value.trim() || "(未命名)" })}
+            onBlur={(e) => updateProject({ name: e.target.value.trim() || t("untitled") })}
             className="text-2xl sm:text-3xl font-bold text-zinc-900 bg-transparent border-b-2 border-transparent hover:border-zinc-200 focus:border-zinc-400 outline-none px-1 -mx-1 min-w-0 flex-1"
           />
           <select
             value={project.status}
             onChange={(e) => updateProject({ status: e.target.value as ProjectStatus })}
             className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_COLOR[project.status]} cursor-pointer`}
-            title="變更專案狀態"
+            title={t("statusTitle")}
           >
             {Object.entries(PROJECT_STATUS_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
@@ -472,27 +470,27 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
         <div className="grid sm:grid-cols-2 gap-3 mt-3">
           <LabelField
-            label="客戶名稱"
+            label={t("fieldCustomerName")}
             value={project.customer_name ?? ""}
-            placeholder="例：林先生 / 王太太"
+            placeholder={t("phCustomerName")}
             onSave={(v) => updateProject({ customer_name: v || null })}
           />
           <LabelField
-            label="客戶聯絡"
+            label={t("fieldCustomerContact")}
             value={project.customer_contact ?? ""}
-            placeholder="電話 / Email / Line"
+            placeholder={t("phCustomerContact")}
             onSave={(v) => updateProject({ customer_contact: v || null })}
           />
           <LabelField
-            label="案場地址"
+            label={t("fieldProjectAddress")}
             value={project.project_address ?? ""}
-            placeholder="例：台北市大安區..."
+            placeholder={t("phProjectAddress")}
             onSave={(v) => updateProject({ project_address: v || null })}
           />
           <LabelField
-            label="設計概念（一句話）"
+            label={t("fieldDesignConcept")}
             value={project.design_concept ?? ""}
-            placeholder="例：日式侘寂、北歐淺色、自然紋理為主"
+            placeholder={t("phDesignConcept")}
             onSave={(v) => updateProject({ design_concept: v || null })}
           />
         </div>
@@ -511,20 +509,18 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         onSave={(patch) => updateProject(patch)}
       />
 
-      {/* 公開備註（會顯示在報價單） */}
       <NotesPanel
-        title="📌 公開備註"
-        subtitle="會顯示在報價單給客戶看"
-        placeholder="例：完工後將提供保養手冊、保固期 1 年、含送貨上樓服務..."
+        title={t("publicNotesH")}
+        subtitle={t("publicNotesSub")}
+        placeholder={t("phPublicNotes")}
         value={project.notes ?? ""}
         onSave={(v) => updateProject({ notes: v || null })}
       />
 
-      {/* 內部備註（業主看不到）*/}
       <NotesPanel
-        title="📝 內部備註"
-        subtitle="業主看不到，給自己 / 工頭做筆記"
-        placeholder="例：客戶殺價空間 5%、老闆認識可打 9 折、工頭叮嚀板厚 18mm 不能變、客戶介紹人是 OOO..."
+        title={t("internalNotesH")}
+        subtitle={t("internalNotesSub")}
+        placeholder={t("phInternalNotes")}
         value={project.internal_notes ?? ""}
         onSave={(v) => updateProject({ internal_notes: v || null })}
       />
@@ -532,21 +528,20 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       {/* 項目列表 */}
       <section className="mb-6">
         <div className="flex items-baseline justify-between gap-2 mb-3">
-          <h2 className="text-lg font-semibold text-zinc-900">家具項目</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">{t("itemsH")}</h2>
           <button
             type="button"
             onClick={() => setShowAdd((s) => !s)}
             className="px-3 py-1.5 rounded-lg bg-[#8b4513] text-white text-xs font-medium hover:bg-[#6f370f]"
           >
-            {showAdd ? "收合" : "+ 加入家具"}
+            {showAdd ? t("collapseBtn") : t("addBtn")}
           </button>
         </div>
 
-        {/* 批次操作 bar：選中項目 > 0 時顯示 */}
         {selectedIds.size > 0 && (
           <div className="mb-3 rounded-lg bg-amber-100 border-2 border-amber-300 px-3 py-2 flex items-center gap-3 sticky top-2 z-30 shadow-sm">
             <span className="text-xs font-medium text-amber-900">
-              已選 {selectedIds.size} 個項目
+              {t("selectedCountTpl", { n: selectedIds.size })}
             </span>
             <div className="flex-1" />
             <button
@@ -554,7 +549,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               onClick={() => setSelectedIds(new Set())}
               className="text-xs text-zinc-700 hover:underline"
             >
-              取消選取
+              {t("cancelSelect")}
             </button>
             <button
               type="button"
@@ -562,7 +557,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               disabled={busy}
               className="px-3 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700 disabled:opacity-50"
             >
-              🗑 批次刪除
+              {t("batchDelete")}
             </button>
           </div>
         )}
@@ -578,23 +573,21 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         {grouped.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-8 text-center">
             <div className="text-4xl mb-2">🪑</div>
-            <p className="text-sm font-medium text-zinc-700 mb-1">這個專案還沒有家具</p>
-            <p className="text-xs text-zinc-500 mb-4">
-              先去設計幾件家具並儲存，再回來加入這個專案。
-            </p>
+            <p className="text-sm font-medium text-zinc-700 mb-1">{t("emptyH")}</p>
+            <p className="text-xs text-zinc-500 mb-4">{t("emptyBody")}</p>
             <div className="flex gap-2 justify-center flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowAdd(true)}
                 className="px-4 py-2 rounded bg-[#8b4513] text-white text-xs font-medium hover:bg-[#6f370f]"
               >
-                + 從儲存的設計加入
+                {t("addFromSaved")}
               </button>
               <Link
                 href="/"
                 className="px-4 py-2 rounded border border-zinc-300 bg-white text-xs hover:bg-zinc-50"
               >
-                先去設計家具
+                {t("goDesign")}
               </Link>
             </div>
           </div>
@@ -617,7 +610,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       <span className="text-zinc-400 text-[10px]">
                         {collapsed ? "▶" : "▼"}
                       </span>
-                      📐 {room}（{list.length} 件）
+                      {t("roomGroupTpl", { name: room, n: list.length })}
                     </h3>
                     <span className="text-[11px] text-zinc-500 font-mono">
                       {formatTWD(roomTotal)}
@@ -629,6 +622,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                         <ItemRow
                           key={it.id}
                           item={it}
+                          tFurn={tFurn}
                           laborOpts={project.labor_opts}
                           selected={selectedIds.has(it.id)}
                           onToggleSelect={() => toggleSelect(it.id)}
@@ -654,9 +648,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <section className="rounded-2xl border-2 border-zinc-200 bg-zinc-50 p-5 mb-6">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <h3 className="font-semibold text-zinc-900">整套報價</h3>
+            <h3 className="font-semibold text-zinc-900">{t("totalsH")}</h3>
             <p className="text-xs text-zinc-500 mt-0.5">
-              {totals.count} 件 · 單價以下方各項議價後價格為準（未填單價的項目以 0 計）
+              {t("totalsLineTpl", { n: totals.count })}
             </p>
           </div>
           <div className="text-right">
@@ -664,7 +658,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               {formatTWD(totals.subtotal)}
             </div>
             <div className="text-xs text-zinc-500 mt-0.5">
-              訂金 {Math.round(project.deposit_rate * 100)}%：
+              {t("depositTpl", { pct: Math.round(project.deposit_rate * 100) })}
               <span className="font-mono ml-1">
                 {formatTWD(Math.round(totals.subtotal * project.deposit_rate))}
               </span>
@@ -681,7 +675,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               rel="noopener noreferrer"
               className="px-3 py-2 rounded text-sm bg-amber-700 text-white hover:bg-amber-800 font-medium"
             >
-              👀 預覽報價
+              {t("previewQuote")}
             </Link>
             <Link
               href={`/projects/${projectId}/quote/print`}
@@ -689,17 +683,16 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               rel="noopener noreferrer"
               className="px-3 py-2 rounded text-sm bg-zinc-900 text-white hover:bg-zinc-700 font-medium"
             >
-              🖨️ 列印 / PDF
+              {t("printQuote")}
             </Link>
-            {/* 次要動作：採購 + 分享（灰白底）*/}
             <Link
               href={`/projects/${projectId}/purchase`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-2 rounded text-sm border border-zinc-300 bg-white hover:bg-zinc-50"
-              title="按材質聚合所有家具的木料板才"
+              title={t("purchaseTitle")}
             >
-              🛒 採購清單
+              {t("purchaseList")}
             </Link>
             <CopyShareLinkButton projectId={projectId} />
           </div>
@@ -715,35 +708,29 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       {/* 更多操作（複製 + 危險區，收進 disclosure）*/}
       <details className="mt-12 pt-6 border-t border-zinc-200">
         <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-700 list-none flex items-center gap-1">
-          <span>⋯</span> 更多操作
+          <span>⋯</span> {t("moreActions")}
         </summary>
         <div className="mt-3 space-y-3">
-          {/* 安全區：複製專案 */}
           <div className="px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200">
-            <p className="text-[11px] text-zinc-600 mb-2">
-              📋 給第二次接單或同建商案用，複製本專案的客戶資料、項目、報價設定
-            </p>
+            <p className="text-[11px] text-zinc-600 mb-2">{t("duplicateNote")}</p>
             <button
               type="button"
               onClick={duplicateProject}
               disabled={busy}
               className="text-xs text-zinc-700 hover:underline disabled:opacity-50 font-medium"
             >
-              📋 複製此專案
+              {t("duplicateBtn")}
             </button>
           </div>
-          {/* 危險區 */}
           <div className="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200">
-            <p className="text-[11px] text-rose-700 mb-2">
-              ⚠️ 危險區：以下動作不可復原
-            </p>
+            <p className="text-[11px] text-rose-700 mb-2">{t("dangerZoneNote")}</p>
             <button
               type="button"
               onClick={deleteProject}
               disabled={busy}
               className="text-xs text-red-700 hover:underline disabled:opacity-50 font-medium"
             >
-              🗑 刪除整個專案
+              {t("deleteProject")}
             </button>
           </div>
         </div>
@@ -753,7 +740,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       {totals.count > 0 && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-zinc-200 shadow-lg p-3 flex items-center justify-between z-40 gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] text-zinc-500">{totals.count} 件 · 總計</div>
+            <div className="text-[10px] text-zinc-500">{t("stickyCountTpl", { n: totals.count })}</div>
             <div className="text-lg font-bold font-mono text-zinc-900 truncate">
               {formatTWD(totals.subtotal)}
             </div>
@@ -764,7 +751,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             rel="noopener noreferrer"
             className="px-4 py-2 rounded bg-amber-700 text-white text-sm font-medium hover:bg-amber-800 shrink-0"
           >
-            👀 預覽報價
+            {t("stickyPreview")}
           </Link>
         </div>
       )}
@@ -787,6 +774,7 @@ function LabelField({
   placeholder?: string;
   onSave: (v: string) => void;
 }) {
+  const t = useTranslations("projectDetailClient");
   const [v, setV] = useState(value);
   const [saved, setSaved] = useState(false);
   useEffect(() => setV(value), [value]);
@@ -795,7 +783,7 @@ function LabelField({
       <span className="text-zinc-500 mb-1 flex items-center gap-1.5">
         {label}
         {saved && (
-          <span className="text-[10px] text-emerald-600 font-medium">✓ 已儲存</span>
+          <span className="text-[10px] text-emerald-600 font-medium">{t("labelSaved")}</span>
         )}
       </span>
       <input
@@ -818,6 +806,7 @@ function LabelField({
 
 function ItemRow({
   item,
+  tFurn,
   laborOpts,
   selected,
   onToggleSelect,
@@ -830,6 +819,7 @@ function ItemRow({
   disabled,
 }: {
   item: ProjectItemRow;
+  tFurn: ReturnType<typeof useTranslations<"furniture">>;
   laborOpts: ProjectLaborOpts | null;
   selected: boolean;
   onToggleSelect: () => void;
@@ -841,6 +831,7 @@ function ItemRow({
   isDragging: boolean;
   disabled: boolean;
 }) {
+  const t = useTranslations("projectDetailClient");
   const p = item.params as Record<string, unknown>;
   const dim =
     [p.length, p.width, p.height].every((v) => typeof v === "number")
@@ -875,7 +866,7 @@ function ItemRow({
       <div className="flex items-start gap-2 mb-2 sm:mb-0 sm:float-left sm:w-[calc(100%-280px)] sm:pr-3 min-w-0">
         <span
           className="text-zinc-400 cursor-grab select-none mt-1 hover:text-zinc-600"
-          title="拖拉重排（同房間內）"
+          title={t("dragTitle")}
         >
           ⋮⋮
         </span>
@@ -884,12 +875,12 @@ function ItemRow({
           checked={selected}
           onChange={onToggleSelect}
           className="mt-1.5 w-3.5 h-3.5 cursor-pointer accent-amber-600"
-          title="多選"
+          title={t("selectTitle")}
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="font-medium text-zinc-900 truncate">{item.name}</span>
-            <span className="text-xs text-zinc-500">{categoryLabel(item.furniture_type)}</span>
+            <span className="text-xs text-zinc-500">{categoryLabel(item.furniture_type, tFurn)}</span>
           </div>
           <p className="text-[11px] text-zinc-500 mt-1">
             {dim}
@@ -903,7 +894,7 @@ function ItemRow({
         <input
           type="text"
           defaultValue={item.room ?? ""}
-          placeholder="房間"
+          placeholder={t("phRoom")}
           list="project-rooms"
           onBlur={(e) => {
             const v = e.target.value.trim();
@@ -936,7 +927,7 @@ function ItemRow({
             rel="noopener noreferrer"
             className="text-xs text-amber-700 hover:underline px-2"
           >
-            開啟
+            {t("openItem")}
           </Link>
           <button
             type="button"
@@ -944,7 +935,7 @@ function ItemRow({
             disabled={disabled}
             className="text-xs text-red-600 hover:underline px-2 disabled:opacity-50"
           >
-            移除
+            {t("removeItem")}
           </button>
         </div>
       </div>
@@ -962,6 +953,7 @@ function UnitPriceInput({
   laborOpts: ProjectLaborOpts | null;
   onUpdate: (patch: Partial<ProjectItemRow>) => void;
 }) {
+  const t = useTranslations("projectDetailClient");
   const [val, setVal] = useState(item.unit_price_override?.toString() ?? "");
   useEffect(() => {
     setVal(item.unit_price_override?.toString() ?? "");
@@ -986,14 +978,14 @@ function UnitPriceInput({
 
   return (
     <label className="flex items-center gap-1 text-xs text-zinc-600">
-      單價
+      {t("unitPriceLbl")}
       <div className="flex flex-col items-end">
         <input
           type="number"
           min={0}
           step={100}
           value={val}
-          placeholder={hasEstimate ? `估 ${estimated}` : "—"}
+          placeholder={hasEstimate ? t("estPlaceholderTpl", { n: estimated! }) : "—"}
           onChange={(e) => setVal(e.target.value)}
           onBlur={() => {
             const raw = val.trim();
@@ -1010,9 +1002,9 @@ function UnitPriceInput({
               onUpdate({ unit_price_override: estimated });
             }}
             className="mt-0.5 text-[10px] text-amber-700 hover:underline"
-            title="用模板與預設工資估算"
+            title={t("useEstimateTitle")}
           >
-            {isEmpty ? "帶入" : "更新為"}估價 ${estimated.toLocaleString()}
+            {isEmpty ? t("useEstimate") : t("updateEstimate")} {t("useEstimatePriceTpl", { amount: estimated.toLocaleString() })}
           </button>
         )}
       </div>
@@ -1028,35 +1020,38 @@ type LaborField = {
   hint?: string;
 };
 
-// 分 3 組：工錢與毛利 / 雜費 / 稅折
-const LABOR_GROUPS: Array<{ title: string; icon: string; fields: LaborField[] }> = [
-  {
-    title: "工錢與毛利",
-    icon: "💰",
-    fields: [
-      { key: "hourlyRate", label: "時薪 NT$/hr", step: 50, hint: "預設 500（資深師傅）" },
-      { key: "marginRate", label: "毛利 %", step: 5, isRate: true, hint: "預設 30%" },
-    ],
-  },
-  {
-    title: "雜費",
-    icon: "📦",
-    fields: [
-      { key: "finishingCost", label: "塗裝 NT$", step: 100, hint: "預設 1500" },
-      { key: "shippingCost", label: "運費 NT$", step: 100, hint: "預設 0（自取）" },
-      { key: "installationCost", label: "安裝 NT$", step: 100, hint: "預設 0" },
-      { key: "hardwareCost", label: "五金 NT$", step: 100, hint: "預設 0" },
-    ],
-  },
-  {
-    title: "稅與折扣",
-    icon: "🧾",
-    fields: [
-      { key: "vatRate", label: "稅率 %", step: 1, isRate: true, hint: "預設 0（不開發票）" },
-      { key: "discountRate", label: "折扣 %", step: 1, isRate: true, hint: "0 = 不打折" },
-    ],
-  },
-];
+function buildLaborGroups(
+  t: ReturnType<typeof useTranslations<"projectDetailClient">>,
+): Array<{ title: string; icon: string; fields: LaborField[] }> {
+  return [
+    {
+      title: t("laborGroupWages"),
+      icon: "💰",
+      fields: [
+        { key: "hourlyRate", label: t("fHourlyRate"), step: 50, hint: t("fHourlyRateHint") },
+        { key: "marginRate", label: t("fMargin"), step: 5, isRate: true, hint: t("fMarginHint") },
+      ],
+    },
+    {
+      title: t("laborGroupMisc"),
+      icon: "📦",
+      fields: [
+        { key: "finishingCost", label: t("fFinishing"), step: 100, hint: t("fFinishingHint") },
+        { key: "shippingCost", label: t("fShipping"), step: 100, hint: t("fShippingHint") },
+        { key: "installationCost", label: t("fInstall"), step: 100, hint: t("fInstallHint") },
+        { key: "hardwareCost", label: t("fHardware"), step: 100, hint: t("fHardwareHint") },
+      ],
+    },
+    {
+      title: t("laborGroupTax"),
+      icon: "🧾",
+      fields: [
+        { key: "vatRate", label: t("fVat"), step: 1, isRate: true, hint: t("fVatHint") },
+        { key: "discountRate", label: t("fDiscount"), step: 1, isRate: true, hint: t("fDiscountHint") },
+      ],
+    },
+  ];
+}
 
 function PaymentDeliveryPanel({
   project,
@@ -1067,6 +1062,7 @@ function PaymentDeliveryPanel({
   totals: { subtotal: number; count: number };
   onSave: (patch: Partial<ProjectRow>) => void;
 }) {
+  const t = useTranslations("projectDetailClient");
   const depositAmount = Math.round(totals.subtotal * project.deposit_rate);
   const balanceAmount = Math.max(0, Math.round(totals.subtotal) - depositAmount);
   const depositPaid = !!project.deposit_received_at;
@@ -1077,18 +1073,18 @@ function PaymentDeliveryPanel({
     <details className="mb-6 rounded-2xl border-2 border-zinc-200 bg-white" open>
       <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
         <span className="font-semibold text-zinc-900 text-sm">
-          💰 金流 · 進度
+          {t("paymentH")}
         </span>
         <span className="text-xs">
           {depositPaid && balancePaid ? (
-            <span className="text-emerald-700 font-medium">✓ 全額收清</span>
+            <span className="text-emerald-700 font-medium">{t("paymentAllPaid")}</span>
           ) : depositPaid ? (
-            <span className="text-amber-700 font-medium">已收訂金</span>
+            <span className="text-amber-700 font-medium">{t("paymentDepositPaid")}</span>
           ) : (
-            <span className="text-zinc-400">未收款</span>
+            <span className="text-zinc-400">{t("paymentNoPay")}</span>
           )}
           {project.delivery_date_override && (
-            <span className="ml-2 text-zinc-600">交貨：{project.delivery_date_override}</span>
+            <span className="ml-2 text-zinc-600">{t("paymentDeliveryTpl", { date: project.delivery_date_override })}</span>
           )}
         </span>
       </summary>
@@ -1107,7 +1103,7 @@ function PaymentDeliveryPanel({
               className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
             />
             <span className="font-medium">
-              訂金（{Math.round(project.deposit_rate * 100)}%）
+              {t("depositLblTpl", { pct: Math.round(project.deposit_rate * 100) })}
             </span>
           </label>
           <div className="text-base font-mono font-semibold text-zinc-900">
@@ -1142,7 +1138,7 @@ function PaymentDeliveryPanel({
               }
               className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
             />
-            <span className="font-medium">尾款</span>
+            <span className="font-medium">{t("balanceLbl")}</span>
           </label>
           <div className="text-base font-mono font-semibold text-zinc-900">
             {formatTWD(balanceAmount)}
@@ -1166,7 +1162,7 @@ function PaymentDeliveryPanel({
         {/* 預計完工日 */}
         <div>
           <label className="text-xs text-zinc-600 mb-1 block font-medium">
-            📅 預計完工日
+            {t("expectedDeliveryH")}
           </label>
           <input
             type="date"
@@ -1178,7 +1174,7 @@ function PaymentDeliveryPanel({
             className="text-sm border border-zinc-300 rounded px-2 py-1 bg-white w-full"
           />
           <p className="text-[10px] text-zinc-400 mt-1">
-            空白 = 用工時自動估算
+            {t("expectedDeliveryHint")}
           </p>
         </div>
       </div>
@@ -1199,6 +1195,7 @@ function NotesPanel({
   value: string;
   onSave: (v: string) => void;
 }) {
+  const t = useTranslations("projectDetailClient");
   const [v, setV] = useState(value);
   const [saved, setSaved] = useState(false);
   useEffect(() => setV(value), [value]);
@@ -1207,9 +1204,9 @@ function NotesPanel({
       <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
         <span className="font-semibold text-zinc-900 text-sm">
           {title}
-          <span className="ml-2 text-xs font-normal text-zinc-500">（{subtitle}）</span>
+          <span className="ml-2 text-xs font-normal text-zinc-500">({subtitle})</span>
         </span>
-        {saved && <span className="text-[10px] text-emerald-600 font-medium">✓ 已儲存</span>}
+        {saved && <span className="text-[10px] text-emerald-600 font-medium">{t("labelSaved")}</span>}
       </summary>
       <div className="px-5 pb-5 pt-1">
         <textarea
@@ -1238,6 +1235,9 @@ function LaborOptsPanel({
   value: ProjectLaborOpts | null;
   onSave: (opts: ProjectLaborOpts | null) => void;
 }) {
+  const t = useTranslations("projectDetailClient");
+  const LABOR_GROUPS = buildLaborGroups(t);
+  const defaultPrefix = t("defaultPrefix");
   const opts = value ?? {};
   const editedCount = value ? Object.keys(value).length : 0;
   const isEdited = editedCount > 0;
@@ -1259,16 +1259,16 @@ function LaborOptsPanel({
     <details className="mb-6 rounded-2xl border-2 border-zinc-200 bg-white" open={isEdited}>
       <summary className="cursor-pointer list-none px-5 py-3 flex items-baseline justify-between hover:bg-zinc-50 rounded-2xl">
         <span className="font-semibold text-zinc-900 text-sm">
-          ⚙️ 報價設定
+          {t("laborOptsH")}
           <span className="ml-2 text-xs font-normal text-zinc-500">
-            （影響「帶入估價」用的工資、毛利、稅率等）
+            {t("laborOptsSub")}
           </span>
         </span>
         <span className="text-xs text-zinc-400">
           {isEdited ? (
-            <span className="text-amber-700 font-medium">已自訂 {editedCount} 項</span>
+            <span className="text-amber-700 font-medium">{t("customizedTpl", { n: editedCount })}</span>
           ) : (
-            "用系統預設"
+            t("useDefault")
           )}
         </span>
       </summary>
@@ -1291,7 +1291,7 @@ function LaborOptsPanel({
                       type="number"
                       step={f.step}
                       defaultValue={display}
-                      placeholder={f.hint?.replace("預設 ", "")}
+                      placeholder={f.hint?.replace(defaultPrefix, "")}
                       onBlur={(e) => handleChange(f.key, e.target.value, !!f.isRate)}
                       className="border border-zinc-300 rounded px-2 py-1.5 bg-white text-sm font-mono"
                     />
@@ -1311,7 +1311,7 @@ function LaborOptsPanel({
               onClick={() => onSave(null)}
               className="text-xs text-zinc-500 hover:underline"
             >
-              重設為系統預設
+              {t("resetDefault")}
             </button>
           </div>
         )}
@@ -1329,27 +1329,29 @@ function AddItemPanel({
   onAdd: (design: DesignRow, room: string) => void;
   disabled: boolean;
 }) {
+  const t = useTranslations("projectDetailClient");
+  const tFurn = useTranslations("furniture");
   const [room, setRoom] = useState("");
   if (savedDesigns.length === 0) {
     return (
       <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50/50 p-4 text-sm text-amber-900">
-        你還沒有任何儲存的設計。先去
-        <Link href="/" className="underline mx-1">家具列表</Link>
-        挑一個、調好尺寸後在頁面右上「💾 儲存設計」，再回來加入這個專案。
+        {t("noSavedDesigns1")}
+        <Link href="/" className="underline mx-1">{t("noSavedDesignsLink")}</Link>
+        {t("noSavedDesigns2")}
       </div>
     );
   }
   return (
     <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50/50 p-4">
       <div className="flex items-baseline justify-between gap-2 mb-3">
-        <h3 className="text-sm font-semibold text-amber-900">從儲存的設計加入</h3>
+        <h3 className="text-sm font-semibold text-amber-900">{t("addPanelHTpl")}</h3>
         <label className="text-xs text-amber-900 flex items-center gap-1">
-          房間
+          {t("addPanelRoom")}
           <input
             type="text"
             value={room}
             onChange={(e) => setRoom(e.target.value)}
-            placeholder="例：玄關 / 客廳"
+            placeholder={t("addPanelRoomPh")}
             list="project-rooms"
             className="w-28 border border-amber-300 rounded px-2 py-1 text-xs bg-white"
           />
@@ -1371,10 +1373,10 @@ function AddItemPanel({
                 className="w-full flex items-baseline gap-2 text-left px-3 py-2 rounded bg-white hover:bg-amber-100 border border-amber-100 disabled:opacity-50"
               >
                 <span className="text-sm font-medium text-zinc-900 truncate flex-1">
-                  {d.name?.trim() || categoryLabel(d.furniture_type)}
+                  {d.name?.trim() || categoryLabel(d.furniture_type, tFurn)}
                 </span>
                 <span className="text-xs text-zinc-500 shrink-0">
-                  {categoryLabel(d.furniture_type)} · {dim}
+                  {categoryLabel(d.furniture_type, tFurn)} · {dim}
                 </span>
               </button>
             </li>

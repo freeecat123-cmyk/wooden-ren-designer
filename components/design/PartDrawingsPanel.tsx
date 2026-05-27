@@ -13,6 +13,7 @@
  */
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { FurnitureDesign, Part } from "@/lib/types";
 import { groupPartsForDrawing } from "@/lib/render/part-drawing/grouping";
 import {
@@ -56,6 +57,7 @@ function roundPartDim(part: Part): string {
 const ZOOM_LEVELS_LOCAL = [1, 2, 3, 5, 8] as const;
 
 export function PartDrawingsPanel({ design }: Props) {
+  const t = useTranslations("partDrawings");
   const groups = groupPartsForDrawing(design);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // 進入單視圖放大模式：未選 = 顯示 L 型 A4 三視圖（CNS 第三角法）
@@ -73,9 +75,9 @@ export function PartDrawingsPanel({ design }: Props) {
     <section className="mt-5 rounded-2xl border border-amber-200/70 bg-white shadow-md shadow-amber-900/5 overflow-hidden">
       <div className="px-4 py-2.5 border-b border-amber-100 bg-gradient-to-r from-amber-50/80 to-transparent text-xs font-semibold text-zinc-800 flex items-center gap-2">
         <span className="w-1 h-4 bg-amber-500 rounded-full" />
-        零件圖
+        {t("h")}
         <span className="ml-auto text-[10px] font-normal text-zinc-400">
-          共 {groups.length} 件（合併同形）
+          {t("countTpl", { n: groups.length })}
         </span>
       </div>
 
@@ -128,21 +130,19 @@ export function PartDrawingsPanel({ design }: Props) {
                     onClick={resetZoom}
                     className="text-zinc-600 hover:text-zinc-900 text-xs px-2 py-0.5 rounded border border-zinc-300 hover:bg-zinc-50"
                   >
-                    ← 返回三視圖
+                    {t("backToTri")}
                   </button>
                 )}
-                零件圖 — {groups[openIdx].representative.nameZh}
+                {t("modalTitleTpl", { name: groups[openIdx].representative.nameZh })}
                 {zoomedView && (
                   <span className="text-zinc-500 text-xs">
-                    （
                     {zoomedView === "front"
-                      ? "正視"
+                      ? t("viewFrontParen")
                       : zoomedView === "top"
-                      ? "俯視"
+                      ? t("viewTopParen")
                       : zoomedView === "side"
-                      ? "側視"
-                      : "仰視"}
-                    ）
+                      ? t("viewSideParen")
+                      : t("viewBottomParen")}
                   </span>
                 )}
               </h3>
@@ -153,7 +153,7 @@ export function PartDrawingsPanel({ design }: Props) {
                   setOpenIdx(null);
                   resetZoom();
                 }}
-                aria-label="關閉"
+                aria-label={t("closeAria")}
               >
                 ×
               </button>
@@ -164,15 +164,15 @@ export function PartDrawingsPanel({ design }: Props) {
             <div className="px-4 py-2 border-b border-zinc-100 bg-zinc-50/50 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
               {(
                 [
-                  { v: "front" as PartView, label: "正視" },
-                  { v: "top" as PartView, label: "俯視" },
-                  { v: "side" as PartView, label: "側視" },
-                  { v: "bottom" as PartView, label: "仰視" },
+                  { v: "front" as PartView, label: t("viewFront") },
+                  { v: "top" as PartView, label: t("viewTop") },
+                  { v: "side" as PartView, label: t("viewSide") },
+                  { v: "bottom" as PartView, label: t("viewBottom") },
                 ]
               ).map(({ v, label }) => (
                 <div key={v} className="flex items-center gap-1">
                   <span className="text-zinc-600 font-medium w-8">{label}</span>
-                  <span className="text-[10px] text-zinc-400 mr-1">放大</span>
+                  <span className="text-[10px] text-zinc-400 mr-1">{t("zoomLbl")}</span>
                   {ZOOM_LEVELS_LOCAL.map((z) => {
                     const active = zoomedView === v && zoom === z;
                     return (
@@ -222,7 +222,7 @@ export function PartDrawingsPanel({ design }: Props) {
                     setOpenIdx((i) => (i === null || i === 0 ? i : i - 1));
                   }}
                 >
-                  ← 上一件
+                  {t("prev")}
                 </button>
                 <span className="text-zinc-500 tabular-nums">
                   {openIdx + 1} / {groups.length}
@@ -238,7 +238,7 @@ export function PartDrawingsPanel({ design }: Props) {
                     );
                   }}
                 >
-                  下一件 →
+                  {t("next")}
                 </button>
               </div>
             </div>

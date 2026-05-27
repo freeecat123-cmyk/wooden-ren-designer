@@ -2,6 +2,7 @@
 
 import { memo, Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import { ACESFilmicToneMapping, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, EdgesGeometry, Euler, Float32BufferAttribute, Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, Vector3, VSMShadowMap } from "three";
@@ -1877,6 +1878,7 @@ export function PerspectiveView({
 type ViewPreset = "front" | "back" | "left" | "right" | "top" | "bottom" | "hero" | "fit";
 
 function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset) => void; hasLid?: boolean }) {
+  const t = useTranslations("perspectiveView");
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -1915,19 +1917,19 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
   };
 
   const presets: { id: ViewPreset; label: string; title: string }[] = [
-    { id: "hero", label: "45°", title: "預設立體角度" },
-    { id: "fit", label: "🔍 填滿", title: "縮放至家具充滿視窗（依實際長寬高 + 畫面比例）" },
-    { id: "front", label: "正", title: "正視圖" },
-    { id: "back", label: "背", title: "背視圖" },
-    { id: "left", label: "左", title: "左側視圖" },
-    { id: "right", label: "右", title: "右側視圖" },
-    { id: "top", label: "俯", title: "俯視圖" },
-    { id: "bottom", label: "仰", title: "仰視圖" },
+    { id: "hero", label: "45°", title: t("viewTitleHero") },
+    { id: "fit", label: t("viewLabelFit"), title: t("viewTitleFit") },
+    { id: "front", label: t("viewLabelFront"), title: t("viewTitleFront") },
+    { id: "back", label: t("viewLabelBack"), title: t("viewTitleBack") },
+    { id: "left", label: t("viewLabelLeft"), title: t("viewTitleLeft") },
+    { id: "right", label: t("viewLabelRight"), title: t("viewTitleRight") },
+    { id: "top", label: t("viewLabelTop"), title: t("viewTitleTop") },
+    { id: "bottom", label: t("viewLabelBottom"), title: t("viewTitleBottom") },
   ];
   return (
     <div className="relative shrink-0 border-b border-zinc-200">
       <div className="flex gap-1 px-2 py-1 bg-white/70 backdrop-blur-sm overflow-x-auto">
-        <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">視角</span>
+        <span className="shrink-0 px-1 text-xs text-zinc-500 self-center">{t("viewLbl")}</span>
         {presets.map((p) => (
           <button
             key={p.id}
@@ -1941,7 +1943,7 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
         ))}
         <button
           type="button"
-          title="線框模式（顯示所有 edge / 內部結構）"
+          title={t("wireframeTitle")}
           onClick={toggleWf}
           className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
             wfOn
@@ -1949,11 +1951,17 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
               : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
           }`}
         >
-          ⊞ 線框
+          {t("wireframeLabel")}
         </button>
         <button
           type="button"
-          title={`隱藏面板（${xrayCur === "off" ? "點切到只藏門/抽屜面板" : xrayCur === "face" ? "點切到藏整個抽屜+門" : "點關閉"}）`}
+          title={
+            xrayCur === "off"
+              ? t("xrayTitleOffToFace")
+              : xrayCur === "face"
+                ? t("xrayTitleFaceToAll")
+                : t("xrayTitleAllToOff")
+          }
           onClick={cycleXray}
           className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
             xrayCur === "off"
@@ -1961,14 +1969,19 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
               : "bg-amber-600 text-white ring-amber-700"
           }`}
         >
-          🪟 {xrayCur === "off" ? "隱藏面板" : xrayCur === "face" ? "藏面板" : "藏全部"}
+          {xrayCur === "off" ? t("xrayBtnOff") : xrayCur === "face" ? t("xrayBtnFace") : t("xrayBtnAll")}
         </button>
         {hasLid && (
           <button
             type="button"
-            title={`掀蓋（看 lid 底下結構）：當前 ${
-              lidLiftCur < 0 ? "90° 翻開" : lidLiftCur > 0 ? lidLiftCur + "mm 浮起" : "蓋上"
-            }，點切下一檔`}
+            title={t("lidLiftTitleTpl", {
+              state:
+                lidLiftCur < 0
+                  ? t("lidLiftTitleNeg")
+                  : lidLiftCur > 0
+                    ? t("lidLiftTitleFloatTpl", { n: lidLiftCur })
+                    : t("lidLiftTitleClosed"),
+            })}
             onClick={cycleLidLift}
             className={`shrink-0 max-md:min-h-[44px] px-2 text-xs font-medium rounded ring-1 transition ${
               lidLiftCur !== 0
@@ -1976,7 +1989,7 @@ function ViewPresetBar({ onSelect, hasLid = false }: { onSelect: (p: ViewPreset)
                 : "bg-white text-zinc-700 ring-zinc-200 hover:ring-amber-400 hover:bg-amber-50 hover:text-amber-900"
             }`}
           >
-            📦 {lidLiftCur < 0 ? "90° 掀開" : lidLiftCur > 0 ? `浮 ${lidLiftCur}mm` : "掀蓋"}
+            {lidLiftCur < 0 ? t("lidLiftBtnNeg") : lidLiftCur > 0 ? t("lidLiftBtnFloatTpl", { n: lidLiftCur }) : t("lidLiftBtnClosed")}
           </button>
         )}
       </div>
