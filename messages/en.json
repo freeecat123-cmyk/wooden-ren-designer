@@ -39,6 +39,147 @@
     "intermediate": "Intermediate",
     "advanced": "Advanced"
   },
+  "furniture": {
+    "wardrobe": "Wardrobe",
+    "shoe-cabinet": "Shoe cabinet",
+    "media-console": "Media console",
+    "open-bookshelf": "Bookshelf",
+    "display-cabinet": "Display case",
+    "nightstand": "Nightstand",
+    "chest-of-drawers": "Chest of drawers"
+  },
+  "about": {
+    "metadata": {
+      "title": "About · Wooden Ren Designer — dimensions in, plans in 3 seconds",
+      "description": "From Wooden Ren Academy. 25+ furniture templates. Enter dimensions, get three-view drawings, exploded 3D, joinery details, cut lists, build order, and printable PDFs. Built for DIYers, working woodworkers, designers, and students.",
+      "ogTitle": "About · Wooden Ren Designer — dimensions in, plans in 3 seconds",
+      "ogDescription": "From Wooden Ren Academy. 25+ templates, auto three-view, joinery, cut list, PDF plans.",
+      "twitterTitle": "About · Wooden Ren Designer",
+      "twitterDescription": "Dimensions in, plans / cut list / quote in 3 seconds. From Wooden Ren Academy."
+    },
+    "hero": {
+      "logoAlt": "Wooden Ren Designer",
+      "badge": "By Wooden Ren Academy",
+      "h1Line1": "Drawing and stock math —",
+      "h1Highlight": "let the tool do it",
+      "intro": "Pick a piece, fill in length × width × height, and <b>3 seconds</b> later you have a 3D view, three-view engineering drawings, joinery details, cut list, build order, and a printable PDF.",
+      "statSubsCount": "200K",
+      "statSubsLabel": "YouTube subscribers",
+      "statStudentsCount": "600+",
+      "statStudentsLabel": "students taught",
+      "statTemplatesCount": "25+",
+      "statTemplatesLabel": "furniture templates",
+      "ctaPrimary": "Start designing (free) →",
+      "ctaSecondary": "See pricing",
+      "triptychCaption": "↑ Same piece, three outputs generated in 3 seconds — 3D view, engineering drawings, cut list"
+    },
+    "triptych": {
+      "inputBadge": "📏 One set of dimensions",
+      "outputBadge": "⚡ 3-second generation",
+      "panel1Label": "① 3D view",
+      "panel1Sub": "Rotate, inspect the joinery",
+      "panel1Alt": "3D view — walnut media console real output",
+      "panel2Label": "② Engineering drawings",
+      "panel2Sub": "Front / side / top, fully dimensioned",
+      "panel2Alt": "Engineering three-view drawings with dimensions",
+      "panel3Label": "③ Cut list",
+      "panel3Sub": "Numbered + L×W×T, ready to saw",
+      "panel3Alt": "Cut list with stock layout"
+    },
+    "mosaic": {
+      "intro": "Currently <b>25+</b> furniture templates — from pencil holders to wardrobes, all resize on the fly with sliders.",
+      "outro": "Just 12 of them shown — <link>see the full catalog</link>"
+    },
+    "pain": {
+      "eyebrow": "Why this tool exists",
+      "h2": "The slow part of woodworking isn't building.",
+      "intro": "It's drawing the plan right, getting the stock math right, and sequencing the cuts. A stool plan typically eats 2–3 hours. A cabinet, half a day. Burned the afternoon before you even touch wood.",
+      "drawing": { "title": "Drawing gets stuck", "desc": "Some dimension's always off — the three-view and the perspective just won't add up." },
+      "material": { "title": "Stock math gets stuck", "desc": "Length × width × thickness, plus tenon allowance, plus waste, plus planing — half an hour goes counting on fingers." },
+      "process": { "title": "Build order gets stuck", "desc": "What goes first, what gets glued, what gets clamped — get it wrong and you can't even take it apart to fix." },
+      "conclusion": "Designer compresses all three into 3 seconds — the two evenings you save are enough to pick up another commission."
+    },
+    "steps": {
+      "eyebrow": "How it works",
+      "h2": "Three steps, idea to shop",
+      "step1Title": "Pick a template",
+      "step1Desc": "From 25+ furniture templates: stools, dining chairs, desks, wardrobes, wine racks, pencil holders — beginner through advanced.",
+      "step2Title": "Enter dimensions",
+      "step2Desc": "Length, width, height, stock thickness, joinery type — drag the sliders and watch the 3D update live.",
+      "step2Alt": "Drag the sliders, 3D updates live",
+      "step3Title": "Take the plans to the shop",
+      "step3Desc": "PDF engineering drawings, cut list, tool list, build order — print and start cutting.",
+      "step3Alt": "Engineering three-view with full dimensions"
+    },
+    "outputs": {
+      "eyebrow": "What you get",
+      "h2": "Every piece comes with all of this",
+      "intro": "Not just a design — a complete build package, ready for the shop.",
+      "threeview": { "title": "📐 Engineering three-view", "desc": "Front, side, top — fully dimensioned, drawn in the conventions a working woodworker recognizes, print-and-build." },
+      "cutlist": { "title": "📋 Cut list", "desc": "L × W × T, part number, 3D location for every piece — check them off as you cut, no mistakes." },
+      "cutplan": { "title": "🪵 Stock layout", "desc": "Most efficient layout auto-computed with utilization percentage. Even tells you which side of the board to start the cut." },
+      "process": { "title": "📑 Build order", "desc": "Full 19-step sequence, time estimates, stock selection notes, moisture content, grain direction — more detailed than the textbook." },
+      "quote": { "title": "💰 Customer quote", "desc": "Furniture price, tax, deposit / final split, installment terms, customer info table — print it and hand it to the customer." },
+      "perspective": { "title": "🪑 3D perspective preview", "desc": "Photoreal wood grain rendering, rotate to any angle — see the finished piece clearly before you cut." },
+      "joinery": { "title": "Joinery details", "desc": "Through tenons, blind tenons, half-laps — positions auto-computed, with male/female alignment diagrams." },
+      "tools": { "title": "Tool list", "desc": "Which tools this piece needs — beginners don't have to guess what to buy." },
+      "stl": { "title": "STL 3D export", "desc": "Open in SketchUp or your 3D printer. Print a scale model to prototype before you commit." }
+    },
+    "decor": {
+      "tag": "🔨 Interior tools",
+      "h2": "Measure once, print the whole spec",
+      "intro": "Interior contractors burn most of their time not at the nail gun — but estimating on site with a pencil, drawing at home, then a second trip for parts. From ceiling frames to storage cabinets: enter the room dimensions, get the full spec.",
+      "ceilingPlanBadge": "Personal",
+      "ceilingLive": "Live",
+      "ceilingTitle": "🪜 Ceiling frame calculator",
+      "ceilingDesc": "Measure the room and enter L×W×H — main joists, secondary joists, hangers auto-laid out. Length of every member, number of calcium silicate panels, number of nails, total stock and labor — print and bring to the job site.",
+      "ceilingAlt": "Ceiling frame 3D exploded view",
+      "cabinetsTitle": "Cabinet line — {count} common cabinet types, auto plans + cut list"
+    },
+    "persona": {
+      "eyebrow": "Who it's for",
+      "h2": "Built for five kinds of people",
+      "diy": { "title": "DIY woodworkers", "desc": "Can't draft engineering drawings but want to build furniture for the home. Pick a template, adjust to your space, let the tool handle the rest." },
+      "pro": { "title": "Pro woodworkers / commissions", "desc": "Customer asks \"how much for a cabinet like this?\" — design + quote + build order in 5 minutes. Faster than the competition wins the job. Stock math precise so you don't over-order." },
+      "interior": { "title": "Interior contractors / renovators", "desc": "Measure the room and enter L×W×H — ceiling frame (main / secondary / supports) auto-computed, panels, nails, full spec to print and bring on site." },
+      "designer": { "title": "Designers", "desc": "Hand the engineering drawings and cut list straight to the woodworker for fabrication — minimum communication overhead." },
+      "student": { "title": "Academy students / self-learners", "desc": "Change the dimensions or swap the joinery on a class project — see the 3D update instantly. Ten times faster than a textbook." }
+    },
+    "bio": {
+      "h2": "I'm Wooden Ren",
+      "p1": "<b>200,000 people</b> watch me work wood on YouTube. The Wooden Ren Academy, online and in person, has taught <b>600+ students</b>.",
+      "p2": "The question I've gotten most often in ten years —",
+      "quote": "\"Hey Ren, how do you figure out this dimension?\"",
+      "p3": "Designer is the tool I built from those answers. Furniture sizing conventions, joinery rules, build-order logic — every single rule comes from work I've actually done and questions I've answered until they're worn smooth.",
+      "ytLabel": "YouTube",
+      "fbLabel": "Facebook",
+      "igLabel": "Instagram",
+      "academyLabel": "Academy",
+      "ytAria": "Wooden Ren YouTube channel",
+      "fbAria": "Wooden Ren Facebook page",
+      "igAria": "Wooden Ren Instagram",
+      "academyAria": "Wooden Ren Academy"
+    },
+    "plans": {
+      "eyebrow": "Pricing",
+      "h2": "Try free, upgrade when you need to",
+      "intro": "Monthly from NT$390, yearly saves two months. One extra commission, or one stock-math mistake avoided — the subscription has already paid itself off.",
+      "popular": "Most chosen",
+      "free": { "name": "Free", "price": "$0", "unit": "", "f1": "3 templates, unlimited use", "f2": "3D preview + three-view", "f3": "Cut list + build order", "cta": "Try free" },
+      "personal": { "name": "Personal", "price": "$390", "unit": "/mo", "f1": "All furniture templates unlocked", "f2": "Ceiling frame / flooring simulator", "f3": "PDF print / cloud save", "cta": "Upgrade to Personal" },
+      "pro": { "name": "Pro", "price": "$890", "unit": "/mo", "f1": "Everything in Personal", "f2": "Custom quote + customer database", "f3": "STL / OBJ export + unlimited size", "cta": "Upgrade to Pro" },
+      "customTitle": "🪵 Not subscribing? Buy a single template",
+      "customBody": "Want to build just one chair? Buy that blueprint once and own it forever. No subscription required.",
+      "customSeeAll": "→ See lifetime prices for all 26 templates",
+      "perkNoCC": "No credit card for free tier",
+      "perkCancel": "Monthly cancels anytime",
+      "perkRetention": "Cancel keeps access until period end",
+      "perkYearMath": "Yearly = 10 × monthly",
+      "needHelp": "Questions? See <link1>FAQ</link1> · or <link2>contact us</link2>",
+      "bugLogoAlt": "Wooden Ren logo",
+      "bugReport": "Hit a bug or stuck? Tap the <b>Wooden Ren icon at the bottom right of any page</b><dim> (like the one on the left)</dim> to report it — it auto-attaches the current page and browser info, and I'll know how to fix it."
+    }
+  },
   "landing": {
     "metadata": {
       "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 seconds",
