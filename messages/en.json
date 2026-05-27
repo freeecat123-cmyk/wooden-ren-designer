@@ -1,5 +1,5 @@
 {
-  "$comment": "Phase 1 skeleton: minimum keys for i18n to work. Phase 2 marketing translation will expand this heavily. New keys must be added to zh-TW.json in same PR; CI will block on diff.",
+  "$comment": "Phase 1+2 cumulative; new keys must be added to zh-TW.json in same PR; CI blocks on diff.",
   "common": {
     "siteName": "Wooden Ren Designer",
     "siteTagline": "From idea to buildable plans, in seconds"
@@ -10,11 +10,160 @@
     "app": "Furniture catalog",
     "pricing": "Pricing",
     "help": "Help",
-    "changelog": "Changelog"
+    "changelog": "Changelog",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "refund": "Refunds",
+    "contact": "Contact"
+  },
+  "logo": {
+    "short": "Designer",
+    "alt": "Wooden Ren",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu"
+  },
+  "footer": {
+    "brand": "Wooden Ren Academy",
+    "tagline": "Designer · From idea to buildable plans",
+    "academyLabel": "Academy",
+    "academyHandle": "Course site",
+    "copyrightSuffix": "Wooden Ren Education Co., Ltd."
   },
   "cta": {
     "start": "Start designing",
     "learnMore": "Learn more",
     "subscribe": "Subscribe"
+  },
+  "difficulty": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "landing": {
+    "metadata": {
+      "title": "Wooden Ren Designer — Plans, cut lists, and joinery in 3 seconds",
+      "description": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts. Enter dimensions, pick your wood, and get three-view drawings, exploded 3D, mortise & tenon details, cut lists, and printable PDFs. Free for the square stool and pencil holder; paid plans from $12.9/month.",
+      "ogTitle": "Wooden Ren Designer — Plans in 3 seconds",
+      "ogDescription": "Drawing, cut list, and quote compressed into 3 seconds. Free for the square stool and pencil holder. Built by the Wooden Ren woodworking academy."
+    },
+    "hero": {
+      "badge": "Wooden Ren Academy · Designer v0.5",
+      "h1Line1": "Dimensions in,",
+      "h1Highlight": "plans in 3 seconds",
+      "subtitleA": "The slow part of woodworking isn't building — it's drawing the plan right, calculating the stock, and sequencing the cuts.",
+      "subtitleB": "This tool compresses all three into 3 seconds.",
+      "ctaPrimary": "Try the square stool free →",
+      "ctaSecondary": "See pricing",
+      "note": "No signup required to try · Square stool + pencil holder always free",
+      "heroAlt": "Wooden Ren Designer real output — walnut media console 3D perspective",
+      "heroCaption": "Real output",
+      "heroBadgeFast": "⚡ 3-second generation"
+    },
+    "pain": {
+      "h2": "Sound familiar?",
+      "subtitle": "Three frustrations we've heard from woodworkers for three years running.",
+      "drawing": {
+        "title": "I can picture it. I can't draw it.",
+        "body": "You see it in your head — but how thick should the legs be? How deep the apron? Half an hour in SketchUp and you're still rotating the view."
+      },
+      "material": {
+        "title": "Stock math is a nightmare",
+        "body": "Board feet conversions, offcut waste estimation, a fair price that doesn't lose money — same math every single project."
+      },
+      "quote": {
+        "title": "Quoting kills the deal",
+        "body": "A customer texts \"how much for a dining table?\" and you go home to do the math. Quote it in front of them — that's professional."
+      }
+    },
+    "outputs": {
+      "h2": "Dimensions in. Three things out.",
+      "subtitle": "Walk into the shop with the cut list and start sawing.",
+      "drawings": {
+        "title": "Three-view + joinery details",
+        "body": "Front, side, top — auto-dimensioned. Through tenons / blind tenons / staggered half-laps positioned for you."
+      },
+      "cutplan": {
+        "title": "Cut list + cutting diagram",
+        "body": "Auto-converted board feet, every piece sized and sequenced for minimum offcut waste."
+      },
+      "quote": {
+        "title": "Quote + labor hours",
+        "body": "Stock × thickness × finishing × labor → total. Pro tier includes customer letterhead and margin."
+      }
+    },
+    "templates": {
+      "h2": "26 furniture templates",
+      "subtitle": "Click any to see what it can do for you — design notes, real output, fit-for-purpose.",
+      "seeAll": "See all templates →",
+      "freeBadge": "Free",
+      "previewAlt": "{name} 3D preview"
+    },
+    "scenarios": {
+      "h2": "When you'll actually use it",
+      "subtitle": "Six real scenarios — which one's most like you?",
+      "morning": { "tag": "Morning coffee", "body": "On the couch with your phone, sketch a bedside table — frictionless, light, part of life." },
+      "workshop": { "tag": "Shop floor", "body": "Fresh PDF in hand against the stock — millimeter-precise, fewer rejects." },
+      "classroom": { "tag": "Classroom", "body": "Every student opens Designer on their phone — abstract becomes concrete, joinery clicks instantly." },
+      "customer": { "tag": "Custom order", "body": "Customer texts \"can you build a dining table?\" — pull up the design and iterate in the chat." },
+      "midnight": { "tag": "Midnight ideas", "body": "Inspiration doesn't wait. Half-asleep design now, refine tomorrow." },
+      "kid": { "tag": "Kid's birthday", "body": "30 minutes with your kid designing a pencil holder — woodworking becomes a parent-child tool." }
+    },
+    "pricing": {
+      "h2": "Pick a plan that fits",
+      "subtitle": "Try free first. Upgrade when it clicks.",
+      "popular": "Most chosen",
+      "free": {
+        "tier": "Free",
+        "f1": "Square stool + pencil holder",
+        "f2": "Full 3D, joinery, three-view, cut list",
+        "f3": "Watermark-free PDF print",
+        "f4": "Size cap: stool 35×35×45 cm, holder 20×20×25 cm",
+        "cta": "Try free"
+      },
+      "personal": {
+        "tier": "Personal",
+        "f1": "All 26 furniture templates",
+        "f2": "Ceiling frame + flooring + raised platform tools",
+        "f3": "Unlimited PDF print + cloud save",
+        "f4": "For DIYers, home reno, weekend furniture builders",
+        "cta": "Upgrade to Personal"
+      },
+      "pro": {
+        "tier": "Pro",
+        "f1": "Everything in Personal",
+        "f2": "Client quote system + customer database",
+        "f3": "STL / OBJ export (CNC, laser)",
+        "f4": "Designer mode — no size cap",
+        "cta": "For working pros →"
+      },
+      "perMonth": "/mo",
+      "yearNote": "Yearly billing saves over a month · Lifetime academy members DM for a code",
+      "custom": {
+        "title": "🪵 Not subscribing? Buy a single template",
+        "body": "Just want to build one chair? Buy that blueprint once, own it forever. No subscription required.",
+        "seeAll": "→ See lifetime prices for all 26"
+      }
+    },
+    "faq": {
+      "h2": "FAQ",
+      "freeQ": "What does the free tier actually include?",
+      "freeA": "The square stool and pencil holder — full 3D, joinery, three-view, cut list, PDF, exactly what paid users get. The difference is template count and size cap.",
+      "cadQ": "How does this compare to SketchUp / Fusion 360?",
+      "cadA": "Designer is for woodworkers who want to build, not learn CAD. Five-minute learning curve, automatic joinery / three-view / cut list / cutting plan. Not trying to replace professional CAD.",
+      "tierQ": "Personal vs Pro — what's the difference?",
+      "tierA": "Hobby use: Personal (full 26 templates + reno tools). Earning a living from woodworking: Pro (adds customer quote system, CNC export, unlimited size).",
+      "cancelQ": "Can I cancel anytime?",
+      "cancelA": "Yes. Monthly cancels anytime, keeps access through the current period. Yearly: 7-day no-questions full refund.",
+      "cncQ": "Can I take the output to CNC?",
+      "cncA": "Yes. Pro exports STL / OBJ for CNC and laser. Free and Personal three-view PDFs are sufficient for hand tools.",
+      "seeAll": "See full FAQ →"
+    },
+    "bottomCta": {
+      "h2Line1": "Build a stool first.",
+      "h2Highlight": "Then decide if you want to pay.",
+      "subtitle": "Fairest deal I know — use it first, pay only if it actually helps you.",
+      "ctaPrimary": "Start designing →",
+      "ctaSecondary": "About Wooden Ren"
+    }
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { HeaderUser } from "@/components/auth/HeaderUser";
 
 /**
@@ -13,19 +13,25 @@ import { HeaderUser } from "@/components/auth/HeaderUser";
  *
  * 桌面：水平 link bar
  * 行動：漢堡選單，點 logo 旁 ☰ 展開
+ *
+ * Phase 2：使用 next-intl 的 Link/usePathname；hrefs 不帶 locale 前綴，
+ * wrapper 會依當前 locale 自動處理（zh-TW 不前綴、en 前綴 /en）。
  */
 
-const NAV_LINKS = [
-  { href: "/about", label: "認識木作藍圖" },
-  { href: "/templates", label: "範本介紹" },
-  { href: "/app", label: "家具範本" },
-  { href: "/pricing", label: "方案定價" },
-  { href: "/help", label: "常見問題" },
-  { href: "/changelog", label: "更新日誌" },
-];
+const NAV_KEYS = ["about", "templates", "app", "pricing", "help", "changelog"] as const;
+const NAV_HREFS: Record<(typeof NAV_KEYS)[number], string> = {
+  about: "/about",
+  templates: "/templates",
+  app: "/app",
+  pricing: "/pricing",
+  help: "/help",
+  changelog: "/changelog",
+};
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const tLogo = useTranslations("logo");
   const [open, setOpen] = useState(false);
 
   // 路徑切換時關閉行動選單
@@ -67,25 +73,28 @@ export function SiteHeader() {
             🪵
           </span>
           <span className="font-serif-tc font-bold text-amber-900 text-base sm:text-lg group-hover:text-amber-700 transition-colors hidden sm:inline">
-            木作藍圖
+            {tLogo("short")}
           </span>
         </Link>
 
         {/* 桌面 nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                isActive(l.href)
-                  ? "bg-amber-700 text-white shadow-sm"
-                  : "text-zinc-700 hover:bg-amber-100/70 hover:text-amber-800"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {NAV_KEYS.map((key) => {
+            const href = NAV_HREFS[key];
+            return (
+              <Link
+                key={key}
+                href={href}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  isActive(href)
+                    ? "bg-amber-700 text-white shadow-sm"
+                    : "text-zinc-700 hover:bg-amber-100/70 hover:text-amber-800"
+                }`}
+              >
+                {t(key)}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* 右側：HeaderUser + 行動漢堡 */}
@@ -95,7 +104,7 @@ export function SiteHeader() {
             type="button"
             onClick={() => setOpen((o) => !o)}
             className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-amber-100/70 transition-colors"
-            aria-label={open ? "關閉選單" : "開啟選單"}
+            aria-label={open ? tLogo("menuClose") : tLogo("menuOpen")}
             aria-expanded={open}
           >
             <span className="text-xl" aria-hidden>
@@ -109,20 +118,23 @@ export function SiteHeader() {
       {open && (
         <nav className="md:hidden border-t border-amber-900/10 bg-white shadow-lg">
           <ul className="max-w-7xl mx-auto px-4 py-2 flex flex-col">
-            {NAV_LINKS.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    isActive(l.href)
-                      ? "bg-amber-100 text-amber-900"
-                      : "text-zinc-700 hover:bg-amber-50 hover:text-amber-800"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_KEYS.map((key) => {
+              const href = NAV_HREFS[key];
+              return (
+                <li key={key}>
+                  <Link
+                    href={href}
+                    className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                      isActive(href)
+                        ? "bg-amber-100 text-amber-900"
+                        : "text-zinc-700 hover:bg-amber-50 hover:text-amber-800"
+                    }`}
+                  >
+                    {t(key)}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       )}
