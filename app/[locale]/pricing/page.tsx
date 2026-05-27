@@ -3,7 +3,12 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LemonSqueezyPricingClient } from "@/components/LemonSqueezyPricingClient";
 import { PricingClient } from "@/components/PricingClient";
 import { routing, type Locale } from "@/i18n/routing";
+import {
+  isSellableFurniture,
+  isSellableTool,
+} from "@/lib/lemon-squeezy/tier-map";
 import { createClient } from "@/lib/supabase/server";
+import { FURNITURE_CATALOG } from "@/lib/templates";
 
 export async function generateMetadata({
   params,
@@ -38,8 +43,10 @@ export async function generateMetadata({
 
 export default async function PricingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale: raw } = await params;
   const locale: Locale = (raw as Locale) ?? routing.defaultLocale;
@@ -56,10 +63,39 @@ export default async function PricingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // /design/[type] paywall 會 redirect 過來 ?locked=stool — 高亮對應卡
+  const sp = await searchParams;
+  const lockedRaw = sp?.locked;
+  const lockedCategory = typeof lockedRaw === "string" ? lockedRaw : null;
+
+  // 蒐集所有可單買的項目（27 家具 + ceiling/floor 兩工具）
+  const catalog = [
+    ...FURNITURE_CATALOG.filter((c) => isSellableFurniture(c.category)).map((c) => ({
+      id: c.category,
+      nameEn: c.nameEn,
+      kind: "furniture" as const,
+      difficulty: c.difficulty,
+    })),
+    {
+      id: "ceiling",
+      nameEn: "Ceiling Framing Calculator",
+      kind: "tool" as const,
+      difficulty: "intermediate" as const,
+    },
+    {
+      id: "floor",
+      nameEn: "Flooring Layout Calculator",
+      kind: "tool" as const,
+      difficulty: "intermediate" as const,
+    },
+  ].filter((c) => isSellableFurniture(c.id) || isSellableTool(c.id));
+
   return (
     <LemonSqueezyPricingClient
       isAuthed={!!user}
       loginHref={`/${locale}/login?next=/${locale}/pricing`}
+      catalog={catalog}
+      lockedCategory={lockedCategory}
     />
   );
 }

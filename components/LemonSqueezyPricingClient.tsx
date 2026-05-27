@@ -12,15 +12,32 @@
  */
 
 import { useState } from "react";
+import { LemonSingleTemplateSection } from "./LemonSingleTemplateSection";
+
+interface CatalogItem {
+  id: string;
+  nameEn: string;
+  kind: "furniture" | "tool";
+  difficulty: "beginner" | "intermediate" | "advanced";
+}
 
 interface Props {
   isAuthed: boolean;
   loginHref: string;
+  /** 27 家具 + 2 工具 (ceiling/floor)，server fetch 後 pass 進來 */
+  catalog: CatalogItem[];
+  /** ?locked=stool 帶來，高亮對應卡片 */
+  lockedCategory?: string | null;
 }
 
 const CHECKOUT_ENDPOINT = "/api/lemon-squeezy/checkout";
 
-export function LemonSqueezyPricingClient({ isAuthed, loginHref }: Props) {
+export function LemonSqueezyPricingClient({
+  isAuthed,
+  loginHref,
+  catalog,
+  lockedCategory,
+}: Props) {
   return (
     <main className="min-h-[calc(100vh-120px)] mx-auto max-w-5xl px-6 py-16 text-zinc-800">
       <div className="text-center mb-12">
@@ -86,19 +103,12 @@ export function LemonSqueezyPricingClient({ isAuthed, loginHref }: Props) {
         />
       </div>
 
-      <div className="mt-16 text-center">
-        <h2 className="font-serif text-2xl font-bold text-zinc-900">
-          Don&apos;t need everything?
-        </h2>
-        <p className="mt-3 text-zinc-600">
-          Buy lifetime access to a single template from{" "}
-          <span className="font-semibold">$4.99</span>. Pick any template in the
-          catalog and unlock it forever.
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Single-template purchase available on each template page.
-        </p>
-      </div>
+      <LemonSingleTemplateSection
+        catalog={catalog}
+        lockedCategory={lockedCategory}
+        isAuthed={isAuthed}
+        loginHref={loginHref}
+      />
 
       <div className="mt-16 text-sm text-zinc-500 text-center border-t border-zinc-200 pt-6">
         <p>

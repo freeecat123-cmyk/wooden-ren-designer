@@ -161,7 +161,13 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
     isPaidCategory(type as FurnitureCategory) &&
     !canAccessCategory(profile, type as FurnitureCategory, unlockedCategories)
   ) {
-    redirect(`/pricing?locked=${type}`);
+    // locale 分流：en 走 /en/pricing → LemonSqueezyPricingClient + 單模板 LS 按鈕
+    //              zh-TW 走 /pricing → PricingClient + ECPay 單模板按鈕
+    const pricingPath =
+      locale === routing.defaultLocale
+        ? `/pricing?locked=${type}`
+        : `/${locale}/pricing?locked=${type}`;
+    redirect(pricingPath);
   }
   // canUseDesignerMode 給 UI 用(decide 是否 render toggle);limits clamp
   // 另外用 planAllowsDesigner 算,雙保險避免 UI bug 或未來改 admin 邏輯時
