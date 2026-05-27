@@ -734,48 +734,91 @@ export default async function DesignPage({ params, searchParams }: PageProps) {
   );
 }
 
-function JoineryRulesCallout() {
+function JoineryRulesCallout({ locale }: { locale: string }) {
+  const isEn = locale === "en";
   return (
     <div className="rounded-lg bg-amber-50 ring-1 ring-amber-200 p-4 text-xs text-amber-900 leading-relaxed mb-5">
       <p className="font-semibold mb-1.5">
-        榫卯比例規則（本設計依此推算 — FWW / Popular Woodworking / Woodcraft / Rockler 共識）
+        {isEn
+          ? "Joinery proportion rules (used by this design — FWW / Popular Woodworking / Woodcraft / Rockler consensus)"
+          : "榫卯比例規則（本設計依此推算 — FWW / Popular Woodworking / Woodcraft / Rockler 共識）"}
       </p>
       <ul className="space-y-0.5 list-disc list-inside">
-        <li>
-          <b>方榫厚</b> = <b>被開榫眼的母件（柱腳）厚度的 1/3</b>（例 1.5" 柱腳 → 1/2" 榫厚）；
-          若公件較薄則取 <b>min(公件厚 − 兩側肩各 6mm, 母厚/3)</b>
-        </li>
-        <li>
-          <b>方榫長</b>：盲榫 = 柱腳寬的 <b>2/3</b>；通榫 = 母件厚度（穿透，常加 <b>楔片</b>防脫）
-        </li>
-        <li>
-          <b>方榫寬</b> = 牙板寬 <b>−上下肩各 6mm</b>（固定量非比例）；
-          榫寬 &gt; 5×榫厚或牙板 &gt; 125mm 時拆 <b>雙榫</b>（twin tenon）
-        </li>
-        <li>
-          <b>帶肩榫肩長</b> = 主榫長 <b>1/3</b>；肩榫永遠在主榫<b>上方</b>，補滿桌面通榫孔縫 + 防旋轉
-        </li>
-        <li>
-          <b>企口榫</b>：舌厚 = 板厚 <b>1/3</b>（18mm 板 → 6mm 舌）、兩側肩各 6mm；
-          <b>凹槽深度 = 舌長 + 1mm</b>（必留漲縮餘量，否則濕季撕裂）
-        </li>
-        <li>
-          <b>鳩尾榫</b>：硬木 <b>1:8</b>（≈7.1°）、軟木 <b>1:6</b>（≈9.5°）；
-          兩端必為「銷」（pin）不是「尾」，承拉力
-        </li>
-        <li>
-          <b>半搭榫</b>：兩件各削 <b>1/2</b> 板厚；垂直半搭強度 = 整體 1/2，水平半搭僅 1/8
-        </li>
-        <li>
-          <b>指接榫</b>：指厚 = 板厚 <b>1/2</b>；指數 4–9 個常見，比例 1:1 或 1:2 都可
-        </li>
-        <li>
-          <b>圓棒榫</b>：木釘徑 = 板厚 <b>1/3</b>（不超過 1/2）；長 = 徑 × 1.5 + 1/16" 餘量；
-          沿邊每尺 4–6 支
-        </li>
-        <li>
-          <b>配合容差</b>（mortise ↔ tenon）：緊 0.05–0.13mm｜<b>標準 0.13–0.25mm</b>｜鬆 0.25–0.38mm
-        </li>
+        {isEn ? (
+          <>
+            <li>
+              <b>Mortise-and-tenon thickness</b> = <b>1/3 of the mortise-bearing (mother) part&apos;s thickness</b> (e.g. a 1.5&quot; leg → 1/2&quot; tenon).
+              When the male part is thinner, use <b>min(male thickness − 6 mm shoulders on each side, mother / 3)</b>.
+            </li>
+            <li>
+              <b>Tenon length</b>: blind tenon = <b>2/3 of leg width</b>; through tenon = full mother thickness (often pinned with a <b>wedge</b> to lock).
+            </li>
+            <li>
+              <b>Tenon width</b> = apron width <b>− 6 mm shoulder top and bottom</b> (fixed, not proportional).
+              If width &gt; 5× thickness or apron &gt; 125 mm, split into <b>twin tenons</b>.
+            </li>
+            <li>
+              <b>Haunch length</b> = <b>1/3 of main tenon length</b>; haunch always sits <b>above</b> the main tenon to fill the through-mortise gap and resist rotation.
+            </li>
+            <li>
+              <b>Tongue-and-groove</b>: tongue thickness = <b>1/3 of board thickness</b> (18 mm board → 6 mm tongue), 6 mm shoulder each side;
+              <b>groove depth = tongue length + 1 mm</b> (mandatory expansion allowance — humid seasons will tear it apart otherwise).
+            </li>
+            <li>
+              <b>Dovetail</b>: hardwood <b>1:8</b> (≈7.1°), softwood <b>1:6</b> (≈9.5°); ends must always be <b>pins</b> (not tails) so they carry pull-out load.
+            </li>
+            <li>
+              <b>Half-lap</b>: each piece rebated to <b>1/2 thickness</b>; vertical half-lap = 1/2 the parent strength, horizontal half-lap only 1/8.
+            </li>
+            <li>
+              <b>Finger joint</b>: finger thickness = <b>1/2 of board thickness</b>; 4–9 fingers is the usual range; 1:1 or 1:2 finger:gap ratios both work.
+            </li>
+            <li>
+              <b>Dowel</b>: dowel diameter = <b>1/3 of board thickness</b> (max 1/2); length = diameter × 1.5 + 1/16&quot; allowance; 4–6 dowels per foot along the edge.
+            </li>
+            <li>
+              <b>Fit tolerance</b> (mortise ↔ tenon): tight 0.05–0.13 mm | <b>standard 0.13–0.25 mm</b> | loose 0.25–0.38 mm.
+            </li>
+          </>
+        ) : (
+          <>
+            <li>
+              <b>方榫厚</b> = <b>被開榫眼的母件（柱腳）厚度的 1/3</b>（例 1.5&quot; 柱腳 → 1/2&quot; 榫厚）；
+              若公件較薄則取 <b>min(公件厚 − 兩側肩各 6mm, 母厚/3)</b>
+            </li>
+            <li>
+              <b>方榫長</b>：盲榫 = 柱腳寬的 <b>2/3</b>；通榫 = 母件厚度（穿透，常加 <b>楔片</b>防脫）
+            </li>
+            <li>
+              <b>方榫寬</b> = 牙板寬 <b>−上下肩各 6mm</b>（固定量非比例）；
+              榫寬 &gt; 5×榫厚或牙板 &gt; 125mm 時拆 <b>雙榫</b>（twin tenon）
+            </li>
+            <li>
+              <b>帶肩榫肩長</b> = 主榫長 <b>1/3</b>；肩榫永遠在主榫<b>上方</b>，補滿桌面通榫孔縫 + 防旋轉
+            </li>
+            <li>
+              <b>企口榫</b>：舌厚 = 板厚 <b>1/3</b>（18mm 板 → 6mm 舌）、兩側肩各 6mm；
+              <b>凹槽深度 = 舌長 + 1mm</b>（必留漲縮餘量，否則濕季撕裂）
+            </li>
+            <li>
+              <b>鳩尾榫</b>：硬木 <b>1:8</b>（≈7.1°）、軟木 <b>1:6</b>（≈9.5°）；
+              兩端必為「銷」（pin）不是「尾」，承拉力
+            </li>
+            <li>
+              <b>半搭榫</b>：兩件各削 <b>1/2</b> 板厚；垂直半搭強度 = 整體 1/2，水平半搭僅 1/8
+            </li>
+            <li>
+              <b>指接榫</b>：指厚 = 板厚 <b>1/2</b>；指數 4–9 個常見，比例 1:1 或 1:2 都可
+            </li>
+            <li>
+              <b>圓棒榫</b>：木釘徑 = 板厚 <b>1/3</b>（不超過 1/2）；長 = 徑 × 1.5 + 1/16&quot; 餘量；
+              沿邊每尺 4–6 支
+            </li>
+            <li>
+              <b>配合容差</b>（mortise ↔ tenon）：緊 0.05–0.13mm｜<b>標準 0.13–0.25mm</b>｜鬆 0.25–0.38mm
+            </li>
+          </>
+        )}
       </ul>
     </div>
   );
@@ -791,7 +834,7 @@ function JoinerySection({ design, locale }: { design: FurnitureDesign; locale: s
   const tenonLabel = locale === "en" ? "Tenon" : "榫頭";
   return (
     <div className="space-y-6">
-      <JoineryRulesCallout />
+      <JoineryRulesCallout locale={locale} />
       {usages.map((u, i) => (
         <div
           key={i}
