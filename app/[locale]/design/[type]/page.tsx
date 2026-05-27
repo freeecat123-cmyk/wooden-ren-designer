@@ -1066,7 +1066,7 @@ function ParameterForm({
       </div>
 
       {/* 木材立體屬性面板：6 軸雷達圖 + 文化定位 + CITES/油性警示 */}
-      <MaterialAttributesPanel materialId={defaults.material} />
+      <MaterialAttributesPanel materialId={defaults.material} locale={locale} />
 
       {/* 人體工學提示：根據家具類別給座高/桌高/椅桌差等合理範圍警告 */}
       <ErgoHints

@@ -4,42 +4,86 @@ import { FEATURED_TEMPLATE_CATEGORIES } from "@/lib/templates/marketing";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designer.woodenren.com";
 
-// Phase 1：sitemap 只列 zh-TW URLs。/en/* URL 在 Phase 2 行銷頁完成英譯後才加上
-// hreflang alternates 並一起 emit，避免目前 Google 看到重複中文內容。
+/**
+ * Sitemap with hreflang alternates for zh-TW (default, no prefix) and /en/*.
+ *
+ * Routes available on both locales: /, /app, /templates, /about, /pricing, /help,
+ * /contact, /design/[type] for non-dev categories. Listed with `alternates.languages`
+ * so Google knows they're translated equivalents.
+ *
+ * zh-only routes (still emitted; not listed under /en):
+ *  - /templates/[type]/* — marketing.ts not yet translated; /en notFound()s
+ *  - /pricing/student — TW academy plan
+ *  - /ceiling /floor /raised-floor — TW construction tools
+ *  - /calc/apron-tilt — not localized
+ *  - /changelog
+ */
+
+const TW_ONLY_ROUTES = ["calc/apron-tilt", "ceiling", "floor", "raised-floor", "changelog"];
+
+function biLocaleEntry(
+  path: string,
+  changeFrequency: "weekly" | "monthly" = "monthly",
+  priority = 0.8,
+  lastModified: Date = new Date(),
+): MetadataRoute.Sitemap[number] {
+  const zhUrl = `${BASE}${path}`;
+  const enUrl = `${BASE}/en${path}`;
+  return {
+    url: zhUrl,
+    lastModified,
+    changeFrequency,
+    priority,
+    alternates: {
+      languages: {
+        "zh-TW": zhUrl,
+        en: enUrl,
+        "x-default": zhUrl,
+      },
+    },
+  };
+}
+
+function twOnlyEntry(
+  path: string,
+  changeFrequency: "weekly" | "monthly" = "monthly",
+  priority = 0.6,
+  lastModified: Date = new Date(),
+): MetadataRoute.Sitemap[number] {
+  return {
+    url: `${BASE}${path}`,
+    lastModified,
+    changeFrequency,
+    priority,
+  };
+}
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${BASE}/app`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
-    { url: `${BASE}/templates`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
-    { url: `${BASE}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${BASE}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${BASE}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE}/changelog`, lastModified: now, changeFrequency: "weekly", priority: 0.4 },
-    { url: `${BASE}/calc/apron-tilt`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    // 裝潢工具(訪客可看銷售頁,登入有權限直進工具)— SEO 入口頁優先級對齊家具介紹頁
-    { url: `${BASE}/ceiling`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${BASE}/floor`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
-    { url: `${BASE}/raised-floor`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    biLocaleEntry("/", "weekly", 1, now),
+    biLocaleEntry("/app", "weekly", 0.95, now),
+    biLocaleEntry("/templates", "weekly", 0.95, now),
+    biLocaleEntry("/about", "monthly", 0.9, now),
+    biLocaleEntry("/pricing", "monthly", 0.9, now),
+    biLocaleEntry("/help", "monthly", 0.5, now),
+    biLocaleEntry("/contact", "monthly", 0.5, now),
   ];
-  // 開發中家具不收錄到 sitemap（避免 Google 收錄到不能用的頁）
+
+  const twOnlyRoutes: MetadataRoute.Sitemap = TW_ONLY_ROUTES.map((path) =>
+    twOnlyEntry(`/${path}`, "monthly", path === "changelog" ? 0.4 : 0.85, now),
+  );
+
+  // 開發中家具不收錄
   const DEV_CATEGORIES = new Set(["chinese-cabinet", "bed", "coat-rack"]);
   const designRoutes: MetadataRoute.Sitemap = FURNITURE_CATALOG
     .filter((e) => !DEV_CATEGORIES.has(e.category))
-    .map((e) => ({
-      url: `${BASE}/design/${e.category}`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    }));
-  // /templates/[type] 介紹頁（主力 10 模板）— SEO 入口頁，優先級拉高
-  const templateRoutes: MetadataRoute.Sitemap = FEATURED_TEMPLATE_CATEGORIES
-    .map((c) => ({
-      url: `${BASE}/templates/${c}`,
-      lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: 0.85,
-    }));
-  return [...staticRoutes, ...templateRoutes, ...designRoutes];
+    .map((e) => biLocaleEntry(`/design/${e.category}`, "monthly", 0.8, now));
+
+  // /templates/[type]/* — zh only (marketing.ts not translated yet)
+  const templateRoutes: MetadataRoute.Sitemap = FEATURED_TEMPLATE_CATEGORIES.map((c) =>
+    twOnlyEntry(`/templates/${c}`, "monthly", 0.85, now),
+  );
+
+  return [...staticRoutes, ...twOnlyRoutes, ...templateRoutes, ...designRoutes];
 }
