@@ -699,6 +699,13 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
       for (const leg of legs) {
         const cx = leg.origin.x;
         const cz = leg.origin.z;
+        // 斜腳：下橫撐 mortise 也跟著斜（兩面都用 rotZ，跟 apron 同邏輯）
+        const lsZRotZ = (_splayDxForLegs !== 0 && legHeight > 0)
+          ? Math.sign(cx || 1) * Math.atan(Math.abs(_splayDxForLegs) / legHeight)
+          : 0;
+        const lsXRotZ = (_splayDzForLegs !== 0 && legHeight > 0)
+          ? Math.sign(cz || 1) * Math.atan(Math.abs(_splayDzForLegs) / legHeight)
+          : 0;
         if (lowerCanHalfStagger) {
           leg.mortises.push(
             // Z 面 mortise（接 Z 軸 = 左右下橫撐, 上移）— 上榫
@@ -708,6 +715,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerUpperTenonH,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsZRotZ ? { rotZ: lsZRotZ } : {}),
             },
             // X 面 mortise（接 X 軸 = 前後下橫撐, 靜止）— 下榫
             {
@@ -716,6 +724,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerLowerTenonH,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsXRotZ ? { rotZ: lsXRotZ } : {}),
             },
           );
         } else {
@@ -726,6 +735,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsZRotZ ? { rotZ: lsZRotZ } : {}),
             },
             {
               origin: { x: cx > 0 ? -1 : 1, y: lsXCenterY, z: 0 },
@@ -733,6 +743,7 @@ export const squareStool: FurnitureTemplate = (input): FurnitureDesign => {
               length: lowerTenonW,
               width: lowerTenonThick,
               through: lsThrough,
+              ...(lsXRotZ ? { rotZ: lsXRotZ } : {}),
             },
           );
         }
@@ -826,13 +837,13 @@ function legMortisesForApron(
   const through = opts.apronThrough ?? false;
   const splayDx = opts.splayDx ?? 0;
   const splayDz = opts.splayDz ?? 0;
-  // 斜腳：榫眼跟著牙板斜（user 2026-05-27 推翻 2026-05-26 的「腳中心軸不轉」決定）
-  // - Z 面榫（左右牙板）：牙板沿 Z 軸，因 splayDx 在 X-Y 平面內傾斜 → mortise 繞 part-local Z 軸轉
-  // - X 面榫（前後牙板）：牙板沿 X 軸，因 splayDz 在 Z-Y 平面內傾斜 → mortise 繞 part-local X 軸轉
+  // 斜腳：榫眼跟著牙板斜（user 2026-05-27 確認「透視過去的牙條榫」要 tilt）
+  // 兩面 mortise 都用 rotZ，因為 part-local Z 軸 = SVG y 軸（FRONT 視圖看 X-Y 平面，
+  // tilt 視覺需要繞 Z 軸；繞 X 軸的 rotation 在 FRONT 視圖會 invariant 看不出來）
   const zFaceRotZ = (splayDx !== 0 && legHeight > 0)
     ? Math.sign(corner.x || 1) * Math.atan(Math.abs(splayDx) / legHeight)
     : 0;
-  const xFaceRotX = (splayDz !== 0 && legHeight > 0)
+  const xFaceRotZ = (splayDz !== 0 && legHeight > 0)
     ? Math.sign(corner.z || 1) * Math.atan(Math.abs(splayDz) / legHeight)
     : 0;
   // 牙板中心 Y（leg-local）= legHeight − apronDropFromTop − apronWidth/2
@@ -858,7 +869,7 @@ function legMortisesForApron(
       length: apronLowerTenonH,
       width: apronTenonThick,
       through,
-      rotX: xFaceRotX || undefined,
+      rotZ: xFaceRotZ || undefined,
     },
   ];
 }
