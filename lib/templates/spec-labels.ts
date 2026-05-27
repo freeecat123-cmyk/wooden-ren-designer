@@ -172,6 +172,63 @@ export const SPEC_LABEL_EN: Record<string, string> = {
   balustradeStyle: "Balustrade style",
   angledRack: "Angled shoe shelves",
   angledRackTilt: "Angle (°)",
+
+  // === Tier-2 long-tail (deduplicated against the main map above) ===
+  backPanelBottomArch: "Bottom-edge arch rise (mm)",
+  backPanelCornerR: "Curved panel corner radius (mm)",
+  backPanelEmbed: "Backrest cylinder embed depth (mm)",
+  backPanelFaceBend: "Curved panel face bend (mm)",
+  backPanelHeight: "Back panel height (mm)",
+  backPanelInset: "Back panel inset (mm)",
+  backPanelMaterial: "Back panel material",
+  leftWidthMm: "Left column width (mm)",
+  rightWidthMm: "Right column width (mm)",
+  singleLayerLeftWidthMm: "Left column width (mm)",
+  singleLayerRightWidthMm: "Right column width (mm)",
+  legEdgeStyle: "Leg edge style",
+  pedestalTopGap: "Pedestal-top gap (mm)",
+  pedestalStretcherHeight: "Pedestal stretcher floor height (mm)",
+  headHeight: "Headboard height (mm)",
+  wallHeight: "Ceiling height (mm)",
+  ceilingHeight: "Ceiling height (mm)",
+  withFrenchCleat: "Add French cleat",
+
+  // Round-table / lazy-susan / center stretcher
+  withLazySusanBearing: "Lazy Susan bearing",
+  withTrim: "Add trim molding",
+  withMolding: "Add molding",
+
+  // Box / dovetail-box detail
+  segmentCount: "Segment count",
+  angleDeg: "Angle (°)",
+  insideDimsMode: "Inside-dim mode",
+
+  // Coat rack
+  hookCount: "Hook count",
+  hookHeight: "Hook height (mm)",
+
+  // Bed
+  mattressLength: "Mattress length (mm)",
+  mattressWidth: "Mattress width (mm)",
+  slatCount: "Slat count",
+};
+
+/**
+ * spec.help EN map. Long-tail; only the most-commonly-hovered tooltips translated.
+ * Missing → falls back to spec.help (zh).
+ */
+export const SPEC_HELP_EN: Record<string, string> = {
+  legInset: "Distance from leg center to seat edge. > 0 makes the top overhang the legs — crisper visual.",
+  splayAngle: "Splay angle relative to vertical, in the splayed-leg family. Default ~3° is mild; 10°+ reads boldly (Nordic), max ~15°.",
+  legPenetratingTenon: "Checked: apron / stretcher tenons go all the way through the leg (Ming-style decorative). Unchecked: blind tenon at 2/3 mother thickness.",
+  seatPenetratingTenon: "Checked: leg-top tenon passes through the seat (visible end-grain — traditional). Unchecked: blind tenon at ≤ 4/5 seat thickness.",
+  withLowerStretcher: "Adds a stretcher ring at the lower 1/4 of leg height — significantly stiffer; classic four-leg stool detail.",
+  lowerStretcherHeight: "0 = auto (22% of leg height).",
+  lowerStretcherStaggerMm: "How much the left/right lower stretchers ride above the front/back pair. 0 = even-height (auto half-lap to avoid clash).",
+  apronDropFromTop: "Distance from apron's top face down to the seat's bottom edge. Small stools should leave 10–15 mm so it doesn't look top-heavy.",
+  apronStaggerMm: "How much the front/back aprons drop relative to the left/right pair. 0 = even-height (auto half-lap to avoid clash).",
+  lockTotalHeight: "Locked: total height is fixed; remaining height after each tier becomes the leg, min 30 mm (warning shown if smaller). Unlocked: legs are set directly, lower zone fills remainder.",
+  seatBendMm: "Whole seat bends like a laminated panel — center dips for comfort; corner mortise positions are unaffected. > 0 overrides saddle / edge profile.",
 };
 
 export function specLabel(spec: OptionSpec, locale: string): string {
@@ -182,9 +239,12 @@ export function specLabel(spec: OptionSpec, locale: string): string {
   return spec.label;
 }
 
-/** spec.help 是次要 tooltip，現階段一律維持 zh；之後可在這填 EN_HELP[key]。 */
+/** spec.help — EN tooltip lookup; falls back to spec.help (zh). */
 export function specHelp(spec: OptionSpec, locale: string): string | undefined {
-  void locale;
+  if (locale === "en") {
+    const en = SPEC_HELP_EN[spec.key];
+    if (en) return en;
+  }
   return spec.help;
 }
 

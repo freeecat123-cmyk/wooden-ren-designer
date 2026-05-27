@@ -42,7 +42,7 @@ import { DeflectionHints } from "@/components/DeflectionHints";
 import { SceneThemeToggle } from "@/components/SceneThemeToggle";
 import { SCENE_THEMES, type SceneThemeId } from "@/lib/design/scene-themes";
 import { GROUP_META, GROUP_ORDER, groupLabel } from "@/lib/design/option-groups";
-import { specLabel, choiceLabel } from "@/lib/templates/spec-labels";
+import { specLabel, choiceLabel, specHelp } from "@/lib/templates/spec-labels";
 import { MaterialAttributesPanel } from "@/components/MaterialAttributesPanel";
 import { StylePresetButtons } from "@/components/design/StylePresetButtons";
 import { StyleMismatchWarning } from "@/components/design/StyleMismatchWarning";
@@ -1254,6 +1254,7 @@ function OptionField({
   locale: string;
 }) {
   const label = specLabel(spec, locale);
+  const help = specHelp(spec, locale);
   const choiceVisible = (
     dep: import("@/lib/types").OptionDependency | undefined,
   ): boolean => {
@@ -1312,7 +1313,7 @@ function OptionField({
       if (wmax !== null) effectiveMax = Math.min(effectiveMax ?? 99999, wmax);
     }
     return (
-      <label className="flex flex-col text-xs" title={spec.help}>
+      <label className="flex flex-col text-xs" title={help}>
         <span className="text-zinc-700 mb-0.5 truncate">
           {label}
           {spec.unit && <span className="text-zinc-400 ml-1">·{spec.unit}</span>}
@@ -1344,13 +1345,13 @@ function OptionField({
             partIds={allPartIds ? resolvePartIds(spec.key, allPartIds) : undefined}
           />
         )}
-        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
+        {help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{help}</span>}
       </label>
     );
   }
   if (spec.type === "select") {
     return (
-      <label className="flex flex-col text-xs" title={spec.help}>
+      <label className="flex flex-col text-xs" title={help}>
         <span className="text-zinc-700 mb-0.5 truncate">{label}</span>
         <select
           name={spec.key}
@@ -1363,7 +1364,7 @@ function OptionField({
             </option>
           ))}
         </select>
-        {spec.help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{spec.help}</span>}
+        {help && <span className="mt-0.5 text-[10px] text-zinc-500 line-clamp-1 hover:line-clamp-none">{help}</span>}
       </label>
     );
   }
@@ -1393,7 +1394,7 @@ function OptionField({
         name={spec.key}
         defaultChecked={Boolean(value)}
         label={label}
-        help={spec.help}
+        help={help}
       />
       {legReadout && (
         <label className="flex flex-col text-xs">
