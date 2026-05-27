@@ -45,7 +45,7 @@ const isRoundFamilyShape = (part: Part): boolean => {
   );
 };
 
-export type PartView = "front" | "top" | "side";
+export type PartView = "front" | "top" | "side" | "bottom";
 export const ZOOM_LEVELS = [1, 2, 3, 5, 8] as const;
 export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
@@ -189,6 +189,7 @@ export function PartDrawing({
           { view: "front", title: "正視", titleEn: "FRONT" },
           { view: "top", title: "俯視", titleEn: "TOP" },
           { view: "side", title: "側視", titleEn: "SIDE" },
+          { view: "bottom", title: "仰視", titleEn: "BOTTOM" },
         ];
         const filtered = singleView
           ? VIEWS.filter((v) => v.view === singleView)
@@ -197,7 +198,7 @@ export function PartDrawing({
           ? "grid grid-cols-1 gap-2"
           : viewLayout === "stack"
           ? "grid grid-cols-1 gap-4"
-          : "grid grid-cols-3 gap-2";
+          : "grid grid-cols-2 gap-2";
         return (
           <div className={gridClass}>
             {filtered.map(({ view, title, titleEn }, vIdx) => {
@@ -262,21 +263,29 @@ export function PartDrawing({
                   }}
                   overlayContent={(ctx) => (
                     <>
-                      <T1Dimensions ctx={ctx} part={part} view={view} />
-                      <T2Annotations ctx={ctx} part={part} view={view} />
-                      <GrainArrow ctx={ctx} part={part} view={view} />
-                      <ChamferRoundAnnotation ctx={ctx} part={part} view={view} />
-                      <FacingMark ctx={ctx} part={part} view={view} />
-                      <ShapeSpecificAnnotation
-                        ctx={ctx}
-                        part={part}
-                        view={view}
-                      />
-                      <CompoundMiterAnnotation
-                        ctx={ctx}
-                        part={part}
-                        view={view}
-                      />
+                      {/* 仰視 BOTTOM 內部用 mirror design 渲染、原 part 座標跟
+                          投影對不上，先跳過 annotation overlay，等 follow-up 把
+                          annotation 也 mirror 才開啟。仰視主要看「腳底面榫眼位置」，
+                          尺寸看其他 3 個 view 已足夠。 */}
+                      {view !== "bottom" && (
+                        <>
+                          <T1Dimensions ctx={ctx} part={part} view={view} />
+                          <T2Annotations ctx={ctx} part={part} view={view} />
+                          <GrainArrow ctx={ctx} part={part} view={view} />
+                          <ChamferRoundAnnotation ctx={ctx} part={part} view={view} />
+                          <FacingMark ctx={ctx} part={part} view={view} />
+                          <ShapeSpecificAnnotation
+                            ctx={ctx}
+                            part={part}
+                            view={view}
+                          />
+                          <CompoundMiterAnnotation
+                            ctx={ctx}
+                            part={part}
+                            view={view}
+                          />
+                        </>
+                      )}
                     </>
                   )}
                 />

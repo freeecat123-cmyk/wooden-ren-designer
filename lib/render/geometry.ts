@@ -18,7 +18,7 @@ export function worldExtents(part: Part) {
   return { xExt, yExt, zExt };
 }
 
-export type OrthoView = "front" | "side" | "top";
+export type OrthoView = "front" | "side" | "top" | "bottom";
 
 /**
  * 通用零件 silhouette：取零件 local-frame 採樣點 → 套形狀修飾（taper/splay/

@@ -22,7 +22,7 @@ import React from "react";
 import type { Part } from "@/lib/types";
 import { worldExtents } from "@/lib/render/geometry";
 
-export type PartView = "front" | "top" | "side";
+export type PartView = "front" | "top" | "side" | "bottom";
 
 export interface BrokenViewSpec {
   /** 是否切割這個 view。 */
@@ -66,7 +66,8 @@ export function computeBrokenViewSpec(
 ): BrokenViewSpec {
   const we = worldExtents(part);
   const horiz = view === "side" ? we.zExt : we.xExt;
-  const vert = view === "top" ? we.zExt : we.yExt;
+  // bottom 跟 top 同樣是看 XZ 平面，垂直軸是 world Z
+  const vert = view === "top" || view === "bottom" ? we.zExt : we.yExt;
   if (!needBrokenView) {
     return {
       active: false,

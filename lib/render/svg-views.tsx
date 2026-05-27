@@ -693,10 +693,36 @@ export function mortiseLocalBox(part: Part, m: Part["mortises"][number]): LocalB
   }
 }
 
+/**
+ * 仰視 BOTTOM view：把 design 沿 XZ 平面（Y=0）鏡像，內部當作 top view 渲染。
+ *
+ * 鏡像 = 每個 part 的 origin.y 反號 + 繞 part-local X 軸再轉 180°。後者讓 part
+ * 局部「底面」（local +Y）轉到世界 -Y 方向，等同從下方看的視角。joinery
+ * (tenons/mortises) 都在 part-local 座標、跟著 rotation 自動翻面，不必再
+ * 個別翻 origin.y。
+ *
+ * 此處不動 part.shape 的 Y 不對稱參數（如 tapered.bottomScale）；
+ * π rotation 已把 local +Y 轉到世界 -Y，幾何 silhouette 會自然從反面看。
+ */
+function mirrorYDesign(d: import("@/lib/types").FurnitureDesign): import("@/lib/types").FurnitureDesign {
+  return {
+    ...d,
+    parts: d.parts.map((p) => ({
+      ...p,
+      origin: { x: p.origin.x, y: -p.origin.y, z: p.origin.z },
+      rotation: {
+        x: (p.rotation?.x ?? 0) + Math.PI,
+        y: p.rotation?.y ?? 0,
+        z: p.rotation?.z ?? 0,
+      },
+    })),
+  };
+}
+
 /** Single orthographic view with engineering-drawing frame and dim lines */
 function OrthoViewImpl({
-  design,
-  view,
+  design: rawDesign,
+  view: rawView,
   title,
   titleEn,
   className,
@@ -763,6 +789,11 @@ function OrthoViewImpl({
   /** 是否回 <g> 而非 <svg>，給 PaperSheet 多 view 共用同一 outer SVG。 */
   embedded?: boolean;
 }) {
+  // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
+  // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
+  const isBottomView = rawView === "bottom";
+  const view: OrthoViewKind = isBottomView ? "top" : rawView;
+  const design = isBottomView ? mirrorYDesign(rawDesign) : rawDesign;
   // 零件圖模式：只留指定 part、把 origin 拉到 (0,0,0)。
   // 預設 isolatePartId === undefined → renderDesign === design，行為與既有完全一致。
   const renderDesign = isolatePartId

@@ -139,7 +139,9 @@ export function PartDrawingsPanel({ design }: Props) {
                       ? "正視"
                       : zoomedView === "top"
                       ? "俯視"
-                      : "側視"}
+                      : zoomedView === "side"
+                      ? "側視"
+                      : "仰視"}
                     ）
                   </span>
                 )}
@@ -165,6 +167,7 @@ export function PartDrawingsPanel({ design }: Props) {
                   { v: "front" as PartView, label: "正視" },
                   { v: "top" as PartView, label: "俯視" },
                   { v: "side" as PartView, label: "側視" },
+                  { v: "bottom" as PartView, label: "仰視" },
                 ]
               ).map(({ v, label }) => (
                 <div key={v} className="flex items-center gap-1">

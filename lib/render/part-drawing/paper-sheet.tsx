@@ -86,7 +86,8 @@ export function PartDrawingPaperSheet({
   const gap = L_LAYOUT_GAP;
 
   // L 佈局 bbox（包含兩端+中間 view 邊界共 4 條 chain pad）
-  const lLayoutW = fW + sW + gap + padPaper * 4;
+  // 右半（top-right 仰視 + 中-right 側視）寬度 = max(fW, sW)，因為仰視寬 = fW、側視寬 = sW
+  const lLayoutW = fW + Math.max(fW, sW) + gap + padPaper * 4;
   const lLayoutH = tH + fH + gap + padPaper * 4;
   // 置中於 inner drawing area（不夠時 clamp 0）
   const offX = Math.max(0, (innerW - lLayoutW) / 2);
@@ -113,6 +114,14 @@ export function PartDrawingPaperSheet({
     y: frontVp.y,
     w: sW,
     h: fH,
+  };
+  // 仰視 BOTTOM viewport：放在 topVp 右側（與 topVp 同高，與 sideVp 同 X）
+  // 幾何是 top view 的 Y 鏡像，寬高跟 topVp 一致（xExt × zExt）
+  const bottomVp = {
+    x: sideVp.x,
+    y: topVp.y,
+    w: fW,
+    h: tH,
   };
 
   // ─── 端面 detail view（複斜腳專用，1:2 放大）─────────────────────────────
@@ -374,6 +383,21 @@ export function PartDrawingPaperSheet({
         paperViewport={sideVp}
         overlayContent={overlayContent("side")}
       />
+      {/* 仰視 BOTTOM：top view 的 Y 鏡像；不掛 annotation overlay（原 part 座標跟
+          mirror design 對不上，等 follow-up 再啟）。主要用來看「底面榫眼位置」。 */}
+      <OrthoView
+        design={design}
+        view="bottom"
+        title="仰視"
+        titleEn="BOTTOM"
+        isolatePartId={part.id}
+        showDimensions={false}
+        embedded
+        paperMode="a4-landscape"
+        paperScale={scale}
+        paperFrame={false}
+        paperViewport={bottomVp}
+      />
 
       {/* ─── 端面 detail view（1:2 放大）── 複斜腳專用 ─── */}
       {endFaceDetail && (() => {
@@ -489,6 +513,7 @@ export function PartDrawingPaperSheet({
           { label: "俯視 TOP", vp: topVp },
           { label: "正視 FRONT", vp: frontVp },
           { label: "側視 SIDE", vp: sideVp },
+          { label: "仰視 BOTTOM", vp: bottomVp },
         ] as const).map((v, i) => {
           const labelX = v.vp.x - padPaper * 0.8;
           const labelY = v.vp.y - padPaper * 0.5;

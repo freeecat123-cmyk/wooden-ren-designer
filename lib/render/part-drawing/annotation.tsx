@@ -25,7 +25,7 @@ import {
 } from "@/lib/render/svg-views";
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export type PartView = "front" | "side" | "top";
+export type PartView = "front" | "side" | "top" | "bottom";
 
 /**
  * 取得單一 view 在第三角法下的水平/垂直 mm 尺寸。
