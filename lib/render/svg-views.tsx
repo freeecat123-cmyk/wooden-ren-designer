@@ -756,6 +756,7 @@ function OrthoViewImpl({
   paperViewport,
   paperFrame = true,
   embedded = false,
+  locale = "zh-TW",
 }: ViewProps & {
   view: OrthoViewKind;
   title: string;
@@ -806,7 +807,10 @@ function OrthoViewImpl({
   paperFrame?: boolean;
   /** 是否回 <g> 而非 <svg>，給 PaperSheet 多 view 共用同一 outer SVG。 */
   embedded?: boolean;
+  /** 'zh-TW'（預設）或 'en'。影響 SVG 內 dim label 文字（寬/深/高/內/外伸…）。 */
+  locale?: string;
 }) {
+  const isEn = locale === "en";
   // 仰視 BOTTOM = top view 看「Y 軸鏡像」後的 design。
   // 內部所有 view ===、投影、visibility 邏輯都用 top 跑，使用者標題顯示「仰視」。
   const isBottomView = rawView === "bottom";
@@ -3075,7 +3079,7 @@ function OrthoViewImpl({
           x1={-w / 2}
           x2={w / 2}
           y={drawAreaTop + h + 28}
-          label={`${view === "side" ? "深" : "寬"} ${w} mm`}
+          label={isEn ? `${view === "side" ? "Depth" : "Width"} ${w} mm` : `${view === "side" ? "深" : "寬"} ${w} mm`}
         />
       )}
 
@@ -3098,7 +3102,7 @@ function OrthoViewImpl({
             x={w / 2 + 28}
             y1={view === "top" ? -h / 2 : -h}
             y2={view === "top" ? h / 2 : 0}
-            label={`${view === "top" ? "深" : "高"} ${h} mm`}
+            label={isEn ? `${view === "top" ? "Depth" : "Height"} ${h} mm` : `${view === "top" ? "深" : "高"} ${h} mm`}
           />
         );
       })()}
@@ -3154,14 +3158,14 @@ function OrthoViewImpl({
                       x1={maxX + legSize / 2}
                       x2={w / 2}
                       y={-h / 2 - 16}
-                      label={`外伸 ${Math.round(overhangXr)}`}
+                      label={isEn ? `Overhang ${Math.round(overhangXr)}` : `外伸 ${Math.round(overhangXr)}`}
                     />
                     <VerticalDimensionLine
                       arrowId={`arr-${view}`}
                       x={w / 2 + 16}
                       y1={maxZ + legSize / 2}
                       y2={h / 2}
-                      label={`外伸 ${Math.round(overhangZb)}`}
+                      label={isEn ? `Overhang ${Math.round(overhangZb)}` : `外伸 ${Math.round(overhangZb)}`}
                     />
                   </>
                 )}
@@ -3214,7 +3218,9 @@ function OrthoViewImpl({
                   const footProtrudeX = maxX + maxSplayDx + legSize / 2 - w / 2;
                   const footProtrudeZ = maxZ + maxSplayDz + legSize / 2 - h / 2;
                   const protrudeLabel = (mm: number) =>
-                    mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`;
+                    isEn
+                      ? (mm > 0 ? `Footprint past seat ${Math.round(mm)}` : `Foot inset ${Math.round(-mm)}`)
+                      : (mm > 0 ? `落地超出椅面 ${Math.round(mm)}` : `落地內縮 ${Math.round(-mm)}`);
                   return (
                     <g clipPath={`url(#leftHalf-${view})`}>
                       {/* 橫撐上下緣 Y 的腳框（淺紅）+ 落地點腳框（深紅）
@@ -3292,26 +3298,30 @@ function OrthoViewImpl({
             );
           }
           // front / side：主面厚 + 淨高 + 座面高 + 層板 + 橫撐 / 牙板 / 椅背
-          const labelMain = mainKind === "seat" ? "座板" : "桌面";
-          const labelClear = mainKind === "seat" ? "座下高" : "桌下淨高";
+          const labelMain = isEn
+            ? (mainKind === "seat" ? "Seat" : "Top")
+            : (mainKind === "seat" ? "座板" : "桌面");
+          const labelClear = isEn
+            ? (mainKind === "seat" ? "Under-seat" : "Under-top clear")
+            : (mainKind === "seat" ? "座下高" : "桌下淨高");
           // 把所有「會疊在左側的高度標線」整合：座面高 + 層板 + cross-pieces
           const leftStack: { y: number; label: string }[] = [];
           if (mainKind === "seat") {
             leftStack.push({
               y: mainTopY,
-              label: `座面 ${Math.round(mainTopY)}`,
+              label: isEn ? `Seat ${Math.round(mainTopY)}` : `座面 ${Math.round(mainTopY)}`,
             });
           }
           for (const s of shelves) {
             leftStack.push({
               y: s.topY,
-              label: `${s.nameZh} ${Math.round(s.topY)}`,
+              label: `${partName(s, locale)} ${Math.round(s.topY)}`,
             });
           }
           for (const c of crossPieces) {
             leftStack.push({
               y: c.topY,
-              label: `${c.nameZh} ${Math.round(c.topY)}`,
+              label: `${partName(c, locale)} ${Math.round(c.topY)}`,
             });
           }
           // 排序去重（同 Y 只留一個）
@@ -3392,7 +3402,7 @@ function OrthoViewImpl({
                       fill="#444"
                       fontFamily="sans-serif"
                     >
-                      {bare(c.nameZh)} {Math.round(c.yExt)}
+                      {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {Math.round(c.yExt)}
                     </text>
                   );
                 });
@@ -3417,8 +3427,8 @@ function OrthoViewImpl({
                       <line x1={-halfL} y1={yLine} x2={halfL} y2={yLine}
                         markerStart={`url(#arr-${view})`} markerEnd={`url(#arr-${view})`} />
                       <text x={0} y={yLine + 11} textAnchor="middle" fontSize={9} stroke="none">
-                        {bare(c.nameZh)} 淨長 {Math.round(c.cutLengthMm)}
-                        {showAngle ? ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°` : ""}
+                        {bare(isEn ? (partName(c, locale) ?? c.nameZh) : c.nameZh)} {isEn ? "net" : "淨長"} {Math.round(c.cutLengthMm)}
+                        {showAngle ? (isEn ? ` bevel ∠${c.cutAngleDeg.toFixed(1)}°` : ` 切角 ∠${c.cutAngleDeg.toFixed(1)}°`) : ""}
                       </text>
                     </g>
                   );
@@ -3475,7 +3485,7 @@ function OrthoViewImpl({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={`內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${Math.round(innerW)} mm` : `內 ${Math.round(innerW)} mm`}
               />
               {/* 內高 — 在右側外高內側再加一條（往內偏 32px） */}
               <VerticalDimensionLine
@@ -3483,7 +3493,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={sTop}
                 y2={sBottom}
-                label={`內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${Math.round(innerH)} mm` : `內 ${Math.round(innerH)} mm`}
               />
               {/* 腳高 — 右側更靠內，從底板下緣到地面 */}
               {legHeight > 0 && (
@@ -3492,7 +3502,7 @@ function OrthoViewImpl({
                   x={w / 2 + 140}
                   y1={sLegBottom}
                   y2={sFloor}
-                  label={`腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${Math.round(legHeight)} mm` : `腳 ${Math.round(legHeight)} mm`}
                 />
               )}
               {/* zone 高度鏈 — 左側堆疊 */}
@@ -3597,7 +3607,7 @@ function OrthoViewImpl({
                 x1={-w / 2}
                 x2={-w / 2 + innerD}
                 y={drawAreaTop + h + 80}
-                label={`內深 ${Math.round(innerD)} mm`}
+                label={isEn ? `Inner depth ${Math.round(innerD)} mm` : `內深 ${Math.round(innerD)} mm`}
               />
               {/* 內高 — 右側內側多一條 */}
               <VerticalDimensionLine
@@ -3605,7 +3615,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={-topBottomY}
                 y2={-bottomTopY}
-                label={`內 ${Math.round(innerH)} mm`}
+                label={isEn ? `Inner ${Math.round(innerH)} mm` : `內 ${Math.round(innerH)} mm`}
               />
               {legHeight > 0 && (
                 <VerticalDimensionLine
@@ -3613,7 +3623,7 @@ function OrthoViewImpl({
                   x={w / 2 + 140}
                   y1={-legHeight}
                   y2={drawAreaTop + h}
-                  label={`腳 ${Math.round(legHeight)} mm`}
+                  label={isEn ? `Leg ${Math.round(legHeight)} mm` : `腳 ${Math.round(legHeight)} mm`}
                 />
               )}
             </>
@@ -3630,7 +3640,7 @@ function OrthoViewImpl({
                 x1={-w / 2 + panelT}
                 x2={w / 2 - panelT}
                 y={drawAreaTop + h + 80}
-                label={`內 ${Math.round(innerW)} mm`}
+                label={isEn ? `Inner ${Math.round(innerW)} mm` : `內 ${Math.round(innerW)} mm`}
               />
               {/* 內深 — 右側內側 */}
               <VerticalDimensionLine
@@ -3638,7 +3648,7 @@ function OrthoViewImpl({
                 x={w / 2 + 96}
                 y1={-h / 2}
                 y2={-h / 2 + innerD}
-                label={`內深 ${Math.round(innerD)} mm`}
+                label={isEn ? `Inner depth ${Math.round(innerD)} mm` : `內深 ${Math.round(innerD)} mm`}
               />
             </>
           );
@@ -3890,13 +3900,13 @@ export function ThreeViewLayout({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT VIEW" : "正視圖"} titleEn={isEn ? "" : "FRONT VIEW"} joineryMode={joineryMode} locale={locale} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE VIEW" : "側視圖"} titleEn={isEn ? "" : "SIDE VIEW"} joineryMode={joineryMode} locale={locale} />
       </div>
       <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} />
+        <OrthoView design={design} view="top" title={isEn ? "TOP VIEW" : "俯視圖"} titleEn={isEn ? "" : "TOP VIEW"} joineryMode={joineryMode} locale={locale} />
       </div>
     </div>
   );
@@ -3906,17 +3916,18 @@ export function ThreeViewLayout({
  * Compact three-view strip — 3 views side-by-side 固定小尺寸，給 A4 報價單用。
  * 每個 view 最大高度 ~28mm，3 個總寬度 ~70mm，可放進文件抬頭不佔太多版面。
  */
-export function CompactThreeViews({ design }: { design: FurnitureDesign }) {
+export function CompactThreeViews({ design, locale = "zh-TW" }: { design: FurnitureDesign; locale?: string }) {
+  const isEn = locale === "en";
   return (
     <div className="flex gap-2 compact-three-views">
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="front" title="正視圖" titleEn="FRONT" />
+        <OrthoView design={design} view="front" title={isEn ? "FRONT" : "正視圖"} titleEn={isEn ? "" : "FRONT"} locale={locale} />
       </div>
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="side" title="側視圖" titleEn="SIDE" />
+        <OrthoView design={design} view="side" title={isEn ? "SIDE" : "側視圖"} titleEn={isEn ? "" : "SIDE"} locale={locale} />
       </div>
       <div className="flex-1 border border-zinc-300 rounded overflow-hidden bg-white">
-        <OrthoView design={design} view="top" title="俯視圖" titleEn="TOP" />
+        <OrthoView design={design} view="top" title={isEn ? "TOP" : "俯視圖"} titleEn={isEn ? "" : "TOP"} locale={locale} />
       </div>
     </div>
   );

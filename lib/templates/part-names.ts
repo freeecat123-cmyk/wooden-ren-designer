@@ -13,6 +13,8 @@
 
 import type { Part } from "@/lib/types";
 
+type PartLike = Pick<Part, "id" | "nameZh"> | { id: string; nameZh: string };
+
 const ID_EN: Record<string, string> = {
   // Aprons
   "apron-front": "Front apron",
@@ -123,7 +125,7 @@ function idToSpaced(id: string): string {
   return cap(id.replace(/-/g, " "));
 }
 
-export function partName(part: Part, locale: string): string {
+export function partName(part: PartLike, locale: string): string {
   if (locale !== "en") return part.nameZh;
   const direct = ID_EN[part.id];
   if (direct) return direct;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { OrthoView } from "@/lib/render/svg-views";
 import type { FurnitureDesign } from "@/lib/types";
 
@@ -24,6 +25,10 @@ export function ZoomableThreeViews({
   design: FurnitureDesign;
   joineryMode?: boolean;
 }) {
+  const locale = useLocale();
+  const isEn = locale === "en";
+  const titleFor = (v: ViewKind) => isEn ? VIEW_TITLES[v].en : VIEW_TITLES[v].zh;
+  const titleEnFor = (v: ViewKind) => isEn ? "" : VIEW_TITLES[v].en;
   const [zoomed, setZoomed] = useState<ViewKind | null>(null);
   const [scale, setScale] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,18 +73,19 @@ export function ZoomableThreeViews({
             type="button"
             onClick={() => setZoomed(view)}
             className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm cursor-zoom-in hover:border-amber-400 hover:shadow-md transition relative group text-left"
-            aria-label={`點擊放大${VIEW_TITLES[view].zh}`}
-            title="點擊放大"
+            aria-label={isEn ? `Tap to zoom ${VIEW_TITLES[view].en}` : `點擊放大${VIEW_TITLES[view].zh}`}
+            title={isEn ? "Tap to zoom" : "點擊放大"}
           >
             <OrthoView
               design={design}
               view={view}
-              title={VIEW_TITLES[view].zh}
-              titleEn={VIEW_TITLES[view].en}
+              title={titleFor(view)}
+              titleEn={titleEnFor(view)}
               joineryMode={joineryMode}
+              locale={locale}
             />
             <span className="absolute top-1.5 right-1.5 text-xs bg-zinc-900/70 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
-              🔍 點擊放大
+              {isEn ? "🔍 Tap to zoom" : "🔍 點擊放大"}
             </span>
           </button>
         ))}
@@ -111,7 +117,7 @@ export function ZoomableThreeViews({
                     : "text-zinc-700 hover:bg-zinc-100"
                 }`}
               >
-                {VIEW_TITLES[v].zh}
+                {titleFor(v)}
               </button>
             ))}
             <span className="w-px h-5 bg-zinc-300 mx-0.5" aria-hidden />
@@ -120,28 +126,28 @@ export function ZoomableThreeViews({
               onClick={() => setScale((s) => Math.max(1, s - 0.25))}
               disabled={scale <= 1}
               className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
-              title="縮小 (−)"
+              title={isEn ? "Zoom out (−)" : "縮小 (−)"}
             >−</button>
             <button
               type="button"
               onClick={() => setScale(1)}
               className="min-h-[32px] px-1.5 rounded-full text-[11px] text-zinc-700 hover:bg-zinc-100 tabular-nums min-w-[42px]"
-              title="重設 (0)"
+              title={isEn ? "Reset (0)" : "重設 (0)"}
             >{Math.round(scale * 100)}%</button>
             <button
               type="button"
               onClick={() => setScale((s) => Math.min(4, s + 0.25))}
               disabled={scale >= 4}
               className="min-h-[32px] min-w-[32px] rounded-full text-zinc-700 hover:bg-zinc-100 disabled:opacity-30 text-base leading-none"
-              title="放大 (+)"
+              title={isEn ? "Zoom in (+)" : "放大 (+)"}
             >＋</button>
           </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoomed(null); }}
             className="fixed top-3 right-3 z-[60] w-11 h-11 rounded-full bg-white/95 shadow-lg ring-1 ring-zinc-300 text-zinc-800 text-xl font-bold flex items-center justify-center hover:bg-white"
-            aria-label="關閉放大檢視"
-            title="關閉 (ESC)"
+            aria-label={isEn ? "Close zoomed view" : "關閉放大檢視"}
+            title={isEn ? "Close (ESC)" : "關閉 (ESC)"}
             style={{ marginTop: "env(safe-area-inset-top)" }}
           >
             ×
@@ -167,10 +173,11 @@ export function ZoomableThreeViews({
                 <OrthoView
                   design={design}
                   view={zoomed}
-                  title={VIEW_TITLES[zoomed].zh}
-                  titleEn={VIEW_TITLES[zoomed].en}
+                  title={titleFor(zoomed)}
+                  titleEn={titleEnFor(zoomed)}
                   className="bg-white w-full h-full"
                   joineryMode={joineryMode}
+                  locale={locale}
                 />
               </div>
             </div>
